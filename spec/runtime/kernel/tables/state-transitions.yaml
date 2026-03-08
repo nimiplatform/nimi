@@ -6,175 +6,175 @@ machines:
       - from: ACTIVE
         to: DISABLED
         trigger: UpdateConnector(status=DISABLED)
-        source: K-RPC-011
+        source_rule: K-RPC-011
       - from: DISABLED
         to: ACTIVE
         trigger: UpdateConnector(status=ACTIVE)
-        source: K-RPC-011
+        source_rule: K-RPC-011
   - machine: remote_connector_delete_flow
     states: [PRESENT, DELETE_PENDING, DELETED]
     transitions:
       - from: PRESENT
         to: DELETE_PENDING
         trigger: DeleteConnector_step1_mark_pending
-        source: K-RPC-011
+        source_rule: K-RPC-011
       - from: DELETE_PENDING
         to: DELETE_PENDING
         trigger: DeleteConnector_retry_or_startup_rescan
-        source: K-RPC-011
+        source_rule: K-RPC-011
       - from: DELETE_PENDING
         to: DELETED
         trigger: credential_cleanup_and_registry_delete
-        source: K-RPC-011
+        source_rule: K-RPC-011
   - machine: scenario_job
     states: [SUBMITTED, QUEUED, RUNNING, COMPLETED, FAILED, CANCELED, TIMEOUT]
     transitions:
       - from: SUBMITTED
         to: QUEUED
         trigger: accepted_into_queue
-        source: K-JOB-002
+        source_rule: K-JOB-002
       - from: SUBMITTED
         to: RUNNING
         trigger: provider_accepts_job
-        source: K-JOB-002
+        source_rule: K-JOB-002
       - from: SUBMITTED
         to: FAILED
         trigger: terminal_error_before_run
-        source: K-JOB-002
+        source_rule: K-JOB-002
       - from: SUBMITTED
         to: CANCELED
         trigger: user_cancel
-        source: K-JOB-002
+        source_rule: K-JOB-002
       - from: SUBMITTED
         to: TIMEOUT
         trigger: job_timeout
-        source: K-JOB-002
+        source_rule: K-JOB-002
       - from: QUEUED
         to: RUNNING
         trigger: provider_accepts_job
-        source: K-JOB-002
+        source_rule: K-JOB-002
       - from: QUEUED
         to: FAILED
         trigger: terminal_error_before_run
-        source: K-JOB-002
+        source_rule: K-JOB-002
       - from: QUEUED
         to: CANCELED
         trigger: user_cancel
-        source: K-JOB-002
+        source_rule: K-JOB-002
       - from: QUEUED
         to: TIMEOUT
         trigger: job_timeout
-        source: K-JOB-002
+        source_rule: K-JOB-002
       - from: RUNNING
         to: COMPLETED
         trigger: provider_success
-        source: K-JOB-002
+        source_rule: K-JOB-002
       - from: RUNNING
         to: FAILED
         trigger: provider_or_runtime_failure
-        source: K-JOB-002
+        source_rule: K-JOB-002
       - from: RUNNING
         to: CANCELED
         trigger: user_cancel
-        source: K-JOB-002
+        source_rule: K-JOB-002
       - from: RUNNING
         to: TIMEOUT
         trigger: job_timeout
-        source: K-JOB-002
+        source_rule: K-JOB-002
   - machine: local_model_lifecycle
     states: [INSTALLED, ACTIVE, UNHEALTHY, REMOVED]
     transitions:
       - from: INSTALLED
         to: ACTIVE
         trigger: start_or_health_recovered
-        source: K-LOCAL-005
+        source_rule: K-LOCAL-005
       - from: ACTIVE
         to: UNHEALTHY
         trigger: health_probe_failed
-        source: K-LOCAL-005
+        source_rule: K-LOCAL-005
       - from: UNHEALTHY
         to: ACTIVE
         trigger: recovery_probe_passed
-        source: K-LOCAL-005
+        source_rule: K-LOCAL-005
       - from: ACTIVE
         to: REMOVED
         trigger: remove_model
-        source: K-LOCAL-005
+        source_rule: K-LOCAL-005
       - from: UNHEALTHY
         to: REMOVED
         trigger: force_remove_model
-        source: K-LOCAL-005
+        source_rule: K-LOCAL-005
       - from: ACTIVE
         to: INSTALLED
         trigger: stop_model
-        source: K-LOCAL-005
+        source_rule: K-LOCAL-005
       - from: UNHEALTHY
         to: INSTALLED
         trigger: stop_model_from_unhealthy
-        source: K-LOCAL-005
+        source_rule: K-LOCAL-005
       - from: INSTALLED
         to: REMOVED
         trigger: remove_model_from_installed
-        source: K-LOCAL-005
+        source_rule: K-LOCAL-005
   - machine: local_service_lifecycle
     states: [INSTALLED, ACTIVE, UNHEALTHY, REMOVED]
     transitions:
       - from: INSTALLED
         to: ACTIVE
         trigger: spawn_and_probe_ok
-        source: K-LOCAL-005
+        source_rule: K-LOCAL-005
       - from: ACTIVE
         to: UNHEALTHY
         trigger: health_probe_failed
-        source: K-LOCAL-005
+        source_rule: K-LOCAL-005
       - from: UNHEALTHY
         to: ACTIVE
         trigger: restart_and_probe_ok
-        source: K-LOCAL-005
+        source_rule: K-LOCAL-005
       - from: ACTIVE
         to: REMOVED
         trigger: stop_and_cleanup
-        source: K-LOCAL-005
+        source_rule: K-LOCAL-005
       - from: UNHEALTHY
         to: REMOVED
         trigger: force_stop_and_cleanup
-        source: K-LOCAL-005
+        source_rule: K-LOCAL-005
       - from: ACTIVE
         to: INSTALLED
         trigger: stop_service
-        source: K-LOCAL-005
+        source_rule: K-LOCAL-005
       - from: UNHEALTHY
         to: INSTALLED
         trigger: stop_service_from_unhealthy
-        source: K-LOCAL-005
+        source_rule: K-LOCAL-005
       - from: INSTALLED
         to: REMOVED
         trigger: remove_service_from_installed
-        source: K-LOCAL-005
+        source_rule: K-LOCAL-005
   - machine: model_status
     states: [INSTALLED, PULLING, FAILED, REMOVED]
     transitions:
       - from: INSTALLED
         to: PULLING
         trigger: pull_model_update
-        source: K-MODEL-008
+        source_rule: K-MODEL-008
       - from: PULLING
         to: INSTALLED
         trigger: pull_success
-        source: K-MODEL-008
+        source_rule: K-MODEL-008
       - from: PULLING
         to: FAILED
         trigger: pull_error
-        source: K-MODEL-008
+        source_rule: K-MODEL-008
       - from: INSTALLED
         to: REMOVED
         trigger: remove_model
-        source: K-MODEL-008
+        source_rule: K-MODEL-008
       - from: FAILED
         to: PULLING
         trigger: retry_pull
-        source: K-MODEL-008
+        source_rule: K-MODEL-008
       - from: FAILED
         to: REMOVED
         trigger: remove_failed_model
-        source: K-MODEL-008
+        source_rule: K-MODEL-008

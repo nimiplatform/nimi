@@ -48,3 +48,12 @@ rules:
     source_rules:
       - S-BOUNDARY-001
       - S-BOUNDARY-003
+  - surface: types
+    allowed:
+      - "@nimiplatform/sdk/types"
+    forbidden:
+      - "@nimiplatform/sdk/runtime/internal/**"
+      - "@nimiplatform/sdk/realm/internal/**"
+      - "runtime/internal/**"
+    source_rules:
+      - S-BOUNDARY-001

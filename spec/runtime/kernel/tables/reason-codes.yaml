@@ -14,276 +14,276 @@ codes:
   - name: SESSION_EXPIRED
     value: 7
     family: AUTH
-    source: K-AUTHN-006
+    source_rule: K-AUTHN-006
   - name: AUTH_TOKEN_INVALID
     value: 300
     family: AUTH
-    source: K-AUTHN-007
+    source_rule: K-AUTHN-007
   - name: AUTH_TOKEN_EXPIRED
     value: 301
     family: AUTH
-    source: K-AUTHSVC-013
+    source_rule: K-AUTHSVC-013
   - name: AUTH_UNSUPPORTED_PROOF_TYPE
     value: 302
     family: AUTH
-    source: K-AUTHSVC-013
+    source_rule: K-AUTHSVC-013
   - name: AI_CONNECTOR_NOT_FOUND
     value: 310
     family: CONNECTOR
-    source: K-ERR-004
+    source_rule: K-ERR-004
   - name: AI_CONNECTOR_DISABLED
     value: 311
     family: CONNECTOR
-    source: K-ERR-004
+    source_rule: K-ERR-004
   - name: AI_CONNECTOR_CREDENTIAL_MISSING
     value: 312
     family: CONNECTOR
-    source: K-ERR-004
+    source_rule: K-ERR-004
   - name: AI_CONNECTOR_INVALID
     value: 313
     family: CONNECTOR
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - name: AI_CONNECTOR_IMMUTABLE
     value: 314
     family: CONNECTOR
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - name: AI_CONNECTOR_LIMIT_EXCEEDED
     value: 315
     family: CONNECTOR
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - name: AI_CONNECTOR_ID_REQUIRED
     value: 316
     family: CONNECTOR
-    source: K-KEYSRC-007
+    source_rule: K-KEYSRC-007
   - name: AI_REQUEST_CREDENTIAL_CONFLICT
     value: 330
     family: REQUEST_CREDENTIAL
-    source: K-KEYSRC-002
+    source_rule: K-KEYSRC-002
   - name: AI_REQUEST_CREDENTIAL_MISSING
     value: 211
     family: REQUEST_CREDENTIAL
-    source: K-KEYSRC-007
+    source_rule: K-KEYSRC-007
   - name: AI_REQUEST_CREDENTIAL_INVALID
     value: 212
     family: REQUEST_CREDENTIAL
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - name: AI_APP_ID_REQUIRED
     value: 340
     family: APP
-    source: K-KEYSRC-005
+    source_rule: K-KEYSRC-005
   - name: AI_APP_ID_CONFLICT
     value: 341
     family: APP
-    source: K-KEYSRC-005
+    source_rule: K-KEYSRC-005
   - name: AI_MODEL_ID_REQUIRED
     value: 350
     family: MODEL
-    source: K-KEYSRC-004
+    source_rule: K-KEYSRC-004
   - name: AI_MODEL_NOT_FOUND
     value: 200
     family: MODEL
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - name: AI_MODALITY_NOT_SUPPORTED
     value: 351
     family: MODEL
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - name: AI_LOCAL_MODEL_UNAVAILABLE
     value: 352
     family: MODEL
-    source: K-LOCAL-006
+    source_rule: K-LOCAL-006
   - name: AI_LOCAL_MODEL_PROFILE_MISSING
     value: 353
     family: MODEL
-    source: K-LOCAL-003
+    source_rule: K-LOCAL-003
   - name: AI_LOCAL_MODEL_ALREADY_INSTALLED
     value: 354
     family: MODEL
-    source: K-LOCAL-009
+    source_rule: K-LOCAL-009
   - name: AI_LOCAL_ENDPOINT_REQUIRED
     value: 355
     family: MODEL
-    source: K-LENG-005
+    source_rule: K-LENG-005
   - name: AI_LOCAL_TEMPLATE_NOT_FOUND
     value: 356
     family: MODEL
-    source: K-LOCAL-010
+    source_rule: K-LOCAL-010
   - name: AI_LOCAL_MANIFEST_INVALID
     value: 357
     family: MODEL
-    source: K-LOCAL-009
+    source_rule: K-LOCAL-009
   - name: AI_LOCAL_MODEL_INVALID_TRANSITION
     value: 358
     family: MODEL
-    source: K-LOCAL-005
+    source_rule: K-LOCAL-005
   - name: AI_LOCAL_DOWNLOAD_FAILED
     value: 359
     family: MODEL
-    source: K-LOCAL-024
+    source_rule: K-LOCAL-024
   - name: AI_LOCAL_DOWNLOAD_HASH_MISMATCH
     value: 360
     family: MODEL
-    source: K-LOCAL-024
+    source_rule: K-LOCAL-024
   - name: AI_LOCAL_HF_REPO_INVALID
     value: 361
     family: MODEL
-    source: K-LOCAL-023
+    source_rule: K-LOCAL-023
   - name: AI_LOCAL_HF_SEARCH_FAILED
     value: 362
     family: MODEL
-    source: K-LOCAL-023
+    source_rule: K-LOCAL-023
   - name: AI_LOCAL_MANIFEST_SCHEMA_INVALID
     value: 363
     family: MODEL
-    source: K-LOCAL-026
+    source_rule: K-LOCAL-026
   - name: AI_FINISH_LENGTH
     value: 370
     family: FINISH
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - name: AI_FINISH_CONTENT_FILTER
     value: 371
     family: FINISH
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - name: AI_MODEL_PROVIDER_MISMATCH
     value: 380
     family: MODEL_ROUTE
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - name: AI_PROVIDER_ENDPOINT_FORBIDDEN
     value: 390
     family: PROVIDER
-    source: K-SEC-001
+    source_rule: K-SEC-001
   - name: AI_PROVIDER_AUTH_FAILED
     value: 391
     family: PROVIDER
-    source: K-JOB-006
+    source_rule: K-JOB-006
   - name: AI_PROVIDER_UNAVAILABLE
     value: 202
     family: PROVIDER
-    source: K-ERR-005
+    source_rule: K-ERR-005
   - name: AI_PROVIDER_INTERNAL
     value: 392
     family: PROVIDER
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - name: AI_PROVIDER_RATE_LIMITED
     value: 393
     family: PROVIDER
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - name: AI_PROVIDER_TIMEOUT
     value: 394
     family: PROVIDER
-    source: K-STREAM-007
+    source_rule: K-STREAM-007
   - name: AI_INPUT_INVALID
     value: 206
     family: PROVIDER
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - name: AI_OUTPUT_INVALID
     value: 207
     family: PROVIDER
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - name: AI_STREAM_BROKEN
     value: 208
     family: PROVIDER
-    source: K-STREAM-002
+    source_rule: K-STREAM-002
   - name: AI_MEDIA_SPEC_INVALID
     value: 410
     family: MEDIA
-    source: K-JOB-001
+    source_rule: K-JOB-001
   - name: AI_MEDIA_OPTION_UNSUPPORTED
     value: 411
     family: MEDIA
-    source: K-JOB-001
+    source_rule: K-JOB-001
   - name: AI_MEDIA_JOB_NOT_FOUND
     value: 412
     family: MEDIA
-    source: K-JOB-001
+    source_rule: K-JOB-001
   - name: AI_MEDIA_JOB_NOT_CANCELLABLE
     value: 413
     family: MEDIA
-    source: K-JOB-001
+    source_rule: K-JOB-001
   - name: AI_MEDIA_IDEMPOTENCY_CONFLICT
     value: 414
     family: MEDIA
-    source: K-ERR-007
+    source_rule: K-ERR-007
   - name: AI_VOICE_INPUT_INVALID
     value: 420
     family: VOICE
-    source: K-VOICE-010
+    source_rule: K-VOICE-010
   - name: AI_VOICE_WORKFLOW_UNSUPPORTED
     value: 421
     family: VOICE
-    source: K-VOICE-010
+    source_rule: K-VOICE-010
   - name: AI_VOICE_ASSET_NOT_FOUND
     value: 422
     family: VOICE
-    source: K-VOICE-010
+    source_rule: K-VOICE-010
   - name: AI_VOICE_ASSET_EXPIRED
     value: 423
     family: VOICE
-    source: K-VOICE-010
+    source_rule: K-VOICE-010
   - name: AI_VOICE_ASSET_SCOPE_FORBIDDEN
     value: 424
     family: VOICE
-    source: K-VOICE-006
+    source_rule: K-VOICE-006
   - name: AI_VOICE_TARGET_MODEL_MISMATCH
     value: 425
     family: VOICE
-    source: K-VOICE-007
+    source_rule: K-VOICE-007
   - name: AI_VOICE_JOB_NOT_FOUND
     value: 426
     family: VOICE
-    source: K-VOICE-005
+    source_rule: K-VOICE-005
   - name: AI_VOICE_JOB_NOT_CANCELLABLE
     value: 427
     family: VOICE
-    source: K-VOICE-005
+    source_rule: K-VOICE-005
   - name: AI_MODULE_CONFIG_INVALID
     value: 430
     family: MODULE
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - name: WF_DAG_INVALID
     value: 440
     family: WORKFLOW
-    source: K-WF-010
+    source_rule: K-WF-010
   - name: WF_NODE_CONFIG_MISMATCH
     value: 441
     family: WORKFLOW
-    source: K-WF-002
+    source_rule: K-WF-002
   - name: WF_TIMEOUT
     value: 442
     family: WORKFLOW
-    source: K-WF-003
+    source_rule: K-WF-003
   - name: WF_TASK_NOT_FOUND
     value: 443
     family: WORKFLOW
-    source: K-WF-003
+    source_rule: K-WF-003
   - name: APP_MODE_DOMAIN_FORBIDDEN
     value: 500
     family: APP_AUTH
-    source: K-AUTHSVC-009
+    source_rule: K-AUTHSVC-009
   - name: APP_MODE_SCOPE_FORBIDDEN
     value: 501
     family: APP_AUTH
-    source: K-AUTHSVC-009
+    source_rule: K-AUTHSVC-009
   - name: APP_MODE_MANIFEST_INVALID
     value: 502
     family: APP_AUTH
-    source: K-AUTHSVC-010
+    source_rule: K-AUTHSVC-010
   - name: APP_SCOPE_FORBIDDEN
     value: 503
     family: APP_AUTH
-    source: K-GRANT-009
+    source_rule: K-GRANT-009
   - name: APP_SCOPE_REVOKED
     value: 504
     family: APP_AUTH
-    source: K-GRANT-010
+    source_rule: K-GRANT-010
   - name: GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND
     value: 510
     family: GRANT
-    source: K-GRANT-013
+    source_rule: K-GRANT-013
   - name: GRANT_TOKEN_CHAIN_ROOT_REQUIRED
     value: 511
     family: GRANT
-    source: K-GRANT-013
+    source_rule: K-GRANT-013
   - name: PAGE_TOKEN_INVALID
     value: 520
     family: PAGE
-    source: K-PAGE-002
+    source_rule: K-PAGE-002

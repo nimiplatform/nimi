@@ -9,3 +9,5 @@
 | `revenue-event-types.md` | `tables/revenue-event-types.yaml` |
 | `share-plan-fields.md` | `tables/share-plan-fields.yaml` |
 | `primitive-mapping-status.md` | `tables/primitive-mapping-status.yaml` |
+| `primitive-graduation-log.md` | `tables/primitive-graduation-log.yaml` |
+| `rule-evidence.md` | `tables/rule-evidence.yaml` |

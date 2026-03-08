@@ -42,6 +42,7 @@
 - `tables/sdk-runtime-projection.yaml`
 - `tables/sdk-realm-realtime-gates.yaml`
 - `tables/sdk-testing-gates.yaml`
+- `tables/rule-evidence.yaml`
 
 ## 6. Kernel Companion 约束
 

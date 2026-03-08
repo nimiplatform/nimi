@@ -2,64 +2,64 @@ version: 1
 events:
   - name: protocol_validation_failed
     group: protocol
-    source: P-PROTO-001
+    source_rule: P-PROTO-001
   - name: transit_denied
     group: primitive
-    source: P-PROTO-103
+    source_rule: P-PROTO-103
   - name: economy_settlement_applied
     group: primitive
-    source: P-PROTO-102
+    source_rule: P-PROTO-102
   - name: context_handoff_applied
     group: primitive
-    source: P-PROTO-104
+    source_rule: P-PROTO-104
   - name: presence_state_changed
     group: primitive
-    source: P-PROTO-105
+    source_rule: P-PROTO-105
   - name: timeflow_drift_exceeded
     group: primitive
-    source: P-PROTO-100
+    source_rule: P-PROTO-100
   - name: app_authorization_granted
     group: app_auth
-    source: P-PROTO-030
+    source_rule: P-PROTO-030
   - name: app_token_issued
     group: app_auth
-    source: P-PROTO-030
+    source_rule: P-PROTO-030
   - name: app_token_delegated
     group: app_auth
-    source: P-PROTO-035
+    source_rule: P-PROTO-035
   - name: app_token_revoked
     group: app_auth
-    source: P-PROTO-030
+    source_rule: P-PROTO-030
   - name: scope_manifest_registered
     group: scope
-    source: P-PROTO-021
+    source_rule: P-PROTO-021
   - name: scope_manifest_validation_failed
     group: scope
-    source: P-PROTO-021
+    source_rule: P-PROTO-021
   - name: scope_catalog_published
     group: scope
-    source: P-PROTO-040
+    source_rule: P-PROTO-040
   - name: scope_catalog_revoked
     group: scope
-    source: P-PROTO-040
+    source_rule: P-PROTO-040
   - name: app_mode_violation_denied
     group: app_mode
-    source: P-PROTO-060
+    source_rule: P-PROTO-060
   - name: app_resource_scope_denied
     group: app_resource
-    source: P-PROTO-030
+    source_rule: P-PROTO-030
   - name: app_consent_validation_failed
     group: app_resource
-    source: P-PROTO-030
+    source_rule: P-PROTO-030
   - name: world_extension_bound
     group: world_app_binding
-    source: P-PROTO-050
+    source_rule: P-PROTO-050
   - name: world_extension_unbound
     group: world_app_binding
-    source: P-PROTO-050
+    source_rule: P-PROTO-050
   - name: world_extension_write_denied
     group: world_app_binding
-    source: P-PROTO-050
+    source_rule: P-PROTO-050
 
 required_fields:
   - participantId

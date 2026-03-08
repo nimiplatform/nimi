@@ -22,6 +22,16 @@ External agent 命令集（命令清单见 `D-IPC-008`）。
 
 启动序列中注册 tier-1 actions 并启动 action bridge。
 
+### Auth / UI Flow (D-AUTH-010, D-AUTH-011)
+
+Desktop External Agent Access 面板是 ExternalPrincipal token 的唯一 UI 投影。用户流程固定为：
+
+1. 读取 gateway status；
+2. 输入 `principalId`、`subjectAccountId`、`mode`、`actions`、`ttlSeconds`；
+3. 调用 issue token 命令；
+4. 在同一面板展示一次性明文 token 和可撤销 token ledger；
+5. 后续 revoke/list 仅基于 token ledger，不重复暴露历史明文 token。
+
 ### Hook (D-HOOK-009)
 
 Action capability 域：`action.discover.*` / `action.dry-run.*` / `action.verify.*` / `action.commit.*`。

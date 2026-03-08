@@ -19,6 +19,7 @@ const specs = [
   { input: 'sdk-runtime-projection.yaml', output: 'sdk-runtime-projection.md', render: renderSdkRuntimeProjection },
   { input: 'sdk-realm-realtime-gates.yaml', output: 'sdk-realm-realtime-gates.md', render: renderSdkRealmRealtimeGates },
   { input: 'sdk-testing-gates.yaml', output: 'sdk-testing-gates.md', render: renderSdkTestingGates },
+  { input: 'rule-evidence.yaml', output: 'rule-evidence.md', render: renderRuleEvidence },
 ];
 
 function normalizeMarkdown(markdown) {
@@ -152,6 +153,32 @@ function renderSdkTestingGates(doc, sourceName) {
     const command = String(item?.command || '').trim() || '—';
     const sourceRule = String(item?.source_rule || '').trim() || '—';
     out += `| \`${gate}\` | \`${command}\` | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderRuleEvidence(doc, sourceName) {
+  const catalog = doc?.evidence_catalog && typeof doc.evidence_catalog === 'object'
+    ? doc.evidence_catalog
+    : {};
+  const rules = Array.isArray(doc?.rules) ? doc.rules : [];
+  let out = header('Generated Rule Evidence', sourceName);
+  out += '| Evidence Ref | Type | Command | Path | Description |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const [ref, value] of Object.entries(catalog)) {
+    const item = value && typeof value === 'object' ? value : {};
+    out += `| \`${ref}\` | \`${String(item.type || '').trim() || '—'}\` | \`${String(item.command || '').trim() || '—'}\` | \`${String(item.path || '').trim() || '—'}\` | ${String(item.description || '').trim() || '—'} |\n`;
+  }
+  out += '\n## Rule Coverage Matrix\n\n';
+  out += '| Rule ID | Status | Evidence Refs |\n';
+  out += '|---|---|---|\n';
+  for (const item of rules) {
+    const ruleId = String(item?.rule_id || '').trim();
+    if (!ruleId) continue;
+    const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
+    const refsText = refs.length > 0 ? refs.map((ref) => `\`${String(ref)}\``).join(', ') : '—';
+    out += `| \`${ruleId}\` | \`${String(item?.status || '').trim() || '—'}\` | ${refsText} |\n`;
   }
   out += '\n';
   return normalizeMarkdown(out);

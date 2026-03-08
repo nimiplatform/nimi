@@ -53,3 +53,23 @@ provider 对应 `baseUrl/apiKey` 的环境变量绑定以 `provider-probe-target
 ## K-CFG-013 Cross-Layer Projection
 
 Desktop/CLI/SDK 对 runtime 配置行为的投影必须与本契约保持语义一致。
+
+## K-CFG-014 Schema Migration Framework
+
+`schemaVersion` 不是声明性占位字段，而是迁移入口：
+
+- 每次 `schemaVersion` 递增都必须伴随明确的 migration plan。
+- migration plan 必须声明 `from_version`、`to_version`、字段级变更、默认值策略与 fail-close 条件。
+- 禁止跨版本隐式“猜测修复”；未知旧字段只能通过显式迁移规则处理。
+
+## K-CFG-015 Migration Execution Semantics
+
+- Runtime 读取到旧 `schemaVersion` 配置时，必须先执行顺序迁移，再允许进入核心服务启动路径。
+- 迁移执行必须保持幂等：同一版本配置多次重放迁移，输出结果必须一致。
+- 迁移写回必须沿用 `K-CFG-006` 的原子写语义；写回失败时保留旧文件并终止启动。
+
+## K-CFG-016 Migration Backup & Drift Boundary
+
+- 迁移成功写回前，Runtime 必须保留可恢复的 pre-migration backup 或等价回滚材料。
+- Desktop/CLI/SDK 只能消费迁移后的 canonical 配置，不得各自实现第二套 schema upgrade 逻辑。
+- 配置迁移规则进入 kernel 后，相关 default 值、热重载边界与 command surface 必须同步更新，禁止出现“schema 已升级但投影仍停留旧版本”的漂移。

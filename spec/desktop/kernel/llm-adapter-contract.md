@@ -90,7 +90,7 @@ Desktop 侧 speech engine 只暴露 runtime-aligned 语音能力：
 
 - **Runtime K-AUDIT-001**（全局审计最小字段）和 **K-LOCAL-016**（本地审计）由 daemon 层写入，包含完整的 `request_id`、`trace_id`、`user_id`、`usage` 等运行时上下文字段。
 - **Desktop D-LLM-006** 侧重于记录 renderer 可观测的推理决策信息（eventType、source、adapter、policyGate），不具备 runtime 上下文字段。
-- 两者通过 `D-IPC-011` 的 `local_ai_append_inference_audit` 命令桥接：Desktop 将审计载荷提交到 Tauri backend，最终存入 Runtime 审计存储。
+- 两者通过 `D-IPC-011` 的 `runtime_local_append_inference_audit` 命令桥接：Desktop 将审计载荷提交到 Tauri backend，最终存入 Runtime 审计存储。
 
 ## D-LLM-007 — 分层调试责任与门禁顺序
 

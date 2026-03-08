@@ -24,6 +24,7 @@ const kernelFiles = [
   'spec/sdk/kernel/tables/sdk-runtime-projection.yaml',
   'spec/sdk/kernel/tables/sdk-realm-realtime-gates.yaml',
   'spec/sdk/kernel/tables/sdk-testing-gates.yaml',
+  'spec/sdk/kernel/tables/rule-evidence.yaml',
 ];
 
 const domainFiles = listDomainMarkdownFiles('spec/sdk');
@@ -225,8 +226,171 @@ if (!hasRealmErrorFamily) {
 checkSdkTestingGateCoverage(sdkKernelRules);
 checkProviderNameAlignment();
 
+// ── Check: Cross-domain references exist in upstream specs ──
+checkCrossDomainRuleReferences();
+
+// ── Check: S-* rule evidence full traceability ──
+checkRuleEvidenceTraceability(sdkKernelRules);
+
+// ── Check: Orphan detection (rules defined but never referenced) ──
+checkOrphanRules();
+
 if (failed) process.exit(1);
 console.log('sdk-spec-kernel-consistency: OK');
+
+function checkCrossDomainRuleReferences() {
+  const checks = [
+    {
+      label: 'Runtime',
+      dir: 'spec/runtime/kernel',
+      headingPattern: /^##\s+(K-[A-Z]+-\d{3}[a-z]?)\b/gm,
+      refPattern: /\bK-[A-Z]+-\d{3}[a-z]?\b/g,
+    },
+    {
+      label: 'Desktop',
+      dir: 'spec/desktop/kernel',
+      headingPattern: /^##\s+(D-[A-Z]+-\d{3}[a-z]?)\b/gm,
+      refPattern: /\bD-[A-Z]+-\d{3}[a-z]?\b/g,
+    },
+  ];
+
+  for (const check of checks) {
+    const root = path.join(cwd, check.dir);
+    if (!fs.existsSync(root)) continue;
+    const definitions = new Set();
+    for (const f of fs.readdirSync(root).filter((name) => name.endsWith('.md'))) {
+      const filePath = path.join(root, f);
+      if (!fs.statSync(filePath).isFile()) continue;
+      const content = fs.readFileSync(filePath, 'utf8');
+      for (const match of content.matchAll(check.headingPattern)) {
+        definitions.add(match[1]);
+      }
+    }
+    if (definitions.size === 0) continue;
+
+    for (const rel of kernelFiles.filter((f) => f.endsWith('.md'))) {
+      if (!fs.existsSync(path.join(cwd, rel))) continue;
+      const content = read(rel);
+      for (const ref of new Set([...content.matchAll(check.refPattern)].map((match) => match[0]))) {
+        if (!definitions.has(ref)) {
+          fail(`${rel} references undefined ${check.label} Rule ID: ${ref}`);
+        }
+      }
+    }
+  }
+}
+
+function checkRuleEvidenceTraceability(sdkKernelRules) {
+  const evidencePath = 'spec/sdk/kernel/tables/rule-evidence.yaml';
+  const doc = readYaml(evidencePath) || {};
+  const catalog = doc.evidence_catalog && typeof doc.evidence_catalog === 'object'
+    ? doc.evidence_catalog
+    : null;
+  if (!catalog) {
+    fail(`${evidencePath} missing evidence_catalog map`);
+    return;
+  }
+
+  const catalogEntries = Object.entries(catalog);
+  if (catalogEntries.length === 0) {
+    fail(`${evidencePath} evidence_catalog must not be empty`);
+  }
+
+  for (const [ref, item] of catalogEntries) {
+    const record = item && typeof item === 'object' ? item : null;
+    if (!record) {
+      fail(`${evidencePath} evidence_catalog.${ref} must be an object`);
+      continue;
+    }
+    const type = String(record.type || '').trim();
+    const command = String(record.command || '').trim();
+    const targetPath = String(record.path || '').trim();
+    if (!type) fail(`${evidencePath} evidence_catalog.${ref} missing type`);
+    if (!command) fail(`${evidencePath} evidence_catalog.${ref} missing command`);
+    if (!targetPath) {
+      fail(`${evidencePath} evidence_catalog.${ref} missing path`);
+      continue;
+    }
+    if (!fs.existsSync(path.join(cwd, targetPath))) {
+      fail(`${evidencePath} evidence_catalog.${ref} path does not exist: ${targetPath}`);
+    }
+  }
+
+  const rules = Array.isArray(doc.rules) ? doc.rules : [];
+  if (rules.length === 0) {
+    fail(`${evidencePath} rules must not be empty`);
+    return;
+  }
+
+  const seen = new Set();
+  for (const item of rules) {
+    const ruleId = String(item?.rule_id || '').trim();
+    const status = String(item?.status || '').trim().toLowerCase();
+    const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
+    const naReason = String(item?.na_reason || '').trim();
+    if (!/^S-[A-Z]+-\d{3}[a-z]?$/u.test(ruleId)) {
+      fail(`${evidencePath} has invalid rule_id format: ${ruleId || '<empty>'}`);
+      continue;
+    }
+    if (seen.has(ruleId)) {
+      fail(`${evidencePath} has duplicate rule_id entry: ${ruleId}`);
+      continue;
+    }
+    seen.add(ruleId);
+    if (!sdkKernelRules.has(ruleId)) {
+      fail(`${evidencePath} references unknown sdk kernel rule: ${ruleId}`);
+    }
+    if (status !== 'covered' && status !== 'na') {
+      fail(`${evidencePath} ${ruleId} has invalid status: ${status || '<empty>'} (allowed: covered|na)`);
+      continue;
+    }
+    if (status === 'na') {
+      if (!naReason) fail(`${evidencePath} ${ruleId} status=na requires na_reason`);
+      continue;
+    }
+    if (refs.length === 0) {
+      fail(`${evidencePath} ${ruleId} status=covered requires non-empty evidence_refs`);
+      continue;
+    }
+    for (const rawRef of refs) {
+      const ref = String(rawRef || '').trim();
+      if (!ref) {
+        fail(`${evidencePath} ${ruleId} contains empty evidence_refs item`);
+        continue;
+      }
+      if (!Object.prototype.hasOwnProperty.call(catalog, ref)) {
+        fail(`${evidencePath} ${ruleId} references undefined evidence ref: ${ref}`);
+      }
+    }
+  }
+
+  const missing = [...sdkKernelRules].filter((ruleId) => !seen.has(ruleId));
+  if (missing.length > 0) {
+    fail(`${evidencePath} missing evidence rows for rules: ${missing.join(', ')}`);
+  }
+}
+
+function checkOrphanRules() {
+  const allRefs = [];
+  for (const rel of [...kernelFiles, ...domainFiles]) {
+    if (!fs.existsSync(path.join(cwd, rel))) continue;
+    if (rel.endsWith('rule-evidence.yaml')) continue;
+    const content = read(rel);
+    for (const m of content.matchAll(/\bS-[A-Z]+-\d{3}[a-z]?\b/g)) {
+      allRefs.push(m[0]);
+    }
+  }
+  const orphans = [...sdkKernelRules].filter((id) => {
+    let count = 0;
+    for (const ref of allRefs) {
+      if (ref === id) count++;
+    }
+    return count <= 1; // Only the definition heading itself
+  });
+  if (orphans.length > 0) {
+    fail(`sdk orphan kernel rules detected: ${orphans.join(', ')}`);
+  }
+}
 
 function kernelRuleSet() {
   const out = new Set();

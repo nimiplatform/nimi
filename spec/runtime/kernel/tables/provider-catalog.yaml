@@ -3,164 +3,169 @@ providers:
   - provider: anthropic
     default_endpoint: https://api.anthropic.com
     requires_explicit_endpoint: false
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: aws_polly
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: azure
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: azure_speech
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: bedrock
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: cohere
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: dashscope
     default_endpoint: https://dashscope.aliyuncs.com/compatible-mode/v1
     requires_explicit_endpoint: false
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: deepseek
     default_endpoint: https://api.deepseek.com/v1
     requires_explicit_endpoint: false
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: elevenlabs
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: fireworks
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: fish_audio
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: flux
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: gemini
     default_endpoint: https://generativelanguage.googleapis.com/v1beta/openai
     requires_explicit_endpoint: false
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: glm
     default_endpoint: https://open.bigmodel.cn/api/paas/v4
     requires_explicit_endpoint: false
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: google_cloud_tts
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: google_veo
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: groq
     default_endpoint: https://api.groq.com/openai/v1
     requires_explicit_endpoint: false
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: hunyuan
     default_endpoint: https://api.hunyuan.cloud.tencent.com/v1
     requires_explicit_endpoint: false
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: ideogram
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: kimi
     default_endpoint: https://api.moonshot.cn/v1
     requires_explicit_endpoint: false
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: kling
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
+  # NOTE: The `local` virtual provider exists in the Go providerregistry
+  # (runtime_plane=local) but is intentionally excluded from this catalog.
+  # Local providers are managed via RuntimeLocalService RPCs (K-RPC-004),
+  # not through the remote connector pipeline. See K-LOCAL-001 for local
+  # provider capability semantics.
   - provider: luma
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: minimax
     default_endpoint: https://api.minimax.chat/v1
     requires_explicit_endpoint: false
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: mistral
     default_endpoint: https://api.mistral.ai/v1
     requires_explicit_endpoint: false
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: nimillm
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: openai
     default_endpoint: https://api.openai.com/v1
     requires_explicit_endpoint: false
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: openai_compatible
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: openrouter
     default_endpoint: https://openrouter.ai/api/v1
     requires_explicit_endpoint: false
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: perplexity
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: pika
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: playht
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: qianfan
     default_endpoint: https://qianfan.baidubce.com/v2
     requires_explicit_endpoint: false
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: runway
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: siliconflow
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: spark
     default_endpoint: https://spark-api-open.xf-yun.com/v1
     requires_explicit_endpoint: false
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: stability
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: stepfun
     default_endpoint: https://api.stepfun.com/v1
     requires_explicit_endpoint: false
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: together
     default_endpoint: null
     requires_explicit_endpoint: true
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: volcengine
     default_endpoint: https://ark.cn-beijing.volces.com/api/v3
     requires_explicit_endpoint: false
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: volcengine_openspeech
     default_endpoint: https://openspeech.bytedance.com/api/v1
     requires_explicit_endpoint: false
-    source: K-MCAT-027
+    source_rule: K-MCAT-027
   - provider: xai
     default_endpoint: https://api.x.ai/v1
     requires_explicit_endpoint: false
-    source: K-MCAT-027
+    source_rule: K-MCAT-027

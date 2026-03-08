@@ -145,6 +145,12 @@ Connector 凭据路由：AI 请求凭据通过 `connector_id` 路由（K-KEYSRC-
 
 端点校验错误码：`LOCAL_AI_ENDPOINT_NOT_LOOPBACK`、`LOCAL_AI_ENDPOINT_INVALID`。
 
+### Offline / Degradation (D-OFFLINE-001, D-OFFLINE-003, D-OFFLINE-004)
+
+- Realm 离线但 Runtime 可达时，`local` / `runtime` 两个页面继续可用，所有云 connector 写操作提示排队或在线要求。
+- Runtime 与 Realm 同时不可达时，面板退化为只读浏览模式；daemon 管理、本地引擎启停、connector 写入与 EAA token 签发全部禁用。
+- Runtime 重连成功后，面板必须刷新 daemon status、provider health、connector 配置与 External Agent gateway status。
+
 ## CI 门禁引用
 
 本域涉及的 CI 门禁：

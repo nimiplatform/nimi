@@ -88,7 +88,7 @@
 - 客户端应实现 session 失效后的自动重连逻辑（检测到 `UNAUTHENTICATED` 后重新 `OpenSession`）。
 - 未来版本可引入持久化存储（如文件或嵌入式 KV），但 Phase 1 明确不要求。
 
-**跨消费方恢复协议差异（K-AUTHSVC-012a）**：
+**跨消费方恢复协议差异（K-AUTHSVC-012）**：
 
 daemon 重启导致内存 session 全部失效，不同消费方受影响程度和恢复策略不同：
 

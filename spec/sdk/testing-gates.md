@@ -12,6 +12,7 @@
 - `kernel/boundary-contract.md`（S-BOUNDARY-001, S-BOUNDARY-004）
 - `kernel/mod-contract.md`（S-MOD-004）
 - `kernel/tables/sdk-testing-gates.yaml`
+- `kernel/tables/rule-evidence.yaml`
 
 ## 1. 文档定位
 
@@ -39,6 +40,7 @@
 - 导入边界：`kernel/tables/import-boundaries.yaml`。
 - 错误码族：`kernel/tables/sdk-error-codes.yaml`。
 - 测试门集合：`kernel/tables/sdk-testing-gates.yaml`。
+- 规则证据映射：`kernel/tables/rule-evidence.yaml`。
 - Provider 名称对齐基线：`spec/runtime/kernel/tables/provider-catalog.yaml`。
 - Live smoke 证据：`dev/report/live-test-coverage.yaml`。
 

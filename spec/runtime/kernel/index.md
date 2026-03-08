@@ -1,6 +1,6 @@
 # Runtime Kernel Contracts
 
-> Scope: Runtime 全量服务契约（AI 执行平面 / Auth Core / Workflow / Voice / Audit / Model / Knowledge / App / ScriptWorker / Daemon / Config / Connector / Multimodal / Proto Governance）。
+> Scope: Runtime 全量服务契约（AI 执行平面 / Auth Core / Workflow / Voice / Audit / Model / Knowledge / App / Daemon / Config / Connector / Multimodal / Proto Governance）。
 
 ## 1. 目标
 
@@ -19,7 +19,7 @@
 - `DOMAIN` 固定枚举：
   - `RPC` `AUTH` `AUTHN` `AUTHSVC` `GRANT` `KEYSRC` `JOB`
   - `LOCAL` `LENG` `DEV` `SEC` `STREAM` `ERR` `PAGE` `AUDIT`
-  - `DAEMON` `PROV` `WF` `MODEL` `KNOW` `APP` `SCRIPT`
+  - `DAEMON` `PROV` `WF` `MODEL` `KNOW` `APP`
   - `CFG` `CONN` `NIMI` `MCAT` `MMPROV` `VOICE` `GATE` `PROTO`
 - `NNN` 三位递增编号，不复用。
 
@@ -49,7 +49,6 @@
 | `model-service-contract.md` | `K-MODEL-*` | 模型注册、能力画像、状态枚举 |
 | `knowledge-contract.md` | `K-KNOW-*` | 索引构建、搜索、生命周期 |
 | `app-messaging-contract.md` | `K-APP-*` | 应用间消息、事件流 |
-| `script-worker-contract.md` | `K-SCRIPT-*` | 脚本执行与沙箱约束 |
 | `config-contract.md` | `K-CFG-*` | 配置路径、优先级、secret policy、写入语义 |
 | `connector-contract.md` | `K-CONN-*` | connector 托管、字段约束、补偿与并发安全 |
 | `nimillm-contract.md` | `K-NIMI-*` | remote 执行边界、流式与审计对齐 |
@@ -94,6 +93,8 @@
 - `tables/provider-extension-registry.yaml`
 - `tables/runtime-delivery-gates.yaml`
 - `tables/runtime-proto-governance-gates.yaml`
+- `tables/capability-vocabulary-mapping.yaml`
+- `tables/rule-evidence.yaml`
 
 Runtime provider model/voice default data is maintained outside `spec/` at:
 

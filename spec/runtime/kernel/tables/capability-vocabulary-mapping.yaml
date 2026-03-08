@@ -1,0 +1,105 @@
+# Capability Vocabulary Mapping
+# Resolves the dual-track conflict between K-MCAT-024 canonical tokens
+# and K-LOCAL-001/K-LOCAL-026 local runtime tokens.
+#
+# Source rules: K-MCAT-024, K-LOCAL-001, K-LOCAL-002, K-LOCAL-026
+# Cross-ref: K-LOCAL-023 (HuggingFace pipeline_tag inference)
+
+version: 1
+
+# Canonical capability tokens (K-MCAT-024) — the ONLY valid tokens for
+# remote provider source, snapshot, registry, resolver, scenario guard,
+# and live-provider checks.
+canonical_tokens:
+  - text.generate
+  - text.embed
+  - image.generate
+  - video.generate
+  - audio.synthesize
+  - audio.transcribe
+  - voice_workflow.tts_v2v
+  - voice_workflow.tts_t2v
+
+# Local runtime tokens (K-LOCAL-026 manifest capabilities field)
+local_manifest_tokens:
+  - chat
+  - image
+  - video
+  - tts
+  - stt
+  - embedding
+
+# LocalConnectorCategory (K-LOCAL-001 Phase 1 fixed categories)
+local_categories:
+  - LLM
+  - VISION
+  - IMAGE
+  - TTS
+  - STT
+  - CUSTOM
+
+# Mapping: local manifest token -> canonical token(s)
+# Direction: local -> canonical (used when local model participates in
+# scenario routing that requires canonical capability resolution)
+local_to_canonical:
+  - local_token: chat
+    canonical_token: text.generate
+    local_category: LLM
+    source_rule: K-LOCAL-002
+
+  - local_token: embedding
+    canonical_token: text.embed
+    local_category: LLM
+    source_rule: K-LOCAL-002
+
+  - local_token: image
+    canonical_token: image.generate
+    local_category: IMAGE
+    source_rule: K-LOCAL-002
+
+  - local_token: video
+    canonical_token: video.generate
+    local_category: null
+    note: No dedicated Phase 1 local category; video models use CUSTOM
+    source_rule: K-LOCAL-002
+
+  - local_token: tts
+    canonical_token: audio.synthesize
+    local_category: TTS
+    source_rule: K-LOCAL-002
+
+  - local_token: stt
+    canonical_token: audio.transcribe
+    local_category: STT
+    source_rule: K-LOCAL-002
+
+# Canonical tokens with no Phase 1 local equivalent
+canonical_only:
+  - canonical_token: voice_workflow.tts_v2v
+    note: Voice-to-voice workflow; requires orchestrated pipeline, not single-model local execution
+  - canonical_token: voice_workflow.tts_t2v
+    note: Text-to-voice workflow; requires orchestrated pipeline, not single-model local execution
+
+# HuggingFace pipeline_tag -> local manifest token (K-LOCAL-023)
+huggingface_inference:
+  - pipeline_tag: text-generation
+    local_token: chat
+  - pipeline_tag: text2text-generation
+    local_token: chat
+  - pipeline_tag: text-to-image
+    local_token: image
+  - pipeline_tag: text-to-video
+    local_token: video
+  - pipeline_tag: text-to-speech
+    local_token: tts
+  - pipeline_tag: text-to-audio
+    local_token: tts
+  - pipeline_tag: automatic-speech-recognition
+    local_token: stt
+  - pipeline_tag: feature-extraction
+    local_token: embedding
+  - pipeline_tag: sentence-similarity
+    local_token: embedding
+  - pipeline_tag: unknown
+    local_token: chat
+    note: Fallback default for unrecognized pipeline tags

@@ -5,10 +5,10 @@
 
 ## 0. 权威导入
 
-- `kernel/runtime-contract.md`（S-RUNTIME-010, S-RUNTIME-015, S-RUNTIME-028, S-RUNTIME-045, S-RUNTIME-050, S-RUNTIME-066）
-- `kernel/surface-contract.md`（S-SURFACE-002, S-SURFACE-004）
-- `kernel/transport-contract.md`（S-TRANSPORT-001, S-TRANSPORT-002, S-TRANSPORT-005）
-- `kernel/error-projection.md`（S-ERROR-001, S-ERROR-006）
+- `kernel/runtime-contract.md`（S-RUNTIME-010, S-RUNTIME-011, S-RUNTIME-012, S-RUNTIME-015, S-RUNTIME-023, S-RUNTIME-028, S-RUNTIME-045, S-RUNTIME-050, S-RUNTIME-066, S-RUNTIME-067, S-RUNTIME-068）
+- `kernel/surface-contract.md`（S-SURFACE-002, S-SURFACE-003, S-SURFACE-004）
+- `kernel/transport-contract.md`（S-TRANSPORT-001, S-TRANSPORT-002, S-TRANSPORT-005, S-TRANSPORT-007, S-TRANSPORT-008, S-TRANSPORT-009, S-TRANSPORT-010）
+- `kernel/error-projection.md`（S-ERROR-001, S-ERROR-006, S-ERROR-009, S-ERROR-012, S-ERROR-014）
 - `kernel/boundary-contract.md`（S-BOUNDARY-001, S-BOUNDARY-002）
 - `kernel/tables/sdk-runtime-projection.yaml`
 
@@ -27,7 +27,16 @@
 
 运行时服务语义来自 `spec/runtime/kernel/*`；SDK 负责协议封装与类型投影。
 
-当前 runtime projection 已包含 LocalAI 动态图片工作流所需的本地 surface：
+当前 runtime projection 已包含 LocalAI 动态图片工作流所需的本地 surface，并且上层消费面必须遵守以下 kernel 约束：
+
+- `S-RUNTIME-011` / `S-SURFACE-002`: runtime 子路径公开方法集合以 `runtime-method-groups.yaml` 为权威，不能漂移到 legacy runtime surface。
+- `S-SURFACE-003`: 已移除的 legacy runtime interface naming 不得回流。
+- `S-RUNTIME-012`: `connectorId`、业务 body 与 metadata 必须分层传递，不能把 transport 元数据塞回请求体。
+- `S-RUNTIME-023`: deferred 服务必须显式暴露“不可用”语义，不冒充 active。
+- `S-RUNTIME-067` / `S-RUNTIME-068`: `auth.accessToken` 与 `subjectContext` 分离建模，公开配置仅使用 `subjectContext` 命名。
+- `S-TRANSPORT-007` / `S-TRANSPORT-008` / `S-TRANSPORT-009`: 流式终帧、超时与 chunk 边界必须按 runtime 协议透传。
+- `S-TRANSPORT-010`: Bearer 注入只允许发生在规定的路由/方法集，anonymous local consume 与只读 local RPC 不得强塞鉴权。
+- `S-ERROR-009` / `S-ERROR-012` / `S-ERROR-014`: 非错误终端 reason、Mode D `CANCELLED`、以及 `node-grpc` / `tauri-ipc` 的结构化错误投影必须等价。
 
 - `LocalArtifact*` RPC 与 companion asset 列表/安装/导入/删除
 - 主模型 `engine_config` 字段投影

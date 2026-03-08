@@ -17,6 +17,8 @@ const specs = [
   { input: 'revenue-event-types.yaml', output: 'revenue-event-types.md', render: renderRevenueEventTypes },
   { input: 'share-plan-fields.yaml', output: 'share-plan-fields.md', render: renderSharePlanFields },
   { input: 'primitive-mapping-status.yaml', output: 'primitive-mapping-status.md', render: renderPrimitiveMappingStatus },
+  { input: 'primitive-graduation-log.yaml', output: 'primitive-graduation-log.md', render: renderPrimitiveGraduationLog },
+  { input: 'rule-evidence.yaml', output: 'rule-evidence.md', render: renderRuleEvidence },
 ];
 
 function normalizeMarkdown(markdown) {
@@ -39,7 +41,7 @@ function renderPublicVocabulary(doc, sourceName) {
 
   for (const boundary of boundaries) {
     const domain = String(boundary?.domain || '').trim();
-    const source = String(boundary?.source || '').trim();
+    const source = String(boundary?.source_rule || '').trim();
     if (!domain) continue;
 
     out += `## ${domain} (\`${source}\`)\n\n`;
@@ -114,7 +116,7 @@ function renderCreatorKeyTiers(doc, sourceName) {
     const capacity = String(tier?.capacity ?? '').trim();
     const cumulativeKeys = tier?.cumulative_keys != null ? String(tier.cumulative_keys) : '-';
     const cumulativeRevenue = tier?.cumulative_revenue_usd != null ? String(tier.cumulative_revenue_usd) : '-';
-    const source = String(tier?.source || '').trim();
+    const source = String(tier?.source_rule || '').trim();
     out += `| ${tierNum} | ${keyRange} | ${unitPrice} | ${capacity} | ${cumulativeKeys} | ${cumulativeRevenue} | \`${source}\` |\n`;
   }
 
@@ -142,7 +144,7 @@ function renderRevenueEventTypes(doc, sourceName) {
     const type = String(event?.type || '').trim();
     const description = String(event?.description || '').trim();
     const subjectToShare = String(event?.subject_to_share ?? '').trim();
-    const source = String(event?.source || '').trim();
+    const source = String(event?.source_rule || '').trim();
     if (!type) continue;
     out += `| \`${type}\` | ${description} | ${subjectToShare} | \`${source}\` |\n`;
   }
@@ -173,7 +175,7 @@ function renderSharePlanFields(doc, sourceName) {
     const type = String(field?.type || '').trim();
     const required = String(field?.required ?? '').trim();
     const constraint = String(field?.constraint || '').trim();
-    const source = String(field?.source || '').trim();
+    const source = String(field?.source_rule || '').trim();
     if (!name) continue;
     out += `| \`${name}\` | \`${type}\` | ${required} | ${constraint || '-'} | \`${source}\` |\n`;
 
@@ -194,7 +196,7 @@ function renderSharePlanFields(doc, sourceName) {
     out += '\n## Validation Rules\n\n';
     for (const rule of validationRules) {
       const text = String(rule?.rule || '').trim();
-      const source = String(rule?.source || '').trim();
+      const source = String(rule?.source_rule || '').trim();
       out += `- ${text} (\`${source}\`)\n`;
     }
     out += '\n';
@@ -207,7 +209,7 @@ function renderSharePlanFields(doc, sourceName) {
     for (const ledger of ledgers) {
       const name = String(ledger?.name || '').trim();
       const purpose = String(ledger?.purpose || '').trim();
-      const source = String(ledger?.source || '').trim();
+      const source = String(ledger?.source_rule || '').trim();
       out += `| \`${name}\` | ${purpose} | \`${source}\` |\n`;
     }
     out += '\n';
@@ -230,7 +232,7 @@ function renderPrimitiveMappingStatus(doc, sourceName) {
     const codeAnchor = String(mapping?.code_anchor || '').trim();
     const status = String(mapping?.status || '').trim();
     const gap = String(mapping?.gap || '').trim();
-    const source = String(mapping?.source || '').trim();
+    const source = String(mapping?.source_rule || '').trim();
     if (!primitive) continue;
     out += `| \`${primitive}\` | ${codeAnchor} | \`${status}\` | ${gap} | \`${source}\` |\n`;
   }
@@ -243,6 +245,53 @@ function renderPrimitiveMappingStatus(doc, sourceName) {
     out += '\n';
   }
 
+  return normalizeMarkdown(out);
+}
+
+function renderPrimitiveGraduationLog(doc, sourceName) {
+  const entries = Array.isArray(doc?.entries) ? doc.entries : [];
+  let out = header('Generated Primitive Graduation Log', sourceName);
+
+  out += '| Primitive | Graduated At | Status | Test | CI Gate | Source |\n';
+  out += '|---|---|---|---|---|---|\n';
+  for (const entry of entries) {
+    const primitive = String(entry?.primitive || '').trim();
+    if (!primitive) continue;
+    const graduatedAt = String(entry?.graduated_at || '').trim() || '—';
+    const status = String(entry?.status || '').trim() || '—';
+    const testName = String(entry?.test_name || '').trim() || '—';
+    const ciCommand = String(entry?.ci_command || '').trim() || '—';
+    const source = String(entry?.source_rule || '').trim() || '—';
+    out += `| \`${primitive}\` | ${graduatedAt} | \`${status}\` | \`${testName}\` | \`${ciCommand}\` | \`${source}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderRuleEvidence(doc, sourceName) {
+  const catalog = doc?.evidence_catalog && typeof doc.evidence_catalog === 'object'
+    ? doc.evidence_catalog
+    : {};
+  const rules = Array.isArray(doc?.rules) ? doc.rules : [];
+  let out = header('Generated Rule Evidence', sourceName);
+  out += '| Evidence Ref | Type | Command | Path | Description |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const [ref, value] of Object.entries(catalog)) {
+    const item = value && typeof value === 'object' ? value : {};
+    out += `| \`${ref}\` | \`${String(item.type || '').trim() || '—'}\` | \`${String(item.command || '').trim() || '—'}\` | \`${String(item.path || '').trim() || '—'}\` | ${String(item.description || '').trim() || '—'} |\n`;
+  }
+  out += '\n## Rule Coverage Matrix\n\n';
+  out += '| Rule ID | Status | Evidence Refs |\n';
+  out += '|---|---|---|\n';
+  for (const item of rules) {
+    const ruleId = String(item?.rule_id || '').trim();
+    if (!ruleId) continue;
+    const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
+    const refsText = refs.length > 0 ? refs.map((ref) => `\`${String(ref)}\``).join(', ') : '—';
+    out += `| \`${ruleId}\` | \`${String(item?.status || '').trim() || '—'}\` | ${refsText} |\n`;
+  }
+  out += '\n';
   return normalizeMarkdown(out);
 }
 

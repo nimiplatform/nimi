@@ -3,24 +3,24 @@ routes:
   - provider: nexa
     capability: "*"
     adapter: nexa_native_adapter
-    source: K-LOCAL-017
+    source_rule: K-LOCAL-017
   - provider: localai
     capability: image
     adapter: localai_native_adapter
-    source: K-LOCAL-017
+    source_rule: K-LOCAL-017
   - provider: localai
     capability: video
     adapter: localai_native_adapter
-    source: K-LOCAL-017
+    source_rule: K-LOCAL-017
   - provider: localai
     capability: tts
     adapter: localai_native_adapter
-    source: K-LOCAL-017
+    source_rule: K-LOCAL-017
   - provider: localai
     capability: stt
     adapter: localai_native_adapter
-    source: K-LOCAL-017
+    source_rule: K-LOCAL-017
   - provider: "*"
     capability: "*"
     adapter: openai_compat_adapter
-    source: K-LOCAL-017
+    source_rule: K-LOCAL-017

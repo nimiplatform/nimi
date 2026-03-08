@@ -6,32 +6,32 @@ machines:
       - from: ACCEPTED
         to: QUEUED
         trigger: enqueue
-        source: K-WF-003
+        source_rule: K-WF-003
       - from: ACCEPTED
         to: FAILED
         trigger: resource_exhausted_before_enqueue
-        source: K-WF-003
+        source_rule: K-WF-003
       - from: QUEUED
         to: RUNNING
         trigger: executor_picks_up
-        source: K-WF-003
+        source_rule: K-WF-003
       - from: QUEUED
         to: CANCELED
         trigger: user_cancel
-        source: K-WF-007
+        source_rule: K-WF-007
       - from: RUNNING
         to: COMPLETED
         trigger: all_nodes_completed
-        source: K-WF-003
+        source_rule: K-WF-003
       - from: RUNNING
         to: FAILED
         trigger: node_failure_no_retry
-        source: K-WF-003
+        source_rule: K-WF-003
       - from: RUNNING
         to: CANCELED
         trigger: user_cancel
-        source: K-WF-007
+        source_rule: K-WF-007
       - from: RUNNING
         to: SKIPPED
         trigger: branch_condition_false
-        source: K-WF-003
+        source_rule: K-WF-003

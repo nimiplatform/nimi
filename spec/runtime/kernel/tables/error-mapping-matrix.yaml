@@ -4,356 +4,356 @@ mappings:
     grpc_code: UNAUTHENTICATED
     surface: authn_session_check
     exit_shape: grpc_status
-    source: K-AUTHN-006
+    source_rule: K-AUTHN-006
   - reason_code: AUTH_TOKEN_INVALID
     grpc_code: UNAUTHENTICATED
     surface: authn_all
     exit_shape: grpc_status
-    source: K-AUTHN-007
+    source_rule: K-AUTHN-007
   - reason_code: AUTH_TOKEN_EXPIRED
     grpc_code: UNAUTHENTICATED
     surface: external_principal_proof_expired
     exit_shape: grpc_status
-    source: K-AUTHSVC-013
+    source_rule: K-AUTHSVC-013
   - reason_code: AUTH_UNSUPPORTED_PROOF_TYPE
     grpc_code: INVALID_ARGUMENT
     surface: external_principal_registration
     exit_shape: grpc_status
-    source: K-AUTHSVC-013
+    source_rule: K-AUTHSVC-013
   - reason_code: AI_CONNECTOR_NOT_FOUND
     grpc_code: NOT_FOUND
     surface: consume_remote_or_hidden_connector
     exit_shape: grpc_status
-    source: K-ERR-004
+    source_rule: K-ERR-004
   - reason_code: AI_CONNECTOR_DISABLED
     grpc_code: FAILED_PRECONDITION
     surface: consume_or_connector_probe
     exit_shape: grpc_status
-    source: K-ERR-004
+    source_rule: K-ERR-004
   - reason_code: AI_CONNECTOR_CREDENTIAL_MISSING
     grpc_code: FAILED_PRECONDITION
     surface: consume_or_list_models
     exit_shape: grpc_status
-    source: K-ERR-004
+    source_rule: K-ERR-004
     note: "consume/list 路径：凭据缺失作为前置条件失败返回"
   - reason_code: AI_CONNECTOR_INVALID
     grpc_code: INVALID_ARGUMENT
     surface: connector_manage_input_validation
     exit_shape: grpc_status
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - reason_code: AI_CONNECTOR_INVALID
     grpc_code: INVALID_ARGUMENT
     surface: consume_local_connector_managed_path
     exit_shape: grpc_status
-    source: K-KEYSRC-009
+    source_rule: K-KEYSRC-009
   - reason_code: AI_CONNECTOR_IMMUTABLE
     grpc_code: FAILED_PRECONDITION
     surface: connector_manage_immutable_field_update
     exit_shape: grpc_status
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - reason_code: AI_CONNECTOR_LIMIT_EXCEEDED
     grpc_code: RESOURCE_EXHAUSTED
     surface: create_connector_limit_guard
     exit_shape: grpc_status
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - reason_code: AI_CONNECTOR_CREDENTIAL_MISSING
     grpc_code: OK
     surface: test_connector
     exit_shape: payload_ok_false
-    source: K-ERR-004
+    source_rule: K-ERR-004
     note: "test_connector 路径：凭据缺失作为测试结果返回（ok=false），非 gRPC 错误"
   - reason_code: AI_REQUEST_CREDENTIAL_CONFLICT
     grpc_code: INVALID_ARGUMENT
     surface: consume_entry
     exit_shape: grpc_status
-    source: K-KEYSRC-002
+    source_rule: K-KEYSRC-002
   - reason_code: AI_REQUEST_CREDENTIAL_MISSING
     grpc_code: INVALID_ARGUMENT
     surface: consume_entry
     exit_shape: grpc_status
-    source: K-KEYSRC-007
+    source_rule: K-KEYSRC-007
   - reason_code: AI_REQUEST_CREDENTIAL_INVALID
     grpc_code: INVALID_ARGUMENT
     surface: consume_inline_credential_validation
     exit_shape: grpc_status
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - reason_code: AI_CONNECTOR_ID_REQUIRED
     grpc_code: INVALID_ARGUMENT
     surface: consume_entry
     exit_shape: grpc_status
-    source: K-KEYSRC-007
+    source_rule: K-KEYSRC-007
   - reason_code: AI_APP_ID_REQUIRED
     grpc_code: INVALID_ARGUMENT
     surface: consume_or_connector_manage
     exit_shape: grpc_status
-    source: K-KEYSRC-005
+    source_rule: K-KEYSRC-005
   - reason_code: AI_APP_ID_CONFLICT
     grpc_code: INVALID_ARGUMENT
     surface: app_id_metadata_body_conflict
     exit_shape: grpc_status
-    source: K-KEYSRC-005
+    source_rule: K-KEYSRC-005
   - reason_code: AI_MODEL_ID_REQUIRED
     grpc_code: INVALID_ARGUMENT
     surface: consume_entry
     exit_shape: grpc_status
-    source: K-KEYSRC-004
+    source_rule: K-KEYSRC-004
   - reason_code: AI_MODEL_NOT_FOUND
     grpc_code: NOT_FOUND
     surface: model_resolve
     exit_shape: grpc_status
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - reason_code: AI_MODALITY_NOT_SUPPORTED
     grpc_code: FAILED_PRECONDITION
     surface: model_modality_capability_mismatch
     exit_shape: grpc_status
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - reason_code: AI_PROVIDER_ENDPOINT_FORBIDDEN
     grpc_code: FAILED_PRECONDITION
     surface: consume_endpoint_validation
     exit_shape: grpc_status
-    source: K-SEC-001
+    source_rule: K-SEC-001
   - reason_code: AI_PROVIDER_UNAVAILABLE
     grpc_code: UNAVAILABLE
     surface: list_connector_models_remote
     exit_shape: grpc_status
-    source: K-ERR-005
+    source_rule: K-ERR-005
   - reason_code: AI_PROVIDER_INTERNAL
     grpc_code: INTERNAL
     surface: provider_upstream_internal_failure
     exit_shape: grpc_status
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - reason_code: AI_PROVIDER_RATE_LIMITED
     grpc_code: RESOURCE_EXHAUSTED
     surface: provider_upstream_rate_limit
     exit_shape: grpc_status
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - reason_code: AI_PROVIDER_TIMEOUT
     grpc_code: DEADLINE_EXCEEDED
     surface: stream_first_chunk_timeout
     exit_shape: grpc_status
-    source: K-STREAM-007
+    source_rule: K-STREAM-007
   - reason_code: AI_INPUT_INVALID
     grpc_code: INVALID_ARGUMENT
     surface: consume_or_media_input_validation
     exit_shape: grpc_status
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - reason_code: AI_OUTPUT_INVALID
     grpc_code: INTERNAL
     surface: provider_output_decode
     exit_shape: grpc_status
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - reason_code: AI_STREAM_BROKEN
     grpc_code: UNAVAILABLE
     surface: stream_mid_flight_disconnect
     exit_shape: grpc_status
-    source: K-STREAM-002
+    source_rule: K-STREAM-002
   - reason_code: AI_PROVIDER_AUTH_FAILED
     grpc_code: FAILED_PRECONDITION
     surface: media_snapshot_credential_invalid
     exit_shape: grpc_status
-    source: K-JOB-006
+    source_rule: K-JOB-006
   - reason_code: AI_MEDIA_SPEC_INVALID
     grpc_code: INVALID_ARGUMENT
     surface: submit_media_job
     exit_shape: grpc_status
-    source: K-JOB-001
+    source_rule: K-JOB-001
   - reason_code: AI_MEDIA_OPTION_UNSUPPORTED
     grpc_code: INVALID_ARGUMENT
     surface: submit_media_job
     exit_shape: grpc_status
-    source: K-JOB-001
+    source_rule: K-JOB-001
   - reason_code: AI_MEDIA_JOB_NOT_FOUND
     grpc_code: NOT_FOUND
     surface: media_control
     exit_shape: grpc_status
-    source: K-JOB-001
+    source_rule: K-JOB-001
   - reason_code: AI_MEDIA_JOB_NOT_CANCELLABLE
     grpc_code: FAILED_PRECONDITION
     surface: cancel_media_job
     exit_shape: grpc_status
-    source: K-JOB-001
+    source_rule: K-JOB-001
   - reason_code: AI_MEDIA_IDEMPOTENCY_CONFLICT
     grpc_code: ALREADY_EXISTS
     surface: submit_media_job
     exit_shape: grpc_status
-    source: K-ERR-007
+    source_rule: K-ERR-007
   - reason_code: AI_VOICE_INPUT_INVALID
     grpc_code: INVALID_ARGUMENT
     surface: submit_voice_job
     exit_shape: grpc_status
-    source: K-VOICE-010
+    source_rule: K-VOICE-010
   - reason_code: AI_VOICE_WORKFLOW_UNSUPPORTED
     grpc_code: FAILED_PRECONDITION
     surface: submit_voice_job
     exit_shape: grpc_status
-    source: K-VOICE-010
+    source_rule: K-VOICE-010
   - reason_code: AI_VOICE_ASSET_NOT_FOUND
     grpc_code: NOT_FOUND
     surface: voice_asset_query_or_delete
     exit_shape: grpc_status
-    source: K-VOICE-010
+    source_rule: K-VOICE-010
   - reason_code: AI_VOICE_ASSET_EXPIRED
     grpc_code: FAILED_PRECONDITION
     surface: tts_synthesize_voice_asset
     exit_shape: grpc_status
-    source: K-VOICE-010
+    source_rule: K-VOICE-010
   - reason_code: AI_VOICE_ASSET_SCOPE_FORBIDDEN
     grpc_code: PERMISSION_DENIED
     surface: cross_tenant_voice_asset_access
     exit_shape: grpc_status
-    source: K-VOICE-006
+    source_rule: K-VOICE-006
   - reason_code: AI_VOICE_TARGET_MODEL_MISMATCH
     grpc_code: INVALID_ARGUMENT
     surface: tts_synthesize_voice_asset
     exit_shape: grpc_status
-    source: K-VOICE-007
+    source_rule: K-VOICE-007
   - reason_code: AI_VOICE_JOB_NOT_FOUND
     grpc_code: NOT_FOUND
     surface: voice_job_query_or_cancel
     exit_shape: grpc_status
-    source: K-VOICE-005
+    source_rule: K-VOICE-005
   - reason_code: AI_VOICE_JOB_NOT_CANCELLABLE
     grpc_code: FAILED_PRECONDITION
     surface: cancel_voice_job
     exit_shape: grpc_status
-    source: K-VOICE-005
+    source_rule: K-VOICE-005
   - reason_code: AI_FINISH_LENGTH
     grpc_code: OK
     surface: generate_or_stream_terminal_reason
     exit_shape: terminal_reason_non_error
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - reason_code: AI_FINISH_CONTENT_FILTER
     grpc_code: OK
     surface: generate_or_stream_terminal_reason
     exit_shape: terminal_reason_non_error
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - reason_code: AI_MODEL_PROVIDER_MISMATCH
     grpc_code: INVALID_ARGUMENT
     surface: model_prefix_provider_mismatch
     exit_shape: grpc_status
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - reason_code: AI_LOCAL_MODEL_PROFILE_MISSING
     grpc_code: FAILED_PRECONDITION
     surface: local_consume_or_probe
     exit_shape: grpc_status_or_payload_ok_false
-    source: K-LOCAL-003
+    source_rule: K-LOCAL-003
   - reason_code: AI_LOCAL_MODEL_UNAVAILABLE
     grpc_code: FAILED_PRECONDITION
     surface: local_consume_or_probe
     exit_shape: grpc_status_or_payload_ok_false
-    source: K-LOCAL-006
+    source_rule: K-LOCAL-006
   - reason_code: AI_LOCAL_MODEL_ALREADY_INSTALLED
     grpc_code: ALREADY_EXISTS
     surface: install_local_model_duplicate
     exit_shape: grpc_status
-    source: K-LOCAL-009
+    source_rule: K-LOCAL-009
   - reason_code: AI_LOCAL_ENDPOINT_REQUIRED
     grpc_code: INVALID_ARGUMENT
     surface: install_or_start_local_model_nexa_no_endpoint
     exit_shape: grpc_status
-    source: K-LENG-005
+    source_rule: K-LENG-005
   - reason_code: AI_LOCAL_TEMPLATE_NOT_FOUND
     grpc_code: NOT_FOUND
     surface: install_verified_model_template_missing
     exit_shape: grpc_status
-    source: K-LOCAL-010
+    source_rule: K-LOCAL-010
   - reason_code: AI_LOCAL_MANIFEST_INVALID
     grpc_code: INVALID_ARGUMENT
     surface: import_local_model_manifest_parse_fail
     exit_shape: grpc_status
-    source: K-LOCAL-009
+    source_rule: K-LOCAL-009
   - reason_code: AI_LOCAL_MODEL_INVALID_TRANSITION
     grpc_code: FAILED_PRECONDITION
     surface: local_model_or_service_state_transition
     exit_shape: grpc_status
-    source: K-LOCAL-005
+    source_rule: K-LOCAL-005
   - reason_code: AI_LOCAL_DOWNLOAD_FAILED
     grpc_code: INTERNAL
     surface: local_model_download
     exit_shape: grpc_status
-    source: K-LOCAL-024
+    source_rule: K-LOCAL-024
   - reason_code: AI_LOCAL_DOWNLOAD_HASH_MISMATCH
     grpc_code: DATA_LOSS
     surface: local_model_download_verify
     exit_shape: grpc_status
-    source: K-LOCAL-024
+    source_rule: K-LOCAL-024
   - reason_code: AI_LOCAL_HF_REPO_INVALID
     grpc_code: INVALID_ARGUMENT
     surface: local_model_hf_repo_parse
     exit_shape: grpc_status
-    source: K-LOCAL-023
+    source_rule: K-LOCAL-023
   - reason_code: AI_LOCAL_HF_SEARCH_FAILED
     grpc_code: UNAVAILABLE
     surface: local_model_hf_search
     exit_shape: grpc_status
-    source: K-LOCAL-023
+    source_rule: K-LOCAL-023
   - reason_code: AI_LOCAL_MANIFEST_SCHEMA_INVALID
     grpc_code: INVALID_ARGUMENT
     surface: local_model_manifest_schema_validate
     exit_shape: grpc_status
-    source: K-LOCAL-026
+    source_rule: K-LOCAL-026
   - reason_code: AI_MODULE_CONFIG_INVALID
     grpc_code: FAILED_PRECONDITION
     surface: runtime_module_boot_or_reload
     exit_shape: grpc_status
-    source: K-ERR-006
+    source_rule: K-ERR-006
   - reason_code: APP_MODE_DOMAIN_FORBIDDEN
     grpc_code: PERMISSION_DENIED
     surface: app_mode_gate
     exit_shape: grpc_status
-    source: K-AUTHSVC-009
+    source_rule: K-AUTHSVC-009
   - reason_code: APP_MODE_SCOPE_FORBIDDEN
     grpc_code: PERMISSION_DENIED
     surface: app_mode_gate
     exit_shape: grpc_status
-    source: K-AUTHSVC-009
+    source_rule: K-AUTHSVC-009
   - reason_code: APP_MODE_MANIFEST_INVALID
     grpc_code: INVALID_ARGUMENT
     surface: register_app_manifest_validation
     exit_shape: grpc_status
-    source: K-AUTHSVC-010
+    source_rule: K-AUTHSVC-010
   - reason_code: APP_SCOPE_FORBIDDEN
     grpc_code: PERMISSION_DENIED
     surface: scope_prefix_gate
     exit_shape: grpc_status
-    source: K-GRANT-009
+    source_rule: K-GRANT-009
   - reason_code: APP_SCOPE_REVOKED
     grpc_code: PERMISSION_DENIED
     surface: scope_revocation_check
     exit_shape: grpc_status
-    source: K-GRANT-010
+    source_rule: K-GRANT-010
   - reason_code: WF_DAG_INVALID
     grpc_code: INVALID_ARGUMENT
     surface: workflow_submit
     exit_shape: grpc_status
-    source: K-WF-010
+    source_rule: K-WF-010
   - reason_code: WF_NODE_CONFIG_MISMATCH
     grpc_code: INVALID_ARGUMENT
     surface: workflow_submit
     exit_shape: grpc_status
-    source: K-WF-002
+    source_rule: K-WF-002
   - reason_code: WF_TIMEOUT
     grpc_code: DEADLINE_EXCEEDED
     surface: workflow_execute
     exit_shape: grpc_status
-    source: K-WF-003
+    source_rule: K-WF-003
   - reason_code: WF_TASK_NOT_FOUND
     grpc_code: NOT_FOUND
     surface: workflow_query
     exit_shape: grpc_status
-    source: K-WF-003
+    source_rule: K-WF-003
   - reason_code: GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND
     grpc_code: NOT_FOUND
     surface: grant_list_token_chain
     exit_shape: grpc_status
-    source: K-GRANT-013
+    source_rule: K-GRANT-013
   - reason_code: GRANT_TOKEN_CHAIN_ROOT_REQUIRED
     grpc_code: INVALID_ARGUMENT
     surface: grant_list_token_chain
     exit_shape: grpc_status
-    source: K-GRANT-013
+    source_rule: K-GRANT-013
   - reason_code: PAGE_TOKEN_INVALID
     grpc_code: INVALID_ARGUMENT
     surface: list_rpc_page_token_validation
     exit_shape: grpc_status
-    source: K-PAGE-002
+    source_rule: K-PAGE-002

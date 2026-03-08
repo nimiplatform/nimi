@@ -21,7 +21,7 @@ primitives:
       - "世界时间必须单调"
       - "时间漂移超预算必须触发审计事件"
       - "回放时 Timeflow 结果必须可复现"
-    source: P-PROTO-100
+    source_rule: P-PROTO-100
 
   - name: social
     fields:
@@ -45,7 +45,7 @@ primitives:
       - "关系衰减必须可回放"
       - "跨 World 关系映射必须声明规则"
       - "V0.1 默认真相源为 Realm"
-    source: P-PROTO-101
+    source_rule: P-PROTO-101
 
   - name: economy
     fields:
@@ -69,7 +69,7 @@ primitives:
       - "结算窗口必须固定且可审计"
       - "跨 World 结算映射必须可解释"
       - "V0.1 默认真相源为 Realm"
-    source: P-PROTO-102
+    source_rule: P-PROTO-102
 
   - name: transit
     fields:
@@ -92,7 +92,7 @@ primitives:
       - "Transit 必须满足双闸准入（用户闸 + 世界闸）"
       - "状态转换必须合法且可追溯"
       - "任意拒绝必须返回可执行 actionHint"
-    source: P-PROTO-103
+    source_rule: P-PROTO-103
 
   - name: context
     fields:
@@ -115,7 +115,7 @@ primitives:
       - "上下文裁剪必须可观测"
       - "注入优先级必须稳定"
       - "handoff 必须带审计信息"
-    source: P-PROTO-104
+    source_rule: P-PROTO-104
 
   - name: presence
     fields:
@@ -138,4 +138,4 @@ primitives:
       - "Presence 状态必须可恢复"
       - "过期状态必须自动收敛"
       - "跨设备冲突必须有确定性合并策略"
-    source: P-PROTO-105
+    source_rule: P-PROTO-105

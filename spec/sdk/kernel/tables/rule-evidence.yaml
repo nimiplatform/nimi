@@ -1,0 +1,280 @@
+version: 1
+evidence_catalog:
+  sdk_kernel_consistency:
+    type: static_gate
+    command: pnpm check:sdk-spec-kernel-consistency
+    path: scripts/check-sdk-spec-kernel-consistency.mjs
+    description: Kernel rule integrity, surface boundary validation, method group coverage, and error code checks for SDK domain.
+  sdk_lint_gate:
+    type: lint_gate
+    command: pnpm --filter @nimiplatform/sdk lint
+    path: sdk/package.json
+    description: TypeScript compile and ESLint checks for SDK implementation.
+  sdk_test_gate:
+    type: test_gate
+    command: pnpm --filter @nimiplatform/sdk test
+    path: sdk/package.json
+    description: SDK unit tests for transport, error projection, and boundary enforcement.
+
+rules:
+  - rule_id: S-AIP-001
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-AIP-002
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-AIP-003
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-AIP-004
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-AIP-005
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-BOUNDARY-001
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+  - rule_id: S-BOUNDARY-002
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+  - rule_id: S-BOUNDARY-003
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+  - rule_id: S-BOUNDARY-004
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-ERROR-001
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_lint_gate]
+  - rule_id: S-ERROR-002
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-ERROR-003
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-ERROR-004
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-ERROR-005
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-ERROR-006
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-ERROR-007
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-ERROR-008
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-ERROR-009
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-ERROR-010
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-ERROR-011
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-ERROR-012
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-ERROR-013
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-ERROR-014
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-GATE-001
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-GATE-010
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-GATE-020
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-GATE-030
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-GATE-040
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-GATE-050
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-GATE-060
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-GATE-070
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-GATE-080
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-GATE-090
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-GATE-091
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-MOD-001
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-MOD-002
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-MOD-003
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-MOD-004
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-MOD-005
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-MOD-010
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-MOD-011
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-REALM-010
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-REALM-011
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-REALM-012
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-REALM-013
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-REALM-014
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-REALM-015
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-REALM-019
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-REALM-027
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-REALM-028
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-REALM-029
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-REALM-031
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-REALM-035
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-REALM-036
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-REALM-037
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-RUNTIME-010
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_lint_gate]
+  - rule_id: S-RUNTIME-011
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_lint_gate]
+  - rule_id: S-RUNTIME-012
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-RUNTIME-015
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-RUNTIME-023
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-RUNTIME-028
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-RUNTIME-045
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-RUNTIME-050
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-RUNTIME-066
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-RUNTIME-067
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-RUNTIME-068
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-SCOPE-001
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-SCOPE-002
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-SCOPE-003
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-SCOPE-004
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-SCOPE-005
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-SURFACE-001
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-SURFACE-002
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-SURFACE-003
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-SURFACE-004
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-SURFACE-005
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-SURFACE-009
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-TRANSPORT-001
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_lint_gate]
+  - rule_id: S-TRANSPORT-002
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_lint_gate]
+  - rule_id: S-TRANSPORT-003
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-TRANSPORT-004
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-TRANSPORT-005
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-TRANSPORT-006
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-TRANSPORT-007
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-TRANSPORT-008
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-TRANSPORT-009
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-TRANSPORT-010
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]

@@ -161,7 +161,7 @@ items:
   - runtime
   - sdk
   - desktop
-  status: proposed
+  status: spec-drafted
   source_ids:
     - RESEARCH-OFANG-001
   complexity: large
@@ -179,7 +179,7 @@ items:
   - runtime
   - sdk
   - desktop
-  status: proposed
+  status: spec-drafted
   source_ids:
     - RESEARCH-OFANG-001
   complexity: large

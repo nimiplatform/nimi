@@ -2,22 +2,22 @@ version: 1
 states:
   - state: SUBMITTED
     terminal: false
-    source: K-JOB-002
+    source_rule: K-JOB-002
   - state: QUEUED
     terminal: false
-    source: K-JOB-002
+    source_rule: K-JOB-002
   - state: RUNNING
     terminal: false
-    source: K-JOB-002
+    source_rule: K-JOB-002
   - state: COMPLETED
     terminal: true
-    source: K-JOB-002
+    source_rule: K-JOB-002
   - state: FAILED
     terminal: true
-    source: K-JOB-002
+    source_rule: K-JOB-002
   - state: CANCELED
     terminal: true
-    source: K-JOB-002
+    source_rule: K-JOB-002
   - state: TIMEOUT
     terminal: true
-    source: K-JOB-002
+    source_rule: K-JOB-002

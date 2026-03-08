@@ -1,0 +1,70 @@
+# Platform ↔ Runtime Error Code Mapping
+# Resolves semantic overlap between protocol-error-codes.yaml (P-PROTO-*)
+# and reason-codes.yaml (K-ERR-*) by defining the formal correspondence.
+#
+# Direction: Platform protocol error → Runtime reason code
+# Source rules: P-PROTO-060, K-ERR-004
+
+version: 1
+mappings:
+  # App authorization errors map to runtime app-auth reason codes
+  - platform_error: APP_MODE_DOMAIN_FORBIDDEN
+    platform_source: P-PROTO-060
+    runtime_reason_code: APP_MODE_DOMAIN_FORBIDDEN
+    runtime_code_number: 500
+    runtime_source: K-ERR-004
+    note: Identical token; both layers enforce independently
+
+  - platform_error: APP_MODE_SCOPE_FORBIDDEN
+    platform_source: P-PROTO-060
+    runtime_reason_code: APP_MODE_SCOPE_FORBIDDEN
+    runtime_code_number: 501
+    runtime_source: K-ERR-004
+
+  - platform_error: APP_MODE_MANIFEST_INVALID
+    platform_source: P-PROTO-060
+    runtime_reason_code: APP_MODE_MANIFEST_INVALID
+    runtime_code_number: 502
+    runtime_source: K-ERR-004
+
+  - platform_error: APP_SCOPE_FORBIDDEN
+    platform_source: P-PROTO-030
+    runtime_reason_code: APP_SCOPE_FORBIDDEN
+    runtime_code_number: 503
+    runtime_source: K-ERR-004
+
+  - platform_error: APP_SCOPE_REVOKED
+    platform_source: P-PROTO-040
+    runtime_reason_code: APP_SCOPE_REVOKED
+    runtime_code_number: 504
+    runtime_source: K-ERR-004
+
+  # Auth errors map to runtime auth reason codes
+  - platform_error: PRINCIPAL_UNAUTHORIZED
+    platform_source: P-PROTO-020
+    runtime_reason_code: AUTH_TOKEN_INVALID
+    runtime_code_number: 300
+    runtime_source: K-ERR-004
+    note: Platform uses generic principal error; runtime specifies token-level reason
+
+  - platform_error: EXTERNAL_PRINCIPAL_PROOF_INVALID
+    platform_source: P-PROTO-020
+    runtime_reason_code: AUTH_UNSUPPORTED_PROOF_TYPE
+    runtime_code_number: 302
+    runtime_source: K-ERR-004
+
+  # Errors that exist only at platform layer (no runtime equivalent)
+  - platform_error: PROTOCOL_MAJOR_MISMATCH
+    platform_source: P-PROTO-001
+    runtime_reason_code: null
+    note: Version negotiation is protocol-only; runtime does not participate
+
+  - platform_error: ECONOMY_CONSERVATION_FAILED
+    platform_source: P-PROTO-102
+    runtime_reason_code: null
+    note: Economy conservation is Realm-level; runtime has no equivalent
+
+  - platform_error: TIMEFLOW_NON_MONOTONIC
+    platform_source: P-PROTO-100
+    runtime_reason_code: null
+    note: Timeflow is Realm primitive; runtime has no equivalent

@@ -13,6 +13,8 @@
 | `kernel/tables/audit-events.yaml` | 审计事件字典 |
 | `kernel/tables/app-authorization-presets.yaml` | 授权预设 |
 | `kernel/tables/participant-profiles.yaml` | 参与方画像 |
+| `kernel/tables/error-code-mapping.yaml` | Platform → Runtime 错误码映射 |
+| `kernel/tables/rule-evidence.yaml` | P-* 规则证据映射 |
 
 ## 1. 文档定位
 
@@ -34,8 +36,10 @@
 - 审计事件字典：`kernel/tables/audit-events.yaml`。
 - App 授权预设：`kernel/tables/app-authorization-presets.yaml`。
 - 参与方画像与 app 模式：`kernel/tables/participant-profiles.yaml`。
+- Platform → Runtime 错误码对应：`kernel/tables/error-code-mapping.yaml`。
+- 规则证据路由：`kernel/tables/rule-evidence.yaml`。
 
-合规矩阵本身由 Platform kernel 管理；实际执行门与测试证据分别落到 `spec/runtime/*`、`spec/sdk/testing-gates.md`、`spec/desktop/testing-gates.md` 与 `dev/report/*`，Platform domain 不复制下游 gate 细节。
+合规矩阵本身由 Platform kernel 管理；实际执行门与测试证据分别落到 `spec/runtime/*`、`spec/sdk/testing-gates.md`、`spec/desktop/testing-gates.md` 与 `dev/report/*`，Platform domain 不复制下游 gate 细节。P-* 的 formal 证据映射以 `kernel/tables/rule-evidence.yaml` 为唯一事实源。
 
 ## 4. 非目标
 

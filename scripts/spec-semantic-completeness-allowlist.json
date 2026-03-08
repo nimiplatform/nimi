@@ -13,6 +13,14 @@
       "rule_prefix": "F-"
     },
     {
+      "file": "spec/future/kernel/tables/graduation-log.yaml",
+      "rule_prefix": "F-"
+    },
+    {
+      "file": "spec/future/kernel/generated/graduation-log.md",
+      "rule_prefix": "F-"
+    },
+    {
       "file": "spec/generated/nimi-spec.md",
       "rule_prefix": "F-"
     }

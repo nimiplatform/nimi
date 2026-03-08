@@ -110,6 +110,16 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+  - rule_id: D-AUTH-010
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_test_gate
+  - rule_id: D-AUTH-011
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_test_gate
   - rule_id: D-BOOT-001
     status: covered
     evidence_refs:

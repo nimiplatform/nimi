@@ -52,6 +52,8 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, go
 | `tables/audit-events.yaml` | `protocol-contract.md` | Protocol audit event dictionary |
 | `tables/app-authorization-presets.yaml` | `protocol-contract.md` | readOnly/full/delegate preset rules |
 | `tables/participant-profiles.yaml` | `protocol-contract.md` | Realm/Runtime capability profiles |
+| `tables/error-code-mapping.yaml` | `protocol-contract.md` | Platform protocol error → runtime reason code mapping |
+| `tables/rule-evidence.yaml` | `protocol-contract.md` | Platform formal rule → executable evidence mapping |
 
 ## Version Terminology
 
@@ -62,4 +64,4 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, go
 
 ## Downstream Reference Constraint
 
-Domain documents under `spec/platform/` must reference at least one `P-*` Rule ID for each kernel import. Structured tables in `tables/` must use `P-*` Rule IDs in their `source` field.
+Domain documents under `spec/platform/` must reference at least one `P-*` Rule ID for each kernel import. Structured tables in `tables/` must use `P-*` Rule IDs in their `source_rule` field.

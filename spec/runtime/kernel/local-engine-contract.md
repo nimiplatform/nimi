@@ -38,28 +38,28 @@ Phase 1 同时支持 `ATTACHED_ENDPOINT` 和 `SUPERVISED` 两种模式。
 - 重启策略：指数退避（2s base + jitter），最大重试 5 次，累计失败后标记 `UNHEALTHY`。
 - 进程退出码非零视为异常，写审计并触发状态迁移。
 
-### K-LENG-004a 二进制管理
+### 二进制管理
 
 - 二进制存储路径：`~/.nimi/engines/{engine}/{version}/{binary_name}`。
 - 注册表：`~/.nimi/engines/registry.json`，atomic write（temp→rename）。
 - LocalAI：从 GitHub Releases 下载，SHA256 校验，支持 darwin/arm64、darwin/amd64、linux/amd64、linux/arm64。
 - Nexa：系统安装（`exec.LookPath("nexa")`），不自动下载。未安装时返回 `FAILED_PRECONDITION` + 安装引导。
 
-### K-LENG-004b 进程管理
+### 进程管理
 
 - PID 文件：`~/.nimi/engines/{engine}/supervised.pid`，用于僵尸进程清理。
 - 端口分配：优先使用配置端口，冲突时 port+1 递增尝试最多 10 次。
 - 启动等待：LocalAI 默认 120 秒（首次下载 GPU backend 可能较慢），Nexa 默认 30 秒。
 - 健康探测：LocalAI 使用 `GET /readyz`（HTTP 200=健康），Nexa 使用 `GET /`（body 含 "Nexa SDK is running"=健康）。
 
-### K-LENG-004c env var 注入
+### env var 注入
 
 引擎就绪后，runtime 自动设置以下环境变量供现有 AI provider 层自动接管：
 
 - LocalAI：`NIMI_RUNTIME_LOCAL_AI_BASE_URL={endpoint}/v1`
 - Nexa：`NIMI_RUNTIME_LOCAL_NEXA_BASE_URL={endpoint}/v1`
 
-### K-LENG-004d 配置
+### 配置
 
 FileConfig `engines` 段：
 
@@ -97,7 +97,7 @@ ENV 覆盖：`NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED`、`NIMI_RUNTIME_ENGINE_LOCALA
 - 端口推导：当 `engines.localai.port` 未显式设置时，runtime MUST 从 `providers.local.baseUrl` 解析端口；解析失败或未提供端口时回退 `1234`。
 - `engines.localai.port` 显式配置始终高于 URL 端口推导。
 
-### K-LENG-004e gRPC RPC
+### gRPC RPC
 
 `RuntimeLocalService` 新增 5 个 Engine RPC：
 

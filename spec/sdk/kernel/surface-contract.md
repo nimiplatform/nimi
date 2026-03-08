@@ -11,6 +11,7 @@
 - `@nimiplatform/sdk/realm`
 - `@nimiplatform/sdk/scope`
 - `@nimiplatform/sdk/mod`
+- `@nimiplatform/sdk/types`
 
 SDK 必须维持单一 package layout；公开子路径只允许在 `@nimiplatform/sdk` 包内投影，不得漂移为多 package 或多根布局。
 

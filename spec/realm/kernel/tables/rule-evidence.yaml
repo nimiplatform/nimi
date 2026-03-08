@@ -1,0 +1,72 @@
+version: 1
+evidence_catalog:
+  realm_kernel_consistency:
+    type: static_gate
+    command: pnpm check:realm-spec-kernel-consistency
+    path: scripts/check-realm-spec-kernel-consistency.mjs
+    description: Kernel rule integrity, vocabulary alignment, economy arithmetic, primitive mapping status, and graduation log checks for Realm domain.
+  realm_timeflow_contract_test:
+    type: test_gate
+    command: cd runtime && go test ./internal/protocol -run TestValidateTimeflowContractAcceptsCanonicalPayload -count=1
+    path: runtime/internal/protocol/realm_primitives_contract_test.go
+    description: Executable contract test for graduated timeflow primitive mapping.
+  realm_economy_contract_test:
+    type: test_gate
+    command: cd runtime && go test ./internal/protocol -run TestValidateEconomyContractAcceptsCanonicalPayload -count=1
+    path: runtime/internal/protocol/realm_primitives_contract_test.go
+    description: Executable contract test for graduated economy primitive mapping.
+  runtime_compliance_gate:
+    type: static_gate
+    command: cd runtime && go run ./cmd/runtime-compliance --gate
+    path: runtime/cmd/runtime-compliance/main.go
+    description: Runtime compliance gate including realm primitive contract coverage checklist.
+
+rules:
+  - rule_id: R-BOUND-001
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-BOUND-002
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-BOUND-003
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-BOUND-010
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-ECON-001
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-ECON-010
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-ECON-020
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-ECON-021
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-ECON-022
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-ECON-023
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-ECON-024
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-ECON-025
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-ECON-030
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-ECON-040
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-INTEROP-001
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-INTEROP-002
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_timeflow_contract_test, realm_economy_contract_test, runtime_compliance_gate]

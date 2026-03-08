@@ -18,6 +18,8 @@ const specs = [
   { input: 'audit-events.yaml', output: 'audit-events.md', render: renderAuditEvents },
   { input: 'app-authorization-presets.yaml', output: 'app-authorization-presets.md', render: renderAuthPresets },
   { input: 'participant-profiles.yaml', output: 'participant-profiles.md', render: renderProfiles },
+  { input: 'error-code-mapping.yaml', output: 'error-code-mapping.md', render: renderErrorCodeMapping },
+  { input: 'rule-evidence.yaml', output: 'rule-evidence.md', render: renderRuleEvidence },
 ];
 
 function normalizeMarkdown(markdown) {
@@ -42,7 +44,7 @@ function renderErrorCodes(doc, sourceName) {
   for (const code of codes) {
     const name = String(code?.name || '').trim();
     const group = String(code?.group || '').trim();
-    const source = String(code?.source || '').trim();
+    const source = String(code?.source_rule || '').trim();
     if (!name) continue;
     out += `| \`${name}\` | \`${group}\` | \`${source}\` |\n`;
   }
@@ -55,7 +57,7 @@ function renderPrimitives(doc, sourceName) {
   let out = header('Generated Protocol Primitives', sourceName);
   for (const prim of primitives) {
     const name = String(prim?.name || '').trim();
-    const source = String(prim?.source || '').trim();
+    const source = String(prim?.source_rule || '').trim();
     if (!name) continue;
     out += `## ${name} (${source})\n\n`;
     const fields = Array.isArray(prim?.fields) ? prim.fields : [];
@@ -101,7 +103,7 @@ function renderComplianceMatrix(doc, sourceName) {
       const positive = String(item?.positive || '').trim();
       const rejection = String(item?.rejection || '').trim();
       const regression = String(item?.regression || '').trim();
-      const source = String(item?.source || '').trim();
+      const source = String(item?.source_rule || '').trim();
       if (hasReplay) {
         const replay = String(item?.replay_consistency || '').trim();
         out += `| ${name} | ${positive} | ${rejection} | ${replay} | ${regression} | \`${source}\` |\n`;
@@ -124,7 +126,7 @@ function renderAuditEvents(doc, sourceName) {
   for (const event of events) {
     const name = String(event?.name || '').trim();
     const group = String(event?.group || '').trim();
-    const source = String(event?.source || '').trim();
+    const source = String(event?.source_rule || '').trim();
     if (!name) continue;
     out += `| \`${name}\` | \`${group}\` | \`${source}\` |\n`;
   }
@@ -148,13 +150,13 @@ function renderAuthPresets(doc, sourceName) {
     const desc = String(preset?.description || '').trim();
     const canDelegate = String(preset?.can_delegate ?? '').trim();
     const maxDepth = String(preset?.max_delegation_depth ?? '').trim();
-    const source = String(preset?.source || '').trim();
+    const source = String(preset?.source_rule || '').trim();
     out += `| \`${name}\` | ${desc} | ${canDelegate} | ${maxDepth} | \`${source}\` |\n`;
   }
   out += '\n## Delegation Rules\n\n';
   for (const rule of delegationRules) {
     const text = String(rule?.rule || '').trim();
-    const source = String(rule?.source || '').trim();
+    const source = String(rule?.source_rule || '').trim();
     out += `- ${text} (\`${source}\`)\n`;
   }
   out += '\n';
@@ -171,7 +173,7 @@ function renderProfiles(doc, sourceName) {
     const pid = String(profile?.participant_id || '').trim();
     const ref = String(profile?.profile_ref || '').trim();
     const role = String(profile?.role || '').trim();
-    const source = String(profile?.source || '').trim();
+    const source = String(profile?.source_rule || '').trim();
     out += `### ${pid} (\`${source}\`)\n\n`;
     out += `- Profile Ref: \`${ref}\`\n`;
     out += `- Role: ${role}\n\n`;
@@ -202,7 +204,45 @@ function renderProfiles(doc, sourceName) {
   out += '| Name | Description | Source |\n';
   out += '|---|---|---|\n';
   for (const mode of appModes) {
-    out += `| \`${String(mode?.name || '')}\` | ${String(mode?.description || '')} | \`${String(mode?.source || '')}\` |\n`;
+    out += `| \`${String(mode?.name || '')}\` | ${String(mode?.description || '')} | \`${String(mode?.source_rule || '')}\` |\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderErrorCodeMapping(doc, sourceName) {
+  const mappings = Array.isArray(doc?.mappings) ? doc.mappings : [];
+  let out = header('Generated Error Code Mapping', sourceName);
+  out += '| Platform Error | Platform Source | Runtime Reason Code | Runtime Source | Note |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const item of mappings) {
+    out += `| \`${String(item?.platform_error || '')}\` | \`${String(item?.platform_source || '') || '—'}\` | \`${String(item?.runtime_reason_code || '') || '—'}\` | \`${String(item?.runtime_source || '') || '—'}\` | ${String(item?.note || '') || '—'} |\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderRuleEvidence(doc, sourceName) {
+  const catalog = doc?.evidence_catalog && typeof doc.evidence_catalog === 'object'
+    ? doc.evidence_catalog
+    : {};
+  const rules = Array.isArray(doc?.rules) ? doc.rules : [];
+  let out = header('Generated Rule Evidence', sourceName);
+  out += '| Evidence Ref | Type | Command | Path | Description |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const [ref, value] of Object.entries(catalog)) {
+    const item = value && typeof value === 'object' ? value : {};
+    out += `| \`${ref}\` | \`${String(item.type || '').trim() || '—'}\` | \`${String(item.command || '').trim() || '—'}\` | \`${String(item.path || '').trim() || '—'}\` | ${String(item.description || '').trim() || '—'} |\n`;
+  }
+  out += '\n## Rule Coverage Matrix\n\n';
+  out += '| Rule ID | Status | Evidence Refs |\n';
+  out += '|---|---|---|\n';
+  for (const item of rules) {
+    const ruleId = String(item?.rule_id || '').trim();
+    if (!ruleId) continue;
+    const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
+    const refsText = refs.length > 0 ? refs.map((ref) => `\`${String(ref)}\``).join(', ') : '—';
+    out += `| \`${ruleId}\` | \`${String(item?.status || '').trim() || '—'}\` | ${refsText} |\n`;
   }
   out += '\n';
   return normalizeMarkdown(out);

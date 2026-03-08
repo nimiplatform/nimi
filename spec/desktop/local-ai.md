@@ -88,9 +88,9 @@ companion artifact manifest 也必须位于 `~/.nimi/models/` 根下的某个子
 
 | Command | 方向 | 说明 |
 |---|---|---|
-| `local_ai_download_model` | Frontend → Rust | 触发模型下载，参数含 repo/files/hashes/entry |
-| `local_ai_cancel_download` | Frontend → Rust | 取消进行中的下载，清理 staging |
-| `local_ai_search_hf_models` | Frontend → Rust | 搜索 HuggingFace 模型 |
+| `runtime_local_models_install` / `runtime_local_models_install_verified` | Frontend → Rust | 创建模型安装会话并入队 |
+| `runtime_local_downloads_cancel` | Frontend → Rust | 取消进行中的下载，清理 staging |
+| `runtime_local_models_catalog_search` | Frontend → Rust | 搜索 HuggingFace/catalog 模型 |
 
 ### Error（下载相关）
 
@@ -110,7 +110,7 @@ companion artifact manifest 也必须位于 `~/.nimi/models/` 根下的某个子
 
 ### 流程
 
-1. **文件选择** — `local_ai_pick_model_file` 通过原生文件对话框选取模型文件（不限于 `~/.nimi/models/`）
+1. **文件选择** — `runtime_local_pick_model_file` 通过原生文件对话框选取模型文件（不限于 `~/.nimi/models/`）
 2. **校验阶段**（同步，返回前）:
    - 源文件存在且是文件（`LOCAL_AI_FILE_IMPORT_NOT_FOUND`）
    - capabilities 非空（`LOCAL_AI_FILE_IMPORT_CAPABILITIES_EMPTY`）
@@ -129,8 +129,8 @@ companion artifact manifest 也必须位于 `~/.nimi/models/` 根下的某个子
 
 | Command | 方向 | 说明 |
 |---|---|---|
-| `local_ai_pick_model_file` | Frontend → Rust | 原生对话框选择模型文件 |
-| `local_ai_models_import_file` | Frontend → Rust | 触发文件导入（复制+hash+manifest+注册） |
+| `runtime_local_pick_model_file` | Frontend → Rust | 原生对话框选择模型文件 |
+| `runtime_local_models_import_file` | Frontend → Rust | 触发文件导入（复制+hash+manifest+注册） |
 
 ### Error（文件导入相关）
 
@@ -206,3 +206,7 @@ verified companion install 失败时，Desktop 必须在 `Artifact Tasks` 中提
 ## CI 门禁引用
 
 本域涉及的 CI 门禁：`pnpm check:desktop-spec-kernel-consistency`（Check 1, 11, 13~14, 18~19 相关规则）。
+
+## Offline / Degradation
+
+当 Realm 或 Runtime 不可达时，本域的可用性降级遵循 `kernel/offline-degradation-contract.md`（D-OFFLINE-001~005）。Local AI 相关命令只在 Runtime 可达时可执行；Realm 离线不阻断本地模型管理。

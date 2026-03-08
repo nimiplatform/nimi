@@ -39,6 +39,8 @@ Every realm domain document must explicitly reference kernel Rule IDs; it must n
 | `tables/revenue-event-types.yaml` | `economy-contract.md` | Revenue event types |
 | `tables/share-plan-fields.yaml` | `economy-contract.md` | Share plan fields and validation |
 | `tables/primitive-mapping-status.yaml` | `interop-mapping-contract.md` | Six primitive mapping status |
+| `tables/primitive-graduation-log.yaml` | `interop-mapping-contract.md` | Graduated primitive evidence log |
+| `tables/rule-evidence.yaml` | `interop-mapping-contract.md` | Realm formal rule → executable evidence mapping |
 
 ## Downstream Reference Constraint
 

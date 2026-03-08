@@ -8,7 +8,7 @@ cases:
     x_nimi_provider_api_key: forbidden
     valid: true
     reason_code: ""
-    source: K-KEYSRC-006
+    source_rule: K-KEYSRC-006
   - id: managed_missing_connector_id
     key_source: managed
     connector_id: missing_or_empty
@@ -17,7 +17,7 @@ cases:
     x_nimi_provider_api_key: forbidden
     valid: false
     reason_code: AI_CONNECTOR_ID_REQUIRED
-    source: K-KEYSRC-007
+    source_rule: K-KEYSRC-007
   - id: inline_complete_with_default_endpoint
     key_source: inline
     connector_id: forbidden
@@ -26,7 +26,7 @@ cases:
     x_nimi_provider_api_key: required_non_empty
     valid: true
     reason_code: ""
-    source: K-KEYSRC-006
+    source_rule: K-KEYSRC-006
   - id: inline_missing_provider_type
     key_source: inline
     connector_id: forbidden
@@ -35,7 +35,7 @@ cases:
     x_nimi_provider_api_key: required_non_empty
     valid: false
     reason_code: AI_REQUEST_CREDENTIAL_MISSING
-    source: K-KEYSRC-007
+    source_rule: K-KEYSRC-007
   - id: inline_missing_api_key
     key_source: inline
     connector_id: forbidden
@@ -44,7 +44,7 @@ cases:
     x_nimi_provider_api_key: missing_or_empty
     valid: false
     reason_code: AI_REQUEST_CREDENTIAL_MISSING
-    source: K-KEYSRC-007
+    source_rule: K-KEYSRC-007
   - id: inline_missing_required_endpoint
     key_source: inline
     connector_id: forbidden
@@ -53,7 +53,7 @@ cases:
     x_nimi_provider_api_key: required_non_empty
     valid: false
     reason_code: AI_REQUEST_CREDENTIAL_MISSING
-    source: K-KEYSRC-008
+    source_rule: K-KEYSRC-008
   - id: conflict_connector_and_inline
     key_source: inline_or_managed
     connector_id: required_non_empty
@@ -62,4 +62,4 @@ cases:
     x_nimi_provider_api_key: required_non_empty
     valid: false
     reason_code: AI_REQUEST_CREDENTIAL_CONFLICT
-    source: K-KEYSRC-002
+    source_rule: K-KEYSRC-002

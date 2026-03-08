@@ -3,32 +3,32 @@ timeouts:
   - operation: ExecuteScenario_text_generate
     default_ms: 30000
     overridable: true
-    source: K-DAEMON-008
+    source_rule: K-DAEMON-008
   - operation: StreamScenario_first_packet
     default_ms: 10000
     overridable: false
-    source: K-DAEMON-008
+    source_rule: K-DAEMON-008
   - operation: StreamScenario_total
     default_ms: 120000
     overridable: true
-    source: K-DAEMON-008
+    source_rule: K-DAEMON-008
   - operation: ExecuteScenario_text_embed
     default_ms: 20000
     overridable: true
-    source: K-DAEMON-008
+    source_rule: K-DAEMON-008
   - operation: SubmitScenarioJob_image
     default_ms: 120000
     overridable: true
-    source: K-DAEMON-008
+    source_rule: K-DAEMON-008
   - operation: SubmitScenarioJob_video
     default_ms: 300000
     overridable: true
-    source: K-DAEMON-008
+    source_rule: K-DAEMON-008
   - operation: StreamScenario_speech_synthesize
     default_ms: 45000
     overridable: true
-    source: K-DAEMON-008
+    source_rule: K-DAEMON-008
   - operation: SubmitScenarioJob_stt
     default_ms: 90000
     overridable: true
-    source: K-DAEMON-008
+    source_rule: K-DAEMON-008

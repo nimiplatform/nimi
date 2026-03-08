@@ -17,9 +17,12 @@ function warn(msg) {
   console.error(`WARNING: ${msg}`);
 }
 
+function read(rel) {
+  return fs.readFileSync(path.join(cwd, rel), 'utf8');
+}
+
 function readYaml(rel) {
-  const content = fs.readFileSync(path.join(cwd, rel), 'utf8');
-  return YAML.parse(content);
+  return YAML.parse(read(rel));
 }
 
 // --- Load tables ---
@@ -30,6 +33,8 @@ const complianceTable = readYaml('spec/platform/kernel/tables/compliance-test-ma
 const auditTable = readYaml('spec/platform/kernel/tables/audit-events.yaml');
 const presetsTable = readYaml('spec/platform/kernel/tables/app-authorization-presets.yaml');
 const profilesTable = readYaml('spec/platform/kernel/tables/participant-profiles.yaml');
+const errorCodeMappingTable = readYaml('spec/platform/kernel/tables/error-code-mapping.yaml');
+const ruleEvidenceTable = readYaml('spec/platform/kernel/tables/rule-evidence.yaml');
 
 // ========================================================
 // Check 1: Error code name uniqueness
@@ -49,9 +54,9 @@ for (const code of codes) {
   codeNames.add(name);
 
   // Check source format: P-PROTO-NNN
-  const source = String(code?.source || '').trim();
+  const source = String(code?.source_rule || '').trim();
   if (source && !/^P-[A-Z]{2,12}-\d{3}$/u.test(source)) {
-    fail(`protocol-error-codes.yaml ${name}: invalid source format: ${source}`);
+    fail(`protocol-error-codes.yaml ${name}: invalid source_rule format: ${source}`);
   }
 
   // Check required fields
@@ -77,9 +82,9 @@ for (const prim of primitives) {
   foundPrimitives.add(name);
 
   // Check source format
-  const source = String(prim?.source || '').trim();
+  const source = String(prim?.source_rule || '').trim();
   if (source && !/^P-[A-Z]{2,12}-\d{3}$/u.test(source)) {
-    fail(`protocol-primitives.yaml ${name}: invalid source format: ${source}`);
+    fail(`protocol-primitives.yaml ${name}: invalid source_rule format: ${source}`);
   }
 
   // Check fields exist
@@ -125,9 +130,9 @@ for (const layer of layers) {
     if (!itemName) {
       fail(`compliance-test-matrix.yaml ${layerName}: item missing name`);
     }
-    const source = String(item?.source || '').trim();
+    const source = String(item?.source_rule || '').trim();
     if (source && !/^P-[A-Z]{2,12}-\d{3}$/u.test(source)) {
-      fail(`compliance-test-matrix.yaml ${layerName}/${itemName}: invalid source format: ${source}`);
+      fail(`compliance-test-matrix.yaml ${layerName}/${itemName}: invalid source_rule format: ${source}`);
     }
   }
 }
@@ -149,9 +154,9 @@ for (const event of events) {
   }
   eventNames.add(name);
 
-  const source = String(event?.source || '').trim();
+  const source = String(event?.source_rule || '').trim();
   if (source && !/^P-[A-Z]{2,12}-\d{3}$/u.test(source)) {
-    fail(`audit-events.yaml ${name}: invalid source format: ${source}`);
+    fail(`audit-events.yaml ${name}: invalid source_rule format: ${source}`);
   }
 }
 
@@ -171,9 +176,9 @@ for (const preset of presets) {
   }
   foundPresets.add(name);
 
-  const source = String(preset?.source || '').trim();
+  const source = String(preset?.source_rule || '').trim();
   if (source && !/^P-[A-Z]{2,12}-\d{3}$/u.test(source)) {
-    fail(`app-authorization-presets.yaml ${name}: invalid source format: ${source}`);
+    fail(`app-authorization-presets.yaml ${name}: invalid source_rule format: ${source}`);
   }
 }
 
@@ -199,9 +204,9 @@ for (const profile of profiles) {
     continue;
   }
 
-  const source = String(profile?.source || '').trim();
+  const source = String(profile?.source_rule || '').trim();
   if (source && !/^P-[A-Z]{2,12}-\d{3}$/u.test(source)) {
-    fail(`participant-profiles.yaml ${pid}: invalid source format: ${source}`);
+    fail(`participant-profiles.yaml ${pid}: invalid source_rule format: ${source}`);
   }
 }
 
@@ -212,15 +217,15 @@ for (const profile of profiles) {
 // Collect all P-* rule IDs referenced across tables
 const allSourceRefs = new Set();
 for (const code of codes) {
-  const source = String(code?.source || '').trim();
+  const source = String(code?.source_rule || '').trim();
   if (source) allSourceRefs.add(source);
 }
 for (const prim of primitives) {
-  const source = String(prim?.source || '').trim();
+  const source = String(prim?.source_rule || '').trim();
   if (source) allSourceRefs.add(source);
 }
 for (const event of events) {
-  const source = String(event?.source || '').trim();
+  const source = String(event?.source_rule || '').trim();
   if (source) allSourceRefs.add(source);
 }
 
@@ -242,6 +247,8 @@ const requiredKernelFiles = [
   'architecture-contract.md',
   'ai-last-mile-contract.md',
   'governance-contract.md',
+  'tables/error-code-mapping.yaml',
+  'tables/rule-evidence.yaml',
 ];
 
 for (const file of requiredKernelFiles) {
@@ -285,7 +292,7 @@ function collectYamlSources(data, filePath) {
         for (const item of obj) collectFromObj(item);
       } else {
         for (const [key, value] of Object.entries(obj)) {
-          if (key === 'source' && typeof value === 'string') {
+          if (key === 'source_rule' && typeof value === 'string') {
             const s = value.trim();
             if (/^P-[A-Z]{2,12}-\d{3}$/u.test(s)) {
               sources.push(s);
@@ -314,10 +321,13 @@ for (const table of yamlTables) {
   const sources = collectYamlSources(table.data, table.name);
   for (const source of sources) {
     if (!definedRuleIds.has(source)) {
-      fail(`${table.name}: source "${source}" not found in any kernel contract heading`);
+      fail(`${table.name}: source_rule "${source}" not found in any kernel contract heading`);
     }
   }
 }
+
+checkErrorCodeMapping(definedRuleIds);
+checkRuleEvidenceTraceability(definedRuleIds);
 
 // ========================================================
 // Check 10: Domain document reference — all P-*-NNN refs
@@ -366,8 +376,221 @@ for (const rel of domainDocs) {
   }
 }
 
+// ── Check: Cross-domain K-* references exist in Runtime spec ──
+checkCrossDomainRuleReferences(
+  [
+    ...requiredKernelFiles
+      .filter((file) => file.endsWith('.md'))
+      .map((file) => path.posix.join('spec/platform/kernel', file)),
+    ...domainDocs,
+  ],
+  [
+    {
+      label: 'Runtime',
+      dir: 'spec/runtime/kernel',
+      headingPattern: /^##\s+(K-[A-Z]+-\d{3}[a-z]?)\b/gmu,
+      refPattern: /\bK-[A-Z]+-\d{3}[a-z]?\b/gu,
+    },
+    {
+      label: 'Desktop',
+      dir: 'spec/desktop/kernel',
+      headingPattern: /^##\s+(D-[A-Z]+-\d{3}[a-z]?)\b/gmu,
+      refPattern: /\bD-[A-Z]+-\d{3}[a-z]?\b/gu,
+    },
+  ],
+);
+
+checkOrphanRules(definedRuleIds, domainDocs);
+
 if (failed) process.exit(1);
 console.log('platform-spec-kernel-consistency: OK');
+
+function checkErrorCodeMapping(definedRuleIds) {
+  const rel = 'spec/platform/kernel/tables/error-code-mapping.yaml';
+  const mappings = Array.isArray(errorCodeMappingTable?.mappings) ? errorCodeMappingTable.mappings : [];
+  if (mappings.length === 0) {
+    fail(`${rel} mappings must not be empty`);
+    return;
+  }
+
+  for (const entry of mappings) {
+    const platformError = String(entry?.platform_error || '').trim();
+    const platformSource = String(entry?.platform_source || '').trim();
+    const runtimeSource = String(entry?.runtime_source || '').trim();
+    if (!platformError) {
+      fail(`${rel} mapping missing platform_error`);
+    }
+    if (!/^P-[A-Z]{2,12}-\d{3}$/u.test(platformSource) || !definedRuleIds.has(platformSource)) {
+      fail(`${rel} ${platformError || '<empty>'} has invalid platform_source: ${platformSource || '<empty>'}`);
+    }
+    if (runtimeSource && !/^K-[A-Z]+-\d{3}[a-z]?$/u.test(runtimeSource)) {
+      fail(`${rel} ${platformError || '<empty>'} has invalid runtime_source: ${runtimeSource}`);
+    }
+  }
+}
+
+function checkRuleEvidenceTraceability(definedRuleIds) {
+  const rel = 'spec/platform/kernel/tables/rule-evidence.yaml';
+  const catalog = ruleEvidenceTable?.evidence_catalog && typeof ruleEvidenceTable.evidence_catalog === 'object'
+    ? ruleEvidenceTable.evidence_catalog
+    : null;
+  if (!catalog) {
+    fail(`${rel} missing evidence_catalog map`);
+    return;
+  }
+  for (const [ref, item] of Object.entries(catalog)) {
+    const record = item && typeof item === 'object' ? item : null;
+    if (!record) {
+      fail(`${rel} evidence_catalog.${ref} must be an object`);
+      continue;
+    }
+    const command = String(record.command || '').trim();
+    const targetPath = String(record.path || '').trim();
+    if (!String(record.type || '').trim()) fail(`${rel} evidence_catalog.${ref} missing type`);
+    if (!command) fail(`${rel} evidence_catalog.${ref} missing command`);
+    if (!targetPath) {
+      fail(`${rel} evidence_catalog.${ref} missing path`);
+      continue;
+    }
+    if (!fs.existsSync(path.join(cwd, targetPath))) {
+      fail(`${rel} evidence_catalog.${ref} path does not exist: ${targetPath}`);
+    }
+  }
+
+  const rules = Array.isArray(ruleEvidenceTable?.rules) ? ruleEvidenceTable.rules : [];
+  const seen = new Set();
+  for (const item of rules) {
+    const ruleId = String(item?.rule_id || '').trim();
+    const status = String(item?.status || '').trim().toLowerCase();
+    const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
+    const naReason = String(item?.na_reason || '').trim();
+    if (!/^P-[A-Z]{2,12}-\d{3}$/u.test(ruleId)) {
+      fail(`${rel} has invalid rule_id format: ${ruleId || '<empty>'}`);
+      continue;
+    }
+    if (seen.has(ruleId)) {
+      fail(`${rel} has duplicate rule_id entry: ${ruleId}`);
+      continue;
+    }
+    seen.add(ruleId);
+    if (!definedRuleIds.has(ruleId)) {
+      fail(`${rel} references unknown platform kernel rule: ${ruleId}`);
+    }
+    if (status !== 'covered' && status !== 'na') {
+      fail(`${rel} ${ruleId} has invalid status: ${status || '<empty>'}`);
+      continue;
+    }
+    if (status === 'na') {
+      if (!naReason) fail(`${rel} ${ruleId} status=na requires na_reason`);
+      continue;
+    }
+    if (refs.length === 0) {
+      fail(`${rel} ${ruleId} status=covered requires non-empty evidence_refs`);
+      continue;
+    }
+    for (const rawRef of refs) {
+      const ref = String(rawRef || '').trim();
+      if (!ref) {
+        fail(`${rel} ${ruleId} contains empty evidence_refs item`);
+        continue;
+      }
+      if (!Object.prototype.hasOwnProperty.call(catalog, ref)) {
+        fail(`${rel} ${ruleId} references undefined evidence ref: ${ref}`);
+      }
+    }
+  }
+
+  const missing = [...definedRuleIds].filter((ruleId) => !seen.has(ruleId));
+  if (missing.length > 0) {
+    fail(`${rel} missing evidence rows for rules: ${missing.join(', ')}`);
+  }
+}
+
+function checkOrphanRules(definedRuleIds, domainDocs) {
+  const refs = new Map();
+  const files = [...new Set([
+    ...requiredKernelFiles.map((file) => path.posix.join('spec/platform/kernel', file)),
+    ...yamlTables.map((table) => path.posix.join('spec/platform/kernel/tables', table.name)),
+    ...domainDocs,
+  ])].filter((rel) => !rel.endsWith('rule-evidence.yaml'));
+
+  for (const rel of files) {
+    if (!fs.existsSync(path.join(cwd, rel))) continue;
+    const content = read(rel);
+    for (const ruleId of collectReferencedPlatformRuleIds(content, definedRuleIds)) {
+      refs.set(ruleId, (refs.get(ruleId) || 0) + 1);
+    }
+  }
+
+  const orphans = [...definedRuleIds].filter((ruleId) => (refs.get(ruleId) || 0) <= 1);
+  if (orphans.length > 0) {
+    fail(`platform orphan kernel rules detected: ${orphans.join(', ')}`);
+  }
+}
+
+function collectReferencedPlatformRuleIds(content, definedRuleIds) {
+  const refs = new Set();
+
+  for (const match of content.matchAll(/\bP-[A-Z]{2,12}-\d{3}\b/g)) {
+    refs.add(match[0]);
+  }
+
+  for (const match of content.matchAll(/\b(P-[A-Z]{2,12})-\*/g)) {
+    const prefix = `${match[1]}-`;
+    for (const ruleId of definedRuleIds) {
+      if (ruleId.startsWith(prefix)) {
+        refs.add(ruleId);
+      }
+    }
+  }
+
+  for (const match of content.matchAll(/\b(P-[A-Z]{2,12})-(\d{3})[–-](\d{3})\b/g)) {
+    const prefix = `${match[1]}-`;
+    const start = Number.parseInt(match[2], 10);
+    const end = Number.parseInt(match[3], 10);
+    if (Number.isNaN(start) || Number.isNaN(end)) continue;
+    const lower = Math.min(start, end);
+    const upper = Math.max(start, end);
+    for (const ruleId of definedRuleIds) {
+      if (!ruleId.startsWith(prefix)) continue;
+      const numeric = Number.parseInt(ruleId.slice(prefix.length), 10);
+      if (!Number.isNaN(numeric) && numeric >= lower && numeric <= upper) {
+        refs.add(ruleId);
+      }
+    }
+  }
+
+  return refs;
+}
+
+function checkCrossDomainRuleReferences(files, targets) {
+  for (const target of targets) {
+    const targetDir = path.join(cwd, target.dir);
+    if (!fs.existsSync(targetDir)) continue;
+
+    const definitions = new Set();
+    for (const name of fs.readdirSync(targetDir).filter((entry) => entry.endsWith('.md'))) {
+      const filePath = path.join(targetDir, name);
+      if (!fs.statSync(filePath).isFile()) continue;
+      const content = fs.readFileSync(filePath, 'utf8');
+      for (const match of content.matchAll(target.headingPattern)) {
+        definitions.add(match[1]);
+      }
+    }
+    if (definitions.size === 0) continue;
+
+    for (const rel of files) {
+      const filePath = path.join(cwd, rel);
+      if (!fs.existsSync(filePath)) continue;
+      const content = fs.readFileSync(filePath, 'utf8');
+      for (const ref of new Set([...content.matchAll(target.refPattern)].map((match) => match[0]))) {
+        if (!definitions.has(ref)) {
+          fail(`${rel} references undefined ${target.label} Rule ID: ${ref}`);
+        }
+      }
+    }
+  }
+}
 
 function listDomainMarkdownFiles(domainDirRel) {
   const domainDir = path.join(cwd, domainDirRel);

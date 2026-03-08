@@ -10,3 +10,5 @@
 | `audit-events.md` | `tables/audit-events.yaml` |
 | `app-authorization-presets.md` | `tables/app-authorization-presets.yaml` |
 | `participant-profiles.md` | `tables/participant-profiles.yaml` |
+| `error-code-mapping.md` | `tables/error-code-mapping.yaml` |
+| `rule-evidence.md` | `tables/rule-evidence.yaml` |

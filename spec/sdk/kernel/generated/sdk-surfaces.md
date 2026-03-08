@@ -9,3 +9,4 @@
 | `spec/sdk/realm.md` | `@nimiplatform/sdk/realm` | `realm_projection` |
 | `spec/sdk/scope.md` | `@nimiplatform/sdk/scope` | `scope_projection` |
 | `spec/sdk/mod.md` | `@nimiplatform/sdk/mod` | `mod_projection` |
+| `spec/sdk/types.md` | `@nimiplatform/sdk/types` | `types_projection` |

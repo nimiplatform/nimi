@@ -20,7 +20,15 @@
 
 ## 3. Share Plan
 
-字段与校验规则见 `tables/share-plan-fields.yaml`（R-ECON-020–024）。
+字段与校验规则见 `tables/share-plan-fields.yaml`（R-ECON-020–025）。
+
+当前 Share Plan 校验最小集合如下：
+
+- `R-ECON-021`: `participants.percentageBps` 总和必须等于 10000。
+- `R-ECON-022`: `world_*` 事件必须包含 creator 角色。
+- `R-ECON-023`: `extension_app_world_trade` 必须同时包含 platform、creator、extension_app 三方角色。
+- `R-ECON-024`: active 计划变更仅影响新事件，不得回写历史分账结果。
+- `R-ECON-025`: 同一 eventType 同一时刻最多一个 active Share Plan，新计划激活前必须退休旧计划。
 
 ## 4. 防绕过与归因
 

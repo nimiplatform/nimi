@@ -271,6 +271,7 @@ func runtimeChecklist() []checklistItemSpec {
 		pkgGrpc        = "github.com/nimiplatform/nimi/runtime/internal/grpcserver"
 		pkgModel       = "github.com/nimiplatform/nimi/runtime/internal/services/model"
 		pkgNimillm     = "github.com/nimiplatform/nimi/runtime/internal/nimillm"
+		pkgProtocol    = "github.com/nimiplatform/nimi/runtime/internal/protocol"
 		pkgScheduler   = "github.com/nimiplatform/nimi/runtime/internal/scheduler"
 		pkgWorkflow    = "github.com/nimiplatform/nimi/runtime/internal/services/workflow"
 	)
@@ -512,6 +513,15 @@ func runtimeChecklist() []checklistItemSpec {
 			Tests: []testRef{
 				{Package: pkgGrant, Name: "TestListTokenChainRootRequiredReasonCode"},
 				{Package: pkgGrant, Name: "TestListTokenChainRootNotFoundReasonCode"},
+			},
+		},
+		{
+			ID:          "RS-11-30",
+			Requirement: "realm primitive contract coverage (timeflow/economy graduated, others skeletonized)",
+			Tests: []testRef{
+				{Package: pkgProtocol, Name: "TestRealmPrimitiveContractSkeletonCoverage"},
+				{Package: pkgProtocol, Name: "TestValidateTimeflowContractAcceptsCanonicalPayload"},
+				{Package: pkgProtocol, Name: "TestValidateEconomyContractAcceptsCanonicalPayload"},
 			},
 		},
 	}

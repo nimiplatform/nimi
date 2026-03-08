@@ -6,28 +6,28 @@ interceptors:
     stream: true
     side_effects: []
     description: Version negotiation; injects runtime version metadata into response headers
-    source: K-DAEMON-005
+    source_rule: K-DAEMON-005
   - name: lifecycle
     order: 2
     unary: true
     stream: true
     side_effects: []
     description: Health state gate; rejects non-readonly requests when STOPPING/STOPPED
-    source: K-DAEMON-005
+    source_rule: K-DAEMON-005
   - name: protocol
     order: 3
     unary: true
     stream: true
     side_effects: [idempotency_store_write]
     description: Envelope parsing, metadata extraction, idempotency check (unary only)
-    source: K-DAEMON-005
+    source_rule: K-DAEMON-005
   - name: authn
     order: 4
     unary: true
     stream: true
     side_effects: []
     description: Authentication token validation; extracts and verifies caller identity from metadata
-    source: K-DAEMON-005
+    source_rule: K-DAEMON-005
   - name: authz
     order: 5
     unary: true
@@ -35,11 +35,11 @@ interceptors:
     stream_rpc_scope: [ExportAuditEvents]
     side_effects: []
     description: Protected capability validation via grant service; AI consume streaming RPCs (StreamScenario TEXT_GENERATE/SPEECH_SYNTHESIZE) are authorized via key-source evaluation path (K-KEYSRC-004), not this interceptor
-    source: K-DAEMON-005
+    source_rule: K-DAEMON-005
   - name: audit
     order: 6
     unary: true
     stream: true
     side_effects: [audit_event_write, usage_metric_update]
     description: Request/response audit logging and usage metric update
-    source: K-DAEMON-005
+    source_rule: K-DAEMON-005

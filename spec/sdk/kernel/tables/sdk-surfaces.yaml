@@ -15,3 +15,7 @@ surfaces:
   - path: spec/sdk/mod.md
     package_subpath: "@nimiplatform/sdk/mod"
     role: mod_projection
+  - path: spec/sdk/types.md
+    package_subpath: "@nimiplatform/sdk/types"
+    role: types_projection
+    note: Shared type definitions (NimiError, ScopeName, ExternalPrincipalId etc) re-exported for external consumers

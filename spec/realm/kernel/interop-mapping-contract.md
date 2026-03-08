@@ -9,6 +9,7 @@
 `MUST`: 只基于当前仓库已存在代码与已冻结协议合同做差距判断。差距项必须可执行。不以"先加新 feature"掩盖协议对齐缺口。
 
 映射矩阵详见 `tables/primitive-mapping-status.yaml`。
+primitive 的毕业记录固定写入 `tables/primitive-graduation-log.yaml`。
 
 ## R-INTEROP-002 — Primitive 毕业标准
 
@@ -21,6 +22,7 @@
 从 MISSING → PARTIAL 的前提条件：至少有一个代码锚点（code_anchor）且具备基础数据能力。
 
 毕业评估由 `primitive-mapping-status.yaml` 的 `status` 字段记录，变更需同步更新 `gap` 字段说明。
+任何 primitive 从 PARTIAL → COVERED 的变更，都必须同时更新 `primitive-graduation-log.yaml` 中的对应记录。
 
 ### R-INTEROP-002a — Per-Primitive 毕业验收条件
 

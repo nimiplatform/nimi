@@ -4,74 +4,74 @@ node_types:
     enum_value: 1
     category: ai
     config: AiGenerateNodeConfig
-    source: K-WF-002
+    source_rule: K-WF-002
   - type: AI_STREAM
     enum_value: 2
     category: ai
     config: AiStreamNodeConfig
-    source: K-WF-002
+    source_rule: K-WF-002
   - type: AI_EMBED
     enum_value: 3
     category: ai
     config: AiEmbedNodeConfig
-    source: K-WF-002
+    source_rule: K-WF-002
   - type: AI_IMAGE
     enum_value: 4
     category: ai
     config: AiImageNodeConfig
-    source: K-WF-002
+    source_rule: K-WF-002
   - type: AI_VIDEO
     enum_value: 5
     category: ai
     config: AiVideoNodeConfig
-    source: K-WF-002
+    source_rule: K-WF-002
   - type: AI_TTS
     enum_value: 6
     category: ai
     config: AiTtsNodeConfig
-    source: K-WF-002
+    source_rule: K-WF-002
   - type: AI_STT
     enum_value: 7
     category: ai
     config: AiSttNodeConfig
-    source: K-WF-002
+    source_rule: K-WF-002
   - type: AI_TTS_CREATE_VOICE
     enum_value: 8
     category: ai
     config: AiTtsCreateVoiceNodeConfig
-    source: K-WF-002
+    source_rule: K-WF-002
   - type: AI_TTS_SYNTHESIZE
     enum_value: 9
     category: ai
     config: AiTtsSynthesizeNodeConfig
-    source: K-WF-002
+    source_rule: K-WF-002
   - type: TRANSFORM_EXTRACT
     enum_value: 20
     category: transform
     config: ExtractNodeConfig
-    source: K-WF-002
+    source_rule: K-WF-002
   - type: TRANSFORM_TEMPLATE
     enum_value: 21
     category: transform
     config: TemplateNodeConfig
-    source: K-WF-002
+    source_rule: K-WF-002
   - type: TRANSFORM_SCRIPT
     enum_value: 22
     category: transform
     config: ScriptNodeConfig
-    source: K-WF-002
+    source_rule: K-WF-002
   - type: CONTROL_BRANCH
     enum_value: 40
     category: control
     config: BranchNodeConfig
-    source: K-WF-002
+    source_rule: K-WF-002
   - type: CONTROL_MERGE
     enum_value: 41
     category: control
     config: MergeNodeConfig
-    source: K-WF-002
+    source_rule: K-WF-002
   - type: CONTROL_NOOP
     enum_value: 42
     category: control
     config: NoopNodeConfig
-    source: K-WF-002
+    source_rule: K-WF-002

@@ -25,7 +25,7 @@ Daemon 启动固定为以下阶段：
 1. **Config**：加载配置（`K-DAEMON-009`），校验地址与超时。
 2. **Workers**：若 worker 模式启用，启动 worker supervisor（`K-DAEMON-004`）。失败则状态置 `STOPPED`，写审计（`runtime.lifecycle` / `startup.failed`），返回错误。
 3. **Servers**：并行启动 gRPC server 与 HTTP server。
-4. **Engines**：若引擎 SUPERVISED 模式启用（`K-LENG-004d`），创建 engine.Manager 并按配置启动 enabled 的引擎。引擎就绪后注入 endpoint 环境变量。启动失败不阻塞 daemon，标记 `DEGRADED`，并写入引擎 bootstrap 失败审计与 provider 不健康原因上下文。
+4. **Engines**：若引擎 SUPERVISED 模式启用（`K-LENG-004`），创建 engine.Manager 并按配置启动 enabled 的引擎。引擎就绪后注入 endpoint 环境变量。启动失败不阻塞 daemon，标记 `DEGRADED`，并写入引擎 bootstrap 失败审计与 provider 不健康原因上下文。
 5. **Ready**：状态从 `STARTING` 迁移到 `READY`，同步 gRPC health serving status。
 6. **Probes**：启动资源采样（1s 周期，内存）与 AI Provider 健康探测（`K-PROV-003`）。
 
@@ -34,7 +34,7 @@ Daemon 启动固定为以下阶段：
 收到 shutdown 信号后：
 
 1. 状态迁移到 `STOPPING`，同步 gRPC health serving status。
-2. 停止 supervised 引擎（`engineMgr.StopAll()`，`K-LENG-004b`）。
+2. 停止 supervised 引擎（`engineMgr.StopAll()`，`K-LENG-004`）。
 3. 停止 worker supervisor。
 4. 停止资源采样与 AI Provider 探测。
 5. 带超时关闭 HTTP server（默认 10s，通过 `K-DAEMON-009` 配置）。
@@ -43,7 +43,7 @@ Daemon 启动固定为以下阶段：
 
 停机期间只读方法允许通过 lifecycle 拦截器（`K-DAEMON-005`）。
 
-**跨状态机联动（K-DAEMON-003a）**：daemon 进入 `STOPPING` 时对 in-flight 任务的影响：
+**跨状态机联动（K-DAEMON-003）**：daemon 进入 `STOPPING` 时对 in-flight 任务的影响：
 
 | 子系统状态机 | STOPPING 行为 | 引用 |
 |---|---|---|
@@ -51,7 +51,7 @@ Daemon 启动固定为以下阶段：
 | 活跃 Workflow（K-WF-003） | 同 ScenarioJob：新请求拒绝，in-flight workflow 在 GracefulStop 期内继续，超时后强制终止。客户端收到流断开 | K-DAEMON-003 step 5 |
 | 活跃 StreamScenario | GracefulStop 等待活跃流完成或超时后 ForceStop 中断。客户端收到 gRPC status 中断 | K-DAEMON-003 step 5 |
 | 长生命周期订阅流（K-STREAM-010） | server 以 `CANCELLED` 关闭所有活跃订阅流 | K-STREAM-010 |
-| Supervised 引擎（K-LENG-004b） | 向所有引擎进程发送 SIGTERM，超时后 SIGKILL。引擎停止在 worker/gRPC 关闭前执行 | K-DAEMON-003 step 2 |
+| Supervised 引擎（K-LENG-004） | 向所有引擎进程发送 SIGTERM，超时后 SIGKILL。引擎停止在 worker/gRPC 关闭前执行 | K-DAEMON-003 step 2 |
 | Provider 探测（K-PROV-003） | 停止探测 | K-DAEMON-003 step 4 |
 | Session 内存 map（K-AUTHSVC-012） | 进程退出后丢失，所有 session 失效 | K-AUTHSVC-012 |
 
@@ -61,16 +61,15 @@ Daemon 启动固定为以下阶段：
 
 Worker 模式启用时（`NIMI_RUNTIME_WORKER_MODE=true`），daemon 以 supervisor 角色管理子进程：
 
-- **Worker 名称枚举**：`ai`、`model`、`workflow`、`script`、`local`。仅此 5 个有效名称，其他忽略。
+- **Worker 名称枚举**：`ai`、`model`、`workflow`、`local`。仅此 4 个有效名称，其他忽略。
 - **Worker → Service 映射**：
 
-  | Worker 名称 | 对应 gRPC Service | 说明 |
-  |---|---|---|
-  | `ai` | `RuntimeAiService` | AI 推理执行（ExecuteScenario/StreamScenario/ScenarioJob/VoiceAsset） |
-  | `model` | `RuntimeModelService` | 模型注册与管理 |
-  | `workflow` | `RuntimeWorkflowService` | 工作流 DAG 执行 |
-  | `script` | `ScriptWorkerService` | 脚本沙箱执行 |
-  | `local` | `RuntimeLocalService` | 本地模型生命周期管理 |
+| Worker 名称 | 对应 gRPC Service | 说明 |
+|---|---|---|
+| `ai` | `RuntimeAiService` | AI 推理执行（ExecuteScenario/StreamScenario/ScenarioJob/VoiceAsset） |
+| `model` | `RuntimeModelService` | 模型注册与管理 |
+| `workflow` | `RuntimeWorkflowService` | 工作流 DAG 执行 |
+| `local` | `RuntimeLocalService` | 本地模型生命周期管理 |
 - **启动**：为每个 worker 启动独立 goroutine 执行重启循环。
 - **重启策略**：2s base backoff + uniform jitter [0, 500ms]，context 取消时退出循环。
 - **环境注入**：`NIMI_RUNTIME_WORKER_ROLE=<name>`，`NIMI_RUNTIME_WORKER_SOCKET=<socket_path>`。
@@ -183,12 +182,12 @@ Phase 1 配置文件 schema（`~/.nimi/config.json`）权威字段清单：
 | `auth.jwt.audience` | string | `` | restart | JWT `aud` 校验目标；空值=不校验 | K-AUTHN-003 |
 | `auth.jwt.jwksUrl` | string | `` | restart | JWT 公钥来源 JWKS 地址；空值=拒绝所有 bearer token | K-AUTHN-004 |
 | `providers` | map | `{}` | restart | AI Provider 路由表（key=provider name） | K-DAEMON-009 |
-| `engines.localai.enabled` | bool | `false` | restart | 启用 LocalAI 引擎 SUPERVISED 模式 | K-LENG-004d |
-| `engines.localai.version` | string | `3.12.1` | restart | LocalAI 二进制版本 | K-LENG-004d |
-| `engines.localai.port` | int | `1234` | restart | LocalAI 监听端口 | K-LENG-004d |
-| `engines.nexa.enabled` | bool | `false` | restart | 启用 Nexa 引擎 SUPERVISED 模式 | K-LENG-004d |
-| `engines.nexa.version` | string | `` | restart | Nexa 版本（空=系统安装） | K-LENG-004d |
-| `engines.nexa.port` | int | `8000` | restart | Nexa 监听端口 | K-LENG-004d |
+| `engines.localai.enabled` | bool | `false` | restart | 启用 LocalAI 引擎 SUPERVISED 模式 | K-LENG-004 |
+| `engines.localai.version` | string | `3.12.1` | restart | LocalAI 二进制版本 | K-LENG-004 |
+| `engines.localai.port` | int | `1234` | restart | LocalAI 监听端口 | K-LENG-004 |
+| `engines.nexa.enabled` | bool | `false` | restart | 启用 Nexa 引擎 SUPERVISED 模式 | K-LENG-004 |
+| `engines.nexa.version` | string | `` | restart | Nexa 版本（空=系统安装） | K-LENG-004 |
+| `engines.nexa.port` | int | `8000` | restart | Nexa 监听端口 | K-LENG-004 |
 
 `providers` 值结构：`{ baseUrl: string, apiKeyEnv: string }`。`apiKey` 明文字段被禁止（写入校验拒绝，`CONFIG_SECRET_POLICY_VIOLATION`），仅允许 `apiKeyEnv` 引用环境变量名。
 

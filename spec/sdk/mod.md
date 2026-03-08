@@ -5,7 +5,7 @@
 
 ## 0. 权威导入
 
-- `kernel/mod-contract.md`（S-MOD-001, S-MOD-002, S-MOD-003, S-MOD-010, S-MOD-011）
+- `kernel/mod-contract.md`（S-MOD-001, S-MOD-002, S-MOD-003, S-MOD-005, S-MOD-010, S-MOD-011）
 - `kernel/surface-contract.md`（S-SURFACE-004）
 - `kernel/transport-contract.md`（S-TRANSPORT-003）
 - `kernel/error-projection.md`（S-ERROR-003）
@@ -27,6 +27,7 @@
 - Desktop hook 能力模型：`spec/desktop/kernel/hook-capability-contract.md`。
 - Runtime app messaging：`spec/runtime/kernel/app-messaging-contract.md`。
 - Local image workflow host projection：mod 通过 host-injected facade 请求 `runtime.local.artifacts.list`，并用 `buildLocalImageWorkflowExtensions()` 组装 `components` 与 `profile_overrides`。
+- `S-MOD-005`: hook 注册、卸载与生命周期回调边界必须与 desktop 执行内核保持一致，不能在 SDK/mod 层私自扩展 hook 生命周期语义。
 
 ## 4. 非目标
 

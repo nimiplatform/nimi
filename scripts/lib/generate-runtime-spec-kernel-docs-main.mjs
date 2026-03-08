@@ -172,6 +172,16 @@ const specs = [
     output: 'runtime-proto-governance-gates.md',
     render: renderRuntimeProtoGovernanceGates,
   },
+  {
+    input: 'capability-vocabulary-mapping.yaml',
+    output: 'capability-vocabulary-mapping.md',
+    render: renderCapabilityVocabularyMapping,
+  },
+  {
+    input: 'rule-evidence.yaml',
+    output: 'rule-evidence.md',
+    render: renderRuleEvidence,
+  },
 ];
 
 function normalizeMarkdown(markdown) {
@@ -201,7 +211,7 @@ function renderRpcMethods(doc, sourceName) {
     const methods = Array.isArray(service?.methods) ? service.methods : [];
     if (!name) continue;
 
-    const source = String(service?.source || '').trim();
+    const source = String(service?.source_rule || '').trim();
     out += `## ${name}\n\n`;
     if (source) out += `Source: \`${source}\`\n\n`;
     out += '| Method | Type |\n';
@@ -234,7 +244,7 @@ function renderRpcMigrationMap(doc, sourceName) {
     const protoService = String(item?.proto_service || '').trim() || '—';
     const status = String(item?.mapping_status || '').trim() || 'unknown';
     const phase = String(item?.phase || '').trim() || '—';
-    const source = String(item?.source || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
     out += `| \`${designService}\` | \`${protoService}\` | \`${status}\` | \`${phase}\` | \`${source}\` |\n`;
   }
   out += '\n';
@@ -278,7 +288,7 @@ function renderReasonCodes(doc, sourceName) {
     const name = String(code?.name || '').trim();
     const value = Number(code?.value);
     const family = String(code?.family || '').trim();
-    const source = String(code?.source || '').trim();
+    const source = String(code?.source_rule || '').trim();
     if (!name || Number.isNaN(value)) continue;
     out += `| \`${name}\` | ${value} | \`${family || 'UNKNOWN'}\` | \`${source || '—'}\` |\n`;
   }
@@ -323,7 +333,7 @@ function renderKeySourceTruthTable(doc, sourceName) {
     const providerApiKey = String(item?.x_nimi_provider_api_key || '').trim() || '—';
     const valid = mdBool(Boolean(item?.valid));
     const reasonCode = String(item?.reason_code || '').trim() || '—';
-    const source = String(item?.source || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
     out += `| \`${id}\` | \`${keySource}\` | \`${connectorId}\` | \`${providerType}\` | \`${providerEndpoint}\` | \`${providerApiKey}\` | \`${valid}\` | \`${reasonCode}\` | \`${source}\` |\n`;
   }
   out += '\n';
@@ -341,7 +351,7 @@ function renderProviderCatalog(doc, sourceName) {
     const provider = String(item?.provider || '').trim();
     const endpoint = item?.default_endpoint == null ? '—' : `\`${String(item.default_endpoint)}\``;
     const requiresExplicit = mdBool(Boolean(item?.requires_explicit_endpoint));
-    const source = String(item?.source || '').trim();
+    const source = String(item?.source_rule || '').trim();
     if (!provider) continue;
     out += `| \`${provider}\` | ${endpoint} | \`${requiresExplicit}\` | \`${source || '—'}\` |\n`;
   }
@@ -460,7 +470,7 @@ function renderConnectorRpcFieldRules(doc, sourceName) {
     const rpc = String(item?.rpc || '').trim();
     const field = String(item?.field || '').trim();
     const requirement = String(item?.requirement || '').trim();
-    const source = String(item?.source || '').trim();
+    const source = String(item?.source_rule || '').trim();
     if (!rpc || !field || !requirement) continue;
     out += `| \`${rpc}\` | \`${field}\` | \`${requirement}\` | \`${source || '—'}\` |\n`;
   }
@@ -497,7 +507,7 @@ function renderErrorMappingMatrix(doc, sourceName) {
     if (!reasonCode || !grpcCode) continue;
     const surface = String(item?.surface || '').trim() || '—';
     const exitShape = String(item?.exit_shape || '').trim() || '—';
-    const source = String(item?.source || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
     out += `| \`${reasonCode}\` | \`${grpcCode}\` | \`${surface}\` | \`${exitShape}\` | \`${source}\` |\n`;
   }
   out += '\n';
@@ -518,7 +528,7 @@ function renderLocalEngineCatalog(doc, sourceName) {
     const mode = String(item?.runtime_mode || '').trim() || 'unknown';
     const protocol = String(item?.protocol || '').trim() || 'unknown';
     const phase1 = mdBool(Boolean(item?.phase1));
-    const source = String(item?.source || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
     out += `| \`${engine}\` | \`${endpoint}\` | \`${mode}\` | \`${protocol}\` | \`${phase1}\` | \`${source}\` |\n`;
   }
   out += '\n';
@@ -536,7 +546,7 @@ function renderLocalAdapterRouting(doc, sourceName) {
     const provider = String(item?.provider || '').trim();
     const capability = String(item?.capability || '').trim();
     const adapter = String(item?.adapter || '').trim();
-    const source = String(item?.source || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
     if (!provider || !capability || !adapter) continue;
     out += `| \`${provider}\` | \`${capability}\` | \`${adapter}\` | \`${source}\` |\n`;
   }
@@ -564,7 +574,7 @@ function renderStateTransitions(doc, sourceName) {
       const from = String(edge?.from || '').trim();
       const to = String(edge?.to || '').trim();
       const trigger = String(edge?.trigger || '').trim();
-      const source = String(edge?.source || '').trim();
+      const source = String(edge?.source_rule || '').trim();
       if (!from || !to || !trigger) continue;
       out += `| \`${from}\` | \`${to}\` | \`${trigger}\` | \`${source || '—'}\` |\n`;
     }
@@ -593,7 +603,7 @@ function renderDaemonHealthStates(doc, sourceName) {
       const from = String(edge?.from || '').trim();
       const to = String(edge?.to || '').trim();
       const trigger = String(edge?.trigger || '').trim();
-      const source = String(edge?.source || '').trim();
+      const source = String(edge?.source_rule || '').trim();
       if (!from || !to || !trigger) continue;
       out += `| \`${from}\` | \`${to}\` | \`${trigger}\` | \`${source || '—'}\` |\n`;
     }
@@ -616,7 +626,7 @@ function renderInterceptorChain(doc, sourceName) {
     const unary = mdBool(Boolean(item?.unary));
     const stream = mdBool(Boolean(item?.stream));
     const description = String(item?.description || '').trim() || '—';
-    const source = String(item?.source || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
     out += `| ${order} | \`${name}\` | \`${unary}\` | \`${stream}\` | ${description} | \`${source}\` |\n`;
   }
   out += '\n';
@@ -635,7 +645,7 @@ function renderAiTimeoutDefaults(doc, sourceName) {
     if (!operation) continue;
     const defaultMs = Number(item?.default_ms);
     const overridable = mdBool(Boolean(item?.overridable));
-    const source = String(item?.source || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
     out += `| \`${operation}\` | ${Number.isNaN(defaultMs) ? '—' : defaultMs} | \`${overridable}\` | \`${source}\` |\n`;
   }
   out += '\n';
@@ -655,7 +665,7 @@ function renderProviderProbeTargets(doc, sourceName) {
     const baseUrlEnv = String(item?.base_url_env || '').trim() || '—';
     const apiKeyEnv = String(item?.api_key_env || '').trim() || '—';
     const category = String(item?.category || '').trim() || '—';
-    const source = String(item?.source || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
     out += `| \`${name}\` | \`${baseUrlEnv}\` | \`${apiKeyEnv}\` | \`${category}\` | \`${source}\` |\n`;
   }
   out += '\n';
@@ -675,7 +685,7 @@ function renderWorkflowNodeTypes(doc, sourceName) {
     const enumValue = Number(item?.enum_value);
     const category = String(item?.category || '').trim() || '—';
     const config = String(item?.config || '').trim() || '—';
-    const source = String(item?.source || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
     out += `| \`${type}\` | ${Number.isNaN(enumValue) ? '—' : enumValue} | \`${category}\` | \`${config}\` | \`${source}\` |\n`;
   }
   out += '\n';
@@ -702,7 +712,7 @@ function renderWorkflowStates(doc, sourceName) {
       const from = String(edge?.from || '').trim();
       const to = String(edge?.to || '').trim();
       const trigger = String(edge?.trigger || '').trim();
-      const source = String(edge?.source || '').trim();
+      const source = String(edge?.source_rule || '').trim();
       if (!from || !to || !trigger) continue;
       out += `| \`${from}\` | \`${to}\` | \`${trigger}\` | \`${source || '—'}\` |\n`;
     }
@@ -724,7 +734,7 @@ function renderVoiceWorkflowTypes(doc, sourceName) {
     const enumName = String(item?.enum_name || '').trim() || '—';
     const enumValue = Number(item?.enum_value);
     const description = String(item?.description || '').trim() || '—';
-    const source = String(item?.source || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
     out += `| \`${workflowType}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '—' : enumValue} | ${description} | \`${source}\` |\n`;
   }
   out += '\n';
@@ -744,7 +754,7 @@ function renderVoiceReferenceKinds(doc, sourceName) {
     const enumName = String(item?.enum_name || '').trim() || '—';
     const enumValue = Number(item?.enum_value);
     const description = String(item?.description || '').trim() || '—';
-    const source = String(item?.source || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
     out += `| \`${kind}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '—' : enumValue} | ${description} | \`${source}\` |\n`;
   }
   out += '\n';
@@ -764,7 +774,7 @@ function renderVoicePersistenceTypes(doc, sourceName) {
     const enumName = String(item?.enum_name || '').trim() || '—';
     const enumValue = Number(item?.enum_value);
     const description = String(item?.description || '').trim() || '—';
-    const source = String(item?.source || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
     out += `| \`${persistence}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '—' : enumValue} | ${description} | \`${source}\` |\n`;
   }
   out += '\n';
@@ -784,7 +794,7 @@ function renderVoiceAssetStatuses(doc, sourceName) {
     const enumName = String(item?.enum_name || '').trim() || '—';
     const enumValue = Number(item?.enum_value);
     const description = String(item?.description || '').trim() || '—';
-    const source = String(item?.source || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
     out += `| \`${status}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '—' : enumValue} | ${description} | \`${source}\` |\n`;
   }
   out += '\n';
@@ -968,6 +978,80 @@ function renderRuntimeProtoGovernanceGates(doc, sourceName) {
     const command = String(item?.command || '').trim() || '—';
     const sourceRule = String(item?.source_rule || '').trim() || '—';
     out += `| \`${gate}\` | \`${command}\` | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderCapabilityVocabularyMapping(doc, sourceName) {
+  const canonicalTokens = Array.isArray(doc?.canonical_tokens) ? doc.canonical_tokens : [];
+  const localManifestTokens = Array.isArray(doc?.local_manifest_tokens) ? doc.local_manifest_tokens : [];
+  const localCategories = Array.isArray(doc?.local_categories) ? doc.local_categories : [];
+  const localToCanonical = Array.isArray(doc?.local_to_canonical) ? doc.local_to_canonical : [];
+  const canonicalOnly = Array.isArray(doc?.canonical_only) ? doc.canonical_only : [];
+  const huggingfaceInference = Array.isArray(doc?.huggingface_inference) ? doc.huggingface_inference : [];
+
+  let out = header('Generated Capability Vocabulary Mapping', sourceName);
+
+  out += '## Canonical Tokens\n\n';
+  for (const token of canonicalTokens) {
+    out += `- \`${String(token)}\`\n`;
+  }
+  out += '\n## Local Manifest Tokens\n\n';
+  for (const token of localManifestTokens) {
+    out += `- \`${String(token)}\`\n`;
+  }
+  out += '\n## Local Categories\n\n';
+  for (const category of localCategories) {
+    out += `- \`${String(category)}\`\n`;
+  }
+  out += '\n## Local → Canonical Mapping\n\n';
+  out += '| Local Token | Canonical Token | Local Category | Source Rule |\n';
+  out += '|---|---|---|---|\n';
+  for (const item of localToCanonical) {
+    out += `| \`${String(item?.local_token || '')}\` | \`${String(item?.canonical_token || '')}\` | \`${String(item?.local_category || '') || '—'}\` | \`${String(item?.source_rule || '') || '—'}\` |\n`;
+  }
+  out += '\n## Canonical-Only Tokens\n\n';
+  out += '| Canonical Token | Note |\n';
+  out += '|---|---|\n';
+  for (const item of canonicalOnly) {
+    out += `| \`${String(item?.canonical_token || '')}\` | ${String(item?.note || '') || '—'} |\n`;
+  }
+  out += '\n## HuggingFace Inference Mapping\n\n';
+  out += '| Pipeline Tag | Local Token | Note |\n';
+  out += '|---|---|---|\n';
+  for (const item of huggingfaceInference) {
+    out += `| \`${String(item?.pipeline_tag || '')}\` | \`${String(item?.local_token || '')}\` | ${String(item?.note || '') || '—'} |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderRuleEvidence(doc, sourceName) {
+  const catalog = doc?.evidence_catalog && typeof doc.evidence_catalog === 'object'
+    ? doc.evidence_catalog
+    : {};
+  const rules = Array.isArray(doc?.rules) ? doc.rules : [];
+  let out = header('Generated Rule Evidence', sourceName);
+
+  out += '## Evidence Catalog\n\n';
+  out += '| Evidence Ref | Type | Command | Path | Description |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const [ref, value] of Object.entries(catalog)) {
+    const item = value && typeof value === 'object' ? value : {};
+    out += `| \`${ref}\` | \`${String(item.type || '').trim() || '—'}\` | \`${String(item.command || '').trim() || '—'}\` | \`${String(item.path || '').trim() || '—'}\` | ${String(item.description || '').trim() || '—'} |\n`;
+  }
+  out += '\n## Rule Coverage Matrix\n\n';
+  out += '| Rule ID | Status | Evidence Refs |\n';
+  out += '|---|---|---|\n';
+  for (const item of rules) {
+    const ruleId = String(item?.rule_id || '').trim();
+    if (!ruleId) continue;
+    const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
+    const refsText = refs.length > 0 ? refs.map((ref) => `\`${String(ref)}\``).join(', ') : '—';
+    out += `| \`${ruleId}\` | \`${String(item?.status || '').trim() || '—'}\` | ${refsText} |\n`;
   }
   out += '\n';
 

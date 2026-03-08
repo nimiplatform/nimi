@@ -20,6 +20,8 @@
 - `IMAGE/TTS/STT` 与同名执行模态映射。
 - `CUSTOM` 的 capability 来自模型元数据声明。
 
+local category / local manifest token 到 canonical capability token 的正式映射以 `tables/capability-vocabulary-mapping.yaml` 为唯一事实源；本规则只定义语义边界，不复制第二套映射表。
+
 ## K-LOCAL-003 CUSTOM 可用性门槛
 
 `local_invoke_profile_id` 是 `LocalModelRecord` 的可选 string 字段，由 `InstallLocalModel` 请求设置并持久化到本地状态（`K-LOCAL-016`）。该字段标识 CUSTOM 模型的调用配置文件，用于运行时确定请求格式与参数映射。

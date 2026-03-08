@@ -30,6 +30,11 @@ Desktop 规范验收门禁与执行证据契约，覆盖 kernel 规则集合 `D-
 - `rule-evidence.yaml` 可为 canonical runtime config path、runtime-only cloud routing、runtime-aligned mod/hook surface、local-ai bridge 命令边界、manifest capabilities-only policy 绑定额外静态 gate。
 - 这些 hard-cut gate 不替代 lint/test/e2e，只负责阻断 legacy surface 回流。
 
+### Offline / Degradation Coverage (D-OFFLINE-001, D-OFFLINE-004)
+
+- 离线降级与重连冲突策略的规范源为 `kernel/offline-degradation-contract.md`。
+- 其 formal evidence 仍统一登记在 `spec/desktop/kernel/tables/rule-evidence.yaml`，不在 domain 文档复制第二套 gate 清单。
+
 ## Verification Coverage
 
 - `pnpm check:desktop-spec-kernel-consistency`

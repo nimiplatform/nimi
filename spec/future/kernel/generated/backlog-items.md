@@ -15,14 +15,14 @@
 | `F-AVATAR-001` | 虚拟形象系统（VRM/Live2D） | `ux` | desktop, web | `proposed` | `large` | `F-MULTIMODAL-001` | `RESEARCH-OFANG-001` |
 | `F-HEARTBEAT-001` | 心跳驱动的主动 Agent | `platform` | sdk, desktop | `proposed` | `medium` | `F-WFTRIGGER-001` | `RESEARCH-OFANG-001` |
 | `F-AIMETA-001` | AI 产物元数据标准 | `platform` | sdk, runtime | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-MULTIMODAL-001` | 多模态 AI 能力（TTS/STT/图像/视频生成） | `platform` | runtime, sdk, desktop | `proposed` | `large` | — | `RESEARCH-OFANG-001` |
+| `F-MULTIMODAL-001` | 多模态 AI 能力（TTS/STT/图像/视频生成） | `platform` | runtime, sdk, desktop | `spec-drafted` | `large` | — | `RESEARCH-OFANG-001` |
 | `F-WFTRIGGER-001` | 工作流触发器系统 | `platform` | runtime, sdk | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
 
 ## Medium Priority
 
 | Item ID | Title | Category | Target Layers | Status | Complexity | Depends On | Sources |
 |---|---|---|---|---|---|---|---|
-| `F-RAG-001` | 知识库/RAG 系统 | `platform` | runtime, sdk, desktop | `proposed` | `large` | `F-DOCPROC-001` | `RESEARCH-OFANG-001` |
+| `F-RAG-001` | 知识库/RAG 系统 | `platform` | runtime, sdk, desktop | `spec-drafted` | `large` | `F-DOCPROC-001` | `RESEARCH-OFANG-001` |
 | `F-DOCPROC-001` | 文档处理 Pipeline | `platform` | runtime | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
 | `F-DEVPROBE-001` | 设备能力发现与报告 | `platform` | runtime, sdk | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
 | `F-TURNHOOK-001` | turn-hook 精细拦截点增强 | `platform` | sdk, desktop | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |

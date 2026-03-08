@@ -1,0 +1,138 @@
+version: 1
+evidence_catalog:
+  platform_kernel_consistency:
+    type: static_gate
+    command: pnpm check:platform-spec-kernel-consistency
+    path: scripts/check-platform-spec-kernel-consistency.mjs
+    description: Kernel rule integrity, error code uniqueness, primitive completeness, compliance matrix, and authorization preset checks for Platform domain.
+
+rules:
+  - rule_id: P-ALMI-001
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-ALMI-002
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-ALMI-003
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-ALMI-004
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-ALMI-010
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-ALMI-011
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-ALMI-020
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-ALMI-030
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-ARCH-001
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-ARCH-002
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-ARCH-003
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-ARCH-004
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-ARCH-005
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-ARCH-010
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-ARCH-011
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-ARCH-020
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-ARCH-021
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-ARCH-030
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-GOV-001
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-GOV-002
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-GOV-003
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-GOV-010
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-GOV-011
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-GOV-020
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-PROTO-001
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-PROTO-002
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-PROTO-003
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-PROTO-010
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-PROTO-011
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-PROTO-020
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-PROTO-021
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-PROTO-030
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-PROTO-035
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-PROTO-040
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-PROTO-050
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-PROTO-060
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-PROTO-070
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-PROTO-100
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-PROTO-101
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-PROTO-102
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-PROTO-103
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-PROTO-104
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-PROTO-105
+    status: covered
+    evidence_refs: [platform_kernel_consistency]

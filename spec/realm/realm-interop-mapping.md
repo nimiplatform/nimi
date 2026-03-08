@@ -8,6 +8,8 @@
 |---|---|
 | `kernel/interop-mapping-contract.md` | R-INTEROP-001, R-INTEROP-002 |
 | `kernel/tables/primitive-mapping-status.yaml` | 映射状态 |
+| `kernel/tables/primitive-graduation-log.yaml` | 毕业记录 |
+| `kernel/tables/rule-evidence.yaml` | R-* 规则证据映射 |
 
 ## 1. 文档定位
 
@@ -16,12 +18,12 @@
 
 ## 2. 映射矩阵
 
-六原语映射状态见 `tables/primitive-mapping-status.yaml`（R-INTEROP-001）。当前全部为 PARTIAL 状态。
+六原语映射状态见 `tables/primitive-mapping-status.yaml`（R-INTEROP-001）。`timeflow` 与 `economy` 已进入 COVERED，其余 primitive 仍为 PARTIAL。毕业证据记录见 `tables/primitive-graduation-log.yaml`。
 
 ## 3. 毕业标准
 
 Primitive 从 PARTIAL → COVERED 的毕业条件见 R-INTEROP-002。
-其中 contract test 与 CI gate 由承载实现的下游层执行并留证：通常落在 `spec/runtime/*`、`spec/sdk/testing-gates.md`、`spec/desktop/testing-gates.md` 与 `dev/report/*`，Realm domain 不单独定义第二套 gate 模型。
+其中 contract test 与 CI gate 由承载实现的下游层执行并留证：通常落在 `spec/runtime/*`、`spec/sdk/testing-gates.md`、`spec/desktop/testing-gates.md` 与 `dev/report/*`，Realm domain 不单独定义第二套 gate 模型。R-* 的 formal 证据映射以 `kernel/tables/rule-evidence.yaml` 为唯一事实源。
 
 ## 4. 缺口闭合计划
 

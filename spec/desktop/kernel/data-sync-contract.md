@@ -126,7 +126,7 @@ Desktop 存在两套并行数据获取架构：
 | 新服务 | 推荐路径 | 理由 |
 |---|---|---|
 | Workflow UI（K-WF-012） | Runtime 数据路径 | Workflow 数据来源为 Runtime gRPC（SubscribeWorkflowEvents），不经过 Realm |
-| Audit UI（K-AUDIT-013） | Runtime 数据路径 | 审计数据来源为 Runtime gRPC（ListAuditEvents/ExportAuditEvents）。注：Phase 2 Audit UI 应通过 SDK gRPC 路径消费全局审计（K-AUDIT-013: ListAuditEvents 20k ring buffer），而非 D-IPC-011 `local_ai_audits`（K-LOCAL-016: 仅 5k 条本地审计）。`local_ai_audits` IPC 命令仅用于本地 AI 调试视图 |
+| Audit UI（K-AUDIT-013） | Runtime 数据路径 | 审计数据来源为 Runtime gRPC（ListAuditEvents/ExportAuditEvents）。注：Phase 2 Audit UI 应通过 SDK gRPC 路径消费全局审计（K-AUDIT-013: ListAuditEvents 20k ring buffer），而非 D-IPC-011 `runtime_local_audits_list`（K-LOCAL-016: 仅 5k 条本地审计）。`runtime_local_audits_list` IPC 命令仅用于本地 AI 调试视图 |
 | Knowledge UI（K-KNOW-005a） | Runtime 数据路径 | 索引数据来源为 Runtime gRPC（BuildIndex/SearchIndex） |
 | AppMessage UI（K-APP-006a） | Runtime 数据路径 | 应用消息来源为 Runtime gRPC（SubscribeAppMessages） |
 

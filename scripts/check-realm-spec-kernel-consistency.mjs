@@ -25,6 +25,8 @@ const tiersTable = readYaml('spec/realm/kernel/tables/creator-key-tiers.yaml');
 const revenueTable = readYaml('spec/realm/kernel/tables/revenue-event-types.yaml');
 const sharePlanTable = readYaml('spec/realm/kernel/tables/share-plan-fields.yaml');
 const mappingTable = readYaml('spec/realm/kernel/tables/primitive-mapping-status.yaml');
+const graduationLogTable = readYaml('spec/realm/kernel/tables/primitive-graduation-log.yaml');
+const ruleEvidenceTable = readYaml('spec/realm/kernel/tables/rule-evidence.yaml');
 
 // ========================================================
 // Check 1: public-vocabulary.yaml — required domains present, terms non-empty
@@ -59,9 +61,9 @@ for (const boundary of boundaries) {
   }
 
   // Check source format: R-*-NNN
-  const source = String(boundary?.source || '').trim();
+  const source = String(boundary?.source_rule || '').trim();
   if (source && !/^R-[A-Z]{2,12}-\d{3}$/u.test(source)) {
-    fail(`public-vocabulary.yaml ${domain}: invalid source format: ${source}`);
+    fail(`public-vocabulary.yaml ${domain}: invalid source_rule format: ${source}`);
   }
 }
 
@@ -106,9 +108,9 @@ for (const tier of tiers) {
   previousPrice = unitPrice;
 
   // Check source format
-  const source = String(tier?.source || '').trim();
+  const source = String(tier?.source_rule || '').trim();
   if (source && !/^R-[A-Z]{2,12}-\d{3}$/u.test(source)) {
-    fail(`creator-key-tiers.yaml tier ${tierKey}: invalid source format: ${source}`);
+    fail(`creator-key-tiers.yaml tier ${tierKey}: invalid source_rule format: ${source}`);
   }
 }
 
@@ -143,9 +145,9 @@ for (const event of eventTypes) {
   }
 
   // Check source format
-  const source = String(event?.source || '').trim();
+  const source = String(event?.source_rule || '').trim();
   if (source && !/^R-[A-Z]{2,12}-\d{3}$/u.test(source)) {
-    fail(`revenue-event-types.yaml ${type}: invalid source format: ${source}`);
+    fail(`revenue-event-types.yaml ${type}: invalid source_rule format: ${source}`);
   }
 }
 
@@ -180,9 +182,9 @@ for (const field of fields) {
   }
 
   // Check source format
-  const source = String(field?.source || '').trim();
+  const source = String(field?.source_rule || '').trim();
   if (source && !/^R-[A-Z]{2,12}-\d{3}$/u.test(source)) {
-    fail(`share-plan-fields.yaml ${name}: invalid source format: ${source}`);
+    fail(`share-plan-fields.yaml ${name}: invalid source_rule format: ${source}`);
   }
 }
 
@@ -190,12 +192,12 @@ for (const field of fields) {
 const validationRules = Array.isArray(sharePlanTable?.validation_rules) ? sharePlanTable.validation_rules : [];
 for (const rule of validationRules) {
   const ruleText = String(rule?.rule || '').trim();
-  const source = String(rule?.source || '').trim();
+  const source = String(rule?.source_rule || '').trim();
   if (!ruleText) {
     fail('share-plan-fields.yaml: validation_rule entry missing rule text');
   }
   if (source && !/^R-[A-Z]{2,12}-\d{3}$/u.test(source)) {
-    fail(`share-plan-fields.yaml validation_rule: invalid source format: ${source}`);
+    fail(`share-plan-fields.yaml validation_rule: invalid source_rule format: ${source}`);
   }
 }
 
@@ -203,12 +205,12 @@ for (const rule of validationRules) {
 const ledgers = Array.isArray(sharePlanTable?.ledgers) ? sharePlanTable.ledgers : [];
 for (const ledger of ledgers) {
   const name = String(ledger?.name || '').trim();
-  const source = String(ledger?.source || '').trim();
+  const source = String(ledger?.source_rule || '').trim();
   if (!name) {
     fail('share-plan-fields.yaml: ledger entry missing name');
   }
   if (source && !/^R-[A-Z]{2,12}-\d{3}$/u.test(source)) {
-    fail(`share-plan-fields.yaml ledger ${name}: invalid source format: ${source}`);
+    fail(`share-plan-fields.yaml ledger ${name}: invalid source_rule format: ${source}`);
   }
 }
 
@@ -241,9 +243,9 @@ for (const mapping of mappings) {
   }
 
   // Check source format
-  const source = String(mapping?.source || '').trim();
+  const source = String(mapping?.source_rule || '').trim();
   if (source && !/^R-[A-Z]{2,12}-\d{3}$/u.test(source)) {
-    fail(`primitive-mapping-status.yaml ${primitive}: invalid source format: ${source}`);
+    fail(`primitive-mapping-status.yaml ${primitive}: invalid source_rule format: ${source}`);
   }
 }
 
@@ -260,31 +262,35 @@ for (const required of requiredPrimitives) {
 const allSourceRefs = new Set();
 
 for (const boundary of boundaries) {
-  const source = String(boundary?.source || '').trim();
+  const source = String(boundary?.source_rule || '').trim();
   if (source) allSourceRefs.add(source);
 }
 for (const tier of tiers) {
-  const source = String(tier?.source || '').trim();
+  const source = String(tier?.source_rule || '').trim();
   if (source) allSourceRefs.add(source);
 }
 for (const event of eventTypes) {
-  const source = String(event?.source || '').trim();
+  const source = String(event?.source_rule || '').trim();
   if (source) allSourceRefs.add(source);
 }
 for (const field of fields) {
-  const source = String(field?.source || '').trim();
+  const source = String(field?.source_rule || '').trim();
   if (source) allSourceRefs.add(source);
 }
 for (const rule of validationRules) {
-  const source = String(rule?.source || '').trim();
+  const source = String(rule?.source_rule || '').trim();
   if (source) allSourceRefs.add(source);
 }
 for (const ledger of ledgers) {
-  const source = String(ledger?.source || '').trim();
+  const source = String(ledger?.source_rule || '').trim();
   if (source) allSourceRefs.add(source);
 }
 for (const mapping of mappings) {
-  const source = String(mapping?.source || '').trim();
+  const source = String(mapping?.source_rule || '').trim();
+  if (source) allSourceRefs.add(source);
+}
+for (const entry of Array.isArray(graduationLogTable?.entries) ? graduationLogTable.entries : []) {
+  const source = String(entry?.source_rule || '').trim();
   if (source) allSourceRefs.add(source);
 }
 
@@ -305,6 +311,8 @@ const requiredKernelFiles = [
   'boundary-vocabulary-contract.md',
   'economy-contract.md',
   'interop-mapping-contract.md',
+  'tables/primitive-graduation-log.yaml',
+  'tables/rule-evidence.yaml',
 ];
 
 for (const file of requiredKernelFiles) {
@@ -366,7 +374,62 @@ if (fs.existsSync(platformPrimitivesPath)) {
 }
 
 // ========================================================
-// Check 10 (CI-3): domain document Normative Imports Rule ID existence verification
+// Check 10 (CI-3): graduation log aligns with COVERED primitive mappings
+// ========================================================
+
+const graduationEntries = Array.isArray(graduationLogTable?.entries) ? graduationLogTable.entries : [];
+const graduationByPrimitive = new Map();
+
+for (const entry of graduationEntries) {
+  const primitive = String(entry?.primitive || '').trim();
+  if (!primitive) {
+    fail('primitive-graduation-log.yaml: entry missing primitive');
+    continue;
+  }
+  if (graduationByPrimitive.has(primitive)) {
+    fail(`primitive-graduation-log.yaml: duplicate entry for primitive ${primitive}`);
+    continue;
+  }
+  graduationByPrimitive.set(primitive, entry);
+
+  const graduatedAt = String(entry?.graduated_at || '').trim();
+  const sourceRule = String(entry?.source_rule || '').trim();
+  const status = String(entry?.status || '').trim();
+  const testPath = String(entry?.test_path || '').trim();
+  const testName = String(entry?.test_name || '').trim();
+  const ciPath = String(entry?.ci_path || '').trim();
+  const ciCommand = String(entry?.ci_command || '').trim();
+
+  if (!graduatedAt) fail(`primitive-graduation-log.yaml ${primitive}: missing graduated_at`);
+  if (sourceRule !== 'R-INTEROP-002') fail(`primitive-graduation-log.yaml ${primitive}: source_rule must be R-INTEROP-002`);
+  if (status !== 'COVERED') fail(`primitive-graduation-log.yaml ${primitive}: status must be COVERED`);
+  if (!testPath) fail(`primitive-graduation-log.yaml ${primitive}: missing test_path`);
+  if (!testName) fail(`primitive-graduation-log.yaml ${primitive}: missing test_name`);
+  if (!ciPath) fail(`primitive-graduation-log.yaml ${primitive}: missing ci_path`);
+  if (!ciCommand) fail(`primitive-graduation-log.yaml ${primitive}: missing ci_command`);
+  if (testPath && !fs.existsSync(path.join(cwd, testPath))) {
+    fail(`primitive-graduation-log.yaml ${primitive}: test_path does not exist: ${testPath}`);
+  }
+  if (ciPath && !fs.existsSync(path.join(cwd, ciPath))) {
+    fail(`primitive-graduation-log.yaml ${primitive}: ci_path does not exist: ${ciPath}`);
+  }
+}
+
+for (const mapping of mappings) {
+  const primitive = String(mapping?.primitive || '').trim();
+  const status = String(mapping?.status || '').trim();
+  if (!primitive) continue;
+  const hasLog = graduationByPrimitive.has(primitive);
+  if (status === 'COVERED' && !hasLog) {
+    fail(`primitive-mapping-status.yaml ${primitive}: status=COVERED requires graduation-log entry`);
+  }
+  if (status !== 'COVERED' && hasLog) {
+    fail(`primitive-graduation-log.yaml ${primitive}: log entry requires mapping status COVERED`);
+  }
+}
+
+// ========================================================
+// Check 11 (CI-4): domain document Normative Imports Rule ID existence verification
 // ========================================================
 
 const domainDocsDir = path.join(cwd, 'spec', 'realm');
@@ -380,9 +443,9 @@ for (const file of kernelContractFiles) {
   const filePath = path.join(kernelContractsDir, file);
   if (!fs.existsSync(filePath)) continue;
   const content = fs.readFileSync(filePath, 'utf8');
-  const ruleIdMatches = content.matchAll(/\bR-[A-Z]{2,12}-\d{3}\b/gu);
+  const ruleIdMatches = content.matchAll(/^##\s+(R-[A-Z]{2,12}-\d{3})\b/gmu);
   for (const match of ruleIdMatches) {
-    definedRuleIds.add(match[0]);
+    definedRuleIds.add(match[1]);
   }
 }
 
@@ -420,7 +483,7 @@ for (const file of domainDocFiles) {
 }
 
 // ========================================================
-// Check 11 (CI-4): validation_rules source → economy-contract.md section heading cross-reference
+// Check 12 (CI-5): validation_rules source → economy-contract.md section heading cross-reference
 // ========================================================
 
 const economyContractPath = path.join(kernelContractsDir, 'economy-contract.md');
@@ -433,7 +496,7 @@ if (fs.existsSync(economyContractPath)) {
   }
 
   for (const rule of validationRules) {
-    const source = String(rule?.source || '').trim();
+    const source = String(rule?.source_rule || '').trim();
     if (source && source.startsWith('R-ECON-')) {
       if (!economyHeadingRuleIds.has(source)) {
         fail(`share-plan-fields.yaml validation_rule source '${source}' has no matching section heading in economy-contract.md`);
@@ -443,7 +506,7 @@ if (fs.existsSync(economyContractPath)) {
 }
 
 // ========================================================
-// Check 12 (CI-5): YAML vocabulary term names align with kernel contract prose
+// Check 13 (CI-6): YAML vocabulary term names align with kernel contract prose
 // ========================================================
 
 const boundaryContractPath = path.join(kernelContractsDir, 'boundary-vocabulary-contract.md');
@@ -452,7 +515,7 @@ if (fs.existsSync(boundaryContractPath)) {
 
   for (const boundary of boundaries) {
     const domain = String(boundary?.domain || '').trim();
-    const source = String(boundary?.source || '').trim();
+    const source = String(boundary?.source_rule || '').trim();
     if (!domain || !source) continue;
 
     // Find the section for this source rule ID
@@ -472,8 +535,168 @@ if (fs.existsSync(boundaryContractPath)) {
   }
 }
 
+checkCrossDomainRuleReferences(
+  [
+    ...requiredKernelFiles
+      .filter((file) => file.endsWith('.md'))
+      .map((file) => path.posix.join('spec/realm/kernel', file)),
+    ...domainDocFiles.map((file) => path.posix.join('spec/realm', file)),
+  ],
+  [
+    {
+      label: 'Platform',
+      dir: 'spec/platform/kernel',
+      headingPattern: /^##\s+(P-[A-Z]+-\d{3}[a-z]?)\b/gmu,
+      refPattern: /\bP-[A-Z]+-\d{3}[a-z]?\b/gu,
+    },
+    {
+      label: 'Runtime',
+      dir: 'spec/runtime/kernel',
+      headingPattern: /^##\s+(K-[A-Z]+-\d{3}[a-z]?)\b/gmu,
+      refPattern: /\bK-[A-Z]+-\d{3}[a-z]?\b/gu,
+    },
+    {
+      label: 'SDK',
+      dir: 'spec/sdk/kernel',
+      headingPattern: /^##\s+(S-[A-Z]+-\d{3}[a-z]?)\b/gmu,
+      refPattern: /\bS-[A-Z]+-\d{3}[a-z]?\b/gu,
+    },
+  ],
+);
+
+checkRuleEvidenceTraceability(definedRuleIds);
+checkOrphanRules(definedRuleIds, domainDocFiles);
+
 if (failed) process.exit(1);
 console.log('realm-spec-kernel-consistency: OK');
+
+function checkRuleEvidenceTraceability(definedRuleIds) {
+  const rel = 'spec/realm/kernel/tables/rule-evidence.yaml';
+  const catalog = ruleEvidenceTable?.evidence_catalog && typeof ruleEvidenceTable.evidence_catalog === 'object'
+    ? ruleEvidenceTable.evidence_catalog
+    : null;
+  if (!catalog) {
+    fail(`${rel} missing evidence_catalog map`);
+    return;
+  }
+
+  for (const [ref, item] of Object.entries(catalog)) {
+    const record = item && typeof item === 'object' ? item : null;
+    if (!record) {
+      fail(`${rel} evidence_catalog.${ref} must be an object`);
+      continue;
+    }
+    const command = String(record.command || '').trim();
+    const targetPath = String(record.path || '').trim();
+    if (!String(record.type || '').trim()) fail(`${rel} evidence_catalog.${ref} missing type`);
+    if (!command) fail(`${rel} evidence_catalog.${ref} missing command`);
+    if (!targetPath) {
+      fail(`${rel} evidence_catalog.${ref} missing path`);
+      continue;
+    }
+    if (!fs.existsSync(path.join(cwd, targetPath))) {
+      fail(`${rel} evidence_catalog.${ref} path does not exist: ${targetPath}`);
+    }
+  }
+
+  const rules = Array.isArray(ruleEvidenceTable?.rules) ? ruleEvidenceTable.rules : [];
+  const seen = new Set();
+  for (const item of rules) {
+    const ruleId = String(item?.rule_id || '').trim();
+    const status = String(item?.status || '').trim().toLowerCase();
+    const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
+    const naReason = String(item?.na_reason || '').trim();
+    if (!/^R-[A-Z]{2,12}-\d{3}$/u.test(ruleId)) {
+      fail(`${rel} has invalid rule_id format: ${ruleId || '<empty>'}`);
+      continue;
+    }
+    if (seen.has(ruleId)) {
+      fail(`${rel} has duplicate rule_id entry: ${ruleId}`);
+      continue;
+    }
+    seen.add(ruleId);
+    if (!definedRuleIds.has(ruleId)) {
+      fail(`${rel} references unknown realm kernel rule: ${ruleId}`);
+    }
+    if (status !== 'covered' && status !== 'na') {
+      fail(`${rel} ${ruleId} has invalid status: ${status || '<empty>'}`);
+      continue;
+    }
+    if (status === 'na') {
+      if (!naReason) fail(`${rel} ${ruleId} status=na requires na_reason`);
+      continue;
+    }
+    if (refs.length === 0) {
+      fail(`${rel} ${ruleId} status=covered requires non-empty evidence_refs`);
+      continue;
+    }
+    for (const rawRef of refs) {
+      const ref = String(rawRef || '').trim();
+      if (!ref) {
+        fail(`${rel} ${ruleId} contains empty evidence_refs item`);
+        continue;
+      }
+      if (!Object.prototype.hasOwnProperty.call(catalog, ref)) {
+        fail(`${rel} ${ruleId} references undefined evidence ref: ${ref}`);
+      }
+    }
+  }
+
+  const missing = [...definedRuleIds].filter((ruleId) => !seen.has(ruleId));
+  if (missing.length > 0) {
+    fail(`${rel} missing evidence rows for rules: ${missing.join(', ')}`);
+  }
+}
+
+function checkOrphanRules(definedRuleIds, domainDocFiles) {
+  const refs = [];
+  const files = [
+    ...requiredKernelFiles.map((file) => path.posix.join('spec/realm/kernel', file)),
+    ...domainDocFiles.map((file) => path.posix.join('spec/realm', file)),
+  ].filter((rel) => !rel.endsWith('rule-evidence.yaml'));
+
+  for (const rel of files) {
+    if (!fs.existsSync(path.join(cwd, rel))) continue;
+    const content = fs.readFileSync(path.join(cwd, rel), 'utf8');
+    for (const match of content.matchAll(/\bR-[A-Z]{2,12}-\d{3}\b/g)) {
+      refs.push(match[0]);
+    }
+  }
+
+  const orphans = [...definedRuleIds].filter((ruleId) => refs.filter((ref) => ref === ruleId).length <= 1);
+  if (orphans.length > 0) {
+    fail(`realm orphan kernel rules detected: ${orphans.join(', ')}`);
+  }
+}
+
+function checkCrossDomainRuleReferences(files, targets) {
+  for (const target of targets) {
+    const targetDir = path.join(cwd, target.dir);
+    if (!fs.existsSync(targetDir)) continue;
+
+    const definitions = new Set();
+    for (const name of fs.readdirSync(targetDir).filter((entry) => entry.endsWith('.md'))) {
+      const filePath = path.join(targetDir, name);
+      if (!fs.statSync(filePath).isFile()) continue;
+      const content = fs.readFileSync(filePath, 'utf8');
+      for (const match of content.matchAll(target.headingPattern)) {
+        definitions.add(match[1]);
+      }
+    }
+    if (definitions.size === 0) continue;
+
+    for (const rel of files) {
+      const filePath = path.join(cwd, rel);
+      if (!fs.existsSync(filePath)) continue;
+      const content = fs.readFileSync(filePath, 'utf8');
+      for (const ref of new Set([...content.matchAll(target.refPattern)].map((match) => match[0]))) {
+        if (!definitions.has(ref)) {
+          fail(`${rel} references undefined ${target.label} Rule ID: ${ref}`);
+        }
+      }
+    }
+  }
+}
 
 function checkNoLocalRuleIds(content, rel) {
   const localRuleIdPattern = /\b(?<![KSDPRF]-)(?:[A-Z]{2,12}-){1,2}\d{3}[a-z]?\b/g;

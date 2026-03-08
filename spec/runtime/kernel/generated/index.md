@@ -36,3 +36,5 @@
 | `scenario-profile-fields.md` | `tables/scenario-profile-fields.yaml` |
 | `runtime-delivery-gates.md` | `tables/runtime-delivery-gates.yaml` |
 | `runtime-proto-governance-gates.md` | `tables/runtime-proto-governance-gates.yaml` |
+| `capability-vocabulary-mapping.md` | `tables/capability-vocabulary-mapping.yaml` |
+| `rule-evidence.md` | `tables/rule-evidence.yaml` |

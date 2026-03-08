@@ -11,3 +11,4 @@
 | `sdk-runtime-projection.md` | `tables/sdk-runtime-projection.yaml` |
 | `sdk-realm-realtime-gates.md` | `tables/sdk-realm-realtime-gates.yaml` |
 | `sdk-testing-gates.md` | `tables/sdk-testing-gates.yaml` |
+| `rule-evidence.md` | `tables/rule-evidence.yaml` |

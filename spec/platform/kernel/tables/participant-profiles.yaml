@@ -16,7 +16,7 @@ profiles:
         mode: PROVIDER
       - primitive: presence
         mode: PROVIDER
-    source: P-PROTO-002
+    source_rule: P-PROTO-002
 
   - participant_id: runtime_local
     profile_ref: "runtime.access-profile.v1.0.0"
@@ -24,7 +24,7 @@ profiles:
     domain_capabilities:
       - domain: app-auth
         mode: PROVIDER
-    source: P-PROTO-002
+    source_rule: P-PROTO-002
 
 # participant_types 与 P-ALMI-003 Principal 模型映射：
 # human → Human, nimi-agent → NimiAgent, external-agent → ExternalAgent,
@@ -43,7 +43,7 @@ participant_types:
 app_modes:
   - name: render-app
     description: "只读渲染，无 World 绑定"
-    source: P-PROTO-060
+    source_rule: P-PROTO-060
   - name: extension-app
     description: "World 扩展写入，需 1:1 绑定"
-    source: P-PROTO-050
+    source_rule: P-PROTO-050

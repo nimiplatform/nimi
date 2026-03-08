@@ -6,32 +6,32 @@ machines:
       - from: STOPPED
         to: STARTING
         trigger: daemon_boot
-        source: K-DAEMON-001
+        source_rule: K-DAEMON-001
       - from: STARTING
         to: READY
         trigger: servers_listening_and_health_ok
-        source: K-DAEMON-002
+        source_rule: K-DAEMON-002
       - from: STARTING
         to: STOPPED
         trigger: startup_failure
-        source: K-DAEMON-002
+        source_rule: K-DAEMON-002
       - from: READY
         to: DEGRADED
         trigger: worker_unavailable_or_provider_all_unhealthy
-        source: K-DAEMON-004
+        source_rule: K-DAEMON-004
       - from: DEGRADED
         to: READY
         trigger: worker_recovered_or_provider_recovered
-        source: K-DAEMON-004
+        source_rule: K-DAEMON-004
       - from: READY
         to: STOPPING
         trigger: shutdown_signal
-        source: K-DAEMON-003
+        source_rule: K-DAEMON-003
       - from: DEGRADED
         to: STOPPING
         trigger: shutdown_signal
-        source: K-DAEMON-003
+        source_rule: K-DAEMON-003
       - from: STOPPING
         to: STOPPED
         trigger: shutdown_complete
-        source: K-DAEMON-003
+        source_rule: K-DAEMON-003

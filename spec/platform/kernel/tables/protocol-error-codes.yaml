@@ -3,156 +3,156 @@ codes:
   # Version errors
   - name: PROTOCOL_MAJOR_MISMATCH
     group: version
-    source: P-PROTO-001
+    source_rule: P-PROTO-001
   - name: PROTOCOL_MINOR_UNSUPPORTED
     group: version
-    source: P-PROTO-001
+    source_rule: P-PROTO-001
   - name: PROTOCOL_VERSION_MISSING
     group: version
-    source: P-PROTO-001
+    source_rule: P-PROTO-001
   # Capability profile errors
   - name: CAPABILITY_PROFILE_MISSING
     group: capability_profile
-    source: P-PROTO-002
+    source_rule: P-PROTO-002
   - name: CAPABILITY_MODE_INVALID
     group: capability_profile
-    source: P-PROTO-002
+    source_rule: P-PROTO-002
   - name: PRIMITIVE_NOT_SUPPORTED
     group: capability_profile
-    source: P-PROTO-003
+    source_rule: P-PROTO-003
   - name: DOMAIN_NOT_SUPPORTED
     group: capability_profile
-    source: P-PROTO-010
+    source_rule: P-PROTO-010
   - name: CAPABILITY_CATALOG_MISMATCH
     group: capability_profile
-    source: P-PROTO-002
+    source_rule: P-PROTO-002
   - name: REALM_PRIMITIVE_PROVIDER_FORBIDDEN
     group: capability_profile
-    source: P-PROTO-003
+    source_rule: P-PROTO-003
   # Protocol envelope errors
   - name: PROTOCOL_ENVELOPE_INVALID
     group: protocol_envelope
-    source: P-PROTO-010
+    source_rule: P-PROTO-010
   - name: PROTOCOL_DOMAIN_FIELD_CONFLICT
     group: protocol_envelope
-    source: P-PROTO-010
+    source_rule: P-PROTO-010
   # App authorization errors
   - name: APP_AUTHORIZATION_DENIED
     group: app_auth
-    source: P-PROTO-030
+    source_rule: P-PROTO-030
   - name: APP_GRANT_INVALID
     group: app_auth
-    source: P-PROTO-030
+    source_rule: P-PROTO-030
   - name: APP_TOKEN_EXPIRED
     group: app_auth
-    source: P-PROTO-030
+    source_rule: P-PROTO-030
   - name: APP_TOKEN_REVOKED
     group: app_auth
-    source: P-PROTO-030
+    source_rule: P-PROTO-030
   - name: APP_SCOPE_FORBIDDEN
     group: app_auth
-    source: P-PROTO-030
+    source_rule: P-PROTO-030
   - name: APP_DELEGATION_FORBIDDEN
     group: app_auth
-    source: P-PROTO-035
+    source_rule: P-PROTO-035
   - name: APP_DELEGATION_DEPTH_EXCEEDED
     group: app_auth
-    source: P-PROTO-035
+    source_rule: P-PROTO-035
   - name: EXTERNAL_PRINCIPAL_PROOF_MISSING
     group: app_auth
-    source: P-PROTO-020
+    source_rule: P-PROTO-020
   - name: EXTERNAL_PRINCIPAL_PROOF_INVALID
     group: app_auth
-    source: P-PROTO-020
+    source_rule: P-PROTO-020
   # Scope extension errors
   - name: APP_SCOPE_MANIFEST_INVALID
     group: scope_extension
-    source: P-PROTO-021
+    source_rule: P-PROTO-021
   - name: APP_SCOPE_NAMESPACE_FORBIDDEN
     group: scope_extension
-    source: P-PROTO-021
+    source_rule: P-PROTO-021
   - name: APP_SCOPE_CONFLICT
     group: scope_extension
-    source: P-PROTO-021
+    source_rule: P-PROTO-021
   - name: APP_SCOPE_CATALOG_UNPUBLISHED
     group: scope_extension
-    source: P-PROTO-040
+    source_rule: P-PROTO-040
   - name: APP_SCOPE_REVOKED
     group: scope_extension
-    source: P-PROTO-040
+    source_rule: P-PROTO-040
   # App mode errors
   - name: APP_MODE_DOMAIN_FORBIDDEN
     group: app_mode
-    source: P-PROTO-060
+    source_rule: P-PROTO-060
   - name: APP_MODE_SCOPE_FORBIDDEN
     group: app_mode
-    source: P-PROTO-060
+    source_rule: P-PROTO-060
   - name: APP_MODE_WORLD_RELATION_FORBIDDEN
     group: app_mode
-    source: P-PROTO-060
+    source_rule: P-PROTO-060
   - name: APP_MODE_MANIFEST_INVALID
     group: app_mode
-    source: P-PROTO-060
+    source_rule: P-PROTO-060
   # App resource and consent errors
   - name: APP_RESOURCE_SELECTOR_INVALID
     group: app_resource
-    source: P-PROTO-030
+    source_rule: P-PROTO-030
   - name: APP_RESOURCE_OUT_OF_SCOPE
     group: app_resource
-    source: P-PROTO-030
+    source_rule: P-PROTO-030
   - name: APP_CONSENT_MISSING
     group: app_resource
-    source: P-PROTO-030
+    source_rule: P-PROTO-030
   - name: APP_CONSENT_INVALID
     group: app_resource
-    source: P-PROTO-030
+    source_rule: P-PROTO-030
   # World-App binding errors
   - name: WORLD_RENDER_WRITE_FORBIDDEN
     group: world_app_binding
-    source: P-PROTO-050
+    source_rule: P-PROTO-050
   - name: WORLD_EXTENSION_BINDING_REQUIRED
     group: world_app_binding
-    source: P-PROTO-050
+    source_rule: P-PROTO-050
   - name: WORLD_EXTENSION_APP_MISMATCH
     group: world_app_binding
-    source: P-PROTO-050
+    source_rule: P-PROTO-050
   - name: WORLD_EXTENSION_NOT_ACTIVE
     group: world_app_binding
-    source: P-PROTO-050
+    source_rule: P-PROTO-050
   # Admission errors
   - name: SOCIAL_PRECONDITION_FAILED
     group: admission
-    source: P-PROTO-070
+    source_rule: P-PROTO-070
   - name: TRANSIT_USER_QUOTA_EXCEEDED
     group: admission
-    source: P-PROTO-070
+    source_rule: P-PROTO-070
   - name: TRANSIT_WORLD_QUOTA_EXCEEDED
     group: admission
-    source: P-PROTO-070
+    source_rule: P-PROTO-070
   # State machine errors
   - name: TRANSIT_STATE_INVALID
     group: state_machine
-    source: P-PROTO-103
+    source_rule: P-PROTO-103
   - name: PRESENCE_STATE_INVALID
     group: state_machine
-    source: P-PROTO-105
+    source_rule: P-PROTO-105
   - name: TIMEFLOW_NON_MONOTONIC
     group: state_machine
-    source: P-PROTO-100
+    source_rule: P-PROTO-100
   # Consistency errors
   - name: ECONOMY_CONSERVATION_FAILED
     group: consistency
-    source: P-PROTO-102
+    source_rule: P-PROTO-102
   - name: CONTEXT_TRUNCATION_UNTRACKED
     group: consistency
-    source: P-PROTO-104
+    source_rule: P-PROTO-104
   - name: PRIMITIVE_CONTRACT_INVALID
     group: consistency
-    source: P-PROTO-070
+    source_rule: P-PROTO-070
   # Permission errors
   - name: PRINCIPAL_UNAUTHORIZED
     group: permission
-    source: P-PROTO-020
+    source_rule: P-PROTO-020
   - name: ACTION_FORBIDDEN
     group: permission
-    source: P-PROTO-020
+    source_rule: P-PROTO-020

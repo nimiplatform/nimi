@@ -15,7 +15,7 @@ boundaries:
     lifecycle: "draft -> published -> maintained"
     change_domains: "world/worldview/events/lorebooks/mutations"
     knowledge_delete_semantic: "逻辑归档 (archive)，不承诺物理硬删"
-    source: R-BOUND-001
+    source_rule: R-BOUND-001
 
   - domain: agent
     vocabulary:
@@ -29,7 +29,7 @@ boundaries:
         description: "记忆入口 (core / e2e)"
     ownership_model: "MASTER_OWNED (用户直属) / WORLD_OWNED (世界托管)"
     memory_entry_points: "core (基础人格记忆) / e2e (对话记忆)"
-    source: R-BOUND-002
+    source_rule: R-BOUND-002
 
   - domain: social
     vocabulary:
@@ -43,4 +43,4 @@ boundaries:
         description: "聊天/互动前置条件判定"
     relationship_lifecycle: "PENDING -> ACTIVE -> BLOCKED (可逆至 ACTIVE)"
     relationship_types: "HUMAN_HUMAN, HUMAN_AGENT, AGENT_AGENT, AGENT_HUMAN"
-    source: R-BOUND-003
+    source_rule: R-BOUND-003

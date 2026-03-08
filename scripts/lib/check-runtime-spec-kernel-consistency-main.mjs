@@ -65,7 +65,6 @@ const kernelFiles = [
   'spec/runtime/kernel/model-service-contract.md',
   'spec/runtime/kernel/knowledge-contract.md',
   'spec/runtime/kernel/app-messaging-contract.md',
-  'spec/runtime/kernel/script-worker-contract.md',
   'spec/runtime/kernel/tables/daemon-health-states.yaml',
   'spec/runtime/kernel/tables/interceptor-chain.yaml',
   'spec/runtime/kernel/tables/ai-timeout-defaults.yaml',
@@ -93,6 +92,8 @@ const kernelFiles = [
   'spec/runtime/kernel/tables/scenario-profile-fields.yaml',
   'spec/runtime/kernel/tables/runtime-delivery-gates.yaml',
   'spec/runtime/kernel/tables/runtime-proto-governance-gates.yaml',
+  'spec/runtime/kernel/tables/capability-vocabulary-mapping.yaml',
+  'spec/runtime/kernel/tables/rule-evidence.yaml',
 ];
 
 const domainFiles = listDomainMarkdownFiles('spec/runtime');
@@ -137,7 +138,7 @@ for (const rel of domainFiles) {
   if (!content.includes('Normative Imports: `spec/runtime/kernel/*`')) {
     fail(`${rel} must declare kernel imports`);
   }
-  if (!/\bK-[A-Z]+-\d{3}\b/.test(content)) {
+  if (!/\bK-[A-Z]+-\d{3}[a-z]?\b/.test(content)) {
     fail(`${rel} must reference at least one kernel Rule ID`);
   }
   checkNoLocalRuleIds(content, rel);
@@ -178,6 +179,9 @@ checkRpcMethodsSourceTraceability(kernelRuleDefinitions);
 checkProviderCatalogSourceTraceability(kernelRuleDefinitions);
 checkReasonCodeSourceTraceability(kernelRuleDefinitions);
 checkRuntimeDeliveryGateCoverage(kernelRuleDefinitions);
+checkRuleEvidenceTraceability(kernelRuleDefinitions);
+checkCapabilityVocabularyMapping(kernelRuleDefinitions);
+checkOrphanRules(kernelRuleDefinitions);
 
 if (failed) process.exit(1);
 console.log('runtime-spec-kernel-consistency: OK');
@@ -261,7 +265,7 @@ function checkRuntimeDeliveryGateCoverage(kernelRuleSet) {
     if (!command) {
       fail(`${tablePath} gate ${gate} must declare command`);
     }
-    if (!/^K-[A-Z]+-\d{3}$/u.test(sourceRule)) {
+    if (!/^K-[A-Z]+-\d{3}[a-z]?$/u.test(sourceRule)) {
       fail(`${tablePath} gate ${gate} has invalid source_rule: ${sourceRule}`);
       continue;
     }
@@ -332,13 +336,13 @@ function checkConnectorRpcFieldRulesCoverage() {
   }
 
   for (const item of rules) {
-    const source = String(item?.source || '').trim();
+    const source = String(item?.source_rule || '').trim();
     if (!source) {
-      fail('connector-rpc-field-rules: each rule must include source');
+      fail('connector-rpc-field-rules: each rule must include source_rule');
       continue;
     }
-    if (!/^K-[A-Z]+-\d{3}$/u.test(source)) {
-      fail(`connector-rpc-field-rules invalid source: ${source}`);
+    if (!/^K-[A-Z]+-\d{3}[a-z]?$/u.test(source)) {
+      fail(`connector-rpc-field-rules invalid source_rule: ${source}`);
     }
   }
 }
@@ -390,13 +394,13 @@ function checkStateTransitionCoverage(kernelRuleSet) {
     const name = String(machine?.machine || '').trim() || '<unknown>';
     const edges = Array.isArray(machine?.transitions) ? machine.transitions : [];
     for (const edge of edges) {
-      const source = String(edge?.source || '').trim();
+      const source = String(edge?.source_rule || '').trim();
       if (!source) {
-        fail(`state-transitions ${name} transition missing source`);
+        fail(`state-transitions ${name} transition missing source_rule`);
         continue;
       }
-      if (!/^K-[A-Z]+-\d{3}$/u.test(source)) {
-        fail(`state-transitions ${name} transition has non-formal source: ${source}`);
+      if (!/^K-[A-Z]+-\d{3}[a-z]?$/u.test(source)) {
+        fail(`state-transitions ${name} transition has non-formal source_rule: ${source}`);
         continue;
       }
       if (!kernelRuleSet.has(source)) {
@@ -514,7 +518,7 @@ function collectKernelRuleDefinitions() {
   const ruleToFile = new Map();
   for (const rel of kernelMarkdown) {
     const content = read(rel);
-    const defs = [...content.matchAll(/^##\s+(K-[A-Z]+-\d{3})\b/gmu)];
+    const defs = [...content.matchAll(/^##\s+(K-[A-Z]+-\d{3}[a-z]?)\b/gmu)];
     for (const match of defs) {
       const ruleId = match[1];
       const prev = ruleToFile.get(ruleId);
@@ -539,7 +543,7 @@ function checkRuleIdReferencesResolvable(kernelRuleSet) {
 
   for (const rel of files) {
     const content = read(rel);
-    const refs = [...content.matchAll(/\bK-[A-Z]+-\d{3}\b/g)];
+    const refs = [...content.matchAll(/\bK-[A-Z]+-\d{3}[a-z]?\b/g)];
     for (const ref of refs) {
       const ruleId = ref[0];
       if (!kernelRuleSet.has(ruleId)) {
@@ -558,7 +562,7 @@ function checkNoKernelRuleDefinitionsInImplementationDocs() {
   for (const rel of implementationMarkdown) {
     if (!fs.existsSync(path.join(cwd, rel))) continue;
     const content = read(rel);
-    if (/^##\s+K-[A-Z]+-\d{3}\b/gmu.test(content)) {
+    if (/^##\s+K-[A-Z]+-\d{3}[a-z]?\b/gmu.test(content)) {
       fail(`implementation doc must not define kernel Rule IDs: ${rel}`);
     }
   }
@@ -634,9 +638,9 @@ function checkKeySourceTruthTable() {
     }
     byId.set(id, item);
 
-    const source = String(item?.source || '').trim();
-    if (!source || !/^K-[A-Z]+-\d{3}$/u.test(source)) {
-      fail(`key-source-truth-table case ${id} has invalid source: ${source}`);
+    const source = String(item?.source_rule || '').trim();
+    if (!source || !/^K-[A-Z]+-\d{3}[a-z]?$/u.test(source)) {
+      fail(`key-source-truth-table case ${id} has invalid source_rule: ${source}`);
     }
 
     const reasonCode = String(item?.reason_code || '').trim();
@@ -681,7 +685,7 @@ function checkErrorMappingMatrix() {
   for (const item of mappings) {
     const reasonCode = String(item?.reason_code || '').trim();
     const grpcCode = String(item?.grpc_code || '').trim();
-    const source = String(item?.source || '').trim();
+    const source = String(item?.source_rule || '').trim();
     if (!reasonCode) {
       fail('error-mapping-matrix mapping missing reason_code');
       continue;
@@ -692,8 +696,8 @@ function checkErrorMappingMatrix() {
     if (!reasonCodes.has(reasonCode)) {
       fail(`error-mapping-matrix references unknown reason_code: ${reasonCode}`);
     }
-    if (!source || !/^K-[A-Z]+-\d{3}$/u.test(source)) {
-      fail(`error-mapping-matrix ${reasonCode} has invalid source: ${source}`);
+    if (!source || !/^K-[A-Z]+-\d{3}[a-z]?$/u.test(source)) {
+      fail(`error-mapping-matrix ${reasonCode} has invalid source_rule: ${source}`);
     }
     covered.add(reasonCode);
   }
@@ -913,7 +917,7 @@ function checkDomainSection0ImportsCoveredInBody() {
     const importedDomains = new Set(wildcardImports.map((m) => m[1]));
 
     for (const domain of importedDomains) {
-      const specificPattern = new RegExp(`\\bK-${domain}-\\d{3}\\b`);
+      const specificPattern = new RegExp(`\\bK-${domain}-\\d{3}[a-z]?\\b`);
       if (!specificPattern.test(bodyText)) {
         fail(`${rel} Section 0 imports K-${domain}-* but body has no specific K-${domain}-NNN reference`);
       }
@@ -976,7 +980,7 @@ function checkConfigOverrideTraceability() {
       // At minimum, log a trace — the key should be findable in the config table
       // We check that at least one nearby key exists in the config table, or that the rule ID context
       // matches a known config key via the "来源" column
-      const ruleIdMatch = contextWindow.match(/K-[A-Z]+-\d{3}/);
+      const ruleIdMatch = contextWindow.match(/K-[A-Z]+-\d{3}[a-z]?/);
       if (!ruleIdMatch) continue;
       const ruleId = ruleIdMatch[0];
       // Check if this rule ID appears as a source in the config table
@@ -1023,13 +1027,13 @@ function checkRpcMethodsSourceTraceability(kernelRuleSet) {
   for (const service of services) {
     const name = String(service?.name || '').trim();
     if (!name) continue;
-    const source = String(service?.source || '').trim();
+    const source = String(service?.source_rule || '').trim();
     if (!source) {
-      fail(`rpc-methods service ${name} missing source`);
+      fail(`rpc-methods service ${name} missing source_rule`);
       continue;
     }
-    if (!/^K-[A-Z]+-\d{3}$/u.test(source)) {
-      fail(`rpc-methods service ${name} has invalid source: ${source}`);
+    if (!/^K-[A-Z]+-\d{3}[a-z]?$/u.test(source)) {
+      fail(`rpc-methods service ${name} has invalid source_rule: ${source}`);
       continue;
     }
     if (!kernelRuleSet.has(source)) {
@@ -1044,13 +1048,13 @@ function checkProviderCatalogSourceTraceability(kernelRuleSet) {
   for (const item of providers) {
     const provider = String(item?.provider || '').trim();
     if (!provider) continue;
-    const source = String(item?.source || '').trim();
+    const source = String(item?.source_rule || '').trim();
     if (!source) {
-      fail(`provider-catalog provider ${provider} missing source`);
+      fail(`provider-catalog provider ${provider} missing source_rule`);
       continue;
     }
-    if (!/^K-[A-Z]+-\d{3}$/u.test(source)) {
-      fail(`provider-catalog provider ${provider} has invalid source: ${source}`);
+    if (!/^K-[A-Z]+-\d{3}[a-z]?$/u.test(source)) {
+      fail(`provider-catalog provider ${provider} has invalid source_rule: ${source}`);
       continue;
     }
     if (!kernelRuleSet.has(source)) {
@@ -1065,19 +1069,228 @@ function checkReasonCodeSourceTraceability(kernelRuleSet) {
   for (const code of codes) {
     const name = String(code?.name || '').trim();
     if (!name) continue;
-    const source = String(code?.source || '').trim();
+    const source = String(code?.source_rule || '').trim();
     if (!source) {
-      fail(`reason-codes code ${name} missing source`);
+      fail(`reason-codes code ${name} missing source_rule`);
       continue;
     }
-    if (!/^K-[A-Z]+-\d{3}$/u.test(source)) {
-      fail(`reason-codes code ${name} has invalid source: ${source}`);
+    if (!/^K-[A-Z]+-\d{3}[a-z]?$/u.test(source)) {
+      fail(`reason-codes code ${name} has invalid source_rule: ${source}`);
       continue;
     }
     if (!kernelRuleSet.has(source)) {
       fail(`reason-codes code ${name} references undefined kernel rule: ${source}`);
     }
   }
+}
+
+function checkRuleEvidenceTraceability(kernelRuleSet) {
+  const evidencePath = 'spec/runtime/kernel/tables/rule-evidence.yaml';
+  const doc = readYaml(evidencePath) || {};
+  const catalog = doc.evidence_catalog && typeof doc.evidence_catalog === 'object'
+    ? doc.evidence_catalog
+    : null;
+  if (!catalog) {
+    fail(`${evidencePath} missing evidence_catalog map`);
+    return;
+  }
+
+  const catalogEntries = Object.entries(catalog);
+  if (catalogEntries.length === 0) {
+    fail(`${evidencePath} evidence_catalog must not be empty`);
+  }
+
+  for (const [ref, item] of catalogEntries) {
+    const record = item && typeof item === 'object' ? item : null;
+    if (!record) {
+      fail(`${evidencePath} evidence_catalog.${ref} must be an object`);
+      continue;
+    }
+    const type = String(record.type || '').trim();
+    const command = String(record.command || '').trim();
+    const targetPath = String(record.path || '').trim();
+    if (!type) fail(`${evidencePath} evidence_catalog.${ref} missing type`);
+    if (!command) fail(`${evidencePath} evidence_catalog.${ref} missing command`);
+    if (!targetPath) {
+      fail(`${evidencePath} evidence_catalog.${ref} missing path`);
+      continue;
+    }
+    if (!fs.existsSync(path.join(cwd, targetPath))) {
+      fail(`${evidencePath} evidence_catalog.${ref} path does not exist: ${targetPath}`);
+    }
+  }
+
+  const rules = Array.isArray(doc.rules) ? doc.rules : [];
+  if (rules.length === 0) {
+    fail(`${evidencePath} rules must not be empty`);
+    return;
+  }
+
+  const seen = new Set();
+  for (const item of rules) {
+    const ruleId = String(item?.rule_id || '').trim();
+    const status = String(item?.status || '').trim().toLowerCase();
+    const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
+    const naReason = String(item?.na_reason || '').trim();
+    if (!/^K-[A-Z]+-\d{3}[a-z]?$/u.test(ruleId)) {
+      fail(`${evidencePath} has invalid rule_id format: ${ruleId || '<empty>'}`);
+      continue;
+    }
+    if (seen.has(ruleId)) {
+      fail(`${evidencePath} has duplicate rule_id entry: ${ruleId}`);
+      continue;
+    }
+    seen.add(ruleId);
+    if (!kernelRuleSet.has(ruleId)) {
+      fail(`${evidencePath} references unknown runtime kernel rule: ${ruleId}`);
+    }
+    if (status !== 'covered' && status !== 'na') {
+      fail(`${evidencePath} ${ruleId} has invalid status: ${status || '<empty>'} (allowed: covered|na)`);
+      continue;
+    }
+    if (status === 'na') {
+      if (!naReason) {
+        fail(`${evidencePath} ${ruleId} status=na requires na_reason`);
+      }
+      continue;
+    }
+    if (refs.length === 0) {
+      fail(`${evidencePath} ${ruleId} status=covered requires non-empty evidence_refs`);
+      continue;
+    }
+    for (const rawRef of refs) {
+      const ref = String(rawRef || '').trim();
+      if (!ref) {
+        fail(`${evidencePath} ${ruleId} contains empty evidence_refs item`);
+        continue;
+      }
+      if (!Object.prototype.hasOwnProperty.call(catalog, ref)) {
+        fail(`${evidencePath} ${ruleId} references undefined evidence ref: ${ref}`);
+      }
+    }
+  }
+
+  const missing = [...kernelRuleSet].filter((ruleId) => !seen.has(ruleId));
+  if (missing.length > 0) {
+    fail(`${evidencePath} missing evidence rows for rules: ${missing.join(', ')}`);
+  }
+}
+
+function checkCapabilityVocabularyMapping(kernelRuleSet) {
+  const rel = 'spec/runtime/kernel/tables/capability-vocabulary-mapping.yaml';
+  const doc = readYaml(rel) || {};
+  const canonicalTokens = new Set(
+    (Array.isArray(doc?.canonical_tokens) ? doc.canonical_tokens : [])
+      .map((value) => String(value || '').trim())
+      .filter(Boolean),
+  );
+  const localTokens = new Set(
+    (Array.isArray(doc?.local_manifest_tokens) ? doc.local_manifest_tokens : [])
+      .map((value) => String(value || '').trim())
+      .filter(Boolean),
+  );
+  const localCategories = new Set(
+    (Array.isArray(doc?.local_categories) ? doc.local_categories : [])
+      .map((value) => String(value || '').trim())
+      .filter(Boolean),
+  );
+  const mappings = Array.isArray(doc?.local_to_canonical) ? doc.local_to_canonical : [];
+  const canonicalOnly = Array.isArray(doc?.canonical_only) ? doc.canonical_only : [];
+
+  if (canonicalTokens.size === 0) fail(`${rel} canonical_tokens must not be empty`);
+  if (localTokens.size === 0) fail(`${rel} local_manifest_tokens must not be empty`);
+  if (mappings.length === 0) fail(`${rel} local_to_canonical must not be empty`);
+
+  const mappedLocalTokens = new Set();
+  for (const entry of mappings) {
+    const localToken = String(entry?.local_token || '').trim();
+    const canonicalToken = String(entry?.canonical_token || '').trim();
+    const localCategory = String(entry?.local_category || '').trim();
+    const sourceRule = String(entry?.source_rule || '').trim();
+    if (!localToken || !localTokens.has(localToken)) {
+      fail(`${rel} mapping references unknown local_token: ${localToken || '<empty>'}`);
+    }
+    if (!canonicalToken || !canonicalTokens.has(canonicalToken)) {
+      fail(`${rel} mapping references unknown canonical_token: ${canonicalToken || '<empty>'}`);
+    }
+    if (localCategory && !localCategories.has(localCategory)) {
+      fail(`${rel} mapping ${localToken} uses unknown local_category: ${localCategory}`);
+    }
+    if (!/^K-[A-Z]+-\d{3}[a-z]?$/u.test(sourceRule) || !kernelRuleSet.has(sourceRule)) {
+      fail(`${rel} mapping ${localToken} has invalid source_rule: ${sourceRule || '<empty>'}`);
+    }
+    mappedLocalTokens.add(localToken);
+  }
+
+  for (const token of localTokens) {
+    if (!mappedLocalTokens.has(token)) {
+      fail(`${rel} local token missing mapping: ${token}`);
+    }
+  }
+
+  for (const entry of canonicalOnly) {
+    const canonicalToken = String(entry?.canonical_token || '').trim();
+    if (!canonicalToken || !canonicalTokens.has(canonicalToken)) {
+      fail(`${rel} canonical_only references unknown canonical_token: ${canonicalToken || '<empty>'}`);
+    }
+  }
+}
+
+function checkOrphanRules(kernelRuleSet) {
+  const files = [...new Set([
+    ...runtimeMarkdownFiles,
+    ...kernelFiles.filter((rel) => rel.endsWith('.yaml') && !rel.endsWith('rule-evidence.yaml')),
+    ...domainFiles,
+  ])];
+  const refCounts = new Map();
+  for (const rel of files) {
+    if (!fs.existsSync(path.join(cwd, rel))) continue;
+    const content = read(rel);
+    for (const ruleId of collectReferencedRuntimeRuleIds(content, kernelRuleSet)) {
+      refCounts.set(ruleId, (refCounts.get(ruleId) || 0) + 1);
+    }
+  }
+
+  const orphans = [...kernelRuleSet].filter((ruleId) => (refCounts.get(ruleId) || 0) <= 1);
+  if (orphans.length > 0) {
+    fail(`runtime orphan kernel rules detected: ${orphans.join(', ')}`);
+  }
+}
+
+function collectReferencedRuntimeRuleIds(content, kernelRuleSet) {
+  const refs = new Set();
+
+  for (const match of content.matchAll(/\bK-[A-Z]+-\d{3}[a-z]?\b/g)) {
+    refs.add(match[0]);
+  }
+
+  for (const match of content.matchAll(/\b(K-[A-Z]+)-\*/g)) {
+    const prefix = `${match[1]}-`;
+    for (const ruleId of kernelRuleSet) {
+      if (ruleId.startsWith(prefix)) {
+        refs.add(ruleId);
+      }
+    }
+  }
+
+  for (const match of content.matchAll(/\b(K-[A-Z]+)-(\d{3})[–-](\d{3})\b/g)) {
+    const prefix = `${match[1]}-`;
+    const start = Number.parseInt(match[2], 10);
+    const end = Number.parseInt(match[3], 10);
+    if (Number.isNaN(start) || Number.isNaN(end)) continue;
+    const lower = Math.min(start, end);
+    const upper = Math.max(start, end);
+    for (const ruleId of kernelRuleSet) {
+      if (!ruleId.startsWith(prefix)) continue;
+      const suffix = ruleId.slice(prefix.length);
+      const numeric = Number.parseInt(suffix.slice(0, 3), 10);
+      if (!Number.isNaN(numeric) && numeric >= lower && numeric <= upper) {
+        refs.add(ruleId);
+      }
+    }
+  }
+
+  return refs;
 }
 
 function checkNoLocalRuleIds(content, rel) {

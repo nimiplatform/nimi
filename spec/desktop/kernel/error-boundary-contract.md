@@ -124,7 +124,7 @@ Runtime 错误通过三层投影到 Desktop UI：
 
 **D-ERR-007a `AI_PROVIDER_UNAVAILABLE` 上下文感知映射**：
 
-Runtime K-PROV-003a 指出 provider 健康探测将 `401`/`403` 视为 healthy（server 可达）。因此 provider 显示 healthy 但 consume 持续返回 `AI_PROVIDER_UNAVAILABLE` 时，根因是凭据问题而非网络问题。Desktop 应结合 provider 健康状态（D-IPC-002 可获取）差异化引导用户：
+Runtime K-PROV-003 指出 provider 健康探测将 `401`/`403` 视为 healthy（server 可达）。因此 provider 显示 healthy 但 consume 持续返回 `AI_PROVIDER_UNAVAILABLE` 时，根因是凭据问题而非网络问题。Desktop 应结合 provider 健康状态（D-IPC-002 可获取）差异化引导用户：
 
 | Provider 健康状态 | UI 消息 | 引导方向 |
 |---|---|---|
@@ -136,7 +136,7 @@ Phase 1 provider 健康细粒度展示为 Phase 2（D-IPC-002），因此 Phase 
 
 注：`ListConnectorModels` 失败也复用此 ReasonCode（K-ERR-005），此场景无 provider 健康上下文，走通用兜底。
 
-**跨层引用**：K-PROV-003a（健康探测设计取舍）、D-IPC-002（provider 健康 UI 映射）。
+**跨层引用**：K-PROV-003（健康探测设计取舍）、D-IPC-002（provider 健康 UI 映射）。
 
 **非错误终态说明**：`AI_FINISH_LENGTH` 和 `AI_FINISH_CONTENT_FILTER` 通过 gRPC OK + `reason_code` 返回（参考 SDK S-ERROR-009），投影为 `finishReason` 而非异常。UI 不触发错误边界（D-ERR-006），仅在消息元信息区域展示提示标注。
 
@@ -150,7 +150,6 @@ Phase 1 provider 健康细粒度展示为 Phase 2（D-IPC-002），因此 Phase 
 | `PAGE_TOKEN_INVALID` | K-PAGE-002 | 低（分页错误罕见） | "分页参数无效，请刷新重试" |
 | `WORKFLOW_*` 族 | Phase 2 | 中（Workflow UI 启动时） | 待 K-WF-012 消费契约定义 |
 | `APP_MESSAGE_*` 族 | K-APP-005 | 中（AppMessage UI 启动时） | 待 K-APP-006a 消费契约定义 |
-| `SCRIPT_*` 族 | K-SCRIPT-004 | 低（Phase 2 后期） | 待 ScriptWorker 消费契约定义 |
 
 **映射治理规则**：
 
@@ -168,9 +167,9 @@ Runtime K-ERR-008 规定 `StartLocalModel`、`StopLocalModel`、`RemoveLocalMode
 
 | IPC 命令 | gRPC 状态 | UI 行为 |
 |---|---|---|
-| `local_ai_start_model` | `NOT_FOUND` | toast "模型未找到，可能已被移除"，刷新模型列表 |
-| `local_ai_stop_model` | `NOT_FOUND` | 静默处理（模型已不存在等价于已停止），刷新模型列表 |
-| `local_ai_remove_model` | `NOT_FOUND` | 静默处理（幂等语义），刷新模型列表 |
+| `runtime_local_models_start` | `NOT_FOUND` | toast "模型未找到，可能已被移除"，刷新模型列表 |
+| `runtime_local_models_stop` | `NOT_FOUND` | 静默处理（模型已不存在等价于已停止），刷新模型列表 |
+| `runtime_local_models_remove` | `NOT_FOUND` | 静默处理（幂等语义），刷新模型列表 |
 
 **跨层引用**：Runtime K-ERR-008、K-LOCAL-009。
 

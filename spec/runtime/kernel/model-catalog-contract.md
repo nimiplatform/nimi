@@ -226,6 +226,8 @@ source、snapshot、registry、resolver、scenario guard、live-provider checks 
 
 `chat`、`embedding`、`image`、`tts`、`stt`、`video_generation`、`llm.text.generate`、`llm.embed`、`llm.image.generate`、`llm.video.generate`、`llm.speech.synthesize`、`llm.speech.transcribe` 不得作为有效 capability 声明值继续存在于 source 或 snapshot 中。
 
+local runtime 若仍使用 `chat` / `embedding` / `tts` 等本地 token，必须先通过 `tables/capability-vocabulary-mapping.yaml` 做 local → canonical 转换，再进入 source/snapshot/resolver/guard 语义面。
+
 ## K-MCAT-025 Source Provider / Infra Provider Boundary
 
 `runtime/catalog/source/providers/*.source.yaml` 仅定义 source provider SSOT。  

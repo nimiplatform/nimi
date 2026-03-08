@@ -41,3 +41,11 @@ Source Rules: `S-BOUNDARY-001`, `S-BOUNDARY-003`
 Allowed: `@nimiplatform/sdk/mod`
 
 Forbidden: `@nimiplatform/sdk/runtime/internal/**`, `@nimiplatform/sdk/realm/internal/**`
+
+## types
+
+Source Rules: `S-BOUNDARY-001`
+
+Allowed: `@nimiplatform/sdk/types`
+
+Forbidden: `@nimiplatform/sdk/runtime/internal/**`, `@nimiplatform/sdk/realm/internal/**`, `runtime/internal/**`

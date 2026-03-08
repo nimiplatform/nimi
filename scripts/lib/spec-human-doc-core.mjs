@@ -438,7 +438,7 @@ export const runtimeKernelFiles = [
   'streaming-contract.md', 'error-model.md', 'pagination-filtering.md', 'audit-contract.md',
   'daemon-lifecycle.md', 'provider-health-contract.md', 'workflow-contract.md',
   'model-service-contract.md', 'knowledge-contract.md', 'app-messaging-contract.md',
-  'script-worker-contract.md', 'config-contract.md', 'connector-contract.md',
+  'config-contract.md', 'connector-contract.md',
   'nimillm-contract.md', 'multimodal-provider-contract.md', 'delivery-gates-contract.md',
   'proto-governance-contract.md',
 ];
@@ -455,7 +455,8 @@ export const desktopKernelFiles = [
   'auth-session-contract.md', 'data-sync-contract.md', 'hook-capability-contract.md',
   'mod-governance-contract.md', 'llm-adapter-contract.md', 'ui-shell-contract.md',
   'error-boundary-contract.md', 'telemetry-contract.md', 'network-contract.md',
-  'security-contract.md', 'streaming-consumption-contract.md', 'codegen-contract.md',
+  'security-contract.md', 'streaming-consumption-contract.md', 'offline-degradation-contract.md',
+  'codegen-contract.md',
 ];
 
 export const futureKernelFiles = [

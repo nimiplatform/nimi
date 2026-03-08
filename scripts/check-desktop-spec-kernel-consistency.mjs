@@ -24,6 +24,7 @@ const kernelFiles = [
   'spec/desktop/kernel/security-contract.md',
   'spec/desktop/kernel/streaming-consumption-contract.md',
   'spec/desktop/kernel/codegen-contract.md',
+  'spec/desktop/kernel/offline-degradation-contract.md',
   'spec/desktop/kernel/tables/bootstrap-phases.yaml',
   'spec/desktop/kernel/tables/ipc-commands.yaml',
   'spec/desktop/kernel/tables/app-tabs.yaml',
@@ -194,7 +195,11 @@ checkStoreSliceCount();
 
 checkBridgeReasonCodeCoverage();
 
-// ── Check 24: D-* rule evidence full traceability (rules ↔ evidence ↔ files) ──
+// ── Check 24: local-runtime IPC spec ↔ Tauri invoke handler ↔ TS wrapper parity ──
+
+checkLocalRuntimeIpcConsistency();
+
+// ── Check 25: D-* rule evidence full traceability (rules ↔ evidence ↔ files) ──
 
 checkRuleEvidenceTraceability();
 
@@ -770,6 +775,54 @@ function checkBridgeReasonCodeCoverage() {
   const missing = phase1CriticalCodes.filter((code) => !content.includes(code));
   if (missing.length > 0) {
     fail(`D-ERR-007 bridge invoke.ts missing Phase 1 ReasonCodes: ${missing.join(', ')}`);
+  }
+}
+
+function checkLocalRuntimeIpcConsistency() {
+  const tablePath = 'spec/desktop/kernel/tables/ipc-commands.yaml';
+  const rustPath = 'apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs';
+  const tsPath = 'apps/desktop/src/runtime/local-ai-runtime/commands.ts';
+  if (!fileExists(tablePath) || !fileExists(rustPath) || !fileExists(tsPath)) {
+    fail(`local-runtime IPC parity inputs missing: ${[tablePath, rustPath, tsPath].filter((rel) => !fileExists(rel)).join(', ')}`);
+    return;
+  }
+
+  const table = readYaml(tablePath) || {};
+  const specCommands = new Set(
+    (Array.isArray(table?.commands) ? table.commands : [])
+      .filter((entry) => String(entry?.module || '').trim() === 'local-runtime')
+      .map((entry) => String(entry?.command || '').trim())
+      .filter((command) => /^runtime_local_[a-z0-9_]+$/u.test(command)),
+  );
+  if (specCommands.size === 0) {
+    fail(`${tablePath} has no local-runtime commands`);
+    return;
+  }
+
+  const rustCommands = new Set(
+    [...read(rustPath).matchAll(/local_runtime::commands::(runtime_local_[a-z0-9_]+)/gu)]
+      .map((match) => match[1]),
+  );
+  const tsCommands = new Set(
+    [
+      ...read(tsPath).matchAll(/\binvokeLocalAiCommand(?:<[^>]+>)?\(\s*'((?:runtime_local_[a-z0-9_]+))'/gu),
+      ...read(tsPath).matchAll(/\btauriInvoke(?:<[^>]+>)?\(\s*'((?:runtime_local_[a-z0-9_]+))'/gu),
+    ].map((match) => match[1]),
+  );
+
+  compareCommandSets(`${tablePath} vs ${rustPath}`, specCommands, rustCommands);
+  compareCommandSets(`${tablePath} vs ${tsPath}`, specCommands, tsCommands);
+  compareCommandSets(`${rustPath} vs ${tsPath}`, rustCommands, tsCommands);
+}
+
+function compareCommandSets(label, expected, actual) {
+  const missing = [...expected].filter((command) => !actual.has(command));
+  const extra = [...actual].filter((command) => !expected.has(command));
+  if (missing.length > 0) {
+    fail(`${label} missing commands: ${missing.join(', ')}`);
+  }
+  if (extra.length > 0) {
+    fail(`${label} has extra commands: ${extra.join(', ')}`);
   }
 }
 
