@@ -79,16 +79,17 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
     if (!post.id) {
       return null;
     }
+    const media: EditablePostSeed['media'] = firstMedia && firstMediaUrl ? {
+      id: extractPostMediaId(firstMedia),
+      type: firstMediaType === PostMediaType.VIDEO ? 'video' : 'image',
+      previewUrl: firstMediaUrl,
+    } : null;
     return {
       postId: post.id,
       caption: post.caption,
       tags: Array.isArray(post.tags) ? post.tags.map(String) : [],
       visibility: postVisibility,
-      media: firstMedia && firstMediaUrl ? {
-        id: extractPostMediaId(firstMedia),
-        type: firstMediaType === PostMediaType.VIDEO ? 'video' : 'image',
-        previewUrl: firstMediaUrl,
-      } : null,
+      media,
     };
   }, [firstMedia, firstMediaType, firstMediaUrl, post.caption, post.id, post.tags, postVisibility]);
 

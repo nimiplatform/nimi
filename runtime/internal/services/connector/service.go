@@ -201,7 +201,9 @@ func (s *Service) GetConnector(ctx context.Context, req *runtimev1.GetConnectorR
 
 	ownerID, hasOwner := subjectUserIDFromContext(ctx)
 	// Information hiding: delete_pending or owner mismatch → NOT_FOUND
-	if !found || (rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && (!hasOwner || rec.OwnerID != ownerID)) {
+	// System-owned connectors are visible to all (consistent with ListConnectors).
+	if !found || (rec.OwnerType != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM &&
+		rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && (!hasOwner || rec.OwnerID != ownerID)) {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
 
@@ -570,7 +572,9 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 	if err != nil {
 		return nil, s.internalProviderError("list_connector_models.load", err)
 	}
-	if !found || (rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && (!hasOwner || rec.OwnerID != ownerID)) {
+	// System-owned connectors are visible to all (consistent with ListConnectors).
+	if !found || (rec.OwnerType != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM &&
+		rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && (!hasOwner || rec.OwnerID != ownerID)) {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
 

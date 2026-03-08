@@ -788,5 +788,18 @@ fn log_renderer_event(payload: RendererLogPayload) {
 
 #[tauri::command]
 fn start_window_drag(window: tauri::WebviewWindow) -> Result<(), String> {
-    window.start_dragging().map_err(|error| error.to_string())
+    #[cfg(target_os = "macos")]
+    if window.is_fullscreen().unwrap_or(false) {
+        return Ok(());
+    }
+
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        window.start_dragging().map_err(|error| error.to_string())
+    })) {
+        Ok(result) => result,
+        Err(_) => {
+            eprintln!("[boot:{:}] start_window_drag panicked", now_ms());
+            Err("window drag unavailable".to_string())
+        }
+    }
 }

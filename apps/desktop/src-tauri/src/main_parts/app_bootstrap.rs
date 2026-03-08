@@ -49,15 +49,18 @@ fn main() {
                                 tauri::WindowEvent::Resized(_)
                                     | tauri::WindowEvent::ScaleFactorChanged { .. }
                             ) {
-                                if let Err(error) =
-                                    apply_macos_traffic_light_position(&window_for_relayout, x, y)
-                                {
-                                    eprintln!(
-                                        "[boot:{:}] failed to re-apply traffic light position: {}",
-                                        now_ms(),
-                                        error
-                                    );
-                                }
+                                let window_for_apply = window_for_relayout.clone();
+                                let _ = window_for_relayout.run_on_main_thread(move || {
+                                    if let Err(error) =
+                                        apply_macos_traffic_light_position(&window_for_apply, x, y)
+                                    {
+                                        eprintln!(
+                                            "[boot:{:}] failed to re-apply traffic light position: {}",
+                                            now_ms(),
+                                            error
+                                        );
+                                    }
+                                });
                             }
                         });
                         schedule_macos_traffic_light_reapply(window.clone(), x, y);

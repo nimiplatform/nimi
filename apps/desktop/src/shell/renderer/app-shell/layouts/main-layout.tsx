@@ -7,6 +7,8 @@ import { logoutAndClearSession } from '@renderer/features/auth/logout';
 import { useChatRealtimeSync } from '@renderer/features/realtime/use-chat-realtime-sync';
 import { MainLayoutView } from './main-layout-view';
 
+const MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX = 92;
+
 export function MainLayout() {
   const flags = getShellFeatureFlags();
   const activeTab = useAppStore((state) => state.activeTab);
@@ -59,6 +61,8 @@ export function MainLayout() {
   const onTitlebarMouseDown = (event: MouseEvent<HTMLDivElement>) => {
     if (!flags.enableTitlebarDrag) return;
     if (event.button !== 0) return;
+    if (event.detail > 1) return;
+    if (event.clientX < MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX) return;
     const target = event.target as HTMLElement | null;
     if (target?.closest('[data-mod-tab-interactive="true"]')) return;
     void desktopBridge.startWindowDrag().catch(() => {

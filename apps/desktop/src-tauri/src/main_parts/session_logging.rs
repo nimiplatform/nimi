@@ -163,6 +163,10 @@ fn apply_macos_traffic_light_position(
 ) -> Result<(), String> {
     use objc2_app_kit::{NSWindow, NSWindowButton};
 
+    if window.is_fullscreen().unwrap_or(false) {
+        return Ok(());
+    }
+
     let x = x.max(0.0);
     let y = y.max(0.0);
 
