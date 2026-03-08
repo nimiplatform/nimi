@@ -56,7 +56,9 @@ mod 如需枚举 companion assets，必须显式声明 `runtime.local.artifacts.
 
 ### 获取所有权（K-LOCAL-028）
 
-Phase 1 主模型下载仍由 desktop execution-plane 独占；companion artifact 的状态真相与安装落盘由 runtime local service 统一维护。Desktop 负责触发安装与渲染状态，不复制第二套 artifact store。
+主模型 acquisition 固定为 download / detect / import 三条路径；Desktop execution-plane 负责主模型下载、orphan detect/scaffold 和 `model.manifest.json` import。
+
+companion artifact 的状态真相与安装落盘由 runtime local service 统一维护。Desktop 负责触发 verified install、`artifact.manifest.json` import 和状态渲染，不复制第二套 artifact store。
 
 ### HuggingFace 搜索
 
@@ -75,6 +77,8 @@ Desktop Rust 层实现完整下载管线（`K-LOCAL-024`）：
 ### 存储布局
 
 模型文件存储在 `~/.nimi/models/`（`K-LOCAL-025`），保留原始文件名。每模型子目录包含 `model.manifest.json`（`K-LOCAL-026`）。
+
+companion artifact manifest 也必须位于 `~/.nimi/models/` 根下的某个子目录，并固定命名为 `artifact.manifest.json`。Desktop 本轮不支持外部路径自动复制 artifact manifest。
 
 ### 格式支持
 
@@ -98,11 +102,11 @@ Desktop Rust 层实现完整下载管线（`K-LOCAL-024`）：
 - `AI_LOCAL_HF_SEARCH_FAILED` — HF 搜索 API 调用失败
 - `AI_LOCAL_MANIFEST_SCHEMA_INVALID` — manifest schema 校验失败
 
-## 文件导入管线
+## 文件导入管线（主模型）
 
 ### 概述
 
-用户可直接选择本地任意位置的模型文件（`.gguf`、`.safetensors`、`.bin`、`.pt`、`.onnx`、`.pth`），系统自动复制到 `~/.nimi/models/<slug>/`、单遍计算 SHA256、生成 `model.manifest.json`、注册到 `state.json`。
+用户可直接选择本地任意位置的主模型文件（`.gguf`、`.safetensors`、`.bin`、`.pt`、`.onnx`、`.pth`），系统自动复制到 `~/.nimi/models/<slug>/`、单遍计算 SHA256、生成 `model.manifest.json`、注册到 `state.json`。
 
 ### 流程
 
@@ -141,6 +145,28 @@ Desktop Rust 层实现完整下载管线（`K-LOCAL-024`）：
 - `LOCAL_AI_FILE_IMPORT_SYNC_FAILED` — sync 落盘失败
 - `LOCAL_AI_FILE_IMPORT_MANIFEST_SERIALIZE_FAILED` — manifest JSON 序列化失败
 - `LOCAL_AI_FILE_IMPORT_MANIFEST_WRITE_FAILED` — manifest 写盘失败
+
+## Companion Artifact 导入
+
+### 获取边界
+
+companion artifact 本轮只支持两条路径：
+
+1. verified artifact install
+2. `artifact.manifest.json` import
+
+Desktop 本轮不支持 companion artifact orphan detect/scaffold，也不复用主模型 capability 选择入口。
+
+### Import Artifact Manifest
+
+`Import Artifact Manifest` 通过独立 picker 选取 `~/.nimi/models/**/artifact.manifest.json`。该 picker 不得复用主模型 `model.manifest.json` picker。
+
+artifact import 的类型来源固定为 manifest 中的 `kind`，允许值由 runtime local service schema 约束为 `vae / llm / clip / controlnet / lora / auxiliary`。
+
+### Error（artifact import 相关）
+
+- `LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID` — 仅允许导入 `artifact.manifest.json`
+- `LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT` — artifact manifest 必须位于 `~/.nimi/models/` 下
 
 ## CI 门禁引用
 

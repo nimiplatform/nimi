@@ -13,6 +13,11 @@ codes:
     description: Only model.manifest.json files may be imported
     source_rule: D-ERR-001
 
+  - code: LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID
+    domain: local-ai
+    description: Only artifact.manifest.json files may be imported
+    source_rule: D-ERR-001
+
   - code: LOCAL_AI_IMPORT_MANIFEST_NOT_FOUND
     domain: local-ai
     description: Model manifest file not found at import path

@@ -81,8 +81,15 @@ canonical 配置路径固定为 `.nimi/config.json`；Desktop 不得保留 `.nim
 
 ## D-IPC-007 — Mod 本地命令
 
+Mod 本地持久化与审计命令集（`runtime_mod::commands`）：
+
 - `runtime_mod_list_local_manifests`：列出本地 mod 清单。
 - `runtime_mod_read_local_entry`：读取 mod 入口源码。
+- `runtime_mod_append_audit` / `runtime_mod_query_audit` / `runtime_mod_delete_audit`：mod 审计记录 CRUD。
+- `runtime_mod_get_action_idempotency` / `runtime_mod_put_action_idempotency` / `runtime_mod_purge_action_idempotency`：action 幂等性记录。
+- `runtime_mod_get_action_verify_ticket` / `runtime_mod_put_action_verify_ticket` / `runtime_mod_delete_action_verify_ticket` / `runtime_mod_purge_action_verify_tickets`：action 验证票据。
+- `runtime_mod_put_action_execution_ledger` / `runtime_mod_query_action_execution_ledger` / `runtime_mod_purge_action_execution_ledger`：action 执行账本。
+- `runtime_mod_media_cache_put` / `runtime_mod_media_cache_gc`：mod 媒体缓存写入与垃圾回收。
 
 ## D-IPC-008 — External Agent 命令
 
@@ -160,27 +167,38 @@ cloud 路径必须固定经由 Runtime connector APIs；Desktop 不得恢复 leg
 - `loadLocalAiBridge()` — 缓存 Promise，首次调用触发加载。
 - `loadExternalAgentBridge()` — 同上。
 
-## D-IPC-011 — Local AI 命令
+## D-IPC-011 — Local Runtime 命令
 
-Local AI 桥接通过 `loadLocalAiBridge()` 懒加载（`D-IPC-010`），命令集：
+Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`），命令集统一使用 `runtime_local_*` 前缀（`local_runtime::commands`）：
 
-- `local_ai_models_list` / `local_ai_models_verified_list`：列出本地/验证模型。
-- `local_ai_models_install` / `local_ai_models_install_verified` / `local_ai_models_import`：创建安装会话并入队 / 导入模型。
-- `local_ai_models_adopt`：将 go-runtime 已存在的结构化 `LocalAiModelRecord` 纳管到 Desktop/Tauri state，不触发下载或类型选择。
-- `local_ai_downloads_list` / `local_ai_downloads_pause` / `local_ai_downloads_resume` / `local_ai_downloads_cancel`：下载会话查询与控制。
-- `local_ai_models_start` / `local_ai_models_stop` / `local_ai_models_remove`：模型生命周期管理。
-- `local_ai_models_health`：模型健康检查。
-- `local_ai_audits_list` / `local_ai_append_inference_audit`：推理审计。
-- `local_ai_pick_manifest_path`：选取模型清单文件。
-- `local-ai://download-progress`：下载进度事件通道，事件字段包含 `state`（`queued|running|paused|failed|completed|cancelled`）、`reasonCode?`、`retryable?`。
+- `runtime_local_models_list` / `runtime_local_models_verified_list`：列出本地/验证模型。
+- `runtime_local_models_catalog_search` / `runtime_local_models_catalog_list_variants`：目录搜索与变体列举。
+- `runtime_local_models_catalog_resolve_install_plan`：解析安装计划。
+- `runtime_local_models_install` / `runtime_local_models_install_verified` / `runtime_local_models_import`：创建安装会话并入队 / 导入模型。
+- `runtime_local_models_import_file`：导入模型文件（copy + hash + manifest 生成）。
+- `runtime_local_models_adopt`：将 go-runtime 已存在的结构化 `LocalAiModelRecord` 纳管到 Desktop/Tauri state，不触发下载或类型选择。
+- `runtime_local_downloads_list` / `runtime_local_downloads_pause` / `runtime_local_downloads_resume` / `runtime_local_downloads_cancel`：下载会话查询与控制。
+- `runtime_local_models_start` / `runtime_local_models_stop` / `runtime_local_models_remove`：模型生命周期管理。
+- `runtime_local_models_health`：模型健康检查。
+- `runtime_local_models_reveal_in_folder`：在系统文件管理器中打开模型目录。
+- `runtime_local_models_scan_orphans` / `runtime_local_models_scaffold_orphan`：孤立模型文件扫描与脚手架导入。
+- `runtime_local_audits_list` / `runtime_local_append_inference_audit` / `runtime_local_append_runtime_audit`：推理与运行时审计。
+- `runtime_local_pick_manifest_path`：选取 `~/.nimi/models/**/model.manifest.json`。
+- `runtime_local_pick_artifact_manifest_path`：选取 `~/.nimi/models/**/artifact.manifest.json`。
+- `runtime_local_pick_model_file`：选取任意待导入的主模型文件。
+- `runtime_local_services_list` / `runtime_local_services_install` / `runtime_local_services_start` / `runtime_local_services_stop` / `runtime_local_services_health` / `runtime_local_services_remove`：本地服务管理。
+- `runtime_local_nodes_catalog_list`：列出活跃服务的能力节点。
+- `runtime_local_dependencies_resolve` / `runtime_local_dependencies_apply`：依赖解析与应用。
+- `runtime_local_device_profile_collect`：设备能力采集（CPU/GPU/NPU/disk/ports）。
+- `local-runtime://download-progress`：下载进度事件通道，事件字段包含 `state`（`queued|running|paused|failed|completed|cancelled`）、`reasonCode?`、`retryable?`。
 
 companion artifact 补充：
 
-- artifact list / verified list / install / import / remove 通过受管 Local AI bridge facade 暴露，但其数据面来自 runtime SDK `RuntimeLocalService`，不是新增 Tauri command。
-- Desktop 启动时必须先执行 Desktop/Tauri 已知模型 -> go-runtime 的 reconcile，再将 go-runtime-only 模型通过 `local_ai_models_adopt` 自动纳管到 Tauri state。
-- 自动纳管只适用于 go-runtime 已有结构化 `LocalAiModelRecord` 的模型；用户直接 copy 到 `~/.nimi/models` 的裸文件仍保留 orphan scan/scaffold 路径，由用户选择能力后导入。
-
-renderer 与 tauri backend 不得直接回流 legacy 私有 `local_ai_*` 命令字面量；调用方必须经由受管 bridge API 和 runtime facade 装配路径进入。
+- artifact list / verified list / install / import / remove 通过受管 Local Runtime bridge facade 暴露，但其数据面来自 runtime SDK `RuntimeLocalService`，不是新增 Tauri lifecycle command。
+- companion acquisition 在本轮仅支持 verified artifact install 和 `artifact.manifest.json` import；不复用主模型 orphan detect/scaffold。
+- `artifact.manifest.json` picker 与 `model.manifest.json` picker 必须物理拆分，且都只允许 runtime models root 下的路径。
+- Desktop 启动时必须先执行 Desktop/Tauri 已知模型 -> go-runtime 的 reconcile，再将 go-runtime-only 模型通过 `runtime_local_models_adopt` 自动纳管到 Tauri state。
+- 自动纳管只适用于 go-runtime 已有结构化 `LocalAiModelRecord` 的模型；用户直接 copy 到 `~/.nimi/models` 的裸文件通过 `runtime_local_models_scan_orphans` / `runtime_local_models_scaffold_orphan` 路径，由用户选择能力后导入。
 
 执行命令：
 

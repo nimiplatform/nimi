@@ -5,56 +5,81 @@
 | Command | Module | Description | Source Rule |
 |---|---|---|---|
 | `runtime_defaults` | `runtime-defaults` | Get realm and runtime execution defaults | `D-IPC-001` |
+| `get_system_resource_snapshot` | `system` | Collect system resource snapshot (CPU, memory, GPU) for device profiling | `D-IPC-009` |
+| `http_request` | `http` | Proxy HTTP request through Tauri backend (bypasses browser CORS) | `D-IPC-004` |
+| `open_external_url` | `ui` | Open external URL in system browser | `D-IPC-005` |
+| `oauth_token_exchange` | `oauth` | Exchange OAuth authorization code for tokens | `D-IPC-006` |
+| `oauth_listen_for_code` | `oauth` | Listen for OAuth callback code on redirect URI | `D-IPC-006` |
+| `confirm_private_sync` | `ui` | Confirm private data sync for agent/session | `D-IPC-005` |
+| `log_renderer_event` | `telemetry` | Forward renderer-side structured log event to Tauri backend logger | `D-IPC-009` |
+| `start_window_drag` | `ui` | Start native window drag operation | `D-IPC-005` |
+| `runtime_mod_append_audit` | `mod-local` | Append mod audit record | `D-IPC-007` |
+| `runtime_mod_query_audit` | `mod-local` | Query mod audit records | `D-IPC-007` |
+| `runtime_mod_delete_audit` | `mod-local` | Delete mod audit record | `D-IPC-007` |
+| `runtime_mod_list_local_manifests` | `mod-local` | List local mod manifest summaries | `D-IPC-007` |
+| `runtime_mod_read_local_entry` | `mod-local` | Read local mod entry source code | `D-IPC-007` |
+| `runtime_mod_get_action_idempotency` | `mod-local` | Get mod action idempotency record | `D-IPC-007` |
+| `runtime_mod_put_action_idempotency` | `mod-local` | Put mod action idempotency record | `D-IPC-007` |
+| `runtime_mod_purge_action_idempotency` | `mod-local` | Purge expired mod action idempotency records | `D-IPC-007` |
+| `runtime_mod_get_action_verify_ticket` | `mod-local` | Get mod action verify ticket | `D-IPC-007` |
+| `runtime_mod_put_action_verify_ticket` | `mod-local` | Put mod action verify ticket | `D-IPC-007` |
+| `runtime_mod_delete_action_verify_ticket` | `mod-local` | Delete mod action verify ticket | `D-IPC-007` |
+| `runtime_mod_purge_action_verify_tickets` | `mod-local` | Purge expired mod action verify tickets | `D-IPC-007` |
+| `runtime_mod_put_action_execution_ledger` | `mod-local` | Put mod action execution ledger entry | `D-IPC-007` |
+| `runtime_mod_query_action_execution_ledger` | `mod-local` | Query mod action execution ledger | `D-IPC-007` |
+| `runtime_mod_purge_action_execution_ledger` | `mod-local` | Purge expired mod action execution ledger entries | `D-IPC-007` |
+| `runtime_mod_media_cache_put` | `mod-local` | Put media blob into mod media cache | `D-IPC-007` |
+| `runtime_mod_media_cache_gc` | `mod-local` | Garbage-collect expired mod media cache entries | `D-IPC-007` |
+| `external_agent_issue_token` | `external-agent` | Issue external agent access token | `D-IPC-008` |
+| `external_agent_revoke_token` | `external-agent` | Revoke external agent access token | `D-IPC-008` |
+| `external_agent_list_tokens` | `external-agent` | List external agent tokens | `D-IPC-008` |
+| `external_agent_verify_execution_context` | `external-agent` | Verify external agent execution context before action dispatch | `D-IPC-008` |
+| `external_agent_sync_action_descriptors` | `external-agent` | Sync external agent action descriptors | `D-IPC-008` |
+| `external_agent_complete_execution` | `external-agent` | Complete external agent action execution | `D-IPC-008` |
+| `external_agent_gateway_status` | `external-agent` | Get external agent gateway status | `D-IPC-008` |
+| `runtime_bridge_unary` | `runtime-bridge` | Forward a unary gRPC call to runtime daemon via IPC bridge | `D-IPC-012` |
+| `runtime_bridge_stream_open` | `runtime-bridge` | Open a server-streaming gRPC call to runtime daemon via IPC bridge | `D-IPC-012` |
+| `runtime_bridge_stream_close` | `runtime-bridge` | Close an active server-streaming gRPC call via IPC bridge | `D-IPC-012` |
 | `runtime_bridge_status` | `runtime-daemon` | Get runtime daemon status (running, managed, launchMode, grpcAddr) | `D-IPC-002` |
 | `runtime_bridge_start` | `runtime-daemon` | Start runtime daemon | `D-IPC-002` |
 | `runtime_bridge_stop` | `runtime-daemon` | Stop runtime daemon | `D-IPC-002` |
 | `runtime_bridge_restart` | `runtime-daemon` | Restart runtime daemon | `D-IPC-002` |
 | `runtime_bridge_config_get` | `runtime-daemon` | Get runtime bridge configuration | `D-IPC-003` |
 | `runtime_bridge_config_set` | `runtime-daemon` | Set runtime bridge configuration | `D-IPC-003` |
-| `http_request` | `http` | Proxy HTTP request through Tauri backend (bypasses browser CORS) | `D-IPC-004` |
-| `open_external_url` | `ui` | Open external URL in system browser | `D-IPC-005` |
-| `confirm_private_sync` | `ui` | Confirm private data sync for agent/session | `D-IPC-005` |
-| `start_window_drag` | `ui` | Start native window drag operation | `D-IPC-005` |
-| `oauth_token_exchange` | `oauth` | Exchange OAuth authorization code for tokens | `D-IPC-006` |
-| `oauth_listen_for_code` | `oauth` | Listen for OAuth callback code on redirect URI | `D-IPC-006` |
-| `runtime_mod_list_local_manifests` | `mod-local` | List local mod manifest summaries | `D-IPC-007` |
-| `runtime_mod_read_local_entry` | `mod-local` | Read local mod entry source code | `D-IPC-007` |
-| `external_agent_issue_token` | `external-agent` | Issue external agent access token | `D-IPC-008` |
-| `external_agent_revoke_token` | `external-agent` | Revoke external agent access token | `D-IPC-008` |
-| `external_agent_list_tokens` | `external-agent` | List external agent tokens | `D-IPC-008` |
-| `external_agent_sync_action_descriptors` | `external-agent` | Sync external agent action descriptors | `D-IPC-008` |
-| `external_agent_complete_execution` | `external-agent` | Complete external agent action execution | `D-IPC-008` |
-| `external_agent_gateway_status` | `external-agent` | Get external agent gateway status | `D-IPC-008` |
-| `local_ai_models_list` | `local-ai` | List local AI models | `D-IPC-011` |
-| `local_ai_models_verified_list` | `local-ai` | List verified local AI models | `D-IPC-011` |
-| `local_ai_models_catalog_search` | `local-ai` | Search local AI model catalog (verified + Hugging Face) | `D-IPC-011` |
-| `local_ai_models_catalog_resolve_install_plan` | `local-ai` | Resolve install plan for a selected catalog item | `D-IPC-011` |
-| `local_ai_dependencies_resolve` | `local-ai` | Resolve local runtime dependencies for a mod capability | `D-IPC-011` |
-| `local_ai_device_profile_collect` | `local-ai` | Collect local device profile (CPU/GPU/NPU/disk/ports) | `D-IPC-011` |
-| `local_ai_dependencies_apply` | `local-ai` | Apply resolved local runtime dependency plan | `D-IPC-011` |
-| `local_ai_services_list` | `local-ai` | List local runtime managed services | `D-IPC-011` |
-| `local_ai_services_install` | `local-ai` | Install local runtime managed service | `D-IPC-011` |
-| `local_ai_services_start` | `local-ai` | Start local runtime managed service | `D-IPC-011` |
-| `local_ai_services_stop` | `local-ai` | Stop local runtime managed service | `D-IPC-011` |
-| `local_ai_services_health` | `local-ai` | Health check local runtime managed services | `D-IPC-011` |
-| `local_ai_services_remove` | `local-ai` | Remove local runtime managed service | `D-IPC-011` |
-| `local_ai_nodes_catalog_list` | `local-ai` | List local capability nodes from active services | `D-IPC-011` |
-| `local_ai_models_install` | `local-ai` | Install a local AI model | `D-IPC-011` |
-| `local_ai_models_install_verified` | `local-ai` | Install a verified local AI model | `D-IPC-011` |
-| `local_ai_downloads_list` | `local-ai` | List local AI model download sessions | `D-IPC-011` |
-| `local_ai_downloads_pause` | `local-ai` | Pause a local AI model download session | `D-IPC-011` |
-| `local_ai_downloads_resume` | `local-ai` | Resume a paused/failed local AI model download session | `D-IPC-011` |
-| `local_ai_downloads_cancel` | `local-ai` | Cancel a local AI model download session | `D-IPC-011` |
-| `local_ai_models_import` | `local-ai` | Import a local AI model from file | `D-IPC-011` |
-| `local_ai_models_adopt` | `local-ai` | Adopt a go-runtime discovered local AI model into desktop state without download | `D-IPC-011` |
-| `local_ai_models_import_file` | `local-ai` | Import a model file with copy, hash, and manifest generation | `D-IPC-011` |
-| `local_ai_models_start` | `local-ai` | Start a local AI model | `D-IPC-011` |
-| `local_ai_models_stop` | `local-ai` | Stop a local AI model | `D-IPC-011` |
-| `local_ai_models_remove` | `local-ai` | Remove a local AI model | `D-IPC-011` |
-| `local_ai_models_health` | `local-ai` | Health check for local AI models | `D-IPC-011` |
-| `local_ai_audits_list` | `local-ai` | List local AI inference audits | `D-IPC-011` |
-| `local_ai_append_inference_audit` | `local-ai` | Append a local AI inference audit record | `D-IPC-011` |
-| `local_ai_pick_manifest_path` | `local-ai` | Pick a local AI model manifest file path | `D-IPC-011` |
-| `local_ai_pick_model_file` | `local-ai` | Pick a local model file for import via native file dialog | `D-IPC-011` |
-| `local_ai_append_runtime_audit` | `local-ai` | Append local runtime audit event | `D-IPC-011` |
-| `local_ai_models_reveal_in_folder` | `local-ai` | Reveal installed model files in system file manager | `D-IPC-011` |
+| `runtime_local_models_list` | `local-runtime` | List local AI models | `D-IPC-011` |
+| `runtime_local_audits_list` | `local-runtime` | List local AI inference audits | `D-IPC-011` |
+| `runtime_local_pick_manifest_path` | `local-runtime` | Pick a local AI model manifest file path under the runtime models root via native file dialog | `D-IPC-011` |
+| `runtime_local_pick_artifact_manifest_path` | `local-runtime` | Pick a local AI artifact manifest file path under the runtime models root via native file dialog | `D-IPC-011` |
+| `runtime_local_models_verified_list` | `local-runtime` | List verified local AI models | `D-IPC-011` |
+| `runtime_local_models_catalog_search` | `local-runtime` | Search local AI model catalog (verified + Hugging Face) | `D-IPC-011` |
+| `runtime_local_models_catalog_list_variants` | `local-runtime` | List model variants for a catalog item (quantization levels, formats) | `D-IPC-011` |
+| `runtime_local_models_catalog_resolve_install_plan` | `local-runtime` | Resolve install plan for a selected catalog item | `D-IPC-011` |
+| `runtime_local_dependencies_resolve` | `local-runtime` | Resolve local runtime dependencies for a mod capability | `D-IPC-011` |
+| `runtime_local_device_profile_collect` | `local-runtime` | Collect local device profile (CPU/GPU/NPU/disk/ports) | `D-IPC-011` |
+| `runtime_local_dependencies_apply` | `local-runtime` | Apply resolved local runtime dependency plan | `D-IPC-011` |
+| `runtime_local_services_list` | `local-runtime` | List local runtime managed services | `D-IPC-011` |
+| `runtime_local_services_install` | `local-runtime` | Install local runtime managed service | `D-IPC-011` |
+| `runtime_local_services_start` | `local-runtime` | Start local runtime managed service | `D-IPC-011` |
+| `runtime_local_services_stop` | `local-runtime` | Stop local runtime managed service | `D-IPC-011` |
+| `runtime_local_services_health` | `local-runtime` | Health check local runtime managed services | `D-IPC-011` |
+| `runtime_local_services_remove` | `local-runtime` | Remove local runtime managed service | `D-IPC-011` |
+| `runtime_local_nodes_catalog_list` | `local-runtime` | List local capability nodes from active services | `D-IPC-011` |
+| `runtime_local_models_install` | `local-runtime` | Install a local AI model | `D-IPC-011` |
+| `runtime_local_models_install_verified` | `local-runtime` | Install a verified local AI model | `D-IPC-011` |
+| `runtime_local_downloads_list` | `local-runtime` | List local AI model download sessions | `D-IPC-011` |
+| `runtime_local_downloads_pause` | `local-runtime` | Pause a local AI model download session | `D-IPC-011` |
+| `runtime_local_downloads_resume` | `local-runtime` | Resume a paused/failed local AI model download session | `D-IPC-011` |
+| `runtime_local_downloads_cancel` | `local-runtime` | Cancel a local AI model download session | `D-IPC-011` |
+| `runtime_local_models_import` | `local-runtime` | Import a local AI model from structured record | `D-IPC-011` |
+| `runtime_local_models_adopt` | `local-runtime` | Adopt a go-runtime discovered local AI model into desktop state without download | `D-IPC-011` |
+| `runtime_local_pick_model_file` | `local-runtime` | Pick a local model file for import via native file dialog | `D-IPC-011` |
+| `runtime_local_models_import_file` | `local-runtime` | Import a model file with copy, hash, and manifest generation | `D-IPC-011` |
+| `runtime_local_models_remove` | `local-runtime` | Remove a local AI model | `D-IPC-011` |
+| `runtime_local_models_start` | `local-runtime` | Start a local AI model | `D-IPC-011` |
+| `runtime_local_models_stop` | `local-runtime` | Stop a local AI model | `D-IPC-011` |
+| `runtime_local_models_health` | `local-runtime` | Health check for local AI models | `D-IPC-011` |
+| `runtime_local_append_inference_audit` | `local-runtime` | Append a local AI inference audit record | `D-IPC-011` |
+| `runtime_local_append_runtime_audit` | `local-runtime` | Append local runtime audit event | `D-IPC-011` |
+| `runtime_local_models_reveal_in_folder` | `local-runtime` | Reveal installed model files in system file manager | `D-IPC-011` |
+| `runtime_local_models_scan_orphans` | `local-runtime` | Scan for orphan model files not tracked by runtime state | `D-IPC-011` |
+| `runtime_local_models_scaffold_orphan` | `local-runtime` | Scaffold an orphan model file into a tracked model with user-selected capability | `D-IPC-011` |

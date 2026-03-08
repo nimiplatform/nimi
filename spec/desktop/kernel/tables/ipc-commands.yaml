@@ -1,5 +1,6 @@
 # Desktop IPC Commands (Tauri invoke)
-# Source: apps/desktop/src/shell/renderer/bridge/runtime-bridge/*.ts
+# Source of truth: apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs
+# Synced: 2026-03-09
 
 commands:
   # Runtime lifecycle
@@ -7,6 +8,187 @@ commands:
     module: runtime-defaults
     description: Get realm and runtime execution defaults
     source_rule: D-IPC-001
+
+  # System / telemetry
+  - command: get_system_resource_snapshot
+    module: system
+    description: Collect system resource snapshot (CPU, memory, GPU) for device profiling
+    source_rule: D-IPC-009
+
+  # HTTP proxy
+  - command: http_request
+    module: http
+    description: Proxy HTTP request through Tauri backend (bypasses browser CORS)
+    source_rule: D-IPC-004
+
+  # UI
+  - command: open_external_url
+    module: ui
+    description: Open external URL in system browser
+    source_rule: D-IPC-005
+
+  - command: oauth_token_exchange
+    module: oauth
+    description: Exchange OAuth authorization code for tokens
+    source_rule: D-IPC-006
+
+  - command: oauth_listen_for_code
+    module: oauth
+    description: Listen for OAuth callback code on redirect URI
+    source_rule: D-IPC-006
+
+  - command: confirm_private_sync
+    module: ui
+    description: Confirm private data sync for agent/session
+    source_rule: D-IPC-005
+
+  - command: log_renderer_event
+    module: telemetry
+    description: Forward renderer-side structured log event to Tauri backend logger
+    source_rule: D-IPC-009
+
+  - command: start_window_drag
+    module: ui
+    description: Start native window drag operation
+    source_rule: D-IPC-005
+
+  # Mod local (runtime_mod::commands)
+  - command: runtime_mod_append_audit
+    module: mod-local
+    description: Append mod audit record
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_query_audit
+    module: mod-local
+    description: Query mod audit records
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_delete_audit
+    module: mod-local
+    description: Delete mod audit record
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_list_local_manifests
+    module: mod-local
+    description: List local mod manifest summaries
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_read_local_entry
+    module: mod-local
+    description: Read local mod entry source code
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_get_action_idempotency
+    module: mod-local
+    description: Get mod action idempotency record
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_put_action_idempotency
+    module: mod-local
+    description: Put mod action idempotency record
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_purge_action_idempotency
+    module: mod-local
+    description: Purge expired mod action idempotency records
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_get_action_verify_ticket
+    module: mod-local
+    description: Get mod action verify ticket
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_put_action_verify_ticket
+    module: mod-local
+    description: Put mod action verify ticket
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_delete_action_verify_ticket
+    module: mod-local
+    description: Delete mod action verify ticket
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_purge_action_verify_tickets
+    module: mod-local
+    description: Purge expired mod action verify tickets
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_put_action_execution_ledger
+    module: mod-local
+    description: Put mod action execution ledger entry
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_query_action_execution_ledger
+    module: mod-local
+    description: Query mod action execution ledger
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_purge_action_execution_ledger
+    module: mod-local
+    description: Purge expired mod action execution ledger entries
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_media_cache_put
+    module: mod-local
+    description: Put media blob into mod media cache
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_media_cache_gc
+    module: mod-local
+    description: Garbage-collect expired mod media cache entries
+    source_rule: D-IPC-007
+
+  # External agent (external_agent_gateway)
+  - command: external_agent_issue_token
+    module: external-agent
+    description: Issue external agent access token
+    source_rule: D-IPC-008
+
+  - command: external_agent_revoke_token
+    module: external-agent
+    description: Revoke external agent access token
+    source_rule: D-IPC-008
+
+  - command: external_agent_list_tokens
+    module: external-agent
+    description: List external agent tokens
+    source_rule: D-IPC-008
+
+  - command: external_agent_verify_execution_context
+    module: external-agent
+    description: Verify external agent execution context before action dispatch
+    source_rule: D-IPC-008
+
+  - command: external_agent_sync_action_descriptors
+    module: external-agent
+    description: Sync external agent action descriptors
+    source_rule: D-IPC-008
+
+  - command: external_agent_complete_execution
+    module: external-agent
+    description: Complete external agent action execution
+    source_rule: D-IPC-008
+
+  - command: external_agent_gateway_status
+    module: external-agent
+    description: Get external agent gateway status
+    source_rule: D-IPC-008
+
+  # Runtime bridge (runtime_bridge) — gRPC transport
+  - command: runtime_bridge_unary
+    module: runtime-bridge
+    description: Forward a unary gRPC call to runtime daemon via IPC bridge
+    source_rule: D-IPC-012
+
+  - command: runtime_bridge_stream_open
+    module: runtime-bridge
+    description: Open a server-streaming gRPC call to runtime daemon via IPC bridge
+    source_rule: D-IPC-012
+
+  - command: runtime_bridge_stream_close
+    module: runtime-bridge
+    description: Close an active server-streaming gRPC call via IPC bridge
+    source_rule: D-IPC-012
 
   - command: runtime_bridge_status
     module: runtime-daemon
@@ -38,243 +220,188 @@ commands:
     description: Set runtime bridge configuration
     source_rule: D-IPC-003
 
-  # HTTP proxy
-  - command: http_request
-    module: http
-    description: Proxy HTTP request through Tauri backend (bypasses browser CORS)
-    source_rule: D-IPC-004
-
-  # UI
-  - command: open_external_url
-    module: ui
-    description: Open external URL in system browser
-    source_rule: D-IPC-005
-
-  - command: confirm_private_sync
-    module: ui
-    description: Confirm private data sync for agent/session
-    source_rule: D-IPC-005
-
-  - command: start_window_drag
-    module: ui
-    description: Start native window drag operation
-    source_rule: D-IPC-005
-
-  # OAuth
-  - command: oauth_token_exchange
-    module: oauth
-    description: Exchange OAuth authorization code for tokens
-    source_rule: D-IPC-006
-
-  - command: oauth_listen_for_code
-    module: oauth
-    description: Listen for OAuth callback code on redirect URI
-    source_rule: D-IPC-006
-
-  # Mod local
-  - command: runtime_mod_list_local_manifests
-    module: mod-local
-    description: List local mod manifest summaries
-    source_rule: D-IPC-007
-
-  - command: runtime_mod_read_local_entry
-    module: mod-local
-    description: Read local mod entry source code
-    source_rule: D-IPC-007
-
-  # External agent
-  - command: external_agent_issue_token
-    module: external-agent
-    description: Issue external agent access token
-    source_rule: D-IPC-008
-
-  - command: external_agent_revoke_token
-    module: external-agent
-    description: Revoke external agent access token
-    source_rule: D-IPC-008
-
-  - command: external_agent_list_tokens
-    module: external-agent
-    description: List external agent tokens
-    source_rule: D-IPC-008
-
-  - command: external_agent_sync_action_descriptors
-    module: external-agent
-    description: Sync external agent action descriptors
-    source_rule: D-IPC-008
-
-  - command: external_agent_complete_execution
-    module: external-agent
-    description: Complete external agent action execution
-    source_rule: D-IPC-008
-
-  - command: external_agent_gateway_status
-    module: external-agent
-    description: Get external agent gateway status
-    source_rule: D-IPC-008
-
-  # Local AI
-  - command: local_ai_models_list
-    module: local-ai
+  # Local runtime (local_runtime::commands)
+  - command: runtime_local_models_list
+    module: local-runtime
     description: List local AI models
     source_rule: D-IPC-011
 
-  - command: local_ai_models_verified_list
-    module: local-ai
-    description: List verified local AI models
-    source_rule: D-IPC-011
-
-  - command: local_ai_models_catalog_search
-    module: local-ai
-    description: Search local AI model catalog (verified + Hugging Face)
-    source_rule: D-IPC-011
-
-  - command: local_ai_models_catalog_resolve_install_plan
-    module: local-ai
-    description: Resolve install plan for a selected catalog item
-    source_rule: D-IPC-011
-
-  - command: local_ai_dependencies_resolve
-    module: local-ai
-    description: Resolve local runtime dependencies for a mod capability
-    source_rule: D-IPC-011
-
-  - command: local_ai_device_profile_collect
-    module: local-ai
-    description: Collect local device profile (CPU/GPU/NPU/disk/ports)
-    source_rule: D-IPC-011
-
-  - command: local_ai_dependencies_apply
-    module: local-ai
-    description: Apply resolved local runtime dependency plan
-    source_rule: D-IPC-011
-
-  - command: local_ai_services_list
-    module: local-ai
-    description: List local runtime managed services
-    source_rule: D-IPC-011
-
-  - command: local_ai_services_install
-    module: local-ai
-    description: Install local runtime managed service
-    source_rule: D-IPC-011
-
-  - command: local_ai_services_start
-    module: local-ai
-    description: Start local runtime managed service
-    source_rule: D-IPC-011
-
-  - command: local_ai_services_stop
-    module: local-ai
-    description: Stop local runtime managed service
-    source_rule: D-IPC-011
-
-  - command: local_ai_services_health
-    module: local-ai
-    description: Health check local runtime managed services
-    source_rule: D-IPC-011
-
-  - command: local_ai_services_remove
-    module: local-ai
-    description: Remove local runtime managed service
-    source_rule: D-IPC-011
-
-  - command: local_ai_nodes_catalog_list
-    module: local-ai
-    description: List local capability nodes from active services
-    source_rule: D-IPC-011
-
-  - command: local_ai_models_install
-    module: local-ai
-    description: Install a local AI model
-    source_rule: D-IPC-011
-
-  - command: local_ai_models_install_verified
-    module: local-ai
-    description: Install a verified local AI model
-    source_rule: D-IPC-011
-
-  - command: local_ai_downloads_list
-    module: local-ai
-    description: List local AI model download sessions
-    source_rule: D-IPC-011
-
-  - command: local_ai_downloads_pause
-    module: local-ai
-    description: Pause a local AI model download session
-    source_rule: D-IPC-011
-
-  - command: local_ai_downloads_resume
-    module: local-ai
-    description: Resume a paused/failed local AI model download session
-    source_rule: D-IPC-011
-
-  - command: local_ai_downloads_cancel
-    module: local-ai
-    description: Cancel a local AI model download session
-    source_rule: D-IPC-011
-
-  - command: local_ai_models_import
-    module: local-ai
-    description: Import a local AI model from file
-    source_rule: D-IPC-011
-
-  - command: local_ai_models_adopt
-    module: local-ai
-    description: Adopt a go-runtime discovered local AI model into desktop state without download
-    source_rule: D-IPC-011
-
-  - command: local_ai_models_import_file
-    module: local-ai
-    description: Import a model file with copy, hash, and manifest generation
-    source_rule: D-IPC-011
-
-  - command: local_ai_models_start
-    module: local-ai
-    description: Start a local AI model
-    source_rule: D-IPC-011
-
-  - command: local_ai_models_stop
-    module: local-ai
-    description: Stop a local AI model
-    source_rule: D-IPC-011
-
-  - command: local_ai_models_remove
-    module: local-ai
-    description: Remove a local AI model
-    source_rule: D-IPC-011
-
-  - command: local_ai_models_health
-    module: local-ai
-    description: Health check for local AI models
-    source_rule: D-IPC-011
-
-  - command: local_ai_audits_list
-    module: local-ai
+  - command: runtime_local_audits_list
+    module: local-runtime
     description: List local AI inference audits
     source_rule: D-IPC-011
 
-  - command: local_ai_append_inference_audit
-    module: local-ai
-    description: Append a local AI inference audit record
+  - command: runtime_local_pick_manifest_path
+    module: local-runtime
+    description: Pick a local AI model manifest file path under the runtime models root via native file dialog
     source_rule: D-IPC-011
 
-  - command: local_ai_pick_manifest_path
-    module: local-ai
-    description: Pick a local AI model manifest file path
+  - command: runtime_local_pick_artifact_manifest_path
+    module: local-runtime
+    description: Pick a local AI artifact manifest file path under the runtime models root via native file dialog
     source_rule: D-IPC-011
 
-  - command: local_ai_pick_model_file
-    module: local-ai
+  - command: runtime_local_models_verified_list
+    module: local-runtime
+    description: List verified local AI models
+    source_rule: D-IPC-011
+
+  - command: runtime_local_models_catalog_search
+    module: local-runtime
+    description: Search local AI model catalog (verified + Hugging Face)
+    source_rule: D-IPC-011
+
+  - command: runtime_local_models_catalog_list_variants
+    module: local-runtime
+    description: List model variants for a catalog item (quantization levels, formats)
+    source_rule: D-IPC-011
+
+  - command: runtime_local_models_catalog_resolve_install_plan
+    module: local-runtime
+    description: Resolve install plan for a selected catalog item
+    source_rule: D-IPC-011
+
+  - command: runtime_local_dependencies_resolve
+    module: local-runtime
+    description: Resolve local runtime dependencies for a mod capability
+    source_rule: D-IPC-011
+
+  - command: runtime_local_device_profile_collect
+    module: local-runtime
+    description: Collect local device profile (CPU/GPU/NPU/disk/ports)
+    source_rule: D-IPC-011
+
+  - command: runtime_local_dependencies_apply
+    module: local-runtime
+    description: Apply resolved local runtime dependency plan
+    source_rule: D-IPC-011
+
+  - command: runtime_local_services_list
+    module: local-runtime
+    description: List local runtime managed services
+    source_rule: D-IPC-011
+
+  - command: runtime_local_services_install
+    module: local-runtime
+    description: Install local runtime managed service
+    source_rule: D-IPC-011
+
+  - command: runtime_local_services_start
+    module: local-runtime
+    description: Start local runtime managed service
+    source_rule: D-IPC-011
+
+  - command: runtime_local_services_stop
+    module: local-runtime
+    description: Stop local runtime managed service
+    source_rule: D-IPC-011
+
+  - command: runtime_local_services_health
+    module: local-runtime
+    description: Health check local runtime managed services
+    source_rule: D-IPC-011
+
+  - command: runtime_local_services_remove
+    module: local-runtime
+    description: Remove local runtime managed service
+    source_rule: D-IPC-011
+
+  - command: runtime_local_nodes_catalog_list
+    module: local-runtime
+    description: List local capability nodes from active services
+    source_rule: D-IPC-011
+
+  - command: runtime_local_models_install
+    module: local-runtime
+    description: Install a local AI model
+    source_rule: D-IPC-011
+
+  - command: runtime_local_models_install_verified
+    module: local-runtime
+    description: Install a verified local AI model
+    source_rule: D-IPC-011
+
+  - command: runtime_local_downloads_list
+    module: local-runtime
+    description: List local AI model download sessions
+    source_rule: D-IPC-011
+
+  - command: runtime_local_downloads_pause
+    module: local-runtime
+    description: Pause a local AI model download session
+    source_rule: D-IPC-011
+
+  - command: runtime_local_downloads_resume
+    module: local-runtime
+    description: Resume a paused/failed local AI model download session
+    source_rule: D-IPC-011
+
+  - command: runtime_local_downloads_cancel
+    module: local-runtime
+    description: Cancel a local AI model download session
+    source_rule: D-IPC-011
+
+  - command: runtime_local_models_import
+    module: local-runtime
+    description: Import a local AI model from structured record
+    source_rule: D-IPC-011
+
+  - command: runtime_local_models_adopt
+    module: local-runtime
+    description: Adopt a go-runtime discovered local AI model into desktop state without download
+    source_rule: D-IPC-011
+
+  - command: runtime_local_pick_model_file
+    module: local-runtime
     description: Pick a local model file for import via native file dialog
     source_rule: D-IPC-011
 
-  - command: local_ai_append_runtime_audit
-    module: local-ai
+  - command: runtime_local_models_import_file
+    module: local-runtime
+    description: Import a model file with copy, hash, and manifest generation
+    source_rule: D-IPC-011
+
+  - command: runtime_local_models_remove
+    module: local-runtime
+    description: Remove a local AI model
+    source_rule: D-IPC-011
+
+  - command: runtime_local_models_start
+    module: local-runtime
+    description: Start a local AI model
+    source_rule: D-IPC-011
+
+  - command: runtime_local_models_stop
+    module: local-runtime
+    description: Stop a local AI model
+    source_rule: D-IPC-011
+
+  - command: runtime_local_models_health
+    module: local-runtime
+    description: Health check for local AI models
+    source_rule: D-IPC-011
+
+  - command: runtime_local_append_inference_audit
+    module: local-runtime
+    description: Append a local AI inference audit record
+    source_rule: D-IPC-011
+
+  - command: runtime_local_append_runtime_audit
+    module: local-runtime
     description: Append local runtime audit event
     source_rule: D-IPC-011
 
-  - command: local_ai_models_reveal_in_folder
-    module: local-ai
+  - command: runtime_local_models_reveal_in_folder
+    module: local-runtime
     description: Reveal installed model files in system file manager
+    source_rule: D-IPC-011
+
+  - command: runtime_local_models_scan_orphans
+    module: local-runtime
+    description: Scan for orphan model files not tracked by runtime state
+    source_rule: D-IPC-011
+
+  - command: runtime_local_models_scaffold_orphan
+    module: local-runtime
+    description: Scaffold an orphan model file into a tracked model with user-selected capability
     source_rule: D-IPC-011
