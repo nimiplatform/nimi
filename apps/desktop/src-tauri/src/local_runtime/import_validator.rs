@@ -13,6 +13,8 @@ use super::types::{
 };
 
 const SUPPORTED_CAPABILITIES: [&str; 6] = ["chat", "image", "video", "tts", "stt", "embedding"];
+const MODEL_MANIFEST_FILE_NAME: &str = "model.manifest.json";
+const ARTIFACT_MANIFEST_FILE_NAME: &str = "artifact.manifest.json";
 
 fn err(code: &str, message: impl AsRef<str>) -> String {
     format!("{code}: {}", message.as_ref())
@@ -232,9 +234,11 @@ fn assert_manifest_hashes(
     Ok(())
 }
 
-pub fn validate_import_manifest_path(
+fn validate_import_manifest_path_with_expected_file_name(
     manifest_path: &str,
     runtime_models_root: &Path,
+    expected_file_name: &str,
+    invalid_file_name_code: &str,
 ) -> Result<PathBuf, String> {
     let path = PathBuf::from(manifest_path.trim());
     if !path.exists() {
@@ -254,10 +258,10 @@ pub fn validate_import_manifest_path(
         .file_name()
         .and_then(|value| value.to_str())
         .unwrap_or("");
-    if file_name != "model.manifest.json" {
+    if file_name != expected_file_name {
         return Err(err(
-            "LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID",
-            "仅支持导入 model.manifest.json",
+            invalid_file_name_code,
+            format!("仅支持导入 {expected_file_name}"),
         ));
     }
 
@@ -288,6 +292,30 @@ pub fn validate_import_manifest_path(
     }
 
     Ok(canonical_manifest)
+}
+
+pub fn validate_import_manifest_path(
+    manifest_path: &str,
+    runtime_models_root: &Path,
+) -> Result<PathBuf, String> {
+    validate_import_manifest_path_with_expected_file_name(
+        manifest_path,
+        runtime_models_root,
+        MODEL_MANIFEST_FILE_NAME,
+        "LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID",
+    )
+}
+
+pub fn validate_import_artifact_manifest_path(
+    manifest_path: &str,
+    runtime_models_root: &Path,
+) -> Result<PathBuf, String> {
+    validate_import_manifest_path_with_expected_file_name(
+        manifest_path,
+        runtime_models_root,
+        ARTIFACT_MANIFEST_FILE_NAME,
+        "LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID",
+    )
 }
 
 pub fn parse_and_validate_manifest(path: &Path) -> Result<ImportedModelManifest, String> {
@@ -346,7 +374,8 @@ pub fn manifest_to_model_record(
 mod tests {
     use super::{
         manifest_to_model_record, normalize_and_validate_capabilities, parse_and_validate_manifest,
-        validate_import_manifest_path, validate_loopback_endpoint,
+        validate_import_artifact_manifest_path, validate_import_manifest_path,
+        validate_loopback_endpoint,
     };
     use sha2::{Digest, Sha256};
     use std::fs;
@@ -389,6 +418,52 @@ mod tests {
         let invalid =
             validate_import_manifest_path(invalid_path.to_str().unwrap(), models_dir.as_path());
         assert!(invalid.is_err());
+
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn validate_import_artifact_manifest_path_requires_models_ancestor_and_file_name() {
+        let temp = unique_temp_dir("artifact-manifest-path");
+        let models_dir = temp.join("models");
+        let artifact_dir = models_dir.join("companion-artifact");
+        fs::create_dir_all(&artifact_dir).expect("create artifact dir");
+        let manifest_path = artifact_dir.join("artifact.manifest.json");
+        fs::write(&manifest_path, "{}").expect("write artifact manifest");
+
+        let validated = validate_import_artifact_manifest_path(
+            manifest_path.to_str().unwrap(),
+            models_dir.as_path(),
+        );
+        assert!(validated.is_ok());
+
+        let invalid_name_path = artifact_dir.join("model.manifest.json");
+        fs::write(&invalid_name_path, "{}").expect("write wrong manifest");
+        let invalid_name = validate_import_artifact_manifest_path(
+            invalid_name_path.to_str().unwrap(),
+            models_dir.as_path(),
+        );
+        assert!(invalid_name.is_err());
+        assert!(
+            invalid_name
+                .unwrap_err()
+                .contains("LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID")
+        );
+
+        let outside_models_dir = temp.join("outside-artifacts");
+        fs::create_dir_all(&outside_models_dir).expect("create outside artifacts dir");
+        let invalid_path = outside_models_dir.join("artifact.manifest.json");
+        fs::write(&invalid_path, "{}").expect("write outside artifact manifest");
+        let invalid = validate_import_artifact_manifest_path(
+            invalid_path.to_str().unwrap(),
+            models_dir.as_path(),
+        );
+        assert!(invalid.is_err());
+        assert!(
+            invalid
+                .unwrap_err()
+                .contains("LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT")
+        );
 
         let _ = fs::remove_dir_all(&temp);
     }

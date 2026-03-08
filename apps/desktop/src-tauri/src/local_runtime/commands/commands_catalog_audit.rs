@@ -132,25 +132,29 @@ pub fn runtime_local_audits_list(
 pub fn runtime_local_pick_manifest_path(app: AppHandle) -> Result<Option<String>, String> {
     let models_root = runtime_models_dir(&app)?;
     let selected = rfd::FileDialog::new()
-        .set_directory(models_root)
+        .set_directory(&models_root)
         .set_title("Select model.manifest.json")
         .add_filter("Model Manifest", &["json"])
         .pick_file();
     let Some(path) = selected else {
         return Ok(None);
     };
-    let file_name = path
-        .file_name()
-        .and_then(|value| value.to_str())
-        .unwrap_or_default()
-        .trim()
-        .to_string();
-    if file_name != "model.manifest.json" {
-        return Err(
-            "LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID: 仅支持导入 model.manifest.json 清单文件"
-                .to_string(),
-        );
-    }
-    Ok(Some(path.to_string_lossy().to_string()))
+    let canonical_path = validate_import_manifest_path(path.to_string_lossy().as_ref(), &models_root)?;
+    Ok(Some(canonical_path.to_string_lossy().to_string()))
 }
 
+#[tauri::command]
+pub fn runtime_local_pick_artifact_manifest_path(app: AppHandle) -> Result<Option<String>, String> {
+    let models_root = runtime_models_dir(&app)?;
+    let selected = rfd::FileDialog::new()
+        .set_directory(&models_root)
+        .set_title("Select artifact.manifest.json")
+        .add_filter("Artifact Manifest", &["json"])
+        .pick_file();
+    let Some(path) = selected else {
+        return Ok(None);
+    };
+    let canonical_path =
+        validate_import_artifact_manifest_path(path.to_string_lossy().as_ref(), &models_root)?;
+    Ok(Some(canonical_path.to_string_lossy().to_string()))
+}

@@ -54,6 +54,10 @@ export async function pickLocalAiManifestPath(): Promise<string | null> {
   return localAiRuntime.pickManifestPath();
 }
 
+export async function pickLocalAiArtifactManifestPath(): Promise<string | null> {
+  return localAiRuntime.pickArtifactManifestPath();
+}
+
 export async function installLocalAiModel(
   payload: LocalAiInstallPayload,
   options?: LocalAiWriteOptions,

@@ -34,7 +34,8 @@ use super::download_manager;
 use super::hf_source::{install_from_hf, HfDownloadProgress};
 use super::import_validator::{
     manifest_to_model_record, normalize_and_validate_capabilities, parse_and_validate_manifest,
-    validate_import_manifest_path, validate_loopback_endpoint,
+    validate_import_artifact_manifest_path, validate_import_manifest_path,
+    validate_loopback_endpoint,
 };
 use super::model_registry::{list_models, remove_model, upsert_model};
 use super::node_catalog::list_nodes_from_services;

@@ -270,6 +270,12 @@ export async function pickLocalAiRuntimeManifestPath(): Promise<string | null> {
   return result || null;
 }
 
+export async function pickLocalAiRuntimeArtifactManifestPath(): Promise<string | null> {
+  if (!hasTauriInvoke()) return null;
+  const result = await tauriInvoke<string | null>('runtime_local_pick_artifact_manifest_path', {});
+  return result || null;
+}
+
 export async function pickLocalAiRuntimeModelFile(): Promise<string | null> {
   if (!hasTauriInvoke()) return null;
   const result = await tauriInvoke<string | null>('runtime_local_pick_model_file', {});

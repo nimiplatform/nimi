@@ -32,6 +32,7 @@ import {
   listLocalAiRuntimeAudits,
   listLocalAiRuntimeModels,
   pickLocalAiRuntimeManifestPath,
+  pickLocalAiRuntimeArtifactManifestPath,
   pickLocalAiRuntimeModelFile,
   importLocalAiRuntimeArtifact,
   removeLocalAiRuntimeModel,
@@ -267,6 +268,7 @@ export type LocalAiRuntimeFacade = {
   appendInferenceAudit: (payload: LocalAiInferenceAuditPayload) => Promise<void>;
   listAudits: (query?: LocalAiAuditQuery) => Promise<LocalAiAuditEvent[]>;
   pickManifestPath: () => Promise<string | null>;
+  pickArtifactManifestPath: () => Promise<string | null>;
   queryByCapability: (capability: LocalAiRuntimeCapability) => Promise<LocalAiModelRecord[]>;
   pollSnapshot: (localModelId?: string) => Promise<LocalAiRuntimeSnapshot>;
   subscribeDownloadProgress: (
@@ -315,6 +317,7 @@ export const localAiRuntime: LocalAiRuntimeFacade = {
   appendInferenceAudit: appendLocalAiRuntimeInferenceAudit,
   listAudits: listLocalAiRuntimeAudits,
   pickManifestPath: pickLocalAiRuntimeManifestPath,
+  pickArtifactManifestPath: pickLocalAiRuntimeArtifactManifestPath,
   queryByCapability: queryLocalAiRuntimeModelsByCapability,
   pollSnapshot: fetchLocalAiRuntimeSnapshot,
   subscribeDownloadProgress: subscribeLocalAiRuntimeDownloadProgress,

@@ -82,6 +82,11 @@ export async function pickLocalAiManifestPath(): Promise<string | null> {
   return bridge.pickLocalAiManifestPath();
 }
 
+export async function pickLocalAiArtifactManifestPath(): Promise<string | null> {
+  const bridge = await loadLocalAiBridge();
+  return bridge.pickLocalAiArtifactManifestPath();
+}
+
 export async function installLocalAiModel(
   payload: LocalAiInstallPayload,
   options?: LocalAiWriteOptions,
@@ -303,6 +308,7 @@ export const desktopBridge = {
   listLocalAiVerifiedModels,
   listLocalAiAudits,
   pickLocalAiManifestPath,
+  pickLocalAiArtifactManifestPath,
   installLocalAiModel,
   installLocalAiVerifiedModel,
   listLocalAiDownloadSessions,
