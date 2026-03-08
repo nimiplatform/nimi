@@ -5,10 +5,10 @@ import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { ProfileData, ProfileTab } from './profile-model';
 import { formatProfileDate } from './profile-model';
-import { PostsTab } from './components/posts-tab';
-import { CollectionsTab } from './components/collections-tab';
-import { LikesTab } from './components/likes-tab';
-import { GiftsTab } from './components/gifts-tab';
+import { PostsTab } from './posts-tab';
+import { CollectionsTab } from './collections-tab';
+import { LikesTab } from './likes-tab';
+import { GiftsTab } from './gifts-tab';
 import { dataSync } from '@runtime/data-sync';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 

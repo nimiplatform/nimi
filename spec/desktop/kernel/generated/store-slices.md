@@ -4,7 +4,7 @@
 > Source: `spec/desktop/kernel/tables/store-slices.yaml`
 | Slice | Factory | File | Source Rule |
 |---|---|---|---|
-| `auth` | `createAuthSlice` | `store-slices/auth-slice.ts` | `D-STATE-001` |
-| `runtime` | `createRuntimeSlice` | `store-slices/runtime-slice.ts` | `D-STATE-002` |
-| `mod-workspace` | `createModWorkspaceSlice` | `store-slices/mod-workspace-slice.ts` | `D-STATE-003` |
-| `ui` | `createUiSlice` | `store-slices/ui-slice.ts` | `D-STATE-004` |
+| `auth` | `createAuthSlice` | `auth-slice.ts` | `D-STATE-001` |
+| `runtime` | `createRuntimeSlice` | `runtime-slice.ts` | `D-STATE-002` |
+| `mod-workspace` | `createModWorkspaceSlice` | `mod-workspace-slice.ts` | `D-STATE-003` |
+| `ui` | `createUiSlice` | `ui-slice.ts` | `D-STATE-004` |

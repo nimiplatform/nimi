@@ -1,5 +1,5 @@
-import type { ProfileData } from '../profile-model';
-import { formatProfileDate } from '../profile-model';
+import type { ProfileData } from './profile-model';
+import { formatProfileDate } from './profile-model';
 
 type ProfileInfoProps = {
   profile: ProfileData;

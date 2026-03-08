@@ -1,339 +1,23 @@
-import type { Realm } from '@nimiplatform/sdk/realm';
 import type { UserProfileDto } from '@nimiplatform/sdk/realm';
-import { loadCreatorAgents } from './social-flow';
+import {
+  enrichProfileWithWorldBanner,
+  fetchPendingFriendRequests,
+  getCachedContacts,
+  loadMergedSocialSnapshot,
+  updateCachedContacts,
+  type DataSyncApiCaller,
+  type DataSyncErrorEmitter,
+  type SocialContactSnapshot,
+} from './profile-flow-social';
 
-type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
-type DataSyncErrorEmitter = (
-  action: string,
-  error: unknown,
-  details?: Record<string, unknown>,
-) => void;
-
-type PendingFriendRequestDto = {
-  userId?: string;
-  requestedAt?: string;
-};
-
-type PendingFriendRequestListDto = {
-  received?: PendingFriendRequestDto[];
-  sent?: PendingFriendRequestDto[];
-};
-
-export type SocialContactSnapshot = {
-  friends: Array<Record<string, unknown>>;
-  agents: Array<Record<string, unknown>>;
-  groups: Array<Record<string, unknown>>;
-  pendingReceived: Array<Record<string, unknown>>;
-  pendingSent: Array<Record<string, unknown>>;
-  blocked: Array<Record<string, unknown>>;
-};
-
-// Module-level contacts cache for sync snapshots.
-let _cachedContacts: SocialContactSnapshot = {
-  friends: [],
-  agents: [],
-  groups: [],
-  pendingReceived: [],
-  pendingSent: [],
-  blocked: [],
-};
-
-function getCachedContacts(): SocialContactSnapshot {
-  return _cachedContacts;
-}
-
-function updateCachedContacts(snapshot: SocialContactSnapshot) {
-  _cachedContacts = { ...snapshot };
-}
-
-function toNonEmptyString(value: unknown): string {
-  return String(value || '').trim();
-}
-
-function toNullableString(value: unknown): string | null {
-  const normalized = toNonEmptyString(value);
-  return normalized || null;
-}
-
-function extractAgentWorldId(profile: Record<string, unknown>): string | null {
-  const direct = toNonEmptyString(profile.worldId);
-  if (direct) {
-    return direct;
-  }
-
-  const agent = profile.agent && typeof profile.agent === 'object'
-    ? (profile.agent as Record<string, unknown>)
-    : null;
-  const fromAgent = toNonEmptyString(agent?.worldId);
-  if (fromAgent) {
-    return fromAgent;
-  }
-
-  const agentProfile = profile.agentProfile && typeof profile.agentProfile === 'object'
-    ? (profile.agentProfile as Record<string, unknown>)
-    : null;
-  const fromAgentProfile = toNonEmptyString(agentProfile?.worldId);
-  if (fromAgentProfile) {
-    return fromAgentProfile;
-  }
-
-  return null;
-}
-
-function extractWorldBannerUrl(profile: Record<string, unknown>): string | null {
-  const direct = toNonEmptyString(profile.worldBannerUrl);
-  if (direct) {
-    return direct;
-  }
-
-  const world = profile.world && typeof profile.world === 'object'
-    ? (profile.world as Record<string, unknown>)
-    : null;
-  const fromWorld = toNonEmptyString(world?.bannerUrl);
-  if (fromWorld) {
-    return fromWorld;
-  }
-
-  const agentProfile = profile.agentProfile && typeof profile.agentProfile === 'object'
-    ? (profile.agentProfile as Record<string, unknown>)
-    : null;
-  const fromAgentProfile = toNonEmptyString(agentProfile?.worldBannerUrl);
-  if (fromAgentProfile) {
-    return fromAgentProfile;
-  }
-
-  return null;
-}
-
-function extractWorldName(profile: Record<string, unknown>): string | null {
-  const direct = toNonEmptyString(profile.worldName);
-  if (direct) {
-    return direct;
-  }
-
-  const world = profile.world && typeof profile.world === 'object'
-    ? (profile.world as Record<string, unknown>)
-    : null;
-  const fromWorld = toNonEmptyString(world?.name);
-  if (fromWorld) {
-    return fromWorld;
-  }
-
-  const agentProfile = profile.agentProfile && typeof profile.agentProfile === 'object'
-    ? (profile.agentProfile as Record<string, unknown>)
-    : null;
-  const fromAgentProfile = toNonEmptyString(agentProfile?.worldName);
-  if (fromAgentProfile) {
-    return fromAgentProfile;
-  }
-
-  return null;
-}
-
-async function enrichProfileWithWorldBanner(
-  callApi: DataSyncApiCaller,
-  profile: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  const existingBannerUrl = extractWorldBannerUrl(profile);
-  const existingWorldName = extractWorldName(profile);
-  if (existingBannerUrl && existingWorldName) {
-    return profile;
-  }
-
-  const worldId = extractAgentWorldId(profile);
-  if (!worldId) {
-    return profile;
-  }
-
-  try {
-    const world = await callApi(
-      (realm) => realm.services.WorldsService.worldControllerGetWorld(worldId),
-      'Failed to load world detail',
-    );
-    const worldRecord = world && typeof world === 'object' && !Array.isArray(world)
-      ? (world as Record<string, unknown>)
-      : null;
-    if (!worldRecord) {
-      return profile;
-    }
-
-    return {
-      ...profile,
-      worldName: existingWorldName || toNullableString(worldRecord.name),
-      worldBannerUrl: existingBannerUrl || toNullableString(worldRecord.bannerUrl),
-      world: profile.world && typeof profile.world === 'object'
-        ? {
-            ...(profile.world as Record<string, unknown>),
-            ...worldRecord,
-            bannerUrl: existingBannerUrl || toNullableString(worldRecord.bannerUrl),
-          }
-        : worldRecord,
-    };
-  } catch {
-    return profile;
-  }
-}
-
-function toPendingRequestMap(items: PendingFriendRequestDto[] | undefined): Map<string, string | null> {
-  const normalized = new Map<string, string | null>();
-  for (const item of items || []) {
-    const userId = toNonEmptyString(item.userId);
-    if (!userId || normalized.has(userId)) {
-      continue;
-    }
-    normalized.set(userId, toNullableString(item.requestedAt));
-  }
-  return normalized;
-}
-
-async function resolvePendingRequestProfiles(
-  callApi: DataSyncApiCaller,
-  userMap: Map<string, string | null>,
-  direction: 'received' | 'sent',
-): Promise<Array<Record<string, unknown>>> {
-  const tasks = Array.from(userMap.entries()).map(async ([userId, requestedAt]) => {
-    try {
-      const profile = await callApi(
-        (realm) => realm.services.UserService.getUser(userId),
-        '加载好友请求用户资料失败',
-      ) as Record<string, unknown>;
-      const handle = toNonEmptyString(profile.handle);
-      const isAgent = profile.isAgent === true || handle.startsWith('~');
-      return {
-        id: userId,
-        userId,
-        direction,
-        requestedAt,
-        displayName: toNonEmptyString(profile.displayName) || handle || userId,
-        handle,
-        avatarUrl: toNullableString(profile.avatarUrl),
-        bio: toNullableString(profile.bio),
-        isAgent,
-        worldId: isAgent ? extractAgentWorldId(profile) : null,
-      } as Record<string, unknown>;
-    } catch {
-      return {
-        id: userId,
-        userId,
-        direction,
-        requestedAt,
-        displayName: userId,
-        handle: '',
-        avatarUrl: null,
-        bio: null,
-        isAgent: false,
-        worldId: null,
-      } as Record<string, unknown>;
-    }
-  });
-
-  const rows = await Promise.all(tasks);
-  rows.sort((a, b) => {
-    const timeA = toNullableString(a.requestedAt);
-    const timeB = toNullableString(b.requestedAt);
-    if (!timeA && !timeB) return 0;
-    if (!timeA) return 1;
-    if (!timeB) return -1;
-    return new Date(timeB).getTime() - new Date(timeA).getTime();
-  });
-  return rows;
-}
-
-async function fetchPendingFriendRequests(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
-): Promise<PendingFriendRequestListDto> {
-  try {
-    return await callApi(
-      (realm) => realm.services.MeService.getMyPendingFriendRequests(),
-      '加载好友请求失败',
-    );
-  } catch (error) {
-    emitDataSyncError('load-friend-requests', error);
-    throw error;
-  }
-}
-
-async function fetchBlockedUsers(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
-): Promise<Array<Record<string, unknown>>> {
-  try {
-    const response = await callApi(
-      (realm) => realm.services.MeService.getMyBlockedUsers(undefined, 100),
-      '加载拉黑列表失败',
-    );
-    const items = Array.isArray(response?.items)
-      ? (response.items as Array<Record<string, unknown>>)
-      : [];
-    return items
-      .map((item) => {
-        const id = toNonEmptyString(item?.id);
-        if (!id) {
-          return null;
-        }
-        const handle = toNonEmptyString(item?.handle);
-        const displayName = toNonEmptyString(item?.displayName) || handle || id;
-        return {
-          id,
-          displayName,
-          handle,
-          avatarUrl: toNullableString(item?.avatarUrl),
-          bio: toNullableString(item?.bio),
-          isAgent: handle.startsWith('~'),
-          blockedAt: toNullableString(item?.blockedAt),
-          reason: toNullableString(item?.reason),
-        } as Record<string, unknown>;
-      })
-      .filter((item): item is Record<string, unknown> => Boolean(item));
-  } catch (error) {
-    emitDataSyncError('load-blocked-users', error);
-    return [];
-  }
-}
-
-async function loadSocialSnapshotInternal(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
-): Promise<SocialContactSnapshot> {
-  const [friendsResult, pendingResult, creatorAgents, blockedUsers] = await Promise.all([
-    callApi(
-      (realm) => realm.services.MeService.listMyFriendsWithDetails(undefined, 100),
-      '加载好友失败',
-    ),
-    fetchPendingFriendRequests(callApi, emitDataSyncError),
-    loadCreatorAgents(callApi),
-    fetchBlockedUsers(callApi, emitDataSyncError),
-  ]);
-
-  const pendingReceived = await resolvePendingRequestProfiles(
-    callApi,
-    toPendingRequestMap(pendingResult.received),
-    'received',
-  );
-  const pendingSent = await resolvePendingRequestProfiles(
-    callApi,
-    toPendingRequestMap(pendingResult.sent),
-    'sent',
-  );
-
-  return {
-    friends: Array.isArray(friendsResult.items) ? friendsResult.items : [],
-    agents: Array.isArray(creatorAgents) ? creatorAgents : [],
-    groups: [],
-    pendingReceived,
-    pendingSent,
-    blocked: blockedUsers,
-  };
-}
+export type { SocialContactSnapshot } from './profile-flow-social';
 
 export async function loadCurrentUserProfile(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
 ) {
   try {
-    const user = await callApi((realm) => realm.services.MeService.getMe(), '获取当前用户失败');
-    return user;
+    return await callApi((realm) => realm.services.MeService.getMe(), '获取当前用户失败');
   } catch (error) {
     emitDataSyncError('load-current-user', error);
     throw error;
@@ -346,77 +30,19 @@ export async function updateCurrentUserProfile(
   data: Record<string, unknown>,
 ) {
   try {
-    const user = await callApi((realm) => realm.services.MeService.updateMe(data), '更新用户资料失败');
-    return user;
+    return await callApi((realm) => realm.services.MeService.updateMe(data), '更新用户资料失败');
   } catch (error) {
     emitDataSyncError('update-user-profile', error);
     throw error;
   }
 }
 
-type MergedSocialContactSnapshot = SocialContactSnapshot;
-
-function mergeWithLocalContacts(snapshot: SocialContactSnapshot): MergedSocialContactSnapshot {
-  const cached = getCachedContacts();
-  const currentFriends = cached.friends;
-  const testUsers = currentFriends.filter((f) => String(f.id).startsWith('test-'));
-  const fallbackUsers = currentFriends.filter((f) => {
-    const fallbackUntil = Number(f.__localFallbackUntil || 0);
-    return Number.isFinite(fallbackUntil) && fallbackUntil > Date.now();
-  });
-
-  const currentBlocked = cached.blocked;
-  const mergedBlocked = [...snapshot.blocked];
-  const mergedBlockedIds = new Set(mergedBlocked.map((item) => String(item.id || '')));
-  for (const localBlocked of currentBlocked) {
-    const localId = toNonEmptyString(localBlocked.id);
-    const blockedAt = toNonEmptyString(localBlocked.blockedAt);
-    const shouldKeepLocalBlocked = localId.startsWith('test-') || !blockedAt;
-    if (!localId || !shouldKeepLocalBlocked || mergedBlockedIds.has(localId)) {
-      continue;
-    }
-    mergedBlocked.push(localBlocked);
-    mergedBlockedIds.add(localId);
-  }
-
-  const existingIds = new Set(snapshot.friends.map((f) => String(f.id)));
-  const mergedFriends = [...snapshot.friends];
-
-  for (const testUser of testUsers) {
-    const testId = String(testUser.id);
-    if (!existingIds.has(testId)) {
-      const isBlocked = mergedBlockedIds.has(testId);
-      if (!isBlocked) {
-        mergedFriends.push(testUser);
-      }
-    }
-  }
-
-  for (const fallbackUser of fallbackUsers) {
-    const fallbackId = String(fallbackUser.id || '');
-    if (!fallbackId || existingIds.has(fallbackId) || mergedBlockedIds.has(fallbackId)) {
-      continue;
-    }
-    mergedFriends.push(fallbackUser);
-    existingIds.add(fallbackId);
-  }
-
-  return {
-    ...snapshot,
-    friends: mergedFriends,
-    blocked: mergedBlocked,
-  };
-}
-
 export async function loadContactList(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
-) {
+): Promise<SocialContactSnapshot> {
   try {
-    const snapshot = await loadSocialSnapshotInternal(callApi, emitDataSyncError);
-    const mergedSnapshot = mergeWithLocalContacts(snapshot);
-    updateCachedContacts(mergedSnapshot);
-    return mergedSnapshot;
+    return await loadMergedSocialSnapshot(callApi, emitDataSyncError);
   } catch (error) {
     emitDataSyncError('load-contacts', error);
     throw error;
@@ -426,12 +52,9 @@ export async function loadContactList(
 export async function loadSocialSnapshot(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
-): Promise<MergedSocialContactSnapshot> {
+): Promise<SocialContactSnapshot> {
   try {
-    const snapshot = await loadSocialSnapshotInternal(callApi, emitDataSyncError);
-    const mergedSnapshot = mergeWithLocalContacts(snapshot);
-    updateCachedContacts(mergedSnapshot);
-    return mergedSnapshot;
+    return await loadMergedSocialSnapshot(callApi, emitDataSyncError);
   } catch (error) {
     emitDataSyncError('load-social-snapshot', error);
     throw error;
@@ -456,9 +79,9 @@ export async function loadUserProfileById(
       '获取用户资料失败',
     );
     if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
-      return profile;
+      return profile as UserProfileDto;
     }
-    return await enrichProfileWithWorldBanner(callApi, profile as Record<string, unknown>) as UserProfileDto;
+    return enrichProfileWithWorldBanner(callApi, profile as Record<string, unknown>);
   } catch (error) {
     emitDataSyncError('load-user-profile', error, { id });
     throw error;
@@ -540,14 +163,12 @@ export async function blockUser(
   if (!contactId) {
     throw new Error('用户ID不能为空');
   }
-  const isTestUser = contactId.startsWith('test-');
 
-  if (isTestUser) {
+  if (contactId.startsWith('test-')) {
     const cached = getCachedContacts();
-    const updatedFriends = cached.friends.filter((f) => String(f.id) !== contactId);
     updateCachedContacts({
       ...cached,
-      friends: updatedFriends,
+      friends: cached.friends.filter((friend) => String(friend.id) !== contactId),
       blocked: [...cached.blocked, contact],
     });
   } else {
@@ -575,14 +196,13 @@ export async function unblockUser(
   if (!contactId) {
     throw new Error('用户ID不能为空');
   }
-  const isTestUser = contactId.startsWith('test-');
 
-  if (isTestUser) {
+  if (contactId.startsWith('test-')) {
     const cached = getCachedContacts();
     updateCachedContacts({
       ...cached,
       friends: [...cached.friends, contact],
-      blocked: cached.blocked.filter((b) => String(b.id) !== contactId),
+      blocked: cached.blocked.filter((item) => String(item.id) !== contactId),
     });
   } else {
     await callApi(
@@ -590,8 +210,9 @@ export async function unblockUser(
       '取消拉黑失败',
     );
     const cached = getCachedContacts();
-    const updatedBlocked = cached.blocked.filter((b) => String(b.id) !== contactId);
+    const updatedBlocked = cached.blocked.filter((item) => String(item.id) !== contactId);
     const hasFriend = cached.friends.some((friend) => String(friend.id || '') === contactId);
+
     if (!hasFriend) {
       const fallbackContact = {
         ...contact,
@@ -606,7 +227,7 @@ export async function unblockUser(
       try {
         await addFriendById(callApi, contactId);
       } catch {
-        // May be restricted by privacy policy; keep short-term fallback
+        // May be restricted by privacy policy; keep short-term fallback.
       }
     } else {
       updateCachedContacts({

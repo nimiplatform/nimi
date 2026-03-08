@@ -1,4 +1,4 @@
-import { WORLD_DATA_API_CAPABILITIES, toRecord } from '../runtime-bootstrap-utils';
+import { WORLD_DATA_API_CAPABILITIES, toRecord } from './runtime-bootstrap-utils';
 import { registerCoreDataCapability, withRuntimeOpenApiContext } from './shared';
 
 type RealmRequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';

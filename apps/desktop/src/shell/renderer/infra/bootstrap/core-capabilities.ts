@@ -1,5 +1,5 @@
 import type { MemoryStatsResponseDto } from '@nimiplatform/sdk/realm';
-import { CORE_DATA_API_CAPABILITIES, toRecord } from '../runtime-bootstrap-utils';
+import { CORE_DATA_API_CAPABILITIES, toRecord } from './runtime-bootstrap-utils';
 import { registerCoreDataCapability, withRuntimeOpenApiContext } from './shared';
 
 function toObjectOr<T extends Record<string, unknown>>(value: unknown, fallback: T): T {

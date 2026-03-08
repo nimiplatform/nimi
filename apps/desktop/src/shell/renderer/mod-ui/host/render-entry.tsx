@@ -4,7 +4,7 @@ import type {
   UiExtensionRegistration,
   UiSlotId,
 } from '@renderer/mod-ui/contracts';
-import { ModExtensionErrorBoundary } from '../mod-extension-error-boundary';
+import { ModExtensionErrorBoundary } from './mod-extension-error-boundary';
 import { renderFusedRoutePanel } from './fused-route-panel';
 
 type RenderSlotEntryInput = {

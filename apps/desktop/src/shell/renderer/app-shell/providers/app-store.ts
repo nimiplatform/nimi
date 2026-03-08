@@ -1,8 +1,8 @@
 import { create } from 'zustand';
-import { createAuthSlice } from './store-slices/auth-slice';
-import { createRuntimeSlice } from './store-slices/runtime-slice';
-import { createModWorkspaceSlice } from './store-slices/mod-workspace-slice';
-import { createUiSlice } from './store-slices/ui-slice';
+import { createAuthSlice } from './auth-slice';
+import { createRuntimeSlice } from './runtime-slice';
+import { createModWorkspaceSlice } from './mod-workspace-slice';
+import { createUiSlice } from './ui-slice';
 import type { AppStoreState } from './store-types';
 
 export type {

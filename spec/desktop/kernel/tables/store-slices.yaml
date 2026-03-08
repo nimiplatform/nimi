@@ -4,24 +4,24 @@
 slices:
   - name: auth
     factory: createAuthSlice
-    file: store-slices/auth-slice.ts
+    file: auth-slice.ts
     description: Authentication status, user object, and token management
     source_rule: D-STATE-001
 
   - name: runtime
     factory: createRuntimeSlice
-    file: store-slices/runtime-slice.ts
+    file: runtime-slice.ts
     description: Runtime execution fields (provider, model, agent, world bindings)
     source_rule: D-STATE-002
 
   - name: mod-workspace
     factory: createModWorkspaceSlice
-    file: store-slices/mod-workspace-slice.ts
+    file: mod-workspace-slice.ts
     description: Mod workspace tabs, fused mod tracking, mod failures
     source_rule: D-STATE-003
 
   - name: ui
     factory: createUiSlice
-    file: store-slices/ui-slice.ts
+    file: ui-slice.ts
     description: Active tab, selected IDs, navigation history, status banner
     source_rule: D-STATE-004

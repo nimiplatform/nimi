@@ -5,7 +5,7 @@ import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-detail-profile-modal.js';
-import { CreatePostModal } from '../profile/components/create-post-modal.js';
+import { CreatePostModal } from '../profile/create-post-modal.js';
 import { PostCard } from './post-card';
 import { PostFeed } from './post-feed';
 

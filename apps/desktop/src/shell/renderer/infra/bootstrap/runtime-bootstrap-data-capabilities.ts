@@ -1,7 +1,7 @@
 import { CORE_WORLD_DATA_CAPABILITY_SET } from './runtime-bootstrap-utils';
-import { registerCoreDataCapabilities } from './runtime-bootstrap-data-capabilities/core-capabilities';
-import { registerCreatorDataCapabilities } from './runtime-bootstrap-data-capabilities/creator-capabilities';
-import { registerWorldDataCapabilities } from './runtime-bootstrap-data-capabilities/world-capabilities';
+import { registerCoreDataCapabilities } from './core-capabilities';
+import { registerCreatorDataCapabilities } from './creator-capabilities';
+import { registerWorldDataCapabilities } from './world-capabilities';
 
 let coreWorldDataCapabilitiesReady = false;
 let coreWorldDataCapabilitiesPromise: Promise<void> | null = null;

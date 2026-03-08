@@ -1,5 +1,5 @@
 import { startTransition } from 'react';
-import type { AppStoreSet, AppStoreState } from '../store-types';
+import type { AppStoreSet, AppStoreState } from './store-types';
 
 type UiSlice = Pick<AppStoreState,
   | 'bootstrapReady'

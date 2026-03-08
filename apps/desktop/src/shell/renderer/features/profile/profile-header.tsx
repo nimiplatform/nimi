@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import type { ProfileData } from '../profile-model';
+import type { ProfileData } from './profile-model';
 
 const SHOW_AVATAR_ONLINE_INDICATOR = false;
 

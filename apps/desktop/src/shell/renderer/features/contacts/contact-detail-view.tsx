@@ -3,10 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@renderer/components/tooltip.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { CollectionsTab } from '@renderer/features/profile/components/collections-tab';
-import { GiftsTab } from '@renderer/features/profile/components/gifts-tab';
-import { LikesTab } from '@renderer/features/profile/components/likes-tab';
-import { PostsTab } from '@renderer/features/profile/components/posts-tab';
+import { CollectionsTab } from '@renderer/features/profile/collections-tab';
+import { GiftsTab } from '@renderer/features/profile/gifts-tab';
+import { LikesTab } from '@renderer/features/profile/likes-tab';
+import { PostsTab } from '@renderer/features/profile/posts-tab';
 import { formatProfileDate, type ProfileData, type ProfileTab } from '@renderer/features/profile/profile-model';
 import {
   AlertIcon,

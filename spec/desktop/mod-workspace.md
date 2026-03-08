@@ -11,7 +11,7 @@ Mod 工作区功能域 — Mod workspace tabs、Mod UI 渲染、Mod 熔断与恢
 - `mod-ui/` — Mod UI 扩展渲染引擎
 - `features/mod-codegen/` — Mod codegen 入口
 - `features/runtime-mod-panel/` — Runtime mod 管理面板
-- `app-shell/providers/store-slices/mod-workspace-slice.ts` — Mod workspace store
+- `app-shell/providers/mod-workspace-slice.ts` — Mod workspace store
 
 ## Kernel References
 

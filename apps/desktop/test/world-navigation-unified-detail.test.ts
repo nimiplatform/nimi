@@ -24,7 +24,7 @@ const agentDetailPanelSource = fs.readFileSync(
   'utf8',
 );
 const uiSliceSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/app-shell/providers/store-slices/ui-slice.ts'),
+  path.join(import.meta.dirname, '../src/shell/renderer/app-shell/providers/ui-slice.ts'),
   'utf8',
 );
 

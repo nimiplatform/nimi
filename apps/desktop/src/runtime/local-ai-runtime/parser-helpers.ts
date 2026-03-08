@@ -2,7 +2,7 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import { hasTauriInvoke, tauriInvoke } from '../llm-adapter/tauri-bridge';
 import { emitRuntimeLog } from '../telemetry/logger';
 import type { LocalAiRuntimeWriteOptions } from './types';
-import { asRecord, asString } from './parsers';
+import { asRecord, asString } from './parser-primitives';
 
 type TauriEventUnsubscribe = () => void;
 type TauriEventListen = (

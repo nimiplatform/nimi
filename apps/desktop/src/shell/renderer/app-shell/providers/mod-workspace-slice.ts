@@ -1,4 +1,4 @@
-import type { AppStoreSet, AppStoreState } from '../store-types';
+import type { AppStoreSet, AppStoreState } from './store-types';
 import {
   loadRuntimeModLifecycleState,
   loadRuntimeModSettingsState,

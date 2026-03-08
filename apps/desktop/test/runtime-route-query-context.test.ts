@@ -4,7 +4,7 @@ import test from 'node:test';
 import {
   loadCachedRuntimeRouteQueryContext,
   resetRuntimeRouteQueryContextCacheForTests,
-} from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-data-capabilities/runtime-route-query-context';
+} from '../src/shell/renderer/infra/bootstrap/runtime-route-query-context';
 
 test('runtime route query context shares in-flight work and short-lived cache', async () => {
   resetRuntimeRouteQueryContextCacheForTests();

@@ -1,35 +1,39 @@
 import { withOpenApiContextLock } from '@runtime/context/openapi-context';
 import type { DesktopChatRouteRequestDto, DesktopChatRouteResultDto } from '@runtime/chat';
 import { Realm } from '@nimiplatform/sdk/realm';
-import type { RealmTokenRefreshResult } from '@nimiplatform/sdk/realm';
-import type { CreatePostDto } from '@nimiplatform/sdk/realm';
-import type { CreateReportDto } from '@nimiplatform/sdk/realm';
-import type { CreateReviewDto } from '@nimiplatform/sdk/realm';
-import type { CreateSparkCheckoutDto } from '@nimiplatform/sdk/realm';
-import type { CreateWithdrawalDto } from '@nimiplatform/sdk/realm';
-import type { MeTwoFactorPrepareOutput } from '@nimiplatform/sdk/realm';
-import type { MeTwoFactorVerifyInput } from '@nimiplatform/sdk/realm';
-import type { OAuthProvider } from '@nimiplatform/sdk/realm';
-import type { RequestAccountDeletionInput } from '@nimiplatform/sdk/realm';
-import type { RequestAccountDeletionOutput } from '@nimiplatform/sdk/realm';
-import type { RequestDataExportInput } from '@nimiplatform/sdk/realm';
-import type { RequestDataExportOutput } from '@nimiplatform/sdk/realm';
-import type { RejectGiftDto } from '@nimiplatform/sdk/realm';
-import type { SendMessageInputDto } from '@nimiplatform/sdk/realm';
-import type { SendGiftDto } from '@nimiplatform/sdk/realm';
-import type { ChatSyncResultDto } from '@nimiplatform/sdk/realm';
-import type { SparkCheckoutSessionDto } from '@nimiplatform/sdk/realm';
-import type { SparkPackageDto } from '@nimiplatform/sdk/realm';
-import type { UpdatePasswordRequestDto } from '@nimiplatform/sdk/realm';
-import type { UpdateUserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
-import type { UpdateUserSettingsDto } from '@nimiplatform/sdk/realm';
-import type { UserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
-import type { UserSettingsDto } from '@nimiplatform/sdk/realm';
-import type { WorldLevelAuditEventDto } from '@nimiplatform/sdk/realm';
+import type {
+  ChatSyncResultDto,
+  CreatePostDto,
+  CreateReportDto,
+  CreateReviewDto,
+  CreateSparkCheckoutDto,
+  CreateWithdrawalDto,
+  MeTwoFactorPrepareOutput,
+  MeTwoFactorVerifyInput,
+  OAuthProvider,
+  RealmTokenRefreshResult,
+  RejectGiftDto,
+  RequestAccountDeletionInput,
+  RequestAccountDeletionOutput,
+  RequestDataExportInput,
+  RequestDataExportOutput,
+  SendGiftDto,
+  SendMessageInputDto,
+  SparkCheckoutSessionDto,
+  SparkPackageDto,
+  UpdatePasswordRequestDto,
+  UpdateUserNotificationSettingsDto,
+  UpdateUserSettingsDto,
+  UserNotificationSettingsDto,
+  UserSettingsDto,
+  WorldLevelAuditEventDto,
+} from '@nimiplatform/sdk/realm';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import type { DataSyncApiConfig, FetchImpl } from './api-core';
 import { normalizeRealmBaseUrl, normalizeApiError, tryParseJsonLike } from './api-core';
 import type { PasswordAuthDebug } from './auth';
+import { readDataSyncHotState, writeDataSyncHotState } from './facade-hot-state';
+import { refreshDataSyncAccessToken } from './facade-refresh';
 import { DataSyncPollingManager } from './polling-manager';
 import type { CreatorEligibility } from './flows/settings-flow';
 import type {
@@ -46,44 +50,6 @@ import type {
 } from './flows/transit-flow';
 import { createDataSyncActions } from './facade-actions';
 import type { CreateMasterAgentInput } from './flows/social-flow';
-
-const DATA_SYNC_HOT_STATE_KEY = '__NIMI_DATA_SYNC_API_CONFIG__' as const;
-type DataSyncHotState = {
-  realmBaseUrl: string;
-  accessToken: string;
-  refreshToken: string;
-  fetchImpl: FetchImpl | null;
-};
-type DataSyncGlobalRef = typeof globalThis & {
-  [DATA_SYNC_HOT_STATE_KEY]?: Partial<DataSyncHotState>;
-};
-
-function readDataSyncHotState(): DataSyncHotState | null {
-  const snapshot = (globalThis as DataSyncGlobalRef)[DATA_SYNC_HOT_STATE_KEY];
-  if (!snapshot || typeof snapshot !== 'object') {
-    return null;
-  }
-  const realmBaseUrl = normalizeRealmBaseUrl(snapshot.realmBaseUrl);
-  if (!realmBaseUrl) {
-    return null;
-  }
-  return {
-    realmBaseUrl,
-    accessToken: String(snapshot.accessToken || ''),
-    refreshToken: String(snapshot.refreshToken || ''),
-    fetchImpl: typeof snapshot.fetchImpl === 'function' ? snapshot.fetchImpl : null,
-  };
-}
-
-function writeDataSyncHotState(state: DataSyncHotState) {
-  const globalRef = globalThis as DataSyncGlobalRef;
-  globalRef[DATA_SYNC_HOT_STATE_KEY] = {
-    realmBaseUrl: state.realmBaseUrl,
-    accessToken: state.accessToken,
-    refreshToken: state.refreshToken,
-    fetchImpl: state.fetchImpl,
-  };
-}
 
 export type DataSyncAuthCallbacks = {
   setAuth: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void;
@@ -123,15 +89,11 @@ export class DataSync {
     this.hydrateApiFromHotState();
   }
 
-  setAuthCallbacks(callbacks: DataSyncAuthCallbacks) {
-    this.authCallbacks = callbacks;
-  }
+  setAuthCallbacks(callbacks: DataSyncAuthCallbacks) { this.authCallbacks = callbacks; }
 
   private hydrateApiFromHotState(): boolean {
     const hotState = readDataSyncHotState();
-    if (!hotState) {
-      return false;
-    }
+    if (!hotState) return false;
     this.realmBaseUrl = hotState.realmBaseUrl;
     this.accessToken = hotState.accessToken;
     this.refreshToken = hotState.refreshToken;
@@ -140,15 +102,8 @@ export class DataSync {
   }
 
   private persistApiToHotState() {
-    if (!this.realmBaseUrl) {
-      return;
-    }
-    writeDataSyncHotState({
-      realmBaseUrl: this.realmBaseUrl,
-      accessToken: this.accessToken,
-      refreshToken: this.refreshToken,
-      fetchImpl: this.fetchImpl,
-    });
+    if (!this.realmBaseUrl) return;
+    writeDataSyncHotState({ realmBaseUrl: this.realmBaseUrl, accessToken: this.accessToken, refreshToken: this.refreshToken, fetchImpl: this.fetchImpl });
   }
 
   initApi(config?: DataSyncApiConfig) {
@@ -171,9 +126,7 @@ export class DataSync {
   }
 
   assertApiConfigured() {
-    if (!this.realmBaseUrl) {
-      this.hydrateApiFromHotState();
-    }
+    if (!this.realmBaseUrl) this.hydrateApiFromHotState();
     if (!this.realmBaseUrl) throw new Error('API not initialized');
   }
 
@@ -239,29 +192,19 @@ export class DataSync {
     });
   }
 
-  async loadInitialData() {
-    await this.loadCurrentUser();
-    await this.loadChats();
-    await this.loadContacts();
-  }
+  async loadInitialData() { await this.loadCurrentUser(); await this.loadChats(); await this.loadContacts(); }
 
   loadCurrentUser() { return this.actions.loadCurrentUser(); }
   updateUserProfile(data: Record<string, unknown>) { return this.actions.updateUserProfile(data); }
   loadChats(limit = 20) { return this.actions.loadChats(Math.min(limit, 100)); }
   loadMoreChats(cursor?: string) { return this.actions.loadMoreChats(cursor); }
-  startChat(targetAccountId: string, initialMessage: string | null = null) {
-    return this.actions.startChat(targetAccountId, initialMessage);
-  }
+  startChat(targetAccountId: string, initialMessage: string | null = null) { return this.actions.startChat(targetAccountId, initialMessage); }
   loadMessages(chatId: string, limit = 50) {
     return this.actions.loadMessages(chatId, Math.min(limit, 100), (id) => this.markChatRead(id));
   }
   loadMoreMessages(chatId: string, cursor?: string) { return this.actions.loadMoreMessages(chatId, cursor); }
-  sendMessage(chatId: string, content: string, options: Partial<SendMessageInputDto> = {}) {
-    return this.actions.sendMessage(chatId, content, options);
-  }
-  syncChatEvents(chatId: string, afterSeq: number, limit = 100): Promise<ChatSyncResultDto> {
-    return this.actions.syncChatEvents(chatId, afterSeq, Math.min(limit, 100));
-  }
+  sendMessage(chatId: string, content: string, options: Partial<SendMessageInputDto> = {}) { return this.actions.sendMessage(chatId, content, options); }
+  syncChatEvents(chatId: string, afterSeq: number, limit = 100): Promise<ChatSyncResultDto> { return this.actions.syncChatEvents(chatId, afterSeq, Math.min(limit, 100)); }
   async flushChatOutbox(chatId?: string): Promise<void> {
     await this.actions.flushChatOutbox(chatId);
   }
@@ -270,9 +213,7 @@ export class DataSync {
   loadSocialSnapshot() { return this.actions.loadSocialSnapshot(); }
   searchUser(identifierInput: string) { return this.actions.searchUser(identifierInput); }
 
-  isFriend(userId: string): boolean {
-    return this.authCallbacks?.isFriend(userId) ?? false;
-  }
+  isFriend(userId: string): boolean { return this.authCallbacks?.isFriend(userId) ?? false; }
 
   async removeFriend(userId: string) { await this.actions.removeFriend(userId); }
   requestOrAcceptFriend(userId: string) { return this.actions.requestOrAcceptFriend(userId); }
@@ -280,27 +221,15 @@ export class DataSync {
   blockUser(contact: Record<string, unknown>) { return this.actions.blockUser(contact); }
   unblockUser(contact: Record<string, unknown>) { return this.actions.unblockUser(contact); }
   loadUserProfile(id: string) { return this.actions.loadUserProfile(id); }
-  loadWorlds(status?: 'DRAFT' | 'PENDING_REVIEW' | 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED') {
-    return this.actions.loadWorlds(status);
-  }
+  loadWorlds(status?: 'DRAFT' | 'PENDING_REVIEW' | 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED') { return this.actions.loadWorlds(status); }
   loadWorldDetailById(worldId: string) { return this.actions.loadWorldDetailById(worldId); }
   loadWorldSemanticBundle(worldId: string) { return this.actions.loadWorldSemanticBundle(worldId); }
   loadMainWorld() { return this.actions.loadMainWorld(); }
-  loadWorldLevelAudits(worldId: string, limit = 20): Promise<WorldLevelAuditEventDto[]> {
-    return this.actions.loadWorldLevelAudits(worldId, limit);
-  }
-  loadWorldAgents(worldId: string): Promise<Array<Record<string, unknown>>> {
-    return this.actions.loadWorldAgents(worldId);
-  }
-  loadWorldDetailWithAgents(worldId: string): Promise<Record<string, unknown> | null> {
-    return this.actions.loadWorldDetailWithAgents(worldId);
-  }
-  loadWorldEvents(worldId: string): Promise<Array<Record<string, unknown>>> {
-    return this.actions.loadWorldEvents(worldId);
-  }
-  loadSceneQuota(): Promise<SceneQuotaDto> {
-    return this.actions.loadSceneQuota();
-  }
+  loadWorldLevelAudits(worldId: string, limit = 20): Promise<WorldLevelAuditEventDto[]> { return this.actions.loadWorldLevelAudits(worldId, limit); }
+  loadWorldAgents(worldId: string): Promise<Array<Record<string, unknown>>> { return this.actions.loadWorldAgents(worldId); }
+  loadWorldDetailWithAgents(worldId: string): Promise<Record<string, unknown> | null> { return this.actions.loadWorldDetailWithAgents(worldId); }
+  loadWorldEvents(worldId: string): Promise<Array<Record<string, unknown>>> { return this.actions.loadWorldEvents(worldId); }
+  loadSceneQuota(): Promise<SceneQuotaDto> { return this.actions.loadSceneQuota(); }
   startWorldTransit(input: {
     agentId: string;
     fromWorldId?: string;
@@ -366,12 +295,8 @@ export class DataSync {
     return this.actions.loadGemTransactionHistory(limit, cursor);
   }
   loadSubscriptionStatus() { return this.actions.loadSubscriptionStatus(); }
-  loadSparkPackages(): Promise<SparkPackageDto[]> {
-    return this.actions.loadSparkPackages();
-  }
-  createSparkCheckout(payload: CreateSparkCheckoutDto): Promise<SparkCheckoutSessionDto> {
-    return this.actions.createSparkCheckout(payload);
-  }
+  loadSparkPackages(): Promise<SparkPackageDto[]> { return this.actions.loadSparkPackages(); }
+  createSparkCheckout(payload: CreateSparkCheckoutDto): Promise<SparkCheckoutSessionDto> { return this.actions.createSparkCheckout(payload); }
   loadWithdrawalEligibility() { return this.actions.loadWithdrawalEligibility(); }
   loadWithdrawalHistory(limit = 20, cursor?: string) {
     return this.actions.loadWithdrawalHistory(limit, cursor);
@@ -396,44 +321,18 @@ export class DataSync {
   }
   markNotificationRead(notificationId: string) { return this.actions.markNotificationRead(notificationId); }
   loadMySettings(): Promise<UserSettingsDto> { return this.actions.loadMySettings(); }
-  updateMySettings(payload: UpdateUserSettingsDto): Promise<UserSettingsDto> {
-    return this.actions.updateMySettings(payload);
-  }
-  loadMyNotificationSettings(): Promise<UserNotificationSettingsDto> {
-    return this.actions.loadMyNotificationSettings();
-  }
-  updateMyNotificationSettings(
-    payload: UpdateUserNotificationSettingsDto,
-  ): Promise<UserNotificationSettingsDto> {
-    return this.actions.updateMyNotificationSettings(payload);
-  }
-  loadMyCreatorEligibility(): Promise<CreatorEligibility> {
-    return this.actions.loadMyCreatorEligibility();
-  }
-  updatePassword(payload: UpdatePasswordRequestDto): Promise<{ success: boolean }> {
-    return this.actions.updatePassword(payload);
-  }
-  prepareTwoFactor(): Promise<MeTwoFactorPrepareOutput> {
-    return this.actions.prepareTwoFactor();
-  }
-  enableTwoFactor(payload: MeTwoFactorVerifyInput): Promise<{ enabled: boolean }> {
-    return this.actions.enableTwoFactor(payload);
-  }
-  disableTwoFactor(payload: MeTwoFactorVerifyInput): Promise<{ enabled: boolean }> {
-    return this.actions.disableTwoFactor(payload);
-  }
-  linkOauth(provider: OAuthProvider, accessToken: string): Promise<{ linked: boolean }> {
-    return this.actions.linkOauth(provider, accessToken);
-  }
-  unlinkOauth(provider: OAuthProvider): Promise<{ linked: boolean }> {
-    return this.actions.unlinkOauth(provider);
-  }
-  requestDataExport(payload: RequestDataExportInput): Promise<RequestDataExportOutput> {
-    return this.actions.requestDataExport(payload);
-  }
-  requestAccountDeletion(payload: RequestAccountDeletionInput): Promise<RequestAccountDeletionOutput> {
-    return this.actions.requestAccountDeletion(payload);
-  }
+  updateMySettings(payload: UpdateUserSettingsDto): Promise<UserSettingsDto> { return this.actions.updateMySettings(payload); }
+  loadMyNotificationSettings(): Promise<UserNotificationSettingsDto> { return this.actions.loadMyNotificationSettings(); }
+  updateMyNotificationSettings(payload: UpdateUserNotificationSettingsDto): Promise<UserNotificationSettingsDto> { return this.actions.updateMyNotificationSettings(payload); }
+  loadMyCreatorEligibility(): Promise<CreatorEligibility> { return this.actions.loadMyCreatorEligibility(); }
+  updatePassword(payload: UpdatePasswordRequestDto): Promise<{ success: boolean }> { return this.actions.updatePassword(payload); }
+  prepareTwoFactor(): Promise<MeTwoFactorPrepareOutput> { return this.actions.prepareTwoFactor(); }
+  enableTwoFactor(payload: MeTwoFactorVerifyInput): Promise<{ enabled: boolean }> { return this.actions.enableTwoFactor(payload); }
+  disableTwoFactor(payload: MeTwoFactorVerifyInput): Promise<{ enabled: boolean }> { return this.actions.disableTwoFactor(payload); }
+  linkOauth(provider: OAuthProvider, accessToken: string): Promise<{ linked: boolean }> { return this.actions.linkOauth(provider, accessToken); }
+  unlinkOauth(provider: OAuthProvider): Promise<{ linked: boolean }> { return this.actions.unlinkOauth(provider); }
+  requestDataExport(payload: RequestDataExportInput): Promise<RequestDataExportOutput> { return this.actions.requestDataExport(payload); }
+  requestAccountDeletion(payload: RequestAccountDeletionInput): Promise<RequestAccountDeletionOutput> { return this.actions.requestAccountDeletion(payload); }
   loadMyAgents() { return this.actions.loadMyAgents(); }
   createAgent(input: CreateMasterAgentInput) { return this.actions.createAgent(input); }
   loadFriendRequests() { return this.actions.loadFriendRequests(); }
@@ -463,32 +362,23 @@ export class DataSync {
     return this.actions.listAgentE2EMemories(input);
   }
   loadAgentMemoryStats(agentId: string) { return this.actions.loadAgentMemoryStats(agentId); }
-  resolveChatRoute(data: DesktopChatRouteRequestDto): Promise<DesktopChatRouteResultDto> {
-    return this.actions.resolveChatRoute(data);
-  }
+  resolveChatRoute(data: DesktopChatRouteRequestDto): Promise<DesktopChatRouteResultDto> { return this.actions.resolveChatRoute(data); }
   login(identifier: string, password: string, debug?: PasswordAuthDebug) {
     return this.actions.login(identifier, password, debug);
   }
   register(email: string, password: string, debug?: PasswordAuthDebug) {
     return this.actions.register(email, password, debug);
   }
-  async logout() {
-    await this.actions.logout();
-    this.clearProactiveRefreshTimer();
-  }
+  async logout() { await this.actions.logout(); this.clearProactiveRefreshTimer(); }
   startPolling(key: string, callback: () => void, intervalMs: number) { this.polling.start(key, callback, intervalMs); }
   stopPolling(key: string) { this.polling.stop(key); }
   stopAllPolling() { this.polling.stopAll(); }
 
   scheduleProactiveRefresh(accessToken: string) {
     this.clearProactiveRefreshTimer();
-    if (!this.refreshToken) {
-      return;
-    }
+    if (!this.refreshToken) return;
     const expiry = Realm.decodeTokenExpiry(accessToken);
-    if (!expiry) {
-      return;
-    }
+    if (!expiry) return;
     const PROACTIVE_REFRESH_BUFFER_MS = 60_000;
     const delayMs = Math.max(expiry.expiresInMs - PROACTIVE_REFRESH_BUFFER_MS, 1000);
     this.proactiveRefreshTimer = setTimeout(() => {
@@ -511,33 +401,22 @@ export class DataSync {
       return;
     }
     try {
-      const fetchFn = this.fetchImpl || globalThis.fetch.bind(globalThis);
-      const response = await fetchFn(`${this.realmBaseUrl}/api/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: this.refreshToken }),
+      const refreshResult = await refreshDataSyncAccessToken({
+        realmBaseUrl: this.realmBaseUrl,
+        refreshToken: this.refreshToken,
+        fetchImpl: this.fetchImpl,
       });
-      if (!response.ok) {
-        throw new Error(`refresh failed: ${response.status}`);
-      }
-      const data = await response.json() as Record<string, unknown>;
-      const tokens = (data.tokens || data) as Record<string, unknown>;
-      const newAccessToken = String(tokens.accessToken || '').trim();
-      if (!newAccessToken) {
-        throw new Error('refresh response missing accessToken');
-      }
-      const newRefreshToken = String(tokens.refreshToken || '').trim() || undefined;
-      this.accessToken = newAccessToken;
-      if (newRefreshToken) {
-        this.refreshToken = newRefreshToken;
+      this.accessToken = refreshResult.accessToken;
+      if (refreshResult.refreshToken) {
+        this.refreshToken = refreshResult.refreshToken;
       }
       this.persistApiToHotState();
       this.authCallbacks?.setAuth(
         this.authCallbacks?.getCurrentUser() ?? null,
-        newAccessToken,
-        newRefreshToken,
+        refreshResult.accessToken,
+        refreshResult.refreshToken,
       );
-      this.scheduleProactiveRefresh(newAccessToken);
+      this.scheduleProactiveRefresh(refreshResult.accessToken);
       emitRuntimeLog({
         level: 'info',
         area: 'datasync',
@@ -559,10 +438,9 @@ export class DataSync {
   }
 
   clearProactiveRefreshTimer() {
-    if (this.proactiveRefreshTimer) {
-      clearTimeout(this.proactiveRefreshTimer);
-      this.proactiveRefreshTimer = null;
-    }
+    if (!this.proactiveRefreshTimer) return;
+    clearTimeout(this.proactiveRefreshTimer);
+    this.proactiveRefreshTimer = null;
   }
 
   destroy() {

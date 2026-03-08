@@ -1,6 +1,6 @@
 import { useRef, useState, useLayoutEffect } from 'react';
-import type { ProfileTab } from '../profile-model';
-import { PROFILE_TABS } from '../profile-model';
+import type { ProfileTab } from './profile-model';
+import { PROFILE_TABS } from './profile-model';
 
 type ProfileTabBarProps = {
   activeTab: ProfileTab;

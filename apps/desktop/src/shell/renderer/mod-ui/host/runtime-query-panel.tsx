@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getRuntimeHookRuntime } from '@runtime/mod';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
-import { executeRuntimeQuery } from './runtime-query/execute';
-import { applyRuntimeFields, resolveActionFields, summarizeRecord } from './runtime-query/field-bindings';
-import { parseActions, parseQueries } from './runtime-query/parse';
-import type { ActionDefinition, QueryDefinition, QueryResultsMap, RuntimeQueryPanelProps, SelectedIndexMap } from './runtime-query/types';
-import { RuntimeQueryPanelView } from './runtime-query/view';
+import { executeRuntimeQuery } from './execute';
+import { applyRuntimeFields, resolveActionFields, summarizeRecord } from './field-bindings';
+import { parseActions, parseQueries } from './parse';
+import type { ActionDefinition, QueryDefinition, QueryResultsMap, RuntimeQueryPanelProps, SelectedIndexMap } from './types';
+import { RuntimeQueryPanelView } from './view';
 
 export function RuntimeQueryPanel(props: RuntimeQueryPanelProps) {
   const { extensionId, modId, extension, context } = props;

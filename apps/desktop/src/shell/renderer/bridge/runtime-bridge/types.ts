@@ -63,7 +63,7 @@ export type {
   LocalAiInstallVerifiedArtifactPayload,
   LocalAiImportPayload,
   LocalAiImportArtifactPayload,
-} from './local-ai.js';
+} from './local-ai-contract.js';
 
 export {
   parseLocalAiModelRecord,
@@ -75,7 +75,7 @@ export {
   parseLocalAiAuditEventList,
   parseLocalAiPickManifestResult,
   parseLocalAiDownloadProgressEvent,
-} from './local-ai.js';
+} from './local-ai-contract.js';
 
 export type {
   ExternalAgentActionExecutionMode,
@@ -88,7 +88,7 @@ export type {
   ExternalAgentGatewayStatus,
   ExternalAgentActionExecutionRequest,
   ExternalAgentActionExecutionCompletion,
-} from './external-agent.js';
+} from './external-agent-types.js';
 
 export {
   parseExternalAgentActionDescriptors,
@@ -96,6 +96,6 @@ export {
   parseExternalAgentTokenRecord,
   parseExternalAgentTokenRecordList,
   parseExternalAgentGatewayStatus,
-} from './external-agent.js';
+} from './external-agent-types.js';
 
 import './window-global.js';

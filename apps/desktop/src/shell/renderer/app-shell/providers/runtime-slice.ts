@@ -1,5 +1,5 @@
-import type { AppStoreSet, AppStoreState } from '../store-types';
-import { INITIAL_RUNTIME_FIELDS } from '../store-types';
+import type { AppStoreSet, AppStoreState } from './store-types';
+import { INITIAL_RUNTIME_FIELDS } from './store-types';
 
 type RuntimeSlice = Pick<AppStoreState,
   'runtimeDefaults'

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import { createAuthSlice } from '../src/shell/renderer/app-shell/providers/store-slices/auth-slice';
+import { createAuthSlice } from '../src/shell/renderer/app-shell/providers/auth-slice';
 
 const authMenuSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/auth/auth-menu.tsx'),

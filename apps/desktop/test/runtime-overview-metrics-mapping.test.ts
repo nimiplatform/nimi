@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import type { UsageStatRecord } from '@nimiplatform/sdk/runtime';
 import { mapUsageRecordsToEstimate } from '../src/shell/renderer/features/runtime-config/runtime-config-cost-estimator';
-import { parseSystemResourceSnapshot } from '../src/shell/renderer/bridge/runtime-bridge/types/runtime';
+import { parseSystemResourceSnapshot } from '../src/shell/renderer/bridge/runtime-bridge/runtime';
 
 test('mapUsageRecordsToEstimate aggregates request/token/compute totals', () => {
   const records = [

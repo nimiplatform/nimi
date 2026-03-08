@@ -8,9 +8,9 @@ import type {
   UiExtensionRegistration,
   UiSlotId,
 } from '@renderer/mod-ui/contracts';
-import { logSlotConflicts } from './conflict/conflict-log';
-import { renderSlotEntry } from './render/render-entry';
-import { retryRuntimeMod } from './retry/retry-runtime-mod';
+import { logSlotConflicts } from './conflict-log';
+import { renderSlotEntry } from './render-entry';
+import { retryRuntimeMod } from './retry-runtime-mod';
 
 type SlotHostProps = {
   slot: UiSlotId;
