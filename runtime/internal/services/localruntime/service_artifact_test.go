@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/grpc/codes"
 )
 
 func TestLocalRuntimeImportLocalArtifactAndList(t *testing.T) {
@@ -204,4 +205,19 @@ func TestInstallVerifiedArtifactHashMismatchRollsBack(t *testing.T) {
 	if len(listed.GetArtifacts()) != 0 {
 		t.Fatalf("expected no installed artifacts after rollback, got %d", len(listed.GetArtifacts()))
 	}
+}
+
+func TestRemoveLocalArtifactUsesReasonCodes(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	_, err := svc.RemoveLocalArtifact(ctx, &runtimev1.RemoveLocalArtifactRequest{})
+	assertGRPCCode(t, err, "RemoveLocalArtifact(empty_id)", codes.InvalidArgument)
+	assertGRPCReasonCode(t, err, "RemoveLocalArtifact(empty_id)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+
+	_, err = svc.RemoveLocalArtifact(ctx, &runtimev1.RemoveLocalArtifactRequest{
+		LocalArtifactId: "artifact_missing",
+	})
+	assertGRPCCode(t, err, "RemoveLocalArtifact(not_found)", codes.NotFound)
+	assertGRPCReasonCode(t, err, "RemoveLocalArtifact(not_found)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 }

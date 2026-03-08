@@ -6,6 +6,7 @@
 ## 0. 权威导入
 
 - `kernel/config-contract.md`（K-CFG-001, K-CFG-002, K-CFG-005, K-CFG-006, K-CFG-009）
+- `kernel/local-engine-contract.md`（K-LENG-004）
 - `kernel/daemon-lifecycle.md`（K-DAEMON-002, K-DAEMON-009）
 - `kernel/provider-health-contract.md`（K-PROV-005）
 - `kernel/error-model.md`（K-ERR-001）
@@ -17,9 +18,10 @@
 ## 2. 关键阅读路径
 
 1. 配置主合同：`kernel/config-contract.md`。
-2. daemon 配置装配：`kernel/daemon-lifecycle.md`。
-3. provider 命名约束：`kernel/provider-health-contract.md`。
-4. 错误映射：`kernel/error-model.md`。
+2. supervised engine 与 `engines.localai.imageBackend`：`kernel/local-engine-contract.md`。
+3. daemon 配置装配：`kernel/daemon-lifecycle.md`。
+4. provider 命名约束：`kernel/provider-health-contract.md`。
+5. 错误映射：`kernel/error-model.md`。
 
 ## 3. 模块映射
 

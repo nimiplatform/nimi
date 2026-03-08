@@ -69,23 +69,23 @@ func TestLocalRuntimeManagedLocalAIImageBackendServiceRejectsMutations(t *testin
 		ServiceId: localAIImageBackendServiceID,
 	})
 	assertGRPCCode(t, err, "InstallLocalService(managed_image_backend)", codes.FailedPrecondition)
-	assertNoGRPCReasonCode(t, err, "InstallLocalService(managed_image_backend)")
+	assertGRPCReasonCode(t, err, "InstallLocalService(managed_image_backend)", runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
 
 	_, err = svc.StartLocalService(ctx, &runtimev1.StartLocalServiceRequest{
 		ServiceId: localAIImageBackendServiceID,
 	})
 	assertGRPCCode(t, err, "StartLocalService(managed_image_backend)", codes.FailedPrecondition)
-	assertNoGRPCReasonCode(t, err, "StartLocalService(managed_image_backend)")
+	assertGRPCReasonCode(t, err, "StartLocalService(managed_image_backend)", runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
 
 	_, err = svc.StopLocalService(ctx, &runtimev1.StopLocalServiceRequest{
 		ServiceId: localAIImageBackendServiceID,
 	})
 	assertGRPCCode(t, err, "StopLocalService(managed_image_backend)", codes.FailedPrecondition)
-	assertNoGRPCReasonCode(t, err, "StopLocalService(managed_image_backend)")
+	assertGRPCReasonCode(t, err, "StopLocalService(managed_image_backend)", runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
 
 	_, err = svc.RemoveLocalService(ctx, &runtimev1.RemoveLocalServiceRequest{
 		ServiceId: localAIImageBackendServiceID,
 	})
 	assertGRPCCode(t, err, "RemoveLocalService(managed_image_backend)", codes.FailedPrecondition)
-	assertNoGRPCReasonCode(t, err, "RemoveLocalService(managed_image_backend)")
+	assertGRPCReasonCode(t, err, "RemoveLocalService(managed_image_backend)", runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
 }

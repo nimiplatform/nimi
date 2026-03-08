@@ -47,6 +47,7 @@ Default desktop mods loaded via manifest+sideload pipeline
 | `runtime.route.list.options` |
 | `runtime.route.resolve` |
 | `runtime.route.check.health` |
+| `runtime.local.artifacts.list` |
 | `runtime.profile.read.agent` |
 | `action.discover.*` |
 | `action.dry-run.*` |
@@ -93,6 +94,7 @@ Third-party injected mods with restricted turn hook access
 | `runtime.route.list.options` |
 | `runtime.route.resolve` |
 | `runtime.route.check.health` |
+| `runtime.local.artifacts.list` |
 | `runtime.profile.read.agent` |
 | `action.discover.*` |
 | `action.dry-run.*` |
@@ -134,6 +136,7 @@ Locally sideloaded mods with no subscribe/register/provide access
 | `runtime.route.list.options` |
 | `runtime.route.resolve` |
 | `runtime.route.check.health` |
+| `runtime.local.artifacts.list` |
 | `runtime.profile.read.agent` |
 | `action.discover.*` |
 | `action.dry-run.*` |

@@ -56,6 +56,10 @@ entries:
     policy: require_consent
     source_rule: D-CODEGEN-021
   - tier: T1
+    capability: runtime.local.*
+    policy: require_consent
+    source_rule: D-CODEGEN-021
+  - tier: T1
     capability: data.query.data-api.core.*
     policy: require_consent
     source_rule: D-CODEGEN-021

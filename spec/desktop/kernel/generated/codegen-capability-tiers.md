@@ -18,6 +18,7 @@
 | `T1` | `runtime.media.stt.*` | `require_consent` | `D-CODEGEN-021` |
 | `T1` | `runtime.voice.*` | `require_consent` | `D-CODEGEN-021` |
 | `T1` | `runtime.route.*` | `require_consent` | `D-CODEGEN-021` |
+| `T1` | `runtime.local.*` | `require_consent` | `D-CODEGEN-021` |
 | `T1` | `data.query.data-api.core.*` | `require_consent` | `D-CODEGEN-021` |
 | `T2` | `turn.register.*` | `hard_deny` | `D-CODEGEN-022` |
 | `T2` | `inter-mod.*` | `hard_deny` | `D-CODEGEN-022` |

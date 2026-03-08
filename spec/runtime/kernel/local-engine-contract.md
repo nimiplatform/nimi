@@ -66,13 +66,29 @@ FileConfig `engines` 段：
 ```json
 {
   "engines": {
-    "localai": { "enabled": true, "version": "3.12.1", "port": 1234 },
+    "localai": {
+      "enabled": true,
+      "version": "3.12.1",
+      "port": 1234,
+      "imageBackend": {
+        "mode": "official",
+        "backendName": "stablediffusion-ggml",
+        "address": "127.0.0.1:50052"
+      }
+    },
     "nexa":    { "enabled": false, "version": "", "port": 8000 }
   }
 }
 ```
 
 ENV 覆盖：`NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED`、`NIMI_RUNTIME_ENGINE_LOCALAI_VERSION`、`NIMI_RUNTIME_ENGINE_LOCALAI_PORT`；Nexa 同理（`NEXA` 替代 `LOCALAI`）。
+
+受管 LocalAI image backend 约束：
+
+- `engines.localai.imageBackend.mode` 允许 `disabled|official|custom`。
+- `official` 模式表示 runtime 负责供应并启动官方 `stablediffusion-ggml` external gRPC backend，再通过 `--external-grpc-backends` 接入 LocalAI。
+- `custom` 模式表示 runtime 负责启动自定义 backend command，并以 `address` 作为 LocalAI gRPC 连接目标。
+- 该 backend 必须作为 daemon-managed local service 对外可见；用户不得通过通用 service lifecycle RPC 直接 install/start/stop/remove 它。
 
 自动托管推导（LocalAI）：
 
@@ -118,6 +134,12 @@ ENV 覆盖：`NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED`、`NIMI_RUNTIME_ENGINE_LOCALA
 - 语音识别：`POST /v1/audio/transcriptions`
 
 引擎特有的非标 API（如 LocalAI 的 video backend）通过 `LocalProviderHints` 描述，不作为通用协议基线。
+
+LocalAI 动态图片工作流补充：
+
+- companion asset（如 `vae` / `llm` / `clip`）不要求静态注册进 `localai-models.yaml`。
+- runtime 可在请求时基于主模型 `engine_config`、artifact 选择与本次 profile override 渲染临时 profile，并通过 `POST /models/import` 动态导入。
+- LocalAI image 模型的健康判定不得仅依赖 `/v1/models` 静态列表。
 
 ## K-LENG-007 健康探测协议
 

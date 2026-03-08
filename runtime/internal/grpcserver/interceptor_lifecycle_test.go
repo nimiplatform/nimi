@@ -33,6 +33,34 @@ func TestUnaryLifecycleInterceptorAllowsLocalRuntimeReadWhenStopping(t *testing.
 	}
 }
 
+func TestUnaryLifecycleInterceptorAllowsLocalArtifactReadsWhenStopping(t *testing.T) {
+	state := health.NewState()
+	state.SetStatus(health.StatusStopping, "draining")
+	interceptor := newUnaryLifecycleInterceptor(state)
+
+	for _, fullMethod := range []string{
+		"/nimi.runtime.v1.RuntimeLocalRuntimeService/ListLocalArtifacts",
+		"/nimi.runtime.v1.RuntimeLocalRuntimeService/ListVerifiedArtifacts",
+	} {
+		handlerCalled := false
+		_, err := interceptor(
+			context.Background(),
+			struct{}{},
+			&grpc.UnaryServerInfo{FullMethod: fullMethod},
+			func(_ context.Context, _ any) (any, error) {
+				handlerCalled = true
+				return struct{}{}, nil
+			},
+		)
+		if err != nil {
+			t.Fatalf("%s should be allowed while stopping: %v", fullMethod, err)
+		}
+		if !handlerCalled {
+			t.Fatalf("handler must be called for %s", fullMethod)
+		}
+	}
+}
+
 func TestUnaryLifecycleInterceptorRejectsLocalRuntimeWriteWhenStopping(t *testing.T) {
 	state := health.NewState()
 	state.SetStatus(health.StatusStopping, "draining")

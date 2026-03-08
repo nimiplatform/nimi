@@ -65,44 +65,49 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 **Tier 1 — 核心生命周期：**
 
 1. `ListLocalModels`
-2. `InstallLocalModel`
-3. `RemoveLocalModel`
-4. `StartLocalModel`
-5. `StopLocalModel`
-6. `CheckLocalModelHealth`
-7. `WarmLocalModel`
+2. `ListLocalArtifacts`
+3. `InstallLocalModel`
+4. `InstallVerifiedModel`
+5. `InstallVerifiedArtifact`
+6. `ImportLocalModel`
+7. `ImportLocalArtifact`
+8. `RemoveLocalModel`
+9. `RemoveLocalArtifact`
+10. `StartLocalModel`
+11. `StopLocalModel`
+12. `CheckLocalModelHealth`
+13. `WarmLocalModel`
 
-**Tier 2 — 目录与计划：**
+**Tier 2 — 目录、伴随资产与计划：**
 
-8. `ListVerifiedModels`
-9. `SearchCatalogModels`
-10. `ResolveModelInstallPlan`
-11. `InstallVerifiedModel`
-12. `ImportLocalModel`
-13. `CollectDeviceProfile`
+14. `ListVerifiedModels`
+15. `ListVerifiedArtifacts`
+16. `SearchCatalogModels`
+17. `ResolveModelInstallPlan`
+18. `CollectDeviceProfile`
 
 **Tier 3 — 服务/节点/依赖/审计：**
 
-14. `ListLocalServices`
-15. `InstallLocalService`
-16. `StartLocalService`
-17. `StopLocalService`
-18. `CheckLocalServiceHealth`
-19. `RemoveLocalService`
-20. `ListNodeCatalog`
-21. `ResolveDependencies`
-22. `ApplyDependencies`
-23. `ListLocalAudits`
-24. `AppendInferenceAudit`
-25. `AppendRuntimeAudit`
+19. `ListLocalServices`
+20. `InstallLocalService`
+21. `StartLocalService`
+22. `StopLocalService`
+23. `CheckLocalServiceHealth`
+24. `RemoveLocalService`
+25. `ListNodeCatalog`
+26. `ResolveDependencies`
+27. `ApplyDependencies`
+28. `ListLocalAudits`
+29. `AppendInferenceAudit`
+30. `AppendRuntimeAudit`
 
 **Tier 4 — 引擎进程管理（K-LENG-004e）：**
 
-26. `ListEngines`
-27. `EnsureEngine`
-28. `StartEngine`
-29. `StopEngine`
-30. `GetEngineStatus`
+31. `ListEngines`
+32. `EnsureEngine`
+33. `StartEngine`
+34. `StopEngine`
+35. `GetEngineStatus`
 
 `WarmLocalModel` 的语义限定为“就绪/预热”读路径：允许解析已安装 local model / local service、触发一次最小执行以加载模型，但不得改变安装态、配置态或 desktop 独占的生命周期写权限（`K-LOCAL-028`）。
 

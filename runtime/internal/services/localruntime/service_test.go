@@ -347,9 +347,7 @@ func TestLocalRuntimeCheckLocalServiceHealthNotFoundWhenTargetMissing(t *testing
 		ServiceId: "svc_missing",
 	})
 	assertGRPCCode(t, err, "CheckLocalServiceHealth(not_found)", codes.NotFound)
-	if reason, ok := grpcerr.ExtractReasonCode(err); ok {
-		t.Fatalf("CheckLocalServiceHealth(not_found): expected no reason code, got %s", reason)
-	}
+	assertGRPCReasonCode(t, err, "CheckLocalServiceHealth(not_found)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 }
 
 func TestLocalRuntimeDefaultProbeBuildsSingleV1ModelsPath(t *testing.T) {
@@ -2620,33 +2618,33 @@ func TestLocalRuntimeManagementRPCsUsePlainInvalidArgumentAndNotFoundForModelIDs
 	assertNoGRPCReasonCode(t, err, "RemoveLocalModel(not_found)")
 }
 
-func TestLocalRuntimeManagementRPCsUsePlainInvalidArgumentAndNotFoundForServiceIDs(t *testing.T) {
+func TestLocalRuntimeManagementRPCsUseReasonCodesForServiceIDs(t *testing.T) {
 	svc := newTestService(t)
 	ctx := context.Background()
 
 	_, err := svc.StartLocalService(ctx, &runtimev1.StartLocalServiceRequest{ServiceId: ""})
 	assertGRPCCode(t, err, "StartLocalService(empty_id)", codes.InvalidArgument)
-	assertNoGRPCReasonCode(t, err, "StartLocalService(empty_id)")
+	assertGRPCReasonCode(t, err, "StartLocalService(empty_id)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 
 	_, err = svc.StopLocalService(ctx, &runtimev1.StopLocalServiceRequest{ServiceId: ""})
 	assertGRPCCode(t, err, "StopLocalService(empty_id)", codes.InvalidArgument)
-	assertNoGRPCReasonCode(t, err, "StopLocalService(empty_id)")
+	assertGRPCReasonCode(t, err, "StopLocalService(empty_id)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 
 	_, err = svc.RemoveLocalService(ctx, &runtimev1.RemoveLocalServiceRequest{ServiceId: ""})
 	assertGRPCCode(t, err, "RemoveLocalService(empty_id)", codes.InvalidArgument)
-	assertNoGRPCReasonCode(t, err, "RemoveLocalService(empty_id)")
+	assertGRPCReasonCode(t, err, "RemoveLocalService(empty_id)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 
 	_, err = svc.StartLocalService(ctx, &runtimev1.StartLocalServiceRequest{ServiceId: "svc_missing"})
 	assertGRPCCode(t, err, "StartLocalService(not_found)", codes.NotFound)
-	assertNoGRPCReasonCode(t, err, "StartLocalService(not_found)")
+	assertGRPCReasonCode(t, err, "StartLocalService(not_found)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 
 	_, err = svc.StopLocalService(ctx, &runtimev1.StopLocalServiceRequest{ServiceId: "svc_missing"})
 	assertGRPCCode(t, err, "StopLocalService(not_found)", codes.NotFound)
-	assertNoGRPCReasonCode(t, err, "StopLocalService(not_found)")
+	assertGRPCReasonCode(t, err, "StopLocalService(not_found)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 
 	_, err = svc.RemoveLocalService(ctx, &runtimev1.RemoveLocalServiceRequest{ServiceId: "svc_missing"})
 	assertGRPCCode(t, err, "RemoveLocalService(not_found)", codes.NotFound)
-	assertNoGRPCReasonCode(t, err, "RemoveLocalService(not_found)")
+	assertGRPCReasonCode(t, err, "RemoveLocalService(not_found)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 }
 
 func TestEngineRPCStartEngineAlreadyRunning(t *testing.T) {

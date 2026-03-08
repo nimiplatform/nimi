@@ -27,6 +27,12 @@
 
 运行时服务语义来自 `spec/runtime/kernel/*`；SDK 负责协议封装与类型投影。
 
+当前 runtime projection 已包含 LocalAI 动态图片工作流所需的本地 surface：
+
+- `LocalArtifact*` RPC 与 companion asset 列表/安装/导入/删除
+- 主模型 `engine_config` 字段投影
+- runtime image helper `buildLocalImageWorkflowExtensions()`，用于编码 `components` 与 `profile_overrides`
+
 ## 4. 非目标
 
 - 不在本文件定义本地规则体系。

@@ -146,8 +146,11 @@ export const RuntimeWriteMethodIds: readonly string[] = Object.freeze([
   RuntimeMethodIds.model.remove,
   RuntimeMethodIds.localRuntime.installLocalModel,
   RuntimeMethodIds.localRuntime.installVerifiedModel,
+  RuntimeMethodIds.localRuntime.installVerifiedArtifact,
   RuntimeMethodIds.localRuntime.importLocalModel,
+  RuntimeMethodIds.localRuntime.importLocalArtifact,
   RuntimeMethodIds.localRuntime.removeLocalModel,
+  RuntimeMethodIds.localRuntime.removeLocalArtifact,
   RuntimeMethodIds.localRuntime.startLocalModel,
   RuntimeMethodIds.localRuntime.stopLocalModel,
   RuntimeMethodIds.localRuntime.applyDependencies,
@@ -169,7 +172,9 @@ export const RuntimeWriteMethodIds: readonly string[] = Object.freeze([
 
 export const RuntimeLocalRuntimeAnonymousMethodIds: readonly string[] = Object.freeze([
   RuntimeMethodIds.localRuntime.listLocalModels,
+  RuntimeMethodIds.localRuntime.listLocalArtifacts,
   RuntimeMethodIds.localRuntime.listVerifiedModels,
+  RuntimeMethodIds.localRuntime.listVerifiedArtifacts,
   RuntimeMethodIds.localRuntime.searchCatalogModels,
   RuntimeMethodIds.localRuntime.resolveModelInstallPlan,
   RuntimeMethodIds.localRuntime.checkLocalModelHealth,

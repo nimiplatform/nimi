@@ -46,17 +46,22 @@ Source: `K-RPC-004`
 | Method | Type |
 |---|---|
 | `ListLocalModels` | `unary` |
+| `ListLocalArtifacts` | `unary` |
+| `ListVerifiedModels` | `unary` |
+| `ListVerifiedArtifacts` | `unary` |
 | `InstallLocalModel` | `unary` |
+| `InstallVerifiedModel` | `unary` |
+| `InstallVerifiedArtifact` | `unary` |
+| `ImportLocalModel` | `unary` |
+| `ImportLocalArtifact` | `unary` |
 | `RemoveLocalModel` | `unary` |
+| `RemoveLocalArtifact` | `unary` |
 | `StartLocalModel` | `unary` |
 | `StopLocalModel` | `unary` |
 | `CheckLocalModelHealth` | `unary` |
 | `WarmLocalModel` | `unary` |
-| `ListVerifiedModels` | `unary` |
 | `SearchCatalogModels` | `unary` |
 | `ResolveModelInstallPlan` | `unary` |
-| `InstallVerifiedModel` | `unary` |
-| `ImportLocalModel` | `unary` |
 | `CollectDeviceProfile` | `unary` |
 | `ListLocalServices` | `unary` |
 | `InstallLocalService` | `unary` |

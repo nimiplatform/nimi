@@ -57,9 +57,25 @@ services:
     methods:
       - name: ListLocalModels
         type: unary
+      - name: ListLocalArtifacts
+        type: unary
+      - name: ListVerifiedModels
+        type: unary
+      - name: ListVerifiedArtifacts
+        type: unary
       - name: InstallLocalModel
         type: unary
+      - name: InstallVerifiedModel
+        type: unary
+      - name: InstallVerifiedArtifact
+        type: unary
+      - name: ImportLocalModel
+        type: unary
+      - name: ImportLocalArtifact
+        type: unary
       - name: RemoveLocalModel
+        type: unary
+      - name: RemoveLocalArtifact
         type: unary
       - name: StartLocalModel
         type: unary
@@ -69,15 +85,9 @@ services:
         type: unary
       - name: WarmLocalModel
         type: unary
-      - name: ListVerifiedModels
-        type: unary
       - name: SearchCatalogModels
         type: unary
       - name: ResolveModelInstallPlan
-        type: unary
-      - name: InstallVerifiedModel
-        type: unary
-      - name: ImportLocalModel
         type: unary
       - name: CollectDeviceProfile
         type: unary

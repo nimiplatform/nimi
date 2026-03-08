@@ -41,17 +41,22 @@ groups:
     source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
       - ListLocalModels
+      - ListLocalArtifacts
       - InstallLocalModel
+      - InstallVerifiedArtifact
       - RemoveLocalModel
+      - RemoveLocalArtifact
       - StartLocalModel
       - StopLocalModel
       - CheckLocalModelHealth
       - WarmLocalModel
       - ListVerifiedModels
+      - ListVerifiedArtifacts
       - SearchCatalogModels
       - ResolveModelInstallPlan
       - InstallVerifiedModel
       - ImportLocalModel
+      - ImportLocalArtifact
       - CollectDeviceProfile
       - ListLocalServices
       - InstallLocalService

@@ -377,8 +377,8 @@ func runtimeChecklist() []checklistItemSpec {
 			Requirement: "AI reason-code mapping (timeout/unavailable/filter/auth/rate-limit/internal)",
 			Tests: []testRef{
 				{Package: pkgAI, Name: "TestStreamScenarioTextGenerateTimeoutEmitsFailedEvent"},
-				{Package: pkgAI, Name: "TestMapProviderHTTPErrorContentFilter"},
-				{Package: pkgAI, Name: "TestOpenAIBackendStreamGenerateBrokenChunk"},
+				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_ContentFilter"},
+				{Package: pkgNimillm, Name: "TestBackendStreamGenerateTextBrokenChunkReturnsReasonCode"},
 				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_ProviderAuthFailed"},
 				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_ProviderRateLimited"},
 				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_ProviderInternal"},
@@ -389,7 +389,7 @@ func runtimeChecklist() []checklistItemSpec {
 			Requirement: "AI route policy regression (explicit route + no silent fallback)",
 			Tests: []testRef{
 				{Package: pkgAI, Name: "TestExecuteScenarioTextGenerateFallbackDenied"},
-				{Package: pkgAI, Name: "TestCloudProviderRoutesByPrefix"},
+				{Package: pkgNimillm, Name: "TestCloudProviderPickBackendRejectsUnavailableExplicitPrefixWithoutFallback"},
 			},
 		},
 		{
@@ -450,7 +450,7 @@ func runtimeChecklist() []checklistItemSpec {
 			ID:          "RS-11-23",
 			Requirement: "local-runtime and token-api routing regression",
 			Tests: []testRef{
-				{Package: pkgAI, Name: "TestCloudProviderRoutesByPrefix"},
+				{Package: pkgNimillm, Name: "TestCloudProviderPickBackendRoutesByPrefix"},
 				{Package: pkgAI, Name: "TestExecuteScenarioTextGenerateSuccess"},
 			},
 		},
@@ -458,8 +458,8 @@ func runtimeChecklist() []checklistItemSpec {
 			ID:          "RS-11-24",
 			Requirement: "cloud-nimillm naming unified (no cloud-litellm or legacy alias)",
 			Tests: []testRef{
-				{Package: pkgAI, Name: "TestCloudProviderPickBackend"},
-				{Package: pkgAI, Name: "TestCloudProviderRoutesByPrefix"},
+				{Package: pkgNimillm, Name: "TestCloudProviderPickBackendRoutesByPrefix"},
+				{Package: pkgNimillm, Name: "TestCloudProviderPickBackendRejectsLegacyAliasPrefix"},
 			},
 		},
 		{

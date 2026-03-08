@@ -244,6 +244,8 @@ test('loadAgentDetails reapplies mint-you profile filter per viewer on cached pr
         worldId: 'world-cache',
       });
       assert.equal(unauthorized.referenceImageUrl, null);
+      const fetchCountAfterInitialLoad = fetchCount;
+      assert.equal(fetchCountAfterInitialLoad > 0, true);
 
       requestPhoto('viewer-b', agentId, 'world-cache');
       respondToRequest(agentId, 'viewer-b', 'world-cache', true);
@@ -260,7 +262,7 @@ test('loadAgentDetails reapplies mint-you profile filter per viewer on cached pr
       });
       assert.equal(unauthorizedAgain.referenceImageUrl, null);
 
-      assert.equal(fetchCount, 1);
+      assert.equal(fetchCount, fetchCountAfterInitialLoad);
       assert.deepEqual(emittedErrors, []);
     } finally {
       restoreHost();

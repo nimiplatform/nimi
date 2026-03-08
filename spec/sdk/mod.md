@@ -26,6 +26,7 @@
 
 - Desktop hook 能力模型：`spec/desktop/kernel/hook-capability-contract.md`。
 - Runtime app messaging：`spec/runtime/kernel/app-messaging-contract.md`。
+- Local image workflow host projection：mod 通过 host-injected facade 请求 `runtime.local.artifacts.list`，并用 `buildLocalImageWorkflowExtensions()` 组装 `components` 与 `profile_overrides`。
 
 ## 4. 非目标
 

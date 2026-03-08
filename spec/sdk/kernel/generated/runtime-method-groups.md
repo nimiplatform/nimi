@@ -43,17 +43,22 @@ Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 | Method | Source Rule |
 |---|---|
 | `ListLocalModels` | `S-SURFACE-002` |
+| `ListLocalArtifacts` | `S-SURFACE-002` |
 | `InstallLocalModel` | `S-SURFACE-002` |
+| `InstallVerifiedArtifact` | `S-SURFACE-002` |
 | `RemoveLocalModel` | `S-SURFACE-002` |
+| `RemoveLocalArtifact` | `S-SURFACE-002` |
 | `StartLocalModel` | `S-SURFACE-002` |
 | `StopLocalModel` | `S-SURFACE-002` |
 | `CheckLocalModelHealth` | `S-SURFACE-002` |
 | `WarmLocalModel` | `S-SURFACE-002` |
 | `ListVerifiedModels` | `S-SURFACE-002` |
+| `ListVerifiedArtifacts` | `S-SURFACE-002` |
 | `SearchCatalogModels` | `S-SURFACE-002` |
 | `ResolveModelInstallPlan` | `S-SURFACE-002` |
 | `InstallVerifiedModel` | `S-SURFACE-002` |
 | `ImportLocalModel` | `S-SURFACE-002` |
+| `ImportLocalArtifact` | `S-SURFACE-002` |
 | `CollectDeviceProfile` | `S-SURFACE-002` |
 | `ListLocalServices` | `S-SURFACE-002` |
 | `InstallLocalService` | `S-SURFACE-002` |

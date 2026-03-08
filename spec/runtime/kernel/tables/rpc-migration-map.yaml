@@ -177,14 +177,54 @@ method_mappings:
     proto_method: ListLocalModels
     mapping_status: aligned
   - design_service: RuntimeLocalRuntimeService
+    design_method: ListLocalArtifacts
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: ListLocalArtifacts
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: ListVerifiedModels
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: ListVerifiedModels
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: ListVerifiedArtifacts
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: ListVerifiedArtifacts
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
     design_method: InstallLocalModel
     proto_service: RuntimeLocalRuntimeService
     proto_method: InstallLocalModel
     mapping_status: aligned
   - design_service: RuntimeLocalRuntimeService
+    design_method: InstallVerifiedModel
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: InstallVerifiedModel
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: InstallVerifiedArtifact
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: InstallVerifiedArtifact
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: ImportLocalModel
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: ImportLocalModel
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: ImportLocalArtifact
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: ImportLocalArtifact
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
     design_method: RemoveLocalModel
     proto_service: RuntimeLocalRuntimeService
     proto_method: RemoveLocalModel
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: RemoveLocalArtifact
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: RemoveLocalArtifact
     mapping_status: aligned
   - design_service: RuntimeLocalRuntimeService
     design_method: StartLocalModel
@@ -207,11 +247,6 @@ method_mappings:
     proto_method: WarmLocalModel
     mapping_status: aligned
   - design_service: RuntimeLocalRuntimeService
-    design_method: ListVerifiedModels
-    proto_service: RuntimeLocalRuntimeService
-    proto_method: ListVerifiedModels
-    mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
     design_method: SearchCatalogModels
     proto_service: RuntimeLocalRuntimeService
     proto_method: SearchCatalogModels
@@ -220,16 +255,6 @@ method_mappings:
     design_method: ResolveModelInstallPlan
     proto_service: RuntimeLocalRuntimeService
     proto_method: ResolveModelInstallPlan
-    mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
-    design_method: InstallVerifiedModel
-    proto_service: RuntimeLocalRuntimeService
-    proto_method: InstallVerifiedModel
-    mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
-    design_method: ImportLocalModel
-    proto_service: RuntimeLocalRuntimeService
-    proto_method: ImportLocalModel
     mapping_status: aligned
   - design_service: RuntimeLocalRuntimeService
     design_method: CollectDeviceProfile

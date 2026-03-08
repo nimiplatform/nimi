@@ -14,7 +14,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func (s *Service) ListLocalArtifacts(_ context.Context, req *runtimev1.ListLocalArtifactsRequest) (*runtimev1.ListLocalArtifactsResponse, error) {
@@ -218,14 +217,20 @@ func (s *Service) ImportLocalArtifact(_ context.Context, req *runtimev1.ImportLo
 func (s *Service) RemoveLocalArtifact(_ context.Context, req *runtimev1.RemoveLocalArtifactRequest) (*runtimev1.RemoveLocalArtifactResponse, error) {
 	localArtifactID := strings.TrimSpace(req.GetLocalArtifactId())
 	if localArtifactID == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "local artifact id is required")
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    "local artifact id is required",
+			ActionHint: "select_local_artifact",
+		})
 	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	current := s.artifacts[localArtifactID]
 	if current == nil {
-		return nil, status.Errorf(codes.NotFound, "local artifact %s not found", localArtifactID)
+		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    fmt.Sprintf("local artifact %s not found", localArtifactID),
+			ActionHint: "select_installed_local_artifact",
+		})
 	}
 	updated := cloneLocalArtifact(current)
 	updated.Status = runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_REMOVED
