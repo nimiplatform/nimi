@@ -35,11 +35,11 @@ evidence_catalog:
     command: pnpm check:runtime-mod-hook-hardcut
     path: scripts/check-runtime-mod-hook-hardcut.mjs
     description: Cross-layer runtime-aligned mod and hook surface hard-cut guard.
-  desktop_token_api_runtime_only_gate:
+  desktop_cloud_runtime_only_gate:
     type: static_gate
-    command: pnpm check:desktop-token-api-runtime-only
-    path: scripts/check-desktop-token-api-runtime-only.mjs
-    description: Enforces token-api connector routing through runtime-owned APIs only.
+    command: pnpm check:desktop-cloud-runtime-only
+    path: scripts/check-desktop-cloud-runtime-only.mjs
+    description: Enforces cloud connector routing through runtime-owned APIs only.
   desktop_runtime_config_path_gate:
     type: static_gate
     command: pnpm check:desktop-no-legacy-runtime-config-path
@@ -475,14 +475,14 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
-      - desktop_token_api_runtime_only_gate
+      - desktop_cloud_runtime_only_gate
   - rule_id: D-LLM-001
     status: covered
     evidence_refs:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
-      - desktop_token_api_runtime_only_gate
+      - desktop_cloud_runtime_only_gate
   - rule_id: D-LLM-002
     status: covered
     evidence_refs:

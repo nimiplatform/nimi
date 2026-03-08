@@ -7,10 +7,10 @@ import { useRuntimeConfigHydrationEffect } from './runtime-config-effect-hydrati
 import { useRuntimeConfigVaultSyncEffect } from './runtime-config-effect-vault-sync';
 import { useRuntimeConfigRouteInitEffect } from './runtime-config-effect-route-init';
 import { useRuntimeConfigSetupAutodiscoverEffect } from './runtime-config-effect-setup-autodiscover';
-import { checkLocalRuntimeHealth } from './runtime-config-connector-discovery';
+import { checkLocalHealth } from './runtime-config-connector-discovery';
 
-const LOCAL_RUNTIME_SNAPSHOT_POLL_INTERVAL_MS = 30_000;
-const LOCAL_RUNTIME_HEALTH_POLL_INTERVAL_MS = 30_000;
+const LOCAL_SNAPSHOT_POLL_INTERVAL_MS = 30_000;
+const LOCAL_HEALTH_POLL_INTERVAL_MS = 30_000;
 
 type RuntimeConfigPanelEffectsInput = {
   bootstrapReady: boolean;
@@ -23,10 +23,10 @@ type RuntimeConfigPanelEffectsInput = {
   setStatusBanner: (banner: StatusBanner | null) => void;
   setVaultEntryCount: (count: number) => void;
   vaultVersion: number;
-  discoverLocalRuntimeModels: () => Promise<void>;
+  discoverLocalModels: () => Promise<void>;
 };
 
-function mergeLocalRuntimeSnapshot(
+function mergeLocalSnapshot(
   previous: RuntimeConfigStateV11,
   snapshot: LocalAiRuntimeSnapshot,
 ): RuntimeConfigStateV11 {
@@ -48,16 +48,16 @@ function mergeLocalRuntimeSnapshot(
         )),
       status: item.status,
     }));
-  const models = nextModels.length > 0 ? nextModels : previous.localRuntime.models;
+  const models = nextModels.length > 0 ? nextModels : previous.local.models;
 
   return {
     ...previous,
-    localRuntime: {
-      ...previous.localRuntime,
+    local: {
+      ...previous.local,
       models,
-      status: previous.localRuntime.status,
-      lastCheckedAt: previous.localRuntime.lastCheckedAt || snapshot.generatedAt,
-      lastDetail: previous.localRuntime.lastDetail,
+      status: previous.local.status,
+      lastCheckedAt: previous.local.lastCheckedAt || snapshot.generatedAt,
+      lastDetail: previous.local.lastDetail,
     },
   };
 }
@@ -87,17 +87,17 @@ export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInp
   useRuntimeConfigSetupAutodiscoverEffect({
     state: input.state,
     hydrated: input.hydrated,
-    discoverLocalRuntimeModels: input.discoverLocalRuntimeModels,
+    discoverLocalModels: input.discoverLocalModels,
   });
 
   useEffect(() => {
     if (!input.hydrated) return;
     const stop = startLocalAiRuntimePolling({
-      intervalMs: LOCAL_RUNTIME_SNAPSHOT_POLL_INTERVAL_MS,
+      intervalMs: LOCAL_SNAPSHOT_POLL_INTERVAL_MS,
       onSnapshot: (snapshot) => {
         input.setState((previous) => {
           if (!previous) return previous;
-          return mergeLocalRuntimeSnapshot(previous, snapshot);
+          return mergeLocalSnapshot(previous, snapshot);
         });
       },
     });
@@ -112,14 +112,14 @@ export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInp
 
     const runHealthCheck = async () => {
       try {
-        const { health, normalizedStatus } = await checkLocalRuntimeHealth();
+        const { health, normalizedStatus } = await checkLocalHealth();
         if (cancelled) return;
         input.setState((previous) => {
           if (!previous) return previous;
           return {
             ...previous,
-            localRuntime: {
-              ...previous.localRuntime,
+            local: {
+              ...previous.local,
               status: normalizedStatus,
               lastCheckedAt: health.checkedAt,
               lastDetail: health.detail,
@@ -134,7 +134,7 @@ export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInp
     void runHealthCheck();
     const timer = setInterval(() => {
       void runHealthCheck();
-    }, LOCAL_RUNTIME_HEALTH_POLL_INTERVAL_MS);
+    }, LOCAL_HEALTH_POLL_INTERVAL_MS);
 
     return () => {
       cancelled = true;

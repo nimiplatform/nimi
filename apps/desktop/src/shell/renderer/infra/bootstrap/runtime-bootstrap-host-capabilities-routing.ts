@@ -56,15 +56,15 @@ export function toResolvedBinding(
   };
 }
 
-export function hydrateTokenApiRouteBindingFromOptions(
+export function hydrateCloudRouteBindingFromOptions(
   binding: RuntimeRouteBinding,
   options: RuntimeRouteOptionsSnapshot,
 ): RuntimeRouteBinding {
-  if (binding.source !== 'token-api') {
+  if (binding.source !== 'cloud') {
     return binding;
   }
   const connectorId = String(binding.connectorId || '').trim();
-  const selected = options.selected.source === 'token-api' ? options.selected : null;
+  const selected = options.selected.source === 'cloud' ? options.selected : null;
   const connector = options.connectors.find((item) => item.id === connectorId) || null;
 
   if (!connectorId && selected) {
@@ -82,18 +82,18 @@ export function hydrateTokenApiRouteBindingFromOptions(
   };
 }
 
-export function hydrateLocalRuntimeRouteBindingFromOptions(
+export function hydrateLocalRouteBindingFromOptions(
   binding: RuntimeRouteBinding,
   options: RuntimeRouteOptionsSnapshot,
 ): RuntimeRouteBinding {
-  if (binding.source !== 'local-runtime') {
+  if (binding.source !== 'local') {
     return binding;
   }
-  const selected = options.selected.source === 'local-runtime' ? options.selected : null;
+  const selected = options.selected.source === 'local' ? options.selected : null;
   const targetLocalModelId = String(binding.localModelId || '').trim();
   const targetModelId = String(binding.modelId || binding.model || '').trim().replace(/^(localai|nexa|local)\//i, '');
   const targetEngine = String(binding.engine || binding.provider || '').trim().toLowerCase();
-  const localModel = options.localRuntime.models.find((item) => (
+  const localModel = options.local.models.find((item) => (
     (targetLocalModelId && String(item.localModelId || '').trim() === targetLocalModelId)
     || (
       String(item.modelId || item.model || '').trim() === targetModelId
@@ -161,7 +161,7 @@ function localModelStatusPriority(status: string): number {
   return 4;
 }
 
-function normalizeLocalRuntimeModelRoot(value: unknown): string {
+function normalizeLocalModelRoot(value: unknown): string {
   const trimmed = String(value || '').trim();
   const lower = trimmed.toLowerCase();
   if (lower.startsWith('localai/')) return trimmed.slice('localai/'.length).trim();
@@ -170,24 +170,24 @@ function normalizeLocalRuntimeModelRoot(value: unknown): string {
   return trimmed;
 }
 
-function normalizeLocalRuntimeEngine(value: unknown): string {
+function normalizeLocalEngine(value: unknown): string {
   return String(value || '').trim().toLowerCase() === 'nexa' ? 'nexa' : 'localai';
 }
 
-function pickDesktopLocalRuntimeModel(
+function pickDesktopLocalModel(
   models: LocalAiModelRecord[],
   resolved: ModRuntimeResolvedBinding,
 ): LocalAiModelRecord | null {
   const targetLocalModelId = String(resolved.localModelId || '').trim();
-  const targetModelId = normalizeLocalRuntimeModelRoot(resolved.modelId || resolved.model);
-  const targetEngine = normalizeLocalRuntimeEngine(resolved.engine || resolved.provider || '');
+  const targetModelId = normalizeLocalModelRoot(resolved.modelId || resolved.model);
+  const targetEngine = normalizeLocalEngine(resolved.engine || resolved.provider || '');
   const candidates = models
     .filter((model) => model.status !== 'removed')
     .filter((model) => (
       (targetLocalModelId && String(model.localModelId || '').trim() === targetLocalModelId)
       || (
-        normalizeLocalRuntimeModelRoot(model.modelId) === targetModelId
-        && normalizeLocalRuntimeEngine(model.engine) === targetEngine
+        normalizeLocalModelRoot(model.modelId) === targetModelId
+        && normalizeLocalEngine(model.engine) === targetEngine
       )
     ))
     .sort((left, right) => {
@@ -200,14 +200,14 @@ function pickDesktopLocalRuntimeModel(
   return candidates[0] || null;
 }
 
-export async function ensureResolvedLocalRuntimeModelAvailable(
+export async function ensureResolvedLocalModelAvailable(
   resolved: ModRuntimeResolvedBinding,
 ): Promise<ModRuntimeResolvedBinding> {
-  if (resolved.source !== 'local-runtime') {
+  if (resolved.source !== 'local') {
     return resolved;
   }
   const desktopModels = await localAiRuntime.list();
-  const desktopModel = pickDesktopLocalRuntimeModel(desktopModels, resolved);
+  const desktopModel = pickDesktopLocalModel(desktopModels, resolved);
   if (!desktopModel) {
     return resolved;
   }
@@ -235,11 +235,11 @@ export async function ensureResolvedLocalRuntimeModelAvailable(
 export function toRouteHealthResult(
   result: RuntimeLlmHealthResult,
   provider: string,
-  source: 'local-runtime' | 'token-api',
+  source: 'local' | 'cloud',
 ): RuntimeLlmHealthResult & {
   provider: string;
   reasonCode: string;
-  actionHint: 'none' | 'install-local-model' | 'switch-to-token-api' | 'verify-connector' | 'retry';
+  actionHint: 'none' | 'install-local-model' | 'switch-to-cloud' | 'verify-connector' | 'retry';
 } {
   const status = String(result.status || '').trim().toLowerCase();
   const reasonCode = status === 'healthy'
@@ -249,8 +249,8 @@ export function toRouteHealthResult(
       : 'RUNTIME_ROUTE_UNAVAILABLE';
   const actionHint = status === 'healthy'
     ? 'none'
-    : source === 'local-runtime'
-      ? (status === 'degraded' ? 'install-local-model' : 'switch-to-token-api')
+    : source === 'local'
+      ? (status === 'degraded' ? 'install-local-model' : 'switch-to-cloud')
       : (status === 'degraded' ? 'retry' : 'verify-connector');
   return {
     ...result,

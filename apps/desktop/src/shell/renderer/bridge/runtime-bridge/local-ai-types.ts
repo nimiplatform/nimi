@@ -62,7 +62,7 @@ export type LocalAiModelsHealthResult = {
 export type LocalAiInferenceAuditEventType =
   | 'inference_invoked'
   | 'inference_failed'
-  | 'fallback_to_token_api';
+  | 'fallback_to_cloud';
 
 export type LocalAiInferenceAuditModality =
   | 'chat'
@@ -75,8 +75,8 @@ export type LocalAiInferenceAuditModality =
 export type LocalAiInferenceAuditPayload = {
   eventType: LocalAiInferenceAuditEventType;
   modId: string;
-  source: 'local-runtime' | 'token-api';
-  routeSource?: 'local-runtime' | 'token-api';
+  source: 'local' | 'cloud';
+  routeSource?: 'local' | 'cloud';
   provider: string;
   modality: LocalAiInferenceAuditModality;
   adapter: 'openai_compat_adapter' | 'localai_native_adapter' | string;

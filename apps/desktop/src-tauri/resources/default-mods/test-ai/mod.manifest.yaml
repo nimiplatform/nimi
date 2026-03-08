@@ -25,6 +25,7 @@ capabilities:
   - runtime.media.voice.design
   - runtime.route.list.options
   - runtime.route.resolve
+  - runtime.local.artifacts.list
   - ui.register.ui-extension.app.sidebar.mods
   - ui.register.ui-extension.app.content.routes
 ai:

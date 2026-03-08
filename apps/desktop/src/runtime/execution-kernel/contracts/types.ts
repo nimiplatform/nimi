@@ -78,7 +78,7 @@ export interface LifecycleInput {
   actor: string;
 }
 
-export interface ExecutePrivateTurnInput {
+export interface ExecuteLocalTurnInput {
   requestId: string;
   sessionId: string;
   turnIndex: number;

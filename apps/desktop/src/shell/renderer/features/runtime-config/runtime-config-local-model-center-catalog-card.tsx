@@ -7,7 +7,7 @@ import type {
   LocalAiVerifiedModelDescriptor,
   OrphanModelFile,
 } from '@runtime/local-ai-runtime';
-import type { LocalRuntimeModelOptionV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import type { LocalModelOptionV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { RuntimeSelect } from './runtime-config-primitives';
 import {
   CAPABILITY_OPTIONS,
@@ -35,7 +35,7 @@ import { ArtifactRequirementBadges } from './runtime-config-local-model-center-s
 type CatalogCardProps = {
   searchQuery: string;
   catalogCapability: 'all' | CapabilityOption;
-  filteredInstalledModels: LocalRuntimeModelOptionV11[];
+  filteredInstalledModels: LocalModelOptionV11[];
   filteredInstalledArtifacts: LocalAiArtifactRecord[];
   loadingCatalog: boolean;
   loadingInstalledArtifacts: boolean;
@@ -209,7 +209,7 @@ function CatalogVariantPicker(props: {
   );
 }
 
-export function LocalRuntimeModelCenterCatalogCard(props: CatalogCardProps) {
+export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
   return (
     <div className="overflow-visible rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
       <div className="border-b border-gray-100 px-4 py-4">

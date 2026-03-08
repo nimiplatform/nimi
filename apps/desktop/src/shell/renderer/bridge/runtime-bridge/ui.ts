@@ -30,7 +30,7 @@ export async function confirmPrivateSync(payload: ConfirmPrivateSyncPayload): Pr
   if (!hasTauriInvoke()) {
     return {
       confirmed: window.confirm(
-        'PRIVATE 路由会将本地内容上传到平台治理链。是否确认上传？',
+        'LOCAL 路由会将本地内容上传到平台治理链。是否确认上传？',
       ),
     };
   }

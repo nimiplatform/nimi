@@ -89,12 +89,12 @@ async function collectViolations(files) {
 }
 
 async function runSelfTest() {
-  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'nimi-check-token-api-'));
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'nimi-check-cloud-'));
   const goodPath = path.join(tempRoot, 'good.ts');
   const badPath = path.join(tempRoot, 'bad.ts');
   await fs.writeFile(
     goodPath,
-    "export const route = async () => ({ source: 'token-api' as const });\n",
+    "export const route = async () => ({ source: 'cloud' as const });\n",
     'utf8',
   );
   await fs.writeFile(
@@ -112,7 +112,7 @@ async function runSelfTest() {
     if (badViolations.length === 0) {
       throw new Error('self-test failed: legacy fixture was not flagged');
     }
-    process.stdout.write('check-desktop-token-api-runtime-only self-test passed\n');
+    process.stdout.write('check-desktop-cloud-runtime-only self-test passed\n');
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
@@ -131,7 +131,7 @@ async function main() {
 
   const missingRoots = roots.filter((root) => !path.isAbsolute(root.abs) || !root.abs.startsWith(repoRoot) || !root.abs.includes('/apps/desktop/'));
   if (missingRoots.length > 0) {
-    process.stderr.write('desktop token-api runtime-only check misconfigured: invalid scan root(s)\n');
+    process.stderr.write('desktop cloud runtime-only check misconfigured: invalid scan root(s)\n');
     for (const root of missingRoots) {
       process.stderr.write(`- ${root.rel}\n`);
     }
@@ -145,15 +145,15 @@ async function main() {
   }
 
   if (files.length === 0) {
-    process.stderr.write('desktop token-api runtime-only check failed: no source files found under scan roots\n');
+    process.stderr.write('desktop cloud runtime-only check failed: no source files found under scan roots\n');
     process.exitCode = 1;
     return;
   }
   const violations = await collectViolations(files);
 
   if (violations.length > 0) {
-    process.stderr.write('desktop token-api runtime-only check failed\n');
-    process.stderr.write('token-api path must be routed through runtime connector APIs only\n');
+    process.stderr.write('desktop cloud runtime-only check failed\n');
+    process.stderr.write('cloud path must be routed through runtime connector APIs only\n');
     for (const violation of violations) {
       process.stderr.write(`- ${violation}\n`);
     }
@@ -161,10 +161,10 @@ async function main() {
     return;
   }
 
-  process.stdout.write(`desktop token-api runtime-only check passed (${files.length} files scanned)\n`);
+  process.stdout.write(`desktop cloud runtime-only check passed (${files.length} files scanned)\n`);
 }
 
 main().catch((error) => {
-  process.stderr.write(`check-desktop-token-api-runtime-only failed: ${String(error)}\n`);
+  process.stderr.write(`check-desktop-cloud-runtime-only failed: ${String(error)}\n`);
   process.exitCode = 1;
 });

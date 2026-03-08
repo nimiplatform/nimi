@@ -23,7 +23,7 @@ const BRIDGE_ERROR_CODE_MAP: Record<string, string> = {
   LOCAL_AI_HF_DOWNLOAD_NOT_RESUMABLE: '当前下载会话不可恢复，请重新安装模型',
   LOCAL_AI_HF_DOWNLOAD_SESSION_EXISTS: '该模型已有进行中的下载任务',
   LOCAL_AI_DOWNLOAD_SESSION_NOT_FOUND: '未找到下载会话，请刷新后重试',
-  LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED: '当前来源无权执行模型生命周期写操作',
+  LOCAL_LIFECYCLE_WRITE_DENIED: '当前来源无权执行模型生命周期写操作',
   RUNTIME_ROUTE_CAPABILITY_MISMATCH: '当前路由绑定的本地模型不具备所需能力，请切换匹配模型',
   LOCAL_AI_QWEN_GPU_REQUIRED: 'Qwen TTS 需要可用 NVIDIA GPU，本机未检测到支持环境',
   LOCAL_AI_QWEN_PYTHON_REQUIRED: 'Qwen TTS 需要 Python 3.10+，请先安装后重试',
@@ -100,7 +100,7 @@ const BRIDGE_ERROR_MAP: Array<{ pattern: RegExp; message: string }> = [
   { pattern: /connector.*missing|RUNTIME_ROUTE_CONNECTOR/i, message: 'Token API 连接器不可用，请检查连接器配置' },
   { pattern: /RUNTIME_ROUTE_CAPABILITY_MISMATCH|capability mismatch/i, message: '当前路由绑定模型能力不匹配，请切换模型' },
   { pattern: /unhealthy|engine.*failed|llama\.cpp/i, message: '本地引擎不可用，请检查引擎状态或二进制路径' },
-  { pattern: /LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED/i, message: '当前来源无权执行模型生命周期写操作' },
+  { pattern: /LOCAL_LIFECYCLE_WRITE_DENIED/i, message: '当前来源无权执行模型生命周期写操作' },
 ];
 
 function asRecord(value: unknown): Record<string, unknown> {

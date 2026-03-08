@@ -42,8 +42,8 @@ function normalizeFinishReason(value: unknown): string {
 function normalizeRouteDecision(value: unknown): string {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return 'UNKNOWN';
-  if (numeric === 1) return 'LOCAL_RUNTIME';
-  if (numeric === 2) return 'TOKEN_API';
+  if (numeric === 1) return 'LOCAL';
+  if (numeric === 2) return 'CLOUD';
   if (numeric === 0) return 'UNSPECIFIED';
   return `UNKNOWN_${Math.trunc(numeric)}`;
 }

@@ -24,13 +24,13 @@ type DownloadCompleteHandler = (
   modelId?: string,
 ) => void;
 
-type UseLocalRuntimeModelCenterDownloadsInput = {
+type UseLocalModelCenterDownloadsInput = {
   isModMode: boolean;
   onDownloadComplete?: DownloadCompleteHandler;
   onProgressSettled?: (event: LocalAiDownloadProgressEvent) => void;
 };
 
-export function useLocalRuntimeModelCenterDownloads(input: UseLocalRuntimeModelCenterDownloadsInput) {
+export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloadsInput) {
   const [progressBySessionId, setProgressBySessionId] = useState<Record<string, ProgressSessionState>>(
     () => getCachedProgressSessions(),
   );

@@ -43,7 +43,7 @@ type RuntimePageIdV11 = 'overview' | 'local' | 'cloud' | 'runtime' | 'mods';
 | 旧值 | 映射目标 |
 |------|----------|
 | `'models'` | `'local'` |
-| `'cloud-api'` / `'token-api'` | `'cloud'` |
+| `'cloud-api'` / `'cloud'` / `'cloud'` | `'cloud'` |
 | `'providers'` / `'audit'` | `'runtime'` |
 | 其他未知值 | `'overview'` |
 
@@ -57,10 +57,10 @@ type RuntimeConfigStateV11 = {
   initializedByV11: boolean;
   activePage: RuntimePageIdV11;       // 当前选中页面
   diagnosticsCollapsed: boolean;
-  selectedSource: SourceIdV11;        // 'local-runtime' | 'token-api'
+  selectedSource: SourceIdV11;        // 'local' | 'cloud'
   activeCapability: CapabilityV11;    // 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding'
   uiMode: UiModeV11;                 // 'simple' | 'advanced'
-  localRuntime: LocalRuntimeStateV11; // 端点、模型列表、node matrix、状态
+  local: LocalStateV11; // 端点、模型列表、node matrix、状态
   connectors: ApiConnector[];         // NOT persisted — bridge config 是 single source of truth
   selectedConnectorId: string;        // NOT persisted — bridge config 是 single source of truth
 };
@@ -68,7 +68,7 @@ type RuntimeConfigStateV11 = {
 
 ### 持久化策略
 
-- `activePage`、`diagnosticsCollapsed`、`uiMode`、`selectedSource`、`activeCapability`、`localRuntime` 持久化到 localStorage。
+- `activePage`、`diagnosticsCollapsed`、`uiMode`、`selectedSource`、`activeCapability`、`local` 持久化到 localStorage。
 - `connectors` 和 `selectedConnectorId` **不持久化**到 localStorage，通过 Tauri bridge config（`config.json`）作为 single source of truth，bridge merge 后填充。
 - `StoredStateV11` 是 localStorage 子集，不含 `connectors` / `selectedConnectorId`。
 
@@ -150,5 +150,5 @@ Connector 凭据路由：AI 请求凭据通过 `connector_id` 路由（K-KEYSRC-
 本域涉及的 CI 门禁：
 
 - `pnpm check:desktop-spec-kernel-consistency`（Check 1, 11, 13~14, 18 相关规则）
-- `pnpm check:desktop-token-api-runtime-only`
+- `pnpm check:desktop-cloud-runtime-only`
 - `pnpm check:desktop-no-legacy-runtime-config-path`

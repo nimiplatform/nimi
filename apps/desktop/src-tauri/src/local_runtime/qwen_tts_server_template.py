@@ -127,7 +127,7 @@ def create_app(model_dir: str, model_id: str) -> FastAPI:
                 {
                     "id": MODEL_ID,
                     "object": "model",
-                    "owned_by": "local-runtime",
+                    "owned_by": "local",
                 }
             ],
         }

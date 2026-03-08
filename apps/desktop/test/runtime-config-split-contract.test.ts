@@ -49,7 +49,7 @@ test('parseRuntimeDefaults requires split realm/runtime payload', () => {
       targetAccountId: 'account-1',
       agentId: 'agent-1',
       worldId: 'world-1',
-      provider: 'local-runtime',
+      provider: 'local',
       userConfirmedUpload: true,
     },
   });

@@ -17,11 +17,11 @@ export function selectOrderedConnectorsV11(
   });
 }
 
-export function selectAllLocalRuntimeModelsV11(state: RuntimeConfigStateV11 | null): string[] {
-  return dedupeStringsV11([...(state?.localRuntime.models || []).map((item) => item.model)]);
+export function selectAllLocalModelsV11(state: RuntimeConfigStateV11 | null): string[] {
+  return dedupeStringsV11([...(state?.local.models || []).map((item) => item.model)]);
 }
 
-export function selectFilteredLocalRuntimeModelsV11(models: string[], queryInput: string): string[] {
+export function selectFilteredLocalModelsV11(models: string[], queryInput: string): string[] {
   const query = queryInput.trim().toLowerCase();
   if (!query) return models;
   return models.filter((model) => model.toLowerCase().includes(query));

@@ -33,7 +33,7 @@ Qwen TTS 引擎依赖检查错误：
 
 ## D-ERR-004 — Runtime 路由错误码
 
-- `LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED`：source type 无权执行生命周期写操作。
+- `LOCAL_LIFECYCLE_WRITE_DENIED`：source type 无权执行生命周期写操作。
 - `RUNTIME_ROUTE_CAPABILITY_MISMATCH`：路由绑定的模型能力不匹配。
 
 ## D-ERR-012 — HuggingFace 下载错误动作提示

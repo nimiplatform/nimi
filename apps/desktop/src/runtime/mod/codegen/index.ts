@@ -9,7 +9,7 @@ export type CodegenGenerateInput = {
   capabilities: string[];
   template?: string;
   modelUsed?: string;
-  routePolicy?: 'local-runtime' | 'token-api';
+  routePolicy?: 'local' | 'cloud';
   nowIso?: () => string;
 };
 
@@ -159,7 +159,7 @@ export function generateCodegenArtifacts(input: CodegenGenerateInput): CodegenGe
     originalPrompt: String(input.prompt || ''),
     revisionHistory: [],
     modelUsed: input.modelUsed || 'unknown',
-    routePolicy: input.routePolicy || 'token-api',
+    routePolicy: input.routePolicy || 'cloud',
     lastBuildHash: preflight.bundleHash,
     grantedCapabilities: preflight.autoGrantedCapabilities,
     consentRequiredCapabilities: preflight.consentRequiredCapabilities,

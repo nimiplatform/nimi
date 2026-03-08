@@ -8,9 +8,9 @@ import {
   type RuntimeConfigStateV11,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
-  selectAllLocalRuntimeModelsV11,
+  selectAllLocalModelsV11,
   selectFilteredConnectorModelsV11,
-  selectFilteredLocalRuntimeModelsV11,
+  selectFilteredLocalModelsV11,
   selectOrderedConnectorsV11,
 } from '@renderer/features/runtime-config/runtime-config-selectors-v11';
 
@@ -30,7 +30,7 @@ function normalizeCapability(value: unknown): CapabilityV11 | null {
 export type RuntimeConfigPanelDerivedModel = {
   selectedConnector: RuntimeConfigStateV11['connectors'][number] | null;
   orderedConnectors: RuntimeConfigStateV11['connectors'];
-  filteredLocalRuntimeModels: string[];
+  filteredLocalModels: string[];
   filteredConnectorModels: string[];
   runtimeDependencyTargets: Array<{
     modId: string;
@@ -42,7 +42,7 @@ export type RuntimeConfigPanelDerivedModel = {
 
 export function useRuntimeConfigPanelDerived(input: {
   state: RuntimeConfigStateV11 | null;
-  localRuntimeModelQuery: string;
+  localModelQuery: string;
   connectorModelQuery: string;
   localManifestSummaries: RuntimeLocalManifestSummary[];
   registeredRuntimeModIds: string[];
@@ -61,11 +61,11 @@ export function useRuntimeConfigPanelDerived(input: {
     [input.state, vendorOrderIndex],
   );
 
-  const allLocalRuntimeModels = useMemo(() => selectAllLocalRuntimeModelsV11(input.state), [input.state]);
+  const allLocalModels = useMemo(() => selectAllLocalModelsV11(input.state), [input.state]);
 
-  const filteredLocalRuntimeModels = useMemo(
-    () => selectFilteredLocalRuntimeModelsV11(allLocalRuntimeModels, input.localRuntimeModelQuery),
-    [allLocalRuntimeModels, input.localRuntimeModelQuery],
+  const filteredLocalModels = useMemo(
+    () => selectFilteredLocalModelsV11(allLocalModels, input.localModelQuery),
+    [allLocalModels, input.localModelQuery],
   );
 
   const filteredConnectorModels = useMemo(
@@ -74,7 +74,7 @@ export function useRuntimeConfigPanelDerived(input: {
   );
 
   const runtimeStatus: ProviderStatusV11 | null = input.state
-    ? (input.state.localRuntime.status === 'healthy' ? 'healthy' : (selectedConnector?.status || input.state.localRuntime.status))
+    ? (input.state.local.status === 'healthy' ? 'healthy' : (selectedConnector?.status || input.state.local.status))
     : null;
 
   const runtimeDependencyTargets = useMemo(() => {
@@ -134,7 +134,7 @@ export function useRuntimeConfigPanelDerived(input: {
   return {
     selectedConnector,
     orderedConnectors,
-    filteredLocalRuntimeModels,
+    filteredLocalModels,
     filteredConnectorModels,
     runtimeDependencyTargets,
     runtimeStatus,

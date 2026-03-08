@@ -13,7 +13,7 @@ function toMissingDependencySnapshot(input: {
   return {
     modId: input.modId,
     status: 'missing',
-    routeSource: 'token-api',
+    routeSource: 'cloud',
     reasonCode: input.reasonCode,
     warnings: [input.warning],
     dependencies: [],
@@ -36,7 +36,7 @@ export class HookRuntimeModAiDependencySnapshotService {
   async getSnapshot(input: {
     modId: string;
     capability?: string;
-    routeSourceHint?: 'token-api' | 'local-runtime';
+    routeSourceHint?: 'cloud' | 'local';
   }): Promise<HookModAiDependencySnapshot> {
     const modId = String(input.modId || '').trim();
     const capability = parseRuntimeCanonicalCapability(input.capability) || undefined;

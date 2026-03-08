@@ -66,7 +66,7 @@ test('dependency snapshot resolver maps canonical capability tokens for mod-faci
     const snapshot = await resolver({
       modId: 'world.nimi.local-chat',
       capability: 'audio.synthesize',
-      routeSourceHint: 'local-runtime',
+      routeSourceHint: 'local',
     });
 
     assert.equal(resolveDependencyCalls.length, 1);

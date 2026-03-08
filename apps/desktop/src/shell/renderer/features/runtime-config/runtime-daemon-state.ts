@@ -41,15 +41,15 @@ export function applyRuntimeDaemonStatusToConfigState(
 
   if (!status.running) {
     if (
-      previous.localRuntime.status === 'unreachable'
-      && previous.localRuntime.lastDetail === detail.stoppedDetail
+      previous.local.status === 'unreachable'
+      && previous.local.lastDetail === detail.stoppedDetail
     ) {
       return previous;
     }
     return {
       ...previous,
-      localRuntime: {
-        ...previous.localRuntime,
+      local: {
+        ...previous.local,
         status: 'unreachable',
         lastCheckedAt: checkedAt,
         lastDetail: detail.stoppedDetail,
@@ -57,11 +57,11 @@ export function applyRuntimeDaemonStatusToConfigState(
     };
   }
 
-  if (mode === 'action' || previous.localRuntime.status === 'unreachable') {
+  if (mode === 'action' || previous.local.status === 'unreachable') {
     return {
       ...previous,
-      localRuntime: {
-        ...previous.localRuntime,
+      local: {
+        ...previous.local,
         status: 'idle',
         lastCheckedAt: checkedAt,
         lastDetail: detail.runningDetail,

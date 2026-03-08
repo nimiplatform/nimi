@@ -16,7 +16,7 @@ use super::import_validator::{
 use super::store::runtime_models_dir;
 use super::types::{
     normalize_non_empty, slugify_local_model_id, ImportedModelManifest, ImportedModelSource,
-    LocalAiInstallRequest, DEFAULT_LOCAL_RUNTIME_ENDPOINT,
+    LocalAiInstallRequest, DEFAULT_LOCAL_ENDPOINT,
 };
 
 #[derive(Debug, Clone)]

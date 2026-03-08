@@ -32,7 +32,7 @@ test('createResolveRuntimeBinding reads source/model/connectorId from RuntimeFie
   const resolve = createResolveRuntimeBinding(() => fields);
   const result = await resolve({ modId: 'test-mod' });
 
-  assert.equal(result.source, 'token-api');
+  assert.equal(result.source, 'cloud');
   assert.equal(result.model, 'tts-1');
   assert.equal(result.connectorId, 'conn-123');
   assert.equal(result.adapter, undefined);
@@ -44,20 +44,20 @@ test('createResolveRuntimeBinding binding source takes priority over inferred so
   const result = await resolve({
     modId: 'test-mod',
     binding: {
-      source: 'token-api',
+      source: 'cloud',
       connectorId: '',
       model: '',
     },
   });
 
-  assert.equal(result.source, 'token-api');
+  assert.equal(result.source, 'cloud');
 });
 
 test('createResolveRuntimeBinding connector binding takes priority over fields.connectorId', async () => {
   const fields = createMockFields({ connectorId: 'field-conn' });
   const resolve = createResolveRuntimeBinding(() => fields);
   const binding: RuntimeRouteBinding = {
-    source: 'token-api',
+    source: 'cloud',
     connectorId: 'override-conn',
     model: '',
   };
@@ -70,7 +70,7 @@ test('createResolveRuntimeBinding model binding takes priority over fields.local
   const fields = createMockFields({ localProviderModel: 'default-model' });
   const resolve = createResolveRuntimeBinding(() => fields);
   const binding: RuntimeRouteBinding = {
-    source: 'token-api',
+    source: 'cloud',
     connectorId: 'override-conn',
     model: 'custom-model',
     provider: 'dashscope',
@@ -81,28 +81,28 @@ test('createResolveRuntimeBinding model binding takes priority over fields.local
   assert.equal(result.provider, 'dashscope');
 });
 
-test('createResolveRuntimeBinding infers local-runtime source for localai provider', async () => {
+test('createResolveRuntimeBinding infers local source for localai provider', async () => {
   const fields = createMockFields({ provider: 'localai' });
   const resolve = createResolveRuntimeBinding(() => fields);
   const result = await resolve({ modId: 'test-mod' });
 
-  assert.equal(result.source, 'local-runtime');
+  assert.equal(result.source, 'local');
   assert.equal(result.engine, 'localai');
   assert.equal(result.model, 'localai/tts-1');
   assert.equal(result.modelId, 'tts-1');
   assert.equal(result.localProviderModel, 'tts-1');
 });
 
-test('createResolveRuntimeBinding infers token-api source for cloud provider', async () => {
+test('createResolveRuntimeBinding infers cloud source for cloud provider', async () => {
   const fields = createMockFields({ provider: 'openai' });
   const resolve = createResolveRuntimeBinding(() => fields);
   const result = await resolve({ modId: 'test-mod' });
 
-  assert.equal(result.source, 'token-api');
+  assert.equal(result.source, 'cloud');
   assert.equal(result.engine, undefined);
 });
 
-test('createResolveRuntimeBinding preserves localModelId and adapter for local-runtime binding', async () => {
+test('createResolveRuntimeBinding preserves localModelId and adapter for local binding', async () => {
   const fields = createMockFields({
     provider: 'localai',
     runtimeModelType: 'image',
@@ -113,7 +113,7 @@ test('createResolveRuntimeBinding preserves localModelId and adapter for local-r
   const result = await resolve({
     modId: 'test-mod',
     binding: {
-      source: 'local-runtime',
+      source: 'local',
       connectorId: '',
       model: 'z-image-turbo',
       modelId: 'z-image-turbo',

@@ -65,8 +65,8 @@ import {
   assertLifecycleWriteAllowed,
 } from './parsers';
 
-function getSdkLocalRuntime() {
-  return getPlatformClient().runtime.localRuntime;
+function getSdkLocal() {
+  return getPlatformClient().runtime.local;
 }
 
 function toSdkArtifactKind(value?: LocalAiArtifactKind): number {
@@ -116,7 +116,7 @@ export async function listLocalAiRuntimeVerifiedModels(): Promise<LocalAiVerifie
 export async function listLocalAiRuntimeArtifacts(
   payload?: LocalAiListArtifactsPayload,
 ): Promise<LocalAiArtifactRecord[]> {
-  const response = await getSdkLocalRuntime().listLocalArtifacts({
+  const response = await getSdkLocal().listLocalArtifacts({
     statusFilter: toSdkArtifactStatus(payload?.status),
     kindFilter: toSdkArtifactKind(payload?.kind),
     engineFilter: String(payload?.engine || '').trim(),
@@ -129,7 +129,7 @@ export async function listLocalAiRuntimeArtifacts(
 export async function listLocalAiRuntimeVerifiedArtifacts(
   payload?: LocalAiListVerifiedArtifactsPayload,
 ): Promise<LocalAiVerifiedArtifactDescriptor[]> {
-  const response = await getSdkLocalRuntime().listVerifiedArtifacts({
+  const response = await getSdkLocal().listVerifiedArtifacts({
     kindFilter: toSdkArtifactKind(payload?.kind),
     engineFilter: String(payload?.engine || '').trim(),
     pageSize: 0,
@@ -308,7 +308,7 @@ export async function installLocalAiRuntimeVerifiedArtifact(
   options?: LocalAiRuntimeWriteOptions,
 ): Promise<LocalAiArtifactRecord> {
   assertLifecycleWriteAllowed('local_runtime_artifacts_install_verified', options?.caller);
-  const response = await getSdkLocalRuntime().installVerifiedArtifact({
+  const response = await getSdkLocal().installVerifiedArtifact({
     templateId: String(payload.templateId || '').trim(),
   });
   return parseArtifactRecord(response.artifact);
@@ -375,7 +375,7 @@ export async function importLocalAiRuntimeArtifact(
   options?: LocalAiRuntimeWriteOptions,
 ): Promise<LocalAiArtifactRecord> {
   assertLifecycleWriteAllowed('local_runtime_artifacts_import', options?.caller);
-  const response = await getSdkLocalRuntime().importLocalArtifact({
+  const response = await getSdkLocal().importLocalArtifact({
     manifestPath: String(payload.manifestPath || '').trim(),
   });
   return parseArtifactRecord(response.artifact);
@@ -397,7 +397,7 @@ export async function removeLocalAiRuntimeArtifact(
   options?: LocalAiRuntimeWriteOptions,
 ): Promise<LocalAiArtifactRecord> {
   assertLifecycleWriteAllowed('local_runtime_artifacts_remove', options?.caller);
-  const response = await getSdkLocalRuntime().removeLocalArtifact({
+  const response = await getSdkLocal().removeLocalArtifact({
     localArtifactId: String(localArtifactId || '').trim(),
   });
   return parseArtifactRecord(response.artifact);

@@ -9,7 +9,7 @@ export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<P
   const model = String(input.localProviderModel || '').trim();
   const provider = String(input.provider || '').trim();
 
-  if (endpoint && source === 'local-runtime') {
+  if (endpoint && source === 'local') {
     try {
       const localFetch = input.fetchImpl || fetch;
       const response = await localFetch(`${endpoint}/models`, {

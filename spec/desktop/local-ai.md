@@ -56,7 +56,7 @@ mod 如需枚举 companion assets，必须显式声明 `runtime.local.artifacts.
 
 ### 获取所有权（K-LOCAL-028）
 
-Phase 1 主模型下载仍由 desktop execution-plane 独占；companion artifact 的状态真相与安装落盘由 runtime localRuntime service 统一维护。Desktop 负责触发安装与渲染状态，不复制第二套 artifact store。
+Phase 1 主模型下载仍由 desktop execution-plane 独占；companion artifact 的状态真相与安装落盘由 runtime local service 统一维护。Desktop 负责触发安装与渲染状态，不复制第二套 artifact store。
 
 ### HuggingFace 搜索
 

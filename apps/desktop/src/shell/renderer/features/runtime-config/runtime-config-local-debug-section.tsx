@@ -185,7 +185,7 @@ function LocalDebugContent() {
               { value: 'all', label: 'all event types' },
               { value: 'inference_invoked', label: 'inference_invoked' },
               { value: 'inference_failed', label: 'inference_failed' },
-              { value: 'fallback_to_token_api', label: 'fallback_to_token_api' },
+              { value: 'fallback_to_cloud', label: 'fallback_to_cloud' },
               { value: 'engine_started', label: 'engine_started' },
               { value: 'engine_stopped', label: 'engine_stopped' },
               { value: 'model_catalog_search_invoked', label: 'model_catalog_search_invoked' },
@@ -214,8 +214,8 @@ function LocalDebugContent() {
             className="w-44"
             options={[
               { value: 'all', label: 'all sources' },
-              { value: 'local-runtime', label: 'local-runtime' },
-              { value: 'token-api', label: 'token-api' },
+              { value: 'local', label: 'local' },
+              { value: 'cloud', label: 'cloud' },
             ]}
           />
           <RuntimeSelect

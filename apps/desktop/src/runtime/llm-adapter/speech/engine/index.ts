@@ -15,7 +15,7 @@ type StreamPublisher = (
 
 type OpenStreamInput = {
   model: string;
-  routeSource: 'local-runtime' | 'token-api';
+  routeSource: 'local' | 'cloud';
   connectorId?: string;
   providerEndpoint?: string;
   request: SpeechSynthesizeRequest;
@@ -32,15 +32,15 @@ type MetadataBuilder = typeof buildRuntimeRequestMetadata;
 export type ListVoicesInput = {
   providerId?: string;
   model?: string;
-  routeSource?: 'local-runtime' | 'token-api';
+  routeSource?: 'local' | 'cloud';
   connectorId?: string;
   providerEndpoint?: string;
 };
 
-function ensureRouteSpeechModelId(model: string, routeSource: 'local-runtime' | 'token-api'): string {
+function ensureRouteSpeechModelId(model: string, routeSource: 'local' | 'cloud'): string {
   const normalized = String(model || '').trim();
   if (!normalized) return normalized;
-  if (routeSource !== 'token-api') return normalized;
+  if (routeSource !== 'cloud') return normalized;
 
   const lower = normalized.toLowerCase();
   if (lower.startsWith('cloud/')) return normalized;
@@ -79,7 +79,7 @@ export class NimiSpeechEngine {
     if (!requestedModel) {
       throw new Error('SPEECH_MODEL_REQUIRED: listVoices requires a resolved route model');
     }
-    const routeSource = normalizedInput.routeSource === 'local-runtime' ? 'local-runtime' : 'token-api';
+    const routeSource = normalizedInput.routeSource === 'local' ? 'local' : 'cloud';
     const model = ensureRouteSpeechModelId(requestedModel, routeSource);
     const runtime = this.resolveRuntimeClient();
     const metadata = await this.buildMetadata({

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  hydrateLocalRuntimeRouteBindingFromOptions,
+  hydrateLocalRouteBindingFromOptions,
 } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities-routing.js';
 import {
   pickPreferredGoRuntimeModel,
@@ -36,9 +36,9 @@ test('pickPreferredGoRuntimeModel ignores removed entries and prefers active sta
   });
 });
 
-test('hydrateLocalRuntimeRouteBindingFromOptions prefers fresh local model go-runtime metadata', () => {
-  const hydrated = hydrateLocalRuntimeRouteBindingFromOptions({
-    source: 'local-runtime',
+test('hydrateLocalRouteBindingFromOptions prefers fresh local model go-runtime metadata', () => {
+  const hydrated = hydrateLocalRouteBindingFromOptions({
+    source: 'local',
     connectorId: '',
     model: 'local-import/z_image_turbo-Q4_K',
     modelId: 'local-import/z_image_turbo-Q4_K',
@@ -50,7 +50,7 @@ test('hydrateLocalRuntimeRouteBindingFromOptions prefers fresh local model go-ru
   }, {
     capability: 'image.generate',
     selected: {
-      source: 'local-runtime',
+      source: 'local',
       connectorId: '',
       model: 'local-import/z_image_turbo-Q4_K',
       modelId: 'local-import/z_image_turbo-Q4_K',
@@ -61,7 +61,7 @@ test('hydrateLocalRuntimeRouteBindingFromOptions prefers fresh local model go-ru
       goRuntimeStatus: 'active',
     },
     resolvedDefault: null,
-    localRuntime: {
+    local: {
       models: [{
         localModelId: '01KK5M5ZNHWYK9WV1QWKSW48WG',
         model: 'local-import/z_image_turbo-Q4_K',
@@ -80,9 +80,9 @@ test('hydrateLocalRuntimeRouteBindingFromOptions prefers fresh local model go-ru
   assert.equal(hydrated.goRuntimeStatus, 'active');
 });
 
-test('hydrateLocalRuntimeRouteBindingFromOptions clears stale removed go-runtime metadata when refreshed model has none', () => {
-  const hydrated = hydrateLocalRuntimeRouteBindingFromOptions({
-    source: 'local-runtime',
+test('hydrateLocalRouteBindingFromOptions clears stale removed go-runtime metadata when refreshed model has none', () => {
+  const hydrated = hydrateLocalRouteBindingFromOptions({
+    source: 'local',
     connectorId: '',
     model: 'local-import/z_image_turbo-Q4_K',
     modelId: 'local-import/z_image_turbo-Q4_K',
@@ -94,7 +94,7 @@ test('hydrateLocalRuntimeRouteBindingFromOptions clears stale removed go-runtime
   }, {
     capability: 'image.generate',
     selected: {
-      source: 'local-runtime',
+      source: 'local',
       connectorId: '',
       model: 'local-import/z_image_turbo-Q4_K',
       modelId: 'local-import/z_image_turbo-Q4_K',
@@ -103,7 +103,7 @@ test('hydrateLocalRuntimeRouteBindingFromOptions clears stale removed go-runtime
       engine: 'localai',
     },
     resolvedDefault: null,
-    localRuntime: {
+    local: {
       models: [{
         localModelId: '01KK5M5ZNHWYK9WV1QWKSW48WG',
         model: 'local-import/z_image_turbo-Q4_K',

@@ -68,7 +68,7 @@ fn default_runtime_endpoint_for(service_identity: Option<&str>) -> String {
     if let Some(port) = port {
         return format!("http://127.0.0.1:{port}/v1");
     }
-    DEFAULT_LOCAL_RUNTIME_ENDPOINT.to_string()
+    DEFAULT_LOCAL_ENDPOINT.to_string()
 }
 
 fn extract_probe_model_ids(payload: &serde_json::Value) -> Vec<String> {
@@ -258,7 +258,7 @@ fn validate_inference_event_type(value: &str) -> Result<&str, String> {
     let normalized = value.trim();
     if normalized == EVENT_INFERENCE_INVOKED
         || normalized == EVENT_INFERENCE_FAILED
-        || normalized == EVENT_FALLBACK_TO_TOKEN_API
+        || normalized == EVENT_FALLBACK_TO_CLOUD
     {
         return Ok(normalized);
     }
@@ -269,7 +269,7 @@ fn validate_inference_event_type(value: &str) -> Result<&str, String> {
 
 fn validate_inference_source(value: &str) -> Result<&str, String> {
     let normalized = value.trim();
-    if normalized == "local-runtime" || normalized == "token-api" {
+    if normalized == "local" || normalized == "cloud" {
         return Ok(normalized);
     }
     Err(format!(
@@ -426,14 +426,14 @@ fn validate_audit_payload_contract(
     }
     if event_type == EVENT_INFERENCE_INVOKED
         || event_type == EVENT_INFERENCE_FAILED
-        || event_type == EVENT_FALLBACK_TO_TOKEN_API
+        || event_type == EVENT_FALLBACK_TO_CLOUD
     {
         require_audit_payload_keys(
             event_type,
             payload,
             &["modId", "source", "provider", "modality", "adapter"],
         )?;
-        if event_type == EVENT_FALLBACK_TO_TOKEN_API {
+        if event_type == EVENT_FALLBACK_TO_CLOUD {
             return require_audit_payload_keys(event_type, payload, &["reasonCode"]);
         }
         return Ok(());

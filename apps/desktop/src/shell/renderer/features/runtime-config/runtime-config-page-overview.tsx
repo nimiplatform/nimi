@@ -25,10 +25,10 @@ type CapabilityStatus = {
 
 function deriveCapabilityStatuses(state: RuntimeConfigStateV11): CapabilityStatus[] {
   return CAPABILITIES_V11.map((capability) => {
-    const localNode = state.localRuntime.nodeMatrix.find(
+    const localNode = state.local.nodeMatrix.find(
       (node) => node.capability === capability && node.available,
     );
-    const hasLocalModel = state.localRuntime.models.some(
+    const hasLocalModel = state.local.models.some(
       (m) => m.status === 'active' && m.capabilities.includes(capability),
     );
     const cloudAvailable = state.connectors.some((c) => c.status === 'healthy');
@@ -125,8 +125,8 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
   const sysResources = useSystemResources();
   const usageEstimate = useUsageEstimate();
 
-  const installedModelCount = state.localRuntime.models.filter((m) => m.status !== 'removed').length;
-  const activeModelCount = state.localRuntime.models.filter((m) => m.status === 'active').length;
+  const installedModelCount = state.local.models.filter((m) => m.status !== 'removed').length;
+  const activeModelCount = state.local.models.filter((m) => m.status === 'active').length;
   const healthyConnectorCount = state.connectors.filter((c) => c.status === 'healthy').length;
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
   const daemonBusy = model.runtimeDaemonBusyAction !== null;
@@ -271,7 +271,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
             {capabilityStatuses.map((item) => {
               const available = item.localAvailable || item.cloudAvailable;
               const source = item.localAvailable
-                ? `local-runtime${item.localProvider ? ` (${item.localProvider})` : ''}`
+                ? `local${item.localProvider ? ` (${item.localProvider})` : ''}`
                 : item.cloudAvailable
                   ? 'cloud API fallback'
                   : 'unavailable';

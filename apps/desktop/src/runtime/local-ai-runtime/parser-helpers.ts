@@ -97,15 +97,15 @@ export function assertLifecycleWriteAllowed(
   emitRuntimeLog({
     level: 'warn',
     area: 'local-ai-runtime-audit',
-    message: 'fallback:local-runtime-lifecycle-write-denied',
+    message: 'fallback:local-lifecycle-write-denied',
     details: {
       command,
       caller: normalizedCaller,
       decision: 'DENY',
-      reasonCode: ReasonCode.LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED,
+      reasonCode: ReasonCode.LOCAL_LIFECYCLE_WRITE_DENIED,
     },
   });
-  throw new Error(`LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED: caller=${normalizedCaller}`);
+  throw new Error(`LOCAL_LIFECYCLE_WRITE_DENIED: caller=${normalizedCaller}`);
 }
 
 export async function invokeLocalAiCommand<T>(

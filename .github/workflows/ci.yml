@@ -432,8 +432,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Desktop token-api runtime-only gate
-        run: pnpm check:desktop-token-api-runtime-only
+      - name: Desktop cloud runtime-only gate
+        run: pnpm check:desktop-cloud-runtime-only
 
       - name: Rust cargo check
         run: cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml

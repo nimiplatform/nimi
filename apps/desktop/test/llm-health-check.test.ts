@@ -3,7 +3,7 @@ import test, { mock } from 'node:test';
 
 import { checkLocalLlmHealth } from '../src/runtime/llm-adapter/execution/health-check';
 
-test('local-runtime endpoint GET /models ok → status healthy', async () => {
+test('local endpoint GET /models ok → status healthy', async () => {
   const mockFetch = mock.fn(async () => new Response('{}', { status: 200 }));
   const result = await checkLocalLlmHealth({
     provider: 'localai',
@@ -22,7 +22,7 @@ test('local-runtime endpoint GET /models ok → status healthy', async () => {
   assert.ok(String(callArgs[0]).endsWith('/models'));
 });
 
-test('local-runtime endpoint GET /models HTTP 503 → status degraded', async () => {
+test('local endpoint GET /models HTTP 503 → status degraded', async () => {
   const mockFetch = mock.fn(async () => new Response('Service Unavailable', { status: 503 }));
   const result = await checkLocalLlmHealth({
     provider: 'localai',
@@ -34,7 +34,7 @@ test('local-runtime endpoint GET /models HTTP 503 → status degraded', async ()
   assert.equal(result.detail, 'HTTP 503');
 });
 
-test('local-runtime endpoint fetch throws → status unreachable', async () => {
+test('local endpoint fetch throws → status unreachable', async () => {
   const mockFetch = mock.fn(async () => { throw new Error('ECONNREFUSED'); });
   const result = await checkLocalLlmHealth({
     provider: 'localai',

@@ -185,7 +185,7 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
   getModAiDependencySnapshot(input: {
     modId: string;
     capability?: RuntimeCanonicalCapability;
-    routeSourceHint?: 'token-api' | 'local-runtime';
+    routeSourceHint?: 'cloud' | 'local';
   }): Promise<HookModAiDependencySnapshot> {
     return this.modAiDependencySnapshotService.getSnapshot(input);
   }

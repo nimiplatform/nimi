@@ -6,7 +6,10 @@ fn main() {
 }
 
 fn generate_runtime_proto_client() {
-    let proto_root = PathBuf::from("../../proto");
+    let manifest_dir = PathBuf::from(
+        std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR should be set for build.rs"),
+    );
+    let proto_root = manifest_dir.join("../../../proto");
     if !proto_root.exists() {
         return;
     }

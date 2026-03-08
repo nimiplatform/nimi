@@ -4,9 +4,9 @@ export function getRecommendedModelByCapabilityV11(
   state: RuntimeConfigStateV11,
   capability: CapabilityV11,
 ): string {
-  const matched = state.localRuntime.models.find((item) => item.capabilities.includes(capability));
+  const matched = state.local.models.find((item) => item.capabilities.includes(capability));
   if (matched) return matched.model;
-  const local = state.localRuntime.models[0]?.model;
+  const local = state.local.models[0]?.model;
   if (local) return local;
   return state.connectors[0]?.models[0] || 'local-model';
 }

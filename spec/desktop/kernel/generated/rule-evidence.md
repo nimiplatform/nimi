@@ -13,7 +13,7 @@
 | `local_chat_e2e_gate` | `e2e_gate` | `pnpm check:local-chat-e2e` | `nimi-mods/local-chat/test/local-chat-run-text-turn.e2e.test.ts` | Deterministic local-chat turn pipeline e2e coverage for planner/fallback semantics. |
 | `local_chat_live_smoke_gate` | `live_gate` | `pnpm check:local-chat-live-smoke` | `nimi-mods/local-chat/test/local-chat-live-smoke.test.ts` | Live local-chat e2e gate for real provider routing and trace continuity. |
 | `runtime_mod_hook_hardcut_gate` | `static_gate` | `pnpm check:runtime-mod-hook-hardcut` | `scripts/check-runtime-mod-hook-hardcut.mjs` | Cross-layer runtime-aligned mod and hook surface hard-cut guard. |
-| `desktop_token_api_runtime_only_gate` | `static_gate` | `pnpm check:desktop-token-api-runtime-only` | `scripts/check-desktop-token-api-runtime-only.mjs` | Enforces token-api connector routing through runtime-owned APIs only. |
+| `desktop_cloud_runtime_only_gate` | `static_gate` | `pnpm check:desktop-cloud-runtime-only` | `scripts/check-desktop-cloud-runtime-only.mjs` | Enforces cloud connector routing through runtime-owned APIs only. |
 | `desktop_runtime_config_path_gate` | `static_gate` | `pnpm check:desktop-no-legacy-runtime-config-path` | `package.json` | Forbids desktop fallback to the retired .nimi/runtime/config.json path. |
 | `desktop_local_ai_bridge_gate` | `static_gate` | `pnpm check:no-local-ai-private-calls && pnpm check:no-local-ai-tauri-commands` | `package.json` | Forbids direct legacy local_ai command literals outside the managed bridge surface. |
 | `desktop_mod_capabilities_gate` | `static_gate` | `pnpm check:no-legacy-mod-permissions-field` | `package.json` | Enforces capabilities-only mod manifests and runtime registration surfaces. |
@@ -90,8 +90,8 @@
 | `D-IPC-009` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-IPC-010` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-IPC-011` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_local_ai_bridge_gate` |
-| `D-IPC-012` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_token_api_runtime_only_gate` |
-| `D-LLM-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_token_api_runtime_only_gate` |
+| `D-IPC-012` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_cloud_runtime_only_gate` |
+| `D-LLM-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_cloud_runtime_only_gate` |
 | `D-LLM-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-LLM-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-LLM-004` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |

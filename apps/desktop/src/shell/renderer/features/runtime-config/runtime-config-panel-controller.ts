@@ -26,7 +26,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   const panelState = useRuntimeConfigPanelState();
   const derived = useRuntimeConfigPanelDerived({
     state: panelState.state,
-    localRuntimeModelQuery: panelState.localRuntimeModelQuery,
+    localModelQuery: panelState.localModelQuery,
     connectorModelQuery: panelState.connectorModelQuery,
     localManifestSummaries,
     registeredRuntimeModIds,
@@ -84,20 +84,20 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     [commandInput],
   );
 
-  const refreshLocalRuntimeSnapshot = useCallback(async () => {
-    await commands.discoverLocalRuntimeModels();
-    await commands.runLocalRuntimeHealthCheck();
+  const refreshLocalSnapshot = useCallback(async () => {
+    await commands.discoverLocalModels();
+    await commands.runLocalHealthCheck();
   }, [commands]);
 
   const daemon = useRuntimeConfigDaemonController({
     updateState: panelState.updateState,
-    runLocalRuntimeHealthCheck: commands.runLocalRuntimeHealthCheck,
+    runLocalHealthCheck: commands.runLocalHealthCheck,
     setStatusBanner,
   });
 
   const installActions = useRuntimeConfigInstallActions({
     localManifestSummaries,
-    refreshLocalRuntimeSnapshot,
+    refreshLocalSnapshot,
     setStatusBanner,
   });
 
@@ -123,7 +123,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     setStatusBanner,
     setVaultEntryCount: panelState.setVaultEntryCount,
     vaultVersion: panelState.vaultVersion,
-    discoverLocalRuntimeModels: commands.discoverLocalRuntimeModels,
+    discoverLocalModels: commands.discoverLocalModels,
   });
 
   useEffect(() => {
@@ -163,8 +163,8 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     state: panelState.state,
     runtimeStatus: derived.runtimeStatus,
     activePage: panelState.state?.activePage || 'overview',
-    showTokenApiKey: panelState.showTokenApiKey,
-    localRuntimeModelQuery: panelState.localRuntimeModelQuery,
+    showCloudApiKey: panelState.showCloudApiKey,
+    localModelQuery: panelState.localModelQuery,
     connectorModelQuery: panelState.connectorModelQuery,
     vaultEntryCount: panelState.vaultEntryCount,
     discovering: panelState.discovering,
@@ -172,7 +172,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     checkingHealth: panelState.checkingHealth,
     selectedConnector: derived.selectedConnector,
     orderedConnectors: derived.orderedConnectors,
-    filteredLocalRuntimeModels: derived.filteredLocalRuntimeModels,
+    filteredLocalModels: derived.filteredLocalModels,
     filteredConnectorModels: derived.filteredConnectorModels,
     runtimeDependencyTargets: derived.runtimeDependencyTargets,
     registeredRuntimeModIds,
@@ -180,28 +180,28 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     runtimeDaemonBusyAction: daemon.runtimeDaemonBusyAction,
     runtimeDaemonError: daemon.runtimeDaemonError,
     runtimeDaemonUpdatedAt: daemon.runtimeDaemonUpdatedAt,
-    setShowTokenApiKey: panelState.setShowTokenApiKey,
-    setLocalRuntimeModelQuery: panelState.setLocalRuntimeModelQuery,
+    setShowCloudApiKey: panelState.setShowCloudApiKey,
+    setLocalModelQuery: panelState.setLocalModelQuery,
     setConnectorModelQuery: panelState.setConnectorModelQuery,
     onChangePage,
     updateState: panelState.updateState,
-    discoverLocalRuntimeModels: commands.discoverLocalRuntimeModels,
-    runLocalRuntimeHealthCheck: commands.runLocalRuntimeHealthCheck,
+    discoverLocalModels: commands.discoverLocalModels,
+    runLocalHealthCheck: commands.runLocalHealthCheck,
     testSelectedConnector: commands.testSelectedConnector,
     resolveRuntimeDependencies,
     applyRuntimeDependencies,
-    installCatalogLocalRuntimeModel: installActions.installCatalogLocalRuntimeModel,
-    installLocalRuntimeModel: installActions.installLocalRuntimeModel,
-    installVerifiedLocalRuntimeModel: installActions.installVerifiedLocalRuntimeModel,
-    importLocalRuntimeModel: installActions.importLocalRuntimeModel,
-    installVerifiedLocalRuntimeArtifact: installActions.installVerifiedLocalRuntimeArtifact,
-    importLocalRuntimeArtifact: installActions.importLocalRuntimeArtifact,
-    importLocalRuntimeModelFile: installActions.importLocalRuntimeModelFile,
-    startLocalRuntimeModel: installActions.startLocalRuntimeModel,
-    stopLocalRuntimeModel: installActions.stopLocalRuntimeModel,
-    restartLocalRuntimeModel: installActions.restartLocalRuntimeModel,
-    removeLocalRuntimeModel: installActions.removeLocalRuntimeModel,
-    removeLocalRuntimeArtifact: installActions.removeLocalRuntimeArtifact,
+    installCatalogLocalModel: installActions.installCatalogLocalModel,
+    installLocalModel: installActions.installLocalModel,
+    installVerifiedLocalModel: installActions.installVerifiedLocalModel,
+    importLocalModel: installActions.importLocalModel,
+    installVerifiedLocalArtifact: installActions.installVerifiedLocalArtifact,
+    importLocalArtifact: installActions.importLocalArtifact,
+    importLocalModelFile: installActions.importLocalModelFile,
+    startLocalModel: installActions.startLocalModel,
+    stopLocalModel: installActions.stopLocalModel,
+    restartLocalModel: installActions.restartLocalModel,
+    removeLocalModel: installActions.removeLocalModel,
+    removeLocalArtifact: installActions.removeLocalArtifact,
     refreshRuntimeDaemonStatus: daemon.refreshRuntimeDaemonStatus,
     startRuntimeDaemon: daemon.startRuntimeDaemon,
     restartRuntimeDaemon: daemon.restartRuntimeDaemon,

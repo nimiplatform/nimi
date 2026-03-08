@@ -6,7 +6,7 @@ use super::super::reason_codes::{
 use super::super::service_artifacts::find_service_artifact;
 use super::super::types::{
     LocalAiDeviceProfile, LocalAiServiceArtifact, LocalAiServiceArtifactType,
-    DEFAULT_LOCAL_RUNTIME_ENDPOINT,
+    DEFAULT_LOCAL_ENDPOINT,
 };
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -213,7 +213,7 @@ pub(super) fn default_loopback_endpoint_for_artifact(
     if let Some(port) = preflight_port_hint(artifact) {
         return format!("http://127.0.0.1:{port}/v1");
     }
-    DEFAULT_LOCAL_RUNTIME_ENDPOINT.to_string()
+    DEFAULT_LOCAL_ENDPOINT.to_string()
 }
 
 pub(super) fn resolve_effective_endpoint(

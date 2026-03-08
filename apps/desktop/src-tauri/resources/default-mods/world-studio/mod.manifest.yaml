@@ -54,7 +54,7 @@ ai:
       - dependencyId: world-studio/image-token-node
         kind: node
         capability: image
-        nodeId: image.generate.token-api
+        nodeId: image.generate.cloud
         title: Token API image generation node
     preferred:
       chat: world-studio/chat-qwen2.5-7b

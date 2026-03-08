@@ -28,7 +28,7 @@ export type DesktopChatRouteResultDto = {
 export namespace DesktopChatRouteResultDto {
   export enum channel {
     CLOUD = 'CLOUD',
-    PRIVATE = 'PRIVATE',
+    LOCAL = 'LOCAL',
   }
 
   export enum sessionClass {
@@ -65,15 +65,15 @@ export function isDesktopChatRouteChannel(
 ): value is DesktopChatRouteResultDto.channel {
   return (
     value === DesktopChatRouteResultDto.channel.CLOUD ||
-    value === DesktopChatRouteResultDto.channel.PRIVATE
+    value === DesktopChatRouteResultDto.channel.LOCAL
   );
 }
 
 export function normalizeDesktopChatRouteChannel(
   value: unknown,
 ): DesktopChatRouteResultDto.channel {
-  return value === DesktopChatRouteResultDto.channel.PRIVATE
-    ? DesktopChatRouteResultDto.channel.PRIVATE
+  return value === DesktopChatRouteResultDto.channel.LOCAL
+    ? DesktopChatRouteResultDto.channel.LOCAL
     : DesktopChatRouteResultDto.channel.CLOUD;
 }
 

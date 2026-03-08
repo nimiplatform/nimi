@@ -1,6 +1,6 @@
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
-import { LocalRuntimeModelCenter } from './runtime-config-local-model-center';
+import { LocalModelCenter } from './runtime-config-local-model-center';
 
 type LocalPageProps = {
   model: RuntimeConfigPanelControllerModel;
@@ -9,35 +9,35 @@ type LocalPageProps = {
 
 export function LocalPage({ model, state }: LocalPageProps) {
   return (
-    <LocalRuntimeModelCenter
+    <LocalModelCenter
       state={state}
       discovering={model.discovering}
       checkingHealth={model.checkingHealth}
       displayMode="runtime"
       runtimeDependencyTargets={model.runtimeDependencyTargets}
-      localRuntimeModelQuery={model.localRuntimeModelQuery}
-      filteredLocalRuntimeModels={model.filteredLocalRuntimeModels}
-      onDiscover={model.discoverLocalRuntimeModels}
-      onHealthCheck={model.runLocalRuntimeHealthCheck}
+      localModelQuery={model.localModelQuery}
+      filteredLocalModels={model.filteredLocalModels}
+      onDiscover={model.discoverLocalModels}
+      onHealthCheck={model.runLocalHealthCheck}
       onResolveDependencies={model.resolveRuntimeDependencies}
       onApplyDependencies={model.applyRuntimeDependencies}
-      onInstallCatalogItem={model.installCatalogLocalRuntimeModel}
-      onInstall={model.installLocalRuntimeModel}
-      onInstallVerified={model.installVerifiedLocalRuntimeModel}
-      onImport={model.importLocalRuntimeModel}
-      onInstallVerifiedArtifact={model.installVerifiedLocalRuntimeArtifact}
-      onImportArtifact={model.importLocalRuntimeArtifact}
-      onImportFile={model.importLocalRuntimeModelFile}
-      onStart={model.startLocalRuntimeModel}
-      onStop={model.stopLocalRuntimeModel}
-      onRestart={model.restartLocalRuntimeModel}
-      onRemove={model.removeLocalRuntimeModel}
-      onRemoveArtifact={model.removeLocalRuntimeArtifact}
-      onSetLocalRuntimeModelQuery={model.setLocalRuntimeModelQuery}
-      onChangeLocalRuntimeEndpoint={(endpoint) => {
+      onInstallCatalogItem={model.installCatalogLocalModel}
+      onInstall={model.installLocalModel}
+      onInstallVerified={model.installVerifiedLocalModel}
+      onImport={model.importLocalModel}
+      onInstallVerifiedArtifact={model.installVerifiedLocalArtifact}
+      onImportArtifact={model.importLocalArtifact}
+      onImportFile={model.importLocalModelFile}
+      onStart={model.startLocalModel}
+      onStop={model.stopLocalModel}
+      onRestart={model.restartLocalModel}
+      onRemove={model.removeLocalModel}
+      onRemoveArtifact={model.removeLocalArtifact}
+      onSetLocalModelQuery={model.setLocalModelQuery}
+      onChangeLocalEndpoint={(endpoint) => {
         model.updateState((prev) => ({
           ...prev,
-          localRuntime: { ...prev.localRuntime, endpoint },
+          local: { ...prev.local, endpoint },
         }));
       }}
       onNavigateToSetup={(pageId) => model.onChangePage(pageId)}

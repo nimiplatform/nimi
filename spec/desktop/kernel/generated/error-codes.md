@@ -35,5 +35,5 @@
 | `LOCAL_AI_FILE_IMPORT_SYNC_FAILED` | `local-ai` | Failed to sync written file to disk | `D-ERR-001` |
 | `LOCAL_AI_FILE_IMPORT_MANIFEST_SERIALIZE_FAILED` | `local-ai` | Failed to serialize generated model manifest JSON | `D-ERR-001` |
 | `LOCAL_AI_FILE_IMPORT_MANIFEST_WRITE_FAILED` | `local-ai` | Failed to write generated model.manifest.json to disk | `D-ERR-001` |
-| `LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED` | `runtime` | Source has no permission for model lifecycle write operations | `D-ERR-004` |
+| `LOCAL_LIFECYCLE_WRITE_DENIED` | `runtime` | Source has no permission for model lifecycle write operations | `D-ERR-004` |
 | `RUNTIME_ROUTE_CAPABILITY_MISMATCH` | `runtime` | Route-bound local model lacks required capability | `D-ERR-004` |

@@ -52,6 +52,7 @@ pub struct Ack {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum ReasonCode {
+    /// General (0–8): stable, not in reason-codes.yaml but implementation-required.
     Unspecified = 0,
     ActionExecuted = 1,
     ProtocolEnvelopeInvalid = 2,
@@ -61,13 +62,14 @@ pub enum ReasonCode {
     ExternalPrincipalNotRegistered = 6,
     SessionExpired = 7,
     PrincipalUnauthorized = 8,
+    /// App authorization (100–114, 117): stable legacy range.
     AppAuthorizationDenied = 100,
     AppGrantInvalid = 101,
     AppTokenExpired = 102,
     AppTokenRevoked = 103,
-    AppScopeForbidden = 104,
+    /// 104 → reserved (moved to APP_SCOPE_FORBIDDEN = 503)
     AppScopeCatalogUnpublished = 105,
-    AppScopeRevoked = 106,
+    /// 106 → reserved (moved to APP_SCOPE_REVOKED = 504)
     AppDelegationForbidden = 107,
     AppDelegationDepthExceeded = 108,
     AppResourceSelectorInvalid = 109,
@@ -76,20 +78,99 @@ pub enum ReasonCode {
     AppConsentInvalid = 112,
     ExternalPrincipalProofMissing = 113,
     ExternalPrincipalProofInvalid = 114,
-    AppModeDomainForbidden = 115,
-    AppModeScopeForbidden = 116,
+    /// 115, 116, 118 → reserved (moved to 500, 501, 502)
     AppModeWorldRelationForbidden = 117,
-    AppModeManifestInvalid = 118,
+    /// AI legacy range (200–213): frozen per spec numbering_note.
     AiModelNotFound = 200,
     AiModelNotReady = 201,
     AiProviderUnavailable = 202,
-    AiProviderTimeout = 203,
+    /// 203 → reserved (moved to AI_PROVIDER_TIMEOUT = 394)
     AiRouteUnsupported = 204,
     AiRouteFallbackDenied = 205,
     AiInputInvalid = 206,
     AiOutputInvalid = 207,
     AiStreamBroken = 208,
     AiContentFilterBlocked = 209,
+    AiRequestCredentialRequired = 210,
+    AiRequestCredentialMissing = 211,
+    AiRequestCredentialInvalid = 212,
+    AiRequestCredentialScopeForbidden = 213,
+    /// AUTH family (300+)
+    AuthTokenInvalid = 300,
+    AuthTokenExpired = 301,
+    AuthUnsupportedProofType = 302,
+    /// CONNECTOR family (310+)
+    AiConnectorNotFound = 310,
+    AiConnectorDisabled = 311,
+    AiConnectorCredentialMissing = 312,
+    AiConnectorInvalid = 313,
+    AiConnectorImmutable = 314,
+    AiConnectorLimitExceeded = 315,
+    AiConnectorIdRequired = 316,
+    /// REQUEST_CREDENTIAL family (330)
+    AiRequestCredentialConflict = 330,
+    /// APP family (340+)
+    AiAppIdRequired = 340,
+    AiAppIdConflict = 341,
+    /// MODEL family (350+)
+    AiModelIdRequired = 350,
+    AiModalityNotSupported = 351,
+    AiLocalModelUnavailable = 352,
+    AiLocalModelProfileMissing = 353,
+    AiLocalModelAlreadyInstalled = 354,
+    AiLocalEndpointRequired = 355,
+    AiLocalTemplateNotFound = 356,
+    AiLocalManifestInvalid = 357,
+    AiLocalModelInvalidTransition = 358,
+    AiLocalDownloadFailed = 359,
+    AiLocalDownloadHashMismatch = 360,
+    AiLocalHfRepoInvalid = 361,
+    AiLocalHfSearchFailed = 362,
+    AiLocalManifestSchemaInvalid = 363,
+    /// FINISH family (370+)
+    AiFinishLength = 370,
+    AiFinishContentFilter = 371,
+    /// MODEL_ROUTE family (380+)
+    AiModelProviderMismatch = 380,
+    /// PROVIDER family (390+)
+    AiProviderEndpointForbidden = 390,
+    AiProviderAuthFailed = 391,
+    AiProviderInternal = 392,
+    AiProviderRateLimited = 393,
+    AiProviderTimeout = 394,
+    /// MEDIA family (410+)
+    AiMediaSpecInvalid = 410,
+    AiMediaOptionUnsupported = 411,
+    AiMediaJobNotFound = 412,
+    AiMediaJobNotCancellable = 413,
+    AiMediaIdempotencyConflict = 414,
+    /// VOICE family (420+)
+    AiVoiceInputInvalid = 420,
+    AiVoiceWorkflowUnsupported = 421,
+    AiVoiceAssetNotFound = 422,
+    AiVoiceAssetExpired = 423,
+    AiVoiceAssetScopeForbidden = 424,
+    AiVoiceTargetModelMismatch = 425,
+    AiVoiceJobNotFound = 426,
+    AiVoiceJobNotCancellable = 427,
+    /// MODULE family (430+)
+    AiModuleConfigInvalid = 430,
+    /// WORKFLOW family (440+)
+    WfDagInvalid = 440,
+    WfNodeConfigMismatch = 441,
+    WfTimeout = 442,
+    WfTaskNotFound = 443,
+    /// APP_AUTH family (500+)
+    AppModeDomainForbidden = 500,
+    AppModeScopeForbidden = 501,
+    AppModeManifestInvalid = 502,
+    AppScopeForbidden = 503,
+    AppScopeRevoked = 504,
+    /// GRANT family (510+)
+    GrantTokenChainRootNotFound = 510,
+    GrantTokenChainRootRequired = 511,
+    /// PAGE family (520+)
+    PageTokenInvalid = 520,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -111,9 +192,7 @@ impl ReasonCode {
             Self::AppGrantInvalid => "APP_GRANT_INVALID",
             Self::AppTokenExpired => "APP_TOKEN_EXPIRED",
             Self::AppTokenRevoked => "APP_TOKEN_REVOKED",
-            Self::AppScopeForbidden => "APP_SCOPE_FORBIDDEN",
             Self::AppScopeCatalogUnpublished => "APP_SCOPE_CATALOG_UNPUBLISHED",
-            Self::AppScopeRevoked => "APP_SCOPE_REVOKED",
             Self::AppDelegationForbidden => "APP_DELEGATION_FORBIDDEN",
             Self::AppDelegationDepthExceeded => "APP_DELEGATION_DEPTH_EXCEEDED",
             Self::AppResourceSelectorInvalid => "APP_RESOURCE_SELECTOR_INVALID",
@@ -122,20 +201,83 @@ impl ReasonCode {
             Self::AppConsentInvalid => "APP_CONSENT_INVALID",
             Self::ExternalPrincipalProofMissing => "EXTERNAL_PRINCIPAL_PROOF_MISSING",
             Self::ExternalPrincipalProofInvalid => "EXTERNAL_PRINCIPAL_PROOF_INVALID",
-            Self::AppModeDomainForbidden => "APP_MODE_DOMAIN_FORBIDDEN",
-            Self::AppModeScopeForbidden => "APP_MODE_SCOPE_FORBIDDEN",
             Self::AppModeWorldRelationForbidden => "APP_MODE_WORLD_RELATION_FORBIDDEN",
-            Self::AppModeManifestInvalid => "APP_MODE_MANIFEST_INVALID",
             Self::AiModelNotFound => "AI_MODEL_NOT_FOUND",
             Self::AiModelNotReady => "AI_MODEL_NOT_READY",
             Self::AiProviderUnavailable => "AI_PROVIDER_UNAVAILABLE",
-            Self::AiProviderTimeout => "AI_PROVIDER_TIMEOUT",
             Self::AiRouteUnsupported => "AI_ROUTE_UNSUPPORTED",
             Self::AiRouteFallbackDenied => "AI_ROUTE_FALLBACK_DENIED",
             Self::AiInputInvalid => "AI_INPUT_INVALID",
             Self::AiOutputInvalid => "AI_OUTPUT_INVALID",
             Self::AiStreamBroken => "AI_STREAM_BROKEN",
             Self::AiContentFilterBlocked => "AI_CONTENT_FILTER_BLOCKED",
+            Self::AiRequestCredentialRequired => "AI_REQUEST_CREDENTIAL_REQUIRED",
+            Self::AiRequestCredentialMissing => "AI_REQUEST_CREDENTIAL_MISSING",
+            Self::AiRequestCredentialInvalid => "AI_REQUEST_CREDENTIAL_INVALID",
+            Self::AiRequestCredentialScopeForbidden => {
+                "AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN"
+            }
+            Self::AuthTokenInvalid => "AUTH_TOKEN_INVALID",
+            Self::AuthTokenExpired => "AUTH_TOKEN_EXPIRED",
+            Self::AuthUnsupportedProofType => "AUTH_UNSUPPORTED_PROOF_TYPE",
+            Self::AiConnectorNotFound => "AI_CONNECTOR_NOT_FOUND",
+            Self::AiConnectorDisabled => "AI_CONNECTOR_DISABLED",
+            Self::AiConnectorCredentialMissing => "AI_CONNECTOR_CREDENTIAL_MISSING",
+            Self::AiConnectorInvalid => "AI_CONNECTOR_INVALID",
+            Self::AiConnectorImmutable => "AI_CONNECTOR_IMMUTABLE",
+            Self::AiConnectorLimitExceeded => "AI_CONNECTOR_LIMIT_EXCEEDED",
+            Self::AiConnectorIdRequired => "AI_CONNECTOR_ID_REQUIRED",
+            Self::AiRequestCredentialConflict => "AI_REQUEST_CREDENTIAL_CONFLICT",
+            Self::AiAppIdRequired => "AI_APP_ID_REQUIRED",
+            Self::AiAppIdConflict => "AI_APP_ID_CONFLICT",
+            Self::AiModelIdRequired => "AI_MODEL_ID_REQUIRED",
+            Self::AiModalityNotSupported => "AI_MODALITY_NOT_SUPPORTED",
+            Self::AiLocalModelUnavailable => "AI_LOCAL_MODEL_UNAVAILABLE",
+            Self::AiLocalModelProfileMissing => "AI_LOCAL_MODEL_PROFILE_MISSING",
+            Self::AiLocalModelAlreadyInstalled => "AI_LOCAL_MODEL_ALREADY_INSTALLED",
+            Self::AiLocalEndpointRequired => "AI_LOCAL_ENDPOINT_REQUIRED",
+            Self::AiLocalTemplateNotFound => "AI_LOCAL_TEMPLATE_NOT_FOUND",
+            Self::AiLocalManifestInvalid => "AI_LOCAL_MANIFEST_INVALID",
+            Self::AiLocalModelInvalidTransition => "AI_LOCAL_MODEL_INVALID_TRANSITION",
+            Self::AiLocalDownloadFailed => "AI_LOCAL_DOWNLOAD_FAILED",
+            Self::AiLocalDownloadHashMismatch => "AI_LOCAL_DOWNLOAD_HASH_MISMATCH",
+            Self::AiLocalHfRepoInvalid => "AI_LOCAL_HF_REPO_INVALID",
+            Self::AiLocalHfSearchFailed => "AI_LOCAL_HF_SEARCH_FAILED",
+            Self::AiLocalManifestSchemaInvalid => "AI_LOCAL_MANIFEST_SCHEMA_INVALID",
+            Self::AiFinishLength => "AI_FINISH_LENGTH",
+            Self::AiFinishContentFilter => "AI_FINISH_CONTENT_FILTER",
+            Self::AiModelProviderMismatch => "AI_MODEL_PROVIDER_MISMATCH",
+            Self::AiProviderEndpointForbidden => "AI_PROVIDER_ENDPOINT_FORBIDDEN",
+            Self::AiProviderAuthFailed => "AI_PROVIDER_AUTH_FAILED",
+            Self::AiProviderInternal => "AI_PROVIDER_INTERNAL",
+            Self::AiProviderRateLimited => "AI_PROVIDER_RATE_LIMITED",
+            Self::AiProviderTimeout => "AI_PROVIDER_TIMEOUT",
+            Self::AiMediaSpecInvalid => "AI_MEDIA_SPEC_INVALID",
+            Self::AiMediaOptionUnsupported => "AI_MEDIA_OPTION_UNSUPPORTED",
+            Self::AiMediaJobNotFound => "AI_MEDIA_JOB_NOT_FOUND",
+            Self::AiMediaJobNotCancellable => "AI_MEDIA_JOB_NOT_CANCELLABLE",
+            Self::AiMediaIdempotencyConflict => "AI_MEDIA_IDEMPOTENCY_CONFLICT",
+            Self::AiVoiceInputInvalid => "AI_VOICE_INPUT_INVALID",
+            Self::AiVoiceWorkflowUnsupported => "AI_VOICE_WORKFLOW_UNSUPPORTED",
+            Self::AiVoiceAssetNotFound => "AI_VOICE_ASSET_NOT_FOUND",
+            Self::AiVoiceAssetExpired => "AI_VOICE_ASSET_EXPIRED",
+            Self::AiVoiceAssetScopeForbidden => "AI_VOICE_ASSET_SCOPE_FORBIDDEN",
+            Self::AiVoiceTargetModelMismatch => "AI_VOICE_TARGET_MODEL_MISMATCH",
+            Self::AiVoiceJobNotFound => "AI_VOICE_JOB_NOT_FOUND",
+            Self::AiVoiceJobNotCancellable => "AI_VOICE_JOB_NOT_CANCELLABLE",
+            Self::AiModuleConfigInvalid => "AI_MODULE_CONFIG_INVALID",
+            Self::WfDagInvalid => "WF_DAG_INVALID",
+            Self::WfNodeConfigMismatch => "WF_NODE_CONFIG_MISMATCH",
+            Self::WfTimeout => "WF_TIMEOUT",
+            Self::WfTaskNotFound => "WF_TASK_NOT_FOUND",
+            Self::AppModeDomainForbidden => "APP_MODE_DOMAIN_FORBIDDEN",
+            Self::AppModeScopeForbidden => "APP_MODE_SCOPE_FORBIDDEN",
+            Self::AppModeManifestInvalid => "APP_MODE_MANIFEST_INVALID",
+            Self::AppScopeForbidden => "APP_SCOPE_FORBIDDEN",
+            Self::AppScopeRevoked => "APP_SCOPE_REVOKED",
+            Self::GrantTokenChainRootNotFound => "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND",
+            Self::GrantTokenChainRootRequired => "GRANT_TOKEN_CHAIN_ROOT_REQUIRED",
+            Self::PageTokenInvalid => "PAGE_TOKEN_INVALID",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -156,9 +298,7 @@ impl ReasonCode {
             "APP_GRANT_INVALID" => Some(Self::AppGrantInvalid),
             "APP_TOKEN_EXPIRED" => Some(Self::AppTokenExpired),
             "APP_TOKEN_REVOKED" => Some(Self::AppTokenRevoked),
-            "APP_SCOPE_FORBIDDEN" => Some(Self::AppScopeForbidden),
             "APP_SCOPE_CATALOG_UNPUBLISHED" => Some(Self::AppScopeCatalogUnpublished),
-            "APP_SCOPE_REVOKED" => Some(Self::AppScopeRevoked),
             "APP_DELEGATION_FORBIDDEN" => Some(Self::AppDelegationForbidden),
             "APP_DELEGATION_DEPTH_EXCEEDED" => Some(Self::AppDelegationDepthExceeded),
             "APP_RESOURCE_SELECTOR_INVALID" => Some(Self::AppResourceSelectorInvalid),
@@ -171,22 +311,91 @@ impl ReasonCode {
             "EXTERNAL_PRINCIPAL_PROOF_INVALID" => {
                 Some(Self::ExternalPrincipalProofInvalid)
             }
-            "APP_MODE_DOMAIN_FORBIDDEN" => Some(Self::AppModeDomainForbidden),
-            "APP_MODE_SCOPE_FORBIDDEN" => Some(Self::AppModeScopeForbidden),
             "APP_MODE_WORLD_RELATION_FORBIDDEN" => {
                 Some(Self::AppModeWorldRelationForbidden)
             }
-            "APP_MODE_MANIFEST_INVALID" => Some(Self::AppModeManifestInvalid),
             "AI_MODEL_NOT_FOUND" => Some(Self::AiModelNotFound),
             "AI_MODEL_NOT_READY" => Some(Self::AiModelNotReady),
             "AI_PROVIDER_UNAVAILABLE" => Some(Self::AiProviderUnavailable),
-            "AI_PROVIDER_TIMEOUT" => Some(Self::AiProviderTimeout),
             "AI_ROUTE_UNSUPPORTED" => Some(Self::AiRouteUnsupported),
             "AI_ROUTE_FALLBACK_DENIED" => Some(Self::AiRouteFallbackDenied),
             "AI_INPUT_INVALID" => Some(Self::AiInputInvalid),
             "AI_OUTPUT_INVALID" => Some(Self::AiOutputInvalid),
             "AI_STREAM_BROKEN" => Some(Self::AiStreamBroken),
             "AI_CONTENT_FILTER_BLOCKED" => Some(Self::AiContentFilterBlocked),
+            "AI_REQUEST_CREDENTIAL_REQUIRED" => Some(Self::AiRequestCredentialRequired),
+            "AI_REQUEST_CREDENTIAL_MISSING" => Some(Self::AiRequestCredentialMissing),
+            "AI_REQUEST_CREDENTIAL_INVALID" => Some(Self::AiRequestCredentialInvalid),
+            "AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN" => {
+                Some(Self::AiRequestCredentialScopeForbidden)
+            }
+            "AUTH_TOKEN_INVALID" => Some(Self::AuthTokenInvalid),
+            "AUTH_TOKEN_EXPIRED" => Some(Self::AuthTokenExpired),
+            "AUTH_UNSUPPORTED_PROOF_TYPE" => Some(Self::AuthUnsupportedProofType),
+            "AI_CONNECTOR_NOT_FOUND" => Some(Self::AiConnectorNotFound),
+            "AI_CONNECTOR_DISABLED" => Some(Self::AiConnectorDisabled),
+            "AI_CONNECTOR_CREDENTIAL_MISSING" => Some(Self::AiConnectorCredentialMissing),
+            "AI_CONNECTOR_INVALID" => Some(Self::AiConnectorInvalid),
+            "AI_CONNECTOR_IMMUTABLE" => Some(Self::AiConnectorImmutable),
+            "AI_CONNECTOR_LIMIT_EXCEEDED" => Some(Self::AiConnectorLimitExceeded),
+            "AI_CONNECTOR_ID_REQUIRED" => Some(Self::AiConnectorIdRequired),
+            "AI_REQUEST_CREDENTIAL_CONFLICT" => Some(Self::AiRequestCredentialConflict),
+            "AI_APP_ID_REQUIRED" => Some(Self::AiAppIdRequired),
+            "AI_APP_ID_CONFLICT" => Some(Self::AiAppIdConflict),
+            "AI_MODEL_ID_REQUIRED" => Some(Self::AiModelIdRequired),
+            "AI_MODALITY_NOT_SUPPORTED" => Some(Self::AiModalityNotSupported),
+            "AI_LOCAL_MODEL_UNAVAILABLE" => Some(Self::AiLocalModelUnavailable),
+            "AI_LOCAL_MODEL_PROFILE_MISSING" => Some(Self::AiLocalModelProfileMissing),
+            "AI_LOCAL_MODEL_ALREADY_INSTALLED" => {
+                Some(Self::AiLocalModelAlreadyInstalled)
+            }
+            "AI_LOCAL_ENDPOINT_REQUIRED" => Some(Self::AiLocalEndpointRequired),
+            "AI_LOCAL_TEMPLATE_NOT_FOUND" => Some(Self::AiLocalTemplateNotFound),
+            "AI_LOCAL_MANIFEST_INVALID" => Some(Self::AiLocalManifestInvalid),
+            "AI_LOCAL_MODEL_INVALID_TRANSITION" => {
+                Some(Self::AiLocalModelInvalidTransition)
+            }
+            "AI_LOCAL_DOWNLOAD_FAILED" => Some(Self::AiLocalDownloadFailed),
+            "AI_LOCAL_DOWNLOAD_HASH_MISMATCH" => Some(Self::AiLocalDownloadHashMismatch),
+            "AI_LOCAL_HF_REPO_INVALID" => Some(Self::AiLocalHfRepoInvalid),
+            "AI_LOCAL_HF_SEARCH_FAILED" => Some(Self::AiLocalHfSearchFailed),
+            "AI_LOCAL_MANIFEST_SCHEMA_INVALID" => {
+                Some(Self::AiLocalManifestSchemaInvalid)
+            }
+            "AI_FINISH_LENGTH" => Some(Self::AiFinishLength),
+            "AI_FINISH_CONTENT_FILTER" => Some(Self::AiFinishContentFilter),
+            "AI_MODEL_PROVIDER_MISMATCH" => Some(Self::AiModelProviderMismatch),
+            "AI_PROVIDER_ENDPOINT_FORBIDDEN" => Some(Self::AiProviderEndpointForbidden),
+            "AI_PROVIDER_AUTH_FAILED" => Some(Self::AiProviderAuthFailed),
+            "AI_PROVIDER_INTERNAL" => Some(Self::AiProviderInternal),
+            "AI_PROVIDER_RATE_LIMITED" => Some(Self::AiProviderRateLimited),
+            "AI_PROVIDER_TIMEOUT" => Some(Self::AiProviderTimeout),
+            "AI_MEDIA_SPEC_INVALID" => Some(Self::AiMediaSpecInvalid),
+            "AI_MEDIA_OPTION_UNSUPPORTED" => Some(Self::AiMediaOptionUnsupported),
+            "AI_MEDIA_JOB_NOT_FOUND" => Some(Self::AiMediaJobNotFound),
+            "AI_MEDIA_JOB_NOT_CANCELLABLE" => Some(Self::AiMediaJobNotCancellable),
+            "AI_MEDIA_IDEMPOTENCY_CONFLICT" => Some(Self::AiMediaIdempotencyConflict),
+            "AI_VOICE_INPUT_INVALID" => Some(Self::AiVoiceInputInvalid),
+            "AI_VOICE_WORKFLOW_UNSUPPORTED" => Some(Self::AiVoiceWorkflowUnsupported),
+            "AI_VOICE_ASSET_NOT_FOUND" => Some(Self::AiVoiceAssetNotFound),
+            "AI_VOICE_ASSET_EXPIRED" => Some(Self::AiVoiceAssetExpired),
+            "AI_VOICE_ASSET_SCOPE_FORBIDDEN" => Some(Self::AiVoiceAssetScopeForbidden),
+            "AI_VOICE_TARGET_MODEL_MISMATCH" => Some(Self::AiVoiceTargetModelMismatch),
+            "AI_VOICE_JOB_NOT_FOUND" => Some(Self::AiVoiceJobNotFound),
+            "AI_VOICE_JOB_NOT_CANCELLABLE" => Some(Self::AiVoiceJobNotCancellable),
+            "AI_MODULE_CONFIG_INVALID" => Some(Self::AiModuleConfigInvalid),
+            "WF_DAG_INVALID" => Some(Self::WfDagInvalid),
+            "WF_NODE_CONFIG_MISMATCH" => Some(Self::WfNodeConfigMismatch),
+            "WF_TIMEOUT" => Some(Self::WfTimeout),
+            "WF_TASK_NOT_FOUND" => Some(Self::WfTaskNotFound),
+            "APP_MODE_DOMAIN_FORBIDDEN" => Some(Self::AppModeDomainForbidden),
+            "APP_MODE_SCOPE_FORBIDDEN" => Some(Self::AppModeScopeForbidden),
+            "APP_MODE_MANIFEST_INVALID" => Some(Self::AppModeManifestInvalid),
+            "APP_SCOPE_FORBIDDEN" => Some(Self::AppScopeForbidden),
+            "APP_SCOPE_REVOKED" => Some(Self::AppScopeRevoked),
+            "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND" => Some(Self::GrantTokenChainRootNotFound),
+            "GRANT_TOKEN_CHAIN_ROOT_REQUIRED" => Some(Self::GrantTokenChainRootRequired),
+            "PAGE_TOKEN_INVALID" => Some(Self::PageTokenInvalid),
             _ => None,
         }
     }
@@ -397,8 +606,7 @@ pub struct RevokeExternalPrincipalSessionRequest {
 #[repr(i32)]
 pub enum ExternalProofType {
     Unspecified = 0,
-    Ed25519 = 1,
-    HmacSha256 = 2,
+    Jwt = 1,
 }
 impl ExternalProofType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -408,16 +616,14 @@ impl ExternalProofType {
     pub fn as_str_name(&self) -> &'static str {
         match self {
             Self::Unspecified => "EXTERNAL_PROOF_TYPE_UNSPECIFIED",
-            Self::Ed25519 => "EXTERNAL_PROOF_TYPE_ED25519",
-            Self::HmacSha256 => "EXTERNAL_PROOF_TYPE_HMAC_SHA256",
+            Self::Jwt => "EXTERNAL_PROOF_TYPE_JWT",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
             "EXTERNAL_PROOF_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
-            "EXTERNAL_PROOF_TYPE_ED25519" => Some(Self::Ed25519),
-            "EXTERNAL_PROOF_TYPE_HMAC_SHA256" => Some(Self::HmacSha256),
+            "EXTERNAL_PROOF_TYPE_JWT" => Some(Self::Jwt),
             _ => None,
         }
     }
@@ -907,28 +1113,46 @@ pub struct ListTokenChainRequest {
     pub app_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub root_token_id: ::prost::alloc::string::String,
+    #[prost(bool, tag = "3")]
+    pub include_revoked: bool,
+    #[prost(int32, tag = "4")]
+    pub page_size: i32,
+    #[prost(string, tag = "5")]
+    pub page_token: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct TokenChainNode {
+pub struct TokenChainEntry {
     #[prost(string, tag = "1")]
     pub token_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub parent_token_id: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
-    pub external_principal_id: ::prost::alloc::string::String,
+    pub principal_id: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
-    pub policy_version: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub issued_scope_catalog_version: ::prost::alloc::string::String,
+    pub principal_type: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "5")]
+    pub effective_scopes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, optional, tag = "6")]
     pub issued_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "7")]
     pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(bool, tag = "8")]
+    pub revoked: bool,
+    #[prost(int32, tag = "9")]
+    pub delegation_depth: i32,
+    #[prost(string, tag = "10")]
+    pub policy_version: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub issued_scope_catalog_version: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListTokenChainResponse {
     #[prost(message, repeated, tag = "1")]
-    pub nodes: ::prost::alloc::vec::Vec<TokenChainNode>,
+    pub entries: ::prost::alloc::vec::Vec<TokenChainEntry>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+    #[prost(bool, tag = "3")]
+    pub has_more: bool,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -1227,6 +1451,297 @@ pub mod runtime_grant_service_client {
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VoiceReference {
+    #[prost(enumeration = "VoiceReferenceKind", tag = "1")]
+    pub kind: i32,
+    #[prost(oneof = "voice_reference::Reference", tags = "2, 3, 4")]
+    pub reference: ::core::option::Option<voice_reference::Reference>,
+}
+/// Nested message and enum types in `VoiceReference`.
+pub mod voice_reference {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Reference {
+        #[prost(string, tag = "2")]
+        PresetVoiceId(::prost::alloc::string::String),
+        #[prost(string, tag = "3")]
+        VoiceAssetId(::prost::alloc::string::String),
+        #[prost(string, tag = "4")]
+        ProviderVoiceRef(::prost::alloc::string::String),
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VoicePresetDescriptor {
+    #[prost(string, tag = "1")]
+    pub voice_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub lang: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "4")]
+    pub supported_langs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(map = "string, string", tag = "5")]
+    pub labels: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, tag = "6")]
+    pub category: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub preview_audio_uri: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VoiceAsset {
+    #[prost(string, tag = "1")]
+    pub voice_asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub subject_user_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "VoiceWorkflowType", tag = "4")]
+    pub workflow_type: i32,
+    #[prost(string, tag = "5")]
+    pub provider: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub target_model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub provider_voice_ref: ::prost::alloc::string::String,
+    #[prost(enumeration = "VoiceAssetPersistence", tag = "9")]
+    pub persistence: i32,
+    #[prost(enumeration = "VoiceAssetStatus", tag = "10")]
+    pub status: i32,
+    #[prost(message, optional, tag = "11")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "12")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "13")]
+    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "14")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VoiceV2vInput {
+    #[prost(bytes = "vec", tag = "1")]
+    pub reference_audio_bytes: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "2")]
+    pub reference_audio_uri: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub reference_audio_mime: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "4")]
+    pub language_hints: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "5")]
+    pub preferred_name: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VoiceT2vInput {
+    #[prost(string, tag = "1")]
+    pub instruction_text: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub preview_text: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub language: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub preferred_name: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetVoiceAssetRequest {
+    #[prost(string, tag = "1")]
+    pub voice_asset_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetVoiceAssetResponse {
+    #[prost(message, optional, tag = "1")]
+    pub asset: ::core::option::Option<VoiceAsset>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListVoiceAssetsRequest {
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub subject_user_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub target_model_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "VoiceWorkflowType", tag = "5")]
+    pub workflow_type: i32,
+    #[prost(enumeration = "VoiceAssetStatus", tag = "6")]
+    pub status: i32,
+    #[prost(int32, tag = "7")]
+    pub page_size: i32,
+    #[prost(string, tag = "8")]
+    pub page_token: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub connector_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListVoiceAssetsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub assets: ::prost::alloc::vec::Vec<VoiceAsset>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteVoiceAssetRequest {
+    #[prost(string, tag = "1")]
+    pub voice_asset_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteVoiceAssetResponse {
+    #[prost(message, optional, tag = "1")]
+    pub ack: ::core::option::Option<Ack>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListPresetVoicesRequest {
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub subject_user_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub target_model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub connector_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListPresetVoicesResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub voices: ::prost::alloc::vec::Vec<VoicePresetDescriptor>,
+    #[prost(string, tag = "2")]
+    pub model_resolved: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub trace_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum VoiceWorkflowType {
+    Unspecified = 0,
+    TtsV2v = 1,
+    TtsT2v = 2,
+}
+impl VoiceWorkflowType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "VOICE_WORKFLOW_TYPE_UNSPECIFIED",
+            Self::TtsV2v => "VOICE_WORKFLOW_TYPE_TTS_V2V",
+            Self::TtsT2v => "VOICE_WORKFLOW_TYPE_TTS_T2V",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "VOICE_WORKFLOW_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "VOICE_WORKFLOW_TYPE_TTS_V2V" => Some(Self::TtsV2v),
+            "VOICE_WORKFLOW_TYPE_TTS_T2V" => Some(Self::TtsT2v),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum VoiceReferenceKind {
+    Unspecified = 0,
+    Preset = 1,
+    VoiceAsset = 2,
+    ProviderVoiceRef = 3,
+}
+impl VoiceReferenceKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "VOICE_REFERENCE_KIND_UNSPECIFIED",
+            Self::Preset => "VOICE_REFERENCE_KIND_PRESET",
+            Self::VoiceAsset => "VOICE_REFERENCE_KIND_VOICE_ASSET",
+            Self::ProviderVoiceRef => "VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "VOICE_REFERENCE_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "VOICE_REFERENCE_KIND_PRESET" => Some(Self::Preset),
+            "VOICE_REFERENCE_KIND_VOICE_ASSET" => Some(Self::VoiceAsset),
+            "VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF" => Some(Self::ProviderVoiceRef),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum VoiceAssetPersistence {
+    Unspecified = 0,
+    ProviderPersistent = 1,
+    SessionEphemeral = 2,
+}
+impl VoiceAssetPersistence {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "VOICE_ASSET_PERSISTENCE_UNSPECIFIED",
+            Self::ProviderPersistent => "VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT",
+            Self::SessionEphemeral => "VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "VOICE_ASSET_PERSISTENCE_UNSPECIFIED" => Some(Self::Unspecified),
+            "VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT" => {
+                Some(Self::ProviderPersistent)
+            }
+            "VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL" => Some(Self::SessionEphemeral),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum VoiceAssetStatus {
+    Unspecified = 0,
+    Active = 1,
+    Expired = 2,
+    Deleted = 3,
+    Failed = 4,
+}
+impl VoiceAssetStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "VOICE_ASSET_STATUS_UNSPECIFIED",
+            Self::Active => "VOICE_ASSET_STATUS_ACTIVE",
+            Self::Expired => "VOICE_ASSET_STATUS_EXPIRED",
+            Self::Deleted => "VOICE_ASSET_STATUS_DELETED",
+            Self::Failed => "VOICE_ASSET_STATUS_FAILED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "VOICE_ASSET_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "VOICE_ASSET_STATUS_ACTIVE" => Some(Self::Active),
+            "VOICE_ASSET_STATUS_EXPIRED" => Some(Self::Expired),
+            "VOICE_ASSET_STATUS_DELETED" => Some(Self::Deleted),
+            "VOICE_ASSET_STATUS_FAILED" => Some(Self::Failed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ChatMessage {
     #[prost(string, tag = "1")]
     pub role: ::prost::alloc::string::String,
@@ -1243,36 +1758,194 @@ pub struct ToolSpec {
     pub input_schema: ::core::option::Option<::prost_types::Struct>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GenerateRequest {
+pub struct ScenarioRequestHead {
     #[prost(string, tag = "1")]
     pub app_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub subject_user_id: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub model_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "Modal", tag = "4")]
-    pub modal: i32,
-    #[prost(message, repeated, tag = "5")]
-    pub input: ::prost::alloc::vec::Vec<ChatMessage>,
-    #[prost(string, tag = "6")]
-    pub system_prompt: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag = "7")]
-    pub tools: ::prost::alloc::vec::Vec<ToolSpec>,
-    #[prost(float, tag = "8")]
-    pub temperature: f32,
-    #[prost(float, tag = "9")]
-    pub top_p: f32,
-    #[prost(int32, tag = "10")]
-    pub max_tokens: i32,
-    #[prost(enumeration = "RoutePolicy", tag = "11")]
+    #[prost(enumeration = "RoutePolicy", tag = "4")]
     pub route_policy: i32,
-    #[prost(enumeration = "FallbackPolicy", tag = "12")]
+    #[prost(enumeration = "FallbackPolicy", tag = "5")]
     pub fallback: i32,
-    #[prost(int32, tag = "13")]
+    #[prost(int32, tag = "6")]
     pub timeout_ms: i32,
+    #[prost(string, tag = "7")]
+    pub connector_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GenerateResponse {
+pub struct ScenarioExtension {
+    #[prost(string, tag = "1")]
+    pub namespace: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub payload: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct IgnoredScenarioExtension {
+    #[prost(string, tag = "1")]
+    pub namespace: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TextGenerateScenarioSpec {
+    #[prost(message, repeated, tag = "1")]
+    pub input: ::prost::alloc::vec::Vec<ChatMessage>,
+    #[prost(string, tag = "2")]
+    pub system_prompt: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub tools: ::prost::alloc::vec::Vec<ToolSpec>,
+    #[prost(float, tag = "4")]
+    pub temperature: f32,
+    #[prost(float, tag = "5")]
+    pub top_p: f32,
+    #[prost(int32, tag = "6")]
+    pub max_tokens: i32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TextEmbedScenarioSpec {
+    #[prost(string, repeated, tag = "1")]
+    pub inputs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ImageGenerateScenarioSpec {
+    #[prost(string, tag = "1")]
+    pub prompt: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub negative_prompt: ::prost::alloc::string::String,
+    #[prost(int32, tag = "3")]
+    pub n: i32,
+    #[prost(string, tag = "4")]
+    pub size: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub aspect_ratio: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub quality: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub style: ::prost::alloc::string::String,
+    #[prost(int64, tag = "8")]
+    pub seed: i64,
+    #[prost(string, repeated, tag = "9")]
+    pub reference_images: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "10")]
+    pub mask: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub response_format: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VideoGenerateScenarioSpec {
+    #[prost(string, tag = "1")]
+    pub prompt: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub negative_prompt: ::prost::alloc::string::String,
+    #[prost(enumeration = "VideoMode", tag = "3")]
+    pub mode: i32,
+    #[prost(message, repeated, tag = "4")]
+    pub content: ::prost::alloc::vec::Vec<VideoContentItem>,
+    #[prost(message, optional, tag = "5")]
+    pub options: ::core::option::Option<VideoGenerationOptions>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SpeechSynthesizeScenarioSpec {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub language: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub audio_format: ::prost::alloc::string::String,
+    #[prost(int32, tag = "4")]
+    pub sample_rate_hz: i32,
+    #[prost(float, tag = "5")]
+    pub speed: f32,
+    #[prost(float, tag = "6")]
+    pub pitch: f32,
+    #[prost(float, tag = "7")]
+    pub volume: f32,
+    #[prost(string, tag = "8")]
+    pub emotion: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "9")]
+    pub voice_ref: ::core::option::Option<VoiceReference>,
+    #[prost(enumeration = "SpeechTimingMode", tag = "10")]
+    pub timing_mode: i32,
+    #[prost(message, optional, tag = "11")]
+    pub voice_render_hints: ::core::option::Option<VoiceRenderHints>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SpeechTranscribeScenarioSpec {
+    #[prost(string, tag = "1")]
+    pub mime_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub language: ::prost::alloc::string::String,
+    #[prost(bool, tag = "3")]
+    pub timestamps: bool,
+    #[prost(bool, tag = "4")]
+    pub diarization: bool,
+    #[prost(int32, tag = "5")]
+    pub speaker_count: i32,
+    #[prost(string, tag = "6")]
+    pub prompt: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "7")]
+    pub audio_source: ::core::option::Option<SpeechTranscriptionAudioSource>,
+    #[prost(string, tag = "8")]
+    pub response_format: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VoiceCloneScenarioSpec {
+    #[prost(string, tag = "1")]
+    pub target_model_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub input: ::core::option::Option<VoiceV2vInput>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VoiceDesignScenarioSpec {
+    #[prost(string, tag = "1")]
+    pub target_model_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub input: ::core::option::Option<VoiceT2vInput>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ScenarioSpec {
+    #[prost(oneof = "scenario_spec::Spec", tags = "1, 2, 3, 4, 5, 6, 7, 8")]
+    pub spec: ::core::option::Option<scenario_spec::Spec>,
+}
+/// Nested message and enum types in `ScenarioSpec`.
+pub mod scenario_spec {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Spec {
+        #[prost(message, tag = "1")]
+        TextGenerate(super::TextGenerateScenarioSpec),
+        #[prost(message, tag = "2")]
+        TextEmbed(super::TextEmbedScenarioSpec),
+        #[prost(message, tag = "3")]
+        ImageGenerate(super::ImageGenerateScenarioSpec),
+        #[prost(message, tag = "4")]
+        VideoGenerate(super::VideoGenerateScenarioSpec),
+        #[prost(message, tag = "5")]
+        SpeechSynthesize(super::SpeechSynthesizeScenarioSpec),
+        #[prost(message, tag = "6")]
+        SpeechTranscribe(super::SpeechTranscribeScenarioSpec),
+        #[prost(message, tag = "7")]
+        VoiceClone(super::VoiceCloneScenarioSpec),
+        #[prost(message, tag = "8")]
+        VoiceDesign(super::VoiceDesignScenarioSpec),
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExecuteScenarioRequest {
+    #[prost(message, optional, tag = "1")]
+    pub head: ::core::option::Option<ScenarioRequestHead>,
+    #[prost(enumeration = "ScenarioType", tag = "2")]
+    pub scenario_type: i32,
+    #[prost(enumeration = "ExecutionMode", tag = "3")]
+    pub execution_mode: i32,
+    #[prost(message, optional, tag = "4")]
+    pub spec: ::core::option::Option<ScenarioSpec>,
+    #[prost(message, repeated, tag = "5")]
+    pub extensions: ::prost::alloc::vec::Vec<ScenarioExtension>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExecuteScenarioResponse {
     #[prost(message, optional, tag = "1")]
     pub output: ::core::option::Option<::prost_types::Struct>,
     #[prost(enumeration = "FinishReason", tag = "2")]
@@ -1285,76 +1958,56 @@ pub struct GenerateResponse {
     pub model_resolved: ::prost::alloc::string::String,
     #[prost(string, tag = "6")]
     pub trace_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct StreamGenerateRequest {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub subject_user_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "Modal", tag = "4")]
-    pub modal: i32,
-    #[prost(message, repeated, tag = "5")]
-    pub input: ::prost::alloc::vec::Vec<ChatMessage>,
-    #[prost(string, tag = "6")]
-    pub system_prompt: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "7")]
-    pub tools: ::prost::alloc::vec::Vec<ToolSpec>,
-    #[prost(float, tag = "8")]
-    pub temperature: f32,
-    #[prost(float, tag = "9")]
-    pub top_p: f32,
-    #[prost(int32, tag = "10")]
-    pub max_tokens: i32,
-    #[prost(enumeration = "RoutePolicy", tag = "11")]
-    pub route_policy: i32,
-    #[prost(enumeration = "FallbackPolicy", tag = "12")]
-    pub fallback: i32,
-    #[prost(int32, tag = "13")]
-    pub timeout_ms: i32,
+    pub ignored_extensions: ::prost::alloc::vec::Vec<IgnoredScenarioExtension>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct StreamStarted {
+pub struct StreamScenarioRequest {
+    #[prost(message, optional, tag = "1")]
+    pub head: ::core::option::Option<ScenarioRequestHead>,
+    #[prost(enumeration = "ScenarioType", tag = "2")]
+    pub scenario_type: i32,
+    #[prost(enumeration = "ExecutionMode", tag = "3")]
+    pub execution_mode: i32,
+    #[prost(message, optional, tag = "4")]
+    pub spec: ::core::option::Option<ScenarioSpec>,
+    #[prost(message, repeated, tag = "5")]
+    pub extensions: ::prost::alloc::vec::Vec<ScenarioExtension>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ScenarioStreamStarted {
     #[prost(string, tag = "1")]
     pub model_resolved: ::prost::alloc::string::String,
     #[prost(enumeration = "RoutePolicy", tag = "2")]
     pub route_decision: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct StreamDelta {
+pub struct ScenarioStreamDelta {
     #[prost(string, tag = "1")]
     pub text: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ToolCallEvent {
-    #[prost(string, tag = "1")]
-    pub tool_name: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub tool_input: ::core::option::Option<::prost_types::Struct>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ToolResultEvent {
-    #[prost(string, tag = "1")]
-    pub tool_name: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub tool_output: ::core::option::Option<::prost_types::Struct>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub chunk: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "3")]
+    pub mime_type: ::prost::alloc::string::String,
 }
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct StreamCompleted {
+pub struct ScenarioStreamCompleted {
     #[prost(enumeration = "FinishReason", tag = "1")]
     pub finish_reason: i32,
+    #[prost(message, optional, tag = "2")]
+    pub usage: ::core::option::Option<UsageStats>,
+    #[prost(bool, tag = "3")]
+    pub stream_simulated: bool,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct StreamFailed {
+pub struct ScenarioStreamFailed {
     #[prost(enumeration = "ReasonCode", tag = "1")]
     pub reason_code: i32,
     #[prost(string, tag = "2")]
     pub action_hint: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct StreamGenerateEvent {
+pub struct StreamScenarioEvent {
     #[prost(enumeration = "StreamEventType", tag = "1")]
     pub event_type: i32,
     #[prost(uint64, tag = "2")]
@@ -1363,112 +2016,290 @@ pub struct StreamGenerateEvent {
     pub trace_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "4")]
     pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(
-        oneof = "stream_generate_event::Payload",
-        tags = "10, 11, 12, 13, 14, 15, 16"
-    )]
-    pub payload: ::core::option::Option<stream_generate_event::Payload>,
+    #[prost(oneof = "stream_scenario_event::Payload", tags = "10, 11, 14, 15, 16")]
+    pub payload: ::core::option::Option<stream_scenario_event::Payload>,
 }
-/// Nested message and enum types in `StreamGenerateEvent`.
-pub mod stream_generate_event {
+/// Nested message and enum types in `StreamScenarioEvent`.
+pub mod stream_scenario_event {
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Payload {
         #[prost(message, tag = "10")]
-        Started(super::StreamStarted),
+        Started(super::ScenarioStreamStarted),
         #[prost(message, tag = "11")]
-        Delta(super::StreamDelta),
-        #[prost(message, tag = "12")]
-        ToolCall(super::ToolCallEvent),
-        #[prost(message, tag = "13")]
-        ToolResult(super::ToolResultEvent),
+        Delta(super::ScenarioStreamDelta),
         #[prost(message, tag = "14")]
         Usage(super::UsageStats),
         #[prost(message, tag = "15")]
-        Completed(super::StreamCompleted),
+        Completed(super::ScenarioStreamCompleted),
         #[prost(message, tag = "16")]
-        Failed(super::StreamFailed),
+        Failed(super::ScenarioStreamFailed),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct EmbedRequest {
+pub struct ScenarioArtifact {
     #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
+    pub artifact_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
-    pub subject_user_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "4")]
-    pub inputs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(enumeration = "RoutePolicy", tag = "5")]
-    pub route_policy: i32,
-    #[prost(enumeration = "FallbackPolicy", tag = "6")]
-    pub fallback: i32,
-    #[prost(int32, tag = "7")]
-    pub timeout_ms: i32,
+    pub mime_type: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "3")]
+    pub bytes: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "4")]
+    pub uri: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub sha256: ::prost::alloc::string::String,
+    #[prost(int64, tag = "6")]
+    pub size_bytes: i64,
+    #[prost(int64, tag = "7")]
+    pub duration_ms: i64,
+    #[prost(int32, tag = "8")]
+    pub fps: i32,
+    #[prost(int32, tag = "9")]
+    pub width: i32,
+    #[prost(int32, tag = "10")]
+    pub height: i32,
+    #[prost(int32, tag = "11")]
+    pub sample_rate_hz: i32,
+    #[prost(int32, tag = "12")]
+    pub channels: i32,
+    #[prost(message, optional, tag = "13")]
+    pub speech_alignment: ::core::option::Option<SpeechAlignment>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct EmbedResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub vectors: ::prost::alloc::vec::Vec<::prost_types::ListValue>,
+pub struct ScenarioJob {
+    #[prost(string, tag = "1")]
+    pub job_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "2")]
-    pub usage: ::core::option::Option<UsageStats>,
-    #[prost(enumeration = "RoutePolicy", tag = "3")]
+    pub head: ::core::option::Option<ScenarioRequestHead>,
+    #[prost(enumeration = "ScenarioType", tag = "3")]
+    pub scenario_type: i32,
+    #[prost(enumeration = "ExecutionMode", tag = "4")]
+    pub execution_mode: i32,
+    #[prost(enumeration = "RoutePolicy", tag = "5")]
     pub route_decision: i32,
-    #[prost(string, tag = "4")]
+    #[prost(string, tag = "6")]
     pub model_resolved: ::prost::alloc::string::String,
+    #[prost(enumeration = "ScenarioJobStatus", tag = "7")]
+    pub status: i32,
+    #[prost(string, tag = "8")]
+    pub provider_job_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "9")]
+    pub reason_code: i32,
+    #[prost(string, tag = "10")]
+    pub reason_detail: ::prost::alloc::string::String,
+    #[prost(int32, tag = "11")]
+    pub retry_count: i32,
+    #[prost(message, optional, tag = "12")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "13")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "14")]
+    pub next_poll_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, repeated, tag = "15")]
+    pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
+    #[prost(message, optional, tag = "16")]
+    pub usage: ::core::option::Option<UsageStats>,
+    #[prost(string, tag = "17")]
+    pub trace_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "18")]
+    pub ignored_extensions: ::prost::alloc::vec::Vec<IgnoredScenarioExtension>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SubmitScenarioJobRequest {
+    #[prost(message, optional, tag = "1")]
+    pub head: ::core::option::Option<ScenarioRequestHead>,
+    #[prost(enumeration = "ScenarioType", tag = "2")]
+    pub scenario_type: i32,
+    #[prost(enumeration = "ExecutionMode", tag = "3")]
+    pub execution_mode: i32,
+    #[prost(message, optional, tag = "4")]
+    pub spec: ::core::option::Option<ScenarioSpec>,
     #[prost(string, tag = "5")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub idempotency_key: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "7")]
+    pub labels: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(message, repeated, tag = "8")]
+    pub extensions: ::prost::alloc::vec::Vec<ScenarioExtension>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SubmitScenarioJobResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<ScenarioJob>,
+    #[prost(message, optional, tag = "2")]
+    pub asset: ::core::option::Option<VoiceAsset>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetScenarioJobRequest {
+    #[prost(string, tag = "1")]
+    pub job_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetScenarioJobResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<ScenarioJob>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CancelScenarioJobRequest {
+    #[prost(string, tag = "1")]
+    pub job_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CancelScenarioJobResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<ScenarioJob>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ScenarioJobEvent {
+    #[prost(enumeration = "ScenarioJobEventType", tag = "1")]
+    pub event_type: i32,
+    #[prost(uint64, tag = "2")]
+    pub sequence: u64,
+    #[prost(string, tag = "3")]
+    pub trace_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "5")]
+    pub job: ::core::option::Option<ScenarioJob>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SubscribeScenarioJobEventsRequest {
+    #[prost(string, tag = "1")]
+    pub job_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetScenarioArtifactsRequest {
+    #[prost(string, tag = "1")]
+    pub job_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetScenarioArtifactsResponse {
+    #[prost(string, tag = "1")]
+    pub job_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "2")]
+    pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
+    #[prost(string, tag = "3")]
     pub trace_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GenerateImageRequest {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub subject_user_id: ::prost::alloc::string::String,
+pub struct ScenarioProfile {
+    #[prost(enumeration = "ScenarioType", tag = "1")]
+    pub scenario_type: i32,
+    #[prost(enumeration = "ExecutionMode", repeated, tag = "2")]
+    pub supported_execution_modes: ::prost::alloc::vec::Vec<i32>,
     #[prost(string, tag = "3")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub prompt: ::prost::alloc::string::String,
-    #[prost(enumeration = "RoutePolicy", tag = "5")]
-    pub route_policy: i32,
-    #[prost(enumeration = "FallbackPolicy", tag = "6")]
-    pub fallback: i32,
-    #[prost(int32, tag = "7")]
-    pub timeout_ms: i32,
+    pub description: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GenerateVideoRequest {
+pub struct ListScenarioProfilesRequest {
     #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub subject_user_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
     pub model_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub prompt: ::prost::alloc::string::String,
-    #[prost(enumeration = "RoutePolicy", tag = "5")]
-    pub route_policy: i32,
-    #[prost(enumeration = "FallbackPolicy", tag = "6")]
-    pub fallback: i32,
-    #[prost(int32, tag = "7")]
-    pub timeout_ms: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SynthesizeSpeechRequest {
+pub struct ListScenarioProfilesResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub profiles: ::prost::alloc::vec::Vec<ScenarioProfile>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VideoContentImageUrl {
     #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub subject_user_id: ::prost::alloc::string::String,
+    pub url: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VideoContentItem {
+    #[prost(enumeration = "VideoContentType", tag = "1")]
+    pub r#type: i32,
+    #[prost(enumeration = "VideoContentRole", tag = "2")]
+    pub role: i32,
     #[prost(string, tag = "3")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
     pub text: ::prost::alloc::string::String,
-    #[prost(enumeration = "RoutePolicy", tag = "5")]
-    pub route_policy: i32,
-    #[prost(enumeration = "FallbackPolicy", tag = "6")]
-    pub fallback: i32,
-    #[prost(int32, tag = "7")]
-    pub timeout_ms: i32,
+    #[prost(message, optional, tag = "4")]
+    pub image_url: ::core::option::Option<VideoContentImageUrl>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VideoGenerationOptions {
+    #[prost(string, tag = "1")]
+    pub resolution: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub ratio: ::prost::alloc::string::String,
+    #[prost(int32, tag = "3")]
+    pub duration_sec: i32,
+    #[prost(int32, tag = "4")]
+    pub frames: i32,
+    #[prost(int32, tag = "5")]
+    pub fps: i32,
+    #[prost(int64, tag = "6")]
+    pub seed: i64,
+    #[prost(bool, tag = "7")]
+    pub camera_fixed: bool,
+    #[prost(bool, tag = "8")]
+    pub watermark: bool,
+    #[prost(bool, tag = "9")]
+    pub generate_audio: bool,
+    #[prost(bool, tag = "10")]
+    pub draft: bool,
+    #[prost(string, tag = "11")]
+    pub service_tier: ::prost::alloc::string::String,
+    #[prost(int32, tag = "12")]
+    pub execution_expires_after_sec: i32,
+    #[prost(bool, tag = "13")]
+    pub return_last_frame: bool,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct VoiceRenderHints {
+    #[prost(float, tag = "1")]
+    pub stability: f32,
+    #[prost(float, tag = "2")]
+    pub similarity_boost: f32,
+    #[prost(float, tag = "3")]
+    pub style: f32,
+    #[prost(bool, tag = "4")]
+    pub use_speaker_boost: bool,
+    #[prost(float, tag = "5")]
+    pub speed: f32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AudioChunks {
+    #[prost(bytes = "vec", repeated, tag = "1")]
+    pub chunks: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SpeechTranscriptionAudioSource {
+    #[prost(oneof = "speech_transcription_audio_source::Source", tags = "1, 2, 3")]
+    pub source: ::core::option::Option<speech_transcription_audio_source::Source>,
+}
+/// Nested message and enum types in `SpeechTranscriptionAudioSource`.
+pub mod speech_transcription_audio_source {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Source {
+        #[prost(bytes, tag = "1")]
+        AudioBytes(::prost::alloc::vec::Vec<u8>),
+        #[prost(string, tag = "2")]
+        AudioUri(::prost::alloc::string::String),
+        #[prost(message, tag = "3")]
+        AudioChunks(super::AudioChunks),
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SpeechAlignmentToken {
+    #[prost(string, tag = "1")]
+    pub token: ::prost::alloc::string::String,
+    #[prost(int64, tag = "2")]
+    pub start_ms: i64,
+    #[prost(int64, tag = "3")]
+    pub end_ms: i64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SpeechAlignment {
+    #[prost(enumeration = "SpeechAlignmentUnit", tag = "1")]
+    pub unit: i32,
+    #[prost(message, repeated, tag = "2")]
+    pub tokens: ::prost::alloc::vec::Vec<SpeechAlignmentToken>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ArtifactChunk {
@@ -1489,38 +2320,6 @@ pub struct ArtifactChunk {
     #[prost(string, tag = "8")]
     pub model_resolved: ::prost::alloc::string::String,
     #[prost(string, tag = "9")]
-    pub trace_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct TranscribeAudioRequest {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub subject_user_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(bytes = "vec", tag = "4")]
-    pub audio_bytes: ::prost::alloc::vec::Vec<u8>,
-    #[prost(string, tag = "5")]
-    pub mime_type: ::prost::alloc::string::String,
-    #[prost(enumeration = "RoutePolicy", tag = "6")]
-    pub route_policy: i32,
-    #[prost(enumeration = "FallbackPolicy", tag = "7")]
-    pub fallback: i32,
-    #[prost(int32, tag = "8")]
-    pub timeout_ms: i32,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct TranscribeAudioResponse {
-    #[prost(string, tag = "1")]
-    pub text: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub usage: ::core::option::Option<UsageStats>,
-    #[prost(enumeration = "RoutePolicy", tag = "3")]
-    pub route_decision: i32,
-    #[prost(string, tag = "4")]
-    pub model_resolved: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
     pub trace_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -1566,10 +2365,89 @@ impl Modal {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
+pub enum ScenarioType {
+    Unspecified = 0,
+    TextGenerate = 1,
+    TextEmbed = 2,
+    ImageGenerate = 3,
+    VideoGenerate = 4,
+    SpeechSynthesize = 5,
+    SpeechTranscribe = 6,
+    VoiceClone = 7,
+    VoiceDesign = 8,
+}
+impl ScenarioType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SCENARIO_TYPE_UNSPECIFIED",
+            Self::TextGenerate => "SCENARIO_TYPE_TEXT_GENERATE",
+            Self::TextEmbed => "SCENARIO_TYPE_TEXT_EMBED",
+            Self::ImageGenerate => "SCENARIO_TYPE_IMAGE_GENERATE",
+            Self::VideoGenerate => "SCENARIO_TYPE_VIDEO_GENERATE",
+            Self::SpeechSynthesize => "SCENARIO_TYPE_SPEECH_SYNTHESIZE",
+            Self::SpeechTranscribe => "SCENARIO_TYPE_SPEECH_TRANSCRIBE",
+            Self::VoiceClone => "SCENARIO_TYPE_VOICE_CLONE",
+            Self::VoiceDesign => "SCENARIO_TYPE_VOICE_DESIGN",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SCENARIO_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "SCENARIO_TYPE_TEXT_GENERATE" => Some(Self::TextGenerate),
+            "SCENARIO_TYPE_TEXT_EMBED" => Some(Self::TextEmbed),
+            "SCENARIO_TYPE_IMAGE_GENERATE" => Some(Self::ImageGenerate),
+            "SCENARIO_TYPE_VIDEO_GENERATE" => Some(Self::VideoGenerate),
+            "SCENARIO_TYPE_SPEECH_SYNTHESIZE" => Some(Self::SpeechSynthesize),
+            "SCENARIO_TYPE_SPEECH_TRANSCRIBE" => Some(Self::SpeechTranscribe),
+            "SCENARIO_TYPE_VOICE_CLONE" => Some(Self::VoiceClone),
+            "SCENARIO_TYPE_VOICE_DESIGN" => Some(Self::VoiceDesign),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ExecutionMode {
+    Unspecified = 0,
+    Sync = 1,
+    Stream = 2,
+    AsyncJob = 3,
+}
+impl ExecutionMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "EXECUTION_MODE_UNSPECIFIED",
+            Self::Sync => "EXECUTION_MODE_SYNC",
+            Self::Stream => "EXECUTION_MODE_STREAM",
+            Self::AsyncJob => "EXECUTION_MODE_ASYNC_JOB",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "EXECUTION_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "EXECUTION_MODE_SYNC" => Some(Self::Sync),
+            "EXECUTION_MODE_STREAM" => Some(Self::Stream),
+            "EXECUTION_MODE_ASYNC_JOB" => Some(Self::AsyncJob),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
 pub enum RoutePolicy {
     Unspecified = 0,
-    LocalRuntime = 1,
-    TokenApi = 2,
+    Local = 1,
+    Cloud = 2,
 }
 impl RoutePolicy {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -1579,16 +2457,16 @@ impl RoutePolicy {
     pub fn as_str_name(&self) -> &'static str {
         match self {
             Self::Unspecified => "ROUTE_POLICY_UNSPECIFIED",
-            Self::LocalRuntime => "ROUTE_POLICY_LOCAL_RUNTIME",
-            Self::TokenApi => "ROUTE_POLICY_TOKEN_API",
+            Self::Local => "ROUTE_POLICY_LOCAL",
+            Self::Cloud => "ROUTE_POLICY_CLOUD",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
             "ROUTE_POLICY_UNSPECIFIED" => Some(Self::Unspecified),
-            "ROUTE_POLICY_LOCAL_RUNTIME" => Some(Self::LocalRuntime),
-            "ROUTE_POLICY_TOKEN_API" => Some(Self::TokenApi),
+            "ROUTE_POLICY_LOCAL" => Some(Self::Local),
+            "ROUTE_POLICY_CLOUD" => Some(Self::Cloud),
             _ => None,
         }
     }
@@ -1662,6 +2540,44 @@ impl FinishReason {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
+pub enum TokenProviderHealthStatus {
+    Unspecified = 0,
+    Healthy = 1,
+    Degraded = 2,
+    Unreachable = 3,
+    Unauthorized = 4,
+    Unsupported = 5,
+}
+impl TokenProviderHealthStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "TOKEN_PROVIDER_HEALTH_STATUS_UNSPECIFIED",
+            Self::Healthy => "TOKEN_PROVIDER_HEALTH_STATUS_HEALTHY",
+            Self::Degraded => "TOKEN_PROVIDER_HEALTH_STATUS_DEGRADED",
+            Self::Unreachable => "TOKEN_PROVIDER_HEALTH_STATUS_UNREACHABLE",
+            Self::Unauthorized => "TOKEN_PROVIDER_HEALTH_STATUS_UNAUTHORIZED",
+            Self::Unsupported => "TOKEN_PROVIDER_HEALTH_STATUS_UNSUPPORTED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "TOKEN_PROVIDER_HEALTH_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "TOKEN_PROVIDER_HEALTH_STATUS_HEALTHY" => Some(Self::Healthy),
+            "TOKEN_PROVIDER_HEALTH_STATUS_DEGRADED" => Some(Self::Degraded),
+            "TOKEN_PROVIDER_HEALTH_STATUS_UNREACHABLE" => Some(Self::Unreachable),
+            "TOKEN_PROVIDER_HEALTH_STATUS_UNAUTHORIZED" => Some(Self::Unauthorized),
+            "TOKEN_PROVIDER_HEALTH_STATUS_UNSUPPORTED" => Some(Self::Unsupported),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
 pub enum StreamEventType {
     Unspecified = 0,
     StreamEventStarted = 1,
@@ -1700,6 +2616,254 @@ impl StreamEventType {
             "STREAM_EVENT_USAGE" => Some(Self::StreamEventUsage),
             "STREAM_EVENT_COMPLETED" => Some(Self::StreamEventCompleted),
             "STREAM_EVENT_FAILED" => Some(Self::StreamEventFailed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum VideoMode {
+    Unspecified = 0,
+    T2v = 1,
+    I2vFirstFrame = 2,
+    I2vFirstLast = 3,
+    I2vReference = 4,
+}
+impl VideoMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "VIDEO_MODE_UNSPECIFIED",
+            Self::T2v => "VIDEO_MODE_T2V",
+            Self::I2vFirstFrame => "VIDEO_MODE_I2V_FIRST_FRAME",
+            Self::I2vFirstLast => "VIDEO_MODE_I2V_FIRST_LAST",
+            Self::I2vReference => "VIDEO_MODE_I2V_REFERENCE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "VIDEO_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "VIDEO_MODE_T2V" => Some(Self::T2v),
+            "VIDEO_MODE_I2V_FIRST_FRAME" => Some(Self::I2vFirstFrame),
+            "VIDEO_MODE_I2V_FIRST_LAST" => Some(Self::I2vFirstLast),
+            "VIDEO_MODE_I2V_REFERENCE" => Some(Self::I2vReference),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum VideoContentType {
+    Unspecified = 0,
+    Text = 1,
+    ImageUrl = 2,
+}
+impl VideoContentType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "VIDEO_CONTENT_TYPE_UNSPECIFIED",
+            Self::Text => "VIDEO_CONTENT_TYPE_TEXT",
+            Self::ImageUrl => "VIDEO_CONTENT_TYPE_IMAGE_URL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "VIDEO_CONTENT_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "VIDEO_CONTENT_TYPE_TEXT" => Some(Self::Text),
+            "VIDEO_CONTENT_TYPE_IMAGE_URL" => Some(Self::ImageUrl),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum VideoContentRole {
+    Unspecified = 0,
+    Prompt = 1,
+    FirstFrame = 2,
+    LastFrame = 3,
+    ReferenceImage = 4,
+}
+impl VideoContentRole {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "VIDEO_CONTENT_ROLE_UNSPECIFIED",
+            Self::Prompt => "VIDEO_CONTENT_ROLE_PROMPT",
+            Self::FirstFrame => "VIDEO_CONTENT_ROLE_FIRST_FRAME",
+            Self::LastFrame => "VIDEO_CONTENT_ROLE_LAST_FRAME",
+            Self::ReferenceImage => "VIDEO_CONTENT_ROLE_REFERENCE_IMAGE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "VIDEO_CONTENT_ROLE_UNSPECIFIED" => Some(Self::Unspecified),
+            "VIDEO_CONTENT_ROLE_PROMPT" => Some(Self::Prompt),
+            "VIDEO_CONTENT_ROLE_FIRST_FRAME" => Some(Self::FirstFrame),
+            "VIDEO_CONTENT_ROLE_LAST_FRAME" => Some(Self::LastFrame),
+            "VIDEO_CONTENT_ROLE_REFERENCE_IMAGE" => Some(Self::ReferenceImage),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SpeechTimingMode {
+    Unspecified = 0,
+    None = 1,
+    Word = 2,
+    Char = 3,
+}
+impl SpeechTimingMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SPEECH_TIMING_MODE_UNSPECIFIED",
+            Self::None => "SPEECH_TIMING_MODE_NONE",
+            Self::Word => "SPEECH_TIMING_MODE_WORD",
+            Self::Char => "SPEECH_TIMING_MODE_CHAR",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SPEECH_TIMING_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "SPEECH_TIMING_MODE_NONE" => Some(Self::None),
+            "SPEECH_TIMING_MODE_WORD" => Some(Self::Word),
+            "SPEECH_TIMING_MODE_CHAR" => Some(Self::Char),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SpeechAlignmentUnit {
+    Unspecified = 0,
+    Word = 1,
+    Char = 2,
+}
+impl SpeechAlignmentUnit {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SPEECH_ALIGNMENT_UNIT_UNSPECIFIED",
+            Self::Word => "SPEECH_ALIGNMENT_UNIT_WORD",
+            Self::Char => "SPEECH_ALIGNMENT_UNIT_CHAR",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SPEECH_ALIGNMENT_UNIT_UNSPECIFIED" => Some(Self::Unspecified),
+            "SPEECH_ALIGNMENT_UNIT_WORD" => Some(Self::Word),
+            "SPEECH_ALIGNMENT_UNIT_CHAR" => Some(Self::Char),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ScenarioJobStatus {
+    Unspecified = 0,
+    Submitted = 1,
+    Queued = 2,
+    Running = 3,
+    Completed = 4,
+    Failed = 5,
+    Canceled = 6,
+    Timeout = 7,
+}
+impl ScenarioJobStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SCENARIO_JOB_STATUS_UNSPECIFIED",
+            Self::Submitted => "SCENARIO_JOB_STATUS_SUBMITTED",
+            Self::Queued => "SCENARIO_JOB_STATUS_QUEUED",
+            Self::Running => "SCENARIO_JOB_STATUS_RUNNING",
+            Self::Completed => "SCENARIO_JOB_STATUS_COMPLETED",
+            Self::Failed => "SCENARIO_JOB_STATUS_FAILED",
+            Self::Canceled => "SCENARIO_JOB_STATUS_CANCELED",
+            Self::Timeout => "SCENARIO_JOB_STATUS_TIMEOUT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SCENARIO_JOB_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "SCENARIO_JOB_STATUS_SUBMITTED" => Some(Self::Submitted),
+            "SCENARIO_JOB_STATUS_QUEUED" => Some(Self::Queued),
+            "SCENARIO_JOB_STATUS_RUNNING" => Some(Self::Running),
+            "SCENARIO_JOB_STATUS_COMPLETED" => Some(Self::Completed),
+            "SCENARIO_JOB_STATUS_FAILED" => Some(Self::Failed),
+            "SCENARIO_JOB_STATUS_CANCELED" => Some(Self::Canceled),
+            "SCENARIO_JOB_STATUS_TIMEOUT" => Some(Self::Timeout),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ScenarioJobEventType {
+    Unspecified = 0,
+    ScenarioJobEventSubmitted = 1,
+    ScenarioJobEventQueued = 2,
+    ScenarioJobEventRunning = 3,
+    ScenarioJobEventCompleted = 4,
+    ScenarioJobEventFailed = 5,
+    ScenarioJobEventCanceled = 6,
+    ScenarioJobEventTimeout = 7,
+}
+impl ScenarioJobEventType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED",
+            Self::ScenarioJobEventSubmitted => "SCENARIO_JOB_EVENT_SUBMITTED",
+            Self::ScenarioJobEventQueued => "SCENARIO_JOB_EVENT_QUEUED",
+            Self::ScenarioJobEventRunning => "SCENARIO_JOB_EVENT_RUNNING",
+            Self::ScenarioJobEventCompleted => "SCENARIO_JOB_EVENT_COMPLETED",
+            Self::ScenarioJobEventFailed => "SCENARIO_JOB_EVENT_FAILED",
+            Self::ScenarioJobEventCanceled => "SCENARIO_JOB_EVENT_CANCELED",
+            Self::ScenarioJobEventTimeout => "SCENARIO_JOB_EVENT_TIMEOUT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "SCENARIO_JOB_EVENT_SUBMITTED" => Some(Self::ScenarioJobEventSubmitted),
+            "SCENARIO_JOB_EVENT_QUEUED" => Some(Self::ScenarioJobEventQueued),
+            "SCENARIO_JOB_EVENT_RUNNING" => Some(Self::ScenarioJobEventRunning),
+            "SCENARIO_JOB_EVENT_COMPLETED" => Some(Self::ScenarioJobEventCompleted),
+            "SCENARIO_JOB_EVENT_FAILED" => Some(Self::ScenarioJobEventFailed),
+            "SCENARIO_JOB_EVENT_CANCELED" => Some(Self::ScenarioJobEventCanceled),
+            "SCENARIO_JOB_EVENT_TIMEOUT" => Some(Self::ScenarioJobEventTimeout),
             _ => None,
         }
     }
@@ -1795,11 +2959,11 @@ pub mod runtime_ai_service_client {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
         }
-        pub async fn generate(
+        pub async fn execute_scenario(
             &mut self,
-            request: impl tonic::IntoRequest<super::GenerateRequest>,
+            request: impl tonic::IntoRequest<super::ExecuteScenarioRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::GenerateResponse>,
+            tonic::Response<super::ExecuteScenarioResponse>,
             tonic::Status,
         > {
             self.inner
@@ -1812,146 +2976,162 @@ pub mod runtime_ai_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAiService/Generate",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(GrpcMethod::new("nimi.runtime.v1.RuntimeAiService", "Generate"));
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn stream_generate(
-            &mut self,
-            request: impl tonic::IntoRequest<super::StreamGenerateRequest>,
-        ) -> std::result::Result<
-            tonic::Response<tonic::codec::Streaming<super::StreamGenerateEvent>>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAiService/StreamGenerate",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("nimi.runtime.v1.RuntimeAiService", "StreamGenerate"),
-                );
-            self.inner.server_streaming(req, path, codec).await
-        }
-        pub async fn embed(
-            &mut self,
-            request: impl tonic::IntoRequest<super::EmbedRequest>,
-        ) -> std::result::Result<tonic::Response<super::EmbedResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAiService/Embed",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(GrpcMethod::new("nimi.runtime.v1.RuntimeAiService", "Embed"));
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn generate_image(
-            &mut self,
-            request: impl tonic::IntoRequest<super::GenerateImageRequest>,
-        ) -> std::result::Result<
-            tonic::Response<tonic::codec::Streaming<super::ArtifactChunk>>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAiService/GenerateImage",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("nimi.runtime.v1.RuntimeAiService", "GenerateImage"),
-                );
-            self.inner.server_streaming(req, path, codec).await
-        }
-        pub async fn generate_video(
-            &mut self,
-            request: impl tonic::IntoRequest<super::GenerateVideoRequest>,
-        ) -> std::result::Result<
-            tonic::Response<tonic::codec::Streaming<super::ArtifactChunk>>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAiService/GenerateVideo",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("nimi.runtime.v1.RuntimeAiService", "GenerateVideo"),
-                );
-            self.inner.server_streaming(req, path, codec).await
-        }
-        pub async fn synthesize_speech(
-            &mut self,
-            request: impl tonic::IntoRequest<super::SynthesizeSpeechRequest>,
-        ) -> std::result::Result<
-            tonic::Response<tonic::codec::Streaming<super::ArtifactChunk>>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAiService/SynthesizeSpeech",
+                "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAiService",
-                        "SynthesizeSpeech",
+                        "ExecuteScenario",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn stream_scenario(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StreamScenarioRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::StreamScenarioEvent>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("nimi.runtime.v1.RuntimeAiService", "StreamScenario"),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        pub async fn submit_scenario_job(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SubmitScenarioJobRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SubmitScenarioJobResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiService",
+                        "SubmitScenarioJob",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_scenario_job(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetScenarioJobRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetScenarioJobResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/GetScenarioJob",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("nimi.runtime.v1.RuntimeAiService", "GetScenarioJob"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn cancel_scenario_job(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CancelScenarioJobRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CancelScenarioJobResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiService",
+                        "CancelScenarioJob",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn subscribe_scenario_job_events(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SubscribeScenarioJobEventsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::ScenarioJobEvent>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiService",
+                        "SubscribeScenarioJobEvents",
                     ),
                 );
             self.inner.server_streaming(req, path, codec).await
         }
-        pub async fn transcribe_audio(
+        pub async fn get_scenario_artifacts(
             &mut self,
-            request: impl tonic::IntoRequest<super::TranscribeAudioRequest>,
+            request: impl tonic::IntoRequest<super::GetScenarioArtifactsRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::TranscribeAudioResponse>,
+            tonic::Response<super::GetScenarioArtifactsResponse>,
             tonic::Status,
         > {
             self.inner
@@ -1964,14 +3144,156 @@ pub mod runtime_ai_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAiService/TranscribeAudio",
+                "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAiService",
-                        "TranscribeAudio",
+                        "GetScenarioArtifacts",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_scenario_profiles(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListScenarioProfilesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListScenarioProfilesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiService",
+                        "ListScenarioProfiles",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_voice_asset(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetVoiceAssetRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetVoiceAssetResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("nimi.runtime.v1.RuntimeAiService", "GetVoiceAsset"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_voice_assets(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListVoiceAssetsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListVoiceAssetsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiService",
+                        "ListVoiceAssets",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn delete_voice_asset(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DeleteVoiceAssetRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteVoiceAssetResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiService",
+                        "DeleteVoiceAsset",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_preset_voices(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListPresetVoicesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListPresetVoicesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiService",
+                        "ListPresetVoices",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -2107,6 +3429,62 @@ pub struct AiSttNodeConfig {
     pub audio_bytes: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AiTtsCreateVoiceNodeConfig {
+    #[prost(string, tag = "1")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub target_model_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "VoiceWorkflowType", tag = "3")]
+    pub workflow_type: i32,
+    #[prost(string, tag = "4")]
+    pub connector_id: ::prost::alloc::string::String,
+    #[prost(int32, tag = "5")]
+    pub timeout_ms: i32,
+    #[prost(string, tag = "6")]
+    pub preferred_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub reference_audio_uri: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub reference_audio_mime: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub instruction_text: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub preview_text: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub language: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "20")]
+    pub extensions: ::prost::alloc::vec::Vec<ScenarioExtension>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AiTtsSynthesizeNodeConfig {
+    #[prost(string, tag = "1")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub target_model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub text: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub voice_ref: ::core::option::Option<VoiceReference>,
+    #[prost(string, tag = "5")]
+    pub connector_id: ::prost::alloc::string::String,
+    #[prost(int32, tag = "6")]
+    pub timeout_ms: i32,
+    #[prost(string, tag = "7")]
+    pub audio_format: ::prost::alloc::string::String,
+    #[prost(int32, tag = "8")]
+    pub sample_rate_hz: i32,
+    #[prost(float, tag = "9")]
+    pub speed: f32,
+    #[prost(float, tag = "10")]
+    pub pitch: f32,
+    #[prost(float, tag = "11")]
+    pub volume: f32,
+    #[prost(string, tag = "12")]
+    pub emotion: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "20")]
+    pub extensions: ::prost::alloc::vec::Vec<ScenarioExtension>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ExtractNodeConfig {
     #[prost(string, tag = "1")]
     pub json_path: ::prost::alloc::string::String,
@@ -2161,9 +3539,15 @@ pub struct WorkflowNode {
     pub retry_max_attempts: i32,
     #[prost(string, tag = "6")]
     pub retry_backoff: ::prost::alloc::string::String,
+    #[prost(enumeration = "WorkflowExecutionMode", tag = "7")]
+    pub execution_mode: i32,
+    #[prost(enumeration = "WorkflowResumeStrategy", tag = "8")]
+    pub resume_strategy: i32,
+    #[prost(string, tag = "9")]
+    pub callback_ref: ::prost::alloc::string::String,
     #[prost(
         oneof = "workflow_node::TypeConfig",
-        tags = "10, 11, 12, 13, 14, 15, 16, 20, 21, 22, 30, 31, 32"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 21, 22, 30, 31, 32"
     )]
     pub type_config: ::core::option::Option<workflow_node::TypeConfig>,
 }
@@ -2185,6 +3569,10 @@ pub mod workflow_node {
         AiTtsConfig(super::AiTtsNodeConfig),
         #[prost(message, tag = "16")]
         AiSttConfig(super::AiSttNodeConfig),
+        #[prost(message, tag = "17")]
+        AiTtsCreateVoiceConfig(super::AiTtsCreateVoiceNodeConfig),
+        #[prost(message, tag = "18")]
+        AiTtsSynthesizeConfig(super::AiTtsSynthesizeNodeConfig),
         #[prost(message, tag = "20")]
         ExtractConfig(super::ExtractNodeConfig),
         #[prost(message, tag = "21")]
@@ -2243,6 +3631,14 @@ pub struct WorkflowNodeStatus {
     pub attempt: i32,
     #[prost(string, tag = "4")]
     pub reason: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub provider_job_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "6")]
+    pub next_poll_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(int32, tag = "7")]
+    pub retry_count: i32,
+    #[prost(string, tag = "8")]
+    pub last_error: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetWorkflowResponse {
@@ -2344,6 +3740,10 @@ pub enum WorkflowEventType {
     WorkflowEventCompleted = 6,
     WorkflowEventFailed = 7,
     WorkflowEventCanceled = 8,
+    WorkflowEventNodeExternalSubmitted = 9,
+    WorkflowEventNodeExternalRunning = 10,
+    WorkflowEventNodeExternalCompleted = 11,
+    WorkflowEventNodeExternalFailed = 12,
 }
 impl WorkflowEventType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -2361,6 +3761,18 @@ impl WorkflowEventType {
             Self::WorkflowEventCompleted => "WORKFLOW_EVENT_COMPLETED",
             Self::WorkflowEventFailed => "WORKFLOW_EVENT_FAILED",
             Self::WorkflowEventCanceled => "WORKFLOW_EVENT_CANCELED",
+            Self::WorkflowEventNodeExternalSubmitted => {
+                "WORKFLOW_EVENT_NODE_EXTERNAL_SUBMITTED"
+            }
+            Self::WorkflowEventNodeExternalRunning => {
+                "WORKFLOW_EVENT_NODE_EXTERNAL_RUNNING"
+            }
+            Self::WorkflowEventNodeExternalCompleted => {
+                "WORKFLOW_EVENT_NODE_EXTERNAL_COMPLETED"
+            }
+            Self::WorkflowEventNodeExternalFailed => {
+                "WORKFLOW_EVENT_NODE_EXTERNAL_FAILED"
+            }
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -2375,6 +3787,18 @@ impl WorkflowEventType {
             "WORKFLOW_EVENT_COMPLETED" => Some(Self::WorkflowEventCompleted),
             "WORKFLOW_EVENT_FAILED" => Some(Self::WorkflowEventFailed),
             "WORKFLOW_EVENT_CANCELED" => Some(Self::WorkflowEventCanceled),
+            "WORKFLOW_EVENT_NODE_EXTERNAL_SUBMITTED" => {
+                Some(Self::WorkflowEventNodeExternalSubmitted)
+            }
+            "WORKFLOW_EVENT_NODE_EXTERNAL_RUNNING" => {
+                Some(Self::WorkflowEventNodeExternalRunning)
+            }
+            "WORKFLOW_EVENT_NODE_EXTERNAL_COMPLETED" => {
+                Some(Self::WorkflowEventNodeExternalCompleted)
+            }
+            "WORKFLOW_EVENT_NODE_EXTERNAL_FAILED" => {
+                Some(Self::WorkflowEventNodeExternalFailed)
+            }
             _ => None,
         }
     }
@@ -2390,6 +3814,8 @@ pub enum WorkflowNodeType {
     WorkflowNodeAiVideo = 5,
     WorkflowNodeAiTts = 6,
     WorkflowNodeAiStt = 7,
+    WorkflowNodeAiTtsCreateVoice = 8,
+    WorkflowNodeAiTtsSynthesize = 9,
     WorkflowNodeTransformExtract = 20,
     WorkflowNodeTransformTemplate = 21,
     WorkflowNodeTransformScript = 22,
@@ -2412,6 +3838,8 @@ impl WorkflowNodeType {
             Self::WorkflowNodeAiVideo => "WORKFLOW_NODE_AI_VIDEO",
             Self::WorkflowNodeAiTts => "WORKFLOW_NODE_AI_TTS",
             Self::WorkflowNodeAiStt => "WORKFLOW_NODE_AI_STT",
+            Self::WorkflowNodeAiTtsCreateVoice => "WORKFLOW_NODE_AI_TTS_CREATE_VOICE",
+            Self::WorkflowNodeAiTtsSynthesize => "WORKFLOW_NODE_AI_TTS_SYNTHESIZE",
             Self::WorkflowNodeTransformExtract => "WORKFLOW_NODE_TRANSFORM_EXTRACT",
             Self::WorkflowNodeTransformTemplate => "WORKFLOW_NODE_TRANSFORM_TEMPLATE",
             Self::WorkflowNodeTransformScript => "WORKFLOW_NODE_TRANSFORM_SCRIPT",
@@ -2431,6 +3859,10 @@ impl WorkflowNodeType {
             "WORKFLOW_NODE_AI_VIDEO" => Some(Self::WorkflowNodeAiVideo),
             "WORKFLOW_NODE_AI_TTS" => Some(Self::WorkflowNodeAiTts),
             "WORKFLOW_NODE_AI_STT" => Some(Self::WorkflowNodeAiStt),
+            "WORKFLOW_NODE_AI_TTS_CREATE_VOICE" => {
+                Some(Self::WorkflowNodeAiTtsCreateVoice)
+            }
+            "WORKFLOW_NODE_AI_TTS_SYNTHESIZE" => Some(Self::WorkflowNodeAiTtsSynthesize),
             "WORKFLOW_NODE_TRANSFORM_EXTRACT" => Some(Self::WorkflowNodeTransformExtract),
             "WORKFLOW_NODE_TRANSFORM_TEMPLATE" => {
                 Some(Self::WorkflowNodeTransformTemplate)
@@ -2471,6 +3903,64 @@ impl MergeStrategy {
             "MERGE_STRATEGY_ALL" => Some(Self::All),
             "MERGE_STRATEGY_ANY" => Some(Self::Any),
             "MERGE_STRATEGY_N_OF_M" => Some(Self::NOfM),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum WorkflowExecutionMode {
+    Unspecified = 0,
+    Inline = 1,
+    ExternalAsync = 2,
+}
+impl WorkflowExecutionMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "WORKFLOW_EXECUTION_MODE_UNSPECIFIED",
+            Self::Inline => "WORKFLOW_EXECUTION_MODE_INLINE",
+            Self::ExternalAsync => "WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "WORKFLOW_EXECUTION_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "WORKFLOW_EXECUTION_MODE_INLINE" => Some(Self::Inline),
+            "WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC" => Some(Self::ExternalAsync),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum WorkflowResumeStrategy {
+    Unspecified = 0,
+    Auto = 1,
+    Manual = 2,
+}
+impl WorkflowResumeStrategy {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "WORKFLOW_RESUME_STRATEGY_UNSPECIFIED",
+            Self::Auto => "WORKFLOW_RESUME_STRATEGY_AUTO",
+            Self::Manual => "WORKFLOW_RESUME_STRATEGY_MANUAL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "WORKFLOW_RESUME_STRATEGY_UNSPECIFIED" => Some(Self::Unspecified),
+            "WORKFLOW_RESUME_STRATEGY_AUTO" => Some(Self::Auto),
+            "WORKFLOW_RESUME_STRATEGY_MANUAL" => Some(Self::Manual),
             _ => None,
         }
     }
@@ -2683,6 +4173,27 @@ pub mod runtime_workflow_service_client {
         }
     }
 }
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct ModelCapabilityProfile {
+    #[prost(bool, tag = "1")]
+    pub supports_text_generate: bool,
+    #[prost(bool, tag = "2")]
+    pub supports_text_stream: bool,
+    #[prost(bool, tag = "3")]
+    pub supports_embedding: bool,
+    #[prost(bool, tag = "4")]
+    pub supports_image_generation: bool,
+    #[prost(bool, tag = "5")]
+    pub supports_video_generation: bool,
+    #[prost(bool, tag = "6")]
+    pub supports_speech_synthesis: bool,
+    #[prost(bool, tag = "7")]
+    pub supports_speech_transcription: bool,
+    #[prost(bool, tag = "8")]
+    pub supports_async_media_job: bool,
+    #[prost(bool, tag = "9")]
+    pub supports_streaming: bool,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ModelDescriptor {
     #[prost(string, tag = "1")]
@@ -2695,6 +4206,8 @@ pub struct ModelDescriptor {
     pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, optional, tag = "5")]
     pub last_health_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub capability_profile: ::core::option::Option<ModelCapabilityProfile>,
 }
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct ListModelsRequest {}
@@ -3678,6 +5191,21 @@ pub struct RuntimeHealthEvent {
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct ListAiProviderHealthRequest {}
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AiProviderSubHealth {
+    #[prost(string, tag = "1")]
+    pub provider_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub reason: ::prost::alloc::string::String,
+    #[prost(int32, tag = "4")]
+    pub consecutive_failures: i32,
+    #[prost(message, optional, tag = "5")]
+    pub last_changed_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub last_checked_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AiProviderHealthSnapshot {
     #[prost(string, tag = "1")]
     pub provider_name: ::prost::alloc::string::String,
@@ -3691,6 +5219,8 @@ pub struct AiProviderHealthSnapshot {
     pub last_changed_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "6")]
     pub last_checked_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, repeated, tag = "7")]
+    pub sub_health: ::prost::alloc::vec::Vec<AiProviderSubHealth>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListAiProviderHealthResponse {
@@ -3715,6 +5245,8 @@ pub struct AiProviderHealthEvent {
     pub last_changed_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "7")]
     pub last_checked_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, repeated, tag = "8")]
+    pub sub_health: ::prost::alloc::vec::Vec<AiProviderSubHealth>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AuditExportChunk {

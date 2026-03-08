@@ -52,7 +52,7 @@ export type HookModAiDependencySnapshot = {
   modId: string;
   planId?: string;
   status: 'ready' | 'missing' | 'degraded';
-  routeSource: 'local-runtime' | 'token-api' | 'mixed' | 'unknown';
+  routeSource: 'local' | 'cloud' | 'mixed' | 'unknown';
   reasonCode?: string;
   warnings: string[];
   dependencies: HookModAiDependencyEntry[];
@@ -63,7 +63,7 @@ export type HookModAiDependencySnapshot = {
 export type HookModAiDependencySnapshotResolver = (input: {
   modId: string;
   capability?: RuntimeCanonicalCapability;
-  routeSourceHint?: 'token-api' | 'local-runtime';
+  routeSourceHint?: 'cloud' | 'local';
 }) => Promise<HookModAiDependencySnapshot>;
 
 export interface DesktopHookRuntimeFacade {
@@ -80,7 +80,7 @@ export interface DesktopHookRuntimeFacade {
   getModAiDependencySnapshot(input: {
     modId: string;
     capability?: RuntimeCanonicalCapability;
-    routeSourceHint?: 'token-api' | 'local-runtime';
+    routeSourceHint?: 'cloud' | 'local';
   }): Promise<HookModAiDependencySnapshot>;
   suspendMod(modId: string): void;
 

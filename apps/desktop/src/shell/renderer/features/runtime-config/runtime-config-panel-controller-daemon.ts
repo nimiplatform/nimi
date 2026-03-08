@@ -8,7 +8,7 @@ export type RuntimeDaemonAction = 'start' | 'restart' | 'stop';
 
 export type UseRuntimeConfigDaemonControllerInput = {
   updateState: (updater: (previous: RuntimeConfigStateV11) => RuntimeConfigStateV11) => void;
-  runLocalRuntimeHealthCheck: () => Promise<void>;
+  runLocalHealthCheck: () => Promise<void>;
   setStatusBanner: SetRuntimeConfigBanner;
 };
 
@@ -26,7 +26,7 @@ export type UseRuntimeConfigDaemonControllerOutput = {
 export function useRuntimeConfigDaemonController(
   input: UseRuntimeConfigDaemonControllerInput,
 ): UseRuntimeConfigDaemonControllerOutput {
-  const { updateState, runLocalRuntimeHealthCheck, setStatusBanner } = input;
+  const { updateState, runLocalHealthCheck, setStatusBanner } = input;
 
   const [runtimeDaemonStatus, setRuntimeDaemonStatus] = useState<RuntimeBridgeDaemonStatus | null>(null);
   const [runtimeDaemonBusyAction, setRuntimeDaemonBusyAction] = useState<RuntimeDaemonAction | null>(null);
@@ -67,7 +67,7 @@ export function useRuntimeConfigDaemonController(
       setRuntimeDaemonStatus(status);
       setRuntimeDaemonUpdatedAt(new Date().toISOString());
       applyRuntimeDaemonStatusToState(status, 'action');
-      await runLocalRuntimeHealthCheck();
+      await runLocalHealthCheck();
       setStatusBanner({
         kind: status.running ? 'success' : 'warning',
         message: `Runtime daemon ${action} ${status.running ? 'completed' : 'stopped'}`,
@@ -83,7 +83,7 @@ export function useRuntimeConfigDaemonController(
     } finally {
       setRuntimeDaemonBusyAction(null);
     }
-  }, [applyRuntimeDaemonStatusToState, runLocalRuntimeHealthCheck, setStatusBanner]);
+  }, [applyRuntimeDaemonStatusToState, runLocalHealthCheck, setStatusBanner]);
 
   const startRuntimeDaemon = useCallback(async () => {
     await runRuntimeDaemonAction('start');

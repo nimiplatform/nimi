@@ -3,13 +3,13 @@ import { inferRouteSourceFromEndpoint, type InferenceRouteSource } from './infer
 import { asNimiError, createNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode, type NimiError } from '@nimiplatform/sdk/types';
 
-const ROUTE_POLICY_LOCAL_RUNTIME = 1;
-const ROUTE_POLICY_TOKEN_API = 2;
+const ROUTE_POLICY_LOCAL = 1;
+const ROUTE_POLICY_CLOUD = 2;
 const FALLBACK_POLICY_DENY = 1;
-const DEFAULT_LOCAL_RUNTIME_WARM_TIMEOUT_MS = 60_000;
-const MAX_LOCAL_RUNTIME_WARM_TIMEOUT_MS = 300_000;
-const LOCAL_RUNTIME_WARM_PAGE_SIZE = 100;
-const LOCAL_RUNTIME_WARM_MAX_PAGES = 20;
+const DEFAULT_LOCAL_WARM_TIMEOUT_MS = 60_000;
+const MAX_LOCAL_WARM_TIMEOUT_MS = 300_000;
+const LOCAL_WARM_PAGE_SIZE = 100;
+const LOCAL_WARM_MAX_PAGES = 20;
 
 const RUNTIME_REASON_CODE_TO_LOCAL_AI: Record<string, string> = {
   AI_MODEL_NOT_FOUND: ReasonCode.AI_MODEL_NOT_FOUND,
@@ -51,8 +51,8 @@ type RuntimeLocalWarmCandidate = {
   updatedAt: string;
 };
 
-const warmedLocalRuntimeModelKeys = new Set<string>();
-const pendingLocalRuntimeWarmups = new Map<string, Promise<void>>();
+const warmedLocalModelKeys = new Set<string>();
+const pendingLocalWarmups = new Map<string, Promise<void>>();
 
 export const RUNTIME_MODAL_TEXT = 1;
 export const RUNTIME_MODAL_IMAGE = 2;
@@ -98,10 +98,10 @@ function normalizeModelRoot(model: string): string {
   return normalized;
 }
 
-function inferLocalRuntimeEngine(provider: string): string {
+function inferLocalEngine(provider: string): string {
   const normalized = String(provider || '').trim().toLowerCase();
   if (normalized.includes('nexa')) return 'nexa';
-  if (normalized.includes('localai') || normalized.includes('local-runtime')) return 'localai';
+  if (normalized.includes('localai') || normalized.includes('local')) return 'localai';
   return 'local';
 }
 
@@ -116,15 +116,15 @@ function normalizeEngineName(value: string): string {
 function resolveWarmTimeoutMs(timeoutMs: number | undefined): number {
   const numeric = Math.floor(Number(timeoutMs || 0));
   if (!Number.isFinite(numeric) || numeric <= 0) {
-    return DEFAULT_LOCAL_RUNTIME_WARM_TIMEOUT_MS;
+    return DEFAULT_LOCAL_WARM_TIMEOUT_MS;
   }
-  if (numeric > MAX_LOCAL_RUNTIME_WARM_TIMEOUT_MS) {
-    return MAX_LOCAL_RUNTIME_WARM_TIMEOUT_MS;
+  if (numeric > MAX_LOCAL_WARM_TIMEOUT_MS) {
+    return MAX_LOCAL_WARM_TIMEOUT_MS;
   }
   return numeric;
 }
 
-function localRuntimeWarmCacheKey(candidate: RuntimeLocalWarmCandidate): string {
+function localWarmCacheKey(candidate: RuntimeLocalWarmCandidate): string {
   return [
     String(candidate.localModelId || '').trim(),
     String(candidate.endpoint || '').trim(),
@@ -182,12 +182,12 @@ async function listAllRuntimeLocalModels(): Promise<Array<Record<string, unknown
   const runtime = getRuntimeClient();
   const models: Array<Record<string, unknown>> = [];
   let pageToken = '';
-  for (let index = 0; index < LOCAL_RUNTIME_WARM_MAX_PAGES; index += 1) {
-    const response = await runtime.localRuntime.listLocalModels({
+  for (let index = 0; index < LOCAL_WARM_MAX_PAGES; index += 1) {
+    const response = await runtime.local.listLocalModels({
       statusFilter: 0,
       engineFilter: '',
       categoryFilter: '',
-      pageSize: LOCAL_RUNTIME_WARM_PAGE_SIZE,
+      pageSize: LOCAL_WARM_PAGE_SIZE,
       pageToken,
     });
     for (const model of response.models || []) {
@@ -204,12 +204,12 @@ async function listAllRuntimeLocalModels(): Promise<Array<Record<string, unknown
 }
 
 export function resetRuntimeLocalModelWarmCacheForTests(): void {
-  warmedLocalRuntimeModelKeys.clear();
-  pendingLocalRuntimeWarmups.clear();
+  warmedLocalModelKeys.clear();
+  pendingLocalWarmups.clear();
 }
 
 export async function ensureRuntimeLocalModelWarm(input: EnsureRuntimeLocalModelWarmInput): Promise<void> {
-  if (input.source !== 'local-runtime') {
+  if (input.source !== 'local') {
     return;
   }
 
@@ -226,12 +226,12 @@ export async function ensureRuntimeLocalModelWarm(input: EnsureRuntimeLocalModel
     return;
   }
 
-  const initialCacheKey = localRuntimeWarmCacheKey(initialCandidate);
-  if (warmedLocalRuntimeModelKeys.has(initialCacheKey)) {
+  const initialCacheKey = localWarmCacheKey(initialCandidate);
+  if (warmedLocalModelKeys.has(initialCacheKey)) {
     return;
   }
 
-  const pending = pendingLocalRuntimeWarmups.get(initialCacheKey);
+  const pending = pendingLocalWarmups.get(initialCacheKey);
   if (pending) {
     await pending;
     return;
@@ -243,10 +243,10 @@ export async function ensureRuntimeLocalModelWarm(input: EnsureRuntimeLocalModel
     const callOptions = await buildRuntimeCallOptions({
       modId: input.modId,
       timeoutMs,
-      source: 'local-runtime',
+      source: 'local',
       providerEndpoint: initialCandidate.endpoint,
     });
-    await getRuntimeClient().localRuntime.warmLocalModel({
+    await getRuntimeClient().local.warmLocalModel({
       localModelId: initialCandidate.localModelId,
       timeoutMs,
     }, callOptions);
@@ -258,13 +258,13 @@ export async function ensureRuntimeLocalModelWarm(input: EnsureRuntimeLocalModel
       },
       await listAllRuntimeLocalModels(),
     ) || initialCandidate;
-    warmedLocalRuntimeModelKeys.add(localRuntimeWarmCacheKey(refreshedCandidate));
+    warmedLocalModelKeys.add(localWarmCacheKey(refreshedCandidate));
     input.onStateChange?.('ready', refreshedCandidate);
   })().finally(() => {
-    pendingLocalRuntimeWarmups.delete(initialCacheKey);
+    pendingLocalWarmups.delete(initialCacheKey);
   });
 
-  pendingLocalRuntimeWarmups.set(initialCacheKey, warmPromise);
+  pendingLocalWarmups.set(initialCacheKey, warmPromise);
   await warmPromise;
 }
 
@@ -278,8 +278,8 @@ function ensureRouteModelId(model: string, routePolicy: number, provider: string
       source: 'runtime',
     });
   }
-  if (routePolicy === ROUTE_POLICY_TOKEN_API) return `cloud/${modelRoot}`;
-  const engine = inferLocalRuntimeEngine(provider);
+  if (routePolicy === ROUTE_POLICY_CLOUD) return `cloud/${modelRoot}`;
+  const engine = inferLocalEngine(provider);
   if (engine === 'localai' || engine === 'nexa') {
     return `${engine}/${modelRoot}`;
   }
@@ -309,8 +309,8 @@ export function resolveSourceAndModel(input: {
 }): SourceAndModel {
   const endpoint = String(input.localProviderEndpoint || input.localOpenAiEndpoint || '').trim();
   const hasConnector = Boolean(String(input.connectorId || '').trim());
-  const source = hasConnector ? 'token-api' : inferRouteSourceFromEndpoint(endpoint);
-  const routePolicy = source === 'local-runtime' ? ROUTE_POLICY_LOCAL_RUNTIME : ROUTE_POLICY_TOKEN_API;
+  const source = hasConnector ? 'cloud' : inferRouteSourceFromEndpoint(endpoint);
+  const routePolicy = source === 'local' ? ROUTE_POLICY_LOCAL : ROUTE_POLICY_CLOUD;
   const provider = String(input.provider || '').trim();
   if (!provider) {
     throw createNimiError({

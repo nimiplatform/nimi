@@ -599,7 +599,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
                   label={isDraft ? 'API Key (required)' : 'Session API Key'}
                   value={tokenDraft}
                   onChange={setTokenDraft}
-                  type={model.showTokenApiKey ? 'text' : 'password'}
+                  type={model.showCloudApiKey ? 'text' : 'password'}
                   placeholder="sk-..."
                   icon={<KeyIcon />}
                 />
@@ -622,10 +622,10 @@ export function CloudPage({ model, state }: CloudPageProps) {
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => model.setShowTokenApiKey((v) => !v)}
-                icon={model.showTokenApiKey ? <EyeOffIcon /> : <EyeIcon />}
+                onClick={() => model.setShowCloudApiKey((v) => !v)}
+                icon={model.showCloudApiKey ? <EyeOffIcon /> : <EyeIcon />}
               >
-                {model.showTokenApiKey ? 'Hide' : 'Show'}
+                {model.showCloudApiKey ? 'Hide' : 'Show'}
               </Button>
               {!isSystemOwned && selectedConnectorId && (
                 <Button

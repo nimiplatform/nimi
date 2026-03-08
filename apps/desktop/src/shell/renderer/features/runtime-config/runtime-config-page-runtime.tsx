@@ -81,10 +81,10 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
   // Capability summary
   const capabilitySummary = useMemo(() => {
     return CAPABILITIES_V11.map((capability) => {
-      const localNode = state.localRuntime.nodeMatrix.find(
+      const localNode = state.local.nodeMatrix.find(
         (node) => node.capability === capability && node.available,
       );
-      const hasLocalModel = state.localRuntime.models.some(
+      const hasLocalModel = state.local.models.some(
         (m) => m.status === 'active' && m.capabilities.includes(capability),
       );
       const cloudAvailable = state.connectors.some((c) => c.status === 'healthy');
@@ -100,12 +100,12 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
   // Node matrix
   const sortedNodeMatrix = useMemo(
     () =>
-      [...(state.localRuntime.nodeMatrix || [])].sort(
+      [...(state.local.nodeMatrix || [])].sort(
         (left, right) =>
           String(left.capability || '').localeCompare(String(right.capability || '')) ||
           String(left.nodeId || '').localeCompare(String(right.nodeId || '')),
       ),
-    [state.localRuntime.nodeMatrix],
+    [state.local.nodeMatrix],
   );
 
   const providerStatusSummary = useMemo(() => {
@@ -155,11 +155,11 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
         <SurfaceCard className="mt-3 p-5">
           <Input
             label="Endpoint URL"
-            value={state.localRuntime.endpoint}
+            value={state.local.endpoint}
             onChange={(endpoint) => {
               model.updateState((prev) => ({
                 ...prev,
-                localRuntime: { ...prev.localRuntime, endpoint },
+                local: { ...prev.local, endpoint },
               }));
             }}
             placeholder="http://127.0.0.1:1234/v1"
@@ -283,7 +283,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {capabilitySummary.map((item) => {
               const sourceLabel = item.localAvailable
-                ? `local-runtime${item.localProvider ? ` (${item.localProvider})` : ''}`
+                ? `local${item.localProvider ? ` (${item.localProvider})` : ''}`
                 : item.cloudAvailable
                   ? 'cloud API fallback'
                   : 'unavailable';
@@ -346,18 +346,18 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
         <SurfaceCard className="mt-3 p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="text-sm text-gray-500">Local runtime provider status</div>
-            <StatusBadge status={state.localRuntime.status} />
+            <StatusBadge status={state.local.status} />
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div className="rounded-xl bg-[#F7F9FC] p-3 ring-1 ring-black/5">
               <p className="text-xs text-gray-500">Last Check</p>
               <p className="text-sm font-medium text-gray-800">
-                {state.localRuntime.lastCheckedAt ? formatLocaleDateTime(state.localRuntime.lastCheckedAt) : '-'}
+                {state.local.lastCheckedAt ? formatLocaleDateTime(state.local.lastCheckedAt) : '-'}
               </p>
             </div>
             <div className="rounded-xl bg-[#F7F9FC] p-3 ring-1 ring-black/5 md:col-span-2">
               <p className="text-xs text-gray-500">Detail</p>
-              <p className="text-sm font-medium text-gray-800">{state.localRuntime.lastDetail || '-'}</p>
+              <p className="text-sm font-medium text-gray-800">{state.local.lastDetail || '-'}</p>
             </div>
           </div>
         </SurfaceCard>

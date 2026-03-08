@@ -14,7 +14,7 @@ function buildStreamId(): string {
 
 export async function openSpeechStream(input: {
   model: string;
-  routeSource: 'local-runtime' | 'token-api';
+  routeSource: 'local' | 'cloud';
   connectorId?: string;
   providerEndpoint?: string;
   request: SpeechSynthesizeRequest;

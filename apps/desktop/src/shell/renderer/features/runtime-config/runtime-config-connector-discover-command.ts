@@ -2,10 +2,10 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeConfigStateUpdater } from './runtime-config-types';
-import { discoverLocalRuntimeModelsFromEndpoint } from './runtime-config-connector-discovery';
+import { discoverLocalModelsFromEndpoint } from './runtime-config-connector-discovery';
 import { localAiRuntime, reconcileModelsToGoRuntime } from '@runtime/local-ai-runtime';
 
-export async function runDiscoverLocalRuntimeModelsCommand(input: {
+export async function runDiscoverLocalModelsCommand(input: {
   state: RuntimeConfigStateV11;
   updateState: RuntimeConfigStateUpdater;
   setStatusBanner: (banner: StatusBanner | null) => void;
@@ -15,13 +15,13 @@ export async function runDiscoverLocalRuntimeModelsCommand(input: {
     discovered,
     models,
     nodeMatrix,
-  } = await discoverLocalRuntimeModelsFromEndpoint(input.state);
+  } = await discoverLocalModelsFromEndpoint(input.state);
 
   input.updateState((prev) => {
     return {
       ...prev,
-      localRuntime: {
-        ...prev.localRuntime,
+      local: {
+        ...prev.local,
         endpoint,
         models,
         nodeMatrix,
@@ -36,8 +36,8 @@ export async function runDiscoverLocalRuntimeModelsCommand(input: {
   } catch (error) {
     await localAiRuntime.appendAudit({
       eventType: 'runtime_model_sync_failed_during_discovery',
-      modelId: 'local-runtime-models',
-      source: 'local-runtime',
+      modelId: 'local-models',
+      source: 'local',
       reasonCode: ReasonCode.GO_RUNTIME_SYNC_FAILED,
       detail: error instanceof Error ? error.message : String(error || 'unknown sync error'),
       payload: {

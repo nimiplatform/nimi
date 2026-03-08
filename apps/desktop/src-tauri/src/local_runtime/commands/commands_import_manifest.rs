@@ -59,7 +59,7 @@ pub fn runtime_local_models_adopt(
     }
 
     let endpoint = if payload.endpoint.trim().is_empty() {
-        DEFAULT_LOCAL_RUNTIME_ENDPOINT.to_string()
+        DEFAULT_LOCAL_ENDPOINT.to_string()
     } else {
         validate_loopback_endpoint(payload.endpoint.as_str())?
     };

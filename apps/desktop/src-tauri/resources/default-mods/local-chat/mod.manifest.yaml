@@ -71,7 +71,7 @@ ai:
       - dependencyId: local-chat/video-generate-token-node
         kind: node
         capability: video
-        nodeId: video.generate.token-api
+        nodeId: video.generate.cloud
         title: Optional video generation node
       - dependencyId: local-chat/stt-local-node
         kind: node

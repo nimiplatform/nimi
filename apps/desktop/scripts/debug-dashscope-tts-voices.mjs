@@ -49,7 +49,7 @@ async function waitForRuntimeReady(runtime) {
   let lastError = null;
   for (let attempt = 0; attempt < 120; attempt += 1) {
     try {
-      await runtime.localRuntime.listLocalModels({});
+      await runtime.local.listLocalModels({});
       return;
     } catch (error) {
       lastError = error;
@@ -144,7 +144,7 @@ async function main() {
 
     const withRoute = await runtime.media.tts.listVoices({
       model,
-      route: 'token-api',
+      route: 'cloud',
       fallback: 'deny',
     });
 
@@ -162,8 +162,8 @@ async function main() {
       ok: voiceIds.length > 0,
       endpoint,
       modelInput: rawModel,
-      modelResolvedForTokenApi: model,
-      listVoicesWithTokenApi: {
+      modelResolvedForCloud: model,
+      listVoicesWithCloud: {
         traceId: withRoute.traceId,
         modelResolved: withRoute.modelResolved,
         voiceCount: withRoute.voices.length,
@@ -179,7 +179,7 @@ async function main() {
         error: withoutRouteError || null,
       },
       nextDesktopChecks: [
-        'local-chat VoicePanel: set TTS Route Source=token-api',
+        'local-chat VoicePanel: set TTS Route Source=cloud',
         'local-chat VoicePanel: choose DashScope connector',
         `local-chat VoicePanel: set TTS Model=${rawModel}`,
       ],

@@ -23,8 +23,8 @@ function statusFromRuntimeHealth(status: number): ProviderStatusV11 {
   return 'idle';
 }
 
-export async function discoverLocalRuntimeModelsFromEndpoint(state: RuntimeConfigStateV11) {
-  const endpoint = state.localRuntime.endpoint || 'http://127.0.0.1:1234/v1';
+export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV11) {
+  const endpoint = state.local.endpoint || 'http://127.0.0.1:1234/v1';
   const models = await localAiRuntime.list();
   const nodes = await localAiRuntime.listNodesCatalog();
   const discovered = models.map((m) => m.modelId);
@@ -47,7 +47,7 @@ export async function discoverLocalRuntimeModelsFromEndpoint(state: RuntimeConfi
   return { endpoint, discovered, models: normalizedModels, nodeMatrix };
 }
 
-export async function checkLocalRuntimeHealth(): Promise<{
+export async function checkLocalHealth(): Promise<{
   health: HealthResult;
   normalizedStatus: ProviderStatusV11;
 }> {

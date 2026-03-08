@@ -21,8 +21,8 @@ export type RuntimeConfigPanelControllerModel = {
   state: RuntimeConfigStateV11 | null;
   runtimeStatus: ProviderStatusV11 | null;
   activePage: RuntimeConfigStateV11['activePage'];
-  showTokenApiKey: boolean;
-  localRuntimeModelQuery: string;
+  showCloudApiKey: boolean;
+  localModelQuery: string;
   connectorModelQuery: string;
   vaultEntryCount: number;
   discovering: boolean;
@@ -30,7 +30,7 @@ export type RuntimeConfigPanelControllerModel = {
   checkingHealth: boolean;
   selectedConnector: RuntimeConfigStateV11['connectors'][number] | null;
   orderedConnectors: RuntimeConfigStateV11['connectors'];
-  filteredLocalRuntimeModels: string[];
+  filteredLocalModels: string[];
   filteredConnectorModels: string[];
   runtimeDependencyTargets: RuntimeDependencyTargetDescriptor[];
   registeredRuntimeModIds: string[];
@@ -38,13 +38,13 @@ export type RuntimeConfigPanelControllerModel = {
   runtimeDaemonBusyAction: 'start' | 'restart' | 'stop' | null;
   runtimeDaemonError: string;
   runtimeDaemonUpdatedAt: string | null;
-  setShowTokenApiKey: (value: boolean | ((prev: boolean) => boolean)) => void;
-  setLocalRuntimeModelQuery: (value: string) => void;
+  setShowCloudApiKey: (value: boolean | ((prev: boolean) => boolean)) => void;
+  setLocalModelQuery: (value: string) => void;
   setConnectorModelQuery: (value: string) => void;
   onChangePage: (pageId: RuntimeConfigStateV11['activePage']) => void;
   updateState: (updater: (prev: RuntimeConfigStateV11) => RuntimeConfigStateV11) => void;
-  discoverLocalRuntimeModels: () => Promise<void>;
-  runLocalRuntimeHealthCheck: () => Promise<void>;
+  discoverLocalModels: () => Promise<void>;
+  runLocalHealthCheck: () => Promise<void>;
   testSelectedConnector: () => Promise<void>;
   resolveRuntimeDependencies: (
     modId: string,
@@ -54,7 +54,7 @@ export type RuntimeConfigPanelControllerModel = {
     modId: string,
     capability?: CapabilityV11 | string,
   ) => Promise<void>;
-  installCatalogLocalRuntimeModel: (
+  installCatalogLocalModel: (
     item: LocalAiCatalogItemDescriptor,
     options?: {
       entry?: string;
@@ -63,17 +63,17 @@ export type RuntimeConfigPanelControllerModel = {
       engine?: string;
     },
   ) => Promise<void>;
-  installLocalRuntimeModel: (payload: LocalAiInstallPayload) => Promise<void>;
-  installVerifiedLocalRuntimeModel: (templateId: string) => Promise<void>;
-  importLocalRuntimeModel: () => Promise<void>;
-  installVerifiedLocalRuntimeArtifact: (templateId: string) => Promise<void>;
-  importLocalRuntimeArtifact: () => Promise<void>;
-  importLocalRuntimeModelFile: (capabilities: string[], engine?: string) => Promise<void>;
-  startLocalRuntimeModel: (localModelId: string) => Promise<void>;
-  stopLocalRuntimeModel: (localModelId: string) => Promise<void>;
-  restartLocalRuntimeModel: (localModelId: string) => Promise<void>;
-  removeLocalRuntimeModel: (localModelId: string) => Promise<void>;
-  removeLocalRuntimeArtifact: (localArtifactId: string) => Promise<void>;
+  installLocalModel: (payload: LocalAiInstallPayload) => Promise<void>;
+  installVerifiedLocalModel: (templateId: string) => Promise<void>;
+  importLocalModel: () => Promise<void>;
+  installVerifiedLocalArtifact: (templateId: string) => Promise<void>;
+  importLocalArtifact: () => Promise<void>;
+  importLocalModelFile: (capabilities: string[], engine?: string) => Promise<void>;
+  startLocalModel: (localModelId: string) => Promise<void>;
+  stopLocalModel: (localModelId: string) => Promise<void>;
+  restartLocalModel: (localModelId: string) => Promise<void>;
+  removeLocalModel: (localModelId: string) => Promise<void>;
+  removeLocalArtifact: (localArtifactId: string) => Promise<void>;
   refreshRuntimeDaemonStatus: () => Promise<void>;
   startRuntimeDaemon: () => Promise<void>;
   restartRuntimeDaemon: () => Promise<void>;

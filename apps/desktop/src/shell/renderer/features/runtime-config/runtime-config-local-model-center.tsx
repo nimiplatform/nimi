@@ -16,7 +16,7 @@ import {
   PROGRESS_RETENTION_MS,
   type CapabilityOption,
   type InstallEngineOption,
-  type LocalRuntimeModelCenterProps,
+  type LocalModelCenterProps,
   normalizeCapabilityOption,
   normalizeInstallEngine,
   parseTimestamp,
@@ -27,19 +27,19 @@ import {
   type ArtifactTaskState,
   type ArtifactTaskEntry,
 } from './runtime-config-local-model-center-helpers';
-import { LocalRuntimeModelCenterCatalogCard } from './runtime-config-local-model-center-catalog-card';
+import { LocalModelCenterCatalogCard } from './runtime-config-local-model-center-catalog-card';
 import {
-  LocalRuntimeModelCenterActiveDownloadsSection,
-  LocalRuntimeModelCenterArtifactTasksSection,
-  LocalRuntimeModelCenterImportDialog,
-  LocalRuntimeModelCenterModModeView,
-  LocalRuntimeModelCenterQuickPicksSection,
-  LocalRuntimeModelCenterToolbar,
-  LocalRuntimeModelCenterVerifiedArtifactsSection,
+  LocalModelCenterActiveDownloadsSection,
+  LocalModelCenterArtifactTasksSection,
+  LocalModelCenterImportDialog,
+  LocalModelCenterModModeView,
+  LocalModelCenterQuickPicksSection,
+  LocalModelCenterToolbar,
+  LocalModelCenterVerifiedArtifactsSection,
 } from './runtime-config-local-model-center-sections';
-import { useLocalRuntimeModelCenterDownloads } from './runtime-config-use-local-runtime-model-center-downloads';
+import { useLocalModelCenterDownloads } from './runtime-config-use-local-model-center-downloads';
 
-export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
+export function LocalModelCenter(props: LocalModelCenterProps) {
   const [installing, setInstalling] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -134,13 +134,13 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
 
   // Sorted installed models
   const sortedModels = useMemo(
-    () => [...props.state.localRuntime.models].sort((left, right) => {
+    () => [...props.state.local.models].sort((left, right) => {
       const leftRank = parseTimestamp(left.installedAt) || parseTimestamp(left.updatedAt);
       const rightRank = parseTimestamp(right.installedAt) || parseTimestamp(right.updatedAt);
       if (leftRank !== rightRank) return rightRank - leftRank;
       return String(right.localModelId || '').localeCompare(String(left.localModelId || ''));
     }),
-    [props.state.localRuntime.models],
+    [props.state.local.models],
   );
 
   // Filter installed models by search (uses deferred value to avoid blocking input)
@@ -514,7 +514,7 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
     onPauseDownload,
     onResumeDownload,
     onCancelDownload,
-  } = useLocalRuntimeModelCenterDownloads({
+  } = useLocalModelCenterDownloads({
     isModMode,
     onDownloadComplete: props.onDownloadComplete,
     onProgressSettled: handleSettledDownload,
@@ -587,7 +587,7 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
   // Mod mode
   if (isModMode) {
     return (
-      <LocalRuntimeModelCenterModModeView
+      <LocalModelCenterModModeView
         state={props.state}
         selectedDependencyModId={selectedDependencyModId}
         loadingDependencyPlan={loadingDependencyPlan}
@@ -610,16 +610,16 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
   }
 
   const hasSearchQuery = searchQuery.trim().length > 0;
-  const localRuntimeHealthy = props.state.localRuntime.status === 'healthy';
+  const localHealthy = props.state.local.status === 'healthy';
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white">
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto p-6 space-y-6">
-          <LocalRuntimeModelCenterToolbar
+          <LocalModelCenterToolbar
             checkingHealth={props.checkingHealth}
-            localRuntimeHealthy={localRuntimeHealthy}
-            lastCheckedAt={props.state.localRuntime.lastCheckedAt}
+            localHealthy={localHealthy}
+            lastCheckedAt={props.state.local.lastCheckedAt}
             discovering={props.discovering}
             importMenuRef={importMenuRef}
             showImportMenu={showImportMenu}
@@ -643,7 +643,7 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
               void importArtifactManifest();
             }}
           />
-          <LocalRuntimeModelCenterImportDialog
+          <LocalModelCenterImportDialog
             visible={showImportFileDialog}
             capability={importFileCapability}
             onCapabilityChange={setImportFileCapability}
@@ -653,7 +653,7 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
               void props.onImportFile([importFileCapability]);
             }}
           />
-          <LocalRuntimeModelCenterCatalogCard
+          <LocalModelCenterCatalogCard
             searchQuery={searchQuery}
             catalogCapability={catalogCapability}
             filteredInstalledModels={filteredInstalledModels}
@@ -711,7 +711,7 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
             onLoadMoreCatalog={() => setCatalogDisplayCount((prev) => prev + 10)}
             installing={installing}
           />
-          <LocalRuntimeModelCenterVerifiedArtifactsSection
+          <LocalModelCenterVerifiedArtifactsSection
             hasSearchQuery={hasSearchQuery}
             loadingVerifiedArtifacts={loadingVerifiedArtifacts}
             artifactBusy={artifactBusy}
@@ -720,15 +720,15 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
             onRefresh={() => { void refreshArtifactSections(); }}
             onInstallArtifact={(templateId) => { void installVerifiedArtifact(templateId); }}
           />
-          <LocalRuntimeModelCenterActiveDownloadsSection
+          <LocalModelCenterActiveDownloadsSection
             downloads={activeDownloads}
             onPause={onPauseDownload}
             onResume={onResumeDownload}
             onCancel={onCancelDownload}
           />
-          <LocalRuntimeModelCenterArtifactTasksSection tasks={visibleArtifactTasks} />
+          <LocalModelCenterArtifactTasksSection tasks={visibleArtifactTasks} />
           {!hasSearchQuery ? (
-            <LocalRuntimeModelCenterQuickPicksSection
+            <LocalModelCenterQuickPicksSection
               loadingVerifiedModels={loadingVerifiedModels}
               installing={installing}
               artifactBusy={artifactBusy}

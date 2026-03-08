@@ -9,7 +9,7 @@ use url::Url;
 use super::types::{
     generate_ulid_string, normalize_non_empty, now_iso_timestamp, slugify_local_model_id,
     ImportedModelManifest, LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus,
-    DEFAULT_LOCAL_RUNTIME_ENDPOINT,
+    DEFAULT_LOCAL_ENDPOINT,
 };
 
 const SUPPORTED_CAPABILITIES: [&str; 6] = ["chat", "image", "video", "tts", "stt", "embedding"];
@@ -71,7 +71,7 @@ pub fn normalize_and_validate_capabilities(capabilities: &[String]) -> Result<Ve
 }
 
 pub fn validate_loopback_endpoint(endpoint: &str) -> Result<String, String> {
-    let normalized = normalize_non_empty(endpoint, DEFAULT_LOCAL_RUNTIME_ENDPOINT);
+    let normalized = normalize_non_empty(endpoint, DEFAULT_LOCAL_ENDPOINT);
     let parsed = Url::parse(normalized.as_str()).map_err(|error| {
         err(
             "LOCAL_AI_ENDPOINT_INVALID",

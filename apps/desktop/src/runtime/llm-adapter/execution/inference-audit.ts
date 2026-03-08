@@ -2,7 +2,7 @@ import { localAiRuntime } from '@runtime/local-ai-runtime';
 import { emitRuntimeLog } from '../../telemetry/logger';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
-export type InferenceRouteSource = 'local-runtime' | 'token-api';
+export type InferenceRouteSource = 'local' | 'cloud';
 export type InferencePersistMode = 'persist' | 'log-only';
 export type InferenceAuditModality =
   | 'chat'
@@ -17,7 +17,7 @@ export type InferenceAuditModality =
   | string;
 
 export type InferenceAuditInput = {
-  eventType: 'inference_invoked' | 'inference_failed' | 'fallback_to_token_api';
+  eventType: 'inference_invoked' | 'inference_failed' | 'fallback_to_cloud';
   modId: string;
   source: InferenceRouteSource;
   routeSource?: InferenceRouteSource;
@@ -56,16 +56,16 @@ function isLoopbackHost(host: string): boolean {
 
 export function inferRouteSourceFromEndpoint(endpoint: string | null | undefined): InferenceRouteSource {
   const normalized = String(endpoint || '').trim();
-  if (!normalized) return 'token-api';
+  if (!normalized) return 'cloud';
   try {
     const parsed = new URL(normalized);
-    return isLoopbackHost(parsed.hostname) ? 'local-runtime' : 'token-api';
+    return isLoopbackHost(parsed.hostname) ? 'local' : 'cloud';
   } catch {
     const lowered = normalized.toLowerCase();
     if (lowered.includes('localhost') || lowered.includes('127.0.0.1') || lowered.includes('[::1]')) {
-      return 'local-runtime';
+      return 'local';
     }
-    return 'token-api';
+    return 'cloud';
   }
 }
 

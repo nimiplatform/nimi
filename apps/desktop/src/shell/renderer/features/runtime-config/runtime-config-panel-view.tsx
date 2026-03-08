@@ -29,11 +29,11 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
 
   const installedModelCount = useMemo(
-    () => state?.localRuntime.models.filter((m) => m.status !== 'removed').length ?? 0,
+    () => state?.local.models.filter((m) => m.status !== 'removed').length ?? 0,
     [state],
   );
   const activeModelCount = useMemo(
-    () => state?.localRuntime.models.filter((m) => m.status === 'active').length ?? 0,
+    () => state?.local.models.filter((m) => m.status === 'active').length ?? 0,
     [state],
   );
   const healthyConnectorCount = useMemo(
@@ -83,7 +83,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
     );
   }
 
-  const runtimeStatus = model.runtimeStatus || state.localRuntime.status;
+  const runtimeStatus = model.runtimeStatus || state.local.status;
   const activePage = model.activePage;
   const pageMeta = RUNTIME_PAGE_META[activePage] || RUNTIME_PAGE_META.overview;
 

@@ -50,11 +50,11 @@ type ModModeViewProps = {
   onNavigateToSetup?: (pageId: RuntimeSetupPageIdV11) => void;
 };
 
-export function LocalRuntimeModelCenterModModeView(props: ModModeViewProps) {
+export function LocalModelCenterModModeView(props: ModModeViewProps) {
   const modCapabilities = props.runtimeDependencyTargets.find((item) => item.modId === props.selectedDependencyModId)?.consumeCapabilities || [];
   const capabilityStatuses = modCapabilities.map((capability) => {
-    const localNode = props.state.localRuntime.nodeMatrix.find((node) => node.capability === capability && node.available);
-    const hasLocalModel = props.state.localRuntime.models.some((model) => model.status === 'active' && model.capabilities.includes(capability));
+    const localNode = props.state.local.nodeMatrix.find((node) => node.capability === capability && node.available);
+    const hasLocalModel = props.state.local.models.some((model) => model.status === 'active' && model.capabilities.includes(capability));
     return { capability, localAvailable: Boolean(localNode) || hasLocalModel };
   });
   const hasUnavailable = capabilityStatuses.some((item) => !item.localAvailable);
@@ -80,7 +80,7 @@ export function LocalRuntimeModelCenterModModeView(props: ModModeViewProps) {
                 <div className="flex flex-wrap gap-2">
                   {capabilityStatuses.map((item) => (
                     <span key={`mod-cap-status-${item.capability}`} className={`rounded-full px-3 py-1 text-[11px] font-medium ${item.localAvailable ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                      {item.capability}: {item.localAvailable ? 'local-runtime' : 'needs setup'}
+                      {item.capability}: {item.localAvailable ? 'local' : 'needs setup'}
                     </span>
                   ))}
                 </div>
@@ -119,7 +119,7 @@ export function LocalRuntimeModelCenterModModeView(props: ModModeViewProps) {
 
 type ToolbarProps = {
   checkingHealth: boolean;
-  localRuntimeHealthy: boolean;
+  localHealthy: boolean;
   lastCheckedAt: string | null;
   discovering: boolean;
   importMenuRef: RefObject<HTMLDivElement | null>;
@@ -132,7 +132,7 @@ type ToolbarProps = {
   onImportArtifactManifest: () => void;
 };
 
-export function LocalRuntimeModelCenterToolbar(props: ToolbarProps) {
+export function LocalModelCenterToolbar(props: ToolbarProps) {
   const healthTooltip = formatLastCheckedAgo(props.lastCheckedAt);
 
   return (
@@ -145,7 +145,7 @@ export function LocalRuntimeModelCenterToolbar(props: ToolbarProps) {
           disabled={props.checkingHealth}
           title={healthTooltip}
           className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium disabled:opacity-50 ${
-            props.localRuntimeHealthy
+            props.localHealthy
               ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
               : 'border-gray-200 text-gray-600 hover:bg-gray-50'
           }`}
@@ -201,7 +201,7 @@ type ImportDialogProps = {
   onChooseFile: () => void;
 };
 
-export function LocalRuntimeModelCenterImportDialog(props: ImportDialogProps) {
+export function LocalModelCenterImportDialog(props: ImportDialogProps) {
   if (!props.visible) {
     return null;
   }
@@ -314,7 +314,7 @@ type VerifiedArtifactsSectionProps = {
   onInstallArtifact: (templateId: string) => void;
 };
 
-export function LocalRuntimeModelCenterVerifiedArtifactsSection(props: VerifiedArtifactsSectionProps) {
+export function LocalModelCenterVerifiedArtifactsSection(props: VerifiedArtifactsSectionProps) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
@@ -388,7 +388,7 @@ type ActiveDownloadsSectionProps = {
   onCancel: (installSessionId: string) => void;
 };
 
-export function LocalRuntimeModelCenterActiveDownloadsSection(props: ActiveDownloadsSectionProps) {
+export function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSectionProps) {
   if (props.downloads.length === 0) {
     return null;
   }
@@ -466,7 +466,7 @@ type ArtifactTasksSectionProps = {
   tasks: ArtifactTaskEntry[];
 };
 
-export function LocalRuntimeModelCenterArtifactTasksSection(props: ArtifactTasksSectionProps) {
+export function LocalModelCenterArtifactTasksSection(props: ArtifactTasksSectionProps) {
   if (props.tasks.length === 0) {
     return null;
   }
@@ -524,7 +524,7 @@ type QuickPicksSectionProps = {
   onInstallMissingArtifacts: (artifacts: LocalAiVerifiedArtifactDescriptor[]) => void;
 };
 
-export function LocalRuntimeModelCenterQuickPicksSection(props: QuickPicksSectionProps) {
+export function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps) {
   if (props.verifiedModels.length === 0) {
     return null;
   }

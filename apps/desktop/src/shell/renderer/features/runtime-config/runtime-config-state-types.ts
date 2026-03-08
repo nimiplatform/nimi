@@ -1,7 +1,7 @@
 export const CAPABILITIES_V11 = ['chat', 'image', 'video', 'tts', 'stt', 'embedding'] as const;
 export type CapabilityV11 = (typeof CAPABILITIES_V11)[number];
 
-export type SourceIdV11 = 'local-runtime' | 'token-api';
+export type SourceIdV11 = 'local' | 'cloud';
 export type RuntimePageIdV11 = 'overview' | 'local' | 'cloud' | 'catalog' | 'runtime' | 'mods';
 export type RuntimeSetupPageIdV11 = RuntimePageIdV11;
 export type UiModeV11 = 'simple' | 'advanced';
@@ -17,7 +17,7 @@ export type ApiVendor =
   | 'dashscope'
   | 'custom';
 
-export type LocalRuntimeModelOptionV11 = {
+export type LocalModelOptionV11 = {
   localModelId: string;
   engine: 'localai' | 'nexa' | string;
   model: string;
@@ -31,7 +31,7 @@ export type LocalRuntimeModelOptionV11 = {
 
 export type NodeCapabilityV11 = CapabilityV11 | 'rerank' | 'cv' | 'diarize';
 
-export type LocalRuntimeProviderHintsV11 = {
+export type LocalProviderHintsV11 = {
   localai?: {
     backend?: string;
     preferredAdapter?: 'openai_compat_adapter' | 'localai_native_adapter' | string;
@@ -56,7 +56,7 @@ export type LocalRuntimeProviderHintsV11 = {
   };
 } & Record<string, unknown>;
 
-export type LocalRuntimeNodeMatrixEntryV11 = {
+export type LocalNodeMatrixEntryV11 = {
   nodeId: string;
   capability: NodeCapabilityV11;
   serviceId: string;
@@ -67,13 +67,13 @@ export type LocalRuntimeNodeMatrixEntryV11 = {
   available: boolean;
   reasonCode?: string;
   policyGate?: string;
-  providerHints?: LocalRuntimeProviderHintsV11;
+  providerHints?: LocalProviderHintsV11;
 };
 
-export type LocalRuntimeStateV11 = {
+export type LocalStateV11 = {
   endpoint: string;
-  models: LocalRuntimeModelOptionV11[];
-  nodeMatrix: LocalRuntimeNodeMatrixEntryV11[];
+  models: LocalModelOptionV11[];
+  nodeMatrix: LocalNodeMatrixEntryV11[];
   status: ProviderStatusV11;
   lastCheckedAt: string | null;
   lastDetail: string;
@@ -103,12 +103,12 @@ export type RuntimeConfigStateV11 = {
   selectedSource: SourceIdV11;
   activeCapability: CapabilityV11;
   uiMode: UiModeV11;
-  localRuntime: LocalRuntimeStateV11;
+  local: LocalStateV11;
   connectors: ApiConnector[];
   selectedConnectorId: string;
 };
 
-export const DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11 = 'http://127.0.0.1:1234/v1';
+export const DEFAULT_LOCAL_ENDPOINT_V11 = 'http://127.0.0.1:1234/v1';
 export const DEFAULT_OPENAI_ENDPOINT_V11 = 'http://127.0.0.1:1234/v1';
 export const DEFAULT_OPENROUTER_ENDPOINT_V11 = 'https://openrouter.ai/api/v1';
 
@@ -137,7 +137,7 @@ export const VENDOR_ORDER_V11: ApiVendor[] = [
 ];
 
 export function normalizeSourceV11(value: unknown): SourceIdV11 {
-  return value === 'token-api' ? 'token-api' : 'local-runtime';
+  return value === 'cloud' ? 'cloud' : 'local';
 }
 
 export function normalizePageIdV11(value: unknown): RuntimePageIdV11 {
@@ -255,7 +255,7 @@ export function normalizeConnectorV11(raw: Partial<ApiConnector>): ApiConnector 
   };
 }
 
-export function normalizeLocalRuntimeModelV11(raw: Partial<LocalRuntimeModelOptionV11>): LocalRuntimeModelOptionV11 {
+export function normalizeLocalModelV11(raw: Partial<LocalModelOptionV11>): LocalModelOptionV11 {
   const localModelId = String(raw.localModelId || raw.model || randomIdV11('local-model')).trim();
   const capabilities = (Array.isArray(raw.capabilities) ? raw.capabilities : [])
     .map((value) => String(value || '').trim())
@@ -271,7 +271,7 @@ export function normalizeLocalRuntimeModelV11(raw: Partial<LocalRuntimeModelOpti
     localModelId,
     engine: String(raw.engine || 'localai').trim() || 'localai',
     model: String(raw.model || localModelId).trim() || localModelId,
-    endpoint: normalizeEndpointV11(String(raw.endpoint || DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11), DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11),
+    endpoint: normalizeEndpointV11(String(raw.endpoint || DEFAULT_LOCAL_ENDPOINT_V11), DEFAULT_LOCAL_ENDPOINT_V11),
     capabilities: capabilities.length > 0 ? capabilities : ['chat'],
     status: raw.status === 'active' || raw.status === 'unhealthy' || raw.status === 'removed' ? raw.status : 'installed',
     hash: String(raw.hash || '').trim() || undefined,
@@ -280,9 +280,9 @@ export function normalizeLocalRuntimeModelV11(raw: Partial<LocalRuntimeModelOpti
   };
 }
 
-export function normalizeLocalRuntimeNodeMatrixEntryV11(
-  raw: Partial<LocalRuntimeNodeMatrixEntryV11>,
-): LocalRuntimeNodeMatrixEntryV11 {
+export function normalizeLocalNodeMatrixEntryV11(
+  raw: Partial<LocalNodeMatrixEntryV11>,
+): LocalNodeMatrixEntryV11 {
   const capability = String(raw.capability || '').trim().toLowerCase();
   const normalizedCapability: NodeCapabilityV11 = (
     capability === 'image'
@@ -298,7 +298,7 @@ export function normalizeLocalRuntimeNodeMatrixEntryV11(
     String(raw.serviceId || '').toLowerCase().includes('nexa') ? 'nexa' : 'localai'
   );
   const adapterRaw = String(raw.adapter || '').trim().toLowerCase();
-  const normalizedAdapter: LocalRuntimeNodeMatrixEntryV11['adapter'] = adapterRaw === 'localai_native_adapter'
+  const normalizedAdapter: LocalNodeMatrixEntryV11['adapter'] = adapterRaw === 'localai_native_adapter'
     ? 'localai_native_adapter'
     : adapterRaw === 'openai_compat_adapter'
       ? 'openai_compat_adapter'
@@ -320,7 +320,7 @@ export function normalizeLocalRuntimeNodeMatrixEntryV11(
     && typeof raw.providerHints === 'object'
     && !Array.isArray(raw.providerHints)
   )
-    ? raw.providerHints as LocalRuntimeProviderHintsV11
+    ? raw.providerHints as LocalProviderHintsV11
     : undefined;
   return {
     nodeId: String(raw.nodeId || '').trim() || randomIdV11('node'),

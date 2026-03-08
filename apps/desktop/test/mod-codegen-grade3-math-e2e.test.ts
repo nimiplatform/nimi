@@ -28,7 +28,7 @@ test('grade3 math prompt can generate/install/register in codegen happy path', a
       'data.query.data-api.user-math-quiz.records.list',
     ],
     modelUsed: 'deepseek-v3',
-    routePolicy: 'token-api',
+    routePolicy: 'cloud',
   });
 
   assert.equal(artifacts.preflight.ok, true);

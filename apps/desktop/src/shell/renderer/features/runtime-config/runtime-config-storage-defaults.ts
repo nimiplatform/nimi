@@ -1,4 +1,4 @@
-import { DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11, type RuntimeConfigStateV11 } from './runtime-config-state-types';
+import { DEFAULT_LOCAL_ENDPOINT_V11, type RuntimeConfigStateV11 } from './runtime-config-state-types';
 
 export const RUNTIME_CONFIG_STORAGE_KEY_V11 = 'nimi:runtime-config:v11';
 
@@ -19,20 +19,20 @@ export type StoredStateV11 = {
   uiMode: RuntimeConfigStateV11['uiMode'];
   selectedSource: RuntimeConfigStateV11['selectedSource'];
   activeCapability: RuntimeConfigStateV11['activeCapability'];
-  localRuntime: RuntimeConfigStateV11['localRuntime'];
+  local: RuntimeConfigStateV11['local'];
 };
 
 export function createDefaultStateV11(seed: RuntimeConfigSeedV11): RuntimeConfigStateV11 {
-  const endpoint = String(seed.localProviderEndpoint || seed.localOpenAiEndpoint || DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11).trim();
+  const endpoint = String(seed.localProviderEndpoint || seed.localOpenAiEndpoint || DEFAULT_LOCAL_ENDPOINT_V11).trim();
   return {
     version: 11,
     initializedByV11: false,
     activePage: 'overview',
     diagnosticsCollapsed: true,
     uiMode: 'simple',
-    selectedSource: 'local-runtime',
+    selectedSource: 'local',
     activeCapability: 'chat',
-    localRuntime: {
+    local: {
       endpoint,
       models: [],
       nodeMatrix: [],

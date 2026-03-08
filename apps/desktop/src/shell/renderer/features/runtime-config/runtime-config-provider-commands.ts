@@ -7,14 +7,14 @@ import {
   markSelectedConnectorTestFailedCommand,
   runSelectedConnectorTestCommand,
 } from './runtime-config-connector-test-command';
-import { runDiscoverLocalRuntimeModelsCommand } from './runtime-config-connector-discover-command';
-import { runLocalRuntimeHealthCheckCommand } from './runtime-config-connector-health-command';
+import { runDiscoverLocalModelsCommand } from './runtime-config-connector-discover-command';
+import { runLocalHealthCheckCommand } from './runtime-config-connector-health-command';
 import { formatRuntimeConfigErrorBanner } from './runtime-config-connector-error';
 
-export async function discoverLocalRuntimeModelsCommand(input: DiscoverProviderCommandContext) {
+export async function discoverLocalModelsCommand(input: DiscoverProviderCommandContext) {
   if (!input.state || input.discovering) return;
   try {
-    await runDiscoverLocalRuntimeModelsCommand({
+    await runDiscoverLocalModelsCommand({
       state: input.state,
       updateState: input.updateState,
       setStatusBanner: input.setStatusBanner,
@@ -22,15 +22,15 @@ export async function discoverLocalRuntimeModelsCommand(input: DiscoverProviderC
   } catch (error) {
     input.setStatusBanner({
       kind: 'error',
-      message: formatRuntimeConfigErrorBanner('LocalRuntime discovery failed', error),
+      message: formatRuntimeConfigErrorBanner('Local discovery failed', error),
     });
   }
 }
 
-export async function runLocalRuntimeHealthCheckCommandWithGuard(input: HealthProviderCommandContext) {
+export async function runLocalHealthCheckCommandWithGuard(input: HealthProviderCommandContext) {
   if (!input.state || input.checkingHealth) return;
   try {
-    await runLocalRuntimeHealthCheckCommand({
+    await runLocalHealthCheckCommand({
       state: input.state,
       updateState: input.updateState,
       setStatusBanner: input.setStatusBanner,

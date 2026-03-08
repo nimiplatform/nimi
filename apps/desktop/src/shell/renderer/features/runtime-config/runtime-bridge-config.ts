@@ -1,5 +1,5 @@
 import {
-  DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11,
+  DEFAULT_LOCAL_ENDPOINT_V11,
   normalizeEndpointV11,
   type RuntimeConfigStateV11,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
@@ -31,13 +31,13 @@ export function applyRuntimeBridgeConfigToState(
   const providers = asRecord(asRecord(runtimeConfigRaw).providers);
   const localProvider = asRecord(providers.local);
   const nextLocalEndpoint = readString(localProvider.baseUrl)
-    ? normalizeEndpointV11(readString(localProvider.baseUrl), DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11)
-    : state.localRuntime.endpoint;
+    ? normalizeEndpointV11(readString(localProvider.baseUrl), DEFAULT_LOCAL_ENDPOINT_V11)
+    : state.local.endpoint;
 
   return {
     ...state,
-    localRuntime: {
-      ...state.localRuntime,
+    local: {
+      ...state.local,
       endpoint: nextLocalEndpoint,
     },
   };
@@ -58,7 +58,7 @@ export function buildRuntimeBridgeConfigFromState(
   configRecord.httpAddr = readString(configRecord.httpAddr as string) || DEFAULT_RUNTIME_CONFIG.httpAddr;
 
   const existingProviders = asRecord(configRecord.providers);
-  const localEndpoint = normalizeEndpointV11(state.localRuntime.endpoint, DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11);
+  const localEndpoint = normalizeEndpointV11(state.local.endpoint, DEFAULT_LOCAL_ENDPOINT_V11);
 
   // Only update the local provider entry; preserve all other provider entries
   // as they are managed by the Go runtime (config.json providers → connector store).
@@ -78,6 +78,6 @@ export function buildRuntimeBridgeConfigFromState(
  */
 export function serializeRuntimeBridgeProjection(state: RuntimeConfigStateV11): string {
   return JSON.stringify({
-    localEndpoint: normalizeEndpointV11(state.localRuntime.endpoint, DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11),
+    localEndpoint: normalizeEndpointV11(state.local.endpoint, DEFAULT_LOCAL_ENDPOINT_V11),
   });
 }

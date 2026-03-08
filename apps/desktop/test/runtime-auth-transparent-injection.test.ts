@@ -262,7 +262,7 @@ test('platform runtime call omits authorization when token provider returns empt
   }
 });
 
-test('platform local-runtime ai call omits authorization even when token provider returns a token', async () => {
+test('platform local ai call omits authorization even when token provider returns a token', async () => {
   const calls: TauriInvokeCall[] = [];
   const restoreTauri = installTauriRuntime(calls);
   try {
@@ -284,7 +284,7 @@ test('platform local-runtime ai call omits authorization even when token provide
   }
 });
 
-test('platform localRuntime read-only calls omit authorization even when token provider returns a token', async () => {
+test('platform local read-only calls omit authorization even when token provider returns a token', async () => {
   const calls: TauriInvokeCall[] = [];
   const restoreTauri = installTauriRuntime(calls);
   try {
@@ -293,22 +293,22 @@ test('platform localRuntime read-only calls omit authorization even when token p
       accessTokenProvider: () => 'stale-realm-token',
     });
 
-    await getPlatformClient().runtime.localRuntime.listLocalModels({});
-    await getPlatformClient().runtime.localRuntime.warmLocalModel({
+    await getPlatformClient().runtime.local.listLocalModels({});
+    await getPlatformClient().runtime.local.warmLocalModel({
       localModelId: 'local-model-1',
       timeoutMs: 60_000,
     });
 
     const listCall = findUnaryCallByMethodId(
       calls,
-      '/nimi.runtime.v1.RuntimeLocalRuntimeService/ListLocalModels',
+      '/nimi.runtime.v1.RuntimeLocalService/ListLocalModels',
     );
     assert.ok(listCall);
     assert.equal(listCall.payload.authorization, undefined);
 
     const warmCall = findUnaryCallByMethodId(
       calls,
-      '/nimi.runtime.v1.RuntimeLocalRuntimeService/WarmLocalModel',
+      '/nimi.runtime.v1.RuntimeLocalService/WarmLocalModel',
     );
     assert.ok(warmCall);
     assert.equal(warmCall.payload.authorization, undefined);
@@ -317,7 +317,7 @@ test('platform localRuntime read-only calls omit authorization even when token p
   }
 });
 
-test('platform token-api ai call still injects authorization', async () => {
+test('platform cloud ai call still injects authorization', async () => {
   const calls: TauriInvokeCall[] = [];
   const restoreTauri = installTauriRuntime(calls);
   try {

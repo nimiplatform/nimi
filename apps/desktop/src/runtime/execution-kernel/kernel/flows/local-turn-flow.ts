@@ -1,14 +1,14 @@
 import type { ExecuteLocalKernelTurnResult } from '../../../llm-adapter/execution/types';
 import { emitRuntimeLog } from '../../../telemetry/logger';
-import type { ExecutePrivateTurnInput, KernelStage } from '../../contracts/types';
+import type { ExecuteLocalTurnInput, KernelStage } from '../../contracts/types';
 
-type PrivateTurnFlowInput = {
-  input: ExecutePrivateTurnInput;
+type LocalTurnFlowInput = {
+  input: ExecuteLocalTurnInput;
   invokeTurnHooks: (input: {
     point: 'pre-policy' | 'pre-model' | 'post-state' | 'pre-commit';
     context: Record<string, unknown>;
   }) => Promise<{ context: Record<string, unknown> }>;
-  executeLocalKernelTurn: (input: ExecutePrivateTurnInput) => Promise<ExecuteLocalKernelTurnResult>;
+  executeLocalKernelTurn: (input: ExecuteLocalTurnInput) => Promise<ExecuteLocalKernelTurnResult>;
   appendAudit: (entry: {
     id: string;
     stage: KernelStage;
@@ -22,14 +22,14 @@ type PrivateTurnFlowInput = {
   shouldDisable: (key: string) => boolean;
 };
 
-export async function runPrivateTurnFlow({
+export async function runLocalTurnFlow({
   input,
   invokeTurnHooks,
   executeLocalKernelTurn,
   appendAudit,
   reportCrash,
   shouldDisable,
-}: PrivateTurnFlowInput): Promise<ExecuteLocalKernelTurnResult> {
+}: LocalTurnFlowInput): Promise<ExecuteLocalKernelTurnResult> {
   const prePolicy = await invokeTurnHooks({
     point: 'pre-policy',
     context: {
@@ -83,7 +83,7 @@ export async function runPrivateTurnFlow({
       await appendAudit({
         id: `audit:execute:${Date.now().toString(36)}`,
         stage: 'audit',
-        eventType: 'LOCAL_PRIVATE_TURN_EXECUTED',
+        eventType: 'LOCAL_TURN_EXECUTED',
         decision: 'ALLOW',
         reasonCodes: ['LOCAL_EXECUTION_OK'],
         payload: {
@@ -99,7 +99,7 @@ export async function runPrivateTurnFlow({
         area: 'execution-kernel',
         message: 'action:audit-persistence:failed',
         details: {
-          eventType: 'LOCAL_PRIVATE_TURN_EXECUTED',
+          eventType: 'LOCAL_TURN_EXECUTED',
           provider: input.provider,
           requestId: input.requestId,
           sessionId: input.sessionId,
@@ -110,12 +110,12 @@ export async function runPrivateTurnFlow({
 
     return result;
   } catch (error) {
-    const crashCount = reportCrash(`private:${input.provider}`);
+    const crashCount = reportCrash(`local:${input.provider}`);
     try {
       await appendAudit({
         id: `audit:execute:${Date.now().toString(36)}`,
         stage: 'audit',
-        eventType: 'LOCAL_PRIVATE_TURN_FAILED',
+        eventType: 'LOCAL_TURN_FAILED',
         decision: 'DENY',
         reasonCodes: ['CRASH_ISOLATED'],
         payload: {
@@ -131,7 +131,7 @@ export async function runPrivateTurnFlow({
         area: 'execution-kernel',
         message: 'action:audit-persistence:failed',
         details: {
-          eventType: 'LOCAL_PRIVATE_TURN_FAILED',
+          eventType: 'LOCAL_TURN_FAILED',
           provider: input.provider,
           requestId: input.requestId,
           sessionId: input.sessionId,
@@ -139,7 +139,7 @@ export async function runPrivateTurnFlow({
         },
       });
     }
-    if (shouldDisable(`private:${input.provider}`)) {
+    if (shouldDisable(`local:${input.provider}`)) {
       throw new Error('CRASH_ISOLATED: provider disabled by crash-isolator');
     }
     throw error;

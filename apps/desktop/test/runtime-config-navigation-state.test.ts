@@ -35,7 +35,7 @@ test('normalizePageIdV11: unknown values fall back to "overview"', () => {
 
 test('createDefaultStateV11: activePage defaults to "overview"', () => {
   const state = createDefaultStateV11({
-    provider: 'local-runtime',
+    provider: 'local',
     runtimeModelType: 'chat',
     localProviderEndpoint: 'http://127.0.0.1:1234/v1',
   });
@@ -77,9 +77,9 @@ test('normalizeStoredStateV11: new activePage field takes precedence', () => {
     activePage: 'cloud',
     diagnosticsCollapsed: false,
     uiMode: 'advanced',
-    selectedSource: 'token-api',
+    selectedSource: 'cloud',
     activeCapability: 'image',
-    localRuntime: {
+    local: {
       endpoint: 'http://127.0.0.1:1234/v1',
       models: [],
       nodeMatrix: [],
@@ -102,9 +102,9 @@ test('normalizeStoredStateV11: connectors always empty (bridge is source of trut
     activePage: 'overview',
     diagnosticsCollapsed: true,
     uiMode: 'simple',
-    selectedSource: 'local-runtime',
+    selectedSource: 'local',
     activeCapability: 'chat',
-    localRuntime: {
+    local: {
       endpoint: 'http://127.0.0.1:1234/v1',
       models: [],
       nodeMatrix: [],

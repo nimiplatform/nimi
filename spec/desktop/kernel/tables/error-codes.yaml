@@ -160,7 +160,7 @@ codes:
     source_rule: D-ERR-001
 
   # Runtime route errors
-  - code: LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED
+  - code: LOCAL_LIFECYCLE_WRITE_DENIED
     domain: runtime
     description: Source has no permission for model lifecycle write operations
     source_rule: D-ERR-004

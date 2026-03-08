@@ -29,7 +29,7 @@ pub const EVENT_SERVICE_INSTALL_FAILED: &str = "service_install_failed";
 pub const EVENT_NODE_CATALOG_LISTED: &str = "node_catalog_listed";
 pub const EVENT_INFERENCE_INVOKED: &str = "inference_invoked";
 pub const EVENT_INFERENCE_FAILED: &str = "inference_failed";
-pub const EVENT_FALLBACK_TO_TOKEN_API: &str = "fallback_to_token_api";
+pub const EVENT_FALLBACK_TO_CLOUD: &str = "fallback_to_cloud";
 pub const EVENT_MODEL_FILE_IMPORT_STARTED: &str = "model_file_import_started";
 
 const MAX_AUDIT_EVENTS: usize = 5000;

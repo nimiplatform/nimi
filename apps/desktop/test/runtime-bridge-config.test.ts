@@ -18,7 +18,7 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 function createBaseState(): RuntimeConfigStateV11 {
   return createDefaultStateV11({
-    provider: 'local-runtime',
+    provider: 'local',
     runtimeModelType: 'chat',
     localProviderEndpoint: 'http://127.0.0.1:1234/v1',
     localProviderModel: 'local-model',
@@ -38,19 +38,19 @@ test('applyRuntimeBridgeConfigToState maps local provider endpoint', () => {
     },
   });
 
-  assert.equal(next.localRuntime.endpoint, 'http://127.0.0.1:18080/v1');
+  assert.equal(next.local.endpoint, 'http://127.0.0.1:18080/v1');
 });
 
 test('applyRuntimeBridgeConfigToState preserves existing endpoint when no local baseUrl', () => {
   const previous = createBaseState();
-  previous.localRuntime.endpoint = 'http://127.0.0.1:9999/v1';
+  previous.local.endpoint = 'http://127.0.0.1:9999/v1';
 
   const next = applyRuntimeBridgeConfigToState(previous, {
     schemaVersion: 1,
     providers: {},
   });
 
-  assert.equal(next.localRuntime.endpoint, 'http://127.0.0.1:9999/v1');
+  assert.equal(next.local.endpoint, 'http://127.0.0.1:9999/v1');
 });
 
 test('applyRuntimeBridgeConfigToState does not manage connectors — they come from SDK', () => {
@@ -73,7 +73,7 @@ test('applyRuntimeBridgeConfigToState does not manage connectors — they come f
 
 test('buildRuntimeBridgeConfigFromState emits schema defaults and local endpoint', () => {
   const state = createBaseState();
-  state.localRuntime.endpoint = 'http://127.0.0.1:11434/v1';
+  state.local.endpoint = 'http://127.0.0.1:11434/v1';
 
   const config = buildRuntimeBridgeConfigFromState(state, {});
   assert.equal(config.schemaVersion, 1);
@@ -88,7 +88,7 @@ test('buildRuntimeBridgeConfigFromState emits schema defaults and local endpoint
 
 test('buildRuntimeBridgeConfigFromState preserves existing non-local provider entries', () => {
   const state = createBaseState();
-  state.localRuntime.endpoint = 'http://127.0.0.1:11434/v1';
+  state.local.endpoint = 'http://127.0.0.1:11434/v1';
 
   const config = buildRuntimeBridgeConfigFromState(state, {
     providers: {
@@ -116,8 +116,8 @@ test('serializeRuntimeBridgeProjection ignores status-only runtime state changes
 
   const changed = {
     ...state,
-    localRuntime: {
-      ...state.localRuntime,
+    local: {
+      ...state.local,
       status: 'healthy',
       lastCheckedAt: '2026-02-27T12:00:00.000Z',
       lastDetail: 'runtime ready',
@@ -136,14 +136,14 @@ test('serializeRuntimeBridgeProjection ignores status-only runtime state changes
 
 test('serializeRuntimeBridgeProjection detects local endpoint changes', () => {
   const state = createBaseState();
-  state.localRuntime.endpoint = 'http://127.0.0.1:1234/v1';
+  state.local.endpoint = 'http://127.0.0.1:1234/v1';
 
   const first = serializeRuntimeBridgeProjection(state);
 
   const changed = {
     ...state,
-    localRuntime: {
-      ...state.localRuntime,
+    local: {
+      ...state.local,
       endpoint: 'http://127.0.0.1:9999/v1',
     },
   };

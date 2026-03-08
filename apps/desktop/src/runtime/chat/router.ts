@@ -1,7 +1,7 @@
 /**
  * Desktop routing policy:
  * - CLOUD => backend core-turn-service.
- * - PRIVATE => desktop local execution-kernel.
+ * - LOCAL => desktop local execution-kernel.
  */
 import {
   DesktopChatRouteResultDto,
@@ -11,7 +11,7 @@ import {
 import { createChatRouteFlowId, emitChatRouteLog } from './logging';
 
 type RouteLike = Pick<DesktopChatRouteResultDto, 'channel' | 'providerSelectable'>;
-export type DesktopExpectedChannel = 'CLOUD' | 'PRIVATE';
+export type DesktopExpectedChannel = 'CLOUD' | 'LOCAL';
 
 export function resolveExpectedChannel(
   routeResult: RouteLike | null | undefined,
@@ -44,7 +44,7 @@ export function resolveExpectedChannel(
     });
   }
 
-  if (normalizedChannel === DesktopChatRouteResultDto.channel.PRIVATE) {
+  if (normalizedChannel === DesktopChatRouteResultDto.channel.LOCAL) {
     emitChatRouteLog({
       level: 'debug',
       message: 'action:resolve-expected-channel:done',
@@ -54,7 +54,7 @@ export function resolveExpectedChannel(
         channel: normalizedChannel,
       },
     });
-    return 'PRIVATE';
+    return 'LOCAL';
   }
 
   emitChatRouteLog({
@@ -84,7 +84,7 @@ export function canSelectProvider(routeResult: RouteLike | null | undefined) {
   }
   const normalizedChannel = normalizeDesktopChatRouteChannel(routeResult.channel);
   const canSelect =
-    normalizedChannel === DesktopChatRouteResultDto.channel.PRIVATE ||
+    normalizedChannel === DesktopChatRouteResultDto.channel.LOCAL ||
     Boolean(routeResult.providerSelectable);
   if (!isDesktopChatRouteChannel(routeResult.channel)) {
     emitChatRouteLog({

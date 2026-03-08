@@ -1,9 +1,9 @@
 import {
-  DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11,
+  DEFAULT_LOCAL_ENDPOINT_V11,
   normalizeCapabilityV11,
   normalizeEndpointV11,
-  normalizeLocalRuntimeModelV11,
-  normalizeLocalRuntimeNodeMatrixEntryV11,
+  normalizeLocalModelV11,
+  normalizeLocalNodeMatrixEntryV11,
   normalizePageIdV11,
   normalizeSourceV11,
   normalizeUiModeV11,
@@ -12,48 +12,48 @@ import {
 import type { RuntimeConfigSeedV11, StoredStateV11 } from './runtime-config-storage-defaults';
 import { createDefaultStateV11 } from './runtime-config-storage-defaults';
 
-function normalizeLocalRuntimeFromAny(
+function normalizeLocalFromAny(
   seed: RuntimeConfigSeedV11,
   parsed: StoredStateV11 & Record<string, unknown>,
   fallback: RuntimeConfigStateV11,
-): RuntimeConfigStateV11['localRuntime'] {
-  const rawLocalRuntime = (parsed.localRuntime && typeof parsed.localRuntime === 'object')
-    ? parsed.localRuntime as Partial<RuntimeConfigStateV11['localRuntime']>
+): RuntimeConfigStateV11['local'] {
+  const rawLocal = (parsed.local && typeof parsed.local === 'object')
+    ? parsed.local as Partial<RuntimeConfigStateV11['local']>
     : null;
-  const rawLocalRuntimeRecord = (rawLocalRuntime ?? {}) as Record<string, unknown>;
+  const rawLocalRecord = (rawLocal ?? {}) as Record<string, unknown>;
 
   const endpoint = normalizeEndpointV11(
-    String(rawLocalRuntimeRecord.endpoint || seed.localProviderEndpoint || seed.localOpenAiEndpoint),
-    DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11,
+    String(rawLocalRecord.endpoint || seed.localProviderEndpoint || seed.localOpenAiEndpoint),
+    DEFAULT_LOCAL_ENDPOINT_V11,
   );
 
-  const rawModels = Array.isArray(rawLocalRuntimeRecord.models) ? rawLocalRuntimeRecord.models : [];
-  const localRuntimeModels = rawModels
+  const rawModels = Array.isArray(rawLocalRecord.models) ? rawLocalRecord.models : [];
+  const localModels = rawModels
     .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
-    .map((item) => normalizeLocalRuntimeModelV11(item as Partial<RuntimeConfigStateV11['localRuntime']['models'][number]>));
-  const models = localRuntimeModels.length > 0
-    ? localRuntimeModels
-    : fallback.localRuntime.models;
-  const rawNodeMatrix = Array.isArray(rawLocalRuntimeRecord.nodeMatrix)
-    ? rawLocalRuntimeRecord.nodeMatrix
+    .map((item) => normalizeLocalModelV11(item as Partial<RuntimeConfigStateV11['local']['models'][number]>));
+  const models = localModels.length > 0
+    ? localModels
+    : fallback.local.models;
+  const rawNodeMatrix = Array.isArray(rawLocalRecord.nodeMatrix)
+    ? rawLocalRecord.nodeMatrix
     : [];
   const nodeMatrix = rawNodeMatrix
     .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
-    .map((item) => normalizeLocalRuntimeNodeMatrixEntryV11(item as Partial<RuntimeConfigStateV11['localRuntime']['nodeMatrix'][number]>));
+    .map((item) => normalizeLocalNodeMatrixEntryV11(item as Partial<RuntimeConfigStateV11['local']['nodeMatrix'][number]>));
 
   return {
-    ...fallback.localRuntime,
-    ...(rawLocalRuntime || {}),
+    ...fallback.local,
+    ...(rawLocal || {}),
     endpoint,
     models,
-    nodeMatrix: nodeMatrix.length > 0 ? nodeMatrix : fallback.localRuntime.nodeMatrix,
+    nodeMatrix: nodeMatrix.length > 0 ? nodeMatrix : fallback.local.nodeMatrix,
   };
 }
 
 export function normalizeStoredStateV11(seed: RuntimeConfigSeedV11, parsed: StoredStateV11): RuntimeConfigStateV11 {
   const fallback = createDefaultStateV11(seed);
   const parsedRecord = parsed as StoredStateV11 & Record<string, unknown>;
-  const localRuntime = normalizeLocalRuntimeFromAny(seed, parsedRecord, fallback);
+  const local = normalizeLocalFromAny(seed, parsedRecord, fallback);
 
   const rawActivePage = parsedRecord.activePage || fallback.activePage;
 
@@ -67,7 +67,7 @@ export function normalizeStoredStateV11(seed: RuntimeConfigSeedV11, parsed: Stor
     uiMode: normalizeUiModeV11(parsed.uiMode || fallback.uiMode),
     selectedSource: normalizeSourceV11(parsed.selectedSource || fallback.selectedSource),
     activeCapability: normalizeCapabilityV11(parsed.activeCapability || fallback.activeCapability),
-    localRuntime,
+    local,
     connectors: [],
     selectedConnectorId: '',
   };

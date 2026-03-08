@@ -4,7 +4,7 @@ import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/ru
 type SetupAutodiscoverEffectInput = {
   state: RuntimeConfigStateV11 | null;
   hydrated: boolean;
-  discoverLocalRuntimeModels: () => Promise<void>;
+  discoverLocalModels: () => Promise<void>;
 };
 
 export function useRuntimeConfigSetupAutodiscoverEffect(input: SetupAutodiscoverEffectInput) {
@@ -15,6 +15,6 @@ export function useRuntimeConfigSetupAutodiscoverEffect(input: SetupAutodiscover
     if (autoDiscoverTriggeredRef.current) return;
 
     autoDiscoverTriggeredRef.current = true;
-    void input.discoverLocalRuntimeModels();
-  }, [input.discoverLocalRuntimeModels, input.hydrated, input.state]);
+    void input.discoverLocalModels();
+  }, [input.discoverLocalModels, input.hydrated, input.state]);
 }

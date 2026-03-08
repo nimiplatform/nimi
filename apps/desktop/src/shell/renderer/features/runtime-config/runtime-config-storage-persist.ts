@@ -33,7 +33,7 @@ export function persistRuntimeConfigStateV11(state: RuntimeConfigStateV11): void
     uiMode: state.uiMode,
     selectedSource: state.selectedSource,
     activeCapability: state.activeCapability,
-    localRuntime: state.localRuntime,
+    local: state.local,
   };
 
   saveStorageJsonTo(

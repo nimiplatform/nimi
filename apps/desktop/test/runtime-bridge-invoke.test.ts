@@ -4,10 +4,10 @@ import test from 'node:test';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { toBridgeNimiError, toBridgeUserError } from '../src/shell/renderer/bridge/runtime-bridge/invoke';
 
-test('toBridgeUserError maps LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED reason code', () => {
-  const error = toBridgeUserError(new Error('LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED: caller=sideload'));
-  assert.equal(error.reasonCode, 'LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED');
-  assert.equal(error.message, 'LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED: caller=sideload');
+test('toBridgeUserError maps LOCAL_LIFECYCLE_WRITE_DENIED reason code', () => {
+  const error = toBridgeUserError(new Error('LOCAL_LIFECYCLE_WRITE_DENIED: caller=sideload'));
+  assert.equal(error.reasonCode, 'LOCAL_LIFECYCLE_WRITE_DENIED');
+  assert.equal(error.message, 'LOCAL_LIFECYCLE_WRITE_DENIED: caller=sideload');
   assert.equal(String(error.details?.userMessage || ''), '当前来源无权执行模型生命周期写操作');
 });
 

@@ -3,7 +3,7 @@ import type {
   RuntimeCanonicalCapability,
   RuntimeRouteBinding,
   RuntimeRouteConnectorOption,
-  RuntimeRouteLocalRuntimeOption,
+  RuntimeRouteLocalOption,
   RuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/mod/runtime-route';
 import { ReasonCode } from '@nimiplatform/sdk/types';
@@ -26,9 +26,9 @@ type ConnectorDescriptor = {
   provider?: string;
 };
 
-const LOCAL_RUNTIME_SNAPSHOT_TIMEOUT_MS = 1200;
+const LOCAL_SNAPSHOT_TIMEOUT_MS = 1200;
 
-function mapCanonicalCapabilityToLocalRuntimeCapability(
+function mapCanonicalCapabilityToLocalCapability(
   capability: RuntimeCanonicalCapability,
 ): 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | undefined {
   if (capability === 'text.generate') return 'chat';
@@ -63,12 +63,12 @@ function normalizeCapabilityToken(value: unknown): RuntimeCanonicalCapability | 
   return null;
 }
 
-function inferSource(provider: string): 'local-runtime' | 'token-api' {
+function inferSource(provider: string): 'local' | 'cloud' {
   const lower = String(provider || '').trim().toLowerCase();
-  if (lower.startsWith('local-runtime') || lower === 'localai' || lower === 'nexa') {
-    return 'local-runtime';
+  if (lower.startsWith('local') || lower === 'localai' || lower === 'nexa') {
+    return 'local';
   }
-  return 'token-api';
+  return 'cloud';
 }
 
 function inferLocalEngine(provider: string): string {
@@ -79,7 +79,7 @@ function normalizeLocalEngine(value: unknown): string {
   return String(value || '').trim().toLowerCase() === 'nexa' ? 'nexa' : 'localai';
 }
 
-function normalizeLocalRuntimeModelRoot(value: string): string {
+function normalizeLocalModelRoot(value: string): string {
   const trimmed = String(value || '').trim();
   if (!trimmed) return '';
   const lower = trimmed.toLowerCase();
@@ -89,7 +89,7 @@ function normalizeLocalRuntimeModelRoot(value: string): string {
   return trimmed;
 }
 
-function defaultLocalRuntimeAdapter(
+function defaultLocalAdapter(
   provider: string,
   capability: RuntimeCanonicalCapability,
 ): string {
@@ -113,17 +113,17 @@ function bindingKey(input: RuntimeRouteBinding | null | undefined): string {
   return [
     String(input.source || '').trim(),
     String(input.connectorId || '').trim(),
-    normalizeLocalRuntimeModelRoot(String(input.modelId || input.model || '').trim()),
+    normalizeLocalModelRoot(String(input.modelId || input.model || '').trim()),
     String(input.localModelId || '').trim(),
     normalizeLocalEngine(String(input.engine || '').trim()),
   ].join('|');
 }
 
-function mergeTokenApiBindingProvider(
+function mergeCloudBindingProvider(
   binding: RuntimeRouteBinding,
   connectors: RuntimeRouteConnectorOption[],
 ): RuntimeRouteBinding {
-  if (binding.source !== 'token-api') {
+  if (binding.source !== 'cloud') {
     return binding;
   }
   const connector = connectors.find((item) => item.id === binding.connectorId) || null;
@@ -178,11 +178,11 @@ export function pickPreferredGoRuntimeModel(
   };
 }
 
-function toLocalRuntimeBinding(option: RuntimeRouteLocalRuntimeOption): RuntimeRouteBinding {
+function toLocalBinding(option: RuntimeRouteLocalOption): RuntimeRouteBinding {
   const modelId = String(option.modelId || option.model || '').trim();
   const engine = normalizeLocalEngine(option.engine);
   return {
-    source: 'local-runtime',
+    source: 'local',
     connectorId: '',
     model: modelId,
     modelId,
@@ -197,10 +197,10 @@ function toLocalRuntimeBinding(option: RuntimeRouteLocalRuntimeOption): RuntimeR
   };
 }
 
-function pickMatchingLocalRuntimeOption(
-  localModels: RuntimeRouteLocalRuntimeOption[],
+function pickMatchingLocalOption(
+  localModels: RuntimeRouteLocalOption[],
   binding: RuntimeRouteBinding,
-): RuntimeRouteLocalRuntimeOption | null {
+): RuntimeRouteLocalOption | null {
   const bindingLocalModelId = String(binding.localModelId || '').trim();
   if (bindingLocalModelId) {
     const byLocalModelId = localModels.find((item) => String(item.localModelId || '').trim() === bindingLocalModelId) || null;
@@ -209,10 +209,10 @@ function pickMatchingLocalRuntimeOption(
     }
   }
 
-  const targetModelId = normalizeLocalRuntimeModelRoot(String(binding.modelId || binding.model || '').trim());
+  const targetModelId = normalizeLocalModelRoot(String(binding.modelId || binding.model || '').trim());
   const targetEngine = normalizeLocalEngine(binding.engine || binding.provider || '');
   const byModelAndEngine = localModels.find((item) => (
-    normalizeLocalRuntimeModelRoot(String(item.modelId || item.model || '').trim()) === targetModelId
+    normalizeLocalModelRoot(String(item.modelId || item.model || '').trim()) === targetModelId
     && normalizeLocalEngine(item.engine || item.provider || '') === targetEngine
   )) || null;
   if (byModelAndEngine) {
@@ -220,11 +220,11 @@ function pickMatchingLocalRuntimeOption(
   }
 
   return localModels.find((item) => (
-    normalizeLocalRuntimeModelRoot(String(item.modelId || item.model || '').trim()) === targetModelId
+    normalizeLocalModelRoot(String(item.modelId || item.model || '').trim()) === targetModelId
   )) || null;
 }
 
-async function pollLocalRuntimeSnapshotWithTimeout(): Promise<{
+async function pollLocalSnapshotWithTimeout(): Promise<{
   models: Array<{
     localModelId: string;
     engine: string;
@@ -247,12 +247,12 @@ async function pollLocalRuntimeSnapshotWithTimeout(): Promise<{
       new Promise<never>((_resolve, reject) => {
         timeoutHandle = setTimeout(() => {
           reject(createNimiError({
-            message: `local runtime snapshot timed out after ${LOCAL_RUNTIME_SNAPSHOT_TIMEOUT_MS}ms`,
+            message: `local runtime snapshot timed out after ${LOCAL_SNAPSHOT_TIMEOUT_MS}ms`,
             reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
             actionHint: 'check_runtime_daemon_health',
             source: 'runtime',
           }));
-        }, LOCAL_RUNTIME_SNAPSHOT_TIMEOUT_MS);
+        }, LOCAL_SNAPSHOT_TIMEOUT_MS);
       }),
     ]);
   } finally {
@@ -265,41 +265,41 @@ async function pollLocalRuntimeSnapshotWithTimeout(): Promise<{
 function buildSelectedBinding(input: {
   capability: RuntimeCanonicalCapability;
   runtimeFields: RuntimeFields;
-  localModels: RuntimeRouteLocalRuntimeOption[];
+  localModels: RuntimeRouteLocalOption[];
   connectors: RuntimeRouteConnectorOption[];
 }): RuntimeRouteBinding {
   const { runtimeFields, localModels, connectors } = input;
   const preferredSource = inferSource(runtimeFields.provider);
-  if (preferredSource === 'local-runtime') {
+  if (preferredSource === 'local') {
     const preferredBinding: RuntimeRouteBinding = {
-      source: 'local-runtime',
+      source: 'local',
       connectorId: '',
       model: String(runtimeFields.localProviderModel || '').trim(),
-      modelId: normalizeLocalRuntimeModelRoot(String(runtimeFields.localProviderModel || '').trim()) || undefined,
+      modelId: normalizeLocalModelRoot(String(runtimeFields.localProviderModel || '').trim()) || undefined,
       engine: inferLocalEngine(runtimeFields.provider),
       provider: normalizeLocalEngine(runtimeFields.provider),
     };
-    const matchedLocalModel = pickMatchingLocalRuntimeOption(localModels, preferredBinding);
+    const matchedLocalModel = pickMatchingLocalOption(localModels, preferredBinding);
     if (matchedLocalModel) {
-      return toLocalRuntimeBinding(matchedLocalModel);
+      return toLocalBinding(matchedLocalModel);
     }
     if (localModels.length > 0) {
-      return toLocalRuntimeBinding(localModels[0]!);
+      return toLocalBinding(localModels[0]!);
     }
     return preferredBinding;
   }
 
   const preferredBinding: RuntimeRouteBinding = {
-    source: 'token-api',
+    source: 'cloud',
     connectorId: String(runtimeFields.connectorId || '').trim(),
     model: String(runtimeFields.localProviderModel || '').trim(),
     provider: String(runtimeFields.provider || '').trim() || undefined,
   };
 
   const availableBindings: RuntimeRouteBinding[] = [
-    ...localModels.map((item) => toLocalRuntimeBinding(item)),
+    ...localModels.map((item) => toLocalBinding(item)),
     ...connectors.flatMap((connector) => connector.models.map((model) => ({
-      source: 'token-api' as const,
+      source: 'cloud' as const,
       connectorId: connector.id,
       model,
       provider: String(connector.provider || '').trim() || undefined,
@@ -311,7 +311,7 @@ function buildSelectedBinding(input: {
     return matchedBinding;
   }
 
-  return availableBindings[0] || mergeTokenApiBindingProvider(preferredBinding, connectors);
+  return availableBindings[0] || mergeCloudBindingProvider(preferredBinding, connectors);
 }
 
 export async function loadRuntimeRouteOptions(input: {
@@ -351,11 +351,11 @@ export async function loadRuntimeRouteOptions(input: {
     });
   }
 
-  let localRuntimeModels: RuntimeRouteLocalRuntimeOption[] = [];
+  let localModels: RuntimeRouteLocalOption[] = [];
   try {
-    const localCapability = mapCanonicalCapabilityToLocalRuntimeCapability(input.capability);
+    const localCapability = mapCanonicalCapabilityToLocalCapability(input.capability);
     const [snapshot, nodeCatalog, goRuntimeModels] = await Promise.all([
-      pollLocalRuntimeSnapshotWithTimeout(),
+      pollLocalSnapshotWithTimeout(),
       localAiRuntime.listNodesCatalog(
         localCapability ? { capability: localCapability } : undefined,
       ).catch(() => []),
@@ -365,7 +365,7 @@ export async function loadRuntimeRouteOptions(input: {
     const nodeByProvider = new Map<string, {
       provider: string;
       adapter: string;
-      providerHints?: RuntimeRouteLocalRuntimeOption['providerHints'];
+      providerHints?: RuntimeRouteLocalOption['providerHints'];
     }>();
 
     for (const node of nodeCatalog) {
@@ -380,7 +380,7 @@ export async function loadRuntimeRouteOptions(input: {
       }
     }
 
-    localRuntimeModels = snapshot.models
+    localModels = snapshot.models
       .filter((item) => item.status !== 'removed')
       .filter((item) => modelSupportsCapability(item.capabilities, input.capability))
       .map((item) => {
@@ -397,7 +397,7 @@ export async function loadRuntimeRouteOptions(input: {
           modelId: item.modelId,
           provider: normalizeLocalEngine(item.engine),
           adapter: nodeByProvider.get(normalizeLocalEngine(item.engine))?.adapter
-            || defaultLocalRuntimeAdapter(item.engine, input.capability),
+            || defaultLocalAdapter(item.engine, input.capability),
           providerHints: nodeByProvider.get(normalizeLocalEngine(item.engine))?.providerHints,
           endpoint: item.endpoint,
           status: item.status,
@@ -409,20 +409,20 @@ export async function loadRuntimeRouteOptions(input: {
         };
       });
   } catch (error) {
-    const localRuntimeError = asNimiError(error, {
+    const localError = asNimiError(error, {
       reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
       actionHint: 'check_runtime_daemon_health',
       source: 'runtime',
     });
-    if (inferSource(runtimeFields.provider) === 'local-runtime') {
-      throw localRuntimeError;
+    if (inferSource(runtimeFields.provider) === 'local') {
+      throw localError;
     }
   }
 
   const selected = buildSelectedBinding({
     capability: input.capability,
     runtimeFields,
-    localModels: localRuntimeModels,
+    localModels: localModels,
     connectors,
   });
 
@@ -430,8 +430,8 @@ export async function loadRuntimeRouteOptions(input: {
     capability: input.capability,
     selected,
     resolvedDefault: selected,
-    localRuntime: {
-      models: localRuntimeModels,
+    local: {
+      models: localModels,
       defaultEndpoint: String(runtimeFields.localProviderEndpoint || runtimeFields.localOpenAiEndpoint || '').trim() || undefined,
     },
     connectors,

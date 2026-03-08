@@ -3,7 +3,7 @@ use super::super::provider_adapter::{
 };
 use super::super::service_artifacts::find_service_artifact;
 use super::super::types::{
-    LocalAiEngineRuntimeMode, LocalAiProviderHints, DEFAULT_LOCAL_RUNTIME_ENDPOINT,
+    LocalAiEngineRuntimeMode, LocalAiProviderHints, DEFAULT_LOCAL_ENDPOINT,
 };
 
 pub(super) const HF_SEARCH_LIMIT_MIN: usize = 1;
@@ -47,7 +47,7 @@ pub(super) fn default_endpoint_for_engine(engine: &str) -> String {
     if let Some(port) = port {
         return format!("http://127.0.0.1:{port}/v1");
     }
-    DEFAULT_LOCAL_RUNTIME_ENDPOINT.to_string()
+    DEFAULT_LOCAL_ENDPOINT.to_string()
 }
 
 pub(super) fn infer_engine(repo: &str, tags: &[String], capabilities: &[String]) -> String {

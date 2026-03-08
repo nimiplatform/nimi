@@ -7,7 +7,7 @@ import { createChatRouteFlowId, emitChatRouteLog } from './logging';
 
 /**
  * Deterministic fallback policy when desktop control-plane route API is unavailable:
- * - AGENT => PRIVATE local runtime
+ * - AGENT => LOCAL local execution
  * - CONTACT/FRIEND => CLOUD
  */
 export function resolveChatRouteByPolicy(
@@ -29,7 +29,7 @@ export function resolveChatRouteByPolicy(
   });
   if (targetType === DesktopChatRouteRequestDto.targetType.AGENT) {
     const result = {
-      channel: DesktopChatRouteResultDto.channel.PRIVATE,
+      channel: DesktopChatRouteResultDto.channel.LOCAL,
       providerSelectable: true,
       reason: 'Agent chats are routed to local execution by fallback policy.',
       sessionClass: DesktopChatRouteResultDto.sessionClass.AGENT_LOCAL,

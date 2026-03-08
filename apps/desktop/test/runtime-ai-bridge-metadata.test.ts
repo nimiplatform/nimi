@@ -6,7 +6,7 @@ type TauriInvokeCall = {
   payload: unknown;
 };
 
-test('runtime ai bridge metadata remains managed only for token-api requests', async () => {
+test('runtime ai bridge metadata remains managed only for cloud requests', async () => {
   const calls: TauriInvokeCall[] = [];
   const globalRecord = globalThis as Record<string, unknown>;
   const previousTauri = globalRecord.__TAURI__;
@@ -23,7 +23,7 @@ test('runtime ai bridge metadata remains managed only for token-api requests', a
   try {
     const runtimeAiBridge = await import('../src/runtime/llm-adapter/execution/runtime-ai-bridge');
     const metadata = await runtimeAiBridge.buildRuntimeRequestMetadata({
-      source: 'token-api',
+      source: 'cloud',
       connectorId: 'connector-test',
       providerEndpoint: 'https://example.invalid/v1',
     });
@@ -35,7 +35,7 @@ test('runtime ai bridge metadata remains managed only for token-api requests', a
     const callOptions = await runtimeAiBridge.buildRuntimeCallOptions({
       modId: 'mod.runtime.metadata',
       timeoutMs: 10_000,
-      source: 'token-api',
+      source: 'cloud',
       connectorId: 'connector-test',
       providerEndpoint: 'https://example.invalid/v1',
     });
@@ -49,7 +49,7 @@ test('runtime ai bridge metadata remains managed only for token-api requests', a
     const streamOptions = await runtimeAiBridge.buildRuntimeStreamOptions({
       modId: 'mod.runtime.metadata',
       timeoutMs: 10_000,
-      source: 'token-api',
+      source: 'cloud',
       connectorId: 'connector-test',
       providerEndpoint: 'https://example.invalid/v1',
     });

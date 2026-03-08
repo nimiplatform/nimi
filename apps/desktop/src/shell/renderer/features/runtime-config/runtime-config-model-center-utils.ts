@@ -10,7 +10,7 @@ import type {
 import type { RuntimeDependencyTargetDescriptor } from './runtime-config-panel-types';
 import type { RuntimeConfigStateV11, RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 
-export type LocalRuntimeModelCenterProps = {
+export type LocalModelCenterProps = {
   state: RuntimeConfigStateV11;
   discovering: boolean;
   checkingHealth: boolean;
@@ -19,8 +19,8 @@ export type LocalRuntimeModelCenterProps = {
   runtimeDependencyTargets: RuntimeDependencyTargetDescriptor[];
   selectedDependencyModId?: string;
   onSelectDependencyModId?: (modId: string) => void;
-  localRuntimeModelQuery: string;
-  filteredLocalRuntimeModels: string[];
+  localModelQuery: string;
+  filteredLocalModels: string[];
   onDiscover: () => Promise<void>;
   onHealthCheck: () => Promise<void>;
   onResolveDependencies: (modId: string, capability?: string) => Promise<LocalAiDependencyResolutionPlan>;
@@ -45,8 +45,8 @@ export type LocalRuntimeModelCenterProps = {
   onRestart: (localModelId: string) => Promise<void>;
   onRemove: (localModelId: string) => Promise<void>;
   onRemoveArtifact: (localArtifactId: string) => Promise<void>;
-  onSetLocalRuntimeModelQuery: (value: string) => void;
-  onChangeLocalRuntimeEndpoint: (endpoint: string) => void;
+  onSetLocalModelQuery: (value: string) => void;
+  onChangeLocalEndpoint: (endpoint: string) => void;
   onNavigateToSetup?: (pageId: RuntimeSetupPageIdV11) => void;
   onDownloadComplete?: (
     installSessionId: string,

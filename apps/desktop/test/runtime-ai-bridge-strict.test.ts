@@ -29,36 +29,36 @@ test('resolveSourceAndModel rejects missing model', () => {
   );
 });
 
-test('resolveSourceAndModel preserves explicit token-api provider and prefixes cloud model', () => {
+test('resolveSourceAndModel preserves explicit cloud provider and prefixes cloud model', () => {
   const resolved = resolveSourceAndModel({
     provider: 'dashscope',
     model: 'qwen-plus',
   });
 
-  assert.equal(resolved.source, 'token-api');
+  assert.equal(resolved.source, 'cloud');
   assert.equal(resolved.modelId, 'cloud/qwen-plus');
   assert.equal(resolved.provider, 'dashscope');
   assert.equal(resolved.fallbackPolicy, 1);
 });
 
-test('resolveSourceAndModel prefixes localai selectors for local-runtime routes', () => {
+test('resolveSourceAndModel prefixes localai selectors for local routes', () => {
   const resolved = resolveSourceAndModel({
     provider: 'localai',
     model: 'z-image-turbo',
     localProviderEndpoint: 'http://127.0.0.1:1234/v1',
   });
 
-  assert.equal(resolved.source, 'local-runtime');
+  assert.equal(resolved.source, 'local');
   assert.equal(resolved.modelId, 'localai/z-image-turbo');
 });
 
-test('resolveSourceAndModel prefixes nexa selectors for local-runtime routes', () => {
+test('resolveSourceAndModel prefixes nexa selectors for local routes', () => {
   const resolved = resolveSourceAndModel({
     provider: 'nexa',
     model: 'qwen-rerank',
     localProviderEndpoint: 'http://127.0.0.1:18181/v1',
   });
 
-  assert.equal(resolved.source, 'local-runtime');
+  assert.equal(resolved.source, 'local');
   assert.equal(resolved.modelId, 'nexa/qwen-rerank');
 });

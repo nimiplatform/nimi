@@ -37,7 +37,7 @@ Turn 生命周期拦截：`pre-policy` → `pre-model` → `post-state` → `pre
 
 ### LLM (D-LLM-002)
 
-Turn 执行通过 `ExecutePrivateTurnInput` 路由到目标 agent 和 provider。
+Turn 执行通过 `ExecuteLocalTurnInput` 路由到目标 agent 和 provider。
 
 ### Streaming (D-STRM-001~004)
 

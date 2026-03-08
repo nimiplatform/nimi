@@ -7,7 +7,7 @@ import { createConnectorV11 } from '../src/shell/renderer/features/runtime-confi
 
 test('persisted state does not contain tokenApiKey or localOpenAiApiKey (type-level)', () => {
   const state = createDefaultStateV11({
-    provider: 'local-runtime',
+    provider: 'local',
     runtimeModelType: 'chat',
     localProviderEndpoint: 'http://127.0.0.1:1234/v1',
     localProviderModel: 'local-model',
@@ -42,7 +42,7 @@ test('persistRuntimeConfigStateV11 does not persist connectors to localStorage',
 
   try {
     const state = createDefaultStateV11({
-      provider: 'local-runtime',
+      provider: 'local',
       runtimeModelType: 'chat',
       localProviderEndpoint: 'http://127.0.0.1:1234/v1',
       localProviderModel: 'local-model',

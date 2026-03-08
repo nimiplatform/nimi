@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   parseDependencyApplyResult,
   parseDependencyResolutionPlan,
@@ -35,7 +36,7 @@ test('parseDependencyResolutionPlan normalizes device profile and selections', (
       {
         dependencyId: 'dep-model',
         selected: true,
-        reasonCode: 'LOCAL_MODEL_SELECTED',
+        reasonCode: ReasonCode.ACTION_EXECUTED,
         detail: 'verified model matched',
       },
     ],
@@ -45,7 +46,7 @@ test('parseDependencyResolutionPlan normalizes device profile and selections', (
         target: 'python',
         check: 'python_available',
         ok: true,
-        reasonCode: 'LOCAL_PREFLIGHT_PASSED',
+        reasonCode: ReasonCode.ACTION_EXECUTED,
         detail: 'python detected',
       },
     ],
@@ -55,7 +56,7 @@ test('parseDependencyResolutionPlan normalizes device profile and selections', (
   assert.equal(parsed.deviceProfile.arch, 'arm64');
   assert.deepEqual(parsed.deviceProfile.ports, [{ port: 8080, available: true }]);
   assert.equal(parsed.dependencies[0]?.kind, 'model');
-  assert.equal(parsed.selectionRationale[0]?.reasonCode, 'LOCAL_MODEL_SELECTED');
+  assert.equal(parsed.selectionRationale[0]?.reasonCode, ReasonCode.ACTION_EXECUTED);
   assert.equal(parsed.preflightDecisions[0]?.check, 'python_available');
 });
 
@@ -114,7 +115,7 @@ test('parseDependencyApplyResult reuses model and service parsers', () => {
         target: 'port',
         check: 'port_available',
         ok: true,
-        reasonCode: 'LOCAL_PREFLIGHT_PASSED',
+        reasonCode: ReasonCode.ACTION_EXECUTED,
         detail: 'port free',
       },
     ],

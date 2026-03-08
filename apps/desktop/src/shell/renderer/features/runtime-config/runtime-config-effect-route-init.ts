@@ -2,7 +2,7 @@ import { useEffect, type Dispatch, type SetStateAction } from 'react';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/app-store';
 import {
-  DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11,
+  DEFAULT_LOCAL_ENDPOINT_V11,
   normalizeEndpointV11,
   type RuntimeConfigStateV11,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
@@ -19,17 +19,17 @@ export function useRuntimeConfigRouteInitEffect(input: RouteInitEffectInput) {
   useEffect(() => {
     if (!input.state) return;
     if (input.state.initializedByV11) return;
-    if (input.state.selectedSource !== 'local-runtime') return;
+    if (input.state.selectedSource !== 'local') return;
 
     const model = getRecommendedChatModelV11(input.state);
     if (!model) return;
-    const matchedModel = input.state.localRuntime.models.find((item) => item.model === model) || null;
+    const matchedModel = input.state.local.models.find((item) => item.model === model) || null;
     const provider = String(matchedModel?.engine || 'localai').trim() || 'localai';
 
     input.setRuntimeFields({
       provider,
       runtimeModelType: 'chat',
-      localProviderEndpoint: normalizeEndpointV11(input.state.localRuntime.endpoint, DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11),
+      localProviderEndpoint: normalizeEndpointV11(input.state.local.endpoint, DEFAULT_LOCAL_ENDPOINT_V11),
       localProviderModel: model,
     });
 
@@ -42,7 +42,7 @@ export function useRuntimeConfigRouteInitEffect(input: RouteInitEffectInput) {
       flowId,
       details: {
         capability: 'chat',
-        source: 'local-runtime',
+        source: 'local',
         model,
         reason: 'auto-init',
       },

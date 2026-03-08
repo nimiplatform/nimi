@@ -46,7 +46,7 @@ export type RuntimeConfigInstallActions = {
     modId: string,
     capability?: CapabilityV11 | string,
   ) => Promise<void>;
-  installCatalogLocalRuntimeModel: (
+  installCatalogLocalModel: (
     item: LocalAiCatalogItemDescriptor,
     options?: {
       entry?: string;
@@ -55,27 +55,27 @@ export type RuntimeConfigInstallActions = {
       engine?: string;
     },
   ) => Promise<void>;
-  installLocalRuntimeModel: (payload: LocalAiInstallPayload) => Promise<void>;
-  installVerifiedLocalRuntimeModel: (templateId: string) => Promise<void>;
-  importLocalRuntimeModel: () => Promise<void>;
-  installVerifiedLocalRuntimeArtifact: (templateId: string) => Promise<void>;
-  importLocalRuntimeArtifact: () => Promise<void>;
-  importLocalRuntimeModelFile: (capabilities: string[], engine?: string) => Promise<void>;
-  startLocalRuntimeModel: (localModelId: string) => Promise<void>;
-  stopLocalRuntimeModel: (localModelId: string) => Promise<void>;
-  restartLocalRuntimeModel: (localModelId: string) => Promise<void>;
-  removeLocalRuntimeModel: (localModelId: string) => Promise<void>;
-  removeLocalRuntimeArtifact: (localArtifactId: string) => Promise<void>;
+  installLocalModel: (payload: LocalAiInstallPayload) => Promise<void>;
+  installVerifiedLocalModel: (templateId: string) => Promise<void>;
+  importLocalModel: () => Promise<void>;
+  installVerifiedLocalArtifact: (templateId: string) => Promise<void>;
+  importLocalArtifact: () => Promise<void>;
+  importLocalModelFile: (capabilities: string[], engine?: string) => Promise<void>;
+  startLocalModel: (localModelId: string) => Promise<void>;
+  stopLocalModel: (localModelId: string) => Promise<void>;
+  restartLocalModel: (localModelId: string) => Promise<void>;
+  removeLocalModel: (localModelId: string) => Promise<void>;
+  removeLocalArtifact: (localArtifactId: string) => Promise<void>;
 };
 
 export type UseRuntimeConfigInstallActionsInput = {
   localManifestSummaries: ManifestSummary[];
-  refreshLocalRuntimeSnapshot: () => Promise<void>;
+  refreshLocalSnapshot: () => Promise<void>;
   setStatusBanner: SetRuntimeConfigBanner;
 };
 
 export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallActionsInput): RuntimeConfigInstallActions {
-  const { localManifestSummaries, refreshLocalRuntimeSnapshot, setStatusBanner } = input;
+  const { localManifestSummaries, refreshLocalSnapshot, setStatusBanner } = input;
 
   const pendingInstallsRef = useRef(new Map<string, PendingInstallEntry>());
   const [pendingInstallVersion, setPendingInstallVersion] = useState(0);
@@ -89,7 +89,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       eventType,
       modelId: String(target.modelId || '').trim(),
       localModelId: String(target.localModelId || '').trim() || undefined,
-      source: 'local-runtime',
+      source: 'local',
       reasonCode: ReasonCode.GO_RUNTIME_SYNC_FAILED,
       detail: error instanceof Error ? error.message : String(error || 'unknown sync error'),
       payload: {
@@ -126,7 +126,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     const resolvedLocalModelId = String(session?.accepted.localModelId || localModelId || '').trim();
     const resolvedModelId = String(session?.accepted.modelId || modelId || '').trim();
     if (!resolvedLocalModelId || !resolvedModelId) {
-      await refreshLocalRuntimeSnapshot();
+      await refreshLocalSnapshot();
       setStatusBanner({ kind: 'success', message: 'Model download completed' });
       return;
     }
@@ -185,7 +185,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
           localModelId: resolvedLocalModelId,
         },
       });
-      await refreshLocalRuntimeSnapshot();
+      await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
         message: `Model installed and ready: ${resolvedModelId}`,
@@ -201,7 +201,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
         message: `Post-install failed: ${postError instanceof Error ? postError.message : String(postError || '')}`,
       });
     }
-  }, [recordGoRuntimeSyncFailure, refreshLocalRuntimeSnapshot, setStatusBanner]);
+  }, [recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
 
   const runInstallPlanLifecycle = useCallback((plan: LocalAiInstallPlanDescriptor, installSource: 'catalog' | 'manual' | 'verified') => {
     localAiRuntime.install({
@@ -282,7 +282,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     try {
       const plan = await resolveRuntimeDependencies(modId, capability);
       const result = await localAiRuntime.applyDependencies(plan, { caller: 'core' });
-      await refreshLocalRuntimeSnapshot();
+      await refreshLocalSnapshot();
       try {
         const fullModels = await localAiRuntime.list();
         await reconcileModelsToGoRuntime(fullModels);
@@ -308,9 +308,9 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       throw error;
     }
-  }, [recordGoRuntimeSyncFailure, refreshLocalRuntimeSnapshot, resolveRuntimeDependencies, setStatusBanner]);
+  }, [recordGoRuntimeSyncFailure, refreshLocalSnapshot, resolveRuntimeDependencies, setStatusBanner]);
 
-  const installCatalogLocalRuntimeModel = useCallback(async (
+  const installCatalogLocalModel = useCallback(async (
     item: LocalAiCatalogItemDescriptor,
     options?: {
       entry?: string;
@@ -346,7 +346,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     }
   }, [runInstallPlanLifecycle, setStatusBanner]);
 
-  const installLocalRuntimeModel = useCallback(async (payload: LocalAiInstallPayload) => {
+  const installLocalModel = useCallback(async (payload: LocalAiInstallPayload) => {
     try {
       const resolved = await localAiRuntime.resolveInstallPlan({
         source: 'huggingface',
@@ -390,7 +390,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     }
   }, [runInstallPlanLifecycle, setStatusBanner]);
 
-  const installVerifiedLocalRuntimeModel = useCallback(async (templateId: string) => {
+  const installVerifiedLocalModel = useCallback(async (templateId: string) => {
     const normalizedTemplateId = String(templateId || '').trim();
     if (!normalizedTemplateId) {
       throw new Error('templateId is required');
@@ -414,7 +414,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     }
   }, [runInstallPlanLifecycle, setStatusBanner]);
 
-  const installVerifiedLocalRuntimeArtifact = useCallback(async (templateId: string) => {
+  const installVerifiedLocalArtifact = useCallback(async (templateId: string) => {
     const normalizedTemplateId = String(templateId || '').trim();
     if (!normalizedTemplateId) {
       throw new Error('templateId is required');
@@ -423,7 +423,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       const artifact = await localAiRuntime.installVerifiedArtifact({
         templateId: normalizedTemplateId,
       }, { caller: 'core' });
-      await refreshLocalRuntimeSnapshot();
+      await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
         message: `Artifact installed: ${artifact.artifactId}`,
@@ -435,16 +435,16 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       throw error;
     }
-  }, [refreshLocalRuntimeSnapshot, setStatusBanner]);
+  }, [refreshLocalSnapshot, setStatusBanner]);
 
-  const importLocalRuntimeArtifact = useCallback(async () => {
+  const importLocalArtifact = useCallback(async () => {
     try {
       const manifestPath = await localAiRuntime.pickManifestPath();
       if (!manifestPath) {
         return;
       }
       const imported = await localAiRuntime.importArtifact({ manifestPath }, { caller: 'core' });
-      await refreshLocalRuntimeSnapshot();
+      await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
         message: `Artifact imported: ${imported.artifactId}`,
@@ -456,12 +456,12 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       throw error;
     }
-  }, [refreshLocalRuntimeSnapshot, setStatusBanner]);
+  }, [refreshLocalSnapshot, setStatusBanner]);
 
   const modelActions = useRuntimeConfigModelManagementActions({
     pendingInstallsRef,
     setPendingInstallVersion,
-    refreshLocalRuntimeSnapshot,
+    refreshLocalSnapshot,
     setStatusBanner,
   });
 
@@ -471,17 +471,17 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     retryInstall,
     resolveRuntimeDependencies,
     applyRuntimeDependencies,
-    installCatalogLocalRuntimeModel,
-    installLocalRuntimeModel,
-    installVerifiedLocalRuntimeModel,
-    installVerifiedLocalRuntimeArtifact,
-    importLocalRuntimeModel: modelActions.importLocalRuntimeModel,
-    importLocalRuntimeArtifact,
-    importLocalRuntimeModelFile: modelActions.importLocalRuntimeModelFile,
-    startLocalRuntimeModel: modelActions.startLocalRuntimeModel,
-    stopLocalRuntimeModel: modelActions.stopLocalRuntimeModel,
-    restartLocalRuntimeModel: modelActions.restartLocalRuntimeModel,
-    removeLocalRuntimeModel: modelActions.removeLocalRuntimeModel,
-    removeLocalRuntimeArtifact: modelActions.removeLocalRuntimeArtifact,
+    installCatalogLocalModel,
+    installLocalModel,
+    installVerifiedLocalModel,
+    installVerifiedLocalArtifact,
+    importLocalModel: modelActions.importLocalModel,
+    importLocalArtifact,
+    importLocalModelFile: modelActions.importLocalModelFile,
+    startLocalModel: modelActions.startLocalModel,
+    stopLocalModel: modelActions.stopLocalModel,
+    restartLocalModel: modelActions.restartLocalModel,
+    removeLocalModel: modelActions.removeLocalModel,
+    removeLocalArtifact: modelActions.removeLocalArtifact,
   };
 }

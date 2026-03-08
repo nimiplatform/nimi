@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { LocalRuntimeModelOptionV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import type { LocalModelOptionV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { localAiRuntime } from '@runtime/local-ai-runtime';
 import { StatusBadge } from './runtime-config-primitives';
 import { filterInstalledModels, statusLabel } from './runtime-config-model-center-utils';
@@ -131,7 +131,7 @@ function Button({
 }
 
 export type ModelCenterInstalledListProps = {
-  sortedModels: LocalRuntimeModelOptionV11[];
+  sortedModels: LocalModelOptionV11[];
   highlightLocalModelId: string;
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
@@ -216,7 +216,7 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
 
           return (
             <div
-              key={`local-runtime-model-${model.localModelId}`}
+              key={`local-model-${model.localModelId}`}
               className={`${isHighlighted ? 'bg-mint-50/50' : 'hover:bg-gray-50/50'} transition-colors`}
             >
               <div className="px-5 py-4">

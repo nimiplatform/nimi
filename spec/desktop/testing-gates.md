@@ -27,7 +27,7 @@ Desktop 规范验收门禁与执行证据契约，覆盖 kernel 规则集合 `D-
 
 ### Supplementary Hard-Cut Gates (D-BOOT-001, D-HOOK-008, D-IPC-011, D-IPC-012, D-MOD-002, D-CODEGEN-012)
 
-- `rule-evidence.yaml` 可为 canonical runtime config path、runtime-only token-api routing、runtime-aligned mod/hook surface、local-ai bridge 命令边界、manifest capabilities-only policy 绑定额外静态 gate。
+- `rule-evidence.yaml` 可为 canonical runtime config path、runtime-only cloud routing、runtime-aligned mod/hook surface、local-ai bridge 命令边界、manifest capabilities-only policy 绑定额外静态 gate。
 - 这些 hard-cut gate 不替代 lint/test/e2e，只负责阻断 legacy surface 回流。
 
 ## Verification Coverage
@@ -38,7 +38,7 @@ Desktop 规范验收门禁与执行证据契约，覆盖 kernel 规则集合 `D-
 - `pnpm --filter @nimiplatform/desktop test`
 - `pnpm check:desktop-mods-smoke --all`
 - `pnpm check:runtime-mod-hook-hardcut`
-- `pnpm check:desktop-token-api-runtime-only`
+- `pnpm check:desktop-cloud-runtime-only`
 - `pnpm check:desktop-no-legacy-runtime-config-path`
 - `pnpm check:no-local-ai-private-calls`
 - `pnpm check:no-local-ai-tauri-commands`

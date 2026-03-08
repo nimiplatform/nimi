@@ -127,7 +127,7 @@ pub fn install_from_hf_with_control(
         request
             .endpoint
             .as_deref()
-            .unwrap_or(DEFAULT_LOCAL_RUNTIME_ENDPOINT),
+            .unwrap_or(DEFAULT_LOCAL_ENDPOINT),
     )?;
 
     let (entry_file, install_files) = normalize_install_files(request)?;

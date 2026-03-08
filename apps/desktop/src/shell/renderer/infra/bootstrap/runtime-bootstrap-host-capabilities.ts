@@ -35,10 +35,10 @@ import {
   createModAiDependencySnapshotResolver,
 } from './runtime-bootstrap-host-capabilities-dependencies';
 import {
-  ensureResolvedLocalRuntimeModelAvailable,
+  ensureResolvedLocalModelAvailable,
   getRuntimeFieldsFromStore,
-  hydrateLocalRuntimeRouteBindingFromOptions,
-  hydrateTokenApiRouteBindingFromOptions,
+  hydrateLocalRouteBindingFromOptions,
+  hydrateCloudRouteBindingFromOptions,
   requireModel,
   toResolvedBinding,
   toRouteHealthResult,
@@ -90,20 +90,20 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
     let effectiveBinding = payload.binding;
     const hasModel = Boolean(String(effectiveBinding?.model || effectiveBinding?.localModelId || '').trim());
     const localGoRuntimeStatus = String(effectiveBinding?.goRuntimeStatus || '').trim().toLowerCase();
-    const needsLocalRuntimeHydration = effectiveBinding?.source === 'local-runtime'
+    const needsLocalHydration = effectiveBinding?.source === 'local'
       && (
         !String(effectiveBinding.localModelId || '').trim()
         || !String(effectiveBinding.engine || '').trim()
         || !String(effectiveBinding.adapter || '').trim()
         || localGoRuntimeStatus === 'removed'
       );
-    const needsTokenApiHydration = effectiveBinding?.source === 'token-api'
+    const needsCloudHydration = effectiveBinding?.source === 'cloud'
       && (
         !String(effectiveBinding.connectorId || '').trim()
         || !String(effectiveBinding.provider || '').trim()
       );
     let options: RuntimeRouteOptionsSnapshot | null = null;
-    if (!effectiveBinding || !hasModel || needsTokenApiHydration || needsLocalRuntimeHydration) {
+    if (!effectiveBinding || !hasModel || needsCloudHydration || needsLocalHydration) {
       options = await loadRuntimeRouteOptions({
         capability: payload.capability,
         modId: payload.modId,
@@ -111,10 +111,10 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
     }
     if (!effectiveBinding || !hasModel) {
       effectiveBinding = options?.selected;
-    } else if (options && effectiveBinding.source === 'local-runtime') {
-      effectiveBinding = hydrateLocalRuntimeRouteBindingFromOptions(effectiveBinding, options);
-    } else if (options && effectiveBinding.source === 'token-api') {
-      effectiveBinding = hydrateTokenApiRouteBindingFromOptions(effectiveBinding, options);
+    } else if (options && effectiveBinding.source === 'local') {
+      effectiveBinding = hydrateLocalRouteBindingFromOptions(effectiveBinding, options);
+    } else if (options && effectiveBinding.source === 'cloud') {
+      effectiveBinding = hydrateCloudRouteBindingFromOptions(effectiveBinding, options);
     }
     const resolved = await resolveRuntimeBinding({
       modId: payload.modId,
@@ -124,7 +124,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
   };
 
   const buildMetadata = async (inputValue: {
-    source: 'local-runtime' | 'token-api';
+    source: 'local' | 'cloud';
     connectorId?: string;
     endpoint?: string;
   }): Promise<Record<string, string>> => buildRuntimeRequestMetadata({
@@ -221,7 +221,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
           return toRouteHealthResult(result, resolved.provider, resolved.source);
         },
       },
-      localRuntime: {
+      local: {
         listArtifacts: async ({ modId, ...payload }) => {
           authorizeRuntimeCapability({
             modId,
@@ -352,7 +352,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
               capability: 'image.generate',
               binding,
             });
-            const preparedResolved = await ensureResolvedLocalRuntimeModelAvailable(resolved);
+            const preparedResolved = await ensureResolvedLocalModelAvailable(resolved);
             const model = requireModel(request.model || preparedResolved.model, 'MOD_RUNTIME_IMAGE_MODEL_REQUIRED');
             return getRuntimeClient().media.image.generate({
               ...request,
@@ -381,7 +381,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
               capability: 'image.generate',
               binding,
             });
-            const preparedResolved = await ensureResolvedLocalRuntimeModelAvailable(resolved);
+            const preparedResolved = await ensureResolvedLocalModelAvailable(resolved);
             const model = requireModel(request.model || preparedResolved.model, 'MOD_RUNTIME_IMAGE_MODEL_REQUIRED');
             return getRuntimeClient().media.image.stream({
               ...request,
@@ -595,7 +595,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
               binding,
             });
             const preparedResolved = payload.modal === 'image'
-              ? await ensureResolvedLocalRuntimeModelAvailable(resolved)
+              ? await ensureResolvedLocalModelAvailable(resolved)
               : resolved;
             const metadata = {
               ...(payload.input.metadata || {}),

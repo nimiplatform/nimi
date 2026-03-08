@@ -504,7 +504,7 @@ function buildRepairActionsFromPlan(
 }
 
 export function createModAiDependencySnapshotResolver(): (
-  input: { modId: string; capability?: RuntimeCanonicalCapability; routeSourceHint?: 'token-api' | 'local-runtime' },
+  input: { modId: string; capability?: RuntimeCanonicalCapability; routeSourceHint?: 'cloud' | 'local' },
 ) => Promise<ModRuntimeDependencySnapshot> {
   return async (input) => {
     const modId = String(input.modId || '').trim();
@@ -512,11 +512,11 @@ export function createModAiDependencySnapshotResolver(): (
     const localAiCapability = mapCanonicalCapabilityToLocalAi(capability);
     const routeSourceHint = input.routeSourceHint;
 
-    if (routeSourceHint === 'token-api' && capability) {
+    if (routeSourceHint === 'cloud' && capability) {
       return {
         modId,
         status: 'ready',
-        routeSource: 'token-api',
+        routeSource: 'cloud',
         warnings: [],
         dependencies: [],
         repairActions: [],
@@ -528,7 +528,7 @@ export function createModAiDependencySnapshotResolver(): (
       return {
         modId: '',
         status: 'missing',
-        routeSource: 'token-api',
+        routeSource: 'cloud',
         reasonCode: ReasonCode.LOCAL_AI_MOD_ID_REQUIRED,
         warnings: ['modId required'],
         dependencies: [],
@@ -546,7 +546,7 @@ export function createModAiDependencySnapshotResolver(): (
       return {
         modId,
         status: 'missing',
-        routeSource: 'token-api',
+        routeSource: 'cloud',
         reasonCode: ReasonCode.LOCAL_AI_DEPENDENCIES_DECLARATION_MISSING,
         warnings: ['manifest ai.dependencies missing'],
         dependencies: [],
@@ -613,10 +613,10 @@ export function createModAiDependencySnapshotResolver(): (
     const hasDegraded = hasDegradedInRuntime || hasFailedPreflight || warnings.length > 0;
     const status: ModRuntimeDependencySnapshot['status'] = hasMissingRequired ? 'missing' : (hasDegraded ? 'degraded' : 'ready');
     const routeSource: ModRuntimeDependencySnapshot['routeSource'] = !hasAnySelectedRuntimeDependency
-      ? 'token-api'
+      ? 'cloud'
       : status === 'ready'
-        ? 'local-runtime'
-        : (hasAnyRuntimeReadySelection ? 'mixed' : 'token-api');
+        ? 'local'
+        : (hasAnyRuntimeReadySelection ? 'mixed' : 'cloud');
     const repairActions = dedupeRepairActions([
       ...runtimeRepairActions,
       ...buildRepairActionsFromPlan(plan),

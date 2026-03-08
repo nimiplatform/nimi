@@ -11,7 +11,7 @@ const CHECKED_AT = '2026-02-24T12:00:00.000Z';
 
 function createBaseState(): RuntimeConfigStateV11 {
   return createDefaultStateV11({
-    provider: 'local-runtime',
+    provider: 'local',
     runtimeModelType: 'chat',
     localProviderEndpoint: 'http://127.0.0.1:1234/v1',
     localProviderModel: 'local-model',
@@ -41,18 +41,18 @@ test('stopped daemon marks local runtime unreachable with detailed reason', () =
     CHECKED_AT,
   );
 
-  assert.equal(next.localRuntime.status, 'unreachable');
-  assert.equal(next.localRuntime.lastCheckedAt, CHECKED_AT);
+  assert.equal(next.local.status, 'unreachable');
+  assert.equal(next.local.lastCheckedAt, CHECKED_AT);
   assert.equal(
-    next.localRuntime.lastDetail,
+    next.local.lastDetail,
     'runtime daemon stopped (127.0.0.1:46371): RUNTIME_BRIDGE_DAEMON_START_TIMEOUT',
   );
 });
 
 test('same stopped snapshot keeps previous object reference', () => {
   const previous = createBaseState();
-  previous.localRuntime.status = 'unreachable';
-  previous.localRuntime.lastDetail = 'runtime daemon stopped (127.0.0.1:46371)';
+  previous.local.status = 'unreachable';
+  previous.local.lastDetail = 'runtime daemon stopped (127.0.0.1:46371)';
 
   const next = applyRuntimeDaemonStatusToConfigState(
     previous,
@@ -66,9 +66,9 @@ test('same stopped snapshot keeps previous object reference', () => {
 
 test('polling running daemon keeps healthy status unchanged', () => {
   const previous = createBaseState();
-  previous.localRuntime.status = 'idle';
-  previous.localRuntime.lastCheckedAt = '2026-02-24T10:00:00.000Z';
-  previous.localRuntime.lastDetail = 'healthy';
+  previous.local.status = 'idle';
+  previous.local.lastCheckedAt = '2026-02-24T10:00:00.000Z';
+  previous.local.lastDetail = 'healthy';
 
   const next = applyRuntimeDaemonStatusToConfigState(
     previous,
@@ -82,8 +82,8 @@ test('polling running daemon keeps healthy status unchanged', () => {
 
 test('polling running daemon recovers unreachable state to idle', () => {
   const previous = createBaseState();
-  previous.localRuntime.status = 'unreachable';
-  previous.localRuntime.lastDetail = 'runtime daemon stopped (127.0.0.1:46371)';
+  previous.local.status = 'unreachable';
+  previous.local.lastDetail = 'runtime daemon stopped (127.0.0.1:46371)';
 
   const next = applyRuntimeDaemonStatusToConfigState(
     previous,
@@ -92,16 +92,16 @@ test('polling running daemon recovers unreachable state to idle', () => {
     CHECKED_AT,
   );
 
-  assert.equal(next.localRuntime.status, 'idle');
-  assert.equal(next.localRuntime.lastCheckedAt, CHECKED_AT);
-  assert.equal(next.localRuntime.lastDetail, 'runtime daemon running (127.0.0.1:46371)');
+  assert.equal(next.local.status, 'idle');
+  assert.equal(next.local.lastCheckedAt, CHECKED_AT);
+  assert.equal(next.local.lastDetail, 'runtime daemon running (127.0.0.1:46371)');
 });
 
 test('action mode enforces running detail refresh even when already idle', () => {
   const previous = createBaseState();
-  previous.localRuntime.status = 'idle';
-  previous.localRuntime.lastDetail = '';
-  previous.localRuntime.lastCheckedAt = null;
+  previous.local.status = 'idle';
+  previous.local.lastDetail = '';
+  previous.local.lastCheckedAt = null;
 
   const next = applyRuntimeDaemonStatusToConfigState(
     previous,
@@ -110,15 +110,15 @@ test('action mode enforces running detail refresh even when already idle', () =>
     CHECKED_AT,
   );
 
-  assert.equal(next.localRuntime.status, 'idle');
-  assert.equal(next.localRuntime.lastCheckedAt, CHECKED_AT);
-  assert.equal(next.localRuntime.lastDetail, 'runtime daemon running (127.0.0.1:46371)');
+  assert.equal(next.local.status, 'idle');
+  assert.equal(next.local.lastCheckedAt, CHECKED_AT);
+  assert.equal(next.local.lastDetail, 'runtime daemon running (127.0.0.1:46371)');
 });
 
 test('running detail includes launch mode when provided', () => {
   const previous = createBaseState();
-  previous.localRuntime.status = 'unreachable';
-  previous.localRuntime.lastDetail = 'runtime daemon stopped (127.0.0.1:46371)';
+  previous.local.status = 'unreachable';
+  previous.local.lastDetail = 'runtime daemon stopped (127.0.0.1:46371)';
 
   const next = applyRuntimeDaemonStatusToConfigState(
     previous,
@@ -132,5 +132,5 @@ test('running detail includes launch mode when provided', () => {
     CHECKED_AT,
   );
 
-  assert.equal(next.localRuntime.lastDetail, 'runtime daemon running (127.0.0.1:46371) · mode=RUNTIME');
+  assert.equal(next.local.lastDetail, 'runtime daemon running (127.0.0.1:46371) · mode=RUNTIME');
 });

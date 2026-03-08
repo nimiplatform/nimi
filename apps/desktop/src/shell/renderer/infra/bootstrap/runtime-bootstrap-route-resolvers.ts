@@ -1,5 +1,5 @@
 import type {
-  LocalRuntimeEngine,
+  LocalEngine,
   ResolvedRuntimeRouteBinding,
   RuntimeModality,
 } from '@nimiplatform/sdk/mod/types';
@@ -17,17 +17,17 @@ type RuntimeFields = {
 
 function inferSource(provider: string): SourceIdV11 {
   const lower = String(provider || '').trim().toLowerCase();
-  if (lower.startsWith('local-runtime') || lower === 'localai' || lower === 'nexa') {
-    return 'local-runtime';
+  if (lower.startsWith('local') || lower === 'localai' || lower === 'nexa') {
+    return 'local';
   }
-  return 'token-api';
+  return 'cloud';
 }
 
 function normalizeLocalEngine(value: unknown): string {
   return String(value || '').trim().toLowerCase() === 'nexa' ? 'nexa' : 'localai';
 }
 
-function normalizeLocalRuntimeModelRoot(value: unknown): string {
+function normalizeLocalModelRoot(value: unknown): string {
   const trimmed = String(value || '').trim();
   if (!trimmed) return '';
   const lower = trimmed.toLowerCase();
@@ -37,8 +37,8 @@ function normalizeLocalRuntimeModelRoot(value: unknown): string {
   return trimmed;
 }
 
-function buildLocalRuntimeSelector(modelId: string, engine: string): string {
-  const normalizedModelId = normalizeLocalRuntimeModelRoot(modelId);
+function buildLocalSelector(modelId: string, engine: string): string {
+  const normalizedModelId = normalizeLocalModelRoot(modelId);
   const normalizedEngine = normalizeLocalEngine(engine);
   return normalizedModelId ? `${normalizedEngine}/${normalizedModelId}` : normalizedEngine;
 }
@@ -49,31 +49,31 @@ export function createResolveRuntimeBinding(getRuntimeFields: () => RuntimeField
     binding?: RuntimeRouteBinding;
   }): Promise<ResolvedRuntimeRouteBinding> => {
     const fields = getRuntimeFields();
-    const source = binding?.source === 'token-api' || binding?.source === 'local-runtime'
+    const source = binding?.source === 'cloud' || binding?.source === 'local'
       ? binding.source
       : inferSource(fields.provider);
     const boundModel = String(binding?.model || '').trim();
     const boundModelId = String(binding?.modelId || '').trim();
-    const modelId = normalizeLocalRuntimeModelRoot(boundModelId || boundModel || fields.localProviderModel || '');
-    const model = binding?.source === 'local-runtime'
+    const modelId = normalizeLocalModelRoot(boundModelId || boundModel || fields.localProviderModel || '');
+    const model = binding?.source === 'local'
       ? modelId
       : (boundModel || fields.localProviderModel || '');
     const connectorId = binding?.connectorId || fields.connectorId || '';
     const provider = String(binding?.provider || fields.provider || '').trim();
 
-    if (source === 'local-runtime') {
+    if (source === 'local') {
       const engine = normalizeLocalEngine(binding?.engine || binding?.provider || fields.provider);
-      const selector = buildLocalRuntimeSelector(modelId, engine);
+      const selector = buildLocalSelector(modelId, engine);
       const endpoint = String(binding?.endpoint || fields.localProviderEndpoint || fields.localOpenAiEndpoint || '').trim();
       return {
-        source: 'local-runtime',
+        source: 'local',
         runtimeModelType: fields.runtimeModelType as RuntimeModality,
         provider: provider || engine,
         adapter: binding?.adapter,
         providerHints: binding?.providerHints,
         modelId,
         localModelId: String(binding?.localModelId || '').trim(),
-        engine: engine as LocalRuntimeEngine,
+        engine: engine as LocalEngine,
         model: selector,
         endpoint,
         localProviderEndpoint: endpoint,
@@ -86,7 +86,7 @@ export function createResolveRuntimeBinding(getRuntimeFields: () => RuntimeField
     }
 
     return {
-      source: 'token-api',
+      source: 'cloud',
       runtimeModelType: fields.runtimeModelType as RuntimeModality,
       provider,
       adapter: binding?.adapter,

@@ -69,34 +69,34 @@ test('listVoices with empty model string fails close', async () => {
   );
 });
 
-test('listVoices token-api sends cloud-prefixed model and token route', async () => {
+test('listVoices cloud sends cloud-prefixed model and token route', async () => {
   const capture: CapturedListVoicesCall[] = [];
   const engine = createEngineForListVoicesTest({ capture });
   const voices = await engine.listVoices({
     model: 'qwen3-tts-instruct-flash-2026-01-26',
-    routeSource: 'token-api',
+    routeSource: 'cloud',
   });
 
   assert.equal(capture.length, 1);
   assert.equal(capture[0]?.model, 'cloud/qwen3-tts-instruct-flash-2026-01-26');
-  assert.equal(capture[0]?.route, 'token-api');
+  assert.equal(capture[0]?.route, 'cloud');
   assert.equal(capture[0]?.fallback, 'deny');
   assert.equal(capture[0]?.subjectUserId, undefined);
   assert.equal(voices.length, 1);
   assert.equal(voices[0]?.id, 'Cherry');
 });
 
-test('listVoices local-runtime keeps model id and local route', async () => {
+test('listVoices local keeps model id and local route', async () => {
   const capture: CapturedListVoicesCall[] = [];
   const engine = createEngineForListVoicesTest({ capture });
   await engine.listVoices({
     model: 'local/tts-qwen',
-    routeSource: 'local-runtime',
+    routeSource: 'local',
   });
 
   assert.equal(capture.length, 1);
   assert.equal(capture[0]?.model, 'local/tts-qwen');
-  assert.equal(capture[0]?.route, 'local-runtime');
+  assert.equal(capture[0]?.route, 'local');
   assert.equal(capture[0]?.fallback, 'deny');
 });
 
@@ -105,7 +105,7 @@ test('openStream throws when no publisher configured', async () => {
   await assert.rejects(
     () => engine.openStream({
       model: 'tts-1',
-      routeSource: 'token-api',
+      routeSource: 'cloud',
       request: { model: 'tts-1', text: 'hello', voice: 'alloy', format: 'mp3' },
       open: { format: 'mp3' },
     }),

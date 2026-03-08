@@ -9,7 +9,7 @@ import { createDefaultStateV11 } from '../src/shell/renderer/features/runtime-co
 
 test('write-back guard: state changes should not be written when bridge read fails', () => {
   const state = createDefaultStateV11({
-    provider: 'local-runtime',
+    provider: 'local',
     runtimeModelType: 'chat',
     localProviderEndpoint: 'http://127.0.0.1:1234/v1',
     localProviderModel: 'local-model',
@@ -33,7 +33,7 @@ test('write-back guard: state changes should not be written when bridge read fai
   });
 
   // Simulate state change after read failure
-  state.localRuntime.endpoint = 'http://127.0.0.1:9999/v1';
+  state.local.endpoint = 'http://127.0.0.1:9999/v1';
   const nextProjection = serializeRuntimeBridgeProjection(state);
 
   // Write-back guard: should NOT call set if read never succeeded

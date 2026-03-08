@@ -36,7 +36,7 @@ export async function reconcileLocalAiRuntimeBootstrapState(input: {
       deps.log({
         level: 'info',
         area: 'renderer-bootstrap',
-        message: 'phase:local-runtime-reconcile:done',
+        message: 'phase:local-reconcile:done',
         flowId: input.flowId,
         details: {
           reconciledCount: result.reconciled.length,
@@ -49,7 +49,7 @@ export async function reconcileLocalAiRuntimeBootstrapState(input: {
     deps.log({
       level: 'warn',
       area: 'renderer-bootstrap',
-      message: 'phase:local-runtime-reconcile:failed',
+      message: 'phase:local-reconcile:failed',
       flowId: input.flowId,
       details: {
         error: safeErrorMessage(error),

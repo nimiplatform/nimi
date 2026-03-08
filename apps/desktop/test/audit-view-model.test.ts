@@ -39,11 +39,11 @@ function makeEvent(overrides: Partial<AuditEvent> = {}): AuditEvent {
 
 describe('resolveAuditSource', () => {
   test('returns event.source when present', () => {
-    assert.equal(resolveAuditSource(makeEvent({ source: 'local-runtime' })), 'local-runtime');
+    assert.equal(resolveAuditSource(makeEvent({ source: 'local' })), 'local');
   });
 
   test('falls back to payload.source', () => {
-    assert.equal(resolveAuditSource(makeEvent({ payload: { source: 'token-api' } })), 'token-api');
+    assert.equal(resolveAuditSource(makeEvent({ payload: { source: 'cloud' } })), 'cloud');
   });
 
   test('returns "-" when neither present', () => {
@@ -142,12 +142,12 @@ describe('resolveAuditPolicyGate', () => {
 describe('resolveAuditLabel', () => {
   test('combines all fields with dot separator', () => {
     const label = resolveAuditLabel(makeEvent({
-      source: 'local-runtime',
+      source: 'local',
       modality: 'chat',
       modelId: 'gpt-4',
     }));
     assert.ok(label.includes('inference_invoked'));
-    assert.ok(label.includes('local-runtime'));
+    assert.ok(label.includes('local'));
     assert.ok(label.includes('chat'));
     assert.ok(label.includes('gpt-4'));
   });
@@ -164,9 +164,9 @@ describe('resolveAuditLabel', () => {
 
 describe('filterAuditEvents', () => {
   const events: AuditEvent[] = [
-    makeEvent({ id: '1', eventType: 'inference_invoked', source: 'local-runtime', modality: 'chat', reasonCode: TEST_REASON_OK }),
-    makeEvent({ id: '2', eventType: 'inference_failed', source: 'token-api', modality: 'image', reasonCode: TEST_REASON_TIMEOUT }),
-    makeEvent({ id: '3', eventType: 'engine_started', source: 'local-runtime' }),
+    makeEvent({ id: '1', eventType: 'inference_invoked', source: 'local', modality: 'chat', reasonCode: TEST_REASON_OK }),
+    makeEvent({ id: '2', eventType: 'inference_failed', source: 'cloud', modality: 'image', reasonCode: TEST_REASON_TIMEOUT }),
+    makeEvent({ id: '3', eventType: 'engine_started', source: 'local' }),
   ];
 
   test('no filters → returns all', () => {
@@ -181,7 +181,7 @@ describe('filterAuditEvents', () => {
   });
 
   test('filter by source', () => {
-    const result = filterAuditEvents({ audits: events, eventType: 'all', source: 'token-api', modality: 'all', reasonCodeQuery: '' });
+    const result = filterAuditEvents({ audits: events, eventType: 'all', source: 'cloud', modality: 'all', reasonCodeQuery: '' });
     assert.equal(result.length, 1);
     assert.equal(result[0].id, '2');
   });
@@ -220,7 +220,7 @@ describe('filterAuditEvents', () => {
     const result = filterAuditEvents({
       audits: events,
       eventType: 'inference_invoked',
-      source: 'local-runtime',
+      source: 'local',
       modality: 'chat',
       reasonCodeQuery: 'ok',
     });
@@ -265,13 +265,13 @@ describe('summarizeAuditEventTypes', () => {
 describe('summarizeAuditSources', () => {
   test('counts sources correctly', () => {
     const events: AuditEvent[] = [
-      makeEvent({ source: 'local-runtime' }),
-      makeEvent({ source: 'local-runtime' }),
-      makeEvent({ source: 'token-api' }),
+      makeEvent({ source: 'local' }),
+      makeEvent({ source: 'local' }),
+      makeEvent({ source: 'cloud' }),
     ];
     const result = summarizeAuditSources(events);
     assert.equal(result.length, 2);
-    assert.equal(result[0].source, 'local-runtime');
+    assert.equal(result[0].source, 'local');
     assert.equal(result[0].count, 2);
   });
 
@@ -340,12 +340,12 @@ describe('buildAuditDiagnosticsText', () => {
 
   test('produces pipe-separated lines', () => {
     const events: AuditEvent[] = [
-      makeEvent({ source: 'local-runtime', modality: 'chat', modelId: 'gpt-4' }),
+      makeEvent({ source: 'local', modality: 'chat', modelId: 'gpt-4' }),
     ];
     const text = buildAuditDiagnosticsText(events);
     assert.ok(text.includes(' | '));
     assert.ok(text.includes('inference_invoked'));
-    assert.ok(text.includes('source=local-runtime'));
+    assert.ok(text.includes('source=local'));
     assert.ok(text.includes('modality=chat'));
     assert.ok(text.includes('model=gpt-4'));
   });

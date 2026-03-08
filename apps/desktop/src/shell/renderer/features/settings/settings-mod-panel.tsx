@@ -62,8 +62,8 @@ function normalizeLocalChatSettings(value: unknown): {
   allowProactiveContact: boolean;
   autoPlayVoiceReplies: boolean;
   voiceName: string;
-  ttsRouteSource: 'auto' | 'local-runtime' | 'token-api';
-  sttRouteSource: 'auto' | 'local-runtime' | 'token-api';
+  ttsRouteSource: 'auto' | 'local' | 'cloud';
+  sttRouteSource: 'auto' | 'local' | 'cloud';
 } {
   const settings = toRecord(value);
   const ttsRouteSourceRaw = String(settings.ttsRouteSource || '').trim();
@@ -74,10 +74,10 @@ function normalizeLocalChatSettings(value: unknown): {
     allowProactiveContact: Boolean(settings.allowProactiveContact),
     autoPlayVoiceReplies: Boolean(settings.autoPlayVoiceReplies),
     voiceName: String(settings.voiceName || 'alloy').trim() || 'alloy',
-    ttsRouteSource: ttsRouteSourceRaw === 'local-runtime' || ttsRouteSourceRaw === 'token-api'
+    ttsRouteSource: ttsRouteSourceRaw === 'local' || ttsRouteSourceRaw === 'cloud'
       ? ttsRouteSourceRaw
       : 'auto',
-    sttRouteSource: sttRouteSourceRaw === 'local-runtime' || sttRouteSourceRaw === 'token-api'
+    sttRouteSource: sttRouteSourceRaw === 'local' || sttRouteSourceRaw === 'cloud'
       ? sttRouteSourceRaw
       : 'auto',
   };

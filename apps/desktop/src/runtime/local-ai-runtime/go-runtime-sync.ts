@@ -30,7 +30,7 @@ export type {
   GoRuntimeSyncTarget,
 } from './go-runtime-sync-types';
 
-type LocalRuntimeClient = ReturnType<typeof getPlatformClient>['runtime']['localRuntime'];
+type LocalClient = ReturnType<typeof getPlatformClient>['runtime']['local'];
 
 export class GoRuntimeSyncError extends Error {
   action: GoRuntimeSyncAction;
@@ -59,10 +59,10 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function getSdkLocalRuntime(): LocalRuntimeClient | null {
+function getSdkLocal(): LocalClient | null {
   try {
     const client = getPlatformClient();
-    return client.runtime.localRuntime;
+    return client.runtime.local;
   } catch {
     return null;
   }
@@ -91,13 +91,13 @@ function createSyncError(input: {
   });
 }
 
-function requireSdkLocalRuntime(action: GoRuntimeSyncAction, target: GoRuntimeSyncTarget): LocalRuntimeClient {
-  const runtime = getSdkLocalRuntime();
+function requireSdkLocal(action: GoRuntimeSyncAction, target: GoRuntimeSyncTarget): LocalClient {
+  const runtime = getSdkLocal();
   if (!runtime) {
     throw createSyncError({
       action,
       target,
-      message: 'runtime.localRuntime sdk client unavailable',
+      message: 'runtime.local sdk client unavailable',
     });
   }
   return runtime;
@@ -105,7 +105,7 @@ function requireSdkLocalRuntime(action: GoRuntimeSyncAction, target: GoRuntimeSy
 
 
 export async function listGoRuntimeModelsSnapshot(): Promise<GoRuntimeModelEntry[]> {
-  const runtime = getSdkLocalRuntime();
+  const runtime = getSdkLocal();
   if (!runtime) {
     return [];
   }
@@ -122,7 +122,7 @@ export async function listGoRuntimeModelsSnapshot(): Promise<GoRuntimeModelEntry
 }
 
 async function resolveExistingGoRuntimeModel(
-  runtime: LocalRuntimeClient,
+  runtime: LocalClient,
   action: GoRuntimeSyncAction,
   target: GoRuntimeSyncTarget,
 ): Promise<{ model: GoRuntimeModelEntry; matchedBy: GoRuntimeSyncResult['matchedBy'] }> {
@@ -162,7 +162,7 @@ export async function syncModelInstallToGoRuntime(model: LocalAiModelRecord): Pr
     engine: model.engine,
     localModelId: model.localModelId,
   };
-  const runtime = requireSdkLocalRuntime('install', target);
+  const runtime = requireSdkLocal('install', target);
 
   try {
     const response = await runtime.installLocalModel({
@@ -207,7 +207,7 @@ async function syncLifecycleAction(
   action: Exclude<GoRuntimeSyncAction, 'install' | 'reconcile'>,
   target: GoRuntimeSyncTarget,
 ): Promise<GoRuntimeSyncResult> {
-  const runtime = requireSdkLocalRuntime(action, target);
+  const runtime = requireSdkLocal(action, target);
   const existing = await resolveExistingGoRuntimeModel(runtime, action, target);
 
   if (action === 'start') {
@@ -246,8 +246,8 @@ export async function syncModelRemoveToGoRuntime(target: GoRuntimeSyncTarget): P
 }
 
 export async function reconcileModelsToGoRuntime(models: LocalAiModelRecord[]): Promise<GoRuntimeSyncResult[]> {
-  requireSdkLocalRuntime('reconcile', {
-    modelId: 'local-runtime-models',
+  requireSdkLocal('reconcile', {
+    modelId: 'local-models',
     engine: 'localai',
   });
   const results: GoRuntimeSyncResult[] = [];
@@ -310,7 +310,7 @@ export async function reconcileModelsToGoRuntime(models: LocalAiModelRecord[]): 
     throw createSyncError({
       action: 'reconcile',
       target: {
-        modelId: 'local-runtime-models',
+        modelId: 'local-models',
         engine: 'localai',
       },
       message: errors.join('; '),

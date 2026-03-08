@@ -47,7 +47,7 @@ test('reconcileLocalAiRuntimeBootstrapState reconciles desktop and go-runtime mo
   });
 
   assert.equal(result.reconciled.length, 1);
-  assert.equal(logs[0]?.message, 'phase:local-runtime-reconcile:done');
+  assert.equal(logs[0]?.message, 'phase:local-reconcile:done');
 });
 
 test('reconcileLocalAiRuntimeBootstrapState degrades gracefully when startup reconcile fails', async () => {
@@ -69,5 +69,5 @@ test('reconcileLocalAiRuntimeBootstrapState degrades gracefully when startup rec
     adopted: [],
   });
   assert.equal(logs[0]?.level, 'warn');
-  assert.equal(logs[0]?.message, 'phase:local-runtime-reconcile:failed');
+  assert.equal(logs[0]?.message, 'phase:local-reconcile:failed');
 });

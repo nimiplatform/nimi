@@ -6,7 +6,7 @@ import { LocalAuditLedger } from './audit/local-audit-ledger';
 import type {
   DecisionRecord,
   DiscoverInput,
-  ExecutePrivateTurnInput,
+  ExecuteLocalTurnInput,
   InstallInput,
   LifecycleInput,
   LifecycleState,
@@ -28,7 +28,7 @@ import {
   runUninstallFlow,
   runUpdateFlow,
 } from './kernel/flows/lifecycle-flow';
-import { runPrivateTurnFlow } from './kernel/flows/private-turn-flow';
+import { runLocalTurnFlow } from './kernel/flows/local-turn-flow';
 import {
   buildContextKey,
   buildDecisionRecord,
@@ -174,8 +174,8 @@ export class DesktopExecutionKernelService {
     });
   }
 
-  async executePrivateTurn(input: ExecutePrivateTurnInput): Promise<ExecuteLocalKernelTurnResult> {
-    return runPrivateTurnFlow({
+  async executeLocalTurn(input: ExecuteLocalTurnInput): Promise<ExecuteLocalKernelTurnResult> {
+    return runLocalTurnFlow({
       input,
       invokeTurnHooks: (turnInput) => this.hookRuntime.invokeTurnHooks(turnInput),
       executeLocalKernelTurn: (runtimeInput) => executeLocalKernelTurn(runtimeInput),

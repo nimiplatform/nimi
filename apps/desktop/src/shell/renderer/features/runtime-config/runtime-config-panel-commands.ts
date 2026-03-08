@@ -1,6 +1,6 @@
 import {
-  discoverLocalRuntimeModelsCommand,
-  runLocalRuntimeHealthCheckCommandWithGuard,
+  discoverLocalModelsCommand,
+  runLocalHealthCheckCommandWithGuard,
   testSelectedConnectorCommand,
 } from './runtime-config-provider-commands';
 import type {
@@ -9,31 +9,31 @@ import type {
 import { runRuntimeConfigAsyncGuard } from './runtime-config-runtime-ops';
 
 export function createRuntimeConfigPanelCommands(input: RuntimeConfigPanelCommandsInput) {
-  const discoverLocalRuntimeModelsAction = async () => {
-    await discoverLocalRuntimeModelsCommand(input.provider.discover);
+  const discoverLocalModelsAction = async () => {
+    await discoverLocalModelsCommand(input.provider.discover);
   };
 
-  const runLocalRuntimeHealthCheckAction = async () => {
-    await runLocalRuntimeHealthCheckCommandWithGuard(input.provider.health);
+  const runLocalHealthCheckAction = async () => {
+    await runLocalHealthCheckCommandWithGuard(input.provider.health);
   };
 
   const testSelectedConnectorAction = async () => {
     await testSelectedConnectorCommand(input.provider.testSelectedConnector);
   };
 
-  const discoverLocalRuntimeModels = async () => {
+  const discoverLocalModels = async () => {
     await runRuntimeConfigAsyncGuard(
       input.guard.discovering,
       input.guard.setDiscovering,
-      discoverLocalRuntimeModelsAction,
+      discoverLocalModelsAction,
     );
   };
 
-  const runLocalRuntimeHealthCheck = async () => {
+  const runLocalHealthCheck = async () => {
     await runRuntimeConfigAsyncGuard(
       input.guard.checkingHealth,
       input.guard.setCheckingHealth,
-      runLocalRuntimeHealthCheckAction,
+      runLocalHealthCheckAction,
     );
   };
 
@@ -46,8 +46,8 @@ export function createRuntimeConfigPanelCommands(input: RuntimeConfigPanelComman
   };
 
   return {
-    discoverLocalRuntimeModels,
-    runLocalRuntimeHealthCheck,
+    discoverLocalModels,
+    runLocalHealthCheck,
     testSelectedConnector,
   };
 }

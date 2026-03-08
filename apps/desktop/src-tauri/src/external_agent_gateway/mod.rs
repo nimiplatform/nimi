@@ -219,7 +219,7 @@ impl ExternalAgentGatewayConfig {
         let issuer = std::env::var("NIMI_EXTERNAL_AGENT_ISSUER")
             .ok()
             .filter(|value| !value.trim().is_empty())
-            .unwrap_or_else(|| "local-runtime".to_string());
+            .unwrap_or_else(|| "local".to_string());
         let jws_secret = std::env::var("NIMI_EXTERNAL_AGENT_JWS_SECRET")
             .ok()
             .filter(|value| !value.trim().is_empty())

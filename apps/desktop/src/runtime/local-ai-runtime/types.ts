@@ -351,10 +351,10 @@ export type LocalAiImportFilePayload = {
 };
 
 export type LocalAiInferenceAuditPayload = {
-  eventType: 'inference_invoked' | 'inference_failed' | 'fallback_to_token_api';
+  eventType: 'inference_invoked' | 'inference_failed' | 'fallback_to_cloud';
   modId: string;
-  source: 'local-runtime' | 'token-api';
-  routeSource?: 'local-runtime' | 'token-api';
+  source: 'local' | 'cloud';
+  routeSource?: 'local' | 'cloud';
   provider: string;
   modality: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding';
   adapter: LocalAiProviderAdapter;
@@ -383,7 +383,7 @@ export type LocalAiRuntimeWriteOptions = {
   caller?: 'core' | 'builtin' | 'injected' | 'sideload' | string;
 };
 
-export type LocalAiAuditSource = 'local-runtime' | 'token-api' | string;
+export type LocalAiAuditSource = 'local' | 'cloud' | string;
 export type LocalAiAuditModality =
   | 'chat'
   | 'image'

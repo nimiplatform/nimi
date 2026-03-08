@@ -74,7 +74,7 @@ export async function getExternalAgentGatewayStatus(): Promise<ExternalAgentGate
     return {
       enabled: false,
       bindAddress: '127.0.0.1:0',
-      issuer: 'local-runtime',
+      issuer: 'local',
       actionCount: 0,
     };
   }

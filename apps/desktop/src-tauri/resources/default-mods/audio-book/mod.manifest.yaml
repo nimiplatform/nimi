@@ -32,7 +32,7 @@ ai:
       - dependencyId: audio-book/tts-token-node
         kind: node
         capability: tts
-        nodeId: speech.synthesize.token-api
+        nodeId: speech.synthesize.cloud
         title: Token API TTS node
     alternatives:
       - alternativeId: audio-book-tts-qwen3

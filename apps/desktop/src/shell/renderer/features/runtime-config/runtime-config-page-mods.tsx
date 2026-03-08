@@ -130,10 +130,10 @@ export function ModsPage({ model, state }: ModsPageProps) {
                 <p className="text-xs font-medium text-gray-700">AI Capability Status</p>
                 <div className="flex flex-wrap gap-2">
                   {selectedTarget.consumeCapabilities.map((cap) => {
-                    const localNode = state.localRuntime.nodeMatrix.find(
+                    const localNode = state.local.nodeMatrix.find(
                       (node) => node.capability === cap && node.available,
                     );
-                    const hasLocalModel = state.localRuntime.models.some(
+                    const hasLocalModel = state.local.models.some(
                       (m) => m.status === 'active' && m.capabilities.includes(cap),
                     );
                     const localAvailable = Boolean(localNode) || hasLocalModel;
@@ -146,7 +146,7 @@ export function ModsPage({ model, state }: ModsPageProps) {
                             : 'border-amber-200 bg-amber-50 text-amber-800'
                         }`}
                       >
-                        {cap}: {localAvailable ? 'local-runtime' : 'needs setup'}
+                        {cap}: {localAvailable ? 'local' : 'needs setup'}
                       </span>
                     );
                   })}
@@ -172,8 +172,8 @@ export function ModsPage({ model, state }: ModsPageProps) {
 
             {/* Setup required warning */}
             {selectedTarget.consumeCapabilities.some((cap) => {
-              const localNode = state.localRuntime.nodeMatrix.find((n) => n.capability === cap && n.available);
-              const hasLocalModel = state.localRuntime.models.some((m) => m.status === 'active' && m.capabilities.includes(cap));
+              const localNode = state.local.nodeMatrix.find((n) => n.capability === cap && n.available);
+              const hasLocalModel = state.local.models.some((m) => m.status === 'active' && m.capabilities.includes(cap));
               return !localNode && !hasLocalModel;
             }) ? (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
@@ -229,10 +229,10 @@ function ModTargetRow({
       </div>
       <div className="flex shrink-0 flex-wrap gap-1 pl-3">
         {target.consumeCapabilities.map((cap) => {
-          const localNode = state.localRuntime.nodeMatrix.find(
+          const localNode = state.local.nodeMatrix.find(
             (node) => node.capability === cap && node.available,
           );
-          const hasLocalModel = state.localRuntime.models.some(
+          const hasLocalModel = state.local.models.some(
             (m) => m.status === 'active' && m.capabilities.includes(cap),
           );
           const available = Boolean(localNode) || hasLocalModel;

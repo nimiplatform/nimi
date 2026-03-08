@@ -50,7 +50,7 @@ export type DesktopReplayResult = {
   resolvedProvider: string;
   resolvedModel: string;
   resolvedTargetModel?: string;
-  routePolicy: 'local-runtime' | 'token-api';
+  routePolicy: 'local' | 'cloud';
   fallbackPolicy: 'deny';
   jobId?: string;
   artifactSummary?: Record<string, unknown>;

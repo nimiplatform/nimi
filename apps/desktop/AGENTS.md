@@ -18,4 +18,4 @@
 ## Verification Commands
 - TypeScript/UI: `pnpm --filter @nimiplatform/desktop typecheck`, `pnpm --filter @nimiplatform/desktop test`.
 - Tauri/Rust: `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml`, `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml`, `cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets`.
-- Desktop hard gates: `pnpm check:desktop-token-api-runtime-only`, `pnpm check:desktop-no-legacy-runtime-config-path`, `pnpm check:no-local-ai-private-calls`, `pnpm check:no-local-ai-tauri-commands`, `pnpm check:runtime-mod-hook-hardcut`.
+- Desktop hard gates: `pnpm check:desktop-cloud-runtime-only`, `pnpm check:desktop-no-legacy-runtime-config-path`, `pnpm check:no-local-ai-private-calls`, `pnpm check:no-local-ai-tauri-commands`, `pnpm check:runtime-mod-hook-hardcut`.

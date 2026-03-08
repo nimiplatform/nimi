@@ -20,19 +20,19 @@ export type PendingInstallEntry = {
 };
 
 export type RuntimeConfigModelManagementActions = {
-  importLocalRuntimeModel: () => Promise<void>;
-  importLocalRuntimeModelFile: (capabilities: string[], engine?: string) => Promise<void>;
-  startLocalRuntimeModel: (localModelId: string) => Promise<void>;
-  stopLocalRuntimeModel: (localModelId: string) => Promise<void>;
-  restartLocalRuntimeModel: (localModelId: string) => Promise<void>;
-  removeLocalRuntimeModel: (localModelId: string) => Promise<void>;
-  removeLocalRuntimeArtifact: (localArtifactId: string) => Promise<void>;
+  importLocalModel: () => Promise<void>;
+  importLocalModelFile: (capabilities: string[], engine?: string) => Promise<void>;
+  startLocalModel: (localModelId: string) => Promise<void>;
+  stopLocalModel: (localModelId: string) => Promise<void>;
+  restartLocalModel: (localModelId: string) => Promise<void>;
+  removeLocalModel: (localModelId: string) => Promise<void>;
+  removeLocalArtifact: (localArtifactId: string) => Promise<void>;
 };
 
 export type UseRuntimeConfigModelManagementActionsInput = {
   pendingInstallsRef: MutableRefObject<Map<string, PendingInstallEntry>>;
   setPendingInstallVersion: Dispatch<SetStateAction<number>>;
-  refreshLocalRuntimeSnapshot: () => Promise<void>;
+  refreshLocalSnapshot: () => Promise<void>;
   setStatusBanner: SetRuntimeConfigBanner;
 };
 
@@ -42,7 +42,7 @@ export function useRuntimeConfigModelManagementActions(
   const {
     pendingInstallsRef,
     setPendingInstallVersion,
-    refreshLocalRuntimeSnapshot,
+    refreshLocalSnapshot,
     setStatusBanner,
   } = input;
 
@@ -55,7 +55,7 @@ export function useRuntimeConfigModelManagementActions(
       eventType,
       modelId: String(target.modelId || '').trim(),
       localModelId: String(target.localModelId || '').trim() || undefined,
-      source: 'local-runtime',
+      source: 'local',
       reasonCode: ReasonCode.GO_RUNTIME_SYNC_FAILED,
       detail: error instanceof Error ? error.message : String(error || 'unknown sync error'),
       payload: {
@@ -65,7 +65,7 @@ export function useRuntimeConfigModelManagementActions(
     }).catch(() => null);
   }, []);
 
-  const importLocalRuntimeModel = useCallback(async () => {
+  const importLocalModel = useCallback(async () => {
     try {
       const manifestPath = await localAiRuntime.pickManifestPath();
       if (!manifestPath) {
@@ -87,14 +87,14 @@ export function useRuntimeConfigModelManagementActions(
           engine: imported.engine,
           localModelId: imported.localModelId,
         }, syncError);
-        await refreshLocalRuntimeSnapshot();
+        await refreshLocalSnapshot();
         setStatusBanner({
           kind: 'warning',
           message: `Local model imported, but Go runtime sync failed: ${syncError instanceof Error ? syncError.message : String(syncError || '')}`,
         });
         throw syncError;
       }
-      await refreshLocalRuntimeSnapshot();
+      await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
         message: `Local model imported: ${manifestPath}`,
@@ -106,9 +106,9 @@ export function useRuntimeConfigModelManagementActions(
       });
       throw error;
     }
-  }, [recordGoRuntimeSyncFailure, refreshLocalRuntimeSnapshot, setStatusBanner]);
+  }, [recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
 
-  const importLocalRuntimeModelFile = useCallback(async (capabilities: string[], engine?: string) => {
+  const importLocalModelFile = useCallback(async (capabilities: string[], engine?: string) => {
     try {
       const filePath = await localAiRuntime.pickModelFile();
       if (!filePath) {
@@ -158,7 +158,7 @@ export function useRuntimeConfigModelManagementActions(
     }
   }, [pendingInstallsRef, setPendingInstallVersion, setStatusBanner]);
 
-  const startLocalRuntimeModel = useCallback(async (localModelId: string) => {
+  const startLocalModel = useCallback(async (localModelId: string) => {
     const model = await localAiRuntime.start(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
@@ -172,7 +172,7 @@ export function useRuntimeConfigModelManagementActions(
         engine: model.engine,
         localModelId,
       });
-      await refreshLocalRuntimeSnapshot();
+      await refreshLocalSnapshot();
       setStatusBanner({ kind: 'success', message: `Model started: ${localModelId}` });
     } catch (error) {
       await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_start', {
@@ -186,9 +186,9 @@ export function useRuntimeConfigModelManagementActions(
       });
       throw error;
     }
-  }, [recordGoRuntimeSyncFailure, refreshLocalRuntimeSnapshot, setStatusBanner]);
+  }, [recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
 
-  const stopLocalRuntimeModel = useCallback(async (localModelId: string) => {
+  const stopLocalModel = useCallback(async (localModelId: string) => {
     const model = await localAiRuntime.stop(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
@@ -202,7 +202,7 @@ export function useRuntimeConfigModelManagementActions(
         engine: model.engine,
         localModelId,
       });
-      await refreshLocalRuntimeSnapshot();
+      await refreshLocalSnapshot();
       setStatusBanner({ kind: 'success', message: `Model stopped: ${localModelId}` });
     } catch (error) {
       await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_stop', {
@@ -216,9 +216,9 @@ export function useRuntimeConfigModelManagementActions(
       });
       throw error;
     }
-  }, [recordGoRuntimeSyncFailure, refreshLocalRuntimeSnapshot, setStatusBanner]);
+  }, [recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
 
-  const restartLocalRuntimeModel = useCallback(async (localModelId: string) => {
+  const restartLocalModel = useCallback(async (localModelId: string) => {
     let stoppedModel: Awaited<ReturnType<typeof localAiRuntime.stop>> | null = null;
     let resolvedModelId = localModelId;
     try {
@@ -235,7 +235,7 @@ export function useRuntimeConfigModelManagementActions(
         engine: startedModel.engine,
         localModelId,
       });
-      await refreshLocalRuntimeSnapshot();
+      await refreshLocalSnapshot();
       setStatusBanner({ kind: 'success', message: `Model restarted: ${localModelId}` });
     } catch (error) {
       await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_restart', {
@@ -249,9 +249,9 @@ export function useRuntimeConfigModelManagementActions(
       });
       throw error;
     }
-  }, [recordGoRuntimeSyncFailure, refreshLocalRuntimeSnapshot, setStatusBanner]);
+  }, [recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
 
-  const removeLocalRuntimeModel = useCallback(async (localModelId: string) => {
+  const removeLocalModel = useCallback(async (localModelId: string) => {
     const model = await localAiRuntime.remove(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
@@ -265,7 +265,7 @@ export function useRuntimeConfigModelManagementActions(
         engine: model.engine,
         localModelId,
       });
-      await refreshLocalRuntimeSnapshot();
+      await refreshLocalSnapshot();
       setStatusBanner({ kind: 'success', message: `Model removed: ${localModelId}` });
     } catch (error) {
       await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_remove', {
@@ -279,9 +279,9 @@ export function useRuntimeConfigModelManagementActions(
       });
       throw error;
     }
-  }, [recordGoRuntimeSyncFailure, refreshLocalRuntimeSnapshot, setStatusBanner]);
+  }, [recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
 
-  const removeLocalRuntimeArtifact = useCallback(async (localArtifactId: string) => {
+  const removeLocalArtifact = useCallback(async (localArtifactId: string) => {
     const artifact = await localAiRuntime.removeArtifact(localArtifactId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
@@ -289,20 +289,20 @@ export function useRuntimeConfigModelManagementActions(
       });
       throw error;
     });
-    await refreshLocalRuntimeSnapshot();
+    await refreshLocalSnapshot();
     setStatusBanner({
       kind: 'success',
       message: `Artifact removed: ${artifact.artifactId}`,
     });
-  }, [refreshLocalRuntimeSnapshot, setStatusBanner]);
+  }, [refreshLocalSnapshot, setStatusBanner]);
 
   return {
-    importLocalRuntimeModel,
-    importLocalRuntimeModelFile,
-    startLocalRuntimeModel,
-    stopLocalRuntimeModel,
-    restartLocalRuntimeModel,
-    removeLocalRuntimeModel,
-    removeLocalRuntimeArtifact,
+    importLocalModel,
+    importLocalModelFile,
+    startLocalModel,
+    stopLocalModel,
+    restartLocalModel,
+    removeLocalModel,
+    removeLocalArtifact,
   };
 }
