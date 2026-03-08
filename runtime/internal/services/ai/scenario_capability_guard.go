@@ -8,7 +8,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
-	"github.com/nimiplatform/nimi/runtime/internal/services/ai/catalog"
+	"github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"google.golang.org/grpc/codes"
 )
 

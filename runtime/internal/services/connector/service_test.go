@@ -15,7 +15,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
-	aicatalog "github.com/nimiplatform/nimi/runtime/internal/services/ai/catalog"
+	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"

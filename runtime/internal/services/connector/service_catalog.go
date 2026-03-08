@@ -9,7 +9,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	aicatalog "github.com/nimiplatform/nimi/runtime/internal/services/ai/catalog"
+	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 )
 
 func mapCatalogProviderSource(source aicatalog.ProviderSource) runtimev1.ModelCatalogProviderSource {

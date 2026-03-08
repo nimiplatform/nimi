@@ -17,7 +17,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
-	"github.com/nimiplatform/nimi/runtime/internal/services/ai/catalog"
+	"github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 )
 
 const (

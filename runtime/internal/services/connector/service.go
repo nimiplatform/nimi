@@ -16,7 +16,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
-	aicatalog "github.com/nimiplatform/nimi/runtime/internal/services/ai/catalog"
+	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 )
 
 const maxConnectorsPerUser = 128

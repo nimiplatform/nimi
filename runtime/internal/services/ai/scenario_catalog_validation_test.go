@@ -7,7 +7,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/services/ai/catalog"
+	"github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 )
 
 func TestValidateVideoGenerateAgainstCatalogAllowsDeclaredOptions(t *testing.T) {
