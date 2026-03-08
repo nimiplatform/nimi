@@ -6,7 +6,7 @@ Runnable examples for external developers building on Nimi.
 
 ### Just See It
 
-Run one script that keeps the same app code and only switches `routePolicy` from `local-runtime` to `token-api`:
+Run one script that keeps the same app code and only switches `routePolicy` from `local` to `cloud`:
 
 ```bash
 npx tsx examples/sdk/last-mile-route-switch.ts
@@ -14,7 +14,7 @@ npx tsx examples/sdk/last-mile-route-switch.ts
 
 Expected output:
 
-- shows two runs (`[local-runtime]` and `[token-api]`)
+- shows two runs (`[local]` and `[cloud]`)
 - prints either generated text or explicit reason code + action hint
 - prints elapsed time for both routes
 

@@ -52,7 +52,7 @@ Expected:
 
 Choose one route.
 
-### Option 1: Local route (`local-runtime`)
+### Option 1: Local route (`local`)
 
 ```bash
 cd runtime
@@ -61,7 +61,7 @@ cd ..
 npx tsx examples/sdk/last-mile-route-switch.ts
 ```
 
-### Option 2: Cloud route (`token-api`)
+### Option 2: Cloud route (`cloud`)
 
 Restart runtime in Terminal A with provider credentials (example: Gemini):
 
@@ -79,7 +79,7 @@ npx tsx examples/sdk/last-mile-route-switch.ts
 
 Expected:
 
-- output includes both `[local-runtime]` and `[token-api]` blocks
+- output includes both `[local]` and `[cloud]` blocks
 - each block shows generated text or explicit reason code and action hint
 
 ## 4. Common Errors and Exact Fixes

@@ -24,7 +24,7 @@
 - 关系连续性主线：Realm（World/Agent/Memory）语义，见 P-ALMI-001。
 - 能力接入主线：Runtime + Desktop Hook Action Fabric，见 P-ALMI-002。
 - 外部代理主线：ExternalAgent Principal 与凭证模型，见 P-ALMI-004。
-- 路由与可用性：`local-runtime | token-api` 与显式回退语义，见 P-ALMI-020。
+- 路由与可用性：`local | cloud` 与显式回退语义，见 P-ALMI-020。
 
 ## 4. 非目标
 

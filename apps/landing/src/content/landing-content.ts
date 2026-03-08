@@ -118,7 +118,7 @@ const result = await runtime.ai.text.generate({
   model: 'local/qwen2.5',
   subjectUserId: 'local-user',
   input: 'Hello from Nimi!',
-  route: 'local-runtime',
+  route: 'local',
   fallback: 'deny',
   timeoutMs: 30000,
 });
@@ -136,7 +136,7 @@ const result = await runtime.ai.text.generate({
   model: 'local/qwen2.5',
   subjectUserId: 'local-user',
   input: '你好，Nimi！',
-  route: 'local-runtime',
+  route: 'local',
   fallback: 'deny',
   timeoutMs: 30000,
 });
@@ -206,7 +206,7 @@ export const LANDING_CONTENT: Record<LandingLocale, LandingContent> = {
           name: 'Runtime',
           role: 'Local execution daemon (Go + gRPC)',
           points: [
-            'Model routing for local-runtime and token-api paths',
+            'Model routing for local and cloud paths',
             'Inference, workflow, knowledge indexing, and audit events',
             'Deterministic error model and provider capability contracts',
           ],
@@ -432,7 +432,7 @@ export const LANDING_CONTENT: Record<LandingLocale, LandingContent> = {
           name: 'Runtime',
           role: '本地执行守护进程（Go + gRPC）',
           points: [
-            '统一 local-runtime 与 token-api 的路由策略',
+            '统一 local 与 cloud 的路由策略',
             '覆盖推理、工作流、知识索引与审计事件',
             '错误模型与 provider 能力受契约约束',
           ],

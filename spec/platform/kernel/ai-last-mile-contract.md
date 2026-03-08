@@ -30,7 +30,7 @@ AI 调用标准协议：discover → dry-run → verify → commit → audit。`
 
 ## P-ALMI-020 — AI Runtime 约束
 
-`MUST`: route source 固定 `local-runtime | token-api`。回退必须显式可见。本地隐私语义仅在 local-runtime 路由下成立。
+`MUST`: route source 固定 `local | cloud`。回退必须显式可见。本地隐私语义仅在 local 路由下成立。
 
 ## P-ALMI-030 — 性能与可用性红线
 

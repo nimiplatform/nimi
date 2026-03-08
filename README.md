@@ -57,7 +57,7 @@ Nimi focuses on three practical delivery gaps:
 
 | Last-Mile Gap | What Usually Breaks | Nimi Approach |
 |---|---|---|
-| Execution reliability | route/model/provider behavior drifts across environments | Runtime enforces explicit route policy (`local-runtime` / `token-api`) with reason-coded failures |
+| Execution reliability | route/model/provider behavior drifts across environments | Runtime enforces explicit route policy (`local` / `cloud`) with reason-coded failures |
 | Identity and context continuity | every app starts from zero user context | Realm provides persistent identity, world state, and memory across apps |
 | Governance and trust | hard to audit who called what and why | end-to-end traces (`trace_id`, principal, reason code), scoped grants, fail-close defaults |
 
@@ -98,7 +98,7 @@ For detailed contracts, see [Architecture](docs/architecture/) and [SDK Referenc
 `Runtime` runs locally as an open-source Go daemon, and serves as a unified AI gateway for both on-device engines and cloud providers.
 
 - **What it handles:** text/image/video/TTS/STT/embedding inference, model lifecycle, workflow execution, local knowledge indexing, and audit.
-- **How it routes:** `local-runtime` for on-device engines (LocalAI/Nexa), `token-api` for cloud providers.
+- **How it routes:** `local` for on-device engines (LocalAI/Nexa), `cloud` for cloud providers.
 - **How it communicates:** local gRPC for app integration and CLI for operations (`go run ./cmd/nimi ...`).
 - **How you access it:** `@nimiplatform/sdk` `Runtime` client and `@nimiplatform/sdk/ai-provider` (Vercel AI SDK compatible).
 
@@ -124,8 +124,8 @@ Representative capabilities available now:
 
 | Route Plane | Representative Backends | Typical Use |
 |---|---|---|
-| `local-runtime` | LocalAI, Nexa | local-first inference and media generation |
-| `token-api` | Gemini, OpenAI, Anthropic, DeepSeek, MiniMax, GLM, Kimi, DashScope, Volcengine | cloud model access under one routing contract |
+| `local` | LocalAI, Nexa | local-first inference and media generation |
+| `cloud` | Gemini, OpenAI, Anthropic, DeepSeek, MiniMax, GLM, Kimi, DashScope, Volcengine | cloud model access under one routing contract |
 
 <details>
 <summary>Full provider matrix</summary>

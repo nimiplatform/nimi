@@ -12,7 +12,7 @@ Use this path if you are building a third-party app that consumes Nimi runtime, 
 
 1. Start with [Getting Started](../getting-started/index.md).
 2. Use `examples/sdk/sdk-quickstart.ts` as baseline.
-3. Add route policy explicitly for AI calls (`local-runtime` or `token-api`).
+3. Add route policy explicitly for AI calls (`local` or `cloud`).
 4. Adopt structured error handling using `reasonCode` and `traceId`.
 
 ## Production checklist
