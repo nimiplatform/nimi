@@ -9,7 +9,7 @@ import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/ru
 import {
   markRuntimeConfigV11ResetLogged,
   wasRuntimeConfigV11ResetLogged,
-} from '../runtime-config-meta-v11';
+} from './runtime-config-meta-v11';
 
 type HydrationEffectInput = {
   bootstrapReady: boolean;

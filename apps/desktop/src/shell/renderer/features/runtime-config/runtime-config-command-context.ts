@@ -4,7 +4,7 @@ import type {
 import type {
   RuntimeConfigStateV11,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import type { RuntimeConfigStateUpdater } from '../runtime-config-types';
+import type { RuntimeConfigStateUpdater } from './runtime-config-types';
 
 export type RuntimeConfigPanelAsyncGuardContext = {
   discovering: boolean;
