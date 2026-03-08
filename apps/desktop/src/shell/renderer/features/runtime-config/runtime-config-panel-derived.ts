@@ -6,13 +6,13 @@ import {
   type CapabilityV11,
   type ProviderStatusV11,
   type RuntimeConfigStateV11,
-} from '@renderer/features/runtime-config/state/types';
+} from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
   selectAllLocalRuntimeModelsV11,
   selectFilteredConnectorModelsV11,
   selectFilteredLocalRuntimeModelsV11,
   selectOrderedConnectorsV11,
-} from '@renderer/features/runtime-config/state/runtime-config-selectors-v11';
+} from '@renderer/features/runtime-config/runtime-config-selectors-v11';
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)

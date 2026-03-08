@@ -1,4 +1,4 @@
-import type { CapabilityV11, RuntimeConfigStateV11 } from '../types';
+import type { CapabilityV11, RuntimeConfigStateV11 } from './runtime-config-state-types';
 
 export function getRecommendedModelByCapabilityV11(
   state: RuntimeConfigStateV11,

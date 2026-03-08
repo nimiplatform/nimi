@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { PageShell, SaveFooter, SectionTitle } from '../../settings-layout-components';
+import { PageShell, SaveFooter, SectionTitle } from './settings-layout-components';
 
 export function SecurityPage() {
   const { t } = useTranslation();

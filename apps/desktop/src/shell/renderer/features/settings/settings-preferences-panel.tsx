@@ -9,12 +9,12 @@ import {
   PageShell,
   SaveFooter,
   SectionTitle,
-} from '../settings-layout-components';
+} from './settings-layout-components';
 import {
   loadStoredPerformancePreferences,
   persistStoredPerformancePreferences,
   type PerformancePreferences,
-} from '../settings-storage';
+} from './settings-storage';
 
 // Types
 interface SettingRowProps {

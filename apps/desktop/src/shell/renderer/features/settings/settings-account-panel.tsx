@@ -16,12 +16,12 @@ import {
   ICON_CAMERA,
   ICON_MAIL,
   ICON_USER,
-} from '../settings-assets';
+} from './settings-assets';
 import {
   PageShell,
   SaveFooter,
   SectionTitle,
-} from '../settings-layout-components';
+} from './settings-layout-components';
 // SelectField component removed - settings now use unified custom dropdowns
 
 // Icons

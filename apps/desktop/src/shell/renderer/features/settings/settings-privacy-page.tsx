@@ -6,7 +6,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { UpdateUserSettingsDto } from '@nimiplatform/sdk/realm';
 import type { UserSettingsDto } from '@nimiplatform/sdk/realm';
 import type { Visibility } from '@nimiplatform/sdk/realm';
-import { PageShell, SaveFooter, SectionTitle } from '../../settings-layout-components';
+import { PageShell, SaveFooter, SectionTitle } from './settings-layout-components';
 
 type VisibilityValue = 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
 type VisibilityMode = 'OPEN' | 'SMARTER_FILTER' | 'STRICT';

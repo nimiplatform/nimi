@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { normalizePageIdV11 } from '../src/shell/renderer/features/runtime-config/state/types/modality';
-import { createDefaultStateV11, RUNTIME_CONFIG_STORAGE_KEY_V11 } from '../src/shell/renderer/features/runtime-config/state/storage/defaults';
-import { normalizeStoredStateV11 } from '../src/shell/renderer/features/runtime-config/state/storage/normalize';
-import { persistRuntimeConfigStateV11 } from '../src/shell/renderer/features/runtime-config/state/storage/persist';
+import { normalizePageIdV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types';
+import { createDefaultStateV11, RUNTIME_CONFIG_STORAGE_KEY_V11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-defaults';
+import { normalizeStoredStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-normalize';
+import { persistRuntimeConfigStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-persist';
 import { RUNTIME_PAGE_META } from '../src/shell/renderer/features/runtime-config/runtime-config-meta-v11';
 
 // ---------------------------------------------------------------------------

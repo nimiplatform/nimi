@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
-import { C } from '../settings-assets';
-import { Button, Card, PageShell, SectionTitle, StatusBadge } from '../settings-layout-components';
-import { loadStoredSettingsModId, persistStoredSettingsModId } from '../settings-storage';
+import { C } from './settings-assets';
+import { Button, Card, PageShell, SectionTitle, StatusBadge } from './settings-layout-components';
+import { loadStoredSettingsModId, persistStoredSettingsModId } from './settings-storage';
 
 type LocalChatSettingsKey =
   | 'enableVoice'

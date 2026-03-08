@@ -8,9 +8,9 @@ import {
   normalizeSourceV11,
   normalizeUiModeV11,
   type RuntimeConfigStateV11,
-} from '../types';
-import type { RuntimeConfigSeedV11, StoredStateV11 } from './defaults';
-import { createDefaultStateV11 } from './defaults';
+} from './runtime-config-state-types';
+import type { RuntimeConfigSeedV11, StoredStateV11 } from './runtime-config-storage-defaults';
+import { createDefaultStateV11 } from './runtime-config-storage-defaults';
 
 function normalizeLocalRuntimeFromAny(
   seed: RuntimeConfigSeedV11,

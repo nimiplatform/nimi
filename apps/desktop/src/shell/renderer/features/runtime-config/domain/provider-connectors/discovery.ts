@@ -1,5 +1,5 @@
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/types';
-import type { ProviderStatusV11 } from '@renderer/features/runtime-config/state/types/modality';
+import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import type { ProviderStatusV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { localAiRuntime } from '@runtime/local-ai-runtime';
 import { getPlatformClient } from '@runtime/platform-client';
 import { asNimiError } from '@nimiplatform/sdk/runtime';

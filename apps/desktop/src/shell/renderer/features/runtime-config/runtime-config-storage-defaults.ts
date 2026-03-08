@@ -1,5 +1,4 @@
-import { DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11 } from '../types/connector';
-import type { RuntimeConfigStateV11 } from '../types';
+import { DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11, type RuntimeConfigStateV11 } from './runtime-config-state-types';
 
 export const RUNTIME_CONFIG_STORAGE_KEY_V11 = 'nimi:runtime-config:v11';
 

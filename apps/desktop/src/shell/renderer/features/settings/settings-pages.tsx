@@ -1,11 +1,11 @@
-import { LanguageRegionPage, ProfilePage } from './panels/account-panel';
-import { WalletPage } from './panels/advanced-panel';
-import { ModSettingsPage } from './panels/mod-settings-panel';
-import { NotificationsPage, PerformancePage } from './panels/preferences-panel';
-import { DataManagementPage } from './panels/privacy/data-management-page';
-import { PrivacyPage } from './panels/privacy/privacy-page';
-import { SecurityPage } from './panels/privacy/security-page';
-import { DeveloperPage } from './panels/developer-page';
+import { LanguageRegionPage, ProfilePage } from './settings-account-panel';
+import { WalletPage } from './settings-advanced-panel';
+import { ModSettingsPage } from './settings-mod-panel';
+import { NotificationsPage, PerformancePage } from './settings-preferences-panel';
+import { DataManagementPage } from './settings-data-management-page';
+import { PrivacyPage } from './settings-privacy-page';
+import { SecurityPage } from './settings-security-page';
+import { DeveloperPage } from './settings-developer-page';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 
 export {

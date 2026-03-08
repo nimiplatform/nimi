@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { PageShell, SectionTitle } from '../settings-layout-components';
+import { PageShell, SectionTitle } from './settings-layout-components';
 
 function formatBoolean(value: boolean, yes: string, no: string): string {
   return value ? yes : no;
