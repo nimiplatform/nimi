@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import { clearModSdkHost } from '../../src/mod/host.js';
 import { createModRuntimeClient } from '../../src/mod/runtime/index.js';
+import { ReasonCode } from '../../src/types/index.js';
 import type { RuntimeHookRuntimeFacade } from '../../src/mod/types/runtime-hook/runtime-facade.js';
 
 test('mod runtime client forwards local artifact listing with mod id and filters', async () => {
@@ -33,7 +34,7 @@ test('mod runtime client forwards local artifact listing with mod id and filters
         status: 'healthy' as const,
         healthy: true,
         provider: 'localai',
-        reasonCode: 'RUNTIME_ROUTE_HEALTHY',
+        reasonCode: ReasonCode.RUNTIME_ROUTE_HEALTHY,
         actionHint: 'none',
       }),
     },

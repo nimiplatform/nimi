@@ -8,8 +8,11 @@ import { parseArgs, resolveInputPath } from './realm-sdk/cli.mjs';
 import { REALM_GENERATED_RELATIVE_PATH } from './realm-sdk/constants.mjs';
 import { cleanRealmSources, computeDirectoryHash } from './realm-sdk/fs-state.mjs';
 import { runOpenApiTypescript, normalizeOperationsInterfaceInSchema } from './realm-sdk/openapi-pipeline.mjs';
-import { parseRealmOperations, writeOperationArtifacts } from './realm-sdk/operations.mjs';
-import { writeGeneratedModels, writePropertyEnums, writeRealmFacade } from './realm-sdk/models.mjs';
+import { writeOperationArtifacts } from './realm-sdk/emit-operation-artifacts.mjs';
+import { writeGeneratedModels } from './realm-sdk/generate-models.mjs';
+import { writePropertyEnums } from './realm-sdk/generate-property-enums.mjs';
+import { writeRealmFacade } from './realm-sdk/generate-realm-facade.mjs';
+import { parseRealmOperations } from './realm-sdk/parse-operations.mjs';
 import { maybeUpdateRealmVersion } from './realm-sdk/versioning.mjs';
 
 function main() {

@@ -208,6 +208,9 @@ function createMockHost(): ModSdkHost {
         repairActions: [],
         updatedAt: '2026-03-06T00:00:00Z',
       }),
+      localRuntime: {
+        listArtifacts: async () => [],
+      },
       route: {
         listOptions: async (input) => {
           const snapshot = routeOptionsByCapability.get(input.capability);
@@ -374,6 +377,13 @@ function createMockHost(): ModSdkHost {
           }),
         },
         jobs: {
+          submit: async () => ({
+            jobId: 'job-demo',
+            status: 1,
+            traceId: 'trace-demo-job',
+            routeDecision: 2,
+            modelResolved: 'demo-model',
+          }) as never,
           get: async () => ({
             jobId: 'job-demo',
             status: 4,
