@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -50,7 +51,8 @@ func loadBuiltInProviderDocuments() (map[string]ProviderDocument, error) {
 		if !strings.HasSuffix(strings.ToLower(name), providerFileExt) {
 			continue
 		}
-		raw, readErr := fs.ReadFile(runtimecatalog.DefaultProvidersFS, filepath.Join("providers", name))
+		// embed.FS always expects slash-separated paths, even on Windows.
+		raw, readErr := fs.ReadFile(runtimecatalog.DefaultProvidersFS, path.Join("providers", name))
 		if readErr != nil {
 			return nil, fmt.Errorf("read built-in provider file %q: %w", name, readErr)
 		}
