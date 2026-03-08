@@ -6,7 +6,7 @@ import {
   type LocalAiVerifiedModelDescriptor,
 } from '@runtime/local-ai-runtime';
 import { CAPABILITY_OPTIONS, type CapabilityOption } from './model-center-utils';
-import { RuntimeSelect } from '../primitives';
+import { RuntimeSelect } from '../../runtime-config-primitives';
 
 // Icons
 function SearchIcon({ className = '' }: { className?: string }) {

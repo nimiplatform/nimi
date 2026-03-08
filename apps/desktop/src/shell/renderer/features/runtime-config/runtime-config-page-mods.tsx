@@ -3,7 +3,7 @@ import type { LocalAiDependencyResolutionPlan } from '@runtime/local-ai-runtime'
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
 import type { RuntimeConfigPanelControllerModel, RuntimeDependencyTargetDescriptor } from './runtime-config-panel-types';
-import { ModelCenterDependencySection } from '../panels/setup/model-center-dependency-section';
+import { ModelCenterDependencySection } from './panels/setup/model-center-dependency-section';
 import { Button } from './runtime-config-primitives';
 
 type ModsPageProps = {

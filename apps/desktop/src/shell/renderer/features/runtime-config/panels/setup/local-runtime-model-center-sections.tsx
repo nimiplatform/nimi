@@ -11,7 +11,7 @@ import type {
   RuntimeSetupPageIdV11,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { RuntimeDependencyTargetDescriptor } from '../../runtime-config-panel-types';
-import { RuntimeSelect } from '../primitives';
+import { RuntimeSelect } from '../../runtime-config-primitives';
 import { ModelCenterDependencySection } from './model-center-dependency-section';
 import {
   CAPABILITY_OPTIONS,

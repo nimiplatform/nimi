@@ -5,7 +5,7 @@ import type {
   AIProviderSubHealth,
 } from '@nimiplatform/sdk/runtime';
 import { Tooltip } from '@renderer/components/tooltip.js';
-import { Card } from '../../primitives.js';
+import { Card } from '../../../runtime-config-primitives.js';
 import {
   runtimeHealthStatusLabel,
   runtimeHealthStatusColor,

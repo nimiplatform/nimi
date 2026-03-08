@@ -6,7 +6,7 @@ import {
   revokeExternalAgentToken,
   type ExternalAgentTokenRecord,
 } from '@runtime/external-agent';
-import { Button, Card, Input, RuntimeSelect } from '../primitives';
+import { Button, Card, Input, RuntimeSelect } from '../../runtime-config-primitives';
 
 type TokenMode = 'delegated' | 'autonomous';
 

@@ -6,7 +6,7 @@ import {
   sdkListModelCatalogProviders,
   sdkUpsertModelCatalogProvider,
   type RuntimeModelCatalogProvider,
-} from '../domain/provider-catalog/catalog-sdk-service';
+} from './domain/provider-catalog/catalog-sdk-service';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 
 type CatalogPageProps = {

@@ -8,7 +8,7 @@ import type {
   OrphanModelFile,
 } from '@runtime/local-ai-runtime';
 import type { LocalRuntimeModelOptionV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import { RuntimeSelect } from '../primitives';
+import { RuntimeSelect } from '../../runtime-config-primitives';
 import {
   CAPABILITY_OPTIONS,
   INSTALL_ENGINE_OPTIONS,

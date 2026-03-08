@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { AuditEventRecord } from '@nimiplatform/sdk/runtime';
 import { CallerKind } from '@nimiplatform/sdk/runtime';
 import { Tooltip } from '@renderer/components/tooltip.js';
-import { Button, Card, RuntimeSelect } from '../../primitives.js';
+import { Button, Card, RuntimeSelect } from '../../../runtime-config-primitives.js';
 import {
   callerKindLabel,
   timestampToIso,

@@ -2,14 +2,14 @@ import type {
   DiscoverProviderCommandContext,
   HealthProviderCommandContext,
   TestConnectorCommandContext,
-} from './context';
+} from './runtime-config-command-context';
 import {
   markSelectedConnectorTestFailedCommand,
   runSelectedConnectorTestCommand,
-} from '../domain/provider-connectors/connector-test-command';
-import { runDiscoverLocalRuntimeModelsCommand } from '../domain/provider-connectors/discover-command';
-import { runLocalRuntimeHealthCheckCommand } from '../domain/provider-connectors/health-command';
-import { formatRuntimeConfigErrorBanner } from '../domain/provider-connectors/error';
+} from './domain/provider-connectors/connector-test-command';
+import { runDiscoverLocalRuntimeModelsCommand } from './domain/provider-connectors/discover-command';
+import { runLocalRuntimeHealthCheckCommand } from './domain/provider-connectors/health-command';
+import { formatRuntimeConfigErrorBanner } from './domain/provider-connectors/error';
 
 export async function discoverLocalRuntimeModelsCommand(input: DiscoverProviderCommandContext) {
   if (!input.state || input.discovering) return;

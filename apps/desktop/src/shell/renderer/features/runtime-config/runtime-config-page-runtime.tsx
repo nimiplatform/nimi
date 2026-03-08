@@ -5,12 +5,12 @@ import { desktopBridge } from '@renderer/bridge';
 import { Tooltip } from '@renderer/components/tooltip.js';
 import { formatLocaleDateTime } from '@renderer/i18n';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
-import { RuntimeHealthSection } from '../panels/setup/audit-sections/runtime-health-section.js';
-import { GlobalAuditSection } from '../panels/setup/audit-sections/global-audit-section.js';
-import { UsageStatsSection } from '../panels/setup/audit-sections/usage-stats-section.js';
-import { LocalDebugSection } from '../panels/setup/audit-sections/local-debug-section.js';
-import { useGlobalAuditData } from '../panels/setup/use-global-audit-data.js';
-import { ExternalAgentAccessPanel } from '../panels/setup/external-agent-access';
+import { RuntimeHealthSection } from './panels/setup/audit-sections/runtime-health-section.js';
+import { GlobalAuditSection } from './panels/setup/audit-sections/global-audit-section.js';
+import { UsageStatsSection } from './panels/setup/audit-sections/usage-stats-section.js';
+import { LocalDebugSection } from './panels/setup/audit-sections/local-debug-section.js';
+import { useGlobalAuditData } from './panels/setup/use-global-audit-data.js';
+import { ExternalAgentAccessPanel } from './panels/setup/external-agent-access';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { Button, Input, StatusBadge } from './runtime-config-primitives';
 

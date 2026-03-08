@@ -1,7 +1,7 @@
 import type { UsageStatRecord } from '@nimiplatform/sdk/runtime';
 import { UsageWindow } from '@nimiplatform/sdk/runtime';
 import { Tooltip } from '@renderer/components/tooltip.js';
-import { Button, Card } from '../../primitives.js';
+import { Button, Card } from '../../../runtime-config-primitives.js';
 import {
   formatTokenCount,
   formatComputeMs,

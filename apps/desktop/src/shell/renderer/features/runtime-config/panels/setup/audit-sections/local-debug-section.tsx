@@ -10,7 +10,7 @@ import {
   resolveAuditReasonCode,
   resolveAuditSource,
 } from '../../../domain/diagnostics/audit-view-model.js';
-import { Button, RuntimeSelect } from '../../primitives.js';
+import { Button, RuntimeSelect } from '../../../runtime-config-primitives.js';
 import { useAuditPageData } from '../use-audit-page-data.js';
 
 function auditEventTypeColor(eventType: string): string {

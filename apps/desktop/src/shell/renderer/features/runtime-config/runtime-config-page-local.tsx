@@ -1,6 +1,6 @@
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
-import { LocalRuntimeModelCenter } from '../panels/setup/local-runtime-model-center';
+import { LocalRuntimeModelCenter } from './panels/setup/local-runtime-model-center';
 
 type LocalPageProps = {
   model: RuntimeConfigPanelControllerModel;

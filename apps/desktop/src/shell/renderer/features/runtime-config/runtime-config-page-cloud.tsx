@@ -17,15 +17,15 @@ import {
   sdkListProviderCatalog,
   resolveProviderEndpoint,
   vendorToProvider,
-} from '../domain/provider-connectors/connector-sdk-service';
+} from './domain/provider-connectors/connector-sdk-service';
 import {
   inferVendorFromEndpoint,
   addConnectorToState,
   removeSelectedConnector,
   updateConnectorField,
   replaceConnectorsInState,
-} from '../panels/provider-connectors/connector-actions';
-import { formatRuntimeConfigErrorBanner } from '../domain/provider-connectors/error';
+} from './panels/provider-connectors/connector-actions';
+import { formatRuntimeConfigErrorBanner } from './domain/provider-connectors/error';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { RuntimeSelect, StatusBadge, renderModelChips } from './runtime-config-primitives';
 
