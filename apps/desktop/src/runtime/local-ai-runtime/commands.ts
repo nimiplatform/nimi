@@ -361,6 +361,15 @@ export async function importLocalAiRuntimeModel(
   return parseModelRecord(result);
 }
 
+export async function adoptLocalAiRuntimeModel(
+  payload: LocalAiModelRecord,
+  options?: LocalAiRuntimeWriteOptions,
+): Promise<LocalAiModelRecord> {
+  assertLifecycleWriteAllowed('local_runtime_models_adopt', options?.caller);
+  const result = await invokeLocalAiCommand<unknown>('runtime_local_models_adopt', { payload });
+  return parseModelRecord(result);
+}
+
 export async function importLocalAiRuntimeArtifact(
   payload: LocalAiImportArtifactPayload,
   options?: LocalAiRuntimeWriteOptions,

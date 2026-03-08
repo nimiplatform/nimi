@@ -33,6 +33,7 @@ import {
   buildRuntimeHostCapabilities,
 } from './runtime-bootstrap-host-capabilities';
 import { syncRuntimeJwtConfig } from './runtime-bootstrap-jwt-sync';
+import { reconcileLocalAiRuntimeBootstrapState } from './runtime-bootstrap-local-ai';
 import {
   startExternalAgentActionBridge,
   resyncExternalAgentActionDescriptors,
@@ -196,6 +197,7 @@ export function bootstrapRuntime(): Promise<void> {
       accessTokenProvider: resolveCurrentAccessToken,
       subjectUserIdProvider: resolveCurrentSubjectUserId,
     });
+    await reconcileLocalAiRuntimeBootstrapState({ flowId });
     const proxyFetch = createProxyFetch();
     useAppStore.getState().setRuntimeDefaults(defaults);
 

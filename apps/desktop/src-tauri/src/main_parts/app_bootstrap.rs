@@ -147,6 +147,7 @@ fn main() {
             local_runtime::commands::runtime_local_downloads_resume,
             local_runtime::commands::runtime_local_downloads_cancel,
             local_runtime::commands::runtime_local_models_import,
+            local_runtime::commands::runtime_local_models_adopt,
             local_runtime::commands::runtime_local_pick_model_file,
             local_runtime::commands::runtime_local_models_import_file,
             local_runtime::commands::runtime_local_models_remove,

@@ -46,6 +46,7 @@
 | `local_ai_downloads_resume` | `local-ai` | Resume a paused/failed local AI model download session | `D-IPC-011` |
 | `local_ai_downloads_cancel` | `local-ai` | Cancel a local AI model download session | `D-IPC-011` |
 | `local_ai_models_import` | `local-ai` | Import a local AI model from file | `D-IPC-011` |
+| `local_ai_models_adopt` | `local-ai` | Adopt a go-runtime discovered local AI model into desktop state without download | `D-IPC-011` |
 | `local_ai_models_import_file` | `local-ai` | Import a model file with copy, hash, and manifest generation | `D-IPC-011` |
 | `local_ai_models_start` | `local-ai` | Start a local AI model | `D-IPC-011` |
 | `local_ai_models_stop` | `local-ai` | Stop a local AI model | `D-IPC-011` |

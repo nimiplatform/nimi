@@ -94,12 +94,14 @@ import {
 } from './capability-query';
 import { startLocalAiRuntimePolling, type LocalAiRuntimePollingOptions } from './polling';
 import {
+  type GoRuntimeBootstrapResult,
   type GoRuntimeModelEntry,
   type GoRuntimeSyncAction,
   type GoRuntimeSyncResult,
   type GoRuntimeSyncTarget,
   GoRuntimeSyncError,
   listGoRuntimeModelsSnapshot,
+  reconcileDesktopAndGoRuntimeModels,
   syncModelInstallToGoRuntime,
   syncModelStartToGoRuntime,
   syncModelStopToGoRuntime,
@@ -110,6 +112,7 @@ import {
 export {
   GoRuntimeSyncError,
   listGoRuntimeModelsSnapshot,
+  reconcileDesktopAndGoRuntimeModels,
   syncModelInstallToGoRuntime,
   syncModelStartToGoRuntime,
   syncModelStopToGoRuntime,
@@ -161,6 +164,7 @@ export type {
   LocalAiListArtifactsPayload,
   LocalAiListVerifiedArtifactsPayload,
   LocalAiVerifiedModelDescriptor,
+  GoRuntimeBootstrapResult,
   GoRuntimeModelEntry,
   GoRuntimeSyncAction,
   GoRuntimeSyncResult,

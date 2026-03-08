@@ -219,6 +219,11 @@ commands:
     description: Import a local AI model from file
     source_rule: D-IPC-011
 
+  - command: local_ai_models_adopt
+    module: local-ai
+    description: Adopt a go-runtime discovered local AI model into desktop state without download
+    source_rule: D-IPC-011
+
   - command: local_ai_models_import_file
     module: local-ai
     description: Import a model file with copy, hash, and manifest generation

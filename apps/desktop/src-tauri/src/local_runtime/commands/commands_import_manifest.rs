@@ -45,6 +45,73 @@ pub fn runtime_local_models_import(
 }
 
 #[tauri::command]
+pub fn runtime_local_models_adopt(
+    app: AppHandle,
+    payload: LocalAiModelRecord,
+) -> Result<LocalAiModelRecord, String> {
+    let local_model_id = payload.local_model_id.trim();
+    if local_model_id.is_empty() {
+        return Err("LOCAL_AI_MODEL_ID_REQUIRED: localModelId is required".to_string());
+    }
+    let model_id = payload.model_id.trim();
+    if model_id.is_empty() {
+        return Err("LOCAL_AI_MODEL_ID_REQUIRED: modelId is required".to_string());
+    }
+
+    let endpoint = if payload.endpoint.trim().is_empty() {
+        DEFAULT_LOCAL_RUNTIME_ENDPOINT.to_string()
+    } else {
+        validate_loopback_endpoint(payload.endpoint.as_str())?
+    };
+
+    let now = now_iso_timestamp();
+    let record = LocalAiModelRecord {
+        local_model_id: local_model_id.to_string(),
+        model_id: model_id.to_string(),
+        capabilities: payload.capabilities,
+        engine: payload.engine.trim().to_string(),
+        entry: payload.entry.trim().to_string(),
+        license: payload.license.trim().to_string(),
+        source: LocalAiModelSource {
+            repo: payload.source.repo.trim().to_string(),
+            revision: payload.source.revision.trim().to_string(),
+        },
+        hashes: payload.hashes,
+        endpoint,
+        status: payload.status,
+        installed_at: if payload.installed_at.trim().is_empty() {
+            now.clone()
+        } else {
+            payload.installed_at
+        },
+        updated_at: now,
+        health_detail: payload
+            .health_detail
+            .and_then(|value| {
+                let normalized = value.trim().to_string();
+                if normalized.is_empty() {
+                    None
+                } else {
+                    Some(normalized)
+                }
+            }),
+        engine_config: payload.engine_config,
+    };
+
+    let saved = upsert_model(&app, record)?;
+    append_app_audit_event_non_blocking(
+        &app,
+        EVENT_MODEL_IMPORT_VALIDATED,
+        Some(saved.model_id.as_str()),
+        Some(saved.local_model_id.as_str()),
+        Some(serde_json::json!({
+            "source": "go-runtime-adopt",
+        })),
+    );
+    Ok(saved)
+}
+
+#[tauri::command]
 pub fn runtime_local_pick_model_file(app: AppHandle) -> Result<Option<String>, String> {
     let start_dir =
         dirs::home_dir().unwrap_or_else(|| runtime_models_dir(&app).unwrap_or_default());

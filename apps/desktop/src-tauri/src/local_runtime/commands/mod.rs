@@ -57,7 +57,7 @@ use super::types::{
     LocalAiDependencyResolutionPlan, LocalAiDeviceProfile, LocalAiDownloadControlPayload,
     LocalAiDownloadProgressEvent, LocalAiDownloadSessionSummary, LocalAiDownloadState,
     LocalAiInstallPlanDescriptor, LocalAiInstallRequest, LocalAiModelHealth, LocalAiModelRecord,
-    LocalAiNodeDescriptor, LocalAiRuntimeState, LocalAiServiceArtifactType,
+    LocalAiModelSource, LocalAiNodeDescriptor, LocalAiRuntimeState, LocalAiServiceArtifactType,
     LocalAiServiceDescriptor, LocalAiServiceStatus, LocalAiVerifiedModelDescriptor,
     OrphanModelFile, DEFAULT_LOCAL_RUNTIME_ENDPOINT, LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
 };
