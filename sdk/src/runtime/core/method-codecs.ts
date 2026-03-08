@@ -132,6 +132,18 @@ import {
   WarmLocalModelResponse,
 } from '../generated/runtime/v1/local_runtime';
 import {
+  EnsureEngineRequest,
+  EnsureEngineResponse,
+  GetEngineStatusRequest,
+  GetEngineStatusResponse,
+  ListEnginesRequest,
+  ListEnginesResponse,
+  StartEngineRequest,
+  StartEngineResponse,
+  StopEngineRequest,
+  StopEngineResponse,
+} from '../generated/runtime/v1/local_runtime_engine';
+import {
   BuildIndexRequest,
   BuildIndexResponse,
   DeleteIndexRequest,
@@ -184,10 +196,6 @@ import {
   SubscribeAIProviderHealthEventsRequest,
   SubscribeRuntimeHealthEventsRequest,
 } from '../generated/runtime/v1/audit';
-import {
-  ExecuteRequest,
-  ExecuteResponse,
-} from '../generated/runtime/v1/script_worker';
 import { Ack } from '../generated/runtime/v1/common';
 
 type BinaryMessageType<T> = {
@@ -441,6 +449,26 @@ export const RuntimeUnaryMethodCodecs: Record<string, RuntimeUnaryMethodCodec<un
     requestType: AppendRuntimeAuditRequest,
     responseType: Ack,
   },
+  [RuntimeMethodIds.local.listEngines]: {
+    requestType: ListEnginesRequest,
+    responseType: ListEnginesResponse,
+  },
+  [RuntimeMethodIds.local.ensureEngine]: {
+    requestType: EnsureEngineRequest,
+    responseType: EnsureEngineResponse,
+  },
+  [RuntimeMethodIds.local.startEngine]: {
+    requestType: StartEngineRequest,
+    responseType: StartEngineResponse,
+  },
+  [RuntimeMethodIds.local.stopEngine]: {
+    requestType: StopEngineRequest,
+    responseType: StopEngineResponse,
+  },
+  [RuntimeMethodIds.local.getEngineStatus]: {
+    requestType: GetEngineStatusRequest,
+    responseType: GetEngineStatusResponse,
+  },
   [RuntimeMethodIds.connector.createConnector]: {
     requestType: CreateConnectorRequest,
     responseType: CreateConnectorResponse,
@@ -516,10 +544,6 @@ export const RuntimeUnaryMethodCodecs: Record<string, RuntimeUnaryMethodCodec<un
   [RuntimeMethodIds.audit.listAIProviderHealth]: {
     requestType: ListAIProviderHealthRequest,
     responseType: ListAIProviderHealthResponse,
-  },
-  [RuntimeMethodIds.scriptWorker.execute]: {
-    requestType: ExecuteRequest,
-    responseType: ExecuteResponse,
   },
 };
 

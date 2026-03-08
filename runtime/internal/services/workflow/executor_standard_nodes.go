@@ -43,35 +43,12 @@ func (s *Service) executeTemplateNode(node *runtimev1.WorkflowNode, inputs map[s
 
 func (s *Service) executeScriptNode(ctx context.Context, record *taskRecord, node *runtimev1.WorkflowNode, inputs map[string]*structpb.Struct) (map[string]*structpb.Struct, error) {
 	cfg := node.GetScriptConfig()
-	if client := s.runtimeScriptClient(); client != nil {
-		resp, err := client.Execute(ctx, &runtimev1.ExecuteRequest{
-			TaskId:           record.TaskID,
-			NodeId:           node.GetNodeId(),
-			Inputs:           cloneInputMap(inputs),
-			Runtime:          cfg.GetRuntime(),
-			Code:             cfg.GetCode(),
-			TimeoutMs:        cfg.GetTimeoutMs(),
-			MemoryLimitBytes: cfg.GetMemoryLimitBytes(),
-		})
-		if err != nil {
-			return nil, err
-		}
-		if !resp.GetSuccess() {
-			return nil, fmt.Errorf("script worker failed: %s", resp.GetErrorMessage())
-		}
-		output := cloneStruct(resp.GetOutput())
-		if output == nil {
-			output = structFromMap(map[string]any{})
-		}
-		result := map[string]*structpb.Struct{"output": output}
-		if text := coerceString(output); text != "" {
-			result["text"] = structFromMap(map[string]any{"value": text})
-		}
-		return result, nil
-	}
 
 	output := structFromMap(map[string]any{
+		"task_id": record.TaskID,
+		"node_id": node.GetNodeId(),
 		"runtime": cfg.GetRuntime(),
+		"code":    cfg.GetCode(),
 		"inputs":  inputsAsMap(inputs),
 	})
 	return map[string]*structpb.Struct{"output": output}, nil

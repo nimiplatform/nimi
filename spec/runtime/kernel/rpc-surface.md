@@ -21,7 +21,6 @@ Runtime kernel 的 RPC 覆盖范围为全量 proto 服务：
 - `RuntimeModelService`（`K-MODEL-*`）
 - `RuntimeKnowledgeService`（`K-KNOW-*`）
 - `RuntimeAppService`（`K-APP-*`）
-- `ScriptWorkerService`（`K-SCRIPT-*`，内部服务）
 
 ## K-RPC-002 AIService 方法集合（design 权威）
 
@@ -101,7 +100,7 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 29. `AppendInferenceAudit`
 30. `AppendRuntimeAudit`
 
-**Tier 4 — 引擎进程管理（K-LENG-004e）：**
+**Tier 4 — 引擎进程管理（K-LENG-004）：**
 
 31. `ListEngines`
 32. `EnsureEngine`

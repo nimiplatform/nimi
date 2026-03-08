@@ -35,6 +35,9 @@ Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 | `TestConnector` | `S-SURFACE-002` |
 | `ListConnectorModels` | `S-SURFACE-002` |
 | `ListProviderCatalog` | `S-SURFACE-002` |
+| `ListModelCatalogProviders` | `S-SURFACE-002` |
+| `UpsertModelCatalogProvider` | `S-SURFACE-002` |
+| `DeleteModelCatalogProvider` | `S-SURFACE-002` |
 
 ## local_service_projection
 
@@ -165,11 +168,3 @@ Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2
 |---|---|
 | `SendAppMessage` | `S-SURFACE-002` |
 | `SubscribeAppMessages` | `S-SURFACE-002` |
-
-## script_worker_service_projection
-
-Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2
-
-| Method | Source Rule |
-|---|---|
-| `Execute` | `S-SURFACE-002` |

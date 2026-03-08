@@ -1,7 +1,7 @@
 version: 1
 services:
   - name: AIService
-    source: K-RPC-002
+    source_rule: K-RPC-002
     methods:
       - name: ExecuteScenario
         type: unary
@@ -28,7 +28,7 @@ services:
       - name: ListPresetVoices
         type: unary
   - name: ConnectorService
-    source: K-RPC-003
+    source_rule: K-RPC-003
     methods:
       - name: CreateConnector
         type: unary
@@ -53,7 +53,7 @@ services:
       - name: DeleteModelCatalogProvider
         type: unary
   - name: RuntimeLocalService
-    source: K-RPC-004
+    source_rule: K-RPC-004
     methods:
       - name: ListLocalModels
         type: unary
@@ -126,7 +126,7 @@ services:
       - name: GetEngineStatus
         type: unary
   - name: RuntimeAuthService
-    source: K-AUTHSVC-002
+    source_rule: K-AUTHSVC-002
     methods:
       - name: RegisterApp
         type: unary
@@ -143,7 +143,7 @@ services:
       - name: RevokeExternalPrincipalSession
         type: unary
   - name: RuntimeGrantService
-    source: K-GRANT-002
+    source_rule: K-GRANT-002
     methods:
       - name: AuthorizeExternalPrincipal
         type: unary
@@ -156,7 +156,7 @@ services:
       - name: ListTokenChain
         type: unary
   - name: RuntimeWorkflowService
-    source: K-WF-003
+    source_rule: K-WF-003
     methods:
       - name: SubmitWorkflow
         type: unary
@@ -167,7 +167,7 @@ services:
       - name: SubscribeWorkflowEvents
         type: server_stream
   - name: RuntimeAuditService
-    source: K-AUDIT-013
+    source_rule: K-AUDIT-013
     methods:
       - name: ListAuditEvents
         type: unary
@@ -184,7 +184,7 @@ services:
       - name: SubscribeRuntimeHealthEvents
         type: server_stream
   - name: RuntimeModelService
-    source: K-MODEL-004
+    source_rule: K-MODEL-004
     methods:
       - name: ListModels
         type: unary
@@ -195,7 +195,7 @@ services:
       - name: CheckModelHealth
         type: unary
   - name: RuntimeKnowledgeService
-    source: K-KNOW-001
+    source_rule: K-KNOW-001
     methods:
       - name: BuildIndex
         type: unary
@@ -204,14 +204,9 @@ services:
       - name: DeleteIndex
         type: unary
   - name: RuntimeAppService
-    source: K-APP-001
+    source_rule: K-APP-001
     methods:
       - name: SendAppMessage
         type: unary
       - name: SubscribeAppMessages
         type: server_stream
-  - name: ScriptWorkerService
-    source: K-SCRIPT-001
-    methods:
-      - name: Execute
-        type: unary

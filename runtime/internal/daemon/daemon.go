@@ -48,7 +48,7 @@ type Daemon struct {
 	providerFailureHints  map[string]string
 }
 
-var runtimeWorkerNames = []string{"ai", "model", "workflow", "script", "local"}
+var runtimeWorkerNames = []string{"ai", "model", "workflow", "local"}
 
 var (
 	engineCrashAttemptPattern    = regexp.MustCompile(`attempt=(\d+)/(\d+)`)

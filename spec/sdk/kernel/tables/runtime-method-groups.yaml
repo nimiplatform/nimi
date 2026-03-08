@@ -33,6 +33,9 @@ groups:
       - TestConnector
       - ListConnectorModels
       - ListProviderCatalog
+      - ListModelCatalogProviders
+      - UpsertModelCatalogProvider
+      - DeleteModelCatalogProvider
     source_rule: S-SURFACE-002
   - group: local_service_projection
     service: RuntimeLocalService
@@ -168,12 +171,4 @@ groups:
     methods:
       - SendAppMessage
       - SubscribeAppMessages
-    source_rule: S-SURFACE-002
-  - group: script_worker_service_projection
-    service: ScriptWorkerService
-    phase: 2
-    status: deferred
-    source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
-    methods:
-      - Execute
     source_rule: S-SURFACE-002

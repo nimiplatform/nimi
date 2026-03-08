@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -68,17 +66,8 @@ func TestExecuteTemplateNodeRendering(t *testing.T) {
 	}
 }
 
-func TestExecuteScriptNodeUsesWorkerProtocol(t *testing.T) {
-	fake := &fakeScriptWorkerClient{
-		resp: &runtimev1.ExecuteResponse{
-			Success: true,
-			Output:  structFromMap(map[string]any{"text": "script-ok"}),
-		},
-	}
-	svc := New(
-		slog.New(slog.NewTextHandler(io.Discard, nil)),
-		WithScriptWorkerClient(fake),
-	)
+func TestExecuteScriptNodeReturnsStructuredFallback(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	record := &taskRecord{
 		TaskID:        "task-script-1",
@@ -105,17 +94,22 @@ func TestExecuteScriptNodeUsesWorkerProtocol(t *testing.T) {
 	if err != nil {
 		t.Fatalf("execute script node: %v", err)
 	}
-	if fake.lastReq == nil {
-		t.Fatalf("script worker execute request was not captured")
+	output := outputs["output"]
+	if output == nil {
+		t.Fatalf("script output missing")
 	}
-	if fake.lastReq.GetTaskId() != record.TaskID || fake.lastReq.GetNodeId() != node.GetNodeId() {
-		t.Fatalf("script worker request task/node mismatch: %+v", fake.lastReq)
+	mapped := output.AsMap()
+	if got := mapped["task_id"]; got != record.TaskID {
+		t.Fatalf("script fallback task_id mismatch: %v", got)
 	}
-	if fake.lastReq.GetRuntime() != "expr" || fake.lastReq.GetCode() != "1 + 1" {
-		t.Fatalf("script worker request runtime/code mismatch: %+v", fake.lastReq)
+	if got := mapped["node_id"]; got != node.GetNodeId() {
+		t.Fatalf("script fallback node_id mismatch: %v", got)
 	}
-	if got := outputs["text"].AsMap()["value"]; got != "script-ok" {
-		t.Fatalf("script output mismatch: %v", got)
+	if got := mapped["runtime"]; got != "expr" {
+		t.Fatalf("script fallback runtime mismatch: %v", got)
+	}
+	if got := mapped["code"]; got != "1 + 1" {
+		t.Fatalf("script fallback code mismatch: %v", got)
 	}
 }
 
@@ -223,29 +217,4 @@ func TestExecuteMergeNodeStrategies(t *testing.T) {
 			}
 		})
 	}
-}
-
-type fakeScriptWorkerClient struct {
-	lastReq *runtimev1.ExecuteRequest
-	resp    *runtimev1.ExecuteResponse
-	err     error
-}
-
-func (f *fakeScriptWorkerClient) Execute(_ context.Context, req *runtimev1.ExecuteRequest, _ ...grpc.CallOption) (*runtimev1.ExecuteResponse, error) {
-	cloned := proto.Clone(req)
-	copied, ok := cloned.(*runtimev1.ExecuteRequest)
-	if !ok {
-		copied = &runtimev1.ExecuteRequest{}
-	}
-	f.lastReq = copied
-	if f.err != nil {
-		return nil, f.err
-	}
-	if f.resp != nil {
-		return f.resp, nil
-	}
-	return &runtimev1.ExecuteResponse{
-		Success: true,
-		Output:  structFromMap(map[string]any{}),
-	}, nil
 }

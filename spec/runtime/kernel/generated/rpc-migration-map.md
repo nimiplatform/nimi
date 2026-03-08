@@ -16,7 +16,6 @@
 | `RuntimeModelService` | `RuntimeModelService` | `aligned` | `phase2` | `K-MODEL-004` |
 | `RuntimeKnowledgeService` | `RuntimeKnowledgeService` | `aligned` | `phase2` | `K-KNOW-001` |
 | `RuntimeAppService` | `RuntimeAppService` | `aligned` | `phase2` | `K-APP-001` |
-| `ScriptWorkerService` | `ScriptWorkerService` | `aligned` | `phase2` | `K-SCRIPT-001` |
 
 ## Method Mapping
 
@@ -112,7 +111,6 @@
 | `RuntimeKnowledgeService` | `DeleteIndex` | `RuntimeKnowledgeService` | `DeleteIndex` | `aligned` |
 | `RuntimeAppService` | `SendAppMessage` | `RuntimeAppService` | `SendAppMessage` | `aligned` |
 | `RuntimeAppService` | `SubscribeAppMessages` | `RuntimeAppService` | `SubscribeAppMessages` | `aligned` |
-| `ScriptWorkerService` | `Execute` | `ScriptWorkerService` | `Execute` | `aligned` |
 
 ## Excluded Proto Methods
 

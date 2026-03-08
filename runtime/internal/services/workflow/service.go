@@ -55,12 +55,6 @@ func WithAIClient(client runtimev1.RuntimeAiServiceClient) Option {
 	}
 }
 
-func WithScriptWorkerClient(client runtimev1.ScriptWorkerServiceClient) Option {
-	return func(s *Service) {
-		s.scriptClient = client
-	}
-}
-
 func WithArtifactRoot(root string) Option {
 	return func(s *Service) {
 		trimmed := strings.TrimSpace(root)
@@ -94,7 +88,6 @@ type Service struct {
 	artifactStore *artifactStore
 
 	aiClient     runtimev1.RuntimeAiServiceClient
-	scriptClient runtimev1.ScriptWorkerServiceClient
 	workerPool   *workerproxy.ConnPool
 }
 

@@ -72,6 +72,11 @@ export const RuntimeMethodIds = {
     listLocalAudits: '/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits',
     appendInferenceAudit: '/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit',
     appendRuntimeAudit: '/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit',
+    listEngines: '/nimi.runtime.v1.RuntimeLocalService/ListEngines',
+    ensureEngine: '/nimi.runtime.v1.RuntimeLocalService/EnsureEngine',
+    startEngine: '/nimi.runtime.v1.RuntimeLocalService/StartEngine',
+    stopEngine: '/nimi.runtime.v1.RuntimeLocalService/StopEngine',
+    getEngineStatus: '/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus',
   },
   knowledge: {
     buildIndex: '/nimi.runtime.v1.RuntimeKnowledgeService/BuildIndex',
@@ -94,9 +99,6 @@ export const RuntimeMethodIds = {
     listModelCatalogProviders: '/nimi.runtime.v1.RuntimeConnectorService/ListModelCatalogProviders',
     upsertModelCatalogProvider: '/nimi.runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider',
     deleteModelCatalogProvider: '/nimi.runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider',
-  },
-  scriptWorker: {
-    execute: '/nimi.runtime.v1.ScriptWorkerService/Execute',
   },
   audit: {
     listAuditEvents: '/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents',
@@ -160,6 +162,9 @@ export const RuntimeWriteMethodIds: readonly string[] = Object.freeze([
   RuntimeMethodIds.local.removeLocalService,
   RuntimeMethodIds.local.appendInferenceAudit,
   RuntimeMethodIds.local.appendRuntimeAudit,
+  RuntimeMethodIds.local.ensureEngine,
+  RuntimeMethodIds.local.startEngine,
+  RuntimeMethodIds.local.stopEngine,
   RuntimeMethodIds.connector.createConnector,
   RuntimeMethodIds.connector.updateConnector,
   RuntimeMethodIds.connector.deleteConnector,
@@ -167,7 +172,6 @@ export const RuntimeWriteMethodIds: readonly string[] = Object.freeze([
   RuntimeMethodIds.knowledge.deleteIndex,
   RuntimeMethodIds.app.sendAppMessage,
   RuntimeMethodIds.audit.exportAuditEvents,
-  RuntimeMethodIds.scriptWorker.execute,
 ]);
 
 export const RuntimeLocalAnonymousMethodIds: readonly string[] = Object.freeze([

@@ -130,6 +130,18 @@ import type {
   WarmLocalModelResponse,
 } from './generated/runtime/v1/local_runtime';
 import type {
+  EnsureEngineRequest,
+  EnsureEngineResponse,
+  GetEngineStatusRequest,
+  GetEngineStatusResponse,
+  ListEnginesRequest,
+  ListEnginesResponse,
+  StartEngineRequest,
+  StartEngineResponse,
+  StopEngineRequest,
+  StopEngineResponse,
+} from './generated/runtime/v1/local_runtime_engine';
+import type {
   BuildIndexRequest,
   BuildIndexResponse,
   DeleteIndexRequest,
@@ -182,10 +194,6 @@ import type {
   SubscribeAIProviderHealthEventsRequest,
   SubscribeRuntimeHealthEventsRequest,
 } from './generated/runtime/v1/audit';
-import type {
-  ExecuteRequest,
-  ExecuteResponse,
-} from './generated/runtime/v1/script_worker';
 import type { Ack } from './generated/runtime/v1/common';
 import type {
   RuntimeCallOptions,
@@ -280,6 +288,11 @@ export type RuntimeLocalServiceClient = {
   listLocalAudits(request: ListLocalAuditsRequest, options?: RuntimeCallOptions): Promise<ListLocalAuditsResponse>;
   appendInferenceAudit(request: AppendInferenceAuditRequest, options?: RuntimeCallOptions): Promise<Ack>;
   appendRuntimeAudit(request: AppendRuntimeAuditRequest, options?: RuntimeCallOptions): Promise<Ack>;
+  listEngines(request: ListEnginesRequest, options?: RuntimeCallOptions): Promise<ListEnginesResponse>;
+  ensureEngine(request: EnsureEngineRequest, options?: RuntimeCallOptions): Promise<EnsureEngineResponse>;
+  startEngine(request: StartEngineRequest, options?: RuntimeCallOptions): Promise<StartEngineResponse>;
+  stopEngine(request: StopEngineRequest, options?: RuntimeCallOptions): Promise<StopEngineResponse>;
+  getEngineStatus(request: GetEngineStatusRequest, options?: RuntimeCallOptions): Promise<GetEngineStatusResponse>;
 };
 
 export type RuntimeAppClient = {
@@ -310,10 +323,6 @@ export type RuntimeConnectorClient = {
   ): Promise<DeleteModelCatalogProviderResponse>;
 };
 
-export type RuntimeScriptWorkerClient = {
-  execute(request: ExecuteRequest, options?: RuntimeCallOptions): Promise<ExecuteResponse>;
-};
-
 export type RuntimeAuditClient = {
   listAuditEvents(request: ListAuditEventsRequest, options?: RuntimeCallOptions): Promise<ListAuditEventsResponse>;
   exportAuditEvents(request: ExportAuditEventsRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<AuditExportChunk>>;
@@ -337,6 +346,5 @@ export type RuntimeClient = {
   knowledge: RuntimeKnowledgeClient;
   app: RuntimeAppClient;
   audit: RuntimeAuditClient;
-  scriptWorker: RuntimeScriptWorkerClient;
   closeStream(streamId: string): Promise<void>;
 };

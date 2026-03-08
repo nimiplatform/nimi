@@ -4,57 +4,52 @@ service_mappings:
     proto_service: RuntimeAiService
     mapping_status: renamed_service
     phase: phase1
-    source: K-RPC-005
+    source_rule: K-RPC-005
   - design_service: ConnectorService
     proto_service: RuntimeConnectorService
     mapping_status: aligned
     phase: phase1
-    source: K-RPC-005
+    source_rule: K-RPC-005
   - design_service: RuntimeLocalService
     proto_service: RuntimeLocalService
     mapping_status: aligned
     phase: phase1
-    source: K-RPC-004
+    source_rule: K-RPC-004
   - design_service: RuntimeAuthService
     proto_service: RuntimeAuthService
     mapping_status: aligned
     phase: phase1
-    source: K-AUTHSVC-002
+    source_rule: K-AUTHSVC-002
   - design_service: RuntimeGrantService
     proto_service: RuntimeGrantService
     mapping_status: aligned
     phase: phase1
-    source: K-GRANT-002
+    source_rule: K-GRANT-002
   - design_service: RuntimeWorkflowService
     proto_service: RuntimeWorkflowService
     mapping_status: aligned
     phase: phase2
-    source: K-WF-003
+    source_rule: K-WF-003
   - design_service: RuntimeAuditService
     proto_service: RuntimeAuditService
     mapping_status: aligned
     phase: phase2
-    source: K-AUDIT-013
+    source_rule: K-AUDIT-013
   - design_service: RuntimeModelService
     proto_service: RuntimeModelService
     mapping_status: aligned
     phase: phase2
-    source: K-MODEL-004
+    source_rule: K-MODEL-004
   - design_service: RuntimeKnowledgeService
     proto_service: RuntimeKnowledgeService
     mapping_status: aligned
     phase: phase2
-    source: K-KNOW-001
+    source_rule: K-KNOW-001
   - design_service: RuntimeAppService
     proto_service: RuntimeAppService
     mapping_status: aligned
     phase: phase2
-    source: K-APP-001
-  - design_service: ScriptWorkerService
-    proto_service: ScriptWorkerService
-    mapping_status: aligned
-    phase: phase2
-    source: K-SCRIPT-001
+    source_rule: K-APP-001
 method_mappings:
   - design_service: AIService
     design_method: ExecuteScenario
@@ -505,10 +500,5 @@ method_mappings:
     design_method: SubscribeAppMessages
     proto_service: RuntimeAppService
     proto_method: SubscribeAppMessages
-    mapping_status: aligned
-  - design_service: ScriptWorkerService
-    design_method: Execute
-    proto_service: ScriptWorkerService
-    proto_method: Execute
     mapping_status: aligned
 excluded_proto_methods: []

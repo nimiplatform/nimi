@@ -128,7 +128,7 @@ function checkConnectorUpdateMaskAndPagination() {
     fail('connector-rpc-field-rules.yaml missing UpdateConnector update_mask rules');
   }
   for (const rule of updateMaskRules) {
-    if (String(rule?.source || '') !== 'K-CONN-013') {
+    if (String(rule?.source_rule || '') !== 'K-CONN-013') {
       fail(`connector-rpc-field-rules update_mask source must be K-CONN-013: ${JSON.stringify(rule)}`);
     }
   }
@@ -255,7 +255,7 @@ function checkReasonCodes359To363Linkage() {
     if (Number(item?.value) !== value) {
       fail(`reason-codes.yaml ${name} value mismatch: expected ${value}, got ${item?.value}`);
     }
-    if (!String(item?.source || '').startsWith('K-')) {
+    if (!String(item?.source_rule || '').startsWith('K-')) {
       fail(`reason-codes.yaml ${name} must have kernel source`);
     }
   }

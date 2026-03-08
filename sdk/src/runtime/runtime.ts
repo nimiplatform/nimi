@@ -13,7 +13,6 @@ import type {
   RuntimeKnowledgeClient,
   RuntimeLocalServiceClient,
   RuntimeModelClient,
-  RuntimeScriptWorkerClient,
   RuntimeStreamCallOptions,
   RuntimeTransportConfig,
   RuntimeWorkflowClient,
@@ -88,7 +87,6 @@ export class Runtime {
     subscribeMessages: RuntimeClient['app']['subscribeAppMessages'];
   };
   readonly audit: RuntimeAuditClient;
-  readonly scriptWorker: RuntimeScriptWorkerClient;
   readonly healthEvents: (
     request?: import('./generated/runtime/v1/audit').SubscribeRuntimeHealthEventsRequest,
     options?: RuntimeStreamCallOptions,
@@ -196,7 +194,6 @@ export class Runtime {
     this.connector = passthrough.connector;
     this.knowledge = passthrough.knowledge;
     this.audit = passthrough.audit;
-    this.scriptWorker = passthrough.scriptWorker;
     const healthStreams = createHealthEventStreams({
       audit: this.audit,
       wrapModeDStream: (source) => this.#wrapModeDStream(source),

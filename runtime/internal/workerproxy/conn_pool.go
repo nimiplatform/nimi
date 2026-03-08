@@ -85,8 +85,6 @@ func normalizeRole(role string) string {
 		return "model"
 	case "workflow":
 		return "workflow"
-	case "script":
-		return "script"
 	case "local":
 		return "local"
 	default:

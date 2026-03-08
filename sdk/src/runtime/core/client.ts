@@ -184,6 +184,11 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       listLocalAudits: unary(RuntimeMethodIds.local.listLocalAudits),
       appendInferenceAudit: unary(RuntimeMethodIds.local.appendInferenceAudit),
       appendRuntimeAudit: unary(RuntimeMethodIds.local.appendRuntimeAudit),
+      listEngines: unary(RuntimeMethodIds.local.listEngines),
+      ensureEngine: unary(RuntimeMethodIds.local.ensureEngine),
+      startEngine: unary(RuntimeMethodIds.local.startEngine),
+      stopEngine: unary(RuntimeMethodIds.local.stopEngine),
+      getEngineStatus: unary(RuntimeMethodIds.local.getEngineStatus),
     },
     connector: {
       createConnector: unary(RuntimeMethodIds.connector.createConnector),
@@ -215,9 +220,6 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       listAIProviderHealth: unary(RuntimeMethodIds.audit.listAIProviderHealth),
       subscribeAIProviderHealthEvents: stream(RuntimeMethodIds.audit.subscribeAIProviderHealthEvents),
       subscribeRuntimeHealthEvents: stream(RuntimeMethodIds.audit.subscribeRuntimeHealthEvents),
-    },
-    scriptWorker: {
-      execute: unary(RuntimeMethodIds.scriptWorker.execute),
     },
     closeStream: async (streamId: string) => {
       await transport.closeStream({ streamId });

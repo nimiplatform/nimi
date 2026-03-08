@@ -161,11 +161,3 @@ Source: `K-APP-001`
 |---|---|
 | `SendAppMessage` | `unary` |
 | `SubscribeAppMessages` | `server_stream` |
-
-## ScriptWorkerService
-
-Source: `K-SCRIPT-001`
-
-| Method | Type |
-|---|---|
-| `Execute` | `unary` |

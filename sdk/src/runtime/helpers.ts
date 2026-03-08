@@ -45,7 +45,6 @@ export const PHASE2_MODULE_KEYS: ReadonlySet<string> = new Set([
   'model',
   'knowledge',
   'app',
-  'scriptWorker',
 ]);
 
 export const PHASE2_AUDIT_METHOD_IDS: ReadonlySet<string> = new Set([

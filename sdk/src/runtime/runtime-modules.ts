@@ -41,7 +41,6 @@ import type {
   RuntimeMediaModule,
   RuntimeModelClient,
   RuntimeRawModule,
-  RuntimeScriptWorkerClient,
   RuntimeScopeModule,
   RuntimeStreamCallOptions,
   RuntimeWorkflowClient,
@@ -60,7 +59,6 @@ export type RuntimePassthroughModuleKey = keyof Pick<RuntimeClient,
   | 'connector'
   | 'knowledge'
   | 'audit'
-  | 'scriptWorker'
 >;
 
 export type RuntimeRawCall = <TReq, TRes>(
@@ -89,7 +87,6 @@ export type RuntimeCorePassthroughClients = {
   connector: RuntimeConnectorClient;
   knowledge: RuntimeKnowledgeClient;
   audit: RuntimeAuditClient;
-  scriptWorker: RuntimeScriptWorkerClient;
 };
 
 export function createRuntimeEventsModule(
@@ -171,7 +168,6 @@ export function createCorePassthroughClients(input: {
     connector: create<RuntimeConnectorClient>('connector'),
     knowledge: create<RuntimeKnowledgeClient>('knowledge'),
     audit: create<RuntimeAuditClient>('audit'),
-    scriptWorker: create<RuntimeScriptWorkerClient>('scriptWorker'),
   };
 }
 
