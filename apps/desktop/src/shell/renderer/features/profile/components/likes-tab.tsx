@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { PostFeedWithMediaPreview } from './post-feed-with-media-preview.js';
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 20;
 
-type PostsTabProps = {
+type LikesTabProps = {
   profileId: string;
 };
 
@@ -20,7 +19,7 @@ function toErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-function PostSkeleton() {
+function LikeSkeleton() {
   return (
     <div className="mb-6 break-inside-avoid animate-pulse rounded-[24px] border border-white/70 bg-white/80 p-5 shadow-[0_4px_20px_rgba(15,23,42,0.04)]">
       <div className="flex items-start gap-3">
@@ -30,14 +29,13 @@ function PostSkeleton() {
           <div className="h-3 w-20 rounded bg-gray-100" />
         </div>
       </div>
-      <div className="mt-4 h-56 rounded-[20px] bg-gray-100" />
+      <div className="mt-4 h-52 rounded-[20px] bg-gray-100" />
     </div>
   );
 }
 
-export function PostsTab({ profileId }: PostsTabProps) {
-  const { t } = useTranslation();
-  const [posts, setPosts] = useState<PostDto[]>([]);
+export function LikesTab({ profileId }: LikesTabProps) {
+  const [likedPosts, setLikedPosts] = useState<PostDto[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [loadingInitial, setLoadingInitial] = useState(true);
@@ -45,7 +43,7 @@ export function PostsTab({ profileId }: PostsTabProps) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const fetchPosts = useCallback(
+  const fetchLiked = useCallback(
     async (cursorArg: string | null) => {
       if (cursorArg && (loadingMore || !hasMore)) return;
       try {
@@ -55,15 +53,11 @@ export function PostsTab({ profileId }: PostsTabProps) {
         } else {
           setLoadingInitial(true);
         }
-        const data = await dataSync.loadPostFeed({
-          authorId: profileId,
-          limit: PAGE_SIZE,
-          cursor: cursorArg ?? undefined,
-        });
-        const newItems = data?.items ?? [];
+        const data = await dataSync.callApi((realm) => realm.services.PostService.listLikedPosts(undefined, PAGE_SIZE, cursorArg ?? undefined, profileId));
+        const newItems = Array.isArray(data?.items) ? (data.items as PostDto[]) : [];
         const nextCursor = data?.page?.nextCursor ?? null;
 
-        setPosts((prev) => {
+        setLikedPosts((prev) => {
           if (!cursorArg) return newItems;
           const seen = new Set(prev.map((post) => post.id));
           const merged = [...prev];
@@ -77,7 +71,7 @@ export function PostsTab({ profileId }: PostsTabProps) {
         setCursor(nextCursor);
         setHasMore(nextCursor != null);
       } catch (error) {
-        setLoadError(toErrorMessage(error, 'Failed to load posts'));
+        setLoadError(toErrorMessage(error, 'Failed to load liked posts'));
       } finally {
         if (cursorArg) {
           setLoadingMore(false);
@@ -90,11 +84,11 @@ export function PostsTab({ profileId }: PostsTabProps) {
   );
 
   useEffect(() => {
-    setPosts([]);
+    setLikedPosts([]);
     setCursor(null);
     setHasMore(true);
     setLoadError(null);
-    void fetchPosts(null);
+    void fetchLiked(null);
   }, [profileId]);
 
   useEffect(() => {
@@ -105,63 +99,62 @@ export function PostsTab({ profileId }: PostsTabProps) {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting && hasMore && !loadingMore && cursor) {
-          void fetchPosts(cursor);
+          void fetchLiked(cursor);
         }
       },
       { rootMargin: '200px', threshold: 0.1 },
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [cursor, fetchPosts, hasMore, loadingMore]);
+  }, [cursor, fetchLiked, hasMore, loadingMore]);
 
   if (loadingInitial) {
     return (
       <div className="columns-1 gap-6 md:columns-2">
-        <PostSkeleton />
-        <PostSkeleton />
-        <PostSkeleton />
+        <LikeSkeleton />
+        <LikeSkeleton />
+        <LikeSkeleton />
       </div>
     );
   }
 
-  if (loadError && posts.length === 0) {
+  if (loadError && likedPosts.length === 0) {
     return (
       <div className="rounded-2xl border border-red-200/60 bg-red-50/80 p-4 text-sm text-red-700 backdrop-blur-sm">
         <p>{loadError}</p>
         <button
           type="button"
-          onClick={() => { void fetchPosts(null); }}
+          onClick={() => { void fetchLiked(null); }}
           className="mt-3 rounded-xl bg-red-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-red-600"
         >
-          {t('Common.retry')}
+          Retry
         </button>
       </div>
     );
   }
 
-  if (posts.length === 0) {
+  if (likedPosts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-sm text-gray-400">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mb-3 text-gray-300">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
         </svg>
-        {t('PostsTab.noPosts')}
+        No liked posts yet
       </div>
     );
   }
 
   return (
     <PostFeedWithMediaPreview
-      posts={posts}
+      posts={likedPosts}
       loadError={loadError}
       loadingMore={loadingMore}
       loadMoreRef={loadMoreRef}
-      retryLabel={t('Common.retry')}
-      skeleton={<PostSkeleton />}
-      onRetryLoadMore={() => { void fetchPosts(cursor); }}
+      retryLabel="Retry"
+      skeleton={<LikeSkeleton />}
+      onRetryLoadMore={() => { void fetchLiked(cursor); }}
       onDeletePost={(postId) => {
-        setPosts((current) => current.filter((item) => item.id !== postId));
+        setLikedPosts((current) => current.filter((item) => item.id !== postId));
       }}
     />
   );

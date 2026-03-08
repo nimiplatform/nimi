@@ -1,13 +1,45 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
-import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { PostFeedWithMediaPreview } from './post-feed-with-media-preview.js';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
+const SAVED_POSTS_STORAGE_KEY = 'nimi.desktop.saved-post-ids';
 
 type CollectionsTabProps = {
   profileId: string;
+  canManageSavedPosts?: boolean;
 };
+
+function CollectionSkeleton() {
+  return (
+    <div className="mb-6 break-inside-avoid animate-pulse rounded-[24px] border border-white/70 bg-white/80 p-5 shadow-[0_4px_20px_rgba(15,23,42,0.04)]">
+      <div className="flex items-start gap-3">
+        <div className="h-10 w-10 rounded-full bg-gray-200" />
+        <div className="flex-1 space-y-2">
+          <div className="h-4 w-28 rounded bg-gray-200" />
+          <div className="h-3 w-20 rounded bg-gray-100" />
+        </div>
+      </div>
+      <div className="mt-4 h-56 rounded-[20px] bg-gray-100" />
+    </div>
+  );
+}
+
+function readSavedPostIds(): string[] {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+  try {
+    const raw = window.localStorage.getItem(SAVED_POSTS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed)
+      ? parsed.map((value) => String(value || '').trim()).filter(Boolean).reverse()
+      : [];
+  } catch {
+    return [];
+  }
+}
 
 function toErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
@@ -19,112 +51,108 @@ function toErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-function LikedPostCard({ post }: { post: PostDto }) {
-  const firstImage = post.media?.find((m) => m.type === 'IMAGE');
-  const thumbnailUrl = firstImage?.thumbnail || firstImage?.url;
-  const isAgent = Boolean(post.author?.isAgent);
-
-  return (
-    <div className="overflow-hidden rounded-[10px] border border-gray-200 bg-white">
-      {thumbnailUrl ? (
-        <div className="aspect-video overflow-hidden bg-gray-100">
-          <img src={thumbnailUrl} alt="" className="h-full w-full object-cover" />
-        </div>
-      ) : (
-        <div className="flex aspect-video items-center justify-center bg-gray-50">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-300">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-          </svg>
-        </div>
-      )}
-      <div className="p-3">
-        <div className="flex items-center gap-2">
-          <EntityAvatar
-            imageUrl={post.author?.avatarUrl}
-            name={post.author?.displayName || 'Unknown'}
-            kind={isAgent ? 'agent' : 'human'}
-            sizeClassName="h-5 w-5"
-            fallbackClassName={isAgent ? undefined : 'bg-gray-100 text-gray-500'}
-            textClassName="text-[10px] font-medium"
-          />
-          <span className="truncate text-xs font-medium text-gray-700">{post.author?.displayName || 'Unknown'}</span>
-        </div>
-        {post.caption ? (
-          <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-gray-500">{post.caption}</p>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function CollectionSkeleton() {
-  return (
-    <div className="animate-pulse overflow-hidden rounded-[10px] border border-gray-200 bg-white">
-      <div className="aspect-video bg-gray-200" />
-      <div className="space-y-2 p-3">
-        <div className="h-3 w-20 rounded bg-gray-200" />
-        <div className="h-3 w-full rounded bg-gray-100" />
-      </div>
-    </div>
-  );
-}
-
-export function CollectionsTab({ profileId }: CollectionsTabProps) {
-  const [likedPosts, setLikedPosts] = useState<PostDto[]>([]);
-  const [cursor, setCursor] = useState<string | null>(null);
+export function CollectionsTab({ canManageSavedPosts = true }: CollectionsTabProps) {
+  const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [posts, setPosts] = useState<PostDto[]>([]);
+  const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const fetchLiked = useCallback(
-    async (cursorArg: string | null) => {
-      if (cursorArg && (loadingMore || !hasMore)) return;
-      try {
-        setLoadError(null);
-        if (cursorArg) {
-          setLoadingMore(true);
-        } else {
-          setLoadingInitial(true);
-        }
-        const data = await dataSync.callApi((realm) => realm.services.PostService.listLikedPosts(undefined, PAGE_SIZE, cursorArg ?? undefined, profileId),
-        );
-        const newItems = data?.items ?? [];
-        const nextCursor = data?.page?.nextCursor ?? null;
+  const fetchSavedPosts = useCallback(async (startOffset: number) => {
+    if (!canManageSavedPosts) {
+      setLoadingInitial(false);
+      setHasMore(false);
+      return;
+    }
 
-        setLikedPosts((prev) => {
-          if (!cursorArg) return newItems;
-          const seen = new Set(prev.map((p) => p.id));
-          const merged = [...prev];
-          for (const p of newItems) {
-            if (!seen.has(p.id)) merged.push(p);
-          }
-          return merged;
-        });
-        setCursor(nextCursor);
-        setHasMore(nextCursor != null);
-      } catch (error) {
-        setLoadError(toErrorMessage(error, 'Failed to load collections'));
-      } finally {
-        if (cursorArg) {
-          setLoadingMore(false);
-        } else {
-          setLoadingInitial(false);
-        }
+    const ids = readSavedPostIds();
+    setSavedIds(ids);
+    const pageIds = ids.slice(startOffset, startOffset + PAGE_SIZE);
+    const isInitial = startOffset === 0;
+
+    if (pageIds.length === 0) {
+      if (isInitial) {
+        setPosts([]);
+        setLoadingInitial(false);
       }
-    },
-    [hasMore, loadingMore, profileId],
-  );
+      setHasMore(false);
+      setOffset(startOffset);
+      return;
+    }
+
+    try {
+      setLoadError(null);
+      if (isInitial) {
+        setLoadingInitial(true);
+      } else {
+        setLoadingMore(true);
+      }
+
+      const results = await Promise.all(
+        pageIds.map(async (postId) => {
+          try {
+            const post = await dataSync.callApi((realm) => realm.services.PostService.getPost(postId));
+            return post as PostDto;
+          } catch {
+            return null;
+          }
+        }),
+      );
+
+      const nextPosts = results.filter((item): item is PostDto => Boolean(item?.id));
+      setPosts((prev) => {
+        if (isInitial) {
+          return nextPosts;
+        }
+        const seen = new Set(prev.map((post) => post.id));
+        const merged = [...prev];
+        for (const post of nextPosts) {
+          if (!seen.has(post.id)) {
+            merged.push(post);
+          }
+        }
+        return merged;
+      });
+
+      const nextOffset = startOffset + pageIds.length;
+      setOffset(nextOffset);
+      setHasMore(nextOffset < ids.length);
+    } catch (error) {
+      setLoadError(toErrorMessage(error, 'Failed to load saved posts'));
+    } finally {
+      if (isInitial) {
+        setLoadingInitial(false);
+      } else {
+        setLoadingMore(false);
+      }
+    }
+  }, [canManageSavedPosts]);
 
   useEffect(() => {
-    setLikedPosts([]);
-    setCursor(null);
+    setPosts([]);
+    setOffset(0);
     setHasMore(true);
     setLoadError(null);
-    fetchLiked(null);
-  }, [profileId]);
+    void fetchSavedPosts(0);
+  }, [fetchSavedPosts]);
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key && event.key !== SAVED_POSTS_STORAGE_KEY) {
+        return;
+      }
+      setPosts([]);
+      setOffset(0);
+      setHasMore(true);
+      setLoadError(null);
+      void fetchSavedPosts(0);
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [fetchSavedPosts]);
 
   useEffect(() => {
     if (!hasMore) return;
@@ -133,20 +161,30 @@ export function CollectionsTab({ profileId }: CollectionsTabProps) {
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry?.isIntersecting && hasMore && !loadingMore && cursor) {
-          fetchLiked(cursor);
+        if (entry?.isIntersecting && hasMore && !loadingMore) {
+          void fetchSavedPosts(offset);
         }
       },
       { rootMargin: '200px', threshold: 0.1 },
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [cursor, hasMore, loadingMore, fetchLiked]);
+  }, [fetchSavedPosts, hasMore, loadingMore, offset]);
+
+  if (!canManageSavedPosts) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-sm text-gray-400">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mb-3 text-gray-300">
+          <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+        </svg>
+        <p className="text-center">Saved posts are only visible on your own profile.</p>
+      </div>
+    );
+  }
 
   if (loadingInitial) {
     return (
-      <div className="grid grid-cols-2 gap-3">
-        <CollectionSkeleton />
+      <div className="columns-1 gap-6 md:columns-2">
         <CollectionSkeleton />
         <CollectionSkeleton />
         <CollectionSkeleton />
@@ -154,14 +192,14 @@ export function CollectionsTab({ profileId }: CollectionsTabProps) {
     );
   }
 
-  if (loadError && likedPosts.length === 0) {
+  if (loadError && posts.length === 0) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      <div className="rounded-2xl border border-red-200/60 bg-red-50/80 p-4 text-sm text-red-700 backdrop-blur-sm">
         <p>{loadError}</p>
         <button
           type="button"
-          onClick={() => { void fetchLiked(null); }}
-          className="mt-3 rounded-[10px] bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700"
+          onClick={() => { void fetchSavedPosts(0); }}
+          className="mt-3 rounded-xl bg-red-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-red-600"
         >
           Retry
         </button>
@@ -169,43 +207,29 @@ export function CollectionsTab({ profileId }: CollectionsTabProps) {
     );
   }
 
-  if (likedPosts.length === 0) {
+  if (savedIds.length === 0 || posts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-sm text-gray-400">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mb-3 text-gray-300">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+          <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
         </svg>
-        No liked posts yet
+        No saved posts yet
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="grid grid-cols-2 gap-3">
-        {likedPosts.map((post) => (
-          <LikedPostCard key={post.id} post={post} />
-        ))}
-      </div>
-      {loadError ? (
-        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
-          <p>{loadError}</p>
-          <button
-            type="button"
-            onClick={() => { void fetchLiked(cursor); }}
-            className="mt-2 rounded-[8px] bg-red-600 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-red-700"
-          >
-            Retry
-          </button>
-        </div>
-      ) : null}
-      {loadingMore ? (
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <CollectionSkeleton />
-          <CollectionSkeleton />
-        </div>
-      ) : null}
-      <div ref={loadMoreRef} className="h-1" />
-    </div>
+    <PostFeedWithMediaPreview
+      posts={posts}
+      loadError={loadError}
+      loadingMore={loadingMore}
+      loadMoreRef={loadMoreRef}
+      retryLabel="Retry"
+      skeleton={<CollectionSkeleton />}
+      onRetryLoadMore={() => { void fetchSavedPosts(offset); }}
+      onDeletePost={(postId) => {
+        setPosts((current) => current.filter((item) => item.id !== postId));
+      }}
+    />
   );
 }

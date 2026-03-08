@@ -606,17 +606,26 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/58 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-black/72 disabled:opacity-50"
+                className="group absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-sm ring-1 ring-white/10 transition-all duration-200 hover:bg-[#4ECCA3] hover:ring-[#4ECCA3]/50 disabled:opacity-50"
                 title="Replace media"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" />
-                  <polyline points="17 3 21 3 21 7" />
-                  <line x1="16" y1="8" x2="21" y2="3" />
-                  <circle cx="9" cy="13" r="2" />
-                  <path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L8 19" />
+                <svg 
+                  width="14" 
+                  height="14" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                  className="transition-transform duration-200 group-hover:rotate-12"
+                >
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                  <circle cx="12" cy="13" r="4" />
                 </svg>
-                {selectedMediaRef && !selectedFile ? 'Replace image' : 'Change image'}
+                <span className="hidden sm:inline">
+                  {selectedMediaRef && !selectedFile ? 'Replace' : 'Change'}
+                </span>
               </button>
             </div>
           )}
@@ -627,7 +636,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
               ref={textareaRef}
               value={caption}
               onChange={(e) => setCaption(e.target.value.slice(0, MAX_CAPTION_LENGTH))}
-              placeholder="Write a caption... Use #hashtags for tags"
+                    placeholder="Write a caption..."
               disabled={uploading}
               rows={3}
               className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#4ECCA3] focus:ring-1 focus:ring-[#4ECCA3] focus:outline-none disabled:opacity-50"
@@ -699,7 +708,6 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
                     <line x1="9" y1="9" x2="9.01" y2="9" />
                     <line x1="15" y1="9" x2="15.01" y2="9" />
                   </svg>
-                  {/* Tooltip */}
                   <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
                     Emoji
                   </span>
@@ -727,7 +735,6 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                     <circle cx="12" cy="10" r="3" />
                   </svg>
-                  {/* Tooltip */}
                   <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
                     Location
                   </span>
@@ -755,7 +762,6 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
                     <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
                     <line x1="7" y1="7" x2="7.01" y2="7" />
                   </svg>
-                  {/* Tooltip */}
                   <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
                     Tag
                   </span>

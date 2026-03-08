@@ -23,7 +23,9 @@ function toErrorMessage(error: unknown, fallback: string): string {
 
 function MediaSkeleton() {
   return (
-    <div className="animate-pulse rounded-md bg-gray-200" style={{ aspectRatio: '1' }} />
+    <div className="animate-pulse overflow-hidden rounded-[22px] border border-white/70 bg-white/80 p-2 shadow-[0_4px_20px_rgba(15,23,42,0.04)]">
+      <div className="rounded-[16px] bg-gray-200" style={{ aspectRatio: '1' }} />
+    </div>
   );
 }
 
@@ -131,7 +133,7 @@ export function MediaTab({ profileId, onMediaClick }: MediaTabProps) {
 
   if (loadingInitial) {
     return (
-      <div className="grid grid-cols-3 gap-1">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
         {Array.from({ length: 9 }).map((_, i) => (
           <MediaSkeleton key={i} />
         ))}
@@ -169,28 +171,33 @@ export function MediaTab({ profileId, onMediaClick }: MediaTabProps) {
 
   return (
     <div>
-      <div className="grid grid-cols-3 gap-1">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
         {mediaItems.map((item, idx) => (
           <button
             key={`${item.post.id}-${item.mediaIndex}`}
             type="button"
             onClick={() => onMediaClick(item.post, item.mediaIndex)}
-            className="group relative overflow-hidden rounded-md bg-gray-100"
-            style={{ aspectRatio: '1' }}
+            className="group relative overflow-hidden rounded-[22px] border border-[#e7edf3] bg-white p-2 shadow-[0_6px_24px_rgba(15,23,42,0.05)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(15,23,42,0.08)]"
           >
-            <img
-              src={item.thumbnail || item.url}
-              alt=""
-              className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
-              loading={idx < 9 ? 'eager' : 'lazy'}
-            />
-            {item.type === PostMediaType.VIDEO ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="white" className="drop-shadow">
-                  <polygon points="5 3 19 12 5 21 5 3" />
-                </svg>
+            <div className="relative overflow-hidden rounded-[16px] bg-gray-100" style={{ aspectRatio: '1' }}>
+              <img
+                src={item.thumbnail || item.url}
+                alt=""
+                className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                loading={idx < 9 ? 'eager' : 'lazy'}
+              />
+              {item.type === PostMediaType.VIDEO ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="white" className="drop-shadow">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                </div>
+              ) : null}
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/35 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+              <div className="pointer-events-none absolute bottom-3 left-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-medium text-[#111827] opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
+                Open
               </div>
-            ) : null}
+            </div>
           </button>
         ))}
       </div>
@@ -207,7 +214,7 @@ export function MediaTab({ profileId, onMediaClick }: MediaTabProps) {
         </div>
       ) : null}
       {loadingMore ? (
-        <div className="mt-1 grid grid-cols-3 gap-1">
+        <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
           <MediaSkeleton />
           <MediaSkeleton />
           <MediaSkeleton />

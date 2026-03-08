@@ -1,16 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import type { PostDto } from '@nimiplatform/sdk/realm';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { ProfileData, ProfileTab } from './profile-model';
 import { formatProfileDate } from './profile-model';
 import { PostsTab } from './components/posts-tab';
-import { MediaTab } from './components/media-tab';
 import { CollectionsTab } from './components/collections-tab';
+import { LikesTab } from './components/likes-tab';
 import { GiftsTab } from './components/gifts-tab';
-import { MediaLightbox } from './components/media-lightbox';
 import { dataSync } from '@runtime/data-sync';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 
@@ -29,18 +27,12 @@ type ProfileViewProps = {
   sidebarStyleVariant?: 'default' | 'agent';
 };
 
-type MediaSelection = {
-  post: PostDto;
-  mediaIndex: number;
-};
-
-const TABS: ProfileTab[] = ['Posts', 'Media', 'Collections', 'Gifts'];
+const TABS: ProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gifts'];
 
 export function ProfileView(props: ProfileViewProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<ProfileTab>('Posts');
-  const [selectedMedia, setSelectedMedia] = useState<MediaSelection | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
@@ -185,6 +177,7 @@ export function ProfileView(props: ProfileViewProps) {
   const friendCount = profile.stats?.friendsCount ?? 0;
   const postCount = profile.stats?.postsCount ?? 0;
   const likesCount = profile.stats?.likesCount ?? 0;
+  const isFeedStyleTab = activeTab === 'Posts' || activeTab === 'Collections' || activeTab === 'Likes';
   const agentPalette = getSemanticAgentPalette({
     category: profile.agentCategory,
     origin: profile.agentOrigin,
@@ -375,100 +368,87 @@ export function ProfileView(props: ProfileViewProps) {
                 {/* Tab Title & Count */}
                 <div className="text-xs text-gray-500">
                   {activeTab === 'Posts' && (profile.stats?.postsCount ?? 0) > 0 && `${profile.stats?.postsCount} posts`}
-                  {activeTab === 'Media' && 'Photos & Videos'}
                   {activeTab === 'Collections' && 'Saved items'}
+                  {activeTab === 'Likes' && 'Liked posts'}
                   {activeTab === 'Gifts' && (profile.giftStats ? Object.values(profile.giftStats).reduce((a, b) => a + b, 0) : 0) > 0 && `${Object.values(profile.giftStats).reduce((a, b) => a + b, 0)} gifts`}
                 </div>
               </div>
             </div>
 
             <div className="bg-[#f7f9fc] px-6 py-6">
-              <div className="grid gap-6 xl:grid-cols-[300px,minmax(0,1fr)]">
-                <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
-                  <section className="rounded-[24px] border border-[#e7edf3] bg-white p-5 shadow-[0_6px_24px_rgba(15,23,42,0.05)]">
-                    <h3 className="text-sm font-semibold text-[#111827]">Profile Details</h3>
-                    <p className="mt-1 text-xs leading-5 text-[#8a94a6]">
-                      Reference details and profile attributes for this contact.
-                    </p>
-                    <div className="mt-5 space-y-3.5">
-                      <InfoTile icon={<CalendarIcon className="h-4 w-4" />} label="Joined" value={formatProfileDate(profile.createdAt) || 'Unknown'} />
-                      <InfoTile icon={<LocationIcon className="h-4 w-4" />} label="Location" value={locationLabel} />
-                      <InfoTile icon={<UserIcon className="h-4 w-4" />} label="Gender" value={profile.gender || 'Not set'} />
-                      <InfoTile icon={<LanguageIcon className="h-4 w-4" />} label="Languages" value={languageLabel} />
-                    </div>
-                  </section>
-
-                  <section className="rounded-[24px] border border-[#e7edf3] bg-white p-5 shadow-[0_6px_24px_rgba(15,23,42,0.05)]">
-                    <h3 className="text-sm font-semibold text-[#111827]">Status</h3>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <StatusPill active={profile.isOnline}>{profile.isOnline ? 'Online now' : 'Offline'}</StatusPill>
-                      <StatusPill>{profile.isAgent ? 'Agent identity' : 'Human account'}</StatusPill>
-                      {profile.agentTier ? <StatusPill>{profile.agentTier}</StatusPill> : null}
-                      {profile.agentState ? <StatusPill>{profile.agentState}</StatusPill> : null}
-                    </div>
-                    {profile.tags.length > 0 ? (
-                      <>
-                        <div className="mt-5 h-px bg-[#edf2f6]" />
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {profile.tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="rounded-full border border-[#d8efe8] bg-[#eefaf6] px-3 py-1 text-xs font-medium text-[#2f7d6b]"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </>
-                    ) : null}
-                  </section>
-                </aside>
-
-                {/* Content Area */}
+              {isFeedStyleTab ? (
                 <section className="min-w-0">
-                  <div className="rounded-[24px] border border-[#e7edf3] bg-white p-6 shadow-[0_6px_24px_rgba(15,23,42,0.05)]">
-                    {/* Tab Header */}
-                    <div className="mb-5 flex items-center justify-between">
-                      <h3 className="text-base font-semibold text-[#111827]">
-                        {activeTab === 'Posts' && 'Recent Posts'}
-                        {activeTab === 'Media' && 'Media Gallery'}
-                        {activeTab === 'Collections' && 'Collections'}
-                        {activeTab === 'Gifts' && 'Gift Wall'}
-                      </h3>
-                      {activeTab === 'Posts' && (profile.stats?.postsCount ?? 0) > 0 && (
-                        <span className="text-xs text-gray-500">{profile.stats?.postsCount} total</span>
-                      )}
-                      {activeTab === 'Gifts' && (
-                        <span className="text-xs text-gray-500">
-                          {Object.values(profile.giftStats || {}).reduce((a, b) => a + b, 0)} received
-                        </span>
-                      )}
-                    </div>
-                    {activeTab === 'Posts' && <PostsTab profileId={profile.id} />}
-                    {activeTab === 'Media' && (
-                      <MediaTab
-                        profileId={profile.id}
-                        onMediaClick={(post, idx) => setSelectedMedia({ post, mediaIndex: idx })}
-                      />
-                    )}
-                    {activeTab === 'Collections' && <CollectionsTab profileId={profile.id} />}
-                    {activeTab === 'Gifts' && <GiftsTab giftStats={profile.giftStats} />}
+                  <div className="mb-6 flex items-center justify-between gap-4">
+                    <h3 className="text-[15px] font-semibold uppercase tracking-[0.16em] text-[#111827]">
+                      {activeTab === 'Posts' && 'Dynamic Feed'}
+                      {activeTab === 'Collections' && 'Saved Feed'}
+                      {activeTab === 'Likes' && 'Liked Feed'}
+                      {activeTab === 'Gifts' && 'Gift Collection'}
+                    </h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[#d8e1e8] to-transparent opacity-80" />
+                    <span className="shrink-0 text-xs text-[#8a94a6]">
+                      {activeTab === 'Posts' && (profile.stats?.postsCount ?? 0) > 0 && `${profile.stats?.postsCount} posts`}
+                      {activeTab === 'Collections' && 'Saved items'}
+                      {activeTab === 'Likes' && 'Liked posts'}
+                      {activeTab === 'Gifts' && '5,840 Gems received'}
+                    </span>
                   </div>
+                  {activeTab === 'Posts' && <PostsTab profileId={profile.id} />}
+                  {activeTab === 'Collections' && <CollectionsTab profileId={profile.id} canManageSavedPosts={props.isOwnProfile} />}
+                  {activeTab === 'Likes' && <LikesTab profileId={profile.id} />}
+                  {activeTab === 'Gifts' && <GiftsTab />}
                 </section>
-              </div>
+              ) : (
+                <div className="grid gap-6 xl:grid-cols-[300px,minmax(0,1fr)]">
+                  <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
+                    <section className="rounded-[24px] border border-[#e7edf3] bg-white p-5 shadow-[0_6px_24px_rgba(15,23,42,0.05)]">
+                      <h3 className="text-sm font-semibold text-[#111827]">Profile Details</h3>
+                      <p className="mt-1 text-xs leading-5 text-[#8a94a6]">
+                        Reference details and profile attributes for this contact.
+                      </p>
+                      <div className="mt-5 space-y-3.5">
+                        <InfoTile icon={<CalendarIcon className="h-4 w-4" />} label="Joined" value={formatProfileDate(profile.createdAt) || 'Unknown'} />
+                        <InfoTile icon={<LocationIcon className="h-4 w-4" />} label="Location" value={locationLabel} />
+                        <InfoTile icon={<UserIcon className="h-4 w-4" />} label="Gender" value={profile.gender || 'Not set'} />
+                        <InfoTile icon={<LanguageIcon className="h-4 w-4" />} label="Languages" value={languageLabel} />
+                      </div>
+                    </section>
+
+                    <section className="rounded-[24px] border border-[#e7edf3] bg-white p-5 shadow-[0_6px_24px_rgba(15,23,42,0.05)]">
+                      <h3 className="text-sm font-semibold text-[#111827]">Status</h3>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <StatusPill active={profile.isOnline}>{profile.isOnline ? 'Online now' : 'Offline'}</StatusPill>
+                        <StatusPill>{profile.isAgent ? 'Agent identity' : 'Human account'}</StatusPill>
+                        {profile.agentTier ? <StatusPill>{profile.agentTier}</StatusPill> : null}
+                        {profile.agentState ? <StatusPill>{profile.agentState}</StatusPill> : null}
+                      </div>
+                      {profile.tags.length > 0 ? (
+                        <>
+                          <div className="mt-5 h-px bg-[#edf2f6]" />
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {profile.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="rounded-full border border-[#d8efe8] bg-[#eefaf6] px-3 py-1 text-xs font-medium text-[#2f7d6b]"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </>
+                      ) : null}
+                    </section>
+                  </aside>
+
+                  <section className="min-w-0">
+                    <GiftsTab />
+                  </section>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
-
-      {/* Media Lightbox */}
-      {selectedMedia && (
-        <MediaLightbox
-          post={selectedMedia.post}
-          initialMediaIndex={selectedMedia.mediaIndex}
-          onClose={() => setSelectedMedia(null)}
-        />
-      )}
 
       {/* Delete Friend Confirmation Modal */}
       {showDeleteModal && (
@@ -575,13 +555,13 @@ function ActionButton({
   variant: 'primary' | 'secondary';
 }) {
   const classes = variant === 'primary'
-    ? 'border-[#2563eb] bg-[#2563eb] text-white hover:bg-[#1d4ed8]'
-    : 'border-[#d8e1ea] bg-white text-[#4b5563] hover:bg-[#f8fafc]';
+    ? 'bg-[#4ECCA3] text-white shadow-md hover:bg-[#3DBB94] hover:shadow-lg active:scale-95'
+    : 'bg-[#4ECCA3]/10 text-[#3DBB94] shadow-sm hover:bg-[#4ECCA3] hover:text-white hover:shadow-md active:scale-95';
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition ${classes}`}
+      className={`inline-flex items-center gap-2 rounded-full border-0 px-4 py-2.5 text-sm font-semibold transition-all ${classes}`}
     >
       {icon}
       {label}

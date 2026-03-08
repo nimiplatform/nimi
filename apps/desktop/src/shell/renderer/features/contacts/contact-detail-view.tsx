@@ -1,13 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { PostDto } from '@nimiplatform/sdk/realm';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
+import { Tooltip } from '@renderer/components/tooltip.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { CollectionsTab } from '@renderer/features/profile/components/collections-tab';
 import { GiftsTab } from '@renderer/features/profile/components/gifts-tab';
-import { MediaLightbox } from '@renderer/features/profile/components/media-lightbox';
-import { MediaTab } from '@renderer/features/profile/components/media-tab';
+import { LikesTab } from '@renderer/features/profile/components/likes-tab';
 import { PostsTab } from '@renderer/features/profile/components/posts-tab';
 import { formatProfileDate, type ProfileData, type ProfileTab } from '@renderer/features/profile/profile-model';
 
@@ -38,17 +37,12 @@ type ContactDetailViewProps = {
   onSaveProfile?: (draft: EditableProfileDraft) => Promise<void>;
 };
 
-type MediaSelection = {
-  post: PostDto;
-  mediaIndex: number;
-};
-
 type TabIndicator = {
   left: number;
   width: number;
 };
 
-const CONTACT_DETAIL_TABS: ProfileTab[] = ['Posts', 'Media', 'Collections', 'Gifts'];
+const CONTACT_DETAIL_TABS: ProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gifts'];
 
 export function ContactDetailView(props: ContactDetailViewProps) {
   const { t } = useTranslation();
@@ -56,17 +50,18 @@ export function ContactDetailView(props: ContactDetailViewProps) {
   const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
   const setSelectedProfileIsAgent = useAppStore((state) => state.setSelectedProfileIsAgent);
   const [activeTab, setActiveTab] = useState<ProfileTab>('Posts');
-  const [selectedMedia, setSelectedMedia] = useState<MediaSelection | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const [draft, setDraft] = useState<EditableProfileDraft>(() => buildEditableDraft(props.profile));
   const [tabIndicator, setTabIndicator] = useState<TabIndicator>({ left: 0, width: 24 });
   const menuRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const tabListRef = useRef<HTMLDivElement>(null);
   const tabButtonRefs = useRef<Partial<Record<ProfileTab, HTMLButtonElement | null>>>({});
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!showMenu) {
@@ -112,6 +107,22 @@ export function ContactDetailView(props: ContactDetailViewProps) {
     window.addEventListener('resize', updateIndicator);
     return () => window.removeEventListener('resize', updateIndicator);
   }, [activeTab]);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || !props.isOwnProfile) {
+      setShowScrollTop(false);
+      return;
+    }
+
+    const handleScroll = () => {
+      setShowScrollTop(container.scrollTop > 420);
+    };
+
+    handleScroll();
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [props.isOwnProfile]);
 
   if (props.loading) {
     return (
@@ -208,7 +219,7 @@ export function ContactDetailView(props: ContactDetailViewProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,#eef3f4_0%,#f7fafb_48%,#fcfefd_100%)]">
-      <div className="flex-1 overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
         <div className={`${props.fullBleed ? 'flex min-h-full w-full flex-col' : 'mx-auto flex min-h-full w-full max-w-[1440px] flex-col px-6 py-6'}`}>
           <section className="relative overflow-hidden rounded-[34px] bg-white shadow-[0_30px_90px_rgba(15,23,42,0.10)]">
             <div className="relative h-[220px] px-8 py-7" style={headerStyle}>
@@ -242,33 +253,35 @@ export function ContactDetailView(props: ContactDetailViewProps) {
               <div className="relative z-10 flex items-start justify-between gap-4">
                 <span />
                 {props.isOwnProfile ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (isEditing) {
-                        setDraft(buildEditableDraft(profile));
-                        setIsEditing(false);
-                        return;
-                      }
-                      setIsEditing(true);
-                    }}
-                    className="inline-flex h-11 items-center gap-2 rounded-full border border-[#9fe3cd] bg-white/92 px-4 text-[#1f8f69] shadow-[0_10px_26px_rgba(31,143,105,0.12)] backdrop-blur-md transition hover:border-[#4ECCA3] hover:bg-white"
-                    title={isEditing ? 'Exit edit mode' : 'Edit profile'}
-                  >
-                    {isEditing ? <EyeIcon className="h-4 w-4" /> : <PencilIcon className="h-4 w-4" />}
-                    <span className="text-sm font-semibold">{isEditing ? 'Preview' : 'Edit profile'}</span>
-                  </button>
+                  <Tooltip content={isEditing ? 'Exit edit mode' : 'Edit profile'} placement="bottom">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isEditing) {
+                          setDraft(buildEditableDraft(profile));
+                          setIsEditing(false);
+                          return;
+                        }
+                        setIsEditing(true);
+                      }}
+                      className="inline-flex h-11 items-center gap-2 rounded-full border border-[#9fe3cd] bg-white/92 px-4 text-[#1f8f69] shadow-[0_10px_26px_rgba(31,143,105,0.12)] backdrop-blur-md transition hover:border-[#4ECCA3] hover:bg-white"
+                    >
+                      {isEditing ? <EyeIcon className="h-4 w-4" /> : <PencilIcon className="h-4 w-4" />}
+                      <span className="text-sm font-semibold">{isEditing ? 'Preview' : 'Edit profile'}</span>
+                    </button>
+                  </Tooltip>
                 ) : (props.onBlock || props.onRemove) ? (
                   <div className="relative">
-                    <button
-                      ref={menuButtonRef}
-                      type="button"
-                      onClick={() => setShowMenu((value) => !value)}
-                      className="flex h-11 w-11 items-center justify-center rounded-full border border-white/35 bg-white/15 text-white backdrop-blur-md transition hover:bg-white/22"
-                      title="More options"
-                    >
-                      <DotsIcon className="h-4 w-4" />
-                    </button>
+                    <Tooltip content="More options" placement="bottom">
+                      <button
+                        ref={menuButtonRef}
+                        type="button"
+                        onClick={() => setShowMenu((value) => !value)}
+                        className="flex h-11 w-11 items-center justify-center rounded-full border border-white/35 bg-white/15 text-white backdrop-blur-md transition hover:bg-white/22"
+                      >
+                        <DotsIcon className="h-4 w-4" />
+                      </button>
+                    </Tooltip>
                     {showMenu ? (
                       <div
                         ref={menuRef}
@@ -607,14 +620,11 @@ export function ContactDetailView(props: ContactDetailViewProps) {
                           <div className={activeTab === 'Posts' ? 'block' : 'hidden'}>
                             <PostsTab profileId={profile.id} />
                           </div>
-                          <div className={activeTab === 'Media' ? 'block' : 'hidden'}>
-                            <MediaTab
-                              profileId={profile.id}
-                              onMediaClick={(post, mediaIndex) => setSelectedMedia({ post, mediaIndex })}
-                            />
-                          </div>
                           <div className={activeTab === 'Collections' ? 'block' : 'hidden'}>
-                            <CollectionsTab profileId={profile.id} />
+                            <CollectionsTab profileId={profile.id} canManageSavedPosts={Boolean(props.isOwnProfile)} />
+                          </div>
+                          <div className={activeTab === 'Likes' ? 'block' : 'hidden'}>
+                            <LikesTab profileId={profile.id} />
                           </div>
                           <div className={activeTab === 'Gifts' ? 'block' : 'hidden'}>
                             <GiftsTab giftStats={profile.giftStats} />
@@ -631,13 +641,17 @@ export function ContactDetailView(props: ContactDetailViewProps) {
           </section>
         </div>
       </div>
-
-      {selectedMedia ? (
-        <MediaLightbox
-          post={selectedMedia.post}
-          initialMediaIndex={selectedMedia.mediaIndex}
-          onClose={() => setSelectedMedia(null)}
-        />
+      {props.isOwnProfile && showScrollTop ? (
+        <button
+          type="button"
+          onClick={() => {
+            scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          aria-label="Back to top"
+          className="fixed bottom-8 right-8 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-[#4ECCA3]/35 bg-white/92 text-[#1f8f69] shadow-[0_18px_40px_rgba(31,143,105,0.18)] backdrop-blur-md transition hover:-translate-y-0.5 hover:border-[#4ECCA3]/60 hover:shadow-[0_22px_46px_rgba(31,143,105,0.24)]"
+        >
+          <ArrowUpIcon className="h-5 w-5" />
+        </button>
       ) : null}
     </div>
   );
@@ -685,19 +699,21 @@ function WorldMetaLink(input: {
   }
 
   return (
-    <button
-      type="button"
-      onClick={input.onClick}
-      className="group flex items-center gap-2.5 text-left transition-colors"
-    >
-      <span className="shrink-0 text-[#94A3B8] transition-colors group-hover:text-[#4ECCA3]">
-        <WorldIcon className="h-3.5 w-3.5" />
-      </span>
-      <span className="inline-flex min-w-0 items-center gap-1.5 text-[13px] leading-6 text-[#7C8AA5] transition-all group-hover:font-semibold group-hover:text-[#4ECCA3]">
-        <span className="truncate">{input.value}</span>
-        <ExternalLinkIcon className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:-translate-y-[1px]" />
-      </span>
-    </button>
+    <Tooltip content="Visit world" placement="top">
+      <button
+        type="button"
+        onClick={input.onClick}
+        className="group flex items-center gap-2.5 text-left transition-colors"
+      >
+        <span className="shrink-0 text-[#94A3B8] transition-colors group-hover:text-[#4ECCA3]">
+          <WorldIcon className="h-3.5 w-3.5" />
+        </span>
+        <span className="inline-flex min-w-0 items-center gap-1.5 text-[13px] leading-6 text-[#7C8AA5] transition-all group-hover:font-semibold group-hover:text-[#4ECCA3]">
+          <span className="truncate">{input.value}</span>
+          <ExternalLinkIcon className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:-translate-y-[1px]" />
+        </span>
+      </button>
+    </Tooltip>
   );
 }
 
@@ -805,15 +821,16 @@ function IconButton({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.05)] backdrop-blur-sm transition hover:border-slate-300 hover:bg-white"
-    >
-      {icon}
-    </button>
+    <Tooltip content={label} placement="top">
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={label}
+        className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#3DBB94] shadow-sm transition-all hover:bg-[#4ECCA3] hover:text-white hover:shadow-md active:scale-95"
+      >
+        {icon}
+      </button>
+    </Tooltip>
   );
 }
 
@@ -916,6 +933,15 @@ function WorldIcon({ className = '' }: { className?: string }) {
       <circle cx="12" cy="12" r="10" />
       <path d="M2 12h20" />
       <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  );
+}
+
+function ArrowUpIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m12 19 0-14" />
+      <path d="m6 11 6-6 6 6" />
     </svg>
   );
 }
