@@ -1124,3 +1124,23 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+  - rule_id: D-OFFLINE-001
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+  - rule_id: D-OFFLINE-002
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+  - rule_id: D-OFFLINE-003
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+  - rule_id: D-OFFLINE-004
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+  - rule_id: D-OFFLINE-005
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency

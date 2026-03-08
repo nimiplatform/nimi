@@ -182,6 +182,7 @@ Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）
 - `runtime_local_models_health`：模型健康检查。
 - `runtime_local_models_reveal_in_folder`：在系统文件管理器中打开模型目录。
 - `runtime_local_models_scan_orphans` / `runtime_local_models_scaffold_orphan`：孤立模型文件扫描与脚手架导入。
+- `runtime_local_artifacts_scan_orphans` / `runtime_local_artifacts_scaffold_orphan`：孤立 companion 文件扫描与脚手架导入。
 - `runtime_local_audits_list` / `runtime_local_append_inference_audit` / `runtime_local_append_runtime_audit`：推理与运行时审计。
 - `runtime_local_pick_manifest_path`：选取 `~/.nimi/models/**/model.manifest.json`。
 - `runtime_local_pick_artifact_manifest_path`：选取 `~/.nimi/models/**/artifact.manifest.json`。
@@ -195,10 +196,13 @@ Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）
 companion artifact 补充：
 
 - artifact list / verified list / install / import / remove 通过受管 Local Runtime bridge facade 暴露，但其数据面来自 runtime SDK `RuntimeLocalService`，不是新增 Tauri lifecycle command。
-- companion acquisition 在本轮仅支持 verified artifact install 和 `artifact.manifest.json` import；不复用主模型 orphan detect/scaffold。
+- companion acquisition 支持 verified artifact install、`artifact.manifest.json` import，以及独立的 orphan detect/scaffold lane；不得复用主模型 capability selector 或 scaffold command。
+- `runtime_local_artifacts_scaffold_orphan` 固定生成 `engine=localai` 的 `artifact.manifest.json`，随后再经 runtime local facade 执行 `importLocalArtifact`。
+- verified companion install 的失败恢复通过 desktop `Artifact Tasks` 行内 `Retry` 完成；artifact task 不是 download session。
 - `artifact.manifest.json` picker 与 `model.manifest.json` picker 必须物理拆分，且都只允许 runtime models root 下的路径。
 - Desktop 启动时必须先执行 Desktop/Tauri 已知模型 -> go-runtime 的 reconcile，再将 go-runtime-only 模型通过 `runtime_local_models_adopt` 自动纳管到 Tauri state。
 - 自动纳管只适用于 go-runtime 已有结构化 `LocalAiModelRecord` 的模型；用户直接 copy 到 `~/.nimi/models` 的裸文件通过 `runtime_local_models_scan_orphans` / `runtime_local_models_scaffold_orphan` 路径，由用户选择能力后导入。
+- companion orphan lane 允许与主模型 orphan lane 同时暴露同一裸文件；文件最终分类由用户选择的导入入口决定，导入成功后两条 lane 都必须在刷新后移除该文件。
 
 执行命令：
 

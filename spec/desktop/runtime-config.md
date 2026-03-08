@@ -86,7 +86,7 @@ type RuntimeConfigStateV11 = {
 - `activePage: RuntimePageIdV11` — 当前页面
 - `onChangePage(page: RuntimePageIdV11)` — 切换页面
 - daemon lifecycle（start/stop/restart/refresh）
-- model management（install/remove/start/stop, catalog, HF search, file import）
+- model management（install/remove/start/stop, catalog, HF search, file import, companion asset import/retry）
 - connector CRUD（通过 connector-sdk-service + connector-actions）
 - EAA token management
 - audit data streaming

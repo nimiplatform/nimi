@@ -7,6 +7,14 @@
 | `LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT` | `local-ai` | Import path not within Local Runtime models directory | `D-ERR-001` |
 | `LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID` | `local-ai` | Only model.manifest.json files may be imported | `D-ERR-001` |
 | `LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID` | `local-ai` | Only artifact.manifest.json files may be imported | `D-ERR-001` |
+| `LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND` | `local-ai` | Selected companion orphan file does not exist | `D-ERR-001` |
+| `LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID` | `local-ai` | Companion orphan kind is invalid or unsupported | `D-ERR-001` |
+| `LOCAL_AI_ARTIFACT_ORPHAN_TARGET_EXISTS` | `local-ai` | Target artifact directory or payload file already exists | `D-ERR-001` |
+| `LOCAL_AI_ARTIFACT_ORPHAN_DIR_FAILED` | `local-ai` | Cannot create companion artifact directory | `D-ERR-001` |
+| `LOCAL_AI_ARTIFACT_ORPHAN_MOVE_FAILED` | `local-ai` | Cannot move or copy companion artifact payload into runtime models root | `D-ERR-001` |
+| `LOCAL_AI_ARTIFACT_ORPHAN_SOURCE_CLEANUP_FAILED` | `local-ai` | Source companion payload cleanup failed after copy fallback | `D-ERR-001` |
+| `LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_SERIALIZE_FAILED` | `local-ai` | Failed to serialize generated companion artifact manifest JSON | `D-ERR-001` |
+| `LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_WRITE_FAILED` | `local-ai` | Failed to write generated artifact.manifest.json to disk | `D-ERR-001` |
 | `LOCAL_AI_IMPORT_MANIFEST_NOT_FOUND` | `local-ai` | Model manifest file not found at import path | `D-ERR-001` |
 | `LOCAL_AI_IMPORT_MANIFEST_PARSE_FAILED` | `local-ai` | Model manifest JSON parsing failed | `D-ERR-001` |
 | `LOCAL_AI_IMPORT_HASH_MISMATCH` | `local-ai` | Model file checksum verification failed | `D-ERR-001` |

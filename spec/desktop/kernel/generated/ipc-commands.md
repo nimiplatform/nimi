@@ -83,3 +83,5 @@
 | `runtime_local_models_reveal_in_folder` | `local-runtime` | Reveal installed model files in system file manager | `D-IPC-011` |
 | `runtime_local_models_scan_orphans` | `local-runtime` | Scan for orphan model files not tracked by runtime state | `D-IPC-011` |
 | `runtime_local_models_scaffold_orphan` | `local-runtime` | Scaffold an orphan model file into a tracked model with user-selected capability | `D-IPC-011` |
+| `runtime_local_artifacts_scan_orphans` | `local-runtime` | Scan for orphan companion files not managed by model.manifest.json or artifact.manifest.json | `D-IPC-011` |
+| `runtime_local_artifacts_scaffold_orphan` | `local-runtime` | Scaffold an orphan companion file into artifact.manifest.json with user-selected kind and fixed localai engine | `D-IPC-011` |

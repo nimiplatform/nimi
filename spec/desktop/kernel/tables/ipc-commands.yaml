@@ -405,3 +405,13 @@ commands:
     module: local-runtime
     description: Scaffold an orphan model file into a tracked model with user-selected capability
     source_rule: D-IPC-011
+
+  - command: runtime_local_artifacts_scan_orphans
+    module: local-runtime
+    description: Scan for orphan companion files not managed by model.manifest.json or artifact.manifest.json
+    source_rule: D-IPC-011
+
+  - command: runtime_local_artifacts_scaffold_orphan
+    module: local-runtime
+    description: Scaffold an orphan companion file into artifact.manifest.json with user-selected kind and fixed localai engine
+    source_rule: D-IPC-011

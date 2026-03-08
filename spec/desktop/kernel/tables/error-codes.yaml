@@ -18,6 +18,46 @@ codes:
     description: Only artifact.manifest.json files may be imported
     source_rule: D-ERR-001
 
+  - code: LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND
+    domain: local-ai
+    description: Selected companion orphan file does not exist
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID
+    domain: local-ai
+    description: Companion orphan kind is invalid or unsupported
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_ARTIFACT_ORPHAN_TARGET_EXISTS
+    domain: local-ai
+    description: Target artifact directory or payload file already exists
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_ARTIFACT_ORPHAN_DIR_FAILED
+    domain: local-ai
+    description: Cannot create companion artifact directory
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_ARTIFACT_ORPHAN_MOVE_FAILED
+    domain: local-ai
+    description: Cannot move or copy companion artifact payload into runtime models root
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_ARTIFACT_ORPHAN_SOURCE_CLEANUP_FAILED
+    domain: local-ai
+    description: Source companion payload cleanup failed after copy fallback
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_SERIALIZE_FAILED
+    domain: local-ai
+    description: Failed to serialize generated companion artifact manifest JSON
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_WRITE_FAILED
+    domain: local-ai
+    description: Failed to write generated artifact.manifest.json to disk
+    source_rule: D-ERR-001
+
   - code: LOCAL_AI_IMPORT_MANIFEST_NOT_FOUND
     domain: local-ai
     description: Model manifest file not found at import path

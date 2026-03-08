@@ -150,12 +150,13 @@ companion artifact manifest 也必须位于 `~/.nimi/models/` 根下的某个子
 
 ### 获取边界
 
-companion artifact 本轮只支持两条路径：
+companion artifact 支持三条路径：
 
 1. verified artifact install
 2. `artifact.manifest.json` import
+3. orphan detect/scaffold（独立 companion lane）
 
-Desktop 本轮不支持 companion artifact orphan detect/scaffold，也不复用主模型 capability 选择入口。
+Desktop 不复用主模型 orphan detect/scaffold，也不复用主模型 capability 选择入口。
 
 ### Import Artifact Manifest
 
@@ -163,10 +164,44 @@ Desktop 本轮不支持 companion artifact orphan detect/scaffold，也不复用
 
 artifact import 的类型来源固定为 manifest 中的 `kind`，允许值由 runtime local service schema 约束为 `vae / llm / clip / controlnet / lora / auxiliary`。
 
+### Companion Orphan Detect / Scaffold
+
+Desktop 在 `Companion Assets` 区域内提供独立的 `Unregistered Companion Assets` lane。该 lane：
+
+- 扫描 `~/.nimi/models/` 下未被 `model.manifest.json` 或 `artifact.manifest.json` 纳管的二进制模型文件
+- 允许与主模型 orphan lane 同时展示同一裸文件；Desktop 不自动推断其用途
+- 只让用户选择 `kind`，不暴露 engine 选择器
+- scaffold 固定生成 `engine=localai` 的 `artifact.manifest.json`
+- scaffold 完成后必须再调用 runtime local facade 的 `importLocalArtifact`
+
+scaffold manifest 固定写入：
+
+- `artifactId = local-import/<artifact-slug>`
+- `kind =` 用户选定的 artifact kind
+- `engine = localai`
+- `entry/files =` 原始文件名
+- `license = unknown`
+- `source.repo = local-import/<artifact-slug>`
+- `source.revision = local`
+- `hashes = { <filename>: sha256:<digest> }`
+
+verified companion install 失败时，Desktop 必须在 `Artifact Tasks` 中提供 task-local `Retry`，按原 `templateId` 重跑 verified install。该任务流不是 download session。
+
 ### Error（artifact import 相关）
 
 - `LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID` — 仅允许导入 `artifact.manifest.json`
 - `LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT` — artifact manifest 必须位于 `~/.nimi/models/` 下
+
+### Error（artifact orphan 相关）
+
+- `LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND` — companion orphan 文件不存在
+- `LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID` — companion kind 非法
+- `LOCAL_AI_ARTIFACT_ORPHAN_TARGET_EXISTS` — 目标 artifact 目录或文件已存在
+- `LOCAL_AI_ARTIFACT_ORPHAN_DIR_FAILED` — companion 目录创建失败
+- `LOCAL_AI_ARTIFACT_ORPHAN_MOVE_FAILED` — companion 文件整理失败
+- `LOCAL_AI_ARTIFACT_ORPHAN_SOURCE_CLEANUP_FAILED` — copy 成功后源文件清理失败
+- `LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_SERIALIZE_FAILED` — companion manifest 序列化失败
+- `LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_WRITE_FAILED` — companion manifest 写盘失败
 
 ## CI 门禁引用
 

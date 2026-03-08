@@ -198,3 +198,8 @@
 | `D-CODEGEN-073` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-CODEGEN-074` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-CODEGEN-075` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-OFFLINE-001` | `covered` | `desktop_kernel_consistency` |
+| `D-OFFLINE-002` | `covered` | `desktop_kernel_consistency` |
+| `D-OFFLINE-003` | `covered` | `desktop_kernel_consistency` |
+| `D-OFFLINE-004` | `covered` | `desktop_kernel_consistency` |
+| `D-OFFLINE-005` | `covered` | `desktop_kernel_consistency` |
