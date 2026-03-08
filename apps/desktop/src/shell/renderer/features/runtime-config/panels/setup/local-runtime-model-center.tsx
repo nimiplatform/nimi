@@ -1,9 +1,12 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   localAiRuntime,
+  type LocalAiArtifactKind,
+  type LocalAiArtifactRecord,
   type GgufVariantDescriptor,
   type LocalAiDependencyResolutionPlan,
   type LocalAiCatalogItemDescriptor,
+  type LocalAiVerifiedArtifactDescriptor,
   type LocalAiVerifiedModelDescriptor,
   type OrphanModelFile,
 } from '@runtime/local-ai-runtime';
@@ -13,6 +16,7 @@ import {
   CAPABILITY_OPTIONS,
   downloadStateLabel,
   PROGRESS_SESSION_LIMIT,
+  PROGRESS_RETENTION_MS,
   INSTALL_ENGINE_OPTIONS,
   type CapabilityOption,
   type InstallEngineOption,
@@ -29,6 +33,118 @@ import {
   pruneProgressSessions,
   sortProgressSessions,
 } from './model-center-utils';
+
+const ARTIFACT_KIND_OPTIONS = [
+  'vae',
+  'llm',
+  'clip',
+  'controlnet',
+  'lora',
+  'auxiliary',
+] as const satisfies readonly LocalAiArtifactKind[];
+
+function formatArtifactKindLabel(value: LocalAiArtifactKind): string {
+  switch (value) {
+    case 'vae':
+      return 'VAE';
+    case 'llm':
+      return 'LLM';
+    case 'clip':
+      return 'CLIP';
+    case 'controlnet':
+      return 'ControlNet';
+    case 'lora':
+      return 'LoRA';
+    case 'auxiliary':
+      return 'Auxiliary';
+    default:
+      return value;
+  }
+}
+
+const GENERIC_MODEL_TAGS = new Set([
+  'verified',
+  'chat',
+  'image',
+  'video',
+  'tts',
+  'stt',
+  'embedding',
+  'localai',
+  'nexa',
+]);
+
+function normalizeDescriptorToken(value: string | undefined | null): string {
+  return String(value || '').trim().toLowerCase();
+}
+
+function collectModelFamilyHints(model: LocalAiVerifiedModelDescriptor): string[] {
+  const hints = new Set<string>();
+  for (const tag of model.tags || []) {
+    const normalized = normalizeDescriptorToken(tag);
+    if (!normalized || GENERIC_MODEL_TAGS.has(normalized)) {
+      continue;
+    }
+    hints.add(normalized);
+  }
+  return [...hints];
+}
+
+function collectArtifactFamilyHints(artifact: LocalAiVerifiedArtifactDescriptor): string[] {
+  const hints = new Set<string>();
+  const family = normalizeDescriptorToken(typeof artifact.metadata?.family === 'string' ? artifact.metadata.family : '');
+  if (family) {
+    hints.add(family);
+  }
+  for (const tag of artifact.tags || []) {
+    const normalized = normalizeDescriptorToken(tag);
+    if (!normalized || GENERIC_MODEL_TAGS.has(normalized)) {
+      continue;
+    }
+    hints.add(normalized);
+  }
+  return [...hints];
+}
+
+function relatedArtifactsForModel(
+  model: LocalAiVerifiedModelDescriptor,
+  artifacts: LocalAiVerifiedArtifactDescriptor[],
+): LocalAiVerifiedArtifactDescriptor[] {
+  const capabilities = new Set((model.capabilities || []).map((value) => normalizeDescriptorToken(value)));
+  if (!capabilities.has('image')) {
+    return [];
+  }
+  const modelFamilies = new Set(collectModelFamilyHints(model));
+  if (modelFamilies.size === 0) {
+    return [];
+  }
+  return artifacts.filter((artifact) => {
+    const artifactFamilies = collectArtifactFamilyHints(artifact);
+    return artifactFamilies.some((family) => modelFamilies.has(family));
+  });
+}
+
+type ArtifactTaskState = 'running' | 'completed' | 'failed';
+
+type ArtifactTaskEntry = {
+  templateId: string;
+  artifactId: string;
+  title: string;
+  kind: LocalAiArtifactKind;
+  state: ArtifactTaskState;
+  detail?: string;
+  updatedAtMs: number;
+};
+
+function isArtifactTaskTerminal(state: ArtifactTaskState): boolean {
+  return state === 'completed' || state === 'failed';
+}
+
+function artifactTaskStatusLabel(state: ArtifactTaskState): string {
+  if (state === 'running') return 'Installing';
+  if (state === 'completed') return 'Installed';
+  return 'Failed';
+}
 
 function formatLastCheckedAgo(lastCheckedAt: string | null): string {
   if (!lastCheckedAt) {
@@ -196,6 +312,14 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
   const [loadingCatalog, setLoadingCatalog] = useState(false);
   const [verifiedModels, setVerifiedModels] = useState<LocalAiVerifiedModelDescriptor[]>([]);
   const [loadingVerifiedModels, setLoadingVerifiedModels] = useState(false);
+  const [installedArtifacts, setInstalledArtifacts] = useState<LocalAiArtifactRecord[]>([]);
+  const [loadingInstalledArtifacts, setLoadingInstalledArtifacts] = useState(false);
+  const [verifiedArtifacts, setVerifiedArtifacts] = useState<LocalAiVerifiedArtifactDescriptor[]>([]);
+  const [loadingVerifiedArtifacts, setLoadingVerifiedArtifacts] = useState(false);
+  const [artifactKindFilter, setArtifactKindFilter] = useState<'all' | LocalAiArtifactKind>('all');
+  const [artifactBusy, setArtifactBusy] = useState(false);
+  const [artifactPendingTemplateIds, setArtifactPendingTemplateIds] = useState<string[]>([]);
+  const [artifactTasks, setArtifactTasks] = useState<ArtifactTaskEntry[]>([]);
   const [internalSelectedDependencyModId, setInternalSelectedDependencyModId] = useState('');
   const [selectedDependencyCapability, setSelectedDependencyCapability] = useState<'auto' | CapabilityOption>('auto');
   const [dependencyPlanPreview, setDependencyPlanPreview] = useState<LocalAiDependencyResolutionPlan | null>(null);
@@ -293,6 +417,39 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
     );
   }, [sortedModels, deferredSearchQuery]);
 
+  const sortedInstalledArtifacts = useMemo(
+    () => [...installedArtifacts].sort((left, right) => {
+      const leftRank = parseTimestamp(left.installedAt) || parseTimestamp(left.updatedAt);
+      const rightRank = parseTimestamp(right.installedAt) || parseTimestamp(right.updatedAt);
+      if (leftRank !== rightRank) return rightRank - leftRank;
+      return String(right.localArtifactId || '').localeCompare(String(left.localArtifactId || ''));
+    }),
+    [installedArtifacts],
+  );
+
+  const filteredInstalledArtifacts = useMemo(() => {
+    const query = deferredSearchQuery.toLowerCase().trim();
+    return sortedInstalledArtifacts.filter((artifact) => {
+      const matchesKind = artifactKindFilter === 'all' || artifact.kind === artifactKindFilter;
+      if (!matchesKind) return false;
+      if (!query) return true;
+      return (
+        artifact.artifactId.toLowerCase().includes(query)
+        || artifact.localArtifactId.toLowerCase().includes(query)
+        || artifact.engine.toLowerCase().includes(query)
+        || artifact.kind.toLowerCase().includes(query)
+        || artifact.source.repo.toLowerCase().includes(query)
+      );
+    });
+  }, [artifactKindFilter, deferredSearchQuery, sortedInstalledArtifacts]);
+
+  const installedArtifactIds = useMemo(() => (
+    new Set(sortedInstalledArtifacts.map((artifact) => artifact.artifactId.toLowerCase()))
+  ), [sortedInstalledArtifacts]);
+  const installedArtifactsById = useMemo(() => (
+    new Map(sortedInstalledArtifacts.map((artifact) => [artifact.artifactId.toLowerCase(), artifact] as const))
+  ), [sortedInstalledArtifacts]);
+
   // Check if a catalog item is already installed
   const isInstalled = useCallback((modelId: string) => {
     return sortedModels.some(m => m.model.toLowerCase() === modelId.toLowerCase());
@@ -357,6 +514,34 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
     }
   }, [isInstalled]);
 
+  const refreshInstalledArtifacts = useCallback(async () => {
+    setLoadingInstalledArtifacts(true);
+    try {
+      const rows = await localAiRuntime.listArtifacts(
+        artifactKindFilter === 'all' ? undefined : { kind: artifactKindFilter },
+      );
+      setInstalledArtifacts(rows);
+    } catch {
+      setInstalledArtifacts([]);
+    } finally {
+      setLoadingInstalledArtifacts(false);
+    }
+  }, [artifactKindFilter]);
+
+  const refreshVerifiedArtifacts = useCallback(async () => {
+    setLoadingVerifiedArtifacts(true);
+    try {
+      const rows = await localAiRuntime.listVerifiedArtifacts(
+        artifactKindFilter === 'all' ? undefined : { kind: artifactKindFilter },
+      );
+      setVerifiedArtifacts(rows);
+    } catch {
+      setVerifiedArtifacts([]);
+    } finally {
+      setLoadingVerifiedArtifacts(false);
+    }
+  }, [artifactKindFilter]);
+
   const refreshOrphanFiles = useCallback(async () => {
     try {
       const orphans = await localAiRuntime.scanOrphans();
@@ -403,6 +588,14 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
   useEffect(() => {
     void refreshVerifiedModels();
   }, [refreshVerifiedModels]);
+
+  useEffect(() => {
+    void refreshInstalledArtifacts();
+  }, [refreshInstalledArtifacts]);
+
+  useEffect(() => {
+    void refreshVerifiedArtifacts();
+  }, [refreshVerifiedArtifacts]);
 
   // Scan for orphan model files on mount
   useEffect(() => {
@@ -492,6 +685,42 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
     [progressBySessionId],
   );
 
+  const visibleVerifiedArtifacts = useMemo(() => {
+    const query = deferredSearchQuery.toLowerCase().trim();
+    return verifiedArtifacts.filter((artifact) => {
+      if (installedArtifactIds.has(artifact.artifactId.toLowerCase())) {
+        return false;
+      }
+      if (!query) {
+        return true;
+      }
+      return (
+        artifact.artifactId.toLowerCase().includes(query)
+        || artifact.title.toLowerCase().includes(query)
+        || artifact.description.toLowerCase().includes(query)
+        || artifact.kind.toLowerCase().includes(query)
+        || artifact.repo.toLowerCase().includes(query)
+      );
+    });
+  }, [deferredSearchQuery, installedArtifactIds, verifiedArtifacts]);
+  const relatedArtifactsByModelTemplate = useMemo(() => {
+    const next = new Map<string, LocalAiVerifiedArtifactDescriptor[]>();
+    for (const model of verifiedModels) {
+      next.set(model.templateId, relatedArtifactsForModel(model, verifiedArtifacts));
+    }
+    return next;
+  }, [verifiedArtifacts, verifiedModels]);
+  const verifiedArtifactsByTemplateId = useMemo(() => (
+    new Map(verifiedArtifacts.map((artifact) => [artifact.templateId, artifact] as const))
+  ), [verifiedArtifacts]);
+  const visibleArtifactTasks = useMemo(
+    () => artifactTasks
+      .slice()
+      .sort((left, right) => right.updatedAtMs - left.updatedAtMs)
+      .slice(0, 4),
+    [artifactTasks],
+  );
+
   const activeDownloads = useMemo(
     () => progressEvents.filter((event) => (
       event.state === 'queued' || event.state === 'running' || event.state === 'paused' || event.state === 'failed'
@@ -533,6 +762,118 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
       toProgressEventFromSummary(await localAiRuntime.cancelDownload(installSessionId, { caller: 'core' }))
     );
   }, [mergeSessionSummary]);
+
+  const refreshArtifactSections = useCallback(async () => {
+    await Promise.all([
+      refreshInstalledArtifacts(),
+      refreshVerifiedArtifacts(),
+    ]);
+  }, [refreshInstalledArtifacts, refreshVerifiedArtifacts]);
+
+  const markArtifactPending = useCallback((templateId: string, pending: boolean) => {
+    const normalized = String(templateId || '').trim();
+    if (!normalized) {
+      return;
+    }
+    setArtifactPendingTemplateIds((prev) => {
+      if (pending) {
+        return prev.includes(normalized) ? prev : [...prev, normalized];
+      }
+      return prev.filter((item) => item !== normalized);
+    });
+  }, []);
+
+  const upsertArtifactTask = useCallback((
+    templateId: string,
+    state: ArtifactTaskState,
+    detail?: string,
+  ) => {
+    const normalizedTemplateId = String(templateId || '').trim();
+    if (!normalizedTemplateId) {
+      return;
+    }
+    const descriptor = verifiedArtifactsByTemplateId.get(normalizedTemplateId);
+    if (!descriptor) {
+      return;
+    }
+    const nowMs = Date.now();
+    setArtifactTasks((prev) => {
+      const next = prev
+        .filter((task) => (
+          task.templateId !== normalizedTemplateId
+          && !(isArtifactTaskTerminal(task.state) && nowMs - task.updatedAtMs > PROGRESS_RETENTION_MS)
+        ));
+      next.unshift({
+        templateId: normalizedTemplateId,
+        artifactId: descriptor.artifactId,
+        title: descriptor.title,
+        kind: descriptor.kind,
+        state,
+        detail: String(detail || '').trim() || undefined,
+        updatedAtMs: nowMs,
+      });
+      return next.slice(0, 8);
+    });
+  }, [verifiedArtifactsByTemplateId]);
+
+  const isArtifactPending = useCallback((templateId: string) => (
+    artifactPendingTemplateIds.includes(String(templateId || '').trim())
+  ), [artifactPendingTemplateIds]);
+
+  const installVerifiedArtifact = useCallback(async (templateId: string) => {
+    const normalizedTemplateId = String(templateId || '').trim();
+    if (!normalizedTemplateId) {
+      return;
+    }
+    markArtifactPending(normalizedTemplateId, true);
+    upsertArtifactTask(normalizedTemplateId, 'running');
+    try {
+      await props.onInstallVerifiedArtifact(normalizedTemplateId);
+      await refreshArtifactSections();
+      upsertArtifactTask(normalizedTemplateId, 'completed', 'Artifact installed and ready.');
+    } catch (error: unknown) {
+      upsertArtifactTask(
+        normalizedTemplateId,
+        'failed',
+        error instanceof Error ? error.message : String(error || 'Artifact install failed'),
+      );
+      throw error;
+    } finally {
+      markArtifactPending(normalizedTemplateId, false);
+    }
+  }, [markArtifactPending, props, refreshArtifactSections, upsertArtifactTask]);
+
+  const installMissingArtifactsForModel = useCallback(async (artifacts: LocalAiVerifiedArtifactDescriptor[]) => {
+    const missing = artifacts.filter((artifact) => !installedArtifactsById.has(artifact.artifactId.toLowerCase()));
+    if (missing.length === 0) {
+      return;
+    }
+    for (const artifact of missing) {
+      // Keep installs serialized to avoid duplicate refresh races and clearer UI state.
+      // eslint-disable-next-line no-await-in-loop
+      await installVerifiedArtifact(artifact.templateId);
+    }
+  }, [installVerifiedArtifact, installedArtifactsById]);
+
+  const importArtifactManifest = useCallback(async () => {
+    setArtifactBusy(true);
+    try {
+      await props.onImportArtifact();
+      await refreshArtifactSections();
+    } finally {
+      setArtifactBusy(false);
+    }
+  }, [props, refreshArtifactSections]);
+
+  const removeInstalledArtifact = useCallback(async (localArtifactId: string) => {
+    setArtifactBusy(true);
+    try {
+      await props.onRemoveArtifact(localArtifactId);
+      await refreshArtifactSections();
+    } finally {
+      setArtifactBusy(false);
+    }
+  }, [props, refreshArtifactSections]);
 
   // Mod mode
   if (isModMode) {
@@ -675,10 +1016,21 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
                         setShowImportMenu(false);
                         void props.onImport();
                       }}
+                      className="w-full px-3 py-2.5 text-left text-xs hover:bg-gray-50 border-t border-gray-100"
+                    >
+                      <div className="font-medium text-gray-900">Import Model Manifest</div>
+                      <div className="text-gray-500 mt-0.5">model.manifest.json</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowImportMenu(false);
+                        void importArtifactManifest();
+                      }}
                       className="w-full px-3 py-2.5 text-left text-xs hover:bg-gray-50 rounded-b-lg border-t border-gray-100"
                     >
-                      <div className="font-medium text-gray-900">Import from Manifest</div>
-                      <div className="text-gray-500 mt-0.5">model.manifest.json</div>
+                      <div className="font-medium text-gray-900">Import Artifact Manifest</div>
+                      <div className="text-gray-500 mt-0.5">artifact.manifest.json</div>
                     </button>
                   </div>
                 )}
@@ -820,6 +1172,90 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
               )}
             </div>
 
+            <div className="border-t border-gray-200 bg-white/60">
+              <div className="px-4 py-2 border-b border-gray-100 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <FolderOpenIcon className="w-4 h-4 text-gray-400" />
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Companion Assets ({filteredInstalledArtifacts.length})
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RuntimeSelect
+                    value={artifactKindFilter}
+                    onChange={(next) => setArtifactKindFilter((next || 'all') as 'all' | LocalAiArtifactKind)}
+                    className="w-36"
+                    options={[
+                      { value: 'all', label: 'All Kinds' },
+                      ...ARTIFACT_KIND_OPTIONS.map((kind) => ({
+                        value: kind,
+                        label: formatArtifactKindLabel(kind),
+                      })),
+                    ]}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void refreshArtifactSections()}
+                    disabled={loadingInstalledArtifacts || loadingVerifiedArtifacts || artifactBusy}
+                    className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <RefreshIcon className="w-3 h-3" />
+                    Refresh
+                  </button>
+                </div>
+              </div>
+              {loadingInstalledArtifacts ? (
+                <div className="px-4 py-6 text-center">
+                  <p className="text-sm text-gray-500">Loading companion assets...</p>
+                </div>
+              ) : filteredInstalledArtifacts.length > 0 ? (
+                <div className="divide-y divide-gray-200/80">
+                  {filteredInstalledArtifacts.map((artifact) => (
+                    <div key={artifact.localArtifactId} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 text-[11px] font-semibold">
+                        {formatArtifactKindLabel(artifact.kind).slice(0, 3).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-900 truncate">{artifact.artifactId}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                            {formatArtifactKindLabel(artifact.kind)}
+                          </span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
+                            {artifact.engine}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 truncate">{artifact.localArtifactId}</p>
+                        <p className="text-[11px] text-gray-400 truncate">{artifact.entry}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] px-2 py-0.5 rounded ${artifact.status === 'active' ? 'bg-green-100 text-green-700' : artifact.status === 'unhealthy' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {artifact.status}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { void removeInstalledArtifact(artifact.localArtifactId); }}
+                          disabled={artifactBusy}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                          title="Remove artifact"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="px-4 py-6 text-center">
+                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-gray-400 mb-3">
+                    <FolderOpenIcon className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-sm font-medium text-gray-900 mb-1">No Companion Assets</h3>
+                  <p className="text-xs text-gray-500">Import `artifact.manifest.json` files or install verified VAE/LLM assets below.</p>
+                </div>
+              )}
+            </div>
+
             {/* Orphan files section */}
             {orphanFiles.length > 0 && (
               <div className="border-t border-amber-200 bg-amber-50/50">
@@ -902,7 +1338,11 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
                 </div>
                 <div className="divide-y divide-gray-200/80">
                   {/* Verified Models */}
-                  {verifiedModels.map((item) => (
+                  {verifiedModels.map((item) => {
+                    const relatedArtifacts = relatedArtifactsByModelTemplate.get(item.templateId) || [];
+                    const missingArtifacts = relatedArtifacts.filter((artifact) => !installedArtifactsById.has(artifact.artifactId.toLowerCase()));
+                    const hasPendingMissingArtifacts = missingArtifacts.some((artifact) => isArtifactPending(artifact.templateId));
+                    return (
                     <div key={item.templateId} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-white">
                         <StarIcon className="w-4 h-4" />
@@ -914,6 +1354,50 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
                         </div>
                         <p className="text-xs text-gray-500 truncate">{item.modelId}</p>
                         {item.description && <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{item.description}</p>}
+                        {relatedArtifacts.length > 0 ? (
+                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                            {missingArtifacts.length > 1 ? (
+                              <button
+                                type="button"
+                                onClick={() => { void installMissingArtifactsForModel(relatedArtifacts); }}
+                                disabled={artifactBusy || hasPendingMissingArtifacts}
+                                className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                              >
+                                {hasPendingMissingArtifacts ? 'Installing assets...' : `Install Missing (${missingArtifacts.length})`}
+                              </button>
+                            ) : null}
+                            {relatedArtifacts.map((artifact) => {
+                              const installed = installedArtifactsById.get(artifact.artifactId.toLowerCase()) || null;
+                              const pending = isArtifactPending(artifact.templateId);
+                              return (
+                                <div
+                                  key={`${item.templateId}-${artifact.templateId}`}
+                                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] ${
+                                    installed
+                                      ? 'border-green-200 bg-green-50 text-green-700'
+                                      : 'border-amber-200 bg-amber-50 text-amber-700'
+                                  }`}
+                                >
+                                  <span>{formatArtifactKindLabel(artifact.kind)}</span>
+                                  <span>{installed ? 'Installed' : pending ? 'Installing' : 'Required'}</span>
+                                  {!installed ? (
+                                    <button
+                                      type="button"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        void installVerifiedArtifact(artifact.templateId);
+                                      }}
+                                      disabled={artifactBusy || installing || pending}
+                                      className="rounded-full bg-white/80 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 hover:bg-white disabled:opacity-50"
+                                    >
+                                      {pending ? 'Installing...' : 'Install'}
+                                    </button>
+                                  ) : null}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : null}
                       </div>
                       <button
                         type="button"
@@ -934,7 +1418,8 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
                         Install
                       </button>
                     </div>
-                  ))}
+                    );
+                  })}
                   {/* Catalog Results (paginated) */}
                   {catalogItems.slice(0, catalogDisplayCount).map((item) => (
                     <div key={item.itemId}>
@@ -1107,6 +1592,73 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
             )}
           </div>
 
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <FolderOpenIcon className="w-4 h-4 text-slate-500" />
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Verified Companion Assets</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => void refreshArtifactSections()}
+                disabled={loadingVerifiedArtifacts || artifactBusy}
+                className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+              >
+                <RefreshIcon className="w-3 h-3" />
+                Refresh
+              </button>
+            </div>
+            {loadingVerifiedArtifacts ? (
+              <div className="py-6 text-center">
+                <p className="text-sm text-gray-500">Loading verified artifacts...</p>
+              </div>
+            ) : visibleVerifiedArtifacts.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {visibleVerifiedArtifacts.slice(0, hasSearchQuery ? 12 : 6).map((artifact) => (
+                  (() => {
+                    const pending = isArtifactPending(artifact.templateId);
+                    return (
+                  <div key={artifact.templateId} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-mint-200 hover:bg-mint-50/30 transition-colors">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-slate-500 to-slate-700 text-white text-[11px] font-semibold">
+                      {formatArtifactKindLabel(artifact.kind).slice(0, 3).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-gray-900 truncate">{artifact.title}</p>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                          {formatArtifactKindLabel(artifact.kind)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 truncate">{artifact.artifactId}</p>
+                      {artifact.description ? (
+                        <p className="text-[11px] text-gray-400 truncate mt-0.5">{artifact.description}</p>
+                      ) : null}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { void installVerifiedArtifact(artifact.templateId); }}
+                      disabled={artifactBusy || pending}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-mint-500 text-white text-xs font-medium hover:bg-mint-600 disabled:opacity-50"
+                    >
+                      <DownloadIcon className="w-3.5 h-3.5" />
+                      {pending ? 'Installing...' : 'Install'}
+                    </button>
+                  </div>
+                    );
+                  })()
+                ))}
+              </div>
+            ) : (
+              <div className="py-6 text-center">
+                <p className="text-sm text-gray-500">
+                  {hasSearchQuery
+                    ? 'No verified companion assets matched your search.'
+                    : 'No verified companion assets available for the current filter.'}
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Active Downloads */}
           {activeDownloads.length > 0 && (
             <div className="space-y-3">
@@ -1190,6 +1742,46 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
             </div>
           )}
 
+          {visibleArtifactTasks.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Asset Tasks ({visibleArtifactTasks.length})</h3>
+              <div className="grid grid-cols-1 gap-3">
+                {visibleArtifactTasks.map((task) => {
+                  const isRunning = task.state === 'running';
+                  const isFailed = task.state === 'failed';
+                  return (
+                    <div key={`artifact-task-${task.templateId}`} className="rounded-2xl bg-white p-4 shadow-[0_4px_14px_rgba(15,23,42,0.035)] ring-1 ring-black/[0.04]">
+                      <div className="flex items-center gap-3">
+                        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                          isFailed ? 'bg-red-100 text-red-600' : isRunning ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+                        }`}>
+                          <FolderOpenIcon className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-gray-900 truncate">{task.title}</p>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                              {formatArtifactKindLabel(task.kind)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 truncate">{task.artifactId}</p>
+                          {task.detail ? (
+                            <p className={`mt-0.5 text-[11px] truncate ${isFailed ? 'text-red-500' : 'text-gray-400'}`}>{task.detail}</p>
+                          ) : null}
+                        </div>
+                        <span className={`text-[10px] font-medium px-2 py-1 rounded-full ${
+                          isFailed ? 'bg-red-100 text-red-700' : isRunning ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+                        }`}>
+                          {artifactTaskStatusLabel(task.state)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
 
           {/* Quick Picks - Only show when no search */}
           {!hasSearchQuery && verifiedModels.length > 0 && (
@@ -1210,7 +1802,11 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
                 </button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {verifiedModels.map((item) => (
+                {verifiedModels.map((item) => {
+                  const relatedArtifacts = relatedArtifactsByModelTemplate.get(item.templateId) || [];
+                  const missingArtifacts = relatedArtifacts.filter((artifact) => !installedArtifactsById.has(artifact.artifactId.toLowerCase()));
+                  const hasPendingMissingArtifacts = missingArtifacts.some((artifact) => isArtifactPending(artifact.templateId));
+                  return (
                   <div key={item.templateId} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-mint-200 hover:bg-mint-50/30 transition-colors">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-white">
                       <StarIcon className="w-5 h-5" />
@@ -1218,6 +1814,50 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">{item.title}</p>
                       <p className="text-xs text-gray-500 truncate">{item.modelId}</p>
+                      {relatedArtifacts.length > 0 ? (
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          {missingArtifacts.length > 1 ? (
+                            <button
+                              type="button"
+                              onClick={() => { void installMissingArtifactsForModel(relatedArtifacts); }}
+                              disabled={artifactBusy || hasPendingMissingArtifacts}
+                              className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                            >
+                              {hasPendingMissingArtifacts ? 'Installing assets...' : `Install Missing (${missingArtifacts.length})`}
+                            </button>
+                          ) : null}
+                          {relatedArtifacts.map((artifact) => {
+                            const installed = installedArtifactsById.get(artifact.artifactId.toLowerCase()) || null;
+                            const pending = isArtifactPending(artifact.templateId);
+                            return (
+                              <div
+                                key={`${item.templateId}-quick-${artifact.templateId}`}
+                                className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] ${
+                                  installed
+                                    ? 'border-green-200 bg-green-50 text-green-700'
+                                    : 'border-amber-200 bg-amber-50 text-amber-700'
+                                }`}
+                              >
+                                <span>{formatArtifactKindLabel(artifact.kind)}</span>
+                                <span>{installed ? 'Installed' : pending ? 'Installing' : 'Required'}</span>
+                                {!installed ? (
+                                  <button
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      void installVerifiedArtifact(artifact.templateId);
+                                    }}
+                                    disabled={artifactBusy || pending}
+                                    className="rounded-full bg-white/80 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 hover:bg-white disabled:opacity-50"
+                                  >
+                                    {pending ? 'Installing...' : 'Install'}
+                                  </button>
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : null}
                     </div>
                     <button
                       type="button"
@@ -1238,7 +1878,8 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
                       Install
                     </button>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

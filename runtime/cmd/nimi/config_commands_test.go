@@ -182,6 +182,60 @@ func TestRunRuntimeConfigSetEngineFieldsRequiresRestart(t *testing.T) {
 	}
 }
 
+func TestRunRuntimeConfigSetLocalAIImageBackendFieldsRequiresRestart(t *testing.T) {
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
+	clearRuntimeConfigCommandEnv(t)
+
+	if err := runRuntimeConfig([]string{"init", "--json"}); err != nil {
+		t.Fatalf("init config: %v", err)
+	}
+
+	setOutput, err := captureStdoutFromRun(func() error {
+		return runRuntimeConfig([]string{
+			"set",
+			"--set", "engines.localai.imageBackend.mode=custom",
+			"--set", "engines.localai.imageBackend.address=127.0.0.1:60061",
+			"--set", "engines.localai.imageBackend.command=/tmp/backend/run.sh",
+			"--set", "engines.localai.imageBackend.args=[\"--addr\",\"127.0.0.1:60061\"]",
+			"--set", "engines.localai.imageBackend.env={\"FOO\":\"bar\"}",
+			"--json",
+		})
+	})
+	if err != nil {
+		t.Fatalf("runRuntimeConfig set engines.localai.imageBackend.*: %v", err)
+	}
+	setPayload := parseJSONMap(t, setOutput)
+	if asString(setPayload["reasonCode"]) != configReasonRestartRequired {
+		t.Fatalf("set reasonCode mismatch: %s", setOutput)
+	}
+
+	cfgPath := filepath.Join(homeDir, ".nimi/config.json")
+	cfg, loadErr := config.LoadFileConfig(cfgPath)
+	if loadErr != nil {
+		t.Fatalf("LoadFileConfig: %v", loadErr)
+	}
+	if cfg.Engines == nil || cfg.Engines.LocalAI == nil || cfg.Engines.LocalAI.ImageBackend == nil {
+		t.Fatalf("engines.localai.imageBackend should be persisted: %#v", cfg.Engines)
+	}
+	if cfg.Engines.LocalAI.ImageBackend.Mode != "custom" {
+		t.Fatalf("image backend mode mismatch: %q", cfg.Engines.LocalAI.ImageBackend.Mode)
+	}
+	if cfg.Engines.LocalAI.ImageBackend.Address != "127.0.0.1:60061" {
+		t.Fatalf("image backend address mismatch: %q", cfg.Engines.LocalAI.ImageBackend.Address)
+	}
+	if cfg.Engines.LocalAI.ImageBackend.Command != "/tmp/backend/run.sh" {
+		t.Fatalf("image backend command mismatch: %q", cfg.Engines.LocalAI.ImageBackend.Command)
+	}
+	if len(cfg.Engines.LocalAI.ImageBackend.Args) != 2 || cfg.Engines.LocalAI.ImageBackend.Args[0] != "--addr" {
+		t.Fatalf("image backend args mismatch: %#v", cfg.Engines.LocalAI.ImageBackend.Args)
+	}
+	if cfg.Engines.LocalAI.ImageBackend.Env["FOO"] != "bar" {
+		t.Fatalf("image backend env mismatch: %#v", cfg.Engines.LocalAI.ImageBackend.Env)
+	}
+}
+
 func TestRunRuntimeConfigSetLocalModelsPathRequiresRestart(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
@@ -523,6 +577,13 @@ func clearRuntimeConfigCommandEnv(t *testing.T) {
 		"NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED",
 		"NIMI_RUNTIME_ENGINE_LOCALAI_VERSION",
 		"NIMI_RUNTIME_ENGINE_LOCALAI_PORT",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_MODE",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_NAME",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_ADDRESS",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_COMMAND",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_ARGS_JSON",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_ENV_JSON",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_WORKING_DIR",
 		"NIMI_RUNTIME_ENGINE_NEXA_ENABLED",
 		"NIMI_RUNTIME_ENGINE_NEXA_VERSION",
 		"NIMI_RUNTIME_ENGINE_NEXA_PORT",

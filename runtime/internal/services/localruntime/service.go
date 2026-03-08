@@ -46,19 +46,29 @@ type EngineInfo struct {
 type Service struct {
 	runtimev1.UnimplementedRuntimeLocalRuntimeServiceServer
 
-	logger                  *slog.Logger
-	auditStore              *auditlog.Store
-	stateStorePath          string
-	localAuditCap           int
-	localModelsPath         string
-	localAIModelsConfigPath string
-	localAIManaged          bool
+	logger                         *slog.Logger
+	auditStore                     *auditlog.Store
+	stateStorePath                 string
+	localAuditCap                  int
+	localModelsPath                string
+	localAIModelsConfigPath        string
+	localAIManaged                 bool
+	localAIManagedEndpoint         string
+	localAIImageBackendConfigured  bool
+	localAIImageBackendUp          bool
+	localAIImageBackendAddr        string
+	localAIImageBackendStatus      runtimev1.LocalServiceStatus
+	localAIImageBackendDetail      string
+	localAIImageBackendInstalledAt string
+	localAIImageBackendUpdatedAt   string
 
 	mu                   sync.RWMutex
 	models               map[string]*runtimev1.LocalModelRecord
+	artifacts            map[string]*runtimev1.LocalArtifactRecord
 	services             map[string]*runtimev1.LocalServiceDescriptor
 	audits               []*runtimev1.LocalAuditEvent
 	verified             []*runtimev1.LocalVerifiedModelDescriptor
+	verifiedArtifacts    []*runtimev1.LocalVerifiedArtifactDescriptor
 	catalog              []*runtimev1.LocalCatalogModelDescriptor
 	engineMgr            EngineManager
 	localAIRegistrations map[string]localAIRegistration
@@ -66,6 +76,7 @@ type Service struct {
 
 	endpointProbe     endpointProbeFunc
 	hfCatalogSearch   hfCatalogSearchFunc
+	hfDownloadBaseURL string
 	modelProbeState   map[string]*probeRecoveryState
 	serviceProbeState map[string]*probeRecoveryState
 	recoveryCancel    context.CancelFunc
@@ -80,6 +91,7 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		localAuditCapacity = defaultLocalAuditCapacity
 	}
 	verified := defaultVerifiedModels()
+	verifiedArtifacts := defaultVerifiedArtifacts()
 	svc := &Service{
 		logger:                  logger,
 		auditStore:              store,
@@ -88,14 +100,17 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		localModelsPath:         resolveLocalModelsPath(""),
 		localAIModelsConfigPath: resolveGeneratedLocalAIModelsConfigPath(""),
 		models:                  make(map[string]*runtimev1.LocalModelRecord),
+		artifacts:               make(map[string]*runtimev1.LocalArtifactRecord),
 		services:                make(map[string]*runtimev1.LocalServiceDescriptor),
 		audits:                  make([]*runtimev1.LocalAuditEvent, 0, localAuditCapacity),
 		verified:                verified,
+		verifiedArtifacts:       verifiedArtifacts,
 		catalog:                 defaultCatalogFromVerified(verified),
 		localAIRegistrations:    make(map[string]localAIRegistration),
 		warmedModelKeys:         make(map[string]struct{}),
 		endpointProbe:           defaultEndpointProbe,
 		hfCatalogSearch:         defaultHFCatalogSearch,
+		hfDownloadBaseURL:       defaultHFDownloadBaseURL,
 		modelProbeState:         make(map[string]*probeRecoveryState),
 		serviceProbeState:       make(map[string]*probeRecoveryState),
 	}

@@ -4,6 +4,11 @@ import {
 import type { ModRuntimeContextInput } from '../types/runtime-mod.js';
 import type { ModRuntimeClient } from './types.js';
 export { createModRuntimeInspector } from './inspector.js';
+export {
+  buildLocalImageWorkflowExtensions,
+  type LocalImageWorkflowComponentSelection,
+  type LocalImageWorkflowExtensionInput,
+} from '../../runtime/runtime-media.js';
 
 function normalizeModId(modId: string): string {
   const normalized = String(modId || '').trim();
@@ -33,6 +38,12 @@ export function createModRuntimeClient(modId: string, context?: ModRuntimeContex
         modId: normalizedModId,
         capability: input.capability,
         binding: input.binding,
+      }),
+    },
+    localRuntime: {
+      listArtifacts: async (input) => runtimeHost.localRuntime.listArtifacts({
+        modId: normalizedModId,
+        ...input,
       }),
     },
     ai: {

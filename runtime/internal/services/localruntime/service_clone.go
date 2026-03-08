@@ -59,11 +59,27 @@ func cloneLocalModel(input *runtimev1.LocalModelRecord) *runtimev1.LocalModelRec
 	return cloned
 }
 
+func cloneLocalArtifact(input *runtimev1.LocalArtifactRecord) *runtimev1.LocalArtifactRecord {
+	if input == nil {
+		return nil
+	}
+	cloned, _ := proto.Clone(input).(*runtimev1.LocalArtifactRecord)
+	return cloned
+}
+
 func cloneVerifiedModel(input *runtimev1.LocalVerifiedModelDescriptor) *runtimev1.LocalVerifiedModelDescriptor {
 	if input == nil {
 		return nil
 	}
 	cloned, _ := proto.Clone(input).(*runtimev1.LocalVerifiedModelDescriptor)
+	return cloned
+}
+
+func cloneVerifiedArtifact(input *runtimev1.LocalVerifiedArtifactDescriptor) *runtimev1.LocalVerifiedArtifactDescriptor {
+	if input == nil {
+		return nil
+	}
+	cloned, _ := proto.Clone(input).(*runtimev1.LocalVerifiedArtifactDescriptor)
 	return cloned
 }
 

@@ -505,6 +505,7 @@ func mediaScenarioExtensionNamespace(scenarioType runtimev1.ScenarioType) string
 // Backend (via MediaBackendProvider) rather than the Provider interface.
 func executeBackendSyncMedia(
 	ctx context.Context,
+	s *Service,
 	logger *slog.Logger,
 	req *runtimev1.SubmitScenarioJobRequest,
 	selectedProvider provider,
@@ -546,6 +547,19 @@ func executeBackendSyncMedia(
 			compat  *nimillm.LocalAIImageCompat
 		)
 		if adapterName == adapterLocalAINative {
+			if s != nil && s.localImageProfile != nil {
+				alias, profile, forwardedExtensions, resolveErr := s.localImageProfile.ResolveLocalAIImageProfile(ctx, backendModelID, scenarioExtensions)
+				if resolveErr != nil {
+					return nil, nil, "", resolveErr
+				}
+				if alias != "" && len(profile) > 0 {
+					if err := backend.ImportLocalAIModelConfig(ctx, profile); err != nil {
+						return nil, nil, "", err
+					}
+					backendModelID = alias
+					scenarioExtensions = forwardedExtensions
+				}
+			}
 			payload, usage, compat, err = backend.GenerateImageLocalAI(ctx, backendModelID, spec, scenarioExtensions)
 		} else {
 			payload, usage, err = backend.GenerateImage(ctx, backendModelID, spec, scenarioExtensions)

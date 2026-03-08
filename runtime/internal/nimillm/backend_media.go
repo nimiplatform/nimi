@@ -169,7 +169,7 @@ func (b *Backend) Transcribe(
 		request.Header.Set("Authorization", "Bearer "+b.apiKey)
 	}
 
-	response, err := b.client.Do(request)
+	response, err := b.do(request)
 	if err != nil {
 		return "", nil, MapProviderRequestError(err)
 	}
@@ -202,6 +202,31 @@ type LocalAIImageCompat struct {
 	RefImagesCount int
 	AppliedOptions []string
 	IgnoredOptions []string
+}
+
+// ImportLocalAIModelConfig dynamically imports a LocalAI model configuration
+// through the LocalAI management endpoint.
+func (b *Backend) ImportLocalAIModelConfig(ctx context.Context, modelConfig map[string]any) error {
+	type importResponse struct {
+		Success  bool   `json:"success"`
+		Message  string `json:"message"`
+		Error    string `json:"error"`
+		Filename string `json:"filename"`
+	}
+	var resp importResponse
+	if err := b.postJSON(ctx, "/models/import", modelConfig, &resp); err != nil {
+		return err
+	}
+	if !resp.Success {
+		message := strings.TrimSpace(resp.Error)
+		if message == "" {
+			message = "localai model import failed"
+		}
+		return grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
+			Message: message,
+		})
+	}
+	return nil
 }
 
 // GenerateImageLocalAI sends a LocalAI-optimized image generation request.

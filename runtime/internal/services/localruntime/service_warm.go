@@ -36,7 +36,7 @@ func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalMo
 	requestCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	endpoint := modelProbeEndpoint(model)
+	endpoint := s.effectiveLocalModelEndpoint(model)
 	if err := s.bootstrapEngineIfManaged(requestCtx, model.GetEngine(), endpoint); err != nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
 			Message:    strings.TrimSpace(err.Error()),

@@ -28,12 +28,28 @@ func (s *LocalRuntimeProxy) ListLocalModels(ctx context.Context, req *runtimev1.
 	return client.ListLocalModels(ctx, req)
 }
 
+func (s *LocalRuntimeProxy) ListLocalArtifacts(ctx context.Context, req *runtimev1.ListLocalArtifactsRequest) (*runtimev1.ListLocalArtifactsResponse, error) {
+	client, err := s.client()
+	if err != nil {
+		return nil, unavailableWorker(localRuntimeWorkerRole, err)
+	}
+	return client.ListLocalArtifacts(ctx, req)
+}
+
 func (s *LocalRuntimeProxy) ListVerifiedModels(ctx context.Context, req *runtimev1.ListVerifiedModelsRequest) (*runtimev1.ListVerifiedModelsResponse, error) {
 	client, err := s.client()
 	if err != nil {
 		return nil, unavailableWorker(localRuntimeWorkerRole, err)
 	}
 	return client.ListVerifiedModels(ctx, req)
+}
+
+func (s *LocalRuntimeProxy) ListVerifiedArtifacts(ctx context.Context, req *runtimev1.ListVerifiedArtifactsRequest) (*runtimev1.ListVerifiedArtifactsResponse, error) {
+	client, err := s.client()
+	if err != nil {
+		return nil, unavailableWorker(localRuntimeWorkerRole, err)
+	}
+	return client.ListVerifiedArtifacts(ctx, req)
 }
 
 func (s *LocalRuntimeProxy) SearchCatalogModels(ctx context.Context, req *runtimev1.SearchCatalogModelsRequest) (*runtimev1.SearchCatalogModelsResponse, error) {
@@ -68,6 +84,14 @@ func (s *LocalRuntimeProxy) InstallVerifiedModel(ctx context.Context, req *runti
 	return client.InstallVerifiedModel(ctx, req)
 }
 
+func (s *LocalRuntimeProxy) InstallVerifiedArtifact(ctx context.Context, req *runtimev1.InstallVerifiedArtifactRequest) (*runtimev1.InstallVerifiedArtifactResponse, error) {
+	client, err := s.client()
+	if err != nil {
+		return nil, unavailableWorker(localRuntimeWorkerRole, err)
+	}
+	return client.InstallVerifiedArtifact(ctx, req)
+}
+
 func (s *LocalRuntimeProxy) ImportLocalModel(ctx context.Context, req *runtimev1.ImportLocalModelRequest) (*runtimev1.ImportLocalModelResponse, error) {
 	client, err := s.client()
 	if err != nil {
@@ -76,12 +100,28 @@ func (s *LocalRuntimeProxy) ImportLocalModel(ctx context.Context, req *runtimev1
 	return client.ImportLocalModel(ctx, req)
 }
 
+func (s *LocalRuntimeProxy) ImportLocalArtifact(ctx context.Context, req *runtimev1.ImportLocalArtifactRequest) (*runtimev1.ImportLocalArtifactResponse, error) {
+	client, err := s.client()
+	if err != nil {
+		return nil, unavailableWorker(localRuntimeWorkerRole, err)
+	}
+	return client.ImportLocalArtifact(ctx, req)
+}
+
 func (s *LocalRuntimeProxy) RemoveLocalModel(ctx context.Context, req *runtimev1.RemoveLocalModelRequest) (*runtimev1.RemoveLocalModelResponse, error) {
 	client, err := s.client()
 	if err != nil {
 		return nil, unavailableWorker(localRuntimeWorkerRole, err)
 	}
 	return client.RemoveLocalModel(ctx, req)
+}
+
+func (s *LocalRuntimeProxy) RemoveLocalArtifact(ctx context.Context, req *runtimev1.RemoveLocalArtifactRequest) (*runtimev1.RemoveLocalArtifactResponse, error) {
+	client, err := s.client()
+	if err != nil {
+		return nil, unavailableWorker(localRuntimeWorkerRole, err)
+	}
+	return client.RemoveLocalArtifact(ctx, req)
 }
 
 func (s *LocalRuntimeProxy) StartLocalModel(ctx context.Context, req *runtimev1.StartLocalModelRequest) (*runtimev1.StartLocalModelResponse, error) {

@@ -1,7 +1,13 @@
 import { hasTauriInvoke, tauriInvoke } from '../llm-adapter/tauri-bridge';
+import { getPlatformClient } from '../platform-client';
 import type {
   GgufVariantDescriptor,
+  LocalAiArtifactKind,
+  LocalAiArtifactRecord,
+  LocalAiArtifactStatus,
+  LocalAiImportArtifactPayload,
   LocalAiModelRecord,
+  LocalAiVerifiedArtifactDescriptor,
   LocalAiVerifiedModelDescriptor,
   LocalAiCatalogSearchPayload,
   LocalAiCatalogItemDescriptor,
@@ -21,6 +27,7 @@ import type {
   LocalAiInstallVerifiedPayload,
   LocalAiImportPayload,
   LocalAiImportFilePayload,
+  LocalAiInstallVerifiedArtifactPayload,
   LocalAiModelHealth,
   LocalAiInferenceAuditPayload,
   LocalAiRuntimeAuditPayload,
@@ -29,12 +36,16 @@ import type {
   LocalAiInstallAcceptedResponse,
   LocalAiRuntimeSnapshot,
   LocalAiRuntimeWriteOptions,
+  LocalAiListArtifactsPayload,
+  LocalAiListVerifiedArtifactsPayload,
   OrphanModelFile,
   LocalAiScaffoldOrphanPayload,
 } from './types';
 import {
   invokeLocalAiCommand,
+  parseArtifactRecord,
   parseModelRecord,
+  parseVerifiedArtifactDescriptor,
   parseVerifiedModelDescriptor,
   parseCatalogItemDescriptor,
   parseGgufVariantDescriptor,
@@ -54,6 +65,44 @@ import {
   assertLifecycleWriteAllowed,
 } from './parsers';
 
+function getSdkLocalRuntime() {
+  return getPlatformClient().runtime.localRuntime;
+}
+
+function toSdkArtifactKind(value?: LocalAiArtifactKind): number {
+  switch (String(value || '').trim().toLowerCase()) {
+    case 'llm':
+      return 2;
+    case 'clip':
+      return 3;
+    case 'controlnet':
+      return 4;
+    case 'lora':
+      return 5;
+    case 'auxiliary':
+      return 6;
+    case 'vae':
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+function toSdkArtifactStatus(value?: LocalAiArtifactStatus): number {
+  switch (String(value || '').trim().toLowerCase()) {
+    case 'active':
+      return 2;
+    case 'unhealthy':
+      return 3;
+    case 'removed':
+      return 4;
+    case 'installed':
+      return 1;
+    default:
+      return 0;
+  }
+}
+
 export async function listLocalAiRuntimeModels(): Promise<LocalAiModelRecord[]> {
   const models = await invokeLocalAiCommand<unknown[]>('runtime_local_models_list');
   return (Array.isArray(models) ? models : []).map((item) => parseModelRecord(item));
@@ -62,6 +111,31 @@ export async function listLocalAiRuntimeModels(): Promise<LocalAiModelRecord[]> 
 export async function listLocalAiRuntimeVerifiedModels(): Promise<LocalAiVerifiedModelDescriptor[]> {
   const models = await invokeLocalAiCommand<unknown[]>('runtime_local_models_verified_list');
   return (Array.isArray(models) ? models : []).map((item) => parseVerifiedModelDescriptor(item));
+}
+
+export async function listLocalAiRuntimeArtifacts(
+  payload?: LocalAiListArtifactsPayload,
+): Promise<LocalAiArtifactRecord[]> {
+  const response = await getSdkLocalRuntime().listLocalArtifacts({
+    statusFilter: toSdkArtifactStatus(payload?.status),
+    kindFilter: toSdkArtifactKind(payload?.kind),
+    engineFilter: String(payload?.engine || '').trim(),
+    pageSize: 0,
+    pageToken: '',
+  });
+  return (Array.isArray(response.artifacts) ? response.artifacts : []).map((item) => parseArtifactRecord(item));
+}
+
+export async function listLocalAiRuntimeVerifiedArtifacts(
+  payload?: LocalAiListVerifiedArtifactsPayload,
+): Promise<LocalAiVerifiedArtifactDescriptor[]> {
+  const response = await getSdkLocalRuntime().listVerifiedArtifacts({
+    kindFilter: toSdkArtifactKind(payload?.kind),
+    engineFilter: String(payload?.engine || '').trim(),
+    pageSize: 0,
+    pageToken: '',
+  });
+  return (Array.isArray(response.artifacts) ? response.artifacts : []).map((item) => parseVerifiedArtifactDescriptor(item));
 }
 
 export async function searchLocalAiRuntimeCatalog(
@@ -229,6 +303,17 @@ export async function installLocalAiRuntimeVerifiedModel(
   return parseInstallAcceptedResponse(result);
 }
 
+export async function installLocalAiRuntimeVerifiedArtifact(
+  payload: LocalAiInstallVerifiedArtifactPayload,
+  options?: LocalAiRuntimeWriteOptions,
+): Promise<LocalAiArtifactRecord> {
+  assertLifecycleWriteAllowed('local_runtime_artifacts_install_verified', options?.caller);
+  const response = await getSdkLocalRuntime().installVerifiedArtifact({
+    templateId: String(payload.templateId || '').trim(),
+  });
+  return parseArtifactRecord(response.artifact);
+}
+
 export async function listLocalAiRuntimeDownloadSessions(): Promise<LocalAiDownloadSessionSummary[]> {
   const sessions = await invokeLocalAiCommand<unknown[]>('runtime_local_downloads_list');
   return (Array.isArray(sessions) ? sessions : []).map((item) => parseDownloadSessionSummary(item));
@@ -276,6 +361,17 @@ export async function importLocalAiRuntimeModel(
   return parseModelRecord(result);
 }
 
+export async function importLocalAiRuntimeArtifact(
+  payload: LocalAiImportArtifactPayload,
+  options?: LocalAiRuntimeWriteOptions,
+): Promise<LocalAiArtifactRecord> {
+  assertLifecycleWriteAllowed('local_runtime_artifacts_import', options?.caller);
+  const response = await getSdkLocalRuntime().importLocalArtifact({
+    manifestPath: String(payload.manifestPath || '').trim(),
+  });
+  return parseArtifactRecord(response.artifact);
+}
+
 export async function removeLocalAiRuntimeModel(
   localModelId: string,
   options?: LocalAiRuntimeWriteOptions,
@@ -285,6 +381,17 @@ export async function removeLocalAiRuntimeModel(
     payload: { localModelId },
   });
   return parseModelRecord(result);
+}
+
+export async function removeLocalAiRuntimeArtifact(
+  localArtifactId: string,
+  options?: LocalAiRuntimeWriteOptions,
+): Promise<LocalAiArtifactRecord> {
+  assertLifecycleWriteAllowed('local_runtime_artifacts_remove', options?.caller);
+  const response = await getSdkLocalRuntime().removeLocalArtifact({
+    localArtifactId: String(localArtifactId || '').trim(),
+  });
+  return parseArtifactRecord(response.artifact);
 }
 
 export async function startLocalAiRuntimeModel(

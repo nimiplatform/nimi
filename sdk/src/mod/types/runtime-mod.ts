@@ -9,6 +9,8 @@ import type {
   ModRuntimeBoundEmbeddingGenerateInput,
   ModRuntimeDependencySnapshot,
   ModRuntimeBoundImageGenerateInput,
+  ModRuntimeListLocalArtifactsInput,
+  ModRuntimeLocalArtifactRecord,
   ModRuntimeBoundSpeechListVoicesInput,
   ModRuntimeBoundSpeechSynthesizeInput,
   ModRuntimeBoundSpeechTranscribeInput,
@@ -72,6 +74,11 @@ export type ModRuntimeHost = {
       capability: RuntimeCanonicalCapability;
       binding?: RuntimeRouteBinding;
     }) => Promise<RuntimeRouteHealthResult>;
+  };
+  localRuntime: {
+    listArtifacts: (input: ModRuntimeListLocalArtifactsInput & {
+      modId: string;
+    }) => Promise<ModRuntimeLocalArtifactRecord[]>;
   };
   ai: {
     text: {

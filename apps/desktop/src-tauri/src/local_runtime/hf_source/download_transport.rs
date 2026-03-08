@@ -287,6 +287,7 @@ fn build_manifest_from_install_request(
             revision: normalize_non_empty(request.revision.as_deref().unwrap_or("main"), "main"),
         },
         hashes,
+        engine_config: request.engine_config.clone(),
     })
 }
 

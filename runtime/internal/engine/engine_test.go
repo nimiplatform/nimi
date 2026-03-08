@@ -372,6 +372,24 @@ func TestProbeHealthUnreachable(t *testing.T) {
 	}
 }
 
+func TestProbeSupervisorHealthTCP(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen tcp: %v", err)
+	}
+	defer listener.Close()
+
+	cfg := EngineConfig{
+		Kind:           engineLocalAIImageBackend,
+		HealthMode:     HealthModeTCP,
+		Address:        listener.Addr().String(),
+		HealthInterval: 100 * time.Millisecond,
+	}
+	if err := probeSupervisorHealth(context.Background(), cfg); err != nil {
+		t.Fatalf("probeSupervisorHealth(tcp): %v", err)
+	}
+}
+
 func TestWaitHealthySuccess(t *testing.T) {
 	callCount := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1081,6 +1099,7 @@ func TestLocalAICommandArgs(t *testing.T) {
 	cfg.ModelsConfigPath = "/data/runtime/localai-models.yaml"
 	cfg.BackendsPath = "/data/runtime/localai-backends"
 	cfg.ExternalBackends = []string{"llama-cpp", "whisper-ggml"}
+	cfg.ExternalGRPCBackends = []string{"stablediffusion-ggml:127.0.0.1:50052"}
 	cmd2 := localAICommand(cfg)
 	args2 := strings.Join(cmd2.Args[1:], " ")
 	if !strings.Contains(args2, "--models-path") || !strings.Contains(args2, "/data/models") {
@@ -1094,6 +1113,9 @@ func TestLocalAICommandArgs(t *testing.T) {
 	}
 	if !strings.Contains(args2, "--external-backends") || !strings.Contains(args2, "llama-cpp,whisper-ggml") {
 		t.Errorf("expected --external-backends llama-cpp,whisper-ggml, got: %s", args2)
+	}
+	if !strings.Contains(args2, "--external-grpc-backends") || !strings.Contains(args2, "stablediffusion-ggml:127.0.0.1:50052") {
+		t.Errorf("expected --external-grpc-backends stablediffusion-ggml:127.0.0.1:50052, got: %s", args2)
 	}
 }
 
@@ -1114,6 +1136,29 @@ func TestDetectLocalAIExternalBackends(t *testing.T) {
 
 	if got, want := strings.Join(detectLocalAIExternalBackends(configPath), ","), "llama-cpp,whisper-ggml"; got != want {
 		t.Fatalf("detectLocalAIExternalBackends mismatch: got=%q want=%q", got, want)
+	}
+}
+
+func TestDiscoverInstalledLocalAIBackendRunPathPrefersAlias(t *testing.T) {
+	backendsPath := t.TempDir()
+	backendDir := filepath.Join(backendsPath, "metal-stablediffusion-ggml")
+	if err := os.MkdirAll(backendDir, 0o755); err != nil {
+		t.Fatalf("mkdir backend dir: %v", err)
+	}
+	runPath := filepath.Join(backendDir, "run.sh")
+	if err := os.WriteFile(runPath, []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatalf("write run.sh: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(backendDir, "metadata.json"), []byte(`{"name":"metal-stablediffusion-ggml","alias":"stablediffusion-ggml"}`), 0o644); err != nil {
+		t.Fatalf("write metadata.json: %v", err)
+	}
+
+	discovered, err := discoverInstalledLocalAIBackendRunPath(backendsPath, "stablediffusion-ggml")
+	if err != nil {
+		t.Fatalf("discoverInstalledLocalAIBackendRunPath: %v", err)
+	}
+	if discovered != runPath {
+		t.Fatalf("run path mismatch: got=%q want=%q", discovered, runPath)
 	}
 }
 

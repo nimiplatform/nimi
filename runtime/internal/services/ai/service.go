@@ -46,6 +46,7 @@ type Service struct {
 	voiceAssets              *voiceAssetStore
 	connStore                *connector.ConnectorStore
 	localModel               localModelLister
+	localImageProfile        localImageProfileResolver
 	speechCatalog            *catalog.Resolver
 	allowLoopback            bool
 	streamFirstPacketTimeout time.Duration
@@ -116,6 +117,30 @@ func (s *Service) SetModelRegistryPersistencePath(path string) {
 // SetLocalModelLister wires RuntimeLocalRuntimeService for local model availability checks.
 func (s *Service) SetLocalModelLister(localSvc localModelLister) {
 	s.localModel = localSvc
+}
+
+// SetLocalImageProfileResolver wires RuntimeLocalRuntimeService for dynamic
+// LocalAI image profile materialization.
+func (s *Service) SetLocalImageProfileResolver(resolver localImageProfileResolver) {
+	s.localImageProfile = resolver
+}
+
+// SetLocalProviderEndpoint hot-swaps the in-process local provider backend
+// endpoint after the daemon bootstraps a managed engine.
+func (s *Service) SetLocalProviderEndpoint(providerID string, endpoint string, apiKey string) {
+	if s == nil || s.selector == nil {
+		return
+	}
+	local, ok := s.selector.local.(*localProvider)
+	if !ok || local == nil {
+		return
+	}
+
+	creds := nimillm.ProviderCredentials{
+		BaseURL: strings.TrimSpace(endpoint),
+		APIKey:  strings.TrimSpace(apiKey),
+	}
+	local.setBackend(providerID, newLocalRuntimeBackend("local-"+strings.TrimSpace(providerID), creds, s.config))
 }
 
 // CloudProvider returns the underlying cloud provider for cross-service wiring (e.g., ConnectorService probe).

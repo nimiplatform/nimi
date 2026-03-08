@@ -98,4 +98,13 @@ func TestServicePublicSettersAndAccessors(t *testing.T) {
 	if svc.localModel != fakeLister {
 		t.Fatalf("local model lister should be set")
 	}
+	svc.SetLocalProviderEndpoint("localai", "http://127.0.0.1:18080/v1", "")
+	local, ok := svc.selector.local.(*localProvider)
+	if !ok || local == nil {
+		t.Fatalf("expected local provider")
+	}
+	backend, _, _, available, _ := local.pickBackend("localai/dynamic-image")
+	if backend == nil || !available {
+		t.Fatalf("localai backend should be hot-swapped after endpoint injection")
+	}
 }

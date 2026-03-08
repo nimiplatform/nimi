@@ -26,19 +26,27 @@ import {
   healthLocalAiRuntimeServices,
   removeLocalAiRuntimeService,
   listLocalAiRuntimeNodesCatalog,
+  listLocalAiRuntimeArtifacts,
+  listLocalAiRuntimeVerifiedArtifacts,
   listLocalAiRuntimeVerifiedModels,
   listLocalAiRuntimeAudits,
   listLocalAiRuntimeModels,
   pickLocalAiRuntimeManifestPath,
   pickLocalAiRuntimeModelFile,
+  importLocalAiRuntimeArtifact,
   removeLocalAiRuntimeModel,
+  removeLocalAiRuntimeArtifact,
   startLocalAiRuntimeModel,
   stopLocalAiRuntimeModel,
   scanLocalAiRuntimeOrphans,
   scaffoldLocalAiRuntimeOrphan,
+  installLocalAiRuntimeVerifiedArtifact,
 } from './commands';
 import type {
   GgufVariantDescriptor,
+  LocalAiArtifactKind,
+  LocalAiArtifactRecord,
+  LocalAiVerifiedArtifactDescriptor,
   LocalAiAuditEvent,
   LocalAiCatalogItemDescriptor,
   LocalAiCatalogResolveInstallPlanPayload,
@@ -53,7 +61,9 @@ import type {
   LocalAiDownloadSessionSummary,
   LocalAiDownloadState,
   LocalAiDownloadProgressEvent,
+  LocalAiImportArtifactPayload,
   LocalAiInstallAcceptedResponse,
+  LocalAiInstallVerifiedArtifactPayload,
   LocalAiInstallPlanDescriptor,
   LocalAiImportPayload,
   LocalAiImportFilePayload,
@@ -71,6 +81,8 @@ import type {
   LocalAiRuntimeAuditPayload,
   LocalAiRuntimeSnapshot,
   LocalAiRuntimeWriteOptions,
+  LocalAiListArtifactsPayload,
+  LocalAiListVerifiedArtifactsPayload,
   LocalAiVerifiedModelDescriptor,
   LocalAiInferenceAuditPayload,
   OrphanModelFile,
@@ -106,7 +118,10 @@ export {
 };
 
 export type {
+  LocalAiArtifactKind,
   GgufVariantDescriptor,
+  LocalAiArtifactRecord,
+  LocalAiVerifiedArtifactDescriptor,
   LocalAiAuditEvent,
   LocalAiCatalogItemDescriptor,
   LocalAiCatalogResolveInstallPlanPayload,
@@ -121,7 +136,9 @@ export type {
   LocalAiDownloadSessionSummary,
   LocalAiDownloadState,
   LocalAiDownloadProgressEvent,
+  LocalAiImportArtifactPayload,
   LocalAiInstallAcceptedResponse,
+  LocalAiInstallVerifiedArtifactPayload,
   LocalAiInstallPlanDescriptor,
   LocalAiImportPayload,
   LocalAiImportFilePayload,
@@ -141,6 +158,8 @@ export type {
   LocalAiRuntimePollingOptions,
   LocalAiRuntimeSnapshot,
   LocalAiRuntimeWriteOptions,
+  LocalAiListArtifactsPayload,
+  LocalAiListVerifiedArtifactsPayload,
   LocalAiVerifiedModelDescriptor,
   GoRuntimeModelEntry,
   GoRuntimeSyncAction,
@@ -152,6 +171,7 @@ export type {
 
 export type LocalAiRuntimeFacade = {
   list: () => Promise<LocalAiModelRecord[]>;
+  listArtifacts: (payload?: LocalAiListArtifactsPayload) => Promise<LocalAiArtifactRecord[]>;
   searchCatalog: (payload?: LocalAiCatalogSearchPayload) => Promise<LocalAiCatalogItemDescriptor[]>;
   listRepoGgufVariants: (repo: string) => Promise<GgufVariantDescriptor[]>;
   resolveInstallPlan: (payload: LocalAiCatalogResolveInstallPlanPayload) => Promise<LocalAiInstallPlanDescriptor>;
@@ -185,10 +205,17 @@ export type LocalAiRuntimeFacade = {
     options?: LocalAiRuntimeWriteOptions,
   ) => Promise<LocalAiInstallAcceptedResponse>;
   listVerified: () => Promise<LocalAiVerifiedModelDescriptor[]>;
+  listVerifiedArtifacts: (
+    payload?: LocalAiListVerifiedArtifactsPayload,
+  ) => Promise<LocalAiVerifiedArtifactDescriptor[]>;
   installVerified: (
     payload: LocalAiInstallVerifiedPayload,
     options?: LocalAiRuntimeWriteOptions,
   ) => Promise<LocalAiInstallAcceptedResponse>;
+  installVerifiedArtifact: (
+    payload: LocalAiInstallVerifiedArtifactPayload,
+    options?: LocalAiRuntimeWriteOptions,
+  ) => Promise<LocalAiArtifactRecord>;
   listDownloads: () => Promise<LocalAiDownloadSessionSummary[]>;
   pauseDownload: (
     installSessionId: string,
@@ -206,6 +233,10 @@ export type LocalAiRuntimeFacade = {
     payload: LocalAiImportPayload,
     options?: LocalAiRuntimeWriteOptions,
   ) => Promise<LocalAiModelRecord>;
+  importArtifact: (
+    payload: LocalAiImportArtifactPayload,
+    options?: LocalAiRuntimeWriteOptions,
+  ) => Promise<LocalAiArtifactRecord>;
   pickModelFile: () => Promise<string | null>;
   importFile: (
     payload: LocalAiImportFilePayload,
@@ -215,6 +246,10 @@ export type LocalAiRuntimeFacade = {
     localModelId: string,
     options?: LocalAiRuntimeWriteOptions,
   ) => Promise<LocalAiModelRecord>;
+  removeArtifact: (
+    localArtifactId: string,
+    options?: LocalAiRuntimeWriteOptions,
+  ) => Promise<LocalAiArtifactRecord>;
   start: (
     localModelId: string,
     options?: LocalAiRuntimeWriteOptions,
@@ -240,6 +275,7 @@ export type LocalAiRuntimeFacade = {
 
 export const localAiRuntime: LocalAiRuntimeFacade = {
   list: listLocalAiRuntimeModels,
+  listArtifacts: listLocalAiRuntimeArtifacts,
   searchCatalog: searchLocalAiRuntimeCatalog,
   listRepoGgufVariants: listLocalAiRuntimeRepoGgufVariants,
   resolveInstallPlan: resolveLocalAiRuntimeInstallPlan,
@@ -255,15 +291,19 @@ export const localAiRuntime: LocalAiRuntimeFacade = {
   listNodesCatalog: listLocalAiRuntimeNodesCatalog,
   install: installLocalAiRuntimeModel,
   listVerified: listLocalAiRuntimeVerifiedModels,
+  listVerifiedArtifacts: listLocalAiRuntimeVerifiedArtifacts,
   installVerified: installLocalAiRuntimeVerifiedModel,
+  installVerifiedArtifact: installLocalAiRuntimeVerifiedArtifact,
   listDownloads: listLocalAiRuntimeDownloadSessions,
   pauseDownload: pauseLocalAiRuntimeDownload,
   resumeDownload: resumeLocalAiRuntimeDownload,
   cancelDownload: cancelLocalAiRuntimeDownload,
   import: importLocalAiRuntimeModel,
+  importArtifact: importLocalAiRuntimeArtifact,
   pickModelFile: pickLocalAiRuntimeModelFile,
   importFile: importLocalAiRuntimeModelFile,
   remove: removeLocalAiRuntimeModel,
+  removeArtifact: removeLocalAiRuntimeArtifact,
   start: startLocalAiRuntimeModel,
   stop: stopLocalAiRuntimeModel,
   health: healthLocalAiRuntimeModels,

@@ -456,6 +456,7 @@ fn verified_descriptor_to_catalog_item(
         likes: None,
         last_modified: None,
         verified: true,
+        engine_config: descriptor.engine_config,
     }
 }
 
@@ -497,6 +498,7 @@ fn hf_search_to_catalog_item(item: HfSearchModel) -> Option<LocalAiCatalogItemDe
         likes: item.likes,
         last_modified: item.last_modified,
         verified: false,
+        engine_config: None,
     })
 }
 
@@ -763,6 +765,7 @@ fn resolve_verified_plan(template_id: &str) -> Result<LocalAiInstallPlanDescript
         hashes: descriptor.hashes,
         warnings: Vec::new(),
         reason_code: None,
+        engine_config: descriptor.engine_config,
     })
 }
 
@@ -900,6 +903,7 @@ pub fn resolve_install_plan(
         hashes,
         warnings,
         reason_code: None,
+        engine_config: None,
     })
 }
 
@@ -973,6 +977,7 @@ mod tests {
             likes: None,
             last_modified: None,
             verified,
+            engine_config: None,
         }
     }
 

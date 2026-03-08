@@ -338,6 +338,7 @@ pub fn manifest_to_model_record(
         installed_at: now.clone(),
         updated_at: now,
         health_detail: None,
+        engine_config: manifest.engine_config.clone(),
     })
 }
 
@@ -602,6 +603,7 @@ mod tests {
                 revision: "main".to_string(),
             },
             hashes: HashMap::from([("model.gguf".to_string(), "sha256:abc123".to_string())]),
+            engine_config: None,
         };
         let record = manifest_to_model_record(&manifest, None).expect("model record");
         assert_eq!(record.status, LocalAiModelStatus::Installed);

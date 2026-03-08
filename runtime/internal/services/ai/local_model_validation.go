@@ -17,6 +17,10 @@ type localModelLister interface {
 	ListLocalModels(context.Context, *runtimev1.ListLocalModelsRequest) (*runtimev1.ListLocalModelsResponse, error)
 }
 
+type localImageProfileResolver interface {
+	ResolveLocalAIImageProfile(context.Context, string, map[string]any) (string, map[string]any, map[string]any, error)
+}
+
 type localModelSelector struct {
 	modelID        string
 	explicitEngine string

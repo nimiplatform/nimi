@@ -48,8 +48,9 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 		if localModelID == "" || !s.shouldProbeModelNow(localModelID, now) {
 			continue
 		}
-		bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), modelProbeEndpoint(model))
-		probe := s.probeEndpoint(ctx, modelProbeEndpoint(model))
+		endpoint := s.effectiveLocalModelEndpoint(model)
+		bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), endpoint)
+		probe := s.probeEndpoint(ctx, endpoint)
 		registration := s.localAIRegistrationForModel(model)
 		if modelProbeSucceeded(model, probe, registration) {
 			successes := s.modelRecoverySuccess(localModelID, now)

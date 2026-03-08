@@ -87,6 +87,7 @@ fn run_dependency_apply(
                     hashes: None,
                     endpoint: Some(endpoint),
                     provider_hints: None,
+                    engine_config: None,
                 };
                 let installed = execute_hf_install_blocking(
                     app,
@@ -123,6 +124,7 @@ fn run_dependency_apply(
                         hashes: None,
                         endpoint: Some(endpoint),
                         provider_hints: None,
+                        engine_config: None,
                     };
                     let installed = execute_hf_install_blocking(
                         app,
@@ -380,4 +382,3 @@ fn run_dependency_apply(
         reason_code: None,
     })
 }
-

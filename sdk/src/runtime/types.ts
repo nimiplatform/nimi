@@ -94,14 +94,20 @@ import type {
   CheckLocalServiceHealthResponse,
   CollectDeviceProfileRequest,
   CollectDeviceProfileResponse,
+  ImportLocalArtifactRequest,
+  ImportLocalArtifactResponse,
   ImportLocalModelRequest,
   ImportLocalModelResponse,
+  InstallVerifiedArtifactRequest,
+  InstallVerifiedArtifactResponse,
   InstallLocalModelRequest,
   InstallLocalModelResponse,
   InstallLocalServiceRequest,
   InstallLocalServiceResponse,
   InstallVerifiedModelRequest,
   InstallVerifiedModelResponse,
+  ListLocalArtifactsRequest,
+  ListLocalArtifactsResponse,
   ListLocalAuditsRequest,
   ListLocalAuditsResponse,
   ListLocalModelsRequest,
@@ -110,8 +116,12 @@ import type {
   ListLocalServicesResponse,
   ListNodeCatalogRequest,
   ListNodeCatalogResponse,
+  ListVerifiedArtifactsRequest,
+  ListVerifiedArtifactsResponse,
   ListVerifiedModelsRequest,
   ListVerifiedModelsResponse,
+  RemoveLocalArtifactRequest,
+  RemoveLocalArtifactResponse,
   RemoveLocalModelRequest,
   RemoveLocalModelResponse,
   RemoveLocalServiceRequest,
@@ -358,13 +368,18 @@ export type RuntimeKnowledgeClient = {
 
 export type RuntimeLocalRuntimeClient = {
   listLocalModels(request: ListLocalModelsRequest, options?: RuntimeCallOptions): Promise<ListLocalModelsResponse>;
+  listLocalArtifacts(request: ListLocalArtifactsRequest, options?: RuntimeCallOptions): Promise<ListLocalArtifactsResponse>;
   listVerifiedModels(request: ListVerifiedModelsRequest, options?: RuntimeCallOptions): Promise<ListVerifiedModelsResponse>;
+  listVerifiedArtifacts(request: ListVerifiedArtifactsRequest, options?: RuntimeCallOptions): Promise<ListVerifiedArtifactsResponse>;
   searchCatalogModels(request: SearchCatalogModelsRequest, options?: RuntimeCallOptions): Promise<SearchCatalogModelsResponse>;
   resolveModelInstallPlan(request: ResolveModelInstallPlanRequest, options?: RuntimeCallOptions): Promise<ResolveModelInstallPlanResponse>;
   installLocalModel(request: InstallLocalModelRequest, options?: RuntimeCallOptions): Promise<InstallLocalModelResponse>;
   installVerifiedModel(request: InstallVerifiedModelRequest, options?: RuntimeCallOptions): Promise<InstallVerifiedModelResponse>;
+  installVerifiedArtifact(request: InstallVerifiedArtifactRequest, options?: RuntimeCallOptions): Promise<InstallVerifiedArtifactResponse>;
   importLocalModel(request: ImportLocalModelRequest, options?: RuntimeCallOptions): Promise<ImportLocalModelResponse>;
+  importLocalArtifact(request: ImportLocalArtifactRequest, options?: RuntimeCallOptions): Promise<ImportLocalArtifactResponse>;
   removeLocalModel(request: RemoveLocalModelRequest, options?: RuntimeCallOptions): Promise<RemoveLocalModelResponse>;
+  removeLocalArtifact(request: RemoveLocalArtifactRequest, options?: RuntimeCallOptions): Promise<RemoveLocalArtifactResponse>;
   startLocalModel(request: StartLocalModelRequest, options?: RuntimeCallOptions): Promise<StartLocalModelResponse>;
   stopLocalModel(request: StopLocalModelRequest, options?: RuntimeCallOptions): Promise<StopLocalModelResponse>;
   checkLocalModelHealth(request: CheckLocalModelHealthRequest, options?: RuntimeCallOptions): Promise<CheckLocalModelHealthResponse>;

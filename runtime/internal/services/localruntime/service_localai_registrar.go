@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	goruntime "runtime"
 	"sort"
 	"strings"
 
@@ -19,6 +18,11 @@ import (
 
 const generatedLocalAIModelsConfigRelPath = ".nimi/runtime/localai-models.yaml"
 
+const (
+	localAIImageBackendServiceID    = "svc_localai_image_backend"
+	localAIImageBackendServiceTitle = "LocalAI Image Backend"
+)
+
 type localAIRegistration struct {
 	LocalModelID      string
 	ModelID           string
@@ -27,6 +31,7 @@ type localAIRegistration struct {
 	RelativeModelPath string
 	ManifestPath      string
 	Managed           bool
+	DynamicProfile    bool
 	Problem           string
 }
 
@@ -89,6 +94,87 @@ func (s *Service) SetLocalAIRegistrationConfig(modelsPath string, modelsConfigPa
 	s.localModelsPath = resolveLocalModelsPath(modelsPath)
 	s.localAIModelsConfigPath = resolveGeneratedLocalAIModelsConfigPath(modelsConfigPath)
 	s.localAIManaged = managed
+}
+
+// SetLocalAIManagedEndpoint records the managed LocalAI endpoint exposed by the
+// daemon and rewrites default LocalAI model endpoints to that managed endpoint.
+func (s *Service) SetLocalAIManagedEndpoint(endpoint string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.localAIManagedEndpoint = strings.TrimSpace(endpoint)
+	if s.localAIManagedEndpoint == "" {
+		return
+	}
+
+	updatedAt := nowISO()
+	changed := false
+	for localModelID, model := range s.models {
+		if model == nil || model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
+			continue
+		}
+		if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "localai") {
+			continue
+		}
+		if !shouldUseManagedLocalAIEndpoint(model.GetEndpoint()) {
+			continue
+		}
+		if strings.TrimSpace(model.GetEndpoint()) == s.localAIManagedEndpoint {
+			continue
+		}
+		cloned := cloneLocalModel(model)
+		cloned.Endpoint = s.localAIManagedEndpoint
+		cloned.UpdatedAt = updatedAt
+		s.models[localModelID] = cloned
+		changed = true
+	}
+	if changed {
+		s.persistStateLocked()
+	}
+}
+
+// SetLocalAIImageBackendConfig records whether the managed LocalAI image
+// backend is configured for daemon-supervised LocalAI image workflows.
+func (s *Service) SetLocalAIImageBackendConfig(enabled bool, address string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.localAIImageBackendConfigured = enabled
+	s.localAIImageBackendUp = false
+	s.localAIImageBackendAddr = strings.TrimSpace(address)
+	now := nowISO()
+	if enabled {
+		if strings.TrimSpace(s.localAIImageBackendInstalledAt) == "" {
+			s.localAIImageBackendInstalledAt = now
+		}
+		s.localAIImageBackendUpdatedAt = now
+		s.localAIImageBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED
+		s.localAIImageBackendDetail = "daemon-managed image backend configured"
+		return
+	}
+	s.localAIImageBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED
+	s.localAIImageBackendDetail = "daemon-managed image backend disabled"
+	s.localAIImageBackendInstalledAt = ""
+	s.localAIImageBackendUpdatedAt = now
+}
+
+// SetLocalAIImageBackendHealth records the current managed LocalAI image
+// backend health reported by the engine supervisor.
+func (s *Service) SetLocalAIImageBackendHealth(healthy bool, detail string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.localAIImageBackendConfigured {
+		return
+	}
+	s.localAIImageBackendUp = healthy
+	s.localAIImageBackendUpdatedAt = nowISO()
+	trimmed := strings.TrimSpace(detail)
+	if healthy {
+		s.localAIImageBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE
+		s.localAIImageBackendDetail = defaultString(trimmed, "daemon-managed image backend active")
+		return
+	}
+	s.localAIImageBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY
+	s.localAIImageBackendDetail = defaultString(trimmed, "daemon-managed image backend unhealthy")
 }
 
 // SyncManagedLocalAIAssets rebuilds the runtime-managed LocalAI config from the
@@ -155,6 +241,7 @@ func (s *Service) buildLocalAIRegistrations() (map[string]localAIRegistration, [
 	}
 	modelsPath := resolveLocalModelsPath(s.localModelsPath)
 	managed := s.localAIManaged
+	imageBackendUp := s.localAIImageBackendConfigured && s.localAIImageBackendUp
 	s.mu.RUnlock()
 
 	sort.Slice(models, func(i, j int) bool {
@@ -174,7 +261,7 @@ func (s *Service) buildLocalAIRegistrations() (map[string]localAIRegistration, [
 			continue
 		}
 
-		registration := inspectLocalAIModelRegistration(model, modelsPath, managed)
+		registration := inspectLocalAIModelRegistration(model, modelsPath, managed, imageBackendUp)
 		registrations[model.GetLocalModelId()] = registration
 		if registration.Managed && strings.TrimSpace(registration.Problem) == "" {
 			candidateIndexes[registration.ExposedModelName] = append(candidateIndexes[registration.ExposedModelName], model.GetLocalModelId())
@@ -198,6 +285,9 @@ func (s *Service) buildLocalAIRegistrations() (map[string]localAIRegistration, [
 		if !registration.Managed || strings.TrimSpace(registration.Problem) != "" {
 			continue
 		}
+		if registration.DynamicProfile {
+			continue
+		}
 		entries = append(entries, localAIConfigEntry{
 			Name:    registration.ExposedModelName,
 			Backend: registration.Backend,
@@ -216,6 +306,10 @@ func (s *Service) buildLocalAIRegistrations() (map[string]localAIRegistration, [
 		return entries[i].Parameters.Model < entries[j].Parameters.Model
 	})
 
+	if len(entries) == 0 {
+		return registrations, nil, nil
+	}
+
 	rendered, err := yaml.Marshal(entries)
 	if err != nil {
 		return nil, nil, fmt.Errorf("marshal localai models config: %w", err)
@@ -223,7 +317,7 @@ func (s *Service) buildLocalAIRegistrations() (map[string]localAIRegistration, [
 	return registrations, rendered, nil
 }
 
-func inspectLocalAIModelRegistration(model *runtimev1.LocalModelRecord, modelsPath string, managed bool) localAIRegistration {
+func inspectLocalAIModelRegistration(model *runtimev1.LocalModelRecord, modelsPath string, managed bool, imageBackendUp bool) localAIRegistration {
 	registration := localAIRegistration{
 		LocalModelID:     strings.TrimSpace(model.GetLocalModelId()),
 		ModelID:          strings.TrimSpace(model.GetModelId()),
@@ -234,45 +328,35 @@ func inspectLocalAIModelRegistration(model *runtimev1.LocalModelRecord, modelsPa
 		return registration
 	}
 
-	modelSlug := slugifyLocalModelID(model.GetModelId())
-	manifestPath := filepath.Join(modelsPath, modelSlug, "model.manifest.json")
-	registration.ManifestPath = manifestPath
-
-	manifest, err := readLocalAIManifest(manifestPath)
-	if err != nil {
-		registration.Problem = fmt.Sprintf("localai manifest unavailable: %s", err.Error())
-		return registration
-	}
-
-	manifestModelID := strings.TrimSpace(manifest.ModelID)
-	if manifestModelID != "" && !strings.EqualFold(manifestModelID, registration.ModelID) {
-		registration.Problem = fmt.Sprintf("localai manifest model_id mismatch: manifest=%q runtime=%q", manifestModelID, registration.ModelID)
-		return registration
-	}
-
-	entryPath, relativeModelPath, err := resolveManifestEntryPath(filepath.Dir(manifestPath), modelSlug, manifest.Entry)
-	if err != nil {
-		registration.Problem = fmt.Sprintf("localai manifest entry invalid: %s", err.Error())
-		return registration
-	}
-	if _, statErr := os.Stat(entryPath); statErr != nil {
-		registration.Problem = fmt.Sprintf("localai manifest entry missing: %s", entryPath)
-		return registration
-	}
-
-	backend, err := localAIBackendForCapabilities(defaultCapabilitiesForRegistration(model.GetCapabilities(), manifest.Capabilities))
+	backend, err := localAIBackendForCapabilities(defaultCapabilitiesForRegistration(model.GetCapabilities(), nil))
 	if err != nil {
 		registration.Problem = err.Error()
 		return registration
 	}
-	if registration.Managed {
-		if reason, unsupported := unsupportedManagedLocalAIBackendReason(backend); unsupported {
-			registration.Problem = reason
+	registration.Backend = backend
+
+	if strings.EqualFold(backend, "stablediffusion-ggml") {
+		registration.DynamicProfile = true
+		if registration.Managed && !imageBackendUp {
+			registration.Problem = "managed localai image backend unavailable"
 			return registration
 		}
+		if len(structToMap(model.GetEngineConfig())) == 0 {
+			registration.Problem = "localai image model missing engine_config"
+			return registration
+		}
+		relativeModelPath, resolveErr := resolveLocalAIEntryRelativePath(modelsPath, model.GetModelId(), model.GetSource().GetRepo(), model.GetEntry())
+		if resolveErr == nil {
+			registration.RelativeModelPath = relativeModelPath
+		}
+		return registration
 	}
 
-	registration.Backend = backend
+	relativeModelPath, resolveErr := resolveLocalAIEntryRelativePath(modelsPath, model.GetModelId(), model.GetSource().GetRepo(), model.GetEntry())
+	if resolveErr != nil {
+		registration.Problem = resolveErr.Error()
+		return registration
+	}
 	registration.RelativeModelPath = relativeModelPath
 	return registration
 }
@@ -356,14 +440,6 @@ func localAIBackendForCapabilities(capabilities []string) (string, error) {
 	return "llama-cpp", nil
 }
 
-func unsupportedManagedLocalAIBackendReason(backend string) (string, bool) {
-	if strings.EqualFold(strings.TrimSpace(backend), "stablediffusion-ggml") &&
-		goruntime.GOOS == "darwin" && goruntime.GOARCH == "arm64" {
-		return "managed/bundled LocalAI binary on darwin/arm64 does not ship stablediffusion backend", true
-	}
-	return "", false
-}
-
 func localAIModelUsesManagedEngine(model *runtimev1.LocalModelRecord) bool {
 	if model == nil {
 		return false
@@ -410,6 +486,13 @@ func slugifyLocalModelID(input string) string {
 }
 
 func writeGeneratedLocalAIConfigIfChanged(path string, rendered []byte) (bool, error) {
+	if len(bytes.TrimSpace(rendered)) == 0 {
+		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return false, fmt.Errorf("remove localai config %s: %w", path, err)
+		}
+		return true, nil
+	}
+
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return false, fmt.Errorf("create localai config directory: %w", err)
 	}
@@ -437,11 +520,12 @@ func (s *Service) localAIRegistrationForModel(model *runtimev1.LocalModelRecord)
 	registration, ok := s.localAIRegistrations[localModelID]
 	modelsPath := resolveLocalModelsPath(s.localModelsPath)
 	managed := s.localAIManaged
+	imageBackendUp := s.localAIImageBackendConfigured && s.localAIImageBackendUp
 	s.mu.RUnlock()
-	if ok {
+	if ok && !registration.DynamicProfile {
 		return registration
 	}
-	return inspectLocalAIModelRegistration(model, modelsPath, managed)
+	return inspectLocalAIModelRegistration(model, modelsPath, managed, imageBackendUp)
 }
 
 func modelProbeSucceeded(model *runtimev1.LocalModelRecord, probe endpointProbeResult, registration localAIRegistration) bool {
@@ -462,6 +546,9 @@ func localAIModelProbeSucceeded(probe endpointProbeResult, registration localAIR
 	if strings.TrimSpace(registration.Problem) != "" {
 		return false
 	}
+	if registration.DynamicProfile {
+		return probe.responded
+	}
 	if !probe.healthy {
 		return false
 	}
@@ -480,6 +567,12 @@ func localAIModelProbeSucceeded(probe endpointProbeResult, registration localAIR
 func localAIModelProbeFailureDetail(probe endpointProbeResult, registration localAIRegistration) string {
 	if detail := strings.TrimSpace(registration.Problem); detail != "" {
 		return detail
+	}
+	if registration.DynamicProfile {
+		if probe.responded {
+			return "localai image workflow ready"
+		}
+		return defaultString(probe.detail, "localai image workflow unavailable")
 	}
 	if !probe.healthy {
 		return defaultString(probe.detail, "model probe failed")

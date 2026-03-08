@@ -44,6 +44,7 @@ type Server struct {
 	aiHealth        *providerhealth.Tracker
 	auditStore      *auditlog.Store
 	workerPool      *workerproxy.ConnPool
+	aiSvc           *aiservice.Service
 	localRuntimeSvc *localruntimeservice.Service
 }
 
@@ -105,6 +106,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	runtimev1.RegisterRuntimeAuditServiceServer(g, auditservice.New(state, logger, aiHealth, auditStore))
 
 	var workerPool *workerproxy.ConnPool
+	var aiSvc *aiservice.Service
 	var localSvc *localruntimeservice.Service
 	if cfg.WorkerMode {
 		workerPool = workerproxy.NewConnPool(logger)
@@ -125,7 +127,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 			logger.Warn("cloud connector auto-registration failed", "error", err)
 		}
 
-		aiSvc := aiservice.New(logger, modelRegistry, aiHealth, auditStore, connStore, cfg)
+		aiSvc = aiservice.New(logger, modelRegistry, aiHealth, auditStore, connStore, cfg)
 		aiSvc.SetModelRegistryPersistencePath(registryPath)
 		runtimev1.RegisterRuntimeAiServiceServer(g, aiSvc)
 
@@ -136,6 +138,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		localSvc = localruntimeservice.New(logger, auditStore, cfg.LocalRuntimeStatePath, cfg.LocalAuditCapacity)
 		runtimev1.RegisterRuntimeLocalRuntimeServiceServer(g, localSvc)
 		aiSvc.SetLocalModelLister(localSvc)
+		aiSvc.SetLocalImageProfileResolver(localSvc)
 
 		connSvc := connectorservice.New(logger, connStore, auditStore)
 		connSvc.SetCloudProvider(aiSvc.CloudProvider())
@@ -162,6 +165,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		aiHealth:        aiHealth,
 		auditStore:      auditStore,
 		workerPool:      workerPool,
+		aiSvc:           aiSvc,
 		localRuntimeSvc: localSvc,
 	}
 	s.SyncServingState()
@@ -174,6 +178,10 @@ func (s *Server) AIHealthTracker() *providerhealth.Tracker {
 
 func (s *Server) AuditStore() *auditlog.Store {
 	return s.auditStore
+}
+
+func (s *Server) AIService() *aiservice.Service {
+	return s.aiSvc
 }
 
 // LocalRuntimeService returns the in-process local runtime service for engine

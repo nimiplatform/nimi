@@ -1001,6 +1001,15 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
           return toRouteHealthResult(result, resolved.provider, resolved.source);
         },
       },
+      localRuntime: {
+        listArtifacts: async ({ modId, ...payload }) => {
+          authorizeRuntimeCapability({
+            modId,
+            capabilityKey: 'runtime.local.artifacts.list',
+          });
+          return localAiRuntime.listArtifacts(payload);
+        },
+      },
       ai: {
         text: {
           generate: async (payload) => {

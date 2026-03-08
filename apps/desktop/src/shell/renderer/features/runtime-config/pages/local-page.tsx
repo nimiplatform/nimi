@@ -25,11 +25,14 @@ export function LocalPage({ model, state }: LocalPageProps) {
       onInstall={model.installLocalRuntimeModel}
       onInstallVerified={model.installVerifiedLocalRuntimeModel}
       onImport={model.importLocalRuntimeModel}
+      onInstallVerifiedArtifact={model.installVerifiedLocalRuntimeArtifact}
+      onImportArtifact={model.importLocalRuntimeArtifact}
       onImportFile={model.importLocalRuntimeModelFile}
       onStart={model.startLocalRuntimeModel}
       onStop={model.stopLocalRuntimeModel}
       onRestart={model.restartLocalRuntimeModel}
       onRemove={model.removeLocalRuntimeModel}
+      onRemoveArtifact={model.removeLocalRuntimeArtifact}
       onSetLocalRuntimeModelQuery={model.setLocalRuntimeModelQuery}
       onChangeLocalRuntimeEndpoint={(endpoint) => {
         model.updateState((prev) => ({

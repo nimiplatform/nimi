@@ -21,6 +21,7 @@ type localRuntimeSnapshot struct {
 	SchemaVersion int                        `json:"schemaVersion"`
 	SavedAt       string                     `json:"savedAt"`
 	Models        []localRuntimeModelState   `json:"models"`
+	Artifacts     []localRuntimeArtifactState `json:"artifacts"`
 	Services      []localRuntimeServiceState `json:"services"`
 	Audits        []localRuntimeAuditState   `json:"audits"`
 }
@@ -41,6 +42,25 @@ type localRuntimeModelState struct {
 	UpdatedAt            string            `json:"updatedAt"`
 	HealthDetail         string            `json:"healthDetail"`
 	LocalInvokeProfileID string            `json:"localInvokeProfileId,omitempty"`
+	EngineConfig         map[string]any    `json:"engineConfig,omitempty"`
+}
+
+type localRuntimeArtifactState struct {
+	LocalArtifactID string         `json:"localArtifactId"`
+	ArtifactID      string         `json:"artifactId"`
+	Kind            int32          `json:"kind"`
+	Engine          string         `json:"engine"`
+	Entry           string         `json:"entry"`
+	Files           []string       `json:"files"`
+	License         string         `json:"license"`
+	SourceRepo      string         `json:"sourceRepo"`
+	SourceRev       string         `json:"sourceRevision"`
+	Hashes          map[string]string `json:"hashes"`
+	Status          int32          `json:"status"`
+	InstalledAt     string         `json:"installedAt"`
+	UpdatedAt       string         `json:"updatedAt"`
+	HealthDetail    string         `json:"healthDetail"`
+	Metadata        map[string]any `json:"metadata,omitempty"`
 }
 
 type localRuntimeServiceState struct {
@@ -122,11 +142,38 @@ func (s *Service) restoreState() {
 			UpdatedAt:            item.UpdatedAt,
 			HealthDetail:         item.HealthDetail,
 			LocalInvokeProfileId: item.LocalInvokeProfileID,
+			EngineConfig:         toStruct(item.EngineConfig),
 		}
 		if record.GetLocalModelId() == "" {
 			continue
 		}
 		s.models[record.GetLocalModelId()] = record
+	}
+
+	for _, item := range snapshot.Artifacts {
+		record := &runtimev1.LocalArtifactRecord{
+			LocalArtifactId: item.LocalArtifactID,
+			ArtifactId:      item.ArtifactID,
+			Kind:            runtimev1.LocalArtifactKind(item.Kind),
+			Engine:          item.Engine,
+			Entry:           item.Entry,
+			Files:           normalizeStringSlice(item.Files),
+			License:         item.License,
+			Source: &runtimev1.LocalArtifactSource{
+				Repo:     item.SourceRepo,
+				Revision: item.SourceRev,
+			},
+			Hashes:      cloneStringMap(item.Hashes),
+			Status:      runtimev1.LocalArtifactStatus(item.Status),
+			InstalledAt: item.InstalledAt,
+			UpdatedAt:   item.UpdatedAt,
+			HealthDetail: item.HealthDetail,
+			Metadata:    toStruct(item.Metadata),
+		}
+		if record.GetLocalArtifactId() == "" {
+			continue
+		}
+		s.artifacts[record.GetLocalArtifactId()] = record
 	}
 
 	for _, item := range snapshot.Services {
@@ -186,6 +233,7 @@ func (s *Service) persistStateLocked() {
 		SchemaVersion: 1,
 		SavedAt:       time.Now().UTC().Format(time.RFC3339Nano),
 		Models:        make([]localRuntimeModelState, 0, len(s.models)),
+		Artifacts:     make([]localRuntimeArtifactState, 0, len(s.artifacts)),
 		Services:      make([]localRuntimeServiceState, 0, len(s.services)),
 		Audits:        make([]localRuntimeAuditState, 0, len(s.audits)),
 	}
@@ -216,6 +264,36 @@ func (s *Service) persistStateLocked() {
 			UpdatedAt:            model.GetUpdatedAt(),
 			HealthDetail:         model.GetHealthDetail(),
 			LocalInvokeProfileID: model.GetLocalInvokeProfileId(),
+			EngineConfig:         structToMap(model.GetEngineConfig()),
+		})
+	}
+
+	artifactIDs := make([]string, 0, len(s.artifacts))
+	for id := range s.artifacts {
+		artifactIDs = append(artifactIDs, id)
+	}
+	sort.Strings(artifactIDs)
+	for _, id := range artifactIDs {
+		artifact := s.artifacts[id]
+		if artifact == nil {
+			continue
+		}
+		snapshot.Artifacts = append(snapshot.Artifacts, localRuntimeArtifactState{
+			LocalArtifactID: artifact.GetLocalArtifactId(),
+			ArtifactID:      artifact.GetArtifactId(),
+			Kind:            int32(artifact.GetKind()),
+			Engine:          artifact.GetEngine(),
+			Entry:           artifact.GetEntry(),
+			Files:           append([]string(nil), artifact.GetFiles()...),
+			License:         artifact.GetLicense(),
+			SourceRepo:      artifact.GetSource().GetRepo(),
+			SourceRev:       artifact.GetSource().GetRevision(),
+			Hashes:          cloneStringMap(artifact.GetHashes()),
+			Status:          int32(artifact.GetStatus()),
+			InstalledAt:     artifact.GetInstalledAt(),
+			UpdatedAt:       artifact.GetUpdatedAt(),
+			HealthDetail:    artifact.GetHealthDetail(),
+			Metadata:        structToMap(artifact.GetMetadata()),
 		})
 	}
 
@@ -278,6 +356,7 @@ func (s *Service) persistStateLocked() {
 func loadLocalRuntimeSnapshot(path string) (localRuntimeSnapshot, error) {
 	result := localRuntimeSnapshot{
 		Models:   []localRuntimeModelState{},
+		Artifacts: []localRuntimeArtifactState{},
 		Services: []localRuntimeServiceState{},
 		Audits:   []localRuntimeAuditState{},
 	}

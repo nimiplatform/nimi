@@ -132,11 +132,54 @@ export type ModRuntimeListPresetVoicesInput =
     binding?: RuntimeRouteBinding;
   };
 
+export type ModRuntimeLocalArtifactKind =
+  | 'vae'
+  | 'llm'
+  | 'clip'
+  | 'controlnet'
+  | 'lora'
+  | 'auxiliary';
+
+export type ModRuntimeLocalArtifactStatus =
+  | 'installed'
+  | 'active'
+  | 'unhealthy'
+  | 'removed';
+
+export type ModRuntimeListLocalArtifactsInput = {
+  kind?: ModRuntimeLocalArtifactKind;
+  status?: ModRuntimeLocalArtifactStatus;
+  engine?: string;
+};
+
+export type ModRuntimeLocalArtifactRecord = {
+  localArtifactId: string;
+  artifactId: string;
+  kind: ModRuntimeLocalArtifactKind;
+  engine: string;
+  entry: string;
+  files: string[];
+  license: string;
+  source: {
+    repo: string;
+    revision: string;
+  };
+  hashes: Record<string, string>;
+  status: ModRuntimeLocalArtifactStatus;
+  installedAt: string;
+  updatedAt: string;
+  healthDetail?: string;
+  metadata?: Record<string, unknown>;
+};
+
 export type ModRuntimeClient = {
   route: {
     listOptions(input: ModRuntimeRouteListOptionsInput): Promise<RuntimeRouteOptionsSnapshot>;
     resolve(input: ModRuntimeRouteResolveInput): Promise<ModRuntimeResolvedBinding>;
     checkHealth(input: ModRuntimeRouteCheckHealthInput): Promise<RuntimeRouteHealthResult>;
+  };
+  localRuntime: {
+    listArtifacts(input?: ModRuntimeListLocalArtifactsInput): Promise<ModRuntimeLocalArtifactRecord[]>;
   };
   ai: {
     text: {

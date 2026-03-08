@@ -29,7 +29,7 @@ func (b *Backend) postJSON(ctx context.Context, path string, requestBody any, re
 		request.Header.Set("Authorization", "Bearer "+b.apiKey)
 	}
 
-	response, err := b.client.Do(request)
+	response, err := b.do(request)
 	if err != nil {
 		return MapProviderRequestError(err)
 	}
@@ -48,7 +48,7 @@ func (b *Backend) getJSON(ctx context.Context, path string, responseBody any) er
 		request.Header.Set("Authorization", "Bearer "+b.apiKey)
 	}
 
-	response, err := b.client.Do(request)
+	response, err := b.do(request)
 	if err != nil {
 		return MapProviderRequestError(err)
 	}
@@ -73,7 +73,7 @@ func (b *Backend) postRaw(ctx context.Context, path string, requestBody any) ([]
 		request.Header.Set("Authorization", "Bearer "+b.apiKey)
 	}
 
-	response, err := b.client.Do(request)
+	response, err := b.do(request)
 	if err != nil {
 		return nil, MapProviderRequestError(err)
 	}

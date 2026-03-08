@@ -38,6 +38,9 @@ export {
 } from './runtime.js';
 
 export type {
+  LocalAiArtifactKind,
+  LocalAiArtifactStatus,
+  LocalAiArtifactRecord,
   LocalAiModelStatus,
   LocalAiModelRecord,
   LocalAiInstallAcceptedResponse,
@@ -51,10 +54,15 @@ export type {
   LocalAiDownloadProgressEvent,
   LocalAiDownloadSessionSummary,
   LocalAiAuditListPayload,
+  LocalAiListArtifactsPayload,
+  LocalAiListVerifiedArtifactsPayload,
   LocalAiInstallPayload,
   LocalAiVerifiedModelDescriptor,
+  LocalAiVerifiedArtifactDescriptor,
   LocalAiInstallVerifiedPayload,
+  LocalAiInstallVerifiedArtifactPayload,
   LocalAiImportPayload,
+  LocalAiImportArtifactPayload,
 } from './local-ai.js';
 
 export {

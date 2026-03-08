@@ -110,6 +110,9 @@ function buildFallbackRuntimeModSdkContext(): ModRuntimeContext {
           actionHint: 'verify-connector',
         }),
       },
+      localRuntime: {
+        listArtifacts: async () => { throw notReady(); },
+      },
       ai: {
         text: {
           generate: async () => { throw notReady(); },

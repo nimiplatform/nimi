@@ -325,6 +325,7 @@ fn execute_file_import(
         installed_at: now_iso_timestamp(),
         updated_at: now_iso_timestamp(),
         health_detail: None,
+        engine_config: None,
     };
     match upsert_model(app, record) {
         Ok(saved) => {
@@ -393,4 +394,3 @@ fn execute_file_import(
         }
     }
 }
-

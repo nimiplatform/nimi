@@ -697,14 +697,30 @@ func TestSearchCatalogModelsMergesVerifiedAndHuggingFaceSorted(t *testing.T) {
 	if len(resp.GetItems()) < 4 {
 		t.Fatalf("expected merged verified+hf items, got %d", len(resp.GetItems()))
 	}
-	if !resp.GetItems()[0].GetVerified() || !resp.GetItems()[1].GetVerified() {
-		t.Fatalf("verified items must come first")
+	firstHFIndex := -1
+	for index, item := range resp.GetItems() {
+		if !item.GetVerified() {
+			firstHFIndex = index
+			break
+		}
 	}
-	if resp.GetItems()[2].GetVerified() || resp.GetItems()[3].GetVerified() {
+	if firstHFIndex < 0 {
+		t.Fatalf("expected huggingface items in merged results")
+	}
+	for _, item := range resp.GetItems()[:firstHFIndex] {
+		if !item.GetVerified() {
+			t.Fatalf("verified items must come first")
+		}
+	}
+	hfItems := resp.GetItems()[firstHFIndex:]
+	if len(hfItems) < 2 {
+		t.Fatalf("expected at least two huggingface items, got %d", len(hfItems))
+	}
+	if hfItems[0].GetVerified() || hfItems[1].GetVerified() {
 		t.Fatalf("hf items must follow verified items")
 	}
-	if resp.GetItems()[2].GetTitle() != "Alpha Community" || resp.GetItems()[3].GetTitle() != "Zeta Model" {
-		t.Fatalf("hf items should sort by title asc, got [%s, %s]", resp.GetItems()[2].GetTitle(), resp.GetItems()[3].GetTitle())
+	if hfItems[0].GetTitle() != "Alpha Community" || hfItems[1].GetTitle() != "Zeta Model" {
+		t.Fatalf("hf items should sort by title asc, got [%s, %s]", hfItems[0].GetTitle(), hfItems[1].GetTitle())
 	}
 }
 
@@ -1958,6 +1974,40 @@ func TestLocalRuntimeImportManifestValidation(t *testing.T) {
 	}
 	if resp.GetModel().GetLocalInvokeProfileId() != "profile-chat-default" {
 		t.Fatalf("local_invoke_profile_id should be imported from manifest")
+	}
+}
+
+func TestLocalRuntimeImportLocalAIModelUsesManagedEndpoint(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetLocalAIRegistrationConfig("", "", true)
+	svc.SetLocalAIManagedEndpoint("http://127.0.0.1:57510/v1")
+
+	tmpDir := t.TempDir()
+	manifestPath := filepath.Join(tmpDir, "image-model.manifest.json")
+	rawManifest, err := json.Marshal(map[string]any{
+		"model_id":     "local-import/z_image_turbo-Q4_K",
+		"engine":       "localai",
+		"capabilities": []string{"image"},
+		"entry":        "z_image_turbo-Q4_K.gguf",
+		"engineConfig": map[string]any{
+			"backend": "stablediffusion-ggml",
+		},
+	})
+	if err != nil {
+		t.Fatalf("marshal manifest: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
+	resp, err := svc.ImportLocalModel(context.Background(), &runtimev1.ImportLocalModelRequest{
+		ManifestPath: manifestPath,
+	})
+	if err != nil {
+		t.Fatalf("import localai image manifest: %v", err)
+	}
+	if got, want := resp.GetModel().GetEndpoint(), "http://127.0.0.1:57510/v1"; got != want {
+		t.Fatalf("managed localai import endpoint mismatch: got=%q want=%q", got, want)
 	}
 }
 

@@ -543,11 +543,26 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	d.engineMgr = mgr
 	localAIConfigPath := resolveManagedLocalAIModelsConfigPath()
 	mgr.SetLocalAIPaths(d.cfg.LocalModelsPath, localAIConfigPath)
+	mgr.SetLocalAIImageBackend(&engine.LocalAIImageBackendConfig{
+		Mode:        engine.LocalAIImageBackendMode(strings.ToLower(strings.TrimSpace(d.cfg.EngineLocalAIImageBackendMode))),
+		BackendName: strings.TrimSpace(d.cfg.EngineLocalAIImageBackendName),
+		Address:     strings.TrimSpace(d.cfg.EngineLocalAIImageBackendAddress),
+		Command:     strings.TrimSpace(d.cfg.EngineLocalAIImageBackendCommand),
+		Args:        append([]string(nil), d.cfg.EngineLocalAIImageBackendArgs...),
+		Env:         cloneStringMap(d.cfg.EngineLocalAIImageBackendEnv),
+		WorkingDir:  strings.TrimSpace(d.cfg.EngineLocalAIImageBackendWorkingDir),
+	})
 
 	// Inject engine manager into localruntime service for gRPC access.
 	skipLocalAIBootstrap := false
 	if svc := d.grpc.LocalRuntimeService(); svc != nil {
 		svc.SetLocalAIRegistrationConfig(d.cfg.LocalModelsPath, localAIConfigPath, d.cfg.EngineLocalAIEnabled)
+		if d.cfg.EngineLocalAIEnabled {
+			svc.SetLocalAIManagedEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineLocalAIPort))
+		} else {
+			svc.SetLocalAIManagedEndpoint("")
+		}
+		svc.SetLocalAIImageBackendConfig(strings.TrimSpace(strings.ToLower(d.cfg.EngineLocalAIImageBackendMode)) != "disabled", d.cfg.EngineLocalAIImageBackendAddress)
 		svc.SetEngineManager(newEngineManagerBridge(engine.NewServiceAdapter(mgr)))
 		if err := svc.SyncManagedLocalAIAssets(ctx); err != nil {
 			skipLocalAIBootstrap = d.recordLocalAIBootstrapFailure(fmt.Sprintf("sync managed localai assets: %v", err))
@@ -669,6 +684,11 @@ func (d *Daemon) injectEngineEndpointEnv(kind engine.EngineKind, envKey string, 
 		return
 	}
 	_ = os.Setenv(envKey, trimmed+"/v1")
+	if aiSvc := d.grpc.AIService(); aiSvc != nil {
+		if providerID, apiKeyEnv, ok := localProviderEnvBinding(kind); ok {
+			aiSvc.SetLocalProviderEndpoint(providerID, trimmed+"/v1", os.Getenv(apiKeyEnv))
+		}
+	}
 	d.logger.Info("engine endpoint env injected",
 		"engine", kind,
 		"source", source,
@@ -682,13 +702,23 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 	if snapshot.Status == health.StatusStopping || snapshot.Status == health.StatusStopped {
 		return
 	}
+	if strings.EqualFold(strings.TrimSpace(engineName), "localai-image-backend") {
+		if svc := d.grpc.LocalRuntimeService(); svc != nil {
+			switch strings.ToLower(strings.TrimSpace(status)) {
+			case "healthy":
+				svc.SetLocalAIImageBackendHealth(true, detail)
+			case "unhealthy":
+				svc.SetLocalAIImageBackendHealth(false, detail)
+			}
+		}
+	}
 
 	switch status {
 	case "unhealthy":
 		d.state.SetStatus(health.StatusDegraded, fmt.Sprintf("engine:%s unhealthy (%s)", engineName, detail))
 		d.grpc.SyncServingState()
 		appendEngineCrashAudit(d.auditStore, engineName, detail)
-		if kind, _, ok := engineEnvKey(engineName); ok {
+		if kind, ok := engineKindForName(engineName); ok {
 			if providerName, ok := providerTargetNameForEngine(kind); ok {
 				d.setProviderFailureHint(providerName, fmt.Sprintf("engine unhealthy (%s: %s)", engineName, detail))
 			}
@@ -696,6 +726,8 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 	case "healthy":
 		if kind, envKey, ok := engineEnvKey(engineName); ok {
 			d.injectEngineEndpointEnv(kind, envKey, "recovered")
+		}
+		if kind, ok := engineKindForName(engineName); ok {
 			if providerName, ok := providerTargetNameForEngine(kind); ok {
 				d.clearProviderFailureHint(providerName)
 			}
@@ -723,11 +755,48 @@ func providerTargetNameForEngine(kind engine.EngineKind) (string, bool) {
 	switch kind {
 	case engine.EngineLocalAI:
 		return "local", true
+	case engine.EngineKind("localai-image-backend"):
+		return "local", true
 	case engine.EngineNexa:
 		return "local-nexa", true
 	default:
 		return "", false
 	}
+}
+
+func localProviderEnvBinding(kind engine.EngineKind) (string, string, bool) {
+	switch kind {
+	case engine.EngineLocalAI:
+		return "localai", "NIMI_RUNTIME_LOCAL_AI_API_KEY", true
+	case engine.EngineNexa:
+		return "nexa", "NIMI_RUNTIME_LOCAL_NEXA_API_KEY", true
+	default:
+		return "", "", false
+	}
+}
+
+func engineKindForName(engineName string) (engine.EngineKind, bool) {
+	switch strings.TrimSpace(strings.ToLower(engineName)) {
+	case string(engine.EngineLocalAI):
+		return engine.EngineLocalAI, true
+	case string(engine.EngineNexa):
+		return engine.EngineNexa, true
+	case "localai-image-backend":
+		return engine.EngineKind("localai-image-backend"), true
+	default:
+		return "", false
+	}
+}
+
+func cloneStringMap(input map[string]string) map[string]string {
+	if len(input) == 0 {
+		return nil
+	}
+	cloned := make(map[string]string, len(input))
+	for key, value := range input {
+		cloned[key] = value
+	}
+	return cloned
 }
 
 func (d *Daemon) setProviderFailureHint(providerName string, hint string) {

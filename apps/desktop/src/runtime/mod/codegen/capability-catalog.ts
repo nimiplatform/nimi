@@ -23,6 +23,7 @@ export const CODEGEN_T1_CAPABILITY_PATTERNS = [
   'runtime.media.stt.*',
   'runtime.voice.*',
   'runtime.route.*',
+  'runtime.local.*',
   'data.query.data-api.core.*',
 ] as const;
 

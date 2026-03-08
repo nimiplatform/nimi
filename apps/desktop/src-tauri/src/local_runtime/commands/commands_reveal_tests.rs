@@ -41,6 +41,7 @@ mod tests {
             hashes: None,
             endpoint: Some("http://127.0.0.1:1234/v1".to_string()),
             provider_hints: None,
+            engine_config: None,
         }
     }
 

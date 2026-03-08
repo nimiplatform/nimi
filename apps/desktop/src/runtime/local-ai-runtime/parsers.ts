@@ -2,8 +2,12 @@ import { emitRuntimeLog } from '../telemetry/logger';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
   GgufVariantDescriptor,
+  LocalAiArtifactKind,
+  LocalAiArtifactRecord,
+  LocalAiArtifactStatus,
   LocalAiModelStatus,
   LocalAiModelRecord,
+  LocalAiVerifiedArtifactDescriptor,
   LocalAiVerifiedModelDescriptor,
   LocalAiEngineRuntimeMode,
   LocalAiProviderAdapter,
@@ -47,6 +51,53 @@ export function asString(value: unknown): string {
   return String(value || '').trim();
 }
 
+function asPlainObject(value: unknown): Record<string, unknown> | undefined {
+  const decoded = decodeProtoDynamic(value);
+  const record = asRecord(decoded);
+  return Object.keys(record).length > 0 ? record : undefined;
+}
+
+function decodeProtoDynamic(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => decodeProtoDynamic(item));
+  }
+  const record = asRecord(value);
+  if (Object.keys(record).length === 0) {
+    return value;
+  }
+  const kind = asRecord(record.kind);
+  const oneofKind = asString(kind.oneofKind);
+  switch (oneofKind) {
+    case 'nullValue':
+      return null;
+    case 'numberValue':
+      return typeof kind.numberValue === 'number' ? kind.numberValue : Number(kind.numberValue || 0);
+    case 'stringValue':
+      return asString(kind.stringValue);
+    case 'boolValue':
+      return Boolean(kind.boolValue);
+    case 'structValue':
+      return decodeProtoDynamic(kind.structValue);
+    case 'listValue': {
+      const values = Array.isArray(asRecord(kind.listValue).values)
+        ? (asRecord(kind.listValue).values as unknown[])
+        : [];
+      return values.map((item) => decodeProtoDynamic(item));
+    }
+    default:
+      break;
+  }
+  const fields = asRecord(record.fields);
+  if (Object.keys(fields).length > 0 && Object.keys(record).every((key) => key === 'fields')) {
+    return Object.fromEntries(
+      Object.entries(fields).map(([key, entry]) => [key, decodeProtoDynamic(entry)]),
+    );
+  }
+  return Object.fromEntries(
+    Object.entries(record).map(([key, entry]) => [key, decodeProtoDynamic(entry)]),
+  );
+}
+
 export function normalizeStatus(value: unknown): LocalAiModelStatus {
   if (typeof value === 'number') {
     if (value === 2) return 'active';
@@ -88,6 +139,7 @@ export function parseModelRecord(value: unknown): LocalAiModelRecord {
     installedAt: asString(record.installedAt),
     updatedAt: asString(record.updatedAt),
     healthDetail: asString(record.healthDetail) || undefined,
+    engineConfig: asPlainObject(record.engineConfig),
   };
 }
 
@@ -127,6 +179,104 @@ export function parseVerifiedModelDescriptor(value: unknown): LocalAiVerifiedMod
       ? totalSizeBytesRaw
       : undefined,
     tags,
+    engineConfig: asPlainObject(record.engineConfig),
+  };
+}
+
+export function normalizeArtifactKind(value: unknown): LocalAiArtifactKind {
+  if (typeof value === 'number') {
+    if (value === 2) return 'llm';
+    if (value === 3) return 'clip';
+    if (value === 4) return 'controlnet';
+    if (value === 5) return 'lora';
+    if (value === 6) return 'auxiliary';
+    return 'vae';
+  }
+  const raw = asString(value).toLowerCase();
+  if (raw === 'local_artifact_kind_llm' || raw === '2' || raw === 'llm') return 'llm';
+  if (raw === 'local_artifact_kind_clip' || raw === '3' || raw === 'clip') return 'clip';
+  if (raw === 'local_artifact_kind_controlnet' || raw === '4' || raw === 'controlnet') return 'controlnet';
+  if (raw === 'local_artifact_kind_lora' || raw === '5' || raw === 'lora') return 'lora';
+  if (raw === 'local_artifact_kind_auxiliary' || raw === '6' || raw === 'auxiliary') return 'auxiliary';
+  return 'vae';
+}
+
+export function normalizeArtifactStatus(value: unknown): LocalAiArtifactStatus {
+  if (typeof value === 'number') {
+    if (value === 2) return 'active';
+    if (value === 3) return 'unhealthy';
+    if (value === 4) return 'removed';
+    return 'installed';
+  }
+  const raw = asString(value).toLowerCase();
+  if (raw === 'local_artifact_status_active' || raw === '2' || raw === 'active') return 'active';
+  if (raw === 'local_artifact_status_unhealthy' || raw === '3' || raw === 'unhealthy') return 'unhealthy';
+  if (raw === 'local_artifact_status_removed' || raw === '4' || raw === 'removed') return 'removed';
+  return 'installed';
+}
+
+export function parseArtifactRecord(value: unknown): LocalAiArtifactRecord {
+  const record = asRecord(value);
+  const source = asRecord(record.source);
+  const hashes = asRecord(record.hashes);
+  const files = Array.isArray(record.files)
+    ? record.files.map((item) => asString(item)).filter(Boolean)
+    : [];
+  return {
+    localArtifactId: asString(record.localArtifactId),
+    artifactId: asString(record.artifactId),
+    kind: normalizeArtifactKind(record.kind),
+    engine: asString(record.engine),
+    entry: asString(record.entry),
+    files,
+    license: asString(record.license),
+    source: {
+      repo: asString(source.repo),
+      revision: asString(source.revision),
+    },
+    hashes: Object.fromEntries(
+      Object.entries(hashes).map(([key, hash]) => [String(key), asString(hash)]),
+    ),
+    status: normalizeArtifactStatus(record.status),
+    installedAt: asString(record.installedAt),
+    updatedAt: asString(record.updatedAt),
+    healthDetail: asString(record.healthDetail) || undefined,
+    metadata: asPlainObject(record.metadata),
+  };
+}
+
+export function parseVerifiedArtifactDescriptor(value: unknown): LocalAiVerifiedArtifactDescriptor {
+  const record = asRecord(value);
+  const hashes = asRecord(record.hashes);
+  const files = Array.isArray(record.files)
+    ? record.files.map((item) => asString(item)).filter(Boolean)
+    : [];
+  const tags = Array.isArray(record.tags)
+    ? record.tags.map((item) => asString(item)).filter(Boolean)
+    : [];
+  const fileCountRaw = Number(record.fileCount);
+  const totalSizeBytesRaw = Number(record.totalSizeBytes);
+  return {
+    templateId: asString(record.templateId),
+    title: asString(record.title),
+    description: asString(record.description),
+    artifactId: asString(record.artifactId),
+    kind: normalizeArtifactKind(record.kind),
+    engine: asString(record.engine),
+    entry: asString(record.entry),
+    files,
+    license: asString(record.license),
+    repo: asString(record.repo),
+    revision: asString(record.revision) || 'main',
+    hashes: Object.fromEntries(
+      Object.entries(hashes).map(([key, hash]) => [String(key), asString(hash)]),
+    ),
+    fileCount: Number.isFinite(fileCountRaw) && fileCountRaw > 0 ? fileCountRaw : files.length,
+    totalSizeBytes: Number.isFinite(totalSizeBytesRaw) && totalSizeBytesRaw > 0
+      ? totalSizeBytesRaw
+      : undefined,
+    tags,
+    metadata: asPlainObject(record.metadata),
   };
 }
 
@@ -242,6 +392,7 @@ export function parseCatalogItemDescriptor(value: unknown): LocalAiCatalogItemDe
     likes: Number.isFinite(likes) && likes >= 0 ? likes : undefined,
     lastModified: asString(record.lastModified) || undefined,
     verified: Boolean(record.verified),
+    engineConfig: asPlainObject(record.engineConfig),
   };
 }
 
@@ -280,6 +431,7 @@ export function parseInstallPlanDescriptor(value: unknown): LocalAiInstallPlanDe
     ),
     warnings,
     reasonCode: asString(record.reasonCode) || undefined,
+    engineConfig: asPlainObject(record.engineConfig),
   };
 }
 

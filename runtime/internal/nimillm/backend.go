@@ -128,6 +128,27 @@ func (b *Backend) timeout() time.Duration {
 	return b.client.Timeout
 }
 
+func (b *Backend) httpClientForContext(ctx context.Context) *http.Client {
+	if b == nil || b.client == nil {
+		return &http.Client{Timeout: defaultHTTPTimeout}
+	}
+	if ctx != nil {
+		if _, ok := ctx.Deadline(); ok && b.client.Timeout > 0 {
+			clone := *b.client
+			clone.Timeout = 0
+			return &clone
+		}
+	}
+	return b.client
+}
+
+func (b *Backend) do(request *http.Request) (*http.Response, error) {
+	if request == nil {
+		return nil, errors.New("request is required")
+	}
+	return b.httpClientForContext(request.Context()).Do(request)
+}
+
 // Endpoint returns the backend base URL.
 func (b *Backend) Endpoint() string {
 	if b == nil {
@@ -332,7 +353,7 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 		request.Header.Set("Authorization", "Bearer "+b.apiKey)
 	}
 
-	response, err := b.client.Do(request)
+	response, err := b.do(request)
 	if err != nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderRequestError(err)
 	}

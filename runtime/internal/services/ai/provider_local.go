@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"strings"
+	"sync"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -13,8 +14,32 @@ import (
 )
 
 type localProvider struct {
+	mu      sync.RWMutex
 	localai *nimillm.Backend
 	nexa    *nimillm.Backend
+}
+
+func (p *localProvider) setBackend(providerID string, backend *nimillm.Backend) {
+	if p == nil {
+		return
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	switch strings.ToLower(strings.TrimSpace(providerID)) {
+	case "localai":
+		p.localai = backend
+	case "nexa":
+		p.nexa = backend
+	}
+}
+
+func (p *localProvider) backends() (*nimillm.Backend, *nimillm.Backend) {
+	if p == nil {
+		return nil, nil
+	}
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return p.localai, p.nexa
 }
 
 func (p *localProvider) Route() runtimev1.RoutePolicy {
@@ -129,13 +154,14 @@ func (p *localProvider) StreamGenerateTextScenario(
 }
 
 func (p *localProvider) pickBackend(modelID string) (*nimillm.Backend, string, bool, bool, bool) {
+	localAIBackend, nexaBackend := p.backends()
 	id := strings.TrimSpace(modelID)
 	if id == "" {
-		if p.localai != nil {
-			return p.localai, "local-model", false, true, false
+		if localAIBackend != nil {
+			return localAIBackend, "local-model", false, true, false
 		}
-		if p.nexa != nil {
-			return p.nexa, "local-model", false, true, true
+		if nexaBackend != nil {
+			return nexaBackend, "local-model", false, true, true
 		}
 		return nil, "local-model", false, false, false
 	}
@@ -149,25 +175,25 @@ func (p *localProvider) pickBackend(modelID string) (*nimillm.Backend, string, b
 		}
 		switch prefix {
 		case "localai":
-			return p.localai, rest, true, p.localai != nil, false
+			return localAIBackend, rest, true, localAIBackend != nil, false
 		case "nexa":
-			return p.nexa, rest, true, p.nexa != nil, true
+			return nexaBackend, rest, true, nexaBackend != nil, true
 		case "local":
-			if p.localai != nil {
-				return p.localai, rest, true, true, false
+			if localAIBackend != nil {
+				return localAIBackend, rest, true, true, false
 			}
-			if p.nexa != nil {
-				return p.nexa, rest, true, true, true
+			if nexaBackend != nil {
+				return nexaBackend, rest, true, true, true
 			}
 			return nil, rest, true, false, false
 		}
 	}
 
-	if p.localai != nil {
-		return p.localai, id, false, true, false
+	if localAIBackend != nil {
+		return localAIBackend, id, false, true, false
 	}
-	if p.nexa != nil {
-		return p.nexa, id, false, true, true
+	if nexaBackend != nil {
+		return nexaBackend, id, false, true, true
 	}
 	return nil, id, false, false, false
 }

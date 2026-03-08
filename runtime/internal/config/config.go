@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -130,6 +131,32 @@ type Config struct {
 	// Default: 1234. (K-LENG-004)
 	EngineLocalAIPort int
 
+	// EngineLocalAIImageBackendMode controls the daemon-managed LocalAI image
+	// backend supply path. Supported values: disabled, official, custom.
+	EngineLocalAIImageBackendMode string
+
+	// EngineLocalAIImageBackendName is the LocalAI backend registry name exposed
+	// to LocalAI via --external-grpc-backends.
+	EngineLocalAIImageBackendName string
+
+	// EngineLocalAIImageBackendAddress is the loopback host:port where the image
+	// backend listens for LocalAI gRPC connections.
+	EngineLocalAIImageBackendAddress string
+
+	// EngineLocalAIImageBackendCommand is the custom backend command path used
+	// when EngineLocalAIImageBackendMode=custom.
+	EngineLocalAIImageBackendCommand string
+
+	// EngineLocalAIImageBackendArgs are forwarded to the custom backend command.
+	EngineLocalAIImageBackendArgs []string
+
+	// EngineLocalAIImageBackendEnv extends the custom backend environment.
+	EngineLocalAIImageBackendEnv map[string]string
+
+	// EngineLocalAIImageBackendWorkingDir overrides the custom backend working
+	// directory.
+	EngineLocalAIImageBackendWorkingDir string
+
 	// EngineNexaEnabled enables the supervised Nexa engine.
 	// Default: false. (K-LENG-004)
 	EngineNexaEnabled bool
@@ -186,6 +213,17 @@ type FileConfigEngine struct {
 	Enabled *bool  `json:"enabled,omitempty"`
 	Version string `json:"version,omitempty"`
 	Port    *int   `json:"port,omitempty"`
+	ImageBackend *FileConfigLocalAIImageBackend `json:"imageBackend,omitempty"`
+}
+
+type FileConfigLocalAIImageBackend struct {
+	Mode       string            `json:"mode,omitempty"`
+	BackendName string           `json:"backendName,omitempty"`
+	Address    string            `json:"address,omitempty"`
+	Command    string            `json:"command,omitempty"`
+	Args       []string          `json:"args,omitempty"`
+	Env        map[string]string `json:"env,omitempty"`
+	WorkingDir string            `json:"workingDir,omitempty"`
 }
 
 // FileConfigAuth holds JWT authentication configuration in the config file.
@@ -237,6 +275,13 @@ func DefaultFileConfig() FileConfig {
 	}
 }
 
+func defaultLocalAIImageBackendMode() string {
+	if runtime.GOOS == "darwin" && runtime.GOARCH == "arm64" {
+		return "official"
+	}
+	return "disabled"
+}
+
 // Load resolves configuration from environment with sane defaults.
 // Priority: env var > FileConfig field > default value. (K-DAEMON-009)
 func Load() (Config, error) {
@@ -283,10 +328,45 @@ func Load() (Config, error) {
 		EngineLocalAIEnabled:          readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED", localAIEnabledFromFile, false),
 		EngineLocalAIVersion:          readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LOCALAI_VERSION", fileConfigEngineString(fileCfg, "localai", "version"), "3.12.1"),
 		EngineLocalAIPort:             readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LOCALAI_PORT", localAIPortFromFile, 1234),
+		EngineLocalAIImageBackendMode: readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_MODE", fileConfigLocalAIImageBackendString(fileCfg, "mode"), defaultLocalAIImageBackendMode()),
+		EngineLocalAIImageBackendName: readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_NAME", fileConfigLocalAIImageBackendString(fileCfg, "backendName"), "stablediffusion-ggml"),
+		EngineLocalAIImageBackendAddress: readStringWithFileConfigFallback(
+			"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_ADDRESS",
+			fileConfigLocalAIImageBackendString(fileCfg, "address"),
+			"127.0.0.1:50052",
+		),
+		EngineLocalAIImageBackendCommand: readStringWithFileConfigFallback(
+			"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_COMMAND",
+			fileConfigLocalAIImageBackendString(fileCfg, "command"),
+			"",
+		),
+		EngineLocalAIImageBackendWorkingDir: readStringWithFileConfigFallback(
+			"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_WORKING_DIR",
+			fileConfigLocalAIImageBackendString(fileCfg, "workingDir"),
+			"",
+		),
 		EngineNexaEnabled:             readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_ENABLED", nexaEnabledFromFile, false),
 		EngineNexaVersion:             readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_VERSION", fileConfigEngineString(fileCfg, "nexa", "version"), ""),
 		EngineNexaPort:                readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_PORT", nexaPortFromFile, 8000),
 	}
+
+	imageBackendArgs, err := readStringSliceJSONWithFileConfigFallback(
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_ARGS_JSON",
+		fileConfigLocalAIImageBackendArgs(fileCfg),
+	)
+	if err != nil {
+		return Config{}, fmt.Errorf("parse localai image backend args: %w", err)
+	}
+	cfg.EngineLocalAIImageBackendArgs = imageBackendArgs
+
+	imageBackendEnv, err := readStringMapJSONWithFileConfigFallback(
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_ENV_JSON",
+		fileConfigLocalAIImageBackendEnv(fileCfg),
+	)
+	if err != nil {
+		return Config{}, fmt.Errorf("parse localai image backend env: %w", err)
+	}
+	cfg.EngineLocalAIImageBackendEnv = imageBackendEnv
 
 	localBaseURL := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_AI_BASE_URL"))
 	localAIEnabledExplicit := localAIEnabledFromFile != nil || isBoolEnvValueExplicit("NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED")
@@ -450,6 +530,9 @@ func (c Config) Validate() error {
 	if _, err := ParseLogLevel(c.LogLevel); err != nil {
 		return err
 	}
+	if err := validateLocalAIImageBackendConfig(c); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -487,6 +570,28 @@ func readString(envKey string, fallback string) string {
 	return fallback
 }
 
+func readStringSliceJSONWithFileConfigFallback(envKey string, fileValue []string) ([]string, error) {
+	if raw := strings.TrimSpace(os.Getenv(envKey)); raw != "" {
+		var parsed []string
+		if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
+			return nil, err
+		}
+		return normalizeStringSlice(parsed), nil
+	}
+	return normalizeStringSlice(fileValue), nil
+}
+
+func readStringMapJSONWithFileConfigFallback(envKey string, fileValue map[string]string) (map[string]string, error) {
+	if raw := strings.TrimSpace(os.Getenv(envKey)); raw != "" {
+		parsed := make(map[string]string)
+		if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
+			return nil, err
+		}
+		return normalizeStringMap(parsed), nil
+	}
+	return normalizeStringMap(fileValue), nil
+}
+
 func firstNonEmptyString(values ...string) string {
 	for _, value := range values {
 		trimmed := strings.TrimSpace(value)
@@ -505,6 +610,94 @@ func validateAddr(value string, name string) error {
 		return fmt.Errorf("invalid %s address %q: %w", name, value, err)
 	}
 	return nil
+}
+
+func validateLocalAIImageBackendConfig(cfg Config) error {
+	mode := strings.ToLower(strings.TrimSpace(cfg.EngineLocalAIImageBackendMode))
+	switch mode {
+	case "", "disabled", "official", "custom":
+	default:
+		return fmt.Errorf("invalid localai image backend mode %q", cfg.EngineLocalAIImageBackendMode)
+	}
+	if mode == "" || mode == "disabled" {
+		return nil
+	}
+	if err := validateLoopbackHostPort(cfg.EngineLocalAIImageBackendAddress, "engines.localai.imageBackend.address"); err != nil {
+		return err
+	}
+	if strings.TrimSpace(cfg.EngineLocalAIImageBackendName) == "" {
+		return fmt.Errorf("engines.localai.imageBackend.backendName must not be empty")
+	}
+	if mode == "custom" && strings.TrimSpace(cfg.EngineLocalAIImageBackendCommand) == "" {
+		return fmt.Errorf("engines.localai.imageBackend.command must not be empty when mode=custom")
+	}
+	return nil
+}
+
+func validateLoopbackHostPort(raw string, field string) error {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return fmt.Errorf("%s must not be empty", field)
+	}
+	host, port, err := net.SplitHostPort(value)
+	if err != nil {
+		return fmt.Errorf("%s must be host:port: %w", field, err)
+	}
+	if strings.TrimSpace(port) == "" {
+		return fmt.Errorf("%s must include a port", field)
+	}
+	if !isLoopbackHost(host) {
+		return fmt.Errorf("%s must use a loopback host", field)
+	}
+	return nil
+}
+
+func isLoopbackHost(host string) bool {
+	trimmed := strings.TrimSpace(strings.ToLower(host))
+	if trimmed == "" {
+		return false
+	}
+	if trimmed == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(trimmed)
+	return ip != nil && ip.IsLoopback()
+}
+
+func normalizeStringSlice(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			continue
+		}
+		result = append(result, trimmed)
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return result
+}
+
+func normalizeStringMap(values map[string]string) map[string]string {
+	if len(values) == 0 {
+		return nil
+	}
+	result := make(map[string]string, len(values))
+	for key, value := range values {
+		trimmedKey := strings.TrimSpace(key)
+		if trimmedKey == "" {
+			continue
+		}
+		result[trimmedKey] = value
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return result
 }
 
 func resolveLocalRuntimeStatePath(fileCfg FileConfig) string {
@@ -1036,4 +1229,39 @@ func fileConfigEngineInt(fileCfg FileConfig, engine string, field string) *int {
 		return cfg.Port
 	}
 	return nil
+}
+
+func fileConfigLocalAIImageBackendString(fileCfg FileConfig, field string) string {
+	if fileCfg.Engines == nil || fileCfg.Engines.LocalAI == nil || fileCfg.Engines.LocalAI.ImageBackend == nil {
+		return ""
+	}
+	cfg := fileCfg.Engines.LocalAI.ImageBackend
+	switch field {
+	case "mode":
+		return cfg.Mode
+	case "backendName":
+		return cfg.BackendName
+	case "address":
+		return cfg.Address
+	case "command":
+		return cfg.Command
+	case "workingDir":
+		return cfg.WorkingDir
+	default:
+		return ""
+	}
+}
+
+func fileConfigLocalAIImageBackendArgs(fileCfg FileConfig) []string {
+	if fileCfg.Engines == nil || fileCfg.Engines.LocalAI == nil || fileCfg.Engines.LocalAI.ImageBackend == nil {
+		return nil
+	}
+	return append([]string(nil), fileCfg.Engines.LocalAI.ImageBackend.Args...)
+}
+
+func fileConfigLocalAIImageBackendEnv(fileCfg FileConfig) map[string]string {
+	if fileCfg.Engines == nil || fileCfg.Engines.LocalAI == nil || fileCfg.Engines.LocalAI.ImageBackend == nil {
+		return nil
+	}
+	return normalizeStringMap(fileCfg.Engines.LocalAI.ImageBackend.Env)
 }

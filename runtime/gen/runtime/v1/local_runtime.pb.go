@@ -77,6 +77,122 @@ func (LocalModelStatus) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{0}
 }
 
+type LocalArtifactKind int32
+
+const (
+	LocalArtifactKind_LOCAL_ARTIFACT_KIND_UNSPECIFIED LocalArtifactKind = 0
+	LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE         LocalArtifactKind = 1
+	LocalArtifactKind_LOCAL_ARTIFACT_KIND_LLM         LocalArtifactKind = 2
+	LocalArtifactKind_LOCAL_ARTIFACT_KIND_CLIP        LocalArtifactKind = 3
+	LocalArtifactKind_LOCAL_ARTIFACT_KIND_CONTROLNET  LocalArtifactKind = 4
+	LocalArtifactKind_LOCAL_ARTIFACT_KIND_LORA        LocalArtifactKind = 5
+	LocalArtifactKind_LOCAL_ARTIFACT_KIND_AUXILIARY   LocalArtifactKind = 6
+)
+
+// Enum value maps for LocalArtifactKind.
+var (
+	LocalArtifactKind_name = map[int32]string{
+		0: "LOCAL_ARTIFACT_KIND_UNSPECIFIED",
+		1: "LOCAL_ARTIFACT_KIND_VAE",
+		2: "LOCAL_ARTIFACT_KIND_LLM",
+		3: "LOCAL_ARTIFACT_KIND_CLIP",
+		4: "LOCAL_ARTIFACT_KIND_CONTROLNET",
+		5: "LOCAL_ARTIFACT_KIND_LORA",
+		6: "LOCAL_ARTIFACT_KIND_AUXILIARY",
+	}
+	LocalArtifactKind_value = map[string]int32{
+		"LOCAL_ARTIFACT_KIND_UNSPECIFIED": 0,
+		"LOCAL_ARTIFACT_KIND_VAE":         1,
+		"LOCAL_ARTIFACT_KIND_LLM":         2,
+		"LOCAL_ARTIFACT_KIND_CLIP":        3,
+		"LOCAL_ARTIFACT_KIND_CONTROLNET":  4,
+		"LOCAL_ARTIFACT_KIND_LORA":        5,
+		"LOCAL_ARTIFACT_KIND_AUXILIARY":   6,
+	}
+)
+
+func (x LocalArtifactKind) Enum() *LocalArtifactKind {
+	p := new(LocalArtifactKind)
+	*p = x
+	return p
+}
+
+func (x LocalArtifactKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (LocalArtifactKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_local_runtime_proto_enumTypes[1].Descriptor()
+}
+
+func (LocalArtifactKind) Type() protoreflect.EnumType {
+	return &file_runtime_v1_local_runtime_proto_enumTypes[1]
+}
+
+func (x LocalArtifactKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use LocalArtifactKind.Descriptor instead.
+func (LocalArtifactKind) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{1}
+}
+
+type LocalArtifactStatus int32
+
+const (
+	LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_UNSPECIFIED LocalArtifactStatus = 0
+	LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_INSTALLED   LocalArtifactStatus = 1
+	LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_ACTIVE      LocalArtifactStatus = 2
+	LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_UNHEALTHY   LocalArtifactStatus = 3
+	LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_REMOVED     LocalArtifactStatus = 4
+)
+
+// Enum value maps for LocalArtifactStatus.
+var (
+	LocalArtifactStatus_name = map[int32]string{
+		0: "LOCAL_ARTIFACT_STATUS_UNSPECIFIED",
+		1: "LOCAL_ARTIFACT_STATUS_INSTALLED",
+		2: "LOCAL_ARTIFACT_STATUS_ACTIVE",
+		3: "LOCAL_ARTIFACT_STATUS_UNHEALTHY",
+		4: "LOCAL_ARTIFACT_STATUS_REMOVED",
+	}
+	LocalArtifactStatus_value = map[string]int32{
+		"LOCAL_ARTIFACT_STATUS_UNSPECIFIED": 0,
+		"LOCAL_ARTIFACT_STATUS_INSTALLED":   1,
+		"LOCAL_ARTIFACT_STATUS_ACTIVE":      2,
+		"LOCAL_ARTIFACT_STATUS_UNHEALTHY":   3,
+		"LOCAL_ARTIFACT_STATUS_REMOVED":     4,
+	}
+)
+
+func (x LocalArtifactStatus) Enum() *LocalArtifactStatus {
+	p := new(LocalArtifactStatus)
+	*p = x
+	return p
+}
+
+func (x LocalArtifactStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (LocalArtifactStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_local_runtime_proto_enumTypes[2].Descriptor()
+}
+
+func (LocalArtifactStatus) Type() protoreflect.EnumType {
+	return &file_runtime_v1_local_runtime_proto_enumTypes[2]
+}
+
+func (x LocalArtifactStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use LocalArtifactStatus.Descriptor instead.
+func (LocalArtifactStatus) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{2}
+}
+
 type LocalServiceStatus int32
 
 const (
@@ -116,11 +232,11 @@ func (x LocalServiceStatus) String() string {
 }
 
 func (LocalServiceStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_local_runtime_proto_enumTypes[1].Descriptor()
+	return file_runtime_v1_local_runtime_proto_enumTypes[3].Descriptor()
 }
 
 func (LocalServiceStatus) Type() protoreflect.EnumType {
-	return &file_runtime_v1_local_runtime_proto_enumTypes[1]
+	return &file_runtime_v1_local_runtime_proto_enumTypes[3]
 }
 
 func (x LocalServiceStatus) Number() protoreflect.EnumNumber {
@@ -129,7 +245,7 @@ func (x LocalServiceStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use LocalServiceStatus.Descriptor instead.
 func (LocalServiceStatus) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{1}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{3}
 }
 
 type LocalEngineRuntimeMode int32
@@ -165,11 +281,11 @@ func (x LocalEngineRuntimeMode) String() string {
 }
 
 func (LocalEngineRuntimeMode) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_local_runtime_proto_enumTypes[2].Descriptor()
+	return file_runtime_v1_local_runtime_proto_enumTypes[4].Descriptor()
 }
 
 func (LocalEngineRuntimeMode) Type() protoreflect.EnumType {
-	return &file_runtime_v1_local_runtime_proto_enumTypes[2]
+	return &file_runtime_v1_local_runtime_proto_enumTypes[4]
 }
 
 func (x LocalEngineRuntimeMode) Number() protoreflect.EnumNumber {
@@ -178,7 +294,7 @@ func (x LocalEngineRuntimeMode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use LocalEngineRuntimeMode.Descriptor instead.
 func (LocalEngineRuntimeMode) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{2}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{4}
 }
 
 type LocalDependencyKind int32
@@ -217,11 +333,11 @@ func (x LocalDependencyKind) String() string {
 }
 
 func (LocalDependencyKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_local_runtime_proto_enumTypes[3].Descriptor()
+	return file_runtime_v1_local_runtime_proto_enumTypes[5].Descriptor()
 }
 
 func (LocalDependencyKind) Type() protoreflect.EnumType {
-	return &file_runtime_v1_local_runtime_proto_enumTypes[3]
+	return &file_runtime_v1_local_runtime_proto_enumTypes[5]
 }
 
 func (x LocalDependencyKind) Number() protoreflect.EnumNumber {
@@ -230,7 +346,7 @@ func (x LocalDependencyKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use LocalDependencyKind.Descriptor instead.
 func (LocalDependencyKind) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{3}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{5}
 }
 
 type LocalEngineStatus int32
@@ -272,11 +388,11 @@ func (x LocalEngineStatus) String() string {
 }
 
 func (LocalEngineStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_local_runtime_proto_enumTypes[4].Descriptor()
+	return file_runtime_v1_local_runtime_proto_enumTypes[6].Descriptor()
 }
 
 func (LocalEngineStatus) Type() protoreflect.EnumType {
-	return &file_runtime_v1_local_runtime_proto_enumTypes[4]
+	return &file_runtime_v1_local_runtime_proto_enumTypes[6]
 }
 
 func (x LocalEngineStatus) Number() protoreflect.EnumNumber {
@@ -285,7 +401,7 @@ func (x LocalEngineStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use LocalEngineStatus.Descriptor instead.
 func (LocalEngineStatus) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{4}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{6}
 }
 
 type LocalModelSource struct {
@@ -340,6 +456,58 @@ func (x *LocalModelSource) GetRevision() string {
 	return ""
 }
 
+type LocalArtifactSource struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Repo          string                 `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
+	Revision      string                 `protobuf:"bytes,2,opt,name=revision,proto3" json:"revision,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LocalArtifactSource) Reset() {
+	*x = LocalArtifactSource{}
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalArtifactSource) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalArtifactSource) ProtoMessage() {}
+
+func (x *LocalArtifactSource) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalArtifactSource.ProtoReflect.Descriptor instead.
+func (*LocalArtifactSource) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *LocalArtifactSource) GetRepo() string {
+	if x != nil {
+		return x.Repo
+	}
+	return ""
+}
+
+func (x *LocalArtifactSource) GetRevision() string {
+	if x != nil {
+		return x.Revision
+	}
+	return ""
+}
+
 type LocalModelRecord struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
 	LocalModelId         string                 `protobuf:"bytes,1,opt,name=local_model_id,json=localModelId,proto3" json:"local_model_id,omitempty"`
@@ -356,13 +524,14 @@ type LocalModelRecord struct {
 	UpdatedAt            string                 `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	HealthDetail         string                 `protobuf:"bytes,13,opt,name=health_detail,json=healthDetail,proto3" json:"health_detail,omitempty"`
 	LocalInvokeProfileId string                 `protobuf:"bytes,14,opt,name=local_invoke_profile_id,json=localInvokeProfileId,proto3" json:"local_invoke_profile_id,omitempty"`
+	EngineConfig         *structpb.Struct       `protobuf:"bytes,15,opt,name=engine_config,json=engineConfig,proto3" json:"engine_config,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
 
 func (x *LocalModelRecord) Reset() {
 	*x = LocalModelRecord{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[1]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -374,7 +543,7 @@ func (x *LocalModelRecord) String() string {
 func (*LocalModelRecord) ProtoMessage() {}
 
 func (x *LocalModelRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[1]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -387,7 +556,7 @@ func (x *LocalModelRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalModelRecord.ProtoReflect.Descriptor instead.
 func (*LocalModelRecord) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{1}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *LocalModelRecord) GetLocalModelId() string {
@@ -488,6 +657,13 @@ func (x *LocalModelRecord) GetLocalInvokeProfileId() string {
 	return ""
 }
 
+func (x *LocalModelRecord) GetEngineConfig() *structpb.Struct {
+	if x != nil {
+		return x.EngineConfig
+	}
+	return nil
+}
+
 type LocalModelHealth struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	LocalModelId  string                 `protobuf:"bytes,1,opt,name=local_model_id,json=localModelId,proto3" json:"local_model_id,omitempty"`
@@ -500,7 +676,7 @@ type LocalModelHealth struct {
 
 func (x *LocalModelHealth) Reset() {
 	*x = LocalModelHealth{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[2]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -512,7 +688,7 @@ func (x *LocalModelHealth) String() string {
 func (*LocalModelHealth) ProtoMessage() {}
 
 func (x *LocalModelHealth) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[2]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -525,7 +701,7 @@ func (x *LocalModelHealth) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalModelHealth.ProtoReflect.Descriptor instead.
 func (*LocalModelHealth) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{2}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *LocalModelHealth) GetLocalModelId() string {
@@ -556,6 +732,154 @@ func (x *LocalModelHealth) GetEndpoint() string {
 	return ""
 }
 
+type LocalArtifactRecord struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	LocalArtifactId string                 `protobuf:"bytes,1,opt,name=local_artifact_id,json=localArtifactId,proto3" json:"local_artifact_id,omitempty"`
+	ArtifactId      string                 `protobuf:"bytes,2,opt,name=artifact_id,json=artifactId,proto3" json:"artifact_id,omitempty"`
+	Kind            LocalArtifactKind      `protobuf:"varint,3,opt,name=kind,proto3,enum=nimi.runtime.v1.LocalArtifactKind" json:"kind,omitempty"`
+	Engine          string                 `protobuf:"bytes,4,opt,name=engine,proto3" json:"engine,omitempty"`
+	Entry           string                 `protobuf:"bytes,5,opt,name=entry,proto3" json:"entry,omitempty"`
+	Files           []string               `protobuf:"bytes,6,rep,name=files,proto3" json:"files,omitempty"`
+	License         string                 `protobuf:"bytes,7,opt,name=license,proto3" json:"license,omitempty"`
+	Source          *LocalArtifactSource   `protobuf:"bytes,8,opt,name=source,proto3" json:"source,omitempty"`
+	Hashes          map[string]string      `protobuf:"bytes,9,rep,name=hashes,proto3" json:"hashes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Status          LocalArtifactStatus    `protobuf:"varint,10,opt,name=status,proto3,enum=nimi.runtime.v1.LocalArtifactStatus" json:"status,omitempty"`
+	InstalledAt     string                 `protobuf:"bytes,11,opt,name=installed_at,json=installedAt,proto3" json:"installed_at,omitempty"`
+	UpdatedAt       string                 `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	HealthDetail    string                 `protobuf:"bytes,13,opt,name=health_detail,json=healthDetail,proto3" json:"health_detail,omitempty"`
+	Metadata        *structpb.Struct       `protobuf:"bytes,14,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *LocalArtifactRecord) Reset() {
+	*x = LocalArtifactRecord{}
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalArtifactRecord) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalArtifactRecord) ProtoMessage() {}
+
+func (x *LocalArtifactRecord) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalArtifactRecord.ProtoReflect.Descriptor instead.
+func (*LocalArtifactRecord) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *LocalArtifactRecord) GetLocalArtifactId() string {
+	if x != nil {
+		return x.LocalArtifactId
+	}
+	return ""
+}
+
+func (x *LocalArtifactRecord) GetArtifactId() string {
+	if x != nil {
+		return x.ArtifactId
+	}
+	return ""
+}
+
+func (x *LocalArtifactRecord) GetKind() LocalArtifactKind {
+	if x != nil {
+		return x.Kind
+	}
+	return LocalArtifactKind_LOCAL_ARTIFACT_KIND_UNSPECIFIED
+}
+
+func (x *LocalArtifactRecord) GetEngine() string {
+	if x != nil {
+		return x.Engine
+	}
+	return ""
+}
+
+func (x *LocalArtifactRecord) GetEntry() string {
+	if x != nil {
+		return x.Entry
+	}
+	return ""
+}
+
+func (x *LocalArtifactRecord) GetFiles() []string {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
+func (x *LocalArtifactRecord) GetLicense() string {
+	if x != nil {
+		return x.License
+	}
+	return ""
+}
+
+func (x *LocalArtifactRecord) GetSource() *LocalArtifactSource {
+	if x != nil {
+		return x.Source
+	}
+	return nil
+}
+
+func (x *LocalArtifactRecord) GetHashes() map[string]string {
+	if x != nil {
+		return x.Hashes
+	}
+	return nil
+}
+
+func (x *LocalArtifactRecord) GetStatus() LocalArtifactStatus {
+	if x != nil {
+		return x.Status
+	}
+	return LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_UNSPECIFIED
+}
+
+func (x *LocalArtifactRecord) GetInstalledAt() string {
+	if x != nil {
+		return x.InstalledAt
+	}
+	return ""
+}
+
+func (x *LocalArtifactRecord) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+func (x *LocalArtifactRecord) GetHealthDetail() string {
+	if x != nil {
+		return x.HealthDetail
+	}
+	return ""
+}
+
+func (x *LocalArtifactRecord) GetMetadata() *structpb.Struct {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
 type LocalVerifiedModelDescriptor struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	TemplateId     string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
@@ -575,13 +899,14 @@ type LocalVerifiedModelDescriptor struct {
 	FileCount      int32                  `protobuf:"varint,15,opt,name=file_count,json=fileCount,proto3" json:"file_count,omitempty"`
 	TotalSizeBytes int64                  `protobuf:"varint,16,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
 	Tags           []string               `protobuf:"bytes,17,rep,name=tags,proto3" json:"tags,omitempty"`
+	EngineConfig   *structpb.Struct       `protobuf:"bytes,18,opt,name=engine_config,json=engineConfig,proto3" json:"engine_config,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
 
 func (x *LocalVerifiedModelDescriptor) Reset() {
 	*x = LocalVerifiedModelDescriptor{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[3]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -593,7 +918,7 @@ func (x *LocalVerifiedModelDescriptor) String() string {
 func (*LocalVerifiedModelDescriptor) ProtoMessage() {}
 
 func (x *LocalVerifiedModelDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[3]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -606,7 +931,7 @@ func (x *LocalVerifiedModelDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalVerifiedModelDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalVerifiedModelDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{3}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *LocalVerifiedModelDescriptor) GetTemplateId() string {
@@ -728,6 +1053,177 @@ func (x *LocalVerifiedModelDescriptor) GetTags() []string {
 	return nil
 }
 
+func (x *LocalVerifiedModelDescriptor) GetEngineConfig() *structpb.Struct {
+	if x != nil {
+		return x.EngineConfig
+	}
+	return nil
+}
+
+type LocalVerifiedArtifactDescriptor struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	TemplateId     string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	Title          string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Description    string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	ArtifactId     string                 `protobuf:"bytes,4,opt,name=artifact_id,json=artifactId,proto3" json:"artifact_id,omitempty"`
+	Kind           LocalArtifactKind      `protobuf:"varint,5,opt,name=kind,proto3,enum=nimi.runtime.v1.LocalArtifactKind" json:"kind,omitempty"`
+	Engine         string                 `protobuf:"bytes,6,opt,name=engine,proto3" json:"engine,omitempty"`
+	Entry          string                 `protobuf:"bytes,7,opt,name=entry,proto3" json:"entry,omitempty"`
+	Files          []string               `protobuf:"bytes,8,rep,name=files,proto3" json:"files,omitempty"`
+	License        string                 `protobuf:"bytes,9,opt,name=license,proto3" json:"license,omitempty"`
+	Repo           string                 `protobuf:"bytes,10,opt,name=repo,proto3" json:"repo,omitempty"`
+	Revision       string                 `protobuf:"bytes,11,opt,name=revision,proto3" json:"revision,omitempty"`
+	Hashes         map[string]string      `protobuf:"bytes,12,rep,name=hashes,proto3" json:"hashes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	FileCount      int32                  `protobuf:"varint,13,opt,name=file_count,json=fileCount,proto3" json:"file_count,omitempty"`
+	TotalSizeBytes int64                  `protobuf:"varint,14,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
+	Tags           []string               `protobuf:"bytes,15,rep,name=tags,proto3" json:"tags,omitempty"`
+	Metadata       *structpb.Struct       `protobuf:"bytes,16,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *LocalVerifiedArtifactDescriptor) Reset() {
+	*x = LocalVerifiedArtifactDescriptor{}
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalVerifiedArtifactDescriptor) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalVerifiedArtifactDescriptor) ProtoMessage() {}
+
+func (x *LocalVerifiedArtifactDescriptor) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalVerifiedArtifactDescriptor.ProtoReflect.Descriptor instead.
+func (*LocalVerifiedArtifactDescriptor) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *LocalVerifiedArtifactDescriptor) GetTemplateId() string {
+	if x != nil {
+		return x.TemplateId
+	}
+	return ""
+}
+
+func (x *LocalVerifiedArtifactDescriptor) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *LocalVerifiedArtifactDescriptor) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *LocalVerifiedArtifactDescriptor) GetArtifactId() string {
+	if x != nil {
+		return x.ArtifactId
+	}
+	return ""
+}
+
+func (x *LocalVerifiedArtifactDescriptor) GetKind() LocalArtifactKind {
+	if x != nil {
+		return x.Kind
+	}
+	return LocalArtifactKind_LOCAL_ARTIFACT_KIND_UNSPECIFIED
+}
+
+func (x *LocalVerifiedArtifactDescriptor) GetEngine() string {
+	if x != nil {
+		return x.Engine
+	}
+	return ""
+}
+
+func (x *LocalVerifiedArtifactDescriptor) GetEntry() string {
+	if x != nil {
+		return x.Entry
+	}
+	return ""
+}
+
+func (x *LocalVerifiedArtifactDescriptor) GetFiles() []string {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
+func (x *LocalVerifiedArtifactDescriptor) GetLicense() string {
+	if x != nil {
+		return x.License
+	}
+	return ""
+}
+
+func (x *LocalVerifiedArtifactDescriptor) GetRepo() string {
+	if x != nil {
+		return x.Repo
+	}
+	return ""
+}
+
+func (x *LocalVerifiedArtifactDescriptor) GetRevision() string {
+	if x != nil {
+		return x.Revision
+	}
+	return ""
+}
+
+func (x *LocalVerifiedArtifactDescriptor) GetHashes() map[string]string {
+	if x != nil {
+		return x.Hashes
+	}
+	return nil
+}
+
+func (x *LocalVerifiedArtifactDescriptor) GetFileCount() int32 {
+	if x != nil {
+		return x.FileCount
+	}
+	return 0
+}
+
+func (x *LocalVerifiedArtifactDescriptor) GetTotalSizeBytes() int64 {
+	if x != nil {
+		return x.TotalSizeBytes
+	}
+	return 0
+}
+
+func (x *LocalVerifiedArtifactDescriptor) GetTags() []string {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
+func (x *LocalVerifiedArtifactDescriptor) GetMetadata() *structpb.Struct {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
 type LocalProviderHintsLocalAi struct {
 	state                   protoimpl.MessageState `protogen:"open.v1"`
 	Backend                 string                 `protobuf:"bytes,1,opt,name=backend,proto3" json:"backend,omitempty"`
@@ -741,7 +1237,7 @@ type LocalProviderHintsLocalAi struct {
 
 func (x *LocalProviderHintsLocalAi) Reset() {
 	*x = LocalProviderHintsLocalAi{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[4]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -753,7 +1249,7 @@ func (x *LocalProviderHintsLocalAi) String() string {
 func (*LocalProviderHintsLocalAi) ProtoMessage() {}
 
 func (x *LocalProviderHintsLocalAi) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[4]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -766,7 +1262,7 @@ func (x *LocalProviderHintsLocalAi) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalProviderHintsLocalAi.ProtoReflect.Descriptor instead.
 func (*LocalProviderHintsLocalAi) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{4}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *LocalProviderHintsLocalAi) GetBackend() string {
@@ -825,7 +1321,7 @@ type LocalProviderHintsNexa struct {
 
 func (x *LocalProviderHintsNexa) Reset() {
 	*x = LocalProviderHintsNexa{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[5]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -837,7 +1333,7 @@ func (x *LocalProviderHintsNexa) String() string {
 func (*LocalProviderHintsNexa) ProtoMessage() {}
 
 func (x *LocalProviderHintsNexa) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[5]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -850,7 +1346,7 @@ func (x *LocalProviderHintsNexa) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalProviderHintsNexa.ProtoReflect.Descriptor instead.
 func (*LocalProviderHintsNexa) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{5}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *LocalProviderHintsNexa) GetBackend() string {
@@ -955,7 +1451,7 @@ type LocalProviderHints struct {
 
 func (x *LocalProviderHints) Reset() {
 	*x = LocalProviderHints{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[6]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -967,7 +1463,7 @@ func (x *LocalProviderHints) String() string {
 func (*LocalProviderHints) ProtoMessage() {}
 
 func (x *LocalProviderHints) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[6]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -980,7 +1476,7 @@ func (x *LocalProviderHints) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalProviderHints.ProtoReflect.Descriptor instead.
 func (*LocalProviderHints) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{6}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *LocalProviderHints) GetLocalai() *LocalProviderHintsLocalAi {
@@ -1030,13 +1526,14 @@ type LocalCatalogModelDescriptor struct {
 	Likes             int64                  `protobuf:"varint,22,opt,name=likes,proto3" json:"likes,omitempty"`
 	LastModified      string                 `protobuf:"bytes,23,opt,name=last_modified,json=lastModified,proto3" json:"last_modified,omitempty"`
 	Verified          bool                   `protobuf:"varint,24,opt,name=verified,proto3" json:"verified,omitempty"`
+	EngineConfig      *structpb.Struct       `protobuf:"bytes,25,opt,name=engine_config,json=engineConfig,proto3" json:"engine_config,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
 
 func (x *LocalCatalogModelDescriptor) Reset() {
 	*x = LocalCatalogModelDescriptor{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[7]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1048,7 +1545,7 @@ func (x *LocalCatalogModelDescriptor) String() string {
 func (*LocalCatalogModelDescriptor) ProtoMessage() {}
 
 func (x *LocalCatalogModelDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[7]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1061,7 +1558,7 @@ func (x *LocalCatalogModelDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalCatalogModelDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalCatalogModelDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{7}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *LocalCatalogModelDescriptor) GetItemId() string {
@@ -1232,6 +1729,13 @@ func (x *LocalCatalogModelDescriptor) GetVerified() bool {
 	return false
 }
 
+func (x *LocalCatalogModelDescriptor) GetEngineConfig() *structpb.Struct {
+	if x != nil {
+		return x.EngineConfig
+	}
+	return nil
+}
+
 type LocalInstallPlanDescriptor struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	PlanId            string                 `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
@@ -1254,13 +1758,14 @@ type LocalInstallPlanDescriptor struct {
 	Hashes            map[string]string      `protobuf:"bytes,18,rep,name=hashes,proto3" json:"hashes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	Warnings          []string               `protobuf:"bytes,19,rep,name=warnings,proto3" json:"warnings,omitempty"`
 	ReasonCode        string                 `protobuf:"bytes,20,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
+	EngineConfig      *structpb.Struct       `protobuf:"bytes,21,opt,name=engine_config,json=engineConfig,proto3" json:"engine_config,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
 
 func (x *LocalInstallPlanDescriptor) Reset() {
 	*x = LocalInstallPlanDescriptor{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[8]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1272,7 +1777,7 @@ func (x *LocalInstallPlanDescriptor) String() string {
 func (*LocalInstallPlanDescriptor) ProtoMessage() {}
 
 func (x *LocalInstallPlanDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[8]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1285,7 +1790,7 @@ func (x *LocalInstallPlanDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalInstallPlanDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalInstallPlanDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{8}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *LocalInstallPlanDescriptor) GetPlanId() string {
@@ -1428,6 +1933,13 @@ func (x *LocalInstallPlanDescriptor) GetReasonCode() string {
 	return ""
 }
 
+func (x *LocalInstallPlanDescriptor) GetEngineConfig() *structpb.Struct {
+	if x != nil {
+		return x.EngineConfig
+	}
+	return nil
+}
+
 type LocalGpuProfile struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Available     bool                   `protobuf:"varint,1,opt,name=available,proto3" json:"available,omitempty"`
@@ -1439,7 +1951,7 @@ type LocalGpuProfile struct {
 
 func (x *LocalGpuProfile) Reset() {
 	*x = LocalGpuProfile{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[9]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1451,7 +1963,7 @@ func (x *LocalGpuProfile) String() string {
 func (*LocalGpuProfile) ProtoMessage() {}
 
 func (x *LocalGpuProfile) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[9]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1464,7 +1976,7 @@ func (x *LocalGpuProfile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalGpuProfile.ProtoReflect.Descriptor instead.
 func (*LocalGpuProfile) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{9}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *LocalGpuProfile) GetAvailable() bool {
@@ -1498,7 +2010,7 @@ type LocalPythonProfile struct {
 
 func (x *LocalPythonProfile) Reset() {
 	*x = LocalPythonProfile{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[10]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1510,7 +2022,7 @@ func (x *LocalPythonProfile) String() string {
 func (*LocalPythonProfile) ProtoMessage() {}
 
 func (x *LocalPythonProfile) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[10]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1523,7 +2035,7 @@ func (x *LocalPythonProfile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalPythonProfile.ProtoReflect.Descriptor instead.
 func (*LocalPythonProfile) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{10}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *LocalPythonProfile) GetAvailable() bool {
@@ -1553,7 +2065,7 @@ type LocalNpuProfile struct {
 
 func (x *LocalNpuProfile) Reset() {
 	*x = LocalNpuProfile{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[11]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1565,7 +2077,7 @@ func (x *LocalNpuProfile) String() string {
 func (*LocalNpuProfile) ProtoMessage() {}
 
 func (x *LocalNpuProfile) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[11]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1578,7 +2090,7 @@ func (x *LocalNpuProfile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalNpuProfile.ProtoReflect.Descriptor instead.
 func (*LocalNpuProfile) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{11}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *LocalNpuProfile) GetAvailable() bool {
@@ -1626,7 +2138,7 @@ type LocalPortAvailability struct {
 
 func (x *LocalPortAvailability) Reset() {
 	*x = LocalPortAvailability{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[12]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1638,7 +2150,7 @@ func (x *LocalPortAvailability) String() string {
 func (*LocalPortAvailability) ProtoMessage() {}
 
 func (x *LocalPortAvailability) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[12]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1651,7 +2163,7 @@ func (x *LocalPortAvailability) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalPortAvailability.ProtoReflect.Descriptor instead.
 func (*LocalPortAvailability) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{12}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *LocalPortAvailability) GetPort() int32 {
@@ -1683,7 +2195,7 @@ type LocalDeviceProfile struct {
 
 func (x *LocalDeviceProfile) Reset() {
 	*x = LocalDeviceProfile{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[13]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1695,7 +2207,7 @@ func (x *LocalDeviceProfile) String() string {
 func (*LocalDeviceProfile) ProtoMessage() {}
 
 func (x *LocalDeviceProfile) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[13]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1708,7 +2220,7 @@ func (x *LocalDeviceProfile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalDeviceProfile.ProtoReflect.Descriptor instead.
 func (*LocalDeviceProfile) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{13}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *LocalDeviceProfile) GetOs() string {
@@ -1777,7 +2289,7 @@ type LocalDependencyOptionDescriptor struct {
 
 func (x *LocalDependencyOptionDescriptor) Reset() {
 	*x = LocalDependencyOptionDescriptor{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[14]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1789,7 +2301,7 @@ func (x *LocalDependencyOptionDescriptor) String() string {
 func (*LocalDependencyOptionDescriptor) ProtoMessage() {}
 
 func (x *LocalDependencyOptionDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[14]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1802,7 +2314,7 @@ func (x *LocalDependencyOptionDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalDependencyOptionDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalDependencyOptionDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{14}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *LocalDependencyOptionDescriptor) GetDependencyId() string {
@@ -1879,7 +2391,7 @@ type LocalDependencyAlternativeDescriptor struct {
 
 func (x *LocalDependencyAlternativeDescriptor) Reset() {
 	*x = LocalDependencyAlternativeDescriptor{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[15]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1891,7 +2403,7 @@ func (x *LocalDependencyAlternativeDescriptor) String() string {
 func (*LocalDependencyAlternativeDescriptor) ProtoMessage() {}
 
 func (x *LocalDependencyAlternativeDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[15]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1904,7 +2416,7 @@ func (x *LocalDependencyAlternativeDescriptor) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use LocalDependencyAlternativeDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalDependencyAlternativeDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{15}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *LocalDependencyAlternativeDescriptor) GetAlternativeId() string {
@@ -1940,7 +2452,7 @@ type LocalDependenciesDeclarationDescriptor struct {
 
 func (x *LocalDependenciesDeclarationDescriptor) Reset() {
 	*x = LocalDependenciesDeclarationDescriptor{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[16]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1952,7 +2464,7 @@ func (x *LocalDependenciesDeclarationDescriptor) String() string {
 func (*LocalDependenciesDeclarationDescriptor) ProtoMessage() {}
 
 func (x *LocalDependenciesDeclarationDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[16]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1965,7 +2477,7 @@ func (x *LocalDependenciesDeclarationDescriptor) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use LocalDependenciesDeclarationDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalDependenciesDeclarationDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{16}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *LocalDependenciesDeclarationDescriptor) GetRequired() []*LocalDependencyOptionDescriptor {
@@ -2017,7 +2529,7 @@ type LocalDependencyDescriptor struct {
 
 func (x *LocalDependencyDescriptor) Reset() {
 	*x = LocalDependencyDescriptor{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[17]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2029,7 +2541,7 @@ func (x *LocalDependencyDescriptor) String() string {
 func (*LocalDependencyDescriptor) ProtoMessage() {}
 
 func (x *LocalDependencyDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[17]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2042,7 +2554,7 @@ func (x *LocalDependencyDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalDependencyDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalDependencyDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{17}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *LocalDependencyDescriptor) GetDependencyId() string {
@@ -2150,7 +2662,7 @@ type LocalPreflightDecision struct {
 
 func (x *LocalPreflightDecision) Reset() {
 	*x = LocalPreflightDecision{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[18]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2162,7 +2674,7 @@ func (x *LocalPreflightDecision) String() string {
 func (*LocalPreflightDecision) ProtoMessage() {}
 
 func (x *LocalPreflightDecision) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[18]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2175,7 +2687,7 @@ func (x *LocalPreflightDecision) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalPreflightDecision.ProtoReflect.Descriptor instead.
 func (*LocalPreflightDecision) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{18}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *LocalPreflightDecision) GetDependencyId() string {
@@ -2232,7 +2744,7 @@ type LocalDependencySelectionRationale struct {
 
 func (x *LocalDependencySelectionRationale) Reset() {
 	*x = LocalDependencySelectionRationale{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[19]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2244,7 +2756,7 @@ func (x *LocalDependencySelectionRationale) String() string {
 func (*LocalDependencySelectionRationale) ProtoMessage() {}
 
 func (x *LocalDependencySelectionRationale) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[19]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2257,7 +2769,7 @@ func (x *LocalDependencySelectionRationale) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use LocalDependencySelectionRationale.ProtoReflect.Descriptor instead.
 func (*LocalDependencySelectionRationale) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{19}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *LocalDependencySelectionRationale) GetDependencyId() string {
@@ -2305,7 +2817,7 @@ type LocalDependencyResolutionPlan struct {
 
 func (x *LocalDependencyResolutionPlan) Reset() {
 	*x = LocalDependencyResolutionPlan{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[20]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2317,7 +2829,7 @@ func (x *LocalDependencyResolutionPlan) String() string {
 func (*LocalDependencyResolutionPlan) ProtoMessage() {}
 
 func (x *LocalDependencyResolutionPlan) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[20]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2330,7 +2842,7 @@ func (x *LocalDependencyResolutionPlan) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalDependencyResolutionPlan.ProtoReflect.Descriptor instead.
 func (*LocalDependencyResolutionPlan) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{20}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *LocalDependencyResolutionPlan) GetPlanId() string {
@@ -2408,7 +2920,7 @@ type LocalDependencyApplyStageResult struct {
 
 func (x *LocalDependencyApplyStageResult) Reset() {
 	*x = LocalDependencyApplyStageResult{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[21]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2420,7 +2932,7 @@ func (x *LocalDependencyApplyStageResult) String() string {
 func (*LocalDependencyApplyStageResult) ProtoMessage() {}
 
 func (x *LocalDependencyApplyStageResult) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[21]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2433,7 +2945,7 @@ func (x *LocalDependencyApplyStageResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalDependencyApplyStageResult.ProtoReflect.Descriptor instead.
 func (*LocalDependencyApplyStageResult) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{21}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *LocalDependencyApplyStageResult) GetStage() string {
@@ -2483,7 +2995,7 @@ type LocalServiceDescriptor struct {
 
 func (x *LocalServiceDescriptor) Reset() {
 	*x = LocalServiceDescriptor{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[22]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2495,7 +3007,7 @@ func (x *LocalServiceDescriptor) String() string {
 func (*LocalServiceDescriptor) ProtoMessage() {}
 
 func (x *LocalServiceDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[22]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2508,7 +3020,7 @@ func (x *LocalServiceDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalServiceDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalServiceDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{22}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *LocalServiceDescriptor) GetServiceId() string {
@@ -2607,7 +3119,7 @@ type LocalDependencyApplyResult struct {
 
 func (x *LocalDependencyApplyResult) Reset() {
 	*x = LocalDependencyApplyResult{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[23]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2619,7 +3131,7 @@ func (x *LocalDependencyApplyResult) String() string {
 func (*LocalDependencyApplyResult) ProtoMessage() {}
 
 func (x *LocalDependencyApplyResult) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[23]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2632,7 +3144,7 @@ func (x *LocalDependencyApplyResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalDependencyApplyResult.ProtoReflect.Descriptor instead.
 func (*LocalDependencyApplyResult) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{23}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *LocalDependencyApplyResult) GetPlanId() string {
@@ -2736,7 +3248,7 @@ type LocalNodeDescriptor struct {
 
 func (x *LocalNodeDescriptor) Reset() {
 	*x = LocalNodeDescriptor{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[24]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2748,7 +3260,7 @@ func (x *LocalNodeDescriptor) String() string {
 func (*LocalNodeDescriptor) ProtoMessage() {}
 
 func (x *LocalNodeDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[24]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2761,7 +3273,7 @@ func (x *LocalNodeDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalNodeDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalNodeDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{24}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *LocalNodeDescriptor) GetNodeId() string {
@@ -2899,7 +3411,7 @@ type LocalAuditEvent struct {
 
 func (x *LocalAuditEvent) Reset() {
 	*x = LocalAuditEvent{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[25]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2911,7 +3423,7 @@ func (x *LocalAuditEvent) String() string {
 func (*LocalAuditEvent) ProtoMessage() {}
 
 func (x *LocalAuditEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[25]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2924,7 +3436,7 @@ func (x *LocalAuditEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAuditEvent.ProtoReflect.Descriptor instead.
 func (*LocalAuditEvent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{25}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *LocalAuditEvent) GetId() string {
@@ -3042,7 +3554,7 @@ type LocalAuditTimeRange struct {
 
 func (x *LocalAuditTimeRange) Reset() {
 	*x = LocalAuditTimeRange{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[26]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3054,7 +3566,7 @@ func (x *LocalAuditTimeRange) String() string {
 func (*LocalAuditTimeRange) ProtoMessage() {}
 
 func (x *LocalAuditTimeRange) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[26]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3067,7 +3579,7 @@ func (x *LocalAuditTimeRange) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAuditTimeRange.ProtoReflect.Descriptor instead.
 func (*LocalAuditTimeRange) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{26}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *LocalAuditTimeRange) GetFrom() string {
@@ -3104,7 +3616,7 @@ type LocalEngineDescriptor struct {
 
 func (x *LocalEngineDescriptor) Reset() {
 	*x = LocalEngineDescriptor{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[27]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3116,7 +3628,7 @@ func (x *LocalEngineDescriptor) String() string {
 func (*LocalEngineDescriptor) ProtoMessage() {}
 
 func (x *LocalEngineDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[27]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3129,7 +3641,7 @@ func (x *LocalEngineDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalEngineDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalEngineDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{27}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *LocalEngineDescriptor) GetEngine() string {
@@ -3224,7 +3736,7 @@ type ListEnginesRequest struct {
 
 func (x *ListEnginesRequest) Reset() {
 	*x = ListEnginesRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[28]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3236,7 +3748,7 @@ func (x *ListEnginesRequest) String() string {
 func (*ListEnginesRequest) ProtoMessage() {}
 
 func (x *ListEnginesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[28]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3249,7 +3761,7 @@ func (x *ListEnginesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListEnginesRequest.ProtoReflect.Descriptor instead.
 func (*ListEnginesRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{28}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{31}
 }
 
 type ListEnginesResponse struct {
@@ -3261,7 +3773,7 @@ type ListEnginesResponse struct {
 
 func (x *ListEnginesResponse) Reset() {
 	*x = ListEnginesResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[29]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3273,7 +3785,7 @@ func (x *ListEnginesResponse) String() string {
 func (*ListEnginesResponse) ProtoMessage() {}
 
 func (x *ListEnginesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[29]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3286,7 +3798,7 @@ func (x *ListEnginesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListEnginesResponse.ProtoReflect.Descriptor instead.
 func (*ListEnginesResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{29}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *ListEnginesResponse) GetEngines() []*LocalEngineDescriptor {
@@ -3306,7 +3818,7 @@ type EnsureEngineRequest struct {
 
 func (x *EnsureEngineRequest) Reset() {
 	*x = EnsureEngineRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[30]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3318,7 +3830,7 @@ func (x *EnsureEngineRequest) String() string {
 func (*EnsureEngineRequest) ProtoMessage() {}
 
 func (x *EnsureEngineRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[30]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3331,7 +3843,7 @@ func (x *EnsureEngineRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnsureEngineRequest.ProtoReflect.Descriptor instead.
 func (*EnsureEngineRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{30}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *EnsureEngineRequest) GetEngine() string {
@@ -3357,7 +3869,7 @@ type EnsureEngineResponse struct {
 
 func (x *EnsureEngineResponse) Reset() {
 	*x = EnsureEngineResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[31]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3369,7 +3881,7 @@ func (x *EnsureEngineResponse) String() string {
 func (*EnsureEngineResponse) ProtoMessage() {}
 
 func (x *EnsureEngineResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[31]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3382,7 +3894,7 @@ func (x *EnsureEngineResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnsureEngineResponse.ProtoReflect.Descriptor instead.
 func (*EnsureEngineResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{31}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *EnsureEngineResponse) GetEngine() *LocalEngineDescriptor {
@@ -3403,7 +3915,7 @@ type StartEngineRequest struct {
 
 func (x *StartEngineRequest) Reset() {
 	*x = StartEngineRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[32]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3415,7 +3927,7 @@ func (x *StartEngineRequest) String() string {
 func (*StartEngineRequest) ProtoMessage() {}
 
 func (x *StartEngineRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[32]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3428,7 +3940,7 @@ func (x *StartEngineRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartEngineRequest.ProtoReflect.Descriptor instead.
 func (*StartEngineRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{32}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *StartEngineRequest) GetEngine() string {
@@ -3461,7 +3973,7 @@ type StartEngineResponse struct {
 
 func (x *StartEngineResponse) Reset() {
 	*x = StartEngineResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[33]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3473,7 +3985,7 @@ func (x *StartEngineResponse) String() string {
 func (*StartEngineResponse) ProtoMessage() {}
 
 func (x *StartEngineResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[33]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3486,7 +3998,7 @@ func (x *StartEngineResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartEngineResponse.ProtoReflect.Descriptor instead.
 func (*StartEngineResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{33}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *StartEngineResponse) GetEngine() *LocalEngineDescriptor {
@@ -3505,7 +4017,7 @@ type StopEngineRequest struct {
 
 func (x *StopEngineRequest) Reset() {
 	*x = StopEngineRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[34]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3517,7 +4029,7 @@ func (x *StopEngineRequest) String() string {
 func (*StopEngineRequest) ProtoMessage() {}
 
 func (x *StopEngineRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[34]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3530,7 +4042,7 @@ func (x *StopEngineRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopEngineRequest.ProtoReflect.Descriptor instead.
 func (*StopEngineRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{34}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *StopEngineRequest) GetEngine() string {
@@ -3549,7 +4061,7 @@ type StopEngineResponse struct {
 
 func (x *StopEngineResponse) Reset() {
 	*x = StopEngineResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[35]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3561,7 +4073,7 @@ func (x *StopEngineResponse) String() string {
 func (*StopEngineResponse) ProtoMessage() {}
 
 func (x *StopEngineResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[35]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3574,7 +4086,7 @@ func (x *StopEngineResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopEngineResponse.ProtoReflect.Descriptor instead.
 func (*StopEngineResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{35}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *StopEngineResponse) GetEngine() *LocalEngineDescriptor {
@@ -3593,7 +4105,7 @@ type GetEngineStatusRequest struct {
 
 func (x *GetEngineStatusRequest) Reset() {
 	*x = GetEngineStatusRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[36]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3605,7 +4117,7 @@ func (x *GetEngineStatusRequest) String() string {
 func (*GetEngineStatusRequest) ProtoMessage() {}
 
 func (x *GetEngineStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[36]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3618,7 +4130,7 @@ func (x *GetEngineStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEngineStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetEngineStatusRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{36}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *GetEngineStatusRequest) GetEngine() string {
@@ -3637,7 +4149,7 @@ type GetEngineStatusResponse struct {
 
 func (x *GetEngineStatusResponse) Reset() {
 	*x = GetEngineStatusResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[37]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3649,7 +4161,7 @@ func (x *GetEngineStatusResponse) String() string {
 func (*GetEngineStatusResponse) ProtoMessage() {}
 
 func (x *GetEngineStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[37]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3662,7 +4174,7 @@ func (x *GetEngineStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEngineStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetEngineStatusResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{37}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *GetEngineStatusResponse) GetEngine() *LocalEngineDescriptor {
@@ -3685,7 +4197,7 @@ type ListLocalModelsRequest struct {
 
 func (x *ListLocalModelsRequest) Reset() {
 	*x = ListLocalModelsRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[38]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3697,7 +4209,7 @@ func (x *ListLocalModelsRequest) String() string {
 func (*ListLocalModelsRequest) ProtoMessage() {}
 
 func (x *ListLocalModelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[38]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3710,7 +4222,7 @@ func (x *ListLocalModelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLocalModelsRequest.ProtoReflect.Descriptor instead.
 func (*ListLocalModelsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{38}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *ListLocalModelsRequest) GetStatusFilter() LocalModelStatus {
@@ -3758,7 +4270,7 @@ type ListLocalModelsResponse struct {
 
 func (x *ListLocalModelsResponse) Reset() {
 	*x = ListLocalModelsResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[39]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3770,7 +4282,7 @@ func (x *ListLocalModelsResponse) String() string {
 func (*ListLocalModelsResponse) ProtoMessage() {}
 
 func (x *ListLocalModelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[39]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3783,7 +4295,7 @@ func (x *ListLocalModelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLocalModelsResponse.ProtoReflect.Descriptor instead.
 func (*ListLocalModelsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{39}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *ListLocalModelsResponse) GetModels() []*LocalModelRecord {
@@ -3794,6 +4306,134 @@ func (x *ListLocalModelsResponse) GetModels() []*LocalModelRecord {
 }
 
 func (x *ListLocalModelsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+type ListLocalArtifactsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StatusFilter  LocalArtifactStatus    `protobuf:"varint,1,opt,name=status_filter,json=statusFilter,proto3,enum=nimi.runtime.v1.LocalArtifactStatus" json:"status_filter,omitempty"`
+	KindFilter    LocalArtifactKind      `protobuf:"varint,2,opt,name=kind_filter,json=kindFilter,proto3,enum=nimi.runtime.v1.LocalArtifactKind" json:"kind_filter,omitempty"`
+	EngineFilter  string                 `protobuf:"bytes,3,opt,name=engine_filter,json=engineFilter,proto3" json:"engine_filter,omitempty"`
+	PageSize      int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                 `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLocalArtifactsRequest) Reset() {
+	*x = ListLocalArtifactsRequest{}
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLocalArtifactsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLocalArtifactsRequest) ProtoMessage() {}
+
+func (x *ListLocalArtifactsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLocalArtifactsRequest.ProtoReflect.Descriptor instead.
+func (*ListLocalArtifactsRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *ListLocalArtifactsRequest) GetStatusFilter() LocalArtifactStatus {
+	if x != nil {
+		return x.StatusFilter
+	}
+	return LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_UNSPECIFIED
+}
+
+func (x *ListLocalArtifactsRequest) GetKindFilter() LocalArtifactKind {
+	if x != nil {
+		return x.KindFilter
+	}
+	return LocalArtifactKind_LOCAL_ARTIFACT_KIND_UNSPECIFIED
+}
+
+func (x *ListLocalArtifactsRequest) GetEngineFilter() string {
+	if x != nil {
+		return x.EngineFilter
+	}
+	return ""
+}
+
+func (x *ListLocalArtifactsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListLocalArtifactsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type ListLocalArtifactsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Artifacts     []*LocalArtifactRecord `protobuf:"bytes,1,rep,name=artifacts,proto3" json:"artifacts,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLocalArtifactsResponse) Reset() {
+	*x = ListLocalArtifactsResponse{}
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLocalArtifactsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLocalArtifactsResponse) ProtoMessage() {}
+
+func (x *ListLocalArtifactsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLocalArtifactsResponse.ProtoReflect.Descriptor instead.
+func (*ListLocalArtifactsResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *ListLocalArtifactsResponse) GetArtifacts() []*LocalArtifactRecord {
+	if x != nil {
+		return x.Artifacts
+	}
+	return nil
+}
+
+func (x *ListLocalArtifactsResponse) GetNextPageToken() string {
 	if x != nil {
 		return x.NextPageToken
 	}
@@ -3812,7 +4452,7 @@ type ListVerifiedModelsRequest struct {
 
 func (x *ListVerifiedModelsRequest) Reset() {
 	*x = ListVerifiedModelsRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[40]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3824,7 +4464,7 @@ func (x *ListVerifiedModelsRequest) String() string {
 func (*ListVerifiedModelsRequest) ProtoMessage() {}
 
 func (x *ListVerifiedModelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[40]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3837,7 +4477,7 @@ func (x *ListVerifiedModelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListVerifiedModelsRequest.ProtoReflect.Descriptor instead.
 func (*ListVerifiedModelsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{40}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *ListVerifiedModelsRequest) GetCategoryFilter() string {
@@ -3878,7 +4518,7 @@ type ListVerifiedModelsResponse struct {
 
 func (x *ListVerifiedModelsResponse) Reset() {
 	*x = ListVerifiedModelsResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[41]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3890,7 +4530,7 @@ func (x *ListVerifiedModelsResponse) String() string {
 func (*ListVerifiedModelsResponse) ProtoMessage() {}
 
 func (x *ListVerifiedModelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[41]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3903,7 +4543,7 @@ func (x *ListVerifiedModelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListVerifiedModelsResponse.ProtoReflect.Descriptor instead.
 func (*ListVerifiedModelsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{41}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *ListVerifiedModelsResponse) GetModels() []*LocalVerifiedModelDescriptor {
@@ -3914,6 +4554,126 @@ func (x *ListVerifiedModelsResponse) GetModels() []*LocalVerifiedModelDescriptor
 }
 
 func (x *ListVerifiedModelsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+type ListVerifiedArtifactsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	KindFilter    LocalArtifactKind      `protobuf:"varint,1,opt,name=kind_filter,json=kindFilter,proto3,enum=nimi.runtime.v1.LocalArtifactKind" json:"kind_filter,omitempty"`
+	EngineFilter  string                 `protobuf:"bytes,2,opt,name=engine_filter,json=engineFilter,proto3" json:"engine_filter,omitempty"`
+	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                 `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListVerifiedArtifactsRequest) Reset() {
+	*x = ListVerifiedArtifactsRequest{}
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListVerifiedArtifactsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListVerifiedArtifactsRequest) ProtoMessage() {}
+
+func (x *ListVerifiedArtifactsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListVerifiedArtifactsRequest.ProtoReflect.Descriptor instead.
+func (*ListVerifiedArtifactsRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *ListVerifiedArtifactsRequest) GetKindFilter() LocalArtifactKind {
+	if x != nil {
+		return x.KindFilter
+	}
+	return LocalArtifactKind_LOCAL_ARTIFACT_KIND_UNSPECIFIED
+}
+
+func (x *ListVerifiedArtifactsRequest) GetEngineFilter() string {
+	if x != nil {
+		return x.EngineFilter
+	}
+	return ""
+}
+
+func (x *ListVerifiedArtifactsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListVerifiedArtifactsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type ListVerifiedArtifactsResponse struct {
+	state         protoimpl.MessageState             `protogen:"open.v1"`
+	Artifacts     []*LocalVerifiedArtifactDescriptor `protobuf:"bytes,1,rep,name=artifacts,proto3" json:"artifacts,omitempty"`
+	NextPageToken string                             `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListVerifiedArtifactsResponse) Reset() {
+	*x = ListVerifiedArtifactsResponse{}
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListVerifiedArtifactsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListVerifiedArtifactsResponse) ProtoMessage() {}
+
+func (x *ListVerifiedArtifactsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListVerifiedArtifactsResponse.ProtoReflect.Descriptor instead.
+func (*ListVerifiedArtifactsResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *ListVerifiedArtifactsResponse) GetArtifacts() []*LocalVerifiedArtifactDescriptor {
+	if x != nil {
+		return x.Artifacts
+	}
+	return nil
+}
+
+func (x *ListVerifiedArtifactsResponse) GetNextPageToken() string {
 	if x != nil {
 		return x.NextPageToken
 	}
@@ -3935,7 +4695,7 @@ type SearchCatalogModelsRequest struct {
 
 func (x *SearchCatalogModelsRequest) Reset() {
 	*x = SearchCatalogModelsRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[42]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3947,7 +4707,7 @@ func (x *SearchCatalogModelsRequest) String() string {
 func (*SearchCatalogModelsRequest) ProtoMessage() {}
 
 func (x *SearchCatalogModelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[42]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3960,7 +4720,7 @@ func (x *SearchCatalogModelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchCatalogModelsRequest.ProtoReflect.Descriptor instead.
 func (*SearchCatalogModelsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{42}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *SearchCatalogModelsRequest) GetQuery() string {
@@ -4022,7 +4782,7 @@ type SearchCatalogModelsResponse struct {
 
 func (x *SearchCatalogModelsResponse) Reset() {
 	*x = SearchCatalogModelsResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[43]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4034,7 +4794,7 @@ func (x *SearchCatalogModelsResponse) String() string {
 func (*SearchCatalogModelsResponse) ProtoMessage() {}
 
 func (x *SearchCatalogModelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[43]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4047,7 +4807,7 @@ func (x *SearchCatalogModelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchCatalogModelsResponse.ProtoReflect.Descriptor instead.
 func (*SearchCatalogModelsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{43}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *SearchCatalogModelsResponse) GetItems() []*LocalCatalogModelDescriptor {
@@ -4079,13 +4839,14 @@ type ResolveModelInstallPlanRequest struct {
 	License       string                 `protobuf:"bytes,11,opt,name=license,proto3" json:"license,omitempty"`
 	Hashes        map[string]string      `protobuf:"bytes,12,rep,name=hashes,proto3" json:"hashes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	Endpoint      string                 `protobuf:"bytes,13,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	EngineConfig  *structpb.Struct       `protobuf:"bytes,14,opt,name=engine_config,json=engineConfig,proto3" json:"engine_config,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ResolveModelInstallPlanRequest) Reset() {
 	*x = ResolveModelInstallPlanRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[44]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4097,7 +4858,7 @@ func (x *ResolveModelInstallPlanRequest) String() string {
 func (*ResolveModelInstallPlanRequest) ProtoMessage() {}
 
 func (x *ResolveModelInstallPlanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[44]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4110,7 +4871,7 @@ func (x *ResolveModelInstallPlanRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveModelInstallPlanRequest.ProtoReflect.Descriptor instead.
 func (*ResolveModelInstallPlanRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{44}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *ResolveModelInstallPlanRequest) GetItemId() string {
@@ -4204,6 +4965,13 @@ func (x *ResolveModelInstallPlanRequest) GetEndpoint() string {
 	return ""
 }
 
+func (x *ResolveModelInstallPlanRequest) GetEngineConfig() *structpb.Struct {
+	if x != nil {
+		return x.EngineConfig
+	}
+	return nil
+}
+
 type ResolveModelInstallPlanResponse struct {
 	state         protoimpl.MessageState      `protogen:"open.v1"`
 	Plan          *LocalInstallPlanDescriptor `protobuf:"bytes,1,opt,name=plan,proto3" json:"plan,omitempty"`
@@ -4213,7 +4981,7 @@ type ResolveModelInstallPlanResponse struct {
 
 func (x *ResolveModelInstallPlanResponse) Reset() {
 	*x = ResolveModelInstallPlanResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[45]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4225,7 +4993,7 @@ func (x *ResolveModelInstallPlanResponse) String() string {
 func (*ResolveModelInstallPlanResponse) ProtoMessage() {}
 
 func (x *ResolveModelInstallPlanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[45]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4238,7 +5006,7 @@ func (x *ResolveModelInstallPlanResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveModelInstallPlanResponse.ProtoReflect.Descriptor instead.
 func (*ResolveModelInstallPlanResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{45}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *ResolveModelInstallPlanResponse) GetPlan() *LocalInstallPlanDescriptor {
@@ -4260,13 +5028,14 @@ type InstallLocalModelRequest struct {
 	License       string                 `protobuf:"bytes,8,opt,name=license,proto3" json:"license,omitempty"`
 	Hashes        map[string]string      `protobuf:"bytes,9,rep,name=hashes,proto3" json:"hashes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	Endpoint      string                 `protobuf:"bytes,10,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	EngineConfig  *structpb.Struct       `protobuf:"bytes,11,opt,name=engine_config,json=engineConfig,proto3" json:"engine_config,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *InstallLocalModelRequest) Reset() {
 	*x = InstallLocalModelRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[46]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4278,7 +5047,7 @@ func (x *InstallLocalModelRequest) String() string {
 func (*InstallLocalModelRequest) ProtoMessage() {}
 
 func (x *InstallLocalModelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[46]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4291,7 +5060,7 @@ func (x *InstallLocalModelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstallLocalModelRequest.ProtoReflect.Descriptor instead.
 func (*InstallLocalModelRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{46}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *InstallLocalModelRequest) GetModelId() string {
@@ -4364,6 +5133,13 @@ func (x *InstallLocalModelRequest) GetEndpoint() string {
 	return ""
 }
 
+func (x *InstallLocalModelRequest) GetEngineConfig() *structpb.Struct {
+	if x != nil {
+		return x.EngineConfig
+	}
+	return nil
+}
+
 type InstallLocalModelResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Model         *LocalModelRecord      `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
@@ -4373,7 +5149,7 @@ type InstallLocalModelResponse struct {
 
 func (x *InstallLocalModelResponse) Reset() {
 	*x = InstallLocalModelResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[47]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4385,7 +5161,7 @@ func (x *InstallLocalModelResponse) String() string {
 func (*InstallLocalModelResponse) ProtoMessage() {}
 
 func (x *InstallLocalModelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[47]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4398,7 +5174,7 @@ func (x *InstallLocalModelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstallLocalModelResponse.ProtoReflect.Descriptor instead.
 func (*InstallLocalModelResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{47}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *InstallLocalModelResponse) GetModel() *LocalModelRecord {
@@ -4418,7 +5194,7 @@ type InstallVerifiedModelRequest struct {
 
 func (x *InstallVerifiedModelRequest) Reset() {
 	*x = InstallVerifiedModelRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[48]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4430,7 +5206,7 @@ func (x *InstallVerifiedModelRequest) String() string {
 func (*InstallVerifiedModelRequest) ProtoMessage() {}
 
 func (x *InstallVerifiedModelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[48]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4443,7 +5219,7 @@ func (x *InstallVerifiedModelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstallVerifiedModelRequest.ProtoReflect.Descriptor instead.
 func (*InstallVerifiedModelRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{48}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *InstallVerifiedModelRequest) GetTemplateId() string {
@@ -4469,7 +5245,7 @@ type InstallVerifiedModelResponse struct {
 
 func (x *InstallVerifiedModelResponse) Reset() {
 	*x = InstallVerifiedModelResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[49]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4481,7 +5257,7 @@ func (x *InstallVerifiedModelResponse) String() string {
 func (*InstallVerifiedModelResponse) ProtoMessage() {}
 
 func (x *InstallVerifiedModelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[49]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4494,7 +5270,7 @@ func (x *InstallVerifiedModelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstallVerifiedModelResponse.ProtoReflect.Descriptor instead.
 func (*InstallVerifiedModelResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{49}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *InstallVerifiedModelResponse) GetModel() *LocalModelRecord {
@@ -4504,17 +5280,106 @@ func (x *InstallVerifiedModelResponse) GetModel() *LocalModelRecord {
 	return nil
 }
 
+type InstallVerifiedArtifactRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TemplateId    string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InstallVerifiedArtifactRequest) Reset() {
+	*x = InstallVerifiedArtifactRequest{}
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[57]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InstallVerifiedArtifactRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InstallVerifiedArtifactRequest) ProtoMessage() {}
+
+func (x *InstallVerifiedArtifactRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[57]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InstallVerifiedArtifactRequest.ProtoReflect.Descriptor instead.
+func (*InstallVerifiedArtifactRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{57}
+}
+
+func (x *InstallVerifiedArtifactRequest) GetTemplateId() string {
+	if x != nil {
+		return x.TemplateId
+	}
+	return ""
+}
+
+type InstallVerifiedArtifactResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Artifact      *LocalArtifactRecord   `protobuf:"bytes,1,opt,name=artifact,proto3" json:"artifact,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InstallVerifiedArtifactResponse) Reset() {
+	*x = InstallVerifiedArtifactResponse{}
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[58]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InstallVerifiedArtifactResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InstallVerifiedArtifactResponse) ProtoMessage() {}
+
+func (x *InstallVerifiedArtifactResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[58]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InstallVerifiedArtifactResponse.ProtoReflect.Descriptor instead.
+func (*InstallVerifiedArtifactResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{58}
+}
+
+func (x *InstallVerifiedArtifactResponse) GetArtifact() *LocalArtifactRecord {
+	if x != nil {
+		return x.Artifact
+	}
+	return nil
+}
+
 type ImportLocalModelRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ManifestPath  string                 `protobuf:"bytes,1,opt,name=manifest_path,json=manifestPath,proto3" json:"manifest_path,omitempty"`
 	Endpoint      string                 `protobuf:"bytes,2,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	EngineConfig  *structpb.Struct       `protobuf:"bytes,3,opt,name=engine_config,json=engineConfig,proto3" json:"engine_config,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ImportLocalModelRequest) Reset() {
 	*x = ImportLocalModelRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[50]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4526,7 +5391,7 @@ func (x *ImportLocalModelRequest) String() string {
 func (*ImportLocalModelRequest) ProtoMessage() {}
 
 func (x *ImportLocalModelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[50]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4539,7 +5404,7 @@ func (x *ImportLocalModelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportLocalModelRequest.ProtoReflect.Descriptor instead.
 func (*ImportLocalModelRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{50}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *ImportLocalModelRequest) GetManifestPath() string {
@@ -4556,6 +5421,13 @@ func (x *ImportLocalModelRequest) GetEndpoint() string {
 	return ""
 }
 
+func (x *ImportLocalModelRequest) GetEngineConfig() *structpb.Struct {
+	if x != nil {
+		return x.EngineConfig
+	}
+	return nil
+}
+
 type ImportLocalModelResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Model         *LocalModelRecord      `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
@@ -4565,7 +5437,7 @@ type ImportLocalModelResponse struct {
 
 func (x *ImportLocalModelResponse) Reset() {
 	*x = ImportLocalModelResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[51]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4577,7 +5449,7 @@ func (x *ImportLocalModelResponse) String() string {
 func (*ImportLocalModelResponse) ProtoMessage() {}
 
 func (x *ImportLocalModelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[51]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4590,12 +5462,100 @@ func (x *ImportLocalModelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportLocalModelResponse.ProtoReflect.Descriptor instead.
 func (*ImportLocalModelResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{51}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *ImportLocalModelResponse) GetModel() *LocalModelRecord {
 	if x != nil {
 		return x.Model
+	}
+	return nil
+}
+
+type ImportLocalArtifactRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ManifestPath  string                 `protobuf:"bytes,1,opt,name=manifest_path,json=manifestPath,proto3" json:"manifest_path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImportLocalArtifactRequest) Reset() {
+	*x = ImportLocalArtifactRequest{}
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[61]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportLocalArtifactRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportLocalArtifactRequest) ProtoMessage() {}
+
+func (x *ImportLocalArtifactRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[61]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportLocalArtifactRequest.ProtoReflect.Descriptor instead.
+func (*ImportLocalArtifactRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{61}
+}
+
+func (x *ImportLocalArtifactRequest) GetManifestPath() string {
+	if x != nil {
+		return x.ManifestPath
+	}
+	return ""
+}
+
+type ImportLocalArtifactResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Artifact      *LocalArtifactRecord   `protobuf:"bytes,1,opt,name=artifact,proto3" json:"artifact,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImportLocalArtifactResponse) Reset() {
+	*x = ImportLocalArtifactResponse{}
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[62]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportLocalArtifactResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportLocalArtifactResponse) ProtoMessage() {}
+
+func (x *ImportLocalArtifactResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[62]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportLocalArtifactResponse.ProtoReflect.Descriptor instead.
+func (*ImportLocalArtifactResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{62}
+}
+
+func (x *ImportLocalArtifactResponse) GetArtifact() *LocalArtifactRecord {
+	if x != nil {
+		return x.Artifact
 	}
 	return nil
 }
@@ -4609,7 +5569,7 @@ type RemoveLocalModelRequest struct {
 
 func (x *RemoveLocalModelRequest) Reset() {
 	*x = RemoveLocalModelRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[52]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4621,7 +5581,7 @@ func (x *RemoveLocalModelRequest) String() string {
 func (*RemoveLocalModelRequest) ProtoMessage() {}
 
 func (x *RemoveLocalModelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[52]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4634,7 +5594,7 @@ func (x *RemoveLocalModelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveLocalModelRequest.ProtoReflect.Descriptor instead.
 func (*RemoveLocalModelRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{52}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *RemoveLocalModelRequest) GetLocalModelId() string {
@@ -4653,7 +5613,7 @@ type RemoveLocalModelResponse struct {
 
 func (x *RemoveLocalModelResponse) Reset() {
 	*x = RemoveLocalModelResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[53]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4665,7 +5625,7 @@ func (x *RemoveLocalModelResponse) String() string {
 func (*RemoveLocalModelResponse) ProtoMessage() {}
 
 func (x *RemoveLocalModelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[53]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4678,12 +5638,100 @@ func (x *RemoveLocalModelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveLocalModelResponse.ProtoReflect.Descriptor instead.
 func (*RemoveLocalModelResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{53}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *RemoveLocalModelResponse) GetModel() *LocalModelRecord {
 	if x != nil {
 		return x.Model
+	}
+	return nil
+}
+
+type RemoveLocalArtifactRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	LocalArtifactId string                 `protobuf:"bytes,1,opt,name=local_artifact_id,json=localArtifactId,proto3" json:"local_artifact_id,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *RemoveLocalArtifactRequest) Reset() {
+	*x = RemoveLocalArtifactRequest{}
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[65]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveLocalArtifactRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveLocalArtifactRequest) ProtoMessage() {}
+
+func (x *RemoveLocalArtifactRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[65]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveLocalArtifactRequest.ProtoReflect.Descriptor instead.
+func (*RemoveLocalArtifactRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{65}
+}
+
+func (x *RemoveLocalArtifactRequest) GetLocalArtifactId() string {
+	if x != nil {
+		return x.LocalArtifactId
+	}
+	return ""
+}
+
+type RemoveLocalArtifactResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Artifact      *LocalArtifactRecord   `protobuf:"bytes,1,opt,name=artifact,proto3" json:"artifact,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveLocalArtifactResponse) Reset() {
+	*x = RemoveLocalArtifactResponse{}
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[66]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveLocalArtifactResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveLocalArtifactResponse) ProtoMessage() {}
+
+func (x *RemoveLocalArtifactResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[66]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveLocalArtifactResponse.ProtoReflect.Descriptor instead.
+func (*RemoveLocalArtifactResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{66}
+}
+
+func (x *RemoveLocalArtifactResponse) GetArtifact() *LocalArtifactRecord {
+	if x != nil {
+		return x.Artifact
 	}
 	return nil
 }
@@ -4697,7 +5745,7 @@ type StartLocalModelRequest struct {
 
 func (x *StartLocalModelRequest) Reset() {
 	*x = StartLocalModelRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[54]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4709,7 +5757,7 @@ func (x *StartLocalModelRequest) String() string {
 func (*StartLocalModelRequest) ProtoMessage() {}
 
 func (x *StartLocalModelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[54]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4722,7 +5770,7 @@ func (x *StartLocalModelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartLocalModelRequest.ProtoReflect.Descriptor instead.
 func (*StartLocalModelRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{54}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *StartLocalModelRequest) GetLocalModelId() string {
@@ -4741,7 +5789,7 @@ type StartLocalModelResponse struct {
 
 func (x *StartLocalModelResponse) Reset() {
 	*x = StartLocalModelResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[55]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4753,7 +5801,7 @@ func (x *StartLocalModelResponse) String() string {
 func (*StartLocalModelResponse) ProtoMessage() {}
 
 func (x *StartLocalModelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[55]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4766,7 +5814,7 @@ func (x *StartLocalModelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartLocalModelResponse.ProtoReflect.Descriptor instead.
 func (*StartLocalModelResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{55}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *StartLocalModelResponse) GetModel() *LocalModelRecord {
@@ -4785,7 +5833,7 @@ type StopLocalModelRequest struct {
 
 func (x *StopLocalModelRequest) Reset() {
 	*x = StopLocalModelRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[56]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4797,7 +5845,7 @@ func (x *StopLocalModelRequest) String() string {
 func (*StopLocalModelRequest) ProtoMessage() {}
 
 func (x *StopLocalModelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[56]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4810,7 +5858,7 @@ func (x *StopLocalModelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopLocalModelRequest.ProtoReflect.Descriptor instead.
 func (*StopLocalModelRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{56}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *StopLocalModelRequest) GetLocalModelId() string {
@@ -4829,7 +5877,7 @@ type StopLocalModelResponse struct {
 
 func (x *StopLocalModelResponse) Reset() {
 	*x = StopLocalModelResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[57]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4841,7 +5889,7 @@ func (x *StopLocalModelResponse) String() string {
 func (*StopLocalModelResponse) ProtoMessage() {}
 
 func (x *StopLocalModelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[57]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4854,7 +5902,7 @@ func (x *StopLocalModelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopLocalModelResponse.ProtoReflect.Descriptor instead.
 func (*StopLocalModelResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{57}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *StopLocalModelResponse) GetModel() *LocalModelRecord {
@@ -4873,7 +5921,7 @@ type CheckLocalModelHealthRequest struct {
 
 func (x *CheckLocalModelHealthRequest) Reset() {
 	*x = CheckLocalModelHealthRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[58]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4885,7 +5933,7 @@ func (x *CheckLocalModelHealthRequest) String() string {
 func (*CheckLocalModelHealthRequest) ProtoMessage() {}
 
 func (x *CheckLocalModelHealthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[58]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4898,7 +5946,7 @@ func (x *CheckLocalModelHealthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckLocalModelHealthRequest.ProtoReflect.Descriptor instead.
 func (*CheckLocalModelHealthRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{58}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *CheckLocalModelHealthRequest) GetLocalModelId() string {
@@ -4917,7 +5965,7 @@ type CheckLocalModelHealthResponse struct {
 
 func (x *CheckLocalModelHealthResponse) Reset() {
 	*x = CheckLocalModelHealthResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[59]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4929,7 +5977,7 @@ func (x *CheckLocalModelHealthResponse) String() string {
 func (*CheckLocalModelHealthResponse) ProtoMessage() {}
 
 func (x *CheckLocalModelHealthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[59]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4942,7 +5990,7 @@ func (x *CheckLocalModelHealthResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckLocalModelHealthResponse.ProtoReflect.Descriptor instead.
 func (*CheckLocalModelHealthResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{59}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *CheckLocalModelHealthResponse) GetModels() []*LocalModelHealth {
@@ -4961,7 +6009,7 @@ type CollectDeviceProfileRequest struct {
 
 func (x *CollectDeviceProfileRequest) Reset() {
 	*x = CollectDeviceProfileRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[60]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4973,7 +6021,7 @@ func (x *CollectDeviceProfileRequest) String() string {
 func (*CollectDeviceProfileRequest) ProtoMessage() {}
 
 func (x *CollectDeviceProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[60]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4986,7 +6034,7 @@ func (x *CollectDeviceProfileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CollectDeviceProfileRequest.ProtoReflect.Descriptor instead.
 func (*CollectDeviceProfileRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{60}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *CollectDeviceProfileRequest) GetExtraPorts() []int32 {
@@ -5005,7 +6053,7 @@ type CollectDeviceProfileResponse struct {
 
 func (x *CollectDeviceProfileResponse) Reset() {
 	*x = CollectDeviceProfileResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[61]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5017,7 +6065,7 @@ func (x *CollectDeviceProfileResponse) String() string {
 func (*CollectDeviceProfileResponse) ProtoMessage() {}
 
 func (x *CollectDeviceProfileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[61]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5030,7 +6078,7 @@ func (x *CollectDeviceProfileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CollectDeviceProfileResponse.ProtoReflect.Descriptor instead.
 func (*CollectDeviceProfileResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{61}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *CollectDeviceProfileResponse) GetProfile() *LocalDeviceProfile {
@@ -5052,7 +6100,7 @@ type ResolveDependenciesRequest struct {
 
 func (x *ResolveDependenciesRequest) Reset() {
 	*x = ResolveDependenciesRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[62]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5064,7 +6112,7 @@ func (x *ResolveDependenciesRequest) String() string {
 func (*ResolveDependenciesRequest) ProtoMessage() {}
 
 func (x *ResolveDependenciesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[62]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5077,7 +6125,7 @@ func (x *ResolveDependenciesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveDependenciesRequest.ProtoReflect.Descriptor instead.
 func (*ResolveDependenciesRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{62}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *ResolveDependenciesRequest) GetModId() string {
@@ -5117,7 +6165,7 @@ type ResolveDependenciesResponse struct {
 
 func (x *ResolveDependenciesResponse) Reset() {
 	*x = ResolveDependenciesResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[63]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5129,7 +6177,7 @@ func (x *ResolveDependenciesResponse) String() string {
 func (*ResolveDependenciesResponse) ProtoMessage() {}
 
 func (x *ResolveDependenciesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[63]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5142,7 +6190,7 @@ func (x *ResolveDependenciesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveDependenciesResponse.ProtoReflect.Descriptor instead.
 func (*ResolveDependenciesResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{63}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *ResolveDependenciesResponse) GetPlan() *LocalDependencyResolutionPlan {
@@ -5161,7 +6209,7 @@ type ApplyDependenciesRequest struct {
 
 func (x *ApplyDependenciesRequest) Reset() {
 	*x = ApplyDependenciesRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[64]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5173,7 +6221,7 @@ func (x *ApplyDependenciesRequest) String() string {
 func (*ApplyDependenciesRequest) ProtoMessage() {}
 
 func (x *ApplyDependenciesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[64]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5186,7 +6234,7 @@ func (x *ApplyDependenciesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplyDependenciesRequest.ProtoReflect.Descriptor instead.
 func (*ApplyDependenciesRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{64}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *ApplyDependenciesRequest) GetPlan() *LocalDependencyResolutionPlan {
@@ -5205,7 +6253,7 @@ type ApplyDependenciesResponse struct {
 
 func (x *ApplyDependenciesResponse) Reset() {
 	*x = ApplyDependenciesResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[65]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5217,7 +6265,7 @@ func (x *ApplyDependenciesResponse) String() string {
 func (*ApplyDependenciesResponse) ProtoMessage() {}
 
 func (x *ApplyDependenciesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[65]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5230,7 +6278,7 @@ func (x *ApplyDependenciesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplyDependenciesResponse.ProtoReflect.Descriptor instead.
 func (*ApplyDependenciesResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{65}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *ApplyDependenciesResponse) GetResult() *LocalDependencyApplyResult {
@@ -5251,7 +6299,7 @@ type ListLocalServicesRequest struct {
 
 func (x *ListLocalServicesRequest) Reset() {
 	*x = ListLocalServicesRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[66]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5263,7 +6311,7 @@ func (x *ListLocalServicesRequest) String() string {
 func (*ListLocalServicesRequest) ProtoMessage() {}
 
 func (x *ListLocalServicesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[66]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5276,7 +6324,7 @@ func (x *ListLocalServicesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLocalServicesRequest.ProtoReflect.Descriptor instead.
 func (*ListLocalServicesRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{66}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *ListLocalServicesRequest) GetStatusFilter() LocalServiceStatus {
@@ -5310,7 +6358,7 @@ type ListLocalServicesResponse struct {
 
 func (x *ListLocalServicesResponse) Reset() {
 	*x = ListLocalServicesResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[67]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5322,7 +6370,7 @@ func (x *ListLocalServicesResponse) String() string {
 func (*ListLocalServicesResponse) ProtoMessage() {}
 
 func (x *ListLocalServicesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[67]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5335,7 +6383,7 @@ func (x *ListLocalServicesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLocalServicesResponse.ProtoReflect.Descriptor instead.
 func (*ListLocalServicesResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{67}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *ListLocalServicesResponse) GetServices() []*LocalServiceDescriptor {
@@ -5366,7 +6414,7 @@ type InstallLocalServiceRequest struct {
 
 func (x *InstallLocalServiceRequest) Reset() {
 	*x = InstallLocalServiceRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[68]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5378,7 +6426,7 @@ func (x *InstallLocalServiceRequest) String() string {
 func (*InstallLocalServiceRequest) ProtoMessage() {}
 
 func (x *InstallLocalServiceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[68]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5391,7 +6439,7 @@ func (x *InstallLocalServiceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstallLocalServiceRequest.ProtoReflect.Descriptor instead.
 func (*InstallLocalServiceRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{68}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *InstallLocalServiceRequest) GetServiceId() string {
@@ -5445,7 +6493,7 @@ type InstallLocalServiceResponse struct {
 
 func (x *InstallLocalServiceResponse) Reset() {
 	*x = InstallLocalServiceResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[69]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5457,7 +6505,7 @@ func (x *InstallLocalServiceResponse) String() string {
 func (*InstallLocalServiceResponse) ProtoMessage() {}
 
 func (x *InstallLocalServiceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[69]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5470,7 +6518,7 @@ func (x *InstallLocalServiceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstallLocalServiceResponse.ProtoReflect.Descriptor instead.
 func (*InstallLocalServiceResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{69}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *InstallLocalServiceResponse) GetService() *LocalServiceDescriptor {
@@ -5489,7 +6537,7 @@ type StartLocalServiceRequest struct {
 
 func (x *StartLocalServiceRequest) Reset() {
 	*x = StartLocalServiceRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[70]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5501,7 +6549,7 @@ func (x *StartLocalServiceRequest) String() string {
 func (*StartLocalServiceRequest) ProtoMessage() {}
 
 func (x *StartLocalServiceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[70]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5514,7 +6562,7 @@ func (x *StartLocalServiceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartLocalServiceRequest.ProtoReflect.Descriptor instead.
 func (*StartLocalServiceRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{70}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *StartLocalServiceRequest) GetServiceId() string {
@@ -5533,7 +6581,7 @@ type StartLocalServiceResponse struct {
 
 func (x *StartLocalServiceResponse) Reset() {
 	*x = StartLocalServiceResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[71]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5545,7 +6593,7 @@ func (x *StartLocalServiceResponse) String() string {
 func (*StartLocalServiceResponse) ProtoMessage() {}
 
 func (x *StartLocalServiceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[71]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5558,7 +6606,7 @@ func (x *StartLocalServiceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartLocalServiceResponse.ProtoReflect.Descriptor instead.
 func (*StartLocalServiceResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{71}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{84}
 }
 
 func (x *StartLocalServiceResponse) GetService() *LocalServiceDescriptor {
@@ -5577,7 +6625,7 @@ type StopLocalServiceRequest struct {
 
 func (x *StopLocalServiceRequest) Reset() {
 	*x = StopLocalServiceRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[72]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5589,7 +6637,7 @@ func (x *StopLocalServiceRequest) String() string {
 func (*StopLocalServiceRequest) ProtoMessage() {}
 
 func (x *StopLocalServiceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[72]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5602,7 +6650,7 @@ func (x *StopLocalServiceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopLocalServiceRequest.ProtoReflect.Descriptor instead.
 func (*StopLocalServiceRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{72}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *StopLocalServiceRequest) GetServiceId() string {
@@ -5621,7 +6669,7 @@ type StopLocalServiceResponse struct {
 
 func (x *StopLocalServiceResponse) Reset() {
 	*x = StopLocalServiceResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[73]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5633,7 +6681,7 @@ func (x *StopLocalServiceResponse) String() string {
 func (*StopLocalServiceResponse) ProtoMessage() {}
 
 func (x *StopLocalServiceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[73]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5646,7 +6694,7 @@ func (x *StopLocalServiceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopLocalServiceResponse.ProtoReflect.Descriptor instead.
 func (*StopLocalServiceResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{73}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *StopLocalServiceResponse) GetService() *LocalServiceDescriptor {
@@ -5665,7 +6713,7 @@ type CheckLocalServiceHealthRequest struct {
 
 func (x *CheckLocalServiceHealthRequest) Reset() {
 	*x = CheckLocalServiceHealthRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[74]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5677,7 +6725,7 @@ func (x *CheckLocalServiceHealthRequest) String() string {
 func (*CheckLocalServiceHealthRequest) ProtoMessage() {}
 
 func (x *CheckLocalServiceHealthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[74]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5690,7 +6738,7 @@ func (x *CheckLocalServiceHealthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckLocalServiceHealthRequest.ProtoReflect.Descriptor instead.
 func (*CheckLocalServiceHealthRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{74}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *CheckLocalServiceHealthRequest) GetServiceId() string {
@@ -5709,7 +6757,7 @@ type CheckLocalServiceHealthResponse struct {
 
 func (x *CheckLocalServiceHealthResponse) Reset() {
 	*x = CheckLocalServiceHealthResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[75]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5721,7 +6769,7 @@ func (x *CheckLocalServiceHealthResponse) String() string {
 func (*CheckLocalServiceHealthResponse) ProtoMessage() {}
 
 func (x *CheckLocalServiceHealthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[75]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5734,7 +6782,7 @@ func (x *CheckLocalServiceHealthResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckLocalServiceHealthResponse.ProtoReflect.Descriptor instead.
 func (*CheckLocalServiceHealthResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{75}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *CheckLocalServiceHealthResponse) GetServices() []*LocalServiceDescriptor {
@@ -5753,7 +6801,7 @@ type RemoveLocalServiceRequest struct {
 
 func (x *RemoveLocalServiceRequest) Reset() {
 	*x = RemoveLocalServiceRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[76]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5765,7 +6813,7 @@ func (x *RemoveLocalServiceRequest) String() string {
 func (*RemoveLocalServiceRequest) ProtoMessage() {}
 
 func (x *RemoveLocalServiceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[76]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5778,7 +6826,7 @@ func (x *RemoveLocalServiceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveLocalServiceRequest.ProtoReflect.Descriptor instead.
 func (*RemoveLocalServiceRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{76}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *RemoveLocalServiceRequest) GetServiceId() string {
@@ -5797,7 +6845,7 @@ type RemoveLocalServiceResponse struct {
 
 func (x *RemoveLocalServiceResponse) Reset() {
 	*x = RemoveLocalServiceResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[77]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5809,7 +6857,7 @@ func (x *RemoveLocalServiceResponse) String() string {
 func (*RemoveLocalServiceResponse) ProtoMessage() {}
 
 func (x *RemoveLocalServiceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[77]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5822,7 +6870,7 @@ func (x *RemoveLocalServiceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveLocalServiceResponse.ProtoReflect.Descriptor instead.
 func (*RemoveLocalServiceResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{77}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *RemoveLocalServiceResponse) GetService() *LocalServiceDescriptor {
@@ -5846,7 +6894,7 @@ type ListNodeCatalogRequest struct {
 
 func (x *ListNodeCatalogRequest) Reset() {
 	*x = ListNodeCatalogRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[78]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5858,7 +6906,7 @@ func (x *ListNodeCatalogRequest) String() string {
 func (*ListNodeCatalogRequest) ProtoMessage() {}
 
 func (x *ListNodeCatalogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[78]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5871,7 +6919,7 @@ func (x *ListNodeCatalogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNodeCatalogRequest.ProtoReflect.Descriptor instead.
 func (*ListNodeCatalogRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{78}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{91}
 }
 
 func (x *ListNodeCatalogRequest) GetCapability() string {
@@ -5926,7 +6974,7 @@ type ListNodeCatalogResponse struct {
 
 func (x *ListNodeCatalogResponse) Reset() {
 	*x = ListNodeCatalogResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[79]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5938,7 +6986,7 @@ func (x *ListNodeCatalogResponse) String() string {
 func (*ListNodeCatalogResponse) ProtoMessage() {}
 
 func (x *ListNodeCatalogResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[79]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5951,7 +6999,7 @@ func (x *ListNodeCatalogResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNodeCatalogResponse.ProtoReflect.Descriptor instead.
 func (*ListNodeCatalogResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{79}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *ListNodeCatalogResponse) GetNodes() []*LocalNodeDescriptor {
@@ -5989,7 +7037,7 @@ type ListLocalAuditsRequest struct {
 
 func (x *ListLocalAuditsRequest) Reset() {
 	*x = ListLocalAuditsRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[80]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6001,7 +7049,7 @@ func (x *ListLocalAuditsRequest) String() string {
 func (*ListLocalAuditsRequest) ProtoMessage() {}
 
 func (x *ListLocalAuditsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[80]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6014,7 +7062,7 @@ func (x *ListLocalAuditsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLocalAuditsRequest.ProtoReflect.Descriptor instead.
 func (*ListLocalAuditsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{80}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *ListLocalAuditsRequest) GetLimit() int32 {
@@ -6118,7 +7166,7 @@ type ListLocalAuditsResponse struct {
 
 func (x *ListLocalAuditsResponse) Reset() {
 	*x = ListLocalAuditsResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[81]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6130,7 +7178,7 @@ func (x *ListLocalAuditsResponse) String() string {
 func (*ListLocalAuditsResponse) ProtoMessage() {}
 
 func (x *ListLocalAuditsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[81]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6143,7 +7191,7 @@ func (x *ListLocalAuditsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLocalAuditsResponse.ProtoReflect.Descriptor instead.
 func (*ListLocalAuditsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{81}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *ListLocalAuditsResponse) GetEvents() []*LocalAuditEvent {
@@ -6181,7 +7229,7 @@ type AppendInferenceAuditRequest struct {
 
 func (x *AppendInferenceAuditRequest) Reset() {
 	*x = AppendInferenceAuditRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[82]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6193,7 +7241,7 @@ func (x *AppendInferenceAuditRequest) String() string {
 func (*AppendInferenceAuditRequest) ProtoMessage() {}
 
 func (x *AppendInferenceAuditRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[82]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6206,7 +7254,7 @@ func (x *AppendInferenceAuditRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppendInferenceAuditRequest.ProtoReflect.Descriptor instead.
 func (*AppendInferenceAuditRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{82}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *AppendInferenceAuditRequest) GetEventType() string {
@@ -6312,7 +7360,7 @@ type AppendRuntimeAuditRequest struct {
 
 func (x *AppendRuntimeAuditRequest) Reset() {
 	*x = AppendRuntimeAuditRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[83]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6324,7 +7372,7 @@ func (x *AppendRuntimeAuditRequest) String() string {
 func (*AppendRuntimeAuditRequest) ProtoMessage() {}
 
 func (x *AppendRuntimeAuditRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[83]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6337,7 +7385,7 @@ func (x *AppendRuntimeAuditRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppendRuntimeAuditRequest.ProtoReflect.Descriptor instead.
 func (*AppendRuntimeAuditRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{83}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{96}
 }
 
 func (x *AppendRuntimeAuditRequest) GetEventType() string {
@@ -6378,7 +7426,7 @@ type WarmLocalModelRequest struct {
 
 func (x *WarmLocalModelRequest) Reset() {
 	*x = WarmLocalModelRequest{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[84]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6390,7 +7438,7 @@ func (x *WarmLocalModelRequest) String() string {
 func (*WarmLocalModelRequest) ProtoMessage() {}
 
 func (x *WarmLocalModelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[84]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6403,7 +7451,7 @@ func (x *WarmLocalModelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WarmLocalModelRequest.ProtoReflect.Descriptor instead.
 func (*WarmLocalModelRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{84}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{97}
 }
 
 func (x *WarmLocalModelRequest) GetLocalModelId() string {
@@ -6436,7 +7484,7 @@ type WarmLocalModelResponse struct {
 
 func (x *WarmLocalModelResponse) Reset() {
 	*x = WarmLocalModelResponse{}
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[85]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6448,7 +7496,7 @@ func (x *WarmLocalModelResponse) String() string {
 func (*WarmLocalModelResponse) ProtoMessage() {}
 
 func (x *WarmLocalModelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_proto_msgTypes[85]
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6461,7 +7509,7 @@ func (x *WarmLocalModelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WarmLocalModelResponse.ProtoReflect.Descriptor instead.
 func (*WarmLocalModelResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{85}
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{98}
 }
 
 func (x *WarmLocalModelResponse) GetLocalModelId() string {
@@ -6527,7 +7575,10 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x1eruntime/v1/local_runtime.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x17runtime/v1/common.proto\"B\n" +
 	"\x10LocalModelSource\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x1a\n" +
-	"\brevision\x18\x02 \x01(\tR\brevision\"\xf1\x04\n" +
+	"\brevision\x18\x02 \x01(\tR\brevision\"E\n" +
+	"\x13LocalArtifactSource\x12\x12\n" +
+	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x1a\n" +
+	"\brevision\x18\x02 \x01(\tR\brevision\"\xaf\x05\n" +
 	"\x10LocalModelRecord\x12$\n" +
 	"\x0elocal_model_id\x18\x01 \x01(\tR\flocalModelId\x12\x19\n" +
 	"\bmodel_id\x18\x02 \x01(\tR\amodelId\x12\"\n" +
@@ -6544,7 +7595,8 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\f \x01(\tR\tupdatedAt\x12#\n" +
 	"\rhealth_detail\x18\r \x01(\tR\fhealthDetail\x125\n" +
-	"\x17local_invoke_profile_id\x18\x0e \x01(\tR\x14localInvokeProfileId\x1a9\n" +
+	"\x17local_invoke_profile_id\x18\x0e \x01(\tR\x14localInvokeProfileId\x12<\n" +
+	"\rengine_config\x18\x0f \x01(\v2\x17.google.protobuf.StructR\fengineConfig\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa7\x01\n" +
@@ -6552,7 +7604,28 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x0elocal_model_id\x18\x01 \x01(\tR\flocalModelId\x129\n" +
 	"\x06status\x18\x02 \x01(\x0e2!.nimi.runtime.v1.LocalModelStatusR\x06status\x12\x16\n" +
 	"\x06detail\x18\x03 \x01(\tR\x06detail\x12\x1a\n" +
-	"\bendpoint\x18\x04 \x01(\tR\bendpoint\"\xee\x04\n" +
+	"\bendpoint\x18\x04 \x01(\tR\bendpoint\"\x95\x05\n" +
+	"\x13LocalArtifactRecord\x12*\n" +
+	"\x11local_artifact_id\x18\x01 \x01(\tR\x0flocalArtifactId\x12\x1f\n" +
+	"\vartifact_id\x18\x02 \x01(\tR\n" +
+	"artifactId\x126\n" +
+	"\x04kind\x18\x03 \x01(\x0e2\".nimi.runtime.v1.LocalArtifactKindR\x04kind\x12\x16\n" +
+	"\x06engine\x18\x04 \x01(\tR\x06engine\x12\x14\n" +
+	"\x05entry\x18\x05 \x01(\tR\x05entry\x12\x14\n" +
+	"\x05files\x18\x06 \x03(\tR\x05files\x12\x18\n" +
+	"\alicense\x18\a \x01(\tR\alicense\x12<\n" +
+	"\x06source\x18\b \x01(\v2$.nimi.runtime.v1.LocalArtifactSourceR\x06source\x12H\n" +
+	"\x06hashes\x18\t \x03(\v20.nimi.runtime.v1.LocalArtifactRecord.HashesEntryR\x06hashes\x12<\n" +
+	"\x06status\x18\n" +
+	" \x01(\x0e2$.nimi.runtime.v1.LocalArtifactStatusR\x06status\x12!\n" +
+	"\finstalled_at\x18\v \x01(\tR\vinstalledAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\f \x01(\tR\tupdatedAt\x12#\n" +
+	"\rhealth_detail\x18\r \x01(\tR\fhealthDetail\x123\n" +
+	"\bmetadata\x18\x0e \x01(\v2\x17.google.protobuf.StructR\bmetadata\x1a9\n" +
+	"\vHashesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xac\x05\n" +
 	"\x1cLocalVerifiedModelDescriptor\x12\x1f\n" +
 	"\vtemplate_id\x18\x01 \x01(\tR\n" +
 	"templateId\x12\x14\n" +
@@ -6573,7 +7646,32 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\n" +
 	"file_count\x18\x0f \x01(\x05R\tfileCount\x12(\n" +
 	"\x10total_size_bytes\x18\x10 \x01(\x03R\x0etotalSizeBytes\x12\x12\n" +
-	"\x04tags\x18\x11 \x03(\tR\x04tags\x1a9\n" +
+	"\x04tags\x18\x11 \x03(\tR\x04tags\x12<\n" +
+	"\rengine_config\x18\x12 \x01(\v2\x17.google.protobuf.StructR\fengineConfig\x1a9\n" +
+	"\vHashesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x84\x05\n" +
+	"\x1fLocalVerifiedArtifactDescriptor\x12\x1f\n" +
+	"\vtemplate_id\x18\x01 \x01(\tR\n" +
+	"templateId\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x1f\n" +
+	"\vartifact_id\x18\x04 \x01(\tR\n" +
+	"artifactId\x126\n" +
+	"\x04kind\x18\x05 \x01(\x0e2\".nimi.runtime.v1.LocalArtifactKindR\x04kind\x12\x16\n" +
+	"\x06engine\x18\x06 \x01(\tR\x06engine\x12\x14\n" +
+	"\x05entry\x18\a \x01(\tR\x05entry\x12\x14\n" +
+	"\x05files\x18\b \x03(\tR\x05files\x12\x18\n" +
+	"\alicense\x18\t \x01(\tR\alicense\x12\x12\n" +
+	"\x04repo\x18\n" +
+	" \x01(\tR\x04repo\x12\x1a\n" +
+	"\brevision\x18\v \x01(\tR\brevision\x12T\n" +
+	"\x06hashes\x18\f \x03(\v2<.nimi.runtime.v1.LocalVerifiedArtifactDescriptor.HashesEntryR\x06hashes\x12\x1d\n" +
+	"\n" +
+	"file_count\x18\r \x01(\x05R\tfileCount\x12(\n" +
+	"\x10total_size_bytes\x18\x0e \x01(\x03R\x0etotalSizeBytes\x12\x12\n" +
+	"\x04tags\x18\x0f \x03(\tR\x04tags\x123\n" +
+	"\bmetadata\x18\x10 \x01(\v2\x17.google.protobuf.StructR\bmetadata\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xeb\x01\n" +
@@ -6611,7 +7709,7 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\n" +
 	"ExtraEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x9b\a\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd9\a\n" +
 	"\x1bLocalCatalogModelDescriptor\x12\x17\n" +
 	"\aitem_id\x18\x01 \x01(\tR\x06itemId\x12\x16\n" +
 	"\x06source\x18\x02 \x01(\tR\x06source\x12\x14\n" +
@@ -6638,10 +7736,11 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\tdownloads\x18\x15 \x01(\x03R\tdownloads\x12\x14\n" +
 	"\x05likes\x18\x16 \x01(\x03R\x05likes\x12#\n" +
 	"\rlast_modified\x18\x17 \x01(\tR\flastModified\x12\x1a\n" +
-	"\bverified\x18\x18 \x01(\bR\bverified\x1a9\n" +
+	"\bverified\x18\x18 \x01(\bR\bverified\x12<\n" +
+	"\rengine_config\x18\x19 \x01(\v2\x17.google.protobuf.StructR\fengineConfig\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xae\x06\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xec\x06\n" +
 	"\x1aLocalInstallPlanDescriptor\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x17\n" +
 	"\aitem_id\x18\x02 \x01(\tR\x06itemId\x12\x16\n" +
@@ -6665,7 +7764,8 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x06hashes\x18\x12 \x03(\v27.nimi.runtime.v1.LocalInstallPlanDescriptor.HashesEntryR\x06hashes\x12\x1a\n" +
 	"\bwarnings\x18\x13 \x03(\tR\bwarnings\x12\x1f\n" +
 	"\vreason_code\x18\x14 \x01(\tR\n" +
-	"reasonCode\x1a9\n" +
+	"reasonCode\x12<\n" +
+	"\rengine_config\x18\x15 \x01(\v2\x17.google.protobuf.StructR\fengineConfig\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"]\n" +
@@ -6892,6 +7992,17 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"page_token\x18\x05 \x01(\tR\tpageToken\"|\n" +
 	"\x17ListLocalModelsResponse\x129\n" +
 	"\x06models\x18\x01 \x03(\v2!.nimi.runtime.v1.LocalModelRecordR\x06models\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x8c\x02\n" +
+	"\x19ListLocalArtifactsRequest\x12I\n" +
+	"\rstatus_filter\x18\x01 \x01(\x0e2$.nimi.runtime.v1.LocalArtifactStatusR\fstatusFilter\x12C\n" +
+	"\vkind_filter\x18\x02 \x01(\x0e2\".nimi.runtime.v1.LocalArtifactKindR\n" +
+	"kindFilter\x12#\n" +
+	"\rengine_filter\x18\x03 \x01(\tR\fengineFilter\x12\x1b\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x05 \x01(\tR\tpageToken\"\x88\x01\n" +
+	"\x1aListLocalArtifactsResponse\x12B\n" +
+	"\tartifacts\x18\x01 \x03(\v2$.nimi.runtime.v1.LocalArtifactRecordR\tartifacts\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa5\x01\n" +
 	"\x19ListVerifiedModelsRequest\x12'\n" +
 	"\x0fcategory_filter\x18\x01 \x01(\tR\x0ecategoryFilter\x12#\n" +
@@ -6901,6 +8012,16 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"page_token\x18\x04 \x01(\tR\tpageToken\"\x8b\x01\n" +
 	"\x1aListVerifiedModelsResponse\x12E\n" +
 	"\x06models\x18\x01 \x03(\v2-.nimi.runtime.v1.LocalVerifiedModelDescriptorR\x06models\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xc4\x01\n" +
+	"\x1cListVerifiedArtifactsRequest\x12C\n" +
+	"\vkind_filter\x18\x01 \x01(\x0e2\".nimi.runtime.v1.LocalArtifactKindR\n" +
+	"kindFilter\x12#\n" +
+	"\rengine_filter\x18\x02 \x01(\tR\fengineFilter\x12\x1b\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x04 \x01(\tR\tpageToken\"\x97\x01\n" +
+	"\x1dListVerifiedArtifactsResponse\x12N\n" +
+	"\tartifacts\x18\x01 \x03(\v20.nimi.runtime.v1.LocalVerifiedArtifactDescriptorR\tartifacts\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xf2\x01\n" +
 	"\x1aSearchCatalogModelsRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\x12\x1e\n" +
@@ -6915,7 +8036,7 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"page_token\x18\a \x01(\tR\tpageToken\"\x89\x01\n" +
 	"\x1bSearchCatalogModelsResponse\x12B\n" +
 	"\x05items\x18\x01 \x03(\v2,.nimi.runtime.v1.LocalCatalogModelDescriptorR\x05items\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xeb\x03\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa9\x04\n" +
 	"\x1eResolveModelInstallPlanRequest\x12\x17\n" +
 	"\aitem_id\x18\x01 \x01(\tR\x06itemId\x12\x16\n" +
 	"\x06source\x18\x02 \x01(\tR\x06source\x12\x1f\n" +
@@ -6931,12 +8052,13 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	" \x03(\tR\x05files\x12\x18\n" +
 	"\alicense\x18\v \x01(\tR\alicense\x12S\n" +
 	"\x06hashes\x18\f \x03(\v2;.nimi.runtime.v1.ResolveModelInstallPlanRequest.HashesEntryR\x06hashes\x12\x1a\n" +
-	"\bendpoint\x18\r \x01(\tR\bendpoint\x1a9\n" +
+	"\bendpoint\x18\r \x01(\tR\bendpoint\x12<\n" +
+	"\rengine_config\x18\x0e \x01(\v2\x17.google.protobuf.StructR\fengineConfig\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"b\n" +
 	"\x1fResolveModelInstallPlanResponse\x12?\n" +
-	"\x04plan\x18\x01 \x01(\v2+.nimi.runtime.v1.LocalInstallPlanDescriptorR\x04plan\"\x8d\x03\n" +
+	"\x04plan\x18\x01 \x01(\v2+.nimi.runtime.v1.LocalInstallPlanDescriptorR\x04plan\"\xcb\x03\n" +
 	"\x18InstallLocalModelRequest\x12\x19\n" +
 	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x12\x12\n" +
 	"\x04repo\x18\x02 \x01(\tR\x04repo\x12\x1a\n" +
@@ -6948,7 +8070,8 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\alicense\x18\b \x01(\tR\alicense\x12M\n" +
 	"\x06hashes\x18\t \x03(\v25.nimi.runtime.v1.InstallLocalModelRequest.HashesEntryR\x06hashes\x12\x1a\n" +
 	"\bendpoint\x18\n" +
-	" \x01(\tR\bendpoint\x1a9\n" +
+	" \x01(\tR\bendpoint\x12<\n" +
+	"\rengine_config\x18\v \x01(\v2\x17.google.protobuf.StructR\fengineConfig\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"T\n" +
@@ -6959,16 +8082,30 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"templateId\x12\x1a\n" +
 	"\bendpoint\x18\x02 \x01(\tR\bendpoint\"W\n" +
 	"\x1cInstallVerifiedModelResponse\x127\n" +
-	"\x05model\x18\x01 \x01(\v2!.nimi.runtime.v1.LocalModelRecordR\x05model\"Z\n" +
+	"\x05model\x18\x01 \x01(\v2!.nimi.runtime.v1.LocalModelRecordR\x05model\"A\n" +
+	"\x1eInstallVerifiedArtifactRequest\x12\x1f\n" +
+	"\vtemplate_id\x18\x01 \x01(\tR\n" +
+	"templateId\"c\n" +
+	"\x1fInstallVerifiedArtifactResponse\x12@\n" +
+	"\bartifact\x18\x01 \x01(\v2$.nimi.runtime.v1.LocalArtifactRecordR\bartifact\"\x98\x01\n" +
 	"\x17ImportLocalModelRequest\x12#\n" +
 	"\rmanifest_path\x18\x01 \x01(\tR\fmanifestPath\x12\x1a\n" +
-	"\bendpoint\x18\x02 \x01(\tR\bendpoint\"S\n" +
+	"\bendpoint\x18\x02 \x01(\tR\bendpoint\x12<\n" +
+	"\rengine_config\x18\x03 \x01(\v2\x17.google.protobuf.StructR\fengineConfig\"S\n" +
 	"\x18ImportLocalModelResponse\x127\n" +
-	"\x05model\x18\x01 \x01(\v2!.nimi.runtime.v1.LocalModelRecordR\x05model\"?\n" +
+	"\x05model\x18\x01 \x01(\v2!.nimi.runtime.v1.LocalModelRecordR\x05model\"A\n" +
+	"\x1aImportLocalArtifactRequest\x12#\n" +
+	"\rmanifest_path\x18\x01 \x01(\tR\fmanifestPath\"_\n" +
+	"\x1bImportLocalArtifactResponse\x12@\n" +
+	"\bartifact\x18\x01 \x01(\v2$.nimi.runtime.v1.LocalArtifactRecordR\bartifact\"?\n" +
 	"\x17RemoveLocalModelRequest\x12$\n" +
 	"\x0elocal_model_id\x18\x01 \x01(\tR\flocalModelId\"S\n" +
 	"\x18RemoveLocalModelResponse\x127\n" +
-	"\x05model\x18\x01 \x01(\v2!.nimi.runtime.v1.LocalModelRecordR\x05model\">\n" +
+	"\x05model\x18\x01 \x01(\v2!.nimi.runtime.v1.LocalModelRecordR\x05model\"H\n" +
+	"\x1aRemoveLocalArtifactRequest\x12*\n" +
+	"\x11local_artifact_id\x18\x01 \x01(\tR\x0flocalArtifactId\"_\n" +
+	"\x1bRemoveLocalArtifactResponse\x12@\n" +
+	"\bartifact\x18\x01 \x01(\v2$.nimi.runtime.v1.LocalArtifactRecordR\bartifact\">\n" +
 	"\x16StartLocalModelRequest\x12$\n" +
 	"\x0elocal_model_id\x18\x01 \x01(\tR\flocalModelId\"R\n" +
 	"\x17StartLocalModelResponse\x127\n" +
@@ -7118,7 +8255,21 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x1cLOCAL_MODEL_STATUS_INSTALLED\x10\x01\x12\x1d\n" +
 	"\x19LOCAL_MODEL_STATUS_ACTIVE\x10\x02\x12 \n" +
 	"\x1cLOCAL_MODEL_STATUS_UNHEALTHY\x10\x03\x12\x1e\n" +
-	"\x1aLOCAL_MODEL_STATUS_REMOVED\x10\x04*\xc5\x01\n" +
+	"\x1aLOCAL_MODEL_STATUS_REMOVED\x10\x04*\xf5\x01\n" +
+	"\x11LocalArtifactKind\x12#\n" +
+	"\x1fLOCAL_ARTIFACT_KIND_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17LOCAL_ARTIFACT_KIND_VAE\x10\x01\x12\x1b\n" +
+	"\x17LOCAL_ARTIFACT_KIND_LLM\x10\x02\x12\x1c\n" +
+	"\x18LOCAL_ARTIFACT_KIND_CLIP\x10\x03\x12\"\n" +
+	"\x1eLOCAL_ARTIFACT_KIND_CONTROLNET\x10\x04\x12\x1c\n" +
+	"\x18LOCAL_ARTIFACT_KIND_LORA\x10\x05\x12!\n" +
+	"\x1dLOCAL_ARTIFACT_KIND_AUXILIARY\x10\x06*\xcb\x01\n" +
+	"\x13LocalArtifactStatus\x12%\n" +
+	"!LOCAL_ARTIFACT_STATUS_UNSPECIFIED\x10\x00\x12#\n" +
+	"\x1fLOCAL_ARTIFACT_STATUS_INSTALLED\x10\x01\x12 \n" +
+	"\x1cLOCAL_ARTIFACT_STATUS_ACTIVE\x10\x02\x12#\n" +
+	"\x1fLOCAL_ARTIFACT_STATUS_UNHEALTHY\x10\x03\x12!\n" +
+	"\x1dLOCAL_ARTIFACT_STATUS_REMOVED\x10\x04*\xc5\x01\n" +
 	"\x12LocalServiceStatus\x12$\n" +
 	" LOCAL_SERVICE_STATUS_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eLOCAL_SERVICE_STATUS_INSTALLED\x10\x01\x12\x1f\n" +
@@ -7139,16 +8290,21 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x1bLOCAL_ENGINE_STATUS_STOPPED\x10\x01\x12 \n" +
 	"\x1cLOCAL_ENGINE_STATUS_STARTING\x10\x02\x12\x1f\n" +
 	"\x1bLOCAL_ENGINE_STATUS_HEALTHY\x10\x03\x12!\n" +
-	"\x1dLOCAL_ENGINE_STATUS_UNHEALTHY\x10\x042\xf9\x18\n" +
+	"\x1dLOCAL_ENGINE_STATUS_UNHEALTHY\x10\x042\xc2\x1d\n" +
 	"\x1aRuntimeLocalRuntimeService\x12d\n" +
 	"\x0fListLocalModels\x12'.nimi.runtime.v1.ListLocalModelsRequest\x1a(.nimi.runtime.v1.ListLocalModelsResponse\x12m\n" +
-	"\x12ListVerifiedModels\x12*.nimi.runtime.v1.ListVerifiedModelsRequest\x1a+.nimi.runtime.v1.ListVerifiedModelsResponse\x12p\n" +
+	"\x12ListLocalArtifacts\x12*.nimi.runtime.v1.ListLocalArtifactsRequest\x1a+.nimi.runtime.v1.ListLocalArtifactsResponse\x12m\n" +
+	"\x12ListVerifiedModels\x12*.nimi.runtime.v1.ListVerifiedModelsRequest\x1a+.nimi.runtime.v1.ListVerifiedModelsResponse\x12v\n" +
+	"\x15ListVerifiedArtifacts\x12-.nimi.runtime.v1.ListVerifiedArtifactsRequest\x1a..nimi.runtime.v1.ListVerifiedArtifactsResponse\x12p\n" +
 	"\x13SearchCatalogModels\x12+.nimi.runtime.v1.SearchCatalogModelsRequest\x1a,.nimi.runtime.v1.SearchCatalogModelsResponse\x12|\n" +
 	"\x17ResolveModelInstallPlan\x12/.nimi.runtime.v1.ResolveModelInstallPlanRequest\x1a0.nimi.runtime.v1.ResolveModelInstallPlanResponse\x12j\n" +
 	"\x11InstallLocalModel\x12).nimi.runtime.v1.InstallLocalModelRequest\x1a*.nimi.runtime.v1.InstallLocalModelResponse\x12s\n" +
-	"\x14InstallVerifiedModel\x12,.nimi.runtime.v1.InstallVerifiedModelRequest\x1a-.nimi.runtime.v1.InstallVerifiedModelResponse\x12g\n" +
-	"\x10ImportLocalModel\x12(.nimi.runtime.v1.ImportLocalModelRequest\x1a).nimi.runtime.v1.ImportLocalModelResponse\x12g\n" +
-	"\x10RemoveLocalModel\x12(.nimi.runtime.v1.RemoveLocalModelRequest\x1a).nimi.runtime.v1.RemoveLocalModelResponse\x12d\n" +
+	"\x14InstallVerifiedModel\x12,.nimi.runtime.v1.InstallVerifiedModelRequest\x1a-.nimi.runtime.v1.InstallVerifiedModelResponse\x12|\n" +
+	"\x17InstallVerifiedArtifact\x12/.nimi.runtime.v1.InstallVerifiedArtifactRequest\x1a0.nimi.runtime.v1.InstallVerifiedArtifactResponse\x12g\n" +
+	"\x10ImportLocalModel\x12(.nimi.runtime.v1.ImportLocalModelRequest\x1a).nimi.runtime.v1.ImportLocalModelResponse\x12p\n" +
+	"\x13ImportLocalArtifact\x12+.nimi.runtime.v1.ImportLocalArtifactRequest\x1a,.nimi.runtime.v1.ImportLocalArtifactResponse\x12g\n" +
+	"\x10RemoveLocalModel\x12(.nimi.runtime.v1.RemoveLocalModelRequest\x1a).nimi.runtime.v1.RemoveLocalModelResponse\x12p\n" +
+	"\x13RemoveLocalArtifact\x12+.nimi.runtime.v1.RemoveLocalArtifactRequest\x1a,.nimi.runtime.v1.RemoveLocalArtifactResponse\x12d\n" +
 	"\x0fStartLocalModel\x12'.nimi.runtime.v1.StartLocalModelRequest\x1a(.nimi.runtime.v1.StartLocalModelResponse\x12a\n" +
 	"\x0eStopLocalModel\x12&.nimi.runtime.v1.StopLocalModelRequest\x1a'.nimi.runtime.v1.StopLocalModelResponse\x12v\n" +
 	"\x15CheckLocalModelHealth\x12-.nimi.runtime.v1.CheckLocalModelHealthRequest\x1a..nimi.runtime.v1.CheckLocalModelHealthResponse\x12a\n" +
@@ -7185,255 +8341,305 @@ func file_runtime_v1_local_runtime_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_local_runtime_proto_rawDescData
 }
 
-var file_runtime_v1_local_runtime_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_runtime_v1_local_runtime_proto_msgTypes = make([]protoimpl.MessageInfo, 94)
+var file_runtime_v1_local_runtime_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
+var file_runtime_v1_local_runtime_proto_msgTypes = make([]protoimpl.MessageInfo, 109)
 var file_runtime_v1_local_runtime_proto_goTypes = []any{
 	(LocalModelStatus)(0),                          // 0: nimi.runtime.v1.LocalModelStatus
-	(LocalServiceStatus)(0),                        // 1: nimi.runtime.v1.LocalServiceStatus
-	(LocalEngineRuntimeMode)(0),                    // 2: nimi.runtime.v1.LocalEngineRuntimeMode
-	(LocalDependencyKind)(0),                       // 3: nimi.runtime.v1.LocalDependencyKind
-	(LocalEngineStatus)(0),                         // 4: nimi.runtime.v1.LocalEngineStatus
-	(*LocalModelSource)(nil),                       // 5: nimi.runtime.v1.LocalModelSource
-	(*LocalModelRecord)(nil),                       // 6: nimi.runtime.v1.LocalModelRecord
-	(*LocalModelHealth)(nil),                       // 7: nimi.runtime.v1.LocalModelHealth
-	(*LocalVerifiedModelDescriptor)(nil),           // 8: nimi.runtime.v1.LocalVerifiedModelDescriptor
-	(*LocalProviderHintsLocalAi)(nil),              // 9: nimi.runtime.v1.LocalProviderHintsLocalAi
-	(*LocalProviderHintsNexa)(nil),                 // 10: nimi.runtime.v1.LocalProviderHintsNexa
-	(*LocalProviderHints)(nil),                     // 11: nimi.runtime.v1.LocalProviderHints
-	(*LocalCatalogModelDescriptor)(nil),            // 12: nimi.runtime.v1.LocalCatalogModelDescriptor
-	(*LocalInstallPlanDescriptor)(nil),             // 13: nimi.runtime.v1.LocalInstallPlanDescriptor
-	(*LocalGpuProfile)(nil),                        // 14: nimi.runtime.v1.LocalGpuProfile
-	(*LocalPythonProfile)(nil),                     // 15: nimi.runtime.v1.LocalPythonProfile
-	(*LocalNpuProfile)(nil),                        // 16: nimi.runtime.v1.LocalNpuProfile
-	(*LocalPortAvailability)(nil),                  // 17: nimi.runtime.v1.LocalPortAvailability
-	(*LocalDeviceProfile)(nil),                     // 18: nimi.runtime.v1.LocalDeviceProfile
-	(*LocalDependencyOptionDescriptor)(nil),        // 19: nimi.runtime.v1.LocalDependencyOptionDescriptor
-	(*LocalDependencyAlternativeDescriptor)(nil),   // 20: nimi.runtime.v1.LocalDependencyAlternativeDescriptor
-	(*LocalDependenciesDeclarationDescriptor)(nil), // 21: nimi.runtime.v1.LocalDependenciesDeclarationDescriptor
-	(*LocalDependencyDescriptor)(nil),              // 22: nimi.runtime.v1.LocalDependencyDescriptor
-	(*LocalPreflightDecision)(nil),                 // 23: nimi.runtime.v1.LocalPreflightDecision
-	(*LocalDependencySelectionRationale)(nil),      // 24: nimi.runtime.v1.LocalDependencySelectionRationale
-	(*LocalDependencyResolutionPlan)(nil),          // 25: nimi.runtime.v1.LocalDependencyResolutionPlan
-	(*LocalDependencyApplyStageResult)(nil),        // 26: nimi.runtime.v1.LocalDependencyApplyStageResult
-	(*LocalServiceDescriptor)(nil),                 // 27: nimi.runtime.v1.LocalServiceDescriptor
-	(*LocalDependencyApplyResult)(nil),             // 28: nimi.runtime.v1.LocalDependencyApplyResult
-	(*LocalNodeDescriptor)(nil),                    // 29: nimi.runtime.v1.LocalNodeDescriptor
-	(*LocalAuditEvent)(nil),                        // 30: nimi.runtime.v1.LocalAuditEvent
-	(*LocalAuditTimeRange)(nil),                    // 31: nimi.runtime.v1.LocalAuditTimeRange
-	(*LocalEngineDescriptor)(nil),                  // 32: nimi.runtime.v1.LocalEngineDescriptor
-	(*ListEnginesRequest)(nil),                     // 33: nimi.runtime.v1.ListEnginesRequest
-	(*ListEnginesResponse)(nil),                    // 34: nimi.runtime.v1.ListEnginesResponse
-	(*EnsureEngineRequest)(nil),                    // 35: nimi.runtime.v1.EnsureEngineRequest
-	(*EnsureEngineResponse)(nil),                   // 36: nimi.runtime.v1.EnsureEngineResponse
-	(*StartEngineRequest)(nil),                     // 37: nimi.runtime.v1.StartEngineRequest
-	(*StartEngineResponse)(nil),                    // 38: nimi.runtime.v1.StartEngineResponse
-	(*StopEngineRequest)(nil),                      // 39: nimi.runtime.v1.StopEngineRequest
-	(*StopEngineResponse)(nil),                     // 40: nimi.runtime.v1.StopEngineResponse
-	(*GetEngineStatusRequest)(nil),                 // 41: nimi.runtime.v1.GetEngineStatusRequest
-	(*GetEngineStatusResponse)(nil),                // 42: nimi.runtime.v1.GetEngineStatusResponse
-	(*ListLocalModelsRequest)(nil),                 // 43: nimi.runtime.v1.ListLocalModelsRequest
-	(*ListLocalModelsResponse)(nil),                // 44: nimi.runtime.v1.ListLocalModelsResponse
-	(*ListVerifiedModelsRequest)(nil),              // 45: nimi.runtime.v1.ListVerifiedModelsRequest
-	(*ListVerifiedModelsResponse)(nil),             // 46: nimi.runtime.v1.ListVerifiedModelsResponse
-	(*SearchCatalogModelsRequest)(nil),             // 47: nimi.runtime.v1.SearchCatalogModelsRequest
-	(*SearchCatalogModelsResponse)(nil),            // 48: nimi.runtime.v1.SearchCatalogModelsResponse
-	(*ResolveModelInstallPlanRequest)(nil),         // 49: nimi.runtime.v1.ResolveModelInstallPlanRequest
-	(*ResolveModelInstallPlanResponse)(nil),        // 50: nimi.runtime.v1.ResolveModelInstallPlanResponse
-	(*InstallLocalModelRequest)(nil),               // 51: nimi.runtime.v1.InstallLocalModelRequest
-	(*InstallLocalModelResponse)(nil),              // 52: nimi.runtime.v1.InstallLocalModelResponse
-	(*InstallVerifiedModelRequest)(nil),            // 53: nimi.runtime.v1.InstallVerifiedModelRequest
-	(*InstallVerifiedModelResponse)(nil),           // 54: nimi.runtime.v1.InstallVerifiedModelResponse
-	(*ImportLocalModelRequest)(nil),                // 55: nimi.runtime.v1.ImportLocalModelRequest
-	(*ImportLocalModelResponse)(nil),               // 56: nimi.runtime.v1.ImportLocalModelResponse
-	(*RemoveLocalModelRequest)(nil),                // 57: nimi.runtime.v1.RemoveLocalModelRequest
-	(*RemoveLocalModelResponse)(nil),               // 58: nimi.runtime.v1.RemoveLocalModelResponse
-	(*StartLocalModelRequest)(nil),                 // 59: nimi.runtime.v1.StartLocalModelRequest
-	(*StartLocalModelResponse)(nil),                // 60: nimi.runtime.v1.StartLocalModelResponse
-	(*StopLocalModelRequest)(nil),                  // 61: nimi.runtime.v1.StopLocalModelRequest
-	(*StopLocalModelResponse)(nil),                 // 62: nimi.runtime.v1.StopLocalModelResponse
-	(*CheckLocalModelHealthRequest)(nil),           // 63: nimi.runtime.v1.CheckLocalModelHealthRequest
-	(*CheckLocalModelHealthResponse)(nil),          // 64: nimi.runtime.v1.CheckLocalModelHealthResponse
-	(*CollectDeviceProfileRequest)(nil),            // 65: nimi.runtime.v1.CollectDeviceProfileRequest
-	(*CollectDeviceProfileResponse)(nil),           // 66: nimi.runtime.v1.CollectDeviceProfileResponse
-	(*ResolveDependenciesRequest)(nil),             // 67: nimi.runtime.v1.ResolveDependenciesRequest
-	(*ResolveDependenciesResponse)(nil),            // 68: nimi.runtime.v1.ResolveDependenciesResponse
-	(*ApplyDependenciesRequest)(nil),               // 69: nimi.runtime.v1.ApplyDependenciesRequest
-	(*ApplyDependenciesResponse)(nil),              // 70: nimi.runtime.v1.ApplyDependenciesResponse
-	(*ListLocalServicesRequest)(nil),               // 71: nimi.runtime.v1.ListLocalServicesRequest
-	(*ListLocalServicesResponse)(nil),              // 72: nimi.runtime.v1.ListLocalServicesResponse
-	(*InstallLocalServiceRequest)(nil),             // 73: nimi.runtime.v1.InstallLocalServiceRequest
-	(*InstallLocalServiceResponse)(nil),            // 74: nimi.runtime.v1.InstallLocalServiceResponse
-	(*StartLocalServiceRequest)(nil),               // 75: nimi.runtime.v1.StartLocalServiceRequest
-	(*StartLocalServiceResponse)(nil),              // 76: nimi.runtime.v1.StartLocalServiceResponse
-	(*StopLocalServiceRequest)(nil),                // 77: nimi.runtime.v1.StopLocalServiceRequest
-	(*StopLocalServiceResponse)(nil),               // 78: nimi.runtime.v1.StopLocalServiceResponse
-	(*CheckLocalServiceHealthRequest)(nil),         // 79: nimi.runtime.v1.CheckLocalServiceHealthRequest
-	(*CheckLocalServiceHealthResponse)(nil),        // 80: nimi.runtime.v1.CheckLocalServiceHealthResponse
-	(*RemoveLocalServiceRequest)(nil),              // 81: nimi.runtime.v1.RemoveLocalServiceRequest
-	(*RemoveLocalServiceResponse)(nil),             // 82: nimi.runtime.v1.RemoveLocalServiceResponse
-	(*ListNodeCatalogRequest)(nil),                 // 83: nimi.runtime.v1.ListNodeCatalogRequest
-	(*ListNodeCatalogResponse)(nil),                // 84: nimi.runtime.v1.ListNodeCatalogResponse
-	(*ListLocalAuditsRequest)(nil),                 // 85: nimi.runtime.v1.ListLocalAuditsRequest
-	(*ListLocalAuditsResponse)(nil),                // 86: nimi.runtime.v1.ListLocalAuditsResponse
-	(*AppendInferenceAuditRequest)(nil),            // 87: nimi.runtime.v1.AppendInferenceAuditRequest
-	(*AppendRuntimeAuditRequest)(nil),              // 88: nimi.runtime.v1.AppendRuntimeAuditRequest
-	(*WarmLocalModelRequest)(nil),                  // 89: nimi.runtime.v1.WarmLocalModelRequest
-	(*WarmLocalModelResponse)(nil),                 // 90: nimi.runtime.v1.WarmLocalModelResponse
-	nil,                                            // 91: nimi.runtime.v1.LocalModelRecord.HashesEntry
-	nil,                                            // 92: nimi.runtime.v1.LocalVerifiedModelDescriptor.HashesEntry
-	nil,                                            // 93: nimi.runtime.v1.LocalProviderHints.ExtraEntry
-	nil,                                            // 94: nimi.runtime.v1.LocalCatalogModelDescriptor.HashesEntry
-	nil,                                            // 95: nimi.runtime.v1.LocalInstallPlanDescriptor.HashesEntry
-	nil,                                            // 96: nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.PreferredEntry
-	nil,                                            // 97: nimi.runtime.v1.ResolveModelInstallPlanRequest.HashesEntry
-	nil,                                            // 98: nimi.runtime.v1.InstallLocalModelRequest.HashesEntry
-	(*structpb.Struct)(nil),                        // 99: google.protobuf.Struct
-	(*Ack)(nil),                                    // 100: nimi.runtime.v1.Ack
+	(LocalArtifactKind)(0),                         // 1: nimi.runtime.v1.LocalArtifactKind
+	(LocalArtifactStatus)(0),                       // 2: nimi.runtime.v1.LocalArtifactStatus
+	(LocalServiceStatus)(0),                        // 3: nimi.runtime.v1.LocalServiceStatus
+	(LocalEngineRuntimeMode)(0),                    // 4: nimi.runtime.v1.LocalEngineRuntimeMode
+	(LocalDependencyKind)(0),                       // 5: nimi.runtime.v1.LocalDependencyKind
+	(LocalEngineStatus)(0),                         // 6: nimi.runtime.v1.LocalEngineStatus
+	(*LocalModelSource)(nil),                       // 7: nimi.runtime.v1.LocalModelSource
+	(*LocalArtifactSource)(nil),                    // 8: nimi.runtime.v1.LocalArtifactSource
+	(*LocalModelRecord)(nil),                       // 9: nimi.runtime.v1.LocalModelRecord
+	(*LocalModelHealth)(nil),                       // 10: nimi.runtime.v1.LocalModelHealth
+	(*LocalArtifactRecord)(nil),                    // 11: nimi.runtime.v1.LocalArtifactRecord
+	(*LocalVerifiedModelDescriptor)(nil),           // 12: nimi.runtime.v1.LocalVerifiedModelDescriptor
+	(*LocalVerifiedArtifactDescriptor)(nil),        // 13: nimi.runtime.v1.LocalVerifiedArtifactDescriptor
+	(*LocalProviderHintsLocalAi)(nil),              // 14: nimi.runtime.v1.LocalProviderHintsLocalAi
+	(*LocalProviderHintsNexa)(nil),                 // 15: nimi.runtime.v1.LocalProviderHintsNexa
+	(*LocalProviderHints)(nil),                     // 16: nimi.runtime.v1.LocalProviderHints
+	(*LocalCatalogModelDescriptor)(nil),            // 17: nimi.runtime.v1.LocalCatalogModelDescriptor
+	(*LocalInstallPlanDescriptor)(nil),             // 18: nimi.runtime.v1.LocalInstallPlanDescriptor
+	(*LocalGpuProfile)(nil),                        // 19: nimi.runtime.v1.LocalGpuProfile
+	(*LocalPythonProfile)(nil),                     // 20: nimi.runtime.v1.LocalPythonProfile
+	(*LocalNpuProfile)(nil),                        // 21: nimi.runtime.v1.LocalNpuProfile
+	(*LocalPortAvailability)(nil),                  // 22: nimi.runtime.v1.LocalPortAvailability
+	(*LocalDeviceProfile)(nil),                     // 23: nimi.runtime.v1.LocalDeviceProfile
+	(*LocalDependencyOptionDescriptor)(nil),        // 24: nimi.runtime.v1.LocalDependencyOptionDescriptor
+	(*LocalDependencyAlternativeDescriptor)(nil),   // 25: nimi.runtime.v1.LocalDependencyAlternativeDescriptor
+	(*LocalDependenciesDeclarationDescriptor)(nil), // 26: nimi.runtime.v1.LocalDependenciesDeclarationDescriptor
+	(*LocalDependencyDescriptor)(nil),              // 27: nimi.runtime.v1.LocalDependencyDescriptor
+	(*LocalPreflightDecision)(nil),                 // 28: nimi.runtime.v1.LocalPreflightDecision
+	(*LocalDependencySelectionRationale)(nil),      // 29: nimi.runtime.v1.LocalDependencySelectionRationale
+	(*LocalDependencyResolutionPlan)(nil),          // 30: nimi.runtime.v1.LocalDependencyResolutionPlan
+	(*LocalDependencyApplyStageResult)(nil),        // 31: nimi.runtime.v1.LocalDependencyApplyStageResult
+	(*LocalServiceDescriptor)(nil),                 // 32: nimi.runtime.v1.LocalServiceDescriptor
+	(*LocalDependencyApplyResult)(nil),             // 33: nimi.runtime.v1.LocalDependencyApplyResult
+	(*LocalNodeDescriptor)(nil),                    // 34: nimi.runtime.v1.LocalNodeDescriptor
+	(*LocalAuditEvent)(nil),                        // 35: nimi.runtime.v1.LocalAuditEvent
+	(*LocalAuditTimeRange)(nil),                    // 36: nimi.runtime.v1.LocalAuditTimeRange
+	(*LocalEngineDescriptor)(nil),                  // 37: nimi.runtime.v1.LocalEngineDescriptor
+	(*ListEnginesRequest)(nil),                     // 38: nimi.runtime.v1.ListEnginesRequest
+	(*ListEnginesResponse)(nil),                    // 39: nimi.runtime.v1.ListEnginesResponse
+	(*EnsureEngineRequest)(nil),                    // 40: nimi.runtime.v1.EnsureEngineRequest
+	(*EnsureEngineResponse)(nil),                   // 41: nimi.runtime.v1.EnsureEngineResponse
+	(*StartEngineRequest)(nil),                     // 42: nimi.runtime.v1.StartEngineRequest
+	(*StartEngineResponse)(nil),                    // 43: nimi.runtime.v1.StartEngineResponse
+	(*StopEngineRequest)(nil),                      // 44: nimi.runtime.v1.StopEngineRequest
+	(*StopEngineResponse)(nil),                     // 45: nimi.runtime.v1.StopEngineResponse
+	(*GetEngineStatusRequest)(nil),                 // 46: nimi.runtime.v1.GetEngineStatusRequest
+	(*GetEngineStatusResponse)(nil),                // 47: nimi.runtime.v1.GetEngineStatusResponse
+	(*ListLocalModelsRequest)(nil),                 // 48: nimi.runtime.v1.ListLocalModelsRequest
+	(*ListLocalModelsResponse)(nil),                // 49: nimi.runtime.v1.ListLocalModelsResponse
+	(*ListLocalArtifactsRequest)(nil),              // 50: nimi.runtime.v1.ListLocalArtifactsRequest
+	(*ListLocalArtifactsResponse)(nil),             // 51: nimi.runtime.v1.ListLocalArtifactsResponse
+	(*ListVerifiedModelsRequest)(nil),              // 52: nimi.runtime.v1.ListVerifiedModelsRequest
+	(*ListVerifiedModelsResponse)(nil),             // 53: nimi.runtime.v1.ListVerifiedModelsResponse
+	(*ListVerifiedArtifactsRequest)(nil),           // 54: nimi.runtime.v1.ListVerifiedArtifactsRequest
+	(*ListVerifiedArtifactsResponse)(nil),          // 55: nimi.runtime.v1.ListVerifiedArtifactsResponse
+	(*SearchCatalogModelsRequest)(nil),             // 56: nimi.runtime.v1.SearchCatalogModelsRequest
+	(*SearchCatalogModelsResponse)(nil),            // 57: nimi.runtime.v1.SearchCatalogModelsResponse
+	(*ResolveModelInstallPlanRequest)(nil),         // 58: nimi.runtime.v1.ResolveModelInstallPlanRequest
+	(*ResolveModelInstallPlanResponse)(nil),        // 59: nimi.runtime.v1.ResolveModelInstallPlanResponse
+	(*InstallLocalModelRequest)(nil),               // 60: nimi.runtime.v1.InstallLocalModelRequest
+	(*InstallLocalModelResponse)(nil),              // 61: nimi.runtime.v1.InstallLocalModelResponse
+	(*InstallVerifiedModelRequest)(nil),            // 62: nimi.runtime.v1.InstallVerifiedModelRequest
+	(*InstallVerifiedModelResponse)(nil),           // 63: nimi.runtime.v1.InstallVerifiedModelResponse
+	(*InstallVerifiedArtifactRequest)(nil),         // 64: nimi.runtime.v1.InstallVerifiedArtifactRequest
+	(*InstallVerifiedArtifactResponse)(nil),        // 65: nimi.runtime.v1.InstallVerifiedArtifactResponse
+	(*ImportLocalModelRequest)(nil),                // 66: nimi.runtime.v1.ImportLocalModelRequest
+	(*ImportLocalModelResponse)(nil),               // 67: nimi.runtime.v1.ImportLocalModelResponse
+	(*ImportLocalArtifactRequest)(nil),             // 68: nimi.runtime.v1.ImportLocalArtifactRequest
+	(*ImportLocalArtifactResponse)(nil),            // 69: nimi.runtime.v1.ImportLocalArtifactResponse
+	(*RemoveLocalModelRequest)(nil),                // 70: nimi.runtime.v1.RemoveLocalModelRequest
+	(*RemoveLocalModelResponse)(nil),               // 71: nimi.runtime.v1.RemoveLocalModelResponse
+	(*RemoveLocalArtifactRequest)(nil),             // 72: nimi.runtime.v1.RemoveLocalArtifactRequest
+	(*RemoveLocalArtifactResponse)(nil),            // 73: nimi.runtime.v1.RemoveLocalArtifactResponse
+	(*StartLocalModelRequest)(nil),                 // 74: nimi.runtime.v1.StartLocalModelRequest
+	(*StartLocalModelResponse)(nil),                // 75: nimi.runtime.v1.StartLocalModelResponse
+	(*StopLocalModelRequest)(nil),                  // 76: nimi.runtime.v1.StopLocalModelRequest
+	(*StopLocalModelResponse)(nil),                 // 77: nimi.runtime.v1.StopLocalModelResponse
+	(*CheckLocalModelHealthRequest)(nil),           // 78: nimi.runtime.v1.CheckLocalModelHealthRequest
+	(*CheckLocalModelHealthResponse)(nil),          // 79: nimi.runtime.v1.CheckLocalModelHealthResponse
+	(*CollectDeviceProfileRequest)(nil),            // 80: nimi.runtime.v1.CollectDeviceProfileRequest
+	(*CollectDeviceProfileResponse)(nil),           // 81: nimi.runtime.v1.CollectDeviceProfileResponse
+	(*ResolveDependenciesRequest)(nil),             // 82: nimi.runtime.v1.ResolveDependenciesRequest
+	(*ResolveDependenciesResponse)(nil),            // 83: nimi.runtime.v1.ResolveDependenciesResponse
+	(*ApplyDependenciesRequest)(nil),               // 84: nimi.runtime.v1.ApplyDependenciesRequest
+	(*ApplyDependenciesResponse)(nil),              // 85: nimi.runtime.v1.ApplyDependenciesResponse
+	(*ListLocalServicesRequest)(nil),               // 86: nimi.runtime.v1.ListLocalServicesRequest
+	(*ListLocalServicesResponse)(nil),              // 87: nimi.runtime.v1.ListLocalServicesResponse
+	(*InstallLocalServiceRequest)(nil),             // 88: nimi.runtime.v1.InstallLocalServiceRequest
+	(*InstallLocalServiceResponse)(nil),            // 89: nimi.runtime.v1.InstallLocalServiceResponse
+	(*StartLocalServiceRequest)(nil),               // 90: nimi.runtime.v1.StartLocalServiceRequest
+	(*StartLocalServiceResponse)(nil),              // 91: nimi.runtime.v1.StartLocalServiceResponse
+	(*StopLocalServiceRequest)(nil),                // 92: nimi.runtime.v1.StopLocalServiceRequest
+	(*StopLocalServiceResponse)(nil),               // 93: nimi.runtime.v1.StopLocalServiceResponse
+	(*CheckLocalServiceHealthRequest)(nil),         // 94: nimi.runtime.v1.CheckLocalServiceHealthRequest
+	(*CheckLocalServiceHealthResponse)(nil),        // 95: nimi.runtime.v1.CheckLocalServiceHealthResponse
+	(*RemoveLocalServiceRequest)(nil),              // 96: nimi.runtime.v1.RemoveLocalServiceRequest
+	(*RemoveLocalServiceResponse)(nil),             // 97: nimi.runtime.v1.RemoveLocalServiceResponse
+	(*ListNodeCatalogRequest)(nil),                 // 98: nimi.runtime.v1.ListNodeCatalogRequest
+	(*ListNodeCatalogResponse)(nil),                // 99: nimi.runtime.v1.ListNodeCatalogResponse
+	(*ListLocalAuditsRequest)(nil),                 // 100: nimi.runtime.v1.ListLocalAuditsRequest
+	(*ListLocalAuditsResponse)(nil),                // 101: nimi.runtime.v1.ListLocalAuditsResponse
+	(*AppendInferenceAuditRequest)(nil),            // 102: nimi.runtime.v1.AppendInferenceAuditRequest
+	(*AppendRuntimeAuditRequest)(nil),              // 103: nimi.runtime.v1.AppendRuntimeAuditRequest
+	(*WarmLocalModelRequest)(nil),                  // 104: nimi.runtime.v1.WarmLocalModelRequest
+	(*WarmLocalModelResponse)(nil),                 // 105: nimi.runtime.v1.WarmLocalModelResponse
+	nil,                                            // 106: nimi.runtime.v1.LocalModelRecord.HashesEntry
+	nil,                                            // 107: nimi.runtime.v1.LocalArtifactRecord.HashesEntry
+	nil,                                            // 108: nimi.runtime.v1.LocalVerifiedModelDescriptor.HashesEntry
+	nil,                                            // 109: nimi.runtime.v1.LocalVerifiedArtifactDescriptor.HashesEntry
+	nil,                                            // 110: nimi.runtime.v1.LocalProviderHints.ExtraEntry
+	nil,                                            // 111: nimi.runtime.v1.LocalCatalogModelDescriptor.HashesEntry
+	nil,                                            // 112: nimi.runtime.v1.LocalInstallPlanDescriptor.HashesEntry
+	nil,                                            // 113: nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.PreferredEntry
+	nil,                                            // 114: nimi.runtime.v1.ResolveModelInstallPlanRequest.HashesEntry
+	nil,                                            // 115: nimi.runtime.v1.InstallLocalModelRequest.HashesEntry
+	(*structpb.Struct)(nil),                        // 116: google.protobuf.Struct
+	(*Ack)(nil),                                    // 117: nimi.runtime.v1.Ack
 }
 var file_runtime_v1_local_runtime_proto_depIdxs = []int32{
-	5,   // 0: nimi.runtime.v1.LocalModelRecord.source:type_name -> nimi.runtime.v1.LocalModelSource
-	91,  // 1: nimi.runtime.v1.LocalModelRecord.hashes:type_name -> nimi.runtime.v1.LocalModelRecord.HashesEntry
+	7,   // 0: nimi.runtime.v1.LocalModelRecord.source:type_name -> nimi.runtime.v1.LocalModelSource
+	106, // 1: nimi.runtime.v1.LocalModelRecord.hashes:type_name -> nimi.runtime.v1.LocalModelRecord.HashesEntry
 	0,   // 2: nimi.runtime.v1.LocalModelRecord.status:type_name -> nimi.runtime.v1.LocalModelStatus
-	0,   // 3: nimi.runtime.v1.LocalModelHealth.status:type_name -> nimi.runtime.v1.LocalModelStatus
-	92,  // 4: nimi.runtime.v1.LocalVerifiedModelDescriptor.hashes:type_name -> nimi.runtime.v1.LocalVerifiedModelDescriptor.HashesEntry
-	9,   // 5: nimi.runtime.v1.LocalProviderHints.localai:type_name -> nimi.runtime.v1.LocalProviderHintsLocalAi
-	10,  // 6: nimi.runtime.v1.LocalProviderHints.nexa:type_name -> nimi.runtime.v1.LocalProviderHintsNexa
-	93,  // 7: nimi.runtime.v1.LocalProviderHints.extra:type_name -> nimi.runtime.v1.LocalProviderHints.ExtraEntry
-	2,   // 8: nimi.runtime.v1.LocalCatalogModelDescriptor.engine_runtime_mode:type_name -> nimi.runtime.v1.LocalEngineRuntimeMode
-	11,  // 9: nimi.runtime.v1.LocalCatalogModelDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
-	94,  // 10: nimi.runtime.v1.LocalCatalogModelDescriptor.hashes:type_name -> nimi.runtime.v1.LocalCatalogModelDescriptor.HashesEntry
-	2,   // 11: nimi.runtime.v1.LocalInstallPlanDescriptor.engine_runtime_mode:type_name -> nimi.runtime.v1.LocalEngineRuntimeMode
-	11,  // 12: nimi.runtime.v1.LocalInstallPlanDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
-	95,  // 13: nimi.runtime.v1.LocalInstallPlanDescriptor.hashes:type_name -> nimi.runtime.v1.LocalInstallPlanDescriptor.HashesEntry
-	14,  // 14: nimi.runtime.v1.LocalDeviceProfile.gpu:type_name -> nimi.runtime.v1.LocalGpuProfile
-	15,  // 15: nimi.runtime.v1.LocalDeviceProfile.python:type_name -> nimi.runtime.v1.LocalPythonProfile
-	16,  // 16: nimi.runtime.v1.LocalDeviceProfile.npu:type_name -> nimi.runtime.v1.LocalNpuProfile
-	17,  // 17: nimi.runtime.v1.LocalDeviceProfile.ports:type_name -> nimi.runtime.v1.LocalPortAvailability
-	3,   // 18: nimi.runtime.v1.LocalDependencyOptionDescriptor.kind:type_name -> nimi.runtime.v1.LocalDependencyKind
-	19,  // 19: nimi.runtime.v1.LocalDependencyAlternativeDescriptor.options:type_name -> nimi.runtime.v1.LocalDependencyOptionDescriptor
-	19,  // 20: nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.required:type_name -> nimi.runtime.v1.LocalDependencyOptionDescriptor
-	19,  // 21: nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.optional:type_name -> nimi.runtime.v1.LocalDependencyOptionDescriptor
-	20,  // 22: nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.alternatives:type_name -> nimi.runtime.v1.LocalDependencyAlternativeDescriptor
-	96,  // 23: nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.preferred:type_name -> nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.PreferredEntry
-	3,   // 24: nimi.runtime.v1.LocalDependencyDescriptor.kind:type_name -> nimi.runtime.v1.LocalDependencyKind
-	18,  // 25: nimi.runtime.v1.LocalDependencyResolutionPlan.device_profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
-	22,  // 26: nimi.runtime.v1.LocalDependencyResolutionPlan.dependencies:type_name -> nimi.runtime.v1.LocalDependencyDescriptor
-	24,  // 27: nimi.runtime.v1.LocalDependencyResolutionPlan.selection_rationale:type_name -> nimi.runtime.v1.LocalDependencySelectionRationale
-	23,  // 28: nimi.runtime.v1.LocalDependencyResolutionPlan.preflight_decisions:type_name -> nimi.runtime.v1.LocalPreflightDecision
-	1,   // 29: nimi.runtime.v1.LocalServiceDescriptor.status:type_name -> nimi.runtime.v1.LocalServiceStatus
-	22,  // 30: nimi.runtime.v1.LocalDependencyApplyResult.dependencies:type_name -> nimi.runtime.v1.LocalDependencyDescriptor
-	6,   // 31: nimi.runtime.v1.LocalDependencyApplyResult.installed_models:type_name -> nimi.runtime.v1.LocalModelRecord
-	27,  // 32: nimi.runtime.v1.LocalDependencyApplyResult.services:type_name -> nimi.runtime.v1.LocalServiceDescriptor
-	26,  // 33: nimi.runtime.v1.LocalDependencyApplyResult.stage_results:type_name -> nimi.runtime.v1.LocalDependencyApplyStageResult
-	23,  // 34: nimi.runtime.v1.LocalDependencyApplyResult.preflight_decisions:type_name -> nimi.runtime.v1.LocalPreflightDecision
-	11,  // 35: nimi.runtime.v1.LocalNodeDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
-	99,  // 36: nimi.runtime.v1.LocalNodeDescriptor.input_schema:type_name -> google.protobuf.Struct
-	99,  // 37: nimi.runtime.v1.LocalNodeDescriptor.output_schema:type_name -> google.protobuf.Struct
-	99,  // 38: nimi.runtime.v1.LocalAuditEvent.payload:type_name -> google.protobuf.Struct
-	4,   // 39: nimi.runtime.v1.LocalEngineDescriptor.status:type_name -> nimi.runtime.v1.LocalEngineStatus
-	32,  // 40: nimi.runtime.v1.ListEnginesResponse.engines:type_name -> nimi.runtime.v1.LocalEngineDescriptor
-	32,  // 41: nimi.runtime.v1.EnsureEngineResponse.engine:type_name -> nimi.runtime.v1.LocalEngineDescriptor
-	32,  // 42: nimi.runtime.v1.StartEngineResponse.engine:type_name -> nimi.runtime.v1.LocalEngineDescriptor
-	32,  // 43: nimi.runtime.v1.StopEngineResponse.engine:type_name -> nimi.runtime.v1.LocalEngineDescriptor
-	32,  // 44: nimi.runtime.v1.GetEngineStatusResponse.engine:type_name -> nimi.runtime.v1.LocalEngineDescriptor
-	0,   // 45: nimi.runtime.v1.ListLocalModelsRequest.status_filter:type_name -> nimi.runtime.v1.LocalModelStatus
-	6,   // 46: nimi.runtime.v1.ListLocalModelsResponse.models:type_name -> nimi.runtime.v1.LocalModelRecord
-	8,   // 47: nimi.runtime.v1.ListVerifiedModelsResponse.models:type_name -> nimi.runtime.v1.LocalVerifiedModelDescriptor
-	12,  // 48: nimi.runtime.v1.SearchCatalogModelsResponse.items:type_name -> nimi.runtime.v1.LocalCatalogModelDescriptor
-	97,  // 49: nimi.runtime.v1.ResolveModelInstallPlanRequest.hashes:type_name -> nimi.runtime.v1.ResolveModelInstallPlanRequest.HashesEntry
-	13,  // 50: nimi.runtime.v1.ResolveModelInstallPlanResponse.plan:type_name -> nimi.runtime.v1.LocalInstallPlanDescriptor
-	98,  // 51: nimi.runtime.v1.InstallLocalModelRequest.hashes:type_name -> nimi.runtime.v1.InstallLocalModelRequest.HashesEntry
-	6,   // 52: nimi.runtime.v1.InstallLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
-	6,   // 53: nimi.runtime.v1.InstallVerifiedModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
-	6,   // 54: nimi.runtime.v1.ImportLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
-	6,   // 55: nimi.runtime.v1.RemoveLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
-	6,   // 56: nimi.runtime.v1.StartLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
-	6,   // 57: nimi.runtime.v1.StopLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
-	7,   // 58: nimi.runtime.v1.CheckLocalModelHealthResponse.models:type_name -> nimi.runtime.v1.LocalModelHealth
-	18,  // 59: nimi.runtime.v1.CollectDeviceProfileResponse.profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
-	21,  // 60: nimi.runtime.v1.ResolveDependenciesRequest.dependencies:type_name -> nimi.runtime.v1.LocalDependenciesDeclarationDescriptor
-	18,  // 61: nimi.runtime.v1.ResolveDependenciesRequest.device_profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
-	25,  // 62: nimi.runtime.v1.ResolveDependenciesResponse.plan:type_name -> nimi.runtime.v1.LocalDependencyResolutionPlan
-	25,  // 63: nimi.runtime.v1.ApplyDependenciesRequest.plan:type_name -> nimi.runtime.v1.LocalDependencyResolutionPlan
-	28,  // 64: nimi.runtime.v1.ApplyDependenciesResponse.result:type_name -> nimi.runtime.v1.LocalDependencyApplyResult
-	1,   // 65: nimi.runtime.v1.ListLocalServicesRequest.status_filter:type_name -> nimi.runtime.v1.LocalServiceStatus
-	27,  // 66: nimi.runtime.v1.ListLocalServicesResponse.services:type_name -> nimi.runtime.v1.LocalServiceDescriptor
-	27,  // 67: nimi.runtime.v1.InstallLocalServiceResponse.service:type_name -> nimi.runtime.v1.LocalServiceDescriptor
-	27,  // 68: nimi.runtime.v1.StartLocalServiceResponse.service:type_name -> nimi.runtime.v1.LocalServiceDescriptor
-	27,  // 69: nimi.runtime.v1.StopLocalServiceResponse.service:type_name -> nimi.runtime.v1.LocalServiceDescriptor
-	27,  // 70: nimi.runtime.v1.CheckLocalServiceHealthResponse.services:type_name -> nimi.runtime.v1.LocalServiceDescriptor
-	27,  // 71: nimi.runtime.v1.RemoveLocalServiceResponse.service:type_name -> nimi.runtime.v1.LocalServiceDescriptor
-	29,  // 72: nimi.runtime.v1.ListNodeCatalogResponse.nodes:type_name -> nimi.runtime.v1.LocalNodeDescriptor
-	31,  // 73: nimi.runtime.v1.ListLocalAuditsRequest.time_range:type_name -> nimi.runtime.v1.LocalAuditTimeRange
-	30,  // 74: nimi.runtime.v1.ListLocalAuditsResponse.events:type_name -> nimi.runtime.v1.LocalAuditEvent
-	99,  // 75: nimi.runtime.v1.AppendInferenceAuditRequest.policy_gate:type_name -> google.protobuf.Struct
-	99,  // 76: nimi.runtime.v1.AppendInferenceAuditRequest.extra:type_name -> google.protobuf.Struct
-	99,  // 77: nimi.runtime.v1.AppendRuntimeAuditRequest.payload:type_name -> google.protobuf.Struct
-	43,  // 78: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalModels:input_type -> nimi.runtime.v1.ListLocalModelsRequest
-	45,  // 79: nimi.runtime.v1.RuntimeLocalRuntimeService.ListVerifiedModels:input_type -> nimi.runtime.v1.ListVerifiedModelsRequest
-	47,  // 80: nimi.runtime.v1.RuntimeLocalRuntimeService.SearchCatalogModels:input_type -> nimi.runtime.v1.SearchCatalogModelsRequest
-	49,  // 81: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveModelInstallPlan:input_type -> nimi.runtime.v1.ResolveModelInstallPlanRequest
-	51,  // 82: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalModel:input_type -> nimi.runtime.v1.InstallLocalModelRequest
-	53,  // 83: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallVerifiedModel:input_type -> nimi.runtime.v1.InstallVerifiedModelRequest
-	55,  // 84: nimi.runtime.v1.RuntimeLocalRuntimeService.ImportLocalModel:input_type -> nimi.runtime.v1.ImportLocalModelRequest
-	57,  // 85: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalModel:input_type -> nimi.runtime.v1.RemoveLocalModelRequest
-	59,  // 86: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalModel:input_type -> nimi.runtime.v1.StartLocalModelRequest
-	61,  // 87: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalModel:input_type -> nimi.runtime.v1.StopLocalModelRequest
-	63,  // 88: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalModelHealth:input_type -> nimi.runtime.v1.CheckLocalModelHealthRequest
-	89,  // 89: nimi.runtime.v1.RuntimeLocalRuntimeService.WarmLocalModel:input_type -> nimi.runtime.v1.WarmLocalModelRequest
-	65,  // 90: nimi.runtime.v1.RuntimeLocalRuntimeService.CollectDeviceProfile:input_type -> nimi.runtime.v1.CollectDeviceProfileRequest
-	67,  // 91: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveDependencies:input_type -> nimi.runtime.v1.ResolveDependenciesRequest
-	69,  // 92: nimi.runtime.v1.RuntimeLocalRuntimeService.ApplyDependencies:input_type -> nimi.runtime.v1.ApplyDependenciesRequest
-	71,  // 93: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalServices:input_type -> nimi.runtime.v1.ListLocalServicesRequest
-	73,  // 94: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalService:input_type -> nimi.runtime.v1.InstallLocalServiceRequest
-	75,  // 95: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalService:input_type -> nimi.runtime.v1.StartLocalServiceRequest
-	77,  // 96: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalService:input_type -> nimi.runtime.v1.StopLocalServiceRequest
-	79,  // 97: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalServiceHealth:input_type -> nimi.runtime.v1.CheckLocalServiceHealthRequest
-	81,  // 98: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalService:input_type -> nimi.runtime.v1.RemoveLocalServiceRequest
-	83,  // 99: nimi.runtime.v1.RuntimeLocalRuntimeService.ListNodeCatalog:input_type -> nimi.runtime.v1.ListNodeCatalogRequest
-	85,  // 100: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalAudits:input_type -> nimi.runtime.v1.ListLocalAuditsRequest
-	87,  // 101: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendInferenceAudit:input_type -> nimi.runtime.v1.AppendInferenceAuditRequest
-	88,  // 102: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendRuntimeAudit:input_type -> nimi.runtime.v1.AppendRuntimeAuditRequest
-	33,  // 103: nimi.runtime.v1.RuntimeLocalRuntimeService.ListEngines:input_type -> nimi.runtime.v1.ListEnginesRequest
-	35,  // 104: nimi.runtime.v1.RuntimeLocalRuntimeService.EnsureEngine:input_type -> nimi.runtime.v1.EnsureEngineRequest
-	37,  // 105: nimi.runtime.v1.RuntimeLocalRuntimeService.StartEngine:input_type -> nimi.runtime.v1.StartEngineRequest
-	39,  // 106: nimi.runtime.v1.RuntimeLocalRuntimeService.StopEngine:input_type -> nimi.runtime.v1.StopEngineRequest
-	41,  // 107: nimi.runtime.v1.RuntimeLocalRuntimeService.GetEngineStatus:input_type -> nimi.runtime.v1.GetEngineStatusRequest
-	44,  // 108: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalModels:output_type -> nimi.runtime.v1.ListLocalModelsResponse
-	46,  // 109: nimi.runtime.v1.RuntimeLocalRuntimeService.ListVerifiedModels:output_type -> nimi.runtime.v1.ListVerifiedModelsResponse
-	48,  // 110: nimi.runtime.v1.RuntimeLocalRuntimeService.SearchCatalogModels:output_type -> nimi.runtime.v1.SearchCatalogModelsResponse
-	50,  // 111: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveModelInstallPlan:output_type -> nimi.runtime.v1.ResolveModelInstallPlanResponse
-	52,  // 112: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalModel:output_type -> nimi.runtime.v1.InstallLocalModelResponse
-	54,  // 113: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallVerifiedModel:output_type -> nimi.runtime.v1.InstallVerifiedModelResponse
-	56,  // 114: nimi.runtime.v1.RuntimeLocalRuntimeService.ImportLocalModel:output_type -> nimi.runtime.v1.ImportLocalModelResponse
-	58,  // 115: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalModel:output_type -> nimi.runtime.v1.RemoveLocalModelResponse
-	60,  // 116: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalModel:output_type -> nimi.runtime.v1.StartLocalModelResponse
-	62,  // 117: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalModel:output_type -> nimi.runtime.v1.StopLocalModelResponse
-	64,  // 118: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalModelHealth:output_type -> nimi.runtime.v1.CheckLocalModelHealthResponse
-	90,  // 119: nimi.runtime.v1.RuntimeLocalRuntimeService.WarmLocalModel:output_type -> nimi.runtime.v1.WarmLocalModelResponse
-	66,  // 120: nimi.runtime.v1.RuntimeLocalRuntimeService.CollectDeviceProfile:output_type -> nimi.runtime.v1.CollectDeviceProfileResponse
-	68,  // 121: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveDependencies:output_type -> nimi.runtime.v1.ResolveDependenciesResponse
-	70,  // 122: nimi.runtime.v1.RuntimeLocalRuntimeService.ApplyDependencies:output_type -> nimi.runtime.v1.ApplyDependenciesResponse
-	72,  // 123: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalServices:output_type -> nimi.runtime.v1.ListLocalServicesResponse
-	74,  // 124: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalService:output_type -> nimi.runtime.v1.InstallLocalServiceResponse
-	76,  // 125: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalService:output_type -> nimi.runtime.v1.StartLocalServiceResponse
-	78,  // 126: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalService:output_type -> nimi.runtime.v1.StopLocalServiceResponse
-	80,  // 127: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalServiceHealth:output_type -> nimi.runtime.v1.CheckLocalServiceHealthResponse
-	82,  // 128: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalService:output_type -> nimi.runtime.v1.RemoveLocalServiceResponse
-	84,  // 129: nimi.runtime.v1.RuntimeLocalRuntimeService.ListNodeCatalog:output_type -> nimi.runtime.v1.ListNodeCatalogResponse
-	86,  // 130: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalAudits:output_type -> nimi.runtime.v1.ListLocalAuditsResponse
-	100, // 131: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendInferenceAudit:output_type -> nimi.runtime.v1.Ack
-	100, // 132: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendRuntimeAudit:output_type -> nimi.runtime.v1.Ack
-	34,  // 133: nimi.runtime.v1.RuntimeLocalRuntimeService.ListEngines:output_type -> nimi.runtime.v1.ListEnginesResponse
-	36,  // 134: nimi.runtime.v1.RuntimeLocalRuntimeService.EnsureEngine:output_type -> nimi.runtime.v1.EnsureEngineResponse
-	38,  // 135: nimi.runtime.v1.RuntimeLocalRuntimeService.StartEngine:output_type -> nimi.runtime.v1.StartEngineResponse
-	40,  // 136: nimi.runtime.v1.RuntimeLocalRuntimeService.StopEngine:output_type -> nimi.runtime.v1.StopEngineResponse
-	42,  // 137: nimi.runtime.v1.RuntimeLocalRuntimeService.GetEngineStatus:output_type -> nimi.runtime.v1.GetEngineStatusResponse
-	108, // [108:138] is the sub-list for method output_type
-	78,  // [78:108] is the sub-list for method input_type
-	78,  // [78:78] is the sub-list for extension type_name
-	78,  // [78:78] is the sub-list for extension extendee
-	0,   // [0:78] is the sub-list for field type_name
+	116, // 3: nimi.runtime.v1.LocalModelRecord.engine_config:type_name -> google.protobuf.Struct
+	0,   // 4: nimi.runtime.v1.LocalModelHealth.status:type_name -> nimi.runtime.v1.LocalModelStatus
+	1,   // 5: nimi.runtime.v1.LocalArtifactRecord.kind:type_name -> nimi.runtime.v1.LocalArtifactKind
+	8,   // 6: nimi.runtime.v1.LocalArtifactRecord.source:type_name -> nimi.runtime.v1.LocalArtifactSource
+	107, // 7: nimi.runtime.v1.LocalArtifactRecord.hashes:type_name -> nimi.runtime.v1.LocalArtifactRecord.HashesEntry
+	2,   // 8: nimi.runtime.v1.LocalArtifactRecord.status:type_name -> nimi.runtime.v1.LocalArtifactStatus
+	116, // 9: nimi.runtime.v1.LocalArtifactRecord.metadata:type_name -> google.protobuf.Struct
+	108, // 10: nimi.runtime.v1.LocalVerifiedModelDescriptor.hashes:type_name -> nimi.runtime.v1.LocalVerifiedModelDescriptor.HashesEntry
+	116, // 11: nimi.runtime.v1.LocalVerifiedModelDescriptor.engine_config:type_name -> google.protobuf.Struct
+	1,   // 12: nimi.runtime.v1.LocalVerifiedArtifactDescriptor.kind:type_name -> nimi.runtime.v1.LocalArtifactKind
+	109, // 13: nimi.runtime.v1.LocalVerifiedArtifactDescriptor.hashes:type_name -> nimi.runtime.v1.LocalVerifiedArtifactDescriptor.HashesEntry
+	116, // 14: nimi.runtime.v1.LocalVerifiedArtifactDescriptor.metadata:type_name -> google.protobuf.Struct
+	14,  // 15: nimi.runtime.v1.LocalProviderHints.localai:type_name -> nimi.runtime.v1.LocalProviderHintsLocalAi
+	15,  // 16: nimi.runtime.v1.LocalProviderHints.nexa:type_name -> nimi.runtime.v1.LocalProviderHintsNexa
+	110, // 17: nimi.runtime.v1.LocalProviderHints.extra:type_name -> nimi.runtime.v1.LocalProviderHints.ExtraEntry
+	4,   // 18: nimi.runtime.v1.LocalCatalogModelDescriptor.engine_runtime_mode:type_name -> nimi.runtime.v1.LocalEngineRuntimeMode
+	16,  // 19: nimi.runtime.v1.LocalCatalogModelDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
+	111, // 20: nimi.runtime.v1.LocalCatalogModelDescriptor.hashes:type_name -> nimi.runtime.v1.LocalCatalogModelDescriptor.HashesEntry
+	116, // 21: nimi.runtime.v1.LocalCatalogModelDescriptor.engine_config:type_name -> google.protobuf.Struct
+	4,   // 22: nimi.runtime.v1.LocalInstallPlanDescriptor.engine_runtime_mode:type_name -> nimi.runtime.v1.LocalEngineRuntimeMode
+	16,  // 23: nimi.runtime.v1.LocalInstallPlanDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
+	112, // 24: nimi.runtime.v1.LocalInstallPlanDescriptor.hashes:type_name -> nimi.runtime.v1.LocalInstallPlanDescriptor.HashesEntry
+	116, // 25: nimi.runtime.v1.LocalInstallPlanDescriptor.engine_config:type_name -> google.protobuf.Struct
+	19,  // 26: nimi.runtime.v1.LocalDeviceProfile.gpu:type_name -> nimi.runtime.v1.LocalGpuProfile
+	20,  // 27: nimi.runtime.v1.LocalDeviceProfile.python:type_name -> nimi.runtime.v1.LocalPythonProfile
+	21,  // 28: nimi.runtime.v1.LocalDeviceProfile.npu:type_name -> nimi.runtime.v1.LocalNpuProfile
+	22,  // 29: nimi.runtime.v1.LocalDeviceProfile.ports:type_name -> nimi.runtime.v1.LocalPortAvailability
+	5,   // 30: nimi.runtime.v1.LocalDependencyOptionDescriptor.kind:type_name -> nimi.runtime.v1.LocalDependencyKind
+	24,  // 31: nimi.runtime.v1.LocalDependencyAlternativeDescriptor.options:type_name -> nimi.runtime.v1.LocalDependencyOptionDescriptor
+	24,  // 32: nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.required:type_name -> nimi.runtime.v1.LocalDependencyOptionDescriptor
+	24,  // 33: nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.optional:type_name -> nimi.runtime.v1.LocalDependencyOptionDescriptor
+	25,  // 34: nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.alternatives:type_name -> nimi.runtime.v1.LocalDependencyAlternativeDescriptor
+	113, // 35: nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.preferred:type_name -> nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.PreferredEntry
+	5,   // 36: nimi.runtime.v1.LocalDependencyDescriptor.kind:type_name -> nimi.runtime.v1.LocalDependencyKind
+	23,  // 37: nimi.runtime.v1.LocalDependencyResolutionPlan.device_profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
+	27,  // 38: nimi.runtime.v1.LocalDependencyResolutionPlan.dependencies:type_name -> nimi.runtime.v1.LocalDependencyDescriptor
+	29,  // 39: nimi.runtime.v1.LocalDependencyResolutionPlan.selection_rationale:type_name -> nimi.runtime.v1.LocalDependencySelectionRationale
+	28,  // 40: nimi.runtime.v1.LocalDependencyResolutionPlan.preflight_decisions:type_name -> nimi.runtime.v1.LocalPreflightDecision
+	3,   // 41: nimi.runtime.v1.LocalServiceDescriptor.status:type_name -> nimi.runtime.v1.LocalServiceStatus
+	27,  // 42: nimi.runtime.v1.LocalDependencyApplyResult.dependencies:type_name -> nimi.runtime.v1.LocalDependencyDescriptor
+	9,   // 43: nimi.runtime.v1.LocalDependencyApplyResult.installed_models:type_name -> nimi.runtime.v1.LocalModelRecord
+	32,  // 44: nimi.runtime.v1.LocalDependencyApplyResult.services:type_name -> nimi.runtime.v1.LocalServiceDescriptor
+	31,  // 45: nimi.runtime.v1.LocalDependencyApplyResult.stage_results:type_name -> nimi.runtime.v1.LocalDependencyApplyStageResult
+	28,  // 46: nimi.runtime.v1.LocalDependencyApplyResult.preflight_decisions:type_name -> nimi.runtime.v1.LocalPreflightDecision
+	16,  // 47: nimi.runtime.v1.LocalNodeDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
+	116, // 48: nimi.runtime.v1.LocalNodeDescriptor.input_schema:type_name -> google.protobuf.Struct
+	116, // 49: nimi.runtime.v1.LocalNodeDescriptor.output_schema:type_name -> google.protobuf.Struct
+	116, // 50: nimi.runtime.v1.LocalAuditEvent.payload:type_name -> google.protobuf.Struct
+	6,   // 51: nimi.runtime.v1.LocalEngineDescriptor.status:type_name -> nimi.runtime.v1.LocalEngineStatus
+	37,  // 52: nimi.runtime.v1.ListEnginesResponse.engines:type_name -> nimi.runtime.v1.LocalEngineDescriptor
+	37,  // 53: nimi.runtime.v1.EnsureEngineResponse.engine:type_name -> nimi.runtime.v1.LocalEngineDescriptor
+	37,  // 54: nimi.runtime.v1.StartEngineResponse.engine:type_name -> nimi.runtime.v1.LocalEngineDescriptor
+	37,  // 55: nimi.runtime.v1.StopEngineResponse.engine:type_name -> nimi.runtime.v1.LocalEngineDescriptor
+	37,  // 56: nimi.runtime.v1.GetEngineStatusResponse.engine:type_name -> nimi.runtime.v1.LocalEngineDescriptor
+	0,   // 57: nimi.runtime.v1.ListLocalModelsRequest.status_filter:type_name -> nimi.runtime.v1.LocalModelStatus
+	9,   // 58: nimi.runtime.v1.ListLocalModelsResponse.models:type_name -> nimi.runtime.v1.LocalModelRecord
+	2,   // 59: nimi.runtime.v1.ListLocalArtifactsRequest.status_filter:type_name -> nimi.runtime.v1.LocalArtifactStatus
+	1,   // 60: nimi.runtime.v1.ListLocalArtifactsRequest.kind_filter:type_name -> nimi.runtime.v1.LocalArtifactKind
+	11,  // 61: nimi.runtime.v1.ListLocalArtifactsResponse.artifacts:type_name -> nimi.runtime.v1.LocalArtifactRecord
+	12,  // 62: nimi.runtime.v1.ListVerifiedModelsResponse.models:type_name -> nimi.runtime.v1.LocalVerifiedModelDescriptor
+	1,   // 63: nimi.runtime.v1.ListVerifiedArtifactsRequest.kind_filter:type_name -> nimi.runtime.v1.LocalArtifactKind
+	13,  // 64: nimi.runtime.v1.ListVerifiedArtifactsResponse.artifacts:type_name -> nimi.runtime.v1.LocalVerifiedArtifactDescriptor
+	17,  // 65: nimi.runtime.v1.SearchCatalogModelsResponse.items:type_name -> nimi.runtime.v1.LocalCatalogModelDescriptor
+	114, // 66: nimi.runtime.v1.ResolveModelInstallPlanRequest.hashes:type_name -> nimi.runtime.v1.ResolveModelInstallPlanRequest.HashesEntry
+	116, // 67: nimi.runtime.v1.ResolveModelInstallPlanRequest.engine_config:type_name -> google.protobuf.Struct
+	18,  // 68: nimi.runtime.v1.ResolveModelInstallPlanResponse.plan:type_name -> nimi.runtime.v1.LocalInstallPlanDescriptor
+	115, // 69: nimi.runtime.v1.InstallLocalModelRequest.hashes:type_name -> nimi.runtime.v1.InstallLocalModelRequest.HashesEntry
+	116, // 70: nimi.runtime.v1.InstallLocalModelRequest.engine_config:type_name -> google.protobuf.Struct
+	9,   // 71: nimi.runtime.v1.InstallLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
+	9,   // 72: nimi.runtime.v1.InstallVerifiedModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
+	11,  // 73: nimi.runtime.v1.InstallVerifiedArtifactResponse.artifact:type_name -> nimi.runtime.v1.LocalArtifactRecord
+	116, // 74: nimi.runtime.v1.ImportLocalModelRequest.engine_config:type_name -> google.protobuf.Struct
+	9,   // 75: nimi.runtime.v1.ImportLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
+	11,  // 76: nimi.runtime.v1.ImportLocalArtifactResponse.artifact:type_name -> nimi.runtime.v1.LocalArtifactRecord
+	9,   // 77: nimi.runtime.v1.RemoveLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
+	11,  // 78: nimi.runtime.v1.RemoveLocalArtifactResponse.artifact:type_name -> nimi.runtime.v1.LocalArtifactRecord
+	9,   // 79: nimi.runtime.v1.StartLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
+	9,   // 80: nimi.runtime.v1.StopLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
+	10,  // 81: nimi.runtime.v1.CheckLocalModelHealthResponse.models:type_name -> nimi.runtime.v1.LocalModelHealth
+	23,  // 82: nimi.runtime.v1.CollectDeviceProfileResponse.profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
+	26,  // 83: nimi.runtime.v1.ResolveDependenciesRequest.dependencies:type_name -> nimi.runtime.v1.LocalDependenciesDeclarationDescriptor
+	23,  // 84: nimi.runtime.v1.ResolveDependenciesRequest.device_profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
+	30,  // 85: nimi.runtime.v1.ResolveDependenciesResponse.plan:type_name -> nimi.runtime.v1.LocalDependencyResolutionPlan
+	30,  // 86: nimi.runtime.v1.ApplyDependenciesRequest.plan:type_name -> nimi.runtime.v1.LocalDependencyResolutionPlan
+	33,  // 87: nimi.runtime.v1.ApplyDependenciesResponse.result:type_name -> nimi.runtime.v1.LocalDependencyApplyResult
+	3,   // 88: nimi.runtime.v1.ListLocalServicesRequest.status_filter:type_name -> nimi.runtime.v1.LocalServiceStatus
+	32,  // 89: nimi.runtime.v1.ListLocalServicesResponse.services:type_name -> nimi.runtime.v1.LocalServiceDescriptor
+	32,  // 90: nimi.runtime.v1.InstallLocalServiceResponse.service:type_name -> nimi.runtime.v1.LocalServiceDescriptor
+	32,  // 91: nimi.runtime.v1.StartLocalServiceResponse.service:type_name -> nimi.runtime.v1.LocalServiceDescriptor
+	32,  // 92: nimi.runtime.v1.StopLocalServiceResponse.service:type_name -> nimi.runtime.v1.LocalServiceDescriptor
+	32,  // 93: nimi.runtime.v1.CheckLocalServiceHealthResponse.services:type_name -> nimi.runtime.v1.LocalServiceDescriptor
+	32,  // 94: nimi.runtime.v1.RemoveLocalServiceResponse.service:type_name -> nimi.runtime.v1.LocalServiceDescriptor
+	34,  // 95: nimi.runtime.v1.ListNodeCatalogResponse.nodes:type_name -> nimi.runtime.v1.LocalNodeDescriptor
+	36,  // 96: nimi.runtime.v1.ListLocalAuditsRequest.time_range:type_name -> nimi.runtime.v1.LocalAuditTimeRange
+	35,  // 97: nimi.runtime.v1.ListLocalAuditsResponse.events:type_name -> nimi.runtime.v1.LocalAuditEvent
+	116, // 98: nimi.runtime.v1.AppendInferenceAuditRequest.policy_gate:type_name -> google.protobuf.Struct
+	116, // 99: nimi.runtime.v1.AppendInferenceAuditRequest.extra:type_name -> google.protobuf.Struct
+	116, // 100: nimi.runtime.v1.AppendRuntimeAuditRequest.payload:type_name -> google.protobuf.Struct
+	48,  // 101: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalModels:input_type -> nimi.runtime.v1.ListLocalModelsRequest
+	50,  // 102: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalArtifacts:input_type -> nimi.runtime.v1.ListLocalArtifactsRequest
+	52,  // 103: nimi.runtime.v1.RuntimeLocalRuntimeService.ListVerifiedModels:input_type -> nimi.runtime.v1.ListVerifiedModelsRequest
+	54,  // 104: nimi.runtime.v1.RuntimeLocalRuntimeService.ListVerifiedArtifacts:input_type -> nimi.runtime.v1.ListVerifiedArtifactsRequest
+	56,  // 105: nimi.runtime.v1.RuntimeLocalRuntimeService.SearchCatalogModels:input_type -> nimi.runtime.v1.SearchCatalogModelsRequest
+	58,  // 106: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveModelInstallPlan:input_type -> nimi.runtime.v1.ResolveModelInstallPlanRequest
+	60,  // 107: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalModel:input_type -> nimi.runtime.v1.InstallLocalModelRequest
+	62,  // 108: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallVerifiedModel:input_type -> nimi.runtime.v1.InstallVerifiedModelRequest
+	64,  // 109: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallVerifiedArtifact:input_type -> nimi.runtime.v1.InstallVerifiedArtifactRequest
+	66,  // 110: nimi.runtime.v1.RuntimeLocalRuntimeService.ImportLocalModel:input_type -> nimi.runtime.v1.ImportLocalModelRequest
+	68,  // 111: nimi.runtime.v1.RuntimeLocalRuntimeService.ImportLocalArtifact:input_type -> nimi.runtime.v1.ImportLocalArtifactRequest
+	70,  // 112: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalModel:input_type -> nimi.runtime.v1.RemoveLocalModelRequest
+	72,  // 113: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalArtifact:input_type -> nimi.runtime.v1.RemoveLocalArtifactRequest
+	74,  // 114: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalModel:input_type -> nimi.runtime.v1.StartLocalModelRequest
+	76,  // 115: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalModel:input_type -> nimi.runtime.v1.StopLocalModelRequest
+	78,  // 116: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalModelHealth:input_type -> nimi.runtime.v1.CheckLocalModelHealthRequest
+	104, // 117: nimi.runtime.v1.RuntimeLocalRuntimeService.WarmLocalModel:input_type -> nimi.runtime.v1.WarmLocalModelRequest
+	80,  // 118: nimi.runtime.v1.RuntimeLocalRuntimeService.CollectDeviceProfile:input_type -> nimi.runtime.v1.CollectDeviceProfileRequest
+	82,  // 119: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveDependencies:input_type -> nimi.runtime.v1.ResolveDependenciesRequest
+	84,  // 120: nimi.runtime.v1.RuntimeLocalRuntimeService.ApplyDependencies:input_type -> nimi.runtime.v1.ApplyDependenciesRequest
+	86,  // 121: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalServices:input_type -> nimi.runtime.v1.ListLocalServicesRequest
+	88,  // 122: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalService:input_type -> nimi.runtime.v1.InstallLocalServiceRequest
+	90,  // 123: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalService:input_type -> nimi.runtime.v1.StartLocalServiceRequest
+	92,  // 124: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalService:input_type -> nimi.runtime.v1.StopLocalServiceRequest
+	94,  // 125: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalServiceHealth:input_type -> nimi.runtime.v1.CheckLocalServiceHealthRequest
+	96,  // 126: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalService:input_type -> nimi.runtime.v1.RemoveLocalServiceRequest
+	98,  // 127: nimi.runtime.v1.RuntimeLocalRuntimeService.ListNodeCatalog:input_type -> nimi.runtime.v1.ListNodeCatalogRequest
+	100, // 128: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalAudits:input_type -> nimi.runtime.v1.ListLocalAuditsRequest
+	102, // 129: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendInferenceAudit:input_type -> nimi.runtime.v1.AppendInferenceAuditRequest
+	103, // 130: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendRuntimeAudit:input_type -> nimi.runtime.v1.AppendRuntimeAuditRequest
+	38,  // 131: nimi.runtime.v1.RuntimeLocalRuntimeService.ListEngines:input_type -> nimi.runtime.v1.ListEnginesRequest
+	40,  // 132: nimi.runtime.v1.RuntimeLocalRuntimeService.EnsureEngine:input_type -> nimi.runtime.v1.EnsureEngineRequest
+	42,  // 133: nimi.runtime.v1.RuntimeLocalRuntimeService.StartEngine:input_type -> nimi.runtime.v1.StartEngineRequest
+	44,  // 134: nimi.runtime.v1.RuntimeLocalRuntimeService.StopEngine:input_type -> nimi.runtime.v1.StopEngineRequest
+	46,  // 135: nimi.runtime.v1.RuntimeLocalRuntimeService.GetEngineStatus:input_type -> nimi.runtime.v1.GetEngineStatusRequest
+	49,  // 136: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalModels:output_type -> nimi.runtime.v1.ListLocalModelsResponse
+	51,  // 137: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalArtifacts:output_type -> nimi.runtime.v1.ListLocalArtifactsResponse
+	53,  // 138: nimi.runtime.v1.RuntimeLocalRuntimeService.ListVerifiedModels:output_type -> nimi.runtime.v1.ListVerifiedModelsResponse
+	55,  // 139: nimi.runtime.v1.RuntimeLocalRuntimeService.ListVerifiedArtifacts:output_type -> nimi.runtime.v1.ListVerifiedArtifactsResponse
+	57,  // 140: nimi.runtime.v1.RuntimeLocalRuntimeService.SearchCatalogModels:output_type -> nimi.runtime.v1.SearchCatalogModelsResponse
+	59,  // 141: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveModelInstallPlan:output_type -> nimi.runtime.v1.ResolveModelInstallPlanResponse
+	61,  // 142: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalModel:output_type -> nimi.runtime.v1.InstallLocalModelResponse
+	63,  // 143: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallVerifiedModel:output_type -> nimi.runtime.v1.InstallVerifiedModelResponse
+	65,  // 144: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallVerifiedArtifact:output_type -> nimi.runtime.v1.InstallVerifiedArtifactResponse
+	67,  // 145: nimi.runtime.v1.RuntimeLocalRuntimeService.ImportLocalModel:output_type -> nimi.runtime.v1.ImportLocalModelResponse
+	69,  // 146: nimi.runtime.v1.RuntimeLocalRuntimeService.ImportLocalArtifact:output_type -> nimi.runtime.v1.ImportLocalArtifactResponse
+	71,  // 147: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalModel:output_type -> nimi.runtime.v1.RemoveLocalModelResponse
+	73,  // 148: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalArtifact:output_type -> nimi.runtime.v1.RemoveLocalArtifactResponse
+	75,  // 149: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalModel:output_type -> nimi.runtime.v1.StartLocalModelResponse
+	77,  // 150: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalModel:output_type -> nimi.runtime.v1.StopLocalModelResponse
+	79,  // 151: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalModelHealth:output_type -> nimi.runtime.v1.CheckLocalModelHealthResponse
+	105, // 152: nimi.runtime.v1.RuntimeLocalRuntimeService.WarmLocalModel:output_type -> nimi.runtime.v1.WarmLocalModelResponse
+	81,  // 153: nimi.runtime.v1.RuntimeLocalRuntimeService.CollectDeviceProfile:output_type -> nimi.runtime.v1.CollectDeviceProfileResponse
+	83,  // 154: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveDependencies:output_type -> nimi.runtime.v1.ResolveDependenciesResponse
+	85,  // 155: nimi.runtime.v1.RuntimeLocalRuntimeService.ApplyDependencies:output_type -> nimi.runtime.v1.ApplyDependenciesResponse
+	87,  // 156: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalServices:output_type -> nimi.runtime.v1.ListLocalServicesResponse
+	89,  // 157: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalService:output_type -> nimi.runtime.v1.InstallLocalServiceResponse
+	91,  // 158: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalService:output_type -> nimi.runtime.v1.StartLocalServiceResponse
+	93,  // 159: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalService:output_type -> nimi.runtime.v1.StopLocalServiceResponse
+	95,  // 160: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalServiceHealth:output_type -> nimi.runtime.v1.CheckLocalServiceHealthResponse
+	97,  // 161: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalService:output_type -> nimi.runtime.v1.RemoveLocalServiceResponse
+	99,  // 162: nimi.runtime.v1.RuntimeLocalRuntimeService.ListNodeCatalog:output_type -> nimi.runtime.v1.ListNodeCatalogResponse
+	101, // 163: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalAudits:output_type -> nimi.runtime.v1.ListLocalAuditsResponse
+	117, // 164: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendInferenceAudit:output_type -> nimi.runtime.v1.Ack
+	117, // 165: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendRuntimeAudit:output_type -> nimi.runtime.v1.Ack
+	39,  // 166: nimi.runtime.v1.RuntimeLocalRuntimeService.ListEngines:output_type -> nimi.runtime.v1.ListEnginesResponse
+	41,  // 167: nimi.runtime.v1.RuntimeLocalRuntimeService.EnsureEngine:output_type -> nimi.runtime.v1.EnsureEngineResponse
+	43,  // 168: nimi.runtime.v1.RuntimeLocalRuntimeService.StartEngine:output_type -> nimi.runtime.v1.StartEngineResponse
+	45,  // 169: nimi.runtime.v1.RuntimeLocalRuntimeService.StopEngine:output_type -> nimi.runtime.v1.StopEngineResponse
+	47,  // 170: nimi.runtime.v1.RuntimeLocalRuntimeService.GetEngineStatus:output_type -> nimi.runtime.v1.GetEngineStatusResponse
+	136, // [136:171] is the sub-list for method output_type
+	101, // [101:136] is the sub-list for method input_type
+	101, // [101:101] is the sub-list for extension type_name
+	101, // [101:101] is the sub-list for extension extendee
+	0,   // [0:101] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_local_runtime_proto_init() }
@@ -7447,8 +8653,8 @@ func file_runtime_v1_local_runtime_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_local_runtime_proto_rawDesc), len(file_runtime_v1_local_runtime_proto_rawDesc)),
-			NumEnums:      5,
-			NumMessages:   94,
+			NumEnums:      7,
+			NumMessages:   109,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

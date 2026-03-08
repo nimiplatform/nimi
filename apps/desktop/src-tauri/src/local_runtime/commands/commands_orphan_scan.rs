@@ -246,6 +246,7 @@ fn execute_orphan_scaffold_import(
                     hashes: None,
                     endpoint: Some(endpoint.to_string()),
                     provider_hints: None,
+                    engine_config: None,
                 },
                 install_metadata: Some(serde_json::json!({
                     "installKind": "orphan-scaffold",
@@ -286,6 +287,7 @@ fn execute_orphan_scaffold_import(
             hashes: None,
             endpoint: Some(endpoint.to_string()),
             provider_hints: None,
+            engine_config: None,
         },
         install_metadata: Some(serde_json::json!({
             "installKind": "orphan-scaffold",
@@ -506,6 +508,7 @@ fn execute_orphan_scaffold_import(
         installed_at: now_iso_timestamp(),
         updated_at: now_iso_timestamp(),
         health_detail: None,
+        engine_config: None,
     };
 
     let saved = match upsert_model(app, model_record) {

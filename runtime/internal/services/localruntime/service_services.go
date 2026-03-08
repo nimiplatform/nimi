@@ -18,14 +18,19 @@ import (
 func (s *Service) ListLocalServices(_ context.Context, req *runtimev1.ListLocalServicesRequest) (*runtimev1.ListLocalServicesResponse, error) {
 	statusFilter := req.GetStatusFilter()
 	s.mu.RLock()
-	defer s.mu.RUnlock()
-	services := make([]*runtimev1.LocalServiceDescriptor, 0, len(s.services))
+	services := make([]*runtimev1.LocalServiceDescriptor, 0, len(s.services)+1)
 	for _, service := range s.services {
 		if statusFilter != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNSPECIFIED && service.GetStatus() != statusFilter {
 			continue
 		}
 		services = append(services, cloneServiceDescriptor(service))
 	}
+	if managed := s.managedLocalAIImageBackendServiceLocked(); managed != nil {
+		if statusFilter == runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNSPECIFIED || managed.GetStatus() == statusFilter {
+			services = append(services, managed)
+		}
+	}
+	s.mu.RUnlock()
 	sort.Slice(services, func(i, j int) bool {
 		return services[i].GetServiceId() < services[j].GetServiceId()
 	})
@@ -44,6 +49,9 @@ func (s *Service) InstallLocalService(_ context.Context, req *runtimev1.InstallL
 	serviceID := strings.TrimSpace(req.GetServiceId())
 	if serviceID == "" {
 		serviceID = "svc_" + ulid.Make().String()
+	}
+	if isManagedLocalAIImageBackendServiceID(serviceID) {
+		return nil, status.Errorf(codes.FailedPrecondition, "local service %s is daemon-managed", serviceID)
 	}
 	localModelID := strings.TrimSpace(req.GetLocalModelId())
 	if localModelID == "" {
@@ -119,6 +127,9 @@ func (s *Service) StartLocalService(ctx context.Context, req *runtimev1.StartLoc
 	if serviceID == "" {
 		return nil, status.Errorf(codes.InvalidArgument, "service id is required")
 	}
+	if isManagedLocalAIImageBackendServiceID(serviceID) {
+		return nil, status.Errorf(codes.FailedPrecondition, "local service %s is daemon-managed", serviceID)
+	}
 	current := s.serviceByID(serviceID)
 	if current == nil {
 		return nil, status.Errorf(codes.NotFound, "local service %s not found", serviceID)
@@ -174,6 +185,9 @@ func (s *Service) StopLocalService(_ context.Context, req *runtimev1.StopLocalSe
 	if serviceID == "" {
 		return nil, status.Errorf(codes.InvalidArgument, "service id is required")
 	}
+	if isManagedLocalAIImageBackendServiceID(serviceID) {
+		return nil, status.Errorf(codes.FailedPrecondition, "local service %s is daemon-managed", serviceID)
+	}
 	current := s.serviceByID(serviceID)
 	if current == nil {
 		return nil, status.Errorf(codes.NotFound, "local service %s not found", serviceID)
@@ -188,12 +202,17 @@ func (s *Service) StopLocalService(_ context.Context, req *runtimev1.StopLocalSe
 func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.CheckLocalServiceHealthRequest) (*runtimev1.CheckLocalServiceHealthResponse, error) {
 	target := strings.TrimSpace(req.GetServiceId())
 	s.mu.RLock()
-	services := make([]*runtimev1.LocalServiceDescriptor, 0, len(s.services))
+	services := make([]*runtimev1.LocalServiceDescriptor, 0, len(s.services)+1)
 	for _, service := range s.services {
 		if target != "" && service.GetServiceId() != target {
 			continue
 		}
 		services = append(services, cloneServiceDescriptor(service))
+	}
+	if managed := s.managedLocalAIImageBackendServiceLocked(); managed != nil {
+		if target == "" || managed.GetServiceId() == target {
+			services = append(services, managed)
+		}
 	}
 	s.mu.RUnlock()
 	if target != "" && len(services) == 0 {
@@ -203,6 +222,10 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 	healthRows := make([]*runtimev1.LocalServiceDescriptor, 0, len(services))
 	for _, service := range services {
 		if service == nil {
+			continue
+		}
+		if isManagedLocalAIImageBackendServiceID(service.GetServiceId()) {
+			healthRows = append(healthRows, service)
 			continue
 		}
 		serviceID := strings.TrimSpace(service.GetServiceId())
@@ -286,6 +309,9 @@ func (s *Service) RemoveLocalService(_ context.Context, req *runtimev1.RemoveLoc
 	if serviceID == "" {
 		return nil, status.Errorf(codes.InvalidArgument, "service id is required")
 	}
+	if isManagedLocalAIImageBackendServiceID(serviceID) {
+		return nil, status.Errorf(codes.FailedPrecondition, "local service %s is daemon-managed", serviceID)
+	}
 	current := s.serviceByID(serviceID)
 	if current == nil {
 		return nil, status.Errorf(codes.NotFound, "local service %s not found", serviceID)
@@ -295,6 +321,44 @@ func (s *Service) RemoveLocalService(_ context.Context, req *runtimev1.RemoveLoc
 		return nil, err
 	}
 	return &runtimev1.RemoveLocalServiceResponse{Service: svc}, nil
+}
+
+func isManagedLocalAIImageBackendServiceID(serviceID string) bool {
+	return strings.EqualFold(strings.TrimSpace(serviceID), localAIImageBackendServiceID)
+}
+
+func (s *Service) managedLocalAIImageBackendServiceLocked() *runtimev1.LocalServiceDescriptor {
+	if !s.localAIImageBackendConfigured {
+		return nil
+	}
+	status := s.localAIImageBackendStatus
+	if status == runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNSPECIFIED {
+		status = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED
+	}
+	endpoint := strings.TrimSpace(s.localAIImageBackendAddr)
+	if endpoint != "" && !strings.Contains(endpoint, "://") {
+		endpoint = "grpc://" + endpoint
+	}
+	installedAt := strings.TrimSpace(s.localAIImageBackendInstalledAt)
+	if installedAt == "" {
+		installedAt = nowISO()
+	}
+	updatedAt := strings.TrimSpace(s.localAIImageBackendUpdatedAt)
+	if updatedAt == "" {
+		updatedAt = installedAt
+	}
+	return &runtimev1.LocalServiceDescriptor{
+		ServiceId:    localAIImageBackendServiceID,
+		Title:        localAIImageBackendServiceTitle,
+		Engine:       "localai",
+		ArtifactType: "binary",
+		Endpoint:     endpoint,
+		Capabilities: []string{"image"},
+		Status:       status,
+		Detail:       strings.TrimSpace(s.localAIImageBackendDetail),
+		InstalledAt:  installedAt,
+		UpdatedAt:    updatedAt,
+	}
 }
 
 func (s *Service) ListNodeCatalog(_ context.Context, req *runtimev1.ListNodeCatalogRequest) (*runtimev1.ListNodeCatalogResponse, error) {

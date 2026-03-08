@@ -102,7 +102,7 @@ func (s *Supervisor) Stop() error {
 	}()
 
 	// SIGTERM first.
-	if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
+	if err := signalSupervisorProcess(cmd.Process.Pid, syscall.SIGTERM); err != nil {
 		// Process already dead.
 		select {
 		case <-reaped:
@@ -118,7 +118,7 @@ func (s *Supervisor) Stop() error {
 		s.setStatus(StatusStopped, "graceful shutdown")
 	case <-time.After(s.cfg.ShutdownTimeout):
 		// Force kill.
-		_ = cmd.Process.Signal(syscall.SIGKILL)
+		_ = signalSupervisorProcess(cmd.Process.Pid, syscall.SIGKILL)
 		select {
 		case <-reaped:
 		case <-time.After(1 * time.Second):
@@ -202,8 +202,26 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 	case EngineNexa:
 		cmd = nexaCommand(s.cfg)
 	default:
-		cancel()
-		return fmt.Errorf("unknown engine kind: %s", s.cfg.Kind)
+		if strings.TrimSpace(s.cfg.BinaryPath) == "" {
+			cancel()
+			return fmt.Errorf("binary path required for engine %s", s.cfg.Kind)
+		}
+		cmd = exec.Command(s.cfg.BinaryPath, s.cfg.CommandArgs...)
+	}
+	if strings.TrimSpace(s.cfg.WorkingDir) != "" {
+		cmd.Dir = s.cfg.WorkingDir
+	}
+	setSupervisorProcessGroup(cmd)
+	if len(s.cfg.CommandEnv) > 0 {
+		env := os.Environ()
+		for key, value := range s.cfg.CommandEnv {
+			trimmedKey := strings.TrimSpace(key)
+			if trimmedKey == "" {
+				continue
+			}
+			env = append(env, trimmedKey+"="+value)
+		}
+		cmd.Env = env
 	}
 
 	cmd.Stdout = os.Stdout
@@ -232,7 +250,7 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 		s.mu.Unlock()
 		cancel()
 		if cmd.Process != nil {
-			_ = cmd.Process.Kill()
+			_ = signalSupervisorProcess(cmd.Process.Pid, syscall.SIGKILL)
 		}
 		return nil
 	}
@@ -250,9 +268,8 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 	)
 
 	// Wait for healthy.
-	endpoint := s.cfg.Endpoint()
 	probeInterval := 500 * time.Millisecond
-	if err := WaitHealthy(runCtx, endpoint, s.cfg.HealthPath, s.cfg.HealthResponse, probeInterval, s.cfg.StartupTimeout); err != nil {
+	if err := waitSupervisorHealthy(runCtx, s.cfg, probeInterval); err != nil {
 		if runCtx.Err() != nil || !s.isRunEpochActive(epoch) {
 			s.removePIDFile()
 			return nil
@@ -279,6 +296,76 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 	go s.monitor(runCtx, epoch)
 
 	return nil
+}
+
+func waitSupervisorHealthy(ctx context.Context, cfg EngineConfig, interval time.Duration) error {
+	switch cfg.HealthMode {
+	case HealthModeTCP:
+		address := strings.TrimSpace(cfg.Address)
+		if address == "" {
+			return fmt.Errorf("tcp health address required")
+		}
+		return waitTCPHealthy(ctx, address, interval, cfg.StartupTimeout)
+	default:
+		return WaitHealthy(ctx, cfg.Endpoint(), cfg.HealthPath, cfg.HealthResponse, interval, cfg.StartupTimeout)
+	}
+}
+
+func waitTCPHealthy(ctx context.Context, address string, interval time.Duration, timeout time.Duration) error {
+	if timeout <= 0 {
+		timeout = 30 * time.Second
+	}
+	deadlineCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		dialer := net.Dialer{Timeout: minDuration(interval, 2*time.Second)}
+		conn, err := dialer.DialContext(deadlineCtx, "tcp", address)
+		if err == nil {
+			_ = conn.Close()
+			return nil
+		}
+		select {
+		case <-deadlineCtx.Done():
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			return fmt.Errorf("tcp health timeout for %s: %w", address, err)
+		case <-ticker.C:
+		}
+	}
+}
+
+func probeSupervisorHealth(ctx context.Context, cfg EngineConfig) error {
+	switch cfg.HealthMode {
+	case HealthModeTCP:
+		address := strings.TrimSpace(cfg.Address)
+		if address == "" {
+			return fmt.Errorf("tcp health address required")
+		}
+		dialer := net.Dialer{Timeout: minDuration(cfg.HealthInterval, 2*time.Second)}
+		conn, err := dialer.DialContext(ctx, "tcp", address)
+		if err != nil {
+			return err
+		}
+		_ = conn.Close()
+		return nil
+	default:
+		return ProbeHealth(ctx, cfg.Endpoint(), cfg.HealthPath, cfg.HealthResponse)
+	}
+}
+
+func minDuration(left time.Duration, right time.Duration) time.Duration {
+	if left <= 0 {
+		return right
+	}
+	if left < right {
+		return left
+	}
+	return right
 }
 
 func (s *Supervisor) monitor(ctx context.Context, epoch uint64) {
@@ -335,8 +422,7 @@ func (s *Supervisor) monitor(ctx context.Context, epoch uint64) {
 			if currentStatus != StatusHealthy && currentStatus != StatusStarting {
 				continue
 			}
-			endpoint := s.cfg.Endpoint()
-			if err := ProbeHealth(ctx, endpoint, s.cfg.HealthPath, s.cfg.HealthResponse); err != nil {
+			if err := probeSupervisorHealth(ctx, s.cfg); err != nil {
 				s.mu.Lock()
 				s.consecutiveFailures++
 				failures := s.consecutiveFailures

@@ -496,7 +496,7 @@ func (s *Service) executeScenarioAsyncJob(
 			cfg := s.resolveNativeAdapterConfig("stepfun", remoteTarget)
 			artifacts, usage, providerJobID, err = nimillm.ExecuteStepFunMedia(ctx, cfg, req, modelResolved)
 		default:
-			artifacts, usage, providerJobID, err = executeBackendSyncMedia(ctx, s.logger, req, selectedProvider, modelResolved, adapterName, remoteTarget, s.selector.cloudProvider, s.speechCatalog)
+			artifacts, usage, providerJobID, err = executeBackendSyncMedia(ctx, s, s.logger, req, selectedProvider, modelResolved, adapterName, remoteTarget, s.selector.cloudProvider, s.speechCatalog)
 		}
 	}
 

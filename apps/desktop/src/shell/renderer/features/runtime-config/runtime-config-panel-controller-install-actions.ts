@@ -57,11 +57,14 @@ export type RuntimeConfigInstallActions = {
   installLocalRuntimeModel: (payload: LocalAiInstallPayload) => Promise<void>;
   installVerifiedLocalRuntimeModel: (templateId: string) => Promise<void>;
   importLocalRuntimeModel: () => Promise<void>;
+  installVerifiedLocalRuntimeArtifact: (templateId: string) => Promise<void>;
+  importLocalRuntimeArtifact: () => Promise<void>;
   importLocalRuntimeModelFile: (capabilities: string[], engine?: string) => Promise<void>;
   startLocalRuntimeModel: (localModelId: string) => Promise<void>;
   stopLocalRuntimeModel: (localModelId: string) => Promise<void>;
   restartLocalRuntimeModel: (localModelId: string) => Promise<void>;
   removeLocalRuntimeModel: (localModelId: string) => Promise<void>;
+  removeLocalRuntimeArtifact: (localArtifactId: string) => Promise<void>;
 };
 
 export type UseRuntimeConfigInstallActionsInput = {
@@ -410,6 +413,50 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     }
   }, [runInstallPlanLifecycle, setStatusBanner]);
 
+  const installVerifiedLocalRuntimeArtifact = useCallback(async (templateId: string) => {
+    const normalizedTemplateId = String(templateId || '').trim();
+    if (!normalizedTemplateId) {
+      throw new Error('templateId is required');
+    }
+    try {
+      const artifact = await localAiRuntime.installVerifiedArtifact({
+        templateId: normalizedTemplateId,
+      }, { caller: 'core' });
+      await refreshLocalRuntimeSnapshot();
+      setStatusBanner({
+        kind: 'success',
+        message: `Artifact installed: ${artifact.artifactId}`,
+      });
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: `Verified artifact install failed: ${error instanceof Error ? error.message : String(error || '')}`,
+      });
+      throw error;
+    }
+  }, [refreshLocalRuntimeSnapshot, setStatusBanner]);
+
+  const importLocalRuntimeArtifact = useCallback(async () => {
+    try {
+      const manifestPath = await localAiRuntime.pickManifestPath();
+      if (!manifestPath) {
+        return;
+      }
+      const imported = await localAiRuntime.importArtifact({ manifestPath }, { caller: 'core' });
+      await refreshLocalRuntimeSnapshot();
+      setStatusBanner({
+        kind: 'success',
+        message: `Artifact imported: ${imported.artifactId}`,
+      });
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: `Artifact import failed: ${error instanceof Error ? error.message : String(error || '')}`,
+      });
+      throw error;
+    }
+  }, [refreshLocalRuntimeSnapshot, setStatusBanner]);
+
   const modelActions = useRuntimeConfigModelManagementActions({
     pendingInstallsRef,
     setPendingInstallVersion,
@@ -426,11 +473,14 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     installCatalogLocalRuntimeModel,
     installLocalRuntimeModel,
     installVerifiedLocalRuntimeModel,
+    installVerifiedLocalRuntimeArtifact,
     importLocalRuntimeModel: modelActions.importLocalRuntimeModel,
+    importLocalRuntimeArtifact,
     importLocalRuntimeModelFile: modelActions.importLocalRuntimeModelFile,
     startLocalRuntimeModel: modelActions.startLocalRuntimeModel,
     stopLocalRuntimeModel: modelActions.stopLocalRuntimeModel,
     restartLocalRuntimeModel: modelActions.restartLocalRuntimeModel,
     removeLocalRuntimeModel: modelActions.removeLocalRuntimeModel,
+    removeLocalRuntimeArtifact: modelActions.removeLocalRuntimeArtifact,
   };
 }

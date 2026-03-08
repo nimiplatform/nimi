@@ -16,6 +16,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func (s *Service) ListLocalModels(_ context.Context, req *runtimev1.ListLocalModelsRequest) (*runtimev1.ListLocalModelsResponse, error) {
@@ -264,6 +265,7 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 			Hashes:            cloneStringMap(catalogItem.GetHashes()),
 			Warnings:          startupCompatibilityWarnings(engine, deviceProfile),
 			ReasonCode:        "ACTION_EXECUTED",
+			EngineConfig:      cloneStruct(catalogItem.GetEngineConfig()),
 		}
 		s.evaluateInstallPlanAvailability(plan)
 		s.mu.Lock()
@@ -304,6 +306,7 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 		Hashes:            cloneStringMap(req.GetHashes()),
 		Warnings:          startupCompatibilityWarnings(engine, deviceProfile),
 		ReasonCode:        "ACTION_EXECUTED",
+		EngineConfig:      cloneStruct(req.GetEngineConfig()),
 	}
 	if plan.GetModelId() == "" {
 		plan.InstallAvailable = false
@@ -395,6 +398,7 @@ func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLoc
 	if endpoint == "" {
 		endpoint = defaultLocalRuntimeEndpoint
 	}
+	endpoint = s.normalizeRequestedLocalModelEndpoint(engine, endpoint)
 
 	s.mu.RLock()
 	for _, existing := range s.models {
@@ -421,11 +425,12 @@ func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLoc
 			Repo:     strings.TrimSpace(req.GetRepo()),
 			Revision: defaultString(strings.TrimSpace(req.GetRevision()), "main"),
 		},
-		Hashes:      cloneStringMap(req.GetHashes()),
-		Endpoint:    endpoint,
-		Status:      runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
-		InstalledAt: now,
-		UpdatedAt:   now,
+		Hashes:       cloneStringMap(req.GetHashes()),
+		Endpoint:     endpoint,
+		Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
+		InstalledAt:  now,
+		UpdatedAt:    now,
+		EngineConfig: cloneStruct(req.GetEngineConfig()),
 	}
 	if len(record.GetCapabilities()) == 0 {
 		record.Capabilities = []string{"chat"}
@@ -481,6 +486,7 @@ func (s *Service) InstallVerifiedModel(ctx context.Context, req *runtimev1.Insta
 		License:      matched.GetLicense(),
 		Hashes:       cloneStringMap(matched.GetHashes()),
 		Endpoint:     defaultString(strings.TrimSpace(req.GetEndpoint()), matched.GetEndpoint()),
+		EngineConfig: cloneStruct(matched.GetEngineConfig()),
 	})
 	if err != nil {
 		return nil, err
@@ -523,6 +529,7 @@ func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocal
 	if endpoint == "" {
 		endpoint = defaultLocalRuntimeEndpoint
 	}
+	endpoint = s.normalizeRequestedLocalModelEndpoint(engine, endpoint)
 
 	capabilities, capsErr := manifestStringSlice(manifest, "capabilities")
 	if capsErr != nil {
@@ -534,6 +541,13 @@ func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocal
 	hashes, hashesErr := manifestStringMap(manifest, "hashes")
 	if hashesErr != nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
+	}
+	engineConfig, engineConfigErr := manifestStruct(manifest, "engine_config", "engineConfig")
+	if engineConfigErr != nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
+	}
+	if req.GetEngineConfig() != nil {
+		engineConfig = cloneStruct(req.GetEngineConfig())
 	}
 	repo := manifestStringDefault(manifest, "repo")
 	revision := defaultString(manifestStringDefault(manifest, "revision"), "import")
@@ -584,6 +598,7 @@ func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocal
 		InstalledAt:          now,
 		UpdatedAt:            now,
 		LocalInvokeProfileId: manifestStringDefault(manifest, "local_invoke_profile_id", "localInvokeProfileId"),
+		EngineConfig:         engineConfig,
 	}
 
 	s.mu.Lock()
@@ -667,6 +682,25 @@ func manifestStringMap(input map[string]any, key string) (map[string]string, err
 	return result, nil
 }
 
+func manifestStruct(input map[string]any, keys ...string) (*structpb.Struct, error) {
+	for _, key := range keys {
+		value, exists := input[key]
+		if !exists || value == nil {
+			continue
+		}
+		object, ok := value.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("invalid %s", key)
+		}
+		result, err := structpb.NewStruct(object)
+		if err != nil {
+			return nil, fmt.Errorf("invalid %s", key)
+		}
+		return result, nil
+	}
+	return nil, nil
+}
+
 func (s *Service) RemoveLocalModel(_ context.Context, req *runtimev1.RemoveLocalModelRequest) (*runtimev1.RemoveLocalModelResponse, error) {
 	localModelID := strings.TrimSpace(req.GetLocalModelId())
 	if localModelID == "" {
@@ -717,8 +751,9 @@ func (s *Service) StartLocalModel(ctx context.Context, req *runtimev1.StartLocal
 		current = activated
 	}
 
-	bootstrapErr := s.bootstrapEngineIfManaged(ctx, current.GetEngine(), modelProbeEndpoint(current))
-	probe := s.probeEndpoint(ctx, modelProbeEndpoint(current))
+	endpoint := s.effectiveLocalModelEndpoint(current)
+	bootstrapErr := s.bootstrapEngineIfManaged(ctx, current.GetEngine(), endpoint)
+	probe := s.probeEndpoint(ctx, endpoint)
 	registration := s.localAIRegistrationForModel(current)
 	if modelProbeSucceeded(current, probe, registration) {
 		s.resetModelRecovery(localModelID)
@@ -784,8 +819,9 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 		localModelID := strings.TrimSpace(model.GetLocalModelId())
 		switch model.GetStatus() {
 		case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE:
-			bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), modelProbeEndpoint(model))
-			probe := s.probeEndpoint(ctx, modelProbeEndpoint(model))
+			endpoint := s.effectiveLocalModelEndpoint(model)
+			bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), endpoint)
+			probe := s.probeEndpoint(ctx, endpoint)
 			registration := s.localAIRegistrationForModel(model)
 			if modelProbeSucceeded(model, probe, registration) {
 				s.resetModelRecovery(localModelID)
@@ -807,8 +843,9 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 			}
 			result = append(result, modelHealth(transitioned))
 		case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY:
-			bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), modelProbeEndpoint(model))
-			probe := s.probeEndpoint(ctx, modelProbeEndpoint(model))
+			endpoint := s.effectiveLocalModelEndpoint(model)
+			bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), endpoint)
+			probe := s.probeEndpoint(ctx, endpoint)
 			registration := s.localAIRegistrationForModel(model)
 			if modelProbeSucceeded(model, probe, registration) {
 				successes := s.modelRecoverySuccess(localModelID, time.Now().UTC())

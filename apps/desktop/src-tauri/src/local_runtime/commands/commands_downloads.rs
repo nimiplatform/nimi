@@ -22,6 +22,7 @@ pub fn runtime_local_models_install(
         hashes: payload.hashes,
         endpoint: Some(validated_endpoint),
         provider_hints: None,
+        engine_config: None,
     };
     run_install_preflight(&app, &install_request)?;
     let accepted = download_manager::enqueue_install(
@@ -70,6 +71,7 @@ pub fn runtime_local_models_install_verified(
         hashes: Some(descriptor.hashes.clone()),
         endpoint: Some(endpoint),
         provider_hints: None,
+        engine_config: descriptor.engine_config.clone(),
     };
     run_install_preflight(&app, &install_request)?;
     let accepted = download_manager::enqueue_install(
@@ -132,4 +134,3 @@ pub fn runtime_local_downloads_cancel(
     let install_session_id = validated_install_session_id(&payload)?;
     download_manager::cancel_download(&app, install_session_id.as_str())
 }
-

@@ -66,6 +66,7 @@ mod tests {
             hashes: None,
             endpoint: None,
             provider_hints: None,
+            engine_config: None,
         };
 
         let (entry, files) = normalize_install_files(&request).expect("normalized files");
@@ -90,6 +91,7 @@ mod tests {
             hashes: Some(hashes),
             endpoint: None,
             provider_hints: None,
+            engine_config: None,
         };
         assert_eq!(
             resolve_expected_file_hash(&request, "a.bin"),
@@ -114,6 +116,7 @@ mod tests {
             hashes: None,
             endpoint: None,
             provider_hints: None,
+            engine_config: None,
         };
         let hashes = std::collections::HashMap::from([
             ("model.safetensors".to_string(), "sha256:111".to_string()),

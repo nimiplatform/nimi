@@ -1152,6 +1152,7 @@ mod tests {
             installed_at: "0".to_string(),
             updated_at: "0".to_string(),
             health_detail: None,
+            engine_config: None,
         }
     }
 

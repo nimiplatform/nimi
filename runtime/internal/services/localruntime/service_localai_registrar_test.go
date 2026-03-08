@@ -8,11 +8,11 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	goruntime "runtime"
 	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/protobuf/types/known/structpb"
 	"gopkg.in/yaml.v3"
 )
 
@@ -100,7 +100,7 @@ func TestSyncManagedLocalAIAssetsWritesConfigAndRestartsOnlyOnChange(t *testing.
 	svc.SetEngineManager(mgr)
 
 	writeManagedLocalAIManifest(t, modelsPath, "local/test-chat", "./weights/model.gguf", []string{"chat"})
-	first := installLocalAIModelForRegistrarTest(t, svc, "local/test-chat", "./weights/model.gguf", []string{"chat"}, "")
+	first := installLocalAIModelForRegistrarTest(t, svc, "local/test-chat", "./weights/model.gguf", []string{"chat"}, "", nil)
 
 	raw, err := os.ReadFile(configPath)
 	if err != nil {
@@ -128,7 +128,7 @@ func TestSyncManagedLocalAIAssetsWritesConfigAndRestartsOnlyOnChange(t *testing.
 
 	mgr.statusErr = nil
 	writeManagedLocalAIManifest(t, modelsPath, "local/second-chat", "./weights/model-2.gguf", []string{"chat"})
-	second := installLocalAIModelForRegistrarTest(t, svc, "local/second-chat", "./weights/model-2.gguf", []string{"chat"}, "")
+	second := installLocalAIModelForRegistrarTest(t, svc, "local/second-chat", "./weights/model-2.gguf", []string{"chat"}, "", nil)
 	if mgr.startCalls != 1 || mgr.stopCalls != 1 {
 		t.Fatalf("expected one controlled restart on config change, got start=%d stop=%d", mgr.startCalls, mgr.stopCalls)
 	}
@@ -199,8 +199,8 @@ func TestBuildLocalAIRegistrationsRejectsManagedNameConflicts(t *testing.T) {
 
 	writeManagedLocalAIManifest(t, modelsPath, "local/conflict-model", "./weights/model-a.gguf", []string{"chat"})
 	writeManagedLocalAIManifest(t, modelsPath, "localai/conflict-model", "./weights/model-b.gguf", []string{"chat"})
-	first := installLocalAIModelForRegistrarTest(t, svc, "local/conflict-model", "./weights/model-a.gguf", []string{"chat"}, "")
-	second := installLocalAIModelForRegistrarTest(t, svc, "localai/conflict-model", "./weights/model-b.gguf", []string{"chat"}, "")
+	first := installLocalAIModelForRegistrarTest(t, svc, "local/conflict-model", "./weights/model-a.gguf", []string{"chat"}, "", nil)
+	second := installLocalAIModelForRegistrarTest(t, svc, "localai/conflict-model", "./weights/model-b.gguf", []string{"chat"}, "", nil)
 
 	registrations, rendered, err := svc.buildLocalAIRegistrations()
 	if err != nil {
@@ -227,26 +227,83 @@ func TestManagedLocalAIImageBackendPlatformSupport(t *testing.T) {
 	modelsPath := filepath.Join(t.TempDir(), "models")
 	configPath := filepath.Join(t.TempDir(), "runtime", "localai-models.yaml")
 	svc.SetLocalAIRegistrationConfig(modelsPath, configPath, true)
+	svc.SetLocalAIImageBackendConfig(true, "127.0.0.1:50052")
+	svc.SetLocalAIImageBackendHealth(true, "daemon-managed image backend active")
 
 	writeManagedLocalAIManifest(t, modelsPath, "local/image-model", "./weights/image-model.gguf", []string{"image"})
-	installed := installLocalAIModelForRegistrarTest(t, svc, "local/image-model", "./weights/image-model.gguf", []string{"image"}, "")
+	engineConfig, err := structpb.NewStruct(map[string]any{
+		"backend": "stablediffusion-ggml",
+		"options": []any{"diffusion_model"},
+	})
+	if err != nil {
+		t.Fatalf("build engine config: %v", err)
+	}
+	installed := installLocalAIModelForRegistrarTest(t, svc, "local/image-model", "./weights/image-model.gguf", []string{"image"}, "", engineConfig)
 
 	registration := svc.localAIRegistrationForModel(installed)
-	if goruntime.GOOS == "darwin" && goruntime.GOARCH == "arm64" {
-		if registration.Problem != "managed/bundled LocalAI binary on darwin/arm64 does not ship stablediffusion backend" {
-			t.Fatalf("unexpected unsupported detail: %q", registration.Problem)
-		}
-		return
-	}
 	if registration.Problem != "" {
 		t.Fatalf("expected supported image registration, got problem %q", registration.Problem)
 	}
 	if registration.Backend != "stablediffusion-ggml" {
 		t.Fatalf("unexpected image backend: %q", registration.Backend)
 	}
+	if !registration.DynamicProfile {
+		t.Fatalf("expected dynamic profile registration")
+	}
 }
 
-func installLocalAIModelForRegistrarTest(t *testing.T, svc *Service, modelID string, entry string, capabilities []string, endpoint string) *runtimev1.LocalModelRecord {
+func TestLocalAIModelProbeSucceededForDynamicProfileWhenEndpointResponds(t *testing.T) {
+	registration := localAIRegistration{
+		Backend:        "stablediffusion-ggml",
+		DynamicProfile: true,
+	}
+	probe := endpointProbeResult{
+		healthy:   false,
+		responded: true,
+		detail:    "probe response missing valid models",
+	}
+	if !localAIModelProbeSucceeded(probe, registration) {
+		t.Fatalf("dynamic profile should be considered healthy when localai endpoint responds")
+	}
+}
+
+func TestLocalAIRegistrationForDynamicProfileRecomputesWhenImageBackendRecovers(t *testing.T) {
+	svc := newTestService(t)
+	modelsPath := filepath.Join(t.TempDir(), "models")
+	configPath := filepath.Join(t.TempDir(), "runtime", "localai-models.yaml")
+	svc.SetLocalAIRegistrationConfig(modelsPath, configPath, true)
+	svc.SetLocalAIImageBackendConfig(true, "127.0.0.1:50052")
+
+	writeManagedLocalAIManifest(t, modelsPath, "local/image-model", "./weights/image-model.gguf", []string{"image"})
+	engineConfig, err := structpb.NewStruct(map[string]any{
+		"backend": "stablediffusion-ggml",
+		"options": []any{"diffusion_model"},
+	})
+	if err != nil {
+		t.Fatalf("build engine config: %v", err)
+	}
+	installed := installLocalAIModelForRegistrarTest(t, svc, "local/image-model", "./weights/image-model.gguf", []string{"image"}, "", engineConfig)
+
+	if err := svc.SyncManagedLocalAIAssets(context.Background()); err != nil {
+		t.Fatalf("sync managed localai assets: %v", err)
+	}
+	stale := svc.localAIRegistrations[installed.GetLocalModelId()]
+	if stale.Problem != "managed localai image backend unavailable" {
+		t.Fatalf("expected cached unavailable registration, got %+v", stale)
+	}
+
+	svc.SetLocalAIImageBackendHealth(true, "daemon-managed image backend active")
+
+	registration := svc.localAIRegistrationForModel(installed)
+	if registration.Problem != "" {
+		t.Fatalf("expected recomputed image registration after backend recovery, got problem %q", registration.Problem)
+	}
+	if !registration.DynamicProfile {
+		t.Fatalf("expected dynamic profile registration")
+	}
+}
+
+func installLocalAIModelForRegistrarTest(t *testing.T, svc *Service, modelID string, entry string, capabilities []string, endpoint string, engineConfig *structpb.Struct) *runtimev1.LocalModelRecord {
 	t.Helper()
 	resp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
 		ModelId:      modelID,
@@ -254,6 +311,7 @@ func installLocalAIModelForRegistrarTest(t *testing.T, svc *Service, modelID str
 		Engine:       "localai",
 		Entry:        entry,
 		Endpoint:     endpoint,
+		EngineConfig: engineConfig,
 	})
 	if err != nil {
 		t.Fatalf("install localai model %q: %v", modelID, err)

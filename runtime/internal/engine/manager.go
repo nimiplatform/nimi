@@ -22,6 +22,7 @@ type Manager struct {
 	localAIModelsPath       string
 	localAIModelsConfigPath string
 	localAIBackendsPath     string
+	localAIImageBackend     *LocalAIImageBackendConfig
 
 	mu          sync.RWMutex
 	supervisors map[EngineKind]*Supervisor
@@ -93,6 +94,14 @@ func (m *Manager) SetLocalAIPaths(modelsPath string, modelsConfigPath string) {
 	m.localAIModelsConfigPath = strings.TrimSpace(modelsConfigPath)
 }
 
+// SetLocalAIImageBackend configures the daemon-managed LocalAI image backend
+// process that should be registered via --external-grpc-backends.
+func (m *Manager) SetLocalAIImageBackend(cfg *LocalAIImageBackendConfig) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.localAIImageBackend = normalizeLocalAIImageBackendConfig(cfg)
+}
+
 func (m *Manager) applyLocalAIPaths(cfg EngineConfig) EngineConfig {
 	if cfg.Kind != EngineLocalAI {
 		return cfg
@@ -101,6 +110,7 @@ func (m *Manager) applyLocalAIPaths(cfg EngineConfig) EngineConfig {
 	modelsPath := strings.TrimSpace(m.localAIModelsPath)
 	modelsConfigPath := strings.TrimSpace(m.localAIModelsConfigPath)
 	backendsPath := strings.TrimSpace(m.localAIBackendsPath)
+	imageBackend := cloneLocalAIImageBackendConfig(m.localAIImageBackend)
 	m.mu.RUnlock()
 	if cfg.ModelsPath == "" {
 		cfg.ModelsPath = modelsPath
@@ -115,6 +125,11 @@ func (m *Manager) applyLocalAIPaths(cfg EngineConfig) EngineConfig {
 		cfg.ExternalBackends = detectLocalAIExternalBackends(cfg.ModelsConfigPath)
 	} else {
 		cfg.ExternalBackends = normalizeLocalAIExternalBackends(cfg.ExternalBackends)
+	}
+	if cfg.LocalAIImageBackend == nil {
+		cfg.LocalAIImageBackend = normalizeLocalAIImageBackendConfig(imageBackend)
+	} else {
+		cfg.LocalAIImageBackend = normalizeLocalAIImageBackendConfig(cfg.LocalAIImageBackend)
 	}
 	return cfg
 }
@@ -134,7 +149,7 @@ func (m *Manager) EnsureEngine(ctx context.Context, cfg EngineConfig) (EngineCon
 	}
 }
 
-func (m *Manager) ensureLocalAI(_ context.Context, cfg EngineConfig) (EngineConfig, error) {
+func (m *Manager) ensureLocalAI(ctx context.Context, cfg EngineConfig) (EngineConfig, error) {
 	// Check registry first.
 	entry := m.registry.Get(EngineLocalAI, cfg.Version)
 	if entry != nil {
@@ -171,6 +186,11 @@ func (m *Manager) ensureLocalAI(_ context.Context, cfg EngineConfig) (EngineConf
 	}
 
 	cfg.BinaryPath = binaryPath
+	resolvedImageBackend, err := ensureOfficialLocalAIImageBackend(ctx, cfg.BinaryPath, cfg.BackendsPath, cfg.LocalAIImageBackend)
+	if err != nil {
+		return cfg, fmt.Errorf("prepare localai image backend: %w", err)
+	}
+	cfg.LocalAIImageBackend = resolvedImageBackend
 	return cfg, nil
 }
 
@@ -190,6 +210,13 @@ func (m *Manager) StartEngine(ctx context.Context, cfg EngineConfig) error {
 	if cfg.Kind == EngineLocalAI && strings.TrimSpace(cfg.BackendsPath) != "" {
 		if err := os.MkdirAll(cfg.BackendsPath, 0o755); err != nil {
 			return fmt.Errorf("create localai backends directory: %w", err)
+		}
+	}
+	if cfg.Kind == EngineLocalAI {
+		var err error
+		cfg, err = m.prepareLocalAIStart(ctx, cfg)
+		if err != nil {
+			return err
 		}
 	}
 	m.mu.Lock()
@@ -216,7 +243,15 @@ func (m *Manager) StopEngine(kind EngineKind) error {
 		return fmt.Errorf("engine %s not found", kind)
 	}
 
-	return sup.Stop()
+	if err := sup.Stop(); err != nil {
+		return err
+	}
+	if kind == EngineLocalAI {
+		if err := m.stopLocalAIImageBackend(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // StopAll stops all running engines.
@@ -272,6 +307,9 @@ func (m *Manager) ListEngines() []SupervisorInfo {
 	m.mu.RLock()
 	running := make(map[EngineKind]SupervisorInfo, len(m.supervisors))
 	for kind, s := range m.supervisors {
+		if kind == engineLocalAIImageBackend {
+			continue
+		}
 		running[kind] = s.Info()
 	}
 	m.mu.RUnlock()
@@ -347,6 +385,56 @@ func (m *Manager) stoppedEngineInfo(kind EngineKind) SupervisorInfo {
 	}
 
 	return info
+}
+
+func (m *Manager) prepareLocalAIStart(ctx context.Context, cfg EngineConfig) (EngineConfig, error) {
+	if cfg.LocalAIImageBackend == nil || !cfg.LocalAIImageBackend.Enabled() {
+		return cfg, nil
+	}
+	resolvedImageBackend, err := ensureOfficialLocalAIImageBackend(ctx, cfg.BinaryPath, cfg.BackendsPath, cfg.LocalAIImageBackend)
+	if err != nil {
+		return cfg, fmt.Errorf("prepare localai image backend: %w", err)
+	}
+	cfg.LocalAIImageBackend = resolvedImageBackend
+	auxCfg, err := localAIImageBackendEngineConfig(resolvedImageBackend)
+	if err != nil {
+		return cfg, err
+	}
+	if err := m.startLocalAIImageBackend(ctx, auxCfg); err != nil {
+		return cfg, err
+	}
+	entry := strings.TrimSpace(resolvedImageBackend.BackendName) + ":" + strings.TrimSpace(resolvedImageBackend.Address)
+	cfg.ExternalGRPCBackends = normalizeLocalAIExternalGRPCBackends(append(cfg.ExternalGRPCBackends, entry))
+	return cfg, nil
+}
+
+func (m *Manager) startLocalAIImageBackend(ctx context.Context, cfg EngineConfig) error {
+	m.mu.Lock()
+	existing, ok := m.supervisors[engineLocalAIImageBackend]
+	if ok && (existing.Status() == StatusHealthy || existing.Status() == StatusStarting) {
+		m.mu.Unlock()
+		return nil
+	}
+	if ok {
+		delete(m.supervisors, engineLocalAIImageBackend)
+	}
+	sup := NewSupervisor(cfg, m.logger, m.onState)
+	m.supervisors[engineLocalAIImageBackend] = sup
+	m.mu.Unlock()
+	if ok {
+		_ = existing.Stop()
+	}
+	return sup.Start(ctx)
+}
+
+func (m *Manager) stopLocalAIImageBackend() error {
+	m.mu.RLock()
+	sup, ok := m.supervisors[engineLocalAIImageBackend]
+	m.mu.RUnlock()
+	if !ok {
+		return nil
+	}
+	return sup.Stop()
 }
 
 func (m *Manager) latestRegistryEntry(kind EngineKind) *RegistryEntry {

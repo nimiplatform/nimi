@@ -180,13 +180,8 @@ func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, 
 
 	localaiCreds := normalized.LocalProviders["localai"]
 	nexaCreds := normalized.LocalProviders["nexa"]
-	localAIBackend := nimillm.NewBackend("local-localai", localaiCreds.BaseURL, localaiCreds.APIKey, normalized.AIHTTPTimeout)
-	nexaBackend := nimillm.NewBackend("local-nexa", nexaCreds.BaseURL, nexaCreds.APIKey, normalized.AIHTTPTimeout)
-	if normalized.EnforceEndpointSecurity {
-		// Local engines run on loopback and must allow HTTP loopback.
-		localAIBackend = nimillm.NewSecuredBackend("local-localai", localaiCreds.BaseURL, localaiCreds.APIKey, normalized.AIHTTPTimeout, true)
-		nexaBackend = nimillm.NewSecuredBackend("local-nexa", nexaCreds.BaseURL, nexaCreds.APIKey, normalized.AIHTTPTimeout, true)
-	}
+	localAIBackend := newLocalRuntimeBackend("local-localai", localaiCreds, normalized)
+	nexaBackend := newLocalRuntimeBackend("local-nexa", nexaCreds, normalized)
 	return &routeSelector{
 		local: &localProvider{
 			localai: localAIBackend,
@@ -195,4 +190,13 @@ func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, 
 		cloud:         cloudProvider,
 		cloudProvider: cloudProvider,
 	}
+}
+
+func newLocalRuntimeBackend(name string, creds nimillm.ProviderCredentials, cfg Config) *nimillm.Backend {
+	normalized := cfg.normalized()
+	if normalized.EnforceEndpointSecurity {
+		// Local engines run on loopback and must allow HTTP loopback.
+		return nimillm.NewSecuredBackend(name, creds.BaseURL, creds.APIKey, normalized.AIHTTPTimeout, true)
+	}
+	return nimillm.NewBackend(name, creds.BaseURL, creds.APIKey, normalized.AIHTTPTimeout)
 }

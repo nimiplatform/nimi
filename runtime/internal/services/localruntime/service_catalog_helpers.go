@@ -219,6 +219,15 @@ func mergeInferencePayload(req *runtimev1.AppendInferenceAuditRequest) *structpb
 }
 
 func defaultVerifiedModels() []*runtimev1.LocalVerifiedModelDescriptor {
+	zImageDefaults, _ := structpb.NewStruct(map[string]any{
+		"backend":   "stablediffusion-ggml",
+		"cfg_scale": 1,
+		"step":      25,
+		"options": []any{
+			"diffusion_model",
+			"offload_params_to_cpu:true",
+		},
+	})
 	return []*runtimev1.LocalVerifiedModelDescriptor{
 		{
 			TemplateId:  "verified.chat.llama3_8b",
@@ -262,6 +271,75 @@ func defaultVerifiedModels() []*runtimev1.LocalVerifiedModelDescriptor {
 			TotalSizeBytes: 0,
 			Tags:           []string{"stt", "verified"},
 		},
+		{
+			TemplateId:     "verified.image.z_image_turbo",
+			Title:          "Z-Image Turbo (GGUF)",
+			Description:    "Verified LocalAI image main model for dynamic workflow assembly",
+			InstallKind:    "download",
+			ModelId:        "local/z_image_turbo",
+			Repo:           "Tongyi-MAI/Z-Image-Turbo-GGUF",
+			Revision:       "main",
+			Capabilities:   []string{"image"},
+			Engine:         "localai",
+			Entry:          "z_image_turbo-Q4_K.gguf",
+			Files:          []string{"z_image_turbo-Q4_K.gguf"},
+			License:        "tongyi",
+			Hashes:         map[string]string{},
+			Endpoint:       defaultLocalRuntimeEndpoint,
+			FileCount:      1,
+			TotalSizeBytes: 0,
+			Tags:           []string{"image", "verified", "z-image"},
+			EngineConfig:   zImageDefaults,
+		},
+	}
+}
+
+func defaultVerifiedArtifacts() []*runtimev1.LocalVerifiedArtifactDescriptor {
+	vaeMeta, _ := structpb.NewStruct(map[string]any{
+		"family": "z-image",
+		"format": "safetensors",
+	})
+	llmMeta, _ := structpb.NewStruct(map[string]any{
+		"family": "z-image",
+		"format": "gguf",
+	})
+	return []*runtimev1.LocalVerifiedArtifactDescriptor{
+		{
+			TemplateId:     "verified.artifact.z_image.vae",
+			Title:          "Z-Image AE VAE",
+			Description:    "Verified companion VAE for LocalAI Z-Image workflows",
+			ArtifactId:     "local/z_image_ae",
+			Kind:           runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
+			Engine:         "localai",
+			Entry:          "ae.safetensors",
+			Files:          []string{"ae.safetensors"},
+			License:        "tongyi",
+			Repo:           "Tongyi-MAI/Z-Image-Turbo",
+			Revision:       "main",
+			Hashes:         map[string]string{},
+			FileCount:      1,
+			TotalSizeBytes: 0,
+			Tags:           []string{"image", "verified", "z-image", "vae"},
+			Metadata:       vaeMeta,
+		},
+		{
+			TemplateId:     "verified.artifact.z_image.qwen3_4b",
+			Title:          "Qwen3 4B Companion LLM",
+			Description:    "Verified companion LLM for LocalAI Z-Image workflows",
+			ArtifactId:     "local/qwen3_4b_companion",
+			Kind:           runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_LLM,
+			Engine:         "localai",
+			Entry:          "Qwen3-4B.Q4_K_M.gguf",
+			Files:          []string{"Qwen3-4B.Q4_K_M.gguf"},
+			License:        "qwen",
+			Repo:           "Qwen/Qwen3-4B-GGUF",
+			Revision:       "main",
+			Hashes:         map[string]string{},
+			FileCount:      1,
+			TotalSizeBytes: 0,
+			Tags:           []string{"image", "verified", "z-image", "llm"},
+			Metadata:       llmMeta,
+		},
 	}
 }
 
@@ -289,6 +367,7 @@ func defaultCatalogFromVerified(verified []*runtimev1.LocalVerifiedModelDescript
 			Hashes:            cloneStringMap(item.GetHashes()),
 			Tags:              append([]string(nil), item.GetTags()...),
 			Verified:          true,
+			EngineConfig:      cloneStruct(item.GetEngineConfig()),
 		})
 	}
 	return items

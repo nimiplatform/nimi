@@ -25,6 +25,7 @@ export type RuntimeConfigModelManagementActions = {
   stopLocalRuntimeModel: (localModelId: string) => Promise<void>;
   restartLocalRuntimeModel: (localModelId: string) => Promise<void>;
   removeLocalRuntimeModel: (localModelId: string) => Promise<void>;
+  removeLocalRuntimeArtifact: (localArtifactId: string) => Promise<void>;
 };
 
 export type UseRuntimeConfigModelManagementActionsInput = {
@@ -279,6 +280,21 @@ export function useRuntimeConfigModelManagementActions(
     }
   }, [recordGoRuntimeSyncFailure, refreshLocalRuntimeSnapshot, setStatusBanner]);
 
+  const removeLocalRuntimeArtifact = useCallback(async (localArtifactId: string) => {
+    const artifact = await localAiRuntime.removeArtifact(localArtifactId, { caller: 'core' }).catch((error) => {
+      setStatusBanner({
+        kind: 'error',
+        message: `Remove artifact failed: ${error instanceof Error ? error.message : String(error || '')}`,
+      });
+      throw error;
+    });
+    await refreshLocalRuntimeSnapshot();
+    setStatusBanner({
+      kind: 'success',
+      message: `Artifact removed: ${artifact.artifactId}`,
+    });
+  }, [refreshLocalRuntimeSnapshot, setStatusBanner]);
+
   return {
     importLocalRuntimeModel,
     importLocalRuntimeModelFile,
@@ -286,5 +302,6 @@ export function useRuntimeConfigModelManagementActions(
     stopLocalRuntimeModel,
     restartLocalRuntimeModel,
     removeLocalRuntimeModel,
+    removeLocalRuntimeArtifact,
   };
 }

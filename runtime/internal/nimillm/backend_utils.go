@@ -33,7 +33,7 @@ func (b *Backend) DecodeMedia(b64Data string, mediaURL string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		response, err := b.client.Do(request)
+		response, err := b.do(request)
 		if err != nil {
 			return nil, MapProviderRequestError(err)
 		}

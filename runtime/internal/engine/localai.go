@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 	"runtime"
+	"sort"
 	"strings"
 )
 
@@ -61,6 +62,9 @@ func localAICommand(cfg EngineConfig) *exec.Cmd {
 	if len(cfg.ExternalBackends) > 0 {
 		args = append(args, "--external-backends", strings.Join(cfg.ExternalBackends, ","))
 	}
+	if len(cfg.ExternalGRPCBackends) > 0 {
+		args = append(args, "--external-grpc-backends", strings.Join(normalizeLocalAIExternalGRPCBackends(cfg.ExternalGRPCBackends), ","))
+	}
 	return exec.Command(cfg.BinaryPath, args...)
 }
 
@@ -70,4 +74,22 @@ func localAIBinaryName() string {
 		return "local-ai.exe"
 	}
 	return "local-ai"
+}
+
+func normalizeLocalAIExternalGRPCBackends(backends []string) []string {
+	seen := make(map[string]struct{}, len(backends))
+	result := make([]string, 0, len(backends))
+	for _, backend := range backends {
+		trimmed := strings.TrimSpace(backend)
+		if trimmed == "" {
+			continue
+		}
+		if _, ok := seen[trimmed]; ok {
+			continue
+		}
+		seen[trimmed] = struct{}{}
+		result = append(result, trimmed)
+	}
+	sort.Strings(result)
+	return result
 }

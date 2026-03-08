@@ -1,4 +1,5 @@
 import { getPlatformClient } from '../platform-client';
+import { toProtoStruct } from '@nimiplatform/sdk/runtime';
 import type { LocalAiModelRecord, LocalAiModelStatus } from './types';
 
 type LocalRuntimeClient = ReturnType<typeof getPlatformClient>['runtime']['localRuntime'];
@@ -10,6 +11,7 @@ export type GoRuntimeModelEntry = {
   status: LocalAiModelStatus;
   endpoint: string;
   capabilities: string[];
+  engineConfig?: Record<string, unknown>;
 };
 
 export type GoRuntimeSyncTarget = {
@@ -132,6 +134,7 @@ function parseGoRuntimeModelEntry(value: unknown): GoRuntimeModelEntry {
     status: normalizeGoStatus(record.status),
     endpoint: String(record.endpoint || '').trim(),
     capabilities: normalizeStringArray(record.capabilities),
+    engineConfig: asRecord(record.engineConfig),
   };
 }
 
@@ -235,6 +238,7 @@ export async function syncModelInstallToGoRuntime(model: LocalAiModelRecord): Pr
       license: model.license || '',
       hashes: model.hashes || {},
       endpoint: model.endpoint || '',
+      engineConfig: toProtoStruct(model.engineConfig),
     });
     const created = parseGoRuntimeModelEntry(asRecord(response).model);
     if (!created.localModelId || !created.modelId) {

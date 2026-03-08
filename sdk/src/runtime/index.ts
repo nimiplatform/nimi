@@ -55,3 +55,9 @@ export { createNodeGrpcTransport, setNodeGrpcBridge, type NodeGrpcBridge } from 
 export { createTauriIpcTransport } from './transports/tauri-ipc/index';
 export { Runtime } from './runtime.js';
 export * from './runtime-realm-bridge.js';
+export {
+  buildLocalImageWorkflowExtensions,
+  type LocalImageWorkflowComponentSelection,
+  type LocalImageWorkflowExtensionInput,
+} from './runtime-media.js';
+export { toProtoStruct } from './helpers.js';

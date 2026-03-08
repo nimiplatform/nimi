@@ -15,6 +15,24 @@ enum LocalModelStatus {
   LOCAL_MODEL_STATUS_REMOVED = 4;
 }
 
+enum LocalArtifactKind {
+  LOCAL_ARTIFACT_KIND_UNSPECIFIED = 0;
+  LOCAL_ARTIFACT_KIND_VAE = 1;
+  LOCAL_ARTIFACT_KIND_LLM = 2;
+  LOCAL_ARTIFACT_KIND_CLIP = 3;
+  LOCAL_ARTIFACT_KIND_CONTROLNET = 4;
+  LOCAL_ARTIFACT_KIND_LORA = 5;
+  LOCAL_ARTIFACT_KIND_AUXILIARY = 6;
+}
+
+enum LocalArtifactStatus {
+  LOCAL_ARTIFACT_STATUS_UNSPECIFIED = 0;
+  LOCAL_ARTIFACT_STATUS_INSTALLED = 1;
+  LOCAL_ARTIFACT_STATUS_ACTIVE = 2;
+  LOCAL_ARTIFACT_STATUS_UNHEALTHY = 3;
+  LOCAL_ARTIFACT_STATUS_REMOVED = 4;
+}
+
 enum LocalServiceStatus {
   LOCAL_SERVICE_STATUS_UNSPECIFIED = 0;
   LOCAL_SERVICE_STATUS_INSTALLED = 1;
@@ -43,6 +61,11 @@ message LocalModelSource {
   string revision = 2;
 }
 
+message LocalArtifactSource {
+  string repo = 1;
+  string revision = 2;
+}
+
 message LocalModelRecord {
   string local_model_id = 1;
   string model_id = 2;
@@ -58,6 +81,7 @@ message LocalModelRecord {
   string updated_at = 12;
   string health_detail = 13;
   string local_invoke_profile_id = 14;
+  google.protobuf.Struct engine_config = 15;
 }
 
 message LocalModelHealth {
@@ -65,6 +89,23 @@ message LocalModelHealth {
   LocalModelStatus status = 2;
   string detail = 3;
   string endpoint = 4;
+}
+
+message LocalArtifactRecord {
+  string local_artifact_id = 1;
+  string artifact_id = 2;
+  LocalArtifactKind kind = 3;
+  string engine = 4;
+  string entry = 5;
+  repeated string files = 6;
+  string license = 7;
+  LocalArtifactSource source = 8;
+  map<string, string> hashes = 9;
+  LocalArtifactStatus status = 10;
+  string installed_at = 11;
+  string updated_at = 12;
+  string health_detail = 13;
+  google.protobuf.Struct metadata = 14;
 }
 
 message LocalVerifiedModelDescriptor {
@@ -85,6 +126,26 @@ message LocalVerifiedModelDescriptor {
   int32 file_count = 15;
   int64 total_size_bytes = 16;
   repeated string tags = 17;
+  google.protobuf.Struct engine_config = 18;
+}
+
+message LocalVerifiedArtifactDescriptor {
+  string template_id = 1;
+  string title = 2;
+  string description = 3;
+  string artifact_id = 4;
+  LocalArtifactKind kind = 5;
+  string engine = 6;
+  string entry = 7;
+  repeated string files = 8;
+  string license = 9;
+  string repo = 10;
+  string revision = 11;
+  map<string, string> hashes = 12;
+  int32 file_count = 13;
+  int64 total_size_bytes = 14;
+  repeated string tags = 15;
+  google.protobuf.Struct metadata = 16;
 }
 
 message LocalProviderHintsLocalAi {
@@ -142,6 +203,7 @@ message LocalCatalogModelDescriptor {
   int64 likes = 22;
   string last_modified = 23;
   bool verified = 24;
+  google.protobuf.Struct engine_config = 25;
 }
 
 message LocalInstallPlanDescriptor {
@@ -165,6 +227,7 @@ message LocalInstallPlanDescriptor {
   map<string, string> hashes = 18;
   repeated string warnings = 19;
   string reason_code = 20;
+  google.protobuf.Struct engine_config = 21;
 }
 
 message LocalGpuProfile {
@@ -430,6 +493,19 @@ message ListLocalModelsResponse {
   string next_page_token = 2;
 }
 
+message ListLocalArtifactsRequest {
+  LocalArtifactStatus status_filter = 1;
+  LocalArtifactKind kind_filter = 2;
+  string engine_filter = 3;
+  int32 page_size = 4;
+  string page_token = 5;
+}
+
+message ListLocalArtifactsResponse {
+  repeated LocalArtifactRecord artifacts = 1;
+  string next_page_token = 2;
+}
+
 message ListVerifiedModelsRequest {
   string category_filter = 1;
   string engine_filter = 2;
@@ -439,6 +515,18 @@ message ListVerifiedModelsRequest {
 
 message ListVerifiedModelsResponse {
   repeated LocalVerifiedModelDescriptor models = 1;
+  string next_page_token = 2;
+}
+
+message ListVerifiedArtifactsRequest {
+  LocalArtifactKind kind_filter = 1;
+  string engine_filter = 2;
+  int32 page_size = 3;
+  string page_token = 4;
+}
+
+message ListVerifiedArtifactsResponse {
+  repeated LocalVerifiedArtifactDescriptor artifacts = 1;
   string next_page_token = 2;
 }
 
@@ -471,6 +559,7 @@ message ResolveModelInstallPlanRequest {
   string license = 11;
   map<string, string> hashes = 12;
   string endpoint = 13;
+  google.protobuf.Struct engine_config = 14;
 }
 
 message ResolveModelInstallPlanResponse {
@@ -488,6 +577,7 @@ message InstallLocalModelRequest {
   string license = 8;
   map<string, string> hashes = 9;
   string endpoint = 10;
+  google.protobuf.Struct engine_config = 11;
 }
 
 message InstallLocalModelResponse {
@@ -503,13 +593,30 @@ message InstallVerifiedModelResponse {
   LocalModelRecord model = 1;
 }
 
+message InstallVerifiedArtifactRequest {
+  string template_id = 1;
+}
+
+message InstallVerifiedArtifactResponse {
+  LocalArtifactRecord artifact = 1;
+}
+
 message ImportLocalModelRequest {
   string manifest_path = 1;
   string endpoint = 2;
+  google.protobuf.Struct engine_config = 3;
 }
 
 message ImportLocalModelResponse {
   LocalModelRecord model = 1;
+}
+
+message ImportLocalArtifactRequest {
+  string manifest_path = 1;
+}
+
+message ImportLocalArtifactResponse {
+  LocalArtifactRecord artifact = 1;
 }
 
 message RemoveLocalModelRequest {
@@ -518,6 +625,14 @@ message RemoveLocalModelRequest {
 
 message RemoveLocalModelResponse {
   LocalModelRecord model = 1;
+}
+
+message RemoveLocalArtifactRequest {
+  string local_artifact_id = 1;
+}
+
+message RemoveLocalArtifactResponse {
+  LocalArtifactRecord artifact = 1;
 }
 
 message StartLocalModelRequest {
@@ -703,13 +818,18 @@ message WarmLocalModelResponse {
 
 service RuntimeLocalRuntimeService {
   rpc ListLocalModels(ListLocalModelsRequest) returns (ListLocalModelsResponse);
+  rpc ListLocalArtifacts(ListLocalArtifactsRequest) returns (ListLocalArtifactsResponse);
   rpc ListVerifiedModels(ListVerifiedModelsRequest) returns (ListVerifiedModelsResponse);
+  rpc ListVerifiedArtifacts(ListVerifiedArtifactsRequest) returns (ListVerifiedArtifactsResponse);
   rpc SearchCatalogModels(SearchCatalogModelsRequest) returns (SearchCatalogModelsResponse);
   rpc ResolveModelInstallPlan(ResolveModelInstallPlanRequest) returns (ResolveModelInstallPlanResponse);
   rpc InstallLocalModel(InstallLocalModelRequest) returns (InstallLocalModelResponse);
   rpc InstallVerifiedModel(InstallVerifiedModelRequest) returns (InstallVerifiedModelResponse);
+  rpc InstallVerifiedArtifact(InstallVerifiedArtifactRequest) returns (InstallVerifiedArtifactResponse);
   rpc ImportLocalModel(ImportLocalModelRequest) returns (ImportLocalModelResponse);
+  rpc ImportLocalArtifact(ImportLocalArtifactRequest) returns (ImportLocalArtifactResponse);
   rpc RemoveLocalModel(RemoveLocalModelRequest) returns (RemoveLocalModelResponse);
+  rpc RemoveLocalArtifact(RemoveLocalArtifactRequest) returns (RemoveLocalArtifactResponse);
   rpc StartLocalModel(StartLocalModelRequest) returns (StartLocalModelResponse);
   rpc StopLocalModel(StopLocalModelRequest) returns (StopLocalModelResponse);
   rpc CheckLocalModelHealth(CheckLocalModelHealthRequest) returns (CheckLocalModelHealthResponse);

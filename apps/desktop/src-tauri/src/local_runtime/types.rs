@@ -6,7 +6,7 @@ use chrono::SecondsFormat;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 
-pub const LOCAL_AI_RUNTIME_VERSION: u32 = 11;
+pub const LOCAL_AI_RUNTIME_VERSION: u32 = 12;
 pub const DEFAULT_LOCAL_RUNTIME_ENDPOINT: &str = "http://127.0.0.1:1234/v1";
 pub const LOCAL_AI_DOWNLOAD_PROGRESS_EVENT: &str = "local-ai://download-progress";
 
@@ -132,6 +132,7 @@ pub struct LocalAiModelRecord {
     pub installed_at: String,
     pub updated_at: String,
     pub health_detail: Option<String>,
+    pub engine_config: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -501,6 +502,7 @@ pub struct ImportedModelManifest {
     pub license: String,
     pub source: ImportedModelSource,
     pub hashes: HashMap<String, String>,
+    pub engine_config: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -523,6 +525,7 @@ pub struct LocalAiVerifiedModelDescriptor {
     pub file_count: usize,
     pub total_size_bytes: Option<u64>,
     pub tags: Vec<String>,
+    pub engine_config: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -575,6 +578,7 @@ pub struct LocalAiCatalogItemDescriptor {
     pub likes: Option<u64>,
     pub last_modified: Option<String>,
     pub verified: bool,
+    pub engine_config: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -600,6 +604,7 @@ pub struct LocalAiInstallPlanDescriptor {
     pub hashes: HashMap<String, String>,
     pub warnings: Vec<String>,
     pub reason_code: Option<String>,
+    pub engine_config: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -616,6 +621,7 @@ pub struct LocalAiInstallRequest {
     pub hashes: Option<HashMap<String, String>>,
     pub endpoint: Option<String>,
     pub provider_hints: Option<LocalAiProviderHints>,
+    pub engine_config: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

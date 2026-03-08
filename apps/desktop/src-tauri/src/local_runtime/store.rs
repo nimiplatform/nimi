@@ -259,6 +259,7 @@ mod tests {
             installed_at: "2026-01-01T00:00:00.000Z".to_string(),
             updated_at: "2026-01-01T00:00:00.000Z".to_string(),
             health_detail: None,
+            engine_config: None,
         }
     }
 
@@ -288,6 +289,7 @@ mod tests {
                 )])),
                 endpoint: Some("http://127.0.0.1:1234/v1".to_string()),
                 provider_hints: None,
+                engine_config: None,
             },
             install_metadata: None,
             phase: phase.to_string(),

@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -667,6 +668,35 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 		}
 		ensureEngineConfig(cfg, "localai").Port = &parsed
 		return nil
+	case "engines.localai.imageBackend.mode":
+		ensureLocalAIImageBackendConfig(cfg).Mode = strings.TrimSpace(value)
+		return nil
+	case "engines.localai.imageBackend.backendName":
+		ensureLocalAIImageBackendConfig(cfg).BackendName = strings.TrimSpace(value)
+		return nil
+	case "engines.localai.imageBackend.address":
+		ensureLocalAIImageBackendConfig(cfg).Address = strings.TrimSpace(value)
+		return nil
+	case "engines.localai.imageBackend.command":
+		ensureLocalAIImageBackendConfig(cfg).Command = strings.TrimSpace(value)
+		return nil
+	case "engines.localai.imageBackend.workingDir":
+		ensureLocalAIImageBackendConfig(cfg).WorkingDir = strings.TrimSpace(value)
+		return nil
+	case "engines.localai.imageBackend.args":
+		var parsed []string
+		if err := json.Unmarshal([]byte(strings.TrimSpace(value)), &parsed); err != nil {
+			return fmt.Errorf("engines.localai.imageBackend.args must be JSON string array: %w", err)
+		}
+		ensureLocalAIImageBackendConfig(cfg).Args = append([]string(nil), parsed...)
+		return nil
+	case "engines.localai.imageBackend.env":
+		parsed := make(map[string]string)
+		if err := json.Unmarshal([]byte(strings.TrimSpace(value)), &parsed); err != nil {
+			return fmt.Errorf("engines.localai.imageBackend.env must be JSON string map: %w", err)
+		}
+		ensureLocalAIImageBackendConfig(cfg).Env = parsed
+		return nil
 	case "engines.nexa.enabled":
 		parsed, err := parseBooleanConfigValue(value)
 		if err != nil {
@@ -795,6 +825,34 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 		return nil
 	case "engines.localai.port":
 		ensureEngineConfig(cfg, "localai").Port = nil
+		pruneEmptyEnginesConfig(cfg)
+		return nil
+	case "engines.localai.imageBackend.mode":
+		ensureLocalAIImageBackendConfig(cfg).Mode = ""
+		pruneEmptyEnginesConfig(cfg)
+		return nil
+	case "engines.localai.imageBackend.backendName":
+		ensureLocalAIImageBackendConfig(cfg).BackendName = ""
+		pruneEmptyEnginesConfig(cfg)
+		return nil
+	case "engines.localai.imageBackend.address":
+		ensureLocalAIImageBackendConfig(cfg).Address = ""
+		pruneEmptyEnginesConfig(cfg)
+		return nil
+	case "engines.localai.imageBackend.command":
+		ensureLocalAIImageBackendConfig(cfg).Command = ""
+		pruneEmptyEnginesConfig(cfg)
+		return nil
+	case "engines.localai.imageBackend.workingDir":
+		ensureLocalAIImageBackendConfig(cfg).WorkingDir = ""
+		pruneEmptyEnginesConfig(cfg)
+		return nil
+	case "engines.localai.imageBackend.args":
+		ensureLocalAIImageBackendConfig(cfg).Args = nil
+		pruneEmptyEnginesConfig(cfg)
+		return nil
+	case "engines.localai.imageBackend.env":
+		ensureLocalAIImageBackendConfig(cfg).Env = nil
 		pruneEmptyEnginesConfig(cfg)
 		return nil
 	case "engines.nexa.enabled":
@@ -989,9 +1047,20 @@ func ensureEngineConfig(fileCfg *config.FileConfig, engineName string) *config.F
 	}
 }
 
+func ensureLocalAIImageBackendConfig(fileCfg *config.FileConfig) *config.FileConfigLocalAIImageBackend {
+	engineCfg := ensureEngineConfig(fileCfg, "localai")
+	if engineCfg.ImageBackend == nil {
+		engineCfg.ImageBackend = &config.FileConfigLocalAIImageBackend{}
+	}
+	return engineCfg.ImageBackend
+}
+
 func pruneEmptyEnginesConfig(fileCfg *config.FileConfig) {
 	if fileCfg == nil || fileCfg.Engines == nil {
 		return
+	}
+	if fileCfg.Engines.LocalAI != nil && isEmptyLocalAIImageBackendConfig(fileCfg.Engines.LocalAI.ImageBackend) {
+		fileCfg.Engines.LocalAI.ImageBackend = nil
 	}
 	if isEmptyFileConfigEngine(fileCfg.Engines.LocalAI) {
 		fileCfg.Engines.LocalAI = nil
@@ -1010,7 +1079,21 @@ func isEmptyFileConfigEngine(engineCfg *config.FileConfigEngine) bool {
 	}
 	return engineCfg.Enabled == nil &&
 		strings.TrimSpace(engineCfg.Version) == "" &&
-		engineCfg.Port == nil
+		engineCfg.Port == nil &&
+		isEmptyLocalAIImageBackendConfig(engineCfg.ImageBackend)
+}
+
+func isEmptyLocalAIImageBackendConfig(cfg *config.FileConfigLocalAIImageBackend) bool {
+	if cfg == nil {
+		return true
+	}
+	return strings.TrimSpace(cfg.Mode) == "" &&
+		strings.TrimSpace(cfg.BackendName) == "" &&
+		strings.TrimSpace(cfg.Address) == "" &&
+		strings.TrimSpace(cfg.Command) == "" &&
+		len(cfg.Args) == 0 &&
+		len(cfg.Env) == 0 &&
+		strings.TrimSpace(cfg.WorkingDir) == ""
 }
 
 func cloneFileConfigEngine(engineCfg *config.FileConfigEngine) *config.FileConfigEngine {
@@ -1027,6 +1110,28 @@ func cloneFileConfigEngine(engineCfg *config.FileConfigEngine) *config.FileConfi
 	if engineCfg.Port != nil {
 		port := *engineCfg.Port
 		cloned.Port = &port
+	}
+	cloned.ImageBackend = cloneFileConfigLocalAIImageBackend(engineCfg.ImageBackend)
+	return cloned
+}
+
+func cloneFileConfigLocalAIImageBackend(cfg *config.FileConfigLocalAIImageBackend) *config.FileConfigLocalAIImageBackend {
+	if cfg == nil {
+		return nil
+	}
+	cloned := &config.FileConfigLocalAIImageBackend{
+		Mode:        strings.TrimSpace(cfg.Mode),
+		BackendName: strings.TrimSpace(cfg.BackendName),
+		Address:     strings.TrimSpace(cfg.Address),
+		Command:     strings.TrimSpace(cfg.Command),
+		Args:        append([]string(nil), cfg.Args...),
+		WorkingDir:  strings.TrimSpace(cfg.WorkingDir),
+	}
+	if len(cfg.Env) > 0 {
+		cloned.Env = make(map[string]string, len(cfg.Env))
+		for key, value := range cfg.Env {
+			cloned.Env[key] = value
+		}
 	}
 	return cloned
 }
@@ -1117,7 +1222,43 @@ func fileConfigEngineEqual(before, after *config.FileConfigEngine) bool {
 	if !intPtrEqual(before.Port, after.Port) {
 		return false
 	}
-	return strings.TrimSpace(before.Version) == strings.TrimSpace(after.Version)
+	if strings.TrimSpace(before.Version) != strings.TrimSpace(after.Version) {
+		return false
+	}
+	return fileConfigLocalAIImageBackendEqual(before.ImageBackend, after.ImageBackend)
+}
+
+func fileConfigLocalAIImageBackendEqual(before, after *config.FileConfigLocalAIImageBackend) bool {
+	if before == nil || after == nil {
+		return before == nil && after == nil
+	}
+	if strings.TrimSpace(before.Mode) != strings.TrimSpace(after.Mode) {
+		return false
+	}
+	if strings.TrimSpace(before.BackendName) != strings.TrimSpace(after.BackendName) {
+		return false
+	}
+	if strings.TrimSpace(before.Address) != strings.TrimSpace(after.Address) {
+		return false
+	}
+	if strings.TrimSpace(before.Command) != strings.TrimSpace(after.Command) {
+		return false
+	}
+	if strings.TrimSpace(before.WorkingDir) != strings.TrimSpace(after.WorkingDir) {
+		return false
+	}
+	if !slices.Equal(before.Args, after.Args) {
+		return false
+	}
+	if len(before.Env) != len(after.Env) {
+		return false
+	}
+	for key, beforeValue := range before.Env {
+		if after.Env[key] != beforeValue {
+			return false
+		}
+	}
+	return true
 }
 
 func isSecretPolicyViolation(err error) bool {

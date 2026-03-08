@@ -1,16 +1,22 @@
 import { localAiRuntime } from '@runtime/local-ai-runtime';
 import type {
+  LocalAiArtifactRecord,
   LocalAiAuditEvent,
   LocalAiAuditListPayload,
   LocalAiDownloadProgressEvent,
   LocalAiDownloadSessionSummary,
   LocalAiInferenceAuditPayload,
+  LocalAiImportArtifactPayload,
   LocalAiImportPayload,
   LocalAiInstallAcceptedResponse,
+  LocalAiInstallVerifiedArtifactPayload,
   LocalAiInstallPayload,
   LocalAiInstallVerifiedPayload,
+  LocalAiListArtifactsPayload,
+  LocalAiListVerifiedArtifactsPayload,
   LocalAiModelRecord,
   LocalAiModelsHealthResult,
+  LocalAiVerifiedArtifactDescriptor,
   LocalAiVerifiedModelDescriptor,
 } from './types';
 
@@ -24,8 +30,20 @@ export async function listLocalAiModels(): Promise<LocalAiModelRecord[]> {
   return localAiRuntime.list();
 }
 
+export async function listLocalAiArtifacts(
+  payload?: LocalAiListArtifactsPayload,
+): Promise<LocalAiArtifactRecord[]> {
+  return localAiRuntime.listArtifacts(payload);
+}
+
 export async function listLocalAiVerifiedModels(): Promise<LocalAiVerifiedModelDescriptor[]> {
   return localAiRuntime.listVerified();
+}
+
+export async function listLocalAiVerifiedArtifacts(
+  payload?: LocalAiListVerifiedArtifactsPayload,
+): Promise<LocalAiVerifiedArtifactDescriptor[]> {
+  return localAiRuntime.listVerifiedArtifacts(payload);
 }
 
 export async function listLocalAiAudits(payload?: LocalAiAuditListPayload): Promise<LocalAiAuditEvent[]> {
@@ -48,6 +66,13 @@ export async function installLocalAiVerifiedModel(
   options?: LocalAiWriteOptions,
 ): Promise<LocalAiInstallAcceptedResponse> {
   return localAiRuntime.installVerified(payload, options);
+}
+
+export async function installLocalAiVerifiedArtifact(
+  payload: LocalAiInstallVerifiedArtifactPayload,
+  options?: LocalAiWriteOptions,
+): Promise<LocalAiArtifactRecord> {
+  return localAiRuntime.installVerifiedArtifact(payload, options);
 }
 
 export async function listLocalAiDownloadSessions(): Promise<LocalAiDownloadSessionSummary[]> {
@@ -82,11 +107,25 @@ export async function importLocalAiModel(
   return localAiRuntime.import(payload, options);
 }
 
+export async function importLocalAiArtifact(
+  payload: LocalAiImportArtifactPayload,
+  options?: LocalAiWriteOptions,
+): Promise<LocalAiArtifactRecord> {
+  return localAiRuntime.importArtifact(payload, options);
+}
+
 export async function removeLocalAiModel(
   localModelId: string,
   options?: LocalAiWriteOptions,
 ): Promise<LocalAiModelRecord> {
   return localAiRuntime.remove(localModelId, options);
+}
+
+export async function removeLocalAiArtifact(
+  localArtifactId: string,
+  options?: LocalAiWriteOptions,
+): Promise<LocalAiArtifactRecord> {
+  return localAiRuntime.removeArtifact(localArtifactId, options);
 }
 
 export async function startLocalAiModel(

@@ -40,6 +40,38 @@ import {
 } from './helpers.js';
 import { runtimeAiRequestRequiresSubject } from './runtime-guards.js';
 
+export interface LocalImageWorkflowComponentSelection {
+  slot: string;
+  localArtifactId: string;
+}
+
+export interface LocalImageWorkflowExtensionInput {
+  components?: LocalImageWorkflowComponentSelection[];
+  profileOverrides?: Record<string, unknown>;
+}
+
+export function buildLocalImageWorkflowExtensions(
+  workflow: LocalImageWorkflowExtensionInput,
+  baseExtensions?: Record<string, unknown>,
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...(baseExtensions || {}) };
+  const components = Array.isArray(workflow.components)
+    ? workflow.components
+      .map((item) => ({
+        slot: normalizeText(item.slot),
+        localArtifactId: normalizeText(item.localArtifactId),
+      }))
+      .filter((item) => item.slot && item.localArtifactId)
+    : [];
+  if (components.length > 0) {
+    merged.components = components;
+  }
+  if (workflow.profileOverrides && Object.keys(workflow.profileOverrides).length > 0) {
+    merged.profile_overrides = workflow.profileOverrides;
+  }
+  return merged;
+}
+
 export async function runtimeSubmitScenarioJobForMedia(
   ctx: RuntimeInternalContext,
   input: ScenarioJobSubmitInput,

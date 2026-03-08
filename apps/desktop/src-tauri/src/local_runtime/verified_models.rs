@@ -97,6 +97,7 @@ fn qwen3_tts_voicedesign_descriptor() -> LocalAiVerifiedModelDescriptor {
             "verified".to_string(),
             "localai".to_string(),
         ],
+        engine_config: None,
     }
 }
 

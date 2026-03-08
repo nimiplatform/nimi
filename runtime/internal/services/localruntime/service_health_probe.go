@@ -30,10 +30,11 @@ const (
 type endpointProbeFunc func(ctx context.Context, endpoint string) endpointProbeResult
 
 type endpointProbeResult struct {
-	healthy  bool
-	detail   string
-	probeURL string
-	models   []string
+	healthy   bool
+	responded bool
+	detail    string
+	probeURL  string
+	models    []string
 }
 
 type probeRecoveryState struct {
@@ -77,9 +78,10 @@ func defaultEndpointProbe(ctx context.Context, endpoint string) endpointProbeRes
 
 	if resp.StatusCode != http.StatusOK {
 		return endpointProbeResult{
-			healthy:  false,
-			detail:   fmt.Sprintf("probe status not ok: %d", resp.StatusCode),
-			probeURL: probeURL,
+			healthy:   false,
+			responded: false,
+			detail:    fmt.Sprintf("probe status not ok: %d", resp.StatusCode),
+			probeURL:  probeURL,
 		}
 	}
 
@@ -107,16 +109,18 @@ func defaultEndpointProbe(ctx context.Context, endpoint string) endpointProbeRes
 	}
 	if !hasModel {
 		return endpointProbeResult{
-			healthy:  false,
-			detail:   "probe response missing valid models",
-			probeURL: probeURL,
+			healthy:   false,
+			responded: true,
+			detail:    "probe response missing valid models",
+			probeURL:  probeURL,
 		}
 	}
 	return endpointProbeResult{
-		healthy:  true,
-		detail:   "probe succeeded",
-		probeURL: probeURL,
-		models:   modelIDs,
+		healthy:   true,
+		responded: true,
+		detail:    "probe succeeded",
+		probeURL:  probeURL,
+		models:    modelIDs,
 	}
 }
 
@@ -201,6 +205,40 @@ func modelProbeEndpoint(model *runtimev1.LocalModelRecord) string {
 		return defaultLocalRuntimeEndpoint
 	}
 	return defaultString(strings.TrimSpace(model.GetEndpoint()), defaultLocalRuntimeEndpoint)
+}
+
+func shouldUseManagedLocalAIEndpoint(endpoint string) bool {
+	trimmed := strings.TrimSpace(endpoint)
+	return trimmed == "" || strings.EqualFold(trimmed, defaultLocalRuntimeEndpoint)
+}
+
+func (s *Service) managedLocalAIEndpoint() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return strings.TrimSpace(s.localAIManagedEndpoint)
+}
+
+func (s *Service) effectiveLocalModelEndpoint(model *runtimev1.LocalModelRecord) string {
+	if model == nil {
+		return defaultLocalRuntimeEndpoint
+	}
+	endpoint := strings.TrimSpace(model.GetEndpoint())
+	if strings.EqualFold(strings.TrimSpace(model.GetEngine()), "localai") {
+		if managedEndpoint := s.managedLocalAIEndpoint(); managedEndpoint != "" && shouldUseManagedLocalAIEndpoint(endpoint) {
+			return managedEndpoint
+		}
+	}
+	return defaultString(endpoint, defaultLocalRuntimeEndpoint)
+}
+
+func (s *Service) normalizeRequestedLocalModelEndpoint(engine string, endpoint string) string {
+	trimmedEndpoint := strings.TrimSpace(endpoint)
+	if strings.EqualFold(strings.TrimSpace(engine), "localai") {
+		if managedEndpoint := s.managedLocalAIEndpoint(); managedEndpoint != "" && shouldUseManagedLocalAIEndpoint(trimmedEndpoint) {
+			return managedEndpoint
+		}
+	}
+	return trimmedEndpoint
 }
 
 func serviceProbeEndpoint(service *runtimev1.LocalServiceDescriptor) string {

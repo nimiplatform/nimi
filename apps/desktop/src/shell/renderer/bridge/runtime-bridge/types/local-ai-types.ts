@@ -1,4 +1,6 @@
 export type LocalAiModelStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
+export type LocalAiArtifactKind = 'vae' | 'llm' | 'clip' | 'controlnet' | 'lora' | 'auxiliary';
+export type LocalAiArtifactStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
 
 export type LocalAiModelRecord = {
   localModelId: string;
@@ -17,6 +19,27 @@ export type LocalAiModelRecord = {
   installedAt: string;
   updatedAt: string;
   healthDetail?: string;
+  engineConfig?: Record<string, unknown>;
+};
+
+export type LocalAiArtifactRecord = {
+  localArtifactId: string;
+  artifactId: string;
+  kind: LocalAiArtifactKind;
+  engine: string;
+  entry: string;
+  files: string[];
+  license: string;
+  source: {
+    repo: string;
+    revision: string;
+  };
+  hashes: Record<string, string>;
+  status: LocalAiArtifactStatus;
+  installedAt: string;
+  updatedAt: string;
+  healthDetail?: string;
+  metadata?: Record<string, unknown>;
 };
 
 export type LocalAiInstallAcceptedResponse = {
@@ -142,6 +165,7 @@ export type LocalAiInstallPayload = {
   license?: string;
   hashes?: Record<string, string>;
   endpoint?: string;
+  engineConfig?: Record<string, unknown>;
 };
 
 export type LocalAiVerifiedModelDescriptor = {
@@ -162,6 +186,26 @@ export type LocalAiVerifiedModelDescriptor = {
   fileCount: number;
   totalSizeBytes?: number;
   tags: string[];
+  engineConfig?: Record<string, unknown>;
+};
+
+export type LocalAiVerifiedArtifactDescriptor = {
+  templateId: string;
+  title: string;
+  description: string;
+  artifactId: string;
+  kind: LocalAiArtifactKind;
+  engine: string;
+  entry: string;
+  files: string[];
+  license: string;
+  repo: string;
+  revision: string;
+  hashes: Record<string, string>;
+  fileCount: number;
+  totalSizeBytes?: number;
+  tags: string[];
+  metadata?: Record<string, unknown>;
 };
 
 export type LocalAiInstallVerifiedPayload = {
@@ -169,7 +213,26 @@ export type LocalAiInstallVerifiedPayload = {
   endpoint?: string;
 };
 
+export type LocalAiInstallVerifiedArtifactPayload = {
+  templateId: string;
+};
+
 export type LocalAiImportPayload = {
   manifestPath: string;
   endpoint?: string;
+};
+
+export type LocalAiImportArtifactPayload = {
+  manifestPath: string;
+};
+
+export type LocalAiListArtifactsPayload = {
+  status?: LocalAiArtifactStatus;
+  kind?: LocalAiArtifactKind;
+  engine?: string;
+};
+
+export type LocalAiListVerifiedArtifactsPayload = {
+  kind?: LocalAiArtifactKind;
+  engine?: string;
 };
