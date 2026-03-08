@@ -5,6 +5,7 @@ import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
+import { Tooltip } from '@renderer/components/tooltip.js';
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model';
 import { toProfileData } from '@renderer/features/profile/profile-model';
 import type { ProfileData } from '@renderer/features/profile/profile-model';
@@ -368,7 +369,7 @@ export function ContactsView(props: ContactsViewProps) {
                     setSelectedRequest(null);
                     setSelectedCategory(null);
                   }}
-                  className="ml-1 flex h-6 w-6 items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="ml-1 flex h-6 w-6 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
                   title="Clear"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -378,17 +379,19 @@ export function ContactsView(props: ContactsViewProps) {
                 </button>
               )}
             </div>
-            <button
-              type="button"
-              onClick={props.onOpenAddContact}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[999px] border-2 border-[#4ECCA3] bg-white text-[#4ECCA3] shadow-sm transition-colors hover:bg-[#4ECCA3]/5"
-              title="Add Friend"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
+            <Tooltip content="Add Friend" placement="bottom">
+              <button
+                type="button"
+                onClick={props.onOpenAddContact}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[999px] border-2 border-[#4ECCA3] bg-white text-[#4ECCA3] shadow-sm transition-colors hover:bg-[#4ECCA3]/5"
+                aria-label="Add Friend"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              </button>
+            </Tooltip>
           </div>
         </div>
 

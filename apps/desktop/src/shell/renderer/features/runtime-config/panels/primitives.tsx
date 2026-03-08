@@ -4,6 +4,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { Tooltip } from '@renderer/components/tooltip.js';
 import {
   statusTextV11,
   type ProviderStatusV11,
@@ -130,7 +131,9 @@ export function RuntimeSelect({
         disabled={disabled}
         className={`flex w-full items-center justify-between border border-mint-100 bg-[#F4FBF8] text-gray-900 outline-none transition-all hover:border-mint-300 focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100 disabled:opacity-60 ${triggerClass}`}
       >
-        <span className="min-w-0 flex-1 truncate text-left" title={selectedLabel}>{selectedLabel}</span>
+        <Tooltip content={selectedLabel} placement="top" className="min-w-0 flex-1 justify-start">
+          <span className="min-w-0 flex-1 truncate text-left">{selectedLabel}</span>
+        </Tooltip>
         <svg
           width="16"
           height="16"

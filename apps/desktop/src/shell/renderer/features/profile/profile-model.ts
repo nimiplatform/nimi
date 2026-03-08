@@ -1,6 +1,6 @@
-export type ProfileTab = 'Posts' | 'Media' | 'Collections' | 'Gifts';
+export type ProfileTab = 'Posts' | 'Collections' | 'Likes' | 'Gifts';
 
-export const PROFILE_TABS: ProfileTab[] = ['Posts', 'Media', 'Collections', 'Gifts'];
+export const PROFILE_TABS: ProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gifts'];
 
 export type GiftWallItem = {
   id: string;

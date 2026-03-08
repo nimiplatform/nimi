@@ -233,14 +233,7 @@ fn write_oauth_callback_page(stream: &mut std::net::TcpStream, success: bool) {
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            animation: gradientShift 8s ease infinite;
-            background-size: 200% 200%;
-        }
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+            background: #ffffff;
         }
         .container {
             text-align: center;

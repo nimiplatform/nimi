@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
@@ -97,6 +97,42 @@ type TurnInputProps = {
   className?: string;
   showTopBorder?: boolean;
 };
+
+type TooltipProps = {
+  children: ReactNode;
+  content: string;
+  placement?: 'top' | 'bottom';
+};
+
+function Tooltip({ children, content, placement = 'top' }: TooltipProps) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  const positionClass = placement === 'bottom' 
+    ? 'top-full mt-2' 
+    : 'bottom-full mb-2';
+  
+  const hiddenTransform = placement === 'bottom' ? '-translate-y-1' : 'translate-y-1';
+  const visibleTransform = placement === 'bottom' ? 'translate-y-0' : '-translate-y-0';
+
+  return (
+    <div
+      className="relative flex items-center justify-center"
+      onMouseEnter={() => setIsVisible(true)}
+      onMouseLeave={() => setIsVisible(false)}
+    >
+      {children}
+      <div
+        className={`absolute ${positionClass} z-50 transition-all duration-200 ${
+          isVisible ? `opacity-100 ${visibleTransform}` : `opacity-0 ${hiddenTransform} pointer-events-none`
+        }`}
+      >
+        <div className="px-3 py-1.5 text-xs font-medium text-white bg-gray-900 rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.25)] whitespace-nowrap">
+          {content}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function TurnInput(props: TurnInputProps = {}) {
   const { t } = useTranslation();
@@ -526,46 +562,49 @@ export function TurnInput(props: TurnInputProps = {}) {
         {/* Toolbar row */}
         <div className="mt-2 mt-auto flex items-center justify-between">
           <div className="flex items-center gap-1">
-            <button
-              ref={emojiButtonRef}
-              type="button"
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
-                showEmojiPicker
-                  ? 'bg-[#0066CC] text-white'
-                  : 'text-gray-500 hover:bg-gray-200/50 hover:text-gray-700'
-              }`}
-              aria-label={t('TurnInput.emoji')}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-                <line x1="9" y1="9" x2="9.01" y2="9" />
-                <line x1="15" y1="9" x2="15.01" y2="9" />
-              </svg>
-            </button>
+            <Tooltip content={t('TurnInput.emoji')}>
+              <button
+                ref={emojiButtonRef}
+                type="button"
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
+                  showEmojiPicker
+                    ? 'bg-[#0066CC] text-white'
+                    : 'text-gray-500 hover:bg-gray-200/50 hover:text-gray-700'
+                }`}
+                aria-label={t('TurnInput.emoji')}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                  <line x1="9" y1="9" x2="9.01" y2="9" />
+                  <line x1="15" y1="9" x2="15.01" y2="9" />
+                </svg>
+              </button>
+            </Tooltip>
 
             {/* File upload button */}
-            <button
-              type="button"
-              onClick={handleUploadClick}
-              disabled={!selectedChatId || isUploading}
-              className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:opacity-40 ${
-                showUploadPickerActive || isUploading || pastedImage
-                  ? 'bg-[#0066CC] text-white'
-                  : 'text-gray-500 hover:bg-gray-200/50 hover:text-gray-700'
-              }`}
-              aria-label={t('TurnInput.uploadFile')}
-              title={t('TurnInput.uploadFile')}
-            >
-              {isUploading ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
-              ) : (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-                </svg>
-              )}
-            </button>
+            <Tooltip content={t('TurnInput.uploadFile')}>
+              <button
+                type="button"
+                onClick={handleUploadClick}
+                disabled={!selectedChatId || isUploading}
+                className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:opacity-40 ${
+                  showUploadPickerActive || isUploading || pastedImage
+                    ? 'bg-[#0066CC] text-white'
+                    : 'text-gray-500 hover:bg-gray-200/50 hover:text-gray-700'
+                }`}
+                aria-label={t('TurnInput.uploadFile')}
+              >
+                {isUploading ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                  </svg>
+                )}
+              </button>
+            </Tooltip>
 
             {/* Hidden file input */}
             <input

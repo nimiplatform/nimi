@@ -7,10 +7,10 @@ import type { ChatViewDto } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import nimiLogo from '@renderer/assets/logo-gray.png';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { Tooltip } from '@renderer/components/tooltip.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal.js';
 import type { ProfileData } from '@renderer/features/profile/profile-model';
 import { toProfileData, formatProfileDate } from '@renderer/features/profile/profile-model';
-import { PostsTab } from '@renderer/features/profile/components/posts-tab';
 import { TurnInput } from './turn-input';
 import { type StreamState, getStreamState, subscribeStream, cancelStream } from './stream-controller';
 
@@ -515,9 +515,6 @@ export function MessageTimeline() {
     [currentUserFallback, otherUserFallback, profilePanelTarget, profileQuery.data],
   );
 
-  const profilePanelTitle = profilePanelTarget === 'self'
-    ? t('ChatTimeline.myProfile')
-    : t('ChatTimeline.userProfile');
   const profileActionLabel = profilePanelTarget === 'self'
     ? t('ChatTimeline.openMyProfile')
     : t('ChatTimeline.openUserProfile');
@@ -785,27 +782,11 @@ export function MessageTimeline() {
 
       {profilePanelTarget ? (
         <aside className="flex h-full w-80 shrink-0 flex-col border-l border-gray-200 bg-white">
-          <div className="flex h-12 shrink-0 items-center justify-between px-4">
-            <h3 className="text-sm font-semibold text-gray-800">{profilePanelTitle}</h3>
-            <button
-              type="button"
-              onClick={() => setProfilePanelTarget(null)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-              aria-label={t('ChatTimeline.closeProfileSidebar')}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Scrollable Content - Single scrollbar */}
           <div className="flex-1 overflow-y-auto">
-            {/* Upper: Profile Card */}
-            <div className="px-4 pb-4 pt-1">
+            <div className="px-4 py-4">
               <ChatProfileCard 
                 profileData={toProfileData(profileQuery.data || profileSummary)}
+                onClose={() => setProfilePanelTarget(null)}
                 onViewFullProfile={() => {
                   if (!profileSummary.id) return;
                   navigateToProfile(profileSummary.id, profileSummary.isAgent ? 'agent-detail' : 'profile');
@@ -816,13 +797,6 @@ export function MessageTimeline() {
                   : undefined}
               />
             </div>
-            {/* Lower: Posts */}
-            {profileSummary.id ? (
-              <div className="border-t border-gray-200/60 px-4 pb-4">
-                <h3 className="py-3 text-xs font-semibold text-gray-800">{t('ProfileView.posts')}</h3>
-                <PostsTab profileId={profileSummary.id} />
-              </div>
-            ) : null}
           </div>
         </aside>
       ) : null}
@@ -843,6 +817,7 @@ export function MessageTimeline() {
 // Chat Profile Card Component - Styled like Profile page sidebar
 type ChatProfileCardProps = {
   profileData: ProfileData;
+  onClose: () => void;
   onViewFullProfile: () => void;
   viewFullProfileLabel: string;
   onOpenGift?: () => void;
@@ -850,6 +825,7 @@ type ChatProfileCardProps = {
 
 function ChatProfileCard({
   profileData,
+  onClose,
   onViewFullProfile,
   viewFullProfileLabel,
   onOpenGift,
@@ -857,9 +833,55 @@ function ChatProfileCard({
   const { t } = useTranslation();
   const friendCount = profileData.stats?.friendsCount ?? 0;
   const postCount = profileData.stats?.postsCount ?? 0;
+  const locationLabel = profileData.city && profileData.countryCode
+    ? `${profileData.city}, ${profileData.countryCode.toUpperCase()}`
+    : profileData.city || profileData.countryCode?.toUpperCase() || '';
+  const aboutRows: Array<{ key: string; icon: React.ReactNode; label: string }> = [];
+
+  if (profileData.createdAt) {
+    aboutRows.push({
+      key: 'joined',
+      icon: <CalendarIcon className="h-3.5 w-3.5" />,
+      label: `Joined ${formatProfileDate(profileData.createdAt)}`,
+    });
+  }
+
+  if (locationLabel) {
+    aboutRows.push({
+      key: 'location',
+      icon: <LocationIcon className="h-3.5 w-3.5" />,
+      label: locationLabel,
+    });
+  }
+
+  if (profileData.gender) {
+    aboutRows.push({
+      key: 'gender',
+      icon: <UserIcon className="h-3.5 w-3.5" />,
+      label: profileData.gender,
+    });
+  }
+
+  if (profileData.languages.length > 0) {
+    aboutRows.push({
+      key: 'languages',
+      icon: <LanguageIcon className="h-3.5 w-3.5" />,
+      label: profileData.languages.join(', '),
+    });
+  }
 
   return (
-    <div className="flex flex-col items-center px-1 py-3">
+    <div className="relative flex flex-col items-center px-1 pb-3 pt-16">
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute left-0 top-0 flex h-9 w-9 items-center justify-center rounded-full text-[#7e8a9f] transition hover:bg-[#f2f6f5] hover:text-[#4ECCA3]"
+        aria-label={t('ChatTimeline.closeProfileSidebar')}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+      </button>
       <div className="flex flex-col items-center">
         <div className="relative">
           <EntityAvatar
@@ -920,52 +942,13 @@ function ChatProfileCard({
           />
         </div>
 
-        {/* Divider */}
-        <div className="my-4 w-full border-t border-gray-200" />
-
-        {/* About Section */}
-        <div className="w-full">
-          <h3 className="text-xs font-semibold text-gray-800">{t('ChatProfile.about')}</h3>
-          
-          <div className="mt-3 space-y-2">
-            <AboutRow 
-              icon={<CalendarIcon className="h-3.5 w-3.5" />}
-              label={profileData.createdAt ? `Joined ${formatProfileDate(profileData.createdAt)}` : '-'}
-            />
-            <AboutRow 
-              icon={<LocationIcon className="h-3.5 w-3.5" />}
-              label={profileData.city && profileData.countryCode 
-                ? `${profileData.city}, ${profileData.countryCode.toUpperCase()}`
-                : profileData.city || profileData.countryCode?.toUpperCase() || '-'
-              }
-            />
-            <AboutRow 
-              icon={<UserIcon className="h-3.5 w-3.5" />}
-              label={profileData.gender || '-'}
-            />
-            <AboutRow 
-              icon={<LanguageIcon className="h-3.5 w-3.5" />}
-              label={profileData.languages.join(', ') || '-'}
-            />
+        {aboutRows.length > 0 ? (
+          <div className="mt-4 w-full space-y-2">
+            {aboutRows.map((row) => (
+              <AboutRow key={row.key} icon={row.icon} label={row.label} />
+            ))}
           </div>
-
-          {/* Tags */}
-          {profileData.tags.length > 0 && (
-            <div className="mt-4 border-t border-gray-200 pt-3">
-              <h3 className="text-xs font-semibold text-gray-800 mb-2">{t('ChatProfile.tags')}</h3>
-              <div className="flex flex-wrap gap-1.5">
-                {profileData.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-lg bg-[#4ECCA3]/15 px-2 py-1 text-[11px] font-medium text-[#2A9D8F] backdrop-blur-sm transition hover:bg-[#4ECCA3]/25"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        ) : null}
       </div>
     </div>
   );
@@ -978,19 +961,20 @@ function ProfileActionButton(input: {
   variant?: 'solid' | 'outline';
 }) {
   const buttonClassName = input.variant === 'outline'
-    ? 'border-2 border-[#4ECCA3] bg-white text-[#4ECCA3] shadow-[0_8px_22px_rgba(78,204,163,0.12)] hover:-translate-y-0.5 hover:border-[#3DBA92] hover:text-[#3DBA92] hover:shadow-[0_12px_28px_rgba(78,204,163,0.18)]'
-    : 'bg-[#4ECCA3] text-white shadow-[0_8px_22px_rgba(78,204,163,0.3)] hover:-translate-y-0.5 hover:bg-[#3DBA92] hover:shadow-[0_12px_28px_rgba(78,204,163,0.38)]';
+    ? 'border-2 border-[#4ECCA3] bg-white text-[#4ECCA3] hover:-translate-y-0.5 hover:border-[#3DBA92] hover:text-[#3DBA92]'
+    : 'bg-[#4ECCA3] text-white hover:-translate-y-0.5 hover:bg-[#3DBA92]';
 
   return (
-    <button
-      type="button"
-      onClick={input.onClick}
-      className={`flex h-10 w-10 items-center justify-center rounded-full transition-all active:translate-y-0 ${buttonClassName}`}
-      aria-label={input.label}
-      title={input.label}
-    >
-      {input.icon}
-    </button>
+    <Tooltip content={input.label} placement="top">
+      <button
+        type="button"
+        onClick={input.onClick}
+        className={`flex h-10 w-10 items-center justify-center rounded-full transition-all active:translate-y-0 ${buttonClassName}`}
+        aria-label={input.label}
+      >
+        {input.icon}
+      </button>
+    </Tooltip>
   );
 }
 

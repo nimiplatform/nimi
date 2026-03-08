@@ -190,9 +190,7 @@ export function ChatList() {
                   onClick={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
-                    // Mark that avatar was clicked
                     avatarClickedRef.current = true;
-                    // First select the chat, then open profile panel
                     setSelectedChatId(chat.id);
                     setChatProfilePanelTarget('other');
                   }}
