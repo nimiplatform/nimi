@@ -175,9 +175,16 @@ func TestRequireSubjectUserIDForScenario(t *testing.T) {
 			wantRequire: false,
 		},
 		{
-			name:        "managed local runtime connector",
+			name:        "managed key source without resolved remote target",
 			route:       runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
 			parsed:      ParsedKeySource{KeySource: keySourceManaged, ConnectorID: "conn-1"},
+			wantRequire: false,
+		},
+		{
+			name:        "resolved managed remote connector",
+			route:       runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			parsed:      ParsedKeySource{KeySource: keySourceManaged, ConnectorID: "conn-1"},
+			remote:      &nimillm.RemoteTarget{ProviderType: "openai"},
 			wantRequire: true,
 		},
 		{

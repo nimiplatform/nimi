@@ -33,6 +33,12 @@
 
 connector 层是薄描述，不承载用户路由策略。具体执行路由由模型级元数据与执行模块决定。
 
+Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / probe facade：
+
+- 可用于 `ListConnectors`、`TestConnector`、`ListConnectorModels` 等能力发现与聚合探测场景
+- 不得作为 AI consume 的 `connector_id` 执行入口
+- 本地执行必须走 local-runtime 模型路由（见 `K-LOCAL-020`），而不是 local connector
+
 ## K-LOCAL-005 Local 生命周期状态机锚点
 
 `local_model_lifecycle` 与 `local_service_lifecycle` 的状态与迁移来源由 `tables/state-transitions.yaml` 固定：

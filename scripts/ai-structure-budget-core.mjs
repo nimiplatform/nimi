@@ -244,6 +244,7 @@ export function evaluateAiStructureBudget(options = {}) {
   const errors = [];
   const waivedErrors = [];
   const expiredWaivers = [];
+  let analyzedFiles = 0;
 
   for (const relativePath of files) {
     if (matchesAny(relativePath, excludeMatchers)) {
@@ -259,6 +260,7 @@ export function evaluateAiStructureBudget(options = {}) {
     if (!fs.existsSync(absolutePath)) {
       continue;
     }
+    analyzedFiles += 1;
 
     const depthInfo = describeDepthSubject(relativePath, rule.depthBase);
     const depth = depthInfo.depth;
@@ -322,7 +324,7 @@ export function evaluateAiStructureBudget(options = {}) {
   return {
     configPath,
     totalTrackedFiles: files.length,
-    analyzedFiles: rows.length === 0 ? 0 : new Set(rows.map((row) => row.file)).size,
+    analyzedFiles,
     rows,
     warnings,
     errors,

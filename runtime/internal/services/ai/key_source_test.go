@@ -267,6 +267,34 @@ func TestResolveKeySourceManagedNotFound(t *testing.T) {
 	}
 }
 
+func TestResolveKeySourceManagedLocalConnectorInvalid(t *testing.T) {
+	store := connector.NewConnectorStore(t.TempDir())
+	rec := connector.ConnectorRecord{
+		ConnectorID:   "conn-local",
+		Kind:          runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL,
+		OwnerType:     runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
+		OwnerID:       "system",
+		Provider:      "local",
+		Status:        runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+		LocalCategory: runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_LLM,
+	}
+	if err := store.Create(rec, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := resolveKeySourceToTarget(context.Background(), ParsedKeySource{
+		KeySource:   "managed",
+		ConnectorID: "conn-local",
+	}, store, false)
+	if err == nil {
+		t.Fatal("expected local connector managed path to be rejected")
+	}
+	st, _ := status.FromError(err)
+	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_CONNECTOR_INVALID) {
+		t.Fatalf("expected AI_CONNECTOR_INVALID, got %s", st.Message())
+	}
+}
+
 func TestResolveKeySourceManagedOwnerMismatchNotFound(t *testing.T) {
 	store := connector.NewConnectorStore(t.TempDir())
 	rec := connector.ConnectorRecord{

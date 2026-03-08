@@ -15,6 +15,7 @@
   - Mods must not bypass `nimi-hook` to call `@nimiplatform/sdk/runtime`.
   - Runtime must not import from `sdk/**` or `apps/desktop/**`.
 - Keep AI-facing structure shallow: no file/directory collisions, no forwarding shells outside `index.ts`, and no new debug paths longer than three hops from UI to business logic.
+- Structure budget depth is measured from each layer's source root (`runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/*/src`, `apps/desktop/src-tauri/src`, `scripts`), not repo root.
 
 ## Retrieval Defaults
 - Start with targeted source paths: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `spec/*/kernel`, `scripts`.

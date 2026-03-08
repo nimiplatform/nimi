@@ -9,6 +9,7 @@
 - Prefer thin CLI entrypoints plus reusable modules under `scripts/lib/**`.
 - Do not add network-dependent `check-*` gates.
 - Generated outputs must come from source-of-truth inputs; do not hand-edit generated targets to satisfy a drift check.
+- Structure budget depth for scripts is measured from `scripts/`, so avoid introducing new nested helper trees when a flat lib module is sufficient.
 
 ## Retrieval Defaults
 - Start in the exact script entrypoint and then the minimal helper modules it imports.

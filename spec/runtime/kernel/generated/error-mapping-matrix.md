@@ -12,6 +12,7 @@
 | `AI_CONNECTOR_DISABLED` | `FAILED_PRECONDITION` | `consume_or_connector_probe` | `grpc_status` | `K-ERR-004` |
 | `AI_CONNECTOR_CREDENTIAL_MISSING` | `FAILED_PRECONDITION` | `consume_or_list_models` | `grpc_status` | `K-ERR-004` |
 | `AI_CONNECTOR_INVALID` | `INVALID_ARGUMENT` | `connector_manage_input_validation` | `grpc_status` | `K-ERR-006` |
+| `AI_CONNECTOR_INVALID` | `INVALID_ARGUMENT` | `consume_local_connector_managed_path` | `grpc_status` | `K-KEYSRC-009` |
 | `AI_CONNECTOR_IMMUTABLE` | `FAILED_PRECONDITION` | `connector_manage_immutable_field_update` | `grpc_status` | `K-ERR-006` |
 | `AI_CONNECTOR_LIMIT_EXCEEDED` | `RESOURCE_EXHAUSTED` | `create_connector_limit_guard` | `grpc_status` | `K-ERR-006` |
 | `AI_CONNECTOR_CREDENTIAL_MISSING` | `OK` | `test_connector` | `payload_ok_false` | `K-ERR-004` |

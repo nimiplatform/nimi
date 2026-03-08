@@ -96,10 +96,7 @@ func requireSubjectUserIDForScenario(
 	if remoteTarget != nil {
 		return true
 	}
-	if strings.TrimSpace(parsed.ConnectorID) != "" {
-		return true
-	}
-	if strings.TrimSpace(parsed.KeySource) == keySourceManaged || strings.TrimSpace(parsed.KeySource) == keySourceInline {
+	if strings.TrimSpace(parsed.KeySource) == keySourceInline {
 		return true
 	}
 	if strings.TrimSpace(parsed.ProviderType) != "" || strings.TrimSpace(parsed.Endpoint) != "" || strings.TrimSpace(parsed.APIKey) != "" {

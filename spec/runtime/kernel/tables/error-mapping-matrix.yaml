@@ -41,6 +41,11 @@ mappings:
     surface: connector_manage_input_validation
     exit_shape: grpc_status
     source: K-ERR-006
+  - reason_code: AI_CONNECTOR_INVALID
+    grpc_code: INVALID_ARGUMENT
+    surface: consume_local_connector_managed_path
+    exit_shape: grpc_status
+    source: K-KEYSRC-009
   - reason_code: AI_CONNECTOR_IMMUTABLE
     grpc_code: FAILED_PRECONDITION
     surface: connector_manage_immutable_field_update

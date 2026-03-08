@@ -149,6 +149,12 @@ func resolveManagedTarget(ctx context.Context, connectorID string, connStore *co
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
 
+	// Local connectors are category facades for discovery/probe only.
+	// AI consume accepts connector_id only for remote managed connectors.
+	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+	}
+
 	// Owner -> status -> credential order to avoid side-channel leakage for managed connectors.
 	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED &&
 		rec.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER {
@@ -182,8 +188,7 @@ func resolveManagedTarget(ctx context.Context, connectorID string, connStore *co
 	}
 
 	// Endpoint security validation (K-SEC-004)
-	isLocal := rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL
-	allowLoopbackTarget := allowLoopback || isLocal
+	allowLoopbackTarget := allowLoopback
 	if err := endpointsec.ValidateEndpoint(endpoint, allowLoopbackTarget); err != nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
 	}

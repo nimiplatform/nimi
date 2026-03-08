@@ -80,3 +80,30 @@ waivers: []
   assert.equal(row.depth, 3);
   assert.equal(row.severity, 'warning');
 });
+
+test('evaluateAiStructureBudget reports analyzed files even when no rows breach thresholds', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-ai-structure-budget-'));
+
+  writeFile(path.join(tempDir, 'dev/config/ai-structure-budget.yaml'), `
+version: 1
+allowed_forwarding_shells:
+  - index.ts
+rules:
+  - id: scripts
+    include:
+      - "scripts/**"
+    depth_base: "scripts"
+    warning_depth: 4
+    error_depth: 5
+exclude: []
+waivers: []
+`);
+  writeFile(path.join(tempDir, 'scripts/check.mjs'), 'export const value = 1;\n');
+
+  execFileSync('git', ['init', '-q'], { cwd: tempDir });
+  execFileSync('git', ['add', '.'], { cwd: tempDir });
+
+  const report = evaluateAiStructureBudget({ cwd: tempDir });
+  assert.equal(report.rows.length, 0);
+  assert.equal(report.analyzedFiles, 1);
+});
