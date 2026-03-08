@@ -41,7 +41,7 @@ async function run(): Promise<void> {
   const { endpoint, provider } = createProviderContext({
     appId,
     subjectUserId,
-    routePolicy: 'local-runtime',
+    routePolicy: 'local',
   });
 
   print(`[localai] runtime grpc endpoint: ${endpoint}`);

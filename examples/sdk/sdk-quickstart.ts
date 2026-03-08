@@ -46,7 +46,7 @@ async function generateText() {
     subjectUserId: 'local-user',
     input: 'What is the Nimi platform?',
     maxTokens: 256,
-    route: 'local-runtime',
+    route: 'local',
     fallback: 'deny',
     timeoutMs: 30000,
   });

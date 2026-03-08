@@ -103,8 +103,8 @@ test('sdk-runtime can submit/get workflow against runtime gRPC daemon', {
 
         assert.equal(status, 4, 'workflow should complete');
 
-        const localModels = await client.localRuntime.listLocalModels({});
-        assert.ok(Array.isArray(localModels.models), 'localRuntime.listLocalModels should return array');
+        const localModels = await client.local.listLocalModels({});
+        assert.ok(Array.isArray(localModels.models), 'local.listLocalModels should return array');
       },
     });
   } catch (error) {

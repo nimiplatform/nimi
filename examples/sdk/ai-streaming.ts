@@ -20,7 +20,7 @@ async function basicStream() {
     subjectUserId: 'local-user',
     input: 'Write a short haiku about open source.',
     maxTokens: 128,
-    route: 'local-runtime',
+    route: 'local',
     fallback: 'deny',
     timeoutMs: 120000,
   });
@@ -56,7 +56,7 @@ async function streamFailureCase() {
     subjectUserId: 'local-user',
     input: 'test',
     maxTokens: 64,
-    route: 'local-runtime',
+    route: 'local',
     fallback: 'deny',
     timeoutMs: 20000,
   });

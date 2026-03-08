@@ -6,16 +6,16 @@ import {
   parseRuntimeRouteOptions,
 } from '../../src/mod/runtime-route.js';
 
-test('parseRuntimeRouteBinding keeps token-api provider metadata', () => {
+test('parseRuntimeRouteBinding keeps cloud provider metadata', () => {
   const parsed = parseRuntimeRouteBinding({
-    source: 'token-api',
+    source: 'cloud',
     connectorId: 'connector-dashscope',
     provider: 'dashscope',
     model: 'wan2.6-t2i',
   });
 
   assert.deepEqual(parsed, {
-    source: 'token-api',
+    source: 'cloud',
     connectorId: 'connector-dashscope',
     provider: 'dashscope',
     model: 'wan2.6-t2i',
@@ -34,18 +34,18 @@ test('parseRuntimeRouteOptions keeps connector providers and models', () => {
   const parsed = parseRuntimeRouteOptions({
     capability: 'image.generate',
     selected: {
-      source: 'token-api',
+      source: 'cloud',
       connectorId: 'connector-dashscope',
       provider: 'dashscope',
       model: 'wan2.6-t2i',
     },
     resolvedDefault: {
-      source: 'token-api',
+      source: 'cloud',
       connectorId: 'connector-dashscope',
       provider: 'dashscope',
       model: 'wan2.6-t2i',
     },
-    localRuntime: {
+    local: {
       models: [],
     },
     connectors: [{
@@ -77,11 +77,11 @@ test('parseRuntimeRouteOptions keeps connector providers and models', () => {
   ]);
 });
 
-test('parseRuntimeRouteOptions keeps local-runtime adapter and go runtime metadata', () => {
+test('parseRuntimeRouteOptions keeps local adapter and go runtime metadata', () => {
   const parsed = parseRuntimeRouteOptions({
     capability: 'image.generate',
     selected: {
-      source: 'local-runtime',
+      source: 'local',
       connectorId: '',
       model: 'z-image-turbo',
       modelId: 'z-image-turbo',
@@ -92,7 +92,7 @@ test('parseRuntimeRouteOptions keeps local-runtime adapter and go runtime metada
       goRuntimeLocalModelId: '01JTESTLOCALAIMODEL',
       goRuntimeStatus: 'active',
     },
-    localRuntime: {
+    local: {
       models: [{
         localModelId: 'file:z-image-turbo',
         model: 'z-image-turbo',
@@ -111,5 +111,5 @@ test('parseRuntimeRouteOptions keeps local-runtime adapter and go runtime metada
   assert.ok(parsed);
   assert.equal(parsed?.selected.adapter, 'localai_native_adapter');
   assert.equal(parsed?.selected.goRuntimeStatus, 'active');
-  assert.equal(parsed?.localRuntime.models[0]?.goRuntimeLocalModelId, '01JTESTLOCALAIMODEL');
+  assert.equal(parsed?.local.models[0]?.goRuntimeLocalModelId, '01JTESTLOCALAIMODEL');
 });

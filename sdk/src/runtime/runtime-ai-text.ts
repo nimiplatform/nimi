@@ -91,7 +91,7 @@ export async function runtimeGenerateText(
   });
 
   ctx.emitTelemetry('ai.route.decision', {
-    route: trace.routeDecision || 'local-runtime',
+    route: trace.routeDecision || 'local',
     model: request.head.modelId,
     traceId: trace.traceId,
   });
@@ -162,7 +162,7 @@ export async function runtimeStreamText(
   const wrapped: AsyncIterable<TextStreamOutput['stream'] extends AsyncIterable<infer Part> ? Part : never> = {
     async *[Symbol.asyncIterator]() {
       let streamModelResolved = '';
-      let streamRouteDecision: RoutePolicy = RoutePolicy.LOCAL_RUNTIME;
+      let streamRouteDecision: RoutePolicy = RoutePolicy.LOCAL;
       let streamUsage: unknown = undefined;
 
       yield { type: 'start' as const };
@@ -173,9 +173,9 @@ export async function runtimeStreamText(
           const started = asRecord(asRecord(event.payload).started);
           streamModelResolved = normalizeText(started.modelResolved);
           const routeDecision = Number(started.routeDecision);
-          streamRouteDecision = routeDecision === RoutePolicy.TOKEN_API
-            ? RoutePolicy.TOKEN_API
-            : RoutePolicy.LOCAL_RUNTIME;
+          streamRouteDecision = routeDecision === RoutePolicy.CLOUD
+            ? RoutePolicy.CLOUD
+            : RoutePolicy.LOCAL;
           ctxRef.emitTelemetry('ai.route.decision', {
             route: fromRoutePolicy(streamRouteDecision),
             model: streamModelResolved || ensureText(input.model, 'model'),
@@ -299,7 +299,7 @@ export async function runtimeGenerateEmbedding(
   });
 
   ctx.emitTelemetry('ai.route.decision', {
-    route: trace.routeDecision || 'local-runtime',
+    route: trace.routeDecision || 'local',
     model: ensureText(input.model, 'model'),
     traceId: trace.traceId,
   });

@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { Runtime } from '@nimiplatform/sdk';
 import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
 
-export type ProviderRoute = 'local-runtime' | 'token-api';
+export type ProviderRoute = 'local' | 'cloud';
 
 export type ProviderContext = {
   endpoint: string;

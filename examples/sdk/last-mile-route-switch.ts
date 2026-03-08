@@ -11,7 +11,7 @@ import { generateText } from 'ai';
 const APP_ID = 'example.last-mile-route-switch';
 const SUBJECT_USER_ID = 'local-user';
 
-type RoutePolicy = 'local-runtime' | 'token-api';
+type RoutePolicy = 'local' | 'cloud';
 
 type Scenario = {
   routePolicy: RoutePolicy;
@@ -86,13 +86,13 @@ async function main(): Promise<void> {
   process.stdout.write('same code path, only routePolicy changes\n');
 
   await runScenario(runtime, {
-    routePolicy: 'local-runtime',
+    routePolicy: 'local',
     model: localModel,
     prompt: 'In one sentence, what does Nimi solve for app developers?',
   });
 
   await runScenario(runtime, {
-    routePolicy: 'token-api',
+    routePolicy: 'cloud',
     model: cloudModel,
     prompt: 'In one sentence, what does Nimi solve for app developers?',
   });

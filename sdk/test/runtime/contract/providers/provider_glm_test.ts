@@ -156,7 +156,7 @@ test('provider_glm_test.ts: glm task/native media via nimi-sdk', {
           runtime,
           appId: APP_ID,
           subjectUserId: SUBJECT_USER_ID,
-          routePolicy: 'token-api',
+          routePolicy: 'cloud',
           fallback: 'deny',
           timeoutMs: 30_000,
         });

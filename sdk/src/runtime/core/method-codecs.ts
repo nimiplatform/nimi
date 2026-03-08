@@ -321,123 +321,123 @@ export const RuntimeUnaryMethodCodecs: Record<string, RuntimeUnaryMethodCodec<un
     requestType: CheckModelHealthRequest,
     responseType: CheckModelHealthResponse,
   },
-  [RuntimeMethodIds.localRuntime.listLocalModels]: {
+  [RuntimeMethodIds.local.listLocalModels]: {
     requestType: ListLocalModelsRequest,
     responseType: ListLocalModelsResponse,
   },
-  [RuntimeMethodIds.localRuntime.listLocalArtifacts]: {
+  [RuntimeMethodIds.local.listLocalArtifacts]: {
     requestType: ListLocalArtifactsRequest,
     responseType: ListLocalArtifactsResponse,
   },
-  [RuntimeMethodIds.localRuntime.listVerifiedModels]: {
+  [RuntimeMethodIds.local.listVerifiedModels]: {
     requestType: ListVerifiedModelsRequest,
     responseType: ListVerifiedModelsResponse,
   },
-  [RuntimeMethodIds.localRuntime.listVerifiedArtifacts]: {
+  [RuntimeMethodIds.local.listVerifiedArtifacts]: {
     requestType: ListVerifiedArtifactsRequest,
     responseType: ListVerifiedArtifactsResponse,
   },
-  [RuntimeMethodIds.localRuntime.searchCatalogModels]: {
+  [RuntimeMethodIds.local.searchCatalogModels]: {
     requestType: SearchCatalogModelsRequest,
     responseType: SearchCatalogModelsResponse,
   },
-  [RuntimeMethodIds.localRuntime.resolveModelInstallPlan]: {
+  [RuntimeMethodIds.local.resolveModelInstallPlan]: {
     requestType: ResolveModelInstallPlanRequest,
     responseType: ResolveModelInstallPlanResponse,
   },
-  [RuntimeMethodIds.localRuntime.installLocalModel]: {
+  [RuntimeMethodIds.local.installLocalModel]: {
     requestType: InstallLocalModelRequest,
     responseType: InstallLocalModelResponse,
   },
-  [RuntimeMethodIds.localRuntime.installVerifiedModel]: {
+  [RuntimeMethodIds.local.installVerifiedModel]: {
     requestType: InstallVerifiedModelRequest,
     responseType: InstallVerifiedModelResponse,
   },
-  [RuntimeMethodIds.localRuntime.installVerifiedArtifact]: {
+  [RuntimeMethodIds.local.installVerifiedArtifact]: {
     requestType: InstallVerifiedArtifactRequest,
     responseType: InstallVerifiedArtifactResponse,
   },
-  [RuntimeMethodIds.localRuntime.importLocalModel]: {
+  [RuntimeMethodIds.local.importLocalModel]: {
     requestType: ImportLocalModelRequest,
     responseType: ImportLocalModelResponse,
   },
-  [RuntimeMethodIds.localRuntime.importLocalArtifact]: {
+  [RuntimeMethodIds.local.importLocalArtifact]: {
     requestType: ImportLocalArtifactRequest,
     responseType: ImportLocalArtifactResponse,
   },
-  [RuntimeMethodIds.localRuntime.removeLocalModel]: {
+  [RuntimeMethodIds.local.removeLocalModel]: {
     requestType: RemoveLocalModelRequest,
     responseType: RemoveLocalModelResponse,
   },
-  [RuntimeMethodIds.localRuntime.removeLocalArtifact]: {
+  [RuntimeMethodIds.local.removeLocalArtifact]: {
     requestType: RemoveLocalArtifactRequest,
     responseType: RemoveLocalArtifactResponse,
   },
-  [RuntimeMethodIds.localRuntime.startLocalModel]: {
+  [RuntimeMethodIds.local.startLocalModel]: {
     requestType: StartLocalModelRequest,
     responseType: StartLocalModelResponse,
   },
-  [RuntimeMethodIds.localRuntime.stopLocalModel]: {
+  [RuntimeMethodIds.local.stopLocalModel]: {
     requestType: StopLocalModelRequest,
     responseType: StopLocalModelResponse,
   },
-  [RuntimeMethodIds.localRuntime.checkLocalModelHealth]: {
+  [RuntimeMethodIds.local.checkLocalModelHealth]: {
     requestType: CheckLocalModelHealthRequest,
     responseType: CheckLocalModelHealthResponse,
   },
-  [RuntimeMethodIds.localRuntime.warmLocalModel]: {
+  [RuntimeMethodIds.local.warmLocalModel]: {
     requestType: WarmLocalModelRequest,
     responseType: WarmLocalModelResponse,
   },
-  [RuntimeMethodIds.localRuntime.collectDeviceProfile]: {
+  [RuntimeMethodIds.local.collectDeviceProfile]: {
     requestType: CollectDeviceProfileRequest,
     responseType: CollectDeviceProfileResponse,
   },
-  [RuntimeMethodIds.localRuntime.resolveDependencies]: {
+  [RuntimeMethodIds.local.resolveDependencies]: {
     requestType: ResolveDependenciesRequest,
     responseType: ResolveDependenciesResponse,
   },
-  [RuntimeMethodIds.localRuntime.applyDependencies]: {
+  [RuntimeMethodIds.local.applyDependencies]: {
     requestType: ApplyDependenciesRequest,
     responseType: ApplyDependenciesResponse,
   },
-  [RuntimeMethodIds.localRuntime.listLocalServices]: {
+  [RuntimeMethodIds.local.listLocalServices]: {
     requestType: ListLocalServicesRequest,
     responseType: ListLocalServicesResponse,
   },
-  [RuntimeMethodIds.localRuntime.installLocalService]: {
+  [RuntimeMethodIds.local.installLocalService]: {
     requestType: InstallLocalServiceRequest,
     responseType: InstallLocalServiceResponse,
   },
-  [RuntimeMethodIds.localRuntime.startLocalService]: {
+  [RuntimeMethodIds.local.startLocalService]: {
     requestType: StartLocalServiceRequest,
     responseType: StartLocalServiceResponse,
   },
-  [RuntimeMethodIds.localRuntime.stopLocalService]: {
+  [RuntimeMethodIds.local.stopLocalService]: {
     requestType: StopLocalServiceRequest,
     responseType: StopLocalServiceResponse,
   },
-  [RuntimeMethodIds.localRuntime.checkLocalServiceHealth]: {
+  [RuntimeMethodIds.local.checkLocalServiceHealth]: {
     requestType: CheckLocalServiceHealthRequest,
     responseType: CheckLocalServiceHealthResponse,
   },
-  [RuntimeMethodIds.localRuntime.removeLocalService]: {
+  [RuntimeMethodIds.local.removeLocalService]: {
     requestType: RemoveLocalServiceRequest,
     responseType: RemoveLocalServiceResponse,
   },
-  [RuntimeMethodIds.localRuntime.listNodeCatalog]: {
+  [RuntimeMethodIds.local.listNodeCatalog]: {
     requestType: ListNodeCatalogRequest,
     responseType: ListNodeCatalogResponse,
   },
-  [RuntimeMethodIds.localRuntime.listLocalAudits]: {
+  [RuntimeMethodIds.local.listLocalAudits]: {
     requestType: ListLocalAuditsRequest,
     responseType: ListLocalAuditsResponse,
   },
-  [RuntimeMethodIds.localRuntime.appendInferenceAudit]: {
+  [RuntimeMethodIds.local.appendInferenceAudit]: {
     requestType: AppendInferenceAuditRequest,
     responseType: Ack,
   },
-  [RuntimeMethodIds.localRuntime.appendRuntimeAudit]: {
+  [RuntimeMethodIds.local.appendRuntimeAudit]: {
     requestType: AppendRuntimeAuditRequest,
     responseType: Ack,
   },

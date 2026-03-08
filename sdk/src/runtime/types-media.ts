@@ -6,7 +6,7 @@ import type {
   ScenarioJobEvent,
 } from './generated/runtime/v1/ai';
 
-export type NimiRoutePolicy = 'local-runtime' | 'token-api';
+export type NimiRoutePolicy = 'local' | 'cloud';
 
 export type NimiFallbackPolicy = 'deny' | 'allow';
 

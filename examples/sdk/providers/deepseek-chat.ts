@@ -102,7 +102,7 @@ async function main(): Promise<void> {
     subjectUserId,
     connectorId,
     input: prompt,
-    route: 'token-api',
+    route: 'cloud',
     fallback: 'deny',
     timeoutMs: 120000,
     metadata: {

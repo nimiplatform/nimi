@@ -114,11 +114,11 @@ export function ensureText(value: unknown, fieldName: string): string {
 }
 
 export function toRoutePolicy(value: NimiRoutePolicy | undefined): RoutePolicy {
-  return value === 'token-api' ? RoutePolicy.TOKEN_API : RoutePolicy.LOCAL_RUNTIME;
+  return value === 'cloud' ? RoutePolicy.CLOUD : RoutePolicy.LOCAL;
 }
 
 export function fromRoutePolicy(value: RoutePolicy): NimiRoutePolicy {
-  return value === RoutePolicy.TOKEN_API ? 'token-api' : 'local-runtime';
+  return value === RoutePolicy.CLOUD ? 'cloud' : 'local';
 }
 
 export function toFallbackPolicy(value: NimiFallbackPolicy | undefined): FallbackPolicy {
@@ -182,7 +182,7 @@ export function toTraceInfo(input: {
   return {
     traceId: normalizeText(input.traceId) || undefined,
     modelResolved: normalizeText(input.modelResolved) || undefined,
-    routeDecision: Number(input.routeDecision) === RoutePolicy.TOKEN_API ? 'token-api' : 'local-runtime',
+    routeDecision: Number(input.routeDecision) === RoutePolicy.CLOUD ? 'cloud' : 'local',
   };
 }
 

@@ -3,7 +3,7 @@ import { ExecutionMode, ScenarioType } from '../../../../src/runtime/generated/r
 import { VoiceReferenceKind } from '../../../../src/runtime/generated/runtime/v1/voice.js';
 import { loadGoldFixture, loadGoldFixtureAudioInput } from '../../../../../scripts/ai-gold-path/fixtures.mjs';
 
-function toTokenApiModelID(modelId: string): string {
+function toCloudModelID(modelId: string): string {
   const normalized = String(modelId || '').trim();
   if (!normalized || normalized.startsWith('cloud/') || normalized.includes('/')) {
     return normalized;
@@ -149,7 +149,7 @@ async function main(): Promise<void> {
 
   const fixture = loadGoldFixture(fixturePath);
   const fixtureAudio = loadGoldFixtureAudioInput(fixture);
-  const runtimeModelId = toTokenApiModelID(fixture.model_id);
+  const runtimeModelId = toCloudModelID(fixture.model_id);
   const subjectUserId = requireGoldSubjectUserId();
   const runtime = new Runtime({
     appId: 'nimi.desktop.sdk.ai.gold',
@@ -174,7 +174,7 @@ async function main(): Promise<void> {
     resolvedProvider: fixture.provider,
     resolvedModel: fixture.model_id,
     resolvedTargetModel: fixture.target_model_id || undefined,
-    routePolicy: 'token-api',
+    routePolicy: 'cloud',
     fallbackPolicy: 'deny',
   };
 
@@ -184,7 +184,7 @@ async function main(): Promise<void> {
         model: runtimeModelId,
         input: String(fixture.request.prompt || '').trim(),
         system: String(fixture.request.system_prompt || '').trim() || undefined,
-        route: 'token-api',
+        route: 'cloud',
         fallback: 'deny',
       });
       process.stdout.write(`${JSON.stringify({
@@ -205,7 +205,7 @@ async function main(): Promise<void> {
       const output = await runtime.ai.embedding.generate({
         model: runtimeModelId,
         input: Array.isArray(fixture.request.inputs) ? fixture.request.inputs : [],
-        route: 'token-api',
+        route: 'cloud',
         fallback: 'deny',
       });
       process.stdout.write(`${JSON.stringify({
@@ -225,7 +225,7 @@ async function main(): Promise<void> {
         model: runtimeModelId,
         prompt: String(fixture.request.prompt || '').trim(),
         negativePrompt: String(fixture.request.negative_prompt || '').trim() || undefined,
-        route: 'token-api',
+        route: 'cloud',
         fallback: 'deny',
       });
       process.stdout.write(`${JSON.stringify({
@@ -289,7 +289,7 @@ async function main(): Promise<void> {
           },
         mimeType: fixtureAudio?.mimeType || String(fixture.request.mime_type || '').trim() || undefined,
         language: String(fixture.request.language || '').trim() || undefined,
-        route: 'token-api',
+        route: 'cloud',
         fallback: 'deny',
       });
       process.stdout.write(`${JSON.stringify({

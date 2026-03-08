@@ -97,10 +97,10 @@ Mode D 投影规则按 Phase 分层：
 - Runtime SDK 必须支持 `auth.accessToken`（`string` 或 token provider 函数）作为统一鉴权来源。
 - 每次 unary/stream 调用前都必须重新解析 token（不得在 client 构造时静态固化）。
 - Bearer 注入必须按方法/路由判定，不得对所有 Runtime 调用无条件注入：
-  - `token-api` AI consume 路径必须注入 Bearer。
-  - local-runtime 生命周期写 RPC 必须注入 Bearer。
-  - anonymous local-runtime AI consume（`route_policy=LOCAL_RUNTIME` 且无 `connector_id`、无 inline remote 凭据 metadata）不得注入 Bearer。
-  - `RuntimeLocalRuntimeService` 的只读 RPC（含 `WarmLocalModel`）不得注入 Bearer。
+  - `cloud` AI consume 路径必须注入 Bearer。
+  - local 生命周期写 RPC 必须注入 Bearer。
+  - anonymous local AI consume（`route_policy=LOCAL` 且无 `connector_id`、无 inline remote 凭据 metadata）不得注入 Bearer。
+  - `RuntimeLocalService` 的只读 RPC（含 `WarmLocalModel`）不得注入 Bearer。
 - 未解析到 token 时，SDK 发送匿名请求；匿名是否被接受由 runtime 侧按 `K-AUTHN-*` / `K-KEYSRC-*` / `K-LOCAL-*` 判定。
 - anonymous 行为仅在 `Authorization` 头缺失时成立。若 SDK 注入或上游显式提供了非法 Bearer，runtime 必须按 `K-AUTHN-001` / `K-AUTHN-007` 返回 `UNAUTHENTICATED + AUTH_TOKEN_INVALID`，不得降级为 anonymous。
 - 上层应用不得通过 `metadata.extra` 手工拼接 `authorization`；该字段属于 transport 内部实现细节。

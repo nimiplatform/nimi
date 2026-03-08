@@ -166,7 +166,7 @@ test('provider_gemini_test.ts: gemini operation image/video via nimi-sdk', {
           runtime,
           appId: APP_ID,
           subjectUserId: SUBJECT_USER_ID,
-          routePolicy: 'token-api',
+          routePolicy: 'cloud',
           fallback: 'deny',
           timeoutMs: 30_000,
         });

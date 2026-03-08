@@ -127,7 +127,7 @@ async function runKimiImageScenario(input: { invalidOutput: boolean }): Promise<
           runtime,
           appId: APP_ID,
           subjectUserId: SUBJECT_USER_ID,
-          routePolicy: 'token-api',
+          routePolicy: 'cloud',
           fallback: 'deny',
           timeoutMs: 30_000,
         });

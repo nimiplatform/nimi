@@ -31,7 +31,7 @@ export function createGenerateRequest(): ExecuteScenarioRequest {
       appId: APP_ID,
       subjectUserId: 'mod:local-chat',
       modelId: 'local-model',
-      routePolicy: RoutePolicy.LOCAL_RUNTIME,
+      routePolicy: RoutePolicy.LOCAL,
       fallback: FallbackPolicy.DENY,
       timeoutMs: 0,
       connectorId: '',

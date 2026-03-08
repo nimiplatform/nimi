@@ -22,13 +22,13 @@ type TurnHookHandler = (context: Record<string, unknown>) => Promise<Record<stri
 type InterModHandler = (payload: unknown) => Promise<unknown> | unknown;
 
 const textBinding: RuntimeRouteBinding = {
-  source: 'token-api',
+  source: 'cloud',
   connectorId: 'connector-demo-chat',
   model: 'nimillm/demo-chat',
 };
 
 const ttsBinding: RuntimeRouteBinding = {
-  source: 'token-api',
+  source: 'cloud',
   connectorId: 'connector-demo-tts',
   model: 'elevenlabs/demo-tts',
 };
@@ -38,7 +38,7 @@ const routeOptionsByCapability = new Map<RuntimeCanonicalCapability, RuntimeRout
     capability: 'text.generate',
     selected: textBinding,
     resolvedDefault: textBinding,
-    localRuntime: { models: [] },
+    local: { models: [] },
     connectors: [{
       id: textBinding.connectorId,
       label: 'Demo Chat Connector',
@@ -53,7 +53,7 @@ const routeOptionsByCapability = new Map<RuntimeCanonicalCapability, RuntimeRout
     capability: 'audio.synthesize',
     selected: ttsBinding,
     resolvedDefault: ttsBinding,
-    localRuntime: { models: [] },
+    local: { models: [] },
     connectors: [{
       id: ttsBinding.connectorId,
       label: 'Demo TTS Connector',
@@ -190,7 +190,7 @@ function createMockHost(): ModSdkHost {
     runtime: {
       checkLocalLlmHealth: async () => ({
         ok: true,
-        routeSource: 'token-api',
+        routeSource: 'cloud',
         availableModels: [textBinding.model, ttsBinding.model],
       }),
       executeLocalKernelTurn: async () => ({
@@ -208,7 +208,7 @@ function createMockHost(): ModSdkHost {
         repairActions: [],
         updatedAt: '2026-03-06T00:00:00Z',
       }),
-      localRuntime: {
+      local: {
         listArtifacts: async () => [],
       },
       route: {
@@ -228,7 +228,7 @@ function createMockHost(): ModSdkHost {
           return {
             capability: input.capability,
             source: binding.source,
-            provider: binding.source === 'local-runtime' ? 'local' : 'nimillm',
+            provider: binding.source === 'local' ? 'local' : 'nimillm',
             model: binding.model,
             connectorId: binding.connectorId,
             adapter: binding.model.startsWith('elevenlabs/') ? 'elevenlabs' : 'openai_compatible',
@@ -256,7 +256,7 @@ function createMockHost(): ModSdkHost {
             trace: {
               traceId: 'trace-demo-text',
               modelResolved: input.model || textBinding.model,
-              routeDecision: 'token-api',
+              routeDecision: 'cloud',
             },
           }),
           stream: async (input) => ({
@@ -275,7 +275,7 @@ function createMockHost(): ModSdkHost {
                 trace: {
                   traceId: 'trace-demo-stream',
                   modelResolved: input.model || textBinding.model,
-                  routeDecision: 'token-api' as const,
+                  routeDecision: 'cloud' as const,
                 },
               };
             })(),
@@ -288,7 +288,7 @@ function createMockHost(): ModSdkHost {
             trace: {
               traceId: 'trace-demo-embed',
               modelResolved: 'nimillm/demo-embed',
-              routeDecision: 'token-api',
+              routeDecision: 'cloud',
             },
           }),
         },
@@ -346,7 +346,7 @@ function createMockHost(): ModSdkHost {
             trace: {
               traceId: 'trace-demo-tts',
               modelResolved: input.model || ttsBinding.model,
-              routeDecision: 'token-api',
+              routeDecision: 'cloud',
             },
           }),
           stream: async () => (async function* () {
@@ -372,7 +372,7 @@ function createMockHost(): ModSdkHost {
             trace: {
               traceId: 'trace-demo-stt',
               modelResolved: 'demo-stt',
-              routeDecision: 'token-api',
+              routeDecision: 'cloud',
             },
           }),
         },

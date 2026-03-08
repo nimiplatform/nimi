@@ -11,7 +11,7 @@ import type {
   RuntimeClient,
   RuntimeConnectorClient,
   RuntimeKnowledgeClient,
-  RuntimeLocalRuntimeClient,
+  RuntimeLocalServiceClient,
   RuntimeModelClient,
   RuntimeScriptWorkerClient,
   RuntimeStreamCallOptions,
@@ -80,7 +80,7 @@ export class Runtime {
   readonly media: RuntimeMediaModule;
   readonly workflow: RuntimeWorkflowClient;
   readonly model: RuntimeModelClient;
-  readonly localRuntime: RuntimeLocalRuntimeClient;
+  readonly local: RuntimeLocalServiceClient;
   readonly connector: RuntimeConnectorClient;
   readonly knowledge: RuntimeKnowledgeClient;
   readonly app: {
@@ -192,7 +192,7 @@ export class Runtime {
     this.auth = passthrough.auth;
     this.workflow = passthrough.workflow;
     this.model = passthrough.model;
-    this.localRuntime = passthrough.localRuntime;
+    this.local = passthrough.local;
     this.connector = passthrough.connector;
     this.knowledge = passthrough.knowledge;
     this.audit = passthrough.audit;

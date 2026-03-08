@@ -1246,13 +1246,13 @@ export enum RoutePolicy {
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: ROUTE_POLICY_LOCAL_RUNTIME = 1;
+     * @generated from protobuf enum value: ROUTE_POLICY_LOCAL = 1;
      */
-    LOCAL_RUNTIME = 1,
+    LOCAL = 1,
     /**
-     * @generated from protobuf enum value: ROUTE_POLICY_TOKEN_API = 2;
+     * @generated from protobuf enum value: ROUTE_POLICY_CLOUD = 2;
      */
-    TOKEN_API = 2
+    CLOUD = 2
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.FallbackPolicy

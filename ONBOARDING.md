@@ -171,7 +171,7 @@ const realm = new Realm({
 
 当前 SDK 主入口是 `Runtime` / `Realm`。不要使用 `createNimiClient`。
 
-Runtime 实例暴露以下模块：`auth`、`appAuth`、`ai`、`media`、`model`、`localRuntime`、`connector`、`knowledge`、`workflow`、`app`、`audit`、`scope`、`events`、`raw`。
+Runtime 实例暴露以下模块：`auth`、`appAuth`、`ai`、`media`、`model`、`local`、`connector`、`knowledge`、`workflow`、`app`、`audit`、`scope`、`events`、`raw`。
 
 ## 6. Desktop 与 Web 开发
 

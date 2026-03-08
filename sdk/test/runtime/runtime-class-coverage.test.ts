@@ -90,14 +90,14 @@ function createScenarioJob(input: {
       appId: APP_ID,
       subjectUserId: 'subject-1',
       modelId: 'model-1',
-      routePolicy: RoutePolicy.LOCAL_RUNTIME,
+      routePolicy: RoutePolicy.LOCAL,
       fallback: FallbackPolicy.DENY,
       timeoutMs: 1000,
       connectorId: '',
     },
     scenarioType: input.scenarioType,
     executionMode: ExecutionMode.ASYNC_JOB,
-    routeDecision: input.routeDecision ?? RoutePolicy.LOCAL_RUNTIME,
+    routeDecision: input.routeDecision ?? RoutePolicy.LOCAL,
     modelResolved: 'resolved-model-1',
     status: input.status,
     providerJobId: `provider-${input.jobId}`,
@@ -133,7 +133,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
               outputTokens: '3',
               computeMs: '11',
             },
-            routeDecision: RoutePolicy.TOKEN_API,
+            routeDecision: RoutePolicy.CLOUD,
             modelResolved: 'cloud/model',
             traceId: 'trace-generate',
           }),
@@ -149,7 +149,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
               outputTokens: '0',
               computeMs: '7',
             },
-            routeDecision: RoutePolicy.TOKEN_API,
+            routeDecision: RoutePolicy.CLOUD,
             modelResolved: 'cloud/embed-model',
             traceId: 'trace-embed',
           }),
@@ -178,7 +178,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
                 oneofKind: 'started',
                 started: {
                   modelResolved: 'cloud/stream-model',
-                  routeDecision: RoutePolicy.TOKEN_API,
+                  routeDecision: RoutePolicy.CLOUD,
                 },
               },
             }));
@@ -260,7 +260,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
         { role: 'user', content: 'hello user' },
       ],
       system: 'system-two',
-      route: 'token-api',
+      route: 'cloud',
       fallback: 'allow',
       temperature: 0.4,
       topP: 0.9,
@@ -269,9 +269,9 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
     assert.equal(textResult.text, 'hello-from-runtime-generate');
     assert.equal(textResult.finishReason, 'length');
     assert.equal(textResult.usage.totalTokens, 5);
-    assert.equal(textResult.trace.routeDecision, 'token-api');
+    assert.equal(textResult.trace.routeDecision, 'cloud');
     assert.equal(capturedTextRequests[0]?.head?.subjectUserId, 'subject-from-context');
-    assert.equal(capturedTextRequests[0]?.head?.routePolicy, RoutePolicy.TOKEN_API);
+    assert.equal(capturedTextRequests[0]?.head?.routePolicy, RoutePolicy.CLOUD);
     assert.equal(capturedTextRequests[0]?.head?.fallback, FallbackPolicy.ALLOW);
     assert.equal(
       capturedTextRequests[0]?.spec?.spec.oneofKind === 'textGenerate'
@@ -284,7 +284,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
       head: {
         appId: APP_ID,
         modelId: 'cloud/model-low-level',
-        routePolicy: RoutePolicy.TOKEN_API,
+        routePolicy: RoutePolicy.CLOUD,
         fallback: FallbackPolicy.ALLOW,
         timeoutMs: 1000,
         connectorId: '',
@@ -311,7 +311,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
     const streamResult = await runtime.ai.text.stream({
       model: 'cloud/stream-model',
       input: 'stream this',
-      route: 'token-api',
+      route: 'cloud',
       fallback: 'allow',
     });
     const streamParts: Array<{ type: string; reason?: string }> = [];
@@ -331,7 +331,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
     const streamErrorResult = await runtime.ai.text.stream({
       model: 'cloud/stream-model',
       input: 'stream error',
-      route: 'token-api',
+      route: 'cloud',
       fallback: 'allow',
     });
     let streamErrorReason = '';
@@ -346,19 +346,19 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
       model: 'cloud/embed-model',
       subjectUserId: 'subject-explicit',
       input: ['alpha', 'beta'],
-      route: 'token-api',
+      route: 'cloud',
       fallback: 'allow',
     });
     assert.equal(embeddingResult.vectors.length, 1);
     assert.equal(embeddingResult.trace.traceId, 'trace-embed');
     assert.equal(capturedEmbedRequests[0]?.head?.subjectUserId, 'subject-explicit');
-    assert.equal(capturedEmbedRequests[0]?.head?.routePolicy, RoutePolicy.TOKEN_API);
+    assert.equal(capturedEmbedRequests[0]?.head?.routePolicy, RoutePolicy.CLOUD);
 
     await runtime.ai.executeScenario({
       head: {
         appId: APP_ID,
         modelId: 'cloud/embed-model',
-        routePolicy: RoutePolicy.TOKEN_API,
+        routePolicy: RoutePolicy.CLOUD,
         fallback: FallbackPolicy.ALLOW,
         timeoutMs: 1000,
         connectorId: '',
@@ -402,16 +402,16 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
     });
     await runtimeWithoutAuthContext.ai.text.generate({
       model: 'local/model-anon',
-      input: 'anonymous local-runtime request',
+      input: 'anonymous local request',
     });
     assert.equal(capturedTextRequests[capturedTextRequests.length - 1]?.head?.subjectUserId, '');
-    assert.equal(capturedTextRequests[capturedTextRequests.length - 1]?.head?.routePolicy, RoutePolicy.LOCAL_RUNTIME);
+    assert.equal(capturedTextRequests[capturedTextRequests.length - 1]?.head?.routePolicy, RoutePolicy.LOCAL);
 
     await runtimeWithoutAuthContext.ai.executeScenario({
       head: {
         appId: APP_ID,
         modelId: 'local/model-low-level',
-        routePolicy: RoutePolicy.LOCAL_RUNTIME,
+        routePolicy: RoutePolicy.LOCAL,
         fallback: FallbackPolicy.DENY,
         timeoutMs: 1000,
         connectorId: '',
@@ -422,7 +422,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
         spec: {
           oneofKind: 'textGenerate',
           textGenerate: {
-            input: [{ role: 'user', content: 'low level anonymous local-runtime', name: '' }],
+            input: [{ role: 'user', content: 'low level anonymous local', name: '' }],
             systemPrompt: '',
             tools: [],
             temperature: 0,
@@ -440,7 +440,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
         head: {
           appId: APP_ID,
           modelId: 'cloud/model',
-          routePolicy: RoutePolicy.TOKEN_API,
+          routePolicy: RoutePolicy.CLOUD,
           fallback: FallbackPolicy.ALLOW,
           timeoutMs: 1000,
           connectorId: '',
@@ -497,7 +497,7 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
             return ExecuteScenarioResponse.toBinary(ExecuteScenarioResponse.create({
               output: Struct.fromJson({ vectors: [[1, 2, 3]] } as never),
               usage: { inputTokens: '1', outputTokens: '0', computeMs: '1' },
-              routeDecision: RoutePolicy.LOCAL_RUNTIME,
+              routeDecision: RoutePolicy.LOCAL,
               modelResolved: 'embed-raw',
               traceId: 'trace-raw-embed',
             }));
@@ -513,7 +513,7 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
             jobId,
             scenarioType: request.scenarioType,
             status: ScenarioJobStatus.COMPLETED,
-            routeDecision: RoutePolicy.TOKEN_API,
+            routeDecision: RoutePolicy.CLOUD,
             traceId: `trace-${jobId}`,
           });
           jobs.set(jobId, job);
@@ -662,7 +662,7 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
         appId: APP_ID,
         subjectUserId: 'subject-1',
         modelId: 'embed-raw',
-        routePolicy: RoutePolicy.LOCAL_RUNTIME,
+        routePolicy: RoutePolicy.LOCAL,
         fallback: FallbackPolicy.DENY,
         timeoutMs: 1000,
         connectorId: '',
@@ -684,7 +684,7 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
         appId: APP_ID,
         subjectUserId: 'subject-1',
         modelId: 'stream-raw',
-        routePolicy: RoutePolicy.LOCAL_RUNTIME,
+        routePolicy: RoutePolicy.LOCAL,
         fallback: FallbackPolicy.DENY,
         timeoutMs: 1000,
         connectorId: '',
@@ -740,7 +740,7 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
       input: {
         model: 'image-model',
         prompt: 'image prompt',
-        route: 'local-runtime',
+        route: 'local',
         fallback: 'deny',
       },
     });
@@ -749,7 +749,7 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
       input: {
         model: 'video-model',
         prompt: 'video prompt',
-        route: 'token-api',
+        route: 'cloud',
         fallback: 'allow',
       },
     });

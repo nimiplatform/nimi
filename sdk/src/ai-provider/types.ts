@@ -6,8 +6,8 @@ import type {
 import type { Runtime, RuntimeCallOptions } from '../runtime/index.js';
 import type { AiFallbackPolicy, AiRoutePolicy } from '../types/index.js';
 
-export const ROUTE_POLICY_LOCAL_RUNTIME = 1;
-export const ROUTE_POLICY_TOKEN_API = 2;
+export const ROUTE_POLICY_LOCAL = 1;
+export const ROUTE_POLICY_CLOUD = 2;
 export const FALLBACK_POLICY_DENY = 1;
 export const FALLBACK_POLICY_ALLOW = 2;
 

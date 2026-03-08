@@ -36,7 +36,7 @@ Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 | `ListConnectorModels` | `S-SURFACE-002` |
 | `ListProviderCatalog` | `S-SURFACE-002` |
 
-## local_runtime_service_projection
+## local_service_projection
 
 Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 

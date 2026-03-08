@@ -43,7 +43,7 @@ test('createRuntimeClient injects idempotency key for write unary methods', asyn
       return ExecuteScenarioResponse.toBinary(
         ExecuteScenarioResponse.create({
           finishReason: FinishReason.STOP,
-          routeDecision: RoutePolicy.LOCAL_RUNTIME,
+          routeDecision: RoutePolicy.LOCAL,
           modelResolved: 'local-model',
           traceId: 'trace-write',
         }),
@@ -81,7 +81,7 @@ test('createRuntimeClient enforces explicit ai routePolicy', async () => {
       return ExecuteScenarioResponse.toBinary(
         ExecuteScenarioResponse.create({
           finishReason: FinishReason.STOP,
-          routeDecision: RoutePolicy.LOCAL_RUNTIME,
+          routeDecision: RoutePolicy.LOCAL,
           modelResolved: 'local-model',
           traceId: 'trace-route-required',
         }),
@@ -121,7 +121,7 @@ test('createRuntimeClient enforces explicit ai routePolicy', async () => {
   }
 });
 
-test('createRuntimeClient allows token-api route without explicit keySource metadata', async () => {
+test('createRuntimeClient allows cloud route without explicit keySource metadata', async () => {
   let captured: RuntimeUnaryCall<RuntimeWireMessage> | null = null;
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
@@ -129,9 +129,9 @@ test('createRuntimeClient allows token-api route without explicit keySource meta
       return ExecuteScenarioResponse.toBinary(
         ExecuteScenarioResponse.create({
           finishReason: FinishReason.STOP,
-          routeDecision: RoutePolicy.TOKEN_API,
+          routeDecision: RoutePolicy.CLOUD,
           modelResolved: 'gemini/gemini-3-flash-preview',
-          traceId: 'trace-token-api-no-keysource',
+          traceId: 'trace-cloud-no-keysource',
         }),
       );
     },
@@ -152,10 +152,10 @@ test('createRuntimeClient allows token-api route without explicit keySource meta
       head: {
         ...createGenerateRequest().head,
         modelId: 'gemini/gemini-3-flash-preview',
-        routePolicy: RoutePolicy.TOKEN_API,
+        routePolicy: RoutePolicy.CLOUD,
       },
     });
-    assert.equal(response.traceId, 'trace-token-api-no-keysource');
+    assert.equal(response.traceId, 'trace-cloud-no-keysource');
     assert.ok(captured);
     assert.equal(captured.metadata.keySource, undefined);
   } finally {
@@ -171,7 +171,7 @@ test('createRuntimeClient defaults ai fallback policy to deny when unspecified',
       return ExecuteScenarioResponse.toBinary(
         ExecuteScenarioResponse.create({
           finishReason: FinishReason.STOP,
-          routeDecision: RoutePolicy.LOCAL_RUNTIME,
+          routeDecision: RoutePolicy.LOCAL,
           modelResolved: 'local-model',
           traceId: 'trace-default-fallback',
         }),
@@ -304,7 +304,7 @@ test('createRuntimeClient does not inject idempotency key for read unary methods
   }
 });
 
-test('createRuntimeClient suppresses auth only for anonymous local-runtime AI and local-runtime read calls', async () => {
+test('createRuntimeClient suppresses auth only for anonymous local AI and local read calls', async () => {
   const calls: RuntimeUnaryCall<RuntimeWireMessage>[] = [];
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
@@ -314,14 +314,14 @@ test('createRuntimeClient suppresses auth only for anonymous local-runtime AI an
           return ExecuteScenarioResponse.toBinary(
             ExecuteScenarioResponse.create({
               finishReason: FinishReason.STOP,
-              routeDecision: RoutePolicy.LOCAL_RUNTIME,
+              routeDecision: RoutePolicy.LOCAL,
               modelResolved: 'local-model',
               traceId: 'trace-auth-routing',
             }),
           );
-        case RuntimeMethodIds.localRuntime.listLocalModels:
+        case RuntimeMethodIds.local.listLocalModels:
           return ListLocalModelsResponse.toBinary(ListLocalModelsResponse.create({ models: [] }));
-        case RuntimeMethodIds.localRuntime.installLocalModel:
+        case RuntimeMethodIds.local.installLocalModel:
           return InstallLocalModelResponse.toBinary(InstallLocalModelResponse.create({}));
         default:
           throw new Error(`unexpected unary method: ${input.methodId}`);
@@ -342,14 +342,14 @@ test('createRuntimeClient suppresses auth only for anonymous local-runtime AI an
     });
 
     await client.ai.executeScenario(createGenerateRequest());
-    await client.localRuntime.listLocalModels({});
-    await client.localRuntime.installLocalModel({});
+    await client.local.listLocalModels({});
+    await client.local.installLocalModel({});
     await client.ai.executeScenario({
       ...createGenerateRequest(),
       head: {
         ...createGenerateRequest().head,
         modelId: 'cloud/model',
-        routePolicy: RoutePolicy.TOKEN_API,
+        routePolicy: RoutePolicy.CLOUD,
       },
     });
 

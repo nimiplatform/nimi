@@ -58,7 +58,7 @@ export type ModRuntimeHost = {
   getModAiDependencySnapshot: (input: {
     modId: string;
     capability?: RuntimeCanonicalCapability;
-    routeSourceHint?: 'token-api' | 'local-runtime';
+    routeSourceHint?: 'cloud' | 'local';
   }) => Promise<ModRuntimeDependencySnapshot>;
   route: {
     listOptions: (input: {
@@ -76,7 +76,7 @@ export type ModRuntimeHost = {
       binding?: RuntimeRouteBinding;
     }) => Promise<RuntimeRouteHealthResult>;
   };
-  localRuntime: {
+  local: {
     listArtifacts: (input: ModRuntimeListLocalArtifactsInput & {
       modId: string;
     }) => Promise<ModRuntimeLocalArtifactRecord[]>;

@@ -30,7 +30,6 @@ export type { AuthTwoFactorVerifyInput } from './generated/models/AuthTwoFactorV
 export type { BatchCreateAgentsRequestDto } from './generated/models/BatchCreateAgentsRequestDto';
 export type { BatchUpsertWorldEventsDto } from './generated/models/BatchUpsertWorldEventsDto';
 export type { BatchUpsertWorldLorebooksDto } from './generated/models/BatchUpsertWorldLorebooksDto';
-export type { BatchUpsertWorldVisualBindingsDto } from './generated/models/BatchUpsertWorldVisualBindingsDto';
 export type { BindEmailDto } from './generated/models/BindEmailDto';
 export type { CanWithdrawDto } from './generated/models/CanWithdrawDto';
 export type { CausalChainDto } from './generated/models/CausalChainDto';
@@ -219,7 +218,6 @@ export type { ValidateRulesDto } from './generated/models/ValidateRulesDto';
 export { VerificationTier } from './generated/models/VerificationTier';
 export type { VerifySyntheticMemoryDto } from './generated/models/VerifySyntheticMemoryDto';
 export { Visibility } from './generated/models/Visibility';
-export type { VisualAssetCreateDto } from './generated/models/VisualAssetCreateDto';
 export type { WalletBindDto } from './generated/models/WalletBindDto';
 export type { WalletChallengeDto } from './generated/models/WalletChallengeDto';
 export type { WalletChallengeResponseDto } from './generated/models/WalletChallengeResponseDto';
@@ -265,10 +263,6 @@ export type { WorldviewDetailDto } from './generated/models/WorldviewDetailDto';
 export type { WorldviewEventDto } from './generated/models/WorldviewEventDto';
 export type { WorldviewPatchDto } from './generated/models/WorldviewPatchDto';
 export type { WorldviewSnapshotDto } from './generated/models/WorldviewSnapshotDto';
-export type { WorldVisualAssetDetailDto } from './generated/models/WorldVisualAssetDetailDto';
-export type { WorldVisualBindingDetailDto } from './generated/models/WorldVisualBindingDetailDto';
-export type { WorldVisualBindingListDto } from './generated/models/WorldVisualBindingListDto';
-export type { WorldVisualBindingUpsertDto } from './generated/models/WorldVisualBindingUpsertDto';
 
 // Account data extension exports.
 export type { AccountDataTaskStatus, RequestDataExportInput, RequestDataExportOutput, RequestAccountDeletionInput, RequestAccountDeletionOutput } from './extensions/account-data.js';

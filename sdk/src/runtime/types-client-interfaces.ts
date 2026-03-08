@@ -249,7 +249,7 @@ export type RuntimeKnowledgeClient = {
   deleteIndex(request: DeleteIndexRequest, options?: RuntimeCallOptions): Promise<Ack>;
 };
 
-export type RuntimeLocalRuntimeClient = {
+export type RuntimeLocalServiceClient = {
   listLocalModels(request: ListLocalModelsRequest, options?: RuntimeCallOptions): Promise<ListLocalModelsResponse>;
   listLocalArtifacts(request: ListLocalArtifactsRequest, options?: RuntimeCallOptions): Promise<ListLocalArtifactsResponse>;
   listVerifiedModels(request: ListVerifiedModelsRequest, options?: RuntimeCallOptions): Promise<ListVerifiedModelsResponse>;
@@ -332,7 +332,7 @@ export type RuntimeClient = {
   ai: RuntimeAiClient;
   workflow: RuntimeWorkflowClient;
   model: RuntimeModelClient;
-  localRuntime: RuntimeLocalRuntimeClient;
+  local: RuntimeLocalServiceClient;
   connector: RuntimeConnectorClient;
   knowledge: RuntimeKnowledgeClient;
   app: RuntimeAppClient;

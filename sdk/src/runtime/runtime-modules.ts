@@ -37,7 +37,7 @@ import type {
   RuntimeEventPayloadMap,
   RuntimeEventsModule,
   RuntimeKnowledgeClient,
-  RuntimeLocalRuntimeClient,
+  RuntimeLocalServiceClient,
   RuntimeMediaModule,
   RuntimeModelClient,
   RuntimeRawModule,
@@ -56,7 +56,7 @@ export type RuntimePassthroughModuleKey = keyof Pick<RuntimeClient,
   'auth'
   | 'workflow'
   | 'model'
-  | 'localRuntime'
+  | 'local'
   | 'connector'
   | 'knowledge'
   | 'audit'
@@ -85,7 +85,7 @@ export type RuntimeCorePassthroughClients = {
   auth: RuntimeAuthClient;
   workflow: RuntimeWorkflowClient;
   model: RuntimeModelClient;
-  localRuntime: RuntimeLocalRuntimeClient;
+  local: RuntimeLocalServiceClient;
   connector: RuntimeConnectorClient;
   knowledge: RuntimeKnowledgeClient;
   audit: RuntimeAuditClient;
@@ -167,7 +167,7 @@ export function createCorePassthroughClients(input: {
     auth: create<RuntimeAuthClient>('auth'),
     workflow: createWorkflowClient(workflowPassthrough),
     model: create<RuntimeModelClient>('model'),
-    localRuntime: create<RuntimeLocalRuntimeClient>('localRuntime'),
+    local: create<RuntimeLocalServiceClient>('local'),
     connector: create<RuntimeConnectorClient>('connector'),
     knowledge: create<RuntimeKnowledgeClient>('knowledge'),
     audit: create<RuntimeAuditClient>('audit'),

@@ -23,7 +23,7 @@ export function createModRuntimeInspector(
 
   const getDependencySnapshot = async (
     capability?: RuntimeCanonicalCapability,
-    routeSourceHint?: 'token-api' | 'local-runtime',
+    routeSourceHint?: 'cloud' | 'local',
   ): Promise<ModRuntimeDependencySnapshot> => {
     return runtimeContext.runtimeHost.getModAiDependencySnapshot({
       modId: normalizedModId,

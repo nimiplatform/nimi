@@ -40,8 +40,8 @@ export function createModRuntimeClient(modId: string, context?: ModRuntimeContex
         binding: input.binding,
       }),
     },
-    localRuntime: {
-      listArtifacts: async (input) => runtimeHost.localRuntime.listArtifacts({
+    local: {
+      listArtifacts: async (input) => runtimeHost.local.listArtifacts({
         modId: normalizedModId,
         ...input,
       }),

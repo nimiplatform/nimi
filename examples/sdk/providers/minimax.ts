@@ -38,7 +38,7 @@ async function run(): Promise<void> {
   const { endpoint, provider } = createProviderContext({
     appId,
     subjectUserId,
-    routePolicy: 'token-api',
+    routePolicy: 'cloud',
     timeoutMs: 300_000,
   });
 

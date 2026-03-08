@@ -42,7 +42,7 @@ test('nimi sdk ai-provider can generate and stream text against runtime daemon',
           runtime,
           appId: APP_ID,
           subjectUserId: SUBJECT_USER_ID,
-          routePolicy: 'local-runtime',
+          routePolicy: 'local',
           fallback: 'deny',
           timeoutMs: 30_000,
         });

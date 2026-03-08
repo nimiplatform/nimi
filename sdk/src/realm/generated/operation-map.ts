@@ -4236,25 +4236,6 @@ export const REALM_OPERATION_MAP = {
     "bodyRequired": true,
     "requestBodyContentType": "application/json"
   },
-  "WorldControlService.worldControlControllerBatchUpsertWorldVisualBindings": {
-    "operationId": "WorldControlController_batchUpsertWorldVisualBindings",
-    "method": "POST",
-    "path": "/api/worlds/{worldId}/visual-bindings/batch-upsert",
-    "service": "WorldControlService",
-    "methodName": "worldControlControllerBatchUpsertWorldVisualBindings",
-    "tag": "World Control",
-    "parameters": [
-      {
-        "name": "worldId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json"
-  },
   "WorldControlService.worldControlControllerCreateDraft": {
     "operationId": "WorldControlController_createDraft",
     "method": "POST",
@@ -4307,30 +4288,6 @@ export const REALM_OPERATION_MAP = {
       },
       {
         "name": "lorebookId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false
-  },
-  "WorldControlService.worldControlControllerDeleteWorldVisualBinding": {
-    "operationId": "WorldControlController_deleteWorldVisualBinding",
-    "method": "DELETE",
-    "path": "/api/worlds/{worldId}/visual-bindings/{bindingId}",
-    "service": "WorldControlService",
-    "methodName": "worldControlControllerDeleteWorldVisualBinding",
-    "tag": "World Control",
-    "parameters": [
-      {
-        "name": "worldId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "bindingId",
         "in": "path",
         "required": true,
         "valueType": "string"
@@ -4475,48 +4432,6 @@ export const REALM_OPERATION_MAP = {
         "in": "path",
         "required": true,
         "valueType": "string"
-      },
-      {
-        "name": "take",
-        "in": "query",
-        "required": false,
-        "valueType": "number"
-      },
-      {
-        "name": "targetSubjectId",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "targetSubjectType",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "subjectId",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "subjectType",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "storyId",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "scope",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
       }
     ],
     "hasBody": false,
@@ -4534,60 +4449,6 @@ export const REALM_OPERATION_MAP = {
         "name": "worldId",
         "in": "path",
         "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "take",
-        "in": "query",
-        "required": false,
-        "valueType": "number"
-      },
-      {
-        "name": "sceneIds",
-        "in": "query",
-        "required": false,
-        "valueType": "string[]"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false
-  },
-  "WorldControlService.worldControlControllerListWorldVisualBindings": {
-    "operationId": "WorldControlController_listWorldVisualBindings",
-    "method": "GET",
-    "path": "/api/worlds/{worldId}/visual-bindings",
-    "service": "WorldControlService",
-    "methodName": "worldControlControllerListWorldVisualBindings",
-    "tag": "World Control",
-    "parameters": [
-      {
-        "name": "worldId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "take",
-        "in": "query",
-        "required": false,
-        "valueType": "number"
-      },
-      {
-        "name": "slot",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "targetId",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "targetType",
-        "in": "query",
-        "required": false,
         "valueType": "string"
       }
     ],
@@ -5389,11 +5250,9 @@ export const REALM_SERVICE_METHODS = {
   "WorldControlService": {
     "worldControlControllerBatchUpsertWorldEvents": "WorldControlService.worldControlControllerBatchUpsertWorldEvents",
     "worldControlControllerBatchUpsertWorldLorebooks": "WorldControlService.worldControlControllerBatchUpsertWorldLorebooks",
-    "worldControlControllerBatchUpsertWorldVisualBindings": "WorldControlService.worldControlControllerBatchUpsertWorldVisualBindings",
     "worldControlControllerCreateDraft": "WorldControlService.worldControlControllerCreateDraft",
     "worldControlControllerDeleteWorldEvent": "WorldControlService.worldControlControllerDeleteWorldEvent",
     "worldControlControllerDeleteWorldLorebook": "WorldControlService.worldControlControllerDeleteWorldLorebook",
-    "worldControlControllerDeleteWorldVisualBinding": "WorldControlService.worldControlControllerDeleteWorldVisualBinding",
     "worldControlControllerGetDraft": "WorldControlService.worldControlControllerGetDraft",
     "worldControlControllerGetMaintenance": "WorldControlService.worldControlControllerGetMaintenance",
     "worldControlControllerGetMyAccess": "WorldControlService.worldControlControllerGetMyAccess",
@@ -5404,7 +5263,6 @@ export const REALM_SERVICE_METHODS = {
     "worldControlControllerListWorldMutations": "WorldControlService.worldControlControllerListWorldMutations",
     "worldControlControllerListWorldNarrativeContexts": "WorldControlService.worldControlControllerListWorldNarrativeContexts",
     "worldControlControllerListWorldScenes": "WorldControlService.worldControlControllerListWorldScenes",
-    "worldControlControllerListWorldVisualBindings": "WorldControlService.worldControlControllerListWorldVisualBindings",
     "worldControlControllerPublishDraft": "WorldControlService.worldControlControllerPublishDraft",
     "worldControlControllerResolveLanding": "WorldControlService.worldControlControllerResolveLanding",
     "worldControlControllerUpdateDraft": "WorldControlService.worldControlControllerUpdateDraft",

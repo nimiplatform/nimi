@@ -1,5 +1,5 @@
 import {
-  isRuntimeLocalRuntimeAnonymousMethod,
+  isRuntimeLocalAnonymousMethod,
   isRuntimeWriteMethod,
   RuntimeMethodIds,
 } from '../method-ids.js';
@@ -43,7 +43,7 @@ async function resolveAuthorization(
   request: unknown,
   options?: RuntimeCallOptions | RuntimeStreamCallOptions,
 ): Promise<string | undefined> {
-  if (isRuntimeLocalRuntimeAnonymousMethod(methodId)) {
+  if (isRuntimeLocalAnonymousMethod(methodId)) {
     return undefined;
   }
   if (

@@ -40,7 +40,7 @@ async function run(): Promise<void> {
   const { endpoint, provider } = createProviderContext({
     appId,
     subjectUserId,
-    routePolicy: 'token-api',
+    routePolicy: 'cloud',
   });
 
   print(`[bytedance-openspeech] runtime grpc endpoint: ${endpoint}`);

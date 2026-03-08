@@ -48,7 +48,25 @@ function requiredEnvOrSkip(t: { skip: (msg?: string) => void }, key: string): st
   return value;
 }
 
-function createSdkTextModel(endpoint: string, routePolicy: 'local-runtime' | 'token-api', modelId: string) {
+function normalizeCloudModelId(provider: string, modelId: string): string {
+  const normalizedProvider = String(provider || '').trim().toLowerCase();
+  const normalizedModelId = String(modelId || '').trim();
+  if (!normalizedProvider || !normalizedModelId) {
+    return normalizedModelId;
+  }
+  const lower = normalizedModelId.toLowerCase();
+  if (lower.startsWith('cloud/') || lower.startsWith(`${normalizedProvider}/`)) {
+    return normalizedModelId;
+  }
+  return `${normalizedProvider}/${normalizedModelId}`;
+}
+
+function createSdkTextModel(
+  endpoint: string,
+  routePolicy: 'local' | 'cloud',
+  modelId: string,
+  providerId?: string,
+) {
   const runtime = new Runtime({
     appId: APP_ID,
     transport: {
@@ -70,7 +88,10 @@ function createSdkTextModel(endpoint: string, routePolicy: 'local-runtime' | 'to
     timeoutMs: 45_000,
   });
 
-  return provider.text(modelId);
+  const resolvedModelId = routePolicy === 'cloud'
+    ? normalizeCloudModelId(providerId || '', modelId)
+    : modelId;
+  return provider.text(resolvedModelId);
 }
 
 test('nimi sdk ai-provider live smoke: local provider generate text', {
@@ -94,7 +115,7 @@ test('nimi sdk ai-provider live smoke: local provider generate text', {
         ...(apiKey ? { NIMI_RUNTIME_LOCAL_AI_API_KEY: apiKey } : {}),
       },
       run: async ({ endpoint }) => {
-      const model = createSdkTextModel(endpoint, 'local-runtime', modelID);
+      const model = createSdkTextModel(endpoint, 'local', modelID);
       const generated = await model.doGenerate({
         prompt: promptFromText('Say hello from Nimi SDK local live smoke.'),
         providerOptions: {},
@@ -134,7 +155,7 @@ test('nimi sdk ai-provider live smoke: nimillm generate text', {
         ...(apiKey ? { NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY: apiKey } : {}),
       },
       run: async ({ endpoint }) => {
-      const model = createSdkTextModel(endpoint, 'token-api', modelID);
+      const model = createSdkTextModel(endpoint, 'cloud', modelID, 'nimillm');
       const generated = await model.doGenerate({
         prompt: promptFromText('Say hello from Nimi SDK NimiLLM live smoke.'),
         providerOptions: {},
@@ -173,7 +194,7 @@ test('nimi sdk ai-provider live smoke: openai generate text', {
         NIMI_RUNTIME_CLOUD_OPENAI_API_KEY: apiKey,
       },
       run: async ({ endpoint }) => {
-      const model = createSdkTextModel(endpoint, 'token-api', modelID);
+      const model = createSdkTextModel(endpoint, 'cloud', modelID, 'openai');
       const generated = await model.doGenerate({
         prompt: promptFromText('Say hello from Nimi SDK OpenAI live smoke.'),
         providerOptions: {},
@@ -212,7 +233,7 @@ test('nimi sdk ai-provider live smoke: anthropic generate text', {
         NIMI_RUNTIME_CLOUD_ANTHROPIC_API_KEY: apiKey,
       },
       run: async ({ endpoint }) => {
-      const model = createSdkTextModel(endpoint, 'token-api', modelID);
+      const model = createSdkTextModel(endpoint, 'cloud', modelID, 'anthropic');
       const generated = await model.doGenerate({
         prompt: promptFromText('Say hello from Nimi SDK Anthropic live smoke.'),
         providerOptions: {},
@@ -251,7 +272,7 @@ test('nimi sdk ai-provider live smoke: deepseek generate text', {
         NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY: apiKey,
       },
       run: async ({ endpoint }) => {
-      const model = createSdkTextModel(endpoint, 'token-api', modelID);
+      const model = createSdkTextModel(endpoint, 'cloud', modelID, 'deepseek');
       const generated = await model.doGenerate({
         prompt: promptFromText('Say hello from Nimi SDK DeepSeek live smoke.'),
         providerOptions: {},
@@ -290,7 +311,7 @@ test('nimi sdk ai-provider live smoke: dashscope generate text', {
         NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY: apiKey,
       },
       run: async ({ endpoint }) => {
-      const model = createSdkTextModel(endpoint, 'token-api', modelID);
+      const model = createSdkTextModel(endpoint, 'cloud', modelID, 'dashscope');
       const generated = await model.doGenerate({
         prompt: promptFromText('Say hello from Nimi SDK DashScope live smoke.'),
         providerOptions: {},
@@ -329,7 +350,7 @@ test('nimi sdk ai-provider live smoke: gemini generate text', {
         NIMI_RUNTIME_CLOUD_GEMINI_API_KEY: apiKey,
       },
       run: async ({ endpoint }) => {
-      const model = createSdkTextModel(endpoint, 'token-api', modelID);
+      const model = createSdkTextModel(endpoint, 'cloud', modelID, 'gemini');
       const generated = await model.doGenerate({
         prompt: promptFromText('Say hello from Nimi SDK Gemini live smoke.'),
         providerOptions: {},
@@ -368,7 +389,7 @@ test('nimi sdk ai-provider live smoke: volcengine generate text', {
         NIMI_RUNTIME_CLOUD_VOLCENGINE_API_KEY: apiKey,
       },
       run: async ({ endpoint }) => {
-      const model = createSdkTextModel(endpoint, 'token-api', modelID);
+      const model = createSdkTextModel(endpoint, 'cloud', modelID, 'volcengine');
       const generated = await model.doGenerate({
         prompt: promptFromText('Say hello from Nimi SDK Volcengine live smoke.'),
         providerOptions: {},
@@ -496,12 +517,12 @@ function requiredAnyEnvOrSkip(t: { skip: (msg?: string) => void }, keys: string[
   return value;
 }
 
-function sdkRoutePolicy(provider: string): 'local-runtime' | 'token-api' {
-  return provider === 'local' ? 'local-runtime' : 'token-api';
+function sdkRoutePolicy(provider: string): 'local' | 'cloud' {
+  return provider === 'local' ? 'local' : 'cloud';
 }
 
 function runtimeRoutePolicy(provider: string): RoutePolicy {
-  return provider === 'local' ? RoutePolicy.LOCAL_RUNTIME : RoutePolicy.TOKEN_API;
+  return provider === 'local' ? RoutePolicy.LOCAL : RoutePolicy.CLOUD;
 }
 
 function createRuntimeModule(endpoint: string): Runtime {
@@ -591,9 +612,12 @@ function capabilityModelID(t: { skip: (msg?: string) => void }, provider: string
 async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, capability: ProviderCapability, modelId: string): Promise<void> {
   const route = sdkRoutePolicy(provider);
   const runtime = createRuntimeModule(endpoint);
+  const routedModelId = route === 'cloud'
+    ? normalizeCloudModelId(provider, modelId)
+    : modelId;
 
   if (capability === 'generate') {
-    const model = createSdkTextModel(endpoint, route, modelId);
+    const model = createSdkTextModel(endpoint, route, modelId, provider);
     const generated = await model.doGenerate({
       prompt: promptFromText('Nimi SDK matrix live smoke generate text'),
       providerOptions: {},
@@ -609,7 +633,7 @@ async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, cap
 
   if (capability === 'embed') {
     const output = await runtime.ai.embedding.generate({
-      model: modelId,
+      model: routedModelId,
       input: 'Nimi SDK matrix live smoke embed',
       subjectUserId: SUBJECT_USER_ID,
       route,
@@ -622,7 +646,7 @@ async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, cap
 
   if (capability === 'image') {
     const output = await runtime.media.image.generate({
-      model: modelId,
+      model: routedModelId,
       prompt: 'A minimal icon of a moon over the ocean.',
       subjectUserId: SUBJECT_USER_ID,
       route,
@@ -635,7 +659,7 @@ async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, cap
 
   if (capability === 'video') {
     const output = await runtime.media.video.generate({
-      model: modelId,
+      model: routedModelId,
       mode: 't2v',
       content: [{ type: 'text', text: 'A short sunrise cinematic shot.' }],
       options: { durationSec: 1, fps: 24 },
@@ -650,7 +674,7 @@ async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, cap
 
   if (capability === 'tts') {
     const output = await runtime.media.tts.synthesize({
-      model: modelId,
+      model: routedModelId,
       text: 'Nimi SDK matrix live smoke speech synthesis.',
       subjectUserId: SUBJECT_USER_ID,
       route,
@@ -667,7 +691,7 @@ async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, cap
       throw new Error('NIMI_LIVE_STT_AUDIO_URI is required for stt live smoke');
     }
     const output = await runtime.media.stt.transcribe({
-      model: modelId,
+      model: routedModelId,
       audio: { kind: 'url', url: audioUri },
       mimeType: 'audio/wav',
       subjectUserId: SUBJECT_USER_ID,
@@ -711,7 +735,7 @@ async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, cap
     head: {
       appId: APP_ID,
       subjectUserId: SUBJECT_USER_ID,
-      modelId,
+      modelId: routedModelId,
       routePolicy: runtimeRoutePolicy(provider),
       fallback: FallbackPolicy.DENY,
       timeoutMs: 180_000,

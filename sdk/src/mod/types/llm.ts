@@ -1,6 +1,6 @@
 export type RuntimeModality = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding';
 
-export type LocalRuntimeEngine = 'localai' | 'nexa' | string;
+export type LocalEngine = 'localai' | 'nexa' | string;
 
 export type LocalAiProviderAdapter = 'openai_compat_adapter' | 'localai_native_adapter' | string;
 
@@ -31,15 +31,15 @@ export type LocalAiProviderHints = {
   nexa?: NexaProviderHints;
 } & Record<string, unknown>;
 
-export type LocalRuntimeRouteBinding = {
-  source: 'local-runtime';
+export type LocalRouteBinding = {
+  source: 'local';
   runtimeModelType: RuntimeModality;
   provider: string;
   adapter?: LocalAiProviderAdapter;
   providerHints?: LocalAiProviderHints;
   modelId?: string;
   localModelId: string;
-  engine: LocalRuntimeEngine;
+  engine: LocalEngine;
   model: string;
   endpoint: string;
   localProviderEndpoint: string;
@@ -50,8 +50,8 @@ export type LocalRuntimeRouteBinding = {
   connectorId: '';
 };
 
-export type TokenApiRouteBinding = {
-  source: 'token-api';
+export type CloudRouteBinding = {
+  source: 'cloud';
   runtimeModelType: RuntimeModality;
   provider: string;
   adapter?: LocalAiProviderAdapter;
@@ -63,7 +63,7 @@ export type TokenApiRouteBinding = {
   localOpenAiEndpoint: string;
 };
 
-export type ResolvedRuntimeRouteBinding = LocalRuntimeRouteBinding | TokenApiRouteBinding;
+export type ResolvedRuntimeRouteBinding = LocalRouteBinding | CloudRouteBinding;
 
 export type RuntimeLlmHealthInput = {
   provider?: string;
@@ -85,7 +85,7 @@ export type RuntimeLlmHealthResult = {
 export type RuntimeRouteHealthResult = RuntimeLlmHealthResult & {
   provider?: string;
   reasonCode?: string;
-  actionHint?: 'none' | 'install-local-model' | 'switch-to-token-api' | 'verify-connector' | 'retry';
+  actionHint?: 'none' | 'install-local-model' | 'switch-to-cloud' | 'verify-connector' | 'retry';
 };
 
 export type HookLlmTextStreamEvent =

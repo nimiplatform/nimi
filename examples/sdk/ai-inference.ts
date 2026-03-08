@@ -20,7 +20,7 @@ async function textGenerate() {
     input: 'Explain Nimi in one sentence.',
     temperature: 0.4,
     maxTokens: 128,
-    route: 'local-runtime',
+    route: 'local',
     fallback: 'deny',
     timeoutMs: 20000,
   });
@@ -34,7 +34,7 @@ async function embedding() {
     model: 'local/text-embedding-3-small',
     subjectUserId: 'local-user',
     input: ['The quick brown fox jumps over the lazy dog'],
-    route: 'local-runtime',
+    route: 'local',
     fallback: 'deny',
     timeoutMs: 20000,
   });
@@ -47,7 +47,7 @@ async function imageGenerate() {
     model: 'local/sd1.5',
     subjectUserId: 'local-user',
     prompt: 'A futuristic city skyline at sunset',
-    route: 'local-runtime',
+    route: 'local',
     fallback: 'deny',
     timeoutMs: 120000,
   });
@@ -77,7 +77,7 @@ async function videoGenerate() {
       durationSec: 6,
       fps: 24,
     },
-    route: 'local-runtime',
+    route: 'local',
     fallback: 'deny',
     timeoutMs: 300000,
   });
@@ -96,7 +96,7 @@ async function synthesizeSpeech() {
     model: 'local/tts-default',
     subjectUserId: 'local-user',
     text: 'Hello from Nimi runtime.',
-    route: 'local-runtime',
+    route: 'local',
     fallback: 'deny',
     timeoutMs: 45000,
   });
@@ -116,7 +116,7 @@ async function transcribeAudio() {
     subjectUserId: 'local-user',
     audio: { kind: 'bytes', bytes: new Uint8Array() },
     mimeType: 'audio/wav',
-    route: 'local-runtime',
+    route: 'local',
     fallback: 'deny',
     timeoutMs: 90000,
   });

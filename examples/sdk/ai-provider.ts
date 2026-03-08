@@ -19,7 +19,7 @@ const nimi = createNimiAiProvider({
   runtime,
   appId: APP_ID,
   subjectUserId: 'local-user',
-  routePolicy: 'local-runtime',
+  routePolicy: 'local',
   fallback: 'deny',
 });
 
@@ -63,7 +63,7 @@ async function imageGenerationViaRuntime() {
       model: 'local/sd1.5',
       subjectUserId: 'local-user',
       prompt: 'A digital painting of an AI agent in a virtual world',
-      route: 'local-runtime',
+      route: 'local',
       fallback: 'deny',
       timeoutMs: 120000,
     },
@@ -83,7 +83,7 @@ async function routePolicySwitch() {
     runtime,
     appId: APP_ID,
     subjectUserId: 'local-user',
-    routePolicy: 'token-api',
+    routePolicy: 'cloud',
     fallback: 'deny',
   });
 

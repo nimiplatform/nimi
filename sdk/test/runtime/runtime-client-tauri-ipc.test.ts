@@ -28,9 +28,9 @@ import {
   unwrapTauriInvokePayload,
 } from './runtime-client-fixtures.js';
 
-test('node-grpc and tauri-ipc cover runtime.localRuntime unary contract surface', async () => {
-  const localRuntimeMethodEntries = Object.entries(RuntimeMethodIds.localRuntime) as Array<
-    [keyof typeof RuntimeMethodIds.localRuntime, string]
+test('node-grpc and tauri-ipc cover runtime.local unary contract surface', async () => {
+  const localMethodEntries = Object.entries(RuntimeMethodIds.local) as Array<
+    [keyof typeof RuntimeMethodIds.local, string]
   >;
 
   const nodeCalls: RuntimeUnaryCall<RuntimeWireMessage>[] = [];
@@ -88,9 +88,9 @@ test('node-grpc and tauri-ipc cover runtime.localRuntime unary contract surface'
       },
     });
 
-    for (const [methodName, methodId] of localRuntimeMethodEntries) {
-      const nodeInvoker = nodeClient.localRuntime[methodName] as (request: Record<string, unknown>) => Promise<unknown>;
-      const tauriInvoker = tauriClient.localRuntime[methodName] as (request: Record<string, unknown>) => Promise<unknown>;
+    for (const [methodName, methodId] of localMethodEntries) {
+      const nodeInvoker = nodeClient.local[methodName] as (request: Record<string, unknown>) => Promise<unknown>;
+      const tauriInvoker = tauriClient.local[methodName] as (request: Record<string, unknown>) => Promise<unknown>;
 
       const nodeResponse = await nodeInvoker({});
       const tauriResponse = await tauriInvoker({});
@@ -108,8 +108,8 @@ test('node-grpc and tauri-ipc cover runtime.localRuntime unary contract surface'
       }
     }
 
-    assert.equal(nodeCalls.length, localRuntimeMethodEntries.length);
-    assert.equal(tauriCalls.length, localRuntimeMethodEntries.length);
+    assert.equal(nodeCalls.length, localMethodEntries.length);
+    assert.equal(tauriCalls.length, localMethodEntries.length);
   } finally {
     restoreTauri();
     clearNodeGrpcBridge();
@@ -128,7 +128,7 @@ test('tauri-ipc write unary request includes idempotency key metadata', async ()
               ExecuteScenarioResponse.toBinary(
                 ExecuteScenarioResponse.create({
                   finishReason: FinishReason.STOP,
-                  routeDecision: RoutePolicy.LOCAL_RUNTIME,
+                  routeDecision: RoutePolicy.LOCAL,
                   modelResolved: 'llama3',
                   traceId: 'trace-tauri-write',
                 }),
@@ -162,7 +162,7 @@ test('tauri-ipc write unary request includes idempotency key metadata', async ()
       head: {
         ...createGenerateRequest().head,
         modelId: 'cloud/model',
-        routePolicy: RoutePolicy.TOKEN_API,
+        routePolicy: RoutePolicy.CLOUD,
       },
     });
     assert.equal(response.traceId, 'trace-tauri-write');
@@ -409,7 +409,7 @@ test('tauri-ipc stream errors surface as NimiError and close remote stream', asy
       head: {
         ...createStreamGenerateRequest().head,
         modelId: 'cloud/model',
-        routePolicy: RoutePolicy.TOKEN_API,
+        routePolicy: RoutePolicy.CLOUD,
       },
     });
     let streamError: unknown = null;
@@ -507,7 +507,7 @@ test('tauri-ipc stream close is invoked when consumer breaks early', async () =>
       head: {
         ...createStreamGenerateRequest().head,
         modelId: 'cloud/model',
-        routePolicy: RoutePolicy.TOKEN_API,
+        routePolicy: RoutePolicy.CLOUD,
       },
     });
     const received: string[] = [];
@@ -583,7 +583,7 @@ test('tauri-ipc stream open forwards eventNamespace in payload', async () => {
       head: {
         ...createStreamGenerateRequest().head,
         modelId: 'cloud/model',
-        routePolicy: RoutePolicy.TOKEN_API,
+        routePolicy: RoutePolicy.CLOUD,
       },
     });
     for await (const _event of stream) {

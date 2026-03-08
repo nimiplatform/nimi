@@ -4,7 +4,7 @@
 // @ts-nocheck
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
-import { RuntimeLocalRuntimeService } from "./local_runtime";
+import { RuntimeLocalService } from "./local_runtime";
 import type { GetEngineStatusResponse } from "./local_runtime_engine";
 import type { GetEngineStatusRequest } from "./local_runtime_engine";
 import type { StopEngineResponse } from "./local_runtime_engine";
@@ -78,9 +78,9 @@ import type { ListLocalModelsRequest } from "./local_runtime";
 import type { UnaryCall } from "@protobuf-ts/runtime-rpc";
 import type { RpcOptions } from "@protobuf-ts/runtime-rpc";
 /**
- * @generated from protobuf service nimi.runtime.v1.RuntimeLocalRuntimeService
+ * @generated from protobuf service nimi.runtime.v1.RuntimeLocalService
  */
-export interface IRuntimeLocalRuntimeServiceClient {
+export interface IRuntimeLocalServiceClient {
     /**
      * @generated from protobuf rpc: ListLocalModels
      */
@@ -225,12 +225,12 @@ export interface IRuntimeLocalRuntimeServiceClient {
     getEngineStatus(input: GetEngineStatusRequest, options?: RpcOptions): UnaryCall<GetEngineStatusRequest, GetEngineStatusResponse>;
 }
 /**
- * @generated from protobuf service nimi.runtime.v1.RuntimeLocalRuntimeService
+ * @generated from protobuf service nimi.runtime.v1.RuntimeLocalService
  */
-export class RuntimeLocalRuntimeServiceClient implements IRuntimeLocalRuntimeServiceClient, ServiceInfo {
-    typeName = RuntimeLocalRuntimeService.typeName;
-    methods = RuntimeLocalRuntimeService.methods;
-    options = RuntimeLocalRuntimeService.options;
+export class RuntimeLocalServiceClient implements IRuntimeLocalServiceClient, ServiceInfo {
+    typeName = RuntimeLocalService.typeName;
+    methods = RuntimeLocalService.methods;
+    options = RuntimeLocalService.options;
     constructor(private readonly _transport: RpcTransport) {
     }
     /**

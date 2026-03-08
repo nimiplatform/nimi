@@ -39,7 +39,7 @@ async function run(): Promise<void> {
   const { endpoint, provider } = createProviderContext({
     appId,
     subjectUserId,
-    routePolicy: 'token-api',
+    routePolicy: 'cloud',
   });
 
   print(`[nimillm] runtime grpc endpoint: ${endpoint}`);

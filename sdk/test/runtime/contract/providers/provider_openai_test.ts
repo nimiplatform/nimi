@@ -186,7 +186,7 @@ test('provider_openai_test.ts: video uses /v1/videos/generations fallback path',
           runtime,
           appId: APP_ID,
           subjectUserId: SUBJECT_USER_ID,
-          routePolicy: 'local-runtime',
+          routePolicy: 'local',
           fallback: 'deny',
           timeoutMs: 30_000,
         });
@@ -250,7 +250,7 @@ test('provider_openai_test.ts: video unsupported returns strict fail-close', {
           runtime,
           appId: APP_ID,
           subjectUserId: SUBJECT_USER_ID,
-          routePolicy: 'local-runtime',
+          routePolicy: 'local',
           fallback: 'deny',
           timeoutMs: 30_000,
         });
@@ -320,7 +320,7 @@ test('provider_openai_test.ts: stream falls back to non-stream generate when str
           runtime,
           appId: APP_ID,
           subjectUserId: SUBJECT_USER_ID,
-          routePolicy: 'local-runtime',
+          routePolicy: 'local',
           fallback: 'deny',
           timeoutMs: 30_000,
         });

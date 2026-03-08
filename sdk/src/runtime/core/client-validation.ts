@@ -75,7 +75,7 @@ function withAiRouteValidation<Request extends RuntimeAiRouteRequest>(
     throwValidationError(
       'SDK_RUNTIME_AI_ROUTE_POLICY_REQUIRED',
       `${methodId} requires explicit routePolicy`,
-      'set_route_policy_local_runtime_or_token_api',
+      'set_route_policy_local_or_cloud',
     );
   }
 
@@ -116,7 +116,7 @@ function validateAiCredentialMetadata(
   }
 
   const routePolicy = request.routePolicy ?? request.head?.routePolicy ?? RoutePolicy.UNSPECIFIED;
-  if (routePolicy === RoutePolicy.TOKEN_API && source === 'inline' && !apiKey) {
+  if (routePolicy === RoutePolicy.CLOUD && source === 'inline' && !apiKey) {
     throwValidationError(
       'SDK_RUNTIME_AI_CREDENTIAL_MISSING',
       `${methodId} inline source requires metadata.providerApiKey`,
@@ -124,10 +124,10 @@ function validateAiCredentialMetadata(
     );
   }
 
-  if (routePolicy === RoutePolicy.LOCAL_RUNTIME && source === 'inline') {
+  if (routePolicy === RoutePolicy.LOCAL && source === 'inline') {
     throwValidationError(
       'SDK_RUNTIME_AI_CREDENTIAL_SCOPE_FORBIDDEN',
-      `${methodId} local-runtime route does not allow inline keySource`,
+      `${methodId} local route does not allow inline keySource`,
       'use_managed_key_source',
     );
   }

@@ -72,7 +72,7 @@ export type ScopeCatalogRevokeResult = ScopeCatalogEntry & {
   reauthorizeRequired: boolean;
 };
 
-export type AiRoutePolicy = 'local-runtime' | 'token-api';
+export type AiRoutePolicy = 'local' | 'cloud';
 
 export type AiFallbackPolicy = 'deny' | 'allow';
 
@@ -266,7 +266,7 @@ export const ReasonCode = {
   LOCAL_CHAT_PROACTIVE_ALLOWED: 'LOCAL_CHAT_PROACTIVE_ALLOWED',
   LOCAL_CHAT_PROACTIVE_POLICY_UNAVAILABLE: 'LOCAL_CHAT_PROACTIVE_POLICY_UNAVAILABLE',
   LOCAL_ONLY_NOT_SYNCED: 'LOCAL_ONLY_NOT_SYNCED',
-  LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED: 'LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED',
+  LOCAL_LIFECYCLE_WRITE_DENIED: 'LOCAL_LIFECYCLE_WRITE_DENIED',
   MOD_STATE_INVALID_KEY: 'MOD_STATE_INVALID_KEY',
   MOD_STATE_INVALID_OP: 'MOD_STATE_INVALID_OP',
   MOD_STATE_STORAGE_ERROR: 'MOD_STATE_STORAGE_ERROR',

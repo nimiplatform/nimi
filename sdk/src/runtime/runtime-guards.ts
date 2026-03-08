@@ -179,7 +179,7 @@ export function runtimeAiRequestRequiresSubject(input: {
   request: RuntimeAiRequestLike;
   metadata?: RuntimeAiMetadataLike;
 }): boolean {
-  if (runtimeAiRoutePolicy(input.request) !== RoutePolicy.LOCAL_RUNTIME) {
+  if (runtimeAiRoutePolicy(input.request) !== RoutePolicy.LOCAL) {
     return true;
   }
   if (runtimeAiConnectorId(input.request)) {

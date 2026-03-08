@@ -50,7 +50,7 @@ test('Runtime auto mode connects lazily and injects subjectUserId from subjectCo
           ExecuteScenarioResponse.create({
             output: Struct.fromJson({ text: 'hello from runtime class' } as never),
             finishReason: FinishReason.STOP,
-            routeDecision: RoutePolicy.LOCAL_RUNTIME,
+            routeDecision: RoutePolicy.LOCAL,
             modelResolved: 'local/qwen2.5',
             traceId: 'trace-runtime-class',
           }),
@@ -119,7 +119,7 @@ test('Runtime auto mode retries retryable runtime errors with configured backoff
           ExecuteScenarioResponse.create({
             output: Struct.fromJson({ text: 'retry-ok' } as never),
             finishReason: FinishReason.STOP,
-            routeDecision: RoutePolicy.LOCAL_RUNTIME,
+            routeDecision: RoutePolicy.LOCAL,
             modelResolved: 'local/qwen2.5',
             traceId: 'trace-runtime-retry',
           }),
@@ -369,7 +369,7 @@ test('retry backoff includes jitter', async () => {
             ExecuteScenarioResponse.create({
               output: Struct.fromJson({ text: 'jitter-ok' } as never),
               finishReason: FinishReason.STOP,
-              routeDecision: RoutePolicy.LOCAL_RUNTIME,
+              routeDecision: RoutePolicy.LOCAL,
               modelResolved: 'local/qwen2.5',
               traceId: 'trace-jitter',
             }),
@@ -429,7 +429,7 @@ test('metadata sends x-nimi-key-source with inline/managed values', async () => 
           ExecuteScenarioResponse.create({
             output: Struct.fromJson({ text: 'metadata-ok' } as never),
             finishReason: FinishReason.STOP,
-            routeDecision: RoutePolicy.LOCAL_RUNTIME,
+            routeDecision: RoutePolicy.LOCAL,
             modelResolved: 'local/qwen2.5',
             traceId: 'trace-metadata',
           }),
@@ -485,7 +485,7 @@ test('Runtime ai.text.generate omits x-nimi-key-source unless explicitly provide
           ExecuteScenarioResponse.create({
             output: Struct.fromJson({ text: 'metadata-default-ok' } as never),
             finishReason: FinishReason.STOP,
-            routeDecision: RoutePolicy.TOKEN_API,
+            routeDecision: RoutePolicy.CLOUD,
             modelResolved: 'gemini/gemini-3-flash-preview',
             traceId: 'trace-metadata-default',
           }),
@@ -514,7 +514,7 @@ test('Runtime ai.text.generate omits x-nimi-key-source unless explicitly provide
     await runtime.ai.text.generate({
       model: 'gemini/gemini-3-flash-preview',
       input: 'metadata default test',
-      route: 'token-api',
+      route: 'cloud',
     });
 
     assert.equal(capturedMetadata.keySource, undefined);
@@ -562,7 +562,7 @@ test('Runtime runtimeVersion() returns null before any RPC and caches after meta
           ExecuteScenarioResponse.create({
             output: Struct.fromJson({ text: 'version-test' } as never),
             finishReason: FinishReason.STOP,
-            routeDecision: RoutePolicy.LOCAL_RUNTIME,
+            routeDecision: RoutePolicy.LOCAL,
             modelResolved: 'local/qwen2.5',
             traceId: 'trace-version',
           }),
@@ -625,7 +625,7 @@ test('Runtime retry defaults to maxAttempts=3 backoffMs=200 when retry is omitte
           ExecuteScenarioResponse.create({
             output: Struct.fromJson({ text: 'default-retry' } as never),
             finishReason: FinishReason.STOP,
-            routeDecision: RoutePolicy.LOCAL_RUNTIME,
+            routeDecision: RoutePolicy.LOCAL,
             modelResolved: 'local/qwen2.5',
             traceId: 'trace-default-retry',
           }),
@@ -733,7 +733,7 @@ test('Runtime version negotiation: incompatible major version throws SDK_RUNTIME
         ExecuteScenarioResponse.create({
           output: Struct.fromJson({ text: 'never' } as never),
           finishReason: FinishReason.STOP,
-          routeDecision: RoutePolicy.LOCAL_RUNTIME,
+          routeDecision: RoutePolicy.LOCAL,
           modelResolved: 'local/test',
           traceId: 'trace-version',
         }),
@@ -776,7 +776,7 @@ test('Runtime version negotiation: compatible version 0.x.y proceeds normally', 
         ExecuteScenarioResponse.create({
           output: Struct.fromJson({ text: 'version-ok' } as never),
           finishReason: FinishReason.STOP,
-          routeDecision: RoutePolicy.LOCAL_RUNTIME,
+          routeDecision: RoutePolicy.LOCAL,
           modelResolved: 'local/test',
           traceId: 'trace-version-ok',
         }),

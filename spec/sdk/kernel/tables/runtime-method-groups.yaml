@@ -34,8 +34,8 @@ groups:
       - ListConnectorModels
       - ListProviderCatalog
     source_rule: S-SURFACE-002
-  - group: local_runtime_service_projection
-    service: RuntimeLocalRuntimeService
+  - group: local_service_projection
+    service: RuntimeLocalService
     phase: 1
     status: active
     source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml

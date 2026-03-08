@@ -2,35 +2,35 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  RuntimeLocalRuntimeAnonymousMethodIds,
+  RuntimeLocalAnonymousMethodIds,
   RuntimeMethodIds,
   RuntimeWriteMethodIds,
-  isRuntimeLocalRuntimeAnonymousMethod,
+  isRuntimeLocalAnonymousMethod,
   isRuntimeWriteMethod,
 } from '../../src/runtime/method-ids.js';
 import { buildLocalImageWorkflowExtensions } from '../../src/runtime/runtime-media.js';
 
 test('runtime method groups classify local artifact RPCs correctly', () => {
   const anonymousMethods = [
-    RuntimeMethodIds.localRuntime.listLocalArtifacts,
-    RuntimeMethodIds.localRuntime.listVerifiedArtifacts,
+    RuntimeMethodIds.local.listLocalArtifacts,
+    RuntimeMethodIds.local.listVerifiedArtifacts,
   ];
   const writeMethods = [
-    RuntimeMethodIds.localRuntime.installVerifiedArtifact,
-    RuntimeMethodIds.localRuntime.importLocalArtifact,
-    RuntimeMethodIds.localRuntime.removeLocalArtifact,
+    RuntimeMethodIds.local.installVerifiedArtifact,
+    RuntimeMethodIds.local.importLocalArtifact,
+    RuntimeMethodIds.local.removeLocalArtifact,
   ];
 
   for (const methodId of anonymousMethods) {
-    assert.equal(RuntimeLocalRuntimeAnonymousMethodIds.includes(methodId), true);
-    assert.equal(isRuntimeLocalRuntimeAnonymousMethod(methodId), true);
+    assert.equal(RuntimeLocalAnonymousMethodIds.includes(methodId), true);
+    assert.equal(isRuntimeLocalAnonymousMethod(methodId), true);
     assert.equal(isRuntimeWriteMethod(methodId), false);
   }
 
   for (const methodId of writeMethods) {
     assert.equal(RuntimeWriteMethodIds.includes(methodId), true);
     assert.equal(isRuntimeWriteMethod(methodId), true);
-    assert.equal(isRuntimeLocalRuntimeAnonymousMethod(methodId), false);
+    assert.equal(isRuntimeLocalAnonymousMethod(methodId), false);
   }
 });
 

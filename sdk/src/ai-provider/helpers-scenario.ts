@@ -5,7 +5,7 @@ import {
 } from '../runtime/index.js';
 import { ReasonCode, type AiRoutePolicy } from '../types/index.js';
 import {
-  ROUTE_POLICY_TOKEN_API,
+  ROUTE_POLICY_CLOUD,
   type NimiArtifact,
   type RuntimeDefaults,
   type RuntimeForAiProvider,
@@ -44,7 +44,7 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 function fromRouteDecision(value: unknown): AiRoutePolicy {
-  return Number(value) === ROUTE_POLICY_TOKEN_API ? 'token-api' : 'local-runtime';
+  return Number(value) === ROUTE_POLICY_CLOUD ? 'cloud' : 'local';
 }
 
 function concatChunks(chunks: Uint8Array[]): Uint8Array {
@@ -223,7 +223,7 @@ export async function collectArtifacts(stream: AsyncIterable<unknown>): Promise<
       mimeType: '',
       chunks: [],
       traceId: '',
-      routeDecision: 'local-runtime' as const,
+      routeDecision: 'local' as const,
       modelResolved: '',
     };
 
@@ -267,7 +267,7 @@ export async function collectArtifacts(stream: AsyncIterable<unknown>): Promise<
         mimeType: '',
         bytes: new Uint8Array(0),
         traceId: '',
-        routeDecision: 'local-runtime' as const,
+        routeDecision: 'local' as const,
         modelResolved: '',
       };
     }

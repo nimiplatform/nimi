@@ -44,7 +44,7 @@ async function run(): Promise<void> {
   const { endpoint, provider } = createProviderContext({
     appId,
     subjectUserId,
-    routePolicy: 'local-runtime',
+    routePolicy: 'local',
   });
 
   print(`[nexa] runtime grpc endpoint: ${endpoint}`);

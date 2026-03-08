@@ -75,7 +75,7 @@ async function waitForRuntimeReady(endpoint: string, appId: string): Promise<voi
   while (Date.now() < deadline) {
     try {
       const remainingMs = Math.max(1, deadline - Date.now());
-      await client.localRuntime.listLocalModels({}, {
+      await client.local.listLocalModels({}, {
         timeoutMs: Math.min(DEFAULT_RUNTIME_READY_CALL_TIMEOUT_MS, remainingMs),
       });
       return;
@@ -139,7 +139,7 @@ export async function withRuntimeDaemon(
       NIMI_RUNTIME_LOCK_PATH: join(stateRoot, 'runtime.lock'),
       NIMI_RUNTIME_CONFIG_PATH: join(stateRoot, 'config.json'),
       NIMI_RUNTIME_MODEL_REGISTRY_PATH: join(stateRoot, 'model-registry.json'),
-      NIMI_RUNTIME_LOCAL_RUNTIME_STATE_PATH: join(stateRoot, 'local-runtime-state.json'),
+      NIMI_RUNTIME_LOCAL_STATE_PATH: join(stateRoot, 'local-state.json'),
       NIMI_RUNTIME_CONNECTOR_STORE_PATH: join(stateRoot, 'connector-store.json'),
       XDG_DATA_HOME: join(stateRoot, 'xdg-data'),
       XDG_CACHE_HOME: join(stateRoot, 'xdg-cache'),

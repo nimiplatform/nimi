@@ -184,7 +184,7 @@ export type ModRuntimeClient = {
     resolve(input: ModRuntimeRouteResolveInput): Promise<ModRuntimeResolvedBinding>;
     checkHealth(input: ModRuntimeRouteCheckHealthInput): Promise<RuntimeRouteHealthResult>;
   };
-  localRuntime: {
+  local: {
     listArtifacts(input?: ModRuntimeListLocalArtifactsInput): Promise<ModRuntimeLocalArtifactRecord[]>;
   };
   ai: {
@@ -257,7 +257,7 @@ export type ModRuntimeDependencySnapshot = {
   modId: string;
   planId?: string;
   status: 'ready' | 'missing' | 'degraded';
-  routeSource: 'local-runtime' | 'token-api' | 'mixed' | 'unknown';
+  routeSource: 'local' | 'cloud' | 'mixed' | 'unknown';
   reasonCode?: string;
   warnings: string[];
   dependencies: ModRuntimeDependencyEntry[];
@@ -268,7 +268,7 @@ export type ModRuntimeDependencySnapshot = {
 export type ModRuntimeInspector = {
   getDependencySnapshot: (
     capability?: RuntimeCanonicalCapability,
-    routeSourceHint?: 'token-api' | 'local-runtime',
+    routeSourceHint?: 'cloud' | 'local',
   ) => Promise<ModRuntimeDependencySnapshot>;
   getRepairActions: (capability?: RuntimeCanonicalCapability) => Promise<ModRuntimeRepairAction[]>;
 };

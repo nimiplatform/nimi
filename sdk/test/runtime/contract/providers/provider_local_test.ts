@@ -162,7 +162,7 @@ test('provider_local_test.ts: nexa modalities + video fail-close via nimi-sdk', 
           runtime,
           appId: APP_ID,
           subjectUserId: SUBJECT_USER_ID,
-          routePolicy: 'local-runtime',
+          routePolicy: 'local',
           fallback: 'deny',
           timeoutMs: 30_000,
         });

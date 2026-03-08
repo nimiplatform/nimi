@@ -114,7 +114,7 @@ async function main(): Promise<void> {
     text,
     voice,
     audioFormat: 'mp3',
-    route: 'token-api',
+    route: 'cloud',
     fallback: 'deny',
     timeoutMs: 120000,
     metadata: {

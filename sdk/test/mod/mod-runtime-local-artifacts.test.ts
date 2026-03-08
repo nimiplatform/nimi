@@ -16,16 +16,16 @@ test('mod runtime client forwards local artifact listing with mod id and filters
       listOptions: async () => ({
         capability: 'image.generate' as const,
         selected: {
-          source: 'local-runtime' as const,
+          source: 'local' as const,
           connectorId: '',
           model: 'z-image',
         },
-        localRuntime: { models: [] },
+        local: { models: [] },
         connectors: [],
       }),
       resolve: async () => ({
         capability: 'image.generate' as const,
-        source: 'local-runtime' as const,
+        source: 'local' as const,
         provider: 'localai',
         model: 'z-image',
         connectorId: '',
@@ -38,7 +38,7 @@ test('mod runtime client forwards local artifact listing with mod id and filters
         actionHint: 'none',
       }),
     },
-    localRuntime: {
+    local: {
       listArtifacts: async (input: Record<string, unknown>) => {
         artifactCalls.push(input);
         return [{
@@ -102,7 +102,7 @@ test('mod runtime client forwards local artifact listing with mod id and filters
     getModAiDependencySnapshot: async () => ({
       modId: 'mod.local.artifacts.test',
       status: 'ready' as const,
-      routeSource: 'local-runtime' as const,
+      routeSource: 'local' as const,
       warnings: [],
       dependencies: [],
       repairActions: [],
@@ -115,7 +115,7 @@ test('mod runtime client forwards local artifact listing with mod id and filters
     runtime: {} as RuntimeHookRuntimeFacade,
   });
 
-  const artifacts = await client.localRuntime.listArtifacts({
+  const artifacts = await client.local.listArtifacts({
     kind: 'vae',
     engine: 'localai',
   });

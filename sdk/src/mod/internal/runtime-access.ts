@@ -43,7 +43,7 @@ export function resolveModRuntimeContext(input?: ModRuntimeContextInput): ModRun
 export async function getModAiDependencySnapshot(input: {
   modId: string;
   capability?: RuntimeCanonicalCapability;
-  routeSourceHint?: 'token-api' | 'local-runtime';
+  routeSourceHint?: 'cloud' | 'local';
 }, context?: ModRuntimeContextInput): Promise<ModRuntimeDependencySnapshot> {
   return resolveRuntimeHost(context).getModAiDependencySnapshot({
     modId: String(input.modId || '').trim(),

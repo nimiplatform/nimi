@@ -1,7 +1,7 @@
 import type { LocalAiProviderAdapter, LocalAiProviderHints } from './types/llm.js';
 import { asRecord } from './json-utils';
 
-export type RuntimeRouteSource = 'local-runtime' | 'token-api';
+export type RuntimeRouteSource = 'local' | 'cloud';
 export type RuntimeRouteModelProfileContextSource = 'provider-api' | 'template' | 'default' | 'unknown';
 export type RuntimeCanonicalCapability =
   | 'text.generate'
@@ -45,7 +45,7 @@ export type RuntimeRouteConnectorOption = {
   modelProfiles?: RuntimeRouteModelProfile[];
 };
 
-export type RuntimeRouteLocalRuntimeOption = {
+export type RuntimeRouteLocalOption = {
   localModelId: string;
   label?: string;
   engine?: string;
@@ -65,15 +65,15 @@ export type RuntimeRouteOptionsSnapshot = {
   capability?: RuntimeCanonicalCapability;
   selected: RuntimeRouteBinding;
   resolvedDefault?: RuntimeRouteBinding;
-  localRuntime: {
-    models: RuntimeRouteLocalRuntimeOption[];
+  local: {
+    models: RuntimeRouteLocalOption[];
     defaultEndpoint?: string;
   };
   connectors: RuntimeRouteConnectorOption[];
 };
 
 export function normalizeRuntimeRouteSource(value: unknown): RuntimeRouteSource {
-  return String(value || '').trim() === 'token-api' ? 'token-api' : 'local-runtime';
+  return String(value || '').trim() === 'cloud' ? 'cloud' : 'local';
 }
 
 export function parseRuntimeCanonicalCapability(value: unknown): RuntimeCanonicalCapability | null {
@@ -176,10 +176,10 @@ function parseRuntimeRouteConnectorModelCapabilities(value: unknown): Record<str
   return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
-function parseLocalRuntimeModels(value: unknown): RuntimeRouteLocalRuntimeOption[] {
+function parseLocalModels(value: unknown): RuntimeRouteLocalOption[] {
   if (!Array.isArray(value)) return [];
   const deduped = new Set<string>();
-  const models: RuntimeRouteLocalRuntimeOption[] = [];
+  const models: RuntimeRouteLocalOption[] = [];
   for (const item of value) {
     const record = asRecord(item);
     const localModelId = String(record.localModelId || record.id || '').trim();
@@ -222,8 +222,8 @@ export function parseRuntimeRouteOptions(
   if (!selected) return null;
 
   const resolvedDefault = parseRuntimeRouteBinding(record.resolvedDefault) || undefined;
-  const localRuntime = asRecord(record.localRuntime);
-  const localRuntimeModels = parseLocalRuntimeModels(localRuntime.models);
+  const local = asRecord(record.local);
+  const localModels = parseLocalModels(local.models);
 
   const connectors = (Array.isArray(record.connectors) ? record.connectors : [])
     .filter((item) => item && typeof item === 'object')
@@ -248,9 +248,9 @@ export function parseRuntimeRouteOptions(
     ...(capability ? { capability } : {}),
     selected,
     ...(options?.includeResolvedDefault ? { resolvedDefault: resolvedDefault || selected } : {}),
-    localRuntime: {
-      models: localRuntimeModels,
-      defaultEndpoint: String(localRuntime.defaultEndpoint || '').trim() || undefined,
+    local: {
+      models: localModels,
+      defaultEndpoint: String(local.defaultEndpoint || '').trim() || undefined,
     },
     connectors,
   };

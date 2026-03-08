@@ -4557,9 +4557,9 @@ class WarmLocalModelResponse$Type extends MessageType<WarmLocalModelResponse> {
  */
 export const WarmLocalModelResponse = new WarmLocalModelResponse$Type();
 /**
- * @generated ServiceType for protobuf service nimi.runtime.v1.RuntimeLocalRuntimeService
+ * @generated ServiceType for protobuf service nimi.runtime.v1.RuntimeLocalService
  */
-export const RuntimeLocalRuntimeService = new ServiceType("nimi.runtime.v1.RuntimeLocalRuntimeService", [
+export const RuntimeLocalService = new ServiceType("nimi.runtime.v1.RuntimeLocalService", [
     { name: "ListLocalModels", options: {}, I: ListLocalModelsRequest, O: ListLocalModelsResponse },
     { name: "ListLocalArtifacts", options: {}, I: ListLocalArtifactsRequest, O: ListLocalArtifactsResponse },
     { name: "ListVerifiedModels", options: {}, I: ListVerifiedModelsRequest, O: ListVerifiedModelsResponse },

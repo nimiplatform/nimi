@@ -15,8 +15,8 @@ import { ReasonCode, type AiFallbackPolicy, type AiRoutePolicy } from '../types/
 import {
   FALLBACK_POLICY_ALLOW,
   FALLBACK_POLICY_DENY,
-  ROUTE_POLICY_LOCAL_RUNTIME,
-  ROUTE_POLICY_TOKEN_API,
+  ROUTE_POLICY_LOCAL,
+  ROUTE_POLICY_CLOUD,
   type NimiAiProviderConfig,
   type RuntimeDefaults,
   type RuntimeForAiProvider,
@@ -58,9 +58,9 @@ export function parseCount(value: unknown): number | undefined {
 }
 
 export function resolveRoutePolicy(value: AiRoutePolicy | undefined): number {
-  return value === 'token-api'
-    ? ROUTE_POLICY_TOKEN_API
-    : ROUTE_POLICY_LOCAL_RUNTIME;
+  return value === 'cloud'
+    ? ROUTE_POLICY_CLOUD
+    : ROUTE_POLICY_LOCAL;
 }
 
 export function resolveFallbackPolicy(value: AiFallbackPolicy | undefined): number {
@@ -70,7 +70,7 @@ export function resolveFallbackPolicy(value: AiFallbackPolicy | undefined): numb
 }
 
 export function fromRouteDecision(value: unknown): AiRoutePolicy {
-  return Number(value) === ROUTE_POLICY_TOKEN_API ? 'token-api' : 'local-runtime';
+  return Number(value) === ROUTE_POLICY_CLOUD ? 'cloud' : 'local';
 }
 
 export function toProviderMetadata(input: {
@@ -373,7 +373,7 @@ export function ensureRuntime(config: NimiAiProviderConfig): {
     defaults: {
       appId: ensureText(config.appId, 'appId'),
       subjectUserId,
-      routePolicy: config.routePolicy || 'local-runtime',
+      routePolicy: config.routePolicy || 'local',
       fallback: config.fallback || 'deny',
       timeoutMs: config.timeoutMs,
       metadata: config.metadata,

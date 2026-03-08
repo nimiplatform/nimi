@@ -1040,7 +1040,7 @@ test('createNimiAiProvider maps runtime failures and exposes video/tts/stt exten
     },
   });
   assert.equal(video.artifacts.length, 1);
-  assert.equal(video.artifacts[0]?.routeDecision, 'token-api');
+  assert.equal(video.artifacts[0]?.routeDecision, 'cloud');
 
   const tts = await nimi.tts('tts/default').synthesize({
     text: 'hello',
@@ -1053,7 +1053,7 @@ test('createNimiAiProvider maps runtime failures and exposes video/tts/stt exten
     mimeType: 'audio/wav',
   });
   assert.equal(stt.text, 'transcribed text');
-  assert.equal(stt.routeDecision, 'local-runtime');
+  assert.equal(stt.routeDecision, 'local');
 });
 
 test('createNimiAiProvider abort signal cancels scenario job before throwing', async () => {

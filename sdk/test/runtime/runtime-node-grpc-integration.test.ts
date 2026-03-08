@@ -102,7 +102,7 @@ function createStreamGenerateRequest(): StreamScenarioRequest {
       appId: APP_ID,
       subjectUserId: 'mod:local-chat',
       modelId: 'llama3',
-      routePolicy: RoutePolicy.LOCAL_RUNTIME,
+      routePolicy: RoutePolicy.LOCAL,
       fallback: FallbackPolicy.DENY,
       timeoutMs: 0,
       connectorId: '',

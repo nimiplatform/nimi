@@ -19,18 +19,18 @@ test('mod runtime client uses injected runtime context without global host', asy
       listOptions: async () => ({
         capability: 'text.generate' as const,
         selected: {
-          source: 'local-runtime' as const,
+          source: 'local' as const,
           connectorId: '',
           model: 'qwen2.5',
         },
-        localRuntime: { models: [] },
+        local: { models: [] },
         connectors: [],
       }),
       resolve: async (input: Record<string, unknown>) => {
         routeResolveCalls.push(input);
         return {
           capability: 'text.generate' as const,
-          source: 'local-runtime' as const,
+          source: 'local' as const,
           provider: 'localai',
           model: 'qwen2.5',
           connectorId: '',
@@ -103,7 +103,7 @@ test('mod runtime client uses injected runtime context without global host', asy
     getModAiDependencySnapshot: async () => ({
       modId: 'mod.context.test',
       status: 'ready' as const,
-      routeSource: 'local-runtime' as const,
+      routeSource: 'local' as const,
       warnings: [],
       dependencies: [],
       repairActions: [],
@@ -137,16 +137,16 @@ test('mod runtime client forwards media.jobs.submit through injected runtime con
       listOptions: async () => ({
         capability: 'image.generate' as const,
         selected: {
-          source: 'local-runtime' as const,
+          source: 'local' as const,
           connectorId: '',
           model: 'localai/local-import/z_image_turbo-Q4_K',
         },
-        localRuntime: { models: [] },
+        local: { models: [] },
         connectors: [],
       }),
       resolve: async () => ({
         capability: 'image.generate' as const,
-        source: 'local-runtime' as const,
+        source: 'local' as const,
         provider: 'localai',
         model: 'localai/local-import/z_image_turbo-Q4_K',
         connectorId: '',
@@ -164,7 +164,7 @@ test('mod runtime client forwards media.jobs.submit through injected runtime con
         actionHint: 'none',
       }),
     },
-    localRuntime: {
+    local: {
       listArtifacts: async () => [],
     },
     ai: {
@@ -216,7 +216,7 @@ test('mod runtime client forwards media.jobs.submit through injected runtime con
     getModAiDependencySnapshot: async () => ({
       modId: 'mod.context.test',
       status: 'ready' as const,
-      routeSource: 'local-runtime' as const,
+      routeSource: 'local' as const,
       warnings: [],
       dependencies: [],
       repairActions: [],
@@ -252,16 +252,16 @@ test('mod runtime client route health uses injected runtime context', async () =
       listOptions: async () => ({
         capability: 'text.generate' as const,
         selected: {
-          source: 'local-runtime' as const,
+          source: 'local' as const,
           connectorId: '',
           model: 'qwen2.5',
         },
-        localRuntime: { models: [] },
+        local: { models: [] },
         connectors: [],
       }),
       resolve: async () => ({
         capability: 'text.generate' as const,
-        source: 'local-runtime' as const,
+        source: 'local' as const,
         provider: 'localai',
         model: 'qwen2.5',
         connectorId: '',
@@ -324,7 +324,7 @@ test('mod runtime client route health uses injected runtime context', async () =
     getModAiDependencySnapshot: async () => ({
       modId: 'mod.context.test',
       status: 'ready' as const,
-      routeSource: 'local-runtime' as const,
+      routeSource: 'local' as const,
       warnings: [],
       dependencies: [],
       repairActions: [],
@@ -357,16 +357,16 @@ test('mod runtime inspector forwards canonical dependency capability tokens', as
       listOptions: async () => ({
         capability: 'text.generate' as const,
         selected: {
-          source: 'local-runtime' as const,
+          source: 'local' as const,
           connectorId: '',
           model: 'qwen2.5',
         },
-        localRuntime: { models: [] },
+        local: { models: [] },
         connectors: [],
       }),
       resolve: async () => ({
         capability: 'text.generate' as const,
-        source: 'local-runtime' as const,
+        source: 'local' as const,
         provider: 'localai',
         model: 'qwen2.5',
         connectorId: '',
@@ -428,7 +428,7 @@ test('mod runtime inspector forwards canonical dependency capability tokens', as
       return {
         modId: 'mod.context.test',
         status: 'ready' as const,
-        routeSource: 'local-runtime' as const,
+        routeSource: 'local' as const,
         warnings: [],
         dependencies: [],
         repairActions: [],
@@ -442,12 +442,12 @@ test('mod runtime inspector forwards canonical dependency capability tokens', as
     runtime: {} as RuntimeHookRuntimeFacade,
   });
 
-  await inspector.getDependencySnapshot('audio.synthesize', 'local-runtime');
+  await inspector.getDependencySnapshot('audio.synthesize', 'local');
 
   assert.equal(snapshotCalls.length, 1);
   assert.equal(snapshotCalls[0]?.modId, 'mod.context.test');
   assert.equal(snapshotCalls[0]?.capability, 'audio.synthesize');
-  assert.equal(snapshotCalls[0]?.routeSourceHint, 'local-runtime');
+  assert.equal(snapshotCalls[0]?.routeSourceHint, 'local');
 });
 
 test('mod runtime client image.generate keeps minimal payload', async () => {
@@ -460,16 +460,16 @@ test('mod runtime client image.generate keeps minimal payload', async () => {
       listOptions: async () => ({
         capability: 'image.generate' as const,
         selected: {
-          source: 'local-runtime' as const,
+          source: 'local' as const,
           connectorId: '',
           model: 'sdxl',
         },
-        localRuntime: { models: [] },
+        local: { models: [] },
         connectors: [],
       }),
       resolve: async () => ({
         capability: 'image.generate' as const,
-        source: 'local-runtime' as const,
+        source: 'local' as const,
         provider: 'localai',
         model: 'sdxl',
         connectorId: '',
@@ -536,7 +536,7 @@ test('mod runtime client image.generate keeps minimal payload', async () => {
     getModAiDependencySnapshot: async () => ({
       modId: 'mod.context.test',
       status: 'ready' as const,
-      routeSource: 'local-runtime' as const,
+      routeSource: 'local' as const,
       warnings: [],
       dependencies: [],
       repairActions: [],
