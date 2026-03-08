@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { AuditEventRecord } from '@nimiplatform/sdk/runtime';
 import { CallerKind } from '@nimiplatform/sdk/runtime';
+import { Tooltip } from '@renderer/components/tooltip.js';
 import { Button, Card, RuntimeSelect } from '../../primitives.js';
 import {
   callerKindLabel,
@@ -22,15 +23,17 @@ function IconButton({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white/90 text-gray-600 transition-colors hover:bg-white hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      {icon}
-    </button>
+    <Tooltip content={title} placement="top">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        aria-label={title}
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white/90 text-gray-600 transition-colors hover:bg-white hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {icon}
+      </button>
+    </Tooltip>
   );
 }
 
@@ -188,9 +191,11 @@ function AuditEventRow({ event }: { event: AuditEventRecord }) {
             <span className="text-gray-400">reason={event.reasonCode}</span>
           ) : null}
         </div>
-        <span className="shrink-0 text-[11px] text-gray-400" title={ts}>
-          {ts !== '-' ? relativeTimeShort(ts) : '-'}
-        </span>
+        <Tooltip content={ts} placement="top">
+          <span className="shrink-0 text-[11px] text-gray-400">
+            {ts !== '-' ? relativeTimeShort(ts) : '-'}
+          </span>
+        </Tooltip>
       </div>
       {expanded ? (
         <div className="space-y-2 bg-white/60 px-4 py-3">

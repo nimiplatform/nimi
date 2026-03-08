@@ -1,5 +1,6 @@
 import type { UsageStatRecord } from '@nimiplatform/sdk/runtime';
 import { UsageWindow } from '@nimiplatform/sdk/runtime';
+import { Tooltip } from '@renderer/components/tooltip.js';
 import { Button, Card } from '../../primitives.js';
 import {
   formatTokenCount,
@@ -23,15 +24,17 @@ function IconButton({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white/90 text-gray-600 transition-colors hover:bg-white hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      {icon}
-    </button>
+    <Tooltip content={title} placement="top">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        aria-label={title}
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white/90 text-gray-600 transition-colors hover:bg-white hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {icon}
+      </button>
+    </Tooltip>
   );
 }
 
@@ -189,8 +192,10 @@ export function UsageStatsSection({
                     <td className="py-1.5 pr-3 text-gray-600">{formatTokenCount(r.outputTokens)}</td>
                     <td className="py-1.5 pr-3 text-gray-600">{formatComputeMs(r.computeMs)}</td>
                     <td className="py-1.5 pr-3 text-gray-600">{formatComputeMs(r.queueWaitMs)}</td>
-                    <td className="py-1.5 text-gray-400" title={bucketTs}>
-                      {bucketTs !== '-' ? relativeTimeShort(bucketTs) : '-'}
+                    <td className="py-1.5 text-gray-400">
+                      <Tooltip content={bucketTs} placement="top">
+                        <span>{bucketTs !== '-' ? relativeTimeShort(bucketTs) : '-'}</span>
+                      </Tooltip>
                     </td>
                   </tr>
                 );

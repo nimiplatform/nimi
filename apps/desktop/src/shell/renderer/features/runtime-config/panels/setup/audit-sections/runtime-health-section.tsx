@@ -4,6 +4,7 @@ import type {
   AIProviderHealthSnapshot,
   AIProviderSubHealth,
 } from '@nimiplatform/sdk/runtime';
+import { Tooltip } from '@renderer/components/tooltip.js';
 import { Card } from '../../primitives.js';
 import {
   runtimeHealthStatusLabel,
@@ -29,15 +30,17 @@ function IconButton({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white/90 text-gray-600 transition-colors hover:bg-white hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      {icon}
-    </button>
+    <Tooltip content={title} placement="top">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        aria-label={title}
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white/90 text-gray-600 transition-colors hover:bg-white hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {icon}
+      </button>
+    </Tooltip>
   );
 }
 

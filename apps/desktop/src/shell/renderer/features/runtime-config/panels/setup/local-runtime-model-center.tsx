@@ -10,6 +10,7 @@ import {
   type LocalAiVerifiedModelDescriptor,
   type OrphanModelFile,
 } from '@runtime/local-ai-runtime';
+import { Tooltip } from '@renderer/components/tooltip.js';
 import { RuntimeSelect } from '../primitives';
 import { ModelCenterDependencySection } from './model-center-dependency-section';
 import {
@@ -961,29 +962,31 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
           <div className="flex items-center justify-between">
             <div className="flex-1" />
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => void props.onHealthCheck()}
-                disabled={props.checkingHealth}
-                title={healthTooltip}
-                className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium disabled:opacity-50 ${
-                  localRuntimeHealthy
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                <HeartPulseIcon className="w-4 h-4" />
-                {props.checkingHealth ? 'Checking...' : 'Health'}
-              </button>
+              <Tooltip content={healthTooltip} placement="top">
                 <button
                   type="button"
-                  onClick={() => {
-                    void props.onDiscover().finally(() => {
-                      void refreshOrphanFiles();
-                    });
-                  }}
-                  disabled={props.discovering}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                  onClick={() => void props.onHealthCheck()}
+                  disabled={props.checkingHealth}
+                  aria-label={healthTooltip}
+                  className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium disabled:opacity-50 ${
+                    localRuntimeHealthy
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                      : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <HeartPulseIcon className="w-4 h-4" />
+                  {props.checkingHealth ? 'Checking...' : 'Health'}
+                </button>
+              </Tooltip>
+              <button
+                type="button"
+                onClick={() => {
+                  void props.onDiscover().finally(() => {
+                    void refreshOrphanFiles();
+                  });
+                }}
+                disabled={props.discovering}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
               >
                 <RefreshIcon className="w-4 h-4" />
                 {props.discovering ? 'Refreshing...' : 'Refresh'}
@@ -1148,14 +1151,16 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
                           checked={model.status === 'active'}
                           onChange={() => model.status === 'active' ? props.onStop?.(model.localModelId) : props.onStart?.(model.localModelId)}
                         />
-                        <button
-                          type="button"
-                          onClick={() => props.onRemove?.(model.localModelId)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                          title="Remove"
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                        </button>
+                        <Tooltip content="Remove" placement="top">
+                          <button
+                            type="button"
+                            onClick={() => props.onRemove?.(model.localModelId)}
+                            className="p-1.5 rounded-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                            aria-label="Remove"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
                       </div>
                     </div>
                   ))}

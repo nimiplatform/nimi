@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/types';
 import { CAPABILITIES_V11 } from '@renderer/features/runtime-config/state/types';
 import { desktopBridge } from '@renderer/bridge';
+import { Tooltip } from '@renderer/components/tooltip.js';
 import { formatLocaleDateTime } from '@renderer/i18n';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
 import { RuntimeHealthSection } from '../panels/setup/audit-sections/runtime-health-section.js';
@@ -26,15 +27,17 @@ function IconButton({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white/90 text-gray-600 transition-colors hover:bg-white hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      {icon}
-    </button>
+    <Tooltip content={title} placement="top">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        aria-label={title}
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white/90 text-gray-600 transition-colors hover:bg-white hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {icon}
+      </button>
+    </Tooltip>
   );
 }
 

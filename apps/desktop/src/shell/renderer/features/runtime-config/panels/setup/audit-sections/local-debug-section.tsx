@@ -1,4 +1,5 @@
 import type { LocalAiAuditEvent } from '@runtime/local-ai-runtime';
+import { Tooltip } from '@renderer/components/tooltip.js';
 import { formatLocaleDateTime } from '@renderer/i18n';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
 import {
@@ -333,9 +334,11 @@ function LocalAuditEventCard({ event }: { event: LocalAiAuditEvent }) {
           <span className="text-[11px] text-gray-500">{source}</span>
           <span className="text-[11px] text-gray-400">{modality}</span>
         </div>
-        <span className="shrink-0 text-[11px] text-gray-400" title={event.occurredAt}>
-          {relativeTime(event.occurredAt)}
-        </span>
+        <Tooltip content={event.occurredAt} placement="top">
+          <span className="shrink-0 text-[11px] text-gray-400">
+            {relativeTime(event.occurredAt)}
+          </span>
+        </Tooltip>
       </div>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-600">
         {event.modelId ? <span>model={event.modelId}</span> : null}
