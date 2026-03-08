@@ -54,6 +54,19 @@ function Galaxy({ state }: { state: 'hero' | 'explore' | 'detail' }) {
     return { positions, initialPositions, colors, initialColors, sizes };
   }, [count]);
 
+  const positionAttribute = useMemo(
+    () => new THREE.BufferAttribute(particlesData.positions, 3),
+    [particlesData.positions],
+  );
+  const colorAttribute = useMemo(
+    () => new THREE.BufferAttribute(particlesData.colors, 3),
+    [particlesData.colors],
+  );
+  const sizeAttribute = useMemo(
+    () => new THREE.BufferAttribute(particlesData.sizes, 1),
+    [particlesData.sizes],
+  );
+
   const targetCamPos = useMemo(() => new THREE.Vector3(0, 2.5, 8), []);
 
   useFrame((stateObj, delta) => {
@@ -72,9 +85,16 @@ function Galaxy({ state }: { state: 'hero' | 'explore' | 'detail' }) {
     const localMouse = mouse3D.current.clone();
     pointsRef.current.worldToLocal(localMouse);
 
-    const pos = pointsRef.current.geometry.attributes.position.array as Float32Array;
-    const cols = pointsRef.current.geometry.attributes.color.array as Float32Array;
-    const szs = pointsRef.current.geometry.attributes.size.array as Float32Array;
+    const positionAttr = pointsRef.current.geometry.getAttribute('position') as THREE.BufferAttribute | undefined;
+    const colorAttr = pointsRef.current.geometry.getAttribute('color') as THREE.BufferAttribute | undefined;
+    const sizeAttr = pointsRef.current.geometry.getAttribute('size') as THREE.BufferAttribute | undefined;
+    if (!positionAttr || !colorAttr || !sizeAttr) {
+      return;
+    }
+
+    const pos = positionAttr.array as Float32Array;
+    const cols = colorAttr.array as Float32Array;
+    const szs = sizeAttr.array as Float32Array;
     const initialPos = particlesData.initialPositions;
     const initialCols = particlesData.initialColors;
 
@@ -85,10 +105,19 @@ function Galaxy({ state }: { state: 'hero' | 'explore' | 'detail' }) {
 
     for (let i = 0; i < count; i++) {
       const i3 = i * 3;
-      const dx = pos[i3] - localMouse.x;
-      const dy = pos[i3+1] - localMouse.y;
-      const dz = pos[i3+2] - localMouse.z;
+      const currentX = pos[i3] ?? 0;
+      const currentY = pos[i3 + 1] ?? 0;
+      const currentZ = pos[i3 + 2] ?? 0;
+      const dx = currentX - localMouse.x;
+      const dy = currentY - localMouse.y;
+      const dz = currentZ - localMouse.z;
       const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+      const initialX = initialPos[i3] ?? 0;
+      const initialY = initialPos[i3 + 1] ?? 0;
+      const initialZ = initialPos[i3 + 2] ?? 0;
+      const initialR = initialCols[i3] ?? 0;
+      const initialG = initialCols[i3 + 1] ?? 0;
+      const initialB = initialCols[i3 + 2] ?? 0;
 
       if (dist < influenceRadius) {
         // 汇聚到球壳
@@ -96,30 +125,30 @@ function Galaxy({ state }: { state: 'hero' | 'explore' | 'detail' }) {
         const targetY = localMouse.y + (dy / (dist || 1)) * sphereRadius;
         const targetZ = localMouse.z + (dz / (dist || 1)) * sphereRadius;
 
-        pos[i3] += (targetX - pos[i3]) * followSpeed;
-        pos[i3+1] += (targetY - pos[i3+1]) * followSpeed;
-        pos[i3+2] += (targetZ - pos[i3+2]) * followSpeed;
+        pos[i3] = currentX + (targetX - currentX) * followSpeed;
+        pos[i3 + 1] = currentY + (targetY - currentY) * followSpeed;
+        pos[i3 + 2] = currentZ + (targetZ - currentZ) * followSpeed;
 
         // 视觉增强：变亮变大
         cols[i3] = 1.0; 
-        cols[i3+1] = 1.0;
-        cols[i3+2] = 1.0;
+        cols[i3 + 1] = 1.0;
+        cols[i3 + 2] = 1.0;
         szs[i] = 0.025;
       } else {
         // 回归
-        pos[i3] += (initialPos[i3] - pos[i3]) * 0.08;
-        pos[i3+1] += (initialPos[i3+1] - pos[i3+1]) * 0.08;
-        pos[i3+2] += (initialPos[i3+2] - pos[i3+2]) * 0.08;
+        pos[i3] = currentX + (initialX - currentX) * 0.08;
+        pos[i3 + 1] = currentY + (initialY - currentY) * 0.08;
+        pos[i3 + 2] = currentZ + (initialZ - currentZ) * 0.08;
         
-        cols[i3] = initialCols[i3];
-        cols[i3+1] = initialCols[i3+1];
-        cols[i3+2] = initialCols[i3+2];
-        szs[i] = particlesData.sizes[i];
+        cols[i3] = initialR;
+        cols[i3 + 1] = initialG;
+        cols[i3 + 2] = initialB;
+        szs[i] = particlesData.sizes[i] ?? 0.008;
       }
     }
-    pointsRef.current.geometry.attributes.position.needsUpdate = true;
-    pointsRef.current.geometry.attributes.color.needsUpdate = true;
-    pointsRef.current.geometry.attributes.size.needsUpdate = true;
+    positionAttr.needsUpdate = true;
+    colorAttr.needsUpdate = true;
+    sizeAttr.needsUpdate = true;
 
     if (state === 'hero') targetCamPos.set(0, 2.5, 8);
     else if (state === 'explore') targetCamPos.set(0, 0, 5.5);
@@ -130,9 +159,9 @@ function Galaxy({ state }: { state: 'hero' | 'explore' | 'detail' }) {
   return (
     <points ref={pointsRef}>
       <bufferGeometry>
-        <bufferAttribute attach="attributes-position" count={count} array={particlesData.positions} itemSize={3} />
-        <bufferAttribute attach="attributes-color" count={count} array={particlesData.colors} itemSize={3} />
-        <bufferAttribute attach="attributes-size" count={count} array={particlesData.sizes} itemSize={1} />
+        <primitive attach="attributes-position" object={positionAttribute} />
+        <primitive attach="attributes-color" object={colorAttribute} />
+        <primitive attach="attributes-size" object={sizeAttribute} />
       </bufferGeometry>
       <pointsMaterial size={0.008} vertexColors transparent opacity={0.9} sizeAttenuation depthWrite={false} blending={THREE.AdditiveBlending} />
     </points>
