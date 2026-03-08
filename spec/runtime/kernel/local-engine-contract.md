@@ -138,7 +138,9 @@ ENV 覆盖：`NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED`、`NIMI_RUNTIME_ENGINE_LOCALA
 LocalAI 动态图片工作流补充：
 
 - companion asset（如 `vae` / `llm` / `clip`）不要求静态注册进 `localai-models.yaml`。
-- runtime 可在请求时基于主模型 `engine_config`、artifact 选择与本次 profile override 渲染临时 profile，并通过 `POST /models/import` 动态导入。
+- runtime 可在请求时基于主模型 `engine_config`、显式 artifact 选择与本次 profile override 渲染临时 profile，并通过 `POST /models/import` 动态导入。
+- `components[]` 为 LocalAI dynamic image workflow 必填输入；缺失或空数组时，runtime 必须在 import 前 fail-close（`INVALID_ARGUMENT` + `AI_INPUT_INVALID`），不得猜测默认 `vae` / `llm` companion。
+- `profile_overrides` 仅允许覆盖非路径字段；若只有 `profile_overrides` 而没有显式 companion 选择，runtime 不得继续生成动态 alias profile。
 - LocalAI image 模型的健康判定不得仅依赖 `/v1/models` 静态列表。
 
 ## K-LENG-007 健康探测协议

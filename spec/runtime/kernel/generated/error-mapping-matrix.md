@@ -30,6 +30,7 @@
 | `AI_PROVIDER_INTERNAL` | `INTERNAL` | `provider_upstream_internal_failure` | `grpc_status` | `K-ERR-006` |
 | `AI_PROVIDER_RATE_LIMITED` | `RESOURCE_EXHAUSTED` | `provider_upstream_rate_limit` | `grpc_status` | `K-ERR-006` |
 | `AI_PROVIDER_TIMEOUT` | `DEADLINE_EXCEEDED` | `stream_first_chunk_timeout` | `grpc_status` | `K-STREAM-007` |
+| `AI_INPUT_INVALID` | `INVALID_ARGUMENT` | `consume_or_media_input_validation` | `grpc_status` | `K-ERR-006` |
 | `AI_OUTPUT_INVALID` | `INTERNAL` | `provider_output_decode` | `grpc_status` | `K-ERR-006` |
 | `AI_STREAM_BROKEN` | `UNAVAILABLE` | `stream_mid_flight_disconnect` | `grpc_status` | `K-STREAM-002` |
 | `AI_PROVIDER_AUTH_FAILED` | `FAILED_PRECONDITION` | `media_snapshot_credential_invalid` | `grpc_status` | `K-JOB-006` |

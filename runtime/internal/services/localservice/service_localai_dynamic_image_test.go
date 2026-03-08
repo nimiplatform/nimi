@@ -2,12 +2,15 @@ package localservice
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/oklog/ulid/v2"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -182,6 +185,83 @@ func TestResolveLocalAIImageProfileRejectsPathOverrides(t *testing.T) {
 	}
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected invalid argument, got %v", status.Code(err))
+	}
+}
+
+func TestResolveLocalAIImageProfileRejectsMissingComponents(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.SetLocalAIRegistrationConfig(modelsRoot, "", false)
+
+	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K.gguf")
+	if err := os.MkdirAll(filepath.Dir(mainModelPath), 0o755); err != nil {
+		t.Fatalf("mkdir main model dir: %v", err)
+	}
+	if err := os.WriteFile(mainModelPath, []byte("main-model"), 0o600); err != nil {
+		t.Fatalf("write main model file: %v", err)
+	}
+	engineConfig, err := structpb.NewStruct(map[string]any{
+		"backend": "stablediffusion-ggml",
+	})
+	if err != nil {
+		t.Fatalf("build engine config: %v", err)
+	}
+	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "z_image_turbo",
+		Capabilities: []string{"image"},
+		Engine:       "localai",
+		Entry:        "z_image_turbo-Q4_K.gguf",
+		EngineConfig: engineConfig,
+	})
+	if err != nil {
+		t.Fatalf("install local image model: %v", err)
+	}
+	svc.mu.Lock()
+	svc.models[modelResp.GetModel().GetLocalModelId()].Status = runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE
+	svc.mu.Unlock()
+
+	_, _, _, err = svc.ResolveLocalAIImageProfile(context.Background(), "localai/z_image_turbo", map[string]any{
+		"profile_overrides": map[string]any{
+			"step": 25,
+		},
+	})
+	if err == nil {
+		t.Fatalf("expected missing companion selections to fail")
+	}
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected invalid argument, got %v", status.Code(err))
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok {
+		t.Fatalf("expected reason code on missing components error")
+	}
+	if reason != runtimev1.ReasonCode_AI_INPUT_INVALID {
+		t.Fatalf("unexpected reason code: %s", reason)
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected grpc status error")
+	}
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(st.Message()), &payload); err != nil {
+		t.Fatalf("decode status message payload: %v", err)
+	}
+	if got := payload["message"]; got != "LocalAI dynamic image workflow requires explicit companion artifact selections via components[]" {
+		t.Fatalf("unexpected message payload: %#v", payload)
+	}
+	if got := payload["actionHint"]; got != "select_local_image_companions" {
+		t.Fatalf("unexpected action hint payload: %#v", payload)
+	}
+	details := st.Details()
+	if len(details) != 1 {
+		t.Fatalf("expected 1 detail, got %d", len(details))
+	}
+	info, ok := details[0].(*errdetails.ErrorInfo)
+	if !ok {
+		t.Fatalf("expected ErrorInfo detail, got %T", details[0])
+	}
+	if info.GetMetadata()["action_hint"] != "select_local_image_companions" {
+		t.Fatalf("unexpected action hint: %q", info.GetMetadata()["action_hint"])
 	}
 }
 

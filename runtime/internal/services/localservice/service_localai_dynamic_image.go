@@ -50,14 +50,20 @@ func (s *Service) ResolveLocalAIImageProfile(_ context.Context, requestedModelID
 	if err := validateLocalAIImageProfileOverrides(profileOverrides); err != nil {
 		return "", nil, nil, err
 	}
+	components, err := localAIImageComponents(scenarioExtensions)
+	if err != nil {
+		return "", nil, nil, err
+	}
+	if len(components) == 0 {
+		return "", nil, nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, grpcerr.ReasonOptions{
+			Message:    "LocalAI dynamic image workflow requires explicit companion artifact selections via components[]",
+			ActionHint: "select_local_image_companions",
+		})
+	}
 
 	profile := mergeMaps(defaults, profileOverrides)
 	if strings.TrimSpace(valueAsString(profile["backend"])) == "" {
 		profile["backend"] = "stablediffusion-ggml"
-	}
-	components, err := localAIImageComponents(scenarioExtensions)
-	if err != nil {
-		return "", nil, nil, err
 	}
 
 	modelPath, err := s.resolveLocalAIModelEntryPath(model)

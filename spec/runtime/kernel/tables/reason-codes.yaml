@@ -171,6 +171,10 @@ codes:
     value: 394
     family: PROVIDER
     source: K-STREAM-007
+  - name: AI_INPUT_INVALID
+    value: 206
+    family: PROVIDER
+    source: K-ERR-006
   - name: AI_OUTPUT_INVALID
     value: 207
     family: PROVIDER
