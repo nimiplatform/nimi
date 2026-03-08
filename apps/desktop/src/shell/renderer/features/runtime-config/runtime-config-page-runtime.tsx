@@ -11,8 +11,8 @@ import { UsageStatsSection } from '../panels/setup/audit-sections/usage-stats-se
 import { LocalDebugSection } from '../panels/setup/audit-sections/local-debug-section.js';
 import { useGlobalAuditData } from '../panels/setup/use-global-audit-data.js';
 import { ExternalAgentAccessPanel } from '../panels/setup/external-agent-access';
-import type { RuntimeConfigPanelControllerModel } from '../runtime-config-panel-types';
-import { Button, Input, StatusBadge } from '../panels/primitives';
+import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
+import { Button, Input, StatusBadge } from './runtime-config-primitives';
 
 // Icon Button Component
 function IconButton({

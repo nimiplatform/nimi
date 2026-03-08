@@ -2,10 +2,10 @@ import {
   discoverLocalRuntimeModelsCommand,
   runLocalRuntimeHealthCheckCommandWithGuard,
   testSelectedConnectorCommand,
-} from './commands/provider-commands';
+} from './runtime-config-provider-commands';
 import type {
   RuntimeConfigPanelCommandsInput,
-} from './commands/context';
+} from './runtime-config-command-context';
 import { runRuntimeConfigAsyncGuard } from './runtime-config-runtime-ops';
 
 export function createRuntimeConfigPanelCommands(input: RuntimeConfigPanelCommandsInput) {

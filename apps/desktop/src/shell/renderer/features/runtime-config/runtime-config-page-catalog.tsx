@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { Button, Card } from '../panels/primitives';
+import { Button, Card } from './runtime-config-primitives';
 import {
   sdkDeleteModelCatalogProvider,
   sdkListModelCatalogProviders,

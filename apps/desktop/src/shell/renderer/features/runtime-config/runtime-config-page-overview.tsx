@@ -6,10 +6,10 @@ import {
 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { formatLocaleDateTime } from '@renderer/i18n';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
-import type { RuntimeConfigPanelControllerModel } from '../runtime-config-panel-types';
-import { Button } from '../panels/primitives';
-import { useSystemResources } from '../domain/system-resources';
-import { useUsageEstimate } from '../domain/cost-estimator';
+import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
+import { Button } from './runtime-config-primitives';
+import { useSystemResources } from './runtime-config-system-resources';
+import { useUsageEstimate } from './runtime-config-cost-estimator';
 
 type OverviewPageProps = {
   model: RuntimeConfigPanelControllerModel;

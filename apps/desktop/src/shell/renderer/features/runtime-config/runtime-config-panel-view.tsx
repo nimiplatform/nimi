@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { RUNTIME_PAGE_META } from './runtime-config-meta-v11';
-import { RuntimeSidebar } from './panels/sidebar';
-import { StatusBadge, DaemonStatusBadge } from './panels/primitives';
-import { OverviewPage } from './pages/overview-page';
-import { LocalPage } from './pages/local-page';
-import { CloudPage } from './pages/cloud-page';
-import { CatalogPage } from './pages/catalog-page';
-import { RuntimePage } from './pages/runtime-page';
-import { ModsPage } from './pages/mods-page';
+import { RuntimeSidebar } from './runtime-config-sidebar';
+import { StatusBadge, DaemonStatusBadge } from './runtime-config-primitives';
+import { OverviewPage } from './runtime-config-page-overview';
+import { LocalPage } from './runtime-config-page-local';
+import { CloudPage } from './runtime-config-page-cloud';
+import { CatalogPage } from './runtime-config-page-catalog';
+import { RuntimePage } from './runtime-config-page-runtime';
+import { ModsPage } from './runtime-config-page-mods';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { useRuntimeConfigPanelController } from './runtime-config-panel-controller';
 

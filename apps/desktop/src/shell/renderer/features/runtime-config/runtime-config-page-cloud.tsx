@@ -26,8 +26,8 @@ import {
   replaceConnectorsInState,
 } from '../panels/provider-connectors/connector-actions';
 import { formatRuntimeConfigErrorBanner } from '../domain/provider-connectors/error';
-import type { RuntimeConfigPanelControllerModel } from '../runtime-config-panel-types';
-import { RuntimeSelect, StatusBadge, renderModelChips } from '../panels/primitives';
+import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
+import { RuntimeSelect, StatusBadge, renderModelChips } from './runtime-config-primitives';
 
 // Icons
 function CloudIcon({ className = '' }: { className?: string }) {

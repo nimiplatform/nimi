@@ -3,10 +3,10 @@ import { startLocalAiRuntimePolling, type LocalAiRuntimeSnapshot } from '@runtim
 import type { Dispatch, SetStateAction } from 'react';
 import type { RuntimeFieldMap, StatusBanner } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import { useRuntimeConfigHydrationEffect } from './effects/hydration';
-import { useRuntimeConfigVaultSyncEffect } from './effects/vault-sync';
-import { useRuntimeConfigRouteInitEffect } from './effects/route-init';
-import { useRuntimeConfigSetupAutodiscoverEffect } from './effects/setup-autodiscover';
+import { useRuntimeConfigHydrationEffect } from './runtime-config-effect-hydration';
+import { useRuntimeConfigVaultSyncEffect } from './runtime-config-effect-vault-sync';
+import { useRuntimeConfigRouteInitEffect } from './runtime-config-effect-route-init';
+import { useRuntimeConfigSetupAutodiscoverEffect } from './runtime-config-effect-setup-autodiscover';
 import { checkLocalRuntimeHealth } from './domain/provider-connectors/discovery';
 
 const LOCAL_RUNTIME_SNAPSHOT_POLL_INTERVAL_MS = 30_000;
