@@ -127,6 +127,11 @@ mappings:
     surface: stream_first_chunk_timeout
     exit_shape: grpc_status
     source: K-STREAM-007
+  - reason_code: AI_OUTPUT_INVALID
+    grpc_code: INTERNAL
+    surface: provider_output_decode
+    exit_shape: grpc_status
+    source: K-ERR-006
   - reason_code: AI_STREAM_BROKEN
     grpc_code: UNAVAILABLE
     surface: stream_mid_flight_disconnect

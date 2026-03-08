@@ -68,3 +68,40 @@ func TestValidateScenarioCapabilityFailCloseReasonCodes(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateScenarioCapabilityCatalogUnavailableFailsClosedForCloudProvider(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.speechCatalog = nil
+
+	err := svc.validateScenarioCapability(
+		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		"anthropic/claude-sonnet-4-6",
+		nil,
+		nil,
+	)
+	if err == nil {
+		t.Fatal("expected capability guard error")
+	}
+	reasonCode, ok := grpcerr.ExtractReasonCode(err)
+	if !ok {
+		t.Fatalf("expected grpc reason code, got error: %v", err)
+	}
+	if reasonCode != runtimev1.ReasonCode_AI_PROVIDER_INTERNAL {
+		t.Fatalf("reason code mismatch: got=%s want=%s", reasonCode.String(), runtimev1.ReasonCode_AI_PROVIDER_INTERNAL.String())
+	}
+}
+
+func TestValidateScenarioCapabilityCatalogUnavailableAllowsLocalProvider(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.speechCatalog = nil
+
+	err := svc.validateScenarioCapability(
+		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		"localai/local-import/z_image_turbo-Q4_K",
+		nil,
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("expected local provider capability guard bypass, got error: %v", err)
+	}
+}

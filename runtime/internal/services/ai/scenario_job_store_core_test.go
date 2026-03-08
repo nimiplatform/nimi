@@ -125,6 +125,9 @@ func TestScenarioJobStoreVoiceFallbackPaths(t *testing.T) {
 	if artResp.GetTraceId() == "" {
 		t.Fatalf("voice artifact response should carry trace id")
 	}
+	if artResp.Artifacts == nil {
+		t.Fatalf("voice artifact response should return an empty slice, got nil")
+	}
 
 	collector := &scenarioJobEventCollector{ctx: ctx}
 	if err := svc.SubscribeScenarioJobEvents(&runtimev1.SubscribeScenarioJobEventsRequest{JobId: jobID}, collector); err != nil {

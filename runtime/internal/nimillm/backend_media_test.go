@@ -112,6 +112,48 @@ func TestBackendGenerateImageForwardsScenarioExtensions(t *testing.T) {
 	}
 }
 
+func TestBackendGenerateImageLocalAIRejectsUnsupportedResponseFormat(t *testing.T) {
+	backend := NewBackend("localai", "http://127.0.0.1", "", time.Second)
+	_, _, _, err := backend.GenerateImageLocalAI(context.Background(), "local/image", &runtimev1.ImageGenerateScenarioSpec{
+		Prompt:         "make a forest",
+		ResponseFormat: "signed_url",
+	}, nil)
+	if err == nil {
+		t.Fatal("expected unsupported response format error")
+	}
+}
+
+func TestBackendGenerateImageNormalizesBase64ResponseFormat(t *testing.T) {
+	var captured map[string]any
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/images/generations" {
+			http.NotFound(w, r)
+			return
+		}
+		captured = decodeJSONBodyForBackendMediaTest(t, r)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"data": []map[string]any{
+				{"b64_json": base64.StdEncoding.EncodeToString([]byte("image-generic"))},
+			},
+		})
+	}))
+	defer server.Close()
+
+	backend := NewBackend("openai", server.URL, "", time.Second)
+	_, _, err := backend.GenerateImage(context.Background(), "openai/image", &runtimev1.ImageGenerateScenarioSpec{
+		Prompt:         "make a skyline",
+		ResponseFormat: "base64",
+	}, nil)
+	if err != nil {
+		t.Fatalf("GenerateImage failed: %v", err)
+	}
+	if got := strings.TrimSpace(ValueAsString(captured["response_format"])); got != "b64_json" {
+		t.Fatalf("expected normalized response format, got=%q", got)
+	}
+}
+
 func TestBackendGenerateVideoForwardsScenarioExtensions(t *testing.T) {
 	var captured map[string]any
 

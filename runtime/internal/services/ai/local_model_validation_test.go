@@ -42,7 +42,7 @@ func TestParseLocalModelSelector(t *testing.T) {
 		{modelID: "nexa/qwen", explicitEngine: "nexa", normalizedID: "qwen"},
 		{modelID: "local/qwen", preferLocalAI: true, normalizedID: "qwen"},
 		{modelID: "raw-model", normalizedID: "raw-model"},
-		{modelID: "   ", normalizedID: "local-model"},
+		{modelID: "   ", normalizedID: ""},
 	}
 
 	for _, tt := range tests {
@@ -197,6 +197,14 @@ func TestValidateLocalModelRequest(t *testing.T) {
 	}
 	if err := svc.validateLocalModelRequest(context.Background(), "nexa/qwen", nil); err != nil {
 		t.Fatalf("expected nexa selector to succeed, got %v", err)
+	}
+
+	// Case-insensitive modelId matching should succeed across desktop/go-runtime normalization.
+	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalModelsResponse{{
+		Models: []*runtimev1.LocalModelRecord{{ModelId: "Qwen", Engine: "localai", LocalInvokeProfileId: "invoke"}},
+	}}}
+	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen", nil); err != nil {
+		t.Fatalf("expected case-insensitive local model validation success, got %v", err)
 	}
 }
 

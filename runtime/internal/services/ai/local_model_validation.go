@@ -105,16 +105,13 @@ func parseLocalModelSelector(modelID string) localModelSelector {
 	default:
 		selector.modelID = raw
 	}
-	if selector.modelID == "" {
-		selector.modelID = "local-model"
-	}
 	return selector
 }
 
 func selectActiveLocalModel(models []*runtimev1.LocalModelRecord, selector localModelSelector) (*runtimev1.LocalModelRecord, runtimev1.ReasonCode) {
 	candidates := make([]*runtimev1.LocalModelRecord, 0, len(models))
 	for _, model := range models {
-		if strings.TrimSpace(model.GetModelId()) != selector.modelID {
+		if !strings.EqualFold(strings.TrimSpace(model.GetModelId()), selector.modelID) {
 			continue
 		}
 		candidates = append(candidates, model)
@@ -167,7 +164,7 @@ func selectRunnableLocalModel(models []*runtimev1.LocalModelRecord, selector loc
 		if model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
 			continue
 		}
-		if strings.TrimSpace(model.GetModelId()) != selector.modelID {
+		if !strings.EqualFold(strings.TrimSpace(model.GetModelId()), selector.modelID) {
 			continue
 		}
 		candidates = append(candidates, model)

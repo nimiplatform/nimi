@@ -57,9 +57,6 @@ func (p *localProvider) ResolveModelID(raw string) string {
 	if strings.HasPrefix(modelID, "nexa/") {
 		modelID = strings.TrimSpace(strings.TrimPrefix(modelID, "nexa/"))
 	}
-	if modelID == "" {
-		return "local-model"
-	}
 	return modelID
 }
 
@@ -157,13 +154,7 @@ func (p *localProvider) pickBackend(modelID string) (*nimillm.Backend, string, b
 	localAIBackend, nexaBackend := p.backends()
 	id := strings.TrimSpace(modelID)
 	if id == "" {
-		if localAIBackend != nil {
-			return localAIBackend, "local-model", false, true, false
-		}
-		if nexaBackend != nil {
-			return nexaBackend, "local-model", false, true, true
-		}
-		return nil, "local-model", false, false, false
+		return nil, "", false, false, false
 	}
 
 	segments := strings.SplitN(id, "/", 2)
@@ -171,7 +162,7 @@ func (p *localProvider) pickBackend(modelID string) (*nimillm.Backend, string, b
 		prefix := strings.ToLower(strings.TrimSpace(segments[0]))
 		rest := strings.TrimSpace(segments[1])
 		if rest == "" {
-			rest = "local-model"
+			return nil, "", true, false, prefix == "nexa"
 		}
 		switch prefix {
 		case "localai":

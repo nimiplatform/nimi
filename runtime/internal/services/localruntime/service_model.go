@@ -405,7 +405,7 @@ func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLoc
 		if existing.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
 			continue
 		}
-		if existing.GetModelId() == modelID && strings.EqualFold(existing.GetEngine(), engine) {
+		if strings.EqualFold(existing.GetModelId(), modelID) && strings.EqualFold(existing.GetEngine(), engine) {
 			s.mu.RUnlock()
 			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_LOCAL_MODEL_ALREADY_INSTALLED)
 		}
@@ -572,7 +572,7 @@ func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocal
 		if existing.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
 			continue
 		}
-		if existing.GetModelId() == modelID && strings.EqualFold(existing.GetEngine(), engine) {
+		if strings.EqualFold(existing.GetModelId(), modelID) && strings.EqualFold(existing.GetEngine(), engine) {
 			s.mu.RUnlock()
 			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_LOCAL_MODEL_ALREADY_INSTALLED)
 		}

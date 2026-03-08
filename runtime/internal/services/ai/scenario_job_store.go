@@ -279,7 +279,7 @@ func (s *Service) GetScenarioArtifacts(_ context.Context, req *runtimev1.GetScen
 	if job, ok := s.voiceAssets.getJob(jobID); ok {
 		return &runtimev1.GetScenarioArtifactsResponse{
 			JobId:     jobID,
-			Artifacts: nil,
+			Artifacts: []*runtimev1.ScenarioArtifact{},
 			TraceId:   job.GetTraceId(),
 		}, nil
 	}

@@ -53,15 +53,15 @@ func (s *Service) validateScenarioCapability(
 	remoteTarget *nimillm.RemoteTarget,
 	selected provider,
 ) error {
-	if s == nil || s.speechCatalog == nil {
-		return nil
-	}
 	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected)
 	if providerType == "" {
 		return nil
 	}
 	if !providerregistry.Contains(providerType) {
 		return nil
+	}
+	if s == nil || s.speechCatalog == nil {
+		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
 	supported, err := s.speechCatalog.SupportsScenario(providerType, modelResolved, scenarioType)
 	if err != nil {

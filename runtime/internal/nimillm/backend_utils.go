@@ -14,8 +14,10 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
+const maxDecodedMediaURLBytes = 100 * 1024 * 1024
+
 // DecodeMedia decodes base64 or downloads from URL.
-func (b *Backend) DecodeMedia(b64Data string, mediaURL string) ([]byte, error) {
+func (b *Backend) DecodeMedia(ctx context.Context, b64Data string, mediaURL string) ([]byte, error) {
 	b64Data = strings.TrimSpace(b64Data)
 	if b64Data != "" {
 		payload, err := base64.StdEncoding.DecodeString(b64Data)
@@ -29,7 +31,7 @@ func (b *Backend) DecodeMedia(b64Data string, mediaURL string) ([]byte, error) {
 	}
 	mediaURL = strings.TrimSpace(mediaURL)
 	if mediaURL != "" {
-		request, err := b.newRequest(context.Background(), http.MethodGet, mediaURL, nil)
+		request, err := b.newRequest(ctx, http.MethodGet, mediaURL, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -41,8 +43,11 @@ func (b *Backend) DecodeMedia(b64Data string, mediaURL string) ([]byte, error) {
 		if response.StatusCode < 200 || response.StatusCode >= 300 {
 			return nil, MapProviderHTTPError(response.StatusCode, nil)
 		}
-		payload, err := io.ReadAll(response.Body)
+		payload, err := io.ReadAll(io.LimitReader(response.Body, maxDecodedMediaURLBytes+1))
 		if err != nil {
+			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
+		if len(payload) > maxDecodedMediaURLBytes {
 			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		if len(payload) == 0 {

@@ -74,6 +74,10 @@ func TestLocalProviderLegacyWrappers(t *testing.T) {
 	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
 		t.Fatalf("unexpected embed unavailable reason: %v", reason)
 	}
+
+	if got := p.ResolveModelID("   "); got != "" {
+		t.Fatalf("expected empty resolved model id, got %q", got)
+	}
 }
 
 func TestServicePublicSettersAndAccessors(t *testing.T) {

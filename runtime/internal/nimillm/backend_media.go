@@ -204,6 +204,17 @@ type LocalAIImageCompat struct {
 	IgnoredOptions []string
 }
 
+func normalizeImageResponseFormat(raw string) (string, error) {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "", "base64", "b64_json":
+		return "b64_json", nil
+	case "url":
+		return "url", nil
+	default:
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+}
+
 // ImportLocalAIModelConfig dynamically imports a LocalAI model configuration
 // through the LocalAI management endpoint.
 func (b *Backend) ImportLocalAIModelConfig(ctx context.Context, modelConfig map[string]any) error {
@@ -273,7 +284,9 @@ func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec
 	if spec != nil {
 		prompt = strings.TrimSpace(spec.GetPrompt())
 		negativePrompt = strings.TrimSpace(spec.GetNegativePrompt())
-		if normalizedFormat := strings.TrimSpace(spec.GetResponseFormat()); normalizedFormat != "" {
+		if normalizedFormat, err := normalizeImageResponseFormat(spec.GetResponseFormat()); err != nil {
+			return nil, nil, nil, err
+		} else {
 			responseFormat = normalizedFormat
 		}
 		n = spec.GetN()
@@ -363,7 +376,7 @@ func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec
 	if len(respBody.Data) == 0 {
 		return nil, nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	payload, err := b.DecodeMedia(respBody.Data[0].B64JSON, respBody.Data[0].URL)
+	payload, err := b.DecodeMedia(ctx, respBody.Data[0].B64JSON, respBody.Data[0].URL)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -408,8 +421,12 @@ func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runti
 		prompt = strings.TrimSpace(spec.GetPrompt())
 	}
 	responseFormat := "b64_json"
-	if spec != nil && strings.TrimSpace(spec.GetResponseFormat()) != "" {
-		responseFormat = strings.TrimSpace(spec.GetResponseFormat())
+	if spec != nil {
+		normalizedFormat, err := normalizeImageResponseFormat(spec.GetResponseFormat())
+		if err != nil {
+			return nil, nil, err
+		}
+		responseFormat = normalizedFormat
 	}
 
 	var respBody imageResponse
@@ -435,7 +452,7 @@ func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runti
 		return nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 
-	payload, err := b.DecodeMedia(respBody.Data[0].B64JSON, respBody.Data[0].URL)
+	payload, err := b.DecodeMedia(ctx, respBody.Data[0].B64JSON, respBody.Data[0].URL)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -532,7 +549,7 @@ func (b *Backend) GenerateVideo(ctx context.Context, modelID string, spec *runti
 		b64Data = respBody.Output[0].B64MP4
 		mediaURL = respBody.Output[0].URL
 	}
-	payload, err := b.DecodeMedia(b64Data, mediaURL)
+	payload, err := b.DecodeMedia(ctx, b64Data, mediaURL)
 	if err != nil {
 		return nil, nil, err
 	}
