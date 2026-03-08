@@ -4,8 +4,9 @@ import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { TimeFlowDynamics } from './time-flow-dynamics';
 import { WorldScoringMatrix } from './world-scoring-matrix';
+import { CreateAgentDrawer, type CreateAgentInput } from './create-agent-drawer.js';
 
-// CSS Keyframes for status-based glow effects
+// CSS Keyframes for status-based glow effects and slide panel
 const statusGlowStyles = `
   @keyframes breathing-glow-active {
     0%, 100% {
@@ -73,6 +74,24 @@ const statusGlowStyles = `
     }
     50% {
       opacity: 0.8;
+    }
+  }
+
+  @keyframes slide-in-right {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
     }
   }
 `;
@@ -150,18 +169,7 @@ export type XianxiaWorldTemplateProps = {
   onCreateSubWorld?: () => void;
   onChatAgent?: (agent: WorldAgent) => void;
   onVoiceAgent?: (agent: WorldAgent) => void;
-  onCreateAgent?: (input: {
-    handle: string;
-    displayName: string;
-    concept: string;
-    description: string;
-    scenario: string;
-    greeting: string;
-    referenceImageUrl: string;
-    wakeStrategy: '' | 'PASSIVE' | 'PROACTIVE';
-    dnaPrimary: '' | 'CARING' | 'PLAYFUL' | 'INTELLECTUAL' | 'CONFIDENT' | 'MYSTERIOUS' | 'ROMANTIC';
-    dnaSecondary: string[];
-  }) => void;
+  onCreateAgent?: (input: CreateAgentInput) => void;
   createAgentMutating?: boolean;
 };
 
@@ -175,53 +183,6 @@ const displayValue = (value: unknown, fallback = 'N/A') => {
 export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
   const world = props.world;
   const [showCreateAgent, setShowCreateAgent] = useState(false);
-  const [agentHandle, setAgentHandle] = useState('');
-  const [agentDisplayName, setAgentDisplayName] = useState('');
-  const [agentConcept, setAgentConcept] = useState('');
-  const [agentDescription, setAgentDescription] = useState('');
-  const [agentScenario, setAgentScenario] = useState('');
-  const [agentGreeting, setAgentGreeting] = useState('');
-  const [agentRefImageUrl, setAgentRefImageUrl] = useState('');
-  const [agentWakeStrategy, setAgentWakeStrategy] = useState<'' | 'PASSIVE' | 'PROACTIVE'>('PASSIVE');
-  const [agentDnaPrimary, setAgentDnaPrimary] = useState<'' | 'CARING' | 'PLAYFUL' | 'INTELLECTUAL' | 'CONFIDENT' | 'MYSTERIOUS' | 'ROMANTIC'>('');
-  const [agentDnaSecondary, setAgentDnaSecondary] = useState<string[]>([]);
-
-  const DNA_PRIMARY_OPTIONS: Array<{ value: typeof agentDnaPrimary; label: string }> = [
-    { value: '', label: '不指定' },
-    { value: 'CARING', label: '关怀型' },
-    { value: 'PLAYFUL', label: '活泼型' },
-    { value: 'INTELLECTUAL', label: '智慧型' },
-    { value: 'CONFIDENT', label: '自信型' },
-    { value: 'MYSTERIOUS', label: '神秘型' },
-    { value: 'ROMANTIC', label: '浪漫型' },
-  ];
-  const DNA_SECONDARY_OPTIONS = [
-    { value: 'HUMOROUS', label: '幽默' },
-    { value: 'SARCASTIC', label: '毒舌' },
-    { value: 'GENTLE', label: '温柔' },
-    { value: 'DIRECT', label: '直接' },
-    { value: 'OPTIMISTIC', label: '乐观' },
-    { value: 'REALISTIC', label: '现实' },
-    { value: 'DRAMATIC', label: '戏剧化' },
-    { value: 'PASSIONATE', label: '热情' },
-    { value: 'REBELLIOUS', label: '叛逆' },
-    { value: 'INNOCENT', label: '纯真' },
-    { value: 'WISE', label: '智慧' },
-    { value: 'ECCENTRIC', label: '古怪' },
-  ];
-
-  function resetCreateAgentForm() {
-    setAgentHandle('');
-    setAgentDisplayName('');
-    setAgentConcept('');
-    setAgentDescription('');
-    setAgentScenario('');
-    setAgentGreeting('');
-    setAgentRefImageUrl('');
-    setAgentWakeStrategy('PASSIVE');
-    setAgentDnaPrimary('');
-    setAgentDnaSecondary([]);
-  }
   const getAgentPalette = (agent: WorldAgent) => getSemanticAgentPalette({
     description: agent.bio || world.description,
     worldName: world.name,
@@ -402,7 +363,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                         <div
                           className={`w-24 h-24 rounded-2xl flex items-center justify-center text-3xl font-serif border-2 bg-gradient-to-br relative z-10 ${glowConfig.textColor} ${glowConfig.borderColor} ${glowConfig.bgGradient}`}
                         >
-                          {world.name ? world.name.charAt(0) : '凡'}
+                          {world.name ? world.name.charAt(0) : 'W'}
                         </div>
                       </div>
                     )}
@@ -579,173 +540,43 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
             {/* Section Title */}
             <div className="flex items-center justify-between mb-5">
               <span className="text-sm text-[#4ECCA3] font-medium">World Agents</span>
-              {props.onCreateAgent && (
-                <button
-                  type="button"
-                  onClick={() => setShowCreateAgent((v) => !v)}
-                  title="Create Agent"
-                  className="flex h-6 w-6 items-center justify-center rounded-full border border-[#4ECCA3]/30 text-[#4ECCA3] hover:bg-[#4ECCA3]/10 transition-colors"
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                    <path d="M5 1v8M1 5h8" />
-                  </svg>
-                </button>
-              )}
             </div>
-
-            {/* Inline Create Agent Form */}
-            {showCreateAgent && props.onCreateAgent && (
-              <div className="mb-5 rounded-xl border border-[#4ECCA3]/20 bg-[#0a0f0c]/80 p-4">
-                <div className="flex flex-col gap-3">
-                  {/* 基础信息 */}
-                  <p className="text-[10px] font-medium text-[#4ECCA3]/70 uppercase tracking-wider">基础信息</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      value={agentHandle}
-                      onChange={(e) => setAgentHandle(e.target.value)}
-                      placeholder="Handle（必填）"
-                      className="h-9 rounded-lg border border-[#4ECCA3]/20 bg-[#111a14] px-3 text-xs text-[#e8f5ee] placeholder-[#e8f5ee]/30 outline-none focus:border-[#4ECCA3]/60"
-                    />
-                    <input
-                      value={agentDisplayName}
-                      onChange={(e) => setAgentDisplayName(e.target.value)}
-                      placeholder="显示名称（可选）"
-                      className="h-9 rounded-lg border border-[#4ECCA3]/20 bg-[#111a14] px-3 text-xs text-[#e8f5ee] placeholder-[#e8f5ee]/30 outline-none focus:border-[#4ECCA3]/60"
-                    />
-                  </div>
-                  <input
-                    value={agentRefImageUrl}
-                    onChange={(e) => setAgentRefImageUrl(e.target.value)}
-                    placeholder="形象参考图 URL（可选）"
-                    className="h-9 rounded-lg border border-[#4ECCA3]/20 bg-[#111a14] px-3 text-xs text-[#e8f5ee] placeholder-[#e8f5ee]/30 outline-none focus:border-[#4ECCA3]/60"
-                  />
-
-                  {/* 人设 */}
-                  <p className="text-[10px] font-medium text-[#4ECCA3]/70 uppercase tracking-wider mt-1">人设</p>
-                  <textarea
-                    value={agentConcept}
-                    onChange={(e) => setAgentConcept(e.target.value)}
-                    placeholder="人设概念（必填）——高度概括角色核心"
-                    rows={2}
-                    className="rounded-lg border border-[#4ECCA3]/20 bg-[#111a14] px-3 py-2 text-xs text-[#e8f5ee] placeholder-[#e8f5ee]/30 outline-none focus:border-[#4ECCA3]/60 resize-none"
-                  />
-                  <textarea
-                    value={agentDescription}
-                    onChange={(e) => setAgentDescription(e.target.value)}
-                    placeholder="简介（可选）——对外展示的角色描述"
-                    rows={2}
-                    className="rounded-lg border border-[#4ECCA3]/20 bg-[#111a14] px-3 py-2 text-xs text-[#e8f5ee] placeholder-[#e8f5ee]/30 outline-none focus:border-[#4ECCA3]/60 resize-none"
-                  />
-                  <textarea
-                    value={agentScenario}
-                    onChange={(e) => setAgentScenario(e.target.value)}
-                    placeholder="初始场景（可选）——角色所处的世界背景"
-                    rows={2}
-                    className="rounded-lg border border-[#4ECCA3]/20 bg-[#111a14] px-3 py-2 text-xs text-[#e8f5ee] placeholder-[#e8f5ee]/30 outline-none focus:border-[#4ECCA3]/60 resize-none"
-                  />
-                  <input
-                    value={agentGreeting}
-                    onChange={(e) => setAgentGreeting(e.target.value)}
-                    placeholder="开场白（可选）——第一轮对话的打开语"
-                    className="h-9 rounded-lg border border-[#4ECCA3]/20 bg-[#111a14] px-3 text-xs text-[#e8f5ee] placeholder-[#e8f5ee]/30 outline-none focus:border-[#4ECCA3]/60"
-                  />
-
-                  {/* DNA 性格 */}
-                  <p className="text-[10px] font-medium text-[#4ECCA3]/70 uppercase tracking-wider mt-1">性格 DNA</p>
-                  <select
-                    value={agentDnaPrimary}
-                    onChange={(e) => setAgentDnaPrimary(e.target.value as typeof agentDnaPrimary)}
-                    className="h-9 rounded-lg border border-[#4ECCA3]/20 bg-[#111a14] px-3 text-xs text-[#e8f5ee] outline-none focus:border-[#4ECCA3]/60"
-                  >
-                    {DNA_PRIMARY_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {DNA_SECONDARY_OPTIONS.map((opt) => {
-                      const checked = agentDnaSecondary.includes(opt.value);
-                      const disabled = !checked && agentDnaSecondary.length >= 3;
-                      return (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          disabled={disabled}
-                          onClick={() => {
-                            setAgentDnaSecondary((prev) =>
-                              checked ? prev.filter((v) => v !== opt.value) : [...prev, opt.value],
-                            );
-                          }}
-                          className={`rounded-lg border px-2 py-1 text-[10px] font-medium transition-colors ${
-                            checked
-                              ? 'border-[#4ECCA3]/60 bg-[#4ECCA3]/15 text-[#4ECCA3]'
-                              : 'border-[#4ECCA3]/15 bg-transparent text-[#e8f5ee]/40 hover:border-[#4ECCA3]/30 hover:text-[#e8f5ee]/60'
-                          } disabled:cursor-not-allowed disabled:opacity-30`}
-                        >
-                          {opt.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p className="text-[10px] text-[#e8f5ee]/30">最多选 3 项（已选 {agentDnaSecondary.length}/3）</p>
-
-                  {/* 唤醒策略 */}
-                  <p className="text-[10px] font-medium text-[#4ECCA3]/70 uppercase tracking-wider mt-1">唤醒策略</p>
-                  <div className="flex gap-3">
-                    {(['PASSIVE', 'PROACTIVE'] as const).map((val) => (
-                      <button
-                        key={val}
-                        type="button"
-                        onClick={() => setAgentWakeStrategy(val)}
-                        className={`flex-1 rounded-lg border py-1.5 text-xs font-medium transition-colors ${
-                          agentWakeStrategy === val
-                            ? 'border-[#4ECCA3]/60 bg-[#4ECCA3]/15 text-[#4ECCA3]'
-                            : 'border-[#4ECCA3]/15 text-[#e8f5ee]/40 hover:border-[#4ECCA3]/30'
-                        }`}
-                      >
-                        {val === 'PASSIVE' ? 'PASSIVE 被动' : 'PROACTIVE 主动'}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* 操作按钮 */}
-                  <div className="flex justify-end gap-2 pt-2 border-t border-[#4ECCA3]/10">
-                    <button
-                      type="button"
-                      onClick={() => { resetCreateAgentForm(); setShowCreateAgent(false); }}
-                      className="rounded-lg px-3 py-1.5 text-xs font-medium text-[#e8f5ee]/40 hover:text-[#e8f5ee]/70"
-                    >
-                      取消
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!agentHandle.trim() || !agentConcept.trim() || props.createAgentMutating}
-                      onClick={() => {
-                        props.onCreateAgent!({
-                          handle: agentHandle,
-                          displayName: agentDisplayName,
-                          concept: agentConcept,
-                          description: agentDescription,
-                          scenario: agentScenario,
-                          greeting: agentGreeting,
-                          referenceImageUrl: agentRefImageUrl,
-                          wakeStrategy: agentWakeStrategy,
-                          dnaPrimary: agentDnaPrimary,
-                          dnaSecondary: agentDnaSecondary,
-                        });
-                        resetCreateAgentForm();
-                        setShowCreateAgent(false);
-                      }}
-                      className="rounded-lg bg-[#4ECCA3] px-4 py-1.5 text-xs font-medium text-[#0a0f0c] hover:bg-[#3DBA92] disabled:cursor-not-allowed disabled:bg-[#4ECCA3]/30 disabled:text-[#0a0f0c]/50 transition-all"
-                    >
-                      {props.createAgentMutating ? '创建中...' : '创建 Agent'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Agent Grid - 4 columns per row */}
             <div className="grid grid-cols-4 gap-4">
+              {/* 创建�?Agent 专属卡片 */}
+              {props.onCreateAgent && (
+                <article
+                  onClick={() => setShowCreateAgent(true)}
+                  className="relative w-full min-w-0 overflow-hidden rounded-xl border-2 border-dashed border-[#4ECCA3]/30 bg-gradient-to-br from-[#0a0f0c]/40 to-[#0f1612]/60 p-4 cursor-pointer transition-all duration-500 hover:border-[#4ECCA3]/60 hover:shadow-[0_0_30px_rgba(78,204,163,0.15)] hover:-translate-y-0.5 group"
+                >
+                  {/* 呼吸灯效果的微光动画 */}
+                  <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    <div 
+                      className="absolute inset-0 rounded-xl animate-pulse"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(78,204,163,0) 0%, rgba(78,204,163,0.1) 50%, rgba(78,204,163,0) 100%)',
+                      }}
+                    />
+                  </div>
+                  
+                  <div className="relative z-10 flex flex-col items-center justify-center min-h-[140px]">
+                    {/* 大号薄荷�?+ �?*/}
+                    <div 
+                      className="w-14 h-14 rounded-full flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"
+                      style={{ background: 'linear-gradient(135deg, #4ECCA3, #3DBB94)' }}
+                    >
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                    </div>
+                    {/* 文案 */}
+                    <span className="text-xs font-medium text-[#4ECCA3]">Create New Agent</span>
+                  </div>
+                </article>
+              )}
+
               {props.agentsLoading ? (
                 <div className="col-span-4 py-16 flex flex-col items-center justify-center gap-2">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#4ECCA3]/30 border-t-[#4ECCA3]" />
@@ -762,7 +593,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                       {/* Theme exception: xianxia cards intentionally keep a tighter silhouette. */}
                       <EntityAvatar
                         imageUrl={agent.avatarUrl}
-                        name={agent.name || '修'}
+                        name={agent.name || 'Agent'}
                         kind="agent"
                         sizeClassName="h-14 w-14"
                         radiusClassName="rounded-[10px]"
@@ -802,6 +633,19 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
           </section>
         </div>
       </div>
+
+      <CreateAgentDrawer
+        isOpen={showCreateAgent && Boolean(props.onCreateAgent)}
+        onClose={() => setShowCreateAgent(false)}
+        onSubmit={(input) => {
+          props.onCreateAgent?.(input);
+          setShowCreateAgent(false);
+        }}
+        worldName={world.name}
+        worldBannerUrl={world.bannerUrl}
+        worldDescription={world.description}
+        submitting={props.createAgentMutating}
+      />
     </>
   );
 }
