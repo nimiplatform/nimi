@@ -4,11 +4,27 @@
 
 ## S-RUNTIME-010 Runtime Client Construction
 
-Runtime SDK 必须显式声明 transport 与连接参数，不允许隐式全局单例。
+Runtime SDK 不允许隐式全局单例，但允许 first-run 默认值：
+
+- Node.js 环境下，`new Runtime()` 默认使用 `node-grpc` 连接本地 daemon。
+- 默认 `appId` 为 `process.env.NIMI_APP_ID || 'nimi.app'`。
+- 默认 endpoint 为 `process.env.NIMI_RUNTIME_ENDPOINT || '127.0.0.1:46371'`。
+- 非 Node.js 环境下若未显式提供 transport，必须 fail-close 并返回可行动错误。
 
 ## S-RUNTIME-011 Module Projection
 
 Runtime 子路径公开方法集合由 `runtime-method-groups.yaml` 约束，必须与 runtime kernel RPC 面对齐。
+
+允许在 `Runtime` 类上提供 ergonomic convenience 方法（如 `generate()` / `stream()`），但必须是对既有 runtime text surface 的薄投影，不得分叉推理语义、错误语义或 trace/usage 语义。
+
+high-level convenience targeting 必须满足：
+
+- `runtime.generate({ prompt })` / `stream({ prompt })`：本地默认文本模型
+- `runtime.generate({ model: '<local-model-id>', ... })`：本地显式模型
+- `runtime.generate({ provider: '<provider>', ... })`：provider 默认文本模型
+- `runtime.generate({ provider: '<provider>', model: '<model>', ... })`：provider 显式模型
+
+其中 high-level `model` 只表示具体模型，不承担 provider/route alias 语义；fully-qualified remote model id 必须留在低层 `runtime.ai.text.*` surface，不得作为 high-level convenience public contract。
 
 ## S-RUNTIME-012 Metadata Projection
 

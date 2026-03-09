@@ -70,6 +70,29 @@ import {
 } from './runtime-guards.js';
 import { runtimeRawCall } from './runtime-raw-call.js';
 import { closeRuntime, connectRuntime, readyRuntime } from './runtime-lifecycle.js';
+import {
+  runtimeGenerateConvenience,
+  runtimeStreamConvenience,
+  type RuntimeGenerateInput,
+  type RuntimeGenerateResult,
+  type RuntimeStreamChunk,
+  type RuntimeStreamInput,
+} from './runtime-convenience.js';
+
+function hasOwn(value: object, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function isNodeRuntime(): boolean {
+  return typeof process !== 'undefined' && Boolean(process?.versions?.node);
+}
+
+function readNodeEnv(name: string): string {
+  if (!isNodeRuntime()) {
+    return '';
+  }
+  return normalizeText(process.env?.[name]);
+}
 
 export class Runtime {
   readonly appId: string;
@@ -111,8 +134,11 @@ export class Runtime {
   readonly #eventBus = createEventBus<RuntimeEventPayloadMap>();
   readonly #ctx: RuntimeInternalContext;
 
-  constructor(options: RuntimeOptions) {
-    const normalizedAppId = normalizeText(options.appId);
+  constructor(options: RuntimeOptions = {}) {
+    const appIdInput = hasOwn(options, 'appId')
+      ? options.appId
+      : readNodeEnv('NIMI_APP_ID') || 'nimi.app';
+    const normalizedAppId = normalizeText(appIdInput);
     if (!normalizedAppId) {
       throw createNimiError({
         message: 'appId is required',
@@ -122,18 +148,24 @@ export class Runtime {
       });
     }
     this.appId = normalizedAppId;
-    if (!options.transport) {
+    const transportInput = options.transport || (isNodeRuntime()
+      ? {
+        type: 'node-grpc' as const,
+        endpoint: readNodeEnv('NIMI_RUNTIME_ENDPOINT') || '127.0.0.1:46371',
+      }
+      : undefined);
+    if (!transportInput) {
       throw createNimiError({
-        message: 'transport is required (node-grpc or tauri-ipc)',
+        message: 'transport is required outside Node.js. new Runtime() only auto-configures transport in Node.js; pass transport explicitly (for example node-grpc or tauri-ipc).',
         reasonCode: ReasonCode.SDK_TRANSPORT_INVALID,
         actionHint: 'set_transport',
         source: 'sdk',
       });
     }
-    this.transport = options.transport;
+    this.transport = transportInput;
 
     const transportWithObserver = {
-      ...options.transport,
+      ...transportInput,
       _responseMetadataObserver: (metadata: Record<string, string>) => {
         const version = metadata['x-nimi-runtime-version'];
         if (version && !this.#runtimeVersion) {
@@ -329,6 +361,14 @@ export class Runtime {
       vramBytes: normalizeText(response.vramBytes) || undefined,
       sampledAt: toIsoFromTimestamp(response.sampledAt),
     };
+  }
+
+  async generate(input: RuntimeGenerateInput): Promise<RuntimeGenerateResult> {
+    return runtimeGenerateConvenience(this, input);
+  }
+
+  async stream(input: RuntimeStreamInput): Promise<AsyncIterable<RuntimeStreamChunk>> {
+    return runtimeStreamConvenience(this, input);
   }
 
   call<TReq, TRes>(

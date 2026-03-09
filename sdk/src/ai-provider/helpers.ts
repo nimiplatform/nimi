@@ -371,7 +371,7 @@ export function ensureRuntime(config: NimiAiProviderConfig): {
   return {
     runtime: config.runtime,
     defaults: {
-      appId: ensureText(config.appId, 'appId'),
+      appId: ensureText(config.appId || config.runtime.appId, 'appId'),
       subjectUserId,
       routePolicy: config.routePolicy || 'local',
       fallback: config.fallback || 'deny',

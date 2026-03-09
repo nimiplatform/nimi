@@ -54,6 +54,13 @@ export { createRuntimeClient } from './core/client';
 export { createNodeGrpcTransport, setNodeGrpcBridge, type NodeGrpcBridge } from './transports/node-grpc';
 export { createTauriIpcTransport } from './transports/tauri-ipc';
 export { Runtime } from './runtime.js';
+export type {
+  RuntimeGenerateInput,
+  RuntimeGenerateResult,
+  RuntimePrompt,
+  RuntimeStreamChunk,
+  RuntimeStreamInput,
+} from './runtime-convenience.js';
 export * from './runtime-realm-bridge.js';
 export {
   buildLocalImageWorkflowExtensions,

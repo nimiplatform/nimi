@@ -185,8 +185,11 @@ export async function runtimeStreamText(
         }
 
         if (payloadKind === 'delta') {
-          const delta = normalizeText(asRecord(asRecord(event.payload).delta).text);
-          if (delta) {
+          const deltaValue = asRecord(asRecord(event.payload).delta).text;
+          const delta = typeof deltaValue === 'string'
+            ? deltaValue
+            : (deltaValue == null ? '' : String(deltaValue));
+          if (delta.length > 0) {
             yield { type: 'delta' as const, text: delta };
           }
           continue;

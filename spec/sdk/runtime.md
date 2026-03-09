@@ -29,7 +29,9 @@
 
 当前 runtime projection 已包含 LocalAI 动态图片工作流所需的本地 surface，并且上层消费面必须遵守以下 kernel 约束：
 
+- `S-RUNTIME-010` / `S-TRANSPORT-001`: Node.js 环境允许 `new Runtime()` 走本地 `node-grpc` 默认值；非 Node 环境缺失 transport 时必须 fail-close。
 - `S-RUNTIME-011` / `S-SURFACE-002`: runtime 子路径公开方法集合以 `runtime-method-groups.yaml` 为权威，不能漂移到 legacy runtime surface。
+- `S-RUNTIME-011`: `Runtime.generate()` / `Runtime.stream()` 允许作为 first-run convenience surface，但必须复用现有 runtime text projection，并采用 bare local / provider default / provider explicit 的 high-level targeting 语义。
 - `S-SURFACE-003`: 已移除的 legacy runtime interface naming 不得回流。
 - `S-RUNTIME-012`: `connectorId`、业务 body 与 metadata 必须分层传递，不能把 transport 元数据塞回请求体。
 - `S-RUNTIME-023`: deferred 服务必须显式暴露“不可用”语义，不冒充 active。

@@ -161,12 +161,12 @@ export type RuntimeSubjectContextProvider = {
 };
 
 export type RuntimeOptions = {
-  appId: string;
+  appId?: string;
   connection?: {
     mode?: RuntimeConnectionMode;
     waitForReadyTimeoutMs?: number;
   };
-  transport: RuntimeTransportConfig;
+  transport?: RuntimeTransportConfig;
   defaults?: RuntimeClientDefaults;
   auth?: RuntimeAuthProvider;
   timeoutMs?: number;

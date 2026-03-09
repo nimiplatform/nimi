@@ -35,9 +35,18 @@ export async function connectRuntime(input: {
 
   const connectedAt = nowIso();
   const connectPromise = (async () => {
+    const transport = input.options.transport;
+    if (!transport) {
+      throw createNimiError({
+        message: 'runtime transport is not configured. Use new Runtime() in Node.js, or pass transport explicitly when constructing Runtime.',
+        reasonCode: ReasonCode.SDK_TRANSPORT_INVALID,
+        actionHint: 'set_transport',
+        source: 'sdk',
+      });
+    }
     input.setClient(createRuntimeClient({
       appId: input.appId,
-      transport: input.options.transport,
+      transport,
       defaults: input.options.defaults,
       auth: input.options.auth,
     }));

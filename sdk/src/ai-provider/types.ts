@@ -22,7 +22,7 @@ export type RuntimeDefaults = {
 
 export type NimiAiProviderConfig = {
   runtime: Runtime;
-  appId: string;
+  appId?: string;
   subjectUserId?: string;
   routePolicy?: AiRoutePolicy;
   fallback?: AiFallbackPolicy;

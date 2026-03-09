@@ -4,12 +4,16 @@
 
 ## S-TRANSPORT-001 Runtime Transport 显式声明
 
-Runtime SDK transport 必须显式声明：
+Runtime SDK transport 必须满足以下构造边界：
 
 - `node-grpc`
 - `tauri-ipc`
 
-禁止隐式默认 transport。
+规则：
+
+- Node.js first-run surface 允许默认 `node-grpc` transport，目标地址为 `process.env.NIMI_RUNTIME_ENDPOINT || '127.0.0.1:46371'`。
+- 非 Node.js surface 禁止隐式默认 transport，必须显式传入 `node-grpc` 或 `tauri-ipc`。
+- 默认 transport 只解决本地 runtime 发现问题，不得引入 SDK 级全局单例。
 
 ## S-TRANSPORT-002 Metadata 投影边界
 
