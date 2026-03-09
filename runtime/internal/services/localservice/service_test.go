@@ -150,6 +150,106 @@ func TestLocalStartLocalModelProbeFailureTransitionsUnhealthy(t *testing.T) {
 	}
 }
 
+func TestLocalStartManagedLocalModelWarmsBeforeReportingActive(t *testing.T) {
+	chatCompletions := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/v1/models":
+			_, _ = io.WriteString(w, `{"data":[{"id":"qwen"}]}`)
+		case "/v1/chat/completions":
+			chatCompletions++
+			_, _ = io.WriteString(w, `{"choices":[{"finish_reason":"stop","message":{"content":"ready"}}],"usage":{"prompt_tokens":1,"completion_tokens":1}}`)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := newTestServiceWithProbe(t, nil)
+	mgr := &mockEngineManager{}
+	svc.SetEngineManager(mgr)
+	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/qwen",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+		Endpoint:     server.URL + "/v1",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+
+	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
+		LocalModelId: installed.GetModel().GetLocalModelId(),
+	})
+	if err != nil {
+		t.Fatalf("start local model: %v", err)
+	}
+	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+		t.Fatalf("expected active status after warm success, got %s", started.GetModel().GetStatus())
+	}
+	if chatCompletions != 1 {
+		t.Fatalf("expected one warm execution, got %d", chatCompletions)
+	}
+	if mgr.startCalls != 1 {
+		t.Fatalf("expected a single managed engine bootstrap, got %d", mgr.startCalls)
+	}
+
+	restarted, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
+		LocalModelId: installed.GetModel().GetLocalModelId(),
+	})
+	if err != nil {
+		t.Fatalf("restart local model after warm cache: %v", err)
+	}
+	if restarted.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+		t.Fatalf("expected active status after cached warm start, got %s", restarted.GetModel().GetStatus())
+	}
+	if chatCompletions != 1 {
+		t.Fatalf("expected cached warm state to avoid a second execution, got %d calls", chatCompletions)
+	}
+}
+
+func TestLocalStartManagedLocalModelWarmFailureTransitionsUnhealthy(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/v1/models":
+			_, _ = io.WriteString(w, `{"data":[{"id":"qwen"}]}`)
+		case "/v1/chat/completions":
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = io.WriteString(w, `{"error":{"message":"grpc service not ready"}}`)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := newTestServiceWithProbe(t, nil)
+	svc.SetEngineManager(&mockEngineManager{})
+	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/qwen",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+		Endpoint:     server.URL + "/v1",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+
+	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
+		LocalModelId: installed.GetModel().GetLocalModelId(),
+	})
+	if err != nil {
+		t.Fatalf("start local model: %v", err)
+	}
+	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
+		t.Fatalf("expected unhealthy status after warm failure, got %s", started.GetModel().GetStatus())
+	}
+	if !strings.Contains(started.GetModel().GetHealthDetail(), "warm execution failed") {
+		t.Fatalf("expected warm failure detail, got %q", started.GetModel().GetHealthDetail())
+	}
+}
+
 func TestLocalCheckLocalModelHealthRecoversAfterThreeProbes(t *testing.T) {
 	probeCalls := 0
 	svc := newTestServiceWithProbe(t, func(_ context.Context, _ string) endpointProbeResult {

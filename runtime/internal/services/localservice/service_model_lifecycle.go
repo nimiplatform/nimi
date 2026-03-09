@@ -46,6 +46,22 @@ func (s *Service) StartLocalModel(ctx context.Context, req *runtimev1.StartLocal
 	probe := s.probeEndpoint(ctx, endpoint)
 	registration := s.localAIRegistrationForModel(current)
 	if modelProbeSucceeded(current, probe, registration) {
+		if s.shouldWarmLocalModelOnStart(current, endpoint, probe) {
+			warmTimeout := warmLocalModelTimeout(0)
+			warmCtx, cancel := context.WithTimeout(ctx, warmTimeout)
+			_, warmErr := s.performWarmLocalModelExecution(warmCtx, current, endpoint, warmTimeout)
+			cancel()
+			if warmErr != nil {
+				failures, _ := s.modelRecoveryFailure(localModelID, time.Now().UTC())
+				detail := appendWarnings(warmExecutionFailureDetail(warmErr), warnings)
+				detail = fmt.Sprintf("%s; consecutive_failures=%d", detail, failures)
+				unhealthy, err := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, detail)
+				if err != nil {
+					return nil, err
+				}
+				return &runtimev1.StartLocalModelResponse{Model: unhealthy}, nil
+			}
+		}
 		s.resetModelRecovery(localModelID)
 		latest := s.modelByID(localModelID)
 		if latest == nil {
@@ -177,4 +193,40 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 		return result[i].GetLocalModelId() < result[j].GetLocalModelId()
 	})
 	return &runtimev1.CheckLocalModelHealthResponse{Models: result}, nil
+}
+
+func (s *Service) shouldWarmLocalModelOnStart(
+	model *runtimev1.LocalModelRecord,
+	endpoint string,
+	probe endpointProbeResult,
+) bool {
+	if model == nil || !modelSupportsWarmup(model) {
+		return false
+	}
+	if !probe.responded {
+		return false
+	}
+	if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "localai") {
+		return false
+	}
+	if s.engineManagerOrNil() == nil {
+		return false
+	}
+	return shouldRetryWarmProbe(model.GetEngine(), endpoint)
+}
+
+func warmExecutionFailureDetail(err error) string {
+	if err == nil {
+		return "warm execution failed"
+	}
+	if st, ok := status.FromError(err); ok {
+		if message := strings.TrimSpace(st.Message()); message != "" {
+			return "warm execution failed: " + message
+		}
+	}
+	message := strings.TrimSpace(err.Error())
+	if message == "" {
+		return "warm execution failed"
+	}
+	return "warm execution failed: " + message
 }

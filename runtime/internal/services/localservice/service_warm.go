@@ -18,6 +18,13 @@ const (
 	warmManagedProbeRetryInterval = 200 * time.Millisecond
 )
 
+type warmLocalModelExecutionState struct {
+	startedAt     time.Time
+	traceID       string
+	modelResolved string
+	alreadyWarm   bool
+}
+
 func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalModelRequest) (*runtimev1.WarmLocalModelResponse, error) {
 	if req == nil || strings.TrimSpace(req.GetLocalModelId()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
@@ -32,7 +39,6 @@ func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalMo
 	}
 
 	timeout := warmLocalModelTimeout(req.GetTimeoutMs())
-	startedAt := time.Now()
 	requestCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
@@ -68,35 +74,18 @@ func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalMo
 		model = activeModel
 	}
 
-	traceID := ulid.Make().String()
-	modelResolved := normalizeWarmResolvedModelID(model.GetModelId())
-	warmKey := warmCacheKey(model, endpoint, modelResolved)
-	if s.isWarmKeyCached(warmKey) {
-		return s.newWarmLocalModelResponse(model, modelResolved, endpoint, true, startedAt, traceID), nil
-	}
-
-	backend := nimillm.NewBackend("local-warmup", endpoint, "", timeout)
-	if backend == nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-			Message:    "local runtime endpoint is not configured",
-			ActionHint: "check_local_runtime_endpoint",
-		})
-	}
-	if _, _, _, err := backend.GenerateText(
-		requestCtx,
-		modelResolved,
-		[]*runtimev1.ChatMessage{{Role: "user", Content: "Respond with the single word ready."}},
-		"",
-		0,
-		0,
-		1,
-	); err != nil {
+	result, err := s.performWarmLocalModelExecution(requestCtx, model, endpoint, timeout)
+	if err != nil {
 		return nil, err
 	}
-
-	s.recordWarmKey(warmKey)
-	s.appendWarmLocalModelAudit(model, modelResolved, endpoint, traceID, startedAt)
-	return s.newWarmLocalModelResponse(model, modelResolved, endpoint, false, startedAt, traceID), nil
+	return s.newWarmLocalModelResponse(
+		model,
+		result.modelResolved,
+		endpoint,
+		result.alreadyWarm,
+		result.startedAt,
+		result.traceID,
+	), nil
 }
 
 func modelSupportsWarmup(model *runtimev1.LocalModelRecord) bool {
@@ -125,6 +114,48 @@ func normalizeWarmResolvedModelID(modelID string) string {
 	default:
 		return normalized
 	}
+}
+
+func (s *Service) performWarmLocalModelExecution(
+	ctx context.Context,
+	model *runtimev1.LocalModelRecord,
+	endpoint string,
+	timeout time.Duration,
+) (warmLocalModelExecutionState, error) {
+	result := warmLocalModelExecutionState{
+		startedAt:     time.Now(),
+		traceID:       ulid.Make().String(),
+		modelResolved: normalizeWarmResolvedModelID(model.GetModelId()),
+	}
+
+	warmKey := warmCacheKey(model, endpoint, result.modelResolved)
+	if s.isWarmKeyCached(warmKey) {
+		result.alreadyWarm = true
+		return result, nil
+	}
+
+	backend := nimillm.NewBackend("local-warmup", endpoint, "", timeout)
+	if backend == nil {
+		return result, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    "local runtime endpoint is not configured",
+			ActionHint: "check_local_runtime_endpoint",
+		})
+	}
+	if _, _, _, err := backend.GenerateText(
+		ctx,
+		result.modelResolved,
+		[]*runtimev1.ChatMessage{{Role: "user", Content: "Respond with the single word ready."}},
+		"",
+		0,
+		0,
+		1,
+	); err != nil {
+		return result, err
+	}
+
+	s.recordWarmKey(warmKey)
+	s.appendWarmLocalModelAudit(model, result.modelResolved, endpoint, result.traceID, result.startedAt)
+	return result, nil
 }
 
 func warmLocalModelTimeout(timeoutMS int32) time.Duration {
