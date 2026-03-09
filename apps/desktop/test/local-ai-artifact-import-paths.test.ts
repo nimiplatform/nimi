@@ -16,11 +16,16 @@ const localModelCenterSectionsPath = path.resolve(
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-sections.tsx',
 );
 const runtimeCommandsPath = path.resolve(process.cwd(), 'src/runtime/local-ai-runtime/commands.ts');
+const artifactOrphansCommandPath = path.resolve(
+  process.cwd(),
+  'src-tauri/src/local_runtime/commands/commands_artifact_orphans.rs',
+);
 
 const installActionsSource = readFileSync(installActionsPath, 'utf-8');
 const modelActionsSource = readFileSync(modelActionsPath, 'utf-8');
 const localModelCenterSectionsSource = readFileSync(localModelCenterSectionsPath, 'utf-8');
 const runtimeCommandsSource = readFileSync(runtimeCommandsPath, 'utf-8');
+const artifactOrphansCommandSource = readFileSync(artifactOrphansCommandPath, 'utf-8');
 
 type TauriInvokeCall = {
   command: string;
@@ -88,5 +93,16 @@ test('artifact import command still reaches runtime local importLocalArtifact', 
   assert.match(
     runtimeCommandsSource,
     /export async function importLocalAiRuntimeArtifact[\s\S]*getSdkLocal\(\)\.importLocalArtifact\(\{/,
+  );
+});
+
+test('artifact orphan scaffold command runs blocking file work off the Tauri UI thread', () => {
+  assert.match(
+    artifactOrphansCommandSource,
+    /#\[tauri::command\]\s*pub async fn runtime_local_artifacts_scaffold_orphan/,
+  );
+  assert.match(
+    artifactOrphansCommandSource,
+    /tauri::async_runtime::spawn_blocking\(move \|\| \{\s*scaffold_orphan_artifact_file/,
   );
 });

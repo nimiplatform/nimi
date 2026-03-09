@@ -297,13 +297,18 @@ pub fn runtime_local_artifacts_scan_orphans(
 }
 
 #[tauri::command]
-pub fn runtime_local_artifacts_scaffold_orphan(
+pub async fn runtime_local_artifacts_scaffold_orphan(
     app: AppHandle,
     payload: LocalAiScaffoldArtifactPayload,
 ) -> Result<LocalAiScaffoldArtifactResult, String> {
     let models_root = runtime_models_dir(&app)?;
     let source_path = std::path::PathBuf::from(&payload.path);
-    scaffold_orphan_artifact_file(&models_root, &source_path, payload.kind.as_str())
+    let kind = payload.kind;
+    tauri::async_runtime::spawn_blocking(move || {
+        scaffold_orphan_artifact_file(&models_root, &source_path, kind.as_str())
+    })
+    .await
+    .map_err(|error| format!("LOCAL_AI_ARTIFACT_ORPHAN_TASK_FAILED: {error}"))?
 }
 
 #[cfg(test)]
