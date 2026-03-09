@@ -28,6 +28,7 @@ type Metadata struct {
 	CallerID                   string
 	SurfaceID                  string
 	CredentialSource           string
+	ProviderType               string
 	ProviderEndpoint           string
 	ProviderAPIKey             string
 }
@@ -50,6 +51,7 @@ func Validate(ctx context.Context, req any, requireIdempotency bool) (Metadata, 
 		CallerID:                   first(md, "x-nimi-caller-id"),
 		SurfaceID:                  first(md, "x-nimi-surface-id"),
 		CredentialSource:           strings.ToLower(first(md, "x-nimi-key-source")),
+		ProviderType:               first(md, "x-nimi-provider-type"),
 		ProviderEndpoint:           first(md, "x-nimi-provider-endpoint"),
 		ProviderAPIKey:             first(md, "x-nimi-provider-api-key"),
 	}
@@ -168,6 +170,9 @@ func HeaderPairs(meta Metadata) []string {
 	if source := strings.TrimSpace(meta.CredentialSource); source != "" {
 		pairs = append(pairs, "x-nimi-key-source", source)
 	}
+	if providerType := strings.TrimSpace(meta.ProviderType); providerType != "" {
+		pairs = append(pairs, "x-nimi-provider-type", providerType)
+	}
 	if endpoint := strings.TrimSpace(meta.ProviderEndpoint); endpoint != "" {
 		pairs = append(pairs, "x-nimi-provider-endpoint", endpoint)
 	}
@@ -211,13 +216,14 @@ func ParseAccessTokenFromContext(ctx context.Context) (string, string, error) {
 	return tokenID, secret, nil
 }
 
-func ParseCredentialMetadataFromContext(ctx context.Context) (string, string, string, error) {
+func ParseCredentialMetadataFromContext(ctx context.Context) (string, string, string, string, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return "", "", "", fmt.Errorf("metadata missing")
+		return "", "", "", "", fmt.Errorf("metadata missing")
 	}
 	source := strings.ToLower(first(md, "x-nimi-key-source"))
+	providerType := first(md, "x-nimi-provider-type")
 	endpoint := first(md, "x-nimi-provider-endpoint")
 	apiKey := first(md, "x-nimi-provider-api-key")
-	return source, endpoint, apiKey, nil
+	return source, providerType, endpoint, apiKey, nil
 }

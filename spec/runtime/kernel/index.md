@@ -19,7 +19,7 @@
 - `DOMAIN` 固定枚举：
   - `RPC` `AUTH` `AUTHN` `AUTHSVC` `GRANT` `KEYSRC` `JOB`
   - `LOCAL` `LENG` `DEV` `SEC` `STREAM` `ERR` `PAGE` `AUDIT`
-  - `DAEMON` `PROV` `WF` `MODEL` `KNOW` `APP`
+  - `DAEMON` `PROV` `WF` `MODEL` `KNOW` `APP` `CLI`
   - `CFG` `CONN` `NIMI` `MCAT` `MMPROV` `VOICE` `GATE` `PROTO`
 - `NNN` 三位递增编号，不复用。
 
@@ -49,6 +49,7 @@
 | `model-service-contract.md` | `K-MODEL-*` | 模型注册、能力画像、状态枚举 |
 | `knowledge-contract.md` | `K-KNOW-*` | 索引构建、搜索、生命周期 |
 | `app-messaging-contract.md` | `K-APP-*` | 应用间消息、事件流 |
+| `cli-onboarding-contract.md` | `K-CLI-*` | CLI 首次使用、provider-first cloud setup 与脚手架约束 |
 | `config-contract.md` | `K-CFG-*` | 配置路径、优先级、secret policy、写入语义 |
 | `connector-contract.md` | `K-CONN-*` | connector 托管、字段约束、补偿与并发安全 |
 | `nimillm-contract.md` | `K-NIMI-*` | remote 执行边界、流式与审计对齐 |

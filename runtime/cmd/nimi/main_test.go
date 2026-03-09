@@ -240,6 +240,48 @@ func TestBuildRuntimeHealthChanges(t *testing.T) {
 	}
 }
 
+func TestPrintProviderSnapshotPlainText(t *testing.T) {
+	output, err := captureStdoutFromRun(func() error {
+		return printProviderSnapshot([]providerSnapshot{{
+			Name:                "openai",
+			State:               "healthy",
+			Reason:              "configured",
+			ConsecutiveFailures: 0,
+			LastCheckedAt:       "2026-03-09T10:00:00Z",
+		}}, "2026-03-09T10:00:01Z", false)
+	})
+	if err != nil {
+		t.Fatalf("printProviderSnapshot: %v", err)
+	}
+	if !strings.Contains(output, "Nimi Provider Snapshots") || !strings.Contains(output, "provider:") || !strings.Contains(output, "openai") || !strings.Contains(output, "state:") || !strings.Contains(output, "healthy") {
+		t.Fatalf("unexpected provider snapshot output: %q", output)
+	}
+}
+
+func TestPrintRuntimeHealthSnapshotPlainText(t *testing.T) {
+	output, err := captureStdoutFromRun(func() error {
+		printRuntimeHealthSnapshot(runtimeHealthSnapshot{
+			Status:              "RUNTIME_HEALTH_STATUS_READY",
+			StatusCode:          3,
+			Reason:              "ready",
+			QueueDepth:          2,
+			ActiveWorkflows:     1,
+			ActiveInferenceJobs: 4,
+			CPUMilli:            100,
+			MemoryBytes:         2048,
+			VRAMBytes:           4096,
+			SampledAt:           "2026-03-09T10:00:01Z",
+		})
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("printRuntimeHealthSnapshot: %v", err)
+	}
+	if !strings.Contains(output, "Nimi Runtime Health") || !strings.Contains(output, "status:") || !strings.Contains(output, "RUNTIME_HEALTH_STATUS_READY") || !strings.Contains(output, "queue depth:") {
+		t.Fatalf("unexpected runtime health output: %q", output)
+	}
+}
+
 func TestNormalizeRootArgsStripsLeadingDoubleDash(t *testing.T) {
 	input := []string{"nimi", "--", "config", "init", "--json"}
 	got := normalizeRootArgs(input)

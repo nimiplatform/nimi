@@ -15,6 +15,15 @@ import (
 	"time"
 )
 
+func providerStateLooksHealthy(state string) bool {
+	switch strings.ToLower(strings.TrimSpace(state)) {
+	case "healthy", "ok", "active", "ready":
+		return true
+	default:
+		return false
+	}
+}
+
 func runRuntimeProviders(args []string) error {
 	cfg, err := config.Load()
 	if err != nil {
@@ -241,23 +250,19 @@ func printProviderSnapshot(providers []providerSnapshot, sampledAt string, jsonO
 		fmt.Println(string(out))
 		return nil
 	}
-	fmt.Printf("[%s]\n", sampledAt)
+	printCLIHeader(os.Stdout, "Nimi Provider Snapshots")
+	printCLIField(os.Stdout, "sampled at", sampledAt)
 	if len(providers) == 0 {
-		fmt.Println("no provider health snapshots")
-		fmt.Println()
+		printCLIField(os.Stdout, "providers", "none")
 		return nil
 	}
-
-	fmt.Printf("%-18s %-10s %-9s %-30s %s\n", "NAME", "STATE", "FAILURES", "LAST_CHECKED_AT", "REASON")
 	for _, item := range providers {
-		fmt.Printf("%-18s %-10s %-9d %-30s %s\n",
-			item.Name,
-			item.State,
-			item.ConsecutiveFailures,
-			item.LastCheckedAt,
-			item.Reason,
-		)
+		fmt.Println()
+		printCLIField(os.Stdout, "provider", item.Name)
+		printCLIField(os.Stdout, "state", item.State)
+		printCLIField(os.Stdout, "failures", fmt.Sprintf("%d", item.ConsecutiveFailures))
+		printCLIField(os.Stdout, "checked", item.LastCheckedAt)
+		printCLIField(os.Stdout, "reason", item.Reason)
 	}
-	fmt.Println()
 	return nil
 }

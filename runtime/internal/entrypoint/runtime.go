@@ -120,6 +120,11 @@ func runtimeInstanceLockPath() (string, error) {
 	return filepath.Join(homeDir, ".nimi", "runtime", "runtime.lock"), nil
 }
 
+// RuntimeInstanceLockPath returns the singleton runtime lock file path.
+func RuntimeInstanceLockPath() (string, error) {
+	return runtimeInstanceLockPath()
+}
+
 // FetchHealth requests runtime health JSON from daemon HTTP endpoint.
 func FetchHealth(httpAddr string, timeout time.Duration) (map[string]any, error) {
 	if httpAddr == "" {
@@ -209,6 +214,7 @@ type ClientMetadata struct {
 	SurfaceID                  string
 	TraceID                    string
 	CredentialSource           string
+	ProviderType               string
 	ProviderEndpoint           string
 	ProviderAPIKey             string
 	AccessTokenID              string

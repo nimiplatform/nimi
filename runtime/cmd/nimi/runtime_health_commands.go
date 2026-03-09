@@ -254,32 +254,30 @@ func buildRuntimeHealthChanges(before runtimeHealthSnapshot, after runtimeHealth
 }
 
 func printRuntimeHealthSnapshot(snapshot runtimeHealthSnapshot) {
-	fmt.Printf("[%s] status=%s reason=%q queue=%d workflows=%d inference=%d cpu_milli=%d memory_bytes=%d vram_bytes=%d\n",
-		snapshot.SampledAt,
-		snapshot.Status,
-		snapshot.Reason,
-		snapshot.QueueDepth,
-		snapshot.ActiveWorkflows,
-		snapshot.ActiveInferenceJobs,
-		snapshot.CPUMilli,
-		snapshot.MemoryBytes,
-		snapshot.VRAMBytes,
-	)
+	printCLIHeader(os.Stdout, "Nimi Runtime Health")
+	printCLIField(os.Stdout, "sampled at", snapshot.SampledAt)
+	printCLIField(os.Stdout, "status", snapshot.Status)
+	printCLIField(os.Stdout, "status code", strconv.FormatInt(int64(snapshot.StatusCode), 10))
+	printCLIField(os.Stdout, "reason", snapshot.Reason)
+	printCLIField(os.Stdout, "queue depth", strconv.FormatInt(int64(snapshot.QueueDepth), 10))
+	printCLIField(os.Stdout, "active workflows", strconv.FormatInt(int64(snapshot.ActiveWorkflows), 10))
+	printCLIField(os.Stdout, "active jobs", strconv.FormatInt(int64(snapshot.ActiveInferenceJobs), 10))
+	printCLIField(os.Stdout, "cpu milli", strconv.FormatInt(snapshot.CPUMilli, 10))
+	printCLIField(os.Stdout, "memory bytes", strconv.FormatInt(snapshot.MemoryBytes, 10))
+	printCLIField(os.Stdout, "vram bytes", strconv.FormatInt(snapshot.VRAMBytes, 10))
 }
 
 func printRuntimeHealthChanges(sampledAt string, changes []runtimeHealthChange) {
 	if strings.TrimSpace(sampledAt) == "" {
 		sampledAt = time.Now().UTC().Format(time.RFC3339Nano)
 	}
-	fmt.Printf("[%s] runtime health changes\n", sampledAt)
+	printCLIHeader(os.Stdout, "Nimi Runtime Health Changes")
+	printCLIField(os.Stdout, "sampled at", sampledAt)
 	if len(changes) == 0 {
-		fmt.Println("no runtime health changes")
-		fmt.Println()
+		printCLIField(os.Stdout, "changes", "none")
 		return
 	}
-	fmt.Printf("%-24s %-16s %s\n", "FIELD", "BEFORE", "AFTER")
 	for _, item := range changes {
-		fmt.Printf("%-24s %-16s %s\n", item.Field, item.Before, item.After)
+		printCLIField(os.Stdout, item.Field, fmt.Sprintf("%s -> %s", item.Before, item.After))
 	}
-	fmt.Println()
 }

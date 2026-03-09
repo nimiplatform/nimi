@@ -9,6 +9,8 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/entrypoint"
+	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
+	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
 	"github.com/nimiplatform/nimi/runtime/internal/workerentry"
 	"os"
 	"strings"
@@ -37,84 +39,68 @@ func main() {
 
 	switch args[1] {
 	case "serve":
-		if err := entrypoint.RunDaemonFromArgs("nimi serve", args[2:], Version); err != nil {
-			fmt.Fprintf(os.Stderr, "serve failed: %v\n", err)
-			os.Exit(1)
-		}
+		exitIfCommandError("serve", entrypoint.RunDaemonFromArgs("nimi serve", args[2:], Version))
+	case "start":
+		exitIfCommandError("start", runRuntimeStart(args[2:]))
+	case "doctor":
+		exitIfCommandError("doctor", runRuntimeDoctor(args[2:]))
+	case "init":
+		exitIfCommandError("init", runRuntimeInit(args[2:]))
+	case "version":
+		exitIfCommandError("version", runRuntimeVersion(args[2:]))
 	case "status":
-		if err := runRuntimeHealth(args[2:]); err != nil {
-			fmt.Fprintf(os.Stderr, "status failed: %v\n", err)
-			os.Exit(1)
-		}
+		exitIfCommandError("status", runRuntimeStatus(args[2:]))
+	case "stop":
+		exitIfCommandError("stop", runRuntimeStop(args[2:]))
+	case "logs":
+		exitIfCommandError("logs", runRuntimeLogs(args[2:]))
 	case "run", "chat":
-		if err := runTopLevelRun(args[2:]); err != nil {
-			fmt.Fprintf(os.Stderr, "%s failed: %v\n", args[1], err)
-			os.Exit(1)
-		}
+		exitIfCommandError(args[1], runTopLevelRun(args[2:]))
 	case "ai":
-		if err := runRuntimeAI(args[2:]); err != nil {
-			fmt.Fprintf(os.Stderr, "ai failed: %v\n", err)
-			os.Exit(1)
-		}
+		exitIfCommandError("ai", runRuntimeAI(args[2:]))
 	case "model":
-		if err := runRuntimeModel(args[2:]); err != nil {
-			fmt.Fprintf(os.Stderr, "model failed: %v\n", err)
-			os.Exit(1)
-		}
+		exitIfCommandError("model", runRuntimeModel(args[2:]))
 	case "mod":
-		if err := runRuntimeMod(args[2:]); err != nil {
-			fmt.Fprintf(os.Stderr, "mod failed: %v\n", err)
-			os.Exit(1)
-		}
-	case "auth":
-		if err := runRuntimeAuth(args[2:]); err != nil {
-			fmt.Fprintf(os.Stderr, "auth failed: %v\n", err)
-			os.Exit(1)
-		}
+		exitIfCommandError("mod", runRuntimeMod(args[2:]))
 	case "app-auth":
-		if err := runRuntimeAppAuth(args[2:]); err != nil {
-			fmt.Fprintf(os.Stderr, "app-auth failed: %v\n", err)
-			os.Exit(1)
-		}
+		exitIfCommandError("app-auth", runRuntimeAppAuth(args[2:]))
 	case "knowledge":
-		if err := runRuntimeKnowledge(args[2:]); err != nil {
-			fmt.Fprintf(os.Stderr, "knowledge failed: %v\n", err)
-			os.Exit(1)
-		}
+		exitIfCommandError("knowledge", runRuntimeKnowledge(args[2:]))
 	case "app":
-		if err := runRuntimeApp(args[2:]); err != nil {
-			fmt.Fprintf(os.Stderr, "app failed: %v\n", err)
-			os.Exit(1)
-		}
+		exitIfCommandError("app", runRuntimeApp(args[2:]))
 	case "audit":
-		if err := runRuntimeAudit(args[2:]); err != nil {
-			fmt.Fprintf(os.Stderr, "audit failed: %v\n", err)
-			os.Exit(1)
-		}
+		exitIfCommandError("audit", runRuntimeAudit(args[2:]))
 	case "workflow":
-		if err := runRuntimeWorkflow(args[2:]); err != nil {
-			fmt.Fprintf(os.Stderr, "workflow failed: %v\n", err)
-			os.Exit(1)
-		}
+		exitIfCommandError("workflow", runRuntimeWorkflow(args[2:]))
 	case "health":
-		if err := runRuntimeHealth(args[2:]); err != nil {
-			fmt.Fprintf(os.Stderr, "health failed: %v\n", err)
-			os.Exit(1)
-		}
+		exitIfCommandError("health", runRuntimeHealth(args[2:]))
 	case "providers":
-		if err := runRuntimeProviders(args[2:]); err != nil {
-			fmt.Fprintf(os.Stderr, "providers failed: %v\n", err)
-			os.Exit(1)
-		}
+		exitIfCommandError("providers", runRuntimeProviders(args[2:]))
+	case "provider":
+		exitIfCommandError("provider", runRuntimeProvider(args[2:]))
 	case "config":
-		if err := runRuntimeConfig(args[2:]); err != nil {
-			fmt.Fprintf(os.Stderr, "config failed: %v\n", err)
-			os.Exit(1)
-		}
+		exitIfCommandError("config", runRuntimeConfig(args[2:]))
 	default:
 		printUsage()
 		os.Exit(2)
 	}
+}
+
+func exitIfCommandError(command string, err error) {
+	if err == nil {
+		return
+	}
+	exitCode := 1
+	message := err.Error()
+	var coded cliExitError
+	if errors.As(err, &coded) {
+		exitCode = coded.ExitCode()
+		message = strings.TrimSpace(coded.Error())
+	}
+	if message != "" {
+		fmt.Fprintf(os.Stderr, "%s failed: %s\n", command, message)
+	}
+	os.Exit(exitCode)
 }
 
 func normalizeRootArgs(args []string) []string {
@@ -132,62 +118,94 @@ func runTopLevelRun(args []string) error {
 	if err != nil {
 		return err
 	}
+	if len(args) == 0 {
+		return fmt.Errorf("prompt is required. Usage: %s", onboardingRunUsage())
+	}
+	promptValue := strings.TrimSpace(args[0])
+	if promptValue == "" || strings.HasPrefix(promptValue, "-") {
+		return fmt.Errorf("prompt must be the first argument. Usage: %s", onboardingRunUsage())
+	}
 
 	fs := flag.NewFlagSet("nimi run", flag.ContinueOnError)
 	fs.SetOutput(os.Stdout)
-	grpcAddr := fs.String("grpc-addr", cfg.GRPCAddr, "runtime gRPC address")
 	timeoutRaw := fs.String("timeout", "90s", "grpc request timeout")
-	appID := fs.String("app-id", "nimi.desktop", "caller app id")
-	subjectUserID := fs.String("subject-user-id", "local-user", "subject user id")
-	prompt := fs.String("prompt", "", "prompt")
-	route := fs.String("route", "local", "route: local|cloud")
-	fallback := fs.String("fallback", "allow", "fallback: deny|allow")
 	systemPrompt := fs.String("system", "", "system prompt")
-	timeoutMs := fs.Int("timeout-ms", 0, "provider timeout override")
 	jsonOutput := fs.Bool("json", false, "output json")
-	callerKind := fs.String("caller-kind", "third-party-service", "caller kind metadata")
-	callerID := fs.String("caller-id", "nimi-cli", "caller id metadata")
-	surfaceID := fs.String("surface-id", "runtime-cli", "surface id metadata")
-	traceID := fs.String("trace-id", "", "trace id metadata")
-	if err := fs.Parse(args); err != nil {
+	yes := fs.Bool("yes", false, "auto-confirm local model installation")
+	noInstall := fs.Bool("no-install", false, "fail instead of installing missing local models")
+	modelFlag := fs.String("model", "", "model id")
+	providerFlag := fs.String("provider", "", "cloud provider")
+	cloudTarget := fs.Bool("cloud", false, "use the configured default cloud provider")
+	localTarget := fs.Bool("local", false, "use the default local model")
+	if err := fs.Parse(args[1:]); err != nil {
 		return err
 	}
-
-	modelID := "local/default"
 	if fs.NArg() > 0 {
-		modelID = strings.TrimSpace(fs.Arg(0))
-	}
-
-	promptValue := strings.TrimSpace(*prompt)
-	if promptValue == "" && fs.NArg() > 1 {
-		promptValue = strings.TrimSpace(strings.Join(fs.Args()[1:], " "))
-	}
-	if promptValue == "" {
-		return fmt.Errorf("prompt is required")
+		return fmt.Errorf("unexpected extra arguments after the prompt. Quote the prompt and pass flags after it. Usage: %s", onboardingRunUsage())
 	}
 
 	timeout, err := time.ParseDuration(*timeoutRaw)
 	if err != nil {
 		return fmt.Errorf("parse timeout: %w", err)
 	}
-
-	routePolicy, err := parseRoutePolicy(*route)
+	target, err := resolveOnboardingRunTarget(cfg, promptValue, *modelFlag, *providerFlag, *localTarget, *cloudTarget)
 	if err != nil {
 		return err
 	}
-	fallbackPolicy, err := parseFallbackPolicy(*fallback)
-	if err != nil {
-		return err
+	if _, err := entrypoint.ListModelsGRPC(cfg.GRPCAddr, minDuration(timeout, 3*time.Second), onboardingAppID); err != nil {
+		return fmt.Errorf("runtime is not running. %s", onboardingRuntimeUnavailableHint())
+	}
+
+	modelID := target.ModelID
+	routePolicy := target.RoutePolicy
+	fallbackPolicy := runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY
+	if isLocalOnboardingModel(modelID) {
+		healthResp, healthErr := entrypoint.CheckModelHealthGRPC(
+			cfg.GRPCAddr,
+			minDuration(timeout, 3*time.Second),
+			&runtimev1.CheckModelHealthRequest{ModelId: modelID},
+			onboardingAppID,
+		)
+		if healthErr != nil {
+			return fmt.Errorf("failed to inspect model %s: %w", modelID, healthErr)
+		}
+		if !healthResp.GetHealthy() {
+			modelRef := texttarget.EnsureLocalLatestModelRef(modelID)
+			if *noInstall {
+				return fmt.Errorf("model %s is not installed. Run 'nimi model pull --model-ref %s'", modelID, modelRef)
+			}
+			shouldInstall := *yes
+			if !shouldInstall {
+				answer, promptErr := promptYesNo(os.Stdin, os.Stdout, fmt.Sprintf("Model %s is not installed. Pull now?", modelID), true)
+				if promptErr != nil {
+					return promptErr
+				}
+				shouldInstall = answer
+			}
+			if !shouldInstall {
+				return fmt.Errorf("model %s is required. Run 'nimi model pull --model-ref %s'", modelID, modelRef)
+			}
+			if _, pullErr := entrypoint.PullModelGRPC(cfg.GRPCAddr, timeout, &runtimev1.PullModelRequest{
+				AppId:    onboardingAppID,
+				ModelRef: modelRef,
+				Source:   "official",
+			}); pullErr != nil {
+				return fmt.Errorf("failed to install %s: %w", modelID, pullErr)
+			}
+			if !*jsonOutput {
+				fmt.Printf("Installed %s.\n", modelID)
+			}
+		}
 	}
 
 	req := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         strings.TrimSpace(*appID),
-			SubjectUserId: strings.TrimSpace(*subjectUserID),
+			AppId:         onboardingAppID,
+			SubjectUserId: onboardingSubjectUserID,
 			ModelId:       modelID,
 			RoutePolicy:   routePolicy,
 			Fallback:      fallbackPolicy,
-			TimeoutMs:     int32(*timeoutMs),
+			TimeoutMs:     int32(timeout.Milliseconds()),
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
@@ -202,13 +220,54 @@ func runTopLevelRun(args []string) error {
 			},
 		},
 	}
-	callerMeta := runtimeAICallerMetadataFromFlags(*callerKind, *callerID, *surfaceID, *traceID)
-	events, errCh, err := entrypoint.StreamScenarioGRPC(context.Background(), *grpcAddr, req, callerMeta)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	callerMeta := runtimeAICallerMetadataFromFlags("third-party-service", "nimi-cli", "runtime-cli", "")
+	if routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
+		providerTarget := cfg.Providers[target.ProviderName]
+		apiKey := strings.TrimSpace(config.ResolveProviderAPIKey(providerTarget))
+		if apiKey == "" {
+			if !onboardingInteractiveTerminal() {
+				return fmt.Errorf("cloud credentials for %s are missing. Run '%s'", target.ProviderName, cloudCredentialSetupCommand(target.ProviderName, *cloudTarget))
+			}
+			apiKey, err = promptOnboardingAPIKey(target.ProviderName)
+			if err != nil {
+				return err
+			}
+			configPath, savedTarget, saveErr := saveInlineProviderAPIKey(target.ProviderName, apiKey)
+			if saveErr != nil {
+				return saveErr
+			}
+			providerTarget = savedTarget
+			target.ProviderEndpoint = resolveProviderEndpoint(target.ProviderName, savedTarget)
+			if !*jsonOutput {
+				fmt.Printf("Saved %s API key to %s.\n", target.ProviderName, configPath)
+			}
+		}
+		endpoint := target.ProviderEndpoint
+		if strings.TrimSpace(endpoint) == "" {
+			endpoint = resolveProviderEndpoint(target.ProviderName, providerTarget)
+		}
+		if entry, ok := connector.ProviderCatalog[target.ProviderName]; ok && entry.RequiresExplicitEndpoint && strings.TrimSpace(endpoint) == "" {
+			return fmt.Errorf("provider %s requires an explicit endpoint. Run '%s --base-url ...'", target.ProviderName, cloudCredentialSetupCommand(target.ProviderName, *cloudTarget))
+		}
+		callerMeta.CredentialSource = "inline"
+		callerMeta.ProviderType = target.ProviderName
+		callerMeta.ProviderEndpoint = endpoint
+		callerMeta.ProviderAPIKey = apiKey
+	}
+	events, errCh, err := entrypoint.StreamScenarioGRPC(ctx, cfg.GRPCAddr, req, callerMeta)
 	if err != nil {
-		return err
+		return fmt.Errorf("runtime stream failed: %w", err)
 	}
 
 	buffer := strings.Builder{}
+	streamTraceID := ""
+	modelResolved := ""
+	routeDecision := routePolicy
+	finishReason := runtimev1.FinishReason_FINISH_REASON_UNSPECIFIED
+	usage := &runtimev1.UsageStats{}
+	failedReason := runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 	for events != nil || errCh != nil {
 		select {
 		case streamErr, ok := <-errCh:
@@ -224,17 +283,44 @@ func runTopLevelRun(args []string) error {
 				events = nil
 				continue
 			}
-			if event.GetEventType() == runtimev1.StreamEventType_STREAM_EVENT_DELTA {
-				buffer.WriteString(event.GetDelta().GetText())
-				if !*jsonOutput {
-					fmt.Print(event.GetDelta().GetText())
+			if streamTraceID == "" {
+				streamTraceID = strings.TrimSpace(event.GetTraceId())
+			}
+			if started := event.GetStarted(); started != nil {
+				if resolved := strings.TrimSpace(started.GetModelResolved()); resolved != "" {
+					modelResolved = resolved
+				}
+				if started.GetRouteDecision() != runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+					routeDecision = started.GetRouteDecision()
 				}
 			}
-			if event.GetEventType() == runtimev1.StreamEventType_STREAM_EVENT_FAILED {
-				return errors.New(event.GetFailed().GetReasonCode().String())
+			if delta := event.GetDelta(); delta != nil {
+				buffer.WriteString(delta.GetText())
+				if !*jsonOutput {
+					fmt.Print(delta.GetText())
+				}
+			}
+			if currentUsage := event.GetUsage(); currentUsage != nil {
+				usage = currentUsage
+			}
+			if completed := event.GetCompleted(); completed != nil {
+				finishReason = completed.GetFinishReason()
+			}
+			if failed := event.GetFailed(); failed != nil {
+				failedReason = failed.GetReasonCode()
 			}
 		case <-time.After(timeout):
 			return fmt.Errorf("stream timeout")
+		}
+	}
+	if failedReason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		switch failedReason {
+		case runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_INVALID, runtimev1.ReasonCode_AUTH_TOKEN_INVALID:
+			return fmt.Errorf("cloud credentials for %s are missing or invalid. Run '%s'", target.ProviderName, cloudCredentialSetupCommand(target.ProviderName, *cloudTarget))
+		case runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, runtimev1.ReasonCode_AI_MODEL_NOT_READY:
+			return fmt.Errorf("local model %s is unavailable. Run 'nimi model pull --model-ref %s'", modelID, texttarget.EnsureLocalLatestModelRef(modelID))
+		default:
+			return fmt.Errorf("run failed: %s", failedReason.String())
 		}
 	}
 	if !*jsonOutput {
@@ -242,14 +328,33 @@ func runTopLevelRun(args []string) error {
 		return nil
 	}
 	out, err := json.MarshalIndent(map[string]any{
-		"model_id": modelID,
-		"text":     buffer.String(),
+		"modelId":       modelID,
+		"text":          buffer.String(),
+		"traceId":       streamTraceID,
+		"modelResolved": firstNonEmptyString(modelResolved, modelID),
+		"routeDecision": routePolicyLabel(routeDecision),
+		"finishReason":  finishReason.String(),
+		"usage": map[string]any{
+			"inputTokens":  usage.GetInputTokens(),
+			"outputTokens": usage.GetOutputTokens(),
+			"computeMs":    usage.GetComputeMs(),
+		},
 	}, "", "  ")
 	if err != nil {
 		return err
 	}
 	fmt.Println(string(out))
 	return nil
+}
+
+func minDuration(left time.Duration, right time.Duration) time.Duration {
+	if left <= 0 {
+		return right
+	}
+	if left < right {
+		return left
+	}
+	return right
 }
 
 func runRuntimeAI(args []string) error {
@@ -304,29 +409,23 @@ func runRuntimeModel(args []string) error {
 	}
 }
 
-func runRuntimeAuth(args []string) error {
+func runRuntimeProvider(args []string) error {
 	if len(args) == 0 {
-		printRuntimeAuthUsage()
+		printRuntimeProviderUsage()
 		return flag.ErrHelp
 	}
 
 	switch args[0] {
-	case "register-app":
-		return runRuntimeAuthRegisterApp(args[1:])
-	case "open-session":
-		return runRuntimeAuthOpenSession(args[1:])
-	case "refresh-session":
-		return runRuntimeAuthRefreshSession(args[1:])
-	case "revoke-session":
-		return runRuntimeAuthRevokeSession(args[1:])
-	case "register-external":
-		return runRuntimeAuthRegisterExternal(args[1:])
-	case "open-external-session":
-		return runRuntimeAuthOpenExternalSession(args[1:])
-	case "revoke-external-session":
-		return runRuntimeAuthRevokeExternalSession(args[1:])
+	case "list":
+		return runRuntimeProviderList(args[1:])
+	case "set":
+		return runRuntimeProviderSet(args[1:])
+	case "unset":
+		return runRuntimeProviderUnset(args[1:])
+	case "test":
+		return runRuntimeProviderTest(args[1:])
 	default:
-		printRuntimeAuthUsage()
+		printRuntimeProviderUsage()
 		return flag.ErrHelp
 	}
 }

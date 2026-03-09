@@ -35,10 +35,11 @@ func TestWithNimiOutgoingMetadataDefault(t *testing.T) {
 
 func TestWithNimiOutgoingMetadataOverride(t *testing.T) {
 	ctx := withNimiOutgoingMetadata(context.Background(), "nimi.desktop", &ClientMetadata{
-		CallerKind: "third-party-app",
-		CallerID:   "app:novelizer",
-		SurfaceID:  "chat-export",
-		TraceID:    "trace-123",
+		CallerKind:   "third-party-app",
+		CallerID:     "app:novelizer",
+		SurfaceID:    "chat-export",
+		TraceID:      "trace-123",
+		ProviderType: "gemini",
 	})
 	md, ok := metadata.FromOutgoingContext(ctx)
 	if !ok {
@@ -55,6 +56,9 @@ func TestWithNimiOutgoingMetadataOverride(t *testing.T) {
 	}
 	if got := firstMDValue(md, "x-nimi-trace-id"); got != "trace-123" {
 		t.Fatalf("trace id mismatch: %q", got)
+	}
+	if got := firstMDValue(md, "x-nimi-provider-type"); got != "gemini" {
+		t.Fatalf("provider type mismatch: %q", got)
 	}
 }
 

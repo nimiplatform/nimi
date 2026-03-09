@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -24,14 +25,12 @@ func printProviderChanges(changes []providerChange, sampledAt string, jsonOutput
 		fmt.Println(string(out))
 		return nil
 	}
-
-	fmt.Printf("[%s] provider changes\n", sampledAt)
+	printCLIHeader(os.Stdout, "Nimi Provider Changes")
+	printCLIField(os.Stdout, "sampled at", sampledAt)
 	if len(changes) == 0 {
-		fmt.Println("no provider changes")
-		fmt.Println()
+		printCLIField(os.Stdout, "changes", "none")
 		return nil
 	}
-	fmt.Printf("%-18s %-10s %-12s %-12s %-9s %s\n", "NAME", "EVENT", "FROM", "TO", "FAILURES", "REASON")
 	for _, item := range changes {
 		from := "-"
 		to := "-"
@@ -47,9 +46,14 @@ func printProviderChanges(changes []providerChange, sampledAt string, jsonOutput
 			failures = item.After.ConsecutiveFailures
 			reason = item.After.Reason
 		}
-		fmt.Printf("%-18s %-10s %-12s %-12s %-9d %s\n", item.Name, item.Type, from, to, failures, reason)
+		fmt.Println()
+		printCLIField(os.Stdout, "provider", item.Name)
+		printCLIField(os.Stdout, "event", item.Type)
+		printCLIField(os.Stdout, "from", from)
+		printCLIField(os.Stdout, "to", to)
+		printCLIField(os.Stdout, "failures", strconv.FormatInt(failures, 10))
+		printCLIField(os.Stdout, "reason", reason)
 	}
-	fmt.Println()
 	return nil
 }
 

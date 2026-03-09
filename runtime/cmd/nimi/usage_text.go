@@ -6,7 +6,7 @@ import (
 )
 
 func printUsage() {
-	fmt.Fprintln(os.Stderr, "Usage: nimi <serve|status|run|chat|ai|model|mod|auth|app-auth|knowledge|app|audit|workflow|health|providers|config>")
+	fmt.Fprintln(os.Stderr, "Nimi - AI Runtime\n\nUsage: nimi <command> [options]\n\nQuick Start:\n  serve       Start the runtime daemon in the foreground\n  start       Start the runtime daemon in the background\n  doctor      Check environment health\n  init        Scaffold a new project\n  version     Show version info\n  run         Generate text from a model\n\nModel Management:\n  model       List, pull, remove, and check models\n\nCloud Setup:\n  provider    Configure and test cloud providers\n\nRuntime Ops:\n  status      Show runtime process status\n  stop        Stop the runtime daemon\n  logs        Read background runtime logs\n  health      Runtime health details\n  providers   Provider health snapshots\n\nAdvanced/Admin:\n  ai          Advanced AI operations\n  app-auth    App authorization lifecycle\n  mod         Mod development tools\n  workflow    Workflow engine\n  knowledge   Knowledge indexing\n  app         Inter-app messaging\n  audit       Audit events and usage\n  config      Runtime configuration\n\nRun 'nimi <command> --help' for details.")
 }
 
 func printRuntimeAIUsage() {
@@ -21,8 +21,8 @@ func printRuntimeModUsage() {
 	fmt.Fprintln(os.Stderr, "Usage:\n  nimi mod list [--mods-dir --json]\n  nimi mod install [source] [--source --mods-dir --mod-circle-repo --mod-circle-ref --strict-id --api-base --token --json]\n  nimi mod create [--dir --name --mod-id --json]\n  nimi mod dev [--dir --watch --interval --json]\n  nimi mod build [--dir --json]\n  nimi mod publish [--dir --source-repo --author --mod-circle-repo --base --branch-prefix --title --body --api-base --token --json]")
 }
 
-func printRuntimeAuthUsage() {
-	fmt.Fprintln(os.Stderr, "Usage:\n  nimi auth register-app [--grpc-addr --timeout --app-id --app-instance-id --device-id --app-version --capability ... --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi auth open-session [--grpc-addr --timeout --app-id --app-instance-id --device-id --subject-user-id --ttl-seconds --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi auth refresh-session [--grpc-addr --timeout --app-id --session-id --ttl-seconds --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi auth revoke-session [--grpc-addr --timeout --app-id --session-id --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi auth register-external [--grpc-addr --timeout --app-id --external-principal-id --external-type agent|app|service --issuer --client-id --signature-key-id --proof-type ed25519|hmac-sha256 --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi auth open-external-session [--grpc-addr --timeout --app-id --external-principal-id --proof --ttl-seconds --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi auth revoke-external-session [--grpc-addr --timeout --app-id --external-session-id --json --caller-kind --caller-id --surface-id --trace-id]")
+func printRuntimeProviderUsage() {
+	fmt.Fprintln(os.Stderr, "Usage:\n  nimi provider list [--json]\n  nimi provider set <provider> [--api-key --api-key-env --base-url --default-model --default --json]\n  nimi provider unset <provider> [--json]\n  nimi provider test <provider> [--grpc-addr --timeout --json]")
 }
 
 func printRuntimeAppAuthUsage() {

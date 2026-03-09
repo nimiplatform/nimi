@@ -90,6 +90,9 @@ func withNimiOutgoingMetadata(ctx context.Context, appID string, metadataOverrid
 		if value := strings.ToLower(strings.TrimSpace(metadataOverride.CredentialSource)); value != "" {
 			metadataValue.CredentialSource = value
 		}
+		if value := strings.TrimSpace(metadataOverride.ProviderType); value != "" {
+			metadataValue.ProviderType = value
+		}
 		if value := strings.TrimSpace(metadataOverride.ProviderEndpoint); value != "" {
 			metadataValue.ProviderEndpoint = value
 		}
@@ -137,6 +140,9 @@ func withNimiOutgoingMetadata(ctx context.Context, appID string, metadataOverrid
 	if source := strings.ToLower(strings.TrimSpace(metadataValue.CredentialSource)); source != "" {
 		pairs = append(pairs, "x-nimi-key-source", source)
 	}
+	if providerType := strings.TrimSpace(metadataValue.ProviderType); providerType != "" {
+		pairs = append(pairs, "x-nimi-provider-type", providerType)
+	}
 	if endpoint := strings.TrimSpace(metadataValue.ProviderEndpoint); endpoint != "" {
 		pairs = append(pairs, "x-nimi-provider-endpoint", endpoint)
 	}
@@ -180,6 +186,7 @@ func defaultClientMetadata() ClientMetadata {
 		SurfaceID:                  cliSurfaceID,
 		TraceID:                    "",
 		CredentialSource:           "",
+		ProviderType:               "",
 	}
 }
 

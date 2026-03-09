@@ -438,6 +438,7 @@ export const runtimeKernelFiles = [
   'streaming-contract.md', 'error-model.md', 'pagination-filtering.md', 'audit-contract.md',
   'daemon-lifecycle.md', 'provider-health-contract.md', 'workflow-contract.md',
   'model-service-contract.md', 'knowledge-contract.md', 'app-messaging-contract.md',
+  'cli-onboarding-contract.md',
   'config-contract.md', 'connector-contract.md',
   'nimillm-contract.md', 'multimodal-provider-contract.md', 'delivery-gates-contract.md',
   'proto-governance-contract.md',

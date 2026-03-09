@@ -65,6 +65,7 @@ const kernelFiles = [
   'spec/runtime/kernel/model-service-contract.md',
   'spec/runtime/kernel/knowledge-contract.md',
   'spec/runtime/kernel/app-messaging-contract.md',
+  'spec/runtime/kernel/cli-onboarding-contract.md',
   'spec/runtime/kernel/tables/daemon-health-states.yaml',
   'spec/runtime/kernel/tables/interceptor-chain.yaml',
   'spec/runtime/kernel/tables/ai-timeout-defaults.yaml',

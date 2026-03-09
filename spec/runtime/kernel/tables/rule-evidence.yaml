@@ -46,6 +46,51 @@ rules:
   - rule_id: K-APP-007
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+  - rule_id: K-CLI-001
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
+  - rule_id: K-CLI-002
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
+  - rule_id: K-CLI-003
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
+  - rule_id: K-CLI-004
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
+  - rule_id: K-CLI-005
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
+  - rule_id: K-CLI-006
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
+  - rule_id: K-CLI-007
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
+  - rule_id: K-CLI-008
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
+  - rule_id: K-CLI-009
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
+  - rule_id: K-CLI-010
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
+  - rule_id: K-CLI-011
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
+  - rule_id: K-CLI-012
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
+  - rule_id: K-CLI-013
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
+  - rule_id: K-CLI-014
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
+  - rule_id: K-CLI-015
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
   - rule_id: K-AUDIT-001
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
