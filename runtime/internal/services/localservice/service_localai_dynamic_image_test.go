@@ -76,7 +76,7 @@ func TestResolveLocalAIImageProfileInjectsDynamicComponents(t *testing.T) {
 		t.Fatalf("install vae artifact: %v", err)
 	}
 
-	llmPath := filepath.Join(modelsRoot, slugifyLocalModelID("qwen3_4b_companion"), "Qwen3-4B.Q4_K_M.gguf")
+	llmPath := filepath.Join(modelsRoot, slugifyLocalModelID("qwen3_4b_companion"), "Qwen3-4B-Q4_K_M.gguf")
 	if err := os.MkdirAll(filepath.Dir(llmPath), 0o755); err != nil {
 		t.Fatalf("mkdir llm dir: %v", err)
 	}
@@ -88,7 +88,7 @@ func TestResolveLocalAIImageProfileInjectsDynamicComponents(t *testing.T) {
 		ArtifactId:      "qwen3_4b_companion",
 		Kind:            runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_LLM,
 		Engine:          "localai",
-		Entry:           "Qwen3-4B.Q4_K_M.gguf",
+		Entry:           "Qwen3-4B-Q4_K_M.gguf",
 		Status:          runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_INSTALLED,
 		Source:          &runtimev1.LocalArtifactSource{},
 	})
@@ -123,7 +123,7 @@ func TestResolveLocalAIImageProfileInjectsDynamicComponents(t *testing.T) {
 		t.Fatalf("unexpected model parameter: %q", got)
 	}
 	options := valueAsStringSlice(profile["options"])
-	if !containsString(options, "llm_path:qwen3-4b-companion/Qwen3-4B.Q4_K_M.gguf") {
+	if !containsString(options, "llm_path:qwen3-4b-companion/Qwen3-4B-Q4_K_M.gguf") {
 		t.Fatalf("expected llm_path option, got=%v", options)
 	}
 	if !containsString(options, "vae_path:z-image-ae/ae.safetensors") {

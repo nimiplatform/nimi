@@ -283,7 +283,7 @@ pub fn install_from_hf_with_control(
                 } else {
                     0
                 };
-                let _ = control_to_error(on_progress(HfDownloadProgress {
+                control_to_error(on_progress(HfDownloadProgress {
                     phase: "verify".to_string(),
                     bytes_received: downloaded_bytes_after_file,
                     bytes_total: total_bytes_known.or(Some(downloaded_bytes_after_file)),
@@ -296,7 +296,8 @@ pub fn install_from_hf_with_control(
                         file_path,
                         verify_percent.min(100)
                     )),
-                }));
+                }))
+                .is_none()
             },
         )
         .map_err(|error| {

@@ -217,12 +217,12 @@ fn sha256_hex(bytes: &[u8]) -> String {
 /// Streaming SHA256 with optional progress callback.
 #[cfg(test)]
 fn sha256_hex_streaming(path: &Path) -> Result<String, String> {
-    sha256_hex_streaming_with_progress(path, &mut |_bytes_verified, _bytes_total| {})
+    sha256_hex_streaming_with_progress(path, &mut |_bytes_verified, _bytes_total| true)
 }
 
 fn sha256_hex_streaming_with_progress<F>(path: &Path, on_progress: &mut F) -> Result<String, String>
 where
-    F: FnMut(u64, u64),
+    F: FnMut(u64, u64) -> bool,
 {
     let file = fs::File::open(path).map_err(|error| {
         format!(
@@ -249,7 +249,11 @@ where
         hasher.update(&buf[..n]);
         bytes_verified = bytes_verified.saturating_add(n as u64);
         if last_report_at.elapsed() >= Duration::from_millis(250) || bytes_verified >= total_bytes {
-            on_progress(bytes_verified, total_bytes);
+            if !on_progress(bytes_verified, total_bytes) {
+                return Err(format!(
+                    "{LOCAL_AI_HF_DOWNLOAD_CANCELLED}: verification cancelled by user"
+                ));
+            }
             last_report_at = Instant::now();
         }
     }
