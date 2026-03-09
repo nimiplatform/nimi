@@ -2,10 +2,9 @@
  * Gemini Tutorial (image + video) via nimi-sdk + runtime
  *
  * 1) Start runtime with Gemini adapter:
- *    cd runtime
  *    NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL=https://your-gemini-endpoint \
  *    NIMI_RUNTIME_CLOUD_GEMINI_API_KEY=xxx \
- *    go run ./cmd/nimi serve
+ *    nimi start
  *
  * 2) Optional env in this shell:
  *    export NIMI_RUNTIME_GRPC_ENDPOINT=127.0.0.1:46371

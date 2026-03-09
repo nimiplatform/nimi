@@ -3,6 +3,14 @@
 Nimi Runtime routes AI requests through a unified API.
 Use this page as the single source for provider capability coverage and rollout status.
 
+For onboarding and quickstart, prefer the high-level targeting surface:
+
+- `nimi run "<prompt>"` for the local default text target
+- `nimi run "<prompt>" --provider <provider>` for a provider default cloud target
+- `nimi run "<prompt>" --cloud` for the saved machine default cloud target
+
+This matrix documents advanced provider-qualified prefixes exposed by lower-level runtime and SDK surfaces.
+
 ## Status Legend
 
 - `GA`: available now for production usage in current runtime contracts
@@ -61,8 +69,12 @@ Use this page as the single source for provider capability coverage and rollout 
 ## Validation In Your Environment
 
 ```bash
-cd runtime
-go run ./cmd/nimi providers --source grpc
+nimi provider list
+nimi doctor
+nimi provider test gemini
+nimi run "Hello from Nimi" --provider gemini
+nimi provider set gemini --api-key-env NIMI_RUNTIME_CLOUD_GEMINI_API_KEY --default
+nimi run "Hello from Nimi" --cloud
 ```
 
 Runnable provider examples: [examples/sdk/providers/](../../examples/sdk/providers/)

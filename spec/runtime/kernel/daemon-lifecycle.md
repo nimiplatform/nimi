@@ -189,7 +189,7 @@ Phase 1 配置文件 schema（`~/.nimi/config.json`）权威字段清单：
 | `engines.nexa.version` | string | `` | restart | Nexa 版本（空=系统安装） | K-LENG-004 |
 | `engines.nexa.port` | int | `8000` | restart | Nexa 监听端口 | K-LENG-004 |
 
-`providers` 值结构：`{ baseUrl: string, apiKeyEnv: string }`。`apiKey` 明文字段被禁止（写入校验拒绝，`CONFIG_SECRET_POLICY_VIOLATION`），仅允许 `apiKeyEnv` 引用环境变量名。
+`providers` 值结构：`{ baseUrl?: string, apiKey?: string, apiKeyEnv?: string, defaultModel?: string }`。`apiKey` 与 `apiKeyEnv` 互斥；二者同时设置时写入校验必须拒绝并返回 `CONFIG_SECRET_POLICY_VIOLATION`。
 
 JWT 验签配置仅支持 `auth.jwt.jwksUrl`，不支持 `auth.jwt.publicKeyPath`。
 

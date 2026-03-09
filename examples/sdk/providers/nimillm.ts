@@ -2,10 +2,9 @@
  * NimiLLM Tutorial (chat + embedding + optional image) via nimi-sdk + runtime
  *
  * 1) Start runtime with NimiLLM backend:
- *    cd runtime
  *    NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL=https://your-nimillm-endpoint \
  *    NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY=sk-xxx \
- *    go run ./cmd/nimi serve
+ *    nimi start
  *
  * 2) Optional env in this shell:
  *    export NIMI_RUNTIME_GRPC_ENDPOINT=127.0.0.1:46371

@@ -1,10 +1,14 @@
 /**
  * DeepSeek Chat Tutorial (single-file runtime client, no provider wrapper)
  *
+ * This example demonstrates request-scoped inline credentials through the raw
+ * Runtime client. For normal first-run usage, prefer:
+ * `nimi run "Hello" --provider deepseek --model deepseek-chat`
+ *
  * Flow:
- * 1) save api key -> connectorId
- * 2) generate text with connectorId
- * 3) desktop/app layer resolves connectorId -> key, runtime only receives request metadata
+ * 1) create a demo connector record in app memory
+ * 2) resolve credentials in the app layer
+ * 3) send a runtime request with inline credential metadata
  *
  * Required env:
  * - NIMI_DEEPSEEK_API_KEY=sk-xxx

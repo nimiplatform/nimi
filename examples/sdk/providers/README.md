@@ -2,20 +2,40 @@
 
 `examples/sdk/providers/*.ts` are end-user tutorials (not mock tests).
 
-> [!WARNING]
-> Start runtime with provider environment variables on the same runtime process before running these scripts.
-> If runtime starts without provider env vars, request routing will fail even if your shell has keys.
+## First Clarify The Goal
 
-## Minimum Successful Path
-
-1. Start runtime with one provider configured (example: NimiLLM).
+If you only want to prove cloud generation works from the CLI, use the one-shot path:
 
 ```bash
-cd runtime
+nimi run "Hello from Nimi" --provider gemini
+```
+
+That path can prompt for a missing API key once, save it, and continue the same run. It does not require a daemon restart.
+
+These provider scripts are different: they are SDK/provider tutorials. They assume credentials are configured on the runtime machine before the script runs.
+
+## Runtime-Machine Setup For Provider Tutorials
+
+1. Configure one provider on the runtime machine (example: NimiLLM).
+
+Reusable config path:
+
+```bash
+nimi provider set nimillm --api-key-env NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY --base-url https://your-nimillm-endpoint --default-model your-default-model --default
+nimi start
+```
+
+If the runtime was already running when you changed provider config, restart it before running the tutorial script.
+
+Env-only path:
+
+```bash
 NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL=https://your-nimillm-endpoint \
 NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY=sk-xxx \
-go run ./cmd/nimi serve
+nimi serve
 ```
+
+The env-only path is for foreground/runtime-process-local setup. Those variables must be present on the runtime process itself.
 
 2. Run a single provider tutorial.
 

@@ -2,10 +2,9 @@
  * Nexa Tutorial (chat + tts + optional stt) via nimi-sdk + runtime
  *
  * 1) Start runtime with Nexa backend:
- *    cd runtime
  *    NIMI_RUNTIME_LOCAL_NEXA_BASE_URL=http://127.0.0.1:11434 \
  *    NIMI_RUNTIME_LOCAL_NEXA_API_KEY=<optional> \
- *    go run ./cmd/nimi serve
+ *    nimi start
  *
  * 2) Optional env in this shell:
  *    export NIMI_RUNTIME_GRPC_ENDPOINT=127.0.0.1:46371

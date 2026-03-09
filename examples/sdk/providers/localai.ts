@@ -2,10 +2,9 @@
  * LocalAI Tutorial (chat + image) via nimi-sdk + runtime
  *
  * 1) Start runtime with LocalAI backend:
- *    cd runtime
  *    NIMI_RUNTIME_LOCAL_AI_BASE_URL=http://127.0.0.1:1234 \
  *    NIMI_RUNTIME_LOCAL_AI_API_KEY=<optional> \
- *    go run ./cmd/nimi serve
+ *    nimi start
  *
  * 2) Optional env in this shell:
  *    export NIMI_RUNTIME_GRPC_ENDPOINT=127.0.0.1:46371

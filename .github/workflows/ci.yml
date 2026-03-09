@@ -149,8 +149,14 @@ jobs:
       - name: Markdown lint baseline
         run: pnpm check:markdown
 
+      - name: Enforce first-run docs drift contract
+        run: pnpm check:first-run-doc-drift
+
       - name: Enforce no legacy nimid invocation in docs
         run: pnpm check:no-nimid-doc-invocation
+
+      - name: Install script dry-run smoke
+        run: pnpm check:install-script-smoke
 
       - name: Enforce no absolute user-home paths in docs/spec/examples
         run: pnpm check:no-absolute-user-paths
@@ -375,6 +381,9 @@ jobs:
       - name: Runtime go build
         working-directory: runtime
         run: go build ./...
+
+      - name: npm binary launcher smoke
+        run: pnpm check:npm-binary-smoke
 
       - name: Runtime go vet
         working-directory: runtime

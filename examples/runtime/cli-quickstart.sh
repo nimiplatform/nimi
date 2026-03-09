@@ -1,106 +1,44 @@
 #!/usr/bin/env bash
 # Nimi Runtime CLI Quick Start
 #
-# Prerequisites: Go 1.24+
-# Run from the @nimiplatform/nimi repository root.
+# Prerequisites: installed `nimi` binary on PATH and a running runtime daemon.
+# Note: this is a scripted, non-interactive path, so local calls use `--yes`.
+# Public first-run docs intentionally use bare `nimi run "<prompt>"`.
+# Run: bash examples/runtime/cli-quickstart.sh
 
 set -euo pipefail
 
-RUNTIME_DIR="./runtime"
-APP_ID="example.cli"
-APP_INSTANCE_ID="cli-demo"
-EXTERNAL_ID="agent-1"
-
-cd "${RUNTIME_DIR}"
-
-echo "=== 1. Runtime Health ==="
-go run ./cmd/nimi health --source grpc
+echo "=== 1. Runtime Doctor ==="
+nimi doctor
 
 echo ""
-echo "=== 2. AI Providers ==="
-go run ./cmd/nimi providers --source grpc
+echo "=== 2. Version ==="
+nimi version
 
 echo ""
-echo "=== 3. Text Generation (Unary) ==="
-go run ./cmd/nimi run local/qwen2.5 \
-  --prompt "What is the Nimi platform?" \
-  --json
+echo "=== 3. Local Generation ==="
+nimi run "What is the Nimi platform?" --yes --json
 
 echo ""
-echo "=== 4. Text Generation (Streaming) ==="
-go run ./cmd/nimi chat local/qwen2.5 \
-  --prompt "Write a haiku about open source" \
-  --json
+echo "=== 4. Streaming Generation ==="
+nimi run "Write a haiku about open source" --yes
 
 echo ""
 echo "=== 5. List Models ==="
-go run ./cmd/nimi model list --json
+nimi model list --json
 
 echo ""
-echo "=== 6. Register App ==="
-go run ./cmd/nimi auth register-app \
-  --app-id "${APP_ID}" \
-  --app-instance-id "${APP_INSTANCE_ID}" \
-  --app-mode full \
-  --runtime-required \
-  --world-relation none \
-  --capability runtime.ai.generate \
-  --capability runtime.model.list \
-  --json
+echo "=== 6. Provider Setup (Optional Cloud Path) ==="
+echo "Fastest cloud path:"
+echo "  nimi run \"Hello from the cloud\" --provider gemini --json"
+echo ""
+echo "Reusable default path:"
+echo "  nimi provider set gemini --api-key-env NIMI_RUNTIME_CLOUD_GEMINI_API_KEY --default"
 
 echo ""
-echo "=== 7. Register External Principal ==="
-go run ./cmd/nimi auth register-external \
-  --app-id "${APP_ID}" \
-  --external-principal-id "${EXTERNAL_ID}" \
-  --external-type agent \
-  --proof-type ed25519 \
-  --json
-
-echo ""
-echo "=== 8. App Authorization ==="
-go run ./cmd/nimi app-auth authorize \
-  --domain app-auth \
-  --app-id "${APP_ID}" \
-  --external-principal-id "${EXTERNAL_ID}" \
-  --external-type agent \
-  --subject-user-id local-user \
-  --consent-id consent-001 \
-  --consent-version v1 \
-  --policy-version v1 \
-  --policy-mode preset \
-  --preset delegate \
-  --scope runtime.ai.generate \
-  --ttl-seconds 3600 \
-  --scope-catalog-version sdk-v1 \
-  --json
-
-echo ""
-echo "=== 9. Audit Events ==="
-go run ./cmd/nimi audit events --page-size 5 --json
-
-echo ""
-echo "=== 10. Usage Stats ==="
-go run ./cmd/nimi audit usage --json
-
-echo ""
-echo "=== 11. Knowledge (Vector Index) ==="
-go run ./cmd/nimi knowledge build \
-  --app-id "${APP_ID}" \
-  --subject-user-id local-user \
-  --index-id demo-index \
-  --source-kind messages \
-  --source-uri "memory://chat/1" \
-  --json
-
-echo ""
-echo "=== 12. App Messaging ==="
-go run ./cmd/nimi app send \
-  --from-app-id app.sender \
-  --to-app-id app.receiver \
-  --subject-user-id local-user \
-  --message-type test.ping \
-  --json
+echo "=== 7. Cloud Generation (Optional) ==="
+echo "After saving a reusable default:"
+echo "  nimi run \"Hello from the cloud\" --cloud --json"
 
 echo ""
 echo "Done. See docs/reference/runtime.md for the full command reference."

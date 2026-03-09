@@ -1,103 +1,135 @@
 # Getting Started
 
-This guide gets you from zero to a first verifiable Nimi run.
+This guide gets you from zero to a first successful Nimi generation without cloning the repo or installing contributor toolchains.
 
-## Prerequisites
+## What You Need
 
-- Go `1.24+`
-- Node.js `24+`
-- pnpm `10+`
-- Install workspace dependencies once:
+- the `nimi` binary installed
+- background mode with `nimi start`
+- Node.js only if you want to run the TypeScript SDK examples
 
-```bash
-pnpm install
-```
+If you are developing Nimi itself from source, use the repo-level contributor workflow instead. That is a different path.
 
-## Terminal Setup
-
-Use two terminals:
-
-- Terminal A: run `nimi-runtime`
-- Terminal B: run health checks and SDK examples
-
-## 1. Start Runtime (Terminal A)
+## 1. Install Nimi
 
 ```bash
-pnpm runtime:serve
+# macOS / Linux
+curl -fsSL https://install.nimi.xyz | sh
+
+# or
+npm install -g @nimiplatform/nimi
 ```
 
-Default endpoints:
+## 2. Start The Runtime
+
+```bash
+nimi start
+```
+
+Default endpoint:
 
 - gRPC: `127.0.0.1:46371`
-- HTTP health: `127.0.0.1:46372`
 
-## 2. Path A - Observe Platform State (No model required)
+## 3. Verify The Environment
 
-Run in Terminal B:
-
-```bash
-pnpm runtime:health
-pnpm runtime:providers
-npx tsx examples/sdk/sdk-quickstart.ts
-```
-
-Expected:
-
-- runtime reports `READY`
-- provider health snapshot is printed
-- quickstart prints health and model inventory
-- if no model is available yet, quickstart exits gracefully with next-step commands
-
-## 3. Path B - Produce AI Output
-
-Choose one route.
-
-### Option 1: Local route (`local`)
+Terminal B:
 
 ```bash
-cd runtime
-go run ./cmd/nimi model pull --model-ref local/qwen2.5@latest --source official --json
-cd ..
-npx tsx examples/sdk/last-mile-route-switch.ts
+nimi doctor
+nimi status
 ```
 
-### Option 2: Cloud route (`cloud`)
+You should see:
 
-Restart runtime in Terminal A with provider credentials (example: Gemini):
+- the CLI version
+- config file path
+- gRPC daemon health
+- runtime mode and process status
+- local engine status
+- provider status
+- installed model count
+
+## 4. First Local Generation
 
 ```bash
-cd runtime
-NIMI_RUNTIME_CLOUD_GEMINI_API_KEY=<your-key> \
-go run ./cmd/nimi serve
+nimi run "What is Nimi?"
 ```
 
-Then run in Terminal B:
+What happens on the happy path:
+
+- if the daemon is down, Nimi tells you to run `nimi start`
+- if the model is missing, Nimi offers to pull it
+- once the model is ready, text streams back to the terminal
+
+## 5. First Cloud Generation
+
+Fastest first-run path:
 
 ```bash
-npx tsx examples/sdk/last-mile-route-switch.ts
+nimi run "What is Nimi?" --provider gemini
 ```
 
-Expected:
+If the provider key is missing, Nimi prompts for it once, stores it in the runtime config, and continues the same command.
 
-- output includes both `[local]` and `[cloud]` blocks
-- each block shows generated text or explicit reason code and action hint
+Reusable machine-default path:
 
-## 4. Common Errors and Exact Fixes
+```bash
+nimi provider set gemini --api-key-env NIMI_RUNTIME_CLOUD_GEMINI_API_KEY --default
+export NIMI_RUNTIME_CLOUD_GEMINI_API_KEY=YOUR_KEY
+nimi run "What is Nimi?" --cloud
+```
+
+Cloud setup stays provider-key-first on the runtime machine. `--provider` is the one-shot path; `--cloud` is the saved-default path.
+
+For first-run onboarding, stay on `nimi run` and `runtime.generate()/stream()`. Fully-qualified explicit model ids remain on lower-level surfaces such as `nimi ai text-generate --model-id ...` and `runtime.ai.text.generate({ model: ... })`.
+
+## 6. Use Nimi In Your App
+
+```bash
+npm install @nimiplatform/sdk
+```
+
+```ts
+import { Runtime } from '@nimiplatform/sdk';
+
+const runtime = new Runtime();
+
+const result = await runtime.generate({
+  prompt: 'Explain Nimi in one sentence.',
+});
+
+console.log(result.text);
+```
+
+To switch to cloud, keep the app code and add a provider:
+
+```ts
+const result = await runtime.generate({
+  provider: 'gemini',
+  prompt: 'Explain Nimi in one sentence.',
+});
+```
+
+## 7. Example Ladder
+
+```bash
+npx tsx examples/sdk/01-hello.ts
+npx tsx examples/sdk/02-streaming.ts
+npx tsx examples/sdk/03-local-vs-cloud.ts
+npx tsx examples/sdk/04-vercel-ai-sdk.ts
+```
+
+## Common Errors
 
 | Error | Meaning | Fix |
 |---|---|---|
-| `AI_LOCAL_MODEL_UNAVAILABLE` | local model not ready | `cd runtime && go run ./cmd/nimi model pull --model-ref local/qwen2.5@latest --source official --json` |
-| `AI_REQUEST_CREDENTIAL_INVALID` | credentials missing/invalid in runtime process | export provider key in the runtime startup command and restart runtime |
-| `AI_PROVIDER_AUTH_FAILED` | provider rejected auth | verify key, endpoint, and provider routing config (`pnpm runtime:providers`) |
+| `runtime is not running` | daemon is unavailable | run `nimi start` |
+| `model ... is not installed` | local model missing | rerun with `--yes`, or pull a specific local model with `nimi model pull --model-ref <local-model>@latest` |
+| `cloud credentials for <provider> are missing or invalid` | provider key missing/bad | rerun with `--provider <provider>`, or save a reusable default with `nimi provider set <provider> --api-key-env <ENV_NAME> --default` |
 
-## 5. Next Steps
+## Next Steps
 
 - SDK integration: [App Developer](../guides/app-developer.md)
-- Mod integration: [Mod Developer](../guides/mod-developer.md)
-- Runtime integration: [Runtime Integrator](../guides/runtime-integrator.md)
+- Runtime operations: [Runtime Reference](../reference/runtime.md)
 - More recipes: [Quick Recipes](../cookbook/quick-recipes.md)
-
-## Spec Pointers
-
-- Spec index: [`spec/INDEX.md`](../../spec/INDEX.md)
-- Human-readable generated spec: [`spec/generated/nimi-spec.md`](../../spec/generated/nimi-spec.md)
+- Full examples ladder: [`examples/README.md`](../../examples/README.md)

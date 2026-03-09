@@ -2,10 +2,9 @@
  * Bytedance OpenSpeech Tutorial (tts + stt) via nimi-sdk + runtime
  *
  * 1) Start runtime with Bytedance OpenSpeech adapter:
- *    cd runtime
  *    NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL=https://your-openspeech-endpoint \
  *    NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_API_KEY=xxx \
- *    go run ./cmd/nimi serve
+ *    nimi start
  *
  * 2) Required / optional env in this shell:
  *    export NIMI_RUNTIME_GRPC_ENDPOINT=127.0.0.1:46371

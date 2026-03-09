@@ -2,10 +2,9 @@
  * GLM Tutorial (video + image + tts + optional stt) via nimi-sdk + runtime
  *
  * 1) Start runtime with GLM adapter:
- *    cd runtime
  *    NIMI_RUNTIME_CLOUD_GLM_BASE_URL=https://open.bigmodel.cn \
  *    NIMI_RUNTIME_CLOUD_GLM_API_KEY=xxx \
- *    go run ./cmd/nimi serve
+ *    nimi start
  *
  * 2) Optional env in this shell:
  *    export NIMI_RUNTIME_GRPC_ENDPOINT=127.0.0.1:46371

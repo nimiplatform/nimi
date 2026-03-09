@@ -1,10 +1,14 @@
 /**
  * Bytedance TTS Tutorial (single-file runtime client, no provider wrapper)
  *
+ * This example demonstrates request-scoped inline credentials through the raw
+ * Runtime client. For normal first-run usage, prefer configuring the provider
+ * on the runtime machine and then calling the CLI or SDK normally.
+ *
  * Flow:
- * 1) save api key -> connectorId
- * 2) synthesize with connectorId
- * 3) app layer resolves connectorId -> key, runtime only receives request metadata
+ * 1) create a demo connector record in app memory
+ * 2) resolve credentials in the app layer
+ * 3) send a runtime request with inline credential metadata
  *
  * Required env:
  * - NIMI_BYTEDANCE_API_KEY=xxx

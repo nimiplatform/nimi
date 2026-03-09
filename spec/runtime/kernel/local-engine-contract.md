@@ -174,9 +174,9 @@ RPC 请求参数仅影响当次操作，不持久化覆盖配置文件值。
 
 ## K-LENG-009 凭据安全策略
 
-- 配置文件中禁止明文 `apiKey` 字段；仅允许 `apiKeyEnv` 引用环境变量名。
-- 运行时读取 `apiKeyEnv` 指向的环境变量值作为实际凭据。
-- `apiKeyEnv` 引用的环境变量不存在或为空时：该 provider 视为未配置凭据（不影响不需要凭据的本地引擎）。
+- 配置文件中的 provider 凭据允许使用 inline `apiKey` 或 `apiKeyEnv`；二者互斥。
+- 运行时先解析 `apiKeyEnv` 指向的环境变量值；若未配置 env 引用则回退到 inline `apiKey`。
+- `apiKeyEnv` 引用的环境变量不存在或为空时：该 provider 视为未配置凭据（不影响不需要凭据的本地引擎），除非同时提供了 inline `apiKey` fallback。
 
 ## K-LENG-010 HTTP 错误 → gRPC 状态映射
 

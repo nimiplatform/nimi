@@ -1,84 +1,91 @@
 # Nimi Examples
 
-Runnable examples for external developers building on Nimi.
+These examples are organized by onboarding slope: start with one file that proves Nimi works, then move into streaming, cloud routing, and deeper runtime capabilities.
 
-## Choose Your Goal
+## Before You Run Anything
 
-### Just See It
+You do not need Go, pnpm, or a local source build unless you are developing Nimi itself.
 
-Run one script that keeps the same app code and only switches `routePolicy` from `local` to `cloud`:
-
-```bash
-npx tsx examples/sdk/last-mile-route-switch.ts
-```
-
-Expected output:
-
-- shows two runs (`[local]` and `[cloud]`)
-- prints either generated text or explicit reason code + action hint
-- prints elapsed time for both routes
-
-If it fails:
-
-- `AI_LOCAL_MODEL_UNAVAILABLE`: pull or configure a local model first
-- `AI_REQUEST_CREDENTIAL_INVALID`: configure cloud provider credentials on the runtime process
-
-### Build With It
-
-Use these when integrating Nimi into your own app code:
+For the SDK examples you only need:
 
 ```bash
-npx tsx examples/sdk/sdk-quickstart.ts
-npx tsx examples/sdk/ai-provider.ts
-npx tsx examples/sdk/ai-streaming.ts
+# Install the runtime + CLI
+curl -fsSL https://install.nimi.xyz | sh
+
+# Start the runtime
+nimi start
 ```
 
-Expected output:
-
-- runtime health and model inventory
-- text generation and streaming chunks
-- trace/usage fields that can be wired into app telemetry
-
-If it fails:
-
-- ensure runtime is running (`pnpm runtime:serve`)
-- verify endpoint (`NIMI_RUNTIME_GRPC_ENDPOINT`)
-- check provider/model availability with `pnpm runtime:providers`
-
-### Advanced Governance
-
-For app authorization lifecycle and workflow DAG orchestration:
+Fastest cloud proof:
 
 ```bash
-npx tsx examples/sdk/app-auth.ts
-npx tsx examples/sdk/workflow-dag.ts
+nimi run "What is Nimi?"
+nimi run "What is Nimi?" --provider gemini
 ```
 
-Expected output:
+Node.js is only needed when you run the TypeScript example files directly.
 
-- app/external principal registration, token chain, revoke/validate loop
-- workflow submit, event stream, and terminal node statuses
+## 30 Seconds
 
-If it fails:
+```bash
+npx tsx examples/sdk/01-hello.ts
+```
 
-- inspect runtime reason codes in output
-- verify required scopes/capabilities are enabled for your test app
+This is the shortest proof that:
 
-## Prerequisites
+- `new Runtime()` can attach to the local daemon with defaults
+- `runtime.generate()` is the new ergonomic first-run API
+- local generation can happen without wiring app-specific transport code
 
-- Runtime daemon running (`pnpm runtime:serve`)
-- Node.js `24+`
-- `pnpm install` completed in repository root
+## Onboarding Ladder
+
+```bash
+npx tsx examples/sdk/01-hello.ts
+npx tsx examples/sdk/02-streaming.ts
+npx tsx examples/sdk/03-local-vs-cloud.ts
+npx tsx examples/sdk/04-vercel-ai-sdk.ts
+npx tsx examples/sdk/05-multimodal.ts
+```
+
+What each file demonstrates:
+
+- `01-hello.ts`: smallest possible text generation
+- `02-streaming.ts`: stream chunks from the same runtime surface
+- `03-local-vs-cloud.ts`: switch execution plane by adding a provider
+- `04-vercel-ai-sdk.ts`: Nimi as a provider for the Vercel AI SDK
+- `05-multimodal.ts`: image and TTS flows through the runtime
+
+## Advanced Paths
+
+Advanced examples live under `examples/sdk/advanced/`:
+
+- `app-auth.ts`: app authorization lifecycle
+- `workflow.ts`: workflow DAG orchestration
+- `knowledge.ts`: knowledge index build + search
+- `custom-runtime.ts`: explicit transport + provider wiring
+
+Provider-focused examples remain in `examples/sdk/providers/`.
+
+The onboarding ladder stays on high-level `nimi run` and `runtime.generate()/stream()` flows. Fully-qualified explicit model ids remain in lower-level surfaces such as `nimi ai text-generate --model-id ...` and `runtime.ai.text.generate({ model: ... })`.
+
+For SDK examples that use provider-default cloud targeting, save a reusable default on the runtime machine first:
+
+```bash
+nimi provider set gemini --api-key-env NIMI_RUNTIME_CLOUD_GEMINI_API_KEY --default
+export NIMI_RUNTIME_CLOUD_GEMINI_API_KEY=YOUR_KEY
+```
 
 ## Compile Gate
 
 ```bash
 pnpm --filter @nimiplatform/examples run check
+node scripts/check-example-run-comments.mjs
 ```
 
 ## Layout
 
-- `sdk/` - runtime and realm SDK recipes
-- `sdk/providers/` - provider-focused runtime examples
-- `mods/` - mod SDK sample
-- `runtime/` - CLI quick path
+- `sdk/`: app-facing SDK examples
+- `sdk/advanced/`: deeper runtime features
+- `sdk/providers/`: provider-specific recipes
+- `mods/`: mod SDK examples
+- `runtime/`: CLI examples
