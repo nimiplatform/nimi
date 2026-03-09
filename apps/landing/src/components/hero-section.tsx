@@ -34,26 +34,17 @@ export function HeroSection(props: HeroSectionProps) {
               target="_blank"
               rel="noreferrer"
             >
-              {props.content.builderCta}
+              {props.content.primaryCta}
             </a>
             <a
-              href={props.links.appUrl}
-              className="cta-secondary"
-              target="_blank"
-              rel="noreferrer"
-            >
-              {props.content.userCta}
-            </a>
-            <a
-              href={props.links.docsUrl}
+              href={props.links.githubUrl}
               className="cta-ghost"
               target="_blank"
               rel="noreferrer"
             >
-              {props.content.docsCta}
+              {props.content.githubCta}
             </a>
           </div>
-          <p className="mt-5 max-w-2xl text-sm leading-6 text-slate-300/85">{props.content.trust}</p>
         </div>
       </div>
     </section>

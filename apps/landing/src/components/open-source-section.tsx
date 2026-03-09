@@ -1,8 +1,10 @@
 import type { LandingContent } from '../content/landing-content.js';
+import type { LandingLinks } from '../config/landing-links.js';
 import { SectionHeader } from './section-header.js';
 
 export type OpenSourceSectionProps = {
   content: LandingContent['openSource'];
+  links: LandingLinks;
 };
 
 export function OpenSourceSection(props: OpenSourceSectionProps) {
@@ -10,29 +12,15 @@ export function OpenSourceSection(props: OpenSourceSectionProps) {
     <section className="section-pad">
       <div className="container-nimi">
         <SectionHeader title={props.content.title} subtitle={props.content.subtitle} />
-        <div className="reveal mt-10 overflow-x-auto rounded-2xl border border-white/10 bg-slate-950/55">
-          <table className="w-full min-w-[640px] border-collapse text-left text-sm text-slate-100">
-            <thead className="bg-slate-950/65 text-xs uppercase tracking-[0.18em] text-mint-200">
-              <tr>
-                <th className="px-4 py-3 font-semibold">{props.content.columns.component}</th>
-                <th className="px-4 py-3 font-semibold">{props.content.columns.path}</th>
-                <th className="px-4 py-3 font-semibold">{props.content.columns.license}</th>
-                <th className="px-4 py-3 font-semibold">{props.content.columns.mode}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {props.content.rows.map((row) => (
-                <tr key={`${row.component}:${row.path}`} className="border-t border-white/10">
-                  <td className="px-4 py-3 font-medium text-white">{row.component}</td>
-                  <td className="px-4 py-3 font-mono text-cyan-100">{row.path}</td>
-                  <td className="px-4 py-3 text-slate-200">{row.license}</td>
-                  <td className="px-4 py-3 text-slate-200">{row.mode}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <p className="reveal mt-6 max-w-3xl text-base leading-7 text-slate-200/90">{props.content.description}</p>
+        <div className="reveal mt-8 flex flex-wrap gap-3">
+          <a className="cta-primary" href={props.links.githubUrl} target="_blank" rel="noreferrer">
+            {props.content.githubCta}
+          </a>
+          <a className="cta-ghost" href={props.links.docsUrl} target="_blank" rel="noreferrer">
+            {props.content.docsCta}
+          </a>
         </div>
-        <p className="reveal mt-4 text-sm text-slate-300/85">{props.content.note}</p>
       </div>
     </section>
   );

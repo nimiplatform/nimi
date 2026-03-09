@@ -3,6 +3,8 @@ export type LandingLinks = {
   docsUrl: string;
   githubUrl: string;
   protocolUrl: string;
+  desktopDownloadUrl: string;
+  modDocsUrl: string;
 };
 
 const DEFAULT_LINKS: LandingLinks = {
@@ -10,6 +12,8 @@ const DEFAULT_LINKS: LandingLinks = {
   docsUrl: 'https://nimi.xyz/docs',
   githubUrl: 'https://github.com/nimiplatform/nimi',
   protocolUrl: 'https://github.com/nimiplatform/nimi/blob/main/spec/platform/protocol.md',
+  desktopDownloadUrl: 'https://nimi.xyz/download',
+  modDocsUrl: 'https://nimi.xyz/docs/mods',
 };
 
 function normalizeUrl(raw: unknown, fallback: string): string {
@@ -35,6 +39,8 @@ export function resolveLandingLinks(env: Record<string, unknown> = {}): LandingL
     docsUrl: normalizeUrl(env.VITE_LANDING_DOCS_URL, DEFAULT_LINKS.docsUrl),
     githubUrl: normalizeUrl(env.VITE_LANDING_GITHUB_URL, DEFAULT_LINKS.githubUrl),
     protocolUrl: normalizeUrl(env.VITE_LANDING_PROTOCOL_URL, DEFAULT_LINKS.protocolUrl),
+    desktopDownloadUrl: normalizeUrl(env.VITE_LANDING_DESKTOP_DOWNLOAD_URL, DEFAULT_LINKS.desktopDownloadUrl),
+    modDocsUrl: normalizeUrl(env.VITE_LANDING_MOD_DOCS_URL, DEFAULT_LINKS.modDocsUrl),
   };
 }
 

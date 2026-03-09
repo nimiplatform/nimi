@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
+import { DesktopSection } from './components/desktop-section.js';
 import { FinalCtaSection } from './components/final-cta-section.js';
 import { HeroSection } from './components/hero-section.js';
-import { JourneySection } from './components/journey-section.js';
+import { InstallSection } from './components/install-section.js';
 import { LanguageToggle } from './components/language-toggle.js';
+import { ModsSection } from './components/mods-section.js';
 import { OpenSourceSection } from './components/open-source-section.js';
-import { ProtocolSection } from './components/protocol-section.js';
-import { QuickstartSection } from './components/quickstart-section.js';
-import { SecuritySection } from './components/security-section.js';
-import { StackSection } from './components/stack-section.js';
-import { ValueSection } from './components/value-section.js';
+import { SdkSection } from './components/sdk-section.js';
 import { getLandingContent } from './content/landing-content.js';
 import { resolveLandingLinks } from './config/landing-links.js';
 import {
@@ -63,11 +61,10 @@ export function App() {
 
           <nav aria-label="Landing sections" className="hidden lg:block">
             <ul className="flex items-center gap-1">
-              <li><a className="nav-anchor" href="#for-builders">{content.nav.builders}</a></li>
-              <li><a className="nav-anchor" href="#for-users">{content.nav.users}</a></li>
-              <li><a className="nav-anchor" href="#protocol">{content.nav.protocol}</a></li>
-              <li><a className="nav-anchor" href="#security">{content.nav.security}</a></li>
-              <li><a className="nav-anchor" href="#quickstart">{content.nav.quickstart}</a></li>
+              <li><a className="nav-anchor" href="#install">{content.nav.install}</a></li>
+              <li><a className="nav-anchor" href="#sdk">{content.nav.sdk}</a></li>
+              <li><a className="nav-anchor" href="#desktop">{content.nav.desktop}</a></li>
+              <li><a className="nav-anchor" href="#mods">{content.nav.mods}</a></li>
             </ul>
           </nav>
 
@@ -85,13 +82,11 @@ export function App() {
 
       <main id="main-content">
         <HeroSection content={content.hero} links={links} />
-        <ValueSection content={content.why} />
-        <StackSection content={content.stack} />
-        <ProtocolSection content={content.protocol} />
-        <SecuritySection content={content.security} />
-        <QuickstartSection content={content.quickstart} links={links} />
-        <JourneySection content={content.journey} />
-        <OpenSourceSection content={content.openSource} />
+        <InstallSection content={content.install} links={links} />
+        <SdkSection content={content.sdk} />
+        <DesktopSection content={content.desktop} links={links} />
+        <ModsSection content={content.mods} links={links} />
+        <OpenSourceSection content={content.openSource} links={links} />
         <FinalCtaSection content={content.finalCta} links={links} />
       </main>
 

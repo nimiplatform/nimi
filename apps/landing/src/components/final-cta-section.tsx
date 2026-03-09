@@ -15,10 +15,7 @@ export function FinalCtaSection(props: FinalCtaSectionProps) {
           <p className="mt-4 max-w-3xl text-base leading-7 text-slate-100/90">{props.content.description}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a className="cta-primary" href={props.links.docsUrl} target="_blank" rel="noreferrer">
-              {props.content.builderCta}
-            </a>
-            <a className="cta-secondary" href={props.links.appUrl} target="_blank" rel="noreferrer">
-              {props.content.userCta}
+              {props.content.primaryCta}
             </a>
             <a className="cta-ghost" href={props.links.githubUrl} target="_blank" rel="noreferrer">
               {props.content.githubCta}

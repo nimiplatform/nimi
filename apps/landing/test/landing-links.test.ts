@@ -20,3 +20,9 @@ test('landing links reject invalid URL protocols', () => {
   assert.equal(links.githubUrl, 'https://github.com/nimiplatform/nimi?ref=landing');
   assert.equal(links.protocolUrl, landingLinkDefaults.protocolUrl);
 });
+
+test('landing links include desktopDownloadUrl and modDocsUrl defaults', () => {
+  const links = resolveLandingLinks({});
+  assert.ok(links.desktopDownloadUrl.startsWith('https://'));
+  assert.ok(links.modDocsUrl.startsWith('https://'));
+});
