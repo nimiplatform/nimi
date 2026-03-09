@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { type ChangeEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { dataSync } from '@runtime/data-sync';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@renderer/components/tooltip.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -13,6 +14,7 @@ import {
   ArrowUpIcon,
   buildEditableDraft,
   CalendarIcon,
+  CameraIcon,
   CheckIcon,
   DotsIcon,
   EditableField,
@@ -33,6 +35,9 @@ import {
 } from './contact-detail-view-parts.js';
 
 const SHOW_AVATAR_ONLINE_INDICATOR = false;
+const ACCEPTED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+const MAX_AVATAR_FILE_SIZE = 10 * 1024 * 1024;
+const TOPBAR_TOOLTIP_CLASS = 'rounded-full bg-[#0f172a] px-3 py-1.5 text-xs font-semibold text-white shadow-[0_4px_20px_rgba(0,0,0,0.25)]';
 
 type ContactDetailViewProps = {
   profile: ProfileData;
@@ -63,10 +68,12 @@ export function ContactDetailView(props: ContactDetailViewProps) {
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
   const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
   const setSelectedProfileIsAgent = useAppStore((state) => state.setSelectedProfileIsAgent);
+  const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
   const [activeTab, setActiveTab] = useState<ProfileTab>('Posts');
   const [showMenu, setShowMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [draft, setDraft] = useState<EditableProfileDraft>(() => buildEditableDraft(props.profile));
@@ -76,6 +83,7 @@ export function ContactDetailView(props: ContactDetailViewProps) {
   const tabListRef = useRef<HTMLDivElement>(null);
   const tabButtonRefs = useRef<Partial<Record<ProfileTab, HTMLButtonElement | null>>>({});
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!showMenu) {
@@ -225,6 +233,47 @@ export function ContactDetailView(props: ContactDetailViewProps) {
     }
   };
 
+  const handleAvatarSelect = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) {
+      return;
+    }
+    if (!ACCEPTED_AVATAR_TYPES.includes(file.type)) {
+      setSaveError('Unsupported avatar format. Use PNG, JPEG, GIF, or WebP.');
+      return;
+    }
+    if (file.size > MAX_AVATAR_FILE_SIZE) {
+      setSaveError('Avatar must be smaller than 10MB.');
+      return;
+    }
+    if (!realmBaseUrl) {
+      setSaveError('Image upload is unavailable right now. Please try again.');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    setSaveError(null);
+    try {
+      const upload = await dataSync.createImageDirectUpload();
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch(upload.uploadUrl, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) {
+        throw new Error('Failed to upload avatar');
+      }
+      const avatarUrl = `${realmBaseUrl}/api/media/images/${encodeURIComponent(upload.imageId)}`;
+      setDraft((current) => ({ ...current, avatarUrl }));
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Failed to upload avatar');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,#eef3f4_0%,#f7fafb_48%,#fcfefd_100%)]">
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
@@ -261,7 +310,11 @@ export function ContactDetailView(props: ContactDetailViewProps) {
               <div className="relative z-10 flex items-start justify-between gap-4">
                 <span />
                 {props.isOwnProfile ? (
-                  <Tooltip content={isEditing ? 'Exit edit mode' : 'Edit profile'} placement="bottom">
+                  <Tooltip
+                    content={isEditing ? 'Exit edit mode' : 'Edit profile'}
+                    placement="bottom"
+                    contentClassName={TOPBAR_TOOLTIP_CLASS}
+                  >
                     <button
                       type="button"
                       onClick={() => {
@@ -280,12 +333,12 @@ export function ContactDetailView(props: ContactDetailViewProps) {
                   </Tooltip>
                 ) : (props.onBlock || props.onRemove) ? (
                   <div className="relative">
-                    <Tooltip content="More options" placement="bottom">
+                    <Tooltip content="More options" placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
                       <button
                         ref={menuButtonRef}
                         type="button"
                         onClick={() => setShowMenu((value) => !value)}
-                        className="flex h-11 w-11 items-center justify-center rounded-full border border-white/35 bg-white/15 text-white backdrop-blur-md transition hover:bg-white/22"
+                        className="flex h-11 w-11 items-center justify-center rounded-full border border-[#475569]/18 bg-[#334155]/52 text-white shadow-[0_10px_24px_rgba(15,23,42,0.12)] backdrop-blur-md transition hover:bg-[#334155]/64"
                       >
                         <DotsIcon className="h-4 w-4" />
                       </button>
@@ -333,28 +386,82 @@ export function ContactDetailView(props: ContactDetailViewProps) {
                 <div className="min-w-0">
                   <div className="rounded-[30px] border border-white/38 bg-white/40 px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[18px] supports-[backdrop-filter]:bg-white/30 xl:px-7">
                     <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
-                      <div className="flex shrink-0 flex-col items-start gap-3 xl:pt-[6px]">
-                        <div className="relative">
-                          <EntityAvatar
-                            imageUrl={profile.avatarUrl}
-                            name={profile.displayName}
-                            kind={profile.isAgent ? 'agent' : 'human'}
-                            sizeClassName="h-24 w-24"
-                            textClassName="text-3xl font-bold"
-                            fallbackClassName={profile.isAgent ? undefined : 'bg-gradient-to-br from-[#dff8ef] to-[#f2fbff] text-[#1f8f69]'}
-                          />
-                          {SHOW_AVATAR_ONLINE_INDICATOR && profile.isOnline ? (
-                            <span className="absolute bottom-1 right-1 h-4 w-4 rounded-full border-2 border-white bg-[#28c189] shadow-sm" />
-                          ) : null}
+                      <div className="flex shrink-0 flex-col items-center gap-3 xl:w-[180px] xl:pt-[6px]">
+                        {/* Avatar Upload Card */}
+                        <div className="group relative cursor-pointer">
+
+                          <div className="relative">
+                            <EntityAvatar
+                              imageUrl={isEditing ? draft.avatarUrl || null : profile.avatarUrl}
+                              name={isEditing ? draft.displayName || profile.displayName : profile.displayName}
+                              kind={profile.isAgent ? 'agent' : 'human'}
+                              sizeClassName="h-32 w-32"
+                              textClassName="text-4xl font-bold"
+                              fallbackClassName={profile.isAgent ? undefined : 'bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-[#1f8f69]'}
+                              className={profile.isAgent ? '' : 'rounded-full border border-white/85 shadow-[0_14px_34px_rgba(15,23,42,0.12)]'}
+                            />
+
+                            {SHOW_AVATAR_ONLINE_INDICATOR && profile.isOnline ? (
+                              <span className="absolute bottom-2 right-2 h-5 w-5 rounded-full border-[3px] border-white bg-[#28c189] shadow-md" />
+                            ) : null}
+
+                            {isEditing && props.isOwnProfile ? (
+                              <>
+                                <input
+                                  ref={avatarInputRef}
+                                  type="file"
+                                  accept={ACCEPTED_AVATAR_TYPES.join(',')}
+                                  className="hidden"
+                                  onChange={(event) => {
+                                    void handleAvatarSelect(event);
+                                  }}
+                                />
+                                {/* Hover overlay with upload interaction */}
+                                <div
+                                  onClick={() => !isUploadingAvatar && avatarInputRef.current?.click()}
+                                  className={`absolute inset-0 flex items-center justify-center ${profile.isAgent ? 'rounded-[12px]' : 'rounded-full'} transition-all ${
+                                    isUploadingAvatar 
+                                      ? 'bg-black/50' 
+                                      : 'bg-black/0 group-hover:bg-black/40 cursor-pointer'
+                                  }`}
+                                >
+                                  {isUploadingAvatar ? (
+                                    <div className="flex flex-col items-center gap-2 text-white">
+                                      <SpinnerIcon className="h-7 w-7 border-white/30 border-t-white" />
+                                      <span className="text-xs font-medium">Uploading...</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-col items-center gap-2 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                          <polyline points="17 8 12 3 7 8" />
+                                          <line x1="12" y1="3" x2="12" y2="15" />
+                                        </svg>
+                                      </div>
+                                      <span className="text-xs font-medium">Change Photo</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </>
+                            ) : null}
+                          </div>
                         </div>
+                        
+                        {/* File info - only in edit mode */}
+                        {isEditing && props.isOwnProfile ? (
+                          <p className="text-[11px] text-slate-400">
+                            Max 5MB
+                          </p>
+                        ) : null}
                       </div>
 
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-                          <div className="min-w-0 flex-1">
+                          <div className="min-w-0 flex-1 xl:max-w-[620px]">
                             <div className="flex flex-wrap items-center gap-2" />
                             {isEditing ? (
-                              <div className="mt-3 max-w-[540px] space-y-4">
+                              <div className="mt-3 space-y-4">
                                 <label className="block">
                                   <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Display name</span>
                                   <input
@@ -412,7 +519,7 @@ export function ContactDetailView(props: ContactDetailViewProps) {
                                     onClick={() => {
                                       void handleSaveProfile();
                                     }}
-                                    disabled={isSaving || !draft.displayName.trim()}
+                                    disabled={isSaving || isUploadingAvatar || !draft.displayName.trim()}
                                     className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#4ECCA3] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#41b992] disabled:cursor-not-allowed disabled:opacity-50"
                                   >
                                     {isSaving ? <SpinnerIcon className="h-4 w-4" /> : <CheckIcon className="h-4 w-4" />}
@@ -434,24 +541,28 @@ export function ContactDetailView(props: ContactDetailViewProps) {
                               ) : (
                                 <div className="mt-3 flex items-center gap-2">
                                   {props.showMessageButton !== false ? (
-                                    <IconButton
-                                      icon={<MessageIcon className="h-4 w-4" />}
-                                      label="Message"
-                                      onClick={props.onMessage}
-                                    />
+                                    <Tooltip content="Chat" placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
+                                      <IconButton
+                                        icon={<MessageIcon className="h-4 w-4" />}
+                                        label="Chat"
+                                        onClick={props.onMessage}
+                                      />
+                                    </Tooltip>
                                   ) : null}
                                   {showGiftButton ? (
-                                    <IconButton
-                                      icon={<GiftIcon className="h-4 w-4" />}
-                                      label="Send Gift"
-                                      onClick={props.onSendGift}
-                                    />
+                                    <Tooltip content="Gift" placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
+                                      <IconButton
+                                        icon={<GiftIcon className="h-4 w-4" />}
+                                        label="Gift"
+                                        onClick={props.onSendGift}
+                                      />
+                                    </Tooltip>
                                   ) : null}
                                 </div>
                               )}
                             </div>
                             {isEditing ? (
-                              <div className="mt-7 max-w-[640px] rounded-[24px] border border-[#dbe7e3] bg-[linear-gradient(180deg,rgba(78,204,163,0.08)_0%,rgba(255,255,255,0.95)_100%)] p-5 shadow-[0_14px_34px_rgba(78,204,163,0.08)]">
+                              <div className="mt-7 rounded-[24px] border border-[#dbe7e3] bg-[linear-gradient(180deg,rgba(78,204,163,0.08)_0%,rgba(255,255,255,0.95)_100%)] p-5 shadow-[0_14px_34px_rgba(78,204,163,0.08)]">
                                 <div className="mb-4 flex items-center gap-2">
                                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#4ECCA3]/12 text-[#1f8f69]">
                                     <PencilIcon className="h-4 w-4" />
@@ -524,21 +635,25 @@ export function ContactDetailView(props: ContactDetailViewProps) {
                             )}
                           </div>
 
-                          <div className="hidden shrink-0 xl:ml-auto xl:flex xl:w-[344px] xl:flex-col xl:items-end xl:border-l xl:border-white/35 xl:pl-10">
+                          <div className={`hidden shrink-0 xl:ml-auto xl:flex xl:w-[344px] xl:flex-col xl:items-end xl:pl-10 ${isEditing ? '' : 'xl:border-l xl:border-white/35'}`}>
                             <div className="mt-[6px] flex w-full items-center justify-end gap-3">
                                 {props.showMessageButton !== false ? (
-                                  <IconButton
-                                    icon={<MessageIcon className="h-4 w-4" />}
-                                    label="Message"
-                                    onClick={props.onMessage}
-                                  />
+                                  <Tooltip content="Chat" placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
+                                    <IconButton
+                                      icon={<MessageIcon className="h-4 w-4" />}
+                                      label="Chat"
+                                      onClick={props.onMessage}
+                                    />
+                                  </Tooltip>
                                 ) : null}
                                 {showGiftButton ? (
-                                  <IconButton
-                                    icon={<GiftIcon className="h-4 w-4" />}
-                                    label="Send Gift"
-                                    onClick={props.onSendGift}
-                                  />
+                                  <Tooltip content="Gift" placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
+                                    <IconButton
+                                      icon={<GiftIcon className="h-4 w-4" />}
+                                      label="Gift"
+                                      onClick={props.onSendGift}
+                                    />
+                                  </Tooltip>
                                 ) : null}
                             </div>
                             <div className="mt-[62px] grid w-[260px] grid-cols-[1fr_18px_1fr_18px_1fr] items-start gap-x-0">
@@ -558,7 +673,7 @@ export function ContactDetailView(props: ContactDetailViewProps) {
                                   onClick={() => {
                                     void handleSaveProfile();
                                   }}
-                                  disabled={isSaving || !draft.displayName.trim()}
+                                  disabled={isSaving || isUploadingAvatar || !draft.displayName.trim()}
                                   className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#4ECCA3] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#41b992] disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                   {isSaving ? <SpinnerIcon className="h-4 w-4" /> : <CheckIcon className="h-4 w-4" />}

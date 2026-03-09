@@ -267,7 +267,7 @@ export function ExploreView(props: ExploreViewProps) {
               </div>
               <div
                 key={`top-agents-page-${topAgentsPage}`}
-                className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+                className="flex gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
                 style={{
                   animation: topAgentsDirection === 'forward'
                     ? 'top-agents-slide-forward 220ms ease-out'
@@ -275,7 +275,7 @@ export function ExploreView(props: ExploreViewProps) {
                 }}
               >
                 {activeTopAgents.map((agent) => (
-                  <div key={agent.id} className="min-w-0">
+                  <div key={agent.id} className="w-[260px] min-w-[260px] shrink-0">
                     <AgentRecommendationCard
                       agent={agent}
                       onAddFriend={() => props.onAgentAddFriend(agent.id)}

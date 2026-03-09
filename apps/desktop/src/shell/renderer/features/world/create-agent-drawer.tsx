@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Tooltip } from '@renderer/components/tooltip.js';
 
 export type CreateAgentInput = {
@@ -107,10 +107,13 @@ function TextArea(input: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
 
 export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
   const [form, setForm] = useState<CreateAgentInput>(initialForm);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!props.isOpen) {
       setForm(initialForm);
+      setAvatarError(null);
     }
   }, [props.isOpen]);
 
@@ -124,22 +127,36 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
     setForm((current) => ({ ...current, [key]: value }));
   };
 
-  const openImagePicker = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = (event) => {
-      const file = (event.target as HTMLInputElement).files?.[0];
-      if (!file) {
+  const handleAvatarSelect = (file: File | null | undefined) => {
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setAvatarError('Please choose an image file.');
+      return;
+    }
+
+    const maxAvatarSizeBytes = 5 * 1024 * 1024;
+    if (file.size > maxAvatarSizeBytes) {
+      setAvatarError('Avatar image must be 5MB or smaller.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      if (!result) {
+        setAvatarError('Failed to read avatar image.');
         return;
       }
-      const reader = new FileReader();
-      reader.onload = (loadEvent) => {
-        updateField('referenceImageUrl', String(loadEvent.target?.result || ''));
-      };
-      reader.readAsDataURL(file);
+      setAvatarError(null);
+      updateField('referenceImageUrl', result);
     };
-    input.click();
+    reader.onerror = () => {
+      setAvatarError('Failed to read avatar image.');
+    };
+    reader.readAsDataURL(file);
   };
 
   const toggleSecondaryTrait = (trait: string) => {
@@ -166,8 +183,11 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
       >
         <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-emerald-300/70 to-transparent shadow-[0_0_20px_rgba(16,185,129,0.45)]" />
 
-        <header className="sticky top-0 z-10 border-b border-emerald-400/12 bg-[#0B1313]/80 px-7 py-6 backdrop-blur-xl">
-          <div className="flex items-start justify-between gap-4">
+        <header className="sticky top-0 z-10 overflow-hidden border-b border-emerald-400/12 bg-[#0B1313]/80 px-7 py-6 backdrop-blur-xl">
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(16,185,129,0.18)_0%,rgba(16,185,129,0.08)_28%,rgba(11,19,19,0.12)_62%,rgba(11,19,19,0)_100%)]" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-emerald-300/0 via-emerald-300/55 to-emerald-300/0" />
+          <div className="pointer-events-none absolute -left-10 top-0 h-24 w-40 rounded-full bg-emerald-400/16 blur-3xl" />
+          <div className="relative flex items-start justify-between gap-4">
             <div>
               <h2 className="text-2xl font-semibold tracking-[0.01em] text-[#F2FFF9]">Create New Agent</h2>
               <p className="mt-1 text-sm text-[#A0C7BA]">Bring a new character to life in {props.worldName}</p>
@@ -224,7 +244,6 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
                     </svg>
                     {props.worldName}
                   </span>
-                  <span className="text-[10px] uppercase tracking-wider text-emerald-300/50">World</span>
                 </div>
 
                 {/* Description */}
@@ -266,61 +285,75 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
                   </svg>
                 )}
               />
-              <div className="rounded-[24px] border border-white/6 bg-white/[0.035] p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_44px_rgba(0,0,0,0.32)] backdrop-blur-md">
-                <div className="flex gap-4">
-                  <button
-                    type="button"
-                    onClick={openImagePicker}
-                    className="group flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-emerald-400/25 bg-white/5 text-[#9CD7C0] transition hover:border-emerald-300/50 hover:shadow-[0_0_20px_rgba(16,185,129,0.18)]"
-                  >
-                    {form.referenceImageUrl ? (
-                      <img src={form.referenceImageUrl} alt="Agent avatar preview" className="h-full w-full object-cover" />
-                    ) : (
-                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M14.5 3H9.5L7 6H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3l-2.5-3Z" />
-                        <circle cx="12" cy="13" r="3.5" />
-                      </svg>
-                    )}
-                  </button>
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={openImagePicker}
-                        className="inline-flex h-10 items-center gap-2 rounded-full border border-emerald-400/25 bg-transparent px-4 text-sm font-medium text-emerald-300 transition hover:border-emerald-300/45 hover:bg-emerald-400/8"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="17 8 12 3 7 8" />
-                          <line x1="12" y1="3" x2="12" y2="15" />
-                        </svg>
-                        Upload Image
-                      </button>
-                    </div>
-                    <TextInput
-                      value={form.referenceImageUrl}
-                      onChange={(event) => updateField('referenceImageUrl', event.target.value)}
-                      placeholder="Paste image URL"
-                    />
+              <div className="group relative rounded-[2rem] border border-white/10 bg-white/[0.02] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-2xl transition-all duration-500 hover:border-emerald-400/20 hover:bg-white/[0.04]">
+                {/* Decorative corner glow */}
+                <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-emerald-500/5 blur-3xl transition-opacity group-hover:opacity-100" />
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(event) => {
+                    handleAvatarSelect(event.target.files?.[0]);
+                    event.target.value = '';
+                  }}
+                />
+                
+                <div className="flex flex-col gap-8 md:flex-row md:items-center">
+                  {/* Left: Avatar Display Hub */}
+                  <div className="relative flex-shrink-0 self-center">
+                    <button
+                      type="button"
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="relative block h-28 w-28 overflow-hidden rounded-3xl border border-white/10 bg-black/20 p-1 text-left transition-transform duration-500 group-hover:scale-105 hover:border-emerald-300/35 focus:outline-none focus:ring-2 focus:ring-emerald-300/35"
+                      aria-label={form.referenceImageUrl ? 'Change avatar' : 'Upload avatar'}
+                    >
+                      {/* Interactive ring animation */}
+                      <div className="absolute inset-0 animate-[spin_8s_linear_infinite] opacity-30 group-hover:opacity-60">
+                        <div className="h-full w-full rounded-full border border-dashed border-emerald-400/40" />
+                      </div>
+                      
+                      <div className="relative h-full w-full overflow-hidden rounded-2xl bg-white/5 flex items-center justify-center text-emerald-300/40">
+                        {form.referenceImageUrl ? (
+                          <img src={form.referenceImageUrl} alt="Agent avatar preview" className="h-full w-full object-cover" />
+                        ) : (
+                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14.5 3H9.5L7 6H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3l-2.5-3Z" />
+                            <circle cx="12" cy="13" r="3.5" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
                   </div>
-                </div>
 
-                <div className="mt-5 grid gap-4">
-                  <div>
-                    <FieldLabel required>Handle</FieldLabel>
-                    <TextInput
-                      value={form.handle}
-                      onChange={(event) => updateField('handle', event.target.value)}
-                      placeholder="@username"
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel>Display Name</FieldLabel>
-                    <TextInput
-                      value={form.displayName}
-                      onChange={(event) => updateField('displayName', event.target.value)}
-                      placeholder="How they appear to others"
-                    />
+                  {/* Right: Meta Inputs */}
+                  <div className="flex-1 space-y-5">
+                    {avatarError ? (
+                      <p className="text-xs text-red-300">{avatarError}</p>
+                    ) : null}
+                    <div className="space-y-5">
+                      <div className="space-y-2">
+                        <FieldLabel required>Handle</FieldLabel>
+                        <div className="relative">
+                          <TextInput
+                            value={form.handle}
+                            onChange={(event) => updateField('handle', event.target.value)}
+                            placeholder="agent_unique_id"
+                            className="pl-9 !bg-black/20 !border-white/5 focus:!border-emerald-400/40"
+                          />
+                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-medium text-emerald-400/40">@</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <FieldLabel>Display Name</FieldLabel>
+                        <TextInput
+                          value={form.displayName}
+                          onChange={(event) => updateField('displayName', event.target.value)}
+                          placeholder="Public identity name"
+                          className="!bg-black/20 !border-white/5 focus:!border-emerald-400/40"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -454,21 +487,6 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                   </svg>
-                )}
-                extra={(
-                  <Tooltip content={WAKE_STRATEGY_TOOLTIP} placement="top" multiline contentClassName="max-w-[220px] text-left leading-5">
-                    <button
-                      type="button"
-                      className="flex h-5 w-5 items-center justify-center rounded-full border border-emerald-300/20 text-emerald-300/70 transition hover:border-emerald-300/45 hover:bg-emerald-400/10 hover:text-emerald-200"
-                      aria-label="Wake strategy explanation"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="9" />
-                        <path d="M12 10v5" />
-                        <circle cx="12" cy="7" r="0.8" fill="currentColor" stroke="none" />
-                      </svg>
-                    </button>
-                  </Tooltip>
                 )}
               />
               <div className="grid grid-cols-2 gap-4 rounded-[24px] border border-white/6 bg-white/[0.035] p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_44px_rgba(0,0,0,0.32)] backdrop-blur-md">

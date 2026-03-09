@@ -3,6 +3,7 @@ import type {
   UiExtensionContext,
   UiExtensionRegistration,
 } from '@renderer/mod-ui/contracts';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { i18n } from '@renderer/i18n';
 
 type RenderFusedRoutePanelInput = {
@@ -14,15 +15,17 @@ type RenderFusedRoutePanelInput = {
   fusedRuntimeMods: Record<string, { reason: string; lastError: string; at: string }>;
 };
 
-export function renderFusedRoutePanel(input: RenderFusedRoutePanelInput): ReactNode {
+function FusedRoutePanel(input: RenderFusedRoutePanelInput) {
+  const modWorkspaceTitle = useAppStore((state) => state.modWorkspaceTabs.find((tab) => tab.modId === input.entry.modId)?.title || '');
   const fused = input.fusedRuntimeMods[input.entry.modId];
   const detail = input.detail || fused?.lastError || '';
+  const displayName = modWorkspaceTitle || input.entry.modId;
   return (
     <section className="m-4 rounded-xl border border-red-200 bg-white p-4">
       <h3 className="text-sm font-semibold text-red-700">
         {i18n.t('ModUI.modFusedTitle', { defaultValue: 'Mod fused' })}
       </h3>
-      <p className="mt-2 text-xs text-gray-600">{input.entry.modId}</p>
+      <p className="mt-2 text-xs text-gray-600">{displayName}</p>
       {detail ? (
         <p className="mt-2 break-all text-xs text-gray-500">{detail}</p>
       ) : null}
@@ -51,4 +54,8 @@ export function renderFusedRoutePanel(input: RenderFusedRoutePanelInput): ReactN
       </div>
     </section>
   );
+}
+
+export function renderFusedRoutePanel(input: RenderFusedRoutePanelInput): ReactNode {
+  return <FusedRoutePanel {...input} />;
 }

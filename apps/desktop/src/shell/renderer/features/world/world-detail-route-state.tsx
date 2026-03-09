@@ -1,7 +1,13 @@
 import { useTranslation } from 'react-i18next';
 
+type WorldDetailPanelModule = typeof import('@renderer/features/world/world-detail-active-panel');
+
+export async function loadWorldDetailPanelModule(): Promise<WorldDetailPanelModule> {
+  return import('@renderer/features/world/world-detail-active-panel');
+}
+
 export function prefetchWorldDetailPanel(): void {
-  void import('@renderer/features/world/world-detail-active-panel');
+  void loadWorldDetailPanelModule();
 }
 
 export function WorldDetailRouteLoading() {

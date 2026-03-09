@@ -68,7 +68,7 @@ export function SettingsPanelBody() {
   return (
     <div ref={containerRef} className="flex min-h-0 flex-1">
       <aside
-        className="relative flex shrink-0 flex-col overflow-y-auto bg-white"
+        className="relative flex shrink-0 flex-col overflow-y-auto bg-[#F8F9FB]"
         style={{ width: `${sidebarWidth}px` }}
       >
         <div className="flex h-14 shrink-0 items-center px-6">
@@ -84,7 +84,7 @@ export function SettingsPanelBody() {
         />
       </aside>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-[#F8F9FB]">
         {renderSettingsPage(selectedId)}
       </div>
     </div>

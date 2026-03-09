@@ -3,6 +3,7 @@ import type { ProfileData } from '@renderer/features/profile/profile-model';
 
 export type EditableProfileDraft = {
   displayName: string;
+  avatarUrl: string;
   bio: string;
   city: string;
   countryCode: string;
@@ -14,6 +15,7 @@ export type EditableProfileDraft = {
 export function buildEditableDraft(profile: ProfileData): EditableProfileDraft {
   return {
     displayName: profile.displayName || '',
+    avatarUrl: profile.avatarUrl || '',
     bio: profile.bio || '',
     city: profile.city || '',
     countryCode: profile.countryCode || '',
@@ -111,6 +113,15 @@ export function PencilIcon({ className = '' }: { className?: string }) {
   );
 }
 
+export function CameraIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z" />
+      <circle cx="12" cy="13" r="4" />
+    </svg>
+  );
+}
+
 export function EyeIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -177,8 +188,7 @@ export function IconButton({
       type="button"
       onClick={onClick}
       aria-label={label}
-      title={label}
-      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.05)] backdrop-blur-sm transition hover:border-slate-300 hover:bg-white"
+      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.05)] backdrop-blur-sm transition hover:border-[#4ECCA3]/45 hover:bg-[#4ECCA3]/12 hover:text-[#1f8f69]"
     >
       {icon}
     </button>

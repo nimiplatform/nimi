@@ -5,6 +5,7 @@ import { PostFeedWithMediaPreview } from './post-feed-with-media-preview.js';
 
 const PAGE_SIZE = 10;
 const SAVED_POSTS_STORAGE_KEY = 'nimi.desktop.saved-post-ids';
+const SAVED_POSTS_UPDATED_EVENT = 'nimi:saved-posts-updated';
 
 type CollectionsTabProps = {
   profileId: string;
@@ -150,8 +151,19 @@ export function CollectionsTab({ canManageSavedPosts = true }: CollectionsTabPro
       setLoadError(null);
       void fetchSavedPosts(0);
     };
+    const handleSavedPostsUpdated = () => {
+      setPosts([]);
+      setOffset(0);
+      setHasMore(true);
+      setLoadError(null);
+      void fetchSavedPosts(0);
+    };
     window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    window.addEventListener(SAVED_POSTS_UPDATED_EVENT, handleSavedPostsUpdated);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener(SAVED_POSTS_UPDATED_EVENT, handleSavedPostsUpdated);
+    };
   }, [fetchSavedPosts]);
 
   useEffect(() => {

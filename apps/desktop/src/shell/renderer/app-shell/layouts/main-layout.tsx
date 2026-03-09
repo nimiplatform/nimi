@@ -23,6 +23,7 @@ export function MainLayout() {
 
   const displayName = String(user?.displayName || user?.handle || 'User');
   const userAvatarUrl = typeof user?.avatarUrl === 'string' ? user.avatarUrl : null;
+  const userEmail = typeof user?.email === 'string' ? user.email : null;
 
   useEffect(() => {
     if (!flags.enableRuntimeTab && activeTab === 'runtime') {
@@ -75,6 +76,7 @@ export function MainLayout() {
       activeTab={activeTab}
       displayName={displayName}
       userAvatarUrl={userAvatarUrl}
+      userEmail={userEmail}
       context={context}
       onNav={onNav}
       onLogout={() => {
