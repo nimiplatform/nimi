@@ -1,0 +1,24 @@
+{
+  "name": "@nimiplatform/nimi",
+  "version": "0.0.0-dev",
+  "description": "Nimi CLI and runtime launcher",
+  "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "nimi": "bin/nimi.js"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "optionalDependencies": {
+    "@nimiplatform/nimi-darwin-arm64": "0.0.0-dev",
+    "@nimiplatform/nimi-darwin-x64": "0.0.0-dev",
+    "@nimiplatform/nimi-linux-arm64": "0.0.0-dev",
+    "@nimiplatform/nimi-linux-x64": "0.0.0-dev",
+    "@nimiplatform/nimi-win32-arm64": "0.0.0-dev",
+    "@nimiplatform/nimi-win32-x64": "0.0.0-dev"
+  }
+}

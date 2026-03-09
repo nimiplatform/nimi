@@ -1,0 +1,158 @@
+name: release-npm-binary
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      runtime_tag:
+        description: Runtime release tag (for example v0.2.0)
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish-npm-binaries:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 10.27.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Resolve runtime release tag
+        id: tag
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_TAG: ${{ github.event.inputs.runtime_tag }}
+        run: |
+          set -euo pipefail
+          if [[ "${EVENT_NAME}" == "release" ]]; then
+            TAG="${RELEASE_TAG}"
+          else
+            TAG="${INPUT_TAG}"
+          fi
+          if [[ -z "${TAG}" ]]; then
+            echo "runtime tag is required" >&2
+            exit 1
+          fi
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+          echo "version=${TAG#v}" >> "${GITHUB_OUTPUT}"
+
+      - name: Download runtime archives
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist/npm-binary
+          gh release download "${RELEASE_TAG}" \
+            --dir dist/npm-binary \
+            --pattern 'nimi-runtime_*_macos_*.tar.gz' \
+            --pattern 'nimi-runtime_*_linux_*.tar.gz' \
+            --pattern 'nimi-runtime_*_windows_*.zip'
+
+      - name: Stamp npm package versions
+        env:
+          NIMI_VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+
+          const version = process.env.NIMI_VERSION;
+          const root = path.resolve('npm-packages');
+          const packageDirs = fs.readdirSync(root, { withFileTypes: true })
+            .filter((entry) => entry.isDirectory())
+            .map((entry) => path.join(root, entry.name));
+
+          for (const dir of packageDirs) {
+            const packageJsonPath = path.join(dir, 'package.json');
+            const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+            pkg.version = version;
+            if (pkg.optionalDependencies) {
+              for (const key of Object.keys(pkg.optionalDependencies)) {
+                pkg.optionalDependencies[key] = version;
+              }
+            }
+            fs.writeFileSync(packageJsonPath, `${JSON.stringify(pkg, null, 2)}\n`);
+          }
+          NODE
+
+      - name: Unpack platform binaries
+        env:
+          NIMI_VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          set -euo pipefail
+          VERSION="${NIMI_VERSION}"
+
+          mkdir -p npm-packages/nimi-darwin-arm64/bin
+          mkdir -p npm-packages/nimi-darwin-x64/bin
+          mkdir -p npm-packages/nimi-linux-arm64/bin
+          mkdir -p npm-packages/nimi-linux-x64/bin
+          mkdir -p npm-packages/nimi-win32-arm64/bin
+          mkdir -p npm-packages/nimi-win32-x64/bin
+
+          tar -xzf "dist/npm-binary/nimi-runtime_${VERSION}_macos_arm64.tar.gz" -C npm-packages/nimi-darwin-arm64/bin
+          tar -xzf "dist/npm-binary/nimi-runtime_${VERSION}_macos_x64.tar.gz" -C npm-packages/nimi-darwin-x64/bin
+          tar -xzf "dist/npm-binary/nimi-runtime_${VERSION}_linux_arm64.tar.gz" -C npm-packages/nimi-linux-arm64/bin
+          tar -xzf "dist/npm-binary/nimi-runtime_${VERSION}_linux_x64.tar.gz" -C npm-packages/nimi-linux-x64/bin
+
+          unzip -o "dist/npm-binary/nimi-runtime_${VERSION}_windows_arm64.zip" -d npm-packages/nimi-win32-arm64/bin
+          unzip -o "dist/npm-binary/nimi-runtime_${VERSION}_windows_x64.zip" -d npm-packages/nimi-win32-x64/bin
+
+          chmod +x npm-packages/nimi-darwin-arm64/bin/nimi
+          chmod +x npm-packages/nimi-darwin-x64/bin/nimi
+          chmod +x npm-packages/nimi-linux-arm64/bin/nimi
+          chmod +x npm-packages/nimi-linux-x64/bin/nimi
+
+      - name: Verify platform package payloads
+        run: |
+          set -euo pipefail
+          test -f npm-packages/nimi-darwin-arm64/bin/nimi
+          test -f npm-packages/nimi-darwin-x64/bin/nimi
+          test -f npm-packages/nimi-linux-arm64/bin/nimi
+          test -f npm-packages/nimi-linux-x64/bin/nimi
+          test -f npm-packages/nimi-win32-arm64/bin/nimi.exe
+          test -f npm-packages/nimi-win32-x64/bin/nimi.exe
+
+      - name: Smoke test launcher package
+        run: node scripts/check-npm-binary-smoke.mjs
+
+      - name: Publish platform packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          for package_dir in \
+            npm-packages/nimi-darwin-arm64 \
+            npm-packages/nimi-darwin-x64 \
+            npm-packages/nimi-linux-arm64 \
+            npm-packages/nimi-linux-x64 \
+            npm-packages/nimi-win32-arm64 \
+            npm-packages/nimi-win32-x64
+          do
+            npm publish "${package_dir}" --access public
+          done
+
+      - name: Publish launcher package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish npm-packages/nimi --access public
