@@ -104,6 +104,7 @@ type ProviderDocument struct {
 	Version               int                    `yaml:"version" json:"version"`
 	Provider              string                 `yaml:"provider" json:"provider"`
 	CatalogVersion        string                 `yaml:"catalog_version" json:"catalog_version"`
+	DefaultTextModel      string                 `yaml:"default_text_model,omitempty" json:"default_text_model,omitempty"`
 	Models                []ModelEntry           `yaml:"models" json:"models"`
 	Voices                []VoiceEntry           `yaml:"voices,omitempty" json:"voices,omitempty"`
 	VoiceWorkflowModels   []VoiceWorkflowModel   `yaml:"voice_workflow_models,omitempty" json:"voice_workflow_models,omitempty"`

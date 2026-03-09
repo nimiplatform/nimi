@@ -5,6 +5,7 @@ import "github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 // ProviderCatalogEntry defines default endpoint and requirements for a provider.
 type ProviderCatalogEntry struct {
 	DefaultEndpoint          string
+	DefaultTextModel         string
 	RequiresExplicitEndpoint bool
 }
 
@@ -31,6 +32,7 @@ func buildProviderCatalog() map[string]ProviderCatalogEntry {
 		}
 		out[providerID] = ProviderCatalogEntry{
 			DefaultEndpoint:          record.DefaultEndpoint,
+			DefaultTextModel:         record.DefaultTextModel,
 			RequiresExplicitEndpoint: record.RequiresExplicitEndpoint,
 		}
 	}

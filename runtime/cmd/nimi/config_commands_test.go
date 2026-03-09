@@ -61,7 +61,7 @@ func TestRunRuntimeConfigInitGetValidate(t *testing.T) {
 	}
 }
 
-func TestRunRuntimeConfigSetAndSecretPolicy(t *testing.T) {
+func TestRunRuntimeConfigSetAllowsInlineProviderAPIKey(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
@@ -101,15 +101,29 @@ func TestRunRuntimeConfigSetAndSecretPolicy(t *testing.T) {
 		t.Fatalf("apiKeyEnv mismatch: got=%q", provider.APIKeyEnv)
 	}
 
-	err = runRuntimeConfig([]string{
-		"set",
-		"--set", "providers.gemini.apiKey=plaintext",
+	inlineOutput, err := captureStdoutFromRun(func() error {
+		return runRuntimeConfig([]string{
+			"set",
+			"--set", "providers.gemini.apiKeyEnv=",
+			"--set", "providers.gemini.apiKey=plaintext",
+			"--json",
+		})
 	})
-	if err == nil {
-		t.Fatalf("expected secret policy error")
+	if err != nil {
+		t.Fatalf("runRuntimeConfig set inline apiKey: %v", err)
 	}
-	if !strings.Contains(err.Error(), configReasonSecretPolicyViolation) {
-		t.Fatalf("expected %s, got %v", configReasonSecretPolicyViolation, err)
+	inlinePayload := parseJSONMap(t, inlineOutput)
+	if asString(inlinePayload["reasonCode"]) != configReasonRestartRequired {
+		t.Fatalf("inline set reasonCode mismatch: %s", inlineOutput)
+	}
+
+	cfg, loadErr = config.LoadFileConfig(cfgPath)
+	if loadErr != nil {
+		t.Fatalf("LoadFileConfig reload: %v", loadErr)
+	}
+	provider = cfg.Providers["gemini"]
+	if provider.APIKey != "plaintext" {
+		t.Fatalf("apiKey mismatch: got=%q", provider.APIKey)
 	}
 }
 

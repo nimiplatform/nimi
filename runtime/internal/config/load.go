@@ -35,6 +35,8 @@ func Load() (Config, error) {
 		ShutdownTimeout:               10 * time.Second,
 		LocalStatePath:                resolveLocalStatePath(fileCfg),
 		LocalModelsPath:               resolveLocalModelsPath(fileCfg),
+		DefaultLocalTextModel:         readStringWithFileConfigFallback("NIMI_RUNTIME_DEFAULT_LOCAL_TEXT_MODEL", fileCfg.DefaultLocalTextModel, ""),
+		DefaultCloudProvider:          strings.TrimSpace(fileCfg.DefaultCloudProvider),
 		AllowLoopbackProviderEndpoint: readBoolWithFileConfigFallback("NIMI_RUNTIME_ALLOW_LOOPBACK_PROVIDER_ENDPOINT", nil, false),
 		SessionTTLMinSeconds:          readIntWithFileConfigFallback("NIMI_RUNTIME_SESSION_TTL_MIN_SECONDS", fileCfg.SessionTTLMinSeconds, 60),
 		SessionTTLMaxSeconds:          readIntWithFileConfigFallback("NIMI_RUNTIME_SESSION_TTL_MAX_SECONDS", fileCfg.SessionTTLMaxSeconds, 86400),

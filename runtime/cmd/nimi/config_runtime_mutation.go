@@ -55,6 +55,12 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 	case "localModelsPath":
 		cfg.LocalModelsPath = value
 		return nil
+	case "defaultLocalTextModel":
+		cfg.DefaultLocalTextModel = strings.TrimSpace(value)
+		return nil
+	case "defaultCloudProvider":
+		cfg.DefaultCloudProvider = strings.TrimSpace(value)
+		return nil
 	case "workerMode":
 		v := strings.ToLower(strings.TrimSpace(value)) == "true"
 		cfg.WorkerMode = &v
@@ -229,7 +235,9 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 	case "apiKeyEnv":
 		target.APIKeyEnv = value
 	case "apiKey":
-		return fmt.Errorf("provider %q apiKey is forbidden; use apiKeyEnv", providerName)
+		target.APIKey = value
+	case "defaultModel":
+		target.DefaultModel = value
 	default:
 		return fmt.Errorf("unsupported provider config key %q", key)
 	}
@@ -260,6 +268,12 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 		return nil
 	case "localModelsPath":
 		cfg.LocalModelsPath = defaultCfg.LocalModelsPath
+		return nil
+	case "defaultLocalTextModel":
+		cfg.DefaultLocalTextModel = strings.TrimSpace(defaultCfg.DefaultLocalTextModel)
+		return nil
+	case "defaultCloudProvider":
+		cfg.DefaultCloudProvider = strings.TrimSpace(defaultCfg.DefaultCloudProvider)
 		return nil
 	case "workerMode":
 		cfg.WorkerMode = defaultCfg.WorkerMode
@@ -390,6 +404,8 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 		target.APIKeyEnv = ""
 	case "apiKey":
 		target.APIKey = ""
+	case "defaultModel":
+		target.DefaultModel = ""
 	default:
 		return fmt.Errorf("unsupported unset key %q", key)
 	}

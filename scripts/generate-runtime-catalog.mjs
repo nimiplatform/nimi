@@ -351,6 +351,7 @@ function generateProviderCatalog(doc) {
   }
 
   const defaults = doc?.defaults && typeof doc.defaults === 'object' ? doc.defaults : {};
+  const defaultTextModel = normalizeString(defaults.default_text_model);
   const defaultModelType = normalizeString(defaults.model_type) || 'tts';
   const defaultCapabilities = normalizeStringArray(defaults.capabilities);
   const defaultPricing = defaults.pricing || {};
@@ -678,6 +679,7 @@ function generateProviderCatalog(doc) {
     version: 1,
     provider,
     catalog_version: catalogVersion,
+    default_text_model: defaultTextModel || undefined,
     models: modelsOut,
     voices: voicesOut,
   };

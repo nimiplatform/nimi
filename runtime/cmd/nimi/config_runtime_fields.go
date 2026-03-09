@@ -170,5 +170,5 @@ func isSecretPolicyViolation(err error) bool {
 		return false
 	}
 	message := strings.ToLower(err.Error())
-	return strings.Contains(message, "apikey is forbidden")
+	return strings.Contains(message, "cannot set both apikey and apikeyenv")
 }

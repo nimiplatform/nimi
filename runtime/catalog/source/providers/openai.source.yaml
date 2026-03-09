@@ -11,6 +11,7 @@ runtime:
 resolution_mode: model_anchor_v2
 defaults:
   provider: openai
+  default_text_model: gpt-5.2
   model_type: tts
   capabilities: []
   pricing:

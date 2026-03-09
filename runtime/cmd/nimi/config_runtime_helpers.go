@@ -34,6 +34,12 @@ func mergeFileConfigWithDefaults(raw config.FileConfig) config.FileConfig {
 	if v := strings.TrimSpace(raw.LocalModelsPath); v != "" {
 		merged.LocalModelsPath = v
 	}
+	if v := strings.TrimSpace(raw.DefaultLocalTextModel); v != "" {
+		merged.DefaultLocalTextModel = v
+	}
+	if v := strings.TrimSpace(raw.DefaultCloudProvider); v != "" {
+		merged.DefaultCloudProvider = v
+	}
 	if raw.WorkerMode != nil {
 		merged.WorkerMode = raw.WorkerMode
 	}
@@ -180,7 +186,7 @@ func parseConfigInputJSON(raw []byte) (config.FileConfig, error) {
 	merged := mergeFileConfigWithDefaults(parsed)
 	if err := validateMergedRuntimeFields(merged); err != nil {
 		if isSecretPolicyViolation(err) {
-			return config.FileConfig{}, newConfigCommandError(configReasonSecretPolicyViolation, "replace apiKey with apiKeyEnv", err)
+			return config.FileConfig{}, newConfigCommandError(configReasonSecretPolicyViolation, "use either apiKey or apiKeyEnv", err)
 		}
 		return config.FileConfig{}, newConfigCommandError(configReasonSchemaInvalid, "run `nimi config validate`", err)
 	}

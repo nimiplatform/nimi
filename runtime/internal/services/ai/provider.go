@@ -3,16 +3,16 @@ package ai
 import (
 	"context"
 	"fmt"
-	"sort"
-	"strings"
-	"time"
-
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	runtimecfg "github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 	"os"
+	"sort"
+	"strings"
+	"time"
 )
 
 const (
@@ -47,9 +47,12 @@ type scenarioStreamingTextProvider interface {
 
 // Config controls local/cloud provider connectivity.
 type Config struct {
-	LocalProviders map[string]nimillm.ProviderCredentials // "localai", "nexa"
-	CloudProviders map[string]nimillm.ProviderCredentials // "nimillm", "dashscope", ...
-	AIHTTPTimeout  time.Duration
+	LocalProviders        map[string]nimillm.ProviderCredentials // "localai", "nexa"
+	CloudProviders        map[string]nimillm.ProviderCredentials // "nimillm", "dashscope", ...
+	ProviderDefaultModels map[string]string
+	DefaultLocalTextModel string
+	DefaultCloudProvider  string
+	AIHTTPTimeout         time.Duration
 
 	// EnforceEndpointSecurity enables endpoint validation + DNS pinning for
 	// outbound provider HTTP requests (K-SEC-003/K-SEC-004).
@@ -151,6 +154,11 @@ func (c Config) normalized() Config {
 	if c.CloudProviders == nil {
 		c.CloudProviders = make(map[string]nimillm.ProviderCredentials)
 	}
+	if c.ProviderDefaultModels == nil {
+		c.ProviderDefaultModels = make(map[string]string)
+	}
+	c.DefaultLocalTextModel = strings.TrimSpace(c.DefaultLocalTextModel)
+	c.DefaultCloudProvider = strings.TrimSpace(c.DefaultCloudProvider)
 	return c
 }
 
@@ -167,6 +175,7 @@ type routeSelector struct {
 	local         provider
 	cloud         provider
 	cloudProvider *nimillm.CloudProvider
+	targetConfig  runtimecfg.Config
 }
 
 func newRouteSelector(cfg Config) *routeSelector {
@@ -182,6 +191,23 @@ func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, 
 	nexaCreds := normalized.LocalProviders["nexa"]
 	localAIBackend := newLocalBackend("local-localai", localaiCreds, normalized)
 	nexaBackend := newLocalBackend("local-nexa", nexaCreds, normalized)
+	targetConfig := runtimecfg.Config{
+		DefaultLocalTextModel: normalized.DefaultLocalTextModel,
+		DefaultCloudProvider:  normalized.DefaultCloudProvider,
+		Providers:             map[string]runtimecfg.RuntimeFileTarget{},
+	}
+	for providerID, creds := range normalized.CloudProviders {
+		target := targetConfig.Providers[providerID]
+		target.BaseURL = creds.BaseURL
+		target.APIKey = creds.APIKey
+		target.DefaultModel = strings.TrimSpace(normalized.ProviderDefaultModels[providerID])
+		targetConfig.Providers[providerID] = target
+	}
+	for providerID, defaultModel := range normalized.ProviderDefaultModels {
+		target := targetConfig.Providers[providerID]
+		target.DefaultModel = strings.TrimSpace(defaultModel)
+		targetConfig.Providers[providerID] = target
+	}
 	return &routeSelector{
 		local: &localProvider{
 			localai: localAIBackend,
@@ -189,6 +215,7 @@ func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, 
 		},
 		cloud:         cloudProvider,
 		cloudProvider: cloudProvider,
+		targetConfig:  targetConfig,
 	}
 }
 

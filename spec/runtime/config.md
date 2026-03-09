@@ -13,7 +13,7 @@
 
 ## 1. 文档定位
 
-本文件是 runtime-config 主题导引。配置字段定义、优先级、默认值与错误语义以 kernel 为准。
+本文件是 runtime-config 主题导引。配置字段定义、优先级、默认值与错误语义以 kernel 为准；当前 first-run targeting 依赖 `defaultLocalTextModel`、`defaultCloudProvider` 与 provider-scoped `defaultModel` / catalog `default_text_model` 的组合语义。
 
 ## 2. 关键阅读路径
 

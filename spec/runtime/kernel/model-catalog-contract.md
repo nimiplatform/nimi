@@ -16,6 +16,7 @@ Each provider file in `runtime/catalog/providers/*.yaml` MUST include:
 - `version`
 - `provider`
 - `catalog_version`
+- `default_text_model` (optional; remote text-capable providers only)
 - `models`
 - `voices` (optional; required only when TTS-capable models exist)
 
@@ -250,7 +251,9 @@ source provider 的非 scenario 元数据必须通过 `runtime/catalog/source/pr
 - `default_endpoint`
 - `requires_explicit_endpoint`
 
-`runtime/internal/providerregistry/generated.go`、`tables/provider-catalog.yaml`、`tables/provider-capabilities.yaml` 都必须由该 `runtime` 块投影生成，禁止 spec 表反向充当 runtime endpoint/default endpoint 真相。
+provider 默认文本模型元数据必须通过同一份 source provider SSOT 的 `defaults.default_text_model` 维护。
+
+`runtime/internal/providerregistry/generated.go`、`tables/provider-catalog.yaml`、`tables/provider-capabilities.yaml` 都必须由该 source metadata 投影生成，禁止 spec 表反向充当 runtime endpoint/default endpoint/default text model 真相。
 
 ## Verification Anchors
 

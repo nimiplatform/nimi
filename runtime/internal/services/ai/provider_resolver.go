@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"google.golang.org/grpc/codes"
@@ -9,6 +10,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
 )
 
 func (s *routeSelector) resolveProvider(ctx context.Context, requested runtimev1.RoutePolicy, fallback runtimev1.FallbackPolicy, modelID string) (provider, runtimev1.RoutePolicy, string, nimillm.RouteDecisionInfo, error) {
@@ -17,6 +19,18 @@ func (s *routeSelector) resolveProvider(ctx context.Context, requested runtimev1
 
 func (s *routeSelector) resolveProviderWithTarget(ctx context.Context, requested runtimev1.RoutePolicy, fallback runtimev1.FallbackPolicy, modelID string, remoteTarget *nimillm.RemoteTarget) (provider, runtimev1.RoutePolicy, string, nimillm.RouteDecisionInfo, error) {
 	rawModel := strings.TrimSpace(modelID)
+	resolvedModel, err := texttarget.ResolveInternalDefaultAlias(s.targetConfig, rawModel)
+	if err != nil {
+		return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", nimillm.RouteDecisionInfo{}, grpcerr.WithReasonCodeOptions(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID,
+			grpcerr.ReasonOptions{
+				ActionHint: "configure_runtime_default_target",
+				Message:    fmt.Sprintf("resolve default target for %q: %v", rawModel, err),
+			},
+		)
+	}
+	rawModel = strings.TrimSpace(resolvedModel)
 
 	// If a RemoteTarget is provided, force cloud/CLOUD route
 	if remoteTarget != nil {

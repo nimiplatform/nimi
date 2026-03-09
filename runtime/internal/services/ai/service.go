@@ -57,6 +57,26 @@ func New(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *provid
 	effectiveCfg := loadConfigFromEnv()
 	effectiveCfg.EnforceEndpointSecurity = true
 	effectiveCfg.AllowLoopbackEndpoint = daemonCfg.AllowLoopbackProviderEndpoint
+	effectiveCfg.DefaultLocalTextModel = strings.TrimSpace(daemonCfg.DefaultLocalTextModel)
+	effectiveCfg.DefaultCloudProvider = strings.TrimSpace(daemonCfg.DefaultCloudProvider)
+	if effectiveCfg.ProviderDefaultModels == nil {
+		effectiveCfg.ProviderDefaultModels = map[string]string{}
+	}
+	for providerID, target := range daemonCfg.Providers {
+		creds := effectiveCfg.CloudProviders[providerID]
+		if strings.TrimSpace(creds.BaseURL) == "" {
+			creds.BaseURL = strings.TrimSpace(target.BaseURL)
+		}
+		if strings.TrimSpace(creds.APIKey) == "" {
+			creds.APIKey = strings.TrimSpace(config.ResolveProviderAPIKey(target))
+		}
+		if strings.TrimSpace(creds.BaseURL) != "" || strings.TrimSpace(creds.APIKey) != "" {
+			effectiveCfg.CloudProviders[providerID] = creds
+		}
+		if defaultModel := strings.TrimSpace(target.DefaultModel); defaultModel != "" {
+			effectiveCfg.ProviderDefaultModels[providerID] = defaultModel
+		}
+	}
 	globalConc := daemonCfg.GlobalConcurrencyLimit
 	if globalConc <= 0 {
 		globalConc = 8

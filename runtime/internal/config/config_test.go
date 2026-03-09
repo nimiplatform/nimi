@@ -91,6 +91,7 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
   "shutdownTimeoutSeconds": 13,
   "localStatePath": "~/runtime/custom-state.json",
   "localModelsPath": "~/runtime/custom-models",
+  "defaultCloudProvider": "gemini",
   "aiHttpTimeoutSeconds": 21,
   "aiHealthIntervalSeconds": 3,
   "providers": {
@@ -132,6 +133,9 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
 	}
 	if cfg.LocalModelsPath != filepath.Join(homeDir, "runtime/custom-models") {
 		t.Fatalf("local models path mismatch: %q", cfg.LocalModelsPath)
+	}
+	if cfg.DefaultCloudProvider != "gemini" {
+		t.Fatalf("defaultCloudProvider mismatch: %q", cfg.DefaultCloudProvider)
 	}
 
 	if cfg.AIHTTPTimeoutSeconds != 21 {
@@ -469,14 +473,43 @@ func TestLoadIgnoresUnknownConfigFields(t *testing.T) {
 	}
 }
 
-func TestLoadRejectsPlaintextProviderAPIKey(t *testing.T) {
+func TestLoadAllowsInlineProviderAPIKey(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
   "providers": {
     "gemini": {
       "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
-      "apiKey": "plaintext-forbidden",
+      "apiKey": "inline-key"
+    }
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if got := ResolveProviderAPIKey(cfg.Providers["gemini"]); got != "inline-key" {
+		t.Fatalf("inline api key mismatch: got=%q", got)
+	}
+	if got := os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_API_KEY"); got != "inline-key" {
+		t.Fatalf("runtime env binding mismatch: got=%q", got)
+	}
+}
+
+func TestLoadRejectsProviderAPIKeyAndEnvConflict(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "providers": {
+    "gemini": {
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
+      "apiKey": "inline-key",
       "apiKeyEnv": "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY"
     }
   }
@@ -489,9 +522,35 @@ func TestLoadRejectsPlaintextProviderAPIKey(t *testing.T) {
 
 	_, err := Load()
 	if err == nil {
-		t.Fatalf("expected secret policy violation, got nil")
+		t.Fatalf("expected provider credential conflict, got nil")
 	}
-	if !strings.Contains(err.Error(), "apiKey is forbidden") {
+	if !strings.Contains(err.Error(), "cannot set both apiKey and apiKeyEnv") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestLoadRejectsDefaultCloudProviderWithoutConfiguredTarget(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "defaultCloudProvider": "openai",
+  "providers": {
+    "gemini": {
+      "apiKey": "inline-key"
+    }
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+
+	_, err := Load()
+	if err == nil {
+		t.Fatalf("expected invalid defaultCloudProvider error")
+	}
+	if !strings.Contains(err.Error(), `defaultCloudProvider "openai" must reference a configured provider`) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

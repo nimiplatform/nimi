@@ -115,7 +115,7 @@ func runRuntimeConfigInit(args []string) error {
 
 		if err := config.WriteFileConfig(path, config.DefaultFileConfig()); err != nil {
 			if isSecretPolicyViolation(err) {
-				return newConfigCommandError(configReasonSecretPolicyViolation, "remove plaintext apiKey and use apiKeyEnv", err)
+				return newConfigCommandError(configReasonSecretPolicyViolation, "use either apiKey or apiKeyEnv", err)
 			}
 			return newConfigCommandError(configReasonSchemaInvalid, "run `nimi config validate`", err)
 		}
@@ -179,7 +179,7 @@ func runRuntimeConfigValidate(args []string) error {
 
 	if err := validateMergedRuntimeFields(merged); err != nil {
 		if isSecretPolicyViolation(err) {
-			return newConfigCommandError(configReasonSecretPolicyViolation, "remove plaintext apiKey and use apiKeyEnv", err)
+			return newConfigCommandError(configReasonSecretPolicyViolation, "use either apiKey or apiKeyEnv", err)
 		}
 		return newConfigCommandError(configReasonSchemaInvalid, "run `nimi config init --force` or fix invalid fields", err)
 	}
@@ -249,7 +249,7 @@ func runRuntimeConfigSet(args []string) error {
 		}
 		if err := applyConfigSetOperation(&mutated, key, value); err != nil {
 			if isSecretPolicyViolation(err) {
-				return newConfigCommandError(configReasonSecretPolicyViolation, "replace apiKey with apiKeyEnv", err)
+				return newConfigCommandError(configReasonSecretPolicyViolation, "use either apiKey or apiKeyEnv", err)
 			}
 			return newConfigCommandError(configReasonSchemaInvalid, "run `nimi config validate`", err)
 		}
@@ -267,7 +267,7 @@ func runRuntimeConfigSet(args []string) error {
 
 	if err := config.ValidateFileConfig(mutated); err != nil {
 		if isSecretPolicyViolation(err) {
-			return newConfigCommandError(configReasonSecretPolicyViolation, "replace apiKey with apiKeyEnv", err)
+			return newConfigCommandError(configReasonSecretPolicyViolation, "use either apiKey or apiKeyEnv", err)
 		}
 		return newConfigCommandError(configReasonSchemaInvalid, "run `nimi config validate`", err)
 	}
@@ -276,7 +276,7 @@ func runRuntimeConfigSet(args []string) error {
 	}
 	if err := config.WriteFileConfig(path, mutated); err != nil {
 		if isSecretPolicyViolation(err) {
-			return newConfigCommandError(configReasonSecretPolicyViolation, "replace apiKey with apiKeyEnv", err)
+			return newConfigCommandError(configReasonSecretPolicyViolation, "use either apiKey or apiKeyEnv", err)
 		}
 		return newConfigCommandError(configReasonSchemaInvalid, "retry after fixing config payload", err)
 	}
@@ -302,7 +302,7 @@ func classifyConfigLoadError(err error) error {
 		return nil
 	}
 	if isSecretPolicyViolation(err) {
-		return newConfigCommandError(configReasonSecretPolicyViolation, "replace apiKey with apiKeyEnv", err)
+		return newConfigCommandError(configReasonSecretPolicyViolation, "use either apiKey or apiKeyEnv", err)
 	}
 	if strings.Contains(strings.ToLower(err.Error()), "parse runtime config file") {
 		return newConfigCommandError(configReasonParseFailed, "run `nimi config validate`", err)

@@ -11,6 +11,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
 )
 
 type localModelLister interface {
@@ -34,7 +35,14 @@ func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelI
 	if s.localModel == nil {
 		return nil
 	}
-	if preferredRoute(requestedModelID) != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+	resolvedModelID, err := texttarget.ResolveInternalDefaultAlias(s.selector.targetConfig, requestedModelID)
+	if err != nil {
+		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
+			ActionHint: "configure_runtime_default_target",
+			Message:    err.Error(),
+		})
+	}
+	if preferredRoute(resolvedModelID) != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
 		return nil
 	}
 
@@ -43,7 +51,7 @@ func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelI
 		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 
-	selector := parseLocalModelSelector(requestedModelID)
+	selector := parseLocalModelSelector(resolvedModelID)
 	selected, reason, unavailableDetail := selectRunnableLocalModel(localModels, selector)
 	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		if reason == runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE && strings.TrimSpace(unavailableDetail) != "" {

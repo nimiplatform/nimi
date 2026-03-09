@@ -103,15 +103,28 @@ func ValidateFileConfig(fileCfg FileConfig) error {
 	if fileCfg.SchemaVersion != DefaultSchemaVersion {
 		return fmt.Errorf("schemaVersion must be %d", DefaultSchemaVersion)
 	}
+	defaultCloudProvider := strings.TrimSpace(fileCfg.DefaultCloudProvider)
+	defaultLocalTextModel := strings.TrimSpace(fileCfg.DefaultLocalTextModel)
 	for providerName, providerCfg := range fileCfg.Providers {
 		if !isCanonicalProviderName(providerName) {
 			return fmt.Errorf("provider %q is forbidden; use canonical provider name", providerName)
 		}
-		if strings.TrimSpace(providerCfg.APIKey) != "" {
-			return fmt.Errorf("provider %q apiKey is forbidden; use apiKeyEnv", providerName)
+		if strings.TrimSpace(providerCfg.APIKey) != "" && strings.TrimSpace(providerCfg.APIKeyEnv) != "" {
+			return fmt.Errorf("provider %q cannot set both apiKey and apiKeyEnv", providerName)
 		}
-		if strings.TrimSpace(providerCfg.APIKeyEnv) == "" {
-			return fmt.Errorf("provider %q apiKeyEnv is required", providerName)
+	}
+	if defaultCloudProvider != "" {
+		canonical, ok := ResolveCanonicalProviderID(defaultCloudProvider)
+		if !ok {
+			return fmt.Errorf("defaultCloudProvider %q must name a canonical configured cloud provider", defaultCloudProvider)
+		}
+		if _, exists := fileCfg.Providers[canonical]; !exists {
+			return fmt.Errorf("defaultCloudProvider %q must reference a configured provider", canonical)
+		}
+	}
+	if defaultLocalTextModel != "" {
+		if looksLikeQualifiedRemoteModel(defaultLocalTextModel) {
+			return fmt.Errorf("defaultLocalTextModel %q must name a local model id, not a remote qualified model", defaultLocalTextModel)
 		}
 	}
 	if fileCfg.Auth != nil && fileCfg.Auth.JWT != nil {
@@ -130,6 +143,26 @@ func ValidateFileConfig(fileCfg FileConfig) error {
 		}
 	}
 	return nil
+}
+
+func looksLikeQualifiedRemoteModel(modelID string) bool {
+	normalized := strings.TrimSpace(modelID)
+	if normalized == "" {
+		return false
+	}
+	parts := strings.SplitN(normalized, "/", 2)
+	if len(parts) != 2 {
+		return false
+	}
+	prefix := strings.TrimSpace(parts[0])
+	if prefix == "" {
+		return false
+	}
+	if strings.EqualFold(prefix, "cloud") {
+		return true
+	}
+	_, ok := ResolveCanonicalProviderID(prefix)
+	return ok
 }
 
 func MarshalFileConfig(fileCfg FileConfig) ([]byte, error) {

@@ -46,6 +46,62 @@ func TestProviderHelpersAndRouteSelectorWrapper(t *testing.T) {
 	}
 }
 
+func TestRouteSelectorResolvesDefaultAliases(t *testing.T) {
+	selector := newRouteSelector(Config{
+		LocalProviders: map[string]nimillm.ProviderCredentials{
+			"localai": {BaseURL: "http://127.0.0.1:18080/v1"},
+		},
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"gemini": {BaseURL: "https://gemini.example/v1", APIKey: "gemini-key"},
+			"openai": {BaseURL: "https://openai.example/v1", APIKey: "openai-key"},
+		},
+		DefaultCloudProvider: "openai",
+		ProviderDefaultModels: map[string]string{
+			"gemini": "gemini-2.5-pro",
+			"openai": "gpt-5.2",
+		},
+	})
+
+	_, route, modelResolved, _, err := selector.resolveProvider(
+		context.Background(),
+		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		runtimev1.FallbackPolicy_FALLBACK_POLICY_ALLOW,
+		"local/default",
+	)
+	if err != nil {
+		t.Fatalf("resolve local default: %v", err)
+	}
+	if route != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || modelResolved != "qwen2.5" {
+		t.Fatalf("unexpected local default resolution: route=%v model=%q", route, modelResolved)
+	}
+
+	_, route, modelResolved, _, err = selector.resolveProvider(
+		context.Background(),
+		runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		runtimev1.FallbackPolicy_FALLBACK_POLICY_ALLOW,
+		"gemini/default",
+	)
+	if err != nil {
+		t.Fatalf("resolve provider default: %v", err)
+	}
+	if route != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD || modelResolved != "gemini/gemini-2.5-pro" {
+		t.Fatalf("unexpected provider default resolution: route=%v model=%q", route, modelResolved)
+	}
+
+	_, route, modelResolved, _, err = selector.resolveProvider(
+		context.Background(),
+		runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		runtimev1.FallbackPolicy_FALLBACK_POLICY_ALLOW,
+		"cloud/default",
+	)
+	if err != nil {
+		t.Fatalf("resolve cloud default: %v", err)
+	}
+	if route != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD || modelResolved != "openai/gpt-5.2" {
+		t.Fatalf("unexpected cloud default resolution: route=%v model=%q", route, modelResolved)
+	}
+}
+
 func TestLocalProviderLegacyWrappers(t *testing.T) {
 	p := &localProvider{}
 

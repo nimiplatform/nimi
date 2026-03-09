@@ -10,6 +10,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: gemini
+  default_text_model: gemini-3-flash-preview
   model_type: chat
   capabilities: []
   pricing:

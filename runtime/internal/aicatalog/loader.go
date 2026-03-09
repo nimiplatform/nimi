@@ -153,6 +153,7 @@ func normalizeProviderDocument(parsed ProviderDocument, filename string) (Provid
 		Version:               parsed.Version,
 		Provider:              provider,
 		CatalogVersion:        strings.TrimSpace(parsed.CatalogVersion),
+		DefaultTextModel:      strings.TrimSpace(parsed.DefaultTextModel),
 		Models:                append([]ModelEntry(nil), parsed.Models...),
 		Voices:                append([]VoiceEntry(nil), parsed.Voices...),
 		VoiceWorkflowModels:   append([]VoiceWorkflowModel(nil), parsed.VoiceWorkflowModels...),

@@ -20,7 +20,7 @@ Runtime 配置文件唯一 canonical 路径为 `~/.nimi/config.json`。不读取
 
 ## K-CFG-005 Secret Policy
 
-配置文件禁止明文密钥字段；仅允许 `apiKeyEnv` 引用环境变量名。
+provider 凭据允许使用 `apiKey` 或 `apiKeyEnv` 之一；两者不得同时设置。user-facing tooling 应优先使用环境变量或系统安全存储，inline `apiKey` 仅作为 canonical config file 的 fallback 形态。
 
 ## K-CFG-006 Atomic Write
 
@@ -44,7 +44,7 @@ provider 对应 `baseUrl/apiKey` 的环境变量绑定以 `provider-probe-target
 
 ## K-CFG-011 Credential Plane Boundary
 
-配置层只声明凭据引用，不承担凭据明文托管职责。
+配置层允许声明凭据引用，也允许在 canonical config file 中保留 fallback inline secret；更高层的安装与配置入口必须优先提供 env / secure-store path。对 public CLI first-run 而言，interactive credential capture 若发生，必须立即把 inline `apiKey` 写入 canonical config，并保持 `apiKey` / `apiKeyEnv` 互斥。
 
 ## K-CFG-012 Default Value Governance
 
@@ -52,7 +52,13 @@ provider 对应 `baseUrl/apiKey` 的环境变量绑定以 `provider-probe-target
 
 ## K-CFG-013 Cross-Layer Projection
 
-Desktop/CLI/SDK 对 runtime 配置行为的投影必须与本契约保持语义一致。
+Desktop/CLI/SDK 对 runtime 配置行为的投影必须与本契约保持语义一致。config 允许声明：
+
+- top-level `defaultLocalTextModel`，用于覆盖 bundled local default text target
+- top-level `defaultCloudProvider`
+- provider-scoped `defaultModel`
+
+其中 machine-default cloud target 由 `defaultCloudProvider + provider.defaultModel` 形成；当 provider 未显式覆盖 `defaultModel` 时，higher-level surface 必须回退到 provider catalog 的 `default_text_model`。`nimi run --cloud`、provider-only high-level CLI/SDK 等 surface 不得绕过这组配置语义。
 
 ## K-CFG-014 Schema Migration Framework
 

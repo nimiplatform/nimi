@@ -15,11 +15,13 @@ const (
 
 // Config defines daemon boot configuration. (K-DAEMON-009)
 type Config struct {
-	GRPCAddr        string
-	HTTPAddr        string
-	ShutdownTimeout time.Duration
-	LocalStatePath  string
-	LocalModelsPath string
+	GRPCAddr             string
+	HTTPAddr             string
+	ShutdownTimeout      time.Duration
+	LocalStatePath       string
+	LocalModelsPath      string
+	DefaultLocalTextModel string
+	DefaultCloudProvider string
 
 	// AllowLoopbackProviderEndpoint permits HTTP (non-TLS) connections to
 	// loopback addresses (127.0.0.0/8, ::1, localhost) for provider endpoints.
@@ -157,7 +159,8 @@ type Config struct {
 
 // FileConfig is the on-disk JSON schema for runtime configuration.
 // All fields are flat top-level keys per K-DAEMON-009. Cloud provider
-// credentials are env-only and not represented here (except apiKeyEnv).
+// credentials may be referenced by apiKeyEnv or stored inline in the canonical
+// config file; inline secrets remain mutually exclusive with env references.
 // Pointer types distinguish "not set" from zero value for three-level fallback.
 type FileConfig struct {
 	SchemaVersion          int    `json:"schemaVersion"`
@@ -166,6 +169,8 @@ type FileConfig struct {
 	ShutdownTimeoutSeconds *int   `json:"shutdownTimeoutSeconds,omitempty"`
 	LocalStatePath         string `json:"localStatePath,omitempty"`
 	LocalModelsPath        string `json:"localModelsPath,omitempty"`
+	DefaultLocalTextModel  string `json:"defaultLocalTextModel,omitempty"`
+	DefaultCloudProvider   string `json:"defaultCloudProvider,omitempty"`
 
 	WorkerMode              *bool  `json:"workerMode,omitempty"`
 	AIHealthIntervalSeconds *int   `json:"aiHealthIntervalSeconds,omitempty"`
@@ -224,7 +229,8 @@ type FileConfigJWT struct {
 }
 
 type RuntimeFileTarget struct {
-	BaseURL   string `json:"baseUrl"`
-	APIKey    string `json:"apiKey"`
-	APIKeyEnv string `json:"apiKeyEnv"`
+	BaseURL      string `json:"baseUrl"`
+	APIKey       string `json:"apiKey"`
+	APIKeyEnv    string `json:"apiKeyEnv"`
+	DefaultModel string `json:"defaultModel,omitempty"`
 }

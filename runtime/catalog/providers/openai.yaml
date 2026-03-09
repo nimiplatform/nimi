@@ -1,6 +1,7 @@
 version: 1
 provider: openai
 catalog_version: 2026-03-05-openai-v1
+default_text_model: gpt-5.2
 models:
   - model_id: gpt-audio
     provider: openai
