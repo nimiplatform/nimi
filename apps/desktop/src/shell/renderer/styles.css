@@ -63,3 +63,98 @@ textarea {
 @utility brand-gradient {
   background: linear-gradient(145deg, var(--color-brand-500) 0%, var(--color-accent-500) 100%);
 }
+
+/* ---- Chrome-style tab primitive ---- */
+
+.chrome-tab {
+  --tab-bg: rgba(255, 255, 255, 0.08);
+  --tab-hover-bg: rgba(255, 255, 255, 0.16);
+  --tab-active-bg: #ffffff;
+  --tab-color: rgba(255, 255, 255, 0.82);
+  --tab-active-color: #1f2328;
+  position: relative;
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+.chrome-tab__body {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 14px 0 22px;
+  background: var(--tab-bg);
+  color: var(--tab-color);
+  border-radius: 999px;
+  transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease, padding-right 180ms ease;
+}
+
+.chrome-tab:hover .chrome-tab__body {
+  background: var(--tab-hover-bg);
+  padding-right: 32px;
+}
+
+.chrome-tab.active .chrome-tab__body {
+  background: var(--tab-active-bg);
+  color: var(--tab-active-color);
+}
+
+
+.chrome-tab__leading,
+.chrome-tab__trailing {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+}
+
+.chrome-tab__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chrome-tab__close {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%) scale(0.72);
+  display: inline-flex;
+  height: 16px;
+  width: 16px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: inherit;
+  opacity: 0;
+  pointer-events: none;
+  transition: background-color 180ms ease, opacity 180ms ease, transform 180ms ease;
+}
+
+.chrome-tab:hover .chrome-tab__close {
+  opacity: 0.72;
+  pointer-events: auto;
+  transform: translateY(-50%) scale(1);
+}
+
+.chrome-tab:not(.active):hover .chrome-tab__close {
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.chrome-tab__close:hover {
+  background: rgba(15, 23, 42, 0.08);
+  opacity: 1;
+}
+
+.chrome-tab:not(.active) .chrome-tab__close:hover {
+  background: rgba(15, 23, 42, 0.18);
+}

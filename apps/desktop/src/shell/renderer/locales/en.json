@@ -22,6 +22,274 @@
     "privacyPolicy": "Privacy Policy",
     "logout": "Log Out"
   },
+  "Legal": {
+    "terms": {
+      "eyebrow": "Legal",
+      "title": "Terms of Service",
+      "description": "These Terms describe the rules for using Nimi and the relationship between you and Nimi when you use our products and services.",
+      "lastUpdatedLabel": "Last Updated",
+      "lastUpdated": "2026-03-09",
+      "footer": "© 2026 Nimi. All rights reserved.",
+      "sections": [
+        {
+          "title": "1. About These Terms",
+          "paragraphs": [
+            "These Terms of Service govern your access to and use of Nimi, including our desktop apps, web experiences, worlds, agents, social features, and related services.",
+            "When you use Nimi, you are agreeing to these Terms. If there is ever a conflict between these Terms and additional product-specific terms, the additional terms will control for that specific product or feature."
+          ]
+        },
+        {
+          "title": "2. Eligibility and Your Account",
+          "paragraphs": [
+            "You must be legally able to enter into this agreement in your jurisdiction. If you are under the age of majority where you live, you may use Nimi only with the consent and supervision of a parent or legal guardian.",
+            "You are responsible for maintaining the security of your account, your sign-in methods, and any activity that happens through your account."
+          ],
+          "bullets": [
+            "Provide accurate registration and profile information.",
+            "Keep your login credentials and connected accounts secure.",
+            "Notify us promptly if you believe your account has been compromised."
+          ]
+        },
+        {
+          "title": "3. Using Nimi",
+          "paragraphs": [
+            "Nimi provides tools and experiences for creating, interacting with, and exploring digital identities, agents, conversations, and world-based environments.",
+            "We are continually developing and improving Nimi. As a result, features may change from time to time, and some features may be added, modified, limited, or removed."
+          ]
+        },
+        {
+          "title": "4. User Content and Agent Content",
+          "paragraphs": [
+            "You retain ownership of the content you submit to Nimi, including text, images, prompts, profile details, world settings, and agent configurations.",
+            "You grant Nimi a non-exclusive, worldwide, royalty-free license to host, store, reproduce, adapt, display, and distribute that content solely for operating, improving, securing, and providing the service.",
+            "You are responsible for ensuring you have all rights needed to submit content and configure any agent or world behavior you publish through Nimi."
+          ]
+        },
+        {
+          "title": "5. Conduct on the Service",
+          "paragraphs": [
+            "We want Nimi to be useful, safe, and respectful. That means there are some limits on how the service may be used."
+          ],
+          "bullets": [
+            "Do not use Nimi in ways that violate applicable law or infringe the rights of others.",
+            "Do not create, upload, or share content that is fraudulent, abusive, hateful, harassing, or malicious.",
+            "Do not attempt to gain unauthorized access to the service, interfere with security, or disrupt normal operation.",
+            "Do not misuse automation, scraping, or similar tools in ways that overload, bypass, or undermine the service.",
+            "Do not impersonate another person or misrepresent your identity, affiliation, or authority."
+          ]
+        },
+        {
+          "title": "6. Moderation and Enforcement",
+          "paragraphs": [
+            "To protect users, the platform, and our legal obligations, we may review, remove, restrict, or disable content, agents, worlds, or accounts when we reasonably believe doing so is necessary.",
+            "We may also suspend or terminate access where needed to investigate abuse, enforce these Terms, respond to legal requests, or maintain the integrity and security of the service."
+          ]
+        },
+        {
+          "title": "7. Intellectual Property",
+          "paragraphs": [
+            "Nimi and its related branding, software, interface design, and service materials are owned by Nimi or its licensors and are protected by applicable intellectual property laws.",
+            "Except as expressly permitted by us or by law, you may not copy, modify, distribute, sell, reverse engineer, or create derivative works from any part of the service."
+          ]
+        },
+        {
+          "title": "8. Third-Party Services",
+          "paragraphs": [
+            "Nimi may integrate with third-party login providers, payment services, model providers, storage vendors, or external sites. We are not responsible for third-party services, and your use of them is governed by their own terms and policies."
+          ]
+        },
+        {
+          "title": "9. Service Availability and Changes",
+          "paragraphs": [
+            "We do not guarantee that Nimi will be uninterrupted, error-free, or available at all times. Maintenance, updates, outages, and third-party dependencies may affect service availability.",
+            "We may change, discontinue, or limit any feature, content type, or part of the service at any time."
+          ]
+        },
+        {
+          "title": "10. Disclaimers",
+          "paragraphs": [
+            "To the extent allowed by law, Nimi is provided on an \"as is\" and \"as available\" basis.",
+            "We do not make warranties, express or implied, about the service, including warranties of merchantability, fitness for a particular purpose, non-infringement, availability, security, or accuracy.",
+            "Content or outputs generated by users or agents may not always be accurate, complete, or suitable for your situation, so you should use your own judgment before relying on them."
+          ]
+        },
+        {
+          "title": "11. Limitation of Liability",
+          "paragraphs": [
+            "To the maximum extent permitted by law, Nimi and its affiliates, officers, employees, licensors, and service providers will not be liable for any indirect, incidental, special, consequential, exemplary, or punitive damages, or for any loss of profits, revenue, goodwill, data, or business opportunity arising from or related to your use of the service.",
+            "To the maximum extent permitted by law, our total liability for any claim relating to the service will not exceed the amount you paid us, if any, for the service during the twelve months preceding the event giving rise to the claim."
+          ]
+        },
+        {
+          "title": "12. Indemnification",
+          "paragraphs": [
+            "You agree to indemnify and hold harmless Nimi and its affiliates, officers, employees, and agents from any claims, losses, liabilities, damages, costs, and expenses, including reasonable legal fees, arising out of or related to your content, your use of the service, or your violation of these Terms or applicable law."
+          ]
+        },
+        {
+          "title": "13. Suspension and Termination",
+          "paragraphs": [
+            "You may stop using Nimi at any time. We may suspend or terminate your access if we reasonably believe you have violated these Terms, created risk for users or the platform, or exposed Nimi to legal or operational harm.",
+            "Sections that by their nature should survive termination will survive, including sections relating to ownership, disclaimers, liability limits, indemnification, and dispute-related terms."
+          ]
+        },
+        {
+          "title": "14. Governing Law",
+          "paragraphs": [
+            "Unless applicable law requires otherwise, these Terms are governed by the laws applicable to the Nimi entity that contracts with you, without regard to conflict of law rules."
+          ]
+        },
+        {
+          "title": "15. Changes to These Terms",
+          "paragraphs": [
+            "We may revise these Terms from time to time to reflect changes to the service, our business, or legal requirements. When we do, we will update the \"Last Updated\" date shown on this page.",
+            "If you continue using Nimi after an update becomes effective, that continued use will mean you accept the revised Terms."
+          ]
+        },
+        {
+          "title": "16. Contact",
+          "paragraphs": [
+            "If you have questions about these Terms, please contact the Nimi team through the support or contact channel provided within the product or on the official Nimi website."
+          ]
+        }
+      ]
+    },
+    "privacy": {
+      "eyebrow": "Legal",
+      "title": "Privacy Policy",
+      "description": "This Privacy Policy explains what information Nimi processes, why we process it, and the choices available to you.",
+      "lastUpdatedLabel": "Last Updated",
+      "lastUpdated": "2026-03-09",
+      "footer": "© 2026 Nimi. All rights reserved.",
+      "sections": [
+        {
+          "title": "1. About This Policy",
+          "paragraphs": [
+            "This Privacy Policy explains how Nimi collects, uses, stores, and shares information when you use our apps, websites, worlds, agents, and related services.",
+            "We aim to explain our practices in a clear and practical way. If we make material changes to how we process personal information, we will update this policy."
+          ]
+        },
+        {
+          "title": "2. Information You Give Us",
+          "paragraphs": [
+            "Some information is provided directly by you when you create an account, edit your profile, use product features, or contact us."
+          ],
+          "bullets": [
+            "Account and profile information, such as email address, display name, handle, avatar, biography, and linked login methods.",
+            "Content you create or upload, including messages, posts, world details, agent settings, prompts, images, attachments, and profile edits.",
+            "Support or feedback submissions you send to us."
+          ]
+        },
+        {
+          "title": "3. Information We Collect Automatically",
+          "paragraphs": [
+            "We also collect certain technical and usage information when you use Nimi."
+          ],
+          "bullets": [
+            "Device, app, and browser information such as operating system, app version, language, and approximate diagnostics data.",
+            "Usage information such as feature interactions, navigation events, session activity, and basic performance metrics.",
+            "Log, security, and fraud-prevention data such as IP-related signals, error events, and abuse monitoring records."
+          ]
+        },
+        {
+          "title": "4. Information From Third Parties",
+          "paragraphs": [
+            "If you sign in with or connect a third-party service, we may receive information from that provider, subject to the provider's settings and policies."
+          ],
+          "bullets": [
+            "Login providers may share your account identifier, display name, email address, or avatar.",
+            "Infrastructure and service providers may process data on our behalf to support hosting, analytics, moderation, media handling, or customer support."
+          ]
+        },
+        {
+          "title": "5. How We Use Information",
+          "paragraphs": [
+            "We use information to provide, maintain, improve, and protect Nimi."
+          ],
+          "bullets": [
+            "Provide the core service, including authentication, profiles, social features, worlds, agents, messaging, and content delivery.",
+            "Personalize the product experience and remember your settings and preferences.",
+            "Monitor reliability, diagnose problems, improve performance, and develop new features.",
+            "Prevent abuse, spam, fraud, unauthorized access, and policy violations.",
+            "Communicate with you about account activity, support, legal notices, and service updates.",
+            "Comply with legal obligations and enforce our Terms of Service."
+          ]
+        },
+        {
+          "title": "6. Public and Shared Information",
+          "paragraphs": [
+            "Some information is visible to other users depending on how you use Nimi. For example, your public profile, world information, agent identity details, and content you choose to publish may be visible to others inside the product.",
+            "We encourage you to use care when deciding what you make public or share with others."
+          ]
+        },
+        {
+          "title": "7. How We Share Information",
+          "paragraphs": [
+            "We do not sell your personal information. We may share information in the following circumstances:"
+          ],
+          "bullets": [
+            "With service providers who process information on our behalf for hosting, storage, analytics, customer support, moderation, and security.",
+            "With other users when you make profile, world, agent, or content information visible through the service.",
+            "With affiliated entities as needed to operate the service.",
+            "When required by law, legal process, or a valid government request.",
+            "In connection with a merger, financing, acquisition, restructuring, or sale of all or part of our business."
+          ]
+        },
+        {
+          "title": "8. Retention",
+          "paragraphs": [
+            "We retain information for as long as needed to provide the service, comply with legal obligations, resolve disputes, enforce agreements, and protect the platform.",
+            "Retention periods vary depending on the type of information, why it was collected, and whether we are required to keep it for security, legal, or operational reasons."
+          ]
+        },
+        {
+          "title": "9. Security",
+          "paragraphs": [
+            "We use reasonable administrative, technical, and organizational measures to protect information. However, no method of transmission or storage is completely secure, and we cannot guarantee absolute security."
+          ]
+        },
+        {
+          "title": "10. Your Rights and Choices",
+          "paragraphs": [
+            "Depending on where you live, you may have rights regarding your personal information.",
+            "You may also have options within the product to review, update, or manage certain information and preferences."
+          ],
+          "bullets": [
+            "Access, update, or correct certain profile and account information through the product.",
+            "Request deletion of eligible information, subject to legal and operational limits.",
+            "Request a copy of certain information we hold about you, where applicable.",
+            "Object to or restrict certain processing where local law grants those rights.",
+            "Manage communications and some product preferences through available settings."
+          ]
+        },
+        {
+          "title": "11. International Processing",
+          "paragraphs": [
+            "Nimi may process and store information in countries other than where you live. Where required, we use appropriate safeguards for cross-border data transfers."
+          ]
+        },
+        {
+          "title": "12. Children's Privacy",
+          "paragraphs": [
+            "Nimi is not intended for children under 13, and we do not knowingly collect personal information from children under 13. If you believe a child has provided personal information to us, contact us so we can review the situation."
+          ]
+        },
+        {
+          "title": "13. Changes to This Policy",
+          "paragraphs": [
+            "We may update this Privacy Policy from time to time to reflect changes to the service, our practices, or legal requirements. When we do, we will revise the \"Last Updated\" date shown on this page.",
+            "If you continue using Nimi after an update becomes effective, that continued use will mean the updated policy applies to your continued use, to the extent permitted by law."
+          ]
+        },
+        {
+          "title": "14. Contact",
+          "paragraphs": [
+            "If you have questions about this Privacy Policy or want to make a privacy-related request, you can contact the Nimi team through the support or contact channel provided in the product or on the official Nimi website."
+          ]
+        }
+      ]
+    }
+  },
   "Common": {
     "save": "Save",
     "cancel": "Cancel",
