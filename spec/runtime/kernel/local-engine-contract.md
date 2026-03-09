@@ -153,6 +153,12 @@ LocalAI 动态图片工作流补充：
 - HTTP 非 200 或连接失败 → 不健康。
 - 探测超时：默认 5 秒，不可配置（Phase 1）。
 
+受管 LocalAI 文本模型补充：
+
+- 对具备 `chat` / `text.generate` capability 的 `localai` 模型，`StartLocalModel` 与 `WarmLocalModel` 在 `SUPERVISED` 路径下成功返回前，必须在 `/v1/models` 探测通过后追加一次最小 `POST /v1/chat/completions` 预热执行。
+- 设计原因：LocalAI HTTP 层可能早于内部 `llama-cpp` gRPC backend ready；仅凭 `/v1/models` 可能出现 false green。
+- 若该最小执行失败，runtime 必须将启动视为失败并返回/记录 `UNHEALTHY`，不得把模型保留在 `ACTIVE`。
+
 探测频率由调用方决定（daemon 默认 8 秒周期），本规则仅定义协议。
 
 ## K-LENG-008 引擎配置来源优先级
