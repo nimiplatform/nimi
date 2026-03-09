@@ -543,12 +543,16 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
             </div>
 
             {/* Agent Grid - 4 columns per row */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid auto-rows-fr grid-cols-4 gap-4">
               {/* 创建�?Agent 专属卡片 */}
               {props.onCreateAgent && (
                 <article
                   onClick={() => setShowCreateAgent(true)}
-                  className="relative w-full min-w-0 overflow-hidden rounded-xl border-2 border-dashed border-[#4ECCA3]/30 bg-gradient-to-br from-[#0a0f0c]/40 to-[#0f1612]/60 p-4 cursor-pointer transition-all duration-500 hover:border-[#4ECCA3]/60 hover:shadow-[0_0_30px_rgba(78,204,163,0.15)] hover:-translate-y-0.5 group"
+                  className="group relative h-full min-h-[174px] w-full min-w-0 cursor-pointer overflow-hidden rounded-xl border-2 border-dashed bg-gradient-to-br from-[#0b120e]/60 to-[#111a15]/78 p-4 transition-all duration-500 hover:-translate-y-0.5 hover:shadow-[0_0_30px_rgba(78,204,163,0.18)]"
+                  style={{
+                    borderColor: 'rgba(117, 240, 194, 0.48)',
+                    boxShadow: 'inset 0 0 0 1px rgba(117, 240, 194, 0.06), inset 0 0 22px rgba(78, 204, 163, 0.08)',
+                  }}
                 >
                   {/* 呼吸灯效果的微光动画 */}
                   <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500">
@@ -560,7 +564,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                     />
                   </div>
                   
-                  <div className="relative z-10 flex flex-col items-center justify-center min-h-[140px]">
+                  <div className="relative z-10 flex h-full min-h-[140px] flex-col items-center justify-center">
                     {/* 大号薄荷�?+ �?*/}
                     <div 
                       className="w-14 h-14 rounded-full flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"
@@ -572,7 +576,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                       </svg>
                     </div>
                     {/* 文案 */}
-                    <span className="text-xs font-medium text-[#4ECCA3]">Create New Agent</span>
+                    <span className="text-sm font-semibold tracking-[0.01em] text-[#76e6bf]">Create New Agent</span>
                   </div>
                 </article>
               )}
@@ -586,7 +590,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                 props.agents.map((agent) => (
                   <article
                     key={agent.id}
-                    className="relative w-full min-w-0 overflow-hidden rounded-xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/60 p-4"
+                    className="relative h-full min-h-[174px] w-full min-w-0 overflow-hidden rounded-xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/60 p-4"
                   >
                     {/* Agent header */}
                     <div className="flex items-start gap-3 mb-3">

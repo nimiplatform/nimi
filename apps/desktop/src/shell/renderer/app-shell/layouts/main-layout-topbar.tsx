@@ -39,13 +39,13 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
   const { t } = useTranslation();
   const unreadBadge = props.unreadCount > 99 ? '99+' : String(props.unreadCount);
   const metricCellClass =
-    'flex h-full min-w-[58px] items-center justify-center gap-1.5 px-2 text-xs font-semibold text-[#0b4f43] transition hover:bg-white/16';
+    'flex h-full min-w-[58px] items-center justify-center gap-1.5 px-2 text-xs font-semibold text-white transition hover:bg-[#3DB893]';
   const actionCellClass =
-    'relative flex h-full min-w-[42px] items-center justify-center text-[#0b4f43] transition hover:bg-white/16';
+    'relative flex h-full min-w-[42px] items-center justify-center text-white transition hover:bg-[#3DB893]';
 
   return (
     <div
-      className={`relative z-10 flex h-12 shrink-0 items-center bg-[linear-gradient(90deg,#7FD8C5_0%,#79D5C1_48%,#73D0BC_100%)] pr-0 text-[#073b33] ${props.titlebarLeftInsetClass}`}
+      className={`relative z-10 flex h-12 shrink-0 items-center bg-[#4ECCA3] pr-0 text-white ${props.titlebarLeftInsetClass}`}
       onMouseDown={props.onMouseDown}
     >
       {props.enableModWorkspaceTabs ? (

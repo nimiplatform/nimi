@@ -6,9 +6,11 @@ import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-stor
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
 import { StatusBanner } from '@renderer/ui/feedback/status-banner';
-import { persistStoredSettingsSelected } from '@renderer/features/settings/settings-storage';
-import { persistStoredContactsFilter } from '@renderer/features/contacts/contacts-model';
-import { WorldDetailRouteLoading } from '@renderer/features/world/world-detail-route-state';
+import {
+  loadStoredSettingsSelected,
+  persistStoredSettingsSelected,
+} from '@renderer/features/settings/settings-storage';
+import { loadWorldDetailPanelModule, WorldDetailRouteLoading } from '@renderer/features/world/world-detail-route-state';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 import { MainLayoutTopBar } from './main-layout-topbar';
 import {
@@ -56,7 +58,7 @@ const AgentDetailPanel = lazy(async () => {
   return { default: mod.AgentDetailPanel };
 });
 const WorldDetailPanel = lazy(async () => {
-  const mod = await import('@renderer/features/world/world-detail-active-panel');
+  const mod = await loadWorldDetailPanelModule();
   return { default: mod.WorldDetailActivePanel };
 });
 const WorldList = lazy(async () => {
@@ -91,7 +93,6 @@ type SettingsSubmenuItemId =
   | 'profile'
   | 'wallet'
   | 'settings'
-  | 'my-agents'
   | 'terms-of-service'
   | 'privacy-policy'
   | 'logout';
@@ -104,7 +105,6 @@ const SETTINGS_SUBMENU_ITEMS: SettingsSubmenuItem[] = [
   { id: 'profile', label: 'Profile', icon: 'profile' },
   { id: 'wallet', label: 'Wallet', icon: 'wallet' },
   { id: 'settings', label: 'Settings', icon: 'settings' },
-  { id: 'my-agents', label: 'My Agents', icon: 'my-agents' },
   { id: 'terms-of-service', label: 'Terms of Service', icon: 'terms-of-service' },
   { id: 'privacy-policy', label: 'Privacy Policy', icon: 'privacy-policy' },
   { id: 'logout', label: 'Logout', icon: 'logout' },
@@ -113,7 +113,6 @@ const SETTINGS_SUBMENU_I18N_KEYS: Record<SettingsSubmenuItemId, string> = {
   profile: 'Menu.profile',
   wallet: 'Menu.wallet',
   settings: 'Menu.settings',
-  'my-agents': 'Menu.myAgents',
   'terms-of-service': 'Menu.termsOfService',
   'privacy-policy': 'Menu.privacyPolicy',
   logout: 'Menu.logout',
@@ -275,6 +274,7 @@ type MainLayoutViewProps = {
   activeTab: AppTab;
   displayName: string;
   userAvatarUrl: string | null;
+  userEmail?: string | null;
   context: UiExtensionContext;
   onNav: (tabId: string) => void;
   onLogout: () => void;
@@ -369,14 +369,32 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       if (!rect) {
         return;
       }
-      const menuWidth = 224;
+      const menuWidth = 256; // w-64 = 16rem = 256px
+      const menuMaxHeight = Math.min(480, window.innerHeight - 100);
       const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      // Horizontal positioning
       const clampedLeft = Math.min(
         Math.max(12, rect.right - menuWidth),
         Math.max(12, viewportWidth - menuWidth - 12),
       );
+      
+      // Vertical positioning - check if there's enough space below
+      const spaceBelow = viewportHeight - rect.bottom - 12;
+      const spaceAbove = rect.top - 12;
+      
+      let top: number;
+      if (spaceBelow >= menuMaxHeight || spaceBelow >= spaceAbove) {
+        // Show below if there's enough space or more space than above
+        top = Math.max(12, Math.min(rect.bottom + 6, viewportHeight - menuMaxHeight - 12));
+      } else {
+        // Show above when there's not enough space below
+        top = Math.max(12, rect.top - menuMaxHeight - 6);
+      }
+      
       setCollapsedSettingsMenuPosition({
-        top: Math.max(12, rect.bottom + 6),
+        top,
         left: clampedLeft,
       });
     };
@@ -407,16 +425,19 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       style={{ mixBlendMode: 'multiply' }}
     />
   );
+  const currentSettingsSelection = props.activeTab === 'settings'
+    ? loadStoredSettingsSelected('profile')
+    : '';
 
   const isSettingsMenuItemActive = (itemId: SettingsSubmenuItemId): boolean => {
     if (itemId === 'profile') {
       return props.activeTab === 'profile';
     }
-    if (itemId === 'wallet' || itemId === 'settings') {
-      return props.activeTab === 'settings';
+    if (itemId === 'wallet') {
+      return props.activeTab === 'settings' && currentSettingsSelection === 'wallet';
     }
-    if (itemId === 'my-agents') {
-      return props.activeTab === 'contacts';
+    if (itemId === 'settings') {
+      return props.activeTab === 'settings' && currentSettingsSelection !== 'wallet';
     }
     return false;
   };
@@ -436,12 +457,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     if (itemId === 'settings') {
       persistStoredSettingsSelected('profile');
       props.onNav('settings');
-      setSettingsMenuOpen(false);
-      return;
-    }
-    if (itemId === 'my-agents') {
-      persistStoredContactsFilter('agents');
-      props.onNav('contacts');
       setSettingsMenuOpen(false);
       return;
     }
@@ -539,39 +554,124 @@ export function MainLayoutView(props: MainLayoutViewProps) {
           {settingsMenuOpen ? (
             <div
               ref={settingsMenuRef}
-              className="fixed z-50 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl shadow-black/8"
+              className="fixed z-50 flex max-h-[calc(100vh-100px)] w-64 flex-col overflow-hidden rounded-2xl border border-[#4ECCA3]/20 bg-white py-2 shadow-2xl shadow-[#4ECCA3]/10"
               style={{
                 top: `${collapsedSettingsMenuPosition?.top ?? 76}px`,
                 left: `${collapsedSettingsMenuPosition?.left ?? 81}px`,
               }}
             >
-              {SETTINGS_SUBMENU_ITEMS.map((item) => {
-                const active = isSettingsMenuItemActive(item.id);
-                const isLogout = item.id === 'logout';
-                return (
-                  <div key={item.id}>
-                    {isLogout ? <div className="my-1 border-t border-gray-100" /> : null}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        openSettingsSubmenuItem(item.id);
-                      }}
-                      className={`flex w-full items-center gap-2.5 px-3 py-2 text-[13px] ${
-                        isLogout
-                          ? 'text-red-600 hover:bg-red-50'
-                          : active
-                            ? 'bg-brand-50 text-brand-700'
-                            : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      <span className={`w-4 shrink-0 ${isLogout ? 'text-red-500' : active ? 'text-brand-700' : 'text-gray-400'}`}>
-                        {renderShellNavIcon(item.icon)}
-                      </span>
-                      <span className="min-w-0 flex-1 text-left">{t(SETTINGS_SUBMENU_I18N_KEYS[item.id] ?? '', item.label)}</span>
-                    </button>
-                  </div>
-                );
-              })}
+              {/* User Profile Header */}
+              <div className="flex items-center gap-3 px-4 py-3">
+                <EntityAvatar
+                  imageUrl={props.userAvatarUrl}
+                  name={props.displayName}
+                  kind="human"
+                  sizeClassName="h-10 w-10"
+                  textClassName="text-sm font-semibold"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-gray-900">{props.displayName}</p>
+                  <p className="truncate text-xs text-gray-500">{props.userEmail || props.displayName.toLowerCase().replace(/\s+/g, '.') + '@nimi.app'}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    persistStoredSettingsSelected('profile');
+                    props.onNav('settings');
+                    setSettingsMenuOpen(false);
+                  }}
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 transition hover:bg-[#4ECCA3]/10 hover:text-[#4ECCA3]"
+                  title="Edit Profile"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/20 to-transparent" />
+
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#4ECCA3/30_transparent]">
+                {/* Menu Items */}
+                <div className="px-2">
+                  {/* Profile - First Item */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      openSettingsSubmenuItem('profile');
+                    }}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all ${
+                      isSettingsMenuItemActive('profile')
+                        ? 'bg-[#4ECCA3]/10 text-[#2F7D6B]'
+                        : 'text-gray-700 hover:bg-[#4ECCA3]/5'
+                    }`}
+                  >
+                    <span className={`w-4 shrink-0 ${isSettingsMenuItemActive('profile') ? 'text-[#4ECCA3]' : 'text-gray-400'}`}>
+                      {renderShellNavIcon('profile')}
+                    </span>
+                    <span className="min-w-0 flex-1 text-left font-medium">{t(SETTINGS_SUBMENU_I18N_KEYS['profile'] ?? '', 'Profile')}</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
+                      <path d="m9 18 6-6-6-6" />
+                    </svg>
+                  </button>
+
+                  {SETTINGS_SUBMENU_ITEMS.filter(item => item.id !== 'logout' && item.id !== 'profile').map((item) => {
+                    const active = isSettingsMenuItemActive(item.id);
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          openSettingsSubmenuItem(item.id);
+                        }}
+                        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all ${
+                          active
+                            ? 'bg-[#4ECCA3]/10 text-[#2F7D6B]'
+                            : 'text-gray-700 hover:bg-[#4ECCA3]/5'
+                        }`}
+                      >
+                        <span className={`w-4 shrink-0 ${active ? 'text-[#4ECCA3]' : 'text-gray-400'}`}>
+                          {renderShellNavIcon(item.icon)}
+                        </span>
+                        <span className="min-w-0 flex-1 text-left font-medium">{t(SETTINGS_SUBMENU_I18N_KEYS[item.id] ?? '', item.label)}</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
+                          <path d="m9 18 6-6-6-6" />
+                        </svg>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-gray-100 to-transparent" />
+
+                {/* Logout */}
+                <div className="px-2 pb-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      props.onLogout();
+                      setSettingsMenuOpen(false);
+                    }}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all ${
+                      'text-gray-700 hover:bg-[#4ECCA3]/5'
+                    }`}
+                  >
+                    <span className="w-4 shrink-0 text-gray-400">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                      </svg>
+                    </span>
+                    <span className="min-w-0 flex-1 text-left font-medium">{t('Menu.logout', 'Log out')}</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
+                      <path d="m9 18 6-6-6-6" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
           ) : null}
 

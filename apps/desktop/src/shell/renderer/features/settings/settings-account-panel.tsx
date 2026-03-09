@@ -19,9 +19,11 @@ import {
 } from './settings-assets';
 import {
   PageShell,
-  SaveFooter,
   SectionTitle,
 } from './settings-layout-components';
+
+const ACCEPTED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+const MAX_AVATAR_FILE_SIZE = 10 * 1024 * 1024;
 // SelectField component removed - settings now use unified custom dropdowns
 
 // Icons
@@ -63,6 +65,7 @@ export function ProfilePage() {
   const user = useAppStore((s) => s.auth.user);
   const authToken = useAppStore((s) => s.auth.token);
   const authRefreshToken = useAppStore((s) => s.auth.refreshToken);
+  const realmBaseUrl = useAppStore((s) => String(s.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
   const setAuthSession = useAppStore((s) => s.setAuthSession);
   const setStatusBanner = useAppStore((s) => s.setStatusBanner);
   const displayName = String(user?.displayName || user?.handle || 'User');
@@ -70,11 +73,15 @@ export function ProfilePage() {
   const userAvatarUrl = typeof user?.avatarUrl === 'string' ? user.avatarUrl : null;
 
   const [name, setName] = useState(displayName);
+  const [avatarUrl, setAvatarUrl] = useState(userAvatarUrl);
   const email = String(user?.email || '');
   const [bio, setBio] = useState(String(user?.bio || t('Profile.bioPlaceholder')));
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [linkingProvider, setLinkingProvider] = useState<OAuthProvider | null>(null);
   const [unlinkingProvider, setUnlinkingProvider] = useState<OAuthProvider | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const profileAutosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const connectedProviders = Array.isArray(user?.oauthProviders)
     ? user.oauthProviders.filter((item): item is OAuthProvider => (
       item === OAuthProvider.GOOGLE || item === OAuthProvider.TWITTER || item === OAuthProvider.TIKTOK
@@ -84,6 +91,16 @@ export function ProfilePage() {
   const twitterOauthConfig = resolveSocialOauthConfig('TWITTER');
   const tikTokOauthConfig = resolveSocialOauthConfig('TIKTOK');
   const googleClientId = getGoogleClientId();
+  const profileDraft = {
+    displayName: name.trim() || displayName,
+    avatarUrl,
+    bio: bio.trim(),
+  };
+  const persistedProfile = {
+    displayName,
+    avatarUrl: userAvatarUrl,
+    bio: String(user?.bio || ''),
+  };
 
   const refreshCurrentUser = async () => {
     const latest = await dataSync.loadCurrentUser();
@@ -92,6 +109,18 @@ export function ProfilePage() {
       : null;
     setAuthSession(updatedUser, authToken, authRefreshToken || undefined);
   };
+
+  useEffect(() => {
+    setName(displayName);
+    setAvatarUrl(userAvatarUrl);
+    setBio(String(user?.bio || t('Profile.bioPlaceholder')));
+  }, [displayName, t, user?.bio, userAvatarUrl]);
+
+  useEffect(() => () => {
+    if (profileAutosaveTimerRef.current) {
+      clearTimeout(profileAutosaveTimerRef.current);
+    }
+  }, []);
 
   const requestGoogleAccessToken = async (): Promise<string> => {
     const clientId = String(googleClientId || '').trim();
@@ -238,29 +267,42 @@ export function ProfilePage() {
     },
   ];
 
-  const handleSave = async () => {
-    if (saving) {
+  const hasPendingProfileChanges = (
+    profileDraft.displayName !== persistedProfile.displayName
+    || profileDraft.avatarUrl !== persistedProfile.avatarUrl
+    || profileDraft.bio !== persistedProfile.bio
+  );
+
+  const handleSave = async ({ silentSuccess = false }: { silentSuccess?: boolean } = {}) => {
+    if (saving || uploadingAvatar) {
       return;
     }
     setSaving(true);
     try {
       const payload: Record<string, unknown> = {
-        displayName: name.trim() || displayName,
-        bio: bio.trim(),
+        displayName: profileDraft.displayName,
+        avatarUrl: profileDraft.avatarUrl,
+        bio: profileDraft.bio,
       };
       const updated = await dataSync.updateUserProfile(payload);
       const updatedUser = (updated && typeof updated === 'object')
         ? (updated as Record<string, unknown>)
         : null;
       if (updatedUser) {
+        if (typeof updatedUser.avatarUrl !== 'string') {
+          updatedUser.avatarUrl = avatarUrl;
+        }
         setAuthSession(updatedUser, authToken, authRefreshToken || undefined);
         setName(String(updatedUser.displayName || updatedUser.handle || name || 'User'));
+        setAvatarUrl(typeof updatedUser.avatarUrl === 'string' ? updatedUser.avatarUrl : null);
         setBio(typeof updatedUser.bio === 'string' ? updatedUser.bio : '');
       }
-      setStatusBanner({
-        kind: 'success',
-        message: t('Profile.updateSuccess'),
-      });
+      if (!silentSuccess) {
+        setStatusBanner({
+          kind: 'success',
+          message: t('Profile.updateSuccess'),
+        });
+      }
     } catch (error) {
       setStatusBanner({
         kind: 'error',
@@ -271,22 +313,119 @@ export function ProfilePage() {
     }
   };
 
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) {
+      return;
+    }
+    if (!ACCEPTED_AVATAR_TYPES.includes(file.type)) {
+      setStatusBanner({
+        kind: 'error',
+        message: 'Unsupported avatar format. Use PNG, JPEG, GIF, or WebP.',
+      });
+      return;
+    }
+    if (file.size > MAX_AVATAR_FILE_SIZE) {
+      setStatusBanner({
+        kind: 'error',
+        message: 'Avatar must be smaller than 10MB.',
+      });
+      return;
+    }
+    if (!realmBaseUrl) {
+      setStatusBanner({
+        kind: 'error',
+        message: 'Image upload is unavailable right now. Please try again.',
+      });
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const upload = await dataSync.createImageDirectUpload();
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch(upload.uploadUrl, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) {
+        throw new Error('Failed to upload avatar');
+      }
+      const nextAvatarUrl = `${realmBaseUrl}/api/media/images/${encodeURIComponent(upload.imageId)}`;
+      setAvatarUrl(nextAvatarUrl);
+      setStatusBanner({
+        kind: 'success',
+        message: 'Avatar uploaded. Save changes to apply it.',
+      });
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: error instanceof Error ? error.message : 'Failed to upload avatar',
+      });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  useEffect(() => {
+    if (uploadingAvatar || saving || !hasPendingProfileChanges) {
+      if (profileAutosaveTimerRef.current) {
+        clearTimeout(profileAutosaveTimerRef.current);
+        profileAutosaveTimerRef.current = null;
+      }
+      return;
+    }
+
+    if (profileAutosaveTimerRef.current) {
+      clearTimeout(profileAutosaveTimerRef.current);
+    }
+
+    profileAutosaveTimerRef.current = setTimeout(() => {
+      void handleSave({ silentSuccess: true });
+    }, 700);
+
+    return () => {
+      if (profileAutosaveTimerRef.current) {
+        clearTimeout(profileAutosaveTimerRef.current);
+        profileAutosaveTimerRef.current = null;
+      }
+    };
+  }, [
+    avatarUrl,
+    bio,
+    displayName,
+    hasPendingProfileChanges,
+    name,
+    saving,
+    uploadingAvatar,
+    userAvatarUrl,
+  ]);
+
   return (
     <PageShell
       title={t('Profile.pageTitle')}
       description={t('Profile.pageDescription')}
-      footer={<SaveFooter onSave={() => { void handleSave(); }} saving={saving} />}
     >
-      {/* Profile Header Card */}
-      <section>
+      <section className="sticky top-0 z-10 -mx-6 bg-[#F8F9FB] px-6 pb-4 pt-2">
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-mint-400 to-mint-600 p-6 text-white shadow-lg">
           <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
           <div className="absolute bottom-0 left-0 -mb-4 -ml-4 h-20 w-20 rounded-full bg-white/10 blur-xl" />
-          <div className="relative flex items-center gap-5">
+          <div className="relative flex items-start gap-5">
             <div className="relative">
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept={ACCEPTED_AVATAR_TYPES.join(',')}
+                className="hidden"
+                onChange={(event) => {
+                  void handleAvatarUpload(event);
+                }}
+              />
               <EntityAvatar
-                imageUrl={userAvatarUrl}
-                name={displayName}
+                imageUrl={avatarUrl}
+                name={name.trim() || displayName}
                 kind="human"
                 sizeClassName="h-24 w-24"
                 className="ring-4 ring-white/20"
@@ -295,14 +434,20 @@ export function ProfilePage() {
               />
               <button
                 type="button"
-                className="absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-xl bg-white text-mint-600 shadow-lg transition-transform hover:scale-110"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-xl bg-white text-mint-600 shadow-lg transition-transform hover:scale-110 disabled:cursor-not-allowed disabled:opacity-60"
+                title={uploadingAvatar ? 'Uploading avatar' : 'Replace photo'}
               >
                 {ICON_CAMERA}
               </button>
             </div>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold">{displayName}</h3>
-              <p className="text-sm text-white/80">@{userHandle.replace(/^@/, '')}</p>
+            <div className="flex min-w-0 flex-1 items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h3 className="text-xl font-bold">{name.trim() || displayName}</h3>
+                <p className="text-sm text-white/80">@{userHandle.replace(/^@/, '')}</p>
+                {uploadingAvatar ? <p className="mt-2 text-xs text-white/75">Uploading avatar...</p> : null}
+              </div>
             </div>
           </div>
         </div>

@@ -7,7 +7,6 @@ import type { UpdateUserNotificationSettingsDto } from '@nimiplatform/sdk/realm'
 import type { UserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
 import {
   PageShell,
-  SaveFooter,
   SectionTitle,
 } from './settings-layout-components';
 import {
@@ -167,6 +166,7 @@ export function NotificationsPage() {
   const [form, setForm] = useState<NotificationForm>({ ...DEFAULT_NOTIFICATION_FORM });
   const [baseline, setBaseline] = useState<NotificationForm>({ ...DEFAULT_NOTIFICATION_FORM });
   const [saving, setSaving] = useState(false);
+  const autosaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const settingsQuery = useQuery({
     queryKey: ['settings-notification'],
@@ -182,9 +182,15 @@ export function NotificationsPage() {
     setBaseline(next);
   }, [settingsQuery.data]);
 
+  useEffect(() => () => {
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+    }
+  }, []);
+
   const hasChanges = useMemo(() => !notificationsEqual(form, baseline), [form, baseline]);
 
-  const handleSave = async () => {
+  const handleSave = async ({ silentSuccess = false }: { silentSuccess?: boolean } = {}) => {
     if (saving || !hasChanges) {
       if (!hasChanges) {
         setStatusBanner({
@@ -198,10 +204,12 @@ export function NotificationsPage() {
     try {
       await dataSync.updateMyNotificationSettings(toNotificationPayload(form));
       await settingsQuery.refetch();
-      setStatusBanner({
-        kind: 'success',
-        message: t('Notifications.updateSuccess'),
-      });
+      if (!silentSuccess) {
+        setStatusBanner({
+          kind: 'success',
+          message: t('Notifications.updateSuccess'),
+        });
+      }
     } catch (error) {
       setStatusBanner({
         kind: 'error',
@@ -211,6 +219,31 @@ export function NotificationsPage() {
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    if (saving || !hasChanges || settingsQuery.isPending || settingsQuery.isError) {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+      return;
+    }
+
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+    }
+
+    autosaveTimerRef.current = setTimeout(() => {
+      void handleSave({ silentSuccess: true });
+    }, 700);
+
+    return () => {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+    };
+  }, [form, hasChanges, saving, settingsQuery.isError, settingsQuery.isPending]);
 
   if (settingsQuery.isPending) {
     return (
@@ -239,7 +272,6 @@ export function NotificationsPage() {
     <PageShell
       title={t('Notifications.pageTitle')}
       description={t('Notifications.pageDescription')}
-      footer={<SaveFooter onSave={() => { void handleSave(); }} saving={saving} />}
     >
       {/* Activity Notifications */}
       <section>
@@ -565,6 +597,7 @@ export function PerformancePage() {
   const [baseline, setBaseline] = useState<PerformancePreferences>(() =>
     loadStoredPerformancePreferences());
   const [saving, setSaving] = useState(false);
+  const autosaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const eligibilityQuery = useQuery({
     queryKey: ['settings-creator-eligibility'],
@@ -573,7 +606,13 @@ export function PerformancePage() {
 
   const hasChanges = useMemo(() => !performanceEqual(preferences, baseline), [preferences, baseline]);
 
-  const handleSave = async () => {
+  useEffect(() => () => {
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+    }
+  }, []);
+
+  const handleSave = async ({ silentSuccess = false }: { silentSuccess?: boolean } = {}) => {
     if (saving || !hasChanges) {
       if (!hasChanges) {
         setStatusBanner({
@@ -587,14 +626,41 @@ export function PerformancePage() {
     try {
       persistStoredPerformancePreferences(preferences);
       setBaseline(preferences);
-      setStatusBanner({
-        kind: 'success',
-        message: t('Performance.saveSuccess'),
-      });
+      if (!silentSuccess) {
+        setStatusBanner({
+          kind: 'success',
+          message: t('Performance.saveSuccess'),
+        });
+      }
     } finally {
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    if (saving || !hasChanges) {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+      return;
+    }
+
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+    }
+
+    autosaveTimerRef.current = setTimeout(() => {
+      void handleSave({ silentSuccess: true });
+    }, 700);
+
+    return () => {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+    };
+  }, [hasChanges, preferences, saving]);
 
   const eligibility = eligibilityQuery.data;
   const eligibilityText = eligibilityQuery.isPending
@@ -610,7 +676,6 @@ export function PerformancePage() {
     <PageShell
       title={t('Performance.pageTitle')}
       description={t('Performance.pageDescription')}
-      footer={<SaveFooter onSave={() => { void handleSave(); }} saving={saving} />}
     >
       {/* Rendering Settings */}
       <section className="mt-8">

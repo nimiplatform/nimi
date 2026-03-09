@@ -6,7 +6,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { UpdateUserSettingsDto } from '@nimiplatform/sdk/realm';
 import type { UserSettingsDto } from '@nimiplatform/sdk/realm';
 import type { Visibility } from '@nimiplatform/sdk/realm';
-import { PageShell, SaveFooter, SectionTitle } from './settings-layout-components';
+import { PageShell, SectionTitle } from './settings-layout-components';
 
 type VisibilityValue = 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
 type VisibilityMode = 'OPEN' | 'SMARTER_FILTER' | 'STRICT';
@@ -140,6 +140,7 @@ export function PrivacyPage() {
   const [form, setForm] = useState<PrivacyForm>({ ...DEFAULT_FORM });
   const [baseline, setBaseline] = useState<PrivacyForm>({ ...DEFAULT_FORM });
   const [saving, setSaving] = useState(false);
+  const autosaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const visibilitySelectOptions = useMemo(() => ([
     { value: 'PUBLIC', label: t('PrivacySettings.visibilityPublic') },
     { value: 'FRIENDS', label: t('PrivacySettings.visibilityFriends') },
@@ -175,9 +176,15 @@ export function PrivacyPage() {
     setBaseline(next);
   }, [settingsQuery.data]);
 
+  useEffect(() => () => {
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+    }
+  }, []);
+
   const hasChanges = useMemo(() => !formsEqual(form, baseline), [form, baseline]);
 
-  const handleSave = async () => {
+  const handleSave = async ({ silentSuccess = false }: { silentSuccess?: boolean } = {}) => {
     if (saving || !hasChanges) {
       if (!hasChanges) {
         setStatusBanner({
@@ -191,10 +198,12 @@ export function PrivacyPage() {
     try {
       await dataSync.updateMySettings(toUpdatePayload(form));
       await settingsQuery.refetch();
-      setStatusBanner({
-        kind: 'success',
-        message: t('PrivacySettings.updateSuccess'),
-      });
+      if (!silentSuccess) {
+        setStatusBanner({
+          kind: 'success',
+          message: t('PrivacySettings.updateSuccess'),
+        });
+      }
     } catch (error) {
       setStatusBanner({
         kind: 'error',
@@ -204,6 +213,31 @@ export function PrivacyPage() {
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    if (saving || !hasChanges || settingsQuery.isPending || settingsQuery.isError) {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+      return;
+    }
+
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+    }
+
+    autosaveTimerRef.current = setTimeout(() => {
+      void handleSave({ silentSuccess: true });
+    }, 700);
+
+    return () => {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+    };
+  }, [form, hasChanges, saving, settingsQuery.isError, settingsQuery.isPending]);
 
   if (settingsQuery.isPending) {
     return (
@@ -238,7 +272,6 @@ export function PrivacyPage() {
     <PageShell
       title={t('PrivacySettings.pageTitle')}
       description={t('PrivacySettings.pageDescription')}
-      footer={<SaveFooter onSave={() => { void handleSave(); }} saving={saving} />}
     >
       {/* Visibility Section */}
       <section>

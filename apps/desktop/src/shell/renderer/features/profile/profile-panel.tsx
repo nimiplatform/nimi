@@ -195,6 +195,7 @@ export function ProfilePanel() {
 
       const updated = await dataSync.updateUserProfile({
         displayName: nextDisplayName,
+        avatarUrl: draft.avatarUrl.trim() || null,
         bio: draft.bio.trim() || null,
         city: draft.city.trim() || null,
         countryCode: draft.countryCode.trim() || null,
@@ -202,6 +203,10 @@ export function ProfilePanel() {
         languages: toArray(draft.languages),
         tags: toArray(draft.tags),
       }) as Record<string, unknown>;
+
+      if (typeof updated.avatarUrl !== 'string') {
+        updated.avatarUrl = draft.avatarUrl.trim() || null;
+      }
 
       setAuthSession(updated, authToken, refreshToken);
       await Promise.all([

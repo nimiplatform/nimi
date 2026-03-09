@@ -36,6 +36,7 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
   const { post, onDelete, showAddFriendBadge = true } = input;
   const queryClient = useQueryClient();
   const savedPostsStorageKey = 'nimi.desktop.saved-post-ids';
+  const savedPostsUpdatedEvent = 'nimi:saved-posts-updated';
 
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
@@ -280,6 +281,7 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
         ? [...savedIds, post.id]
         : savedIds.filter((id) => id !== post.id);
       window.localStorage.setItem(savedPostsStorageKey, JSON.stringify(nextIds));
+      window.dispatchEvent(new CustomEvent(savedPostsUpdatedEvent, { detail: { savedIds: nextIds } }));
       setIsSavedPost(nextSaved);
       setStatusBanner({
         kind: 'success',
@@ -291,7 +293,7 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
         message: 'Failed to save post',
       });
     }
-  }, [post.id, savedPostsStorageKey, setStatusBanner, ui]);
+  }, [post.id, savedPostsStorageKey, savedPostsUpdatedEvent, setStatusBanner, ui]);
 
   const handleAddFriend = useCallback(async () => {
     if (!authorId) {

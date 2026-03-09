@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { APP_PAGE_TITLE_CLASS, APP_SECTION_TITLE_CLASS } from '@renderer/components/typography.js';
+import { APP_SECTION_TITLE_CLASS } from '@renderer/components/typography.js';
 import { C, ICON_CHEVRON_RIGHT, getSettingsMenuSections } from './settings-assets';
 
 const SETTINGS_SECTION_KEY_BY_LABEL: Record<string, string> = {
@@ -49,7 +49,6 @@ export function Card({
 }
 
 export function PageShell({
-  title,
   children,
   footer,
 }: {
@@ -60,10 +59,7 @@ export function PageShell({
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex h-14 shrink-0 items-center bg-white px-6">
-        <h2 className={APP_PAGE_TITLE_CLASS}>{title}</h2>
-      </div>
-      <div className="flex-1 overflow-y-auto bg-gray-50">
+      <div className="flex-1 overflow-y-auto bg-[#F8F9FB]">
         <div className="mx-auto max-w-2xl px-6 py-6" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {children}
         </div>
@@ -138,17 +134,21 @@ export function SaveFooter({
   onCancel,
   onSave,
   saving,
+  showCancel = true,
 }: {
   onCancel?: () => void;
   onSave?: () => void;
   saving?: boolean;
+  showCancel?: boolean;
 }) {
   const { t } = useTranslation();
   return (
     <div className="flex shrink-0 items-center justify-end gap-3 border-t border-gray-200 bg-white px-6 py-4">
-      <Button variant="secondary" onClick={onCancel}>
-        {t('Common.cancel')}
-      </Button>
+      {showCancel ? (
+        <Button variant="secondary" onClick={onCancel}>
+          {t('Common.cancel')}
+        </Button>
+      ) : null}
       <Button variant="primary" onClick={onSave} disabled={saving}>
         {saving ? t('Common.saving') : t('Common.saveChanges')}
       </Button>
