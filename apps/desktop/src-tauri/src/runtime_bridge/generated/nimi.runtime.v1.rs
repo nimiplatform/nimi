@@ -1532,6 +1532,8 @@ pub struct VoiceV2vInput {
     pub language_hints: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(string, tag = "5")]
     pub preferred_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub text: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct VoiceT2vInput {
@@ -3452,6 +3454,8 @@ pub struct AiTtsCreateVoiceNodeConfig {
     pub preview_text: ::prost::alloc::string::String,
     #[prost(string, tag = "11")]
     pub language: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub text: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "20")]
     pub extensions: ::prost::alloc::vec::Vec<ScenarioExtension>,
 }
