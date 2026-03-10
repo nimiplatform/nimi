@@ -3,6 +3,7 @@ package nimillm
 import (
 	"context"
 	"net"
+	"strings"
 	"testing"
 
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
@@ -210,6 +211,61 @@ func TestMapProviderHTTPError_BadRequestImageInputInvalid(t *testing.T) {
 	}
 }
 
+func TestMapProviderHTTPError_BadRequestPlanGateFromDetailMessage(t *testing.T) {
+	err := MapProviderHTTPError(400, map[string]any{
+		"detail": map[string]any{
+			"message": "Instant Voice Cloning is only available on a paid plan. This subscription does not include instant voice cloning.",
+		},
+	})
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error for HTTP 400 paid-plan gate")
+	}
+	if st.Code() != codes.FailedPrecondition {
+		t.Fatalf("expected FailedPrecondition, got %v", st.Code())
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
+		t.Fatalf("expected AI_PROVIDER_AUTH_FAILED, got %v", reason)
+	}
+	if !strings.Contains(strings.ToLower(st.Message()), "paid plan") {
+		t.Fatalf("expected status message to mention paid plan, got %q", st.Message())
+	}
+	metadata := extractErrorInfoMetadata(err)
+	if metadata["provider_message"] == "" {
+		t.Fatalf("expected provider_message metadata, got %#v", metadata)
+	}
+	if metadata["action_hint"] != "upgrade_provider_plan_or_use_supported_capability" {
+		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
+	}
+}
+
+func TestMapProviderHTTPError_ForbiddenPreservesNestedDetailMessage(t *testing.T) {
+	err := MapProviderHTTPError(403, map[string]any{
+		"detail": map[string]any{
+			"message": "API voice creation is only available on a paid plan.",
+		},
+	})
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error for HTTP 403")
+	}
+	if st.Code() != codes.FailedPrecondition {
+		t.Fatalf("expected FailedPrecondition, got %v", st.Code())
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
+		t.Fatalf("expected AI_PROVIDER_AUTH_FAILED, got %v", reason)
+	}
+	if st.Message() != "API voice creation is only available on a paid plan." {
+		t.Fatalf("unexpected status message: %q", st.Message())
+	}
+	metadata := extractErrorInfoMetadata(err)
+	if metadata["provider_message"] != "API voice creation is only available on a paid plan." {
+		t.Fatalf("unexpected provider_message metadata: %#v", metadata)
+	}
+}
+
 func TestMapProviderHTTPError_Timeout(t *testing.T) {
 	for _, code := range []int{408, 504} {
 		err := MapProviderHTTPError(code, nil)
@@ -287,6 +343,51 @@ func TestMapProviderRequestError_GenericNetwork(t *testing.T) {
 func TestMapProviderRequestError_Nil(t *testing.T) {
 	if err := MapProviderRequestError(nil); err != nil {
 		t.Fatalf("expected nil error, got %v", err)
+	}
+}
+
+func TestProviderErrorMessage_DetailFallbacks(t *testing.T) {
+	tests := []struct {
+		name    string
+		payload map[string]any
+		want    string
+	}{
+		{
+			name: "detail message map",
+			payload: map[string]any{
+				"detail": map[string]any{
+					"message": "provider detail message",
+				},
+			},
+			want: "provider detail message",
+		},
+		{
+			name: "detail msg map",
+			payload: map[string]any{
+				"detail": map[string]any{
+					"msg": "provider detail msg",
+				},
+			},
+			want: "provider detail msg",
+		},
+		{
+			name: "detail array message",
+			payload: map[string]any{
+				"detail": []any{
+					map[string]any{"message": "first array detail"},
+					map[string]any{"message": "second array detail"},
+				},
+			},
+			want: "first array detail",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := ProviderErrorMessage(tc.payload); got != tc.want {
+				t.Fatalf("ProviderErrorMessage() = %q, want %q", got, tc.want)
+			}
+		})
 	}
 }
 

@@ -31,15 +31,25 @@ type VoiceWorkflowResult struct {
 	Metadata         map[string]any
 }
 
+// simpleVoiceAdapterDefaults maps providers that share the same adapter logic
+// (resolve URL → resolve paths → build headers → try endpoints) to their
+// default endpoint paths. Providers with genuinely different workflows
+// (dashscope, elevenlabs) are handled by dedicated functions.
+var simpleVoiceAdapterDefaults = map[string][]string{
+	"fish_audio": {"/v1/voices/clone", "/v1/voice-clone", "/v1/audio/voices/clone"},
+	"playht":     {"/api/v2/cloned-voices/instant", "/v1/voices/clone", "/v1/voice-clone"},
+	"stepfun":    {"/v1/audio/voice-clone", "/v1/audio/voices/clone", "/v1/voices/clone"},
+}
+
 // SupportsVoiceWorkflowProvider reports whether nimillm has a real provider-native
 // voice workflow adapter for the provider.
 func SupportsVoiceWorkflowProvider(provider string) bool {
-	switch strings.TrimSpace(strings.ToLower(provider)) {
-	case "dashscope", "elevenlabs", "fish_audio", "playht", "stepfun":
+	p := strings.TrimSpace(strings.ToLower(provider))
+	if p == "dashscope" || p == "elevenlabs" {
 		return true
-	default:
-		return false
 	}
+	_, ok := simpleVoiceAdapterDefaults[p]
+	return ok
 }
 
 // ExecuteVoiceWorkflow dispatches a voice workflow request to the appropriate
@@ -59,14 +69,12 @@ func ExecuteVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg Med
 		return executeDashScopeVoiceWorkflow(ctx, req, cfg)
 	case "elevenlabs":
 		return executeElevenLabsVoiceWorkflow(ctx, req, cfg)
-	case "fish_audio":
-		return executeFishAudioVoiceWorkflow(ctx, req, cfg)
-	case "playht":
-		return executePlayHTVoiceWorkflow(ctx, req, cfg)
-	case "stepfun":
-		return executeStepFunVoiceWorkflow(ctx, req, cfg)
 	default:
-		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
+		defaults, ok := simpleVoiceAdapterDefaults[provider]
+		if !ok {
+			return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
+		}
+		return executeSimpleVoiceWorkflow(ctx, req, cfg, provider, defaults)
 	}
 }
 
@@ -130,6 +138,18 @@ func voiceWorkflowTryEndpoints(
 		return VoiceWorkflowResult{}, lastErr
 	}
 	return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+}
+
+// executeSimpleVoiceWorkflow handles providers whose voice workflow follows the
+// standard pattern: resolve base URL → resolve paths → build headers → try endpoints.
+func executeSimpleVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg MediaAdapterConfig, provider string, defaults []string) (VoiceWorkflowResult, error) {
+	baseURL := resolveVoiceWorkflowBaseURL(provider, cfg, req.ExtPayload)
+	if baseURL == "" {
+		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	paths := resolveVoiceEndpointPaths(req.WorkflowType, req.ExtPayload, defaults)
+	headers := voiceWorkflowHeaders(provider, cfg.APIKey, req.ExtPayload)
+	return voiceWorkflowTryEndpoints(ctx, baseURL, cfg.APIKey, paths, req.Payload, headers, provider, req.WorkflowType, req.WorkflowModelID)
 }
 
 // resolveVoiceWorkflowBaseURL resolves the base URL for voice workflow requests.
@@ -229,10 +249,16 @@ func extractPreviewIDFromVoiceWorkflowResponse(payload map[string]any) string {
 	if value := strings.TrimSpace(FirstNonEmpty(
 		ValueAsString(payload["preview_id"]),
 		ValueAsString(payload["previewId"]),
+		ValueAsString(payload["generated_voice_id"]),
+		ValueAsString(payload["generatedVoiceId"]),
 		ValueAsString(MapField(payload["data"], "preview_id")),
 		ValueAsString(MapField(payload["data"], "previewId")),
+		ValueAsString(MapField(payload["data"], "generated_voice_id")),
+		ValueAsString(MapField(payload["data"], "generatedVoiceId")),
 		ValueAsString(MapField(payload["result"], "preview_id")),
 		ValueAsString(MapField(payload["result"], "previewId")),
+		ValueAsString(MapField(payload["result"], "generated_voice_id")),
+		ValueAsString(MapField(payload["result"], "generatedVoiceId")),
 	)); value != "" {
 		return value
 	}
@@ -249,6 +275,8 @@ func extractPreviewIDFromVoiceWorkflowResponse(payload map[string]any) string {
 			if value := strings.TrimSpace(FirstNonEmpty(
 				ValueAsString(m["preview_id"]),
 				ValueAsString(m["previewId"]),
+				ValueAsString(m["generated_voice_id"]),
+				ValueAsString(m["generatedVoiceId"]),
 				ValueAsString(m["id"]),
 			)); value != "" {
 				return value
@@ -314,14 +342,4 @@ func valueAsTrimmedStringSliceVoice(value any) []string {
 		return nil
 	}
 	return items
-}
-
-func firstNonEmptyVoice(values ...string) string {
-	for _, value := range values {
-		trimmed := strings.TrimSpace(value)
-		if trimmed != "" {
-			return trimmed
-		}
-	}
-	return ""
 }

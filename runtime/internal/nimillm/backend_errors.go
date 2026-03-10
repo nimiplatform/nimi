@@ -41,6 +41,19 @@ func containsAnyToken(input string, tokens ...string) bool {
 func classifyProviderBadRequest(providerMessage string) (codes.Code, runtimev1.ReasonCode, string) {
 	normalized := strings.ToLower(strings.TrimSpace(providerMessage))
 
+	planOrEntitlementBlocked := containsAnyToken(
+		normalized,
+		"paid plan",
+		"subscription does not include",
+		"payment required",
+		"paid_plan_required",
+		"only available on a paid plan",
+		"upgrade your plan",
+	)
+	if planOrEntitlementBlocked {
+		return codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED, "upgrade_provider_plan_or_use_supported_capability"
+	}
+
 	modelNotFound := containsAnyToken(
 		normalized,
 		"model not found",
@@ -152,6 +165,14 @@ func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 			ActionHint: actionHint,
 		})
 	case http.StatusUnauthorized, http.StatusForbidden:
+		if providerMessage != "" {
+			return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED, grpcerr.ReasonOptions{
+				Message: providerMessage,
+				Metadata: map[string]string{
+					"provider_message": providerMessage,
+				},
+			})
+		}
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED)
 	case http.StatusNotFound:
 		if providerMessage != "" {
@@ -207,6 +228,27 @@ func IsStreamUnsupported(statusCode int, payload map[string]any) bool {
 	return false
 }
 
+func providerErrorMessageFromValue(value any) string {
+	switch item := value.(type) {
+	case string:
+		return item
+	case map[string]any:
+		if message, ok := item["message"].(string); ok {
+			return message
+		}
+		if message, ok := item["msg"].(string); ok {
+			return message
+		}
+	case []any:
+		for _, entry := range item {
+			if message := providerErrorMessageFromValue(entry); message != "" {
+				return message
+			}
+		}
+	}
+	return ""
+}
+
 // ProviderErrorMessage extracts an error message from a provider response payload.
 func ProviderErrorMessage(payload map[string]any) string {
 	if payload == nil {
@@ -215,17 +257,11 @@ func ProviderErrorMessage(payload map[string]any) string {
 	if message, ok := payload["message"].(string); ok {
 		return message
 	}
-	errorField, exists := payload["error"]
-	if !exists {
-		return ""
+	if message := providerErrorMessageFromValue(payload["error"]); message != "" {
+		return message
 	}
-	switch item := errorField.(type) {
-	case string:
-		return item
-	case map[string]any:
-		if message, ok := item["message"].(string); ok {
-			return message
-		}
+	if message := providerErrorMessageFromValue(payload["detail"]); message != "" {
+		return message
 	}
 	return ""
 }

@@ -12,6 +12,7 @@ import { withRuntimeDaemon } from '../helpers/runtime-daemon.js';
 
 const APP_ID = 'nimi.desktop.sdk.ai.live';
 const SUBJECT_USER_ID = 'user-sdk-live';
+const LIVE_VOICE_DESIGN_INSTRUCTION = 'Warm, calm, natural narrator voice with steady pacing, clear diction, low background noise, gentle emotional range, and a polished studio delivery for long-form spoken content.';
 
 function resolveRuntimeDir(): string {
   let cursor = dirname(fileURLToPath(import.meta.url));
@@ -48,17 +49,16 @@ function requiredEnvOrSkip(t: { skip: (msg?: string) => void }, key: string): st
   return value;
 }
 
-function normalizeCloudModelId(provider: string, modelId: string): string {
-  const normalizedProvider = String(provider || '').trim().toLowerCase();
+function normalizeCloudModelId(modelId: string): string {
   const normalizedModelId = String(modelId || '').trim();
-  if (!normalizedProvider || !normalizedModelId) {
+  if (!normalizedModelId) {
     return normalizedModelId;
   }
   const lower = normalizedModelId.toLowerCase();
-  if (lower.startsWith('cloud/') || lower.startsWith(`${normalizedProvider}/`)) {
+  if (lower.startsWith('cloud/') || normalizedModelId.includes('/')) {
     return normalizedModelId;
   }
-  return `${normalizedProvider}/${normalizedModelId}`;
+  return `cloud/${normalizedModelId}`;
 }
 
 function createSdkTextModel(
@@ -89,7 +89,7 @@ function createSdkTextModel(
   });
 
   const resolvedModelId = routePolicy === 'cloud'
-    ? normalizeCloudModelId(providerId || '', modelId)
+    ? normalizeCloudModelId(modelId)
     : modelId;
   return provider.text(resolvedModelId);
 }
@@ -508,6 +508,77 @@ function envValue(keys: string[]): string {
   return '';
 }
 
+function resolveLiveAudioMime(resource: string): string {
+  const normalized = String(resource || '').trim().toLowerCase();
+  if (normalized.endsWith('.mp3')) {
+    return 'audio/mpeg';
+  }
+  if (normalized.endsWith('.m4a')) {
+    return 'audio/mp4';
+  }
+  if (normalized.endsWith('.ogg')) {
+    return 'audio/ogg';
+  }
+  return 'audio/wav';
+}
+
+function loadLiveAudioBytes(filePath: string): Uint8Array {
+  const bytes = readFileSync(filePath);
+  assert.ok(bytes.length > 0, `${filePath} should not be empty`);
+  return new Uint8Array(bytes);
+}
+
+function resolveLiveSttAudioInput():
+  | { audio: { kind: 'bytes'; bytes: Uint8Array }; mimeType: string }
+  | { audio: { kind: 'url'; url: string }; mimeType: string }
+  | null {
+  const audioPath = envValue(['NIMI_LIVE_STT_AUDIO_PATH']);
+  if (audioPath) {
+    return {
+      audio: { kind: 'bytes', bytes: loadLiveAudioBytes(audioPath) },
+      mimeType: resolveLiveAudioMime(audioPath),
+    };
+  }
+
+  const audioUri = envValue(['NIMI_LIVE_STT_AUDIO_URI']);
+  if (!audioUri) {
+    return null;
+  }
+  return {
+    audio: { kind: 'url', url: audioUri },
+    mimeType: resolveLiveAudioMime(audioUri),
+  };
+}
+
+function resolveLiveVoiceCloneAudioInput(provider: string):
+  | { referenceAudioBytes: Uint8Array; referenceAudioMime: string }
+  | { referenceAudioUri: string; referenceAudioMime: string }
+  | null {
+  const token = providerEnvToken(provider);
+  const audioPath = envValue([
+    `NIMI_LIVE_${token}_VOICE_REFERENCE_AUDIO_PATH`,
+    'NIMI_LIVE_VOICE_REFERENCE_AUDIO_PATH',
+  ]);
+  if (audioPath) {
+    return {
+      referenceAudioBytes: loadLiveAudioBytes(audioPath),
+      referenceAudioMime: resolveLiveAudioMime(audioPath),
+    };
+  }
+
+  const audioUri = envValue([
+    `NIMI_LIVE_${token}_VOICE_REFERENCE_AUDIO_URI`,
+    'NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI',
+  ]);
+  if (!audioUri) {
+    return null;
+  }
+  return {
+    referenceAudioUri: audioUri,
+    referenceAudioMime: resolveLiveAudioMime(audioUri),
+  };
+}
+
 function requiredAnyEnvOrSkip(t: { skip: (msg?: string) => void }, keys: string[]): string | null {
   const value = envValue(keys);
   if (!value) {
@@ -539,25 +610,49 @@ function createRuntimeModule(endpoint: string): Runtime {
   });
 }
 
-async function waitForScenarioJobDone(runtime: Runtime, jobId: string, timeoutMs: number): Promise<number> {
+async function waitForScenarioJobDone(runtime: Runtime, jobId: string, timeoutMs: number) {
   const deadline = Date.now() + timeoutMs;
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const response = await runtime.ai.getScenarioJob({ jobId });
-    const status = response.job?.status ?? ScenarioJobStatus.UNSPECIFIED;
+    const job = response.job;
+    const status = job?.status ?? ScenarioJobStatus.UNSPECIFIED;
     if (
       status === ScenarioJobStatus.COMPLETED
       || status === ScenarioJobStatus.FAILED
       || status === ScenarioJobStatus.CANCELED
       || status === ScenarioJobStatus.TIMEOUT
     ) {
-      return status;
+      return job;
     }
     if (Date.now() > deadline) {
       throw new Error(`scenario job timeout waiting terminal status: ${jobId}`);
     }
     await new Promise((resolvePromise) => setTimeout(resolvePromise, 500));
   }
+}
+
+async function deleteVoiceAssetIfPresent(runtime: Runtime, voiceAssetId: string | undefined): Promise<void> {
+  const normalized = String(voiceAssetId || '').trim();
+  if (!normalized) {
+    return;
+  }
+  const response = await runtime.ai.deleteVoiceAsset({ voiceAssetId: normalized });
+  assert.equal(response.ack?.ok, true, `deleteVoiceAsset should acknowledge cleanup for ${normalized}`);
+}
+
+async function resolveSdkLiveTTSVoice(runtime: Runtime, provider: string, modelId: string): Promise<string | undefined> {
+  const response = await runtime.media.tts.listVoices({
+    model: modelId,
+    subjectUserId: SUBJECT_USER_ID,
+  });
+  const firstVoice = response.voices[0];
+  const voiceId = String(
+    provider === 'dashscope'
+      ? (firstVoice?.name || firstVoice?.voiceId || '')
+      : (firstVoice?.voiceId || ''),
+  ).trim();
+  return voiceId || undefined;
 }
 
 function buildRuntimeEnvForProvider(t: { skip: (msg?: string) => void }, provider: string): Record<string, string> | null {
@@ -613,7 +708,7 @@ async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, cap
   const route = sdkRoutePolicy(provider);
   const runtime = createRuntimeModule(endpoint);
   const routedModelId = route === 'cloud'
-    ? normalizeCloudModelId(provider, modelId)
+    ? normalizeCloudModelId(modelId)
     : modelId;
 
   if (capability === 'generate') {
@@ -673,9 +768,11 @@ async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, cap
   }
 
   if (capability === 'tts') {
+    const voice = await resolveSdkLiveTTSVoice(runtime, provider, routedModelId);
     const output = await runtime.media.tts.synthesize({
       model: routedModelId,
       text: 'Nimi SDK matrix live smoke speech synthesis.',
+      voice,
       subjectUserId: SUBJECT_USER_ID,
       route,
       fallback: 'deny',
@@ -686,14 +783,14 @@ async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, cap
   }
 
   if (capability === 'stt') {
-    const audioUri = envValue(['NIMI_LIVE_STT_AUDIO_URI']);
-    if (!audioUri) {
-      throw new Error('NIMI_LIVE_STT_AUDIO_URI is required for stt live smoke');
+    const audioInput = resolveLiveSttAudioInput();
+    if (!audioInput) {
+      throw new Error('NIMI_LIVE_STT_AUDIO_PATH or NIMI_LIVE_STT_AUDIO_URI is required for stt live smoke');
     }
     const output = await runtime.media.stt.transcribe({
       model: routedModelId,
-      audio: { kind: 'url', url: audioUri },
-      mimeType: 'audio/wav',
+      audio: audioInput.audio,
+      mimeType: audioInput.mimeType,
       subjectUserId: SUBJECT_USER_ID,
       route,
       fallback: 'deny',
@@ -706,6 +803,9 @@ async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, cap
   const targetModelId = envValue([
     `NIMI_LIVE_${providerEnvToken(provider)}_${capability === 'voice_clone' ? 'VOICE_CLONE_MODEL_ID_TARGET_MODEL_ID' : 'VOICE_DESIGN_MODEL_ID_TARGET_MODEL_ID'}`,
   ]) || modelId;
+  const voiceCloneAudioInput = capability === 'voice_clone'
+    ? resolveLiveVoiceCloneAudioInput(provider)
+    : null;
 
   const scenarioSpec = capability === 'voice_clone'
     ? {
@@ -713,7 +813,7 @@ async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, cap
       voiceClone: {
         targetModelId,
         input: {
-          referenceAudioUri: envValue([`NIMI_LIVE_${providerEnvToken(provider)}_VOICE_REFERENCE_AUDIO_URI`, 'NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI']),
+          ...(voiceCloneAudioInput || {}),
         },
       },
     }
@@ -722,13 +822,13 @@ async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, cap
       voiceDesign: {
         targetModelId,
         input: {
-          instructionText: 'Warm and calm natural voice.',
+          instructionText: LIVE_VOICE_DESIGN_INSTRUCTION,
         },
       },
     };
 
-  if (capability === 'voice_clone' && !scenarioSpec.voiceClone.input.referenceAudioUri) {
-    throw new Error('NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI is required for voice_clone live smoke');
+  if (capability === 'voice_clone' && !voiceCloneAudioInput) {
+    throw new Error('voice clone live smoke requires reference audio path or URI');
   }
 
   const submit = await runtime.ai.submitScenarioJob({
@@ -750,8 +850,25 @@ async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, cap
     extensions: [],
   });
   assert.ok((submit.job?.jobId || '').length > 0, 'matrix voice workflow job id should not be empty');
-  const status = await waitForScenarioJobDone(runtime, submit.job?.jobId || '', 180_000);
-  assert.equal(status, ScenarioJobStatus.COMPLETED, 'matrix voice workflow should complete');
+  const voiceAssetId = String(submit.asset?.voiceAssetId || '').trim() || undefined;
+  let cleanupError: unknown = null;
+  try {
+    const job = await waitForScenarioJobDone(runtime, submit.job?.jobId || '', 180_000);
+    assert.equal(
+      job?.status,
+      ScenarioJobStatus.COMPLETED,
+      `matrix voice workflow should complete: status=${job?.status} reasonCode=${job?.reasonCode} detail=${job?.reasonDetail || ''}`,
+    );
+  } finally {
+    try {
+      await deleteVoiceAssetIfPresent(runtime, voiceAssetId);
+    } catch (error) {
+      cleanupError = error;
+    }
+  }
+  if (cleanupError) {
+    throw cleanupError;
+  }
 }
 
 function registerSdkProviderCapabilityMatrixTests() {
@@ -777,12 +894,23 @@ function registerSdkProviderCapabilityMatrixTests() {
         if (!modelId) {
           return;
         }
-        if (capability === 'stt' && !envValue(['NIMI_LIVE_STT_AUDIO_URI'])) {
-          t.skip('set NIMI_LIVE_STT_AUDIO_URI to run stt live smoke');
+        if (
+          capability === 'stt'
+          && !envValue(['NIMI_LIVE_STT_AUDIO_PATH', 'NIMI_LIVE_STT_AUDIO_URI'])
+        ) {
+          t.skip('set NIMI_LIVE_STT_AUDIO_PATH or NIMI_LIVE_STT_AUDIO_URI to run stt live smoke');
           return;
         }
-        if (capability === 'voice_clone' && !envValue([`NIMI_LIVE_${providerEnvToken(provider)}_VOICE_REFERENCE_AUDIO_URI`, 'NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI'])) {
-          t.skip(`set NIMI_LIVE_${providerEnvToken(provider)}_VOICE_REFERENCE_AUDIO_URI or NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI`);
+        if (
+          capability === 'voice_clone'
+          && !envValue([
+            `NIMI_LIVE_${providerEnvToken(provider)}_VOICE_REFERENCE_AUDIO_PATH`,
+            'NIMI_LIVE_VOICE_REFERENCE_AUDIO_PATH',
+            `NIMI_LIVE_${providerEnvToken(provider)}_VOICE_REFERENCE_AUDIO_URI`,
+            'NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI',
+          ])
+        ) {
+          t.skip(`set NIMI_LIVE_${providerEnvToken(provider)}_VOICE_REFERENCE_AUDIO_PATH or NIMI_LIVE_${providerEnvToken(provider)}_VOICE_REFERENCE_AUDIO_URI`);
           return;
         }
 

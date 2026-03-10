@@ -1,6 +1,6 @@
 version: 1
 provider: elevenlabs
-catalog_version: 2026-03-05-elevenlabs-v1
+catalog_version: 2026-03-10-elevenlabs-v2
 models:
   - model_id: eleven_v3
     provider: elevenlabs
@@ -13,12 +13,12 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
+      as_of: 2026-03-10
       notes: ElevenLabs public API docs expose request surfaces but not a stable per-model pricing schema.
     source_ref:
       url: https://elevenlabs.io/docs/api-reference/models/list
-      retrieved_at: 2026-03-05
-      note: Model listing endpoint used to discover text-to-speech capable models.
+      retrieved_at: 2026-03-10
+      note: Model listing endpoint used to discover text-to-speech and text-to-voice capable models.
     voice_set_id: elevenlabs:default-voices-v1
     voice_discovery_mode: static_catalog
     voice_ref_kinds:
@@ -36,12 +36,12 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
+      as_of: 2026-03-10
       notes: ElevenLabs public API docs expose request surfaces but not a stable per-model pricing schema.
     source_ref:
       url: https://elevenlabs.io/docs/api-reference/models/list
-      retrieved_at: 2026-03-05
-      note: Model listing endpoint used to discover text-to-speech capable models.
+      retrieved_at: 2026-03-10
+      note: Model listing endpoint used to discover text-to-speech and text-to-voice capable models.
     voice_set_id: elevenlabs:default-voices-v1
     voice_discovery_mode: static_catalog
     voice_ref_kinds:
@@ -59,12 +59,12 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
+      as_of: 2026-03-10
       notes: ElevenLabs public API docs expose request surfaces but not a stable per-model pricing schema.
     source_ref:
       url: https://elevenlabs.io/docs/api-reference/models/list
-      retrieved_at: 2026-03-05
-      note: Model listing endpoint used to discover text-to-speech capable models.
+      retrieved_at: 2026-03-10
+      note: Model listing endpoint used to discover text-to-speech and text-to-voice capable models.
     voice_set_id: elevenlabs:default-voices-v1
     voice_discovery_mode: static_catalog
     voice_ref_kinds:
@@ -82,12 +82,104 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
+      as_of: 2026-03-10
       notes: ElevenLabs public API docs expose request surfaces but not a stable per-model pricing schema.
     source_ref:
       url: https://elevenlabs.io/docs/api-reference/models/list
-      retrieved_at: 2026-03-05
-      note: Model listing endpoint used to discover text-to-speech capable models.
+      retrieved_at: 2026-03-10
+      note: Model listing endpoint used to discover text-to-speech and text-to-voice capable models.
+    voice_set_id: elevenlabs:default-voices-v1
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds:
+      - provider_voice_ref
+      - voice_asset_id
+      - preset_voice_id
+  - model_id: eleven_multilingual_sts_v2
+    provider: elevenlabs
+    model_type: tts
+    updated_at: 2026-03-10
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-10
+      notes: ElevenLabs public API docs expose request surfaces but not a stable per-model pricing schema.
+    source_ref:
+      url: https://elevenlabs.io/docs/api-reference/models/list
+      retrieved_at: 2026-03-10
+      note: Model listing endpoint used to discover text-to-speech and text-to-voice capable models.
+    voice_set_id: elevenlabs:default-voices-v1
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds:
+      - provider_voice_ref
+      - voice_asset_id
+      - preset_voice_id
+  - model_id: eleven_english_sts_v2
+    provider: elevenlabs
+    model_type: tts
+    updated_at: 2026-03-10
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-10
+      notes: ElevenLabs public API docs expose request surfaces but not a stable per-model pricing schema.
+    source_ref:
+      url: https://elevenlabs.io/docs/api-reference/models/list
+      retrieved_at: 2026-03-10
+      note: Model listing endpoint used to discover text-to-speech and text-to-voice capable models.
+    voice_set_id: elevenlabs:default-voices-v1
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds:
+      - provider_voice_ref
+      - voice_asset_id
+      - preset_voice_id
+  - model_id: eleven_ttv_v3
+    provider: elevenlabs
+    model_type: tts
+    updated_at: 2026-03-10
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-10
+      notes: ElevenLabs public API docs expose request surfaces but not a stable per-model pricing schema.
+    source_ref:
+      url: https://elevenlabs.io/docs/api-reference/models/list
+      retrieved_at: 2026-03-10
+      note: Model listing endpoint used to discover text-to-speech and text-to-voice capable models.
+    voice_set_id: elevenlabs:default-voices-v1
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds:
+      - provider_voice_ref
+      - voice_asset_id
+      - preset_voice_id
+  - model_id: eleven_multilingual_ttv_v2
+    provider: elevenlabs
+    model_type: tts
+    updated_at: 2026-03-10
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-10
+      notes: ElevenLabs public API docs expose request surfaces but not a stable per-model pricing schema.
+    source_ref:
+      url: https://elevenlabs.io/docs/api-reference/models/list
+      retrieved_at: 2026-03-10
+      note: Model listing endpoint used to discover text-to-speech and text-to-voice capable models.
     voice_set_id: elevenlabs:default-voices-v1
     voice_discovery_mode: static_catalog
     voice_ref_kinds:
@@ -106,9 +198,13 @@ voices:
       - eleven_multilingual_v2
       - eleven_flash_v2_5
       - eleven_turbo_v2_5
+      - eleven_multilingual_sts_v2
+      - eleven_english_sts_v2
+      - eleven_ttv_v3
+      - eleven_multilingual_ttv_v2
     source_ref:
       url: https://elevenlabs.io/docs/api-reference/voices/list
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-03-10
       note: Voice inventory and metadata endpoint.
   - voice_id: AZnzlk1XvdvUeBnXmlld
     voice_set_id: elevenlabs:default-voices-v1
@@ -121,9 +217,13 @@ voices:
       - eleven_multilingual_v2
       - eleven_flash_v2_5
       - eleven_turbo_v2_5
+      - eleven_multilingual_sts_v2
+      - eleven_english_sts_v2
+      - eleven_ttv_v3
+      - eleven_multilingual_ttv_v2
     source_ref:
       url: https://elevenlabs.io/docs/api-reference/voices/list
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-03-10
       note: Voice inventory and metadata endpoint.
   - voice_id: EXAVITQu4vr4xnSDxMaL
     voice_set_id: elevenlabs:default-voices-v1
@@ -136,9 +236,13 @@ voices:
       - eleven_multilingual_v2
       - eleven_flash_v2_5
       - eleven_turbo_v2_5
+      - eleven_multilingual_sts_v2
+      - eleven_english_sts_v2
+      - eleven_ttv_v3
+      - eleven_multilingual_ttv_v2
     source_ref:
       url: https://elevenlabs.io/docs/api-reference/voices/list
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-03-10
       note: Voice inventory and metadata endpoint.
   - voice_id: TxGEqnHWrfWFTfGW9XjX
     voice_set_id: elevenlabs:default-voices-v1
@@ -151,9 +255,13 @@ voices:
       - eleven_multilingual_v2
       - eleven_flash_v2_5
       - eleven_turbo_v2_5
+      - eleven_multilingual_sts_v2
+      - eleven_english_sts_v2
+      - eleven_ttv_v3
+      - eleven_multilingual_ttv_v2
     source_ref:
       url: https://elevenlabs.io/docs/api-reference/voices/list
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-03-10
       note: Voice inventory and metadata endpoint.
 voice_workflow_models:
   - workflow_model_id: elevenlabs-voice-clone
@@ -161,14 +269,12 @@ voice_workflow_models:
     input_contract_ref: elevenlabs_tts_v2v_input_v1
     output_persistence: provider_persistent
     target_model_refs:
-      - eleven_v3
-      - eleven_multilingual_v2
-      - eleven_flash_v2_5
-      - eleven_turbo_v2_5
+      - eleven_multilingual_sts_v2
+      - eleven_english_sts_v2
     source_ref:
       url: https://elevenlabs.io/docs/api-reference/voices/add
-      retrieved_at: 2026-03-05
-      note: Voice cloning endpoint for audio-to-voice workflows.
+      retrieved_at: 2026-03-10
+      note: Instant Voice Cloning endpoint for audio-to-voice workflows.
     langs:
       - en
       - zh
@@ -185,14 +291,12 @@ voice_workflow_models:
     input_contract_ref: elevenlabs_tts_t2v_input_v1
     output_persistence: provider_persistent
     target_model_refs:
-      - eleven_v3
-      - eleven_multilingual_v2
-      - eleven_flash_v2_5
-      - eleven_turbo_v2_5
+      - eleven_ttv_v3
+      - eleven_multilingual_ttv_v2
     source_ref:
-      url: https://elevenlabs.io/docs/api-reference/text-to-voice/create-previews
-      retrieved_at: 2026-03-05
-      note: Voice design preview endpoint (paired with create-voice-from-preview).
+      url: https://elevenlabs.io/docs/api-reference/text-to-voice
+      retrieved_at: 2026-03-10
+      note: Current voice design preview endpoint (/v1/text-to-voice/design).
     langs:
       - en
       - zh
@@ -205,31 +309,23 @@ voice_workflow_models:
       - fr
       - ru
 model_workflow_bindings:
-  - model_id: eleven_v3
+  - model_id: eleven_multilingual_sts_v2
     workflow_model_refs:
       - elevenlabs-voice-clone
-      - elevenlabs-voice-design
     workflow_types:
       - tts_v2v
+  - model_id: eleven_english_sts_v2
+    workflow_model_refs:
+      - elevenlabs-voice-clone
+    workflow_types:
+      - tts_v2v
+  - model_id: eleven_ttv_v3
+    workflow_model_refs:
+      - elevenlabs-voice-design
+    workflow_types:
       - tts_t2v
-  - model_id: eleven_multilingual_v2
+  - model_id: eleven_multilingual_ttv_v2
     workflow_model_refs:
-      - elevenlabs-voice-clone
       - elevenlabs-voice-design
     workflow_types:
-      - tts_v2v
-      - tts_t2v
-  - model_id: eleven_flash_v2_5
-    workflow_model_refs:
-      - elevenlabs-voice-clone
-      - elevenlabs-voice-design
-    workflow_types:
-      - tts_v2v
-      - tts_t2v
-  - model_id: eleven_turbo_v2_5
-    workflow_model_refs:
-      - elevenlabs-voice-clone
-      - elevenlabs-voice-design
-    workflow_types:
-      - tts_v2v
       - tts_t2v

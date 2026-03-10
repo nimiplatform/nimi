@@ -16,6 +16,7 @@ import (
 
 const liveSmokeMatrixAppID = "nimi.live-smoke.matrix"
 const liveSmokeMatrixUserID = "smoke-user"
+const liveSmokeVoiceDesignInstruction = "Warm, calm, natural narrator voice with steady pacing, clear diction, low background noise, gentle emotional range, and a polished studio delivery for long-form spoken content."
 
 func TestLiveSmokeProviderCapabilityMatrix(t *testing.T) {
 	for _, providerID := range providerregistry.SourceProviders {
@@ -106,6 +107,33 @@ func routePolicyForProvider(providerID string) runtimev1.RoutePolicy {
 	return runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
 }
 
+func qualifyLiveModelIDForRoute(providerID string, modelID string) string {
+	modelID = strings.TrimSpace(modelID)
+	if modelID == "" || providerID == "local" {
+		return modelID
+	}
+	lower := strings.ToLower(modelID)
+	if strings.HasPrefix(lower, "cloud/") || strings.HasPrefix(lower, "token/") || strings.Contains(modelID, "/") {
+		return modelID
+	}
+	return "cloud/" + modelID
+}
+
+func resolveLiveTTSVoiceRef(t *testing.T, svc *Service, providerID string, modelID string) string {
+	t.Helper()
+	if svc == nil || svc.speechCatalog == nil {
+		return ""
+	}
+	voices, _, _, err := resolveSpeechVoicesForModelWithProviderType(modelID, providerID, svc.speechCatalog)
+	if err != nil || len(voices) == 0 {
+		return ""
+	}
+	if strings.EqualFold(strings.TrimSpace(providerID), "dashscope") {
+		return strings.TrimSpace(voices[0].GetName())
+	}
+	return strings.TrimSpace(voices[0].GetVoiceId())
+}
+
 func envModelIDForProvider(t *testing.T, providerID string, capabilitySuffix string, fallbackSuffix string) string {
 	t.Helper()
 	token := liveProviderEnvToken(providerID)
@@ -125,17 +153,94 @@ func envModelIDForProvider(t *testing.T, providerID string, capabilitySuffix str
 	return requiredLiveEnv(t, primaryKey)
 }
 
+func liveEnvFirst(keys ...string) string {
+	for _, key := range keys {
+		if value := strings.TrimSpace(os.Getenv(key)); value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func resolveLiveAudioMIME(resource string) string {
+	lower := strings.ToLower(strings.TrimSpace(resource))
+	switch {
+	case strings.HasSuffix(lower, ".mp3"):
+		return "audio/mpeg"
+	case strings.HasSuffix(lower, ".m4a"):
+		return "audio/mp4"
+	case strings.HasSuffix(lower, ".ogg"):
+		return "audio/ogg"
+	default:
+		return "audio/wav"
+	}
+}
+
+func resolveLiveTranscriptionAudioSource(t *testing.T) (*runtimev1.SpeechTranscriptionAudioSource, string) {
+	t.Helper()
+	if audioPath := liveEnvFirst("NIMI_LIVE_STT_AUDIO_PATH"); audioPath != "" {
+		audioBytes, err := os.ReadFile(audioPath)
+		if err != nil {
+			t.Fatalf("read stt live audio path %s: %v", audioPath, err)
+		}
+		if len(audioBytes) == 0 {
+			t.Fatalf("stt live audio path %s is empty", audioPath)
+		}
+		return &runtimev1.SpeechTranscriptionAudioSource{
+			Source: &runtimev1.SpeechTranscriptionAudioSource_AudioBytes{AudioBytes: audioBytes},
+		}, resolveLiveAudioMIME(audioPath)
+	}
+
+	audioURI := requiredLiveEnv(t, "NIMI_LIVE_STT_AUDIO_URI")
+	return &runtimev1.SpeechTranscriptionAudioSource{
+		Source: &runtimev1.SpeechTranscriptionAudioSource_AudioUri{AudioUri: audioURI},
+	}, resolveLiveAudioMIME(audioURI)
+}
+
+func resolveLiveVoiceCloneInput(t *testing.T, providerToken string) *runtimev1.VoiceV2VInput {
+	t.Helper()
+	audioPath := liveEnvFirst(
+		"NIMI_LIVE_"+providerToken+"_VOICE_REFERENCE_AUDIO_PATH",
+		"NIMI_LIVE_VOICE_REFERENCE_AUDIO_PATH",
+	)
+	if audioPath != "" {
+		audioBytes, err := os.ReadFile(audioPath)
+		if err != nil {
+			t.Fatalf("read voice clone live audio path %s: %v", audioPath, err)
+		}
+		if len(audioBytes) == 0 {
+			t.Fatalf("voice clone live audio path %s is empty", audioPath)
+		}
+		return &runtimev1.VoiceV2VInput{
+			ReferenceAudioBytes: audioBytes,
+			ReferenceAudioMime:  resolveLiveAudioMIME(audioPath),
+		}
+	}
+
+	audioURI := liveEnvFirst(
+		"NIMI_LIVE_"+providerToken+"_VOICE_REFERENCE_AUDIO_URI",
+		"NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI",
+	)
+	if audioURI == "" {
+		audioURI = requiredLiveEnv(t, "NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI")
+	}
+	return &runtimev1.VoiceV2VInput{
+		ReferenceAudioUri:  audioURI,
+		ReferenceAudioMime: resolveLiveAudioMIME(audioURI),
+	}
+}
+
 func runLiveSmokeGenerateForProvider(t *testing.T, providerID string, record providerregistry.ProviderRecord) {
 	t.Helper()
 	svc := newLiveSmokeServiceForProvider(t, providerID, record)
-	modelID := envModelIDForProvider(t, providerID, "MODEL_ID", "")
+	modelID := qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, "MODEL_ID", ""))
 	runLiveSmokeScenarioGenerateText(t, svc, modelID, routePolicyForProvider(providerID))
 }
 
 func runLiveSmokeEmbedForProvider(t *testing.T, providerID string, record providerregistry.ProviderRecord) {
 	t.Helper()
 	svc := newLiveSmokeServiceForProvider(t, providerID, record)
-	modelID := envModelIDForProvider(t, providerID, "EMBED_MODEL_ID", "MODEL_ID")
+	modelID := qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, "EMBED_MODEL_ID", "MODEL_ID"))
 
 	resp, err := svc.ExecuteScenario(context.Background(), &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
@@ -171,26 +276,33 @@ func runLiveSmokeMediaForProvider(t *testing.T, providerID string, record provid
 	spec := &runtimev1.ScenarioSpec{}
 	switch scenarioType {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
-		modelID = envModelIDForProvider(t, providerID, "IMAGE_MODEL_ID", "MODEL_ID")
+		modelID = qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, "IMAGE_MODEL_ID", "MODEL_ID"))
 		spec.Spec = &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "A tiny planet above the sea."}}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:
-		modelID = envModelIDForProvider(t, providerID, "VIDEO_MODEL_ID", "MODEL_ID")
+		modelID = qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, "VIDEO_MODEL_ID", "MODEL_ID"))
 		spec.Spec = &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{
 			Mode:    runtimev1.VideoMode_VIDEO_MODE_T2V,
 			Content: []*runtimev1.VideoContentItem{{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT, Text: "A short cinematic scene of sunrise."}},
 			Options: &runtimev1.VideoGenerationOptions{DurationSec: 1},
 		}}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
-		modelID = envModelIDForProvider(t, providerID, "TTS_MODEL_ID", "MODEL_ID")
-		spec.Spec = &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "Hello from Nimi live smoke."}}
+		modelID = qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, "TTS_MODEL_ID", "MODEL_ID"))
+		speechSpec := &runtimev1.SpeechSynthesizeScenarioSpec{Text: "Hello from Nimi live smoke."}
+		if voiceRef := resolveLiveTTSVoiceRef(t, svc, providerID, modelID); voiceRef != "" {
+			speechSpec.VoiceRef = &runtimev1.VoiceReference{
+				Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET,
+				Reference: &runtimev1.VoiceReference_PresetVoiceId{
+					PresetVoiceId: voiceRef,
+				},
+			}
+		}
+		spec.Spec = &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: speechSpec}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
-		modelID = envModelIDForProvider(t, providerID, "STT_MODEL_ID", "MODEL_ID")
-		audioURI := requiredLiveEnv(t, "NIMI_LIVE_STT_AUDIO_URI")
+		modelID = qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, "STT_MODEL_ID", "MODEL_ID"))
+		audioSource, mimeType := resolveLiveTranscriptionAudioSource(t)
 		spec.Spec = &runtimev1.ScenarioSpec_SpeechTranscribe{SpeechTranscribe: &runtimev1.SpeechTranscribeScenarioSpec{
-			MimeType: "audio/wav",
-			AudioSource: &runtimev1.SpeechTranscriptionAudioSource{
-				Source: &runtimev1.SpeechTranscriptionAudioSource_AudioUri{AudioUri: audioURI},
-			},
+			MimeType:    mimeType,
+			AudioSource: audioSource,
 		}}
 	default:
 		t.Fatalf("unsupported media scenario type: %v", scenarioType)
@@ -232,7 +344,7 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 		modelKey = "VOICE_DESIGN_MODEL_ID"
 		fallbackModelKey = "TTS_MODEL_ID"
 	}
-	modelID := envModelIDForProvider(t, providerID, modelKey, fallbackModelKey)
+	modelID := qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, modelKey, fallbackModelKey))
 	targetModelID := strings.TrimSpace(os.Getenv("NIMI_LIVE_" + token + "_" + modelKey + "_TARGET_MODEL_ID"))
 	if targetModelID == "" {
 		targetModelID = modelID
@@ -240,18 +352,14 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 
 	spec := &runtimev1.ScenarioSpec{}
 	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE {
-		audioURI := strings.TrimSpace(os.Getenv("NIMI_LIVE_" + token + "_VOICE_REFERENCE_AUDIO_URI"))
-		if audioURI == "" {
-			audioURI = requiredLiveEnv(t, "NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI")
-		}
 		spec.Spec = &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
 			TargetModelId: targetModelID,
-			Input:         &runtimev1.VoiceV2VInput{ReferenceAudioUri: audioURI},
+			Input:         resolveLiveVoiceCloneInput(t, token),
 		}}
 	} else {
 		spec.Spec = &runtimev1.ScenarioSpec_VoiceDesign{VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
 			TargetModelId: targetModelID,
-			Input:         &runtimev1.VoiceT2VInput{InstructionText: "Warm, calm and natural voice."},
+			Input:         &runtimev1.VoiceT2VInput{InstructionText: liveSmokeVoiceDesignInstruction},
 		}}
 	}
 
@@ -274,6 +382,17 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 	if submitResp.GetAsset() == nil || strings.TrimSpace(submitResp.GetAsset().GetVoiceAssetId()) == "" {
 		t.Fatalf("voice workflow must return voice asset")
 	}
+	voiceAssetID := strings.TrimSpace(submitResp.GetAsset().GetVoiceAssetId())
+	defer func() {
+		deleteResp, deleteErr := svc.DeleteVoiceAsset(context.Background(), &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: voiceAssetID})
+		if deleteErr != nil {
+			t.Errorf("DeleteVoiceAsset(%s): %v", voiceAssetID, deleteErr)
+			return
+		}
+		if deleteResp.GetAck() == nil || !deleteResp.GetAck().GetOk() {
+			t.Errorf("DeleteVoiceAsset(%s) ack must be ok", voiceAssetID)
+		}
+	}()
 	job := waitLiveSmokeScenarioJob(t, svc, submitResp.GetJob().GetJobId())
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		t.Fatalf("voice workflow job status not completed: %s reason=%s detail=%s", job.GetStatus().String(), job.GetReasonCode().String(), job.GetReasonDetail())

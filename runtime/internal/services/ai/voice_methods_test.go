@@ -4,6 +4,8 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -109,6 +111,60 @@ func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 	}
 	if getAfterDelete.GetAsset().GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED {
 		t.Fatalf("asset status mismatch after delete: got=%v", getAfterDelete.GetAsset().GetStatus())
+	}
+}
+
+func TestDeleteVoiceAssetDeletesProviderPersistentVoiceWhenSupported(t *testing.T) {
+	var (
+		gotMethod string
+		gotPath   string
+		gotAPIKey string
+	)
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		gotMethod = request.Method
+		gotPath = request.URL.Path
+		gotAPIKey = request.Header.Get("xi-api-key")
+		writer.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"elevenlabs": {BaseURL: server.URL, APIKey: "test-key"},
+		},
+	})
+
+	const assetID = "asset-elevenlabs-1"
+	svc.voiceAssets.assets[assetID] = &runtimev1.VoiceAsset{
+		VoiceAssetId:     assetID,
+		Provider:         "elevenlabs",
+		ProviderVoiceRef: "voice_123",
+		Persistence:      runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT,
+		Status:           runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
+	}
+
+	deleteResp, err := svc.DeleteVoiceAsset(context.Background(), &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID})
+	if err != nil {
+		t.Fatalf("DeleteVoiceAsset: %v", err)
+	}
+	if deleteResp.GetAck() == nil || !deleteResp.GetAck().GetOk() {
+		t.Fatalf("delete voice asset ack must be ok")
+	}
+	if gotMethod != http.MethodDelete {
+		t.Fatalf("unexpected provider delete method: %q", gotMethod)
+	}
+	if gotPath != "/v1/voices/voice_123" {
+		t.Fatalf("unexpected provider delete path: %q", gotPath)
+	}
+	if gotAPIKey != "test-key" {
+		t.Fatalf("unexpected provider delete api key: %q", gotAPIKey)
+	}
+	getAfterDelete, err := svc.GetVoiceAsset(context.Background(), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID})
+	if err != nil {
+		t.Fatalf("GetVoiceAsset(after delete): %v", err)
+	}
+	if getAfterDelete.GetAsset().GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED {
+		t.Fatalf("asset status mismatch after provider delete: got=%v", getAfterDelete.GetAsset().GetStatus())
 	}
 }
 

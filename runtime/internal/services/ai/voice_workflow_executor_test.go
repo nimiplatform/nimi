@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -16,7 +17,7 @@ import (
 )
 
 func TestVoiceWorkflowViaNimillmCloneSuccess(t *testing.T) {
-	providers := []string{"dashscope", "fish_audio", "playht", "stepfun", "elevenlabs"}
+	providers := []string{"dashscope", "fish_audio", "playht", "stepfun"}
 	for _, provider := range providers {
 		provider := provider
 		t.Run(provider, func(t *testing.T) {
@@ -63,18 +64,103 @@ func TestVoiceWorkflowViaNimillmCloneSuccess(t *testing.T) {
 	}
 }
 
+func TestElevenLabsVoiceCloneWorkflowSuccess(t *testing.T) {
+	var requestPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestPath = r.URL.Path
+		if got := strings.TrimSpace(r.Header.Get("xi-api-key")); got != "test-key" {
+			t.Fatalf("expected xi-api-key header, got=%q", got)
+		}
+		if got := strings.TrimSpace(r.Header.Get("Authorization")); got != "" {
+			t.Fatalf("unexpected Authorization header: %q", got)
+		}
+		if !strings.HasPrefix(strings.TrimSpace(r.Header.Get("Content-Type")), "multipart/form-data;") {
+			t.Fatalf("expected multipart form request, got content-type=%q", r.Header.Get("Content-Type"))
+		}
+		if err := r.ParseMultipartForm(1 << 20); err != nil {
+			t.Fatalf("ParseMultipartForm: %v", err)
+		}
+		if got := strings.TrimSpace(r.FormValue("name")); got != "test-clone-voice" {
+			t.Fatalf("unexpected clone name: %q", got)
+		}
+		if got := strings.TrimSpace(r.FormValue("remove_background_noise")); got != "false" {
+			t.Fatalf("unexpected remove_background_noise value: %q", got)
+		}
+		file, header, err := r.FormFile("files")
+		if err != nil {
+			t.Fatalf("FormFile(files): %v", err)
+		}
+		defer file.Close()
+		payload, err := io.ReadAll(file)
+		if err != nil {
+			t.Fatalf("ReadAll(file): %v", err)
+		}
+		if string(payload) != "voice-audio" {
+			t.Fatalf("unexpected uploaded audio payload: %q", string(payload))
+		}
+		if header == nil || strings.TrimSpace(header.Filename) == "" {
+			t.Fatalf("expected uploaded filename")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"voice_id":"voice-elevenlabs-clone-001"}`)
+	}))
+	defer server.Close()
+
+	req := voiceCloneRequest()
+	req.Head.ModelId = "elevenlabs/eleven_multilingual_sts_v2"
+	req.Spec.GetVoiceClone().TargetModelId = "elevenlabs/eleven_multilingual_sts_v2"
+	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = []byte("voice-audio")
+	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/wav"
+	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
+
+	result, err := executeVoiceWorkflowViaNimillm(
+		context.Background(),
+		"elevenlabs",
+		req,
+		catalog.ResolveVoiceWorkflowResult{
+			Provider:        "elevenlabs",
+			ModelID:         "elevenlabs/eleven_multilingual_sts_v2",
+			WorkflowType:    "tts_v2v",
+			WorkflowModelID: "elevenlabs-voice-clone",
+		},
+		nimillm.MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"},
+	)
+	if err != nil {
+		t.Fatalf("Execute ElevenLabs clone workflow: %v", err)
+	}
+	if got := strings.TrimSpace(result.ProviderVoiceRef); got != "voice-elevenlabs-clone-001" {
+		t.Fatalf("unexpected provider voice ref: %q", got)
+	}
+	if requestPath != "/v1/voices/add" {
+		t.Fatalf("unexpected request path: %q", requestPath)
+	}
+}
+
 func TestElevenLabsVoiceDesignWorkflowSuccess(t *testing.T) {
 	requestPaths := make([]string, 0, 4)
+	requestBodies := make([]map[string]any, 0, 2)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestPaths = append(requestPaths, r.URL.Path)
 		if got := strings.TrimSpace(r.Header.Get("xi-api-key")); got != "test-key" {
 			t.Fatalf("expected xi-api-key header, got=%q", got)
 		}
+		if got := strings.TrimSpace(r.Header.Get("Authorization")); got != "" {
+			t.Fatalf("unexpected Authorization header: %q", got)
+		}
+		rawBody, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("ReadAll(body): %v", err)
+		}
+		body := map[string]any{}
+		if err := json.Unmarshal(rawBody, &body); err != nil {
+			t.Fatalf("Unmarshal(body): %v", err)
+		}
+		requestBodies = append(requestBodies, body)
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
-		case "/v1/text-to-voice/create-previews":
-			_, _ = io.WriteString(w, `{"previews":[{"preview_id":"preview-001"}]}`)
-		case "/v1/text-to-voice/create-voice-from-preview":
+		case "/v1/text-to-voice/design":
+			_, _ = io.WriteString(w, `{"previews":[{"generated_voice_id":"preview-001"}]}`)
+		case "/v1/text-to-voice":
 			_, _ = io.WriteString(w, `{"voice_id":"voice-elevenlabs-001","task_id":"job-elevenlabs-001"}`)
 		default:
 			http.NotFound(w, r)
@@ -88,7 +174,7 @@ func TestElevenLabsVoiceDesignWorkflowSuccess(t *testing.T) {
 		voiceDesignRequest(),
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "elevenlabs",
-			ModelID:         "elevenlabs/eleven_v3",
+			ModelID:         "elevenlabs/eleven_ttv_v3",
 			WorkflowType:    "tts_t2v",
 			WorkflowModelID: "elevenlabs-voice-design",
 		},
@@ -102,6 +188,24 @@ func TestElevenLabsVoiceDesignWorkflowSuccess(t *testing.T) {
 	}
 	if len(requestPaths) != 2 {
 		t.Fatalf("expected preview+create two-step requests, got=%d paths=%v", len(requestPaths), requestPaths)
+	}
+	if requestPaths[0] != "/v1/text-to-voice/design" || requestPaths[1] != "/v1/text-to-voice" {
+		t.Fatalf("unexpected request paths: %v", requestPaths)
+	}
+	if _, ok := requestBodies[0]["model_id"]; ok {
+		t.Fatalf("design preview payload must not send model_id")
+	}
+	if got := strings.TrimSpace(nimillm.ValueAsString(requestBodies[0]["voice_description"])); got == "" {
+		t.Fatalf("preview payload must include voice_description")
+	}
+	if got := strings.TrimSpace(nimillm.ValueAsString(requestBodies[1]["generated_voice_id"])); got != "preview-001" {
+		t.Fatalf("unexpected generated_voice_id: %q", got)
+	}
+	if got := strings.TrimSpace(nimillm.ValueAsString(requestBodies[1]["voice_name"])); got != "narrator-test" {
+		t.Fatalf("unexpected voice_name: %q", got)
+	}
+	if _, ok := requestBodies[1]["name"]; ok {
+		t.Fatalf("design create payload must not use legacy name field")
 	}
 }
 
@@ -344,14 +448,14 @@ func voiceDesignRequest() *runtimev1.SubmitScenarioJobRequest {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
-			ModelId:       "elevenlabs/eleven_v3",
+			ModelId:       "elevenlabs/eleven_ttv_v3",
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceDesign{VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
-				TargetModelId: "elevenlabs/eleven_v3",
+				TargetModelId: "elevenlabs/eleven_ttv_v3",
 				Input: &runtimev1.VoiceT2VInput{
 					InstructionText: "A warm, calm and natural female narrator voice.",
 					PreviewText:     "Hello from Nimi voice design.",

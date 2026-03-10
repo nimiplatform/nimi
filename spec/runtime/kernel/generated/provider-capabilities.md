@@ -12,7 +12,7 @@
 | `cohere` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `dashscope` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `deepseek` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
-| `elevenlabs` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `elevenlabs` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `fireworks` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `fish_audio` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `flux` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |

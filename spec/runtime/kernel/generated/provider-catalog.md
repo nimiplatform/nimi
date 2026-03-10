@@ -12,7 +12,7 @@
 | `cohere` | — | `true` | `K-MCAT-027` |
 | `dashscope` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `false` | `K-MCAT-027` |
 | `deepseek` | `https://api.deepseek.com/v1` | `false` | `K-MCAT-027` |
-| `elevenlabs` | — | `true` | `K-MCAT-027` |
+| `elevenlabs` | `https://api.elevenlabs.io` | `false` | `K-MCAT-027` |
 | `fireworks` | — | `true` | `K-MCAT-027` |
 | `fish_audio` | — | `true` | `K-MCAT-027` |
 | `flux` | — | `true` | `K-MCAT-027` |

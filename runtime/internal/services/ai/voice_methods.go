@@ -64,10 +64,15 @@ func (s *Service) ListVoiceAssets(_ context.Context, req *runtimev1.ListVoiceAss
 	}, nil
 }
 
-func (s *Service) DeleteVoiceAsset(_ context.Context, req *runtimev1.DeleteVoiceAssetRequest) (*runtimev1.DeleteVoiceAssetResponse, error) {
+func (s *Service) DeleteVoiceAsset(ctx context.Context, req *runtimev1.DeleteVoiceAssetRequest) (*runtimev1.DeleteVoiceAssetResponse, error) {
 	if req == nil || strings.TrimSpace(req.GetVoiceAssetId()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+	asset, ok := s.voiceAssets.getAsset(req.GetVoiceAssetId())
+	if !ok {
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
+	}
+	s.deleteProviderPersistentVoiceAsset(ctx, asset)
 	if ok := s.voiceAssets.deleteAsset(req.GetVoiceAssetId()); !ok {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
 	}
@@ -77,6 +82,30 @@ func (s *Service) DeleteVoiceAsset(_ context.Context, req *runtimev1.DeleteVoice
 			ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 		},
 	}, nil
+}
+
+func (s *Service) deleteProviderPersistentVoiceAsset(ctx context.Context, asset *runtimev1.VoiceAsset) {
+	if s == nil || asset == nil {
+		return
+	}
+	if asset.GetPersistence() != runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT {
+		return
+	}
+	provider := strings.TrimSpace(strings.ToLower(asset.GetProvider()))
+	providerVoiceRef := strings.TrimSpace(asset.GetProviderVoiceRef())
+	if provider == "" || providerVoiceRef == "" || !nimillm.SupportsProviderVoiceDelete(provider) {
+		return
+	}
+	cfg := s.resolveNativeAdapterConfig(provider, nil)
+	extPayload := nimillm.StructToMap(asset.GetMetadata())
+	if err := nimillm.DeleteProviderVoice(ctx, provider, providerVoiceRef, cfg, extPayload); err != nil && s.logger != nil {
+		s.logger.Warn("provider voice delete failed; local asset delete continues",
+			"provider", provider,
+			"voice_asset_id", strings.TrimSpace(asset.GetVoiceAssetId()),
+			"provider_voice_ref", providerVoiceRef,
+			"error", err,
+		)
+	}
 }
 
 func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPresetVoicesRequest) (*runtimev1.ListPresetVoicesResponse, error) {
