@@ -63,20 +63,20 @@ func TestVoiceAssetStoreCompleteAndTimeoutJob(t *testing.T) {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
-			ModelId:       "playht/playht-voice-clone",
+			ModelId:       "stepfun/step-tts-vc",
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-				TargetModelId: "playht/playht-voice-clone",
+				TargetModelId: "stepfun/step-tts-vc",
 				Input: &runtimev1.VoiceV2VInput{
 					ReferenceAudioUri:  "https://example.com/reference.wav",
 					ReferenceAudioMime: "audio/wav",
 				},
 			}},
 		},
-		Provider: "playht",
+		Provider: "stepfun",
 	})
 	if timeoutJob == nil || timeoutAsset == nil {
 		t.Fatalf("submit should create timeout job and asset")

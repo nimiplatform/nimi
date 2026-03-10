@@ -37,7 +37,6 @@ type VoiceWorkflowResult struct {
 // (dashscope, elevenlabs) are handled by dedicated functions.
 var simpleVoiceAdapterDefaults = map[string][]string{
 	"fish_audio": {"/v1/voices/clone", "/v1/voice-clone", "/v1/audio/voices/clone"},
-	"playht":     {"/api/v2/cloned-voices/instant", "/v1/voices/clone", "/v1/voice-clone"},
 	"stepfun":    {"/v1/audio/voice-clone", "/v1/audio/voices/clone", "/v1/voices/clone"},
 }
 
@@ -190,12 +189,6 @@ func voiceWorkflowHeaders(provider string, apiKey string, extPayload map[string]
 	}
 	if provider == "elevenlabs" && strings.TrimSpace(apiKey) != "" {
 		headers["xi-api-key"] = strings.TrimSpace(apiKey)
-	}
-	if provider == "playht" {
-		userID := strings.TrimSpace(ValueAsString(extPayload["user_id"]))
-		if userID != "" {
-			headers["X-USER-ID"] = userID
-		}
 	}
 	if apiKeyHeader := strings.TrimSpace(ValueAsString(extPayload["api_key_header"])); apiKeyHeader != "" && strings.TrimSpace(apiKey) != "" {
 		headers[apiKeyHeader] = strings.TrimSpace(apiKey)

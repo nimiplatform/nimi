@@ -10,6 +10,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestNativeOriginURL(t *testing.T) {
@@ -214,6 +215,15 @@ func TestExecuteDashScopeTranscribeUsesCompatibleChatPath(t *testing.T) {
 	if got := strings.TrimSpace(ValueAsString(asrOptions["language"])); got != "en" {
 		t.Fatalf("expected language hint, got=%q", got)
 	}
+}
+
+func mustStructPBForNimillmTest(t *testing.T, values map[string]any) *structpb.Struct {
+	t.Helper()
+	out, err := structpb.NewStruct(values)
+	if err != nil {
+		t.Fatalf("structpb.NewStruct: %v", err)
+	}
+	return out
 }
 
 func TestExecuteDashScopeTranscribeRejectsUnsupportedAdvancedOptions(t *testing.T) {

@@ -29,10 +29,6 @@ var elevenLabsVoiceDesignExtensionKeys = map[string]struct{}{
 	"preview_paths": {},
 }
 
-var playHTVoiceWorkflowExtensionKeys = map[string]struct{}{
-	"user_id": {},
-}
-
 func resolveVoiceWorkflowExtensionPayload(req *runtimev1.SubmitScenarioJobRequest, provider string) (map[string]any, error) {
 	if req == nil {
 		return nil, nil
@@ -129,8 +125,6 @@ func allowedVoiceWorkflowExtensionKeys(provider string, scenarioType runtimev1.S
 		if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN {
 			mergeVoiceWorkflowExtensionKeys(allowed, elevenLabsVoiceDesignExtensionKeys)
 		}
-	case "playht":
-		mergeVoiceWorkflowExtensionKeys(allowed, playHTVoiceWorkflowExtensionKeys)
 	}
 
 	return allowed

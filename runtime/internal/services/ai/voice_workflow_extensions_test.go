@@ -27,12 +27,15 @@ func TestVoiceWorkflowExtensionNamespaceAndAllowedKeys(t *testing.T) {
 		t.Fatalf("elevenlabs voice design should allow create_paths")
 	}
 
-	cloneKeys := allowedVoiceWorkflowExtensionKeys("playht", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE)
-	if _, ok := cloneKeys["user_id"]; !ok {
-		t.Fatalf("playht voice clone should allow user_id")
+	cloneKeys := allowedVoiceWorkflowExtensionKeys("stepfun", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE)
+	if _, ok := cloneKeys["workflow_paths"]; !ok {
+		t.Fatalf("voice clone should allow workflow_paths")
 	}
 	if _, ok := cloneKeys["create_paths"]; ok {
 		t.Fatalf("voice clone should not allow create_paths")
+	}
+	if _, ok := cloneKeys["user_id"]; ok {
+		t.Fatalf("voice clone should not allow removed provider-specific user_id")
 	}
 
 	if !isVoiceWorkflowStringListKey("workflow_paths") || !isVoiceWorkflowStringListKey("clone_paths") {
@@ -86,24 +89,32 @@ func TestResolveVoiceWorkflowExtensionPayloadNormalizesCanonicalFields(t *testin
 }
 
 func TestValidateVoiceWorkflowExtensionPayloadRejectsInvalidStructures(t *testing.T) {
-	if _, err := validateVoiceWorkflowExtensionPayload("playht", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, map[string]any{
+	if _, err := validateVoiceWorkflowExtensionPayload("stepfun", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, map[string]any{
 		"workflow_paths": []any{""},
 	}); err == nil {
 		t.Fatalf("expected invalid string slice rejection")
 	}
 
-	if _, err := validateVoiceWorkflowExtensionPayload("playht", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, map[string]any{
+	if _, err := validateVoiceWorkflowExtensionPayload("stepfun", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, map[string]any{
 		"headers": map[string]any{"X-Test": ""},
 	}); err == nil {
 		t.Fatalf("expected invalid header rejection")
 	}
 
-	_, err := validateVoiceWorkflowExtensionPayload("playht", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, map[string]any{
+	_, err := validateVoiceWorkflowExtensionPayload("stepfun", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, map[string]any{
 		"endpoint": "https://legacy.example.com",
 	})
 	reason, ok := grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED {
 		t.Fatalf("expected AI_VOICE_WORKFLOW_UNSUPPORTED for legacy key, got reason=%v ok=%v err=%v", reason, ok, err)
+	}
+
+	_, err = validateVoiceWorkflowExtensionPayload("stepfun", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, map[string]any{
+		"user_id": "removed-provider-field",
+	})
+	reason, ok = grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED {
+		t.Fatalf("expected AI_VOICE_WORKFLOW_UNSUPPORTED for removed user_id key, got reason=%v ok=%v err=%v", reason, ok, err)
 	}
 }
 
@@ -121,7 +132,7 @@ func TestResolveVoiceWorkflowExtensionPayloadIgnoresForeignNamespace(t *testing.
 			},
 		},
 	}
-	normalized, err := resolveVoiceWorkflowExtensionPayload(req, "playht")
+	normalized, err := resolveVoiceWorkflowExtensionPayload(req, "stepfun")
 	if err != nil {
 		t.Fatalf("unexpected error for foreign namespace: %v", err)
 	}
@@ -131,7 +142,7 @@ func TestResolveVoiceWorkflowExtensionPayloadIgnoresForeignNamespace(t *testing.
 }
 
 func TestValidateVoiceWorkflowExtensionPayloadAcceptsEmptyAndHeaderMapString(t *testing.T) {
-	normalized, err := validateVoiceWorkflowExtensionPayload("playht", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, nil)
+	normalized, err := validateVoiceWorkflowExtensionPayload("stepfun", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, nil)
 	if err != nil {
 		t.Fatalf("empty payload should be accepted, got %v", err)
 	}
@@ -139,10 +150,9 @@ func TestValidateVoiceWorkflowExtensionPayloadAcceptsEmptyAndHeaderMapString(t *
 		t.Fatalf("expected nil normalized payload for empty input, got %#v", normalized)
 	}
 
-	normalized, err = validateVoiceWorkflowExtensionPayload("playht", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, map[string]any{
+	normalized, err = validateVoiceWorkflowExtensionPayload("stepfun", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, map[string]any{
 		"headers":        map[string]string{"X-Test": "ok"},
 		"workflow_paths": []any{"/v1/clone"},
-		"user_id":        "user-1",
 	})
 	if err != nil {
 		t.Fatalf("expected valid map[string]string headers: %v", err)

@@ -36,7 +36,6 @@ const (
 	adapterKimiChatMultimodal  = "kimi_chat_multimodal_adapter"
 	adapterElevenLabsNative    = "elevenlabs_native_adapter"
 	adapterFishAudioNative     = "fish_audio_native_adapter"
-	adapterPlayHTNative        = "playht_native_adapter"
 	adapterAWSPollyNative      = "aws_polly_native_adapter"
 	adapterAzureSpeechNative   = "azure_speech_native_adapter"
 	adapterGoogleCloudTTS      = "google_cloud_tts_adapter"
@@ -128,9 +127,6 @@ var mediaAdapterStrategiesByProvider = map[string]mediaAdapterStrategy{
 	},
 	"fish_audio": {
 		TTS: adapterFishAudioNative,
-	},
-	"playht": {
-		TTS: adapterPlayHTNative,
 	},
 	"aws_polly": {
 		TTS: adapterAWSPollyNative,

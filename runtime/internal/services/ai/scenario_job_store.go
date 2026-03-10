@@ -456,9 +456,6 @@ func (s *Service) executeScenarioAsyncJob(
 		case adapterFishAudioNative:
 			cfg := s.resolveNativeAdapterConfig("fish_audio", remoteTarget)
 			artifacts, usage, providerJobID, err = nimillm.ExecuteFishAudioTTS(ctx, cfg, req, modelResolved)
-		case adapterPlayHTNative:
-			cfg := s.resolveNativeAdapterConfig("playht", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecutePlayHTTTS(ctx, cfg, req, modelResolved)
 		case adapterAWSPollyNative:
 			cfg := s.resolveNativeAdapterConfig("aws_polly", remoteTarget)
 			artifacts, usage, providerJobID, err = nimillm.ExecuteAWSPollyTTS(ctx, cfg, req, modelResolved)

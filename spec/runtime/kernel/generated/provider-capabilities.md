@@ -35,7 +35,6 @@
 | `openrouter` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `perplexity` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `pika` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
-| `playht` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `qianfan` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `runway` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `siliconflow` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |

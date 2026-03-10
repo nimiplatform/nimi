@@ -12,6 +12,5 @@
 | `google_cloud_tts` | `remote` | `true` | `false` | `false` | `true` | `static_catalog` | `active` | `K-MCAT-023` |
 | `local` | `local` | `true` | `false` | `false` | `false` | `mixed` | `active` | `K-MCAT-023` |
 | `openai` | `remote` | `true` | `false` | `false` | `false` | `static_catalog` | `active` | `K-MCAT-023` |
-| `playht` | `remote` | `true` | `true` | `false` | `false` | `static_catalog` | `active` | `K-MCAT-023` |
 | `stepfun` | `remote` | `true` | `true` | `false` | `false` | `static_catalog` | `active` | `K-MCAT-023` |
 | `volcengine` | `remote` | `true` | `false` | `false` | `false` | `static_catalog` | `active` | `K-MCAT-023` |

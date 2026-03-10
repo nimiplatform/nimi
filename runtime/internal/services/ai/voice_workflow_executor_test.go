@@ -17,7 +17,7 @@ import (
 )
 
 func TestVoiceWorkflowViaNimillmCloneSuccess(t *testing.T) {
-	providers := []string{"dashscope", "fish_audio", "playht", "stepfun"}
+	providers := []string{"dashscope", "fish_audio", "stepfun"}
 	for _, provider := range providers {
 		provider := provider
 		t.Run(provider, func(t *testing.T) {

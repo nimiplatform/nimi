@@ -31,7 +31,6 @@ export const REMOTE_PROVIDER_IDS = [
   "openrouter",
   "perplexity",
   "pika",
-  "playht",
   "qianfan",
   "runway",
   "siliconflow",

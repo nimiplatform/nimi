@@ -72,15 +72,6 @@ entries:
     voice_discovery_mode: static_catalog
     activation_state: active
     source_rule: K-MCAT-023
-  - provider_id: playht
-    runtime_plane: remote
-    supports_tts_synthesize: true
-    supports_tts_v2v: true
-    supports_tts_t2v: false
-    supports_timing_alignment: false
-    voice_discovery_mode: static_catalog
-    activation_state: active
-    source_rule: K-MCAT-023
   - provider_id: stepfun
     runtime_plane: remote
     supports_tts_synthesize: true

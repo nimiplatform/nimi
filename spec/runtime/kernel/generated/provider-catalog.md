@@ -34,7 +34,6 @@
 | `openrouter` | `https://openrouter.ai/api/v1` | `false` | `K-MCAT-027` |
 | `perplexity` | — | `true` | `K-MCAT-027` |
 | `pika` | — | `true` | `K-MCAT-027` |
-| `playht` | — | `true` | `K-MCAT-027` |
 | `qianfan` | `https://qianfan.baidubce.com/v2` | `false` | `K-MCAT-027` |
 | `runway` | — | `true` | `K-MCAT-027` |
 | `siliconflow` | — | `true` | `K-MCAT-027` |

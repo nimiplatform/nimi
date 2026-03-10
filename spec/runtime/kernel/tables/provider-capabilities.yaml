@@ -310,16 +310,6 @@ providers:
       - K-MCAT-027
       - K-CONN-008
       - K-KEYSRC-001
-  - provider: playht
-    runtime_plane: remote
-    execution_module: nimillm
-    managed_connector_supported: true
-    inline_supported: true
-    endpoint_requirement: explicit_required
-    sources:
-      - K-MCAT-027
-      - K-CONN-008
-      - K-KEYSRC-001
   - provider: qianfan
     runtime_plane: remote
     execution_module: nimillm

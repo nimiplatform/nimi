@@ -206,8 +206,8 @@ func DoJSONRequestWithHeadersAndTimeout(
 
 // doCustomHeaderJSONOrBinaryRequest performs an HTTP request like
 // DoJSONOrBinaryRequest but with additional custom headers. This is useful for
-// providers that require non-standard auth headers (e.g. X-USER-ID for PlayHT,
-// xi-api-key for ElevenLabs).
+// providers that require non-standard auth headers (e.g. xi-api-key for
+// ElevenLabs).
 func doCustomHeaderJSONOrBinaryRequest(
 	ctx context.Context,
 	method string,

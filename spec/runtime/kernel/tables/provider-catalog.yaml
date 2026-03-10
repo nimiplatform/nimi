@@ -150,11 +150,6 @@ providers:
     default_text_model: null
     requires_explicit_endpoint: true
     source_rule: K-MCAT-027
-  - provider: playht
-    default_endpoint: null
-    default_text_model: null
-    requires_explicit_endpoint: true
-    source_rule: K-MCAT-027
   - provider: qianfan
     default_endpoint: https://qianfan.baidubce.com/v2
     default_text_model: null
