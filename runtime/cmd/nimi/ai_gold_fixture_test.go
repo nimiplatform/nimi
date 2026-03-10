@@ -75,12 +75,12 @@ func TestAIGoldFixtureBuildSubmitScenarioJobRequestUsesAudioPathBytes(t *testing
 
 	t.Run("audio transcribe", func(t *testing.T) {
 		fixture := &aiGoldFixture{
-			Path:         filepath.Join(t.TempDir(), "fixture.yaml"),
-			Capability:   "audio.transcribe",
-			Provider:     "dashscope",
-			ModelID:      "qwen3-asr-flash-2026-02-10",
-			Request:      aiGoldFixtureRequest{AudioPath: audioPath},
-			VoiceRef:     nil,
+			Path:          filepath.Join(t.TempDir(), "fixture.yaml"),
+			Capability:    "audio.transcribe",
+			Provider:      "dashscope",
+			ModelID:       "qwen3-asr-flash-2026-02-10",
+			Request:       aiGoldFixtureRequest{AudioPath: audioPath},
+			VoiceRef:      nil,
 			TargetModelID: "",
 		}
 		req, err := fixture.buildSubmitScenarioJobRequest("app.test", "user.test")
@@ -103,7 +103,7 @@ func TestAIGoldFixtureBuildSubmitScenarioJobRequestUsesAudioPathBytes(t *testing
 			Provider:      "dashscope",
 			ModelID:       "qwen3-tts-vc",
 			TargetModelID: "qwen3-tts-vc-2026-01-22",
-			Request:       aiGoldFixtureRequest{AudioPath: audioPath},
+			Request:       aiGoldFixtureRequest{AudioPath: audioPath, Text: "Hello from the source clip."},
 		}
 		req, err := fixture.buildSubmitScenarioJobRequest("app.test", "user.test")
 		if err != nil {
@@ -118,6 +118,9 @@ func TestAIGoldFixtureBuildSubmitScenarioJobRequestUsesAudioPathBytes(t *testing
 		}
 		if got := input.GetReferenceAudioUri(); got != "" {
 			t.Fatalf("expected empty reference audio uri, got=%q", got)
+		}
+		if got := input.GetText(); got != "Hello from the source clip." {
+			t.Fatalf("reference audio transcript mismatch: %q", got)
 		}
 	})
 }

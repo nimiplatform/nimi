@@ -166,6 +166,7 @@ message AiTtsCreateVoiceNodeConfig {
   string instruction_text = 9;
   string preview_text = 10;
   string language = 11;
+  string text = 12;
   repeated ScenarioExtension extensions = 20;
 }
 

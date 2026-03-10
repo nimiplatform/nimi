@@ -41,9 +41,9 @@ providers:
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027
   - provider: elevenlabs
-    default_endpoint: null
+    default_endpoint: https://api.elevenlabs.io
     default_text_model: null
-    requires_explicit_endpoint: true
+    requires_explicit_endpoint: false
     source_rule: K-MCAT-027
   - provider: fireworks
     default_endpoint: null
@@ -51,9 +51,9 @@ providers:
     requires_explicit_endpoint: true
     source_rule: K-MCAT-027
   - provider: fish_audio
-    default_endpoint: null
+    default_endpoint: https://api.fish.audio
     default_text_model: null
-    requires_explicit_endpoint: true
+    requires_explicit_endpoint: false
     source_rule: K-MCAT-027
   - provider: flux
     default_endpoint: null
@@ -176,7 +176,7 @@ providers:
     requires_explicit_endpoint: true
     source_rule: K-MCAT-027
   - provider: stepfun
-    default_endpoint: https://api.stepfun.com/v1
+    default_endpoint: https://api.stepfun.ai/v1
     default_text_model: null
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027

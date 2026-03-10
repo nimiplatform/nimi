@@ -152,8 +152,9 @@ func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPrese
 	providerType := ""
 	if remoteTarget != nil {
 		providerType = strings.TrimSpace(remoteTarget.ProviderType)
+	} else {
+		providerType = inferMediaProviderTypeFromSelectedBackend(selectedProvider, modelResolved)
 	}
-	_ = selectedProvider
 	voices, source, catalogVersion, err := resolveSpeechVoicesForModelWithProviderType(modelResolved, providerType, s.speechCatalog)
 	if err != nil {
 		return nil, err

@@ -61,6 +61,29 @@ func TestMapProviderHTTPError_ProviderRateLimited(t *testing.T) {
 	}
 }
 
+func TestMapProviderHTTPError_BadRequestQuotaExceededMapsRateLimited(t *testing.T) {
+	err := MapProviderHTTPError(400, map[string]any{
+		"error": map[string]any{
+			"message": "You exceeded your current quota, please check your plan and billing details",
+		},
+	})
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error for HTTP 400 quota exceeded")
+	}
+	if st.Code() != codes.ResourceExhausted {
+		t.Fatalf("expected ResourceExhausted, got %v", st.Code())
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED {
+		t.Fatalf("expected AI_PROVIDER_RATE_LIMITED, got %v", reason)
+	}
+	metadata := extractErrorInfoMetadata(err)
+	if metadata["action_hint"] != "replenish_provider_balance_or_skip_live_test" {
+		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
+	}
+}
+
 func TestMapProviderHTTPError_ProviderInternal(t *testing.T) {
 	err := MapProviderHTTPError(500, nil)
 	st, ok := status.FromError(err)

@@ -332,6 +332,9 @@ async function main(): Promise<void> {
                   : {
                     referenceAudioUri: String(fixture.request.audio_uri || '').trim(),
                   }),
+                ...(String(fixture.request.text || '').trim()
+                  ? { text: String(fixture.request.text || '').trim() }
+                  : {}),
               },
             },
           },

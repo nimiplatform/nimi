@@ -423,6 +423,7 @@ func (f *aiGoldFixture) buildSubmitScenarioJobRequest(appID string, subjectUserI
 					Input: &runtimev1.VoiceV2VInput{
 						ReferenceAudioUri:  strings.TrimSpace(audioURI),
 						ReferenceAudioMime: strings.TrimSpace(audioMime),
+						Text:               strings.TrimSpace(f.Request.Text),
 					},
 				},
 			},

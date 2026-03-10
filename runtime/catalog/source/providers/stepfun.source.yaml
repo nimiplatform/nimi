@@ -1,12 +1,12 @@
 schema_version: 3
 provider: stepfun
-catalog_version: 2026-03-05-stepfun-v1
+catalog_version: 2026-03-10-stepfun-v3
 generated_target: runtime/catalog/providers/stepfun.yaml
 runtime:
   runtime_plane: remote
   managed_connector_supported: true
   inline_supported: true
-  default_endpoint: https://api.stepfun.com/v1
+  default_endpoint: https://api.stepfun.ai/v1
   requires_explicit_endpoint: false
 resolution_mode: model_anchor_v2
 defaults:
@@ -23,25 +23,29 @@ defaults:
 
 sources:
   - source_id: stepfun_model_overview
-    url: https://platform.stepfun.com/docs/llm/text
-    retrieved_at: 2026-03-05
-    note: StepFun model overview with chat, vision, and reasoning model tables.
+    url: https://platform.stepfun.ai/docs/en/llm/reasoning
+    retrieved_at: 2026-03-10
+    note: StepFun reasoning model overview.
   - source_id: stepfun_pricing
-    url: https://platform.stepfun.com/docs/pricing/details
-    retrieved_at: 2026-03-05
+    url: https://platform.stepfun.ai/docs/en/pricing/details
+    retrieved_at: 2026-03-10
     note: StepFun model pricing details.
   - source_id: stepfun_tts_doc
-    url: https://platform.stepfun.com/docs/audio/tts
-    retrieved_at: 2026-03-05
-    note: StepFun TTS API reference with preset voices and emotion/style parameters.
+    url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
+    retrieved_at: 2026-03-10
+    note: StepFun TTS API reference with preset voices and extra_body controls.
   - source_id: stepfun_voice_clone_doc
-    url: https://platform.stepfun.com/docs/audio/voice-clone
-    retrieved_at: 2026-03-05
-    note: StepFun voice cloning API for creating custom voice IDs.
+    url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_voice
+    retrieved_at: 2026-03-10
+    note: StepFun voice cloning API requiring model, text transcript, and file_id.
+  - source_id: stepfun_file_upload_doc
+    url: https://platform.stepfun.ai/docs/en/api-reference/files/create
+    retrieved_at: 2026-03-10
+    note: StepFun file upload API used to obtain file_id with purpose=storage.
   - source_id: stepfun_image_doc
-    url: https://platform.stepfun.com/docs/image/image-generation
-    retrieved_at: 2026-03-05
-    note: StepFun image generation API reference.
+    url: https://platform.stepfun.ai/docs/en/llm/image
+    retrieved_at: 2026-03-10
+    note: StepFun image model overview and API references.
 
 language_profiles:
   tts_langs_v1: [zh, en, ja]
@@ -121,75 +125,6 @@ voice_sets:
         name: 日本語女声
       - voice_id: cantonese_female_01
         name: 粤语女声
-  - voice_set_id: tts_mini_voice_set
-    langs_ref: tts_langs_v1
-    source_ids: [stepfun_tts_doc]
-    voices:
-      - voice_id: cixingnansheng
-        name: 磁性男声
-      - voice_id: zhixingnansheng
-        name: 知性男声
-      - voice_id: yangguangnanhai
-        name: 阳光男孩
-      - voice_id: shenchennansheng
-        name: 深沉男声
-      - voice_id: qingniannansheng
-        name: 青年男声
-      - voice_id: wenrouyujie
-        name: 温柔御姐
-      - voice_id: huopotongxue
-        name: 活泼同学
-      - voice_id: tiemeinvsheng
-        name: 甜美女声
-      - voice_id: wenjingnvsheng
-        name: 文静女声
-      - voice_id: gaolengyujie
-        name: 高冷御姐
-      - voice_id: keaidaniang
-        name: 可爱大娘
-      - voice_id: dongmannvsheng
-        name: 动漫女声
-      - voice_id: riqinvsheng
-        name: 日系女声
-      - voice_id: yuanqinvhai
-        name: 元气女孩
-      - voice_id: dongbeidage
-        name: 东北大哥
-      - voice_id: taiwannansheng
-        name: 台湾男声
-      - voice_id: taiwannvsheng
-        name: 台湾女声
-      - voice_id: guangdongnansheng
-        name: 广东男声
-      - voice_id: sichuannansheng
-        name: 四川男声
-      - voice_id: child_male_01
-        name: 男童声
-      - voice_id: child_female_01
-        name: 女童声
-      - voice_id: narrator_male_01
-        name: 旁白男声
-      - voice_id: narrator_female_01
-        name: 旁白女声
-      - voice_id: english_male_01
-        name: English Male
-      - voice_id: english_female_01
-        name: English Female
-      - voice_id: japanese_male_01
-        name: 日本語男声
-  - voice_set_id: tts_vivid_voice_set
-    langs_ref: tts_langs_v1
-    source_ids: [stepfun_tts_doc]
-    voices:
-      - voice_id: cixingnansheng
-        name: 磁性男声
-      - voice_id: wenrouyujie
-        name: 温柔御姐
-      - voice_id: tiemeinvsheng
-        name: 甜美女声
-      - voice_id: yangguangnanhai
-        name: 阳光男孩
-
 models:
   # --- Chat / Text Models ---
   - model_id: step-3.5-flash
@@ -269,43 +204,7 @@ models:
       output: unknown
       currency: CNY
       as_of: 2026-03-05
-      notes: Premium TTS with 35 presets, 11 emotions, 17 styles. Supports voice cloning.
-    source_ids: [stepfun_tts_doc]
-
-  - model_id: step-tts-mini
-    model_type: tts
-    updated_at: 2026-03-05
-    capabilities: [audio.synthesize]
-    voice:
-      discovery_mode: static_catalog
-      voice_set_ref: tts_mini_voice_set
-      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
-      langs_ref: tts_langs_v1
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Lightweight TTS with 26 presets, 9 emotions, 13 styles. Supports voice cloning.
-    source_ids: [stepfun_tts_doc]
-
-  - model_id: step-tts-vivid
-    model_type: tts
-    updated_at: 2026-03-05
-    capabilities: [audio.synthesize]
-    voice:
-      discovery_mode: static_catalog
-      voice_set_ref: tts_vivid_voice_set
-      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
-      langs_ref: tts_langs_v1
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Vivid TTS with expressive presets, 6 emotions, 4 styles. Supports voice cloning.
+      notes: Current documented StepFun audio model with preset voices and voice cloning support.
     source_ids: [stepfun_tts_doc]
 
   # --- Image Models ---
@@ -351,23 +250,15 @@ models:
 voice_workflow_models:
   - workflow_model_id: stepfun-voice-clone
     workflow_type: tts_v2v
-    input_contract_ref: stepfun_tts_v2v_input_v1
+    input_contract_ref: stepfun_tts_v2v_input_v2
     output_persistence: provider_persistent
     target_model_refs:
       - step-tts-2
-      - step-tts-mini
-      - step-tts-vivid
     langs_ref: tts_langs_v1
-    source_ids: [stepfun_voice_clone_doc]
+    source_ids: [stepfun_voice_clone_doc, stepfun_file_upload_doc]
 
 model_workflow_bindings:
   - model_id: step-tts-2
-    workflow_model_refs: [stepfun-voice-clone]
-    workflow_types: [tts_v2v]
-  - model_id: step-tts-mini
-    workflow_model_refs: [stepfun-voice-clone]
-    workflow_types: [tts_v2v]
-  - model_id: step-tts-vivid
     workflow_model_refs: [stepfun-voice-clone]
     workflow_types: [tts_v2v]
 

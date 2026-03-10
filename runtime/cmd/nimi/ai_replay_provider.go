@@ -120,6 +120,9 @@ func executeProviderRawReplay(timeout time.Duration, fixture *aiGoldFixture) (*a
 			if audioErr != nil {
 				return withReplayFailure(payload, audioErr), nil
 			}
+			if text := strings.TrimSpace(fixture.Request.Text); text != "" {
+				providerPayload["text"] = text
+			}
 			if strings.TrimSpace(audioURI) != "" {
 				providerPayload["reference_audio_uri"] = strings.TrimSpace(audioURI)
 			}

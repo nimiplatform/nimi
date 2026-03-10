@@ -9,9 +9,9 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
-	"github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 )
@@ -251,6 +251,7 @@ func buildVoiceWorkflowPayload(
 			"reference_audio_mime": strings.TrimSpace(input.GetReferenceAudioMime()),
 			"language_hints":       append([]string(nil), input.GetLanguageHints()...),
 			"preferred_name":       strings.TrimSpace(input.GetPreferredName()),
+			"text":                 strings.TrimSpace(input.GetText()),
 		}
 		if len(input.GetReferenceAudioBytes()) > 0 {
 			encoded := base64.StdEncoding.EncodeToString(input.GetReferenceAudioBytes())
@@ -263,6 +264,9 @@ func buildVoiceWorkflowPayload(
 		}
 		if mime := strings.TrimSpace(input.GetReferenceAudioMime()); mime != "" {
 			payload["reference_audio_mime"] = mime
+		}
+		if text := strings.TrimSpace(input.GetText()); text != "" {
+			payload["text"] = text
 		}
 		payload["input"] = inputPayload
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
@@ -317,6 +321,7 @@ func estimateVoiceWorkflowUsage(req *runtimev1.SubmitScenarioJobRequest) *runtim
 			input := clone.GetInput()
 			inputTokens += nimillm.EstimateTokens(strings.TrimSpace(input.GetReferenceAudioUri()))
 			inputTokens += int64(len(input.GetReferenceAudioBytes()) / 256)
+			inputTokens += nimillm.EstimateTokens(strings.TrimSpace(input.GetText()))
 			for _, hint := range input.GetLanguageHints() {
 				inputTokens += nimillm.EstimateTokens(strings.TrimSpace(hint))
 			}
@@ -355,6 +360,7 @@ func voiceWorkflowInputSummary(req *runtimev1.SubmitScenarioJobRequest) string {
 			strings.TrimSpace(clone.GetTargetModelId()),
 			strings.TrimSpace(input.GetReferenceAudioUri()),
 			fmt.Sprintf("%d", len(input.GetReferenceAudioBytes())),
+			strings.TrimSpace(input.GetText()),
 			strings.Join(input.GetLanguageHints(), ","),
 			strings.TrimSpace(input.GetPreferredName()),
 		}, "|")

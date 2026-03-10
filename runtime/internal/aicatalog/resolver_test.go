@@ -249,6 +249,27 @@ func TestResolveVoiceWorkflowFishAudioClone(t *testing.T) {
 	}
 }
 
+func TestResolveVoiceWorkflowStepFunClone(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+
+	resolved, err := resolver.ResolveVoiceWorkflow("stepfun", "step-tts-2", "tts_v2v")
+	if err != nil {
+		t.Fatalf("ResolveVoiceWorkflow: %v", err)
+	}
+	if resolved.Provider != "stepfun" {
+		t.Fatalf("provider mismatch: got=%s", resolved.Provider)
+	}
+	if resolved.WorkflowType != "tts_v2v" {
+		t.Fatalf("workflow type mismatch: got=%s", resolved.WorkflowType)
+	}
+	if resolved.WorkflowModelID != "stepfun-voice-clone" {
+		t.Fatalf("unexpected workflow model id: %s", resolved.WorkflowModelID)
+	}
+}
+
 func TestResolveVoiceWorkflowUnsupportedReturnsError(t *testing.T) {
 	resolver, err := NewResolver(ResolverConfig{})
 	if err != nil {

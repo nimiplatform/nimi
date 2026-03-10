@@ -167,6 +167,10 @@ export interface VoiceV2VInput {
      * @generated from protobuf field: string preferred_name = 5
      */
     preferredName: string;
+    /**
+     * @generated from protobuf field: string text = 6
+     */
+    text: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.VoiceT2VInput
@@ -745,7 +749,8 @@ class VoiceV2VInput$Type extends MessageType<VoiceV2VInput> {
             { no: 2, name: "reference_audio_uri", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "reference_audio_mime", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "language_hints", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "preferred_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 5, name: "preferred_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<VoiceV2VInput>): VoiceV2VInput {
@@ -755,6 +760,7 @@ class VoiceV2VInput$Type extends MessageType<VoiceV2VInput> {
         message.referenceAudioMime = "";
         message.languageHints = [];
         message.preferredName = "";
+        message.text = "";
         if (value !== undefined)
             reflectionMergePartial<VoiceV2VInput>(this, message, value);
         return message;
@@ -778,6 +784,9 @@ class VoiceV2VInput$Type extends MessageType<VoiceV2VInput> {
                     break;
                 case /* string preferred_name */ 5:
                     message.preferredName = reader.string();
+                    break;
+                case /* string text */ 6:
+                    message.text = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -806,6 +815,9 @@ class VoiceV2VInput$Type extends MessageType<VoiceV2VInput> {
         /* string preferred_name = 5; */
         if (message.preferredName !== "")
             writer.tag(5, WireType.LengthDelimited).string(message.preferredName);
+        /* string text = 6; */
+        if (message.text !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.text);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

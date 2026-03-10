@@ -320,6 +320,10 @@ export interface AiTtsCreateVoiceNodeConfig {
      */
     language: string;
     /**
+     * @generated from protobuf field: string text = 12
+     */
+    text: string;
+    /**
      * @generated from protobuf field: repeated nimi.runtime.v1.ScenarioExtension extensions = 20
      */
     extensions: ScenarioExtension[];
@@ -1742,6 +1746,7 @@ class AiTtsCreateVoiceNodeConfig$Type extends MessageType<AiTtsCreateVoiceNodeCo
             { no: 9, name: "instruction_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "preview_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 11, name: "language", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 20, name: "extensions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ScenarioExtension }
         ]);
     }
@@ -1758,6 +1763,7 @@ class AiTtsCreateVoiceNodeConfig$Type extends MessageType<AiTtsCreateVoiceNodeCo
         message.instructionText = "";
         message.previewText = "";
         message.language = "";
+        message.text = "";
         message.extensions = [];
         if (value !== undefined)
             reflectionMergePartial<AiTtsCreateVoiceNodeConfig>(this, message, value);
@@ -1800,6 +1806,9 @@ class AiTtsCreateVoiceNodeConfig$Type extends MessageType<AiTtsCreateVoiceNodeCo
                     break;
                 case /* string language */ 11:
                     message.language = reader.string();
+                    break;
+                case /* string text */ 12:
+                    message.text = reader.string();
                     break;
                 case /* repeated nimi.runtime.v1.ScenarioExtension extensions */ 20:
                     message.extensions.push(ScenarioExtension.internalBinaryRead(reader, reader.uint32(), options));
@@ -1849,6 +1858,9 @@ class AiTtsCreateVoiceNodeConfig$Type extends MessageType<AiTtsCreateVoiceNodeCo
         /* string language = 11; */
         if (message.language !== "")
             writer.tag(11, WireType.LengthDelimited).string(message.language);
+        /* string text = 12; */
+        if (message.text !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.text);
         /* repeated nimi.runtime.v1.ScenarioExtension extensions = 20; */
         for (let i = 0; i < message.extensions.length; i++)
             ScenarioExtension.internalBinaryWrite(message.extensions[i], writer.tag(20, WireType.LengthDelimited).fork(), options).join();

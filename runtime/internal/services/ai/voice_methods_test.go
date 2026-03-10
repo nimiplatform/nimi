@@ -38,6 +38,27 @@ func TestListPresetVoicesReturnsCatalogVoices(t *testing.T) {
 	}
 }
 
+func TestListPresetVoicesInfersProviderTypeForCloudAlias(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{"stepfun": {BaseURL: "http://example.com", APIKey: "test-key"}},
+	})
+
+	resp, err := svc.ListPresetVoices(context.Background(), &runtimev1.ListPresetVoicesRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "cloud/step-tts-2",
+	})
+	if err != nil {
+		t.Fatalf("ListPresetVoices(cloud alias): %v", err)
+	}
+	if len(resp.GetVoices()) == 0 {
+		t.Fatalf("expected non-empty preset voice list for cloud alias")
+	}
+	if resp.GetModelResolved() == "" {
+		t.Fatalf("model resolved must be set for cloud alias")
+	}
+}
+
 func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{

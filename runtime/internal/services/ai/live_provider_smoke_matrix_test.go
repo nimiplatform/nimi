@@ -21,6 +21,7 @@ import (
 const liveSmokeMatrixAppID = "nimi.live-smoke.matrix"
 const liveSmokeMatrixUserID = "smoke-user"
 const liveSmokeVoiceDesignInstruction = "Warm, calm, natural narrator voice with steady pacing, clear diction, low background noise, gentle emotional range, and a polished studio delivery for long-form spoken content."
+const liveSmokeVoiceCloneText = "Hello from Nimi live voice clone."
 
 func TestLiveSmokeProviderCapabilityMatrix(t *testing.T) {
 	for _, providerID := range providerregistry.SourceProviders {
@@ -203,6 +204,7 @@ func resolveLiveTranscriptionAudioSource(t *testing.T) (*runtimev1.SpeechTranscr
 
 func resolveLiveVoiceCloneInput(t *testing.T, providerToken string) *runtimev1.VoiceV2VInput {
 	t.Helper()
+	liveText := resolveLiveVoiceCloneText(providerToken)
 	audioPath := liveEnvFirst(
 		"NIMI_LIVE_"+providerToken+"_VOICE_REFERENCE_AUDIO_PATH",
 		"NIMI_LIVE_VOICE_REFERENCE_AUDIO_PATH",
@@ -218,6 +220,7 @@ func resolveLiveVoiceCloneInput(t *testing.T, providerToken string) *runtimev1.V
 		return &runtimev1.VoiceV2VInput{
 			ReferenceAudioBytes: audioBytes,
 			ReferenceAudioMime:  resolveLiveAudioMIME(audioPath),
+			Text:                liveText,
 		}
 	}
 
@@ -231,7 +234,22 @@ func resolveLiveVoiceCloneInput(t *testing.T, providerToken string) *runtimev1.V
 	return &runtimev1.VoiceV2VInput{
 		ReferenceAudioUri:  audioURI,
 		ReferenceAudioMime: resolveLiveAudioMIME(audioURI),
+		Text:               liveText,
 	}
+}
+
+func resolveLiveVoiceCloneText(providerToken string) string {
+	text := liveEnvFirst(
+		"NIMI_LIVE_"+providerToken+"_VOICE_CLONE_TEXT",
+		"NIMI_LIVE_VOICE_CLONE_TEXT",
+	)
+	if text != "" {
+		return text
+	}
+	if strings.EqualFold(strings.TrimSpace(providerToken), "STEPFUN") {
+		return liveSmokeVoiceCloneText
+	}
+	return ""
 }
 
 func maybeSkipFishAudioBalanceBlocked(t *testing.T, providerID string, err error, detail string) {
@@ -248,6 +266,27 @@ func maybeSkipFishAudioBalanceBlocked(t *testing.T, providerID string, err error
 			t.Skipf("fish_audio live smoke skipped due to provider balance block: %v", err)
 		}
 		t.Skipf("fish_audio live smoke skipped due to provider balance block: %s", strings.TrimSpace(detail))
+	}
+}
+
+func maybeSkipStepFunQuotaBlocked(t *testing.T, providerID string, err error, detail string) {
+	t.Helper()
+	if !strings.EqualFold(strings.TrimSpace(providerID), "stepfun") {
+		return
+	}
+	message := strings.ToLower(strings.TrimSpace(detail))
+	if err != nil {
+		message = strings.TrimSpace(message + " " + strings.ToLower(err.Error()))
+	}
+	if strings.Contains(message, "quota_exceeded") ||
+		strings.Contains(message, "exceeded your current quota") ||
+		strings.Contains(message, "billing details") ||
+		strings.Contains(message, "insufficient balance") ||
+		strings.Contains(message, "available balance") {
+		if err != nil {
+			t.Skipf("stepfun live smoke skipped due to provider quota block: %v", err)
+		}
+		t.Skipf("stepfun live smoke skipped due to provider quota block: %s", strings.TrimSpace(detail))
 	}
 }
 
@@ -305,7 +344,14 @@ func runLiveSmokeGenerateForProvider(t *testing.T, providerID string, record pro
 	t.Helper()
 	svc := newLiveSmokeServiceForProvider(t, providerID, record)
 	modelID := qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, "MODEL_ID", ""))
-	runLiveSmokeScenarioGenerateText(t, svc, modelID, routePolicyForProvider(providerID))
+	text, err := executeLiveSmokeScenarioGenerateText(svc, modelID, routePolicyForProvider(providerID))
+	if err != nil {
+		maybeSkipStepFunQuotaBlocked(t, providerID, err, "")
+		t.Fatalf("live generate failed: %v", err)
+	}
+	if strings.TrimSpace(text) == "" {
+		t.Fatalf("live generate returned empty output")
+	}
 }
 
 func runLiveSmokeEmbedForProvider(t *testing.T, providerID string, record providerregistry.ProviderRecord) {
@@ -397,11 +443,13 @@ func runLiveSmokeMediaForProvider(t *testing.T, providerID string, record provid
 	})
 	if err != nil {
 		maybeSkipFishAudioBalanceBlocked(t, providerID, err, "")
+		maybeSkipStepFunQuotaBlocked(t, providerID, err, "")
 		t.Fatalf("submit scenario job failed: %v", err)
 	}
 	job := waitLiveSmokeScenarioJob(t, svc, submitResp.GetJob().GetJobId())
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		maybeSkipFishAudioBalanceBlocked(t, providerID, errors.New(job.GetReasonDetail()), job.GetReasonDetail())
+		maybeSkipStepFunQuotaBlocked(t, providerID, errors.New(job.GetReasonDetail()), job.GetReasonDetail())
 		t.Fatalf("scenario job status not completed: %s reason=%s detail=%s", job.GetStatus().String(), job.GetReasonCode().String(), job.GetReasonDetail())
 	}
 }
@@ -455,6 +503,7 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 	})
 	if err != nil {
 		maybeSkipFishAudioBalanceBlocked(t, providerID, err, "")
+		maybeSkipStepFunQuotaBlocked(t, providerID, err, "")
 		t.Fatalf("submit voice workflow failed: %v", err)
 	}
 	if submitResp.GetAsset() == nil || strings.TrimSpace(submitResp.GetAsset().GetVoiceAssetId()) == "" {
@@ -474,6 +523,7 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 	job := waitLiveSmokeScenarioJob(t, svc, submitResp.GetJob().GetJobId())
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		maybeSkipFishAudioBalanceBlocked(t, providerID, errors.New(job.GetReasonDetail()), job.GetReasonDetail())
+		maybeSkipStepFunQuotaBlocked(t, providerID, errors.New(job.GetReasonDetail()), job.GetReasonDetail())
 		t.Fatalf("voice workflow job status not completed: %s reason=%s detail=%s", job.GetStatus().String(), job.GetReasonCode().String(), job.GetReasonDetail())
 	}
 }

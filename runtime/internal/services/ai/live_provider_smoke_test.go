@@ -60,6 +60,16 @@ func runLiveSmokeCloudGenerateText(t *testing.T, providerID string, envPrefix st
 
 func runLiveSmokeScenarioGenerateText(t *testing.T, svc *Service, modelID string, route runtimev1.RoutePolicy) {
 	t.Helper()
+	text, err := executeLiveSmokeScenarioGenerateText(svc, modelID, route)
+	if err != nil {
+		t.Fatalf("live generate failed: %v", err)
+	}
+	if text == "" {
+		t.Fatalf("live generate returned empty output")
+	}
+}
+
+func executeLiveSmokeScenarioGenerateText(svc *Service, modelID string, route runtimev1.RoutePolicy) (string, error) {
 	resp, err := svc.ExecuteScenario(context.Background(), &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.live-smoke",
@@ -80,12 +90,10 @@ func runLiveSmokeScenarioGenerateText(t *testing.T, svc *Service, modelID string
 		},
 	})
 	if err != nil {
-		t.Fatalf("live generate failed: %v", err)
+		return "", err
 	}
 	text := strings.TrimSpace(resp.GetOutput().GetFields()["text"].GetStringValue())
-	if text == "" {
-		t.Fatalf("live generate returned empty output")
-	}
+	return text, nil
 }
 
 func TestLiveSmokeLocalGenerateText(t *testing.T) { runLiveSmokeLocalGenerateText(t) }

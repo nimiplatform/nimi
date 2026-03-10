@@ -406,6 +406,9 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
                   : {
                     referenceAudioUri: String(input.fixture.request.audio_uri || '').trim(),
                   }),
+                ...(String(input.fixture.request.text || '').trim()
+                  ? { text: String(input.fixture.request.text || '').trim() }
+                  : {}),
               },
             },
           },

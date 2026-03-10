@@ -17,7 +17,7 @@ import (
 )
 
 func TestVoiceWorkflowViaNimillmCloneSuccess(t *testing.T) {
-	providers := []string{"dashscope", "stepfun"}
+	providers := []string{"dashscope"}
 	for _, provider := range providers {
 		provider := provider
 		t.Run(provider, func(t *testing.T) {
@@ -61,6 +61,133 @@ func TestVoiceWorkflowViaNimillmCloneSuccess(t *testing.T) {
 				t.Fatalf("expected at least one provider request")
 			}
 		})
+	}
+}
+
+func TestStepFunVoiceCloneWorkflowSuccess(t *testing.T) {
+	requestPaths := make([]string, 0, 2)
+	requestBodies := make([]map[string]any, 0, 2)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestPaths = append(requestPaths, r.URL.Path)
+		if got := strings.TrimSpace(r.Header.Get("Authorization")); got != "Bearer test-key" {
+			t.Fatalf("expected Authorization header, got=%q", got)
+		}
+		switch r.URL.Path {
+		case "/files":
+			if !strings.HasPrefix(strings.TrimSpace(r.Header.Get("Content-Type")), "multipart/form-data;") {
+				t.Fatalf("expected multipart upload request, got content-type=%q", r.Header.Get("Content-Type"))
+			}
+			if err := r.ParseMultipartForm(1 << 20); err != nil {
+				t.Fatalf("ParseMultipartForm(upload): %v", err)
+			}
+			if got := strings.TrimSpace(r.FormValue("purpose")); got != "storage" {
+				t.Fatalf("unexpected upload purpose: %q", got)
+			}
+			file, header, err := r.FormFile("file")
+			if err != nil {
+				t.Fatalf("FormFile(file): %v", err)
+			}
+			defer file.Close()
+			payload, err := io.ReadAll(file)
+			if err != nil {
+				t.Fatalf("ReadAll(file): %v", err)
+			}
+			if string(payload) != "voice-audio" {
+				t.Fatalf("unexpected uploaded audio payload: %q", string(payload))
+			}
+			if header == nil || strings.TrimSpace(header.Filename) == "" {
+				t.Fatalf("expected uploaded filename")
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = io.WriteString(w, `{"id":"file-stepfun-001","object":"file"}`)
+		case "/audio/voices":
+			if got := strings.TrimSpace(r.Header.Get("Content-Type")); got != "application/json" {
+				t.Fatalf("expected application/json create request, got content-type=%q", got)
+			}
+			rawBody, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatalf("ReadAll(body): %v", err)
+			}
+			body := map[string]any{}
+			if err := json.Unmarshal(rawBody, &body); err != nil {
+				t.Fatalf("Unmarshal(body): %v", err)
+			}
+			requestBodies = append(requestBodies, body)
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = io.WriteString(w, `{"id":"voice-stepfun-001","object":"audio.voice"}`)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	req := voiceCloneRequest()
+	req.Head.ModelId = "stepfun/step-tts-2"
+	req.Spec.GetVoiceClone().TargetModelId = "stepfun/step-tts-2"
+	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = []byte("voice-audio")
+	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/wav"
+	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
+	req.Spec.GetVoiceClone().Input.Text = "Hello from the source clip."
+
+	result, err := executeVoiceWorkflowViaNimillm(
+		context.Background(),
+		"stepfun",
+		req,
+		catalog.ResolveVoiceWorkflowResult{
+			Provider:        "stepfun",
+			ModelID:         "stepfun/step-tts-2",
+			WorkflowType:    "tts_v2v",
+			WorkflowModelID: "stepfun-voice-clone",
+		},
+		nimillm.MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"},
+	)
+	if err != nil {
+		t.Fatalf("Execute StepFun clone workflow: %v", err)
+	}
+	if got := strings.TrimSpace(result.ProviderVoiceRef); got != "voice-stepfun-001" {
+		t.Fatalf("unexpected provider voice ref: %q", got)
+	}
+	if len(requestPaths) != 2 || requestPaths[0] != "/files" || requestPaths[1] != "/audio/voices" {
+		t.Fatalf("unexpected request paths: %v", requestPaths)
+	}
+	if len(requestBodies) != 1 {
+		t.Fatalf("expected one create voice request body, got=%d", len(requestBodies))
+	}
+	if got := strings.TrimSpace(nimillm.ValueAsString(requestBodies[0]["model"])); got != "step-tts-2" {
+		t.Fatalf("unexpected StepFun model: %q", got)
+	}
+	if got := strings.TrimSpace(nimillm.ValueAsString(requestBodies[0]["file_id"])); got != "file-stepfun-001" {
+		t.Fatalf("unexpected StepFun file_id: %q", got)
+	}
+	if got := strings.TrimSpace(nimillm.ValueAsString(requestBodies[0]["text"])); got != "Hello from the source clip." {
+		t.Fatalf("unexpected StepFun transcript text: %q", got)
+	}
+}
+
+func TestStepFunVoiceCloneWorkflowRequiresText(t *testing.T) {
+	req := voiceCloneRequest()
+	req.Head.ModelId = "stepfun/step-tts-2"
+	req.Spec.GetVoiceClone().TargetModelId = "stepfun/step-tts-2"
+	req.Spec.GetVoiceClone().Input.Text = ""
+
+	_, err := executeVoiceWorkflowViaNimillm(
+		context.Background(),
+		"stepfun",
+		req,
+		catalog.ResolveVoiceWorkflowResult{
+			Provider:        "stepfun",
+			ModelID:         "stepfun/step-tts-2",
+			WorkflowType:    "tts_v2v",
+			WorkflowModelID: "stepfun-voice-clone",
+		},
+		nimillm.MediaAdapterConfig{BaseURL: "https://example.invalid", APIKey: "test-key"},
+	)
+	if err == nil {
+		t.Fatalf("expected StepFun missing transcript rejection")
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID {
+		t.Fatalf("expected AI_VOICE_INPUT_INVALID, got reason=%v ok=%v err=%v", reason, ok, err)
 	}
 }
 
@@ -503,6 +630,7 @@ func voiceCloneRequest() *runtimev1.SubmitScenarioJobRequest {
 					ReferenceAudioMime: "audio/wav",
 					LanguageHints:      []string{"en", "zh"},
 					PreferredName:      "test-clone-voice",
+					Text:               "",
 				},
 			}},
 		},

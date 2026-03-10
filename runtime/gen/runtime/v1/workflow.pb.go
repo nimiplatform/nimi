@@ -1121,6 +1121,7 @@ type AiTtsCreateVoiceNodeConfig struct {
 	InstructionText    string                 `protobuf:"bytes,9,opt,name=instruction_text,json=instructionText,proto3" json:"instruction_text,omitempty"`
 	PreviewText        string                 `protobuf:"bytes,10,opt,name=preview_text,json=previewText,proto3" json:"preview_text,omitempty"`
 	Language           string                 `protobuf:"bytes,11,opt,name=language,proto3" json:"language,omitempty"`
+	Text               string                 `protobuf:"bytes,12,opt,name=text,proto3" json:"text,omitempty"`
 	Extensions         []*ScenarioExtension   `protobuf:"bytes,20,rep,name=extensions,proto3" json:"extensions,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
@@ -1229,6 +1230,13 @@ func (x *AiTtsCreateVoiceNodeConfig) GetPreviewText() string {
 func (x *AiTtsCreateVoiceNodeConfig) GetLanguage() string {
 	if x != nil {
 		return x.Language
+	}
+	return ""
+}
+
+func (x *AiTtsCreateVoiceNodeConfig) GetText() string {
+	if x != nil {
+		return x.Text
 	}
 	return ""
 }
@@ -2737,7 +2745,7 @@ const file_runtime_v1_workflow_proto_rawDesc = "" +
 	"\n" +
 	"timeout_ms\x18\x05 \x01(\x05R\ttimeoutMs\x12\x1f\n" +
 	"\vaudio_bytes\x18\x06 \x01(\fR\n" +
-	"audioBytes\"\xa1\x04\n" +
+	"audioBytes\"\xb5\x04\n" +
 	"\x1aAiTtsCreateVoiceNodeConfig\x12\x19\n" +
 	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x12&\n" +
 	"\x0ftarget_model_id\x18\x02 \x01(\tR\rtargetModelId\x12G\n" +
@@ -2751,7 +2759,8 @@ const file_runtime_v1_workflow_proto_rawDesc = "" +
 	"\x10instruction_text\x18\t \x01(\tR\x0finstructionText\x12!\n" +
 	"\fpreview_text\x18\n" +
 	" \x01(\tR\vpreviewText\x12\x1a\n" +
-	"\blanguage\x18\v \x01(\tR\blanguage\x12B\n" +
+	"\blanguage\x18\v \x01(\tR\blanguage\x12\x12\n" +
+	"\x04text\x18\f \x01(\tR\x04text\x12B\n" +
 	"\n" +
 	"extensions\x18\x14 \x03(\v2\".nimi.runtime.v1.ScenarioExtensionR\n" +
 	"extensions\"\xdd\x03\n" +

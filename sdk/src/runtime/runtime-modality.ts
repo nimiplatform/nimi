@@ -4,12 +4,12 @@ import {
   ExecutionMode,
   RoutePolicy,
   ScenarioType,
-  SpeechTimingMode,
   type ArtifactChunk,
   type ScenarioJob,
 } from './generated/runtime/v1/ai';
 import type { ListPresetVoicesRequest, VoicePresetDescriptor } from './generated/runtime/v1/voice';
 import type { RuntimeInternalContext } from './internal-context.js';
+import { toSpeechTimingMode } from './runtime-media.js';
 import type {
   ImageGenerateInput,
   ImageGenerateOutput,
@@ -182,10 +182,11 @@ export async function runtimeListSpeechVoices(
 ): Promise<SpeechListVoicesOutput> {
   const subjectUserId = await ctx.resolveSubjectUserId(input.subjectUserId);
   const responseMetadata: Record<string, string> = {};
+  const modelId = normalizeSpeechListModel(input.model, input.route);
   const request: ListPresetVoicesRequest = {
     appId: ctx.appId,
     subjectUserId,
-    modelId: ensureText(input.model, 'model'),
+    modelId,
     targetModelId: '',
     connectorId: normalizeText(input.connectorId),
   };
@@ -217,6 +218,21 @@ export async function runtimeListSpeechVoices(
     voiceCatalogVersion: voiceCatalogVersion || undefined,
     voiceCount,
   };
+}
+
+function normalizeSpeechListModel(
+  model: string,
+  route: SpeechListVoicesInput['route'],
+): string {
+  const normalizedModel = ensureText(model, 'model');
+  if (route !== 'cloud') {
+    return normalizedModel;
+  }
+  const lowerModel = normalizedModel.toLowerCase();
+  if (lowerModel.startsWith('cloud/') || normalizedModel.includes('/')) {
+    return normalizedModel;
+  }
+  return `cloud/${normalizedModel}`;
 }
 
 export async function runtimeStreamSpeechSynthesis(
@@ -357,18 +373,6 @@ export async function runtimeStreamSpeechSynthesis(
   };
 }
 
-function toSpeechTimingMode(value: SpeechSynthesizeInput['timingMode']): SpeechTimingMode {
-  switch (value) {
-    case 'word':
-      return SpeechTimingMode.WORD;
-    case 'char':
-      return SpeechTimingMode.CHAR;
-    case 'none':
-      return SpeechTimingMode.NONE;
-    default:
-      return SpeechTimingMode.UNSPECIFIED;
-  }
-}
 
 export function streamArtifactsFromMediaOutput(
   output: {

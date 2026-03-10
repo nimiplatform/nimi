@@ -581,6 +581,7 @@ type VoiceV2VInput struct {
 	ReferenceAudioMime  string                 `protobuf:"bytes,3,opt,name=reference_audio_mime,json=referenceAudioMime,proto3" json:"reference_audio_mime,omitempty"`
 	LanguageHints       []string               `protobuf:"bytes,4,rep,name=language_hints,json=languageHints,proto3" json:"language_hints,omitempty"`
 	PreferredName       string                 `protobuf:"bytes,5,opt,name=preferred_name,json=preferredName,proto3" json:"preferred_name,omitempty"`
+	Text                string                 `protobuf:"bytes,6,opt,name=text,proto3" json:"text,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -646,6 +647,13 @@ func (x *VoiceV2VInput) GetLanguageHints() []string {
 func (x *VoiceV2VInput) GetPreferredName() string {
 	if x != nil {
 		return x.PreferredName
+	}
+	return ""
+}
+
+func (x *VoiceV2VInput) GetText() string {
+	if x != nil {
+		return x.Text
 	}
 	return ""
 }
@@ -1231,13 +1239,14 @@ const file_runtime_v1_voice_proto_rawDesc = "" +
 	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x129\n" +
 	"\n" +
 	"expires_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x123\n" +
-	"\bmetadata\x18\x0e \x01(\v2\x17.google.protobuf.StructR\bmetadata\"\x8b\x02\n" +
+	"\bmetadata\x18\x0e \x01(\v2\x17.google.protobuf.StructR\bmetadata\"\x9f\x02\n" +
 	"\rVoiceV2VInput\x122\n" +
 	"\x15reference_audio_bytes\x18\x01 \x01(\fR\x13referenceAudioBytes\x12.\n" +
 	"\x13reference_audio_uri\x18\x02 \x01(\tR\x11referenceAudioUri\x120\n" +
 	"\x14reference_audio_mime\x18\x03 \x01(\tR\x12referenceAudioMime\x12%\n" +
 	"\x0elanguage_hints\x18\x04 \x03(\tR\rlanguageHints\x12%\n" +
-	"\x0epreferred_name\x18\x05 \x01(\tR\rpreferredNameJ\x04\b\x14\x10\x15R\x10provider_options\"\xb8\x01\n" +
+	"\x0epreferred_name\x18\x05 \x01(\tR\rpreferredName\x12\x12\n" +
+	"\x04text\x18\x06 \x01(\tR\x04textJ\x04\b\x14\x10\x15R\x10provider_options\"\xb8\x01\n" +
 	"\rVoiceT2VInput\x12)\n" +
 	"\x10instruction_text\x18\x01 \x01(\tR\x0finstructionText\x12!\n" +
 	"\fpreview_text\x18\x02 \x01(\tR\vpreviewText\x12\x1a\n" +

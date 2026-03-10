@@ -13,6 +13,7 @@ import { withRuntimeDaemon } from '../helpers/runtime-daemon.js';
 const APP_ID = 'nimi.desktop.sdk.ai.live';
 const SUBJECT_USER_ID = 'user-sdk-live';
 const LIVE_VOICE_DESIGN_INSTRUCTION = 'Warm, calm, natural narrator voice with steady pacing, clear diction, low background noise, gentle emotional range, and a polished studio delivery for long-form spoken content.';
+const LIVE_VOICE_CLONE_TEXT = 'Hello from Nimi live voice clone.';
 
 function resolveRuntimeDir(): string {
   let cursor = dirname(fileURLToPath(import.meta.url));
@@ -58,6 +59,23 @@ function fishAudioBalanceBlockMessage(provider: string, error: unknown): string 
     message.includes('insufficient balance')
     || message.includes('insufficient credits')
     || message.includes('invalid api key or insufficient balance')
+  ) {
+    return String((error as { message?: string } | undefined)?.message || error || '').trim();
+  }
+  return '';
+}
+
+function stepFunQuotaBlockMessage(provider: string, error: unknown): string {
+  if (provider !== 'stepfun') {
+    return '';
+  }
+  const message = String((error as { message?: string } | undefined)?.message || error || '').toLowerCase();
+  if (
+    message.includes('quota_exceeded')
+    || message.includes('exceeded your current quota')
+    || message.includes('billing details')
+    || message.includes('insufficient balance')
+    || message.includes('available balance')
   ) {
     return String((error as { message?: string } | undefined)?.message || error || '').trim();
   }
@@ -656,6 +674,21 @@ function resolveLiveVoiceCloneAudioInput(provider: string):
   };
 }
 
+function resolveLiveVoiceCloneText(provider: string): string {
+  const token = providerEnvToken(provider);
+  const value = envValue([
+    `NIMI_LIVE_${token}_VOICE_CLONE_TEXT`,
+    'NIMI_LIVE_VOICE_CLONE_TEXT',
+  ]);
+  if (value) {
+    return value;
+  }
+  if (provider === 'stepfun') {
+    return LIVE_VOICE_CLONE_TEXT;
+  }
+  return '';
+}
+
 function requiredAnyEnvOrSkip(t: { skip: (msg?: string) => void }, keys: string[]): string | null {
   const value = envValue(keys);
   if (!value) {
@@ -720,7 +753,8 @@ async function deleteVoiceAssetIfPresent(runtime: Runtime, voiceAssetId: string 
 
 async function resolveSdkLiveTTSVoice(runtime: Runtime, provider: string, modelId: string): Promise<string | undefined> {
   const response = await runtime.media.tts.listVoices({
-    model: String(modelId || '').trim().replace(/^cloud\//i, ''),
+    model: String(modelId || '').trim(),
+    route: sdkRoutePolicy(provider),
     subjectUserId: SUBJECT_USER_ID,
   });
   const firstVoice = response.voices[0];
@@ -883,6 +917,9 @@ async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, cap
   const voiceCloneAudioInput = capability === 'voice_clone'
     ? resolveLiveVoiceCloneAudioInput(provider)
     : null;
+  const voiceCloneText = capability === 'voice_clone'
+    ? resolveLiveVoiceCloneText(provider)
+    : '';
 
   const scenarioSpec = capability === 'voice_clone'
     ? {
@@ -891,6 +928,7 @@ async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, cap
         targetModelId,
         input: {
           ...(voiceCloneAudioInput || {}),
+          ...(voiceCloneText ? { text: voiceCloneText } : {}),
         },
       },
     }
@@ -1004,6 +1042,11 @@ function registerSdkProviderCapabilityMatrixTests() {
               const skipMessage = fishAudioBalanceBlockMessage(provider, error);
               if (skipMessage) {
                 t.skip(`fish_audio live smoke skipped due to provider balance block: ${skipMessage}`);
+                return;
+              }
+              const stepFunSkipMessage = stepFunQuotaBlockMessage(provider, error);
+              if (stepFunSkipMessage) {
+                t.skip(`stepfun live smoke skipped due to provider quota block: ${stepFunSkipMessage}`);
                 return;
               }
               throw error;

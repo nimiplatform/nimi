@@ -767,7 +767,7 @@ var Records = map[string]ProviderRecord{
 		RuntimePlane: "remote",
 		ManagedConnectorSupported: true,
 		InlineSupported: true,
-		DefaultEndpoint: "https://api.stepfun.com/v1",
+		DefaultEndpoint: "https://api.stepfun.ai/v1",
 		DefaultTextModel: "",
 		RequiresExplicitEndpoint: false,
 		SupportsText: true,

@@ -39,7 +39,7 @@
 | `siliconflow` | — | `true` | `K-MCAT-027` |
 | `spark` | `https://spark-api-open.xf-yun.com/v1` | `false` | `K-MCAT-027` |
 | `stability` | — | `true` | `K-MCAT-027` |
-| `stepfun` | `https://api.stepfun.com/v1` | `false` | `K-MCAT-027` |
+| `stepfun` | `https://api.stepfun.ai/v1` | `false` | `K-MCAT-027` |
 | `together` | — | `true` | `K-MCAT-027` |
 | `volcengine` | `https://ark.cn-beijing.volces.com/api/v3` | `false` | `K-MCAT-027` |
 | `volcengine_openspeech` | `https://openspeech.bytedance.com/api/v1` | `false` | `K-MCAT-027` |

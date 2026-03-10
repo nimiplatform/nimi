@@ -41,6 +41,7 @@
 | `voice` | `v2v.reference_audio_uri` | `false` | optional remote audio input for tts_v2v create voice | `K-MMPROV-019` |
 | `voice` | `v2v.reference_audio_bytes` | `false` | optional inline audio input for tts_v2v create voice | `K-MMPROV-019` |
 | `voice` | `v2v.reference_audio_mime` | `false` | reference audio mime type for tts_v2v | `K-MMPROV-019` |
+| `voice` | `v2v.text` | `false` | optional transcript or text description of the reference audio for tts_v2v | `K-MMPROV-019` |
 | `voice` | `t2v.instruction_text` | `false` | voice design instruction text for tts_t2v | `K-MMPROV-019` |
 | `voice` | `t2v.preview_text` | `false` | optional preview synthesis text for tts_t2v | `K-MMPROV-019` |
 | `voice` | `t2v.language` | `false` | optional language hint for tts_t2v design | `K-MMPROV-019` |

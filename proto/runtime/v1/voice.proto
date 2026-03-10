@@ -77,6 +77,7 @@ message VoiceV2VInput {
   string reference_audio_mime = 3;
   repeated string language_hints = 4;
   string preferred_name = 5;
+  string text = 6;
   reserved 20;
   reserved "provider_options";
 }

@@ -186,6 +186,11 @@ fields:
     description: reference audio mime type for tts_v2v
     source_rule: K-MMPROV-019
   - modality: voice
+    field: v2v.text
+    required: false
+    description: optional transcript or text description of the reference audio for tts_v2v
+    source_rule: K-MMPROV-019
+  - modality: voice
     field: t2v.instruction_text
     required: false
     description: voice design instruction text for tts_t2v

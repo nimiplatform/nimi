@@ -22,7 +22,7 @@ func ExecuteStepFunMedia(
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		baseURL = "https://api.stepfun.com"
+		baseURL = "https://api.stepfun.ai/v1"
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
 
@@ -61,7 +61,7 @@ func executeStepFunTTS(
 		payload["speed"] = speed
 	}
 
-	endpoint := "/v1/audio/speech"
+	endpoint := "/audio/speech"
 	body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), apiKey, payload)
 	if err != nil {
 		return nil, nil, "", err
@@ -106,7 +106,7 @@ func executeStepFunImage(
 		payload["n"] = n
 	}
 
-	endpoint := "/v1/images/generations"
+	endpoint := "/images/generations"
 	resp := map[string]any{}
 	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), apiKey, payload, &resp); err != nil {
 		return nil, nil, "", err

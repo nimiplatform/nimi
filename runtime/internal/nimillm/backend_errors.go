@@ -60,6 +60,10 @@ func classifyProviderBadRequest(providerMessage string) (codes.Code, runtimev1.R
 		"insufficient credits",
 		"not enough balance",
 		"out of credits",
+		"exceeded your current quota",
+		"check your plan and billing details",
+		"quota exceeded",
+		"quota_exceeded",
 	)
 	if balanceBlocked {
 		return codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED, "replenish_provider_balance_or_skip_live_test"
