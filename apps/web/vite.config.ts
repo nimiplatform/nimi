@@ -37,16 +37,55 @@ function resolveRealmProxyTarget(env: Record<string, string>): string | null {
   }
 }
 
+function resolveRealtimeProxyTarget(env: Record<string, string>, realmTarget: string | null): string | null {
+  const explicit = String(env.NIMI_REALTIME_URL || process.env.NIMI_REALTIME_URL || '').trim();
+  if (explicit) {
+    try {
+      const parsed = new URL(explicit);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return null;
+      }
+      return parsed.origin;
+    } catch {
+      return null;
+    }
+  }
+
+  if (!realmTarget) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(realmTarget);
+    const hostname = parsed.hostname.toLowerCase();
+    if ((hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') && parsed.port === '3002') {
+      parsed.port = '3003';
+    }
+    return parsed.origin;
+  } catch {
+    return null;
+  }
+}
+
 export default defineConfig(({ mode }) => {
   loadWebBuildEnvFiles();
   const env = loadEnv(mode, __dirname, '');
   const realmProxyTarget = resolveRealmProxyTarget(env);
+  const realtimeProxyTarget = resolveRealtimeProxyTarget(env, realmProxyTarget);
 
   return {
     plugins: [react(), tailwindcss()],
     envPrefix: ['VITE_', 'NIMI_'],
     define: {
       'import.meta.env.VITE_NIMI_SHELL_MODE': JSON.stringify('web'),
+    },
+    optimizeDeps: {
+      exclude: [
+        '@react-three/fiber',
+        '@react-three/drei',
+        '@react-three/postprocessing',
+        'postprocessing',
+      ],
     },
     resolve: {
       alias: [
@@ -131,7 +170,7 @@ export default defineConfig(({ mode }) => {
               secure: false,
             },
             '/socket.io': {
-              target: realmProxyTarget,
+              target: realtimeProxyTarget || realmProxyTarget,
               changeOrigin: true,
               secure: false,
               ws: true,
