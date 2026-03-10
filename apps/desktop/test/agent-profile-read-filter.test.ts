@@ -173,6 +173,32 @@ function createRuntimeContext(hookRuntime: ReturnType<typeof getRuntimeHookRunti
   };
 }
 
+function installModStateCapability(hookRuntime: ReturnType<typeof getRuntimeHookRuntime>): void {
+  hookRuntime.registerDataCapability('data.store.mod-state', (query) => {
+    const op = String(query.op || '');
+    const key = String(query.key || '');
+    const storage = globalThis.localStorage;
+    if (!storage) {
+      return { ok: false, reasonCode: 'MOD_STATE_UNAVAILABLE' };
+    }
+
+    const storageKey = `nimi:mod-state:${key}`;
+    if (op === 'get') {
+      return { ok: true, value: storage.getItem(storageKey) };
+    }
+    if (op === 'set') {
+      storage.setItem(storageKey, String(query.value || ''));
+      return { ok: true };
+    }
+    if (op === 'delete') {
+      storage.removeItem(storageKey);
+      return { ok: true };
+    }
+
+    return { ok: false, reasonCode: 'MOD_STATE_INVALID_OP' };
+  });
+}
+
 function installModSdkHost(runtimeHost: Record<string, unknown>): () => void {
   setModSdkHost({
     runtime: runtimeHost as never,
@@ -206,6 +232,7 @@ test('loadAgentDetails reapplies mint-you profile filter per viewer on cached pr
     const hookRuntime = getRuntimeHookRuntime();
     hookRuntime.setModSourceType(MINTYOU_MOD_ID, 'builtin');
     hookRuntime.setCapabilityBaseline(MINTYOU_MOD_ID, [MINTYOU_RUNTIME_PROFILE_READ_AGENT]);
+    installModStateCapability(hookRuntime);
 
     const runtimeContext = createRuntimeContext(hookRuntime);
     const restoreHost = installModSdkHost(runtimeContext.runtimeHost as Record<string, unknown>);
@@ -247,8 +274,8 @@ test('loadAgentDetails reapplies mint-you profile filter per viewer on cached pr
       const fetchCountAfterInitialLoad = fetchCount;
       assert.equal(fetchCountAfterInitialLoad > 0, true);
 
-      requestPhoto('viewer-b', agentId, 'world-cache');
-      respondToRequest(agentId, 'viewer-b', 'world-cache', true);
+      await requestPhoto(hookClient.data, 'viewer-b', agentId, 'world-cache');
+      await respondToRequest(hookClient.data, agentId, 'viewer-b', 'world-cache', true);
 
       const authorized = await loadAgentDetails(callApi as never, emitDataSyncError, agentId, {
         viewerUserId: 'viewer-b',

@@ -1,4 +1,5 @@
-import { LanguageRegionPage, ProfilePage } from './settings-account-panel';
+import { ProfilePage } from './settings-account-panel';
+import { LanguageRegionPage } from './settings-language-region-panel';
 import { WalletPage } from './settings-advanced-panel';
 import { ModSettingsPage } from './settings-mod-panel';
 import { NotificationsPage, PerformancePage } from './settings-preferences-panel';

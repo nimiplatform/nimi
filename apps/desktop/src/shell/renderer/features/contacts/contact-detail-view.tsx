@@ -14,7 +14,6 @@ import {
   ArrowUpIcon,
   buildEditableDraft,
   CalendarIcon,
-  CameraIcon,
   CheckIcon,
   DotsIcon,
   EditableField,

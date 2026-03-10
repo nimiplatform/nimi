@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { Tooltip } from '@renderer/components/tooltip.js';
 
 export type CreateAgentInput = {
   handle: string;
@@ -23,9 +22,6 @@ type CreateAgentDrawerProps = {
   worldDescription?: string | null;
   submitting?: boolean;
 };
-
-const WAKE_STRATEGY_TOOLTIP =
-  'Passive only responds when triggered. Proactive can start reacting on its own when the world changes.';
 
 const PRIMARY_TRAITS: Array<{ value: CreateAgentInput['dnaPrimary']; label: string }> = [
   { value: 'CARING', label: 'Caring' },

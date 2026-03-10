@@ -8,6 +8,10 @@
       "enforced": false,
       "reason": "Mod currently does not ship JSON locale bundles under src/locales; excluded from JSON parity enforcement."
     },
+    "buddy": {
+      "enforced": false,
+      "reason": "Locales are still TS modules (en.ts/zh.ts), not JSON parity-managed yet."
+    },
     "kismet": {
       "enforced": false,
       "reason": "Locales are still TS modules (en.ts/zh.ts), not JSON parity-managed yet."

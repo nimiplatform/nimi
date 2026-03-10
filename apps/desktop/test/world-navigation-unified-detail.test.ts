@@ -15,6 +15,10 @@ const worldDetailSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-detail.tsx'),
   'utf8',
 );
+const worldDetailRouteStateSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-detail-route-state.tsx'),
+  'utf8',
+);
 const explorePanelSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/explore/explore-panel.tsx'),
   'utf8',
@@ -33,9 +37,10 @@ test('world list routes detail entry through navigateToWorld unified path', () =
   assert.match(worldListSource, /navigateToWorld\(worldId\)/);
 });
 
-test('world detail tab renders active world detail panel from features/world', () => {
-  assert.match(mainLayoutSource, /import\('@renderer\/features\/world\/world-detail-active-panel'\)/);
+test('world detail tab renders active world detail panel through route-state loader', () => {
+  assert.match(mainLayoutSource, /loadWorldDetailPanelModule\(\)/);
   assert.match(mainLayoutSource, /WorldDetailRouteLoading/);
+  assert.match(worldDetailRouteStateSource, /import\('@renderer\/features\/world\/world-detail-active-panel'\)/);
 });
 
 test('world detail uses explicit initial loading state to avoid first-render flicker', () => {

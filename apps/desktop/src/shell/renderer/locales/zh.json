@@ -351,6 +351,12 @@
     "connectedAccountsDescription": "管理您的关联账户和登录方式",
     "updateSuccess": "资料已更新",
     "updateError": "更新资料失败",
+    "avatarUnsupportedFormat": "不支持的头像格式，请使用 PNG、JPEG、GIF 或 WebP。",
+    "avatarSizeLimit": "头像文件必须小于 10MB。",
+    "avatarUploadUnavailable": "图片上传当前不可用，请稍后重试。",
+    "avatarUploadFailed": "头像上传失败",
+    "avatarUploadSuccess": "头像已上传，保存更改后即可生效。",
+    "avatarUploading": "正在上传头像...",
     "github": "GitHub",
     "googleOauthClientIdMissing": "缺少 Google OAuth 客户端 ID",
     "googleOauthInitFailed": "Google OAuth 初始化失败"
