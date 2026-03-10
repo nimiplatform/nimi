@@ -91,22 +91,52 @@ func acquireRuntimeInstanceLock() (func(), error) {
 	if err := os.MkdirAll(filepath.Dir(lockPath), 0o755); err != nil {
 		return nil, fmt.Errorf("create runtime lock directory: %w", err)
 	}
-	lockFile, err := os.OpenFile(lockPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
-	if err != nil {
-		if errors.Is(err, os.ErrExist) {
+	for {
+		lockFile, openErr := os.OpenFile(lockPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+		if openErr == nil {
+			if _, err := lockFile.WriteString(strconv.Itoa(os.Getpid())); err != nil {
+				_ = lockFile.Close()
+				_ = os.Remove(lockPath)
+				return nil, fmt.Errorf("write runtime instance lock: %w", err)
+			}
+			return func() {
+				_ = lockFile.Close()
+				_ = os.Remove(lockPath)
+			}, nil
+		}
+		if !errors.Is(openErr, os.ErrExist) {
+			return nil, fmt.Errorf("acquire runtime instance lock: %w", openErr)
+		}
+		stale, staleErr := runtimeLockIsStale(lockPath)
+		if staleErr != nil {
+			return nil, staleErr
+		}
+		if !stale {
 			return nil, fmt.Errorf("runtime instance lock already held: %s", lockPath)
 		}
-		return nil, fmt.Errorf("acquire runtime instance lock: %w", err)
+		if err := os.Remove(lockPath); err != nil && !os.IsNotExist(err) {
+			return nil, fmt.Errorf("remove stale runtime lock: %w", err)
+		}
 	}
-	if _, err := lockFile.WriteString(strconv.Itoa(os.Getpid())); err != nil {
-		_ = lockFile.Close()
-		_ = os.Remove(lockPath)
-		return nil, fmt.Errorf("write runtime instance lock: %w", err)
+}
+
+func runtimeLockIsStale(lockPath string) (bool, error) {
+	content, err := os.ReadFile(lockPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("read runtime instance lock: %w", err)
 	}
-	return func() {
-		_ = lockFile.Close()
-		_ = os.Remove(lockPath)
-	}, nil
+	pidText := strings.TrimSpace(string(content))
+	if pidText == "" {
+		return true, nil
+	}
+	pid, err := strconv.Atoi(pidText)
+	if err != nil {
+		return false, fmt.Errorf("parse runtime instance lock pid: %w", err)
+	}
+	return !runtimeProcessAlive(pid), nil
 }
 
 func runtimeInstanceLockPath() (string, error) {
