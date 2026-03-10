@@ -11,6 +11,7 @@ import { OfflineStateManager } from './offline-state-manager.js';
 type TierListener = (change: OfflineTierChange) => void;
 type RuntimeReconnectListener = () => Promise<void> | void;
 type RealmReconnectListener = () => Promise<void> | void;
+type OfflineTimerHandle = unknown;
 
 type OfflineReconnectHandlers = {
   probeRealmReachability?: () => Promise<boolean>;
@@ -18,20 +19,37 @@ type OfflineReconnectHandlers = {
   hasPendingRealmRecoveryWork?: () => Promise<boolean>;
 };
 
+export type OfflineCoordinatorTimer = {
+  setTimeout: (callback: () => void, delayMs: number) => OfflineTimerHandle;
+  clearTimeout: (handle: OfflineTimerHandle) => void;
+};
+
+const defaultOfflineCoordinatorTimer: OfflineCoordinatorTimer = {
+  setTimeout: (callback, delayMs) => globalThis.setTimeout(callback, delayMs),
+  clearTimeout: (handle) => globalThis.clearTimeout(handle as ReturnType<typeof setTimeout>),
+};
+
 export class OfflineCoordinator {
-  private readonly monitor = new ConnectivityMonitor();
-  private readonly stateManager = new OfflineStateManager(this.monitor);
+  private readonly monitor: ConnectivityMonitor;
+  private readonly stateManager: OfflineStateManager;
+  private readonly timer: OfflineCoordinatorTimer;
   private readonly tierListeners = new Set<TierListener>();
   private readonly runtimeReconnectListeners = new Set<RuntimeReconnectListener>();
   private readonly realmReconnectListeners = new Set<RealmReconnectListener>();
   private readonly statusListeners = new Set<(status: ConnectivityStatus) => void>();
   private started = false;
-  private realmReconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private runtimeReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private realmReconnectTimer: OfflineTimerHandle | null = null;
+  private runtimeReconnectTimer: OfflineTimerHandle | null = null;
   private realmReconnectDelayMs = RECONNECT_INITIAL_DELAY_MS;
   private runtimeReconnectDelayMs = RECONNECT_INITIAL_DELAY_MS;
   private reconnectHandlers: OfflineReconnectHandlers = {};
   private cacheFallbackActive = false;
+
+  constructor(input: { timer?: OfflineCoordinatorTimer } = {}) {
+    this.monitor = new ConnectivityMonitor();
+    this.stateManager = new OfflineStateManager(this.monitor);
+    this.timer = input.timer || defaultOfflineCoordinatorTimer;
+  }
 
   start(): void {
     if (this.started) {
@@ -164,7 +182,7 @@ export class OfflineCoordinator {
     if (!await this.shouldReconnectRealm()) {
       return;
     }
-    this.realmReconnectTimer = setTimeout(() => {
+    this.realmReconnectTimer = this.timer.setTimeout(() => {
       this.realmReconnectTimer = null;
       void this.tryRealmReconnect();
     }, this.realmReconnectDelayMs);
@@ -196,7 +214,7 @@ export class OfflineCoordinator {
     if (this.runtimeReconnectTimer || this.getStatus().runtime.reachable) {
       return;
     }
-    this.runtimeReconnectTimer = setTimeout(() => {
+    this.runtimeReconnectTimer = this.timer.setTimeout(() => {
       this.runtimeReconnectTimer = null;
       void this.tryRuntimeReconnect();
     }, this.runtimeReconnectDelayMs);
@@ -225,14 +243,14 @@ export class OfflineCoordinator {
 
   private clearRealmReconnectTimer(): void {
     if (this.realmReconnectTimer) {
-      clearTimeout(this.realmReconnectTimer);
+      this.timer.clearTimeout(this.realmReconnectTimer);
       this.realmReconnectTimer = null;
     }
   }
 
   private clearRuntimeReconnectTimer(): void {
     if (this.runtimeReconnectTimer) {
-      clearTimeout(this.runtimeReconnectTimer);
+      this.timer.clearTimeout(this.runtimeReconnectTimer);
       this.runtimeReconnectTimer = null;
     }
   }

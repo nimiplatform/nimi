@@ -122,6 +122,7 @@
     "check:local-chat-live-smoke": "node scripts/run-local-chat-live-smoke.mjs",
     "check:live-provider-invariants": "node scripts/check-live-provider-invariants.mjs",
     "check:live-smoke-gate": "node scripts/check-live-smoke-gate.mjs",
+    "check:live-smoke-gate-regression": "node --test scripts/check-live-smoke-gate.test.mjs",
     "live:audio-fixtures": "node scripts/live-audio-fixtures.mjs",
     "run:ai-gold-path": "node scripts/run-ai-gold-path.mjs",
     "run:ai-gold-path:dashscope": "node scripts/run-dashscope-gold-path.mjs",

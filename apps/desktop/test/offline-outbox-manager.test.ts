@@ -1,35 +1,10 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+
 import { OfflineCacheManager } from '../src/runtime/offline/cache-manager.js';
 
-const CACHE_MANAGER_PATH = resolve(import.meta.dirname, '../src/runtime/offline/cache-manager.ts');
-const cacheManagerSource = readFileSync(CACHE_MANAGER_PATH, 'utf-8');
-
-const TYPES_PATH = resolve(import.meta.dirname, '../src/runtime/offline/types.ts');
-const typesSource = readFileSync(TYPES_PATH, 'utf-8');
-
-describe('D-OFFLINE-002: outbox persistent entry', () => {
-  test('D-OFFLINE-002: PersistentOutboxEntry includes enqueuedAt timestamp', () => {
-    assert.match(
-      typesSource,
-      /export type PersistentOutboxEntry\s*=\s*\{[^}]*enqueuedAt:\s*number/s,
-      'PersistentOutboxEntry must declare enqueuedAt: number',
-    );
-  });
-
-  test('D-OFFLINE-002: outbox max entries is 1000', () => {
-    assert.match(
-      typesSource,
-      /OUTBOX_MAX_ENTRIES\s*=\s*1000/,
-      'OUTBOX_MAX_ENTRIES must equal 1000',
-    );
-  });
-});
-
-describe('D-OFFLINE-002: outbox queue/send/fail', () => {
-  test('D-OFFLINE-002: queueOutboxEntry rejects when outbox full', async () => {
+describe('D-OFFLINE-002: outbox queue/send/fail behavior', () => {
+  test('queueOutboxEntry rejects when outbox full', async () => {
     const manager = new OfflineCacheManager();
     await manager.open();
     for (let index = 0; index < 1000; index += 1) {
@@ -55,7 +30,7 @@ describe('D-OFFLINE-002: outbox queue/send/fail', () => {
     );
   });
 
-  test('D-OFFLINE-002: outbox entries sorted FIFO by enqueuedAt', async () => {
+  test('outbox entries stay FIFO by enqueuedAt', async () => {
     const manager = new OfflineCacheManager();
     await manager.open();
     await manager.upsertChatOutboxEntry({
@@ -78,7 +53,7 @@ describe('D-OFFLINE-002: outbox queue/send/fail', () => {
     assert.deepEqual(entries.map((entry) => entry.clientMessageId), ['earlier', 'later']);
   });
 
-  test('D-OFFLINE-002: markOutboxSent deletes entry by clientMessageId', async () => {
+  test('markChatOutboxSent deletes the delivered entry', async () => {
     const manager = new OfflineCacheManager();
     await manager.open();
     await manager.upsertChatOutboxEntry({
@@ -93,7 +68,7 @@ describe('D-OFFLINE-002: outbox queue/send/fail', () => {
     assert.equal(await manager.getChatOutboxEntry('cm-1'), undefined);
   });
 
-  test('D-OFFLINE-002: markOutboxFailed sets status to failed with reason', async () => {
+  test('markChatOutboxFailed preserves the failed reason without retrying', async () => {
     const manager = new OfflineCacheManager();
     await manager.open();
     await manager.upsertChatOutboxEntry({
@@ -111,28 +86,78 @@ describe('D-OFFLINE-002: outbox queue/send/fail', () => {
   });
 });
 
-describe('D-OFFLINE-005: cache limits', () => {
-  test('D-OFFLINE-005: cache max chats is 20', () => {
-    assert.match(
-      typesSource,
-      /CACHE_MAX_CHATS\s*=\s*20/,
-      'CACHE_MAX_CHATS must equal 20',
+describe('D-OFFLINE-005: memory cache behavior', () => {
+  test('chat list cache keeps the latest configured 20 records', async () => {
+    const manager = new OfflineCacheManager();
+    await manager.open();
+    await manager.syncChatList(
+      Array.from({ length: 25 }, (_, index) => ({
+        id: `chat-${index}`,
+        title: `Chat ${index}`,
+      })),
+    );
+
+    const cached = await manager.getCachedChatList();
+    assert.equal(cached.length, 20);
+    assert.deepEqual(
+      cached.map((item) => item.id),
+      Array.from({ length: 20 }, (_, index) => `chat-${index}`),
     );
   });
 
-  test('D-OFFLINE-005: cache max messages per chat is 50', () => {
-    assert.match(
-      typesSource,
-      /CACHE_MAX_MESSAGES_PER_CHAT\s*=\s*50/,
-      'CACHE_MAX_MESSAGES_PER_CHAT must equal 50',
+  test('message cache keeps the latest configured 50 records per chat', async () => {
+    const manager = new OfflineCacheManager();
+    await manager.open();
+    await manager.syncChatMessages(
+      'chat-1',
+      Array.from({ length: 60 }, (_, index) => ({
+        id: `msg-${index}`,
+        createdAt: new Date(index * 1000).toISOString(),
+      })),
     );
+
+    const cached = await manager.getCachedMessages('chat-1');
+    assert.equal(cached.length, 50);
+    assert.equal(cached[0]?.id, 'msg-0');
+    assert.equal(cached[cached.length - 1]?.id, 'msg-49');
   });
 
-  test('D-OFFLINE-005: IndexedDB database name is nimi-offline-cache', () => {
-    assert.match(
-      cacheManagerSource,
-      /DB_NAME\s*=\s*'nimi-offline-cache'/,
-      'DB_NAME must be nimi-offline-cache',
-    );
+  test('agent, world, and model metadata survive memory fallback round-trips', async () => {
+    const manager = new OfflineCacheManager();
+    await manager.open();
+
+    await manager.syncAgentMetadata('agent:alice', {
+      id: 'agent:alice',
+      name: 'Alice',
+    });
+    await manager.syncWorldList([
+      { id: 'world-1', title: 'World One' },
+      { id: 'world-2', title: 'World Two' },
+    ]);
+    await manager.syncWorldMetadata('world:main', {
+      id: 'world:main',
+      slug: 'main',
+    });
+    await manager.syncModelManifests([
+      { id: 'model-1', capability: 'text' },
+      { id: 'model-2', capability: 'speech' },
+    ]);
+
+    assert.deepEqual(await manager.getCachedAgentMetadata('agent:alice'), {
+      id: 'agent:alice',
+      name: 'Alice',
+    });
+    assert.deepEqual(await manager.getCachedWorldList(), [
+      { id: 'world-1', title: 'World One' },
+      { id: 'world-2', title: 'World Two' },
+    ]);
+    assert.deepEqual(await manager.getCachedWorldMetadata('world:main'), {
+      id: 'world:main',
+      slug: 'main',
+    });
+    assert.deepEqual(await manager.getCachedModelManifests(), [
+      { id: 'model-1', capability: 'text' },
+      { id: 'model-2', capability: 'speech' },
+    ]);
   });
 });

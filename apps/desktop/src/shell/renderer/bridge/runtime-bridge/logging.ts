@@ -1,6 +1,7 @@
 import {
   hasTauriInvoke,
   RENDERER_DEBUG_ENABLED,
+  isRendererDebugEnabledForCurrentEnv,
   shouldForwardRendererLogLevel,
 } from './env';
 import type { RendererLogLevel, RendererLogMessage, RendererLogPayload } from './types';
@@ -91,7 +92,7 @@ function shouldMirrorRendererLogToConsole(
   message: string,
 ): boolean {
   if (level === 'debug' || level === 'info') {
-    if (!RENDERER_DEBUG_ENABLED) return false;
+    if (!isRendererDebugEnabledForCurrentEnv()) return false;
     const key = `${level}:${area}:${message}`;
     const now = Date.now();
     const previous = rendererConsoleMirrorAt.get(key) || 0;
@@ -139,7 +140,7 @@ export async function emitRendererLog(payload: RendererLogPayload): Promise<void
     },
   };
 
-  if (normalized.level === 'debug' && !RENDERER_DEBUG_ENABLED) {
+  if (normalized.level === 'debug' && !isRendererDebugEnabledForCurrentEnv()) {
     return;
   }
 
@@ -170,7 +171,7 @@ export async function emitRendererLog(payload: RendererLogPayload): Promise<void
       payload: normalized,
     });
   } catch (error) {
-    if (RENDERER_DEBUG_ENABLED) {
+    if (RENDERER_DEBUG_ENABLED || isRendererDebugEnabledForCurrentEnv()) {
       persistRendererLogForDebug({
         ...normalized,
         level: 'warn',
@@ -211,4 +212,24 @@ export function logRendererEvent(payload: {
     costMs: payload.costMs,
     details: payload.details,
   });
+}
+
+export function getRendererDebugLogsForTest(): Array<Record<string, unknown>> {
+  return [...rendererDebugLogs];
+}
+
+export function resetRendererTelemetryStateForTest(): void {
+  rendererConsoleMirrorAt.clear();
+  rendererDebugLogs.splice(0, rendererDebugLogs.length);
+  rendererSessionTraceIdCache = '';
+  try {
+    const runtimeWindow = window as typeof window & {
+      __NIMI_RENDERER_DEBUG_LOGS__?: Array<Record<string, unknown>>;
+      __NIMI_RENDERER_DEBUG_LOGS_LATEST__?: Record<string, unknown>;
+    };
+    runtimeWindow.__NIMI_RENDERER_DEBUG_LOGS__ = [];
+    delete runtimeWindow.__NIMI_RENDERER_DEBUG_LOGS_LATEST__;
+  } catch {
+    // ignore
+  }
 }

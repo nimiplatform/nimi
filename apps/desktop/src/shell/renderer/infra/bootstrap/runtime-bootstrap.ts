@@ -36,6 +36,7 @@ import {
 } from './runtime-bootstrap-host-capabilities';
 import { syncRuntimeJwtConfig } from './runtime-bootstrap-jwt-sync';
 import { reconcileLocalAiRuntimeBootstrapState } from './runtime-bootstrap-local-ai';
+import { attachOfflineCoordinatorBindings } from './runtime-bootstrap-offline';
 import {
   startExternalAgentActionBridge,
   resyncExternalAgentActionDescriptors,
@@ -126,8 +127,10 @@ function bindOfflineCoordinator(): void {
   }
   offlineCoordinatorBindingsReady = true;
   const coordinator = getOfflineCoordinator();
-  useAppStore.getState().setOfflineTier(coordinator.getTier());
-  coordinator.configureReconnectHandlers({
+  attachOfflineCoordinatorBindings({
+    coordinator,
+    setOfflineTier: (tier) => useAppStore.getState().setOfflineTier(tier),
+    suspendRuntimeCallbacksForL2,
     probeRealmReachability: async () => {
       const authStatus = useAppStore.getState().auth.status;
       if (authStatus !== 'authenticated') {
@@ -141,22 +144,12 @@ function bindOfflineCoordinator(): void {
       return checkDaemonVersion(daemonStatus.version).ok;
     },
     hasPendingRealmRecoveryWork: async () => dataSync.hasPendingOfflineRecoveryWork(),
-  });
-  coordinator.subscribeTier((change) => {
-    useAppStore.getState().setOfflineTier(change.to);
-    if (change.to === 'L2') {
-      suspendRuntimeCallbacksForL2();
-    }
-  });
-  coordinator.subscribeRealmReconnect(async () => {
-    await Promise.allSettled([
-      dataSync.flushChatOutbox(),
-      dataSync.flushSocialOutbox(),
-    ]);
-    await queryClient.invalidateQueries();
-  });
-  coordinator.subscribeRuntimeReconnect(async () => {
-    await rebootstrapRuntime();
+    flushChatOutbox: async () => dataSync.flushChatOutbox(),
+    flushSocialOutbox: async () => dataSync.flushSocialOutbox(),
+    invalidateQueries: async () => queryClient.invalidateQueries(),
+    rebootstrapRuntime: async () => {
+      await rebootstrapRuntime();
+    },
   });
 }
 

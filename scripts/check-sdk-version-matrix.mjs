@@ -4,6 +4,7 @@
  * SDK version check — unified single package mode.
  */
 
+import { spawnSync } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,6 +15,97 @@ const repoRoot = path.resolve(scriptDir, '..');
 const SDK_PACKAGES = [
   'sdk',
 ];
+const PUBLIC_RUNTIME_SURFACE_PATHS = [
+  'sdk/src/runtime/index.ts',
+  'sdk/src/runtime/types.ts',
+  'sdk/src/runtime/types-runtime-modules.ts',
+  'sdk/src/types/index.ts',
+];
+
+function runGit(args) {
+  const result = spawnSync(
+    'git',
+    args,
+    {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
+  return {
+    status: result.status ?? 1,
+    stdout: typeof result.stdout === 'string' ? result.stdout : '',
+    stderr: typeof result.stderr === 'string' ? result.stderr : '',
+  };
+}
+
+function listGitPaths(args) {
+  const result = runGit(args);
+  if (result.status !== 0) {
+    return [];
+  }
+  return result.stdout
+    .split(/\r?\n/)
+    .map((line) => String(line || '').trim())
+    .filter(Boolean);
+}
+
+function parseMajorMinor(version) {
+  return String(version || '').trim().split('.').slice(0, 2).join('.');
+}
+
+function readPackageVersionFromGit(ref) {
+  const normalizedRef = String(ref || '').trim();
+  if (!normalizedRef) {
+    return '';
+  }
+  const result = runGit(['show', `${normalizedRef}:sdk/package.json`]);
+  if (result.status !== 0) {
+    return '';
+  }
+  try {
+    return String(JSON.parse(result.stdout).version || '').trim();
+  } catch {
+    return '';
+  }
+}
+
+function detectRuntimeSurfaceVersionContext(currentVersion) {
+  const baseRef = String(process.env.NIMI_BASE_SHA || '').trim() || 'HEAD~1';
+  const focusPaths = [...PUBLIC_RUNTIME_SURFACE_PATHS, 'sdk/package.json'];
+
+  const worktreeChangedPaths = listGitPaths(['diff', '--name-only', 'HEAD', '--', ...focusPaths]);
+  const worktreeSurfacePaths = worktreeChangedPaths.filter((filePath) => PUBLIC_RUNTIME_SURFACE_PATHS.includes(filePath));
+  if (worktreeSurfacePaths.length > 0) {
+    const baseVersion = readPackageVersionFromGit('HEAD');
+    if (!baseVersion) {
+      return null;
+    }
+    return {
+      changedSurfacePaths: worktreeSurfacePaths,
+      baseVersion,
+      currentVersion,
+      comparisonLabel: 'HEAD -> worktree',
+    };
+  }
+
+  const range = `${baseRef}...HEAD`;
+  const rangeChangedPaths = listGitPaths(['diff', '--name-only', range, '--', ...focusPaths]);
+  const rangeSurfacePaths = rangeChangedPaths.filter((filePath) => PUBLIC_RUNTIME_SURFACE_PATHS.includes(filePath));
+  if (rangeSurfacePaths.length === 0) {
+    return null;
+  }
+  const baseVersion = readPackageVersionFromGit(baseRef);
+  if (!baseVersion) {
+    return null;
+  }
+  return {
+    changedSurfacePaths: rangeSurfacePaths,
+    baseVersion,
+    currentVersion,
+    comparisonLabel: `${baseRef} -> HEAD`,
+  };
+}
 
 async function main() {
   const violations = [];
@@ -55,7 +147,7 @@ async function main() {
   const versions = [...packageVersions.entries()].map(([name, { version }]) => ({
     name,
     version,
-    majorMinor: version.split('.').slice(0, 2).join('.'),
+    majorMinor: parseMajorMinor(version),
   }));
   const majorMinorSet = new Set(versions.map((v) => v.majorMinor));
   if (majorMinorSet.size > 1) {
@@ -73,6 +165,21 @@ async function main() {
     }
     if (!parsed.exports && !parsed.main) {
       violations.push(`${name} (${pkgPath}) missing "exports" or "main" field`);
+    }
+  }
+
+  const sdkPackage = packageVersions.get('@nimiplatform/sdk');
+  if (sdkPackage?.version) {
+    const runtimeSurfaceContext = detectRuntimeSurfaceVersionContext(sdkPackage.version);
+    if (
+      runtimeSurfaceContext
+      && parseMajorMinor(runtimeSurfaceContext.baseVersion) === parseMajorMinor(runtimeSurfaceContext.currentVersion)
+    ) {
+      violations.push(
+        `@nimiplatform/sdk public runtime surface changed in ${runtimeSurfaceContext.comparisonLabel} `
+        + `(${runtimeSurfaceContext.changedSurfacePaths.join(', ')}) but version stayed within ${parseMajorMinor(runtimeSurfaceContext.currentVersion)}; `
+        + `bump major.minor for breaking or surface-affecting runtime API edits`,
+      );
     }
   }
 

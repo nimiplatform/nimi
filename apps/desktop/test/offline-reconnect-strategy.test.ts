@@ -1,71 +1,202 @@
-import { describe, test } from 'node:test';
+import { beforeEach, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 
-const TYPES_PATH = resolve(import.meta.dirname, '../src/runtime/offline/types.ts');
-const typesSource = readFileSync(TYPES_PATH, 'utf-8');
+import { OfflineCoordinator, type OfflineCoordinatorTimer } from '../src/runtime/offline/coordinator.js';
+import { attachOfflineCoordinatorBindings } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-offline.js';
 
-const MONITOR_PATH = resolve(import.meta.dirname, '../src/runtime/offline/connectivity-monitor.ts');
-const monitorSource = readFileSync(MONITOR_PATH, 'utf-8');
+type ScheduledTask = {
+  callback: () => void;
+  cancelled: boolean;
+  delayMs: number;
+};
 
-const MANAGER_PATH = resolve(import.meta.dirname, '../src/runtime/offline/offline-state-manager.ts');
-const managerSource = readFileSync(MANAGER_PATH, 'utf-8');
+class FakeTimer implements OfflineCoordinatorTimer {
+  private readonly tasks: ScheduledTask[] = [];
 
-describe('D-OFFLINE-004: reconnect strategy constants', () => {
-  test('D-OFFLINE-004: initial reconnect delay is 1000ms', () => {
-    assert.match(
-      typesSource,
-      /RECONNECT_INITIAL_DELAY_MS\s*=\s*1000/,
-      'RECONNECT_INITIAL_DELAY_MS must equal 1000',
-    );
+  setTimeout(callback: () => void, delayMs: number): ScheduledTask {
+    const task = {
+      callback,
+      cancelled: false,
+      delayMs,
+    };
+    this.tasks.push(task);
+    return task;
+  }
+
+  clearTimeout(handle: unknown): void {
+    const task = handle as ScheduledTask | null;
+    if (task) {
+      task.cancelled = true;
+    }
+  }
+
+  nextDelay(): number | null {
+    return this.tasks.find((task) => !task.cancelled)?.delayMs ?? null;
+  }
+
+  pendingCount(): number {
+    return this.tasks.filter((task) => !task.cancelled).length;
+  }
+
+  async runNext(): Promise<number> {
+    const index = this.tasks.findIndex((task) => !task.cancelled);
+    assert.notEqual(index, -1, 'expected a scheduled reconnect task');
+    const [task] = this.tasks.splice(index, 1);
+    assert.ok(task, 'scheduled task should exist');
+    task.cancelled = true;
+    task.callback();
+    await flushAsyncWork();
+    return task.delayMs;
+  }
+}
+
+async function flushAsyncWork(): Promise<void> {
+  for (let index = 0; index < 4; index += 1) {
+    await Promise.resolve();
+  }
+}
+
+describe('D-OFFLINE-004: reconnect backoff behavior', () => {
+  let timer: FakeTimer;
+  let coordinator: OfflineCoordinator;
+
+  beforeEach(() => {
+    timer = new FakeTimer();
+    coordinator = new OfflineCoordinator({ timer });
   });
 
-  test('D-OFFLINE-004: max reconnect delay is 30000ms', () => {
-    assert.match(
-      typesSource,
-      /RECONNECT_MAX_DELAY_MS\s*=\s*(30[_]?000)/,
-      'RECONNECT_MAX_DELAY_MS must equal 30000 or 30_000',
-    );
+  test('realm reconnect backoff doubles on failure and resets after success', async () => {
+    const reconnects: string[] = [];
+    let probeCount = 0;
+    coordinator.configureReconnectHandlers({
+      hasPendingRealmRecoveryWork: async () => true,
+      probeRealmReachability: async () => {
+        probeCount += 1;
+        return probeCount >= 3;
+      },
+    });
+    coordinator.subscribeRealmReconnect(() => {
+      reconnects.push('realm');
+    });
+
+    coordinator.markRealmSocketReachable(false);
+    await flushAsyncWork();
+    assert.equal(timer.nextDelay(), 1000);
+
+    assert.equal(await timer.runNext(), 1000);
+    assert.equal(timer.nextDelay(), 2000);
+
+    assert.equal(await timer.runNext(), 2000);
+    assert.equal(timer.nextDelay(), 4000);
+
+    assert.equal(await timer.runNext(), 4000);
+    assert.equal(reconnects.length, 1);
+
+    coordinator.markRealmSocketReachable(false);
+    await flushAsyncWork();
+    assert.equal(timer.nextDelay(), 1000);
   });
 
-  test('D-OFFLINE-004: ConnectivityMonitor source has setRealmSocketConnected method', () => {
-    assert.match(
-      monitorSource,
-      /setRealmSocketConnected\s*\(/,
-      'ConnectivityMonitor must expose setRealmSocketConnected method',
-    );
+  test('markCacheFallbackUsed forces realm reconnect scheduling even without pending recovery work', async () => {
+    coordinator.configureReconnectHandlers({
+      hasPendingRealmRecoveryWork: async () => false,
+      probeRealmReachability: async () => false,
+    });
+
+    coordinator.markRealmSocketReachable(false);
+    await flushAsyncWork();
+    assert.equal(timer.pendingCount(), 0);
+
+    coordinator.markCacheFallbackUsed();
+    await flushAsyncWork();
+    assert.equal(timer.nextDelay(), 1000);
   });
 
-  test('D-OFFLINE-004: ConnectivityMonitor source has setRuntimeReachable method', () => {
-    assert.match(
-      monitorSource,
-      /setRuntimeReachable\s*\(/,
-      'ConnectivityMonitor must expose setRuntimeReachable method',
-    );
+  test('runtime reconnect backoff doubles on failure and resets after success', async () => {
+    const reconnects: string[] = [];
+    let probeCount = 0;
+    coordinator.configureReconnectHandlers({
+      probeRuntimeReachability: async () => {
+        probeCount += 1;
+        return probeCount >= 3;
+      },
+    });
+    coordinator.subscribeRuntimeReconnect(() => {
+      reconnects.push('runtime');
+    });
+
+    coordinator.markRuntimeReachable(false);
+    await flushAsyncWork();
+    assert.equal(timer.nextDelay(), 1000);
+
+    assert.equal(await timer.runNext(), 1000);
+    assert.equal(timer.nextDelay(), 2000);
+
+    assert.equal(await timer.runNext(), 2000);
+    assert.equal(timer.nextDelay(), 4000);
+
+    assert.equal(await timer.runNext(), 4000);
+    assert.equal(reconnects.length, 1);
+
+    coordinator.markRuntimeReachable(false);
+    await flushAsyncWork();
+    assert.equal(timer.nextDelay(), 1000);
+  });
+});
+
+describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
+  test('realm_reconnect flushes outboxes and invalidates queries', async () => {
+    const timer = new FakeTimer();
+    const coordinator = new OfflineCoordinator({ timer });
+    const effects: string[] = [];
+
+    attachOfflineCoordinatorBindings({
+      coordinator,
+      setOfflineTier: (tier) => effects.push(`tier:${tier}`),
+      suspendRuntimeCallbacksForL2: () => effects.push('suspendRuntimeCallbacksForL2'),
+      probeRealmReachability: async () => true,
+      probeRuntimeReachability: async () => true,
+      hasPendingRealmRecoveryWork: async () => true,
+      flushChatOutbox: async () => { effects.push('flushChatOutbox'); },
+      flushSocialOutbox: async () => { effects.push('flushSocialOutbox'); },
+      invalidateQueries: async () => { effects.push('invalidateQueries'); },
+      rebootstrapRuntime: async () => { effects.push('rebootstrapRuntime'); },
+    });
+
+    coordinator.markRealmSocketReachable(false);
+    await flushAsyncWork();
+    assert.equal(timer.nextDelay(), 1000);
+
+    await timer.runNext();
+    assert.ok(effects.includes('flushChatOutbox'));
+    assert.ok(effects.includes('flushSocialOutbox'));
+    assert.ok(effects.includes('invalidateQueries'));
+    assert.ok(!effects.includes('rebootstrapRuntime'));
   });
 
-  test('D-OFFLINE-004: OfflineStateManager recalculates tier on connectivity change', () => {
-    assert.match(
-      managerSource,
-      /onChange\s*\(\s*\(\)\s*=>\s*this\.recalculateTier\(\)\s*\)/,
-      'OfflineStateManager must call recalculateTier in onChange subscription',
-    );
-  });
+  test('runtime_reconnect reboots runtime state', async () => {
+    const timer = new FakeTimer();
+    const coordinator = new OfflineCoordinator({ timer });
+    const effects: string[] = [];
 
-  test('D-OFFLINE-004: failed outbox entries have status field', () => {
-    assert.match(
-      typesSource,
-      /status\s*:\s*'pending'\s*\|\s*'failed'/,
-      "PersistentOutboxEntry must have status: 'pending' | 'failed'",
-    );
-  });
+    attachOfflineCoordinatorBindings({
+      coordinator,
+      setOfflineTier: (tier) => effects.push(`tier:${tier}`),
+      suspendRuntimeCallbacksForL2: () => effects.push('suspendRuntimeCallbacksForL2'),
+      probeRealmReachability: async () => true,
+      probeRuntimeReachability: async () => true,
+      hasPendingRealmRecoveryWork: async () => true,
+      flushChatOutbox: async () => { effects.push('flushChatOutbox'); },
+      flushSocialOutbox: async () => { effects.push('flushSocialOutbox'); },
+      invalidateQueries: async () => { effects.push('invalidateQueries'); },
+      rebootstrapRuntime: async () => { effects.push('rebootstrapRuntime'); },
+    });
 
-  test('D-OFFLINE-004: failed outbox entries have failReason field', () => {
-    assert.match(
-      typesSource,
-      /failReason\?\s*:\s*string/,
-      'PersistentOutboxEntry must have failReason?: string',
-    );
+    coordinator.markRuntimeReachable(false);
+    await flushAsyncWork();
+    assert.equal(timer.nextDelay(), 1000);
+
+    await timer.runNext();
+    assert.ok(effects.includes('rebootstrapRuntime'));
   });
 });

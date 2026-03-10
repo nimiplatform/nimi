@@ -291,7 +291,7 @@ export async function invoke(command: string, payload: unknown = {}): Promise<un
   const sessionTraceId = resolveRendererSessionTraceId();
   const payloadSummary = summarizeInvokePayload(command, payload);
   const commandLog = {
-    level: 'debug' as const,
+    level: 'info' as const,
     area: 'bridge',
     message: toRendererLogMessage(`action:invoke-start:${command}`),
     details: {
@@ -300,7 +300,7 @@ export async function invoke(command: string, payload: unknown = {}): Promise<un
       hasPayload: Boolean(payload),
       sessionTraceId,
       ...payloadSummary,
-    },
+      },
   };
   void emitRendererLog(commandLog);
   try {

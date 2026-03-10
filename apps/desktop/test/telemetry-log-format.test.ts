@@ -1,159 +1,206 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import fs from 'node:fs';
-import path from 'node:path';
 
-/* ---------- source scan targets ---------- */
+import { ReasonCode } from '@nimiplatform/sdk/types';
+import { invoke } from '../src/shell/renderer/bridge/runtime-bridge/invoke.js';
+import {
+  getRendererDebugLogsForTest,
+  resetRendererTelemetryStateForTest,
+} from '../src/shell/renderer/bridge/runtime-bridge/logging.js';
+import { createRendererFlowId } from '../src/shell/renderer/infra/telemetry/renderer-log.js';
+import { emitRuntimeLog, setRuntimeLogger } from '../src/runtime/telemetry/logger.js';
 
-const loggerSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/runtime/telemetry/logger.ts'),
-  'utf8',
-);
+type TauriInvoke = (command: string, payload?: unknown) => Promise<unknown>;
+type ForwardedRendererLog = {
+  level?: string;
+  message?: string;
+  details?: Record<string, unknown>;
+};
 
-const rendererLogSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/infra/telemetry/renderer-log.ts'),
-  'utf8',
-);
+if (typeof globalThis.window === 'undefined') {
+  (globalThis as Record<string, unknown>).window = {};
+}
+if (typeof globalThis.sessionStorage === 'undefined') {
+  const store = new Map<string, string>();
+  (globalThis as Record<string, unknown>).sessionStorage = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => store.set(key, value),
+    removeItem: (key: string) => store.delete(key),
+    clear: () => store.clear(),
+  };
+}
 
-const invokeSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/invoke.ts'),
-  'utf8',
-);
+function withTauriInvoke(invokeImpl: TauriInvoke): void {
+  const windowRecord = globalThis.window as Record<string, unknown>;
+  windowRecord.__TAURI__ = {
+    core: {
+      invoke: invokeImpl,
+    },
+  };
+}
 
-/* ---------- D-TEL-001: RuntimeLogPayload has required fields ---------- */
+function clearTelemetryTestState(): void {
+  const globalRecord = globalThis as Record<string, unknown>;
+  const windowRecord = globalThis.window as Record<string, unknown>;
+  setRuntimeLogger(null);
+  resetRendererTelemetryStateForTest();
+  (globalThis.sessionStorage as { clear?: () => void }).clear?.();
+  delete globalRecord.__NIMI_RENDERER_ENV__;
+  delete windowRecord.__TAURI__;
+  delete windowRecord.__NIMI_HTML_BOOT_ID__;
+}
 
-test('D-TEL-001: RuntimeLogPayload declares area as required field', () => {
-  assert.match(
-    loggerSource,
-    /area:\s*string/,
-    'RuntimeLogPayload must have required "area" field of type string',
-  );
+test.beforeEach(() => {
+  (globalThis as Record<string, unknown>).__NIMI_RENDERER_ENV__ = {
+    VITE_NIMI_DEBUG_BOOT: '1',
+    VITE_NIMI_VERBOSE_RENDERER_LOGS: '1',
+  };
+  clearTelemetryTestState();
+  (globalThis as Record<string, unknown>).__NIMI_RENDERER_ENV__ = {
+    VITE_NIMI_DEBUG_BOOT: '1',
+    VITE_NIMI_VERBOSE_RENDERER_LOGS: '1',
+  };
 });
 
-test('D-TEL-001: RuntimeLogPayload declares message as required field', () => {
-  assert.match(
-    loggerSource,
-    /message:\s*RuntimeLogMessage\s*\|\s*string/,
-    'RuntimeLogPayload must have required "message" field',
-  );
+test.afterEach(() => {
+  clearTelemetryTestState();
 });
 
-test('D-TEL-001: RuntimeLogPayload declares level as optional RuntimeLogLevel', () => {
-  assert.match(
-    loggerSource,
-    /level\?:\s*RuntimeLogLevel/,
-    'RuntimeLogPayload must have optional "level" field of type RuntimeLogLevel',
-  );
+test('D-TEL-002: emitRuntimeLog normalizes messages before forwarding to the injected logger', () => {
+  const captured: Array<Record<string, unknown>> = [];
+  setRuntimeLogger((payload) => {
+    captured.push(payload as Record<string, unknown>);
+  });
+
+  emitRuntimeLog({
+    area: 'bridge',
+    message: 'invoke-start:http_request',
+    details: { requestId: 'req-1' },
+  });
+  emitRuntimeLog({
+    area: 'bridge',
+    message: '',
+  });
+
+  assert.equal(captured.length, 2);
+  assert.equal(captured[0]?.message, 'action:invoke-start:http_request');
+  assert.equal(captured[0]?.area, 'bridge');
+  assert.equal(captured[1]?.message, 'action:runtime-log:empty-message');
 });
 
-test('D-TEL-001: RuntimeLogLevel includes debug, info, warn, error', () => {
-  assert.match(
-    loggerSource,
-    /RuntimeLogLevel\s*=\s*['"]debug['"]\s*\|\s*['"]info['"]\s*\|\s*['"]warn['"]\s*\|\s*['"]error['"]/,
-    'RuntimeLogLevel must define debug | info | warn | error',
-  );
-});
+test('D-TEL-003: emitRuntimeLog falls back to console when no logger is injected', () => {
+  const infoCalls: unknown[][] = [];
+  const previousInfo = console.info;
+  console.info = (...args: unknown[]) => {
+    infoCalls.push(args);
+  };
 
-/* ---------- D-TEL-002: normalizeRuntimeLogMessage enforces prefix ---------- */
-
-test('D-TEL-002: normalizeRuntimeLogMessage checks for action: prefix', () => {
-  assert.ok(
-    loggerSource.includes("startsWith('action:')"),
-    'normalizeRuntimeLogMessage must check for action: prefix',
-  );
-});
-
-test('D-TEL-002: normalizeRuntimeLogMessage checks for phase: prefix', () => {
-  assert.ok(
-    loggerSource.includes("startsWith('phase:')"),
-    'normalizeRuntimeLogMessage must check for phase: prefix',
-  );
-});
-
-test('D-TEL-002: normalizeRuntimeLogMessage adds action: prefix when missing', () => {
-  assert.match(
-    loggerSource,
-    /return\s+`action:\$\{normalized\}`/,
-    'normalizeRuntimeLogMessage must prepend action: to messages lacking a prefix',
-  );
-});
-
-test('D-TEL-002: normalizeRuntimeLogMessage returns sentinel for empty input', () => {
-  assert.ok(
-    loggerSource.includes("'action:runtime-log:empty-message'"),
-    'normalizeRuntimeLogMessage must return action:runtime-log:empty-message for falsy/empty input',
-  );
-});
-
-/* ---------- D-TEL-004: createRendererFlowId format ---------- */
-
-test('D-TEL-004: createRendererFlowId source uses prefix-timestamp-random template', () => {
-  assert.match(
-    rendererLogSource,
-    /`\$\{prefix\}-\$\{Date\.now\(\)\.toString\(36\)\}-\$\{Math\.random\(\)\.toString\(36\)\.slice\(2,\s*8\)\}`/,
-    'createRendererFlowId must produce {prefix}-{base36 timestamp}-{base36 random} format',
-  );
-});
-
-test('D-TEL-004: createRendererFlowId is exported', () => {
-  assert.match(
-    rendererLogSource,
-    /export\s+function\s+createRendererFlowId/,
-    'createRendererFlowId must be an exported function',
-  );
-});
-
-test('D-TEL-004: createRendererFlowId behavioral validation (inline replica)', () => {
-  // Replicate the function logic to behavioral-test the format contract
-  // without requiring the full Vite renderer module graph.
-  function createRendererFlowId(prefix: string): string {
-    return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  try {
+    emitRuntimeLog({
+      area: 'datasync',
+      message: 'token-refresh:success',
+      details: { ok: true },
+    });
+  } finally {
+    console.info = previousInfo;
   }
 
+  assert.equal(infoCalls.length, 1);
+  assert.equal(infoCalls[0]?.[0], '[runtime:datasync] action:token-refresh:success');
+  assert.deepEqual(infoCalls[0]?.[1], { ok: true });
+});
+
+test('D-TEL-004: createRendererFlowId uses the real exported formatter and yields unique IDs', () => {
   const flowId = createRendererFlowId('test-flow');
-  const parts = flowId.split('-');
-  // "test", "flow", <base36 timestamp>, <base36 random>
-  assert.ok(parts.length >= 4, `Expected at least 4 dash-separated parts, got ${parts.length}: ${flowId}`);
-
-  // Last part is the random segment (base36)
-  const randomPart = parts[parts.length - 1];
-  assert.match(randomPart, /^[0-9a-z]+$/, 'random segment must be base36');
-  assert.ok(randomPart.length >= 1 && randomPart.length <= 8, 'random segment length should be 1-8 chars');
-
-  // Second-to-last part is the base36 timestamp
-  const timestampPart = parts[parts.length - 2];
-  assert.match(timestampPart, /^[0-9a-z]+$/, 'timestamp segment must be base36');
-  const decoded = parseInt(timestampPart, 36);
-  assert.ok(decoded > 0, 'decoded timestamp must be positive');
-  assert.ok(
-    Math.abs(decoded - Date.now()) < 5000,
-    'timestamp should be within 5 seconds of current time',
-  );
-});
-
-test('D-TEL-004: createRendererFlowId produces unique values (inline replica)', () => {
-  function createRendererFlowId(prefix: string): string {
-    return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-  }
-
   const ids = Array.from({ length: 20 }, () => createRendererFlowId('uniq'));
   const unique = new Set(ids);
-  assert.equal(unique.size, ids.length, 'all generated flow IDs must be unique');
+
+  const parts = flowId.split('-');
+  const randomPart = parts[parts.length - 1];
+  const timestampPart = parts[parts.length - 2];
+
+  assert.ok(parts.length >= 4, `expected prefixed flow ID, got ${flowId}`);
+  assert.match(randomPart || '', /^[0-9a-z]+$/, 'random segment must be base36');
+  assert.match(timestampPart || '', /^[0-9a-z]+$/, 'timestamp segment must be base36');
+  assert.equal(unique.size, ids.length, 'flow IDs must be unique across repeated calls');
 });
 
-/* ---------- D-TEL-005: invokeId format check ---------- */
+test('D-TEL-005: invoke emits start and success traces with a stable invokeId', async () => {
+  const forwardedLogs: ForwardedRendererLog[] = [];
+  withTauriInvoke(async (command, payload) => {
+    if (command === 'demo_command') {
+      return { ok: true };
+    }
+    if (command === 'log_renderer_event') {
+      forwardedLogs.push((payload as { payload: ForwardedRendererLog }).payload);
+      return null;
+    }
+    throw new Error(`unexpected command: ${command}`);
+  });
 
-test('D-TEL-005: invokeId uses command-timestamp-random format', () => {
-  assert.match(
-    invokeSource,
-    /invokeId\s*=\s*`\$\{command\}-\$\{Date\.now\(\)\.toString\(36\)\}-\$\{Math\.random\(\)\.toString\(36\)\.slice\(2,\s*8\)\}`/,
-    'invokeId must follow the {command}-{base36 timestamp}-{base36 random} format',
-  );
+  const result = await invoke('demo_command', { payload: { answer: 42 } });
+  const startLog = forwardedLogs.find((entry) => entry.message === 'action:invoke-start:demo_command');
+  const successLog = forwardedLogs.find((entry) => entry.message === 'action:invoke-success:demo_command');
+
+  assert.deepEqual(result, { ok: true });
+  assert.ok(startLog, 'invoke-start log should be forwarded');
+  assert.ok(successLog, 'invoke-success log should be forwarded');
+  assert.equal(startLog?.level, 'info');
+  assert.equal(successLog?.level, 'debug');
+  assert.match(String(startLog?.details?.invokeId || ''), /^demo_command-[0-9a-z]+-[0-9a-z]+$/);
+  assert.equal(startLog?.details?.invokeId, successLog?.details?.invokeId);
+  assert.equal(startLog?.details?.sessionTraceId, successLog?.details?.sessionTraceId);
+  assert.equal(getRendererDebugLogsForTest().length >= 2, true);
 });
 
-test('D-TEL-005: invokeId is emitted in invoke-start log details', () => {
-  assert.ok(
-    invokeSource.includes('invokeId'),
-    'invokeId must appear in bridge invoke logging details',
+test('D-TEL-005: invoke emits failed traces and preserves structured bridge error fields', async () => {
+  const forwardedLogs: ForwardedRendererLog[] = [];
+  withTauriInvoke(async (command, payload) => {
+    if (command === 'demo_fail') {
+      throw JSON.stringify({
+        reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
+        actionHint: 'retry_or_switch_route',
+        traceId: 'trace-bridge-001',
+        retryable: true,
+        message: 'provider timeout',
+      });
+    }
+    if (command === 'log_renderer_event') {
+      forwardedLogs.push((payload as { payload: ForwardedRendererLog }).payload);
+      return null;
+    }
+    throw new Error(`unexpected command: ${command}`);
+  });
+
+  await assert.rejects(
+    () => invoke('demo_fail', { payload: { shouldFail: true } }),
+    (error: unknown) => {
+      const record = error as {
+        reasonCode?: string;
+        actionHint?: string;
+        traceId?: string;
+        retryable?: boolean;
+        details?: Record<string, unknown>;
+      };
+      assert.equal(record.reasonCode, ReasonCode.AI_PROVIDER_TIMEOUT);
+      assert.equal(record.actionHint, 'retry_or_switch_route');
+      assert.equal(record.traceId, 'trace-bridge-001');
+      assert.equal(record.retryable, true);
+      assert.equal(record.details?.userMessage, 'AI 服务超时');
+      return true;
+    },
   );
+
+  const startLog = forwardedLogs.find((entry) => entry.message === 'action:invoke-start:demo_fail');
+  const failedLog = forwardedLogs.find((entry) => entry.message === 'action:invoke-failed:demo_fail');
+
+  assert.ok(startLog, 'invoke-start log should be forwarded');
+  assert.ok(failedLog, 'invoke-failed log should be forwarded');
+  assert.equal(failedLog?.level, 'error');
+  assert.equal(startLog?.details?.invokeId, failedLog?.details?.invokeId);
+  assert.equal(failedLog?.details?.reasonCode, ReasonCode.AI_PROVIDER_TIMEOUT);
+  assert.equal(failedLog?.details?.actionHint, 'retry_or_switch_route');
+  assert.equal(failedLog?.details?.traceId, 'trace-bridge-001');
+  assert.equal(failedLog?.details?.retryable, true);
+  assert.equal(failedLog?.details?.userMessage, 'AI 服务超时');
 });

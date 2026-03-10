@@ -71,6 +71,20 @@ function sameMessageIdentity(left: MessageViewDto, right: MessageViewDto): boole
   );
 }
 
+function shouldUseIncomingMessage(
+  current: MessageViewDto,
+  incoming: MessageViewDto,
+): boolean {
+  return resolveMessageTimestamp(incoming) >= resolveMessageTimestamp(current);
+}
+
+function pickLatestMessageByServerTimestamp(
+  current: MessageViewDto,
+  incoming: MessageViewDto,
+): MessageViewDto {
+  return shouldUseIncomingMessage(current, incoming) ? incoming : current;
+}
+
 function normalizeReplyTo(input: unknown): MessageViewDto['replyTo'] {
   const record = asRecord(input);
   if (!record) {
@@ -166,8 +180,9 @@ export function normalizeRealtimeChatUpdatePayload(
 }
 
 function upsertMessageDescending(items: MessageViewDto[], message: MessageViewDto): MessageViewDto[] {
+  const existing = items.find((item) => sameMessageIdentity(item, message));
   const deduped = items.filter((item) => !sameMessageIdentity(item, message));
-  deduped.push(message);
+  deduped.push(existing ? pickLatestMessageByServerTimestamp(existing, message) : message);
   deduped.sort(compareMessageDesc);
   return deduped;
 }
@@ -197,11 +212,13 @@ export function applyRealtimeMessageUpdateToMessagesResult(
     if (!sameMessageIdentity(item, message)) {
       return item;
     }
+    if (!shouldUseIncomingMessage(item, message)) {
+      return item;
+    }
     updated = true;
     return {
       ...item,
       ...message,
-      createdAt: item.createdAt,
     };
   });
 
@@ -290,13 +307,15 @@ export function applyRealtimeMessageUpdateToChatsResult(input: {
   if (String(chat.lastMessage?.id || '') !== String(input.message.id || '')) {
     return { data: input.current, found: true };
   }
+  if (chat.lastMessage && !shouldUseIncomingMessage(chat.lastMessage, input.message)) {
+    return { data: input.current, found: true };
+  }
 
   const nextChat: ChatViewDto = {
     ...chat,
     lastMessage: {
       ...chat.lastMessage,
       ...input.message,
-      createdAt: chat.lastMessage?.createdAt || input.message.createdAt,
     },
   };
   const nextItems = items.slice();

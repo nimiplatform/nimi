@@ -7,6 +7,12 @@ function envFlagEnabled(value: string | undefined): boolean {
 }
 
 function rendererEnv(): Record<string, string> | undefined {
+  const fromGlobal = (globalThis as typeof globalThis & {
+    __NIMI_RENDERER_ENV__?: Record<string, string>;
+  }).__NIMI_RENDERER_ENV__;
+  if (fromGlobal && typeof fromGlobal === 'object') {
+    return fromGlobal;
+  }
   return (import.meta as { env?: Record<string, string> }).env;
 }
 
@@ -21,15 +27,22 @@ function isRendererVerboseEnabled(): boolean {
 }
 
 export const RENDERER_VERBOSE_ENABLED = isRendererVerboseEnabled();
+export const RENDERER_DEBUG_ENABLED = isRendererDebugEnabled();
+
+export function isRendererVerboseEnabledForCurrentEnv(): boolean {
+  return isRendererVerboseEnabled();
+}
+
+export function isRendererDebugEnabledForCurrentEnv(): boolean {
+  return isRendererDebugEnabled();
+}
 
 export function shouldForwardRendererLogLevel(level: 'debug' | 'info' | 'warn' | 'error'): boolean {
   if (level === 'warn' || level === 'error') {
     return true;
   }
-  return RENDERER_VERBOSE_ENABLED;
+  return isRendererVerboseEnabled();
 }
-
-export const RENDERER_DEBUG_ENABLED = isRendererDebugEnabled();
 
 export function hasTauriInvoke() {
   return typeof window.__TAURI__?.core?.invoke === 'function';

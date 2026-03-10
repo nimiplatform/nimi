@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { pathToFileURL } from 'node:url';
 import {
   canonicalProviderId,
   readYamlFile,
@@ -14,6 +15,11 @@ import {
 const repoRoot = resolveRepoRoot(import.meta.url);
 const defaultReportPath = path.join(repoRoot, 'dev/report/live-test-coverage.yaml');
 const defaultBaselinePath = path.join(repoRoot, 'dev/config/live-gate-baseline.yaml');
+const providerTargetingSmokeFiles = new Set([
+  'runtime/internal/services/ai/live_provider_smoke_test.go',
+  'runtime/internal/services/ai/live_provider_smoke_matrix_test.go',
+  'sdk/test/runtime/contract/providers/nimi-sdk-ai-provider-live-smoke.test.ts',
+]);
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -165,13 +171,18 @@ function providersFromFilePath(providerUniverse, filePath) {
   return out;
 }
 
-function shouldInferProvidersFromChangedLines(filePath) {
-  const normalized = String(filePath || '').replace(/\\/g, '/');
-  return !(
-    normalized.endsWith('runtime/internal/services/ai/live_provider_smoke_test.go')
-    || normalized.endsWith('runtime/internal/services/ai/live_provider_smoke_matrix_test.go')
-    || normalized.endsWith('sdk/test/runtime/contract/providers/nimi-sdk-ai-provider-live-smoke.test.ts')
-  );
+function normalizeGitPath(filePath) {
+  return String(filePath || '').replace(/\\/g, '/');
+}
+
+function isProviderTargetingSmokeFile(filePath) {
+  const normalized = normalizeGitPath(filePath);
+  for (const target of providerTargetingSmokeFiles) {
+    if (normalized.endsWith(target)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function extractChangedLines(diffText) {
@@ -209,6 +220,34 @@ function collectChangedProvidersFromLines(providerUniverse, changedLines) {
   }
 
   return out;
+}
+
+function evaluateChangedProviderEntries(providerUniverse, entries) {
+  const changedProviders = new Set();
+  const unresolvedSmokeFiles = new Set();
+  const items = Array.isArray(entries) ? entries : [];
+
+  for (const entry of items) {
+    const filePath = String(entry?.filePath || '').trim();
+    if (!filePath) {
+      continue;
+    }
+    const fromPath = providersFromFilePath(providerUniverse, filePath);
+    const fromLines = collectChangedProvidersFromLines(
+      providerUniverse,
+      Array.isArray(entry?.changedLines) ? entry.changedLines : [],
+    );
+    addAll(changedProviders, fromPath);
+    addAll(changedProviders, fromLines);
+    if (isProviderTargetingSmokeFile(filePath) && fromPath.size === 0 && fromLines.size === 0) {
+      unresolvedSmokeFiles.add(normalizeGitPath(filePath));
+    }
+  }
+
+  return {
+    changedProviders,
+    unresolvedSmokeFiles: toSortedArray(unresolvedSmokeFiles),
+  };
 }
 
 function collectUntrackedFocusEntries(focusPaths) {
@@ -256,31 +295,28 @@ function detectChangedProvidersFromGit(providerUniverse) {
 
   function detectFromDiff(diffRefArgs) {
     const changedFiles = listGitPaths(['diff', '--name-only', ...diffRefArgs, '--', ...focusPaths]);
-    const changed = new Set();
+    const entries = [];
 
     for (const filePath of changedFiles) {
-      addAll(changed, providersFromFilePath(providerUniverse, filePath));
       const diffResult = runGit(['diff', '-U0', ...diffRefArgs, '--', filePath]);
       if (diffResult.status !== 0) {
         continue;
       }
-      if (shouldInferProvidersFromChangedLines(filePath)) {
-        addAll(changed, collectChangedProvidersFromLines(providerUniverse, extractChangedLines(diffResult.output)));
-      }
+      entries.push({
+        filePath,
+        changedLines: extractChangedLines(diffResult.output),
+      });
     }
 
     for (const entry of collectUntrackedFocusEntries(focusPaths)) {
-      addAll(changed, providersFromFilePath(providerUniverse, entry.filePath));
-      if (shouldInferProvidersFromChangedLines(entry.filePath)) {
-        addAll(changed, collectChangedProvidersFromLines(providerUniverse, entry.changedLines));
-      }
+      entries.push(entry);
     }
 
-    return changed;
+    return evaluateChangedProviderEntries(providerUniverse, entries);
   }
 
   const worktreeChanged = detectFromDiff(['HEAD']);
-  if (worktreeChanged.size > 0) {
+  if (worktreeChanged.changedProviders.size > 0 || worktreeChanged.unresolvedSmokeFiles.length > 0) {
     return worktreeChanged;
   }
 
@@ -413,7 +449,14 @@ function main() {
     }
   }
   if (changedProviders.size === 0) {
-    for (const provider of detectChangedProvidersFromGit(providerUniverse)) {
+    const detection = detectChangedProvidersFromGit(providerUniverse);
+    if (detection.unresolvedSmokeFiles.length > 0) {
+      throw new Error(
+        `cannot infer changed providers from smoke test edits: ${detection.unresolvedSmokeFiles.join(', ')}; `
+        + 'add explicit provider markers in the edited lines or pass --changed-providers',
+      );
+    }
+    for (const provider of detection.changedProviders) {
       changedProviders.add(provider);
     }
   }
@@ -518,10 +561,30 @@ function main() {
   process.stdout.write('[check-live-smoke-gate] gate passed\n');
 }
 
-try {
-  main();
-} catch (error) {
-  const message = error instanceof Error ? error.message : String(error || '');
-  process.stderr.write(`[check-live-smoke-gate] fatal: ${message}\n`);
-  process.exit(1);
+function isDirectExecution() {
+  const entry = String(process.argv[1] || '').trim();
+  if (!entry) {
+    return false;
+  }
+  return import.meta.url === pathToFileURL(path.resolve(entry)).href;
+}
+
+export {
+  collectChangedProvidersFromLines,
+  detectChangedProvidersFromGit,
+  evaluateChangedProviderEntries,
+  isProviderTargetingSmokeFile,
+  main,
+  parseArgs,
+  providersFromFilePath,
+};
+
+if (isDirectExecution()) {
+  try {
+    main();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error || '');
+    process.stderr.write(`[check-live-smoke-gate] fatal: ${message}\n`);
+    process.exit(1);
+  }
 }
