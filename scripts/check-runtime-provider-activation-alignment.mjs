@@ -2,7 +2,8 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import process from 'node:process';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import YAML from 'yaml';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -27,12 +28,16 @@ function readYaml(absPath) {
   return YAML.parse(readText(absPath)) || {};
 }
 
+function normalizeProviderId(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
 function normalizeStringArray(value) {
   if (!Array.isArray(value)) {
     return [];
   }
   return value
-    .map((item) => String(item || '').trim().toLowerCase())
+    .map((item) => normalizeProviderId(item))
     .filter(Boolean);
 }
 
@@ -79,24 +84,91 @@ function parseRegistryRecords(absPath) {
   return records;
 }
 
-function parseVoiceWorkflowProviders(absPath) {
-  const source = readText(absPath);
-  const fnMatch = source.match(/func SupportsVoiceWorkflowProvider\(provider string\) bool \{([\s\S]*?)\n\}/m);
-  const providers = new Set();
-  if (!fnMatch?.[1]) {
-    return providers;
+function extractGoFunctionBody(source, signatureToken) {
+  const sourceText = String(source || '');
+  const signatureIndex = sourceText.indexOf(signatureToken);
+  if (signatureIndex === -1) {
+    return '';
   }
-  const caseRegex = /case\s+([^:]+):\s*return true/g;
+  const braceIndex = sourceText.indexOf('{', signatureIndex);
+  if (braceIndex === -1) {
+    return '';
+  }
+
+  let depth = 1;
+  for (let index = braceIndex + 1; index < sourceText.length; index += 1) {
+    const char = sourceText[index];
+    if (char === '{') {
+      depth += 1;
+      continue;
+    }
+    if (char === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        return sourceText.slice(braceIndex + 1, index);
+      }
+    }
+  }
+
+  return '';
+}
+
+function addProviders(target, values) {
+  for (const value of values) {
+    const provider = normalizeProviderId(value);
+    if (provider) {
+      target.add(provider);
+    }
+  }
+}
+
+function parseCaseProviders(body) {
+  const providers = new Set();
+  const caseRegex = /case\s+([^:]+):/g;
   let match;
-  while ((match = caseRegex.exec(fnMatch[1])) !== null) {
+  while ((match = caseRegex.exec(body)) !== null) {
     const clause = String(match[1] || '');
     const itemRegex = /"([^"]+)"/g;
     let itemMatch;
     while ((itemMatch = itemRegex.exec(clause)) !== null) {
-      providers.add(String(itemMatch[1] || '').trim());
+      addProviders(providers, [itemMatch[1]]);
     }
   }
   return providers;
+}
+
+function parseEqualityProviders(body) {
+  const providers = new Set();
+  const patterns = [
+    /\b(?:p|provider)\s*==\s*"([^"]+)"/g,
+    /strings\.EqualFold\([^,]+,\s*"([^"]+)"\)/g,
+  ];
+
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(body)) !== null) {
+      addProviders(providers, [match[1]]);
+    }
+  }
+
+  return providers;
+}
+
+function collectVoiceWorkflowProvidersFromSource(source) {
+  const providers = new Set();
+  const supportBody = extractGoFunctionBody(source, 'func SupportsVoiceWorkflowProvider(');
+  const dispatchBody = extractGoFunctionBody(source, 'func ExecuteVoiceWorkflow(');
+
+  addProviders(providers, parseCaseProviders(supportBody));
+  addProviders(providers, parseEqualityProviders(supportBody));
+  addProviders(providers, parseCaseProviders(dispatchBody));
+  addProviders(providers, parseEqualityProviders(dispatchBody));
+
+  return providers;
+}
+
+function parseVoiceWorkflowProviders(absPath) {
+  return collectVoiceWorkflowProvidersFromSource(readText(absPath));
 }
 
 function main() {
@@ -132,7 +204,7 @@ function main() {
         fail(`${relPath} local must not declare model_workflow_bindings while local workflow is disabled`);
       }
     }
-    if (inferred.workflowCount > 0 && !voiceWorkflowProviders.has(provider)) {
+    if (inferred.workflowCount > 0 && !voiceWorkflowProviders.has(normalizeProviderId(provider))) {
       fail(`${relPath} provider ${provider} declares voice workflows but has no nimillm voice adapter`);
     }
   }
@@ -144,4 +216,25 @@ function main() {
   console.log('runtime-provider-activation-alignment: OK');
 }
 
-main();
+function isDirectExecution() {
+  const entry = String(process.argv[1] || '').trim();
+  if (!entry) {
+    return false;
+  }
+  return import.meta.url === pathToFileURL(path.resolve(entry)).href;
+}
+
+export {
+  collectVoiceWorkflowProvidersFromSource,
+  extractGoFunctionBody,
+  inferSourceCapabilities,
+  main,
+  parseCaseProviders,
+  parseEqualityProviders,
+  parseRegistryRecords,
+  parseVoiceWorkflowProviders,
+};
+
+if (isDirectExecution()) {
+  main();
+}
