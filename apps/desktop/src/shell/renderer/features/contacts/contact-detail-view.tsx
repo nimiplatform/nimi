@@ -1,13 +1,9 @@
-import { type ChangeEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Suspense, lazy, type ChangeEvent, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { dataSync } from '@runtime/data-sync';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@renderer/components/tooltip.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { CollectionsTab } from '@renderer/features/profile/collections-tab';
-import { GiftsTab } from '@renderer/features/profile/gifts-tab';
-import { LikesTab } from '@renderer/features/profile/likes-tab';
-import { PostsTab } from '@renderer/features/profile/posts-tab';
 import { formatProfileDate, type ProfileData, type ProfileTab } from '@renderer/features/profile/profile-model';
 import {
   AlertIcon,
@@ -59,8 +55,36 @@ type TabIndicator = {
 };
 
 const CONTACT_DETAIL_TABS: ProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gifts'];
+const PostsTab = lazy(async () => {
+  const module = await import('@renderer/features/profile/posts-tab');
+  return { default: module.PostsTab };
+});
+const CollectionsTab = lazy(async () => {
+  const module = await import('@renderer/features/profile/collections-tab');
+  return { default: module.CollectionsTab };
+});
+const LikesTab = lazy(async () => {
+  const module = await import('@renderer/features/profile/likes-tab');
+  return { default: module.LikesTab };
+});
+const GiftsTab = lazy(async () => {
+  const module = await import('@renderer/features/profile/gifts-tab');
+  return { default: module.GiftsTab };
+});
 
 export type { EditableProfileDraft } from './contact-detail-view-parts.js';
+
+function ContactDetailTabFallback() {
+  return (
+    <div className="space-y-6">
+      <div className="h-5 w-28 animate-pulse rounded-full bg-slate-200/80" />
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="h-56 animate-pulse rounded-[26px] border border-white/70 bg-white/70 shadow-[0_6px_24px_rgba(15,23,42,0.05)]" />
+        <div className="h-56 animate-pulse rounded-[26px] border border-white/70 bg-white/70 shadow-[0_6px_24px_rgba(15,23,42,0.05)]" />
+      </div>
+    </div>
+  );
+}
 
 export function ContactDetailView(props: ContactDetailViewProps) {
   const { t } = useTranslation();
@@ -75,6 +99,7 @@ export function ContactDetailView(props: ContactDetailViewProps) {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [visitedTabs, setVisitedTabs] = useState<ProfileTab[]>(['Posts']);
   const [draft, setDraft] = useState<EditableProfileDraft>(() => buildEditableDraft(props.profile));
   const [tabIndicator, setTabIndicator] = useState<TabIndicator>({ left: 0, width: 24 });
   const menuRef = useRef<HTMLDivElement>(null);
@@ -109,7 +134,13 @@ export function ContactDetailView(props: ContactDetailViewProps) {
     setIsEditing(false);
     setIsSaving(false);
     setSaveError(null);
+    setActiveTab('Posts');
+    setVisitedTabs(['Posts']);
   }, [props.profile]);
+
+  useEffect(() => {
+    setVisitedTabs((current) => (current.includes(activeTab) ? current : [...current, activeTab]));
+  }, [activeTab]);
 
   useLayoutEffect(() => {
     const updateIndicator = () => {
@@ -211,6 +242,38 @@ export function ContactDetailView(props: ContactDetailViewProps) {
     ? 'This contact has no public profile summary yet.'
     : 'No profile summary has been added yet.');
   const showGiftButton = !props.isOwnProfile;
+
+  const renderTabPanel = (tab: ProfileTab) => {
+    if (!visitedTabs.includes(tab)) {
+      return null;
+    }
+
+    let content: ReactNode;
+    switch (tab) {
+      case 'Posts':
+        content = <PostsTab profileId={profile.id} />;
+        break;
+      case 'Collections':
+        content = <CollectionsTab profileId={profile.id} canManageSavedPosts={Boolean(props.isOwnProfile)} />;
+        break;
+      case 'Likes':
+        content = <LikesTab profileId={profile.id} />;
+        break;
+      case 'Gifts':
+        content = <GiftsTab />;
+        break;
+      default:
+        return null;
+    }
+
+    return (
+      <div key={tab} className={activeTab === tab ? 'block' : 'hidden'} data-tab-panel={tab}>
+        <Suspense fallback={<ContactDetailTabFallback />}>
+          {content}
+        </Suspense>
+      </div>
+    );
+  };
 
   const handleSaveProfile = async () => {
     if (!props.onSaveProfile) {
@@ -739,18 +802,7 @@ export function ContactDetailView(props: ContactDetailViewProps) {
                         </div>
 
                         <div className="px-5 py-5">
-                          <div className={activeTab === 'Posts' ? 'block' : 'hidden'}>
-                            <PostsTab profileId={profile.id} />
-                          </div>
-                          <div className={activeTab === 'Collections' ? 'block' : 'hidden'}>
-                            <CollectionsTab profileId={profile.id} canManageSavedPosts={Boolean(props.isOwnProfile)} />
-                          </div>
-                          <div className={activeTab === 'Likes' ? 'block' : 'hidden'}>
-                            <LikesTab profileId={profile.id} />
-                          </div>
-                          <div className={activeTab === 'Gifts' ? 'block' : 'hidden'}>
-                            <GiftsTab />
-                          </div>
+                          {CONTACT_DETAIL_TABS.map(renderTabPanel)}
                         </div>
                       </div>
                     </section>
