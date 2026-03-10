@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
@@ -8,6 +7,7 @@ import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-d
 import { CreatePostModal } from '../profile/create-post-modal.js';
 import { PostCard } from './post-card';
 import { PostFeed } from './post-feed';
+import { prepareHomeFeedItems } from './utils';
 
 // Optimistic post placeholder component
 function PublishingPostCard() {
@@ -71,8 +71,6 @@ type HomeViewProps = {
 
 export function HomeView(props: HomeViewProps) {
   const { t } = useTranslation();
-  const authStatus = useAppStore((state) => state.auth.status);
-  const currentUserId = String(useAppStore((state) => state.auth.user?.id || '')).trim();
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const selectedProfileIsAgent = useAppStore((state) => state.selectedProfileIsAgent);
   const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
@@ -84,31 +82,6 @@ export function HomeView(props: HomeViewProps) {
   const createPostRequestRef = useRef<number>(props.createPostRequestKey ?? 0);
   const postFeedKey = `moments-${refreshKey}`;
 
-  const contactsQuery = useQuery({
-    queryKey: ['contacts', authStatus],
-    queryFn: async () => {
-      const snapshot = await dataSync.loadSocialSnapshot();
-      return snapshot as {
-        friends?: Array<Record<string, unknown>>;
-      };
-    },
-    enabled: authStatus === 'authenticated',
-  });
-
-  const allowedAuthorIds = useMemo(() => {
-    const ids = new Set<string>();
-    if (currentUserId) {
-      ids.add(currentUserId);
-    }
-    for (const friend of contactsQuery.data?.friends || []) {
-      const friendId = String(friend.id || '').trim();
-      if (friendId) {
-        ids.add(friendId);
-      }
-    }
-    return ids;
-  }, [contactsQuery.data?.friends, currentUserId]);
-
   const fetchPage = useCallback(
     async (cursorArg: string | null) => {
       const data = await dataSync.loadPostFeed({
@@ -116,20 +89,12 @@ export function HomeView(props: HomeViewProps) {
         limit: PAGE_SIZE,
         cursor: cursorArg ?? undefined,
       });
-      const items = (data?.items ?? []).filter((item) => {
-        const authorId = String(item.author?.id || '').trim();
-        return authorId ? allowedAuthorIds.has(authorId) : false;
-      }).sort((left, right) => {
-        const leftTime = Date.parse(String(left.createdAt ?? ''));
-        const rightTime = Date.parse(String(right.createdAt ?? ''));
-        return rightTime - leftTime;
-      });
       return {
-        items,
+        items: prepareHomeFeedItems(data?.items ?? []),
         nextCursor: data?.page?.nextCursor ?? null,
       };
     },
-    [allowedAuthorIds],
+    [],
   );
 
   useEffect(() => {

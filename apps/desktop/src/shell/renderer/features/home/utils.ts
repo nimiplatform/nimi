@@ -3,6 +3,14 @@ import { PostMediaType } from '@nimiplatform/sdk/realm';
 
 export type VideoPlaybackSource = { mode: 'iframe' | 'native'; src: string };
 
+export function prepareHomeFeedItems(items: PostDto[]): PostDto[] {
+  return [...items].sort((left, right) => {
+    const leftTime = Date.parse(String(left.createdAt ?? ''));
+    const rightTime = Date.parse(String(right.createdAt ?? ''));
+    return rightTime - leftTime;
+  });
+}
+
 export function normalizeMediaType(type: unknown): PostMediaType | null {
   const normalized = String(type || '').toUpperCase();
   if (normalized === PostMediaType.IMAGE || normalized === PostMediaType.VIDEO) {
