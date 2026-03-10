@@ -17,7 +17,7 @@ import (
 )
 
 func TestVoiceWorkflowViaNimillmCloneSuccess(t *testing.T) {
-	providers := []string{"dashscope", "fish_audio", "stepfun"}
+	providers := []string{"dashscope", "stepfun"}
 	for _, provider := range providers {
 		provider := provider
 		t.Run(provider, func(t *testing.T) {
@@ -61,6 +61,72 @@ func TestVoiceWorkflowViaNimillmCloneSuccess(t *testing.T) {
 				t.Fatalf("expected at least one provider request")
 			}
 		})
+	}
+}
+
+func TestFishAudioVoiceCloneWorkflowSuccess(t *testing.T) {
+	var requestPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestPath = r.URL.Path
+		if got := strings.TrimSpace(r.Header.Get("Authorization")); got != "Bearer test-key" {
+			t.Fatalf("expected Authorization header, got=%q", got)
+		}
+		if !strings.HasPrefix(strings.TrimSpace(r.Header.Get("Content-Type")), "multipart/form-data;") {
+			t.Fatalf("expected multipart form request, got content-type=%q", r.Header.Get("Content-Type"))
+		}
+		if err := r.ParseMultipartForm(1 << 20); err != nil {
+			t.Fatalf("ParseMultipartForm: %v", err)
+		}
+		if got := strings.TrimSpace(r.FormValue("title")); got != "test-clone-voice" {
+			t.Fatalf("unexpected title: %q", got)
+		}
+		file, header, err := r.FormFile("voices")
+		if err != nil {
+			t.Fatalf("FormFile(voices): %v", err)
+		}
+		defer file.Close()
+		payload, err := io.ReadAll(file)
+		if err != nil {
+			t.Fatalf("ReadAll(file): %v", err)
+		}
+		if string(payload) != "voice-audio" {
+			t.Fatalf("unexpected uploaded audio payload: %q", string(payload))
+		}
+		if header == nil || strings.TrimSpace(header.Filename) == "" {
+			t.Fatalf("expected uploaded filename")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"_id":"fish-model-001"}`)
+	}))
+	defer server.Close()
+
+	req := voiceCloneRequest()
+	req.Head.ModelId = "fish_audio/s1"
+	req.Spec.GetVoiceClone().TargetModelId = "fish_audio/s1"
+	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = []byte("voice-audio")
+	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/wav"
+	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
+
+	result, err := executeVoiceWorkflowViaNimillm(
+		context.Background(),
+		"fish_audio",
+		req,
+		catalog.ResolveVoiceWorkflowResult{
+			Provider:        "fish_audio",
+			ModelID:         "fish_audio/s1",
+			WorkflowType:    "tts_v2v",
+			WorkflowModelID: "fish-audio-create-model",
+		},
+		nimillm.MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"},
+	)
+	if err != nil {
+		t.Fatalf("Execute Fish Audio clone workflow: %v", err)
+	}
+	if got := strings.TrimSpace(result.ProviderVoiceRef); got != "fish-model-001" {
+		t.Fatalf("unexpected provider voice ref: %q", got)
+	}
+	if requestPath != "/model" {
+		t.Fatalf("unexpected request path: %q", requestPath)
 	}
 }
 

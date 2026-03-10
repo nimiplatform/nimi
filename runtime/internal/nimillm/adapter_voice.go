@@ -34,17 +34,16 @@ type VoiceWorkflowResult struct {
 // simpleVoiceAdapterDefaults maps providers that share the same adapter logic
 // (resolve URL → resolve paths → build headers → try endpoints) to their
 // default endpoint paths. Providers with genuinely different workflows
-// (dashscope, elevenlabs) are handled by dedicated functions.
+// (dashscope, elevenlabs, fish_audio) are handled by dedicated functions.
 var simpleVoiceAdapterDefaults = map[string][]string{
-	"fish_audio": {"/v1/voices/clone", "/v1/voice-clone", "/v1/audio/voices/clone"},
-	"stepfun":    {"/v1/audio/voice-clone", "/v1/audio/voices/clone", "/v1/voices/clone"},
+	"stepfun": {"/v1/audio/voice-clone", "/v1/audio/voices/clone", "/v1/voices/clone"},
 }
 
 // SupportsVoiceWorkflowProvider reports whether nimillm has a real provider-native
 // voice workflow adapter for the provider.
 func SupportsVoiceWorkflowProvider(provider string) bool {
 	p := strings.TrimSpace(strings.ToLower(provider))
-	if p == "dashscope" || p == "elevenlabs" {
+	if p == "dashscope" || p == "elevenlabs" || p == "fish_audio" {
 		return true
 	}
 	_, ok := simpleVoiceAdapterDefaults[p]
@@ -68,6 +67,8 @@ func ExecuteVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg Med
 		return executeDashScopeVoiceWorkflow(ctx, req, cfg)
 	case "elevenlabs":
 		return executeElevenLabsVoiceWorkflow(ctx, req, cfg)
+	case "fish_audio":
+		return executeFishAudioVoiceWorkflow(ctx, req, cfg)
 	default:
 		defaults, ok := simpleVoiceAdapterDefaults[provider]
 		if !ok {

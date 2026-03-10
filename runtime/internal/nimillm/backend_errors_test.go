@@ -266,6 +266,33 @@ func TestMapProviderHTTPError_ForbiddenPreservesNestedDetailMessage(t *testing.T
 	}
 }
 
+func TestMapProviderHTTPError_PaymentRequiredInsufficientBalance(t *testing.T) {
+	err := MapProviderHTTPError(402, map[string]any{
+		"message": "Invalid api key or insufficient balance",
+	})
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error for HTTP 402")
+	}
+	if st.Code() != codes.ResourceExhausted {
+		t.Fatalf("expected ResourceExhausted, got %v", st.Code())
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED {
+		t.Fatalf("expected AI_PROVIDER_RATE_LIMITED, got %v", reason)
+	}
+	if !strings.Contains(st.Message(), "Invalid api key or insufficient balance") {
+		t.Fatalf("unexpected status message: %q", st.Message())
+	}
+	metadata := extractErrorInfoMetadata(err)
+	if metadata["action_hint"] != "replenish_provider_balance_or_skip_live_test" {
+		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
+	}
+	if metadata["provider_message"] != "Invalid api key or insufficient balance" {
+		t.Fatalf("unexpected provider_message: %q", metadata["provider_message"])
+	}
+}
+
 func TestMapProviderHTTPError_Timeout(t *testing.T) {
 	for _, code := range []int{408, 504} {
 		err := MapProviderHTTPError(code, nil)

@@ -14,7 +14,7 @@
 | `deepseek` | `https://api.deepseek.com/v1` | `false` | `K-MCAT-027` |
 | `elevenlabs` | `https://api.elevenlabs.io` | `false` | `K-MCAT-027` |
 | `fireworks` | — | `true` | `K-MCAT-027` |
-| `fish_audio` | — | `true` | `K-MCAT-027` |
+| `fish_audio` | `https://api.fish.audio` | `false` | `K-MCAT-027` |
 | `flux` | — | `true` | `K-MCAT-027` |
 | `gemini` | `https://generativelanguage.googleapis.com/v1beta/openai` | `false` | `K-MCAT-027` |
 | `glm` | `https://open.bigmodel.cn/api/paas/v4` | `false` | `K-MCAT-027` |

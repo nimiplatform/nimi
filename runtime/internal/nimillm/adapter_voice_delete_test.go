@@ -55,3 +55,52 @@ func TestDeleteProviderVoice_ElevenLabsNotFoundIsIgnored(t *testing.T) {
 		t.Fatalf("DeleteProviderVoice notfound should be ignored: %v", err)
 	}
 }
+
+func TestDeleteProviderVoice_FishAudio(t *testing.T) {
+	var (
+		gotMethod string
+		gotPath   string
+		gotAuth   string
+	)
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		gotMethod = request.Method
+		gotPath = request.URL.Path
+		gotAuth = request.Header.Get("Authorization")
+		writer.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	err := DeleteProviderVoice(context.Background(), "fish_audio", "model_123", MediaAdapterConfig{
+		BaseURL: server.URL,
+		APIKey:  "test-key",
+	}, nil)
+	if err != nil {
+		t.Fatalf("DeleteProviderVoice(fish_audio): %v", err)
+	}
+	if gotMethod != http.MethodDelete {
+		t.Fatalf("unexpected method: %q", gotMethod)
+	}
+	if gotPath != "/model/model_123" {
+		t.Fatalf("unexpected path: %q", gotPath)
+	}
+	if gotAuth != "Bearer test-key" {
+		t.Fatalf("unexpected Authorization header: %q", gotAuth)
+	}
+}
+
+func TestDeleteProviderVoice_FishAudioNotFoundIsIgnored(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusNotFound)
+		_, _ = writer.Write([]byte(`{"message":"model not found"}`))
+	}))
+	defer server.Close()
+
+	err := DeleteProviderVoice(context.Background(), "fish_audio", "model_missing", MediaAdapterConfig{
+		BaseURL: server.URL,
+		APIKey:  "test-key",
+	}, nil)
+	if err != nil {
+		t.Fatalf("DeleteProviderVoice fish_audio notfound should be ignored: %v", err)
+	}
+}

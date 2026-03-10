@@ -1,9 +1,13 @@
 package ai
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -230,6 +234,73 @@ func resolveLiveVoiceCloneInput(t *testing.T, providerToken string) *runtimev1.V
 	}
 }
 
+func maybeSkipFishAudioBalanceBlocked(t *testing.T, providerID string, err error, detail string) {
+	t.Helper()
+	if !strings.EqualFold(strings.TrimSpace(providerID), "fish_audio") {
+		return
+	}
+	message := strings.ToLower(strings.TrimSpace(detail))
+	if err != nil {
+		message = strings.TrimSpace(message + " " + strings.ToLower(err.Error()))
+	}
+	if strings.Contains(message, "insufficient balance") || strings.Contains(message, "insufficient credits") {
+		if err != nil {
+			t.Skipf("fish_audio live smoke skipped due to provider balance block: %v", err)
+		}
+		t.Skipf("fish_audio live smoke skipped due to provider balance block: %s", strings.TrimSpace(detail))
+	}
+}
+
+func maybeSkipFishAudioBalancePreflight(t *testing.T, svc *Service, providerID string, modelID string) {
+	t.Helper()
+	if !strings.EqualFold(strings.TrimSpace(providerID), "fish_audio") || svc == nil {
+		return
+	}
+
+	cfg := svc.resolveNativeAdapterConfig("fish_audio", nil)
+	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
+	if baseURL == "" {
+		baseURL = "https://api.fish.audio"
+	}
+	voiceRef := resolveLiveTTSVoiceRef(t, svc, providerID, modelID)
+	if voiceRef == "" {
+		return
+	}
+
+	payload := map[string]any{
+		"text":         "Nimi Fish Audio balance preflight.",
+		"reference_id": voiceRef,
+	}
+	requestBody, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("marshal fish_audio preflight payload: %v", err)
+	}
+	request, err := http.NewRequestWithContext(context.Background(), http.MethodPost, baseURL+"/v1/tts", bytes.NewReader(requestBody))
+	if err != nil {
+		t.Fatalf("build fish_audio preflight request: %v", err)
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("model", strings.TrimSpace(strings.TrimPrefix(modelID, "cloud/")))
+	if strings.TrimSpace(cfg.APIKey) != "" {
+		request.Header.Set("Authorization", "Bearer "+strings.TrimSpace(cfg.APIKey))
+	}
+
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusPaymentRequired {
+		return
+	}
+	var responsePayload map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&responsePayload)
+	message := strings.ToLower(strings.TrimSpace(nimillm.ProviderErrorMessage(responsePayload)))
+	if strings.Contains(message, "insufficient balance") || strings.Contains(message, "insufficient credits") {
+		t.Skipf("fish_audio live smoke skipped due to provider balance block: %s", strings.TrimSpace(nimillm.ProviderErrorMessage(responsePayload)))
+	}
+}
+
 func runLiveSmokeGenerateForProvider(t *testing.T, providerID string, record providerregistry.ProviderRecord) {
 	t.Helper()
 	svc := newLiveSmokeServiceForProvider(t, providerID, record)
@@ -307,6 +378,9 @@ func runLiveSmokeMediaForProvider(t *testing.T, providerID string, record provid
 	default:
 		t.Fatalf("unsupported media scenario type: %v", scenarioType)
 	}
+	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE {
+		maybeSkipFishAudioBalancePreflight(t, svc, providerID, modelID)
+	}
 
 	submitResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
@@ -322,10 +396,12 @@ func runLiveSmokeMediaForProvider(t *testing.T, providerID string, record provid
 		Spec:          spec,
 	})
 	if err != nil {
+		maybeSkipFishAudioBalanceBlocked(t, providerID, err, "")
 		t.Fatalf("submit scenario job failed: %v", err)
 	}
 	job := waitLiveSmokeScenarioJob(t, svc, submitResp.GetJob().GetJobId())
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		maybeSkipFishAudioBalanceBlocked(t, providerID, errors.New(job.GetReasonDetail()), job.GetReasonDetail())
 		t.Fatalf("scenario job status not completed: %s reason=%s detail=%s", job.GetStatus().String(), job.GetReasonCode().String(), job.GetReasonDetail())
 	}
 }
@@ -362,6 +438,7 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 			Input:         &runtimev1.VoiceT2VInput{InstructionText: liveSmokeVoiceDesignInstruction},
 		}}
 	}
+	maybeSkipFishAudioBalancePreflight(t, svc, providerID, modelID)
 
 	submitResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
@@ -377,6 +454,7 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 		Spec:          spec,
 	})
 	if err != nil {
+		maybeSkipFishAudioBalanceBlocked(t, providerID, err, "")
 		t.Fatalf("submit voice workflow failed: %v", err)
 	}
 	if submitResp.GetAsset() == nil || strings.TrimSpace(submitResp.GetAsset().GetVoiceAssetId()) == "" {
@@ -395,6 +473,7 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 	}()
 	job := waitLiveSmokeScenarioJob(t, svc, submitResp.GetJob().GetJobId())
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		maybeSkipFishAudioBalanceBlocked(t, providerID, errors.New(job.GetReasonDetail()), job.GetReasonDetail())
 		t.Fatalf("voice workflow job status not completed: %s reason=%s detail=%s", job.GetStatus().String(), job.GetReasonCode().String(), job.GetReasonDetail())
 	}
 }

@@ -168,6 +168,53 @@ func TestDeleteVoiceAssetDeletesProviderPersistentVoiceWhenSupported(t *testing.
 	}
 }
 
+func TestDeleteVoiceAssetDeletesFishAudioProviderModelWhenSupported(t *testing.T) {
+	var (
+		gotMethod string
+		gotPath   string
+		gotAuth   string
+	)
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		gotMethod = request.Method
+		gotPath = request.URL.Path
+		gotAuth = request.Header.Get("Authorization")
+		writer.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"fish_audio": {BaseURL: server.URL, APIKey: "test-key"},
+		},
+	})
+
+	const assetID = "asset-fish-1"
+	svc.voiceAssets.assets[assetID] = &runtimev1.VoiceAsset{
+		VoiceAssetId:     assetID,
+		Provider:         "fish_audio",
+		ProviderVoiceRef: "model_123",
+		Persistence:      runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT,
+		Status:           runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
+	}
+
+	deleteResp, err := svc.DeleteVoiceAsset(context.Background(), &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID})
+	if err != nil {
+		t.Fatalf("DeleteVoiceAsset: %v", err)
+	}
+	if deleteResp.GetAck() == nil || !deleteResp.GetAck().GetOk() {
+		t.Fatalf("delete voice asset ack must be ok")
+	}
+	if gotMethod != http.MethodDelete {
+		t.Fatalf("unexpected provider delete method: %q", gotMethod)
+	}
+	if gotPath != "/model/model_123" {
+		t.Fatalf("unexpected provider delete path: %q", gotPath)
+	}
+	if gotAuth != "Bearer test-key" {
+		t.Fatalf("unexpected provider delete Authorization header: %q", gotAuth)
+	}
+}
+
 func TestListVoiceAssetsValidation(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 

@@ -196,6 +196,8 @@ func reasonCodeFromMediaError(err error) runtimev1.ReasonCode {
 		return runtimev1.ReasonCode_ACTION_EXECUTED
 	case codes.DeadlineExceeded:
 		return runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
+	case codes.ResourceExhausted:
+		return runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED
 	case codes.NotFound:
 		return runtimev1.ReasonCode_AI_MODEL_NOT_FOUND
 	case codes.FailedPrecondition:

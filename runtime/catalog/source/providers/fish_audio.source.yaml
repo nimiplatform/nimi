@@ -1,13 +1,13 @@
 schema_version: 3
 provider: fish_audio
-catalog_version: 2026-03-05-fish-audio-v1
+catalog_version: 2026-03-10-fish-audio-v2
 generated_target: runtime/catalog/providers/fish_audio.yaml
 runtime:
   runtime_plane: remote
   managed_connector_supported: true
   inline_supported: true
-  default_endpoint: null
-  requires_explicit_endpoint: true
+  default_endpoint: https://api.fish.audio
+  requires_explicit_endpoint: false
 resolution_mode: model_anchor_v2
 defaults:
   provider: fish_audio
@@ -22,13 +22,25 @@ defaults:
     notes: Fish Audio pricing varies by model and account plan.
 
 sources:
+  - source_id: fish_audio_quickstart_doc
+    url: https://docs.fish.audio/developer-guide/getting-started/quickstart
+    retrieved_at: 2026-03-10
+    note: Fish Audio quickstart and SDK usage.
   - source_id: fish_audio_api_doc
     url: https://docs.fish.audio/api-reference/tts
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-03-10
     note: Fish Audio TTS API reference.
+  - source_id: fish_audio_create_model_doc
+    url: https://docs.fish.audio/api-reference/endpoint/create-tts-model
+    retrieved_at: 2026-03-10
+    note: Fish Audio create custom TTS model API reference.
+  - source_id: fish_audio_delete_model_doc
+    url: https://docs.fish.audio/api-reference/endpoint/delete-tts-model
+    retrieved_at: 2026-03-10
+    note: Fish Audio delete custom TTS model API reference.
   - source_id: fish_audio_models_doc
     url: https://docs.fish.audio/text-to-speech/models
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-03-10
     note: Fish Audio model catalog and capabilities.
 
 language_profiles:
@@ -50,19 +62,17 @@ voice_sets:
         langs: [en]
 
 models:
-  - model_id: fish-speech-1.5
-    updated_at: 2026-03-05
-    source_ids: [fish_audio_api_doc, fish_audio_models_doc]
+  - model_id: s1
+    updated_at: 2026-03-10
+    source_ids: [fish_audio_quickstart_doc, fish_audio_api_doc, fish_audio_models_doc]
     voice:
       discovery_mode: static_catalog
       voice_set_ref: default-voices-v1
       supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref, voice_asset_id]
       langs_ref: short_multilingual_v1
-    aliases:
-      - fish-speech
 
-  - model_id: fish-agent-v1
-    updated_at: 2026-03-05
+  - model_id: s2-pro
+    updated_at: 2026-03-10
     source_ids: [fish_audio_api_doc, fish_audio_models_doc]
     voice:
       discovery_mode: static_catalog
@@ -71,20 +81,20 @@ models:
       langs_ref: short_multilingual_v1
 
 voice_workflow_models:
-  - workflow_model_id: fish-audio-voice-clone
+  - workflow_model_id: fish-audio-create-model
     workflow_type: tts_v2v
     input_contract_ref: fish_audio_tts_v2v_input_v1
     output_persistence: provider_persistent
-    target_model_refs: [fish-speech-1.5, fish-agent-v1]
+    target_model_refs: [s1, s2-pro]
     langs_ref: short_multilingual_v1
-    source_ids: [fish_audio_api_doc]
+    source_ids: [fish_audio_create_model_doc, fish_audio_quickstart_doc]
 
 model_workflow_bindings:
-  - model_id: fish-speech-1.5
-    workflow_model_refs: [fish-audio-voice-clone]
+  - model_id: s1
+    workflow_model_refs: [fish-audio-create-model]
     workflow_types: [tts_v2v]
-  - model_id: fish-agent-v1
-    workflow_model_refs: [fish-audio-voice-clone]
+  - model_id: s2-pro
+    workflow_model_refs: [fish-audio-create-model]
     workflow_types: [tts_v2v]
 
 voice_handle_policies:
@@ -93,7 +103,7 @@ voice_handle_policies:
     persistence: provider_persistent
     default_ttl: none
     scope: user_scoped
-    source_ids: [fish_audio_api_doc]
+    source_ids: [fish_audio_create_model_doc, fish_audio_delete_model_doc]
 
 overrides:
   models: []

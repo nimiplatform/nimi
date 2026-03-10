@@ -14,8 +14,9 @@ import (
 const AdapterFishAudioNative = "fish_audio_native_adapter"
 
 // ExecuteFishAudioNative executes a TTS scenario job against the Fish Audio API.
-// Fish Audio uses POST /v1/tts with body {reference_id, text, model}.
-// Authentication is via Bearer token. Returns audio binary directly.
+// Fish Audio uses POST /v1/tts with the base model in the `model` header and
+// either `reference_id` (preset/public voice) or `model_id` (custom cloned
+// voice model) in the request body.
 func ExecuteFishAudioTTS(
 	ctx context.Context,
 	cfg MediaAdapterConfig,
@@ -43,8 +44,9 @@ func ExecuteFishAudioTTS(
 	payload := map[string]any{
 		"text": strings.TrimSpace(spec.GetText()),
 	}
+	headers := map[string]string{}
 	if resolvedModel != "" {
-		payload["model"] = resolvedModel
+		headers["model"] = resolvedModel
 	}
 	if voiceRef != "" {
 		payload["reference_id"] = voiceRef
@@ -66,7 +68,7 @@ func ExecuteFishAudioTTS(
 	}
 
 	endpoint := resolveFishAudioTTSPath(ext)
-	body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), apiKey, payload)
+	body, err := doCustomHeaderJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), apiKey, payload, headers)
 	if err != nil {
 		return nil, nil, "", err
 	}

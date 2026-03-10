@@ -341,6 +341,9 @@ func TestReasonCodeFromMediaErrorAndVoiceRef(t *testing.T) {
 	if got := reasonCodeFromMediaError(status.Error(codes.DeadlineExceeded, "timeout")); got != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
 		t.Fatalf("unexpected deadline reason: %v", got)
 	}
+	if got := reasonCodeFromMediaError(status.Error(codes.ResourceExhausted, "balance")); got != runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED {
+		t.Fatalf("unexpected resource exhausted reason: %v", got)
+	}
 	if got := reasonCodeFromMediaError(status.Error(codes.Canceled, "cancel")); got != runtimev1.ReasonCode_ACTION_EXECUTED {
 		t.Fatalf("unexpected canceled reason: %v", got)
 	}

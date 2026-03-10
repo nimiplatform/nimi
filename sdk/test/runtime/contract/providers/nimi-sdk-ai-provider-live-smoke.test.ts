@@ -49,6 +49,83 @@ function requiredEnvOrSkip(t: { skip: (msg?: string) => void }, key: string): st
   return value;
 }
 
+function fishAudioBalanceBlockMessage(provider: string, error: unknown): string {
+  if (provider !== 'fish_audio') {
+    return '';
+  }
+  const message = String((error as { message?: string } | undefined)?.message || error || '').toLowerCase();
+  if (
+    message.includes('insufficient balance')
+    || message.includes('insufficient credits')
+    || message.includes('invalid api key or insufficient balance')
+  ) {
+    return String((error as { message?: string } | undefined)?.message || error || '').trim();
+  }
+  return '';
+}
+
+function resolveFishAudioPreflightVoiceId(): string {
+  const file = resolve(resolveRuntimeDir(), 'catalog', 'source', 'providers', 'fish_audio.source.yaml');
+  const doc = YAML.parse(readFileSync(file, 'utf8')) || {};
+  const voiceSets = Array.isArray(doc.voice_sets) ? doc.voice_sets : [];
+  for (const voiceSet of voiceSets) {
+    const voices = Array.isArray(voiceSet?.voices) ? voiceSet.voices : [];
+    for (const voice of voices) {
+      const voiceId = String(voice?.voice_id || '').trim();
+      if (voiceId) {
+        return voiceId;
+      }
+    }
+  }
+  return '';
+}
+
+async function maybeSkipFishAudioBalancePreflight(
+  t: { skip: (msg?: string) => void },
+  provider: string,
+  runtimeEnv: Record<string, string>,
+  modelId: string,
+): Promise<boolean> {
+  if (provider !== 'fish_audio') {
+    return false;
+  }
+  const apiKey = String(runtimeEnv.NIMI_RUNTIME_CLOUD_FISH_AUDIO_API_KEY || '').trim();
+  if (!apiKey) {
+    return false;
+  }
+  const voiceId = resolveFishAudioPreflightVoiceId();
+  if (!voiceId) {
+    return false;
+  }
+  const response = await fetch(`${String(runtimeEnv.NIMI_RUNTIME_CLOUD_FISH_AUDIO_BASE_URL || 'https://api.fish.audio').replace(/\/+$/, '')}/v1/tts`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      model: String(modelId || '').trim().replace(/^cloud\//i, ''),
+    },
+    body: JSON.stringify({
+      text: 'Nimi Fish Audio balance preflight.',
+      reference_id: voiceId,
+    }),
+  });
+  if (response.status !== 402) {
+    return false;
+  }
+  let providerMessage = '';
+  try {
+    const payload = await response.json() as { message?: string };
+    providerMessage = String(payload?.message || '').trim();
+  } catch {
+    providerMessage = '';
+  }
+  if (providerMessage.toLowerCase().includes('insufficient balance')) {
+    t.skip(`fish_audio live smoke skipped due to provider balance block: ${providerMessage}`);
+    return true;
+  }
+  return false;
+}
+
 function normalizeCloudModelId(modelId: string): string {
   const normalizedModelId = String(modelId || '').trim();
   if (!normalizedModelId) {
@@ -643,7 +720,7 @@ async function deleteVoiceAssetIfPresent(runtime: Runtime, voiceAssetId: string 
 
 async function resolveSdkLiveTTSVoice(runtime: Runtime, provider: string, modelId: string): Promise<string | undefined> {
   const response = await runtime.media.tts.listVoices({
-    model: modelId,
+    model: String(modelId || '').trim().replace(/^cloud\//i, ''),
     subjectUserId: SUBJECT_USER_ID,
   });
   const firstVoice = response.voices[0];
@@ -913,12 +990,24 @@ function registerSdkProviderCapabilityMatrixTests() {
           t.skip(`set NIMI_LIVE_${providerEnvToken(provider)}_VOICE_REFERENCE_AUDIO_PATH or NIMI_LIVE_${providerEnvToken(provider)}_VOICE_REFERENCE_AUDIO_URI`);
           return;
         }
+        if (await maybeSkipFishAudioBalancePreflight(t, provider, runtimeEnv, modelId)) {
+          return;
+        }
 
         await withRuntimeDaemon({
           appId: APP_ID,
           runtimeEnv,
           run: async ({ endpoint }) => {
-            await runSdkCapabilityLiveSmoke(endpoint, provider, capability, modelId);
+            try {
+              await runSdkCapabilityLiveSmoke(endpoint, provider, capability, modelId);
+            } catch (error) {
+              const skipMessage = fishAudioBalanceBlockMessage(provider, error);
+              if (skipMessage) {
+                t.skip(`fish_audio live smoke skipped due to provider balance block: ${skipMessage}`);
+                return;
+              }
+              throw error;
+            }
           },
         });
       });

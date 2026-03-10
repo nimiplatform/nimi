@@ -54,6 +54,17 @@ func classifyProviderBadRequest(providerMessage string) (codes.Code, runtimev1.R
 		return codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED, "upgrade_provider_plan_or_use_supported_capability"
 	}
 
+	balanceBlocked := containsAnyToken(
+		normalized,
+		"insufficient balance",
+		"insufficient credits",
+		"not enough balance",
+		"out of credits",
+	)
+	if balanceBlocked {
+		return codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED, "replenish_provider_balance_or_skip_live_test"
+	}
+
 	modelNotFound := containsAnyToken(
 		normalized,
 		"model not found",
@@ -174,6 +185,18 @@ func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 			})
 		}
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED)
+	case http.StatusPaymentRequired:
+		if providerMessage != "" {
+			grpcCode, reasonCode, actionHint := classifyProviderBadRequest(providerMessage)
+			return grpcerr.WithReasonCodeOptions(grpcCode, reasonCode, grpcerr.ReasonOptions{
+				ActionHint: actionHint,
+				Message:    providerMessage,
+				Metadata: map[string]string{
+					"provider_message": providerMessage,
+				},
+			})
+		}
+		return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED)
 	case http.StatusNotFound:
 		if providerMessage != "" {
 			return grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, grpcerr.ReasonOptions{
