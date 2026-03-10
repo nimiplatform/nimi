@@ -89,7 +89,7 @@ export function MessageTimeline() {
   const chatsQuery = useQuery({
     queryKey: ['chats', authStatus],
     queryFn: async () => dataSync.loadChats(),
-    enabled: false,
+    enabled: authStatus === 'authenticated',
   });
 
   const chats = (chatsQuery.data as { items?: ChatViewDto[] })?.items || [];

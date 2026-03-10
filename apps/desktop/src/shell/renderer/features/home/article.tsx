@@ -33,6 +33,7 @@ export type PostCardArticleProps = {
   isSavedPost: boolean;
   onToggleLike: () => void;
   onChat: () => void;
+  showChatButton?: boolean;
   onOpenGift: () => void;
 };
 
@@ -197,16 +198,18 @@ export function PostCardArticle(props: PostCardArticleProps) {
 
           {!props.isOwnPost ? (
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  props.onChat();
-                }}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#3DBB94] shadow-sm transition-all hover:bg-[#4ECCA3] hover:text-white hover:shadow-md active:scale-95"
-              >
-                <ChatIcon size={18} />
-              </button>
+              {props.showChatButton !== false ? (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    props.onChat();
+                  }}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#3DBB94] shadow-sm transition-all hover:bg-[#4ECCA3] hover:text-white hover:shadow-md active:scale-95"
+                >
+                  <ChatIcon size={18} />
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={(event) => {

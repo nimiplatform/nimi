@@ -44,13 +44,18 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
   const setSelectedProfileIsAgent = useAppStore((state) => state.setSelectedProfileIsAgent);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
-  const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
+  const authStatus = useAppStore((state) => state.auth.status);
   const currentUserId = useAppStore((state) => state.auth.user?.id);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [isSavedPost, setIsSavedPost] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
 
-  const authorId = String(post.author?.id || (post.author as unknown as { _id?: string })?._id || '').trim();
+  const authorId = String(
+    post.authorId
+    || post.author?.id
+    || (post.author as unknown as { _id?: string })?._id
+    || '',
+  ).trim();
   const hasMedia = post.media && post.media.length > 0;
   const isOwnPost = Boolean(currentUserId && post.author?.id && post.author.id === currentUserId);
   const [isLikePending, setIsLikePending] = useState(false);
@@ -316,65 +321,83 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
     }
 
     if (post.author?.isAgent) {
-      let worldId = '';
-      try {
-        const profile = await dataSync.loadUserProfile(userId);
-        const payload = profile as Record<string, unknown>;
-        const direct = String(payload.worldId || '').trim();
-        if (direct) {
-          worldId = direct;
-        } else {
-          const agent = payload.agent && typeof payload.agent === 'object'
-            ? (payload.agent as Record<string, unknown>)
-            : null;
-          const fromAgent = String(agent?.worldId || '').trim();
-          if (fromAgent) {
-            worldId = fromAgent;
-          }
-        }
-      } catch {
-        worldId = '';
-      }
-
-      setRuntimeFields({
-        targetType: 'AGENT',
-        targetAccountId: userId,
-        agentId: userId,
-        targetId: userId,
-        worldId,
+      setStatusBanner({
+        kind: 'error',
+        message: 'Agent chat is not available from Moments.',
       });
-      openModWorkspaceTab('mod:local-chat', 'Local Chat', 'local-chat');
-      setActiveTab('mod:local-chat');
       return;
     }
 
-    try {
-      const result = await dataSync.startChat(userId);
-      if (!result?.chatId) {
-        throw new Error('Failed to create chat');
-      }
-      const chatId = String(result.chatId);
-      setRuntimeFields({
-        targetType: 'FRIEND',
-        targetAccountId: userId,
-        agentId: '',
-        worldId: '',
-      });
-      await queryClient.invalidateQueries({ queryKey: ['chats'] });
-      setActiveTab('chat');
-      setTimeout(() => {
+      try {
+        const result = await dataSync.startChat(userId);
+        if (!result?.chatId) {
+          throw new Error('Failed to create chat');
+        }
+        const requestedChatId = String(
+          (result.chat && typeof result.chat === 'object'
+            ? (result.chat as { id?: string | number }).id
+            : null)
+          ?? result.chatId,
+        ).trim();
+        if (!requestedChatId) {
+          throw new Error('Failed to resolve chat ID');
+        }
+        const chatsSnapshot = await dataSync.loadChats();
+        const createdChat = result.chat && typeof result.chat === 'object'
+          ? ({
+            ...(result.chat as Record<string, unknown>),
+            id: String((result.chat as { id?: string | number }).id ?? requestedChatId),
+          })
+          : null;
+        const snapshotItems = Array.isArray((chatsSnapshot as { items?: unknown[] })?.items)
+          ? (chatsSnapshot as { items: unknown[] }).items
+          : [];
+        const matchedChat = snapshotItems.find((item) => {
+          if (!item || typeof item !== 'object') {
+            return false;
+          }
+          const otherUser = (item as { otherUser?: { id?: string | number } }).otherUser;
+          return String(otherUser?.id ?? '').trim() === userId;
+        });
+        const chatId = String(
+          (matchedChat && typeof matchedChat === 'object'
+            ? (matchedChat as { id?: string | number }).id
+            : null)
+          ?? createdChat?.id
+          ?? requestedChatId,
+        ).trim();
+        if (!chatId) {
+          throw new Error('Failed to select chat');
+        }
+        const mergedItems = createdChat
+          ? [createdChat, ...snapshotItems.filter((item) => String((item as { id?: string | number })?.id ?? '') !== chatId)]
+          : snapshotItems;
+        const nextChatsSnapshot = { ...chatsSnapshot, items: mergedItems };
+        queryClient.setQueryData(['chats', authStatus], nextChatsSnapshot);
+        queryClient.setQueryData(['chats'], nextChatsSnapshot);
         setSelectedChatId(chatId);
-      }, 100);
-    } catch (error) {
-      setStatusBanner({
-        kind: 'error',
-        message: error instanceof Error ? error.message : 'Failed to open chat',
+        setRuntimeFields({
+          targetType: 'FRIEND',
+          targetAccountId: userId,
+          agentId: '',
+          worldId: '',
+        });
+        setActiveTab('chat');
+        if (typeof window !== 'undefined') {
+          window.requestAnimationFrame(() => {
+            setSelectedChatId(chatId);
+          });
+        }
+      } catch (error) {
+        setStatusBanner({
+          kind: 'error',
+          message: error instanceof Error ? error.message : 'Failed to open chat',
       });
     }
   }, [
     authorId,
-    openModWorkspaceTab,
     post.author?.isAgent,
+    authStatus,
     queryClient,
     setActiveTab,
     setRuntimeFields,
@@ -425,6 +448,7 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
         onChat={() => {
           void handleChat();
         }}
+        showChatButton={post.author?.isAgent !== true}
         onOpenGift={ui.openGiftModal}
       />
 
