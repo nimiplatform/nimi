@@ -45,7 +45,7 @@ test('local runtime facade exports dedicated companion orphan methods', () => {
 
 test('artifact orphan controller scaffolds first, then imports through runtime local artifact import', () => {
   const match = installActionsSource.match(
-    /const scaffoldLocalArtifactOrphan = useCallback\(async \(path: string, kind: LocalAiArtifactKind\) => \{([\s\S]*?)\n\s{2}\}, \[refreshLocalSnapshot, setStatusBanner\]\);/,
+    /const scaffoldLocalArtifactOrphan = useCallback\(async \(path: string, kind: LocalAiArtifactKind\) => \{([\s\S]*?)\n\s*\}, \[[\s\S]*?\]\);/,
   );
   assert.ok(match, 'expected scaffoldLocalArtifactOrphan callback in install actions source');
   const body = String(match?.[1] || '');

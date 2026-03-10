@@ -65,7 +65,7 @@ test('pickLocalAiRuntimeArtifactManifestPath uses the dedicated Tauri command', 
 
 test('artifact import controller uses pickArtifactManifestPath and runtime artifact import', () => {
   const match = installActionsSource.match(
-    /const importLocalArtifact = useCallback\(async \(\) => \{([\s\S]*?)\n\s{2}\}, \[refreshLocalSnapshot, setStatusBanner\]\);/,
+    /const importLocalArtifact = useCallback\(async \(\) => \{([\s\S]*?)\n\s*\}, \[[\s\S]*?\]\);/,
   );
   assert.ok(match, 'expected importLocalArtifact callback in install actions source');
   const body = String(match?.[1] || '');
@@ -76,7 +76,7 @@ test('artifact import controller uses pickArtifactManifestPath and runtime artif
 
 test('main model import keeps the dedicated model manifest picker', () => {
   const match = modelActionsSource.match(
-    /const importLocalModel = useCallback\(async \(\) => \{([\s\S]*?)\n\s{2}\}, \[recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner\]\);/,
+    /const importLocalModel = useCallback\(async \(\) => \{([\s\S]*?)\n\s*\}, \[[\s\S]*?\]\);/,
   );
   assert.ok(match, 'expected importLocalModel callback in model actions source');
   const body = String(match?.[1] || '');

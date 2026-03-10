@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { ReasonCode } from '@nimiplatform/sdk';
 import { clearModSdkHost, setModSdkHost } from '@nimiplatform/sdk/mod/host';
 import { createHookClient } from '@nimiplatform/sdk/mod/hook';
 import { loadAgentDetails } from '../src/runtime/data-sync/flows/agent-runtime-flow';
@@ -179,7 +180,7 @@ function installModStateCapability(hookRuntime: ReturnType<typeof getRuntimeHook
     const key = String(query.key || '');
     const storage = globalThis.localStorage;
     if (!storage) {
-      return { ok: false, reasonCode: 'MOD_STATE_UNAVAILABLE' };
+      return { ok: false, reasonCode: ReasonCode.MOD_STATE_UNAVAILABLE };
     }
 
     const storageKey = `nimi:mod-state:${key}`;
@@ -195,7 +196,7 @@ function installModStateCapability(hookRuntime: ReturnType<typeof getRuntimeHook
       return { ok: true };
     }
 
-    return { ok: false, reasonCode: 'MOD_STATE_INVALID_OP' };
+    return { ok: false, reasonCode: ReasonCode.MOD_STATE_INVALID_OP };
   });
 }
 
