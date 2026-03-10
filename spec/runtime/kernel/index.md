@@ -22,6 +22,7 @@
   - `DAEMON` `PROV` `WF` `MODEL` `KNOW` `APP` `CLI`
   - `CFG` `CONN` `NIMI` `MCAT` `MMPROV` `VOICE` `GATE` `PROTO`
 - `NNN` 三位递增编号，不复用。
+- `NNNa`/`NNNb` 后缀允许用于后插入的细化规则（如 `K-KEYSRC-005a`），保留原有规则编号稳定性。
 
 ## 4. 文档所有权
 
@@ -95,6 +96,7 @@
 - `tables/runtime-delivery-gates.yaml`
 - `tables/runtime-proto-governance-gates.yaml`
 - `tables/capability-vocabulary-mapping.yaml`
+- `tables/config-schema.yaml`
 - `tables/rule-evidence.yaml`
 
 Runtime provider model/voice default data is maintained outside `spec/` at:
@@ -112,6 +114,21 @@ Runtime provider model/voice default data is maintained outside `spec/` at:
 - domain 文档 Section 0 的导入必须在正文显式落到至少一个具体 Rule ID。
 - 执行态内容不得进入 `spec/**`，计划/证据分别写入 `dev/plan/*`、`dev/report/*`。
 
-## 8. Scope 与 Deferred
+## 8. 跨域状态机术语映射
+
+不同域的状态机使用不同的状态名称和大小写惯例，以下分歧均为有意设计：
+
+| 域 | 初始态 | 终态（成功） | 终态（超时/过期） | 大小写 | 引用 |
+|---|---|---|---|---|---|
+| ScenarioJob (`K-JOB-*`) | `SUBMITTED` | `COMPLETED` | `TIMEOUT` | UPPER_SNAKE | K-JOB-002 |
+| Workflow (`K-WF-*`) | `ACCEPTED` | `COMPLETED` | — | UPPER_SNAKE | K-WF-003 |
+| Provider Async Task (`K-MMPROV-*`) | `queued` | `succeeded` | `expired` | lower_snake | K-MMPROV-027 |
+
+**设计理由**：
+- ScenarioJob 与 Workflow 是 Runtime 内部域，使用 proto enum 惯例（UPPER_SNAKE）。
+- Provider Async Task 是 provider API 归一化层，使用 lower_snake 以贴近 provider 原始语义。
+- K-MMPROV-027 定义了 provider 异步状态到 ScenarioJob 终态的映射规则（`succeeded→COMPLETED`、`expired→TIMEOUT`、`failed→FAILED`）。
+
+## 9. Scope 与 Deferred
 
 本目录覆盖 Runtime proto 全量服务。Phase 1 规则构成当前规范基线；Phase 2 kernel contracts 可先以 draft 形态并存，待语义收敛后再提升为规范基线。新增语义必须先入 kernel，再改 domain 与实现。

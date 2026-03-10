@@ -6,7 +6,7 @@
 
 | Field | Type | Constraint |
 |---|---|---|
-| `ratio` | `number` | >0 && <=1440 |
+| `ratio` | `number` | 模拟时间加速倍率，1.0 = 实时；>0 && <=1440 |
 | `tickSeconds` | `int` | 1..3600 |
 | `driftBudgetSecondsPerHour` | `int` | 0..120 |
 | `catchUpPolicy` | `enum` | PAUSE | FAST_FORWARD |
@@ -22,9 +22,9 @@
 
 | Field | Type | Constraint |
 |---|---|---|
-| `relationshipTypes` | `enum[]` | 至少包含 HUMAN_HUMAN, HUMAN_AGENT |
+| `relationshipTypes` | `enum[]` | 至少包含 HUMAN_HUMAN, HUMAN_AGENT, AGENT_AGENT |
 | `preconditionModel` | `enum` | FRIENDSHIP_GATE | OPEN |
-| `reputationScale` | `object` | 必填 min/max |
+| `reputationScale` | `object` | 必填 {min: int, max: int}，0 <= min < max <= 10000 |
 | `decayWindowHours` | `int` | >=1 |
 | `blockPolicy` | `enum` | HARD_DENY | SOFT_DENY |
 
@@ -39,7 +39,7 @@
 
 | Field | Type | Constraint |
 |---|---|---|
-| `currencyNamespace` | `string` | 全局稳定命名 |
+| `currencyNamespace` | `string` | 格式 <worldId>.<currencyName>，currencyName 仅 [a-z0-9-]，最长 32 字符；Realm 全局唯一 |
 | `transferMode` | `enum` | DIRECT | ESCROW |
 | `settlementWindowSeconds` | `int` | 60..86400 |
 | `conservationRequired` | `boolean` | V0.1 fixed true |
@@ -74,7 +74,7 @@
 |---|---|---|
 | `contextScope` | `enum` | SESSION | WORLD | DEVICE |
 | `retentionTtlSeconds` | `int` | >=60 |
-| `injectionPriority` | `string[]` | 必填且有序 |
+| `injectionPriority` | `string[]` | 有序数组，元素来自 {identity, agent_persona, world_rules, conversation, memory_recall, tool_context}；索引越小优先级越高；实现必须按此序注入 |
 | `truncationPolicy` | `enum` | SUMMARY_FIRST | RECENCY_FIRST |
 | `handoffPolicy` | `enum` | EXPLICIT_ONLY | ASSISTED |
 

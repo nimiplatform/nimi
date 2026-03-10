@@ -26,6 +26,8 @@ Action Registry 最少包含：actionId、inputSchema、outputSchema、riskLevel
 
 AI 调用标准协议：discover → dry-run → verify → commit → audit。`MUST`: 写操作必须支持 idempotencyKey。多动作编排必须支持补偿（SAGA）。verify 必须先于 commit。commit 必须持久化 execution ledger。持久化不确定时 fail-close。
 
+失败转换规则：任意阶段失败直接进入 audit（记录失败原因）。dry-run 失败不产生副作用。verify 失败终止流程。commit 失败触发补偿（若 action 声明 compensation）。重试必须携带相同 idempotencyKey。
+
 执行等级矩阵：full（必须 dry-run，commit 后可验证）、guarded（允许 preflight 代替，强审计）、opaque（必须持久审计，high risk 禁止）。
 
 ## P-ALMI-020 — AI Runtime 约束

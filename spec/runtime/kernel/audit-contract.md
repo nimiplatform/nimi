@@ -15,46 +15,6 @@
 
 任何审计事件至少包含上述 6 个字段。domain 专属扩展字段由各自规则定义（如 AI 执行扩展见 `K-AUDIT-018`）。
 
-## K-AUDIT-018 AI 执行审计扩展字段
-
-AI 执行路径（ExecuteScenario/StreamScenario/ScenarioJob 等）的审计事件在 `K-AUDIT-001` 通用底线基础上，额外包含：
-
-- `request_id`
-- `user_id`
-- `client_id`（可选）— 等同于 `app_instance_id`，标识应用的具体运行实例。仅在应用注册时声明了 instance 标识的场景下填充；未声明时留空。
-- `connector_id`（若适用）
-- `provider`
-- `model`
-- `request_source`
-- `usage`
-- `grpc_code`（失败时）
-
-非 AI 执行域（auth/grant/lifecycle）的审计事件不要求包含上述字段。
-
-## K-AUDIT-019 Cross-Layer Correlation Query
-
-跨 Runtime / SDK / Desktop 的排障查询主键固定为：
-
-- `trace_id`（首选）
-- `request_id`（若存在）
-- `app_id`
-- `domain`
-- `timestamp` 窗口
-
-单独依赖 message 文本或 UI 本地时间戳不得视为可接受的跨层关联方式。
-
-## K-AUDIT-020 Correlation Propagation Boundary
-
-- Runtime 必须把 `trace_id` 作为所有审计路径的通用底线字段（K-AUDIT-001）。
-- SDK/Desktop 若生成本地日志或错误提示，必须保留原始 `trace_id`，不得在边界层重写为另一套随机 ID。
-- 当调用链同时包含 Desktop IPC、SDK runtime client 和 Runtime gRPC 时，查询入口必须能从任一层反查到同一 `trace_id`。
-
-## K-AUDIT-021 Query Surface & Redaction
-
-- 跨层查询默认返回结构化字段，不以原始日志全文检索作为唯一入口。
-- `trace_id`、`request_id`、`app_id`、`domain`、`reason_code`、`timestamp` 属于可查询字段；凭据、proof、token 明文仍受 `K-AUDIT-005` / `K-AUDIT-017` 脱敏约束。
-- Desktop/运维侧展示查询结果时，必须优先显示可复制的 `trace_id`，用于对接 Runtime 审计、Provider 健康事件和前端 renderer 日志。
-
 ## K-AUDIT-002 事件覆盖面
 
 管理 RPC 与 consume RPC 都必须记录成功与失败事件。
@@ -107,12 +67,12 @@ Phase 1 固定 `request_id == trace_id`（同一 ULID），为后续 fan-out 分
 
 ## K-AUDIT-007 审计事件存储容量
 
-- 事件环形缓冲上限：默认 20,000 条（可通过 `K-DAEMON-009` 配置覆盖）。超出时按 FIFO 淘汰最旧事件。
+- 事件环形缓冲上限：默认 20,000 条（可通过 `K-DAEMON-009` 的 `auditRingBufferSize` 配置覆盖）。超出时按 FIFO 淘汰最旧事件。
 - `ListAuditEvents` 支持分页（`page_size` + `page_token`），支持按 `app_id`/`subject_user_id`/`domain`/`reason_code`/`caller_kind`/`caller_id`/`time_range` 过滤。
 
 ## K-AUDIT-008 使用量样本存储
 
-- 使用量环形缓冲上限：默认 50,000 条样本（可通过 `K-DAEMON-009` 配置覆盖）。超出时按 FIFO 淘汰。
+- 使用量环形缓冲上限：默认 50,000 条样本（可通过 `K-DAEMON-009` 的 `usageStatsBufferSize` 配置覆盖）。超出时按 FIFO 淘汰。
 - 样本维度：`app_id` × `subject_user_id` × `caller_kind` × `caller_id` × `capability` × `model_id`。
 - `ListUsageStats` 支持分页和上述维度过滤。
 
@@ -256,3 +216,43 @@ Runtime 中存在四层审计字段定义，各有明确适用范围：
 - 脱敏在审计写入层统一执行，审计事件生产方不负责预脱敏。
 - 匹配采用大小写不敏感的子串匹配。
 - `token_id`、`parent_token_id`、`page_token`、`next_page_token` 为结构性标识符，不属于敏感凭据，豁免脱敏。
+
+## K-AUDIT-018 AI 执行审计扩展字段
+
+AI 执行路径（ExecuteScenario/StreamScenario/ScenarioJob 等）的审计事件在 `K-AUDIT-001` 通用底线基础上，额外包含：
+
+- `request_id`
+- `user_id`
+- `client_id`（可选）— 等同于 `app_instance_id`，标识应用的具体运行实例。仅在应用注册时声明了 instance 标识的场景下填充；未声明时留空。
+- `connector_id`（若适用）
+- `provider`
+- `model`
+- `request_source`
+- `usage`
+- `grpc_code`（失败时）
+
+非 AI 执行域（auth/grant/lifecycle）的审计事件不要求包含上述字段。
+
+## K-AUDIT-019 Cross-Layer Correlation Query
+
+跨 Runtime / SDK / Desktop 的排障查询主键固定为：
+
+- `trace_id`（首选）
+- `request_id`（若存在）
+- `app_id`
+- `domain`
+- `timestamp` 窗口
+
+单独依赖 message 文本或 UI 本地时间戳不得视为可接受的跨层关联方式。
+
+## K-AUDIT-020 Correlation Propagation Boundary
+
+- Runtime 必须把 `trace_id` 作为所有审计路径的通用底线字段（K-AUDIT-001）。
+- SDK/Desktop 若生成本地日志或错误提示，必须保留原始 `trace_id`，不得在边界层重写为另一套随机 ID。
+- 当调用链同时包含 Desktop IPC、SDK runtime client 和 Runtime gRPC 时，查询入口必须能从任一层反查到同一 `trace_id`。
+
+## K-AUDIT-021 Query Surface & Redaction
+
+- 跨层查询默认返回结构化字段，不以原始日志全文检索作为唯一入口。
+- `trace_id`、`request_id`、`app_id`、`domain`、`reason_code`、`timestamp` 属于可查询字段；凭据、proof、token 明文仍受 `K-AUDIT-005` / `K-AUDIT-017` 脱敏约束。
+- Desktop/运维侧展示查询结果时，必须优先显示可复制的 `trace_id`，用于对接 Runtime 审计、Provider 健康事件和前端 renderer 日志。

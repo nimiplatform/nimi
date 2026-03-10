@@ -190,3 +190,66 @@ layers:
         replay_consistency: required
         regression: required
         source_rule: P-PROTO-105
+
+  - layer: L3_almi
+    label: "ALMI 域 (Hook Action + Principal + 执行协议)"
+    items:
+      - item: "Hook Action Fabric 注册与分发"
+        positive: required
+        rejection: required
+        regression: required
+        source_rule: P-ALMI-002
+      - item: "Principal 最小权限模型"
+        positive: required
+        rejection: required
+        regression: required
+        source_rule: P-ALMI-003
+      - item: "ExternalAgent 凭证生命周期"
+        positive: required
+        rejection: required
+        regression: required
+        source_rule: P-ALMI-004
+      - item: "Action Registry 一致性"
+        positive: required
+        rejection: required
+        regression: required
+        source_rule: P-ALMI-010
+      - item: "执行协议状态机"
+        positive: required
+        rejection: required
+        regression: required
+        source_rule: P-ALMI-011
+      - item: "性能红线 (latency/throughput)"
+        positive: required
+        rejection: required
+        regression: required
+        source_rule: P-ALMI-030
+      - item: "AI Runtime 路由约束 (local|cloud)"
+        positive: required
+        rejection: required
+        regression: required
+        source_rule: P-ALMI-020
+
+  - layer: L3_arch
+    label: "架构域 (层边界 + 隔离 + 审计)"
+    items:
+      - item: "六层架构边界"
+        positive: required
+        rejection: required
+        regression: required
+        source_rule: P-ARCH-001
+      - item: "SDK 桥接隔离"
+        positive: required
+        rejection: required
+        regression: required
+        source_rule: P-ARCH-020
+      - item: "Credential Plane 双平面隔离"
+        positive: required
+        rejection: required
+        regression: required
+        source_rule: P-ARCH-011
+      - item: "审计双层模型"
+        positive: required
+        rejection: required
+        regression: required
+        source_rule: P-ARCH-030

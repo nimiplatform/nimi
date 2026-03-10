@@ -90,7 +90,7 @@ Runtime 错误通过三层投影到 Desktop UI：
 | `AI_PROVIDER_RATE_LIMITED` | `S-ERROR-007` retryable | "AI 服务繁忙，请稍后重试" |
 | `AI_PROVIDER_INTERNAL` | `S-ERROR-001` 上游错误 | "AI 服务内部错误，请稍后重试" |
 | `AI_PROVIDER_ENDPOINT_FORBIDDEN` | `S-ERROR-001` 上游错误 | "AI 服务端点被安全策略拒绝" |
-| `AI_STREAM_BROKEN` | `S-ERROR-004` 不自动重连 | "流式响应中断，请重新发送" |
+| `AI_STREAM_BROKEN` | `S-ERROR-004` 不自动重连 / `S-ERROR-007` 应用层可重试 | "流式响应中断，请重新发送" |
 | `AI_CONNECTOR_CREDENTIAL_MISSING` | `S-ERROR-001` 上游错误 | "缺少 AI 服务凭证，请检查配置" |
 | `AI_CONNECTOR_DISABLED` | `S-ERROR-001` 上游错误 | "AI 连接器已禁用" |
 | `AI_CONNECTOR_NOT_FOUND` | `S-ERROR-001` 上游错误 | "AI 连接器未找到" |
@@ -157,7 +157,7 @@ Phase 1 provider 健康细粒度展示为 Phase 2（D-IPC-002），因此 Phase 
 - 评估标准：该 ReasonCode 是否可能在 Desktop 用户操作流中触达。可通过 UI 触达的码必须添加中文映射；仅内部使用的码（如 management RPC 专用码）可跳过。
 - 此评估应作为 reason-codes.yaml 变更 PR 的 review checklist 项。
 
-**跨层引用**：Runtime `K-ERR-001~010`、SDK `S-ERROR-001~014`。
+**跨层引用**：Runtime `K-ERR-001~010`、SDK `S-ERROR-001~015`。
 
 ## D-ERR-008 — 本地模型生命周期 NOT_FOUND 映射
 

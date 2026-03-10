@@ -18,9 +18,9 @@ World 详情功能域 — World 详情页、语义数据、穿越管理、关卡
 
 世界数据流（方法清单见 `D-DSYNC-005`）。
 
-### DataSync (D-DSYNC-012)
+### DataSync (D-DSYNC-012) — Transit 数据流
 
-穿越数据流（方法清单见 `D-DSYNC-012`）。
+穿越数据流（方法清单见 `D-DSYNC-012`，共 8 个方法）。Transit 是 World Detail 的子域，负责穿越（传送门）相关的数据同步、查询、创建与管理。Transit 无独立 domain spec 文件，完整规则由 kernel D-DSYNC-012 定义，本节为其 domain-level 锚点。
 
 ### State (D-STATE-004)
 

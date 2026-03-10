@@ -5,7 +5,7 @@
 
 ## 0. 权威导入
 
-- `kernel/codegen-contract.md`（D-CODEGEN-001, D-CODEGEN-020, D-CODEGEN-030, D-CODEGEN-041, D-CODEGEN-060, D-CODEGEN-075）
+- `kernel/codegen-contract.md`（D-CODEGEN-001, D-CODEGEN-010, D-CODEGEN-020, D-CODEGEN-030, D-CODEGEN-040, D-CODEGEN-060, D-CODEGEN-070）
 - `kernel/mod-governance-contract.md`（D-MOD-001, D-MOD-005, D-MOD-008）
 - `kernel/hook-capability-contract.md`（D-HOOK-003, D-HOOK-007, D-HOOK-009）
 - `kernel/tables/codegen-capability-tiers.yaml`

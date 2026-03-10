@@ -9,16 +9,21 @@
 
 查询/控制 RPC 不走 connector 路径，走 job 元数据路径。
 
-## K-JOB-002 终态集合
+## K-JOB-002 ScenarioJob 状态机
 
-ScenarioJob 终态固定为：
+ScenarioJob 状态枚举固定为 7 态（事实源：`tables/job-states.yaml`）：
 
-- `COMPLETED`
-- `FAILED`
-- `CANCELED`
-- `TIMEOUT`
+| 状态 | terminal | 含义 |
+|---|---|---|
+| `SUBMITTED` | false | 已提交，等待调度 |
+| `QUEUED` | false | 已入队，等待执行资源 |
+| `RUNNING` | false | 执行中 |
+| `COMPLETED` | true | 执行成功 |
+| `FAILED` | true | 执行失败 |
+| `CANCELED` | true | 被取消 |
+| `TIMEOUT` | true | 执行超时 |
 
-事件流在任一终态后可正常关闭。
+事件流在任一终态（`terminal=true`）后可正常关闭。
 
 ## K-JOB-003 凭据快照
 

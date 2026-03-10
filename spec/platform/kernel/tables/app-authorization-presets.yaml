@@ -34,5 +34,3 @@ delegation_rules:
     source_rule: P-PROTO-035
   - rule: "子 token resourceSelectors 必须是父 token 子集"
     source_rule: P-PROTO-035
-  - rule: "preset=delegate 默认不允许二次委托"
-    source_rule: P-PROTO-035

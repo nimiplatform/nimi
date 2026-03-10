@@ -4,15 +4,21 @@
 #
 # Direction: Platform protocol error → Runtime reason code
 # Source rules: P-PROTO-060, K-ERR-004
+#
+# Categories:
+#   mapped — same or equivalent code exists in both layers
+#   realm_only — protocol-layer concept with no runtime equivalent
+#   unmapped_v1 — potential mapping deferred to future version
 
 version: 1
 mappings:
-  # App authorization errors map to runtime app-auth reason codes
+  # ── mapped: App mode errors → runtime APP_AUTH family ──
   - platform_error: APP_MODE_DOMAIN_FORBIDDEN
     platform_source: P-PROTO-060
     runtime_reason_code: APP_MODE_DOMAIN_FORBIDDEN
     runtime_code_number: 500
     runtime_source: K-ERR-004
+    category: mapped
     note: Identical token; both layers enforce independently
 
   - platform_error: APP_MODE_SCOPE_FORBIDDEN
@@ -20,31 +26,36 @@ mappings:
     runtime_reason_code: APP_MODE_SCOPE_FORBIDDEN
     runtime_code_number: 501
     runtime_source: K-ERR-004
+    category: mapped
 
   - platform_error: APP_MODE_MANIFEST_INVALID
     platform_source: P-PROTO-060
     runtime_reason_code: APP_MODE_MANIFEST_INVALID
     runtime_code_number: 502
     runtime_source: K-ERR-004
+    category: mapped
 
   - platform_error: APP_SCOPE_FORBIDDEN
     platform_source: P-PROTO-030
     runtime_reason_code: APP_SCOPE_FORBIDDEN
     runtime_code_number: 503
     runtime_source: K-ERR-004
+    category: mapped
 
   - platform_error: APP_SCOPE_REVOKED
     platform_source: P-PROTO-040
     runtime_reason_code: APP_SCOPE_REVOKED
     runtime_code_number: 504
     runtime_source: K-ERR-004
+    category: mapped
 
-  # Auth errors map to runtime auth reason codes
+  # ── mapped: Auth errors → runtime AUTH family ──
   - platform_error: PRINCIPAL_UNAUTHORIZED
     platform_source: P-PROTO-020
     runtime_reason_code: AUTH_TOKEN_INVALID
     runtime_code_number: 300
     runtime_source: K-ERR-004
+    category: mapped
     note: Platform uses generic principal error; runtime specifies token-level reason
 
   - platform_error: EXTERNAL_PRINCIPAL_PROOF_INVALID
@@ -52,19 +63,267 @@ mappings:
     runtime_reason_code: AUTH_UNSUPPORTED_PROOF_TYPE
     runtime_code_number: 302
     runtime_source: K-ERR-004
+    category: mapped
 
-  # Errors that exist only at platform layer (no runtime equivalent)
+  - platform_error: APP_TOKEN_EXPIRED
+    platform_source: P-PROTO-030
+    runtime_reason_code: AUTH_TOKEN_EXPIRED
+    runtime_code_number: 301
+    runtime_source: K-AUTHSVC-013
+    category: mapped
+    note: Platform token expiry maps to runtime auth token expiry
+
+  # ── realm_only: Version negotiation (protocol-layer only) ──
   - platform_error: PROTOCOL_MAJOR_MISMATCH
     platform_source: P-PROTO-001
     runtime_reason_code: null
+    category: realm_only
     note: Version negotiation is protocol-only; runtime does not participate
 
+  - platform_error: PROTOCOL_MINOR_UNSUPPORTED
+    platform_source: P-PROTO-001
+    runtime_reason_code: null
+    category: realm_only
+    note: Version negotiation is protocol-only
+
+  - platform_error: PROTOCOL_VERSION_MISSING
+    platform_source: P-PROTO-001
+    runtime_reason_code: null
+    category: realm_only
+    note: Version negotiation is protocol-only
+
+  # ── realm_only: Capability profile (protocol-layer only) ──
+  - platform_error: CAPABILITY_PROFILE_MISSING
+    platform_source: P-PROTO-002
+    runtime_reason_code: null
+    category: realm_only
+    note: Capability negotiation is protocol-only
+
+  - platform_error: CAPABILITY_MODE_INVALID
+    platform_source: P-PROTO-002
+    runtime_reason_code: null
+    category: realm_only
+    note: Capability negotiation is protocol-only
+
+  - platform_error: PRIMITIVE_NOT_SUPPORTED
+    platform_source: P-PROTO-003
+    runtime_reason_code: null
+    category: realm_only
+    note: Primitive support is Realm-level concept
+
+  - platform_error: DOMAIN_NOT_SUPPORTED
+    platform_source: P-PROTO-010
+    runtime_reason_code: null
+    category: realm_only
+    note: Domain routing is protocol-level concept
+
+  - platform_error: CAPABILITY_CATALOG_MISMATCH
+    platform_source: P-PROTO-002
+    runtime_reason_code: null
+    category: realm_only
+    note: Capability catalog is protocol-only
+
+  - platform_error: REALM_PRIMITIVE_PROVIDER_FORBIDDEN
+    platform_source: P-PROTO-003
+    runtime_reason_code: null
+    category: realm_only
+    note: Provider restriction is Realm-level enforcement
+
+  - platform_error: CAPABILITY_PROFILE_DYNAMIC_PUSH_REJECTED
+    platform_source: P-PROTO-002
+    runtime_reason_code: null
+    category: realm_only
+    note: Static profile enforcement is protocol-only
+
+  # ── realm_only: Protocol envelope (protocol-layer only) ──
+  - platform_error: PROTOCOL_ENVELOPE_INVALID
+    platform_source: P-PROTO-010
+    runtime_reason_code: null
+    category: realm_only
+    note: Envelope validation is protocol-layer
+
+  - platform_error: PROTOCOL_DOMAIN_FIELD_CONFLICT
+    platform_source: P-PROTO-010
+    runtime_reason_code: null
+    category: realm_only
+    note: Domain-field consistency is protocol-layer
+
+  # ── realm_only: Realm primitive errors ──
   - platform_error: ECONOMY_CONSERVATION_FAILED
     platform_source: P-PROTO-102
     runtime_reason_code: null
+    category: realm_only
     note: Economy conservation is Realm-level; runtime has no equivalent
 
   - platform_error: TIMEFLOW_NON_MONOTONIC
     platform_source: P-PROTO-100
     runtime_reason_code: null
+    category: realm_only
     note: Timeflow is Realm primitive; runtime has no equivalent
+
+  - platform_error: SOCIAL_PRECONDITION_FAILED
+    platform_source: P-PROTO-070
+    runtime_reason_code: null
+    category: realm_only
+    note: Social admission is Realm primitive
+
+  - platform_error: TRANSIT_USER_QUOTA_EXCEEDED
+    platform_source: P-PROTO-070
+    runtime_reason_code: null
+    category: realm_only
+    note: Transit quota is Realm-level enforcement
+
+  - platform_error: TRANSIT_WORLD_QUOTA_EXCEEDED
+    platform_source: P-PROTO-070
+    runtime_reason_code: null
+    category: realm_only
+    note: Transit quota is Realm-level enforcement
+
+  - platform_error: TRANSIT_STATE_INVALID
+    platform_source: P-PROTO-103
+    runtime_reason_code: null
+    category: realm_only
+    note: Transit state machine is Realm primitive
+
+  - platform_error: PRESENCE_STATE_INVALID
+    platform_source: P-PROTO-105
+    runtime_reason_code: null
+    category: realm_only
+    note: Presence state machine is Realm primitive
+
+  - platform_error: CONTEXT_TRUNCATION_UNTRACKED
+    platform_source: P-PROTO-104
+    runtime_reason_code: null
+    category: realm_only
+    note: Context truncation tracking is Realm primitive
+
+  - platform_error: PRIMITIVE_CONTRACT_INVALID
+    platform_source: P-PROTO-070
+    runtime_reason_code: null
+    category: realm_only
+    note: Cross-primitive consistency is Realm-level
+
+  # ── realm_only: World-App binding (Realm-level product model) ──
+  - platform_error: WORLD_RENDER_WRITE_FORBIDDEN
+    platform_source: P-PROTO-050
+    runtime_reason_code: null
+    category: realm_only
+    note: World-App binding is Realm product model
+
+  - platform_error: WORLD_EXTENSION_BINDING_REQUIRED
+    platform_source: P-PROTO-050
+    runtime_reason_code: null
+    category: realm_only
+    note: World-App binding is Realm product model
+
+  - platform_error: WORLD_EXTENSION_APP_MISMATCH
+    platform_source: P-PROTO-050
+    runtime_reason_code: null
+    category: realm_only
+    note: World-App binding is Realm product model
+
+  - platform_error: WORLD_EXTENSION_NOT_ACTIVE
+    platform_source: P-PROTO-050
+    runtime_reason_code: null
+    category: realm_only
+    note: World-App binding is Realm product model
+
+  # ── unmapped_v1: App auth errors without runtime equivalent yet ──
+  - platform_error: APP_AUTHORIZATION_DENIED
+    platform_source: P-PROTO-030
+    runtime_reason_code: null
+    category: unmapped_v1
+    note: Authorization decision at app/realm level; no runtime-side code in V1
+
+  - platform_error: APP_GRANT_INVALID
+    platform_source: P-PROTO-030
+    runtime_reason_code: null
+    category: unmapped_v1
+    note: Grant validation at protocol layer; runtime grant codes cover different semantics
+
+  - platform_error: APP_TOKEN_REVOKED
+    platform_source: P-PROTO-030
+    runtime_reason_code: null
+    category: unmapped_v1
+    note: Token revocation at protocol layer; runtime handles via session expiry
+
+  - platform_error: APP_DELEGATION_FORBIDDEN
+    platform_source: P-PROTO-035
+    runtime_reason_code: null
+    category: unmapped_v1
+    note: Delegation policy is protocol-layer; runtime has no delegation enforcement
+
+  - platform_error: APP_DELEGATION_DEPTH_EXCEEDED
+    platform_source: P-PROTO-035
+    runtime_reason_code: null
+    category: unmapped_v1
+    note: Delegation depth is protocol-layer; runtime has no delegation enforcement
+
+  - platform_error: EXTERNAL_PRINCIPAL_PROOF_MISSING
+    platform_source: P-PROTO-020
+    runtime_reason_code: null
+    category: unmapped_v1
+    note: Proof requirement is protocol-layer; distinct from runtime AUTH_TOKEN_INVALID
+
+  - platform_error: APP_MODE_WORLD_RELATION_FORBIDDEN
+    platform_source: P-PROTO-060
+    runtime_reason_code: null
+    category: unmapped_v1
+    note: World relation mode check; runtime mode codes cover domain/scope only
+
+  # ── unmapped_v1: Scope extension errors ──
+  - platform_error: APP_SCOPE_MANIFEST_INVALID
+    platform_source: P-PROTO-021
+    runtime_reason_code: null
+    category: unmapped_v1
+    note: Scope manifest validation at SDK/protocol layer
+
+  - platform_error: APP_SCOPE_NAMESPACE_FORBIDDEN
+    platform_source: P-PROTO-021
+    runtime_reason_code: null
+    category: unmapped_v1
+    note: Namespace enforcement at SDK/protocol layer
+
+  - platform_error: APP_SCOPE_CONFLICT
+    platform_source: P-PROTO-021
+    runtime_reason_code: null
+    category: unmapped_v1
+    note: Scope conflict detection at SDK/protocol layer
+
+  - platform_error: APP_SCOPE_CATALOG_UNPUBLISHED
+    platform_source: P-PROTO-040
+    runtime_reason_code: null
+    category: unmapped_v1
+    note: Catalog publication status at protocol layer
+
+  # ── unmapped_v1: App resource/consent errors ──
+  - platform_error: APP_RESOURCE_SELECTOR_INVALID
+    platform_source: P-PROTO-030
+    runtime_reason_code: null
+    category: unmapped_v1
+    note: Resource selector validation at protocol layer
+
+  - platform_error: APP_RESOURCE_OUT_OF_SCOPE
+    platform_source: P-PROTO-030
+    runtime_reason_code: null
+    category: unmapped_v1
+    note: Resource scope enforcement at protocol layer
+
+  - platform_error: APP_CONSENT_MISSING
+    platform_source: P-PROTO-030
+    runtime_reason_code: null
+    category: unmapped_v1
+    note: Consent requirement at protocol layer
+
+  - platform_error: APP_CONSENT_INVALID
+    platform_source: P-PROTO-030
+    runtime_reason_code: null
+    category: unmapped_v1
+    note: Consent validation at protocol layer
+
+  # ── unmapped_v1: Permission errors ──
+  - platform_error: ACTION_FORBIDDEN
+    platform_source: P-PROTO-020
+    runtime_reason_code: null
+    category: unmapped_v1
+    note: Generic action denial; runtime uses specific reason codes per domain

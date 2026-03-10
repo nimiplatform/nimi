@@ -15,6 +15,16 @@ evidence_catalog:
     command: pnpm --filter @nimiplatform/sdk test
     path: sdk/package.json
     description: SDK unit tests for transport, error projection, and boundary enforcement.
+  sdk_boundary_gate:
+    type: static_gate
+    command: pnpm check:sdk-import-boundary && pnpm check:no-create-nimi-client && pnpm check:no-global-openapi-config
+    path: scripts/check-sdk-import-boundary.mjs
+    description: Import boundary enforcement and legacy entry point prohibition.
+  sdk_realm_legacy_gate:
+    type: static_gate
+    command: pnpm check:sdk-realm-legacy-clean
+    path: scripts/check-sdk-realm-legacy-clean.mjs
+    description: Realm legacy naming prohibition.
 
 rules:
   - rule_id: S-AIP-001
@@ -43,7 +53,7 @@ rules:
     evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
   - rule_id: S-BOUNDARY-004
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_kernel_consistency, sdk_boundary_gate]
   - rule_id: S-ERROR-001
     status: covered
     evidence_refs: [sdk_kernel_consistency, sdk_lint_gate]
@@ -79,13 +89,16 @@ rules:
     evidence_refs: [sdk_kernel_consistency]
   - rule_id: S-ERROR-012
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
   - rule_id: S-ERROR-013
     status: covered
     evidence_refs: [sdk_kernel_consistency]
   - rule_id: S-ERROR-014
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-ERROR-015
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
   - rule_id: S-GATE-001
     status: covered
     evidence_refs: [sdk_kernel_consistency]
@@ -215,6 +228,15 @@ rules:
   - rule_id: S-RUNTIME-068
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-RUNTIME-069
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+  - rule_id: S-RUNTIME-070
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+  - rule_id: S-RUNTIME-071
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
   - rule_id: S-SCOPE-001
     status: covered
     evidence_refs: [sdk_kernel_consistency]
@@ -244,7 +266,7 @@ rules:
     evidence_refs: [sdk_kernel_consistency]
   - rule_id: S-SURFACE-005
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_kernel_consistency, sdk_realm_legacy_gate]
   - rule_id: S-SURFACE-009
     status: covered
     evidence_refs: [sdk_kernel_consistency]
@@ -278,3 +300,12 @@ rules:
   - rule_id: S-TRANSPORT-010
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-TRANSPORT-011
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+  - rule_id: S-TRANSPORT-012
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+  - rule_id: S-TRANSPORT-013
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]

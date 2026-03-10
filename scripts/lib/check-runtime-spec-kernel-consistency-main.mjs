@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import YAML from 'yaml';
 import { createCatalogChecks } from './runtime-spec-catalog-checks.mjs';
+import { checkConfigOverrideTraceability } from './runtime-config-override-traceability.mjs';
 
 const cwd = process.cwd();
 const runtimeRoot = path.join(cwd, 'spec/runtime');
@@ -94,6 +95,7 @@ const kernelFiles = [
   'spec/runtime/kernel/tables/runtime-delivery-gates.yaml',
   'spec/runtime/kernel/tables/runtime-proto-governance-gates.yaml',
   'spec/runtime/kernel/tables/capability-vocabulary-mapping.yaml',
+  'spec/runtime/kernel/tables/config-schema.yaml',
   'spec/runtime/kernel/tables/rule-evidence.yaml',
 ];
 
@@ -174,7 +176,7 @@ checkErrorMappingMatrix();
 checkRpcMigrationMapCoverage();
 checkDomainSection0ImportsCoveredInBody();
 checkConfigPathConsistency();
-checkConfigOverrideTraceability();
+checkConfigOverrideTraceabilityMain();
 checkProbeTargetProviderCoverage();
 checkRpcMethodsSourceTraceability(kernelRuleDefinitions);
 checkProviderCatalogSourceTraceability(kernelRuleDefinitions);
@@ -947,49 +949,14 @@ function checkConfigPathConsistency() {
   }
 }
 
-function checkConfigOverrideTraceability() {
-  // For every "可通过 K-DAEMON-009 配置覆盖" claim, verify the config key exists in daemon-lifecycle.md
-  const daemonContent = read('spec/runtime/kernel/daemon-lifecycle.md');
-
-  // Extract config keys from the K-DAEMON-009 config table
-  const configKeyPattern = /\|\s*`([a-zA-Z]+)`\s*\|/g;
-  const configKeys = new Set();
-  // Find the config table section (between "关键配置项" and "未知字段")
-  const tableStart = daemonContent.indexOf('Phase 1 配置文件 schema');
-  const tableEnd = daemonContent.indexOf('未知字段在解析时忽略');
-  if (tableStart === -1 || tableEnd === -1) {
-    fail('K-DAEMON-009 config table boundaries not found in daemon-lifecycle.md');
-    return;
-  }
-  const tableSection = daemonContent.slice(tableStart, tableEnd);
-  for (const match of tableSection.matchAll(configKeyPattern)) {
-    configKeys.add(match[1]);
-  }
-
-  // Scan all kernel markdown for override claims
-  const overridePattern = /可通过\s*`?K-DAEMON-009`?\s*配置覆盖/g;
-  for (const rel of runtimeMarkdownFiles) {
-    const content = read(rel);
-    const lines = content.split('\n');
-    for (let i = 0; i < lines.length; i++) {
-      if (!overridePattern.test(lines[i])) continue;
-      overridePattern.lastIndex = 0;
-      // Check that the surrounding context references a config key that exists
-      const contextWindow = lines.slice(Math.max(0, i - 2), Math.min(lines.length, i + 3)).join('\n');
-      // Extract any candidate config key names from nearby backtick references
-      const nearbyKeys = [...contextWindow.matchAll(/`([a-zA-Z][a-zA-Z0-9_]*)`/g)].map((m) => m[1]);
-      // At minimum, log a trace — the key should be findable in the config table
-      // We check that at least one nearby key exists in the config table, or that the rule ID context
-      // matches a known config key via the "来源" column
-      const ruleIdMatch = contextWindow.match(/K-[A-Z]+-\d{3}[a-z]?/);
-      if (!ruleIdMatch) continue;
-      const ruleId = ruleIdMatch[0];
-      // Check if this rule ID appears as a source in the config table
-      if (!tableSection.includes(ruleId)) {
-        fail(`${rel}:${i + 1} claims K-DAEMON-009 config override for ${ruleId}, but ${ruleId} is not referenced as source in K-DAEMON-009 config table`);
-      }
-    }
-  }
+function checkConfigOverrideTraceabilityMain() {
+  checkConfigOverrideTraceability({
+    configSchemaPath: 'spec/runtime/kernel/tables/config-schema.yaml',
+    fail,
+    read,
+    readYaml,
+    runtimeMarkdownFiles,
+  });
 }
 
 function checkProbeTargetProviderCoverage() {

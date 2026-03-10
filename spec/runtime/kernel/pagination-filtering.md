@@ -67,6 +67,6 @@
 | `ListUsageStats` | RuntimeAuditService | 是（K-PAGE-005） | bucket_start DESC | app_id, subject_user_id, caller_kind, caller_id, capability, model_id | K-AUDIT-008 |
 | `ListAIProviderHealth` | RuntimeAuditService | 否（全量返回） | provider_name ASC | — | K-AUDIT-013 |
 | `ListModels` | RuntimeModelService | 是（K-PAGE-005） | model_id ASC | status_filter | K-MODEL-004 |
-| `SearchCatalogModels` | RuntimeLocalService | 是（K-PAGE-005） | relevance DESC | query（必填）, category_filter, engine_filter | K-LOCAL-030 |
+| `SearchCatalogModels` | RuntimeLocalService | 是（K-PAGE-005） | verified DESC, title ASC（K-LOCAL-021） | query（必填）, category_filter, engine_filter | K-LOCAL-030 |
 
 **注意**：`ListAIProviderHealth` 不使用分页，因 provider 总数通常 < 20，全量返回更适合 UI 消费。

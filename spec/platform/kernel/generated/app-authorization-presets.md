@@ -18,4 +18,3 @@
 - 父 token 撤销时子 token 级联失效 (`P-PROTO-035`)
 - preset=delegate 默认 maxDelegationDepth=1 (`P-PROTO-035`)
 - 子 token resourceSelectors 必须是父 token 子集 (`P-PROTO-035`)
-- preset=delegate 默认不允许二次委托 (`P-PROTO-035`)

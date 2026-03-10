@@ -80,6 +80,11 @@ PR 与 release 的门禁策略保持同级，不允许 release 专属降级；SD
 
 spec kernel consistency 与 docs drift 必须同时通过。
 
+CI 一致性守护额外检查：
+
+- SDK spec 与 Runtime spec 的交叉引用一致性：确认所有 `S-*` 规则引用的 `K-*` 规则 ID 存在于 `spec/runtime` 中。
+- Runtime SDK 职责覆盖：确认 `spec/runtime` 中明确指派 SDK 职责的规则（文本含 "SDK" 关键词）在 `spec/sdk` 中有对应投影。
+
 执行命令：
 
 - `pnpm check:sdk-spec-kernel-consistency`

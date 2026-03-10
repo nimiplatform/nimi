@@ -1,3 +1,4 @@
+version: 1
 gates:
   - gate: G0
     name: ssot_freeze

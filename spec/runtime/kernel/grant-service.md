@@ -32,7 +32,7 @@
 
 - `IssueDelegatedAccessToken` 只能在父 token 允许委托时成功。
 - 子 token 的 scope/resource selector 必须是父 token 能力的子集。
-- `max_delegation_depth` 超限必须拒绝。默认值为 `3`（可通过 `K-DAEMON-009` 配置覆盖）。
+- `max_delegation_depth` 超限必须拒绝。默认值为 `3`（可通过 `K-DAEMON-009` 的 `maxDelegationDepth` 配置覆盖）。
 
 ## K-GRANT-006 Revoke 与链路可见性
 

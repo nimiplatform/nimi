@@ -24,6 +24,7 @@ import {
   InstallLocalModelResponse,
   ListLocalModelsResponse,
 } from '../../src/runtime/generated/runtime/v1/local_runtime';
+import { ConnectorStatus } from '../../src/runtime/generated/runtime/v1/connector';
 import { RuntimeMethodIds } from '../../src/runtime/method-ids';
 import {
   APP_ID,
@@ -265,6 +266,64 @@ test('createRuntimeClient validates appAuth scopeCatalogVersion and consent evid
     assert.equal(
       asNimiError(missingDecisionAt, { source: 'sdk' }).reasonCode,
       'SDK_RUNTIME_APP_AUTH_DECISION_AT_REQUIRED',
+    );
+
+    assert.equal(invokeCount, 0);
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
+test('createRuntimeClient validates connector writes before sending rpc', async () => {
+  let invokeCount = 0;
+  installNodeGrpcBridge({
+    invokeUnary: async () => {
+      invokeCount += 1;
+      throw new Error('connector validation should fail before rpc');
+    },
+    openStream: async () => {
+      return {
+        async *[Symbol.asyncIterator]() {
+          yield new Uint8Array(0);
+        },
+      };
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const client = createRuntimeClient(runtimeConfig);
+
+    let missingApiKey: unknown = null;
+    try {
+      await client.connector.createConnector({
+        provider: 'openai',
+        endpoint: '',
+        label: 'remote-openai',
+        apiKey: '',
+      });
+    } catch (error) {
+      missingApiKey = error;
+    }
+    assert.ok(missingApiKey);
+    assert.equal(
+      asNimiError(missingApiKey, { source: 'sdk' }).reasonCode,
+      'SDK_RUNTIME_CONNECTOR_API_KEY_REQUIRED',
+    );
+
+    let emptyUpdate: unknown = null;
+    try {
+      await client.connector.updateConnector({
+        connectorId: 'connector-1',
+        status: ConnectorStatus.UNSPECIFIED,
+      });
+    } catch (error) {
+      emptyUpdate = error;
+    }
+    assert.ok(emptyUpdate);
+    assert.equal(
+      asNimiError(emptyUpdate, { source: 'sdk' }).reasonCode,
+      'SDK_RUNTIME_CONNECTOR_UPDATE_EMPTY',
     );
 
     assert.equal(invokeCount, 0);

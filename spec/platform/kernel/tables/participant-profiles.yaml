@@ -18,6 +18,11 @@ profiles:
         mode: PROVIDER
     source_rule: P-PROTO-002
 
+  # SDK (P-ARCH-020) 是 bridge/proxy 而非协议参与方。
+  # SDK 不持有独立 capabilityProfileRef，而是作为 Realm ↔ Runtime 之间的
+  # 统一入口桥接层，透传协议请求并封装授权流程。
+  # SDK 不在 participant profiles 中注册，因为它不参与协议能力协商。
+
   - participant_id: runtime_local
     profile_ref: "runtime.access-profile.v1.0.0"
     role: "运行时访问层"

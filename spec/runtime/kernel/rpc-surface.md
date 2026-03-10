@@ -140,7 +140,7 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 
 `CreateConnector` 必须满足：
 
-- `kind` 必须为 `REMOTE_MANAGED`
+- 请求体不暴露 `kind`；`CreateConnector` 成功创建的结果 `Connector.kind` 固定为 `REMOTE_MANAGED`
 - `api_key` 必填且非空
 - `endpoint` 为空时按 provider 默认值注入
 - `label` 为空时使用默认 label

@@ -30,7 +30,7 @@ Daemon 管理命令集：`runtime_bridge_status`、`runtime_bridge_start`、`run
 | Runtime 状态 | UI 指示器 | 可用操作 | 超时预期 |
 |---|---|---|---|
 | `STOPPED` | 灰色/离线标记 | start | — |
-| `STARTING` | 加载动画/启动中 | — (等待) | 30s 启动超时 |
+| `STARTING` | 加载动画/启动中 | — (等待) | 120s 启动超时（对齐 K-LENG-004 SUPERVISED 最差情形） |
 | `READY` | 绿色/就绪标记 | stop, restart | — |
 | `DEGRADED` | 黄色/降级警告 | stop, restart | —（Phase 1 通过 `running=true` 统一覆盖 READY/DEGRADED，DEGRADED 独立检测需 daemon 暴露结构化健康状态，Phase 2 增强） |
 | `STOPPING` | 加载动画/停止中 | — (等待) | 10s 停机超时（K-DAEMON-003） |
@@ -132,6 +132,7 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
 - `runtime_bridge_unary` / `runtime_bridge_stream_open` payload 必须支持顶层可选字段 `authorization`。
 - 该字段由 SDK Runtime transport 自动注入，不从 `metadata.extra` 透传。
 - Renderer 业务层不得手工构造此字段。
+- 注：此为 Tauri IPC transport 对 SDK `S-TRANSPORT-010`（传输内部实现细节）的等价实现。`authorization` 字段虽在 IPC payload 中作为顶层字段对 renderer 架构可见，但其语义与 S-TRANSPORT-010 一致——由 transport 层自动管理，业务层不得 bypass。
 
 **IPC 桥路径**（Tauri backend → daemon）：
 - 平台层 Runtime 管理：daemon 生命周期（D-IPC-002: start/stop/restart/status）

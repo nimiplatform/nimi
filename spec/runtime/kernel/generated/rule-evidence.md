@@ -104,6 +104,7 @@
 | `K-CFG-014` | `covered` | `runtime_kernel_consistency` |
 | `K-CFG-015` | `covered` | `runtime_kernel_consistency` |
 | `K-CFG-016` | `covered` | `runtime_kernel_consistency` |
+| `K-CFG-017` | `covered` | `runtime_kernel_consistency` |
 | `K-CONN-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
 | `K-CONN-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
 | `K-CONN-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |

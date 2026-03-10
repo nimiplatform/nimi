@@ -4,7 +4,7 @@
 > Source: `spec/runtime/kernel/tables/connector-rpc-field-rules.yaml`
 | RPC | Field | Requirement | Source |
 |---|---|---|---|
-| `CreateConnector` | `kind` | `must_be_REMOTE_MANAGED` | `K-RPC-007` |
+| `CreateConnector` | `result.kind` | `server_sets_REMOTE_MANAGED` | `K-RPC-007` |
 | `CreateConnector` | `api_key` | `required_non_empty` | `K-RPC-007` |
 | `CreateConnector` | `endpoint` | `empty_uses_provider_default` | `K-RPC-007` |
 | `CreateConnector` | `label` | `empty_uses_default_label` | `K-RPC-007` |

@@ -16,7 +16,7 @@ const specs = [
   { input: 'runtime-method-groups.yaml', output: 'runtime-method-groups.md', render: renderMethodGroups },
   { input: 'import-boundaries.yaml', output: 'import-boundaries.md', render: renderImportBoundaries },
   { input: 'sdk-error-codes.yaml', output: 'sdk-error-codes.md', render: renderSdkErrorCodes },
-  { input: 'sdk-runtime-projection.yaml', output: 'sdk-runtime-projection.md', render: renderSdkRuntimeProjection },
+  { input: 'sdk-runtime-behavioral-checks.yaml', output: 'sdk-runtime-behavioral-checks.md', render: renderSdkRuntimeProjection },
   { input: 'sdk-realm-realtime-gates.yaml', output: 'sdk-realm-realtime-gates.md', render: renderSdkRealmRealtimeGates },
   { input: 'sdk-testing-gates.yaml', output: 'sdk-testing-gates.md', render: renderSdkTestingGates },
   { input: 'rule-evidence.yaml', output: 'rule-evidence.md', render: renderRuleEvidence },

@@ -5,7 +5,7 @@
 | Gate | Requirement | Source Rule |
 |---|---|---|
 | `codegen_e2e` | description to runnable mod path passes | `D-CODEGEN-060` |
-| `governance_trace` | full governance chain trace exists | `D-CODEGEN-061` |
-| `capability_tier` | t2 reject and t1 consent enforced | `D-CODEGEN-062` |
-| `static_scan` | deny patterns block install | `D-CODEGEN-064` |
-| `rollback` | failed install does not leave enabled state | `D-CODEGEN-075` |
+| `governance_trace` | full governance chain trace exists | `D-CODEGEN-060` |
+| `capability_tier` | t2 reject and t1 consent enforced | `D-CODEGEN-060` |
+| `static_scan` | deny patterns block install | `D-CODEGEN-060` |
+| `rollback` | failed install does not leave enabled state | `D-CODEGEN-070` |

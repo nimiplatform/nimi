@@ -13,7 +13,7 @@ imports:
     source_rule: D-CODEGEN-030
   - path: '@nimiplatform/sdk/mod/host'
     policy: deny
-    source_rule: D-CODEGEN-031
+    source_rule: D-CODEGEN-030
   - path: '@nimiplatform/sdk/mod/internal/*'
     policy: deny
-    source_rule: D-CODEGEN-031
+    source_rule: D-CODEGEN-030

@@ -1,8 +1,8 @@
 version: 1
 rules:
   - rpc: CreateConnector
-    field: kind
-    requirement: must_be_REMOTE_MANAGED
+    field: result.kind
+    requirement: server_sets_REMOTE_MANAGED
     source_rule: K-RPC-007
   - rpc: CreateConnector
     field: api_key

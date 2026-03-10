@@ -13,6 +13,7 @@
 | `DOMAIN_NOT_SUPPORTED` | `capability_profile` | `P-PROTO-010` |
 | `CAPABILITY_CATALOG_MISMATCH` | `capability_profile` | `P-PROTO-002` |
 | `REALM_PRIMITIVE_PROVIDER_FORBIDDEN` | `capability_profile` | `P-PROTO-003` |
+| `CAPABILITY_PROFILE_DYNAMIC_PUSH_REJECTED` | `capability_profile` | `P-PROTO-002` |
 | `PROTOCOL_ENVELOPE_INVALID` | `protocol_envelope` | `P-PROTO-010` |
 | `PROTOCOL_DOMAIN_FIELD_CONFLICT` | `protocol_envelope` | `P-PROTO-010` |
 | `APP_AUTHORIZATION_DENIED` | `app_auth` | `P-PROTO-030` |

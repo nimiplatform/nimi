@@ -10,6 +10,11 @@ import {
   PolicyMode,
   type AuthorizeExternalPrincipalRequest,
 } from '../generated/runtime/v1/grant.js';
+import {
+  ConnectorStatus,
+  type CreateConnectorRequest,
+  type UpdateConnectorRequest,
+} from '../generated/runtime/v1/connector.js';
 import { ExternalPrincipalType } from '../generated/runtime/v1/common.js';
 import type {
   RuntimeCallOptions,
@@ -42,6 +47,10 @@ export function ensureAppId(appId: string): string {
 
 export function normalizeText(value: unknown): string {
   return String(value || '').trim();
+}
+
+function hasOwnField(value: object, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
 }
 
 function throwValidationError(reasonCode: string, message: string, actionHint: string): never {
@@ -261,6 +270,37 @@ function validateAuthorizeExternalPrincipalRequest(
   return request;
 }
 
+function validateCreateConnectorRequest(
+  request: CreateConnectorRequest,
+): CreateConnectorRequest {
+  requireNonEmptyField(
+    request.apiKey,
+    'apiKey',
+    'SDK_RUNTIME_CONNECTOR_API_KEY_REQUIRED',
+    'set_connector_api_key',
+  );
+  return request;
+}
+
+function validateUpdateConnectorRequest(
+  request: UpdateConnectorRequest,
+): UpdateConnectorRequest {
+  const hasMutableField = request.status !== ConnectorStatus.UNSPECIFIED
+    || hasOwnField(request, 'label')
+    || hasOwnField(request, 'endpoint')
+    || hasOwnField(request, 'apiKey');
+
+  if (!hasMutableField) {
+    throwValidationError(
+      'SDK_RUNTIME_CONNECTOR_UPDATE_EMPTY',
+      'updateConnector requires at least one mutable field',
+      'set_connector_update_fields',
+    );
+  }
+
+  return request;
+}
+
 export function normalizeRequestForMethod<Request>(
   methodId: string,
   request: Request,
@@ -280,6 +320,14 @@ export function normalizeRequestForMethod<Request>(
     case RuntimeMethodIds.appAuth.authorizeExternalPrincipal:
       return validateAuthorizeExternalPrincipalRequest(
         request as unknown as AuthorizeExternalPrincipalRequest,
+      ) as Request;
+    case RuntimeMethodIds.connector.createConnector:
+      return validateCreateConnectorRequest(
+        request as unknown as CreateConnectorRequest,
+      ) as Request;
+    case RuntimeMethodIds.connector.updateConnector:
+      return validateUpdateConnectorRequest(
+        request as unknown as UpdateConnectorRequest,
       ) as Request;
     default:
       return request;

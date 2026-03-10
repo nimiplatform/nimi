@@ -29,28 +29,76 @@
 
 ## Required Audit Fields
 
+### Base (all events)
+
 - `participantId`
-- `capabilityProfileRef`
-- `scopeCatalogVersion`
-- `issuedScopeCatalogVersion`
-- `domain`
-- `worldId`
-- `appId`
-- `extensionAppId`
-- `bindingStatus`
-- `principalId`
-- `principalType`
-- `primitive`
-- `capabilityMode`
-- `tokenId`
-- `parentTokenId`
-- `subjectUserId`
-- `consentId`
-- `consentVersion`
-- `policyPreset`
-- `policyVersion`
-- `resourceSelectorHash`
-- `protocolVersion`
-- `reasonCode`
 - `traceId`
 - `timestamp`
+- `domain`
+- `reasonCode`
+- `protocolVersion`
+
+### Group Context Fields
+
+**`protocol`:**
+
+- `capabilityProfileRef`
+- `capabilityMode`
+
+**`primitive`:**
+
+- `worldId`
+- `primitive`
+
+**`app_auth`:**
+
+- `appId`
+- `principalId`
+- `principalType`
+- `tokenId`
+- `policyPreset`
+- `policyVersion`
+
+**`scope`:**
+
+- `appId`
+- `scopeCatalogVersion`
+
+**`app_mode`:**
+
+- `appId`
+- `capabilityMode`
+
+**`app_resource`:**
+
+- `appId`
+- `principalId`
+- `principalType`
+- `subjectUserId`
+- `resourceSelectorHash`
+
+**`world_app_binding`:**
+
+- `worldId`
+- `extensionAppId`
+- `bindingStatus`
+
+### Event-Specific Fields
+
+**`app_token_delegated`:**
+
+- `parentTokenId`
+
+**`app_token_issued`:**
+
+- `issuedScopeCatalogVersion`
+
+**`app_authorization_granted`:**
+
+- `consentId`
+- `consentVersion`
+
+**`app_consent_validation_failed`:**
+
+- `consentId`
+- `consentVersion`

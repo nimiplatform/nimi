@@ -21,7 +21,7 @@ const kernelFiles = [
   'spec/sdk/kernel/tables/runtime-method-groups.yaml',
   'spec/sdk/kernel/tables/import-boundaries.yaml',
   'spec/sdk/kernel/tables/sdk-error-codes.yaml',
-  'spec/sdk/kernel/tables/sdk-runtime-projection.yaml',
+  'spec/sdk/kernel/tables/sdk-runtime-behavioral-checks.yaml',
   'spec/sdk/kernel/tables/sdk-realm-realtime-gates.yaml',
   'spec/sdk/kernel/tables/sdk-testing-gates.yaml',
   'spec/sdk/kernel/tables/rule-evidence.yaml',
@@ -79,6 +79,9 @@ for (const rel of ['spec/sdk/scope.md', 'spec/sdk/mod.md']) {
 }
 
 const allSdkSpecs = walk(path.join(cwd, 'spec/sdk')).filter((p) => p.endsWith('.md') || p.endsWith('.yaml'));
+const sdkRuntimeSourceFiles = walk(path.join(cwd, 'sdk/src/runtime'))
+  .filter((p) => p.endsWith('.ts'))
+  .filter((p) => !p.includes(`${path.sep}generated${path.sep}`));
 for (const abs of allSdkSpecs) {
   const rel = path.relative(cwd, abs);
   const txt = fs.readFileSync(abs, 'utf8');
@@ -221,6 +224,7 @@ const hasRealmErrorFamily = (Array.isArray(sdkErrorCodes?.codes) ? sdkErrorCodes
 if (!hasRealmErrorFamily) {
   fail('sdk-error-codes must include at least one SDK_REALM family code');
 }
+checkSdkLocalReasonCodesRegistered(sdkErrorCodes);
 
 // ── Check: testing-gates provider names vs provider-catalog alignment ──
 checkSdkTestingGateCoverage(sdkKernelRules);
@@ -367,6 +371,35 @@ function checkRuleEvidenceTraceability(sdkKernelRules) {
   const missing = [...sdkKernelRules].filter((ruleId) => !seen.has(ruleId));
   if (missing.length > 0) {
     fail(`${evidencePath} missing evidence rows for rules: ${missing.join(', ')}`);
+  }
+}
+
+function checkSdkLocalReasonCodesRegistered(sdkErrorCodesTable) {
+  const registeredCodes = new Set(
+    (Array.isArray(sdkErrorCodesTable?.codes) ? sdkErrorCodesTable.codes : [])
+      .map((item) => String(item?.name || '').trim())
+      .filter(Boolean),
+  );
+
+  const discoveredCodes = new Map();
+  const localReasonCodePattern = /['"`](SDK_[A-Z0-9_]+)['"`]/g;
+
+  for (const abs of sdkRuntimeSourceFiles) {
+    const rel = path.relative(cwd, abs);
+    const content = fs.readFileSync(abs, 'utf8');
+    for (const match of content.matchAll(localReasonCodePattern)) {
+      const code = String(match[1] || '').trim();
+      if (!code) continue;
+      const refs = discoveredCodes.get(code) || new Set();
+      refs.add(rel);
+      discoveredCodes.set(code, refs);
+    }
+  }
+
+  for (const [code, refs] of discoveredCodes.entries()) {
+    if (!registeredCodes.has(code)) {
+      fail(`sdk-error-codes missing SDK local reason code used in runtime source: ${code} (${[...refs].sort().join(', ')})`);
+    }
   }
 }
 

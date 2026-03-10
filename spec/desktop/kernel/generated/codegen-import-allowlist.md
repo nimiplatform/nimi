@@ -8,5 +8,5 @@
 | `@nimiplatform/sdk/mod/runtime-route` | `allow` | `D-CODEGEN-030` |
 | `@nimiplatform/sdk/mod/hook` | `allow` | `D-CODEGEN-030` |
 | `@nimiplatform/sdk/mod/types` | `allow` | `D-CODEGEN-030` |
-| `@nimiplatform/sdk/mod/host` | `deny` | `D-CODEGEN-031` |
-| `@nimiplatform/sdk/mod/internal/*` | `deny` | `D-CODEGEN-031` |
+| `@nimiplatform/sdk/mod/host` | `deny` | `D-CODEGEN-030` |
+| `@nimiplatform/sdk/mod/internal/*` | `deny` | `D-CODEGEN-030` |

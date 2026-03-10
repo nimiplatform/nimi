@@ -4,13 +4,13 @@ gates:
     source_rule: D-CODEGEN-060
   - gate: governance_trace
     requirement: full governance chain trace exists
-    source_rule: D-CODEGEN-061
+    source_rule: D-CODEGEN-060
   - gate: capability_tier
     requirement: t2 reject and t1 consent enforced
-    source_rule: D-CODEGEN-062
+    source_rule: D-CODEGEN-060
   - gate: static_scan
     requirement: deny patterns block install
-    source_rule: D-CODEGEN-064
+    source_rule: D-CODEGEN-060
   - gate: rollback
     requirement: failed install does not leave enabled state
-    source_rule: D-CODEGEN-075
+    source_rule: D-CODEGEN-070

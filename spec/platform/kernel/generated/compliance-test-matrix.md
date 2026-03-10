@@ -59,3 +59,24 @@
 | Transit | required | required | required | required | `P-PROTO-103` |
 | Context | required | required | required | required | `P-PROTO-104` |
 | Presence | required | required | required | required | `P-PROTO-105` |
+
+## L3_almi: ALMI 域 (Hook Action + Principal + 执行协议)
+
+| Item | Positive | Rejection | Regression | Source |
+|---|---|---|---|---|
+| Hook Action Fabric 注册与分发 | required | required | required | `P-ALMI-002` |
+| Principal 最小权限模型 | required | required | required | `P-ALMI-003` |
+| ExternalAgent 凭证生命周期 | required | required | required | `P-ALMI-004` |
+| Action Registry 一致性 | required | required | required | `P-ALMI-010` |
+| 执行协议状态机 | required | required | required | `P-ALMI-011` |
+| 性能红线 (latency/throughput) | required | required | required | `P-ALMI-030` |
+| AI Runtime 路由约束 (local|cloud) | required | required | required | `P-ALMI-020` |
+
+## L3_arch: 架构域 (层边界 + 隔离 + 审计)
+
+| Item | Positive | Rejection | Regression | Source |
+|---|---|---|---|---|
+| 六层架构边界 | required | required | required | `P-ARCH-001` |
+| SDK 桥接隔离 | required | required | required | `P-ARCH-020` |
+| Credential Plane 双平面隔离 | required | required | required | `P-ARCH-011` |
+| 审计双层模型 | required | required | required | `P-ARCH-030` |

@@ -43,7 +43,9 @@ Runtime 和 Realm 均不可达时的行为规则：
 
 断联后的重连行为：
 
-- 使用指数退避重连（参考 D-NET-006/007），初始间隔 1s，最大间隔 30s。
+- 使用指数退避重连，初始间隔 1s，最大间隔 30s。
+  - **适用范围**: Realm REST 断联重连 + Socket.IO 断联重连。
+  - **与 D-NET-002 的区别**: D-NET-002 定义单次 HTTP 请求重试退避（120ms/900ms），本规则定义连接级别恢复退避（1s/30s），两者独立。
 - Realm 重连成功后立即触发 outbox flush（D-DSYNC-003）。
 - 冲突解决策略：Last-Write-Wins（LWW）based on server timestamp。
 - outbox 消息发送失败（非网络原因）时标记为 `failed`，不重试，向用户展示失败原因。
@@ -56,6 +58,11 @@ Runtime 和 Realm 均不可达时的行为规则：
 - 模型列表：已安装模型的 manifest 缓存。
 - 缓存使用 IndexedDB 存储，受 D-SEC-003 安全约束。
 - 缓存无 TTL 自动过期；在线时通过 Realm 增量同步更新。
+
+**存储拓扑**:
+- **Zustand store** (in-memory): 运行时活跃状态，HMR 通过 globalThis 保活。
+- **Tauri IPC / DataSync 热状态** (primary persistence): 应用级持久化，支撑 D-AUTH-002、D-STATE-005。
+- **IndexedDB** (offline cache): 离线降级期间的只读缓存层，仅用于 D-OFFLINE-005 定义的缓存数据集。在线时由 DataSync 增量同步更新，不作为数据修改通道。
 
 ## Fact Sources
 

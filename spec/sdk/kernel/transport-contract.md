@@ -23,6 +23,8 @@ Runtime SDK 必须遵循 metadata/body 分离：
 - provider endpoint/api_key 在 transport metadata
 - Runtime 鉴权 token 不属于业务 metadata；必须通过 transport auth 通道注入到 gRPC metadata `authorization`
 
+幂等键透传：SDK 支持通过 `options.idempotencyKey` 传递 `x-nimi-idempotency-key` metadata（`K-DAEMON-006`）。缺省时不设置该 header，runtime 不做去重。
+
 ## S-TRANSPORT-003 流式行为边界
 
 - SDK 不得隐式重连续流。
@@ -108,3 +110,25 @@ Mode D 投影规则按 Phase 分层：
 - 未解析到 token 时，SDK 发送匿名请求；匿名是否被接受由 runtime 侧按 `K-AUTHN-*` / `K-KEYSRC-*` / `K-LOCAL-*` 判定。
 - anonymous 行为仅在 `Authorization` 头缺失时成立。若 SDK 注入或上游显式提供了非法 Bearer，runtime 必须按 `K-AUTHN-001` / `K-AUTHN-007` 返回 `UNAUTHENTICATED + AUTH_TOKEN_INVALID`，不得降级为 anonymous。
 - 上层应用不得通过 `metadata.extra` 手工拼接 `authorization`；该字段属于 transport 内部实现细节。
+
+## S-TRANSPORT-011 背压投影
+
+SDK 在流消费速度不足时必须将背压关闭转化为可判定的错误（`K-STREAM-011`）：
+
+- server 端因慢消费者触发的 `RESOURCE_EXHAUSTED` 必须投影为 `NimiError`。
+- SDK 不得静默累积无限缓冲——当 transport 层反馈背压信号时，SDK 必须向消费者传递压力或中止流。
+
+## S-TRANSPORT-012 慢消费者关闭投影
+
+慢消费者触发的流关闭必须投影为稳定错误形态（`K-STREAM-012`）：
+
+- SDK 不得将背压关闭误报为正常完成（`done=true` + 正常 reason）。
+- 关闭原因必须以 `NimiError` 形态投影，`reasonCode` 反映背压根因。
+
+## S-TRANSPORT-013 Resume/Retry 边界
+
+按流类型显式分类自动重试策略（`K-STREAM-013`）：
+
+- **订阅型流（Mode D）**：恢复由调用方显式主导。SDK 可以发出 `runtime.disconnected` 等恢复信号，但不得在后台自动重建订阅或重放消费者状态。
+- **执行型流（Mode A）**：由调用方决策是否重试，SDK 不得自动重放。
+- SDK 自动重试仅限 unary/短生命周期读取调用；流式订阅与执行型流都必须由上层显式重建或重放。

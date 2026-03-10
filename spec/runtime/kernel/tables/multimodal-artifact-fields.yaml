@@ -1,3 +1,4 @@
+version: 1
 fields:
   - field: uri
     required: true

@@ -1,0 +1,63 @@
+projections:
+  # --- runtime behavioral checks ---
+  - area: construction
+    rule: fail_close_non_node
+    requirement: non-Node env without explicit transport must fail-close
+    source_rule: S-RUNTIME-010
+  - area: connection
+    rule: ready_fail_close
+    requirement: runtime ready must throw on probe failure
+    source_rule: S-RUNTIME-015
+  - area: events
+    rule: disconnected_event
+    requirement: emit runtime.disconnected on channel interruption
+    source_rule: S-RUNTIME-028
+  - area: retry
+    rule: grpc_backoff
+    requirement: enforce retry baseline for unary calls
+    source_rule: S-RUNTIME-045
+  - area: phase
+    rule: blocked_deferred_split
+    requirement: blocked and deferred states are distinguishable
+    source_rule: S-RUNTIME-050
+  - area: auth
+    rule: auth_subject_separation
+    requirement: accessToken and subjectContext must be independent config fields
+    source_rule: S-RUNTIME-067
+  - area: auth
+    rule: subject_context_naming
+    requirement: public API uses subjectContext, not authContext
+    source_rule: S-RUNTIME-068
+  - area: retry
+    rule: concurrency_resource_exhausted
+    requirement: RESOURCE_EXHAUSTED from scheduler triggers retry per S-RUNTIME-045
+    source_rule: S-RUNTIME-069
+  - area: events
+    rule: session_recovery_protocol
+    requirement: "on disconnected: reconnect + OpenSession unconditionally"
+    source_rule: S-RUNTIME-070
+  - area: construction
+    rule: connector_field_prevalidation
+    requirement: optional client-side CreateConnector api_key and UpdateConnector mutable-field checks
+    source_rule: S-RUNTIME-071
+  # --- transport behavioral checks ---
+  - area: transport
+    rule: stream_finish_projection
+    requirement: done=true reason_code and usage must be projected to consumer
+    source_rule: S-TRANSPORT-007
+  - area: transport
+    rule: bearer_injection_routing
+    requirement: bearer only on cloud consume + local lifecycle write; no bearer on anonymous local consume + local readonly
+    source_rule: S-TRANSPORT-010
+  - area: transport
+    rule: backpressure_error_projection
+    requirement: server RESOURCE_EXHAUSTED from slow consumer → NimiError
+    source_rule: S-TRANSPORT-011
+  - area: transport
+    rule: slow_consumer_close_projection
+    requirement: backpressure close must not masquerade as normal completion
+    source_rule: S-TRANSPORT-012
+  - area: transport
+    rule: subscription_recovery_boundary
+    requirement: mode-d subscriptions require caller-driven reconnect and explicit resubscribe
+    source_rule: S-TRANSPORT-013

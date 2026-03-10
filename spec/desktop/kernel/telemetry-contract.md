@@ -70,6 +70,25 @@ Renderer 日志通过 IPC 转发到 Tauri backend：
 - 日志级别：retrying=warn、recovered=info、exhausted=error。
 - 来源：`request-with-retry.ts` 中的 `requestWithRetry` 函数。
 
+## D-TEL-008 — 全局 trace_id 传播
+
+所有 bridge 错误对象和日志条目在 upstream 提供 `trace_id` 时必须保留并传播，不限于 LLM 路径。
+
+**覆盖范围**：
+
+- **LLM 路径**：D-LLM-008 已覆盖（text/image/video/stt/embedding/speech）。
+- **DataSync 错误**：D-DSYNC-000 `emitDataSyncError` 产生的错误对象，若 upstream 响应包含 `trace_id`，必须保留。
+- **Auth 错误**：D-AUTH-006/007 token 刷新失败时，若 upstream 返回 `trace_id`，错误对象必须携带。
+- **Mod 治理错误**：D-MOD-003 capability 检查失败、D-MOD-009 审计写入失败时，若上游提供 `trace_id`，必须传播到错误日志。
+- **Bridge invoke 错误**：D-ERR-011 已要求 `traceId` 为必输出字段，本规则确认此要求覆盖所有 bridge 路径。
+
+**传播规则**：
+
+- upstream 提供 `trace_id` 时：错误对象 `traceId` 字段 = upstream 值。
+- upstream 未提供 `trace_id` 时：不强制生成（仅 D-LLM-008 规定的 LLM 路径需生成 fallback trace）。
+
+**跨层引用**：K-AUDIT-019（trace_id 全层级保留）、K-AUDIT-020（trace_id 传播要求）。
+
 ## Fact Sources
 
 - `tables/log-areas.yaml` — 日志区域枚举

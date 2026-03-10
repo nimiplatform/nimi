@@ -29,6 +29,9 @@ codes:
   - name: REALM_PRIMITIVE_PROVIDER_FORBIDDEN
     group: capability_profile
     source_rule: P-PROTO-003
+  - name: CAPABILITY_PROFILE_DYNAMIC_PUSH_REJECTED
+    group: capability_profile
+    source_rule: P-PROTO-002
   # Protocol envelope errors
   - name: PROTOCOL_ENVELOPE_INVALID
     group: protocol_envelope

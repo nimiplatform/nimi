@@ -16,11 +16,11 @@
 
 ## P-PROTO-010 — 请求封装字段规则
 
-`MUST`: `domain=world-primitive` 时必须提供 `worldId + primitive`。`domain=app-auth` 时 `primitive` 必须为空，`appId` 必填。所有请求必须提供 `participantId`。所有写操作必须提供 `idempotencyKey`。非 Realm 参与方不得以 `world-primitive` 域执行原语写入。
+`MUST`: `domain=world-primitive` 时必须提供 `worldId + primitive`。`domain=app-auth` 时 `primitive` 必须为空，`appId` 必填。所有请求必须提供 `participantId`。所有写操作必须提供 `idempotencyKey`。非 Realm 参与方不得以 `world-primitive` 域执行原语写入。V1 domain 枚举为封闭集：`world-primitive`（世界原语操作）、`app-auth`（应用授权操作）。
 
 ## P-PROTO-011 — L0 Envelope gRPC 映射
 
-`MUST`: L0 字段通过 gRPC metadata 透传，业务 payload 走 proto body。字段映射：`x-nimi-protocol-version`, `x-nimi-participant-protocol-version`, `x-nimi-participant-id`, `x-nimi-domain`, `x-nimi-app-id`, `x-nimi-trace-id`, `x-nimi-idempotency-key`。
+`MUST`: L0 字段通过 gRPC metadata 透传，业务 payload 走 proto body。字段映射：`x-nimi-protocol-version`, `x-nimi-participant-protocol-version`, `x-nimi-participant-id`, `x-nimi-domain`, `x-nimi-app-id`, `x-nimi-trace-id`, `x-nimi-idempotency-key`, `x-nimi-world-id`（仅 `domain=world-primitive` 时必填）, `x-nimi-primitive`（仅 `domain=world-primitive` 时必填）。
 
 ## P-PROTO-020 — App 授权语义规范
 
@@ -32,7 +32,7 @@
 
 ## P-PROTO-030 — App 授权策略原子性
 
-`MUST`: Runtime 侧授权策略创建与 token 签发必须是单事务调用。普通/高级模式共用一套 token 结构与校验链路。授权决策必须包含可审计同意证据。`custom` 策略允许资源级约束，在 runtime 侧强制执行。
+`MUST`: Runtime 侧授权策略创建与 token 签发必须是单事务调用。所有 preset（readOnly/full/delegate）共用一套 token 结构与校验链路。授权决策必须包含可审计同意证据。`custom` 策略允许资源级约束，在 runtime 侧强制执行。
 
 ## P-PROTO-035 — 委托规则
 
@@ -46,9 +46,27 @@
 
 `MUST`: `render-app` 发起 World 写操作时拒绝。`extension-app` 写入前必须存在 world 绑定记录（`worldId + extensionAppId + bindingStatus=active`）。同一 `worldId` 在任意时刻仅允许一个 active 绑定。换绑必须先 suspended/revoked 再激活新绑定。
 
+World-App 绑定状态机：
+
+| 当前状态 | 合法转换 | 触发条件 |
+|---------|---------|---------|
+| (新建) | active | Creator 首次绑定 extension-app |
+| active | suspended | Creator 主动挂起 |
+| active | revoked | Creator 主动撤销 |
+| suspended | active | Creator 恢复 |
+| suspended | revoked | Creator 撤销 |
+| revoked | (终态) | 不可恢复，需创建新绑定 |
+
 ## P-PROTO-060 — App 模式域边界
 
 `MUST`: App 按声明 mode 执行域访问。mode 与域/scope/worldRelation 不匹配时必须拒绝并返回模式违规 reasonCode。actionHint 默认映射见 `tables/protocol-error-codes.yaml`。
+
+App 模式访问矩阵：
+
+| mode | domain=world-primitive | domain=app-auth | world 绑定要求 |
+|------|----------------------|----------------|--------------|
+| render-app | 只读 | 允许 | 不要求 |
+| extension-app | 读写 | 允许 | 必须 active binding |
 
 ## P-PROTO-070 — 跨原语一致性
 

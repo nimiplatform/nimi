@@ -4,8 +4,8 @@
 > Source: `spec/desktop/kernel/tables/codegen-static-scan-deny-patterns.yaml`
 | Pattern | Reason | Source Rule |
 |---|---|---|
-| `eval(` | dynamic code execution forbidden | `D-CODEGEN-044` |
-| `new Function(` | dynamic code execution forbidden | `D-CODEGEN-044` |
-| `fetch(` | external network forbidden in codegen v1 | `D-CODEGEN-044` |
-| `XMLHttpRequest` | external network forbidden in codegen v1 | `D-CODEGEN-044` |
-| `WebSocket(` | external network forbidden in codegen v1 | `D-CODEGEN-044` |
+| `eval(` | dynamic code execution forbidden | `D-CODEGEN-040` |
+| `new Function(` | dynamic code execution forbidden | `D-CODEGEN-040` |
+| `fetch(` | external network forbidden in codegen v1 | `D-CODEGEN-040` |
+| `XMLHttpRequest` | external network forbidden in codegen v1 | `D-CODEGEN-040` |
+| `WebSocket(` | external network forbidden in codegen v1 | `D-CODEGEN-040` |

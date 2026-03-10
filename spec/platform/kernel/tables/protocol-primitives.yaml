@@ -4,7 +4,7 @@ primitives:
     fields:
       - field: ratio
         type: number
-        constraint: ">0 && <=1440"
+        constraint: "模拟时间加速倍率，1.0 = 实时；>0 && <=1440"
       - field: tickSeconds
         type: int
         constraint: "1..3600"
@@ -27,13 +27,13 @@ primitives:
     fields:
       - field: relationshipTypes
         type: "enum[]"
-        constraint: "至少包含 HUMAN_HUMAN, HUMAN_AGENT"
+        constraint: "至少包含 HUMAN_HUMAN, HUMAN_AGENT, AGENT_AGENT"
       - field: preconditionModel
         type: enum
         constraint: "FRIENDSHIP_GATE | OPEN"
       - field: reputationScale
         type: object
-        constraint: "必填 min/max"
+        constraint: "必填 {min: int, max: int}，0 <= min < max <= 10000"
       - field: decayWindowHours
         type: int
         constraint: ">=1"
@@ -51,7 +51,7 @@ primitives:
     fields:
       - field: currencyNamespace
         type: string
-        constraint: "全局稳定命名"
+        constraint: "格式 <worldId>.<currencyName>，currencyName 仅 [a-z0-9-]，最长 32 字符；Realm 全局唯一"
       - field: transferMode
         type: enum
         constraint: "DIRECT | ESCROW"
@@ -104,7 +104,7 @@ primitives:
         constraint: ">=60"
       - field: injectionPriority
         type: "string[]"
-        constraint: "必填且有序"
+        constraint: "有序数组，元素来自 {identity, agent_persona, world_rules, conversation, memory_recall, tool_context}；索引越小优先级越高；实现必须按此序注入"
       - field: truncationPolicy
         type: enum
         constraint: "SUMMARY_FIRST | RECENCY_FIRST"

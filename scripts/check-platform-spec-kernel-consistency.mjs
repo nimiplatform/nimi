@@ -35,6 +35,13 @@ const presetsTable = readYaml('spec/platform/kernel/tables/app-authorization-pre
 const profilesTable = readYaml('spec/platform/kernel/tables/participant-profiles.yaml');
 const errorCodeMappingTable = readYaml('spec/platform/kernel/tables/error-code-mapping.yaml');
 const ruleEvidenceTable = readYaml('spec/platform/kernel/tables/rule-evidence.yaml');
+const structuralOnlyCoverageRuleIds = new Set(
+  (Array.isArray(complianceTable?.layers) ? complianceTable.layers : [])
+    .filter((layer) => ['L3_almi', 'L3_arch'].includes(String(layer?.layer || '').trim()))
+    .flatMap((layer) => Array.isArray(layer?.items) ? layer.items : [])
+    .map((item) => String(item?.source_rule || '').trim())
+    .filter(Boolean),
+);
 
 // ========================================================
 // Check 1: Error code name uniqueness
@@ -464,6 +471,7 @@ function checkRuleEvidenceTraceability(definedRuleIds) {
     const status = String(item?.status || '').trim().toLowerCase();
     const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
     const naReason = String(item?.na_reason || '').trim();
+    const coverageNote = String(item?.coverage_note || '').trim();
     if (!/^P-[A-Z]{2,12}-\d{3}$/u.test(ruleId)) {
       fail(`${rel} has invalid rule_id format: ${ruleId || '<empty>'}`);
       continue;
@@ -496,6 +504,21 @@ function checkRuleEvidenceTraceability(definedRuleIds) {
       }
       if (!Object.prototype.hasOwnProperty.call(catalog, ref)) {
         fail(`${rel} ${ruleId} references undefined evidence ref: ${ref}`);
+      }
+    }
+
+    const allStructural = refs.length > 0 && refs.every((rawRef) => {
+      const ref = String(rawRef || '').trim();
+      const record = catalog[ref];
+      return String(record?.evidence_type || '').trim() === 'structural';
+    });
+    if (allStructural && structuralOnlyCoverageRuleIds.has(ruleId)) {
+      if (!coverageNote) {
+        fail(`${rel} ${ruleId} uses structural-only evidence and must declare coverage_note`);
+        continue;
+      }
+      if (!/structural\s*-?\s*only/i.test(coverageNote)) {
+        fail(`${rel} ${ruleId} coverage_note must explicitly state structural only scope`);
       }
     }
   }

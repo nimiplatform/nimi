@@ -39,7 +39,7 @@
 - `tables/runtime-method-groups.yaml`
 - `tables/import-boundaries.yaml`
 - `tables/sdk-error-codes.yaml`
-- `tables/sdk-runtime-projection.yaml`
+- `tables/sdk-runtime-behavioral-checks.yaml`
 - `tables/sdk-realm-realtime-gates.yaml`
 - `tables/sdk-testing-gates.yaml`
 - `tables/rule-evidence.yaml`

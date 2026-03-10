@@ -7,6 +7,8 @@
 | `sdk_kernel_consistency` | `static_gate` | `pnpm check:sdk-spec-kernel-consistency` | `scripts/check-sdk-spec-kernel-consistency.mjs` | Kernel rule integrity, surface boundary validation, method group coverage, and error code checks for SDK domain. |
 | `sdk_lint_gate` | `lint_gate` | `pnpm --filter @nimiplatform/sdk lint` | `sdk/package.json` | TypeScript compile and ESLint checks for SDK implementation. |
 | `sdk_test_gate` | `test_gate` | `pnpm --filter @nimiplatform/sdk test` | `sdk/package.json` | SDK unit tests for transport, error projection, and boundary enforcement. |
+| `sdk_boundary_gate` | `static_gate` | `pnpm check:sdk-import-boundary && pnpm check:no-create-nimi-client && pnpm check:no-global-openapi-config` | `scripts/check-sdk-import-boundary.mjs` | Import boundary enforcement and legacy entry point prohibition. |
+| `sdk_realm_legacy_gate` | `static_gate` | `pnpm check:sdk-realm-legacy-clean` | `scripts/check-sdk-realm-legacy-clean.mjs` | Realm legacy naming prohibition. |
 
 ## Rule Coverage Matrix
 
@@ -20,7 +22,7 @@
 | `S-BOUNDARY-001` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
 | `S-BOUNDARY-002` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
 | `S-BOUNDARY-003` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
-| `S-BOUNDARY-004` | `covered` | `sdk_kernel_consistency` |
+| `S-BOUNDARY-004` | `covered` | `sdk_kernel_consistency`, `sdk_boundary_gate` |
 | `S-ERROR-001` | `covered` | `sdk_kernel_consistency`, `sdk_lint_gate` |
 | `S-ERROR-002` | `covered` | `sdk_kernel_consistency` |
 | `S-ERROR-003` | `covered` | `sdk_kernel_consistency` |
@@ -32,9 +34,10 @@
 | `S-ERROR-009` | `covered` | `sdk_kernel_consistency` |
 | `S-ERROR-010` | `covered` | `sdk_kernel_consistency` |
 | `S-ERROR-011` | `covered` | `sdk_kernel_consistency` |
-| `S-ERROR-012` | `covered` | `sdk_kernel_consistency` |
+| `S-ERROR-012` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
 | `S-ERROR-013` | `covered` | `sdk_kernel_consistency` |
 | `S-ERROR-014` | `covered` | `sdk_kernel_consistency` |
+| `S-ERROR-015` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
 | `S-GATE-001` | `covered` | `sdk_kernel_consistency` |
 | `S-GATE-010` | `covered` | `sdk_kernel_consistency` |
 | `S-GATE-020` | `covered` | `sdk_kernel_consistency` |
@@ -78,6 +81,9 @@
 | `S-RUNTIME-066` | `covered` | `sdk_kernel_consistency` |
 | `S-RUNTIME-067` | `covered` | `sdk_kernel_consistency` |
 | `S-RUNTIME-068` | `covered` | `sdk_kernel_consistency` |
+| `S-RUNTIME-069` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
+| `S-RUNTIME-070` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
+| `S-RUNTIME-071` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
 | `S-SCOPE-001` | `covered` | `sdk_kernel_consistency` |
 | `S-SCOPE-002` | `covered` | `sdk_kernel_consistency` |
 | `S-SCOPE-003` | `covered` | `sdk_kernel_consistency` |
@@ -87,7 +93,7 @@
 | `S-SURFACE-002` | `covered` | `sdk_kernel_consistency` |
 | `S-SURFACE-003` | `covered` | `sdk_kernel_consistency` |
 | `S-SURFACE-004` | `covered` | `sdk_kernel_consistency` |
-| `S-SURFACE-005` | `covered` | `sdk_kernel_consistency` |
+| `S-SURFACE-005` | `covered` | `sdk_kernel_consistency`, `sdk_realm_legacy_gate` |
 | `S-SURFACE-009` | `covered` | `sdk_kernel_consistency` |
 | `S-TRANSPORT-001` | `covered` | `sdk_kernel_consistency`, `sdk_lint_gate` |
 | `S-TRANSPORT-002` | `covered` | `sdk_kernel_consistency`, `sdk_lint_gate` |
@@ -99,3 +105,6 @@
 | `S-TRANSPORT-008` | `covered` | `sdk_kernel_consistency` |
 | `S-TRANSPORT-009` | `covered` | `sdk_kernel_consistency` |
 | `S-TRANSPORT-010` | `covered` | `sdk_kernel_consistency` |
+| `S-TRANSPORT-011` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
+| `S-TRANSPORT-012` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
+| `S-TRANSPORT-013` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |

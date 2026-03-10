@@ -40,3 +40,5 @@ source-type 与 capability 分级需要与 desktop hook allowlist 一致。
 ## S-MOD-011 Inter-Mod Runtime Bridge
 
 inter-mod 与 runtime app messaging 的桥接语义必须可追溯且不破坏边界。
+
+> **Phase 2 deferred**：`RuntimeAppService`（`app_service_projection`）为 Phase 2 服务，桥接语义定义推迟至该服务投影就绪时补充。当前仅约束边界不可突破，具体协议待定。

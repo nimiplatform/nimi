@@ -89,7 +89,7 @@ function looksLikeQualifiedRemoteModel(model: string): boolean {
   if (!normalized.includes('/')) {
     return false;
   }
-  const [prefix] = normalized.split('/', 1);
+  const [prefix = ''] = normalized.split('/', 1);
   const lowered = prefix.toLowerCase();
   if (lowered === 'cloud' || lowered === 'local' || lowered === 'localai' || lowered === 'nexa') {
     return true;

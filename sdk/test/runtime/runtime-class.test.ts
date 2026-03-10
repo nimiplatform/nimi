@@ -15,6 +15,8 @@ import {
   PolicyMode,
   AuthorizationPreset,
 } from '../../src/runtime/generated/runtime/v1/grant';
+import { OpenSessionResponse } from '../../src/runtime/generated/runtime/v1/auth';
+import { ReasonCode as RuntimeProtoReasonCode } from '../../src/runtime/generated/runtime/v1/common';
 import {
   ExecuteScenarioRequest,
   ExecuteScenarioResponse,
@@ -166,6 +168,70 @@ test('Runtime auto mode retries retryable runtime errors with configured backoff
     assert.equal(generateCalls, 2);
     assert.equal(disconnectedEvents, 1);
     assert.equal(connectedEvents, 2);
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
+test('Runtime auto mode retries RESOURCE_EXHAUSTED scheduler rejections', async () => {
+  let generateCalls = 0;
+
+  installNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      if (input.methodId === RuntimeMethodIds.ai.executeScenario) {
+        generateCalls += 1;
+
+        if (generateCalls === 1) {
+          throw {
+            reasonCode: ReasonCode.RESOURCE_EXHAUSTED,
+            actionHint: 'retry_after_scheduler_backoff',
+            retryable: true,
+            message: 'scheduler concurrency limit reached',
+          };
+        }
+
+        return ExecuteScenarioResponse.toBinary(
+          ExecuteScenarioResponse.create({
+            output: Struct.fromJson({ text: 'resource-exhausted-ok' } as never),
+            finishReason: FinishReason.STOP,
+            routeDecision: RoutePolicy.LOCAL,
+            modelResolved: 'local/qwen2.5',
+            traceId: 'trace-runtime-resource-exhausted',
+          }),
+        );
+      }
+
+      throw new Error(`unexpected method: ${input.methodId}`);
+    },
+    openStream: async () => {
+      throw new Error('unexpected stream call');
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+      retry: {
+        maxAttempts: 2,
+        backoffMs: 1,
+      },
+      subjectContext: {
+        subjectUserId: 'retry-user',
+      },
+    });
+
+    const output = await runtime.ai.text.generate({
+      model: 'local/qwen2.5',
+      input: 'retry on RESOURCE_EXHAUSTED',
+    });
+
+    assert.equal(output.text, 'resource-exhausted-ok');
+    assert.equal(generateCalls, 2);
   } finally {
     clearNodeGrpcBridge();
   }
@@ -998,6 +1064,126 @@ test('Mode D: healthEvents emits runtime.disconnected on CANCELLED and stops str
 
     assert.equal(disconnectedEvents, 1, 'should emit runtime.disconnected on CANCELLED');
     assert.equal(disconnectedReasonCode, ReasonCode.RUNTIME_GRPC_CANCELLED);
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
+test('runtime.disconnected recovery remains caller-driven via connect and openSession', async () => {
+  let openSessionCalls = 0;
+
+  installNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      if (input.methodId === RuntimeMethodIds.auth.openSession) {
+        openSessionCalls += 1;
+        return OpenSessionResponse.toBinary(
+          OpenSessionResponse.create({
+            sessionId: 'session-recovered',
+            sessionToken: 'session-token',
+            issuedAt: Timestamp.create({ seconds: '1700000000', nanos: 0 }),
+            expiresAt: Timestamp.create({ seconds: '1700003600', nanos: 0 }),
+            reasonCode: RuntimeProtoReasonCode.ACTION_EXECUTED,
+          }),
+        );
+      }
+      throw new Error(`unexpected unary method: ${input.methodId}`);
+    },
+    openStream: async () => {
+      return (async function* () {
+        yield new Uint8Array(0);
+        throw {
+          reasonCode: ReasonCode.RUNTIME_GRPC_CANCELLED,
+          message: 'stream cancelled by server',
+          retryable: false,
+        };
+      })();
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
+    });
+
+    let disconnectedEvents = 0;
+    runtime.events.on('runtime.disconnected', () => {
+      disconnectedEvents += 1;
+    });
+
+    await runtime.connect();
+    const stream = await runtime.healthEvents();
+    for await (const _event of stream) {
+      // consume until disconnect
+    }
+
+    assert.equal(disconnectedEvents, 1);
+    await runtime.connect();
+    const response = await runtime.auth.openSession({
+      appId: APP_ID,
+      appInstanceId: 'desktop-instance-1',
+      deviceId: 'device-1',
+      subjectUserId: 'user-1',
+      ttlSeconds: 300,
+    });
+    assert.equal(response.sessionId, 'session-recovered');
+    assert.equal(openSessionCalls, 1);
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
+test('Mode D subscriptions do not auto-resubscribe after disconnect', async () => {
+  let openStreamCalls = 0;
+
+  installNodeGrpcBridge({
+    invokeUnary: async () => {
+      throw new Error('unexpected unary call');
+    },
+    openStream: async () => {
+      openStreamCalls += 1;
+      if (openStreamCalls === 1) {
+        return (async function* () {
+          yield new Uint8Array(0);
+          throw {
+            reasonCode: ReasonCode.RUNTIME_GRPC_CANCELLED,
+            message: 'stream cancelled by server',
+            retryable: false,
+          };
+        })();
+      }
+
+      return (async function* () {
+        yield new Uint8Array(0);
+      })();
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
+    });
+
+    await runtime.connect();
+    const firstStream = await runtime.healthEvents();
+    for await (const _event of firstStream) {
+      // consume until disconnect
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.equal(openStreamCalls, 1, 'SDK must not auto-resubscribe Mode D streams');
+
+    const secondStream = await runtime.healthEvents();
+    let secondStreamEvents = 0;
+    for await (const _event of secondStream) {
+      secondStreamEvents += 1;
+    }
+
+    assert.equal(openStreamCalls, 2, 'caller must explicitly reopen the subscription');
+    assert.equal(secondStreamEvents, 1);
   } finally {
     clearNodeGrpcBridge();
   }

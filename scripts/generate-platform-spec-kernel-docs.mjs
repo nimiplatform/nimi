@@ -118,7 +118,9 @@ function renderComplianceMatrix(doc, sourceName) {
 
 function renderAuditEvents(doc, sourceName) {
   const events = Array.isArray(doc?.events) ? doc.events : [];
-  const requiredFields = Array.isArray(doc?.required_fields) ? doc.required_fields : [];
+  const baseFields = Array.isArray(doc?.base_required_fields) ? doc.base_required_fields : [];
+  const groupFields = doc?.group_context_fields && typeof doc.group_context_fields === 'object' ? doc.group_context_fields : {};
+  const eventFields = doc?.event_specific_fields && typeof doc.event_specific_fields === 'object' ? doc.event_specific_fields : {};
   let out = header('Generated Audit Events', sourceName);
   out += '## Events\n\n';
   out += '| Name | Group | Source |\n';
@@ -131,10 +133,33 @@ function renderAuditEvents(doc, sourceName) {
     out += `| \`${name}\` | \`${group}\` | \`${source}\` |\n`;
   }
   out += '\n## Required Audit Fields\n\n';
-  for (const field of requiredFields) {
+  out += '### Base (all events)\n\n';
+  for (const field of baseFields) {
     out += `- \`${String(field)}\`\n`;
   }
-  out += '\n';
+  out += '\n### Group Context Fields\n\n';
+  for (const [group, fields] of Object.entries(groupFields)) {
+    const groupFieldList = Array.isArray(fields) ? fields : [];
+    if (groupFieldList.length === 0) continue;
+    out += `**\`${group}\`:**\n\n`;
+    for (const field of groupFieldList) {
+      out += `- \`${String(field)}\`\n`;
+    }
+    out += '\n';
+  }
+  if (Object.keys(eventFields).length > 0) {
+    out += '### Event-Specific Fields\n\n';
+    for (const [eventName, fields] of Object.entries(eventFields)) {
+      const fieldMap = fields && typeof fields === 'object' ? fields : {};
+      const fieldList = Array.isArray(fieldMap) ? fieldMap : Object.values(fieldMap);
+      if (fieldList.length === 0) continue;
+      out += `**\`${eventName}\`:**\n\n`;
+      for (const field of fieldList) {
+        out += `- \`${String(field)}\`\n`;
+      }
+      out += '\n';
+    }
+  }
   return normalizeMarkdown(out);
 }
 
@@ -213,10 +238,10 @@ function renderProfiles(doc, sourceName) {
 function renderErrorCodeMapping(doc, sourceName) {
   const mappings = Array.isArray(doc?.mappings) ? doc.mappings : [];
   let out = header('Generated Error Code Mapping', sourceName);
-  out += '| Platform Error | Platform Source | Runtime Reason Code | Runtime Source | Note |\n';
-  out += '|---|---|---|---|---|\n';
+  out += '| Platform Error | Platform Source | Category | Runtime Reason Code | Runtime Source | Note |\n';
+  out += '|---|---|---|---|---|---|\n';
   for (const item of mappings) {
-    out += `| \`${String(item?.platform_error || '')}\` | \`${String(item?.platform_source || '') || '—'}\` | \`${String(item?.runtime_reason_code || '') || '—'}\` | \`${String(item?.runtime_source || '') || '—'}\` | ${String(item?.note || '') || '—'} |\n`;
+    out += `| \`${String(item?.platform_error || '')}\` | \`${String(item?.platform_source || '') || '—'}\` | \`${String(item?.category || '') || '—'}\` | \`${String(item?.runtime_reason_code || '') || '—'}\` | \`${String(item?.runtime_source || '') || '—'}\` | ${String(item?.note || '') || '—'} |\n`;
   }
   out += '\n';
   return normalizeMarkdown(out);
@@ -228,21 +253,32 @@ function renderRuleEvidence(doc, sourceName) {
     : {};
   const rules = Array.isArray(doc?.rules) ? doc.rules : [];
   let out = header('Generated Rule Evidence', sourceName);
-  out += '| Evidence Ref | Type | Command | Path | Description |\n';
-  out += '|---|---|---|---|---|\n';
+  out += '| Evidence Ref | Type | Evidence Type | Command | Path | Description |\n';
+  out += '|---|---|---|---|---|---|\n';
   for (const [ref, value] of Object.entries(catalog)) {
     const item = value && typeof value === 'object' ? value : {};
-    out += `| \`${ref}\` | \`${String(item.type || '').trim() || '—'}\` | \`${String(item.command || '').trim() || '—'}\` | \`${String(item.path || '').trim() || '—'}\` | ${String(item.description || '').trim() || '—'} |\n`;
+    out += `| \`${ref}\` | \`${String(item.type || '').trim() || '—'}\` | \`${String(item.evidence_type || '').trim() || '—'}\` | \`${String(item.command || '').trim() || '—'}\` | \`${String(item.path || '').trim() || '—'}\` | ${String(item.description || '').trim() || '—'} |\n`;
   }
+  const hasCoverageNote = rules.some((item) => item?.coverage_note);
   out += '\n## Rule Coverage Matrix\n\n';
-  out += '| Rule ID | Status | Evidence Refs |\n';
-  out += '|---|---|---|\n';
+  if (hasCoverageNote) {
+    out += '| Rule ID | Status | Evidence Refs | Coverage Note |\n';
+    out += '|---|---|---|---|\n';
+  } else {
+    out += '| Rule ID | Status | Evidence Refs |\n';
+    out += '|---|---|---|\n';
+  }
   for (const item of rules) {
     const ruleId = String(item?.rule_id || '').trim();
     if (!ruleId) continue;
     const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
     const refsText = refs.length > 0 ? refs.map((ref) => `\`${String(ref)}\``).join(', ') : '—';
-    out += `| \`${ruleId}\` | \`${String(item?.status || '').trim() || '—'}\` | ${refsText} |\n`;
+    if (hasCoverageNote) {
+      const note = String(item?.coverage_note || '').trim() || '—';
+      out += `| \`${ruleId}\` | \`${String(item?.status || '').trim() || '—'}\` | ${refsText} | ${note} |\n`;
+    } else {
+      out += `| \`${ruleId}\` | \`${String(item?.status || '').trim() || '—'}\` | ${refsText} |\n`;
+    }
   }
   out += '\n';
   return normalizeMarkdown(out);

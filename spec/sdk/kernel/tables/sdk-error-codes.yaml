@@ -106,6 +106,69 @@ codes:
   - name: SDK_RUNTIME_TAURI_UNARY_FAILED
     family: SDK_RUNTIME
     source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_AI_ROUTE_POLICY_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_AI_CREDENTIAL_SOURCE_INVALID
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_AI_CREDENTIAL_MISSING
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_AI_CREDENTIAL_SCOPE_FORBIDDEN
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_APP_AUTH_DOMAIN_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_APP_AUTH_APP_ID_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_APP_AUTH_EXTERNAL_PRINCIPAL_ID_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_APP_AUTH_EXTERNAL_PRINCIPAL_TYPE_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_APP_AUTH_SUBJECT_USER_ID_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_APP_AUTH_CONSENT_ID_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_APP_AUTH_CONSENT_VERSION_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_APP_AUTH_DECISION_AT_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_APP_AUTH_POLICY_VERSION_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_APP_AUTH_POLICY_MODE_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_APP_AUTH_PRESET_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_APP_AUTH_CUSTOM_SCOPES_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_APP_AUTH_CUSTOM_TTL_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_APP_AUTH_CUSTOM_DELEGATE_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_APP_AUTH_SCOPE_CATALOG_VERSION_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_CONNECTOR_API_KEY_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-RUNTIME-071
+  - name: SDK_RUNTIME_CONNECTOR_UPDATE_EMPTY
+    family: SDK_RUNTIME
+    source_rule: S-RUNTIME-071
   - name: SDK_TARGET_REQUIRED
     family: SDK_CONFIG
     source_rule: S-ERROR-003

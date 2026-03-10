@@ -30,80 +30,80 @@ entries:
   - tier: T1
     capability: runtime.media.image.*
     policy: require_consent
-    source_rule: D-CODEGEN-021
+    source_rule: D-CODEGEN-020
   - tier: T1
     capability: runtime.media.video.*
     policy: require_consent
-    source_rule: D-CODEGEN-021
+    source_rule: D-CODEGEN-020
   - tier: T1
     capability: runtime.ai.embedding.generate
     policy: require_consent
-    source_rule: D-CODEGEN-021
+    source_rule: D-CODEGEN-020
   - tier: T1
     capability: runtime.media.tts.*
     policy: require_consent
-    source_rule: D-CODEGEN-021
+    source_rule: D-CODEGEN-020
   - tier: T1
     capability: runtime.media.stt.*
     policy: require_consent
-    source_rule: D-CODEGEN-021
+    source_rule: D-CODEGEN-020
   - tier: T1
     capability: runtime.voice.*
     policy: require_consent
-    source_rule: D-CODEGEN-021
+    source_rule: D-CODEGEN-020
   - tier: T1
     capability: runtime.route.*
     policy: require_consent
-    source_rule: D-CODEGEN-021
+    source_rule: D-CODEGEN-020
   - tier: T1
     capability: runtime.local.*
     policy: require_consent
-    source_rule: D-CODEGEN-021
+    source_rule: D-CODEGEN-020
   - tier: T1
     capability: data.query.data-api.core.*
     policy: require_consent
-    source_rule: D-CODEGEN-021
+    source_rule: D-CODEGEN-020
   - tier: T2
     capability: turn.register.*
     policy: hard_deny
-    source_rule: D-CODEGEN-022
+    source_rule: D-CODEGEN-020
   - tier: T2
     capability: inter-mod.*
     policy: hard_deny
-    source_rule: D-CODEGEN-022
+    source_rule: D-CODEGEN-020
   - tier: T2
     capability: network*
     policy: hard_deny
-    source_rule: D-CODEGEN-022
+    source_rule: D-CODEGEN-020
   - tier: T2
     capability: filesystem*
     policy: hard_deny
-    source_rule: D-CODEGEN-022
+    source_rule: D-CODEGEN-020
   - tier: T2
     capability: process*
     policy: hard_deny
-    source_rule: D-CODEGEN-022
+    source_rule: D-CODEGEN-020
   - tier: T2
     capability: economy-write*
     policy: hard_deny
-    source_rule: D-CODEGEN-022
+    source_rule: D-CODEGEN-020
   - tier: T2
     capability: identity-write*
     policy: hard_deny
-    source_rule: D-CODEGEN-022
+    source_rule: D-CODEGEN-020
   - tier: T2
     capability: platform-cloud-write*
     policy: hard_deny
-    source_rule: D-CODEGEN-022
+    source_rule: D-CODEGEN-020
   - tier: T2
     capability: audit.read.all
     policy: hard_deny
-    source_rule: D-CODEGEN-022
+    source_rule: D-CODEGEN-020
   - tier: T2
     capability: action.*
     policy: hard_deny
-    source_rule: D-CODEGEN-022
+    source_rule: D-CODEGEN-020
   - tier: T2
     capability: meta.read.all
     policy: hard_deny
-    source_rule: D-CODEGEN-022
+    source_rule: D-CODEGEN-020

@@ -1,3 +1,4 @@
+version: 1
 fields:
   - modality: common
     field: app_id

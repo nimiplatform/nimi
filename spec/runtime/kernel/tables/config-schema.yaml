@@ -1,0 +1,269 @@
+version: 1
+# Phase 1 配置文件 schema (~/.nimi/config.json) 权威字段清单
+# Source rule: K-CFG-017, K-DAEMON-009
+fields:
+  - key: schemaVersion
+    type: int
+    default: "1"
+    reload: immutable
+    description: 配置版本号
+    source_rule: K-DAEMON-009
+
+  - key: grpcAddr
+    type: string
+    default: "127.0.0.1:46371"
+    reload: restart
+    description: gRPC 监听地址
+    source_rule: K-DAEMON-009
+
+  - key: httpAddr
+    type: string
+    default: "127.0.0.1:46372"
+    reload: restart
+    description: HTTP 监听地址
+    source_rule: K-DAEMON-009
+
+  - key: shutdownTimeoutSeconds
+    type: int
+    default: "10"
+    reload: restart
+    description: 优雅停机超时（秒）
+    source_rule: K-DAEMON-003
+
+  - key: localStatePath
+    type: string
+    default: "~/.nimi/runtime/local-state.json"
+    reload: restart
+    description: 本地状态持久化路径
+    source_rule: K-LOCAL-016
+
+  - key: workerMode
+    type: bool
+    default: "false"
+    reload: restart
+    description: 是否启用 worker 模式
+    source_rule: K-DAEMON-004
+
+  - key: aiHealthIntervalSeconds
+    type: int
+    default: "8"
+    reload: hot
+    description: AI Provider 探活间隔（秒）
+    source_rule: K-PROV-003
+
+  - key: aiHttpTimeoutSeconds
+    type: int
+    default: "30"
+    reload: hot
+    description: AI Provider HTTP 超时（秒）
+    source_rule: K-PROV-003
+
+  - key: globalConcurrencyLimit
+    type: int
+    default: "8"
+    reload: hot
+    description: AI 全局并发上限
+    source_rule: K-DAEMON-007
+
+  - key: perAppConcurrencyLimit
+    type: int
+    default: "2"
+    reload: hot
+    description: AI 单 App 并发上限
+    source_rule: K-DAEMON-007
+
+  - key: idempotencyCapacity
+    type: int
+    default: "10000"
+    reload: hot
+    description: 幂等性存储容量上限
+    source_rule: K-DAEMON-006
+
+  - key: maxDelegationDepth
+    type: int
+    default: "3"
+    reload: hot
+    description: 委托链最大深度
+    source_rule: K-GRANT-005
+
+  - key: auditRingBufferSize
+    type: int
+    default: "20000"
+    reload: hot
+    description: 审计事件环形缓冲上限
+    source_rule: K-AUDIT-007
+
+  - key: usageStatsBufferSize
+    type: int
+    default: "50000"
+    reload: hot
+    description: 使用量样本环形缓冲上限
+    source_rule: K-AUDIT-008
+
+  - key: localAuditCapacity
+    type: int
+    default: "5000"
+    reload: hot
+    description: Local 审计事件存储上限
+    source_rule: K-LOCAL-016
+
+  - key: sessionTtlMinSeconds
+    type: int
+    default: "60"
+    reload: hot
+    description: Session TTL 下限（秒）
+    source_rule: K-AUTHSVC-004
+
+  - key: sessionTtlMaxSeconds
+    type: int
+    default: "86400"
+    reload: hot
+    description: Session TTL 上限（秒）
+    source_rule: K-AUTHSVC-004
+
+  - key: auth.jwt.issuer
+    type: string
+    default: ""
+    reload: restart
+    description: JWT iss 校验目标；空值=不校验
+    source_rule: K-AUTHN-009
+
+  - key: auth.jwt.audience
+    type: string
+    default: ""
+    reload: restart
+    description: JWT aud 校验目标；空值=不校验
+    source_rule: K-AUTHN-009
+
+  - key: auth.jwt.jwksUrl
+    type: string
+    default: ""
+    reload: restart
+    description: JWT 公钥来源 JWKS 地址；空值=拒绝所有 bearer token
+    source_rule: K-AUTHN-004
+
+  - key: providers
+    type: map
+    default: "{}"
+    reload: restart
+    description: AI Provider 路由表（key=provider name）
+    source_rule: K-DAEMON-009
+
+  - key: engines.localai.enabled
+    type: bool
+    default: "false"
+    reload: restart
+    description: 启用 LocalAI 引擎 SUPERVISED 模式
+    source_rule: K-LENG-004
+
+  - key: engines.localai.version
+    type: string
+    default: "3.12.1"
+    reload: restart
+    description: LocalAI 二进制版本
+    source_rule: K-LENG-004
+
+  - key: engines.localai.port
+    type: int
+    default: "1234"
+    reload: restart
+    description: LocalAI 监听端口
+    source_rule: K-LENG-004
+
+  - key: engines.nexa.enabled
+    type: bool
+    default: "false"
+    reload: restart
+    description: 启用 Nexa 引擎 SUPERVISED 模式
+    source_rule: K-LENG-004
+
+  - key: engines.nexa.version
+    type: string
+    default: ""
+    reload: restart
+    description: Nexa 版本（空=系统安装）
+    source_rule: K-LENG-004
+
+  - key: engines.nexa.port
+    type: int
+    default: "8000"
+    reload: restart
+    description: Nexa 监听端口
+    source_rule: K-LENG-004
+
+  - key: defaultLocalTextModel
+    type: string
+    default: ""
+    reload: hot
+    description: 默认本地文本模型 ID 覆盖
+    source_rule: K-CFG-013
+
+  - key: defaultCloudProvider
+    type: string
+    default: ""
+    reload: hot
+    description: 默认云端 provider
+    source_rule: K-CFG-013
+
+  - key: engines.localai.imageBackend.mode
+    type: string
+    default: "disabled"
+    reload: restart
+    description: LocalAI 图像 backend 模式（disabled|official|custom）
+    source_rule: K-LENG-004
+
+  - key: engines.localai.imageBackend.backendName
+    type: string
+    default: "stablediffusion-ggml"
+    reload: restart
+    description: LocalAI 图像 backend 名称
+    source_rule: K-LENG-004
+
+  - key: engines.localai.imageBackend.address
+    type: string
+    default: "127.0.0.1:50052"
+    reload: restart
+    description: LocalAI 图像 backend gRPC 地址
+    source_rule: K-LENG-004
+
+  - key: modelCatalogCustomDir
+    type: string
+    default: ""
+    reload: restart
+    description: 本地自定义 provider 目录路径
+    source_rule: K-MCAT-005
+
+  - key: allowLoopbackProviderEndpoint
+    type: bool
+    default: "false"
+    reload: restart
+    description: 是否允许 loopback 地址的 HTTP provider endpoint
+    source_rule: K-SEC-002
+
+# providers 值结构
+provider_value_schema:
+  fields:
+    - key: baseUrl
+      type: string
+      required: false
+    - key: apiKey
+      type: string
+      required: false
+    - key: apiKeyEnv
+      type: string
+      required: false
+    - key: defaultModel
+      type: string
+      required: false
+  constraints:
+    - apiKey 与 apiKeyEnv 互斥；二者同时设置时写入校验必须拒绝并返回 CONFIG_SECRET_POLICY_VIOLATION
+    - source_rule: K-CFG-005
+
+# reload 列语义
+reload_semantics:
+  restart: 变更后需要 daemon 重启才生效（涉及网络绑定、进程模型等启动时固化的资源）
+  hot: 变更后无需重启，下次使用时即刻生效
+  immutable: 不可变更（schemaVersion）
+
+# JWT 验签配置约束
+jwt_constraint: 仅支持 auth.jwt.jwksUrl，不支持 auth.jwt.publicKeyPath

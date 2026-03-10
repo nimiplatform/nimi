@@ -2,6 +2,7 @@ version: 1
 evidence_catalog:
   platform_kernel_consistency:
     type: static_gate
+    evidence_type: structural
     command: pnpm check:platform-spec-kernel-consistency
     path: scripts/check-platform-spec-kernel-consistency.mjs
     description: Kernel rule integrity, error code uniqueness, primitive completeness, compliance matrix, and authorization preset checks for Platform domain.
@@ -13,27 +14,35 @@ rules:
   - rule_id: P-ALMI-002
     status: covered
     evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; principal and session binding behavior still requires runtime integration coverage"
   - rule_id: P-ALMI-003
     status: covered
     evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; invocation authorization paths still require cross-participant behavioral tests"
   - rule_id: P-ALMI-004
     status: covered
     evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; state-transition and failure-path guarantees still require behavioral validation"
   - rule_id: P-ALMI-010
     status: covered
     evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; Hook Action fabric dispatch behavior still requires runtime integration coverage"
   - rule_id: P-ALMI-011
     status: covered
     evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; behavioral state-machine validation requires runtime integration test"
   - rule_id: P-ALMI-020
     status: covered
     evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; end-to-end replay and auditability still require behavioral integration tests"
   - rule_id: P-ALMI-030
     status: covered
     evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; latency/throughput red-line validation requires load test"
   - rule_id: P-ARCH-001
     status: covered
     evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; multi-participant orchestration behavior still requires integration coverage"
   - rule_id: P-ARCH-002
     status: covered
     evidence_refs: [platform_kernel_consistency]
@@ -52,15 +61,18 @@ rules:
   - rule_id: P-ARCH-011
     status: covered
     evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; layered boundary enforcement still requires implementation-level integration tests"
   - rule_id: P-ARCH-020
     status: covered
     evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; authority handoff behavior still requires runtime and realm integration validation"
   - rule_id: P-ARCH-021
     status: covered
     evidence_refs: [platform_kernel_consistency]
   - rule_id: P-ARCH-030
     status: covered
     evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; cross-layer delivery behavior still requires end-to-end execution tests"
   - rule_id: P-GOV-001
     status: covered
     evidence_refs: [platform_kernel_consistency]
@@ -118,6 +130,7 @@ rules:
   - rule_id: P-PROTO-070
     status: covered
     evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; cross-primitive consistency validation requires behavioral integration test"
   - rule_id: P-PROTO-100
     status: covered
     evidence_refs: [platform_kernel_consistency]

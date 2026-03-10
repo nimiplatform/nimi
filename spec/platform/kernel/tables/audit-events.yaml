@@ -61,29 +61,53 @@ events:
     group: world_app_binding
     source_rule: P-PROTO-050
 
-required_fields:
+base_required_fields:
   - participantId
-  - capabilityProfileRef
-  - scopeCatalogVersion
-  - issuedScopeCatalogVersion
-  - domain
-  - worldId
-  - appId
-  - extensionAppId
-  - bindingStatus
-  - principalId
-  - principalType
-  - primitive
-  - capabilityMode
-  - tokenId
-  - parentTokenId
-  - subjectUserId
-  - consentId
-  - consentVersion
-  - policyPreset
-  - policyVersion
-  - resourceSelectorHash
-  - protocolVersion
-  - reasonCode
   - traceId
   - timestamp
+  - domain
+  - reasonCode
+  - protocolVersion
+
+group_context_fields:
+  protocol:
+    - capabilityProfileRef
+    - capabilityMode
+  primitive:
+    - worldId
+    - primitive
+  app_auth:
+    - appId
+    - principalId
+    - principalType
+    - tokenId
+    - policyPreset
+    - policyVersion
+  scope:
+    - appId
+    - scopeCatalogVersion
+  app_mode:
+    - appId
+    - capabilityMode
+  app_resource:
+    - appId
+    - principalId
+    - principalType
+    - subjectUserId
+    - resourceSelectorHash
+  world_app_binding:
+    - worldId
+    - extensionAppId
+    - bindingStatus
+
+event_specific_fields:
+  app_token_delegated:
+    - parentTokenId
+  app_token_issued:
+    - issuedScopeCatalogVersion
+  app_authorization_granted:
+    - consentId
+    - consentVersion
+  app_consent_validation_failed:
+    - consentId
+    - consentVersion
