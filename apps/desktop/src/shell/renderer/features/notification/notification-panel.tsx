@@ -150,6 +150,15 @@ function getNotificationCategory(type: string): NotificationType {
   return 'system';
 }
 
+function isGiftReviewable(item: NotificationItemView): boolean {
+  return (
+    item.type === 'gift_status_updated' &&
+    Boolean(item.giftTransactionId) &&
+    (item.giftStatus === 'accepted' || item.giftStatus === 'rejected') &&
+    !item.reviewId
+  );
+}
+
 const FILTER_TABS: { id: NotificationType; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'gift', label: 'Gifts' },
@@ -396,7 +405,7 @@ export function NotificationPanel() {
         </>
       );
     }
-    if ((item.type === 'gift_accepted' || item.type === 'gift_rejected' || item.type === 'gift_status_updated') && item.giftTransactionId && !item.reviewId) {
+    if (isGiftReviewable(item)) {
       return (
         <>
           <button type="button" onClick={onClick} className={btnPrimary}>
@@ -553,7 +562,7 @@ export function NotificationPanel() {
                         void markOneRead(item.id);
                       } else if (item.type === 'gift_received' && item.giftTransactionId) {
                         void claimGift(item);
-                      } else if ((item.type === 'gift_accepted' || item.type === 'gift_rejected') && item.giftTransactionId) {
+                      } else if (isGiftReviewable(item)) {
                         void createReview(item, ReviewRating.POSITIVE);
                       } else {
                         void markOneRead(item.id);
