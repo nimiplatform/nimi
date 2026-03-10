@@ -891,6 +891,9 @@
     "selectChatFirst": "Please select a chat first",
     "inputMessageRequired": "Please enter a message",
     "sendFailed": "Failed to send message",
+    "runtimeUnavailableReadOnly": "Runtime unavailable. Chat is currently read-only.",
+    "runtimeUnavailableUpload": "Runtime unavailable. Upload is disabled in read-only mode.",
+    "runtimeUnavailablePlaceholder": "Runtime unavailable. Read-only mode.",
     "typeMessage": "Type a message...",
     "previousPage": "Previous page",
     "nextPage": "Next page",
@@ -925,12 +928,24 @@
     "loadingProfileDetail": "Loading profile details...",
     "online": "Online",
     "offline": "Offline",
+    "queuedLocally": "Queued locally",
+    "sendFailed": "Send failed",
     "agent": "Agent",
     "human": "Human",
     "resizeInputArea": "Resize input area",
     "statusPrefix": "Status",
     "joinedAtPrefix": "Joined",
     "turnAuditLabel": "turnAudit"
+  },
+  "OfflineShell": {
+    "cloudOfflineTitle": "Cloud offline / Offline mode",
+    "cloudOfflineBody": "Cached data and local queues are active. Pending operations will replay when cloud connectivity returns.",
+    "runtimeUnavailableTitle": "Runtime unavailable / Read-only mode",
+    "runtimeUnavailableBody": "AI, mods, and local model writes are paused. Runtime bootstrap will retry after reconnection."
+  },
+  "RuntimeConfigLocal": {
+    "runtimeUnavailableTitle": "Runtime unavailable / Local model writes paused",
+    "runtimeUnavailableBody": "Local model install, import, start, stop, restart, and remove actions are disabled until the runtime reconnects."
   },
   "PostsTab": {
     "noPosts": "No posts yet"

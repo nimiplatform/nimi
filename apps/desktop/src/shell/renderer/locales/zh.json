@@ -891,6 +891,9 @@
     "selectChatFirst": "请先选择会话",
     "inputMessageRequired": "请输入消息内容",
     "sendFailed": "发送失败",
+    "runtimeUnavailableReadOnly": "Runtime 不可用，当前聊天处于只读模式。",
+    "runtimeUnavailableUpload": "Runtime 不可用，只读模式下无法上传文件。",
+    "runtimeUnavailablePlaceholder": "Runtime 不可用，当前为只读模式。",
     "typeMessage": "输入消息...",
     "previousPage": "上一页",
     "nextPage": "下一页",
@@ -925,12 +928,24 @@
     "loadingProfileDetail": "正在加载详情...",
     "online": "在线",
     "offline": "离线",
+    "queuedLocally": "已加入本地队列",
+    "sendFailed": "发送失败",
     "agent": "Agent",
     "human": "Human",
     "resizeInputArea": "调整输入区域大小",
     "statusPrefix": "状态",
     "joinedAtPrefix": "加入时间",
     "turnAuditLabel": "turnAudit"
+  },
+  "OfflineShell": {
+    "cloudOfflineTitle": "云端离线 / 离线模式",
+    "cloudOfflineBody": "当前使用缓存与本地队列；云端恢复后会自动重放待处理操作。",
+    "runtimeUnavailableTitle": "Runtime 不可用 / 只读模式",
+    "runtimeUnavailableBody": "AI、mod 和本地模型写操作已暂停；连接恢复后会重新 bootstrap。"
+  },
+  "RuntimeConfigLocal": {
+    "runtimeUnavailableTitle": "Runtime 不可用 / 本地模型写操作已暂停",
+    "runtimeUnavailableBody": "在 Runtime 恢复前，安装、导入、启动、停止、重启和移除本地模型的操作都已禁用。"
   },
   "PostsTab": {
     "noPosts": "暂无帖子"

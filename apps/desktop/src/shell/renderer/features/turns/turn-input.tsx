@@ -138,6 +138,7 @@ export function TurnInput(props: TurnInputProps = {}) {
   const { t } = useTranslation();
   const flags = getShellFeatureFlags();
   const selectedChatId = useAppStore((state) => state.selectedChatId);
+  const offlineTier = useAppStore((state) => state.offlineTier);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const [text, setText] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -264,8 +265,14 @@ export function TurnInput(props: TurnInputProps = {}) {
     }, 0);
   };
 
+  const readOnlyMessage = t('TurnInput.runtimeUnavailableReadOnly');
+  const uploadBlockedMessage = t('TurnInput.runtimeUnavailableUpload');
+
   const sendMutation = useMutation({
     mutationFn: async () => {
+      if (offlineTier === 'L2') {
+        throw new Error(readOnlyMessage);
+      }
       if (!selectedChatId) {
         throw new Error(t('TurnInput.selectChatFirst'));
       }
@@ -294,6 +301,9 @@ export function TurnInput(props: TurnInputProps = {}) {
   // File upload mutation
   const uploadFileMutation = useMutation({
     mutationFn: async (file: File) => {
+      if (offlineTier === 'L2') {
+        throw new Error(uploadBlockedMessage);
+      }
       if (!selectedChatId) {
         throw new Error(t('TurnInput.selectChatFirst'));
       }
@@ -404,6 +414,13 @@ export function TurnInput(props: TurnInputProps = {}) {
   };
 
   const handleUploadClick = () => {
+    if (offlineTier === 'L2') {
+      setStatusBanner({
+        kind: 'warning',
+        message: uploadBlockedMessage,
+      });
+      return;
+    }
     setShowUploadPickerActive(true);
     fileInputRef.current?.click();
   };
@@ -423,11 +440,19 @@ export function TurnInput(props: TurnInputProps = {}) {
   };
 
   const canSend = Boolean(selectedChatId)
+    && offlineTier !== 'L2'
     && !sendMutation.isPending
     && !isUploading
     && (Boolean(text.trim()) || Boolean(pastedImage));
 
   const handleSend = () => {
+    if (offlineTier === 'L2') {
+      setStatusBanner({
+        kind: 'warning',
+        message: readOnlyMessage,
+      });
+      return;
+    }
     if (!selectedChatId || sendMutation.isPending || isUploading) {
       return;
     }
@@ -540,9 +565,11 @@ export function TurnInput(props: TurnInputProps = {}) {
           ref={textareaRef}
           className="min-h-[44px] flex-1 w-full resize-none bg-transparent px-1 py-1 text-[15px] leading-5 text-gray-900 outline-none placeholder:text-gray-400"
           rows={2}
-          placeholder={t('TurnInput.typeMessage')}
+          placeholder={offlineTier === 'L2'
+            ? t('TurnInput.runtimeUnavailablePlaceholder')
+            : t('TurnInput.typeMessage')}
           value={text}
-          disabled={!selectedChatId || sendMutation.isPending}
+          disabled={!selectedChatId || sendMutation.isPending || offlineTier === 'L2'}
           onChange={(event) => setText(event.target.value)}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
@@ -588,7 +615,7 @@ export function TurnInput(props: TurnInputProps = {}) {
               <button
                 type="button"
                 onClick={handleUploadClick}
-                disabled={!selectedChatId || isUploading}
+                disabled={!selectedChatId || isUploading || offlineTier === 'L2'}
                 className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:opacity-40 ${
                   showUploadPickerActive || isUploading || pastedImage
                     ? 'bg-[#0066CC] text-white'

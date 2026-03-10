@@ -1,4 +1,5 @@
 import type { TurnHookPoint, TurnHookResult } from '../contracts/types.js';
+import { getOfflineCoordinator } from '@runtime/offline';
 import { HookRegistry } from '../registry/hook-registry.js';
 
 const DEFAULT_HOOK_TIMEOUT_MS = 10_000;
@@ -17,6 +18,13 @@ export class TurnHookOrchestrator {
     context: Record<string, unknown>,
     options?: { abortSignal?: AbortSignal },
   ): Promise<TurnHookResult> {
+    if (getOfflineCoordinator().getTier() === 'L2') {
+      return {
+        context: { ...context },
+        errors: [],
+        aborted: false,
+      };
+    }
     const hooks = this.registry.listTurnHooks(point);
     let current = { ...context };
     const errors: TurnHookResult['errors'] = [];

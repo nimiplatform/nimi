@@ -13,6 +13,7 @@ import {
   type LocalAiInstallPayload,
   type LocalAiInstallPlanDescriptor,
 } from '@runtime/local-ai-runtime';
+import { createOfflineError, getOfflineCoordinator } from '@runtime/offline';
 import type { CapabilityV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 import { asRecord } from './runtime-config-panel-controller-utils';
@@ -99,6 +100,18 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
         engine: String(target.engine || '').trim() || undefined,
       },
     }).catch(() => null);
+  }, []);
+
+  const assertRuntimeWriteAllowed = useCallback(() => {
+    if (getOfflineCoordinator().getTier() !== 'L2') {
+      return;
+    }
+    throw createOfflineError({
+      source: 'runtime',
+      reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+      message: 'Runtime unavailable. Local model writes are disabled in read-only mode.',
+      actionHint: 'retry-runtime-when-online',
+    });
   }, []);
 
   const installSessionMeta = useMemo(() => {
@@ -206,6 +219,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
   }, [recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
 
   const runInstallPlanLifecycle = useCallback((plan: LocalAiInstallPlanDescriptor, installSource: 'catalog' | 'manual' | 'verified') => {
+    assertRuntimeWriteAllowed();
     localAiRuntime.install({
       modelId: plan.modelId,
       repo: plan.repo,
@@ -232,7 +246,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
           message: `Install lifecycle failed: ${error instanceof Error ? error.message : String(error || '')}`,
         });
       });
-  }, [setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, setStatusBanner]);
 
   const retryInstall = useCallback((plan: LocalAiInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => {
     runInstallPlanLifecycle(plan, source);
@@ -282,6 +296,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     capability?: CapabilityV11 | string,
   ) => {
     try {
+      assertRuntimeWriteAllowed();
       const plan = await resolveRuntimeDependencies(modId, capability);
       const result = await localAiRuntime.applyDependencies(plan, { caller: 'core' });
       await refreshLocalSnapshot();
@@ -310,7 +325,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       throw error;
     }
-  }, [recordGoRuntimeSyncFailure, refreshLocalSnapshot, resolveRuntimeDependencies, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, recordGoRuntimeSyncFailure, refreshLocalSnapshot, resolveRuntimeDependencies, setStatusBanner]);
 
   const installCatalogLocalModel = useCallback(async (
     item: LocalAiCatalogItemDescriptor,
@@ -422,6 +437,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       throw new Error('templateId is required');
     }
     try {
+      assertRuntimeWriteAllowed();
       const artifact = await localAiRuntime.installVerifiedArtifact({
         templateId: normalizedTemplateId,
       }, { caller: 'core' });
@@ -437,10 +453,11 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       throw error;
     }
-  }, [refreshLocalSnapshot, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
 
   const importLocalArtifact = useCallback(async () => {
     try {
+      assertRuntimeWriteAllowed();
       const manifestPath = await localAiRuntime.pickArtifactManifestPath();
       if (!manifestPath) {
         return;
@@ -458,10 +475,11 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       throw error;
     }
-  }, [refreshLocalSnapshot, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
 
   const scaffoldLocalArtifactOrphan = useCallback(async (path: string, kind: LocalAiArtifactKind) => {
     try {
+      assertRuntimeWriteAllowed();
       const scaffolded = await localAiRuntime.scaffoldArtifactOrphan({
         path,
         kind,
@@ -481,7 +499,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       throw error;
     }
-  }, [refreshLocalSnapshot, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
 
   const modelActions = useRuntimeConfigModelManagementActions({
     pendingInstallsRef,

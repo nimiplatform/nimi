@@ -29,6 +29,7 @@ export type RuntimeConfigPanelControllerModel = {
   discovering: boolean;
   testingConnector: boolean;
   checkingHealth: boolean;
+  runtimeWritesDisabled: boolean;
   selectedConnector: RuntimeConfigStateV11['connectors'][number] | null;
   orderedConnectors: RuntimeConfigStateV11['connectors'];
   filteredLocalModels: string[];

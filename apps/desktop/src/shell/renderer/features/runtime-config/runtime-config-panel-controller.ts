@@ -17,6 +17,7 @@ const RUNTIME_DAEMON_STATUS_POLL_INTERVAL_MS = 30_000;
 
 export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerModel {
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
+  const offlineTier = useAppStore((state) => state.offlineTier);
   const runtimeFields = useAppStore((state) => state.runtimeFields);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
@@ -170,6 +171,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     discovering: panelState.discovering,
     testingConnector: panelState.testingConnector,
     checkingHealth: panelState.checkingHealth,
+    runtimeWritesDisabled: offlineTier === 'L2',
     selectedConnector: derived.selectedConnector,
     orderedConnectors: derived.orderedConnectors,
     filteredLocalModels: derived.filteredLocalModels,

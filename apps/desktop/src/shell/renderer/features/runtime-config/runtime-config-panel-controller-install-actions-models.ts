@@ -11,6 +11,8 @@ import {
   type LocalAiInstallAcceptedResponse,
   type LocalAiInstallPlanDescriptor,
 } from '@runtime/local-ai-runtime';
+import { emitRuntimeLog } from '@runtime/telemetry/logger';
+import { createOfflineError, getOfflineCoordinator } from '@runtime/offline';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 
 export type PendingInstallEntry = {
@@ -46,6 +48,18 @@ export function useRuntimeConfigModelManagementActions(
     setStatusBanner,
   } = input;
 
+  const assertRuntimeWriteAllowed = useCallback(() => {
+    if (getOfflineCoordinator().getTier() !== 'L2') {
+      return;
+    }
+    throw createOfflineError({
+      source: 'runtime',
+      reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+      message: 'Runtime unavailable. Local model writes are disabled in read-only mode.',
+      actionHint: 'retry-runtime-when-online',
+    });
+  }, []);
+
   const recordGoRuntimeSyncFailure = useCallback(async (
     eventType: string,
     target: GoRuntimeSyncTarget,
@@ -62,11 +76,19 @@ export function useRuntimeConfigModelManagementActions(
         action: eventType,
         engine: String(target.engine || '').trim() || undefined,
       },
-    }).catch(() => null);
+    }).catch((auditErr) => {
+      emitRuntimeLog({
+        level: 'warn',
+        area: 'local-ai',
+        message: 'action:appendAudit:failed',
+        details: { eventType, error: auditErr instanceof Error ? auditErr.message : String(auditErr) },
+      });
+    });
   }, []);
 
   const importLocalModel = useCallback(async () => {
     try {
+      assertRuntimeWriteAllowed();
       const manifestPath = await localAiRuntime.pickManifestPath();
       if (!manifestPath) {
         return;
@@ -106,10 +128,11 @@ export function useRuntimeConfigModelManagementActions(
       });
       throw error;
     }
-  }, [recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
 
   const importLocalModelFile = useCallback(async (capabilities: string[], engine?: string) => {
     try {
+      assertRuntimeWriteAllowed();
       const filePath = await localAiRuntime.pickModelFile();
       if (!filePath) {
         return;
@@ -156,9 +179,10 @@ export function useRuntimeConfigModelManagementActions(
       });
       throw error;
     }
-  }, [pendingInstallsRef, setPendingInstallVersion, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, pendingInstallsRef, setPendingInstallVersion, setStatusBanner]);
 
   const startLocalModel = useCallback(async (localModelId: string) => {
+    assertRuntimeWriteAllowed();
     const model = await localAiRuntime.start(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
@@ -186,9 +210,10 @@ export function useRuntimeConfigModelManagementActions(
       });
       throw error;
     }
-  }, [recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
 
   const stopLocalModel = useCallback(async (localModelId: string) => {
+    assertRuntimeWriteAllowed();
     const model = await localAiRuntime.stop(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
@@ -216,19 +241,35 @@ export function useRuntimeConfigModelManagementActions(
       });
       throw error;
     }
-  }, [recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
 
   const restartLocalModel = useCallback(async (localModelId: string) => {
+    assertRuntimeWriteAllowed();
     let stoppedModel: Awaited<ReturnType<typeof localAiRuntime.stop>> | null = null;
     let resolvedModelId = localModelId;
     try {
-      stoppedModel = await localAiRuntime.stop(localModelId, { caller: 'core' }).catch(() => null);
+      stoppedModel = await localAiRuntime.stop(localModelId, { caller: 'core' }).catch((stopErr) => {
+        emitRuntimeLog({
+          level: 'warn',
+          area: 'local-ai',
+          message: 'action:restartLocalModel:stop-phase-failed',
+          details: { localModelId, error: stopErr instanceof Error ? stopErr.message : String(stopErr) },
+        });
+        return null;
+      });
       resolvedModelId = stoppedModel?.modelId || localModelId;
       await syncModelStopToGoRuntime({
         modelId: resolvedModelId,
         engine: stoppedModel?.engine,
         localModelId,
-      }).catch(() => null);
+      }).catch((syncErr) => {
+        emitRuntimeLog({
+          level: 'warn',
+          area: 'local-ai',
+          message: 'action:restartLocalModel:sync-stop-failed',
+          details: { localModelId, error: syncErr instanceof Error ? syncErr.message : String(syncErr) },
+        });
+      });
       const startedModel = await localAiRuntime.start(localModelId, { caller: 'core' });
       await syncModelStartToGoRuntime({
         modelId: startedModel.modelId || resolvedModelId,
@@ -249,9 +290,10 @@ export function useRuntimeConfigModelManagementActions(
       });
       throw error;
     }
-  }, [recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
 
   const removeLocalModel = useCallback(async (localModelId: string) => {
+    assertRuntimeWriteAllowed();
     const model = await localAiRuntime.remove(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
@@ -279,9 +321,10 @@ export function useRuntimeConfigModelManagementActions(
       });
       throw error;
     }
-  }, [recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
 
   const removeLocalArtifact = useCallback(async (localArtifactId: string) => {
+    assertRuntimeWriteAllowed();
     const artifact = await localAiRuntime.removeArtifact(localArtifactId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
@@ -294,7 +337,7 @@ export function useRuntimeConfigModelManagementActions(
       kind: 'success',
       message: `Artifact removed: ${artifact.artifactId}`,
     });
-  }, [refreshLocalSnapshot, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
 
   return {
     importLocalModel,

@@ -1,5 +1,6 @@
 import type { DesktopHookRuntimeService } from '@runtime/hook';
 import { localAiRuntime } from '@runtime/local-ai-runtime';
+import { getOfflineCoordinator } from '@runtime/offline';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
 const LOCAL_CHAT_MOD_ID = 'world.nimi.local-chat';
@@ -18,6 +19,14 @@ function toRecord(value: unknown): Record<string, unknown> {
 
 function readString(value: unknown): string {
   return String(value || '').trim();
+}
+
+function runtimeWriteUnavailableResult() {
+  return {
+    ok: false,
+    reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+    actionHint: 'retry-runtime-when-online',
+  };
 }
 
 function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
@@ -108,6 +117,9 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
     },
     requiredCapabilities: ['action.commit.runtime.local-ai.models.start'],
     handler: async (input) => {
+      if (getOfflineCoordinator().getTier() === 'L2') {
+        return runtimeWriteUnavailableResult();
+      }
       const localModelId = String(input.input.localModelId || '').trim();
       if (!localModelId) {
         return {
@@ -142,6 +154,9 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
     },
     requiredCapabilities: ['action.commit.runtime.local-ai.models.stop'],
     handler: async (input) => {
+      if (getOfflineCoordinator().getTier() === 'L2') {
+        return runtimeWriteUnavailableResult();
+      }
       const localModelId = String(input.input.localModelId || '').trim();
       if (!localModelId) {
         return {
@@ -176,6 +191,9 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
     },
     requiredCapabilities: ['action.commit.runtime.local-ai.models.remove'],
     handler: async (input) => {
+      if (getOfflineCoordinator().getTier() === 'L2') {
+        return runtimeWriteUnavailableResult();
+      }
       const localModelId = String(input.input.localModelId || '').trim();
       if (!localModelId) {
         return {
@@ -210,6 +228,9 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
     },
     requiredCapabilities: ['action.commit.runtime.local-ai.models.install'],
     handler: async (input) => {
+      if (getOfflineCoordinator().getTier() === 'L2') {
+        return runtimeWriteUnavailableResult();
+      }
       const modelId = String(input.input.modelId || '').trim();
       const repo = String(input.input.repo || '').trim();
       if (!modelId || !repo) {
@@ -255,6 +276,9 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
     },
     requiredCapabilities: ['action.commit.runtime.local-ai.models.import'],
     handler: async (input) => {
+      if (getOfflineCoordinator().getTier() === 'L2') {
+        return runtimeWriteUnavailableResult();
+      }
       const manifestPath = String(input.input.manifestPath || '').trim();
       if (!manifestPath) {
         return {
@@ -345,6 +369,9 @@ function registerModActions(hookRuntime: DesktopHookRuntimeService): void {
     },
     requiredCapabilities: [`data.query.${LOCAL_CHAT_SESSIONS_UPSERT_CAPABILITY}`],
     handler: async (input) => {
+      if (getOfflineCoordinator().getTier() === 'L2') {
+        return runtimeWriteUnavailableResult();
+      }
       const payload = toRecord(input.input);
       const upserted = await hookRuntime.queryData({
         modId: LOCAL_CHAT_MOD_ID,
@@ -417,6 +444,9 @@ function registerModActions(hookRuntime: DesktopHookRuntimeService): void {
     },
     requiredCapabilities: [`data.query.${WORLD_STUDIO_DRAFT_UPDATE_CAPABILITY}`],
     handler: async (input) => {
+      if (getOfflineCoordinator().getTier() === 'L2') {
+        return runtimeWriteUnavailableResult();
+      }
       const draftId = readString(input.input.draftId);
       const patch = toRecord(input.input.patch);
       if (!draftId || Object.keys(patch).length <= 0) {

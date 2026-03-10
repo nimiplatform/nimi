@@ -22,6 +22,12 @@ import {
   toChatProfileSummary,
   toMessageTimestamp,
 } from './message-timeline-utils.js';
+import {
+  sameChatTimelineIdentity,
+  toChatTimelineOutboxMessage,
+  toChatTimelineRemoteMessage,
+  type ChatTimelineMessage,
+} from './chat-timeline-message';
 import { type StreamState, getStreamState, subscribeStream, cancelStream } from './stream-controller';
 
 type ProfilePanelTarget = 'self' | 'other' | null;
@@ -97,16 +103,28 @@ export function MessageTimeline() {
   const contactAvatarUrl = otherUser?.avatarUrl || null;
 
   const messages = useMemo(() => {
-    const items = ((messagesQuery.data?.items || []) as MessageViewDto[]).slice();
-    items.sort((left, right) => {
+    const remoteItems = ((messagesQuery.data?.items || []) as MessageViewDto[])
+      .map((message) => toChatTimelineRemoteMessage(message));
+    const offlineOutbox = Array.isArray((messagesQuery.data as { offlineOutbox?: unknown } | undefined)?.offlineOutbox)
+      ? ((messagesQuery.data as { offlineOutbox?: unknown }).offlineOutbox as import('@runtime/offline').PersistentOutboxEntry[])
+      : [];
+    const merged: ChatTimelineMessage[] = remoteItems.slice();
+    for (const entry of offlineOutbox) {
+      const placeholder = toChatTimelineOutboxMessage(entry, currentUserId);
+      if (merged.some((message) => sameChatTimelineIdentity(message, placeholder))) {
+        continue;
+      }
+      merged.push(placeholder);
+    }
+    merged.sort((left, right) => {
       const timeDiff = toMessageTimestamp(left) - toMessageTimestamp(right);
       if (timeDiff !== 0) {
         return timeDiff;
       }
-      return String(left.id || '').localeCompare(String(right.id || ''));
+      return String(left.clientMessageId || left.id || '').localeCompare(String(right.clientMessageId || right.id || ''));
     });
-    return items;
-  }, [messagesQuery.data?.items]);
+    return merged;
+  }, [currentUserId, messagesQuery.data]);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -242,7 +260,7 @@ export function MessageTimeline() {
             <p className="text-center text-sm text-gray-500">{t('Chat.noMessages')}</p>
           ) : (
             messages.map((message, index) => {
-              const isMe = message.senderId === currentUserId;
+              const isMe = message.deliveryState !== 'sent' || message.senderId === currentUserId;
               const senderName = isMe ? t('ChatTimeline.you') : contactName;
               const messageProfileTarget: Exclude<ProfilePanelTarget, null> = isMe ? 'self' : 'other';
               const showTimestamp = shouldShowTimestamp(message, index > 0 ? (messages[index - 1] ?? null) : null);
@@ -264,7 +282,7 @@ export function MessageTimeline() {
               );
               const diagnosticsExpanded = expandedDiagnosticsMessageId === message.id;
               return (
-                <div key={message.id}>
+                <div key={message.id || message.clientMessageId}>
                   {showTimestamp && timestampLabel ? (
                     <div className="my-6 flex items-center justify-center">
                       <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-medium text-gray-500">{timestampLabel}</span>
@@ -372,6 +390,21 @@ export function MessageTimeline() {
                         </div>
                       )}
                     </div>
+                    {message.deliveryState !== 'sent' ? (
+                      <div
+                        className={`mt-1 px-1 text-[11px] ${
+                          isMe ? 'text-right' : 'text-left'
+                        } ${
+                          message.deliveryState === 'failed'
+                            ? 'text-red-500'
+                            : 'text-amber-600'
+                        }`}
+                      >
+                        {message.deliveryState === 'failed'
+                          ? (message.deliveryError || t('ChatTimeline.sendFailed'))
+                          : t('ChatTimeline.queuedLocally')}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
                 </div>

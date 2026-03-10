@@ -2,8 +2,17 @@ import { invokeModLlm } from './invoke-text';
 import type { ExecuteLocalKernelTurnInput, ExecuteLocalKernelTurnResult } from './types';
 import { buildLocalId, estimateTokens } from './utils';
 import { ReasonCode } from '@nimiplatform/sdk/types';
+import { createOfflineError, getOfflineCoordinator } from '@runtime/offline';
 
 export async function executeLocalKernelTurn(input: ExecuteLocalKernelTurnInput): Promise<ExecuteLocalKernelTurnResult> {
+  if (getOfflineCoordinator().getTier() === 'L2') {
+    throw createOfflineError({
+      source: 'runtime',
+      reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+      message: 'Runtime unavailable. Local kernel execution is disabled in read-only mode.',
+      actionHint: 'retry-runtime-when-online',
+    });
+  }
   const prompt = [
     `世界: ${input.worldId || 'unknown-world'}`,
     `智能体: ${input.agentId || 'unknown-agent'}`,

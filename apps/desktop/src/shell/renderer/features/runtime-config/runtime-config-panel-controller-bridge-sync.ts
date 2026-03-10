@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { desktopBridge } from '@renderer/bridge';
+import { getOfflineCoordinator } from '@runtime/offline';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
   applyRuntimeBridgeConfigToState,
@@ -139,4 +140,31 @@ export function useRuntimeConfigBridgeSync(input: UseRuntimeConfigBridgeSyncInpu
       clearTimeout(timer);
     };
   }, [hydrated, state, setStatusBanner]);
+
+  useEffect(() => {
+    if (!desktopBridge.hasTauriInvoke()) {
+      return undefined;
+    }
+    const coordinator = getOfflineCoordinator();
+    return coordinator.subscribeRuntimeReconnect(() => {
+      if (!hydrated || !state || !runtimeBridgeReadSucceededRef.current) {
+        return;
+      }
+      const nextProjection = serializeRuntimeBridgeProjection(state);
+      if (!runtimeBridgeFailedProjectionRef.current || runtimeBridgeFailedProjectionRef.current !== nextProjection) {
+        return;
+      }
+      void (async () => {
+        try {
+          const nextConfig = buildRuntimeBridgeConfigFromState(state, runtimeBridgeConfigRef.current);
+          const result = await desktopBridge.setRuntimeBridgeConfig(JSON.stringify(nextConfig));
+          runtimeBridgeConfigRef.current = asRecord(result.config);
+          runtimeBridgeProjectionRef.current = nextProjection;
+          runtimeBridgeFailedProjectionRef.current = '';
+        } catch {
+          // Keep failed projection intact for the next reconnect edge.
+        }
+      })();
+    });
+  }, [hydrated, setStatusBanner, state]);
 }
