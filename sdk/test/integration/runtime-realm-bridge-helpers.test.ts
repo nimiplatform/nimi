@@ -5,7 +5,6 @@ import {
   buildRuntimeAuthMetadata,
   createRuntimeRealmBridgeHelpers,
   fetchRealmGrant,
-  linkRuntimeTraceToRealmWrite,
   type RuntimeRealmBridgeContext,
 } from '../../src/runtime/index.js';
 
@@ -19,26 +18,6 @@ test('buildRuntimeAuthMetadata maps grant token and version into runtime metadat
     realmGrantToken: 'grant-token-1',
     realmGrantVersion: 'v1',
   });
-});
-
-test('linkRuntimeTraceToRealmWrite injects traceId only when payload traceId is missing', () => {
-  const injected = linkRuntimeTraceToRealmWrite({
-    runtimeTraceId: 'trace-runtime-1',
-    realmPayload: {
-      content: 'hello',
-    },
-  });
-  assert.equal(injected.traceId, 'trace-runtime-1');
-  assert.equal(injected.content, 'hello');
-
-  const kept = linkRuntimeTraceToRealmWrite({
-    runtimeTraceId: 'trace-runtime-2',
-    realmPayload: {
-      content: 'hello',
-      traceId: 'trace-already-set',
-    },
-  });
-  assert.equal(kept.traceId, 'trace-already-set');
 });
 
 test('fetchRealmGrant and helper bundle follow explicit Realm -> Runtime bridge contract', async () => {

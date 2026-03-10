@@ -3,6 +3,7 @@ import type {
   RuntimeRealmBridgeContext,
   RuntimeRealmBridgeHelpers,
 } from './types.js';
+import { normalizeText, ensureText } from './helpers.js';
 
 const DEFAULT_REALM_GRANT_PATH = '/api/creator/mods/control/grants/issue';
 
@@ -24,18 +25,6 @@ type RealmGrantResponse = {
   version?: unknown;
   expiresAt?: unknown;
 };
-
-function normalizeText(value: unknown): string {
-  return String(value || '').trim();
-}
-
-function ensureText(value: unknown, field: string): string {
-  const normalized = normalizeText(value);
-  if (!normalized) {
-    throw new Error(`${field} is required`);
-  }
-  return normalized;
-}
 
 function toStringArray(values: string[]): string[] {
   return values
@@ -88,31 +77,12 @@ export function buildRuntimeAuthMetadata(input: RuntimeAuthMaterial): Record<str
   return metadata;
 }
 
-export function linkRuntimeTraceToRealmWrite(input: {
-  runtimeTraceId?: string;
-  realmPayload: Record<string, unknown>;
-}): Record<string, unknown> {
-  const payload: Record<string, unknown> = {
-    ...input.realmPayload,
-  };
-  const existingTraceId = normalizeText(payload.traceId);
-  if (existingTraceId) {
-    return payload;
-  }
-  const runtimeTraceId = normalizeText(input.runtimeTraceId);
-  if (runtimeTraceId) {
-    payload.traceId = runtimeTraceId;
-  }
-  return payload;
-}
-
 export function createRuntimeRealmBridgeHelpers(
   context: RuntimeRealmBridgeContext,
 ): RuntimeRealmBridgeHelpers {
   return {
     fetchRealmGrant: async (input) => fetchRealmGrant(context, input),
     buildRuntimeAuthMetadata,
-    linkRuntimeTraceToRealmWrite,
   };
 }
 
