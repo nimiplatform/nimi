@@ -444,6 +444,53 @@ func (s *auditInterceptorTestStream) RecvMsg(m any) error {
 	return nil
 }
 
+func TestAuditEventMandatoryFieldsCompleteness(t *testing.T) {
+	// K-AUDIT-001: every audit event MUST have 6 mandatory fields:
+	// trace_id, app_id, domain, operation, reason_code, timestamp.
+	store := auditlog.New(128, 128)
+	interceptor := newUnaryAuditInterceptor(store)
+
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-trace-id", "trace-mandatory-001",
+	))
+	req := scenarioExecuteTextRequest("nimi.desktop", "user-001", "local/qwen2.5")
+	info := &grpc.UnaryServerInfo{
+		FullMethod: "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
+	}
+	_, _ = interceptor(ctx, req, info, func(context.Context, any) (any, error) {
+		return &runtimev1.ExecuteScenarioResponse{
+			ModelResolved: "qwen2.5",
+			Usage:         &runtimev1.UsageStats{InputTokens: 5, OutputTokens: 3},
+		}, nil
+	})
+
+	events := store.ListEvents(&runtimev1.ListAuditEventsRequest{})
+	if len(events.GetEvents()) == 0 {
+		t.Fatal("expected at least one audit event")
+	}
+	event := events.GetEvents()[0]
+
+	// Verify all 6 mandatory fields
+	if strings.TrimSpace(event.GetTraceId()) == "" {
+		t.Error("mandatory field trace_id is empty")
+	}
+	if strings.TrimSpace(event.GetAppId()) == "" {
+		t.Error("mandatory field app_id is empty")
+	}
+	if strings.TrimSpace(event.GetDomain()) == "" {
+		t.Error("mandatory field domain is empty")
+	}
+	if strings.TrimSpace(event.GetOperation()) == "" {
+		t.Error("mandatory field operation is empty")
+	}
+	if event.GetReasonCode() == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		t.Error("mandatory field reason_code is UNSPECIFIED")
+	}
+	if event.GetTimestamp() == nil {
+		t.Error("mandatory field timestamp is nil")
+	}
+}
+
 func scenarioExecuteTextRequest(appID string, subjectUserID string, modelID string) *runtimev1.ExecuteScenarioRequest {
 	return &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{

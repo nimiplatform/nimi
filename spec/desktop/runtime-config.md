@@ -36,17 +36,6 @@ type RuntimePageIdV11 = 'overview' | 'local' | 'cloud' | 'runtime' | 'mods';
 
 `RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; description: string }>` 定义每个页面的名称和描述，供 sidebar 和 header 使用。
 
-### Legacy 值迁移
-
-`normalizePageIdV11(value)` 处理旧版持久化值：
-
-| 旧值 | 映射目标 |
-|------|----------|
-| `'models'` | `'local'` |
-| `'cloud-api'` / `'cloud'` / `'cloud'` | `'cloud'` |
-| `'providers'` / `'audit'` | `'runtime'` |
-| 其他未知值 | `'overview'` |
-
 ## Panel State
 
 `RuntimeConfigStateV11` 为面板 UI 状态，通过 localStorage 持久化（key: `nimi:runtime-config:v11`）。

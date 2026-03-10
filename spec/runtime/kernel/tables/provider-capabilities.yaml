@@ -85,7 +85,7 @@ providers:
     execution_module: nimillm
     managed_connector_supported: true
     inline_supported: true
-    endpoint_requirement: explicit_required
+    endpoint_requirement: default_or_explicit
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -105,7 +105,7 @@ providers:
     execution_module: nimillm
     managed_connector_supported: true
     inline_supported: true
-    endpoint_requirement: explicit_required
+    endpoint_requirement: default_or_explicit
     sources:
       - K-MCAT-027
       - K-CONN-008

@@ -69,10 +69,6 @@ export type RuntimeRealmBridgeHelpers = {
     grantToken: string;
     grantVersion: string;
   }): Record<string, string>;
-  linkRuntimeTraceToRealmWrite(input: {
-    runtimeTraceId?: string;
-    realmPayload: Record<string, unknown>;
-  }): Record<string, unknown>;
 };
 
 export type RuntimeScopeModule = {

@@ -17,6 +17,9 @@ import {
   toSortedArray,
   mapDefinitionsToObject,
 } from './live-provider-utils.mjs';
+import { mergeMissingEnv, prepareLiveAudioFixtures } from './lib/live-audio-fixtures.mjs';
+import { buildMergedEnv } from './lib/live-env.mjs';
+import { synthesizeLiveProviderEnvDefaults } from './lib/live-provider-defaults.mjs';
 
 const repoRoot = resolveRepoRoot(import.meta.url);
 const runtimeDir = path.join(repoRoot, 'runtime');
@@ -35,15 +38,43 @@ const providerCatalogFile = path.join(
 const reportDir = path.join(repoRoot, 'dev', 'report');
 const reportPath = path.join(reportDir, 'live-test-coverage.yaml');
 const goldReportPath = path.join(reportDir, 'ai-gold-path-report.yaml');
+const baseLiveEnv = buildMergedEnv({
+  baseEnv: process.env,
+  filePaths: [
+    path.join(repoRoot, 'dev', 'config', 'dashscope-gold-path.env'),
+    path.join(repoRoot, '.env'),
+  ],
+});
+const preparedAudio = prepareLiveAudioFixtures({
+  cwd: repoRoot,
+  env: baseLiveEnv,
+  strict: false,
+});
+if (preparedAudio.error) {
+  process.stdout.write(`[live-test-matrix] live audio fixture prepare skipped: ${preparedAudio.error}\n`);
+}
+const derivedProviderEnv = synthesizeLiveProviderEnvDefaults({
+  repoRoot,
+  env: baseLiveEnv,
+});
+if (derivedProviderEnv.providers.length > 0) {
+  process.stdout.write(
+    `[live-test-matrix] derived live provider defaults: ${derivedProviderEnv.providers.join(', ')}\n`,
+  );
+}
+const liveEnv = mergeMissingEnv(
+  mergeMissingEnv(baseLiveEnv, { env: derivedProviderEnv.env }),
+  preparedAudio.payload,
+);
 
 function runRuntimeTests() {
   process.stdout.write('[live-test-matrix] running runtime live smoke tests...\n');
   const result = spawnSync(
     'go',
-    ['test', './internal/services/ai/', '-v', '-run', 'TestLiveSmoke', '-timeout', '15m', '-count=1'],
+    ['test', './internal/services/ai/', '-v', '-run', 'TestLiveSmokeProviderCapabilityMatrix', '-timeout', '15m', '-count=1'],
     {
       cwd: runtimeDir,
-      env: process.env,
+      env: liveEnv,
       stdio: ['ignore', 'pipe', 'pipe'],
       encoding: 'utf8',
       timeout: 15 * 60 * 1000,
@@ -66,7 +97,7 @@ function runSdkTests() {
     ['tsx', '--test', sdkTestFile],
     {
       cwd: repoRoot,
-      env: { ...process.env, NIMI_SDK_LIVE: '1' },
+      env: { ...liveEnv, NIMI_SDK_LIVE: '1' },
       stdio: ['ignore', 'pipe', 'pipe'],
       encoding: 'utf8',
       timeout: 20 * 60 * 1000,
@@ -89,7 +120,7 @@ function runGoldPathTests() {
     ['scripts/run-dashscope-gold-path.mjs'],
     {
       cwd: repoRoot,
-      env: process.env,
+      env: liveEnv,
       stdio: ['ignore', 'pipe', 'pipe'],
       encoding: 'utf8',
       timeout: 30 * 60 * 1000,
@@ -151,7 +182,7 @@ function parseNodeTestOutput(output) {
       continue;
     }
 
-    const nodeFail = line.match(/^\s*[✗✘]\s+(.+?)(?:\s+\(\d+[\d.]*m?s\))?$/);
+    const nodeFail = line.match(/^\s*[✗✘✖✕]\s+(.+?)(?:\s+\(\d+[\d.]*m?s\))?$/);
     if (nodeFail) {
       results.set(nodeFail[1].trim(), 'fail');
       continue;

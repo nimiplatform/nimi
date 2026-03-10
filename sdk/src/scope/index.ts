@@ -1,4 +1,5 @@
 import { createNimiError } from '../runtime/index.js';
+import { normalizeText } from '../runtime/helpers.js';
 import type {
   ScopeCatalogDescriptor,
   ScopeCatalogEntry,
@@ -45,10 +46,6 @@ export type ScopeModule = {
   }): ScopeCatalogRevokeResult;
   resolvePublishedCatalogVersion(version?: ScopeCatalogVersion): ScopeCatalogVersion;
 };
-
-function normalizeText(value: unknown): string {
-  return String(value || '').trim();
-}
 
 function normalizeScopeList(scopes: ScopeName[]): ScopeName[] {
   return Array.from(new Set((Array.isArray(scopes) ? scopes : [])

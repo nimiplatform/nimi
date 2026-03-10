@@ -125,7 +125,7 @@ export type RuntimeCallResult<T> = {
   error: NimiError;
 };
 
-export type RuntimeConnectionMode = 'auto' | 'manual';
+export type RuntimeConnectionMode = 'auto';
 
 export type RuntimeConnectionState = {
   status: 'idle' | 'connecting' | 'ready' | 'closing' | 'closed';

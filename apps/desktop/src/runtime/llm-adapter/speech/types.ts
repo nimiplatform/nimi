@@ -31,15 +31,6 @@ export type SpeechNativeStreamResponse = {
   chunks: AsyncIterable<Uint8Array>;
 };
 
-export type SpeechProviderDescriptor = {
-  id: string;
-  name: string;
-  status: 'available' | 'unavailable';
-  capabilities?: string[];
-  voiceCount?: number;
-  ownerModId?: string;
-};
-
 export type SpeechVoiceDescriptor = {
   id: string;
   providerId: string;
@@ -50,13 +41,6 @@ export type SpeechVoiceDescriptor = {
   modelResolved?: string;
   voiceCatalogSource?: string;
   voiceCatalogVersion?: string;
-};
-
-export type SpeechHealthResult = {
-  status: 'healthy' | 'unreachable' | 'unsupported';
-  detail: string;
-  checkedAt: string;
-  latencyMs?: number;
 };
 
 export type SpeechStreamOpenResult = {

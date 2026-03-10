@@ -157,7 +157,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 			return nil
 		}
 		chunkBuf.WriteString(text)
-		if chunkBuf.Len() < defaultChunkSize {
+		if chunkBuf.Len() < minStreamChunkBytes {
 			return nil
 		}
 		chunk := chunkBuf.String()

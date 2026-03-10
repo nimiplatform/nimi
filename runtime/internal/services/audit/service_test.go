@@ -264,3 +264,282 @@ func waitForRuntimeHealthEvents(stream *runtimeHealthStreamCollector, target int
 	defer stream.mu.Unlock()
 	return len(stream.events) >= target
 }
+
+// --- Extended tests for coverage (K-STREAM-009, pagination, export) ---
+
+func TestListAuditEventsSyntheticBaseline(t *testing.T) {
+	state := health.NewState()
+	state.SetStatus(health.StatusReady, "ready")
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+
+	resp, err := svc.ListAuditEvents(context.Background(), &runtimev1.ListAuditEventsRequest{})
+	if err != nil {
+		t.Fatalf("ListAuditEvents: %v", err)
+	}
+	if len(resp.GetEvents()) == 0 {
+		t.Fatal("expected at least one synthetic audit event")
+	}
+	event := resp.GetEvents()[0]
+	if event.GetAppId() != "runtime" {
+		t.Fatalf("app_id: got=%q want=%q", event.GetAppId(), "runtime")
+	}
+	if event.GetDomain() != "runtime.health" {
+		t.Fatalf("domain: got=%q want=%q", event.GetDomain(), "runtime.health")
+	}
+	if event.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
+		t.Fatalf("reason_code: got=%v", event.GetReasonCode())
+	}
+}
+
+func TestListAuditEventsFilterByAppId(t *testing.T) {
+	state := health.NewState()
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+
+	resp, err := svc.ListAuditEvents(context.Background(), &runtimev1.ListAuditEventsRequest{
+		AppId: "nonexistent-app",
+	})
+	if err != nil {
+		t.Fatalf("ListAuditEvents: %v", err)
+	}
+	if len(resp.GetEvents()) != 0 {
+		t.Fatalf("expected no events for nonexistent app, got=%d", len(resp.GetEvents()))
+	}
+}
+
+func TestListAuditEventsFilterByDomain(t *testing.T) {
+	state := health.NewState()
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+
+	resp, err := svc.ListAuditEvents(context.Background(), &runtimev1.ListAuditEventsRequest{
+		Domain: "runtime.health",
+	})
+	if err != nil {
+		t.Fatalf("ListAuditEvents: %v", err)
+	}
+	if len(resp.GetEvents()) == 0 {
+		t.Fatal("expected events matching domain filter")
+	}
+}
+
+func TestListAuditEventsPagination(t *testing.T) {
+	state := health.NewState()
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+
+	resp, err := svc.ListAuditEvents(context.Background(), &runtimev1.ListAuditEventsRequest{
+		PageSize: 1,
+	})
+	if err != nil {
+		t.Fatalf("ListAuditEvents: %v", err)
+	}
+	if len(resp.GetEvents()) > 1 {
+		t.Fatalf("page size 1 should return at most 1 event, got=%d", len(resp.GetEvents()))
+	}
+}
+
+func TestListUsageStatsBaseline(t *testing.T) {
+	state := health.NewState()
+	state.SetStatus(health.StatusReady, "ready")
+	state.SetActivity(2, 1, 1)
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+
+	resp, err := svc.ListUsageStats(context.Background(), &runtimev1.ListUsageStatsRequest{})
+	if err != nil {
+		t.Fatalf("ListUsageStats: %v", err)
+	}
+	if len(resp.GetRecords()) != 1 {
+		t.Fatalf("expected 1 usage record, got=%d", len(resp.GetRecords()))
+	}
+	record := resp.GetRecords()[0]
+	if record.GetAppId() != "runtime" {
+		t.Fatalf("app_id: got=%q", record.GetAppId())
+	}
+	if record.GetCapability() != "runtime.health" {
+		t.Fatalf("capability: got=%q", record.GetCapability())
+	}
+}
+
+func TestListUsageStatsFilterByCapability(t *testing.T) {
+	state := health.NewState()
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+
+	resp, err := svc.ListUsageStats(context.Background(), &runtimev1.ListUsageStatsRequest{
+		Capability: "nonexistent",
+	})
+	if err != nil {
+		t.Fatalf("ListUsageStats: %v", err)
+	}
+	if len(resp.GetRecords()) != 0 {
+		t.Fatalf("expected no records for nonexistent capability, got=%d", len(resp.GetRecords()))
+	}
+}
+
+func TestListUsageStatsFilterByCallerKind(t *testing.T) {
+	state := health.NewState()
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+
+	resp, err := svc.ListUsageStats(context.Background(), &runtimev1.ListUsageStatsRequest{
+		CallerKind: runtimev1.CallerKind_CALLER_KIND_THIRD_PARTY_APP,
+	})
+	if err != nil {
+		t.Fatalf("ListUsageStats: %v", err)
+	}
+	if len(resp.GetRecords()) != 0 {
+		t.Fatalf("expected no records for wrong caller kind, got=%d", len(resp.GetRecords()))
+	}
+}
+
+func TestListUsageStatsFilterByCallerId(t *testing.T) {
+	state := health.NewState()
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+
+	resp, err := svc.ListUsageStats(context.Background(), &runtimev1.ListUsageStatsRequest{
+		CallerId: "wrong-caller",
+	})
+	if err != nil {
+		t.Fatalf("ListUsageStats: %v", err)
+	}
+	if len(resp.GetRecords()) != 0 {
+		t.Fatalf("expected no records for wrong caller_id, got=%d", len(resp.GetRecords()))
+	}
+}
+
+func TestExportAuditEventsEofTrue(t *testing.T) {
+	state := health.NewState()
+	state.SetStatus(health.StatusReady, "ready")
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+
+	ctx := context.Background()
+	stream := &exportStreamCollector{ctx: ctx}
+	err := svc.ExportAuditEvents(&runtimev1.ExportAuditEventsRequest{}, stream)
+	if err != nil {
+		t.Fatalf("ExportAuditEvents: %v", err)
+	}
+	if len(stream.chunks) == 0 {
+		t.Fatal("expected at least one chunk")
+	}
+	lastChunk := stream.chunks[len(stream.chunks)-1]
+	if !lastChunk.GetEof() {
+		t.Fatal("last chunk must have eof=true (K-STREAM-009)")
+	}
+	if lastChunk.GetExportId() == "" {
+		t.Fatal("export_id must be set")
+	}
+}
+
+func TestExportAuditEventsCompressed(t *testing.T) {
+	state := health.NewState()
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+
+	ctx := context.Background()
+	stream := &exportStreamCollector{ctx: ctx}
+	err := svc.ExportAuditEvents(&runtimev1.ExportAuditEventsRequest{
+		Compress: true,
+	}, stream)
+	if err != nil {
+		t.Fatalf("ExportAuditEvents with compress: %v", err)
+	}
+	if len(stream.chunks) == 0 {
+		t.Fatal("expected at least one chunk")
+	}
+	if !stream.chunks[0].GetEof() || stream.chunks[0].GetMimeType() == "" {
+		// Single chunk for small data.
+	}
+}
+
+func TestExportAuditEventsSequenceIncreases(t *testing.T) {
+	state := health.NewState()
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+
+	ctx := context.Background()
+	stream := &exportStreamCollector{ctx: ctx}
+	err := svc.ExportAuditEvents(&runtimev1.ExportAuditEventsRequest{}, stream)
+	if err != nil {
+		t.Fatalf("ExportAuditEvents: %v", err)
+	}
+	for i, chunk := range stream.chunks {
+		if chunk.GetSequence() != uint64(i+1) {
+			t.Fatalf("chunk %d sequence: got=%d want=%d", i, chunk.GetSequence(), i+1)
+		}
+	}
+}
+
+func TestSubscribeRuntimeHealthEventsCloseOnCancel(t *testing.T) {
+	state := health.NewState()
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+
+	ctx, cancel := context.WithCancel(context.Background())
+	stream := &runtimeHealthStreamCollector{ctx: ctx}
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.SubscribeRuntimeHealthEvents(&runtimev1.SubscribeRuntimeHealthEventsRequest{}, stream)
+	}()
+
+	// Cancel immediately.
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("expected nil error on cancel, got=%v", err)
+		}
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("subscribe did not exit after cancel")
+	}
+}
+
+func TestSubscribeAIProviderHealthEventsCloseOnCancel(t *testing.T) {
+	state := health.NewState()
+	tracker := providerhealth.New()
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), tracker)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	stream := &providerHealthStreamCollector{ctx: ctx}
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.SubscribeAIProviderHealthEvents(&runtimev1.SubscribeAIProviderHealthEventsRequest{}, stream)
+	}()
+
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("expected nil error on cancel, got=%v", err)
+		}
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("subscribe did not exit after cancel")
+	}
+}
+
+func TestSubscribeAIProviderHealthEventsNilTracker(t *testing.T) {
+	state := health.NewState()
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	stream := &providerHealthStreamCollector{ctx: ctx}
+	err := svc.SubscribeAIProviderHealthEvents(&runtimev1.SubscribeAIProviderHealthEventsRequest{}, stream)
+	if err != nil {
+		t.Fatalf("expected nil error with nil tracker, got=%v", err)
+	}
+}
+
+// --- export stream helper ---
+
+type exportStreamCollector struct {
+	ctx    context.Context
+	mu     sync.Mutex
+	chunks []*runtimev1.AuditExportChunk
+}
+
+func (s *exportStreamCollector) Send(chunk *runtimev1.AuditExportChunk) error {
+	s.mu.Lock()
+	s.chunks = append(s.chunks, chunk)
+	s.mu.Unlock()
+	return nil
+}
+
+func (s *exportStreamCollector) SetHeader(metadata.MD) error  { return nil }
+func (s *exportStreamCollector) SendHeader(metadata.MD) error { return nil }
+func (s *exportStreamCollector) SetTrailer(metadata.MD)       {}
+func (s *exportStreamCollector) Context() context.Context     { return s.ctx }
+func (s *exportStreamCollector) SendMsg(any) error            { return nil }
+func (s *exportStreamCollector) RecvMsg(any) error            { return nil }

@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { prepareLiveAudioFixtures, mergeMissingEnv } from './lib/live-audio-fixtures.mjs';
+import { buildMergedEnv } from './lib/live-env.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_PROFILE_PATH = path.join(REPO_ROOT, 'dev', 'config', 'dashscope-gold-path.env');
@@ -45,59 +47,6 @@ function parseArgs() {
   };
 }
 
-function parseEnvFile(content) {
-  const output = {};
-  for (const line of String(content || '').split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) {
-      continue;
-    }
-    const separator = trimmed.indexOf('=');
-    if (separator <= 0) {
-      continue;
-    }
-    const key = trimmed.slice(0, separator).trim();
-    let value = trimmed.slice(separator + 1).trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"'))
-      || (value.startsWith('\'') && value.endsWith('\''))
-    ) {
-      value = value.slice(1, -1);
-    }
-    if (key) {
-      output[key] = value;
-    }
-  }
-  return output;
-}
-
-function loadEnvFile(envPath) {
-  if (!envPath || !existsSync(envPath)) {
-    return {};
-  }
-  return parseEnvFile(readFileSync(envPath, 'utf8'));
-}
-
-function prepareAudioFixtures() {
-  const result = spawnSync(
-    'node',
-    ['scripts/live-audio-fixtures.mjs', '--prepare-only', '--json'],
-    {
-      cwd: REPO_ROOT,
-      env: process.env,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    },
-  );
-  if (result.error) {
-    throw new Error(`prepare live audio fixtures failed: ${result.error.message}`);
-  }
-  if (result.status !== 0) {
-    throw new Error(`prepare live audio fixtures failed: ${String(result.stderr || result.stdout || 'unknown error').trim()}`);
-  }
-  return JSON.parse(String(result.stdout || '{}'));
-}
-
 function requireEnv(env, key) {
   const value = String(env[key] || '').trim();
   if (!value) {
@@ -107,25 +56,20 @@ function requireEnv(env, key) {
 }
 
 function buildResolvedEnv(options) {
-  const profileEnv = loadEnvFile(options.profilePath);
-  const fileEnv = loadEnvFile(options.envFile);
-  const preparedAudio = prepareAudioFixtures();
-  const merged = {
-    ...profileEnv,
-    ...fileEnv,
-    ...process.env,
-  };
+  const merged = buildMergedEnv({
+    baseEnv: process.env,
+    filePaths: [options.profilePath, options.envFile],
+  });
+  const preparedAudio = prepareLiveAudioFixtures({
+    cwd: REPO_ROOT,
+    env: merged,
+    strict: true,
+  });
+  const resolved = mergeMissingEnv(merged, preparedAudio.payload);
 
-  if (!String(merged.NIMI_LIVE_STT_AUDIO_PATH || '').trim()) {
-    merged.NIMI_LIVE_STT_AUDIO_PATH = String(preparedAudio?.env?.NIMI_LIVE_STT_AUDIO_PATH || '').trim();
-  }
-  if (!String(merged.NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_PATH || '').trim()) {
-    merged.NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_PATH = String(preparedAudio?.env?.NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_PATH || '').trim();
-  }
-
-  requireEnv(merged, 'NIMI_LIVE_DASHSCOPE_API_KEY');
-  requireEnv(merged, 'NIMI_LIVE_GOLD_SUBJECT_USER_ID');
-  return merged;
+  requireEnv(resolved, 'NIMI_LIVE_DASHSCOPE_API_KEY');
+  requireEnv(resolved, 'NIMI_LIVE_GOLD_SUBJECT_USER_ID');
+  return resolved;
 }
 
 function toInterestingEnv(env) {

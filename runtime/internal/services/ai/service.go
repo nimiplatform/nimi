@@ -21,7 +21,9 @@ import (
 )
 
 const (
-	defaultChunkSize            = 32
+	// minStreamChunkBytes is the minimum buffered bytes before flushing a
+	// streaming text delta to the client. (K-STREAM-006)
+	minStreamChunkBytes         = 32
 	defaultGenerateTimeout      = 30 * time.Second
 	defaultStreamFirstTimeout   = 10 * time.Second
 	defaultStreamTotalTimeout   = 120 * time.Second

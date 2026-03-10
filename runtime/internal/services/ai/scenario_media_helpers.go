@@ -14,10 +14,10 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
-	"github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 )
 
 const (
@@ -536,7 +536,7 @@ func executeBackendSyncMedia(
 			payload []byte
 			usage   *runtimev1.UsageStats
 			err     error
-			compat  *nimillm.LocalAIImageCompat
+			diag    *nimillm.LocalAIImageDiagnostics
 		)
 		if adapterName == adapterLocalAINative {
 			if s != nil && s.localImageProfile != nil {
@@ -552,7 +552,7 @@ func executeBackendSyncMedia(
 					scenarioExtensions = forwardedExtensions
 				}
 			}
-			payload, usage, compat, err = backend.GenerateImageLocalAI(ctx, backendModelID, spec, scenarioExtensions)
+			payload, usage, diag, err = backend.GenerateImageLocalAI(ctx, backendModelID, spec, scenarioExtensions)
 		} else {
 			payload, usage, err = backend.GenerateImage(ctx, backendModelID, spec, scenarioExtensions)
 		}
@@ -574,10 +574,10 @@ func executeBackendSyncMedia(
 		if len(scenarioExtensions) > 0 {
 			artifactMeta["extensions"] = scenarioExtensions
 		}
-		if compat != nil {
-			artifactMeta["localai_prompt"] = compat.LocalAIPrompt
-			artifactMeta["source_image"] = compat.SourceImage
-			artifactMeta["ref_images_count"] = compat.RefImagesCount
+		if diag != nil {
+			artifactMeta["localai_prompt"] = diag.LocalAIPrompt
+			artifactMeta["source_image"] = diag.SourceImage
+			artifactMeta["ref_images_count"] = diag.RefImagesCount
 		}
 		artifact := nimillm.BinaryArtifact(nimillm.ResolveImageArtifactMIME(spec, payload), payload, artifactMeta)
 		nimillm.ApplyImageSpecMetadata(artifact, spec)

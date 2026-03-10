@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
-const typesPath = path.join(repoRoot, 'runtime', 'internal', 'services', 'ai', 'catalog', 'types.go');
-const loaderPath = path.join(repoRoot, 'runtime', 'internal', 'services', 'ai', 'catalog', 'loader.go');
+const typesPath = path.join(repoRoot, 'runtime', 'internal', 'aicatalog', 'types.go');
+const loaderPath = path.join(repoRoot, 'runtime', 'internal', 'aicatalog', 'loader.go');
 const jobStorePath = path.join(repoRoot, 'runtime', 'internal', 'services', 'ai', 'scenario_job_store.go');
 const validationPath = path.join(repoRoot, 'runtime', 'internal', 'services', 'ai', 'scenario_catalog_validation.go');
 const testPath = path.join(repoRoot, 'runtime', 'internal', 'services', 'ai', 'scenario_catalog_validation_test.go');

@@ -300,6 +300,119 @@ func TestStreamScenarioSpeechSynthesizeForwardsScenarioExtensions(t *testing.T) 
 	}
 }
 
+func TestStreamCloseModeDoneTrueCarriesUsage(t *testing.T) {
+	// K-STREAM-001 mode 1: done=true close carries final usage.
+	// K-STREAM-003: text stream completed event includes usage stats.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+		// Simulate a normal SSE completion with a finish_reason
+		chunks := []string{
+			`data: {"choices":[{"delta":{"content":"Hello world response text here!"},"finish_reason":null}]}` + "\n\n",
+			`data: {"choices":[{"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":5,"completion_tokens":8}}` + "\n\n",
+			"data: [DONE]\n\n",
+		}
+		for _, chunk := range chunks {
+			_, _ = w.Write([]byte(chunk))
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+		}
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+	})
+	stream := &mockScenarioEventStream{ctx: context.Background()}
+	req := &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/qwen",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     30_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+					Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hi"}},
+				},
+			},
+		},
+	}
+	if err := svc.StreamScenario(req, stream); err != nil {
+		t.Fatalf("stream scenario: %v", err)
+	}
+
+	// Verify event sequence ends with COMPLETED carrying usage
+	var completed *runtimev1.ScenarioStreamCompleted
+	for _, event := range stream.events {
+		if event.GetEventType() == runtimev1.StreamEventType_STREAM_EVENT_COMPLETED {
+			completed = event.GetCompleted()
+		}
+	}
+	if completed == nil {
+		t.Fatal("expected COMPLETED event (done=true close mode)")
+	}
+	if completed.GetUsage() == nil {
+		t.Fatal("COMPLETED event must carry usage stats (K-STREAM-003)")
+	}
+}
+
+func TestStreamCloseModeTerminalEventOnError(t *testing.T) {
+	// K-STREAM-001 mode 2: terminal FAILED event closes stream.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+	})
+	stream := &mockScenarioEventStream{ctx: context.Background()}
+	req := &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/qwen",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     30_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+					Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hi"}},
+				},
+			},
+		},
+	}
+	if err := svc.StreamScenario(req, stream); err != nil {
+		t.Fatalf("expected nil error (terminal event emitted instead), got %v", err)
+	}
+
+	last := stream.events[len(stream.events)-1]
+	if last.GetEventType() != runtimev1.StreamEventType_STREAM_EVENT_FAILED {
+		t.Fatalf("last event should be FAILED terminal event, got %v", last.GetEventType())
+	}
+	if last.GetFailed().GetReasonCode() == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		t.Fatal("FAILED event must carry a reason code")
+	}
+}
+
+func TestStreamChunkMinBytes(t *testing.T) {
+	// K-STREAM-006: minimum 32 bytes before flushing a text delta.
+	if minStreamChunkBytes != 32 {
+		t.Fatalf("minStreamChunkBytes = %d, spec requires 32 (K-STREAM-006)", minStreamChunkBytes)
+	}
+}
+
 type mockScenarioEventStream struct {
 	ctx    context.Context
 	events []*runtimev1.StreamScenarioEvent

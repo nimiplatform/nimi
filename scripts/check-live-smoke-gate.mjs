@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import {
@@ -95,21 +96,10 @@ function parseChangedProvidersInput(value) {
   );
 }
 
-function detectChangedProvidersFromGit(providerUniverse) {
-  const baseRef = String(process.env.NIMI_BASE_SHA || '').trim();
-  const range = baseRef ? `${baseRef}...HEAD` : 'HEAD~1...HEAD';
-  const focusFiles = [
-    'runtime/internal/services/ai/provider.go',
-    'runtime/internal/services/ai/live_provider_smoke_test.go',
-    'sdk/test/runtime/contract/providers/nimi-sdk-ai-provider-live-smoke.test.ts',
-    'dev/live-test.env.example',
-    'spec/runtime/kernel/tables/provider-catalog.yaml',
-    'dev/config/live-gate-baseline.yaml',
-  ];
-
+function runGit(args) {
   const result = spawnSync(
     'git',
-    ['diff', '-U0', range, '--', ...focusFiles],
+    args,
     {
       cwd: repoRoot,
       encoding: 'utf8',
@@ -117,28 +107,184 @@ function detectChangedProvidersFromGit(providerUniverse) {
     },
   );
 
+  return {
+    status: result.status ?? 1,
+    output: [
+      typeof result.stdout === 'string' ? result.stdout : '',
+      typeof result.stderr === 'string' ? result.stderr : '',
+    ].join('\n'),
+  };
+}
+
+function listGitPaths(args) {
+  const result = runGit(args);
   if (result.status !== 0) {
-    return new Set();
+    return [];
   }
+  return result.output
+    .split(/\r?\n/)
+    .map((line) => String(line || '').trim())
+    .filter(Boolean);
+}
 
-  const diffText = [
-    typeof result.stdout === 'string' ? result.stdout : '',
-    typeof result.stderr === 'string' ? result.stderr : '',
-  ].join('\n');
+function providerEnvToken(provider) {
+  return String(provider || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
 
-  if (!diffText.trim()) {
-    return new Set();
+function addAll(target, values) {
+  for (const value of values) {
+    target.add(value);
   }
+}
 
-  const changed = new Set();
-  for (const provider of providerUniverse) {
-    const escaped = provider.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const pattern = new RegExp(`\\b${escaped}\\b`, 'i');
-    if (pattern.test(diffText)) {
-      changed.add(provider);
+function providersFromFilePath(providerUniverse, filePath) {
+  const out = new Set();
+  const basename = path.basename(String(filePath || '').trim());
+  const patterns = [
+    /^adapter_voice_(.+)\.go$/i,
+    /^adapter_(.+)_media\.go$/i,
+    /^adapter_(.+)\.go$/i,
+    /^(.+)\.source\.yaml$/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = basename.match(pattern);
+    if (!match) {
+      continue;
+    }
+    const provider = canonicalProviderId(match[1]);
+    if (provider && providerUniverse.has(provider)) {
+      out.add(provider);
     }
   }
-  return changed;
+
+  return out;
+}
+
+function shouldInferProvidersFromChangedLines(filePath) {
+  const normalized = String(filePath || '').replace(/\\/g, '/');
+  return !(
+    normalized.endsWith('runtime/internal/services/ai/live_provider_smoke_test.go')
+    || normalized.endsWith('runtime/internal/services/ai/live_provider_smoke_matrix_test.go')
+    || normalized.endsWith('sdk/test/runtime/contract/providers/nimi-sdk-ai-provider-live-smoke.test.ts')
+  );
+}
+
+function extractChangedLines(diffText) {
+  return String(diffText || '')
+    .split(/\r?\n/)
+    .filter((line) => (
+      (line.startsWith('+') || line.startsWith('-'))
+      && !line.startsWith('+++')
+      && !line.startsWith('---')
+    ))
+    .map((line) => line.slice(1));
+}
+
+function collectChangedProvidersFromLines(providerUniverse, changedLines) {
+  if (!Array.isArray(changedLines) || changedLines.length === 0) {
+    return new Set();
+  }
+
+  const changedText = changedLines.join('\n');
+  const out = new Set();
+
+  for (const provider of providerUniverse) {
+    const escapedProvider = provider.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapedToken = providerEnvToken(provider).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const patterns = [
+      new RegExp(`['"\`]${escapedProvider}['"\`]`, 'i'),
+      new RegExp(`\\bprovider\\s*:\\s*${escapedProvider}\\b`, 'i'),
+      new RegExp(`^\\s*-\\s*${escapedProvider}\\b`, 'im'),
+      new RegExp(`NIMI_LIVE_${escapedToken}_`, 'i'),
+      new RegExp(`NIMI_RUNTIME_[A-Z0-9_]*${escapedToken}_`, 'i'),
+    ];
+    if (patterns.some((pattern) => pattern.test(changedText))) {
+      out.add(provider);
+    }
+  }
+
+  return out;
+}
+
+function collectUntrackedFocusEntries(focusPaths) {
+  const result = runGit(['ls-files', '--others', '--exclude-standard', '--', ...focusPaths]);
+  if (result.status !== 0) {
+    return [];
+  }
+
+  const files = result.output
+    .split(/\r?\n/)
+    .map((line) => String(line || '').trim())
+    .filter(Boolean);
+
+  if (files.length === 0) {
+    return [];
+  }
+
+  return files
+    .map((filePath) => {
+      try {
+        return {
+          filePath,
+          changedLines: readFileSync(path.join(repoRoot, filePath), 'utf8').split(/\r?\n/),
+        };
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+}
+
+function detectChangedProvidersFromGit(providerUniverse) {
+  const baseRef = String(process.env.NIMI_BASE_SHA || '').trim();
+  const range = baseRef ? `${baseRef}...HEAD` : 'HEAD~1...HEAD';
+  const focusPaths = [
+    'runtime/internal/nimillm',
+    'runtime/internal/services/ai/provider.go',
+    'runtime/internal/services/ai/live_provider_smoke_test.go',
+    'runtime/internal/services/ai/live_provider_smoke_matrix_test.go',
+    'sdk/test/runtime/contract/providers/nimi-sdk-ai-provider-live-smoke.test.ts',
+    'dev/live-test.env.example',
+    'spec/runtime/kernel/tables/provider-catalog.yaml',
+    'dev/config/live-gate-baseline.yaml',
+  ];
+
+  function detectFromDiff(diffRefArgs) {
+    const changedFiles = listGitPaths(['diff', '--name-only', ...diffRefArgs, '--', ...focusPaths]);
+    const changed = new Set();
+
+    for (const filePath of changedFiles) {
+      addAll(changed, providersFromFilePath(providerUniverse, filePath));
+      const diffResult = runGit(['diff', '-U0', ...diffRefArgs, '--', filePath]);
+      if (diffResult.status !== 0) {
+        continue;
+      }
+      if (shouldInferProvidersFromChangedLines(filePath)) {
+        addAll(changed, collectChangedProvidersFromLines(providerUniverse, extractChangedLines(diffResult.output)));
+      }
+    }
+
+    for (const entry of collectUntrackedFocusEntries(focusPaths)) {
+      addAll(changed, providersFromFilePath(providerUniverse, entry.filePath));
+      if (shouldInferProvidersFromChangedLines(entry.filePath)) {
+        addAll(changed, collectChangedProvidersFromLines(providerUniverse, entry.changedLines));
+      }
+    }
+
+    return changed;
+  }
+
+  const worktreeChanged = detectFromDiff(['HEAD']);
+  if (worktreeChanged.size > 0) {
+    return worktreeChanged;
+  }
+
+  return detectFromDiff([range]);
 }
 
 function resolveConditionalProviders(conditionalBaselines) {

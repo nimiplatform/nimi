@@ -195,8 +195,8 @@ func (b *Backend) Transcribe(
 	return text, usage, nil
 }
 
-// LocalAIImageCompat captures LocalAI-specific image mapping diagnostics.
-type LocalAIImageCompat struct {
+// LocalAIImageDiagnostics captures LocalAI-specific image mapping diagnostics.
+type LocalAIImageDiagnostics struct {
 	LocalAIPrompt  string
 	SourceImage    string
 	RefImagesCount int
@@ -242,8 +242,8 @@ func (b *Backend) ImportLocalAIModelConfig(ctx context.Context, modelConfig map[
 
 // GenerateImageLocalAI sends a LocalAI-optimized image generation request.
 // It supports the minimal t2i/i2i workflow (file/files/ref_images) and best-effort
-// Nexa parameter compatibility (steps->step, method->mode).
-func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec *runtimev1.ImageGenerateScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, *LocalAIImageCompat, error) {
+// Nexa parameter normalization (steps->step, method->mode).
+func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec *runtimev1.ImageGenerateScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, *LocalAIImageDiagnostics, error) {
 	type imageRequest struct {
 		Model          string         `json:"model"`
 		Prompt         string         `json:"prompt"`
@@ -381,7 +381,7 @@ func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec
 		return nil, nil, nil, err
 	}
 
-	compat := &LocalAIImageCompat{
+	diag := &LocalAIImageDiagnostics{
 		LocalAIPrompt:  localPrompt,
 		SourceImage:    sourceImage,
 		RefImagesCount: len(refImages),
@@ -389,7 +389,7 @@ func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec
 		IgnoredOptions: ignoredOptions,
 	}
 	usage := ArtifactUsage(localPrompt, payload, 180)
-	return payload, usage, compat, nil
+	return payload, usage, diag, nil
 }
 
 // GenerateImage sends an image generation request.

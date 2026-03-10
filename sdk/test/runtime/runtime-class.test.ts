@@ -294,36 +294,6 @@ test('Runtime auto mode does not retry non-retryable runtime errors', async () =
   }
 });
 
-test('Runtime manual mode requires explicit connect before API calls', async () => {
-  const runtime = new Runtime({
-    appId: APP_ID,
-    connection: {
-      mode: 'manual',
-    },
-    transport: {
-      type: 'node-grpc',
-      endpoint: '127.0.0.1:46371',
-    },
-    subjectContext: {
-      subjectUserId: 'manual-user',
-    },
-  });
-
-  let thrown: unknown = null;
-  try {
-    await runtime.ai.text.generate({
-      model: 'local/qwen2.5',
-      input: 'hello',
-    });
-  } catch (error) {
-    thrown = error;
-  }
-
-  assert.ok(thrown);
-  const nimiError = asNimiError(thrown, { source: 'sdk' });
-  assert.equal(nimiError.reasonCode, 'RUNTIME_UNAVAILABLE');
-});
-
 test('Runtime appAuth.authorizeExternalPrincipal resolves published scopeCatalogVersion', async () => {
   let capturedScopeCatalogVersion = '';
 

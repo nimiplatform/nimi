@@ -20,7 +20,7 @@ func (s *Service) executeAIGenerateNode(ctx context.Context, record *taskRecord,
 		prompt = firstInputString(inputs, "prompt", "text", "input")
 	}
 	if client := s.runtimeAIClient(); client != nil {
-		resp, err := aiExecuteScenario(ctx, client, &runtimev1.ExecuteScenarioRequest{
+		resp, err := client.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
 			Head: &runtimev1.ScenarioRequestHead{
 				AppId:         record.AppID,
 				SubjectUserId: record.SubjectUserID,
@@ -74,7 +74,7 @@ func (s *Service) executeAIStreamNode(ctx context.Context, record *taskRecord, n
 		prompt = firstInputString(inputs, "prompt", "text", "input")
 	}
 	if client := s.runtimeAIClient(); client != nil {
-		stream, err := aiStreamScenario(ctx, client, &runtimev1.StreamScenarioRequest{
+		stream, err := client.StreamScenario(ctx, &runtimev1.StreamScenarioRequest{
 			Head: &runtimev1.ScenarioRequestHead{
 				AppId:         record.AppID,
 				SubjectUserId: record.SubjectUserID,
@@ -141,7 +141,7 @@ func (s *Service) executeAIEmbedNode(ctx context.Context, record *taskRecord, no
 		return nil, fmt.Errorf("embed inputs are empty")
 	}
 	if client := s.runtimeAIClient(); client != nil {
-		resp, err := aiExecuteScenario(ctx, client, &runtimev1.ExecuteScenarioRequest{
+		resp, err := client.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
 			Head: &runtimev1.ScenarioRequestHead{
 				AppId:         record.AppID,
 				SubjectUserId: record.SubjectUserID,
@@ -330,7 +330,7 @@ func (s *Service) runScenarioJobSync(
 		return nil, nil, err
 	}
 
-	submitResp, err := aiSubmitScenarioJob(ctx, client, submitReq)
+	submitResp, err := client.SubmitScenarioJob(ctx, submitReq)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -348,7 +348,7 @@ func (s *Service) runScenarioJobSync(
 		cancelForwarded = true
 		cancelCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
-		_, _ = aiCancelScenarioJob(cancelCtx, client, &runtimev1.CancelScenarioJobRequest{
+		_, _ = client.CancelScenarioJob(cancelCtx, &runtimev1.CancelScenarioJobRequest{
 			JobId:  jobID,
 			Reason: strings.TrimSpace(reason),
 		})
@@ -365,7 +365,7 @@ func (s *Service) runScenarioJobSync(
 			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED,
 			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING:
 			time.Sleep(250 * time.Millisecond)
-			pollResp, pollErr := aiGetScenarioJob(ctx, client, &runtimev1.GetScenarioJobRequest{
+			pollResp, pollErr := client.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{
 				JobId: jobID,
 			})
 			if pollErr != nil {
@@ -379,7 +379,7 @@ func (s *Service) runScenarioJobSync(
 		case runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED:
 			artifacts := job.GetArtifacts()
 			if len(artifacts) == 0 {
-				artifactsResp, artifactsErr := aiGetScenarioArtifacts(ctx, client, &runtimev1.GetScenarioArtifactsRequest{
+				artifactsResp, artifactsErr := client.GetScenarioArtifacts(ctx, &runtimev1.GetScenarioArtifactsRequest{
 					JobId: jobID,
 				})
 				if artifactsErr != nil {

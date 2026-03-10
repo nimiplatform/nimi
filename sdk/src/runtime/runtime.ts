@@ -181,7 +181,6 @@ export class Runtime {
       appId: this.appId,
       transport: transportWithObserver,
       connection: {
-        mode: options.connection?.mode || 'auto',
         waitForReadyTimeoutMs: options.connection?.waitForReadyTimeoutMs,
       },
     };
@@ -208,16 +207,9 @@ export class Runtime {
 
     this.events = createRuntimeEventsModule(this.#eventBus);
 
-    const createMethodNotImplementedError = (moduleKey: string, methodKey: string) => createNimiError({
-      message: `${String(moduleKey)}.${methodKey} is not implemented`,
-      reasonCode: ReasonCode.SDK_RUNTIME_CODEC_MISSING,
-      actionHint: 'check_runtime_method_mapping',
-      source: 'sdk',
-    });
     const passthrough = createCorePassthroughClients({
       assertMethodAvailable: (moduleKey, methodKey) => this.#assertMethodAvailable(moduleKey, methodKey),
       invokeWithClient: (operation) => this.#invokeWithClient(operation),
-      createMethodNotImplementedError,
     });
     this.auth = passthrough.auth;
     this.workflow = passthrough.workflow;
@@ -389,7 +381,6 @@ export class Runtime {
   async #waitForReady(timeoutMs: number): Promise<void> {
     await waitForRuntimeReady({
       stateStatus: this.#state.status,
-      mode: this.#options.connection?.mode || 'auto',
       connectPromise: this.#connectPromise,
       connect: () => this.connect(),
       timeoutMs,

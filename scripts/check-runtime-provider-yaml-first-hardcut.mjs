@@ -7,11 +7,11 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
-const connectorServicePath = path.join(repoRoot, 'runtime', 'internal', 'services', 'connector', 'service.go');
+const connectorServicePath = path.join(repoRoot, 'runtime', 'internal', 'services', 'connector', 'service_probe.go');
 const voiceMethodsPath = path.join(repoRoot, 'runtime', 'internal', 'services', 'ai', 'voice_methods.go');
 const speechVoiceResolverPath = path.join(repoRoot, 'runtime', 'internal', 'services', 'ai', 'speech_voice_resolver.go');
-const catalogResolverPath = path.join(repoRoot, 'runtime', 'internal', 'services', 'ai', 'catalog', 'resolver.go');
-const catalogTypesPath = path.join(repoRoot, 'runtime', 'internal', 'services', 'ai', 'catalog', 'types.go');
+const catalogResolverPath = path.join(repoRoot, 'runtime', 'internal', 'aicatalog', 'resolver.go');
+const catalogTypesPath = path.join(repoRoot, 'runtime', 'internal', 'aicatalog', 'types.go');
 const sourceReadmePath = path.join(repoRoot, 'runtime', 'catalog', 'source', 'README.md');
 
 const scanRoots = [

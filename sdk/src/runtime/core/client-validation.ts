@@ -82,7 +82,7 @@ function withAiRouteValidation<Request extends RuntimeAiRouteRequest>(
   const routePolicy = request.routePolicy ?? request.head?.routePolicy ?? RoutePolicy.UNSPECIFIED;
   if (routePolicy === RoutePolicy.UNSPECIFIED) {
     throwValidationError(
-      'SDK_RUNTIME_AI_ROUTE_POLICY_REQUIRED',
+      ReasonCode.SDK_RUNTIME_AI_ROUTE_POLICY_REQUIRED,
       `${methodId} requires explicit routePolicy`,
       'set_route_policy_local_or_cloud',
     );
@@ -118,7 +118,7 @@ function validateAiCredentialMetadata(
 
   if (source && source !== 'managed' && source !== 'inline') {
     throwValidationError(
-      'SDK_RUNTIME_AI_CREDENTIAL_SOURCE_INVALID',
+      ReasonCode.SDK_RUNTIME_AI_CREDENTIAL_SOURCE_INVALID,
       `${methodId} metadata.keySource is invalid`,
       'set_key_source_managed_or_inline',
     );
@@ -127,7 +127,7 @@ function validateAiCredentialMetadata(
   const routePolicy = request.routePolicy ?? request.head?.routePolicy ?? RoutePolicy.UNSPECIFIED;
   if (routePolicy === RoutePolicy.CLOUD && source === 'inline' && !apiKey) {
     throwValidationError(
-      'SDK_RUNTIME_AI_CREDENTIAL_MISSING',
+      ReasonCode.SDK_RUNTIME_AI_CREDENTIAL_MISSING,
       `${methodId} inline source requires metadata.providerApiKey`,
       'set_provider_api_key',
     );
@@ -135,7 +135,7 @@ function validateAiCredentialMetadata(
 
   if (routePolicy === RoutePolicy.LOCAL && source === 'inline') {
     throwValidationError(
-      'SDK_RUNTIME_AI_CREDENTIAL_SCOPE_FORBIDDEN',
+      ReasonCode.SDK_RUNTIME_AI_CREDENTIAL_SCOPE_FORBIDDEN,
       `${methodId} local route does not allow inline keySource`,
       'use_managed_key_source',
     );
@@ -163,24 +163,24 @@ function validateAuthorizeExternalPrincipalRequest(
   requireNonEmptyField(
     request.domain,
     'domain',
-    'SDK_RUNTIME_APP_AUTH_DOMAIN_REQUIRED',
+    ReasonCode.SDK_RUNTIME_APP_AUTH_DOMAIN_REQUIRED,
     'set_domain_app_auth',
   );
   requireNonEmptyField(
     request.appId,
     'appId',
-    'SDK_RUNTIME_APP_AUTH_APP_ID_REQUIRED',
+    ReasonCode.SDK_RUNTIME_APP_AUTH_APP_ID_REQUIRED,
     'set_app_id',
   );
   requireNonEmptyField(
     request.externalPrincipalId,
     'externalPrincipalId',
-    'SDK_RUNTIME_APP_AUTH_EXTERNAL_PRINCIPAL_ID_REQUIRED',
+    ReasonCode.SDK_RUNTIME_APP_AUTH_EXTERNAL_PRINCIPAL_ID_REQUIRED,
     'set_external_principal_id',
   );
   if (request.externalPrincipalType === ExternalPrincipalType.UNSPECIFIED) {
     throwValidationError(
-      'SDK_RUNTIME_APP_AUTH_EXTERNAL_PRINCIPAL_TYPE_REQUIRED',
+      ReasonCode.SDK_RUNTIME_APP_AUTH_EXTERNAL_PRINCIPAL_TYPE_REQUIRED,
       'externalPrincipalType is required',
       'set_external_principal_type',
     );
@@ -189,24 +189,24 @@ function validateAuthorizeExternalPrincipalRequest(
   requireNonEmptyField(
     request.subjectUserId,
     'subjectUserId',
-    'SDK_RUNTIME_APP_AUTH_SUBJECT_USER_ID_REQUIRED',
+    ReasonCode.SDK_RUNTIME_APP_AUTH_SUBJECT_USER_ID_REQUIRED,
     'set_subject_user_id',
   );
   requireNonEmptyField(
     request.consentId,
     'consentId',
-    'SDK_RUNTIME_APP_AUTH_CONSENT_ID_REQUIRED',
+    ReasonCode.SDK_RUNTIME_APP_AUTH_CONSENT_ID_REQUIRED,
     'set_consent_id',
   );
   requireNonEmptyField(
     request.consentVersion,
     'consentVersion',
-    'SDK_RUNTIME_APP_AUTH_CONSENT_VERSION_REQUIRED',
+    ReasonCode.SDK_RUNTIME_APP_AUTH_CONSENT_VERSION_REQUIRED,
     'set_consent_version',
   );
   if (!hasDecisionAtValue(request.decisionAt)) {
     throwValidationError(
-      'SDK_RUNTIME_APP_AUTH_DECISION_AT_REQUIRED',
+      ReasonCode.SDK_RUNTIME_APP_AUTH_DECISION_AT_REQUIRED,
       'decisionAt is required',
       'set_decision_at',
     );
@@ -215,12 +215,12 @@ function validateAuthorizeExternalPrincipalRequest(
   requireNonEmptyField(
     request.policyVersion,
     'policyVersion',
-    'SDK_RUNTIME_APP_AUTH_POLICY_VERSION_REQUIRED',
+    ReasonCode.SDK_RUNTIME_APP_AUTH_POLICY_VERSION_REQUIRED,
     'set_policy_version',
   );
   if (request.policyMode === PolicyMode.UNSPECIFIED) {
     throwValidationError(
-      'SDK_RUNTIME_APP_AUTH_POLICY_MODE_REQUIRED',
+      ReasonCode.SDK_RUNTIME_APP_AUTH_POLICY_MODE_REQUIRED,
       'policyMode is required',
       'set_policy_mode_preset_or_custom',
     );
@@ -230,7 +230,7 @@ function validateAuthorizeExternalPrincipalRequest(
     && request.preset === AuthorizationPreset.UNSPECIFIED
   ) {
     throwValidationError(
-      'SDK_RUNTIME_APP_AUTH_PRESET_REQUIRED',
+      ReasonCode.SDK_RUNTIME_APP_AUTH_PRESET_REQUIRED,
       'preset is required when policyMode is preset',
       'set_authorization_preset',
     );
@@ -240,7 +240,7 @@ function validateAuthorizeExternalPrincipalRequest(
     && (!Array.isArray(request.scopes) || request.scopes.length === 0)
   ) {
     throwValidationError(
-      'SDK_RUNTIME_APP_AUTH_CUSTOM_SCOPES_REQUIRED',
+      ReasonCode.SDK_RUNTIME_APP_AUTH_CUSTOM_SCOPES_REQUIRED,
       'custom policy requires scopes',
       'set_custom_policy_scopes',
     );
@@ -248,14 +248,14 @@ function validateAuthorizeExternalPrincipalRequest(
   if (request.policyMode === PolicyMode.CUSTOM) {
     if (typeof request.ttlSeconds !== 'number' || request.ttlSeconds <= 0) {
       throwValidationError(
-        'SDK_RUNTIME_APP_AUTH_CUSTOM_TTL_REQUIRED',
+        ReasonCode.SDK_RUNTIME_APP_AUTH_CUSTOM_TTL_REQUIRED,
         'custom policy requires ttlSeconds > 0',
         'set_ttl_seconds',
       );
     }
     if (typeof request.canDelegate !== 'boolean') {
       throwValidationError(
-        'SDK_RUNTIME_APP_AUTH_CUSTOM_DELEGATE_REQUIRED',
+        ReasonCode.SDK_RUNTIME_APP_AUTH_CUSTOM_DELEGATE_REQUIRED,
         'custom policy requires explicit canDelegate boolean',
         'set_can_delegate',
       );
@@ -264,7 +264,7 @@ function validateAuthorizeExternalPrincipalRequest(
   requireNonEmptyField(
     request.scopeCatalogVersion,
     'scopeCatalogVersion',
-    'SDK_RUNTIME_APP_AUTH_SCOPE_CATALOG_VERSION_REQUIRED',
+    ReasonCode.SDK_RUNTIME_APP_AUTH_SCOPE_CATALOG_VERSION_REQUIRED,
     'publish_scope_catalog_before_authorize',
   );
   return request;
@@ -276,7 +276,7 @@ function validateCreateConnectorRequest(
   requireNonEmptyField(
     request.apiKey,
     'apiKey',
-    'SDK_RUNTIME_CONNECTOR_API_KEY_REQUIRED',
+    ReasonCode.SDK_RUNTIME_CONNECTOR_API_KEY_REQUIRED,
     'set_connector_api_key',
   );
   return request;
@@ -292,7 +292,7 @@ function validateUpdateConnectorRequest(
 
   if (!hasMutableField) {
     throwValidationError(
-      'SDK_RUNTIME_CONNECTOR_UPDATE_EMPTY',
+      ReasonCode.SDK_RUNTIME_CONNECTOR_UPDATE_EMPTY,
       'updateConnector requires at least one mutable field',
       'set_connector_update_fields',
     );

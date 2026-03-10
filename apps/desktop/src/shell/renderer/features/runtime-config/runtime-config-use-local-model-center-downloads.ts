@@ -3,6 +3,7 @@ import {
   localAiRuntime,
   type LocalAiDownloadProgressEvent,
 } from '@runtime/local-ai-runtime';
+import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import {
   PROGRESS_SESSION_LIMIT,
   type ProgressSessionState,
@@ -67,7 +68,14 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
           return cacheProgressSessions(merged);
         });
       })
-      .catch(() => {});
+      .catch((err) => {
+        emitRuntimeLog({
+          level: 'warn',
+          area: 'local-ai',
+          message: 'action:listDownloads:failed',
+          details: { error: err instanceof Error ? err.message : String(err) },
+        });
+      });
 
     void localAiRuntime.subscribeDownloadProgress((event) => {
       if (disposed) {
@@ -128,7 +136,14 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
           },
         }));
       })
-      .catch(() => {});
+      .catch((err) => {
+        emitRuntimeLog({
+          level: 'warn',
+          area: 'local-ai',
+          message: 'action:mergeSessionSummary:failed',
+          details: { installSessionId, error: err instanceof Error ? err.message : String(err) },
+        });
+      });
   }, []);
 
   const onPauseDownload = useCallback((installSessionId: string) => {

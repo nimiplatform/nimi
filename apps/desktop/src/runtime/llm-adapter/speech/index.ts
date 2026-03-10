@@ -1,10 +1,8 @@
 export type {
   SpeechFormat,
-  SpeechProviderDescriptor,
   SpeechStreamControlAction,
   SpeechStreamEvent,
   SpeechStreamOpenResult,
-  SpeechHealthResult,
   SpeechNativeStreamResponse,
   SpeechSynthesizeRequest,
   SpeechSynthesizeResult,

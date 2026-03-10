@@ -47,21 +47,12 @@ export function resolveReadyTimeout(options: RuntimeOptions, timeoutMs?: number)
 
 export async function waitForRuntimeReady(input: {
   stateStatus: RuntimeConnectionState['status'];
-  mode: 'auto' | 'manual';
   connectPromise: Promise<void> | null;
   connect: () => Promise<void>;
   timeoutMs: number;
 }): Promise<void> {
   if (input.stateStatus === 'ready') {
     return;
-  }
-  if (input.mode === 'manual') {
-    throw createNimiError({
-      message: 'runtime manual mode requires explicit connect() before calling APIs',
-      reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
-      actionHint: 'call_runtime_connect_first',
-      source: 'sdk',
-    });
   }
   if (!input.connectPromise) {
     await input.connect();
@@ -82,19 +73,6 @@ export async function ensureRuntimeClientForCall(input: {
   getClient: () => RuntimeClient | null;
 }): Promise<RuntimeClient> {
   const timeoutMs = resolveReadyTimeout(input.options);
-  const mode = input.options.connection?.mode || 'auto';
-
-  if (mode === 'manual') {
-    if (input.stateStatus !== 'ready' || !input.client) {
-      throw createNimiError({
-        message: 'runtime is not connected (manual mode)',
-        reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
-        actionHint: 'call_runtime_connect_first',
-        source: 'sdk',
-      });
-    }
-    return input.client;
-  }
 
   if (!input.client || input.stateStatus !== 'ready') {
     await input.waitForReady(timeoutMs);
@@ -132,7 +110,7 @@ export async function invokeWithRuntimeRetry<T>(input: {
       return value;
     } catch (error) {
       const normalized = input.normalizeError(error);
-      if (shouldRetryRuntimeCall(normalized, attempt, retry.maxAttempts, input.options.connection?.mode || 'auto')) {
+      if (shouldRetryRuntimeCall(normalized, attempt, retry.maxAttempts)) {
         const backoffMs = computeRetryBackoffMs(retry.backoffMs, attempt);
         input.onRetry(normalized, attempt, backoffMs, retry.maxAttempts);
         await sleep(backoffMs);
@@ -162,13 +140,8 @@ export function shouldRetryRuntimeCall(
   error: NimiError,
   attempt: number,
   maxAttempts: number,
-  mode: 'auto' | 'manual',
 ): boolean {
   if (attempt >= maxAttempts) {
-    return false;
-  }
-
-  if (mode !== 'auto') {
     return false;
   }
 

@@ -180,14 +180,6 @@ func (p *CloudProvider) GenerateText(ctx context.Context, modelID string, spec *
 	return p.GenerateTextScenarioWithTarget(ctx, modelID, spec, inputText, nil)
 }
 
-// GenerateTextWithTarget routes a text generation request, optionally using a RemoteTarget override.
-func (p *CloudProvider) GenerateTextWithTarget(ctx context.Context, modelID string, spec *runtimev1.TextGenerateScenarioSpec, inputText string, target *RemoteTarget) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	if spec == nil {
-		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	return p.GenerateTextScenarioWithTarget(ctx, modelID, spec, inputText, target)
-}
-
 // GenerateTextScenario routes a Scenario-native text generation request.
 func (p *CloudProvider) GenerateTextScenario(
 	ctx context.Context,
@@ -263,14 +255,6 @@ func (p *CloudProvider) StreamGenerateText(ctx context.Context, modelID string, 
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	return p.StreamGenerateTextScenarioWithTarget(ctx, modelID, spec, onDelta, nil)
-}
-
-// StreamGenerateTextWithTarget routes a streaming request, optionally using a RemoteTarget override.
-func (p *CloudProvider) StreamGenerateTextWithTarget(ctx context.Context, modelID string, spec *runtimev1.TextGenerateScenarioSpec, onDelta func(string) error, target *RemoteTarget) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	if spec == nil {
-		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	return p.StreamGenerateTextScenarioWithTarget(ctx, modelID, spec, onDelta, target)
 }
 
 // StreamGenerateTextScenario routes a Scenario-native streaming request.

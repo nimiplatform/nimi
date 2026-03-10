@@ -1,3 +1,4 @@
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 
 export const STREAM_FIRST_PACKET_TIMEOUT_MS = 10_000;
@@ -7,6 +8,8 @@ export const STREAM_VIDEO_TOTAL_TIMEOUT_MS = 300_000;
 
 export type StreamPhase = 'idle' | 'waiting' | 'streaming' | 'done' | 'error' | 'cancelled';
 
+export type StreamCancelSource = 'user' | 'timeout' | 'backpressure';
+
 export type StreamState = {
   chatId: string;
   phase: StreamPhase;
@@ -15,12 +18,15 @@ export type StreamState = {
   interrupted: boolean;
   startedAt: number;
   firstPacketAt: number | null;
+  reasonCode: string | null;
+  traceId: string | null;
+  cancelSource: StreamCancelSource | null;
 };
 
 export type StreamEvent =
   | { type: 'text_delta'; textDelta: string }
   | { type: 'done'; usage?: { inputTokens?: number; outputTokens?: number } }
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string; reasonCode?: string; traceId?: string };
 
 type StreamListener = (state: StreamState) => void;
 
@@ -39,6 +45,9 @@ function emptyState(chatId: string): StreamState {
     interrupted: false,
     startedAt: 0,
     firstPacketAt: null,
+    reasonCode: null,
+    traceId: null,
+    cancelSource: null,
   };
 }
 
@@ -92,6 +101,9 @@ export function startStream(chatId: string, totalTimeoutMs = STREAM_TEXT_TOTAL_T
     interrupted: false,
     startedAt: Date.now(),
     firstPacketAt: null,
+    reasonCode: null,
+    traceId: null,
+    cancelSource: null,
   };
   activeStreams.set(chatId, state);
 
@@ -104,6 +116,7 @@ export function startStream(chatId: string, totalTimeoutMs = STREAM_TEXT_TOTAL_T
         phase: 'error',
         errorMessage: `No response within ${STREAM_FIRST_PACKET_TIMEOUT_MS / 1000}s`,
         interrupted: true,
+        cancelSource: 'timeout',
       };
       activeStreams.set(chatId, errorState);
       clearTimers(chatId);
@@ -127,6 +140,7 @@ export function startStream(chatId: string, totalTimeoutMs = STREAM_TEXT_TOTAL_T
         phase: 'error',
         errorMessage: `Stream timed out after ${totalTimeoutMs / 1000}s`,
         interrupted: true,
+        cancelSource: 'timeout',
       };
       activeStreams.set(chatId, errorState);
       clearTimers(chatId);
@@ -188,11 +202,34 @@ export function feedStreamEvent(chatId: string, event: StreamEvent) {
   }
 
   if (event.type === 'error') {
+    const reasonCode = event.reasonCode ?? null;
+    const isBackpressure =
+      reasonCode === ReasonCode.RESOURCE_EXHAUSTED || reasonCode === ReasonCode.RUNTIME_GRPC_CANCELLED;
+
+    if (isBackpressure) {
+      // D-STRM-009: backpressure interruption — preserve partial content
+      const backpressureState: StreamState = {
+        ...current,
+        phase: 'cancelled',
+        cancelSource: 'backpressure',
+        interrupted: true,
+        reasonCode,
+        traceId: event.traceId ?? current.traceId,
+      };
+      activeStreams.set(chatId, backpressureState);
+      clearTimers(chatId);
+      abortControllers.delete(chatId);
+      notify(backpressureState);
+      return;
+    }
+
     const errorState: StreamState = {
       ...current,
       phase: 'error',
       errorMessage: event.message,
       interrupted: current.partialText.length > 0,
+      reasonCode,
+      traceId: event.traceId ?? current.traceId,
     };
     activeStreams.set(chatId, errorState);
     clearTimers(chatId);
@@ -218,6 +255,7 @@ export function cancelStream(chatId: string) {
     ...current,
     phase: 'cancelled',
     interrupted: current.partialText.length > 0,
+    cancelSource: 'user',
   };
   activeStreams.set(chatId, cancelledState);
   clearTimers(chatId);

@@ -168,7 +168,7 @@ rules:
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
   - rule_id: K-AUTH-005
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTH-006
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
@@ -183,7 +183,7 @@ rules:
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
   - rule_id: K-AUTHN-003
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTHN-004
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
@@ -1038,13 +1038,13 @@ rules:
     evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
   - rule_id: K-STREAM-001
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-STREAM-002
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
   - rule_id: K-STREAM-003
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-STREAM-004
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
@@ -1053,7 +1053,7 @@ rules:
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
   - rule_id: K-STREAM-006
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-STREAM-007
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
@@ -1062,7 +1062,7 @@ rules:
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
   - rule_id: K-STREAM-009
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-STREAM-010
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]

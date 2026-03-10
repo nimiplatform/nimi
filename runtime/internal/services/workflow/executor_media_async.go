@@ -42,7 +42,7 @@ func (s *Service) executeNodeExternalAsync(
 	if err != nil {
 		return nil, err
 	}
-	submitResp, err := aiSubmitScenarioJob(ctx, client, submitReq)
+	submitResp, err := client.SubmitScenarioJob(ctx, submitReq)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (s *Service) executeNodeExternalAsync(
 		cancelForwarded = true
 		cancelCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
-		_, _ = aiCancelScenarioJob(cancelCtx, client, &runtimev1.CancelScenarioJobRequest{
+		_, _ = client.CancelScenarioJob(cancelCtx, &runtimev1.CancelScenarioJobRequest{
 			JobId:  jobID,
 			Reason: strings.TrimSpace(reason),
 		})
@@ -90,7 +90,7 @@ func (s *Service) executeNodeExternalAsync(
 			forwardCancel(ctx.Err().Error())
 			return nil, ctx.Err()
 		}
-		pollResp, pollErr := aiGetScenarioJob(ctx, client, &runtimev1.GetScenarioJobRequest{
+		pollResp, pollErr := client.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{
 			JobId: jobID,
 		})
 		if pollErr != nil {

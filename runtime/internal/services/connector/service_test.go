@@ -1026,3 +1026,87 @@ voices:
 		}
 	}
 }
+
+func TestConnectorCheckOrderOwnerBeforeStatusBeforeCredential(t *testing.T) {
+	// K-AUTH-005: check order is owner → status → credential.
+	// Owner mismatch MUST return NOT_FOUND (information hiding), even if connector
+	// is also disabled or missing credentials.
+	svc := newTestService(t)
+	user1Ctx := userContext("user-1")
+	user2Ctx := userContext("user-2")
+
+	// Create a connector owned by user-1
+	resp, err := svc.CreateConnector(user1Ctx, &runtimev1.CreateConnectorRequest{
+		Provider: "openai",
+		ApiKey:   "key",
+	})
+	if err != nil {
+		t.Fatalf("CreateConnector: %v", err)
+	}
+	connID := resp.GetConnector().GetConnectorId()
+
+	// Disable the connector
+	_, err = svc.UpdateConnector(user1Ctx, &runtimev1.UpdateConnectorRequest{
+		ConnectorId: connID,
+		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_DISABLED,
+		UpdateMask:  &fieldmaskpb.FieldMask{Paths: []string{"status"}},
+	})
+	if err != nil {
+		t.Fatalf("UpdateConnector disable: %v", err)
+	}
+
+	// user-2 tries to access → should see NOT_FOUND (owner check first)
+	_, err = svc.GetConnector(user2Ctx, &runtimev1.GetConnectorRequest{ConnectorId: connID})
+	if err == nil {
+		t.Fatal("expected error for owner mismatch")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.NotFound {
+		t.Fatalf("expected NotFound (owner hides entity), got %v", st.Code())
+	}
+
+	// user-1 accesses disabled connector → should see the connector (status check is second)
+	getResp, err := svc.GetConnector(user1Ctx, &runtimev1.GetConnectorRequest{ConnectorId: connID})
+	if err != nil {
+		t.Fatalf("owner should see disabled connector: %v", err)
+	}
+	if getResp.GetConnector().GetStatus() != runtimev1.ConnectorStatus_CONNECTOR_STATUS_DISABLED {
+		t.Fatal("connector should be disabled")
+	}
+}
+
+func TestEnsureLocalConnectorsCreatesExactly6Categories(t *testing.T) {
+	// K-LOCAL-001: 6 fixed categories in Phase 1.
+	store := newTestStore(t)
+	if err := EnsureLocalConnectors(store); err != nil {
+		t.Fatalf("EnsureLocalConnectors: %v", err)
+	}
+
+	records, _ := store.Load()
+	if len(records) != 6 {
+		t.Fatalf("expected exactly 6 local connectors, got %d", len(records))
+	}
+
+	expectedCategories := map[runtimev1.LocalConnectorCategory]bool{
+		runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_LLM:    false,
+		runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_VISION: false,
+		runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_IMAGE:  false,
+		runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_TTS:    false,
+		runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_STT:    false,
+		runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_CUSTOM: false,
+	}
+
+	for _, record := range records {
+		cat := record.LocalCategory
+		if _, ok := expectedCategories[cat]; !ok {
+			t.Errorf("unexpected local connector category: %v", cat)
+		}
+		expectedCategories[cat] = true
+	}
+
+	for cat, found := range expectedCategories {
+		if !found {
+			t.Errorf("missing local connector category: %v", cat)
+		}
+	}
+}

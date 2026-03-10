@@ -264,9 +264,11 @@ func resolveBinary(name string) (string, error) {
 func runtimeChecklist() []checklistItemSpec {
 	const (
 		pkgAppRegistry = "github.com/nimiplatform/nimi/runtime/internal/appregistry"
+		pkgAuthn       = "github.com/nimiplatform/nimi/runtime/internal/authn"
 		pkgAuditLog    = "github.com/nimiplatform/nimi/runtime/internal/auditlog"
 		pkgAuditSvc    = "github.com/nimiplatform/nimi/runtime/internal/services/audit"
 		pkgAI          = "github.com/nimiplatform/nimi/runtime/internal/services/ai"
+		pkgConnector   = "github.com/nimiplatform/nimi/runtime/internal/services/connector"
 		pkgGrant       = "github.com/nimiplatform/nimi/runtime/internal/services/grant"
 		pkgGrpc        = "github.com/nimiplatform/nimi/runtime/internal/grpcserver"
 		pkgModel       = "github.com/nimiplatform/nimi/runtime/internal/services/model"
@@ -522,6 +524,85 @@ func runtimeChecklist() []checklistItemSpec {
 				{Package: pkgProtocol, Name: "TestRealmPrimitiveContractSkeletonCoverage"},
 				{Package: pkgProtocol, Name: "TestValidateTimeflowContractAcceptsCanonicalPayload"},
 				{Package: pkgProtocol, Name: "TestValidateEconomyContractAcceptsCanonicalPayload"},
+			},
+		},
+		{
+			ID:          "RS-11-31",
+			Requirement: "alg=none JWT rejection (K-AUTHN-003)",
+			Tests: []testRef{
+				{Package: pkgAuthn, Name: "TestValidateAlgNoneTokenRejected"},
+			},
+		},
+		{
+			ID:          "RS-11-32",
+			Requirement: "7-state scenario job machine enumeration (K-JOB-002)",
+			Tests: []testRef{
+				{Package: pkgAI, Name: "TestScenarioJobStateEnumerationMatchesSpec"},
+			},
+		},
+		{
+			ID:          "RS-11-33",
+			Requirement: "interceptor chain 6-layer order (K-DAEMON-005)",
+			Tests: []testRef{
+				{Package: pkgGrpc, Name: "TestInterceptorChainOrderMatchesSpec"},
+			},
+		},
+		{
+			ID:          "RS-11-34",
+			Requirement: "stream close modes (K-STREAM-001)",
+			Tests: []testRef{
+				{Package: pkgAI, Name: "TestStreamCloseModeDoneTrueCarriesUsage"},
+				{Package: pkgAI, Name: "TestStreamCloseModeTerminalEventOnError"},
+			},
+		},
+		{
+			ID:          "RS-11-35",
+			Requirement: "stream chunk minimum 32 bytes (K-STREAM-006)",
+			Tests: []testRef{
+				{Package: pkgAI, Name: "TestStreamChunkMinBytes"},
+			},
+		},
+		{
+			ID:          "RS-11-36",
+			Requirement: "connector check order: owner → status → credential (K-AUTH-005)",
+			Tests: []testRef{
+				{Package: pkgConnector, Name: "TestConnectorCheckOrderOwnerBeforeStatusBeforeCredential"},
+			},
+		},
+		{
+			ID:          "RS-11-37",
+			Requirement: "6 local connector categories (K-LOCAL-001)",
+			Tests: []testRef{
+				{Package: pkgConnector, Name: "TestEnsureLocalConnectorsCreatesExactly6Categories"},
+			},
+		},
+		{
+			ID:          "RS-11-38",
+			Requirement: "audit event 6 mandatory fields (K-AUDIT-001)",
+			Tests: []testRef{
+				{Package: pkgGrpc, Name: "TestAuditEventMandatoryFieldsCompleteness"},
+			},
+		},
+		{
+			ID:          "RS-11-39",
+			Requirement: "audit sensitive field masking (K-AUDIT-017)",
+			Tests: []testRef{
+				{Package: pkgAuditLog, Name: "TestAppendEventMasksPayload"},
+				{Package: pkgAuditLog, Name: "TestMaskValue"},
+			},
+		},
+		{
+			ID:          "RS-11-40",
+			Requirement: "key source managed/inline mutual exclusion (K-KEYSRC-002)",
+			Tests: []testRef{
+				{Package: pkgAI, Name: "TestValidateKeySourceConflict"},
+			},
+		},
+		{
+			ID:          "RS-11-41",
+			Requirement: "go vet passes",
+			Commands: []commandCheckSpec{
+				{Name: "go-vet", Binary: "go", Args: []string{"vet", "./..."}},
 			},
 		},
 	}

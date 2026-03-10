@@ -119,7 +119,7 @@
     "check:desktop-mods-smoke": "node scripts/check-desktop-mods-smoke.mjs --all",
     "check:desktop-mods-smoke:local-chat": "node scripts/check-desktop-mods-smoke.mjs",
     "check:local-chat-e2e": "pnpm --dir nimi-mods run test:local-chat-e2e",
-    "check:local-chat-live-smoke": "pnpm --dir nimi-mods run test:local-chat-live-smoke",
+    "check:local-chat-live-smoke": "node scripts/run-local-chat-live-smoke.mjs",
     "check:live-provider-invariants": "node scripts/check-live-provider-invariants.mjs",
     "check:live-smoke-gate": "node scripts/check-live-smoke-gate.mjs",
     "live:audio-fixtures": "node scripts/live-audio-fixtures.mjs",

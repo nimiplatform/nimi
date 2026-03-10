@@ -47,37 +47,29 @@ import type {
 } from './types.js';
 import type { RuntimeInternalContext } from './internal-context.js';
 
-export type RuntimeInvokeWithClient = <T>(operation: (client: RuntimeClient) => Promise<T>) => Promise<T>;
+type RuntimeInvokeWithClient = <T>(operation: (client: RuntimeClient) => Promise<T>) => Promise<T>;
 
-export type RuntimeInvoke = <T>(operation: () => Promise<T>) => Promise<T>;
+type RuntimeInvoke = <T>(operation: () => Promise<T>) => Promise<T>;
 
-export type RuntimePassthroughModuleKey = keyof Pick<RuntimeClient,
-  'auth'
-  | 'workflow'
-  | 'model'
-  | 'local'
-  | 'connector'
-  | 'knowledge'
-  | 'audit'
->;
+type RuntimePassthroughModuleKey = 'auth' | 'workflow' | 'model' | 'local' | 'connector' | 'knowledge' | 'audit';
 
-export type RuntimeRawCall = <TReq, TRes>(
+type RuntimeRawCall = <TReq, TRes>(
   methodId: string,
   input: TReq,
   options?: RuntimeCallOptions | RuntimeStreamCallOptions,
 ) => Promise<TRes>;
 
-export type RuntimeAppClient = {
+type RuntimeModuleAppClient = {
   sendMessage: RuntimeClient['app']['sendAppMessage'];
   subscribeMessages: RuntimeClient['app']['subscribeAppMessages'];
 };
 
-export type RuntimeAuthEventEmitter = {
+type RuntimeAuthEventEmitter = {
   emitTokenIssued: (tokenId: string) => void;
   emitTokenRevoked: (tokenId: string) => void;
 };
 
-export type RuntimeTelemetryEmitter = (name: string, data?: Record<string, unknown>) => void;
+type RuntimeTelemetryEmitter = (name: string, data?: Record<string, unknown>) => void;
 
 export type RuntimeCorePassthroughClients = {
   auth: RuntimeAuthClient;
@@ -101,77 +93,114 @@ export function createRuntimeEventsModule(
   };
 }
 
-export function createPassthroughModule<Module>(
-  input: {
-    moduleKey: RuntimePassthroughModuleKey;
-    assertMethodAvailable: (moduleKey: string, methodKey: string) => void;
-    invokeWithClient: RuntimeInvokeWithClient;
-    createMethodNotImplementedError: (moduleKey: RuntimePassthroughModuleKey, methodKey: string) => Error;
-  },
-): Module {
-  const {
-    moduleKey,
-    assertMethodAvailable,
-    invokeWithClient,
-    createMethodNotImplementedError,
-  } = input;
-  return new Proxy({} as Record<string, unknown>, {
-    get: (_target, property: string | symbol) => {
-      if (typeof property !== 'string') {
-        return undefined;
-      }
-
-      return async (...args: unknown[]) => {
-        assertMethodAvailable(moduleKey, property);
-        return invokeWithClient(async (client) => {
-          const module = (client as unknown as Record<string, unknown>)[moduleKey] as Record<string, unknown>;
-          const method = module[property];
-          if (typeof method !== 'function') {
-            throw createMethodNotImplementedError(moduleKey, property);
-          }
-          return (method as (...innerArgs: unknown[]) => Promise<unknown>)(...args);
-        });
-      };
-    },
-  }) as unknown as Module;
-}
-
-export function createWorkflowClient(passthrough: RuntimeWorkflowClient): RuntimeWorkflowClient {
-  return {
-    submit: passthrough.submit,
-    get: passthrough.get,
-    cancel: passthrough.cancel,
-    subscribeEvents: async (request, options) => {
-      const raw = await passthrough.subscribeEvents(request, options);
-      return wrapModeBWorkflowStream(raw);
-    },
-  };
-}
-
 export function createCorePassthroughClients(input: {
   assertMethodAvailable: (moduleKey: string, methodKey: string) => void;
   invokeWithClient: RuntimeInvokeWithClient;
-  createMethodNotImplementedError: (moduleKey: RuntimePassthroughModuleKey, methodKey: string) => Error;
 }): RuntimeCorePassthroughClients {
-  const create = <T>(moduleKey: RuntimePassthroughModuleKey): T => createPassthroughModule<T>({
-    moduleKey,
-    assertMethodAvailable: input.assertMethodAvailable,
-    invokeWithClient: input.invokeWithClient,
-    createMethodNotImplementedError: input.createMethodNotImplementedError,
-  });
-  const workflowPassthrough = create<RuntimeWorkflowClient>('workflow');
-  return {
-    auth: create<RuntimeAuthClient>('auth'),
-    workflow: createWorkflowClient(workflowPassthrough),
-    model: create<RuntimeModelClient>('model'),
-    local: create<RuntimeLocalServiceClient>('local'),
-    connector: create<RuntimeConnectorClient>('connector'),
-    knowledge: create<RuntimeKnowledgeClient>('knowledge'),
-    audit: create<RuntimeAuditClient>('audit'),
+  const { assertMethodAvailable, invokeWithClient } = input;
+
+  const guard = (mod: RuntimePassthroughModuleKey, method: string) => assertMethodAvailable(mod, method);
+
+  const auth: RuntimeAuthClient = {
+    registerApp: async (req, opts) => { guard('auth', 'registerApp'); return invokeWithClient((c) => c.auth.registerApp(req, opts)); },
+    openSession: async (req, opts) => { guard('auth', 'openSession'); return invokeWithClient((c) => c.auth.openSession(req, opts)); },
+    refreshSession: async (req, opts) => { guard('auth', 'refreshSession'); return invokeWithClient((c) => c.auth.refreshSession(req, opts)); },
+    revokeSession: async (req, opts) => { guard('auth', 'revokeSession'); return invokeWithClient((c) => c.auth.revokeSession(req, opts)); },
+    registerExternalPrincipal: async (req, opts) => { guard('auth', 'registerExternalPrincipal'); return invokeWithClient((c) => c.auth.registerExternalPrincipal(req, opts)); },
+    openExternalPrincipalSession: async (req, opts) => { guard('auth', 'openExternalPrincipalSession'); return invokeWithClient((c) => c.auth.openExternalPrincipalSession(req, opts)); },
+    revokeExternalPrincipalSession: async (req, opts) => { guard('auth', 'revokeExternalPrincipalSession'); return invokeWithClient((c) => c.auth.revokeExternalPrincipalSession(req, opts)); },
   };
+
+  const workflow: RuntimeWorkflowClient = {
+    submit: async (req, opts) => { guard('workflow', 'submit'); return invokeWithClient((c) => c.workflow.submit(req, opts)); },
+    get: async (req, opts) => { guard('workflow', 'get'); return invokeWithClient((c) => c.workflow.get(req, opts)); },
+    cancel: async (req, opts) => { guard('workflow', 'cancel'); return invokeWithClient((c) => c.workflow.cancel(req, opts)); },
+    subscribeEvents: async (req, opts) => {
+      guard('workflow', 'subscribeEvents');
+      const raw = await invokeWithClient((c) => c.workflow.subscribeEvents(req, opts));
+      return wrapModeBWorkflowStream(raw);
+    },
+  };
+
+  const model: RuntimeModelClient = {
+    list: async (req, opts) => { guard('model', 'list'); return invokeWithClient((c) => c.model.list(req, opts)); },
+    pull: async (req, opts) => { guard('model', 'pull'); return invokeWithClient((c) => c.model.pull(req, opts)); },
+    remove: async (req, opts) => { guard('model', 'remove'); return invokeWithClient((c) => c.model.remove(req, opts)); },
+    checkHealth: async (req, opts) => { guard('model', 'checkHealth'); return invokeWithClient((c) => c.model.checkHealth(req, opts)); },
+  };
+
+  const local: RuntimeLocalServiceClient = {
+    listLocalModels: async (req, opts) => { guard('local', 'listLocalModels'); return invokeWithClient((c) => c.local.listLocalModels(req, opts)); },
+    listLocalArtifacts: async (req, opts) => { guard('local', 'listLocalArtifacts'); return invokeWithClient((c) => c.local.listLocalArtifacts(req, opts)); },
+    listVerifiedModels: async (req, opts) => { guard('local', 'listVerifiedModels'); return invokeWithClient((c) => c.local.listVerifiedModels(req, opts)); },
+    listVerifiedArtifacts: async (req, opts) => { guard('local', 'listVerifiedArtifacts'); return invokeWithClient((c) => c.local.listVerifiedArtifacts(req, opts)); },
+    searchCatalogModels: async (req, opts) => { guard('local', 'searchCatalogModels'); return invokeWithClient((c) => c.local.searchCatalogModels(req, opts)); },
+    resolveModelInstallPlan: async (req, opts) => { guard('local', 'resolveModelInstallPlan'); return invokeWithClient((c) => c.local.resolveModelInstallPlan(req, opts)); },
+    installLocalModel: async (req, opts) => { guard('local', 'installLocalModel'); return invokeWithClient((c) => c.local.installLocalModel(req, opts)); },
+    installVerifiedModel: async (req, opts) => { guard('local', 'installVerifiedModel'); return invokeWithClient((c) => c.local.installVerifiedModel(req, opts)); },
+    installVerifiedArtifact: async (req, opts) => { guard('local', 'installVerifiedArtifact'); return invokeWithClient((c) => c.local.installVerifiedArtifact(req, opts)); },
+    importLocalModel: async (req, opts) => { guard('local', 'importLocalModel'); return invokeWithClient((c) => c.local.importLocalModel(req, opts)); },
+    importLocalArtifact: async (req, opts) => { guard('local', 'importLocalArtifact'); return invokeWithClient((c) => c.local.importLocalArtifact(req, opts)); },
+    removeLocalModel: async (req, opts) => { guard('local', 'removeLocalModel'); return invokeWithClient((c) => c.local.removeLocalModel(req, opts)); },
+    removeLocalArtifact: async (req, opts) => { guard('local', 'removeLocalArtifact'); return invokeWithClient((c) => c.local.removeLocalArtifact(req, opts)); },
+    startLocalModel: async (req, opts) => { guard('local', 'startLocalModel'); return invokeWithClient((c) => c.local.startLocalModel(req, opts)); },
+    stopLocalModel: async (req, opts) => { guard('local', 'stopLocalModel'); return invokeWithClient((c) => c.local.stopLocalModel(req, opts)); },
+    checkLocalModelHealth: async (req, opts) => { guard('local', 'checkLocalModelHealth'); return invokeWithClient((c) => c.local.checkLocalModelHealth(req, opts)); },
+    warmLocalModel: async (req, opts) => { guard('local', 'warmLocalModel'); return invokeWithClient((c) => c.local.warmLocalModel(req, opts)); },
+    collectDeviceProfile: async (req, opts) => { guard('local', 'collectDeviceProfile'); return invokeWithClient((c) => c.local.collectDeviceProfile(req, opts)); },
+    resolveDependencies: async (req, opts) => { guard('local', 'resolveDependencies'); return invokeWithClient((c) => c.local.resolveDependencies(req, opts)); },
+    applyDependencies: async (req, opts) => { guard('local', 'applyDependencies'); return invokeWithClient((c) => c.local.applyDependencies(req, opts)); },
+    listLocalServices: async (req, opts) => { guard('local', 'listLocalServices'); return invokeWithClient((c) => c.local.listLocalServices(req, opts)); },
+    installLocalService: async (req, opts) => { guard('local', 'installLocalService'); return invokeWithClient((c) => c.local.installLocalService(req, opts)); },
+    startLocalService: async (req, opts) => { guard('local', 'startLocalService'); return invokeWithClient((c) => c.local.startLocalService(req, opts)); },
+    stopLocalService: async (req, opts) => { guard('local', 'stopLocalService'); return invokeWithClient((c) => c.local.stopLocalService(req, opts)); },
+    checkLocalServiceHealth: async (req, opts) => { guard('local', 'checkLocalServiceHealth'); return invokeWithClient((c) => c.local.checkLocalServiceHealth(req, opts)); },
+    removeLocalService: async (req, opts) => { guard('local', 'removeLocalService'); return invokeWithClient((c) => c.local.removeLocalService(req, opts)); },
+    listNodeCatalog: async (req, opts) => { guard('local', 'listNodeCatalog'); return invokeWithClient((c) => c.local.listNodeCatalog(req, opts)); },
+    listLocalAudits: async (req, opts) => { guard('local', 'listLocalAudits'); return invokeWithClient((c) => c.local.listLocalAudits(req, opts)); },
+    appendInferenceAudit: async (req, opts) => { guard('local', 'appendInferenceAudit'); return invokeWithClient((c) => c.local.appendInferenceAudit(req, opts)); },
+    appendRuntimeAudit: async (req, opts) => { guard('local', 'appendRuntimeAudit'); return invokeWithClient((c) => c.local.appendRuntimeAudit(req, opts)); },
+    listEngines: async (req, opts) => { guard('local', 'listEngines'); return invokeWithClient((c) => c.local.listEngines(req, opts)); },
+    ensureEngine: async (req, opts) => { guard('local', 'ensureEngine'); return invokeWithClient((c) => c.local.ensureEngine(req, opts)); },
+    startEngine: async (req, opts) => { guard('local', 'startEngine'); return invokeWithClient((c) => c.local.startEngine(req, opts)); },
+    stopEngine: async (req, opts) => { guard('local', 'stopEngine'); return invokeWithClient((c) => c.local.stopEngine(req, opts)); },
+    getEngineStatus: async (req, opts) => { guard('local', 'getEngineStatus'); return invokeWithClient((c) => c.local.getEngineStatus(req, opts)); },
+  };
+
+  const connector: RuntimeConnectorClient = {
+    createConnector: async (req, opts) => { guard('connector', 'createConnector'); return invokeWithClient((c) => c.connector.createConnector(req, opts)); },
+    getConnector: async (req, opts) => { guard('connector', 'getConnector'); return invokeWithClient((c) => c.connector.getConnector(req, opts)); },
+    listConnectors: async (req, opts) => { guard('connector', 'listConnectors'); return invokeWithClient((c) => c.connector.listConnectors(req, opts)); },
+    updateConnector: async (req, opts) => { guard('connector', 'updateConnector'); return invokeWithClient((c) => c.connector.updateConnector(req, opts)); },
+    deleteConnector: async (req, opts) => { guard('connector', 'deleteConnector'); return invokeWithClient((c) => c.connector.deleteConnector(req, opts)); },
+    testConnector: async (req, opts) => { guard('connector', 'testConnector'); return invokeWithClient((c) => c.connector.testConnector(req, opts)); },
+    listConnectorModels: async (req, opts) => { guard('connector', 'listConnectorModels'); return invokeWithClient((c) => c.connector.listConnectorModels(req, opts)); },
+    listProviderCatalog: async (req, opts) => { guard('connector', 'listProviderCatalog'); return invokeWithClient((c) => c.connector.listProviderCatalog(req, opts)); },
+    listModelCatalogProviders: async (req, opts) => { guard('connector', 'listModelCatalogProviders'); return invokeWithClient((c) => c.connector.listModelCatalogProviders(req, opts)); },
+    upsertModelCatalogProvider: async (req, opts) => { guard('connector', 'upsertModelCatalogProvider'); return invokeWithClient((c) => c.connector.upsertModelCatalogProvider(req, opts)); },
+    deleteModelCatalogProvider: async (req, opts) => { guard('connector', 'deleteModelCatalogProvider'); return invokeWithClient((c) => c.connector.deleteModelCatalogProvider(req, opts)); },
+  };
+
+  const knowledge: RuntimeKnowledgeClient = {
+    buildIndex: async (req, opts) => { guard('knowledge', 'buildIndex'); return invokeWithClient((c) => c.knowledge.buildIndex(req, opts)); },
+    searchIndex: async (req, opts) => { guard('knowledge', 'searchIndex'); return invokeWithClient((c) => c.knowledge.searchIndex(req, opts)); },
+    deleteIndex: async (req, opts) => { guard('knowledge', 'deleteIndex'); return invokeWithClient((c) => c.knowledge.deleteIndex(req, opts)); },
+  };
+
+  const audit: RuntimeAuditClient = {
+    listAuditEvents: async (req, opts) => { guard('audit', 'listAuditEvents'); return invokeWithClient((c) => c.audit.listAuditEvents(req, opts)); },
+    exportAuditEvents: async (req, opts) => { guard('audit', 'exportAuditEvents'); return invokeWithClient((c) => c.audit.exportAuditEvents(req, opts)); },
+    listUsageStats: async (req, opts) => { guard('audit', 'listUsageStats'); return invokeWithClient((c) => c.audit.listUsageStats(req, opts)); },
+    getRuntimeHealth: async (req, opts) => { guard('audit', 'getRuntimeHealth'); return invokeWithClient((c) => c.audit.getRuntimeHealth(req, opts)); },
+    listAIProviderHealth: async (req, opts) => { guard('audit', 'listAIProviderHealth'); return invokeWithClient((c) => c.audit.listAIProviderHealth(req, opts)); },
+    subscribeAIProviderHealthEvents: async (req, opts) => { guard('audit', 'subscribeAIProviderHealthEvents'); return invokeWithClient((c) => c.audit.subscribeAIProviderHealthEvents(req, opts)); },
+    subscribeRuntimeHealthEvents: async (req, opts) => { guard('audit', 'subscribeRuntimeHealthEvents'); return invokeWithClient((c) => c.audit.subscribeRuntimeHealthEvents(req, opts)); },
+  };
+
+  return { auth, workflow, model, local, connector, knowledge, audit };
 }
 
-export function createAppClient(invokeWithClient: RuntimeInvokeWithClient): RuntimeAppClient {
+export function createAppClient(invokeWithClient: RuntimeInvokeWithClient): RuntimeModuleAppClient {
   return {
     sendMessage: async (request, options) => invokeWithClient(
       async (client) => client.app.sendAppMessage(request, options),

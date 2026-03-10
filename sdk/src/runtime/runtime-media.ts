@@ -465,7 +465,7 @@ function toVideoContentRole(value: 'prompt' | 'first_frame' | 'last_frame' | 're
   }
 }
 
-function toSpeechTimingMode(value: SpeechSynthesizeInput['timingMode']): SpeechTimingMode {
+export function toSpeechTimingMode(value: SpeechSynthesizeInput['timingMode']): SpeechTimingMode {
   switch (value) {
     case 'word':
       return SpeechTimingMode.WORD;

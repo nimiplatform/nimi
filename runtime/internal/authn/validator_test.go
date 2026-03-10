@@ -424,6 +424,29 @@ func TestValidateExpiredTokenRejected(t *testing.T) {
 	}
 }
 
+func TestValidateAlgNoneTokenRejected(t *testing.T) {
+	key := generateRSAKey(t)
+	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer server.Close()
+
+	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+
+	// Craft a token with alg=none (K-AUTHN-003: MUST reject)
+	header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"none","typ":"JWT","kid":"kid-1"}`))
+	claims := validClaims()
+	claimsJSON, _ := json.Marshal(claims)
+	payload := base64.RawURLEncoding.EncodeToString(claimsJSON)
+	token := header + "." + payload + "."
+
+	_, err = validator.Validate(token)
+	if err == nil {
+		t.Fatal("expected alg=none token to be rejected (K-AUTHN-003)")
+	}
+}
+
 func TestValidateEmptyTokenReturnsAnonymous(t *testing.T) {
 	validator, err := NewValidator("https://realm.nimi.xyz/api/auth/jwks", "", "")
 	if err != nil {

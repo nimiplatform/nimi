@@ -40,6 +40,40 @@ func TestScenarioJobStoreCoreValidationAndLookup(t *testing.T) {
 	}
 }
 
+func TestScenarioJobStateEnumerationMatchesSpec(t *testing.T) {
+	// K-JOB-002: canonical 7-state machine enumeration.
+	// All 7 states MUST exist and terminal classification MUST match spec.
+	type stateSpec struct {
+		status   runtimev1.ScenarioJobStatus
+		terminal bool
+	}
+	expected := []stateSpec{
+		{runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, false},
+		{runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, false},
+		{runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, false},
+		{runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, true},
+		{runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED, true},
+		{runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED, true},
+		{runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT, true},
+	}
+
+	for _, spec := range expected {
+		name := spec.status.String()
+		if name == "" || name == "SCENARIO_JOB_STATUS_UNSPECIFIED" {
+			t.Fatalf("state %d has no valid enum name", spec.status)
+		}
+		got := isTerminalScenarioJobStatus(spec.status)
+		if got != spec.terminal {
+			t.Errorf("isTerminalScenarioJobStatus(%s) = %v, want %v", name, got, spec.terminal)
+		}
+	}
+
+	// Verify UNSPECIFIED is not terminal
+	if isTerminalScenarioJobStatus(runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_UNSPECIFIED) {
+		t.Error("UNSPECIFIED should not be terminal")
+	}
+}
+
 func TestScenarioJobStoreCancelAndArtifactsPaths(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx := context.Background()

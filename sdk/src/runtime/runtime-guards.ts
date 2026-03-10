@@ -18,8 +18,12 @@ export function checkRuntimeVersionCompatibility(input: {
 
   const runtimeMajor = parseSemverMajor(input.version);
   if (runtimeMajor === null) {
-    input.emitTelemetry('runtime.version.unparseable', { version: input.version });
-    return true;
+    throw createNimiError({
+      message: `runtime version is unparseable: ${input.version}`,
+      reasonCode: ReasonCode.SDK_RUNTIME_VERSION_INCOMPATIBLE,
+      actionHint: 'check_runtime_version_format',
+      source: 'sdk',
+    });
   }
 
   if (runtimeMajor !== input.sdkRuntimeMajor) {

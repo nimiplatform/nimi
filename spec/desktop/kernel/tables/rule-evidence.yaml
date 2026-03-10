@@ -849,6 +849,8 @@ rules:
     status: covered
     evidence_refs:
       - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
   - rule_id: D-TEL-001
     status: covered
     evidence_refs:
@@ -895,6 +897,8 @@ rules:
     status: covered
     evidence_refs:
       - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
   - rule_id: D-CODEGEN-001
     status: covered
     evidence_refs:
@@ -954,19 +958,29 @@ rules:
     status: covered
     evidence_refs:
       - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
   - rule_id: D-OFFLINE-002
     status: covered
     evidence_refs:
       - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
   - rule_id: D-OFFLINE-003
     status: covered
     evidence_refs:
       - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
   - rule_id: D-OFFLINE-004
     status: covered
     evidence_refs:
       - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
   - rule_id: D-OFFLINE-005
     status: covered
     evidence_refs:
       - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
