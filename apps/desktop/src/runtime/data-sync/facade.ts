@@ -29,6 +29,10 @@ import type {
   WorldLevelAuditEventDto,
 } from '@nimiplatform/sdk/realm';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
+import {
+  getOfflineCoordinator,
+  isRealmOfflineError,
+} from '@runtime/offline';
 import type { DataSyncApiConfig, FetchImpl } from './api-core';
 import { normalizeRealmBaseUrl, normalizeApiError, tryParseJsonLike } from './api-core';
 import type { PasswordAuthDebug } from './auth';
@@ -174,9 +178,14 @@ export class DataSync {
         task,
       );
       const normalized = tryParseJsonLike(result);
+      getOfflineCoordinator().markRealmRestReachable(true);
       return normalized === undefined ? {} : normalized;
     } catch (error) {
-      throw normalizeApiError(error, fallbackMessage);
+      const normalized = normalizeApiError(error, fallbackMessage);
+      if (isRealmOfflineError(normalized)) {
+        getOfflineCoordinator().markRealmRestReachable(false);
+      }
+      throw normalized;
     }
   }
 
@@ -207,6 +216,12 @@ export class DataSync {
   syncChatEvents(chatId: string, afterSeq: number, limit = 100): Promise<ChatSyncResultDto> { return this.actions.syncChatEvents(chatId, afterSeq, Math.min(limit, 100)); }
   async flushChatOutbox(chatId?: string): Promise<void> {
     await this.actions.flushChatOutbox(chatId);
+  }
+  async flushSocialOutbox(): Promise<void> {
+    await this.actions.flushSocialOutbox();
+  }
+  async hasPendingOfflineRecoveryWork(): Promise<boolean> {
+    return (await this.actions.countPendingRealmRecoveryWork()) > 0;
   }
   async markChatRead(chatId: string) { await this.actions.markChatRead(chatId); }
   async loadContacts() { await this.actions.loadContacts(); }

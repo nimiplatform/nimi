@@ -4,6 +4,11 @@ import { resolveChatRouteByPolicy } from '@runtime/chat';
 import { isDesktopChatRouteResultLike } from '@runtime/chat';
 import { getRuntimeHookRuntime } from '@runtime/mod';
 import {
+  getOfflineCacheManager,
+  getOfflineCoordinator,
+  isRealmOfflineError,
+} from '@runtime/offline';
+import {
   fetchAgentCoreMemorySlice,
   fetchAgentE2EMemorySlice,
   fetchAgentMemoryStats,
@@ -322,6 +327,18 @@ export async function loadAgentDetails(
       }
     }
     cacheSet(cacheKey, enrichedProfile, 5 * 60 * 1000);
+    const cache = await getOfflineCacheManager();
+    await cache.syncAgentMetadata(cacheKey, enrichedProfile);
+    if (resolvedId) {
+      await cache.syncAgentMetadata(`agent-profile:${resolvedId}`, enrichedProfile);
+    }
+    if (resolvedHandle) {
+      await cache.syncAgentMetadata(`agent-profile:${resolvedHandle}`, enrichedProfile);
+      if (!resolvedHandle.startsWith('~') && !resolvedHandle.startsWith('@')) {
+        await cache.syncAgentMetadata(`agent-profile:~${resolvedHandle}`, enrichedProfile);
+        await cache.syncAgentMetadata(`agent-profile:@${resolvedHandle}`, enrichedProfile);
+      }
+    }
     return applyAgentProfileReadFilters({
       emitDataSyncError,
       viewerUserId: context?.viewerUserId,
@@ -329,6 +346,18 @@ export async function loadAgentDetails(
       profile: enrichedProfile,
     });
   } catch (error) {
+    if (isRealmOfflineError(error)) {
+      const cached = await (await getOfflineCacheManager()).getCachedAgentMetadata(`agent-profile:${normalizedIdentifier}`);
+      if (cached) {
+        getOfflineCoordinator().markCacheFallbackUsed();
+        return applyAgentProfileReadFilters({
+          emitDataSyncError,
+          viewerUserId: context?.viewerUserId,
+          worldId: context?.worldId,
+          profile: cached,
+        });
+      }
+    }
     emitDataSyncError('load-agent-details', error, { agentIdentifier: normalizedIdentifier });
     throw error;
   }

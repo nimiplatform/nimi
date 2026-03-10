@@ -1,4 +1,5 @@
 import { startTransition } from 'react';
+import type { OfflineTier } from '@runtime/offline/types.js';
 import type { AppStoreSet, AppStoreState } from './store-types';
 
 type UiSlice = Pick<AppStoreState,
@@ -11,7 +12,9 @@ type UiSlice = Pick<AppStoreState,
   | 'selectedProfileIsAgent'
   | 'selectedWorldId'
   | 'chatProfilePanelTarget'
+  | 'offlineTier'
   | 'statusBanner'
+  | 'setOfflineTier'
   | 'setBootstrapReady'
   | 'setBootstrapError'
   | 'setActiveTab'
@@ -37,7 +40,9 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     selectedProfileIsAgent: null,
     selectedWorldId: null,
     chatProfilePanelTarget: null,
+    offlineTier: 'L0' as OfflineTier,
     statusBanner: null,
+    setOfflineTier: (tier) => set({ offlineTier: tier }),
     setBootstrapReady: (ready) => set({ bootstrapReady: ready }),
     setBootstrapError: (message) => set({ bootstrapError: message }),
     setActiveTab: (tab) => set({ activeTab: tab }),

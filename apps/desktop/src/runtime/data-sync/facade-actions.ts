@@ -20,6 +20,7 @@ import type { UpdateUserSettingsDto } from '@nimiplatform/sdk/realm';
 import type { PasswordAuthDebug } from './auth';
 import { loginWithPassword, logoutWithCleanup, registerWithPassword } from './flows/auth-flow';
 import {
+  countPendingChatOutboxEntries,
   flushPendingChatOutbox,
   loadChatList,
   loadChatMessages,
@@ -30,6 +31,10 @@ import {
   syncChatEventWindow,
   startChatWithTarget,
 } from './flows/chat-flow';
+import {
+  countPendingSocialMutations,
+  flushPendingSocialMutations,
+} from './offline-social-outbox';
 import {
   blockUser,
   loadContactList,
@@ -213,6 +218,18 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
         input.emitFacadeError,
         chatId,
       ),
+    flushSocialOutbox: async () =>
+      flushPendingSocialMutations(
+        input.callApiTask,
+        input.emitFacadeError,
+      ),
+    countPendingRealmRecoveryWork: async () => {
+      const [pendingChats, pendingSocial] = await Promise.all([
+        countPendingChatOutboxEntries(),
+        countPendingSocialMutations(),
+      ]);
+      return pendingChats + pendingSocial;
+    },
     loadContacts,
     loadSocialSnapshot: async () => loadSocialSnapshot(input.callApiTask, input.emitFacadeError),
     searchUser: async (identifierInput: string) =>

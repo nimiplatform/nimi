@@ -1,6 +1,11 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
 import type { WorldDetailDto } from '@nimiplatform/sdk/realm';
 import type { WorldLevelAuditEventDto } from '@nimiplatform/sdk/realm';
+import {
+  getOfflineCacheManager,
+  getOfflineCoordinator,
+  isRealmOfflineError,
+} from '@runtime/offline';
 
 type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (
@@ -52,13 +57,20 @@ export async function loadWorldList(
       (realm) => realm.services.WorldsService.worldControllerListWorlds(status),
       'Failed to load world list',
     );
-    if (Array.isArray(worlds)) {
-      return worlds
+    const normalized = Array.isArray(worlds)
+      ? worlds
         .filter((item) => item && typeof item === 'object')
-        .map((item) => item as WorldDetailDto);
-    }
-    return toRecordArray(worlds).map((item) => item as unknown as WorldDetailDto);
+        .map((item) => item as WorldDetailDto)
+      : toRecordArray(worlds).map((item) => item as unknown as WorldDetailDto);
+    await (await getOfflineCacheManager()).syncWorldList(
+      normalized as unknown as Record<string, unknown>[],
+    );
+    return normalized;
   } catch (error) {
+    if (isRealmOfflineError(error)) {
+      getOfflineCoordinator().markCacheFallbackUsed();
+      return (await (await getOfflineCacheManager()).getCachedWorldList()) as WorldDetailDto[];
+    }
     emitDataSyncError('load-world-list', error);
     throw error;
   }
@@ -69,11 +81,25 @@ export async function loadMainWorld(
   emitDataSyncError: DataSyncErrorEmitter,
 ): Promise<WorldDetailDto> {
   try {
-    return await callApi(
+    const world = await callApi(
       (realm) => realm.services.WorldsService.worldControllerGetMainWorld(),
       'Failed to load main world',
     );
+    if (world && typeof world === 'object' && !Array.isArray(world)) {
+      await (await getOfflineCacheManager()).syncWorldMetadata(
+        'main-world',
+        world as Record<string, unknown>,
+      );
+    }
+    return world;
   } catch (error) {
+    if (isRealmOfflineError(error)) {
+      const cached = await (await getOfflineCacheManager()).getCachedWorldMetadata('main-world');
+      if (cached) {
+        getOfflineCoordinator().markCacheFallbackUsed();
+        return cached as WorldDetailDto;
+      }
+    }
     emitDataSyncError('load-main-world', error);
     throw error;
   }
@@ -125,8 +151,21 @@ export async function loadWorldDetailById(
       'Failed to load world detail',
     );
     const record = toRecord(payload);
+    if (record) {
+      await (await getOfflineCacheManager()).syncWorldMetadata(
+        `world:${normalizedWorldId}`,
+        record,
+      );
+    }
     return record ? (record as unknown as WorldDetailDto) : null;
   } catch (error) {
+    if (isRealmOfflineError(error)) {
+      const cached = await (await getOfflineCacheManager()).getCachedWorldMetadata(`world:${normalizedWorldId}`);
+      if (cached) {
+        getOfflineCoordinator().markCacheFallbackUsed();
+        return cached as unknown as WorldDetailDto;
+      }
+    }
     emitDataSyncError('load-world-detail', error, { worldId: normalizedWorldId });
     throw error;
   }
@@ -192,8 +231,22 @@ export async function loadWorldDetailWithAgents(
       (realm) => realm.services.WorldsService.worldControllerGetWorldDetailWithAgents(normalizedWorldId),
       'Failed to load world detail with agents',
     );
-    return toRecord(payload);
+    const record = toRecord(payload);
+    if (record) {
+      await (await getOfflineCacheManager()).syncWorldMetadata(
+        `world:${normalizedWorldId}:detail`,
+        record,
+      );
+    }
+    return record;
   } catch (error) {
+    if (isRealmOfflineError(error)) {
+      const cached = await (await getOfflineCacheManager()).getCachedWorldMetadata(`world:${normalizedWorldId}:detail`);
+      if (cached) {
+        getOfflineCoordinator().markCacheFallbackUsed();
+        return cached;
+      }
+    }
     emitDataSyncError('load-world-detail-with-agents', error, { worldId: normalizedWorldId });
     throw error;
   }

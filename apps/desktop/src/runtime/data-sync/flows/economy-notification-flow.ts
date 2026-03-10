@@ -7,6 +7,8 @@ import type { RejectGiftDto } from '@nimiplatform/sdk/realm';
 import type { SendGiftDto } from '@nimiplatform/sdk/realm';
 import type { SparkCheckoutSessionDto } from '@nimiplatform/sdk/realm';
 import type { SparkPackageDto } from '@nimiplatform/sdk/realm';
+import { ReasonCode } from '@nimiplatform/sdk/types';
+import { createOfflineError, getOfflineCoordinator } from '@runtime/offline';
 
 type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (
@@ -14,6 +16,18 @@ type DataSyncErrorEmitter = (
   error: unknown,
   details?: Record<string, unknown>,
 ) => void;
+
+function assertEconomyWriteOnline(action: string): void {
+  if (getOfflineCoordinator().getTier() === 'L0') {
+    return;
+  }
+  throw createOfflineError({
+    source: 'realm',
+    reasonCode: ReasonCode.REALM_UNAVAILABLE,
+    message: `${action}需要在线连接后才能继续`,
+    actionHint: 'retry-when-online',
+  });
+}
 
 export async function loadCurrencyBalances(
   callApi: DataSyncApiCaller,
@@ -100,6 +114,7 @@ export async function createSparkCheckout(
   input: CreateSparkCheckoutDto,
 ): Promise<SparkCheckoutSessionDto> {
   try {
+    assertEconomyWriteOnline('创建 Spark 充值');
     return await callApi(
       (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerCreateSparkCheckout(input),
       '创建 Spark 充值会话失败',
@@ -150,6 +165,7 @@ export async function createWithdrawal(
   input: CreateWithdrawalDto,
 ) {
   try {
+    assertEconomyWriteOnline('创建提现申请');
     return await callApi(
       (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerCreateWithdrawal(input),
       '创建提现申请失败',
@@ -183,6 +199,7 @@ export async function sendGift(
   input: SendGiftDto,
 ) {
   try {
+    assertEconomyWriteOnline('发送礼物');
     return await callApi(
       (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerSendGift(input),
       '发送礼物失败',

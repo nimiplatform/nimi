@@ -5,6 +5,11 @@ import type { DirectUploadResponseDto } from '@nimiplatform/sdk/realm';
 import type { FeedResponseDto } from '@nimiplatform/sdk/realm';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import type { ReportResponseDto } from '@nimiplatform/sdk/realm';
+import {
+  getOfflineCoordinator,
+  isRealmOfflineError,
+} from '@runtime/offline';
+import { queueSocialMutation } from '../offline-social-outbox';
 
 type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (
@@ -166,6 +171,14 @@ export async function likePost(
       '点赞失败',
     );
   } catch (error) {
+    if (isRealmOfflineError(error)) {
+      await queueSocialMutation({
+        kind: 'post-like',
+        payload: { postId },
+      });
+      getOfflineCoordinator().markRealmRestReachable(false);
+      return;
+    }
     emitDataSyncError('like-post', error, { postId });
     throw error;
   }
@@ -182,6 +195,14 @@ export async function unlikePost(
       '取消点赞失败',
     );
   } catch (error) {
+    if (isRealmOfflineError(error)) {
+      await queueSocialMutation({
+        kind: 'post-unlike',
+        payload: { postId },
+      });
+      getOfflineCoordinator().markRealmRestReachable(false);
+      return;
+    }
     emitDataSyncError('unlike-post', error, { postId });
     throw error;
   }

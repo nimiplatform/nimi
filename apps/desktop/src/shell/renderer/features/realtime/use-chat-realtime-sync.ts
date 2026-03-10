@@ -7,6 +7,7 @@ import type { ListMessagesResultDto } from '@nimiplatform/sdk/realm';
 import type { MessageViewDto } from '@nimiplatform/sdk/realm';
 import { io, type Socket } from 'socket.io-client';
 import { dataSync } from '@runtime/data-sync';
+import { getOfflineCoordinator } from '@runtime/offline';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import {
@@ -348,9 +349,14 @@ export function useChatRealtimeSync(): void {
       return undefined;
     }
 
+    const offlineCoordinator = getOfflineCoordinator();
     const socket = io(realtimeBaseUrl, {
       path: CHAT_SOCKET_PATH,
       transports: ['websocket'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 30_000,
+      reconnectionAttempts: Infinity,
       auth: {
         token: normalizedToken,
       },
@@ -358,8 +364,10 @@ export function useChatRealtimeSync(): void {
     socketRef.current = socket;
 
     const onConnect = () => {
+      offlineCoordinator.markRealmSocketReachable(true);
       openChatSession(socket, sessionRef.current, selectedChatIdRef.current);
       void dataSync.flushChatOutbox();
+      void dataSync.flushSocialOutbox();
       void queryClient.invalidateQueries({ queryKey: ['chats'] });
       if (selectedChatIdRef.current) {
         void queryClient.invalidateQueries({ queryKey: ['messages', selectedChatIdRef.current] });
@@ -468,13 +476,44 @@ export function useChatRealtimeSync(): void {
         });
     };
 
+    const onDisconnect = () => {
+      offlineCoordinator.markRealmSocketReachable(false);
+      // D-NET-007: Socket disconnected → refresh chat data from REST
+      void queryClient.invalidateQueries({ queryKey: ['chats'] });
+      const activeChatId = selectedChatIdRef.current;
+      if (activeChatId && sessionRef.current?.chatId === activeChatId) {
+        void dataSync
+          .syncChatEvents(activeChatId, sessionRef.current.lastAckSeq, 200)
+          .then((result) => {
+            applySyncSnapshotToCache(activeChatId, result.snapshot);
+            if (Array.isArray(result.events)) {
+              for (const candidate of result.events) {
+                const event = normalizeChatEvent(candidate);
+                if (!event) continue;
+                if (rememberSeenEvent(seenEventsRef.current, `chat:event:${event.eventId}`)) continue;
+                applyChatEventToCache({
+                  event,
+                  selectedChatId: selectedChatIdRef.current,
+                  currentUserId: currentUserIdRef.current,
+                });
+              }
+            }
+          })
+          .catch(() => {
+            void queryClient.invalidateQueries({ queryKey: ['messages', activeChatId] });
+          });
+      }
+    };
+
     socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
     socket.on('chat:session.ready', onSessionReady);
     socket.on('chat:event', onChatEvent);
     socket.on('chat:session.sync_required', onSyncRequired);
 
     return () => {
       socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
       socket.off('chat:session.ready', onSessionReady);
       socket.off('chat:event', onChatEvent);
       socket.off('chat:session.sync_required', onSyncRequired);

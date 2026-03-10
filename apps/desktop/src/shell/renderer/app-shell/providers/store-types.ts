@@ -4,6 +4,7 @@ import type {
 } from '@renderer/bridge';
 import type { RuntimeModRegisterFailure } from '@runtime/mod';
 import type { RuntimeModSettingsMap } from '@nimiplatform/sdk/mod/settings';
+import type { OfflineTier } from '@runtime/offline/types.js';
 
 export type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';
 export type AppTab =
@@ -82,7 +83,9 @@ export type AppStoreState = {
   modWorkspaceTabs: ModWorkspaceTab[];
   fusedRuntimeMods: Record<string, { reason: string; lastError: string; at: string }>;
   runtimeModFailures: RuntimeModRegisterFailure[];
+  offlineTier: OfflineTier;
   statusBanner: StatusBanner | null;
+  setOfflineTier: (tier: OfflineTier) => void;
   setBootstrapReady: (ready: boolean) => void;
   setBootstrapError: (message: string | null) => void;
   setRuntimeDefaults: (defaults: RuntimeDefaults) => void;

@@ -1,5 +1,10 @@
 import type { UserProfileDto } from '@nimiplatform/sdk/realm';
 import {
+  getOfflineCacheManager,
+  getOfflineCoordinator,
+  isRealmOfflineError,
+} from '@runtime/offline';
+import {
   enrichProfileWithWorldBanner,
   fetchPendingFriendRequests,
   getCachedContacts,
@@ -9,6 +14,7 @@ import {
   type DataSyncErrorEmitter,
   type SocialContactSnapshot,
 } from './profile-flow-social';
+import { queueSocialMutation } from '../offline-social-outbox';
 
 export type { SocialContactSnapshot } from './profile-flow-social';
 
@@ -81,8 +87,19 @@ export async function loadUserProfileById(
     if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
       return profile as UserProfileDto;
     }
-    return enrichProfileWithWorldBanner(callApi, profile as Record<string, unknown>);
+    const enriched = await enrichProfileWithWorldBanner(callApi, profile as Record<string, unknown>);
+    const cache = await getOfflineCacheManager();
+    await cache.syncAgentMetadata(`user:${id}`, enriched as Record<string, unknown>);
+    return enriched;
   } catch (error) {
+    if (isRealmOfflineError(error)) {
+      const cache = await getOfflineCacheManager();
+      const cached = await cache.getCachedAgentMetadata(`user:${id}`);
+      if (cached) {
+        getOfflineCoordinator().markCacheFallbackUsed();
+        return cached as UserProfileDto;
+      }
+    }
     emitDataSyncError('load-user-profile', error, { id });
     throw error;
   }
@@ -130,8 +147,20 @@ export async function requestOrAcceptFriend(input: {
   userId: string;
   reloadContacts: () => Promise<void>;
 }) {
-  await addFriendById(input.callApi, input.userId);
-  await input.reloadContacts();
+  try {
+    await addFriendById(input.callApi, input.userId);
+    await input.reloadContacts();
+  } catch (error) {
+    if (isRealmOfflineError(error)) {
+      await queueSocialMutation({
+        kind: 'friend-add',
+        payload: { userId: input.userId },
+      });
+      getOfflineCoordinator().markRealmRestReachable(false);
+      return { id: String(input.userId || ''), queued: true };
+    }
+    throw error;
+  }
   return { id: String(input.userId || '') };
 }
 
@@ -140,8 +169,20 @@ export async function removeFriend(input: {
   userId: string;
   reloadContacts: () => Promise<void>;
 }) {
-  await removeFriendById(input.callApi, input.userId);
-  await input.reloadContacts();
+  try {
+    await removeFriendById(input.callApi, input.userId);
+    await input.reloadContacts();
+  } catch (error) {
+    if (isRealmOfflineError(error)) {
+      await queueSocialMutation({
+        kind: 'friend-remove',
+        payload: { userId: input.userId },
+      });
+      getOfflineCoordinator().markRealmRestReachable(false);
+      return;
+    }
+    throw error;
+  }
 }
 
 export async function rejectOrRemoveFriend(input: {
@@ -149,8 +190,20 @@ export async function rejectOrRemoveFriend(input: {
   userId: string;
   reloadContacts: () => Promise<void>;
 }) {
-  await removeFriendById(input.callApi, input.userId);
-  await input.reloadContacts();
+  try {
+    await removeFriendById(input.callApi, input.userId);
+    await input.reloadContacts();
+  } catch (error) {
+    if (isRealmOfflineError(error)) {
+      await queueSocialMutation({
+        kind: 'friend-remove',
+        payload: { userId: input.userId },
+      });
+      getOfflineCoordinator().markRealmRestReachable(false);
+      return { id: String(input.userId || ''), queued: true };
+    }
+    throw error;
+  }
   return { id: String(input.userId || '') };
 }
 

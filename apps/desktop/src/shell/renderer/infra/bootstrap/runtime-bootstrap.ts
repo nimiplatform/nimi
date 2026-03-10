@@ -16,9 +16,11 @@ import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { desktopBridge, toRendererLogMessage } from '@renderer/bridge';
 import { createProxyFetch } from '@renderer/infra/bridge/proxy-fetch';
+import { queryClient } from '@renderer/infra/query-client/query-client';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { initializePlatformClient } from '@runtime/platform-client';
+import { getOfflineCoordinator } from '@runtime/offline';
 import { wireModSdkHost } from './runtime-bootstrap-host';
 import { bootstrapAuthSession } from './runtime-bootstrap-auth';
 import {
@@ -44,6 +46,7 @@ import { checkDaemonVersion } from './version-check';
 import { registerExitHandler } from './exit-handler';
 
 let bootstrapPromise: Promise<void> | null = null;
+let offlineCoordinatorBindingsReady = false;
 const MOD_STATE_CAPABILITY = 'data.store.mod-state';
 const MOD_STATE_STORAGE_PREFIX = 'nimi:mod-state:';
 const MOD_STATE_MAX_KEY_LENGTH = 256;
@@ -106,7 +109,64 @@ function registerModStateDataCapability(): void {
   });
 }
 
+function suspendRuntimeCallbacksForL2(): void {
+  const hookRuntime = getRuntimeHookRuntime();
+  for (const modId of listRegisteredRuntimeModIds()) {
+    try {
+      hookRuntime.suspendMod(modId);
+    } catch {
+      // Ignore suspend failures; reconnect bootstrap will rebuild runtime state.
+    }
+  }
+}
+
+function bindOfflineCoordinator(): void {
+  if (offlineCoordinatorBindingsReady) {
+    return;
+  }
+  offlineCoordinatorBindingsReady = true;
+  const coordinator = getOfflineCoordinator();
+  useAppStore.getState().setOfflineTier(coordinator.getTier());
+  coordinator.configureReconnectHandlers({
+    probeRealmReachability: async () => {
+      const authStatus = useAppStore.getState().auth.status;
+      if (authStatus !== 'authenticated') {
+        return false;
+      }
+      await dataSync.loadCurrentUser();
+      return true;
+    },
+    probeRuntimeReachability: async () => {
+      const daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
+      return checkDaemonVersion(daemonStatus.version).ok;
+    },
+    hasPendingRealmRecoveryWork: async () => dataSync.hasPendingOfflineRecoveryWork(),
+  });
+  coordinator.subscribeTier((change) => {
+    useAppStore.getState().setOfflineTier(change.to);
+    if (change.to === 'L2') {
+      suspendRuntimeCallbacksForL2();
+    }
+  });
+  coordinator.subscribeRealmReconnect(async () => {
+    await Promise.allSettled([
+      dataSync.flushChatOutbox(),
+      dataSync.flushSocialOutbox(),
+    ]);
+    await queryClient.invalidateQueries();
+  });
+  coordinator.subscribeRuntimeReconnect(async () => {
+    await rebootstrapRuntime();
+  });
+}
+
+export function rebootstrapRuntime(): Promise<void> {
+  bootstrapPromise = null;
+  return bootstrapRuntime();
+}
+
 export function bootstrapRuntime(): Promise<void> {
+  bindOfflineCoordinator();
   if (bootstrapPromise) {
     return bootstrapPromise;
   }
@@ -281,6 +341,8 @@ export function bootstrapRuntime(): Promise<void> {
       accessToken: defaults.realm.accessToken,
     });
 
+    getOfflineCoordinator().markRuntimeReachable(true);
+
     useAppStore.getState().setBootstrapReady(true);
     useAppStore.getState().setBootstrapError(null);
     logRendererEvent({
@@ -296,6 +358,8 @@ export function bootstrapRuntime(): Promise<void> {
       },
     });
   })().catch((error) => {
+    // D-BOOT-008 + D-OFFLINE-001: Bootstrap failure → L2 degradation
+    getOfflineCoordinator().markRuntimeReachable(false);
     const message = safeErrorMessage(error);
     useAppStore.getState().setBootstrapError(message);
     useAppStore.getState().setBootstrapReady(false);

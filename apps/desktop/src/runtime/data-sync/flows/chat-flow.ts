@@ -4,6 +4,13 @@ import type { SendMessageInputDto } from '@nimiplatform/sdk/realm';
 import type { StartChatInputDto } from '@nimiplatform/sdk/realm';
 import type { ChatSyncResultDto } from '@nimiplatform/sdk/realm';
 import type { MessageViewDto } from '@nimiplatform/sdk/realm';
+import {
+  getErrorMessage,
+  getOfflineCacheManager,
+  getOfflineCoordinator,
+  isRealmOfflineError,
+  type PersistentOutboxEntry,
+} from '@runtime/offline';
 
 type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (
@@ -19,8 +26,6 @@ type PendingChatOutboxEntry = {
   attempts: number;
 };
 
-const chatOutboxStore = new Map<string, Map<string, PendingChatOutboxEntry>>();
-
 function createClientMessageId(): string {
   if (typeof globalThis.crypto?.randomUUID === 'function') {
     return globalThis.crypto.randomUUID();
@@ -28,18 +33,42 @@ function createClientMessageId(): string {
   return `cm_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function getChatOutbox(chatId: string): Map<string, PendingChatOutboxEntry> {
-  const normalized = String(chatId || '').trim();
-  if (!normalized) {
-    return new Map<string, PendingChatOutboxEntry>();
-  }
-  const existing = chatOutboxStore.get(normalized);
-  if (existing) {
-    return existing;
-  }
-  const created = new Map<string, PendingChatOutboxEntry>();
-  chatOutboxStore.set(normalized, created);
-  return created;
+function toPersistentEntry(entry: PendingChatOutboxEntry): PersistentOutboxEntry {
+  return {
+    clientMessageId: String(entry.body.clientMessageId || '').trim(),
+    chatId: entry.chatId,
+    body: entry.body as unknown as Record<string, unknown>,
+    enqueuedAt: entry.queuedAt,
+    attempts: entry.attempts,
+    status: 'pending',
+  };
+}
+
+function toQueuedMessagePlaceholder(entry: PersistentOutboxEntry): MessageViewDto {
+  const payload = (entry.body.payload && typeof entry.body.payload === 'object')
+    ? entry.body.payload as Record<string, unknown>
+    : null;
+  return {
+    id: `offline:${entry.clientMessageId}`,
+    chatId: entry.chatId,
+    clientMessageId: entry.clientMessageId,
+    createdAt: new Date(entry.enqueuedAt).toISOString(),
+    isRead: true,
+    payload,
+    senderId: String((entry.body as Record<string, unknown>).senderId || 'local-user'),
+    text: typeof entry.body.text === 'string' ? entry.body.text : null,
+    type: (entry.body.type || 'TEXT') as MessageType,
+  };
+}
+
+export function buildOfflineOutboxMessage(entry: PersistentOutboxEntry): MessageViewDto {
+  return toQueuedMessagePlaceholder(entry);
+}
+
+export async function countPendingChatOutboxEntries(): Promise<number> {
+  const manager = await getOfflineCacheManager();
+  const entries = await manager.getChatOutboxEntries();
+  return entries.filter((entry) => entry.status === 'pending').length;
 }
 
 export function sameMessageIdentity(left: MessageViewDto, right: MessageViewDto): boolean {
@@ -65,8 +94,18 @@ export async function loadChatList(
       (realm) => realm.services.HumanChatService.listChats(limit),
       '加载会话列表失败',
     );
+    const manager = await getOfflineCacheManager();
+    const items = Array.isArray(result?.items) ? result.items as Record<string, unknown>[] : [];
+    await manager.syncChatList(items);
     return result;
   } catch (error) {
+    if (isRealmOfflineError(error)) {
+      const manager = await getOfflineCacheManager();
+      getOfflineCoordinator().markCacheFallbackUsed();
+      return {
+        items: await manager.getCachedChatList(),
+      };
+    }
     emitDataSyncError('load-chats', error);
     throw error;
   }
@@ -140,11 +179,25 @@ export async function loadChatMessages(
       (realm) => realm.services.HumanChatService.listMessages(chatId, limit),
       '加载消息失败',
     );
+    const manager = await getOfflineCacheManager();
+    const items = Array.isArray(result?.items) ? result.items as Record<string, unknown>[] : [];
+    await manager.syncChatMessages(chatId, items);
     if (markChatRead) {
       await markChatRead(chatId);
     }
-    return result;
+    return {
+      ...result,
+      offlineOutbox: await manager.getChatOutboxEntries(chatId),
+    };
   } catch (error) {
+    if (isRealmOfflineError(error)) {
+      const manager = await getOfflineCacheManager();
+      getOfflineCoordinator().markCacheFallbackUsed();
+      return {
+        items: await manager.getCachedMessages(chatId) as MessageViewDto[],
+        offlineOutbox: await manager.getChatOutboxEntries(chatId),
+      };
+    }
     emitDataSyncError('load-messages', error, { chatId });
     throw error;
   }
@@ -192,26 +245,40 @@ export async function sendChatMessage(
       payload: { content } as unknown as Record<string, never>,
       ...options,
     };
-    const outbox = getChatOutbox(chatId);
-    outbox.set(data.clientMessageId, {
+    const manager = await getOfflineCacheManager();
+    const entry = toPersistentEntry({
       chatId,
       body: data,
       queuedAt: Date.now(),
       attempts: 0,
     });
+    await manager.upsertChatOutboxEntry(entry);
 
     const message = await callApi(
       (realm) => realm.services.HumanChatService.sendMessage(chatId, data),
       '发送消息失败',
     );
-    outbox.delete(data.clientMessageId);
+    await manager.markChatOutboxSent(data.clientMessageId);
     return message;
   } catch (error) {
-    const outbox = getChatOutbox(chatId);
-    const existing = outbox.get(clientMessageId);
+    const manager = await getOfflineCacheManager();
+    const existing = await manager.getChatOutboxEntry(clientMessageId);
+    if (existing && isRealmOfflineError(error)) {
+      await manager.upsertChatOutboxEntry({
+        ...existing,
+        attempts: existing.attempts + 1,
+      });
+      getOfflineCoordinator().markRealmRestReachable(false);
+      return toQueuedMessagePlaceholder({
+        ...existing,
+        attempts: existing.attempts + 1,
+      });
+    }
     if (existing) {
-      existing.attempts += 1;
-      outbox.set(clientMessageId, existing);
+      await manager.markChatOutboxFailed(
+        clientMessageId,
+        getErrorMessage(error, '发送消息失败'),
+      );
     }
     emitDataSyncError('send-message', error, { chatId });
     throw error;
@@ -223,42 +290,39 @@ export async function flushPendingChatOutbox(
   emitDataSyncError: DataSyncErrorEmitter,
   chatId?: string,
 ): Promise<MessageViewDto[]> {
-  const normalizedChatId = String(chatId || '').trim();
-  const targetChatIds = normalizedChatId
-    ? [normalizedChatId]
-    : Array.from(chatOutboxStore.keys());
-
+  const manager = await getOfflineCacheManager();
+  const pending = await manager.getChatOutboxEntries(chatId);
   const flushed: MessageViewDto[] = [];
-
-  for (const targetId of targetChatIds) {
-    const outbox = getChatOutbox(targetId);
-    if (outbox.size === 0) {
+  for (const entry of pending) {
+    if (entry.status !== 'pending') {
       continue;
     }
-
-    const pending = Array.from(outbox.values()).sort((left, right) => left.queuedAt - right.queuedAt);
-    for (const entry of pending) {
-      try {
-        const message = await callApi(
-          (realm) => realm.services.HumanChatService.sendMessage(entry.chatId, entry.body),
-          '重放聊天消息失败',
-        );
-        outbox.delete(entry.body.clientMessageId);
-        flushed.push(message);
-      } catch (error) {
-        const latest = outbox.get(entry.body.clientMessageId);
-        if (latest) {
-          latest.attempts += 1;
-          outbox.set(entry.body.clientMessageId, latest);
-        }
-        emitDataSyncError('flush-chat-outbox', error, {
-          chatId: entry.chatId,
-          clientMessageId: entry.body.clientMessageId,
+    try {
+      const message = await callApi(
+        (realm) => realm.services.HumanChatService.sendMessage(entry.chatId, entry.body as SendMessageInputDto),
+        '重放聊天消息失败',
+      );
+      await manager.markChatOutboxSent(entry.clientMessageId);
+      flushed.push(message);
+    } catch (error) {
+      if (isRealmOfflineError(error)) {
+        await manager.upsertChatOutboxEntry({
+          ...entry,
+          attempts: entry.attempts + 1,
         });
+        getOfflineCoordinator().markRealmRestReachable(false);
+        continue;
       }
+      await manager.markChatOutboxFailed(
+        entry.clientMessageId,
+        getErrorMessage(error, '重放聊天消息失败'),
+      );
+      emitDataSyncError('flush-chat-outbox', error, {
+        chatId: entry.chatId,
+        clientMessageId: entry.clientMessageId,
+      });
     }
   }
-
   return flushed;
 }
 
