@@ -572,11 +572,13 @@ export function createModAiDependencySnapshotResolver(): (
     let nodes: LocalAiNodeDescriptor[] = [];
     const inventoryWarnings: string[] = [];
     try {
-      [models, services, nodes] = await Promise.all([
-        localAiRuntime.list(),
-        localAiRuntime.listServices(),
-        localAiRuntime.listNodesCatalog(localAiCapability ? { capability: localAiCapability } : undefined),
-      ]);
+      // Keep inventory reads serialized to avoid spiking the runtime bridge with
+      // three concurrent IPC calls every time mods refresh dependency status.
+      models = await localAiRuntime.list();
+      services = await localAiRuntime.listServices();
+      nodes = await localAiRuntime.listNodesCatalog(
+        localAiCapability ? { capability: localAiCapability } : undefined,
+      );
     } catch (error) {
       inventoryWarnings.push(
         `runtime inventory unavailable: ${error instanceof Error ? error.message : String(error || '')}`,

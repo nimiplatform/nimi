@@ -6,7 +6,7 @@ icon: mint-you
 entry: ./dist/mods/mint-you/index.js
 description: >
   Behavioral personality profiling and social-persona agent creation.
-  Users complete scenario-based intake to create an AI agent that
+  Users complete conversational intake to create an AI agent that
   represents their social personality. Includes photo trust-unlock
   for mutual identity reveal between matched users.
 capabilities:

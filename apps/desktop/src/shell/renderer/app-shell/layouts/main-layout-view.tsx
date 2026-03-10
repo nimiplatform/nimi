@@ -1,10 +1,11 @@
-import { Suspense, lazy, useEffect, useRef, useState, type MouseEvent } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import logoImage from '../../assets/logo.svg';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
+import { resolveRouteTabExtension } from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
 import { StatusBanner } from '@renderer/ui/feedback/status-banner';
 import {
   loadStoredSettingsSelected,
@@ -301,6 +302,11 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const sidebarWidthClass = 'w-[60px]';
   const titlebarLeftInsetClass = flags.enableTitlebarDrag ? 'pl-[92px]' : 'pl-3';
   const activeModTab = props.activeTab.startsWith('mod:');
+  const activeRouteExtension = useMemo(
+    () => (activeModTab ? resolveRouteTabExtension(props.activeTab) : null),
+    [activeModTab, props.activeTab],
+  );
+  const immersiveRoute = String(activeRouteExtension?.extension.shellMode || '').trim().toLowerCase() === 'immersive';
   const balancesQuery = useQuery({
     queryKey: ['topbar-currency-balances'],
     queryFn: async () => {
@@ -507,175 +513,170 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       />
 
       <div className="flex min-h-0 flex-1">
-        <aside className={`flex h-full shrink-0 flex-col bg-white transition-[width] duration-200 ${sidebarWidthClass}`}>
-          <div className="flex h-14 shrink-0 items-center justify-center">
-            <SidebarTooltipButton
-              label="Home"
-              onClick={() => {
-                setSettingsMenuOpen(false);
-                props.onNav('home');
-              }}
-            >
-              {nimiHomeNode}
-            </SidebarTooltipButton>
-          </div>
-
-          <nav className="flex-1 overflow-y-auto pt-2">
-            <div className="flex flex-col gap-1">
-              {primaryCoreNavItems.map((item) => (
-                <NavLink
-                  key={item.id}
-                  item={item}
-                  active={props.activeTab === item.id}
-                  collapsed
-                  onClick={() => props.onNav(item.id)}
-                />
-              ))}
-              {quickNavItems.map((item) => (
-                <NavLink
-                  key={item.id}
-                  item={item}
-                  active={props.activeTab === item.id}
-                  collapsed
-                  onClick={() => props.onNav(item.id)}
-                />
-              ))}
-              {flags.enableModUi ? (
-                <NavLink
-                  item={modsNavItem}
-                  active={props.activeTab === 'mods' || activeModTab}
-                  collapsed
-                  onClick={() => props.onNav('mods')}
-                />
-              ) : null}
+        {immersiveRoute ? null : (
+          <aside className={`flex h-full shrink-0 flex-col bg-white transition-[width] duration-200 ${sidebarWidthClass}`}>
+            <div className="flex h-14 shrink-0 items-center justify-center">
+              <SidebarTooltipButton
+                label="Home"
+                onClick={() => {
+                  setSettingsMenuOpen(false);
+                  props.onNav('home');
+                }}
+              >
+                {nimiHomeNode}
+              </SidebarTooltipButton>
             </div>
-          </nav>
 
-          {settingsMenuOpen ? (
-            <div
-              ref={settingsMenuRef}
-              className="fixed z-50 flex max-h-[calc(100vh-100px)] w-64 flex-col overflow-hidden rounded-2xl border border-[#4ECCA3]/20 bg-white py-2 shadow-2xl shadow-[#4ECCA3]/10"
-              style={{
-                top: `${collapsedSettingsMenuPosition?.top ?? 76}px`,
-                left: `${collapsedSettingsMenuPosition?.left ?? 81}px`,
-              }}
-            >
-              {/* User Profile Header */}
-              <div className="flex items-center gap-3 px-4 py-3">
-                <EntityAvatar
-                  imageUrl={props.userAvatarUrl}
-                  name={props.displayName}
-                  kind="human"
-                  sizeClassName="h-10 w-10"
-                  textClassName="text-sm font-semibold"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-gray-900">{props.displayName}</p>
-                  <p className="truncate text-xs text-gray-500">{props.userEmail || props.displayName.toLowerCase().replace(/\s+/g, '.') + '@nimi.app'}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    persistStoredSettingsSelected('profile');
-                    props.onNav('settings');
-                    setSettingsMenuOpen(false);
-                  }}
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 transition hover:bg-[#4ECCA3]/10 hover:text-[#4ECCA3]"
-                  title="Edit Profile"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 20h9" />
-                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                  </svg>
-                </button>
+            <nav className="flex-1 overflow-y-auto pt-2">
+              <div className="flex flex-col gap-1">
+                {primaryCoreNavItems.map((item) => (
+                  <NavLink
+                    key={item.id}
+                    item={item}
+                    active={props.activeTab === item.id}
+                    collapsed
+                    onClick={() => props.onNav(item.id)}
+                  />
+                ))}
+                {quickNavItems.map((item) => (
+                  <NavLink
+                    key={item.id}
+                    item={item}
+                    active={props.activeTab === item.id}
+                    collapsed
+                    onClick={() => props.onNav(item.id)}
+                  />
+                ))}
+                {flags.enableModUi ? (
+                  <NavLink
+                    item={modsNavItem}
+                    active={props.activeTab === 'mods' || activeModTab}
+                    collapsed
+                    onClick={() => props.onNav('mods')}
+                  />
+                ) : null}
               </div>
+            </nav>
 
-              <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/20 to-transparent" />
-
-              {/* Scrollable Content */}
-              <div className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#4ECCA3/30_transparent]">
-                {/* Menu Items */}
-                <div className="px-2">
-                  {/* Profile - First Item */}
+            {settingsMenuOpen ? (
+              <div
+                ref={settingsMenuRef}
+                className="fixed z-50 flex max-h-[calc(100vh-100px)] w-64 flex-col overflow-hidden rounded-2xl border border-[#4ECCA3]/20 bg-white py-2 shadow-2xl shadow-[#4ECCA3]/10"
+                style={{
+                  top: `${collapsedSettingsMenuPosition?.top ?? 76}px`,
+                  left: `${collapsedSettingsMenuPosition?.left ?? 81}px`,
+                }}
+              >
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <EntityAvatar
+                    imageUrl={props.userAvatarUrl}
+                    name={props.displayName}
+                    kind="human"
+                    sizeClassName="h-10 w-10"
+                    textClassName="text-sm font-semibold"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-gray-900">{props.displayName}</p>
+                    <p className="truncate text-xs text-gray-500">{props.userEmail || props.displayName.toLowerCase().replace(/\s+/g, '.') + '@nimi.app'}</p>
+                  </div>
                   <button
                     type="button"
                     onClick={() => {
-                      openSettingsSubmenuItem('profile');
-                    }}
-                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all ${
-                      isSettingsMenuItemActive('profile')
-                        ? 'bg-[#4ECCA3]/10 text-[#2F7D6B]'
-                        : 'text-gray-700 hover:bg-[#4ECCA3]/5'
-                    }`}
-                  >
-                    <span className={`w-4 shrink-0 ${isSettingsMenuItemActive('profile') ? 'text-[#4ECCA3]' : 'text-gray-400'}`}>
-                      {renderShellNavIcon('profile')}
-                    </span>
-                    <span className="min-w-0 flex-1 text-left font-medium">{t(SETTINGS_SUBMENU_I18N_KEYS['profile'] ?? '', 'Profile')}</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
-                      <path d="m9 18 6-6-6-6" />
-                    </svg>
-                  </button>
-
-                  {SETTINGS_SUBMENU_ITEMS.filter(item => item.id !== 'logout' && item.id !== 'profile').map((item) => {
-                    const active = isSettingsMenuItemActive(item.id);
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          openSettingsSubmenuItem(item.id);
-                        }}
-                        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all ${
-                          active
-                            ? 'bg-[#4ECCA3]/10 text-[#2F7D6B]'
-                            : 'text-gray-700 hover:bg-[#4ECCA3]/5'
-                        }`}
-                      >
-                        <span className={`w-4 shrink-0 ${active ? 'text-[#4ECCA3]' : 'text-gray-400'}`}>
-                          {renderShellNavIcon(item.icon)}
-                        </span>
-                        <span className="min-w-0 flex-1 text-left font-medium">{t(SETTINGS_SUBMENU_I18N_KEYS[item.id] ?? '', item.label)}</span>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
-                          <path d="m9 18 6-6-6-6" />
-                        </svg>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-gray-100 to-transparent" />
-
-                {/* Logout */}
-                <div className="px-2 pb-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      props.onLogout();
+                      persistStoredSettingsSelected('profile');
+                      props.onNav('settings');
                       setSettingsMenuOpen(false);
                     }}
-                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all ${
-                      'text-gray-700 hover:bg-[#4ECCA3]/5'
-                    }`}
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 transition hover:bg-[#4ECCA3]/10 hover:text-[#4ECCA3]"
+                    title="Edit Profile"
                   >
-                    <span className="w-4 shrink-0 text-gray-400">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                        <polyline points="16 17 21 12 16 7" />
-                        <line x1="21" y1="12" x2="9" y2="12" />
-                      </svg>
-                    </span>
-                    <span className="min-w-0 flex-1 text-left font-medium">{t('Menu.logout', 'Log out')}</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
-                      <path d="m9 18 6-6-6-6" />
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
                     </svg>
                   </button>
                 </div>
-              </div>
-            </div>
-          ) : null}
 
-        </aside>
+                <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/20 to-transparent" />
+
+                <div className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#4ECCA3/30_transparent]">
+                  <div className="px-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        openSettingsSubmenuItem('profile');
+                      }}
+                      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all ${
+                        isSettingsMenuItemActive('profile')
+                          ? 'bg-[#4ECCA3]/10 text-[#2F7D6B]'
+                          : 'text-gray-700 hover:bg-[#4ECCA3]/5'
+                      }`}
+                    >
+                      <span className={`w-4 shrink-0 ${isSettingsMenuItemActive('profile') ? 'text-[#4ECCA3]' : 'text-gray-400'}`}>
+                        {renderShellNavIcon('profile')}
+                      </span>
+                      <span className="min-w-0 flex-1 text-left font-medium">{t(SETTINGS_SUBMENU_I18N_KEYS.profile ?? '', 'Profile')}</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
+                        <path d="m9 18 6-6-6-6" />
+                      </svg>
+                    </button>
+
+                    {SETTINGS_SUBMENU_ITEMS.filter((item) => item.id !== 'logout' && item.id !== 'profile').map((item) => {
+                      const active = isSettingsMenuItemActive(item.id);
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            openSettingsSubmenuItem(item.id);
+                          }}
+                          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all ${
+                            active
+                              ? 'bg-[#4ECCA3]/10 text-[#2F7D6B]'
+                              : 'text-gray-700 hover:bg-[#4ECCA3]/5'
+                          }`}
+                        >
+                          <span className={`w-4 shrink-0 ${active ? 'text-[#4ECCA3]' : 'text-gray-400'}`}>
+                            {renderShellNavIcon(item.icon)}
+                          </span>
+                          <span className="min-w-0 flex-1 text-left font-medium">{t(SETTINGS_SUBMENU_I18N_KEYS[item.id] ?? '', item.label)}</span>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
+                            <path d="m9 18 6-6-6-6" />
+                          </svg>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-gray-100 to-transparent" />
+
+                  <div className="px-2 pb-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        props.onLogout();
+                        setSettingsMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] text-gray-700 transition-all hover:bg-[#4ECCA3]/5"
+                    >
+                      <span className="w-4 shrink-0 text-gray-400">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                          <polyline points="16 17 21 12 16 7" />
+                          <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                      </span>
+                      <span className="min-w-0 flex-1 text-left font-medium">{t('Menu.logout', 'Log out')}</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
+                        <path d="m9 18 6-6-6-6" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+          </aside>
+        )}
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <StatusBanner />

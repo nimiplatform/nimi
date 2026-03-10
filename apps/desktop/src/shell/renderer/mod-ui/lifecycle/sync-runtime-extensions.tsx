@@ -69,6 +69,33 @@ export function resolveModTabId(modId: string): `mod:${string}` {
   return fallback;
 }
 
+export function resolveRouteTabExtension(tabId: string): {
+  modId: string;
+  extension: Record<string, unknown>;
+} | null {
+  const normalizedTabId = String(tabId || '').trim();
+  if (!normalizedTabId) {
+    return null;
+  }
+  try {
+    const hookRuntime = getRuntimeHookRuntime();
+    const entries = hookRuntime.resolveUIExtensions('ui-extension.app.content.routes');
+    for (const entry of entries) {
+      const extension = normalizeExtension(entry);
+      if (String(extension.type || '').trim() !== 'tab-page') continue;
+      const extensionTabId = String(extension.tabId || `mod:${entry.modId}`).trim();
+      if (extensionTabId !== normalizedTabId) continue;
+      return {
+        modId: entry.modId,
+        extension,
+      };
+    }
+  } catch {
+    // fallback to default shell chrome
+  }
+  return null;
+}
+
 function hasRouteTabPageForTabId(
   entries: UiExtensionEntry[],
   tabId: string,
