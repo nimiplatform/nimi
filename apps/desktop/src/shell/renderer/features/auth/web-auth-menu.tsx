@@ -81,6 +81,7 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
         }
 
         const callback = await listenTask;
+        void desktopBridge.focusMainWindow().catch(() => undefined);
         if (callback.error) {
           throw new Error(`网页授权失败：${callback.error}`);
         }

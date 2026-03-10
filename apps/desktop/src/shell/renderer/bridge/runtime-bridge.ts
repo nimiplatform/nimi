@@ -13,7 +13,7 @@ import { proxyHttp } from './runtime-bridge/http';
 import { getRuntimeDefaults } from './runtime-bridge/runtime-defaults';
 import { oauthListenForCode, oauthTokenExchange } from './runtime-bridge/oauth';
 import { listRuntimeLocalModManifests, readRuntimeLocalModEntry } from './runtime-bridge/mod-local';
-import { confirmPrivateSync, openExternalUrl, startWindowDrag } from './runtime-bridge/ui';
+import { confirmPrivateSync, focusMainWindow, openExternalUrl, startWindowDrag } from './runtime-bridge/ui';
 import type { LocalAiLifecycleCaller } from './runtime-bridge/local-ai';
 import type {
   ExternalAgentActionDescriptor,
@@ -281,6 +281,7 @@ export {
   listRuntimeLocalModManifests,
   readRuntimeLocalModEntry,
   confirmPrivateSync,
+  focusMainWindow,
   openExternalUrl,
   startWindowDrag,
 };
@@ -302,6 +303,7 @@ export const desktopBridge = {
   oauthTokenExchange,
   oauthListenForCode,
   confirmPrivateSync,
+  focusMainWindow,
   listRuntimeLocalModManifests,
   readRuntimeLocalModEntry,
   listLocalAiModels,

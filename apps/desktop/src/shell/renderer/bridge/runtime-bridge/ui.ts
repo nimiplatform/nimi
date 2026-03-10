@@ -44,3 +44,11 @@ export async function startWindowDrag(): Promise<void> {
   }
   await invokeChecked('start_window_drag', {}, () => undefined);
 }
+
+export async function focusMainWindow(): Promise<void> {
+  if (!hasTauriInvoke()) {
+    window.focus();
+    return;
+  }
+  await invokeChecked('focus_main_window', {}, () => undefined);
+}

@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::sync::OnceLock;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::{env, path::Path, path::PathBuf};
 
 use reqwest::{header::HeaderMap, Method, Url};

@@ -186,6 +186,7 @@ fn collect_npu_profile() -> LocalAiNpuProfile {
     }
 }
 
+#[cfg(not(target_os = "windows"))]
 fn parse_df_available_kbytes(output: &str) -> Option<u64> {
     // POSIX df -Pk output: Filesystem 1024-blocks Used Available Capacity Mounted on
     let line = output

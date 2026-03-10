@@ -209,6 +209,7 @@ export async function startSocialOauth(provider: SocialOauthProvider): Promise<S
     }
 
     const callback = await listenTask;
+    void desktopBridge.focusMainWindow().catch(() => undefined);
     if (callback.error) {
       throw new Error(`${config.label} OAuth callback error: ${callback.error}`);
     }

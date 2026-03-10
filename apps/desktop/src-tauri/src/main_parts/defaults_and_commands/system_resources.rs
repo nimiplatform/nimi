@@ -1,3 +1,4 @@
+#[cfg(target_os = "macos")]
 fn parse_digits_u64(raw: &str) -> Option<u64> {
     let digits = raw
         .chars()
@@ -26,6 +27,7 @@ fn read_command_output(program: &str, args: &[&str]) -> Option<String> {
     Some(text)
 }
 
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 fn parse_df_root_bytes(raw: &str) -> Option<(u64, u64)> {
     let row = raw.lines().skip(1).find(|line| !line.trim().is_empty())?;
     let columns = row.split_whitespace().collect::<Vec<_>>();

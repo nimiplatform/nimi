@@ -92,6 +92,7 @@ fn main() {
             oauth_listen_for_code,
             confirm_private_sync,
             log_renderer_event,
+            focus_main_window,
             start_window_drag,
             runtime_mod::commands::runtime_mod_append_audit,
             runtime_mod::commands::runtime_mod_query_audit,
