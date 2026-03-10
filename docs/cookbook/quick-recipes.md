@@ -25,6 +25,10 @@ Node.js is only needed when you execute the TypeScript example files directly.
 - Mod baseline (`createHookClient` + `createModRuntimeClient`): `examples/mods/mod-basic.ts`
 - Runtime CLI path: `examples/runtime/cli-quickstart.sh`
 
+`examples/sdk/05-multimodal.ts` is the fastest walkthrough for image generation and TTS on the same runtime surface.
+
+![Nimi multimodal walkthrough](../assets/nimi-multimodal.gif)
+
 ## Run
 
 ```bash

@@ -1,3 +1,4 @@
+import quickstartPreview from '../../../../docs/assets/nimi-quickstart.gif';
 import type { LandingContent } from '../content/landing-content.js';
 import type { LandingLinks } from '../config/landing-links.js';
 import { SectionHeader } from './section-header.js';
@@ -37,6 +38,20 @@ export function InstallSection(props: InstallSectionProps) {
             </div>
           </article>
         </div>
+
+        <article className="card-surface reveal mt-4">
+          <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-mint-200">{props.content.previewLabel}</h3>
+          <p className="mt-3 text-sm leading-6 text-slate-300/90">{props.content.previewCaption}</p>
+          <div className="mt-4 overflow-hidden rounded-[1rem] border border-white/10 bg-slate-950/80">
+            <img
+              src={quickstartPreview}
+              alt={props.content.previewAlt}
+              loading="lazy"
+              decoding="async"
+              className="block h-auto w-full"
+            />
+          </div>
+        </article>
       </div>
     </section>
   );

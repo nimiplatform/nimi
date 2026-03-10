@@ -12,9 +12,16 @@ export type LandingContent = {
   hero: {
     eyebrow: string;
     title: string;
+    titleAccent: string;
     subtitle: string;
     description: string;
     primaryCta: string;
+    docsCta: string;
+    altInstallLabel: string;
+    altInstallCommand: string;
+    installCommand: string;
+    copyCommandLabel: string;
+    copiedCommandLabel: string;
     githubCta: string;
   };
   install: {
@@ -22,6 +29,9 @@ export type LandingContent = {
     subtitle: string;
     terminalLabel: string;
     terminalSteps: Array<{ comment: string; command: string }>;
+    previewLabel: string;
+    previewAlt: string;
+    previewCaption: string;
     sdkLabel: string;
     sdkSnippet: string;
     docsCtaLabel: string;
@@ -34,6 +44,12 @@ export type LandingContent = {
       snippet: string;
       caption: string;
     }>;
+    previewLabel: string;
+    previewAlt: string;
+    previewCaption: string;
+    multimodalLabel: string;
+    multimodalAlt: string;
+    multimodalCaption: string;
     callout: string;
   };
   desktop: {
@@ -172,11 +188,18 @@ export const LANDING_CONTENT: Record<LandingLocale, LandingContent> = {
       mods: 'Mods',
     },
     hero: {
-      eyebrow: 'Open-Source AI Runtime',
-      title: 'One runtime for local and cloud AI.',
-      subtitle: 'Install in one line. Run any model. Ship with one SDK.',
-      description: 'Nimi is an open-source runtime that routes AI requests to local engines or cloud providers. One CLI, one SDK, one desktop app.',
-      primaryCta: 'Get Started',
+      eyebrow: 'Install in seconds',
+      title: 'Install once. Run',
+      titleAccent: 'local + cloud AI.',
+      subtitle: 'One runtime, one CLI, and one SDK for the full first-run path.',
+      description: 'Start with the install script, download the desktop app, or jump straight into the docs.',
+      primaryCta: 'Download Desktop',
+      docsCta: 'Read the documentation',
+      altInstallLabel: 'Or use',
+      altInstallCommand: 'npm install -g @nimiplatform/nimi',
+      installCommand: 'curl -fsSL https://install.nimi.xyz | sh',
+      copyCommandLabel: 'Copy',
+      copiedCommandLabel: 'Copied',
       githubCta: 'View on GitHub',
     },
     install: {
@@ -188,6 +211,9 @@ export const LANDING_CONTENT: Record<LandingLocale, LandingContent> = {
         { comment: 'Start the runtime', command: 'nimi start' },
         { comment: 'Run a model', command: 'nimi run "What is Nimi?"' },
       ],
+      previewLabel: 'Quickstart walkthrough',
+      previewAlt: 'Nimi quickstart walkthrough',
+      previewCaption: 'Install, start the runtime, and get a first answer from the CLI in one flow.',
       sdkLabel: 'SDK',
       sdkSnippet: EN_SDK_SNIPPET,
       docsCtaLabel: 'Read the docs',
@@ -212,6 +238,12 @@ export const LANDING_CONTENT: Record<LandingLocale, LandingContent> = {
           caption: 'Stream responses token by token. Same interface, local or cloud.',
         },
       ],
+      previewLabel: 'SDK walkthrough',
+      previewAlt: 'Nimi SDK walkthrough',
+      previewCaption: 'Go from `new Runtime()` to local and cloud generation without changing the app surface.',
+      multimodalLabel: 'Beyond text',
+      multimodalAlt: 'Nimi multimodal walkthrough',
+      multimodalCaption: 'The same runtime also handles image and speech flows when you move past text-only examples.',
       callout: 'Same import. Same API. Local or cloud.',
     },
     desktop: {
@@ -272,11 +304,18 @@ export const LANDING_CONTENT: Record<LandingLocale, LandingContent> = {
       mods: '\u6A21\u7EC4',
     },
     hero: {
-      eyebrow: '\u5F00\u6E90 AI \u8FD0\u884C\u65F6',
-      title: '\u4E00\u4E2A\u8FD0\u884C\u65F6\uFF0C\u7EDF\u4E00\u672C\u5730\u4E0E\u4E91\u7AEF AI\u3002',
-      subtitle: '\u4E00\u884C\u5B89\u88C5\uFF0C\u8FD0\u884C\u4EFB\u610F\u6A21\u578B\uFF0C\u4E00\u5957 SDK \u4EA4\u4ED8\u3002',
-      description: 'Nimi \u662F\u4E00\u4E2A\u5F00\u6E90\u8FD0\u884C\u65F6\uFF0C\u5C06 AI \u8BF7\u6C42\u8DEF\u7531\u5230\u672C\u5730\u5F15\u64CE\u6216\u4E91\u670D\u52A1\u3002\u4E00\u4E2A CLI\uFF0C\u4E00\u4E2A SDK\uFF0C\u4E00\u4E2A\u684C\u9762\u5E94\u7528\u3002',
-      primaryCta: '\u5F00\u59CB\u4F7F\u7528',
+      eyebrow: '\u51E0\u79D2\u5B8C\u6210\u5B89\u88C5',
+      title: '\u4E00\u6B21\u5B89\u88C5\uFF0C\u8DD1\u901A',
+      titleAccent: '\u672C\u5730\u4E0E\u4E91\u7AEF AI\u3002',
+      subtitle: '\u4E00\u4E2A runtime\u3001\u4E00\u4E2A CLI\u3001\u4E00\u5957 SDK\uff0C\u62FF\u4E0B\u5B8C\u6574\u7684 first-run \u8DEF\u5F84\u3002',
+      description: '\u5148\u7528\u5B89\u88C5\u811A\u672C\u8D77\u6B65\uff0C\u6216\u76F4\u63A5\u4E0B\u8F7D desktop\uff0C\u4E5F\u53EF\u4EE5\u7ACB\u5373\u8DF3\u5230\u6587\u6863\u3002',
+      primaryCta: '\u4E0B\u8F7D Desktop',
+      docsCta: '\u9605\u8BFB\u6587\u6863',
+      altInstallLabel: '\u6216\u8005\u76F4\u63A5\u7528',
+      altInstallCommand: 'npm install -g @nimiplatform/nimi',
+      installCommand: 'curl -fsSL https://install.nimi.xyz | sh',
+      copyCommandLabel: '\u590D\u5236',
+      copiedCommandLabel: '\u5DF2\u590D\u5236',
       githubCta: '\u67E5\u770B GitHub',
     },
     install: {
@@ -288,6 +327,9 @@ export const LANDING_CONTENT: Record<LandingLocale, LandingContent> = {
         { comment: '\u542F\u52A8\u8FD0\u884C\u65F6', command: 'nimi start' },
         { comment: '\u8FD0\u884C\u6A21\u578B', command: 'nimi run "Nimi \u662F\u4EC0\u4E48\uFF1F"' },
       ],
+      previewLabel: '\u5FEB\u901F\u4E0A\u624B\u6F14\u793A',
+      previewAlt: 'Nimi \u5FEB\u901F\u4E0A\u624B\u6F14\u793A',
+      previewCaption: '\u4ECE\u5B89\u88C5\u3001\u542F\u52A8 runtime \u5230\u5728 CLI \u4E2D\u8DD1\u901A\u7B2C\u4E00\u6761\u56DE\u7B54\uFF0C\u4E00\u6B21\u770B\u5B8C\u3002',
       sdkLabel: 'SDK',
       sdkSnippet: ZH_SDK_SNIPPET,
       docsCtaLabel: '\u67E5\u770B\u6587\u6863',
@@ -312,6 +354,12 @@ export const LANDING_CONTENT: Record<LandingLocale, LandingContent> = {
           caption: '\u9010 token \u6D41\u5F0F\u54CD\u5E94\uFF0C\u672C\u5730\u6216\u4E91\u7AEF\u7EDF\u4E00\u63A5\u53E3\u3002',
         },
       ],
+      previewLabel: 'SDK \u6F14\u793A',
+      previewAlt: 'Nimi SDK \u6F14\u793A',
+      previewCaption: '\u4ECE `new Runtime()` \u5230\u672C\u5730\u4E0E\u4E91\u7AEF\u751F\u6210\uFF0C\u5E94\u7528\u4FA7\u63A5\u53E3\u4FDD\u6301\u4E0D\u53D8\u3002',
+      multimodalLabel: '\u4E0D\u53EA\u662F\u6587\u672C',
+      multimodalAlt: 'Nimi \u591A\u6A21\u6001\u6F14\u793A',
+      multimodalCaption: '\u8D85\u8FC7\u6587\u672C\u793A\u4F8B\u4E4B\u540E\uFF0C\u540C\u4E00\u4E2A runtime \u4E5F\u80FD\u5904\u7406\u56FE\u50CF\u4E0E\u8BED\u97F3\u6D41\u7A0B\u3002',
       callout: '\u540C\u4E00\u4E2A import\u3002\u540C\u4E00\u5957 API\u3002\u672C\u5730\u6216\u4E91\u7AEF\u3002',
     },
     desktop: {

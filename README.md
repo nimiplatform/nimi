@@ -47,6 +47,10 @@ export NIMI_RUNTIME_CLOUD_GEMINI_API_KEY=YOUR_KEY
 nimi run "What is Nimi?" --cloud
 ```
 
+<p align="center">
+  <img src="docs/assets/nimi-quickstart.gif" alt="Nimi quickstart walkthrough" width="1100">
+</p>
+
 Same runtime. Same CLI. Different execution plane.
 
 ## Use In Your App
@@ -78,6 +82,10 @@ The runtime call shape stays the same. Add `provider` when you want the cloud de
 If the runtime is not running, `nimi run` points you back to `nimi start`.
 
 High-level onboarding stays on `nimi run` and `runtime.generate()/stream()`. Fully-qualified explicit model ids stay on lower-level surfaces such as `nimi ai text-generate --model-id ...` and `runtime.ai.text.generate({ model: ... })`.
+
+<p align="center">
+  <img src="docs/assets/nimi-sdk.gif" alt="Nimi SDK walkthrough" width="1100">
+</p>
 
 ## Vercel AI SDK
 
@@ -126,6 +134,12 @@ npx tsx examples/sdk/02-streaming.ts
 npx tsx examples/sdk/03-local-vs-cloud.ts
 npx tsx examples/sdk/04-vercel-ai-sdk.ts
 ```
+
+The same runtime surface also covers multimodal flows such as image generation and TTS:
+
+<p align="center">
+  <img src="docs/assets/nimi-multimodal.gif" alt="Nimi multimodal walkthrough" width="1100">
+</p>
 
 ## Architecture
 

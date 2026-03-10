@@ -83,6 +83,10 @@ Cloud setup stays provider-key-first on the runtime machine. `--provider` is the
 
 For first-run onboarding, stay on `nimi run` and `runtime.generate()/stream()`. Fully-qualified explicit model ids remain on lower-level surfaces such as `nimi ai text-generate --model-id ...` and `runtime.ai.text.generate({ model: ... })`.
 
+![Nimi quickstart walkthrough](../assets/nimi-quickstart.gif)
+
+Install, start the runtime, then run the first local or cloud prompt from the CLI.
+
 ## 6. Use Nimi In Your App
 
 ```bash
@@ -109,6 +113,10 @@ const result = await runtime.generate({
   prompt: 'Explain Nimi in one sentence.',
 });
 ```
+
+![Nimi SDK walkthrough](../assets/nimi-sdk.gif)
+
+The same `Runtime` entry point stays intact as you move from local defaults to cloud providers.
 
 ## 7. Example Ladder
 
