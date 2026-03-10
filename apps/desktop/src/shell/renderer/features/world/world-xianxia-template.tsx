@@ -4,7 +4,7 @@ import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { TimeFlowDynamics } from './time-flow-dynamics';
 import { WorldScoringMatrix } from './world-scoring-matrix';
-import { CreateAgentDrawer, type CreateAgentInput } from './create-agent-drawer.js';
+import { CreateAgentDrawer, type CreateAgentInput } from './create-agent-drawer';
 
 // CSS Keyframes for status-based glow effects and slide panel
 const statusGlowStyles = `

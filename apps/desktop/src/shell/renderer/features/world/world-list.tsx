@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { APP_DISPLAY_SECTION_TITLE_CLASS, APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { prefetchWorldDetailAndEvents, worldListQueryKey } from './world-detail-queries.js';
+import { prefetchWorldDetailAndEvents, worldListQueryKey } from './world-detail-queries';
 import { prefetchWorldDetailPanel } from './world-detail-route-state';
-import { isMainWorldType } from './shared.js';
+import { isMainWorldType } from './shared';
 
 const ICON_SEARCH = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

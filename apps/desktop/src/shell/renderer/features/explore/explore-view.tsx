@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { APP_DISPLAY_SECTION_TITLE_CLASS, APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
@@ -49,6 +49,7 @@ export function ExploreView(props: ExploreViewProps) {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [topAgentsPage, setTopAgentsPage] = useState(0);
   const [topAgentsDirection, setTopAgentsDirection] = useState<'forward' | 'backward'>('forward');
+  const [scrollbarMetrics, setScrollbarMetrics] = useState({ visible: false, top: 0, height: 0 });
 
   // Filter worlds with banners
   const worldsWithBanners = props.worldBanners.filter((w) => w.bannerUrl);
@@ -94,6 +95,48 @@ export function ExploreView(props: ExploreViewProps) {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  useEffect(() => {
+    const node = scrollContainerRef.current;
+    if (!node) {
+      return;
+    }
+
+    const updateScrollbarMetrics = () => {
+      const { scrollTop, clientHeight, scrollHeight } = node;
+      if (scrollHeight <= clientHeight + 1) {
+        setScrollbarMetrics({ visible: false, top: 0, height: 0 });
+        return;
+      }
+
+      const trackHeight = clientHeight - 24;
+      const thumbHeight = Math.max(44, (clientHeight / scrollHeight) * trackHeight);
+      const maxThumbTop = Math.max(trackHeight - thumbHeight, 0);
+      const maxScrollTop = Math.max(scrollHeight - clientHeight, 1);
+      const thumbTop = (scrollTop / maxScrollTop) * maxThumbTop;
+
+      setScrollbarMetrics({
+        visible: true,
+        top: thumbTop,
+        height: thumbHeight,
+      });
+    };
+
+    updateScrollbarMetrics();
+    node.addEventListener('scroll', updateScrollbarMetrics, { passive: true });
+    window.addEventListener('resize', updateScrollbarMetrics);
+
+    const resizeObserver = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(() => updateScrollbarMetrics())
+      : null;
+    resizeObserver?.observe(node);
+
+    return () => {
+      node.removeEventListener('scroll', updateScrollbarMetrics);
+      window.removeEventListener('resize', updateScrollbarMetrics);
+      resizeObserver?.disconnect();
+    };
+  }, []);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <style>{`
@@ -104,6 +147,15 @@ export function ExploreView(props: ExploreViewProps) {
         @keyframes top-agents-slide-backward {
           from { opacity: 0; transform: translateX(-18px); }
           to { opacity: 1; transform: translateX(0); }
+        }
+        .explore-scroll-shell {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .explore-scroll-shell::-webkit-scrollbar {
+          display: none;
+          width: 0;
+          height: 0;
         }
       `}</style>
       {/* Header bar */}
@@ -129,8 +181,9 @@ export function ExploreView(props: ExploreViewProps) {
       </div>
 
       {/* Scrollable content */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto bg-[#F0F4F8]">
-        <div className="mx-auto max-w-6xl px-6 py-8">
+      <div className="relative min-h-0 flex-1 bg-[#F0F4F8]">
+        <div ref={scrollContainerRef} className="explore-scroll-shell h-full overflow-y-auto bg-[#F0F4F8]">
+          <div className="mx-auto max-w-6xl px-6 py-8">
           {/* World Banner Carousel */}
           {worldsWithBanners.length > 0 && (
             <section className="relative mb-10">
@@ -306,7 +359,20 @@ export function ExploreView(props: ExploreViewProps) {
               className="columns-1 sm:columns-2 gap-6"
             />
           </section>
+          </div>
         </div>
+        {scrollbarMetrics.visible ? (
+          <div className="pointer-events-none absolute bottom-3 right-1 top-3 z-10 w-[10px]">
+            <div className="absolute inset-x-[3px] inset-y-0 rounded-full bg-transparent" />
+            <div
+              className="absolute right-[1px] w-[6px] rounded-full bg-[rgba(148,163,184,0.36)] transition-colors duration-200 hover:bg-[rgba(148,163,184,0.52)]"
+              style={{
+                top: `${scrollbarMetrics.top}px`,
+                height: `${scrollbarMetrics.height}px`,
+              }}
+            />
+          </div>
+        ) : null}
       </div>
 
       <button

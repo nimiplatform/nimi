@@ -4,35 +4,34 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { Text, Center, Float, Sparkles } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 
-
 // Theme configuration based on time flow ratio
 const getTheme = (ratio: number) => {
-  if (ratio < 0.9) return { 
+  if (ratio < 0.9) return {
     color: '#60A5FA', // Cold blue - dilated
-    label: 'Dilated', 
-    speedFactor: 0.2 
+    label: 'Dilated',
+    speedFactor: 0.2,
   };
-  if (ratio >= 0.9 && ratio <= 1.1) return { 
+  if (ratio >= 0.9 && ratio <= 1.1) return {
     color: '#4ADE80', // Green - synced
-    label: 'Synced', 
-    speedFactor: 1.0 
+    label: 'Synced',
+    speedFactor: 1.0,
   };
-  if (ratio > 1.1 && ratio <= 5.0) return { 
+  if (ratio > 1.1 && ratio <= 5.0) return {
     color: '#F97316', // Orange - flowing
-    label: 'Flowing', 
-    speedFactor: 2.5 
+    label: 'Flowing',
+    speedFactor: 2.5,
   };
-  return { 
+  return {
     color: '#EF4444', // Red - overclock
-    label: 'Overclock', 
-    speedFactor: 5.0 
+    label: 'Overclock',
+    speedFactor: 5.0,
   };
 };
 
 // SVG Ring with ticks - drawn procedurally
 const TicksRing = ({ color, speedFactor, isCompact }: { color: string; speedFactor: number; isCompact?: boolean }) => {
   const ringRef = useRef<any>(null);
-  
+
   useFrame((_, delta) => {
     if (ringRef.current) {
       ringRef.current.rotation.z -= delta * 0.5 * speedFactor;
@@ -44,18 +43,18 @@ const TicksRing = ({ color, speedFactor, isCompact }: { color: string; speedFact
     const items: any[] = [];
     const count = isCompact ? 40 : 60;
     const radius = isCompact ? 1.6 : 2.5;
-    
+
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * Math.PI * 2;
       const isMajor = i % 5 === 0;
       const innerR = isMajor ? radius * 0.88 : radius * 0.92;
       const outerR = radius;
-      
+
       const x1 = Math.cos(angle) * innerR;
       const y1 = Math.sin(angle) * innerR;
       const x2 = Math.cos(angle) * outerR;
       const y2 = Math.sin(angle) * outerR;
-      
+
       items.push(
         <line key={i}>
           <bufferGeometry>
@@ -67,7 +66,7 @@ const TicksRing = ({ color, speedFactor, isCompact }: { color: string; speedFact
             />
           </bufferGeometry>
           <lineBasicMaterial color={color} opacity={isMajor ? 0.8 : 0.4} transparent linewidth={isMajor ? 2 : 1} />
-        </line>
+        </line>,
       );
     }
     return items;
@@ -76,7 +75,7 @@ const TicksRing = ({ color, speedFactor, isCompact }: { color: string; speedFact
   // Labels (1x, 2x, etc.)
   const labels = useMemo(() => {
     if (isCompact) return []; // No labels in compact mode
-    
+
     const items: any[] = [];
     const positions = [
       { text: '1x', angle: -Math.PI / 2 },
@@ -84,7 +83,7 @@ const TicksRing = ({ color, speedFactor, isCompact }: { color: string; speedFact
       { text: '2x', angle: Math.PI },
       { text: '1x', angle: Math.PI / 2 },
     ];
-    
+
     positions.forEach((pos, i) => {
       const x = Math.cos(pos.angle) * 2.8;
       const y = Math.sin(pos.angle) * 2.8;
@@ -98,7 +97,7 @@ const TicksRing = ({ color, speedFactor, isCompact }: { color: string; speedFact
           anchorY="middle"
         >
           {pos.text}
-        </Text>
+        </Text>,
       );
     });
     return items;
@@ -122,7 +121,7 @@ const TicksRing = ({ color, speedFactor, isCompact }: { color: string; speedFact
 // Inner rotating ring
 const InnerRing = ({ color, speedFactor, isCompact }: { color: string; speedFactor: number; isCompact?: boolean }) => {
   const ringRef = useRef<any>(null);
-  
+
   useFrame((_, delta) => {
     if (ringRef.current) {
       ringRef.current.rotation.z += delta * 0.75 * speedFactor;
@@ -144,7 +143,7 @@ const InnerRing = ({ color, speedFactor, isCompact }: { color: string; speedFact
 const FlowRingScene = ({ ratio, isCompact }: { ratio: number; isCompact?: boolean }) => {
   const { color, speedFactor } = useMemo(() => getTheme(ratio), [ratio]);
   const particlesRef = useRef<any>(null);
-  
+
   useFrame((state, delta) => {
     if (particlesRef.current) {
       particlesRef.current.rotation.z += delta * 0.1 * speedFactor;
@@ -165,14 +164,14 @@ const FlowRingScene = ({ ratio, isCompact }: { ratio: number; isCompact?: boolea
       <Center>
         {/* Outer ticks ring */}
         <TicksRing color={color} speedFactor={speedFactor} isCompact={isCompact} />
-        
+
         {/* Inner ring */}
         <InnerRing color={color} speedFactor={speedFactor} isCompact={isCompact} />
-        
+
         {/* Center ratio text with float animation */}
-        <Float 
-          speed={1 * speedFactor} 
-          rotationIntensity={0.1} 
+        <Float
+          speed={1 * speedFactor}
+          rotationIntensity={0.1}
           floatIntensity={0.2}
         >
           <Text
@@ -201,9 +200,9 @@ const FlowRingScene = ({ ratio, isCompact }: { ratio: number; isCompact?: boolea
 
       {/* Bloom effect for glow */}
       <EffectComposer>
-        <Bloom 
+        <Bloom
           luminanceThreshold={0.2}
-          mipmapBlur 
+          mipmapBlur
           intensity={isCompact ? 1.2 : 1.5}
           radius={0.6}
         />
@@ -223,16 +222,16 @@ export function TimeFlowDynamics({ ratio = 1.0, className = '', variant = 'defau
   const { color, label } = useMemo(() => getTheme(ratio), [ratio]);
   const isCompact = variant === 'compact';
   const [showTooltip, setShowTooltip] = useState(false);
-  
+
   return (
-    <div 
+    <div
       className={`relative w-full h-full ${className}`}
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
     >
       {/* 3D Canvas */}
-      <Canvas 
-        camera={{ position: [0, 0, isCompact ? 5 : 8], fov: 50 }} 
+      <Canvas
+        camera={{ position: [0, 0, isCompact ? 5 : 8], fov: 50 }}
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: true }}
         className="cursor-pointer"

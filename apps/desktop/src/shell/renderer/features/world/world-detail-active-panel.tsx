@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { WorldDetail } from './world-detail';
-import { worldListQueryKey } from './world-detail-queries.js';
+import { worldListQueryKey } from './world-detail-queries';
 import { toWorldListItem, type WorldListItem } from './world-list';
 
 function createPlaceholderWorld(worldId: string): WorldListItem {

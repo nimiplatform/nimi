@@ -11,7 +11,7 @@ import {
   fetchWorldEvents,
   worldDetailWithAgentsQueryKey,
   worldEventsQueryKey,
-} from './world-detail-queries.js';
+} from './world-detail-queries';
 
 // Build XianxiaWorldData from list item + optional composite detail (with agents)
 function toXianxiaWorldData(
@@ -70,7 +70,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
     enabled: isReady,
   });
 
-  // Independent API call for world events (Chronicle) — stays separate (different controller/auth)
+  // World events stay on a separate query because they use a different backend path.
   const worldEventsQuery = useQuery({
     queryKey: worldEventsQueryKey(world.id),
     queryFn: () => fetchWorldEvents(world.id),
@@ -82,7 +82,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   const initialError = worldCompositeQuery.isError && !detail;
   const worldData = toXianxiaWorldData(world, detail);
 
-  // Map agent summaries from composite response (backend already flattened dna fields)
+  // Backend already flattens agent summary fields for this view.
   const agentRecords = Array.isArray(detail?.agents) ? (detail.agents as Array<Record<string, unknown>>) : [];
   const agents: WorldAgent[] = agentRecords.map((a) => ({
     id: String(a.id || ''),
