@@ -1,5 +1,6 @@
 import type { UsageStatRecord } from '@nimiplatform/sdk/runtime';
 import { UsageWindow } from '@nimiplatform/sdk/runtime';
+import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@renderer/components/tooltip.js';
 import { Button, Card } from './runtime-config-primitives.js';
 import {
@@ -84,13 +85,16 @@ export function UsageStatsSection({
   onRefresh,
   onLoadMore,
 }: UsageStatsSectionProps) {
+  const { t } = useTranslation();
   return (
     <Card className="p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-900">Usage Statistics</h3>
+        <h3 className="text-sm font-semibold text-gray-900">
+          {t('runtimeConfig.runtime.usageStatistics', { defaultValue: 'Usage Statistics' })}
+        </h3>
         <IconButton
           icon={<RefreshIcon className={loading ? 'animate-spin' : ''} />}
-          title="Refresh"
+          title={t('runtimeConfig.runtime.refresh', { defaultValue: 'Refresh' })}
           disabled={loading}
           onClick={onRefresh}
         />
@@ -119,13 +123,13 @@ export function UsageStatsSection({
         <input
           value={filters.capability}
           onChange={(e) => onUpdateFilters({ capability: e.target.value })}
-          placeholder="Capability..."
+          placeholder={t('runtimeConfig.runtime.capabilityPlaceholder', { defaultValue: 'Capability...' })}
           className="h-8 rounded-md border border-mint-100 bg-[#F4FBF8] px-2 text-xs text-gray-800 outline-none transition-all focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
         />
         <input
           value={filters.modelId}
           onChange={(e) => onUpdateFilters({ modelId: e.target.value })}
-          placeholder="Model ID..."
+          placeholder={t('runtimeConfig.runtime.modelIdPlaceholder', { defaultValue: 'Model ID...' })}
           className="h-8 rounded-md border border-mint-100 bg-[#F4FBF8] px-2 text-xs text-gray-800 outline-none transition-all focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
         />
       </div>
@@ -134,22 +138,25 @@ export function UsageStatsSection({
       {records.length > 0 ? (
         <div className="flex flex-wrap items-center gap-4 rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs">
           <span className="text-gray-600">
-            Total: <strong>{formatNumber(String(summary.totalRequests))}</strong> requests
+            {t('runtimeConfig.runtime.total', { defaultValue: 'Total' })}: <strong>{formatNumber(String(summary.totalRequests))}</strong>{' '}
+            {t('runtimeConfig.runtime.requests', { defaultValue: 'Requests' }).toLowerCase()}
           </span>
           <span className="text-green-700">
-            Success: <strong>{formatNumber(String(summary.totalSuccess))}</strong>
+            {t('runtimeConfig.runtime.success', { defaultValue: 'Success' })}: <strong>{formatNumber(String(summary.totalSuccess))}</strong>
           </span>
           <span className="text-red-700">
-            Errors: <strong>{formatNumber(String(summary.totalErrors))}</strong>
+            {t('runtimeConfig.runtime.errors', { defaultValue: 'Errors' })}: <strong>{formatNumber(String(summary.totalErrors))}</strong>
           </span>
           <span className="text-gray-600">
-            Input: <strong>{formatTokenCount(String(summary.totalInput))}</strong> tokens
+            {t('runtimeConfig.runtime.input', { defaultValue: 'Input' })}: <strong>{formatTokenCount(String(summary.totalInput))}</strong>{' '}
+            {t('runtimeConfig.runtime.tokens', { defaultValue: 'tokens' })}
           </span>
           <span className="text-gray-600">
-            Output: <strong>{formatTokenCount(String(summary.totalOutput))}</strong> tokens
+            {t('runtimeConfig.runtime.output', { defaultValue: 'Output' })}: <strong>{formatTokenCount(String(summary.totalOutput))}</strong>{' '}
+            {t('runtimeConfig.runtime.tokens', { defaultValue: 'tokens' })}
           </span>
           <span className="text-gray-600">
-            Compute: <strong>{formatComputeMs(String(summary.totalCompute))}</strong>
+            {t('runtimeConfig.runtime.compute', { defaultValue: 'Compute' })}: <strong>{formatComputeMs(String(summary.totalCompute))}</strong>
           </span>
         </div>
       ) : null}
@@ -159,23 +166,25 @@ export function UsageStatsSection({
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-gray-100 text-left text-[11px] text-gray-500">
-              <th className="pb-1.5 pr-3 font-medium">Capability</th>
-              <th className="pb-1.5 pr-3 font-medium">Model</th>
-              <th className="pb-1.5 pr-3 font-medium">Requests</th>
-              <th className="pb-1.5 pr-3 font-medium">Success</th>
-              <th className="pb-1.5 pr-3 font-medium">Errors</th>
-              <th className="pb-1.5 pr-3 font-medium">Input Tokens</th>
-              <th className="pb-1.5 pr-3 font-medium">Output Tokens</th>
-              <th className="pb-1.5 pr-3 font-medium">Compute</th>
-              <th className="pb-1.5 pr-3 font-medium">Queue Wait</th>
-              <th className="pb-1.5 font-medium">Bucket</th>
+              <th className="pb-1.5 pr-3 font-medium">{t('runtimeConfig.runtime.capability', { defaultValue: 'Capability' })}</th>
+              <th className="pb-1.5 pr-3 font-medium">{t('runtimeConfig.runtime.model', { defaultValue: 'Model' })}</th>
+              <th className="pb-1.5 pr-3 font-medium">{t('runtimeConfig.runtime.requests', { defaultValue: 'Requests' })}</th>
+              <th className="pb-1.5 pr-3 font-medium">{t('runtimeConfig.runtime.success', { defaultValue: 'Success' })}</th>
+              <th className="pb-1.5 pr-3 font-medium">{t('runtimeConfig.runtime.errors', { defaultValue: 'Errors' })}</th>
+              <th className="pb-1.5 pr-3 font-medium">{t('runtimeConfig.runtime.inputTokens', { defaultValue: 'Input Tokens' })}</th>
+              <th className="pb-1.5 pr-3 font-medium">{t('runtimeConfig.runtime.outputTokens', { defaultValue: 'Output Tokens' })}</th>
+              <th className="pb-1.5 pr-3 font-medium">{t('runtimeConfig.runtime.compute', { defaultValue: 'Compute' })}</th>
+              <th className="pb-1.5 pr-3 font-medium">{t('runtimeConfig.runtime.queueWait', { defaultValue: 'Queue Wait' })}</th>
+              <th className="pb-1.5 font-medium">{t('runtimeConfig.runtime.bucket', { defaultValue: 'Bucket' })}</th>
             </tr>
           </thead>
           <tbody>
             {records.length === 0 ? (
               <tr>
                 <td colSpan={10} className="px-4 py-6 text-center text-gray-500">
-                  {loading ? 'Loading usage stats...' : 'No usage data available.'}
+                  {loading
+                    ? t('runtimeConfig.runtime.loadingUsageStats', { defaultValue: 'Loading usage stats...' })
+                    : t('runtimeConfig.runtime.noUsageData', { defaultValue: 'No usage data available.' })}
                 </td>
               </tr>
             ) : (
@@ -209,7 +218,9 @@ export function UsageStatsSection({
       {hasNextPage ? (
         <div className="flex justify-center">
           <Button variant="secondary" size="sm" disabled={loading} onClick={onLoadMore}>
-            {loading ? 'Loading...' : 'Load More'}
+            {loading
+              ? t('runtimeConfig.runtime.loading', { defaultValue: 'Loading...' })
+              : t('runtimeConfig.runtime.loadMore', { defaultValue: 'Load More' })}
           </Button>
         </div>
       ) : null}

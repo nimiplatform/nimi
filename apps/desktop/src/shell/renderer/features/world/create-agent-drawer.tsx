@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export type CreateAgentInput = {
   handle: string;
@@ -23,28 +24,28 @@ type CreateAgentDrawerProps = {
   submitting?: boolean;
 };
 
-const PRIMARY_TRAITS: Array<{ value: CreateAgentInput['dnaPrimary']; label: string }> = [
-  { value: 'CARING', label: 'Caring' },
-  { value: 'PLAYFUL', label: 'Playful' },
-  { value: 'INTELLECTUAL', label: 'Intellectual' },
-  { value: 'CONFIDENT', label: 'Confident' },
-  { value: 'MYSTERIOUS', label: 'Mysterious' },
-  { value: 'ROMANTIC', label: 'Romantic' },
+const PRIMARY_TRAITS: Array<{ value: CreateAgentInput['dnaPrimary']; labelKey: string; defaultValue: string }> = [
+  { value: 'CARING', labelKey: 'World.createAgent.primaryTraits.CARING', defaultValue: 'Caring' },
+  { value: 'PLAYFUL', labelKey: 'World.createAgent.primaryTraits.PLAYFUL', defaultValue: 'Playful' },
+  { value: 'INTELLECTUAL', labelKey: 'World.createAgent.primaryTraits.INTELLECTUAL', defaultValue: 'Intellectual' },
+  { value: 'CONFIDENT', labelKey: 'World.createAgent.primaryTraits.CONFIDENT', defaultValue: 'Confident' },
+  { value: 'MYSTERIOUS', labelKey: 'World.createAgent.primaryTraits.MYSTERIOUS', defaultValue: 'Mysterious' },
+  { value: 'ROMANTIC', labelKey: 'World.createAgent.primaryTraits.ROMANTIC', defaultValue: 'Romantic' },
 ];
 
 const SECONDARY_TRAITS = [
-  { value: 'HUMOROUS', label: 'Humorous' },
-  { value: 'SARCASTIC', label: 'Sarcastic' },
-  { value: 'GENTLE', label: 'Gentle' },
-  { value: 'DIRECT', label: 'Direct' },
-  { value: 'OPTIMISTIC', label: 'Optimistic' },
-  { value: 'REALISTIC', label: 'Realistic' },
-  { value: 'DRAMATIC', label: 'Dramatic' },
-  { value: 'PASSIONATE', label: 'Passionate' },
-  { value: 'REBELLIOUS', label: 'Rebellious' },
-  { value: 'INNOCENT', label: 'Innocent' },
-  { value: 'WISE', label: 'Wise' },
-  { value: 'ECCENTRIC', label: 'Eccentric' },
+  { value: 'HUMOROUS', labelKey: 'World.createAgent.secondaryTraits.HUMOROUS', defaultValue: 'Humorous' },
+  { value: 'SARCASTIC', labelKey: 'World.createAgent.secondaryTraits.SARCASTIC', defaultValue: 'Sarcastic' },
+  { value: 'GENTLE', labelKey: 'World.createAgent.secondaryTraits.GENTLE', defaultValue: 'Gentle' },
+  { value: 'DIRECT', labelKey: 'World.createAgent.secondaryTraits.DIRECT', defaultValue: 'Direct' },
+  { value: 'OPTIMISTIC', labelKey: 'World.createAgent.secondaryTraits.OPTIMISTIC', defaultValue: 'Optimistic' },
+  { value: 'REALISTIC', labelKey: 'World.createAgent.secondaryTraits.REALISTIC', defaultValue: 'Realistic' },
+  { value: 'DRAMATIC', labelKey: 'World.createAgent.secondaryTraits.DRAMATIC', defaultValue: 'Dramatic' },
+  { value: 'PASSIONATE', labelKey: 'World.createAgent.secondaryTraits.PASSIONATE', defaultValue: 'Passionate' },
+  { value: 'REBELLIOUS', labelKey: 'World.createAgent.secondaryTraits.REBELLIOUS', defaultValue: 'Rebellious' },
+  { value: 'INNOCENT', labelKey: 'World.createAgent.secondaryTraits.INNOCENT', defaultValue: 'Innocent' },
+  { value: 'WISE', labelKey: 'World.createAgent.secondaryTraits.WISE', defaultValue: 'Wise' },
+  { value: 'ECCENTRIC', labelKey: 'World.createAgent.secondaryTraits.ECCENTRIC', defaultValue: 'Eccentric' },
 ];
 
 const initialForm: CreateAgentInput = {
@@ -102,6 +103,7 @@ function TextArea(input: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
 }
 
 export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
+  const { t } = useTranslation();
   const [form, setForm] = useState<CreateAgentInput>(initialForm);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -129,13 +131,13 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
     }
 
     if (!file.type.startsWith('image/')) {
-      setAvatarError('Please choose an image file.');
+      setAvatarError(t('World.createAgent.avatarImageRequired', { defaultValue: 'Please choose an image file.' }));
       return;
     }
 
     const maxAvatarSizeBytes = 5 * 1024 * 1024;
     if (file.size > maxAvatarSizeBytes) {
-      setAvatarError('Avatar image must be 5MB or smaller.');
+      setAvatarError(t('World.createAgent.avatarTooLarge', { defaultValue: 'Avatar image must be 5MB or smaller.' }));
       return;
     }
 
@@ -143,14 +145,14 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
     reader.onload = () => {
       const result = typeof reader.result === 'string' ? reader.result : '';
       if (!result) {
-        setAvatarError('Failed to read avatar image.');
+        setAvatarError(t('World.createAgent.avatarReadFailed', { defaultValue: 'Failed to read avatar image.' }));
         return;
       }
       setAvatarError(null);
       updateField('referenceImageUrl', result);
     };
     reader.onerror = () => {
-      setAvatarError('Failed to read avatar image.');
+      setAvatarError(t('World.createAgent.avatarReadFailed', { defaultValue: 'Failed to read avatar image.' }));
     };
     reader.readAsDataURL(file);
   };
@@ -185,14 +187,21 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
           <div className="pointer-events-none absolute -left-10 top-0 h-24 w-40 rounded-full bg-emerald-400/16 blur-3xl" />
           <div className="relative flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-semibold tracking-[0.01em] text-[#F2FFF9]">Create New Agent</h2>
-              <p className="mt-1 text-sm text-[#A0C7BA]">Bring a new character to life in {props.worldName}</p>
+              <h2 className="text-2xl font-semibold tracking-[0.01em] text-[#F2FFF9]">
+                {t('World.createAgent.title', { defaultValue: 'Create New Agent' })}
+              </h2>
+              <p className="mt-1 text-sm text-[#A0C7BA]">
+                {t('World.createAgent.subtitle', {
+                  worldName: props.worldName,
+                  defaultValue: 'Bring a new character to life in {{worldName}}',
+                })}
+              </p>
             </div>
             <button
               type="button"
               onClick={props.onClose}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-emerald-400/18 bg-white/5 text-[#D9FFF2] transition hover:border-emerald-300/40 hover:bg-emerald-400/10 hover:text-white"
-              aria-label="Close create agent drawer"
+              aria-label={t('World.createAgent.close', { defaultValue: 'Close create agent drawer' })}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -273,7 +282,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
           <div className="space-y-8 px-7 pb-24 pt-2">
             <section className="space-y-5">
               <SectionTitle
-                title="Identity"
+                title={t('World.createAgent.sections.identity', { defaultValue: 'Identity' })}
                 icon={(
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -302,7 +311,9 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
                       type="button"
                       onClick={() => avatarInputRef.current?.click()}
                       className="relative block h-28 w-28 overflow-hidden rounded-3xl border border-white/10 bg-black/20 p-1 text-left transition-transform duration-500 group-hover:scale-105 hover:border-emerald-300/35 focus:outline-none focus:ring-2 focus:ring-emerald-300/35"
-                      aria-label={form.referenceImageUrl ? 'Change avatar' : 'Upload avatar'}
+                      aria-label={form.referenceImageUrl
+                        ? t('World.createAgent.changeAvatar', { defaultValue: 'Change avatar' })
+                        : t('World.createAgent.uploadAvatar', { defaultValue: 'Upload avatar' })}
                     >
                       {/* Interactive ring animation */}
                       <div className="absolute inset-0 animate-[spin_8s_linear_infinite] opacity-30 group-hover:opacity-60">
@@ -311,7 +322,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
                       
                       <div className="relative h-full w-full overflow-hidden rounded-2xl bg-white/5 flex items-center justify-center text-emerald-300/40">
                         {form.referenceImageUrl ? (
-                          <img src={form.referenceImageUrl} alt="Agent avatar preview" className="h-full w-full object-cover" />
+                          <img src={form.referenceImageUrl} alt={t('World.createAgent.avatarPreview', { defaultValue: 'Agent avatar preview' })} className="h-full w-full object-cover" />
                         ) : (
                           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M14.5 3H9.5L7 6H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3l-2.5-3Z" />
@@ -329,23 +340,23 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
                     ) : null}
                     <div className="space-y-5">
                       <div className="space-y-2">
-                        <FieldLabel required>Handle</FieldLabel>
+                        <FieldLabel required>{t('World.createAgent.handle', { defaultValue: 'Handle' })}</FieldLabel>
                         <div className="relative">
                           <TextInput
                             value={form.handle}
                             onChange={(event) => updateField('handle', event.target.value)}
-                            placeholder="agent_unique_id"
+                            placeholder={t('World.createAgent.handlePlaceholder', { defaultValue: 'agent_unique_id' })}
                             className="pl-9 !bg-black/20 !border-white/5 focus:!border-emerald-400/40"
                           />
                           <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-medium text-emerald-400/40">@</span>
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <FieldLabel>Display Name</FieldLabel>
+                        <FieldLabel>{t('World.createAgent.displayName', { defaultValue: 'Display Name' })}</FieldLabel>
                         <TextInput
                           value={form.displayName}
                           onChange={(event) => updateField('displayName', event.target.value)}
-                          placeholder="Public identity name"
+                          placeholder={t('World.createAgent.displayNamePlaceholder', { defaultValue: 'Public identity name' })}
                           className="!bg-black/20 !border-white/5 focus:!border-emerald-400/40"
                         />
                       </div>
@@ -357,7 +368,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
 
             <section className="space-y-5">
               <SectionTitle
-                title="Character"
+                title={t('World.createAgent.sections.character', { defaultValue: 'Character' })}
                 icon={(
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -369,38 +380,38 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
               />
               <div className="grid gap-4 rounded-[24px] border border-white/6 bg-white/[0.035] p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_44px_rgba(0,0,0,0.32)] backdrop-blur-md">
                 <div>
-                  <FieldLabel required>Concept</FieldLabel>
+                  <FieldLabel required>{t('World.createAgent.concept', { defaultValue: 'Concept' })}</FieldLabel>
                   <TextArea
                     rows={3}
                     value={form.concept}
                     onChange={(event) => updateField('concept', event.target.value)}
-                    placeholder="The core essence"
+                    placeholder={t('World.createAgent.conceptPlaceholder', { defaultValue: 'The core essence' })}
                   />
                 </div>
                 <div>
-                  <FieldLabel>Description</FieldLabel>
+                  <FieldLabel>{t('World.createAgent.description', { defaultValue: 'Description' })}</FieldLabel>
                   <TextArea
                     rows={3}
                     value={form.description}
                     onChange={(event) => updateField('description', event.target.value)}
-                    placeholder="Public-facing"
+                    placeholder={t('World.createAgent.descriptionPlaceholder', { defaultValue: 'Public-facing' })}
                   />
                 </div>
                 <div>
-                  <FieldLabel>Scenario</FieldLabel>
+                  <FieldLabel>{t('World.createAgent.scenario', { defaultValue: 'Scenario' })}</FieldLabel>
                   <TextArea
                     rows={3}
                     value={form.scenario}
                     onChange={(event) => updateField('scenario', event.target.value)}
-                    placeholder="The world context"
+                    placeholder={t('World.createAgent.scenarioPlaceholder', { defaultValue: 'The world context' })}
                   />
                 </div>
                 <div>
-                  <FieldLabel>Greeting</FieldLabel>
+                  <FieldLabel>{t('World.createAgent.greeting', { defaultValue: 'Greeting' })}</FieldLabel>
                   <TextInput
                     value={form.greeting}
                     onChange={(event) => updateField('greeting', event.target.value)}
-                    placeholder="How they introduce themselves"
+                    placeholder={t('World.createAgent.greetingPlaceholder', { defaultValue: 'How they introduce themselves' })}
                   />
                 </div>
               </div>
@@ -408,7 +419,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
 
             <section className="space-y-5">
               <SectionTitle
-                title="Personality DNA"
+                title={t('World.createAgent.sections.personality', { defaultValue: 'Personality DNA' })}
                 icon={(
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2v6" />
@@ -424,7 +435,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
               />
               <div className="space-y-5 rounded-[24px] border border-white/6 bg-white/[0.035] p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_44px_rgba(0,0,0,0.32)] backdrop-blur-md">
                 <div>
-                  <FieldLabel>Primary Trait</FieldLabel>
+                  <FieldLabel>{t('World.createAgent.primaryTrait', { defaultValue: 'Primary Trait' })}</FieldLabel>
                   <div className="grid grid-cols-2 gap-3">
                     {PRIMARY_TRAITS.map((trait) => {
                       const active = form.dnaPrimary === trait.value;
@@ -439,7 +450,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
                               : 'border-white/8 bg-white/[0.04] text-[#B7D8CC] hover:border-emerald-300/35 hover:text-white'
                           }`}
                         >
-                          {trait.label}
+                          {t(trait.labelKey, { defaultValue: trait.defaultValue })}
                         </button>
                       );
                     })}
@@ -448,7 +459,8 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
 
                 <div>
                   <FieldLabel>
-                    Secondary Traits <span className="ml-1 normal-case tracking-normal text-[#8DB4A8]/60">({form.dnaSecondary.length}/3)</span>
+                    {t('World.createAgent.secondaryTraitsLabel', { defaultValue: 'Secondary Traits' })}
+                    <span className="ml-1 normal-case tracking-normal text-[#8DB4A8]/60">({form.dnaSecondary.length}/3)</span>
                   </FieldLabel>
                   <div className="flex flex-wrap gap-2.5">
                     {SECONDARY_TRAITS.map((trait) => {
@@ -466,7 +478,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
                               : 'border-white/10 bg-white/[0.04] text-[#A5C4B9] hover:border-emerald-300/30 hover:text-white'
                           } disabled:cursor-not-allowed disabled:opacity-30`}
                         >
-                          {trait.label}
+                          {t(trait.labelKey, { defaultValue: trait.defaultValue })}
                         </button>
                       );
                     })}
@@ -477,7 +489,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
 
             <section className="space-y-5">
               <SectionTitle
-                title="Wake Strategy"
+                title={t('World.createAgent.sections.wakeStrategy', { defaultValue: 'Wake Strategy' })}
                 icon={(
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -511,11 +523,15 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
                           </svg>
                         )}
                       </div>
-                      <p className="text-sm font-semibold">{strategy === 'PASSIVE' ? 'Passive' : 'Proactive'}</p>
+                      <p className="text-sm font-semibold">
+                        {strategy === 'PASSIVE'
+                          ? t('World.createAgent.wakeStrategyPassiveTitle', { defaultValue: 'Passive' })
+                          : t('World.createAgent.wakeStrategyProactiveTitle', { defaultValue: 'Proactive' })}
+                      </p>
                       <p className="mt-1 text-xs leading-5 text-current/70">
                         {strategy === 'PASSIVE'
-                          ? 'Waits for a direct trigger before acting.'
-                          : 'Can initiate reactions when the world shifts.'}
+                          ? t('World.createAgent.wakeStrategyPassiveDescription', { defaultValue: 'Waits for a direct trigger before acting.' })
+                          : t('World.createAgent.wakeStrategyProactiveDescription', { defaultValue: 'Can initiate reactions when the world shifts.' })}
                       </p>
                     </button>
                   );
@@ -532,7 +548,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
               onClick={props.onClose}
               className="inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-transparent px-5 text-sm font-medium text-[#C4DED5] transition hover:border-white/20 hover:bg-white/5 hover:text-white"
             >
-              Cancel
+              {t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
             </button>
             <button
               type="button"
@@ -540,7 +556,9 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
               onClick={() => props.onSubmit(form)}
               className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-300 px-6 text-sm font-semibold text-[#05110E] shadow-[0_0_18px_rgba(0,255,170,0.45)] transition hover:bg-emerald-200 hover:shadow-[0_0_24px_rgba(0,255,170,0.6)] disabled:cursor-not-allowed disabled:bg-emerald-300/25 disabled:text-[#05110E]/45 disabled:shadow-none"
             >
-              {props.submitting ? 'Creating...' : 'Create Agent'}
+              {props.submitting
+                ? t('World.createAgent.creating', { defaultValue: 'Creating...' })
+                : t('World.createAgent.submit', { defaultValue: 'Create Agent' })}
             </button>
           </div>
         </footer>

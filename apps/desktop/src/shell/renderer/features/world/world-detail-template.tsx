@@ -194,7 +194,9 @@ export function WorldDetailTemplate(props: WorldDetailTemplateProps) {
               W
             </div>
             <div className="min-w-0">
-              <div className="text-lg font-bold tracking-wide">World Studio</div>
+              <div className="text-lg font-bold tracking-wide">
+                {t('WorldDetail.studioTitle', { defaultValue: 'World Studio' })}
+              </div>
               <div className="text-[13px] text-[#5f7a69] mt-0.5">{t('WorldDetail.subtitle')}</div>
             </div>
           </div>
@@ -279,7 +281,7 @@ export function WorldDetailTemplate(props: WorldDetailTemplateProps) {
                   <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 z-50">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-sm font-bold text-gray-800">{t('WorldDetail.themeSwitch')}</span>
-                      <span className="text-xs text-gray-400">Green theme</span>
+                      <span className="text-xs text-gray-400">{t('WorldDetail.keepGreenTone')}</span>
                     </div>
                     <div className="space-y-1">
                       {(Object.keys(themes) as ThemeKey[]).map((key) => (

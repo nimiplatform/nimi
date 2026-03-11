@@ -3,6 +3,7 @@ import type {
   LocalAiVerifiedArtifactDescriptor,
   LocalAiVerifiedModelDescriptor,
 } from '@runtime/local-ai-runtime';
+import { formatRelativeLocaleTime, i18n } from '@renderer/i18n';
 import { parseTimestamp, type ProgressSessionState } from './runtime-config-model-center-utils';
 
 export const ARTIFACT_KIND_OPTIONS = [
@@ -120,26 +121,19 @@ export function artifactTaskStatusLabel(state: ArtifactTaskState): string {
 
 export function formatLastCheckedAgo(lastCheckedAt: string | null): string {
   if (!lastCheckedAt) {
-    return 'Not checked yet';
+    return i18n.t('runtimeConfig.local.notCheckedYet', { defaultValue: 'Not checked yet' });
   }
   const ts = parseTimestamp(lastCheckedAt);
   if (!ts) {
-    return `Last checked: ${lastCheckedAt}`;
+    return i18n.t('runtimeConfig.local.lastCheckedRaw', {
+      value: lastCheckedAt,
+      defaultValue: 'Last checked: {{value}}',
+    });
   }
-  const deltaSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
-  if (deltaSec < 60) {
-    return `Checked ${deltaSec} second${deltaSec === 1 ? '' : 's'} ago`;
-  }
-  const deltaMin = Math.floor(deltaSec / 60);
-  if (deltaMin < 60) {
-    return `Checked ${deltaMin} minute${deltaMin === 1 ? '' : 's'} ago`;
-  }
-  const deltaHour = Math.floor(deltaMin / 60);
-  if (deltaHour < 24) {
-    return `Checked ${deltaHour} hour${deltaHour === 1 ? '' : 's'} ago`;
-  }
-  const deltaDay = Math.floor(deltaHour / 24);
-  return `Checked ${deltaDay} day${deltaDay === 1 ? '' : 's'} ago`;
+  return i18n.t('runtimeConfig.local.checkedAgo', {
+    value: formatRelativeLocaleTime(new Date(ts)),
+    defaultValue: 'Checked {{value}}',
+  });
 }
 
 export function SearchIcon({ className = '' }: { className?: string }) {

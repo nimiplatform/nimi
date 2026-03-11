@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
+import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { QuickAddFriendModal } from '@renderer/features/explore/quick-add-friend-modal';
@@ -117,7 +118,7 @@ export function AgentDetailPanel() {
     if (agentLimitQuery.data && !agentLimitQuery.data.canAdd) {
       setStatusBanner({
         kind: 'error',
-        message: agentLimitQuery.data.reason || 'Agent friend limit reached',
+        message: agentLimitQuery.data.reason || i18n.t('Contacts.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }),
       });
       return;
     }
@@ -128,7 +129,10 @@ export function AgentDetailPanel() {
     await dataSync.requestOrAcceptFriend(agentId);
     setStatusBanner({
       kind: 'success',
-      message: 'Friend request sent or accepted',
+      message: i18n.t('Contacts.friendRequestSentOrAccepted', {
+        name: agent?.displayName || agent?.handle || i18n.t('AgentDetail.agentBadge', { defaultValue: 'Agent' }),
+        defaultValue: 'Friend request sent or accepted for {{name}}.',
+      }),
     });
     void agentLimitQuery.refetch();
   };
@@ -136,7 +140,7 @@ export function AgentDetailPanel() {
   if (!agentIdentifier) {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
-        No agent selected
+        {i18n.t('AgentDetail.noAgentSelected', { defaultValue: 'No agent selected' })}
       </div>
     );
   }
@@ -144,7 +148,7 @@ export function AgentDetailPanel() {
   if (!agent && !profileQuery.isPending && !profileQuery.isError) {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
-        No agent data available
+        {i18n.t('AgentDetail.noAgentDataAvailable', { defaultValue: 'No agent data available' })}
       </div>
     );
   }
@@ -173,7 +177,12 @@ export function AgentDetailPanel() {
         addFriendHint={agentLimitQuery.data
           ? (
             agentLimitQuery.data.reason
-            || `Agent friend limit: ${agentLimitQuery.data.used}/${agentLimitQuery.data.limit}`
+            || i18n.t('Contacts.agentFriendLimitReached', {
+              used: agentLimitQuery.data.used,
+              limit: agentLimitQuery.data.limit,
+              tier: agentLimitQuery.data.tier,
+              defaultValue: 'Agent friend limit reached ({{used}}/{{limit}}, tier: {{tier}})',
+            })
           )
           : null}
         onSendGift={() => setGiftModalOpen(true)}
@@ -189,7 +198,10 @@ export function AgentDetailPanel() {
         onSent={() => {
           setStatusBanner({
             kind: 'success',
-            message: 'Gift sent',
+            message: i18n.t('Contacts.giftSentTo', {
+              name: agent?.displayName || agent?.handle || i18n.t('AgentDetail.agentBadge', { defaultValue: 'Agent' }),
+              defaultValue: 'Gift sent to {{name}}',
+            }),
           });
         }}
       />

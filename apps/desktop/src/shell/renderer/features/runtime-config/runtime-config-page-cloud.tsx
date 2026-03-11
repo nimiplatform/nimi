@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { APP_PAGE_TITLE_CLASS, APP_SECTION_TITLE_CLASS } from '@renderer/components/typography.js';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
@@ -269,6 +270,7 @@ function Input({
 }
 
 export function CloudPage({ model, state }: CloudPageProps) {
+  const { t } = useTranslation();
   const { selectedConnector, orderedConnectors, updateState } = model;
   const setStatusBanner = useAppStore((s) => s.setStatusBanner);
 
@@ -462,14 +464,14 @@ export function CloudPage({ model, state }: CloudPageProps) {
     <PageShell>
       {/* Connectors List Section */}
       <section>
-        <SectionTitle description="Manage your cloud API connectors">
-          Cloud API Connectors
+        <SectionTitle description={t('runtimeConfig.cloud.connectorsManagement', { defaultValue: 'Manage your cloud API connectors' })}>
+          {t('runtimeConfig.cloud.connectors')}
         </SectionTitle>
         <div className="mt-3 rounded-2xl bg-white p-5 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
           <SettingRow
             icon={<CloudIcon className="h-5 w-5" />}
-            title="Available Connectors"
-            description="Select a connector to configure"
+            title={t('runtimeConfig.cloud.availableConnectors', { defaultValue: 'Available Connectors' })}
+            description={t('runtimeConfig.cloud.selectConnectorToConfigure', { defaultValue: 'Select a connector to configure' })}
             action={
               <div className="flex items-center gap-2">
                 <Button
@@ -478,7 +480,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
                   onClick={() => { void onAddConnector().catch((e) => reportError('Add connector failed', e)); }}
                   icon={<PlusIcon />}
                 >
-                  Add
+                  {t('runtimeConfig.cloud.addConnector', { defaultValue: 'Add' })}
                 </Button>
                 <button
                   type="button"
@@ -487,7 +489,9 @@ export function CloudPage({ model, state }: CloudPageProps) {
                   className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <BoltIcon className="text-mint-500" />
-                  {model.testingConnector ? 'Testing...' : 'Test'}
+                  {model.testingConnector
+                    ? t('runtimeConfig.cloud.testing', { defaultValue: 'Testing...' })
+                    : t('runtimeConfig.cloud.testConnector', { defaultValue: 'Test' })}
                 </button>
               </div>
             }
@@ -502,8 +506,10 @@ export function CloudPage({ model, state }: CloudPageProps) {
                 <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
                   <CloudIcon className="h-6 w-6 text-gray-400" />
                 </div>
-                <p className="text-sm font-medium text-gray-900">No Connectors</p>
-                <p className="text-xs text-gray-500 mt-1">Click "Add" to create your first connector</p>
+                <p className="text-sm font-medium text-gray-900">{t('runtimeConfig.cloud.noConnectors', { defaultValue: 'No Connectors' })}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {t('runtimeConfig.cloud.noConnectorsHint', { defaultValue: 'Click "Add" to create your first connector' })}
+                </p>
               </div>
             ) : (
               <div className="flex flex-wrap gap-2">
@@ -527,9 +533,13 @@ export function CloudPage({ model, state }: CloudPageProps) {
                         }`} />
                         <p className="font-semibold text-gray-900">{connector.label}</p>
                         {connector.isSystemOwned ? (
-                          <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[9px] text-gray-500">system</span>
+                          <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[9px] text-gray-500">
+                            {t('runtimeConfig.cloud.system', { defaultValue: 'system' })}
+                          </span>
                         ) : connector.isDraft ? (
-                          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] text-amber-600">draft</span>
+                          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] text-amber-600">
+                            {t('runtimeConfig.cloud.draft', { defaultValue: 'draft' })}
+                          </span>
                         ) : null}
                       </div>
                       <p className="text-[10px] text-gray-500 mt-0.5">{getVendorLabelV11(connector.vendor)}</p>
@@ -545,22 +555,24 @@ export function CloudPage({ model, state }: CloudPageProps) {
       {/* Selected Connector Configuration */}
       {selectedConnector ? (
         <section>
-          <SectionTitle description="Configure the selected connector">
-            Connector Configuration
+          <SectionTitle description={t('runtimeConfig.cloud.configureSelectedConnector', { defaultValue: 'Configure the selected connector' })}>
+            {t('runtimeConfig.cloud.connectorConfig')}
           </SectionTitle>
           <div className="mt-3 space-y-4 rounded-2xl bg-white p-5 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
             {/* Name and Vendor */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
-                label="Connector Name"
+                label={t('runtimeConfig.cloud.connectorName', { defaultValue: 'Connector Name' })}
                 value={selectedConnector.label}
                 onChange={onRenameSelectedConnector}
-                placeholder="My API Connector"
+                placeholder={t('runtimeConfig.cloud.connectorNamePlaceholder', { defaultValue: 'My API Connector' })}
                 disabled={isSystemOwned}
                 icon={<ServerIcon />}
               />
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Vendor</label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  {t('runtimeConfig.cloud.vendor', { defaultValue: 'Vendor' })}
+                </label>
                 <RuntimeSelect
                   value={selectedConnector.vendor}
                   onChange={(nextVendor) => { void onChangeConnectorVendor(nextVendor).catch((err) => reportError('Switch vendor failed', err)); }}
@@ -577,7 +589,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
             {/* Endpoint and API Key */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
-                label="Endpoint"
+                label={t('runtimeConfig.cloud.endpoint', { defaultValue: 'Endpoint' })}
                 value={selectedConnector.endpoint}
                 onChange={onChangeConnectorEndpoint}
                 placeholder={DEFAULT_OPENAI_ENDPOINT_V11}
@@ -585,18 +597,22 @@ export function CloudPage({ model, state }: CloudPageProps) {
               />
               {isSystemOwned ? (
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">API Key</label>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    {t('runtimeConfig.cloud.apiKey', { defaultValue: 'API Key' })}
+                  </label>
                   <div className="rounded-xl bg-[#F7F9FC] px-4 py-3 ring-1 ring-black/5">
                     <p className="text-xs text-gray-500">
                       {selectedConnector.hasCredential
-                        ? 'Managed by runtime (environment variable)'
-                        : 'Not configured — set the environment variable in config.json'}
+                        ? t('runtimeConfig.cloud.managedByRuntime', { defaultValue: 'Managed by runtime (environment variable)' })
+                        : t('runtimeConfig.cloud.notConfigured', { defaultValue: 'Not configured — set the environment variable in config.json' })}
                     </p>
                   </div>
                 </div>
               ) : (
                 <Input
-                  label={isDraft ? 'API Key (required)' : 'Session API Key'}
+                  label={isDraft
+                    ? t('runtimeConfig.cloud.apiKeyRequired', { defaultValue: 'API Key (required)' })
+                    : t('runtimeConfig.cloud.sessionApiKey', { defaultValue: 'Session API Key' })}
                   value={tokenDraft}
                   onChange={setTokenDraft}
                   type={model.showCloudApiKey ? 'text' : 'password'}
@@ -616,7 +632,11 @@ export function CloudPage({ model, state }: CloudPageProps) {
                   onClick={() => void saveTokenToVault()}
                   icon={savingToken ? undefined : <CheckIcon />}
                 >
-                  {savingToken ? 'Saving...' : isDraft ? 'Create Connector' : 'Save API Key'}
+                  {savingToken
+                    ? t('runtimeConfig.cloud.saving', { defaultValue: 'Saving...' })
+                    : isDraft
+                      ? t('runtimeConfig.cloud.createConnector', { defaultValue: 'Create Connector' })
+                      : t('runtimeConfig.cloud.saveApiKey', { defaultValue: 'Save API Key' })}
                 </Button>
               )}
               <Button
@@ -625,7 +645,9 @@ export function CloudPage({ model, state }: CloudPageProps) {
                 onClick={() => model.setShowCloudApiKey((v) => !v)}
                 icon={model.showCloudApiKey ? <EyeOffIcon /> : <EyeIcon />}
               >
-                {model.showCloudApiKey ? 'Hide' : 'Show'}
+                {model.showCloudApiKey
+                  ? t('Auth.hidePassword', { defaultValue: 'Hide' })
+                  : t('Auth.showPassword', { defaultValue: 'Show' })}
               </Button>
               {!isSystemOwned && selectedConnectorId && (
                 <Button
@@ -634,7 +656,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
                   onClick={() => { void onRemoveSelectedConnector().catch((e) => reportError('Remove connector failed', e)); }}
                   icon={<TrashIcon />}
                 >
-                  Delete
+                  {t('runtimeConfig.cloud.deleteConnector', { defaultValue: 'Delete' })}
                 </Button>
               )}
               <div className="flex-1" />
@@ -647,13 +669,13 @@ export function CloudPage({ model, state }: CloudPageProps) {
               {selectedConnector.hasCredential && (
                 <p className="flex items-center gap-1.5 text-xs text-green-600">
                   <CheckIcon className="h-3.5 w-3.5" />
-                  Credential configured
+                  {t('runtimeConfig.cloud.credentialConfigured', { defaultValue: 'Credential configured' })}
                 </p>
               )}
               {tokenSavedConnectorId === selectedConnector.id && (
                 <p className="flex items-center gap-1.5 text-xs text-green-600">
                   <CheckIcon className="h-3.5 w-3.5" />
-                  API Key saved successfully
+                  {t('runtimeConfig.cloud.apiKeySaved', { defaultValue: 'API Key saved successfully' })}
                 </p>
               )}
               {tokenSaveError && (
@@ -666,14 +688,16 @@ export function CloudPage({ model, state }: CloudPageProps) {
             {/* Models Section */}
             <div className="space-y-3">
               <Input
-                label="Search Models"
+                label={t('runtimeConfig.cloud.searchModels', { defaultValue: 'Search Models' })}
                 value={model.connectorModelQuery}
                 onChange={model.setConnectorModelQuery}
-                placeholder="Search by model name..."
+                placeholder={t('runtimeConfig.cloud.searchModelsPlaceholder', { defaultValue: 'Search by model name...' })}
                 icon={<SearchIcon />}
               />
               <div>
-                <p className="text-sm font-medium text-gray-700 mb-2">Available Models</p>
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  {t('runtimeConfig.cloud.availableModels', { defaultValue: 'Available Models' })}
+                </p>
                 {renderModelChips(model.filteredConnectorModels, `connector-${selectedConnector.id}`)}
               </div>
             </div>
@@ -685,8 +709,12 @@ export function CloudPage({ model, state }: CloudPageProps) {
             <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/80 ring-1 ring-gray-200">
               <CloudIcon className="h-6 w-6 text-gray-400" />
             </div>
-            <p className="text-sm font-medium text-gray-900">No Connector Selected</p>
-            <p className="text-xs text-gray-500 mt-1">Select a connector above or create a new one</p>
+            <p className="text-sm font-medium text-gray-900">
+              {t('runtimeConfig.cloud.noConnectorSelected', { defaultValue: 'No Connector Selected' })}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              {t('runtimeConfig.cloud.noConnectorSelectedHint', { defaultValue: 'Select a connector above or create a new one' })}
+            </p>
           </div>
         </div>
       )}

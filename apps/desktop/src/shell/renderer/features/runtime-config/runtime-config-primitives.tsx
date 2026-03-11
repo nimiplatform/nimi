@@ -4,6 +4,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { i18n } from '@renderer/i18n';
 import { Tooltip } from '@renderer/components/tooltip.js';
 import {
   statusTextV11,
@@ -280,7 +281,9 @@ export function DaemonStatusBadge({ running }: { running: boolean }) {
   return (
     <StatusIndicator 
       status={running ? 'running' : 'stopped'} 
-      text={`daemon ${running ? 'running' : 'stopped'}`}
+      text={i18n.t(`runtimeConfig.overview.${running ? 'daemonRunning' : 'daemonStopped'}`, {
+        defaultValue: running ? 'daemon running' : 'daemon stopped',
+      })}
       variant="daemon"
     />
   );
@@ -288,7 +291,11 @@ export function DaemonStatusBadge({ running }: { running: boolean }) {
 
 export function renderModelChips(models: string[], prefix: string) {
   if (models.length === 0) {
-    return <p className="mt-1 text-xs text-gray-500">No models discovered yet.</p>;
+    return (
+      <p className="mt-1 text-xs text-gray-500">
+        {i18n.t('runtimeConfig.common.noModelsDiscovered', { defaultValue: 'No models discovered yet.' })}
+      </p>
+    );
   }
 
   return (

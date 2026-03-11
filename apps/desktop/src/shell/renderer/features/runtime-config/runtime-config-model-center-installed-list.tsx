@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { LocalModelOptionV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { localAiRuntime } from '@runtime/local-ai-runtime';
 import { StatusBadge } from './runtime-config-primitives';
@@ -142,6 +143,7 @@ export type ModelCenterInstalledListProps = {
 };
 
 export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
+  const { t } = useTranslation();
   const [busyByModelId, setBusyByModelId] = useState<Record<string, boolean>>({});
   const [errorByModelId, setErrorByModelId] = useState<Record<string, string>>({});
   const [confirmRemoveModelId, setConfirmRemoveModelId] = useState('');
@@ -174,11 +176,15 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
             <CpuIcon className="h-6 w-6 text-gray-400" />
           </div>
-          <p className="text-sm font-medium text-gray-900">No Models Installed</p>
+          <p className="text-sm font-medium text-gray-900">
+            {t('runtimeConfig.local.noModelsInstalled', { defaultValue: 'No Models Installed' })}
+          </p>
           <p className="mt-1 text-xs text-gray-500">
             {props.sortedModels.length === 0
-              ? 'No local model registered. Install or import one to enable Local Runtime capability resolution.'
-              : 'No models match the current filter.'}
+              ? t('runtimeConfig.local.noModelsInstalledDesc', {
+                  defaultValue: 'No local model registered. Install or import one to enable Local Runtime capability resolution.',
+                })
+              : t('runtimeConfig.local.noModelsMatchFilter', { defaultValue: 'No models match the current filter.' })}
           </p>
         </div>
       </div>
@@ -195,7 +201,7 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
             type="text"
             value={props.searchQuery}
             onChange={(e) => props.onSearchQueryChange(e.target.value)}
-            placeholder="Filter installed models..."
+            placeholder={t('runtimeConfig.local.filterInstalledModels', { defaultValue: 'Filter installed models...' })}
             className="w-full rounded-xl border border-mint-100 bg-[#F4FBF8] py-2 pl-9 pr-4 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
           />
         </div>
@@ -266,14 +272,14 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
                 {isExpanded && (
                   <div className="mt-3 space-y-2 rounded-xl border border-gray-100 bg-gray-50 p-4 text-xs text-gray-600">
                     <div className="grid grid-cols-2 gap-2">
-                      <p><span className="font-medium text-gray-700">Endpoint:</span> {model.endpoint}</p>
-                      <p><span className="font-medium text-gray-700">Engine:</span> {model.engine}</p>
-                      <p><span className="font-medium text-gray-700">Status:</span> {model.status}</p>
-                      <p><span className="font-medium text-gray-700">Installed:</span> {model.installedAt || '-'}</p>
+                      <p><span className="font-medium text-gray-700">{t('runtimeConfig.local.endpoint', { defaultValue: 'Endpoint' })}:</span> {model.endpoint}</p>
+                      <p><span className="font-medium text-gray-700">{t('runtimeConfig.local.engine', { defaultValue: 'Engine' })}:</span> {model.engine}</p>
+                      <p><span className="font-medium text-gray-700">{t('runtimeConfig.local.status', { defaultValue: 'Status' })}:</span> {model.status}</p>
+                      <p><span className="font-medium text-gray-700">{t('runtimeConfig.local.installed', { defaultValue: 'Installed' })}:</span> {model.installedAt || '-'}</p>
                     </div>
-                    {model.hash && <p><span className="font-medium text-gray-700">Hash:</span> {model.hash}</p>}
+                    {model.hash && <p><span className="font-medium text-gray-700">{t('runtimeConfig.local.hash', { defaultValue: 'Hash' })}:</span> {model.hash}</p>}
                     {model.updatedAt && model.updatedAt !== model.installedAt && (
-                      <p><span className="font-medium text-gray-700">Updated:</span> {model.updatedAt}</p>
+                      <p><span className="font-medium text-gray-700">{t('runtimeConfig.local.updated', { defaultValue: 'Updated' })}:</span> {model.updatedAt}</p>
                     )}
                   </div>
                 )}
@@ -296,7 +302,7 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
                     }}
                     icon={<PlayIcon />}
                   >
-                    Start
+                    {t('runtimeConfig.overview.start', { defaultValue: 'Start' })}
                   </Button>
                   <Button
                     variant="secondary"
@@ -309,7 +315,7 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
                     }}
                     icon={<StopIcon />}
                   >
-                    Stop
+                    {t('runtimeConfig.overview.stop', { defaultValue: 'Stop' })}
                   </Button>
                   <Button
                     variant="secondary"
@@ -322,7 +328,7 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
                     }}
                     icon={<RefreshIcon />}
                   >
-                    Restart
+                    {t('runtimeConfig.overview.restart', { defaultValue: 'Restart' })}
                   </Button>
                   <div className="flex-1" />
                   <Button
@@ -333,7 +339,7 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
                     }}
                     icon={<FolderIcon />}
                   >
-                    Reveal
+                    {t('runtimeConfig.local.reveal', { defaultValue: 'Reveal' })}
                   </Button>
                   <Button
                     variant="ghost"
@@ -342,7 +348,7 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
                     onClick={() => setConfirmRemoveModelId(model.localModelId)}
                     icon={<TrashIcon />}
                   >
-                    Remove
+                    {t('runtimeConfig.local.remove', { defaultValue: 'Remove' })}
                   </Button>
                 </div>
 
@@ -350,7 +356,10 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
                 {isConfirmingRemove && (
                   <div className="mt-3 flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
                     <p className="flex-1 text-sm text-rose-800">
-                      Remove &quot;{model.model}&quot;? This cannot be undone.
+                      {t('runtimeConfig.local.confirmRemove', {
+                        defaultValue: 'Remove "{{name}}"? This cannot be undone.',
+                        name: model.model,
+                      })}
                     </p>
                     <Button
                       variant="danger"
@@ -363,14 +372,14 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
                         });
                       }}
                     >
-                      Confirm
+                      {t('runtimeConfig.local.confirm', { defaultValue: 'Confirm' })}
                     </Button>
                     <Button
                       variant="secondary"
                       size="sm"
                       onClick={() => setConfirmRemoveModelId('')}
                     >
-                      Cancel
+                      {t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
                     </Button>
                   </div>
                 )}

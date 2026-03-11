@@ -30,7 +30,11 @@ export function WorldDetailRouteLoading() {
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#4ECCA3]/30 border-t-[#4ECCA3]" />
         <div className="space-y-1">
           <p className="text-sm font-medium text-[#e8f5ee]">{t('WorldDetail.loading')}</p>
-          <p className="text-xs text-[#e8f5ee]/45">Preparing world canvas and latest state</p>
+          <p className="text-xs text-[#e8f5ee]/45">
+            {t('WorldDetail.loadingStateMessage', {
+              defaultValue: 'Preparing world canvas and latest state',
+            })}
+          </p>
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import type { RefObject } from 'react';
+import { i18n } from '@renderer/i18n';
 import type {
   LocalAiArtifactRecord,
   LocalAiDownloadProgressEvent,
@@ -63,24 +64,37 @@ export function LocalModelCenterModModeView(props: ModModeViewProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white">
       <div className="flex h-14 shrink-0 items-center border-b border-gray-200 bg-white px-6">
-        <h2 className="text-lg font-semibold text-gray-900">Local Models</h2>
+        <h2 className="text-lg font-semibold text-gray-900">
+          {i18n.t('runtimeConfig.localModelCenter.localModels', { defaultValue: 'Local Models' })}
+        </h2>
       </div>
       <div className="flex-1 overflow-y-auto p-6">
         <div className="space-y-6">
           <div className="space-y-4 rounded-2xl bg-white p-6 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
             <div>
               <h4 className="text-sm font-semibold text-gray-900">
-                {selectedDependencyTarget?.modName || props.selectedDependencyModId || 'Runtime Mod'}
+                {selectedDependencyTarget?.modName
+                  || props.selectedDependencyModId
+                  || i18n.t('runtimeConfig.localModelCenter.runtimeMod', { defaultValue: 'Runtime Mod' })}
               </h4>
-              <p className="text-xs text-gray-500">Configure only this mod&apos;s declared model dependencies.</p>
+              <p className="text-xs text-gray-500">
+                {i18n.t('runtimeConfig.localModelCenter.modDependenciesDescription', {
+                  defaultValue: 'Configure only this mod&apos;s declared model dependencies.',
+                })}
+              </p>
             </div>
             {modCapabilities.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-xs font-medium text-gray-700">AI Capability Status</p>
+                <p className="text-xs font-medium text-gray-700">
+                  {i18n.t('runtimeConfig.localModelCenter.aiCapabilityStatus', { defaultValue: 'AI Capability Status' })}
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {capabilityStatuses.map((item) => (
                     <span key={`mod-cap-status-${item.capability}`} className={`rounded-full px-3 py-1 text-[11px] font-medium ${item.localAvailable ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                      {item.capability}: {item.localAvailable ? 'local' : 'needs setup'}
+                      {item.capability}:{' '}
+                      {item.localAvailable
+                        ? i18n.t('runtimeConfig.localModelCenter.capabilityLocal', { defaultValue: 'local' })
+                        : i18n.t('runtimeConfig.localModelCenter.capabilityNeedsSetup', { defaultValue: 'needs setup' })}
                     </span>
                   ))}
                 </div>
@@ -103,11 +117,21 @@ export function LocalModelCenterModModeView(props: ModModeViewProps) {
           </div>
           {hasUnavailable ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-              <p className="text-xs font-semibold text-amber-900">Setup Required</p>
-              <p className="mt-1 text-[11px] text-amber-800">Some capabilities are not available locally. Install a local model or configure a cloud API connector to enable them.</p>
+              <p className="text-xs font-semibold text-amber-900">
+                {i18n.t('runtimeConfig.localModelCenter.setupRequired', { defaultValue: 'Setup Required' })}
+              </p>
+              <p className="mt-1 text-[11px] text-amber-800">
+                {i18n.t('runtimeConfig.localModelCenter.setupRequiredDescription', {
+                  defaultValue: 'Some capabilities are not available locally. Install a local model or configure a cloud API connector to enable them.',
+                })}
+              </p>
               <div className="mt-3 flex items-center gap-2">
-                <button type="button" onClick={() => props.onNavigateToSetup?.('local')} className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100">Install Models</button>
-                <button type="button" onClick={() => props.onNavigateToSetup?.('cloud')} className="px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100">Configure Cloud API</button>
+                <button type="button" onClick={() => props.onNavigateToSetup?.('local')} className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100">
+                  {i18n.t('runtimeConfig.localModelCenter.installModels', { defaultValue: 'Install Models' })}
+                </button>
+                <button type="button" onClick={() => props.onNavigateToSetup?.('cloud')} className="px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100">
+                  {i18n.t('runtimeConfig.localModelCenter.configureCloudApi', { defaultValue: 'Configure Cloud API' })}
+                </button>
               </div>
             </div>
           ) : null}
@@ -151,7 +175,9 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
           }`}
         >
           <HeartPulseIcon className="h-4 w-4" />
-          {props.checkingHealth ? 'Checking...' : 'Health'}
+          {props.checkingHealth
+            ? i18n.t('runtimeConfig.localModelCenter.checking', { defaultValue: 'Checking...' })
+            : i18n.t('runtimeConfig.localModelCenter.health', { defaultValue: 'Health' })}
         </button>
         <button
           type="button"
@@ -160,7 +186,9 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
           className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
         >
           <RefreshIcon className="h-4 w-4" />
-          {props.discovering ? 'Refreshing...' : 'Refresh'}
+          {props.discovering
+            ? i18n.t('runtimeConfig.localModelCenter.refreshing', { defaultValue: 'Refreshing...' })
+            : i18n.t('runtimeConfig.localModelCenter.refresh', { defaultValue: 'Refresh' })}
         </button>
         <div className="relative" ref={props.importMenuRef}>
           <button
@@ -169,20 +197,30 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
           >
             <FolderOpenIcon className="h-4 w-4" />
-            Import
+            {i18n.t('runtimeConfig.localModelCenter.import', { defaultValue: 'Import' })}
           </button>
           {props.showImportMenu ? (
             <div className="absolute right-0 top-full z-20 mt-1 w-56 rounded-lg border border-gray-200 bg-white shadow-lg">
               <button type="button" onClick={props.onOpenImportFile} className="w-full rounded-t-lg px-3 py-2.5 text-left text-xs hover:bg-gray-50">
-                <div className="font-medium text-gray-900">Import Model File</div>
-                <div className="mt-0.5 text-gray-500">.gguf, .safetensors, .bin, .onnx</div>
+                <div className="font-medium text-gray-900">
+                  {i18n.t('runtimeConfig.localModelCenter.importModelFile', { defaultValue: 'Import Model File' })}
+                </div>
+                <div className="mt-0.5 text-gray-500">
+                  {i18n.t('runtimeConfig.localModelCenter.supportedModelFileTypes', {
+                    defaultValue: '.gguf, .safetensors, .bin, .onnx',
+                  })}
+                </div>
               </button>
               <button type="button" onClick={props.onImportManifest} className="w-full border-t border-gray-100 px-3 py-2.5 text-left text-xs hover:bg-gray-50">
-                <div className="font-medium text-gray-900">Import Model Manifest</div>
+                <div className="font-medium text-gray-900">
+                  {i18n.t('runtimeConfig.localModelCenter.importModelManifest', { defaultValue: 'Import Model Manifest' })}
+                </div>
                 <div className="mt-0.5 text-gray-500">model.manifest.json</div>
               </button>
               <button type="button" onClick={props.onImportArtifactManifest} className="w-full rounded-b-lg border-t border-gray-100 px-3 py-2.5 text-left text-xs hover:bg-gray-50">
-                <div className="font-medium text-gray-900">Import Artifact Manifest</div>
+                <div className="font-medium text-gray-900">
+                  {i18n.t('runtimeConfig.localModelCenter.importArtifactManifest', { defaultValue: 'Import Artifact Manifest' })}
+                </div>
                 <div className="mt-0.5 text-gray-500">artifact.manifest.json</div>
               </button>
             </div>
@@ -211,15 +249,19 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <FolderOpenIcon className="h-4 w-4 text-mint-600" />
-          <h3 className="text-sm font-semibold text-gray-900">Import Local Model File</h3>
+          <h3 className="text-sm font-semibold text-gray-900">
+            {i18n.t('runtimeConfig.localModelCenter.importLocalModelFile', { defaultValue: 'Import Local Model File' })}
+          </h3>
         </div>
         <button type="button" onClick={props.onClose} className="text-xs text-gray-400 hover:text-gray-600">
-          Cancel
+          {i18n.t('common.cancel', { defaultValue: 'Cancel' })}
         </button>
       </div>
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">Capability:</span>
+          <span className="text-xs text-gray-500">
+            {i18n.t('runtimeConfig.localModelCenter.capabilityLabel', { defaultValue: 'Capability:' })}
+          </span>
           <RuntimeSelect
             value={props.capability}
             onChange={(value) => props.onCapabilityChange((value || 'chat') as CapabilityOption)}
@@ -233,7 +275,7 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
           className="flex items-center gap-1.5 rounded-lg bg-mint-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-mint-600"
         >
           <FolderOpenIcon className="h-3.5 w-3.5" />
-          Choose File
+          {i18n.t('runtimeConfig.localModelCenter.chooseFile', { defaultValue: 'Choose File' })}
         </button>
       </div>
     </div>
@@ -267,7 +309,12 @@ function ArtifactRequirementBadges(props: ArtifactRequirementBadgesProps) {
           disabled={props.artifactBusy || hasPendingMissingArtifacts}
           className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50"
         >
-          {hasPendingMissingArtifacts ? 'Installing assets...' : `Install Missing (${missingArtifacts.length})`}
+          {hasPendingMissingArtifacts
+            ? i18n.t('runtimeConfig.localModelCenter.installingAssets', { defaultValue: 'Installing assets...' })
+            : i18n.t('runtimeConfig.localModelCenter.installMissing', {
+              count: missingArtifacts.length,
+              defaultValue: 'Install Missing ({{count}})',
+            })}
         </button>
       ) : null}
       {props.relatedArtifacts.map((artifact) => {
@@ -283,7 +330,13 @@ function ArtifactRequirementBadges(props: ArtifactRequirementBadgesProps) {
             }`}
           >
             <span>{formatArtifactKindLabel(artifact.kind)}</span>
-            <span>{installed ? 'Installed' : pending ? 'Installing' : 'Required'}</span>
+            <span>
+              {installed
+                ? i18n.t('runtimeConfig.localModelCenter.installed', { defaultValue: 'Installed' })
+                : pending
+                  ? i18n.t('runtimeConfig.localModelCenter.installingShort', { defaultValue: 'Installing' })
+                  : i18n.t('runtimeConfig.localModelCenter.required', { defaultValue: 'Required' })}
+            </span>
             {!installed ? (
               <button
                 type="button"
@@ -294,7 +347,9 @@ function ArtifactRequirementBadges(props: ArtifactRequirementBadgesProps) {
                 disabled={props.artifactBusy || pending}
                 className="rounded-full bg-white/80 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 hover:bg-white disabled:opacity-50"
               >
-                {pending ? 'Installing...' : 'Install'}
+                {pending
+                  ? i18n.t('runtimeConfig.localModelCenter.installing', { defaultValue: 'Installing...' })
+                  : i18n.t('runtimeConfig.localModelCenter.install', { defaultValue: 'Install' })}
               </button>
             ) : null}
           </div>
@@ -320,7 +375,9 @@ export function LocalModelCenterVerifiedArtifactsSection(props: VerifiedArtifact
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <FolderOpenIcon className="h-4 w-4 text-slate-500" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Verified Companion Assets</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            {i18n.t('runtimeConfig.localModelCenter.verifiedCompanionAssets', { defaultValue: 'Verified Companion Assets' })}
+          </span>
         </div>
         <button
           type="button"
@@ -329,12 +386,14 @@ export function LocalModelCenterVerifiedArtifactsSection(props: VerifiedArtifact
           className="flex items-center gap-1.5 rounded border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
         >
           <RefreshIcon className="h-3 w-3" />
-          Refresh
+          {i18n.t('runtimeConfig.localModelCenter.refresh', { defaultValue: 'Refresh' })}
         </button>
       </div>
       {props.loadingVerifiedArtifacts ? (
         <div className="py-6 text-center">
-          <p className="text-sm text-gray-500">Loading verified artifacts...</p>
+          <p className="text-sm text-gray-500">
+            {i18n.t('runtimeConfig.localModelCenter.loadingVerifiedArtifacts', { defaultValue: 'Loading verified artifacts...' })}
+          </p>
         </div>
       ) : props.visibleVerifiedArtifacts.length > 0 ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -362,7 +421,9 @@ export function LocalModelCenterVerifiedArtifactsSection(props: VerifiedArtifact
                   className="flex items-center gap-1.5 rounded-lg bg-mint-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-mint-600 disabled:opacity-50"
                 >
                   <DownloadIcon className="h-3.5 w-3.5" />
-                  {pending ? 'Installing...' : 'Install'}
+                  {pending
+                    ? i18n.t('runtimeConfig.localModelCenter.installing', { defaultValue: 'Installing...' })
+                    : i18n.t('runtimeConfig.localModelCenter.install', { defaultValue: 'Install' })}
                 </button>
               </div>
             );
@@ -372,8 +433,8 @@ export function LocalModelCenterVerifiedArtifactsSection(props: VerifiedArtifact
         <div className="py-6 text-center">
           <p className="text-sm text-gray-500">
             {props.hasSearchQuery
-              ? 'No verified companion assets matched your search.'
-              : 'No verified companion assets available for the current filter.'}
+              ? i18n.t('runtimeConfig.localModelCenter.noVerifiedAssetsMatchSearch', { defaultValue: 'No verified companion assets matched your search.' })
+              : i18n.t('runtimeConfig.localModelCenter.noVerifiedAssetsForFilter', { defaultValue: 'No verified companion assets available for the current filter.' })}
           </p>
         </div>
       )}
@@ -395,7 +456,12 @@ export function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSec
 
   return (
     <div className="space-y-3">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">Active Downloads ({props.downloads.length})</h3>
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+        {i18n.t('runtimeConfig.localModelCenter.activeDownloads', {
+          count: props.downloads.length,
+          defaultValue: 'Active Downloads ({{count}})',
+        })}
+      </h3>
       {props.downloads.map((event) => {
         const isRunning = event.state === 'running';
         const isPaused = event.state === 'paused';
@@ -406,13 +472,21 @@ export function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSec
         const phaseLabel = formatDownloadPhaseLabel(event.phase);
         const progressMeta = event.phase === 'verify'
           ? (event.speedBytesPerSec && event.speedBytesPerSec > 0
-              ? `${formatSpeed(event.speedBytesPerSec)} verify · ETA ${formatEta(event.etaSeconds)}`
-              : 'Verifying local file...')
+              ? i18n.t('runtimeConfig.localModelCenter.verifyProgressWithEta', {
+                speed: formatSpeed(event.speedBytesPerSec),
+                eta: formatEta(event.etaSeconds),
+                defaultValue: '{{speed}} verify · ETA {{eta}}',
+              })
+              : i18n.t('runtimeConfig.localModelCenter.verifyingLocalFile', { defaultValue: 'Verifying local file...' }))
           : event.phase === 'upsert'
-            ? 'Finalizing installation...'
+            ? i18n.t('runtimeConfig.localModelCenter.finalizingInstallation', { defaultValue: 'Finalizing installation...' })
             : event.speedBytesPerSec && event.speedBytesPerSec > 0
-              ? `${formatSpeed(event.speedBytesPerSec)} · ETA ${formatEta(event.etaSeconds)}`
-              : 'Measuring throughput...';
+              ? i18n.t('runtimeConfig.localModelCenter.downloadProgressWithEta', {
+                speed: formatSpeed(event.speedBytesPerSec),
+                eta: formatEta(event.etaSeconds),
+                defaultValue: '{{speed}} · ETA {{eta}}',
+              })
+              : i18n.t('runtimeConfig.localModelCenter.measuringThroughput', { defaultValue: 'Measuring throughput...' });
 
         return (
           <div key={event.installSessionId} className="rounded-2xl bg-white p-4 shadow-[0_4px_14px_rgba(15,23,42,0.035)] ring-1 ring-black/[0.04]">
@@ -448,12 +522,17 @@ export function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSec
                 </div>
               </div>
             ) : (
-              <p className="mb-2 text-xs text-gray-500">{formatBytes(event.bytesReceived)} downloaded</p>
+              <p className="mb-2 text-xs text-gray-500">
+                {i18n.t('runtimeConfig.localModelCenter.downloadedBytes', {
+                  value: formatBytes(event.bytesReceived),
+                  defaultValue: '{{value}} downloaded',
+                })}
+              </p>
             )}
             <div className="flex items-center gap-2">
-              {canPause ? <button type="button" onClick={() => props.onPause(event.installSessionId)} className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50">Pause</button> : null}
-              {canResume ? <button type="button" onClick={() => props.onResume(event.installSessionId)} className="rounded bg-mint-500 px-2 py-1 text-xs text-white hover:bg-mint-600">Resume</button> : null}
-              {canCancel ? <button type="button" onClick={() => props.onCancel(event.installSessionId)} className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:border-red-200 hover:text-red-600">Cancel</button> : null}
+              {canPause ? <button type="button" onClick={() => props.onPause(event.installSessionId)} className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50">{i18n.t('runtimeConfig.localModelCenter.pause', { defaultValue: 'Pause' })}</button> : null}
+              {canResume ? <button type="button" onClick={() => props.onResume(event.installSessionId)} className="rounded bg-mint-500 px-2 py-1 text-xs text-white hover:bg-mint-600">{i18n.t('runtimeConfig.localModelCenter.resume', { defaultValue: 'Resume' })}</button> : null}
+              {canCancel ? <button type="button" onClick={() => props.onCancel(event.installSessionId)} className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:border-red-200 hover:text-red-600">{i18n.t('common.cancel', { defaultValue: 'Cancel' })}</button> : null}
             </div>
           </div>
         );
@@ -475,7 +554,12 @@ export function LocalModelCenterArtifactTasksSection(props: ArtifactTasksSection
 
   return (
     <div className="space-y-3">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">Asset Tasks ({props.tasks.length})</h3>
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+        {i18n.t('runtimeConfig.localModelCenter.assetTasks', {
+          count: props.tasks.length,
+          defaultValue: 'Asset Tasks ({{count}})',
+        })}
+      </h3>
       <div className="grid grid-cols-1 gap-3">
         {props.tasks.map((task) => {
           const isRunning = task.state === 'running';
@@ -513,7 +597,9 @@ export function LocalModelCenterArtifactTasksSection(props: ArtifactTasksSection
                     disabled={pendingRetry}
                     className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
                   >
-                    {pendingRetry ? 'Retrying...' : 'Retry'}
+                    {pendingRetry
+                      ? i18n.t('runtimeConfig.localModelCenter.retrying', { defaultValue: 'Retrying...' })
+                      : i18n.t('runtimeConfig.localModelCenter.retry', { defaultValue: 'Retry' })}
                   </button>
                 </div>
               ) : null}
@@ -549,7 +635,9 @@ export function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps)
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <StarIcon className="h-4 w-4 text-amber-500" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Quick Picks</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            {i18n.t('runtimeConfig.localModelCenter.quickPicks', { defaultValue: 'Quick Picks' })}
+          </span>
         </div>
         <button
           type="button"
@@ -558,7 +646,7 @@ export function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps)
           className="flex items-center gap-1.5 rounded border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
         >
           <RefreshIcon className="h-3 w-3" />
-          Refresh
+          {i18n.t('runtimeConfig.localModelCenter.refresh', { defaultValue: 'Refresh' })}
         </button>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -589,7 +677,7 @@ export function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps)
                 className="flex items-center gap-1.5 rounded-lg bg-mint-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-mint-600 disabled:opacity-50"
               >
                 <DownloadIcon className="h-3.5 w-3.5" />
-                Install
+                {i18n.t('runtimeConfig.localModelCenter.install', { defaultValue: 'Install' })}
               </button>
             </div>
           );

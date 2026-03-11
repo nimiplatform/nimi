@@ -8,6 +8,7 @@ import type {
   OrphanArtifactFile,
   OrphanModelFile,
 } from '@runtime/local-ai-runtime';
+import { i18n } from '@renderer/i18n';
 import type { LocalModelOptionV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { RuntimeSelect } from './runtime-config-primitives';
 import {
@@ -108,7 +109,9 @@ function VerifiedModelSearchRow(props: {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate text-sm font-medium text-gray-900">{props.item.title}</span>
-          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">Verified</span>
+          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">
+            {i18n.t('runtimeConfig.localModelCenter.verified', { defaultValue: 'Verified' })}
+          </span>
         </div>
         <p className="truncate text-xs text-gray-500">{props.item.modelId}</p>
         {props.item.description ? <p className="mt-0.5 line-clamp-1 text-xs text-gray-400">{props.item.description}</p> : null}
@@ -129,7 +132,7 @@ function VerifiedModelSearchRow(props: {
         className="flex items-center gap-1.5 rounded-lg bg-mint-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-mint-600 disabled:opacity-50"
       >
         <DownloadIcon className="h-3.5 w-3.5" />
-        Install
+        {i18n.t('runtimeConfig.localModelCenter.install', { defaultValue: 'Install' })}
       </button>
     </div>
   );
@@ -152,15 +155,19 @@ function CatalogVariantPicker(props: {
     <div className="bg-gray-50/80 px-4 pb-3">
       <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
         <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
-          <span className="text-xs font-semibold text-gray-500">Select Variant</span>
+          <span className="text-xs font-semibold text-gray-500">
+            {i18n.t('runtimeConfig.localModelCenter.selectVariant', { defaultValue: 'Select Variant' })}
+          </span>
           <button type="button" onClick={props.onClose} className="text-xs text-gray-400 hover:text-gray-600">
-            Close
+            {i18n.t('common.close', { defaultValue: 'Close' })}
           </button>
         </div>
         <div className="border-b border-gray-100 bg-[#F7FBF8] px-3 py-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">Capability</p>
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                {i18n.t('runtimeConfig.localModelCenter.capability', { defaultValue: 'Capability' })}
+              </p>
               <RuntimeSelect
                 value={props.selectedCapability}
                 onChange={(next) => props.onCapabilityChange((next || 'chat') as CapabilityOption)}
@@ -168,11 +175,16 @@ function CatalogVariantPicker(props: {
                 options={CAPABILITY_OPTIONS.map((capability) => ({ value: capability, label: capability }))}
               />
               <p className="mt-1 text-[10px] text-gray-500">
-                Detected: {(props.item.capabilities.length > 0 ? props.item.capabilities : ['chat']).join(', ')}
+                {i18n.t('runtimeConfig.localModelCenter.detectedValue', {
+                  value: (props.item.capabilities.length > 0 ? props.item.capabilities : ['chat']).join(', '),
+                  defaultValue: 'Detected: {{value}}',
+                })}
               </p>
             </div>
             <div>
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">Engine</p>
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                {i18n.t('runtimeConfig.localModelCenter.engine', { defaultValue: 'Engine' })}
+              </p>
               <RuntimeSelect
                 value={props.selectedEngine}
                 onChange={(next) => props.onEngineChange(normalizeInstallEngine(next))}
@@ -180,18 +192,30 @@ function CatalogVariantPicker(props: {
                 options={INSTALL_ENGINE_OPTIONS.map((engine) => ({ value: engine, label: engine }))}
               />
               <p className="mt-1 text-[10px] text-gray-500">
-                Detected: {normalizeInstallEngine(props.item.engine)}
+                {i18n.t('runtimeConfig.localModelCenter.detectedValue', {
+                  value: normalizeInstallEngine(props.item.engine),
+                  defaultValue: 'Detected: {{value}}',
+                })}
               </p>
             </div>
           </div>
         </div>
         {props.loadingVariants ? (
           <div className="px-3 py-4 text-center">
-            <p className="text-xs text-gray-500">Loading variants...</p>
+            <p className="text-xs text-gray-500">
+              {i18n.t('runtimeConfig.localModelCenter.loadingVariants', { defaultValue: 'Loading variants...' })}
+            </p>
           </div>
         ) : props.variantList.length === 0 ? (
           <div className="px-3 py-4 text-center">
-            <p className="text-xs text-gray-500">{props.variantError ? `Error: ${props.variantError}` : 'No GGUF variants found'}</p>
+            <p className="text-xs text-gray-500">
+              {props.variantError
+                ? i18n.t('runtimeConfig.localModelCenter.variantError', {
+                  error: props.variantError,
+                  defaultValue: 'Error: {{error}}',
+                })
+                : i18n.t('runtimeConfig.localModelCenter.noVariantsFound', { defaultValue: 'No GGUF variants found' })}
+            </p>
           </div>
         ) : (
           <div className="max-h-48 divide-y divide-gray-100 overflow-y-auto">
@@ -225,8 +249,14 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
             <SearchIcon className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">Model Catalog</h3>
-            <p className="text-xs text-gray-500">Search and install from Hugging Face or verified models</p>
+            <h3 className="text-sm font-semibold text-gray-900">
+              {i18n.t('runtimeConfig.localModelCenter.modelCatalog', { defaultValue: 'Model Catalog' })}
+            </h3>
+            <p className="text-xs text-gray-500">
+              {i18n.t('runtimeConfig.localModelCenter.modelCatalogDescription', {
+                defaultValue: 'Search and install from Hugging Face or verified models',
+              })}
+            </p>
           </div>
         </div>
         <div className="flex gap-3">
@@ -236,7 +266,7 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
               type="text"
               value={props.searchQuery}
               onChange={(event) => props.onSearchQueryChange(event.target.value)}
-              placeholder="Search models by name, repo, or task..."
+              placeholder={i18n.t('runtimeConfig.localModelCenter.searchModelsPlaceholder', { defaultValue: 'Search models by name, repo, or task...' })}
               className="h-10 w-full rounded-lg border border-mint-100 bg-[#F4FBF8] pl-9 pr-4 text-sm outline-none focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
             />
           </div>
@@ -245,7 +275,10 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
             onChange={(nextCapability) => props.onCatalogCapabilityChange((nextCapability || 'all') as 'all' | CapabilityOption)}
             className="w-52"
             options={[
-              { value: 'all', label: 'All Capabilities' },
+              {
+                value: 'all',
+                label: i18n.t('runtimeConfig.localModelCenter.allCapabilities', { defaultValue: 'All Capabilities' }),
+              },
               ...CAPABILITY_OPTIONS.map((capability) => ({ value: capability, label: capability })),
             ]}
           />
@@ -256,7 +289,10 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
         <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-2">
           <PackageIcon className="h-4 w-4 text-gray-400" />
           <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-            Installed ({props.filteredInstalledModels.length})
+            {i18n.t('runtimeConfig.localModelCenter.installedCount', {
+              count: props.filteredInstalledModels.length,
+              defaultValue: 'Installed ({{count}})',
+            })}
           </span>
         </div>
         {props.filteredInstalledModels.length > 0 ? (
@@ -290,7 +326,7 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                     type="button"
                     onClick={() => props.onRemoveModel(model.localModelId)}
                     className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
-                    title="Remove"
+                    title={i18n.t('runtimeConfig.localModelCenter.remove', { defaultValue: 'Remove' })}
                   >
                     <TrashIcon className="h-4 w-4" />
                   </button>
@@ -303,7 +339,9 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
             <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-gray-400">
               <PackageIcon className="h-6 w-6" />
             </div>
-            <h3 className="mb-1 text-sm font-medium text-gray-900">No Installed Models</h3>
+            <h3 className="mb-1 text-sm font-medium text-gray-900">
+              {i18n.t('runtimeConfig.localModelCenter.noInstalledModels', { defaultValue: 'No Installed Models' })}
+            </h3>
           </div>
         )}
       </div>
@@ -313,7 +351,10 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
           <div className="flex items-center gap-2">
             <FolderOpenIcon className="h-4 w-4 text-gray-400" />
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Companion Assets ({props.filteredInstalledArtifacts.length})
+              {i18n.t('runtimeConfig.localModelCenter.companionAssetsCount', {
+                count: props.filteredInstalledArtifacts.length,
+                defaultValue: 'Companion Assets ({{count}})',
+              })}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -322,7 +363,10 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
               onChange={(next) => props.onArtifactKindFilterChange((next || 'all') as 'all' | LocalAiArtifactKind)}
               className="w-36"
               options={[
-                { value: 'all', label: 'All Kinds' },
+                {
+                  value: 'all',
+                  label: i18n.t('runtimeConfig.localModelCenter.allKinds', { defaultValue: 'All Kinds' }),
+                },
                 ...ARTIFACT_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatArtifactKindLabel(kind) })),
               ]}
             />
@@ -333,13 +377,15 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
               className="flex items-center gap-1.5 rounded border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
             >
               <RefreshIcon className="h-3 w-3" />
-              Refresh
+              {i18n.t('runtimeConfig.localModelCenter.refresh', { defaultValue: 'Refresh' })}
             </button>
           </div>
         </div>
         {props.loadingInstalledArtifacts ? (
           <div className="px-4 py-6 text-center">
-            <p className="text-sm text-gray-500">Loading companion assets...</p>
+            <p className="text-sm text-gray-500">
+              {i18n.t('runtimeConfig.localModelCenter.loadingCompanionAssets', { defaultValue: 'Loading companion assets...' })}
+            </p>
           </div>
         ) : props.filteredInstalledArtifacts.length > 0 ? (
           <div className="divide-y divide-gray-200/80">
@@ -370,7 +416,7 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                     onClick={() => props.onRemoveArtifact(artifact.localArtifactId)}
                     disabled={props.artifactBusy}
                     className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                    title="Remove artifact"
+                    title={i18n.t('runtimeConfig.localModelCenter.removeArtifact', { defaultValue: 'Remove artifact' })}
                   >
                     <TrashIcon className="h-4 w-4" />
                   </button>
@@ -383,8 +429,14 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
             <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-gray-400">
               <FolderOpenIcon className="h-6 w-6" />
             </div>
-            <h3 className="mb-1 text-sm font-medium text-gray-900">No Companion Assets</h3>
-            <p className="text-xs text-gray-500">Import `artifact.manifest.json` files or install verified VAE/LLM assets below.</p>
+            <h3 className="mb-1 text-sm font-medium text-gray-900">
+              {i18n.t('runtimeConfig.localModelCenter.noCompanionAssets', { defaultValue: 'No Companion Assets' })}
+            </h3>
+            <p className="text-xs text-gray-500">
+              {i18n.t('runtimeConfig.localModelCenter.noCompanionAssetsDescription', {
+                defaultValue: 'Import `artifact.manifest.json` files or install verified VAE/LLM assets below.',
+              })}
+            </p>
           </div>
         )}
       </div>
@@ -398,11 +450,16 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
               <path d="M12 22V12" />
             </svg>
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-700">
-              Unregistered Companion Assets ({props.artifactOrphanFiles.length})
+              {i18n.t('runtimeConfig.localModelCenter.unregisteredCompanionAssets', {
+                count: props.artifactOrphanFiles.length,
+                defaultValue: 'Unregistered Companion Assets ({{count}})',
+              })}
             </span>
           </div>
           <div className="border-b border-slate-200 bg-slate-100/70 px-4 py-2 text-[11px] text-slate-600">
-            Unclassified files can appear in both model and companion lanes until you import them.
+            {i18n.t('runtimeConfig.localModelCenter.unclassifiedFilesDescription', {
+              defaultValue: 'Unclassified files can appear in both model and companion lanes until you import them.',
+            })}
           </div>
           {props.artifactOrphanError ? (
             <div className="border-b border-red-100 bg-red-50 px-4 py-2 text-xs text-red-600">
@@ -433,7 +490,9 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                     className="flex items-center gap-1 rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-50"
                   >
                     <DownloadIcon className="h-3 w-3" />
-                    {(props.artifactBusy || props.scaffoldingArtifactOrphan === orphan.path) ? 'Importing...' : 'Import'}
+                    {(props.artifactBusy || props.scaffoldingArtifactOrphan === orphan.path)
+                      ? i18n.t('runtimeConfig.localModelCenter.importing', { defaultValue: 'Importing...' })
+                      : i18n.t('runtimeConfig.localModelCenter.import', { defaultValue: 'Import' })}
                   </button>
                 </div>
               </div>
@@ -451,7 +510,10 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
               <line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
             <span className="text-xs font-semibold uppercase tracking-wider text-amber-700">
-              Unregistered Models Found ({props.orphanFiles.length})
+              {i18n.t('runtimeConfig.localModelCenter.unregisteredModelsFound', {
+                count: props.orphanFiles.length,
+                defaultValue: 'Unregistered Models Found ({{count}})',
+              })}
             </span>
           </div>
           {props.orphanError ? (
@@ -483,7 +545,9 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                     className="flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-600 disabled:opacity-50"
                   >
                     <DownloadIcon className="h-3 w-3" />
-                    {(props.scaffoldingOrphan === orphan.path || props.orphanImportSessionByPath[orphan.path]) ? 'Importing...' : 'Import'}
+                    {(props.scaffoldingOrphan === orphan.path || props.orphanImportSessionByPath[orphan.path])
+                      ? i18n.t('runtimeConfig.localModelCenter.importing', { defaultValue: 'Importing...' })
+                      : i18n.t('runtimeConfig.localModelCenter.import', { defaultValue: 'Import' })}
                   </button>
                 </div>
               </div>
@@ -495,7 +559,9 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
       {props.hasSearchQuery ? (
         <div className="border-t border-gray-200 bg-white/60">
           <div className="border-b border-gray-200 bg-white/70 px-4 py-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Available to Install</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              {i18n.t('runtimeConfig.localModelCenter.availableToInstall', { defaultValue: 'Available to Install' })}
+            </span>
           </div>
           <div className="divide-y divide-gray-200/80">
             {props.verifiedModels.map((item) => (
@@ -520,7 +586,9 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                     <div className="flex items-center gap-2">
                       <span className="truncate text-sm font-medium text-gray-900">{item.title || item.modelId}</span>
                       <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">{item.engine}</span>
-                      <span className="rounded bg-mint-50 px-1.5 py-0.5 text-[10px] text-mint-700">Hugging Face</span>
+                      <span className="rounded bg-mint-50 px-1.5 py-0.5 text-[10px] text-mint-700">
+                        {i18n.t('runtimeConfig.localModelCenter.huggingFace', { defaultValue: 'Hugging Face' })}
+                      </span>
                     </div>
                     <p className="truncate text-xs text-gray-500">{item.modelId}</p>
                     <div className="mt-1 flex flex-wrap gap-1">
@@ -532,7 +600,9 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                     </div>
                   </div>
                   <span className={`rounded-full px-2 py-1 text-[10px] ${item.installAvailable ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                    {item.installAvailable ? 'Ready' : 'Manual'}
+                    {item.installAvailable
+                      ? i18n.t('runtimeConfig.localModelCenter.ready', { defaultValue: 'Ready' })
+                      : i18n.t('runtimeConfig.localModelCenter.manual', { defaultValue: 'Manual' })}
                   </span>
                   <button
                     type="button"
@@ -541,7 +611,7 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                     className="flex items-center gap-1.5 rounded-lg bg-mint-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-mint-600 disabled:opacity-50"
                   >
                     <DownloadIcon className="h-3.5 w-3.5" />
-                    Install
+                    {i18n.t('runtimeConfig.localModelCenter.install', { defaultValue: 'Install' })}
                   </button>
                 </div>
                 {props.variantPickerItem?.itemId === item.itemId ? (
@@ -569,18 +639,25 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                 onClick={props.onLoadMoreCatalog}
                 className="rounded-lg border border-gray-200 px-4 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
               >
-                Load More ({props.catalogItems.length - props.catalogDisplayCount} remaining)
+                {i18n.t('runtimeConfig.localModelCenter.loadMore', {
+                  count: props.catalogItems.length - props.catalogDisplayCount,
+                  defaultValue: 'Load More ({{count}} remaining)',
+                })}
               </button>
             </div>
           ) : null}
           {props.catalogItems.length === 0 && props.verifiedModels.length === 0 && !props.loadingCatalog ? (
             <div className="px-4 py-8 text-center">
-              <p className="text-sm text-gray-500">No models found matching your search</p>
+              <p className="text-sm text-gray-500">
+                {i18n.t('runtimeConfig.localModelCenter.noModelsMatchingSearch', { defaultValue: 'No models found matching your search' })}
+              </p>
             </div>
           ) : null}
           {props.loadingCatalog ? (
             <div className="px-4 py-8 text-center">
-              <p className="text-sm text-gray-500">Searching...</p>
+              <p className="text-sm text-gray-500">
+                {i18n.t('runtimeConfig.localModelCenter.searching', { defaultValue: 'Searching...' })}
+              </p>
             </div>
           ) : null}
         </div>

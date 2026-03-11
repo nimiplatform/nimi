@@ -4,6 +4,7 @@ import type {
   ModHubPendingActionType,
   ModHubRuntimeAction,
 } from './mod-hub-model';
+import { i18n } from '@renderer/i18n';
 import { describeConsentReasons } from './mod-hub-model';
 
 const ICON_STAR = (
@@ -147,12 +148,16 @@ export function ModHubRow({
         ) : null}
         {mod.requiresUserConsent && (consentReasons.length > 0 || addedCapabilities.length > 0) ? (
           <div className="mt-2 rounded-xl bg-sky-50 px-3 py-2 text-[11px] leading-relaxed text-sky-800">
-            <p className="font-medium text-sky-900">Re-consent required before enabling.</p>
+            <p className="font-medium text-sky-900">
+              {i18n.t('ModHub.reconsentRequired', { defaultValue: 'Re-consent required before enabling.' })}
+            </p>
             {consentReasons.length > 0 ? (
               <p className="mt-1">{consentReasons.join('; ')}.</p>
             ) : null}
             {addedCapabilities.length > 0 ? (
-              <p className="mt-1">New capabilities: {addedCapabilities.join(', ')}</p>
+              <p className="mt-1">
+                {i18n.t('ModHub.newCapabilities', { defaultValue: 'New capabilities' })}: {addedCapabilities.join(', ')}
+              </p>
             ) : null}
           </div>
         ) : null}

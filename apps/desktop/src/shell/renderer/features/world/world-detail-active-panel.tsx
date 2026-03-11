@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { WorldDetail } from './world-detail';
@@ -40,6 +41,7 @@ function createPlaceholderWorld(worldId: string): WorldListItem {
 }
 
 export function WorldDetailActivePanel() {
+  const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
   const selectedWorldId = useAppStore((state) => state.selectedWorldId);
   const navigateBack = useAppStore((state) => state.navigateBack);
@@ -74,7 +76,7 @@ export function WorldDetailActivePanel() {
   if (!selectedWorldId) {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
-        No world selected
+        {t('WorldDetail.noWorldSelected', { defaultValue: 'No world selected' })}
       </div>
     );
   }
@@ -82,7 +84,9 @@ export function WorldDetailActivePanel() {
   if (worldsQuery.isError) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-gray-50">
-        <span className="text-sm text-red-600">Failed to load world detail.</span>
+        <span className="text-sm text-red-600">
+          {t('WorldDetail.error', { defaultValue: 'Failed to load world details' })}
+        </span>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -91,14 +95,14 @@ export function WorldDetailActivePanel() {
             }}
             className="rounded-[10px] bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
           >
-            Retry
+            {t('NotificationPanel.refresh', { defaultValue: 'Refresh' })}
           </button>
           <button
             type="button"
             onClick={navigateBack}
             className="rounded-[10px] bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
           >
-            Go Back
+            {t('WorldDetail.backToList', { defaultValue: 'Back to List' })}
           </button>
         </div>
       </div>
@@ -108,13 +112,15 @@ export function WorldDetailActivePanel() {
   if (!selectedWorld) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-gray-50">
-        <span className="text-sm text-gray-500">World not found</span>
+        <span className="text-sm text-gray-500">
+          {t('WorldDetail.notFound', { defaultValue: 'World not found' })}
+        </span>
         <button
           type="button"
           onClick={navigateBack}
           className="rounded-[10px] bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
         >
-          Go Back
+          {t('WorldDetail.backToList', { defaultValue: 'Back to List' })}
         </button>
       </div>
     );

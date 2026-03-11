@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { i18n } from '@renderer/i18n';
 import {
   localAiRuntime,
   type LocalAiCatalogItemDescriptor,
@@ -303,7 +304,9 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <PackageIcon className="h-4 w-4 text-mint-600" />
-            <p className="text-sm font-semibold text-gray-900">Search Catalog</p>
+            <p className="text-sm font-semibold text-gray-900">
+              {i18n.t('runtimeConfig.catalog.searchCatalog', { defaultValue: 'Search Catalog' })}
+            </p>
           </div>
           <Button
             variant="secondary"
@@ -312,14 +315,16 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
             onClick={() => void refreshCatalogItems({ query: catalogQuery, capability: catalogCapability })}
             icon={<RefreshIcon />}
           >
-            {loadingCatalog ? 'Searching...' : 'Search'}
+            {loadingCatalog
+              ? i18n.t('runtimeConfig.catalog.searching', { defaultValue: 'Searching...' })
+              : i18n.t('runtimeConfig.catalog.search', { defaultValue: 'Search' })}
           </Button>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-[2fr,1fr]">
           <Input
             value={catalogQuery}
             onChange={setCatalogQuery}
-            placeholder="Search repo/model/task..."
+            placeholder={i18n.t('runtimeConfig.catalog.searchRepoPlaceholder', { defaultValue: 'Search repo/model/task...' })}
             icon={<SearchIcon />}
           />
           <div>
@@ -328,7 +333,10 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
               onChange={(nextCapability) => setCatalogCapability((nextCapability || 'all') as 'all' | CapabilityOption)}
               className="w-full"
               options={[
-                { value: 'all', label: 'All Capabilities' },
+                {
+                  value: 'all',
+                  label: i18n.t('runtimeConfig.catalog.allCapabilities', { defaultValue: 'All Capabilities' }),
+                },
                 ...CAPABILITY_OPTIONS.map((capability) => ({ value: capability, label: capability })),
               ]}
             />
@@ -336,7 +344,9 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
         </div>
         {catalogItems.length === 0 ? (
           <p className="text-xs text-gray-500">
-            {loadingCatalog ? 'Searching catalog...' : 'No catalog model matched your query.'}
+            {loadingCatalog
+              ? i18n.t('runtimeConfig.catalog.searchingCatalog', { defaultValue: 'Searching catalog...' })
+              : i18n.t('runtimeConfig.catalog.noCatalogMatch', { defaultValue: 'No catalog model matched your query.' })}
           </p>
         ) : (
           <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -358,7 +368,9 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
                       <p className="text-sm font-medium text-gray-900 truncate">{item.title || item.modelId}</p>
                       <p className="text-xs text-gray-500">{item.modelId}</p>
                       <p className="text-xs text-gray-400">
-                        {item.source === 'verified' ? 'Verified' : 'Hugging Face'} · {item.engine}
+                        {(item.source === 'verified'
+                          ? i18n.t('runtimeConfig.catalog.verified', { defaultValue: 'Verified' })
+                          : i18n.t('runtimeConfig.catalog.huggingFace', { defaultValue: 'Hugging Face' }))} · {item.engine}
                       </p>
                     </div>
                     <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
@@ -367,7 +379,9 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
                         : 'bg-amber-100 text-amber-700'
                     }`}
                     >
-                      {item.installAvailable ? 'Installable' : 'Manual'}
+                      {item.installAvailable
+                        ? i18n.t('runtimeConfig.catalog.installable', { defaultValue: 'Installable' })
+                        : i18n.t('runtimeConfig.catalog.manual', { defaultValue: 'Manual' })}
                     </span>
                   </div>
                   {item.description ? (
@@ -383,15 +397,21 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
       {/* Install Plan Confirmation */}
       {selectedCatalogItem ? (
         <div className="rounded-xl border border-mint-100 bg-white p-4 shadow-sm">
-          <p className="text-sm font-semibold text-gray-900 mb-3">Install Plan</p>
+          <p className="mb-3 text-sm font-semibold text-gray-900">
+            {i18n.t('runtimeConfig.catalog.installPlan', { defaultValue: 'Install Plan' })}
+          </p>
           {loadingPlanPreview ? (
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <RefreshIcon className="h-4 w-4 animate-spin" />
-              Resolving install plan...
+              {i18n.t('runtimeConfig.catalog.resolvingInstallPlan', { defaultValue: 'Resolving install plan...' })}
             </div>
           ) : !planPreview ? (
             <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
-              <span>Install plan unavailable. Try another model or use Advanced install.</span>
+              <span>
+                {i18n.t('runtimeConfig.catalog.installPlanUnavailable', {
+                  defaultValue: 'Install plan unavailable. Try another model or use Advanced install.',
+                })}
+              </span>
             </div>
           ) : (
             <div className="space-y-3">
@@ -405,8 +425,18 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
                 </div>
               </div>
               <div className="text-xs text-gray-500 space-y-1">
-                <p>Files: {planPreview.files.length}</p>
-                <p>Endpoint: {planPreview.endpoint}</p>
+                <p>
+                  {i18n.t('runtimeConfig.catalog.filesCount', {
+                    count: planPreview.files.length,
+                    defaultValue: 'Files: {{count}}',
+                  })}
+                </p>
+                <p>
+                  {i18n.t('runtimeConfig.catalog.endpoint', {
+                    endpoint: planPreview.endpoint,
+                    defaultValue: 'Endpoint: {{endpoint}}',
+                  })}
+                </p>
               </div>
               {planPreview.warnings.length > 0 ? (
                 <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">{planPreview.warnings.join(' ; ')}</p>
@@ -429,7 +459,9 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
                 }}
                 icon={<DownloadIcon />}
               >
-                {installingCatalogItemId === selectedCatalogItem.itemId ? 'Installing...' : 'Install from Catalog'}
+                {installingCatalogItemId === selectedCatalogItem.itemId
+                  ? i18n.t('runtimeConfig.catalog.installing', { defaultValue: 'Installing...' })
+                  : i18n.t('runtimeConfig.catalog.installFromCatalog', { defaultValue: 'Install from Catalog' })}
               </Button>
             </div>
           )}
@@ -441,7 +473,9 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <StarIcon className="h-4 w-4 text-mint-600" />
-            <p className="text-sm font-semibold text-gray-900">Verified Quick Picks</p>
+            <p className="text-sm font-semibold text-gray-900">
+              {i18n.t('runtimeConfig.catalog.verifiedQuickPicks', { defaultValue: 'Verified Quick Picks' })}
+            </p>
           </div>
           <Button
             variant="secondary"
@@ -450,18 +484,22 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
             onClick={() => void refreshVerifiedModels()}
             icon={<RefreshIcon />}
           >
-            {loadingVerifiedModels ? 'Refreshing...' : 'Refresh'}
+            {loadingVerifiedModels
+              ? i18n.t('runtimeConfig.catalog.refreshing', { defaultValue: 'Refreshing...' })
+              : i18n.t('runtimeConfig.catalog.refresh', { defaultValue: 'Refresh' })}
           </Button>
         </div>
         <Input
           value={verifiedModelQuery}
           onChange={setVerifiedModelQuery}
-          placeholder="Search verified models..."
+          placeholder={i18n.t('runtimeConfig.catalog.searchVerifiedPlaceholder', { defaultValue: 'Search verified models...' })}
           icon={<SearchIcon />}
         />
         {filteredVerifiedModels.length === 0 ? (
           <p className="text-xs text-gray-500">
-            {loadingVerifiedModels ? 'Loading verified models...' : 'No verified model matched your query.'}
+            {loadingVerifiedModels
+              ? i18n.t('runtimeConfig.catalog.loadingVerifiedModels', { defaultValue: 'Loading verified models...' })
+              : i18n.t('runtimeConfig.catalog.noVerifiedMatch', { defaultValue: 'No verified model matched your query.' })}
           </p>
         ) : (
           <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -494,7 +532,9 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
                       }}
                       icon={installing ? undefined : <DownloadIcon />}
                     >
-                      {installing ? 'Installing...' : 'Install'}
+                      {installing
+                        ? i18n.t('runtimeConfig.catalog.installing', { defaultValue: 'Installing...' })
+                        : i18n.t('runtimeConfig.catalog.install', { defaultValue: 'Install' })}
                     </Button>
                   </div>
                 </div>

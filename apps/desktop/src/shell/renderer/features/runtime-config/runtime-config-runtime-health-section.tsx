@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type {
   GetRuntimeHealthResponse,
   AIProviderHealthSnapshot,
@@ -71,6 +72,7 @@ export function RuntimeHealthSection({
   error,
   onRefresh,
 }: RuntimeHealthSectionProps) {
+  const { t } = useTranslation();
   const [liveEnabled] = useState(true);
   const stream = useRuntimeHealthStream(liveEnabled);
 
@@ -102,7 +104,9 @@ export function RuntimeHealthSection({
   return (
     <Card className="p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-900">Runtime Health</h3>
+        <h3 className="text-sm font-semibold text-gray-900">
+          {t('runtimeConfig.runtime.runtimeHealth', { defaultValue: 'Runtime Health' })}
+        </h3>
         <div className="flex items-center gap-2">
           <span
             className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -116,11 +120,15 @@ export function RuntimeHealthSection({
             <span className={`h-1.5 w-1.5 rounded-full ${
               stream.streaming ? 'bg-green-500' : liveEnabled ? 'bg-yellow-500' : 'bg-gray-400'
             }`} />
-            {stream.streaming ? 'Live' : liveEnabled ? 'Connecting...' : 'Off'}
+            {stream.streaming
+              ? t('runtimeConfig.runtime.live', { defaultValue: 'Live' })
+              : liveEnabled
+                ? t('runtimeConfig.runtime.connecting', { defaultValue: 'Connecting...' })
+                : t('runtimeConfig.runtime.off', { defaultValue: 'Off' })}
           </span>
           <IconButton
             icon={<RefreshIcon className={loading ? 'animate-spin' : ''} />}
-            title="Refresh"
+            title={t('runtimeConfig.runtime.refresh', { defaultValue: 'Refresh' })}
             disabled={loading}
             onClick={onRefresh}
           />
@@ -132,7 +140,9 @@ export function RuntimeHealthSection({
       ) : null}
 
       {stream.streamError ? (
-        <p className="text-xs text-yellow-600">Stream error: {stream.streamError}</p>
+        <p className="text-xs text-yellow-600">
+          {t('runtimeConfig.runtime.streamError', { defaultValue: 'Stream error' })}: {stream.streamError}
+        </p>
       ) : null}
 
       {health ? (
@@ -141,16 +151,18 @@ export function RuntimeHealthSection({
             <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-medium ${runtimeHealthStatusColor(health.status)}`}>
               {runtimeHealthStatusLabel(health.status)}
             </span>
-            <span className="text-gray-600">Queue: <strong>{health.queueDepth}</strong></span>
-            <span className="text-gray-600">Workflows: <strong>{health.activeWorkflows}</strong></span>
-            <span className="text-gray-600">Jobs: <strong>{health.activeInferenceJobs}</strong></span>
+            <span className="text-gray-600">{t('runtimeConfig.runtime.queue', { defaultValue: 'Queue' })}: <strong>{health.queueDepth}</strong></span>
+            <span className="text-gray-600">{t('runtimeConfig.runtime.workflows', { defaultValue: 'Workflows' })}: <strong>{health.activeWorkflows}</strong></span>
+            <span className="text-gray-600">{t('runtimeConfig.runtime.jobs', { defaultValue: 'Jobs' })}: <strong>{health.activeInferenceJobs}</strong></span>
           </div>
           <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600">
-            <span>CPU: <strong>{formatCpuMilli(health.cpuMilli)}</strong></span>
-            <span>RAM: <strong>{formatBytes(health.memoryBytes)}</strong></span>
-            <span>VRAM: <strong>{formatBytes(health.vramBytes)}</strong></span>
+            <span>{t('runtimeConfig.runtime.cpu', { defaultValue: 'CPU' })}: <strong>{formatCpuMilli(health.cpuMilli)}</strong></span>
+            <span>{t('runtimeConfig.runtime.ram', { defaultValue: 'RAM' })}: <strong>{formatBytes(health.memoryBytes)}</strong></span>
+            <span>{t('runtimeConfig.runtime.vram', { defaultValue: 'VRAM' })}: <strong>{formatBytes(health.vramBytes)}</strong></span>
             {health.sampledAt ? (
-              <span className="text-gray-400">Sampled: {relativeTimeShort(timestampToIso(health.sampledAt))}</span>
+              <span className="text-gray-400">
+                {t('runtimeConfig.runtime.sampled', { defaultValue: 'Sampled' })}: {relativeTimeShort(timestampToIso(health.sampledAt))}
+              </span>
             ) : null}
           </div>
           {health.reason ? (
@@ -158,21 +170,23 @@ export function RuntimeHealthSection({
           ) : null}
         </div>
       ) : !loading ? (
-        <p className="text-xs text-gray-500">No health data available.</p>
+        <p className="text-xs text-gray-500">{t('runtimeConfig.runtime.noHealthData', { defaultValue: 'No health data available.' })}</p>
       ) : null}
 
       {/* AI Providers */}
       {providerHealth.length > 0 ? (
         <div className="space-y-1">
-          <p className="text-[11px] font-medium text-gray-500">AI Providers</p>
+          <p className="text-[11px] font-medium text-gray-500">
+            {t('runtimeConfig.runtime.aiProviders', { defaultValue: 'AI Providers' })}
+          </p>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-100 text-left text-[11px] text-gray-500">
-                  <th className="pb-1.5 pr-3 font-medium">Name</th>
-                  <th className="pb-1.5 pr-3 font-medium">State</th>
-                  <th className="pb-1.5 pr-3 font-medium">Failures</th>
-                  <th className="pb-1.5 font-medium">Last Checked</th>
+                  <th className="pb-1.5 pr-3 font-medium">{t('runtimeConfig.runtime.name', { defaultValue: 'Name' })}</th>
+                  <th className="pb-1.5 pr-3 font-medium">{t('runtimeConfig.runtime.state', { defaultValue: 'State' })}</th>
+                  <th className="pb-1.5 pr-3 font-medium">{t('runtimeConfig.runtime.failures', { defaultValue: 'Failures' })}</th>
+                  <th className="pb-1.5 font-medium">{t('runtimeConfig.runtime.lastChecked', { defaultValue: 'Last Checked' })}</th>
                 </tr>
               </thead>
               <tbody>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { AuditEventRecord } from '@nimiplatform/sdk/runtime';
 import { CallerKind } from '@nimiplatform/sdk/runtime';
 import { Tooltip } from '@renderer/components/tooltip.js';
@@ -88,20 +89,23 @@ export function GlobalAuditSection({
   onLoadMore,
   onExport,
 }: GlobalAuditSectionProps) {
+  const { t } = useTranslation();
   return (
     <Card className="p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-900">Global Audit Events</h3>
+        <h3 className="text-sm font-semibold text-gray-900">
+          {t('runtimeConfig.runtime.globalAuditTitle', { defaultValue: 'Global Audit Events' })}
+        </h3>
         <div className="flex items-center gap-2">
           <IconButton
             icon={<RefreshIcon className={loading ? 'animate-spin' : ''} />}
-            title="Refresh"
+            title={t('runtimeConfig.runtime.refresh', { defaultValue: 'Refresh' })}
             disabled={loading}
             onClick={onRefresh}
           />
           <IconButton
             icon={<ExportIcon />}
-            title="Export JSON"
+            title={t('runtimeConfig.runtime.exportJson', { defaultValue: 'Export JSON' })}
             onClick={() => onExport('json')}
           />
         </div>
@@ -114,7 +118,7 @@ export function GlobalAuditSection({
         <input
           value={filters.domain}
           onChange={(e) => onUpdateFilters({ domain: e.target.value })}
-          placeholder="Filter domain..."
+          placeholder={t('runtimeConfig.runtime.filterDomain', { defaultValue: 'Filter domain...' })}
           className="h-8 rounded-md border border-mint-100 bg-[#F4FBF8] px-2 text-xs text-gray-800 outline-none transition-all focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
         />
         <RuntimeSelect
@@ -123,11 +127,11 @@ export function GlobalAuditSection({
           size="sm"
           className="w-52"
           options={[
-            { value: String(0), label: 'All callers' },
-            { value: String(CallerKind.DESKTOP_CORE), label: 'Desktop Core' },
-            { value: String(CallerKind.DESKTOP_MOD), label: 'Desktop Mod' },
-            { value: String(CallerKind.THIRD_PARTY_APP), label: 'Third-Party App' },
-            { value: String(CallerKind.THIRD_PARTY_SERVICE), label: 'Third-Party Service' },
+            { value: String(0), label: t('runtimeConfig.runtime.allCallers', { defaultValue: 'All callers' }) },
+            { value: String(CallerKind.DESKTOP_CORE), label: t('runtimeConfig.runtime.desktopCore', { defaultValue: 'Desktop Core' }) },
+            { value: String(CallerKind.DESKTOP_MOD), label: t('runtimeConfig.runtime.desktopMod', { defaultValue: 'Desktop Mod' }) },
+            { value: String(CallerKind.THIRD_PARTY_APP), label: t('runtimeConfig.runtime.thirdPartyApp', { defaultValue: 'Third-Party App' }) },
+            { value: String(CallerKind.THIRD_PARTY_SERVICE), label: t('runtimeConfig.runtime.thirdPartyService', { defaultValue: 'Third-Party Service' }) },
           ]}
         />
         <input
@@ -148,7 +152,9 @@ export function GlobalAuditSection({
       <div className="max-h-[calc(100vh-32rem)] overflow-y-auto rounded-lg border border-gray-200 bg-white/60">
         {events.length === 0 ? (
           <p className="px-4 py-6 text-center text-sm text-gray-500">
-            {loading ? 'Loading audit events...' : 'No audit events matching current filters.'}
+            {loading
+              ? t('runtimeConfig.runtime.loadingAuditEvents', { defaultValue: 'Loading audit events...' })
+              : t('runtimeConfig.runtime.noAuditEvents', { defaultValue: 'No audit events matching current filters.' })}
           </p>
         ) : (
           events.map((event) => (
@@ -161,7 +167,9 @@ export function GlobalAuditSection({
       {hasNextPage ? (
         <div className="flex justify-center">
           <Button variant="secondary" size="sm" disabled={loading} onClick={onLoadMore}>
-            {loading ? 'Loading...' : 'Load More'}
+            {loading
+              ? t('runtimeConfig.runtime.loading', { defaultValue: 'Loading...' })
+              : t('runtimeConfig.runtime.loadMore', { defaultValue: 'Load More' })}
           </Button>
         </div>
       ) : null}
@@ -170,6 +178,7 @@ export function GlobalAuditSection({
 }
 
 function AuditEventRow({ event }: { event: AuditEventRecord }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const ts = timestampToIso(event.timestamp);
 
@@ -200,32 +209,32 @@ function AuditEventRow({ event }: { event: AuditEventRecord }) {
       {expanded ? (
         <div className="space-y-2 bg-white/60 px-4 py-3">
           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
-            <FieldRow label="Audit ID" value={event.auditId} />
-            <FieldRow label="App ID" value={event.appId} />
-            <FieldRow label="Subject User" value={event.subjectUserId} />
-            <FieldRow label="Domain" value={event.domain} />
-            <FieldRow label="Operation" value={event.operation} />
-            <FieldRow label="Reason Code" value={String(event.reasonCode)} />
-            <FieldRow label="Trace ID" value={event.traceId} />
-            <FieldRow label="Timestamp" value={ts} />
-            <FieldRow label="Caller Kind" value={callerKindLabel(event.callerKind)} />
-            <FieldRow label="Caller ID" value={event.callerId} />
-            <FieldRow label="Surface ID" value={event.surfaceId} />
-            <FieldRow label="Principal ID" value={event.principalId} />
-            <FieldRow label="Principal Type" value={event.principalType} />
-            <FieldRow label="Ext. Principal Type" value={event.externalPrincipalType} />
-            <FieldRow label="Capability" value={event.capability} />
-            <FieldRow label="Token ID" value={event.tokenId} />
-            <FieldRow label="Parent Token ID" value={event.parentTokenId} />
-            <FieldRow label="Consent ID" value={event.consentId} />
-            <FieldRow label="Consent Version" value={event.consentVersion} />
-            <FieldRow label="Policy Version" value={event.policyVersion} />
-            <FieldRow label="Resource Selector Hash" value={event.resourceSelectorHash} />
-            <FieldRow label="Scope Catalog Version" value={event.scopeCatalogVersion} />
+            <FieldRow label={t('runtimeConfig.runtime.auditId', { defaultValue: 'Audit ID' })} value={event.auditId} />
+            <FieldRow label={t('runtimeConfig.runtime.appId', { defaultValue: 'App ID' })} value={event.appId} />
+            <FieldRow label={t('runtimeConfig.runtime.subjectUser', { defaultValue: 'Subject User' })} value={event.subjectUserId} />
+            <FieldRow label={t('runtimeConfig.runtime.domain', { defaultValue: 'Domain' })} value={event.domain} />
+            <FieldRow label={t('runtimeConfig.runtime.operation', { defaultValue: 'Operation' })} value={event.operation} />
+            <FieldRow label={t('runtimeConfig.runtime.reasonCode', { defaultValue: 'Reason Code' })} value={String(event.reasonCode)} />
+            <FieldRow label={t('runtimeConfig.runtime.traceId', { defaultValue: 'Trace ID' })} value={event.traceId} />
+            <FieldRow label={t('runtimeConfig.runtime.timestamp', { defaultValue: 'Timestamp' })} value={ts} />
+            <FieldRow label={t('runtimeConfig.runtime.callerKind', { defaultValue: 'Caller Kind' })} value={callerKindLabel(event.callerKind)} />
+            <FieldRow label={t('runtimeConfig.runtime.callerId', { defaultValue: 'Caller ID' })} value={event.callerId} />
+            <FieldRow label={t('runtimeConfig.runtime.surfaceId', { defaultValue: 'Surface ID' })} value={event.surfaceId} />
+            <FieldRow label={t('runtimeConfig.runtime.principalId', { defaultValue: 'Principal ID' })} value={event.principalId} />
+            <FieldRow label={t('runtimeConfig.runtime.principalType', { defaultValue: 'Principal Type' })} value={event.principalType} />
+            <FieldRow label={t('runtimeConfig.runtime.externalPrincipalType', { defaultValue: 'Ext. Principal Type' })} value={event.externalPrincipalType} />
+            <FieldRow label={t('runtimeConfig.runtime.capability', { defaultValue: 'Capability' })} value={event.capability} />
+            <FieldRow label={t('runtimeConfig.runtime.tokenId', { defaultValue: 'Token ID' })} value={event.tokenId} />
+            <FieldRow label={t('runtimeConfig.runtime.parentTokenId', { defaultValue: 'Parent Token ID' })} value={event.parentTokenId} />
+            <FieldRow label={t('runtimeConfig.runtime.consentId', { defaultValue: 'Consent ID' })} value={event.consentId} />
+            <FieldRow label={t('runtimeConfig.runtime.consentVersion', { defaultValue: 'Consent Version' })} value={event.consentVersion} />
+            <FieldRow label={t('runtimeConfig.runtime.policyVersion', { defaultValue: 'Policy Version' })} value={event.policyVersion} />
+            <FieldRow label={t('runtimeConfig.runtime.resourceSelectorHash', { defaultValue: 'Resource Selector Hash' })} value={event.resourceSelectorHash} />
+            <FieldRow label={t('runtimeConfig.runtime.scopeCatalogVersion', { defaultValue: 'Scope Catalog Version' })} value={event.scopeCatalogVersion} />
           </div>
           {event.payload ? (
             <div>
-              <p className="text-[11px] font-medium text-gray-500 mb-1">Payload</p>
+              <p className="text-[11px] font-medium text-gray-500 mb-1">{t('runtimeConfig.runtime.payload', { defaultValue: 'Payload' })}</p>
               <pre className="max-h-40 overflow-x-auto rounded-md border border-gray-200 bg-white/80 p-2 text-[10px] text-gray-700">
                 {JSON.stringify(structToRecord(event.payload as { fields: Record<string, unknown> }), null, 2)}
               </pre>

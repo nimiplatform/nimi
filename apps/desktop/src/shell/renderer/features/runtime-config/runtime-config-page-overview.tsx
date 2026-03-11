@@ -1,10 +1,11 @@
 import { useMemo, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   CAPABILITIES_V11,
   type CapabilityV11,
   type RuntimeConfigStateV11,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import { formatLocaleDateTime } from '@renderer/i18n';
+import { formatLocaleDateTime, formatLocaleNumber } from '@renderer/i18n';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { describeRuntimeDaemonIssue } from './runtime-daemon-guidance';
@@ -54,7 +55,7 @@ function formatCount(value: number): string {
   if (!Number.isFinite(value) || value <= 0) {
     return '0';
   }
-  return new Intl.NumberFormat('en-US').format(Math.round(value));
+  return formatLocaleNumber(Math.round(value));
 }
 
 function ProgressBar({ percent, color }: { percent: number; color: string }) {
@@ -122,6 +123,7 @@ function QuickLinkCard({
 }
 
 export function OverviewPage({ model, state }: OverviewPageProps) {
+  const { t } = useTranslation();
   const capabilityStatuses = useMemo(() => deriveCapabilityStatuses(state), [state]);
   const sysResources = useSystemResources();
   const usageEstimate = useUsageEstimate();
@@ -145,57 +147,57 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
   return (
     <div className="space-y-8">
       <section>
-        <SectionTitle description="System summary and key runtime stats.">
-          Overview Snapshot
+        <SectionTitle description={t('runtimeConfig.overview.snapshotDescription', { defaultValue: 'System summary and key runtime stats.' })}>
+          {t('runtimeConfig.overview.snapshotTitle', { defaultValue: 'Overview Snapshot' })}
         </SectionTitle>
         <div className="mt-3 grid grid-cols-4 gap-4">
           <StatTile
-            title="Installed Models"
+            title={t('runtimeConfig.overview.installedModels', { defaultValue: 'Installed Models' })}
             value={installedModelCount}
-            subtitle={`${activeModelCount} active`}
+            subtitle={t('runtimeConfig.overview.activeModelsCount', { count: activeModelCount, defaultValue: '{{count}} active' })}
             onClick={() => model.onChangePage('local')}
           />
           <StatTile
-            title="Cloud Connectors"
+            title={t('runtimeConfig.overview.cloudConnectors', { defaultValue: 'Cloud Connectors' })}
             value={state.connectors.length}
-            subtitle={`${healthyConnectorCount} healthy`}
+            subtitle={t('runtimeConfig.overview.healthyConnectorsCount', { count: healthyConnectorCount, defaultValue: '{{count}} healthy' })}
             onClick={() => model.onChangePage('cloud')}
           />
           <StatTile
-            title="Vault Entries"
+            title={t('runtimeConfig.overview.vaultEntries', { defaultValue: 'Vault Entries' })}
             value={model.vaultEntryCount}
-            subtitle="credentials stored"
+            subtitle={t('runtimeConfig.overview.credentialsStored', { defaultValue: 'credentials stored' })}
           />
           <StatTile
-            title="AI Mods"
+            title={t('runtimeConfig.overview.aiMods', { defaultValue: 'AI Mods' })}
             value={model.runtimeDependencyTargets.length}
-            subtitle="with AI dependencies"
+            subtitle={t('runtimeConfig.overview.withAiDeps', { defaultValue: 'with AI dependencies' })}
             onClick={() => model.onChangePage('mods')}
           />
         </div>
       </section>
 
       <section className="mt-8">
-        <SectionTitle description="Live system usage and aggregated runtime consumption.">
-          Runtime Load & Usage
+        <SectionTitle description={t('runtimeConfig.overview.runtimeLoadDescription', { defaultValue: 'Live system usage and aggregated runtime consumption.' })}>
+          {t('runtimeConfig.overview.runtimeLoadTitle', { defaultValue: 'Runtime Load & Usage' })}
         </SectionTitle>
         <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <SurfaceCard className="p-5">
             <div className="mb-4">
-              <p className="text-sm font-semibold text-gray-900">System Resources</p>
-              <p className="text-xs text-gray-500">Live snapshot from desktop runtime</p>
+              <p className="text-sm font-semibold text-gray-900">{t('runtimeConfig.overview.systemResources', { defaultValue: 'System Resources' })}</p>
+              <p className="text-xs text-gray-500">{t('runtimeConfig.overview.systemResourcesDescription', { defaultValue: 'Live snapshot from desktop runtime' })}</p>
             </div>
             <div className="space-y-3">
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-gray-600">CPU</span>
+                  <span className="text-gray-600">{t('runtimeConfig.overview.cpu', { defaultValue: 'CPU' })}</span>
                   <span className="font-medium text-gray-900">{sysResources.cpuPercent.toFixed(0)}%</span>
                 </div>
                 <ProgressBar percent={sysResources.cpuPercent} color="bg-blue-500" />
               </div>
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-gray-600">Memory</span>
+                  <span className="text-gray-600">{t('runtimeConfig.overview.memory', { defaultValue: 'Memory' })}</span>
                   <span className="font-medium text-gray-900">
                     {formatBytes(sysResources.memoryUsedBytes)} / {formatBytes(sysResources.memoryTotalBytes)}
                   </span>
@@ -204,7 +206,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
               </div>
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-gray-600">Disk</span>
+                  <span className="text-gray-600">{t('runtimeConfig.overview.disk', { defaultValue: 'Disk' })}</span>
                   <span className="font-medium text-gray-900">
                     {formatBytes(sysResources.diskUsedBytes)} / {formatBytes(sysResources.diskTotalBytes)}
                   </span>
@@ -213,36 +215,47 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
               </div>
               {typeof sysResources.temperatureCelsius === 'number' ? (
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-600">Temperature</span>
-                  <span className="font-medium text-gray-900">{sysResources.temperatureCelsius.toFixed(0)} C</span>
+                  <span className="text-gray-600">{t('runtimeConfig.overview.temperature', { defaultValue: 'Temperature' })}</span>
+                  <span className="font-medium text-gray-900">
+                    {t('runtimeConfig.overview.temperatureValue', { value: sysResources.temperatureCelsius.toFixed(0), defaultValue: '{{value}} C' })}
+                  </span>
                 </div>
               ) : null}
               <p className="pt-1 text-xs text-gray-500">
-                Source: {sysResources.source} | Captured: {formatLocaleDateTime(new Date(sysResources.capturedAtMs).toISOString())}
+                {t('runtimeConfig.overview.systemResourceMeta', {
+                  source: sysResources.source,
+                  capturedAt: formatLocaleDateTime(new Date(sysResources.capturedAtMs).toISOString()),
+                  defaultValue: 'Source: {{source}} | Captured: {{capturedAt}}',
+                })}
               </p>
             </div>
           </SurfaceCard>
 
           <SurfaceCard className="p-5">
             <div className="mb-4">
-              <p className="text-sm font-semibold text-gray-900">Usage Estimate</p>
-              <p className="text-xs text-gray-500">Aggregated from runtime usage stats</p>
+              <p className="text-sm font-semibold text-gray-900">{t('runtimeConfig.overview.usageEstimate', { defaultValue: 'Usage Estimate' })}</p>
+              <p className="text-xs text-gray-500">{t('runtimeConfig.overview.usageEstimateDescription', { defaultValue: 'Aggregated from runtime usage stats' })}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-                <p className="text-xs text-gray-500">Requests</p>
+                <p className="text-xs text-gray-500">{t('runtimeConfig.overview.requests', { defaultValue: 'Requests' })}</p>
                 <p className="text-lg font-semibold text-gray-900">{formatCount(usageEstimate.totalRequests)}</p>
               </div>
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-                <p className="text-xs text-gray-500">Compute</p>
-                <p className="text-lg font-semibold text-gray-900">{formatCount(usageEstimate.totalComputeMs)} ms</p>
+                <p className="text-xs text-gray-500">{t('runtimeConfig.overview.compute', { defaultValue: 'Compute' })}</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {t('runtimeConfig.overview.computeValue', {
+                    value: formatCount(usageEstimate.totalComputeMs),
+                    defaultValue: '{{value}} ms',
+                  })}
+                </p>
               </div>
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-                <p className="text-xs text-gray-500">Input Tokens</p>
+                <p className="text-xs text-gray-500">{t('runtimeConfig.overview.inputTokens', { defaultValue: 'Input Tokens' })}</p>
                 <p className="text-sm font-semibold text-gray-900">{formatCount(usageEstimate.totalInputTokens)}</p>
               </div>
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-                <p className="text-xs text-gray-500">Output Tokens</p>
+                <p className="text-xs text-gray-500">{t('runtimeConfig.overview.outputTokens', { defaultValue: 'Output Tokens' })}</p>
                 <p className="text-sm font-semibold text-gray-900">{formatCount(usageEstimate.totalOutputTokens)}</p>
               </div>
             </div>
@@ -253,14 +266,24 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
               {usageEstimate.breakdown.map((entry) => (
                 <div key={entry.label} className="flex items-center justify-between text-xs text-gray-600">
                   <span className="truncate pr-3">{entry.label}</span>
-                  <span className="font-medium">{formatCount(entry.requests)} req</span>
+                  <span className="font-medium">
+                    {t('runtimeConfig.overview.requestsShort', {
+                      value: formatCount(entry.requests),
+                      defaultValue: '{{value}} req',
+                    })}
+                  </span>
                 </div>
               ))}
               {usageEstimate.breakdown.length === 0 && !usageEstimate.loading ? (
-                <p className="text-xs text-gray-500">No usage records in current window.</p>
+                <p className="text-xs text-gray-500">{t('runtimeConfig.overview.noUsageRecords', { defaultValue: 'No usage records in current window.' })}</p>
               ) : null}
               {usageEstimate.updatedAt ? (
-                <p className="pt-1 text-xs text-gray-500">Updated: {formatLocaleDateTime(usageEstimate.updatedAt)}</p>
+                <p className="pt-1 text-xs text-gray-500">
+                  {t('runtimeConfig.overview.updatedAt', {
+                    value: formatLocaleDateTime(usageEstimate.updatedAt),
+                    defaultValue: 'Updated: {{value}}',
+                  })}
+                </p>
               ) : null}
             </div>
           </SurfaceCard>
@@ -268,18 +291,21 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
       </section>
 
       <section className="mt-8">
-        <SectionTitle description="Available AI capabilities from local runtime and cloud fallback.">
-          Capability Coverage
+        <SectionTitle description={t('runtimeConfig.overview.capabilityCoverageDescription', { defaultValue: 'Available AI capabilities from local runtime and cloud fallback.' })}>
+          {t('runtimeConfig.overview.capabilityCoverageTitle', { defaultValue: 'Capability Coverage' })}
         </SectionTitle>
         <SurfaceCard className="mt-3 p-5">
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
             {capabilityStatuses.map((item) => {
               const available = item.localAvailable || item.cloudAvailable;
               const source = item.localAvailable
-                ? `local${item.localProvider ? ` (${item.localProvider})` : ''}`
+                ? t('runtimeConfig.overview.capabilitySourceLocal', {
+                  providerSuffix: item.localProvider ? ` (${item.localProvider})` : '',
+                  defaultValue: 'local{{providerSuffix}}',
+                })
                 : item.cloudAvailable
-                  ? 'cloud API fallback'
-                  : 'unavailable';
+                  ? t('runtimeConfig.overview.capabilitySourceCloudFallback', { defaultValue: 'cloud API fallback' })
+                  : t('runtimeConfig.overview.capabilitySourceUnavailable', { defaultValue: 'unavailable' });
               return (
                 <div
                   key={`capability-overview-${item.capability}`}
@@ -309,7 +335,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
                       onClick={() => model.onChangePage('local')}
                       className="text-xs font-medium text-mint-700 hover:text-mint-800"
                     >
-                      Setup
+                      {t('runtimeConfig.overview.setup', { defaultValue: 'Setup' })}
                     </button>
                   ) : null}
                 </div>
@@ -320,30 +346,32 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
       </section>
 
       <section className="mt-8">
-        <SectionTitle description="Control and inspect local runtime daemon status.">
-          Runtime Daemon
+        <SectionTitle description={t('runtimeConfig.overview.runtimeDaemonDescription', { defaultValue: 'Control and inspect local runtime daemon status.' })}>
+          {t('runtimeConfig.overview.runtimeDaemonTitle', { defaultValue: 'Runtime Daemon' })}
         </SectionTitle>
         <SurfaceCard className="mt-3 p-5">
           <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-500">Local AI runtime daemon status</div>
+            <div className="text-sm text-gray-500">{t('runtimeConfig.overview.runtimeDaemonStatus', { defaultValue: 'Local AI runtime daemon status' })}</div>
             <span className={`rounded-full px-3 py-1 text-xs font-medium ${
               daemonRunning ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
             }`}>
-              {daemonRunning ? 'running' : 'stopped'}
+              {daemonRunning
+                ? t('runtimeConfig.overview.running', { defaultValue: 'running' })
+                : t('runtimeConfig.overview.stopped', { defaultValue: 'stopped' })}
             </span>
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
             <div className={`rounded-xl border p-3 ${daemonRunning ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
-              <p className={`text-xs ${daemonRunning ? 'text-green-600' : 'text-red-600'}`}>gRPC</p>
+              <p className={`text-xs ${daemonRunning ? 'text-green-600' : 'text-red-600'}`}>{t('runtimeConfig.overview.grpc', { defaultValue: 'gRPC' })}</p>
               <p className={`text-sm font-medium ${daemonRunning ? 'text-green-900' : 'text-red-900'}`}>{model.runtimeDaemonStatus?.grpcAddr || '127.0.0.1:46371'}</p>
             </div>
             <div className={`rounded-xl border p-3 ${daemonRunning ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
-              <p className={`text-xs ${daemonRunning ? 'text-green-600' : 'text-red-600'}`}>PID</p>
+              <p className={`text-xs ${daemonRunning ? 'text-green-600' : 'text-red-600'}`}>{t('runtimeConfig.overview.pid', { defaultValue: 'PID' })}</p>
               <p className={`text-sm font-medium ${daemonRunning ? 'text-green-900' : 'text-red-900'}`}>{model.runtimeDaemonStatus?.pid || '-'}</p>
             </div>
             <div className={`rounded-xl border p-3 ${daemonRunning ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
-              <p className={`text-xs ${daemonRunning ? 'text-green-600' : 'text-red-600'}`}>Last check</p>
+              <p className={`text-xs ${daemonRunning ? 'text-green-600' : 'text-red-600'}`}>{t('runtimeConfig.overview.lastCheck', { defaultValue: 'Last check' })}</p>
               <p className={`text-sm font-medium ${daemonRunning ? 'text-green-900' : 'text-red-900'}`}>{model.runtimeDaemonUpdatedAt ? formatLocaleDateTime(model.runtimeDaemonUpdatedAt) : '-'}</p>
             </div>
           </div>
@@ -360,44 +388,46 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <Button variant="secondary" size="sm" disabled={daemonBusy} onClick={() => void model.refreshRuntimeDaemonStatus()}>
-              {daemonBusy ? 'Working...' : 'Refresh'}
+              {daemonBusy
+                ? t('runtimeConfig.overview.working', { defaultValue: 'Working...' })
+                : t('runtimeConfig.overview.refresh', { defaultValue: 'Refresh' })}
             </Button>
             <Button variant="secondary" size="sm" disabled={daemonBusy || daemonRunning} onClick={() => void model.startRuntimeDaemon()}>
-              Start
+              {t('runtimeConfig.overview.start', { defaultValue: 'Start' })}
             </Button>
             <Button variant="secondary" size="sm" disabled={daemonBusy || !daemonRunning} onClick={() => void model.restartRuntimeDaemon()}>
-              Restart
+              {t('runtimeConfig.overview.restart', { defaultValue: 'Restart' })}
             </Button>
             <Button variant="secondary" size="sm" disabled={daemonBusy || !daemonRunning} onClick={() => void model.stopRuntimeDaemon()}>
-              Stop
+              {t('runtimeConfig.overview.stop', { defaultValue: 'Stop' })}
             </Button>
           </div>
         </SurfaceCard>
       </section>
 
       <section className="mt-8">
-        <SectionTitle description="Fast entry points to key runtime configuration pages.">
-          Quick Navigation
+        <SectionTitle description={t('runtimeConfig.overview.quickNavigationDescription', { defaultValue: 'Fast entry points to key runtime configuration pages.' })}>
+          {t('runtimeConfig.overview.quickNavigationTitle', { defaultValue: 'Quick Navigation' })}
         </SectionTitle>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <QuickLinkCard
-            title="Manage Models"
-            description="Install, start, stop local models"
+            title={t('runtimeConfig.overview.manageModels', { defaultValue: 'Manage Models' })}
+            description={t('runtimeConfig.overview.manageModelsDescription', { defaultValue: 'Install, start, stop local models' })}
             onClick={() => model.onChangePage('local')}
           />
           <QuickLinkCard
-            title="Configure Cloud"
-            description="API keys and connectors"
+            title={t('runtimeConfig.overview.configureCloud', { defaultValue: 'Configure Cloud' })}
+            description={t('runtimeConfig.overview.configureCloudDescription', { defaultValue: 'API keys and connectors' })}
             onClick={() => model.onChangePage('cloud')}
           />
           <QuickLinkCard
-            title="Runtime & Audit"
-            description="Health, logs, EAA tokens"
+            title={t('runtimeConfig.overview.runtimeAudit', { defaultValue: 'Runtime & Audit' })}
+            description={t('runtimeConfig.overview.runtimeAuditDescription', { defaultValue: 'Health, logs, EAA tokens' })}
             onClick={() => model.onChangePage('runtime')}
           />
           <QuickLinkCard
-            title="Mod Dependencies"
-            description="Configure AI for mods"
+            title={t('runtimeConfig.overview.modDependencies', { defaultValue: 'Mod Dependencies' })}
+            description={t('runtimeConfig.overview.modDependenciesDescription', { defaultValue: 'Configure AI for mods' })}
             onClick={() => model.onChangePage('mods')}
           />
         </div>

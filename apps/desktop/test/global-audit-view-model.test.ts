@@ -305,26 +305,22 @@ describe('relativeTimeShort', () => {
 
   test('Xs ago for recent time', () => {
     const recent = new Date(Date.now() - 30_000).toISOString();
-    const result = relativeTimeShort(recent);
-    assert.ok(result.endsWith('s ago'));
+    assert.equal(relativeTimeShort(recent), '30s ago');
   });
 
   test('Xm ago for minutes', () => {
     const minutes = new Date(Date.now() - 5 * 60_000).toISOString();
-    const result = relativeTimeShort(minutes);
-    assert.ok(result.endsWith('m ago'));
+    assert.equal(relativeTimeShort(minutes), '5m ago');
   });
 
   test('Xh ago for hours', () => {
     const hours = new Date(Date.now() - 3 * 3600_000).toISOString();
-    const result = relativeTimeShort(hours);
-    assert.ok(result.endsWith('h ago'));
+    assert.equal(relativeTimeShort(hours), '3h ago');
   });
 
   test('Xd ago for days', () => {
     const days = new Date(Date.now() - 2 * 86400_000).toISOString();
-    const result = relativeTimeShort(days);
-    assert.ok(result.endsWith('d ago'));
+    assert.equal(relativeTimeShort(days), '2d ago');
   });
 
   test('invalid string → returns as-is', () => {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   getExternalAgentGatewayStatus,
   issueExternalAgentToken,
@@ -11,7 +12,8 @@ import { Button, Card, Input, RuntimeSelect } from './runtime-config-primitives'
 type TokenMode = 'delegated' | 'autonomous';
 
 export function ExternalAgentAccessPanel() {
-  const [statusText, setStatusText] = useState('Loading...');
+  const { t } = useTranslation();
+  const [statusText, setStatusText] = useState(t('runtimeConfig.eaa.loadingStatus', { defaultValue: 'Loading...' }));
   const [principalId, setPrincipalId] = useState('openclaw.local');
   const [subjectAccountId, setSubjectAccountId] = useState('');
   const [mode, setMode] = useState<TokenMode>('delegated');
@@ -29,14 +31,19 @@ export function ExternalAgentAccessPanel() {
       const rows = await listExternalAgentTokens();
       setStatusText(
         status.enabled
-          ? `Enabled @ ${status.bindAddress} · issuer=${status.issuer} · actions=${status.actionCount}`
-          : 'Disabled',
+          ? t('runtimeConfig.eaa.gatewayEnabledStatus', {
+            bindAddress: status.bindAddress,
+            issuer: status.issuer,
+            actionCount: status.actionCount,
+            defaultValue: 'Enabled @ {{bindAddress}} · issuer={{issuer}} · actions={{actionCount}}',
+          })
+          : t('runtimeConfig.eaa.disabled', { defaultValue: 'Disabled' }),
       );
       setTokens(rows);
     } catch (error) {
-      setStatusText('Gateway unavailable');
+      setStatusText(t('runtimeConfig.eaa.gatewayUnavailable', { defaultValue: 'Gateway unavailable' }));
       setTokens([]);
-      setErrorMessage(error instanceof Error ? error.message : String(error || 'Gateway refresh failed'));
+      setErrorMessage(error instanceof Error ? error.message : String(error || t('runtimeConfig.eaa.gatewayRefreshFailed', { defaultValue: 'Gateway refresh failed' })));
     }
   };
 
@@ -65,7 +72,7 @@ export function ExternalAgentAccessPanel() {
         setTokenId(issued.tokenId);
         await refreshGateway();
       } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : String(error || 'Issue token failed'));
+        setErrorMessage(error instanceof Error ? error.message : String(error || t('runtimeConfig.eaa.issueTokenFailed', { defaultValue: 'Issue token failed' })));
       } finally {
         setBusy(false);
       }
@@ -86,57 +93,71 @@ export function ExternalAgentAccessPanel() {
         }
         await refreshGateway();
       } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : String(error || 'Revoke token failed'));
+        setErrorMessage(error instanceof Error ? error.message : String(error || t('runtimeConfig.eaa.revokeTokenFailed', { defaultValue: 'Revoke token failed' })));
       } finally {
         setBusy(false);
       }
     })();
   };
 
-  const gatewayEnabled = !statusText.includes('unavailable') && !statusText.includes('Disabled') && !statusText.includes('Loading');
+  const gatewayEnabled = !statusText.includes(t('runtimeConfig.eaa.gatewayUnavailable', { defaultValue: 'Gateway unavailable' }))
+    && !statusText.includes(t('runtimeConfig.eaa.disabled', { defaultValue: 'Disabled' }))
+    && !statusText.includes(t('runtimeConfig.eaa.loadingStatus', { defaultValue: 'Loading...' }));
 
   return (
     <div className="space-y-4">
       <Card className="space-y-3 p-4">
         <div className="flex items-center justify-between">
           <div>
-            <h4 className="text-sm font-semibold text-gray-900">Gateway Status & Issue Token</h4>
-            <p className="text-xs text-gray-500">External Agent Access gateway and token issuance.</p>
+            <h4 className="text-sm font-semibold text-gray-900">
+              {t('runtimeConfig.eaa.gatewayStatusTitle', { defaultValue: 'Gateway Status & Issue Token' })}
+            </h4>
+            <p className="text-xs text-gray-500">
+              {t('runtimeConfig.eaa.gatewayStatusDesc', {
+                defaultValue: 'External Agent Access gateway and token issuance.',
+              })}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <span className={`inline-block h-2.5 w-2.5 rounded-full ${gatewayEnabled ? 'bg-emerald-500' : 'bg-gray-300'}`} />
-            <span className="text-xs text-gray-600">{gatewayEnabled ? 'Enabled' : 'Disabled'}</span>
+            <span className="text-xs text-gray-600">
+              {gatewayEnabled
+                ? t('runtimeConfig.eaa.enabled', { defaultValue: 'Enabled' })
+                : t('runtimeConfig.eaa.disabled', { defaultValue: 'Disabled' })}
+            </span>
           </div>
         </div>
         <p className="text-[11px] text-gray-500">{statusText}</p>
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Input
-            label="Principal ID"
+            label={t('runtimeConfig.eaa.principalId', { defaultValue: 'Principal ID' })}
             value={principalId}
             onChange={setPrincipalId}
             placeholder="openclaw.local"
           />
           <Input
-            label="Subject Account ID"
+            label={t('runtimeConfig.eaa.subjectAccountId', { defaultValue: 'Subject Account ID' })}
             value={subjectAccountId}
             onChange={setSubjectAccountId}
-            placeholder="user_123 / external_456"
+            placeholder={t('runtimeConfig.eaa.subjectAccountPlaceholder', { defaultValue: 'user_123 / external_456' })}
           />
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Mode</label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">
+              {t('runtimeConfig.runtime.mode', { defaultValue: 'Mode' })}
+            </label>
             <RuntimeSelect
               value={mode}
               onChange={(nextMode) => setMode(nextMode === 'autonomous' ? 'autonomous' : 'delegated')}
               className="w-full"
               options={[
-                { value: 'delegated', label: 'delegated' },
-                { value: 'autonomous', label: 'autonomous' },
+                { value: 'delegated', label: t('runtimeConfig.eaa.modeDelegated', { defaultValue: 'delegated' }) },
+                { value: 'autonomous', label: t('runtimeConfig.eaa.modeAutonomous', { defaultValue: 'autonomous' }) },
               ]}
             />
           </div>
           <Input
-            label="TTL Seconds"
+            label={t('runtimeConfig.eaa.ttlSeconds', { defaultValue: 'TTL Seconds' })}
             value={ttlSeconds}
             onChange={setTtlSeconds}
             placeholder="3600"
@@ -144,7 +165,7 @@ export function ExternalAgentAccessPanel() {
         </div>
 
         <Input
-          label="Action Scopes (comma separated)"
+          label={t('runtimeConfig.eaa.actionScopes', { defaultValue: 'Action Scopes (comma separated)' })}
           value={actionsInput}
           onChange={setActionsInput}
           placeholder="runtime.local-ai.models.list"
@@ -152,15 +173,17 @@ export function ExternalAgentAccessPanel() {
 
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm" disabled={busy} onClick={handleIssueToken}>
-            {busy ? 'Issuing...' : 'Issue Token'}
+            {busy
+              ? t('runtimeConfig.eaa.issuing', { defaultValue: 'Issuing...' })
+              : t('runtimeConfig.eaa.issueToken', { defaultValue: 'Issue Token' })}
           </Button>
           <Button variant="ghost" size="sm" disabled={busy} onClick={() => { void refreshGateway(); }}>
-            Refresh
+            {t('runtimeConfig.runtime.refresh', { defaultValue: 'Refresh' })}
           </Button>
         </div>
 
         {tokenId ? (
-          <p className="text-[11px] text-gray-500">tokenId: {tokenId}</p>
+          <p className="text-[11px] text-gray-500">{t('runtimeConfig.eaa.tokenIdLabel', { defaultValue: 'tokenId' })}: {tokenId}</p>
         ) : null}
         {issuedToken ? (
           <div className="space-y-1.5">
@@ -168,7 +191,7 @@ export function ExternalAgentAccessPanel() {
               {issuedToken}
             </div>
             <Button variant="ghost" size="sm" disabled={busy || !tokenId.trim()} onClick={() => handleRevokeToken()}>
-              Revoke This Token
+              {t('runtimeConfig.eaa.revokeThisToken', { defaultValue: 'Revoke This Token' })}
             </Button>
           </div>
         ) : null}
@@ -179,11 +202,13 @@ export function ExternalAgentAccessPanel() {
 
       <Card className="space-y-3 p-4">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-gray-900">Issued Tokens</p>
-          <p className="text-xs text-gray-500">{tokens.length} token{tokens.length !== 1 ? 's' : ''}</p>
+          <p className="text-sm font-semibold text-gray-900">
+            {t('runtimeConfig.eaa.issuedTokens', { defaultValue: 'Issued Tokens' })}
+          </p>
+          <p className="text-xs text-gray-500">{t('runtimeConfig.eaa.tokenCount', { count: tokens.length, defaultValue: '{{count}} token' })}</p>
         </div>
         {tokens.length <= 0 ? (
-          <p className="text-xs text-gray-500">No tokens issued.</p>
+          <p className="text-xs text-gray-500">{t('runtimeConfig.eaa.noTokensIssued', { defaultValue: 'No tokens issued.' })}</p>
         ) : (
           <div className="max-h-64 space-y-2 overflow-auto">
             {tokens.map((token) => {
@@ -207,7 +232,11 @@ export function ExternalAgentAccessPanel() {
                             ? 'bg-amber-100 text-amber-800'
                             : 'bg-gray-100 text-gray-600'
                       }`}>
-                        {tokenStatus}
+                        {tokenStatus === 'active'
+                          ? t('runtimeConfig.eaa.tokenStatusActive', { defaultValue: 'active' })
+                          : tokenStatus === 'expired'
+                            ? t('runtimeConfig.eaa.tokenStatusExpired', { defaultValue: 'expired' })
+                            : t('runtimeConfig.eaa.tokenStatusRevoked', { defaultValue: 'revoked' })}
                       </span>
                     </div>
                     {!isRevoked ? (
@@ -217,13 +246,13 @@ export function ExternalAgentAccessPanel() {
                         disabled={busy}
                         onClick={() => handleRevokeToken(token.tokenId)}
                       >
-                        Revoke
+                        {t('runtimeConfig.eaa.revoke', { defaultValue: 'Revoke' })}
                       </button>
                     ) : null}
                   </div>
-                  <p className="mt-1">mode: {token.mode} · subject: {token.subjectAccountId || '-'}</p>
-                  <p>expires: {token.expiresAt || '-'}</p>
-                  {token.revokedAt ? <p>revoked: {token.revokedAt}</p> : null}
+                  <p className="mt-1">{t('runtimeConfig.eaa.tokenModeLabel', { defaultValue: 'mode' })}: {token.mode} · {t('runtimeConfig.eaa.tokenSubjectLabel', { defaultValue: 'subject' })}: {token.subjectAccountId || '-'}</p>
+                  <p>{t('runtimeConfig.eaa.tokenExpiresLabel', { defaultValue: 'expires' })}: {token.expiresAt || '-'}</p>
+                  {token.revokedAt ? <p>{t('runtimeConfig.eaa.tokenRevokedLabel', { defaultValue: 'revoked' })}: {token.revokedAt}</p> : null}
                 </div>
               );
             })}

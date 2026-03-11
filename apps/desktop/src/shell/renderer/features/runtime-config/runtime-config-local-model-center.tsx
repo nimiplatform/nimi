@@ -12,6 +12,7 @@ import {
   type OrphanArtifactFile,
   type OrphanModelFile,
 } from '@runtime/local-ai-runtime';
+import { i18n } from '@renderer/i18n';
 import {
   CAPABILITY_OPTIONS,
   PROGRESS_RETENTION_MS,
@@ -562,7 +563,16 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       await refreshArtifactSections();
       await refreshAllOrphanFiles();
     } catch (error: unknown) {
-      setArtifactOrphanError(error instanceof Error ? error.message : String(error || 'Artifact import failed'));
+      setArtifactOrphanError(
+        error instanceof Error
+          ? error.message
+          : String(
+            error
+            || i18n.t('runtimeConfig.local.artifactImportFailed', {
+              defaultValue: 'Artifact import failed',
+            }),
+          ),
+      );
     } finally {
       setScaffoldingArtifactOrphan(null);
       setArtifactBusy(false);
@@ -588,7 +598,16 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       setLoadingVariants(false);
     }).catch((error) => {
       setVariantList([]);
-      setVariantError(error instanceof Error ? error.message : String(error || 'Unknown error'));
+      setVariantError(
+        error instanceof Error
+          ? error.message
+          : String(
+            error
+            || i18n.t('runtimeConfig.local.unknownError', {
+              defaultValue: 'Unknown error',
+            }),
+          ),
+      );
       setLoadingVariants(false);
     });
   }, [closeVariantPicker, variantPickerItem?.itemId]);

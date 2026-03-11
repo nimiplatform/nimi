@@ -1,6 +1,7 @@
 import type { LocalAiAuditEvent } from '@runtime/local-ai-runtime';
+import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@renderer/components/tooltip.js';
-import { formatLocaleDateTime } from '@renderer/i18n';
+import { formatLocaleDateTime, formatRelativeLocaleTime } from '@renderer/i18n';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
 import {
   buildAuditDiagnosticsText,
@@ -23,22 +24,6 @@ function auditEventTypeColor(eventType: string): string {
   return 'bg-gray-50 text-gray-700 border-gray-200';
 }
 
-function relativeTime(isoString: string): string {
-  const now = Date.now();
-  const then = new Date(isoString).getTime();
-  if (Number.isNaN(then)) return isoString;
-  const diffMs = now - then;
-  if (diffMs < 0) return 'just now';
-  const seconds = Math.floor(diffMs / 1000);
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
 // SurfaceCard component matching Overview page style
 function SurfaceCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return <div className={`rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04] ${className}`}>{children}</div>;
@@ -50,9 +35,12 @@ type LocalDebugSectionProps = {
 };
 
 export function LocalDebugSection({ collapsed, onToggle }: LocalDebugSectionProps) {
+  const { t } = useTranslation();
   return (
     <section>
-      <SectionTitle description="Local-only events (5k limit, for debugging)">Local AI Debug Audit</SectionTitle>
+      <SectionTitle description={t('runtimeConfig.runtime.localDebugDescription', { defaultValue: 'Local-only events (5k limit, for debugging)' })}>
+        {t('runtimeConfig.runtime.localDebugTitle', { defaultValue: 'Local AI Debug Audit' })}
+      </SectionTitle>
       <SurfaceCard className="mt-3 overflow-hidden">
         <button
           type="button"
@@ -60,8 +48,12 @@ export function LocalDebugSection({ collapsed, onToggle }: LocalDebugSectionProp
           className="flex w-full items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
         >
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">Audit Events</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Click to {collapsed ? 'expand' : 'collapse'}</p>
+            <h3 className="text-sm font-semibold text-gray-900">{t('runtimeConfig.runtime.auditEvents', { defaultValue: 'Audit Events' })}</h3>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {collapsed
+                ? t('runtimeConfig.runtime.clickToExpand', { defaultValue: 'Click to expand' })
+                : t('runtimeConfig.runtime.clickToCollapse', { defaultValue: 'Click to collapse' })}
+            </p>
           </div>
           <span className="text-gray-400 text-sm">{collapsed ? '\u25B6' : '\u25BC'}</span>
         </button>
@@ -72,6 +64,7 @@ export function LocalDebugSection({ collapsed, onToggle }: LocalDebugSectionProp
 }
 
 function LocalDebugContent() {
+  const { t } = useTranslation();
   const data = useAuditPageData(true);
   const {
     filteredAudits,
@@ -105,12 +98,19 @@ function LocalDebugContent() {
           <div className="flex items-center gap-3 text-sm text-gray-600">
             <span className="font-medium">{filteredAudits.length} events</span>
             {latestEvent ? <span className="text-gray-400">|</span> : null}
-            {latestEvent ? <span>latest: {formatLocaleDateTime(latestEvent.occurredAt)}</span> : null}
+            {latestEvent ? (
+              <span>
+                {t('runtimeConfig.runtime.latestEvent', {
+                  value: formatLocaleDateTime(latestEvent.occurredAt),
+                  defaultValue: 'latest: {{value}}',
+                })}
+              </span>
+            ) : null}
           </div>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <div className="rounded-xl border border-gray-100 bg-gray-50 p-3 space-y-2">
-            <p className="text-xs font-medium text-gray-500">Event Types</p>
+            <p className="text-xs font-medium text-gray-500">{t('runtimeConfig.runtime.eventTypes', { defaultValue: 'Event Types' })}</p>
             <div className="flex flex-wrap gap-1.5">
               {eventTypeCounts.length === 0 ? (
                 <span className="text-xs text-gray-400">-</span>
@@ -128,7 +128,7 @@ function LocalDebugContent() {
             </div>
           </div>
           <div className="rounded-xl border border-gray-100 bg-gray-50 p-3 space-y-2">
-            <p className="text-xs font-medium text-gray-500">Sources</p>
+            <p className="text-xs font-medium text-gray-500">{t('runtimeConfig.runtime.sources', { defaultValue: 'Sources' })}</p>
             <div className="flex flex-wrap gap-1.5">
               {sourceCounts.length === 0 ? (
                 <span className="text-xs text-gray-400">-</span>
@@ -146,7 +146,7 @@ function LocalDebugContent() {
             </div>
           </div>
           <div className="rounded-xl border border-gray-100 bg-gray-50 p-3 space-y-2">
-            <p className="text-xs font-medium text-gray-500">Modalities</p>
+            <p className="text-xs font-medium text-gray-500">{t('runtimeConfig.runtime.modalities', { defaultValue: 'Modalities' })}</p>
             <div className="flex flex-wrap gap-1.5">
               {modalityCounts.length === 0 ? (
                 <span className="text-xs text-gray-400">-</span>
@@ -166,7 +166,10 @@ function LocalDebugContent() {
         </div>
         {reasonBuckets.length > 0 ? (
           <p className="text-xs text-gray-600">
-            Reason Codes: {reasonBuckets.map((item) => `${item.reasonCode}(${item.count})`).join(', ')}
+            {t('runtimeConfig.runtime.reasonCodes', {
+              value: reasonBuckets.map((item) => `${item.reasonCode}(${item.count})`).join(', '),
+              defaultValue: 'Reason Codes: {{value}}',
+            })}
           </p>
         ) : null}
       </div>
@@ -182,7 +185,7 @@ function LocalDebugContent() {
             }}
             className="w-64"
             options={[
-              { value: 'all', label: 'all event types' },
+              { value: 'all', label: t('runtimeConfig.runtime.allEventTypes', { defaultValue: 'all event types' }) },
               { value: 'inference_invoked', label: 'inference_invoked' },
               { value: 'inference_failed', label: 'inference_failed' },
               { value: 'fallback_to_cloud', label: 'fallback_to_cloud' },
@@ -213,9 +216,9 @@ function LocalDebugContent() {
             }}
             className="w-44"
             options={[
-              { value: 'all', label: 'all sources' },
-              { value: 'local', label: 'local' },
-              { value: 'cloud', label: 'cloud' },
+              { value: 'all', label: t('runtimeConfig.runtime.allSources', { defaultValue: 'all sources' }) },
+              { value: 'local', label: t('runtimeConfig.runtime.localSource', { defaultValue: 'local' }) },
+              { value: 'cloud', label: t('runtimeConfig.runtime.cloudSource', { defaultValue: 'cloud' }) },
             ]}
           />
           <RuntimeSelect
@@ -226,7 +229,7 @@ function LocalDebugContent() {
             }}
             className="w-44"
             options={[
-              { value: 'all', label: 'all modalities' },
+              { value: 'all', label: t('runtimeConfig.runtime.allModalities', { defaultValue: 'all modalities' }) },
               { value: 'chat', label: 'chat' },
               { value: 'image', label: 'image' },
               { value: 'video', label: 'video' },
@@ -236,7 +239,9 @@ function LocalDebugContent() {
             ]}
           />
           <Button variant="secondary" size="sm" disabled={loadingAudits} onClick={() => void loadAudits()}>
-            {loadingAudits ? 'Loading...' : 'Refresh'}
+            {loadingAudits
+              ? t('runtimeConfig.runtime.loading', { defaultValue: 'Loading...' })
+              : t('runtimeConfig.runtime.refresh', { defaultValue: 'Refresh' })}
           </Button>
           <Button
             variant="secondary"
@@ -248,7 +253,7 @@ function LocalDebugContent() {
               }
             }}
           >
-            Copy
+            {t('runtimeConfig.runtime.copy', { defaultValue: 'Copy' })}
           </Button>
           <Button
             variant="secondary"
@@ -265,7 +270,7 @@ function LocalDebugContent() {
               URL.revokeObjectURL(url);
             }}
           >
-            Export
+            {t('runtimeConfig.runtime.export', { defaultValue: 'Export' })}
           </Button>
         </div>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
@@ -276,7 +281,7 @@ function LocalDebugContent() {
               setAuditReasonCodeQuery(next);
               void loadAudits({ reasonCode: next });
             }}
-            placeholder="Filter reasonCode..."
+            placeholder={t('runtimeConfig.runtime.filterReasonCode', { defaultValue: 'Filter reasonCode...' })}
             className="h-9 rounded-xl border border-mint-100 bg-[#F4FBF8] px-3 text-xs text-gray-800 focus:border-mint-300 focus:bg-white focus:ring-2 focus:ring-mint-100"
           />
           <input
@@ -305,7 +310,11 @@ function LocalDebugContent() {
       {/* Timeline */}
       <div className="max-h-[calc(100vh-30rem)] overflow-y-auto rounded-xl border border-gray-100 bg-gray-50/50">
         {filteredAudits.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-gray-500">No local audit events matching current filters.</p>
+          <p className="px-5 py-8 text-center text-sm text-gray-500">
+            {t('runtimeConfig.runtime.noLocalAuditEvents', {
+              defaultValue: 'No local audit events matching current filters.',
+            })}
+          </p>
         ) : (
           <div className="divide-y divide-gray-100">
             {filteredAudits.map((event) => (
@@ -336,7 +345,7 @@ function LocalAuditEventCard({ event }: { event: LocalAiAuditEvent }) {
         </div>
         <Tooltip content={event.occurredAt} placement="top">
           <span className="shrink-0 text-[11px] text-gray-400">
-            {relativeTime(event.occurredAt)}
+            {formatRelativeLocaleTime(event.occurredAt)}
           </span>
         </Tooltip>
       </div>

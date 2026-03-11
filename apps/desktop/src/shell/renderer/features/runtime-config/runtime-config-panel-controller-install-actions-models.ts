@@ -13,6 +13,7 @@ import {
 } from '@runtime/local-ai-runtime';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import { createOfflineError, getOfflineCoordinator } from '@runtime/offline';
+import { i18n } from '@renderer/i18n';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 
 export type PendingInstallEntry = {
@@ -38,6 +39,20 @@ export type UseRuntimeConfigModelManagementActionsInput = {
   setStatusBanner: SetRuntimeConfigBanner;
 };
 
+function translateRuntimeLocalText(
+  key: string,
+  defaultValue: string,
+  options?: Record<string, unknown>,
+): string {
+  if (!i18n.isInitialized) {
+    return defaultValue;
+  }
+  return i18n.t(key, {
+    defaultValue,
+    ...(options || {}),
+  });
+}
+
 export function useRuntimeConfigModelManagementActions(
   input: UseRuntimeConfigModelManagementActionsInput,
 ): RuntimeConfigModelManagementActions {
@@ -55,7 +70,11 @@ export function useRuntimeConfigModelManagementActions(
     throw createOfflineError({
       source: 'runtime',
       reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
-      message: 'Runtime unavailable. Local model writes are disabled in read-only mode.',
+      message: i18n.isInitialized
+        ? i18n.t('runtimeConfig.local.runtimeUnavailableWriteReadOnly', {
+          defaultValue: 'Runtime unavailable. Local model writes are disabled in read-only mode.',
+        })
+        : 'Runtime unavailable. Local model writes are disabled in read-only mode.',
       actionHint: 'retry-runtime-when-online',
     });
   }, []);
@@ -119,12 +138,20 @@ export function useRuntimeConfigModelManagementActions(
       await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
-        message: `Local model imported: ${manifestPath}`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.localModelImported',
+          'Local model imported: {{manifestPath}}',
+          { manifestPath },
+        ),
       });
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: `Local model import failed: ${error instanceof Error ? error.message : String(error || '')}`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.localModelImportFailed',
+          'Local model import failed: {{message}}',
+          { message: error instanceof Error ? error.message : String(error || '') },
+        ),
       });
       throw error;
     }
@@ -170,12 +197,20 @@ export function useRuntimeConfigModelManagementActions(
 
       setStatusBanner({
         kind: 'info',
-        message: `File import started: ${accepted.modelId}. Progress will appear below.`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.fileImportStarted',
+          'File import started: {{modelId}}. Progress will appear below.',
+          { modelId: accepted.modelId },
+        ),
       });
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: `Model file import failed: ${error instanceof Error ? error.message : String(error || '')}`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.modelFileImportFailed',
+          'Model file import failed: {{message}}',
+          { message: error instanceof Error ? error.message : String(error || '') },
+        ),
       });
       throw error;
     }
@@ -186,7 +221,11 @@ export function useRuntimeConfigModelManagementActions(
     const model = await localAiRuntime.start(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
-        message: `Start model failed: ${error instanceof Error ? error.message : String(error || '')}`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.startModelFailed',
+          'Start model failed: {{message}}',
+          { message: error instanceof Error ? error.message : String(error || '') },
+        ),
       });
       throw error;
     });
@@ -197,7 +236,14 @@ export function useRuntimeConfigModelManagementActions(
         localModelId,
       });
       await refreshLocalSnapshot();
-      setStatusBanner({ kind: 'success', message: `Model started: ${localModelId}` });
+      setStatusBanner({
+        kind: 'success',
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.modelStarted',
+          'Model started: {{localModelId}}',
+          { localModelId },
+        ),
+      });
     } catch (error) {
       await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_start', {
         modelId: model.modelId || localModelId,
@@ -206,7 +252,11 @@ export function useRuntimeConfigModelManagementActions(
       }, error);
       setStatusBanner({
         kind: 'warning',
-        message: `Model started locally, but Go runtime sync failed: ${error instanceof Error ? error.message : String(error || '')}`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.modelStartedSyncFailed',
+          'Model started locally, but Go runtime sync failed: {{message}}',
+          { message: error instanceof Error ? error.message : String(error || '') },
+        ),
       });
       throw error;
     }
@@ -217,7 +267,11 @@ export function useRuntimeConfigModelManagementActions(
     const model = await localAiRuntime.stop(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
-        message: `Stop model failed: ${error instanceof Error ? error.message : String(error || '')}`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.stopModelFailed',
+          'Stop model failed: {{message}}',
+          { message: error instanceof Error ? error.message : String(error || '') },
+        ),
       });
       throw error;
     });
@@ -228,7 +282,14 @@ export function useRuntimeConfigModelManagementActions(
         localModelId,
       });
       await refreshLocalSnapshot();
-      setStatusBanner({ kind: 'success', message: `Model stopped: ${localModelId}` });
+      setStatusBanner({
+        kind: 'success',
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.modelStopped',
+          'Model stopped: {{localModelId}}',
+          { localModelId },
+        ),
+      });
     } catch (error) {
       await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_stop', {
         modelId: model.modelId || localModelId,
@@ -237,7 +298,11 @@ export function useRuntimeConfigModelManagementActions(
       }, error);
       setStatusBanner({
         kind: 'warning',
-        message: `Model stopped locally, but Go runtime sync failed: ${error instanceof Error ? error.message : String(error || '')}`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.modelStoppedSyncFailed',
+          'Model stopped locally, but Go runtime sync failed: {{message}}',
+          { message: error instanceof Error ? error.message : String(error || '') },
+        ),
       });
       throw error;
     }
@@ -277,7 +342,14 @@ export function useRuntimeConfigModelManagementActions(
         localModelId,
       });
       await refreshLocalSnapshot();
-      setStatusBanner({ kind: 'success', message: `Model restarted: ${localModelId}` });
+      setStatusBanner({
+        kind: 'success',
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.modelRestarted',
+          'Model restarted: {{localModelId}}',
+          { localModelId },
+        ),
+      });
     } catch (error) {
       await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_restart', {
         modelId: resolvedModelId,
@@ -286,7 +358,11 @@ export function useRuntimeConfigModelManagementActions(
       }, error);
       setStatusBanner({
         kind: 'warning',
-        message: `Model restarted locally, but Go runtime sync failed: ${error instanceof Error ? error.message : String(error || '')}`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.modelRestartedSyncFailed',
+          'Model restarted locally, but Go runtime sync failed: {{message}}',
+          { message: error instanceof Error ? error.message : String(error || '') },
+        ),
       });
       throw error;
     }
@@ -297,7 +373,11 @@ export function useRuntimeConfigModelManagementActions(
     const model = await localAiRuntime.remove(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
-        message: `Remove model failed: ${error instanceof Error ? error.message : String(error || '')}`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.removeModelFailed',
+          'Remove model failed: {{message}}',
+          { message: error instanceof Error ? error.message : String(error || '') },
+        ),
       });
       throw error;
     });
@@ -308,7 +388,14 @@ export function useRuntimeConfigModelManagementActions(
         localModelId,
       });
       await refreshLocalSnapshot();
-      setStatusBanner({ kind: 'success', message: `Model removed: ${localModelId}` });
+      setStatusBanner({
+        kind: 'success',
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.modelRemoved',
+          'Model removed: {{localModelId}}',
+          { localModelId },
+        ),
+      });
     } catch (error) {
       await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_remove', {
         modelId: model.modelId || localModelId,
@@ -317,7 +404,11 @@ export function useRuntimeConfigModelManagementActions(
       }, error);
       setStatusBanner({
         kind: 'warning',
-        message: `Model removed locally, but Go runtime sync failed: ${error instanceof Error ? error.message : String(error || '')}`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.modelRemovedSyncFailed',
+          'Model removed locally, but Go runtime sync failed: {{message}}',
+          { message: error instanceof Error ? error.message : String(error || '') },
+        ),
       });
       throw error;
     }
@@ -328,14 +419,22 @@ export function useRuntimeConfigModelManagementActions(
     const artifact = await localAiRuntime.removeArtifact(localArtifactId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
-        message: `Remove artifact failed: ${error instanceof Error ? error.message : String(error || '')}`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.removeArtifactFailed',
+          'Remove artifact failed: {{message}}',
+          { message: error instanceof Error ? error.message : String(error || '') },
+        ),
       });
       throw error;
     });
     await refreshLocalSnapshot();
     setStatusBanner({
       kind: 'success',
-      message: `Artifact removed: ${artifact.artifactId}`,
+      message: translateRuntimeLocalText(
+        'runtimeConfig.local.artifactRemoved',
+        'Artifact removed: {{artifactId}}',
+        { artifactId: artifact.artifactId },
+      ),
     });
   }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
 

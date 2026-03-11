@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { Button, Card } from './runtime-config-primitives';
 import {
@@ -27,6 +28,7 @@ function emitModelCatalogUpdated(provider: string) {
 }
 
 export function CatalogPage({ state: _state }: CatalogPageProps) {
+  const { t } = useTranslation();
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const [providers, setProviders] = useState<RuntimeModelCatalogProvider[]>([]);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -132,14 +134,20 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
       <Card className="p-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-gray-900">Provider Catalog</p>
+            <p className="text-sm font-semibold text-gray-900">
+              {t('runtimeConfig.catalog.providerCatalog', { defaultValue: 'Provider Catalog' })}
+            </p>
             <p className="text-xs text-gray-500">
-              Runtime effective catalog = built-in default + custom provider yaml. Save writes custom yaml into runtime custom dir.
+              {t('runtimeConfig.catalog.providerCatalogDesc', {
+                defaultValue: 'Runtime effective catalog = built-in default + custom provider yaml. Save writes custom yaml into runtime custom dir.',
+              })}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="secondary" size="sm" onClick={() => void loadProviders()} disabled={loading}>
-              {loading ? 'Refreshing...' : 'Refresh'}
+              {loading
+                ? t('runtimeConfig.catalog.refreshing', { defaultValue: 'Refreshing...' })
+                : t('runtimeConfig.runtime.refresh', { defaultValue: 'Refresh' })}
             </Button>
           </div>
         </div>
@@ -165,14 +173,18 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
                   onClick={() => void onRestoreDefault(row.provider)}
                   disabled={saving || deleting || row.source === 'builtin'}
                 >
-                  {deleting ? 'Restoring...' : 'Restore Default'}
+                  {deleting
+                    ? t('runtimeConfig.catalog.restoring', { defaultValue: 'Restoring...' })
+                    : t('runtimeConfig.catalog.restoreDefault', { defaultValue: 'Restore Default' })}
                 </Button>
                 <Button
                   size="sm"
                   onClick={() => void onSaveProvider(row.provider)}
                   disabled={saving || deleting || draft.trim().length === 0}
                 >
-                  {saving ? 'Saving...' : 'Save YAML'}
+                  {saving
+                    ? t('runtimeConfig.catalog.saving', { defaultValue: 'Saving...' })
+                    : t('runtimeConfig.catalog.saveYaml', { defaultValue: 'Save YAML' })}
                 </Button>
               </div>
             </div>

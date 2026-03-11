@@ -14,6 +14,7 @@ import {
   type LocalAiInstallPlanDescriptor,
 } from '@runtime/local-ai-runtime';
 import { createOfflineError, getOfflineCoordinator } from '@runtime/offline';
+import { i18n } from '@renderer/i18n';
 import type { CapabilityV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 import { asRecord } from './runtime-config-panel-controller-utils';
@@ -26,6 +27,20 @@ type ManifestSummary = {
   id?: string;
   manifest?: Record<string, unknown>;
 };
+
+function translateRuntimeLocalText(
+  key: string,
+  defaultValue: string,
+  options?: Record<string, unknown>,
+): string {
+  if (!i18n.isInitialized) {
+    return defaultValue;
+  }
+  return i18n.t(key, {
+    defaultValue,
+    ...(options || {}),
+  });
+}
 
 export type RuntimeConfigInstallActions = {
   installSessionMeta: Map<string, { plan: LocalAiInstallPlanDescriptor; installSource: string }>;
@@ -109,7 +124,11 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     throw createOfflineError({
       source: 'runtime',
       reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
-      message: 'Runtime unavailable. Local model writes are disabled in read-only mode.',
+      message: i18n.isInitialized
+        ? i18n.t('runtimeConfig.local.runtimeUnavailableWriteReadOnly', {
+          defaultValue: 'Runtime unavailable. Local model writes are disabled in read-only mode.',
+        })
+        : 'Runtime unavailable. Local model writes are disabled in read-only mode.',
       actionHint: 'retry-runtime-when-online',
     });
   }, []);
@@ -128,7 +147,11 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     if (!success) {
       setStatusBanner({
         kind: 'error',
-        message: `Download failed: ${message || 'unknown error'}`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.downloadFailed',
+          'Download failed: {{message}}',
+          { message: message || translateRuntimeLocalText('runtimeConfig.local.unknownError', 'Unknown error') },
+        ),
       });
       return;
     }
@@ -142,7 +165,13 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     const resolvedModelId = String(session?.accepted.modelId || modelId || '').trim();
     if (!resolvedLocalModelId || !resolvedModelId) {
       await refreshLocalSnapshot();
-      setStatusBanner({ kind: 'success', message: 'Model download completed' });
+      setStatusBanner({
+        kind: 'success',
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.modelDownloadCompleted',
+          'Model download completed',
+        ),
+      });
       return;
     }
 
@@ -160,7 +189,11 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     } catch (localError: unknown) {
       setStatusBanner({
         kind: 'error',
-        message: `Post-install failed: ${localError instanceof Error ? localError.message : String(localError || '')}`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.postInstallFailed',
+          'Post-install failed: {{message}}',
+          { message: localError instanceof Error ? localError.message : String(localError || '') },
+        ),
       });
       return;
     }
@@ -203,7 +236,11 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
-        message: `Model installed and ready: ${resolvedModelId}`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.modelInstalledAndReady',
+          'Model installed and ready: {{modelId}}',
+          { modelId: resolvedModelId },
+        ),
       });
     } catch (postError: unknown) {
       await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_download', {
@@ -213,7 +250,11 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       }, postError);
       setStatusBanner({
         kind: 'error',
-        message: `Post-install failed: ${postError instanceof Error ? postError.message : String(postError || '')}`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.postInstallFailed',
+          'Post-install failed: {{message}}',
+          { message: postError instanceof Error ? postError.message : String(postError || '') },
+        ),
       });
     }
   }, [recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
@@ -243,7 +284,11 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       .catch((error: unknown) => {
         setStatusBanner({
           kind: 'error',
-          message: `Install lifecycle failed: ${error instanceof Error ? error.message : String(error || '')}`,
+          message: translateRuntimeLocalText(
+            'runtimeConfig.local.installLifecycleFailed',
+            'Install lifecycle failed: {{message}}',
+            { message: error instanceof Error ? error.message : String(error || '') },
+          ),
         });
       });
   }, [assertRuntimeWriteAllowed, setStatusBanner]);
@@ -252,7 +297,11 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     runInstallPlanLifecycle(plan, source);
     setStatusBanner({
       kind: 'info',
-      message: `Retrying install: ${plan.modelId}. Download progress will appear below.`,
+      message: translateRuntimeLocalText(
+        'runtimeConfig.local.retryingInstall',
+        'Retrying install: {{modelId}}. Download progress will appear below.',
+        { modelId: plan.modelId },
+      ),
     });
   }, [runInstallPlanLifecycle, setStatusBanner]);
 
@@ -310,18 +359,34 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
         }, syncError);
         setStatusBanner({
           kind: 'warning',
-          message: `Dependencies applied, but Go runtime sync failed: ${syncError instanceof Error ? syncError.message : String(syncError || '')}`,
+          message: translateRuntimeLocalText(
+            'runtimeConfig.local.dependenciesAppliedSyncFailed',
+            'Dependencies applied, but Go runtime sync failed: {{message}}',
+            { message: syncError instanceof Error ? syncError.message : String(syncError || '') },
+          ),
         });
         return;
       }
       setStatusBanner({
         kind: 'success',
-        message: `Dependencies applied for ${modId}: ${result.installedModels.length} model(s), ${result.services.length} service(s)`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.dependenciesAppliedSummary',
+          'Dependencies applied for {{modId}}: {{modelCount}} model(s), {{serviceCount}} service(s)',
+          {
+            modId,
+            modelCount: result.installedModels.length,
+            serviceCount: result.services.length,
+          },
+        ),
       });
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: `Dependency apply failed: ${error instanceof Error ? error.message : String(error || '')}`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.dependencyApplyFailed',
+          'Dependency apply failed: {{message}}',
+          { message: error instanceof Error ? error.message : String(error || '') },
+        ),
       });
       throw error;
     }
@@ -466,12 +531,20 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
-        message: `Artifact imported: ${imported.artifactId}`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.artifactImported',
+          'Artifact imported: {{artifactId}}',
+          { artifactId: imported.artifactId },
+        ),
       });
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: `Artifact import failed: ${error instanceof Error ? error.message : String(error || '')}`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.artifactImportFailedWithReason',
+          'Artifact import failed: {{message}}',
+          { message: error instanceof Error ? error.message : String(error || '') },
+        ),
       });
       throw error;
     }

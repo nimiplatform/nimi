@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { LocalAiDependencyResolutionPlan } from '@runtime/local-ai-runtime';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
@@ -19,6 +20,7 @@ function SurfaceCard({ children, className = '' }: { children: React.ReactNode; 
 }
 
 export function ModsPage({ model, state }: ModsPageProps) {
+  const { t } = useTranslation();
   const { runtimeDependencyTargets } = model;
   const [selectedModId, setSelectedModId] = useState('');
   const [selectedCapability, setSelectedCapability] = useState<'auto' | CapabilityOption>('auto');
@@ -79,9 +81,9 @@ export function ModsPage({ model, state }: ModsPageProps) {
             <line x1="12" y1="17" x2="12" y2="21" />
           </svg>
         </div>
-        <p className="text-sm font-semibold text-gray-900">No AI Mods</p>
+        <p className="text-sm font-semibold text-gray-900">{t('runtimeConfig.mods.noAiMods')}</p>
         <p className="text-xs text-gray-500 mt-1">
-          No installed mods have declared AI dependencies. Install a mod that uses AI capabilities to see its dependency configuration here.
+          {t('runtimeConfig.mods.noAiModsDesc')}
         </p>
       </SurfaceCard>
     );
@@ -91,14 +93,16 @@ export function ModsPage({ model, state }: ModsPageProps) {
     <div className="space-y-8">
       {/* Mod list */}
       <section>
-        <SectionTitle description="Select a mod to configure its AI dependencies.">
-          Mods with AI Dependencies
+        <SectionTitle description={t('runtimeConfig.mods.modsWithAiDepsDesc', { defaultValue: 'Select a mod to configure its AI dependencies.' })}>
+          {t('runtimeConfig.mods.modsWithAiDeps')}
         </SectionTitle>
         <SurfaceCard className="mt-3 p-5">
           <div className="mb-4 text-xs text-gray-500">
-            {model.registeredRuntimeModIds.length} registered mod{model.registeredRuntimeModIds.length !== 1 ? 's' : ''}
-            {' · '}
-            {runtimeDependencyTargets.length} with AI dependencies
+            {t('runtimeConfig.mods.registeredModsSummary', {
+              defaultValue: '{{registered}} registered mods · {{configured}} with AI dependencies',
+              registered: model.registeredRuntimeModIds.length,
+              configured: runtimeDependencyTargets.length,
+            })}
           </div>
           <div className="space-y-2">
             {runtimeDependencyTargets.map((target) => {
@@ -120,14 +124,14 @@ export function ModsPage({ model, state }: ModsPageProps) {
       {/* Selected mod detail */}
       {selectedTarget ? (
         <section>
-          <SectionTitle description="Configure the selected mod's AI model dependencies.">
+          <SectionTitle description={t('runtimeConfig.mods.selectedModDescription', { defaultValue: 'Configure the selected mod\'s AI model dependencies.' })}>
             {selectedTarget.modName}
           </SectionTitle>
           <SurfaceCard className="mt-3 p-5 space-y-5">
             {/* Capability status badges */}
             {selectedTarget.consumeCapabilities.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-xs font-medium text-gray-700">AI Capability Status</p>
+                <p className="text-xs font-medium text-gray-700">{t('runtimeConfig.mods.aiCapabilityStatus', { defaultValue: 'AI Capability Status' })}</p>
                 <div className="flex flex-wrap gap-2">
                   {selectedTarget.consumeCapabilities.map((cap) => {
                     const localNode = state.local.nodeMatrix.find(
@@ -146,7 +150,9 @@ export function ModsPage({ model, state }: ModsPageProps) {
                             : 'border-amber-200 bg-amber-50 text-amber-800'
                         }`}
                       >
-                        {cap}: {localAvailable ? 'local' : 'needs setup'}
+                        {cap}: {localAvailable
+                          ? t('runtimeConfig.mods.local', { defaultValue: 'local' })
+                          : t('runtimeConfig.mods.needsSetup', { defaultValue: 'needs setup' })}
                       </span>
                     );
                   })}
@@ -177,16 +183,16 @@ export function ModsPage({ model, state }: ModsPageProps) {
               return !localNode && !hasLocalModel;
             }) ? (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
-                <p className="text-sm font-semibold text-amber-900">Setup Required</p>
+                <p className="text-sm font-semibold text-amber-900">{t('runtimeConfig.mods.setupRequired')}</p>
                 <p className="text-xs text-amber-800">
-                  Some capabilities are not available locally. Install a local model or configure a cloud API connector.
+                  {t('runtimeConfig.mods.setupRequiredDesc')}
                 </p>
                 <div className="flex items-center gap-2">
                   <Button variant="secondary" size="sm" onClick={() => model.onChangePage('local')}>
-                    Install Models
+                    {t('runtimeConfig.mods.installModels')}
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => model.onChangePage('cloud')}>
-                    Configure Cloud API
+                    {t('runtimeConfig.mods.configureCloudApi')}
                   </Button>
                 </div>
               </div>

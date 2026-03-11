@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { WorldDetailData, WorldAgent, WorldEvent } from './world-detail-template';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
@@ -181,6 +182,7 @@ const displayValue = (value: unknown, fallback = 'N/A') => {
 };
 
 export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
+  const { t } = useTranslation();
   const world = props.world;
   const [showCreateAgent, setShowCreateAgent] = useState(false);
   const getAgentPalette = (agent: WorldAgent) => getSemanticAgentPalette({
@@ -199,7 +201,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
       <div className="min-h-screen bg-[#0a0f0c] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-[#4ECCA3]">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#4ECCA3]/30 border-t-[#4ECCA3]" />
-          <span className="text-sm text-[#e8f5ee]/60">Loading world...</span>
+          <span className="text-sm text-[#e8f5ee]/60">{t('WorldDetail.loading')}</span>
         </div>
       </div>
     );
@@ -208,7 +210,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
   if (props.error || !world) {
     return (
       <div className="min-h-screen bg-[#0a0f0c] flex items-center justify-center">
-        <span className="text-sm text-red-400">Error loading world data</span>
+        <span className="text-sm text-red-400">{t('WorldDetail.error')}</span>
       </div>
     );
   }
@@ -276,7 +278,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
               top: '24px',
               left: '24px'
             }}
-            aria-label="Go Back"
+            aria-label={t('WorldDetail.backToList', { defaultValue: 'Back to List' })}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -404,7 +406,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
 
               {/* Section Title */}
               <div className="flex items-center gap-2 mb-5">
-                <span className="text-sm text-[#4ECCA3] font-medium">World Overview</span>
+                <span className="text-sm text-[#4ECCA3] font-medium">{t('WorldDetail.section.overview')}</span>
               </div>
 
               {/* World Name + ID Badge */}
@@ -431,13 +433,16 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
                   </svg>
-                  {world.agentCount !== undefined ? world.agentCount : 0} agents
+                  {t('WorldDetail.agents', {
+                    count: world.agentCount !== undefined ? world.agentCount : 0,
+                    defaultValue: '{{count}} Agents',
+                  })}
                 </span>
               </div>
 
               {/* Description */}
               <div className="mb-5">
-                <div className="text-xs text-[#4ECCA3] mb-2">Description</div>
+                <div className="text-xs text-[#4ECCA3] mb-2">{t('WorldDetail.description')}</div>
                 <p className="text-sm text-[#e8f5ee]/70 leading-relaxed">
                   {displayValue(world.description)}
                 </p>
@@ -447,8 +452,13 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
               {world.narrative && (
                 <div className="mb-5">
                   <div className="text-xs text-[#4ECCA3] mb-2 flex items-center gap-1">
-                    World Narrative
-                    <span className="text-[#4ECCA3]/50" title="Sample data">*</span>
+                    {t('WorldDetail.xianxia.narrativeLabel')}
+                    <span
+                      className="text-[#4ECCA3]/50"
+                      title={t('WorldDetail.sampleData', { defaultValue: 'Sample data' })}
+                    >
+                      *
+                    </span>
                   </div>
                   <p className="text-sm text-[#e8f5ee]/70 leading-relaxed whitespace-pre-line">
                     {displayValue(world.narrative)}
@@ -487,7 +497,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
 
               {/* Section Title */}
               <div className="flex items-center gap-2 mb-5">
-                <span className="text-sm text-[#4ECCA3] font-medium">Chronicle</span>
+                <span className="text-sm text-[#4ECCA3] font-medium">{t('WorldDetail.section.timeline')}</span>
               </div>
 
               {/* Timeline */}
@@ -498,7 +508,9 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                 {props.eventsLoading ? (
                   <div className="pl-8 py-8 flex flex-col items-center gap-2">
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#4ECCA3]/30 border-t-[#4ECCA3]" />
-                    <span className="text-xs text-[#e8f5ee]/40">Loading events...</span>
+                    <span className="text-xs text-[#e8f5ee]/40">
+                      {t('WorldDetail.eventsLoading', { defaultValue: 'Loading events...' })}
+                    </span>
                   </div>
                 ) : props.events.length > 0 ? (
                   props.events.slice(0, 5).map((event) => (
@@ -526,7 +538,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                   ))
                 ) : (
                   <div className="pl-8 p-4 text-center text-[#e8f5ee]/50 text-sm">
-                    No events recorded yet
+                    {t('WorldDetail.xianxia.timeline.noData')}
                   </div>
                 )}
               </div>
@@ -539,7 +551,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
 
             {/* Section Title */}
             <div className="flex items-center justify-between mb-5">
-              <span className="text-sm text-[#4ECCA3] font-medium">World Agents</span>
+              <span className="text-sm text-[#4ECCA3] font-medium">{t('WorldDetail.section.agents')}</span>
             </div>
 
             {/* Agent Grid - 4 columns per row */}
@@ -576,7 +588,9 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                       </svg>
                     </div>
                     {/* 文案 */}
-                    <span className="text-sm font-semibold tracking-[0.01em] text-[#76e6bf]">Create New Agent</span>
+                    <span className="text-sm font-semibold tracking-[0.01em] text-[#76e6bf]">
+                      {t('World.createAgent.title', { defaultValue: 'Create New Agent' })}
+                    </span>
                   </div>
                 </article>
               )}
@@ -584,7 +598,9 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
               {props.agentsLoading ? (
                 <div className="col-span-4 py-16 flex flex-col items-center justify-center gap-2">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#4ECCA3]/30 border-t-[#4ECCA3]" />
-                  <span className="text-xs text-[#e8f5ee]/40">Loading agents...</span>
+                  <span className="text-xs text-[#e8f5ee]/40">
+                    {t('WorldDetail.agentsLoading', { defaultValue: 'Loading agents...' })}
+                  </span>
                 </div>
               ) : props.agents.length > 0 ? (
                 props.agents.map((agent) => (
@@ -630,7 +646,9 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
                   </div>
-                  <p className="text-[#e8f5ee]/60 text-sm">No agents in this world yet</p>
+                  <p className="text-[#e8f5ee]/60 text-sm">
+                    {t('WorldDetail.noAgentsYet', { defaultValue: 'No agents in this world yet' })}
+                  </p>
                 </div>
               )}
             </div>

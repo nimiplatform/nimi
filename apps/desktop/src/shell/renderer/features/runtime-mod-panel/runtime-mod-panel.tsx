@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getRuntimeHookRuntime, listRegisteredRuntimeModIds } from '@runtime/mod';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SlotHost } from '@renderer/mod-ui/host/slot-host';
 import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
@@ -8,6 +9,7 @@ import { syncRuntimeUiExtensionsToRegistry } from '@renderer/mod-ui/lifecycle/sy
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 
 export function RuntimeModPanel() {
+  const { t } = useTranslation();
   const context = useUiExtensionContext();
   const setRegisteredRuntimeModIds = useAppStore((state) => state.setRegisteredRuntimeModIds);
   const [revision, setRevision] = useState(0);
@@ -36,13 +38,19 @@ export function RuntimeModPanel() {
 
   return (
     <section className="space-y-3 rounded-xl border border-gray-200 bg-white p-4">
-      <h2 className="text-sm font-semibold text-gray-900">Runtime Mod Panel</h2>
-      <p className="text-xs text-gray-500">revision: {revision}</p>
+      <h2 className="text-sm font-semibold text-gray-900">
+        {t('RuntimeModPanel.title', { defaultValue: 'Runtime Mod Panel' })}
+      </h2>
+      <p className="text-xs text-gray-500">
+        {t('RuntimeModPanel.revision', { defaultValue: 'Revision: {{count}}', count: revision })}
+      </p>
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         <div className="rounded-lg border border-gray-200 p-3">
-          <h3 className="mb-2 text-xs font-semibold text-gray-700">Registered Mods</h3>
+          <h3 className="mb-2 text-xs font-semibold text-gray-700">
+            {t('RuntimeModPanel.registeredMods', { defaultValue: 'Registered Mods' })}
+          </h3>
           {registeredMods.length === 0 ? (
-            <p className="text-xs text-gray-500">无</p>
+            <p className="text-xs text-gray-500">{t('RuntimeModPanel.empty', { defaultValue: 'None' })}</p>
           ) : (
             <ul className="space-y-1">
               {registeredMods.map((modId) => (
@@ -54,9 +62,11 @@ export function RuntimeModPanel() {
           )}
         </div>
         <div className="rounded-lg border border-gray-200 p-3">
-          <h3 className="mb-2 text-xs font-semibold text-gray-700">Hook Slots</h3>
+          <h3 className="mb-2 text-xs font-semibold text-gray-700">
+            {t('RuntimeModPanel.hookSlots', { defaultValue: 'Hook Slots' })}
+          </h3>
           {hookSlots.length === 0 ? (
-            <p className="text-xs text-gray-500">无</p>
+            <p className="text-xs text-gray-500">{t('RuntimeModPanel.empty', { defaultValue: 'None' })}</p>
           ) : (
             <ul className="space-y-1">
               {hookSlots.map((slot) => (
@@ -68,9 +78,11 @@ export function RuntimeModPanel() {
           )}
         </div>
         <div className="rounded-lg border border-gray-200 p-3">
-          <h3 className="mb-2 text-xs font-semibold text-gray-700">Registry Slots</h3>
+          <h3 className="mb-2 text-xs font-semibold text-gray-700">
+            {t('RuntimeModPanel.registrySlots', { defaultValue: 'Registry Slots' })}
+          </h3>
           {slots.length === 0 ? (
-            <p className="text-xs text-gray-500">无</p>
+            <p className="text-xs text-gray-500">{t('RuntimeModPanel.empty', { defaultValue: 'None' })}</p>
           ) : (
             <ul className="space-y-1">
               {slots.map((slot) => (
@@ -88,7 +100,7 @@ export function RuntimeModPanel() {
         context={context}
         base={
           <div className="rounded-xl border border-dashed border-gray-300 p-3 text-xs text-gray-500">
-            Runtime devtools slot base
+            {t('RuntimeModPanel.devtoolsBase', { defaultValue: 'Runtime devtools slot base' })}
           </div>
         }
       />

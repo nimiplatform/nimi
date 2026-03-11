@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { i18n } from '@renderer/i18n';
 import type { RuntimePageIdV11 } from './runtime-config-state-types';
 
 type RuntimeSidebarProps = {
@@ -142,7 +143,9 @@ export function RuntimeSidebar(props: RuntimeSidebarProps) {
             }`}
           >
             <span className={active ? 'text-mint-600' : 'text-gray-400'}>{item.icon}</span>
-            <span className="min-w-0 flex-1 truncate">{item.label}</span>
+            <span className="min-w-0 flex-1 truncate">
+              {i18n.t(`runtimeConfig.sidebar.${item.id}`, { defaultValue: item.label })}
+            </span>
             {showDaemonDot ? (
               <span
                 className={`inline-block h-2 w-2 shrink-0 rounded-full ${

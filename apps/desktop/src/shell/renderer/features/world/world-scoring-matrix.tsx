@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Html, Environment } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { i18n } from '@renderer/i18n';
 
 interface ScoringData {
   activity?: number;
@@ -37,28 +38,32 @@ const CrystalModel = ({ data, color = '#4ECCA3' }: { data: ScoringData; color?: 
 
   // Get values from data (fallback to 0)
   const scores = {
-    Activity: data.scoreA ?? data.activity ?? 0,
-    Consensus: data.scoreC ?? data.consensus ?? 0,
-    Quality: data.scoreQ ?? data.quality ?? 0,
-    Engagement: data.scoreE ?? data.engagement ?? 0,
+    [i18n.t('WorldDetail.activity', { defaultValue: 'Activity' })]: data.scoreA ?? data.activity ?? 0,
+    [i18n.t('WorldDetail.consensus', { defaultValue: 'Consensus' })]: data.scoreC ?? data.consensus ?? 0,
+    [i18n.t('WorldDetail.quality', { defaultValue: 'Quality' })]: data.scoreQ ?? data.quality ?? 0,
+    [i18n.t('WorldDetail.engagement', { defaultValue: 'Engagement' })]: data.scoreE ?? data.engagement ?? 0,
   };
 
   // Labels positioned at specific vertices - adjusted for medium crystal
   const labelsData = [
-    { name: 'Activity', score: scores.Activity, position: [0, 1.4, 0] as [number, number, number] },
     {
-      name: 'Consensus',
-      score: scores.Consensus,
+      name: i18n.t('WorldDetail.activity', { defaultValue: 'Activity' }),
+      score: scores[i18n.t('WorldDetail.activity', { defaultValue: 'Activity' })],
+      position: [0, 1.4, 0] as [number, number, number],
+    },
+    {
+      name: i18n.t('WorldDetail.consensus', { defaultValue: 'Consensus' }),
+      score: scores[i18n.t('WorldDetail.consensus', { defaultValue: 'Consensus' })],
       position: [1.3, 0, 0.4] as [number, number, number],
     },
     {
-      name: 'Quality',
-      score: scores.Quality,
+      name: i18n.t('WorldDetail.quality', { defaultValue: 'Quality' }),
+      score: scores[i18n.t('WorldDetail.quality', { defaultValue: 'Quality' })],
       position: [-1.3, 0, 0.4] as [number, number, number],
     },
     {
-      name: 'Engagement',
-      score: scores.Engagement,
+      name: i18n.t('WorldDetail.engagement', { defaultValue: 'Engagement' }),
+      score: scores[i18n.t('WorldDetail.engagement', { defaultValue: 'Engagement' })],
       position: [0, -1.4, 0] as [number, number, number],
     },
   ];
@@ -120,7 +125,7 @@ const CrystalModel = ({ data, color = '#4ECCA3' }: { data: ScoringData; color?: 
             >
               {label.name}
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{label.score.toFixed(0)}</div>
+            <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{(label.score ?? 0).toFixed(0)}</div>
           </div>
         </Html>
       ))}
@@ -164,10 +169,16 @@ export function WorldScoringMatrix({ data, className = '' }: WorldScoringMatrixP
 
   // Determine EWMA trend status
   const getEwmaStatus = (score: number) => {
-    if (score >= 80) return { label: 'Excellent', color: '#4ADE80' };
-    if (score >= 60) return { label: 'Good', color: '#4ECCA3' };
-    if (score >= 40) return { label: 'Average', color: '#F97316' };
-    return { label: 'Needs Attention', color: '#EF4444' };
+    if (score >= 80) {
+      return { label: i18n.t('WorldDetail.ewmaStatus.excellent', { defaultValue: 'Excellent' }), color: '#4ADE80' };
+    }
+    if (score >= 60) {
+      return { label: i18n.t('WorldDetail.ewmaStatus.good', { defaultValue: 'Good' }), color: '#4ECCA3' };
+    }
+    if (score >= 40) {
+      return { label: i18n.t('WorldDetail.ewmaStatus.average', { defaultValue: 'Average' }), color: '#F97316' };
+    }
+    return { label: i18n.t('WorldDetail.ewmaStatus.needsAttention', { defaultValue: 'Needs Attention' }), color: '#EF4444' };
   };
 
   const ewmaStatus = getEwmaStatus(ewmaScore);
@@ -181,7 +192,7 @@ export function WorldScoringMatrix({ data, className = '' }: WorldScoringMatrixP
       <div className="pt-4 px-4 flex items-center z-10">
         <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/30 to-[#4ECCA3]/30" />
         <h3 className="mx-3 text-xs font-semibold tracking-wider text-[#4ECCA3] uppercase">
-          World Scoring Matrix
+          {i18n.t('WorldDetail.section.scores', { defaultValue: 'World Scoring Matrix' })}
         </h3>
         <div className="flex-1 h-px bg-gradient-to-l from-transparent via-[#4ECCA3]/30 to-[#4ECCA3]/30" />
       </div>
@@ -205,14 +216,16 @@ export function WorldScoringMatrix({ data, className = '' }: WorldScoringMatrixP
       <div className="p-4">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs text-[#4ECCA3]/70 uppercase tracking-wider">
-            Comprehensive Index
+            {i18n.t('WorldDetail.comprehensiveIndex', { defaultValue: 'Comprehensive Index' })}
           </span>
         </div>
 
         <div className="flex items-center justify-between">
           <div>
             <div className="text-2xl font-bold text-[#4ECCA3]">{ewmaScore.toFixed(2)}</div>
-            <div className="text-[10px] text-[#e8f5ee]/40 mt-0.5">EWMA Score</div>
+            <div className="text-[10px] text-[#e8f5ee]/40 mt-0.5">
+              {i18n.t('WorldDetail.ewmaScore', { defaultValue: 'EWMA Score' })}
+            </div>
           </div>
 
           <div className="text-right">
@@ -226,7 +239,9 @@ export function WorldScoringMatrix({ data, className = '' }: WorldScoringMatrixP
             >
               {ewmaStatus.label}
             </div>
-            <div className="text-[10px] text-[#e8f5ee]/40 mt-1">Trend Analysis</div>
+            <div className="text-[10px] text-[#e8f5ee]/40 mt-1">
+              {i18n.t('WorldDetail.trendAnalysis', { defaultValue: 'Trend Analysis' })}
+            </div>
           </div>
         </div>
 

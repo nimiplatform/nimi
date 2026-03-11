@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { RUNTIME_PAGE_META } from './runtime-config-meta-v11';
 import { RuntimeSidebar } from './runtime-config-sidebar';
@@ -18,6 +19,7 @@ export function RuntimeConfigPanelBody() {
 }
 
 export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControllerModel }) {
+  const { t } = useTranslation();
   const MIN_SIDEBAR_WIDTH = 200;
   const MAX_SIDEBAR_WIDTH = 420;
   const { model } = props;
@@ -78,7 +80,9 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   if (!state) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center">
-        <div className="rounded-[10px] border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">Loading runtime config...</div>
+        <div className="rounded-[10px] border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
+          {t('runtimeConfig.panel.loading', { defaultValue: 'Loading runtime config...' })}
+        </div>
       </div>
     );
   }
@@ -94,7 +98,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
         style={{ width: `${sidebarWidth}px` }}
       >
         <div className="flex h-14 shrink-0 items-center px-5">
-          <h1 className={APP_PAGE_TITLE_CLASS}>AI Runtime</h1>
+          <h1 className={APP_PAGE_TITLE_CLASS}>{t('runtimeConfig.panel.title', { defaultValue: 'AI Runtime' })}</h1>
         </div>
         <RuntimeSidebar
           activePage={activePage}
@@ -109,7 +113,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
         <div
           role="separator"
           aria-orientation="vertical"
-          aria-label="Resize runtime sidebar"
+          aria-label={t('runtimeConfig.panel.resizeSidebar', { defaultValue: 'Resize runtime sidebar' })}
           onMouseDown={startResize}
           className="absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize bg-transparent"
         />

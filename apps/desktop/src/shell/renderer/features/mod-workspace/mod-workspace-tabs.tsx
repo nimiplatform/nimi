@@ -1,4 +1,5 @@
 import { ChromeTab } from '@renderer/components/chrome-tab.js';
+import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { renderShellNavIcon } from '@renderer/app-shell/layouts/navigation-config';
 
@@ -32,8 +33,8 @@ export function ModWorkspaceTabs(props: ModWorkspaceTabsProps) {
                   ? 'border-white/70 bg-[#f7fbfd] text-[#1A1D1F] shadow-[0_10px_24px_rgba(15,23,42,0.08)]'
                   : 'border-white/10 bg-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.82)] hover:bg-[rgba(255,255,255,0.12)]'
               }`}
-              aria-label="Home"
-              title="Home"
+              aria-label={i18n.t('Nav.home', { defaultValue: 'Home' })}
+              title={i18n.t('Nav.home', { defaultValue: 'Home' })}
             >
               <span className="flex h-4 w-4 items-center justify-center">
                 {renderShellNavIcon('home')}
@@ -126,7 +127,7 @@ export function ModWorkspaceTabs(props: ModWorkspaceTabsProps) {
                       }
                     }}
                     className="ml-0 overflow-hidden rounded px-1 text-[11px] text-gray-400 opacity-0 transition-[opacity,margin,max-width,padding] duration-180 max-w-0 group-hover:ml-0.5 group-hover:max-w-5 group-hover:opacity-100 group-hover:hover:bg-gray-200 group-hover:hover:text-gray-600"
-                    aria-label={`Close ${tab.title}`}
+                    aria-label={`${i18n.t('ModUI.closeTab', { defaultValue: 'Close tab' })} ${tab.title}`}
                   >
                     x
                   </span>

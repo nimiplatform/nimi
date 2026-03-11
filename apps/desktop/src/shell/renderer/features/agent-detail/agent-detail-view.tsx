@@ -243,7 +243,9 @@ export function AgentDetailView(props: AgentDetailViewProps) {
               {/* Score Progress Bar */}
               <div className="mt-5 w-full px-4">
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-500 font-medium whitespace-nowrap">Score</span>
+                    <span className="text-xs text-gray-500 font-medium whitespace-nowrap">
+                      {t('AgentDetail.score', { defaultValue: 'Score' })}
+                    </span>
                   <ScoreProgressBar score={props.worldScore} />
                 </div>
               </div>
@@ -254,21 +256,27 @@ export function AgentDetailView(props: AgentDetailViewProps) {
                   <p className="text-xl font-bold text-gray-900">
                     {props.stats?.friendsCount ?? '--'}
                   </p>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">Friends</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">
+                    {t('AgentDetail.friends', { defaultValue: 'Friends' })}
+                  </p>
                 </div>
                 <div className="w-px h-10 bg-gray-200" />
                 <div className="text-center">
                   <p className="text-xl font-bold text-gray-900">
                     {props.stats?.postsCount ?? '--'}
                   </p>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">Posts</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">
+                    {t('AgentDetail.posts', { defaultValue: 'Posts' })}
+                  </p>
                 </div>
                 <div className="w-px h-10 bg-gray-200" />
                 <div className="text-center">
                   <p className="text-xl font-bold text-gray-900">
                     {props.stats?.likesCount ?? '--'}
                   </p>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">Likes</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">
+                    {t('AgentDetail.likes', { defaultValue: 'Likes' })}
+                  </p>
                 </div>
               </div>
 

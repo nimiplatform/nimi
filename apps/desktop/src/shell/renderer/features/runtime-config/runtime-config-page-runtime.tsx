@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { CAPABILITIES_V11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { desktopBridge } from '@renderer/bridge';
@@ -72,6 +73,7 @@ function SurfaceCard({ children, className = '' }: { children: React.ReactNode; 
 }
 
 export function RuntimePage({ model, state }: RuntimePageProps) {
+  const { t } = useTranslation();
   const auditData = useGlobalAuditData(true);
   const [nodeMatrixExpanded, setNodeMatrixExpanded] = useState(false);
 
@@ -156,10 +158,12 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
     <div className="space-y-8">
       {/* Endpoint */}
       <section>
-        <SectionTitle description="Local runtime endpoint configuration.">Local Runtime Endpoint</SectionTitle>
+        <SectionTitle description={t('runtimeConfig.runtime.localEndpointDescription', { defaultValue: 'Local runtime endpoint configuration.' })}>
+          {t('runtimeConfig.runtime.localEndpoint', { defaultValue: 'Local Runtime Endpoint' })}
+        </SectionTitle>
         <SurfaceCard className="mt-3 p-5">
           <Input
-            label="Endpoint URL"
+            label={t('runtimeConfig.runtime.endpointUrl', { defaultValue: 'Endpoint URL' })}
             value={state.local.endpoint}
             onChange={(endpoint) => {
               model.updateState((prev) => ({
@@ -167,23 +171,29 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
                 local: { ...prev.local, endpoint },
               }));
             }}
-            placeholder="http://127.0.0.1:1234/v1"
+            placeholder={t('runtimeConfig.runtime.endpointPlaceholder', { defaultValue: 'http://127.0.0.1:1234/v1' })}
           />
         </SurfaceCard>
       </section>
 
       {/* Daemon Lifecycle */}
       <section>
-        <SectionTitle description="Manage the local AI runtime daemon process.">Daemon Lifecycle</SectionTitle>
+        <SectionTitle description={t('runtimeConfig.runtime.daemonLifecycleDesc', { defaultValue: 'Manage the local AI runtime daemon process.' })}>
+          {t('runtimeConfig.runtime.daemonLifecycle', { defaultValue: 'Daemon Lifecycle' })}
+        </SectionTitle>
         <SurfaceCard className="mt-3 p-5">
           <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-500">Local AI runtime daemon status</div>
+            <div className="text-sm text-gray-500">
+              {t('runtimeConfig.runtime.runtimeDaemonStatus', { defaultValue: 'Local AI runtime daemon status' })}
+            </div>
             <span
               className={`rounded-full px-3 py-1 text-xs font-medium ${
                 daemonRunning ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
               }`}
             >
-              {daemonRunning ? 'running' : 'stopped'}
+              {daemonRunning
+                ? t('runtimeConfig.overview.running', { defaultValue: 'running' })
+                : t('runtimeConfig.overview.stopped', { defaultValue: 'stopped' })}
             </span>
           </div>
 
@@ -191,7 +201,9 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
             <div
               className={`rounded-xl border p-3 ${daemonRunning ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}
             >
-              <p className={`text-xs ${daemonRunning ? 'text-green-600' : 'text-red-600'}`}>gRPC</p>
+              <p className={`text-xs ${daemonRunning ? 'text-green-600' : 'text-red-600'}`}>
+                {t('runtimeConfig.overview.grpc', { defaultValue: 'gRPC' })}
+              </p>
               <p className={`text-sm font-medium ${daemonRunning ? 'text-green-900' : 'text-red-900'}`}>
                 {model.runtimeDaemonStatus?.grpcAddr || '127.0.0.1:46371'}
               </p>
@@ -207,7 +219,9 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
             <div
               className={`rounded-xl border p-3 ${daemonRunning ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}
             >
-              <p className={`text-xs ${daemonRunning ? 'text-green-600' : 'text-red-600'}`}>Mode</p>
+              <p className={`text-xs ${daemonRunning ? 'text-green-600' : 'text-red-600'}`}>
+                {t('runtimeConfig.runtime.mode', { defaultValue: 'Mode' })}
+              </p>
               <p className={`text-sm font-medium ${daemonRunning ? 'text-green-900' : 'text-red-900'}`}>
                 {model.runtimeDaemonStatus?.launchMode || '-'}
               </p>
@@ -215,7 +229,9 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
             <div
               className={`rounded-xl border p-3 ${daemonRunning ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}
             >
-              <p className={`text-xs ${daemonRunning ? 'text-green-600' : 'text-red-600'}`}>Last check</p>
+              <p className={`text-xs ${daemonRunning ? 'text-green-600' : 'text-red-600'}`}>
+                {t('runtimeConfig.overview.lastCheck', { defaultValue: 'Last check' })}
+              </p>
               <p className={`text-sm font-medium ${daemonRunning ? 'text-green-900' : 'text-red-900'}`}>
                 {model.runtimeDaemonUpdatedAt ? formatLocaleDateTime(model.runtimeDaemonUpdatedAt) : '-'}
               </p>
@@ -232,16 +248,18 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <Button variant="secondary" size="sm" disabled={daemonBusy} onClick={() => void model.refreshRuntimeDaemonStatus()}>
-              {daemonBusy ? 'Working...' : 'Refresh'}
+              {daemonBusy
+                ? t('runtimeConfig.overview.working', { defaultValue: 'Working...' })
+                : t('runtimeConfig.runtime.refresh', { defaultValue: 'Refresh' })}
             </Button>
             <Button variant="secondary" size="sm" disabled={!canManageDaemon || daemonBusy || daemonRunning} onClick={() => void model.startRuntimeDaemon()}>
-              Start
+              {t('runtimeConfig.overview.start', { defaultValue: 'Start' })}
             </Button>
             <Button variant="secondary" size="sm" disabled={!canManageDaemon || daemonBusy || !daemonRunning} onClick={() => void model.restartRuntimeDaemon()}>
-              Restart
+              {t('runtimeConfig.overview.restart', { defaultValue: 'Restart' })}
             </Button>
             <Button variant="secondary" size="sm" disabled={!canManageDaemon || daemonBusy || !daemonRunning} onClick={() => void model.stopRuntimeDaemon()}>
-              Stop
+              {t('runtimeConfig.overview.stop', { defaultValue: 'Stop' })}
             </Button>
           </div>
         </SurfaceCard>
@@ -287,17 +305,20 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
 
       {/* Capability Summary + Node Matrix */}
       <section>
-        <SectionTitle description="AI capability availability across local runtime and cloud API.">
-          Capability Summary
+        <SectionTitle description={t('runtimeConfig.runtime.capabilitySummaryDesc', { defaultValue: 'AI capability availability across local runtime and cloud API.' })}>
+          {t('runtimeConfig.runtime.capabilitySummary', { defaultValue: 'Capability Summary' })}
         </SectionTitle>
         <SurfaceCard className="mt-3 p-5">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {capabilitySummary.map((item) => {
               const sourceLabel = item.localAvailable
-                ? `local${item.localProvider ? ` (${item.localProvider})` : ''}`
+                ? t('runtimeConfig.overview.capabilitySourceLocal', {
+                  providerSuffix: item.localProvider ? ` (${item.localProvider})` : '',
+                  defaultValue: 'local{{providerSuffix}}',
+                })
                 : item.cloudAvailable
-                  ? 'cloud API fallback'
-                  : 'unavailable';
+                  ? t('runtimeConfig.overview.capabilitySourceCloudFallback', { defaultValue: 'cloud API fallback' })
+                  : t('runtimeConfig.overview.capabilitySourceUnavailable', { defaultValue: 'unavailable' });
               const toneClass = item.localAvailable
                 ? {
                     shell: 'bg-mint-50/60 ring-1 ring-mint-100',
@@ -333,12 +354,12 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
                       <div className="flex items-center gap-1.5">
                         <IconButton
                           icon={<PlusIcon />}
-                          title="Install Model"
+                          title={t('runtimeConfig.runtime.installModel', { defaultValue: 'Install Model' })}
                           onClick={() => model.onChangePage('local')}
                         />
                         <IconButton
                           icon={<KeyIcon />}
-                          title="Add API Key"
+                          title={t('runtimeConfig.runtime.addApiKey', { defaultValue: 'Add API Key' })}
                           onClick={() => model.onChangePage('cloud')}
                         />
                       </div>
@@ -353,21 +374,25 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
 
       {/* Provider Diagnostics */}
       <section>
-        <SectionTitle description="Managed LocalAI/Nexa diagnostics.">Provider Runtime Status</SectionTitle>
+        <SectionTitle description={t('runtimeConfig.runtime.providerStatusDesc', { defaultValue: 'Managed LocalAI/Nexa diagnostics.' })}>
+          {t('runtimeConfig.runtime.providerStatus', { defaultValue: 'Provider Runtime Status' })}
+        </SectionTitle>
         <SurfaceCard className="mt-3 p-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="text-sm text-gray-500">Local runtime provider status</div>
+            <div className="text-sm text-gray-500">
+              {t('runtimeConfig.runtime.localRuntimeProviderStatus', { defaultValue: 'Local runtime provider status' })}
+            </div>
             <StatusBadge status={state.local.status} />
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div className="rounded-xl bg-[#F7F9FC] p-3 ring-1 ring-black/5">
-              <p className="text-xs text-gray-500">Last Check</p>
+              <p className="text-xs text-gray-500">{t('runtimeConfig.runtime.lastCheckLabel', { defaultValue: 'Last Check' })}</p>
               <p className="text-sm font-medium text-gray-800">
                 {state.local.lastCheckedAt ? formatLocaleDateTime(state.local.lastCheckedAt) : '-'}
               </p>
             </div>
             <div className="rounded-xl bg-[#F7F9FC] p-3 ring-1 ring-black/5 md:col-span-2">
-              <p className="text-xs text-gray-500">Detail</p>
+              <p className="text-xs text-gray-500">{t('runtimeConfig.runtime.detail', { defaultValue: 'Detail' })}</p>
               <p className="text-sm font-medium text-gray-800">{state.local.lastDetail || '-'}</p>
             </div>
           </div>
@@ -376,15 +401,23 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
 
       {/* Node Matrix */}
       <section>
-        <SectionTitle description="Detailed node capability availability matrix.">Node Capability Matrix</SectionTitle>
+        <SectionTitle description={t('runtimeConfig.runtime.nodeMatrixDesc', { defaultValue: 'Detailed node capability availability matrix.' })}>
+          {t('runtimeConfig.runtime.nodeMatrix', { defaultValue: 'Node Capability Matrix' })}
+        </SectionTitle>
         <SurfaceCard className="mt-3 p-5">
           <button
             type="button"
             className="flex w-full items-center justify-between text-left mb-3"
             onClick={() => setNodeMatrixExpanded((prev) => !prev)}
           >
-            <span className="text-sm font-medium text-gray-900">Node Matrix</span>
-            <span className="text-xs text-gray-500">{nodeMatrixExpanded ? 'Collapse' : 'Expand'}</span>
+            <span className="text-sm font-medium text-gray-900">
+              {t('runtimeConfig.runtime.nodeMatrixShort', { defaultValue: 'Node Matrix' })}
+            </span>
+            <span className="text-xs text-gray-500">
+              {nodeMatrixExpanded
+                ? t('runtimeConfig.runtime.collapse', { defaultValue: 'Collapse' })
+                : t('runtimeConfig.runtime.expand', { defaultValue: 'Expand' })}
+            </span>
           </button>
           {providerStatusSummary.length > 0 ? (
             <div className="mb-3 space-y-2 rounded-xl bg-[#F7F9FC] p-3 ring-1 ring-black/5">
@@ -400,7 +433,11 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
             </div>
           ) : null}
           {!nodeMatrixExpanded ? null : sortedNodeMatrix.length === 0 ? (
-            <p className="text-sm text-gray-500">No node availability data. Run Refresh to probe LocalAI runtime.</p>
+            <p className="text-sm text-gray-500">
+              {t('runtimeConfig.runtime.noNodeAvailabilityData', {
+                defaultValue: 'No node availability data. Run Refresh to probe LocalAI runtime.',
+              })}
+            </p>
           ) : (
             <div className="space-y-2">
               {sortedNodeMatrix.map((row) => {
@@ -435,7 +472,11 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
                       </p>
                     ) : null}
                     {nexaGate?.hostNpuReady === false ? (
-                      <p className="text-xs text-amber-700">NPU intermediate state: host probe not ready.</p>
+                      <p className="text-xs text-amber-700">
+                        {t('runtimeConfig.runtime.npuHostProbeNotReady', {
+                          defaultValue: 'NPU intermediate state: host probe not ready.',
+                        })}
+                      </p>
                     ) : null}
                     {nexaGate?.policyGateAllowsNpu === false ? (
                       <p className="text-xs text-amber-700">

@@ -1,3 +1,4 @@
+import { i18n } from '@renderer/i18n';
 import type { LocalAiAuditEvent } from '@runtime/local-ai-runtime';
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -22,6 +23,20 @@ function toIsoTimestampMs(value: string): number | null {
   const parsed = new Date(normalized);
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed.getTime();
+}
+
+function translateAuditText(
+  key: string,
+  defaultValue: string,
+  options?: Record<string, unknown>,
+): string {
+  if (!i18n.isInitialized) {
+    return defaultValue;
+  }
+  return i18n.t(key, {
+    defaultValue,
+    ...(options || {}),
+  });
 }
 
 export function resolveAuditSource(event: LocalAiAuditEvent): string {
@@ -162,7 +177,9 @@ export function summarizeAuditModalities(audits: LocalAiAuditEvent[]): Array<{ m
 }
 
 export function buildAuditDiagnosticsText(audits: LocalAiAuditEvent[]): string {
-  if (audits.length === 0) return 'No audit events.';
+  if (audits.length === 0) {
+    return translateAuditText('runtimeConfig.runtime.noAuditEventsSimple', 'No audit events.');
+  }
   return audits.map((event) => {
     return [
       event.occurredAt,

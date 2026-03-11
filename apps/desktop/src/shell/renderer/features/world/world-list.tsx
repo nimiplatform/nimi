@@ -211,7 +211,9 @@ export function WorldList() {
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <h1 className={APP_PAGE_TITLE_CLASS} style={{ color: '#1A1A1A' }}>{t('World.title')}</h1>
-            <span className="text-xs" style={{ color: '#888888' }}>Synced from Desktop</span>
+            <span className="text-xs" style={{ color: '#888888' }}>
+              {t('World.syncedFromDesktop', { defaultValue: 'Synced from Desktop' })}
+            </span>
           </div>
           <div className="w-full max-w-xl lg:w-[420px] lg:flex-shrink-0">
             <div className="group relative">
@@ -224,7 +226,9 @@ export function WorldList() {
                 onChange={(event) => {
                   setSearchText(event.target.value);
                 }}
-                placeholder="Search worlds by name or description..."
+                placeholder={t('World.searchByNameOrDescription', {
+                  defaultValue: 'Search worlds by name or description...',
+                })}
                 className="w-full rounded-full border border-white/70 bg-white/85 py-2.5 pl-11 pr-5 text-sm text-gray-900 placeholder:text-gray-400 shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none backdrop-blur-xl transition-all focus:border-emerald-200 focus:bg-white focus:shadow-[0_14px_36px_rgba(16,185,129,0.10)] focus:ring-4 focus:ring-emerald-100/70"
               />
             </div>

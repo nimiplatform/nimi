@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { LocalAiDependencyResolutionPlan } from '@runtime/local-ai-runtime';
 import type { RuntimeDependencyTargetDescriptor } from './runtime-config-panel-types';
 import { CAPABILITY_OPTIONS, type CapabilityOption } from './runtime-config-model-center-utils';
@@ -88,6 +89,7 @@ export type ModelCenterDependencySectionProps = {
 };
 
 export function ModelCenterDependencySection(props: ModelCenterDependencySectionProps) {
+  const { t } = useTranslation();
   const [applyingDependencies, setApplyingDependencies] = useState(false);
   const [dependencyApplySummary, setDependencyApplySummary] = useState('');
   const dependencyDisplayKey = (dep: LocalAiDependencyResolutionPlan['dependencies'][number]): string => (
@@ -102,7 +104,9 @@ export function ModelCenterDependencySection(props: ModelCenterDependencySection
         <div className="flex items-center gap-2">
           <PackageIcon className="h-4 w-4 text-mint-600" />
           <p className="text-sm font-semibold text-gray-900">
-            {props.isModMode ? 'Model Dependencies' : 'Mod Dependencies'}
+            {props.isModMode
+              ? t('runtimeConfig.local.modelDependencies', { defaultValue: 'Model Dependencies' })
+              : t('runtimeConfig.mods.modDependencies', { defaultValue: 'Mod Dependencies' })}
           </p>
         </div>
         <Button
@@ -112,25 +116,35 @@ export function ModelCenterDependencySection(props: ModelCenterDependencySection
           onClick={() => void props.onResolveDependencyPlanPreview()}
           icon={<RefreshIcon />}
         >
-          {props.loadingDependencyPlan ? 'Resolving...' : 'Resolve Plan'}
+          {props.loadingDependencyPlan
+            ? t('runtimeConfig.local.resolving', { defaultValue: 'Resolving...' })
+            : t('runtimeConfig.local.resolvePlan', { defaultValue: 'Resolve Plan' })}
         </Button>
       </div>
 
       {props.runtimeDependencyTargets.length <= 0 ? (
-        <p className="text-xs text-gray-500">No dependency-enabled runtime mod found.</p>
+        <p className="text-xs text-gray-500">
+          {t('runtimeConfig.local.noDependencyEnabledMod', { defaultValue: 'No dependency-enabled runtime mod found.' })}
+        </p>
       ) : (
         <>
           <div className={`grid grid-cols-1 gap-3 ${props.dependencySelectionLocked ? '' : 'md:grid-cols-2'}`}>
             {props.dependencySelectionLocked ? (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Runtime Mod</label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  {t('runtimeConfig.local.runtimeMod', { defaultValue: 'Runtime Mod' })}
+                </label>
                 <div className="flex h-11 w-full items-center rounded-xl border border-mint-100 bg-[#F4FBF8] px-3 text-sm text-gray-900">
-                  {props.selectedDependencyTarget?.modName || props.selectedDependencyModId || 'Unknown runtime mod'}
+                  {props.selectedDependencyTarget?.modName
+                    || props.selectedDependencyModId
+                    || t('runtimeConfig.local.unknownRuntimeMod', { defaultValue: 'Unknown runtime mod' })}
                 </div>
               </div>
             ) : (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Runtime Mod</label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  {t('runtimeConfig.local.runtimeMod', { defaultValue: 'Runtime Mod' })}
+                </label>
                 <RuntimeSelect
                   value={props.selectedDependencyModId}
                   onChange={props.onSetSelectedDependencyModId}
@@ -143,13 +157,15 @@ export function ModelCenterDependencySection(props: ModelCenterDependencySection
               </div>
             )}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Capability</label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                {t('runtimeConfig.runtime.capability', { defaultValue: 'Capability' })}
+              </label>
               <RuntimeSelect
                 value={props.selectedDependencyCapability}
                 onChange={(nextCapability) => props.onSetSelectedDependencyCapability((nextCapability || 'auto') as 'auto' | CapabilityOption)}
                 className="w-full"
                 options={[
-                  { value: 'auto', label: 'Auto Detect' },
+                  { value: 'auto', label: t('runtimeConfig.local.autoDetect', { defaultValue: 'Auto Detect' }) },
                   ...CAPABILITY_OPTIONS.map((capability) => ({ value: capability, label: capability })),
                 ]}
               />
@@ -167,13 +183,15 @@ export function ModelCenterDependencySection(props: ModelCenterDependencySection
           ) : null}
 
           {props.dependencySelectionLocked && !props.selectedDependencyTarget ? (
-            <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">Selected mod has no dependency declaration.</p>
+            <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
+              {t('runtimeConfig.local.selectedModNoDependency', { defaultValue: 'Selected mod has no dependency declaration.' })}
+            </p>
           ) : null}
 
           {props.loadingDependencyPlan ? (
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <RefreshIcon className="h-4 w-4 animate-spin" />
-              Resolving dependency plan...
+              {t('runtimeConfig.local.resolvingDependencyPlan', { defaultValue: 'Resolving dependency plan...' })}
             </div>
           ) : props.dependencyPlanPreview ? (
             <div className="space-y-3 rounded-xl border border-mint-100 bg-white p-4 shadow-sm">
@@ -182,7 +200,9 @@ export function ModelCenterDependencySection(props: ModelCenterDependencySection
                   <CheckIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Plan ID: {props.dependencyPlanPreview.planId}</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {t('runtimeConfig.local.planId', { defaultValue: 'Plan ID' })}: {props.dependencyPlanPreview.planId}
+                  </p>
                   <p className="text-xs text-gray-500">
                     {props.dependencyPlanPreview.dependencies.length} dependencies
                     {' · '}
@@ -201,12 +221,12 @@ export function ModelCenterDependencySection(props: ModelCenterDependencySection
                       <div className="flex gap-1">
                         {dep.selected && (
                           <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
-                            Selected
+                            {t('runtimeConfig.local.selected', { defaultValue: 'Selected' })}
                           </span>
                         )}
                         {dep.required && (
                           <span className="rounded-full bg-mint-100 px-2 py-0.5 text-[10px] font-medium text-mint-700">
-                            Required
+                            {t('runtimeConfig.local.required', { defaultValue: 'Required' })}
                           </span>
                         )}
                       </div>
@@ -229,9 +249,15 @@ export function ModelCenterDependencySection(props: ModelCenterDependencySection
                           ? undefined
                           : props.selectedDependencyCapability,
                       );
-                      setDependencyApplySummary('Dependencies applied successfully.');
+                      setDependencyApplySummary(t('runtimeConfig.local.dependenciesApplied', {
+                        defaultValue: 'Dependencies applied successfully.',
+                      }));
                     } catch (e) {
-                      setDependencyApplySummary(e instanceof Error ? e.message : 'Failed to apply dependencies.');
+                      setDependencyApplySummary(
+                        e instanceof Error
+                          ? e.message
+                          : t('runtimeConfig.local.applyDependenciesFailed', { defaultValue: 'Failed to apply dependencies.' }),
+                      );
                     } finally {
                       setApplyingDependencies(false);
                     }
@@ -239,7 +265,9 @@ export function ModelCenterDependencySection(props: ModelCenterDependencySection
                 }}
                 icon={<CheckIcon />}
               >
-                {applyingDependencies ? 'Applying...' : 'Apply Dependencies'}
+                {applyingDependencies
+                  ? t('runtimeConfig.local.applying', { defaultValue: 'Applying...' })
+                  : t('runtimeConfig.local.applyDependencies', { defaultValue: 'Apply Dependencies' })}
               </Button>
 
               {dependencyApplySummary ? (
