@@ -1,0 +1,33 @@
+{
+  "packageType": "desktop-mod",
+  "packageId": "world.nimi.local-chat",
+  "version": "1.0.0",
+  "channel": "stable",
+  "artifactUrl": "https://github.com/nimiplatform/nimi-mods/releases/download/local-chat-v1.0.0/world.nimi.local-chat.zip",
+  "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "signature": "REPLACE_WITH_REAL_SIGNATURE",
+  "signerId": "nimi.release",
+  "minDesktopVersion": "0.1.0",
+  "minHookApiVersion": "v1",
+  "capabilities": [
+    "runtime.ai.text.generate",
+    "runtime.ai.text.stream",
+    "runtime.route.resolve",
+    "ui.register.ui-extension.app.sidebar.mods"
+  ],
+  "requiresReconsentOnCapabilityIncrease": false,
+  "publisher": {
+    "publisherId": "nimi",
+    "displayName": "Nimi",
+    "trustTier": "official"
+  },
+  "source": {
+    "repoUrl": "https://github.com/nimiplatform/nimi-mods",
+    "releaseTag": "local-chat-v1.0.0"
+  },
+  "state": {
+    "listed": true,
+    "yanked": false,
+    "quarantined": false
+  }
+}

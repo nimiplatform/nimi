@@ -19,6 +19,7 @@ The SDK, Dev Tools, Runtime, and Proto versions must be aligned within the same 
 | sdk | npm (`@nimiplatform/*`) | `@nimiplatform/sdk` + `@nimiplatform/dev-tools` |
 | proto | buf.build (`nimiplatform`) | Proto schema |
 | desktop | GitHub Releases | macOS / Windows / Linux installers |
+| mods catalog (future repo) | GitHub Pages / static hosting | `index/v1/*.json` static registry |
 
 ## Release Steps
 
@@ -113,6 +114,20 @@ desktop 发布前置契约（Zero-Bundle）：
 3. 构建 desktop 前必须先执行 `pnpm build:sdk`，确保 `@nimiplatform/sdk-*` 的 `dist/*` 产物可被 Vite 解析。
 4. 如需做安装链验证，只能使用预构建 mod 包作为测试输入，不得把其打进桌面发布产物。
 
+official mod package / catalog 发布约束：
+
+1. `nimi-mod pack` 产物必须同时包含 zip 与 sidecar `release.manifest.json`。
+2. `release.manifest.json` 是 catalog release 记录的上游输入，不得把其嵌入 zip 后再自引用该 zip digest。
+3. catalog repo 必须额外维护 signer registry、公钥、`revocations.json`、`advisories.json`。
+4. desktop v1 只消费 `packageType=desktop-mod`，但 catalog schema 必须允许 `nimi-app` 条目存在。
+5. 官方 mod 发布标准路径是 `.github/workflows/release-mod-package.yml`：上传 zip / `release.manifest.json` 到 GitHub Release，并对 catalog repo 自动创建更新 PR。
+6. catalog repo PR 合并后才视为对 desktop 可见；GitHub Release 资产存在但 catalog 未更新时，不得视为已上架。
+7. 若 `catalog_repo` 指向其他仓库且该仓库不是公开可写 PR 目标，必须配置 `NIMI_MOD_CATALOG_REPO_TOKEN`；同仓场景默认回退到 `github.token`。
+8. workflow 复跑会复用 `codex/catalog-<packageId>-<version>` 分支，并更新已有 open PR，而不是创建重复 PR。
+
+完整的官方 mod 发布流程与第三方 catalog 申请处理流程，见 [`docs/guides/mod-release.md`](docs/guides/mod-release.md)。
+`nimi-mods/` 内官方 mod maintainer 的具体操作手册，见 [`nimi-mods/RELEASE.md`](nimi-mods/RELEASE.md)。
+
 支持 dry-run：
 
 - 手动触发 `.github/workflows/release.yml`，选择 `target + version + publish=false`。
@@ -129,6 +144,20 @@ pnpm -C apps/desktop run build
 1. 通过 CI 或手工任务准备单独的预构建 mod `.zip`。
 2. 设置 `NIMI_RUNTIME_MODS_DIR` 到临时目录，执行 `pnpm check:desktop-mods-smoke`。
 3. 若需要验证远程安装，再额外回放 install/update/uninstall 生命周期。
+
+official mod package / catalog dry-run：
+
+1. 手动触发 `.github/workflows/release-mod-package.yml`
+2. 设 `publish=false`
+3. CI 仍会打包 mod、生成 `release.manifest.json`、更新 catalog working tree，并上传 patch preview artifact，但不会创建 GitHub Release 或 catalog PR
+
+official mod package / catalog publish：
+
+1. 手动触发 `.github/workflows/release-mod-package.yml`
+2. 设 `publish=true`
+3. workflow 会创建或复用 mod GitHub Release、上传 zip 与 `release.manifest.json`
+4. workflow 会 checkout catalog repo、运行 `scripts/update-mod-catalog.mjs` 与 signer/catalog 校验
+5. workflow 会 force-update `codex/catalog-<packageId>-<version>` 分支，并创建或更新对应 catalog PR
 
 ### 5. Post-release
 

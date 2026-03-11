@@ -22,6 +22,8 @@ For public onboarding, stay on `nimi run` and `runtime.generate()/stream()`. Adv
 - [App Developer Guide](./guides/app-developer.md): integrate Nimi into an application
 - [Runtime Integrator Guide](./guides/runtime-integrator.md): work directly with the runtime and operational surface
 - [Mod Developer Guide](./guides/mod-developer.md): build desktop extensions for the Nimi host
+- [Mod Release Guide](./guides/mod-release.md): release official mods and process third-party catalog submissions
+- [Mod Release Guide (CN)](./guides/mod-release_cn.md): 中文版 mod 发布与第三方申请处理指南
 - [Quick Recipes](./cookbook/quick-recipes.md): copyable patterns and runnable building blocks
 
 ## What This Portal Explains

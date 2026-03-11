@@ -4,7 +4,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
 import { parse as parseYaml } from 'yaml';
+import { createReleaseManifest } from './release-manifest.mjs';
+import { createAppScaffold } from './app-scaffold.mjs';
 
 const SDK_VERSION = '^0.2.0';
 const DEV_TOOLS_VERSION = '^0.2.0';
@@ -14,6 +17,8 @@ const TSX_VERSION = '^4.21.0';
 const NODE_TYPES_VERSION = '^24.10.1';
 const REACT_TYPES_VERSION = '^19.2.14';
 const AI_SDK_VERSION = '^6.0.85';
+const DEFAULT_DESKTOP_VERSION = '0.1.0';
+const DEFAULT_HOOK_API_VERSION = 'v1';
 const require = createRequire(import.meta.url);
 const MOD_THEME_CSS = `
 @theme {
@@ -521,15 +526,27 @@ export function packMod(modDir) {
   rmSync(path.join(stagingDir, 'dist', 'packages'), { recursive: true, force: true });
   rmSync(outputDir, { recursive: true, force: true });
   mkdirSync(outputDir, { recursive: true });
-  const command = spawnSync('zip', ['-r', outputFile, '.'], {
-    cwd: stagingDir,
-    stdio: 'inherit',
+  const buildZip = () => {
+    const command = spawnSync('zip', ['-r', outputFile, '.'], {
+      cwd: stagingDir,
+      stdio: 'inherit',
+    });
+    if (command.status !== 0) {
+      throw new Error(`zip command failed for ${modDir}`);
+    }
+  };
+  buildZip();
+  const archiveBytes = readFileSync(outputFile);
+  const sha256 = createHash('sha256').update(archiveBytes).digest('hex');
+  const releaseManifest = createReleaseManifest(buildConfig(modDir), outputFile, sha256, {
+    defaultDesktopVersion: DEFAULT_DESKTOP_VERSION,
+    defaultHookApiVersion: DEFAULT_HOOK_API_VERSION,
   });
+  const releaseManifestPath = path.join(outputDir, 'release.manifest.json');
+  writeFileSync(releaseManifestPath, `${JSON.stringify(releaseManifest, null, 2)}\n`, 'utf8');
   rmSync(stagingDir, { recursive: true, force: true });
-  if (command.status !== 0) {
-    throw new Error(`zip command failed for ${modDir}`);
-  }
   process.stdout.write(`[dev-tools] package written: ${outputFile}\n`);
+  process.stdout.write(`[dev-tools] release manifest written: ${releaseManifestPath}\n`);
 }
 
 export function createMod(cwd, options = {}) {
@@ -678,142 +695,18 @@ export function createMod(cwd, options = {}) {
   process.stdout.write(`[nimi-mod] created scaffold at ${targetDir} (mod_id=${modId})\n`);
 }
 
-function buildBasicAppTemplate() {
-  return [
-    {
-      path: 'package.json',
-      content: JSON.stringify({
-        name: 'my-nimi-app',
-        private: true,
-        type: 'module',
-        scripts: {
-          start: 'tsx index.ts',
-        },
-        dependencies: {
-          '@nimiplatform/sdk': SDK_VERSION,
-        },
-        devDependencies: {
-          tsx: TSX_VERSION,
-          typescript: TYPESCRIPT_VERSION,
-        },
-      }, null, 2) + '\n',
-    },
-    {
-      path: 'tsconfig.json',
-      content: JSON.stringify({
-        compilerOptions: {
-          target: 'ES2022',
-          module: 'NodeNext',
-          moduleResolution: 'NodeNext',
-          strict: true,
-          skipLibCheck: true,
-        },
-      }, null, 2) + '\n',
-    },
-    {
-      path: 'index.ts',
-      content: [
-        "import { Runtime } from '@nimiplatform/sdk';",
-        '',
-        'const runtime = new Runtime();',
-        '',
-        'const result = await runtime.generate({',
-        "  prompt: 'What is Nimi in one sentence?',",
-        '});',
-        '',
-        'console.log(result.text);',
-        '',
-      ].join('\n'),
-    },
-    {
-      path: '.env.example',
-      content: [
-        'NIMI_RUNTIME_ENDPOINT=127.0.0.1:46371',
-        'NIMI_RUNTIME_CLOUD_OPENAI_API_KEY=',
-        'NIMI_RUNTIME_CLOUD_GEMINI_API_KEY=',
-        '',
-      ].join('\n'),
-    },
-  ];
-}
-
-function buildVercelAIAppTemplate() {
-  return [
-    {
-      path: 'package.json',
-      content: JSON.stringify({
-        name: 'my-nimi-app',
-        private: true,
-        type: 'module',
-        scripts: {
-          start: 'tsx index.ts',
-        },
-        dependencies: {
-          '@nimiplatform/sdk': SDK_VERSION,
-          ai: AI_SDK_VERSION,
-        },
-        devDependencies: {
-          tsx: TSX_VERSION,
-          typescript: TYPESCRIPT_VERSION,
-        },
-      }, null, 2) + '\n',
-    },
-    {
-      path: 'tsconfig.json',
-      content: JSON.stringify({
-        compilerOptions: {
-          target: 'ES2022',
-          module: 'NodeNext',
-          moduleResolution: 'NodeNext',
-          strict: true,
-          skipLibCheck: true,
-        },
-      }, null, 2) + '\n',
-    },
-    {
-      path: 'index.ts',
-      content: [
-        "import { Runtime } from '@nimiplatform/sdk';",
-        "import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';",
-        "import { generateText } from 'ai';",
-        '',
-        'const runtime = new Runtime();',
-        'const nimi = createNimiAiProvider({ runtime });',
-        '',
-        'const { text } = await generateText({',
-        "  model: nimi.text('gemini/default'),",
-        "  prompt: 'Hello from Vercel AI SDK + Nimi',",
-        '});',
-        '',
-        'console.log(text);',
-        '',
-      ].join('\n'),
-    },
-    {
-      path: '.env.example',
-      content: [
-        'NIMI_RUNTIME_ENDPOINT=127.0.0.1:46371',
-        'NIMI_RUNTIME_CLOUD_GEMINI_API_KEY=',
-        '',
-      ].join('\n'),
-    },
-  ];
-}
-
 export function createApp(cwd, options = {}) {
-  const template = String(options.template || '').trim() || 'basic';
-  const targetDir = path.resolve(cwd, String(options.dir || '').trim() || 'my-nimi-app');
-  ensureDirEmptyOrMissing(targetDir);
-  mkdirSync(targetDir, { recursive: true });
-  switch (template) {
-    case 'basic':
-      createFileTree(targetDir, buildBasicAppTemplate());
-      break;
-    case 'vercel-ai':
-      createFileTree(targetDir, buildVercelAIAppTemplate());
-      break;
-    default:
-      throw new Error(`Unsupported app template: ${template}`);
-  }
-  process.stdout.write(`[nimi-app] created ${template} app scaffold at ${targetDir}\n`);
+  createAppScaffold({
+    cwd,
+    options,
+    versions: {
+      sdkVersion: SDK_VERSION,
+      aiSdkVersion: AI_SDK_VERSION,
+      tsxVersion: TSX_VERSION,
+      typescriptVersion: TYPESCRIPT_VERSION,
+    },
+    createFileTree,
+    ensureDirEmptyOrMissing,
+    mkdirSync,
+  });
 }

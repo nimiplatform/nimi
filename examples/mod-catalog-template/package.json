@@ -1,0 +1,14 @@
+{
+  "name": "@nimiplatform/mod-catalog-template",
+  "private": true,
+  "packageManager": "pnpm@10.27.0",
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "check:catalog": "node scripts/validate-catalog.mjs --signers-file ./signers.example.json --catalog-dir .",
+    "check:catalog:signers": "node scripts/validate-catalog.mjs --signers-file ./signers.example.json --catalog-dir . --skip-catalog",
+    "check:catalog:index": "node scripts/validate-catalog.mjs --signers-file ./signers.example.json --catalog-dir . --skip-signers"
+  }
+}

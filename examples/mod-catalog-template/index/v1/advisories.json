@@ -1,0 +1,13 @@
+{
+  "items": [
+    {
+      "advisoryId": "NIMI-2026-0001",
+      "packageId": "world.nimi.local-chat",
+      "version": "1.0.0",
+      "action": "warn",
+      "severity": "low",
+      "title": "Example advisory",
+      "summary": "This is a fixture advisory showing how desktop surfaces non-blocking warnings."
+    }
+  ]
+}

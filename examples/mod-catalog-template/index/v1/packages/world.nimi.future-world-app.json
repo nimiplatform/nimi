@@ -1,0 +1,66 @@
+{
+  "packageId": "world.nimi.future-world-app",
+  "packageType": "nimi-app",
+  "name": "World Companion",
+  "description": "Future nimi-app example. Listed for forward compatibility only.",
+  "publisher": {
+    "publisherId": "community.studio",
+    "displayName": "Community Studio",
+    "trustTier": "community"
+  },
+  "state": {
+    "listed": true,
+    "yanked": false,
+    "quarantined": false
+  },
+  "channels": {
+    "beta": "0.1.0-beta.1"
+  },
+  "keywords": [
+    "world",
+    "companion"
+  ],
+  "tags": [
+    "forward-compat"
+  ],
+  "signers": [
+    {
+      "signerId": "community.studio.release",
+      "algorithm": "ed25519",
+      "publicKey": "-----BEGIN PUBLIC KEY-----\nREPLACE_WITH_REAL_ED25519_PUBLIC_KEY\n-----END PUBLIC KEY-----"
+    }
+  ],
+  "releases": [
+    {
+      "packageType": "nimi-app",
+      "packageId": "world.nimi.future-world-app",
+      "version": "0.1.0-beta.1",
+      "channel": "beta",
+      "artifactUrl": "https://github.com/community/studio-app/releases/download/v0.1.0-beta.1/world.nimi.future-world-app.zip",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "signature": "REPLACE_WITH_REAL_SIGNATURE",
+      "signerId": "community.studio.release",
+      "minDesktopVersion": "0.1.0",
+      "minHookApiVersion": "v1",
+      "capabilities": [],
+      "requiresReconsentOnCapabilityIncrease": false,
+      "publisher": {
+        "publisherId": "community.studio",
+        "displayName": "Community Studio",
+        "trustTier": "community"
+      },
+      "appMode": "render-app",
+      "scopeCatalogVersion": "v1",
+      "minRuntimeVersion": "0.1.0",
+      "source": {
+        "repoUrl": "https://github.com/community/studio-app",
+        "releaseTag": "v0.1.0-beta.1"
+      },
+      "state": {
+        "listed": true,
+        "yanked": false,
+        "quarantined": false
+      }
+    }
+  ]
+}

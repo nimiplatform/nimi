@@ -121,6 +121,10 @@
 | `D-MOD-013` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate` |
 | `D-MOD-014` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate` |
 | `D-MOD-015` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate` |
+| `D-MOD-016` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-MOD-017` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-MOD-018` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-MOD-019` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-NET-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-NET-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-NET-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |

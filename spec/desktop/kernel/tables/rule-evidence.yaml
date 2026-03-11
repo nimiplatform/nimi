@@ -655,6 +655,30 @@ rules:
     evidence_refs:
       - desktop_kernel_consistency
       - desktop_lint_gate
+  - rule_id: D-MOD-016
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+  - rule_id: D-MOD-017
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+  - rule_id: D-MOD-018
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+  - rule_id: D-MOD-019
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
   - rule_id: D-NET-001
     status: covered
     evidence_refs:

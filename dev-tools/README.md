@@ -36,6 +36,29 @@ nimi-mod doctor
 nimi-mod pack
 ```
 
+`nimi-mod pack` now writes two release assets under `dist/packages/`:
+
+- `<package-id>.zip`: runtime-installable prebuilt mod archive
+- `release.manifest.json`: sidecar release metadata for catalog indexing, digest verification, and signing
+
+Release manifest generation is GitHub-first and env-driven. Common inputs:
+
+- `NIMI_MOD_RELEASE_CHANNEL`
+- `NIMI_MOD_ARTIFACT_URL`
+- `NIMI_MOD_SIGNER_ID`
+- `NIMI_MOD_SIGNING_KEY`
+- `NIMI_MOD_PUBLISHER_ID`
+- `NIMI_MOD_PUBLISHER_NAME`
+- `NIMI_MOD_TRUST_TIER`
+
+Reserved `nimi-app`-only release fields:
+
+- `NIMI_MOD_APP_MODE`
+- `NIMI_MOD_SCOPE_CATALOG_VERSION`
+- `NIMI_MOD_MIN_RUNTIME_VERSION`
+
+Those three fields are only valid when `NIMI_MOD_PACKAGE_TYPE=nimi-app`.
+
 `nimi-mod` is for mod-author workflows. `nimi-app` currently exposes only `create`.
 
 Suggested mod repo scripts:

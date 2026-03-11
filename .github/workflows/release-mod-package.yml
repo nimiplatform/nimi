@@ -1,0 +1,301 @@
+name: release-mod-package
+
+on:
+  workflow_dispatch:
+    inputs:
+      mod_path:
+        description: Mod directory path under nimi-mods/ (for example runtime/local-chat)
+        required: true
+        type: string
+      artifact_url:
+        description: Optional public URL override for the zip asset
+        required: false
+        type: string
+      release_channel:
+        description: Release channel
+        required: true
+        type: choice
+        options:
+          - stable
+          - beta
+        default: stable
+      publish:
+        description: Publish GitHub Release assets and open a catalog PR
+        required: true
+        type: boolean
+        default: false
+      publish_assets:
+        description: Upload zip + release.manifest.json as workflow artifacts
+        required: true
+        type: boolean
+        default: true
+      catalog_repo:
+        description: Catalog repository (<owner>/<repo>)
+        required: true
+        type: string
+        default: nimiplatform/nimi-mod-catalog
+      catalog_base_branch:
+        description: Catalog repository base branch
+        required: true
+        type: string
+        default: main
+      catalog_path:
+        description: Path to the catalog root inside the catalog repo
+        required: true
+        type: string
+        default: .
+      catalog_pr_title_prefix:
+        description: Optional catalog PR title prefix
+        required: false
+        type: string
+      catalog_pr_body:
+        description: Optional catalog PR body override
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-mod-package:
+    runs-on: ubuntu-latest
+    env:
+      MOD_PATH: ${{ inputs.mod_path }}
+      RELEASE_CHANNEL: ${{ inputs.release_channel }}
+      SOURCE_REPOSITORY: ${{ github.repository }}
+      CATALOG_REPO: ${{ inputs.catalog_repo }}
+      CATALOG_BASE_BRANCH: ${{ inputs.catalog_base_branch }}
+      CATALOG_PATH: ${{ inputs.catalog_path }}
+      NIMI_MOD_RELEASE_CHANNEL: ${{ inputs.release_channel }}
+      NIMI_MOD_SIGNER_ID: ${{ vars.NIMI_MOD_SIGNER_ID || 'nimi.release' }}
+      NIMI_MOD_PUBLISHER_ID: ${{ vars.NIMI_MOD_PUBLISHER_ID || 'nimi' }}
+      NIMI_MOD_PUBLISHER_NAME: ${{ vars.NIMI_MOD_PUBLISHER_NAME || 'Nimi' }}
+      NIMI_MOD_TRUST_TIER: ${{ vars.NIMI_MOD_TRUST_TIER || 'official' }}
+      NIMI_MOD_MIN_DESKTOP_VERSION: ${{ vars.NIMI_MOD_MIN_DESKTOP_VERSION || '0.1.0' }}
+      NIMI_MOD_MIN_HOOK_API_VERSION: ${{ vars.NIMI_MOD_MIN_HOOK_API_VERSION || 'v1' }}
+      NIMI_MOD_SIGNING_KEY: ${{ secrets.NIMI_MOD_SIGNING_KEY }}
+      CATALOG_PR_TITLE_PREFIX: ${{ inputs.catalog_pr_title_prefix || vars.NIMI_MOD_CATALOG_PR_TITLE_PREFIX || 'catalog' }}
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 10.27.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Install root dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Install nimi-mods dependencies
+        run: pnpm --dir nimi-mods install --no-frozen-lockfile
+
+      - name: Verify target mod exists
+        run: |
+          set -euo pipefail
+          test -d "nimi-mods/${MOD_PATH}"
+          test -f "nimi-mods/${MOD_PATH}/package.json"
+
+      - name: Resolve release metadata
+        id: resolve
+        env:
+          ARTIFACT_URL_INPUT: ${{ inputs.artifact_url }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const yaml = require('yaml');
+
+          const modDir = path.resolve('nimi-mods', process.env.MOD_PATH);
+          const candidates = ['mod.manifest.yaml', 'mod.manifest.yml', 'mod.manifest.json'];
+          const manifestPath = candidates
+            .map((name) => path.join(modDir, name))
+            .find((filePath) => fs.existsSync(filePath));
+          if (!manifestPath) {
+            throw new Error(`mod manifest not found for ${modDir}`);
+          }
+          const raw = fs.readFileSync(manifestPath, 'utf8');
+          const manifest = manifestPath.endsWith('.json') ? JSON.parse(raw) : yaml.parse(raw);
+          const modId = String(manifest.id || '').trim();
+          const version = String(manifest.version || '0.1.0').trim() || '0.1.0';
+          const zipName = `${modId.replace(/[^\w.-]+/g, '-')}.zip`;
+          const releaseTag = `mods/${modId}/v${version}`;
+          const defaultArtifactUrl = `https://github.com/${process.env.GITHUB_REPOSITORY}/releases/download/${releaseTag}/${zipName}`;
+          const artifactUrl = String(process.env.ARTIFACT_URL_INPUT || '').trim() || defaultArtifactUrl;
+          const modPathLabel = String(process.env.MOD_PATH || '').trim().replace(/[^\w.-]+/g, '-');
+          const outputPath = process.env.GITHUB_OUTPUT;
+          const envPath = process.env.GITHUB_ENV;
+          fs.appendFileSync(outputPath, `mod_id=${modId}\n`);
+          fs.appendFileSync(outputPath, `version=${version}\n`);
+          fs.appendFileSync(outputPath, `release_tag=${releaseTag}\n`);
+          fs.appendFileSync(outputPath, `release_name=${modId} ${version}\n`);
+          fs.appendFileSync(outputPath, `manifest_path=${manifestPath}\n`);
+          fs.appendFileSync(outputPath, `zip_name=${zipName}\n`);
+          fs.appendFileSync(outputPath, `artifact_url=${artifactUrl}\n`);
+          fs.appendFileSync(outputPath, `mod_path_label=${modPathLabel}\n`);
+          fs.appendFileSync(envPath, `NIMI_MOD_ARTIFACT_URL=${artifactUrl}\n`);
+          NODE
+
+      - name: Build target mod
+        run: pnpm --dir "nimi-mods/${MOD_PATH}" run verify
+
+      - name: Pack target mod
+        run: pnpm --dir "nimi-mods/${MOD_PATH}" run pack
+
+      - name: Validate pack outputs
+        id: pack
+        run: |
+          set -euo pipefail
+          ls -la "nimi-mods/${MOD_PATH}/dist/packages"
+          test -f "nimi-mods/${MOD_PATH}/dist/packages/release.manifest.json"
+          zip_path="$(find "nimi-mods/${MOD_PATH}/dist/packages" -maxdepth 1 -name '*.zip' | head -n 1)"
+          test -n "${zip_path}"
+          echo "zip_path=${zip_path}" >> "$GITHUB_OUTPUT"
+          echo "release_manifest_path=nimi-mods/${MOD_PATH}/dist/packages/release.manifest.json" >> "$GITHUB_OUTPUT"
+
+      - name: Upload mod package artifacts
+        if: inputs.publish_assets
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: mod-package-${{ steps.resolve.outputs.mod_path_label }}-${{ inputs.release_channel }}
+          path: |
+            ${{ steps.pack.outputs.zip_path }}
+            ${{ steps.pack.outputs.release_manifest_path }}
+          if-no-files-found: error
+
+      - name: Ensure GitHub release exists
+        if: inputs.publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.resolve.outputs.release_tag }}
+          RELEASE_NAME: ${{ steps.resolve.outputs.release_name }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            gh release create "${RELEASE_TAG}" --title "${RELEASE_NAME}" --notes "Automated mod package release for ${MOD_PATH}."
+          fi
+
+      - name: Upload assets to GitHub Release
+        if: inputs.publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.resolve.outputs.release_tag }}
+        run: |
+          set -euo pipefail
+          gh release upload "${RELEASE_TAG}" \
+            "${{ steps.pack.outputs.zip_path }}" \
+            "${{ steps.pack.outputs.release_manifest_path }}" \
+            --clobber
+
+      - name: Checkout catalog repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: ${{ inputs.catalog_repo }}
+          ref: ${{ inputs.catalog_base_branch }}
+          path: catalog-repo
+          fetch-depth: 0
+          token: ${{ secrets.NIMI_MOD_CATALOG_REPO_TOKEN || github.token }}
+
+      - name: Warn when cross-repo catalog access relies on default token
+        if: inputs.catalog_repo != github.repository && secrets.NIMI_MOD_CATALOG_REPO_TOKEN == ''
+        run: |
+          echo "::warning::catalog_repo points to a different repository and NIMI_MOD_CATALOG_REPO_TOKEN is unset. This workflow will only succeed if ${CATALOG_REPO} is public and allows the default workflow token to read and open PRs."
+
+      - name: Update catalog working tree
+        run: |
+          set -euo pipefail
+          node scripts/update-mod-catalog.mjs \
+            --catalog-dir "catalog-repo/${CATALOG_PATH}" \
+            --release-manifest "${{ steps.pack.outputs.release_manifest_path }}" \
+            --manifest-file "${{ steps.resolve.outputs.manifest_path }}" \
+            --signers-file "catalog-repo/${CATALOG_PATH}/signers.json" \
+            --package-id "${{ steps.resolve.outputs.mod_id }}" \
+            --channel "${{ inputs.release_channel }}"
+          node scripts/check-mod-catalog-signers.mjs \
+            --signers-file "catalog-repo/${CATALOG_PATH}/signers.json" \
+            --catalog-dir "catalog-repo/${CATALOG_PATH}"
+
+      - name: Capture catalog patch preview
+        working-directory: catalog-repo
+        run: |
+          set -euo pipefail
+          git diff --binary -- "${CATALOG_PATH}" > ../catalog-update.patch || true
+
+      - name: Upload catalog patch preview
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: mod-catalog-patch-${{ steps.resolve.outputs.mod_path_label }}-${{ inputs.release_channel }}
+          path: |
+            catalog-update.patch
+            catalog-repo/${{ inputs.catalog_path }}/index
+          if-no-files-found: error
+
+      - name: Create catalog PR
+        if: inputs.publish
+        env:
+          GH_TOKEN: ${{ secrets.NIMI_MOD_CATALOG_REPO_TOKEN || github.token }}
+          MOD_ID: ${{ steps.resolve.outputs.mod_id }}
+          VERSION: ${{ steps.resolve.outputs.version }}
+          RELEASE_TAG: ${{ steps.resolve.outputs.release_tag }}
+          CATALOG_PR_BODY_OVERRIDE: ${{ inputs.catalog_pr_body }}
+        working-directory: catalog-repo
+        run: |
+          set -euo pipefail
+          test -n "${GH_TOKEN}"
+          if git diff --quiet -- "${CATALOG_PATH}"; then
+            echo "No catalog changes detected."
+            exit 0
+          fi
+          branch_name="$(node <<'NODE'
+          const modId = String(process.env.MOD_ID || '').trim().replace(/[^\w./-]+/g, '-');
+          const version = String(process.env.VERSION || '').trim().replace(/[^\w./-]+/g, '-');
+          process.stdout.write(`codex/catalog-${modId}-${version}`);
+          NODE
+          )"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin "${CATALOG_BASE_BRANCH}" "${branch_name}" || true
+          git checkout -B "${branch_name}" "origin/${CATALOG_BASE_BRANCH}"
+          git add "${CATALOG_PATH}"
+          if git diff --cached --quiet; then
+            echo "No staged catalog changes detected."
+            exit 0
+          fi
+          git commit -m "catalog: update ${MOD_ID}@${VERSION}"
+          git push --force-with-lease --set-upstream origin "${branch_name}"
+          pr_body="${CATALOG_PR_BODY_OVERRIDE:-}"
+          if [[ -z "${pr_body}" ]]; then
+            pr_body="Automated catalog update for ${MOD_ID}@${VERSION}. Source release: ${RELEASE_TAG}"
+          fi
+          pr_title="${CATALOG_PR_TITLE_PREFIX}: ${MOD_ID}@${VERSION}"
+          existing_pr_number="$(gh pr list \
+            --repo "${CATALOG_REPO}" \
+            --base "${CATALOG_BASE_BRANCH}" \
+            --head "${branch_name}" \
+            --state open \
+            --json number \
+            --jq '.[0].number // empty')"
+          if [[ -n "${existing_pr_number}" ]]; then
+            gh pr edit "${existing_pr_number}" \
+              --repo "${CATALOG_REPO}" \
+              --title "${pr_title}" \
+              --body "${pr_body}"
+            echo "Updated existing PR #${existing_pr_number}."
+            exit 0
+          fi
+          gh pr create \
+            --repo "${CATALOG_REPO}" \
+            --base "${CATALOG_BASE_BRANCH}" \
+            --head "${branch_name}" \
+            --title "${pr_title}" \
+            --body "${pr_body}"

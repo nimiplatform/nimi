@@ -28,6 +28,8 @@ export default defineConfig({
         items: [
           { text: 'App Developer', link: '/guides/app-developer' },
           { text: 'Mod Developer', link: '/guides/mod-developer' },
+          { text: 'Mod Release', link: '/guides/mod-release' },
+          { text: 'Mod Release (CN)', link: '/guides/mod-release_cn' },
           { text: 'Runtime Integrator', link: '/guides/runtime-integrator' },
         ],
       },
@@ -62,6 +64,8 @@ export default defineConfig({
           items: [
             { text: 'App Developer', link: '/guides/app-developer' },
             { text: 'Mod Developer', link: '/guides/mod-developer' },
+            { text: 'Mod Release', link: '/guides/mod-release' },
+            { text: 'Mod Release (CN)', link: '/guides/mod-release_cn' },
             { text: 'Runtime Integrator', link: '/guides/runtime-integrator' },
           ],
         },

@@ -1,9 +1,13 @@
 name: Mod submission
-description: Submit a mod to Mod Circle
+description: Request catalog listing or verification for a third-party Nimi mod
 labels:
   - mods
   - needs-triage
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for third-party catalog intake. Before submitting, read `docs/guides/mod-release.md` in this repository and make sure your release assets are already public.
   - type: input
     id: mod_id
     attributes:
@@ -26,6 +30,24 @@ body:
       placeholder: https://github.com/your-org/your-mod
     validations:
       required: true
+  - type: dropdown
+    id: requested_trust_tier
+    attributes:
+      label: Requested trust tier
+      description: Choose the listing tier you are applying for
+      options:
+        - community
+        - verified
+    validations:
+      required: true
+  - type: input
+    id: artifact_url
+    attributes:
+      label: Package zip URL
+      description: Public downloadable URL for the prebuilt .zip artifact
+      placeholder: https://github.com/your-org/your-mod/releases/download/v0.1.0/your-mod.zip
+    validations:
+      required: true
   - type: textarea
     id: description
     attributes:
@@ -34,9 +56,38 @@ body:
     validations:
       required: true
   - type: textarea
-    id: permissions
+    id: capabilities
     attributes:
-      label: Runtime permissions / scopes
-      description: List required scopes and why they are needed
+      label: Runtime capabilities
+      description: List required capabilities and why they are needed
+    validations:
+      required: true
+  - type: input
+    id: release_manifest
+    attributes:
+      label: release.manifest.json URL
+      description: Public sidecar release metadata URL for catalog review
+      placeholder: https://github.com/your-org/your-mod/releases/download/v0.1.0/release.manifest.json
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility
+      description: State the desktop version and hook API version you tested against
+      placeholder: |
+        Tested desktop: 0.1.x
+        Hook API: v1
+    validations:
+      required: true
+  - type: textarea
+    id: maintainer_contact
+    attributes:
+      label: Maintainer contact and update owner
+      description: Who owns future updates and where should maintainers contact you?
+      placeholder: |
+        Maintainer: your-org
+        Contact: maintainer@example.com
+        Update owner: @your-handle
     validations:
       required: true
