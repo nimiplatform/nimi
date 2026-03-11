@@ -52,6 +52,10 @@ function getTailwindCliEntrypoint() {
   return path.join(path.dirname(packageJsonPath), binRelativePath);
 }
 
+function getTailwindStylesheetPath() {
+  return require.resolve('tailwindcss/index.css');
+}
+
 function toPosixPath(value) {
   return String(value || '').split(path.sep).join('/');
 }
@@ -65,7 +69,7 @@ function escapeCssString(value) {
 function createTailwindInput(modDir) {
   const normalizedModDir = toPosixPath(path.resolve(modDir));
   return [
-    '@import "tailwindcss";',
+    `@import "${escapeCssString(toPosixPath(getTailwindStylesheetPath()))}";`,
     MOD_THEME_CSS,
     `@source "${escapeCssString(`${normalizedModDir}/index.ts`)}";`,
     `@source "${escapeCssString(`${normalizedModDir}/src`)}";`,
