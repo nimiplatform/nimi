@@ -4,13 +4,13 @@
 
 ## Scope
 
-Mods 管理面板 — 已安装 mod 的一等公民入口，替代原有侧边栏浮动下拉菜单。
+Mods 面板 — 已安装 mod 的一等公民入口，替代原有侧边栏浮动下拉菜单，并内嵌 Marketplace 视图。
 
 ## Module Map
 
-- `features/mods/mods-panel.tsx` — 组合入口（controller → view）
-- `features/mods/mods-panel-controller.ts` — 业务逻辑（mod 列表、搜索、操作）
-- `features/mods/mods-panel-view.tsx` — 视图（卡片网格、搜索框、空状态）
+- `features/mods/mods-panel.tsx` — 组合入口（launcher / marketplace 视图切换）
+- `features/mods/mods-panel-controller.ts` — launcher 业务逻辑（mod 列表、搜索、打开）
+- `features/mods/mods-panel-view.tsx` — launcher 视图（icon grid、搜索框、空状态）
 
 ## Kernel References
 
@@ -35,28 +35,25 @@ Controller 从 AppStore 读取：
 
 ### Mod Governance (D-MOD-007)
 
-操作映射到 mod lifecycle 状态迁移：
+Launcher 视图只负责：
 - **Open** → `openModWorkspaceTab` + `setActiveTab('mod:${id}')`
-- **Enable** → 从 disabled → ENABLED（重新注册 + 清除 fuse）
-- **Disable** → ENABLED → DISABLED（取消注册 + 关闭 tab）
-- **Uninstall** → ENABLED/DISABLED → UNINSTALLED（取消注册 + 移除）
-- **Retry** → FUSED → 清除 fuse + 重新注册
 
-Disable / Uninstall 当前激活的 mod 时，fallback 导航到 `'mods'`（而非 `'marketplace'`）。
+Enable / Disable / Uninstall / Retry / Install 统一在内嵌 Marketplace 视图中处理。
+Disable / Uninstall 当前激活的 mod 时，fallback 导航到 `'mods'`。
 
-### Marketplace (互补关系)
+### Marketplace (内嵌关系)
 
-Mods Panel 管理已安装 mod。Marketplace 负责 mod 发现/安装。
-- Mods Panel 空状态提供 "打开市场" 按钮跳转到 Marketplace。
-- Marketplace 中 disable/uninstall 当前 mod 也 fallback 到 `'mods'`。
+Mods Panel 既是 launcher，也是 Marketplace 容器：
+- Launcher 视图显示已启用 mod 的 icon grid。
+- Marketplace 视图负责 mod 发现、安装、启用、禁用、卸载。
+- 空状态和 header 按钮都切换到内嵌 Marketplace 视图，而不是进入第二个独立导航入口。
 
 ## UI Contract
 
-布局采用 World Panel 同款风格：
-- 背景：`bg-[#F0F4F8]`
-- 卡片：`rounded-2xl border-white/60 bg-white/40 backdrop-blur-xl`
-- 搜索框：`rounded-full bg-white max-w-md`
-- 网格：`sm:grid-cols-2 lg:grid-cols-3`
+Launcher 视图采用轻量 icon launcher 布局：
+- tile：icon + name
+- hover tooltip：简介；dev mod 额外标记开发来源
+- 管理动作与版本信息不在 launcher 视图展示
 
 ## CI 门禁引用
 

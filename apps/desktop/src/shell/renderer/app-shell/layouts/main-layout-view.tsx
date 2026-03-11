@@ -71,10 +71,6 @@ const HomePanel = lazy(async () => {
   const mod = await import('@renderer/features/home/home-panel');
   return { default: mod.HomePanel };
 });
-const MarketplacePage = lazy(async () => {
-  const mod = await import('@renderer/features/marketplace/marketplace-page');
-  return { default: mod.MarketplacePage };
-});
 const ModsPanel = lazy(async () => {
   const mod = await import('@renderer/features/mods/mods-panel');
   return { default: mod.ModsPanel };
@@ -747,9 +743,9 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               </div>
             ) : null}
 
-            {props.activeTab === 'marketplace' && flags.enableMarketplaceTab ? (
+            {props.activeTab === 'marketplace' && flags.enableMarketplaceTab && flags.enableModUi ? (
               <div className="flex min-h-0 flex-1 flex-col">
-                <MarketplacePage />
+                <ModsPanel initialSection="marketplace" />
               </div>
             ) : null}
 

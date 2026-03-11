@@ -2,6 +2,11 @@ import { MarketplaceRow } from './marketplace-row';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import type { MarketplacePageModel } from './marketplace-controller';
 
+type MarketplaceViewProps = MarketplacePageModel & {
+  embedded?: boolean;
+  onOpenLibrary?: () => void;
+};
+
 const ICON_SEARCH = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="11" cy="11" r="8" />
@@ -17,7 +22,9 @@ const ICON_BOX = (
   </svg>
 );
 
-export function MarketplaceView(model: MarketplacePageModel) {
+export function MarketplaceView(model: MarketplaceViewProps) {
+  const embedded = Boolean(model.embedded);
+  const onOpenLibrary = model.onOpenLibrary;
   // Separate installed and not installed mods
   const installedMods = model.filteredMods.filter((mod) => mod.isInstalled);
   const notInstalledMods = model.filteredMods.filter((mod) => !mod.isInstalled);
@@ -29,7 +36,18 @@ export function MarketplaceView(model: MarketplacePageModel) {
       {/* Header */}
       <div className="shrink-0 bg-[#F0F4F8] px-6 py-4">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <h1 className={APP_PAGE_TITLE_CLASS}>Mod Marketplace</h1>
+          <div className="flex items-center gap-3">
+            <h1 className={APP_PAGE_TITLE_CLASS}>Mod Marketplace</h1>
+            {embedded ? (
+              <button
+                type="button"
+                onClick={onOpenLibrary}
+                className="rounded-full border border-mint-200 bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition-all hover:border-mint-300 hover:bg-white hover:text-slate-900"
+              >
+                Back to Library
+              </button>
+            ) : null}
+          </div>
           <div className="w-full max-w-xl lg:w-[420px] lg:flex-shrink-0">
             <div className="group relative">
               <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-emerald-500">

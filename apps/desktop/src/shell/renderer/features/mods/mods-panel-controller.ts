@@ -22,6 +22,7 @@ import {
   type MarketplaceMod,
   toRuntimeModRow,
 } from '@renderer/features/marketplace/marketplace-model';
+import { persistStoredModsPanelSection } from './mods-panel-state';
 
 function normalizeModId(modId: string): string {
   return String(modId || '').trim();
@@ -251,7 +252,8 @@ export function useModsPanelModel(): ModsPanelModel {
   }, [setActiveTab]);
 
   const onOpenMarketplace = useCallback(() => {
-    setActiveTab('marketplace');
+    persistStoredModsPanelSection('marketplace');
+    setActiveTab('mods');
   }, [setActiveTab]);
 
   const onOpenModDeveloper = useCallback(() => {

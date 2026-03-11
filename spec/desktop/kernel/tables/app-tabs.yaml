@@ -46,9 +46,9 @@ tabs:
     gated_by: null
     source_rule: D-SHELL-001
 
-  # Quick navigation (feature-gated)
+  # Embedded marketplace route (no standalone sidebar entry)
   - id: marketplace
-    nav_group: quick
+    nav_group: embedded
     label: Marketplace
     gated_by: enableMarketplaceTab
     source_rule: D-SHELL-001

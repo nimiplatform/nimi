@@ -155,10 +155,6 @@ const BASE_CORE_NAV_ITEMS: NavItem[] = [
   { id: 'settings', label: 'Settings', icon: renderShellNavIcon('settings') },
 ];
 
-const BASE_QUICK_NAV_ITEMS: NavItem[] = [
-  { id: 'marketplace', label: 'Marketplace', icon: renderShellNavIcon('marketplace') },
-];
-
 export function getCoreNavItems(): NavItem[] {
   const flags = getShellFeatureFlags();
   return BASE_CORE_NAV_ITEMS.filter((item) => {
@@ -170,11 +166,7 @@ export function getCoreNavItems(): NavItem[] {
 }
 
 export function getQuickNavItems(): NavItem[] {
-  const flags = getShellFeatureFlags();
-  if (!flags.enableMarketplaceTab) {
-    return [];
-  }
-  return BASE_QUICK_NAV_ITEMS;
+  return [];
 }
 
 export function NavLink({

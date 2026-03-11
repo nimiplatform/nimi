@@ -11,7 +11,7 @@ flags:
   - flag: enableMarketplaceTab
     default_desktop: true
     default_web: false
-    description: Show Marketplace tab in quick navigation
+    description: Enable Marketplace view inside Mods panel and marketplace route alias
     source_rule: D-SHELL-001
 
   - flag: enableModUi

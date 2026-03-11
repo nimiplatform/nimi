@@ -14,7 +14,8 @@
 
 ### Shell (D-SHELL-001)
 
-Marketplace Tab 受 `enableMarketplaceTab` feature flag 门控。仅 desktop 模式可见。
+Marketplace 受 `enableMarketplaceTab` feature flag 门控，但不再作为独立 sidebar tab 暴露。
+产品主入口位于 `Mods` 页面内部的 Marketplace 视图；`activeTab = 'marketplace'` 仅保留为兼容 alias 路由。
 
 ### Mod Governance (D-MOD-001 — D-MOD-008)
 
@@ -32,7 +33,8 @@ Marketplace Tab 受 `enableMarketplaceTab` feature flag 门控。仅 desktop 模
 
 ### State (D-STATE-004)
 
-- `activeTab = 'marketplace'` 时渲染 MarketplaceView。
+- `Mods` 页面切换到 Marketplace 视图时渲染 MarketplaceView。
+- `activeTab = 'marketplace'` 时必须与 `Mods > Marketplace` 等价，而不是提供第二个独立入口。
 
 ## CI 门禁引用
 
