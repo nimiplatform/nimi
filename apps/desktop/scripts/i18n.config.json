@@ -47,18 +47,13 @@
   },
   "audit": {
     "scopeDirs": [
-      "src/shell/renderer/App.tsx",
-      "src/shell/renderer/app-shell/routes",
-      "src/shell/renderer/infra/error-boundary",
-      "src/shell/renderer/ui/feedback",
-      "src/shell/renderer/features/settings",
-      "src/shell/renderer/features/turns",
-      "src/shell/renderer/mod-ui",
-      "src/shell/renderer/infra/bootstrap/runtime-bootstrap-runtime-mods.ts"
+      "src/shell/renderer",
+      "src/shell/renderer/index.html"
     ],
     "extensions": [
       ".ts",
-      ".tsx"
+      ".tsx",
+      ".html"
     ],
     "excludePathPatterns": [
       "/test/",
@@ -75,7 +70,14 @@
       "^Error$",
       "^unknown$",
       "^-$",
-      "^--$"
+      "^--$",
+      "^[A-Z0-9_]+$",
+      "^MetaMask$",
+      "^Binance Wallet$",
+      "^OKX Wallet$",
+      "^Google$",
+      "^Google login$",
+      "^Nimi$"
     ]
   }
 }

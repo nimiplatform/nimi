@@ -1,116 +1,127 @@
 import { asNimiError, createNimiError, isNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode, type NimiError } from '@nimiplatform/sdk/types';
+import { i18n } from '@renderer/i18n';
 import { hasTauriInvoke } from './env';
 import { emitRendererLog, resolveRendererSessionTraceId, toRendererLogMessage } from './logging';
 import type { RuntimeBridgeStructuredError } from './types';
 
-const BRIDGE_ERROR_CODE_MAP: Record<string, string> = {
-  LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT: '导入路径无效，请将模型放到 Local Runtime models 目录后重试',
-  LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID: '仅支持导入 model.manifest.json 清单文件',
-  LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID: '仅支持导入 artifact.manifest.json 清单文件',
-  LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND: '未找到待导入的 companion 文件，请刷新后重试',
-  LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID: '请选择有效的 companion 资源类型',
-  LOCAL_AI_ARTIFACT_ORPHAN_TARGET_EXISTS: '目标 companion 目录已存在，请更换文件名或移除旧资源后重试',
-  LOCAL_AI_ARTIFACT_ORPHAN_DIR_FAILED: '无法创建 companion 资源目录，请检查本地文件权限',
-  LOCAL_AI_ARTIFACT_ORPHAN_MOVE_FAILED: '无法整理 companion 资源文件，请检查文件占用或权限',
-  LOCAL_AI_ARTIFACT_ORPHAN_SOURCE_CLEANUP_FAILED: 'companion 文件复制后清理原文件失败，请手动检查文件状态',
-  LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_SERIALIZE_FAILED: 'companion 清单生成失败，请重试',
-  LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_WRITE_FAILED: 'companion 清单写入失败，请检查本地文件权限',
-  LOCAL_AI_IMPORT_MANIFEST_NOT_FOUND: '未找到模型清单文件，请检查导入路径',
-  LOCAL_AI_IMPORT_MANIFEST_PARSE_FAILED: '模型清单解析失败，请检查 JSON 格式',
-  LOCAL_AI_IMPORT_HASH_MISMATCH: '模型文件校验失败，请确认文件完整后重试',
-  LOCAL_AI_ENDPOINT_NOT_LOOPBACK: '本地运行时 endpoint 仅支持 localhost/127.0.0.1/[::1]',
-  LOCAL_AI_ENDPOINT_INVALID: '本地运行时 endpoint 格式无效，请检查地址',
-  LOCAL_AI_MODEL_NOT_FOUND: '未找到可用模型，请先安装并启用模型',
-  LOCAL_AI_MODEL_HASHES_EMPTY: '模型未完成完整性校验，无法启动',
-  LOCAL_AI_MODEL_CAPABILITY_INVALID: '模型能力配置无效，请检查 manifest.capabilities',
-  LOCAL_AI_HF_DOWNLOAD_INTERRUPTED: '下载已中断，重启后请手动恢复任务',
-  LOCAL_AI_HF_DOWNLOAD_PAUSED: '下载已暂停，可稍后继续',
-  LOCAL_AI_HF_DOWNLOAD_CANCELLED: '下载已取消',
-  LOCAL_AI_HF_DOWNLOAD_DISK_FULL: '磁盘空间不足，请释放空间后继续下载',
-  LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH: '模型文件校验失败，请重新下载',
-  LOCAL_AI_HF_DOWNLOAD_NOT_RESUMABLE: '当前下载会话不可恢复，请重新安装模型',
-  LOCAL_AI_HF_DOWNLOAD_SESSION_EXISTS: '该模型已有进行中的下载任务',
-  LOCAL_AI_DOWNLOAD_SESSION_NOT_FOUND: '未找到下载会话，请刷新后重试',
-  LOCAL_LIFECYCLE_WRITE_DENIED: '当前来源无权执行模型生命周期写操作',
-  RUNTIME_ROUTE_CAPABILITY_MISMATCH: '当前路由绑定的本地模型不具备所需能力，请切换匹配模型',
-  LOCAL_AI_QWEN_GPU_REQUIRED: 'Qwen TTS 需要可用 NVIDIA GPU，本机未检测到支持环境',
-  LOCAL_AI_QWEN_PYTHON_REQUIRED: 'Qwen TTS 需要 Python 3.10+，请先安装后重试',
-  LOCAL_AI_QWEN_PYTHON_VERSION_UNSUPPORTED: 'Qwen TTS 需要 Python 3.10+，当前版本不满足要求',
-  LOCAL_AI_QWEN_BOOTSTRAP_FAILED: 'Qwen TTS 运行时依赖安装失败，请检查 Python/pip 与网络环境',
+const BRIDGE_ERROR_CODE_MAP: Record<string, { key: string; defaultValue: string }> = {
+  LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT: { key: 'BridgeErrors.codes.LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT', defaultValue: 'Import path is invalid. Move the model into the Local Runtime models directory and try again.' },
+  LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID: { key: 'BridgeErrors.codes.LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID', defaultValue: 'Only `model.manifest.json` manifest files can be imported.' },
+  LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID: { key: 'BridgeErrors.codes.LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID', defaultValue: 'Only `artifact.manifest.json` manifest files can be imported.' },
+  LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND: { key: 'BridgeErrors.codes.LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND', defaultValue: 'The companion file to import was not found. Refresh and try again.' },
+  LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID: { key: 'BridgeErrors.codes.LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID', defaultValue: 'Please choose a valid companion asset type.' },
+  LOCAL_AI_ARTIFACT_ORPHAN_TARGET_EXISTS: { key: 'BridgeErrors.codes.LOCAL_AI_ARTIFACT_ORPHAN_TARGET_EXISTS', defaultValue: 'The target companion directory already exists. Rename the file or remove the old asset first.' },
+  LOCAL_AI_ARTIFACT_ORPHAN_DIR_FAILED: { key: 'BridgeErrors.codes.LOCAL_AI_ARTIFACT_ORPHAN_DIR_FAILED', defaultValue: 'Failed to create the companion asset directory. Check local file permissions.' },
+  LOCAL_AI_ARTIFACT_ORPHAN_MOVE_FAILED: { key: 'BridgeErrors.codes.LOCAL_AI_ARTIFACT_ORPHAN_MOVE_FAILED', defaultValue: 'Failed to organize companion asset files. Check file locks or permissions.' },
+  LOCAL_AI_ARTIFACT_ORPHAN_SOURCE_CLEANUP_FAILED: { key: 'BridgeErrors.codes.LOCAL_AI_ARTIFACT_ORPHAN_SOURCE_CLEANUP_FAILED', defaultValue: 'Failed to clean up the original companion file after copying. Please inspect the file state manually.' },
+  LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_SERIALIZE_FAILED: { key: 'BridgeErrors.codes.LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_SERIALIZE_FAILED', defaultValue: 'Failed to generate the companion manifest. Please try again.' },
+  LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_WRITE_FAILED: { key: 'BridgeErrors.codes.LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_WRITE_FAILED', defaultValue: 'Failed to write the companion manifest. Check local file permissions.' },
+  LOCAL_AI_IMPORT_MANIFEST_NOT_FOUND: { key: 'BridgeErrors.codes.LOCAL_AI_IMPORT_MANIFEST_NOT_FOUND', defaultValue: 'Model manifest file was not found. Please inspect the import path.' },
+  LOCAL_AI_IMPORT_MANIFEST_PARSE_FAILED: { key: 'BridgeErrors.codes.LOCAL_AI_IMPORT_MANIFEST_PARSE_FAILED', defaultValue: 'Model manifest parsing failed. Please check the JSON format.' },
+  LOCAL_AI_IMPORT_HASH_MISMATCH: { key: 'BridgeErrors.codes.LOCAL_AI_IMPORT_HASH_MISMATCH', defaultValue: 'Model file verification failed. Confirm the file is intact and try again.' },
+  LOCAL_AI_ENDPOINT_NOT_LOOPBACK: { key: 'BridgeErrors.codes.LOCAL_AI_ENDPOINT_NOT_LOOPBACK', defaultValue: 'The local runtime endpoint only supports localhost, 127.0.0.1, or [::1].' },
+  LOCAL_AI_ENDPOINT_INVALID: { key: 'BridgeErrors.codes.LOCAL_AI_ENDPOINT_INVALID', defaultValue: 'The local runtime endpoint format is invalid. Please check the address.' },
+  LOCAL_AI_MODEL_NOT_FOUND: { key: 'BridgeErrors.codes.LOCAL_AI_MODEL_NOT_FOUND', defaultValue: 'No available model was found. Install and enable one first.' },
+  LOCAL_AI_MODEL_HASHES_EMPTY: { key: 'BridgeErrors.codes.LOCAL_AI_MODEL_HASHES_EMPTY', defaultValue: 'The model has not completed integrity verification and cannot be started.' },
+  LOCAL_AI_MODEL_CAPABILITY_INVALID: { key: 'BridgeErrors.codes.LOCAL_AI_MODEL_CAPABILITY_INVALID', defaultValue: 'Model capability configuration is invalid. Please inspect `manifest.capabilities`.' },
+  LOCAL_AI_HF_DOWNLOAD_INTERRUPTED: { key: 'BridgeErrors.codes.LOCAL_AI_HF_DOWNLOAD_INTERRUPTED', defaultValue: 'Download was interrupted. Resume the task manually after restarting.' },
+  LOCAL_AI_HF_DOWNLOAD_PAUSED: { key: 'BridgeErrors.codes.LOCAL_AI_HF_DOWNLOAD_PAUSED', defaultValue: 'Download is paused and can be resumed later.' },
+  LOCAL_AI_HF_DOWNLOAD_CANCELLED: { key: 'BridgeErrors.codes.LOCAL_AI_HF_DOWNLOAD_CANCELLED', defaultValue: 'Download has been canceled.' },
+  LOCAL_AI_HF_DOWNLOAD_DISK_FULL: { key: 'BridgeErrors.codes.LOCAL_AI_HF_DOWNLOAD_DISK_FULL', defaultValue: 'Insufficient disk space. Free up space and try the download again.' },
+  LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH: { key: 'BridgeErrors.codes.LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH', defaultValue: 'Model file verification failed. Please download it again.' },
+  LOCAL_AI_HF_DOWNLOAD_NOT_RESUMABLE: { key: 'BridgeErrors.codes.LOCAL_AI_HF_DOWNLOAD_NOT_RESUMABLE', defaultValue: 'The current download session cannot be resumed. Reinstall the model instead.' },
+  LOCAL_AI_HF_DOWNLOAD_SESSION_EXISTS: { key: 'BridgeErrors.codes.LOCAL_AI_HF_DOWNLOAD_SESSION_EXISTS', defaultValue: 'A download task for this model is already in progress.' },
+  LOCAL_AI_DOWNLOAD_SESSION_NOT_FOUND: { key: 'BridgeErrors.codes.LOCAL_AI_DOWNLOAD_SESSION_NOT_FOUND', defaultValue: 'Download session was not found. Refresh and try again.' },
+  LOCAL_LIFECYCLE_WRITE_DENIED: { key: 'BridgeErrors.codes.LOCAL_LIFECYCLE_WRITE_DENIED', defaultValue: 'The current source is not allowed to perform local model lifecycle writes.' },
+  RUNTIME_ROUTE_CAPABILITY_MISMATCH: { key: 'BridgeErrors.codes.RUNTIME_ROUTE_CAPABILITY_MISMATCH', defaultValue: 'The current route is bound to a model with incompatible capabilities. Switch to a matching model.' },
+  LOCAL_AI_QWEN_GPU_REQUIRED: { key: 'BridgeErrors.codes.LOCAL_AI_QWEN_GPU_REQUIRED', defaultValue: 'Qwen TTS requires an available NVIDIA GPU environment.' },
+  LOCAL_AI_QWEN_PYTHON_REQUIRED: { key: 'BridgeErrors.codes.LOCAL_AI_QWEN_PYTHON_REQUIRED', defaultValue: 'Qwen TTS requires Python 3.10+.' },
+  LOCAL_AI_QWEN_PYTHON_VERSION_UNSUPPORTED: { key: 'BridgeErrors.codes.LOCAL_AI_QWEN_PYTHON_VERSION_UNSUPPORTED', defaultValue: 'Qwen TTS requires Python 3.10+. The current version is unsupported.' },
+  LOCAL_AI_QWEN_BOOTSTRAP_FAILED: { key: 'BridgeErrors.codes.LOCAL_AI_QWEN_BOOTSTRAP_FAILED', defaultValue: 'Qwen TTS environment setup failed. Please check Python, pip, and network access.' },
 
   // Phase 1: AI Provider reason codes (D-ERR-007)
-  AI_PROVIDER_TIMEOUT: 'AI 服务超时',
-  AI_PROVIDER_UNAVAILABLE: 'AI 服务不可用',
-  AI_PROVIDER_RATE_LIMITED: 'AI 服务请求频率受限',
-  AI_PROVIDER_INTERNAL: 'AI 服务内部错误',
-  AI_PROVIDER_ENDPOINT_FORBIDDEN: 'AI 服务端点被禁止',
-  AI_PROVIDER_AUTH_FAILED: 'AI 服务认证失败',
-  AI_STREAM_BROKEN: 'AI 流式响应中断',
+  AI_PROVIDER_TIMEOUT: { key: 'BridgeErrors.codes.AI_PROVIDER_TIMEOUT', defaultValue: 'AI provider request timed out.' },
+  AI_PROVIDER_UNAVAILABLE: { key: 'BridgeErrors.codes.AI_PROVIDER_UNAVAILABLE', defaultValue: 'AI provider is unavailable.' },
+  AI_PROVIDER_RATE_LIMITED: { key: 'BridgeErrors.codes.AI_PROVIDER_RATE_LIMITED', defaultValue: 'AI provider rate limit was reached.' },
+  AI_PROVIDER_INTERNAL: { key: 'BridgeErrors.codes.AI_PROVIDER_INTERNAL', defaultValue: 'AI provider returned an internal error.' },
+  AI_PROVIDER_ENDPOINT_FORBIDDEN: { key: 'BridgeErrors.codes.AI_PROVIDER_ENDPOINT_FORBIDDEN', defaultValue: 'AI provider endpoint is forbidden.' },
+  AI_PROVIDER_AUTH_FAILED: { key: 'BridgeErrors.codes.AI_PROVIDER_AUTH_FAILED', defaultValue: 'AI provider authentication failed.' },
+  AI_STREAM_BROKEN: { key: 'BridgeErrors.codes.AI_STREAM_BROKEN', defaultValue: 'AI streaming response was interrupted.' },
 
   // Phase 1: AI Connector reason codes
-  AI_CONNECTOR_CREDENTIAL_MISSING: 'AI 连接器凭证缺失',
-  AI_CONNECTOR_DISABLED: 'AI 连接器已禁用',
-  AI_CONNECTOR_NOT_FOUND: 'AI 连接器未找到',
-  AI_CONNECTOR_INVALID: 'AI 连接器配置无效',
-  AI_CONNECTOR_IMMUTABLE: 'AI 连接器不可修改',
-  AI_CONNECTOR_LIMIT_EXCEEDED: 'AI 连接器数量超限',
+  AI_CONNECTOR_CREDENTIAL_MISSING: { key: 'BridgeErrors.codes.AI_CONNECTOR_CREDENTIAL_MISSING', defaultValue: 'AI connector credentials are missing.' },
+  AI_CONNECTOR_DISABLED: { key: 'BridgeErrors.codes.AI_CONNECTOR_DISABLED', defaultValue: 'AI connector is disabled.' },
+  AI_CONNECTOR_NOT_FOUND: { key: 'BridgeErrors.codes.AI_CONNECTOR_NOT_FOUND', defaultValue: 'AI connector was not found.' },
+  AI_CONNECTOR_INVALID: { key: 'BridgeErrors.codes.AI_CONNECTOR_INVALID', defaultValue: 'AI connector configuration is invalid.' },
+  AI_CONNECTOR_IMMUTABLE: { key: 'BridgeErrors.codes.AI_CONNECTOR_IMMUTABLE', defaultValue: 'AI connector cannot be modified.' },
+  AI_CONNECTOR_LIMIT_EXCEEDED: { key: 'BridgeErrors.codes.AI_CONNECTOR_LIMIT_EXCEEDED', defaultValue: 'AI connector limit has been exceeded.' },
 
   // Phase 1: AI Model reason codes
-  AI_MODEL_NOT_FOUND: 'AI 模型未找到',
-  AI_MODALITY_NOT_SUPPORTED: 'AI 模态不支持',
-  AI_MODEL_PROVIDER_MISMATCH: 'AI 模型与供应商不匹配',
+  AI_MODEL_NOT_FOUND: { key: 'BridgeErrors.codes.AI_MODEL_NOT_FOUND', defaultValue: 'AI model was not found.' },
+  AI_MODALITY_NOT_SUPPORTED: { key: 'BridgeErrors.codes.AI_MODALITY_NOT_SUPPORTED', defaultValue: 'AI modality is not supported.' },
+  AI_MODEL_PROVIDER_MISMATCH: { key: 'BridgeErrors.codes.AI_MODEL_PROVIDER_MISMATCH', defaultValue: 'AI model does not match the selected provider.' },
 
   // Phase 1: AI Media reason codes
-  AI_MEDIA_IDEMPOTENCY_CONFLICT: '媒体任务幂等冲突',
-  AI_MEDIA_JOB_NOT_FOUND: '媒体任务未找到',
-  AI_MEDIA_SPEC_INVALID: '媒体规格无效',
-  AI_MEDIA_OPTION_UNSUPPORTED: '媒体选项不支持',
-  AI_MEDIA_JOB_NOT_CANCELLABLE: '媒体任务不可取消',
+  AI_MEDIA_IDEMPOTENCY_CONFLICT: { key: 'BridgeErrors.codes.AI_MEDIA_IDEMPOTENCY_CONFLICT', defaultValue: 'Media task idempotency conflict occurred.' },
+  AI_MEDIA_JOB_NOT_FOUND: { key: 'BridgeErrors.codes.AI_MEDIA_JOB_NOT_FOUND', defaultValue: 'Media task was not found.' },
+  AI_MEDIA_SPEC_INVALID: { key: 'BridgeErrors.codes.AI_MEDIA_SPEC_INVALID', defaultValue: 'Media specification is invalid.' },
+  AI_MEDIA_OPTION_UNSUPPORTED: { key: 'BridgeErrors.codes.AI_MEDIA_OPTION_UNSUPPORTED', defaultValue: 'Media option is not supported.' },
+  AI_MEDIA_JOB_NOT_CANCELLABLE: { key: 'BridgeErrors.codes.AI_MEDIA_JOB_NOT_CANCELLABLE', defaultValue: 'Media task cannot be canceled.' },
 
   // Phase 1: AI Local Model reason codes
-  AI_LOCAL_MODEL_UNAVAILABLE: '本地模型不可用',
-  AI_LOCAL_MODEL_PROFILE_MISSING: '本地模型配置缺失',
-  AI_LOCAL_MODEL_ALREADY_INSTALLED: '本地模型已安装',
-  AI_LOCAL_ENDPOINT_REQUIRED: '本地 AI 端点配置缺失',
-  AI_LOCAL_TEMPLATE_NOT_FOUND: '本地模板未找到',
-  AI_LOCAL_MANIFEST_INVALID: '本地清单无效',
+  AI_LOCAL_MODEL_UNAVAILABLE: { key: 'BridgeErrors.codes.AI_LOCAL_MODEL_UNAVAILABLE', defaultValue: 'Local AI model is unavailable.' },
+  AI_LOCAL_MODEL_PROFILE_MISSING: { key: 'BridgeErrors.codes.AI_LOCAL_MODEL_PROFILE_MISSING', defaultValue: 'Local AI model profile is missing.' },
+  AI_LOCAL_MODEL_ALREADY_INSTALLED: { key: 'BridgeErrors.codes.AI_LOCAL_MODEL_ALREADY_INSTALLED', defaultValue: 'Local AI model is already installed.' },
+  AI_LOCAL_ENDPOINT_REQUIRED: { key: 'BridgeErrors.codes.AI_LOCAL_ENDPOINT_REQUIRED', defaultValue: 'Local AI endpoint configuration is missing.' },
+  AI_LOCAL_TEMPLATE_NOT_FOUND: { key: 'BridgeErrors.codes.AI_LOCAL_TEMPLATE_NOT_FOUND', defaultValue: 'Local AI template was not found.' },
+  AI_LOCAL_MANIFEST_INVALID: { key: 'BridgeErrors.codes.AI_LOCAL_MANIFEST_INVALID', defaultValue: 'Local AI manifest is invalid.' },
 
   // Phase 1: Auth & Session reason codes
-  AUTH_TOKEN_INVALID: '认证令牌无效',
-  SESSION_EXPIRED: '会话已过期',
+  AUTH_TOKEN_INVALID: { key: 'BridgeErrors.codes.AUTH_TOKEN_INVALID', defaultValue: 'Authentication token is invalid.' },
+  SESSION_EXPIRED: { key: 'BridgeErrors.codes.SESSION_EXPIRED', defaultValue: 'Session has expired.' },
 
   // Phase 1: App Mode reason codes
-  APP_MODE_DOMAIN_FORBIDDEN: '应用模式域禁止',
-  APP_MODE_SCOPE_FORBIDDEN: '应用模式范围禁止',
-  APP_MODE_MANIFEST_INVALID: '应用模式清单无效',
+  APP_MODE_DOMAIN_FORBIDDEN: { key: 'BridgeErrors.codes.APP_MODE_DOMAIN_FORBIDDEN', defaultValue: 'App mode domain is forbidden.' },
+  APP_MODE_SCOPE_FORBIDDEN: { key: 'BridgeErrors.codes.APP_MODE_SCOPE_FORBIDDEN', defaultValue: 'App mode scope is forbidden.' },
+  APP_MODE_MANIFEST_INVALID: { key: 'BridgeErrors.codes.APP_MODE_MANIFEST_INVALID', defaultValue: 'App mode manifest is invalid.' },
 
   // Phase 1: Runtime reason codes
-  RUNTIME_UNAVAILABLE: '运行时不可用',
-  RUNTIME_BRIDGE_DAEMON_UNAVAILABLE: '运行时守护进程不可用',
+  RUNTIME_UNAVAILABLE: { key: 'BridgeErrors.codes.RUNTIME_UNAVAILABLE', defaultValue: 'Runtime is unavailable.' },
+  RUNTIME_BRIDGE_DAEMON_UNAVAILABLE: { key: 'BridgeErrors.codes.RUNTIME_BRIDGE_DAEMON_UNAVAILABLE', defaultValue: 'Runtime daemon is unavailable.' },
 };
 
-const BRIDGE_ERROR_MAP: Array<{ pattern: RegExp; message: string }> = [
-  { pattern: /桥接不可用|Tauri.*不可用/i, message: '桌面运行时未就绪，请重启应用' },
-  { pattern: /不支持的协议/i, message: '请求地址无效，请检查配置' },
-  { pattern: /当前环境不支持/i, message: '当前环境暂不支持此功能' },
-  { pattern: /请求载荷无效/i, message: '请求参数异常，请重试' },
-  { pattern: /HF 下载失败|hugging ?face|download failed/i, message: '模型下载失败，请检查网络或仓库地址' },
-  { pattern: /LOCAL_AI_HF_DOWNLOAD_DISK_FULL|ENOSPC|disk full/i, message: '磁盘空间不足，请释放空间后继续下载' },
-  { pattern: /LOCAL_AI_HF_DOWNLOAD_INTERRUPTED|interrupted/i, message: '下载已中断，请手动恢复下载任务' },
-  { pattern: /LOCAL_AI_HF_DOWNLOAD_PAUSED|paused/i, message: '下载已暂停' },
-  { pattern: /LOCAL_AI_HF_DOWNLOAD_CANCELLED|cancelled/i, message: '下载已取消' },
-  { pattern: /hash 校验失败|checksum|sha256/i, message: '模型文件校验失败，请重新下载或导入' },
-  { pattern: /LOCAL_AI_QWEN_GPU_REQUIRED|NVIDIA GPU/i, message: 'Qwen TTS 需要可用 NVIDIA GPU' },
-  { pattern: /LOCAL_AI_QWEN_PYTHON_REQUIRED|Python 3\\.10/i, message: 'Qwen TTS 需要 Python 3.10+' },
-  { pattern: /LOCAL_AI_QWEN_BOOTSTRAP_FAILED|qwen-tts-python|pip install/i, message: 'Qwen TTS 环境初始化失败，请检查 Python 与依赖安装' },
-  { pattern: /manifest.*不能为空|manifest.*失败|model\.manifest\.json/i, message: '模型清单无效，请检查 manifest 文件' },
-  { pattern: /模型不存在|model.*missing|RUNTIME_ROUTE_MODEL_MISSING/i, message: '未找到可用模型，请先安装并启用模型' },
-  { pattern: /connector.*missing|RUNTIME_ROUTE_CONNECTOR/i, message: 'Token API 连接器不可用，请检查连接器配置' },
-  { pattern: /RUNTIME_ROUTE_CAPABILITY_MISMATCH|capability mismatch/i, message: '当前路由绑定模型能力不匹配，请切换模型' },
-  { pattern: /unhealthy|engine.*failed|llama\.cpp/i, message: '本地引擎不可用，请检查引擎状态或二进制路径' },
-  { pattern: /LOCAL_LIFECYCLE_WRITE_DENIED/i, message: '当前来源无权执行模型生命周期写操作' },
+const BRIDGE_ERROR_MAP: Array<{ pattern: RegExp; key: string; defaultValue: string }> = [
+  { pattern: /桥接不可用|Tauri.*不可用/i, key: 'BridgeErrors.patterns.runtimeUnavailable', defaultValue: 'Desktop runtime is not ready. Please restart the app.' },
+  { pattern: /不支持的协议/i, key: 'BridgeErrors.patterns.invalidProtocol', defaultValue: 'Invalid request URL. Please review the configuration.' },
+  { pattern: /当前环境不支持/i, key: 'BridgeErrors.patterns.unsupportedEnvironment', defaultValue: 'This feature is not available in the current environment.' },
+  { pattern: /请求载荷无效/i, key: 'BridgeErrors.patterns.invalidPayload', defaultValue: 'Request payload is invalid. Please try again.' },
+  { pattern: /HF 下载失败|hugging ?face|download failed/i, key: 'BridgeErrors.patterns.downloadFailed', defaultValue: 'Model download failed. Please check the network or repository address.' },
+  { pattern: /LOCAL_AI_HF_DOWNLOAD_DISK_FULL|ENOSPC|disk full/i, key: 'BridgeErrors.codes.LOCAL_AI_HF_DOWNLOAD_DISK_FULL', defaultValue: 'Insufficient disk space. Free up space and try the download again.' },
+  { pattern: /LOCAL_AI_HF_DOWNLOAD_INTERRUPTED|interrupted/i, key: 'BridgeErrors.codes.LOCAL_AI_HF_DOWNLOAD_INTERRUPTED', defaultValue: 'Download was interrupted. Resume the task manually after restarting.' },
+  { pattern: /LOCAL_AI_HF_DOWNLOAD_PAUSED|paused/i, key: 'BridgeErrors.codes.LOCAL_AI_HF_DOWNLOAD_PAUSED', defaultValue: 'Download is paused and can be resumed later.' },
+  { pattern: /LOCAL_AI_HF_DOWNLOAD_CANCELLED|cancelled/i, key: 'BridgeErrors.codes.LOCAL_AI_HF_DOWNLOAD_CANCELLED', defaultValue: 'Download has been canceled.' },
+  { pattern: /hash 校验失败|checksum|sha256/i, key: 'BridgeErrors.patterns.hashMismatch', defaultValue: 'Model file verification failed. Please download or import it again.' },
+  { pattern: /LOCAL_AI_QWEN_GPU_REQUIRED|NVIDIA GPU/i, key: 'BridgeErrors.codes.LOCAL_AI_QWEN_GPU_REQUIRED', defaultValue: 'Qwen TTS requires an available NVIDIA GPU environment.' },
+  { pattern: /LOCAL_AI_QWEN_PYTHON_REQUIRED|Python 3\\.10/i, key: 'BridgeErrors.codes.LOCAL_AI_QWEN_PYTHON_REQUIRED', defaultValue: 'Qwen TTS requires Python 3.10+.' },
+  { pattern: /LOCAL_AI_QWEN_BOOTSTRAP_FAILED|qwen-tts-python|pip install/i, key: 'BridgeErrors.codes.LOCAL_AI_QWEN_BOOTSTRAP_FAILED', defaultValue: 'Qwen TTS environment setup failed. Please check Python and dependency installation.' },
+  { pattern: /manifest.*不能为空|manifest.*失败|model\.manifest\.json/i, key: 'BridgeErrors.patterns.invalidManifest', defaultValue: 'Model manifest is invalid. Please inspect the manifest file.' },
+  { pattern: /模型不存在|model.*missing|RUNTIME_ROUTE_MODEL_MISSING/i, key: 'BridgeErrors.codes.LOCAL_AI_MODEL_NOT_FOUND', defaultValue: 'No available model was found. Install and enable one first.' },
+  { pattern: /connector.*missing|RUNTIME_ROUTE_CONNECTOR/i, key: 'BridgeErrors.patterns.connectorMissing', defaultValue: 'Token API connector is unavailable. Please check connector settings.' },
+  { pattern: /RUNTIME_ROUTE_CAPABILITY_MISMATCH|capability mismatch/i, key: 'BridgeErrors.codes.RUNTIME_ROUTE_CAPABILITY_MISMATCH', defaultValue: 'The current route is bound to a model with incompatible capabilities. Switch to a matching model.' },
+  { pattern: /unhealthy|engine.*failed|llama\.cpp/i, key: 'BridgeErrors.patterns.localEngineUnavailable', defaultValue: 'Local engine is unavailable. Please check engine health or binary paths.' },
+  { pattern: /LOCAL_LIFECYCLE_WRITE_DENIED/i, key: 'BridgeErrors.codes.LOCAL_LIFECYCLE_WRITE_DENIED', defaultValue: 'The current source is not allowed to perform local model lifecycle writes.' },
 ];
+
+function translateBridgeMessage(key: string, defaultValue: string): string {
+  if (!i18n.isInitialized) {
+    return defaultValue;
+  }
+  const translated = i18n.t(key, { defaultValue });
+  return typeof translated === 'string' && translated.trim().length > 0
+    ? translated
+    : defaultValue;
+}
 
 function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -179,7 +190,7 @@ function parseBridgeJsonPayload(input: unknown): RuntimeBridgeStructuredError | 
 
 function extractBridgeErrorCode(raw: string): string {
   const normalized = String(raw || '').trim();
-  const matched = normalized.match(/^([A-Z0-9_]+):/);
+  const matched = normalized.match(/^([A-Z0-9_]+)(?::|$)/);
   return matched?.[1] || '';
 }
 
@@ -189,14 +200,20 @@ export function toBridgeUserMessage(error: unknown): string {
   const codeFromPayload = parseBridgeJsonPayload(error)?.reasonCode || '';
   const errorCode = codeFromNimiError || codeFromPayload || extractBridgeErrorCode(raw);
   if (errorCode && BRIDGE_ERROR_CODE_MAP[errorCode]) {
-    return BRIDGE_ERROR_CODE_MAP[errorCode];
+    return translateBridgeMessage(
+      BRIDGE_ERROR_CODE_MAP[errorCode].key,
+      BRIDGE_ERROR_CODE_MAP[errorCode].defaultValue,
+    );
   }
   for (const entry of BRIDGE_ERROR_MAP) {
     if (entry.pattern.test(raw)) {
-      return entry.message;
+      return translateBridgeMessage(entry.key, entry.defaultValue);
     }
   }
-  return raw || '操作失败，请稍后重试';
+  return translateBridgeMessage(
+    'BridgeErrors.generic',
+    'Operation failed. Please try again later.',
+  );
 }
 
 export function toBridgeNimiError(error: unknown): NimiError {
@@ -209,7 +226,7 @@ export function toBridgeNimiError(error: unknown): NimiError {
     const parsedPayload = parseBridgeJsonPayload(error) || parseBridgeJsonPayload(rawMessage);
     if (parsedPayload) {
       return createNimiError({
-        message: parsedPayload.message || rawMessage || 'Runtime call failed',
+        message: parsedPayload.message || rawMessage || 'RUNTIME_CALL_FAILED',
         code: parsedPayload.code || parsedPayload.reasonCode || ReasonCode.RUNTIME_CALL_FAILED,
         reasonCode: parsedPayload.reasonCode || ReasonCode.RUNTIME_CALL_FAILED,
         actionHint: parsedPayload.actionHint || 'retry_or_check_runtime_status',
@@ -276,7 +293,7 @@ type TauriInvokeFn = (command: string, payload?: unknown) => Promise<unknown>;
 function resolveTauriInvoke(): TauriInvokeFn {
   const invokeFn = window.__TAURI__?.core?.invoke;
   if (typeof invokeFn !== 'function') {
-    throw toBridgeNimiError(new Error('RUNTIME_UNAVAILABLE: Tauri 运行时桥接不可用'));
+    throw toBridgeNimiError(new Error('RUNTIME_UNAVAILABLE'));
   }
   return invokeFn.bind(window.__TAURI__?.core);
 }
@@ -284,7 +301,7 @@ function resolveTauriInvoke(): TauriInvokeFn {
 export async function invoke(command: string, payload: unknown = {}): Promise<unknown> {
   const startedAt = performance.now();
   if (!hasTauriInvoke()) {
-    throw toBridgeNimiError(new Error('RUNTIME_UNAVAILABLE: Tauri 运行时桥接不可用'));
+    throw toBridgeNimiError(new Error('RUNTIME_UNAVAILABLE'));
   }
   const tauriInvoke = resolveTauriInvoke();
   const invokeId = `${command}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;

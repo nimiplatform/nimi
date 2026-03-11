@@ -186,7 +186,7 @@ test('D-TEL-005: invoke emits failed traces and preserves structured bridge erro
       assert.equal(record.actionHint, 'retry_or_switch_route');
       assert.equal(record.traceId, 'trace-bridge-001');
       assert.equal(record.retryable, true);
-      assert.equal(record.details?.userMessage, 'AI 服务超时');
+      assert.equal(record.details?.userMessage, 'AI provider request timed out.');
       return true;
     },
   );
@@ -202,5 +202,5 @@ test('D-TEL-005: invoke emits failed traces and preserves structured bridge erro
   assert.equal(failedLog?.details?.actionHint, 'retry_or_switch_route');
   assert.equal(failedLog?.details?.traceId, 'trace-bridge-001');
   assert.equal(failedLog?.details?.retryable, true);
-  assert.equal(failedLog?.details?.userMessage, 'AI 服务超时');
+  assert.equal(failedLog?.details?.userMessage, 'AI provider request timed out.');
 });

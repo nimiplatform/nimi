@@ -129,7 +129,7 @@ test('D-SEC-001: failure produces LOCAL_AI_ENDPOINT_NOT_LOOPBACK error', () => {
   );
   assert.equal(
     String(error.details?.userMessage || ''),
-    '本地运行时 endpoint 仅支持 localhost/127.0.0.1/[::1]',
+    'The local runtime endpoint only supports localhost, 127.0.0.1, or [::1].',
     'userMessage must match the bridge error code map entry',
   );
 });

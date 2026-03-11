@@ -6,7 +6,7 @@ import { AppRoutes } from '@renderer/app-shell/routes/app-routes';
 import { AppErrorBoundary } from '@renderer/infra/error-boundary/app-error-boundary';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
-import { getCurrentLocale, onI18nIssue } from '@renderer/i18n';
+import { getCurrentLocale, i18n, onI18nIssue } from '@renderer/i18n';
 import { useMenuBarNavigationListener } from '@renderer/infra/menu-bar/menu-bar-navigation-listener';
 import { useMenuBarRuntimeSync } from '@renderer/infra/menu-bar/menu-bar-runtime-sync';
 
@@ -141,13 +141,14 @@ function AppBoot() {
   useEffect(() => {
     const unsubscribe = onI18nIssue((issue) => {
       const chainText = issue.chain.join(' -> ');
-      const locale = getCurrentLocale();
-      const message = locale === 'zh'
-        ? `检测到翻译异常：${issue.key || 'unknown'}（${chainText}）`
-        : `Translation issue detected: ${issue.key || 'unknown'} (${chainText})`;
       setStatusBanner({
         kind: issue.severity === 'error' ? 'error' : 'warning',
-        message,
+        message: i18n.t('I18n.issueDetected', {
+          lng: getCurrentLocale(),
+          keyName: issue.key || 'unknown',
+          chain: chainText,
+          defaultValue: 'Translation issue detected: {{keyName}} ({{chain}})',
+        }),
       });
       logRendererEvent({
         level: issue.severity === 'error' ? 'error' : 'warn',

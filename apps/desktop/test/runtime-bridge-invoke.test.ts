@@ -8,18 +8,28 @@ test('toBridgeUserError maps LOCAL_LIFECYCLE_WRITE_DENIED reason code', () => {
   const error = toBridgeUserError(new Error('LOCAL_LIFECYCLE_WRITE_DENIED: caller=sideload'));
   assert.equal(error.reasonCode, 'LOCAL_LIFECYCLE_WRITE_DENIED');
   assert.equal(error.message, 'LOCAL_LIFECYCLE_WRITE_DENIED: caller=sideload');
-  assert.equal(String(error.details?.userMessage || ''), '当前来源无权执行模型生命周期写操作');
+  assert.equal(
+    String(error.details?.userMessage || ''),
+    'The current source is not allowed to perform local model lifecycle writes.',
+  );
 });
 
 test('toBridgeUserError keeps generic fallback for unknown runtime reason', () => {
   const error = toBridgeUserError(new Error('SOME_UNKNOWN_RUNTIME_REASON'));
   assert.equal(error.message, 'SOME_UNKNOWN_RUNTIME_REASON');
+  assert.equal(
+    String(error.details?.userMessage || ''),
+    'Operation failed. Please try again later.',
+  );
 });
 
 test('toBridgeUserError maps LOCAL_AI_HF_DOWNLOAD_DISK_FULL reason code', () => {
   const error = toBridgeUserError(new Error('LOCAL_AI_HF_DOWNLOAD_DISK_FULL: no space left on device'));
   assert.equal(error.reasonCode, 'LOCAL_AI_HF_DOWNLOAD_DISK_FULL');
-  assert.equal(String(error.details?.userMessage || ''), '磁盘空间不足，请释放空间后继续下载');
+  assert.equal(
+    String(error.details?.userMessage || ''),
+    'Insufficient disk space. Free up space and try the download again.',
+  );
 });
 
 test('toBridgeUserError maps LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID reason code', () => {
@@ -29,7 +39,7 @@ test('toBridgeUserError maps LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID
   assert.equal(error.reasonCode, 'LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID');
   assert.equal(
     String(error.details?.userMessage || ''),
-    '仅支持导入 artifact.manifest.json 清单文件',
+    'Only `artifact.manifest.json` manifest files can be imported.',
   );
 });
 
@@ -40,7 +50,7 @@ test('toBridgeUserError maps LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID reason code',
   assert.equal(error.reasonCode, 'LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID');
   assert.equal(
     String(error.details?.userMessage || ''),
-    '请选择有效的 companion 资源类型',
+    'Please choose a valid companion asset type.',
   );
 });
 
@@ -51,7 +61,7 @@ test('toBridgeUserError maps LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND reason code', ()
   assert.equal(error.reasonCode, 'LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND');
   assert.equal(
     String(error.details?.userMessage || ''),
-    '未找到待导入的 companion 文件，请刷新后重试',
+    'The companion file to import was not found. Refresh and try again.',
   );
 });
 
@@ -70,6 +80,6 @@ test('toBridgeNimiError preserves structured payload fields and adds userMessage
   assert.equal(error.message, 'provider timeout');
   assert.equal(
     String(error.details?.userMessage || ''),
-    'AI 服务超时',
+    'AI provider request timed out.',
   );
 });

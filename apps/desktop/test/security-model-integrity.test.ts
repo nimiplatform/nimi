@@ -60,7 +60,7 @@ test('D-SEC-006: empty hash list produces LOCAL_AI_MODEL_HASHES_EMPTY error', ()
   );
   assert.equal(
     String(error.details?.userMessage || ''),
-    '模型未完成完整性校验，无法启动',
+    'The model has not completed integrity verification and cannot be started.',
     'userMessage must match the bridge error code map entry for empty hashes',
   );
 });
@@ -91,7 +91,7 @@ test('D-SEC-006: mismatched hash produces LOCAL_AI_IMPORT_HASH_MISMATCH error', 
   );
   assert.equal(
     String(error.details?.userMessage || ''),
-    '模型文件校验失败，请确认文件完整后重试',
+    'Model file verification failed. Confirm the file is intact and try again.',
     'userMessage must match the bridge error code map entry for hash mismatch',
   );
 });

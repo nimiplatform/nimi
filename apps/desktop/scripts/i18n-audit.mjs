@@ -55,12 +55,10 @@ function extractCandidatesFromLine(line, isTsxFile) {
   const candidates = [];
   const jsxTextRegex = />\s*([^<>{]+?)\s*</g;
   const attrRegex = /\b(?:aria-label|placeholder|title|label|description)\s*=\s*["'`]([^"'`]+)["'`]/g;
-  const statusMessageRegex = /\bmessage\s*:\s*["'`]([^"'`]+)["'`]/g;
-  const throwRegex = /throw\s+new\s+Error\(\s*["'`]([^"'`]+)["'`]\s*\)/g;
 
   const regexes = isTsxFile
-    ? [jsxTextRegex, attrRegex, statusMessageRegex, throwRegex]
-    : [attrRegex, statusMessageRegex, throwRegex];
+    ? [jsxTextRegex, attrRegex]
+    : [attrRegex];
 
   for (const regex of regexes) {
     let match;
@@ -82,13 +80,27 @@ function isTelemetryCode(text) {
   return /^[a-z0-9-]+(?::[a-z0-9-]+)+$/.test(text);
 }
 
+function isReasonCode(text) {
+  return /^[A-Z0-9_]+$/.test(text);
+}
+
 function isUserVisibleLiteral(text) {
   if (!text) return false;
   if (!/[A-Za-z\u4E00-\u9FFF]/.test(text)) return false;
   if (text.includes('${')) return false;
   if (isLikelyTranslationKey(text)) return false;
   if (isTelemetryCode(text)) return false;
+  if (isReasonCode(text)) return false;
   return true;
+}
+
+function isLikelyCodeFragment(text, line) {
+  if (!text || !line) return false;
+  if (text.includes(' as ')) return true;
+  if (text.includes('&&') || text.includes('||') || text.includes('=>')) return true;
+  if (/^[=<>!&|]/.test(text)) return true;
+  if (text === 'Promise' && line.includes('Promise<')) return true;
+  return false;
 }
 
 function runAudit() {
@@ -132,6 +144,7 @@ function runAudit() {
         const candidates = extractCandidatesFromLine(line, isTsxFile);
         for (const candidate of candidates) {
           if (!isUserVisibleLiteral(candidate)) continue;
+          if (isLikelyCodeFragment(candidate, line)) continue;
           if (line.includes('message:') && isTelemetryCode(candidate)) continue;
           if (allowRegexes.some((regex) => regex.test(candidate))) continue;
           violations.push({

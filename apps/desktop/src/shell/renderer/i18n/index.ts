@@ -5,6 +5,7 @@ export const SUPPORTED_LOCALES = ['en', 'zh'] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
 export const LOCALE_STORAGE_KEY = 'nimi.shell.locale';
+export const DOCUMENT_TITLE_TRANSLATION_KEY = 'Document.title';
 
 export type I18nIssueCode = 'i18n:missing-key' | 'i18n:bundle-missing';
 export type I18nIssueSeverity = 'warn' | 'error';
@@ -22,6 +23,23 @@ export type I18nIssue = {
 type I18nIssueListener = (issue: I18nIssue) => void;
 
 const issueListeners = new Set<I18nIssueListener>();
+
+function translateOrFallback(
+  key: string,
+  defaultValue: string,
+  options?: Record<string, unknown>,
+): string {
+  if (!i18n.isInitialized) {
+    return defaultValue;
+  }
+  const translated = i18n.t(key, {
+    defaultValue,
+    ...(options || {}),
+  });
+  return typeof translated === 'string' && translated.trim().length > 0
+    ? translated
+    : defaultValue;
+}
 
 function emitI18nIssue(issue: I18nIssue): void {
   issueListeners.forEach((listener) => {
@@ -57,6 +75,21 @@ function readStoredLocale(): SupportedLocale {
     // no-op
   }
   return 'en';
+}
+
+function resolveDocumentLang(locale: SupportedLocale): string {
+  return locale === 'zh' ? 'zh-CN' : 'en';
+}
+
+function syncDocumentState(locale: SupportedLocale): void {
+  if (typeof document === 'undefined') {
+    return;
+  }
+  document.documentElement.lang = resolveDocumentLang(locale);
+  document.title = translateOrFallback(
+    DOCUMENT_TITLE_TRANSLATION_KEY,
+    'Nimi Desktop Runtime',
+  );
 }
 
 async function loadMessages(locale: SupportedLocale): Promise<Record<string, unknown>> {
@@ -189,6 +222,7 @@ export async function initI18n(): Promise<void> {
         source: 'parseMissingKeyHandler',
       }),
     });
+    syncDocumentState(initialLocale);
   })();
   return initPromise;
 }
@@ -210,6 +244,7 @@ export async function changeLocale(locale: SupportedLocale): Promise<void> {
     }
   }
   await i18n.changeLanguage(locale);
+  syncDocumentState(locale);
   try {
     localStorage.setItem(LOCALE_STORAGE_KEY, locale);
   } catch {
@@ -267,4 +302,50 @@ export function formatLocaleDateTime(
     hour: '2-digit',
     minute: '2-digit',
   }, locale);
+}
+
+export function formatRelativeLocaleTime(
+  value: unknown,
+  locale?: string,
+): string {
+  const date = value instanceof Date ? value : new Date(String(value || ''));
+  if (Number.isNaN(date.getTime())) {
+    return typeof value === 'string' ? value : '--';
+  }
+
+  const normalizedLocale = String(locale || getCurrentLocale() || 'en').trim() || 'en';
+  const diffMs = Date.now() - date.getTime();
+  if (diffMs < 0) {
+    return translateOrFallback('Time.justNow', 'just now', { lng: normalizedLocale });
+  }
+
+  const seconds = Math.floor(diffMs / 1000);
+  if (seconds < 60) {
+    return translateOrFallback('Time.secondsAgo', `${seconds}s ago`, {
+      lng: normalizedLocale,
+      count: seconds,
+    });
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return translateOrFallback('Time.minutesAgo', `${minutes}m ago`, {
+      lng: normalizedLocale,
+      count: minutes,
+    });
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return translateOrFallback('Time.hoursAgo', `${hours}h ago`, {
+      lng: normalizedLocale,
+      count: hours,
+    });
+  }
+
+  const days = Math.floor(hours / 24);
+  return translateOrFallback('Time.daysAgo', `${days}d ago`, {
+    lng: normalizedLocale,
+    count: days,
+  });
 }

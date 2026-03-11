@@ -15,7 +15,7 @@ if (!import.meta.env.DEV) {
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
-  throw new Error('Missing #root mount node');
+  throw new Error('ROOT_MOUNT_NODE_MISSING');
 }
 
 bindRuntimeI18n(i18n);
