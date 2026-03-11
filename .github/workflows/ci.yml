@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NIMI_MODS_REF: 1936c644557ebbaa0a3741668ba1b788bcc71e2f
+  NIMI_MODS_REF: 1936c644557ebbaa0a3741668ba1b788bcc71e2f # pragma: allowlist secret
 
 jobs:
   changes:

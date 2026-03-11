@@ -1,7 +1,7 @@
 name: first-interaction
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened]
   issues:
     types: [opened]

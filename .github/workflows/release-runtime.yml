@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 env:
-  NIMI_MODS_REF: 1936c644557ebbaa0a3741668ba1b788bcc71e2f
+  NIMI_MODS_REF: 1936c644557ebbaa0a3741668ba1b788bcc71e2f # pragma: allowlist secret
 
 jobs:
   live-smoke-gate:
@@ -46,8 +46,7 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
-          cache: pnpm
-          cache-dependency-path: package.json
+          package-manager-cache: false
 
       - name: Setup Go
         uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
@@ -104,7 +103,7 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
-          cache: false
+          package-manager-cache: false
 
       - name: Resolve runtime semver tag
         id: runtime_tag
