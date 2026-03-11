@@ -1138,7 +1138,7 @@
   },
   "ModsPanel": {
     "title": "Mods",
-    "subtitle": "Manage your installed mods",
+    "subtitle": "Open the mods that are currently enabled.",
     "searchPlaceholder": "Search mods...",
     "open": "Open",
     "openDir": "Open Dir",
@@ -1150,8 +1150,12 @@
     "crashed": "Crashed",
     "enabledSection": "Enabled",
     "disabledSection": "Disabled",
+    "devBadge": "dev",
+    "devTooltip": "Loaded from a developer source.",
     "noMods": "No mods installed",
     "noModsHint": "Discover and install mods from the Marketplace.",
+    "noEnabledMods": "No enabled mods yet",
+    "noEnabledModsHint": "Enable an installed mod from Marketplace to open it here.",
     "openMarketplace": "Open Marketplace",
     "noSearchResults": "No mods match your search"
   },
