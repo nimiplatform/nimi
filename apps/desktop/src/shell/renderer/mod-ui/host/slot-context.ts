@@ -12,6 +12,7 @@ export function useUiExtensionContext(options: UseUiExtensionContextOptions = {}
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const closeModWorkspaceTab = useAppStore((state) => state.closeModWorkspaceTab);
+  const modWorkspaceTabs = useAppStore((state) => state.modWorkspaceTabs);
   const markRuntimeModFused = useAppStore((state) => state.markRuntimeModFused);
   const clearRuntimeModFuse = useAppStore((state) => state.clearRuntimeModFuse);
   const fusedRuntimeMods = useAppStore((state) => state.fusedRuntimeMods);
@@ -31,6 +32,7 @@ export function useUiExtensionContext(options: UseUiExtensionContextOptions = {}
       closeModTab: (tabId) => {
         closeModWorkspaceTab(tabId);
       },
+      isModTabOpen: (tabId) => modWorkspaceTabs.some((tab) => tab.tabId === tabId),
       markModFused: (modId, error, reason) => {
         markRuntimeModFused(modId, error, reason || 'render-failed');
       },
@@ -53,6 +55,7 @@ export function useUiExtensionContext(options: UseUiExtensionContextOptions = {}
       closeModWorkspaceTab,
       fusedRuntimeMods,
       markRuntimeModFused,
+      modWorkspaceTabs,
       options.sidebarCollapsed,
       openModWorkspaceTab,
       setActiveTab,

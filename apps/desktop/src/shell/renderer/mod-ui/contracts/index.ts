@@ -18,6 +18,7 @@ export type UiExtensionContext = {
   setActiveTab: (tab: string) => void;
   openModTab: (tabId: `mod:${string}`, modId: string, title: string) => void;
   closeModTab: (tabId: `mod:${string}`) => void;
+  isModTabOpen: (tabId: `mod:${string}`) => boolean;
   markModFused: (modId: string, error: string, reason?: string) => void;
   clearModFuse: (modId: string) => void;
   isModFused: (modId: string) => boolean;

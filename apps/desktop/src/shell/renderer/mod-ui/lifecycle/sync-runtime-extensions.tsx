@@ -20,8 +20,6 @@ const SLOT_ALLOWLIST = new Set<UiSlotId>([
   'ui-extension.runtime.devtools.panel',
 ]);
 
-const activatedTabPages = new Set<string>();
-
 function normalizeSlot(slot: string): UiSlotId | null {
   const normalized = String(slot || '').trim() as UiSlotId;
   if (!SLOT_ALLOWLIST.has(normalized)) {
@@ -281,9 +279,8 @@ export function syncRuntimeUiExtensionsToRegistry(): {
               modId: string;
             }>;
             const active = context.activeTab === tabId;
-            if (active) {
-              activatedTabPages.add(tabId);
-            } else if (!activatedTabPages.has(tabId)) {
+            const keepMounted = context.isModTabOpen(tabId as `mod:${string}`);
+            if (!active && !keepMounted) {
               return null;
             }
 
