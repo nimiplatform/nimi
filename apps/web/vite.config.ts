@@ -110,8 +110,8 @@ export default defineConfig(({ mode }) => {
           replacement: path.resolve(__dirname, 'src/desktop-adapter/runtime-config-panel.web.tsx'),
         },
         {
-          find: '@renderer/features/marketplace/marketplace-page',
-          replacement: path.resolve(__dirname, 'src/desktop-adapter/marketplace-page.web.tsx'),
+          find: '@renderer/features/mod-hub/mod-hub-page',
+          replacement: path.resolve(__dirname, 'src/desktop-adapter/mod-hub-page.web.tsx'),
         },
         {
           find: /^@renderer\/bridge$/,

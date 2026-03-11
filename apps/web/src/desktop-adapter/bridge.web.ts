@@ -1,5 +1,6 @@
 import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
 import { logRendererEvent, toRendererLogMessage } from '@renderer/bridge/runtime-bridge/logging';
+import { completeMenuBarQuit, syncMenuBarRuntimeHealth } from '@renderer/bridge/runtime-bridge/menu-bar';
 import { proxyHttp } from '@renderer/bridge/runtime-bridge/http';
 import {
   getRuntimeBridgeConfig as getDesktopRuntimeBridgeConfig,
@@ -14,6 +15,20 @@ import { getRuntimeDefaults } from '@renderer/bridge/runtime-bridge/runtime-defa
 import { oauthListenForCode, oauthTokenExchange } from '@renderer/bridge/runtime-bridge/oauth';
 import { confirmPrivateSync, focusMainWindow, openExternalUrl, startWindowDrag } from '@renderer/bridge/runtime-bridge/ui';
 import type {
+  AvailableModUpdate,
+  CatalogConsentReason,
+  CatalogInstallResult,
+  CatalogPackageRecord,
+  CatalogPackageSummary,
+  CatalogReleaseRecord,
+  CatalogReleaseSource,
+  CatalogPublisher,
+  CatalogSigner,
+  CatalogState,
+  CatalogTrustTier,
+  InstalledModPolicy,
+  MenuBarProviderSummary,
+  MenuBarRuntimeHealthSyncPayload,
   OpenExternalUrlResult,
   OauthListenForCodePayload,
   OauthListenForCodeResult,
@@ -25,6 +40,7 @@ import type {
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
   RuntimeLocalManifestSummary,
+  RuntimeModStorageDirs,
   RuntimeModSourceType,
   RuntimeModSourceRecord,
   RuntimeModDeveloperModeState,
@@ -40,6 +56,20 @@ import type {
 } from '@renderer/bridge/runtime-bridge/types';
 
 export type {
+  AvailableModUpdate,
+  CatalogConsentReason,
+  CatalogInstallResult,
+  CatalogPackageRecord,
+  CatalogPackageSummary,
+  CatalogPublisher,
+  CatalogReleaseRecord,
+  CatalogReleaseSource,
+  CatalogSigner,
+  CatalogState,
+  CatalogTrustTier,
+  InstalledModPolicy,
+  MenuBarProviderSummary,
+  MenuBarRuntimeHealthSyncPayload,
   OpenExternalUrlResult,
   OauthListenForCodePayload,
   OauthListenForCodeResult,
@@ -51,6 +81,7 @@ export type {
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
   RuntimeLocalManifestSummary,
+  RuntimeModStorageDirs,
   RuntimeModSourceType,
   RuntimeModSourceRecord,
   RuntimeModDeveloperModeState,
@@ -65,7 +96,16 @@ export type {
   SystemResourceSnapshot,
 };
 
-export { logRendererEvent, toRendererLogMessage };
+export {
+  completeMenuBarQuit,
+  logRendererEvent,
+  syncMenuBarRuntimeHealth,
+  toRendererLogMessage,
+};
+
+function unsupportedDesktopRuntime(message: string): never {
+  throw new Error(message);
+}
 
 export async function listRuntimeLocalModManifests(): Promise<RuntimeLocalManifestSummary[]> {
   return [];
@@ -83,6 +123,18 @@ export async function listRuntimeModSources(): Promise<RuntimeModSourceRecord[]>
   return [];
 }
 
+export async function getRuntimeModStorageDirs(): Promise<RuntimeModStorageDirs> {
+  return {
+    nimiDir: '',
+    nimiDataDir: '',
+    installedModsDir: '',
+    runtimeModDbPath: '',
+    mediaCacheDir: '',
+    localModelsDir: '',
+    localRuntimeStatePath: '',
+  };
+}
+
 export async function upsertRuntimeModSource(_input: {
   sourceId?: string;
   sourceType: 'installed' | 'dev';
@@ -93,7 +145,7 @@ export async function upsertRuntimeModSource(_input: {
 }
 
 export async function removeRuntimeModSource(_sourceId: string): Promise<boolean> {
-  throw new Error('Runtime mod sources are only available in desktop runtime');
+  return false;
 }
 
 export async function getRuntimeModDeveloperMode(): Promise<RuntimeModDeveloperModeState> {
@@ -104,11 +156,19 @@ export async function setRuntimeModDeveloperMode(_input: {
   enabled: boolean;
   autoReloadEnabled?: boolean;
 }): Promise<RuntimeModDeveloperModeState> {
-  throw new Error('Runtime mod developer mode is only available in desktop runtime');
+  return { enabled: false, autoReloadEnabled: false };
+}
+
+export async function setRuntimeModDataDir(_nimiDataDir: string): Promise<RuntimeModStorageDirs> {
+  return getRuntimeModStorageDirs();
 }
 
 export async function listRuntimeModDiagnostics(): Promise<RuntimeModDiagnosticRecord[]> {
   return [];
+}
+
+export async function openRuntimeModDir(_path: string): Promise<void> {
+  unsupportedDesktopRuntime('Runtime mod directories are only available in desktop runtime');
 }
 
 export async function reloadRuntimeMod(_modId: string): Promise<RuntimeModReloadResult[]> {
@@ -120,22 +180,49 @@ export async function reloadAllRuntimeMods(): Promise<RuntimeModReloadResult[]> 
 }
 
 export async function installRuntimeMod(_payload: RuntimeModInstallPayload): Promise<RuntimeModInstallResult> {
-  throw new Error('Runtime mod install is only available in desktop runtime');
+  unsupportedDesktopRuntime('Runtime mod install is only available in desktop runtime');
 }
 
 export async function updateRuntimeMod(_payload: RuntimeModUpdatePayload): Promise<RuntimeModInstallResult> {
-  throw new Error('Runtime mod update is only available in desktop runtime');
+  unsupportedDesktopRuntime('Runtime mod update is only available in desktop runtime');
 }
 
 export async function uninstallRuntimeMod(_modId: string): Promise<RuntimeLocalManifestSummary> {
-  throw new Error('Runtime mod uninstall is only available in desktop runtime');
+  unsupportedDesktopRuntime('Runtime mod uninstall is only available in desktop runtime');
 }
 
 export async function readInstalledRuntimeModManifest(_input: {
   modId?: string;
   path?: string;
 }): Promise<RuntimeLocalManifestSummary> {
-  throw new Error('Runtime mod manifest read is only available in desktop runtime');
+  unsupportedDesktopRuntime('Runtime mod manifest read is only available in desktop runtime');
+}
+
+export async function listCatalogMods(): Promise<CatalogPackageSummary[]> {
+  return [];
+}
+
+export async function getCatalogMod(_packageId: string): Promise<CatalogPackageRecord | null> {
+  return null;
+}
+
+export async function checkModUpdates(): Promise<AvailableModUpdate[]> {
+  return [];
+}
+
+export async function installCatalogMod(_input: { packageId: string }): Promise<CatalogInstallResult> {
+  unsupportedDesktopRuntime('Catalog mod install is only available in desktop runtime');
+}
+
+export async function updateInstalledMod(_input: { packageId: string }): Promise<CatalogInstallResult> {
+  unsupportedDesktopRuntime('Installed mod update is only available in desktop runtime');
+}
+
+export async function restoreRuntimeModBackup(_input: {
+  modId: string;
+  backupPath: string;
+}): Promise<RuntimeLocalManifestSummary> {
+  unsupportedDesktopRuntime('Runtime mod backup restore is only available in desktop runtime');
 }
 
 export async function listRuntimeModInstallProgress(
@@ -202,15 +289,24 @@ export const desktopBridge = {
   oauthListenForCode,
   confirmPrivateSync,
   focusMainWindow,
+  syncMenuBarRuntimeHealth,
+  completeMenuBarQuit,
   listInstalledRuntimeMods,
+  listCatalogMods,
+  getCatalogMod,
+  checkModUpdates,
   installRuntimeMod,
+  installCatalogMod,
   listRuntimeLocalModManifests,
   listRuntimeModSources,
+  getRuntimeModStorageDirs,
   upsertRuntimeModSource,
   removeRuntimeModSource,
   getRuntimeModDeveloperMode,
   setRuntimeModDeveloperMode,
+  setRuntimeModDataDir,
   listRuntimeModDiagnostics,
+  openRuntimeModDir,
   reloadRuntimeMod,
   reloadAllRuntimeMods,
   listRuntimeModInstallProgress,
@@ -222,5 +318,7 @@ export const desktopBridge = {
   startWindowDrag,
   uninstallRuntimeMod,
   updateRuntimeMod,
+  updateInstalledMod,
+  restoreRuntimeModBackup,
   logRendererEvent,
 };

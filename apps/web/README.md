@@ -24,7 +24,7 @@ It reuses desktop renderer UI directly, while removing desktop-only runtime/mod 
   - `@renderer/mod-ui/host/slot-context`
   - `@renderer/features/mod-workspace/mod-workspace-tabs`
   - `@renderer/features/runtime-config/runtime-config-panel-view`
-  - `@renderer/features/marketplace/marketplace-page`
+  - `@renderer/features/mod-hub/mod-hub-page`
 
 These adapters live in `src/desktop-adapter/`.
 
