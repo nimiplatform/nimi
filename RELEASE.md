@@ -25,42 +25,31 @@ The SDK, Dev Tools, Runtime, and Proto versions must be aligned within the same 
 ### 1. Pre-release Checks
 
 ```bash
-# All tests pass
-pnpm test
-cd runtime && go test ./...
-
-# Codegen is up to date
-buf generate
-git diff --exit-code
-
-# No breaking proto changes (unless major bump)
-buf breaking proto/ --against .git#branch=main
-
-# Lint passes
-pnpm lint
-pnpm check:markdown
-cd runtime && golangci-lint run
-
-# Security gates
-python3 -m pip install detect-secrets==1.5.0
-git ls-files -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline
-cargo install --locked zizmor
-zizmor --no-online-audits --min-severity high --collect workflows --collect dependabot -- .github/workflows .github/dependabot.yml
-cargo install cargo-audit --locked
-cargo audit --file apps/desktop/src-tauri/Cargo.lock
-
-# Workflow lint
-go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
-"$(go env GOPATH)/bin/actionlint" -color
-
-# Runtime release config dry-run
-go run github.com/goreleaser/goreleaser/v2@latest check --config .goreleaser.yml
-go run github.com/goreleaser/goreleaser/v2@latest release --clean --snapshot --skip=publish --skip=announce --config .goreleaser.yml
-
-# Coverage gates
-pnpm check:sdk-coverage
-pnpm check:runtime-go-coverage
+pnpm check:release-preflight
 ```
+
+该命令会将完整输出持久化到 `dev/release/preflight-YYYYMMDD-HHMMSS.log`。
+终端默认只显示阶段、命令和通过/失败摘要，完整 stdout/stderr 只写入日志。
+如果中途失败，脚本会打印失败的 `section`、`command`、日志路径，以及日志尾部片段。
+如需自定义日志文件，可设置 `NIMI_RELEASE_PREFLIGHT_LOG_FILE=/abs/path/to.log`。
+如需调整失败时回显的日志尾部行数，可设置 `NIMI_RELEASE_PREFLIGHT_TAIL_LINES=120`。
+
+调试单个 proto 步骤时，使用仓库脚本而不是在根目录或 `runtime/` 目录直接执行裸 `buf`：
+
+```bash
+pnpm proto:generate
+pnpm proto:lint
+pnpm proto:breaking
+pnpm proto:drift-check
+```
+
+对应的裸命令目录约定是：
+
+- `cd proto && buf generate`
+- `cd proto && buf lint`
+- `cd proto && buf breaking --against ../runtime/proto/runtime-v1.baseline.binpb`
+
+`buf breaking proto/ --against .git#branch=main` 这种写法如果要用，必须从仓库根目录执行；但它不是本仓当前 release 主路径。
 
 ### 2. Version Bump
 
