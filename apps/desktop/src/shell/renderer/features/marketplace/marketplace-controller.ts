@@ -354,7 +354,7 @@ export function useMarketplacePageModel(): MarketplacePageModel {
       removeRuntimeModStyles(normalizedModId);
       await syncRuntimeModShellState();
       if (appStore.activeTab === modTabId) {
-        appStore.setActiveTab('marketplace');
+        appStore.setActiveTab('mods');
       }
       appStore.closeModWorkspaceTab(modTabId);
       appStore.setStatusBanner({
@@ -380,7 +380,7 @@ export function useMarketplacePageModel(): MarketplacePageModel {
         appStore.runtimeModFailures.filter((item) => item.modId !== normalizedModId),
       );
       if (appStore.activeTab === modTabId) {
-        appStore.setActiveTab('marketplace');
+        appStore.setActiveTab('mods');
       }
       closeModWorkspaceTab(modTabId);
       appStore.setStatusBanner({

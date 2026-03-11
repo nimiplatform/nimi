@@ -32,7 +32,7 @@ Desktop side development should be UI-only. `NIMI_RUNTIME_MODS_DIR` is kept only
 
 Recommended toolchain:
 
-- inside this monorepo: invoke [`nimi-mod.mjs`](/Users/snwozy/nimi-realm/nimi/dev-tools/bin/nimi-mod.mjs)
+- inside this monorepo: invoke [`dev-tools/bin/nimi-mod.mjs`](../../dev-tools/bin/nimi-mod.mjs)
 - outside this monorepo: `pnpm add -D @nimiplatform/dev-tools` and use the published `nimi-mod` CLI
 
 ## Validation

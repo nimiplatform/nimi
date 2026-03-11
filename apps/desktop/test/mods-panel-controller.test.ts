@@ -91,14 +91,14 @@ test('toRuntimeModRow strips "desktop " prefix from display name', () => {
   assert.equal(row.name, 'Local Chat');
 });
 
-test('toRuntimeModRow normalizes local-chat mod name', () => {
+test('toRuntimeModRow does not special-case local-chat display names', () => {
   const row = toRuntimeModRow(
     makeSummary({ id: 'world.nimi.local-chat', name: '' }) as never,
     0,
     { isInstalled: true, isEnabled: true },
   );
 
-  assert.equal(row.name, 'Local Chat');
+  assert.equal(row.name, 'Test Mod');
 });
 
 // ---------------------------------------------------------------------------

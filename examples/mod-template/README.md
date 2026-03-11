@@ -2,7 +2,7 @@
 
 This directory is a standalone template for a third-party runtime mod.
 
-Inside this repo it invokes [`nimi-mod.mjs`](/Users/snwozy/nimi-realm/nimi/dev-tools/bin/nimi-mod.mjs).
+Inside this repo it invokes [`dev-tools/bin/nimi-mod.mjs`](../../dev-tools/bin/nimi-mod.mjs).
 Outside this repo:
 
 ```bash
