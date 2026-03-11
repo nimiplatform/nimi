@@ -199,4 +199,31 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
     await timer.runNext();
     assert.ok(effects.includes('rebootstrapRuntime'));
   });
+
+  test('runtime probe failure does not emit runtime_reconnect bootstrap effects', async () => {
+    const timer = new FakeTimer();
+    const coordinator = new OfflineCoordinator({ timer });
+    const effects: string[] = [];
+
+    attachOfflineCoordinatorBindings({
+      coordinator,
+      setOfflineTier: (tier) => effects.push(`tier:${tier}`),
+      suspendRuntimeCallbacksForL2: () => effects.push('suspendRuntimeCallbacksForL2'),
+      probeRealmReachability: async () => true,
+      probeRuntimeReachability: async () => false,
+      hasPendingRealmRecoveryWork: async () => true,
+      flushChatOutbox: async () => { effects.push('flushChatOutbox'); },
+      flushSocialOutbox: async () => { effects.push('flushSocialOutbox'); },
+      invalidateQueries: async () => { effects.push('invalidateQueries'); },
+      rebootstrapRuntime: async () => { effects.push('rebootstrapRuntime'); },
+    });
+
+    coordinator.markRuntimeReachable(false);
+    await flushAsyncWork();
+    assert.equal(timer.nextDelay(), 1000);
+
+    await timer.runNext();
+    assert.ok(!effects.includes('rebootstrapRuntime'));
+    assert.equal(timer.nextDelay(), 2000);
+  });
 });

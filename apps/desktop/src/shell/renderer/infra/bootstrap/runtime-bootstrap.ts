@@ -45,6 +45,7 @@ import { registerExternalAgentTier1Actions } from '@runtime/external-agent/tier1
 import { startAuthStateWatcher } from './auth-state-watcher';
 import { checkDaemonVersion } from './version-check';
 import { registerExitHandler } from './exit-handler';
+import { isRuntimeDaemonReachable } from './runtime-bootstrap-runtime-availability';
 
 let bootstrapPromise: Promise<void> | null = null;
 let offlineCoordinatorBindingsReady = false;
@@ -141,7 +142,7 @@ function bindOfflineCoordinator(): void {
     },
     probeRuntimeReachability: async () => {
       const daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
-      return checkDaemonVersion(daemonStatus.version).ok;
+      return isRuntimeDaemonReachable(daemonStatus);
     },
     hasPendingRealmRecoveryWork: async () => dataSync.hasPendingOfflineRecoveryWork(),
     flushChatOutbox: async () => dataSync.flushChatOutbox(),
