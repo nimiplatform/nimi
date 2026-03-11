@@ -117,7 +117,7 @@ require_bin() {
 cd "${PROJECT_ROOT}"
 
 GOLANGCI_LINT_BIN="$(require_bin "golangci-lint" "go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8")"
-ACTIONLINT_BIN="$(require_bin "actionlint" "go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7")"
+ACTIONLINT_BIN="$(require_bin "actionlint" "go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.11")"
 DETECT_SECRETS_BIN="$(require_bin "detect-secrets-hook" "python3 -m pip install detect-secrets==1.5.0")"
 ZIZMOR_BIN="$(require_bin "zizmor" "cargo install --locked zizmor")"
 
