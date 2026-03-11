@@ -165,11 +165,11 @@ export function PostCardArticle(props: PostCardArticleProps) {
       ) : props.firstMediaType === PostMediaType.VIDEO && props.videoSource?.mode === 'native' ? (
         <div className="px-4 pb-2"><NativeVideoPlayer src={props.videoSource.src} poster={props.firstMediaThumbnail} /></div>
       ) : props.firstMediaType === PostMediaType.IMAGE && props.firstMediaUrl ? (
-        <div className="relative overflow-hidden mx-4 rounded-2xl bg-slate-50 shadow-inner">
+        <div className="relative mx-4 overflow-hidden rounded-2xl bg-slate-50 shadow-inner aspect-[4/5]">
           <img
             src={props.firstMediaUrl}
             alt=""
-            className="w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
           />
         </div>
       ) : null}

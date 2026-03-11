@@ -22,7 +22,7 @@ function toErrorMessage(error: unknown, fallback: string): string {
 
 function PostSkeleton() {
   return (
-    <div className="mb-6 break-inside-avoid animate-pulse rounded-[24px] border border-white/70 bg-white/80 p-5 shadow-[0_4px_20px_rgba(15,23,42,0.04)]">
+    <div className="animate-pulse rounded-[24px] border border-white/70 bg-white/80 p-5 shadow-[0_4px_20px_rgba(15,23,42,0.04)]">
       <div className="flex items-start gap-3">
         <div className="h-10 w-10 rounded-full bg-gray-200" />
         <div className="flex-1 space-y-2">
@@ -116,7 +116,7 @@ export function PostsTab({ profileId }: PostsTabProps) {
 
   if (loadingInitial) {
     return (
-      <div className="columns-1 gap-6 md:columns-2">
+      <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2">
         <PostSkeleton />
         <PostSkeleton />
         <PostSkeleton />

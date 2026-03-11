@@ -352,11 +352,11 @@ export function ExploreView(props: ExploreViewProps) {
               fetchPage={props.fetchPostPage}
               emptyText={t('Explore.noPosts')}
               renderItem={(post) => (
-                <div className="mb-6 break-inside-avoid [contain:paint] [transform:translateZ(0)]">
+                <div className="h-fit [contain:paint] [transform:translateZ(0)]">
                   <PostCard post={post} onDelete={props.onPostDelete} />
                 </div>
               )}
-              className="columns-1 sm:columns-2 gap-6"
+              className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2"
             />
           </section>
           </div>

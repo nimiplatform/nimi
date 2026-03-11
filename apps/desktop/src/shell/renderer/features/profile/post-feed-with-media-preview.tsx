@@ -36,14 +36,14 @@ export function PostFeedWithMediaPreview({
 
   return (
     <div className="space-y-8">
-      <section className="columns-1 gap-6 md:columns-2">
+      <section className="grid grid-cols-1 items-start gap-6 md:grid-cols-2">
         {posts.map((post) => (
           <div
             key={post.id}
             ref={(node) => {
               postRefs.current[post.id] = node;
             }}
-            className={`mb-6 break-inside-avoid scroll-mt-6 transition-all duration-500 ${
+            className={`scroll-mt-6 transition-all duration-500 ${
               focusedPostId === post.id ? 'rounded-[28px] ring-2 ring-[#4ECCA3]/55 ring-offset-4 ring-offset-[#f7f9fc]' : ''
             }`}
           >
@@ -54,7 +54,7 @@ export function PostFeedWithMediaPreview({
           </div>
         ))}
         {loadError ? (
-          <div className="mb-6 break-inside-avoid rounded-2xl border border-red-200/60 bg-red-50/80 px-4 py-3 text-xs text-red-700 backdrop-blur-sm">
+          <div className="rounded-2xl border border-red-200/60 bg-red-50/80 px-4 py-3 text-xs text-red-700 backdrop-blur-sm md:col-span-2">
             <p>{loadError}</p>
             <button
               type="button"
@@ -65,8 +65,8 @@ export function PostFeedWithMediaPreview({
             </button>
           </div>
         ) : null}
-        {loadingMore ? <div className="mb-6">{skeleton}</div> : null}
-        <div ref={loadMoreRef} className="h-1" />
+        {loadingMore ? <div className="md:col-span-2">{skeleton}</div> : null}
+        <div ref={loadMoreRef} className="h-1 md:col-span-2" />
       </section>
     </div>
   );
