@@ -5,7 +5,6 @@
 | Flag | Desktop | Web | Source Rule |
 |---|---|---|---|
 | `enableRuntimeTab` | `true` | `false` | `D-SHELL-001` |
-| `enableMarketplaceTab` | `true` | `false` | `D-SHELL-001` |
 | `enableModUi` | `true` | `false` | `D-SHELL-002` |
 | `enableModWorkspaceTabs` | `true` | `false` | `D-SHELL-002` |
 | `enableSettingsExtensions` | `true` | `false` | `D-SHELL-002` |

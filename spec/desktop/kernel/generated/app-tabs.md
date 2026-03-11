@@ -11,7 +11,6 @@
 | `explore` | `core` | Explore | `—` |
 | `runtime` | `core` | AI Runtime | `enableRuntimeTab` |
 | `settings` | `core` | Settings | `—` |
-| `marketplace` | `embedded` | Marketplace | `enableMarketplaceTab` |
 | `mods` | `mod-nav` | Mods | `enableModUi` |
 | `profile` | `detail` | Profile | `—` |
 | `agent-detail` | `detail` | Agent Detail | `—` |

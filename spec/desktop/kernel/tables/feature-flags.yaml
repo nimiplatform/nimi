@@ -8,12 +8,6 @@ flags:
     description: Show AI Runtime tab in sidebar navigation
     source_rule: D-SHELL-001
 
-  - flag: enableMarketplaceTab
-    default_desktop: true
-    default_web: false
-    description: Enable Marketplace view inside Mods panel and marketplace route alias
-    source_rule: D-SHELL-001
-
   - flag: enableModUi
     default_desktop: true
     default_web: false

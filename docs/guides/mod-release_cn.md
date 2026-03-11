@@ -6,7 +6,7 @@
 
 规范真相源仍在：
 
-- [`spec/desktop/marketplace.md`](../../spec/desktop/marketplace.md)
+- [`spec/desktop/mod-hub.md`](../../spec/desktop/mod-hub.md)
 - [`spec/desktop/kernel/mod-governance-contract.md`](../../spec/desktop/kernel/mod-governance-contract.md)
 - [`apps/desktop/docs/mod-runtime-layout-contract.md`](../../apps/desktop/docs/mod-runtime-layout-contract.md)
 - [`RELEASE.md`](../../RELEASE.md)
@@ -42,7 +42,7 @@ Nimi v1 的 mod 发布遵循三层分工：
 - catalog repo：承载 `index/v1/**`、`signers.json`、`revocations.json`、`advisories.json`。
 - desktop：消费 catalog，执行校验、安装、更新、回滚。
 
-不要把 source repo 直接当 marketplace，也不要让 desktop 直接扫描源码仓。
+不要把 source repo 直接当 Mod Hub，也不要让 desktop 直接扫描源码仓。
 
 ## 2. Trust tier 定义
 

@@ -8,7 +8,7 @@ For the maintainer-facing step-by-step workflow for official mods that live in `
 
 Normative behavior still lives in:
 
-- [`spec/desktop/marketplace.md`](../../spec/desktop/marketplace.md)
+- [`spec/desktop/mod-hub.md`](../../spec/desktop/mod-hub.md)
 - [`spec/desktop/kernel/mod-governance-contract.md`](../../spec/desktop/kernel/mod-governance-contract.md)
 - [`apps/desktop/docs/mod-runtime-layout-contract.md`](../../apps/desktop/docs/mod-runtime-layout-contract.md)
 - [`RELEASE.md`](../../RELEASE.md)
@@ -294,4 +294,4 @@ Keep these responsibilities separate:
 - catalog repo: listing, trust tier, revocation, advisory, search index
 - desktop app: install, verify, update, rollback
 
-That split is the core v1 policy and should not be collapsed back into `nimi-mods` as a source-scanning marketplace.
+That split is the core v1 policy and should not be collapsed back into `nimi-mods` as a source-scanning Mod Hub.

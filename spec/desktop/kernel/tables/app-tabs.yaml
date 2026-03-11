@@ -46,13 +46,6 @@ tabs:
     gated_by: null
     source_rule: D-SHELL-001
 
-  # Embedded marketplace route (no standalone sidebar entry)
-  - id: marketplace
-    nav_group: embedded
-    label: Marketplace
-    gated_by: enableMarketplaceTab
-    source_rule: D-SHELL-001
-
   # Mod navigation (sidebar, separately rendered)
   - id: mods
     nav_group: mod-nav

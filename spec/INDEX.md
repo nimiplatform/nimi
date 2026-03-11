@@ -110,7 +110,7 @@ Desktop 规范采用 kernel + domain 的两层结构：
   - `spec/desktop/mod-codegen.md`
   - `spec/desktop/runtime-config.md`
   - `spec/desktop/settings.md`
-  - `spec/desktop/marketplace.md`
+  - `spec/desktop/mod-hub.md`
   - `spec/desktop/mod-workspace.md`
   - `spec/desktop/external-agent.md`
   - `spec/desktop/local-ai.md`
