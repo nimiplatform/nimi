@@ -54,11 +54,10 @@ function ModCard({
           <div className="flex items-center gap-2">
             <h3 className="truncate text-sm font-semibold text-slate-800">{mod.name}</h3>
             <span className="shrink-0 text-[11px] text-slate-400 font-medium">{mod.version}</span>
-            <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
-              {mod.sourceType}
-            </span>
-            {mod.sourceDir ? (
-              <span className="truncate text-[10px] text-slate-400">{mod.sourceDir}</span>
+            {mod.sourceType === 'dev' ? (
+              <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                dev
+              </span>
             ) : null}
             {mod.isCrashed ? (
               <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-500">
