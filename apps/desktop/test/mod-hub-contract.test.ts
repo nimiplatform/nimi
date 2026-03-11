@@ -3,7 +3,7 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { toRuntimeModRow } from '../src/shell/renderer/features/marketplace/marketplace-model';
+import { toRuntimeModRow } from '../src/shell/renderer/features/mod-hub/mod-hub-model';
 import type { AppTab } from '../src/shell/renderer/app-shell/providers/store-types';
 
 // ---------------------------------------------------------------------------
@@ -205,10 +205,10 @@ test('search filter: no matches', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 5. i18n key completeness: en.json and zh.json ModsPanel section
+// 5. i18n key completeness: en.json and zh.json ModHub section
 // ---------------------------------------------------------------------------
 
-test('ModsPanel i18n keys are complete in both en.json and zh.json', () => {
+test('ModHub i18n keys are complete in both en.json and zh.json', () => {
   const enPath = resolve(
     import.meta.dirname,
     '../src/shell/renderer/locales/en.json',
@@ -221,54 +221,49 @@ test('ModsPanel i18n keys are complete in both en.json and zh.json', () => {
   const en = JSON.parse(readFileSync(enPath, 'utf-8'));
   const zh = JSON.parse(readFileSync(zhPath, 'utf-8'));
 
-  assert.ok(en.ModsPanel, 'en.json must have ModsPanel section');
-  assert.ok(zh.ModsPanel, 'zh.json must have ModsPanel section');
+  assert.ok(en.ModHub, 'en.json must have ModHub section');
+  assert.ok(zh.ModHub, 'zh.json must have ModHub section');
 
-  const enKeys = Object.keys(en.ModsPanel).sort();
-  const zhKeys = Object.keys(zh.ModsPanel).sort();
+  const enKeys = Object.keys(en.ModHub).sort();
+  const zhKeys = Object.keys(zh.ModHub).sort();
 
-  assert.deepEqual(enKeys, zhKeys, 'ModsPanel keys must match between en.json and zh.json');
+  assert.deepEqual(enKeys, zhKeys, 'ModHub keys must match between en.json and zh.json');
 
   const requiredKeys = [
     'title',
-    'subtitle',
     'searchPlaceholder',
-    'open',
-    'enable',
-    'disable',
-    'uninstall',
-    'settings',
-    'retry',
-    'crashed',
-    'enabledSection',
-    'disabledSection',
-    'noMods',
-    'noModsHint',
-    'openMarketplace',
+    'resultsCount',
+    'installedCount',
+    'installFromPathTitle',
+    'installFromPathAction',
+    'installFromUrlTitle',
+    'installFromUrlAction',
+    'installedSection',
+    'availableSection',
     'noSearchResults',
   ];
 
   for (const key of requiredKeys) {
     assert.ok(
       enKeys.includes(key),
-      `en.json ModsPanel must include key: ${key}`,
+      `en.json ModHub must include key: ${key}`,
     );
     assert.ok(
       zhKeys.includes(key),
-      `zh.json ModsPanel must include key: ${key}`,
+      `zh.json ModHub must include key: ${key}`,
     );
   }
 
   for (const key of enKeys) {
-    const enValue = en.ModsPanel[key];
-    const zhValue = zh.ModsPanel[key];
+    const enValue = en.ModHub[key];
+    const zhValue = zh.ModHub[key];
     assert.ok(
       typeof enValue === 'string' && enValue.length > 0,
-      `en.json ModsPanel.${key} must be a non-empty string`,
+      `en.json ModHub.${key} must be a non-empty string`,
     );
     assert.ok(
       typeof zhValue === 'string' && zhValue.length > 0,
-      `zh.json ModsPanel.${key} must be a non-empty string`,
+      `zh.json ModHub.${key} must be a non-empty string`,
     );
   }
 });
@@ -277,31 +272,40 @@ test('ModsPanel i18n keys are complete in both en.json and zh.json', () => {
 // 6. Disable/Uninstall fallback navigation target
 // ---------------------------------------------------------------------------
 
-test('marketplace controller fallback target is mods (not marketplace)', () => {
-  // Read marketplace-controller.ts and verify the fallback tab
+test('mod hub controller fallback target is mods without removed alias', () => {
   const controllerPath = resolve(
     import.meta.dirname,
-    '../src/shell/renderer/features/marketplace/marketplace-controller.ts',
+    '../src/shell/renderer/features/mod-hub/mod-hub-controller.ts',
   );
   const source = readFileSync(controllerPath, 'utf-8');
+  const removedAlias = ['mark', 'etplace'].join('');
 
-  // The onDisableMod and onUninstallMod should setActiveTab('mods'), not 'marketplace'
   const setActiveTabCalls = source.match(/setActiveTab\(['"]([^'"]+)['"]\)/g) || [];
 
   // There should be setActiveTab('mods') calls for the fallback
   const modsTabCalls = setActiveTabCalls.filter((call) => call.includes("'mods'"));
   assert.ok(
     modsTabCalls.length >= 2,
-    `Expected at least 2 setActiveTab('mods') fallback calls in marketplace-controller, found ${modsTabCalls.length}`,
+    `Expected at least 2 setActiveTab('mods') fallback calls in mod-hub-controller, found ${modsTabCalls.length}`,
   );
 
-  // There should be NO setActiveTab('marketplace') calls for fallback
-  const marketplaceTabCalls = setActiveTabCalls.filter((call) => call.includes("'marketplace'"));
+  const removedAliasCalls = setActiveTabCalls.filter((call) => call.includes(`'${removedAlias}'`));
   assert.equal(
-    marketplaceTabCalls.length,
+    removedAliasCalls.length,
     0,
-    `Expected 0 setActiveTab('marketplace') fallback calls, found ${marketplaceTabCalls.length}`,
+    `Expected 0 removed alias fallback calls, found ${removedAliasCalls.length}`,
   );
+});
+
+test('store types no longer include removed app tab alias', () => {
+  const storeTypesPath = resolve(
+    import.meta.dirname,
+    '../src/shell/renderer/app-shell/providers/store-types.ts',
+  );
+  const source = readFileSync(storeTypesPath, 'utf-8');
+  const removedAliasPattern = new RegExp(`\\|\\s*'${['mark', 'etplace'].join('')}'`);
+
+  assert.doesNotMatch(source, removedAliasPattern);
 });
 
 // ---------------------------------------------------------------------------

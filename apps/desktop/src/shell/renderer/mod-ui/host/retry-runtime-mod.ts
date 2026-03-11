@@ -34,21 +34,21 @@ export async function retryRuntimeMod(input: RetryRuntimeModInput): Promise<void
   }
   if (input.runtimeModDisabledIds.includes(normalizedModId)) {
     input.setStatusBanner({
-      kind: 'warning',
-      message: i18n.t('ModUI.retryBlockedDisabled', {
-        modId: normalizedModId,
-        defaultValue: `Mod ${normalizedModId} is disabled. Enable it in Marketplace before retrying.`,
-      }),
+        kind: 'warning',
+        message: i18n.t('ModUI.retryBlockedDisabled', {
+          modId: normalizedModId,
+          defaultValue: `Mod ${normalizedModId} is disabled. Enable it in Mod Hub before retrying.`,
+        }),
     });
     return;
   }
   if (input.runtimeModUninstalledIds.includes(normalizedModId)) {
     input.setStatusBanner({
-      kind: 'warning',
-      message: i18n.t('ModUI.retryBlockedUninstalled', {
-        modId: normalizedModId,
-        defaultValue: `Mod ${normalizedModId} is uninstalled. Install it in Marketplace before retrying.`,
-      }),
+        kind: 'warning',
+        message: i18n.t('ModUI.retryBlockedUninstalled', {
+          modId: normalizedModId,
+          defaultValue: `Mod ${normalizedModId} is uninstalled. Install it in Mod Hub before retrying.`,
+        }),
     });
     return;
   }

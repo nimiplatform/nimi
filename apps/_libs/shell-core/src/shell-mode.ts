@@ -3,7 +3,6 @@ export type ShellMode = 'desktop' | 'web';
 export type ShellFeatureFlags = {
   mode: ShellMode;
   enableRuntimeTab: boolean;
-  enableMarketplaceTab: boolean;
   enableModUi: boolean;
   enableModWorkspaceTabs: boolean;
   enableSettingsExtensions: boolean;
@@ -57,7 +56,6 @@ export function getShellFeatureFlags(): ShellFeatureFlags {
   cachedFlags = {
     mode,
     enableRuntimeTab: isDesktop,
-    enableMarketplaceTab: isDesktop,
     enableModUi: isDesktop,
     enableModWorkspaceTabs: isDesktop,
     enableSettingsExtensions: isDesktop,

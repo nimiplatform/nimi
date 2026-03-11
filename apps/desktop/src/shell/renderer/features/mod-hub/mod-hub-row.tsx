@@ -1,10 +1,10 @@
 import type {
   BadgeType,
-  MarketplaceMod,
-  MarketplacePendingActionType,
-  MarketplaceRuntimeAction,
-} from './marketplace-model';
-import { describeConsentReasons } from './marketplace-model';
+  ModHubMod,
+  ModHubPendingActionType,
+  ModHubRuntimeAction,
+} from './mod-hub-model';
+import { describeConsentReasons } from './mod-hub-model';
 
 const ICON_STAR = (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none">
@@ -75,7 +75,7 @@ function StatusBadge({ isInstalled, isEnabled }: { isInstalled: boolean; isEnabl
 
 
 
-export function MarketplaceRow({
+export function ModHubRow({
   mod,
   pendingAction,
   isSelected,
@@ -88,8 +88,8 @@ export function MarketplaceRow({
   onUpdateMod,
   onSelectMod,
 }: {
-  mod: MarketplaceMod;
-  pendingAction?: { modId: string; action: MarketplacePendingActionType } | null;
+  mod: ModHubMod;
+  pendingAction?: { modId: string; action: ModHubPendingActionType } | null;
   isSelected?: boolean;
   onOpenMod?: ((modId: string) => void) | null;
   onInstallMod?: ((modId: string) => void) | null;
@@ -100,7 +100,7 @@ export function MarketplaceRow({
   onUpdateMod?: ((modId: string) => void) | null;
   onSelectMod?: ((modId: string | null) => void) | null;
 }) {
-  const isActionLoading = (action: MarketplaceRuntimeAction) => (
+  const isActionLoading = (action: ModHubRuntimeAction) => (
     pendingAction?.modId === mod.id && pendingAction?.action === action
   );
   const consentReasons = describeConsentReasons(mod.consentReasons);

@@ -38,16 +38,16 @@ test('D-SHELL-001: AppTab type includes settings', () => {
   assert.match(storeTypesSource, /\bAppTab\b[\s\S]*?\|\s*'settings'/);
 });
 
-test('D-SHELL-001: AppTab type includes marketplace', () => {
-  assert.match(storeTypesSource, /\bAppTab\b[\s\S]*?\|\s*'marketplace'/);
+test('D-SHELL-001: AppTab type includes mods', () => {
+  assert.match(storeTypesSource, /\bAppTab\b[\s\S]*?\|\s*'mods'/);
 });
 
-// D-SHELL-008: Feature flags gate runtime and marketplace tabs
+// D-SHELL-008: Feature flags gate runtime and mod UI
 
 test('D-SHELL-008: feature flags include enableRuntimeTab', () => {
   assert.match(shellModeSource, /enableRuntimeTab:\s*\w+/);
 });
 
-test('D-SHELL-008: feature flags include enableMarketplaceTab', () => {
-  assert.match(shellModeSource, /enableMarketplaceTab:\s*\w+/);
+test('D-SHELL-008: feature flags include enableModUi', () => {
+  assert.match(shellModeSource, /enableModUi:\s*\w+/);
 });

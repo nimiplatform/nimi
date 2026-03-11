@@ -5,7 +5,7 @@ import type {
   RuntimeLocalManifestSummary,
 } from '@renderer/bridge';
 
-export const MARKETPLACE_COLORS = {
+export const MOD_HUB_COLORS = {
   brand50: '#ecfeff',
   brand100: '#cefafe',
   brand500: '#00b8db',
@@ -29,14 +29,14 @@ export const MARKETPLACE_COLORS = {
 } as const;
 
 export type BadgeType = 'verified' | 'catalog' | 'official' | 'community';
-export type MarketplaceModSource = 'runtime' | 'catalog';
-export type MarketplaceRuntimeAction = 'install' | 'uninstall' | 'enable' | 'disable' | 'settings' | 'update';
-export type MarketplacePendingActionType =
-  | MarketplaceRuntimeAction
+export type ModHubModSource = 'runtime' | 'catalog';
+export type ModHubRuntimeAction = 'install' | 'uninstall' | 'enable' | 'disable' | 'settings' | 'update';
+export type ModHubPendingActionType =
+  | ModHubRuntimeAction
   | 'install-from-path'
   | 'install-from-url';
 
-export type MarketplaceMod = {
+export type ModHubMod = {
   id: string;
   name: string;
   description: string;
@@ -49,7 +49,7 @@ export type MarketplaceMod = {
   updatedAgo?: string;
   iconBg: string;
   iconText: string;
-  source: MarketplaceModSource;
+  source: ModHubModSource;
   packageType?: 'desktop-mod' | 'nimi-app' | string;
   catalogPackageId?: string;
   trustTier?: CatalogTrustTier | string;
@@ -100,7 +100,7 @@ export function toRuntimeModRow(
     isInstalled: boolean;
     isEnabled: boolean;
   },
-): MarketplaceMod {
+): ModHubMod {
   const manifest = summary.manifest && typeof summary.manifest === 'object'
     ? (summary.manifest as Record<string, unknown>)
     : {};
@@ -140,7 +140,7 @@ export function toRuntimeModRow(
     author,
     badge: publisherVerified ? 'verified' : undefined,
     version: `v${String(version).replace(/^v/i, '')}`,
-    iconBg: `linear-gradient(135deg, ${MARKETPLACE_COLORS.brand500}, ${MARKETPLACE_COLORS.blue600})`,
+    iconBg: `linear-gradient(135deg, ${MOD_HUB_COLORS.brand500}, ${MOD_HUB_COLORS.blue600})`,
     iconText: String(displayName.slice(0, 2) || 'M').toUpperCase(),
     source: 'runtime',
     packageType: 'desktop-mod',
@@ -175,7 +175,7 @@ export function toCatalogModRow(
     consentReasons?: CatalogConsentReason[];
     addedCapabilities?: string[];
   },
-): MarketplaceMod {
+): ModHubMod {
   const trustTier = summary.publisher.trustTier;
   const isSupported = summary.packageType === 'desktop-mod';
   const version = input.installedVersion || summary.latestVersion || '0.0.0';
@@ -187,10 +187,10 @@ export function toCatalogModRow(
     badge: trustTierBadge(trustTier),
     version: `v${String(version).replace(/^v/i, '')}`,
     iconBg: trustTier === 'official'
-      ? `linear-gradient(135deg, ${MARKETPLACE_COLORS.brand600}, ${MARKETPLACE_COLORS.cyan700})`
+      ? `linear-gradient(135deg, ${MOD_HUB_COLORS.brand600}, ${MOD_HUB_COLORS.cyan700})`
       : trustTier === 'verified'
-        ? `linear-gradient(135deg, ${MARKETPLACE_COLORS.blue600}, ${MARKETPLACE_COLORS.purple600})`
-        : `linear-gradient(135deg, ${MARKETPLACE_COLORS.gray500}, ${MARKETPLACE_COLORS.gray700})`,
+        ? `linear-gradient(135deg, ${MOD_HUB_COLORS.blue600}, ${MOD_HUB_COLORS.purple600})`
+        : `linear-gradient(135deg, ${MOD_HUB_COLORS.gray500}, ${MOD_HUB_COLORS.gray700})`,
     iconText: String(summary.name.slice(0, 2) || summary.packageId.slice(0, 2) || 'M').toUpperCase(),
     source: 'catalog',
     packageType: summary.packageType,

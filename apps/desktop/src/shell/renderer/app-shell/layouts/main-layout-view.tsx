@@ -626,12 +626,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               </div>
             ) : null}
 
-            {props.activeTab === 'marketplace' && flags.enableMarketplaceTab && flags.enableModUi ? (
-              <div className="flex min-h-0 flex-1 flex-col">
-                <ModsPanel initialSection="marketplace" />
-              </div>
-            ) : null}
-
             {props.activeTab === 'mods' && flags.enableModUi ? (
               <div className="flex min-h-0 flex-1 flex-col">
                 <ModsPanel />

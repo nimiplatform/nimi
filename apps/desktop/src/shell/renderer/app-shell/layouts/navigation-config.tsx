@@ -134,7 +134,7 @@ export function renderShellNavIcon(icon: string): ReactNode {
   if (normalized === 'runtime') return ICON_RUNTIME;
   if (normalized === 'profile') return ICON_PROFILE;
   if (normalized === 'settings') return ICON_SETTINGS;
-  if (normalized === 'store' || normalized === 'marketplace') return ICON_STORE;
+  if (normalized === 'store') return ICON_STORE;
   if (normalized === 'globe') return ICON_GLOBE;
   if (normalized === 'world') return ICON_WORLD;
   if (normalized === 'wallet') return ICON_WALLET;

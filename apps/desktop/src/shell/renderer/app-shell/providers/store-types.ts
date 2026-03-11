@@ -19,7 +19,6 @@ export type AppTab =
   | 'explore'
   | 'runtime'
   | 'settings'
-  | 'marketplace'
   | 'mods'
   | 'profile'
   | 'agent-detail'

@@ -5,7 +5,6 @@ import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 import { logoutAndClearSession } from '@renderer/features/auth/logout';
 import { useChatRealtimeSync } from '@renderer/features/realtime/use-chat-realtime-sync';
-import { persistStoredModsPanelSection } from '@renderer/features/mods/mods-panel-state';
 import { MainLayoutView } from './main-layout-view';
 
 const MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX = 92;
@@ -28,15 +27,6 @@ export function MainLayout() {
 
   useEffect(() => {
     if (!flags.enableRuntimeTab && activeTab === 'runtime') {
-      setActiveTab('chat');
-      return;
-    }
-    if (activeTab === 'marketplace') {
-      if (flags.enableMarketplaceTab && flags.enableModUi) {
-        persistStoredModsPanelSection('marketplace');
-        setActiveTab('mods');
-        return;
-      }
       setActiveTab('chat');
       return;
     }

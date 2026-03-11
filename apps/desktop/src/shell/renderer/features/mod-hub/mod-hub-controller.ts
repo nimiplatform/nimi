@@ -26,11 +26,11 @@ import {
 } from '@renderer/features/settings/settings-storage';
 import {
   describeConsentReasons,
-  type MarketplaceMod,
-  type MarketplacePendingActionType,
+  type ModHubMod,
+  type ModHubPendingActionType,
   toCatalogModRow,
   toRuntimeModRow,
-} from './marketplace-model';
+} from './mod-hub-model';
 
 function normalizeModId(modId: string): string {
   return String(modId || '').trim();
@@ -116,15 +116,15 @@ async function registerOneRuntimeMod(input: {
   };
 }
 
-export type MarketplacePendingAction = {
+export type ModHubPendingAction = {
   modId: string;
-  action: MarketplacePendingActionType;
+  action: ModHubPendingActionType;
 } | null;
 
-export type MarketplacePageModel = {
+export type ModHubPageModel = {
   searchQuery: string;
-  filteredMods: MarketplaceMod[];
-  pendingAction: MarketplacePendingAction;
+  filteredMods: ModHubMod[];
+  pendingAction: ModHubPendingAction;
   selectedModId: string | null;
   pathSource: string;
   urlSource: string;
@@ -143,9 +143,9 @@ export type MarketplacePageModel = {
   onInstallFromUrl: () => void;
 };
 
-export function useMarketplacePageModel(): MarketplacePageModel {
+export function useModHubPageModel(): ModHubPageModel {
   const [searchQuery, setSearchQuery] = useState('');
-  const [pendingAction, setPendingAction] = useState<MarketplacePendingAction>(null);
+  const [pendingAction, setPendingAction] = useState<ModHubPendingAction>(null);
   const [selectedModId, setSelectedModId] = useState<string | null>(null);
   const [pathSource, setPathSource] = useState('');
   const [urlSource, setUrlSource] = useState('');
@@ -221,7 +221,7 @@ export function useMarketplacePageModel(): MarketplacePageModel {
 
   const mergedMods = useMemo(() => {
     const runtimeById = new Map(runtimeMods.map((item) => [item.id, item] as const));
-    const rows: MarketplaceMod[] = catalogMods.map((catalogMod) => {
+    const rows: ModHubMod[] = catalogMods.map((catalogMod) => {
       const runtime = runtimeById.get(catalogMod.packageId);
       const update = availableUpdates[catalogMod.packageId];
       return {
@@ -303,7 +303,7 @@ export function useMarketplacePageModel(): MarketplacePageModel {
 
   const runRuntimeAction = useCallback(async (
     modId: string,
-    action: MarketplacePendingActionType,
+    action: ModHubPendingActionType,
     task: () => Promise<void>,
   ) => {
     const normalizedModId = normalizeModId(modId);
@@ -316,8 +316,8 @@ export function useMarketplacePageModel(): MarketplacePageModel {
       await task();
       logRendererEvent({
         level: 'info',
-        area: 'marketplace',
-        message: 'marketplace:runtime-mod:action-success',
+        area: 'mod-hub',
+        message: 'mod-hub:runtime-mod:action-success',
         details: {
           modId: normalizedModId,
           action,
@@ -331,8 +331,8 @@ export function useMarketplacePageModel(): MarketplacePageModel {
       });
       logRendererEvent({
         level: 'warn',
-        area: 'marketplace',
-        message: 'marketplace:runtime-mod:action-failed',
+        area: 'mod-hub',
+        message: 'mod-hub:runtime-mod:action-failed',
         details: {
           modId: normalizedModId,
           action,
