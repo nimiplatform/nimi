@@ -10,7 +10,7 @@ import { buildMergedEnv } from './lib/live-env.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const modsWorkspaceDir = path.join(repoRoot, 'nimi-mods');
-const localChatDir = path.join(modsWorkspaceDir, 'local-chat');
+const localChatDir = path.join(modsWorkspaceDir, 'runtime', 'local-chat');
 const liveEnv = buildMergedEnv({
   baseEnv: process.env,
   filePaths: [
@@ -20,7 +20,7 @@ const liveEnv = buildMergedEnv({
 });
 
 if (!existsSync(modsWorkspaceDir) || !existsSync(localChatDir)) {
-  process.stdout.write('[run-local-chat-live-smoke] skipped: optional nimi-mods/local-chat workspace not present\n');
+  process.stdout.write('[run-local-chat-live-smoke] skipped: optional nimi-mods/runtime/local-chat workspace not present\n');
   process.exit(0);
 }
 

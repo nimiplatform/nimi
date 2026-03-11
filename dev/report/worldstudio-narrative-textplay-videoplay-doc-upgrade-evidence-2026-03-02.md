@@ -19,26 +19,26 @@
 
 模块级 SSOT/Spec：
 
-1. `nimi-mods/world-studio/SSOT.md`（UPDATE）
-2. `nimi-mods/narrative-engine/spec/kernel/run-orchestration-contract.md`（ADD）
-3. `nimi-mods/narrative-engine/spec/kernel/tables/run-states.yaml`（ADD）
-4. `nimi-mods/textplay/spec/kernel/run-orchestration-contract.md`（ADD）
-5. `nimi-mods/textplay/spec/kernel/tables/run-states.yaml`（ADD）
-6. `nimi-mods/videoplay/spec/kernel/creator-workflow-contract.md`（ADD）
-7. `nimi-mods/videoplay/spec/kernel/version-lineage-contract.md`（ADD）
-8. `nimi-mods/videoplay/spec/kernel/prompt-governance-contract.md`（ADD）
-9. `nimi-mods/videoplay/spec/kernel/tables/creator-operations.yaml`（ADD）
-10. `nimi-mods/videoplay/spec/kernel/tables/rebuild-impact-matrix.yaml`（ADD）
-11. `nimi-mods/videoplay/spec/kernel/tables/continuity-constraints.yaml`（ADD）
-12. `nimi-mods/videoplay/spec/kernel/tables/version-lineage-policy.yaml`（ADD）
-13. `nimi-mods/videoplay/spec/kernel/tables/forbidden-patterns.yaml`（ADD）
-14. `nimi-mods/videoplay/spec/kernel/tables/prompt-canary-cases.yaml`（ADD）
-15. `nimi-mods/narrative-engine/spec/INDEX.md`（UPDATE）
-16. `nimi-mods/textplay/spec/INDEX.md`（UPDATE）
-17. `nimi-mods/videoplay/spec/INDEX.md`（UPDATE）
-18. `nimi-mods/narrative-engine/spec/narrative-engine.md`（UPDATE）
-19. `nimi-mods/textplay/spec/textplay.md`（UPDATE）
-20. `nimi-mods/videoplay/spec/videoplay.md`（UPDATE）
+1. `nimi-mods/runtime/world-studio/SSOT.md`（UPDATE）
+2. `nimi-mods/modules/narrative-engine/spec/kernel/run-orchestration-contract.md`（ADD）
+3. `nimi-mods/modules/narrative-engine/spec/kernel/tables/run-states.yaml`（ADD）
+4. `nimi-mods/runtime/textplay/spec/kernel/run-orchestration-contract.md`（ADD）
+5. `nimi-mods/runtime/textplay/spec/kernel/tables/run-states.yaml`（ADD）
+6. `nimi-mods/runtime/videoplay/spec/kernel/creator-workflow-contract.md`（ADD）
+7. `nimi-mods/runtime/videoplay/spec/kernel/version-lineage-contract.md`（ADD）
+8. `nimi-mods/runtime/videoplay/spec/kernel/prompt-governance-contract.md`（ADD）
+9. `nimi-mods/runtime/videoplay/spec/kernel/tables/creator-operations.yaml`（ADD）
+10. `nimi-mods/runtime/videoplay/spec/kernel/tables/rebuild-impact-matrix.yaml`（ADD）
+11. `nimi-mods/runtime/videoplay/spec/kernel/tables/continuity-constraints.yaml`（ADD）
+12. `nimi-mods/runtime/videoplay/spec/kernel/tables/version-lineage-policy.yaml`（ADD）
+13. `nimi-mods/runtime/videoplay/spec/kernel/tables/forbidden-patterns.yaml`（ADD）
+14. `nimi-mods/runtime/videoplay/spec/kernel/tables/prompt-canary-cases.yaml`（ADD）
+15. `nimi-mods/modules/narrative-engine/spec/INDEX.md`（UPDATE）
+16. `nimi-mods/runtime/textplay/spec/INDEX.md`（UPDATE）
+17. `nimi-mods/runtime/videoplay/spec/INDEX.md`（UPDATE）
+18. `nimi-mods/modules/narrative-engine/spec/narrative-engine.md`（UPDATE）
+19. `nimi-mods/runtime/textplay/spec/textplay.md`（UPDATE）
+20. `nimi-mods/runtime/videoplay/spec/videoplay.md`（UPDATE）
 21. `nimi-mods/*/spec/kernel/index.md`（UPDATE）
 
 脚本与生成产物：
@@ -82,7 +82,7 @@
 
 ### 5.1 基线与输入
 
-1. `world-studio` 已有真实实现（`nimi-mods/world-studio/src/*`）。
+1. `world-studio` 已有真实实现（`nimi-mods/runtime/world-studio/src/*`）。
 2. `narrative-engine/textplay/videoplay` 当前为 contract-first + implementation 并行（spec 持续先行，`src` 已存在并可运行）。
 3. 链路级 SSOT 已存在 3 份：rendering / run-protocol / guard-governance。
 4. 对标输入使用行业主流产品样本（外部样本仓，HEAD `eb18e92`，2026-03-01）。
@@ -117,8 +117,8 @@
 2. 落地：
    1. `ssot/mod/worldstudio-narrative-chain-run-protocol.md`
    2. `ssot/mod/worldstudio-narrative-chain-guard-governance.md`
-   3. `nimi-mods/videoplay/spec/kernel/prompt-governance-contract.md`
-   4. `nimi-mods/videoplay/spec/kernel/tables/prompt-canary-cases.yaml`
+   3. `nimi-mods/runtime/videoplay/spec/kernel/prompt-governance-contract.md`
+   4. `nimi-mods/runtime/videoplay/spec/kernel/tables/prompt-canary-cases.yaml`
 3. 门禁：
    1. `pnpm -C nimi-mods run generate:spec:videoplay-kernel-docs` 通过
    2. `pnpm -C nimi-mods run check:spec:videoplay` 通过
@@ -127,11 +127,11 @@
 
 1. 目标：将 world 到 narrative 的交接投影束合同化（`WS-PIPE-008`）。
 2. 落地：
-   1. `nimi-mods/world-studio/spec/kernel/pipeline-contract.md`
-   2. `nimi-mods/world-studio/spec/kernel/tables/pipeline-states.yaml`
-   3. `nimi-mods/world-studio/spec/kernel/tables/reason-codes.yaml`
-   4. `nimi-mods/world-studio/spec/kernel/acceptance-contract.md`
-   5. `nimi-mods/world-studio/spec/kernel/tables/acceptance-cases.yaml`
+   1. `nimi-mods/runtime/world-studio/spec/kernel/pipeline-contract.md`
+   2. `nimi-mods/runtime/world-studio/spec/kernel/tables/pipeline-states.yaml`
+   3. `nimi-mods/runtime/world-studio/spec/kernel/tables/reason-codes.yaml`
+   4. `nimi-mods/runtime/world-studio/spec/kernel/acceptance-contract.md`
+   5. `nimi-mods/runtime/world-studio/spec/kernel/tables/acceptance-cases.yaml`
 3. 门禁：
    1. `pnpm -C nimi-mods run generate:spec:world-studio-kernel-docs` 通过
    2. `pnpm -C nimi-mods run check:spec:world-studio` 通过
@@ -162,35 +162,35 @@
 2. SSOT 元数据：
    1. `ssot/_meta/traceability-matrix.md`
 3. World-Studio：
-   1. `nimi-mods/world-studio/SSOT.md`
-   2. `nimi-mods/world-studio/spec/kernel/pipeline-contract.md`
-   3. `nimi-mods/world-studio/spec/kernel/acceptance-contract.md`
-   4. `nimi-mods/world-studio/spec/kernel/tables/pipeline-states.yaml`
-   5. `nimi-mods/world-studio/spec/kernel/tables/reason-codes.yaml`
-   6. `nimi-mods/world-studio/spec/kernel/tables/acceptance-cases.yaml`
+   1. `nimi-mods/runtime/world-studio/SSOT.md`
+   2. `nimi-mods/runtime/world-studio/spec/kernel/pipeline-contract.md`
+   3. `nimi-mods/runtime/world-studio/spec/kernel/acceptance-contract.md`
+   4. `nimi-mods/runtime/world-studio/spec/kernel/tables/pipeline-states.yaml`
+   5. `nimi-mods/runtime/world-studio/spec/kernel/tables/reason-codes.yaml`
+   6. `nimi-mods/runtime/world-studio/spec/kernel/tables/acceptance-cases.yaml`
 4. Narrative：
-   1. `nimi-mods/narrative-engine/spec/INDEX.md`
-   2. `nimi-mods/narrative-engine/spec/kernel/run-orchestration-contract.md`
-   3. `nimi-mods/narrative-engine/spec/kernel/tables/run-states.yaml`
-   4. `nimi-mods/narrative-engine/spec/kernel/tables/reason-codes.yaml`
-   5. `nimi-mods/narrative-engine/spec/kernel/tables/acceptance-cases.yaml`
+   1. `nimi-mods/modules/narrative-engine/spec/INDEX.md`
+   2. `nimi-mods/modules/narrative-engine/spec/kernel/run-orchestration-contract.md`
+   3. `nimi-mods/modules/narrative-engine/spec/kernel/tables/run-states.yaml`
+   4. `nimi-mods/modules/narrative-engine/spec/kernel/tables/reason-codes.yaml`
+   5. `nimi-mods/modules/narrative-engine/spec/kernel/tables/acceptance-cases.yaml`
 5. TextPlay：
-   1. `nimi-mods/textplay/spec/INDEX.md`
-   2. `nimi-mods/textplay/spec/kernel/run-orchestration-contract.md`
-   3. `nimi-mods/textplay/spec/kernel/tables/run-states.yaml`
-   4. `nimi-mods/textplay/spec/kernel/tables/reason-codes.yaml`
-   5. `nimi-mods/textplay/spec/kernel/tables/acceptance-cases.yaml`
+   1. `nimi-mods/runtime/textplay/spec/INDEX.md`
+   2. `nimi-mods/runtime/textplay/spec/kernel/run-orchestration-contract.md`
+   3. `nimi-mods/runtime/textplay/spec/kernel/tables/run-states.yaml`
+   4. `nimi-mods/runtime/textplay/spec/kernel/tables/reason-codes.yaml`
+   5. `nimi-mods/runtime/textplay/spec/kernel/tables/acceptance-cases.yaml`
 6. VideoPlay：
-   1. `nimi-mods/videoplay/spec/INDEX.md`
-   2. `nimi-mods/videoplay/spec/kernel/creator-workflow-contract.md`
-   3. `nimi-mods/videoplay/spec/kernel/version-lineage-contract.md`
-   4. `nimi-mods/videoplay/spec/kernel/prompt-governance-contract.md`
-   5. `nimi-mods/videoplay/spec/kernel/tables/creator-operations.yaml`
-   6. `nimi-mods/videoplay/spec/kernel/tables/rebuild-impact-matrix.yaml`
-   7. `nimi-mods/videoplay/spec/kernel/tables/continuity-constraints.yaml`
-   8. `nimi-mods/videoplay/spec/kernel/tables/version-lineage-policy.yaml`
-   9. `nimi-mods/videoplay/spec/kernel/tables/forbidden-patterns.yaml`
-   10. `nimi-mods/videoplay/spec/kernel/tables/prompt-canary-cases.yaml`
+   1. `nimi-mods/runtime/videoplay/spec/INDEX.md`
+   2. `nimi-mods/runtime/videoplay/spec/kernel/creator-workflow-contract.md`
+   3. `nimi-mods/runtime/videoplay/spec/kernel/version-lineage-contract.md`
+   4. `nimi-mods/runtime/videoplay/spec/kernel/prompt-governance-contract.md`
+   5. `nimi-mods/runtime/videoplay/spec/kernel/tables/creator-operations.yaml`
+   6. `nimi-mods/runtime/videoplay/spec/kernel/tables/rebuild-impact-matrix.yaml`
+   7. `nimi-mods/runtime/videoplay/spec/kernel/tables/continuity-constraints.yaml`
+   8. `nimi-mods/runtime/videoplay/spec/kernel/tables/version-lineage-policy.yaml`
+   9. `nimi-mods/runtime/videoplay/spec/kernel/tables/forbidden-patterns.yaml`
+   10. `nimi-mods/runtime/videoplay/spec/kernel/tables/prompt-canary-cases.yaml`
 7. 过程文档：
    1. `dev/plan/worldstudio-narrative-textplay-videoplay-doc-upgrade-plan-2026-03-02.md`
    2. `dev/report/worldstudio-narrative-textplay-videoplay-doc-upgrade-evidence-2026-03-02.md`

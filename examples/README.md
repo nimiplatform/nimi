@@ -59,6 +59,7 @@ What each file demonstrates:
 
 - `app-template/`: tracked output shape for `pnpm dlx @nimiplatform/dev-tools nimi-app create --template basic`
 - `mod-template/`: tracked output shape for `pnpm dlx @nimiplatform/dev-tools nimi-mod create`
+- `mod-catalog-template/`: static GitHub-first catalog layout and signer registry example for desktop mod distribution
 
 ## Advanced Paths
 
@@ -94,5 +95,6 @@ node scripts/check-example-run-comments.mjs
 - `sdk/advanced/`: deeper runtime features
 - `sdk/providers/`: provider-specific recipes
 - `mod-template/`: mod scaffold reference
+- `mod-catalog-template/`: catalog repo reference
 - `mods/`: mod SDK examples
 - `runtime/`: CLI examples

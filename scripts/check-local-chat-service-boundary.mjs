@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
-const localChatSrcRoot = path.join(repoRoot, 'nimi-mods', 'local-chat', 'src');
+const localChatSrcRoot = path.join(repoRoot, 'nimi-mods', 'runtime', 'local-chat', 'src');
 const servicesIndexPath = path.join(localChatSrcRoot, 'services', 'index.ts');
 const publicEntryPath = path.join(localChatSrcRoot, 'index.ts');
 
@@ -67,7 +67,7 @@ async function checkNoInternalServicesBarrelImport() {
 
 async function main() {
   if (!(await fs.stat(localChatSrcRoot).then((value) => value.isDirectory()).catch(() => false))) {
-    process.stdout.write('local-chat service boundary check skipped: optional nimi-mods/local-chat workspace not present\n');
+    process.stdout.write('local-chat service boundary check skipped: optional nimi-mods/runtime/local-chat workspace not present\n');
     return;
   }
 

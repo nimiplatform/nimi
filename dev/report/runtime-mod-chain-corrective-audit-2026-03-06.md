@@ -29,11 +29,11 @@ Date: 2026-03-06
 
 ### 1. Mod usage audit was materially inaccurate
 
-- `nimi-mods/local-chat` 已有真实 `image.generate` / `video.generate` / `tts.*` / `stt.transcribe` 调用。
-- `nimi-mods/videoplay` 已有真实 `image.generate` / `video.generate` / `tts.*` 调用。
-- `nimi-mods/audio-book` 已有真实 `tts.listVoices` / `tts.synthesize` 调用。
-- `nimi-mods/knowledge-base` 已有真实 `embedding.generate` 调用。
-- `nimi-mods/meeting-scribe` 当前没有 `mod.manifest.yaml` 与可加载 `src/` 入口，属于 spec/test-only 样例，不应与可部署 mod 同表统计。
+- `nimi-mods/runtime/local-chat` 已有真实 `image.generate` / `video.generate` / `tts.*` / `stt.transcribe` 调用。
+- `nimi-mods/runtime/videoplay` 已有真实 `image.generate` / `video.generate` / `tts.*` 调用。
+- `nimi-mods/runtime/audio-book` 已有真实 `tts.listVoices` / `tts.synthesize` 调用。
+- `nimi-mods/runtime/knowledge-base` 已有真实 `embedding.generate` 调用。
+- `nimi-mods/audit/meeting-scribe` 当前没有 `mod.manifest.yaml` 与可加载 `src/` 入口，属于 spec/test-only 样例，不应与可部署 mod 同表统计。
 
 ### 2. World Studio was not “unimplemented”; it was miswired
 
@@ -63,9 +63,9 @@ Date: 2026-03-06
   - `runtime/internal/services/ai/scenario_media_helpers_unit_test.go`
   - `runtime/internal/services/ai/scenario_job_store.go`
 - World Studio:
-  - `nimi-mods/world-studio/src/runtime-ai-client.ts`
-  - `nimi-mods/world-studio/src/hooks/actions/create/assets-generation.ts`
-  - `nimi-mods/world-studio/test/world-studio-asset-generation.test.mjs`
+  - `nimi-mods/runtime/world-studio/src/runtime-ai-client.ts`
+  - `nimi-mods/runtime/world-studio/src/hooks/actions/create/assets-generation.ts`
+  - `nimi-mods/runtime/world-studio/test/world-studio-asset-generation.test.mjs`
 - Desktop / Spec:
   - `apps/desktop/src/runtime/llm-adapter/execution/index.ts`
   - `apps/desktop/src/runtime/llm-adapter/execution/types.ts`
@@ -79,10 +79,10 @@ Targeted verification for this corrective pass:
 - Runtime:
   - `cd runtime && go test ./internal/nimillm ./internal/services/ai`
 - World Studio:
-  - `pnpm --dir nimi-mods/world-studio test`
-  - `pnpm --dir nimi-mods/world-studio typecheck`
+  - `pnpm --dir nimi-mods/runtime/world-studio test`
+  - `pnpm --dir nimi-mods/runtime/world-studio typecheck`
 - Cross-layer:
-  - `pnpm --dir nimi-mods/local-chat typecheck`
+  - `pnpm --dir nimi-mods/runtime/local-chat typecheck`
   - `pnpm --filter @nimiplatform/sdk test -- --test-name-pattern='mod runtime client'`
   - `npx tsx --tsconfig apps/web/tsconfig.json --test apps/web/test/runtime-mod.web.test.ts`
 - Spec:

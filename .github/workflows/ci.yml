@@ -488,7 +488,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NIMI_MODS_ROOT: ${{ github.workspace }}/nimi-mods
-      NIMI_RUNTIME_MODS_DIR: ${{ github.workspace }}/nimi-mods
+      NIMI_RUNTIME_MODS_DIR: ${{ github.workspace }}/nimi-mods/runtime
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2

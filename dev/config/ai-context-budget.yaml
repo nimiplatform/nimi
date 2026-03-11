@@ -53,6 +53,7 @@ exclude:
   - "**/Cargo.lock"
   - "apps/desktop/src-tauri/gen/**"
   - "**/*.ico"
+  - "**/*.icns"
   - "**/*.png"
   - "**/*.jpg"
   - "**/*.jpeg"

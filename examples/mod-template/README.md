@@ -34,3 +34,5 @@ pnpm build
 pnpm doctor
 pnpm pack
 ```
+
+For GitHub Release packaging, catalog listing, and third-party submission handling, see [`docs/guides/mod-release.md`](../../docs/guides/mod-release.md).

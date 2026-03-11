@@ -12,12 +12,12 @@ import {
 import {
   MINTYOU_MOD_ID,
   MINTYOU_RUNTIME_PROFILE_READ_AGENT,
-} from '../../../nimi-mods/mint-you/src/contracts.js';
-import { registerMintYouDataCapabilities } from '../../../nimi-mods/mint-you/src/registrars/data.js';
+} from '../../../nimi-mods/runtime/mint-you/src/contracts.js';
+import { registerMintYouDataCapabilities } from '../../../nimi-mods/runtime/mint-you/src/registrars/data.js';
 import {
   requestPhoto,
   respondToRequest,
-} from '../../../nimi-mods/mint-you/src/services/photo-auth.js';
+} from '../../../nimi-mods/runtime/mint-you/src/services/photo-auth.js';
 
 type LocalStorageLike = {
   getItem: (key: string) => string | null;
