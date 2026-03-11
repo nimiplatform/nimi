@@ -184,6 +184,9 @@ pub fn upsert_runtime_mod_source(
         return Err("默认 installed source 不允许编辑".to_string());
     }
     let normalized_type = normalize_source_type(source_type)?;
+    if normalized_type != SOURCE_TYPE_DEV {
+        return Err("Desktop 只允许用户添加 dev source".to_string());
+    }
     let normalized_dir = normalize_source_dir(source_dir)?.display().to_string();
     if normalized_dir == default_record.source_dir {
         return Err("默认 installed source 路径已由 Desktop 管理，不允许重复添加".to_string());
@@ -483,6 +486,13 @@ fn enabled_runtime_mod_source_dirs(app: &AppHandle) -> Result<Vec<PathBuf>, Stri
         .collect())
 }
 
+fn allowed_open_dir_roots(app: &AppHandle) -> Result<Vec<PathBuf>, String> {
+    let mut roots = enabled_runtime_mod_source_dirs(app)?;
+    roots.push(crate::desktop_paths::resolve_nimi_data_dir()?);
+    roots.push(crate::desktop_paths::resolve_nimi_dir()?);
+    Ok(roots)
+}
+
 fn emit_runtime_mod_reload_results_for_source(
     app: &AppHandle,
     source_id: Option<&str>,
@@ -645,4 +655,42 @@ pub fn reload_all_runtime_mods(
     app: &AppHandle,
 ) -> Result<Vec<RuntimeModReloadResultPayload>, String> {
     emit_runtime_mod_reload_results_for_source(app, None)
+}
+
+fn reveal_path_in_os(path: &Path) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(path)
+            .spawn()
+            .map_err(|e| format!("open mod dir failed: {e}"))?;
+    }
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("explorer")
+            .arg(path)
+            .spawn()
+            .map_err(|e| format!("open mod dir failed: {e}"))?;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(path)
+            .spawn()
+            .map_err(|e| format!("open mod dir failed: {e}"))?;
+    }
+    Ok(())
+}
+
+pub fn open_runtime_mod_dir(app: &AppHandle, path: &str) -> Result<(), String> {
+    let normalized = normalize_entry_path_within_roots(&allowed_open_dir_roots(app)?, path)?;
+    let target = if normalized.is_dir() {
+        normalized
+    } else {
+        normalized
+            .parent()
+            .map(Path::to_path_buf)
+            .ok_or_else(|| format!("无法解析 mod 目录: {}", normalized.display()))?
+    };
+    reveal_path_in_os(&target)
 }

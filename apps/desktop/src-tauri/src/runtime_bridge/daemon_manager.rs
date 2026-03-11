@@ -12,14 +12,14 @@ use super::channel_pool::invalidate_channel;
 use super::error_map::bridge_error;
 mod daemon_command;
 use daemon_command::{
-    runtime_bridge_mode_for_status, runtime_bridge_mode_label, runtime_cli_command_spec,
+    runtime_bridge_availability_error, runtime_bridge_mode_for_status, runtime_bridge_mode_label,
+    runtime_cli_command_spec,
 };
 
 const DEFAULT_GRPC_ADDR: &str = "127.0.0.1:46371";
 const DEFAULT_RUNTIME_BINARY: &str = "nimi";
 const DEFAULT_RUNTIME_BRIDGE_MODE: &str = "RELEASE";
 const RUNTIME_BRIDGE_MODE_ENV: &str = "NIMI_RUNTIME_BRIDGE_MODE";
-const DEFAULT_RUNTIME_CONFIG_REL_PATH: &str = ".nimi/config.json";
 
 static DAEMON_CHILD: OnceLock<Mutex<Option<Child>>> = OnceLock::new();
 static DAEMON_LAST_ERROR: OnceLock<Mutex<Option<String>>> = OnceLock::new();
@@ -117,9 +117,7 @@ fn runtime_config_path() -> Option<PathBuf> {
     if let Some(value) = read_non_empty_env("NIMI_RUNTIME_CONFIG_PATH") {
         return Some(expand_home_path(value.as_str()));
     }
-    let home = read_non_empty_env("HOME")?;
-    let default_path = PathBuf::from(home.as_str()).join(DEFAULT_RUNTIME_CONFIG_REL_PATH);
-    Some(default_path)
+    Some(crate::desktop_paths::resolve_nimi_dir().ok()?.join("config.json"))
 }
 
 fn expand_home_path(raw: &str) -> PathBuf {
@@ -187,6 +185,8 @@ pub fn status() -> RuntimeBridgeDaemonStatus {
     let mut last_error = read_last_error();
     if let Some(error) = mode_error {
         last_error = Some(error);
+    } else if !running && last_error.is_none() {
+        last_error = runtime_bridge_availability_error();
     }
     if running && last_error.is_some() && !has_mode_error {
         set_last_error(None);

@@ -219,6 +219,7 @@ companion artifact 补充：
 Desktop 作为 mod developer host 时，开发态 source 管理与 reload 能力必须通过受管 IPC surface 暴露，而不是要求用户改启动参数：
 
 - source registry：列出、添加、移除、启用、禁用 mod source directories。
+- storage dirs：读取当前 `nimi_dir` / `nimi_data_dir` / installed mods 路径，并更新 `nimi_data_dir`。
 - developer mode：读取和切换 App 内的 Developer Mode 状态。
 - reload controls：对 `dev` source 中的单个 mod 或全部 mod 执行 reload。
 - diagnostics：列出 source 扫描结果、重复 `mod id` 冲突、最近 reload 结果。

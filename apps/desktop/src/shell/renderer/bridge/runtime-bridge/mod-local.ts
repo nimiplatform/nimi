@@ -9,6 +9,7 @@ import {
   parseRuntimeModReloadResults,
   parseRuntimeModSourceChangeEvent,
   parseRuntimeModSourceRecords,
+  parseRuntimeModStorageDirs,
   parseRuntimeLocalManifestSummaries,
   parseRuntimeLocalManifestSummary,
   type RuntimeModDeveloperModeState,
@@ -19,6 +20,7 @@ import {
   type RuntimeModReloadResult,
   type RuntimeModSourceChangeEvent,
   type RuntimeModSourceRecord,
+  type RuntimeModStorageDirs,
   type RuntimeModUpdatePayload,
   type RuntimeLocalManifestSummary,
 } from './types';
@@ -79,7 +81,7 @@ export async function listRuntimeModSources(): Promise<RuntimeModSourceRecord[]>
 
 export async function upsertRuntimeModSource(input: {
   sourceId?: string;
-  sourceType: 'installed' | 'dev';
+  sourceType: 'dev';
   sourceDir: string;
   enabled?: boolean;
 }): Promise<RuntimeModSourceRecord> {
@@ -119,6 +121,22 @@ export async function setRuntimeModDeveloperMode(input: {
   }, parseRuntimeModDeveloperModeState);
 }
 
+export async function getRuntimeModStorageDirs(): Promise<RuntimeModStorageDirs> {
+  if (!hasTauriInvoke()) {
+    throw new Error('runtime_mod_storage_dirs_get requires Tauri runtime');
+  }
+  return invokeChecked('runtime_mod_storage_dirs_get', {}, parseRuntimeModStorageDirs);
+}
+
+export async function setRuntimeModDataDir(nimiDataDir: string): Promise<RuntimeModStorageDirs> {
+  if (!hasTauriInvoke()) {
+    throw new Error('runtime_mod_data_dir_set requires Tauri runtime');
+  }
+  return invokeChecked('runtime_mod_data_dir_set', {
+    payload: { nimiDataDir },
+  }, parseRuntimeModStorageDirs);
+}
+
 export async function listRuntimeModDiagnostics(): Promise<RuntimeModDiagnosticRecord[]> {
   if (!hasTauriInvoke()) {
     return [];
@@ -140,6 +158,15 @@ export async function reloadAllRuntimeMods(): Promise<RuntimeModReloadResult[]> 
     return [];
   }
   return invokeChecked('runtime_mod_reload_all', {}, parseRuntimeModReloadResults);
+}
+
+export async function openRuntimeModDir(path: string): Promise<void> {
+  if (!hasTauriInvoke()) {
+    throw new Error('runtime_mod_open_dir requires Tauri runtime');
+  }
+  await invoke('runtime_mod_open_dir', {
+    payload: { path },
+  });
 }
 
 export async function installRuntimeMod(payload: RuntimeModInstallPayload): Promise<RuntimeModInstallResult> {

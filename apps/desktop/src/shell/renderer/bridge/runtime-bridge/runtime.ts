@@ -93,6 +93,16 @@ export type RuntimeModSourceRecord = {
   isDefault: boolean;
 };
 
+export type RuntimeModStorageDirs = {
+  nimiDir: string;
+  nimiDataDir: string;
+  installedModsDir: string;
+  runtimeModDbPath: string;
+  mediaCacheDir: string;
+  localModelsDir: string;
+  localRuntimeStatePath: string;
+};
+
 export type RuntimeModDeveloperModeState = {
   enabled: boolean;
   autoReloadEnabled: boolean;
@@ -260,6 +270,19 @@ export function parseRuntimeDefaults(value: unknown): RuntimeDefaults {
       provider: String(runtimeRecord.provider || '').trim(),
       userConfirmedUpload: Boolean(runtimeRecord.userConfirmedUpload),
     },
+  };
+}
+
+export function parseRuntimeModStorageDirs(value: unknown): RuntimeModStorageDirs {
+  const record = assertRecord(value, 'runtime_mod_storage_dirs_get returned invalid payload');
+  return {
+    nimiDir: parseRequiredString(record.nimiDir, 'nimiDir', 'runtime_mod_storage_dirs_get'),
+    nimiDataDir: parseRequiredString(record.nimiDataDir, 'nimiDataDir', 'runtime_mod_storage_dirs_get'),
+    installedModsDir: parseRequiredString(record.installedModsDir, 'installedModsDir', 'runtime_mod_storage_dirs_get'),
+    runtimeModDbPath: parseRequiredString(record.runtimeModDbPath, 'runtimeModDbPath', 'runtime_mod_storage_dirs_get'),
+    mediaCacheDir: parseRequiredString(record.mediaCacheDir, 'mediaCacheDir', 'runtime_mod_storage_dirs_get'),
+    localModelsDir: parseRequiredString(record.localModelsDir, 'localModelsDir', 'runtime_mod_storage_dirs_get'),
+    localRuntimeStatePath: parseRequiredString(record.localRuntimeStatePath, 'localRuntimeStatePath', 'runtime_mod_storage_dirs_get'),
   };
 }
 

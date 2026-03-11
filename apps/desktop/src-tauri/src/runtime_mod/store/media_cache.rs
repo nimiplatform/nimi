@@ -4,13 +4,12 @@ use sha2::{Digest, Sha256};
 use std::time::{Duration, SystemTime};
 use url::Url;
 
-const MEDIA_CACHE_ROOT_DIR: &str = ".nimi/cache/media";
 const MEDIA_CACHE_DEFAULT_TTL_SECS: u64 = 14 * 24 * 60 * 60;
 
 fn resolve_media_cache_dir() -> Result<PathBuf, String> {
-    let home_dir = dirs::home_dir()
-        .ok_or_else(|| "cannot resolve home directory for media cache".to_string())?;
-    let cache_dir = home_dir.join(MEDIA_CACHE_ROOT_DIR);
+    let cache_dir = crate::desktop_paths::resolve_nimi_data_dir()?
+        .join("cache")
+        .join("media");
     fs::create_dir_all(&cache_dir).map_err(|error| {
         format!(
             "create media cache directory failed ({}): {}",

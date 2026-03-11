@@ -17,6 +17,14 @@ function sourceStatusTone(status: 'resolved' | 'conflict' | 'invalid'): 'success
   }
 }
 
+function resolveOpenDirPath(input: { manifestPath?: string; sourceDir?: string }): string {
+  const manifestPath = String(input.manifestPath || '').trim();
+  if (manifestPath) {
+    return manifestPath.replace(/[\\/][^\\/]+$/, '');
+  }
+  return String(input.sourceDir || '').trim();
+}
+
 export function DeveloperPage() {
   const { t } = useTranslation();
   const runtimeModSources = useAppStore((state) => state.runtimeModSources);
@@ -25,11 +33,20 @@ export function DeveloperPage() {
   const runtimeModRecentReloads = useAppStore((state) => state.runtimeModRecentReloads);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const [sourceDirInput, setSourceDirInput] = useState('');
-  const [sourceTypeInput, setSourceTypeInput] = useState<'installed' | 'dev'>('dev');
+  const [nimiDataDirInput, setNimiDataDirInput] = useState('');
+  const [resolvedNimiDir, setResolvedNimiDir] = useState('');
+  const [resolvedNimiDataDir, setResolvedNimiDataDir] = useState('');
+  const [resolvedInstalledModsDir, setResolvedInstalledModsDir] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     void refreshRuntimeModDeveloperHostState();
+    void desktopBridge.getRuntimeModStorageDirs().then((dirs) => {
+      setResolvedNimiDir(dirs.nimiDir);
+      setResolvedNimiDataDir(dirs.nimiDataDir);
+      setResolvedInstalledModsDir(dirs.installedModsDir);
+      setNimiDataDirInput(dirs.nimiDataDir);
+    }).catch(() => {});
   }, []);
 
   const sourceSummary = useMemo(() => ({
@@ -37,6 +54,11 @@ export function DeveloperPage() {
     dev: runtimeModSources.filter((item) => item.sourceType === 'dev').length,
     enabled: runtimeModSources.filter((item) => item.enabled).length,
   }), [runtimeModSources]);
+
+  const issueDiagnostics = useMemo(
+    () => runtimeModDiagnostics.filter((item) => item.status !== 'resolved'),
+    [runtimeModDiagnostics],
+  );
 
   const saveDeveloperMode = async (next: {
     enabled: boolean;
@@ -69,7 +91,7 @@ export function DeveloperPage() {
     setSaving(true);
     try {
       await desktopBridge.upsertRuntimeModSource({
-        sourceType: sourceTypeInput,
+        sourceType: 'dev',
         sourceDir,
         enabled: true,
       });
@@ -86,6 +108,34 @@ export function DeveloperPage() {
     }
   };
 
+  const saveNimiDataDir = async () => {
+    const normalized = nimiDataDirInput.trim();
+    if (!normalized) {
+      setStatusBanner({ kind: 'warning', message: t('DeveloperSettings.enterDataDirFirst') });
+      return;
+    }
+    setSaving(true);
+    try {
+      const dirs = await desktopBridge.setRuntimeModDataDir(normalized);
+      setResolvedNimiDir(dirs.nimiDir);
+      setResolvedNimiDataDir(dirs.nimiDataDir);
+      setResolvedInstalledModsDir(dirs.installedModsDir);
+      setNimiDataDirInput(dirs.nimiDataDir);
+      await refreshRuntimeModDeveloperHostState();
+      setStatusBanner({
+        kind: 'warning',
+        message: t('DeveloperSettings.dataDirUpdated'),
+      });
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: error instanceof Error ? error.message : t('DeveloperSettings.dataDirUpdateFailed'),
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const toggleSourceEnabled = async (sourceId: string, enabled: boolean) => {
     const source = runtimeModSources.find((item) => item.sourceId === sourceId);
     if (!source || source.isDefault) {
@@ -95,7 +145,7 @@ export function DeveloperPage() {
     try {
       await desktopBridge.upsertRuntimeModSource({
         sourceId: source.sourceId,
-        sourceType: source.sourceType,
+        sourceType: 'dev',
         sourceDir: source.sourceDir,
         enabled,
       });
@@ -140,6 +190,21 @@ export function DeveloperPage() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openModDir = async (path: string) => {
+    const normalized = String(path || '').trim();
+    if (!normalized) {
+      return;
+    }
+    try {
+      await desktopBridge.openRuntimeModDir(normalized);
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: error instanceof Error ? error.message : t('DeveloperSettings.openModDirFailed'),
+      });
     }
   };
 
@@ -196,15 +261,7 @@ export function DeveloperPage() {
       <section>
         <SectionTitle>{t('DeveloperSettings.addSourceTitle')}</SectionTitle>
         <Card className="space-y-4 p-5">
-          <div className="grid gap-3 md:grid-cols-[140px_minmax(0,1fr)_auto]">
-            <select
-              value={sourceTypeInput}
-              onChange={(event) => setSourceTypeInput(event.target.value === 'installed' ? 'installed' : 'dev')}
-              className="rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
-            >
-              <option value="dev">{t('DeveloperSettings.sourceTypeDev')}</option>
-              <option value="installed">{t('DeveloperSettings.sourceTypeInstalled')}</option>
-            </select>
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
             <input
               value={sourceDirInput}
               onChange={(event) => setSourceDirInput(event.target.value)}
@@ -216,6 +273,39 @@ export function DeveloperPage() {
           <p className="text-xs text-gray-500">
             {t('DeveloperSettings.sourceHelp')}
           </p>
+        </Card>
+      </section>
+
+      <section>
+        <SectionTitle>{t('DeveloperSettings.dataDirTitle')}</SectionTitle>
+        <Card className="space-y-4 p-5">
+          <div className="space-y-1 text-xs text-gray-500">
+            <p>{t('DeveloperSettings.nimiDirLabel')}: <span className="break-all text-gray-700">{resolvedNimiDir || '-'}</span></p>
+            <p>{t('DeveloperSettings.installedModsDirLabel')}: <span className="break-all text-gray-700">{resolvedInstalledModsDir || '-'}</span></p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+            <input
+              value={nimiDataDirInput}
+              onChange={(event) => setNimiDataDirInput(event.target.value)}
+              placeholder={t('DeveloperSettings.dataDirPlaceholder')}
+              className="rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
+            />
+            <Button onClick={() => { void saveNimiDataDir(); }} disabled={saving}>
+              {t('DeveloperSettings.saveDataDirButton')}
+            </Button>
+          </div>
+          <p className="text-xs text-amber-700">
+            {t('DeveloperSettings.dataDirHelp')}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => { void openModDir(resolvedNimiDataDir); }}
+              disabled={saving || !resolvedNimiDataDir}
+            >
+              {t('DeveloperSettings.openDataDir')}
+            </Button>
+          </div>
         </Card>
       </section>
 
@@ -236,6 +326,13 @@ export function DeveloperPage() {
                   <p className="break-all text-sm text-gray-600">{source.sourceDir}</p>
                 </div>
                 <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => { void openModDir(source.sourceDir); }}
+                    disabled={saving}
+                  >
+                    {t('DeveloperSettings.openSourceDir')}
+                  </Button>
                   {!source.isDefault ? (
                     <Button
                       variant="secondary"
@@ -264,25 +361,28 @@ export function DeveloperPage() {
       <section>
         <SectionTitle>{t('DeveloperSettings.diagnosticsTitle')}</SectionTitle>
         <div className="space-y-3">
-          {runtimeModDiagnostics.length === 0 ? (
+          {issueDiagnostics.length === 0 ? (
             <Card className="p-4 text-sm text-gray-500">{t('DeveloperSettings.noDiagnostics')}</Card>
-          ) : runtimeModDiagnostics.map((record) => (
+          ) : issueDiagnostics.map((record) => (
             <Card key={`${record.sourceId}:${record.modId}:${record.status}:${record.manifestPath || 'none'}`} className="p-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-semibold text-gray-900">{record.modId}</span>
-                <StatusBadge status={sourceStatusTone(record.status)} text={record.status} />
-                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">
-                  {record.sourceType}
-                </span>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold text-gray-900">{record.modId}</span>
+                  <StatusBadge status={sourceStatusTone(record.status)} text={record.status} />
+                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">
+                    {record.sourceType}
+                  </span>
+                </div>
+                <Button
+                  variant="secondary"
+                  onClick={() => { void openModDir(resolveOpenDirPath(record)); }}
+                  disabled={saving}
+                >
+                  {t('DeveloperSettings.openModDir')}
+                </Button>
               </div>
               <div className="mt-2 space-y-1 text-xs text-gray-600">
-                <p className="break-all">{record.sourceDir}</p>
-                {record.manifestPath ? <p className="break-all">{record.manifestPath}</p> : null}
-                {record.entryPath ? <p className="break-all">{record.entryPath}</p> : null}
-                {record.error ? <p className="text-red-600">{record.error}</p> : null}
-                {record.conflictPaths && record.conflictPaths.length > 0 ? (
-                  <p className="break-all text-amber-700">{record.conflictPaths.join(' | ')}</p>
-                ) : null}
+                <p className="break-all">{record.error || t('DeveloperSettings.diagnosticsNeedsAttention')}</p>
               </div>
             </Card>
           ))}

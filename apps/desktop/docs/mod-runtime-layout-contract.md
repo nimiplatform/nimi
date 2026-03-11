@@ -20,9 +20,10 @@
 ## 2. 决策冻结（Zero-Bundle / No-Legacy）
 
 1. `apps/desktop` 不再使用 legacy desktop-mods root env。
-2. 开发态只认 `NIMI_RUNTIME_MODS_DIR`；未设置时脚本 fail-fast，运行时回退到 `app_data_dir/mods`。
-3. 不允许把源码仓直接当作 desktop 的产品输入；本地开发使用 symlink、开发安装或直接复制到 runtime mods 目录。
-4. remote install 只接受预构建 mod 目录或 `.zip` 包，desktop 不承担源码构建。
+2. Desktop 固定核心配置目录 `nimi_dir=~/.nimi`，默认数据目录 `nimi_data_dir=~/.nimi/data`。
+3. installed mod 目录固定为 `{nimi_data_dir}/mods`；开发态 `NIMI_RUNTIME_MODS_DIR` 只作为会话级 override。
+4. 不允许把源码仓直接当作 desktop 的产品输入；本地开发使用 symlink、开发安装或直接复制到 runtime mods 目录。
+5. remote install 只接受预构建 mod 目录或 `.zip` 包，desktop 不承担源码构建。
 
 ---
 
@@ -30,11 +31,11 @@
 
 | 变量 | 用途 | 规则 |
 |---|---|---|
-| `NIMI_RUNTIME_MODS_DIR` | `apps/desktop` runtime mod 发现目录 | 开发态建议显式设置；如设置则必须是已存在绝对路径 |
+| `NIMI_RUNTIME_MODS_DIR` | Desktop 默认 installed mods 目录的会话级 override | 仅用于内部调试 / CI；如设置则必须是绝对路径 |
 
 说明：
 
-1. 未设置 `NIMI_RUNTIME_MODS_DIR` 时，desktop 运行时默认发现目录为 `app_data_dir/mods`。
+1. 未设置 `NIMI_RUNTIME_MODS_DIR` 时，desktop 运行时默认 installed 目录为 `{nimi_data_dir}/mods`。
 2. 本地 manifest 扫描只发生在 runtime mods 目录内。
 3. runtime 读取 entry/style 资产时必须限制在对应 mod 安装目录内。
 
@@ -75,18 +76,18 @@ pnpm install
 pnpm run build -- --mod my-custom-mod
 ln -s /ABS/PATH/TO/my-mod/dist-package /ABS/PATH/TO/runtime-mods/my-custom-mod
 
-# Terminal B (desktop)
-export NIMI_RUNTIME_MODS_DIR=/ABS/PATH/TO/runtime-mods
-pnpm -C apps/desktop run dev:shell
+# Desktop App
+# Settings > Mod Developer > Add Dev Source
+# 然后选择 /ABS/PATH/TO/runtime-mods
 ```
 
-也可直接把预构建目录或 `.zip` 安装到 `NIMI_RUNTIME_MODS_DIR`。
+也可把预构建目录或 `.zip` 安装到 Desktop 当前的 installed mods 目录（默认 `{nimi_data_dir}/mods`，或被 `NIMI_RUNTIME_MODS_DIR` 临时 override 的目录）。
 
 ---
 
 ## 7. 验收门禁
 
-1. 未设置 `NIMI_RUNTIME_MODS_DIR` 时，desktop 可在零 mod 状态正常启动。
+1. 未设置 `NIMI_RUNTIME_MODS_DIR` 时，desktop 使用默认 `{nimi_data_dir}/mods` 且可在零 mod 状态正常启动。
 2. 运行 `pnpm -C apps/desktop run smoke:mods` 时，只校验 runtime mods 目录中的已安装包。
 3. 运行 `pnpm -C apps/desktop run smoke:mod:installed` 时，可验证任意单个已安装 mod 的 manifest 与 entry 完整性。
 4. 安装目录删除、卸载、更新后，本地发现结果与 shell 状态同步刷新。

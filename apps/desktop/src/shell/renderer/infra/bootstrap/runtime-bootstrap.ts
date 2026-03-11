@@ -158,6 +158,10 @@ export function rebootstrapRuntime(): Promise<void> {
   return bootstrapRuntime();
 }
 
+function runtimeDaemonUnavailable(status: { running: boolean; lastError?: string }): boolean {
+  return !status.running && Boolean(String(status.lastError || '').trim());
+}
+
 export function bootstrapRuntime(): Promise<void> {
   bindOfflineCoordinator();
   if (bootstrapPromise) {
@@ -194,7 +198,8 @@ export function bootstrapRuntime(): Promise<void> {
 
     const defaults = await desktopBridge.getRuntimeDefaults();
     let daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
-    if (desktopBridge.hasTauriInvoke()) {
+    const runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
+    if (desktopBridge.hasTauriInvoke() && !runtimeUnavailable) {
       daemonStatus = await syncRuntimeJwtConfig({
         daemonStatus,
         realmDefaults: defaults.realm,
@@ -334,7 +339,14 @@ export function bootstrapRuntime(): Promise<void> {
       accessToken: defaults.realm.accessToken,
     });
 
-    getOfflineCoordinator().markRuntimeReachable(true);
+    getOfflineCoordinator().markRuntimeReachable(daemonStatus.running);
+
+    if (runtimeUnavailable) {
+      appStore.setStatusBanner({
+        kind: 'warning',
+        message: daemonStatus.lastError || 'Runtime unavailable',
+      });
+    }
 
     useAppStore.getState().setBootstrapReady(true);
     useAppStore.getState().setBootstrapError(null);

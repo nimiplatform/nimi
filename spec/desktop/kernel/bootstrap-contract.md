@@ -12,8 +12,9 @@ Desktop 应用启动序列契约。定义 renderer 进程从 `bootstrapRuntime()
 
 Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；legacy 路径 `.nimi/runtime/config.json` 已硬切移除，不得在 bootstrap 或 backend fallback 中回流。
 
-- **daemon 就绪前置条件**：Tauri backend 在返回 `runtime_defaults` 前确保 daemon 可达。若 daemon 处于 `STARTING` 状态（K-DAEMON-001），backend 等待 daemon 就绪（最长等待 120s，对齐 K-LENG-004 SUPERVISED 模式首次启动最差情形——GPU backend 下载可能需要 120s，与 D-IPC-002 启动超时一致）。超时后返回错误，进入 `D-BOOT-008` 错误路径。
-- 失败行为：抛出异常，进入 `D-BOOT-008` 错误路径。
+- `runtime_defaults` 读取不要求 daemon 已运行。
+- 缺少 `nimi` binary、未设置 `NIMI_RUNTIME_BINARY`、或 runtime daemon 当前不可用时，Desktop 必须继续 bootstrap，并将 runtime 标记为 unavailable。
+- 只有 shell 级致命错误才进入 `D-BOOT-008` 错误路径。
 - 后续依赖：DataSync 初始化、Platform Client 初始化。
 
 ### Runtime JWT Config Sync
@@ -23,6 +24,7 @@ Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；leg
 - 写入目标：`auth.jwt.jwksUrl`、`auth.jwt.issuer`、`auth.jwt.audience`（K-DAEMON-009）。
 - 数据来源：`runtime_defaults.realm.{jwksUrl,jwtIssuer,jwtAudience}`。
 - 写入流程：`runtime_bridge_config_get` → 合并配置 → `runtime_bridge_config_set`。
+- 若 runtime 当前 unavailable（例如 release 模式找不到 `nimi` binary），必须跳过该步骤，不得阻断 app shell。
 
 重启分支（基于 `reasonCode`）：
 
@@ -86,7 +88,7 @@ Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；leg
 - `bootstrapReady = true`、`bootstrapError = null`。
 - 日志级别：有 mod 失败时 `warn`，否则 `info`。
 
-错误路径：
+错误路径（仅 shell-fatal）：
 - `bootstrapReady = false`、`bootstrapError = message`。
 - 清除 auth session。
 - 日志级别：`error`。
@@ -125,7 +127,7 @@ Realm SDK `ready()` 采用 fail-open 语义（`S-REALM-019`）：探测失败不
 - `loadCurrentUser()` 失败（网络错误）：Realm 不可达。DataSync 通过 `emitDataSyncError` 记录错误。UI 进入降级状态——`bootstrapReady=true` 但数据为空，用户可见空列表和加载失败提示。
 - 此设计意图：`bootstrapReady` 表示"应用骨架就绪"，不表示"所有后端可达"。Realm 不可达是运行时降级，不是启动失败。
 
-**与 Runtime fail-close 的对比**：Runtime 不可达是启动失败（D-BOOT-001/004 错误路径），因为 Desktop 核心功能（AI 推理）依赖 Runtime。Realm 不可达是运行时降级，因为 Realm 功能（社交、聊天、世界）可以在恢复后补偿加载。
+**与 Runtime fail-close 的对比**：Runtime daemon 不可用在 Desktop 侧是运行时降级，不再阻断 app shell；需要 Runtime 的功能页展示 unavailable 提示并允许后续恢复。Realm 不可达同样是运行时降级，因为功能可以在恢复后补偿加载。
 
 **跨层引用**：`S-REALM-019`（fail-open 语义）、`S-RUNTIME-015`（fail-close 语义）。
 

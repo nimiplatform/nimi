@@ -64,8 +64,8 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
     const asyncBodyStart = bootstrapSource.indexOf('bootstrapPromise = (async ()');
     assert.ok(asyncBodyStart !== -1, 'async bootstrap body must exist');
 
-    const setReachableIndex = bootstrapSource.indexOf('getOfflineCoordinator().markRuntimeReachable(true)');
-    assert.ok(setReachableIndex !== -1, 'markRuntimeReachable(true) must appear in bootstrap source');
+    const setReachableIndex = bootstrapSource.indexOf('getOfflineCoordinator().markRuntimeReachable(daemonStatus.running)');
+    assert.ok(setReachableIndex !== -1, 'markRuntimeReachable(daemonStatus.running) must appear in bootstrap source');
 
     // setRuntimeReachable(true) should appear after the core bootstrap steps
     // (after bootstrapAuthSession), confirming realm connectivity is not a gate.
@@ -73,7 +73,7 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
     assert.ok(authSessionIndex !== -1, 'bootstrapAuthSession must appear in bootstrap source');
     assert.ok(
       setReachableIndex > authSessionIndex,
-      'markRuntimeReachable(true) must appear after bootstrapAuthSession, confirming realm reachability is not a precondition',
+      'markRuntimeReachable(daemonStatus.running) must appear after bootstrapAuthSession, confirming realm reachability is not a precondition',
     );
   });
 
@@ -82,8 +82,8 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
     assert.ok(catchIndex !== -1, '.catch((error) block must exist');
     const successPath = bootstrapSource.slice(0, catchIndex);
     assert.ok(
-      successPath.includes('getOfflineCoordinator().markRuntimeReachable(true)'),
-      'success path must call getOfflineCoordinator().markRuntimeReachable(true)',
+      successPath.includes('getOfflineCoordinator().markRuntimeReachable(daemonStatus.running)'),
+      'success path must call getOfflineCoordinator().markRuntimeReachable(daemonStatus.running)',
     );
   });
 

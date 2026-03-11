@@ -1,12 +1,13 @@
 use rusqlite::params;
 use serde::Deserialize;
 use tauri::AppHandle;
+use crate::desktop_paths::{describe_desktop_storage_dirs, set_nimi_data_dir, DesktopStorageDirsPayload};
 
 use super::store::{
     append_runtime_audit, delete_action_verify_ticket, gc_media_cache,
     get_action_idempotency_record, get_action_verify_ticket, install_runtime_mod,
     list_installed_runtime_mods, list_local_mod_manifests, list_runtime_mod_diagnostics,
-    list_runtime_mod_install_progress, list_runtime_mod_sources, open_db,
+    list_runtime_mod_install_progress, list_runtime_mod_sources, open_db, open_runtime_mod_dir,
     purge_action_execution_ledger, purge_action_idempotency_records, purge_action_verify_tickets,
     put_action_execution_ledger_record, put_action_idempotency_record, put_action_verify_ticket,
     put_media_cache, query_action_execution_ledger, query_runtime_audit, read_installed_runtime_mod_manifest,
@@ -103,8 +104,20 @@ pub struct RuntimeModDeveloperModeSetPayload {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct RuntimeModDataDirSetPayload {
+    pub nimi_data_dir: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RuntimeModReloadPayload {
     pub mod_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModOpenDirPayload {
+    pub path: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -365,6 +378,21 @@ pub fn runtime_mod_dev_mode_set(
 }
 
 #[tauri::command]
+pub fn runtime_mod_storage_dirs_get() -> Result<DesktopStorageDirsPayload, String> {
+    describe_desktop_storage_dirs()
+}
+
+#[tauri::command]
+pub fn runtime_mod_data_dir_set(
+    app: AppHandle,
+    payload: RuntimeModDataDirSetPayload,
+) -> Result<DesktopStorageDirsPayload, String> {
+    let directories = set_nimi_data_dir(payload.nimi_data_dir.as_str())?;
+    sync_runtime_mod_source_watchers(&app)?;
+    Ok(directories)
+}
+
+#[tauri::command]
 pub fn runtime_mod_diagnostics_list(
     app: AppHandle,
 ) -> Result<Vec<RuntimeModDiagnosticRecord>, String> {
@@ -384,6 +412,14 @@ pub fn runtime_mod_reload_all(
     app: AppHandle,
 ) -> Result<Vec<RuntimeModReloadResultPayload>, String> {
     reload_all_runtime_mods(&app)
+}
+
+#[tauri::command]
+pub fn runtime_mod_open_dir(
+    app: AppHandle,
+    payload: RuntimeModOpenDirPayload,
+) -> Result<(), String> {
+    open_runtime_mod_dir(&app, &payload.path)
 }
 
 #[tauri::command]

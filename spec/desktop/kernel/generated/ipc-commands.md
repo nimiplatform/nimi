@@ -23,6 +23,8 @@
 | `runtime_mod_sources_remove` | `mod-local` | Remove a runtime mod source directory | `D-IPC-013` |
 | `runtime_mod_dev_mode_get` | `mod-local` | Read Desktop Mod Developer Mode state | `D-IPC-013` |
 | `runtime_mod_dev_mode_set` | `mod-local` | Update Desktop Mod Developer Mode state | `D-IPC-013` |
+| `runtime_mod_storage_dirs_get` | `mod-local` | Read Desktop nimi_dir and nimi_data_dir storage directories | `D-IPC-013` |
+| `runtime_mod_data_dir_set` | `mod-local` | Update Desktop nimi_data_dir and switch storage roots | `D-IPC-013` |
 | `runtime_mod_diagnostics_list` | `mod-local` | List runtime mod source diagnostics and conflict records | `D-IPC-013` |
 | `runtime_mod_reload` | `mod-local` | Trigger reload diagnostics for a single runtime mod | `D-IPC-013` |
 | `runtime_mod_reload_all` | `mod-local` | Trigger reload diagnostics for all runtime mods | `D-IPC-013` |

@@ -9,7 +9,6 @@ use tauri::AppHandle;
 
 use super::types::{LocalAiDownloadSessionRecord, LocalAiDownloadState, LocalAiRuntimeState};
 
-const NIMI_ROOT_DIR: &str = ".nimi";
 const LOCAL_AI_RUNTIME_MODELS_DIR: &str = "models";
 const LOCAL_AI_RUNTIME_STATE_FILE: &str = "state.json";
 static STATE_SAVE_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
@@ -19,9 +18,13 @@ fn state_save_lock() -> &'static Mutex<()> {
 }
 
 pub fn runtime_root_dir(_app: &AppHandle) -> Result<PathBuf, String> {
-    let home = dirs::home_dir().ok_or_else(|| "无法获取用户 home 目录".to_string())?;
-    let dir = home.join(NIMI_ROOT_DIR);
-    fs::create_dir_all(&dir).map_err(|error| format!("创建 ~/.nimi/ 目录失败: {error}"))?;
+    let dir = crate::desktop_paths::resolve_nimi_data_dir()?;
+    fs::create_dir_all(&dir).map_err(|error| {
+        format!(
+            "创建 nimi_data_dir 目录失败 ({}): {error}",
+            dir.display()
+        )
+    })?;
     Ok(dir)
 }
 

@@ -95,6 +95,41 @@ pub(super) fn runtime_bridge_mode_for_status() -> (RuntimeBridgeMode, Option<Str
     }
 }
 
+pub(super) fn runtime_bridge_availability_error() -> Option<String> {
+    let mode = match runtime_bridge_mode() {
+        Ok(value) => value,
+        Err(error) => return Some(error),
+    };
+    match mode {
+        RuntimeBridgeMode::Runtime => {
+            if !is_executable_available("go") {
+                return Some(bridge_error(
+                    "RUNTIME_BRIDGE_RUNTIME_GO_NOT_FOUND",
+                    "runtime mode requires `go` in PATH",
+                ));
+            }
+            if runtime_dev_root_dir().is_none() {
+                return Some(bridge_error(
+                    "RUNTIME_BRIDGE_RUNTIME_ROOT_NOT_FOUND",
+                    "runtime mode requires ./runtime directory in workspace",
+                ));
+            }
+            None
+        }
+        RuntimeBridgeMode::Release => {
+            let binary = runtime_binary();
+            if binary == DEFAULT_RUNTIME_BINARY && !is_executable_available(DEFAULT_RUNTIME_BINARY)
+            {
+                return Some(bridge_error(
+                    "RUNTIME_BRIDGE_RUNTIME_BINARY_NOT_FOUND",
+                    "release mode requires `nimi` in PATH (or set NIMI_RUNTIME_BINARY)",
+                ));
+            }
+            None
+        }
+    }
+}
+
 pub(super) fn runtime_cli_command_spec(args: &[&str]) -> Result<RuntimeCliCommandSpec, String> {
     let mode = runtime_bridge_mode()?;
     match mode {
