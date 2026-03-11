@@ -352,7 +352,7 @@ export function ExploreView(props: ExploreViewProps) {
               fetchPage={props.fetchPostPage}
               emptyText={t('Explore.noPosts')}
               renderItem={(post) => (
-                <div className="break-inside-avoid mb-6">
+                <div className="mb-6 break-inside-avoid [contain:paint] [transform:translateZ(0)]">
                   <PostCard post={post} onDelete={props.onPostDelete} />
                 </div>
               )}

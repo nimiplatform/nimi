@@ -8,7 +8,7 @@ export function CloudflareVideoPlayer({ src }: { src: string }) {
     : `${src}?controls=false&preload=auto`;
 
   return (
-    <div className="relative overflow-hidden rounded-lg">
+    <div className="relative overflow-hidden rounded-lg [backface-visibility:hidden] [transform:translateZ(0)]">
       <iframe
         src={iframeSrc}
         allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
@@ -49,14 +49,14 @@ export function NativeVideoPlayer({ src, poster }: { src: string; poster?: strin
   };
 
   return (
-    <div className="relative overflow-hidden bg-gray-900 rounded-lg group">
+    <div className="group relative overflow-hidden rounded-lg bg-gray-900 [backface-visibility:hidden] [transform:translateZ(0)]">
       <video
         ref={videoRef}
         src={src}
         poster={poster}
         playsInline
         preload="metadata"
-        className="w-full aspect-[4/5] object-cover cursor-pointer [&::-webkit-media-controls-start-playback-button]:hidden [&::-webkit-media-controls]:hidden"
+        className="w-full aspect-[4/5] cursor-pointer object-cover [backface-visibility:hidden] [transform:translateZ(0)] [&::-webkit-media-controls-start-playback-button]:hidden [&::-webkit-media-controls]:hidden"
         onClick={handlePlayClick}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
