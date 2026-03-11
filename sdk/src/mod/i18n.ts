@@ -167,6 +167,15 @@ function resolveRuntimeI18nForRegistration(locale: string): RuntimeI18nLike {
   return resolveRuntimeI18n(locale);
 }
 
+export type PromptLocale = 'en' | 'zh';
+
+export function getPromptLocale(): PromptLocale {
+  const bound = resolveBoundRuntimeI18n();
+  const lang = bound?.language || bound?.resolvedLanguage || '';
+  if (lang.startsWith('zh')) return 'zh';
+  return 'en';
+}
+
 export function registerModTranslations(
   modId: string,
   locale: string,
