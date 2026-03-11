@@ -1,4 +1,5 @@
 ﻿import { useState } from 'react';
+import { formatLocaleDate, formatLocaleNumber, i18n } from '@renderer/i18n';
 
 // Mock data for gift feed
 const MOCK_GIFT_FEED = [
@@ -263,11 +264,16 @@ function ReplyForm({
 
   return (
     <div className="mt-3 rounded-2xl bg-[#F0FAF7] p-4">
-      <p className="text-xs text-[#4ECCA3] font-medium mb-2">Reply to {senderName}</p>
+      <p className="mb-2 text-xs font-medium text-[#4ECCA3]">
+        {i18n.t('Profile.Gifts.replyTo', {
+          senderName,
+          defaultValue: 'Reply to {{senderName}}',
+        })}
+      </p>
       <textarea
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        placeholder="Write your reply..."
+        placeholder={i18n.t('Profile.Gifts.writeReplyPlaceholder', { defaultValue: 'Write your reply...' })}
         rows={3}
         className="w-full rounded-xl border border-[#4ECCA3]/20 bg-white px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 outline-none focus:border-[#4ECCA3]/50 focus:ring-2 focus:ring-[#4ECCA3]/10 transition-all resize-none"
       />
@@ -276,7 +282,7 @@ function ReplyForm({
           onClick={onCancel}
           className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
         >
-          Cancel
+          {i18n.t('common.cancel', { defaultValue: 'Cancel' })}
         </button>
         <button
           onClick={() => {
@@ -288,7 +294,7 @@ function ReplyForm({
           disabled={!message.trim()}
           className="px-4 py-1.5 rounded-lg bg-[#4ECCA3] text-xs font-semibold text-white hover:bg-[#3DBB94] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
-          Send Reply
+          {i18n.t('Profile.Gifts.sendReply', { defaultValue: 'Send Reply' })}
         </button>
       </div>
     </div>
@@ -307,10 +313,15 @@ function GiftFeedCard({ gift }: { gift: typeof MOCK_GIFT_FEED[0] }) {
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (diffDays === 0) return i18n.t('Profile.Gifts.today', { defaultValue: 'Today' });
+    if (diffDays === 1) return i18n.t('Profile.Gifts.yesterday', { defaultValue: 'Yesterday' });
+    if (diffDays < 7) {
+      return i18n.t('Profile.Gifts.daysAgo', {
+        count: diffDays,
+        defaultValue: '{{count}} days ago',
+      });
+    }
+    return formatLocaleDate(date, { month: 'short', day: 'numeric' });
   };
 
   const isLongMessage = gift.message.length > 100;
@@ -364,7 +375,9 @@ function GiftFeedCard({ gift }: { gift: typeof MOCK_GIFT_FEED[0] }) {
       {/* Reply Message (if sent) */}
       {replyMessage && (
         <div className="mb-4 rounded-xl bg-[#E8F5F0] p-3 border-l-3 border-[#4ECCA3]">
-          <p className="text-xs text-[#4ECCA3] font-medium mb-1">Your reply</p>
+          <p className="mb-1 text-xs font-medium text-[#4ECCA3]">
+            {i18n.t('Profile.Gifts.yourReply', { defaultValue: 'Your reply' })}
+          </p>
           <p className="text-sm text-gray-600">{replyMessage}</p>
         </div>
       )}
@@ -383,7 +396,9 @@ function GiftFeedCard({ gift }: { gift: typeof MOCK_GIFT_FEED[0] }) {
           <svg width="14" height="14" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>
-          {liked ? 'Liked' : 'Like'}
+          {liked
+            ? i18n.t('Profile.Gifts.liked', { defaultValue: 'Liked' })
+            : i18n.t('Profile.Gifts.like', { defaultValue: 'Like' })}
         </button>
         <button
           onClick={() => setShowReply(!showReply)}
@@ -394,7 +409,9 @@ function GiftFeedCard({ gift }: { gift: typeof MOCK_GIFT_FEED[0] }) {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
-          {replyMessage ? 'Replied' : 'Reply'}
+          {replyMessage
+            ? i18n.t('Profile.Gifts.replied', { defaultValue: 'Replied' })
+            : i18n.t('Profile.Gifts.reply', { defaultValue: 'Reply' })}
         </button>
       </div>
 
@@ -434,8 +451,12 @@ function TopSupportersModal({
         <div className="px-6 py-5 border-b border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Top Supporters</h2>
-              <p className="text-xs text-gray-400 mt-0.5">This month&apos;s biggest contributors</p>
+              <h2 className="text-lg font-bold text-gray-900">
+                {i18n.t('Profile.Gifts.topSupporters', { defaultValue: 'Top Supporters' })}
+              </h2>
+              <p className="mt-0.5 text-xs text-gray-400">
+                {i18n.t('Profile.Gifts.biggestContributors', { defaultValue: "This month's biggest contributors" })}
+              </p>
             </div>
             <button
               onClick={onClose}
@@ -469,15 +490,20 @@ function TopSupportersModal({
                   {supporter.name}
                 </p>
                 <p className="text-xs text-gray-400">
-                  Ranked #{supporter.rank} this month
+                  {i18n.t('Profile.Gifts.rankThisMonth', {
+                    rank: supporter.rank,
+                    defaultValue: 'Ranked #{{rank}} this month',
+                  })}
                 </p>
               </div>
               
               <div className="text-right">
                 <p className="text-sm font-bold text-[#4ECCA3]">
-                  {supporter.gems.toLocaleString()}
+                  {formatLocaleNumber(supporter.gems)}
                 </p>
-                <p className="text-[10px] text-gray-400 uppercase">Gems</p>
+                <p className="text-[10px] uppercase text-gray-400">
+                  {i18n.t('Profile.Gifts.gems', { defaultValue: 'Gems' })}
+                </p>
               </div>
             </div>
           ))}
@@ -486,7 +512,11 @@ function TopSupportersModal({
         {/* Footer */}
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
           <p className="text-xs text-gray-400 text-center">
-            Total {MOCK_TOP_SUPPORTERS.reduce((sum, s) => sum + s.gems, 0).toLocaleString()} Gems from {MOCK_TOP_SUPPORTERS.length} supporters
+            {i18n.t('Profile.Gifts.totalSupportersFooter', {
+              gems: formatLocaleNumber(MOCK_TOP_SUPPORTERS.reduce((sum, s) => sum + s.gems, 0)),
+              count: MOCK_TOP_SUPPORTERS.length,
+              defaultValue: 'Total {{gems}} Gems from {{count}} supporters',
+            })}
           </p>
         </div>
       </div>
@@ -515,10 +545,12 @@ export function GiftsTab() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-3xl font-bold text-gray-900 tracking-tight">
-                  {MOCK_GEM_BALANCE.toLocaleString()}
+                  {formatLocaleNumber(MOCK_GEM_BALANCE)}
                 </span>
               </div>
-              <p className="text-xs text-gray-400 uppercase tracking-wider">Total Received</p>
+              <p className="text-xs uppercase tracking-wider text-gray-400">
+                {i18n.t('Profile.Gifts.totalReceived', { defaultValue: 'Total Received' })}
+              </p>
             </div>
           </div>
 
@@ -527,7 +559,9 @@ export function GiftsTab() {
             onClick={() => setShowSupportersModal(true)}
             className="hidden sm:block text-left hover:opacity-80 transition-opacity"
           >
-            <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-3">This Month&apos;s Top Givers</p>
+            <p className="mb-3 text-[10px] uppercase tracking-wider text-gray-400">
+              {i18n.t('Profile.Gifts.topGiversThisMonth', { defaultValue: "This Month's Top Givers" })}
+            </p>
             <div className="flex items-center gap-2">
               {MOCK_TOP_SUPPORTERS.slice(0, 5).map((supporter) => (
                 <div key={supporter.id} className="relative group">
@@ -544,7 +578,12 @@ export function GiftsTab() {
                   <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
                     <div className="bg-gray-900 text-white text-[10px] px-2 py-1.5 rounded-lg whitespace-nowrap">
                       <p className="font-medium">{supporter.name}</p>
-                      <p className="text-gray-400">{supporter.gems.toLocaleString()} Gems</p>
+                      <p className="text-gray-400">
+                        {i18n.t('Profile.Gifts.gemsValue', {
+                          value: formatLocaleNumber(supporter.gems),
+                          defaultValue: '{{value}} Gems',
+                        })}
+                      </p>
                     </div>
                     <div className="w-2 h-2 bg-gray-900 rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2" />
                   </div>
@@ -569,5 +608,4 @@ export function GiftsTab() {
     </div>
   );
 }
-
 

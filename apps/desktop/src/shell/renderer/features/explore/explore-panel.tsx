@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
@@ -232,6 +233,7 @@ function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
 }
 
 export function ExplorePanel() {
+  const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
@@ -388,12 +390,12 @@ export function ExplorePanel() {
 
   const onAddFriend = useCallback(async (agentId: string, _message?: string) => {
     if (agentLimitQuery.data && !agentLimitQuery.data.canAdd) {
-      throw new Error(agentLimitQuery.data.reason || 'Agent friend limit reached');
+      throw new Error(agentLimitQuery.data.reason || t('Contacts.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }));
     }
     await dataSync.requestOrAcceptFriend(agentId);
     setAddContactModalOpen(false);
     setSelectedAgentForAdd(null);
-  }, [agentLimitQuery.data]);
+  }, [agentLimitQuery.data, t]);
 
   const onAgentSendGift = useCallback(
     (agentId: string) => {
@@ -481,7 +483,10 @@ export function ExplorePanel() {
         onSent={() => {
           setStatusBanner({
             kind: 'success',
-            message: `Gift sent to ${selectedAgentForGift?.name || 'agent'}`,
+            message: t('Contacts.giftSentTo', {
+              name: selectedAgentForGift?.name || t('Contacts.agent', { defaultValue: 'Agent' }).toLowerCase(),
+              defaultValue: 'Gift sent to {{name}}',
+            }),
           });
           setGiftModalOpen(false);
           setSelectedAgentForGift(null);

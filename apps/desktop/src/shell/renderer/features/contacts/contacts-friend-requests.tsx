@@ -1,4 +1,5 @@
 import React from 'react';
+import { i18n } from '@renderer/i18n';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { ContactRequestRecord } from './contacts-model.js';
 
@@ -38,19 +39,23 @@ export function FriendRequestDetail({
               ? 'bg-blue-50 text-blue-600'
               : 'bg-amber-50 text-amber-600'
           }`}>
-            {request.direction === 'received' ? 'Received' : 'Sent'}
+            {request.direction === 'received'
+              ? i18n.t('Contacts.requestReceived', { defaultValue: 'Received' })
+              : i18n.t('Contacts.requestSent', { defaultValue: 'Sent' })}
           </span>
         </div>
 
         <div className="mt-6 p-4 bg-gray-50 rounded-xl">
-          <p className="text-sm text-gray-600">{request.bio || 'Wants to add you as a friend'}</p>
+          <p className="text-sm text-gray-600">
+            {request.bio || i18n.t('Contacts.requestFallbackBio', { defaultValue: 'Wants to add you as a friend' })}
+          </p>
         </div>
 
         <div className="mt-6 flex gap-3">
           {request.direction === 'received' ? (
             isAccepted ? (
               <div className="w-full py-3 rounded-full bg-green-100 text-green-700 text-[15px] font-medium text-center">
-                Added
+                {i18n.t('Contacts.added', { defaultValue: 'Added' })}
               </div>
             ) : (
               <>
@@ -59,14 +64,14 @@ export function FriendRequestDetail({
                   onClick={onAccept}
                   className="flex-1 py-3 rounded-full bg-[#0066CC] text-white text-[15px] font-medium hover:bg-[#0052A3] transition-colors"
                 >
-                  Accept
+                  {i18n.t('Contacts.accept', { defaultValue: 'Accept' })}
                 </button>
                 <button
                   type="button"
                   onClick={onReject}
                   className="flex-1 py-3 rounded-full bg-gray-100 text-gray-700 text-[15px] font-medium hover:bg-gray-200 transition-colors"
                 >
-                  Reject
+                  {i18n.t('Contacts.reject', { defaultValue: 'Reject' })}
                 </button>
               </>
             )
@@ -76,7 +81,7 @@ export function FriendRequestDetail({
               onClick={onCancel}
               className="w-full py-3 rounded-full bg-gray-100 text-gray-700 text-[15px] font-medium hover:bg-gray-200 transition-colors"
             >
-              Withdraw Request
+              {i18n.t('Contacts.withdrawRequest', { defaultValue: 'Withdraw Request' })}
             </button>
           )}
         </div>
@@ -119,7 +124,10 @@ export function FriendRequestsList({
 
               <div className="relative">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  Friend Requests ({pendingCount})
+                  {i18n.t('Contacts.friendRequestsCount', {
+                    count: pendingCount,
+                    defaultValue: 'Friend Requests ({{count}})',
+                  })}
                 </h3>
 
                 {/* 请求列表 */}
@@ -147,7 +155,7 @@ export function FriendRequestsList({
                         <div className="flex-1 min-w-0">
                           <div className="text-[15px] font-semibold text-gray-900">{request.displayName}</div>
                           <p className="text-[13px] text-gray-500 truncate mt-0.5">
-                            {request.bio || 'Wants to add you as a friend'}
+                            {request.bio || i18n.t('Contacts.requestFallbackBio', { defaultValue: 'Wants to add you as a friend' })}
                           </p>
                         </div>
 
@@ -155,10 +163,14 @@ export function FriendRequestsList({
                         <div className="shrink-0 flex items-center gap-2">
                           {isAccepted ? (
                             // 已接受 - 显示 "Added"
-                            <span className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 rounded-lg">Added</span>
+                            <span className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 rounded-lg">
+                              {i18n.t('Contacts.added', { defaultValue: 'Added' })}
+                            </span>
                           ) : isRejected ? (
                             // 已拒绝 - 显示 "Rejected"
-                            <span className="px-3 py-1.5 text-sm font-medium text-gray-400 bg-gray-100 rounded-lg">Rejected</span>
+                            <span className="px-3 py-1.5 text-sm font-medium text-gray-400 bg-gray-100 rounded-lg">
+                              {i18n.t('Contacts.rejected', { defaultValue: 'Rejected' })}
+                            </span>
                           ) : (
                             // 待处理 - 显示 Accept 和 Reject 按钮
                             <>
@@ -170,7 +182,7 @@ export function FriendRequestsList({
                                 }}
                                 className="px-4 py-2 text-sm font-medium bg-[#4ECCA3] text-white rounded-xl hover:bg-[#3DBA92] transition-all shadow-[0_4px_14px_rgba(78,204,163,0.35)] hover:shadow-[0_6px_20px_rgba(78,204,163,0.45)] active:scale-95"
                               >
-                                Accept
+                                {i18n.t('Contacts.accept', { defaultValue: 'Accept' })}
                               </button>
                               <button
                                 type="button"
@@ -180,7 +192,7 @@ export function FriendRequestsList({
                                 }}
                                 className="px-4 py-2 text-sm font-medium bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors"
                               >
-                                Reject
+                                {i18n.t('Contacts.reject', { defaultValue: 'Reject' })}
                               </button>
                             </>
                           )}
@@ -198,7 +210,9 @@ export function FriendRequestsList({
                       <circle cx="9" cy="7" r="4" />
                       <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                     </svg>
-                    <p className="text-sm">No friend requests</p>
+                    <p className="text-sm">
+                      {i18n.t('Contacts.noFriendRequests', { defaultValue: 'No friend requests' })}
+                    </p>
                   </div>
                 )}
               </div>

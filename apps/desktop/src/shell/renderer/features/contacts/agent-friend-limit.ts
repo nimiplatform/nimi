@@ -1,4 +1,5 @@
 import { dataSync } from '@runtime/data-sync';
+import { i18n } from '@renderer/i18n';
 
 export type AgentFriendLimit = {
   tier: 'FREE' | 'PRO' | 'MAX';
@@ -61,7 +62,12 @@ export async function resolveAgentFriendLimit(): Promise<AgentFriendLimit> {
   const canAdd = used < limit;
   const reason = canAdd
     ? null
-    : `Agent friend limit reached (${used}/${limit}, tier: ${tier})`;
+    : i18n.t('Contacts.agentFriendLimitReached', {
+      used,
+      limit,
+      tier,
+      defaultValue: 'Agent friend limit reached ({{used}}/{{limit}}, tier: {{tier}})',
+    });
 
   return {
     tier,

@@ -29,6 +29,19 @@ type ProfileViewProps = {
 
 const TABS: ProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gifts'];
 
+function getProfileTabLabel(t: ReturnType<typeof useTranslation>['t'], tab: ProfileTab): string {
+  switch (tab) {
+    case 'Posts':
+      return t('Profile.tabPosts', { defaultValue: 'Posts' });
+    case 'Collections':
+      return t('Profile.tabCollections', { defaultValue: 'Collections' });
+    case 'Likes':
+      return t('Profile.tabLikes', { defaultValue: 'Likes' });
+    case 'Gifts':
+      return t('Profile.tabGifts', { defaultValue: 'Gifts' });
+  }
+}
+
 export function ProfileView(props: ProfileViewProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -198,9 +211,11 @@ export function ProfileView(props: ProfileViewProps) {
     : { background: agentPalette.ring };
   const locationLabel = profile.city && profile.countryCode
     ? `${profile.city}, ${profile.countryCode.toUpperCase()}`
-    : profile.city || profile.countryCode?.toUpperCase() || 'Unknown region';
-  const languageLabel = profile.languages.length > 0 ? profile.languages.join(', ') : 'No language set';
-  const relationshipLabel = profile.isAgent ? 'AI Agent Profile' : 'Contact Profile';
+    : profile.city || profile.countryCode?.toUpperCase() || t('Profile.unknownRegion', { defaultValue: 'Unknown region' });
+  const languageLabel = profile.languages.length > 0 ? profile.languages.join(', ') : t('Profile.noLanguageSet', { defaultValue: 'No language set' });
+  const relationshipLabel = profile.isAgent
+    ? t('Profile.aiAgentProfile', { defaultValue: 'AI Agent Profile' })
+    : t('Profile.contactProfile', { defaultValue: 'Contact Profile' });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#F0F4F8]">
@@ -215,7 +230,7 @@ export function ProfileView(props: ProfileViewProps) {
                 type="button"
                 onClick={props.onBack}
                 className="absolute left-5 top-5 flex h-10 w-10 items-center justify-center rounded-full border border-white/35 bg-white/16 text-white backdrop-blur-md transition hover:bg-white/24"
-                title="Close"
+                title={t('common.close', { defaultValue: 'Close' })}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18" />
@@ -230,7 +245,7 @@ export function ProfileView(props: ProfileViewProps) {
                     type="button"
                     onClick={() => setShowMenu(!showMenu)}
                     className="flex h-10 w-10 items-center justify-center rounded-full border border-white/35 bg-white/16 text-white backdrop-blur-md transition hover:bg-white/24"
-                    title="More options"
+                    title={t('common.moreOptions', { defaultValue: 'More options' })}
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                       <circle cx="12" cy="6" r="2" />
@@ -249,7 +264,7 @@ export function ProfileView(props: ProfileViewProps) {
                         className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 transition hover:bg-gray-50"
                       >
                         <AlertIcon className="h-4 w-4 text-gray-400" />
-                        Block
+                        {t('common.block', { defaultValue: 'Block' })}
                       </button>
                       <button
                         type="button"
@@ -260,7 +275,7 @@ export function ProfileView(props: ProfileViewProps) {
                           <polyline points="3 6 5 6 21 6" />
                           <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                         </svg>
-                        Delete Friend
+                        {t('Profile.deleteFriend', { defaultValue: 'Delete Friend' })}
                       </button>
                     </div>
                   )}
@@ -295,11 +310,11 @@ export function ProfileView(props: ProfileViewProps) {
                     </div>
                     <p className="mt-1 text-[15px] font-medium text-[#667085]">{profile.handle}</p>
                     <p className="mt-3 max-w-3xl text-sm leading-6 text-[#5f6b7a]">
-                      {profile.bio || 'No profile description has been added yet.'}
+                      {profile.bio || t('Profile.noDescription', { defaultValue: 'No profile description has been added yet.' })}
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2.5">
                       <ProfileChip icon={<CalendarIcon className="h-3.5 w-3.5" />}>
-                        {formatProfileDate(profile.createdAt) || 'Unknown joined date'}
+                        {formatProfileDate(profile.createdAt) || t('Profile.unknownJoinedDate', { defaultValue: 'Unknown joined date' })}
                       </ProfileChip>
                       <ProfileChip icon={<LocationIcon className="h-3.5 w-3.5" />}>
                         {locationLabel}
@@ -308,7 +323,9 @@ export function ProfileView(props: ProfileViewProps) {
                         {languageLabel}
                       </ProfileChip>
                       <ProfileChip icon={<UserIcon className="h-3.5 w-3.5" />}>
-                        {profile.isAgent ? 'Agent' : 'Human'}
+                        {profile.isAgent
+                          ? t('Contacts.agent', { defaultValue: 'Agent' })
+                          : t('Contacts.human', { defaultValue: 'Human' })}
                       </ProfileChip>
                     </div>
                   </div>
@@ -316,14 +333,14 @@ export function ProfileView(props: ProfileViewProps) {
 
                 <div className="flex shrink-0 flex-col items-end gap-3">
                   <div className="flex flex-wrap gap-3">
-                    <StatBadge value={friendCount} label="Friends" />
-                    <StatBadge value={postCount} label="Posts" />
-                    <StatBadge value={likesCount} label="Likes" />
+                    <StatBadge value={friendCount} label={t('Profile.friends', { defaultValue: 'Friends' })} />
+                    <StatBadge value={postCount} label={t('Profile.posts', { defaultValue: 'Posts' })} />
+                    <StatBadge value={likesCount} label={t('Profile.likes', { defaultValue: 'Likes' })} />
                   </div>
                   <div className="flex flex-wrap justify-end gap-2 w-full">
                     {props.showMessageButton !== false ? (
                       <ActionButton
-                        label="Message"
+                        label={t('Profile.message', { defaultValue: 'Message' })}
                         icon={<MessageIcon className="h-4 w-4" />}
                         onClick={props.onMessage}
                         variant="primary"
@@ -331,7 +348,7 @@ export function ProfileView(props: ProfileViewProps) {
                     ) : null}
                     {!props.isOwnProfile ? (
                       <ActionButton
-                        label="Send Gift"
+                        label={t('Profile.sendGift', { defaultValue: 'Send Gift' })}
                         icon={<GiftIcon className="h-4 w-4" />}
                         onClick={props.onSendGift}
                         variant="secondary"
@@ -360,7 +377,7 @@ export function ProfileView(props: ProfileViewProps) {
                           : 'text-[#6b7280] hover:text-[#374151]'
                       }`}
                     >
-                      {tab}
+                      {getProfileTabLabel(t, tab)}
                       {activeTab === tab ? (
                         <span className="absolute inset-x-4 -bottom-px h-0.5 rounded-full bg-[#4ECCA3]" />
                       ) : null}
@@ -404,20 +421,24 @@ export function ProfileView(props: ProfileViewProps) {
                 <div className="grid gap-6 xl:grid-cols-[300px,minmax(0,1fr)]">
                   <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
                     <section className="rounded-[24px] border border-[#e7edf3] bg-white p-5 shadow-[0_6px_24px_rgba(15,23,42,0.05)]">
-                      <h3 className="text-sm font-semibold text-[#111827]">Profile Details</h3>
+                      <h3 className="text-sm font-semibold text-[#111827]">
+                        {t('Profile.detailsTitle', { defaultValue: 'Profile Details' })}
+                      </h3>
                       <p className="mt-1 text-xs leading-5 text-[#8a94a6]">
                         Reference details and profile attributes for this contact.
                       </p>
                       <div className="mt-5 space-y-3.5">
-                        <InfoTile icon={<CalendarIcon className="h-4 w-4" />} label="Joined" value={formatProfileDate(profile.createdAt) || 'Unknown'} />
-                        <InfoTile icon={<LocationIcon className="h-4 w-4" />} label="Location" value={locationLabel} />
-                        <InfoTile icon={<UserIcon className="h-4 w-4" />} label="Gender" value={profile.gender || 'Not set'} />
-                        <InfoTile icon={<LanguageIcon className="h-4 w-4" />} label="Languages" value={languageLabel} />
+                        <InfoTile icon={<CalendarIcon className="h-4 w-4" />} label={t('Profile.joined', { defaultValue: 'Joined' })} value={formatProfileDate(profile.createdAt) || t('common.unknown', { defaultValue: 'Unknown' })} />
+                        <InfoTile icon={<LocationIcon className="h-4 w-4" />} label={t('Profile.location', { defaultValue: 'Location' })} value={locationLabel} />
+                        <InfoTile icon={<UserIcon className="h-4 w-4" />} label={t('Profile.gender', { defaultValue: 'Gender' })} value={profile.gender || t('common.notSet', { defaultValue: 'Not set' })} />
+                        <InfoTile icon={<LanguageIcon className="h-4 w-4" />} label={t('Profile.languages', { defaultValue: 'Languages' })} value={languageLabel} />
                       </div>
                     </section>
 
                     <section className="rounded-[24px] border border-[#e7edf3] bg-white p-5 shadow-[0_6px_24px_rgba(15,23,42,0.05)]">
-                      <h3 className="text-sm font-semibold text-[#111827]">Status</h3>
+                      <h3 className="text-sm font-semibold text-[#111827]">
+                        {t('Profile.status', { defaultValue: 'Status' })}
+                      </h3>
                       <div className="mt-4 flex flex-wrap gap-2">
                         <StatusPill active={profile.isOnline}>{profile.isOnline ? 'Online now' : 'Offline'}</StatusPill>
                         <StatusPill>{profile.isAgent ? 'Agent identity' : 'Human account'}</StatusPill>
@@ -462,7 +483,9 @@ export function ProfileView(props: ProfileViewProps) {
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900">Remove Friend</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              {t('Profile.removeFriend', { defaultValue: 'Remove Friend' })}
+            </h3>
             <p className="mt-2 text-sm text-gray-500">
               Are you sure you want to remove <span className="font-medium text-gray-900">{props.profile.displayName}</span> from your friends?
             </p>
@@ -473,7 +496,7 @@ export function ProfileView(props: ProfileViewProps) {
                 disabled={isDeleting}
                 className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
               >
-                Cancel
+                {t('common.cancel', { defaultValue: 'Cancel' })}
               </button>
               <button
                 type="button"
@@ -481,7 +504,9 @@ export function ProfileView(props: ProfileViewProps) {
                 disabled={isDeleting}
                 className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-50"
               >
-                {isDeleting ? 'Removing...' : 'Remove'}
+                {isDeleting
+                  ? t('Profile.removing', { defaultValue: 'Removing...' })
+                  : t('common.remove', { defaultValue: 'Remove' })}
               </button>
             </div>
           </div>
@@ -498,9 +523,13 @@ export function ProfileView(props: ProfileViewProps) {
                 <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900">Block User</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              {t('Profile.blockUser', { defaultValue: 'Block User' })}
+            </h3>
             <p className="mt-2 text-sm text-gray-500">
-              Are you sure you want to block <span className="font-medium text-gray-900">{props.profile.displayName}</span>? They will be moved to your Blocked list and won't be able to contact you.
+              {t('Profile.blockContactMessagePrefix', { defaultValue: 'Are you sure you want to block' })}{' '}
+              <span className="font-medium text-gray-900">{props.profile.displayName}</span>
+              ? {t('Profile.blockContactMessageSuffix', { defaultValue: 'They will be moved to your Blocked list and won\'t be able to contact you.' })}
             </p>
             <div className="mt-6 flex gap-3">
               <button
@@ -509,7 +538,7 @@ export function ProfileView(props: ProfileViewProps) {
                 disabled={isBlocking}
                 className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
               >
-                Cancel
+                {t('common.cancel', { defaultValue: 'Cancel' })}
               </button>
               <button
                 type="button"
@@ -517,7 +546,9 @@ export function ProfileView(props: ProfileViewProps) {
                 disabled={isBlocking}
                 className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-50"
               >
-                {isBlocking ? 'Blocking...' : 'Block'}
+                {isBlocking
+                  ? t('Profile.blocking', { defaultValue: 'Blocking...' })
+                  : t('common.block', { defaultValue: 'Block' })}
               </button>
             </div>
           </div>

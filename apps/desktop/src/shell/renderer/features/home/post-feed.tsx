@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { i18n } from '@renderer/i18n';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 
 export type FeedItem = PostDto;
@@ -47,6 +48,16 @@ function isApiError(error: unknown): error is ApiError {
     error !== null &&
     ('status' in error || 'message' in error || 'body' in error || 'response' in error)
   );
+}
+
+function toErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) {
+    const next = error.message.trim();
+    if (next) {
+      return next;
+    }
+  }
+  return fallback;
 }
 
 export function PostFeed({ fetchPage, emptyText, renderItem, className }: PostFeedProps) {
@@ -119,17 +130,32 @@ export function PostFeed({ fetchPage, emptyText, renderItem, className }: PostFe
             loadError !== null &&
             Object.keys(loadError as object).length === 0)
         ) {
-          setError('Unable to connect to server. Check your network or backend status.');
+          setError(i18n.t('Home.feedConnectionFailed', {
+            defaultValue: 'Unable to connect to server. Check your network or backend status.',
+          }));
         } else {
           if (isApiError(loadError)) {
             if (loadError.status === 401 || loadError.response?.status === 401) {
-              setError('Your session has expired. Please sign in again.');
+              setError(i18n.t('Home.feedSessionExpired', {
+                defaultValue: 'Your session has expired. Please sign in again.',
+              }));
             } else {
-              const errorMessage = loadError.message || loadError.body?.message || 'Unknown error';
-              setError(`Failed to load feed: ${errorMessage}`);
+              const errorMessage = loadError.message
+                || loadError.body?.message
+                || i18n.t('Home.unknownError', { defaultValue: 'Unknown error' });
+              setError(i18n.t('Home.feedLoadFailed', {
+                message: errorMessage,
+                defaultValue: 'Failed to load feed: {{message}}',
+              }));
             }
           } else {
-            setError('Failed to load feed: Unknown error');
+            setError(i18n.t('Home.feedLoadFailed', {
+              message: toErrorMessage(
+                loadError,
+                i18n.t('Home.unknownError', { defaultValue: 'Unknown error' }),
+              ),
+              defaultValue: 'Failed to load feed: {{message}}',
+            }));
           }
         }
       } finally {
@@ -191,14 +217,16 @@ export function PostFeed({ fetchPage, emptyText, renderItem, className }: PostFe
             <Fragment key={post.id}>{renderItem(post, index)}</Fragment>
           ) : (
             <div key={post.id} className="rounded-[10px] border border-gray-200 bg-white p-4">
-              <p className="text-sm text-gray-700">{post.caption ?? 'No content'}</p>
+              <p className="text-sm text-gray-700">
+                {post.caption ?? i18n.t('Home.noContent', { defaultValue: 'No content' })}
+              </p>
             </div>
           ),
         )}
 
         {!loadingInitial && posts.length === 0 && !error ? (
           <div className="py-8 text-center text-sm text-muted-foreground">
-            {emptyText ?? 'No posts yet'}
+            {emptyText ?? i18n.t('Home.noPosts', { defaultValue: 'No posts yet' })}
           </div>
         ) : null}
       </div>
@@ -218,7 +246,9 @@ export function PostFeed({ fetchPage, emptyText, renderItem, className }: PostFe
       ) : null}
 
       {!hasMore && posts.length > 0 && !loadingMore ? (
-        <div className="py-8 text-center text-sm text-muted-foreground">You&apos;re all caught up!</div>
+        <div className="py-8 text-center text-sm text-muted-foreground">
+          {i18n.t('Home.caughtUp', { defaultValue: "You're all caught up!" })}
+        </div>
       ) : null}
     </>
   );

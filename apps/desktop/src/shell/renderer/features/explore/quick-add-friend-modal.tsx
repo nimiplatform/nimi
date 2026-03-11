@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { ExploreAgentCardData } from './explore-cards';
 
@@ -26,6 +27,7 @@ function toErrorMessage(error: unknown, fallback: string): string {
 }
 
 export function QuickAddFriendModal(props: QuickAddFriendModalProps) {
+  const { t } = useTranslation();
   const [message, setMessage] = useState('');
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export function QuickAddFriendModal(props: QuickAddFriendModalProps) {
       setMessage('');
       props.onClose();
     } catch (err) {
-      setError(toErrorMessage(err, 'Failed to add friend'));
+      setError(toErrorMessage(err, t('Home.failedToAddFriend', { defaultValue: 'Failed to add friend' })));
     } finally {
       setAdding(false);
     }
@@ -73,13 +75,13 @@ export function QuickAddFriendModal(props: QuickAddFriendModalProps) {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4">
-          <h2 className="text-base font-semibold text-gray-900">Add Friend</h2>
+          <h2 className="text-base font-semibold text-gray-900">{t('Contacts.addContact', { defaultValue: 'Add Friend' })}</h2>
           <button
             type="button"
             onClick={handleClose}
             disabled={adding}
             className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
-            aria-label="Close"
+            aria-label={t('Home.close', { defaultValue: 'Close' })}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -108,7 +110,7 @@ export function QuickAddFriendModal(props: QuickAddFriendModalProps) {
             
             {/* Tag */}
             <span className="mt-2 inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600">
-              AI Agent
+              {t('Contacts.agentBadge', { defaultValue: 'Agent' })}
             </span>
           </div>
 
@@ -117,7 +119,7 @@ export function QuickAddFriendModal(props: QuickAddFriendModalProps) {
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Say Hello..."
+              placeholder={t('Home.sayHello', { defaultValue: 'Say Hello...' })}
               rows={3}
               maxLength={200}
               disabled={adding}
@@ -157,7 +159,7 @@ export function QuickAddFriendModal(props: QuickAddFriendModalProps) {
               disabled={adding}
               className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
             >
-              Cancel
+              {t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
             </button>
             <button
               type="button"
@@ -170,10 +172,10 @@ export function QuickAddFriendModal(props: QuickAddFriendModalProps) {
                   <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
                     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" strokeDasharray="60" strokeDashoffset="20" />
                   </svg>
-                  Adding...
+                  {t('Home.adding', { defaultValue: 'Adding...' })}
                 </span>
               ) : (
-                'Add Friend'
+                t('Contacts.addContact', { defaultValue: 'Add Friend' })
               )}
             </button>
           </div>

@@ -1,3 +1,5 @@
+import { formatRelativeLocaleTime } from '@renderer/i18n';
+
 export type ContactRecord = {
   id: string;
   displayName: string;
@@ -77,17 +79,7 @@ export function getContactInitial(name: string): string {
 
 export function formatContactRelativeTime(dateStr: string | null): string {
   if (!dateStr) return '';
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return '';
-  const diff = Date.now() - date.getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `about ${hours} hour${hours > 1 ? 's' : ''} ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} day${days > 1 ? 's' : ''} ago`;
-  const months = Math.floor(days / 30);
-  return `${months} month${months > 1 ? 's' : ''} ago`;
+  return formatRelativeLocaleTime(dateStr);
 }
 
 export function toFriendContact(item: Record<string, unknown>): ContactRecord {

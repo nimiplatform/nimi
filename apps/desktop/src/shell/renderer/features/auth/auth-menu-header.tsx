@@ -51,7 +51,7 @@ export function AuthMenuHeader(props: {
           type="button"
           className={`${buttonBase} ${buttonOutline} h-5 w-5 rounded-full border-input px-0 text-[10px] text-muted-foreground hover:border-foreground/50 hover:text-foreground`}
           disabled
-          title="Help"
+          title={t('AuthLogin.help', { defaultValue: 'Help' })}
         >
           ?
         </button>

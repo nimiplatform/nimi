@@ -1,4 +1,5 @@
 import type { ProfileData } from './profile-model';
+import { useTranslation } from 'react-i18next';
 import { formatProfileDate } from './profile-model';
 
 type ProfileInfoProps = {
@@ -15,6 +16,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 export function ProfileInfo({ profile }: ProfileInfoProps) {
+  const { t } = useTranslation();
   const hasBasicInfo = profile.createdAt || profile.city || profile.countryCode || profile.gender || profile.languages.length > 0;
   const hasAgentInfo = profile.isAgent && (profile.agentState || profile.agentCategory || profile.agentOrigin || profile.agentWakeStrategy || profile.agentIsPublic !== null);
 
@@ -27,7 +29,7 @@ export function ProfileInfo({ profile }: ProfileInfoProps) {
         <div>
           <div className="flex items-center gap-2">
             <TagIcon className="h-4 w-4 text-mint-500" />
-            <h3 className="text-sm font-semibold text-gray-900">Tags</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t('Profile.info.tags', { defaultValue: 'Tags' })}</h3>
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
             {profile.tags.map((tag) => (
@@ -47,14 +49,14 @@ export function ProfileInfo({ profile }: ProfileInfoProps) {
         <div>
           <div className="flex items-center gap-2">
             <InfoIcon className="h-4 w-4 text-mint-500" />
-            <h3 className="text-sm font-semibold text-gray-900">Info</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t('Profile.info.info', { defaultValue: 'Info' })}</h3>
           </div>
           <div className="mt-2 divide-y divide-gray-100">
-            {profile.createdAt ? <InfoRow label="Joined" value={formatProfileDate(profile.createdAt)} /> : null}
-            {profile.city ? <InfoRow label="City" value={profile.city} /> : null}
-            {profile.countryCode ? <InfoRow label="Country" value={profile.countryCode} /> : null}
-            {profile.gender ? <InfoRow label="Gender" value={profile.gender} /> : null}
-            {profile.languages.length > 0 ? <InfoRow label="Languages" value={profile.languages.join(', ')} /> : null}
+            {profile.createdAt ? <InfoRow label={t('Profile.info.joined', { defaultValue: 'Joined' })} value={formatProfileDate(profile.createdAt)} /> : null}
+            {profile.city ? <InfoRow label={t('Profile.info.city', { defaultValue: 'City' })} value={profile.city} /> : null}
+            {profile.countryCode ? <InfoRow label={t('Profile.info.country', { defaultValue: 'Country' })} value={profile.countryCode} /> : null}
+            {profile.gender ? <InfoRow label={t('Profile.info.gender', { defaultValue: 'Gender' })} value={profile.gender} /> : null}
+            {profile.languages.length > 0 ? <InfoRow label={t('Profile.info.languages', { defaultValue: 'Languages' })} value={profile.languages.join(', ')} /> : null}
           </div>
         </div>
       ) : null}
@@ -64,14 +66,21 @@ export function ProfileInfo({ profile }: ProfileInfoProps) {
         <div>
           <div className="flex items-center gap-2">
             <BotIcon className="h-4 w-4 text-mint-500" />
-            <h3 className="text-sm font-semibold text-gray-900">Agent Details</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t('Profile.info.agentDetails', { defaultValue: 'Agent Details' })}</h3>
           </div>
           <div className="mt-2 divide-y divide-gray-100">
-            {profile.agentState ? <InfoRow label="State" value={profile.agentState} /> : null}
-            {profile.agentCategory ? <InfoRow label="Category" value={profile.agentCategory} /> : null}
-            {profile.agentOrigin ? <InfoRow label="Origin" value={profile.agentOrigin} /> : null}
-            {profile.agentWakeStrategy ? <InfoRow label="Wake Strategy" value={profile.agentWakeStrategy} /> : null}
-            {profile.agentIsPublic !== null ? <InfoRow label="Visibility" value={profile.agentIsPublic ? 'Public' : 'Private'} /> : null}
+            {profile.agentState ? <InfoRow label={t('Profile.info.state', { defaultValue: 'State' })} value={profile.agentState} /> : null}
+            {profile.agentCategory ? <InfoRow label={t('Profile.info.category', { defaultValue: 'Category' })} value={profile.agentCategory} /> : null}
+            {profile.agentOrigin ? <InfoRow label={t('Profile.info.origin', { defaultValue: 'Origin' })} value={profile.agentOrigin} /> : null}
+            {profile.agentWakeStrategy ? <InfoRow label={t('Profile.info.wakeStrategy', { defaultValue: 'Wake Strategy' })} value={profile.agentWakeStrategy} /> : null}
+            {profile.agentIsPublic !== null ? (
+              <InfoRow
+                label={t('Profile.info.visibility', { defaultValue: 'Visibility' })}
+                value={profile.agentIsPublic
+                  ? t('Profile.info.public', { defaultValue: 'Public' })
+                  : t('Profile.info.private', { defaultValue: 'Private' })}
+              />
+            ) : null}
           </div>
         </div>
       ) : null}

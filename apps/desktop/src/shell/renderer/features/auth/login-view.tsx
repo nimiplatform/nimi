@@ -1,4 +1,5 @@
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
 import { SlotHost } from '@renderer/mod-ui/host/slot-host';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
@@ -51,12 +52,6 @@ function IconEyeOff() {
   );
 }
 
-const FEATURES = [
-  { icon: <IconPerson />, title: 'Human Connections', desc: 'Chat with real people in your network' },
-  { icon: <IconBot />, title: 'AI Agents', desc: 'Interact with intelligent agents' },
-  { icon: <IconSparkle />, title: 'Local AI Runtime', desc: 'Run models privately on your device' },
-] as const;
-
 type LoginViewProps = {
   mode: AuthMode;
   identifier: string;
@@ -73,7 +68,25 @@ type LoginViewProps = {
 };
 
 export function LoginView(props: LoginViewProps) {
+  const { t } = useTranslation();
   const flags = getShellFeatureFlags();
+  const features = [
+    {
+      icon: <IconPerson />,
+      title: t('AuthLogin.featureHumanConnectionsTitle', { defaultValue: 'Human Connections' }),
+      desc: t('AuthLogin.featureHumanConnectionsDesc', { defaultValue: 'Chat with real people in your network' }),
+    },
+    {
+      icon: <IconBot />,
+      title: t('AuthLogin.featureAiAgentsTitle', { defaultValue: 'AI Agents' }),
+      desc: t('AuthLogin.featureAiAgentsDesc', { defaultValue: 'Interact with intelligent agents' }),
+    },
+    {
+      icon: <IconSparkle />,
+      title: t('AuthLogin.featureLocalRuntimeTitle', { defaultValue: 'Local AI Runtime' }),
+      desc: t('AuthLogin.featureLocalRuntimeDesc', { defaultValue: 'Run models privately on your device' }),
+    },
+  ] as const;
 
   return (
     <div className="flex h-screen w-screen bg-gray-50">
@@ -82,10 +95,14 @@ export function LoginView(props: LoginViewProps) {
           <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white/20">
             <img src={logoUrl} alt="Nimi Logo" className="h-16 w-16 object-contain" />
           </div>
-          <h1 className="mt-8 text-4xl font-bold tracking-tight text-white">Welcome to Nimi</h1>
-          <p className="mt-4 text-xl text-brand-50">Where humans and AI agents connect</p>
+          <h1 className="mt-8 text-4xl font-bold tracking-tight text-white">
+            {t('AuthLogin.welcomeTitle', { defaultValue: 'Welcome to Nimi' })}
+          </h1>
+          <p className="mt-4 text-xl text-brand-50">
+            {t('AuthLogin.welcomeSubtitle', { defaultValue: 'Where humans and AI agents connect' })}
+          </p>
           <div className="mt-16 flex flex-col gap-4">
-            {FEATURES.map((feature) => (
+            {features.map((feature) => (
               <div key={feature.title} className="flex items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-white/20">
                   {feature.icon}
@@ -103,32 +120,34 @@ export function LoginView(props: LoginViewProps) {
       <div className="flex w-full shrink-0 items-center bg-white lg:w-[480px]">
         <div className="mx-auto w-full max-w-[352px] px-6 lg:ml-16 lg:mr-auto lg:px-0">
           <h2 className="text-2xl font-semibold text-gray-900">
-            {props.mode === 'register' ? 'Create account' : 'Sign in'}
+            {props.mode === 'register'
+              ? t('Auth.createAccount', { defaultValue: 'Create Account' })
+              : t('Auth.login', { defaultValue: 'Login' })}
           </h2>
           <p className="mt-2 text-sm text-gray-500">
             {props.mode === 'register'
-              ? 'Fill in your details to create a new account'
-              : 'Enter your credentials to access your account'}
+              ? t('AuthLogin.registerHint', { defaultValue: 'Fill in your details to create a new account' })
+              : t('AuthLogin.loginHint', { defaultValue: 'Enter your credentials to access your account' })}
           </p>
 
           <form className="mt-8 flex flex-col gap-5" onSubmit={props.onSubmit}>
             <div className="flex flex-col gap-2">
               <label htmlFor="loginIdentifier" className="text-sm font-medium text-gray-700">
-                Username
+                {t('AuthLogin.username', { defaultValue: 'Username' })}
               </label>
               <input
                 id="loginIdentifier"
                 value={props.identifier}
                 onChange={(event) => props.onIdentifierChange(event.target.value)}
                 className="h-[46px] w-full rounded-[10px] border border-gray-200 bg-gray-50 px-4 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-brand-500"
-                placeholder="Enter your username"
+                placeholder={t('AuthLogin.usernamePlaceholder', { defaultValue: 'Enter your username' })}
                 autoComplete="username"
               />
             </div>
 
             <div className="flex flex-col gap-2">
               <label htmlFor="loginPassword" className="text-sm font-medium text-gray-700">
-                Password
+                {t('SecuritySettings.currentPasswordLabel', { defaultValue: 'Password' })}
               </label>
               <div className="relative">
                 <input
@@ -137,7 +156,7 @@ export function LoginView(props: LoginViewProps) {
                   onChange={(event) => props.onPasswordChange(event.target.value)}
                   className="h-[46px] w-full rounded-[10px] border border-gray-200 bg-gray-50 px-4 pr-12 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-brand-500"
                   type={props.showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
+                  placeholder={t('Auth.passwordPlaceholder', { defaultValue: 'Password' })}
                   autoComplete="current-password"
                 />
                 <button
@@ -145,6 +164,9 @@ export function LoginView(props: LoginViewProps) {
                   className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded"
                   onClick={props.onToggleShowPassword}
                   tabIndex={-1}
+                  aria-label={props.showPassword
+                    ? t('Auth.hidePassword', { defaultValue: 'Hide' })
+                    : t('Auth.showPassword', { defaultValue: 'Show' })}
                 >
                   {props.showPassword ? <IconEyeOff /> : <IconEye />}
                 </button>
@@ -159,20 +181,26 @@ export function LoginView(props: LoginViewProps) {
               }`}
             >
               {props.pending
-                ? (props.mode === 'register' ? 'Creating...' : 'Signing in...')
-                : (props.mode === 'register' ? 'Create account' : 'Sign in')}
+                ? (props.mode === 'register'
+                    ? t('Auth.creating', { defaultValue: 'Creating...' })
+                    : t('Auth.loggingIn', { defaultValue: 'Logging in...' }))
+                : (props.mode === 'register'
+                    ? t('Auth.createAccount', { defaultValue: 'Create Account' })
+                    : t('Auth.login', { defaultValue: 'Login' }))}
             </button>
 
             <div className="flex items-center justify-between">
               <button type="button" className="text-base font-medium text-gray-600 hover:text-gray-700">
-                Forgot password?
+                {t('AuthLogin.forgotPassword', { defaultValue: 'Forgot password?' })}
               </button>
               <button
                 type="button"
                 className="text-base font-medium text-brand-600 hover:text-brand-700"
                 onClick={props.onToggleMode}
               >
-                {props.mode === 'login' ? 'Create account' : 'Sign in instead'}
+                {props.mode === 'login'
+                  ? t('Auth.createAccount', { defaultValue: 'Create Account' })
+                  : t('AuthLogin.signInInstead', { defaultValue: 'Sign in instead' })}
               </button>
             </div>
           </form>
@@ -182,7 +210,9 @@ export function LoginView(props: LoginViewProps) {
           ) : null}
 
           <p className="mt-8 text-center text-xs text-gray-400">
-            {flags.mode === 'web' ? 'Nimi Web v1.0.0' : 'Nimi Desktop v1.0.0'}
+            {flags.mode === 'web'
+              ? t('AuthLogin.webVersion', { defaultValue: 'Nimi Web v1.0.0' })
+              : t('AuthLogin.desktopVersion', { defaultValue: 'Nimi Desktop v1.0.0' })}
           </p>
         </div>
       </div>

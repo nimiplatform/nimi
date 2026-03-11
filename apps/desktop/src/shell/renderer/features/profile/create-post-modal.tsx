@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
@@ -34,6 +35,7 @@ type CreatePostModalProps = {
 
 
 export function CreatePostModal({ open, onClose, onComplete, onUploadStart, initialPost = null }: CreatePostModalProps) {
+  const { t } = useTranslation();
   const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
   const [selectedMediaRef, setSelectedMediaRef] = useState<SelectedMediaRef | null>(null);
   const [caption, setCaption] = useState('');
@@ -441,7 +443,11 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
-          <h2 className="text-base font-semibold text-gray-900">{isEditMode ? 'Edit Post' : 'Create Post'}</h2>
+          <h2 className="text-base font-semibold text-gray-900">
+            {isEditMode
+              ? t('Profile.CreatePost.editPost', { defaultValue: 'Edit Post' })
+              : t('Home.createPost', { defaultValue: 'Create Post' })}
+          </h2>
           <button
             type="button"
             onClick={handleClose}
@@ -490,7 +496,11 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
               <p className="text-sm font-medium text-gray-700">
                 {dragOver ? 'Drop file here' : 'Click or drag to upload'}
               </p>
-              <p className="mt-1 text-xs text-gray-400">PNG, JPEG, GIF, WebP, MP4, MOV (max 100MB)</p>
+              <p className="mt-1 text-xs text-gray-400">
+                {t('Profile.CreatePost.supportedMediaTypes', {
+                  defaultValue: 'PNG, JPEG, GIF, WebP, MP4, MOV (max 100MB)',
+                })}
+              </p>
             </div>
           ) : (
             <div className="relative">
@@ -515,7 +525,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
                 className="group absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-sm ring-1 ring-white/10 transition-all duration-200 hover:bg-[#4ECCA3] hover:ring-[#4ECCA3]/50 disabled:opacity-50"
-                title="Replace media"
+                title={t('Profile.CreatePost.replaceMedia', { defaultValue: 'Replace media' })}
               >
                 <svg 
                   width="14" 
@@ -544,7 +554,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
               ref={textareaRef}
               value={caption}
               onChange={(e) => setCaption(e.target.value.slice(0, MAX_CAPTION_LENGTH))}
-                    placeholder="Write a caption..."
+                    placeholder={t('Profile.CreatePost.writeCaptionPlaceholder', { defaultValue: 'Write a caption...' })}
               disabled={uploading}
               rows={3}
               className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#4ECCA3] focus:ring-1 focus:ring-[#4ECCA3] focus:outline-none disabled:opacity-50"
@@ -608,7 +618,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
                       ? 'bg-[#0066CC] text-white'
                       : 'text-gray-500 hover:bg-gray-200/50 hover:text-gray-700'
                   }`}
-                  title="Emoji"
+                  title={t('Profile.CreatePost.emoji', { defaultValue: 'Emoji' })}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" />
@@ -617,7 +627,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
                     <line x1="15" y1="9" x2="15.01" y2="9" />
                   </svg>
                   <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
-                    Emoji
+                    {t('Profile.CreatePost.emoji', { defaultValue: 'Emoji' })}
                   </span>
                 </button>
               </div>
@@ -637,14 +647,14 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
                       ? 'bg-[#0066CC] text-white'
                       : 'text-gray-500 hover:bg-gray-200/50 hover:text-gray-700'
                   }`}
-                  title="Location"
+                  title={t('Profile.CreatePost.location', { defaultValue: 'Location' })}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                     <circle cx="12" cy="10" r="3" />
                   </svg>
                   <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
-                    Location
+                    {t('Profile.CreatePost.location', { defaultValue: 'Location' })}
                   </span>
                 </button>
               </div>
@@ -664,14 +674,14 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
                       ? 'bg-[#0066CC] text-white'
                       : 'text-gray-500 hover:bg-gray-200/50 hover:text-gray-700'
                   }`}
-                  title="Tag"
+                  title={t('Profile.CreatePost.tag', { defaultValue: 'Tag' })}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
                     <line x1="7" y1="7" x2="7.01" y2="7" />
                   </svg>
                   <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
-                    Tag
+                    {t('Profile.CreatePost.tag', { defaultValue: 'Tag' })}
                   </span>
                 </button>
               </div>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { PostFeedWithMediaPreview } from './post-feed-with-media-preview.js';
@@ -35,6 +36,7 @@ function LikeSkeleton() {
 }
 
 export function LikesTab({ profileId }: LikesTabProps) {
+  const { t } = useTranslation();
   const [likedPosts, setLikedPosts] = useState<PostDto[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -71,7 +73,7 @@ export function LikesTab({ profileId }: LikesTabProps) {
         setCursor(nextCursor);
         setHasMore(nextCursor != null);
       } catch (error) {
-        setLoadError(toErrorMessage(error, 'Failed to load liked posts'));
+        setLoadError(toErrorMessage(error, t('Profile.loadLikedPostsFailed', { defaultValue: 'Failed to load liked posts' })));
       } finally {
         if (cursorArg) {
           setLoadingMore(false);
@@ -80,7 +82,7 @@ export function LikesTab({ profileId }: LikesTabProps) {
         }
       }
     },
-    [hasMore, loadingMore, profileId],
+    [hasMore, loadingMore, profileId, t],
   );
 
   useEffect(() => {

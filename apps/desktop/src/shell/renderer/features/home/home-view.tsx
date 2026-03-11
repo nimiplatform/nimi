@@ -11,6 +11,7 @@ import { prepareHomeFeedItems } from './utils';
 
 // Optimistic post placeholder component
 function PublishingPostCard() {
+  const { t } = useTranslation();
   return (
     <div className="mb-6 rounded-[2rem] border border-[#4ECCA3]/30 bg-white p-5 shadow-sm opacity-80">
       <div className="flex items-center gap-3">
@@ -24,7 +25,7 @@ function PublishingPostCard() {
             <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
             <path d="M4 12a8 8 0 0 1 8-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
           </svg>
-          Publishing...
+          {t('Home.publishing', { defaultValue: 'Publishing...' })}
         </span>
       </div>
       <div className="mt-4 space-y-2">
@@ -127,7 +128,9 @@ export function HomeView(props: HomeViewProps) {
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             </div>
-            <span className="text-sm text-gray-400">What&apos;s on your mind?</span>
+            <span className="text-sm text-gray-400">
+              {t('Home.composePrompt', { defaultValue: "What's on your mind?" })}
+            </span>
           </button>
 
           {/* Publishing placeholder - shown at top of feed */}
@@ -142,7 +145,7 @@ export function HomeView(props: HomeViewProps) {
             <PostFeed
               key={postFeedKey}
               fetchPage={fetchPage}
-              emptyText="No posts yet"
+              emptyText={t('PostsTab.noPosts', { defaultValue: 'No posts yet' })}
               renderItem={(post) => (
                 <PostCard
                   post={post}
@@ -164,13 +167,17 @@ export function HomeView(props: HomeViewProps) {
           if (success) {
             setRefreshKey((k) => k + 1);
             setToast({
-              message: mode === 'edit' ? 'Post updated successfully!' : 'Post published successfully!',
+              message: mode === 'edit'
+                ? t('Home.postUpdated', { defaultValue: 'Post updated successfully!' })
+                : t('Home.postPublished', { defaultValue: 'Post published successfully!' }),
               type: 'success',
             });
             return;
           }
           setToast({
-            message: mode === 'edit' ? 'Failed to update post' : 'Failed to publish post',
+            message: mode === 'edit'
+              ? t('Home.postUpdateFailed', { defaultValue: 'Failed to update post' })
+              : t('Home.postPublishFailed', { defaultValue: 'Failed to publish post' }),
             type: 'error',
           });
         }}
@@ -205,7 +212,7 @@ export function HomeView(props: HomeViewProps) {
         type="button"
         onClick={() => setCreatePostOpen(true)}
         className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#4ECCA3] text-white shadow-lg shadow-[#4ECCA3]/30 transition-all duration-200 hover:scale-110 hover:shadow-xl hover:shadow-[#4ECCA3]/40 active:scale-95"
-        aria-label="Create Post"
+        aria-label={t('Home.createPost', { defaultValue: 'Create Post' })}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <line x1="12" y1="5" x2="12" y2="19" />

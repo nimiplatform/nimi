@@ -1,4 +1,6 @@
 import { Suspense, lazy, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { i18n } from '@renderer/i18n';
 import { Tooltip } from '@renderer/components/tooltip.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { formatProfileDate, type ProfileTab } from '@renderer/features/profile/profile-model';
@@ -32,6 +34,19 @@ import {
 const SHOW_AVATAR_ONLINE_INDICATOR = false;
 const TOPBAR_TOOLTIP_CLASS = 'rounded-full bg-[#0f172a] px-3 py-1.5 text-xs font-semibold text-white shadow-[0_4px_20px_rgba(0,0,0,0.25)]';
 const CONTACT_DETAIL_TABS: ProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gifts'];
+
+function getContactDetailTabLabel(t: ReturnType<typeof useTranslation>['t'], tab: ProfileTab): string {
+  switch (tab) {
+    case 'Posts':
+      return t('Profile.tabPosts', { defaultValue: 'Posts' });
+    case 'Collections':
+      return t('Profile.tabCollections', { defaultValue: 'Collections' });
+    case 'Likes':
+      return t('Profile.tabLikes', { defaultValue: 'Likes' });
+    case 'Gifts':
+      return t('Profile.tabGifts', { defaultValue: 'Gifts' });
+  }
+}
 
 const PostsTab = lazy(async () => {
   const module = await import('@renderer/features/profile/posts-tab');
@@ -106,19 +121,19 @@ function ContactDetailActionButtons(input: {
   return (
     <>
       {input.showMessageButton ? (
-        <Tooltip content="Chat" placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
+        <Tooltip content={i18n.t('Contacts.chat', { defaultValue: 'Chat' })} placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
           <IconButton
             icon={<MessageIcon className="h-4 w-4" />}
-            label="Chat"
+            label={i18n.t('Contacts.chat', { defaultValue: 'Chat' })}
             onClick={input.onMessage}
           />
         </Tooltip>
       ) : null}
       {input.showGiftButton ? (
-        <Tooltip content="Gift" placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
+        <Tooltip content={i18n.t('Contacts.gift', { defaultValue: 'Gift' })} placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
           <IconButton
             icon={<GiftIcon className="h-4 w-4" />}
-            label="Gift"
+            label={i18n.t('Contacts.gift', { defaultValue: 'Gift' })}
             onClick={input.onSendGift}
           />
         </Tooltip>
@@ -169,6 +184,7 @@ export function ContactDetailViewContent(input: {
   controller: ContactDetailViewController;
   onVisitWorld: (worldId: string) => void;
 } & ContactDetailViewProps) {
+  const { t } = useTranslation();
   const {
     activeTab,
     avatarInputRef,
@@ -220,15 +236,15 @@ export function ContactDetailViewContent(input: {
       };
   const locationLabel = profile.city && profile.countryCode
     ? `${profile.city}, ${profile.countryCode.toUpperCase()}`
-    : profile.city || profile.countryCode?.toUpperCase() || 'Unknown region';
-  const originLabel = profile.agentOrigin || 'Unknown origin';
-  const joinedLabel = formatProfileDate(profile.createdAt) || 'Unknown joined date';
-  const worldLabel = profile.worldName || 'Unknown world';
+    : profile.city || profile.countryCode?.toUpperCase() || t('Profile.unknownRegion', { defaultValue: 'Unknown region' });
+  const originLabel = profile.agentOrigin || t('Profile.unknownOrigin', { defaultValue: 'Unknown origin' });
+  const joinedLabel = formatProfileDate(profile.createdAt) || t('Profile.unknownJoinedDate', { defaultValue: 'Unknown joined date' });
+  const worldLabel = profile.worldName || t('Profile.unknownWorld', { defaultValue: 'Unknown world' });
   const worldNavigationId = profile.agentOwnerWorldId || profile.agentWorldId || '';
   const canVisitWorld = Boolean(worldNavigationId);
   const headline = profile.bio || (profile.isAgent
-    ? 'This contact has no public profile summary yet.'
-    : 'No profile summary has been added yet.');
+    ? t('Profile.agentNoSummary', { defaultValue: 'This contact has no public profile summary yet.' })
+    : t('Profile.noDescription', { defaultValue: 'No profile summary has been added yet.' }));
   const showGiftButton = !input.isOwnProfile;
   const showMessageButton = input.showMessageButton !== false;
 
@@ -275,7 +291,7 @@ export function ContactDetailViewContent(input: {
                   type="button"
                   onClick={() => input.onVisitWorld(worldNavigationId)}
                   className="absolute inset-x-0 top-0 z-10 h-[140px] cursor-pointer"
-                  aria-label={`Visit ${worldLabel}`}
+                  aria-label={t('Profile.visitWorld', { worldName: worldLabel, defaultValue: 'Visit {{worldName}}' })}
                 />
               ) : null}
               {!profile.worldBannerUrl ? (
@@ -297,7 +313,9 @@ export function ContactDetailViewContent(input: {
                 <span />
                 {input.isOwnProfile ? (
                   <Tooltip
-                    content={isEditing ? 'Exit edit mode' : 'Edit profile'}
+                    content={isEditing
+                      ? t('Profile.previewProfile', { defaultValue: 'Preview' })
+                      : t('Layout.editProfile', { defaultValue: 'Edit Profile' })}
                     placement="bottom"
                     contentClassName={TOPBAR_TOOLTIP_CLASS}
                   >
@@ -307,12 +325,16 @@ export function ContactDetailViewContent(input: {
                       className="inline-flex h-11 items-center gap-2 rounded-full border border-[#9fe3cd] bg-white/92 px-4 text-[#1f8f69] shadow-[0_10px_26px_rgba(31,143,105,0.12)] backdrop-blur-md transition hover:border-[#4ECCA3] hover:bg-white"
                     >
                       {isEditing ? <EyeIcon className="h-4 w-4" /> : <PencilIcon className="h-4 w-4" />}
-                      <span className="text-sm font-semibold">{isEditing ? 'Preview' : 'Edit profile'}</span>
+                      <span className="text-sm font-semibold">
+                        {isEditing
+                          ? t('Profile.previewProfile', { defaultValue: 'Preview' })
+                          : t('Layout.editProfile', { defaultValue: 'Edit Profile' })}
+                      </span>
                     </button>
                   </Tooltip>
                 ) : (input.onBlock || input.onRemove) ? (
                   <div className="relative">
-                    <Tooltip content="More options" placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
+                    <Tooltip content={t('common.moreOptions', { defaultValue: 'More options' })} placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
                       <button
                         ref={menuButtonRef}
                         type="button"
@@ -337,7 +359,7 @@ export function ContactDetailViewContent(input: {
                             className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-700 transition hover:bg-slate-50"
                           >
                             <AlertIcon className="h-4 w-4 text-slate-400" />
-                            Block
+                            {t('common.block', { defaultValue: 'Block' })}
                           </button>
                         ) : null}
                         {input.onRemove ? (
@@ -350,7 +372,7 @@ export function ContactDetailViewContent(input: {
                             className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-600 transition hover:bg-red-50"
                           >
                             <TrashIcon className="h-4 w-4 text-red-500" />
-                            Remove Friend
+                            {t('Profile.removeFriend', { defaultValue: 'Remove Friend' })}
                           </button>
                         ) : null}
                       </div>
@@ -404,7 +426,7 @@ export function ContactDetailViewContent(input: {
                                   {isUploadingAvatar ? (
                                     <div className="flex flex-col items-center gap-2 text-white">
                                       <SpinnerIcon className="h-7 w-7 border-white/30 border-t-white" />
-                                      <span className="text-xs font-medium">Uploading...</span>
+                                      <span className="text-xs font-medium">{t('Profile.avatarUploading', { defaultValue: 'Uploading avatar...' })}</span>
                                     </div>
                                   ) : (
                                     <div className="flex flex-col items-center gap-2 text-white opacity-0 transition-opacity group-hover:opacity-100">
@@ -415,7 +437,9 @@ export function ContactDetailViewContent(input: {
                                           <line x1="12" y1="3" x2="12" y2="15" />
                                         </svg>
                                       </div>
-                                      <span className="text-xs font-medium">Change Photo</span>
+                                      <span className="text-xs font-medium">
+                                        {t('Contacts.changePhoto', { defaultValue: 'Change Photo' })}
+                                      </span>
                                     </div>
                                   )}
                                 </div>
@@ -426,7 +450,7 @@ export function ContactDetailViewContent(input: {
 
                         {isEditing && input.isOwnProfile ? (
                           <p className="text-[11px] text-slate-400">
-                            Max 5MB
+                            {t('Profile.uploadLimit', { defaultValue: 'JPG or PNG, max 5MB' })}
                           </p>
                         ) : null}
                       </div>
@@ -438,7 +462,9 @@ export function ContactDetailViewContent(input: {
                             {isEditing ? (
                               <div className="mt-3 space-y-4">
                                 <label className="block">
-                                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Display name</span>
+                                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                                    {t('Contacts.displayName', { defaultValue: 'Display name' })}
+                                  </span>
                                   <input
                                     type="text"
                                     value={draft.displayName}
@@ -447,7 +473,9 @@ export function ContactDetailViewContent(input: {
                                   />
                                 </label>
                                 <label className="block">
-                                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Handle</span>
+                                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                                    {t('Contacts.handle', { defaultValue: 'Handle' })}
+                                  </span>
                                   <input
                                     type="text"
                                     value={profile.handle}
@@ -456,7 +484,9 @@ export function ContactDetailViewContent(input: {
                                   />
                                 </label>
                                 <label className="block">
-                                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Bio</span>
+                                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                                    {t('Contacts.bio', { defaultValue: 'Bio' })}
+                                  </span>
                                   <textarea
                                     value={draft.bio}
                                     onChange={(event) => setDraft((current) => ({ ...current, bio: event.target.value }))}
@@ -480,9 +510,9 @@ export function ContactDetailViewContent(input: {
                             )}
                             <div className="mt-4 xl:hidden">
                               <div className="grid max-w-[228px] grid-cols-3 gap-2">
-                                <StatTile label="Friends" value={friendCount} />
-                                <StatTile label="Posts" value={postCount} />
-                                <StatTile label="Likes" value={likesCount} />
+                                <StatTile label={t('Profile.friends', { defaultValue: 'Friends' })} value={friendCount} />
+                                <StatTile label={t('Profile.posts', { defaultValue: 'Posts' })} value={postCount} />
+                                <StatTile label={t('Profile.likes', { defaultValue: 'Likes' })} value={likesCount} />
                               </div>
                               {isEditing && input.isOwnProfile ? (
                                 <div className="mt-4">
@@ -516,38 +546,44 @@ export function ContactDetailViewContent(input: {
                                     <PencilIcon className="h-4 w-4" />
                                   </span>
                                   <div>
-                                    <div className="text-sm font-semibold text-slate-900">Edit mode</div>
-                                    <div className="text-xs text-slate-500">Update your public profile details shown across Moments, Contacts, and chat.</div>
+                                    <div className="text-sm font-semibold text-slate-900">
+                                      {t('Contacts.editMode', { defaultValue: 'Edit mode' })}
+                                    </div>
+                                    <div className="text-xs text-slate-500">
+                                      {t('Contacts.editModeDescription', {
+                                        defaultValue: 'Update your public profile details shown across Moments, Contacts, and chat.',
+                                      })}
+                                    </div>
                                   </div>
                                 </div>
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                   <EditableField
-                                    label="City"
+                                    label={t('Contacts.city', { defaultValue: 'City' })}
                                     value={draft.city}
                                     onChange={(value) => setDraft((current) => ({ ...current, city: value }))}
                                   />
                                   <EditableField
-                                    label="Country code"
+                                    label={t('Contacts.countryCode', { defaultValue: 'Country code' })}
                                     value={draft.countryCode}
                                     onChange={(value) => setDraft((current) => ({ ...current, countryCode: value.toUpperCase() }))}
                                   />
                                   <EditableField
-                                    label="Gender"
+                                    label={t('Contacts.gender', { defaultValue: 'Gender' })}
                                     value={draft.gender}
                                     onChange={(value) => setDraft((current) => ({ ...current, gender: value }))}
                                   />
                                   <EditableField
-                                    label="Languages"
+                                    label={t('Contacts.languages', { defaultValue: 'Languages' })}
                                     value={draft.languages}
                                     onChange={(value) => setDraft((current) => ({ ...current, languages: value }))}
-                                    placeholder="English, Chinese"
+                                    placeholder={t('Contacts.languagesPlaceholder', { defaultValue: 'English, Chinese' })}
                                   />
                                   <div className="md:col-span-2">
                                     <EditableField
-                                      label="Tags"
+                                      label={t('Contacts.tags', { defaultValue: 'Tags' })}
                                       value={draft.tags}
                                       onChange={(value) => setDraft((current) => ({ ...current, tags: value }))}
-                                      placeholder="creator, traveler, world-native"
+                                      placeholder={t('Contacts.tagsPlaceholder', { defaultValue: 'creator, traveler, world-native' })}
                                     />
                                   </div>
                                 </div>
@@ -591,11 +627,11 @@ export function ContactDetailViewContent(input: {
                               />
                             </div>
                             <div className="mt-[62px] grid w-[260px] grid-cols-[1fr_18px_1fr_18px_1fr] items-start gap-x-0">
-                              <StatTile label="Friends" value={friendCount} />
+                              <StatTile label={t('Profile.friends', { defaultValue: 'Friends' })} value={friendCount} />
                               <StatDivider />
-                              <StatTile label="Posts" value={postCount} />
+                              <StatTile label={t('Profile.posts', { defaultValue: 'Posts' })} value={postCount} />
                               <StatDivider />
-                              <StatTile label="Likes" value={likesCount} />
+                              <StatTile label={t('Profile.likes', { defaultValue: 'Likes' })} value={likesCount} />
                             </div>
                             {input.isOwnProfile && isEditing ? (
                               <div className="mt-8 w-full">
@@ -637,7 +673,7 @@ export function ContactDetailViewContent(input: {
                                 className="relative px-0 py-2 transition-all duration-300"
                               >
                                 <span className="invisible block text-[15px] font-semibold">
-                                  {tab}
+                                  {getContactDetailTabLabel(t, tab)}
                                 </span>
                                 <span
                                   className={`absolute inset-0 flex items-center justify-center text-sm transition-all duration-300 ${
@@ -646,7 +682,7 @@ export function ContactDetailViewContent(input: {
                                       : 'font-normal text-slate-500 hover:text-slate-800'
                                   }`}
                                 >
-                                  {tab}
+                                  {getContactDetailTabLabel(t, tab)}
                                 </span>
                               </button>
                             ))}
@@ -676,7 +712,7 @@ export function ContactDetailViewContent(input: {
         <button
           type="button"
           onClick={scrollToTop}
-          aria-label="Back to top"
+          aria-label={t('common.backToTop', { defaultValue: 'Back to top' })}
           className="fixed bottom-8 right-8 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-[#4ECCA3]/35 bg-white/92 text-[#1f8f69] shadow-[0_18px_40px_rgba(31,143,105,0.18)] backdrop-blur-md transition hover:-translate-y-0.5 hover:border-[#4ECCA3]/60 hover:shadow-[0_22px_46px_rgba(31,143,105,0.24)]"
         >
           <ArrowUpIcon className="h-5 w-5" />

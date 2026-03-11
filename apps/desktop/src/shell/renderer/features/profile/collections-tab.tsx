@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { i18n } from '@renderer/i18n';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { PostFeedWithMediaPreview } from './post-feed-with-media-preview.js';
@@ -122,7 +123,7 @@ export function CollectionsTab({ canManageSavedPosts = true }: CollectionsTabPro
       setOffset(nextOffset);
       setHasMore(nextOffset < ids.length);
     } catch (error) {
-      setLoadError(toErrorMessage(error, 'Failed to load saved posts'));
+      setLoadError(toErrorMessage(error, i18n.t('Profile.loadSavedPostsFailed', { defaultValue: 'Failed to load saved posts' })));
     } finally {
       if (isInitial) {
         setLoadingInitial(false);
@@ -189,7 +190,11 @@ export function CollectionsTab({ canManageSavedPosts = true }: CollectionsTabPro
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mb-3 text-gray-300">
           <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
         </svg>
-        <p className="text-center">Saved posts are only visible on your own profile.</p>
+        <p className="text-center">
+          {i18n.t('Profile.Collections.selfOnly', {
+            defaultValue: 'Saved posts are only visible on your own profile.',
+          })}
+        </p>
       </div>
     );
   }

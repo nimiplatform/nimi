@@ -1,4 +1,5 @@
 import type { Location } from './create-post-modal-helpers.js';
+import { i18n } from '@renderer/i18n';
 
 export function EmojiPickerPanel(input: {
   show: boolean;
@@ -48,7 +49,9 @@ export function EmojiPickerPanel(input: {
               type="button"
               onClick={() => input.setEmojiPage(input.emojiCategoryPage === 0 ? input.emojiCategoryPage + 1 : input.emojiCategoryPage - 1)}
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-              aria-label={input.emojiCategoryPage === 0 ? 'Next page' : 'Previous page'}
+              aria-label={input.emojiCategoryPage === 0
+                ? i18n.t('ChatTimeline.nextPage', { defaultValue: 'Next page' })
+                : i18n.t('ChatTimeline.previousPage', { defaultValue: 'Previous page' })}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 {input.emojiCategoryPage === 0 ? <path d="M9 18l6-6-6-6" /> : <path d="M15 18l-6-6 6-6" />}
@@ -104,7 +107,7 @@ export function LocationPickerPanel(input: {
           </svg>
           <input
             type="text"
-            placeholder="Search location..."
+            placeholder={i18n.t('Profile.CreatePost.searchLocationPlaceholder', { defaultValue: 'Search location...' })}
             value={input.locationSearch}
             onChange={(event) => input.setLocationSearch(event.target.value)}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-[#4ECCA3] focus:outline-none focus:ring-1 focus:ring-[#4ECCA3]"
@@ -113,7 +116,9 @@ export function LocationPickerPanel(input: {
       </div>
       <div className="max-h-48 overflow-y-auto py-2">
         {input.loadingLocations ? (
-          <div className="px-3 py-4 text-center text-sm text-gray-500">Loading locations...</div>
+          <div className="px-3 py-4 text-center text-sm text-gray-500">
+            {i18n.t('Profile.CreatePost.loadingLocations', { defaultValue: 'Loading locations...' })}
+          </div>
         ) : input.filteredLocations.length > 0 ? (
           input.filteredLocations.map((location) => (
             <button
@@ -141,7 +146,9 @@ export function LocationPickerPanel(input: {
           ))
         ) : (
           <div className="px-3 py-4 text-center text-sm text-gray-500">
-            {input.availableLocations.length > 0 ? 'No locations found' : 'No worlds available'}
+            {input.availableLocations.length > 0
+              ? i18n.t('Profile.CreatePost.noLocationsFound', { defaultValue: 'No locations found' })
+              : i18n.t('Profile.CreatePost.noWorldsAvailable', { defaultValue: 'No worlds available' })}
           </div>
         )}
       </div>
@@ -176,7 +183,7 @@ export function TagPickerPanel(input: {
           </svg>
           <input
             type="text"
-            placeholder="Search or create a tag..."
+            placeholder={i18n.t('Profile.CreatePost.searchOrCreateTagPlaceholder', { defaultValue: 'Search or create a tag...' })}
             value={input.tagSearch}
             onChange={(event) => input.setTagSearch(event.target.value)}
             onKeyDown={(event) => {
@@ -230,14 +237,19 @@ export function TagPickerPanel(input: {
               </svg>
             </div>
             <div className="min-w-0 flex-1 text-left">
-              <p className="truncate text-sm font-medium text-[#4ECCA3]">Create tag &quot;{input.tagSearch.trim()}&quot;</p>
+              <p className="truncate text-sm font-medium text-[#4ECCA3]">
+                {i18n.t('Profile.CreatePost.createTag', {
+                  tag: input.tagSearch.trim(),
+                  defaultValue: 'Create tag "{{tag}}"',
+                })}
+              </p>
             </div>
           </button>
         ) : null}
 
         {!input.tagSearch.trim() && input.filteredTags.length === 0 ? (
           <div className="px-3 py-4 text-center text-sm text-gray-500">
-            Type to search or create a new tag
+            {i18n.t('Profile.CreatePost.typeToSearchOrCreateTag', { defaultValue: 'Type to search or create a new tag' })}
           </div>
         ) : null}
       </div>

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { i18n } from '@renderer/i18n';
 
 export function CloudflareVideoPlayer({ src }: { src: string }) {
   const [activated, setActivated] = useState(false);
@@ -14,7 +15,7 @@ export function CloudflareVideoPlayer({ src }: { src: string }) {
         allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
         allowFullScreen
         className="w-full aspect-[4/5] border-0"
-        title="Post video"
+        title={i18n.t('Home.postVideo', { defaultValue: 'Post video' })}
       />
       {!activated && (
         <button

@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { i18n } from '@renderer/i18n';
 
 type ChromeTabProps = {
   active?: boolean;
@@ -66,7 +67,7 @@ export function ChromeTab(props: ChromeTabProps) {
             role="button"
             tabIndex={0}
             className="chrome-tab__close"
-            aria-label={`Close ${title}`}
+            aria-label={`${i18n.t('ModUI.closeTab', { defaultValue: 'Close tab' })} ${title}`}
             onClick={(event) => {
               event.stopPropagation();
               onClose();

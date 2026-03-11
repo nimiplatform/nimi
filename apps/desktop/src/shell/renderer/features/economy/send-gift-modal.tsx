@@ -59,7 +59,7 @@ export function SendGiftModal(props: SendGiftModalProps) {
       props.onSent?.();
       props.onClose();
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : 'Failed to send gift');
+      setError(sendError instanceof Error ? sendError.message : t('sendGiftFailed', { defaultValue: 'Failed to send gift' }));
     } finally {
       setSending(false);
     }

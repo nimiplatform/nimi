@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { ReportReason } from '@nimiplatform/sdk/realm';
+import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-detail-profile-modal.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
@@ -17,6 +18,8 @@ import { ReportModal } from './report-modal';
 import { usePostCardUi } from './use-post-card-ui';
 import { normalizeMediaType, resolveMediaUrl, resolveVideoPlaybackSource } from './utils';
 
+const INTERNAL_OPEN_CHAT_ERROR_CODE = 'HOME_OPEN_CHAT_FAILED';
+
 function extractPostMediaId(media: unknown): string {
   if (!media || typeof media !== 'object') {
     return '';
@@ -30,6 +33,16 @@ function extractPostMediaId(media: unknown): string {
     }
   }
   return '';
+}
+
+function toBannerErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) {
+    const next = error.message.trim();
+    if (next && next !== INTERNAL_OPEN_CHAT_ERROR_CODE) {
+      return next;
+    }
+  }
+  return fallback;
 }
 
 export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddFriendBadge?: boolean }) {
@@ -149,7 +162,10 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: error instanceof Error ? error.message : 'Failed to block user',
+        message: toBannerErrorMessage(
+          error,
+          i18n.t('Home.blockUserFailed', { defaultValue: 'Failed to block user' }),
+        ),
       });
     } finally {
       ui.setIsBlocking(false);
@@ -165,11 +181,17 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
         reason: payload.reason,
         description: payload.description,
       });
-      setStatusBanner({ kind: 'success', message: 'Report submitted successfully' });
+      setStatusBanner({
+        kind: 'success',
+        message: i18n.t('Home.reportSubmitted', { defaultValue: 'Report submitted successfully' }),
+      });
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: error instanceof Error ? error.message : 'Failed to submit report',
+        message: toBannerErrorMessage(
+          error,
+          i18n.t('Home.reportSubmitFailed', { defaultValue: 'Failed to submit report' }),
+        ),
       });
     } finally {
       ui.setShowReportModal(false);
@@ -194,7 +216,10 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
       ui.setIsLiked(previous);
       setStatusBanner({
         kind: 'error',
-        message: error instanceof Error ? error.message : 'Failed to update like',
+        message: toBannerErrorMessage(
+          error,
+          i18n.t('Home.updateLikeFailed', { defaultValue: 'Failed to update like' }),
+        ),
       });
     } finally {
       setIsLikePending(false);
@@ -211,13 +236,13 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
       setPostVisibility(visibility);
       setStatusBanner({
         kind: 'success',
-        message: 'Post visibility updated',
+        message: i18n.t('Home.postVisibilityUpdated', { defaultValue: 'Post visibility updated' }),
       });
       ui.setShowEditVisibilityModal(false);
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: error instanceof Error ? error.message : 'Failed to update post visibility',
+        message: error instanceof Error ? error.message : i18n.t('Home.postVisibilityUpdateFailed', { defaultValue: 'Failed to update post visibility' }),
       });
     } finally {
       setIsVisibilityPending(false);
@@ -231,12 +256,12 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
     ui.setIsDeleting(true);
     try {
       await dataSync.deletePost(post.id);
-      setStatusBanner({ kind: 'success', message: 'Post deleted successfully' });
+      setStatusBanner({ kind: 'success', message: i18n.t('Home.postDeleted', { defaultValue: 'Post deleted successfully' }) });
       onDelete?.();
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: error instanceof Error ? error.message : 'Failed to delete post',
+        message: error instanceof Error ? error.message : i18n.t('Home.postDeleteFailed', { defaultValue: 'Failed to delete post' }),
       });
     } finally {
       ui.setIsDeleting(false);
@@ -258,12 +283,12 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
       }
       setStatusBanner({
         kind: 'success',
-        message: 'Post link copied',
+        message: i18n.t('Home.postLinkCopied', { defaultValue: 'Post link copied' }),
       });
     } catch {
       setStatusBanner({
         kind: 'error',
-        message: 'Failed to copy post link',
+        message: i18n.t('Home.copyLinkFailed', { defaultValue: 'Failed to copy post link' }),
       });
     }
   }, [post.id, setStatusBanner, ui]);
@@ -273,7 +298,7 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
     if (!post.id || typeof window === 'undefined') {
       setStatusBanner({
         kind: 'error',
-        message: 'Failed to save post',
+        message: i18n.t('Home.savePostFailed', { defaultValue: 'Failed to save post' }),
       });
       return;
     }
@@ -290,25 +315,30 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
       setIsSavedPost(nextSaved);
       setStatusBanner({
         kind: 'success',
-        message: nextSaved ? 'Post saved' : 'Post removed from saved',
+        message: nextSaved
+          ? i18n.t('Home.postSaved', { defaultValue: 'Post saved' })
+          : i18n.t('Home.postRemovedFromSaved', { defaultValue: 'Post removed from saved' }),
       });
     } catch {
       setStatusBanner({
         kind: 'error',
-        message: 'Failed to save post',
+        message: i18n.t('Home.savePostFailed', { defaultValue: 'Failed to save post' }),
       });
     }
   }, [post.id, savedPostsStorageKey, savedPostsUpdatedEvent, setStatusBanner, ui]);
 
   const handleAddFriend = useCallback(async () => {
     if (!authorId) {
-      throw new Error('Cannot add friend: user ID not found');
+      throw new Error(i18n.t('Home.missingAuthorForFriendRequest', { defaultValue: 'Cannot add friend: user ID not found' }));
     }
     await dataSync.requestOrAcceptFriend(authorId);
     ui.setIsFriend(true);
     setStatusBanner({
       kind: 'success',
-      message: `Friend request sent to ${post.author?.displayName || post.author?.handle || 'user'}`,
+      message: i18n.t('Home.friendRequestSentTo', {
+        name: post.author?.displayName || post.author?.handle || i18n.t('common.unknown', { defaultValue: 'Unknown' }),
+        defaultValue: 'Friend request sent to {{name}}',
+      }),
     });
     await queryClient.invalidateQueries({ queryKey: ['contacts'] });
   }, [authorId, post.author?.displayName, post.author?.handle, queryClient, setStatusBanner, ui]);
@@ -316,82 +346,88 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
   const handleChat = useCallback(async () => {
     const userId = authorId;
     if (!userId) {
-      setStatusBanner({ kind: 'error', message: 'Cannot start chat: user ID not found' });
+      setStatusBanner({
+        kind: 'error',
+        message: i18n.t('Home.missingAuthorForChat', { defaultValue: 'Cannot start chat: user ID not found' }),
+      });
       return;
     }
 
     if (post.author?.isAgent) {
       setStatusBanner({
         kind: 'error',
-        message: 'Agent chat is not available from Moments.',
+        message: i18n.t('Home.agentChatUnavailableFromMoments', { defaultValue: 'Agent chat is not available from Moments.' }),
       });
       return;
     }
 
-      try {
-        const result = await dataSync.startChat(userId);
-        if (!result?.chatId) {
-          throw new Error('Failed to create chat');
+    try {
+      const result = await dataSync.startChat(userId);
+      if (!result?.chatId) {
+        throw new Error(INTERNAL_OPEN_CHAT_ERROR_CODE);
+      }
+      const requestedChatId = String(
+        (result.chat && typeof result.chat === 'object'
+          ? (result.chat as { id?: string | number }).id
+          : null)
+        ?? result.chatId,
+      ).trim();
+      if (!requestedChatId) {
+        throw new Error(INTERNAL_OPEN_CHAT_ERROR_CODE);
+      }
+      const chatsSnapshot = await dataSync.loadChats();
+      const createdChat = result.chat && typeof result.chat === 'object'
+        ? ({
+          ...(result.chat as Record<string, unknown>),
+          id: String((result.chat as { id?: string | number }).id ?? requestedChatId),
+        })
+        : null;
+      const snapshotItems = Array.isArray((chatsSnapshot as { items?: unknown[] })?.items)
+        ? (chatsSnapshot as { items: unknown[] }).items
+        : [];
+      const matchedChat = snapshotItems.find((item) => {
+        if (!item || typeof item !== 'object') {
+          return false;
         }
-        const requestedChatId = String(
-          (result.chat && typeof result.chat === 'object'
-            ? (result.chat as { id?: string | number }).id
-            : null)
-          ?? result.chatId,
-        ).trim();
-        if (!requestedChatId) {
-          throw new Error('Failed to resolve chat ID');
-        }
-        const chatsSnapshot = await dataSync.loadChats();
-        const createdChat = result.chat && typeof result.chat === 'object'
-          ? ({
-            ...(result.chat as Record<string, unknown>),
-            id: String((result.chat as { id?: string | number }).id ?? requestedChatId),
-          })
-          : null;
-        const snapshotItems = Array.isArray((chatsSnapshot as { items?: unknown[] })?.items)
-          ? (chatsSnapshot as { items: unknown[] }).items
-          : [];
-        const matchedChat = snapshotItems.find((item) => {
-          if (!item || typeof item !== 'object') {
-            return false;
-          }
-          const otherUser = (item as { otherUser?: { id?: string | number } }).otherUser;
-          return String(otherUser?.id ?? '').trim() === userId;
+        const otherUser = (item as { otherUser?: { id?: string | number } }).otherUser;
+        return String(otherUser?.id ?? '').trim() === userId;
+      });
+      const chatId = String(
+        (matchedChat && typeof matchedChat === 'object'
+          ? (matchedChat as { id?: string | number }).id
+          : null)
+        ?? createdChat?.id
+        ?? requestedChatId,
+      ).trim();
+      if (!chatId) {
+        throw new Error(INTERNAL_OPEN_CHAT_ERROR_CODE);
+      }
+      const mergedItems = createdChat
+        ? [createdChat, ...snapshotItems.filter((item) => String((item as { id?: string | number })?.id ?? '') !== chatId)]
+        : snapshotItems;
+      const nextChatsSnapshot = { ...chatsSnapshot, items: mergedItems };
+      queryClient.setQueryData(['chats', authStatus], nextChatsSnapshot);
+      queryClient.setQueryData(['chats'], nextChatsSnapshot);
+      setSelectedChatId(chatId);
+      setRuntimeFields({
+        targetType: 'FRIEND',
+        targetAccountId: userId,
+        agentId: '',
+        worldId: '',
+      });
+      setActiveTab('chat');
+      if (typeof window !== 'undefined') {
+        window.requestAnimationFrame(() => {
+          setSelectedChatId(chatId);
         });
-        const chatId = String(
-          (matchedChat && typeof matchedChat === 'object'
-            ? (matchedChat as { id?: string | number }).id
-            : null)
-          ?? createdChat?.id
-          ?? requestedChatId,
-        ).trim();
-        if (!chatId) {
-          throw new Error('Failed to select chat');
-        }
-        const mergedItems = createdChat
-          ? [createdChat, ...snapshotItems.filter((item) => String((item as { id?: string | number })?.id ?? '') !== chatId)]
-          : snapshotItems;
-        const nextChatsSnapshot = { ...chatsSnapshot, items: mergedItems };
-        queryClient.setQueryData(['chats', authStatus], nextChatsSnapshot);
-        queryClient.setQueryData(['chats'], nextChatsSnapshot);
-        setSelectedChatId(chatId);
-        setRuntimeFields({
-          targetType: 'FRIEND',
-          targetAccountId: userId,
-          agentId: '',
-          worldId: '',
-        });
-        setActiveTab('chat');
-        if (typeof window !== 'undefined') {
-          window.requestAnimationFrame(() => {
-            setSelectedChatId(chatId);
-          });
-        }
-      } catch (error) {
-        setStatusBanner({
-          kind: 'error',
-          message: error instanceof Error ? error.message : 'Failed to open chat',
+      }
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: toBannerErrorMessage(
+          error,
+          i18n.t('Contacts.openChatFailed', { defaultValue: 'Failed to open chat' }),
+        ),
       });
     }
   }, [
@@ -455,14 +491,17 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
       <SendGiftModal
         open={ui.isSendGiftOpen && Boolean(authorId)}
         receiverId={authorId}
-        receiverName={post.author?.displayName || 'Unknown'}
+        receiverName={post.author?.displayName || i18n.t('common.unknown', { defaultValue: 'Unknown' })}
         receiverHandle={post.author?.handle || ''}
         receiverAvatarUrl={post.author?.avatarUrl}
         onClose={() => ui.setIsSendGiftOpen(false)}
         onSent={() => {
           setStatusBanner({
             kind: 'success',
-            message: `Gift sent to ${post.author?.displayName || post.author?.handle || 'user'}`,
+            message: i18n.t('Contacts.giftSentTo', {
+              name: post.author?.displayName || post.author?.handle || i18n.t('common.unknown', { defaultValue: 'Unknown' }),
+              defaultValue: 'Gift sent to {{name}}',
+            }),
           });
           ui.setIsSendGiftOpen(false);
         }}
@@ -470,7 +509,7 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
 
       <AddFriendModal
         author={{
-          name: post.author?.displayName || 'Unknown',
+          name: post.author?.displayName || i18n.t('common.unknown', { defaultValue: 'Unknown' }),
           handle: post.author?.handle || '',
           avatarUrl: post.author?.avatarUrl,
           isAgent: post.author?.isAgent || false,
@@ -482,7 +521,7 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
 
       <BlockUserConfirmModal
         isOpen={ui.showBlockConfirm}
-        authorName={post.author?.displayName || post.author?.handle || 'Unknown'}
+        authorName={post.author?.displayName || post.author?.handle || i18n.t('common.unknown', { defaultValue: 'Unknown' })}
         pending={ui.isBlocking}
         onClose={() => ui.setShowBlockConfirm(false)}
         onConfirm={() => {
@@ -525,14 +564,14 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
           if (success) {
             setStatusBanner({
               kind: 'success',
-              message: 'Post updated successfully',
+              message: i18n.t('Home.postUpdated', { defaultValue: 'Post updated successfully!' }),
             });
             onDelete?.();
             return;
           }
           setStatusBanner({
             kind: 'error',
-            message: 'Failed to update post',
+            message: i18n.t('Home.postUpdateFailed', { defaultValue: 'Failed to update post' }),
           });
         }}
       />
@@ -542,7 +581,7 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
         profileId={authorId}
         profileSeed={authorId ? {
           id: authorId,
-          displayName: post.author?.displayName || 'Unknown',
+          displayName: post.author?.displayName || i18n.t('common.unknown', { defaultValue: 'Unknown' }),
           handle: post.author?.handle || '',
           avatarUrl: post.author?.avatarUrl,
           bio: typeof authorRecord?.bio === 'string' ? authorRecord.bio : null,

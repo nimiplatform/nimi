@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { i18n } from '@renderer/i18n';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 
@@ -93,7 +94,7 @@ function PublicBadge({ size = 'normal' }: { size?: 'normal' | 'small' }) {
       }}
     >
       <span className={`${dotSize} rounded-full`} style={{ backgroundColor: EXPLORE_COLORS.green700 }} />
-      Public
+      {i18n.t('AgentDetail.publicBadge', { defaultValue: 'Public' })}
     </span>
   );
 }
@@ -134,7 +135,9 @@ export function FeaturedWorldCard({
         </div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-white/70">Public</span>
+            <span className="text-xs font-medium text-white/70">
+              {i18n.t('AgentDetail.publicBadge', { defaultValue: 'Public' })}
+            </span>
             <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
           </div>
           <div className="relative">
@@ -230,7 +233,7 @@ export function ExploreAgentCard({
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
               <path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
-            Follow
+            {t('Explore.follow', { defaultValue: 'Follow' })}
           </button>
         )}
       </div>
@@ -255,8 +258,8 @@ export function AgentRecommendationCard({
     worldName: agent.worldName,
     tags: agent.tags,
   });
-  const bioText = agent.bio || agent.description || 'No bio yet';
-  const worldText = agent.worldName || agent.origin || agent.category || 'Unknown world';
+  const bioText = agent.bio || agent.description || i18n.t('Explore.noBioYet', { defaultValue: 'No bio yet' });
+  const worldText = agent.worldName || agent.origin || agent.category || i18n.t('Profile.unknownWorld', { defaultValue: 'Unknown world' });
   const themeLabel = agent.category || agent.tags[0] || agent.origin || 'General';
 
   return (
@@ -275,7 +278,7 @@ export function AgentRecommendationCard({
           onAddFriend?.();
         }}
         className="absolute right-3 top-3 z-10 flex h-5.5 w-5.5 items-center justify-center rounded-full bg-mint-500 text-white shadow-sm transition-all hover:scale-110 hover:bg-mint-600"
-        aria-label="Add friend"
+        aria-label={i18n.t('Contacts.addContact', { defaultValue: 'Add Friend' })}
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <line x1="12" y1="5" x2="12" y2="19" />
@@ -395,7 +398,10 @@ function OnlineIndicator({ isOnline }: { isOnline?: boolean }) {
   const SHOW_AVATAR_ONLINE_INDICATOR = false;
   if (!SHOW_AVATAR_ONLINE_INDICATOR || !isOnline) return null;
   return (
-    <span className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" title="Online" />
+    <span
+      className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"
+      title={i18n.t('ChatTimeline.online', { defaultValue: 'Online' })}
+    />
   );
 }
 
@@ -425,9 +431,13 @@ function OwnershipBadge({ ownershipType }: { ownershipType?: string }) {
       className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
         isMasterOwned ? 'bg-purple-50 text-purple-600' : 'bg-cyan-50 text-cyan-600'
       }`}
-      title={isMasterOwned ? 'Owned by you' : 'World owned'}
+      title={isMasterOwned
+        ? i18n.t('Explore.ownedByYou', { defaultValue: 'Owned by you' })
+        : i18n.t('Explore.worldOwned', { defaultValue: 'World owned' })}
     >
-      {isMasterOwned ? 'My Agent' : 'World'}
+      {isMasterOwned
+        ? i18n.t('Contacts.tabMyAgents', { defaultValue: 'My Agents' })
+        : i18n.t('world', { defaultValue: 'World' })}
     </span>
   );
 }
@@ -456,8 +466,8 @@ export function TopAgentCard({
   const likesCount = typeof agent.likesCount === 'number' ? agent.likesCount : 0;
   const worldScore = agent.worldScoreEwma ?? 0;
   const themeLabel = agent.tags[0] || agent.category || agent.origin || 'community';
-  const bioText = agent.bio || agent.description || 'No bio yet';
-  const worldText = agent.worldName || 'Unknown world';
+  const bioText = agent.bio || agent.description || i18n.t('Explore.noBioYet', { defaultValue: 'No bio yet' });
+  const worldText = agent.worldName || i18n.t('Profile.unknownWorld', { defaultValue: 'Unknown world' });
   const originText = agent.origin || agent.category || 'GENERAL';
 
   const formatNumber = (num: number | null): string => {
@@ -489,7 +499,7 @@ export function TopAgentCard({
           type="button"
           onClick={onAddFriend}
           className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-mint-500 text-white shadow-sm transition-all hover:scale-105 hover:bg-mint-600 hover:shadow-md"
-          aria-label="Add friend"
+          aria-label={i18n.t('Contacts.addContact', { defaultValue: 'Add Friend' })}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" />
@@ -582,24 +592,32 @@ export function TopAgentCard({
         </div>
 
         <div className="mt-3.5 flex items-center gap-3">
-          <span className="whitespace-nowrap text-xs font-medium text-gray-500">Score</span>
+          <span className="whitespace-nowrap text-xs font-medium text-gray-500">
+            {i18n.t('Explore.score', { defaultValue: 'Score' })}
+          </span>
           <ScoreProgressBar score={worldScore} />
         </div>
 
         <div className="mt-3.5 flex items-center justify-around rounded-2xl bg-gray-50 px-3 py-3">
           <div className="flex-1 text-center">
             <div className="text-lg font-bold text-gray-900">{formatNumber(friendsCount)}</div>
-            <div className="mt-0.5 text-[10px] uppercase tracking-wider text-gray-400">Friends</div>
+            <div className="mt-0.5 text-[10px] uppercase tracking-wider text-gray-400">
+              {i18n.t('ProfileView.friends', { defaultValue: 'Friends' })}
+            </div>
           </div>
           <div className="h-8 w-px bg-gray-200" />
           <div className="flex-1 text-center">
             <div className="text-lg font-bold text-gray-900">{formatNumber(postsCount)}</div>
-            <div className="mt-0.5 text-[10px] uppercase tracking-wider text-gray-400">Posts</div>
+            <div className="mt-0.5 text-[10px] uppercase tracking-wider text-gray-400">
+              {i18n.t('ProfileView.posts', { defaultValue: 'Posts' })}
+            </div>
           </div>
           <div className="h-8 w-px bg-gray-200" />
           <div className="flex-1 text-center">
             <div className="text-lg font-bold text-gray-900">{formatNumber(likesCount)}</div>
-            <div className="mt-0.5 text-[10px] uppercase tracking-wider text-gray-400">Likes</div>
+            <div className="mt-0.5 text-[10px] uppercase tracking-wider text-gray-400">
+              {i18n.t('Home.likes', { defaultValue: 'Likes' })}
+            </div>
           </div>
         </div>
 
@@ -611,7 +629,7 @@ export function TopAgentCard({
               onAddFriend?.();
             }}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition-colors hover:bg-gray-200"
-            title="Add Friend"
+            title={i18n.t('Contacts.addContact', { defaultValue: 'Add Friend' })}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -625,7 +643,7 @@ export function TopAgentCard({
               onSendGift?.();
             }}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition-colors hover:bg-gray-200"
-            title="Send Gift"
+            title={i18n.t('ProfileView.sendGift', { defaultValue: 'Send Gift' })}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="8" width="18" height="4" rx="1" />
@@ -639,4 +657,3 @@ export function TopAgentCard({
     </div>
   );
 }
-

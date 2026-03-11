@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
+import { useTranslation } from 'react-i18next';
 
 const MEDIA_PAGE_SIZE = 30;
 const MIN_INITIAL_ITEMS = 9;
@@ -30,6 +31,7 @@ function MediaSkeleton() {
 }
 
 export function MediaTab({ profileId, onMediaClick }: MediaTabProps) {
+  const { t } = useTranslation();
   const [mediaPosts, setMediaPosts] = useState<PostDto[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -75,7 +77,7 @@ export function MediaTab({ profileId, onMediaClick }: MediaTabProps) {
           void fetchMedia(nextCursor, true);
         }
       } catch (error) {
-        setLoadError(toErrorMessage(error, 'Failed to load media'));
+        setLoadError(toErrorMessage(error, t('Profile.loadMediaFailed', { defaultValue: 'Failed to load media' })));
       } finally {
         if (!isAutoFetch) {
           if (cursorArg) {
@@ -86,7 +88,7 @@ export function MediaTab({ profileId, onMediaClick }: MediaTabProps) {
         }
       }
     },
-    [hasMore, loadingMore, profileId],
+    [hasMore, loadingMore, profileId, t],
   );
 
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { type ChangeEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { dataSync } from '@runtime/data-sync';
+import { i18n } from '@renderer/i18n';
 import type { ProfileData, ProfileTab } from '@renderer/features/profile/profile-model';
 import { buildEditableDraft, type EditableProfileDraft } from './contact-detail-view-parts.js';
 
@@ -132,7 +133,7 @@ export function useContactDetailViewController(props: ContactDetailViewProps, re
       return;
     }
     if (!draft.displayName.trim()) {
-      setSaveError('Display name is required');
+      setSaveError(i18n.t('Profile.displayNameRequired', { defaultValue: 'Display name is required' }));
       return;
     }
     setIsSaving(true);
@@ -141,7 +142,7 @@ export function useContactDetailViewController(props: ContactDetailViewProps, re
       await props.onSaveProfile(draft);
       setIsEditing(false);
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Failed to update profile');
+      setSaveError(error instanceof Error ? error.message : i18n.t('Profile.updateError', { defaultValue: 'Failed to update profile' }));
     } finally {
       setIsSaving(false);
     }
@@ -154,15 +155,15 @@ export function useContactDetailViewController(props: ContactDetailViewProps, re
       return;
     }
     if (!ACCEPTED_AVATAR_TYPES.includes(file.type)) {
-      setSaveError('Unsupported avatar format. Use PNG, JPEG, GIF, or WebP.');
+      setSaveError(i18n.t('Profile.avatarUnsupportedFormat', { defaultValue: 'Unsupported avatar format. Use PNG, JPEG, GIF, or WebP.' }));
       return;
     }
     if (file.size > MAX_AVATAR_FILE_SIZE) {
-      setSaveError('Avatar must be smaller than 10MB.');
+      setSaveError(i18n.t('Profile.avatarSizeLimit', { defaultValue: 'Avatar must be smaller than 10MB.' }));
       return;
     }
     if (!realmBaseUrl) {
-      setSaveError('Image upload is unavailable right now. Please try again.');
+      setSaveError(i18n.t('Profile.avatarUploadUnavailable', { defaultValue: 'Image upload is unavailable right now. Please try again.' }));
       return;
     }
 
@@ -177,12 +178,12 @@ export function useContactDetailViewController(props: ContactDetailViewProps, re
         body: formData,
       });
       if (!response.ok) {
-        throw new Error('Failed to upload avatar');
+        throw new Error(i18n.t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }));
       }
       const avatarUrl = `${realmBaseUrl}/api/media/images/${encodeURIComponent(upload.imageId)}`;
       setDraft((current) => ({ ...current, avatarUrl }));
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Failed to upload avatar');
+      setSaveError(error instanceof Error ? error.message : i18n.t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }));
     } finally {
       setIsUploadingAvatar(false);
     }

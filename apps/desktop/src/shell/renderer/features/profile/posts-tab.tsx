@@ -77,7 +77,7 @@ export function PostsTab({ profileId }: PostsTabProps) {
         setCursor(nextCursor);
         setHasMore(nextCursor != null);
       } catch (error) {
-        setLoadError(toErrorMessage(error, 'Failed to load posts'));
+        setLoadError(toErrorMessage(error, t('Profile.loadPostsFailed', { defaultValue: 'Failed to load posts' })));
       } finally {
         if (cursorArg) {
           setLoadingMore(false);

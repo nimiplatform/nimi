@@ -1,3 +1,5 @@
+import { i18n } from '@renderer/i18n';
+
 type ConfirmModalProps = {
   isOpen: boolean;
   title: string;
@@ -30,7 +32,7 @@ function ConfirmModal(props: ConfirmModalProps) {
             onClick={props.onClose}
             className="flex-1 rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-200"
           >
-            Cancel
+            {i18n.t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
           </button>
           <button
             type="button"
@@ -62,10 +64,13 @@ export function BlockUserConfirmModal({
   return (
     <ConfirmModal
       isOpen={isOpen}
-      title="Block User"
-      message={`Are you sure you want to block ${authorName}? You won't see their posts anymore.`}
-      pendingLabel="Blocking..."
-      confirmLabel="Block"
+      title={i18n.t('Home.blockUser', { defaultValue: 'Block User' })}
+      message={i18n.t('Home.blockUserMessage', {
+        defaultValue: "Are you sure you want to block {{name}}? You won't see their posts anymore.",
+        name: authorName,
+      })}
+      pendingLabel={i18n.t('Home.blocking', { defaultValue: 'Blocking...' })}
+      confirmLabel={i18n.t('Home.block', { defaultValue: 'Block' })}
       confirmClassName="bg-red-500 hover:bg-red-600"
       pending={pending}
       onClose={onClose}
@@ -88,10 +93,12 @@ export function DeletePostConfirmModal({
   return (
     <ConfirmModal
       isOpen={isOpen}
-      title="Delete Post"
-      message="Are you sure you want to delete this post? This action cannot be undone."
-      pendingLabel="Deleting..."
-      confirmLabel="Delete"
+      title={i18n.t('Home.deletePost', { defaultValue: 'Delete Post' })}
+      message={i18n.t('Home.deletePostMessage', {
+        defaultValue: 'Are you sure you want to delete this post? This action cannot be undone.',
+      })}
+      pendingLabel={i18n.t('Home.deleting', { defaultValue: 'Deleting...' })}
+      confirmLabel={i18n.t('Home.delete', { defaultValue: 'Delete' })}
       confirmClassName="bg-red-500 hover:bg-red-600"
       pending={pending}
       onClose={onClose}

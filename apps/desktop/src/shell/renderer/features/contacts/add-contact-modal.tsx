@@ -111,7 +111,7 @@ export function AddContactModal(props: AddContactModalProps) {
     } catch (error) {
       setCandidate(null);
       setSelectedCandidate(null);
-      setSearchError(toErrorMessage(error, 'Failed to find this user.'));
+      setSearchError(toErrorMessage(error, t('AddContact.searchFailed', { defaultValue: 'Failed to find this user.' })));
     } finally {
       setSearching(false);
     }
@@ -135,7 +135,7 @@ export function AddContactModal(props: AddContactModalProps) {
       await props.onAdd(selectedCandidate, message.trim() || undefined);
       props.onClose();
     } catch (error) {
-      setActionError(toErrorMessage(error, 'Failed to add this contact.'));
+      setActionError(toErrorMessage(error, t('AddContact.addFailed', { defaultValue: 'Failed to add this contact.' })));
     } finally {
       setAdding(false);
     }
@@ -158,13 +158,15 @@ export function AddContactModal(props: AddContactModalProps) {
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-          <h2 className="text-lg font-bold text-gray-900">Add Contact</h2>
+          <h2 className="text-lg font-bold text-gray-900">
+            {t('Contacts.addContactTitle', { defaultValue: 'Add Contact' })}
+          </h2>
           <button
             type="button"
             onClick={props.onClose}
             disabled={adding || searching}
             className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
-            aria-label="Close add contact modal"
+            aria-label={t('Contacts.closeAddContactModal', { defaultValue: 'Close add contact modal' })}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -192,7 +194,9 @@ export function AddContactModal(props: AddContactModalProps) {
                     void handleSearch();
                   }
                 }}
-                placeholder="Search by @handle, ~agent, or ID"
+                placeholder={t('Contacts.addContactSearchPlaceholder', {
+                  defaultValue: 'Search by @handle, ~agent, or ID',
+                })}
                 className="h-11 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-3 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-300 focus:ring-2 focus:ring-mint-100"
               />
             </div>
@@ -207,10 +211,10 @@ export function AddContactModal(props: AddContactModalProps) {
                   <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
                     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" strokeDasharray="60" strokeDashoffset="20" />
                   </svg>
-                  Searching
+                  {t('Contacts.searching', { defaultValue: 'Searching' })}
                 </span>
               ) : (
-                'Search'
+                t('Contacts.search', { defaultValue: 'Search' })
               )}
             </button>
           </div>
@@ -224,7 +228,8 @@ export function AddContactModal(props: AddContactModalProps) {
                   <path d="M12 16v.01" />
                 </svg>
                 <p className="text-sm text-gray-600">
-                  Agent Capacity: <span className="font-semibold text-gray-900">{props.agentLimit.used}</span> / {props.agentLimit.limit}
+                  {t('Contacts.agentCapacityLabel', { defaultValue: 'Agent Capacity:' })}{' '}
+                  <span className="font-semibold text-gray-900">{props.agentLimit.used}</span> / {props.agentLimit.limit}
                 </p>
               </div>
               {/* Progress bar */}
@@ -285,7 +290,9 @@ export function AddContactModal(props: AddContactModalProps) {
                           : 'bg-blue-50 text-blue-600'
                       }`}
                       style={candidate.isAgent ? { backgroundColor: candidatePalette.badgeBg, color: candidatePalette.badgeText } : undefined}>
-                        {candidate.isAgent ? 'Agent' : 'Human'}
+                        {candidate.isAgent
+                          ? t('Contacts.agent', { defaultValue: 'Agent' })
+                          : t('Contacts.human', { defaultValue: 'Human' })}
                       </span>
                     </div>
                     {candidate.handle ? (
@@ -309,7 +316,7 @@ export function AddContactModal(props: AddContactModalProps) {
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M20 6 9 17l-5-5" />
                     </svg>
-                    Already in your contacts.
+                    {t('Contacts.alreadyInContacts', { defaultValue: 'Already in your contacts.' })}
                   </div>
                 ) : null}
                 {isCurrentUser ? (
@@ -319,7 +326,7 @@ export function AddContactModal(props: AddContactModalProps) {
                       <line x1="12" y1="8" x2="12" y2="12" />
                       <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
-                    You cannot add yourself.
+                    {t('Contacts.cannotAddSelf', { defaultValue: 'You cannot add yourself.' })}
                   </div>
                 ) : null}
                 {candidate.isAgent && !canAddAgentByLimit ? (
@@ -329,7 +336,7 @@ export function AddContactModal(props: AddContactModalProps) {
                       <line x1="12" y1="8" x2="12" y2="12" />
                       <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
-                    {props.agentLimit?.reason || 'Agent friend limit reached'}
+                    {props.agentLimit?.reason || t('Contacts.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' })}
                   </div>
                 ) : null}
               </button>
@@ -340,7 +347,9 @@ export function AddContactModal(props: AddContactModalProps) {
                   <textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Hi! I'd like to add you as a friend..."
+                    placeholder={t('Contacts.addContactMessagePlaceholder', {
+                      defaultValue: "Hi! I'd like to add you as a friend...",
+                    })}
                     rows={3}
                     maxLength={200}
                     className="w-full resize-none rounded-2xl border-2 border-mint-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-400 focus:bg-mint-50/30"
@@ -374,7 +383,7 @@ export function AddContactModal(props: AddContactModalProps) {
             disabled={adding}
             className="rounded-xl px-5 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
           >
-            Cancel
+            {t('common.cancel', { defaultValue: 'Cancel' })}
           </button>
           <button
             type="button"

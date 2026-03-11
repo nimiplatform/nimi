@@ -171,7 +171,7 @@ export function ExploreView(props: ExploreViewProps) {
               </span>
               <input
                 className="w-full rounded-full border border-white/70 bg-white/85 py-2.5 pl-11 pr-5 text-sm text-gray-900 placeholder:text-gray-400 shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none backdrop-blur-xl transition-all focus:border-emerald-200 focus:bg-white focus:shadow-[0_14px_36px_rgba(16,185,129,0.10)] focus:ring-4 focus:ring-emerald-100/70"
-                placeholder="Search worlds, agents, posts..."
+                placeholder={t('Explore.searchPlaceholder', { defaultValue: 'Search worlds, agents, posts...' })}
                 value={props.searchText}
                 onChange={(e) => props.onSearchTextChange(e.target.value)}
               />
@@ -189,7 +189,9 @@ export function ExploreView(props: ExploreViewProps) {
             <section className="relative mb-10">
               {/* Worlds Title */}
               <div className="mb-3">
-                <h2 className={`${APP_DISPLAY_SECTION_TITLE_CLASS} mb-3`} style={{ fontFamily: 'var(--font-display)' }}>Worlds</h2>
+                <h2 className={`${APP_DISPLAY_SECTION_TITLE_CLASS} mb-3`} style={{ fontFamily: 'var(--font-display)' }}>
+                  {t('World.title')}
+                </h2>
               </div>
               <div
                 className="relative h-[280px] rounded-2xl overflow-hidden cursor-pointer"
@@ -226,7 +228,7 @@ export function ExploreView(props: ExploreViewProps) {
                       prevBanner();
                     }}
                     className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition-colors z-10"
-                    aria-label="Previous banner"
+                    aria-label={t('Explore.previousBanner', { defaultValue: 'Previous banner' })}
                   >
                     <svg
                       width="24"
@@ -252,7 +254,7 @@ export function ExploreView(props: ExploreViewProps) {
                       nextBanner();
                     }}
                     className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition-colors z-10"
-                    aria-label="Next banner"
+                    aria-label={t('Explore.nextBanner', { defaultValue: 'Next banner' })}
                   >
                     <svg
                       width="24"
@@ -296,15 +298,19 @@ export function ExploreView(props: ExploreViewProps) {
             <section className="mb-10">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <h3 className={APP_DISPLAY_SECTION_TITLE_CLASS} style={{ fontFamily: 'var(--font-display)' }}>
-                  Top Agents
+                  {t('Explore.topAgents', { defaultValue: 'Top Agents' })}
                 </h3>
                 {topAgentsPages.length > 1 ? (
                   <button
                     type="button"
                     onClick={handleTopAgentsPageChange}
                     className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:text-gray-700"
-                    aria-label={hasNextTopAgentsPage ? 'Next top agents page' : 'Previous top agents page'}
-                    title={hasNextTopAgentsPage ? 'Next' : 'Previous'}
+                    aria-label={hasNextTopAgentsPage
+                      ? t('Explore.nextTopAgentsPage', { defaultValue: 'Next top agents page' })
+                      : t('Explore.previousTopAgentsPage', { defaultValue: 'Previous top agents page' })}
+                    title={hasNextTopAgentsPage
+                      ? t('ChatTimeline.nextPage', { defaultValue: 'Next page' })
+                      : t('ChatTimeline.previousPage', { defaultValue: 'Previous page' })}
                   >
                     {hasNextTopAgentsPage ? (
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -343,7 +349,7 @@ export function ExploreView(props: ExploreViewProps) {
           <section className="mt-12">
             <div className="mb-6 flex items-center justify-between">
               <h2 className={`${APP_DISPLAY_SECTION_TITLE_CLASS}`} style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.1em' }}>
-                Dynamic Feed
+                {t('Explore.dynamicFeed', { defaultValue: 'Dynamic Feed' })}
               </h2>
               <div className="h-[1px] flex-1 mx-6 bg-gradient-to-r from-gray-200 to-transparent opacity-50" />
             </div>
@@ -379,8 +385,8 @@ export function ExploreView(props: ExploreViewProps) {
         type="button"
         onClick={scrollToTop}
         className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-white text-gray-700 shadow-lg ring-1 ring-gray-200 transition-all duration-200 hover:-translate-y-0.5 hover:bg-gray-50 hover:text-gray-900"
-        aria-label="Back to top"
-        title="Back to top"
+        aria-label={t('Explore.backToTop', { defaultValue: 'Back to top' })}
+        title={t('Explore.backToTop', { defaultValue: 'Back to top' })}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 19V5" />

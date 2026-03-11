@@ -342,7 +342,7 @@ export function ContactsView(props: ContactsViewProps) {
       >
         {/* 顶部标题 */}
         <div className="flex h-14 items-center px-4 shrink-0">
-          <h1 className={APP_PAGE_TITLE_CLASS}>Contacts</h1>
+          <h1 className={APP_PAGE_TITLE_CLASS}>{t('Contacts.title')}</h1>
         </div>
 
         {/* 搜索框 */}
@@ -355,7 +355,7 @@ export function ContactsView(props: ContactsViewProps) {
               </svg>
               <input
                 className="ml-2 min-w-0 flex-1 bg-transparent text-sm text-gray-700 outline-none placeholder:text-gray-400"
-                placeholder="Search friends"
+                placeholder={t('Contacts.searchPlaceholder', { defaultValue: 'Search friends' })}
                 value={props.searchText}
                 onChange={(e) => props.onSearchTextChange(e.target.value)}
               />
@@ -370,7 +370,7 @@ export function ContactsView(props: ContactsViewProps) {
                     setSelectedCategory(null);
                   }}
                   className="ml-1 flex h-6 w-6 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                  title="Clear"
+                  title={t('Home.clear', { defaultValue: 'Clear' })}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18" />
@@ -379,12 +379,12 @@ export function ContactsView(props: ContactsViewProps) {
                 </button>
               )}
             </div>
-            <Tooltip content="Add Friend" placement="bottom">
+            <Tooltip content={t('Contacts.addContact', { defaultValue: 'Add Friend' })} placement="bottom">
               <button
                 type="button"
                 onClick={props.onOpenAddContact}
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[999px] border-2 border-[#4ECCA3] bg-white text-[#4ECCA3] shadow-sm transition-colors hover:bg-[#4ECCA3]/5"
-                aria-label="Add Friend"
+                aria-label={t('Contacts.addContact', { defaultValue: 'Add Friend' })}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19" />
@@ -436,7 +436,7 @@ export function ContactsView(props: ContactsViewProps) {
         <div
           role="separator"
           aria-orientation="vertical"
-          aria-label="Resize contacts sidebar"
+          aria-label={t('Contacts.resizeSidebar', { defaultValue: 'Resize contacts sidebar' })}
           onMouseDown={startResize}
           className="absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize bg-transparent"
         />

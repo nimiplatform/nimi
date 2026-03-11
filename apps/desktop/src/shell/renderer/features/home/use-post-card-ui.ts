@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
+import { i18n } from '@renderer/i18n';
 import type { StatusBanner } from '@renderer/app-shell/providers/store-types';
 
 type SetStatusBanner = (banner: StatusBanner | null) => void;
@@ -87,7 +88,7 @@ export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
     if (!authorId) {
       setStatusBanner({
         kind: 'error',
-        message: 'Cannot add friend: user ID not found',
+        message: i18n.t('Home.missingAuthorForFriendRequest', { defaultValue: 'Cannot add friend: user ID not found' }),
       });
       return false;
     }
@@ -99,7 +100,7 @@ export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
     if (!authorId) {
       setStatusBanner({
         kind: 'error',
-        message: 'Cannot send gift: user ID not found',
+        message: i18n.t('Home.missingAuthorForGift', { defaultValue: 'Cannot send gift: user ID not found' }),
       });
       return false;
     }

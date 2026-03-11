@@ -1,4 +1,5 @@
 import React from 'react';
+import { i18n } from '@renderer/i18n';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { ContactRecord } from './contacts-model.js';
@@ -23,7 +24,11 @@ export function BlockedUsersList({
   onUnblock: (contact: ContactRecord) => void;
 }) {
   if (contacts.length === 0) {
-    return <div className="px-4 py-3 text-sm text-gray-400">No blocked contacts</div>;
+    return (
+      <div className="px-4 py-3 text-sm text-gray-400">
+        {i18n.t('Contacts.noBlockedContacts', { defaultValue: 'No blocked contacts' })}
+      </div>
+    );
   }
 
   return (
@@ -89,7 +94,7 @@ function BlockedContactRow({
         }}
         className="rounded-lg bg-[#4ECCA3] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#3DBA92]"
       >
-        Restore
+        {i18n.t('Contacts.restore', { defaultValue: 'Restore' })}
       </button>
     </button>
   );
@@ -107,9 +112,13 @@ export function BlockConfirmDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
-        <h3 className="mb-2 text-lg font-semibold text-gray-900">Block Contact</h3>
+        <h3 className="mb-2 text-lg font-semibold text-gray-900">
+          {i18n.t('Contacts.blockContact', { defaultValue: 'Block Contact' })}
+        </h3>
         <p className="mb-6 text-sm text-gray-500">
-          Are you sure you want to block <span className="font-medium text-gray-700">{contact.displayName}</span>? They will be moved to Blocks.
+          {i18n.t('Contacts.blockConfirmMessagePrefix', { defaultValue: 'Are you sure you want to block' })}{' '}
+          <span className="font-medium text-gray-700">{contact.displayName}</span>
+          ? {i18n.t('Contacts.blockConfirmMessageSuffix', { defaultValue: 'They will be moved to Blocks.' })}
         </p>
         <div className="flex justify-end gap-3">
           <button
@@ -117,14 +126,14 @@ export function BlockConfirmDialog({
             onClick={onCancel}
             className="rounded-full px-5 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100"
           >
-            Cancel
+            {i18n.t('common.cancel', { defaultValue: 'Cancel' })}
           </button>
           <button
             type="button"
             onClick={onConfirm}
             className="rounded-full bg-gray-700 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
           >
-            Block
+            {i18n.t('Contacts.block', { defaultValue: 'Block' })}
           </button>
         </div>
       </div>
@@ -144,9 +153,13 @@ export function UnblockConfirmDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
-        <h3 className="mb-2 text-lg font-semibold text-gray-900">Restore Contact</h3>
+        <h3 className="mb-2 text-lg font-semibold text-gray-900">
+          {i18n.t('Contacts.restoreContact', { defaultValue: 'Restore Contact' })}
+        </h3>
         <p className="mb-6 text-sm text-gray-500">
-          Restore <span className="font-medium text-gray-700">{contact.displayName}</span> to their previous category?
+          {i18n.t('Contacts.restoreConfirmMessagePrefix', { defaultValue: 'Restore' })}{' '}
+          <span className="font-medium text-gray-700">{contact.displayName}</span>{' '}
+          {i18n.t('Contacts.restoreConfirmMessageSuffix', { defaultValue: 'to their previous category?' })}
         </p>
         <div className="flex justify-end gap-3">
           <button
@@ -154,14 +167,14 @@ export function UnblockConfirmDialog({
             onClick={onCancel}
             className="rounded-full px-5 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100"
           >
-            Cancel
+            {i18n.t('common.cancel', { defaultValue: 'Cancel' })}
           </button>
           <button
             type="button"
             onClick={onConfirm}
             className="rounded-lg bg-[#4ECCA3] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[#3DBA92]"
           >
-            Restore
+            {i18n.t('Contacts.restore', { defaultValue: 'Restore' })}
           </button>
         </div>
       </div>

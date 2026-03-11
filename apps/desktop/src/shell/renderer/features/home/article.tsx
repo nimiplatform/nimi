@@ -1,6 +1,7 @@
 import type { ReactNode, RefObject } from 'react';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
+import { formatLocaleDate, i18n } from '@renderer/i18n';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { ChatIcon, GiftIcon, HeartIcon } from './icons';
 import { CloudflareVideoPlayer, NativeVideoPlayer } from './video-players';
@@ -38,7 +39,7 @@ export type PostCardArticleProps = {
 };
 
 export function PostCardArticle(props: PostCardArticleProps) {
-  const authorName = props.post.author?.displayName || 'Unknown';
+  const authorName = props.post.author?.displayName || i18n.t('common.unknown', { defaultValue: 'Unknown' });
   const authorHandle = props.post.author?.handle || '';
   const SHOW_AVATAR_STATUS_INDICATOR = false;
   const isRecent = new Date().getTime() - new Date(props.post.createdAt).getTime() < 3600000; // 1 hour
@@ -84,7 +85,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
                   props.onOpenAddFriendModal();
                 }}
                 className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#4ECCA3] text-white shadow-md border-2 border-white transition-transform hover:scale-110"
-                title="Add friend"
+                title={i18n.t('Contacts.addContact', { defaultValue: 'Add Friend' })}
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -135,27 +136,29 @@ export function PostCardArticle(props: PostCardArticleProps) {
               <div className="absolute right-0 top-full z-20 mt-2 w-44 overflow-hidden rounded-2xl border border-gray-100 bg-white/95 py-1.5 shadow-[0_18px_48px_rgba(15,23,42,0.16)] backdrop-blur-xl">
                 {props.isOwnPost ? (
                   <>
-                    <MenuAction label="Edit" icon={<EditIcon className="h-4 w-4" />} onClick={props.onOpenEditPost} />
-                    <MenuAction label="Modify visibility" icon={<EyeIcon className="h-4 w-4" />} onClick={props.onOpenEditVisibility} />
-                    <MenuAction label="Delete" icon={<TrashIcon className="h-4 w-4" />} onClick={props.onOpenDeleteConfirm} tone="danger" />
+                    <MenuAction label={i18n.t('Home.edit', { defaultValue: 'Edit' })} icon={<EditIcon className="h-4 w-4" />} onClick={props.onOpenEditPost} />
+                    <MenuAction label={i18n.t('Home.modifyVisibility', { defaultValue: 'Modify visibility' })} icon={<EyeIcon className="h-4 w-4" />} onClick={props.onOpenEditVisibility} />
+                    <MenuAction label={i18n.t('Home.delete', { defaultValue: 'Delete' })} icon={<TrashIcon className="h-4 w-4" />} onClick={props.onOpenDeleteConfirm} tone="danger" />
                   </>
                 ) : (
                   <>
-                    <MenuAction label="Copy link" icon={<LinkIcon className="h-4 w-4" />} onClick={props.onCopyLink} />
+                    <MenuAction label={i18n.t('Home.copyLink', { defaultValue: 'Copy link' })} icon={<LinkIcon className="h-4 w-4" />} onClick={props.onCopyLink} />
                     <MenuAction
-                      label={props.isSavedPost ? 'Saved' : 'Save post'}
+                      label={props.isSavedPost
+                        ? i18n.t('Home.saved', { defaultValue: 'Saved' })
+                        : i18n.t('Home.savePost', { defaultValue: 'Save post' })}
                       icon={<SaveIcon className="h-4 w-4" filled={props.isSavedPost} />}
                       onClick={props.onSavePost}
                     />
-                    <MenuAction label="Block" icon={<BlockIcon className="h-4 w-4" />} onClick={props.onOpenBlockConfirm} tone="danger" />
-                    <MenuAction label="Report" icon={<ReportIcon className="h-4 w-4" />} onClick={props.onOpenReportModal} tone="danger" />
+                    <MenuAction label={i18n.t('Home.block', { defaultValue: 'Block' })} icon={<BlockIcon className="h-4 w-4" />} onClick={props.onOpenBlockConfirm} tone="danger" />
+                    <MenuAction label={i18n.t('Home.report', { defaultValue: 'Report' })} icon={<ReportIcon className="h-4 w-4" />} onClick={props.onOpenReportModal} tone="danger" />
                   </>
                 )}
               </div>
             ) : null}
           </div>
           <span className="text-[9px] uppercase tracking-[0.2em] text-slate-400 font-medium">
-            {new Date(props.post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            {formatLocaleDate(props.post.createdAt, { month: 'short', day: 'numeric' })}
           </span>
         </div>
       </div>

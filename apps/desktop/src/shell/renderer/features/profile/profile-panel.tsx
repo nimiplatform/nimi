@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
+import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ContactDetailView, type EditableProfileDraft } from '@renderer/features/contacts/contact-detail-view.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
@@ -115,7 +116,12 @@ export function ProfilePanel() {
   const addFriendHint = profile?.isAgent && agentLimitQuery.data
     ? (
       agentLimitQuery.data.reason
-      || `Agent friend limit: ${agentLimitQuery.data.used}/${agentLimitQuery.data.limit}`
+      || i18n.t('Contacts.agentFriendLimitReached', {
+        used: agentLimitQuery.data.used,
+        limit: agentLimitQuery.data.limit,
+        tier: agentLimitQuery.data.tier,
+        defaultValue: 'Agent friend limit reached ({{used}}/{{limit}}, tier: {{tier}})',
+      })
     )
     : null;
 
@@ -153,7 +159,7 @@ export function ProfilePanel() {
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: toErrorMessage(error, 'Failed to open chat'),
+        message: toErrorMessage(error, i18n.t('Contacts.openChatFailed', { defaultValue: 'Failed to open chat' })),
       });
     }
   };
@@ -162,18 +168,21 @@ export function ProfilePanel() {
     if (!selectedProfileId) return;
     try {
       if (profile?.isAgent && addFriendBlocked) {
-        throw new Error(addFriendHint || 'Agent friend limit reached');
+        throw new Error(addFriendHint || i18n.t('Contacts.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }));
       }
       await dataSync.requestOrAcceptFriend(selectedProfileId);
       setStatusBanner({
         kind: 'success',
-        message: 'Friend request sent or accepted',
+        message: i18n.t('Contacts.friendRequestSentOrAccepted', {
+          name: profile?.displayName || profile?.handle || i18n.t('common.unknown', { defaultValue: 'Unknown' }),
+          defaultValue: 'Friend request sent or accepted for {{name}}.',
+        }),
       });
       void agentLimitQuery.refetch();
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: toErrorMessage(error, 'Failed to add friend'),
+        message: toErrorMessage(error, i18n.t('Contacts.addContactFailed', { defaultValue: 'Failed to add contact' })),
       });
     }
   };
@@ -182,7 +191,7 @@ export function ProfilePanel() {
     try {
       const nextDisplayName = draft.displayName.trim();
       if (!nextDisplayName) {
-        throw new Error('Display name is required');
+        throw new Error(i18n.t('Profile.displayNameRequired', { defaultValue: 'Display name is required' }));
       }
 
       const toArray = (value: string) =>
@@ -214,12 +223,12 @@ export function ProfilePanel() {
       ]);
       setStatusBanner({
         kind: 'success',
-        message: 'Profile updated',
+        message: i18n.t('Profile.updateSuccess', { defaultValue: 'Profile updated' }),
       });
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: toErrorMessage(error, 'Failed to update profile'),
+        message: toErrorMessage(error, i18n.t('Profile.updateError', { defaultValue: 'Failed to update profile' })),
       });
       throw error;
     }
@@ -228,7 +237,7 @@ export function ProfilePanel() {
   if (!profile && !loading && !error) {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
-        No profile data available
+        {i18n.t('Profile.noProfileDataAvailable', { defaultValue: 'No profile data available' })}
       </div>
     );
   }
@@ -275,7 +284,10 @@ export function ProfilePanel() {
         onSent={() => {
           setStatusBanner({
             kind: 'success',
-            message: 'Gift sent',
+            message: i18n.t('Contacts.giftSentTo', {
+              name: profile?.displayName || profile?.handle || i18n.t('common.unknown', { defaultValue: 'Unknown' }),
+              defaultValue: 'Gift sent to {{name}}',
+            }),
           });
         }}
       />

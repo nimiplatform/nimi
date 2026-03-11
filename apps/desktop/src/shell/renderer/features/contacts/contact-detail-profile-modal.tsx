@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { i18n } from '@renderer/i18n';
 import { dataSync } from '@runtime/data-sync';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { openDefaultPrivateExecutionMod } from '@renderer/mod-ui/lifecycle/default-private-execution';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal.js';
@@ -42,6 +44,8 @@ type ContactDetailProfileModalProps = {
   profileSeed: ContactDetailProfileSeed | null;
   onClose: () => void;
 };
+
+const INTERNAL_OPEN_CHAT_ERROR_CODE = 'CONTACTS_OPEN_CHAT_FAILED';
 
 function toSeedProfileData(seed: ContactDetailProfileSeed | null): ProfileData | null {
   if (!seed?.id) {
@@ -104,6 +108,7 @@ function extractAgentWorldId(profile: unknown): string {
 }
 
 export function ContactDetailProfileModal(props: ContactDetailProfileModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
@@ -115,6 +120,16 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
     () => toSeedProfileData(props.profileSeed),
     [props.profileSeed],
   );
+
+  const toChatErrorMessage = useCallback((error: unknown): string => {
+    if (error instanceof Error) {
+      const next = error.message.trim();
+      if (next && next !== INTERNAL_OPEN_CHAT_ERROR_CODE) {
+        return next;
+      }
+    }
+    return t('Contacts.openChatFailed', { defaultValue: 'Failed to open chat' });
+  }, [t]);
 
   const profileQuery = useQuery({
     queryKey: ['contact-detail-modal-profile', props.profileId, props.profileSeed?.handle, props.profileSeed?.isAgent],
@@ -166,7 +181,7 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
     try {
       const result = await dataSync.startChat(profile.id);
       if (!result?.chatId) {
-        throw new Error('Failed to create chat');
+        throw new Error(INTERNAL_OPEN_CHAT_ERROR_CODE);
       }
       setRuntimeFields({
         targetType: 'FRIEND',
@@ -183,7 +198,7 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: error instanceof Error ? error.message : 'Failed to open chat',
+        message: toChatErrorMessage(error),
       });
     }
   }, [
@@ -193,6 +208,8 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
     setRuntimeFields,
     setSelectedChatId,
     setStatusBanner,
+    t,
+    toChatErrorMessage,
   ]);
 
   if (!props.open || !profile) {
@@ -214,7 +231,7 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
             type="button"
             onClick={props.onClose}
             className="absolute left-6 top-6 z-[130] flex h-10 w-10 items-center justify-center rounded-full border border-[#4ECCA3]/20 bg-black/50 text-[#4ECCA3] transition-all hover:border-[#4ECCA3]/40 hover:bg-black/70"
-            aria-label="Go Back"
+            aria-label={i18n.t('Contacts.goBack', { defaultValue: 'Go Back' })}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -248,7 +265,10 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
         onSent={() => {
           setStatusBanner({
             kind: 'success',
-            message: `Gift sent to ${profile.displayName || profile.handle || 'user'}`,
+            message: t('Contacts.giftSentTo', {
+              name: profile.displayName || profile.handle || t('Contacts.human', { defaultValue: 'Human' }).toLowerCase(),
+              defaultValue: 'Gift sent to {{name}}',
+            }),
           });
           setGiftModalOpen(false);
         }}

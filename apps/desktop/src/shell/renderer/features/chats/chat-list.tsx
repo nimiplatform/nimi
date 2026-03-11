@@ -6,6 +6,7 @@ import type { ChatViewDto } from '@nimiplatform/sdk/realm';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { formatLocaleDate, formatRelativeLocaleTime, i18n } from '@renderer/i18n';
 
 function getChatTitle(chat: ChatViewDto): string {
   const record = chat as unknown as Record<string, unknown>;
@@ -15,10 +16,13 @@ function getChatTitle(chat: ChatViewDto): string {
       : null;
   const displayName = String(otherUser?.displayName || '').trim();
   const handle = String(otherUser?.handle || '').trim();
-  return displayName || handle || String(record.id || 'unknown');
+  return displayName || handle || String(record.id || i18n.t('common.unknown', { defaultValue: 'Unknown' }));
 }
 
-function getChatPreview(chat: ChatViewDto, noMessagesFallback = 'No messages yet'): string {
+function getChatPreview(
+  chat: ChatViewDto,
+  noMessagesFallback = i18n.t('Chat.noMessages', { defaultValue: 'No messages yet' }),
+): string {
   const lastMsg = chat.lastMessage;
   if (lastMsg) {
     const text = String(lastMsg.text || '').trim();
@@ -81,13 +85,13 @@ function formatChatTime(isoString: string | null | undefined): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return 'now';
-  if (diffMin < 60) return `${diffMin}m`;
+  if (diffMin < 1) return formatRelativeLocaleTime(date);
+  if (diffMin < 60) return formatRelativeLocaleTime(date);
   const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour}h`;
+  if (diffHour < 24) return formatRelativeLocaleTime(date);
   const diffDay = Math.floor(diffHour / 24);
-  if (diffDay < 7) return date.toLocaleDateString('en-US', { weekday: 'short' });
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (diffDay < 7) return formatLocaleDate(date, { weekday: 'short' });
+  return formatLocaleDate(date, { month: 'short', day: 'numeric' });
 }
 
 export function ChatList() {
@@ -148,7 +152,7 @@ export function ChatList() {
           </svg>
           <input
             className="ml-2 min-w-0 flex-1 bg-transparent text-sm text-gray-700 outline-none placeholder:text-gray-400"
-            placeholder="Search chats..."
+            placeholder={t('Chat.searchPlaceholder', { defaultValue: 'Search chats...' })}
             aria-label={t('Chat.searchPlaceholder')}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
@@ -195,7 +199,7 @@ export function ChatList() {
                     setChatProfilePanelTarget('other');
                   }}
                   className="relative shrink-0 cursor-pointer z-10"
-                  title="View profile"
+                  title={t('ChatTimeline.viewUserProfile', { defaultValue: 'View user profile' })}
                 >
                   <EntityAvatar
                     imageUrl={getAvatarUrl(chat)}

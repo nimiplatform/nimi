@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { i18n } from '@renderer/i18n';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model.js';
@@ -113,7 +114,9 @@ export function ContactsSearchResults({
     return (
       <div className="px-4 py-6 text-center">
         <div className="text-3xl mb-2">🔍</div>
-        <div className="text-sm text-gray-400">No contacts found</div>
+        <div className="text-sm text-gray-400">
+          {t('Contacts.noContactsFound', { defaultValue: 'No contacts found' })}
+        </div>
       </div>
     );
   }
@@ -292,7 +295,9 @@ export function ContactsCategoryAccordion({
                         {/* 名字和留言 */}
                         <div className="flex-1 min-w-0">
                           <div className="text-[15px] text-gray-900 truncate">{request.displayName}</div>
-                          <div className="text-[13px] text-gray-500 truncate">{request.bio || 'Wants to add you as a friend'}</div>
+                          <div className="text-[13px] text-gray-500 truncate">
+                            {request.bio || i18n.t('Contacts.requestFallbackBio', { defaultValue: 'Wants to add you as a friend' })}
+                          </div>
                         </div>
 
                         {/* 操作按钮 - 只显示待处理的 received 请求 */}
@@ -305,7 +310,7 @@ export function ContactsCategoryAccordion({
                             }}
                             className="px-3 py-1.5 text-xs font-medium bg-[#4ECCA3] text-white rounded-lg hover:bg-[#3DBA92] transition-colors"
                           >
-                            Accept
+                            {i18n.t('Contacts.accept', { defaultValue: 'Accept' })}
                           </button>
                           <button
                             type="button"
@@ -315,7 +320,7 @@ export function ContactsCategoryAccordion({
                             }}
                             className="px-3 py-1.5 text-xs font-medium bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors"
                           >
-                            Reject
+                            {i18n.t('Contacts.reject', { defaultValue: 'Reject' })}
                           </button>
                         </div>
                       </div>
@@ -332,7 +337,9 @@ export function ContactsCategoryAccordion({
                 ) : (
                   // 联系人按字母分组列表
                   sortedKeys.length === 0 ? (
-                    <div className="px-4 py-3 text-sm text-gray-400">No contacts</div>
+                    <div className="px-4 py-3 text-sm text-gray-400">
+                      {i18n.t('Contacts.noContacts', { defaultValue: 'No contacts' })}
+                    </div>
                   ) : (
                     sortedKeys.map((key) => (
                       <div key={key}>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { MessageViewDto } from '@nimiplatform/sdk/realm';
+import { formatLocaleDate, i18n } from '@renderer/i18n';
 
 export function resolveMessageText(message: MessageViewDto): string {
   const text = String(message.text || '').trim();
@@ -148,24 +149,26 @@ export function formatDateSeparator(isoString: string): string {
   const msgDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const diffDays = Math.round((today.getTime() - msgDay.getTime()) / 86400000);
   const sameYear = date.getFullYear() === now.getFullYear();
-  const timeStr = date.toLocaleTimeString('en-US', {
+  const timeStr = formatLocaleDate(date, {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
   });
 
   if (diffDays === 0) return timeStr;
-  if (diffDays === 1) return `Yesterday ${timeStr}`;
+  if (diffDays === 1) {
+    return `${i18n.t('Chat.yesterday', { defaultValue: 'Yesterday' })} ${timeStr}`;
+  }
   if (diffDays < 7) {
-    const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
+    const weekday = formatLocaleDate(date, { weekday: 'long' });
     return `${weekday} ${timeStr}`;
   }
   if (sameYear) {
-    const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const monthDay = formatLocaleDate(date, { month: 'short', day: 'numeric' });
     return `${monthDay}, ${timeStr}`;
   }
 
-  const fullDate = date.toLocaleDateString('en-US', {
+  const fullDate = formatLocaleDate(date, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -284,11 +287,17 @@ export function toChatProfileSummary(input: {
 }): ChatProfileSummary {
   const source = (input.profile && Object.keys(input.profile).length > 0 ? input.profile : input.fallback) || {};
   const fallback = input.fallback || {};
-  const displayName = String(source.displayName || fallback.displayName || source.handle || fallback.handle || 'Unknown').trim();
+  const displayName = String(
+    source.displayName
+      || fallback.displayName
+      || source.handle
+      || fallback.handle
+      || i18n.t('common.unknown', { defaultValue: 'Unknown' }),
+  ).trim();
   const handleValue = String(source.handle || fallback.handle || '').trim();
   return {
     id: String(source.id || fallback.id || '').trim(),
-    displayName: displayName || 'Unknown',
+    displayName: displayName || i18n.t('common.unknown', { defaultValue: 'Unknown' }),
     handle: handleValue ? (handleValue.startsWith('@') ? handleValue : `@${handleValue}`) : '@unknown',
     avatarUrl: typeof source.avatarUrl === 'string'
       ? source.avatarUrl

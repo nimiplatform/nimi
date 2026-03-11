@@ -1,14 +1,7 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { ReportReason } from '@nimiplatform/sdk/realm';
-
-const REPORT_REASONS = [
-  { value: ReportReason.SPAM, label: 'Spam' },
-  { value: ReportReason.NSFW, label: 'NSFW content' },
-  { value: ReportReason.HATE_SPEECH, label: 'Hate speech' },
-  { value: ReportReason.SCAM, label: 'Scam or fraud' },
-  { value: ReportReason.OTHER, label: 'Other' },
-] as const;
 
 export function ReportModal({
   post,
@@ -19,9 +12,17 @@ export function ReportModal({
   onClose: () => void;
   onSubmit: (payload: { reason: keyof typeof ReportReason; description?: string }) => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [selectedReason, setSelectedReason] = useState<keyof typeof ReportReason | ''>('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const reportReasons = [
+    { value: ReportReason.SPAM, label: t('Home.reportReasons.spam', { defaultValue: 'Spam' }) },
+    { value: ReportReason.NSFW, label: t('Home.reportReasons.nsfw', { defaultValue: 'NSFW content' }) },
+    { value: ReportReason.HATE_SPEECH, label: t('Home.reportReasons.hateSpeech', { defaultValue: 'Hate speech' }) },
+    { value: ReportReason.SCAM, label: t('Home.reportReasons.scam', { defaultValue: 'Scam or fraud' }) },
+    { value: ReportReason.OTHER, label: t('Home.reportReasons.other', { defaultValue: 'Other' }) },
+  ] as const;
 
   const handleSubmit = async () => {
     if (!selectedReason) {
@@ -43,7 +44,9 @@ export function ReportModal({
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative mx-4 max-h-[80vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">Report Post</h3>
+          <h3 className="text-lg font-semibold text-gray-900">
+            {t('Home.reportPost', { defaultValue: 'Report Post' })}
+          </h3>
           <button
             type="button"
             onClick={onClose}
@@ -57,11 +60,14 @@ export function ReportModal({
         </div>
 
         <p className="mb-4 text-sm text-gray-500">
-          Why are you reporting this post by <span className="font-medium text-gray-700">{post.author?.displayName || post.author?.handle}</span>?
+          {t('Home.reportPrompt', {
+            defaultValue: 'Why are you reporting this post by {{name}}?',
+            name: post.author?.displayName || post.author?.handle || '',
+          })}
         </p>
 
         <div className="mb-4 space-y-2">
-          {REPORT_REASONS.map((reason) => (
+          {reportReasons.map((reason) => (
             <button
               key={reason.value}
               type="button"
@@ -79,12 +85,14 @@ export function ReportModal({
 
         <div className="mb-6">
           <label className="mb-2 block text-sm font-medium text-gray-700">
-            Additional details (optional)
+            {t('Home.additionalDetailsOptional', { defaultValue: 'Additional details (optional)' })}
           </label>
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            placeholder="Please provide more details about your report..."
+            placeholder={t('Home.reportDetailsPlaceholder', {
+              defaultValue: 'Please provide more details about your report...',
+            })}
             rows={3}
             className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-[#4ECCA3] focus:outline-none focus:ring-1 focus:ring-[#4ECCA3]"
           />
@@ -96,7 +104,7 @@ export function ReportModal({
             onClick={onClose}
             className="flex-1 rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-200"
           >
-            Cancel
+            {t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
           </button>
           <button
             type="button"
@@ -106,7 +114,9 @@ export function ReportModal({
             disabled={!selectedReason || isSubmitting}
             className="flex-1 rounded-xl bg-[#4ECCA3] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#3dbb92] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSubmitting ? 'Submitting...' : 'Submit Report'}
+            {isSubmitting
+              ? t('Home.submitting', { defaultValue: 'Submitting...' })
+              : t('Home.submitReport', { defaultValue: 'Submit Report' })}
           </button>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { dataSync } from '@runtime/data-sync';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { formatLocaleDate, formatRelativeLocaleTime, i18n } from '@renderer/i18n';
 import { ReviewRating } from '@nimiplatform/sdk/realm';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 
@@ -90,12 +91,12 @@ function toNotificationItemView(raw: unknown): NotificationItemView | null {
   return {
     id,
     type: toStringValue(payload.type, 'unknown'),
-    title: toStringValue(payload.title, 'Notification'),
+    title: toStringValue(payload.title, i18n.t('NotificationPanel.title', { defaultValue: 'Notification' })),
     body: toStringValue(payload.body),
     createdAt: toStringValue(payload.createdAt),
     isRead: toBooleanValue(payload.isRead),
     actorId: toStringValue(actor?.id).trim() || null,
-    actorName: actorName || actorHandle || 'Unknown',
+    actorName: actorName || actorHandle || i18n.t('common.unknown', { defaultValue: 'Unknown' }),
     actorHandle,
     actorAvatarUrl: rawActorAvatarUrl || null,
     actorIsAgent: toBooleanValue(actor?.isAgent),
@@ -126,18 +127,11 @@ function formatNotificationTime(input: string): string {
   if (Number.isNaN(date.getTime())) {
     return '--';
   }
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffHour = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHour / 24);
-
-  if (diffMin < 1) return 'Just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHour < 24) return `${diffHour}h ago`;
-  if (diffDay === 1) return 'Yesterday';
-  if (diffDay < 7) return `${diffDay}d ago`;
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const diffMs = Date.now() - date.getTime();
+  if (diffMs < 7 * 24 * 60 * 60 * 1000) {
+    return formatRelativeLocaleTime(date);
+  }
+  return formatLocaleDate(date, { month: 'short', day: 'numeric' });
 }
 
 function getNotificationCategory(type: string): NotificationType {
@@ -159,14 +153,7 @@ function isGiftReviewable(item: NotificationItemView): boolean {
   );
 }
 
-const FILTER_TABS: { id: NotificationType; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'gift', label: 'Gifts' },
-  { id: 'request', label: 'Requests' },
-  { id: 'mention', label: 'Mentions' },
-  { id: 'like', label: 'Likes' },
-  { id: 'system', label: 'System' },
-];
+const FILTER_TABS: NotificationType[] = ['all', 'gift', 'request', 'mention', 'like', 'system'];
 
 export function NotificationPanel() {
   const authStatus = useAppStore((state) => state.auth.status);
@@ -382,11 +369,11 @@ export function NotificationPanel() {
         <>
           <button type="button" onClick={onClick} className={btnPrimary}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-            Accept
+            {t('Contacts.accept', { defaultValue: 'Accept' })}
           </button>
           <button type="button" onClick={onClick} className={btnSecondary}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-            Decline
+            {t('Contacts.reject', { defaultValue: 'Reject' })}
           </button>
         </>
       );
@@ -396,11 +383,11 @@ export function NotificationPanel() {
         <>
           <button type="button" onClick={onClick} className={btnPrimary}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8" /><line x1="12" y1="2" x2="12" y2="15" /><polyline points="8 11 12 15 16 11" /></svg>
-            Claim
+            {t('NotificationPanel.claim', { defaultValue: 'Claim' })}
           </button>
           <button type="button" onClick={onClick} className={btnSecondary}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-            Reject
+            {t('NotificationPanel.reject', { defaultValue: 'Reject' })}
           </button>
         </>
       );
@@ -410,10 +397,10 @@ export function NotificationPanel() {
         <>
           <button type="button" onClick={onClick} className={btnPrimary}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-            Positive
+            {t('NotificationPanel.reviewPositive', { defaultValue: 'Review+' })}
           </button>
           <button type="button" onClick={onClick} className={btnSecondary}>
-            Negative
+            {t('NotificationPanel.reviewNegative', { defaultValue: 'Review-' })}
           </button>
         </>
       );
@@ -446,7 +433,7 @@ export function NotificationPanel() {
           onClick={() => { void markAllRead(); }}
           className="text-sm font-medium text-mint-600 hover:text-mint-700 transition-colors"
         >
-          Mark all read
+          {t('NotificationPanel.markAllRead', { defaultValue: 'Mark All Read' })}
         </button>
       </div>
 
@@ -454,16 +441,18 @@ export function NotificationPanel() {
       <div className="flex items-center gap-2 bg-white px-6 py-3">
         {FILTER_TABS.map((tab) => (
           <button
-            key={tab.id}
+            key={tab}
             type="button"
-            onClick={() => setActiveFilter(tab.id)}
+            onClick={() => setActiveFilter(tab)}
             className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
-              activeFilter === tab.id
+              activeFilter === tab
                 ? 'bg-mint-500 text-white shadow-sm'
                 : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
             }`}
           >
-            {tab.label}
+            {t(`NotificationPanel.filters.${tab}`, {
+              defaultValue: tab,
+            })}
           </button>
         ))}
       </div>
@@ -474,7 +463,7 @@ export function NotificationPanel() {
           {notificationsQuery.isPending && items.length === 0 ? (
             <div className="rounded-2xl bg-white p-8 text-center text-sm text-gray-400">
               <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-mint-200 border-t-mint-500" />
-              Loading notifications...
+              {t('NotificationPanel.loading', { defaultValue: 'Loading notifications...' })}
             </div>
           ) : null}
 
@@ -486,7 +475,7 @@ export function NotificationPanel() {
                   <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                 </svg>
               </div>
-              No notifications yet
+              {t('NotificationPanel.empty', { defaultValue: 'No notifications' })}
             </div>
           ) : null}
 
@@ -538,9 +527,13 @@ export function NotificationPanel() {
                     <span className="text-gray-600">{item.title.replace(item.actorName, '').trim()}</span>
                     {' '}
                     <span className="inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600">
-                      {item.type === 'friend_request_received' ? 'Friend Request' : 
-                       item.type === 'gift_received' ? 'Gift' : 
-                       getNotificationCategory(item.type)}
+                      {item.type === 'friend_request_received'
+                        ? t('NotificationPanel.typeNotifications.friendRequestReceived', { defaultValue: 'Friend Request' })
+                        : item.type === 'gift_received'
+                          ? t('NotificationPanel.filters.gift', { defaultValue: 'Gifts' })
+                          : t(`NotificationPanel.filters.${getNotificationCategory(item.type)}`, {
+                            defaultValue: getNotificationCategory(item.type),
+                          })}
                     </span>
                   </p>
 
@@ -582,7 +575,9 @@ export function NotificationPanel() {
                 disabled={loadingMore}
                 className="rounded-xl bg-white px-5 py-2.5 text-sm font-medium text-gray-600 shadow-sm hover:bg-gray-50 disabled:opacity-50 transition-colors"
               >
-                {loadingMore ? 'Loading...' : 'Load more'}
+                {loadingMore
+                  ? t('NotificationPanel.loadingMore', { defaultValue: 'Loading...' })
+                  : t('NotificationPanel.loadMore', { defaultValue: 'Load More' })}
               </button>
             </div>
           ) : null}
@@ -595,10 +590,13 @@ export function NotificationPanel() {
           <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl">
             <h2 className="text-lg font-bold text-gray-900">{t('NotificationPanel.rejectGiftTitle')}</h2>
             <p className="mt-2 text-sm text-gray-600">
-              Are you sure you want to reject this gift from {rejectingItem.actorName}?
+              {t('NotificationPanel.rejectGiftDescription', {
+                defaultValue: 'You are rejecting gift from {{name}}.',
+                name: rejectingItem.actorName,
+              })}
             </p>
             <label className="mt-4 block text-xs font-medium text-gray-600" htmlFor="gift-reject-reason">
-              Reason (optional)
+              {t('NotificationPanel.rejectReason', { defaultValue: 'Reason (optional)' })}
             </label>
             <textarea
               id="gift-reject-reason"
@@ -606,7 +604,9 @@ export function NotificationPanel() {
               onChange={(event) => setRejectReason(event.target.value)}
               rows={3}
               maxLength={160}
-              placeholder="Tell them why you're rejecting..."
+              placeholder={t('NotificationPanel.rejectGiftReasonPlaceholder', {
+                defaultValue: "Tell them why you're rejecting...",
+              })}
               className="mt-1 w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 outline-none focus:border-mint-300 focus:ring-2 focus:ring-mint-100"
             />
             <div className="mt-4 flex items-center justify-end gap-2">
@@ -616,7 +616,7 @@ export function NotificationPanel() {
                 disabled={rejectingGift}
                 className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
               >
-                Cancel
+                {t('common.cancel', { defaultValue: 'Cancel' })}
               </button>
               <button
                 type="button"
@@ -624,7 +624,9 @@ export function NotificationPanel() {
                 disabled={rejectingGift}
                 className="rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 transition-colors shadow-sm"
               >
-                {rejectingGift ? 'Rejecting...' : 'Confirm Reject'}
+                {rejectingGift
+                  ? t('NotificationPanel.rejecting', { defaultValue: 'Rejecting...' })
+                  : t('NotificationPanel.confirmReject', { defaultValue: 'Confirm Reject' })}
               </button>
             </div>
           </div>

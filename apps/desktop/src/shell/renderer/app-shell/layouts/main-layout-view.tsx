@@ -3,6 +3,7 @@ import logoImage from '../../assets/logo.svg';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
+import { i18n } from '@renderer/i18n';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
 import { resolveRouteTabExtension } from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
@@ -256,7 +257,7 @@ function ChatLayout() {
         <div
           role="separator"
           aria-orientation="vertical"
-          aria-label="Resize chat list"
+          aria-label={i18n.t('Layout.resizeChatList', { defaultValue: 'Resize chat list' })}
           onMouseDown={startResize}
           className="absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize bg-transparent"
         />
@@ -514,7 +515,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
           <aside className={`flex h-full shrink-0 flex-col bg-white transition-[width] duration-200 ${sidebarWidthClass}`}>
             <div className="flex h-14 shrink-0 items-center justify-center">
               <SidebarTooltipButton
-                label="Home"
+                label={t('Nav.home', { defaultValue: 'Home' })}
                 onClick={() => {
                   setSettingsMenuOpen(false);
                   props.onNav('home');
@@ -678,7 +679,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                 setSettingsMenuOpen(false);
               }}
               className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 transition hover:bg-[#4ECCA3]/10 hover:text-[#4ECCA3]"
-              title="Edit Profile"
+              title={t('Layout.editProfile', { defaultValue: 'Edit Profile' })}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 20h9" />
