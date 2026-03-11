@@ -103,6 +103,24 @@ fn sanitize_mod_dir_name(mod_id: &str) -> String {
     }
 }
 
+fn create_backup_dir_name(mod_id: &str) -> String {
+    format!(
+        "{}-{}",
+        sanitize_mod_dir_name(mod_id),
+        Utc::now().timestamp_millis()
+    )
+}
+
+fn create_update_backup(app: &AppHandle, mod_id: &str, target_dir: &Path) -> Result<Option<PathBuf>, String> {
+    if !target_dir.exists() {
+        return Ok(None);
+    }
+    let backups_dir = runtime_mod_backups_dir(app)?;
+    let backup_dir = backups_dir.join(create_backup_dir_name(mod_id));
+    copy_dir_recursive(target_dir, &backup_dir)?;
+    Ok(Some(backup_dir))
+}
+
 fn extract_archive_to_dir(archive_path: &Path, output_dir: &Path) -> Result<(), String> {
     let extension = archive_path
         .extension()
@@ -126,7 +144,11 @@ fn extract_archive_to_dir(archive_path: &Path, output_dir: &Path) -> Result<(), 
             .by_index(index)
             .map_err(|error| format!("读取 mod archive 条目失败: {error}"))?;
         let Some(relative_path) = entry.enclosed_name().map(|value| value.to_path_buf()) else {
-            continue;
+            return Err(format!(
+                "mod archive 包含越界路径条目，拒绝解压。archive={} entry={}",
+                archive_path.display(),
+                entry.name()
+            ));
         };
         let target_path = output_dir.join(relative_path);
         if entry.name().ends_with('/') {
@@ -149,6 +171,15 @@ fn extract_archive_to_dir(archive_path: &Path, output_dir: &Path) -> Result<(), 
     }
 
     Ok(())
+}
+
+fn restore_backup_into_target(target_dir: &Path, backup_dir: &Path) -> Result<(), String> {
+    if target_dir.exists() {
+        std::fs::remove_dir_all(target_dir).map_err(|error| {
+            format!("删除当前 mod 目录失败 ({}): {error}", target_dir.display())
+        })?;
+    }
+    copy_dir_recursive(backup_dir, target_dir)
 }
 
 fn resolve_package_root(root: &Path) -> Result<PathBuf, String> {
@@ -284,6 +315,11 @@ fn install_from_staged_dir(
     std::fs::create_dir_all(&mods_dir)
         .map_err(|error| format!("创建 mods 目录失败 ({}): {error}", mods_dir.display()))?;
     let target_dir = mods_dir.join(sanitize_mod_dir_name(&summary.id));
+    let rollback_path = if operation == "update" {
+        create_update_backup(app, &summary.id, &target_dir)?
+    } else {
+        None
+    };
     if target_dir.exists() {
         if !replace_existing {
             return Err(format!(
@@ -307,6 +343,7 @@ fn install_from_staged_dir(
         mod_id: installed_summary.id.clone(),
         installed_path: target_dir.display().to_string(),
         manifest: installed_summary.clone(),
+        rollback_path: rollback_path.as_ref().map(|value| value.display().to_string()),
     };
     emit_install_progress(
         app,
@@ -479,4 +516,75 @@ pub fn uninstall_runtime_mod(app: &AppHandle, mod_id: &str) -> Result<RuntimeLoc
     std::fs::remove_dir_all(mod_dir)
         .map_err(|error| format!("删除 mod 目录失败 ({}): {error}", mod_dir.display()))?;
     Ok(summary)
+}
+
+pub fn restore_runtime_mod_backup(
+    app: &AppHandle,
+    mod_id: &str,
+    backup_path: &str,
+) -> Result<RuntimeLocalManifestSummary, String> {
+    let normalized_mod_id = mod_id.trim();
+    let normalized_backup_path = PathBuf::from(backup_path.trim());
+    if normalized_mod_id.is_empty() {
+        return Err("modId 不能为空".to_string());
+    }
+    if backup_path.trim().is_empty() {
+        return Err("backupPath 不能为空".to_string());
+    }
+    if !normalized_backup_path.exists() || !normalized_backup_path.is_dir() {
+        return Err(format!(
+            "backupPath 不存在或不是目录: {}",
+            normalized_backup_path.display()
+        ));
+    }
+    let mods_dir = local_mods_dir(app)?;
+    let target_dir = mods_dir.join(sanitize_mod_dir_name(normalized_mod_id));
+    restore_backup_into_target(&target_dir, &normalized_backup_path)?;
+    let manifest_path = find_manifest_path(&target_dir)
+        .ok_or_else(|| format!("恢复后未找到 manifest: {}", target_dir.display()))?;
+    parse_manifest_file(&manifest_path)
+        .ok_or_else(|| format!("恢复后解析 manifest 失败: {}", manifest_path.display()))
+}
+
+#[cfg(test)]
+mod runtime_mod_install_store_tests {
+    use super::*;
+    use std::io::Write;
+    use zip::write::FileOptions;
+
+    #[test]
+    fn extract_archive_to_dir_rejects_path_traversal_entries() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let archive_path = temp.path().join("bad.zip");
+        let file = File::create(&archive_path).expect("zip file");
+        let mut writer = zip::ZipWriter::new(file);
+        writer
+            .start_file("../evil.txt", FileOptions::default())
+            .expect("start file");
+        writer.write_all(b"evil").expect("write zip");
+        writer.finish().expect("finish zip");
+
+        let output_dir = temp.path().join("out");
+        let error = extract_archive_to_dir(&archive_path, &output_dir).expect_err("should reject traversal zip");
+        assert!(error.contains("越界路径"));
+    }
+
+    #[test]
+    fn restore_backup_into_target_replaces_existing_tree() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let target_dir = temp.path().join("target");
+        let backup_dir = temp.path().join("backup");
+        std::fs::create_dir_all(&target_dir).expect("target dir");
+        std::fs::create_dir_all(&backup_dir).expect("backup dir");
+        std::fs::write(target_dir.join("old.txt"), b"old").expect("old file");
+        std::fs::write(backup_dir.join("new.txt"), b"new").expect("new file");
+
+        restore_backup_into_target(&target_dir, &backup_dir).expect("restore backup");
+
+        assert!(!target_dir.join("old.txt").exists());
+        assert_eq!(
+            std::fs::read_to_string(target_dir.join("new.txt")).expect("restored file"),
+            "new"
+        );
+    }
 }

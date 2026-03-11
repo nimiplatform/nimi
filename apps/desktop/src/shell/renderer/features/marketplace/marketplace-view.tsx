@@ -139,6 +139,7 @@ export function MarketplaceView(model: MarketplaceViewProps) {
                   onOpenMod={model.onOpenMod}
                   onInstallMod={model.onInstallMod}
                   onUninstallMod={model.onUninstallMod}
+                  onUpdateMod={model.onUpdateMod}
                   onEnableMod={model.onEnableMod}
                   onDisableMod={model.onDisableMod}
                   onOpenModSettings={model.onOpenModSettings}
@@ -166,6 +167,7 @@ export function MarketplaceView(model: MarketplaceViewProps) {
                   onOpenMod={model.onOpenMod}
                   onInstallMod={model.onInstallMod}
                   onUninstallMod={model.onUninstallMod}
+                  onUpdateMod={model.onUpdateMod}
                   onEnableMod={model.onEnableMod}
                   onDisableMod={model.onDisableMod}
                   onOpenModSettings={model.onOpenModSettings}

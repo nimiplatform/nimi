@@ -54,6 +54,7 @@ fn extract_manifest_summary(path: &Path, value: &JsonValue) -> Option<RuntimeLoc
         style_paths,
         description: read_opt("description"),
         manifest: Some(value.clone()),
+        release_manifest: path.parent().and_then(read_release_manifest_file),
     })
 }
 
@@ -83,6 +84,15 @@ fn find_manifest_path(dir: &Path) -> Option<PathBuf> {
         dir.join("mod.manifest.json"),
     ];
     candidates.into_iter().find(|candidate| candidate.exists())
+}
+
+fn read_release_manifest_file(dir: &Path) -> Option<JsonValue> {
+    let release_path = dir.join("release.manifest.json");
+    if !release_path.exists() {
+        return None;
+    }
+    let content = fs::read_to_string(&release_path).ok()?;
+    serde_json::from_str::<JsonValue>(&content).ok()
 }
 
 fn copy_dir_recursive(source: &Path, target: &Path) -> Result<(), String> {

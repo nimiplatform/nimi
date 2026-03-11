@@ -6,17 +6,20 @@ use serde::Deserialize;
 use tauri::AppHandle;
 
 use super::store::{
-    append_runtime_audit, delete_action_verify_ticket, gc_media_cache,
-    get_action_idempotency_record, get_action_verify_ticket, get_runtime_mod_developer_mode_state,
-    install_runtime_mod, list_installed_runtime_mods, list_local_mod_manifests,
+    append_runtime_audit, check_catalog_mod_updates, delete_action_verify_ticket, gc_media_cache,
+    get_action_idempotency_record, get_action_verify_ticket, get_catalog_mod,
+    get_runtime_mod_developer_mode_state, install_catalog_mod, install_runtime_mod,
+    list_catalog_mods, list_installed_runtime_mods, list_local_mod_manifests,
     list_runtime_mod_diagnostics, list_runtime_mod_install_progress, list_runtime_mod_sources,
     open_db, open_runtime_mod_dir, purge_action_execution_ledger, purge_action_idempotency_records,
     purge_action_verify_tickets, put_action_execution_ledger_record, put_action_idempotency_record,
     put_action_verify_ticket, put_media_cache, query_action_execution_ledger, query_runtime_audit,
     read_installed_runtime_mod_manifest, read_local_mod_entry, reload_all_runtime_mods,
-    reload_runtime_mod, remove_runtime_mod_source, set_runtime_mod_developer_mode_state,
-    sync_runtime_mod_source_watchers, uninstall_runtime_mod, update_runtime_mod,
-    upsert_runtime_mod_source, RuntimeActionExecutionLedgerFilter,
+    reload_runtime_mod, remove_runtime_mod_source, restore_runtime_mod_backup,
+    set_runtime_mod_developer_mode_state, sync_runtime_mod_source_watchers, uninstall_runtime_mod,
+    update_installed_catalog_mod, update_runtime_mod, upsert_runtime_mod_source,
+    AvailableModUpdatePayload, CatalogInstallResultPayload, CatalogPackageRecordPayload,
+    CatalogPackageSummaryPayload, RuntimeActionExecutionLedgerFilter,
     RuntimeActionExecutionLedgerRecordPayload, RuntimeActionIdempotencyRecordPayload,
     RuntimeActionVerifyTicketPayload, RuntimeAuditFilter, RuntimeAuditRecordPayload,
     RuntimeLocalManifestSummary, RuntimeMediaCacheGcResultPayload,
@@ -76,6 +79,26 @@ pub struct RuntimeModUninstallPayload {
 pub struct RuntimeModReadManifestPayload {
     pub mod_id: Option<String>,
     pub path: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModCatalogGetPayload {
+    pub package_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModCatalogInstallPayload {
+    pub package_id: String,
+    pub channel: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModRestoreBackupPayload {
+    pub mod_id: String,
+    pub backup_path: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -462,6 +485,41 @@ pub fn runtime_mod_read_manifest(
 }
 
 #[tauri::command]
+pub fn runtime_mod_catalog_list() -> Result<Vec<CatalogPackageSummaryPayload>, String> {
+    list_catalog_mods()
+}
+
+#[tauri::command]
+pub fn runtime_mod_catalog_get(
+    payload: RuntimeModCatalogGetPayload,
+) -> Result<Option<CatalogPackageRecordPayload>, String> {
+    get_catalog_mod(&payload.package_id)
+}
+
+#[tauri::command]
+pub fn runtime_mod_catalog_updates_check(
+    app: AppHandle,
+) -> Result<Vec<AvailableModUpdatePayload>, String> {
+    check_catalog_mod_updates(&app)
+}
+
+#[tauri::command]
+pub fn runtime_mod_catalog_install(
+    app: AppHandle,
+    payload: RuntimeModCatalogInstallPayload,
+) -> Result<CatalogInstallResultPayload, String> {
+    install_catalog_mod(&app, &payload.package_id, payload.channel.as_deref())
+}
+
+#[tauri::command]
+pub fn runtime_mod_catalog_update(
+    app: AppHandle,
+    payload: RuntimeModCatalogInstallPayload,
+) -> Result<CatalogInstallResultPayload, String> {
+    update_installed_catalog_mod(&app, &payload.package_id, payload.channel.as_deref())
+}
+
+#[tauri::command]
 pub fn runtime_mod_install_progress(
     _app: AppHandle,
     payload: Option<RuntimeModInstallProgressQueryPayload>,
@@ -471,6 +529,14 @@ pub fn runtime_mod_install_progress(
             .as_ref()
             .and_then(|item| item.install_session_id.as_deref()),
     )
+}
+
+#[tauri::command]
+pub fn runtime_mod_restore_backup(
+    app: AppHandle,
+    payload: RuntimeModRestoreBackupPayload,
+) -> Result<RuntimeLocalManifestSummary, String> {
+    restore_runtime_mod_backup(&app, &payload.mod_id, &payload.backup_path)
 }
 
 #[tauri::command]

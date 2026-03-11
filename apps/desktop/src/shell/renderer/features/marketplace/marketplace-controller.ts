@@ -1,5 +1,11 @@
-import { useCallback, useMemo, useState } from 'react';
-import { desktopBridge, type RuntimeLocalManifestSummary } from '@renderer/bridge';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  desktopBridge,
+  type CatalogConsentReason,
+  type CatalogInstallResult,
+  type CatalogPackageSummary,
+  type RuntimeLocalManifestSummary,
+} from '@renderer/bridge';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import {
   discoverSideloadRuntimeMods,
@@ -19,13 +25,19 @@ import {
   SETTINGS_SELECTED_STORAGE_KEY,
 } from '@renderer/features/settings/settings-storage';
 import {
+  describeConsentReasons,
   type MarketplaceMod,
   type MarketplacePendingActionType,
+  toCatalogModRow,
   toRuntimeModRow,
 } from './marketplace-model';
 
 function normalizeModId(modId: string): string {
   return String(modId || '').trim();
+}
+
+function stripVersionPrefix(value: string | undefined): string {
+  return String(value || '').trim().replace(/^v/i, '');
 }
 
 function withAddedModId(modIds: string[], modId: string): string[] {
@@ -47,6 +59,21 @@ function withRemovedModId(modIds: string[], modId: string): string[] {
 
 function safeErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || 'unknown error');
+}
+
+function formatConsentSummary(input: {
+  consentReasons?: readonly CatalogConsentReason[];
+  addedCapabilities?: readonly string[];
+}): string {
+  const reasonLabels = describeConsentReasons(input.consentReasons);
+  const details: string[] = [];
+  if (reasonLabels.length > 0) {
+    details.push(reasonLabels.join(', '));
+  }
+  if (Array.isArray(input.addedCapabilities) && input.addedCapabilities.length > 0) {
+    details.push(`New capabilities: ${input.addedCapabilities.join(', ')}`);
+  }
+  return details.join('. ');
 }
 
 async function registerOneRuntimeMod(input: {
@@ -104,6 +131,7 @@ export type MarketplacePageModel = {
   onSearchQueryChange: (value: string) => void;
   onOpenMod: (modId: string) => void;
   onInstallMod: (modId: string) => void;
+  onUpdateMod: (modId: string) => void;
   onUninstallMod: (modId: string) => void;
   onEnableMod: (modId: string) => void;
   onDisableMod: (modId: string) => void;
@@ -121,6 +149,14 @@ export function useMarketplacePageModel(): MarketplacePageModel {
   const [selectedModId, setSelectedModId] = useState<string | null>(null);
   const [pathSource, setPathSource] = useState('');
   const [urlSource, setUrlSource] = useState('');
+  const [catalogMods, setCatalogMods] = useState<CatalogPackageSummary[]>([]);
+  const [availableUpdates, setAvailableUpdates] = useState<Record<string, {
+    version: string;
+    advisoryCount: number;
+    requiresUserConsent: boolean;
+    consentReasons: CatalogConsentReason[];
+    addedCapabilities: string[];
+  }>>({});
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const closeModWorkspaceTab = useAppStore((state) => state.closeModWorkspaceTab);
@@ -128,6 +164,37 @@ export function useMarketplacePageModel(): MarketplacePageModel {
   const registeredRuntimeModIds = useAppStore((state) => state.registeredRuntimeModIds);
   const runtimeModDisabledIds = useAppStore((state) => state.runtimeModDisabledIds);
   const runtimeModUninstalledIds = useAppStore((state) => state.runtimeModUninstalledIds);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [catalogList, updates] = await Promise.all([
+          desktopBridge.listCatalogMods(),
+          desktopBridge.checkModUpdates(),
+        ]);
+        if (cancelled) return;
+        setCatalogMods(catalogList);
+        setAvailableUpdates(Object.fromEntries(updates.map((item) => [
+          item.packageId,
+          {
+            version: item.targetVersion,
+            advisoryCount: item.advisoryIds.length,
+            requiresUserConsent: item.requiresUserConsent,
+            consentReasons: item.consentReasons,
+            addedCapabilities: item.addedCapabilities,
+          },
+        ])));
+      } catch {
+        if (cancelled) return;
+        setCatalogMods([]);
+        setAvailableUpdates({});
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [localManifestSummaries]);
 
   const runtimeMods = useMemo(() => {
     const registeredSet = new Set(registeredRuntimeModIds.map((id) => normalizeModId(id)).filter(Boolean));
@@ -152,23 +219,61 @@ export function useMarketplacePageModel(): MarketplacePageModel {
     runtimeModUninstalledIds,
   ]);
 
+  const mergedMods = useMemo(() => {
+    const runtimeById = new Map(runtimeMods.map((item) => [item.id, item] as const));
+    const rows: MarketplaceMod[] = catalogMods.map((catalogMod) => {
+      const runtime = runtimeById.get(catalogMod.packageId);
+      const update = availableUpdates[catalogMod.packageId];
+      return {
+        ...toCatalogModRow(catalogMod, {
+          isInstalled: Boolean(runtime?.isInstalled),
+          isEnabled: Boolean(runtime?.isEnabled),
+          installedVersion: runtime ? stripVersionPrefix(runtime.version) : undefined,
+          availableUpdateVersion: update?.version,
+          advisoryCount: update?.advisoryCount || 0,
+          requiresUserConsent: update?.requiresUserConsent || false,
+          consentReasons: update?.consentReasons || [],
+          addedCapabilities: update?.addedCapabilities || [],
+        }),
+        runtimeStatus: runtime?.runtimeStatus,
+        runtimeSourceType: runtime?.runtimeSourceType,
+        runtimeSourceDir: runtime?.runtimeSourceDir,
+      };
+    });
+    const catalogIds = new Set(rows.map((item) => item.id));
+    for (const runtime of runtimeMods) {
+      if (!catalogIds.has(runtime.id)) {
+        rows.push({
+          ...runtime,
+          availableUpdateVersion: availableUpdates[runtime.id]?.version,
+          advisoryCount: availableUpdates[runtime.id]?.advisoryCount || 0,
+          requiresUserConsent: availableUpdates[runtime.id]?.requiresUserConsent || false,
+          consentReasons: availableUpdates[runtime.id]?.consentReasons || [],
+          addedCapabilities: availableUpdates[runtime.id]?.addedCapabilities || [],
+        });
+      }
+    }
+    return rows;
+  }, [availableUpdates, catalogMods, runtimeMods]);
+
   const filteredMods = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
     const mods = (query
-      ? runtimeMods.filter(
+      ? mergedMods.filter(
           (mod) =>
-            mod.name.toLowerCase().includes(query) ||
-            mod.description.toLowerCase().includes(query) ||
-            mod.author.toLowerCase().includes(query),
+            mod.name.toLowerCase().includes(query)
+            || mod.description.toLowerCase().includes(query)
+            || mod.author.toLowerCase().includes(query)
+            || normalizeModId(mod.catalogPackageId || '').toLowerCase().includes(query),
         )
-      : runtimeMods).slice();
+      : mergedMods).slice();
     return mods.sort((a, b) => {
-      const aScore = a.isInstalled ? (a.isEnabled ? 2 : 1) : 0;
-      const bScore = b.isInstalled ? (b.isEnabled ? 2 : 1) : 0;
+      const aScore = a.isInstalled ? (a.availableUpdateVersion ? 3 : a.isEnabled ? 2 : 1) : 0;
+      const bScore = b.isInstalled ? (b.availableUpdateVersion ? 3 : b.isEnabled ? 2 : 1) : 0;
       if (aScore !== bScore) return bScore - aScore;
       return a.name.localeCompare(b.name);
     });
-  }, [searchQuery, runtimeMods]);
+  }, [searchQuery, mergedMods]);
 
   const onSelectMod = useCallback((modId: string | null) => {
     setSelectedModId(modId);
@@ -177,12 +282,12 @@ export function useMarketplacePageModel(): MarketplacePageModel {
   const onOpenMod = useCallback((modId: string) => {
     const normalized = normalizeModId(modId);
     if (!normalized) return;
-    const targetMod = runtimeMods.find((item) => item.id === normalized);
+    const targetMod = mergedMods.find((item) => item.id === normalized);
     const title = targetMod?.name || normalized;
     const tabId = resolveModTabId(normalized);
     openModWorkspaceTab(tabId, title, normalized);
     setActiveTab(tabId as AppTab);
-  }, [openModWorkspaceTab, runtimeMods, setActiveTab]);
+  }, [mergedMods, openModWorkspaceTab, setActiveTab]);
 
   const onOpenModSettings = useCallback((modId: string) => {
     const normalized = normalizeModId(modId);
@@ -243,6 +348,50 @@ export function useMarketplacePageModel(): MarketplacePageModel {
     }
   }, []);
 
+  const finalizeInstalledManifest = useCallback(async (input: {
+    result: CatalogInstallResult;
+    successMessage: string;
+    rollbackOnFailure?: boolean;
+  }) => {
+    const appStore = useAppStore.getState();
+    const result = input.result.install;
+    appStore.setRuntimeModUninstalledIds(withRemovedModId(appStore.runtimeModUninstalledIds, result.modId));
+    appStore.setRuntimeModDisabledIds(withRemovedModId(appStore.runtimeModDisabledIds, result.modId));
+    const refreshedManifests = await refreshRuntimeManifestSummaries();
+    const manifest = refreshedManifests.find((item) => normalizeModId(item.id) === result.modId) || result.manifest;
+    if (!input.result.requiresUserConsent) {
+      const registration = await registerOneRuntimeMod({ manifest });
+      if (registration.failure) {
+        if (input.rollbackOnFailure && result.rollbackPath) {
+          const restored = await desktopBridge.restoreRuntimeModBackup({
+            modId: result.modId,
+            backupPath: result.rollbackPath,
+          });
+          await registerOneRuntimeMod({ manifest: restored });
+          await syncRuntimeModShellState(await refreshRuntimeManifestSummaries());
+          throw new Error(`update registration failed and rollback restored previous version: ${registration.failure.error}`);
+        }
+        throw new Error(registration.failure.error);
+      }
+    } else {
+      appStore.setRuntimeModDisabledIds(withAddedModId(appStore.runtimeModDisabledIds, result.modId));
+      unregisterRuntimeMods([result.modId]);
+      removeRuntimeModStyles(result.modId);
+    }
+    await syncRuntimeModShellState(refreshedManifests);
+    setSelectedModId(result.modId);
+    const consentSummary = formatConsentSummary({
+      consentReasons: input.result.consentReasons,
+      addedCapabilities: input.result.addedCapabilities,
+    });
+    appStore.setStatusBanner({
+      kind: input.result.requiresUserConsent || input.result.advisoryIds.length > 0 ? 'warning' : 'success',
+      message: input.result.requiresUserConsent
+        ? `Mod ${result.modId} 已安装，但需要重新确认后才会启用${consentSummary ? `：${consentSummary}` : ''}`
+        : input.successMessage,
+    });
+  }, []);
+
   const installFromSource = useCallback(async (
     source: string,
     sourceKind: 'directory' | 'archive' | 'url',
@@ -282,12 +431,24 @@ export function useMarketplacePageModel(): MarketplacePageModel {
   const onInstallMod = useCallback((modId: string) => {
     void runRuntimeAction(modId, 'install', async () => {
       const normalizedModId = normalizeModId(modId);
+      const selected = mergedMods.find((item) => item.id === normalizedModId);
+      if (!selected) {
+        throw new Error('mod not found');
+      }
+      if (selected.source === 'catalog') {
+        const result = await desktopBridge.installCatalogMod({ packageId: normalizedModId });
+        await finalizeInstalledManifest({
+          result,
+          successMessage: `Mod ${normalizedModId} 已从 catalog 安装`,
+        });
+        return;
+      }
+
       const appStore = useAppStore.getState();
       const manifest = appStore.localManifestSummaries.find((item) => normalizeModId(item.id || '') === normalizedModId);
       if (!manifest) {
         throw new Error('manifest not found');
       }
-
       appStore.setRuntimeModUninstalledIds(withRemovedModId(appStore.runtimeModUninstalledIds, normalizedModId));
       appStore.setRuntimeModDisabledIds(withRemovedModId(appStore.runtimeModDisabledIds, normalizedModId));
       const result = await registerOneRuntimeMod({ manifest });
@@ -298,7 +459,6 @@ export function useMarketplacePageModel(): MarketplacePageModel {
         ]);
         throw new Error(result.failure.error);
       }
-
       appStore.setRuntimeModFailures(
         appStore.runtimeModFailures.filter((item) => item.modId !== normalizedModId),
       );
@@ -309,7 +469,21 @@ export function useMarketplacePageModel(): MarketplacePageModel {
         message: `Mod ${normalizedModId} 已安装并启用`,
       });
     });
-  }, [runRuntimeAction]);
+  }, [finalizeInstalledManifest, mergedMods, runRuntimeAction]);
+
+  const onUpdateMod = useCallback((modId: string) => {
+    void runRuntimeAction(modId, 'update', async () => {
+      const normalizedModId = normalizeModId(modId);
+      unregisterRuntimeMods([normalizedModId]);
+      removeRuntimeModStyles(normalizedModId);
+      const result = await desktopBridge.updateInstalledMod({ packageId: normalizedModId });
+      await finalizeInstalledManifest({
+        result,
+        successMessage: `Mod ${normalizedModId} 已更新到 ${result.release.version}`,
+        rollbackOnFailure: true,
+      });
+    });
+  }, [finalizeInstalledManifest, runRuntimeAction]);
 
   const onEnableMod = useCallback((modId: string) => {
     void runRuntimeAction(modId, 'enable', async () => {
@@ -319,7 +493,6 @@ export function useMarketplacePageModel(): MarketplacePageModel {
       if (!manifest) {
         throw new Error('manifest not found');
       }
-
       appStore.setRuntimeModUninstalledIds(withRemovedModId(appStore.runtimeModUninstalledIds, normalizedModId));
       appStore.setRuntimeModDisabledIds(withRemovedModId(appStore.runtimeModDisabledIds, normalizedModId));
 
@@ -427,6 +600,7 @@ export function useMarketplacePageModel(): MarketplacePageModel {
     onSearchQueryChange: setSearchQuery,
     onOpenMod,
     onInstallMod,
+    onUpdateMod,
     onUninstallMod,
     onEnableMod,
     onDisableMod,

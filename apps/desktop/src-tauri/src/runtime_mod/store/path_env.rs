@@ -32,3 +32,15 @@ fn local_mods_dir(_app: &AppHandle) -> Result<PathBuf, String> {
         .map_err(|error| format!("无法创建默认 mods 目录 ({}): {error}", mods_dir.display()))?;
     Ok(mods_dir)
 }
+
+fn runtime_mod_backups_dir(_app: &AppHandle) -> Result<PathBuf, String> {
+    let base_dir = crate::desktop_paths::resolve_nimi_data_dir()?;
+    let backups_dir = base_dir.join("mod-backups");
+    fs::create_dir_all(&backups_dir).map_err(|error| {
+        format!(
+            "无法创建 runtime mod backup 目录 ({}): {error}",
+            backups_dir.display()
+        )
+    })?;
+    Ok(backups_dir)
+}

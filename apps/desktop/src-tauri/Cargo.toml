@@ -35,6 +35,7 @@ base64 = "0.22"
 zip = { version = "0.6", default-features = false, features = ["deflate"] }
 tempfile = "3"
 notify = "6"
+ed25519-dalek = { version = "2", features = ["pem", "pkcs8"] }
 
 [dev-dependencies]
 

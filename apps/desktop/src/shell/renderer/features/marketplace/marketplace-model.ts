@@ -1,4 +1,9 @@
-import type { RuntimeLocalManifestSummary } from '@renderer/bridge';
+import type {
+  CatalogConsentReason,
+  CatalogPackageSummary,
+  CatalogTrustTier,
+  RuntimeLocalManifestSummary,
+} from '@renderer/bridge';
 
 export const MARKETPLACE_COLORS = {
   brand50: '#ecfeff',
@@ -23,9 +28,9 @@ export const MARKETPLACE_COLORS = {
   gray700: '#374151',
 } as const;
 
-export type BadgeType = 'verified' | 'catalog';
+export type BadgeType = 'verified' | 'catalog' | 'official' | 'community';
 export type MarketplaceModSource = 'runtime' | 'catalog';
-export type MarketplaceRuntimeAction = 'install' | 'uninstall' | 'enable' | 'disable' | 'settings';
+export type MarketplaceRuntimeAction = 'install' | 'uninstall' | 'enable' | 'disable' | 'settings' | 'update';
 export type MarketplacePendingActionType =
   | MarketplaceRuntimeAction
   | 'install-from-path'
@@ -45,6 +50,18 @@ export type MarketplaceMod = {
   iconBg: string;
   iconText: string;
   source: MarketplaceModSource;
+  packageType?: 'desktop-mod' | 'nimi-app' | string;
+  catalogPackageId?: string;
+  trustTier?: CatalogTrustTier | string;
+  releaseChannel?: string;
+  advisoryCount?: number;
+  availableUpdateVersion?: string;
+  requiresUserConsent?: boolean;
+  consentReasons?: CatalogConsentReason[];
+  addedCapabilities?: string[];
+  supportedByDesktop?: boolean;
+  installDisabledReason?: string;
+  warningText?: string;
   runtimeStatus?: 'loaded' | 'disabled' | 'failed' | 'conflict';
   runtimeSourceType?: 'installed' | 'dev';
   runtimeSourceDir?: string;
@@ -126,6 +143,8 @@ export function toRuntimeModRow(
     iconBg: `linear-gradient(135deg, ${MARKETPLACE_COLORS.brand500}, ${MARKETPLACE_COLORS.blue600})`,
     iconText: String(displayName.slice(0, 2) || 'M').toUpperCase(),
     source: 'runtime',
+    packageType: 'desktop-mod',
+    catalogPackageId: id,
     runtimeStatus: input.isEnabled ? 'loaded' : 'disabled',
     runtimeSourceType: summary.sourceType,
     runtimeSourceDir: summary.sourceDir,
@@ -133,5 +152,89 @@ export function toRuntimeModRow(
     isInstalled: input.isInstalled,
     isEnabled: input.isEnabled,
     publisherVerified,
+    supportedByDesktop: true,
   };
+}
+
+function trustTierBadge(trustTier: CatalogTrustTier | string | undefined): BadgeType | undefined {
+  if (trustTier === 'official') return 'official';
+  if (trustTier === 'verified') return 'verified';
+  if (trustTier === 'community') return 'community';
+  return undefined;
+}
+
+export function toCatalogModRow(
+  summary: CatalogPackageSummary,
+  input: {
+    isInstalled: boolean;
+    isEnabled: boolean;
+    installedVersion?: string;
+    availableUpdateVersion?: string;
+    advisoryCount?: number;
+    requiresUserConsent?: boolean;
+    consentReasons?: CatalogConsentReason[];
+    addedCapabilities?: string[];
+  },
+): MarketplaceMod {
+  const trustTier = summary.publisher.trustTier;
+  const isSupported = summary.packageType === 'desktop-mod';
+  const version = input.installedVersion || summary.latestVersion || '0.0.0';
+  return {
+    id: summary.packageId,
+    name: summary.name,
+    description: summary.description,
+    author: summary.publisher.displayName,
+    badge: trustTierBadge(trustTier),
+    version: `v${String(version).replace(/^v/i, '')}`,
+    iconBg: trustTier === 'official'
+      ? `linear-gradient(135deg, ${MARKETPLACE_COLORS.brand600}, ${MARKETPLACE_COLORS.cyan700})`
+      : trustTier === 'verified'
+        ? `linear-gradient(135deg, ${MARKETPLACE_COLORS.blue600}, ${MARKETPLACE_COLORS.purple600})`
+        : `linear-gradient(135deg, ${MARKETPLACE_COLORS.gray500}, ${MARKETPLACE_COLORS.gray700})`,
+    iconText: String(summary.name.slice(0, 2) || summary.packageId.slice(0, 2) || 'M').toUpperCase(),
+    source: 'catalog',
+    packageType: summary.packageType,
+    catalogPackageId: summary.packageId,
+    trustTier,
+    releaseChannel: summary.latestChannel,
+    advisoryCount: input.advisoryCount || 0,
+    availableUpdateVersion: input.availableUpdateVersion,
+    requiresUserConsent: input.requiresUserConsent,
+    consentReasons: input.consentReasons,
+    addedCapabilities: input.addedCapabilities,
+    supportedByDesktop: isSupported,
+    installDisabledReason: isSupported ? undefined : 'Desktop v1 does not install nimi-app packages yet.',
+    warningText: summary.state.quarantined
+      ? 'Quarantined by catalog policy.'
+      : summary.state.yanked
+        ? 'This release is yanked and cannot be installed.'
+        : trustTier === 'community'
+          ? 'Community package. Review publisher and capabilities before enabling.'
+          : undefined,
+    isInstalled: input.isInstalled,
+    isEnabled: input.isEnabled,
+    publisherVerified: trustTier === 'official' || trustTier === 'verified',
+  };
+}
+
+export function describeConsentReason(reason: CatalogConsentReason): string {
+  switch (reason) {
+    case 'advisory-review':
+      return 'Catalog advisory requires review';
+    case 'capability-increase':
+      return 'New capabilities were added';
+    case 'community-package':
+      return 'Community trust tier requires manual review';
+    case 'trust-tier-downgrade':
+      return 'Publisher trust tier was downgraded';
+    default:
+      return String(reason || '').trim();
+  }
+}
+
+export function describeConsentReasons(reasons: readonly CatalogConsentReason[] | undefined): string[] {
+  if (!Array.isArray(reasons)) return [];
+  return reasons
+    .map((item) => describeConsentReason(item))
+    .filter(Boolean);
 }

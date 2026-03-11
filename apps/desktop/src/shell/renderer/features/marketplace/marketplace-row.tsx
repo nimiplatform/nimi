@@ -4,6 +4,7 @@ import type {
   MarketplacePendingActionType,
   MarketplaceRuntimeAction,
 } from './marketplace-model';
+import { describeConsentReasons } from './marketplace-model';
 
 const ICON_STAR = (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none">
@@ -36,6 +37,8 @@ function ModBadge({ type }: { type: BadgeType }) {
   const styles: Record<BadgeType, { bg: string; color: string; label: string }> = {
     verified: { bg: 'bg-cyan-100', color: 'text-cyan-700', label: 'Verified' },
     catalog: { bg: 'bg-gray-100', color: 'text-gray-600', label: 'Catalog' },
+    official: { bg: 'bg-emerald-100', color: 'text-emerald-700', label: 'Official' },
+    community: { bg: 'bg-amber-100', color: 'text-amber-700', label: 'Community' },
   };
   const current = styles[type];
 
@@ -82,6 +85,7 @@ export function MarketplaceRow({
   onEnableMod,
   onDisableMod: _onDisableMod,
   onOpenModSettings: _onOpenModSettings,
+  onUpdateMod,
   onSelectMod,
 }: {
   mod: MarketplaceMod;
@@ -93,11 +97,16 @@ export function MarketplaceRow({
   onEnableMod?: ((modId: string) => void) | null;
   onDisableMod?: ((modId: string) => void) | null;
   onOpenModSettings?: ((modId: string) => void) | null;
+  onUpdateMod?: ((modId: string) => void) | null;
   onSelectMod?: ((modId: string | null) => void) | null;
 }) {
   const isActionLoading = (action: MarketplaceRuntimeAction) => (
     pendingAction?.modId === mod.id && pendingAction?.action === action
   );
+  const consentReasons = describeConsentReasons(mod.consentReasons);
+  const addedCapabilities = Array.isArray(mod.addedCapabilities)
+    ? mod.addedCapabilities.filter(Boolean)
+    : [];
 
   return (
     <div
@@ -131,10 +140,44 @@ export function MarketplaceRow({
         <p className="mt-1 min-h-[2.5rem] text-xs leading-relaxed text-gray-500 line-clamp-2 break-words">
           {mod.description}
         </p>
+        {mod.warningText ? (
+          <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-700">
+            {mod.warningText}
+          </p>
+        ) : null}
+        {mod.requiresUserConsent && (consentReasons.length > 0 || addedCapabilities.length > 0) ? (
+          <div className="mt-2 rounded-xl bg-sky-50 px-3 py-2 text-[11px] leading-relaxed text-sky-800">
+            <p className="font-medium text-sky-900">Re-consent required before enabling.</p>
+            {consentReasons.length > 0 ? (
+              <p className="mt-1">{consentReasons.join('; ')}.</p>
+            ) : null}
+            {addedCapabilities.length > 0 ? (
+              <p className="mt-1">New capabilities: {addedCapabilities.join(', ')}</p>
+            ) : null}
+          </div>
+        ) : null}
 
         {/* Meta info row */}
         <div className="mt-2 flex items-center gap-2 text-[11px] text-gray-400">
           <span>{mod.author}</span>
+          {mod.packageType && (
+            <>
+              <span className="text-gray-200">·</span>
+              <span>{mod.packageType}</span>
+            </>
+          )}
+          {mod.availableUpdateVersion && (
+            <>
+              <span className="text-gray-200">·</span>
+              <span className="text-emerald-600">Update v{mod.availableUpdateVersion.replace(/^v/i, '')}</span>
+            </>
+          )}
+          {mod.advisoryCount ? (
+            <>
+              <span className="text-gray-200">·</span>
+              <span className="text-amber-600">{mod.advisoryCount} advisory</span>
+            </>
+          ) : null}
           {mod.rating && (
             <>
               <span className="text-gray-200">·</span>
@@ -163,15 +206,33 @@ export function MarketplaceRow({
               e.stopPropagation();
               onInstallMod?.(mod.id);
             }}
-            disabled={isActionLoading('install')}
+            disabled={isActionLoading('install') || mod.supportedByDesktop === false || Boolean(mod.installDisabledReason)}
             className="flex items-center gap-1.5 rounded-full bg-mint-500 px-4 py-2 text-xs font-medium text-white shadow-sm transition-all hover:bg-mint-600 hover:shadow-md active:scale-95 disabled:opacity-60"
+            title={mod.installDisabledReason}
           >
             {isActionLoading('install') ? (
               <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
             ) : (
               ICON_PLUS
             )}
-            Install
+            {mod.supportedByDesktop === false ? 'Unsupported' : 'Install'}
+          </button>
+        ) : mod.availableUpdateVersion ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onUpdateMod?.(mod.id);
+            }}
+            disabled={isActionLoading('update')}
+            className="flex items-center gap-1.5 rounded-full bg-mint-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-mint-600 hover:shadow-md active:scale-95 disabled:opacity-60"
+          >
+            {isActionLoading('update') ? (
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            ) : (
+              ICON_PLUS
+            )}
+            Update
           </button>
         ) : mod.isEnabled ? (
           // Enabled - show Open button (solid, smaller size)

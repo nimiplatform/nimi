@@ -117,6 +117,7 @@ pub struct RuntimeLocalManifestSummary {
     pub style_paths: Option<Vec<String>>,
     pub description: Option<String>,
     pub manifest: Option<serde_json::Value>,
+    pub release_manifest: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -127,6 +128,7 @@ pub struct RuntimeModInstallResultPayload {
     pub mod_id: String,
     pub installed_path: String,
     pub manifest: RuntimeLocalManifestSummary,
+    pub rollback_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -154,6 +156,160 @@ pub struct RuntimeModSourceRecord {
     pub source_dir: String,
     pub enabled: bool,
     pub is_default: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatalogPublisherPayload {
+    pub publisher_id: String,
+    pub display_name: String,
+    pub trust_tier: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatalogStatePayload {
+    pub listed: bool,
+    pub yanked: bool,
+    pub quarantined: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatalogSignerPayload {
+    pub signer_id: String,
+    pub algorithm: String,
+    pub public_key: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatalogPackageSummaryPayload {
+    pub package_id: String,
+    pub package_type: String,
+    pub name: String,
+    pub description: String,
+    pub latest_version: Option<String>,
+    pub latest_channel: Option<String>,
+    pub publisher: CatalogPublisherPayload,
+    pub state: CatalogStatePayload,
+    pub keywords: Vec<String>,
+    pub tags: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatalogReleaseSourcePayload {
+    pub repo_url: String,
+    pub release_tag: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatalogReleaseRecordPayload {
+    pub package_type: String,
+    pub package_id: String,
+    pub version: String,
+    pub channel: String,
+    pub artifact_url: String,
+    pub sha256: String,
+    pub signature: String,
+    pub signer_id: String,
+    pub min_desktop_version: String,
+    pub min_hook_api_version: String,
+    pub capabilities: Vec<String>,
+    pub requires_reconsent_on_capability_increase: bool,
+    pub publisher: CatalogPublisherPayload,
+    pub source: CatalogReleaseSourcePayload,
+    pub state: CatalogStatePayload,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app_mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope_catalog_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_runtime_version: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatalogPackageRecordPayload {
+    pub package_id: String,
+    pub package_type: String,
+    pub name: String,
+    pub description: String,
+    pub publisher: CatalogPublisherPayload,
+    pub state: CatalogStatePayload,
+    pub channels: std::collections::HashMap<String, String>,
+    pub keywords: Vec<String>,
+    pub tags: Vec<String>,
+    pub signers: Vec<CatalogSignerPayload>,
+    pub releases: Vec<CatalogReleaseRecordPayload>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatalogRevocationRecordPayload {
+    pub scope: String,
+    pub target_id: String,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatalogRevocationsPayload {
+    pub items: Vec<CatalogRevocationRecordPayload>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatalogAdvisoryRecordPayload {
+    pub advisory_id: String,
+    pub package_id: String,
+    pub version: Option<String>,
+    pub action: String,
+    pub severity: String,
+    pub title: String,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatalogAdvisoriesPayload {
+    pub items: Vec<CatalogAdvisoryRecordPayload>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstalledModPolicyPayload {
+    pub channel: String,
+    pub auto_update: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AvailableModUpdatePayload {
+    pub package_id: String,
+    pub installed_version: String,
+    pub target_version: String,
+    pub policy: InstalledModPolicyPayload,
+    pub trust_tier: String,
+    pub requires_user_consent: bool,
+    pub consent_reasons: Vec<String>,
+    pub added_capabilities: Vec<String>,
+    pub advisory_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatalogInstallResultPayload {
+    pub install: RuntimeModInstallResultPayload,
+    pub package: CatalogPackageRecordPayload,
+    pub release: CatalogReleaseRecordPayload,
+    pub policy: InstalledModPolicyPayload,
+    pub requires_user_consent: bool,
+    pub consent_reasons: Vec<String>,
+    pub added_capabilities: Vec<String>,
+    pub advisory_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -220,6 +376,7 @@ pub struct RuntimeMediaCacheGcResultPayload {
 include!("path_env.rs");
 include!("manifest_scan.rs");
 include!("source_registry.rs");
+include!("catalog_registry.rs");
 include!("entry_io.rs");
 include!("install_store.rs");
 include!("schema.rs");

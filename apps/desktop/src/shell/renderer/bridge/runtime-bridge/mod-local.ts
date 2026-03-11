@@ -12,6 +12,10 @@ import {
   parseRuntimeModStorageDirs,
   parseRuntimeLocalManifestSummaries,
   parseRuntimeLocalManifestSummary,
+  parseCatalogInstallResult,
+  parseCatalogPackageRecord,
+  parseCatalogPackageSummaries,
+  parseAvailableModUpdates,
   type RuntimeModDeveloperModeState,
   type RuntimeModDiagnosticRecord,
   type RuntimeModInstallPayload,
@@ -23,6 +27,10 @@ import {
   type RuntimeModStorageDirs,
   type RuntimeModUpdatePayload,
   type RuntimeLocalManifestSummary,
+  type CatalogInstallResult,
+  type CatalogPackageRecord,
+  type CatalogPackageSummary,
+  type AvailableModUpdate,
 } from './types';
 
 type TauriEventUnsubscribe = () => void;
@@ -202,6 +210,59 @@ export async function readInstalledRuntimeModManifest(input: {
     throw new Error('runtime_mod_read_manifest requires Tauri runtime');
   }
   return invokeChecked('runtime_mod_read_manifest', { payload: input }, parseRuntimeLocalManifestSummary);
+}
+
+export async function listCatalogMods(): Promise<CatalogPackageSummary[]> {
+  if (!hasTauriInvoke()) {
+    return [];
+  }
+  return invokeChecked('runtime_mod_catalog_list', {}, parseCatalogPackageSummaries);
+}
+
+export async function getCatalogMod(packageId: string): Promise<CatalogPackageRecord | null> {
+  if (!hasTauriInvoke()) {
+    return null;
+  }
+  return invokeChecked('runtime_mod_catalog_get', {
+    payload: { packageId },
+  }, (value) => (value ? parseCatalogPackageRecord(value) : null));
+}
+
+export async function checkModUpdates(): Promise<AvailableModUpdate[]> {
+  if (!hasTauriInvoke()) {
+    return [];
+  }
+  return invokeChecked('runtime_mod_catalog_updates_check', {}, parseAvailableModUpdates);
+}
+
+export async function installCatalogMod(input: {
+  packageId: string;
+  channel?: string;
+}): Promise<CatalogInstallResult> {
+  if (!hasTauriInvoke()) {
+    throw new Error('runtime_mod_catalog_install requires Tauri runtime');
+  }
+  return invokeChecked('runtime_mod_catalog_install', { payload: input }, parseCatalogInstallResult);
+}
+
+export async function updateInstalledMod(input: {
+  packageId: string;
+  channel?: string;
+}): Promise<CatalogInstallResult> {
+  if (!hasTauriInvoke()) {
+    throw new Error('runtime_mod_catalog_update requires Tauri runtime');
+  }
+  return invokeChecked('runtime_mod_catalog_update', { payload: input }, parseCatalogInstallResult);
+}
+
+export async function restoreRuntimeModBackup(input: {
+  modId: string;
+  backupPath: string;
+}): Promise<RuntimeLocalManifestSummary> {
+  if (!hasTauriInvoke()) {
+    throw new Error('runtime_mod_restore_backup requires Tauri runtime');
+  }
+  return invokeChecked('runtime_mod_restore_backup', { payload: input }, parseRuntimeLocalManifestSummary);
 }
 
 export async function listRuntimeModInstallProgress(
