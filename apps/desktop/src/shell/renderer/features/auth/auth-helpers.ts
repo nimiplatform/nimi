@@ -258,6 +258,7 @@ export function resolveDesktopWebAuthLaunchBaseUrl(inputBaseUrl?: string): strin
   } catch (error) {
     throw new Error(
       `无效的 NIMI_WEB_URL：${toErrorMessage(error, '配置解析失败')}`,
+      { cause: error },
     );
   }
 }

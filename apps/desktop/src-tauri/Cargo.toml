@@ -7,34 +7,35 @@ edition = "2021"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
-tonic-build = "0.12"
+tonic-prost-build = "0.14"
 protoc-bin-vendored = "3"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 dotenvy = "0.15"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "blocking", "stream"] }
-dirs = "5"
-rfd = "0.15"
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "blocking", "stream", "form", "query"] }
+dirs = "6"
+rfd = "0.17"
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
-rusqlite = { version = "0.31", features = ["bundled"] }
+rusqlite = { version = "0.38", features = ["bundled"] }
 serde_yaml = "0.9"
 webbrowser = "1"
 sha2 = "0.10"
 chrono = { version = "0.4", default-features = true, features = ["clock"] }
 url = "2"
-axum = { version = "0.7", features = ["json"] }
+axum = { version = "0.8", features = ["json"] }
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "net", "sync", "time"] }
-jsonwebtoken = "9"
+jsonwebtoken = "10"
 futures-util = "0.3"
-tonic = { version = "0.12", features = ["transport"] }
-prost = "0.13"
-prost-types = "0.13"
+tonic = { version = "0.14", features = ["transport"] }
+tonic-prost = "0.14"
+prost = "0.14"
+prost-types = "0.14"
 base64 = "0.22"
-zip = { version = "0.6", default-features = false, features = ["deflate"] }
+zip = { version = "8.2", default-features = false, features = ["deflate"] }
 tempfile = "3"
-notify = "6"
+notify = "8"
 ed25519-dalek = { version = "2", features = ["pem", "pkcs8"] }
 
 [dev-dependencies]

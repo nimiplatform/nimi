@@ -517,35 +517,19 @@ export async function registerCoreDataCapabilities(): Promise<void> {
       };
     }
 
-    let remoteRecall: Awaited<ReturnType<typeof loadRemoteRecall>> | null = null;
-    let remoteCore: AgentMemoryRecord[] | null = null;
-    let remoteE2E: AgentMemoryRecord[] | null = null;
+    const remoteRecall = await loadRemoteRecall({
+      agentId,
+      entityId,
+      query: recallQuery,
+    }).catch(() => null);
 
-    try {
-      remoteRecall = await loadRemoteRecall({
-        agentId,
-        entityId,
-        query: recallQuery,
-      });
-    } catch {
-      remoteRecall = null;
-    }
+    const remoteCore = await loadRemoteCoreMemories(agentId, sliceQuery).catch(() => null);
 
-    try {
-      remoteCore = await loadRemoteCoreMemories(agentId, sliceQuery);
-    } catch {
-      remoteCore = null;
-    }
-
-    try {
-      remoteE2E = await loadRemoteE2EMemories({
-        agentId,
-        entityId,
-        query: sliceQuery,
-      });
-    } catch {
-      remoteE2E = null;
-    }
+    const remoteE2E = await loadRemoteE2EMemories({
+      agentId,
+      entityId,
+      query: sliceQuery,
+    }).catch(() => null);
 
     const mergedCore = dedupeMemory([
       ...(Array.isArray(remoteCore) ? remoteCore : []),

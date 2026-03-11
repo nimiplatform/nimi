@@ -116,7 +116,7 @@ function buildCodegenDist(sourceCode: string): string {
     }
     return code;
   } catch (error) {
-    throw new Error(`CODEGEN_BUILD_FAILED: ${toBuildErrorMessage(error)}`);
+    throw new Error(`CODEGEN_BUILD_FAILED: ${toBuildErrorMessage(error)}`, { cause: error });
   }
 }
 

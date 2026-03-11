@@ -35,15 +35,40 @@ export function renderSlotEntry(input: RenderSlotEntryInput): ReactNode {
     });
   }
 
-  let rendered: ReactNode = null;
   try {
-    rendered = input.entry.render({
+    const rendered = input.entry.render({
       extensionId: input.entry.extensionId,
       modId: input.entry.modId,
       slot: input.slot,
       context: input.context,
       base: input.entryBase,
     });
+
+    if (rendered == null) {
+      return null;
+    }
+
+    return (
+      <ModExtensionErrorBoundary
+        extensionId={input.entry.extensionId}
+        modId={input.entry.modId}
+        slot={input.slot}
+        fallback={isRouteSlot
+          ? renderFusedRoutePanel({
+            entry: input.entry,
+            retryingModId: input.retryingModId,
+            context: input.context,
+            onRetryMod: input.onRetryMod,
+            fusedRuntimeMods: input.fusedRuntimeMods,
+          })
+          : undefined}
+        onError={(error) => {
+          input.onRenderFailure(input.entry, error);
+        }}
+      >
+        {rendered}
+      </ModExtensionErrorBoundary>
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error || 'render failed');
     input.onRenderFailure(input.entry, error);
@@ -59,30 +84,4 @@ export function renderSlotEntry(input: RenderSlotEntryInput): ReactNode {
     }
     return null;
   }
-
-  if (rendered == null) {
-    return null;
-  }
-
-  return (
-    <ModExtensionErrorBoundary
-      extensionId={input.entry.extensionId}
-      modId={input.entry.modId}
-      slot={input.slot}
-      fallback={isRouteSlot
-        ? renderFusedRoutePanel({
-          entry: input.entry,
-          retryingModId: input.retryingModId,
-          context: input.context,
-          onRetryMod: input.onRetryMod,
-          fusedRuntimeMods: input.fusedRuntimeMods,
-        })
-        : undefined}
-      onError={(error) => {
-        input.onRenderFailure(input.entry, error);
-      }}
-    >
-      {rendered}
-    </ModExtensionErrorBoundary>
-  );
 }

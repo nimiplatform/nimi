@@ -48,7 +48,7 @@ export type {
   OauthListenForCodeResult,
   ConfirmPrivateSyncPayload,
   ConfirmPrivateSyncResult,
-} from './runtime.js';
+} from './runtime-types.js';
 
 export {
   parseRuntimeDefaults,
@@ -82,7 +82,7 @@ export {
   parseConfirmPrivateSyncResult,
   parseOauthTokenExchangeResult,
   parseOauthListenForCodeResult,
-} from './runtime.js';
+} from './runtime-parsers.js';
 
 export type {
   LocalAiArtifactKind,

@@ -48,7 +48,7 @@ export function useSystemResources(pollIntervalMs = 5000): SystemResourceSnapsho
         if (canceled) {
           return;
         }
-        setSnapshot((prev) => ({
+        setSnapshot((prev: SystemResourceSnapshot) => ({
           ...prev,
           capturedAtMs: Date.now(),
           source: `${prev.source}:stale`,

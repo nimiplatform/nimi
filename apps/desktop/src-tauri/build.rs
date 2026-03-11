@@ -62,13 +62,13 @@ fn generate_runtime_proto_client() {
     .collect();
 
     let includes = [proto_root];
-    if let Err(error) = tonic_build::configure()
+    if let Err(error) = tonic_prost_build::configure()
         .build_client(true)
         .build_server(false)
         .build_transport(true)
         .out_dir(out_dir)
         .compile_protos(&full_paths, &includes)
     {
-        panic!("failed to compile runtime proto for rust bridge: {error}");
+        panic!("failed to compile runtime proto for rust bridge: {error:?}");
     }
 }

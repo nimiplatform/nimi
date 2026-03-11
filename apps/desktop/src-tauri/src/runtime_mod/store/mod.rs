@@ -377,6 +377,8 @@ include!("path_env.rs");
 include!("manifest_scan.rs");
 include!("source_registry.rs");
 include!("catalog_registry.rs");
+#[cfg(test)]
+include!("catalog_registry_tests.rs");
 include!("entry_io.rs");
 include!("install_store.rs");
 include!("schema.rs");

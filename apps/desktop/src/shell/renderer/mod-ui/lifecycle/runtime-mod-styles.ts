@@ -26,7 +26,9 @@ async function injectRuntimeModStyles(manifest: RuntimeLocalManifestSummary): Pr
   }
 
   removeRuntimeModStyles(modId);
-  const stylePaths = (manifest.stylePaths || []).map((item) => String(item || '').trim()).filter(Boolean);
+  const stylePaths = (manifest.stylePaths || [])
+    .map((item: string) => String(item || '').trim())
+    .filter(Boolean);
   if (stylePaths.length === 0) {
     return;
   }

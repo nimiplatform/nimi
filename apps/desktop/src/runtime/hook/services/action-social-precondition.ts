@@ -112,18 +112,13 @@ export class HookActionSocialPreconditionService {
       };
     }
 
-    let ok = false;
-    try {
-      ok = await this.resolve({
+    const ok = await this.resolve({
         humanAccountId,
         agentAccountId,
         descriptor: input.descriptor,
         context: input.context,
         input: input.input,
-      });
-    } catch {
-      ok = false;
-    }
+      }).catch(() => false);
 
     if (!ok) {
       return {

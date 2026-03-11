@@ -556,19 +556,19 @@ pub async fn run_loopback_server(state: ExternalAgentGatewayState) -> Result<(),
     let router = Router::new()
         .route("/v1/external-agent/actions", get(list_actions))
         .route(
-            "/v1/external-agent/actions/:action_id/dry-run",
+            "/v1/external-agent/actions/{action_id}/dry-run",
             post(dry_run_action),
         )
         .route(
-            "/v1/external-agent/actions/:action_id/verify",
+            "/v1/external-agent/actions/{action_id}/verify",
             post(verify_action),
         )
         .route(
-            "/v1/external-agent/actions/:action_id/commit",
+            "/v1/external-agent/actions/{action_id}/commit",
             post(commit_action),
         )
         .route(
-            "/v1/external-agent/executions/:execution_id/events",
+            "/v1/external-agent/executions/{execution_id}/events",
             get(execution_events),
         )
         .route("/v1/external-agent/audits", get(list_audits))

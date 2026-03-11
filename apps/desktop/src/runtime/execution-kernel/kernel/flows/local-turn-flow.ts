@@ -140,7 +140,7 @@ export async function runLocalTurnFlow({
       });
     }
     if (shouldDisable(`local:${input.provider}`)) {
-      throw new Error('CRASH_ISOLATED: provider disabled by crash-isolator');
+      throw new Error('CRASH_ISOLATED: provider disabled by crash-isolator', { cause: error });
     }
     throw error;
   }

@@ -26,7 +26,7 @@ export async function loadSideloadRuntimeModFactory(input: {
   const normalizeErrorMessage = (error: unknown): string =>
     error instanceof Error ? error.message : String(error || '');
 
-  let importError: unknown = null;
+  let importError: unknown;
   try {
     const factory = await loadRuntimeModFactoryFromEntryPath(input.entryPath);
     if (factory) {
@@ -40,7 +40,7 @@ export async function loadSideloadRuntimeModFactory(input: {
     importError = error;
   }
 
-  let source = '';
+  let source: string;
   try {
     source = await input.readEntry(input.entryPath);
   } catch (error) {

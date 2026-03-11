@@ -247,7 +247,7 @@ export async function startSocialOauth(provider: SocialOauthProvider): Promise<S
       refreshToken: exchange.refreshToken,
     };
   } catch (error) {
-    throw new Error(toDesktopBrowserAuthErrorMessage(error));
+    throw new Error(toDesktopBrowserAuthErrorMessage(error), { cause: error });
   } finally {
     void listenTask.catch(() => undefined);
   }

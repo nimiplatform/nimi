@@ -550,7 +550,7 @@ pub fn restore_runtime_mod_backup(
 mod runtime_mod_install_store_tests {
     use super::*;
     use std::io::Write;
-    use zip::write::FileOptions;
+    use zip::write::SimpleFileOptions;
 
     #[test]
     fn extract_archive_to_dir_rejects_path_traversal_entries() {
@@ -559,7 +559,7 @@ mod runtime_mod_install_store_tests {
         let file = File::create(&archive_path).expect("zip file");
         let mut writer = zip::ZipWriter::new(file);
         writer
-            .start_file("../evil.txt", FileOptions::default())
+            .start_file("../evil.txt", SimpleFileOptions::default())
             .expect("start file");
         writer.write_all(b"evil").expect("write zip");
         writer.finish().expect("finish zip");

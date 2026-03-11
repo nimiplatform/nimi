@@ -7,7 +7,7 @@ import {
   parseCatalogPackageSummaries,
   parseCatalogReleaseRecord,
   parseRuntimeModInstallResult,
-} from '../src/shell/renderer/bridge/runtime-bridge/runtime';
+} from '../src/shell/renderer/bridge/runtime-bridge/runtime-parsers';
 import { toCatalogModRow } from '../src/shell/renderer/features/mod-hub/mod-hub-model';
 
 test('parseRuntimeModInstallResult keeps rollbackPath and releaseManifest metadata', () => {

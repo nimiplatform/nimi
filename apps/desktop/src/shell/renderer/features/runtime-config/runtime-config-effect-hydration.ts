@@ -24,12 +24,13 @@ export function useRuntimeConfigHydrationEffect(input: HydrationEffectInput) {
   useEffect(() => {
     if (!input.bootstrapReady || input.hydrated) return;
 
-    let hadV11 = false;
-    try {
-      hadV11 = Boolean(localStorage.getItem(RUNTIME_CONFIG_STORAGE_KEY_V11));
-    } catch {
-      hadV11 = false;
-    }
+    const hadV11 = (() => {
+      try {
+        return Boolean(localStorage.getItem(RUNTIME_CONFIG_STORAGE_KEY_V11));
+      } catch {
+        return false;
+      }
+    })();
 
     const loaded = loadRuntimeConfigStateV11({
       provider: input.runtimeFields.provider,
