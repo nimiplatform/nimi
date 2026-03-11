@@ -1,5 +1,5 @@
 import { dataSync } from '@runtime/data-sync';
-import { stopRuntimeBridge } from '@renderer/bridge';
+import { completeMenuBarQuit, stopRuntimeBridge } from '@renderer/bridge';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { stopAuthStateWatcher } from './auth-state-watcher';
 
@@ -21,11 +21,11 @@ export function registerExitHandler(options: { managed: boolean }) {
     return;
   }
 
-  tauriEvent.listen('tauri://close-requested', async () => {
+  tauriEvent.listen('menu-bar://quit-requested', async () => {
     logRendererEvent({
       level: 'info',
       area: 'exit-handler',
-      message: 'phase:exit-handler:cleanup-start',
+      message: 'phase:exit-handler:quit-start',
     });
 
     try {
@@ -37,16 +37,18 @@ export function registerExitHandler(options: { managed: boolean }) {
         await stopRuntimeBridge();
       }
 
+      await completeMenuBarQuit();
+
       logRendererEvent({
         level: 'info',
         area: 'exit-handler',
-        message: 'phase:exit-handler:cleanup-done',
+        message: 'phase:exit-handler:quit-done',
       });
     } catch (error) {
       logRendererEvent({
         level: 'error',
         area: 'exit-handler',
-        message: 'phase:exit-handler:cleanup-failed',
+        message: 'phase:exit-handler:quit-failed',
         details: { error: String(error) },
       });
     }
@@ -56,6 +58,6 @@ export function registerExitHandler(options: { managed: boolean }) {
     level: 'info',
     area: 'exit-handler',
     message: 'phase:exit-handler:registered',
-    details: { managed: options.managed },
+    details: { managed: options.managed, mode: 'menu-bar-quit-only' },
   });
 }

@@ -106,16 +106,20 @@ Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；leg
 - 这包括 `D-BOOT-007` 成功后的首次认证，以及后续 token 刷新后的重新认证。
 - `bootstrapReady=true` 不依赖 `loadInitialData()` 完成。
 
-## D-BOOT-011 — Desktop 退出与 Daemon 关闭
+## D-BOOT-011 — Desktop 退出、Hide 与 Daemon 关闭
 
-Desktop 窗口关闭时的 daemon 生命周期行为：
+Desktop 在 menu bar shell 模式下必须区分“关闭主窗口”和“退出应用”：
 
-**触发条件**：Tauri `on_window_event(CloseRequested)` 或应用进程退出。
+- **主窗口 CloseRequested**：当 `enableMenuBarShell=true` 且运行于 macOS 时，`CloseRequested` 必须仅隐藏主窗口，不得触发 app 退出，不得停止 daemon。
+- **Quit path**：menu bar `Quit Nimi`、系统级 Quit、或等效显式退出路径才允许进入 app 退出流程。
 
-**行为**：
+Quit path 的 daemon 生命周期行为：
+
 - **Desktop managed daemon**（D-IPC-002 `managed=true`）：Desktop 退出前调用 `runtime_bridge_stop`（D-IPC-002），等待 daemon 进入 `STOPPED` 状态。等待超时为 K-DAEMON-003 停机超时（默认 10s）+ 2s 缓冲。超时后 Desktop 强制退出，daemon 可能残留为孤儿进程。
 - **外部 daemon**（`managed=false`）：Desktop 退出不停止 daemon。daemon 由外部管理者负责生命周期。
-- **清理顺序**：停止所有轮询（D-DSYNC-000 `stopAllPolling`）→ 清除主动刷新计时器（D-AUTH-007）→ 发送 `runtime_bridge_stop`（仅 managed）→ 退出。
+- **清理顺序**：停止所有轮询（D-DSYNC-000 `stopAllPolling`）→ 清除主动刷新计时器（D-AUTH-007）→ 停止 auth watcher / shell cleanup → 发送 `runtime_bridge_stop`（仅 managed）→ 退出。
+
+当 `enableMenuBarShell=false` 时，Desktop 可继续沿现有非 menu bar 退出语义执行。
 
 ## D-BOOT-012 — Realm 可达性策略
 

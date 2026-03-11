@@ -13,6 +13,8 @@
 | `confirm_private_sync` | `ui` | Confirm private data sync for agent/session | `D-IPC-005` |
 | `log_renderer_event` | `telemetry` | Forward renderer-side structured log event to Tauri backend logger | `D-IPC-009` |
 | `start_window_drag` | `ui` | Start native window drag operation | `D-IPC-005` |
+| `menu_bar_sync_runtime_health` | `ui` | Sync menu bar runtime/provider health summary from renderer to Tauri backend | `D-IPC-005` |
+| `menu_bar_complete_quit` | `ui` | Finalize explicit app quit after renderer cleanup | `D-IPC-005` |
 | `runtime_mod_append_audit` | `mod-local` | Append mod audit record | `D-IPC-007` |
 | `runtime_mod_query_audit` | `mod-local` | Query mod audit records | `D-IPC-007` |
 | `runtime_mod_delete_audit` | `mod-local` | Delete mod audit record | `D-IPC-007` |

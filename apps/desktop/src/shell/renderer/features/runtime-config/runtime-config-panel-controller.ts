@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { CapabilityV11, RuntimePageIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { persistRuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-storage-persist';
+import { addRuntimeConfigOpenPageListener } from '@renderer/features/runtime-config/runtime-config-navigation-events';
 import { useRuntimeConfigPanelEffects } from './runtime-config-panel-effects';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { createRuntimeConfigPanelCommands } from './runtime-config-panel-commands';
@@ -142,6 +143,13 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     if (!panelState.hydrated || !panelState.state) return;
     persistRuntimeConfigStateV11(panelState.state);
   }, [panelState.hydrated, panelState.state]);
+
+  useEffect(() => addRuntimeConfigOpenPageListener((pageId) => {
+    panelState.updateState((prev) => ({
+      ...prev,
+      activePage: pageId,
+    }));
+  }), [panelState.updateState]);
 
   useRuntimeConfigBridgeSync({
     hydrated: panelState.hydrated,

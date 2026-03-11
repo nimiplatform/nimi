@@ -38,6 +38,12 @@ flags:
     description: Enable native window titlebar drag
     source_rule: D-SHELL-003
 
+  - flag: enableMenuBarShell
+    default_desktop: true
+    default_web: false
+    description: Enable macOS menu bar runtime entry shell
+    source_rule: D-MBAR-001
+
   - flag: enableRuntimeBootstrap
     default_desktop: true
     default_web: false

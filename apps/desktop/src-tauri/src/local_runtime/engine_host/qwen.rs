@@ -7,15 +7,14 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
-use super::{
-    qwen_process_registry, with_model_operation_lock, EngineAdapter, EngineHealthResult,
-    LlamaCppProcessAdapter, LocalAiModelRecord, LocalAiModelStatus,
-    QWEN_TTS_GATEWAY_SCRIPT_NAME, QWEN_TTS_GATEWAY_TEMPLATE,
-    QWEN_TTS_HEALTH_POLL_INTERVAL_MS, QWEN_TTS_START_TIMEOUT_MS_DEFAULT,
-    QWEN_TTS_STOP_GRACE_MS_DEFAULT, QWEN_TTS_VENV_DIR_NAME,
-};
 #[cfg(test)]
 use super::normalize_engine;
+use super::{
+    qwen_process_registry, with_model_operation_lock, EngineAdapter, EngineHealthResult,
+    LlamaCppProcessAdapter, LocalAiModelRecord, LocalAiModelStatus, QWEN_TTS_GATEWAY_SCRIPT_NAME,
+    QWEN_TTS_GATEWAY_TEMPLATE, QWEN_TTS_HEALTH_POLL_INTERVAL_MS, QWEN_TTS_START_TIMEOUT_MS_DEFAULT,
+    QWEN_TTS_STOP_GRACE_MS_DEFAULT, QWEN_TTS_VENV_DIR_NAME,
+};
 
 pub(super) struct QwenTtsPythonAdapter;
 
@@ -479,7 +478,10 @@ impl QwenTtsPythonAdapter {
 }
 
 #[cfg(test)]
-pub(super) fn preflight_engine_install_with<F>(engine: &str, qwen_preflight: F) -> Result<(), String>
+pub(super) fn preflight_engine_install_with<F>(
+    engine: &str,
+    qwen_preflight: F,
+) -> Result<(), String>
 where
     F: FnOnce() -> Result<(), String>,
 {

@@ -8,6 +8,7 @@ export type ShellFeatureFlags = {
   enableModWorkspaceTabs: boolean;
   enableSettingsExtensions: boolean;
   enableTitlebarDrag: boolean;
+  enableMenuBarShell: boolean;
   enableRuntimeBootstrap: boolean;
 };
 
@@ -30,6 +31,18 @@ function resolveShellModeFromEnv(): ShellMode {
   return hasTauriRuntime() ? 'desktop' : 'web';
 }
 
+function isMacDesktopEnvironment(): boolean {
+  if (typeof navigator === 'undefined') {
+    return false;
+  }
+  const userAgentDataPlatform = (navigator as Navigator & {
+    userAgentData?: { platform?: string };
+  }).userAgentData?.platform;
+  const platform = String(userAgentDataPlatform || navigator.platform || '').toLowerCase();
+  const userAgent = String(navigator.userAgent || '').toLowerCase();
+  return platform.includes('mac') || userAgent.includes('mac os');
+}
+
 let cachedFlags: ShellFeatureFlags | null = null;
 
 export function getShellFeatureFlags(): ShellFeatureFlags {
@@ -39,6 +52,7 @@ export function getShellFeatureFlags(): ShellFeatureFlags {
 
   const mode = resolveShellModeFromEnv();
   const isDesktop = mode === 'desktop';
+  const enableMenuBarShell = isDesktop && isMacDesktopEnvironment();
 
   cachedFlags = {
     mode,
@@ -48,6 +62,7 @@ export function getShellFeatureFlags(): ShellFeatureFlags {
     enableModWorkspaceTabs: isDesktop,
     enableSettingsExtensions: isDesktop,
     enableTitlebarDrag: isDesktop,
+    enableMenuBarShell,
     enableRuntimeBootstrap: isDesktop,
   };
 

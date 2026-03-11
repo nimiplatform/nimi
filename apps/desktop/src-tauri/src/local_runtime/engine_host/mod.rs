@@ -1,7 +1,5 @@
 use super::engine_pack::ensure_llama_cpp_binary;
-use super::types::{
-    LocalAiModelHealth, LocalAiModelRecord, LocalAiModelStatus,
-};
+use super::types::{LocalAiModelHealth, LocalAiModelRecord, LocalAiModelStatus};
 use std::collections::HashMap;
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
@@ -11,9 +9,9 @@ use std::time::{Duration, Instant};
 
 mod qwen;
 
-use self::qwen::QwenTtsPythonAdapter;
 #[cfg(test)]
 use self::qwen::preflight_engine_install_with;
+use self::qwen::QwenTtsPythonAdapter;
 
 #[derive(Debug, Clone)]
 pub struct EngineHealthResult {
@@ -577,8 +575,8 @@ mod tests {
     }
 
     fn unreachable_endpoint_fixture() -> String {
-        let listener =
-            TcpListener::bind("127.0.0.1:0").expect("bind ephemeral localhost port for unreachable fixture");
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .expect("bind ephemeral localhost port for unreachable fixture");
         let port = listener
             .local_addr()
             .expect("resolve ephemeral localhost port")

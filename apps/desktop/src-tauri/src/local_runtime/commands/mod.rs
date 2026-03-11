@@ -60,8 +60,7 @@ use super::types::{
     LocalAiInstallPlanDescriptor, LocalAiInstallRequest, LocalAiModelHealth, LocalAiModelRecord,
     LocalAiModelSource, LocalAiNodeDescriptor, LocalAiRuntimeState, LocalAiServiceArtifactType,
     LocalAiServiceDescriptor, LocalAiServiceStatus, LocalAiVerifiedModelDescriptor,
-    OrphanArtifactFile, OrphanModelFile, DEFAULT_LOCAL_ENDPOINT,
-    LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
+    OrphanArtifactFile, OrphanModelFile, DEFAULT_LOCAL_ENDPOINT, LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
 };
 use super::verified_models::{find_verified_model, verified_model_list};
 

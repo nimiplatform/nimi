@@ -6,8 +6,8 @@ use serde::Deserialize;
 use super::super::hf_source::hf_download_base_url;
 use super::super::types::{GgufVariantDescriptor, LocalAiCatalogItemDescriptor};
 use super::shared::{
-    default_endpoint_for_engine, infer_engine, normalize_non_empty, provider_hints_for_capabilities,
-    runtime_mode_for_engine,
+    default_endpoint_for_engine, infer_engine, normalize_non_empty,
+    provider_hints_for_capabilities, runtime_mode_for_engine,
 };
 
 const HF_SEARCH_TIMEOUT_SECS: u64 = 20;

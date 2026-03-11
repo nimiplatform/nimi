@@ -10,4 +10,5 @@
 | `enableModWorkspaceTabs` | `true` | `false` | `D-SHELL-002` |
 | `enableSettingsExtensions` | `true` | `false` | `D-SHELL-002` |
 | `enableTitlebarDrag` | `true` | `false` | `D-SHELL-003` |
+| `enableMenuBarShell` | `true` | `false` | `D-MBAR-001` |
 | `enableRuntimeBootstrap` | `true` | `false` | `D-BOOT-004` |

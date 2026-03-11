@@ -98,32 +98,36 @@ pub fn runtime_bridge_stream_close(payload: RuntimeBridgeStreamClosePayload) {
 }
 
 #[tauri::command]
-pub fn runtime_bridge_status() -> RuntimeBridgeDaemonStatus {
-    daemon_manager::status()
+pub fn runtime_bridge_status(app: AppHandle) -> RuntimeBridgeDaemonStatus {
+    let status = current_daemon_status();
+    crate::menu_bar_shell::refresh_from_daemon(&app);
+    status
 }
 
 #[tauri::command]
-pub fn runtime_bridge_start() -> Result<RuntimeBridgeDaemonStatus, String> {
-    let result = daemon_manager::start();
-    if result.is_ok() {
-        channel_pool::invalidate_channel();
-    }
+pub fn runtime_bridge_start(app: AppHandle) -> Result<RuntimeBridgeDaemonStatus, String> {
+    crate::menu_bar_shell::set_action_in_flight(&app, Some("start"));
+    let result = start_daemon();
+    crate::menu_bar_shell::set_action_in_flight(&app, None);
+    crate::menu_bar_shell::refresh_from_daemon(&app);
     result
 }
 
 #[tauri::command]
-pub fn runtime_bridge_stop() -> Result<RuntimeBridgeDaemonStatus, String> {
-    let result = daemon_manager::stop();
-    channel_pool::invalidate_channel();
+pub fn runtime_bridge_stop(app: AppHandle) -> Result<RuntimeBridgeDaemonStatus, String> {
+    crate::menu_bar_shell::set_action_in_flight(&app, Some("stop"));
+    let result = stop_daemon();
+    crate::menu_bar_shell::set_action_in_flight(&app, None);
+    crate::menu_bar_shell::refresh_from_daemon(&app);
     result
 }
 
 #[tauri::command]
-pub fn runtime_bridge_restart() -> Result<RuntimeBridgeDaemonStatus, String> {
-    let result = daemon_manager::restart();
-    if result.is_ok() {
-        channel_pool::invalidate_channel();
-    }
+pub fn runtime_bridge_restart(app: AppHandle) -> Result<RuntimeBridgeDaemonStatus, String> {
+    crate::menu_bar_shell::set_action_in_flight(&app, Some("restart"));
+    let result = restart_daemon();
+    crate::menu_bar_shell::set_action_in_flight(&app, None);
+    crate::menu_bar_shell::refresh_from_daemon(&app);
     result
 }
 
@@ -135,6 +139,32 @@ pub fn runtime_bridge_config_get() -> Result<Value, String> {
 #[tauri::command]
 pub fn runtime_bridge_config_set(payload: RuntimeBridgeConfigSetPayload) -> Result<Value, String> {
     daemon_manager::config_set(payload.config_json.as_str())
+}
+
+pub fn current_daemon_status() -> RuntimeBridgeDaemonStatus {
+    daemon_manager::status()
+}
+
+pub fn start_daemon() -> Result<RuntimeBridgeDaemonStatus, String> {
+    let result = daemon_manager::start();
+    if result.is_ok() {
+        channel_pool::invalidate_channel();
+    }
+    result
+}
+
+pub fn stop_daemon() -> Result<RuntimeBridgeDaemonStatus, String> {
+    let result = daemon_manager::stop();
+    channel_pool::invalidate_channel();
+    result
+}
+
+pub fn restart_daemon() -> Result<RuntimeBridgeDaemonStatus, String> {
+    let result = daemon_manager::restart();
+    if result.is_ok() {
+        channel_pool::invalidate_channel();
+    }
+    result
 }
 
 #[cfg(test)]

@@ -1,6 +1,7 @@
 import {
   appendLocalAiInferenceAudit,
   confirmPrivateSync,
+  completeMenuBarQuit,
   desktopBridge as runtimeDesktopBridge,
   focusMainWindow,
   getRuntimeBridgeConfig,
@@ -50,6 +51,7 @@ import {
   startWindowDrag,
   stopRuntimeBridge,
   stopLocalAiModel,
+  syncMenuBarRuntimeHealth,
   setRuntimeBridgeConfig,
   toRendererLogMessage,
   subscribeRuntimeModInstallProgress,
@@ -82,6 +84,8 @@ import type {
   OauthTokenExchangePayload,
   OauthTokenExchangeResult,
   RendererLogMessage,
+  MenuBarProviderSummary,
+  MenuBarRuntimeHealthSyncPayload,
   RuntimeBridgeConfigGetResult,
   RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
@@ -127,6 +131,8 @@ export type {
   OauthTokenExchangePayload,
   OauthTokenExchangeResult,
   RendererLogMessage,
+  MenuBarProviderSummary,
+  MenuBarRuntimeHealthSyncPayload,
   RuntimeBridgeConfigGetResult,
   RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
@@ -148,7 +154,13 @@ export type {
   RuntimeModUpdatePayload,
 };
 
-export { logRendererEvent, stopRuntimeBridge, toRendererLogMessage };
+export {
+  completeMenuBarQuit,
+  logRendererEvent,
+  stopRuntimeBridge,
+  syncMenuBarRuntimeHealth,
+  toRendererLogMessage,
+};
 
 export const desktopBridge = {
   hasTauriInvoke: runtimeDesktopBridge.hasTauriInvoke,
@@ -166,6 +178,8 @@ export const desktopBridge = {
   oauthListenForCode,
   confirmPrivateSync,
   focusMainWindow,
+  syncMenuBarRuntimeHealth,
+  completeMenuBarQuit,
   listInstalledRuntimeMods,
   installRuntimeMod,
   listRuntimeLocalModManifests,

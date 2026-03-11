@@ -207,9 +207,7 @@ fn preflight_port_hint(artifact: &LocalAiServiceArtifact) -> Option<u16> {
     })
 }
 
-pub(super) fn default_loopback_endpoint_for_artifact(
-    artifact: &LocalAiServiceArtifact,
-) -> String {
+pub(super) fn default_loopback_endpoint_for_artifact(artifact: &LocalAiServiceArtifact) -> String {
     if let Some(port) = preflight_port_hint(artifact) {
         return format!("http://127.0.0.1:{port}/v1");
     }

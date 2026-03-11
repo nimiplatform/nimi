@@ -2,9 +2,7 @@ use super::super::provider_adapter::{
     default_provider_hints_for_provider_capability, provider_from_engine,
 };
 use super::super::service_artifacts::find_service_artifact;
-use super::super::types::{
-    LocalAiEngineRuntimeMode, LocalAiProviderHints, DEFAULT_LOCAL_ENDPOINT,
-};
+use super::super::types::{LocalAiEngineRuntimeMode, LocalAiProviderHints, DEFAULT_LOCAL_ENDPOINT};
 
 pub(super) const HF_SEARCH_LIMIT_MIN: usize = 1;
 pub(super) const HF_SEARCH_LIMIT_MAX: usize = 80;

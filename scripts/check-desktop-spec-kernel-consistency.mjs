@@ -17,6 +17,7 @@ const kernelFiles = [
   'spec/desktop/kernel/hook-capability-contract.md',
   'spec/desktop/kernel/mod-governance-contract.md',
   'spec/desktop/kernel/llm-adapter-contract.md',
+  'spec/desktop/kernel/menu-bar-shell-contract.md',
   'spec/desktop/kernel/ui-shell-contract.md',
   'spec/desktop/kernel/error-boundary-contract.md',
   'spec/desktop/kernel/telemetry-contract.md',

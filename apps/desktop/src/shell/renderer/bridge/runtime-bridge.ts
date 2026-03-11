@@ -36,6 +36,7 @@ import {
   upsertRuntimeModSource,
   setRuntimeModDeveloperMode,
 } from './runtime-bridge/mod-local';
+import { completeMenuBarQuit, syncMenuBarRuntimeHealth } from './runtime-bridge/menu-bar';
 import { confirmPrivateSync, focusMainWindow, openExternalUrl, startWindowDrag } from './runtime-bridge/ui';
 import type { LocalAiLifecycleCaller } from './runtime-bridge/local-ai';
 import type {
@@ -276,6 +277,8 @@ export type {
   OauthListenForCodeResult,
   ConfirmPrivateSyncPayload,
   ConfirmPrivateSyncResult,
+  MenuBarProviderSummary,
+  MenuBarRuntimeHealthSyncPayload,
   LocalAiInferenceAuditPayload,
   LocalAiAuditEvent,
   LocalAiAuditListPayload,
@@ -340,6 +343,8 @@ export {
   focusMainWindow,
   openExternalUrl,
   startWindowDrag,
+  syncMenuBarRuntimeHealth,
+  completeMenuBarQuit,
 };
 
 export const desktopBridge = {
@@ -360,6 +365,8 @@ export const desktopBridge = {
   oauthListenForCode,
   confirmPrivateSync,
   focusMainWindow,
+  syncMenuBarRuntimeHealth,
+  completeMenuBarQuit,
   listRuntimeLocalModManifests,
   readRuntimeLocalModEntry,
   listInstalledRuntimeMods,

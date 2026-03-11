@@ -444,11 +444,9 @@ mod tests {
             models_dir.as_path(),
         );
         assert!(invalid_name.is_err());
-        assert!(
-            invalid_name
-                .unwrap_err()
-                .contains("LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID")
-        );
+        assert!(invalid_name
+            .unwrap_err()
+            .contains("LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID"));
 
         let outside_models_dir = temp.join("outside-artifacts");
         fs::create_dir_all(&outside_models_dir).expect("create outside artifacts dir");
@@ -459,11 +457,9 @@ mod tests {
             models_dir.as_path(),
         );
         assert!(invalid.is_err());
-        assert!(
-            invalid
-                .unwrap_err()
-                .contains("LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT")
-        );
+        assert!(invalid
+            .unwrap_err()
+            .contains("LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT"));
 
         let _ = fs::remove_dir_all(&temp);
     }

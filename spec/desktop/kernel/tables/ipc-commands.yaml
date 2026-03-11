@@ -52,6 +52,16 @@ commands:
     description: Start native window drag operation
     source_rule: D-IPC-005
 
+  - command: menu_bar_sync_runtime_health
+    module: ui
+    description: Sync menu bar runtime/provider health summary from renderer to Tauri backend
+    source_rule: D-IPC-005
+
+  - command: menu_bar_complete_quit
+    module: ui
+    description: Finalize explicit app quit after renderer cleanup
+    source_rule: D-IPC-005
+
   # Mod local (runtime_mod::commands)
   - command: runtime_mod_append_audit
     module: mod-local

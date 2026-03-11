@@ -1,24 +1,28 @@
+use crate::desktop_paths::{
+    describe_desktop_storage_dirs, set_nimi_data_dir, DesktopStorageDirsPayload,
+};
 use rusqlite::params;
 use serde::Deserialize;
 use tauri::AppHandle;
-use crate::desktop_paths::{describe_desktop_storage_dirs, set_nimi_data_dir, DesktopStorageDirsPayload};
 
 use super::store::{
     append_runtime_audit, delete_action_verify_ticket, gc_media_cache,
-    get_action_idempotency_record, get_action_verify_ticket, install_runtime_mod,
-    list_installed_runtime_mods, list_local_mod_manifests, list_runtime_mod_diagnostics,
-    list_runtime_mod_install_progress, list_runtime_mod_sources, open_db, open_runtime_mod_dir,
-    purge_action_execution_ledger, purge_action_idempotency_records, purge_action_verify_tickets,
-    put_action_execution_ledger_record, put_action_idempotency_record, put_action_verify_ticket,
-    put_media_cache, query_action_execution_ledger, query_runtime_audit, read_installed_runtime_mod_manifest,
-    read_local_mod_entry, reload_all_runtime_mods, reload_runtime_mod, remove_runtime_mod_source,
-    set_runtime_mod_developer_mode_state, sync_runtime_mod_source_watchers, uninstall_runtime_mod,
-    update_runtime_mod, upsert_runtime_mod_source, get_runtime_mod_developer_mode_state,
-    RuntimeActionExecutionLedgerFilter, RuntimeActionExecutionLedgerRecordPayload,
-    RuntimeActionIdempotencyRecordPayload, RuntimeActionVerifyTicketPayload, RuntimeAuditFilter,
-    RuntimeAuditRecordPayload, RuntimeLocalManifestSummary, RuntimeMediaCacheGcResultPayload, RuntimeMediaCachePutResultPayload,
-    RuntimeModDeveloperModeState, RuntimeModDiagnosticRecord, RuntimeModInstallProgressPayload,
-    RuntimeModInstallResultPayload, RuntimeModReloadResultPayload, RuntimeModSourceRecord,
+    get_action_idempotency_record, get_action_verify_ticket, get_runtime_mod_developer_mode_state,
+    install_runtime_mod, list_installed_runtime_mods, list_local_mod_manifests,
+    list_runtime_mod_diagnostics, list_runtime_mod_install_progress, list_runtime_mod_sources,
+    open_db, open_runtime_mod_dir, purge_action_execution_ledger, purge_action_idempotency_records,
+    purge_action_verify_tickets, put_action_execution_ledger_record, put_action_idempotency_record,
+    put_action_verify_ticket, put_media_cache, query_action_execution_ledger, query_runtime_audit,
+    read_installed_runtime_mod_manifest, read_local_mod_entry, reload_all_runtime_mods,
+    reload_runtime_mod, remove_runtime_mod_source, set_runtime_mod_developer_mode_state,
+    sync_runtime_mod_source_watchers, uninstall_runtime_mod, update_runtime_mod,
+    upsert_runtime_mod_source, RuntimeActionExecutionLedgerFilter,
+    RuntimeActionExecutionLedgerRecordPayload, RuntimeActionIdempotencyRecordPayload,
+    RuntimeActionVerifyTicketPayload, RuntimeAuditFilter, RuntimeAuditRecordPayload,
+    RuntimeLocalManifestSummary, RuntimeMediaCacheGcResultPayload,
+    RuntimeMediaCachePutResultPayload, RuntimeModDeveloperModeState, RuntimeModDiagnosticRecord,
+    RuntimeModInstallProgressPayload, RuntimeModInstallResultPayload,
+    RuntimeModReloadResultPayload, RuntimeModSourceRecord,
 };
 
 #[derive(Debug, Deserialize)]
@@ -324,9 +328,7 @@ pub fn runtime_mod_list_installed(
 }
 
 #[tauri::command]
-pub fn runtime_mod_sources_list(
-    app: AppHandle,
-) -> Result<Vec<RuntimeModSourceRecord>, String> {
+pub fn runtime_mod_sources_list(app: AppHandle) -> Result<Vec<RuntimeModSourceRecord>, String> {
     list_runtime_mod_sources(&app)
 }
 
@@ -357,9 +359,7 @@ pub fn runtime_mod_sources_remove(
 }
 
 #[tauri::command]
-pub fn runtime_mod_dev_mode_get(
-    app: AppHandle,
-) -> Result<RuntimeModDeveloperModeState, String> {
+pub fn runtime_mod_dev_mode_get(app: AppHandle) -> Result<RuntimeModDeveloperModeState, String> {
     get_runtime_mod_developer_mode_state(&app)
 }
 
@@ -368,11 +368,8 @@ pub fn runtime_mod_dev_mode_set(
     app: AppHandle,
     payload: RuntimeModDeveloperModeSetPayload,
 ) -> Result<RuntimeModDeveloperModeState, String> {
-    let state = set_runtime_mod_developer_mode_state(
-        &app,
-        payload.enabled,
-        payload.auto_reload_enabled,
-    )?;
+    let state =
+        set_runtime_mod_developer_mode_state(&app, payload.enabled, payload.auto_reload_enabled)?;
     sync_runtime_mod_source_watchers(&app)?;
     Ok(state)
 }
@@ -461,11 +458,7 @@ pub fn runtime_mod_read_manifest(
     app: AppHandle,
     payload: RuntimeModReadManifestPayload,
 ) -> Result<RuntimeLocalManifestSummary, String> {
-    read_installed_runtime_mod_manifest(
-        &app,
-        payload.mod_id.as_deref(),
-        payload.path.as_deref(),
-    )
+    read_installed_runtime_mod_manifest(&app, payload.mod_id.as_deref(), payload.path.as_deref())
 }
 
 #[tauri::command]

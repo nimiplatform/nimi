@@ -117,7 +117,11 @@ fn runtime_config_path() -> Option<PathBuf> {
     if let Some(value) = read_non_empty_env("NIMI_RUNTIME_CONFIG_PATH") {
         return Some(expand_home_path(value.as_str()));
     }
-    Some(crate::desktop_paths::resolve_nimi_dir().ok()?.join("config.json"))
+    Some(
+        crate::desktop_paths::resolve_nimi_dir()
+            .ok()?
+            .join("config.json"),
+    )
 }
 
 fn expand_home_path(raw: &str) -> PathBuf {

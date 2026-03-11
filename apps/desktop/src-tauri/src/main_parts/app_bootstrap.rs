@@ -16,6 +16,7 @@ fn main() {
                 external_agent_gateway::ExternalAgentGatewayState::new(app.handle().clone());
             external_agent_gateway::start_external_agent_gateway(gateway_state.clone());
             app.manage(gateway_state);
+            app.manage(crate::menu_bar_shell::MenuBarShellStore::new());
             #[cfg(target_os = "macos")]
             let configured_traffic_light_position = app
                 .config()
@@ -31,6 +32,30 @@ fn main() {
                 });
             if let Some(window) = app.get_webview_window("main") {
                 eprintln!("[boot:{:}] setup found main window", now_ms());
+                #[cfg(target_os = "macos")]
+                {
+                    let app_handle_for_close = app.handle().clone();
+                    let window_for_close = window.clone();
+                    window.on_window_event(move |event| {
+                        match event {
+                            tauri::WindowEvent::CloseRequested { api, .. } => {
+                                api.prevent_close();
+                                let _ = window_for_close.hide();
+                                crate::menu_bar_shell::set_window_visible(
+                                    &app_handle_for_close,
+                                    false,
+                                );
+                            }
+                            tauri::WindowEvent::Focused(true) => {
+                                crate::menu_bar_shell::set_window_visible(
+                                    &app_handle_for_close,
+                                    true,
+                                );
+                            }
+                            _ => {}
+                        }
+                    });
+                }
                 #[cfg(target_os = "macos")]
                 {
                     let _ = window.set_title("");
@@ -81,6 +106,7 @@ fn main() {
                     }
                 }
             }
+            let _ = crate::menu_bar_shell::setup(&app.handle());
             let _ = crate::runtime_mod::store::sync_runtime_mod_source_watchers(&app.handle());
             Ok(())
         })
@@ -95,6 +121,8 @@ fn main() {
             log_renderer_event,
             focus_main_window,
             start_window_drag,
+            menu_bar_shell::menu_bar_sync_runtime_health,
+            menu_bar_shell::menu_bar_complete_quit,
             runtime_mod::commands::runtime_mod_append_audit,
             runtime_mod::commands::runtime_mod_query_audit,
             runtime_mod::commands::runtime_mod_delete_audit,
@@ -185,10 +213,19 @@ fn main() {
             local_runtime::commands::runtime_local_artifacts_scan_orphans,
             local_runtime::commands::runtime_local_artifacts_scaffold_orphan
         ])
-        .run(tauri::generate_context!());
+        .build(tauri::generate_context!());
 
     match result {
-        Ok(_) => {
+        Ok(app) => {
+            app.run(|app_handle, event| {
+                if let tauri::RunEvent::ExitRequested { api, .. } = event {
+                    let store = app_handle.state::<crate::menu_bar_shell::MenuBarShellStore>();
+                    if !store.quit_pending() {
+                        api.prevent_exit();
+                        let _ = crate::menu_bar_shell::request_quit(app_handle);
+                    }
+                }
+            });
             eprintln!("[boot:{:}] tauri run completed", now_ms());
         }
         Err(error) => {

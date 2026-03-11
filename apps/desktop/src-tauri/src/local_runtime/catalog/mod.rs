@@ -9,12 +9,12 @@ use std::collections::HashMap;
 mod huggingface;
 mod shared;
 
+pub use self::huggingface::list_repo_gguf_variants;
 use self::huggingface::{
     fetch_hf_model_details, fetch_hf_search_models, hf_search_to_catalog_item, infer_capabilities,
     infer_license, match_catalog_capability, match_catalog_query, normalize_hf_repo_slug,
     normalize_search_query, resolve_hashes_for_files, select_entry_file, select_install_files,
 };
-pub use self::huggingface::list_repo_gguf_variants;
 #[cfg(test)]
 use self::huggingface::{hf_api_base_url, normalize_hf_file_path, HfModelSibling};
 use self::shared::{

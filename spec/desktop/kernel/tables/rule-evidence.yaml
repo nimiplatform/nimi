@@ -537,6 +537,36 @@ rules:
       - desktop_kernel_consistency
       - desktop_test_gate
       - desktop_mods_smoke_gate
+  - rule_id: D-MBAR-001
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+  - rule_id: D-MBAR-002
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+  - rule_id: D-MBAR-003
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+  - rule_id: D-MBAR-004
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+  - rule_id: D-MBAR-005
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
   - rule_id: D-MOD-001
     status: covered
     evidence_refs:

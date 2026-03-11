@@ -7,6 +7,8 @@ import { AppErrorBoundary } from '@renderer/infra/error-boundary/app-error-bound
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { getCurrentLocale, onI18nIssue } from '@renderer/i18n';
+import { useMenuBarNavigationListener } from '@renderer/infra/menu-bar/menu-bar-navigation-listener';
+import { useMenuBarRuntimeSync } from '@renderer/infra/menu-bar/menu-bar-runtime-sync';
 
 const WEB_BOOTSTRAP_TIMEOUT_MS = 15000;
 const DESKTOP_BOOTSTRAP_TIMEOUT_MS = 25000;
@@ -21,6 +23,9 @@ function AppBoot() {
   const setBootstrapError = useAppStore((state) => state.setBootstrapError);
   const setBootstrapReady = useAppStore((state) => state.setBootstrapReady);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
+
+  useMenuBarNavigationListener();
+  useMenuBarRuntimeSync();
 
   useEffect(() => {
     const flowId = createRendererFlowId('renderer-bootstrap');

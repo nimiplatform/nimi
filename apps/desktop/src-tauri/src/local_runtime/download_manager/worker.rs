@@ -2,20 +2,23 @@ use std::time::{Duration, Instant};
 
 use tauri::AppHandle;
 
-use super::shared::{
-    append_audit_non_blocking, classify_reason_code, cleanup_staging_for_model, emit_progress_event,
-    get_control, mark_worker_started, mark_worker_stopped, take_next_queued_session,
-    update_or_restore_record, update_record, SessionControl, LOCAL_AI_HF_DOWNLOAD_CANCELLED,
-    LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH, LOCAL_AI_HF_DOWNLOAD_PAUSED,
-};
 use super::super::audit::{
     EVENT_MODEL_DOWNLOAD_CANCELLED, EVENT_MODEL_DOWNLOAD_COMPLETED, EVENT_MODEL_DOWNLOAD_FAILED,
     EVENT_MODEL_DOWNLOAD_PAUSED,
 };
-use super::super::hf_source::{install_from_hf_with_control, HfDownloadControl, HfDownloadProgress};
+use super::super::hf_source::{
+    install_from_hf_with_control, HfDownloadControl, HfDownloadProgress,
+};
 use super::super::model_registry::upsert_model;
 use super::super::store::load_state;
 use super::super::types::LocalAiDownloadState;
+use super::shared::{
+    append_audit_non_blocking, classify_reason_code, cleanup_staging_for_model,
+    emit_progress_event, get_control, mark_worker_started, mark_worker_stopped,
+    take_next_queued_session, update_or_restore_record, update_record, SessionControl,
+    LOCAL_AI_HF_DOWNLOAD_CANCELLED, LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH,
+    LOCAL_AI_HF_DOWNLOAD_PAUSED,
+};
 
 fn process_session(app: &AppHandle, install_session_id: &str) {
     let record = match update_record(app, install_session_id, |entry| {

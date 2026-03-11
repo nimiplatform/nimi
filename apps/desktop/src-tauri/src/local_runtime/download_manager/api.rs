@@ -1,14 +1,6 @@
 use serde::Serialize;
 use tauri::AppHandle;
 
-use super::shared::{
-    append_audit_non_blocking, build_install_session_id, emit_progress_event, find_record,
-    guessed_local_model_id, is_terminal_state, manager_initialized, queue_session,
-    recover_manager_state, remove_from_queue, set_control, to_summary, update_record,
-    with_state_mut, SessionControl, LOCAL_AI_HF_DOWNLOAD_CANCELLED,
-    LOCAL_AI_HF_DOWNLOAD_INTERRUPTED, LOCAL_AI_HF_DOWNLOAD_PAUSED,
-};
-use super::worker::start_worker_if_needed;
 use super::super::audit::{
     append_audit_event, EVENT_MODEL_DOWNLOAD_CANCELLED, EVENT_MODEL_DOWNLOAD_INTERRUPTED,
     EVENT_MODEL_DOWNLOAD_PAUSED, EVENT_MODEL_DOWNLOAD_RESUMED, EVENT_MODEL_DOWNLOAD_STARTED,
@@ -18,6 +10,14 @@ use super::super::types::{
     now_iso_timestamp, LocalAiDownloadSessionRecord, LocalAiDownloadSessionSummary,
     LocalAiDownloadState, LocalAiInstallRequest,
 };
+use super::shared::{
+    append_audit_non_blocking, build_install_session_id, emit_progress_event, find_record,
+    guessed_local_model_id, is_terminal_state, manager_initialized, queue_session,
+    recover_manager_state, remove_from_queue, set_control, to_summary, update_record,
+    with_state_mut, SessionControl, LOCAL_AI_HF_DOWNLOAD_CANCELLED,
+    LOCAL_AI_HF_DOWNLOAD_INTERRUPTED, LOCAL_AI_HF_DOWNLOAD_PAUSED,
+};
+use super::worker::start_worker_if_needed;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]

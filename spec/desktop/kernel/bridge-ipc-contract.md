@@ -71,6 +71,8 @@ canonical 配置路径固定为 `.nimi/config.json`；Desktop 不得保留 `.nim
 - `open_external_url`：在系统浏览器打开外部 URL。
 - `confirm_private_sync`：确认私有数据同步。
 - `start_window_drag`：原生窗口拖拽。
+- `menu_bar_sync_runtime_health`：renderer 向 Tauri backend 同步 menu bar 所需的 runtime/provider 健康摘要。
+- `menu_bar_complete_quit`：renderer 在完成 shell cleanup 后确认执行 app quit。
 
 ## D-IPC-006 — OAuth 命令
 

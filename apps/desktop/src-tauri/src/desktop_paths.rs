@@ -62,12 +62,8 @@ fn read_desktop_paths_config() -> Result<DesktopPathsConfigFile, String> {
     }
     let raw = fs::read_to_string(&path)
         .map_err(|error| format!("读取 desktop paths 配置失败 ({}): {error}", path.display()))?;
-    serde_json::from_str::<DesktopPathsConfigFile>(&raw).map_err(|error| {
-        format!(
-            "解析 desktop paths 配置失败 ({}): {error}",
-            path.display()
-        )
-    })
+    serde_json::from_str::<DesktopPathsConfigFile>(&raw)
+        .map_err(|error| format!("解析 desktop paths 配置失败 ({}): {error}", path.display()))
 }
 
 fn write_desktop_paths_config(config: &DesktopPathsConfigFile) -> Result<(), String> {

@@ -65,6 +65,20 @@ export type RuntimeBridgeConfigSetResult = {
   config: Record<string, unknown>;
 };
 
+export type MenuBarProviderSummary = {
+  healthy: number;
+  unhealthy: number;
+  unknown: number;
+  total: number;
+};
+
+export type MenuBarRuntimeHealthSyncPayload = {
+  runtimeHealthStatus?: string;
+  runtimeHealthReason?: string;
+  providerSummary?: MenuBarProviderSummary;
+  updatedAt?: string;
+};
+
 export type RuntimeLocalManifestSummary = {
   path: string;
   id: string;
@@ -353,6 +367,16 @@ export function parseRuntimeBridgeConfigSetResult(value: unknown): RuntimeBridge
     reasonCode: parseOptionalString(record.reasonCode),
     actionHint: parseOptionalString(record.actionHint),
     config,
+  };
+}
+
+export function parseMenuBarProviderSummary(value: unknown): MenuBarProviderSummary {
+  const record = assertRecord(value, 'menu bar provider summary');
+  return {
+    healthy: parseOptionalNumber(record.healthy) || 0,
+    unhealthy: parseOptionalNumber(record.unhealthy) || 0,
+    unknown: parseOptionalNumber(record.unknown) || 0,
+    total: parseOptionalNumber(record.total) || 0,
   };
 }
 

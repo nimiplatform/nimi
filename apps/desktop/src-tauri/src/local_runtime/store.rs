@@ -19,12 +19,8 @@ fn state_save_lock() -> &'static Mutex<()> {
 
 pub fn runtime_root_dir(_app: &AppHandle) -> Result<PathBuf, String> {
     let dir = crate::desktop_paths::resolve_nimi_data_dir()?;
-    fs::create_dir_all(&dir).map_err(|error| {
-        format!(
-            "创建 nimi_data_dir 目录失败 ({}): {error}",
-            dir.display()
-        )
-    })?;
+    fs::create_dir_all(&dir)
+        .map_err(|error| format!("创建 nimi_data_dir 目录失败 ({}): {error}", dir.display()))?;
     Ok(dir)
 }
 

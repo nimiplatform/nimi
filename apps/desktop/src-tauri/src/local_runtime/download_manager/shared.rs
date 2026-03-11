@@ -39,7 +39,10 @@ fn manager() -> &'static Mutex<DownloadManagerState> {
 }
 
 pub(super) fn manager_initialized() -> bool {
-    manager().lock().map(|lock| lock.initialized).unwrap_or(false)
+    manager()
+        .lock()
+        .map(|lock| lock.initialized)
+        .unwrap_or(false)
 }
 
 pub(super) fn build_install_session_id(model_id: &str) -> String {
@@ -111,9 +114,7 @@ pub(super) fn emit_progress_event(app: &AppHandle, record: &LocalAiDownloadSessi
     }
 }
 
-pub(super) fn to_summary(
-    record: &LocalAiDownloadSessionRecord,
-) -> LocalAiDownloadSessionSummary {
+pub(super) fn to_summary(record: &LocalAiDownloadSessionRecord) -> LocalAiDownloadSessionSummary {
     LocalAiDownloadSessionSummary {
         install_session_id: record.install_session_id.clone(),
         model_id: record.model_id.clone(),
@@ -267,7 +268,10 @@ pub(super) fn get_control(install_session_id: &str) -> SessionControl {
 }
 
 pub(super) fn take_next_queued_session() -> Option<String> {
-    manager().lock().ok().and_then(|mut lock| lock.queue.pop_front())
+    manager()
+        .lock()
+        .ok()
+        .and_then(|mut lock| lock.queue.pop_front())
 }
 
 pub(super) fn mark_worker_started() -> bool {

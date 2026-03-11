@@ -6,10 +6,9 @@ use super::types::{
 mod managed;
 
 use self::managed::{
-    bootstrap_marker_provider, build_service_health_url,
-    default_loopback_endpoint_for_artifact, is_loopback_endpoint, maybe_authenticate_request,
+    bootstrap_marker_provider, build_service_health_url, default_loopback_endpoint_for_artifact,
+    is_loopback_endpoint, managed_provider_strategy, maybe_authenticate_request,
     normalize_non_empty, parse_version_parts, port_available, resolve_effective_endpoint,
-    managed_provider_strategy,
 };
 pub use self::managed::{is_managed_service, start_managed_service, stop_managed_service};
 
