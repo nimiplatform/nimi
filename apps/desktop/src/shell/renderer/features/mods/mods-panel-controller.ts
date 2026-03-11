@@ -48,6 +48,14 @@ function safeErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || 'unknown error');
 }
 
+function resolveModDirPath(input: { manifestPath?: string; sourceDir?: string }): string {
+  const manifestPath = String(input.manifestPath || '').trim();
+  if (manifestPath) {
+    return manifestPath.replace(/[\\/][^\\/]+$/, '');
+  }
+  return String(input.sourceDir || '').trim();
+}
+
 async function registerOneRuntimeMod(input: {
   manifest: RuntimeLocalManifestSummary;
 }): Promise<{ failure: RuntimeModRegisterFailure | null }> {
@@ -92,6 +100,7 @@ export type ModsPanelMod = MarketplaceMod & {
   status: 'loaded' | 'disabled' | 'failed' | 'conflict';
   sourceType: 'installed' | 'dev' | 'unknown';
   sourceDir: string;
+  modDirPath: string;
 };
 
 export type ModsPanelModel = {
@@ -106,6 +115,7 @@ export type ModsPanelModel = {
   onUninstallMod: (modId: string) => void;
   onRetryMod: (modId: string) => void;
   onOpenModSettings: (modId: string) => void;
+  onOpenModDir: (path: string) => void;
   onOpenModDeveloper: () => void;
   onOpenMarketplace: () => void;
 };
@@ -160,6 +170,10 @@ export function useModsPanelModel(): ModsPanelModel {
           status,
           sourceType: item.sourceType || 'unknown',
           sourceDir: item.sourceDir || '',
+          modDirPath: resolveModDirPath({
+            manifestPath: item.path,
+            sourceDir: item.sourceDir || '',
+          }),
         } satisfies ModsPanelMod;
       });
     const resolvedIds = new Set(resolvedRows.map((item) => item.id));
@@ -186,6 +200,10 @@ export function useModsPanelModel(): ModsPanelModel {
         status: 'conflict',
         sourceType: item.sourceType || 'unknown',
         sourceDir: item.sourceDir || '',
+        modDirPath: resolveModDirPath({
+          manifestPath: item.manifestPath,
+          sourceDir: item.sourceDir || '',
+        }),
       } satisfies ModsPanelMod));
     return [...resolvedRows, ...conflictRows];
   }, [
@@ -244,6 +262,22 @@ export function useModsPanelModel(): ModsPanelModel {
     }
     setActiveTab('settings');
   }, [setActiveTab]);
+
+  const onOpenModDir = useCallback((path: string) => {
+    const normalized = String(path || '').trim();
+    if (!normalized) return;
+    void desktopBridge.openRuntimeModDir(normalized).catch((error: unknown) => {
+      logRendererEvent({
+        level: 'error',
+        area: 'mods-panel',
+        message: 'open_runtime_mod_dir_failed',
+        details: {
+          path: normalized,
+          error: safeErrorMessage(error),
+        },
+      });
+    });
+  }, []);
 
   const runAction = useCallback(async (
     modId: string,
@@ -390,6 +424,7 @@ export function useModsPanelModel(): ModsPanelModel {
     onUninstallMod,
     onRetryMod,
     onOpenModSettings,
+    onOpenModDir,
     onOpenModDeveloper,
     onOpenMarketplace,
   };

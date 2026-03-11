@@ -24,6 +24,7 @@ function ModCard({
   onUninstall,
   onRetry,
   onSettings,
+  onOpenDir,
   onDeveloper,
 }: {
   mod: ModsPanelMod;
@@ -34,6 +35,7 @@ function ModCard({
   onUninstall: (modId: string) => void;
   onRetry: (modId: string) => void;
   onSettings: (modId: string) => void;
+  onOpenDir: (path: string) => void;
   onDeveloper: () => void;
 }) {
   const { t } = useTranslation();
@@ -113,6 +115,14 @@ function ModCard({
             <button
               type="button"
               disabled={isPending}
+              onClick={() => onOpenDir(mod.modDirPath)}
+              className="rounded-full px-3 py-1.5 text-xs font-medium text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50"
+            >
+              {t('ModsPanel.openDir')}
+            </button>
+            <button
+              type="button"
+              disabled={isPending}
               onClick={() => onDisable(mod.id)}
               className="rounded-full px-3 py-1.5 text-xs font-medium text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50"
             >
@@ -128,6 +138,14 @@ function ModCard({
               className="rounded-full bg-[#4ECCA3] px-4 py-1.5 text-xs font-medium text-white transition-all hover:bg-[#3DBB94] hover:shadow-[0_4px_12px_rgba(78,204,163,0.35)] disabled:opacity-50 active:scale-95"
             >
               {t('ModsPanel.enable')}
+            </button>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => onOpenDir(mod.modDirPath)}
+              className="rounded-full px-3 py-1.5 text-xs font-medium text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50"
+            >
+              {t('ModsPanel.openDir')}
             </button>
             <button
               type="button"
@@ -158,6 +176,7 @@ export function ModsPanelView(props: ModsPanelModel) {
     onUninstallMod,
     onRetryMod,
     onOpenModSettings,
+    onOpenModDir,
     onOpenModDeveloper,
     onOpenMarketplace,
   } = props;
@@ -243,6 +262,7 @@ export function ModsPanelView(props: ModsPanelModel) {
                       onUninstall={onUninstallMod}
                       onRetry={onRetryMod}
                       onSettings={onOpenModSettings}
+                      onOpenDir={onOpenModDir}
                       onDeveloper={onOpenModDeveloper}
                     />
                   ))}
@@ -273,6 +293,7 @@ export function ModsPanelView(props: ModsPanelModel) {
                       onUninstall={onUninstallMod}
                       onRetry={onRetryMod}
                       onSettings={onOpenModSettings}
+                      onOpenDir={onOpenModDir}
                       onDeveloper={onOpenModDeveloper}
                     />
                   ))}
