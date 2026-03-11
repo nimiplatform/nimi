@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "@nimiplatform/sdk": "workspace:*",
-    "ai": "6.0.85"
+    "ai": "6.0.116"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

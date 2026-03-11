@@ -12,28 +12,28 @@
     "test": "tsx --tsconfig tsconfig.json --test test/**/*.test.ts"
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "2.0.30",
+    "@ai-sdk/openai-compatible": "2.0.35",
     "@nimiplatform/sdk": "workspace:*",
     "@nimiplatform/shell-core": "workspace:*",
-    "@tanstack/react-query": "^5.90.16",
-    "ai": "6.0.85",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "react-router-dom": "^7.13.0",
+    "@tanstack/react-query": "^5.90.21",
+    "ai": "6.0.116",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-router-dom": "^7.13.1",
     "simplex-noise": "^4.0.3",
-    "three": "^0.182.0",
-    "zod": "4.3.5",
+    "three": "^0.183.2",
+    "zod": "4.3.6",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.1.18",
-    "@types/node": "^24.3.0",
+    "@tailwindcss/vite": "^4.2.1",
+    "@types/node": "^25.4.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.2",
-    "tailwindcss": "^4.1.18",
+    "@vitejs/plugin-react": "^5.1.4",
+    "tailwindcss": "^4.2.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vite": "^7.1.7"
+    "vite": "^7.3.1"
   }
 }

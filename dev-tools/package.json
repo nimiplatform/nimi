@@ -17,9 +17,9 @@
     "README.md"
   ],
   "dependencies": {
-    "@tailwindcss/cli": "^4.1.18",
-    "esbuild": "^0.25.12",
-    "tailwindcss": "^4.1.18",
-    "yaml": "^2.8.1"
+    "@tailwindcss/cli": "^4.2.1",
+    "esbuild": "^0.27.3",
+    "tailwindcss": "^4.2.1",
+    "yaml": "^2.8.2"
   }
 }

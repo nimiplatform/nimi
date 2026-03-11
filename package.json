@@ -1,7 +1,7 @@
 {
   "name": "@nimiplatform/nimi",
   "private": true,
-  "packageManager": "pnpm@10.27.0",
+  "packageManager": "pnpm@10.32.1",
   "engines": {
     "node": ">=24.0.0",
     "pnpm": ">=10.0.0"
@@ -48,12 +48,12 @@
     "check:mod-catalog-signers": "node scripts/check-mod-catalog-signers.mjs",
     "check:runtime-provider-capability-token-canonicalization": "node scripts/check-runtime-provider-capability-token-canonicalization.mjs",
     "check:runtime-mod-hook-hardcut": "node scripts/check-runtime-mod-hook-hardcut.mjs",
-  "check:runtime-provider-activation-alignment": "node scripts/check-runtime-provider-activation-alignment.mjs",
-  "check:runtime-provider-alias-hardcut": "node scripts/check-runtime-provider-alias-hardcut.mjs",
-  "check:runtime-provider-yaml-first-hardcut": "node scripts/check-runtime-provider-yaml-first-hardcut.mjs",
-  "check:runtime-provider-endpoint-ssot": "node scripts/check-runtime-provider-endpoint-ssot.mjs",
-  "check:runtime-video-capability-block-enforcement": "node scripts/check-runtime-video-capability-block-enforcement.mjs",
-  "check:runtime-spec-kernel-docs-drift": "node scripts/generate-runtime-spec-kernel-docs.mjs --check",
+    "check:runtime-provider-activation-alignment": "node scripts/check-runtime-provider-activation-alignment.mjs",
+    "check:runtime-provider-alias-hardcut": "node scripts/check-runtime-provider-alias-hardcut.mjs",
+    "check:runtime-provider-yaml-first-hardcut": "node scripts/check-runtime-provider-yaml-first-hardcut.mjs",
+    "check:runtime-provider-endpoint-ssot": "node scripts/check-runtime-provider-endpoint-ssot.mjs",
+    "check:runtime-video-capability-block-enforcement": "node scripts/check-runtime-video-capability-block-enforcement.mjs",
+    "check:runtime-spec-kernel-docs-drift": "node scripts/generate-runtime-spec-kernel-docs.mjs --check",
     "check:sdk-spec-kernel-docs-drift": "node scripts/generate-sdk-spec-kernel-docs.mjs --check",
     "check:desktop-spec-kernel-docs-drift": "node scripts/generate-desktop-spec-kernel-docs.mjs --check",
     "check:desktop-spec-kernel-consistency": "node scripts/check-desktop-spec-kernel-consistency.mjs",
@@ -147,6 +147,6 @@
     "test": "pnpm --filter @nimiplatform/sdk test && pnpm --filter @nimiplatform/desktop test && pnpm --filter @nimiplatform/web test && pnpm --filter @nimiplatform/landing test"
   },
   "dependencies": {
-    "yaml": "^2.8.1"
+    "yaml": "^2.8.2"
   }
 }
