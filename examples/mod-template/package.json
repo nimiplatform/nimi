@@ -1,0 +1,21 @@
+{
+  "name": "@nimiplatform/example-mod-template",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node ../../dev-tools/bin/nimi-mod.mjs build",
+    "dev": "node ../../dev-tools/bin/nimi-mod.mjs dev",
+    "doctor": "node ../../dev-tools/bin/nimi-mod.mjs doctor",
+    "pack": "node ../../dev-tools/bin/nimi-mod.mjs pack"
+  },
+  "dependencies": {
+    "@nimiplatform/sdk": "^0.2.0",
+    "react": "^19.1.0"
+  },
+  "devDependencies": {
+    "@nimiplatform/dev-tools": "^0.2.0",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.14",
+    "typescript": "^5.9.3"
+  }
+}

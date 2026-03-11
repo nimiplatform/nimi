@@ -1,6 +1,6 @@
 # Mod Developer Guide
 
-Use this guide when building desktop mods in the external `nimi-mods` repository.
+Use this guide when building desktop mods in any independent mod repository.
 
 ## Development contract
 
@@ -11,23 +11,38 @@ Use this guide when building desktop mods in the external `nimi-mods` repository
 ## Local development
 
 ```bash
-# Terminal A (mods)
-export NIMI_MODS_ROOT=/ABS/PATH/TO/nimi-mods
-pnpm -C "$NIMI_MODS_ROOT" install
-pnpm -C "$NIMI_MODS_ROOT" run watch -- --mod local-chat
+# Scaffold once
+pnpm dlx @nimiplatform/dev-tools nimi-mod create --dir my-mod --name "My Mod"
 
-# Terminal B (desktop)
-export NIMI_MODS_ROOT=/ABS/PATH/TO/nimi-mods
-export NIMI_RUNTIME_MODS_DIR="$NIMI_MODS_ROOT"
-pnpm -C apps/desktop run dev:shell
+# Then inside your mod repo
+cd my-mod
+pnpm install
+pnpm dev
 ```
+
+Then inside Desktop:
+
+1. Open `Settings > Mod Developer`
+2. Enable `Developer Mode`
+3. Add your mod directory as a `dev` source
+4. Enable `Auto Reload` if desired
+5. Watch diagnostics and reload results in the same panel
+
+Desktop side development should be UI-only. `NIMI_RUNTIME_MODS_DIR` is kept only for CI/internal compatibility, not for the main third-party flow.
+
+Recommended toolchain:
+
+- inside this monorepo: invoke [`nimi-mod.mjs`](/Users/snwozy/nimi-realm/nimi/dev-tools/bin/nimi-mod.mjs)
+- outside this monorepo: `pnpm add -D @nimiplatform/dev-tools` and use the published `nimi-mod` CLI
 
 ## Validation
 
 ```bash
-export NIMI_MODS_ROOT=/ABS/PATH/TO/nimi-mods
-export NIMI_RUNTIME_MODS_DIR="$NIMI_MODS_ROOT"
-pnpm -C apps/desktop run smoke:mod:local-chat
+pnpm build
+pnpm doctor
+pnpm pack
 ```
 
-For a runnable mod SDK sample using `setModSdkHost()`, `createHookClient()`, and `createModRuntimeClient()`, see [`examples/mods/mod-basic.ts`](../../examples/mods/mod-basic.ts).
+For a runnable mod repo template, see [`examples/mod-template`](../../examples/mod-template).
+
+For a mod SDK sample using `setModSdkHost()`, `createHookClient()`, and `createModRuntimeClient()`, see [`examples/mods/mod-basic.ts`](../../examples/mods/mod-basic.ts).

@@ -7,13 +7,32 @@ Use this path if you are building a third-party app that consumes Nimi runtime, 
 - `Runtime` for local AI execution (gRPC)
 - `Realm` for cloud state (REST + WebSocket)
 - `@nimiplatform/sdk` as the only supported developer entry point
+- `nimi-app create` from `@nimiplatform/dev-tools` as the author-side scaffold entry point
 
 ## Recommended flow
 
 1. Start with [Getting Started](../getting-started/index.md).
-2. Use `examples/sdk/01-hello.ts` as the smallest baseline.
-3. Move to `examples/sdk/03-local-vs-cloud.ts` once you want both execution planes.
-4. Adopt structured error handling using `reasonCode` and `traceId`.
+2. Scaffold a repo with `pnpm dlx @nimiplatform/dev-tools nimi-app create --dir my-nimi-app --template basic`.
+3. Use [`examples/app-template`](../../examples/app-template) as the tracked minimal app shape.
+4. Use `examples/sdk/01-hello.ts` as the smallest baseline.
+5. Move to `examples/sdk/03-local-vs-cloud.ts` once you want both execution planes.
+6. Adopt structured error handling using `reasonCode` and `traceId`.
+
+## Scaffold once
+
+```bash
+pnpm dlx @nimiplatform/dev-tools nimi-app create --dir my-nimi-app --template basic
+cd my-nimi-app
+pnpm install
+pnpm start
+```
+
+Available templates today:
+
+- `basic`
+- `vercel-ai`
+
+If you are reading this inside the monorepo before public package publication, note that tracked templates use published semver package names. They are the reference output shape, not necessarily self-installing workspace packages yet.
 
 ## Recommended integration shape
 
@@ -39,6 +58,8 @@ const result = await runtime.generate({
   prompt: 'What is Nimi?',
 });
 ```
+
+If you want a tracked example for the basic scaffold shape, see [`examples/app-template`](../../examples/app-template). If you want a provider-bridged example, see [`examples/sdk/04-vercel-ai-sdk.ts`](../../examples/sdk/04-vercel-ai-sdk.ts).
 
 ## Production checklist
 

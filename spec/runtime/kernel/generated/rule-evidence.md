@@ -32,6 +32,7 @@
 | `K-CLI-007` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
 | `K-CLI-008` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
 | `K-CLI-009` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
+| `K-CLI-009a` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
 | `K-CLI-010` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
 | `K-CLI-011` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
 | `K-CLI-012` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |

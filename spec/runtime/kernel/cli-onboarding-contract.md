@@ -4,7 +4,7 @@
 
 ## K-CLI-001 Public First-Run Command Set
 
-面向首次使用的 public CLI surface 必须稳定提供 `serve`、`doctor`、`init`、`version`、`run`、`model`、`provider`。
+面向首次使用的 runtime public CLI surface 必须稳定提供 `serve`、`doctor`、`version`、`run`、`model`、`provider`。
 
 ## K-CLI-002 Top-Level Usage Grouping
 
@@ -42,9 +42,13 @@ cloud 首次使用必须基于 machine-scoped provider credentials；public clou
 
 `nimi doctor` 至少报告 binary version、config path、daemon health、local engine health、configured providers、installed models，以及当前工作目录下的 optional SDK detection。
 
-## K-CLI-009 Init Scaffold Contract
+## K-CLI-009 Author App Scaffold Contract
 
-`nimi init` 必须产出可直接运行的模板；`basic` 模板走 `Runtime.generate()` ergonomic path，`vercel-ai` 模板走 `createNimiAiProvider({ runtime })` 集成路径。
+app author scaffolding 不属于 `nimi` runtime public onboarding surface；author-facing app scaffold 的 one-shot 入口必须是 `pnpm dlx @nimiplatform/dev-tools nimi-app create`，且产出的 `basic` 模板走 `Runtime.generate()` ergonomic path，`vercel-ai` 模板走 `createNimiAiProvider({ runtime })` 集成路径。
+
+## K-CLI-009a Runtime / Author Tooling Boundary
+
+`nimi` public CLI 不承载 author-side scaffolding、build、dev、doctor、pack 或 publish flow。`nimi mod` 仅负责 installed mod management；mod / app 作者入口必须分别收敛到 `pnpm dlx @nimiplatform/dev-tools nimi-mod` 与 `pnpm dlx @nimiplatform/dev-tools nimi-app`。
 
 ## K-CLI-010 Version Contract
 

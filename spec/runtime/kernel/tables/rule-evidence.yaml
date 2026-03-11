@@ -73,6 +73,9 @@ rules:
   - rule_id: K-CLI-009
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
+  - rule_id: K-CLI-009a
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
   - rule_id: K-CLI-010
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_test_gate]

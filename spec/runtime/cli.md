@@ -1,11 +1,11 @@
 # Runtime CLI Onboarding Spec
 
-> Scope: `nimi` 首次安装、首次运行、provider-first cloud setup 与脚手架主题导引。
+> Scope: `nimi` 首次安装、首次运行、provider-first cloud setup 与 author tooling 边界导引。
 > Normative Imports: `spec/runtime/kernel/*`
 
 ## 0. 权威导入
 
-- `kernel/cli-onboarding-contract.md`（K-CLI-001, K-CLI-002, K-CLI-003, K-CLI-005, K-CLI-007, K-CLI-008, K-CLI-009, K-CLI-010, K-CLI-011, K-CLI-012, K-CLI-013, K-CLI-014, K-CLI-015）
+- `kernel/cli-onboarding-contract.md`（K-CLI-001, K-CLI-002, K-CLI-003, K-CLI-005, K-CLI-007, K-CLI-008, K-CLI-009, K-CLI-009a, K-CLI-010, K-CLI-011, K-CLI-012, K-CLI-013, K-CLI-014, K-CLI-015）
 - `kernel/daemon-lifecycle.md`（K-DAEMON-001, K-DAEMON-004, K-DAEMON-008）
 - `kernel/model-service-contract.md`（K-MODEL-001, K-MODEL-006）
 - `kernel/provider-health-contract.md`（K-PROV-001, K-PROV-005）
@@ -14,7 +14,7 @@
 
 ## 1. 文档定位
 
-本文件只负责 `nimi` CLI 首次使用主题导航。命令集合、错误语义、prompt-first `run`、default local / provider default targeting、provider-first cloud setup 与脚手架要求以 kernel 规则为准。
+本文件只负责 `nimi` CLI 首次使用主题导航与 runtime / author tooling 边界导引。命令集合、错误语义、prompt-first `run`、default local / provider default targeting、provider-first cloud setup 与作者入口边界以 kernel 规则为准。
 
 background runtime management surface 的权威语义也在 `kernel/cli-onboarding-contract.md`：`serve` 为 foreground canonical command；`start/stop/status/logs` 为 background management surface；`health` 保持详细健康投影。
 
@@ -26,6 +26,7 @@ background runtime management surface 的权威语义也在 `kernel/cli-onboardi
 4. provider 探测与 canonical 命名：`kernel/provider-health-contract.md`。
 5. 配置路径与 secret policy：`kernel/config-contract.md`。
 6. public surface 错误映射：`kernel/error-model.md`。
+7. author scaffolding / build flow：`pnpm dlx @nimiplatform/dev-tools nimi-app create` 与 `pnpm dlx @nimiplatform/dev-tools nimi-mod ...`，不属于 runtime public surface。
 
 ## 3. 模块映射
 

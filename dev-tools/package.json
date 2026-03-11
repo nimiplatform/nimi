@@ -1,0 +1,23 @@
+{
+  "name": "@nimiplatform/dev-tools",
+  "version": "0.2.0",
+  "license": "Apache-2.0",
+  "type": "module",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "nimi-mod": "./bin/nimi-mod.mjs",
+    "nimi-app": "./bin/nimi-app.mjs"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "README.md"
+  ],
+  "dependencies": {
+    "esbuild": "^0.25.12",
+    "yaml": "^2.8.1"
+  }
+}

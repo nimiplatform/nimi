@@ -1,0 +1,7 @@
+id: world.example.hello-mod
+name: Hello Mod
+version: 0.1.0
+description: Minimal third-party runtime mod template for Desktop Developer Mode.
+entry: ./dist/mods/hello-mod/index.js
+capabilities:
+  - ui

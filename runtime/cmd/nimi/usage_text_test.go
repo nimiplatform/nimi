@@ -37,7 +37,7 @@ func TestPrintUsageUsesAppAuthCommand(t *testing.T) {
 	if !strings.Contains(output, "app-auth") {
 		t.Fatalf("usage should include app-auth command: %q", output)
 	}
-	for _, command := range []string{"doctor", "init", "version", "provider", "run"} {
+	for _, command := range []string{"doctor", "version", "provider", "run"} {
 		if !strings.Contains(output, command) {
 			t.Fatalf("usage should include %s command: %q", command, output)
 		}
@@ -50,6 +50,14 @@ func TestPrintUsageUsesAppAuthCommand(t *testing.T) {
 	}
 	if !strings.Contains(output, "config") {
 		t.Fatalf("usage should include config command group: %q", output)
+	}
+	for _, command := range []string{
+		"pnpm dlx @nimiplatform/dev-tools nimi-mod",
+		"pnpm dlx @nimiplatform/dev-tools nimi-app",
+	} {
+		if !strings.Contains(output, command) {
+			t.Fatalf("usage should include author tooling hint %s: %q", command, output)
+		}
 	}
 	for _, command := range []string{"start", "status", "stop", "logs", "health"} {
 		if !strings.Contains(output, command) {
@@ -74,7 +82,7 @@ func TestPrintRuntimeAppAuthUsageUsesAppAuthSubcommands(t *testing.T) {
 	}
 }
 
-func TestPrintRuntimeModUsageIncludesSixCommands(t *testing.T) {
+func TestPrintRuntimeModUsageIncludesInstalledManagementOnly(t *testing.T) {
 	output := captureStderrOutput(t, printRuntimeModUsage)
 	required := []string{
 		"nimi mod list",
@@ -82,14 +90,17 @@ func TestPrintRuntimeModUsageIncludesSixCommands(t *testing.T) {
 		"--mod-circle-repo",
 		"--mod-circle-ref",
 		"--strict-id",
-		"nimi mod create",
-		"nimi mod dev",
-		"nimi mod build",
-		"nimi mod publish",
+		"pnpm dlx @nimiplatform/dev-tools nimi-mod create|dev|build|doctor|pack",
+		"pnpm dlx @nimiplatform/dev-tools nimi-app create",
 	}
 	for _, command := range required {
 		if !strings.Contains(output, command) {
 			t.Fatalf("runtime mod usage missing %s: %q", command, output)
+		}
+	}
+	for _, command := range []string{"nimi mod create", "nimi mod dev", "nimi mod build", "nimi mod publish"} {
+		if strings.Contains(output, command) {
+			t.Fatalf("runtime mod usage should not include author command %s: %q", command, output)
 		}
 	}
 }

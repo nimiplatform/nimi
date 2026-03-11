@@ -39,31 +39,16 @@ func TestRunRuntimeVersionJSON(t *testing.T) {
 	}
 }
 
-func TestRunRuntimeInitBasicJSON(t *testing.T) {
-	targetDir := t.TempDir()
-
-	output, err := captureStdoutFromRun(func() error {
-		return runRuntimeInit([]string{"--dir", targetDir, "--template", "basic", "--json"})
-	})
-	if err != nil {
-		t.Fatalf("runRuntimeInit: %v", err)
+func TestRunRuntimeInitMovedToNimiAppCreate(t *testing.T) {
+	err := runRuntimeInit([]string{"--dir", t.TempDir(), "--template", "basic", "--json"})
+	if err == nil {
+		t.Fatalf("expected moved error")
 	}
-
-	var payload map[string]any
-	if unmarshalErr := json.Unmarshal([]byte(output), &payload); unmarshalErr != nil {
-		t.Fatalf("unmarshal init output: %v output=%q", unmarshalErr, output)
+	if !strings.Contains(err.Error(), "AUTHOR_COMMAND_MOVED") {
+		t.Fatalf("missing moved reason code: %v", err)
 	}
-	created, ok := payload["created"].([]any)
-	if !ok || len(created) != 4 {
-		t.Fatalf("created payload mismatch: %#v", payload["created"])
-	}
-	indexPath := filepath.Join(targetDir, "index.ts")
-	indexContent, err := os.ReadFile(indexPath)
-	if err != nil {
-		t.Fatalf("read index.ts: %v", err)
-	}
-	if !strings.Contains(string(indexContent), "runtime.generate") {
-		t.Fatalf("index.ts should use runtime.generate: %q", string(indexContent))
+	if !strings.Contains(err.Error(), "use_nimi-app_create") {
+		t.Fatalf("missing nimi-app create action hint: %v", err)
 	}
 }
 

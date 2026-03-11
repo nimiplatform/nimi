@@ -3,4 +3,5 @@ packages:
   - 'apps/_libs/*'
   - 'docs'
   - 'examples'
+  - 'dev-tools'
   - 'sdk'

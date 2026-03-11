@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 )
 
@@ -105,57 +104,18 @@ func TestResolveModsDirRequiresExplicitInput(t *testing.T) {
 	}
 }
 
-func TestRunRuntimeModCreateBuildDevJSON(t *testing.T) {
-	projectDir := filepath.Join(t.TempDir(), "my-mod")
-
-	createOutput, err := captureStdoutFromRun(func() error {
-		return runRuntimeMod([]string{
-			"create",
-			"--dir", projectDir,
-			"--name", "Math Quiz",
-			"--mod-id", "world.nimi.math-quiz",
-			"--json",
-		})
-	})
-	if err != nil {
-		t.Fatalf("runRuntimeMod create: %v", err)
-	}
-	if !strings.Contains(createOutput, "world.nimi.math-quiz") {
-		t.Fatalf("create output missing mod id: %s", createOutput)
-	}
-	manifestPath := filepath.Join(projectDir, "mod.manifest.yaml")
-	if _, statErr := os.Stat(manifestPath); statErr != nil {
-		t.Fatalf("manifest missing: %v", statErr)
-	}
-	manifestRaw, readErr := os.ReadFile(manifestPath)
-	if readErr != nil {
-		t.Fatalf("read manifest: %v", readErr)
-	}
-	if !strings.Contains(string(manifestRaw), "runtime.ai.text.generate") {
-		t.Fatalf("create manifest should use canonical capability: %s", string(manifestRaw))
-	}
-
-	buildOutput, err := captureStdoutFromRun(func() error {
-		return runRuntimeMod([]string{"build", "--dir", projectDir, "--json"})
-	})
-	if err != nil {
-		t.Fatalf("runRuntimeMod build: %v", err)
-	}
-	if !strings.Contains(buildOutput, "bundle_hash") {
-		t.Fatalf("build output missing bundle hash: %s", buildOutput)
-	}
-	if _, statErr := os.Stat(filepath.Join(projectDir, "dist", "index.js")); statErr != nil {
-		t.Fatalf("bundle missing: %v", statErr)
-	}
-
-	devOutput, err := captureStdoutFromRun(func() error {
-		return runRuntimeMod([]string{"dev", "--dir", projectDir, "--json"})
-	})
-	if err != nil {
-		t.Fatalf("runRuntimeMod dev: %v", err)
-	}
-	if !strings.Contains(devOutput, "oneshot") {
-		t.Fatalf("dev output missing oneshot mode: %s", devOutput)
+func TestRunRuntimeModAuthorCommandsMovedToNimiMod(t *testing.T) {
+	for _, command := range []string{"create", "dev", "build", "publish"} {
+		err := runRuntimeMod([]string{command})
+		if err == nil {
+			t.Fatalf("expected moved error for %s", command)
+		}
+		if !strings.Contains(err.Error(), "AUTHOR_COMMAND_MOVED") {
+			t.Fatalf("missing moved reason code for %s: %v", command, err)
+		}
+		if !strings.Contains(err.Error(), "use_nimi-mod_"+command) {
+			t.Fatalf("missing nimi-mod hint for %s: %v", command, err)
+		}
 	}
 }
 
@@ -189,19 +149,6 @@ func TestRunRuntimeModInstallJSON(t *testing.T) {
 	}
 	if _, statErr := os.Stat(filepath.Join(targetDir, ".nimi-install.json")); statErr != nil {
 		t.Fatalf("install metadata missing: %v", statErr)
-	}
-}
-
-func TestRunRuntimeModBuildRejectsLegacyManifestCapability(t *testing.T) {
-	modDir := filepath.Join(t.TempDir(), "legacy-build")
-	createLegacyTestModProject(t, modDir, "world.nimi.legacy-build", "Legacy Build Mod")
-
-	err := runRuntimeMod([]string{"build", "--dir", modDir})
-	if err == nil {
-		t.Fatalf("expected legacy manifest capability reject on build")
-	}
-	if !strings.Contains(err.Error(), "MOD_MANIFEST_LEGACY_CAPABILITY_UNSUPPORTED") {
-		t.Fatalf("missing legacy capability reason code: %v", err)
 	}
 }
 
@@ -583,138 +530,6 @@ func TestRunRuntimeModInstallModCircleStrictIDDisablesNameFallback(t *testing.T)
 	}
 }
 
-func TestRunRuntimeModPublishMissingToken(t *testing.T) {
-	modDir := filepath.Join(t.TempDir(), "publish-mod")
-	createTestModProject(t, modDir, "world.nimi.publish", "Publish Mod")
-	t.Setenv("GITHUB_TOKEN", "")
-
-	err := runRuntimeMod([]string{
-		"publish",
-		"--dir", modDir,
-		"--source-repo", "someuser/nimi-mod-publish",
-	})
-	if err == nil {
-		t.Fatalf("expected missing token error")
-	}
-	if !strings.Contains(err.Error(), "MOD_PUBLISH_GITHUB_TOKEN_MISSING") {
-		t.Fatalf("missing reasonCode in error: %v", err)
-	}
-	if !strings.Contains(err.Error(), "actionHint=export_GITHUB_TOKEN_then_retry") {
-		t.Fatalf("missing actionHint in error: %v", err)
-	}
-}
-
-func TestRunRuntimeModPublishCreatesPR(t *testing.T) {
-	modDir := filepath.Join(t.TempDir(), "publish-mod")
-	createTestModProject(t, modDir, "world.nimi.publish", "Publish Mod")
-	t.Setenv("GITHUB_TOKEN", "ghp_test_token")
-
-	probe := &modPublishProbe{}
-	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		probe.mu.Lock()
-		defer probe.mu.Unlock()
-		probe.lastAuthHeader = request.Header.Get("Authorization")
-
-		switch {
-		case request.Method == http.MethodGet && request.URL.Path == "/repos/nimiplatform/mod-circle/git/ref/heads/main":
-			writer.WriteHeader(http.StatusOK)
-			_, _ = writer.Write([]byte(`{"object":{"sha":"base-sha-123"}}`))
-			return
-		case request.Method == http.MethodPost && request.URL.Path == "/repos/nimiplatform/mod-circle/git/refs":
-			var payload map[string]any
-			_ = json.NewDecoder(request.Body).Decode(&payload)
-			probe.branchRef = asString(payload["ref"])
-			probe.branchSHA = asString(payload["sha"])
-			writer.WriteHeader(http.StatusCreated)
-			_, _ = writer.Write([]byte(`{"ref":"ok"}`))
-			return
-		case request.Method == http.MethodPut && strings.HasPrefix(request.URL.Path, "/repos/nimiplatform/mod-circle/contents/"):
-			var payload map[string]any
-			_ = json.NewDecoder(request.Body).Decode(&payload)
-			probe.indexPath = strings.TrimPrefix(request.URL.Path, "/repos/nimiplatform/mod-circle/contents/")
-			content, _ := base64.StdEncoding.DecodeString(asString(payload["content"]))
-			probe.indexContent = string(content)
-			probe.commitBranch = asString(payload["branch"])
-			writer.WriteHeader(http.StatusCreated)
-			_, _ = writer.Write([]byte(`{"content":{"path":"ok"}}`))
-			return
-		case request.Method == http.MethodPost && request.URL.Path == "/repos/nimiplatform/mod-circle/pulls":
-			var payload map[string]any
-			_ = json.NewDecoder(request.Body).Decode(&payload)
-			probe.pullTitle = asString(payload["title"])
-			probe.pullHead = asString(payload["head"])
-			probe.pullBase = asString(payload["base"])
-			writer.WriteHeader(http.StatusCreated)
-			_, _ = writer.Write([]byte(`{"number":42,"html_url":"https://github.com/nimiplatform/mod-circle/pull/42"}`))
-			return
-		default:
-			writer.WriteHeader(http.StatusNotFound)
-			_, _ = writer.Write([]byte(`{"message":"not found"}`))
-			return
-		}
-	}))
-	defer server.Close()
-
-	output, err := captureStdoutFromRun(func() error {
-		return runRuntimeMod([]string{
-			"publish",
-			"--dir", modDir,
-			"--source-repo", "someuser/nimi-mod-publish",
-			"--mod-circle-repo", "nimiplatform/mod-circle",
-			"--api-base", server.URL,
-			"--json",
-		})
-	})
-	if err != nil {
-		t.Fatalf("runRuntimeMod publish: %v", err)
-	}
-
-	var payload map[string]any
-	if unmarshalErr := json.Unmarshal([]byte(output), &payload); unmarshalErr != nil {
-		t.Fatalf("unmarshal publish output: %v output=%q", unmarshalErr, output)
-	}
-	if asFloat(payload["pr_number"]) != 42 {
-		t.Fatalf("pr_number mismatch: %#v", payload["pr_number"])
-	}
-	if asString(payload["pr_url"]) != "https://github.com/nimiplatform/mod-circle/pull/42" {
-		t.Fatalf("pr_url mismatch: %#v", payload["pr_url"])
-	}
-
-	probe.mu.Lock()
-	defer probe.mu.Unlock()
-	if probe.lastAuthHeader != "Bearer ghp_test_token" {
-		t.Fatalf("authorization header mismatch: %q", probe.lastAuthHeader)
-	}
-	if probe.branchRef == "" || !strings.HasPrefix(probe.branchRef, "refs/heads/nimi-mod/") {
-		t.Fatalf("branch ref mismatch: %q", probe.branchRef)
-	}
-	if probe.branchSHA != "base-sha-123" {
-		t.Fatalf("branch sha mismatch: %q", probe.branchSHA)
-	}
-	if probe.indexPath != "mods/world.nimi.publish.json" {
-		t.Fatalf("index path mismatch: %q", probe.indexPath)
-	}
-	if !strings.Contains(probe.indexContent, `"id": "world.nimi.publish"`) {
-		t.Fatalf("index content missing id: %s", probe.indexContent)
-	}
-	if probe.pullHead == "" || probe.pullBase != "main" {
-		t.Fatalf("pull request payload mismatch: head=%q base=%q", probe.pullHead, probe.pullBase)
-	}
-}
-
-type modPublishProbe struct {
-	mu sync.Mutex
-
-	lastAuthHeader string
-	branchRef      string
-	branchSHA      string
-	indexPath      string
-	indexContent   string
-	commitBranch   string
-	pullTitle      string
-	pullHead       string
-	pullBase       string
-}
 
 func createTestModProject(t *testing.T, dir string, modID string, name string) {
 	t.Helper()

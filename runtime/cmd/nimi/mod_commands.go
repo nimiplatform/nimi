@@ -41,15 +41,6 @@ type modListItem struct {
 	Capabilities []string `json:"capabilities"`
 }
 
-type modPublishResult struct {
-	Repo       string `json:"repo"`
-	Branch     string `json:"branch"`
-	PRNumber   int    `json:"pr_number"`
-	PRURL      string `json:"pr_url"`
-	IndexPath  string `json:"index_path"`
-	BundleHash string `json:"bundle_hash"`
-}
-
 type resolvedInstallSource struct {
 	sourceDir        string
 	normalizedSource string
@@ -79,13 +70,13 @@ func runRuntimeMod(args []string) error {
 	case "install":
 		return runRuntimeModInstall(args[1:])
 	case "create":
-		return runRuntimeModCreate(args[1:])
+		return movedToNimiModError("create")
 	case "dev":
-		return runRuntimeModDev(args[1:])
+		return movedToNimiModError("dev")
 	case "build":
-		return runRuntimeModBuild(args[1:])
+		return movedToNimiModError("build")
 	case "publish":
-		return runRuntimeModPublish(args[1:])
+		return movedToNimiModError("publish")
 	default:
 		printRuntimeModUsage()
 		return flag.ErrHelp

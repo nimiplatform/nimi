@@ -55,6 +55,11 @@ What each file demonstrates:
 - `04-vercel-ai-sdk.ts`: Nimi as a provider for the Vercel AI SDK
 - `05-multimodal.ts`: image and TTS flows through the runtime
 
+## Author Templates
+
+- `app-template/`: tracked output shape for `pnpm dlx @nimiplatform/dev-tools nimi-app create --template basic`
+- `mod-template/`: tracked output shape for `pnpm dlx @nimiplatform/dev-tools nimi-mod create`
+
 ## Advanced Paths
 
 Advanced examples live under `examples/sdk/advanced/`:
@@ -85,7 +90,9 @@ node scripts/check-example-run-comments.mjs
 ## Layout
 
 - `sdk/`: app-facing SDK examples
+- `app-template/`: app scaffold reference
 - `sdk/advanced/`: deeper runtime features
 - `sdk/providers/`: provider-specific recipes
+- `mod-template/`: mod scaffold reference
 - `mods/`: mod SDK examples
 - `runtime/`: CLI examples
