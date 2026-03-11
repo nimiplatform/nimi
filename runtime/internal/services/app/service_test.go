@@ -84,19 +84,23 @@ func TestSubscribeAppMessagesFiltering(t *testing.T) {
 	time.Sleep(20 * time.Millisecond)
 
 	// This message should match.
-	svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+	if _, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
 		FromAppId:     "app-a",
 		ToAppId:       "app-b",
 		SubjectUserId: "user-1",
 		MessageType:   "greeting",
-	})
+	}); err != nil {
+		t.Fatalf("SendAppMessage match: %v", err)
+	}
 	// This message should NOT match (different user).
-	svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+	if _, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
 		FromAppId:     "app-a",
 		ToAppId:       "app-b",
 		SubjectUserId: "user-2",
 		MessageType:   "greeting",
-	})
+	}); err != nil {
+		t.Fatalf("SendAppMessage non-match: %v", err)
+	}
 
 	if !waitForAppEvents(stream, 1, 300*time.Millisecond) {
 		t.Fatal("expected at least one matching event")
@@ -136,19 +140,23 @@ func TestSubscribeAppMessagesFromAppFilter(t *testing.T) {
 	time.Sleep(20 * time.Millisecond)
 
 	// From app-a — should not match filter.
-	svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+	if _, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
 		FromAppId:     "app-a",
 		ToAppId:       "app-b",
 		SubjectUserId: "user-1",
 		MessageType:   "msg",
-	})
+	}); err != nil {
+		t.Fatalf("SendAppMessage filtered non-match: %v", err)
+	}
 	// From app-x — should match filter.
-	svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+	if _, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
 		FromAppId:     "app-x",
 		ToAppId:       "app-b",
 		SubjectUserId: "user-1",
 		MessageType:   "msg",
-	})
+	}); err != nil {
+		t.Fatalf("SendAppMessage filtered match: %v", err)
+	}
 
 	if !waitForAppEvents(stream, 1, 300*time.Millisecond) {
 		t.Fatal("expected at least one event from app-x")
@@ -182,13 +190,15 @@ func TestSendAppMessageWithAck(t *testing.T) {
 
 	time.Sleep(20 * time.Millisecond)
 
-	svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+	if _, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
 		FromAppId:     "app-a",
 		ToAppId:       "app-b",
 		SubjectUserId: "user-1",
 		MessageType:   "msg",
 		RequireAck:    true,
-	})
+	}); err != nil {
+		t.Fatalf("SendAppMessage ack flow: %v", err)
+	}
 
 	// Should receive both RECEIVED and ACKED events.
 	if !waitForAppEvents(stream, 2, 300*time.Millisecond) {
@@ -224,12 +234,14 @@ func TestSlowConsumerDropsOldest(t *testing.T) {
 
 	// Send many messages to overflow.
 	for i := 0; i < 10; i++ {
-		svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+		if _, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
 			FromAppId:     "app-sender",
 			ToAppId:       "app-slow",
 			SubjectUserId: "user-1",
 			MessageType:   "msg",
-		})
+		}); err != nil {
+			t.Fatalf("SendAppMessage slow consumer %d: %v", i, err)
+		}
 	}
 
 	// Drain whatever is in the channel.
@@ -267,12 +279,14 @@ func TestSequenceMonotonicallyIncreases(t *testing.T) {
 	time.Sleep(20 * time.Millisecond)
 
 	for i := 0; i < 5; i++ {
-		svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+		if _, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
 			FromAppId:     "app-a",
 			ToAppId:       "app-b",
 			SubjectUserId: "user-1",
 			MessageType:   "msg",
-		})
+		}); err != nil {
+			t.Fatalf("SendAppMessage monotonic %d: %v", i, err)
+		}
 	}
 
 	if !waitForAppEvents(stream, 5, 500*time.Millisecond) {

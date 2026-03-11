@@ -120,7 +120,9 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		if err := connStore.ReconcileStartup(); err != nil {
 			logger.Warn("connector store reconcile startup failed", "error", err)
 		}
-		connectorservice.EnsureLocalConnectors(connStore)
+		if err := connectorservice.EnsureLocalConnectors(connStore); err != nil {
+			logger.Warn("local connector bootstrap failed", "error", err)
+		}
 
 		cloudDefs := buildCloudConnectorDefs(cfg)
 		if err := connectorservice.EnsureCloudConnectorsFromConfig(connStore, cloudDefs); err != nil {

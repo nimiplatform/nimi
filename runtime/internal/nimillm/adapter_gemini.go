@@ -56,7 +56,7 @@ func ExecuteGeminiOperation(
 	scenarioExtensions := StructToMap(extractScenarioExtensions(req))
 	prompt := ""
 	defaultMIME := ""
-	computeMs := int64(180)
+	var computeMs int64
 	switch scenarioModal(req) {
 	case runtimev1.Modal_MODAL_IMAGE:
 		spec := scenarioImageSpec(req)

@@ -17,7 +17,7 @@ pub fn normalize_non_empty(value: &str, fallback: &str) -> String {
     }
 }
 
-const CROCKFORD_BASE32: &[u8; 32] = b"0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+const CROCKFORD_BASE32: &[u8; 32] = b"0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // pragma: allowlist secret
 static ULID_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 /// Generates a ULID-compatible 26-character string using existing deps (sha2 + chrono).
@@ -138,7 +138,7 @@ mod tests {
     fn generate_ulid_string_returns_26_char_crockford() {
         let ulid = generate_ulid_string();
         assert_eq!(ulid.len(), 26);
-        let crockford_chars = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+        let crockford_chars = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // pragma: allowlist secret
         for ch in ulid.chars() {
             assert!(crockford_chars.contains(ch), "invalid crockford char: {ch}");
         }

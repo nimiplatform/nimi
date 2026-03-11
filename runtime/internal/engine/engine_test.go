@@ -243,7 +243,7 @@ func TestLocalAIAssetName(t *testing.T) {
 func TestLocalAIExpectedSHA256(t *testing.T) {
 	const version = "3.12.1"
 	const asset = "local-ai-v3.12.1-darwin-arm64"
-	const expectedHash = "aac7f1248948cf2e6b2ce1c86a311601b1e37154914397f602b1f6f4bfe2de00"
+	const expectedHash = "aac7f1248948cf2e6b2ce1c86a311601b1e37154914397f602b1f6f4bfe2de00" // pragma: allowlist secret
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v3.12.1/LocalAI-v3.12.1-checksums.txt" {
 			http.NotFound(w, r)
@@ -314,7 +314,7 @@ func TestProbeHealthSuccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/readyz" {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("ok"))
+			_, _ = w.Write([]byte("ok"))
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)
@@ -330,7 +330,7 @@ func TestProbeHealthSuccess(t *testing.T) {
 func TestProbeHealthBodyMatch(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Nexa SDK is running"))
+		_, _ = w.Write([]byte("Nexa SDK is running"))
 	}))
 	defer server.Close()
 
@@ -343,7 +343,7 @@ func TestProbeHealthBodyMatch(t *testing.T) {
 func TestProbeHealthBodyMismatch(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("something else"))
+		_, _ = w.Write([]byte("something else"))
 	}))
 	defer server.Close()
 
@@ -472,7 +472,7 @@ func TestDownloadFromURLSuccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", strconv.Itoa(len(fakeBinary)))
 		w.WriteHeader(http.StatusOK)
-		w.Write(fakeBinary)
+		_, _ = w.Write(fakeBinary)
 	}))
 	defer server.Close()
 
@@ -817,7 +817,7 @@ func TestSupervisorStartStop(t *testing.T) {
 	if err := sup.Start(ctx); err != nil {
 		t.Fatalf("Start: %v", err)
 	}
-	defer sup.Stop()
+	defer func() { _ = sup.Stop() }()
 
 	info := sup.Info()
 	if info.PID <= 0 {
@@ -859,7 +859,7 @@ func TestSupervisorStartAlreadyRunning(t *testing.T) {
 	go func() {
 		errCh <- sup.Start(ctx)
 	}()
-	defer sup.Stop()
+	defer func() { _ = sup.Stop() }()
 
 	// Wait for status to become Starting (process spawned, health check in progress).
 	if !waitForStatus(sup, StatusStarting, 3*time.Second) {
@@ -910,7 +910,7 @@ func TestSupervisorCrashRestart(t *testing.T) {
 	if err := sup.Start(ctx); err != nil {
 		t.Fatalf("Start: %v", err)
 	}
-	defer sup.Stop()
+	defer func() { _ = sup.Stop() }()
 
 	// First "starting" from initial spawn.
 	select {
@@ -984,7 +984,7 @@ func TestSupervisorMaxRestartsExhausted(t *testing.T) {
 	if err := sup.Start(ctx); err != nil {
 		t.Fatalf("Start: %v", err)
 	}
-	defer sup.Stop()
+	defer func() { _ = sup.Stop() }()
 
 	// Wait for max restarts to be exhausted.
 	if !waitForStatus(sup, StatusUnhealthy, 5*time.Second) {
@@ -1316,7 +1316,7 @@ func TestSupervisorStateCallback(t *testing.T) {
 	if err := sup.Start(ctx); err != nil {
 		t.Fatalf("Start: %v", err)
 	}
-	defer sup.Stop()
+	defer func() { _ = sup.Stop() }()
 
 	// Give callbacks time to fire.
 	time.Sleep(200 * time.Millisecond)

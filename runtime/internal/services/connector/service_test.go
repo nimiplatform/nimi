@@ -202,14 +202,18 @@ func TestListConnectorsFiltering(t *testing.T) {
 	}
 
 	// Create remote connectors for different users
-	svc.CreateConnector(user1Ctx, &runtimev1.CreateConnectorRequest{
+	if _, err := svc.CreateConnector(user1Ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
-	})
-	svc.CreateConnector(user2Ctx, &runtimev1.CreateConnectorRequest{
+	}); err != nil {
+		t.Fatalf("CreateConnector user-1: %v", err)
+	}
+	if _, err := svc.CreateConnector(user2Ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "gemini",
 		ApiKey:   "key",
-	})
+	}); err != nil {
+		t.Fatalf("CreateConnector user-2: %v", err)
+	}
 
 	// List for user-1: should see 6 local + 1 remote
 	resp, err := svc.ListConnectors(user1Ctx, &runtimev1.ListConnectorsRequest{})
@@ -500,7 +504,9 @@ func TestTestConnectorDisabled(t *testing.T) {
 
 	// Disable it
 	disabled := runtimev1.ConnectorStatus_CONNECTOR_STATUS_DISABLED
-	svc.store.Update(connID, ConnectorMutations{Status: &disabled})
+	if _, err := svc.store.Update(connID, ConnectorMutations{Status: &disabled}); err != nil {
+		t.Fatalf("Update connector status: %v", err)
+	}
 
 	testResp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{
 		ConnectorId: connID,

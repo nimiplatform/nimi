@@ -392,7 +392,7 @@ func runtimeChecklist() []checklistItemSpec {
 			Requirement: "AI route policy regression (explicit route + no silent fallback)",
 			Tests: []testRef{
 				{Package: pkgAI, Name: "TestExecuteScenarioTextGenerateFallbackDenied"},
-				{Package: pkgNimillm, Name: "TestCloudProviderPickBackendRejectsUnavailableExplicitPrefixWithoutFallback"},
+					{Package: pkgNimillm, Name: "TestCloudProviderPickBackendRejectsUnavailableExplicitPrefixWithoutFallback"}, // pragma: allowlist secret
 			},
 		},
 		{

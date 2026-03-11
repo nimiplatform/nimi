@@ -163,7 +163,7 @@ func discoverInstalledLocalAIBackendRunPath(backendsPath string, backendName str
 		if metadataErr != nil {
 			return "", metadataErr
 		}
-		score := 99
+		var score int
 		switch {
 		case dir == trimmedBackend:
 			score = 0

@@ -63,13 +63,10 @@ func executeElevenLabsTwoPhaseDesign(ctx context.Context, req VoiceWorkflowReque
 	}
 
 	previewPaths := resolveVoiceEndpointPaths("tts_t2v", req.ExtPayload, nil)
-	if len(previewPaths) == 0 {
-		previewPaths = []string{"/v1/text-to-voice/design"}
-	}
 	// Use preview-specific extension keys if provided.
 	if extPaths := valueAsTrimmedStringSliceVoice(req.ExtPayload["preview_paths"]); len(extPaths) > 0 {
 		previewPaths = extPaths
-	} else {
+	} else if len(previewPaths) == 0 {
 		previewPaths = []string{"/v1/text-to-voice/design"}
 	}
 
