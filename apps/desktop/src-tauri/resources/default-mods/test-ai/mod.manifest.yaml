@@ -4,6 +4,8 @@ version: 1.0.0
 kind: capability-mod
 icon: local-chat
 entry: ./dist/mods/test-ai/index.js
+styles:
+  - ./dist/mods/test-ai/index.css
 description: >
   Diagnostic mod for validating all 8 AI capabilities end-to-end: text generation,
   text embedding, image generation, video generation, audio synthesis, audio transcription,

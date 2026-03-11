@@ -4,6 +4,8 @@ version: 1.1.0
 kind: capability-mod
 icon: videoplay
 entry: ./dist/mods/videoplay/index.js
+styles:
+  - ./dist/mods/videoplay/index.css
 description: >
   Episode-based narrative video production workbench.
   Consumes canonical narrative windows and outputs publish-ready release packages.

@@ -3,6 +3,8 @@ name: 世界工坊
 version: 1.0.0
 kind: capability-mod
 entry: ./dist/mods/world-studio/index.js
+styles:
+  - ./dist/mods/world-studio/index.css
 description: >
   基于通用世界 API 的世界创建与维护工作室。
 capabilities:

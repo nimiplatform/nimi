@@ -3,6 +3,8 @@ name: Knowledge Base
 version: 1.0.0
 kind: capability-mod
 entry: ./dist/mods/knowledge-base/index.js
+styles:
+  - ./dist/mods/knowledge-base/index.css
 description: >
   Private local knowledge base with document import, semantic search, and RAG-powered Q&A.
 capabilities:

@@ -4,6 +4,8 @@ version: 1.0.0
 kind: capability-mod
 icon: mint-you
 entry: ./dist/mods/mint-you/index.js
+styles:
+  - ./dist/mods/mint-you/index.css
 description: >
   Behavioral personality profiling and social-persona agent creation.
   Users complete conversational intake to create an AI agent that

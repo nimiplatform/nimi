@@ -3,6 +3,8 @@ name: Audio Book
 version: 0.1.0
 kind: capability-mod
 entry: ./dist/mods/audio-book/index.js
+styles:
+  - ./dist/mods/audio-book/index.css
 description: >
   多角色 AI 有声书生成工作室。
 capabilities:

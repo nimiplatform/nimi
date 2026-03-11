@@ -3,6 +3,7 @@
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
+import { parse as parseYaml } from 'yaml';
 import { resolveRuntimeModsDir } from './mod-paths.mjs';
 
 function parseArgs(argv) {
@@ -77,14 +78,12 @@ function readManifestSummary(manifestPath) {
   if (manifestPath.endsWith('.json')) {
     return JSON.parse(content);
   }
+  return parseYaml(content);
+}
 
-  const summary = {};
-  for (const line of content.split('\n')) {
-    const match = line.match(/^([A-Za-z][A-Za-z0-9_-]*):\s*(.+)$/);
-    if (!match) continue;
-    summary[match[1]] = match[2].trim();
-  }
-  return summary;
+function hasUiCapabilities(manifest) {
+  const capabilities = Array.isArray(manifest?.capabilities) ? manifest.capabilities : [];
+  return capabilities.some((capability) => String(capability || '').startsWith('ui.register.'));
 }
 
 function checkSingleMod(runtimeModsDir, modDirName) {
@@ -105,6 +104,16 @@ function checkSingleMod(runtimeModsDir, modDirName) {
     throw new Error(`Manifest entry missing: ${manifestPath}`);
   }
   ensureFile(path.join(modDir, entry), `runtime mod entry (${modId})`);
+  const stylePaths = Array.isArray(manifest.styles)
+    ? manifest.styles.map((item) => String(item || '').trim()).filter(Boolean)
+    : [];
+  if (hasUiCapabilities(manifest) && stylePaths.length === 0) {
+    throw new Error(`UI runtime mod manifest styles missing: ${manifestPath}`);
+  }
+  for (const stylePath of stylePaths) {
+    ensureFile(path.join(modDir, stylePath), `runtime mod style (${modId})`);
+    process.stdout.write(`[dev-mods-smoke] style ok: ${path.join(modDir, stylePath)}\n`);
+  }
   process.stdout.write(`[dev-mods-smoke] manifest ok: ${manifestPath}\n`);
   process.stdout.write(`[dev-mods-smoke] entry ok: ${path.join(modDir, entry)}\n`);
 }

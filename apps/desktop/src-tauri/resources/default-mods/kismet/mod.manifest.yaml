@@ -4,6 +4,8 @@ version: 1.0.0
 kind: capability-mod
 icon: kismet
 entry: ./dist/mods/kismet/index.js
+styles:
+  - ./dist/mods/kismet/index.css
 description: >
   BaZi destiny analysis workbench. Generates KismetResult via any
   available chat model and renders candlestick chart visualization.

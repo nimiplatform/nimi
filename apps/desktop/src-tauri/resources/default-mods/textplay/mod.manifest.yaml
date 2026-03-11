@@ -4,6 +4,8 @@ version: 1.0.0
 kind: capability-mod
 icon: textplay
 entry: ./dist/mods/textplay/index.js
+styles:
+  - ./dist/mods/textplay/index.css
 description: >
   Narrative text renderer mod for player-interactive story progression.
 capabilities:
