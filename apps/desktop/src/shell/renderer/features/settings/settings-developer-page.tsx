@@ -48,12 +48,12 @@ export function DeveloperPage() {
       useAppStore.getState().setRuntimeModDeveloperMode(state);
       setStatusBanner({
         kind: 'success',
-        message: 'Mod Developer settings updated',
+        message: t('DeveloperSettings.settingsUpdated'),
       });
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: error instanceof Error ? error.message : 'Failed to update Mod Developer settings',
+        message: error instanceof Error ? error.message : t('DeveloperSettings.settingsUpdateFailed'),
       });
     } finally {
       setSaving(false);
@@ -63,7 +63,7 @@ export function DeveloperPage() {
   const addSource = async () => {
     const sourceDir = sourceDirInput.trim();
     if (!sourceDir) {
-      setStatusBanner({ kind: 'warning', message: 'Enter an absolute mod source directory first' });
+      setStatusBanner({ kind: 'warning', message: t('DeveloperSettings.enterSourceDirFirst') });
       return;
     }
     setSaving(true);
@@ -75,11 +75,11 @@ export function DeveloperPage() {
       });
       await refreshRuntimeModDeveloperHostState();
       setSourceDirInput('');
-      setStatusBanner({ kind: 'success', message: 'Mod source added' });
+      setStatusBanner({ kind: 'success', message: t('DeveloperSettings.sourceAdded') });
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: error instanceof Error ? error.message : 'Failed to add mod source',
+        message: error instanceof Error ? error.message : t('DeveloperSettings.sourceAddFailed'),
       });
     } finally {
       setSaving(false);
@@ -103,7 +103,7 @@ export function DeveloperPage() {
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: error instanceof Error ? error.message : 'Failed to update mod source',
+        message: error instanceof Error ? error.message : t('DeveloperSettings.sourceUpdateFailed'),
       });
     } finally {
       setSaving(false);
@@ -115,11 +115,11 @@ export function DeveloperPage() {
     try {
       await desktopBridge.removeRuntimeModSource(sourceId);
       await refreshRuntimeModDeveloperHostState();
-      setStatusBanner({ kind: 'success', message: 'Mod source removed' });
+      setStatusBanner({ kind: 'success', message: t('DeveloperSettings.sourceRemoved') });
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: error instanceof Error ? error.message : 'Failed to remove mod source',
+        message: error instanceof Error ? error.message : t('DeveloperSettings.sourceRemoveFailed'),
       });
     } finally {
       setSaving(false);
@@ -132,11 +132,11 @@ export function DeveloperPage() {
       await desktopBridge.reloadAllRuntimeMods();
       await refreshRuntimeModDeveloperHostState();
       await reconcileRuntimeLocalMods();
-      setStatusBanner({ kind: 'success', message: 'Runtime mods reloaded' });
+      setStatusBanner({ kind: 'success', message: t('DeveloperSettings.reloadSuccess') });
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: error instanceof Error ? error.message : 'Failed to reload runtime mods',
+        message: error instanceof Error ? error.message : t('DeveloperSettings.reloadFailed'),
       });
     } finally {
       setSaving(false);
@@ -149,12 +149,12 @@ export function DeveloperPage() {
       description={t('DeveloperSettings.pageDescription')}
     >
       <section>
-        <SectionTitle>Mod Developer Mode</SectionTitle>
+        <SectionTitle>{t('DeveloperSettings.modeTitle')}</SectionTitle>
         <Card className="p-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="space-y-1 text-sm text-gray-600">
-              <p>Developer Mode keeps Desktop in third-party mod host mode.</p>
-              <p>{`Sources: ${sourceSummary.total} total, ${sourceSummary.dev} dev, ${sourceSummary.enabled} enabled`}</p>
+              <p>{t('DeveloperSettings.modeDescription')}</p>
+              <p>{t('DeveloperSettings.sourceSummary', sourceSummary)}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
@@ -167,7 +167,9 @@ export function DeveloperPage() {
                 }}
                 disabled={saving}
               >
-                {runtimeModDeveloperMode.enabled ? 'Disable Developer Mode' : 'Enable Developer Mode'}
+                {runtimeModDeveloperMode.enabled
+                  ? t('DeveloperSettings.disableDeveloperMode')
+                  : t('DeveloperSettings.enableDeveloperMode')}
               </Button>
               <Button
                 variant={runtimeModDeveloperMode.autoReloadEnabled ? 'secondary' : 'primary'}
@@ -179,10 +181,12 @@ export function DeveloperPage() {
                 }}
                 disabled={saving}
               >
-                {runtimeModDeveloperMode.autoReloadEnabled ? 'Disable Auto Reload' : 'Enable Auto Reload'}
+                {runtimeModDeveloperMode.autoReloadEnabled
+                  ? t('DeveloperSettings.disableAutoReload')
+                  : t('DeveloperSettings.enableAutoReload')}
               </Button>
               <Button variant="secondary" onClick={() => { void reloadAll(); }} disabled={saving}>
-                Reload All
+                {t('DeveloperSettings.reloadAll')}
               </Button>
             </div>
           </div>
@@ -190,7 +194,7 @@ export function DeveloperPage() {
       </section>
 
       <section>
-        <SectionTitle>Add Mod Source</SectionTitle>
+        <SectionTitle>{t('DeveloperSettings.addSourceTitle')}</SectionTitle>
         <Card className="space-y-4 p-5">
           <div className="grid gap-3 md:grid-cols-[140px_minmax(0,1fr)_auto]">
             <select
@@ -198,25 +202,25 @@ export function DeveloperPage() {
               onChange={(event) => setSourceTypeInput(event.target.value === 'installed' ? 'installed' : 'dev')}
               className="rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
             >
-              <option value="dev">dev</option>
-              <option value="installed">installed</option>
+              <option value="dev">{t('DeveloperSettings.sourceTypeDev')}</option>
+              <option value="installed">{t('DeveloperSettings.sourceTypeInstalled')}</option>
             </select>
             <input
               value={sourceDirInput}
               onChange={(event) => setSourceDirInput(event.target.value)}
-              placeholder="/absolute/path/to/mods-or-one-mod"
+              placeholder={t('DeveloperSettings.sourcePathPlaceholder')}
               className="rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
             />
-            <Button onClick={() => { void addSource(); }} disabled={saving}>Add Source</Button>
+            <Button onClick={() => { void addSource(); }} disabled={saving}>{t('DeveloperSettings.addSourceButton')}</Button>
           </div>
           <p className="text-xs text-gray-500">
-            A source directory may be a single mod root or a directory that contains multiple mod subdirectories.
+            {t('DeveloperSettings.sourceHelp')}
           </p>
         </Card>
       </section>
 
       <section>
-        <SectionTitle>Registered Sources</SectionTitle>
+        <SectionTitle>{t('DeveloperSettings.registeredSourcesTitle')}</SectionTitle>
         <div className="space-y-3">
           {runtimeModSources.map((source) => (
             <Card key={source.sourceId} className="p-4">
@@ -224,8 +228,10 @@ export function DeveloperPage() {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-gray-900">{source.sourceType}</span>
-                    {source.isDefault ? <StatusBadge status="info" text="Default" /> : null}
-                    {source.enabled ? <StatusBadge status="success" text="Enabled" /> : <StatusBadge status="warning" text="Disabled" />}
+                    {source.isDefault ? <StatusBadge status="info" text={t('DeveloperSettings.defaultBadge')} /> : null}
+                    {source.enabled
+                      ? <StatusBadge status="success" text={t('DeveloperSettings.enabledBadge')} />
+                      : <StatusBadge status="warning" text={t('DeveloperSettings.disabledBadge')} />}
                   </div>
                   <p className="break-all text-sm text-gray-600">{source.sourceDir}</p>
                 </div>
@@ -236,7 +242,7 @@ export function DeveloperPage() {
                       onClick={() => { void toggleSourceEnabled(source.sourceId, !source.enabled); }}
                       disabled={saving}
                     >
-                      {source.enabled ? 'Disable' : 'Enable'}
+                      {source.enabled ? t('DeveloperSettings.disableSource') : t('DeveloperSettings.enableSource')}
                     </Button>
                   ) : null}
                   {!source.isDefault ? (
@@ -245,7 +251,7 @@ export function DeveloperPage() {
                       onClick={() => { void removeSource(source.sourceId); }}
                       disabled={saving}
                     >
-                      Remove
+                      {t('DeveloperSettings.removeSource')}
                     </Button>
                   ) : null}
                 </div>
@@ -256,10 +262,10 @@ export function DeveloperPage() {
       </section>
 
       <section>
-        <SectionTitle>Diagnostics</SectionTitle>
+        <SectionTitle>{t('DeveloperSettings.diagnosticsTitle')}</SectionTitle>
         <div className="space-y-3">
           {runtimeModDiagnostics.length === 0 ? (
-            <Card className="p-4 text-sm text-gray-500">No diagnostics yet.</Card>
+            <Card className="p-4 text-sm text-gray-500">{t('DeveloperSettings.noDiagnostics')}</Card>
           ) : runtimeModDiagnostics.map((record) => (
             <Card key={`${record.sourceId}:${record.modId}:${record.status}:${record.manifestPath || 'none'}`} className="p-4">
               <div className="flex flex-wrap items-center gap-2">
@@ -284,10 +290,10 @@ export function DeveloperPage() {
       </section>
 
       <section>
-        <SectionTitle>Recent Reloads</SectionTitle>
+        <SectionTitle>{t('DeveloperSettings.recentReloadsTitle')}</SectionTitle>
         <div className="space-y-3">
           {runtimeModRecentReloads.length === 0 ? (
-            <Card className="p-4 text-sm text-gray-500">No reload events in this session yet.</Card>
+            <Card className="p-4 text-sm text-gray-500">{t('DeveloperSettings.noRecentReloads')}</Card>
           ) : runtimeModRecentReloads.slice().reverse().slice(0, 12).map((record) => (
             <Card key={`${record.sourceId}:${record.modId}:${record.occurredAt}`} className="p-4">
               <div className="flex flex-wrap items-center gap-2">

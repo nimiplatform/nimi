@@ -1,4 +1,5 @@
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
+import { i18n } from '@renderer/i18n';
 import { getDefaultPrivateExecutionModId } from '@runtime/mod';
 import { resolveModTabId } from './sync-runtime-extensions';
 
@@ -32,7 +33,7 @@ export function openDefaultPrivateExecutionMod(): boolean {
   if (!modId) {
     appStore.setStatusBanner({
       kind: 'warning',
-      message: 'No runtime mod is available for private execution.',
+      message: i18n.t('ModUI.privateExecutionUnavailable'),
     });
     return false;
   }
