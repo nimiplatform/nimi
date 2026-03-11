@@ -12,6 +12,17 @@ const candidateRoots = [
 ];
 const targetExtensions = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs']);
 const violations = [];
+const ignoredDirNames = new Set([
+  'node_modules',
+  'dist',
+  'coverage',
+  'generated',
+  'gen',
+  'test',
+  'tests',
+  '__tests__',
+  'spec',
+]);
 
 function toPosix(input) {
   return input.replace(/\\/g, '/');
@@ -22,6 +33,9 @@ function collectFiles(dir, output) {
   for (const entry of entries) {
     const absPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
+      if (ignoredDirNames.has(entry.name)) {
+        continue;
+      }
       collectFiles(absPath, output);
       continue;
     }

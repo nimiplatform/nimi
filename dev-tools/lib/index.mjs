@@ -17,26 +17,186 @@ const AI_SDK_VERSION = '^6.0.85';
 const require = createRequire(import.meta.url);
 const MOD_THEME_CSS = `
 @theme {
-  --color-brand-50: #ecfdf5;
-  --color-brand-100: #d1fae5;
-  --color-brand-200: #a7f3d0;
-  --color-brand-300: #6ee7b7;
-  --color-brand-400: #34d399;
-  --color-brand-500: #10b981;
-  --color-brand-600: #059669;
-  --color-brand-700: #047857;
-  --color-brand-800: #065f46;
-  --color-brand-900: #064e3b;
-  --color-mint-50: #f0fdfa;
-  --color-mint-100: #ccfbf1;
-  --color-mint-200: #99f6e4;
-  --color-mint-300: #5eead4;
-  --color-mint-400: #2dd4bf;
-  --color-mint-500: #14b8a6;
-  --color-mint-600: #0d9488;
-  --color-mint-700: #0f766e;
-  --color-mint-800: #115e59;
-  --color-mint-900: #134e4a;
+  --color-mint-50: #e6f7f2;
+  --color-mint-100: #ccefe5;
+  --color-mint-200: #99dfc8;
+  --color-mint-300: #66cfab;
+  --color-mint-400: #33bf8e;
+  --color-mint-500: #4ECCA3;
+  --color-mint-600: #3DBB96;
+  --color-mint-700: #2AA880;
+  --color-mint-800: #1F8C6B;
+  --color-mint-900: #166B52;
+  --color-brand-50: #ecfeff;
+  --color-brand-100: #cefafe;
+  --color-brand-200: #a2f4fd;
+  --color-brand-300: #67e1f5;
+  --color-brand-400: #22cce7;
+  --color-brand-500: #00b8db;
+  --color-brand-600: #0092b8;
+  --color-brand-700: #007595;
+  --color-brand-800: #065f7c;
+  --color-brand-900: #0a4e68;
+  --color-accent-50: #dbeafe;
+  --color-accent-100: #bedbff;
+  --color-accent-500: #155dfc;
+  --color-accent-600: #1447e6;
+  --color-accent-700: #1240cc;
+}
+`.trim();
+
+const MOD_COMPATIBILITY_CSS = `
+@layer base {
+  [data-nimi-mod-root],
+  [data-nimi-mod-portal] {
+    --font-ui: "Inter", "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
+    --font-display: "Noto Sans SC", "Source Han Sans SC", "Inter", "PingFang SC", "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
+    --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", Georgia, serif;
+    --font-sans: var(--font-ui);
+    --nimi-mod-mint-500: var(--color-mint-500);
+    --nimi-mod-brand-500: var(--color-brand-500);
+    --nimi-mod-accent-500: var(--color-accent-500);
+    color: var(--color-gray-900);
+    font-family: var(--font-ui);
+    line-height: 1.5;
+    color-scheme: light;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  [data-nimi-mod-root],
+  [data-nimi-mod-root] *,
+  [data-nimi-mod-root] *::before,
+  [data-nimi-mod-root] *::after,
+  [data-nimi-mod-portal],
+  [data-nimi-mod-portal] *,
+  [data-nimi-mod-portal] *::before,
+  [data-nimi-mod-portal] *::after {
+    box-sizing: border-box;
+  }
+
+  [data-nimi-mod-root] button,
+  [data-nimi-mod-root] input,
+  [data-nimi-mod-root] select,
+  [data-nimi-mod-root] textarea,
+  [data-nimi-mod-portal] button,
+  [data-nimi-mod-portal] input,
+  [data-nimi-mod-portal] select,
+  [data-nimi-mod-portal] textarea {
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+  }
+
+  [data-nimi-mod-root] button,
+  [data-nimi-mod-portal] button {
+    cursor: pointer;
+  }
+
+  [data-nimi-mod-root] :where(button, input, select, textarea):focus-visible,
+  [data-nimi-mod-portal] :where(button, input, select, textarea):focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-brand-500) 58%, white);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .brand-gradient {
+    background: linear-gradient(145deg, var(--color-brand-500) 0%, var(--color-accent-500) 100%);
+  }
+
+  @keyframes nimi-mod-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes nimi-mod-zoom-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes nimi-mod-slide-in-bottom {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes nimi-mod-slide-in-top {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes nimi-mod-slide-in-left {
+    from {
+      opacity: 0;
+      transform: translateX(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes nimi-mod-slide-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  :where([data-nimi-mod-root], [data-nimi-mod-portal]) .animate-in {
+    animation-duration: 180ms;
+    animation-fill-mode: both;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  :where([data-nimi-mod-root], [data-nimi-mod-portal]) .fade-in,
+  :where([data-nimi-mod-root], [data-nimi-mod-portal]) .fade-in-0 {
+    animation-name: nimi-mod-fade-in;
+  }
+
+  :where([data-nimi-mod-root], [data-nimi-mod-portal]) .zoom-in,
+  :where([data-nimi-mod-root], [data-nimi-mod-portal]) .zoom-in-95 {
+    animation-name: nimi-mod-zoom-in;
+  }
+
+  :where([data-nimi-mod-root], [data-nimi-mod-portal]) .slide-in-from-bottom-2 {
+    animation-name: nimi-mod-slide-in-bottom;
+  }
+
+  :where([data-nimi-mod-root], [data-nimi-mod-portal]) .slide-in-from-top-2 {
+    animation-name: nimi-mod-slide-in-top;
+  }
+
+  :where([data-nimi-mod-root], [data-nimi-mod-portal]) .slide-in-from-left-2 {
+    animation-name: nimi-mod-slide-in-left;
+  }
+
+  :where([data-nimi-mod-root], [data-nimi-mod-portal]) .slide-in-from-right-2 {
+    animation-name: nimi-mod-slide-in-right;
+  }
 }
 `.trim();
 
@@ -71,6 +231,7 @@ function createTailwindInput(modDir) {
   return [
     `@import "${escapeCssString(toPosixPath(getTailwindStylesheetPath()))}";`,
     MOD_THEME_CSS,
+    MOD_COMPATIBILITY_CSS,
     `@source "${escapeCssString(`${normalizedModDir}/index.ts`)}";`,
     `@source "${escapeCssString(`${normalizedModDir}/src`)}";`,
     '',
