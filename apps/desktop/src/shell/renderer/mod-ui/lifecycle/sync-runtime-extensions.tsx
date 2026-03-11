@@ -286,7 +286,11 @@ export function syncRuntimeUiExtensionsToRegistry(): {
 
             if (typeof Component === 'function') {
               return (
-                <div className={`flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden ${active ? '' : 'hidden'}`}>
+                <div
+                  className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+                  style={active ? undefined : { display: 'none' }}
+                  aria-hidden={!active}
+                >
                   <Component extensionId={extensionId} modId={entry.modId} />
                 </div>
               );

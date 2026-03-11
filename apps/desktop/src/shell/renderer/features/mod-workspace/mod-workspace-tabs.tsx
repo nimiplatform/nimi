@@ -1,5 +1,6 @@
 import { ChromeTab } from '@renderer/components/chrome-tab.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { renderShellNavIcon } from '@renderer/app-shell/layouts/navigation-config';
 
 type ModWorkspaceTabsProps = {
   placement?: 'content' | 'titlebar';
@@ -23,6 +24,21 @@ export function ModWorkspaceTabs(props: ModWorkspaceTabsProps) {
           className="translate-y-[2px] overflow-x-auto overflow-y-visible [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
         >
           <div className="inline-flex min-w-max items-end gap-1.5 pr-2">
+            <button
+              type="button"
+              onClick={() => setActiveTab('home')}
+              className={`mb-0 flex h-9 w-9 items-center justify-center rounded-[14px] border transition-colors ${
+                activeTab === 'home'
+                  ? 'border-white/70 bg-[#f7fbfd] text-[#1A1D1F] shadow-[0_10px_24px_rgba(15,23,42,0.08)]'
+                  : 'border-white/10 bg-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.82)] hover:bg-[rgba(255,255,255,0.12)]'
+              }`}
+              aria-label="Home"
+              title="Home"
+            >
+              <span className="flex h-4 w-4 items-center justify-center">
+                {renderShellNavIcon('home')}
+              </span>
+            </button>
             {modWorkspaceTabs.map((tab) => {
               const active = tab.tabId === activeTab;
               return (

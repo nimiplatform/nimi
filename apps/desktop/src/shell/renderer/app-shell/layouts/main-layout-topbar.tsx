@@ -45,7 +45,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
 
   return (
     <div
-      className={`relative z-10 flex h-12 shrink-0 items-center bg-[#4ECCA3] pr-0 text-white ${props.titlebarLeftInsetClass}`}
+      className={`relative z-[11000] flex h-12 shrink-0 items-center bg-[#4ECCA3] pr-0 text-white ${props.titlebarLeftInsetClass}`}
       onMouseDown={props.onMouseDown}
     >
       {props.enableModWorkspaceTabs ? (

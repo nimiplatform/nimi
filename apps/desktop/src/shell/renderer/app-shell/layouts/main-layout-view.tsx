@@ -555,123 +555,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               </div>
             </nav>
 
-            {settingsMenuOpen ? (
-              <div
-                ref={settingsMenuRef}
-                className="fixed z-50 flex max-h-[calc(100vh-100px)] w-64 flex-col overflow-hidden rounded-2xl border border-[#4ECCA3]/20 bg-white py-2 shadow-2xl shadow-[#4ECCA3]/10"
-                style={{
-                  top: `${collapsedSettingsMenuPosition?.top ?? 76}px`,
-                  left: `${collapsedSettingsMenuPosition?.left ?? 81}px`,
-                }}
-              >
-                <div className="flex items-center gap-3 px-4 py-3">
-                  <EntityAvatar
-                    imageUrl={props.userAvatarUrl}
-                    name={props.displayName}
-                    kind="human"
-                    sizeClassName="h-10 w-10"
-                    textClassName="text-sm font-semibold"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-gray-900">{props.displayName}</p>
-                    <p className="truncate text-xs text-gray-500">{props.userEmail || props.displayName.toLowerCase().replace(/\s+/g, '.') + '@nimi.app'}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      persistStoredSettingsSelected('profile');
-                      props.onNav('settings');
-                      setSettingsMenuOpen(false);
-                    }}
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 transition hover:bg-[#4ECCA3]/10 hover:text-[#4ECCA3]"
-                    title="Edit Profile"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 20h9" />
-                      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                    </svg>
-                  </button>
-                </div>
-
-                <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/20 to-transparent" />
-
-                <div className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#4ECCA3/30_transparent]">
-                  <div className="px-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        openSettingsSubmenuItem('profile');
-                      }}
-                      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all ${
-                        isSettingsMenuItemActive('profile')
-                          ? 'bg-[#4ECCA3]/10 text-[#2F7D6B]'
-                          : 'text-gray-700 hover:bg-[#4ECCA3]/5'
-                      }`}
-                    >
-                      <span className={`w-4 shrink-0 ${isSettingsMenuItemActive('profile') ? 'text-[#4ECCA3]' : 'text-gray-400'}`}>
-                        {renderShellNavIcon('profile')}
-                      </span>
-                      <span className="min-w-0 flex-1 text-left font-medium">{t(SETTINGS_SUBMENU_I18N_KEYS.profile ?? '', 'Profile')}</span>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
-                        <path d="m9 18 6-6-6-6" />
-                      </svg>
-                    </button>
-
-                    {SETTINGS_SUBMENU_ITEMS.filter((item) => item.id !== 'logout' && item.id !== 'profile').map((item) => {
-                      const active = isSettingsMenuItemActive(item.id);
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => {
-                            openSettingsSubmenuItem(item.id);
-                          }}
-                          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all ${
-                            active
-                              ? 'bg-[#4ECCA3]/10 text-[#2F7D6B]'
-                              : 'text-gray-700 hover:bg-[#4ECCA3]/5'
-                          }`}
-                        >
-                          <span className={`w-4 shrink-0 ${active ? 'text-[#4ECCA3]' : 'text-gray-400'}`}>
-                            {renderShellNavIcon(item.icon)}
-                          </span>
-                          <span className="min-w-0 flex-1 text-left font-medium">{t(SETTINGS_SUBMENU_I18N_KEYS[item.id] ?? '', item.label)}</span>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
-                            <path d="m9 18 6-6-6-6" />
-                          </svg>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-gray-100 to-transparent" />
-
-                  <div className="px-2 pb-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        props.onLogout();
-                        setSettingsMenuOpen(false);
-                      }}
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] text-gray-700 transition-all hover:bg-[#4ECCA3]/5"
-                    >
-                      <span className="w-4 shrink-0 text-gray-400">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                          <polyline points="16 17 21 12 16 7" />
-                          <line x1="21" y1="12" x2="9" y2="12" />
-                        </svg>
-                      </span>
-                      <span className="min-w-0 flex-1 text-left font-medium">{t('Menu.logout', 'Log out')}</span>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
-                        <path d="m9 18 6-6-6-6" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
           </aside>
         )}
 
@@ -771,6 +654,123 @@ export function MainLayoutView(props: MainLayoutViewProps) {
           ) : null}
         </div>
       </div>
+
+      {settingsMenuOpen ? (
+        <div
+          ref={settingsMenuRef}
+          className="fixed z-[11010] flex max-h-[calc(100vh-100px)] w-64 flex-col overflow-hidden rounded-2xl border border-[#4ECCA3]/20 bg-white py-2 shadow-2xl shadow-[#4ECCA3]/10"
+          style={{
+            top: `${collapsedSettingsMenuPosition?.top ?? 76}px`,
+            left: `${collapsedSettingsMenuPosition?.left ?? 81}px`,
+          }}
+        >
+          <div className="flex items-center gap-3 px-4 py-3">
+            <EntityAvatar
+              imageUrl={props.userAvatarUrl}
+              name={props.displayName}
+              kind="human"
+              sizeClassName="h-10 w-10"
+              textClassName="text-sm font-semibold"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-gray-900">{props.displayName}</p>
+              <p className="truncate text-xs text-gray-500">{props.userEmail || props.displayName.toLowerCase().replace(/\s+/g, '.') + '@nimi.app'}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                persistStoredSettingsSelected('profile');
+                props.onNav('settings');
+                setSettingsMenuOpen(false);
+              }}
+              className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 transition hover:bg-[#4ECCA3]/10 hover:text-[#4ECCA3]"
+              title="Edit Profile"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/20 to-transparent" />
+
+          <div className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#4ECCA3/30_transparent]">
+            <div className="px-2">
+              <button
+                type="button"
+                onClick={() => {
+                  openSettingsSubmenuItem('profile');
+                }}
+                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all ${
+                  isSettingsMenuItemActive('profile')
+                    ? 'bg-[#4ECCA3]/10 text-[#2F7D6B]'
+                    : 'text-gray-700 hover:bg-[#4ECCA3]/5'
+                }`}
+              >
+                <span className={`w-4 shrink-0 ${isSettingsMenuItemActive('profile') ? 'text-[#4ECCA3]' : 'text-gray-400'}`}>
+                  {renderShellNavIcon('profile')}
+                </span>
+                <span className="min-w-0 flex-1 text-left font-medium">{t(SETTINGS_SUBMENU_I18N_KEYS.profile ?? '', 'Profile')}</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </button>
+
+              {SETTINGS_SUBMENU_ITEMS.filter((item) => item.id !== 'logout' && item.id !== 'profile').map((item) => {
+                const active = isSettingsMenuItemActive(item.id);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      openSettingsSubmenuItem(item.id);
+                    }}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all ${
+                      active
+                        ? 'bg-[#4ECCA3]/10 text-[#2F7D6B]'
+                        : 'text-gray-700 hover:bg-[#4ECCA3]/5'
+                    }`}
+                  >
+                    <span className={`w-4 shrink-0 ${active ? 'text-[#4ECCA3]' : 'text-gray-400'}`}>
+                      {renderShellNavIcon(item.icon)}
+                    </span>
+                    <span className="min-w-0 flex-1 text-left font-medium">{t(SETTINGS_SUBMENU_I18N_KEYS[item.id] ?? '', item.label)}</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
+                      <path d="m9 18 6-6-6-6" />
+                    </svg>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-gray-100 to-transparent" />
+
+            <div className="px-2 pb-2">
+              <button
+                type="button"
+                onClick={() => {
+                  props.onLogout();
+                  setSettingsMenuOpen(false);
+                }}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] text-gray-700 transition-all hover:bg-[#4ECCA3]/5"
+              >
+                <span className="w-4 shrink-0 text-gray-400">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                </span>
+                <span className="min-w-0 flex-1 text-left font-medium">{t('Menu.logout', 'Log out')}</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
