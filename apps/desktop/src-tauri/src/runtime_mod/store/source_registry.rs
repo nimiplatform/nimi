@@ -85,15 +85,19 @@ fn runtime_mod_env_override_dir() -> Result<Option<PathBuf>, String> {
     Ok(None)
 }
 
-fn runtime_mod_default_source_record(app: &AppHandle) -> Result<RuntimeModSourceRecord, String> {
-    let source_dir = local_mods_dir(app)?;
-    Ok(RuntimeModSourceRecord {
+fn runtime_mod_default_source_record_for_dir(source_dir: &Path) -> RuntimeModSourceRecord {
+    RuntimeModSourceRecord {
         source_id: DEFAULT_INSTALLED_SOURCE_ID.to_string(),
         source_type: SOURCE_TYPE_INSTALLED.to_string(),
         source_dir: source_dir.display().to_string(),
         enabled: true,
         is_default: true,
-    })
+    }
+}
+
+fn runtime_mod_default_source_record(app: &AppHandle) -> Result<RuntimeModSourceRecord, String> {
+    let source_dir = local_mods_dir(app)?;
+    Ok(runtime_mod_default_source_record_for_dir(&source_dir))
 }
 
 fn source_record_from_row(row: &rusqlite::Row<'_>) -> Result<RuntimeModSourceRecord, rusqlite::Error> {
@@ -106,9 +110,13 @@ fn source_record_from_row(row: &rusqlite::Row<'_>) -> Result<RuntimeModSourceRec
     })
 }
 
-fn ensure_default_runtime_mod_source(conn: &Connection, app: &AppHandle) -> Result<RuntimeModSourceRecord, String> {
-    let default_record = runtime_mod_default_source_record(app)?;
-    if runtime_mod_env_override_dir()?.is_some() {
+fn ensure_default_runtime_mod_source_for_dir(
+    conn: &Connection,
+    source_dir: &Path,
+    env_override_active: bool,
+) -> Result<RuntimeModSourceRecord, String> {
+    let default_record = runtime_mod_default_source_record_for_dir(source_dir);
+    if env_override_active {
         return Ok(default_record);
     }
     conn.execute(
@@ -125,14 +133,39 @@ fn ensure_default_runtime_mod_source(conn: &Connection, app: &AppHandle) -> Resu
           updated_at = excluded.updated_at
         "#,
         params![
-            default_record.source_id,
-            default_record.source_type,
-            default_record.source_dir,
+            default_record.source_id.clone(),
+            default_record.source_type.clone(),
+            default_record.source_dir.clone(),
             now_rfc3339_source_registry()
         ],
     )
     .map_err(|error| format!("写入默认 mod source 失败: {error}"))?;
     Ok(default_record)
+}
+
+fn ensure_default_runtime_mod_source(conn: &Connection, app: &AppHandle) -> Result<RuntimeModSourceRecord, String> {
+    let source_dir = local_mods_dir(app)?;
+    ensure_default_runtime_mod_source_for_dir(
+        conn,
+        &source_dir,
+        runtime_mod_env_override_dir()?.is_some(),
+    )
+}
+
+fn validate_user_managed_source_input(
+    source_type: &str,
+    source_dir: &str,
+    default_source_dir: &str,
+) -> Result<(String, String), String> {
+    let normalized_type = normalize_source_type(source_type)?;
+    if normalized_type != SOURCE_TYPE_DEV {
+        return Err("Desktop 只允许用户添加 dev source".to_string());
+    }
+    let normalized_dir = normalize_source_dir(source_dir)?.display().to_string();
+    if normalized_dir == default_source_dir {
+        return Err("默认 installed source 路径已由 Desktop 管理，不允许重复添加".to_string());
+    }
+    Ok((normalized_type, normalized_dir))
 }
 
 pub fn list_runtime_mod_sources(app: &AppHandle) -> Result<Vec<RuntimeModSourceRecord>, String> {
@@ -183,14 +216,8 @@ pub fn upsert_runtime_mod_source(
     if normalized_id.as_deref() == Some(DEFAULT_INSTALLED_SOURCE_ID) {
         return Err("默认 installed source 不允许编辑".to_string());
     }
-    let normalized_type = normalize_source_type(source_type)?;
-    if normalized_type != SOURCE_TYPE_DEV {
-        return Err("Desktop 只允许用户添加 dev source".to_string());
-    }
-    let normalized_dir = normalize_source_dir(source_dir)?.display().to_string();
-    if normalized_dir == default_record.source_dir {
-        return Err("默认 installed source 路径已由 Desktop 管理，不允许重复添加".to_string());
-    }
+    let (normalized_type, normalized_dir) =
+        validate_user_managed_source_input(source_type, source_dir, &default_record.source_dir)?;
 
     let next_source_id = normalized_id.unwrap_or_else(generate_source_id);
     let now = now_rfc3339_source_registry();
@@ -584,20 +611,24 @@ fn handle_runtime_mod_source_watch_event(
     Ok(())
 }
 
+fn watchable_runtime_mod_source_ids(
+    sources: &[RuntimeModSourceRecord],
+    developer_mode: &RuntimeModDeveloperModeState,
+) -> StdHashSet<String> {
+    if !developer_mode.enabled || !developer_mode.auto_reload_enabled {
+        return StdHashSet::new();
+    }
+    sources
+        .iter()
+        .filter(|item| item.enabled && item.source_type == SOURCE_TYPE_DEV)
+        .map(|item| item.source_id.clone())
+        .collect()
+}
+
 pub fn sync_runtime_mod_source_watchers(app: &AppHandle) -> Result<(), String> {
     let developer_mode = get_runtime_mod_developer_mode_state(app)?;
-    let desired_sources = if developer_mode.enabled && developer_mode.auto_reload_enabled {
-        enabled_runtime_mod_sources(app)?
-            .into_iter()
-            .filter(|item| item.source_type == SOURCE_TYPE_DEV)
-            .collect::<Vec<_>>()
-    } else {
-        Vec::new()
-    };
-    let desired_ids = desired_sources
-        .iter()
-        .map(|item| item.source_id.clone())
-        .collect::<StdHashSet<_>>();
+    let desired_sources = enabled_runtime_mod_sources(app)?;
+    let desired_ids = watchable_runtime_mod_source_ids(&desired_sources, &developer_mode);
     let mut registry = runtime_mod_source_watchers()
         .lock()
         .map_err(|_| "runtime mod source watcher 锁已损坏".to_string())?;
@@ -608,7 +639,7 @@ pub fn sync_runtime_mod_source_watchers(app: &AppHandle) -> Result<(), String> {
         .lock()
         .map_err(|_| "runtime mod source watcher 锁已损坏".to_string())?;
     for source in desired_sources {
-        if registry.contains_key(&source.source_id) {
+        if !desired_ids.contains(&source.source_id) || registry.contains_key(&source.source_id) {
             continue;
         }
         let app_handle = app.clone();
@@ -693,4 +724,198 @@ pub fn open_runtime_mod_dir(app: &AppHandle, path: &str) -> Result<(), String> {
             .ok_or_else(|| format!("无法解析 mod 目录: {}", normalized.display()))?
     };
     reveal_path_in_os(&target)
+}
+
+#[cfg(test)]
+mod source_registry_tests {
+    use super::{
+        ensure_default_runtime_mod_source_for_dir, runtime_mod_default_source_record_for_dir,
+        validate_user_managed_source_input, watchable_runtime_mod_source_ids,
+        DEFAULT_INSTALLED_SOURCE_ID, RuntimeModDeveloperModeState, RuntimeModSourceRecord,
+    };
+    use crate::runtime_mod::store::init_schema;
+    use std::collections::HashMap;
+    use std::path::PathBuf;
+    use std::sync::{Mutex, OnceLock};
+    use std::time::{SystemTime, UNIX_EPOCH};
+    use rusqlite::Connection;
+
+    fn env_lock() -> &'static Mutex<()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
+
+    fn with_env(updates: &[(&str, Option<&str>)], run: impl FnOnce()) {
+        let _guard = env_lock().lock().expect("env lock");
+        let mut previous = HashMap::<String, Option<String>>::new();
+        for (key, value) in updates {
+            previous.insert((*key).to_string(), std::env::var(key).ok());
+            match value {
+                Some(next) => std::env::set_var(key, next),
+                None => std::env::remove_var(key),
+            }
+        }
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(run));
+        for (key, value) in previous {
+            match value {
+                Some(prev) => std::env::set_var(key, prev),
+                None => std::env::remove_var(key),
+            }
+        }
+        if let Err(payload) = result {
+            std::panic::resume_unwind(payload);
+        }
+    }
+
+    fn temp_home(prefix: &str) -> PathBuf {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("nimi-source-registry-{prefix}-{unique}"));
+        std::fs::create_dir_all(&dir).expect("create temp home");
+        dir
+    }
+
+    #[test]
+    fn default_installed_source_uses_nimi_data_dir_mods() {
+        let home = temp_home("default-source");
+        let installed_dir = home.join(".nimi").join("data").join("mods");
+        let installed = runtime_mod_default_source_record_for_dir(&installed_dir);
+
+        assert_eq!(installed.source_id, DEFAULT_INSTALLED_SOURCE_ID);
+        assert_eq!(installed.source_type, "installed");
+        assert_eq!(installed.source_dir, installed_dir.display().to_string());
+        assert!(installed.enabled);
+        assert!(installed.is_default);
+    }
+
+    #[test]
+    fn runtime_mods_dir_override_is_session_only_and_not_persisted() {
+        let home = temp_home("override");
+        let override_dir = home.join("override-mods");
+        let conn = Connection::open_in_memory().expect("open sqlite");
+        init_schema(&conn).expect("init schema");
+        let record = ensure_default_runtime_mod_source_for_dir(&conn, &override_dir, true)
+            .expect("default source with override");
+
+        assert_eq!(record.source_dir, override_dir.display().to_string());
+
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM runtime_mod_sources", [], |row| row.get(0))
+            .expect("query source count");
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn installed_source_persists_when_override_is_not_active() {
+        let home = temp_home("persisted-default");
+        let installed_dir = home.join(".nimi").join("data").join("mods");
+        let conn = Connection::open_in_memory().expect("open sqlite");
+        init_schema(&conn).expect("init schema");
+
+        let record = ensure_default_runtime_mod_source_for_dir(&conn, &installed_dir, false)
+            .expect("persisted default source");
+        assert_eq!(record.source_dir, installed_dir.display().to_string());
+
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM runtime_mod_sources", [], |row| row.get(0))
+            .expect("query source count");
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn installed_source_cannot_be_added_or_removed() {
+        let home = temp_home("installed-guardrails");
+        let candidate_dir = home.join("dev-source");
+        std::fs::create_dir_all(&candidate_dir).expect("create candidate dir");
+        let default_dir = home.join(".nimi").join("data").join("mods");
+
+        let add_result = validate_user_managed_source_input(
+            "installed",
+            candidate_dir.to_str().expect("candidate dir"),
+            default_dir.to_str().expect("default dir"),
+        );
+        assert!(add_result.is_err());
+        assert!(
+            add_result
+                .expect_err("installed source add must fail")
+                .contains("Desktop 只允许用户添加 dev source")
+        );
+
+        let duplicate_result = validate_user_managed_source_input(
+            "dev",
+            default_dir.to_str().expect("default dir"),
+            default_dir.to_str().expect("default dir"),
+        );
+        assert!(duplicate_result.is_err());
+        assert!(
+            duplicate_result
+                .expect_err("duplicate installed path must fail")
+                .contains("默认 installed source 路径已由 Desktop 管理，不允许重复添加")
+        );
+    }
+
+    #[test]
+    fn auto_reload_watchers_only_track_dev_sources() {
+        let sources = vec![
+            RuntimeModSourceRecord {
+                source_id: DEFAULT_INSTALLED_SOURCE_ID.to_string(),
+                source_type: "installed".to_string(),
+                source_dir: "/tmp/installed".to_string(),
+                enabled: true,
+                is_default: true,
+            },
+            RuntimeModSourceRecord {
+                source_id: "dev-enabled".to_string(),
+                source_type: "dev".to_string(),
+                source_dir: "/tmp/dev-enabled".to_string(),
+                enabled: true,
+                is_default: false,
+            },
+            RuntimeModSourceRecord {
+                source_id: "dev-disabled".to_string(),
+                source_type: "dev".to_string(),
+                source_dir: "/tmp/dev-disabled".to_string(),
+                enabled: false,
+                is_default: false,
+            },
+        ];
+        let developer_mode = RuntimeModDeveloperModeState {
+            enabled: true,
+            auto_reload_enabled: true,
+        };
+
+        let watcher_ids = watchable_runtime_mod_source_ids(&sources, &developer_mode);
+        assert_eq!(watcher_ids.len(), 1);
+        assert!(watcher_ids.contains("dev-enabled"));
+        assert!(!watcher_ids.contains(DEFAULT_INSTALLED_SOURCE_ID));
+        assert!(!watcher_ids.contains("dev-disabled"));
+    }
+
+    #[test]
+    fn auto_reload_watchers_disable_cleanly_when_developer_mode_is_off() {
+        let sources = vec![RuntimeModSourceRecord {
+            source_id: "dev-enabled".to_string(),
+            source_type: "dev".to_string(),
+            source_dir: "/tmp/dev-enabled".to_string(),
+            enabled: true,
+            is_default: false,
+        }];
+        let developer_mode = RuntimeModDeveloperModeState {
+            enabled: false,
+            auto_reload_enabled: true,
+        };
+
+        let watcher_ids = watchable_runtime_mod_source_ids(&sources, &developer_mode);
+        assert!(watcher_ids.is_empty());
+    }
+
+    #[test]
+    fn with_env_helper_restores_environment() {
+        let home = temp_home("env-restore");
+        with_env(&[("HOME", home.to_str())], || {
+            assert_eq!(std::env::var("HOME").ok().as_deref(), home.to_str());
+        });
+    }
 }

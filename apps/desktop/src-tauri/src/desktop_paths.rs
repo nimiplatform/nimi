@@ -144,3 +144,103 @@ pub fn describe_desktop_storage_dirs() -> Result<DesktopStorageDirsPayload, Stri
         local_runtime_state_path: local_runtime_state_path.display().to_string(),
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        describe_desktop_storage_dirs, resolve_nimi_data_dir, resolve_nimi_dir, set_nimi_data_dir,
+    };
+    use std::collections::HashMap;
+    use std::path::PathBuf;
+    use std::sync::{Mutex, OnceLock};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn env_lock() -> &'static Mutex<()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
+
+    fn with_env(updates: &[(&str, Option<&str>)], run: impl FnOnce()) {
+        let _guard = env_lock().lock().expect("env lock");
+        let mut previous = HashMap::<String, Option<String>>::new();
+        for (key, value) in updates {
+            previous.insert((*key).to_string(), std::env::var(key).ok());
+            match value {
+                Some(next) => std::env::set_var(key, next),
+                None => std::env::remove_var(key),
+            }
+        }
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(run));
+        for (key, value) in previous {
+            match value {
+                Some(prev) => std::env::set_var(key, prev),
+                None => std::env::remove_var(key),
+            }
+        }
+        if let Err(payload) = result {
+            std::panic::resume_unwind(payload);
+        }
+    }
+
+    fn temp_home(prefix: &str) -> PathBuf {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("nimi-desktop-{prefix}-{unique}"));
+        std::fs::create_dir_all(&dir).expect("create temp home");
+        dir
+    }
+
+    #[test]
+    fn default_nimi_data_dir_stays_under_home_nimi_data() {
+        let home = temp_home("default-data-dir");
+        with_env(&[("HOME", home.to_str())], || {
+            let nimi_dir = resolve_nimi_dir().expect("nimi dir");
+            let nimi_data_dir = resolve_nimi_data_dir().expect("nimi data dir");
+
+            assert_eq!(nimi_dir, home.join(".nimi"));
+            assert_eq!(nimi_data_dir, home.join(".nimi").join("data"));
+        });
+    }
+
+    #[test]
+    fn describe_storage_dirs_reports_installed_mods_under_nimi_data_dir() {
+        let home = temp_home("storage-dirs");
+        with_env(&[("HOME", home.to_str())], || {
+            let dirs = describe_desktop_storage_dirs().expect("storage dirs");
+
+            assert_eq!(dirs.nimi_dir, home.join(".nimi").display().to_string());
+            assert_eq!(
+                dirs.nimi_data_dir,
+                home.join(".nimi").join("data").display().to_string()
+            );
+            assert_eq!(
+                dirs.installed_mods_dir,
+                home.join(".nimi")
+                    .join("data")
+                    .join("mods")
+                    .display()
+                    .to_string()
+            );
+        });
+    }
+
+    #[test]
+    fn switching_nimi_data_dir_switches_installed_mods_dir_without_migration() {
+        let home = temp_home("set-data-dir");
+        let custom_data_dir = home.join("custom-data-root");
+        with_env(&[("HOME", home.to_str())], || {
+            let dirs = set_nimi_data_dir(custom_data_dir.to_str().expect("custom data dir"))
+                .expect("set nimi data dir");
+
+            assert_eq!(dirs.nimi_data_dir, custom_data_dir.display().to_string());
+            assert_eq!(
+                dirs.installed_mods_dir,
+                custom_data_dir.join("mods").display().to_string()
+            );
+            assert!(custom_data_dir.exists());
+            assert!(custom_data_dir.join("mods").exists());
+        });
+    }
+}

@@ -12,6 +12,7 @@ import { LocalDebugSection } from './runtime-config-local-debug-section.js';
 import { useGlobalAuditData } from './runtime-config-use-global-audit-data.js';
 import { ExternalAgentAccessPanel } from './runtime-config-external-agent-access';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
+import { describeRuntimeDaemonIssue } from './runtime-daemon-guidance';
 import { Button, Input, StatusBadge } from './runtime-config-primitives';
 
 // Icon Button Component
@@ -77,6 +78,10 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
   const daemonBusy = model.runtimeDaemonBusyAction !== null;
   const canManageDaemon = desktopBridge.hasTauriInvoke();
+  const daemonIssue = describeRuntimeDaemonIssue({
+    status: model.runtimeDaemonStatus,
+    runtimeDaemonError: model.runtimeDaemonError,
+  });
 
   // Capability summary
   const capabilitySummary = useMemo(() => {
@@ -217,7 +222,13 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
             </div>
           </div>
 
-          {model.runtimeDaemonError ? <p className="mt-3 text-xs text-red-600">{model.runtimeDaemonError}</p> : null}
+          {daemonIssue ? (
+            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3">
+              <p className="text-sm font-medium text-amber-900">{daemonIssue.title}</p>
+              <p className="mt-1 text-xs text-amber-800">{daemonIssue.message}</p>
+              <p className="mt-2 text-[11px] text-amber-700">{daemonIssue.rawError}</p>
+            </div>
+          ) : model.runtimeDaemonError ? <p className="mt-3 text-xs text-red-600">{model.runtimeDaemonError}</p> : null}
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <Button variant="secondary" size="sm" disabled={daemonBusy} onClick={() => void model.refreshRuntimeDaemonStatus()}>

@@ -7,6 +7,7 @@ import {
 import { formatLocaleDateTime } from '@renderer/i18n';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
+import { describeRuntimeDaemonIssue } from './runtime-daemon-guidance';
 import { Button } from './runtime-config-primitives';
 import { useSystemResources } from './runtime-config-system-resources';
 import { useUsageEstimate } from './runtime-config-cost-estimator';
@@ -130,6 +131,10 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
   const healthyConnectorCount = state.connectors.filter((c) => c.status === 'healthy').length;
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
   const daemonBusy = model.runtimeDaemonBusyAction !== null;
+  const daemonIssue = describeRuntimeDaemonIssue({
+    status: model.runtimeDaemonStatus,
+    runtimeDaemonError: model.runtimeDaemonError,
+  });
   const memoryPercent = sysResources.memoryTotalBytes > 0
     ? (sysResources.memoryUsedBytes / sysResources.memoryTotalBytes) * 100
     : 0;
@@ -343,7 +348,13 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
             </div>
           </div>
 
-          {model.runtimeDaemonError ? (
+          {daemonIssue ? (
+            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3">
+              <p className="text-sm font-medium text-amber-900">{daemonIssue.title}</p>
+              <p className="mt-1 text-xs text-amber-800">{daemonIssue.message}</p>
+              <p className="mt-2 text-[11px] text-amber-700">{daemonIssue.rawError}</p>
+            </div>
+          ) : model.runtimeDaemonError ? (
             <p className="mt-3 text-xs text-red-600">{model.runtimeDaemonError}</p>
           ) : null}
 

@@ -107,4 +107,28 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
       'bindOfflineCoordinator() must run before the idempotent bootstrap guard returns, so failure paths still have listeners',
     );
   });
+
+  test('D-BOOT-013: runtime unavailable stays non-fatal and still completes bootstrap', () => {
+    assert.ok(
+      bootstrapSource.includes('const runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);'),
+      'bootstrap must classify runtimeUnavailable from runtime bridge status',
+    );
+    assert.ok(
+      bootstrapSource.includes('if (desktopBridge.hasTauriInvoke() && !runtimeUnavailable)'),
+      'bootstrap must skip runtime config sync when runtime is unavailable',
+    );
+    assert.ok(
+      bootstrapSource.includes("message: daemonStatus.lastError || 'Runtime unavailable'"),
+      'bootstrap must surface runtime unavailable as a warning banner',
+    );
+    const successTail = bootstrapSource.slice(bootstrapSource.indexOf('if (runtimeUnavailable) {'));
+    assert.ok(
+      successTail.includes('setBootstrapReady(true)'),
+      'runtime unavailable path must still mark bootstrap ready',
+    );
+    assert.ok(
+      successTail.includes('setBootstrapError(null)'),
+      'runtime unavailable path must clear bootstrapError instead of failing startup',
+    );
+  });
 });

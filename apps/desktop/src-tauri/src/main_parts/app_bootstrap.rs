@@ -1,15 +1,5 @@
-fn main() {
-    install_panic_hook();
-    eprintln!(
-        "[boot:{:}] desktop process start pid={}",
-        now_ms(),
-        std::process::id()
-    );
-    log_boot_marker("main() entered");
-    load_dotenv_files();
-    log_boot_marker("dotenv files loaded");
-
-    let result = tauri::Builder::default()
+fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
+    tauri::Builder::default()
         .setup(|app| {
             eprintln!("[boot:{:}] setup entered", now_ms());
             let gateway_state =
@@ -213,7 +203,21 @@ fn main() {
             local_runtime::commands::runtime_local_artifacts_scan_orphans,
             local_runtime::commands::runtime_local_artifacts_scaffold_orphan
         ])
-        .build(tauri::generate_context!());
+        .build(tauri::generate_context!())
+}
+
+fn main() {
+    install_panic_hook();
+    eprintln!(
+        "[boot:{:}] desktop process start pid={}",
+        now_ms(),
+        std::process::id()
+    );
+    log_boot_marker("main() entered");
+    load_dotenv_files();
+    log_boot_marker("dotenv files loaded");
+
+    let result = build_desktop_app();
 
     match result {
         Ok(app) => {
