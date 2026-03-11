@@ -1,7 +1,6 @@
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use std::cmp::Ordering;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 use tauri::AppHandle;
@@ -108,12 +107,95 @@ pub struct ExternalAgentTokenRecordPayload {
 pub struct RuntimeLocalManifestSummary {
     pub path: String,
     pub id: String,
+    pub source_id: Option<String>,
+    pub source_type: Option<String>,
+    pub source_dir: Option<String>,
     pub name: Option<String>,
     pub version: Option<String>,
     pub entry: Option<String>,
     pub entry_path: Option<String>,
+    pub styles: Option<Vec<String>>,
+    pub style_paths: Option<Vec<String>>,
     pub description: Option<String>,
     pub manifest: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModInstallResultPayload {
+    pub install_session_id: String,
+    pub operation: String,
+    pub mod_id: String,
+    pub installed_path: String,
+    pub manifest: RuntimeLocalManifestSummary,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModInstallProgressPayload {
+    pub install_session_id: String,
+    pub operation: String,
+    pub source_kind: String,
+    pub phase: String,
+    pub status: String,
+    pub occurred_at: String,
+    pub mod_id: Option<String>,
+    pub manifest_path: Option<String>,
+    pub installed_path: Option<String>,
+    pub progress_percent: Option<f64>,
+    pub message: Option<String>,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModSourceRecord {
+    pub source_id: String,
+    pub source_type: String,
+    pub source_dir: String,
+    pub enabled: bool,
+    pub is_default: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModDeveloperModeState {
+    pub enabled: bool,
+    pub auto_reload_enabled: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModDiagnosticRecord {
+    pub mod_id: String,
+    pub status: String,
+    pub source_id: String,
+    pub source_type: String,
+    pub source_dir: String,
+    pub manifest_path: Option<String>,
+    pub entry_path: Option<String>,
+    pub error: Option<String>,
+    pub conflict_paths: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModSourceChangeEventPayload {
+    pub source_id: String,
+    pub source_type: String,
+    pub source_dir: String,
+    pub occurred_at: String,
+    pub paths: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModReloadResultPayload {
+    pub mod_id: String,
+    pub source_id: String,
+    pub status: String,
+    pub occurred_at: String,
+    pub error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -136,11 +218,11 @@ pub struct RuntimeMediaCacheGcResultPayload {
     pub retained_count: usize,
 }
 
-const DEFAULT_MOD_MARKER_FILE: &str = ".nimi-default-managed.json";
-
 include!("path_env.rs");
 include!("manifest_scan.rs");
+include!("source_registry.rs");
 include!("entry_io.rs");
+include!("install_store.rs");
 include!("schema.rs");
 include!("audit_ledger.rs");
 include!("idempotency_verify.rs");

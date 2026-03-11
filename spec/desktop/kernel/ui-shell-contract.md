@@ -80,7 +80,7 @@ Content 面板映射：
 
 `renderShellNavIcon(icon)` 提供内联 SVG 图标：
 
-- 支持的图标名：home、chat、contacts、explore、runtime、profile、settings、store/marketplace、globe/world-studio、wallet、agent/agents/my-agents/bot、terms/file/document、privacy/shield、logout、local-chat
+- 支持的图标名：home、chat、contacts、explore、runtime、profile、settings、store/marketplace、globe、wallet、agent/agents/my-agents/bot、terms/file/document、privacy/shield、logout
 - 未知图标名回退到 puzzle 图标。
 
 ## D-SHELL-008 — Shell Mode 检测
@@ -106,6 +106,22 @@ Shell 模式检测优先级（由高到低）：
 | `enableRuntimeBootstrap` | `true` | `false` | `D-BOOT-004` |
 
 Web 模式下所有 runtime/mod/window 相关功能默认禁用，仅保留基础 chat/social/explore 功能。此表为 `shellMode → flag` 映射的唯一定义，替代分散在各规则中的零散引用。
+
+## D-SHELL-009 — Mod Developer Mode 入口
+
+Desktop 必须在 App 内提供显式的 Developer Mode 入口，而不是把开发模式建立在启动参数之上：
+
+- Developer Mode 的开启、关闭与状态展示必须位于 App 内可发现位置（例如 Settings / Developer）。
+- Developer Mode 负责管理 `dev` source directories、auto reload 开关与开发态诊断入口。
+- 第三方 mod 作者使用 Desktop 时，不应被要求通过启动参数或环境变量进入主要开发路径。
+
+## D-SHELL-010 — Mod Source 可观测性与冲突可见性
+
+Desktop UI 必须让用户可观察每个 mod 的解析来源与冲突状态：
+
+- Mods Panel 必须可见 mod 的 source type、来源目录和当前状态（如 `loaded`、`disabled`、`failed`、`conflict`）。
+- Developer Panel 必须展示 source directories 列表、每个目录发现的 mod、冲突项、reload 日志与错误链。
+- Marketplace 负责发现、安装、更新与卸载，不应承担主要调试入口；来源路径与冲突排障应在 Mods Panel / Developer Panel 中完成。
 
 ## Fact Sources
 

@@ -1,6 +1,10 @@
 import type {
   RuntimeDefaults,
+  RuntimeModDeveloperModeState,
+  RuntimeModDiagnosticRecord,
   RuntimeLocalManifestSummary,
+  RuntimeModReloadResult,
+  RuntimeModSourceRecord,
 } from '@renderer/bridge';
 import type { RuntimeModRegisterFailure } from '@runtime/mod';
 import type { RuntimeModSettingsMap } from '@nimiplatform/sdk/mod/settings';
@@ -76,6 +80,10 @@ export type AppStoreState = {
   selectedWorldId: string | null;
   chatProfilePanelTarget: 'self' | 'other' | null;
   localManifestSummaries: RuntimeLocalManifestSummary[];
+  runtimeModSources: RuntimeModSourceRecord[];
+  runtimeModDeveloperMode: RuntimeModDeveloperModeState;
+  runtimeModDiagnostics: RuntimeModDiagnosticRecord[];
+  runtimeModRecentReloads: RuntimeModReloadResult[];
   registeredRuntimeModIds: string[];
   runtimeModDisabledIds: string[];
   runtimeModUninstalledIds: string[];
@@ -104,6 +112,10 @@ export type AppStoreState = {
   navigateToWorld: (worldId: string) => void;
   navigateBack: () => void;
   setLocalManifestSummaries: (manifests: RuntimeLocalManifestSummary[]) => void;
+  setRuntimeModSources: (sources: RuntimeModSourceRecord[]) => void;
+  setRuntimeModDeveloperMode: (value: RuntimeModDeveloperModeState) => void;
+  setRuntimeModDiagnostics: (records: RuntimeModDiagnosticRecord[]) => void;
+  pushRuntimeModReloadResults: (records: RuntimeModReloadResult[]) => void;
   setRegisteredRuntimeModIds: (modIds: string[]) => void;
   setRuntimeModDisabledIds: (modIds: string[]) => void;
   setRuntimeModUninstalledIds: (modIds: string[]) => void;

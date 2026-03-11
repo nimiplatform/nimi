@@ -221,7 +221,7 @@ fn schedule_macos_traffic_light_reapply(window: tauri::WebviewWindow, x: f64, y:
     for delay_ms in [80_u64, 240_u64, 800_u64] {
         let window_for_timer = window.clone();
         std::thread::spawn(move || {
-            std::thread::sleep(Duration::from_millis(delay_ms));
+            std::thread::sleep(std::time::Duration::from_millis(delay_ms));
             let window_for_apply = window_for_timer.clone();
             let _ = window_for_timer.run_on_main_thread(move || {
                 if let Err(error) = apply_macos_traffic_light_position(&window_for_apply, x, y) {

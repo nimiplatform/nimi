@@ -5,7 +5,7 @@
   "identifier": "app.nimi.desktop",
   "build": {
     "beforeDevCommand": "pnpm --filter @nimiplatform/desktop run dev:renderer",
-    "beforeBuildCommand": "pnpm --filter @nimiplatform/desktop run build:renderer:with-mods",
+    "beforeBuildCommand": "pnpm --filter @nimiplatform/desktop run build:renderer",
     "devUrl": "http://127.0.0.1:1420",
     "frontendDist": "../dist"
   },
@@ -37,7 +37,6 @@
   "bundle": {
     "active": false,
     "targets": "all",
-    "icon": [],
-    "resources": ["resources/default-mods"]
+    "icon": []
   }
 }

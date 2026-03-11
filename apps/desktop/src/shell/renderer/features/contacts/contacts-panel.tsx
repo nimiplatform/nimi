@@ -2,6 +2,7 @@ import { useMemo, useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { openDefaultPrivateExecutionMod } from '@renderer/mod-ui/lifecycle/default-private-execution';
 import type {
   ContactRecord,
   ContactRequestRecord,
@@ -60,7 +61,6 @@ export function ContactsPanel() {
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
-  const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const queryClient = useQueryClient();
   const [searchText, setSearchText] = useState('');
   const [activeFilter, setActiveFilter] = useState<TabFilter>(() => loadStoredContactsFilter('humans'));
@@ -350,8 +350,7 @@ export function ContactsPanel() {
         worldId,
       });
       // Open mod workspace tab before setting active tab
-      openModWorkspaceTab('mod:local-chat', 'Local Chat', 'local-chat');
-      setActiveTab('mod:local-chat');
+      openDefaultPrivateExecutionMod();
       return;
     }
 
@@ -375,7 +374,7 @@ export function ContactsPanel() {
         message: toErrorMessage(error, 'Failed to open chat'),
       });
     }
-  }, [queryClient, setActiveTab, setRuntimeFields, setSelectedChatId, setStatusBanner, openModWorkspaceTab]);
+  }, [queryClient, setActiveTab, setRuntimeFields, setSelectedChatId, setStatusBanner]);
 
   return (
     <>

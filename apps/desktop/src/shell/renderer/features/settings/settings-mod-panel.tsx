@@ -5,12 +5,6 @@ import { C } from './settings-assets';
 import { Button, Card, PageShell, SectionTitle, StatusBadge } from './settings-layout-components';
 import { loadStoredSettingsModId, persistStoredSettingsModId } from './settings-storage';
 
-type LocalChatSettingsKey =
-  | 'enableVoice'
-  | 'allowMultiReply'
-  | 'allowProactiveContact'
-  | 'autoPlayVoiceReplies';
-
 type RuntimeModSettingsRecord = Record<string, unknown>;
 
 function normalizeModId(value: unknown): string {
@@ -28,12 +22,8 @@ function normalizeDisplayName(input: {
   modId: string;
   name: string;
 }): string {
-  const modId = normalizeModId(input.modId);
   const name = String(input.name || '').trim();
-  if (!name) return modId;
-  if (modId === 'world.nimi.local-chat') {
-    return 'Local Chat';
-  }
+  if (!name) return normalizeModId(input.modId);
   if (/^desktop\s+/i.test(name)) {
     return name.replace(/^desktop\s+/i, '').trim() || name;
   }
@@ -54,33 +44,6 @@ function parseSettingsJson(text: string): RuntimeModSettingsRecord | null {
   } catch {
     return null;
   }
-}
-
-function normalizeLocalChatSettings(value: unknown): {
-  enableVoice: boolean;
-  allowMultiReply: boolean;
-  allowProactiveContact: boolean;
-  autoPlayVoiceReplies: boolean;
-  voiceName: string;
-  ttsRouteSource: 'auto' | 'local' | 'cloud';
-  sttRouteSource: 'auto' | 'local' | 'cloud';
-} {
-  const settings = toRecord(value);
-  const ttsRouteSourceRaw = String(settings.ttsRouteSource || '').trim();
-  const sttRouteSourceRaw = String(settings.sttRouteSource || '').trim();
-  return {
-    enableVoice: Boolean(settings.enableVoice),
-    allowMultiReply: Boolean(settings.allowMultiReply),
-    allowProactiveContact: Boolean(settings.allowProactiveContact),
-    autoPlayVoiceReplies: Boolean(settings.autoPlayVoiceReplies),
-    voiceName: String(settings.voiceName || 'alloy').trim() || 'alloy',
-    ttsRouteSource: ttsRouteSourceRaw === 'local' || ttsRouteSourceRaw === 'cloud'
-      ? ttsRouteSourceRaw
-      : 'auto',
-    sttRouteSource: sttRouteSourceRaw === 'local' || sttRouteSourceRaw === 'cloud'
-      ? sttRouteSourceRaw
-      : 'auto',
-  };
 }
 
 export function ModSettingsPage() {
@@ -153,29 +116,6 @@ export function ModSettingsPage() {
   useEffect(() => {
     setJsonDraft(formatSettingsJson(selectedSettings));
   }, [selectedSettings, selectedModId]);
-
-  const localChatSettings = useMemo(
-    () => normalizeLocalChatSettings(selectedSettings),
-    [selectedSettings],
-  );
-
-  const updateLocalChatSetting = (key: LocalChatSettingsKey, value: boolean) => {
-    const nextSettings = {
-      ...selectedSettings,
-      [key]: value,
-    };
-    setRuntimeModSettings(selectedModId, nextSettings);
-    setJsonDraft(formatSettingsJson(nextSettings));
-  };
-
-  const updateLocalChatVoiceName = (voiceName: string) => {
-    const nextSettings = {
-      ...selectedSettings,
-      voiceName: String(voiceName || '').trim() || 'alloy',
-    };
-    setRuntimeModSettings(selectedModId, nextSettings);
-    setJsonDraft(formatSettingsJson(nextSettings));
-  };
 
   const handleSaveJson = () => {
     if (!selectedModId) return;
@@ -271,61 +211,6 @@ export function ModSettingsPage() {
 
           {selectedMod ? (
             <>
-              {selectedMod.id === 'world.nimi.local-chat' ? (
-                <section>
-                  <SectionTitle description={t('ModSettings.localChatQuickSettingsDescription')}>
-                    {t('ModSettings.localChatQuickSettingsTitle')}
-                  </SectionTitle>
-                  <Card className="mt-3 space-y-3 p-4 text-sm text-gray-700">
-                    <label className="flex items-center justify-between gap-3">
-                      <span>{t('ModSettings.localChatEnableVoice')}</span>
-                      <input
-                        type="checkbox"
-                        checked={localChatSettings.enableVoice}
-                        onChange={(event) => updateLocalChatSetting('enableVoice', event.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-brand-600"
-                      />
-                    </label>
-                    <label className="flex items-center justify-between gap-3">
-                      <span>{t('ModSettings.localChatAllowMultiReply')}</span>
-                      <input
-                        type="checkbox"
-                        checked={localChatSettings.allowMultiReply}
-                        onChange={(event) => updateLocalChatSetting('allowMultiReply', event.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-brand-600"
-                      />
-                    </label>
-                    <label className="flex items-center justify-between gap-3">
-                      <span>{t('ModSettings.localChatAllowProactiveContact')}</span>
-                      <input
-                        type="checkbox"
-                        checked={localChatSettings.allowProactiveContact}
-                        onChange={(event) => updateLocalChatSetting('allowProactiveContact', event.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-brand-600"
-                      />
-                    </label>
-                    <label className="flex items-center justify-between gap-3">
-                      <span>{t('ModSettings.localChatAutoPlayVoiceReplies')}</span>
-                      <input
-                        type="checkbox"
-                        checked={localChatSettings.autoPlayVoiceReplies}
-                        onChange={(event) => updateLocalChatSetting('autoPlayVoiceReplies', event.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-brand-600"
-                      />
-                    </label>
-                    <label className="flex items-center justify-between gap-3">
-                      <span>{t('ModSettings.localChatVoiceName')}</span>
-                      <input
-                        type="text"
-                        value={localChatSettings.voiceName}
-                        onChange={(event) => updateLocalChatVoiceName(event.target.value)}
-                        className="h-8 w-40 rounded-md border border-gray-200 px-2 text-xs"
-                      />
-                    </label>
-                  </Card>
-                </section>
-              ) : null}
-
               <section>
                 <SectionTitle description={t('ModSettings.rawJsonDescription')}>
                   {t('ModSettings.rawJsonTitle')}

@@ -31,7 +31,7 @@ pnpm build
 
 ## Development Setup Notes
 
-- For desktop + mods local debugging, set both `NIMI_MODS_ROOT` and `NIMI_RUNTIME_MODS_DIR` as absolute paths.
+- For desktop + mods local debugging, use Desktop `Settings > Mod Developer` as the primary path; runtime mods directory env overrides are CI/internal compatibility only.
 - For proto changes, run `pnpm proto:generate` and ensure no generated drift is left.
 - For runtime changes, run `cd runtime && go test ./...` and `go vet ./...`.
 - For full onboarding flow and environment template details, follow [ONBOARDING.md](./ONBOARDING.md).

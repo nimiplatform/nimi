@@ -987,7 +987,7 @@ Mod 8 阶段执行管道
 ⑧ Audit       — 写入 decision record + 本地审计
 \`\`\`
 
-4 种 access mode 决定了每个阶段的验证严格度：\`official\` 要求完整签名链，\`community\` 要求社区签名，\`sideload\` 跳过签名但限制能力，\`local-dev\` 最宽松但只允许本地开发。`);
+2 种 access mode 决定了每个阶段的验证严格度：\`sideload\` 面向已安装用户 mod，跳过签名但限制能力；\`local-dev\` 仅用于显式本地开发，会放宽调试限制但不能被远程分发元数据提升权限。`);
   d.blank();
   d.rule('D-MOD-001');
   d.rule('D-MOD-002');

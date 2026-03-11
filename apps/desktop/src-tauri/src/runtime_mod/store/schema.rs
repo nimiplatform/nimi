@@ -77,6 +77,16 @@ fn init_schema(conn: &Connection) -> Result<(), String> {
           value TEXT NOT NULL,
           updated_at TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS runtime_mod_sources (
+          source_id TEXT PRIMARY KEY,
+          source_type TEXT NOT NULL,
+          source_dir TEXT NOT NULL UNIQUE,
+          enabled INTEGER NOT NULL DEFAULT 1,
+          is_default INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_runtime_mod_sources_enabled_type ON runtime_mod_sources(enabled, source_type);
         "#,
     )
     .map_err(|error| format!("初始化 runtime_mod schema 失败: {error}"))?;
@@ -107,6 +117,19 @@ fn init_schema(conn: &Connection) -> Result<(), String> {
             "issued_at",
             "expires_at",
             "revoked_at",
+        ],
+    )?;
+    ensure_required_columns(
+        conn,
+        "runtime_mod_sources",
+        &[
+            "source_id",
+            "source_type",
+            "source_dir",
+            "enabled",
+            "is_default",
+            "created_at",
+            "updated_at",
         ],
     )?;
     ensure_required_columns(
@@ -178,4 +201,3 @@ fn validate_rfc3339(s: &str) -> bool {
         && s.as_bytes().get(10) == Some(&b'T')
         && s.as_bytes().get(13) == Some(&b':')
 }
-

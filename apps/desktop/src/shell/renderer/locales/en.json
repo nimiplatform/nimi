@@ -328,7 +328,7 @@
     "menuPerformance": "Performance",
     "menuModSettings": "Mod Settings",
     "menuWallet": "Wallet",
-    "menuDeveloper": "Developer"
+    "menuDeveloper": "Mod Developer"
   },
   "Profile": {
     "pageTitle": "Profile",
@@ -870,8 +870,8 @@
     "logOut": "Log Out"
   },
   "DeveloperSettings": {
-    "pageTitle": "Developer",
-    "pageDescription": "Runtime diagnostics, auth state, and integration debug helpers",
+    "pageTitle": "Mod Developer",
+    "pageDescription": "Runtime mod sources, diagnostics, reload status, and developer-host controls",
     "sessionSnapshotTitle": "Session Snapshot",
     "authStatusLabel": "Auth status:",
     "hasAccessTokenLabel": "Has access token:",

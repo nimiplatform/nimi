@@ -4,7 +4,7 @@
 
 ## P-ARCH-001 — 六层架构定义
 
-Nimi 平台采用固定六层架构：nimi-realm（云端持久世界）、nimi-runtime（本地 AI 运行时）、nimi-sdk（开发者接口层）、desktop（第一方应用）、nimi-hook（desktop mod 接口层）、nimi-mods（desktop 内小程序）。nimi-apps 为独立应用总称。
+Nimi 平台采用固定六层架构：nimi-realm（云端持久世界）、nimi-runtime（本地 AI 运行时）、nimi-sdk（开发者接口层）、desktop（第一方应用 / mod host）、nimi-hook（desktop mod 接口层）、mods（独立包/独立仓的扩展层）。nimi-apps 为独立应用总称。
 
 ## P-ARCH-002 — 层间通信规则
 

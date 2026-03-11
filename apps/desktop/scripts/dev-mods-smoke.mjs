@@ -1,31 +1,18 @@
 #!/usr/bin/env node
 /* global process */
 
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-import {
-  resolveModsRoot,
-  resolveRuntimeModsDir,
-  sameNormalizedPath,
-} from './mod-paths.mjs';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const desktopRoot = path.resolve(__dirname, '..');
+import { resolveRuntimeModsDir } from './mod-paths.mjs';
 
 function parseArgs(argv) {
   const options = {
-    mod: 'local-chat',
+    mod: '',
     all: false,
-    skipPrepare: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
-    if (token === '--') {
-      continue;
-    }
     if (token === '--mod') {
       const value = String(argv[index + 1] || '').trim();
       if (!value || value.startsWith('--')) {
@@ -39,21 +26,13 @@ function parseArgs(argv) {
       options.all = true;
       continue;
     }
-    if (token === '--skip-prepare-default-resources') {
-      options.skipPrepare = true;
-      continue;
-    }
     if (token === '--help' || token === '-h') {
       process.stdout.write(
         [
-          'Usage: node scripts/dev-mods-smoke.mjs [--mod <id>] [--skip-prepare-default-resources]',
-          '       node scripts/dev-mods-smoke.mjs --all [--skip-prepare-default-resources]',
+          'Usage: node scripts/dev-mods-smoke.mjs [--mod <id>]',
+          '       node scripts/dev-mods-smoke.mjs --all',
           '',
-          'Options:',
-          '  --mod <id>                         Target mod id, default: local-chat',
-          '  --all                              Run smoke preparation for all desktop-loadable first-party mods',
-          '  --skip-prepare-default-resources   Skip desktop default-mod resources copy step',
-          '',
+          'Checks installed runtime mods under NIMI_RUNTIME_MODS_DIR.',
         ].join('\n'),
       );
       process.exit(0);
@@ -64,17 +43,14 @@ function parseArgs(argv) {
   return options;
 }
 
-const LOADABLE_MOD_IDS = [
-  'audio-book',
-  'kismet',
-  'knowledge-base',
-  'local-chat',
-  'mint-you',
-  'test-ai',
-  'textplay',
-  'videoplay',
-  'world-studio',
-];
+function ensureDir(dirPath, label) {
+  if (!existsSync(dirPath)) {
+    throw new Error(`Missing ${label}: ${dirPath}`);
+  }
+  if (!statSync(dirPath).isDirectory()) {
+    throw new Error(`${label} must be a directory: ${dirPath}`);
+  }
+}
 
 function ensureFile(filePath, label) {
   if (!existsSync(filePath)) {
@@ -82,15 +58,6 @@ function ensureFile(filePath, label) {
   }
   if (!statSync(filePath).isFile()) {
     throw new Error(`${label} must be a file: ${filePath}`);
-  }
-}
-
-function ensureDir(dirPath, label) {
-  if (!existsSync(dirPath)) {
-    throw new Error(`Missing ${label}: ${dirPath}`);
-  }
-  if (!statSync(dirPath).isDirectory()) {
-    throw new Error(`${label} must be a directory: ${dirPath}`);
   }
 }
 
@@ -105,97 +72,73 @@ function findManifestPath(modDir) {
   return null;
 }
 
-function runNodeScript(scriptPath, args, cwd) {
-  const result = spawnSync(process.execPath, [scriptPath, ...args], {
-    cwd,
-    stdio: 'inherit',
-    env: process.env,
-  });
-  if (result.status !== 0) {
-    throw new Error(`Command failed: node ${scriptPath} ${args.join(' ')}`);
+function readManifestSummary(manifestPath) {
+  const content = readFileSync(manifestPath, 'utf8');
+  if (manifestPath.endsWith('.json')) {
+    return JSON.parse(content);
   }
+
+  const summary = {};
+  for (const line of content.split('\n')) {
+    const match = line.match(/^([A-Za-z][A-Za-z0-9_-]*):\s*(.+)$/);
+    if (!match) continue;
+    summary[match[1]] = match[2].trim();
+  }
+  return summary;
 }
 
-function smokeSingleMod(options, modsRoot, runtimeModsDir) {
-  const modDir = path.join(modsRoot, options.mod);
-  ensureDir(modDir, `mod directory (${options.mod})`);
+function checkSingleMod(runtimeModsDir, modDirName) {
+  const modDir = path.join(runtimeModsDir, modDirName);
+  ensureDir(modDir, `runtime mod directory (${modDirName})`);
   const manifestPath = findManifestPath(modDir);
   if (!manifestPath) {
     throw new Error(`Missing mod manifest under ${modDir}`);
   }
 
-  const buildScriptPath = path.join(modsRoot, 'scripts', 'build-mod.mjs');
-  ensureFile(buildScriptPath, 'build script');
-
-  process.stdout.write(`[dev-mods-smoke] env ok: NIMI_MODS_ROOT=${modsRoot}\n`);
-  process.stdout.write(
-    `[dev-mods-smoke] env ok: NIMI_RUNTIME_MODS_DIR=${runtimeModsDir}\n`,
-  );
-
-  process.stdout.write(`[dev-mods-smoke] building mod "${options.mod}"...\n`);
-  runNodeScript(buildScriptPath, ['--mod', options.mod], modsRoot);
-
-  const distEntry = path.join(modDir, 'dist', 'mods', options.mod, 'index.js');
-  ensureFile(distEntry, `mod dist entry (${options.mod})`);
-  process.stdout.write(`[dev-mods-smoke] build output ok: ${distEntry}\n`);
-
-  if (!options.skipPrepare) {
-    const prepareScriptPath = path.join(desktopRoot, 'scripts', 'prepare-default-mods.mjs');
-    ensureFile(prepareScriptPath, 'prepare-default-mods script');
-    process.stdout.write('[dev-mods-smoke] syncing desktop default-mod resources...\n');
-    runNodeScript(prepareScriptPath, [], desktopRoot);
-
-    const defaultModDir = path.join(
-      desktopRoot,
-      'src-tauri',
-      'resources',
-      'default-mods',
-      options.mod,
-    );
-    ensureDir(defaultModDir, `desktop default-mod directory (${options.mod})`);
-
-    const copiedManifestPath = findManifestPath(defaultModDir);
-    if (!copiedManifestPath) {
-      throw new Error(`Missing copied manifest in ${defaultModDir}`);
-    }
-    const copiedDistEntry = path.join(defaultModDir, 'dist', 'mods', options.mod, 'index.js');
-    ensureFile(copiedDistEntry, `desktop default-mod dist entry (${options.mod})`);
-    process.stdout.write(`[dev-mods-smoke] resources manifest ok: ${copiedManifestPath}\n`);
-    process.stdout.write(`[dev-mods-smoke] resources dist ok: ${copiedDistEntry}\n`);
+  const manifest = readManifestSummary(manifestPath);
+  const modId = String(manifest.id || '').trim();
+  const entry = String(manifest.entry || '').trim();
+  if (!modId) {
+    throw new Error(`Manifest id missing: ${manifestPath}`);
   }
+  if (!entry) {
+    throw new Error(`Manifest entry missing: ${manifestPath}`);
+  }
+  ensureFile(path.join(modDir, entry), `runtime mod entry (${modId})`);
+  process.stdout.write(`[dev-mods-smoke] manifest ok: ${manifestPath}\n`);
+  process.stdout.write(`[dev-mods-smoke] entry ok: ${path.join(modDir, entry)}\n`);
 }
 
 function main() {
   const options = parseArgs(process.argv.slice(2));
-  const modsRoot = resolveModsRoot({ required: true, mustExist: true });
   const runtimeModsDir = resolveRuntimeModsDir({ required: true, mustExist: true });
+  ensureDir(runtimeModsDir, 'runtime mods dir');
+  const installedDirNames = readdirSync(runtimeModsDir)
+    .filter((name) => isExistingDirectory(path.join(runtimeModsDir, name)));
+  const targetDirNames = options.all
+    ? installedDirNames
+    : [options.mod || installedDirNames[0] || ''];
 
-  if (!sameNormalizedPath(modsRoot, runtimeModsDir)) {
-    throw new Error(
-      [
-        'NIMI_RUNTIME_MODS_DIR must equal NIMI_MODS_ROOT in local joint-debug.',
-        `NIMI_MODS_ROOT=${modsRoot}`,
-        `NIMI_RUNTIME_MODS_DIR=${runtimeModsDir}`,
-      ].join('\n'),
-    );
+  process.stdout.write(`[dev-mods-smoke] NIMI_RUNTIME_MODS_DIR=${runtimeModsDir}\n`);
+  if (targetDirNames.length === 0 || !targetDirNames[0]) {
+    process.stdout.write('[dev-mods-smoke] no runtime mods found; empty-state host is valid.\n');
+    return;
   }
-
-  const targetMods = options.all ? LOADABLE_MOD_IDS : [options.mod];
-  for (const modId of targetMods) {
-    smokeSingleMod({
-      ...options,
-      mod: modId,
-    }, modsRoot, runtimeModsDir);
+  for (const modDirName of targetDirNames) {
+    checkSingleMod(runtimeModsDir, modDirName);
   }
 
   process.stdout.write(
     [
       '[dev-mods-smoke] smoke check passed.',
-      `mods=${targetMods.join(', ')}`,
-      `next: pnpm -C ${desktopRoot} run dev:shell`,
+      `mods=${targetDirNames.join(', ')}`,
       '',
     ].join('\n'),
   );
+}
+
+function isExistingDirectory(inputPath) {
+  return existsSync(inputPath) && statSync(inputPath).isDirectory();
 }
 
 try {

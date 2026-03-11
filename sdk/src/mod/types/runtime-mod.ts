@@ -144,6 +144,7 @@ export type RuntimeModRegistration = {
   denialCapabilities?: string[];
   sourceType?: HookSourceType;
   manifestCapabilities?: string[];
+  styleEntryPaths?: string[];
   isDefaultPrivateExecution?: boolean;
   setup: (ctx: RuntimeModLifecycleContext) => Promise<void> | void;
   teardown?: (ctx: RuntimeModLifecycleContext) => Promise<void> | void;

@@ -21,6 +21,8 @@ export function MarketplaceView(model: MarketplacePageModel) {
   // Separate installed and not installed mods
   const installedMods = model.filteredMods.filter((mod) => mod.isInstalled);
   const notInstalledMods = model.filteredMods.filter((mod) => !mod.isInstalled);
+  const pendingPathInstall = model.pendingAction?.modId === 'manual:path' && model.pendingAction.action === 'install-from-path';
+  const pendingUrlInstall = model.pendingAction?.modId === 'manual:url' && model.pendingAction.action === 'install-from-url';
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#F0F4F8]">
@@ -55,6 +57,57 @@ export function MarketplaceView(model: MarketplacePageModel) {
 
       {/* Content Area with padding */}
       <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-6">
+        <section className="rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+          <div className="flex flex-col gap-4">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Install from local package</p>
+              <p className="mt-1 text-xs text-gray-500">
+                Enter a prebuilt mod folder path or `.zip` package path under your local filesystem.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 lg:flex-row">
+              <input
+                type="text"
+                className="flex-1 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-emerald-200 focus:bg-white"
+                placeholder="/absolute/path/to/mod or /absolute/path/to/mod.zip"
+                value={model.pathSource}
+                onChange={(event) => model.onPathSourceChange(event.target.value)}
+              />
+              <button
+                type="button"
+                onClick={model.onInstallFromPath}
+                disabled={pendingPathInstall}
+                className="rounded-full bg-mint-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-mint-600 disabled:opacity-60"
+              >
+                {pendingPathInstall ? 'Installing...' : 'Install from path'}
+              </button>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Install from URL</p>
+              <p className="mt-1 text-xs text-gray-500">
+                Remote install only accepts prebuilt `.zip` mod packages.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 lg:flex-row">
+              <input
+                type="url"
+                className="flex-1 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-emerald-200 focus:bg-white"
+                placeholder="https://example.com/my-mod.zip"
+                value={model.urlSource}
+                onChange={(event) => model.onUrlSourceChange(event.target.value)}
+              />
+              <button
+                type="button"
+                onClick={model.onInstallFromUrl}
+                disabled={pendingUrlInstall}
+                className="rounded-full bg-mint-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-mint-600 disabled:opacity-60"
+              >
+                {pendingUrlInstall ? 'Installing...' : 'Install from URL'}
+              </button>
+            </div>
+          </div>
+        </section>
+
         {/* Installed Section */}
         {installedMods.length > 0 && (
           <section>
@@ -113,7 +166,7 @@ export function MarketplaceView(model: MarketplacePageModel) {
               <rect x="14" y="14" width="7" height="7" />
               <rect x="3" y="14" width="7" height="7" />
             </svg>
-            No mods match your search
+            No installed mods match your search
           </div>
         )}
       </div>

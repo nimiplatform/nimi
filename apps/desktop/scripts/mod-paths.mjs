@@ -56,9 +56,8 @@ function ensureAbsoluteDir(envName, rawValue, options = {}) {
   return resolved;
 }
 
-export function resolveModsRoot(options = {}) {
-  loadDesktopEnvFiles();
-  return ensureAbsoluteDir('NIMI_MODS_ROOT', process.env.NIMI_MODS_ROOT, options);
+export function resolveModsRoot() {
+  return null;
 }
 
 export function resolveRuntimeModsDir(options = {}) {

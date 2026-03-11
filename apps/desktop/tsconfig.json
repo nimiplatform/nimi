@@ -4,7 +4,6 @@
     "paths": {
       "@runtime/*": ["src/runtime/*"],
       "@renderer/*": ["src/shell/renderer/*"],
-      "@mods/*": ["src/mods/*"],
       "@nimiplatform/sdk": ["../../sdk/src/index.ts"],
       "@nimiplatform/sdk/*": ["../../sdk/src/*"],
       "@nimiplatform/shell-core/*": ["../_libs/shell-core/src/*"]

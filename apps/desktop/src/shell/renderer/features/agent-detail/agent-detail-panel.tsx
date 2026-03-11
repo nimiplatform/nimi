@@ -5,6 +5,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { QuickAddFriendModal } from '@renderer/features/explore/quick-add-friend-modal';
 import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
+import { openDefaultPrivateExecutionMod } from '@renderer/mod-ui/lifecycle/default-private-execution';
 import { prefetchWorldDetailAndEvents } from '@renderer/features/world/world-detail-queries.js';
 import { prefetchWorldDetailPanel } from '@renderer/features/world/world-detail-route-state';
 import { toAgentDetailData } from './agent-detail-model';
@@ -14,11 +15,9 @@ export function AgentDetailPanel() {
   const authStatus = useAppStore((state) => state.auth.status);
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const navigateBack = useAppStore((state) => state.navigateBack);
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
-  const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [addFriendModalOpen, setAddFriendModalOpen] = useState(false);
 
@@ -110,9 +109,7 @@ export function AgentDetailPanel() {
       targetId: agent.id,
       worldId: agent.worldId || '',
     });
-    // Open mod workspace tab before setting active tab
-    openModWorkspaceTab('mod:local-chat', 'Local Chat', 'local-chat');
-    setActiveTab('mod:local-chat');
+    openDefaultPrivateExecutionMod();
   };
 
   const handleAddFriendClick = () => {

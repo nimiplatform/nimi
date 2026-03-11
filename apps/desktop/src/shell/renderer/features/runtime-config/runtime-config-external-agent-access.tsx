@@ -15,7 +15,7 @@ export function ExternalAgentAccessPanel() {
   const [principalId, setPrincipalId] = useState('openclaw.local');
   const [subjectAccountId, setSubjectAccountId] = useState('');
   const [mode, setMode] = useState<TokenMode>('delegated');
-  const [actionsInput, setActionsInput] = useState('runtime.local-ai.models.list,mod.local-chat.sessions.list');
+  const [actionsInput, setActionsInput] = useState('runtime.local-ai.models.list');
   const [ttlSeconds, setTtlSeconds] = useState('3600');
   const [tokenId, setTokenId] = useState('');
   const [issuedToken, setIssuedToken] = useState('');
@@ -147,7 +147,7 @@ export function ExternalAgentAccessPanel() {
           label="Action Scopes (comma separated)"
           value={actionsInput}
           onChange={setActionsInput}
-          placeholder="runtime.local-ai.models.list,mod.local-chat.sessions.list"
+          placeholder="runtime.local-ai.models.list"
         />
 
         <div className="flex items-center gap-2">

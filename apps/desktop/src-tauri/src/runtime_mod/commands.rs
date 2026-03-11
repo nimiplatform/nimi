@@ -4,14 +4,20 @@ use tauri::AppHandle;
 
 use super::store::{
     append_runtime_audit, delete_action_verify_ticket, gc_media_cache,
-    get_action_idempotency_record, get_action_verify_ticket, list_local_mod_manifests, open_db,
+    get_action_idempotency_record, get_action_verify_ticket, install_runtime_mod,
+    list_installed_runtime_mods, list_local_mod_manifests, list_runtime_mod_diagnostics,
+    list_runtime_mod_install_progress, list_runtime_mod_sources, open_db,
     purge_action_execution_ledger, purge_action_idempotency_records, purge_action_verify_tickets,
     put_action_execution_ledger_record, put_action_idempotency_record, put_action_verify_ticket,
-    put_media_cache, query_action_execution_ledger, query_runtime_audit, read_local_mod_entry,
+    put_media_cache, query_action_execution_ledger, query_runtime_audit, read_installed_runtime_mod_manifest,
+    read_local_mod_entry, reload_all_runtime_mods, reload_runtime_mod, remove_runtime_mod_source,
+    set_runtime_mod_developer_mode_state, sync_runtime_mod_source_watchers, uninstall_runtime_mod,
+    update_runtime_mod, upsert_runtime_mod_source, get_runtime_mod_developer_mode_state,
     RuntimeActionExecutionLedgerFilter, RuntimeActionExecutionLedgerRecordPayload,
     RuntimeActionIdempotencyRecordPayload, RuntimeActionVerifyTicketPayload, RuntimeAuditFilter,
-    RuntimeAuditRecordPayload, RuntimeLocalManifestSummary, RuntimeMediaCacheGcResultPayload,
-    RuntimeMediaCachePutResultPayload,
+    RuntimeAuditRecordPayload, RuntimeLocalManifestSummary, RuntimeMediaCacheGcResultPayload, RuntimeMediaCachePutResultPayload,
+    RuntimeModDeveloperModeState, RuntimeModDiagnosticRecord, RuntimeModInstallProgressPayload,
+    RuntimeModInstallResultPayload, RuntimeModReloadResultPayload, RuntimeModSourceRecord,
 };
 
 #[derive(Debug, Deserialize)]
@@ -36,6 +42,69 @@ pub struct RuntimeAuditDeletePayload {
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeModReadEntryPayload {
     pub path: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModInstallPayload {
+    pub source: String,
+    pub source_kind: Option<String>,
+    pub replace_existing: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModUpdatePayload {
+    pub mod_id: String,
+    pub source: String,
+    pub source_kind: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModUninstallPayload {
+    pub mod_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModReadManifestPayload {
+    pub mod_id: Option<String>,
+    pub path: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModInstallProgressQueryPayload {
+    pub install_session_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModSourceUpsertPayload {
+    pub source_id: Option<String>,
+    pub source_type: String,
+    pub source_dir: String,
+    pub enabled: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModSourceRemovePayload {
+    pub source_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModDeveloperModeSetPayload {
+    pub enabled: bool,
+    pub auto_reload_enabled: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModReloadPayload {
+    pub mod_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -232,6 +301,147 @@ pub fn runtime_mod_read_local_entry(
     payload: RuntimeModReadEntryPayload,
 ) -> Result<String, String> {
     read_local_mod_entry(&app, &payload.path)
+}
+
+#[tauri::command]
+pub fn runtime_mod_list_installed(
+    app: AppHandle,
+) -> Result<Vec<RuntimeLocalManifestSummary>, String> {
+    list_installed_runtime_mods(&app)
+}
+
+#[tauri::command]
+pub fn runtime_mod_sources_list(
+    app: AppHandle,
+) -> Result<Vec<RuntimeModSourceRecord>, String> {
+    list_runtime_mod_sources(&app)
+}
+
+#[tauri::command]
+pub fn runtime_mod_sources_upsert(
+    app: AppHandle,
+    payload: RuntimeModSourceUpsertPayload,
+) -> Result<RuntimeModSourceRecord, String> {
+    let record = upsert_runtime_mod_source(
+        &app,
+        payload.source_id.as_deref(),
+        &payload.source_type,
+        &payload.source_dir,
+        payload.enabled.unwrap_or(true),
+    )?;
+    sync_runtime_mod_source_watchers(&app)?;
+    Ok(record)
+}
+
+#[tauri::command]
+pub fn runtime_mod_sources_remove(
+    app: AppHandle,
+    payload: RuntimeModSourceRemovePayload,
+) -> Result<bool, String> {
+    let removed = remove_runtime_mod_source(&app, &payload.source_id)?;
+    sync_runtime_mod_source_watchers(&app)?;
+    Ok(removed)
+}
+
+#[tauri::command]
+pub fn runtime_mod_dev_mode_get(
+    app: AppHandle,
+) -> Result<RuntimeModDeveloperModeState, String> {
+    get_runtime_mod_developer_mode_state(&app)
+}
+
+#[tauri::command]
+pub fn runtime_mod_dev_mode_set(
+    app: AppHandle,
+    payload: RuntimeModDeveloperModeSetPayload,
+) -> Result<RuntimeModDeveloperModeState, String> {
+    let state = set_runtime_mod_developer_mode_state(
+        &app,
+        payload.enabled,
+        payload.auto_reload_enabled,
+    )?;
+    sync_runtime_mod_source_watchers(&app)?;
+    Ok(state)
+}
+
+#[tauri::command]
+pub fn runtime_mod_diagnostics_list(
+    app: AppHandle,
+) -> Result<Vec<RuntimeModDiagnosticRecord>, String> {
+    list_runtime_mod_diagnostics(&app)
+}
+
+#[tauri::command]
+pub fn runtime_mod_reload(
+    app: AppHandle,
+    payload: RuntimeModReloadPayload,
+) -> Result<Vec<RuntimeModReloadResultPayload>, String> {
+    reload_runtime_mod(&app, &payload.mod_id)
+}
+
+#[tauri::command]
+pub fn runtime_mod_reload_all(
+    app: AppHandle,
+) -> Result<Vec<RuntimeModReloadResultPayload>, String> {
+    reload_all_runtime_mods(&app)
+}
+
+#[tauri::command]
+pub fn runtime_mod_install(
+    app: AppHandle,
+    payload: RuntimeModInstallPayload,
+) -> Result<RuntimeModInstallResultPayload, String> {
+    install_runtime_mod(
+        &app,
+        &payload.source,
+        payload.source_kind.as_deref(),
+        payload.replace_existing.unwrap_or(false),
+    )
+}
+
+#[tauri::command]
+pub fn runtime_mod_update(
+    app: AppHandle,
+    payload: RuntimeModUpdatePayload,
+) -> Result<RuntimeModInstallResultPayload, String> {
+    update_runtime_mod(
+        &app,
+        &payload.mod_id,
+        &payload.source,
+        payload.source_kind.as_deref(),
+    )
+}
+
+#[tauri::command]
+pub fn runtime_mod_uninstall(
+    app: AppHandle,
+    payload: RuntimeModUninstallPayload,
+) -> Result<RuntimeLocalManifestSummary, String> {
+    uninstall_runtime_mod(&app, &payload.mod_id)
+}
+
+#[tauri::command]
+pub fn runtime_mod_read_manifest(
+    app: AppHandle,
+    payload: RuntimeModReadManifestPayload,
+) -> Result<RuntimeLocalManifestSummary, String> {
+    read_installed_runtime_mod_manifest(
+        &app,
+        payload.mod_id.as_deref(),
+        payload.path.as_deref(),
+    )
+}
+
+#[tauri::command]
+pub fn runtime_mod_install_progress(
+    _app: AppHandle,
+    payload: Option<RuntimeModInstallProgressQueryPayload>,
+) -> Result<Vec<RuntimeModInstallProgressPayload>, String> {
+    list_runtime_mod_install_progress(
+        payload
+            .as_ref()
+            .and_then(|item| item.install_session_id.as_deref()),
+    )
 }
 
 #[tauri::command]

@@ -68,12 +68,99 @@ export type RuntimeBridgeConfigSetResult = {
 export type RuntimeLocalManifestSummary = {
   path: string;
   id: string;
+  sourceId?: string;
+  sourceType?: 'installed' | 'dev';
+  sourceDir?: string;
   name?: string;
   version?: string;
   entry?: string;
   entryPath?: string;
+  styles?: string[];
+  stylePaths?: string[];
   description?: string;
   manifest?: Record<string, unknown>;
+};
+
+export type RuntimeModInstallSourceKind = 'directory' | 'archive' | 'url';
+
+export type RuntimeModSourceType = 'installed' | 'dev';
+
+export type RuntimeModSourceRecord = {
+  sourceId: string;
+  sourceType: RuntimeModSourceType;
+  sourceDir: string;
+  enabled: boolean;
+  isDefault: boolean;
+};
+
+export type RuntimeModDeveloperModeState = {
+  enabled: boolean;
+  autoReloadEnabled: boolean;
+};
+
+export type RuntimeModDiagnosticStatus = 'resolved' | 'conflict' | 'invalid';
+
+export type RuntimeModDiagnosticRecord = {
+  modId: string;
+  status: RuntimeModDiagnosticStatus;
+  sourceId: string;
+  sourceType: RuntimeModSourceType;
+  sourceDir: string;
+  manifestPath?: string;
+  entryPath?: string;
+  error?: string;
+  conflictPaths?: string[];
+};
+
+export type RuntimeModReloadResult = {
+  modId: string;
+  sourceId: string;
+  status: RuntimeModDiagnosticStatus;
+  occurredAt: string;
+  error?: string;
+};
+
+export type RuntimeModSourceChangeEvent = {
+  sourceId: string;
+  sourceType: RuntimeModSourceType;
+  sourceDir: string;
+  occurredAt: string;
+  paths: string[];
+};
+
+export type RuntimeModInstallPayload = {
+  source: string;
+  sourceKind?: RuntimeModInstallSourceKind;
+  replaceExisting?: boolean;
+};
+
+export type RuntimeModUpdatePayload = {
+  modId: string;
+  source: string;
+  sourceKind?: RuntimeModInstallSourceKind;
+};
+
+export type RuntimeModInstallResult = {
+  installSessionId: string;
+  operation: string;
+  modId: string;
+  installedPath: string;
+  manifest: RuntimeLocalManifestSummary;
+};
+
+export type RuntimeModInstallProgressEvent = {
+  installSessionId: string;
+  operation: string;
+  sourceKind: string;
+  phase: string;
+  status: string;
+  occurredAt: string;
+  modId?: string;
+  manifestPath?: string;
+  installedPath?: string;
+  progressPercent?: number;
+  message?: string;
+  error?: string;
 };
 
 export type OpenExternalUrlResult = {
@@ -251,13 +338,27 @@ export function parseRuntimeLocalManifestSummary(value: unknown): RuntimeLocalMa
   const manifestRecord = record.manifest && typeof record.manifest === 'object' && !Array.isArray(record.manifest)
     ? (record.manifest as Record<string, unknown>)
     : undefined;
+  const styles = Array.isArray(record.styles)
+    ? record.styles.map((item) => String(item || '').trim()).filter(Boolean)
+    : undefined;
+  const stylePaths = Array.isArray(record.stylePaths)
+    ? record.stylePaths.map((item) => String(item || '').trim()).filter(Boolean)
+    : undefined;
   return {
     path: parseRequiredString(record.path, 'path', 'runtime_mod_list_local_manifests'),
     id: parseRequiredString(record.id, 'id', 'runtime_mod_list_local_manifests'),
+    sourceId: parseOptionalString(record.sourceId),
+    sourceType: (() => {
+      const value = parseOptionalString(record.sourceType);
+      return value === 'installed' || value === 'dev' ? value : undefined;
+    })(),
+    sourceDir: parseOptionalString(record.sourceDir),
     name: parseOptionalString(record.name),
     version: parseOptionalString(record.version),
     entry: parseOptionalString(record.entry),
     entryPath: parseOptionalString(record.entryPath),
+    styles: styles && styles.length > 0 ? styles : undefined,
+    stylePaths: stylePaths && stylePaths.length > 0 ? stylePaths : undefined,
     description: parseOptionalString(record.description),
     manifest: manifestRecord,
   };
@@ -268,6 +369,143 @@ export function parseRuntimeLocalManifestSummaries(value: unknown): RuntimeLocal
     return [];
   }
   return value.map((item) => parseRuntimeLocalManifestSummary(item));
+}
+
+export function parseRuntimeModInstallResult(value: unknown): RuntimeModInstallResult {
+  const record = assertRecord(value, 'runtime_mod_install returned invalid payload');
+  return {
+    installSessionId: parseRequiredString(record.installSessionId, 'installSessionId', 'runtime_mod_install'),
+    operation: parseRequiredString(record.operation, 'operation', 'runtime_mod_install'),
+    modId: parseRequiredString(record.modId, 'modId', 'runtime_mod_install'),
+    installedPath: parseRequiredString(record.installedPath, 'installedPath', 'runtime_mod_install'),
+    manifest: parseRuntimeLocalManifestSummary(record.manifest),
+  };
+}
+
+export function parseRuntimeModInstallProgressEvent(value: unknown): RuntimeModInstallProgressEvent {
+  const record = assertRecord(value, 'runtime_mod_install_progress returned invalid payload');
+  return {
+    installSessionId: parseRequiredString(record.installSessionId, 'installSessionId', 'runtime_mod_install_progress'),
+    operation: parseRequiredString(record.operation, 'operation', 'runtime_mod_install_progress'),
+    sourceKind: parseRequiredString(record.sourceKind, 'sourceKind', 'runtime_mod_install_progress'),
+    phase: parseRequiredString(record.phase, 'phase', 'runtime_mod_install_progress'),
+    status: parseRequiredString(record.status, 'status', 'runtime_mod_install_progress'),
+    occurredAt: parseRequiredString(record.occurredAt, 'occurredAt', 'runtime_mod_install_progress'),
+    modId: parseOptionalString(record.modId),
+    manifestPath: parseOptionalString(record.manifestPath),
+    installedPath: parseOptionalString(record.installedPath),
+    progressPercent: parseOptionalNumber(record.progressPercent),
+    message: parseOptionalString(record.message),
+    error: parseOptionalString(record.error),
+  };
+}
+
+export function parseRuntimeModInstallProgressEvents(value: unknown): RuntimeModInstallProgressEvent[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.map((item) => parseRuntimeModInstallProgressEvent(item));
+}
+
+export function parseRuntimeModSourceRecord(value: unknown): RuntimeModSourceRecord {
+  const record = assertRecord(value, 'runtime_mod_sources_list returned invalid payload');
+  const sourceType = parseRequiredString(record.sourceType, 'sourceType', 'runtime_mod_sources_list');
+  if (sourceType !== 'installed' && sourceType !== 'dev') {
+    throw new Error(`runtime_mod_sources_list: invalid sourceType ${sourceType}`);
+  }
+  return {
+    sourceId: parseRequiredString(record.sourceId, 'sourceId', 'runtime_mod_sources_list'),
+    sourceType,
+    sourceDir: parseRequiredString(record.sourceDir, 'sourceDir', 'runtime_mod_sources_list'),
+    enabled: Boolean(record.enabled),
+    isDefault: Boolean(record.isDefault),
+  };
+}
+
+export function parseRuntimeModSourceRecords(value: unknown): RuntimeModSourceRecord[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.map((item) => parseRuntimeModSourceRecord(item));
+}
+
+export function parseRuntimeModDeveloperModeState(value: unknown): RuntimeModDeveloperModeState {
+  const record = assertRecord(value, 'runtime_mod_dev_mode_get returned invalid payload');
+  return {
+    enabled: Boolean(record.enabled),
+    autoReloadEnabled: Boolean(record.autoReloadEnabled),
+  };
+}
+
+export function parseRuntimeModDiagnosticRecord(value: unknown): RuntimeModDiagnosticRecord {
+  const record = assertRecord(value, 'runtime_mod_diagnostics_list returned invalid payload');
+  const status = parseRequiredString(record.status, 'status', 'runtime_mod_diagnostics_list');
+  if (status !== 'resolved' && status !== 'conflict' && status !== 'invalid') {
+    throw new Error(`runtime_mod_diagnostics_list: invalid status ${status}`);
+  }
+  const sourceType = parseRequiredString(record.sourceType, 'sourceType', 'runtime_mod_diagnostics_list');
+  if (sourceType !== 'installed' && sourceType !== 'dev') {
+    throw new Error(`runtime_mod_diagnostics_list: invalid sourceType ${sourceType}`);
+  }
+  return {
+    modId: parseRequiredString(record.modId, 'modId', 'runtime_mod_diagnostics_list'),
+    status,
+    sourceId: parseRequiredString(record.sourceId, 'sourceId', 'runtime_mod_diagnostics_list'),
+    sourceType,
+    sourceDir: parseRequiredString(record.sourceDir, 'sourceDir', 'runtime_mod_diagnostics_list'),
+    manifestPath: parseOptionalString(record.manifestPath),
+    entryPath: parseOptionalString(record.entryPath),
+    error: parseOptionalString(record.error),
+    conflictPaths: Array.isArray(record.conflictPaths)
+      ? record.conflictPaths.map((item) => String(item || '').trim()).filter(Boolean)
+      : undefined,
+  };
+}
+
+export function parseRuntimeModDiagnosticRecords(value: unknown): RuntimeModDiagnosticRecord[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.map((item) => parseRuntimeModDiagnosticRecord(item));
+}
+
+export function parseRuntimeModReloadResult(value: unknown): RuntimeModReloadResult {
+  const record = assertRecord(value, 'runtime_mod_reload returned invalid payload');
+  const status = parseRequiredString(record.status, 'status', 'runtime_mod_reload');
+  if (status !== 'resolved' && status !== 'conflict' && status !== 'invalid') {
+    throw new Error(`runtime_mod_reload: invalid status ${status}`);
+  }
+  return {
+    modId: parseRequiredString(record.modId, 'modId', 'runtime_mod_reload'),
+    sourceId: parseRequiredString(record.sourceId, 'sourceId', 'runtime_mod_reload'),
+    status,
+    occurredAt: parseRequiredString(record.occurredAt, 'occurredAt', 'runtime_mod_reload'),
+    error: parseOptionalString(record.error),
+  };
+}
+
+export function parseRuntimeModReloadResults(value: unknown): RuntimeModReloadResult[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.map((item) => parseRuntimeModReloadResult(item));
+}
+
+export function parseRuntimeModSourceChangeEvent(value: unknown): RuntimeModSourceChangeEvent {
+  const record = assertRecord(value, 'runtime-mod://source-changed returned invalid payload');
+  const sourceType = parseRequiredString(record.sourceType, 'sourceType', 'runtime-mod://source-changed');
+  if (sourceType !== 'installed' && sourceType !== 'dev') {
+    throw new Error(`runtime-mod://source-changed: invalid sourceType ${sourceType}`);
+  }
+  return {
+    sourceId: parseRequiredString(record.sourceId, 'sourceId', 'runtime-mod://source-changed'),
+    sourceType,
+    sourceDir: parseRequiredString(record.sourceDir, 'sourceDir', 'runtime-mod://source-changed'),
+    occurredAt: parseRequiredString(record.occurredAt, 'occurredAt', 'runtime-mod://source-changed'),
+    paths: Array.isArray(record.paths)
+      ? record.paths.map((item) => String(item || '').trim()).filter(Boolean)
+      : [],
+  };
 }
 
 export function parseOpenExternalUrlResult(value: unknown): OpenExternalUrlResult {

@@ -1,4 +1,4 @@
-export type AccessMode = 'local-dev' | 'community' | 'official' | 'sideload';
+export type AccessMode = 'local-dev' | 'sideload';
 
 export type KernelStage =
   | 'discovery'
@@ -60,7 +60,7 @@ export interface InstallInput extends DiscoverInput {
   actor: string;
   sourceType?: 'builtin' | 'injected' | 'sideload' | 'core' | 'codegen';
   requestedCapabilities?: string[];
-  /** Signature fields for official/community verification */
+  /** Optional supply-chain fields for signed packages */
   signerId?: string;
   signature?: string;
   digest?: string;

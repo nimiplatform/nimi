@@ -83,7 +83,11 @@ canonical 配置路径固定为 `.nimi/config.json`；Desktop 不得保留 `.nim
 
 Mod 本地持久化与审计命令集（`runtime_mod::commands`）：
 
-- `runtime_mod_list_local_manifests`：列出本地 mod 清单。
+- `runtime_mod_list_local_manifests`：列出 runtime mods 目录中的本地 mod 清单摘要。
+- `runtime_mod_list_installed`：列出已安装 mod 清单。
+- `runtime_mod_install` / `runtime_mod_update` / `runtime_mod_uninstall`：mod 安装生命周期命令。
+- `runtime_mod_read_manifest`：读取已安装 mod manifest。
+- `runtime_mod_install_progress`：查询安装进度事件。
 - `runtime_mod_read_local_entry`：读取 mod 入口源码。
 - `runtime_mod_append_audit` / `runtime_mod_query_audit` / `runtime_mod_delete_audit`：mod 审计记录 CRUD。
 - `runtime_mod_get_action_idempotency` / `runtime_mod_put_action_idempotency` / `runtime_mod_purge_action_idempotency`：action 幂等性记录。
@@ -209,6 +213,17 @@ companion artifact 补充：
 
 - `pnpm check:no-local-ai-private-calls`
 - `pnpm check:no-local-ai-tauri-commands`
+
+## D-IPC-013 — Mod Developer Host 命令面
+
+Desktop 作为 mod developer host 时，开发态 source 管理与 reload 能力必须通过受管 IPC surface 暴露，而不是要求用户改启动参数：
+
+- source registry：列出、添加、移除、启用、禁用 mod source directories。
+- developer mode：读取和切换 App 内的 Developer Mode 状态。
+- reload controls：对 `dev` source 中的单个 mod 或全部 mod 执行 reload。
+- diagnostics：列出 source 扫描结果、重复 `mod id` 冲突、最近 reload 结果。
+
+这些命令属于平台管理操作，不属于 mod 业务 API，不得要求第三方作者直接操作环境变量或文件系统约定来替代。
 
 ## Fact Sources
 

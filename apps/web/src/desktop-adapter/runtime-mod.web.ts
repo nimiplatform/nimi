@@ -35,6 +35,10 @@ export function listRegisteredRuntimeModIds(): string[] {
   return [];
 }
 
+export function getDefaultPrivateExecutionModId(): string {
+  return '';
+}
+
 export function getRuntimeHttpContext(): {
   realmBaseUrl: string;
   accessToken: string;

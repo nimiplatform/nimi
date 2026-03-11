@@ -2,11 +2,11 @@
 
 ## Scope
 - Applies to `apps/desktop/**`.
-- Desktop is a presentation layer over SDK/runtime/realm plus the first-party mod host.
+- Desktop is a presentation layer over SDK/runtime/realm plus a zero-bundle external mod host.
 
 ## Hard Boundaries
 - All runtime access goes through `@nimiplatform/sdk/runtime`; all realm access goes through `@nimiplatform/sdk/realm`.
-- Do not add direct HTTP/gRPC calls, first-party shortcuts, or local hardcoded provider/model capability lists.
+- Do not add direct HTTP/gRPC calls, special-case mod shortcuts, or local hardcoded provider/model capability lists.
 - Keep mod hosting inside the existing hook/runtime surfaces; mods never call runtime SDK directly.
 - Preserve established web reuse boundaries: changes under `apps/desktop/src/shell/renderer/**` may require matching adapter updates in `apps/web/src/desktop-adapter/**`.
 - Tauri generated code and bridge outputs are read-only unless the task is codegen.

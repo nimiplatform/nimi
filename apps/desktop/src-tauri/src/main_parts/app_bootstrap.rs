@@ -81,6 +81,7 @@ fn main() {
                     }
                 }
             }
+            let _ = crate::runtime_mod::store::sync_runtime_mod_source_watchers(&app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -99,6 +100,20 @@ fn main() {
             runtime_mod::commands::runtime_mod_delete_audit,
             runtime_mod::commands::runtime_mod_list_local_manifests,
             runtime_mod::commands::runtime_mod_read_local_entry,
+            runtime_mod::commands::runtime_mod_list_installed,
+            runtime_mod::commands::runtime_mod_sources_list,
+            runtime_mod::commands::runtime_mod_sources_upsert,
+            runtime_mod::commands::runtime_mod_sources_remove,
+            runtime_mod::commands::runtime_mod_dev_mode_get,
+            runtime_mod::commands::runtime_mod_dev_mode_set,
+            runtime_mod::commands::runtime_mod_diagnostics_list,
+            runtime_mod::commands::runtime_mod_reload,
+            runtime_mod::commands::runtime_mod_reload_all,
+            runtime_mod::commands::runtime_mod_install,
+            runtime_mod::commands::runtime_mod_update,
+            runtime_mod::commands::runtime_mod_uninstall,
+            runtime_mod::commands::runtime_mod_read_manifest,
+            runtime_mod::commands::runtime_mod_install_progress,
             runtime_mod::commands::runtime_mod_get_action_idempotency,
             runtime_mod::commands::runtime_mod_put_action_idempotency,
             runtime_mod::commands::runtime_mod_purge_action_idempotency,

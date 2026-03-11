@@ -1,4 +1,9 @@
-import type { BadgeType, MarketplaceMod, MarketplaceRuntimeAction } from './marketplace-model';
+import type {
+  BadgeType,
+  MarketplaceMod,
+  MarketplacePendingActionType,
+  MarketplaceRuntimeAction,
+} from './marketplace-model';
 
 const ICON_STAR = (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none">
@@ -29,9 +34,8 @@ const ICON_PLAY = (
 
 function ModBadge({ type }: { type: BadgeType }) {
   const styles: Record<BadgeType, { bg: string; color: string; label: string }> = {
-    official: { bg: 'bg-green-100', color: 'text-green-700', label: 'Official' },
     verified: { bg: 'bg-cyan-100', color: 'text-cyan-700', label: 'Verified' },
-    community: { bg: 'bg-gray-100', color: 'text-gray-600', label: 'Community' },
+    catalog: { bg: 'bg-gray-100', color: 'text-gray-600', label: 'Catalog' },
   };
   const current = styles[type];
 
@@ -81,7 +85,7 @@ export function MarketplaceRow({
   onSelectMod,
 }: {
   mod: MarketplaceMod;
-  pendingAction?: { modId: string; action: MarketplaceRuntimeAction } | null;
+  pendingAction?: { modId: string; action: MarketplacePendingActionType } | null;
   isSelected?: boolean;
   onOpenMod?: ((modId: string) => void) | null;
   onInstallMod?: ((modId: string) => void) | null;
@@ -119,7 +123,7 @@ export function MarketplaceRow({
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-semibold text-gray-900">{mod.name}</span>
           <span className="text-[11px] text-gray-400 font-normal">{mod.version}</span>
-          <ModBadge type={mod.badge} />
+          {mod.badge ? <ModBadge type={mod.badge} /> : null}
           <StatusBadge isInstalled={mod.isInstalled} isEnabled={mod.isEnabled} />
         </div>
 

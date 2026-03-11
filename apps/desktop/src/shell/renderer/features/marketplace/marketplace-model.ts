@@ -23,16 +23,20 @@ export const MARKETPLACE_COLORS = {
   gray700: '#374151',
 } as const;
 
-export type BadgeType = 'official' | 'verified' | 'community';
+export type BadgeType = 'verified' | 'catalog';
 export type MarketplaceModSource = 'runtime' | 'catalog';
 export type MarketplaceRuntimeAction = 'install' | 'uninstall' | 'enable' | 'disable' | 'settings';
+export type MarketplacePendingActionType =
+  | MarketplaceRuntimeAction
+  | 'install-from-path'
+  | 'install-from-url';
 
 export type MarketplaceMod = {
   id: string;
   name: string;
   description: string;
   author: string;
-  badge: BadgeType;
+  badge?: BadgeType;
   rating?: number;
   ratingCount?: string;
   installs?: string;
@@ -41,11 +45,14 @@ export type MarketplaceMod = {
   iconBg: string;
   iconText: string;
   source: MarketplaceModSource;
+  runtimeStatus?: 'loaded' | 'disabled' | 'failed' | 'conflict';
+  runtimeSourceType?: 'installed' | 'dev';
+  runtimeSourceDir?: string;
+  runtimeConflict?: boolean;
   isInstalled: boolean;
   isEnabled: boolean;
+  publisherVerified?: boolean;
 };
-
-export const MOCK_MARKETPLACE_MODS: MarketplaceMod[] = [];
 
 function normalizeRuntimeDisplayName(input: {
   id: string;
@@ -62,9 +69,6 @@ function normalizeRuntimeDisplayName(input: {
 
   if (!candidate) {
     return id || 'Runtime Mod';
-  }
-  if (id === 'world.nimi.local-chat') {
-    return 'Local Chat';
   }
   if (/^desktop\s+/i.test(candidate)) {
     return candidate.replace(/^desktop\s+/i, '').trim() || candidate;
@@ -93,25 +97,41 @@ export function toRuntimeModRow(
   const description = String(summary.description || manifest.description || 'Runtime registered mod');
   const version = String(summary.version || manifest.version || '1.0.0');
   const author = (() => {
+    const publisherValue = manifest.publisher;
+    if (publisherValue && typeof publisherValue === 'object') {
+      const name = String((publisherValue as Record<string, unknown>).name || '').trim();
+      if (name) return name;
+    }
     const authorValue = manifest.author;
     if (authorValue && typeof authorValue === 'object') {
       const name = String((authorValue as Record<string, unknown>).name || '').trim();
       if (name) return name;
     }
+    const plainAuthor = String(authorValue || '').trim();
+    if (plainAuthor) return plainAuthor;
     return 'Runtime Mod';
   })();
+  const publisherRecord = manifest.publisher && typeof manifest.publisher === 'object'
+    ? manifest.publisher as Record<string, unknown>
+    : null;
+  const publisherVerified = Boolean(publisherRecord?.verified);
 
   return {
     id,
     name: displayName,
     description,
     author,
-    badge: 'official',
+    badge: publisherVerified ? 'verified' : undefined,
     version: `v${String(version).replace(/^v/i, '')}`,
     iconBg: `linear-gradient(135deg, ${MARKETPLACE_COLORS.brand500}, ${MARKETPLACE_COLORS.blue600})`,
     iconText: String(displayName.slice(0, 2) || 'M').toUpperCase(),
     source: 'runtime',
+    runtimeStatus: input.isEnabled ? 'loaded' : 'disabled',
+    runtimeSourceType: summary.sourceType,
+    runtimeSourceDir: summary.sourceDir,
+    runtimeConflict: false,
     isInstalled: input.isInstalled,
     isEnabled: input.isEnabled,
+    publisherVerified,
   };
 }

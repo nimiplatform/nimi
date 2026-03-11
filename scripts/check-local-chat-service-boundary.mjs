@@ -66,6 +66,11 @@ async function checkNoInternalServicesBarrelImport() {
 }
 
 async function main() {
+  if (!(await fs.stat(localChatSrcRoot).then((value) => value.isDirectory()).catch(() => false))) {
+    process.stdout.write('local-chat service boundary check skipped: optional nimi-mods/local-chat workspace not present\n');
+    return;
+  }
+
   await Promise.all([
     checkServicesIndexNoDataForward(),
     checkNoInternalServicesBarrelImport(),

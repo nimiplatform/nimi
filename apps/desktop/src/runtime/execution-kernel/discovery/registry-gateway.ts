@@ -12,8 +12,6 @@ type RegistryEntry = {
 const MODE_ALLOWED_PREFIXES: Record<AccessMode, string[]> = {
   'local-dev': ['file://', 'http://localhost', 'http://127.0.0.1', 'https://'],
   sideload: ['file://', 'http://localhost', 'http://127.0.0.1', 'https://'],
-  community: ['https://'],
-  official: ['https://'],
 };
 
 const BLOCKED_SOURCES = [

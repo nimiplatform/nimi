@@ -117,13 +117,13 @@ LLM 适配器必须在跨模态链路保持统一 trace：
 
 跨层引用：K-AUDIT-001、S-ERROR-005、D-IPC-011、D-ERR-007。
 
-## D-LLM-009 — Mod E2E 强门禁
+## D-LLM-009 — Mod 行为门禁归属
 
-`local-chat` 作为首个强门禁 mod，必须维持双层 E2E：
+Desktop 不得把任何特定 mod 设为内建发布门禁：
 
-- PR gate：deterministic E2E（离线、稳定、可重复）必须通过。
-- Nightly/Release gate：live E2E 必须执行真实 provider 调用并验证结果完整性与 trace 连续性。
-- Desktop mod smoke 仍保留为结构烟测，不可替代 local-chat E2E 行为门。
+- Desktop 仓只保留 runtime mod smoke、安装生命周期和桥接一致性检查。
+- 任意独立 mod 的 deterministic/live E2E 必须留在该 mod 自己的仓中维护。
+- Desktop mod smoke 只验证 host/runtime contract，不替代 mod 仓的行为级 E2E。
 
 跨层引用：K-GATE-060、S-GATE-080、S-GATE-090、D-MOD-007。
 

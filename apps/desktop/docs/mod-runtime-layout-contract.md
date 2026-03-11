@@ -1,100 +1,96 @@
-# desktop × nimi-mods 本地联调运行契约（No-Legacy）
+# Desktop Runtime Mod Layout Contract
 
 状态：`active`  
-更新时间：`2026-02-26`  
-适用范围：`apps/desktop/` + 外部 `nimi-mods/` 本地联调
+更新时间：`2026-03-11`  
+适用范围：`apps/desktop/` 作为零内置 mod host 的本地开发、安装与运行
 
 ---
 
 ## 1. 目标
 
-建立稳定、可审计、可自动化的本地联调闭环：
+建立稳定、可审计、可独立仓协作的 mod host 契约：
 
-1. `nimi-mods` 作为唯一 mod 源码真源（外部独立仓）。
-2. `desktop` 不再猜测 mod 路径，不保留 legacy fallback。
-3. 开发态采用双终端手动流程，单 mod watch 粒度。
-4. 产物路径、运行路径、manifest entry 三者强一致。
-
----
-
-## 2. 决策冻结（No-Legacy）
-
-1. `apps/desktop` 联调路径不做任何隐式 fallback 或路径猜测。
-2. `NIMI_MODS_ROOT` 必填（绝对路径，不存在即失败）。
-3. 开发态 `NIMI_RUNTIME_MODS_DIR` 必填（绝对路径，不存在即失败）。
-4. 本地联调默认要求：`NIMI_RUNTIME_MODS_DIR == NIMI_MODS_ROOT`。
+1. `desktop` 发布包零内置 mod，不再复制或同步外部 mod 资源。
+2. `desktop` 只认已安装 runtime mods 目录，不扫描 `nimi-mods` 或任何源码仓作为 fallback。
+3. 外部 mod 仓独立构建，desktop 只消费预构建包或已安装目录。
+4. manifest、入口脚本、样式资产、安装目录四者显式对齐。
 
 ---
 
-## 3. 环境变量契约
+## 2. 决策冻结（Zero-Bundle / No-Legacy）
+
+1. `apps/desktop` 不再使用 legacy desktop-mods root env。
+2. 开发态只认 `NIMI_RUNTIME_MODS_DIR`；未设置时脚本 fail-fast，运行时回退到 `app_data_dir/mods`。
+3. 不允许把源码仓直接当作 desktop 的产品输入；本地开发使用 symlink、开发安装或直接复制到 runtime mods 目录。
+4. remote install 只接受预构建 mod 目录或 `.zip` 包，desktop 不承担源码构建。
+
+---
+
+## 3. 环境变量与发现契约
 
 | 变量 | 用途 | 规则 |
 |---|---|---|
-| `NIMI_MODS_ROOT` | 外部 `nimi-mods` 源码根目录 | 必填；必须是已存在绝对路径 |
-| `NIMI_RUNTIME_MODS_DIR` | `apps/desktop` runtime mod 发现目录 | 开发态必填；必须是已存在绝对路径 |
+| `NIMI_RUNTIME_MODS_DIR` | `apps/desktop` runtime mod 发现目录 | 开发态建议显式设置；如设置则必须是已存在绝对路径 |
 
 说明：
 
-1. 开发态不允许隐式 fallback 到仓内目录。
-2. release 仍使用 `app_data_dir/mods` 作为默认发现目录。
+1. 未设置 `NIMI_RUNTIME_MODS_DIR` 时，desktop 运行时默认发现目录为 `app_data_dir/mods`。
+2. 本地 manifest 扫描只发生在 runtime mods 目录内。
+3. runtime 读取 entry/style 资产时必须限制在对应 mod 安装目录内。
 
 ---
 
-## 4. 构建契约（nimi-mods）
+## 4. Mod 包契约
 
-唯一构建入口：`nimi-mods/scripts/build-mod.mjs`
+预构建 mod 包必须包含：
 
-支持参数：
+1. `mod.manifest.yaml|yml|json`
+2. `manifest.entry` 指向可执行的构建产物
+3. 可选 `manifest.styles[]`，每个条目指向需要在 load/unload 时注入/回收的样式资产
 
-1. `--mod <id>`：构建单个 mod
-2. `--all`：构建全部 mod
-3. `--watch`：增量 watch 构建
+目录形态允许：
 
-统一产物约定：
+1. 已安装目录
+2. 单层包裹目录的 `.zip`
+3. 远程 `.zip` URL
 
-1. 每个 mod 入口源码固定 `index.ts`
-2. `manifest.entry` 固定 `./dist/mods/<mod>/index.js`
-3. `check-mods.mjs` 校验 manifest/entry/dist 一致性
-
----
-
-## 5. desktop 契约
-
-1. `apps/desktop` 只负责 renderer/shell 启动与 runtime 加载。
-2. 默认开发流程不自动拉起 `nimi-mods` watch（双终端手动）。
-3. 启动前执行环境检查并输出生效路径：
-`NIMI_MODS_ROOT` / `NIMI_RUNTIME_MODS_DIR`。
-4. Tauri debug 模式下，缺失 `NIMI_RUNTIME_MODS_DIR` 直接失败。
-5. runtime 读取本地 mod entry 时必须限制在 `NIMI_RUNTIME_MODS_DIR` 内。
+desktop 会在安装期解包、定位 package root、验证 manifest，并写入 runtime mods 目录。
 
 ---
 
-## 6. 标准双终端流程（目标态）
+## 5. Desktop Host 契约
+
+1. `apps/desktop` 只负责 manifest 扫描、安装生命周期、entry 读取、样式注入、运行时注册与审计。
+2. Tauri backend 是 mod 文件系统生命周期唯一 owner：install、update、uninstall、read-manifest、install-progress。
+3. renderer 不再依赖 Tailwind 对外部 mod 源码的编译期扫描；mod 样式只通过 `manifest.styles[]` 动态注入。
+4. 已安装用户 mod 统一按 `sideload` 能力模型运行；显式本地开发态才使用 `local-dev`。
+
+---
+
+## 6. 本地开发流程
 
 ```bash
-# Terminal A (nimi-mods)
-export NIMI_MODS_ROOT=/ABS/PATH/TO/nimi-mods
-pnpm -C "$NIMI_MODS_ROOT" install
-pnpm -C "$NIMI_MODS_ROOT" run watch -- --mod local-chat
+# Terminal A (independent mod repo)
+pnpm install
+pnpm run build -- --mod my-custom-mod
+ln -s /ABS/PATH/TO/my-mod/dist-package /ABS/PATH/TO/runtime-mods/my-custom-mod
 
 # Terminal B (desktop)
-export NIMI_MODS_ROOT=/ABS/PATH/TO/nimi-mods
-export NIMI_RUNTIME_MODS_DIR="$NIMI_MODS_ROOT"
+export NIMI_RUNTIME_MODS_DIR=/ABS/PATH/TO/runtime-mods
 pnpm -C apps/desktop run dev:shell
 ```
+
+也可直接把预构建目录或 `.zip` 安装到 `NIMI_RUNTIME_MODS_DIR`。
 
 ---
 
 ## 7. 验收门禁
 
-1. 未设置 `NIMI_MODS_ROOT` 时，`apps/desktop` 所有 mod 相关脚本 fail-fast。
-2. 未设置 `NIMI_RUNTIME_MODS_DIR` 时，`apps/desktop` runtime（debug）fail-fast。
-3. `pnpm -C $NIMI_MODS_ROOT run build -- --mod local-chat` 成功产出：
-`dist/mods/local-chat/index.js`。
-4. watch 模式下源码变更可触发增量构建。
-5. `check-mods --require-dist` 能阻断 manifest 与 dist 漂移。
-6. `prepare-default-mods` 能从 `NIMI_MODS_ROOT` 复制 manifest + dist。
-7. `pnpm -C apps/desktop run smoke:mod:local-chat` 通过。
+1. 未设置 `NIMI_RUNTIME_MODS_DIR` 时，desktop 可在零 mod 状态正常启动。
+2. 运行 `pnpm -C apps/desktop run smoke:mods` 时，只校验 runtime mods 目录中的已安装包。
+3. 运行 `pnpm -C apps/desktop run smoke:mod:installed` 时，可验证任意单个已安装 mod 的 manifest 与 entry 完整性。
+4. 安装目录删除、卸载、更新后，本地发现结果与 shell 状态同步刷新。
+5. 卸载 mod 后，动态注入的样式必须被回收。
 
 ---
 
@@ -102,18 +98,17 @@ pnpm -C apps/desktop run dev:shell
 
 | 症状 | 原因 | 修复 |
 |---|---|---|
-| `Missing required env NIMI_MODS_ROOT` | 未设置 mods 根目录 | 导出绝对路径后重试 |
-| `Missing required env NIMI_RUNTIME_MODS_DIR` | 未设置 runtime mods 目录 | 导出绝对路径后重试 |
-| `NIMI_RUNTIME_MODS_DIR must equal NIMI_MODS_ROOT` | 本地联调目录不一致 | 将两者设为同一路径 |
-| `manifest.entry mismatch` | manifest 入口未对齐统一约定 | 改为 `./dist/mods/<mod>/index.js` |
-| `dev-mods-smoke failed` | env/构建/资源复制任一环节不一致 | 先按失败日志修复，再重新执行 smoke |
-| apps/desktop 未加载新逻辑 | watcher 未更新 dist 产物 | 重新执行 watch/build 并 reload |
-| `拒绝访问 mods 目录外的路径` | 传入了越界 entry 路径 | 修复 manifest entry 或调用参数 |
+| `Missing required env NIMI_RUNTIME_MODS_DIR` | 调试脚本缺失 runtime mods 目录 | 导出绝对路径后重试 |
+| `No installed runtime mods found` | runtime mods 目录为空 | 安装、复制或 symlink 任意预构建 mod |
+| `mod 包中未找到 manifest` | 目录或 zip 结构不合法 | 将 manifest 放在根目录或唯一子目录 |
+| `仅支持 .zip 预构建 mod 包` | 远程或本地 archive 不是 zip | 改为预构建 `.zip` 包 |
+| `拒绝访问 mods 目录外的路径` | manifest entry/styles 越界 | 修复 manifest 中的相对路径 |
+| 卸载后样式残留 | styles 资产未在 manifest 中声明或清理链失败 | 校验 `styles[]` 并重新加载 mod |
 
 ---
 
 ## 9. 非目标
 
-1. 本轮不做 `NIMI_HOME/NIMI_ASSET_HOME` 全局持久化并轨。
-2. 本轮不做 runtime/realm 架构变更。
-3. 本轮不引入 legacy 兼容窗口或自动迁移脚本。
+1. 本轮不定义外部 mod 仓内部构建系统。
+2. 本轮不为 catalog 引入源码拉取与本地编译。
+3. 本轮不恢复 bundled/default mods 路径或 legacy desktop-mods root env 兼容窗口。

@@ -19,17 +19,7 @@ evidence_catalog:
     type: smoke_gate
     command: pnpm check:desktop-mods-smoke --all
     path: scripts/check-desktop-mods-smoke.mjs
-    description: Desktop hook runtime can discover/build/sync all desktop-loadable first-party mod resources.
-  local_chat_e2e_gate:
-    type: e2e_gate
-    command: pnpm check:local-chat-e2e
-    path: nimi-mods/local-chat/test/local-chat-run-text-turn.e2e.test.ts
-    description: Deterministic local-chat turn pipeline e2e coverage for planner/fallback semantics.
-  local_chat_live_smoke_gate:
-    type: live_gate
-    command: pnpm check:local-chat-live-smoke
-    path: nimi-mods/local-chat/test/local-chat-live-smoke.test.ts
-    description: Live local-chat e2e gate for real provider routing and trace continuity.
+    description: Desktop runtime mod host can discover and validate installed prebuilt mod packages from the runtime mods directory.
   runtime_mod_hook_hardcut_gate:
     type: static_gate
     command: pnpm check:runtime-mod-hook-hardcut
@@ -486,6 +476,11 @@ rules:
       - desktop_lint_gate
       - desktop_test_gate
       - desktop_cloud_runtime_only_gate
+  - rule_id: D-IPC-013
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
   - rule_id: D-LLM-001
     status: covered
     evidence_refs:
@@ -536,14 +531,12 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
-      - local_chat_e2e_gate
   - rule_id: D-LLM-009
     status: covered
     evidence_refs:
       - desktop_kernel_consistency
+      - desktop_test_gate
       - desktop_mods_smoke_gate
-      - local_chat_e2e_gate
-      - local_chat_live_smoke_gate
   - rule_id: D-MOD-001
     status: covered
     evidence_refs:
@@ -611,6 +604,27 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+  - rule_id: D-MOD-012
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_mods_smoke_gate
+  - rule_id: D-MOD-013
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+  - rule_id: D-MOD-014
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+  - rule_id: D-MOD-015
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
   - rule_id: D-NET-001
     status: covered
     evidence_refs:
@@ -761,6 +775,16 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+  - rule_id: D-SHELL-009
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+  - rule_id: D-SHELL-010
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
   - rule_id: D-STATE-001
     status: covered
     evidence_refs:

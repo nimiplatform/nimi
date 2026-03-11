@@ -46,6 +46,7 @@ export type RuntimeModRegistration = {
   denialCapabilities?: string[];
   sourceType?: HookSourceType;
   manifestCapabilities?: string[];
+  styleEntryPaths?: string[];
   isDefaultPrivateExecution?: boolean;
   setup: (ctx: RuntimeModLifecycleContext) => Promise<void> | void;
   teardown?: (ctx: RuntimeModLifecycleContext) => Promise<void> | void;
@@ -56,8 +57,13 @@ export type RuntimeModFactory = () => RuntimeModRegistration;
 export type RuntimeLocalManifestSummaryLike = {
   path: string;
   id: string;
+  sourceId?: string;
+  sourceType?: 'installed' | 'dev';
+  sourceDir?: string;
   entry?: string;
   entryPath?: string;
+  styles?: string[];
+  stylePaths?: string[];
   manifest?: Record<string, unknown>;
 };
 

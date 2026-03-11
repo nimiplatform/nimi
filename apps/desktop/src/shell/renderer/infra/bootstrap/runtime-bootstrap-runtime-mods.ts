@@ -1,16 +1,16 @@
 import {
-  discoverSideloadRuntimeMods,
-  listRegisteredRuntimeModIds,
   registerInjectedRuntimeMods,
-  registerRuntimeMods,
   type RuntimeModRegisterFailure,
 } from '@runtime/mod';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { syncRuntimeUiExtensionsToRegistry } from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
-import { safeErrorMessage } from './runtime-bootstrap-utils';
 import { i18n } from '@renderer/i18n';
+import { syncRuntimeModShellState } from '@renderer/mod-ui/lifecycle/runtime-mod-shell-state';
+import {
+  attachRuntimeModDeveloperHostSubscriptions,
+  reconcileRuntimeLocalMods,
+} from '@renderer/mod-ui/lifecycle/runtime-mod-developer-host';
 
 export async function registerBootstrapRuntimeMods(input: {
   flowId: string;
@@ -29,7 +29,6 @@ export async function registerBootstrapRuntimeMods(input: {
   });
 
   const runtimeModFailures: RuntimeModRegisterFailure[] = [];
-  const sideloadDiscoverFailures: RuntimeModRegisterFailure[] = [];
   if (!desktopBridge.hasTauriInvoke()) {
     const errorMessage = 'Desktop mods require Tauri runtime. Start with `pnpm --filter @nimiplatform/desktop run dev:shell`.';
     runtimeModFailures.push({
@@ -59,102 +58,12 @@ export async function registerBootstrapRuntimeMods(input: {
   runtimeModFailures.push(...injectedResult.failedMods);
 
   const appStore = useAppStore.getState();
-  const disabledModIds = new Set(appStore.runtimeModDisabledIds);
-  const uninstalledModIds = new Set(appStore.runtimeModUninstalledIds);
-  let manifests: Awaited<ReturnType<typeof desktopBridge.listRuntimeLocalModManifests>> = [];
-  try {
-    manifests = await desktopBridge.listRuntimeLocalModManifests();
-  } catch (error) {
-    const errorMessage = safeErrorMessage(error);
-    runtimeModFailures.push({
-      modId: 'runtime.local-manifest-scan',
-      sourceType: 'sideload',
-      stage: 'discover',
-      error: errorMessage,
-    });
-    logRendererEvent({
-      level: 'warn',
-      area: 'renderer-bootstrap',
-      message: 'phase:register-runtime-mods:manifest-scan-failed',
-      flowId: input.flowId,
-      details: {
-        error: errorMessage,
-      },
-    });
-  }
+  const { manifests, failures } = await reconcileRuntimeLocalMods();
   const manifestCount = manifests.length;
-  appStore.setLocalManifestSummaries(manifests);
-  const eligibleManifests = manifests.filter((manifest) => {
-    const modId = String(manifest?.id || '').trim();
-    if (!modId) return false;
-    if (disabledModIds.has(modId)) return false;
-    if (uninstalledModIds.has(modId)) return false;
-    return true;
-  });
-
-  if (eligibleManifests.length > 0) {
-    logRendererEvent({
-      level: 'info',
-      area: 'renderer-bootstrap',
-      message: 'phase:register-sideload-runtime-mods:start',
-      flowId: input.flowId,
-      details: {
-        manifestCount: manifests.length,
-        eligibleManifestCount: eligibleManifests.length,
-        disabledCount: disabledModIds.size,
-        uninstalledCount: uninstalledModIds.size,
-      },
-    });
-
-    const sideloadRegistrations = await discoverSideloadRuntimeMods({
-      manifests: eligibleManifests,
-      readEntry: (entryPath) => desktopBridge.readRuntimeLocalModEntry(entryPath),
-      onError: ({ manifestId, entryPath, error }) => {
-        const errorMessage = safeErrorMessage(error);
-        sideloadDiscoverFailures.push({
-          modId: manifestId,
-          sourceType: 'sideload',
-          stage: 'discover',
-          error: errorMessage,
-        });
-        logRendererEvent({
-          level: 'warn',
-          area: 'renderer-bootstrap',
-          message: 'phase:register-sideload-runtime-mods:item-failed',
-          flowId: input.flowId,
-          details: {
-            manifestId,
-            entryPath: entryPath || null,
-            error: errorMessage,
-          },
-        });
-      },
-    });
-
-      if (sideloadRegistrations.length > 0) {
-        const sideloadResult = await registerRuntimeMods(sideloadRegistrations, {
-          replaceExisting: true,
-        });
-        runtimeModFailures.push(...sideloadResult.failedMods);
-      }
-
-    logRendererEvent({
-      level: 'info',
-      area: 'renderer-bootstrap',
-      message: 'phase:register-sideload-runtime-mods:done',
-      flowId: input.flowId,
-      details: {
-        manifestCount: manifests.length,
-        eligibleManifestCount: eligibleManifests.length,
-        registrationCount: sideloadRegistrations.length,
-      },
-    });
-  }
-  runtimeModFailures.push(...sideloadDiscoverFailures);
-
-  appStore.setRuntimeModFailures(runtimeModFailures);
-  appStore.setRegisteredRuntimeModIds(listRegisteredRuntimeModIds());
-  syncRuntimeUiExtensionsToRegistry();
+  runtimeModFailures.push(...failures);
+  appStore.setRuntimeModFailures([...injectedResult.failedMods, ...failures]);
+  await syncRuntimeModShellState(manifests);
+  await attachRuntimeModDeveloperHostSubscriptions();
 
   if (runtimeModFailures.length > 0) {
     const failurePreview = runtimeModFailures

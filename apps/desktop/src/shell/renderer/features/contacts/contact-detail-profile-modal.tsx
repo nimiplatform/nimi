@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { openDefaultPrivateExecutionMod } from '@renderer/mod-ui/lifecycle/default-private-execution';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal.js';
 import { toProfileData, type ProfileData } from '@renderer/features/profile/profile-model';
 import { ContactDetailView } from './contact-detail-view.js';
@@ -108,7 +109,6 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
-  const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const [giftModalOpen, setGiftModalOpen] = useState(false);
 
   const fallbackProfile = useMemo(
@@ -158,8 +158,7 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
         targetId: profile.id,
         worldId,
       });
-      openModWorkspaceTab('mod:local-chat', 'Local Chat', 'local-chat');
-      setActiveTab('mod:local-chat');
+      openDefaultPrivateExecutionMod();
       props.onClose();
       return;
     }
@@ -188,11 +187,9 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
       });
     }
   }, [
-    openModWorkspaceTab,
     profile,
     props,
     queryClient,
-    setActiveTab,
     setRuntimeFields,
     setSelectedChatId,
     setStatusBanner,

@@ -22,7 +22,7 @@
 ## 3. 跨层关系
 
 ```
-nimi-mods <-> desktop  : in-process hook runtime
+mods <-> desktop       : in-process hook runtime
 desktop -> nimi-sdk    : unified developer surface
 desktop -> nimi-runtime: gRPC runtime access
 nimi-apps -> nimi-realm: REST + WS realm access

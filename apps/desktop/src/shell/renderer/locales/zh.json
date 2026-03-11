@@ -328,7 +328,7 @@
     "menuPerformance": "性能",
     "menuModSettings": "Mod 设置",
     "menuWallet": "钱包",
-    "menuDeveloper": "开发者"
+    "menuDeveloper": "Mod 开发"
   },
   "Profile": {
     "pageTitle": "个人资料",
@@ -870,8 +870,8 @@
     "logOut": "退出登录"
   },
   "DeveloperSettings": {
-    "pageTitle": "开发者",
-    "pageDescription": "Runtime 诊断、鉴权状态与集成调试辅助",
+    "pageTitle": "Mod 开发",
+    "pageDescription": "Runtime Mod 源、诊断、重载状态与开发宿主控制",
     "sessionSnapshotTitle": "会话快照",
     "authStatusLabel": "鉴权状态：",
     "hasAccessTokenLabel": "是否有 access token：",

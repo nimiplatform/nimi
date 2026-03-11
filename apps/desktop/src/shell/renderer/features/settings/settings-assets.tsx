@@ -211,7 +211,7 @@ const BASE_MENU_SECTIONS: SettingsMenuSection[] = [
     label: 'Advanced',
     items: [
       { id: 'wallet', icon: ICON_WALLET, title: 'Wallet' },
-      { id: 'developer', icon: ICON_CODE, title: 'Developer' },
+      { id: 'developer', icon: ICON_CODE, title: 'Mod Developer' },
     ],
   },
 ];

@@ -3,15 +3,16 @@ import { desktopBridge, type RuntimeLocalManifestSummary } from '@renderer/bridg
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import {
   discoverSideloadRuntimeMods,
-  listRegisteredRuntimeModIds,
   registerRuntimeMods,
   unregisterRuntimeMods,
   type RuntimeModRegisterFailure,
 } from '@runtime/mod';
+import { resolveModTabId } from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
 import {
-  resolveModTabId,
-  syncRuntimeUiExtensionsToRegistry,
-} from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
+  refreshRuntimeManifestSummaries,
+  syncRuntimeModShellState,
+} from '@renderer/mod-ui/lifecycle/runtime-mod-shell-state';
+import { removeRuntimeModStyles } from '@renderer/mod-ui/lifecycle/runtime-mod-styles';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import {
   SETTINGS_SELECTED_MOD_ID_STORAGE_KEY,
@@ -85,15 +86,12 @@ async function registerOneRuntimeMod(input: {
   };
 }
 
-function syncRuntimeModRegistryState(): void {
-  const appStore = useAppStore.getState();
-  appStore.setRegisteredRuntimeModIds(listRegisteredRuntimeModIds());
-  syncRuntimeUiExtensionsToRegistry();
-}
-
 export type ModsPanelMod = MarketplaceMod & {
   isCrashed: boolean;
   crashReason: string;
+  status: 'loaded' | 'disabled' | 'failed' | 'conflict';
+  sourceType: 'installed' | 'dev' | 'unknown';
+  sourceDir: string;
 };
 
 export type ModsPanelModel = {
@@ -108,6 +106,7 @@ export type ModsPanelModel = {
   onUninstallMod: (modId: string) => void;
   onRetryMod: (modId: string) => void;
   onOpenModSettings: (modId: string) => void;
+  onOpenModDeveloper: () => void;
   onOpenMarketplace: () => void;
 };
 
@@ -121,6 +120,7 @@ export function useModsPanelModel(): ModsPanelModel {
   const registeredRuntimeModIds = useAppStore((state) => state.registeredRuntimeModIds);
   const runtimeModDisabledIds = useAppStore((state) => state.runtimeModDisabledIds);
   const runtimeModUninstalledIds = useAppStore((state) => state.runtimeModUninstalledIds);
+  const runtimeModDiagnostics = useAppStore((state) => state.runtimeModDiagnostics);
   const fusedRuntimeMods = useAppStore((state) => state.fusedRuntimeMods);
   const clearRuntimeModFuse = useAppStore((state) => state.clearRuntimeModFuse);
 
@@ -129,7 +129,12 @@ export function useModsPanelModel(): ModsPanelModel {
     const disabledSet = new Set(runtimeModDisabledIds.map((id) => normalizeModId(id)).filter(Boolean));
     const uninstalledSet = new Set(runtimeModUninstalledIds.map((id) => normalizeModId(id)).filter(Boolean));
 
-    return localManifestSummaries
+    const conflictById = new Map(
+      runtimeModDiagnostics
+        .filter((item) => item.status === 'conflict')
+        .map((item) => [normalizeModId(item.modId), item] as const),
+    );
+    const resolvedRows = localManifestSummaries
       .filter((item) => !String(item.id || '').startsWith('core.'))
       .filter((item) => !uninstalledSet.has(normalizeModId(String(item.id || ''))))
       .map((item, index) => {
@@ -138,17 +143,57 @@ export function useModsPanelModel(): ModsPanelModel {
         const isEnabled = !disabledSet.has(modId) && registeredSet.has(modId);
         const base = toRuntimeModRow(item, index, { isInstalled, isEnabled });
         const fuseInfo = fusedRuntimeMods[modId];
+        const conflict = conflictById.get(modId);
+        const status = conflict
+          ? 'conflict'
+          : fuseInfo
+            ? 'failed'
+            : isEnabled
+              ? 'loaded'
+              : 'disabled';
         return {
           ...base,
+          runtimeStatus: status,
+          runtimeConflict: Boolean(conflict),
           isCrashed: Boolean(fuseInfo),
-          crashReason: fuseInfo ? fuseInfo.lastError : '',
+          crashReason: conflict?.error || (fuseInfo ? fuseInfo.lastError : ''),
+          status,
+          sourceType: item.sourceType || 'unknown',
+          sourceDir: item.sourceDir || '',
         } satisfies ModsPanelMod;
       });
+    const resolvedIds = new Set(resolvedRows.map((item) => item.id));
+    const conflictRows = Array.from(conflictById.values())
+      .filter((item) => !resolvedIds.has(normalizeModId(item.modId)))
+      .map((item) => ({
+        id: normalizeModId(item.modId),
+        name: normalizeModId(item.modId),
+        description: item.error || 'Duplicate mod id detected across enabled sources',
+        author: 'Conflict',
+        version: 'conflict',
+        iconBg: 'linear-gradient(135deg, #f59e0b, #ea580c)',
+        iconText: '!!',
+        source: 'runtime',
+        runtimeStatus: 'conflict',
+        runtimeSourceType: item.sourceType,
+        runtimeSourceDir: item.sourceDir,
+        runtimeConflict: true,
+        isInstalled: true,
+        isEnabled: false,
+        publisherVerified: false,
+        isCrashed: false,
+        crashReason: item.error || '',
+        status: 'conflict',
+        sourceType: item.sourceType || 'unknown',
+        sourceDir: item.sourceDir || '',
+      } satisfies ModsPanelMod));
+    return [...resolvedRows, ...conflictRows];
   }, [
     localManifestSummaries,
     registeredRuntimeModIds,
     runtimeModDisabledIds,
     runtimeModUninstalledIds,
+    runtimeModDiagnostics,
     fusedRuntimeMods,
   ]);
 
@@ -189,6 +234,15 @@ export function useModsPanelModel(): ModsPanelModel {
 
   const onOpenMarketplace = useCallback(() => {
     setActiveTab('marketplace');
+  }, [setActiveTab]);
+
+  const onOpenModDeveloper = useCallback(() => {
+    try {
+      localStorage.setItem(SETTINGS_SELECTED_STORAGE_KEY, 'developer');
+    } catch {
+      // ignore
+    }
+    setActiveTab('settings');
   }, [setActiveTab]);
 
   const runAction = useCallback(async (
@@ -249,7 +303,7 @@ export function useModsPanelModel(): ModsPanelModel {
         appStore.runtimeModFailures.filter((item) => item.modId !== normalized),
       );
       appStore.clearRuntimeModFuse(normalized);
-      syncRuntimeModRegistryState();
+      await syncRuntimeModShellState();
       appStore.setStatusBanner({ kind: 'success', message: `Mod ${normalized} 已启用` });
     });
   }, [runAction]);
@@ -261,7 +315,8 @@ export function useModsPanelModel(): ModsPanelModel {
       const appStore = useAppStore.getState();
       appStore.setRuntimeModDisabledIds(withAddedModId(appStore.runtimeModDisabledIds, normalized));
       unregisterRuntimeMods([normalized]);
-      syncRuntimeModRegistryState();
+      removeRuntimeModStyles(normalized);
+      await syncRuntimeModShellState();
       if (appStore.activeTab === modTabId) {
         appStore.setActiveTab('mods');
       }
@@ -275,10 +330,13 @@ export function useModsPanelModel(): ModsPanelModel {
       const normalized = normalizeModId(modId);
       const modTabId = resolveModTabId(normalized);
       const appStore = useAppStore.getState();
-      appStore.setRuntimeModUninstalledIds(withAddedModId(appStore.runtimeModUninstalledIds, normalized));
       appStore.setRuntimeModDisabledIds(withRemovedModId(appStore.runtimeModDisabledIds, normalized));
       unregisterRuntimeMods([normalized]);
-      syncRuntimeModRegistryState();
+      removeRuntimeModStyles(normalized);
+      await desktopBridge.uninstallRuntimeMod(normalized);
+      appStore.setRuntimeModUninstalledIds(withAddedModId(appStore.runtimeModUninstalledIds, normalized));
+      await refreshRuntimeManifestSummaries();
+      await syncRuntimeModShellState();
       appStore.setRuntimeModFailures(
         appStore.runtimeModFailures.filter((item) => item.modId !== normalized),
       );
@@ -315,7 +373,7 @@ export function useModsPanelModel(): ModsPanelModel {
       appStore.setRuntimeModFailures(
         appStore.runtimeModFailures.filter((item) => item.modId !== normalized),
       );
-      syncRuntimeModRegistryState();
+      await syncRuntimeModShellState();
       appStore.setStatusBanner({ kind: 'success', message: `Mod ${normalized} 已恢复` });
     });
   }, [clearRuntimeModFuse, runAction]);
@@ -332,6 +390,7 @@ export function useModsPanelModel(): ModsPanelModel {
     onUninstallMod,
     onRetryMod,
     onOpenModSettings,
+    onOpenModDeveloper,
     onOpenMarketplace,
   };
 }

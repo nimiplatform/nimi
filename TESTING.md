@@ -86,17 +86,16 @@ pnpm test
 - Unit and contract tests run via `tsx --test test/**/*.test.ts`
 - Tauri shell/e2e coverage is smoke-driven (`smoke:mods`) plus Rust/TS type checks
 
-### Desktop × nimi-mods local smoke
+### Desktop runtime-mod local smoke
 
-Use this before `dev:shell` to validate the no-legacy local joint-debug contract:
+Use this before `dev:shell` to validate the installed runtime-mod contract:
 
 ```bash
-export NIMI_MODS_ROOT=/ABS/PATH/TO/nimi-mods
-export NIMI_RUNTIME_MODS_DIR="$NIMI_MODS_ROOT"
-pnpm run check:desktop-mods-smoke:local-chat
+export NIMI_RUNTIME_MODS_DIR=/ABS/PATH/TO/runtime-mods
+pnpm run check:desktop-mods-smoke
 ```
 
-It validates env contract, external mod build output, and desktop default-mod resources sync.
+It validates the runtime mods directory, installed manifest/entry integrity, and zero-bundle desktop discovery behavior.
 
 ## Cross-Component Contract Tests
 

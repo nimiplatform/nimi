@@ -3,24 +3,24 @@ import { desktopBridge, type RuntimeLocalManifestSummary } from '@renderer/bridg
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import {
   discoverSideloadRuntimeMods,
-  listRegisteredRuntimeModIds,
   registerRuntimeMods,
   unregisterRuntimeMods,
   type RuntimeModRegisterFailure,
 } from '@runtime/mod';
+import { resolveModTabId } from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
 import {
-  resolveModTabId,
-  syncRuntimeUiExtensionsToRegistry,
-} from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
+  refreshRuntimeManifestSummaries,
+  syncRuntimeModShellState,
+} from '@renderer/mod-ui/lifecycle/runtime-mod-shell-state';
+import { removeRuntimeModStyles } from '@renderer/mod-ui/lifecycle/runtime-mod-styles';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import {
   SETTINGS_SELECTED_MOD_ID_STORAGE_KEY,
   SETTINGS_SELECTED_STORAGE_KEY,
 } from '@renderer/features/settings/settings-storage';
 import {
-  MOCK_MARKETPLACE_MODS,
   type MarketplaceMod,
-  type MarketplaceRuntimeAction,
+  type MarketplacePendingActionType,
   toRuntimeModRow,
 } from './marketplace-model';
 
@@ -89,15 +89,9 @@ async function registerOneRuntimeMod(input: {
   };
 }
 
-function syncRuntimeModRegistryState(): void {
-  const appStore = useAppStore.getState();
-  appStore.setRegisteredRuntimeModIds(listRegisteredRuntimeModIds());
-  syncRuntimeUiExtensionsToRegistry();
-}
-
 export type MarketplacePendingAction = {
   modId: string;
-  action: MarketplaceRuntimeAction;
+  action: MarketplacePendingActionType;
 } | null;
 
 export type MarketplacePageModel = {
@@ -105,6 +99,8 @@ export type MarketplacePageModel = {
   filteredMods: MarketplaceMod[];
   pendingAction: MarketplacePendingAction;
   selectedModId: string | null;
+  pathSource: string;
+  urlSource: string;
   onSearchQueryChange: (value: string) => void;
   onOpenMod: (modId: string) => void;
   onInstallMod: (modId: string) => void;
@@ -113,12 +109,18 @@ export type MarketplacePageModel = {
   onDisableMod: (modId: string) => void;
   onOpenModSettings: (modId: string) => void;
   onSelectMod: (modId: string | null) => void;
+  onPathSourceChange: (value: string) => void;
+  onUrlSourceChange: (value: string) => void;
+  onInstallFromPath: () => void;
+  onInstallFromUrl: () => void;
 };
 
 export function useMarketplacePageModel(): MarketplacePageModel {
   const [searchQuery, setSearchQuery] = useState('');
   const [pendingAction, setPendingAction] = useState<MarketplacePendingAction>(null);
   const [selectedModId, setSelectedModId] = useState<string | null>(null);
+  const [pathSource, setPathSource] = useState('');
+  const [urlSource, setUrlSource] = useState('');
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const closeModWorkspaceTab = useAppStore((state) => state.closeModWorkspaceTab);
@@ -150,26 +152,23 @@ export function useMarketplacePageModel(): MarketplacePageModel {
     runtimeModUninstalledIds,
   ]);
 
-  const sourceMods = runtimeMods.length > 0 ? runtimeMods : MOCK_MARKETPLACE_MODS;
-
   const filteredMods = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
     const mods = (query
-      ? sourceMods.filter(
+      ? runtimeMods.filter(
           (mod) =>
             mod.name.toLowerCase().includes(query) ||
             mod.description.toLowerCase().includes(query) ||
             mod.author.toLowerCase().includes(query),
         )
-      : sourceMods).slice();
-    // Sort: enabled (can open) > installed but disabled > not installed
+      : runtimeMods).slice();
     return mods.sort((a, b) => {
       const aScore = a.isInstalled ? (a.isEnabled ? 2 : 1) : 0;
       const bScore = b.isInstalled ? (b.isEnabled ? 2 : 1) : 0;
       if (aScore !== bScore) return bScore - aScore;
       return a.name.localeCompare(b.name);
     });
-  }, [searchQuery, sourceMods]);
+  }, [searchQuery, runtimeMods]);
 
   const onSelectMod = useCallback((modId: string | null) => {
     setSelectedModId(modId);
@@ -199,7 +198,7 @@ export function useMarketplacePageModel(): MarketplacePageModel {
 
   const runRuntimeAction = useCallback(async (
     modId: string,
-    action: MarketplaceRuntimeAction,
+    action: MarketplacePendingActionType,
     task: () => Promise<void>,
   ) => {
     const normalizedModId = normalizeModId(modId);
@@ -244,6 +243,42 @@ export function useMarketplacePageModel(): MarketplacePageModel {
     }
   }, []);
 
+  const installFromSource = useCallback(async (
+    source: string,
+    sourceKind: 'directory' | 'archive' | 'url',
+  ) => {
+    const appStore = useAppStore.getState();
+    const result = await desktopBridge.installRuntimeMod({
+      source,
+      sourceKind,
+      replaceExisting: false,
+    });
+    appStore.setRuntimeModUninstalledIds(withRemovedModId(appStore.runtimeModUninstalledIds, result.modId));
+    appStore.setRuntimeModDisabledIds(withRemovedModId(appStore.runtimeModDisabledIds, result.modId));
+
+    const refreshedManifests = await refreshRuntimeManifestSummaries();
+    const manifest = refreshedManifests.find((item) => normalizeModId(item.id) === result.modId) || result.manifest;
+    const registration = await registerOneRuntimeMod({ manifest });
+    if (registration.failure) {
+      appStore.setRuntimeModFailures([
+        ...appStore.runtimeModFailures.filter((item) => item.modId !== result.modId),
+        registration.failure,
+      ]);
+      throw new Error(registration.failure.error);
+    }
+
+    appStore.setRuntimeModFailures(
+      appStore.runtimeModFailures.filter((item) => item.modId !== result.modId),
+    );
+    appStore.clearRuntimeModFuse(result.modId);
+    await syncRuntimeModShellState(refreshedManifests);
+    setSelectedModId(result.modId);
+    appStore.setStatusBanner({
+      kind: 'success',
+      message: `Mod ${result.modId} 已安装并启用`,
+    });
+  }, []);
+
   const onInstallMod = useCallback((modId: string) => {
     void runRuntimeAction(modId, 'install', async () => {
       const normalizedModId = normalizeModId(modId);
@@ -255,10 +290,7 @@ export function useMarketplacePageModel(): MarketplacePageModel {
 
       appStore.setRuntimeModUninstalledIds(withRemovedModId(appStore.runtimeModUninstalledIds, normalizedModId));
       appStore.setRuntimeModDisabledIds(withRemovedModId(appStore.runtimeModDisabledIds, normalizedModId));
-
-      const result = await registerOneRuntimeMod({
-        manifest,
-      });
+      const result = await registerOneRuntimeMod({ manifest });
       if (result.failure) {
         appStore.setRuntimeModFailures([
           ...appStore.runtimeModFailures.filter((item) => item.modId !== normalizedModId),
@@ -271,7 +303,7 @@ export function useMarketplacePageModel(): MarketplacePageModel {
         appStore.runtimeModFailures.filter((item) => item.modId !== normalizedModId),
       );
       appStore.clearRuntimeModFuse(normalizedModId);
-      syncRuntimeModRegistryState();
+      await syncRuntimeModShellState();
       appStore.setStatusBanner({
         kind: 'success',
         message: `Mod ${normalizedModId} 已安装并启用`,
@@ -291,9 +323,7 @@ export function useMarketplacePageModel(): MarketplacePageModel {
       appStore.setRuntimeModUninstalledIds(withRemovedModId(appStore.runtimeModUninstalledIds, normalizedModId));
       appStore.setRuntimeModDisabledIds(withRemovedModId(appStore.runtimeModDisabledIds, normalizedModId));
 
-      const result = await registerOneRuntimeMod({
-        manifest,
-      });
+      const result = await registerOneRuntimeMod({ manifest });
       if (result.failure) {
         appStore.setRuntimeModFailures([
           ...appStore.runtimeModFailures.filter((item) => item.modId !== normalizedModId),
@@ -306,7 +336,7 @@ export function useMarketplacePageModel(): MarketplacePageModel {
         appStore.runtimeModFailures.filter((item) => item.modId !== normalizedModId),
       );
       appStore.clearRuntimeModFuse(normalizedModId);
-      syncRuntimeModRegistryState();
+      await syncRuntimeModShellState();
       appStore.setStatusBanner({
         kind: 'success',
         message: `Mod ${normalizedModId} 已启用`,
@@ -321,9 +351,10 @@ export function useMarketplacePageModel(): MarketplacePageModel {
       const appStore = useAppStore.getState();
       appStore.setRuntimeModDisabledIds(withAddedModId(appStore.runtimeModDisabledIds, normalizedModId));
       unregisterRuntimeMods([normalizedModId]);
-      syncRuntimeModRegistryState();
+      removeRuntimeModStyles(normalizedModId);
+      await syncRuntimeModShellState();
       if (appStore.activeTab === modTabId) {
-        appStore.setActiveTab('mods');
+        appStore.setActiveTab('marketplace');
       }
       appStore.closeModWorkspaceTab(modTabId);
       appStore.setStatusBanner({
@@ -338,15 +369,18 @@ export function useMarketplacePageModel(): MarketplacePageModel {
       const normalizedModId = normalizeModId(modId);
       const modTabId = resolveModTabId(normalizedModId);
       const appStore = useAppStore.getState();
-      appStore.setRuntimeModUninstalledIds(withAddedModId(appStore.runtimeModUninstalledIds, normalizedModId));
       appStore.setRuntimeModDisabledIds(withRemovedModId(appStore.runtimeModDisabledIds, normalizedModId));
       unregisterRuntimeMods([normalizedModId]);
-      syncRuntimeModRegistryState();
+      removeRuntimeModStyles(normalizedModId);
+      await desktopBridge.uninstallRuntimeMod(normalizedModId);
+      appStore.setRuntimeModUninstalledIds(withAddedModId(appStore.runtimeModUninstalledIds, normalizedModId));
+      const refreshedManifests = await refreshRuntimeManifestSummaries();
+      await syncRuntimeModShellState(refreshedManifests);
       appStore.setRuntimeModFailures(
         appStore.runtimeModFailures.filter((item) => item.modId !== normalizedModId),
       );
       if (appStore.activeTab === modTabId) {
-        appStore.setActiveTab('mods');
+        appStore.setActiveTab('marketplace');
       }
       closeModWorkspaceTab(modTabId);
       appStore.setStatusBanner({
@@ -356,11 +390,40 @@ export function useMarketplacePageModel(): MarketplacePageModel {
     });
   }, [closeModWorkspaceTab, runRuntimeAction]);
 
+  const onInstallFromPath = useCallback(() => {
+    void runRuntimeAction('manual:path', 'install-from-path', async () => {
+      const normalizedSource = pathSource.trim();
+      if (!normalizedSource) {
+        throw new Error('path is required');
+      }
+      const sourceKind = /^https?:\/\//i.test(normalizedSource)
+        ? 'url'
+        : normalizedSource.endsWith('.zip')
+          ? 'archive'
+          : 'directory';
+      await installFromSource(normalizedSource, sourceKind);
+      setPathSource('');
+    });
+  }, [installFromSource, pathSource, runRuntimeAction]);
+
+  const onInstallFromUrl = useCallback(() => {
+    void runRuntimeAction('manual:url', 'install-from-url', async () => {
+      const normalizedSource = urlSource.trim();
+      if (!normalizedSource) {
+        throw new Error('url is required');
+      }
+      await installFromSource(normalizedSource, 'url');
+      setUrlSource('');
+    });
+  }, [installFromSource, runRuntimeAction, urlSource]);
+
   return {
     searchQuery,
     filteredMods,
     pendingAction,
     selectedModId,
+    pathSource,
+    urlSource,
     onSearchQueryChange: setSearchQuery,
     onOpenMod,
     onInstallMod,
@@ -369,5 +432,9 @@ export function useMarketplacePageModel(): MarketplacePageModel {
     onDisableMod,
     onOpenModSettings,
     onSelectMod,
+    onPathSourceChange: setPathSource,
+    onUrlSourceChange: setUrlSource,
+    onInstallFromPath,
+    onInstallFromUrl,
   };
 }

@@ -24,6 +24,7 @@ function ModCard({
   onUninstall,
   onRetry,
   onSettings,
+  onDeveloper,
 }: {
   mod: ModsPanelMod;
   pendingModId: string | null;
@@ -33,6 +34,7 @@ function ModCard({
   onUninstall: (modId: string) => void;
   onRetry: (modId: string) => void;
   onSettings: (modId: string) => void;
+  onDeveloper: () => void;
 }) {
   const { t } = useTranslation();
   const isPending = pendingModId === mod.id;
@@ -50,6 +52,12 @@ function ModCard({
           <div className="flex items-center gap-2">
             <h3 className="truncate text-sm font-semibold text-slate-800">{mod.name}</h3>
             <span className="shrink-0 text-[11px] text-slate-400 font-medium">{mod.version}</span>
+            <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+              {mod.sourceType}
+            </span>
+            {mod.sourceDir ? (
+              <span className="truncate text-[10px] text-slate-400">{mod.sourceDir}</span>
+            ) : null}
             {mod.isCrashed ? (
               <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-500">
                 {t('ModsPanel.crashed')}
@@ -75,7 +83,15 @@ function ModCard({
       </div>
 
       <div className="mt-3 flex items-center gap-2">
-        {mod.isCrashed ? (
+        {mod.status === 'conflict' ? (
+          <button
+            type="button"
+            onClick={onDeveloper}
+            className="rounded-full bg-amber-500 px-4 py-1.5 text-xs font-medium text-white transition-all hover:bg-amber-600"
+          >
+            Resolve conflict
+          </button>
+        ) : mod.isCrashed ? (
           <button
             type="button"
             disabled={isPending}
@@ -142,6 +158,7 @@ export function ModsPanelView(props: ModsPanelModel) {
     onUninstallMod,
     onRetryMod,
     onOpenModSettings,
+    onOpenModDeveloper,
     onOpenMarketplace,
   } = props;
 
@@ -226,6 +243,7 @@ export function ModsPanelView(props: ModsPanelModel) {
                       onUninstall={onUninstallMod}
                       onRetry={onRetryMod}
                       onSettings={onOpenModSettings}
+                      onDeveloper={onOpenModDeveloper}
                     />
                   ))}
                 </div>
@@ -255,6 +273,7 @@ export function ModsPanelView(props: ModsPanelModel) {
                       onUninstall={onUninstallMod}
                       onRetry={onRetryMod}
                       onSettings={onOpenModSettings}
+                      onDeveloper={onOpenModDeveloper}
                     />
                   ))}
                 </div>

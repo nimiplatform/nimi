@@ -21,7 +21,7 @@
 | proto | `proto/` | Protocol Buffers |
 | docs | `docs/` | Markdown |
 
-`nimi-mods/` 在本仓库内作为目录存在，但它本身是独立 Git 仓库，单独维护与拉取。
+`desktop` 现在是零内置 mod host。独立 mod 仓是可选的外部工作区，不再是主仓默认构建输入。
 
 ## 2. 前置环境
 
@@ -47,14 +47,12 @@ pnpm -v
 
 ## 3. 首次初始化（先配 `.env`）
 
-在执行任何 `build` 前，先完成 desktop/mods 环境变量配置。
+在执行任何 `build` 前，先完成基础运行环境配置。
 
 统一在仓库根目录 `nimi/.env` 创建环境文件：
 
 ```bash
 # nimi/.env
-NIMI_MODS_ROOT=/Users/<you>/nimi-realm/nimi/nimi-mods
-NIMI_RUNTIME_MODS_DIR=/Users/<you>/nimi-realm/nimi/nimi-mods
 NIMI_RUNTIME_BRIDGE_MODE=RUNTIME
 NIMI_REALM_URL=http://localhost:3002
 NIMI_CONTROL_PLANE_URL=http://localhost
@@ -63,10 +61,10 @@ NIMI_WEB_URL=http://localhost
 
 说明：
 
-1. `NIMI_MODS_ROOT` 与 `NIMI_RUNTIME_MODS_DIR` 必须是存在的绝对路径。
-2. Desktop 构建与运行统一只读取仓库根 `.env`（`nimi/.env`）。
-3. 显式 `export` 的 shell 环境变量优先级最高。
-4. 常见错误是仍保留占位值 `/ABS/PATH/TO/nimi-mods`，会导致 `pnpm build` 失败。
+1. Desktop 构建不再要求 legacy desktop-mods root env。
+2. 如需联调独立 mod，可额外设置 `NIMI_RUNTIME_MODS_DIR=/ABS/PATH/TO/runtime-mods`，且该目录必须是已存在绝对路径。
+3. Desktop 构建与运行统一只读取仓库根 `.env`（`nimi/.env`）。
+4. 显式 `export` 的 shell 环境变量优先级最高。
 5. `NIMI_RUNTIME_BRIDGE_MODE` 仅允许 `RUNTIME`/`RELEASE`；本地开发应使用 `RUNTIME`，发布环境使用 `RELEASE`。
 6. 开源仓库只允许提交 `.env*.example` 模板；`*.env` 与 `*.env.*` 本地文件禁止提交。
 7. `NIMI_REALM_URL` 是 Realm API 地址；`NIMI_CONTROL_PLANE_URL` 是 Runtime 控制面地址；`NIMI_WEB_URL` 是桌面网页登录入口地址（不要混用）。
@@ -175,22 +173,26 @@ Runtime 实例暴露以下模块：`auth`、`appAuth`、`ai`、`media`、`model`
 
 ## 6. Desktop 与 Web 开发
 
-### 6.1 Desktop（含 mods 联调）
+### 6.1 Desktop（含可选 mod 联调）
 
 `.env` 配置规则见第 3 节。也可以临时用 shell 导出：
 
 ```bash
-export NIMI_MODS_ROOT=/ABS/PATH/TO/nimi-mods
-export NIMI_RUNTIME_MODS_DIR="$NIMI_MODS_ROOT"
 pnpm -C apps/desktop run dev:shell
 ```
 
-本地联调 smoke：
+若需要联调独立 mod：
 
 ```bash
-export NIMI_MODS_ROOT=/ABS/PATH/TO/nimi-mods
-export NIMI_RUNTIME_MODS_DIR="$NIMI_MODS_ROOT"
-pnpm run check:desktop-mods-smoke:local-chat
+export NIMI_RUNTIME_MODS_DIR=/ABS/PATH/TO/runtime-mods
+pnpm -C apps/desktop run dev:shell
+```
+
+本地已安装 mod smoke：
+
+```bash
+export NIMI_RUNTIME_MODS_DIR=/ABS/PATH/TO/runtime-mods
+pnpm run check:desktop-mods-smoke
 ```
 
 ### 6.2 Web
@@ -284,13 +286,13 @@ pnpm check:desktop-spec-kernel-consistency
 1. **Connector 路径**（Desktop UI 配置）：检查 Connector 是否为 `ACTIVE` 状态，凭据是否已填入。
 2. **Config 路径**（CLI `apiKeyEnv`）：运行 `pnpm runtime:config:get` 检查 `apiKeyEnv` 字段，确认环境变量已在启动 runtime 的 shell 中导出。
 
-### Q3: 为什么 `git pull nimi-mods` 在主仓库会出问题？
+### Q3: 独立 mod 仓怎么和 desktop 联调？
 
-`nimi-mods/` 是独立仓库。请进入子目录执行：
+desktop 不再读取 mod 源码仓本身。做法是把预构建目录安装、复制或 symlink 到 `NIMI_RUNTIME_MODS_DIR`，例如：
 
 ```bash
-cd nimi-mods
-git pull --rebase
+export NIMI_RUNTIME_MODS_DIR=/ABS/PATH/TO/runtime-mods
+ln -s /ABS/PATH/TO/my-mod-package "$NIMI_RUNTIME_MODS_DIR/my-mod"
 ```
 
 ## 11. 参考文档

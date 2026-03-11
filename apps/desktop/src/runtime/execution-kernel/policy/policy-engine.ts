@@ -61,15 +61,13 @@ export class PolicyEngine {
 
     const protectedRequested = requested.filter((item) => PROTECTED_CAPABILITIES.has(item));
 
-    if (input.mode === 'official' || input.mode === 'community') {
-      const hasHighRisk = requested.some((item) => HIGH_RISK.has(item));
-      if (hasHighRisk) {
-        return {
-          ok: false,
-          reasonCodes: ['HIGH_RISK_CAPABILITY_REQUIRES_LOCAL_CONSENT'],
-          grantedCapabilities: [],
-        };
-      }
+    const hasHighRisk = requested.some((item) => HIGH_RISK.has(item));
+    if (input.mode === 'sideload' && hasHighRisk) {
+      return {
+        ok: false,
+        reasonCodes: ['HIGH_RISK_CAPABILITY_REQUIRES_LOCAL_CONSENT'],
+        grantedCapabilities: [],
+      };
     }
 
     if (protectedRequested.length > 0) {

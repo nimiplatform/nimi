@@ -125,14 +125,6 @@ const ICON_LOGOUT = (
   </svg>
 );
 
-const ICON_LOCAL_CHAT = (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 14a2 2 0 0 1-2 2H8l-5 5V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    <path d="M8 9h8" />
-    <path d="M8 13h5" />
-  </svg>
-);
-
 export function renderShellNavIcon(icon: string): ReactNode {
   const normalized = String(icon || '').trim().toLowerCase();
   if (normalized === 'home') return ICON_HOME;
@@ -143,14 +135,13 @@ export function renderShellNavIcon(icon: string): ReactNode {
   if (normalized === 'profile') return ICON_PROFILE;
   if (normalized === 'settings') return ICON_SETTINGS;
   if (normalized === 'store' || normalized === 'marketplace') return ICON_STORE;
-  if (normalized === 'globe' || normalized === 'world-studio') return ICON_GLOBE;
+  if (normalized === 'globe') return ICON_GLOBE;
   if (normalized === 'world') return ICON_WORLD;
   if (normalized === 'wallet') return ICON_WALLET;
   if (normalized === 'agent' || normalized === 'agents' || normalized === 'my-agents' || normalized === 'bot') return ICON_AGENT;
   if (normalized === 'terms' || normalized === 'file' || normalized === 'document' || normalized === 'terms-of-service') return ICON_FILE_TEXT;
   if (normalized === 'privacy' || normalized === 'shield' || normalized === 'privacy-policy') return ICON_SHIELD;
   if (normalized === 'logout' || normalized === 'log-out') return ICON_LOGOUT;
-  if (normalized === 'local-chat') return ICON_LOCAL_CHAT;
   return ICON_PUZZLE;
 }
 

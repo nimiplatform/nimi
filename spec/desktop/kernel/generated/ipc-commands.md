@@ -17,6 +17,20 @@
 | `runtime_mod_query_audit` | `mod-local` | Query mod audit records | `D-IPC-007` |
 | `runtime_mod_delete_audit` | `mod-local` | Delete mod audit record | `D-IPC-007` |
 | `runtime_mod_list_local_manifests` | `mod-local` | List local mod manifest summaries | `D-IPC-007` |
+| `runtime_mod_list_installed` | `mod-local` | List installed runtime mods | `D-IPC-007` |
+| `runtime_mod_sources_list` | `mod-local` | List registered runtime mod source directories | `D-IPC-013` |
+| `runtime_mod_sources_upsert` | `mod-local` | Add or update a runtime mod source directory | `D-IPC-013` |
+| `runtime_mod_sources_remove` | `mod-local` | Remove a runtime mod source directory | `D-IPC-013` |
+| `runtime_mod_dev_mode_get` | `mod-local` | Read Desktop Mod Developer Mode state | `D-IPC-013` |
+| `runtime_mod_dev_mode_set` | `mod-local` | Update Desktop Mod Developer Mode state | `D-IPC-013` |
+| `runtime_mod_diagnostics_list` | `mod-local` | List runtime mod source diagnostics and conflict records | `D-IPC-013` |
+| `runtime_mod_reload` | `mod-local` | Trigger reload diagnostics for a single runtime mod | `D-IPC-013` |
+| `runtime_mod_reload_all` | `mod-local` | Trigger reload diagnostics for all runtime mods | `D-IPC-013` |
+| `runtime_mod_install` | `mod-local` | Install a prebuilt runtime mod from directory, archive, or URL | `D-IPC-007` |
+| `runtime_mod_update` | `mod-local` | Update an installed runtime mod from a prebuilt package source | `D-IPC-007` |
+| `runtime_mod_uninstall` | `mod-local` | Uninstall an installed runtime mod | `D-IPC-007` |
+| `runtime_mod_read_manifest` | `mod-local` | Read an installed runtime mod manifest | `D-IPC-007` |
+| `runtime_mod_install_progress` | `mod-local` | Query runtime mod install progress events | `D-IPC-007` |
 | `runtime_mod_read_local_entry` | `mod-local` | Read local mod entry source code | `D-IPC-007` |
 | `runtime_mod_get_action_idempotency` | `mod-local` | Get mod action idempotency record | `D-IPC-007` |
 | `runtime_mod_put_action_idempotency` | `mod-local` | Put mod action idempotency record | `D-IPC-007` |

@@ -130,10 +130,6 @@ export default defineConfig(({ mode }) => {
           replacement: path.resolve(__dirname, '../desktop/src/shell/renderer'),
         },
         {
-          find: '@mods',
-          replacement: path.resolve(__dirname, '../desktop/src/mods'),
-        },
-        {
           find: '@nimiplatform/sdk',
           replacement: path.resolve(__dirname, '../../sdk/src'),
         },

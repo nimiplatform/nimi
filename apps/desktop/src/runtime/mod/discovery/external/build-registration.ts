@@ -55,11 +55,17 @@ export function buildSideloadRuntimeModRegistration(input: {
   const normalizedCapabilities = declaredCapabilities.length > 0
     ? declaredCapabilities
     : normalizedManifestCapabilities;
+  const styleEntryPaths = Array.isArray(input.manifest.stylePaths)
+    ? input.manifest.stylePaths
+        .map((item) => String(item || '').trim())
+        .filter(Boolean)
+    : [];
 
   return {
     registration: {
       ...registration,
       capabilities: normalizedCapabilities,
+      styleEntryPaths,
       sourceType: 'sideload',
       manifestCapabilities: normalizedManifestCapabilities,
     },

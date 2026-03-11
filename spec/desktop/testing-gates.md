@@ -48,5 +48,5 @@ Desktop 规范验收门禁与执行证据契约，覆盖 kernel 规则集合 `D-
 - `pnpm check:no-local-ai-private-calls`
 - `pnpm check:no-local-ai-tauri-commands`
 - `pnpm check:no-legacy-mod-permissions-field`
-- `pnpm check:local-chat-e2e`
-- `pnpm check:local-chat-live-smoke`
+
+Mod-specific deterministic/live E2E 应位于各自 mod 仓，不属于 desktop 发布门禁。

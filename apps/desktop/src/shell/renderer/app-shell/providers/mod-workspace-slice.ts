@@ -21,6 +21,10 @@ function normalizeModIds(modIds: string[]): string[] {
 
 type ModWorkspaceSlice = Pick<AppStoreState,
   | 'localManifestSummaries'
+  | 'runtimeModSources'
+  | 'runtimeModDeveloperMode'
+  | 'runtimeModDiagnostics'
+  | 'runtimeModRecentReloads'
   | 'registeredRuntimeModIds'
   | 'runtimeModDisabledIds'
   | 'runtimeModUninstalledIds'
@@ -29,6 +33,10 @@ type ModWorkspaceSlice = Pick<AppStoreState,
   | 'fusedRuntimeMods'
   | 'runtimeModFailures'
   | 'setLocalManifestSummaries'
+  | 'setRuntimeModSources'
+  | 'setRuntimeModDeveloperMode'
+  | 'setRuntimeModDiagnostics'
+  | 'pushRuntimeModReloadResults'
   | 'setRegisteredRuntimeModIds'
   | 'setRuntimeModDisabledIds'
   | 'setRuntimeModUninstalledIds'
@@ -43,6 +51,13 @@ type ModWorkspaceSlice = Pick<AppStoreState,
 export function createModWorkspaceSlice(set: AppStoreSet): ModWorkspaceSlice {
   return {
     localManifestSummaries: [],
+    runtimeModSources: [],
+    runtimeModDeveloperMode: {
+      enabled: false,
+      autoReloadEnabled: false,
+    },
+    runtimeModDiagnostics: [],
+    runtimeModRecentReloads: [],
     registeredRuntimeModIds: [],
     runtimeModDisabledIds: initialLifecycleState.disabledModIds,
     runtimeModUninstalledIds: initialLifecycleState.uninstalledModIds,
@@ -51,6 +66,16 @@ export function createModWorkspaceSlice(set: AppStoreSet): ModWorkspaceSlice {
     fusedRuntimeMods: {},
     runtimeModFailures: [],
     setLocalManifestSummaries: (manifests) => set({ localManifestSummaries: manifests }),
+    setRuntimeModSources: (sources) => set({ runtimeModSources: sources }),
+    setRuntimeModDeveloperMode: (value) => set({ runtimeModDeveloperMode: value }),
+    setRuntimeModDiagnostics: (records) => set({ runtimeModDiagnostics: records }),
+    pushRuntimeModReloadResults: (records) =>
+      set((state) => ({
+        runtimeModRecentReloads: [
+          ...state.runtimeModRecentReloads,
+          ...records,
+        ].slice(-100),
+      })),
     setRegisteredRuntimeModIds: (modIds) => set({ registeredRuntimeModIds: [...modIds] }),
     setRuntimeModDisabledIds: (modIds) =>
       set((state) => {

@@ -5,6 +5,4 @@
 | Mode | Trust Level | Signature Required | Source Rule |
 |---|---|---|---|
 | `local-dev` | `high` | `false` | `D-MOD-009` |
-| `community` | `medium` | `true` | `D-MOD-009` |
-| `official` | `high` | `true` | `D-MOD-009` |
 | `sideload` | `low` | `false` | `D-MOD-009` |

@@ -1,38 +1,25 @@
 #!/usr/bin/env node
 
-import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
-import { buildMergedEnv } from './lib/live-env.mjs';
-
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const modsWorkspaceDir = path.join(repoRoot, 'nimi-mods');
 const localChatDir = path.join(modsWorkspaceDir, 'local-chat');
-const liveEnv = buildMergedEnv({
-  baseEnv: process.env,
-  filePaths: [
-    path.join(repoRoot, 'dev', 'config', 'dashscope-gold-path.env'),
-    path.join(repoRoot, '.env'),
-  ],
-});
 
 if (!existsSync(modsWorkspaceDir) || !existsSync(localChatDir)) {
-  process.stdout.write('[run-local-chat-live-smoke] skipped: optional nimi-mods/local-chat workspace not present\n');
+  process.stdout.write('[run-local-chat-e2e] skipped: optional nimi-mods/local-chat workspace not present\n');
   process.exit(0);
 }
 
 const result = spawnSync(
   'pnpm',
-  ['--dir', 'nimi-mods', 'run', 'test:local-chat-live-smoke'],
+  ['--dir', 'nimi-mods', 'run', 'test:local-chat-e2e'],
   {
     cwd: repoRoot,
-    env: {
-      ...liveEnv,
-      NIMI_MODS_LIVE: '1',
-    },
     stdio: 'inherit',
     encoding: 'utf8',
   },

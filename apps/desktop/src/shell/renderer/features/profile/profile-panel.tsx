@@ -6,6 +6,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ContactDetailView, type EditableProfileDraft } from '@renderer/features/contacts/contact-detail-view.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
+import { openDefaultPrivateExecutionMod } from '@renderer/mod-ui/lifecycle/default-private-execution';
 import { toProfileData } from './profile-model';
 import { ProfileView } from './profile-view';
 import type { ContactRecord } from '@renderer/features/contacts/contacts-model';
@@ -32,7 +33,6 @@ export function ProfilePanel() {
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
-  const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const queryClient = useQueryClient();
   const [giftModalOpen, setGiftModalOpen] = useState(false);
 
@@ -132,9 +132,7 @@ export function ProfilePanel() {
         targetId: profile.id,
         worldId: profile.agentWorldId || '',
       });
-      // Open mod workspace tab before setting active tab
-      openModWorkspaceTab('mod:local-chat', 'Local Chat', 'local-chat');
-      setActiveTab('mod:local-chat');
+      openDefaultPrivateExecutionMod();
       return;
     }
 

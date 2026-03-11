@@ -9,7 +9,7 @@ export type RuntimeControlManifestVerifyInput = {
   modId: string;
   version: string;
   manifest: Record<string, unknown>;
-  mode?: 'local-dev' | 'community' | 'official' | 'sideload';
+  mode?: 'local-dev' | 'sideload';
 };
 
 export type RuntimeControlSignatureVerifyInput = {
@@ -18,7 +18,7 @@ export type RuntimeControlSignatureVerifyInput = {
   signerId: string;
   signature: string;
   digest: string;
-  mode?: 'local-dev' | 'community' | 'official' | 'sideload';
+  mode?: 'local-dev' | 'sideload';
 };
 
 export type RuntimeControlGrantIssueInput = {

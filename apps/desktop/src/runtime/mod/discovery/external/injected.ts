@@ -17,7 +17,7 @@ export function buildRuntimeModsFromFactories(
 
 export function discoverInjectedRuntimeModFactories(): RuntimeModFactory[] {
   // Injected factories are reserved for dev/test instrumentation only.
-  // Production/default mods must go through manifest + entry sideload discovery.
+  // All runtime mods outside injected instrumentation must go through manifest + entry sideload discovery.
   if (typeof window === 'undefined') return [];
   const factories = window.__NIMI_RUNTIME_MOD_FACTORIES__;
   if (!Array.isArray(factories)) return [];

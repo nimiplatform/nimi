@@ -183,6 +183,10 @@ export function listRegisteredRuntimeModIds(): string[] {
   return Array.from(registeredMods.keys());
 }
 
+export function getDefaultPrivateExecutionModId(): string {
+  return defaultPrivateExecutionModId;
+}
+
 export async function registerRuntimeMod(
   mod: RuntimeModRegistration,
   options: RegisterRuntimeModOptions = {},

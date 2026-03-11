@@ -73,6 +73,76 @@ commands:
     description: List local mod manifest summaries
     source_rule: D-IPC-007
 
+  - command: runtime_mod_list_installed
+    module: mod-local
+    description: List installed runtime mods
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_sources_list
+    module: mod-local
+    description: List registered runtime mod source directories
+    source_rule: D-IPC-013
+
+  - command: runtime_mod_sources_upsert
+    module: mod-local
+    description: Add or update a runtime mod source directory
+    source_rule: D-IPC-013
+
+  - command: runtime_mod_sources_remove
+    module: mod-local
+    description: Remove a runtime mod source directory
+    source_rule: D-IPC-013
+
+  - command: runtime_mod_dev_mode_get
+    module: mod-local
+    description: Read Desktop Mod Developer Mode state
+    source_rule: D-IPC-013
+
+  - command: runtime_mod_dev_mode_set
+    module: mod-local
+    description: Update Desktop Mod Developer Mode state
+    source_rule: D-IPC-013
+
+  - command: runtime_mod_diagnostics_list
+    module: mod-local
+    description: List runtime mod source diagnostics and conflict records
+    source_rule: D-IPC-013
+
+  - command: runtime_mod_reload
+    module: mod-local
+    description: Trigger reload diagnostics for a single runtime mod
+    source_rule: D-IPC-013
+
+  - command: runtime_mod_reload_all
+    module: mod-local
+    description: Trigger reload diagnostics for all runtime mods
+    source_rule: D-IPC-013
+
+  - command: runtime_mod_install
+    module: mod-local
+    description: Install a prebuilt runtime mod from directory, archive, or URL
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_update
+    module: mod-local
+    description: Update an installed runtime mod from a prebuilt package source
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_uninstall
+    module: mod-local
+    description: Uninstall an installed runtime mod
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_read_manifest
+    module: mod-local
+    description: Read an installed runtime mod manifest
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_install_progress
+    module: mod-local
+    description: Query runtime mod install progress events
+    source_rule: D-IPC-007
+
   - command: runtime_mod_read_local_entry
     module: mod-local
     description: Read local mod entry source code

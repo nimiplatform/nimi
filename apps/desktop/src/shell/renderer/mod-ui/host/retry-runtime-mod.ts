@@ -3,15 +3,14 @@ import { desktopBridge } from '@renderer/bridge';
 import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
 import {
   discoverSideloadRuntimeMods,
-  listRegisteredRuntimeModIds,
   registerInjectedRuntimeMods,
   registerRuntimeMods,
   type RuntimeModRegisterFailure,
 } from '@runtime/mod';
-import { syncRuntimeUiExtensionsToRegistry } from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
 import { i18n } from '@renderer/i18n';
+import { syncRuntimeModShellState } from '@renderer/mod-ui/lifecycle/runtime-mod-shell-state';
 
 function safeErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || '');
@@ -101,8 +100,8 @@ export async function retryRuntimeMod(input: RetryRuntimeModInput): Promise<void
     failures.push(...sideloadDiscoverFailures);
 
     input.setRuntimeModFailures(failures);
-    input.setRegisteredRuntimeModIds(listRegisteredRuntimeModIds());
-    syncRuntimeUiExtensionsToRegistry();
+    const registeredRuntimeModIds = await syncRuntimeModShellState(input.localManifestSummaries);
+    input.setRegisteredRuntimeModIds(registeredRuntimeModIds);
 
     const failed = failures.find((item) => item.modId === normalizedModId);
     if (failed) {

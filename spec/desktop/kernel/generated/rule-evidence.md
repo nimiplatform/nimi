@@ -9,9 +9,7 @@
 | `desktop_kernel_consistency` | `static_gate` | `pnpm check:desktop-spec-kernel-consistency` | `scripts/check-desktop-spec-kernel-consistency.mjs` | Kernel rule integrity and source/spec consistency checks for desktop domain. |
 | `desktop_lint_gate` | `lint_gate` | `pnpm --filter @nimiplatform/desktop lint` | `apps/desktop/package.json` | TypeScript/ESLint/Rust compile gates for desktop app implementation. |
 | `desktop_test_gate` | `test_gate` | `pnpm --filter @nimiplatform/desktop test` | `apps/desktop/package.json` | Desktop quality + unit tests for behavior regression coverage. |
-| `desktop_mods_smoke_gate` | `smoke_gate` | `pnpm check:desktop-mods-smoke --all` | `scripts/check-desktop-mods-smoke.mjs` | Desktop hook runtime can discover/build/sync all desktop-loadable first-party mod resources. |
-| `local_chat_e2e_gate` | `e2e_gate` | `pnpm check:local-chat-e2e` | `nimi-mods/local-chat/test/local-chat-run-text-turn.e2e.test.ts` | Deterministic local-chat turn pipeline e2e coverage for planner/fallback semantics. |
-| `local_chat_live_smoke_gate` | `live_gate` | `pnpm check:local-chat-live-smoke` | `nimi-mods/local-chat/test/local-chat-live-smoke.test.ts` | Live local-chat e2e gate for real provider routing and trace continuity. |
+| `desktop_mods_smoke_gate` | `smoke_gate` | `pnpm check:desktop-mods-smoke --all` | `scripts/check-desktop-mods-smoke.mjs` | Desktop runtime mod host can discover and validate installed prebuilt mod packages from the runtime mods directory. |
 | `runtime_mod_hook_hardcut_gate` | `static_gate` | `pnpm check:runtime-mod-hook-hardcut` | `scripts/check-runtime-mod-hook-hardcut.mjs` | Cross-layer runtime-aligned mod and hook surface hard-cut guard. |
 | `desktop_cloud_runtime_only_gate` | `static_gate` | `pnpm check:desktop-cloud-runtime-only` | `scripts/check-desktop-cloud-runtime-only.mjs` | Enforces cloud connector routing through runtime-owned APIs only. |
 | `desktop_runtime_config_path_gate` | `static_gate` | `pnpm check:desktop-no-legacy-runtime-config-path` | `package.json` | Forbids desktop fallback to the retired .nimi/runtime/config.json path. |
@@ -93,6 +91,7 @@
 | `D-IPC-010` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-IPC-011` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_local_ai_bridge_gate` |
 | `D-IPC-012` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_cloud_runtime_only_gate` |
+| `D-IPC-013` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate` |
 | `D-LLM-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_cloud_runtime_only_gate` |
 | `D-LLM-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-LLM-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
@@ -100,8 +99,8 @@
 | `D-LLM-005` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-LLM-006` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-LLM-007` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_mods_smoke_gate` |
-| `D-LLM-008` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `local_chat_e2e_gate` |
-| `D-LLM-009` | `covered` | `desktop_kernel_consistency`, `desktop_mods_smoke_gate`, `local_chat_e2e_gate`, `local_chat_live_smoke_gate` |
+| `D-LLM-008` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-LLM-009` | `covered` | `desktop_kernel_consistency`, `desktop_test_gate`, `desktop_mods_smoke_gate` |
 | `D-MOD-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-MOD-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_mod_capabilities_gate` |
 | `D-MOD-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
@@ -113,6 +112,10 @@
 | `D-MOD-009` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-MOD-010` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-MOD-011` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-MOD-012` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_mods_smoke_gate` |
+| `D-MOD-013` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate` |
+| `D-MOD-014` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate` |
+| `D-MOD-015` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate` |
 | `D-NET-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-NET-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-NET-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
@@ -138,6 +141,8 @@
 | `D-SHELL-006` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-SHELL-007` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-SHELL-008` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-SHELL-009` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate` |
+| `D-SHELL-010` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate` |
 | `D-STATE-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-STATE-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-STATE-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
