@@ -4,6 +4,7 @@ Use this matrix before upgrading production systems.
 
 | Layer | Compatibility rule |
 |---|---|
+| SDK vs Dev Tools | Keep the exact same semver release (`X.Y.Z`) |
 | SDK vs Runtime | Keep within the same `major.minor` train |
 | SDK vs Desktop/Web | Pin workspace release set for each app release |
 | Proto vs Runtime | Proto contract drift is not supported |

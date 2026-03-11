@@ -211,6 +211,7 @@ jobs:
           const version = process.env.RELEASE_VERSION;
           const packages = [
             ['@nimiplatform/sdk', 'sdk/package.json'],
+            ['@nimiplatform/dev-tools', 'dev-tools/package.json'],
           ];
 
           const violations = [];
@@ -254,12 +255,13 @@ jobs:
       - name: SDK consumer smoke (npm pack + node import)
         run: pnpm check:sdk-consumer-smoke
 
-      - name: Publish SDK packages (or dry-run)
+      - name: Publish npm author packages (or dry-run)
         run: |
           set -euo pipefail
 
           packages=(
             "@nimiplatform/sdk"
+            "@nimiplatform/dev-tools"
           )
 
           if [[ "${PUBLISH}" == "true" ]]; then

@@ -12,6 +12,7 @@ The format follows Keep a Changelog and Semantic Versioning.
 - Runtime service implementations and gRPC wiring
 - Runtime/user/developer docs (`docs/getting-started`, `docs/runtime`, `docs/sdk`, `docs/protocol`, `docs/dev/*`)
 - Open source governance bootstrap docs (`SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `DCO`)
+- npm author release set for `@nimiplatform/sdk` + `@nimiplatform/dev-tools`, including package-qualified one-shot author commands via `pnpm dlx @nimiplatform/dev-tools ...`
 
 ### Changed
 
