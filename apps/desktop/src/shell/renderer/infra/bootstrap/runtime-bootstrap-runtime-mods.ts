@@ -6,7 +6,6 @@ import { desktopBridge } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { i18n } from '@renderer/i18n';
-import { syncRuntimeModShellState } from '@renderer/mod-ui/lifecycle/runtime-mod-shell-state';
 import {
   attachRuntimeModDeveloperHostSubscriptions,
   reconcileRuntimeLocalMods,
@@ -62,7 +61,6 @@ export async function registerBootstrapRuntimeMods(input: {
   const manifestCount = manifests.length;
   runtimeModFailures.push(...failures);
   appStore.setRuntimeModFailures([...injectedResult.failedMods, ...failures]);
-  await syncRuntimeModShellState(manifests);
   await attachRuntimeModDeveloperHostSubscriptions();
 
   if (runtimeModFailures.length > 0) {

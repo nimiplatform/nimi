@@ -86,7 +86,6 @@ export function HomeView(props: HomeViewProps) {
   const fetchPage = useCallback(
     async (cursorArg: string | null) => {
       const data = await dataSync.loadPostFeed({
-        scope: 'friends',
         limit: PAGE_SIZE,
         cursor: cursorArg ?? undefined,
       });

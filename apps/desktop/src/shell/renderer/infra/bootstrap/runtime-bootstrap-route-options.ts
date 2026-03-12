@@ -4,6 +4,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { localAiRuntime, listGoRuntimeModelsSnapshot } from '@runtime/local-ai-runtime';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import { type RuntimeCanonicalCapability, type RuntimeRouteBinding, type RuntimeRouteConnectorOption, type RuntimeRouteLocalOption, type RuntimeRouteOptionsSnapshot } from "@nimiplatform/sdk/mod";
+import { normalizeLocalEngine, normalizeLocalModelRoot } from './runtime-bootstrap-utils';
 type RuntimeFields = {
     provider: string;
     runtimeModelType: string;
@@ -69,22 +70,6 @@ function inferSource(provider: string): 'local' | 'cloud' {
 }
 function inferLocalEngine(provider: string): string {
     return String(provider || '').trim().toLowerCase() === 'nexa' ? 'nexa' : 'localai';
-}
-function normalizeLocalEngine(value: unknown): string {
-    return String(value || '').trim().toLowerCase() === 'nexa' ? 'nexa' : 'localai';
-}
-function normalizeLocalModelRoot(value: string): string {
-    const trimmed = String(value || '').trim();
-    if (!trimmed)
-        return '';
-    const lower = trimmed.toLowerCase();
-    if (lower.startsWith('localai/'))
-        return trimmed.slice('localai/'.length).trim();
-    if (lower.startsWith('nexa/'))
-        return trimmed.slice('nexa/'.length).trim();
-    if (lower.startsWith('local/'))
-        return trimmed.slice('local/'.length).trim();
-    return trimmed;
 }
 function defaultLocalAdapter(provider: string, capability: RuntimeCanonicalCapability): string {
     const normalizedProvider = normalizeLocalEngine(provider);

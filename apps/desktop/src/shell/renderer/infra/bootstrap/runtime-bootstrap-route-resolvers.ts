@@ -1,5 +1,6 @@
 import type { SourceIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { type LocalEngine, type ResolvedRuntimeRouteBinding, type RuntimeModality, type RuntimeRouteBinding } from "@nimiplatform/sdk/mod";
+import { normalizeLocalEngine, normalizeLocalModelRoot } from './runtime-bootstrap-utils';
 type RuntimeFields = {
     provider: string;
     runtimeModelType: string;
@@ -14,22 +15,6 @@ function inferSource(provider: string): SourceIdV11 {
         return 'local';
     }
     return 'cloud';
-}
-function normalizeLocalEngine(value: unknown): string {
-    return String(value || '').trim().toLowerCase() === 'nexa' ? 'nexa' : 'localai';
-}
-function normalizeLocalModelRoot(value: unknown): string {
-    const trimmed = String(value || '').trim();
-    if (!trimmed)
-        return '';
-    const lower = trimmed.toLowerCase();
-    if (lower.startsWith('localai/'))
-        return trimmed.slice('localai/'.length).trim();
-    if (lower.startsWith('nexa/'))
-        return trimmed.slice('nexa/'.length).trim();
-    if (lower.startsWith('local/'))
-        return trimmed.slice('local/'.length).trim();
-    return trimmed;
 }
 function buildLocalSelector(modelId: string, engine: string): string {
     const normalizedModelId = normalizeLocalModelRoot(modelId);

@@ -301,7 +301,6 @@ export class DataSync {
     visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
     worldId?: string;
     authorId?: string;
-    scope?: 'all' | 'friends' | 'forYou';
     limit?: number;
     cursor?: string;
   }) { return this.actions.loadPostFeed(payload); }

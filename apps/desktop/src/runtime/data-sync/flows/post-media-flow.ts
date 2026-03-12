@@ -18,24 +18,13 @@ type DataSyncErrorEmitter = (
   details?: Record<string, unknown>,
 ) => void;
 
-export type HomeFeedScope = 'all' | 'friends' | 'forYou';
 export type LoadPostFeedInput = {
   visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
   worldId?: string;
   authorId?: string;
-  scope?: HomeFeedScope;
   limit?: number;
   cursor?: string;
 };
-
-function normalizeScope(
-  scope: HomeFeedScope | undefined,
-): 'all' | 'friends' | 'forYou' | undefined {
-  if (scope === 'friends' || scope === 'forYou' || scope === 'all') {
-    return scope;
-  }
-  return undefined;
-}
 
 export async function loadPostFeed(
   callApi: DataSyncApiCaller,
@@ -46,7 +35,6 @@ export async function loadPostFeed(
     visibility: input.visibility,
     worldId: typeof input.worldId === 'string' ? input.worldId : undefined,
     authorId: typeof input.authorId === 'string' ? input.authorId : undefined,
-    scope: normalizeScope(input.scope),
     limit: typeof input.limit === 'number' ? input.limit : undefined,
     cursor: typeof input.cursor === 'string' ? input.cursor : undefined,
   };
@@ -56,7 +44,6 @@ export async function loadPostFeed(
         normalized.visibility,
         normalized.worldId,
         normalized.authorId,
-        normalized.scope,
         normalized.limit,
         normalized.cursor,
       ),

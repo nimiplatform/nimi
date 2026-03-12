@@ -338,7 +338,6 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
       worldId?: string;
       authorId?: string;
-      scope?: 'all' | 'friends' | 'forYou';
       limit?: number;
       cursor?: string;
     }) =>

@@ -1,3 +1,17 @@
+export function normalizeLocalEngine(value: unknown): string {
+  return String(value || '').trim().toLowerCase() === 'nexa' ? 'nexa' : 'localai';
+}
+
+export function normalizeLocalModelRoot(value: unknown): string {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return '';
+  const lower = trimmed.toLowerCase();
+  if (lower.startsWith('localai/')) return trimmed.slice('localai/'.length).trim();
+  if (lower.startsWith('nexa/')) return trimmed.slice('nexa/'.length).trim();
+  if (lower.startsWith('local/')) return trimmed.slice('local/'.length).trim();
+  return trimmed;
+}
+
 export function safeErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || '');
 }

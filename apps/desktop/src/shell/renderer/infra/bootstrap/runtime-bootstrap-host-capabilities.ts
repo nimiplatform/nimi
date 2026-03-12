@@ -9,12 +9,21 @@ import type { DesktopHookRuntimeService } from '@runtime/hook';
 import { getPlatformClient } from '@runtime/platform-client';
 import { buildRuntimeRequestMetadata, ensureRuntimeLocalModelWarm, } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
 import { LifecycleSubscriptionManager } from '@renderer/mod-ui/lifecycle/lifecycle-subscription-manager';
+import {
+    getJobState,
+    feedJobEvent,
+    requestCancel,
+    startJobTracking,
+    startPollingRecovery,
+    type JobControllerDeps,
+    type JobPollResult,
+    type JobStatus,
+} from '../../features/turns/scenario-job-controller';
 import { createResolveRuntimeBinding } from './runtime-bootstrap-route-resolvers';
 import { loadRuntimeRouteOptions } from './runtime-bootstrap-route-options';
-import type { WireModSdkHostInput } from './runtime-bootstrap-host';
 import { cacheSpeechArtifactsForDesktopPlayback, createModAiDependencySnapshotResolver, } from './runtime-bootstrap-host-capabilities-dependencies';
 import { ensureResolvedLocalModelAvailable, getRuntimeFieldsFromStore, hydrateLocalRouteBindingFromOptions, hydrateCloudRouteBindingFromOptions, requireModel, toResolvedBinding, toRouteHealthResult, } from './runtime-bootstrap-host-capabilities-routing';
-import { type RuntimeLlmHealthInput, type RuntimeLlmHealthResult, type ModRuntimeResolvedBinding, type RuntimeCanonicalCapability, type RuntimeRouteBinding, type RuntimeRouteOptionsSnapshot } from "@nimiplatform/sdk/mod";
+import { type ModSdkHost, type RuntimeLlmHealthInput, type RuntimeLlmHealthResult, type ModRuntimeResolvedBinding, type RuntimeCanonicalCapability, type RuntimeRouteBinding, type RuntimeRouteOptionsSnapshot } from "@nimiplatform/sdk/mod";
 type HostCapabilityInput = {
     checkLocalLlmHealth: (input: CheckLlmHealthInput) => Promise<ProviderHealth>;
     executeLocalKernelTurn: (input: ExecuteLocalKernelTurnInput) => Promise<ExecuteLocalKernelTurnResult>;
@@ -25,7 +34,7 @@ type HostCapabilityInput = {
     }, task: () => Promise<T>) => Promise<T>;
     getRuntimeHookRuntime: () => DesktopHookRuntimeService;
 };
-export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireModSdkHostInput {
+export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdkHost {
     const lifecycleManager = new LifecycleSubscriptionManager();
     const hookRuntime = input.getRuntimeHookRuntime();
     hookRuntime.setModAiDependencySnapshotResolver(createModAiDependencySnapshotResolver());
@@ -103,7 +112,107 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
         providerEndpoint: inputValue.endpoint,
     });
     const getRuntimeClient = () => getPlatformClient().runtime;
-    const toKernelTurnInput = (payload: WireModSdkHostInput['runtime']['executeLocalKernelTurn'] extends (input: infer T) => Promise<unknown> ? T : never): ExecuteLocalKernelTurnInput | null => {
+    const normalizeScenarioJobStatus = (value: unknown): JobStatus | null => {
+        const numeric = Number(value);
+        if (numeric === 1)
+            return 'SUBMITTED';
+        if (numeric === 2)
+            return 'QUEUED';
+        if (numeric === 3)
+            return 'RUNNING';
+        if (numeric === 4)
+            return 'COMPLETED';
+        if (numeric === 5)
+            return 'FAILED';
+        if (numeric === 6)
+            return 'CANCELED';
+        if (numeric === 7)
+            return 'TIMEOUT';
+        const normalized = String(value || '').trim().toUpperCase();
+        if (normalized === 'SUBMITTED'
+            || normalized === 'QUEUED'
+            || normalized === 'RUNNING'
+            || normalized === 'COMPLETED'
+            || normalized === 'FAILED'
+            || normalized === 'CANCELED'
+            || normalized === 'TIMEOUT') {
+            return normalized;
+        }
+        return null;
+    };
+    const toControllerJobSnapshot = (value: unknown): JobPollResult | null => {
+        const record = value && typeof value === 'object' && !Array.isArray(value)
+            ? value as Record<string, unknown>
+            : {};
+        const status = normalizeScenarioJobStatus(record.status);
+        if (!status) {
+            return null;
+        }
+        const progress = Number(record.progress);
+        return {
+            status,
+            ...(String(record.reasonCode || '').trim()
+                ? { reasonCode: String(record.reasonCode || '').trim() }
+                : {}),
+            ...(String(record.reasonDetail || '').trim()
+                ? { reasonDetail: String(record.reasonDetail || '').trim() }
+                : {}),
+            ...(String(record.traceId || '').trim()
+                ? { traceId: String(record.traceId || '').trim() }
+                : {}),
+            ...(Number.isFinite(progress) ? { progress } : {}),
+        };
+    };
+    const feedControllerJobSnapshot = (jobId: string, value: unknown): void => {
+        const snapshot = toControllerJobSnapshot(value);
+        if (!snapshot) {
+            return;
+        }
+        if (getJobState(jobId).phase === 'idle') {
+            startJobTracking(jobId);
+        }
+        feedJobEvent(jobId, snapshot);
+    };
+    const createScenarioJobControllerDeps = (inputValue?: {
+        cancelReason?: string;
+        captureCancelResponse?: (value: unknown) => void;
+        capturePolledJob?: (value: unknown) => void;
+    }): JobControllerDeps => ({
+        pollJob: async (jobId: string) => {
+            const job = await getRuntimeClient().media.jobs.get(jobId);
+            inputValue?.capturePolledJob?.(job);
+            const snapshot = toControllerJobSnapshot(job);
+            if (!snapshot) {
+                throw new Error('DESKTOP_SCENARIO_JOB_STATUS_REQUIRED');
+            }
+            return snapshot;
+        },
+        cancelJob: async (jobId: string) => {
+            const job = await getRuntimeClient().media.jobs.cancel({
+                jobId,
+                reason: inputValue?.cancelReason,
+            });
+            inputValue?.captureCancelResponse?.(job);
+            const snapshot = toControllerJobSnapshot(job);
+            if (!snapshot) {
+                throw new Error('DESKTOP_SCENARIO_JOB_STATUS_REQUIRED');
+            }
+            return {
+                status: snapshot.status,
+                ...(snapshot.reasonCode ? { reasonCode: snapshot.reasonCode } : {}),
+            };
+        },
+        fetchArtifacts: async (jobId: string) => {
+            const artifactsResponse = await getRuntimeClient().media.jobs.getArtifacts(jobId);
+            if (!Array.isArray(artifactsResponse.artifacts)) {
+                return [];
+            }
+            return artifactsResponse.artifacts.map((artifact) => ({
+                ...(artifact as unknown as Record<string, unknown>),
+            }));
+        },
+    });
+    const toKernelTurnInput = (payload: ModSdkHost['runtime']['executeLocalKernelTurn'] extends (input: infer T) => Promise<unknown> ? T : never): ExecuteLocalKernelTurnInput | null => {
         const runtime = getRuntimeFieldsFromStore();
         const provider = String(payload.provider || runtime.provider || '').trim();
         if (!provider) {
@@ -571,7 +680,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
                         };
                         if (payload.modal === 'image') {
                             const model = requireModel(payload.input.model || preparedResolved.model, 'MOD_RUNTIME_IMAGE_MODEL_REQUIRED');
-                            return getRuntimeClient().media.jobs.submit({
+                            const job = await getRuntimeClient().media.jobs.submit({
                                 modal: 'image',
                                 input: {
                                     ...payload.input,
@@ -582,9 +691,15 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
                                     metadata,
                                 },
                             });
+                            const jobId = String((job as unknown as Record<string, unknown>)?.jobId || '').trim();
+                            if (jobId) {
+                                startJobTracking(jobId);
+                                feedControllerJobSnapshot(jobId, job);
+                            }
+                            return job;
                         }
                         if (payload.modal === 'video') {
-                            return getRuntimeClient().media.jobs.submit({
+                            const job = await getRuntimeClient().media.jobs.submit({
                                 modal: 'video',
                                 input: {
                                     ...payload.input,
@@ -595,9 +710,15 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
                                     metadata,
                                 },
                             });
+                            const jobId = String((job as unknown as Record<string, unknown>)?.jobId || '').trim();
+                            if (jobId) {
+                                startJobTracking(jobId);
+                                feedControllerJobSnapshot(jobId, job);
+                            }
+                            return job;
                         }
                         if (payload.modal === 'tts') {
-                            return getRuntimeClient().media.jobs.submit({
+                            const job = await getRuntimeClient().media.jobs.submit({
                                 modal: 'tts',
                                 input: {
                                     ...payload.input,
@@ -608,8 +729,14 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
                                     metadata,
                                 },
                             });
+                            const jobId = String((job as unknown as Record<string, unknown>)?.jobId || '').trim();
+                            if (jobId) {
+                                startJobTracking(jobId);
+                                feedControllerJobSnapshot(jobId, job);
+                            }
+                            return job;
                         }
-                        return getRuntimeClient().media.jobs.submit({
+                        const job = await getRuntimeClient().media.jobs.submit({
                             modal: 'stt',
                             input: {
                                 ...payload.input,
@@ -620,27 +747,98 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
                                 metadata,
                             },
                         });
+                        const jobId = String((job as unknown as Record<string, unknown>)?.jobId || '').trim();
+                        if (jobId) {
+                            startJobTracking(jobId);
+                            feedControllerJobSnapshot(jobId, job);
+                        }
+                        return job;
                     },
                     get: async ({ modId, jobId }) => {
                         authorizeRuntimeCapability({
                             modId,
                             capabilityKey: 'runtime.media.jobs.get',
                         });
-                        return getRuntimeClient().media.jobs.get(jobId);
+                        const job = await getRuntimeClient().media.jobs.get(jobId);
+                        feedControllerJobSnapshot(jobId, job);
+                        return job;
                     },
                     cancel: async ({ modId, jobId, reason }) => {
                         authorizeRuntimeCapability({
                             modId,
                             capabilityKey: 'runtime.media.jobs.cancel',
                         });
-                        return getRuntimeClient().media.jobs.cancel({ jobId, reason });
+                        if (getJobState(jobId).phase === 'idle') {
+                            startJobTracking(jobId);
+                        }
+                        let cancelResponse: unknown = null;
+                        let polledJob: unknown = null;
+                        await requestCancel(jobId, createScenarioJobControllerDeps({
+                            cancelReason: reason,
+                            captureCancelResponse: (value) => {
+                                cancelResponse = value;
+                            },
+                            capturePolledJob: (value) => {
+                                polledJob = value;
+                            },
+                        }));
+                        if (cancelResponse) {
+                            return cancelResponse as Awaited<ReturnType<typeof getRuntimeClient>>['media']['jobs'] extends {
+                                cancel: (...args: any[]) => Promise<infer T>;
+                            }
+                                ? T
+                                : never;
+                        }
+                        if (polledJob) {
+                            return polledJob as Awaited<ReturnType<typeof getRuntimeClient>>['media']['jobs'] extends {
+                                get: (...args: any[]) => Promise<infer T>;
+                            }
+                                ? T
+                                : never;
+                        }
+                        return getRuntimeClient().media.jobs.get(jobId);
                     },
                     subscribe: async ({ modId, jobId }) => {
                         authorizeRuntimeCapability({
                             modId,
                             capabilityKey: 'runtime.media.jobs.subscribe',
                         });
-                        return getRuntimeClient().media.jobs.subscribe(jobId);
+                        if (getJobState(jobId).phase === 'idle') {
+                            startJobTracking(jobId);
+                        }
+                        const stream = await getRuntimeClient().media.jobs.subscribe(jobId);
+                        return {
+                            async *[Symbol.asyncIterator]() {
+                                let sawTerminal = false;
+                                try {
+                                    for await (const event of stream) {
+                                        const record = event && typeof event === 'object' && !Array.isArray(event)
+                                            ? event as unknown as Record<string, unknown>
+                                            : {};
+                                        const snapshot = toControllerJobSnapshot(record.job);
+                                        if (snapshot) {
+                                            feedJobEvent(jobId, snapshot);
+                                            sawTerminal = snapshot.status === 'COMPLETED'
+                                                || snapshot.status === 'FAILED'
+                                                || snapshot.status === 'CANCELED'
+                                                || snapshot.status === 'TIMEOUT';
+                                        }
+                                        yield event;
+                                    }
+                                }
+                                catch (error) {
+                                    const state = getJobState(jobId);
+                                    if (state.phase !== 'terminal' && state.phase !== 'recovery_timeout') {
+                                        startPollingRecovery(jobId, createScenarioJobControllerDeps());
+                                    }
+                                    throw error;
+                                }
+                                const state = getJobState(jobId);
+                                if (!sawTerminal && state.phase !== 'terminal' && state.phase !== 'recovery_timeout') {
+                                    startPollingRecovery(jobId, createScenarioJobControllerDeps());
+                                }
+                            },
+                        };
                     },
                     getArtifacts: async ({ modId, jobId }) => {
                         authorizeRuntimeCapability({

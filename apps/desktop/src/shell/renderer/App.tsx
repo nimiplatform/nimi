@@ -101,7 +101,7 @@ function AppBoot() {
         logRendererEvent({
           level: 'info',
           area: 'renderer-bootstrap',
-          message: 'phase:bootstrap:done',
+          message: 'phase:bootstrap-watchdog:done',
           flowId,
         });
       })
@@ -122,7 +122,7 @@ function AppBoot() {
         logRendererEvent({
           level: 'error',
           area: 'renderer-bootstrap',
-          message: 'phase:bootstrap:failed',
+          message: 'phase:bootstrap-watchdog:failed',
           flowId,
           details: {
             error: message,

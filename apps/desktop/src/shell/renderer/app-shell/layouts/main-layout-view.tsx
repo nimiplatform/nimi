@@ -16,6 +16,7 @@ import { loadWorldDetailPanelModule, WorldDetailRouteLoading } from '@renderer/f
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 import { MainLayoutTopBar } from './main-layout-topbar';
 import { OfflineShellStrip } from './offline-shell-strip';
+import { ScenarioJobStatusHost } from '@renderer/features/turns/scenario-job-status-host';
 import {
   getCoreNavItems,
   getQuickNavItems,
@@ -562,6 +563,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <OfflineShellStrip />
           <StatusBanner />
+          <ScenarioJobStatusHost />
 
           <Suspense fallback={props.activeTab === 'world-detail' ? <WorldDetailRouteLoading /> : <div className="flex min-h-0 flex-1" />}>
             {props.activeTab === 'home' ? (

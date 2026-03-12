@@ -487,6 +487,7 @@ rules:
     evidence_refs:
       - desktop_kernel_consistency
       - desktop_lint_gate
+      - desktop_test_gate
   - rule_id: D-LLM-001
     status: covered
     evidence_refs:
@@ -651,16 +652,19 @@ rules:
     evidence_refs:
       - desktop_kernel_consistency
       - desktop_lint_gate
+      - desktop_test_gate
   - rule_id: D-MOD-014
     status: covered
     evidence_refs:
       - desktop_kernel_consistency
       - desktop_lint_gate
+      - desktop_test_gate
   - rule_id: D-MOD-015
     status: covered
     evidence_refs:
       - desktop_kernel_consistency
       - desktop_lint_gate
+      - desktop_test_gate
   - rule_id: D-MOD-016
     status: covered
     evidence_refs:
@@ -840,11 +844,13 @@ rules:
     evidence_refs:
       - desktop_kernel_consistency
       - desktop_lint_gate
+      - desktop_test_gate
   - rule_id: D-SHELL-010
     status: covered
     evidence_refs:
       - desktop_kernel_consistency
       - desktop_lint_gate
+      - desktop_test_gate
   - rule_id: D-STATE-001
     status: covered
     evidence_refs:

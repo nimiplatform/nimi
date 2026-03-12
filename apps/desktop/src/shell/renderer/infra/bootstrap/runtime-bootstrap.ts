@@ -9,6 +9,7 @@ import {
   listRegisteredRuntimeModIds,
   setRuntimeModSdkContextProvider,
   setRuntimeHttpContextProvider,
+  setInternalModSdkHost,
   type RuntimeModRegisterFailure,
 } from '@runtime/mod';
 import { setRuntimeLogger } from '@runtime/telemetry/logger';
@@ -21,7 +22,6 @@ import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetr
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { initializePlatformClient } from '@runtime/platform-client';
 import { getOfflineCoordinator } from '@runtime/offline';
-import { wireModSdkHost } from './runtime-bootstrap-host';
 import { bootstrapAuthSession } from './runtime-bootstrap-auth';
 import {
   ensureCoreWorldDataCapabilitiesRegistered,
@@ -304,7 +304,7 @@ export function bootstrapRuntime(): Promise<void> {
         ) => withOpenApiContextLock<T>(context, task),
         getRuntimeHookRuntime: () => getRuntimeHookRuntime(),
       });
-      wireModSdkHost(runtimeHostCapabilities);
+      setInternalModSdkHost(runtimeHostCapabilities);
       setRuntimeModSdkContextProvider(() => ({
         runtimeHost: runtimeHostCapabilities.runtime,
         runtime: runtimeHostCapabilities.runtime.getRuntimeHookRuntime(),

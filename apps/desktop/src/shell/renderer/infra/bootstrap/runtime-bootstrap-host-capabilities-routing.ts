@@ -4,6 +4,7 @@ import { createResolveRuntimeBinding } from './runtime-bootstrap-route-resolvers
 import { pickPreferredGoRuntimeModel } from './runtime-bootstrap-route-options';
 import { createNimiError } from '@nimiplatform/sdk/runtime';
 import { type ModRuntimeResolvedBinding, type RuntimeCanonicalCapability, type RuntimeLlmHealthResult, type RuntimeRouteBinding, type RuntimeRouteOptionsSnapshot } from "@nimiplatform/sdk/mod";
+import { normalizeLocalEngine, normalizeLocalModelRoot } from './runtime-bootstrap-utils';
 export function getRuntimeFieldsFromStore() {
     const runtime = useAppStore.getState().runtimeFields;
     return {
@@ -124,20 +125,6 @@ function localModelStatusPriority(status: string): number {
     if (normalized === 'removed')
         return 3;
     return 4;
-}
-function normalizeLocalModelRoot(value: unknown): string {
-    const trimmed = String(value || '').trim();
-    const lower = trimmed.toLowerCase();
-    if (lower.startsWith('localai/'))
-        return trimmed.slice('localai/'.length).trim();
-    if (lower.startsWith('nexa/'))
-        return trimmed.slice('nexa/'.length).trim();
-    if (lower.startsWith('local/'))
-        return trimmed.slice('local/'.length).trim();
-    return trimmed;
-}
-function normalizeLocalEngine(value: unknown): string {
-    return String(value || '').trim().toLowerCase() === 'nexa' ? 'nexa' : 'localai';
 }
 function pickDesktopLocalModel(models: LocalAiModelRecord[], resolved: ModRuntimeResolvedBinding): LocalAiModelRecord | null {
     const targetLocalModelId = String(resolved.localModelId || '').trim();
