@@ -5,18 +5,21 @@
 
 ## 0. 权威导入
 
-- `kernel/proto-governance-contract.md`（K-PROTO-001, K-PROTO-004, K-PROTO-006, K-PROTO-007, K-PROTO-009, K-PROTO-010）
+- `kernel/proto-governance-contract.md`（source authority：K-PROTO-001；generated integrity：K-PROTO-002；spec/proto boundary：K-PROTO-003；compatibility/reserved deletion：K-PROTO-004~005；kernel-first/fail-fast：K-PROTO-006, K-PROTO-008；pipeline/release/mapping：K-PROTO-007, K-PROTO-009~010）
 - `kernel/tables/runtime-proto-governance-gates.yaml`
 
 ## 1. 文档定位
 
 本文件只描述 proto 治理阅读路径，不在 domain 层复写 wire schema 细节。
 
-## 2. 变更顺序
+## 2. 阅读路径与变更顺序
 
-1. 先更新 kernel 语义合同。
-2. 再更新 `proto/runtime/v1/*.proto`。
-3. 最后验证 lint / generate / drift / spec linkage。
+1. proto source authority 与 generated artifact integrity：`kernel/proto-governance-contract.md`（K-PROTO-001, K-PROTO-002）。
+2. spec/proto boundary 与 compatibility policy：`kernel/proto-governance-contract.md`（K-PROTO-003, K-PROTO-004）。
+3. reserved deletion rule 与 kernel-first change order：`kernel/proto-governance-contract.md`（K-PROTO-005, K-PROTO-006）。
+4. command pipeline 与 fail-fast sequence：`kernel/proto-governance-contract.md`（K-PROTO-007, K-PROTO-008）。
+5. release gates 与 design/proto mapping：`kernel/proto-governance-contract.md`（K-PROTO-009, K-PROTO-010）。
+6. 实际变更顺序仍固定为：先更新 kernel 语义合同，再更新 `proto/runtime/v1/*.proto`，最后验证 lint / generate / drift / spec linkage。
 
 ## 3. 关联材料
 

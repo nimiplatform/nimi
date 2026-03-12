@@ -132,3 +132,11 @@ Runtime provider model/voice default data is maintained outside `spec/` at:
 ## 9. Scope 与 Deferred
 
 本目录覆盖 Runtime proto 全量服务。Phase 1 规则构成当前规范基线；Phase 2 kernel contracts 可先以 draft 形态并存，待语义收敛后再提升为规范基线。新增语义必须先入 kernel，再改 domain 与实现。
+
+## 10. 跨层信息引用约定
+
+Runtime kernel 合同中出现的 Desktop（`D-*`）或 SDK（`S-*`）Rule ID 默认用于记录消费方行为、集成上下文或跨层排障锚点。除非规则正文显式声明为共享 gate，此类引用均为信息性引用，不构成 Runtime 侧前置条件。
+
+- Runtime 行为与合规性不得依赖 Desktop/SDK 规则先成立。
+- Desktop/SDK 对自身规则合规性负责；Runtime 仅记录与其交互的消费方假设。
+- 跨层引用应保持说明性文字，例如“Desktop 端（D-SEC-009）始终使用 managed connector 路径”，不得把下游 Rule ID 写成 Runtime required gate。

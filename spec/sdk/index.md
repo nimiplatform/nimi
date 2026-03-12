@@ -45,7 +45,7 @@ mod                      (独立，通过 host 注入获取能力)
 
 | 阶段 | Domain | 说明 |
 |---|---|---|
-| Phase 1 (Active) | runtime, realm, ai-provider | 核心调用链已实现（含 ConnectorService 7 方法），spec 达到冻结就绪 |
-| Phase 2 (Active) | scope, mod | 领域约束已定义，API 面待补充 |
+| Phase 1 (Active) | runtime, realm, ai-provider | 核心调用链已实现，spec 达到冻结就绪 |
+| Phase 2 (Defined) | scope, mod | 领域约束已定义，API 面待补充 |
 
 > 此处 Phase 指 SDK 域级激活阶段。runtime 域内各服务有独立的服务级 phase 分类，见 `kernel/tables/runtime-method-groups.yaml`。

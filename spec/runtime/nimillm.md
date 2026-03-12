@@ -5,7 +5,7 @@
 
 ## 0. 权威导入
 
-- `kernel/nimillm-contract.md`（K-NIMI-001, K-NIMI-003, K-NIMI-006, K-NIMI-008, K-NIMI-010）
+- `kernel/nimillm-contract.md`（模块边界：K-NIMI-001；adapter/media job：K-NIMI-002, K-NIMI-004；model prefix 与 route visibility：K-NIMI-003, K-NIMI-008；security/audit/streaming：K-NIMI-005~007；unsupported modality：K-NIMI-009；availability/fallback：K-NIMI-010）
 - `kernel/rpc-surface.md`（K-RPC-002）
 - `kernel/key-source-routing.md`（K-KEYSRC-002, K-KEYSRC-004）
 - `kernel/endpoint-security.md`（K-SEC-001, K-SEC-004）
@@ -27,6 +27,9 @@
 3. 出站安全：`kernel/endpoint-security.md`。
 4. provider 值域与执行平面：`kernel/tables/provider-catalog.yaml` + `kernel/tables/provider-capabilities.yaml`。
 5. 流式与任务：`kernel/streaming-contract.md` + `kernel/scenario-job-lifecycle.md`。
+6. adapter layering 与 media job 责任边界：`kernel/nimillm-contract.md`（K-NIMI-002, K-NIMI-004）。
+7. endpoint/security delegation、audit alignment 与 unsupported modality：`kernel/nimillm-contract.md`（K-NIMI-005, K-NIMI-007, K-NIMI-009）。
+8. availability 与 fallback 边界：`kernel/nimillm-contract.md`（K-NIMI-010）。
 
 ## 3. 模块映射
 

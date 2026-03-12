@@ -5,7 +5,7 @@
 
 ## 0. 权威导入
 
-- `kernel/config-contract.md`（K-CFG-001, K-CFG-002, K-CFG-005, K-CFG-006, K-CFG-009）
+- `kernel/config-contract.md`（路径/优先级：K-CFG-001~002；schema/provider canonicalization：K-CFG-003~004；secret/write：K-CFG-005~006；command surface/validation：K-CFG-007~008；provider env：K-CFG-009；hot reload/credential plane：K-CFG-010~011；defaults/projection：K-CFG-012~013, K-CFG-017；migration：K-CFG-014~016）
 - `kernel/local-engine-contract.md`（K-LENG-004）
 - `kernel/daemon-lifecycle.md`（K-DAEMON-002, K-DAEMON-009）
 - `kernel/provider-health-contract.md`（K-PROV-005）
@@ -22,6 +22,10 @@
 3. daemon 配置装配：`kernel/daemon-lifecycle.md`。
 4. provider 命名约束：`kernel/provider-health-contract.md`。
 5. 错误映射：`kernel/error-model.md`。
+6. schema version 与 provider name canonicalization：`kernel/config-contract.md`（K-CFG-003, K-CFG-004）。
+7. runtime command surface、validation、hot reload 与 credential plane：`kernel/config-contract.md`（K-CFG-007~011）。
+8. default value governance、cross-layer projection 与 Phase 1 field authority：`kernel/config-contract.md`（K-CFG-012~013, K-CFG-017）。
+9. migration framework、执行语义与备份/drift 边界：`kernel/config-contract.md`（K-CFG-014~016）。
 
 ## 3. 模块映射
 

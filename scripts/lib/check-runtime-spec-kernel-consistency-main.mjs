@@ -175,6 +175,7 @@ checkKeySourceTruthTable();
 checkErrorMappingMatrix();
 checkRpcMigrationMapCoverage();
 checkDomainSection0ImportsCoveredInBody();
+checkDomainPrimaryRuleCoverage();
 checkConfigPathConsistency();
 checkConfigOverrideTraceabilityMain();
 checkProbeTargetProviderCoverage();
@@ -937,6 +938,39 @@ function checkDomainSection0ImportsCoveredInBody() {
   }
 }
 
+function checkDomainPrimaryRuleCoverage() {
+  const primaryMap = {
+    'spec/runtime/cli.md': { kernel: 'spec/runtime/kernel/cli-onboarding-contract.md', prefix: 'K-CLI' },
+    'spec/runtime/config.md': { kernel: 'spec/runtime/kernel/config-contract.md', prefix: 'K-CFG' },
+    'spec/runtime/connector.md': { kernel: 'spec/runtime/kernel/connector-contract.md', prefix: 'K-CONN' },
+    'spec/runtime/local-model.md': { kernel: 'spec/runtime/kernel/local-category-capability.md', prefix: 'K-LOCAL' },
+    'spec/runtime/multimodal-delivery-gates.md': { kernel: 'spec/runtime/kernel/delivery-gates-contract.md', prefix: 'K-GATE' },
+    'spec/runtime/multimodal-provider.md': { kernel: 'spec/runtime/kernel/multimodal-provider-contract.md', prefix: 'K-MMPROV' },
+    'spec/runtime/nimillm.md': { kernel: 'spec/runtime/kernel/nimillm-contract.md', prefix: 'K-NIMI' },
+    'spec/runtime/proto-governance.md': { kernel: 'spec/runtime/kernel/proto-governance-contract.md', prefix: 'K-PROTO' },
+  };
+
+  for (const [domainRel, { kernel: kernelRel, prefix }] of Object.entries(primaryMap)) {
+    const kernelContent = read(kernelRel);
+    const domainContent = read(domainRel);
+    const kernelRules = new Set(
+      [...kernelContent.matchAll(new RegExp(`^##\\s+(${prefix}-\\d{3}[a-z]?)\\b`, 'gmu'))]
+        .map((match) => match[1]),
+    );
+
+    if (kernelRules.size === 0) {
+      fail(`${kernelRel} must define at least one ${prefix}-* rule`);
+      continue;
+    }
+
+    const coveredRules = collectReferencedRuntimeRuleIds(domainContent, kernelRules);
+    const coverage = coveredRules.size / kernelRules.size;
+    if (coverage < 0.5) {
+      fail(`${domainRel} covers only ${coveredRules.size}/${kernelRules.size} (${Math.round(coverage * 100)}%) of ${prefix}-* rules from ${kernelRel}; minimum 50% required`);
+    }
+  }
+}
+
 function checkConfigPathConsistency() {
   // Detect ghost config.yaml paths in kernel markdown files
   const ghostPattern = /~\/\.nimi\/[^\s`]*config\.yaml/g;
@@ -1229,7 +1263,9 @@ function collectReferencedRuntimeRuleIds(content, kernelRuleSet) {
   const refs = new Set();
 
   for (const match of content.matchAll(/\bK-[A-Z]+-\d{3}[a-z]?\b/g)) {
-    refs.add(match[0]);
+    if (kernelRuleSet.has(match[0])) {
+      refs.add(match[0]);
+    }
   }
 
   for (const match of content.matchAll(/\b(K-[A-Z]+)-\*/g)) {
@@ -1241,7 +1277,7 @@ function collectReferencedRuntimeRuleIds(content, kernelRuleSet) {
     }
   }
 
-  for (const match of content.matchAll(/\b(K-[A-Z]+)-(\d{3})[–-](\d{3})\b/g)) {
+  for (const match of content.matchAll(/\b(K-[A-Z]+)-(\d{3})[~–-](\d{3})\b/g)) {
     const prefix = `${match[1]}-`;
     const start = Number.parseInt(match[2], 10);
     const end = Number.parseInt(match[3], 10);

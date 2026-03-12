@@ -5,7 +5,7 @@
 
 ## 0. 权威导入
 
-- `kernel/connector-contract.md`（K-CONN-001, K-CONN-002, K-CONN-004, K-CONN-006, K-CONN-012）
+- `kernel/connector-contract.md`（创建/托管：K-CONN-001~002；更新/删除：K-CONN-003~004；模型列表：K-CONN-005, K-CONN-007；探测：K-CONN-006；provider 域/owner：K-CONN-008~010, K-CONN-015；并发恢复：K-CONN-011~013；分页：K-CONN-014）
 - `kernel/rpc-surface.md`（K-RPC-007, K-RPC-008, K-RPC-009）
 - `kernel/authz-ownership.md`（K-AUTH-001, K-AUTH-004）
 - `kernel/key-source-routing.md`（K-KEYSRC-001, K-KEYSRC-004）
@@ -23,6 +23,9 @@
 2. 再读 RPC 外部面：`kernel/rpc-surface.md`。
 3. 然后读 ownership 与 key-source：`kernel/authz-ownership.md`、`kernel/key-source-routing.md`。
 4. 最后对齐 provider 能力事实源：`provider-catalog.yaml` + `provider-capabilities.yaml`。
+5. 模型列表、provider canonical domain 与 owner/audit 语义：`kernel/connector-contract.md`（K-CONN-005, K-CONN-007~010, K-CONN-015）。
+6. startup recovery、并发安全与 patch/update 语义：`kernel/connector-contract.md`（K-CONN-011~013）。
+7. 分页字段与删除补偿边界：`kernel/connector-contract.md`（K-CONN-004, K-CONN-014）。
 
 ## 3. 模块映射
 

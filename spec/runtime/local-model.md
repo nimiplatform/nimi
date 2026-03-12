@@ -6,7 +6,7 @@
 ## 0. 权威导入
 
 - `kernel/rpc-surface.md`（K-RPC-002）
-- `kernel/local-category-capability.md`（K-LOCAL-001, K-LOCAL-002）
+- `kernel/local-category-capability.md`（category/capability：K-LOCAL-001~004；install/lifecycle：K-LOCAL-005~006, K-LOCAL-009~016；三层抽象与绑定：K-LOCAL-007~008；adapter/routing：K-LOCAL-017~020；catalog/search：K-LOCAL-011, K-LOCAL-021~028；health recovery：K-LOCAL-022；audit/pagination：K-LOCAL-029~030）
 - `kernel/local-engine-contract.md`（K-LENG-001, K-LENG-011）
 - `kernel/multimodal-provider-contract.md`（K-MMPROV-016）
 - `kernel/device-profile-contract.md`（K-DEV-001）
@@ -27,6 +27,11 @@
 3. LocalAI 动态图片工作流与 extension 约束：`kernel/multimodal-provider-contract.md`。
 4. 流式事件语义：`kernel/streaming-contract.md`。
 5. 本地引擎与适配事实源：`kernel/tables/local-engine-catalog.yaml`、`kernel/tables/local-adapter-routing.yaml`。
+6. 模型三层抽象与安装生命周期：`kernel/local-category-capability.md`（K-LOCAL-007~016）。
+7. 适配路由与 `model_id` 前缀路由：`kernel/local-category-capability.md`（K-LOCAL-017~020）。
+8. catalog 搜索、HuggingFace 获取与存储布局：`kernel/local-category-capability.md`（K-LOCAL-011, K-LOCAL-021~028）。
+9. 审计扩展与分页边界：`kernel/local-category-capability.md`（K-LOCAL-029, K-LOCAL-030）。
+10. unhealthy 恢复策略：`kernel/local-category-capability.md`（K-LOCAL-022）。
 
 ## 3. 模块映射
 
