@@ -200,8 +200,8 @@ test('D-STRM-010: polling recovery timeout after max retries', async () => {
 
   startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
 
-  // Wait for all polls to exhaust (30 * ~1ms + margin)
-  await sleep(200);
+  // Allow enough headroom for 30 async polling turns plus event-loop scheduling.
+  await sleep(400);
 
   const state = getJobState(TEST_JOB);
   assert.equal(state.phase, 'recovery_timeout');

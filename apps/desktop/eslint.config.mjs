@@ -8,6 +8,7 @@ export default defineConfig([
   ...tseslint.configs.recommended,
   globalIgnores([
     'dist/**',
+    'src-tauri/resources/default-mods/**/dist/**',
     'src-tauri/target/**',
     'node_modules/**',
     '.corepack-cache/**',
