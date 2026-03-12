@@ -6,13 +6,9 @@ import type {
   ModShellStatusBannerInput,
   ModShellStatusBannerState,
 } from './internal/host-types.js';
-import {
-  useModSdkShellAuth,
-  useModSdkShellBootstrap,
-  useModSdkShellNavigation,
-  useModSdkShellRuntimeFields,
-  useModSdkShellStatusBanner,
-} from './internal/shell-access.js';
+import { createNimiError } from '../runtime/errors.js';
+import { ReasonCode } from '../types/index.js';
+import { getModSdkHost } from './host.js';
 
 export type {
   ModShellAuthState,
@@ -23,22 +19,35 @@ export type {
   ModShellStatusBannerState,
 };
 
+function requireShell() {
+  const shell = getModSdkHost().shell;
+  if (shell) {
+    return shell;
+  }
+  throw createNimiError({
+    message: 'mod SDK shell host is not ready',
+    reasonCode: ReasonCode.SDK_MOD_HOST_MISSING,
+    actionHint: 'ensure_mod_shell_host_initialized',
+    source: 'sdk',
+  });
+}
+
 export function useShellAuth(): ModShellAuthState {
-  return useModSdkShellAuth();
+  return requireShell().useAuth();
 }
 
 export function useShellBootstrap(): ModShellBootstrapState {
-  return useModSdkShellBootstrap();
+  return requireShell().useBootstrap();
 }
 
 export function useShellNavigation(): ModShellNavigationState {
-  return useModSdkShellNavigation();
+  return requireShell().useNavigation();
 }
 
 export function useShellRuntimeFields(): ModShellRuntimeFieldsState {
-  return useModSdkShellRuntimeFields();
+  return requireShell().useRuntimeFields();
 }
 
 export function useShellStatusBanner(): ModShellStatusBannerState {
-  return useModSdkShellStatusBanner();
+  return requireShell().useStatusBanner();
 }

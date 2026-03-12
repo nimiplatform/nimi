@@ -29,49 +29,13 @@
       "types": "./dist/ai-provider/index.d.ts",
       "default": "./dist/ai-provider/index.js"
     },
-    "./mod/hook": {
-      "types": "./dist/mod/hook/index.d.ts",
-      "default": "./dist/mod/hook/index.js"
-    },
-    "./mod/runtime": {
-      "types": "./dist/mod/runtime/index.d.ts",
-      "default": "./dist/mod/runtime/index.js"
-    },
-    "./mod/types": {
-      "types": "./dist/mod/types/index.d.ts",
-      "default": "./dist/mod/types/index.js"
+    "./mod": {
+      "types": "./dist/mod/index.d.ts",
+      "default": "./dist/mod/index.js"
     },
     "./mod/shell": {
       "types": "./dist/mod/shell.d.ts",
       "default": "./dist/mod/shell.js"
-    },
-    "./mod/logging": {
-      "types": "./dist/mod/logging.d.ts",
-      "default": "./dist/mod/logging.js"
-    },
-    "./mod/i18n": {
-      "types": "./dist/mod/i18n.d.ts",
-      "default": "./dist/mod/i18n.js"
-    },
-    "./mod/settings": {
-      "types": "./dist/mod/settings.d.ts",
-      "default": "./dist/mod/settings.js"
-    },
-    "./mod/utils": {
-      "types": "./dist/mod/utils/index.d.ts",
-      "default": "./dist/mod/utils/index.js"
-    },
-    "./mod/model-options": {
-      "types": "./dist/mod/model-options/index.d.ts",
-      "default": "./dist/mod/model-options/index.js"
-    },
-    "./mod/runtime-route": {
-      "types": "./dist/mod/runtime-route.d.ts",
-      "default": "./dist/mod/runtime-route.js"
-    },
-    "./mod/host": {
-      "types": "./dist/mod/host.d.ts",
-      "default": "./dist/mod/host.js"
     },
     "./mod/lifecycle": {
       "types": "./dist/mod/lifecycle.d.ts",

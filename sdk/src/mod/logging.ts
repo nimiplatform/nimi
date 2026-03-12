@@ -1,18 +1,14 @@
-import type { RendererLogMessage, RuntimeLogMessage } from './internal/host-types';
-import {
-  createModSdkRendererFlowId,
-  emitModSdkRendererEvent,
-  emitModSdkRuntimeLog,
-} from './internal/logging-access';
+import type { RendererLogMessage, RuntimeLogMessage } from './internal/host-types.js';
+import { getModSdkHost } from './host.js';
 
 export function emitRuntimeLog(payload: RuntimeLogMessage): void {
-  emitModSdkRuntimeLog(payload);
+  getModSdkHost().logging.emitRuntimeLog(payload);
 }
 
 export function createRendererFlowId(prefix: string): string {
-  return createModSdkRendererFlowId(prefix);
+  return getModSdkHost().logging.createRendererFlowId(prefix);
 }
 
 export function logRendererEvent(payload: RendererLogMessage): void {
-  emitModSdkRendererEvent(payload);
+  getModSdkHost().logging.logRendererEvent(payload);
 }
