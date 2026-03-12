@@ -4,14 +4,14 @@
 > Source: `spec/realm/kernel/tables/primitive-mapping-status.yaml`
 ## Mappings
 
-| Primitive | Code Anchor | Status | Gap | Source |
-|---|---|---|---|---|
-| `timeflow` | nimi-realm world timeflow domain services | `COVERED` | Contract mapping frozen in runtime/internal/protocol.ValidateTimeflowContract; graduation evidence recorded in primitive-graduation-log.yaml | `R-INTEROP-001` |
-| `social` | nimi-realm social + relationship domains | `PARTIAL` | 具备社交基础能力，但跨 World 映射与拒绝语义未形成统一 primitive 适配层 | `R-INTEROP-001` |
-| `economy` | nimi-realm economy + revenue-share domains | `COVERED` | Contract mapping frozen in runtime/internal/protocol.ValidateEconomyContract; graduation evidence recorded in primitive-graduation-log.yaml | `R-INTEROP-001` |
-| `transit` | nimi-realm world transit domain | `PARTIAL` | 有跨 world 迁移与配额逻辑，但状态模型/拒绝语义/跨原语一致性校验需补齐 | `R-INTEROP-001` |
-| `context` | nimi-realm world-context domain | `PARTIAL` | 已有 world context 数据能力，但 contextScope/injectionPriority/handoffPolicy 未统一 | `R-INTEROP-001` |
-| `presence` | nimi-realm user + discovery domains | `PARTIAL` | 有在线状态与可见性字段，但 heartbeat/ttl/device merge 规则未统一执行 | `R-INTEROP-001` |
+| Primitive | Platform Rule | Code Anchor | Status | Acceptance Gate | Gap | Source |
+|---|---|---|---|---|---|---|
+| `timeflow` | `P-PROTO-100` | nimi-realm world timeflow domain services | `COVERED` | tick/driftBudget/catchUpPolicy 三个协议字段完成统一合同层映射，且 contract test 已覆盖 | Contract mapping frozen in runtime/internal/protocol.ValidateTimeflowContract; graduation evidence recorded in primitive-graduation-log.yaml | `R-INTEROP-001` |
+| `social` | `P-PROTO-101` | nimi-realm social + relationship domains | `PARTIAL` | 跨 World 社交关系映射与拒绝语义完成统一 primitive 适配层，并补齐 contract test | 具备社交基础能力，但跨 World 映射与拒绝语义未形成统一 primitive 适配层 | `R-INTEROP-001` |
+| `economy` | `P-PROTO-102` | nimi-realm economy + revenue-share domains | `COVERED` | conservationRequired/settlementWindow 协议级验证点完成绑定，且 contract test 已覆盖 | Contract mapping frozen in runtime/internal/protocol.ValidateEconomyContract; graduation evidence recorded in primitive-graduation-log.yaml | `R-INTEROP-001` |
+| `transit` | `P-PROTO-103` | nimi-realm world transit domain | `PARTIAL` | 跨 world 迁移状态模型、拒绝语义、跨原语一致性校验完成统一，并补齐 contract test | 有跨 world 迁移与配额逻辑，但状态模型/拒绝语义/跨原语一致性校验需补齐 | `R-INTEROP-001` |
+| `context` | `P-PROTO-104` | nimi-realm world-context domain | `PARTIAL` | contextScope/injectionPriority/handoffPolicy 完成统一适配，并补齐 contract test | 已有 world context 数据能力，但 contextScope/injectionPriority/handoffPolicy 未统一 | `R-INTEROP-001` |
+| `presence` | `P-PROTO-105` | nimi-realm user + discovery domains | `PARTIAL` | heartbeat/ttl/device merge 规则完成统一执行，并补齐 contract test | 有在线状态与可见性字段，但 heartbeat/ttl/device merge 规则未统一执行 | `R-INTEROP-001` |
 
 ## Valid Statuses
 

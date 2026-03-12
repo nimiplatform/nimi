@@ -7,7 +7,7 @@ Every realm domain document must explicitly reference kernel Rule IDs; it must n
 
 ## Rule ID Format
 
-`R-<DOMAIN>-NNN`
+`R-<DOMAIN>-NNN[letter]`
 
 | Domain | Mnemonic | Kernel Document |
 |---|---|---|
@@ -17,6 +17,8 @@ Every realm domain document must explicitly reference kernel Rule IDs; it must n
 
 ## Numbering Convention
 
+- Base rule IDs use three digits (`R-BOUND-001`).
+- Lowercase suffixes are reserved for anchored subclauses that need independent evidence or acceptance tracking (`R-INTEROP-002a`).
 - 001–00x: domain invariants
 - 010–01x: first increment segment
 - 020–02x: second segment

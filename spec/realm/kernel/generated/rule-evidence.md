@@ -29,3 +29,4 @@
 | `R-ECON-040` | `covered` | `realm_kernel_consistency` |
 | `R-INTEROP-001` | `covered` | `realm_kernel_consistency` |
 | `R-INTEROP-002` | `covered` | `realm_kernel_consistency`, `realm_timeflow_contract_test`, `realm_economy_contract_test`, `runtime_compliance_gate` |
+| `R-INTEROP-002a` | `covered` | `realm_kernel_consistency`, `runtime_compliance_gate` |

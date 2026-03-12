@@ -225,16 +225,18 @@ function renderPrimitiveMappingStatus(doc, sourceName) {
   let out = header('Generated Primitive Mapping Status', sourceName);
 
   out += '## Mappings\n\n';
-  out += '| Primitive | Code Anchor | Status | Gap | Source |\n';
-  out += '|---|---|---|---|---|\n';
+  out += '| Primitive | Platform Rule | Code Anchor | Status | Acceptance Gate | Gap | Source |\n';
+  out += '|---|---|---|---|---|---|---|\n';
   for (const mapping of mappings) {
     const primitive = String(mapping?.primitive || '').trim();
+    const platformRule = String(mapping?.platform_rule || '').trim();
     const codeAnchor = String(mapping?.code_anchor || '').trim();
     const status = String(mapping?.status || '').trim();
+    const acceptanceGate = String(mapping?.acceptance_gate || '').trim();
     const gap = String(mapping?.gap || '').trim();
     const source = String(mapping?.source_rule || '').trim();
     if (!primitive) continue;
-    out += `| \`${primitive}\` | ${codeAnchor} | \`${status}\` | ${gap} | \`${source}\` |\n`;
+    out += `| \`${primitive}\` | \`${platformRule}\` | ${codeAnchor} | \`${status}\` | ${acceptanceGate} | ${gap} | \`${source}\` |\n`;
   }
 
   if (validStatuses.length > 0) {

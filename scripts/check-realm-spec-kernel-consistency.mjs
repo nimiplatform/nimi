@@ -5,6 +5,8 @@ import path from 'node:path';
 import YAML from 'yaml';
 
 const cwd = process.cwd();
+const REALM_RULE_ID_RE = /^R-[A-Z]{2,12}-\d{3}[a-z]?$/u;
+const PLATFORM_RULE_ID_RE = /^P-[A-Z]+-\d{3}[a-z]?$/u;
 
 let failed = false;
 
@@ -16,6 +18,14 @@ function fail(msg) {
 function readYaml(rel) {
   const content = fs.readFileSync(path.join(cwd, rel), 'utf8');
   return YAML.parse(content);
+}
+
+function realmRuleIdGlobalRe() {
+  return /\bR-[A-Z]{2,12}-\d{3}[a-z]?\b/gu;
+}
+
+function realmRuleHeadingRe() {
+  return /^##\s+(R-[A-Z]{2,12}-\d{3}[a-z]?)\b/gmu;
 }
 
 // --- Load tables ---
@@ -60,9 +70,9 @@ for (const boundary of boundaries) {
     }
   }
 
-  // Check source format: R-*-NNN
+  // Check source format: R-*-NNN[letter]
   const source = String(boundary?.source_rule || '').trim();
-  if (source && !/^R-[A-Z]{2,12}-\d{3}$/u.test(source)) {
+  if (source && !REALM_RULE_ID_RE.test(source)) {
     fail(`public-vocabulary.yaml ${domain}: invalid source_rule format: ${source}`);
   }
 }
@@ -109,7 +119,7 @@ for (const tier of tiers) {
 
   // Check source format
   const source = String(tier?.source_rule || '').trim();
-  if (source && !/^R-[A-Z]{2,12}-\d{3}$/u.test(source)) {
+  if (source && !REALM_RULE_ID_RE.test(source)) {
     fail(`creator-key-tiers.yaml tier ${tierKey}: invalid source_rule format: ${source}`);
   }
 }
@@ -146,7 +156,7 @@ for (const event of eventTypes) {
 
   // Check source format
   const source = String(event?.source_rule || '').trim();
-  if (source && !/^R-[A-Z]{2,12}-\d{3}$/u.test(source)) {
+  if (source && !REALM_RULE_ID_RE.test(source)) {
     fail(`revenue-event-types.yaml ${type}: invalid source_rule format: ${source}`);
   }
 }
@@ -183,7 +193,7 @@ for (const field of fields) {
 
   // Check source format
   const source = String(field?.source_rule || '').trim();
-  if (source && !/^R-[A-Z]{2,12}-\d{3}$/u.test(source)) {
+  if (source && !REALM_RULE_ID_RE.test(source)) {
     fail(`share-plan-fields.yaml ${name}: invalid source_rule format: ${source}`);
   }
 }
@@ -196,7 +206,7 @@ for (const rule of validationRules) {
   if (!ruleText) {
     fail('share-plan-fields.yaml: validation_rule entry missing rule text');
   }
-  if (source && !/^R-[A-Z]{2,12}-\d{3}$/u.test(source)) {
+  if (source && !REALM_RULE_ID_RE.test(source)) {
     fail(`share-plan-fields.yaml validation_rule: invalid source_rule format: ${source}`);
   }
 }
@@ -209,7 +219,7 @@ for (const ledger of ledgers) {
   if (!name) {
     fail('share-plan-fields.yaml: ledger entry missing name');
   }
-  if (source && !/^R-[A-Z]{2,12}-\d{3}$/u.test(source)) {
+  if (source && !REALM_RULE_ID_RE.test(source)) {
     fail(`share-plan-fields.yaml ledger ${name}: invalid source_rule format: ${source}`);
   }
 }
@@ -242,9 +252,21 @@ for (const mapping of mappings) {
     fail(`primitive-mapping-status.yaml ${primitive}: invalid status '${status}', valid: ${[...validStatuses].join(', ')}`);
   }
 
+  const platformRule = String(mapping?.platform_rule || '').trim();
+  if (!platformRule) {
+    fail(`primitive-mapping-status.yaml ${primitive}: missing required field: platform_rule`);
+  } else if (!PLATFORM_RULE_ID_RE.test(platformRule)) {
+    fail(`primitive-mapping-status.yaml ${primitive}: invalid platform_rule format: ${platformRule}`);
+  }
+
+  const acceptanceGate = String(mapping?.acceptance_gate || '').trim();
+  if (!acceptanceGate) {
+    fail(`primitive-mapping-status.yaml ${primitive}: missing required field: acceptance_gate`);
+  }
+
   // Check source format
   const source = String(mapping?.source_rule || '').trim();
-  if (source && !/^R-[A-Z]{2,12}-\d{3}$/u.test(source)) {
+  if (source && !REALM_RULE_ID_RE.test(source)) {
     fail(`primitive-mapping-status.yaml ${primitive}: invalid source_rule format: ${source}`);
   }
 }
@@ -294,9 +316,9 @@ for (const entry of Array.isArray(graduationLogTable?.entries) ? graduationLogTa
   if (source) allSourceRefs.add(source);
 }
 
-// Verify all references match R-*-NNN format
+// Verify all references match R-*-NNN[letter] format
 for (const ref of allSourceRefs) {
-  if (!/^R-[A-Z]{2,12}-\d{3}$/u.test(ref)) {
+  if (!REALM_RULE_ID_RE.test(ref)) {
     fail(`cross-table: invalid R-* rule ID format: ${ref}`);
   }
 }
@@ -350,6 +372,7 @@ for (const tier of tiers) {
 // ========================================================
 
 const platformPrimitivesPath = path.join(cwd, 'spec', 'platform', 'kernel', 'tables', 'protocol-primitives.yaml');
+const platformContractPath = path.join(cwd, 'spec', 'platform', 'kernel', 'protocol-contract.md');
 if (fs.existsSync(platformPrimitivesPath)) {
   const platformTable = readYaml('spec/platform/kernel/tables/protocol-primitives.yaml');
   const platformPrimitives = new Set(
@@ -369,6 +392,21 @@ if (fs.existsSync(platformPrimitivesPath)) {
   for (const rp of realmPrimitives) {
     if (!platformPrimitives.has(rp)) {
       fail(`primitive-mapping-status.yaml: realm primitive '${rp}' has no platform primitive definition`);
+    }
+  }
+}
+
+if (fs.existsSync(platformContractPath)) {
+  const platformContent = fs.readFileSync(platformContractPath, 'utf8');
+  const definedPlatformRules = new Set(
+    [...platformContent.matchAll(/^##\s+(P-[A-Z]+-\d{3}[a-z]?)\b/gmu)].map((match) => match[1])
+  );
+
+  for (const mapping of mappings) {
+    const primitive = String(mapping?.primitive || '').trim();
+    const platformRule = String(mapping?.platform_rule || '').trim();
+    if (primitive && platformRule && !definedPlatformRules.has(platformRule)) {
+      fail(`primitive-mapping-status.yaml ${primitive}: platform_rule references undefined Platform rule: ${platformRule}`);
     }
   }
 }
@@ -435,7 +473,7 @@ for (const mapping of mappings) {
 const domainDocsDir = path.join(cwd, 'spec', 'realm');
 const kernelContractsDir = path.join(cwd, 'spec', 'realm', 'kernel');
 
-// Collect all R-*-NNN rule IDs defined in kernel contracts
+// Collect all R-*-NNN[letter] rule IDs defined in kernel contracts
 const definedRuleIds = new Set();
 const kernelContractFiles = ['boundary-vocabulary-contract.md', 'economy-contract.md', 'interop-mapping-contract.md'];
 
@@ -443,7 +481,7 @@ for (const file of kernelContractFiles) {
   const filePath = path.join(kernelContractsDir, file);
   if (!fs.existsSync(filePath)) continue;
   const content = fs.readFileSync(filePath, 'utf8');
-  const ruleIdMatches = content.matchAll(/^##\s+(R-[A-Z]{2,12}-\d{3})\b/gmu);
+  const ruleIdMatches = content.matchAll(realmRuleHeadingRe());
   for (const match of ruleIdMatches) {
     definedRuleIds.add(match[1]);
   }
@@ -466,15 +504,15 @@ for (const file of domainDocFiles) {
   if (!/^##\s+0\.\s+Normative Imports\b/mu.test(content)) {
     fail(`${file}: must define Section 0 Normative Imports`);
   }
-  if (!/\bR-[A-Z]{2,12}-\d{3}\b/gu.test(content)) {
+  if (!realmRuleIdGlobalRe().test(content)) {
     fail(`${file}: must reference at least one realm kernel Rule ID`);
   }
-  if (/^##\s+R-[A-Z]{2,12}-\d{3}\b/gmu.test(content)) {
+  if (/^##\s+R-[A-Z]{2,12}-\d{3}[a-z]?\b/gmu.test(content)) {
     fail(`${file}: must not define kernel Rule IDs directly`);
   }
   checkNoLocalRuleIds(content, file);
   checkNoRuleDefinitionHeadings(content, file);
-  const ruleIdMatches = content.matchAll(/\bR-[A-Z]{2,12}-\d{3}\b/gu);
+  const ruleIdMatches = content.matchAll(realmRuleIdGlobalRe());
   for (const match of ruleIdMatches) {
     if (!definedRuleIds.has(match[0])) {
       fail(`${file}: references undefined rule ID: ${match[0]}`);
@@ -490,7 +528,7 @@ const economyContractPath = path.join(kernelContractsDir, 'economy-contract.md')
 if (fs.existsSync(economyContractPath)) {
   const economyContent = fs.readFileSync(economyContractPath, 'utf8');
   const economyHeadingRuleIds = new Set();
-  const headingMatches = economyContent.matchAll(/^## (R-ECON-\d{3})/gmu);
+  const headingMatches = economyContent.matchAll(/^## (R-ECON-\d{3}[a-z]?)\b/gmu);
   for (const match of headingMatches) {
     economyHeadingRuleIds.add(match[1]);
   }
@@ -606,7 +644,7 @@ function checkRuleEvidenceTraceability(definedRuleIds) {
     const status = String(item?.status || '').trim().toLowerCase();
     const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
     const naReason = String(item?.na_reason || '').trim();
-    if (!/^R-[A-Z]{2,12}-\d{3}$/u.test(ruleId)) {
+    if (!REALM_RULE_ID_RE.test(ruleId)) {
       fail(`${rel} has invalid rule_id format: ${ruleId || '<empty>'}`);
       continue;
     }
@@ -658,7 +696,7 @@ function checkOrphanRules(definedRuleIds, domainDocFiles) {
   for (const rel of files) {
     if (!fs.existsSync(path.join(cwd, rel))) continue;
     const content = fs.readFileSync(path.join(cwd, rel), 'utf8');
-    for (const match of content.matchAll(/\bR-[A-Z]{2,12}-\d{3}\b/g)) {
+    for (const match of content.matchAll(/\bR-[A-Z]{2,12}-\d{3}[a-z]?\b/g)) {
       refs.push(match[0]);
     }
   }

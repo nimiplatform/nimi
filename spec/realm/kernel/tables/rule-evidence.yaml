@@ -70,3 +70,6 @@ rules:
   - rule_id: R-INTEROP-002
     status: covered
     evidence_refs: [realm_kernel_consistency, realm_timeflow_contract_test, realm_economy_contract_test, runtime_compliance_gate]
+  - rule_id: R-INTEROP-002a
+    status: covered
+    evidence_refs: [realm_kernel_consistency, runtime_compliance_gate]
