@@ -8,6 +8,10 @@ Nimi welcomes third-party contributions across runtime, SDK, desktop, web, docs,
 - Onboarding: [`ONBOARDING.md`](../../ONBOARDING.md)
 - Security policy: [`SECURITY.md`](../../SECURITY.md)
 
+## Community
+
+Join our [Discord](https://discord.gg/BQwHJvPn) to ask questions, discuss ideas, and get help from the community.
+
 ## Contribution expectations
 
 - Keep changes scoped and contract-consistent.
