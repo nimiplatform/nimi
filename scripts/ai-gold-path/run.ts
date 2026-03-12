@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
 
 import { withRuntimeDaemon } from '../../sdk/test/runtime/contract/helpers/runtime-daemon.js';
+import { prepareNimiModsSdkSnapshot } from '../lib/prepare-nimi-mods-sdk.mjs';
 import {
   GOLD_REPORT_PATH,
   loadGoldFixture,
@@ -92,6 +93,30 @@ function failedLayer(error: unknown): LayerResult {
   };
 }
 
+function parseTrailingJson(stdout: string): Record<string, unknown> {
+  const normalized = String(stdout || '').trim();
+  if (!normalized) {
+    return {};
+  }
+  try {
+    return JSON.parse(normalized) as Record<string, unknown>;
+  } catch {
+    const lines = normalized.split(/\r?\n/);
+    for (let index = lines.length - 1; index >= 0; index -= 1) {
+      const candidate = lines.slice(index).join('\n').trim();
+      if (!candidate.startsWith('{')) {
+        continue;
+      }
+      try {
+        return JSON.parse(candidate) as Record<string, unknown>;
+      } catch {
+        continue;
+      }
+    }
+    throw new Error('invalid json output');
+  }
+}
+
 function runJsonCommand(command: string, args: string[], cwd: string): JsonCommandResult {
   const result = spawnSync(command, args, {
     cwd,
@@ -117,7 +142,7 @@ function runJsonCommand(command: string, args: string[], cwd: string): JsonComma
   try {
     return {
       ok: true,
-      value: JSON.parse(stdout || '{}') as Record<string, unknown>,
+      value: parseTrailingJson(stdout),
     };
   } catch (error) {
     return {
@@ -263,6 +288,14 @@ async function main(): Promise<void> {
     : loadGoldFixtures().filter((fixture) => !provider || fixture.provider.toLowerCase() === provider);
   if (fixtures.length === 0) {
     throw new Error(provider ? `no gold fixtures found for provider ${provider}` : 'no gold fixtures found');
+  }
+  if (fixtures.some((fixture) => supportsLocalChatLayer(fixture))) {
+    const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+    prepareNimiModsSdkSnapshot({
+      repoRoot,
+      env: process.env,
+      logPrefix: '[ai-gold-path]',
+    });
   }
   const records: FixtureRecord[] = [];
   for (const fixture of fixtures) {

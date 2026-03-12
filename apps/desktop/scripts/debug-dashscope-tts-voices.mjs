@@ -5,7 +5,7 @@ import { once } from 'node:events';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { Runtime } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk/runtime';
 
 const APP_ID = 'nimi.desktop.debug.dashscope-tts-voices';
 const SUBJECT_USER_ID = 'desktop-debug-user';

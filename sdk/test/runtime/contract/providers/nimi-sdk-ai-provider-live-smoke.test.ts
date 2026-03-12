@@ -69,15 +69,43 @@ function stepFunQuotaBlockMessage(provider: string, error: unknown): string {
   if (provider !== 'stepfun') {
     return '';
   }
-  const message = String((error as { message?: string } | undefined)?.message || error || '').toLowerCase();
+  const normalized = error as {
+    message?: string;
+    reasonCode?: string;
+    actionHint?: string;
+    code?: string;
+    cause?: {
+      message?: string;
+      reasonCode?: string;
+      actionHint?: string;
+      code?: string;
+    };
+  } | undefined;
+  const messageParts = [
+    normalized?.message,
+    normalized?.reasonCode,
+    normalized?.actionHint,
+    normalized?.code,
+    normalized?.cause?.message,
+    normalized?.cause?.reasonCode,
+    normalized?.cause?.actionHint,
+    normalized?.cause?.code,
+    error instanceof Error ? error.message : '',
+  ].filter(Boolean);
+  // 'stepfun' live smoke treats structured quota and rate-limit errors as skip-worthy provider blocks.
+  const message = messageParts.join(' ').toLowerCase();
   if (
     message.includes('quota_exceeded')
     || message.includes('exceeded your current quota')
     || message.includes('billing details')
     || message.includes('insufficient balance')
     || message.includes('available balance')
+    || message.includes('resourceexhausted')
+    || message.includes('resource exhausted')
+    || message.includes('ai_provider_rate_limited')
+    || message.includes('replenish_provider_balance_or_skip_live_test')
   ) {
-    return String((error as { message?: string } | undefined)?.message || error || '').trim();
+    return messageParts.join(' ').trim() || String(error || '').trim();
   }
   return '';
 }

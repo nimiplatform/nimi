@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { Runtime } from '@nimiplatform/sdk';
+import type { Runtime } from '@nimiplatform/sdk/runtime';
 import { ExecutionMode, ScenarioJobStatus, ScenarioType } from '@nimiplatform/sdk/runtime';
 import { runDesktopBridgeReplay } from '../src/runtime/llm-adapter/execution/replay.js';
 

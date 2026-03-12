@@ -278,11 +278,16 @@ func maybeSkipStepFunQuotaBlocked(t *testing.T, providerID string, err error, de
 	if err != nil {
 		message = strings.TrimSpace(message + " " + strings.ToLower(err.Error()))
 	}
+	// 'stepfun' live smoke treats quota and rate-limit responses as skip-worthy provider blocks.
 	if strings.Contains(message, "quota_exceeded") ||
 		strings.Contains(message, "exceeded your current quota") ||
 		strings.Contains(message, "billing details") ||
 		strings.Contains(message, "insufficient balance") ||
-		strings.Contains(message, "available balance") {
+		strings.Contains(message, "available balance") ||
+		strings.Contains(message, "resourceexhausted") ||
+		strings.Contains(message, "resource exhausted") ||
+		strings.Contains(message, "ai_provider_rate_limited") ||
+		strings.Contains(message, "replenish_provider_balance_or_skip_live_test") {
 		if err != nil {
 			t.Skipf("stepfun live smoke skipped due to provider quota block: %v", err)
 		}

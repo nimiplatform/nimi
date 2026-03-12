@@ -7,6 +7,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 import { buildMergedEnv } from './lib/live-env.mjs';
+import { prepareNimiModsSdkSnapshot } from './lib/prepare-nimi-mods-sdk.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const modsWorkspaceDir = path.join(repoRoot, 'nimi-mods');
@@ -23,6 +24,12 @@ if (!existsSync(modsWorkspaceDir) || !existsSync(localChatDir)) {
   process.stdout.write('[run-local-chat-live-smoke] skipped: optional nimi-mods/runtime/local-chat workspace not present\n');
   process.exit(0);
 }
+
+prepareNimiModsSdkSnapshot({
+  repoRoot,
+  env: liveEnv,
+  logPrefix: '[run-local-chat-live-smoke]',
+});
 
 const result = spawnSync(
   'pnpm',

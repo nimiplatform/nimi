@@ -1,4 +1,4 @@
-import { Runtime } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk/runtime';
 import { loadGoldFixture, loadGoldFixtureAudioInput } from '../../../../scripts/ai-gold-path/fixtures.mjs';
 import { runDesktopBridgeReplay } from '../../src/runtime/llm-adapter/execution/replay.js';
 
