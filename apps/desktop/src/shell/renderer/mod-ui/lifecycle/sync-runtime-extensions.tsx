@@ -8,6 +8,7 @@ import { runtimeSlotRegistry } from '@renderer/mod-ui/registry/slot-registry';
 import { RuntimeQueryPanel } from '@renderer/mod-ui/host/runtime-query-panel';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { i18n } from '@renderer/i18n';
+import { shouldMountRouteTab } from './route-lifecycle';
 
 const SLOT_ALLOWLIST = new Set<UiSlotId>([
   'auth.login.form.footer',
@@ -140,12 +141,18 @@ function summarizeModOpenFailureChain(input: {
   };
 }
 
-export function syncRuntimeUiExtensionsToRegistry(): {
+function syncRuntimeUiExtensions(options: {
+  targetModId?: string;
+} = {}): {
   slotCount: number;
   registrationCount: number;
 } {
   const hookRuntime = getRuntimeHookRuntime();
-  runtimeSlotRegistry.clearByPrefix('runtime-hook:');
+  if (options.targetModId) {
+    runtimeSlotRegistry.clearByModId(options.targetModId);
+  } else {
+    runtimeSlotRegistry.clearByPrefix('runtime-hook:');
+  }
 
   let registrationCount = 0;
   let slotCount = 0;
@@ -159,6 +166,9 @@ export function syncRuntimeUiExtensionsToRegistry(): {
 
     const entries = hookRuntime.resolveUIExtensions(rawSlot);
     entries.forEach((entry, index) => {
+      if (options.targetModId && entry.modId !== options.targetModId) {
+        return;
+      }
       const extension = normalizeExtension(entry);
       const extensionType = String(extension.type || '').trim();
       const extensionId = `runtime-hook:${slot}:${entry.modId}:${index}`;
@@ -279,8 +289,7 @@ export function syncRuntimeUiExtensionsToRegistry(): {
               modId: string;
             }>;
             const active = context.activeTab === tabId;
-            const keepMounted = context.isModTabOpen(tabId as `mod:${string}`);
-            if (!active && !keepMounted) {
+            if (!shouldMountRouteTab(tabId, context.activeTab, useAppStore.getState().modWorkspaceTabs)) {
               return null;
             }
 
@@ -290,6 +299,7 @@ export function syncRuntimeUiExtensionsToRegistry(): {
                   className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
                   style={active ? undefined : { display: 'none' }}
                   aria-hidden={!active}
+                  data-lifecycle-state={context.getModLifecycleState(tabId as `mod:${string}`)}
                 >
                   <Component extensionId={extensionId} modId={entry.modId} />
                 </div>
@@ -339,4 +349,29 @@ export function syncRuntimeUiExtensionsToRegistry(): {
     slotCount,
     registrationCount,
   };
+}
+
+export function syncRuntimeUiExtensionsToRegistry(): {
+  slotCount: number;
+  registrationCount: number;
+} {
+  return syncRuntimeUiExtensions();
+}
+
+/**
+ * Re-sync UI extensions for a single mod without rebuilding the entire registry.
+ * Clears only the target mod's registrations then re-registers from the hook runtime.
+ */
+export function syncSingleModUiExtensions(targetModId: string): {
+  registrationCount: number;
+} {
+  const { registrationCount } = syncRuntimeUiExtensions({ targetModId });
+  logRendererEvent({
+    level: 'info',
+    area: 'mod-ui',
+    message: 'action:mod-ui-sync-single-mod-extensions:done',
+    details: { modId: targetModId, registrationCount },
+  });
+
+  return { registrationCount };
 }

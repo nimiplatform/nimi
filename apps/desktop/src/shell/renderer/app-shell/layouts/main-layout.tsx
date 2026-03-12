@@ -5,9 +5,12 @@ import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 import { logoutAndClearSession } from '@renderer/features/auth/logout';
 import { useChatRealtimeSync } from '@renderer/features/realtime/use-chat-realtime-sync';
+import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { MainLayoutView } from './main-layout-view';
 
 const MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX = 92;
+
+let tabSwitchPending: { fromTab: string; toTab: string; startMs: number } | null = null;
 
 export function MainLayout() {
   const flags = getShellFeatureFlags();
@@ -39,6 +42,19 @@ export function MainLayout() {
     }
   }, [activeTab, flags, setActiveTab]);
 
+  useEffect(() => {
+    if (!tabSwitchPending || tabSwitchPending.toTab !== activeTab) return;
+    const costMs = Number((performance.now() - tabSwitchPending.startMs).toFixed(2));
+    logRendererEvent({
+      level: 'info',
+      area: 'shell',
+      message: 'action:tab-switch:committed',
+      costMs,
+      details: { fromTab: tabSwitchPending.fromTab, toTab: tabSwitchPending.toTab },
+    });
+    tabSwitchPending = null;
+  }, [activeTab]);
+
   const onLogout = async () => {
     await logoutAndClearSession({
       clearAuthSession,
@@ -49,6 +65,7 @@ export function MainLayout() {
   const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
 
   const onNav = (tabId: string) => {
+    tabSwitchPending = { fromTab: activeTab, toTab: tabId, startMs: performance.now() };
     if (tabId === 'profile') {
       setSelectedProfileId(null);
     }

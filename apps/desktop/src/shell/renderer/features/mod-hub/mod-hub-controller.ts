@@ -17,6 +17,7 @@ import { resolveModTabId } from '@renderer/mod-ui/lifecycle/sync-runtime-extensi
 import {
   refreshRuntimeManifestSummaries,
   syncRuntimeModShellState,
+  syncSingleRuntimeModShellState,
 } from '@renderer/mod-ui/lifecycle/runtime-mod-shell-state';
 import { removeRuntimeModStyles } from '@renderer/mod-ui/lifecycle/runtime-mod-styles';
 import { retryRuntimeMod } from '@renderer/mod-ui/host/retry-runtime-mod';
@@ -495,7 +496,7 @@ export function useModHubPageModel(): ModHubPageModel {
         appStore.runtimeModFailures.filter((item) => item.modId !== normalizedModId),
       );
       appStore.clearRuntimeModFuse(normalizedModId);
-      await syncRuntimeModShellState();
+      await syncSingleRuntimeModShellState(normalizedModId);
       appStore.setStatusBanner({
         kind: 'success',
         message: `Mod ${normalizedModId} 已启用`,
@@ -511,7 +512,7 @@ export function useModHubPageModel(): ModHubPageModel {
       appStore.setRuntimeModDisabledIds(withAddedModId(appStore.runtimeModDisabledIds, normalizedModId));
       unregisterRuntimeMods([normalizedModId]);
       removeRuntimeModStyles(normalizedModId);
-      await syncRuntimeModShellState();
+      await syncSingleRuntimeModShellState(normalizedModId);
       if (appStore.activeTab === modTabId) {
         appStore.setActiveTab('mods');
       }
@@ -534,7 +535,7 @@ export function useModHubPageModel(): ModHubPageModel {
       await desktopBridge.uninstallRuntimeMod(normalizedModId);
       appStore.setRuntimeModUninstalledIds(withAddedModId(appStore.runtimeModUninstalledIds, normalizedModId));
       const refreshedManifests = await refreshRuntimeManifestSummaries();
-      await syncRuntimeModShellState(refreshedManifests);
+      await syncSingleRuntimeModShellState(normalizedModId, refreshedManifests);
       appStore.setRuntimeModFailures(
         appStore.runtimeModFailures.filter((item) => item.modId !== normalizedModId),
       );
@@ -560,7 +561,6 @@ export function useModHubPageModel(): ModHubPageModel {
         runtimeModDisabledIds: appStore.runtimeModDisabledIds,
         runtimeModUninstalledIds: appStore.runtimeModUninstalledIds,
         setRuntimeModFailures: appStore.setRuntimeModFailures,
-        setRegisteredRuntimeModIds: appStore.setRegisteredRuntimeModIds,
         setStatusBanner: (banner) => {
           appStore.setStatusBanner(banner);
         },

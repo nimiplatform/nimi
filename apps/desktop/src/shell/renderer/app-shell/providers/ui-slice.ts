@@ -45,7 +45,11 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     setOfflineTier: (tier) => set({ offlineTier: tier }),
     setBootstrapReady: (ready) => set({ bootstrapReady: ready }),
     setBootstrapError: (message) => set({ bootstrapError: message }),
-    setActiveTab: (tab) => set({ activeTab: tab }),
+    setActiveTab: (tab) => {
+      startTransition(() => {
+        set({ activeTab: tab });
+      });
+    },
     setSelectedChatId: (chatId) => set({ selectedChatId: chatId }),
     setSelectedProfileId: (profileId) => set({ selectedProfileId: profileId }),
     setSelectedProfileIsAgent: (isAgent) => set({ selectedProfileIsAgent: isAgent }),

@@ -7,8 +7,8 @@ import {
 } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { listRegisteredRuntimeModIds } from '@runtime/mod';
-import { syncRuntimeModStyles } from './runtime-mod-styles';
-import { syncRuntimeUiExtensionsToRegistry } from './sync-runtime-extensions';
+import { syncRuntimeModStyles, syncSingleRuntimeModStyles } from './runtime-mod-styles';
+import { syncRuntimeUiExtensionsToRegistry, syncSingleModUiExtensions } from './sync-runtime-extensions';
 
 export async function refreshRuntimeModDeveloperHostState(): Promise<{
   manifests: RuntimeLocalManifestSummary[];
@@ -51,4 +51,19 @@ export async function syncRuntimeModShellState(
   });
   syncRuntimeUiExtensionsToRegistry();
   return registeredRuntimeModIds;
+}
+
+/**
+ * Re-sync shell state for a single mod without rebuilding all UI extensions.
+ * Used by retry and targeted reload flows to avoid full registry rebuild.
+ */
+export async function syncSingleRuntimeModShellState(
+  targetModId: string,
+  manifests: RuntimeLocalManifestSummary[] = useAppStore.getState().localManifestSummaries,
+): Promise<void> {
+  const registeredRuntimeModIds = listRegisteredRuntimeModIds();
+  const appStore = useAppStore.getState();
+  appStore.setRegisteredRuntimeModIds(registeredRuntimeModIds);
+  await syncSingleRuntimeModStyles(targetModId, manifests, registeredRuntimeModIds);
+  syncSingleModUiExtensions(targetModId);
 }

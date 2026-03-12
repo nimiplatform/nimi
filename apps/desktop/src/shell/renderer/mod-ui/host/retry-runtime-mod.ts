@@ -10,7 +10,7 @@ import {
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
 import { i18n } from '@renderer/i18n';
-import { syncRuntimeModShellState } from '@renderer/mod-ui/lifecycle/runtime-mod-shell-state';
+import { syncSingleRuntimeModShellState } from '@renderer/mod-ui/lifecycle/runtime-mod-shell-state';
 
 function safeErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || '');
@@ -23,7 +23,6 @@ type RetryRuntimeModInput = {
   runtimeModDisabledIds: string[];
   runtimeModUninstalledIds: string[];
   setRuntimeModFailures: (failures: RuntimeModRegisterFailure[]) => void;
-  setRegisteredRuntimeModIds: (modIds: string[]) => void;
   setStatusBanner: (banner: StatusBanner) => void;
 };
 
@@ -100,8 +99,7 @@ export async function retryRuntimeMod(input: RetryRuntimeModInput): Promise<void
     failures.push(...sideloadDiscoverFailures);
 
     input.setRuntimeModFailures(failures);
-    const registeredRuntimeModIds = await syncRuntimeModShellState(input.localManifestSummaries);
-    input.setRegisteredRuntimeModIds(registeredRuntimeModIds);
+    await syncSingleRuntimeModShellState(normalizedModId, input.localManifestSummaries);
 
     const failed = failures.find((item) => item.modId === normalizedModId);
     if (failed) {

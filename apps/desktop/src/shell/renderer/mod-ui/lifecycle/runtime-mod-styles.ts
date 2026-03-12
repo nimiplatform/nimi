@@ -59,6 +59,40 @@ async function injectRuntimeModStyles(manifest: RuntimeLocalManifestSummary): Pr
 
   if (nextStyles.length > 0) {
     injectedStylesByModId.set(modId, nextStyles);
+    logRendererEvent({
+      level: 'info',
+      area: 'mod-ui',
+      message: 'runtime-mod-style:injected',
+      details: {
+        modId,
+        styleCount: nextStyles.length,
+      },
+    });
+  }
+}
+
+/**
+ * Remove orphaned <style data-runtime-mod-id> elements in document.head
+ * that are not tracked by the in-memory registry.
+ */
+function cleanOrphanedModStyles(): void {
+  if (typeof document === 'undefined') return;
+  const orphans = document.head.querySelectorAll<HTMLStyleElement>('style[data-runtime-mod-id]');
+  for (const el of orphans) {
+    const modId = el.dataset.runtimeModId || '';
+    const tracked = injectedStylesByModId.get(modId);
+    if (!tracked || !tracked.includes(el)) {
+      el.remove();
+      logRendererEvent({
+        level: 'warn',
+        area: 'mod-ui',
+        message: 'runtime-mod-style:orphan-removed',
+        details: {
+          modId,
+          path: el.dataset.runtimeModPath || '',
+        },
+      });
+    }
   }
 }
 
@@ -79,6 +113,29 @@ export async function syncRuntimeModStyles(input: {
       removeRuntimeModStyles(modId);
       continue;
     }
+    await injectRuntimeModStyles(manifest);
+  }
+
+  cleanOrphanedModStyles();
+}
+
+/**
+ * Re-sync styles for a single mod without touching other mods' styles.
+ */
+export async function syncSingleRuntimeModStyles(
+  targetModId: string,
+  manifests: RuntimeLocalManifestSummary[],
+  activeModIds: string[],
+): Promise<void> {
+  const normalizedTarget = normalizeModId(targetModId);
+  if (!normalizedTarget) return;
+  const isActive = activeModIds.some((id) => normalizeModId(id) === normalizedTarget);
+  if (!isActive) {
+    removeRuntimeModStyles(normalizedTarget);
+    return;
+  }
+  const manifest = manifests.find((m) => normalizeModId(m.id) === normalizedTarget);
+  if (manifest) {
     await injectRuntimeModStyles(manifest);
   }
 }

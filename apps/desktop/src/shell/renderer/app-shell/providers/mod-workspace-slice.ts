@@ -1,3 +1,4 @@
+import { startTransition } from 'react';
 import type { AppStoreSet, AppStoreState } from './store-types';
 import {
   loadRuntimeModLifecycleState,
@@ -43,6 +44,7 @@ type ModWorkspaceSlice = Pick<AppStoreState,
   | 'setRuntimeModSettings'
   | 'openModWorkspaceTab'
   | 'closeModWorkspaceTab'
+  | 'touchModWorkspaceTab'
   | 'markRuntimeModFused'
   | 'clearRuntimeModFuse'
   | 'setRuntimeModFailures'
@@ -112,32 +114,37 @@ export function createModWorkspaceSlice(set: AppStoreSet): ModWorkspaceSlice {
           runtimeModSettingsById: nextRuntimeModSettingsById,
         };
       }),
-    openModWorkspaceTab: (tabId, title, modId) =>
-      set((state) => {
-        const existing = state.modWorkspaceTabs.find((tab) => tab.tabId === tabId);
-        if (existing) {
+    openModWorkspaceTab: (tabId, title, modId) => {
+      startTransition(() => {
+        set((state) => {
+          const now = Date.now();
+          const existing = state.modWorkspaceTabs.find((tab) => tab.tabId === tabId);
+          if (existing) {
+            return {
+              activeTab: tabId,
+              modWorkspaceTabs: state.modWorkspaceTabs.map((tab) => (
+                tab.tabId === tabId
+                  ? { ...tab, title, modId, lastAccessedAt: now }
+                  : tab
+              )),
+            };
+          }
           return {
             activeTab: tabId,
-            modWorkspaceTabs: state.modWorkspaceTabs.map((tab) => (
-              tab.tabId === tabId
-                ? { ...tab, title, modId }
-                : tab
-            )),
+            modWorkspaceTabs: [
+              ...state.modWorkspaceTabs,
+              {
+                tabId,
+                modId,
+                title,
+                fused: Boolean(state.fusedRuntimeMods[modId]),
+                lastAccessedAt: now,
+              },
+            ],
           };
-        }
-        return {
-          activeTab: tabId,
-          modWorkspaceTabs: [
-            ...state.modWorkspaceTabs,
-            {
-              tabId,
-              modId,
-              title,
-              fused: Boolean(state.fusedRuntimeMods[modId]),
-            },
-          ],
-        };
-      }),
+        });
+      });
+    },
     closeModWorkspaceTab: (tabId) =>
       set((state) => {
         const nextTabs = state.modWorkspaceTabs.filter((tab) => tab.tabId !== tabId);
@@ -148,6 +155,17 @@ export function createModWorkspaceSlice(set: AppStoreSet): ModWorkspaceSlice {
         return {
           modWorkspaceTabs: nextTabs,
           activeTab: fallback,
+        };
+      }),
+    touchModWorkspaceTab: (tabId) =>
+      set((state) => {
+        const now = Date.now();
+        const found = state.modWorkspaceTabs.some((tab) => tab.tabId === tabId);
+        if (!found) return {};
+        return {
+          modWorkspaceTabs: state.modWorkspaceTabs.map((tab) => (
+            tab.tabId === tabId ? { ...tab, lastAccessedAt: now } : tab
+          )),
         };
       }),
     markRuntimeModFused: (modId, error, reason) =>

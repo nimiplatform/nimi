@@ -66,6 +66,16 @@ export class SlotRegistry {
     }
   }
 
+  clearByModId(modId: string): void {
+    for (const map of this.slots.values()) {
+      for (const reg of map.values()) {
+        if (reg.modId === modId) {
+          map.delete(reg.extensionId);
+        }
+      }
+    }
+  }
+
   listSlots(): UiSlotId[] {
     return Array.from(this.slots.keys());
   }
