@@ -49,14 +49,14 @@ Runtime 和 Realm 均不可达时的行为规则：
 - Realm 重连成功后立即触发 outbox flush（D-DSYNC-003）。
 - 冲突解决策略：Last-Write-Wins（LWW）based on server timestamp。
 - outbox 消息发送失败（非网络原因）时标记为 `failed`，不重试，向用户展示失败原因。
-- Runtime 重连成功后重新初始化 SDK session（D-BOOT-004 re-bootstrap）。
+- Runtime 重连成功后重新初始化 SDK session（D-BOOT-004 re-bootstrap），遵循 `S-RUNTIME-070` session recovery 协议执行 `connect()` + `OpenSession()`。
 
 ## D-OFFLINE-005 — 本地缓存策略
 
 - 聊天历史：最近 50 条消息/会话，最近 20 个会话。
 - Agent/World 元数据：用户已访问的 agent/world profile 缓存。
 - 模型列表：已安装模型的 manifest 缓存。
-- 缓存使用 IndexedDB 存储，受 D-SEC-003 安全约束。
+- 缓存使用 IndexedDB 存储。
 - 缓存无 TTL 自动过期；在线时通过 Realm 增量同步更新。
 
 **存储拓扑**:
@@ -67,4 +67,4 @@ Runtime 和 Realm 均不可达时的行为规则：
 ## Fact Sources
 
 - `tables/ipc-commands.yaml` — IPC 命令清单
-- Cross-reference: D-BOOT-012, D-DSYNC-003, D-NET-006, D-NET-007, D-SEC-003
+- Cross-reference: D-BOOT-012, D-DSYNC-003, D-NET-006, D-NET-007

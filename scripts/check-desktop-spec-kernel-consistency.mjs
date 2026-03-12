@@ -160,9 +160,25 @@ checkNoKernelRuleDefinitionsInDomainDocs();
 
 checkRuleIdReferencesResolvable();
 
-// ── Check 15: Cross-domain K-* references exist in Runtime spec ──
+// ── Check 15: Cross-domain upstream rule references exist in Runtime/SDK spec ──
 
-checkCrossDomainKRuleReferences();
+checkCrossDomainRuleReferences(
+  kernelFiles.filter((f) => f.endsWith('.md') && !f.includes('/generated/')),
+  [
+    {
+      label: 'Runtime',
+      dir: 'spec/runtime/kernel',
+      headingPattern: /^##\s+(K-[A-Z]+-\d{3}[a-z]?)\b/gmu,
+      refPattern: /\bK-[A-Z]+-\d{3}[a-z]?\b/gu,
+    },
+    {
+      label: 'SDK',
+      dir: 'spec/sdk/kernel',
+      headingPattern: /^##\s+(S-[A-Z]+-\d{3}[a-z]?)\b/gmu,
+      refPattern: /\bS-[A-Z]+-\d{3}[a-z]?\b/gu,
+    },
+  ],
+);
 
 // ── Check 16: D-ERR-007 critical ReasonCode coverage ──
 
@@ -585,40 +601,30 @@ function checkRuleIdReferencesResolvable() {
   }
 }
 
-function checkCrossDomainKRuleReferences() {
-  // Collect all K-* Rule ID definitions from Runtime kernel spec
-  const runtimeKernelDir = path.join(cwd, 'spec/runtime/kernel');
-  if (!fs.existsSync(runtimeKernelDir)) return;
+function checkCrossDomainRuleReferences(files, targets) {
+  for (const target of targets) {
+    const targetDir = path.join(cwd, target.dir);
+    if (!fs.existsSync(targetDir)) continue;
 
-  const runtimeRuleDefinitions = new Set();
-  const runtimeMdFiles = fs.readdirSync(runtimeKernelDir)
-    .filter((f) => f.endsWith('.md') && !f.startsWith('generated'))
-    .map((f) => path.join(runtimeKernelDir, f));
-
-  for (const filePath of runtimeMdFiles) {
-    const content = fs.readFileSync(filePath, 'utf8');
-    const headingPattern = /^##\s+(K-[A-Z]+-\d{3})\b/gm;
-    let match;
-    while ((match = headingPattern.exec(content)) !== null) {
-      runtimeRuleDefinitions.add(match[1]);
+    const definitions = new Set();
+    for (const name of fs.readdirSync(targetDir).filter((entry) => entry.endsWith('.md'))) {
+      const filePath = path.join(targetDir, name);
+      if (!fs.statSync(filePath).isFile()) continue;
+      const content = fs.readFileSync(filePath, 'utf8');
+      for (const match of content.matchAll(target.headingPattern)) {
+        definitions.add(match[1]);
+      }
     }
-  }
+    if (definitions.size === 0) continue;
 
-  if (runtimeRuleDefinitions.size === 0) return; // No runtime spec to check against
-
-  // Check Desktop kernel files for K-* references
-  const kRefPattern = /\bK-[A-Z]+-\d{3}\b/g;
-  const kernelMdFiles = kernelFiles.filter(
-    (f) => f.endsWith('.md') && !f.includes('/generated/'),
-  );
-
-  for (const rel of kernelMdFiles) {
-    if (!fileExists(rel)) continue;
-    const content = read(rel);
-    const refs = new Set([...content.matchAll(kRefPattern)].map((m) => m[0]));
-    for (const ref of refs) {
-      if (!runtimeRuleDefinitions.has(ref)) {
-        fail(`${rel} references undefined Runtime Rule ID: ${ref}`);
+    for (const rel of files) {
+      const filePath = path.join(cwd, rel);
+      if (!fs.existsSync(filePath)) continue;
+      const content = fs.readFileSync(filePath, 'utf8');
+      for (const ref of new Set([...content.matchAll(target.refPattern)].map((match) => match[0]))) {
+        if (!definitions.has(ref)) {
+          fail(`${rel} references undefined ${target.label} Rule ID: ${ref}`);
+        }
       }
     }
   }
