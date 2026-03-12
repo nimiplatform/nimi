@@ -21,7 +21,7 @@ func TestResolveLocalAIImageProfileInjectsDynamicComponents(t *testing.T) {
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetLocalAIRegistrationConfig(modelsRoot, "", false)
 
-	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K.gguf")
+	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K_M.gguf")
 	if err := os.MkdirAll(filepath.Dir(mainModelPath), 0o755); err != nil {
 		t.Fatalf("mkdir main model dir: %v", err)
 	}
@@ -46,7 +46,7 @@ func TestResolveLocalAIImageProfileInjectsDynamicComponents(t *testing.T) {
 		ModelId:      "z_image_turbo",
 		Capabilities: []string{"image"},
 		Engine:       "localai",
-		Entry:        "z_image_turbo-Q4_K.gguf",
+		Entry:        "z_image_turbo-Q4_K_M.gguf",
 		EngineConfig: engineConfig,
 	})
 	if err != nil {
@@ -56,7 +56,7 @@ func TestResolveLocalAIImageProfileInjectsDynamicComponents(t *testing.T) {
 	svc.models[modelResp.GetModel().GetLocalModelId()].Status = runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE
 	svc.mu.Unlock()
 
-	vaePath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_ae"), "ae.safetensors")
+	vaePath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_ae"), "vae", "diffusion_pytorch_model.safetensors")
 	if err := os.MkdirAll(filepath.Dir(vaePath), 0o755); err != nil {
 		t.Fatalf("mkdir vae dir: %v", err)
 	}
@@ -68,7 +68,7 @@ func TestResolveLocalAIImageProfileInjectsDynamicComponents(t *testing.T) {
 		ArtifactId:      "z_image_ae",
 		Kind:            runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
 		Engine:          "localai",
-		Entry:           "ae.safetensors",
+		Entry:           "vae/diffusion_pytorch_model.safetensors",
 		Status:          runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_INSTALLED,
 		Source:          &runtimev1.LocalArtifactSource{},
 	})
@@ -119,14 +119,14 @@ func TestResolveLocalAIImageProfileInjectsDynamicComponents(t *testing.T) {
 	if profile["name"] != alias {
 		t.Fatalf("profile name mismatch: got=%v want=%s", profile["name"], alias)
 	}
-	if got := valueAsString(valueAsObject(profile["parameters"])["model"]); got != "z-image-turbo/z_image_turbo-Q4_K.gguf" {
+	if got := valueAsString(valueAsObject(profile["parameters"])["model"]); got != "z-image-turbo/z_image_turbo-Q4_K_M.gguf" {
 		t.Fatalf("unexpected model parameter: %q", got)
 	}
 	options := valueAsStringSlice(profile["options"])
 	if !containsString(options, "llm_path:qwen3-4b-companion/Qwen3-4B-Q4_K_M.gguf") {
 		t.Fatalf("expected llm_path option, got=%v", options)
 	}
-	if !containsString(options, "vae_path:z-image-ae/ae.safetensors") {
+	if !containsString(options, "vae_path:z-image-ae/vae/diffusion_pytorch_model.safetensors") {
 		t.Fatalf("expected vae_path option, got=%v", options)
 	}
 	if containsString(options, "vae_path:old.safetensors") {
@@ -148,7 +148,7 @@ func TestResolveLocalAIImageProfileRejectsPathOverrides(t *testing.T) {
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetLocalAIRegistrationConfig(modelsRoot, "", false)
 
-	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K.gguf")
+	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K_M.gguf")
 	if err := os.MkdirAll(filepath.Dir(mainModelPath), 0o755); err != nil {
 		t.Fatalf("mkdir main model dir: %v", err)
 	}
@@ -165,7 +165,7 @@ func TestResolveLocalAIImageProfileRejectsPathOverrides(t *testing.T) {
 		ModelId:      "z_image_turbo",
 		Capabilities: []string{"image"},
 		Engine:       "localai",
-		Entry:        "z_image_turbo-Q4_K.gguf",
+		Entry:        "z_image_turbo-Q4_K_M.gguf",
 		EngineConfig: engineConfig,
 	})
 	if err != nil {
@@ -193,7 +193,7 @@ func TestResolveLocalAIImageProfileRejectsMissingComponents(t *testing.T) {
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetLocalAIRegistrationConfig(modelsRoot, "", false)
 
-	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K.gguf")
+	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K_M.gguf")
 	if err := os.MkdirAll(filepath.Dir(mainModelPath), 0o755); err != nil {
 		t.Fatalf("mkdir main model dir: %v", err)
 	}
@@ -210,7 +210,7 @@ func TestResolveLocalAIImageProfileRejectsMissingComponents(t *testing.T) {
 		ModelId:      "z_image_turbo",
 		Capabilities: []string{"image"},
 		Engine:       "localai",
-		Entry:        "z_image_turbo-Q4_K.gguf",
+		Entry:        "z_image_turbo-Q4_K_M.gguf",
 		EngineConfig: engineConfig,
 	})
 	if err != nil {

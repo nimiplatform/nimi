@@ -29,6 +29,7 @@ import {
   FolderOpenIcon,
   formatArtifactKindLabel,
   HeartPulseIcon,
+  isRecommendedDescriptor,
   type ArtifactTaskEntry,
   RefreshIcon,
   StarIcon,
@@ -407,6 +408,11 @@ export function LocalModelCenterVerifiedArtifactsSection(props: VerifiedArtifact
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <p className="truncate text-sm font-medium text-gray-900">{artifact.title}</p>
+                    {isRecommendedDescriptor(artifact.tags) ? (
+                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">
+                        {i18n.t('runtimeConfig.localModelCenter.recommended', { defaultValue: 'Recommended' })}
+                      </span>
+                    ) : null}
                     <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">
                       {formatArtifactKindLabel(artifact.kind)}
                     </span>
@@ -658,7 +664,14 @@ export function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps)
                 <StarIcon className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-gray-900">{item.title}</p>
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-sm font-medium text-gray-900">{item.title}</p>
+                  {isRecommendedDescriptor(item.tags) ? (
+                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">
+                      {i18n.t('runtimeConfig.localModelCenter.recommended', { defaultValue: 'Recommended' })}
+                    </span>
+                  ) : null}
+                </div>
                 <p className="truncate text-xs text-gray-500">{item.modelId}</p>
                 <ArtifactRequirementBadges
                   modelTemplateId={`${item.templateId}-quick`}

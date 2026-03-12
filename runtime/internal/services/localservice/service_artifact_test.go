@@ -22,10 +22,10 @@ func TestLocalImportLocalArtifactAndList(t *testing.T) {
 	svc.SetLocalAIRegistrationConfig(modelsRoot, "", false)
 
 	artifactDir := filepath.Join(modelsRoot, "local-z-image-ae")
-	if err := os.MkdirAll(artifactDir, 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(artifactDir, "vae"), 0o755); err != nil {
 		t.Fatalf("mkdir artifact dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(artifactDir, "ae.safetensors"), []byte("vae"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(artifactDir, "vae", "diffusion_pytorch_model.safetensors"), []byte("vae"), 0o600); err != nil {
 		t.Fatalf("write artifact payload: %v", err)
 	}
 	manifestPath := filepath.Join(artifactDir, "artifact.manifest.json")
@@ -34,15 +34,15 @@ func TestLocalImportLocalArtifactAndList(t *testing.T) {
 		"artifactId":    "local/z_image_ae",
 		"kind":          "vae",
 		"engine":        "localai",
-		"entry":         "ae.safetensors",
-		"files":         []string{"ae.safetensors"},
+		"entry":         "vae/diffusion_pytorch_model.safetensors",
+		"files":         []string{"vae/diffusion_pytorch_model.safetensors"},
 		"license":       "tongyi",
 		"source": map[string]any{
 			"repo":     "file://" + manifestPath,
 			"revision": "import",
 		},
 		"hashes": map[string]any{
-			"ae.safetensors": "sha256:test",
+			"vae/diffusion_pytorch_model.safetensors": "sha256:test",
 		},
 		"metadata": map[string]any{
 			"family": "z-image",
@@ -87,7 +87,7 @@ func TestInstallVerifiedArtifactDownloadsFilesAndWritesManifest(t *testing.T) {
 	payload := []byte("verified-vae")
 	sum := sha256.Sum256(payload)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/Tongyi-MAI/Z-Image-Turbo/resolve/main/ae.safetensors" {
+		if r.URL.Path != "/Tongyi-MAI/Z-Image-Turbo/resolve/main/vae/diffusion_pytorch_model.safetensors" {
 			http.NotFound(w, r)
 			return
 		}
@@ -103,13 +103,13 @@ func TestInstallVerifiedArtifactDownloadsFilesAndWritesManifest(t *testing.T) {
 			ArtifactId: "local/z_image_ae",
 			Kind:       runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
 			Engine:     "localai",
-			Entry:      "ae.safetensors",
-			Files:      []string{"ae.safetensors"},
+			Entry:      "vae/diffusion_pytorch_model.safetensors",
+			Files:      []string{"vae/diffusion_pytorch_model.safetensors"},
 			License:    "tongyi",
 			Repo:       "Tongyi-MAI/Z-Image-Turbo",
 			Revision:   "main",
 			Hashes: map[string]string{
-				"ae.safetensors": fmt.Sprintf("sha256:%x", sum),
+				"vae/diffusion_pytorch_model.safetensors": fmt.Sprintf("sha256:%x", sum),
 			},
 		},
 	}
@@ -125,7 +125,7 @@ func TestInstallVerifiedArtifactDownloadsFilesAndWritesManifest(t *testing.T) {
 	}
 
 	artifactDir := filepath.Join(modelsRoot, slugifyLocalModelID("local/z_image_ae"))
-	artifactPath := filepath.Join(artifactDir, "ae.safetensors")
+	artifactPath := filepath.Join(artifactDir, "vae", "diffusion_pytorch_model.safetensors")
 	raw, err := os.ReadFile(artifactPath)
 	if err != nil {
 		t.Fatalf("read installed artifact payload: %v", err)
@@ -149,8 +149,8 @@ func TestInstallVerifiedArtifactDownloadsFilesAndWritesManifest(t *testing.T) {
 	if !ok {
 		t.Fatalf("manifest hashes missing or invalid: %#v", manifest["hashes"])
 	}
-	if hashes["ae.safetensors"] != fmt.Sprintf("sha256:%x", sum) {
-		t.Fatalf("unexpected manifest hash: %#v", hashes["ae.safetensors"])
+	if hashes["vae/diffusion_pytorch_model.safetensors"] != fmt.Sprintf("sha256:%x", sum) {
+		t.Fatalf("unexpected manifest hash: %#v", hashes["vae/diffusion_pytorch_model.safetensors"])
 	}
 }
 
@@ -160,7 +160,7 @@ func TestInstallVerifiedArtifactHashMismatchRollsBack(t *testing.T) {
 	svc.SetLocalAIRegistrationConfig(modelsRoot, "", false)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/Tongyi-MAI/Z-Image-Turbo/resolve/main/ae.safetensors" {
+		if r.URL.Path != "/Tongyi-MAI/Z-Image-Turbo/resolve/main/vae/diffusion_pytorch_model.safetensors" {
 			http.NotFound(w, r)
 			return
 		}
@@ -176,13 +176,13 @@ func TestInstallVerifiedArtifactHashMismatchRollsBack(t *testing.T) {
 			ArtifactId: "local/z_image_ae",
 			Kind:       runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
 			Engine:     "localai",
-			Entry:      "ae.safetensors",
-			Files:      []string{"ae.safetensors"},
+			Entry:      "vae/diffusion_pytorch_model.safetensors",
+			Files:      []string{"vae/diffusion_pytorch_model.safetensors"},
 			License:    "tongyi",
 			Repo:       "Tongyi-MAI/Z-Image-Turbo",
 			Revision:   "main",
 			Hashes: map[string]string{
-				"ae.safetensors": "sha256:deadbeef",
+				"vae/diffusion_pytorch_model.safetensors": "sha256:deadbeef",
 			},
 		},
 	}

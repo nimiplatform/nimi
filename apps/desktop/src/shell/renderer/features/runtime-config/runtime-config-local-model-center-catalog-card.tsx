@@ -24,6 +24,7 @@ import {
   DownloadIcon,
   FolderOpenIcon,
   formatArtifactKindLabel,
+  isRecommendedDescriptor,
   ModelIcon,
   PackageIcon,
   RefreshIcon,
@@ -109,6 +110,11 @@ function VerifiedModelSearchRow(props: {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate text-sm font-medium text-gray-900">{props.item.title}</span>
+          {isRecommendedDescriptor(props.item.tags) ? (
+            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">
+              {i18n.t('runtimeConfig.localModelCenter.recommended', { defaultValue: 'Recommended' })}
+            </span>
+          ) : null}
           <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">
             {i18n.t('runtimeConfig.localModelCenter.verified', { defaultValue: 'Verified' })}
           </span>

@@ -37,6 +37,7 @@ export function formatArtifactKindLabel(value: LocalAiArtifactKind): string {
 
 const GENERIC_MODEL_TAGS = new Set([
   'verified',
+  'recommended',
   'chat',
   'image',
   'video',
@@ -61,6 +62,74 @@ function collectModelFamilyHints(model: LocalAiVerifiedModelDescriptor): string[
     hints.add(normalized);
   }
   return [...hints];
+}
+
+export function hasDescriptorTag(
+  tags: string[] | undefined | null,
+  target: string,
+): boolean {
+  const normalizedTarget = normalizeDescriptorToken(target);
+  if (!normalizedTarget) {
+    return false;
+  }
+  return (tags || []).some((tag) => normalizeDescriptorToken(tag) === normalizedTarget);
+}
+
+export function isRecommendedDescriptor(tags: string[] | undefined | null): boolean {
+  return hasDescriptorTag(tags, 'recommended');
+}
+
+function compareDescriptorTitles(
+  leftTitle: string,
+  leftId: string,
+  rightTitle: string,
+  rightId: string,
+): number {
+  const byTitle = leftTitle.localeCompare(rightTitle, undefined, { sensitivity: 'base' });
+  if (byTitle !== 0) {
+    return byTitle;
+  }
+  return leftId.localeCompare(rightId, undefined, { sensitivity: 'base' });
+}
+
+export function sortVerifiedModelsForDisplay(
+  models: LocalAiVerifiedModelDescriptor[],
+): LocalAiVerifiedModelDescriptor[] {
+  return [...models].sort((left, right) => {
+    const leftRecommended = isRecommendedDescriptor(left.tags);
+    const rightRecommended = isRecommendedDescriptor(right.tags);
+    if (leftRecommended !== rightRecommended) {
+      return leftRecommended ? -1 : 1;
+    }
+    return compareDescriptorTitles(left.title, left.templateId, right.title, right.templateId);
+  });
+}
+
+const ARTIFACT_KIND_RANK: Record<LocalAiArtifactKind, number> = {
+  vae: 0,
+  llm: 1,
+  clip: 2,
+  controlnet: 3,
+  lora: 4,
+  auxiliary: 5,
+};
+
+export function sortVerifiedArtifactsForDisplay(
+  artifacts: LocalAiVerifiedArtifactDescriptor[],
+): LocalAiVerifiedArtifactDescriptor[] {
+  return [...artifacts].sort((left, right) => {
+    const leftRecommended = isRecommendedDescriptor(left.tags);
+    const rightRecommended = isRecommendedDescriptor(right.tags);
+    if (leftRecommended !== rightRecommended) {
+      return leftRecommended ? -1 : 1;
+    }
+    const leftKindRank = ARTIFACT_KIND_RANK[left.kind] ?? Number.MAX_SAFE_INTEGER;
+    const rightKindRank = ARTIFACT_KIND_RANK[right.kind] ?? Number.MAX_SAFE_INTEGER;
+    if (leftKindRank !== rightKindRank) {
+      return leftKindRank - rightKindRank;
+    }
+    return compareDescriptorTitles(left.title, left.templateId, right.title, right.templateId);
+  });
 }
 
 function collectArtifactFamilyHints(artifact: LocalAiVerifiedArtifactDescriptor): string[] {

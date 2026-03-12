@@ -25,6 +25,8 @@ import {
 } from './runtime-config-model-center-utils';
 import {
   filterInstalledArtifacts,
+  sortVerifiedArtifactsForDisplay,
+  sortVerifiedModelsForDisplay,
   isArtifactTaskTerminal,
   relatedArtifactsForModel,
   type ArtifactTaskState,
@@ -221,7 +223,7 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
     setLoadingVerifiedModels(true);
     try {
       const rows = await localAiRuntime.listVerified();
-      const notInstalled = rows.filter(item => !isInstalled(item.modelId)).slice(0, 5);
+      const notInstalled = sortVerifiedModelsForDisplay(rows.filter(item => !isInstalled(item.modelId))).slice(0, 5);
       setVerifiedModels(notInstalled);
     } catch {
       setVerifiedModels([]);
@@ -340,7 +342,7 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
 
   const visibleVerifiedArtifacts = useMemo(() => {
     const query = deferredSearchQuery.toLowerCase().trim();
-    return verifiedArtifacts.filter((artifact) => {
+    const candidates = verifiedArtifacts.filter((artifact) => {
       if (installedArtifactIds.has(artifact.artifactId.toLowerCase())) {
         return false;
       }
@@ -355,11 +357,12 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
         || artifact.repo.toLowerCase().includes(query)
       );
     });
+    return sortVerifiedArtifactsForDisplay(candidates);
   }, [deferredSearchQuery, installedArtifactIds, verifiedArtifacts]);
   const relatedArtifactsByModelTemplate = useMemo(() => {
     const next = new Map<string, LocalAiVerifiedArtifactDescriptor[]>();
     for (const model of verifiedModels) {
-      next.set(model.templateId, relatedArtifactsForModel(model, verifiedArtifacts));
+      next.set(model.templateId, sortVerifiedArtifactsForDisplay(relatedArtifactsForModel(model, verifiedArtifacts)));
     }
     return next;
   }, [verifiedArtifacts, verifiedModels]);
