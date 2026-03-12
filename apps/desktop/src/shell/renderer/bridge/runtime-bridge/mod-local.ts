@@ -16,6 +16,7 @@ import {
   parseCatalogPackageRecord,
   parseCatalogPackageSummaries,
   parseAvailableModUpdates,
+  parseRuntimeLocalAsset,
   type RuntimeModDeveloperModeState,
   type RuntimeModDiagnosticRecord,
   type RuntimeModInstallPayload,
@@ -26,6 +27,7 @@ import {
   type RuntimeModSourceRecord,
   type RuntimeModStorageDirs,
   type RuntimeModUpdatePayload,
+  type RuntimeLocalAsset,
   type RuntimeLocalManifestSummary,
   type CatalogInstallResult,
   type CatalogPackageRecord,
@@ -71,6 +73,18 @@ export async function readRuntimeLocalModEntry(path: string): Promise<string> {
     }
     return result;
   });
+}
+
+export async function readRuntimeLocalModAsset(path: string): Promise<RuntimeLocalAsset> {
+  if (!hasTauriInvoke()) {
+    throw new Error('runtime_mod_read_local_asset requires Tauri runtime');
+  }
+
+  return invokeChecked('runtime_mod_read_local_asset', {
+    payload: {
+      path,
+    },
+  }, parseRuntimeLocalAsset);
 }
 
 export async function listInstalledRuntimeMods(): Promise<RuntimeLocalManifestSummary[]> {

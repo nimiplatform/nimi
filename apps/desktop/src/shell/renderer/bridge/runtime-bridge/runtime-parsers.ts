@@ -25,6 +25,7 @@ import type {
   RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
+  RuntimeLocalAsset,
   RuntimeLocalManifestSummary,
   RuntimeModDeveloperModeState,
   RuntimeModDiagnosticRecord,
@@ -213,6 +214,8 @@ export function parseRuntimeLocalManifestSummary(value: unknown): RuntimeLocalMa
     version: parseOptionalString(record.version),
     entry: parseOptionalString(record.entry),
     entryPath: parseOptionalString(record.entryPath),
+    iconAsset: parseOptionalString(record.iconAsset),
+    iconAssetPath: parseOptionalString(record.iconAssetPath),
     styles: styles && styles.length > 0 ? styles : undefined,
     stylePaths: stylePaths && stylePaths.length > 0 ? stylePaths : undefined,
     description: parseOptionalString(record.description),
@@ -226,6 +229,14 @@ export function parseRuntimeLocalManifestSummaries(value: unknown): RuntimeLocal
     return [];
   }
   return value.map((item) => parseRuntimeLocalManifestSummary(item));
+}
+
+export function parseRuntimeLocalAsset(value: unknown): RuntimeLocalAsset {
+  const record = assertRecord(value, 'runtime_mod_read_local_asset returned invalid payload');
+  return {
+    mimeType: parseRequiredString(record.mimeType, 'mimeType', 'runtime_mod_read_local_asset'),
+    base64: parseRequiredString(record.base64, 'base64', 'runtime_mod_read_local_asset'),
+  };
 }
 
 export function parseRuntimeModInstallResult(value: unknown): RuntimeModInstallResult {
@@ -280,6 +291,7 @@ export function parseCatalogPackageSummary(value: unknown): CatalogPackageSummar
     state: parseCatalogState(record.state),
     keywords: Array.isArray(record.keywords) ? record.keywords.map((item) => String(item || '').trim()).filter(Boolean) : [],
     tags: Array.isArray(record.tags) ? record.tags.map((item) => String(item || '').trim()).filter(Boolean) : [],
+    iconUrl: parseOptionalString(record.iconUrl),
   };
 }
 
@@ -335,6 +347,7 @@ export function parseCatalogPackageRecord(value: unknown): CatalogPackageRecord 
     channels: Object.fromEntries(Object.entries(channelsRecord).map(([key, item]) => [key, String(item || '').trim()])),
     keywords: Array.isArray(record.keywords) ? record.keywords.map((item) => String(item || '').trim()).filter(Boolean) : [],
     tags: Array.isArray(record.tags) ? record.tags.map((item) => String(item || '').trim()).filter(Boolean) : [],
+    iconUrl: parseOptionalString(record.iconUrl),
     signers: Array.isArray(record.signers) ? record.signers.map(parseCatalogSigner) : [],
     releases: Array.isArray(record.releases) ? record.releases.map(parseCatalogReleaseRecord) : [],
   };

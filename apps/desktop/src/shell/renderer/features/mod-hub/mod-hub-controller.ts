@@ -167,6 +167,7 @@ export function useModHubPageModel(): ModHubPageModel {
   const [pendingAction, setPendingAction] = useState<ModHubPendingAction>(null);
   const [selectedModId, setSelectedModId] = useState<string | null>(null);
   const [catalogMods, setCatalogMods] = useState<CatalogPackageSummary[]>([]);
+  const [localIconImageSrcs, setLocalIconImageSrcs] = useState<Record<string, string>>({});
   const [installedModsDir, setInstalledModsDir] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [availableUpdates, setAvailableUpdates] = useState<Record<string, {
@@ -233,6 +234,50 @@ export function useModHubPageModel(): ModHubPageModel {
     };
   }, [localManifestSummaries]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const manifestsWithIcons = localManifestSummaries
+        .filter((item) => !String(item.id || '').startsWith('core.'))
+        .map((item) => ({
+          modId: normalizeModId(String(item.id || '')),
+          iconAssetPath: String(item.iconAssetPath || '').trim(),
+        }))
+        .filter((item) => item.modId && item.iconAssetPath);
+      if (manifestsWithIcons.length === 0) {
+        if (!cancelled) {
+          setLocalIconImageSrcs({});
+        }
+        return;
+      }
+      const entries = await Promise.all(manifestsWithIcons.map(async (item) => {
+        try {
+          const asset = await desktopBridge.readRuntimeLocalModAsset(item.iconAssetPath);
+          return [item.modId, `data:${asset.mimeType};base64,${asset.base64}`] as const;
+        } catch (error) {
+          logRendererEvent({
+            level: 'warn',
+            area: 'mod-hub',
+            message: 'mod-hub:icon-load-failed',
+            details: {
+              modId: item.modId,
+              iconAssetPath: item.iconAssetPath,
+              error: safeErrorMessage(error),
+            },
+          });
+          return null;
+        }
+      }));
+      if (cancelled) {
+        return;
+      }
+      setLocalIconImageSrcs(Object.fromEntries(entries.filter(Boolean) as Array<readonly [string, string]>));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [localManifestSummaries]);
+
   const runtimeMods = useMemo(() => {
     const registeredSet = new Set(registeredRuntimeModIds.map((id) => normalizeModId(id)).filter(Boolean));
     const disabledSet = new Set(runtimeModDisabledIds.map((id) => normalizeModId(id)).filter(Boolean));
@@ -248,6 +293,7 @@ export function useModHubPageModel(): ModHubPageModel {
         const isInstalled = !uninstalledSet.has(modId);
         const isEnabled = isInstalled && !disabledSet.has(modId) && registeredSet.has(modId);
         return toRuntimeModRow(item, index, {
+          iconImageSrc: localIconImageSrcs[modId],
           isInstalled,
           isEnabled,
           availableUpdateVersion: update?.version,
@@ -263,6 +309,7 @@ export function useModHubPageModel(): ModHubPageModel {
   }, [
     availableUpdates,
     fusedRuntimeMods,
+    localIconImageSrcs,
     localManifestSummaries,
     registeredRuntimeModIds,
     runtimeModDiagnostics,
@@ -277,6 +324,7 @@ export function useModHubPageModel(): ModHubPageModel {
       const runtime = runtimeById.get(catalogMod.packageId);
       const update = availableUpdates[catalogMod.packageId];
       return toCatalogModRow(catalogMod, {
+        localIconImageSrc: runtime?.iconImageSrc,
         isInstalled: Boolean(runtime?.isInstalled),
         isEnabled: Boolean(runtime?.isEnabled),
         installedVersion: runtime ? stripVersionPrefix(runtime.version) : undefined,

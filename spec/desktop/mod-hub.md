@@ -53,6 +53,8 @@ Catalog v1 约束：
 ## UI Contract
 
 - 默认态采用 Launchpad / Dock 风格：仅展示已安装 mod 的图标墙。
+- 图标真相源优先级固定为：installed/dev local manifest `iconAsset` > catalog `iconUrl` > fallback 首字母占位。
+- Desktop 不得通过内置官方 mod svg 或 `mod id -> icon` 私有映射渲染 Mod Hub 图标。
 - 页面必须提供 `Open Mods Folder` 按钮，打开 desktop managed installed mods 目录。
 - 搜索框获得焦点时，Hub 必须展开 unified management list：
   - 默认按 `Installed` → `Available via Catalog` 分组

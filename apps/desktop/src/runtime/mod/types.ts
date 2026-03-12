@@ -62,6 +62,8 @@ export type RuntimeLocalManifestSummaryLike = {
   sourceDir?: string;
   entry?: string;
   entryPath?: string;
+  iconAsset?: string;
+  iconAssetPath?: string;
   styles?: string[];
   stylePaths?: string[];
   manifest?: Record<string, unknown>;

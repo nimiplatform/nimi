@@ -36,6 +36,7 @@
 | `runtime_mod_read_manifest` | `mod-local` | Read an installed runtime mod manifest | `D-IPC-007` |
 | `runtime_mod_install_progress` | `mod-local` | Query runtime mod install progress events | `D-IPC-007` |
 | `runtime_mod_read_local_entry` | `mod-local` | Read local mod entry source code | `D-IPC-007` |
+| `runtime_mod_read_local_asset` | `mod-local` | Read manifest-declared local mod asset payload | `D-IPC-007` |
 | `runtime_mod_get_action_idempotency` | `mod-local` | Get mod action idempotency record | `D-IPC-007` |
 | `runtime_mod_put_action_idempotency` | `mod-local` | Put mod action idempotency record | `D-IPC-007` |
 | `runtime_mod_purge_action_idempotency` | `mod-local` | Purge expired mod action idempotency records | `D-IPC-007` |

@@ -14,6 +14,7 @@ fn extract_manifest_summary(path: &Path, value: &JsonValue) -> Option<RuntimeLoc
     };
 
     let entry = read_opt("entry");
+    let icon_asset = read_opt("iconAsset");
     let styles = object
         .get("styles")
         .and_then(|item| item.as_array())
@@ -29,6 +30,10 @@ fn extract_manifest_summary(path: &Path, value: &JsonValue) -> Option<RuntimeLoc
     let entry_path = entry.as_ref().and_then(|entry_value| {
         let parent = path.parent()?;
         Some(parent.join(entry_value).display().to_string())
+    });
+    let icon_asset_path = icon_asset.as_ref().and_then(|icon_asset_value| {
+        let parent = path.parent()?;
+        Some(parent.join(icon_asset_value).display().to_string())
     });
     let style_paths = styles.as_ref().and_then(|style_entries| {
         let parent = path.parent()?;
@@ -50,6 +55,8 @@ fn extract_manifest_summary(path: &Path, value: &JsonValue) -> Option<RuntimeLoc
         version: read_opt("version"),
         entry,
         entry_path,
+        icon_asset,
+        icon_asset_path,
         styles,
         style_paths,
         description: read_opt("description"),
@@ -136,7 +143,7 @@ mod manifest_scan_tests {
     fn write_test_manifest(root: &Path) -> PathBuf {
         fs::write(
             root.join("mod.manifest.yaml"),
-            "id: world.nimi.local-chat\nname: Local Chat\nversion: 1.0.0\nentry: dist/mods/local-chat/index.js\nstyles:\n  - dist/mods/local-chat/index.css\n",
+            "id: world.nimi.local-chat\nname: Local Chat\nversion: 1.0.0\nentry: dist/mods/local-chat/index.js\niconAsset: assets/icon.svg\nstyles:\n  - dist/mods/local-chat/index.css\n",
         )
         .expect("write test manifest");
         root.join("mod.manifest.yaml")
@@ -160,6 +167,12 @@ mod manifest_scan_tests {
                 .join("dist/mods/local-chat/index.css")
                 .display()
                 .to_string()])
+        );
+        assert_eq!(summary.icon_asset.as_deref(), Some("assets/icon.svg"));
+        let expected_icon_path = mod_dir.join("assets/icon.svg").display().to_string();
+        assert_eq!(
+            summary.icon_asset_path.as_deref(),
+            Some(expected_icon_path.as_str())
         );
     }
 }

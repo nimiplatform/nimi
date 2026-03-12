@@ -113,11 +113,20 @@ pub struct RuntimeLocalManifestSummary {
     pub version: Option<String>,
     pub entry: Option<String>,
     pub entry_path: Option<String>,
+    pub icon_asset: Option<String>,
+    pub icon_asset_path: Option<String>,
     pub styles: Option<Vec<String>>,
     pub style_paths: Option<Vec<String>>,
     pub description: Option<String>,
     pub manifest: Option<serde_json::Value>,
     pub release_manifest: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeLocalAssetPayload {
+    pub mime_type: String,
+    pub base64: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -195,6 +204,8 @@ pub struct CatalogPackageSummaryPayload {
     pub state: CatalogStatePayload,
     pub keywords: Vec<String>,
     pub tags: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icon_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -242,6 +253,8 @@ pub struct CatalogPackageRecordPayload {
     pub channels: std::collections::HashMap<String, String>,
     pub keywords: Vec<String>,
     pub tags: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icon_url: Option<String>,
     pub signers: Vec<CatalogSignerPayload>,
     pub releases: Vec<CatalogReleaseRecordPayload>,
 }

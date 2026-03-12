@@ -34,15 +34,61 @@ fn normalize_local_mod_entry_path(app: &AppHandle, target: &str) -> Result<PathB
     normalize_entry_path_within_roots(&roots, target)
 }
 
+fn is_declared_runtime_mod_asset(app: &AppHandle, normalized: &Path) -> Result<bool, String> {
+    Ok(is_declared_runtime_mod_asset_path(
+        normalized,
+        &list_local_mod_manifests(app)?,
+    ))
+}
+
+fn is_declared_runtime_mod_asset_path(
+    normalized: &Path,
+    manifests: &[RuntimeLocalManifestSummary],
+) -> bool {
+    manifests
+        .iter()
+        .filter_map(|summary| summary.icon_asset_path.as_ref())
+        .filter_map(|item| PathBuf::from(item).canonicalize().ok())
+        .any(|item| item == normalized)
+}
+
 pub fn read_local_mod_entry(app: &AppHandle, path: &str) -> Result<String, String> {
     let normalized = normalize_local_mod_entry_path(app, path)?;
     fs::read_to_string(&normalized)
         .map_err(|error| format!("读取 mod entry 失败 ({}): {error}", normalized.display()))
 }
 
+pub fn read_local_mod_asset(app: &AppHandle, path: &str) -> Result<RuntimeLocalAssetPayload, String> {
+    let normalized = normalize_local_mod_entry_path(app, path)?;
+    let extension = normalized
+        .extension()
+        .and_then(|value| value.to_str())
+        .map(|value| value.to_ascii_lowercase())
+        .unwrap_or_default();
+    if extension != "svg" {
+        return Err(format!(
+            "拒绝读取非 SVG mod asset: {}",
+            normalized.display()
+        ));
+    }
+    if !is_declared_runtime_mod_asset(app, &normalized)? {
+        return Err(format!(
+            "拒绝读取未声明的 mod asset: {}",
+            normalized.display()
+        ));
+    }
+    let bytes = fs::read(&normalized)
+        .map_err(|error| format!("读取 mod asset 失败 ({}): {error}", normalized.display()))?;
+    Ok(RuntimeLocalAssetPayload {
+        mime_type: "image/svg+xml".to_string(),
+        base64: base64::engine::general_purpose::STANDARD.encode(bytes),
+    })
+}
+
 #[cfg(test)]
 mod tests {
-    use super::normalize_local_mod_entry_path_from_base;
+    use super::{is_declared_runtime_mod_asset_path, normalize_local_mod_entry_path_from_base};
+    use crate::runtime_mod::store::RuntimeLocalManifestSummary;
     use std::fs;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -117,6 +163,70 @@ mod tests {
         )
         .expect_err("absolute outside path should be rejected");
         assert!(error.contains("拒绝访问 mods 目录外的路径"));
+
+        fs::remove_dir_all(&root).expect("cleanup temp root");
+    }
+
+    #[test]
+    fn declared_runtime_mod_asset_path_matches_manifest_icon_asset() {
+        let root = make_temp_root("declared-asset");
+        let mod_dir = root.join("mods").join("local-chat");
+        let icon = mod_dir.join("assets").join("icon.svg");
+        fs::create_dir_all(icon.parent().expect("icon parent")).expect("create icon parent");
+        fs::write(&icon, "<svg/>").expect("write icon");
+        let normalized = icon.canonicalize().expect("canonical icon");
+        let manifests = vec![RuntimeLocalManifestSummary {
+            path: mod_dir.join("mod.manifest.yaml").display().to_string(),
+            id: "world.nimi.local-chat".to_string(),
+            source_id: None,
+            source_type: None,
+            source_dir: None,
+            name: Some("Local Chat".to_string()),
+            version: Some("1.0.0".to_string()),
+            entry: None,
+            entry_path: None,
+            icon_asset: Some("assets/icon.svg".to_string()),
+            icon_asset_path: Some(icon.display().to_string()),
+            styles: None,
+            style_paths: None,
+            description: None,
+            manifest: None,
+            release_manifest: None,
+        }];
+        assert!(is_declared_runtime_mod_asset_path(&normalized, &manifests));
+
+        fs::remove_dir_all(&root).expect("cleanup temp root");
+    }
+
+    #[test]
+    fn declared_runtime_mod_asset_path_rejects_undeclared_or_non_canonical_paths() {
+        let root = make_temp_root("undeclared-asset");
+        let mod_dir = root.join("mods").join("local-chat");
+        let icon = mod_dir.join("assets").join("icon.svg");
+        let other = mod_dir.join("assets").join("other.svg");
+        fs::create_dir_all(icon.parent().expect("icon parent")).expect("create icon parent");
+        fs::write(&icon, "<svg/>").expect("write icon");
+        fs::write(&other, "<svg/>").expect("write other icon");
+        let normalized_other = other.canonicalize().expect("canonical other icon");
+        let manifests = vec![RuntimeLocalManifestSummary {
+            path: mod_dir.join("mod.manifest.yaml").display().to_string(),
+            id: "world.nimi.local-chat".to_string(),
+            source_id: None,
+            source_type: None,
+            source_dir: None,
+            name: Some("Local Chat".to_string()),
+            version: Some("1.0.0".to_string()),
+            entry: None,
+            entry_path: None,
+            icon_asset: Some("assets/icon.svg".to_string()),
+            icon_asset_path: Some(icon.display().to_string()),
+            styles: None,
+            style_paths: None,
+            description: None,
+            manifest: None,
+            release_manifest: None,
+        }];
+        assert!(!is_declared_runtime_mod_asset_path(&normalized_other, &manifests));
 
         fs::remove_dir_all(&root).expect("cleanup temp root");
     }

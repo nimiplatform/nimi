@@ -38,6 +38,7 @@ mod runtime_mod_catalog_tests {
             channels: HashMap::new(),
             keywords: Vec::new(),
             tags: Vec::new(),
+            icon_url: None,
             signers: vec![base_signer()],
             releases: Vec::new(),
         }
@@ -80,6 +81,8 @@ mod runtime_mod_catalog_tests {
             version: Some("1.0.0".to_string()),
             entry: None,
             entry_path: None,
+            icon_asset: None,
+            icon_asset_path: None,
             styles: None,
             style_paths: None,
             description: None,

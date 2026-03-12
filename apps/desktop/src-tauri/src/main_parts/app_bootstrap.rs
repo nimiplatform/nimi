@@ -118,6 +118,7 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             runtime_mod::commands::runtime_mod_delete_audit,
             runtime_mod::commands::runtime_mod_list_local_manifests,
             runtime_mod::commands::runtime_mod_read_local_entry,
+            runtime_mod::commands::runtime_mod_read_local_asset,
             runtime_mod::commands::runtime_mod_list_installed,
             runtime_mod::commands::runtime_mod_sources_list,
             runtime_mod::commands::runtime_mod_sources_upsert,

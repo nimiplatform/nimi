@@ -91,6 +91,7 @@ Mod 本地持久化与审计命令集（`runtime_mod::commands`）：
 - `runtime_mod_read_manifest`：读取已安装 mod manifest。
 - `runtime_mod_install_progress`：查询安装进度事件。
 - `runtime_mod_read_local_entry`：读取 mod 入口源码。
+- `runtime_mod_read_local_asset`：读取 manifest 声明的本地 mod 图标资源，返回 `mimeType + base64`。
 - `runtime_mod_append_audit` / `runtime_mod_query_audit` / `runtime_mod_delete_audit`：mod 审计记录 CRUD。
 - `runtime_mod_get_action_idempotency` / `runtime_mod_put_action_idempotency` / `runtime_mod_purge_action_idempotency`：action 幂等性记录。
 - `runtime_mod_get_action_verify_ticket` / `runtime_mod_put_action_verify_ticket` / `runtime_mod_delete_action_verify_ticket` / `runtime_mod_purge_action_verify_tickets`：action 验证票据。
@@ -147,6 +148,7 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
 - HTTP 代理（D-IPC-004: proxy fetch）
 - OAuth 流（D-IPC-006: token exchange）
 - Mod 清单管理（D-IPC-007: list/read local manifests）
+- Mod 图标资源读取（D-IPC-007: read local asset）
 - External Agent 管理（D-IPC-008: token/action/gateway）
 
 **分界原则**：

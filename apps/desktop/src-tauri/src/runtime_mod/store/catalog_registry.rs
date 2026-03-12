@@ -57,6 +57,30 @@ fn build_catalog_url(base_url: &str, path: &str) -> String {
     )
 }
 
+fn normalize_catalog_asset_url(base_url: &str, value: Option<String>) -> Option<String> {
+    let normalized = value?.trim().to_string();
+    if normalized.is_empty() {
+        return None;
+    }
+    Some(build_catalog_url(base_url, &normalized))
+}
+
+fn normalize_catalog_package_summary(
+    base_url: &str,
+    mut summary: CatalogPackageSummaryPayload,
+) -> CatalogPackageSummaryPayload {
+    summary.icon_url = normalize_catalog_asset_url(base_url, summary.icon_url);
+    summary
+}
+
+fn normalize_catalog_package_record(
+    base_url: &str,
+    mut package: CatalogPackageRecordPayload,
+) -> CatalogPackageRecordPayload {
+    package.icon_url = normalize_catalog_asset_url(base_url, package.icon_url);
+    package
+}
+
 fn fetch_catalog_json_optional<T: DeserializeOwned>(base_url: &str, path: &str) -> Result<Option<T>, String> {
     let client = BlockingHttpClient::new();
     let response = client
@@ -425,10 +449,10 @@ fn download_release_archive(
 }
 
 fn load_catalog_package(base_url: &str, package_id: &str) -> Result<CatalogPackageRecordPayload, String> {
-    let mut package = fetch_catalog_json::<CatalogPackageRecordPayload>(
+    let mut package = normalize_catalog_package_record(base_url, fetch_catalog_json::<CatalogPackageRecordPayload>(
         base_url,
         &format!("index/v1/packages/{}.json", package_id),
-    )?;
+    )?);
     if package.releases.is_empty() {
         let mut seen_versions = HashSet::<String>::new();
         let mut releases = Vec::<CatalogReleaseRecordPayload>::new();
@@ -484,7 +508,10 @@ pub fn list_catalog_mods() -> Result<Vec<CatalogPackageSummaryPayload>, String> 
     let Some(base_url) = resolve_catalog_base_url() else {
         return Ok(Vec::new());
     };
-    fetch_catalog_json::<Vec<CatalogPackageSummaryPayload>>(&base_url, "index/v1/packages.json")
+    Ok(fetch_catalog_json::<Vec<CatalogPackageSummaryPayload>>(&base_url, "index/v1/packages.json")?
+        .into_iter()
+        .map(|item| normalize_catalog_package_summary(&base_url, item))
+        .collect())
 }
 
 pub fn get_catalog_mod(package_id: &str) -> Result<Option<CatalogPackageRecordPayload>, String> {

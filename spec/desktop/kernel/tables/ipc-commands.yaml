@@ -168,6 +168,11 @@ commands:
     description: Read local mod entry source code
     source_rule: D-IPC-007
 
+  - command: runtime_mod_read_local_asset
+    module: mod-local
+    description: Read manifest-declared local mod asset payload
+    source_rule: D-IPC-007
+
   - command: runtime_mod_get_action_idempotency
     module: mod-local
     description: Get mod action idempotency record

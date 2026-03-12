@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import {
   buildDockMods,
   buildManagementSections,
+  toCatalogModRow,
   toRuntimeModRow,
 } from '../src/shell/renderer/features/mod-hub/mod-hub-model';
 import type { AppTab } from '../src/shell/renderer/app-shell/providers/store-types';
@@ -99,6 +100,65 @@ test('toRuntimeModRow strips "desktop " prefix from display name', () => {
   );
 
   assert.equal(row.name, 'Local Chat');
+});
+
+test('mod hub icon precedence prefers local asset over catalog icon and falls back otherwise', () => {
+  const runtimeRow = toRuntimeModRow(makeSummary({ id: 'world.nimi.demo', name: 'Demo Mod' }) as never, 0, {
+    iconImageSrc: 'data:image/svg+xml;base64,LOCAL',
+    isInstalled: true,
+    isEnabled: true,
+  });
+  const mergedCatalogRow = toCatalogModRow({
+    packageId: 'world.nimi.demo',
+    packageType: 'desktop-mod',
+    name: 'Demo Mod',
+    description: 'Catalog copy',
+    latestVersion: '1.2.3',
+    publisher: {
+      publisherId: 'nimi',
+      displayName: 'Nimi',
+      trustTier: 'official',
+    },
+    state: {
+      listed: true,
+      yanked: false,
+      quarantined: false,
+    },
+    keywords: [],
+    tags: [],
+    iconUrl: 'https://catalog.example/icon.svg',
+  }, {
+    localIconImageSrc: runtimeRow.iconImageSrc,
+    isInstalled: true,
+    isEnabled: true,
+    installedVersion: '1.2.3',
+  });
+  const fallbackCatalogRow = toCatalogModRow({
+    packageId: 'world.nimi.fallback',
+    packageType: 'desktop-mod',
+    name: 'Fallback Mod',
+    description: 'No icon metadata',
+    latestVersion: '0.1.0',
+    publisher: {
+      publisherId: 'nimi',
+      displayName: 'Nimi',
+      trustTier: 'community',
+    },
+    state: {
+      listed: true,
+      yanked: false,
+      quarantined: false,
+    },
+    keywords: [],
+    tags: [],
+  }, {
+    isInstalled: false,
+    isEnabled: false,
+  });
+
+  assert.equal(mergedCatalogRow.iconImageSrc, 'data:image/svg+xml;base64,LOCAL');
+  assert.equal(fallbackCatalogRow.iconImageSrc, undefined);
+  assert.equal(fallbackCatalogRow.iconText, 'FA');
 });
 
 test('toRuntimeModRow does not special-case local-chat display names', () => {

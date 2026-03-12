@@ -15,14 +15,14 @@ use super::store::{
     purge_action_verify_tickets, put_action_execution_ledger_record, put_action_idempotency_record,
     put_action_verify_ticket, put_media_cache, query_action_execution_ledger, query_runtime_audit,
     read_installed_runtime_mod_manifest, read_local_mod_entry, reload_all_runtime_mods,
-    reload_runtime_mod, remove_runtime_mod_source, restore_runtime_mod_backup,
+    read_local_mod_asset, reload_runtime_mod, remove_runtime_mod_source, restore_runtime_mod_backup,
     set_runtime_mod_developer_mode_state, sync_runtime_mod_source_watchers, uninstall_runtime_mod,
     update_installed_catalog_mod, update_runtime_mod, upsert_runtime_mod_source,
     AvailableModUpdatePayload, CatalogInstallResultPayload, CatalogPackageRecordPayload,
     CatalogPackageSummaryPayload, RuntimeActionExecutionLedgerFilter,
     RuntimeActionExecutionLedgerRecordPayload, RuntimeActionIdempotencyRecordPayload,
     RuntimeActionVerifyTicketPayload, RuntimeAuditFilter, RuntimeAuditRecordPayload,
-    RuntimeLocalManifestSummary, RuntimeMediaCacheGcResultPayload,
+    RuntimeLocalAssetPayload, RuntimeLocalManifestSummary, RuntimeMediaCacheGcResultPayload,
     RuntimeMediaCachePutResultPayload, RuntimeModDeveloperModeState, RuntimeModDiagnosticRecord,
     RuntimeModInstallProgressPayload, RuntimeModInstallResultPayload,
     RuntimeModReloadResultPayload, RuntimeModSourceRecord,
@@ -49,6 +49,12 @@ pub struct RuntimeAuditDeletePayload {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeModReadEntryPayload {
+    pub path: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModReadAssetPayload {
     pub path: String,
 }
 
@@ -341,6 +347,14 @@ pub fn runtime_mod_read_local_entry(
     payload: RuntimeModReadEntryPayload,
 ) -> Result<String, String> {
     read_local_mod_entry(&app, &payload.path)
+}
+
+#[tauri::command]
+pub fn runtime_mod_read_local_asset(
+    app: AppHandle,
+    payload: RuntimeModReadAssetPayload,
+) -> Result<RuntimeLocalAssetPayload, String> {
+    read_local_mod_asset(&app, &payload.path)
 }
 
 #[tauri::command]

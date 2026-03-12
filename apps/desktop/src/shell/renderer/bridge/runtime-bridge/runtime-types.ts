@@ -83,11 +83,18 @@ export type RuntimeLocalManifestSummary = {
   version?: string;
   entry?: string;
   entryPath?: string;
+  iconAsset?: string;
+  iconAssetPath?: string;
   styles?: string[];
   stylePaths?: string[];
   description?: string;
   manifest?: Record<string, unknown>;
   releaseManifest?: Record<string, unknown>;
+};
+
+export type RuntimeLocalAsset = {
+  mimeType: string;
+  base64: string;
 };
 
 export type RuntimeModInstallSourceKind = 'directory' | 'archive' | 'url';
@@ -199,6 +206,7 @@ export type CatalogPackageSummary = {
   state: CatalogState;
   keywords: string[];
   tags: string[];
+  iconUrl?: string;
 };
 
 export type CatalogReleaseSource = {
@@ -237,6 +245,7 @@ export type CatalogPackageRecord = {
   channels: Record<string, string>;
   keywords: string[];
   tags: string[];
+  iconUrl?: string;
   signers: CatalogSigner[];
   releases: CatalogReleaseRecord[];
 };
