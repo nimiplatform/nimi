@@ -12,6 +12,12 @@ export type UiSlotId =
 
 export type UiExtensionStrategy = 'replace' | 'wrap' | 'append' | 'hide';
 
+export type ModLifecycleState =
+  | 'active'
+  | 'background-throttled'
+  | 'frozen'
+  | 'discarded';
+
 export type UiExtensionContext = {
   isAuthenticated: boolean;
   activeTab: string;
@@ -19,6 +25,8 @@ export type UiExtensionContext = {
   openModTab: (tabId: `mod:${string}`, modId: string, title: string) => void;
   closeModTab: (tabId: `mod:${string}`) => void;
   isModTabOpen: (tabId: `mod:${string}`) => boolean;
+  isModTabInLru: (tabId: `mod:${string}`) => boolean;
+  getModLifecycleState: (tabId: `mod:${string}`) => ModLifecycleState;
   markModFused: (modId: string, error: string, reason?: string) => void;
   clearModFuse: (modId: string) => void;
   isModFused: (modId: string) => boolean;

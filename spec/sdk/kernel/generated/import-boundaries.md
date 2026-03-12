@@ -36,7 +36,7 @@ Forbidden: `@nimiplatform/sdk/runtime/internal/**`, `@nimiplatform/sdk/realm/int
 
 ## mod
 
-Source Rules: `S-BOUNDARY-001`, `S-BOUNDARY-003`
+Source Rules: `S-BOUNDARY-001`, `S-BOUNDARY-003`, `S-BOUNDARY-005`, `S-BOUNDARY-006`
 
 Allowed: `@nimiplatform/sdk/mod`
 

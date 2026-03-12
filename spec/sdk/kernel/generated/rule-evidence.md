@@ -23,6 +23,8 @@
 | `S-BOUNDARY-002` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
 | `S-BOUNDARY-003` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
 | `S-BOUNDARY-004` | `covered` | `sdk_kernel_consistency`, `sdk_boundary_gate` |
+| `S-BOUNDARY-005` | `covered` | `sdk_kernel_consistency`, `sdk_boundary_gate`, `sdk_test_gate` |
+| `S-BOUNDARY-006` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
 | `S-ERROR-001` | `covered` | `sdk_kernel_consistency`, `sdk_lint_gate` |
 | `S-ERROR-002` | `covered` | `sdk_kernel_consistency` |
 | `S-ERROR-003` | `covered` | `sdk_kernel_consistency` |
@@ -54,6 +56,7 @@
 | `S-MOD-003` | `covered` | `sdk_kernel_consistency` |
 | `S-MOD-004` | `covered` | `sdk_kernel_consistency` |
 | `S-MOD-005` | `covered` | `sdk_kernel_consistency` |
+| `S-MOD-006` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
 | `S-MOD-010` | `covered` | `sdk_kernel_consistency` |
 | `S-MOD-011` | `covered` | `sdk_kernel_consistency` |
 | `S-REALM-010` | `covered` | `sdk_kernel_consistency` |

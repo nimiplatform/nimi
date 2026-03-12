@@ -27,6 +27,7 @@ import {
   buildRuntimeRequestMetadata,
   ensureRuntimeLocalModelWarm,
 } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
+import { LifecycleSubscriptionManager } from '@renderer/mod-ui/lifecycle/lifecycle-subscription-manager';
 import { createResolveRuntimeBinding } from './runtime-bootstrap-route-resolvers';
 import { loadRuntimeRouteOptions } from './runtime-bootstrap-route-options';
 import type { WireModSdkHostInput } from './runtime-bootstrap-host';
@@ -52,6 +53,7 @@ type HostCapabilityInput = {
 };
 
 export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireModSdkHostInput {
+  const lifecycleManager = new LifecycleSubscriptionManager();
   const hookRuntime = input.getRuntimeHookRuntime();
   hookRuntime.setModAiDependencySnapshotResolver(createModAiDependencySnapshotResolver());
   const resolveRuntimeBinding = createResolveRuntimeBinding(() => getRuntimeFieldsFromStore());
@@ -733,10 +735,64 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
       SlotHost: SlotHost as any,
       useUiExtensionContext,
     },
+    shell: {
+      useAuth: () => {
+        const status = useAppStore((state) => state.auth.status);
+        const user = useAppStore((state) => state.auth.user);
+        return {
+          isAuthenticated: status === 'authenticated',
+          user,
+        };
+      },
+      useBootstrap: () => {
+        const ready = useAppStore((state) => state.bootstrapReady);
+        const error = useAppStore((state) => state.bootstrapError);
+        return { ready, error };
+      },
+      useNavigation: () => {
+        const activeTab = useAppStore((state) => state.activeTab);
+        const setActiveTab = useAppStore((state) => state.setActiveTab);
+        const navigateToProfile = useAppStore((state) => state.navigateToProfile);
+        return {
+          activeTab,
+          setActiveTab: (tab) => setActiveTab(tab as typeof activeTab),
+          navigateToProfile,
+        };
+      },
+      useRuntimeFields: () => {
+        const runtimeFields = useAppStore((state) => state.runtimeFields);
+        const setRuntimeField = useAppStore((state) => state.setRuntimeField);
+        const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
+        return {
+          runtimeFields,
+          setRuntimeField,
+          setRuntimeFields,
+        };
+      },
+      useStatusBanner: () => {
+        const setStatusBanner = useAppStore((state) => state.setStatusBanner);
+        return {
+          showStatusBanner: setStatusBanner,
+        };
+      },
+    },
+    settings: {
+      useRuntimeModSettings: (modId) => {
+        const runtimeModSettingsById = useAppStore((state) => state.runtimeModSettingsById);
+        return runtimeModSettingsById[String(modId || '').trim()] || {};
+      },
+      setRuntimeModSettings: (modId, settings) => {
+        useAppStore.getState().setRuntimeModSettings(modId, settings);
+      },
+    },
     logging: {
       emitRuntimeLog,
       createRendererFlowId,
       logRendererEvent,
+    },
+    lifecycle: {
+      subscribe: (tabId, handler) => lifecycleManager.subscribe(tabId, handler),
+      getState: (tabId) => lifecycleManager.getState(tabId),
     },
   };
 }

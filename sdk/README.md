@@ -16,7 +16,7 @@ SDK 已完成单包收敛：
 - `@nimiplatform/sdk/mod/hook`
 - `@nimiplatform/sdk/mod/runtime`
 - `@nimiplatform/sdk/mod/types`
-- `@nimiplatform/sdk/mod/ui`
+- `@nimiplatform/sdk/mod/shell`
 - `@nimiplatform/sdk/mod/logging`
 - `@nimiplatform/sdk/mod/i18n`
 - `@nimiplatform/sdk/mod/settings`

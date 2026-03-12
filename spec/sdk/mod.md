@@ -5,15 +5,17 @@
 
 ## 0. 权威导入
 
-- `kernel/mod-contract.md`（S-MOD-001, S-MOD-002, S-MOD-003, S-MOD-005, S-MOD-010, S-MOD-011）
+- `kernel/mod-contract.md`（S-MOD-001, S-MOD-002, S-MOD-003, S-MOD-005, S-MOD-006, S-MOD-010, S-MOD-011）
 - `kernel/surface-contract.md`（S-SURFACE-004）
 - `kernel/transport-contract.md`（S-TRANSPORT-003）
 - `kernel/error-projection.md`（S-ERROR-003）
-- `kernel/boundary-contract.md`（S-BOUNDARY-003, S-BOUNDARY-004）
+- `kernel/boundary-contract.md`（S-BOUNDARY-003, S-BOUNDARY-004, S-BOUNDARY-005, S-BOUNDARY-006）
 
 ## 1. 文档定位
 
 本文件是 mod 子路径导引。host 注入语义、hook 聚合边界与导入约束由 sdk kernel 定义。
+
+稳定公开的 mod-facing shell 与 route lifecycle facade 仅允许通过 renderer-agnostic 子路径暴露，并且 route runtime identity 当前固定为 `tabId`。
 
 ## 2. 阅读路径
 
@@ -28,6 +30,7 @@
 - Runtime app messaging：`spec/runtime/kernel/app-messaging-contract.md`。
 - Local image workflow host projection：mod 通过 host-injected facade 请求 `runtime.local.artifacts.list`，并用 `buildLocalImageWorkflowExtensions()` 组装 `components` 与 `profile_overrides`。
 - `S-MOD-005`: hook 注册、卸载与生命周期回调边界必须与 desktop 执行内核保持一致，不能在 SDK/mod 层私自扩展 hook 生命周期语义。
+- `S-MOD-006` / `S-BOUNDARY-005` / `S-BOUNDARY-006`: `mod/shell` 与 `mod/lifecycle` 必须保持 renderer-agnostic，且 route runtime lifecycle 的稳定公开作用域固定为 `tabId`。
 
 ## 4. 非目标
 

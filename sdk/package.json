@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "license": "Apache-2.0",
   "private": false,
   "publishConfig": {
@@ -41,9 +41,9 @@
       "types": "./dist/mod/types/index.d.ts",
       "default": "./dist/mod/types/index.js"
     },
-    "./mod/ui": {
-      "types": "./dist/mod/ui.d.ts",
-      "default": "./dist/mod/ui.js"
+    "./mod/shell": {
+      "types": "./dist/mod/shell.d.ts",
+      "default": "./dist/mod/shell.js"
     },
     "./mod/logging": {
       "types": "./dist/mod/logging.d.ts",
@@ -72,6 +72,10 @@
     "./mod/host": {
       "types": "./dist/mod/host.d.ts",
       "default": "./dist/mod/host.js"
+    },
+    "./mod/lifecycle": {
+      "types": "./dist/mod/lifecycle.d.ts",
+      "default": "./dist/mod/lifecycle.js"
     },
     "./scope": {
       "types": "./dist/scope/index.d.ts",

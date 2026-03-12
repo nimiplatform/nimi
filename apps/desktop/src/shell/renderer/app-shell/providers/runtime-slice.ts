@@ -42,10 +42,12 @@ export function createRuntimeSlice(set: AppStoreSet): RuntimeSlice {
       })),
     setRuntimeFields: (updates) =>
       set((state) => ({
-        runtimeFields: {
-          ...state.runtimeFields,
-          ...updates,
-        },
+        runtimeFields: Object.fromEntries(
+          Object.entries({
+            ...state.runtimeFields,
+            ...updates,
+          }).filter(([, value]) => value !== undefined),
+        ) as AppStoreState['runtimeFields'],
       })),
   };
 }

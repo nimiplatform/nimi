@@ -54,6 +54,12 @@ rules:
   - rule_id: S-BOUNDARY-004
     status: covered
     evidence_refs: [sdk_kernel_consistency, sdk_boundary_gate]
+  - rule_id: S-BOUNDARY-005
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_boundary_gate, sdk_test_gate]
+  - rule_id: S-BOUNDARY-006
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
   - rule_id: S-ERROR-001
     status: covered
     evidence_refs: [sdk_kernel_consistency, sdk_lint_gate]
@@ -147,6 +153,9 @@ rules:
   - rule_id: S-MOD-005
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+  - rule_id: S-MOD-006
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
   - rule_id: S-MOD-010
     status: covered
     evidence_refs: [sdk_kernel_consistency]

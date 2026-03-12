@@ -41,6 +41,12 @@ UI 扩展槽位注册：
 - 8 个预定义槽位（参考 `tables/ui-slots.yaml`）。
 - `codegen` 仅允许 `ui-extension.app.*` 前缀的槽位。
 
+**边界说明**：
+
+- `ui.register(...)` 的扩展载荷必须保持声明式；Desktop host 可以将其解释为 same-tree render 或未来的 isolated render，但该解释方式不属于公开 contract。
+- `ui.register(...)` 不得被视为“mod 可直接注入 shared React tree”的承诺。
+- route tab identity 在 Desktop host 中固定使用 `tabId`；route visibility / retention / lifecycle 由 host 管理，不属于 hook payload 本身。
+
 ## D-HOOK-005 — Inter-Mod 子系统
 
 跨 mod RPC 通信：
@@ -114,6 +120,20 @@ legacy runtime-aligned mod/hook surface 已硬切移除，不得回流旧的 mod
 - `audit.read.self`：读取本 mod 的审计日志（所有 source types 均可用，包括 `codegen`）。
 - `meta.read.self`：读取本 mod 的元数据（所有 source types 均可用，包括 `codegen`）。
 - `meta.read.all`：读取全局 mod 元数据（仅 `builtin` 可用）。
+
+## D-HOOK-011 — Route Runtime Lifecycle Boundary
+
+Desktop host 必须将 route runtime lifecycle 与 package lifecycle 分开处理。
+
+- package lifecycle 继续遵循 `tables/mod-lifecycle-states.yaml`
+- route runtime lifecycle 只描述某个 `tabId` 对应 route instance 的可见性 / retention / throttling 状态
+- route runtime lifecycle 的公开状态固定为：
+  - `active`
+  - `background-throttled`
+  - `frozen`
+  - `discarded`
+
+route runtime lifecycle 可以被公开为 SDK facade，但不得混入 hook permission key，也不得以 `modId` 聚合作为稳定 contract。
 
 ## Fact Sources
 

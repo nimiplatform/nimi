@@ -44,6 +44,7 @@ export type RuntimeFieldMap = {
   mode: 'STORY' | 'SCENE_TURN';
   turnIndex: number;
   userConfirmedUpload: boolean;
+  [key: string]: string | number | boolean;
 };
 
 export type StatusBanner = {
@@ -58,6 +59,7 @@ export type ModWorkspaceTab = {
   modId: string;
   title: string;
   fused: boolean;
+  lastAccessedAt: number;
 };
 
 export type AppStoreState = {
@@ -99,7 +101,7 @@ export type AppStoreState = {
   setAuthBootstrapping: () => void;
   setAuthSession: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void;
   clearAuthSession: () => void;
-  setRuntimeField: <K extends keyof RuntimeFieldMap>(key: K, value: RuntimeFieldMap[K]) => void;
+  setRuntimeField: (key: string, value: string | number | boolean) => void;
   setRuntimeFields: (updates: Partial<RuntimeFieldMap>) => void;
   setActiveTab: (tab: AppTab) => void;
   setSelectedChatId: (chatId: string | null) => void;
@@ -121,6 +123,7 @@ export type AppStoreState = {
   setRuntimeModSettings: (modId: string, settings: Record<string, unknown>) => void;
   openModWorkspaceTab: (tabId: `mod:${string}`, title: string, modId: string) => void;
   closeModWorkspaceTab: (tabId: `mod:${string}`) => void;
+  touchModWorkspaceTab: (tabId: `mod:${string}`) => void;
   markRuntimeModFused: (modId: string, error: string, reason: string) => void;
   clearRuntimeModFuse: (modId: string) => void;
   setRuntimeModFailures: (failures: RuntimeModRegisterFailure[]) => void;

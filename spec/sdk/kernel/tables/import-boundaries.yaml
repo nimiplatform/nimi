@@ -48,6 +48,8 @@ rules:
     source_rules:
       - S-BOUNDARY-001
       - S-BOUNDARY-003
+      - S-BOUNDARY-005
+      - S-BOUNDARY-006
   - surface: types
     allowed:
       - "@nimiplatform/sdk/types"

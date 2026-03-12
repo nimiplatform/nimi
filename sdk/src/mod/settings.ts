@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { loadStorageJsonFrom, saveStorageJsonTo } from './local-storage';
-import { useAppStore } from './ui';
+import { setModSdkRuntimeModSettings, useModSdkRuntimeModSettings } from './internal/settings-access.js';
 
 export const RUNTIME_MOD_SETTINGS_STORAGE_KEY = 'nimi.runtime.mod-settings.v1';
 
@@ -9,11 +9,6 @@ export type RuntimeModSettingsMap = Record<string, Record<string, unknown>>;
 type RuntimeModSettingsStoragePayload = {
   version: 1;
   byModId: RuntimeModSettingsMap;
-};
-
-type RuntimeModSettingsStoreShape = {
-  runtimeModSettingsById?: RuntimeModSettingsMap;
-  setRuntimeModSettings?: (modId: string, settings: Record<string, unknown>) => void;
 };
 
 function resolveStorage(): Storage | undefined {
@@ -122,30 +117,21 @@ export function useRuntimeModSettings<T extends Record<string, unknown>>(input: 
     [input.defaults, input.normalize],
   );
 
-  const runtimeModSettingsById = useAppStore((state) => (
-    (state as RuntimeModSettingsStoreShape).runtimeModSettingsById || {}
-  ));
-  const setRuntimeModSettings = useAppStore((state) => (
-    (state as RuntimeModSettingsStoreShape).setRuntimeModSettings
-  ));
+  const runtimeModSettings = useModSdkRuntimeModSettings(normalizedModId);
 
   const settings = useMemo(() => {
     if (!normalizedModId) {
       return normalize(input.defaults);
     }
-    const runtimeValue = runtimeModSettingsById[normalizedModId];
+    const runtimeValue = runtimeModSettings;
     const fallbackValue = runtimeValue ?? readRuntimeModSettings(normalizedModId);
     return normalize(fallbackValue);
-  }, [input.defaults, normalize, normalizedModId, runtimeModSettingsById]);
+  }, [input.defaults, normalize, normalizedModId, runtimeModSettings]);
 
   const setSettings = useCallback((nextSettings: T) => {
     if (!normalizedModId) return;
-    if (typeof setRuntimeModSettings === 'function') {
-      setRuntimeModSettings(normalizedModId, nextSettings);
-      return;
-    }
-    writeRuntimeModSettings(normalizedModId, nextSettings);
-  }, [normalizedModId, setRuntimeModSettings]);
+    setModSdkRuntimeModSettings(normalizedModId, nextSettings);
+  }, [normalizedModId]);
 
   const updateSettings = useCallback((updater: Partial<T> | ((previous: T) => T)) => {
     const nextSettings = typeof updater === 'function'

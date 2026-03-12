@@ -84,6 +84,39 @@ export type ModSdkUiContext = {
   setRuntimeFields: (fields: Record<string, string | number | boolean>) => void;
 };
 
+export type ModShellStatusBannerInput = {
+  kind: 'info' | 'success' | 'warning' | 'error';
+  message: string;
+  actionLabel?: string;
+  onAction?: () => void;
+};
+
+export type ModShellAuthState = {
+  isAuthenticated: boolean;
+  user: Record<string, unknown> | null;
+};
+
+export type ModShellBootstrapState = {
+  ready: boolean;
+  error: string | null;
+};
+
+export type ModShellNavigationState = {
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  navigateToProfile: (profileId: string | null, tab: 'profile' | 'agent-detail') => void;
+};
+
+export type ModShellRuntimeFieldsState = {
+  runtimeFields: Record<string, string | number | boolean>;
+  setRuntimeField: (field: string, value: string | number | boolean) => void;
+  setRuntimeFields: (fields: Record<string, string | number | boolean>) => void;
+};
+
+export type ModShellStatusBannerState = {
+  showStatusBanner: (input: ModShellStatusBannerInput) => void;
+};
+
 export type RuntimeKernelTurnInput = {
   requestId: string;
   sessionId: string;
@@ -110,6 +143,12 @@ export type RuntimeKernelTurnResult = {
   error?: string;
   [key: string]: unknown;
 };
+
+export type ModLifecycleState =
+  | 'active'
+  | 'background-throttled'
+  | 'frozen'
+  | 'discarded';
 
 export type ModSdkHost = {
   runtime: {
@@ -196,10 +235,25 @@ export type ModSdkHost = {
     }>;
     useUiExtensionContext: () => ModSdkUiContext;
   };
+  shell?: {
+    useAuth: () => ModShellAuthState;
+    useBootstrap: () => ModShellBootstrapState;
+    useNavigation: () => ModShellNavigationState;
+    useRuntimeFields: () => ModShellRuntimeFieldsState;
+    useStatusBanner: () => ModShellStatusBannerState;
+  };
+  settings?: {
+    useRuntimeModSettings: (modId: string) => Record<string, unknown>;
+    setRuntimeModSettings: (modId: string, settings: Record<string, unknown>) => void;
+  };
   logging: {
     emitRuntimeLog: (payload: RuntimeLogMessage) => void;
     createRendererFlowId: (prefix: string) => string;
     logRendererEvent: (payload: RendererLogMessage) => void;
+  };
+  lifecycle: {
+    subscribe: (tabId: string, handler: (state: ModLifecycleState) => void) => () => void;
+    getState: (tabId: string) => ModLifecycleState;
   };
 };
 
