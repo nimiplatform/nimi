@@ -522,7 +522,6 @@ type SearchCatalogModelsRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Query          string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
 	Capability     string                 `protobuf:"bytes,2,opt,name=capability,proto3" json:"capability,omitempty"`
-	Limit          int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
 	CategoryFilter string                 `protobuf:"bytes,4,opt,name=category_filter,json=categoryFilter,proto3" json:"category_filter,omitempty"`
 	EngineFilter   string                 `protobuf:"bytes,5,opt,name=engine_filter,json=engineFilter,proto3" json:"engine_filter,omitempty"`
 	PageSize       int32                  `protobuf:"varint,6,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
@@ -573,13 +572,6 @@ func (x *SearchCatalogModelsRequest) GetCapability() string {
 		return x.Capability
 	}
 	return ""
-}
-
-func (x *SearchCatalogModelsRequest) GetLimit() int32 {
-	if x != nil {
-		return x.Limit
-	}
-	return 0
 }
 
 func (x *SearchCatalogModelsRequest) GetCategoryFilter() string {
@@ -2856,7 +2848,6 @@ func (x *ListNodeCatalogResponse) GetNextPageToken() string {
 
 type ListLocalAuditsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
 	EventType     string                 `protobuf:"bytes,2,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
 	EventTypes    []string               `protobuf:"bytes,3,rep,name=event_types,json=eventTypes,proto3" json:"event_types,omitempty"`
 	Source        string                 `protobuf:"bytes,4,opt,name=source,proto3" json:"source,omitempty"`
@@ -2901,13 +2892,6 @@ func (x *ListLocalAuditsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListLocalAuditsRequest.ProtoReflect.Descriptor instead.
 func (*ListLocalAuditsRequest) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{52}
-}
-
-func (x *ListLocalAuditsRequest) GetLimit() int32 {
-	if x != nil {
-		return x.Limit
-	}
-	return 0
 }
 
 func (x *ListLocalAuditsRequest) GetEventType() string {
@@ -3450,18 +3434,17 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"page_token\x18\x04 \x01(\tR\tpageToken\"\x97\x01\n" +
 	"\x1dListVerifiedArtifactsResponse\x12N\n" +
 	"\tartifacts\x18\x01 \x03(\v20.nimi.runtime.v1.LocalVerifiedArtifactDescriptorR\tartifacts\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xf2\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xe9\x01\n" +
 	"\x1aSearchCatalogModelsRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\x12\x1e\n" +
 	"\n" +
 	"capability\x18\x02 \x01(\tR\n" +
-	"capability\x12\x14\n" +
-	"\x05limit\x18\x03 \x01(\x05R\x05limit\x12'\n" +
+	"capability\x12'\n" +
 	"\x0fcategory_filter\x18\x04 \x01(\tR\x0ecategoryFilter\x12#\n" +
 	"\rengine_filter\x18\x05 \x01(\tR\fengineFilter\x12\x1b\n" +
 	"\tpage_size\x18\x06 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\a \x01(\tR\tpageToken\"\x89\x01\n" +
+	"page_token\x18\a \x01(\tR\tpageTokenJ\x04\b\x03\x10\x04R\x05limit\"\x89\x01\n" +
 	"\x1bSearchCatalogModelsResponse\x12B\n" +
 	"\x05items\x18\x01 \x03(\v2,.nimi.runtime.v1.LocalCatalogModelDescriptorR\x05items\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa9\x04\n" +
@@ -3616,9 +3599,8 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"page_token\x18\x06 \x01(\tR\tpageToken\"}\n" +
 	"\x17ListNodeCatalogResponse\x12:\n" +
 	"\x05nodes\x18\x01 \x03(\v2$.nimi.runtime.v1.LocalNodeDescriptorR\x05nodes\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xc0\x03\n" +
-	"\x16ListLocalAuditsRequest\x12\x14\n" +
-	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x1d\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xb7\x03\n" +
+	"\x16ListLocalAuditsRequest\x12\x1d\n" +
 	"\n" +
 	"event_type\x18\x02 \x01(\tR\teventType\x12\x1f\n" +
 	"\vevent_types\x18\x03 \x03(\tR\n" +
@@ -3636,7 +3618,7 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\n" +
 	"page_token\x18\v \x01(\tR\tpageToken\x12\x15\n" +
 	"\x06app_id\x18\f \x01(\tR\x05appId\x12&\n" +
-	"\x0fsubject_user_id\x18\r \x01(\tR\rsubjectUserId\"{\n" +
+	"\x0fsubject_user_id\x18\r \x01(\tR\rsubjectUserIdJ\x04\b\x01\x10\x02R\x05limit\"{\n" +
 	"\x17ListLocalAuditsResponse\x128\n" +
 	"\x06events\x18\x01 \x03(\v2 .nimi.runtime.v1.LocalAuditEventR\x06events\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xb7\x03\n" +

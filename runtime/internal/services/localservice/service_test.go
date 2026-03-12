@@ -904,7 +904,7 @@ func TestSearchCatalogModelsPassesHFRequestShape(t *testing.T) {
 		Query:        "Llama",
 		Capability:   "image",
 		EngineFilter: "nexa",
-		Limit:        7,
+		PageSize:     7,
 	}); err != nil {
 		t.Fatalf("search catalog models: %v", err)
 	}
@@ -1103,8 +1103,8 @@ func TestLocalAuditFilterByModID(t *testing.T) {
 	}
 
 	filtered, err := svc.ListLocalAudits(context.Background(), &runtimev1.ListLocalAuditsRequest{
-		ModId: "world.nimi.user-math-quiz",
-		Limit: 10,
+		ModId:    "world.nimi.user-math-quiz",
+		PageSize: 10,
 	})
 	if err != nil {
 		t.Fatalf("list local audits by mod id: %v", err)

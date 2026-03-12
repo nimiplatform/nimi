@@ -200,10 +200,6 @@ export interface SearchCatalogModelsRequest {
      */
     capability: string;
     /**
-     * @generated from protobuf field: int32 limit = 3
-     */
-    limit: number;
-    /**
      * @generated from protobuf field: string category_filter = 4
      */
     categoryFilter: string;
@@ -791,10 +787,6 @@ export interface ListNodeCatalogResponse {
  * @generated from protobuf message nimi.runtime.v1.ListLocalAuditsRequest
  */
 export interface ListLocalAuditsRequest {
-    /**
-     * @generated from protobuf field: int32 limit = 1
-     */
-    limit: number;
     /**
      * @generated from protobuf field: string event_type = 2
      */
@@ -1511,7 +1503,6 @@ class SearchCatalogModelsRequest$Type extends MessageType<SearchCatalogModelsReq
         super("nimi.runtime.v1.SearchCatalogModelsRequest", [
             { no: 1, name: "query", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "limit", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 4, name: "category_filter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "engine_filter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
@@ -1522,7 +1513,6 @@ class SearchCatalogModelsRequest$Type extends MessageType<SearchCatalogModelsReq
         const message = globalThis.Object.create((this.messagePrototype!));
         message.query = "";
         message.capability = "";
-        message.limit = 0;
         message.categoryFilter = "";
         message.engineFilter = "";
         message.pageSize = 0;
@@ -1541,9 +1531,6 @@ class SearchCatalogModelsRequest$Type extends MessageType<SearchCatalogModelsReq
                     break;
                 case /* string capability */ 2:
                     message.capability = reader.string();
-                    break;
-                case /* int32 limit */ 3:
-                    message.limit = reader.int32();
                     break;
                 case /* string category_filter */ 4:
                     message.categoryFilter = reader.string();
@@ -1575,9 +1562,6 @@ class SearchCatalogModelsRequest$Type extends MessageType<SearchCatalogModelsReq
         /* string capability = 2; */
         if (message.capability !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.capability);
-        /* int32 limit = 3; */
-        if (message.limit !== 0)
-            writer.tag(3, WireType.Varint).int32(message.limit);
         /* string category_filter = 4; */
         if (message.categoryFilter !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.categoryFilter);
@@ -3994,7 +3978,6 @@ export const ListNodeCatalogResponse = new ListNodeCatalogResponse$Type();
 class ListLocalAuditsRequest$Type extends MessageType<ListLocalAuditsRequest> {
     constructor() {
         super("nimi.runtime.v1.ListLocalAuditsRequest", [
-            { no: 1, name: "limit", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 2, name: "event_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "event_types", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "source", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -4011,7 +3994,6 @@ class ListLocalAuditsRequest$Type extends MessageType<ListLocalAuditsRequest> {
     }
     create(value?: PartialMessage<ListLocalAuditsRequest>): ListLocalAuditsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.limit = 0;
         message.eventType = "";
         message.eventTypes = [];
         message.source = "";
@@ -4032,9 +4014,6 @@ class ListLocalAuditsRequest$Type extends MessageType<ListLocalAuditsRequest> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* int32 limit */ 1:
-                    message.limit = reader.int32();
-                    break;
                 case /* string event_type */ 2:
                     message.eventType = reader.string();
                     break;
@@ -4083,9 +4062,6 @@ class ListLocalAuditsRequest$Type extends MessageType<ListLocalAuditsRequest> {
         return message;
     }
     internalBinaryWrite(message: ListLocalAuditsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* int32 limit = 1; */
-        if (message.limit !== 0)
-            writer.tag(1, WireType.Varint).int32(message.limit);
         /* string event_type = 2; */
         if (message.eventType !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.eventType);

@@ -50,13 +50,8 @@ func (s *Service) ListLocalAudits(_ context.Context, req *runtimev1.ListLocalAud
 	})
 
 	pageSize := int(req.GetPageSize())
-	legacyLimit := int(req.GetLimit())
 	if pageSize <= 0 {
-		if legacyLimit > 0 {
-			pageSize = legacyLimit
-		} else {
-			pageSize = 50
-		}
+		pageSize = 50
 	}
 	if pageSize > 200 {
 		pageSize = 200

@@ -130,10 +130,7 @@ func (s *Service) SearchCatalogModels(ctx context.Context, req *runtimev1.Search
 		items = append(items, item)
 	}
 
-	hfLimit := req.GetLimit()
-	if hfLimit <= 0 {
-		hfLimit = req.GetPageSize()
-	}
+	hfLimit := req.GetPageSize()
 	hfItems, err := s.searchHFCatalog(ctx, hfCatalogSearchRequest{
 		Query:          query,
 		Capability:     capability,
@@ -167,11 +164,7 @@ func (s *Service) SearchCatalogModels(ctx context.Context, req *runtimev1.Search
 
 	pageSize := req.GetPageSize()
 	if pageSize <= 0 {
-		if req.GetLimit() > 0 {
-			pageSize = req.GetLimit()
-		} else {
-			pageSize = 50
-		}
+		pageSize = 50
 	}
 	filterDigest := pagination.FilterDigest(query, capability, categoryFilter, engineFilter)
 	start, end, next, err := resolvePageBounds(req.GetPageToken(), filterDigest, pageSize, 50, 200, len(items))

@@ -62,7 +62,8 @@ message ListVerifiedArtifactsResponse {
 message SearchCatalogModelsRequest {
   string query = 1;
   string capability = 2;
-  int32 limit = 3;
+  reserved 3;
+  reserved "limit";
   string category_filter = 4;
   string engine_filter = 5;
   int32 page_size = 6;
@@ -286,7 +287,8 @@ message ListNodeCatalogResponse {
 }
 
 message ListLocalAuditsRequest {
-  int32 limit = 1;
+  reserved 1;
+  reserved "limit";
   string event_type = 2;
   repeated string event_types = 3;
   string source = 4;
