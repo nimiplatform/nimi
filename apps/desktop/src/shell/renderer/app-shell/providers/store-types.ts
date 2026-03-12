@@ -7,7 +7,7 @@ import type {
   RuntimeModSourceRecord,
 } from '@renderer/bridge';
 import type { RuntimeModRegisterFailure } from '@runtime/mod';
-import type { RuntimeModSettingsMap } from '@nimiplatform/sdk/mod/settings';
+import type { RuntimeModSettingsMap } from '@nimiplatform/sdk/mod';
 import type { OfflineTier } from '@runtime/offline/types.js';
 import type { OpenModWorkspaceTabResult } from './mod-workspace-policy';
 

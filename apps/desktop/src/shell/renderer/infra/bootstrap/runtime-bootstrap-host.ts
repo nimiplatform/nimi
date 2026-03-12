@@ -1,7 +1,8 @@
-import { setModSdkHost } from '@nimiplatform/sdk/mod/host';
+import { setInternalModSdkHost } from '@runtime/mod';
+import type { ModSdkHost } from '../../../../../../../sdk/src/mod/internal/host-types.js';
 
-export type WireModSdkHostInput = Parameters<typeof setModSdkHost>[0];
+export type WireModSdkHostInput = ModSdkHost;
 
 export function wireModSdkHost(input: WireModSdkHostInput): void {
-  setModSdkHost(input);
+  setInternalModSdkHost(input);
 }

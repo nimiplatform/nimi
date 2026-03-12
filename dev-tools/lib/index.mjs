@@ -644,9 +644,7 @@ export function createMod(cwd, options = {}) {
       path: 'src/index.tsx',
       content: [
         "import React from 'react';",
-        "import { createHookClient } from '@nimiplatform/sdk/mod/hook';",
-        "import { createModRuntimeClient } from '@nimiplatform/sdk/mod/runtime';",
-        "import type { RuntimeModRegistration } from '@nimiplatform/sdk/mod/types';",
+        "import { createHookClient, createModRuntimeClient, type RuntimeModRegistration } from '@nimiplatform/sdk/mod';",
         '',
         `const MOD_ID = '${modId}';`,
         "const NAV_SLOT = 'ui-extension.app.sidebar.mods';",

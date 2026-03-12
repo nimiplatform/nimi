@@ -2,13 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { ReasonCode } from '@nimiplatform/sdk';
-import { clearModSdkHost, setModSdkHost } from '@nimiplatform/sdk/mod/host';
-import { createHookClient } from '@nimiplatform/sdk/mod/hook';
+import { createHookClient } from '@nimiplatform/sdk/mod';
 import { loadAgentDetails } from '../src/runtime/data-sync/flows/agent-runtime-flow';
 import {
+  clearInternalModSdkHost,
   getRuntimeHookRuntime,
   resetRuntimeHostForTesting,
-} from '../src/runtime/mod/host';
+  setInternalModSdkHost,
+} from '../src/runtime/mod';
 import {
   MINTYOU_MOD_ID,
   MINTYOU_RUNTIME_PROFILE_READ_AGENT,
@@ -201,7 +202,7 @@ function installModStateCapability(hookRuntime: ReturnType<typeof getRuntimeHook
 }
 
 function installModSdkHost(runtimeHost: Record<string, unknown>): () => void {
-  setModSdkHost({
+  setInternalModSdkHost({
     runtime: runtimeHost as never,
     ui: {
       useAppStore: () => undefined as never,
@@ -221,7 +222,7 @@ function installModSdkHost(runtimeHost: Record<string, unknown>): () => void {
     },
   });
   return () => {
-    clearModSdkHost();
+    clearInternalModSdkHost();
   };
 }
 
