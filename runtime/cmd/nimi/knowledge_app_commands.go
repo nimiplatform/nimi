@@ -271,12 +271,14 @@ func runRuntimeAppSend(args []string) error {
 	timeoutRaw := fs.String("timeout", "5s", "grpc request timeout")
 	fromAppID := fs.String("from-app-id", "", "source app id")
 	toAppID := fs.String("to-app-id", "", "target app id")
-	subjectUserID := fs.String("subject-user-id", "local-user", "subject user id")
+	subjectUserID := fs.String("subject-user-id", "", "subject user id")
 	messageType := fs.String("message-type", "", "message type")
 	payloadFile := fs.String("payload-file", "", "payload file (protojson struct)")
 	requireAck := fs.Bool("require-ack", true, "require ack")
 	accessTokenID := fs.String("access-token-id", "", "protected access token id")
 	accessTokenSecret := fs.String("access-token-secret", "", "protected access token secret")
+	sessionID := fs.String("session-id", "", "app session id")
+	sessionToken := fs.String("session-token", "", "app session token")
 	jsonOutput := fs.Bool("json", false, "output json")
 	callerKind := fs.String("caller-kind", "third-party-service", "caller kind metadata")
 	callerID := fs.String("caller-id", "nimi-cli", "caller id metadata")
@@ -294,15 +296,6 @@ func runRuntimeAppSend(args []string) error {
 	if toAppIDValue == "" {
 		return fmt.Errorf("to-app-id is required")
 	}
-	subjectUserIDValue := strings.TrimSpace(*subjectUserID)
-	if subjectUserIDValue == "" {
-		return fmt.Errorf("subject-user-id is required")
-	}
-	messageTypeValue := strings.TrimSpace(*messageType)
-	if messageTypeValue == "" {
-		return fmt.Errorf("message-type is required")
-	}
-
 	timeout, err := time.ParseDuration(*timeoutRaw)
 	if err != nil {
 		return fmt.Errorf("parse timeout: %w", err)
@@ -315,11 +308,13 @@ func runRuntimeAppSend(args []string) error {
 	callerMeta := runtimeAICallerMetadataFromFlags(*callerKind, *callerID, *surfaceID, *traceID)
 	callerMeta.AccessTokenID = strings.TrimSpace(*accessTokenID)
 	callerMeta.AccessTokenSecret = strings.TrimSpace(*accessTokenSecret)
+	callerMeta.SessionID = strings.TrimSpace(*sessionID)
+	callerMeta.SessionToken = strings.TrimSpace(*sessionToken)
 	resp, err := entrypoint.SendAppMessageGRPC(*grpcAddr, timeout, &runtimev1.SendAppMessageRequest{
 		FromAppId:     fromAppIDValue,
 		ToAppId:       toAppIDValue,
-		SubjectUserId: subjectUserIDValue,
-		MessageType:   messageTypeValue,
+		SubjectUserId: strings.TrimSpace(*subjectUserID),
+		MessageType:   strings.TrimSpace(*messageType),
 		Payload:       payload,
 		RequireAck:    *requireAck,
 	}, callerMeta)

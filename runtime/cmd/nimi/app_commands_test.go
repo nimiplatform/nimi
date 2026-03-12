@@ -33,10 +33,10 @@ func TestRunRuntimeAppSendJSON(t *testing.T) {
 			"--grpc-addr", addr,
 			"--from-app-id", "app.writer",
 			"--to-app-id", "app.reader",
-			"--subject-user-id", "user-1",
-			"--message-type", "note.created",
 			"--payload-file", payloadFile,
 			"--require-ack",
+			"--session-id", "session-1",
+			"--session-token", "session-token-1",
 			"--json",
 			"--caller-id", "cli:app-send",
 		})
@@ -59,6 +59,18 @@ func TestRunRuntimeAppSendJSON(t *testing.T) {
 	md := service.lastSendMetadata()
 	if got := firstMD(md, "x-nimi-caller-id"); got != "cli:app-send" {
 		t.Fatalf("caller-id mismatch: %q", got)
+	}
+	if got := firstMD(md, "x-nimi-session-id"); got != "session-1" {
+		t.Fatalf("session-id mismatch: %q", got)
+	}
+	if got := firstMD(md, "x-nimi-session-token"); got != "session-token-1" {
+		t.Fatalf("session-token mismatch: %q", got)
+	}
+	if req.GetSubjectUserId() != "" {
+		t.Fatalf("subject user id should be optional, got %q", req.GetSubjectUserId())
+	}
+	if req.GetMessageType() != "" {
+		t.Fatalf("message type should be optional, got %q", req.GetMessageType())
 	}
 }
 

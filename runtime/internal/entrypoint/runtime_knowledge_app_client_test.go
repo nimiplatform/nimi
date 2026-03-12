@@ -143,8 +143,10 @@ func TestAppGRPCWrappers_MetadataAndStream(t *testing.T) {
 		MessageType:   "note.created",
 		RequireAck:    true,
 	}, &ClientMetadata{
-		CallerID: "svc:app-send",
-		TraceID:  "trace-app-send",
+		CallerID:     "svc:app-send",
+		TraceID:      "trace-app-send",
+		SessionID:    "session-1",
+		SessionToken: "session-token-1",
 	})
 	if err != nil {
 		t.Fatalf("SendAppMessageGRPC: %v", err)
@@ -198,6 +200,12 @@ func TestAppGRPCWrappers_MetadataAndStream(t *testing.T) {
 	}
 	if got := firstMetadataValue(sendMD, "x-nimi-app-id"); got != "app.a" {
 		t.Fatalf("send app-id mismatch: %q", got)
+	}
+	if got := firstMetadataValue(sendMD, "x-nimi-session-id"); got != "session-1" {
+		t.Fatalf("send session-id mismatch: %q", got)
+	}
+	if got := firstMetadataValue(sendMD, "x-nimi-session-token"); got != "session-token-1" {
+		t.Fatalf("send session-token mismatch: %q", got)
 	}
 }
 

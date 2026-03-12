@@ -74,6 +74,10 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 
 	h := grpcHealth.NewServer()
 	grantSvc := grantservice.NewWithDependencies(logger, appRegistry, scopeCatalog, grantservice.WithAuditStore(auditStore))
+	authSvc := authservice.NewWithDependencies(
+		logger, appRegistry, auditStore,
+		cfg.SessionTTLMinSeconds, cfg.SessionTTLMaxSeconds,
+	)
 
 	// AuthN validator — JWKS mode (K-AUTHN-004)
 	authnValidator, authnErr := authn.NewValidator(cfg.AuthJWTJWKSURL, cfg.AuthJWTIssuer, cfg.AuthJWTAudience)
@@ -137,12 +141,9 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	logger.Info("runtime in-process mode enabled")
 
 	runtimev1.RegisterRuntimeGrantServiceServer(g, grantSvc)
-	runtimev1.RegisterRuntimeAuthServiceServer(g, authservice.NewWithDependencies(
-		logger, appRegistry, auditStore,
-		cfg.SessionTTLMinSeconds, cfg.SessionTTLMaxSeconds,
-	))
+	runtimev1.RegisterRuntimeAuthServiceServer(g, authSvc)
 	runtimev1.RegisterRuntimeKnowledgeServiceServer(g, knowledgeservice.New(logger)) // Phase 2 Draft
-	runtimev1.RegisterRuntimeAppServiceServer(g, appservice.New(logger))            // Phase 2 Draft
+	runtimev1.RegisterRuntimeAppServiceServer(g, appservice.New(logger, appservice.WithSessionValidator(authSvc))) // Phase 2 Draft
 
 	s := &Server{
 		addr:         addr,

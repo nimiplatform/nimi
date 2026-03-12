@@ -120,6 +120,12 @@ func withNimiOutgoingMetadata(ctx context.Context, appID string, metadataOverrid
 		if value := strings.TrimSpace(metadataOverride.AccessTokenSecret); value != "" {
 			metadataValue.AccessTokenSecret = value
 		}
+		if value := strings.TrimSpace(metadataOverride.SessionID); value != "" {
+			metadataValue.SessionID = value
+		}
+		if value := strings.TrimSpace(metadataOverride.SessionToken); value != "" {
+			metadataValue.SessionToken = value
+		}
 	}
 	if metadataValue.IdempotencyKey == "" {
 		metadataValue.IdempotencyKey = ulid.Make().String()
@@ -157,6 +163,12 @@ func withNimiOutgoingMetadata(ctx context.Context, appID string, metadataOverrid
 	}
 	if secret := strings.TrimSpace(metadataValue.AccessTokenSecret); secret != "" {
 		pairs = append(pairs, "x-nimi-access-token-secret", secret)
+	}
+	if sessionID := strings.TrimSpace(metadataValue.SessionID); sessionID != "" {
+		pairs = append(pairs, "x-nimi-session-id", sessionID)
+	}
+	if sessionToken := strings.TrimSpace(metadataValue.SessionToken); sessionToken != "" {
+		pairs = append(pairs, "x-nimi-session-token", sessionToken)
 	}
 	return metadata.AppendToOutgoingContext(ctx, pairs...)
 }

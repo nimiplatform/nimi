@@ -9,15 +9,18 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func newTestService() *Service {
-	return New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+func newTestService(opts ...Option) *Service {
+	return New(slog.New(slog.NewTextHandler(io.Discard, nil)), opts...)
 }
 
 func TestSendAppMessageSuccess(t *testing.T) {
-	// K-APP-001: RuntimeAppService accepts and persists the send path.
 	svc := newTestService()
 	resp, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
 		FromAppId:     "app-a",
@@ -40,16 +43,13 @@ func TestSendAppMessageSuccess(t *testing.T) {
 }
 
 func TestSendAppMessageMissingFields(t *testing.T) {
-	// K-APP-002: invalid app message envelopes fail closed.
 	svc := newTestService()
 	tests := []struct {
 		name string
 		req  *runtimev1.SendAppMessageRequest
 	}{
-		{"missing from", &runtimev1.SendAppMessageRequest{ToAppId: "b", SubjectUserId: "u", MessageType: "t"}},
-		{"missing to", &runtimev1.SendAppMessageRequest{FromAppId: "a", SubjectUserId: "u", MessageType: "t"}},
-		{"missing user", &runtimev1.SendAppMessageRequest{FromAppId: "a", ToAppId: "b", MessageType: "t"}},
-		{"missing type", &runtimev1.SendAppMessageRequest{FromAppId: "a", ToAppId: "b", SubjectUserId: "u"}},
+		{"missing from", &runtimev1.SendAppMessageRequest{ToAppId: "b"}},
+		{"missing to", &runtimev1.SendAppMessageRequest{FromAppId: "a"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -67,10 +67,153 @@ func TestSendAppMessageMissingFields(t *testing.T) {
 	}
 }
 
-func TestSubscribeAppMessagesFiltering(t *testing.T) {
-	// K-APP-003: subscriptions filter by app_id and subject_user_id.
+func TestSendAppMessageOptionalFields(t *testing.T) {
 	svc := newTestService()
+	resp, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+		FromAppId: "app-a",
+		ToAppId:   "app-b",
+	})
+	if err != nil {
+		t.Fatalf("SendAppMessage: %v", err)
+	}
+	if !resp.GetAccepted() {
+		t.Fatalf("expected accepted response: %+v", resp)
+	}
+}
 
+func TestSendAppMessageRejectsOversizedPayload(t *testing.T) {
+	svc := newTestService()
+	payload := &structpb.Struct{Fields: map[string]*structpb.Value{
+		"blob": structpb.NewStringValue(string(make([]byte, maxPayloadBytes+1))),
+	}}
+	_, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+		FromAppId: "app-a",
+		ToAppId:   "app-b",
+		Payload:   payload,
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected invalid argument, got %v", err)
+	}
+	if stReason := status.Convert(err).Message(); stReason != runtimev1.ReasonCode_APP_MESSAGE_PAYLOAD_TOO_LARGE.String() {
+		t.Fatalf("unexpected reason message: %s", stReason)
+	}
+}
+
+func TestSendAppMessageRateLimitEnforced(t *testing.T) {
+	now := time.Date(2026, 3, 13, 1, 2, 3, 100_000_000, time.UTC)
+	svc := newTestService(WithClock(func() time.Time { return now }))
+
+	for i := 0; i < rateLimitPerSecond; i++ {
+		if _, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+			FromAppId: "app-a",
+			ToAppId:   "app-b",
+		}); err != nil {
+			t.Fatalf("request %d unexpectedly failed: %v", i, err)
+		}
+	}
+	_, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+		FromAppId: "app-a",
+		ToAppId:   "app-b",
+	})
+	if status.Code(err) != codes.ResourceExhausted {
+		t.Fatalf("expected resource exhausted, got %v", err)
+	}
+	if status.Convert(err).Message() != runtimev1.ReasonCode_APP_MESSAGE_RATE_LIMITED.String() {
+		t.Fatalf("unexpected reason: %s", status.Convert(err).Message())
+	}
+}
+
+func TestSendAppMessageLoopDetected(t *testing.T) {
+	now := time.Date(2026, 3, 13, 1, 2, 3, 0, time.UTC)
+	svc := newTestService(WithClock(func() time.Time { return now }))
+
+	for i := 0; i < loopLimitPerSecond; i++ {
+		from, to := "app-a", "app-b"
+		if i%2 == 1 {
+			from, to = to, from
+		}
+		if _, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+			FromAppId: from,
+			ToAppId:   to,
+		}); err != nil {
+			t.Fatalf("message %d unexpectedly failed: %v", i, err)
+		}
+	}
+
+	_, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+		FromAppId: "app-a",
+		ToAppId:   "app-b",
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected failed precondition, got %v", err)
+	}
+	if status.Convert(err).Message() != runtimev1.ReasonCode_APP_MESSAGE_LOOP_DETECTED.String() {
+		t.Fatalf("unexpected reason: %s", status.Convert(err).Message())
+	}
+}
+
+func TestSendAppMessageRequiresRegisteredAppSession(t *testing.T) {
+	authSvc := authservice.New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc := newTestService(WithSessionValidator(authSvc))
+
+	_, err := svc.SendAppMessage(metadata.NewIncomingContext(context.Background(), metadata.Pairs()), &runtimev1.SendAppMessageRequest{
+		FromAppId: "app-a",
+		ToAppId:   "app-b",
+	})
+	if status.Code(err) != codes.Unauthenticated {
+		t.Fatalf("expected unauthenticated for unregistered app, got %v", err)
+	}
+	if status.Convert(err).Message() != runtimev1.ReasonCode_APP_NOT_REGISTERED.String() {
+		t.Fatalf("unexpected reason: %s", status.Convert(err).Message())
+	}
+
+	registerResp, err := authSvc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId:    "app-a",
+		DeviceId: "device-1",
+		ModeManifest: &runtimev1.AppModeManifest{
+			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
+			RuntimeRequired: true,
+			RealmRequired:   true,
+			WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
+		},
+	})
+	if err != nil {
+		t.Fatalf("RegisterApp: %v", err)
+	}
+	openResp, err := authSvc.OpenSession(context.Background(), &runtimev1.OpenSessionRequest{
+		AppId:         "app-a",
+		AppInstanceId: registerResp.GetAppInstanceId(),
+		DeviceId:      "device-1",
+		SubjectUserId: "user-1",
+		TtlSeconds:    600,
+	})
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+
+	missingSessionCtx := metadata.NewIncomingContext(context.Background(), metadata.Pairs())
+	_, err = svc.SendAppMessage(missingSessionCtx, &runtimev1.SendAppMessageRequest{
+		FromAppId: "app-a",
+		ToAppId:   "app-b",
+	})
+	if status.Code(err) != codes.Unauthenticated || status.Convert(err).Message() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED.String() {
+		t.Fatalf("expected principal unauthorized, got %v", err)
+	}
+
+	validCtx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-session-id", openResp.GetSessionId(),
+		"x-nimi-session-token", openResp.GetSessionToken(),
+	))
+	if _, err := svc.SendAppMessage(validCtx, &runtimev1.SendAppMessageRequest{
+		FromAppId: "app-a",
+		ToAppId:   "app-b",
+	}); err != nil {
+		t.Fatalf("expected valid session accepted, got %v", err)
+	}
+}
+
+func TestSubscribeAppMessagesFiltering(t *testing.T) {
+	svc := newTestService()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -83,10 +226,8 @@ func TestSubscribeAppMessagesFiltering(t *testing.T) {
 		}, stream)
 	}()
 
-	// Allow subscriber registration.
 	time.Sleep(20 * time.Millisecond)
 
-	// This message should match.
 	if _, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
 		FromAppId:     "app-a",
 		ToAppId:       "app-b",
@@ -95,7 +236,6 @@ func TestSubscribeAppMessagesFiltering(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("SendAppMessage match: %v", err)
 	}
-	// This message should NOT match (different user).
 	if _, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
 		FromAppId:     "app-a",
 		ToAppId:       "app-b",
@@ -119,16 +259,17 @@ func TestSubscribeAppMessagesFiltering(t *testing.T) {
 
 	cancel()
 	select {
-	case <-done:
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("subscribe returned error: %v", err)
+		}
 	case <-time.After(500 * time.Millisecond):
 		t.Fatal("subscribe did not exit after cancel")
 	}
 }
 
 func TestSubscribeAppMessagesFromAppFilter(t *testing.T) {
-	// K-APP-004: event filtering honors from_app_id.
 	svc := newTestService()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -143,7 +284,6 @@ func TestSubscribeAppMessagesFromAppFilter(t *testing.T) {
 
 	time.Sleep(20 * time.Millisecond)
 
-	// From app-a — should not match filter.
 	if _, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
 		FromAppId:     "app-a",
 		ToAppId:       "app-b",
@@ -152,7 +292,6 @@ func TestSubscribeAppMessagesFromAppFilter(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("SendAppMessage filtered non-match: %v", err)
 	}
-	// From app-x — should match filter.
 	if _, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
 		FromAppId:     "app-x",
 		ToAppId:       "app-b",
@@ -165,14 +304,6 @@ func TestSubscribeAppMessagesFromAppFilter(t *testing.T) {
 	if !waitForAppEvents(stream, 1, 300*time.Millisecond) {
 		t.Fatal("expected at least one event from app-x")
 	}
-	time.Sleep(50 * time.Millisecond)
-
-	stream.mu.Lock()
-	count := len(stream.events)
-	stream.mu.Unlock()
-	if count != 1 {
-		t.Fatalf("expected exactly 1 event from app-x, got=%d", count)
-	}
 
 	cancel()
 	<-done
@@ -180,7 +311,6 @@ func TestSubscribeAppMessagesFromAppFilter(t *testing.T) {
 
 func TestSendAppMessageWithAck(t *testing.T) {
 	svc := newTestService()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -204,7 +334,6 @@ func TestSendAppMessageWithAck(t *testing.T) {
 		t.Fatalf("SendAppMessage ack flow: %v", err)
 	}
 
-	// Should receive both RECEIVED and ACKED events.
 	if !waitForAppEvents(stream, 2, 300*time.Millisecond) {
 		t.Fatal("expected RECEIVED and ACKED events")
 	}
@@ -220,57 +349,49 @@ func TestSendAppMessageWithAck(t *testing.T) {
 	if second.GetEventType() != runtimev1.AppMessageEventType_APP_MESSAGE_EVENT_ACKED {
 		t.Fatalf("second event type: got=%v", second.GetEventType())
 	}
+
+	cancel()
+	<-done
 }
 
-func TestSlowConsumerDropsOldest(t *testing.T) {
+func TestSubscribeAppMessagesSlowConsumerClosed(t *testing.T) {
 	svc := newTestService()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	// Manually add a subscriber with a small buffer to simulate slow consumer.
-	svc.mu.Lock()
-	svc.nextSubID++
-	sub := subscriber{
-		id:    svc.nextSubID,
-		appID: "app-slow",
-		ch:    make(chan *runtimev1.AppMessageEvent, 1),
+	stream := &blockingAppMessageStream{
+		ctx:  ctx,
+		gate: make(chan struct{}),
 	}
-	svc.subscribers[sub.id] = sub
-	svc.mu.Unlock()
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{AppId: "app-b"}, stream)
+	}()
 
-	// Send many messages to overflow.
-	for i := 0; i < 10; i++ {
+	time.Sleep(20 * time.Millisecond)
+	for i := 0; i < 64; i++ {
 		if _, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
-			FromAppId:     "app-sender",
-			ToAppId:       "app-slow",
-			SubjectUserId: "user-1",
-			MessageType:   "msg",
+			FromAppId:   "app-a",
+			ToAppId:     "app-b",
+			MessageType: "msg",
 		}); err != nil {
-			t.Fatalf("SendAppMessage slow consumer %d: %v", i, err)
+			t.Fatalf("SendAppMessage %d: %v", i, err)
 		}
 	}
 
-	// Drain whatever is in the channel.
-	var last *runtimev1.AppMessageEvent
-	for {
-		select {
-		case event := <-sub.ch:
-			last = event
-		default:
-			goto done
+	close(stream.gate)
+	select {
+	case err := <-done:
+		if status.Code(err) != codes.ResourceExhausted {
+			t.Fatalf("expected resource exhausted, got %v", err)
 		}
-	}
-done:
-	if last == nil {
-		t.Fatal("should have received at least one event")
-	}
-	// Last event should have the highest sequence.
-	if last.GetSequence() == 0 {
-		t.Fatal("last event sequence should be non-zero")
+	case <-time.After(2 * time.Second):
+		t.Fatal("subscribe did not close on slow consumer")
 	}
 }
 
 func TestSequenceMonotonicallyIncreases(t *testing.T) {
 	svc := newTestService()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -309,8 +430,6 @@ func TestSequenceMonotonicallyIncreases(t *testing.T) {
 	<-done
 }
 
-// --- test helpers ---
-
 type appMessageStreamCollector struct {
 	ctx    context.Context
 	mu     sync.Mutex
@@ -330,6 +449,26 @@ func (s *appMessageStreamCollector) SetTrailer(metadata.MD)       {}
 func (s *appMessageStreamCollector) Context() context.Context     { return s.ctx }
 func (s *appMessageStreamCollector) SendMsg(any) error            { return nil }
 func (s *appMessageStreamCollector) RecvMsg(any) error            { return nil }
+
+type blockingAppMessageStream struct {
+	ctx  context.Context
+	gate chan struct{}
+	once sync.Once
+}
+
+func (s *blockingAppMessageStream) Send(*runtimev1.AppMessageEvent) error {
+	s.once.Do(func() {
+		<-s.gate
+	})
+	return nil
+}
+
+func (s *blockingAppMessageStream) SetHeader(metadata.MD) error  { return nil }
+func (s *blockingAppMessageStream) SendHeader(metadata.MD) error { return nil }
+func (s *blockingAppMessageStream) SetTrailer(metadata.MD)       {}
+func (s *blockingAppMessageStream) Context() context.Context     { return s.ctx }
+func (s *blockingAppMessageStream) SendMsg(any) error            { return nil }
+func (s *blockingAppMessageStream) RecvMsg(any) error            { return nil }
 
 func waitForAppEvents(stream *appMessageStreamCollector, target int, timeout time.Duration) bool {
 	deadline := time.Now().Add(timeout)

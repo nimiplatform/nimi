@@ -216,6 +216,16 @@ func ParseAccessTokenFromContext(ctx context.Context) (string, string, error) {
 	return tokenID, secret, nil
 }
 
+func ParseSessionFromContext(ctx context.Context) (string, string, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return "", "", fmt.Errorf("metadata missing")
+	}
+	sessionID := first(md, "x-nimi-session-id")
+	sessionToken := first(md, "x-nimi-session-token")
+	return sessionID, sessionToken, nil
+}
+
 func ParseCredentialMetadataFromContext(ctx context.Context) (string, string, string, string, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {

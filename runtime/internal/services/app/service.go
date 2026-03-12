@@ -8,18 +8,29 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
+	"github.com/nimiplatform/nimi/runtime/internal/streamutil"
 	"github.com/oklog/ulid/v2"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+type sessionValidator interface {
+	ValidateAppSession(appID string, sessionID string, sessionToken string) (runtimev1.ReasonCode, bool)
+}
+
+type Option func(*Service)
 
 type subscriber struct {
 	id            uint64
 	appID         string
 	subjectUserID string
 	fromAppFilter map[string]bool
-	ch            chan *runtimev1.AppMessageEvent
+	relay         *streamutil.Relay[*runtimev1.AppMessageEvent]
 }
 
 // Service implements RuntimeAppService with in-memory pub/sub channels.
@@ -27,25 +38,52 @@ type Service struct {
 	runtimev1.UnimplementedRuntimeAppServiceServer
 	logger *slog.Logger
 
-	mu          sync.RWMutex
-	nextSeq     uint64
-	nextSubID   uint64
-	subscribers map[uint64]subscriber
+	mu               sync.RWMutex
+	nextSeq          uint64
+	nextSubID        uint64
+	subscribers      map[uint64]subscriber
+	now              func() time.Time
+	sessionValidator sessionValidator
+	rateLimiter      *appRateLimiter
+	loopDetector     *appLoopDetector
 }
 
-func New(logger *slog.Logger) *Service {
-	return &Service{
-		logger:      logger,
-		subscribers: make(map[uint64]subscriber),
+func WithSessionValidator(validator sessionValidator) Option {
+	return func(s *Service) {
+		s.sessionValidator = validator
 	}
 }
 
-func (s *Service) SendAppMessage(_ context.Context, req *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error) {
+func WithClock(now func() time.Time) Option {
+	return func(s *Service) {
+		if now != nil {
+			s.now = now
+		}
+	}
+}
+
+func New(logger *slog.Logger, opts ...Option) *Service {
+	svc := &Service{
+		logger:      logger,
+		subscribers: make(map[uint64]subscriber),
+		now:         time.Now,
+		rateLimiter: newAppRateLimiter(),
+		loopDetector: newAppLoopDetector(),
+	}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(svc)
+		}
+	}
+	return svc
+}
+
+func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error) {
 	fromAppID := strings.TrimSpace(req.GetFromAppId())
 	toAppID := strings.TrimSpace(req.GetToAppId())
 	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
 	messageType := strings.TrimSpace(req.GetMessageType())
-	if fromAppID == "" || toAppID == "" || subjectUserID == "" || messageType == "" {
+	if fromAppID == "" || toAppID == "" {
 		return &runtimev1.SendAppMessageResponse{
 			MessageId:  "",
 			Accepted:   false,
@@ -53,9 +91,27 @@ func (s *Service) SendAppMessage(_ context.Context, req *runtimev1.SendAppMessag
 		}, nil
 	}
 
+	if s.sessionValidator != nil {
+		sessionID, sessionToken, _ := envelope.ParseSessionFromContext(ctx)
+		if reasonCode, ok := s.sessionValidator.ValidateAppSession(fromAppID, sessionID, sessionToken); !ok {
+			return nil, grpcerr.WithReasonCode(codes.Unauthenticated, reasonCode)
+		}
+	}
+
+	if payload := req.GetPayload(); payload != nil && proto.Size(payload) > maxPayloadBytes {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_MESSAGE_PAYLOAD_TOO_LARGE)
+	}
+
+	now := s.now().UTC()
+	if !s.rateLimiter.Allow(fromAppID, now) {
+		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_APP_MESSAGE_RATE_LIMITED)
+	}
+	if !s.loopDetector.Allow(fromAppID, toAppID, now) {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_MESSAGE_LOOP_DETECTED)
+	}
+
 	messageID := ulid.Make().String()
 	traceID := ulid.Make().String()
-	now := time.Now().UTC()
 
 	receivedEvent := &runtimev1.AppMessageEvent{
 		EventType:     runtimev1.AppMessageEventType_APP_MESSAGE_EVENT_RECEIVED,
@@ -72,7 +128,7 @@ func (s *Service) SendAppMessage(_ context.Context, req *runtimev1.SendAppMessag
 	s.publish(receivedEvent)
 
 	if req.GetRequireAck() {
-		ackEvent := &runtimev1.AppMessageEvent{
+		s.publish(&runtimev1.AppMessageEvent{
 			EventType:     runtimev1.AppMessageEventType_APP_MESSAGE_EVENT_ACKED,
 			MessageId:     messageID,
 			FromAppId:     fromAppID,
@@ -81,9 +137,8 @@ func (s *Service) SendAppMessage(_ context.Context, req *runtimev1.SendAppMessag
 			MessageType:   messageType,
 			ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
 			TraceId:       traceID,
-			Timestamp:     timestamppb.New(time.Now().UTC()),
-		}
-		s.publish(ackEvent)
+			Timestamp:     timestamppb.New(s.now().UTC()),
+		})
 	}
 
 	s.logger.Info("app message sent", "message_id", messageID, "from_app_id", fromAppID, "to_app_id", toAppID, "subject_user_id", subjectUserID)
@@ -98,19 +153,9 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 	sub := s.addSubscriber(req)
 	defer s.removeSubscriber(sub.id)
 
-	for {
-		select {
-		case <-stream.Context().Done():
-			return nil
-		case event, ok := <-sub.ch:
-			if !ok {
-				return nil
-			}
-			if err := stream.Send(event); err != nil {
-				return err
-			}
-		}
-	}
+	return sub.relay.Run(stream.Context(), func(event *runtimev1.AppMessageEvent) error {
+		return stream.Send(event)
+	})
 }
 
 func (s *Service) addSubscriber(req *runtimev1.SubscribeAppMessagesRequest) subscriber {
@@ -132,7 +177,11 @@ func (s *Service) addSubscriber(req *runtimev1.SubscribeAppMessagesRequest) subs
 		appID:         strings.TrimSpace(req.GetAppId()),
 		subjectUserID: strings.TrimSpace(req.GetSubjectUserId()),
 		fromAppFilter: filter,
-		ch:            make(chan *runtimev1.AppMessageEvent, 32),
+		relay: streamutil.NewRelay(streamutil.RelayOptions[*runtimev1.AppMessageEvent]{
+			Budget:              32,
+			MaxConsecutiveDrops: 3,
+			CloseErr:            status.Error(codes.ResourceExhausted, "slow consumer"),
+		}),
 	}
 	s.subscribers[sub.id] = sub
 	return sub
@@ -147,7 +196,7 @@ func (s *Service) removeSubscriber(id uint64) {
 		return
 	}
 	delete(s.subscribers, id)
-	close(sub.ch)
+	sub.relay.Close()
 }
 
 func (s *Service) publish(event *runtimev1.AppMessageEvent) {
@@ -155,7 +204,6 @@ func (s *Service) publish(event *runtimev1.AppMessageEvent) {
 	s.nextSeq++
 	event.Sequence = s.nextSeq
 
-	// Snapshot subscribers under lock then fanout without blocking the service path.
 	targets := make([]subscriber, 0, len(s.subscribers))
 	for _, sub := range s.subscribers {
 		targets = append(targets, sub)
@@ -166,21 +214,8 @@ func (s *Service) publish(event *runtimev1.AppMessageEvent) {
 		if !matches(sub, event) {
 			continue
 		}
-		eventCopy := cloneEvent(event)
-		select {
-		case sub.ch <- eventCopy:
-			continue
-		default:
-		}
-
-		// Drop oldest and push latest to preserve monotonic forward progress.
-		select {
-		case <-sub.ch:
-		default:
-		}
-		select {
-		case sub.ch <- eventCopy:
-		default:
+		if err := sub.relay.Enqueue(cloneEvent(event)); err != nil && s.logger != nil {
+			s.logger.Warn("app subscriber relay closed", "subscriber_id", sub.id, "error", err)
 		}
 	}
 }

@@ -249,6 +249,8 @@ type ClientMetadata struct {
 	ProviderAPIKey             string
 	AccessTokenID              string
 	AccessTokenSecret          string
+	SessionID                  string
+	SessionToken               string
 }
 
 const (
