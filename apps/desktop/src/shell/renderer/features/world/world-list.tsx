@@ -208,14 +208,14 @@ export function WorldList() {
     <div className="flex min-h-0 flex-1 flex-col" style={{ backgroundColor: '#F0F4F8' }}>
       {/* Header bar */}
       <div className="shrink-0 px-6 py-4" style={{ backgroundColor: '#F0F4F8' }}>
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
           <div className="min-w-0">
             <h1 className={APP_PAGE_TITLE_CLASS} style={{ color: '#1A1A1A' }}>{t('World.title')}</h1>
             <span className="text-xs" style={{ color: '#888888' }}>
               {t('World.syncedFromDesktop', { defaultValue: 'Synced from Desktop' })}
             </span>
           </div>
-          <div className="w-full max-w-xl lg:w-[420px] lg:flex-shrink-0">
+          <div className="w-[300px] shrink-0">
             <div className="group relative">
               <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-emerald-500">
                 {ICON_SEARCH}

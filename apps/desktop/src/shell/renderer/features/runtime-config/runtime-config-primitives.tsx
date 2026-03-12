@@ -281,7 +281,7 @@ export function DaemonStatusBadge({ running }: { running: boolean }) {
   return (
     <StatusIndicator 
       status={running ? 'running' : 'stopped'} 
-      text={i18n.t(`runtimeConfig.overview.${running ? 'daemonRunning' : 'daemonStopped'}`, {
+      text={i18n.t(`runtimeConfig.overview.${running ? 'running' : 'stopped'}`, {
         defaultValue: running ? 'daemon running' : 'daemon stopped',
       })}
       variant="daemon"

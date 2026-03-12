@@ -3,22 +3,22 @@ import { useTranslation } from 'react-i18next';
 import { describeConsentReasons, type ModHubActionDescriptor, type ModHubMod, type ModHubPendingActionType } from './mod-hub-model';
 
 const ICON_STAR = (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none">
     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
   </svg>
 );
 
-const ICON_MORE = (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-    <circle cx="5" cy="12" r="1.8" />
-    <circle cx="12" cy="12" r="1.8" />
-    <circle cx="19" cy="12" r="1.8" />
+const ICON_ELLIPSIS = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+    <circle cx="5" cy="12" r="1.5" />
+    <circle cx="12" cy="12" r="1.5" />
+    <circle cx="19" cy="12" r="1.5" />
   </svg>
 );
 
 function ModBadge({ label, className }: { label: string; className: string }) {
   return (
-    <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${className}`}>
+    <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium leading-none ${className}`}>
       {label}
     </span>
   );
@@ -47,16 +47,16 @@ function actionLabelKey(kind: ModHubActionDescriptor['kind']): string {
   }
 }
 
-function actionClassNames(tone: ModHubActionDescriptor['tone']): string {
+function primaryBtnClass(tone: ModHubActionDescriptor['tone']): string {
   switch (tone) {
     case 'primary':
-      return 'border border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600 hover:border-emerald-600';
+      return 'bg-emerald-600 text-white hover:bg-emerald-700';
     case 'secondary':
-      return 'border border-emerald-300 bg-emerald-50 text-emerald-700 hover:border-emerald-400 hover:bg-emerald-100';
+      return 'bg-stone-100 text-stone-700 hover:bg-stone-200';
     case 'danger':
-      return 'border border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-300 hover:bg-rose-100';
+      return 'bg-rose-50 text-rose-700 hover:bg-rose-100';
     default:
-      return 'border border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50';
+      return 'bg-stone-50 text-stone-600 hover:bg-stone-100';
   }
 }
 
@@ -74,9 +74,9 @@ function badgeForState(mod: ModHubMod, t: (key: string, options?: Record<string,
     return { label: t(`ModHub.${mod.statusLabelKey}`), className: 'bg-emerald-100 text-emerald-700' };
   }
   if (mod.visualState === 'disabled') {
-    return { label: t(`ModHub.${mod.statusLabelKey}`), className: 'bg-stone-200 text-stone-700' };
+    return { label: t(`ModHub.${mod.statusLabelKey}`), className: 'bg-stone-100 text-stone-500' };
   }
-  return { label: t(`ModHub.${mod.statusLabelKey}`), className: 'bg-stone-100 text-stone-500' };
+  return { label: t(`ModHub.${mod.statusLabelKey}`), className: 'bg-stone-50 text-stone-400' };
 }
 
 export function ModHubRow({
@@ -163,12 +163,15 @@ export function ModHubRow({
     }
   };
 
-  const renderAction = (action: ModHubActionDescriptor, compact = false) => {
+  const renderActionBtn = (action: ModHubActionDescriptor, variant: 'primary' | 'secondary') => {
     const loading = action.kind !== 'open' && action.kind !== 'open-folder' && isActionLoading(action.kind);
     const disabled = action.kind === 'install' && (mod.supportedByDesktop === false || Boolean(mod.installDisabledReason));
+    const classes = variant === 'primary'
+      ? `rounded-md px-3 py-1 text-xs font-medium ${primaryBtnClass(action.tone)}`
+      : 'rounded-md px-2.5 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700';
     return (
       <button
-        key={`${action.kind}-${compact ? 'compact' : 'full'}`}
+        key={`${action.kind}-${variant}`}
         type="button"
         disabled={loading || disabled}
         onClick={(event) => {
@@ -176,7 +179,7 @@ export function ModHubRow({
           runAction(action.kind);
         }}
         title={action.kind === 'install' ? mod.installDisabledReason : undefined}
-        className={`inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-55 ${actionClassNames(action.tone)} ${compact ? 'min-w-[96px]' : ''}`}
+        className={`inline-flex items-center transition disabled:opacity-50 ${classes}`}
       >
         {loading ? t('ModHub.actionLoading') : t(`ModHub.${actionLabelKey(action.kind)}`)}
       </button>
@@ -185,103 +188,57 @@ export function ModHubRow({
 
   return (
     <div
-      className={`relative rounded-[28px] border bg-white/92 p-4 shadow-[0_18px_50px_rgba(120,113,108,0.08)] transition ${
-        isSelected
-          ? 'border-emerald-300 ring-2 ring-emerald-100'
-          : 'border-stone-200/80 hover:border-emerald-200'
+      className={`group relative cursor-pointer px-4 py-3 transition-colors ${
+        isSelected ? 'bg-emerald-50/50' : 'hover:bg-stone-50/60'
       }`}
       onClick={() => onSelectMod?.(isSelected ? null : mod.id)}
     >
-      <div className="flex items-start gap-4">
+      {isSelected && (
+        <div className="absolute bottom-2 left-0 top-2 w-[3px] rounded-r-full bg-emerald-500" />
+      )}
+
+      <div className="flex items-start gap-3">
+        {/* Icon */}
         <div
-          className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] text-base font-bold text-white shadow-[0_16px_28px_rgba(15,23,42,0.14)]"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xs font-bold text-white shadow-sm"
           style={{ background: mod.iconBg }}
         >
           {mod.iconText}
         </div>
 
+        {/* Info */}
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-sm font-semibold text-stone-900">{mod.name}</h3>
-            <span className="text-xs text-stone-400">{mod.version}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="truncate text-[13px] font-semibold text-stone-900">{mod.name}</span>
+            <span className="shrink-0 text-[11px] text-stone-400">{mod.version}</span>
             <ModBadge label={stateBadge.label} className={stateBadge.className} />
-            {mod.badge === 'official' ? <ModBadge label={t('ModHub.badgeOfficial')} className="bg-emerald-100 text-emerald-700" /> : null}
-            {mod.badge === 'verified' ? <ModBadge label={t('ModHub.badgeVerified')} className="bg-sky-100 text-sky-700" /> : null}
-            {mod.badge === 'community' ? <ModBadge label={t('ModHub.badgeCommunity')} className="bg-amber-100 text-amber-800" /> : null}
+            {mod.badge === 'official' ? <ModBadge label={t('ModHub.badgeOfficial')} className="bg-emerald-50 text-emerald-700" /> : null}
+            {mod.badge === 'verified' ? <ModBadge label={t('ModHub.badgeVerified')} className="bg-sky-50 text-sky-700" /> : null}
+            {mod.badge === 'community' ? <ModBadge label={t('ModHub.badgeCommunity')} className="bg-amber-50 text-amber-800" /> : null}
           </div>
-
-          <p className="mt-2 line-clamp-2 text-sm leading-6 text-stone-600">
-            {mod.description}
-          </p>
-
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-stone-400">
+          <p className="mt-0.5 line-clamp-1 text-xs leading-relaxed text-stone-500">{mod.description}</p>
+          <div className="mt-1 flex items-center gap-2 text-[11px] text-stone-400">
             <span>{mod.author}</span>
+            {mod.packageType ? <span className="text-stone-300">|</span> : null}
             {mod.packageType ? <span>{mod.packageType}</span> : null}
+            {mod.installs ? <span>{mod.installs}</span> : null}
+            {mod.rating ? (
+              <span className="inline-flex items-center gap-0.5 text-amber-500">
+                {ICON_STAR} {mod.rating}
+              </span>
+            ) : null}
             {mod.availableUpdateVersion ? (
-              <span className="font-medium text-sky-700">
+              <span className="font-medium text-sky-600">
                 {t('ModHub.updateVersion', { version: mod.availableUpdateVersion.replace(/^v/i, '') })}
               </span>
             ) : null}
-            {mod.advisoryCount ? (
-              <span className="font-medium text-amber-700">
-                {t('ModHub.advisoriesCount', { count: mod.advisoryCount })}
-              </span>
-            ) : null}
-            {mod.rating ? (
-              <span className="inline-flex items-center gap-1 text-amber-500">
-                {ICON_STAR}
-                {mod.rating}
-              </span>
-            ) : null}
-            {mod.installs ? <span>{mod.installs}</span> : null}
-            {mod.updatedAgo ? <span>{mod.updatedAgo}</span> : null}
           </div>
-
-          {mod.visualState === 'conflict' ? (
-            <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-900">
-              <p className="font-semibold">{t('ModHub.conflictWarningTitle')}</p>
-              <p className="mt-1">
-                {t('ModHub.conflictWarningBody', { count: mod.runtimeConflictPaths?.length || 0 })}
-              </p>
-              {Array.isArray(mod.runtimeConflictPaths) && mod.runtimeConflictPaths.length > 0 ? (
-                <p className="mt-1 break-all text-[11px] text-amber-800">
-                  {mod.runtimeConflictPaths.join(' • ')}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-
-          {mod.visualState === 'failed' ? (
-            <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs leading-5 text-rose-900">
-              <p className="font-semibold">{t('ModHub.failedWarningTitle')}</p>
-              <p className="mt-1">
-                {t('ModHub.failedWarningBody', { error: mod.runtimeError || t('ModHub.failedWarningFallback') })}
-              </p>
-            </div>
-          ) : null}
-
-          {mod.warningText ? (
-            <div className="mt-3 rounded-2xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-xs leading-5 text-stone-700">
-              {mod.warningText}
-            </div>
-          ) : null}
-
-          {mod.requiresUserConsent && (consentReasons.length > 0 || addedCapabilities.length > 0) ? (
-            <div className="mt-3 rounded-2xl border border-sky-200 bg-sky-50 px-3 py-2.5 text-xs leading-5 text-sky-900">
-              <p className="font-semibold text-sky-950">{t('ModHub.reconsentRequired')}</p>
-              {consentReasons.length > 0 ? <p className="mt-1">{consentReasons.join('; ')}.</p> : null}
-              {addedCapabilities.length > 0 ? (
-                <p className="mt-1">
-                  {t('ModHub.newCapabilities')}: {addedCapabilities.join(', ')}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
         </div>
 
-        <div className="flex shrink-0 flex-col items-end gap-2">
-          {mod.primaryAction ? renderAction(mod.primaryAction, true) : null}
-          {mod.secondaryAction ? renderAction(mod.secondaryAction, true) : null}
+        {/* Actions */}
+        <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
+          {mod.primaryAction ? renderActionBtn(mod.primaryAction, 'primary') : null}
+          {mod.secondaryAction ? renderActionBtn(mod.secondaryAction, 'secondary') : null}
           {mod.menuActions.length > 0 ? (
             <div ref={menuRef} className="relative">
               <button
@@ -290,13 +247,15 @@ export function ModHubRow({
                   event.stopPropagation();
                   setMenuOpen((current) => !current);
                 }}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-500 transition hover:border-stone-300 hover:text-stone-700"
+                className={`flex h-7 w-7 items-center justify-center rounded-md text-stone-400 transition hover:bg-stone-100 hover:text-stone-600 ${
+                  menuOpen || isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                }`}
                 aria-label={t('ModHub.moreActions')}
               >
-                {ICON_MORE}
+                {ICON_ELLIPSIS}
               </button>
               {menuOpen ? (
-                <div className="absolute right-0 top-11 z-30 min-w-[180px] rounded-2xl border border-stone-200 bg-white p-2 shadow-[0_18px_40px_rgba(28,25,23,0.14)]">
+                <div className="absolute right-0 top-8 z-30 min-w-[140px] overflow-hidden rounded-lg border border-stone-200/80 bg-white py-1 shadow-lg">
                   {mod.menuActions.map((action) => (
                     <button
                       key={action.kind}
@@ -306,9 +265,13 @@ export function ModHubRow({
                         setMenuOpen(false);
                         runAction(action.kind);
                       }}
-                      className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition ${action.tone === 'danger' ? 'text-rose-700 hover:bg-rose-50' : 'text-stone-700 hover:bg-stone-50'}`}
+                      className={`flex w-full items-center px-3 py-1.5 text-left text-xs transition ${
+                        action.tone === 'danger'
+                          ? 'text-rose-600 hover:bg-rose-50'
+                          : 'text-stone-600 hover:bg-stone-50'
+                      }`}
                     >
-                      <span>{t(`ModHub.${actionLabelKey(action.kind)}`)}</span>
+                      {t(`ModHub.${actionLabelKey(action.kind)}`)}
                     </button>
                   ))}
                 </div>
@@ -317,6 +280,62 @@ export function ModHubRow({
           ) : null}
         </div>
       </div>
+
+      {/* Expanded details on selection */}
+      {isSelected ? (
+        <div className="ml-14 mt-2.5 space-y-2">
+          {mod.visualState === 'conflict' ? (
+            <div className="rounded-lg border border-amber-200/80 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">
+              <p className="font-medium">{t('ModHub.conflictWarningTitle')}</p>
+              <p className="mt-0.5 text-amber-800">
+                {t('ModHub.conflictWarningBody', { count: mod.runtimeConflictPaths?.length || 0 })}
+              </p>
+              {Array.isArray(mod.runtimeConflictPaths) && mod.runtimeConflictPaths.length > 0 ? (
+                <p className="mt-1 break-all text-[10px] text-amber-700">
+                  {mod.runtimeConflictPaths.join(' · ')}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {mod.visualState === 'failed' ? (
+            <div className="rounded-lg border border-rose-200/80 bg-rose-50 px-3 py-2 text-xs leading-relaxed text-rose-900">
+              <p className="font-medium">{t('ModHub.failedWarningTitle')}</p>
+              <p className="mt-0.5 text-rose-800">
+                {t('ModHub.failedWarningBody', { error: mod.runtimeError || t('ModHub.failedWarningFallback') })}
+              </p>
+            </div>
+          ) : null}
+
+          {mod.warningText ? (
+            <div className="rounded-lg border border-stone-200/80 bg-stone-50 px-3 py-2 text-xs leading-relaxed text-stone-600">
+              {mod.warningText}
+            </div>
+          ) : null}
+
+          {mod.requiresUserConsent && (consentReasons.length > 0 || addedCapabilities.length > 0) ? (
+            <div className="rounded-lg border border-sky-200/80 bg-sky-50 px-3 py-2 text-xs leading-relaxed text-sky-900">
+              <p className="font-medium">{t('ModHub.reconsentRequired')}</p>
+              {consentReasons.length > 0 ? <p className="mt-0.5">{consentReasons.join('; ')}.</p> : null}
+              {addedCapabilities.length > 0 ? (
+                <p className="mt-0.5">{t('ModHub.newCapabilities')}: {addedCapabilities.join(', ')}</p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {mod.advisoryCount ? (
+            <div className="text-[11px] text-amber-600">
+              {t('ModHub.advisoriesCount', { count: mod.advisoryCount })}
+            </div>
+          ) : null}
+
+          {mod.updatedAgo ? (
+            <div className="text-[11px] text-stone-400">
+              {mod.updatedAgo}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

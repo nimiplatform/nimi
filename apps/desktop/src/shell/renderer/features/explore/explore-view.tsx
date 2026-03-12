@@ -160,11 +160,11 @@ export function ExploreView(props: ExploreViewProps) {
       `}</style>
       {/* Header bar */}
       <div className="shrink-0 bg-[#F0F4F8] px-6 py-4">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
           <h1 className={APP_PAGE_TITLE_CLASS}>
             {t('Explore.pageTitle')}
           </h1>
-          <div className="w-full max-w-xl lg:w-[420px] lg:flex-shrink-0">
+          <div className="w-[300px] shrink-0">
             <div className="group relative">
               <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-emerald-500">
                 {ICON_SEARCH}
