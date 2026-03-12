@@ -269,6 +269,7 @@ func runtimeChecklist() []checklistItemSpec {
 		pkgAuditSvc    = "github.com/nimiplatform/nimi/runtime/internal/services/audit"
 		pkgAI          = "github.com/nimiplatform/nimi/runtime/internal/services/ai"
 		pkgConnector   = "github.com/nimiplatform/nimi/runtime/internal/services/connector"
+		pkgDaemon      = "github.com/nimiplatform/nimi/runtime/internal/daemon"
 		pkgGrant       = "github.com/nimiplatform/nimi/runtime/internal/services/grant"
 		pkgGrpc        = "github.com/nimiplatform/nimi/runtime/internal/grpcserver"
 		pkgModel       = "github.com/nimiplatform/nimi/runtime/internal/services/model"
@@ -392,7 +393,7 @@ func runtimeChecklist() []checklistItemSpec {
 			Requirement: "AI route policy regression (explicit route + no silent fallback)",
 			Tests: []testRef{
 				{Package: pkgAI, Name: "TestExecuteScenarioTextGenerateFallbackDenied"},
-					{Package: pkgNimillm, Name: "TestCloudProviderPickBackendRejectsUnavailableExplicitPrefixWithoutFallback"}, // pragma: allowlist secret
+				{Package: pkgNimillm, Name: "TestCloudProviderPickBackendRejectsUnavailableExplicitPrefixWithoutFallback"}, // pragma: allowlist secret
 			},
 		},
 		{
@@ -603,6 +604,62 @@ func runtimeChecklist() []checklistItemSpec {
 			Requirement: "go vet passes",
 			Commands: []commandCheckSpec{
 				{Name: "go-vet", Binary: "go", Args: []string{"vet", "./..."}},
+			},
+		},
+		{
+			ID:          "RS-11-42",
+			Requirement: "daemon health state transitions on startup/shutdown",
+			Tests: []testRef{
+				{Package: pkgDaemon, Name: "TestDaemonRunTransitionsStartupAndShutdownStates"},
+			},
+		},
+		{
+			ID:          "RS-11-43",
+			Requirement: "stream close modes B/C/D",
+			Tests: []testRef{
+				{Package: pkgAI, Name: "TestScenarioJobStoreSubscribeBranches"},
+				{Package: pkgAuditSvc, Name: "TestExportAuditEventsEofTrue"},
+				{Package: pkgAuditSvc, Name: "TestSubscribeRuntimeHealthEventsReturnsCancelledOnStopping"},
+			},
+		},
+		{
+			ID:          "RS-11-44",
+			Requirement: "auth service TTL bounds",
+			Tests: []testRef{
+				{Package: pkgAuthn, Name: "TestValidateAcceptsClockSkewWithinSixtySeconds"},
+				{Package: pkgAuthn, Name: "TestValidateRejectsClockSkewBeyondSixtySeconds"},
+				{Package: "github.com/nimiplatform/nimi/runtime/internal/services/auth", Name: "TestOpenSessionRejectsTTLBounds"},
+			},
+		},
+		{
+			ID:          "RS-11-45",
+			Requirement: "AppMode matrix and lite extension rejection",
+			Tests: []testRef{
+				{Package: pkgAppRegistry, Name: "TestValidateDomainAndScopesRejectsModeViolationsWithActionHint"},
+				{Package: "github.com/nimiplatform/nimi/runtime/internal/services/auth", Name: "TestRegisterAppRejectsLiteExtensionManifestAtServiceBoundary"},
+			},
+		},
+		{
+			ID:          "RS-11-46",
+			Requirement: "media idempotency conflict maps to ALREADY_EXISTS",
+			Tests: []testRef{
+				{Package: "github.com/nimiplatform/nimi/runtime/internal/grpcerr", Name: "TestWithReasonCodeAlreadyExistsForMediaIdempotencyConflict"},
+			},
+		},
+		{
+			ID:          "RS-11-47",
+			Requirement: "structured error completeness",
+			Tests: []testRef{
+				{Package: "github.com/nimiplatform/nimi/runtime/internal/grpcerr", Name: "TestWithReasonCodeOptions_WritesActionHintAndRetryableMetadata"},
+				{Package: "github.com/nimiplatform/nimi/runtime/internal/grpcerr", Name: "TestWithReasonCodeOptions_EncodesStructuredFieldsInStatusMessage"},
+				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_BadRequestModelNotFound"},
+			},
+		},
+		{
+			ID:          "RS-11-48",
+			Requirement: "key source subject_user_id requirement",
+			Tests: []testRef{
+				{Package: pkgAI, Name: "TestPrepareScenarioRequestRequiresSubjectForTokenAPI"},
 			},
 		},
 	}

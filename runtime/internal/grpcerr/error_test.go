@@ -1,6 +1,7 @@
 package grpcerr
 
 import (
+	"encoding/json"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -140,5 +141,47 @@ func TestWithReasonCodeOptions_WritesActionHintAndRetryableMetadata(t *testing.T
 	}
 	if info.GetMetadata()["retryable"] != "true" {
 		t.Fatalf("unexpected retryable: %q", info.GetMetadata()["retryable"])
+	}
+}
+
+func TestWithReasonCodeOptions_EncodesStructuredFieldsInStatusMessage(t *testing.T) {
+	retryable := true
+	err := WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, ReasonOptions{
+		ActionHint: "retry_or_restart_runtime",
+		TraceID:    "trace-test-002",
+		Retryable:  &retryable,
+		Message:    "provider request failed",
+	})
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected grpc status error")
+	}
+	payload := map[string]any{}
+	if err := json.Unmarshal([]byte(st.Message()), &payload); err != nil {
+		t.Fatalf("expected structured status message json, got %q (%v)", st.Message(), err)
+	}
+	if payload["reasonCode"] != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String() {
+		t.Fatalf("unexpected reasonCode payload: %#v", payload)
+	}
+	if payload["actionHint"] != "retry_or_restart_runtime" || payload["traceId"] != "trace-test-002" {
+		t.Fatalf("unexpected structured payload: %#v", payload)
+	}
+	if payload["retryable"] != true {
+		t.Fatalf("unexpected retryable payload: %#v", payload)
+	}
+}
+
+func TestWithReasonCodeAlreadyExistsForMediaIdempotencyConflict(t *testing.T) {
+	err := WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_MEDIA_IDEMPOTENCY_CONFLICT)
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected grpc status error")
+	}
+	if st.Code() != codes.AlreadyExists {
+		t.Fatalf("expected AlreadyExists, got %v", st.Code())
+	}
+	reason, ok := ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_IDEMPOTENCY_CONFLICT {
+		t.Fatalf("unexpected reason: %v", reason)
 	}
 }

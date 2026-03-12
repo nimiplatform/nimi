@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"sync"
 	"testing"
 	"time"
 
@@ -323,10 +324,10 @@ func TestWorkflowExternalAsyncCancelPropagatesToScenarioJob(t *testing.T) {
 		t.Fatalf("submit workflow: %v", err)
 	}
 	deadline := time.Now().Add(2 * time.Second)
-	for client.scenarioSubmitReq == nil && time.Now().Before(deadline) {
+	for client.submittedScenarioRequest() == nil && time.Now().Before(deadline) {
 		time.Sleep(10 * time.Millisecond)
 	}
-	if client.scenarioSubmitReq == nil {
+	if client.submittedScenarioRequest() == nil {
 		t.Fatalf("scenario submit request was not issued")
 	}
 	if _, cancelErr := svc.CancelWorkflow(ctx, &runtimev1.CancelWorkflowRequest{
@@ -338,12 +339,13 @@ func TestWorkflowExternalAsyncCancelPropagatesToScenarioJob(t *testing.T) {
 	if statusResp.GetStatus() != runtimev1.WorkflowStatus_WORKFLOW_STATUS_CANCELED {
 		t.Fatalf("workflow status mismatch: %v", statusResp.GetStatus())
 	}
-	if client.cancelReq == nil || client.cancelReq.GetJobId() == "" {
+	if cancelReq := client.cancelScenarioRequest(); cancelReq == nil || cancelReq.GetJobId() == "" {
 		t.Fatalf("cancel scenario job request must be forwarded")
 	}
 }
 
 type recordingRuntimeAIClient struct {
+	mu                   sync.Mutex
 	generateReq          *runtimev1.ExecuteScenarioRequest
 	streamReq            *runtimev1.StreamScenarioRequest
 	embedReq             *runtimev1.ExecuteScenarioRequest
@@ -356,6 +358,8 @@ type recordingRuntimeAIClient struct {
 }
 
 func (c *recordingRuntimeAIClient) ExecuteScenario(_ context.Context, req *runtimev1.ExecuteScenarioRequest, _ ...grpc.CallOption) (*runtimev1.ExecuteScenarioResponse, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	switch req.GetScenarioType() {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
 		c.generateReq = cloneExecuteScenarioRequest(req)
@@ -377,7 +381,9 @@ func (c *recordingRuntimeAIClient) ExecuteScenario(_ context.Context, req *runti
 }
 
 func (c *recordingRuntimeAIClient) StreamScenario(ctx context.Context, req *runtimev1.StreamScenarioRequest, _ ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.StreamScenarioEvent], error) {
+	c.mu.Lock()
 	c.streamReq = cloneStreamScenarioRequest(req)
+	c.mu.Unlock()
 	return &fakeStreamScenarioClient{
 		ctx: ctx,
 		events: []*runtimev1.StreamScenarioEvent{
@@ -396,6 +402,8 @@ func (c *recordingRuntimeAIClient) StreamScenario(ctx context.Context, req *runt
 }
 
 func (c *recordingRuntimeAIClient) SubmitScenarioJob(_ context.Context, req *runtimev1.SubmitScenarioJobRequest, _ ...grpc.CallOption) (*runtimev1.SubmitScenarioJobResponse, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.scenarioSubmitReq = cloneSubmitScenarioJobRequest(req)
 	c.scenarioSubmitReqs = append(c.scenarioSubmitReqs, cloneSubmitScenarioJobRequest(req))
 	if c.scenarioJobs == nil {
@@ -433,6 +441,8 @@ func (c *recordingRuntimeAIClient) SubmitScenarioJob(_ context.Context, req *run
 }
 
 func (c *recordingRuntimeAIClient) GetScenarioJob(_ context.Context, req *runtimev1.GetScenarioJobRequest, _ ...grpc.CallOption) (*runtimev1.GetScenarioJobResponse, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if c.scenarioJobs == nil {
 		c.scenarioJobs = map[string]*runtimev1.ScenarioJob{}
 	}
@@ -463,6 +473,8 @@ func (c *recordingRuntimeAIClient) GetScenarioJob(_ context.Context, req *runtim
 }
 
 func (c *recordingRuntimeAIClient) CancelScenarioJob(_ context.Context, req *runtimev1.CancelScenarioJobRequest, _ ...grpc.CallOption) (*runtimev1.CancelScenarioJobResponse, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.cancelReq = cloneCancelScenarioJobRequest(req)
 	if c.scenarioJobs == nil {
 		c.scenarioJobs = map[string]*runtimev1.ScenarioJob{}
@@ -492,6 +504,8 @@ func (c *recordingRuntimeAIClient) SubscribeScenarioJobEvents(ctx context.Contex
 }
 
 func (c *recordingRuntimeAIClient) GetScenarioArtifacts(_ context.Context, req *runtimev1.GetScenarioArtifactsRequest, _ ...grpc.CallOption) (*runtimev1.GetScenarioArtifactsResponse, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if c.scenarioJobs == nil {
 		c.scenarioJobs = map[string]*runtimev1.ScenarioJob{}
 	}
@@ -508,6 +522,18 @@ func (c *recordingRuntimeAIClient) GetScenarioArtifacts(_ context.Context, req *
 
 func (c *recordingRuntimeAIClient) ListScenarioProfiles(_ context.Context, _ *runtimev1.ListScenarioProfilesRequest, _ ...grpc.CallOption) (*runtimev1.ListScenarioProfilesResponse, error) {
 	return &runtimev1.ListScenarioProfilesResponse{}, nil
+}
+
+func (c *recordingRuntimeAIClient) submittedScenarioRequest() *runtimev1.SubmitScenarioJobRequest {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return cloneSubmitScenarioJobRequest(c.scenarioSubmitReq)
+}
+
+func (c *recordingRuntimeAIClient) cancelScenarioRequest() *runtimev1.CancelScenarioJobRequest {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return cloneCancelScenarioJobRequest(c.cancelReq)
 }
 
 func (c *recordingRuntimeAIClient) GetVoiceAsset(_ context.Context, _ *runtimev1.GetVoiceAssetRequest, _ ...grpc.CallOption) (*runtimev1.GetVoiceAssetResponse, error) {

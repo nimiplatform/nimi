@@ -38,9 +38,6 @@ func TestLoadDefaultsWithoutConfigFile(t *testing.T) {
 		t.Fatalf("models path mismatch: got=%q want=%q", cfg.LocalModelsPath, expectedModelsPath)
 	}
 
-	if cfg.WorkerMode {
-		t.Fatalf("workerMode default should be false")
-	}
 	if cfg.AIHealthIntervalSeconds != 8 {
 		t.Fatalf("aiHealthIntervalSeconds default mismatch: got=%d want=8", cfg.AIHealthIntervalSeconds)
 	}
@@ -672,7 +669,6 @@ func TestResolveCanonicalProviderIDRejectsLegacyAliases(t *testing.T) {
 func TestLoadEnvOverridesNewFields(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "missing-config.json"))
 	clearRuntimeConfigEnv(t)
-	t.Setenv("NIMI_RUNTIME_WORKER_MODE", "true")
 	t.Setenv("NIMI_RUNTIME_GLOBAL_CONCURRENCY_LIMIT", "16")
 	t.Setenv("NIMI_RUNTIME_PER_APP_CONCURRENCY_LIMIT", "4")
 	t.Setenv("NIMI_RUNTIME_IDEMPOTENCY_CAPACITY", "5000")
@@ -686,9 +682,6 @@ func TestLoadEnvOverridesNewFields(t *testing.T) {
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
-	}
-	if !cfg.WorkerMode {
-		t.Fatal("workerMode should be true")
 	}
 	if cfg.GlobalConcurrencyLimit != 16 {
 		t.Fatalf("globalConcurrencyLimit got=%d want=16", cfg.GlobalConcurrencyLimit)
@@ -933,7 +926,6 @@ func clearRuntimeConfigEnv(t *testing.T) {
 		"NIMI_RUNTIME_ALLOW_LOOPBACK_PROVIDER_ENDPOINT",
 		"NIMI_RUNTIME_SESSION_TTL_MIN_SECONDS",
 		"NIMI_RUNTIME_SESSION_TTL_MAX_SECONDS",
-		"NIMI_RUNTIME_WORKER_MODE",
 		"NIMI_RUNTIME_AI_HEALTH_INTERVAL_SECONDS",
 		"NIMI_RUNTIME_AI_HTTP_TIMEOUT_SECONDS",
 		"NIMI_RUNTIME_GLOBAL_CONCURRENCY_LIMIT",
@@ -963,5 +955,31 @@ func clearRuntimeConfigEnv(t *testing.T) {
 	}
 	for _, key := range keys {
 		t.Setenv(key, "")
+	}
+}
+
+func TestLoadFileConfigMigratesMissingSchemaVersion(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.json")
+	raw := `{
+  "grpcAddr": "127.0.0.1:47001",
+  "providers": {
+    "gemini": {
+      "apiKeyEnv": "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY"
+    }
+  }
+}`
+	if err := os.WriteFile(path, []byte(raw), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	fileCfg, err := LoadFileConfig(path)
+	if err != nil {
+		t.Fatalf("LoadFileConfig: %v", err)
+	}
+	if fileCfg.SchemaVersion != DefaultSchemaVersion {
+		t.Fatalf("unexpected schema version: got=%d want=%d", fileCfg.SchemaVersion, DefaultSchemaVersion)
+	}
+	if _, err := os.Stat(path + ".bak"); err != nil {
+		t.Fatalf("expected migration backup file, got %v", err)
 	}
 }

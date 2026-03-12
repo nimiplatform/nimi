@@ -8,8 +8,10 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/scopecatalog"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -82,6 +84,55 @@ func TestGrantAuthorizeValidateRevoke(t *testing.T) {
 	}
 	if validateAfterRevoke.ReasonCode != runtimev1.ReasonCode_APP_TOKEN_REVOKED {
 		t.Fatalf("expected APP_TOKEN_REVOKED, got %v", validateAfterRevoke.ReasonCode)
+	}
+}
+
+func TestGrantServiceAuditUsesIncomingTraceID(t *testing.T) {
+	registry := appregistry.New()
+	registry.Upsert("nimi.desktop", &runtimev1.AppModeManifest{
+		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
+		RuntimeRequired: true,
+		RealmRequired:   true,
+		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
+	}, nil)
+	store := auditlog.New(16, 16)
+	svc := NewWithDependencies(
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
+		registry,
+		scopecatalog.New(),
+		WithAuditStore(store),
+	)
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-trace-id", "trace-grant-001"))
+
+	_, err := svc.AuthorizeExternalPrincipal(ctx, &runtimev1.AuthorizeExternalPrincipalRequest{
+		AppId:                 "nimi.desktop",
+		Domain:                "app-auth",
+		ExternalPrincipalId:   "agent-openclaw",
+		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
+		SubjectUserId:         "user-001",
+		ConsentId:             "consent-001",
+		ConsentVersion:        "v1",
+		DecisionAt:            timestamppb.Now(),
+		PolicyVersion:         "p1",
+		PolicyMode:            runtimev1.PolicyMode_POLICY_MODE_PRESET,
+		Preset:                runtimev1.AuthorizationPreset_AUTHORIZATION_PRESET_DELEGATE,
+		TtlSeconds:            600,
+		ScopeCatalogVersion:   "sdk-v1",
+	})
+	if err != nil {
+		t.Fatalf("authorize: %v", err)
+	}
+
+	resp := store.ListEvents(&runtimev1.ListAuditEventsRequest{})
+	if len(resp.GetEvents()) == 0 {
+		t.Fatalf("expected grant audit event")
+	}
+	event := resp.GetEvents()[0]
+	if event.GetTraceId() != "trace-grant-001" {
+		t.Fatalf("unexpected trace id: %q", event.GetTraceId())
+	}
+	if event.GetAuditId() == "" {
+		t.Fatalf("expected audit id to be set")
 	}
 }
 

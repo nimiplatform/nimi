@@ -135,3 +135,60 @@ func TestUnaryLifecycleInterceptorRejectsScenarioWriteWhenStopping(t *testing.T)
 		t.Fatalf("status code mismatch: got=%s want=%s", status.Code(err), codes.Unavailable)
 	}
 }
+
+func TestUnaryLifecycleInterceptorAllowsConnectorAndEngineReadsWhenStopping(t *testing.T) {
+	state := health.NewState()
+	state.SetStatus(health.StatusStopping, "draining")
+	interceptor := newUnaryLifecycleInterceptor(state)
+
+	for _, fullMethod := range []string{
+		"/nimi.runtime.v1.RuntimeConnectorService/ListConnectors",
+		"/nimi.runtime.v1.RuntimeConnectorService/GetConnector",
+		"/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels",
+		"/nimi.runtime.v1.RuntimeLocalService/ListEngines",
+		"/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus",
+	} {
+		handlerCalled := false
+		_, err := interceptor(
+			context.Background(),
+			struct{}{},
+			&grpc.UnaryServerInfo{FullMethod: fullMethod},
+			func(_ context.Context, _ any) (any, error) {
+				handlerCalled = true
+				return struct{}{}, nil
+			},
+		)
+		if err != nil {
+			t.Fatalf("%s should be allowed while stopping: %v", fullMethod, err)
+		}
+		if !handlerCalled {
+			t.Fatalf("handler must be called for %s", fullMethod)
+		}
+	}
+}
+
+func TestUnaryLifecycleInterceptorRejectsConnectorWriteWhenStopping(t *testing.T) {
+	state := health.NewState()
+	state.SetStatus(health.StatusStopping, "draining")
+	interceptor := newUnaryLifecycleInterceptor(state)
+
+	handlerCalled := false
+	_, err := interceptor(
+		context.Background(),
+		struct{}{},
+		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeConnectorService/CreateConnector"},
+		func(_ context.Context, _ any) (any, error) {
+			handlerCalled = true
+			return struct{}{}, nil
+		},
+	)
+	if err == nil {
+		t.Fatalf("connector write method must be rejected while stopping")
+	}
+	if handlerCalled {
+		t.Fatalf("handler must not be called for rejected connector write method")
+	}
+	if status.Code(err) != codes.Unavailable {
+		t.Fatalf("status code mismatch: got=%s want=%s", status.Code(err), codes.Unavailable)
+	}
+}

@@ -11,7 +11,9 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -162,6 +164,26 @@ func TestSubscribeRuntimeHealthEvents(t *testing.T) {
 		}
 	case <-time.After(500 * time.Millisecond):
 		t.Fatalf("subscribe runtime health did not exit after cancel")
+	}
+}
+
+func TestSubscribeRuntimeHealthEventsReturnsCancelledOnStopping(t *testing.T) {
+	state := health.NewState()
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+
+	stream := &runtimeHealthStreamCollector{ctx: context.Background()}
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.SubscribeRuntimeHealthEvents(&runtimev1.SubscribeRuntimeHealthEventsRequest{}, stream)
+	}()
+
+	state.SetStatus(health.StatusStopping, "shutting down")
+	if !waitForRuntimeHealthEvents(stream, 1, 500*time.Millisecond) {
+		t.Fatalf("expected stopping runtime health event")
+	}
+	err := <-done
+	if status.Code(err) != codes.Canceled {
+		t.Fatalf("expected cancelled close on stopping, got %v", err)
 	}
 }
 

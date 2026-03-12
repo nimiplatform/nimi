@@ -259,6 +259,54 @@ func TestValidateKidMissTriggersRefreshAndPasses(t *testing.T) {
 	}
 }
 
+func TestValidateAcceptsClockSkewWithinSixtySeconds(t *testing.T) {
+	key := generateRSAKey(t)
+	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer server.Close()
+
+	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+
+	now := time.Now()
+	token := signRS256(t, key, "kid-1", jwt.MapClaims{
+		"sub": "user-123",
+		"iss": "test-issuer",
+		"aud": "test-audience",
+		"exp": now.Add(-30 * time.Second).Unix(),
+		"iat": now.Unix(),
+		"nbf": now.Add(30 * time.Second).Unix(),
+	})
+	if _, err := validator.Validate(token); err != nil {
+		t.Fatalf("expected token within clock skew window accepted, got %v", err)
+	}
+}
+
+func TestValidateRejectsClockSkewBeyondSixtySeconds(t *testing.T) {
+	key := generateRSAKey(t)
+	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer server.Close()
+
+	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+
+	now := time.Now()
+	token := signRS256(t, key, "kid-1", jwt.MapClaims{
+		"sub": "user-123",
+		"iss": "test-issuer",
+		"aud": "test-audience",
+		"exp": now.Add(-61 * time.Second).Unix(),
+		"iat": now.Unix(),
+		"nbf": now.Add(61 * time.Second).Unix(),
+	})
+	if _, err := validator.Validate(token); err == nil {
+		t.Fatalf("expected token beyond clock skew window rejected")
+	}
+}
+
 func TestValidateMissingJWKSURLRejectsToken(t *testing.T) {
 	key := generateRSAKey(t)
 	validator, err := NewValidator("", "", "")

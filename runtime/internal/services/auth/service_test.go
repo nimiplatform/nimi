@@ -15,7 +15,10 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -185,5 +188,99 @@ func TestRegisterExternalPrincipalRequiresSignatureKey(t *testing.T) {
 	}
 	if st.Message() != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String() {
 		t.Fatalf("expected protocol invalid reason, got %s", st.Message())
+	}
+}
+
+func TestOpenSessionRejectsTTLBounds(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	ctx := context.Background()
+
+	registerResp, err := svc.RegisterApp(ctx, &runtimev1.RegisterAppRequest{
+		AppId:    "nimi.desktop",
+		DeviceId: "local-device",
+		ModeManifest: &runtimev1.AppModeManifest{
+			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
+			RuntimeRequired: true,
+			RealmRequired:   true,
+			WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
+		},
+	})
+	if err != nil {
+		t.Fatalf("register app: %v", err)
+	}
+
+	for _, ttl := range []int32{59, 86401} {
+		_, err := svc.OpenSession(ctx, &runtimev1.OpenSessionRequest{
+			AppId:         "nimi.desktop",
+			AppInstanceId: registerResp.GetAppInstanceId(),
+			DeviceId:      "local-device",
+			SubjectUserId: "user-001",
+			TtlSeconds:    ttl,
+		})
+		if err == nil {
+			t.Fatalf("expected ttl %d rejected", ttl)
+		}
+		st, ok := status.FromError(err)
+		if !ok || st.Code() != codes.InvalidArgument {
+			t.Fatalf("ttl %d: expected InvalidArgument, got %v", ttl, err)
+		}
+		reason, ok := grpcerr.ExtractReasonCode(err)
+		if !ok || reason != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
+			t.Fatalf("ttl %d: expected structured protocol invalid, got %v", ttl, reason)
+		}
+	}
+}
+
+func TestRegisterAppRejectsLiteExtensionManifestAtServiceBoundary(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	resp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId: "nimi.lite",
+		ModeManifest: &runtimev1.AppModeManifest{
+			AppMode:         runtimev1.AppMode_APP_MODE_LITE,
+			RuntimeRequired: false,
+			RealmRequired:   true,
+			WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_EXTENSION,
+		},
+	})
+	if err != nil {
+		t.Fatalf("register app: %v", err)
+	}
+	if resp.GetAccepted() {
+		t.Fatalf("expected lite+extension manifest rejected")
+	}
+	if resp.GetReasonCode() != runtimev1.ReasonCode_APP_MODE_WORLD_RELATION_FORBIDDEN {
+		t.Fatalf("unexpected reason code: %v", resp.GetReasonCode())
+	}
+}
+
+func TestAuthServiceAuditUsesIncomingTraceID(t *testing.T) {
+	store := auditlog.New(16, 16)
+	svc := NewWithDependencies(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, store, 60, 86400)
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-trace-id", "trace-auth-001"))
+
+	_, err := svc.RegisterApp(ctx, &runtimev1.RegisterAppRequest{
+		AppId: "nimi.desktop",
+		ModeManifest: &runtimev1.AppModeManifest{
+			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
+			RuntimeRequired: true,
+			RealmRequired:   true,
+			WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
+		},
+	})
+	if err != nil {
+		t.Fatalf("register app: %v", err)
+	}
+
+	resp := store.ListEvents(&runtimev1.ListAuditEventsRequest{})
+	if len(resp.GetEvents()) == 0 {
+		t.Fatalf("expected auth audit event")
+	}
+	event := resp.GetEvents()[0]
+	if event.GetTraceId() != "trace-auth-001" {
+		t.Fatalf("unexpected trace id: %q", event.GetTraceId())
+	}
+	if event.GetAuditId() == "" {
+		t.Fatalf("expected audit id to be set")
 	}
 }

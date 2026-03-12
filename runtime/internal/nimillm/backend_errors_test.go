@@ -157,11 +157,11 @@ func TestMapProviderHTTPError_BadRequestModelNotFound(t *testing.T) {
 		t.Fatalf("expected AI_MODEL_NOT_FOUND, got %v", reason)
 	}
 	metadata := extractErrorInfoMetadata(err)
-	if metadata["provider_message"] == "" {
-		t.Fatalf("expected provider_message metadata, got %#v", metadata)
-	}
 	if metadata["action_hint"] != "switch_model_or_refresh_connector_models" {
 		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
+	}
+	if strings.Contains(strings.ToLower(st.Message()), "qwen-tts-2025-05-22") {
+		t.Fatalf("provider internals leaked in status message: %q", st.Message())
 	}
 }
 
@@ -251,13 +251,10 @@ func TestMapProviderHTTPError_BadRequestPlanGateFromDetailMessage(t *testing.T) 
 	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
 		t.Fatalf("expected AI_PROVIDER_AUTH_FAILED, got %v", reason)
 	}
-	if !strings.Contains(strings.ToLower(st.Message()), "paid plan") {
-		t.Fatalf("expected status message to mention paid plan, got %q", st.Message())
+	if strings.Contains(strings.ToLower(st.Message()), "paid plan") {
+		t.Fatalf("provider detail leaked in status message: %q", st.Message())
 	}
 	metadata := extractErrorInfoMetadata(err)
-	if metadata["provider_message"] == "" {
-		t.Fatalf("expected provider_message metadata, got %#v", metadata)
-	}
 	if metadata["action_hint"] != "upgrade_provider_plan_or_use_supported_capability" {
 		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
 	}
@@ -280,12 +277,8 @@ func TestMapProviderHTTPError_ForbiddenPreservesNestedDetailMessage(t *testing.T
 	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
 		t.Fatalf("expected AI_PROVIDER_AUTH_FAILED, got %v", reason)
 	}
-	if st.Message() != "API voice creation is only available on a paid plan." {
+	if st.Message() != "provider authentication failed" {
 		t.Fatalf("unexpected status message: %q", st.Message())
-	}
-	metadata := extractErrorInfoMetadata(err)
-	if metadata["provider_message"] != "API voice creation is only available on a paid plan." {
-		t.Fatalf("unexpected provider_message metadata: %#v", metadata)
 	}
 }
 
@@ -304,15 +297,12 @@ func TestMapProviderHTTPError_PaymentRequiredInsufficientBalance(t *testing.T) {
 	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED {
 		t.Fatalf("expected AI_PROVIDER_RATE_LIMITED, got %v", reason)
 	}
-	if !strings.Contains(st.Message(), "Invalid api key or insufficient balance") {
+	if strings.Contains(st.Message(), "Invalid api key or insufficient balance") {
 		t.Fatalf("unexpected status message: %q", st.Message())
 	}
 	metadata := extractErrorInfoMetadata(err)
 	if metadata["action_hint"] != "replenish_provider_balance_or_skip_live_test" {
 		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
-	}
-	if metadata["provider_message"] != "Invalid api key or insufficient balance" {
-		t.Fatalf("unexpected provider_message: %q", metadata["provider_message"])
 	}
 }
 
