@@ -58,15 +58,20 @@ func (s *Service) ValidateAppAccessToken(ctx context.Context, req *runtimev1.Val
 		s.emitAudit(ctx, "ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED, ActionHint: "use_published_scope_catalog_version"}, nil
 	}
-	if s.catalog.HasRevokedScope(token.IssuedScopeCatalog, token.Scopes) {
-		s.emitAudit(ctx, "ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_REVOKED)
-		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_SCOPE_REVOKED, ActionHint: "reauthorize_with_active_scopes"}, nil
-	}
+	activeScopes := activeScopesForCatalog(token.IssuedScopeCatalog, token.Scopes, s.catalog.HasRevokedScope)
 	if hasRealmScope(req.GetRequestedScopes()) {
 		s.emitAudit(ctx, "ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, ActionHint: "route_realm_scopes_via_realm_domain"}, nil
 	}
-	if !scopesAllowed(token.Scopes, req.GetRequestedScopes()) {
+	if hasInvalidScopePrefix(req.GetRequestedScopes()) {
+		s.emitAudit(ctx, "ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, ActionHint: "request_allowed_scopes_only"}, nil
+	}
+	if !scopesAllowed(activeScopes, req.GetRequestedScopes()) {
+		if scopesAllowed(token.Scopes, req.GetRequestedScopes()) {
+			s.emitAudit(ctx, "ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_REVOKED)
+			return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_SCOPE_REVOKED, ActionHint: "reauthorize_with_active_scopes"}, nil
+		}
 		s.emitAudit(ctx, "ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, ActionHint: "request_allowed_scopes_only"}, nil
 	}
@@ -79,7 +84,7 @@ func (s *Service) ValidateAppAccessToken(ctx context.Context, req *runtimev1.Val
 	return &runtimev1.ValidateAppAccessTokenResponse{
 		Valid:                     true,
 		ReasonCode:                runtimev1.ReasonCode_ACTION_EXECUTED,
-		EffectiveScopes:           append([]string(nil), token.Scopes...),
+		EffectiveScopes:           activeScopes,
 		PolicyVersion:             token.PolicyVersion,
 		IssuedScopeCatalogVersion: token.IssuedScopeCatalog,
 		ActionHint:                "none",
@@ -136,6 +141,9 @@ func (s *Service) IssueDelegatedAccessToken(ctx context.Context, req *runtimev1.
 	scopes := req.GetScopes()
 	if len(scopes) == 0 {
 		scopes = append([]string(nil), parent.Scopes...)
+	}
+	if hasInvalidScopePrefix(scopes) {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 	if !scopesAllowed(parent.Scopes, scopes) {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)

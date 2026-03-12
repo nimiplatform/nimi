@@ -53,6 +53,41 @@ func hasRealmScope(scopes []string) bool {
 	return false
 }
 
+func hasInvalidScopePrefix(scopes []string) bool {
+	for _, raw := range scopes {
+		scope := strings.TrimSpace(raw)
+		if scope == "" {
+			continue
+		}
+		switch {
+		case strings.HasPrefix(scope, "runtime."):
+		case strings.HasPrefix(scope, "realm."):
+		case strings.HasPrefix(scope, "app."):
+		case strings.HasPrefix(scope, "read:"):
+		case strings.HasPrefix(scope, "write:"):
+		case strings.HasPrefix(scope, "grant:"):
+		default:
+			return true
+		}
+	}
+	return false
+}
+
+func activeScopesForCatalog(version string, scopes []string, isRevoked func(string, []string) bool) []string {
+	active := make([]string, 0, len(scopes))
+	for _, raw := range scopes {
+		scope := strings.TrimSpace(raw)
+		if scope == "" {
+			continue
+		}
+		if isRevoked(version, []string{scope}) {
+			continue
+		}
+		active = append(active, scope)
+	}
+	return active
+}
+
 func scopesAllowed(effective []string, requested []string) bool {
 	if len(requested) == 0 {
 		return true

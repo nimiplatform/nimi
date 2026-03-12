@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
@@ -100,6 +101,7 @@ func TestStreamScenarioSpeechSynthesizeSuccess(t *testing.T) {
 }
 
 func TestStreamScenarioSpeechSynthesizeValidation(t *testing.T) {
+	// K-STREAM-002: pre-stream validation failures return a gRPC error without emitting stream events.
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{
@@ -123,9 +125,13 @@ func TestStreamScenarioSpeechSynthesizeValidation(t *testing.T) {
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected InvalidArgument, got=%v err=%v", status.Code(err), err)
 	}
+	if len(stream.events) != 0 {
+		t.Fatalf("expected no stream events before validation passes, got=%d", len(stream.events))
+	}
 }
 
 func TestStreamScenarioSpeechSynthesizeProviderErrorSendsFailedEvent(t *testing.T) {
+	// K-STREAM-004: failed speech terminal event must carry a reason code.
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "provider failure", http.StatusInternalServerError)
 	}))
@@ -170,6 +176,117 @@ func TestStreamScenarioSpeechSynthesizeProviderErrorSendsFailedEvent(t *testing.
 	}
 	if last.GetFailed().GetReasonCode() == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		t.Fatalf("failed event reason_code should be set")
+	}
+}
+
+func TestStreamSpeechDoneFrameConstraints(t *testing.T) {
+	// K-STREAM-004: success terminal event closes the stream; audio chunks are only sent on DELTA events.
+	payload := []byte("speech-audio-payload")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/audio/speech" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "audio/mpeg")
+		_, _ = w.Write(payload)
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+	})
+	stream := &mockScenarioEventStream{ctx: context.Background()}
+	req := &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/tts",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     30_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello world"},
+			},
+		},
+	}
+
+	if err := svc.StreamScenario(req, stream); err != nil {
+		t.Fatalf("stream scenario: %v", err)
+	}
+	if len(stream.events) == 0 {
+		t.Fatal("expected stream events")
+	}
+	last := stream.events[len(stream.events)-1]
+	if last.GetEventType() != runtimev1.StreamEventType_STREAM_EVENT_COMPLETED {
+		t.Fatalf("expected completed terminal event, got %v", last.GetEventType())
+	}
+	for _, event := range stream.events {
+		if event.GetEventType() != runtimev1.StreamEventType_STREAM_EVENT_DELTA {
+			continue
+		}
+		if len(event.GetDelta().GetChunk()) == 0 {
+			t.Fatal("speech delta events must carry non-empty audio chunks")
+		}
+	}
+}
+
+func TestStreamFirstPacketTimeout(t *testing.T) {
+	// K-STREAM-007: speech stream first-packet timeout is independent and returns AI_PROVIDER_TIMEOUT.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(100 * time.Millisecond)
+		if r.Context().Err() != nil {
+			return
+		}
+		w.Header().Set("Content-Type", "audio/mpeg")
+		_, _ = w.Write([]byte("late-payload"))
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+	})
+	svc.streamFirstPacketTimeout = 20 * time.Millisecond
+
+	stream := &mockScenarioEventStream{ctx: context.Background()}
+	req := &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/tts",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     500,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello world"},
+			},
+		},
+	}
+
+	if err := svc.StreamScenario(req, stream); err != nil {
+		t.Fatalf("expected terminal failed event instead of direct error, got %v", err)
+	}
+	if len(stream.events) < 2 {
+		t.Fatalf("expected started + failed events, got=%d", len(stream.events))
+	}
+	last := stream.events[len(stream.events)-1]
+	if last.GetEventType() != runtimev1.StreamEventType_STREAM_EVENT_FAILED {
+		t.Fatalf("expected failed terminal event, got %v", last.GetEventType())
+	}
+	if last.GetFailed().GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
+		t.Fatalf("expected AI_PROVIDER_TIMEOUT, got %v", last.GetFailed().GetReasonCode())
+	}
+	for _, event := range stream.events {
+		if event.GetEventType() == runtimev1.StreamEventType_STREAM_EVENT_DELTA {
+			t.Fatalf("expected no speech deltas before first packet timeout, got %#v", event.GetDelta())
+		}
 	}
 }
 

@@ -286,8 +286,26 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 	stream.SetTrailer(usagemetrics.QueueWaitTrailer(waitMs))
 	s.logQueueWait("stream_scenario_speech_synthesize", req.GetHead().GetAppId(), acquireResult)
 
-	requestCtx, cancel := withTimeout(stream.Context(), req.GetHead().GetTimeoutMs(), defaultSynthesizeTimeout)
-	defer cancel()
+	totalTimeout := timeoutDuration(req.GetHead().GetTimeoutMs(), defaultSynthesizeTimeout)
+	requestBaseCtx, baseCancel := withTimeout(stream.Context(), req.GetHead().GetTimeoutMs(), defaultSynthesizeTimeout)
+	defer baseCancel()
+	requestCtx, requestCancel := context.WithCancel(requestBaseCtx)
+	defer requestCancel()
+	firstPacketTimedOut := &atomic.Bool{}
+	firstPacketSeen := &atomic.Bool{}
+	firstTimeout := s.streamFirstPacketTimeout
+	if totalTimeout > 0 && totalTimeout < firstTimeout {
+		firstTimeout = totalTimeout
+	}
+	if firstTimeout > 0 {
+		time.AfterFunc(firstTimeout, func() {
+			if firstPacketSeen.Load() {
+				return
+			}
+			firstPacketTimedOut.Store(true)
+			requestCancel()
+		})
+	}
 
 	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTarget(
 		stream.Context(),
@@ -317,6 +335,9 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		return stream.Send(event)
 	}
 	failAndStop := func(cause error) error {
+		if firstPacketTimedOut.Load() && !firstPacketSeen.Load() {
+			cause = grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+		}
 		return send(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_FAILED,
 			Payload: &runtimev1.StreamScenarioEvent_Failed{
@@ -383,6 +404,7 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		if end > len(payload) {
 			end = len(payload)
 		}
+		firstPacketSeen.Store(true)
 		if err := send(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 			Payload: &runtimev1.StreamScenarioEvent_Delta{

@@ -28,6 +28,7 @@ func newGrantServiceForTest() *Service {
 }
 
 func TestGrantAuthorizeValidateRevoke(t *testing.T) {
+	// K-GRANT-008: validate returns issued_scope_catalog_version.
 	svc := newGrantServiceForTest()
 	ctx := context.Background()
 
@@ -64,6 +65,9 @@ func TestGrantAuthorizeValidateRevoke(t *testing.T) {
 	}
 	if !validateResp.Valid {
 		t.Fatalf("token must be valid")
+	}
+	if validateResp.GetIssuedScopeCatalogVersion() != "sdk-v1" {
+		t.Fatalf("expected issued_scope_catalog_version sdk-v1, got %q", validateResp.GetIssuedScopeCatalogVersion())
 	}
 
 	revokeResp, err := svc.RevokeAppAccessToken(ctx, &runtimev1.RevokeAppAccessTokenRequest{AppId: "nimi.desktop", TokenId: authorizeResp.TokenId})
@@ -480,6 +484,144 @@ func TestGrantResourceSelectorsSubsetAndOutOfScopeDeny(t *testing.T) {
 	}
 	if denied.GetReasonCode() != runtimev1.ReasonCode_APP_RESOURCE_OUT_OF_SCOPE {
 		t.Fatalf("unexpected reason code for out-of-scope: %v", denied.GetReasonCode())
+	}
+}
+
+func TestInvalidScopePrefixRejected(t *testing.T) {
+	// K-GRANT-009: invalid scope prefixes must return APP_SCOPE_FORBIDDEN.
+	svc := newGrantServiceForTest()
+	ctx := context.Background()
+
+	_, err := svc.AuthorizeExternalPrincipal(ctx, &runtimev1.AuthorizeExternalPrincipalRequest{
+		AppId:                 "nimi.desktop",
+		Domain:                "app-auth",
+		ExternalPrincipalId:   "agent-openclaw",
+		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
+		SubjectUserId:         "user-001",
+		ConsentId:             "consent-001",
+		ConsentVersion:        "v1",
+		DecisionAt:            timestamppb.Now(),
+		PolicyVersion:         "p1",
+		PolicyMode:            runtimev1.PolicyMode_POLICY_MODE_CUSTOM,
+		Scopes:                []string{"unknown.scope"},
+		ResourceSelectors:     &runtimev1.ResourceSelectors{ConversationIds: []string{"conv-1"}},
+		ScopeCatalogVersion:   "sdk-v1",
+	})
+	if err == nil {
+		t.Fatal("expected invalid scope prefix error")
+	}
+	st, ok := status.FromError(err)
+	if !ok || st.Code() != codes.PermissionDenied || st.Message() != runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN.String() {
+		t.Fatalf("unexpected authorize error: %v", err)
+	}
+
+	token, err := svc.AuthorizeExternalPrincipal(ctx, &runtimev1.AuthorizeExternalPrincipalRequest{
+		AppId:                 "nimi.desktop",
+		Domain:                "app-auth",
+		ExternalPrincipalId:   "agent-openclaw",
+		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
+		SubjectUserId:         "user-001",
+		ConsentId:             "consent-001",
+		ConsentVersion:        "v1",
+		DecisionAt:            timestamppb.Now(),
+		PolicyVersion:         "p1",
+		PolicyMode:            runtimev1.PolicyMode_POLICY_MODE_CUSTOM,
+		Scopes:                []string{"read:chat"},
+		ResourceSelectors:     &runtimev1.ResourceSelectors{ConversationIds: []string{"conv-1"}},
+		CanDelegate:           true,
+		MaxDelegationDepth:    2,
+		ScopeCatalogVersion:   "sdk-v1",
+	})
+	if err != nil {
+		t.Fatalf("authorize valid token: %v", err)
+	}
+
+	_, err = svc.IssueDelegatedAccessToken(ctx, &runtimev1.IssueDelegatedAccessTokenRequest{
+		AppId:         "nimi.desktop",
+		ParentTokenId: token.GetTokenId(),
+		Scopes:        []string{"unknown.scope"},
+	})
+	if err == nil {
+		t.Fatal("expected invalid delegated scope prefix error")
+	}
+	st, ok = status.FromError(err)
+	if !ok || st.Code() != codes.PermissionDenied || st.Message() != runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN.String() {
+		t.Fatalf("unexpected delegated scope error: %v", err)
+	}
+
+	validateResp, err := svc.ValidateAppAccessToken(ctx, &runtimev1.ValidateAppAccessTokenRequest{
+		AppId:           "nimi.desktop",
+		TokenId:         token.GetTokenId(),
+		SubjectUserId:   "user-001",
+		RequestedScopes: []string{"unknown.scope"},
+	})
+	if err != nil {
+		t.Fatalf("validate invalid scope prefix: %v", err)
+	}
+	if validateResp.GetValid() {
+		t.Fatalf("expected invalid requested scope prefix to be denied")
+	}
+	if validateResp.GetReasonCode() != runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN {
+		t.Fatalf("expected APP_SCOPE_FORBIDDEN, got %v", validateResp.GetReasonCode())
+	}
+}
+
+func TestRevokedScopeExcludedFromEffectiveScopes(t *testing.T) {
+	// K-GRANT-010: revoked scopes narrow effective_scopes without invalidating the token wholesale.
+	svc := newGrantServiceForTest()
+	ctx := context.Background()
+
+	token, err := svc.AuthorizeExternalPrincipal(ctx, &runtimev1.AuthorizeExternalPrincipalRequest{
+		AppId:                 "nimi.desktop",
+		Domain:                "app-auth",
+		ExternalPrincipalId:   "agent-openclaw",
+		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
+		SubjectUserId:         "user-001",
+		ConsentId:             "consent-001",
+		ConsentVersion:        "v1",
+		DecisionAt:            timestamppb.Now(),
+		PolicyVersion:         "p1",
+		PolicyMode:            runtimev1.PolicyMode_POLICY_MODE_CUSTOM,
+		Scopes:                []string{"read:chat", "write:chat"},
+		ResourceSelectors:     &runtimev1.ResourceSelectors{ConversationIds: []string{"conv-1"}},
+		ScopeCatalogVersion:   "sdk-v1",
+	})
+	if err != nil {
+		t.Fatalf("authorize: %v", err)
+	}
+
+	svc.catalog.RevokeScope("sdk-v1", "write:chat")
+
+	allowed, err := svc.ValidateAppAccessToken(ctx, &runtimev1.ValidateAppAccessTokenRequest{
+		AppId:           "nimi.desktop",
+		TokenId:         token.GetTokenId(),
+		SubjectUserId:   "user-001",
+		RequestedScopes: []string{"read:chat"},
+	})
+	if err != nil {
+		t.Fatalf("validate active scopes: %v", err)
+	}
+	if !allowed.GetValid() {
+		t.Fatalf("expected token to remain valid for active scopes")
+	}
+	if len(allowed.GetEffectiveScopes()) != 1 || allowed.GetEffectiveScopes()[0] != "read:chat" {
+		t.Fatalf("expected effective scopes to be narrowed, got %#v", allowed.GetEffectiveScopes())
+	}
+
+	revoked, err := svc.ValidateAppAccessToken(ctx, &runtimev1.ValidateAppAccessTokenRequest{
+		AppId:           "nimi.desktop",
+		TokenId:         token.GetTokenId(),
+		SubjectUserId:   "user-001",
+		RequestedScopes: []string{"write:chat"},
+	})
+	if err != nil {
+		t.Fatalf("validate revoked scope: %v", err)
+	}
+	if revoked.GetValid() {
+		t.Fatalf("expected revoked scope request to be denied")
+	}
+	if revoked.GetReasonCode() != runtimev1.ReasonCode_APP_SCOPE_REVOKED {
+		t.Fatalf("expected APP_SCOPE_REVOKED, got %v", revoked.GetReasonCode())
 	}
 }
 

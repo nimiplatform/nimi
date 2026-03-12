@@ -55,6 +55,9 @@ func (s *Service) AuthorizeExternalPrincipal(ctx context.Context, req *runtimev1
 	if len(effectiveScopes) == 0 {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
+	if hasInvalidScopePrefix(effectiveScopes) {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+	}
 	if hasRealmScope(effectiveScopes) {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
