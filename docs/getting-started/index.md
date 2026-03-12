@@ -94,7 +94,7 @@ npm install @nimiplatform/sdk
 ```
 
 ```ts
-import { Runtime } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk/runtime';
 
 const runtime = new Runtime();
 

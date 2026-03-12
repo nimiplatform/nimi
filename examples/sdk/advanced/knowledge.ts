@@ -5,7 +5,7 @@
 
 import { resolve } from 'node:path';
 
-import { Runtime } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk/runtime';
 
 const runtime = new Runtime({
   appId: 'example.knowledge',

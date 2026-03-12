@@ -5,7 +5,7 @@
  * Run: npx tsx examples/sdk/01-hello.ts
  */
 
-import { Runtime } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk/runtime';
 
 const runtime = new Runtime();
 

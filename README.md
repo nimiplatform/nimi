@@ -60,7 +60,7 @@ npm install @nimiplatform/sdk
 ```
 
 ```ts
-import { Runtime } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk/runtime';
 
 const runtime = new Runtime();
 
@@ -91,7 +91,7 @@ High-level onboarding stays on `nimi run` and `runtime.generate()/stream()`. Ful
 
 ```ts
 import { generateText } from 'ai';
-import { Runtime } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk/runtime';
 import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
 
 const runtime = new Runtime();

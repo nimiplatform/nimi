@@ -155,7 +155,8 @@ pnpm add @nimiplatform/sdk
 最小示例（Runtime + Realm）：
 
 ```ts
-import { Runtime, Realm } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk/runtime';
+import { Realm } from '@nimiplatform/sdk/realm';
 
 const runtime = new Runtime({
   appId: 'my_app',

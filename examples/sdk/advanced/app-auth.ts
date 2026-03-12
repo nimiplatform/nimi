@@ -3,7 +3,7 @@
  * Run: npx tsx examples/sdk/advanced/app-auth.ts
  */
 
-import { Runtime } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk/runtime';
 import {
   AppMode,
   ExternalPrincipalType,

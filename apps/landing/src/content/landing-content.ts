@@ -176,7 +176,7 @@ export type LandingContent = {
   localeOptions: { en: string; zh: string };
 };
 
-const EN_TAB_LOCAL = `import { Runtime } from '@nimiplatform/sdk';
+const EN_TAB_LOCAL = `import { Runtime } from '@nimiplatform/sdk/runtime';
 
 const runtime = new Runtime();
 
@@ -186,7 +186,7 @@ const result = await runtime.generate({
 
 console.log(result.text);`;
 
-const EN_TAB_CLOUD = `import { Runtime } from '@nimiplatform/sdk';
+const EN_TAB_CLOUD = `import { Runtime } from '@nimiplatform/sdk/runtime';
 
 const runtime = new Runtime();
 
@@ -197,7 +197,7 @@ const result = await runtime.generate({
 
 console.log(result.text);`;
 
-const EN_TAB_STREAMING = `import { Runtime } from '@nimiplatform/sdk';
+const EN_TAB_STREAMING = `import { Runtime } from '@nimiplatform/sdk/runtime';
 
 const runtime = new Runtime();
 
@@ -209,7 +209,7 @@ for await (const chunk of stream) {
   process.stdout.write(chunk.text);
 }`;
 
-const EN_TAB_WORKFLOW = `import { Runtime } from '@nimiplatform/sdk';
+const EN_TAB_WORKFLOW = `import { Runtime } from '@nimiplatform/sdk/runtime';
 
 const runtime = new Runtime();
 
@@ -224,7 +224,7 @@ const polish = await runtime.generate({
 
 console.log(polish.text);`;
 
-const ZH_TAB_MODS = `import { Runtime } from '@nimiplatform/sdk';
+const ZH_TAB_MODS = `import { Runtime } from '@nimiplatform/sdk/runtime';
 
 const runtime = new Runtime();
 
@@ -239,7 +239,7 @@ const result = await runtime.generate({
 
 console.log(result.text);`;
 
-const ZH_TAB_LOCAL = `import { Runtime } from '@nimiplatform/sdk';
+const ZH_TAB_LOCAL = `import { Runtime } from '@nimiplatform/sdk/runtime';
 
 const runtime = new Runtime();
 
@@ -249,7 +249,7 @@ const result = await runtime.generate({
 
 console.log(result.text);`;
 
-const ZH_TAB_CLOUD = `import { Runtime } from '@nimiplatform/sdk';
+const ZH_TAB_CLOUD = `import { Runtime } from '@nimiplatform/sdk/runtime';
 
 const runtime = new Runtime();
 
@@ -260,7 +260,7 @@ const result = await runtime.generate({
 
 console.log(result.text);`;
 
-const ZH_TAB_STREAMING = `import { Runtime } from '@nimiplatform/sdk';
+const ZH_TAB_STREAMING = `import { Runtime } from '@nimiplatform/sdk/runtime';
 
 const runtime = new Runtime();
 

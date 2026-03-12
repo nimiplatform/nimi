@@ -5,7 +5,7 @@
 
 import { generateText } from 'ai';
 
-import { Runtime } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk/runtime';
 import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
 
 const runtime = new Runtime({

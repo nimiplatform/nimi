@@ -4,7 +4,7 @@
  * Run: npx tsx examples/sdk/03-local-vs-cloud.ts
  */
 
-import { Runtime } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk/runtime';
 
 const runtime = new Runtime();
 const prompt = 'Explain why one runtime for local and cloud AI is useful.';

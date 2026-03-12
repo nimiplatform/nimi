@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
-import { Runtime } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk/runtime';
 import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
 
 export type ProviderRoute = 'local' | 'cloud';

@@ -6,7 +6,7 @@
 
 import { writeFile } from 'node:fs/promises';
 
-import { Runtime } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk/runtime';
 
 const runtime = new Runtime();
 

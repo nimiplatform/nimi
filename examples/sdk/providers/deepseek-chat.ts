@@ -23,7 +23,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { Runtime } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk/runtime';
 
 type SavedConnector = {
   connectorId: string;

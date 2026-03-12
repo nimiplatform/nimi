@@ -58,7 +58,7 @@ pnpm test
 ```ts
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Runtime } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk/runtime';
 
 test('Runtime constructor requires appId', () => {
   assert.throws(() => new Runtime({

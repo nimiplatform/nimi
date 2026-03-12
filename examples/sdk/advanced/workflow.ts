@@ -3,7 +3,7 @@
  * Run: npx tsx examples/sdk/advanced/workflow.ts
  */
 
-import { Runtime } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk/runtime';
 import {
   aiGenerateNode,
   FallbackPolicy,

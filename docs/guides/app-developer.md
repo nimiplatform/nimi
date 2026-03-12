@@ -39,7 +39,7 @@ If you are reading this inside the monorepo before public package publication, n
 Use the runtime as the operational boundary and keep provider keys in the runtime process, not spread through every app.
 
 ```ts
-import { Runtime } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk/runtime';
 
 const runtime = new Runtime();
 
