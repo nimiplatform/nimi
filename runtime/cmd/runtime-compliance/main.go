@@ -264,6 +264,7 @@ func resolveBinary(name string) (string, error) {
 func runtimeChecklist() []checklistItemSpec {
 	const (
 		pkgAppRegistry = "github.com/nimiplatform/nimi/runtime/internal/appregistry"
+		pkgApp         = "github.com/nimiplatform/nimi/runtime/internal/services/app"
 		pkgAuthn       = "github.com/nimiplatform/nimi/runtime/internal/authn"
 		pkgAuditLog    = "github.com/nimiplatform/nimi/runtime/internal/auditlog"
 		pkgAuditSvc    = "github.com/nimiplatform/nimi/runtime/internal/services/audit"
@@ -278,9 +279,11 @@ func runtimeChecklist() []checklistItemSpec {
 		pkgScheduler   = "github.com/nimiplatform/nimi/runtime/internal/scheduler"
 		pkgLocalService = "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 		pkgWorkflow     = "github.com/nimiplatform/nimi/runtime/internal/services/workflow"
+		pkgKnowledge    = "github.com/nimiplatform/nimi/runtime/internal/services/knowledge"
 		pkgConfig       = "github.com/nimiplatform/nimi/runtime/internal/config"
 		pkgGrpcErr      = "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 		pkgAuth         = "github.com/nimiplatform/nimi/runtime/internal/services/auth"
+		pkgStreamutil   = "github.com/nimiplatform/nimi/runtime/internal/streamutil"
 	)
 
 	return []checklistItemSpec{
@@ -735,6 +738,52 @@ func runtimeChecklist() []checklistItemSpec {
 			Requirement: "reason code enum values match spec (K-RPC-011)",
 			Tests: []testRef{
 				{Package: pkgGrpcErr, Name: "TestReasonCodeEnumValuesMatchSpec"},
+			},
+		},
+		{
+			ID:          "RS-11-59",
+			Requirement: "AppService security baseline and optional fields (K-APP-002/K-APP-005)",
+			Tests: []testRef{
+				{Package: pkgApp, Name: "TestSendAppMessageOptionalFields"},
+				{Package: pkgApp, Name: "TestSendAppMessageRejectsOversizedPayload"},
+				{Package: pkgApp, Name: "TestSendAppMessageRateLimitEnforced"},
+				{Package: pkgApp, Name: "TestSendAppMessageLoopDetected"},
+				{Package: pkgApp, Name: "TestSendAppMessageRequiresRegisteredAppSession"},
+			},
+		},
+		{
+			ID:          "RS-11-60",
+			Requirement: "ExportAuditEvents sequence from 0 (K-AUDIT-009)",
+			Tests: []testRef{
+				{Package: pkgAuditSvc, Name: "TestExportAuditEventsSequenceStartsFromZero"},
+			},
+		},
+		{
+			ID:          "RS-11-61",
+			Requirement: "ModelStatus state machine compliance (K-MODEL-008)",
+			Tests: []testRef{
+				{Package: pkgModel, Name: "TestPullModelTransitionsThroughPullingState"},
+				{Package: pkgModel, Name: "TestModelStatusTransitionsMatchSpec"},
+				{Package: pkgModel, Name: "TestRemoveModelRejectsIllegalSourceState"},
+			},
+		},
+		{
+			ID:          "RS-11-62",
+			Requirement: "KnowledgeService reason-code alignment (K-KNOW-002/K-KNOW-003/K-KNOW-005)",
+			Tests: []testRef{
+				{Package: pkgKnowledge, Name: "TestBuildIndexExistingNoOverwriteReasonCode"},
+				{Package: pkgKnowledge, Name: "TestSearchIndexNotFoundReturnsEmpty"},
+			},
+		},
+		{
+			ID:          "RS-11-63",
+			Requirement: "streaming backpressure baseline (K-STREAM-011/K-STREAM-012/K-STREAM-013)",
+			Tests: []testRef{
+				{Package: pkgApp, Name: "TestSubscribeAppMessagesSlowConsumerClosed"},
+				{Package: pkgAuditSvc, Name: "TestSubscribeRuntimeHealthEventsSlowConsumerClosed"},
+				{Package: pkgAuditSvc, Name: "TestSubscribeAIProviderHealthEventsSlowConsumerClosed"},
+				{Package: pkgStreamutil, Name: "TestStreamBackpressureCloses"},
+				{Package: pkgWorkflow, Name: "TestSubscribeWorkflowEventsTerminalEventPriority"},
 			},
 		},
 	}
