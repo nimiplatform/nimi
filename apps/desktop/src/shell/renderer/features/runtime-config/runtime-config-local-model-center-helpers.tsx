@@ -1,5 +1,6 @@
 import type {
   LocalAiArtifactKind,
+  LocalAiArtifactRecord,
   LocalAiVerifiedArtifactDescriptor,
   LocalAiVerifiedModelDescriptor,
 } from '@runtime/local-ai-runtime';
@@ -76,6 +77,25 @@ function collectArtifactFamilyHints(artifact: LocalAiVerifiedArtifactDescriptor)
     hints.add(normalized);
   }
   return [...hints];
+}
+
+export function filterInstalledArtifacts(
+  artifacts: LocalAiArtifactRecord[],
+  kindFilter: 'all' | LocalAiArtifactKind,
+  query: string,
+): LocalAiArtifactRecord[] {
+  return artifacts.filter((artifact) => {
+    const matchesKind = kindFilter === 'all' || artifact.kind === kindFilter;
+    if (!matchesKind) return false;
+    if (!query) return true;
+    return (
+      artifact.artifactId.toLowerCase().includes(query)
+      || artifact.localArtifactId.toLowerCase().includes(query)
+      || artifact.engine.toLowerCase().includes(query)
+      || artifact.kind.toLowerCase().includes(query)
+      || artifact.source.repo.toLowerCase().includes(query)
+    );
+  });
 }
 
 export function relatedArtifactsForModel(

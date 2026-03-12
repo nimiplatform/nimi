@@ -24,6 +24,7 @@ import {
   parseTimestamp,
 } from './runtime-config-model-center-utils';
 import {
+  filterInstalledArtifacts,
   isArtifactTaskTerminal,
   relatedArtifactsForModel,
   type ArtifactTaskState,
@@ -164,28 +165,12 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
     [installedArtifacts],
   );
 
-  const filteredInstalledArtifacts = useMemo(() => {
-    const query = deferredSearchQuery.toLowerCase().trim();
-    return sortedInstalledArtifacts.filter((artifact) => {
-      const matchesKind = artifactKindFilter === 'all' || artifact.kind === artifactKindFilter;
-      if (!matchesKind) return false;
-      if (!query) return true;
-      return (
-        artifact.artifactId.toLowerCase().includes(query)
-        || artifact.localArtifactId.toLowerCase().includes(query)
-        || artifact.engine.toLowerCase().includes(query)
-        || artifact.kind.toLowerCase().includes(query)
-        || artifact.source.repo.toLowerCase().includes(query)
-      );
-    });
-  }, [artifactKindFilter, deferredSearchQuery, sortedInstalledArtifacts]);
-
-  const installedArtifactIds = useMemo(() => (
-    new Set(sortedInstalledArtifacts.map((artifact) => artifact.artifactId.toLowerCase()))
-  ), [sortedInstalledArtifacts]);
-  const installedArtifactsById = useMemo(() => (
-    new Map(sortedInstalledArtifacts.map((artifact) => [artifact.artifactId.toLowerCase(), artifact] as const))
-  ), [sortedInstalledArtifacts]);
+  const filteredInstalledArtifacts = useMemo(
+    () => filterInstalledArtifacts(sortedInstalledArtifacts, artifactKindFilter, deferredSearchQuery.toLowerCase().trim()),
+    [artifactKindFilter, deferredSearchQuery, sortedInstalledArtifacts],
+  );
+  const installedArtifactIds = useMemo(() => new Set(sortedInstalledArtifacts.map((artifact) => artifact.artifactId.toLowerCase())), [sortedInstalledArtifacts]);
+  const installedArtifactsById = useMemo(() => new Map(sortedInstalledArtifacts.map((artifact) => [artifact.artifactId.toLowerCase(), artifact] as const)), [sortedInstalledArtifacts]);
 
   const isInstalled = useCallback((modelId: string) => {
     return sortedModels.some(m => m.model.toLowerCase() === modelId.toLowerCase());

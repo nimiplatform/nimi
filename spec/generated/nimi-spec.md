@@ -1,7 +1,7 @@
 # Nimi Platform 技术规范
 
 > 本文档由 `scripts/generate-spec-human-doc.mjs` 自动生成，是 `spec/` 目录的人类可读版本。
-> 生成时间: 2026-03-11
+> 生成时间: 2026-03-12
 >
 > 权威规则定义位于 spec/ 原始文件中。如需修改，请编辑原始文件后重新生成。
 
@@ -2477,7 +2477,7 @@ Mod UI 通过 feature flag 门控：
 Mods Panel（`features/mods/mods-panel.tsx`）直接承载单页 Mod Hub：
 - 侧边栏 puzzle icon 直接导航到 `activeTab = 'mods'`。
 - `Mods` 打开后直接展示 Mod Hub，而不是旧的双视图结构。
-- Mod Hub 统一负责发现、安装、更新、启用、禁用、卸载和手动路径 / URL 安装。
+- Mod Hub 统一负责发现、安装、更新、启用、禁用、卸载，以及通过 `Open Mods Folder` 暴露本地 installed mods 目录入口。
 - Disable / Uninstall 当前激活 mod 时 fallback 到 `'mods'` tab。
 - Guard clause：`enableModUi = false` 时访问 `'mods'` tab 自动回退到 `'chat'`。
 
