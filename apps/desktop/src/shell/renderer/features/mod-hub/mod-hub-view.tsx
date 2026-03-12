@@ -27,12 +27,14 @@ const ICON_SETTINGS = (
 function DockTile({
   modName,
   iconText,
+  iconImageSrc,
   iconBg,
   accentClassName,
   onClick,
 }: {
   modName: string;
   iconText: string;
+  iconImageSrc?: string;
   iconBg: string;
   accentClassName: string;
   onClick: () => void;
@@ -47,7 +49,15 @@ function DockTile({
         className="relative flex h-[3.25rem] w-[3.25rem] items-center justify-center rounded-[13px] text-sm font-bold text-white shadow-[0_3px_10px_rgba(0,0,0,0.15)] transition-shadow group-hover:shadow-[0_6px_20px_rgba(0,0,0,0.22)]"
         style={{ background: iconBg }}
       >
-        {iconText}
+        {iconImageSrc ? (
+          <img
+            src={iconImageSrc}
+            alt={`${modName} logo`}
+            className="h-full w-full object-contain p-1"
+          />
+        ) : (
+          iconText
+        )}
         <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-[1.5px] border-[#f7f5f0] ${accentClassName}`} />
       </div>
       <span className="line-clamp-1 max-w-[72px] text-center text-[11px] leading-tight text-stone-500 transition-colors group-hover:text-stone-800">
@@ -190,6 +200,7 @@ export function ModHubView(model: ModHubPageModel) {
                       key={mod.id}
                       modName={mod.name}
                       iconText={mod.iconText}
+                      iconImageSrc={mod.iconImageSrc}
                       iconBg={mod.iconBg}
                       accentClassName={dockAccentClass(mod.visualState)}
                       onClick={() => model.onActivateDockMod(mod.id)}

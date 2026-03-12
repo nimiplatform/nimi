@@ -6,35 +6,104 @@ export type LandingContent = {
   nav: {
     install: string;
     sdk: string;
+    catalog: string;
+    architecture: string;
     desktop: string;
+    security: string;
     mods: string;
+    openSource: string;
   };
   hero: {
     eyebrow: string;
     title: string;
     titleAccent: string;
+    title2: string;
+    titleAccent2: string;
     subtitle: string;
     description: string;
     primaryCta: string;
     docsCta: string;
-    altInstallLabel: string;
-    altInstallCommand: string;
-    installCommand: string;
-    copyCommandLabel: string;
+    helperPrefix: string;
+    helperDocsCta: string;
+    helperGithubCta: string;
+    copyTooltipLabel: string;
     copiedCommandLabel: string;
     githubCta: string;
-  };
-  install: {
-    title: string;
-    subtitle: string;
-    terminalLabel: string;
-    terminalSteps: Array<{ comment: string; command: string }>;
     previewLabel: string;
     previewAlt: string;
     previewCaption: string;
-    sdkLabel: string;
-    sdkSnippet: string;
-    docsCtaLabel: string;
+    getStartedTitle: string;
+    getStartedSubtitle: string;
+    tabs: Array<{
+      id: string;
+      label: string;
+      command: string;
+      ctaText: string;
+    }>;
+    terminalMockupTitle: string;
+  };
+  architecture: {
+    title: string;
+    subtitle: string;
+    description: string;
+    devTitle: string;
+    devText: string;
+    userTitle: string;
+    userText: string;
+    conclusion: string;
+    slogan: string;
+  };
+  modelCatalog: {
+    kicker: string;
+    title: string;
+    subtitle: string;
+    overview: {
+      searchPlaceholder: string;
+      cloudProvidersLabel?: string;
+      localModelsLabel?: string;
+      modalitiesLabel?: string;
+      modalitiesValue?: string;
+      modalitiesDescription?: string;
+      industryLeadersLabel: string;
+      shortcutLabel: string;
+      clearSearchLabel: string;
+      matchingProvidersLabel: string;
+      liveCatalogLabel: string;
+    };
+    liveBadge: string;
+    featuredProvidersLabel: string;
+    featuredProviders: string[];
+    stats: {
+      providers: string;
+      models: string;
+      cloudProviders: string;
+      localModels: string;
+    };
+    localTitle: string;
+    localHeadline: string;
+    localDescription: string;
+    capabilitiesTitle: string;
+    capabilitiesHeadline: string;
+    capabilitiesDescription: string;
+    capabilityLabels: {
+      'text.generate': string;
+      'text.embed': string;
+      'image.generate': string;
+      'video.generate': string;
+      'audio.synthesize': string;
+      'audio.transcribe': string;
+    };
+    capabilityCountLabel: string;
+    cloudBadge: string;
+    matrixTitle: string;
+    matrixHeadline: string;
+    matrixDescription: string;
+    providerDetailSuffix: string;
+    searchResultsTitle: string;
+    searchResultsDescription: string;
+    noResultsTitle: string;
+    noResultsDescription: string;
+    sourceNote: string;
   };
   sdk: {
     title: string;
@@ -63,6 +132,16 @@ export type LandingContent = {
     }>;
     downloadCta: string;
   };
+  security: {
+    title: string;
+    subtitle: string;
+    intro: string;
+    pillars: Array<{
+      label: string;
+      title: string;
+      points: string[];
+    }>;
+  };
   mods: {
     title: string;
     subtitle: string;
@@ -86,30 +165,15 @@ export type LandingContent = {
     primaryCta: string;
     githubCta: string;
   };
-  footer: { line1: string; line2: string };
+  footer: {
+    line1: string;
+    line2: string;
+    termsLabel: string;
+    privacyLabel: string;
+  };
   localeToggleLabel: string;
   localeOptions: { en: string; zh: string };
 };
-
-const EN_SDK_SNIPPET = `import { Runtime } from '@nimiplatform/sdk';
-
-const runtime = new Runtime();
-
-const response = await runtime.generate({
-  prompt: 'Explain Nimi in one sentence.',
-});
-
-console.log(response.text);`;
-
-const ZH_SDK_SNIPPET = `import { Runtime } from '@nimiplatform/sdk';
-
-const runtime = new Runtime();
-
-const response = await runtime.generate({
-  prompt: '用一句话解释 Nimi。',
-});
-
-console.log(response.text);`;
 
 const EN_TAB_LOCAL = `import { Runtime } from '@nimiplatform/sdk';
 
@@ -143,6 +207,36 @@ const stream = await runtime.stream({
 for await (const chunk of stream) {
   process.stdout.write(chunk.text);
 }`;
+
+const EN_TAB_WORKFLOW = `import { Runtime } from '@nimiplatform/sdk';
+
+const runtime = new Runtime();
+
+const draft = await runtime.generate({
+  prompt: 'Draft a product launch summary.',
+});
+
+const polish = await runtime.generate({
+  provider: 'gemini',
+  prompt: \`Polish this summary for a blog post:\n\n\${draft.text}\`,
+});
+
+console.log(polish.text);`;
+
+const ZH_TAB_MODS = `import { Runtime } from '@nimiplatform/sdk';
+
+const runtime = new Runtime();
+
+await runtime.registerMod({
+  name: 'story-lab',
+  capabilities: ['text.generate'],
+});
+
+const result = await runtime.generate({
+  prompt: '为新的 Mod 首页写一句介绍语。',
+});
+
+console.log(result.text);`;
 
 const ZH_TAB_LOCAL = `import { Runtime } from '@nimiplatform/sdk';
 
@@ -184,230 +278,395 @@ export const LANDING_CONTENT: Record<LandingLocale, LandingContent> = {
     nav: {
       install: 'Install',
       sdk: 'SDK',
+      catalog: 'Catalog',
+      architecture: 'Architecture',
       desktop: 'Desktop',
+      security: 'Security',
       mods: 'Mods',
+      openSource: 'Open Source',
     },
     hero: {
       eyebrow: 'Install in seconds',
-      title: 'Install once. Run',
-      titleAccent: 'local + cloud AI.',
-      subtitle: 'One runtime, one CLI, and one SDK for the full first-run path.',
-      description: 'Start with the install script, download the desktop app, or jump straight into the docs.',
+      title: 'Local + cloud AI',
+      titleAccent: '',
+      title2: ' in ',
+      titleAccent2: 'one runtime',
+      subtitle: 'One CLI and one SDK to run any model, anywhere.',
+      description: '',
       primaryCta: 'Download Desktop',
-      docsCta: 'Read the documentation',
-      altInstallLabel: 'Or use',
-      altInstallCommand: 'npm install -g @nimiplatform/nimi',
-      installCommand: 'curl -fsSL https://install.nimi.xyz | sh',
-      copyCommandLabel: 'Copy',
+      docsCta: 'Read the docs',
+      helperPrefix: 'Or',
+      helperDocsCta: 'Read Docs',
+      helperGithubCta: 'View on GitHub',
+      copyTooltipLabel: 'Copy command',
       copiedCommandLabel: 'Copied',
       githubCta: 'View on GitHub',
-    },
-    install: {
-      title: 'Up and running in seconds',
-      subtitle: 'One command to install. One command to start. One SDK to integrate.',
-      terminalLabel: 'Terminal',
-      terminalSteps: [
-        { comment: 'Install Nimi', command: 'curl -fsSL https://install.nimi.xyz | sh' },
-        { comment: 'Start the runtime', command: 'nimi start' },
-        { comment: 'Run a model', command: 'nimi run "What is Nimi?"' },
-      ],
       previewLabel: 'Quickstart walkthrough',
       previewAlt: 'Nimi quickstart walkthrough',
       previewCaption: 'Install, start the runtime, and get a first answer from the CLI in one flow.',
-      sdkLabel: 'SDK',
-      sdkSnippet: EN_SDK_SNIPPET,
-      docsCtaLabel: 'Read the docs',
+      getStartedTitle: 'Get Started',
+      getStartedSubtitle: 'Choose your install path',
+      tabs: [
+        { id: 'desktop', label: 'Desktop App', command: '', ctaText: 'Download Desktop App' },
+        { id: 'curl', label: 'Terminal (curl)', command: 'curl -fsSL https://install.nimi.xyz | sh', ctaText: 'Copy Command' },
+        { id: 'npm', label: 'npm', command: 'npm install -g @nimiplatform/nimi', ctaText: 'Copy Command' },
+      ],
+      terminalMockupTitle: 'Walkthrough',
+    },
+    architecture: {
+      title: 'The Unified Architecture.',
+      subtitle: 'Project Overview',
+      description:
+        'Nimi is building shared infrastructure for the next generation of AI apps, with one runtime surface for developers and one coherent experience for users.',
+      devTitle: 'For developers',
+      devText:
+        'Use the SDK and runtime to unify model access, orchestration, and app integration without stitching together incompatible vendor surfaces.',
+      userTitle: 'For users',
+      userText:
+        'Move between AI apps with a more consistent runtime, shared identity, and less repeated setup across products built on Nimi.',
+      conclusion: 'One platform, with clear boundaries between app, runtime, and realm.',
+      slogan: 'Infrastructure for next-generation AI apps.',
+    },
+    modelCatalog: {
+      kicker: 'Model coverage',
+      title: 'The live model catalog',
+      subtitle: 'Search one runtime surface across local and cloud model coverage.',
+      overview: {
+        searchPlaceholder: 'search 38 cloud providers and infinite models…',
+        cloudProvidersLabel: 'Cloud Providers',
+        localModelsLabel: 'Local Models',
+        modalitiesLabel: 'Modalities',
+        modalitiesValue: 'OMNI',
+        modalitiesDescription: 'Text / TTS / STT / Video / Image / Embeddings',
+        industryLeadersLabel: 'Supported by industry leaders',
+        shortcutLabel: 'Ctrl K',
+        clearSearchLabel: 'Clear',
+        matchingProvidersLabel: 'matching providers',
+        liveCatalogLabel: 'Live catalog',
+      },
+      liveBadge: 'From runtime catalog',
+      featuredProvidersLabel: 'Featured providers',
+      featuredProviders: ['OpenAI', 'Anthropic', 'Gemini', 'xAI', 'DashScope', 'Volcengine', 'Mistral', 'DeepSeek'],
+      stats: {
+        providers: 'providers',
+        models: 'models',
+        cloudProviders: 'cloud providers',
+        localModels: 'local models',
+      },
+      localTitle: 'Offline / local',
+      localHeadline: 'On-device voice and speech models are already in the stack.',
+      localDescription:
+        'Current local catalog coverage is voice-first: Qwen3-TTS, CosyVoice2, GPT-SoVITS, F5-TTS, Piper, and Kokoro variants are available through the same runtime surface.',
+      capabilitiesTitle: 'Capability spread',
+      capabilitiesHeadline: 'Text, embeddings, image, video, TTS, and STT in one runtime.',
+      capabilitiesDescription:
+        'This is where the landing page starts to look credible: frontier text models, image generators, video systems, and speech models all show up in the same catalog.',
+      capabilityLabels: {
+        'text.generate': 'Text / reasoning',
+        'text.embed': 'Embeddings',
+        'image.generate': 'Image',
+        'video.generate': 'Video',
+        'audio.synthesize': 'Speech / TTS',
+        'audio.transcribe': 'Transcription / STT',
+      },
+      capabilityCountLabel: 'catalog entries',
+      cloudBadge: 'cloud',
+      matrixTitle: 'Cloud matrix',
+      matrixHeadline: 'Every provider, with actual model ids.',
+      matrixDescription:
+        'No hand-wavy “supports OpenAI-compatible models” claim here. These are the concrete model ids currently represented in the runtime catalog.',
+      providerDetailSuffix: 'models live in this provider bucket',
+      searchResultsTitle: 'Search results from the live catalog',
+      searchResultsDescription: 'Show matching providers with capability and model ids directly instead of keeping the full matrix visible.',
+      noResultsTitle: 'No providers match this search.',
+      noResultsDescription: 'Try a provider name like OpenAI, Gemini, or DashScope, or search for a model id.',
+      sourceNote:
+        'Source of truth: runtime/catalog/providers/*.yaml in this repository. Snapshot reflected here was derived on March 10, 2026.',
     },
     sdk: {
-      title: 'One SDK for every AI model',
-      subtitle: 'Local models, cloud providers, streaming — same import, same API.',
+      title: 'One SDK. Multiple ways to run AI.',
+      subtitle: 'Start local, add cloud when you need it, and keep the integration surface stable.',
       tabs: [
-        {
-          label: 'Local Model',
-          snippet: EN_TAB_LOCAL,
-          caption: 'Run models on your machine. No API keys needed.',
-        },
-        {
-          label: 'Cloud Model',
-          snippet: EN_TAB_CLOUD,
-          caption: 'Same API, add a provider to move from local to cloud.',
-        },
-        {
-          label: 'Streaming',
-          snippet: EN_TAB_STREAMING,
-          caption: 'Stream responses token by token. Same interface, local or cloud.',
-        },
+        { label: 'Walkthrough', snippet: EN_TAB_LOCAL, caption: 'Go from install to first answer fast.' },
+        { label: 'Multimodal', snippet: EN_TAB_CLOUD, caption: 'Handle text, image, and speech in one flow.' },
+        { label: 'Stream Job', snippet: EN_TAB_STREAMING, caption: 'Run streaming jobs through the same runtime.' },
+        { label: 'Workflow', snippet: EN_TAB_WORKFLOW, caption: 'Chain steps into one repeatable AI workflow.' },
       ],
       previewLabel: 'SDK walkthrough',
       previewAlt: 'Nimi SDK walkthrough',
-      previewCaption: 'Go from `new Runtime()` to local and cloud generation without changing the app surface.',
+      previewCaption: 'Install the SDK, start the runtime, and send local and cloud requests from the same app flow.',
       multimodalLabel: 'Beyond text',
       multimodalAlt: 'Nimi multimodal walkthrough',
-      multimodalCaption: 'The same runtime also handles image and speech flows when you move past text-only examples.',
-      callout: 'Same import. Same API. Local or cloud.',
+      multimodalCaption: 'The same runtime also handles image and speech flows when you move beyond text-only examples.',
+      callout: 'Start with one setup. Expand without rewriting.',
     },
     desktop: {
-      title: 'Desktop app for AI',
-      subtitle: 'Manage models, chat with AI, and run mods — all from your desktop.',
-      screenshotAlt: 'Nimi Desktop App Preview',
+      title: 'Desktop Workspace for AI',
+      subtitle: 'Run models, chat, and manage mods from one desktop workspace.',
+      screenshotAlt: 'Nimi desktop app preview',
       features: [
-        { icon: '\u{1F5A5}', title: 'Runtime Dashboard', description: 'Monitor running models, health status, and resource usage.' },
-        { icon: '\u{1F4AC}', title: 'Built-in Chat', description: 'Chat with any local or cloud model directly.' },
-        { icon: '\u{1F9E9}', title: 'Mod Host', description: 'Install and run mods inside the desktop app.' },
-        { icon: '\u{1F4E6}', title: 'Model Management', description: 'Download, update, and switch between local models.' },
+        { icon: 'dashboard', title: 'Runtime Dashboard', description: 'See health, model status, and resource usage at a glance.' },
+        { icon: 'chat', title: 'Built-in Chat', description: 'Talk to local and cloud models from the same workspace.' },
+        { icon: 'mods', title: 'Mod Host', description: 'Launch installed mods without leaving the desktop app.' },
+        { icon: 'models', title: 'Model Management', description: 'Install, update, and switch models from one place.' },
       ],
       downloadCta: 'Download Desktop App',
+    },
+    security: {
+      title: 'Security by design',
+      subtitle: 'Local-first execution, explicit boundaries, and controlled cloud access.',
+      intro: 'Nimi is designed to keep execution paths, credentials, and extension access under clearer control.',
+      pillars: [
+        {
+          label: 'Designed in',
+          title: 'Clear system boundaries',
+          points: ['Local and cloud paths are separated by design.', 'Cloud access routes through the runtime boundary.'],
+        },
+        {
+          label: 'Built today',
+          title: 'Controls already in place',
+          points: [
+            'Provider credentials stay on the runtime connector path, not in the desktop renderer.',
+            'Mods and desktop surfaces are constrained by runtime-only routing and capability checks.',
+          ],
+        },
+        {
+          label: 'Hardening next',
+          title: 'Still getting stronger',
+          points: ['Runtime-side enforcement is still being tightened.', 'Mod policy, sandbox coverage, and audit visibility continue to improve.'],
+        },
+      ],
     },
     mods: {
       title: 'Extend with mods',
       subtitle: 'Pre-built apps powered by the Nimi runtime. Or build your own.',
       items: [
-        { icon: '\u{1F4AC}', name: 'local-chat', description: 'Chat with local AI models. Private, fast, no network.' },
-        { icon: '\u{1F4CA}', name: 'kismet', description: 'Economic simulation engine with real-time charts.' },
-        { icon: '\u{1F3A7}', name: 'audio-book', description: 'Multi-voice audiobooks with AI narration.' },
-        { icon: '\u{1F3AC}', name: 'videoplay', description: 'Episode-scale video from narrative scripts.' },
-        { icon: '\u{1F3AE}', name: 'textplay', description: 'Interactive fiction with branching narratives.' },
-        { icon: '\u{1F4DA}', name: 'knowledge-base', description: 'Document indexing and AI-powered search.' },
+        { icon: 'chat', name: 'local-chat', description: 'Chat with local AI models. Private, fast, no network.' },
+        { icon: 'sim', name: 'kismet', description: 'Economic simulation engine with real-time charts.' },
+        { icon: 'audio', name: 'audio-book', description: 'Multi-voice audiobooks with AI narration.' },
+        { icon: 'video', name: 'videoplay', description: 'Episode-scale video from narrative scripts.' },
+        { icon: 'story', name: 'textplay', description: 'Interactive fiction with branching narratives.' },
+        { icon: 'docs', name: 'knowledge-base', description: 'Document indexing and AI-powered search.' },
       ],
       buildModCta: 'Build your own mod',
     },
     openSource: {
       title: 'Open source at the core',
       subtitle: 'Built in the open. Ship with confidence.',
-      description: "Nimi's runtime, SDK, and desktop app are open source under Apache-2.0 and MIT. Realm is an optional managed cloud layer — its contracts are public through the SDK.",
+      description:
+        'Nimi runtime, SDK, and desktop app are open source under Apache-2.0 and MIT. Realm is an optional managed cloud layer, and its contracts are public through the SDK.',
       githubCta: 'View on GitHub',
       docsCta: 'Read the docs',
     },
     finalCta: {
-      title: 'Start building with Nimi',
-      description: 'One runtime, one SDK, one desktop app. Local and cloud AI, unified.',
-      primaryCta: 'Get Started',
+      title: 'Build on one AI runtime',
+      description: 'Install Nimi, wire up the SDK, and keep local and cloud execution under one surface.',
+      primaryCta: 'Read the docs',
       githubCta: 'View on GitHub',
     },
     footer: {
-      line1: 'Nimi: Open-Source AI Runtime',
+      line1: 'Nimi: Open-source AI runtime',
       line2: 'Licenses: Apache-2.0 (runtime/sdk), MIT (apps), CC-BY-4.0 (docs)',
+      termsLabel: 'Terms of Service',
+      privacyLabel: 'Privacy Policy',
     },
     localeToggleLabel: 'Language',
     localeOptions: {
       en: 'EN',
-      zh: '\u4E2D',
+      zh: '中文',
     },
   },
   zh: {
-    localeName: '\u7B80\u4F53\u4E2D\u6587',
-    skipToContent: '\u8DF3\u8F6C\u5230\u4E3B\u8981\u5185\u5BB9',
+    localeName: '简体中文',
+    skipToContent: '跳转到主要内容',
     nav: {
-      install: '\u5B89\u88C5',
+      install: '安装',
       sdk: 'SDK',
-      desktop: '\u684C\u9762\u7AEF',
-      mods: '\u6A21\u7EC4',
+      catalog: '模型目录',
+      architecture: '架构',
+      desktop: '桌面端',
+      security: '安全',
+      mods: 'Mods',
+      openSource: '开源',
     },
     hero: {
-      eyebrow: '\u51E0\u79D2\u5B8C\u6210\u5B89\u88C5',
-      title: '\u4E00\u6B21\u5B89\u88C5\uFF0C\u8DD1\u901A',
-      titleAccent: '\u672C\u5730\u4E0E\u4E91\u7AEF AI\u3002',
-      subtitle: '\u4E00\u4E2A runtime\u3001\u4E00\u4E2A CLI\u3001\u4E00\u5957 SDK\uff0C\u62FF\u4E0B\u5B8C\u6574\u7684 first-run \u8DEF\u5F84\u3002',
-      description: '\u5148\u7528\u5B89\u88C5\u811A\u672C\u8D77\u6B65\uff0C\u6216\u76F4\u63A5\u4E0B\u8F7D desktop\uff0C\u4E5F\u53EF\u4EE5\u7ACB\u5373\u8DF3\u5230\u6587\u6863\u3002',
-      primaryCta: '\u4E0B\u8F7D Desktop',
-      docsCta: '\u9605\u8BFB\u6587\u6863',
-      altInstallLabel: '\u6216\u8005\u76F4\u63A5\u7528',
-      altInstallCommand: 'npm install -g @nimiplatform/nimi',
-      installCommand: 'curl -fsSL https://install.nimi.xyz | sh',
-      copyCommandLabel: '\u590D\u5236',
-      copiedCommandLabel: '\u5DF2\u590D\u5236',
-      githubCta: '\u67E5\u770B GitHub',
-    },
-    install: {
-      title: '\u51E0\u79D2\u5373\u53EF\u8FD0\u884C',
-      subtitle: '\u4E00\u6761\u547D\u4EE4\u5B89\u88C5\uFF0C\u4E00\u6761\u547D\u4EE4\u540E\u53F0\u542F\u52A8\uFF0C\u4E00\u5957 SDK \u96C6\u6210\u3002',
-      terminalLabel: '\u7EC8\u7AEF',
-      terminalSteps: [
-        { comment: '\u5B89\u88C5 Nimi', command: 'curl -fsSL https://install.nimi.xyz | sh' },
-        { comment: '\u542F\u52A8\u8FD0\u884C\u65F6', command: 'nimi start' },
-        { comment: '\u8FD0\u884C\u6A21\u578B', command: 'nimi run "Nimi \u662F\u4EC0\u4E48\uFF1F"' },
+      eyebrow: '几秒完成安装',
+      title: '本地与云端 AI',
+      titleAccent: '',
+      title2: ' 的',
+      titleAccent2: '统一 Runtime',
+      subtitle: '一个 CLI，一套 SDK，随处运行任何模型。',
+      description: '',
+      primaryCta: '下载 Desktop',
+      docsCta: '阅读文档',
+      helperPrefix: '或',
+      helperDocsCta: '阅读文档',
+      helperGithubCta: '查看 GitHub',
+      copyTooltipLabel: '复制命令',
+      copiedCommandLabel: '已复制',
+      githubCta: '查看 GitHub',
+      previewLabel: '快速上手演示',
+      previewAlt: 'Nimi 快速上手演示',
+      previewCaption: '从安装、启动 runtime 到在 CLI 中跑通第一条回答，一次看完。',
+      getStartedTitle: '快速开始',
+      getStartedSubtitle: '选择你的安装方式',
+      tabs: [
+        { id: 'desktop', label: '桌面客户端', command: '', ctaText: '下载 Desktop App' },
+        { id: 'curl', label: '终端 (curl)', command: 'curl -fsSL https://install.nimi.xyz | sh', ctaText: '复制命令' },
+        { id: 'npm', label: 'npm', command: 'npm install -g @nimiplatform/nimi', ctaText: '复制命令' },
       ],
-      previewLabel: '\u5FEB\u901F\u4E0A\u624B\u6F14\u793A',
-      previewAlt: 'Nimi \u5FEB\u901F\u4E0A\u624B\u6F14\u793A',
-      previewCaption: '\u4ECE\u5B89\u88C5\u3001\u542F\u52A8 runtime \u5230\u5728 CLI \u4E2D\u8DD1\u901A\u7B2C\u4E00\u6761\u56DE\u7B54\uFF0C\u4E00\u6B21\u770B\u5B8C\u3002',
-      sdkLabel: 'SDK',
-      sdkSnippet: ZH_SDK_SNIPPET,
-      docsCtaLabel: '\u67E5\u770B\u6587\u6863',
+      terminalMockupTitle: '演示',
+    },
+    architecture: {
+      title: '统一架构',
+      subtitle: '项目概览',
+      description: 'Nimi 在做的是下一代 AI 应用的基础设施，让开发者和用户都能工作在同一套边界清晰的系统上。',
+      devTitle: '面向开发者',
+      devText: '通过 SDK 和 runtime，把模型接入、调用路径和应用集成统一起来，减少重复适配和供应商耦合。',
+      userTitle: '面向用户',
+      userText: '在不同 AI 应用之间获得更一致的体验、身份和执行路径，而不是每个产品都重新配置一遍。',
+      conclusion: '一个平台，连接 app、runtime 和 realm。',
+      slogan: '为下一代 AI 应用构建基础设施。',
+    },
+    modelCatalog: {
+      kicker: '模型覆盖',
+      title: '实时模型目录',
+      subtitle: '在一个 runtime 视图里搜索本地与云端模型能力覆盖。',
+      overview: {
+        searchPlaceholder: 'search 38 cloud providers and infinite models…',
+        cloudProvidersLabel: '云端 Providers',
+        localModelsLabel: '本地 Models',
+        modalitiesLabel: '能力类型',
+        modalitiesValue: 'OMNI',
+        modalitiesDescription: '文本 / TTS / STT / 视频 / 图像 / Embeddings',
+        industryLeadersLabel: '已接入的主流厂商',
+        shortcutLabel: 'Ctrl K',
+        clearSearchLabel: '清空',
+        matchingProvidersLabel: '个匹配的 providers',
+        liveCatalogLabel: '实时目录',
+      },
+      liveBadge: '来自 runtime catalog',
+      featuredProvidersLabel: '重点 provider',
+      featuredProviders: ['OpenAI', 'Anthropic', 'Gemini', 'xAI', 'DashScope', 'Volcengine', 'Mistral', 'DeepSeek'],
+      stats: {
+        providers: '个 provider',
+        models: '个 model',
+        cloudProviders: '个云 provider',
+        localModels: '个本地 model',
+      },
+      localTitle: '离线 / 本地',
+      localHeadline: '本地语音与合成模型已经在栈内。',
+      localDescription: '当前本地 catalog 以语音为主：Qwen3-TTS、CosyVoice2、GPT-SoVITS、F5-TTS、Piper、Kokoro 等都已通过同一 runtime 接口接入。',
+      capabilitiesTitle: 'Capability 分布',
+      capabilitiesHeadline: '文本、Embedding、图像、视频、TTS、STT，同属一个 runtime。',
+      capabilitiesDescription: '这一块能直接把 landing page 的气场拉起来：前沿文本模型、图像生成、视频系统、语音模型，全部在同一份 catalog 里。',
+      capabilityLabels: {
+        'text.generate': '文本 / 推理',
+        'text.embed': 'Embedding',
+        'image.generate': '图像',
+        'video.generate': '视频',
+        'audio.synthesize': '语音 / TTS',
+        'audio.transcribe': '转写 / STT',
+      },
+      capabilityCountLabel: '个 catalog 条目',
+      cloudBadge: '云端',
+      matrixTitle: '云端矩阵',
+      matrixHeadline: '所有 provider，直接列出真实 model id。',
+      matrixDescription: '不用笼统地写“supports OpenAI-compatible models”。这里展示的都是 runtime catalog 里已经存在的具体 model id。',
+      providerDetailSuffix: '个 model 已在这个 provider 分组中接入',
+      searchResultsTitle: '来自 live catalog 的搜索结果',
+      searchResultsDescription: '直接展示命中 provider 的 capability 和 model id，不再保留整个 matrix 视图。',
+      noResultsTitle: '没有匹配到 provider。',
+      noResultsDescription: '可以试试 OpenAI、Gemini、DashScope 这类 provider 名，或直接搜索 model id。',
+      sourceNote: '事实源：仓库中的 runtime/catalog/providers/*.yaml。当前 landing 反映的是 2026 年 3 月 10 日推导出来的 snapshot。',
     },
     sdk: {
-      title: '\u4E00\u5957 SDK \u8986\u76D6\u6240\u6709 AI \u6A21\u578B',
-      subtitle: '\u672C\u5730\u6A21\u578B\u3001\u4E91\u670D\u52A1\u3001\u6D41\u5F0F\u8F93\u51FA\u2014\u2014\u540C\u4E00\u4E2A import\uFF0C\u540C\u4E00\u5957 API\u3002',
+      title: '一套 SDK，以多种运行方式运行 AI',
+      subtitle: '先跑本地，需要时再接入云端，集成方式保持不变。',
       tabs: [
-        {
-          label: '\u672C\u5730\u6A21\u578B',
-          snippet: ZH_TAB_LOCAL,
-          caption: '\u5728\u672C\u5730\u8FD0\u884C\u6A21\u578B\uFF0C\u65E0\u9700 API Key\u3002',
-        },
-        {
-          label: '\u4E91\u7AEF\u6A21\u578B',
-          snippet: ZH_TAB_CLOUD,
-          caption: '\u540C\u4E00\u5957 API\uFF0C\u53EA\u9700\u52A0\u4E0A provider \u5C31\u80FD\u5207\u5230\u4E91\u7AEF\u3002',
-        },
-        {
-          label: '\u6D41\u5F0F\u8F93\u51FA',
-          snippet: ZH_TAB_STREAMING,
-          caption: '\u9010 token \u6D41\u5F0F\u54CD\u5E94\uFF0C\u672C\u5730\u6216\u4E91\u7AEF\u7EDF\u4E00\u63A5\u53E3\u3002',
-        },
+        { label: '流程全览', snippet: ZH_TAB_LOCAL, caption: '安装 SDK，启动 runtime，然后在同一个 app 流程里发起本地和云端请求。' },
+        { label: '多模型支持', snippet: ZH_TAB_CLOUD, caption: '只需一行配置，即可在开源模型和商业 API 之间无缝切换。' },
+        { label: '多调用方式', snippet: ZH_TAB_STREAMING, caption: '在流式响应、批量处理和异步执行之间自由切换。' },
+        { label: 'Mod 开发', snippet: ZH_TAB_MODS, caption: '通过构建和注入自定义 runtime mods 来扩展 Nimi 的核心能力。' },
       ],
-      previewLabel: 'SDK \u6F14\u793A',
-      previewAlt: 'Nimi SDK \u6F14\u793A',
-      previewCaption: '\u4ECE `new Runtime()` \u5230\u672C\u5730\u4E0E\u4E91\u7AEF\u751F\u6210\uFF0C\u5E94\u7528\u4FA7\u63A5\u53E3\u4FDD\u6301\u4E0D\u53D8\u3002',
-      multimodalLabel: '\u4E0D\u53EA\u662F\u6587\u672C',
-      multimodalAlt: 'Nimi \u591A\u6A21\u6001\u6F14\u793A',
-      multimodalCaption: '\u8D85\u8FC7\u6587\u672C\u793A\u4F8B\u4E4B\u540E\uFF0C\u540C\u4E00\u4E2A runtime \u4E5F\u80FD\u5904\u7406\u56FE\u50CF\u4E0E\u8BED\u97F3\u6D41\u7A0B\u3002',
-      callout: '\u540C\u4E00\u4E2A import\u3002\u540C\u4E00\u5957 API\u3002\u672C\u5730\u6216\u4E91\u7AEF\u3002',
+      previewLabel: 'SDK 流程全览',
+      previewAlt: 'Nimi SDK 流程全览',
+      previewCaption: '安装 SDK，启动 runtime，然后在同一个 app 流程里发起本地和云端请求。',
+      multimodalLabel: '超越纯文本',
+      multimodalAlt: 'Nimi 多模态流程演示',
+      multimodalCaption: '当你需要处理纯文本以外的场景时，同一个 runtime 也完美支持图像和语音流程。',
+      callout: '先完成一次集成，之后按需扩展。',
     },
     desktop: {
-      title: 'AI \u684C\u9762\u5E94\u7528',
-      subtitle: '\u7BA1\u7406\u6A21\u578B\u3001\u4E0E AI \u5BF9\u8BDD\u3001\u8FD0\u884C\u6A21\u7EC4\u2014\u2014\u5168\u90E8\u5728\u684C\u9762\u7AEF\u5B8C\u6210\u3002',
-      screenshotAlt: 'Nimi \u684C\u9762\u5E94\u7528\u9884\u89C8',
+      title: 'Desktop Workspace for AI',
+      subtitle: '在一个桌面工作区里运行模型、聊天并管理 mods。',
+      screenshotAlt: 'Nimi 桌面应用预览',
       features: [
-        { icon: '\u{1F5A5}', title: '\u8FD0\u884C\u65F6\u4EEA\u8868\u76D8', description: '\u76D1\u63A7\u8FD0\u884C\u4E2D\u7684\u6A21\u578B\u3001\u5065\u5EB7\u72B6\u6001\u548C\u8D44\u6E90\u4F7F\u7528\u3002' },
-        { icon: '\u{1F4AC}', title: '\u5185\u7F6E\u5BF9\u8BDD', description: '\u76F4\u63A5\u4E0E\u4EFB\u4F55\u672C\u5730\u6216\u4E91\u7AEF\u6A21\u578B\u5BF9\u8BDD\u3002' },
-        { icon: '\u{1F9E9}', title: '\u6A21\u7EC4\u5BBF\u4E3B', description: '\u5728\u684C\u9762\u5E94\u7528\u5185\u5B89\u88C5\u548C\u8FD0\u884C\u6A21\u7EC4\u3002' },
-        { icon: '\u{1F4E6}', title: '\u6A21\u578B\u7BA1\u7406', description: '\u4E0B\u8F7D\u3001\u66F4\u65B0\u548C\u5207\u6362\u672C\u5730\u6A21\u578B\u3002' },
+        { icon: 'dashboard', title: '运行时仪表盘', description: '一眼看到健康状态、模型状态和资源使用。' },
+        { icon: 'chat', title: '内置对话', description: '在同一个工作区内和本地及云端模型对话。' },
+        { icon: 'mods', title: '模块宿主', description: '不离开桌面端，直接启动已安装的 mods。' },
+        { icon: 'models', title: '模型管理', description: '在一处完成安装、更新和切换模型。' },
       ],
-      downloadCta: '\u4E0B\u8F7D\u684C\u9762\u5E94\u7528',
+      downloadCta: '下载桌面应用',
+    },
+    security: {
+      title: '以安全设计为出发点',
+      subtitle: '以本地优先的执行路径、明确边界和可控云接入为基础。',
+      intro: 'Nimi 希望让执行路径、凭据管理和 extension 访问都更可控。',
+      pillars: [
+        {
+          label: '设计先行',
+          title: '先定好系统边界',
+          points: ['本地与云端的执行路径是分开设计的。', '云接入统一通过 runtime 边界路由。'],
+        },
+        {
+          label: '已有基础',
+          title: '已经具备的控制',
+          points: ['提供者凭据留在 runtime connector 路径，而不在 desktop renderer 里流转。', 'Desktop 和 mod 调用面受 runtime-only 路由和 capability 检查限制。'],
+        },
+        {
+          label: '持续加固',
+          title: '还在继续加强',
+          points: ['Runtime 侧的执行层约束还在持续收紧。', 'Mod policy、sandbox 覆盖和 audit 可见性也在继续完善。'],
+        },
+      ],
     },
     mods: {
-      title: '\u7528\u6A21\u7EC4\u6269\u5C55',
-      subtitle: '\u57FA\u4E8E Nimi \u8FD0\u884C\u65F6\u7684\u9884\u5236\u5E94\u7528\uFF0C\u6216\u81EA\u5DF1\u6784\u5EFA\u3002',
+      title: '用模块扩展',
+      subtitle: '基于 Nimi runtime 的预制应用，或者自己构建。',
       items: [
-        { icon: '\u{1F4AC}', name: 'local-chat', description: '\u4E0E\u672C\u5730 AI \u6A21\u578B\u5BF9\u8BDD\u3002\u79C1\u5BC6\u3001\u5FEB\u901F\u3001\u65E0\u9700\u7F51\u7EDC\u3002' },
-        { icon: '\u{1F4CA}', name: 'kismet', description: '\u5B9E\u65F6\u56FE\u8868\u7ECF\u6D4E\u6A21\u62DF\u5F15\u64CE\u3002' },
-        { icon: '\u{1F3A7}', name: 'audio-book', description: 'AI \u591A\u89D2\u8272\u6717\u8BFB\u6709\u58F0\u4E66\u3002' },
-        { icon: '\u{1F3AC}', name: 'videoplay', description: '\u4ECE\u53D9\u4E8B\u811A\u672C\u751F\u6210\u5267\u96C6\u7EA7\u89C6\u9891\u3002' },
-        { icon: '\u{1F3AE}', name: 'textplay', description: '\u5206\u652F\u53D9\u4E8B\u4EA4\u4E92\u5F0F\u5C0F\u8BF4\u3002' },
-        { icon: '\u{1F4DA}', name: 'knowledge-base', description: '\u6587\u6863\u7D22\u5F15\u4E0E AI \u667A\u80FD\u641C\u7D22\u3002' },
+        { icon: 'chat', name: 'local-chat', description: '与本地 AI 模型对话，私密、快速、无需联网。' },
+        { icon: 'sim', name: 'kismet', description: '实时图表经济模拟引擎。' },
+        { icon: 'audio', name: 'audio-book', description: 'AI 多角色有声书。' },
+        { icon: 'video', name: 'videoplay', description: '从叙事脚本生成剧集级视频。' },
+        { icon: 'story', name: 'textplay', description: '分支叙事互动式小说。' },
+        { icon: 'docs', name: 'knowledge-base', description: '文档索引与 AI 搜索。' },
       ],
-      buildModCta: '\u6784\u5EFA\u4F60\u7684\u6A21\u7EC4',
+      buildModCta: '构建你的模块',
     },
     openSource: {
-      title: '\u5F00\u6E90\u4E3A\u5148',
-      subtitle: '\u5728\u5F00\u653E\u4E2D\u6784\u5EFA\uFF0C\u653E\u5FC3\u4EA4\u4ED8\u3002',
-      description: 'Nimi \u7684\u8FD0\u884C\u65F6\u3001SDK \u548C\u684C\u9762\u5E94\u7528\u5747\u4EE5 Apache-2.0 \u548C MIT \u5F00\u6E90\u3002Realm \u662F\u53EF\u9009\u7684\u6258\u7BA1\u4E91\u5C42\u2014\u2014\u5176\u5408\u7EA6\u901A\u8FC7 SDK \u516C\u5F00\u3002',
-      githubCta: '\u67E5\u770B GitHub',
-      docsCta: '\u67E5\u770B\u6587\u6863',
+      title: '开源为核',
+      subtitle: '在开放中构建，放心交付。',
+      description: 'Nimi 的 runtime、SDK 和桌面应用均以 Apache-2.0 和 MIT 开源。Realm 是可选的托管云层，其契约通过 SDK 对外公开。',
+      githubCta: '查看 GitHub',
+      docsCta: '阅读文档',
     },
     finalCta: {
-      title: '\u5F00\u59CB\u4F7F\u7528 Nimi \u6784\u5EFA',
-      description: '\u4E00\u4E2A\u8FD0\u884C\u65F6\uFF0C\u4E00\u5957 SDK\uFF0C\u4E00\u4E2A\u684C\u9762\u5E94\u7528\u3002\u672C\u5730\u4E0E\u4E91\u7AEF AI\uFF0C\u7EDF\u4E00\u4F53\u9A8C\u3002',
-      primaryCta: '\u5F00\u59CB\u4F7F\u7528',
-      githubCta: '\u67E5\u770B GitHub',
+      title: '开始使用 Nimi 构建',
+      description: '安装 Nimi，接入 SDK，把本地与云端执行统一在同一个表面之下。',
+      primaryCta: '阅读文档',
+      githubCta: '查看 GitHub',
     },
     footer: {
-      line1: 'Nimi: \u5F00\u6E90 AI \u8FD0\u884C\u65F6',
-      line2: '\u8BB8\u53EF\u8BC1\uFF1AApache-2.0\uFF08runtime/sdk\uFF09\u3001MIT\uFF08apps\uFF09\u3001CC-BY-4.0\uFF08docs\uFF09',
+      line1: 'Nimi：开源 AI 运行时',
+      line2: '许可证：Apache-2.0（runtime/sdk）、MIT（apps）、CC-BY-4.0（docs）',
+      termsLabel: '服务条款',
+      privacyLabel: '隐私政策',
     },
-    localeToggleLabel: '\u8BED\u8A00',
+    localeToggleLabel: '语言',
     localeOptions: {
       en: 'EN',
-      zh: '\u4E2D',
+      zh: '中文',
     },
   },
 };

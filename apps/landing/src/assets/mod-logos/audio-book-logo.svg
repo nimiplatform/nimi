@@ -1,0 +1,37 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="audio-bg" x1="14" y1="10" x2="82" y2="88" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#155EBC"/>
+      <stop offset="0.45" stop-color="#0D4AA0"/>
+      <stop offset="1" stop-color="#03215F"/>
+    </linearGradient>
+    <radialGradient id="audio-top-glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(49 17) rotate(90) scale(20 30)">
+      <stop stop-color="#74D8FF" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#74D8FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="audio-edge" x1="12" y1="11" x2="84" y2="85" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D7F0FF"/>
+      <stop offset="0.4" stop-color="#5DBBFF"/>
+      <stop offset="1" stop-color="#012E82"/>
+    </linearGradient>
+    <filter id="audio-shadow" x="3" y="5" width="90" height="90" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="7" stdDeviation="6" flood-color="#02163F" flood-opacity="0.42"/>
+    </filter>
+  </defs>
+  <g filter="url(#audio-shadow)">
+    <rect x="10" y="10" width="76" height="76" rx="18" fill="url(#audio-bg)"/>
+    <rect x="10.75" y="10.75" width="74.5" height="74.5" rx="17.25" stroke="url(#audio-edge)" stroke-width="1.5"/>
+    <path d="M14 78C28 82 53 83 79 79" stroke="#36A2FF" stroke-opacity="0.7" stroke-width="2"/>
+    <ellipse cx="49" cy="18" rx="24" ry="12" fill="url(#audio-top-glow)"/>
+    <g opacity="0.18">
+      <path d="M26 24V61.5C26 61.5 40.5 61 50.5 72.5" stroke="white" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M31.5 21.5V58.5C31.5 58.5 43.5 58.5 50.5 68" stroke="white" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <path d="M30 28.5C30 27.3954 30.8954 26.5 32 26.5H43.5C52.7198 26.5 60.0711 32.5013 62.6517 40.8127C63.2252 42.6606 63.5 44.6338 63.5 46.5V62.5C60.4662 59.4893 56.6293 57.2069 52.315 55.8468C48.8272 54.7471 45.2309 54.2208 41.574 54.2208H32C30.8954 54.2208 30 53.3254 30 52.2208V28.5Z" stroke="white" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M29.5 30.5L23.5 34.2V59.3L29.5 56V30.5Z" stroke="white" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M23.5 34.2V59.3" stroke="white" stroke-width="4.8" stroke-linecap="round"/>
+    <path d="M49.5 59.5C51.1511 52.6201 55.6285 47.4874 61.8 45.2" stroke="white" stroke-width="4.8" stroke-linecap="round"/>
+    <path d="M56.5 64.5C59.3498 56.4471 65.3477 50.6545 72.5 48.2" stroke="white" stroke-width="4.8" stroke-linecap="round"/>
+    <path d="M63 70C66.4872 59.9526 74.3367 52.6676 80.5 49.4" stroke="white" stroke-width="4.8" stroke-linecap="round"/>
+  </g>
+</svg>

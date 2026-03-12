@@ -1,0 +1,39 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="kismet-frame" x1="10" y1="10" x2="86" y2="86" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7DE8A"/>
+      <stop offset="0.48" stop-color="#D0A43E"/>
+      <stop offset="1" stop-color="#8E6922"/>
+    </linearGradient>
+    <linearGradient id="kismet-bg" x1="15" y1="14" x2="82" y2="84" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#383A40"/>
+      <stop offset="1" stop-color="#111214"/>
+    </linearGradient>
+    <radialGradient id="kismet-halo" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(48 5) rotate(90) scale(18 48)">
+      <stop stop-color="#E5C978" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#E5C978" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="kismet-shadow" x="3" y="4" width="90" height="90" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  <g filter="url(#kismet-shadow)">
+    <ellipse cx="48" cy="18" rx="28" ry="12" fill="url(#kismet-halo)"/>
+    <rect x="10" y="10" width="76" height="76" rx="18" fill="url(#kismet-bg)"/>
+    <rect x="10.75" y="10.75" width="74.5" height="74.5" rx="17.25" stroke="url(#kismet-frame)" stroke-width="1.5"/>
+    <path d="M21 63.5L31.5 54L44 59.5L58.5 46L72.5 50L85 38" stroke="url(#kismet-frame)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="31.5" cy="54" r="4.1" fill="#320B0B" stroke="#F0C359" stroke-width="2"/>
+    <circle cx="44" cy="59.5" r="4.1" fill="#320B0B" stroke="#F0C359" stroke-width="2"/>
+    <circle cx="58.5" cy="46" r="4.1" fill="#320B0B" stroke="#F0C359" stroke-width="2"/>
+    <circle cx="72.5" cy="50" r="4.1" fill="#320B0B" stroke="#F0C359" stroke-width="2"/>
+    <g opacity="0.16" stroke="#A7A09A" stroke-width="1.2">
+      <path d="M23 27L28 22"/>
+      <path d="M18 38L23 34"/>
+      <path d="M72 24L76 20"/>
+      <path d="M77 38L82 32"/>
+    </g>
+    <path d="M28 24H66V30H51L45.5 35.5H62V41H48L36 56H28.5L40.5 41H27.5V35.5H42.5L48 30H28V24Z" fill="url(#kismet-frame)"/>
+    <path d="M62 23.5H68V40H74V45.5H68V60.5H62V45.5H56V40H62V23.5Z" fill="url(#kismet-frame)"/>
+    <path d="M28 68H68" stroke="#8E6922" stroke-opacity="0.5"/>
+  </g>
+</svg>

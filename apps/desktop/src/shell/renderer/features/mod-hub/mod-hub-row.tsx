@@ -200,10 +200,18 @@ export function ModHubRow({
       <div className="flex items-start gap-3">
         {/* Icon */}
         <div
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xs font-bold text-white shadow-sm"
+          className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl text-xs font-bold text-white shadow-sm"
           style={{ background: mod.iconBg }}
         >
-          {mod.iconText}
+          {mod.iconImageSrc ? (
+            <img
+              src={mod.iconImageSrc}
+              alt={`${mod.name} logo`}
+              className="h-full w-full object-contain p-1"
+            />
+          ) : (
+            mod.iconText
+          )}
         </div>
 
         {/* Info */}

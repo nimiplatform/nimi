@@ -16,10 +16,10 @@ export function SectionHeader(props: SectionHeaderProps) {
     <div className={`reveal ${withActions}`.trim()}>
       <div className={alignClass}>
         {props.kicker ? (
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-mint-300/90">{props.kicker}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#2ba980]">{props.kicker}</p>
         ) : null}
-        <h2 className="mt-3 text-balance text-3xl font-semibold tracking-tight text-white md:text-4xl">{props.title}</h2>
-        <p className="mt-4 max-w-3xl text-base leading-7 text-slate-200/90">{props.subtitle}</p>
+        <h2 className="mt-3 text-balance text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">{props.title}</h2>
+        <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">{props.subtitle}</p>
       </div>
       {props.actions ? <div className="mt-4 md:mt-0">{props.actions}</div> : null}
     </div>

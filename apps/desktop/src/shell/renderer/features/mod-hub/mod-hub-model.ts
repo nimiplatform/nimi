@@ -7,6 +7,17 @@ import type {
 } from '@renderer/bridge';
 import type { RuntimeModRegisterFailure } from '@runtime/mod';
 
+const audioBookLogoUrl = new URL('./assets/audio-book.svg', import.meta.url).href;
+const buddyLogoUrl = new URL('./assets/buddy.svg', import.meta.url).href;
+const dailyOutfitLogoUrl = new URL('./assets/daily-outfit.svg', import.meta.url).href;
+const kismetLogoUrl = new URL('./assets/kismet.svg', import.meta.url).href;
+const knowledgeBaseLogoUrl = new URL('./assets/knowledge-base.svg', import.meta.url).href;
+const localChatLogoUrl = new URL('./assets/local-chat.svg', import.meta.url).href;
+const mintYouLogoUrl = new URL('./assets/mint-you.svg', import.meta.url).href;
+const textplayLogoUrl = new URL('./assets/textplay.svg', import.meta.url).href;
+const videoplayLogoUrl = new URL('./assets/videoplay.svg', import.meta.url).href;
+const worldStudioLogoUrl = new URL('./assets/world-studio.svg', import.meta.url).href;
+
 export const MOD_HUB_COLORS = {
   brand50: '#ecfeff',
   brand100: '#cefafe',
@@ -67,6 +78,7 @@ export type ModHubMod = {
   updatedAgo?: string;
   iconBg: string;
   iconText: string;
+  iconImageSrc?: string;
   source: ModHubModSource;
   packageType?: 'desktop-mod' | 'nimi-app' | string;
   catalogPackageId?: string;
@@ -97,6 +109,78 @@ export type ModHubMod = {
   secondaryAction: ModHubActionDescriptor | null;
   menuActions: ModHubActionDescriptor[];
 };
+
+function getModHubIconOverride(modId: string): { iconImageSrc?: string; iconBg?: string; iconText?: string } {
+  const normalizedModId = String(modId || '').trim().toLowerCase();
+  const overrides: Array<{
+    suffixes: string[];
+    iconImageSrc: string;
+    iconBg: string;
+  }> = [
+    {
+      suffixes: ['audio-book'],
+      iconImageSrc: audioBookLogoUrl,
+      iconBg: '#0A3D98',
+    },
+    {
+      suffixes: ['buddy'],
+      iconImageSrc: buddyLogoUrl,
+      iconBg: '#ff5a7a',
+    },
+    {
+      suffixes: ['daily-outfit'],
+      iconImageSrc: dailyOutfitLogoUrl,
+      iconBg: '#2563eb',
+    },
+    {
+      suffixes: ['kismet'],
+      iconImageSrc: kismetLogoUrl,
+      iconBg: '#181615',
+    },
+    {
+      suffixes: ['knowledge-base'],
+      iconImageSrc: knowledgeBaseLogoUrl,
+      iconBg: '#334155',
+    },
+    {
+      suffixes: ['local-chat'],
+      iconImageSrc: localChatLogoUrl,
+      iconBg: '#4338ca',
+    },
+    {
+      suffixes: ['mint-you'],
+      iconImageSrc: mintYouLogoUrl,
+      iconBg: '#7c3aed',
+    },
+    {
+      suffixes: ['textplay', 'text-play'],
+      iconImageSrc: textplayLogoUrl,
+      iconBg: '#2563eb',
+    },
+    {
+      suffixes: ['videoplay', 'video-play'],
+      iconImageSrc: videoplayLogoUrl,
+      iconBg: '#db2777',
+    },
+    {
+      suffixes: ['world-studio'],
+      iconImageSrc: worldStudioLogoUrl,
+      iconBg: '#ea580c',
+    },
+  ];
+
+  for (const override of overrides) {
+    if (override.suffixes.some((suffix) => normalizedModId === suffix || normalizedModId.endsWith(`.${suffix}`))) {
+      return {
+        iconImageSrc: override.iconImageSrc,
+        iconBg: override.iconBg,
+        iconText: '',
+      };
+    }
+  }
+
+  return {};
+}
 
 function normalizeRuntimeDisplayName(input: {
   id: string;
@@ -337,6 +421,7 @@ export function toRuntimeModRow(
     ? manifest.publisher as Record<string, unknown>
     : null;
   const publisherVerified = Boolean(publisherRecord?.verified);
+  const iconOverride = getModHubIconOverride(id);
 
   return decorateModHubMod({
     id,
@@ -345,8 +430,9 @@ export function toRuntimeModRow(
     author,
     badge: publisherVerified ? 'verified' : undefined,
     version: `v${String(version).replace(/^v/i, '')}`,
-    iconBg: `linear-gradient(135deg, ${MOD_HUB_COLORS.brand500}, ${MOD_HUB_COLORS.blue600})`,
-    iconText: String(displayName.slice(0, 2) || 'M').toUpperCase(),
+    iconBg: iconOverride.iconBg ?? `linear-gradient(135deg, ${MOD_HUB_COLORS.brand500}, ${MOD_HUB_COLORS.blue600})`,
+    iconText: iconOverride.iconText ?? String(displayName.slice(0, 2) || 'M').toUpperCase(),
+    iconImageSrc: iconOverride.iconImageSrc,
     source: 'runtime',
     packageType: 'desktop-mod',
     catalogPackageId: id,
@@ -396,6 +482,7 @@ export function toCatalogModRow(
   const trustTier = summary.publisher.trustTier;
   const isSupported = summary.packageType === 'desktop-mod';
   const version = input.installedVersion || summary.latestVersion || '0.0.0';
+  const iconOverride = getModHubIconOverride(summary.packageId);
 
   return decorateModHubMod({
     id: summary.packageId,
@@ -404,12 +491,13 @@ export function toCatalogModRow(
     author: summary.publisher.displayName,
     badge: trustTierBadge(trustTier),
     version: `v${String(version).replace(/^v/i, '')}`,
-    iconBg: trustTier === 'official'
+    iconBg: iconOverride.iconBg ?? (trustTier === 'official'
       ? `linear-gradient(135deg, ${MOD_HUB_COLORS.brand600}, ${MOD_HUB_COLORS.cyan700})`
       : trustTier === 'verified'
         ? `linear-gradient(135deg, ${MOD_HUB_COLORS.blue600}, ${MOD_HUB_COLORS.purple600})`
-        : `linear-gradient(135deg, ${MOD_HUB_COLORS.gray500}, ${MOD_HUB_COLORS.gray700})`,
-    iconText: String(summary.name.slice(0, 2) || summary.packageId.slice(0, 2) || 'M').toUpperCase(),
+        : `linear-gradient(135deg, ${MOD_HUB_COLORS.gray500}, ${MOD_HUB_COLORS.gray700})`),
+    iconText: iconOverride.iconText ?? String(summary.name.slice(0, 2) || summary.packageId.slice(0, 2) || 'M').toUpperCase(),
+    iconImageSrc: iconOverride.iconImageSrc,
     source: 'catalog',
     packageType: summary.packageType,
     catalogPackageId: summary.packageId,

@@ -1,5 +1,7 @@
 export type LandingLinks = {
   appUrl: string;
+  webAppUrl: string;
+  discordUrl: string;
   docsUrl: string;
   githubUrl: string;
   protocolUrl: string;
@@ -9,6 +11,8 @@ export type LandingLinks = {
 
 const DEFAULT_LINKS: LandingLinks = {
   appUrl: 'https://nimi.xyz/app',
+  webAppUrl: 'https://web.nimi.xyz',
+  discordUrl: 'https://discord.com',
   docsUrl: 'https://nimi.xyz/docs',
   githubUrl: 'https://github.com/nimiplatform/nimi',
   protocolUrl: 'https://github.com/nimiplatform/nimi/blob/main/spec/platform/protocol.md',
@@ -36,6 +40,8 @@ function normalizeUrl(raw: unknown, fallback: string): string {
 export function resolveLandingLinks(env: Record<string, unknown> = {}): LandingLinks {
   return {
     appUrl: normalizeUrl(env.VITE_LANDING_APP_URL, DEFAULT_LINKS.appUrl),
+    webAppUrl: normalizeUrl(env.VITE_LANDING_WEB_APP_URL, DEFAULT_LINKS.webAppUrl),
+    discordUrl: normalizeUrl(env.VITE_LANDING_DISCORD_URL, DEFAULT_LINKS.discordUrl),
     docsUrl: normalizeUrl(env.VITE_LANDING_DOCS_URL, DEFAULT_LINKS.docsUrl),
     githubUrl: normalizeUrl(env.VITE_LANDING_GITHUB_URL, DEFAULT_LINKS.githubUrl),
     protocolUrl: normalizeUrl(env.VITE_LANDING_PROTOCOL_URL, DEFAULT_LINKS.protocolUrl),

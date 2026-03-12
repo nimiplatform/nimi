@@ -19,6 +19,8 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         blueyard: resolve(__dirname, 'blueyard.html'),
+        terms: resolve(__dirname, 'terms.html'),
+        privacy: resolve(__dirname, 'privacy.html'),
       },
     },
   },
