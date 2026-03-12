@@ -12,6 +12,7 @@ export type LandingContent = {
     security: string;
     mods: string;
     openSource: string;
+    discord: string;
   };
   hero: {
     eyebrow: string;
@@ -284,6 +285,7 @@ export const LANDING_CONTENT: Record<LandingLocale, LandingContent> = {
       security: 'Security',
       mods: 'Mods',
       openSource: 'Open Source',
+      discord: 'Discord',
     },
     hero: {
       eyebrow: 'Install in seconds',
@@ -488,6 +490,7 @@ export const LANDING_CONTENT: Record<LandingLocale, LandingContent> = {
       security: '安全',
       mods: 'Mods',
       openSource: '开源',
+      discord: 'Discord',
     },
     hero: {
       eyebrow: '几秒完成安装',

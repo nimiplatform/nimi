@@ -32,7 +32,7 @@ export function HeroSection(props: HeroSectionProps) {
   return (
     <section
       id="install"
-      className="relative overflow-hidden bg-transparent pb-28 pt-24 text-slate-900 md:pb-32 md:pt-32"
+      className="relative overflow-hidden bg-transparent pb-36 pt-24 text-slate-900 md:pb-40 md:pt-32"
     >
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute left-[-10rem] top-[-8rem] h-72 w-72 rounded-full bg-[#38d6a3]/10 blur-3xl" />

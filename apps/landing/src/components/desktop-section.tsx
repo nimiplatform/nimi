@@ -79,7 +79,7 @@ export function DesktopSection(props: DesktopSectionProps) {
             <div className="pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-tr from-[#38d6a3]/10 to-[#0ea5e9]/10 blur-[60px] md:h-[500px] md:w-[500px]" />
 
             <div
-              className="relative z-10 w-full max-w-[720px] rounded-[22px] p-[6px] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.35),_inset_0_1px_1px_rgba(255,255,255,0.4)] backdrop-blur-[24px] xl:w-[calc(100%+2rem)] xl:max-w-[700px] xl:-translate-x-[4%] 2xl:absolute 2xl:right-[-8%] 2xl:top-[54%] 2xl:w-full 2xl:max-w-[620px] 2xl:-translate-y-[40%] 2xl:translate-x-0"
+              className="relative z-10 w-full max-w-[720px] rounded-[22px] p-[6px] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.35),_inset_0_1px_1px_rgba(255,255,255,0.4)] backdrop-blur-[24px] xl:w-[calc(100%+2rem)] xl:max-w-[700px] xl:-translate-x-[4%] 2xl:absolute 2xl:right-[-12%] 2xl:top-[54%] 2xl:w-full 2xl:max-w-[620px] 2xl:-translate-y-[40%] 2xl:translate-x-0"
               style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.02) 100%)' }}
             >
               <div className="h-full w-full overflow-hidden rounded-[16px] bg-[#1a1c23] shadow-2xl ring-1 ring-white/10">
@@ -153,7 +153,7 @@ export function DesktopSection(props: DesktopSectionProps) {
           </div>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mt-14 lg:grid-cols-4">
           {props.content.features.map((feature, idx) => (
             <article
               key={feature.title}

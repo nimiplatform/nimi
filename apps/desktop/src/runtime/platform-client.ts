@@ -1,5 +1,5 @@
-import { Realm } from '@nimiplatform/sdk/realm';
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import type { Realm } from '@nimiplatform/sdk/realm';
+import type { Runtime } from '@nimiplatform/sdk/runtime';
 
 const DEFAULT_APP_ID = 'nimi.desktop';
 
@@ -9,6 +9,22 @@ export type PlatformClient = {
 };
 
 let platformClient: PlatformClient | null = null;
+let runtimeSdkModulePromise: Promise<typeof import('@nimiplatform/sdk/runtime')> | null = null;
+let realmSdkModulePromise: Promise<typeof import('@nimiplatform/sdk/realm')> | null = null;
+
+async function loadRuntimeSdkModule(): Promise<typeof import('@nimiplatform/sdk/runtime')> {
+  if (!runtimeSdkModulePromise) {
+    runtimeSdkModulePromise = import('@nimiplatform/sdk/runtime');
+  }
+  return runtimeSdkModulePromise;
+}
+
+async function loadRealmSdkModule(): Promise<typeof import('@nimiplatform/sdk/realm')> {
+  if (!realmSdkModulePromise) {
+    realmSdkModulePromise = import('@nimiplatform/sdk/realm');
+  }
+  return realmSdkModulePromise;
+}
 
 export type PlatformClientRuntimeDefaults = {
   realmBaseUrl: string;
@@ -84,6 +100,10 @@ function decodeJwtSubject(accessToken: string): string {
 }
 
 export async function initializePlatformClient(input: PlatformClientRuntimeDefaults): Promise<PlatformClient> {
+  const [runtimeSdk, realmSdk] = await Promise.all([
+    loadRuntimeSdkModule(),
+    loadRealmSdkModule(),
+  ]);
   const tokenValue = String(input.accessToken || '').trim();
   const runtimeAccessTokenProvider = input.accessTokenProvider || tokenValue;
   const runtimeSubjectUserIdProvider = async () => {
@@ -95,7 +115,7 @@ export async function initializePlatformClient(input: PlatformClientRuntimeDefau
     return decodeJwtSubject(accessToken);
   };
 
-  const runtime = new Runtime({
+  const runtime = new runtimeSdk.Runtime({
     appId: DEFAULT_APP_ID,
     transport: {
       type: 'tauri-ipc',
@@ -109,11 +129,13 @@ export async function initializePlatformClient(input: PlatformClientRuntimeDefau
       getSubjectUserId: runtimeSubjectUserIdProvider,
     },
   });
-  const realm = new Realm({
+  const realm = new realmSdk.Realm({
     baseUrl: String(input.realmBaseUrl || '').trim(),
-    auth: tokenValue ? {
-      accessToken: tokenValue,
-    } : null,
+    auth: tokenValue
+      ? {
+          accessToken: tokenValue,
+        }
+      : null,
   });
   const client: PlatformClient = {
     runtime,

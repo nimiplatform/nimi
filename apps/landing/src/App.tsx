@@ -33,7 +33,7 @@ function getBrowserLanguage(): string {
 
 function DiscordIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="h-4 w-4">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="h-5 w-5">
       <path d="M19.54 5.34a16.4 16.4 0 0 0-4.06-1.27.06.06 0 0 0-.06.03c-.18.33-.38.77-.52 1.12a15.3 15.3 0 0 0-4.6 0c-.14-.36-.35-.79-.53-1.12a.06.06 0 0 0-.06-.03A16.36 16.36 0 0 0 5.65 5.34a.05.05 0 0 0-.02.02C3.05 9.2 2.35 12.95 2.7 16.66a.06.06 0 0 0 .02.04 16.5 16.5 0 0 0 4.99 2.52.06.06 0 0 0 .07-.02c.39-.53.73-1.09 1.03-1.68a.06.06 0 0 0-.03-.08 10.75 10.75 0 0 1-1.57-.75.06.06 0 0 1-.01-.1c.1-.08.2-.17.3-.25a.06.06 0 0 1 .06-.01c3.29 1.5 6.85 1.5 10.1 0a.06.06 0 0 1 .06.01l.3.25a.06.06 0 0 1-.01.1c-.5.3-1.03.55-1.57.75a.06.06 0 0 0-.03.08c.31.59.65 1.15 1.03 1.68a.06.06 0 0 0 .07.02 16.44 16.44 0 0 0 5-2.52.06.06 0 0 0 .02-.04c.42-4.29-.7-8-2.94-11.3a.05.05 0 0 0-.02-.02ZM9.75 14.39c-.99 0-1.8-.91-1.8-2.03s.8-2.03 1.8-2.03c1 0 1.82.92 1.8 2.03 0 1.12-.8 2.03-1.8 2.03Zm4.5 0c-.99 0-1.8-.91-1.8-2.03s.8-2.03 1.8-2.03c1 0 1.82.92 1.8 2.03 0 1.12-.8 2.03-1.8 2.03Z" />
     </svg>
   );
@@ -41,7 +41,7 @@ function DiscordIcon() {
 
 function GithubIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="h-4 w-4">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="h-5 w-5">
       <path d="M12 .5C5.65.5.5 5.65.5 12a11.5 11.5 0 0 0 7.86 10.92c.57.1.78-.24.78-.54 0-.26-.01-.97-.01-1.9-3.2.7-3.88-1.54-3.88-1.54-.53-1.32-1.28-1.67-1.28-1.67-1.05-.72.08-.7.08-.7 1.16.08 1.78 1.2 1.78 1.2 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.56-.29-5.26-1.28-5.26-5.72 0-1.26.45-2.3 1.19-3.1-.12-.3-.52-1.5.11-3.14 0 0 .98-.32 3.2 1.18a11.07 11.07 0 0 1 5.82 0c2.22-1.5 3.2-1.18 3.2-1.18.63 1.64.23 2.84.11 3.14.74.8 1.19 1.84 1.19 3.1 0 4.45-2.7 5.42-5.28 5.7.42.37.78 1.08.78 2.17 0 1.57-.01 2.83-.01 3.22 0 .3.2.65.79.54A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z" />
     </svg>
   );
@@ -71,6 +71,7 @@ export function App() {
     { href: '#desktop', label: content.nav.desktop },
     { href: '#security', label: content.nav.security },
     { href: '#mods', label: content.nav.mods },
+    { href: links.discordUrl, label: content.nav.discord, external: true },
   ];
 
   return (
@@ -89,8 +90,15 @@ export function App() {
           <nav aria-label="Landing sections" className="absolute left-1/2 hidden -translate-x-1/2 lg:block">
             <ul className="flex items-center justify-center gap-1 text-slate-900">
               {sectionNavItems.map((item) => (
-                <li key={item.href}>
-                  <a className="nav-anchor" href={item.href}>{item.label}</a>
+                <li key={`${item.label}-${item.href}`}>
+                  <a
+                    className="nav-anchor"
+                    href={item.href}
+                    target={item.external ? '_blank' : undefined}
+                    rel={item.external ? 'noreferrer' : undefined}
+                  >
+                    {item.label}
+                  </a>
                 </li>
               ))}
             </ul>
@@ -102,7 +110,7 @@ export function App() {
               target="_blank"
               rel="noreferrer"
               aria-label="Discord"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-900"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 transition hover:-translate-y-0.5 hover:border-[#38d6a3]/40 hover:bg-[#38d6a3]/10 hover:text-[#2ba980]"
             >
               <DiscordIcon />
             </a>
@@ -111,7 +119,7 @@ export function App() {
               target="_blank"
               rel="noreferrer"
               aria-label="GitHub"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-900"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 transition hover:-translate-y-0.5 hover:border-[#38d6a3]/40 hover:bg-[#38d6a3]/10 hover:text-[#2ba980]"
             >
               <GithubIcon />
             </a>
@@ -119,7 +127,7 @@ export function App() {
               href={links.webAppUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-10 items-center justify-center rounded-full bg-slate-900 px-4 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-slate-800"
+              className="inline-flex h-10 items-center justify-center rounded-full bg-slate-900 px-4 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#2ba980]"
             >
               Enter Nimi
             </a>
