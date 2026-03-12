@@ -267,22 +267,41 @@ export async function registerWorldDataCapabilities(): Promise<void> {
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.narrativeSpineGetOrCreate, async (query) => {
     const record = toRecord(query);
     const worldId = String(record.worldId || '').trim();
+    const storyId = String(record.storyId || '').trim();
     const agentId = String(record.agentId || '').trim();
     const createIfMissing = record.createIfMissing !== false;
-    if (!worldId || !agentId) {
-      throw new Error('WORLD_ID_AND_AGENT_ID_REQUIRED');
+    if (!worldId || !storyId || !agentId) {
+      throw new Error('WORLD_ID_AND_STORY_ID_AND_AGENT_ID_REQUIRED');
     }
     if (!createIfMissing) {
       return requestObjectOrNull({
         method: 'GET',
-        url: '/api/world/spine/by-world/{worldId}/by-agent/{agentId}',
-        path: { worldId, agentId },
+        url: '/api/world/spine/by-world/{worldId}/by-story/{storyId}/by-agent/{agentId}',
+        path: { worldId, storyId, agentId },
       });
     }
     return requestObject({
       method: 'POST',
-      url: '/api/world/spine/by-world/{worldId}/by-agent/{agentId}',
-      path: { worldId, agentId },
+      url: '/api/world/spine/by-world/{worldId}/by-story/{storyId}/by-agent/{agentId}',
+      path: { worldId, storyId, agentId },
+    });
+  });
+
+  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.narrativeSpinePublish, async (query) => {
+    const record = toRecord(query);
+    const worldId = String(record.worldId || '').trim();
+    const storyId = String(record.storyId || '').trim();
+    const agentId = String(record.agentId || '').trim();
+    const body = toObjectOr(record.body, record);
+    if (!worldId || !storyId || !agentId) {
+      throw new Error('WORLD_ID_AND_STORY_ID_AND_AGENT_ID_REQUIRED');
+    }
+    return requestObject({
+      method: 'POST',
+      url: '/api/world/spine/by-world/{worldId}/by-story/{storyId}/by-agent/{agentId}/publish',
+      path: { worldId, storyId, agentId },
+      body,
+      mediaType: 'application/json',
     });
   });
 

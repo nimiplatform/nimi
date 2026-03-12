@@ -59,6 +59,7 @@ export const WORLD_DATA_API_CAPABILITIES = {
   scenesList: 'data-api.world.scenes.list',
   narrativeContextsList: 'data-api.world.narrative-contexts.list',
   narrativeSpineGetOrCreate: 'data-api.world.spine.get-or-create',
+  narrativeSpinePublish: 'data-api.world.spine.publish',
   satellitesBySpineList: 'data-api.world.satellites.by-spine.list',
   satellitesCreate: 'data-api.world.satellites.create',
   eventsBatchUpsert: 'data-api.world.events.batch-upsert',

@@ -139,6 +139,7 @@ export type { PostTrimDto } from './generated/models/PostTrimDto';
 export type { PowerSystemDto } from './generated/models/PowerSystemDto';
 export type { ProposedChangeDto } from './generated/models/ProposedChangeDto';
 export type { PublicFilterDto } from './generated/models/PublicFilterDto';
+export type { PublishNarrativeSpineDto } from './generated/models/PublishNarrativeSpineDto';
 export type { PublishWorldDraftDto } from './generated/models/PublishWorldDraftDto';
 export type { PublishWorldDraftResultDto } from './generated/models/PublishWorldDraftResultDto';
 export type { ReceivedGiftsResponseDto } from './generated/models/ReceivedGiftsResponseDto';

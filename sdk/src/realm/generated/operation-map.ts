@@ -2360,13 +2360,19 @@ export const REALM_OPERATION_MAP = {
   "NarrativeSpineService.narrativeSpineControllerFindSpine": {
     "operationId": "NarrativeSpineController_findSpine",
     "method": "GET",
-    "path": "/api/world/spine/by-world/{worldId}/by-agent/{agentId}",
+    "path": "/api/world/spine/by-world/{worldId}/by-story/{storyId}/by-agent/{agentId}",
     "service": "NarrativeSpineService",
     "methodName": "narrativeSpineControllerFindSpine",
     "tag": "Narrative Spine",
     "parameters": [
       {
         "name": "worldId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "storyId",
         "in": "path",
         "required": true,
         "valueType": "string"
@@ -2498,13 +2504,19 @@ export const REALM_OPERATION_MAP = {
   "NarrativeSpineService.narrativeSpineControllerGetOrCreateSpine": {
     "operationId": "NarrativeSpineController_getOrCreateSpine",
     "method": "POST",
-    "path": "/api/world/spine/by-world/{worldId}/by-agent/{agentId}",
+    "path": "/api/world/spine/by-world/{worldId}/by-story/{storyId}/by-agent/{agentId}",
     "service": "NarrativeSpineService",
     "methodName": "narrativeSpineControllerGetOrCreateSpine",
     "tag": "Narrative Spine",
     "parameters": [
       {
         "name": "worldId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "storyId",
         "in": "path",
         "required": true,
         "valueType": "string"
@@ -2560,6 +2572,37 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasBody": false,
     "bodyRequired": false
+  },
+  "NarrativeSpineService.narrativeSpineControllerPublishStorySpine": {
+    "operationId": "NarrativeSpineController_publishStorySpine",
+    "method": "POST",
+    "path": "/api/world/spine/by-world/{worldId}/by-story/{storyId}/by-agent/{agentId}/publish",
+    "service": "NarrativeSpineService",
+    "methodName": "narrativeSpineControllerPublishStorySpine",
+    "tag": "Narrative Spine",
+    "parameters": [
+      {
+        "name": "worldId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "storyId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "agentId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json"
   },
   "NarrativeSpineService.narrativeSpineControllerUpdateEvent": {
     "operationId": "NarrativeSpineController_updateEvent",
@@ -5266,6 +5309,7 @@ export const REALM_SERVICE_METHODS = {
     "narrativeSpineControllerGetOrCreateSpine": "NarrativeSpineService.narrativeSpineControllerGetOrCreateSpine",
     "narrativeSpineControllerGetSpine": "NarrativeSpineService.narrativeSpineControllerGetSpine",
     "narrativeSpineControllerMergeBranch": "NarrativeSpineService.narrativeSpineControllerMergeBranch",
+    "narrativeSpineControllerPublishStorySpine": "NarrativeSpineService.narrativeSpineControllerPublishStorySpine",
     "narrativeSpineControllerUpdateEvent": "NarrativeSpineService.narrativeSpineControllerUpdateEvent"
   },
   "NotificationService": {

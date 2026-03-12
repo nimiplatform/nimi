@@ -3528,18 +3528,35 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/world/spine/by-world/{worldId}/by-agent/{agentId}": {
+    "/api/world/spine/by-world/{worldId}/by-story/{storyId}/by-agent/{agentId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Find existing narrative spine for a world/user/agent trio */
+        /** Find existing narrative spine for a world/user/agent/story tuple */
         get: operations["NarrativeSpineController_findSpine"];
         put?: never;
-        /** Get or create narrative spine for a world/user/agent trio */
+        /** Get or create narrative spine for a world/user/agent/story tuple */
         post: operations["NarrativeSpineController_getOrCreateSpine"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/world/spine/by-world/{worldId}/by-story/{storyId}/by-agent/{agentId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish a complete event + satellite chain onto a story-scoped spine */
+        post: operations["NarrativeSpineController_publishStorySpine"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4501,6 +4518,8 @@ export type components = {
             /** @description Additional causal links */
             causalLinks?: string[];
             gravityField?: components["schemas"]["GravityFieldDto"];
+            /** @description Caller-supplied ULID for idempotent publish */
+            id?: string;
             /** @default 1 */
             narrativeWeight: number;
             /** @description Parent event ID for causal linking */
@@ -4567,6 +4586,8 @@ export type components = {
             content: string;
             /** @enum {string} */
             gravityPhase?: "GESTATION" | "CORE" | "SEDIMENTATION";
+            /** @description Caller-supplied ULID for idempotent publish */
+            id?: string;
             metadata?: components["schemas"]["SatelliteMetadataDto"];
             /** @default 1 */
             narrativeWeight: number;
@@ -5058,6 +5079,7 @@ export type components = {
             createdAt: string;
             eventCount: number;
             id: string;
+            storyId: string;
             /** Format: date-time */
             updatedAt: string;
             userId: string;
@@ -5266,6 +5288,10 @@ export type components = {
             viewerCity?: string;
             viewerCountryCode?: string;
             viewerGenders?: string[];
+        };
+        PublishNarrativeSpineDto: {
+            events: components["schemas"]["CreateNarrativeSpineEventDto"][];
+            satellites: components["schemas"]["CreateSatelliteDto"][];
         };
         PublishWorldDraftDto: {
             reason?: string;
