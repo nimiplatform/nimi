@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 // Stub browser globals for Node.js test environment
 if (typeof globalThis.window === 'undefined') {
@@ -101,11 +102,11 @@ test('D-STRM-010: feedJobEvent with COMPLETED transitions to terminal', () => {
 
 test('D-STRM-010: feedJobEvent with FAILED transitions to terminal', () => {
   startJobTracking(TEST_JOB);
-  feedJobEvent(TEST_JOB, { status: 'FAILED', reasonCode: 'AI_PROVIDER_AUTH_FAILED', reasonDetail: 'Auth expired' });
+  feedJobEvent(TEST_JOB, { status: 'FAILED', reasonCode: ReasonCode.AI_PROVIDER_AUTH_FAILED, reasonDetail: 'Auth expired' });
   const state = getJobState(TEST_JOB);
   assert.equal(state.phase, 'terminal');
   assert.equal(state.jobStatus, 'FAILED');
-  assert.equal(state.reasonCode, 'AI_PROVIDER_AUTH_FAILED');
+  assert.equal(state.reasonCode, ReasonCode.AI_PROVIDER_AUTH_FAILED);
   assert.equal(state.errorMessage, 'Auth expired');
 });
 
@@ -176,7 +177,7 @@ test('D-STRM-010: polling detects terminal FAILED and stops', async () => {
   const deps = makeDeps({
     pollResponses: [
       { status: 'RUNNING' },
-      { status: 'FAILED', reasonCode: 'AI_PROVIDER_ERROR', reasonDetail: 'GPU OOM' },
+      { status: 'FAILED', reasonCode: ReasonCode.AI_PROVIDER_ERROR, reasonDetail: 'GPU OOM' },
     ],
     pollDelayMs: 5,
   });
@@ -199,9 +200,7 @@ test('D-STRM-010: polling recovery timeout after max retries', async () => {
   });
 
   startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
-
-  // Allow enough headroom for 30 async polling turns plus event-loop scheduling.
-  await sleep(400);
+  await waitFor(() => getJobState(TEST_JOB).phase === 'recovery_timeout', 500);
 
   const state = getJobState(TEST_JOB);
   assert.equal(state.phase, 'recovery_timeout');
@@ -472,6 +471,17 @@ test('D-STRM-010: ScenarioJobState includes artifacts field', () => {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitFor(assertion: () => boolean, timeoutMs: number): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (assertion()) {
+      return;
+    }
+    await sleep(10);
+  }
+  assert.ok(assertion(), `condition was not met within ${timeoutMs}ms`);
 }
 
 function makeDeps(options: {

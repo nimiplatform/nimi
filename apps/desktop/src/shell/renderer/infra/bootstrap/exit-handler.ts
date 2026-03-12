@@ -29,9 +29,9 @@ export function registerExitHandler(options: { managed: boolean }) {
     });
 
     try {
-      stopAuthStateWatcher();
       dataSync.stopAllPolling();
       dataSync.clearProactiveRefreshTimer();
+      stopAuthStateWatcher();
 
       if (options.managed) {
         await stopRuntimeBridge();

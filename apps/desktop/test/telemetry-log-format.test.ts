@@ -88,11 +88,21 @@ test('D-TEL-002: emitRuntimeLog normalizes messages before forwarding to the inj
   assert.equal(captured[1]?.message, 'action:runtime-log:empty-message');
 });
 
-test('D-TEL-003: emitRuntimeLog falls back to console when no logger is injected', () => {
+test('D-TEL-003: emitRuntimeLog falls back to console by log level when no logger is injected', () => {
   const infoCalls: unknown[][] = [];
+  const warnCalls: unknown[][] = [];
+  const errorCalls: unknown[][] = [];
   const previousInfo = console.info;
+  const previousWarn = console.warn;
+  const previousError = console.error;
   console.info = (...args: unknown[]) => {
     infoCalls.push(args);
+  };
+  console.warn = (...args: unknown[]) => {
+    warnCalls.push(args);
+  };
+  console.error = (...args: unknown[]) => {
+    errorCalls.push(args);
   };
 
   try {
@@ -101,13 +111,33 @@ test('D-TEL-003: emitRuntimeLog falls back to console when no logger is injected
       message: 'token-refresh:success',
       details: { ok: true },
     });
+    emitRuntimeLog({
+      level: 'warn',
+      area: 'bridge',
+      message: 'retry:retrying',
+      details: { attempt: 2 },
+    });
+    emitRuntimeLog({
+      level: 'error',
+      area: 'bridge',
+      message: 'retry:retry_exhausted',
+      details: { reasonCode: ReasonCode.RUNTIME_UNAVAILABLE },
+    });
   } finally {
     console.info = previousInfo;
+    console.warn = previousWarn;
+    console.error = previousError;
   }
 
   assert.equal(infoCalls.length, 1);
   assert.equal(infoCalls[0]?.[0], '[runtime:datasync] action:token-refresh:success');
   assert.deepEqual(infoCalls[0]?.[1], { ok: true });
+  assert.equal(warnCalls.length, 1);
+  assert.equal(warnCalls[0]?.[0], '[runtime:bridge] action:retry:retrying');
+  assert.deepEqual(warnCalls[0]?.[1], { attempt: 2 });
+  assert.equal(errorCalls.length, 1);
+  assert.equal(errorCalls[0]?.[0], '[runtime:bridge] action:retry:retry_exhausted');
+  assert.deepEqual(errorCalls[0]?.[1], { reasonCode: ReasonCode.RUNTIME_UNAVAILABLE });
 });
 
 test('D-TEL-004: createRendererFlowId uses the real exported formatter and yields unique IDs', () => {

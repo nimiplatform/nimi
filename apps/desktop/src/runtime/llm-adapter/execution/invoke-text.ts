@@ -101,6 +101,7 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
               role: 'user',
               content: String(input.prompt || '').trim(),
               name: '',
+              parts: [],
             }],
             systemPrompt: String(input.systemPrompt || ''),
             tools: [],

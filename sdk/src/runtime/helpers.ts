@@ -1,11 +1,14 @@
 import { ReasonCode, type NimiError } from '../types/index.js';
 import { createNimiError } from './errors.js';
 import {
+  ChatContentPartType,
   FallbackPolicy,
   FinishReason,
   ScenarioJobEventType,
   ScenarioJobStatus,
   RoutePolicy,
+  type ChatContentPart,
+  type ChatMessage,
   type ScenarioJobEvent,
 } from './generated/runtime/v1/ai';
 import {
@@ -24,6 +27,7 @@ import type {
   NimiTraceInfo,
   RuntimeHealth,
   TextMessage,
+  TextMessageContentPart,
 } from './types.js';
 
 export type RuntimeMethodLookupEntry = {
@@ -188,7 +192,7 @@ export function extractGenerateText(output: unknown): string {
 
 export function toRuntimeMessages(input: string | TextMessage[], system?: string): {
   systemPrompt: string;
-  input: Array<{ role: string; content: string; name: string }>;
+  input: ChatMessage[];
 } {
   if (typeof input === 'string') {
     const content = normalizeText(input);
@@ -202,15 +206,45 @@ export function toRuntimeMessages(input: string | TextMessage[], system?: string
     }
     return {
       systemPrompt: normalizeText(system),
-      input: [{ role: 'user', content, name: '' }],
+      input: [{ role: 'user', content, name: '', parts: [createTextChatContentPart(content)] }],
     };
   }
 
   const systemParts: string[] = [];
-  const messages: Array<{ role: string; content: string; name: string }> = [];
+  const messages: ChatMessage[] = [];
+  let hasNonSystemText = false;
 
   if (Array.isArray(input)) {
     for (const message of input) {
+      if (Array.isArray(message.content)) {
+        // Multimodal content: build parts + dual-write text
+        const protoParts = contentPartsToProto(message.content);
+        const textContent = extractTextFromContentParts(message.content);
+
+        if (message.role === 'system') {
+          // System messages: extract text only, ignore media
+          if (textContent) {
+            systemParts.push(textContent);
+          }
+          continue;
+        }
+
+        if (protoParts.length === 0 && !textContent) {
+          continue;
+        }
+        if (textContent) {
+          hasNonSystemText = true;
+        }
+        messages.push({
+          role: message.role,
+          content: textContent,
+          name: normalizeText(message.name),
+          parts: protoParts,
+        });
+        continue;
+      }
+
+      // String content: original path
       const content = normalizeText(message.content);
       if (!content) {
         continue;
@@ -219,10 +253,12 @@ export function toRuntimeMessages(input: string | TextMessage[], system?: string
         systemParts.push(content);
         continue;
       }
+      hasNonSystemText = true;
       messages.push({
         role: message.role,
         content,
         name: normalizeText(message.name),
+        parts: [createTextChatContentPart(content)],
       });
     }
   }
@@ -232,11 +268,11 @@ export function toRuntimeMessages(input: string | TextMessage[], system?: string
     systemParts.push(explicitSystem);
   }
 
-  if (messages.length === 0) {
+  if (messages.length === 0 || !hasNonSystemText) {
     throw createNimiError({
-      message: 'text input must include at least one non-system message',
+      message: 'text input must include at least one non-system text message',
       reasonCode: ReasonCode.AI_INPUT_INVALID,
-      actionHint: 'add_user_or_assistant_message',
+      actionHint: 'add_user_or_assistant_text_message',
       source: 'sdk',
     });
   }
@@ -245,6 +281,73 @@ export function toRuntimeMessages(input: string | TextMessage[], system?: string
     systemPrompt: systemParts.join('\n\n'),
     input: messages,
   };
+}
+
+function createTextChatContentPart(text: string): {
+  type: ChatContentPartType;
+  text: string;
+  imageUrl?: { url: string; detail: string };
+  videoUrl: string;
+} {
+  return {
+    type: ChatContentPartType.TEXT,
+    text,
+    videoUrl: '',
+  };
+}
+
+function contentPartsToProto(
+  parts: TextMessageContentPart[],
+): ChatContentPart[] {
+  const result: ChatContentPart[] = [];
+  for (const part of parts) {
+    switch (part.type) {
+      case 'text': {
+        const text = normalizeText(part.text);
+        if (text) {
+          result.push(createTextChatContentPart(text));
+        }
+        break;
+      }
+      case 'image_url': {
+        const url = normalizeText(part.imageUrl);
+        if (url) {
+          result.push({
+            type: ChatContentPartType.IMAGE_URL,
+            text: '',
+            imageUrl: { url, detail: part.detail || 'auto' },
+            videoUrl: '',
+          });
+        }
+        break;
+      }
+      case 'video_url': {
+        const url = normalizeText(part.videoUrl);
+        if (url) {
+          result.push({
+            type: ChatContentPartType.VIDEO_URL,
+            text: '',
+            videoUrl: url,
+          });
+        }
+        break;
+      }
+    }
+  }
+  return result;
+}
+
+function extractTextFromContentParts(parts: TextMessageContentPart[]): string {
+  const texts: string[] = [];
+  for (const part of parts) {
+    if (part.type === 'text') {
+      const text = normalizeText(part.text);
+      if (text) {
+        texts.push(text);
+      }
+    }
+  }
+  return texts.join('\n');
 }
 
 export function toEmbeddingVectors(vectors: unknown): number[][] {

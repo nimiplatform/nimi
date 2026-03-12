@@ -36,6 +36,42 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
     );
   });
 
+  test('D-BOOT-005: runtime host assembly precedes runtime mod registration', () => {
+    const hostCapabilitiesIndex = bootstrapSource.indexOf('buildRuntimeHostCapabilities(');
+    const runtimeModsIndex = bootstrapSource.indexOf('registerBootstrapRuntimeMods({');
+    assert.ok(hostCapabilitiesIndex !== -1, 'buildRuntimeHostCapabilities( must appear in bootstrap source');
+    assert.ok(runtimeModsIndex !== -1, 'registerBootstrapRuntimeMods({ must appear in bootstrap source');
+    assert.ok(
+      hostCapabilitiesIndex < runtimeModsIndex,
+      `buildRuntimeHostCapabilities( (pos ${hostCapabilitiesIndex}) must appear before registerBootstrapRuntimeMods({ (pos ${runtimeModsIndex})`,
+    );
+  });
+
+  test('D-BOOT-006: external agent bridge starts after runtime mod registration', () => {
+    const runtimeModsIndex = bootstrapSource.indexOf('registerBootstrapRuntimeMods({');
+    const tier1ActionsIndex = bootstrapSource.indexOf('registerExternalAgentTier1Actions(hookRuntime);');
+    const bridgeStartIndex = bootstrapSource.indexOf('await startExternalAgentActionBridge();');
+    const descriptorSyncIndex = bootstrapSource.indexOf('await resyncExternalAgentActionDescriptors();');
+    assert.ok(runtimeModsIndex !== -1, 'registerBootstrapRuntimeMods({ must appear in bootstrap source');
+    assert.ok(tier1ActionsIndex !== -1, 'registerExternalAgentTier1Actions(hookRuntime); must appear in bootstrap source');
+    assert.ok(bridgeStartIndex !== -1, 'await startExternalAgentActionBridge(); must appear in bootstrap source');
+    assert.ok(descriptorSyncIndex !== -1, 'await resyncExternalAgentActionDescriptors(); must appear in bootstrap source');
+    assert.ok(runtimeModsIndex < tier1ActionsIndex, 'external agent tier-1 action registration must happen after runtime mod registration');
+    assert.ok(tier1ActionsIndex < bridgeStartIndex, 'action bridge must start after tier-1 action registration');
+    assert.ok(bridgeStartIndex < descriptorSyncIndex, 'descriptor sync must happen after action bridge startup');
+  });
+
+  test('D-BOOT-007: auth bootstrap runs after runtime host work and before ready flag', () => {
+    const descriptorSyncIndex = bootstrapSource.indexOf('await resyncExternalAgentActionDescriptors();');
+    const authSessionIndex = bootstrapSource.indexOf('await bootstrapAuthSession({');
+    const bootstrapReadyIndex = bootstrapSource.indexOf('useAppStore.getState().setBootstrapReady(true);');
+    assert.ok(descriptorSyncIndex !== -1, 'await resyncExternalAgentActionDescriptors(); must appear in bootstrap source');
+    assert.ok(authSessionIndex !== -1, 'await bootstrapAuthSession({ must appear in bootstrap source');
+    assert.ok(bootstrapReadyIndex !== -1, 'setBootstrapReady(true); must appear in bootstrap source');
+    assert.ok(descriptorSyncIndex < authSessionIndex, 'bootstrapAuthSession must run after runtime host setup and external agent sync');
+    assert.ok(authSessionIndex < bootstrapReadyIndex, 'bootstrapAuthSession must complete before bootstrapReady is set');
+  });
+
   test('D-BOOT-008: bootstrap failure sets bootstrapError and clears auth', () => {
     const catchIndex = bootstrapSource.indexOf('.catch((error)');
     assert.ok(catchIndex !== -1, '.catch((error) block must exist in bootstrap source');

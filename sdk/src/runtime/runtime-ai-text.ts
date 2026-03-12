@@ -5,6 +5,8 @@ import {
   FinishReason,
   RoutePolicy,
   ScenarioType,
+  type ExecuteScenarioRequest,
+  type StreamScenarioRequest,
 } from './generated/runtime/v1/ai';
 import type { RuntimeInternalContext } from './internal-context.js';
 import type {
@@ -36,6 +38,7 @@ export async function runtimeGenerateText(
 ): Promise<TextGenerateOutput> {
   const routePolicy = toRoutePolicy(input.route);
   const connectorId = normalizeText(input.connectorId);
+  const modelId = ensureText(input.model, 'model');
   const subjectUserId = runtimeAiRequestRequiresSubject({
     request: {
       head: {
@@ -48,11 +51,11 @@ export async function runtimeGenerateText(
     ? await ctx.resolveSubjectUserId(input.subjectUserId)
     : await ctx.resolveOptionalSubjectUserId(input.subjectUserId);
   const prompt = toRuntimeMessages(input.input, input.system);
-  const request = {
+  const request: ExecuteScenarioRequest = {
     head: {
       appId: ctx.appId,
       subjectUserId: subjectUserId || '',
-      modelId: ensureText(input.model, 'model'),
+      modelId,
       routePolicy,
       fallback: toFallbackPolicy(input.fallback),
       timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
@@ -92,7 +95,7 @@ export async function runtimeGenerateText(
 
   ctx.emitTelemetry('ai.route.decision', {
     route: trace.routeDecision || 'local',
-    model: request.head.modelId,
+    model: modelId,
     traceId: trace.traceId,
   });
 
@@ -110,6 +113,7 @@ export async function runtimeStreamText(
 ): Promise<TextStreamOutput> {
   const routePolicy = toRoutePolicy(input.route);
   const connectorId = normalizeText(input.connectorId);
+  const modelId = ensureText(input.model, 'model');
   const subjectUserId = runtimeAiRequestRequiresSubject({
     request: {
       head: {
@@ -128,7 +132,7 @@ export async function runtimeStreamText(
       head: {
         appId: ctx.appId,
         subjectUserId: subjectUserId || '',
-        modelId: ensureText(input.model, 'model'),
+        modelId,
         routePolicy,
         fallback: toFallbackPolicy(input.fallback),
         timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
@@ -150,7 +154,7 @@ export async function runtimeStreamText(
         },
       },
       extensions: [],
-    },
+    } satisfies StreamScenarioRequest,
     ctx.resolveRuntimeStreamOptions({
       timeoutMs: input.timeoutMs,
       metadata: input.metadata,
@@ -178,7 +182,7 @@ export async function runtimeStreamText(
             : RoutePolicy.LOCAL;
           ctxRef.emitTelemetry('ai.route.decision', {
             route: fromRoutePolicy(streamRouteDecision),
-            model: streamModelResolved || ensureText(input.model, 'model'),
+            model: streamModelResolved || modelId,
             traceId: normalizeText(event.traceId) || undefined,
           });
           continue;

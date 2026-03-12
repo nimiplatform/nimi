@@ -230,6 +230,7 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
                 role: 'user',
                 content: String(input.fixture.request.prompt || '').trim(),
                 name: '',
+                parts: [],
               }],
               systemPrompt: String(input.fixture.request.system_prompt || '').trim(),
               tools: [],

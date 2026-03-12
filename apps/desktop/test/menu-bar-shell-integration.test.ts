@@ -23,6 +23,28 @@ test('exit handler only reacts to explicit menu bar quit events', () => {
   assert.doesNotMatch(source, /tauri:\/\/close-requested/);
 });
 
+test('D-BOOT-011: exit handler cleans up shell state before quit and only stops managed daemons', () => {
+  const source = readFileSync(EXIT_HANDLER_PATH, 'utf-8');
+  const stopPollingIndex = source.indexOf('dataSync.stopAllPolling();');
+  const clearRefreshIndex = source.indexOf('dataSync.clearProactiveRefreshTimer();');
+  const stopWatcherIndex = source.indexOf('stopAuthStateWatcher();');
+  const managedGuardIndex = source.indexOf('if (options.managed) {');
+  const stopRuntimeBridgeIndex = source.indexOf('await stopRuntimeBridge();');
+  const completeQuitIndex = source.indexOf('await completeMenuBarQuit();');
+
+  assert.ok(stopPollingIndex !== -1, 'exit handler must stop DataSync polling');
+  assert.ok(clearRefreshIndex !== -1, 'exit handler must clear the proactive refresh timer');
+  assert.ok(stopWatcherIndex !== -1, 'exit handler must stop the auth watcher');
+  assert.ok(managedGuardIndex !== -1, 'exit handler must guard daemon stop behind options.managed');
+  assert.ok(stopRuntimeBridgeIndex !== -1, 'exit handler must stop the runtime bridge on managed quit');
+  assert.ok(completeQuitIndex !== -1, 'exit handler must complete the menu bar quit flow');
+  assert.ok(stopPollingIndex < clearRefreshIndex, 'polling stop must happen before proactive refresh cleanup');
+  assert.ok(clearRefreshIndex < stopWatcherIndex, 'proactive refresh cleanup must happen before auth watcher shutdown');
+  assert.ok(stopWatcherIndex < managedGuardIndex, 'shell cleanup must finish before managed daemon shutdown guard');
+  assert.ok(managedGuardIndex < stopRuntimeBridgeIndex, 'managed daemon shutdown must stay inside the managed guard');
+  assert.ok(stopRuntimeBridgeIndex < completeQuitIndex, 'runtime bridge stop must happen before final app quit');
+});
+
 test('renderer bridge exposes menu bar health sync and quit finalize actions', () => {
   const source = readFileSync(RUNTIME_BRIDGE_PATH, 'utf-8');
   assert.match(source, /syncMenuBarRuntimeHealth/);
