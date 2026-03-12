@@ -1587,6 +1587,8 @@
       "localDesc": "Install & manage models",
       "cloud": "Cloud API",
       "cloudDesc": "API key connectors",
+      "catalog": "Catalog",
+      "catalogDesc": "Provider catalog and verified picks",
       "runtime": "Runtime",
       "runtimeDesc": "Daemon, audit & EAA",
       "mods": "Mods",

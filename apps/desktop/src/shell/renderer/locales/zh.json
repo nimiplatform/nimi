@@ -1587,6 +1587,8 @@
       "localDesc": "安装与管理模型",
       "cloud": "云端 API",
       "cloudDesc": "API 密钥连接器",
+      "catalog": "目录",
+      "catalogDesc": "提供商目录与已验证推荐",
       "runtime": "运行时",
       "runtimeDesc": "守护进程、审计与 EAA",
       "mods": "模组",
