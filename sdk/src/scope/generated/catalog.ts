@@ -27,7 +27,6 @@ export const GENERATED_REALM_SCOPES: readonly ScopeName[] = Object.freeze([
   'realm.reviews_economy_trust.read' as ScopeName,
   'realm.satellite_narrative.read' as ScopeName,
   'realm.search.read' as ScopeName,
-  'realm.social_attributes.read' as ScopeName,
   'realm.social_default_visibility.read' as ScopeName,
   'realm.soul_evolution.read' as ScopeName,
   'realm.time_gap_narrative.read' as ScopeName,
@@ -36,6 +35,7 @@ export const GENERATED_REALM_SCOPES: readonly ScopeName[] = Object.freeze([
   'realm.user.read' as ScopeName,
   'realm.world_control.read' as ScopeName,
   'realm.world_rules.read' as ScopeName,
+  'realm.worldpost.read' as ScopeName,
   'realm.worlds.read' as ScopeName,
 ]);
 

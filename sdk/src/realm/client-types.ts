@@ -53,7 +53,6 @@ export type RealmServiceRegistry = RealmGeneratedServiceRegistry;
 
 export type MeTwoFactorService = NonNullable<RealmServiceRegistry['MeTwoFactorService']>;
 export type SocialDefaultVisibilityService = NonNullable<RealmServiceRegistry['SocialDefaultVisibilityService']>;
-export type SocialAttributesService = NonNullable<RealmServiceRegistry['SocialAttributesService']>;
 
 export type RealmAuthApi = ServiceByName<'AuthService'>;
 

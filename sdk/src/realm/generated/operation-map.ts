@@ -2714,12 +2714,6 @@ export const REALM_OPERATION_MAP = {
         "valueType": "string"
       },
       {
-        "name": "scope",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
         "name": "limit",
         "in": "query",
         "required": false,
@@ -3311,58 +3305,6 @@ export const REALM_OPERATION_MAP = {
         "valueType": "string"
       }
     ],
-    "hasBody": false,
-    "bodyRequired": false
-  },
-  "SocialAttributesService.fourDimensionAttributeControllerCompareAttributes": {
-    "operationId": "FourDimensionAttributeController_compareAttributes",
-    "method": "POST",
-    "path": "/api/agent/four-dimension/compare",
-    "service": "SocialAttributesService",
-    "methodName": "fourDimensionAttributeControllerCompareAttributes",
-    "tag": "Social - Four-Dimensional Attributes",
-    "parameters": [],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json"
-  },
-  "SocialAttributesService.fourDimensionAttributeControllerGetAttributes": {
-    "operationId": "FourDimensionAttributeController_getAttributes",
-    "method": "GET",
-    "path": "/api/agent/four-dimension/attributes/{accountId}",
-    "service": "SocialAttributesService",
-    "methodName": "fourDimensionAttributeControllerGetAttributes",
-    "tag": "Social - Four-Dimensional Attributes",
-    "parameters": [
-      {
-        "name": "accountId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false
-  },
-  "SocialAttributesService.fourDimensionAttributeControllerGetOwnAttributes": {
-    "operationId": "FourDimensionAttributeController_getOwnAttributes",
-    "method": "GET",
-    "path": "/api/agent/four-dimension/me",
-    "service": "SocialAttributesService",
-    "methodName": "fourDimensionAttributeControllerGetOwnAttributes",
-    "tag": "Social - Four-Dimensional Attributes",
-    "parameters": [],
-    "hasBody": false,
-    "bodyRequired": false
-  },
-  "SocialAttributesService.fourDimensionAttributeControllerQueryByTier": {
-    "operationId": "FourDimensionAttributeController_queryByTier",
-    "method": "GET",
-    "path": "/api/agent/four-dimension/query-by-tier",
-    "service": "SocialAttributesService",
-    "methodName": "fourDimensionAttributeControllerQueryByTier",
-    "tag": "Social - Four-Dimensional Attributes",
-    "parameters": [],
     "hasBody": false,
     "bodyRequired": false
   },
@@ -4662,6 +4604,48 @@ export const REALM_OPERATION_MAP = {
     "bodyRequired": true,
     "requestBodyContentType": "application/json"
   },
+  "WorldpostService.getWorldPosts": {
+    "operationId": "getWorldPosts",
+    "method": "GET",
+    "path": "/api/world/by-id/{worldId}/posts",
+    "service": "WorldpostService",
+    "methodName": "getWorldPosts",
+    "tag": "WorldPost",
+    "parameters": [
+      {
+        "name": "worldId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "visibility",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      },
+      {
+        "name": "authorId",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "valueType": "number"
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false
+  },
   "WorldRulesService.worldRulesControllerCheckPermission": {
     "operationId": "WorldRulesController_checkPermission",
     "method": "GET",
@@ -5327,12 +5311,6 @@ export const REALM_SERVICE_METHODS = {
     "searchPosts": "SearchService.searchPosts",
     "searchUsers": "SearchService.searchUsers"
   },
-  "SocialAttributesService": {
-    "fourDimensionAttributeControllerCompareAttributes": "SocialAttributesService.fourDimensionAttributeControllerCompareAttributes",
-    "fourDimensionAttributeControllerGetAttributes": "SocialAttributesService.fourDimensionAttributeControllerGetAttributes",
-    "fourDimensionAttributeControllerGetOwnAttributes": "SocialAttributesService.fourDimensionAttributeControllerGetOwnAttributes",
-    "fourDimensionAttributeControllerQueryByTier": "SocialAttributesService.fourDimensionAttributeControllerQueryByTier"
-  },
   "SocialDefaultVisibilityService": {
     "v1DefaultVisibilityControllerApplyAgentDefaults": "SocialDefaultVisibilityService.v1DefaultVisibilityControllerApplyAgentDefaults",
     "v1DefaultVisibilityControllerApplyUserDefaults": "SocialDefaultVisibilityService.v1DefaultVisibilityControllerApplyUserDefaults",
@@ -5409,6 +5387,9 @@ export const REALM_SERVICE_METHODS = {
     "worldControlControllerResolveLanding": "WorldControlService.worldControlControllerResolveLanding",
     "worldControlControllerUpdateDraft": "WorldControlService.worldControlControllerUpdateDraft",
     "worldControlControllerUpdateMaintenance": "WorldControlService.worldControlControllerUpdateMaintenance"
+  },
+  "WorldpostService": {
+    "getWorldPosts": "WorldpostService.getWorldPosts"
   },
   "WorldRulesService": {
     "worldRulesControllerCheckPermission": "WorldRulesService.worldRulesControllerCheckPermission",

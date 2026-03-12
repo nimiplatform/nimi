@@ -12,7 +12,11 @@ const sdkPackageJsonPaths = [
 ].map((relative) => path.join(repoRoot, relative));
 
 const forbiddenExportPattern = /(?:^|\/)(internal|generated)(?:\/|$)/;
-const forbiddenImportPattern = /from\s+['"]@nimiplatform\/sdk\/(?:internal|generated)\//g;
+const forbiddenStableImportPattern = /(?:from|import)\s+['"]@nimiplatform\/sdk\/(?:internal|generated)(?:\/|['"])/;
+const importTargetPattern = /(?:from\s+['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\))/g;
+const consumerSourceRoots = ['apps', 'runtime', 'examples', 'scripts', 'nimi-mods'];
+const sourceExtensions = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs']);
+const skippedDirectories = new Set(['node_modules', 'dist', 'build', 'coverage', '.next', '.turbo', 'target']);
 
 function collectExportValues(node, values) {
   if (!node) {
@@ -36,19 +40,55 @@ function collectExportValues(node, values) {
 }
 
 async function collectSourceFiles(dir) {
+  try {
+    const stat = await fs.stat(dir);
+    if (!stat.isDirectory()) {
+      return [];
+    }
+  } catch {
+    return [];
+  }
+
   const entries = await fs.readdir(dir, { withFileTypes: true });
   const files = [];
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
+      if (skippedDirectories.has(entry.name)) {
+        continue;
+      }
       files.push(...await collectSourceFiles(fullPath));
       continue;
     }
-    if (entry.isFile() && (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx'))) {
+    if (entry.isFile() && sourceExtensions.has(path.extname(entry.name))) {
       files.push(fullPath);
     }
   }
   return files;
+}
+
+function hasForbiddenSdkDeepImport(raw) {
+  return forbiddenStableImportPattern.test(raw);
+}
+
+function hasForbiddenRelativeSdkImport(file, raw) {
+  for (const match of raw.matchAll(importTargetPattern)) {
+    const target = match[1] || match[2] || '';
+    if (!target.startsWith('.') && !path.isAbsolute(target)) {
+      continue;
+    }
+    const resolved = path.normalize(
+      path.isAbsolute(target) ? target : path.resolve(path.dirname(file), target),
+    );
+    const normalizedTarget = resolved.split(path.sep).join('/');
+    if (
+      normalizedTarget.includes('/sdk/src/')
+      && /\/(internal|generated)(?:\/|$)/.test(normalizedTarget)
+    ) {
+      return normalizedTarget;
+    }
+  }
+  return null;
 }
 
 async function main() {
@@ -71,8 +111,24 @@ async function main() {
   const sourceFiles = await collectSourceFiles(sdkSourceRoot);
   for (const file of sourceFiles) {
     const raw = await fs.readFile(file, 'utf8');
-    if (forbiddenImportPattern.test(raw)) {
+    if (hasForbiddenSdkDeepImport(raw)) {
       violations.push(`forbidden stable import in ${path.relative(repoRoot, file)}`);
+    }
+  }
+
+  for (const relativeRoot of consumerSourceRoots) {
+    const consumerFiles = await collectSourceFiles(path.join(repoRoot, relativeRoot));
+    for (const file of consumerFiles) {
+      const raw = await fs.readFile(file, 'utf8');
+      if (hasForbiddenSdkDeepImport(raw)) {
+        violations.push(`forbidden stable import in ${path.relative(repoRoot, file)}`);
+      }
+      const forbiddenResolvedImport = hasForbiddenRelativeSdkImport(file, raw);
+      if (forbiddenResolvedImport) {
+        violations.push(
+          `forbidden relative sdk deep import in ${path.relative(repoRoot, file)} -> ${path.relative(repoRoot, forbiddenResolvedImport)}`,
+        );
+      }
     }
   }
 

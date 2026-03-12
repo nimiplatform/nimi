@@ -185,3 +185,38 @@ test('node-grpc and tauri-ipc unary transports decode equivalent payloads', asyn
     clearNodeGrpcBridge();
   }
 });
+
+// ---------------------------------------------------------------------------
+// S-TRANSPORT-006: observability metadata must not leak credentials
+// ---------------------------------------------------------------------------
+test('mergeRuntimeMetadata does not propagate raw credentials into metadata output', () => {
+  const metadata = mergeRuntimeMetadata(
+    {
+      appId: 'nimi.test.cred-redact',
+      transport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+      auth: {
+        accessToken: 'SECRET_ACCESS_TOKEN',
+      },
+      defaults: {
+        protocolVersion: '1.0.0',
+        callerKind: 'sdk-test',
+        callerId: 'test:cred-redact',
+      },
+    },
+    {
+      metadata: {
+        domain: 'transport.test',
+        traceId: 'trace-cred-redact',
+      },
+    },
+  );
+
+  const serialized = JSON.stringify(metadata);
+  assert.equal(serialized.includes('SECRET_ACCESS_TOKEN'), false,
+    'metadata output must not contain raw access token');
+  assert.equal(metadata.traceId, 'trace-cred-redact');
+  assert.equal(metadata.domain, 'transport.test');
+});

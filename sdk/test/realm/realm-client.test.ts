@@ -819,3 +819,184 @@ test('Realm services support path-first call pattern for mixed path/query method
     globalThis.fetch = originalFetch;
   }
 });
+
+test('S-REALM-012: endpoint validation throws SDK_REALM_ENDPOINT_REQUIRED when baseUrl is empty', () => {
+  let thrown: unknown = null;
+  try {
+    new Realm({ baseUrl: '', auth: null });
+  } catch (error) {
+    thrown = error;
+  }
+
+  assert.ok(thrown, 'Realm with empty baseUrl must throw');
+  const nimiError = asNimiError(thrown, { source: 'realm' });
+  assert.equal(nimiError.reasonCode, ReasonCode.SDK_REALM_ENDPOINT_REQUIRED);
+
+  let thrownUndefined: unknown = null;
+  try {
+    new Realm({ baseUrl: undefined as any, auth: null });
+  } catch (error) {
+    thrownUndefined = error;
+  }
+
+  assert.ok(thrownUndefined, 'Realm with undefined baseUrl must throw');
+  const nimiErrorUndefined = asNimiError(thrownUndefined, { source: 'realm' });
+  assert.equal(nimiErrorUndefined.reasonCode, ReasonCode.SDK_REALM_ENDPOINT_REQUIRED);
+});
+
+test('S-REALM-015: auth retry max once — second 401 after refresh does not loop', async () => {
+  const originalFetch = globalThis.fetch;
+  let callCount = 0;
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const url = resolveFetchUrl(input);
+    callCount++;
+
+    if (url.endsWith('/api/auth/refresh')) {
+      return new Response(JSON.stringify({
+        tokens: {
+          accessToken: 'new-token',
+          refreshToken: 'new-rt',
+          expiresIn: 3600,
+        },
+      }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify({
+      message: 'Unauthorized',
+      reasonCode: ReasonCode.APP_TOKEN_EXPIRED,
+    }), {
+      status: 401,
+      headers: { 'content-type': 'application/json' },
+    });
+  }) as typeof globalThis.fetch;
+
+  try {
+    const realm = new Realm({
+      baseUrl: 'https://realm-retry-max.nimi.xyz',
+      auth: {
+        accessToken: 'expired-token',
+        refreshToken: 'valid-refresh',
+      },
+    });
+
+    let thrown: unknown = null;
+    try {
+      await realm.raw.request({ method: 'GET', path: '/api/protected' });
+    } catch (error) {
+      thrown = error;
+    }
+
+    assert.ok(thrown, 'second 401 after refresh must throw');
+    assert.equal(callCount, 3, 'must be exactly 3 calls: original 401 + refresh + retry 401');
+    const nimiError = asNimiError(thrown, { source: 'realm' });
+    assert.equal(nimiError.code, ReasonCode.AUTH_DENIED);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('S-REALM-029: concurrent 401 requests merge into a single refresh call', async () => {
+  const originalFetch = globalThis.fetch;
+  let refreshCount = 0;
+  let callIndex = 0;
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const url = resolveFetchUrl(input);
+    callIndex++;
+
+    if (url.endsWith('/api/auth/refresh')) {
+      refreshCount++;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      return new Response(JSON.stringify({
+        tokens: {
+          accessToken: 'refreshed-token',
+          refreshToken: 'new-rt',
+          expiresIn: 3600,
+        },
+      }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+
+    const headers = resolveFetchHeaders(input, init);
+    const authHeader = headers.get('Authorization') || '';
+
+    if (authHeader === 'Bearer expired-token') {
+      return new Response(JSON.stringify({
+        message: 'Unauthorized',
+        reasonCode: ReasonCode.APP_TOKEN_EXPIRED,
+      }), {
+        status: 401,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  }) as typeof globalThis.fetch;
+
+  try {
+    const realm = new Realm({
+      baseUrl: 'https://realm-single-flight.nimi.xyz',
+      auth: {
+        accessToken: 'expired-token',
+        refreshToken: 'valid-refresh',
+      },
+    });
+
+    const results = await Promise.allSettled([
+      realm.raw.request({ method: 'GET', path: '/api/resource-a' }),
+      realm.raw.request({ method: 'GET', path: '/api/resource-b' }),
+    ]);
+
+    assert.equal(refreshCount, 1, '/api/auth/refresh must be called exactly once (single-flight)');
+
+    for (const result of results) {
+      assert.equal(result.status, 'fulfilled', 'both concurrent requests must resolve after single refresh');
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('S-REALM-027: accessToken as function resolves dynamically on each request', async () => {
+  const originalFetch = globalThis.fetch;
+  const capturedAuthHeaders: string[] = [];
+  let tokenCallCount = 0;
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const headers = resolveFetchHeaders(input, init);
+    const authHeader = headers.get('Authorization') || '';
+    capturedAuthHeaders.push(authHeader);
+
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  }) as typeof globalThis.fetch;
+
+  try {
+    const realm = new Realm({
+      baseUrl: 'https://realm-fn-token.nimi.xyz',
+      auth: {
+        accessToken: () => 'dynamic-token-' + tokenCallCount++,
+      },
+    });
+
+    await realm.raw.request({ method: 'GET', path: '/api/first' });
+    await realm.raw.request({ method: 'GET', path: '/api/second' });
+
+    assert.equal(capturedAuthHeaders.length, 2);
+    assert.equal(capturedAuthHeaders[0], 'Bearer dynamic-token-0');
+    assert.equal(capturedAuthHeaders[1], 'Bearer dynamic-token-1');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

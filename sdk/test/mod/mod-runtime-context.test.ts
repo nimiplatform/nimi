@@ -4,8 +4,10 @@ import test from 'node:test';
 import { ReasonCode } from '../../src/types/index.js';
 import { createModRuntimeClient } from '../../src/mod/runtime/index.js';
 import { createModRuntimeInspector } from '../../src/mod/runtime/inspector.js';
+import { createInterModClient } from '../../src/mod/hook/inter-mod-client.js';
 import { clearModSdkHost } from '../../src/mod/host.js';
 import type { RuntimeHookRuntimeFacade } from '../../src/mod/types/runtime-facade.js';
+import type { RuntimeHookInterModFacade } from '../../src/mod/types/inter-mod.js';
 
 test('mod runtime client uses injected runtime context without global host', async () => {
   clearModSdkHost();
@@ -559,4 +561,99 @@ test('mod runtime client image.generate keeps minimal payload', async () => {
   assert.equal(imageCalls[0]?.negativePrompt, undefined);
   assert.equal(imageCalls[0]?.referenceImages, undefined);
   assert.equal(imageCalls[0]?.mask, undefined);
+});
+
+// ---------------------------------------------------------------------------
+// S-MOD-002: inter-mod messaging semantics (same-process, observable)
+// ---------------------------------------------------------------------------
+test('inter-mod client forwards request/broadcast/discover through injected runtime facade', async () => {
+  const requestCalls: Array<Record<string, unknown>> = [];
+  const broadcastCalls: Array<Record<string, unknown>> = [];
+  let discoverCalled = false;
+
+  const runtime: RuntimeHookInterModFacade = {
+    registerInterModHandlerV2: async () => {},
+    unregisterInterModHandler: () => 0,
+    requestInterMod: async (input) => {
+      requestCalls.push(input as Record<string, unknown>);
+      return { echo: true };
+    },
+    broadcastInterMod: async (input) => {
+      broadcastCalls.push(input as Record<string, unknown>);
+      return { responses: [{ modId: 'mod-b', result: 'ok' }], errors: [] };
+    },
+    discoverInterModChannels: () => {
+      discoverCalled = true;
+      return [{ channel: 'chat', providers: ['mod-b'] }];
+    },
+  };
+
+  const client = createInterModClient({
+    modId: 'mod-a',
+    runtime: runtime as unknown as RuntimeHookRuntimeFacade,
+  });
+
+  const requestResult = await client.request({
+    toModId: 'mod-b',
+    channel: 'chat',
+    payload: { text: 'hello' },
+  });
+  assert.deepEqual(requestResult, { echo: true });
+  assert.equal(requestCalls.length, 1);
+  assert.equal(requestCalls[0]?.fromModId, 'mod-a');
+  assert.equal(requestCalls[0]?.toModId, 'mod-b');
+  assert.equal(requestCalls[0]?.channel, 'chat');
+
+  const broadcastResult = await client.broadcast({
+    channel: 'chat',
+    payload: { text: 'broadcast' },
+  });
+  assert.equal(broadcastResult.responses.length, 1);
+  assert.equal(broadcastCalls.length, 1);
+  assert.equal(broadcastCalls[0]?.fromModId, 'mod-a');
+
+  const channels = client.discover();
+  assert.equal(discoverCalled, true);
+  assert.equal(channels.length, 1);
+  assert.equal(channels[0]?.channel, 'chat');
+});
+
+// ---------------------------------------------------------------------------
+// S-MOD-005: hook register/unregister lifecycle boundary
+// ---------------------------------------------------------------------------
+test('inter-mod client register/unregister delegates to runtime facade', async () => {
+  const registeredHandlers: Array<{ modId: string; channel: string }> = [];
+  let unregisterResult = 0;
+
+  const runtime: RuntimeHookInterModFacade = {
+    registerInterModHandlerV2: async (input) => {
+      registeredHandlers.push({ modId: input.modId, channel: input.channel });
+    },
+    unregisterInterModHandler: (input) => {
+      unregisterResult = input.channel ? 1 : 2;
+      return unregisterResult;
+    },
+    requestInterMod: async () => ({}),
+    broadcastInterMod: async () => ({ responses: [], errors: [] }),
+    discoverInterModChannels: () => [],
+  };
+
+  const client = createInterModClient({
+    modId: 'mod-lifecycle',
+    runtime: runtime as unknown as RuntimeHookRuntimeFacade,
+  });
+
+  await client.registerHandler({
+    channel: 'events',
+    handler: async (payload) => payload,
+  });
+  assert.equal(registeredHandlers.length, 1);
+  assert.equal(registeredHandlers[0]?.modId, 'mod-lifecycle');
+  assert.equal(registeredHandlers[0]?.channel, 'events');
+
+  const removed = client.unregisterHandler({ channel: 'events' });
+  assert.equal(removed, 1);
+
+  const removedAll = client.unregisterHandler();
+  assert.equal(removedAll, 2);
 });

@@ -27,7 +27,6 @@ const REQUIRED_REALM_FACADE_SYMBOLS = [
   'MeTwoFactorVerifyInput',
   'MeTwoFactorPrepareOutput',
   'SocialDefaultVisibilityService',
-  'SocialAttributesService',
 ];
 
 const BANNED_PUBLIC_NAME_PATTERNS = [

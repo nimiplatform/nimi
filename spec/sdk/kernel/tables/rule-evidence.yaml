@@ -1,5 +1,18 @@
-version: 1
+version: 2
+rule_compliance:
+  total_s_rules: 97
+  audit_date: "2026-03-12"
+  sdk_version: "0.4.0"
+
 evidence_catalog:
+  sdk_behavioral_test:
+    type: test_gate
+    command: pnpm --filter @nimiplatform/sdk test
+    path: sdk/package.json
+    description: >-
+      Behavioral unit/integration tests verifying rule semantics. Rules with
+      this evidence have dedicated test cases (listed in test_files) that
+      exercise the specific behavior the rule mandates.
   sdk_kernel_consistency:
     type: static_gate
     command: pnpm check:sdk-spec-kernel-consistency
@@ -14,7 +27,7 @@ evidence_catalog:
     type: test_gate
     command: pnpm --filter @nimiplatform/sdk test
     path: sdk/package.json
-    description: SDK unit tests for transport, error projection, and boundary enforcement.
+    description: SDK unit tests pass as a whole. Rules with this ref (without test_files) are indirectly validated by the suite.
   sdk_boundary_gate:
     type: static_gate
     command: pnpm check:sdk-import-boundary && pnpm check:no-create-nimi-client && pnpm check:no-global-openapi-config
@@ -25,296 +38,416 @@ evidence_catalog:
     command: pnpm check:sdk-realm-legacy-clean
     path: scripts/check-sdk-realm-legacy-clean.mjs
     description: Realm legacy naming prohibition.
+  sdk_mod_hardcut_gate:
+    type: static_gate
+    command: pnpm check:runtime-mod-hook-hardcut
+    path: scripts/check-runtime-mod-hook-hardcut.mjs
+    description: Mod legacy surface hardcut enforcement.
 
 rules:
+  # --- AI Provider Contract (S-AIP) ---
   - rule_id: S-AIP-001
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/ai-provider/provider.test.ts]
   - rule_id: S-AIP-002
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/ai-provider/provider.test.ts]
   - rule_id: S-AIP-003
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/ai-provider/provider.test.ts]
   - rule_id: S-AIP-004
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+    note: "Structural alignment rule; provider catalog alignment verified by consistency gate"
   - rule_id: S-AIP-005
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/ai-provider/provider.test.ts]
+
+  # --- Boundary Contract (S-BOUNDARY) ---
   - rule_id: S-BOUNDARY-001
     status: covered
-    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+    evidence_refs: [sdk_kernel_consistency, sdk_boundary_gate, sdk_test_gate]
+    note: "Import boundary structurally enforced by boundary gate; test suite provides indirect validation"
   - rule_id: S-BOUNDARY-002
     status: covered
-    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+    evidence_refs: [sdk_kernel_consistency, sdk_boundary_gate, sdk_test_gate]
+    note: "Import boundary structurally enforced by boundary gate; test suite provides indirect validation"
   - rule_id: S-BOUNDARY-003
     status: covered
-    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/mod/mod-runtime-context.test.ts]
   - rule_id: S-BOUNDARY-004
     status: covered
     evidence_refs: [sdk_kernel_consistency, sdk_boundary_gate]
+    note: "Structural boundary rule; boundary gate verifies no prohibited imports"
   - rule_id: S-BOUNDARY-005
     status: covered
     evidence_refs: [sdk_kernel_consistency, sdk_boundary_gate, sdk_test_gate]
+    note: "Import boundary structurally enforced by boundary gate; test suite provides indirect validation"
   - rule_id: S-BOUNDARY-006
     status: covered
-    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+
+  # --- Error Projection (S-ERROR) ---
   - rule_id: S-ERROR-001
     status: covered
-    evidence_refs: [sdk_kernel_consistency, sdk_lint_gate]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency, sdk_lint_gate]
+    test_files: [sdk/test/runtime/runtime-client-metadata.test.ts]
   - rule_id: S-ERROR-002
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+    note: "Source-of-truth governance rule; check:reason-code-constants verifies constants match runtime spec"
   - rule_id: S-ERROR-003
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+    note: "Source-of-truth governance rule; sdk-error-codes.yaml is authoritative, consistency gate validates"
   - rule_id: S-ERROR-004
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-class.test.ts]
   - rule_id: S-ERROR-005
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/realm/realm-client.test.ts]
   - rule_id: S-ERROR-006
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-class.test.ts, sdk/test/runtime/runtime-version-compat.test.ts]
   - rule_id: S-ERROR-007
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-class.test.ts]
   - rule_id: S-ERROR-008
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-class.test.ts]
   - rule_id: S-ERROR-009
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-non-error-terminal.test.ts]
   - rule_id: S-ERROR-010
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+    note: "Synthetic ReasonCode governance rule; consistency gate verifies registration in sdk-error-codes.yaml"
   - rule_id: S-ERROR-011
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-class.test.ts]
   - rule_id: S-ERROR-012
     status: covered
-    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-class.test.ts]
   - rule_id: S-ERROR-013
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-client-metadata.test.ts]
   - rule_id: S-ERROR-014
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/transport-error-parity.test.ts]
   - rule_id: S-ERROR-015
     status: covered
-    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-client-metadata.test.ts]
+
+  # --- Testing Gates (S-GATE) ---
+  # S-GATE rules are meta-rules about the existence and operation of CI gates.
+  # sdk_kernel_consistency verifies their structural presence; the gates
+  # themselves are the evidence (self-referential by design).
   - rule_id: S-GATE-001
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+    note: "Meta-rule: layered test policy; verified by gate infrastructure existence"
   - rule_id: S-GATE-010
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+    note: "Meta-rule: unit/module/consumer baseline; gates themselves are the evidence"
   - rule_id: S-GATE-020
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_kernel_consistency, sdk_boundary_gate]
+    note: "Meta-rule: contract & boundary gate; gates themselves are the evidence"
   - rule_id: S-GATE-030
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+    note: "Meta-rule: vNext matrix gate"
   - rule_id: S-GATE-040
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_kernel_consistency, sdk_mod_hardcut_gate]
+    note: "Meta-rule: mod/scope gate"
   - rule_id: S-GATE-050
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+    note: "Meta-rule: runtime projection gate"
   - rule_id: S-GATE-060
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+    note: "Meta-rule: coverage gate; check:sdk-coverage enforces threshold"
   - rule_id: S-GATE-070
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+    note: "Meta-rule: provider catalog alignment gate"
   - rule_id: S-GATE-080
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+    note: "Meta-rule: live smoke gate"
   - rule_id: S-GATE-090
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+    note: "Meta-rule: release parity gate; check:sdk-version-matrix enforces"
   - rule_id: S-GATE-091
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+    note: "Meta-rule: docs drift gate; check:sdk-spec-kernel-docs-drift enforces"
+
+  # --- Mod Contract (S-MOD) ---
   - rule_id: S-MOD-001
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/mod/mod-runtime-context.test.ts]
   - rule_id: S-MOD-002
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/mod/mod-runtime-context.test.ts]
   - rule_id: S-MOD-003
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/mod/mod-runtime-context.test.ts]
   - rule_id: S-MOD-004
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_kernel_consistency, sdk_mod_hardcut_gate]
+    note: "Hardcut enforcement rule; mod hardcut gate verifies no legacy surface re-emergence"
   - rule_id: S-MOD-005
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/mod/mod-runtime-context.test.ts]
   - rule_id: S-MOD-006
     status: covered
     evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+    note: "Shell facade boundary; indirectly validated by test suite and mod import structure"
   - rule_id: S-MOD-010
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+    note: "Source-type coordination rule; consistency gate verifies desktop hook allowlist alignment"
   - rule_id: S-MOD-011
-    status: covered
+    status: na
     evidence_refs: [sdk_kernel_consistency]
+    na_reason: "Phase 2 deferred; RuntimeAppService (app_service_projection) not yet projected"
+
+  # --- Realm Contract (S-REALM) ---
   - rule_id: S-REALM-010
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/realm/realm-client.test.ts]
   - rule_id: S-REALM-011
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/realm/realm-client.test.ts]
   - rule_id: S-REALM-012
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/realm/realm-client.test.ts, sdk/test/realm/realm-no-auth.test.ts]
   - rule_id: S-REALM-013
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/realm/realm-client.test.ts]
   - rule_id: S-REALM-014
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/realm/realm-client.test.ts]
   - rule_id: S-REALM-015
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/realm/realm-client.test.ts]
   - rule_id: S-REALM-019
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/realm/realm-client.test.ts]
   - rule_id: S-REALM-027
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/realm/realm-client.test.ts]
   - rule_id: S-REALM-028
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/realm/realm-client.test.ts]
   - rule_id: S-REALM-029
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/realm/realm-client.test.ts]
   - rule_id: S-REALM-031
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/realm/realm-client.test.ts]
   - rule_id: S-REALM-035
-    status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    status: na
+    na_reason: "Realtime client not in SDK scope; rule constrains auth/state/reconnect governance boundary"
   - rule_id: S-REALM-036
-    status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    status: na
+    na_reason: "Realtime reconnect delivery guarantee; no realtime transport in SDK"
   - rule_id: S-REALM-037
-    status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    status: na
+    na_reason: "Event name ownership; SDK does not maintain authoritative event enum"
+
+  # --- Runtime Contract (S-RUNTIME) ---
   - rule_id: S-RUNTIME-010
     status: covered
-    evidence_refs: [sdk_kernel_consistency, sdk_lint_gate]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency, sdk_lint_gate]
+    test_files: [sdk/test/runtime/runtime-convenience.test.ts]
   - rule_id: S-RUNTIME-011
     status: covered
-    evidence_refs: [sdk_kernel_consistency, sdk_lint_gate]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency, sdk_lint_gate]
+    test_files: [sdk/test/runtime/runtime-convenience.test.ts, sdk/test/runtime/runtime-class-coverage.test.ts]
   - rule_id: S-RUNTIME-012
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-client-metadata.test.ts]
   - rule_id: S-RUNTIME-015
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-class-coverage.test.ts]
   - rule_id: S-RUNTIME-023
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-passthrough-coverage.test.ts]
   - rule_id: S-RUNTIME-028
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-class.test.ts]
   - rule_id: S-RUNTIME-045
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-class.test.ts]
   - rule_id: S-RUNTIME-050
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-class.test.ts]
   - rule_id: S-RUNTIME-066
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-class.test.ts]
   - rule_id: S-RUNTIME-067
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-class.test.ts]
   - rule_id: S-RUNTIME-068
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-class.test.ts]
   - rule_id: S-RUNTIME-069
     status: covered
-    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-class.test.ts]
   - rule_id: S-RUNTIME-070
     status: covered
-    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-class.test.ts]
   - rule_id: S-RUNTIME-071
     status: covered
-    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-client-write-semantics.test.ts]
+
+  # --- Scope Contract (S-SCOPE) ---
   - rule_id: S-SCOPE-001
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/scope/module.test.ts]
   - rule_id: S-SCOPE-002
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+    note: "Conceptual rule; scope expresses authorization pre-conditions only, compliance verified by architectural design review"
   - rule_id: S-SCOPE-003
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+    note: "Transport consistency rule; scope uses same error/transport semantics as runtime, compliance by design"
   - rule_id: S-SCOPE-004
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/scope/module.test.ts]
   - rule_id: S-SCOPE-005
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_kernel_consistency, sdk_boundary_gate]
+    note: "Structural boundary rule; boundary gate verifies scope import isolation"
+
+  # --- Surface Contract (S-SURFACE) ---
   - rule_id: S-SURFACE-001
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+    note: "Subpath set structural rule; check:sdk-single-package-layout verifies single-package constraint"
   - rule_id: S-SURFACE-002
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-bridge-method-parity.test.ts]
   - rule_id: S-SURFACE-003
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/realm/realm-facade-naming.test.ts]
   - rule_id: S-SURFACE-004
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/realm/realm-client.test.ts, sdk/test/scope/module.test.ts, sdk/test/mod/mod-runtime-context.test.ts]
   - rule_id: S-SURFACE-005
     status: covered
-    evidence_refs: [sdk_kernel_consistency, sdk_realm_legacy_gate]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency, sdk_realm_legacy_gate]
+    test_files: [sdk/test/realm/realm-facade-naming.test.ts]
   - rule_id: S-SURFACE-009
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+    note: "Governance rule; runtime-method-groups.yaml maintained as structured fact source, consistency gate validates"
+
+  # --- Transport Contract (S-TRANSPORT) ---
   - rule_id: S-TRANSPORT-001
     status: covered
-    evidence_refs: [sdk_kernel_consistency, sdk_lint_gate]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency, sdk_lint_gate]
+    test_files: [sdk/test/runtime/runtime-convenience.test.ts]
   - rule_id: S-TRANSPORT-002
     status: covered
-    evidence_refs: [sdk_kernel_consistency, sdk_lint_gate]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency, sdk_lint_gate]
+    test_files: [sdk/test/runtime/runtime-client-write-semantics.test.ts, sdk/test/runtime/runtime-client-metadata.test.ts]
   - rule_id: S-TRANSPORT-003
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-class.test.ts, sdk/test/ai-provider/provider.test.ts]
   - rule_id: S-TRANSPORT-004
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/realm/realm-client.test.ts]
   - rule_id: S-TRANSPORT-005
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-version-compat.test.ts, sdk/test/runtime/runtime-class.test.ts]
   - rule_id: S-TRANSPORT-006
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-client-metadata.test.ts]
   - rule_id: S-TRANSPORT-007
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-class.test.ts, sdk/test/runtime/runtime-class-coverage.test.ts]
   - rule_id: S-TRANSPORT-008
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+    note: "Design-level rule; SDK does not add client-side timeouts, compliance by absence of timeout injection"
   - rule_id: S-TRANSPORT-009
     status: covered
     evidence_refs: [sdk_kernel_consistency]
+    note: "Design-level rule; SDK does not re-split/merge chunks, compliance by absence of chunk manipulation"
   - rule_id: S-TRANSPORT-010
     status: covered
-    evidence_refs: [sdk_kernel_consistency]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-client-write-semantics.test.ts]
   - rule_id: S-TRANSPORT-011
     status: covered
-    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-client-tauri-ipc.test.ts]
   - rule_id: S-TRANSPORT-012
     status: covered
-    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-client-tauri-ipc.test.ts]
   - rule_id: S-TRANSPORT-013
     status: covered
-    evidence_refs: [sdk_kernel_consistency, sdk_test_gate]
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-class.test.ts, sdk/test/ai-provider/provider.test.ts]

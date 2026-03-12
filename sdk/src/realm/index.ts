@@ -275,7 +275,7 @@ export type { AccountDataTaskStatus, RequestDataExportInput, RequestDataExportOu
 export { requestDataExport, requestAccountDeletion } from './extensions/account-data.js';
 
 // Explicit service type exports for public naming checks.
-export type { MeTwoFactorService, SocialDefaultVisibilityService, SocialAttributesService } from './client-types.js';
+export type { MeTwoFactorService, SocialDefaultVisibilityService } from './client-types.js';
 
 // vNext realm client exports.
 export { Realm } from './client.js';

@@ -4,110 +4,112 @@
 > Source: `spec/sdk/kernel/tables/rule-evidence.yaml`
 | Evidence Ref | Type | Command | Path | Description |
 |---|---|---|---|---|
+| `sdk_behavioral_test` | `test_gate` | `pnpm --filter @nimiplatform/sdk test` | `sdk/package.json` | Behavioral unit/integration tests verifying rule semantics. Rules with this evidence have dedicated test cases (listed in test_files) that exercise the specific behavior the rule mandates. |
 | `sdk_kernel_consistency` | `static_gate` | `pnpm check:sdk-spec-kernel-consistency` | `scripts/check-sdk-spec-kernel-consistency.mjs` | Kernel rule integrity, surface boundary validation, method group coverage, and error code checks for SDK domain. |
 | `sdk_lint_gate` | `lint_gate` | `pnpm --filter @nimiplatform/sdk lint` | `sdk/package.json` | TypeScript compile and ESLint checks for SDK implementation. |
-| `sdk_test_gate` | `test_gate` | `pnpm --filter @nimiplatform/sdk test` | `sdk/package.json` | SDK unit tests for transport, error projection, and boundary enforcement. |
+| `sdk_test_gate` | `test_gate` | `pnpm --filter @nimiplatform/sdk test` | `sdk/package.json` | SDK unit tests pass as a whole. Rules with this ref (without test_files) are indirectly validated by the suite. |
 | `sdk_boundary_gate` | `static_gate` | `pnpm check:sdk-import-boundary && pnpm check:no-create-nimi-client && pnpm check:no-global-openapi-config` | `scripts/check-sdk-import-boundary.mjs` | Import boundary enforcement and legacy entry point prohibition. |
 | `sdk_realm_legacy_gate` | `static_gate` | `pnpm check:sdk-realm-legacy-clean` | `scripts/check-sdk-realm-legacy-clean.mjs` | Realm legacy naming prohibition. |
+| `sdk_mod_hardcut_gate` | `static_gate` | `pnpm check:runtime-mod-hook-hardcut` | `scripts/check-runtime-mod-hook-hardcut.mjs` | Mod legacy surface hardcut enforcement. |
 
 ## Rule Coverage Matrix
 
 | Rule ID | Status | Evidence Refs |
 |---|---|---|
-| `S-AIP-001` | `covered` | `sdk_kernel_consistency` |
-| `S-AIP-002` | `covered` | `sdk_kernel_consistency` |
-| `S-AIP-003` | `covered` | `sdk_kernel_consistency` |
+| `S-AIP-001` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-AIP-002` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-AIP-003` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-AIP-004` | `covered` | `sdk_kernel_consistency` |
-| `S-AIP-005` | `covered` | `sdk_kernel_consistency` |
-| `S-BOUNDARY-001` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
-| `S-BOUNDARY-002` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
-| `S-BOUNDARY-003` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
+| `S-AIP-005` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-BOUNDARY-001` | `covered` | `sdk_kernel_consistency`, `sdk_boundary_gate`, `sdk_test_gate` |
+| `S-BOUNDARY-002` | `covered` | `sdk_kernel_consistency`, `sdk_boundary_gate`, `sdk_test_gate` |
+| `S-BOUNDARY-003` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-BOUNDARY-004` | `covered` | `sdk_kernel_consistency`, `sdk_boundary_gate` |
 | `S-BOUNDARY-005` | `covered` | `sdk_kernel_consistency`, `sdk_boundary_gate`, `sdk_test_gate` |
-| `S-BOUNDARY-006` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
-| `S-ERROR-001` | `covered` | `sdk_kernel_consistency`, `sdk_lint_gate` |
+| `S-BOUNDARY-006` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-ERROR-001` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency`, `sdk_lint_gate` |
 | `S-ERROR-002` | `covered` | `sdk_kernel_consistency` |
 | `S-ERROR-003` | `covered` | `sdk_kernel_consistency` |
-| `S-ERROR-004` | `covered` | `sdk_kernel_consistency` |
-| `S-ERROR-005` | `covered` | `sdk_kernel_consistency` |
-| `S-ERROR-006` | `covered` | `sdk_kernel_consistency` |
-| `S-ERROR-007` | `covered` | `sdk_kernel_consistency` |
-| `S-ERROR-008` | `covered` | `sdk_kernel_consistency` |
-| `S-ERROR-009` | `covered` | `sdk_kernel_consistency` |
+| `S-ERROR-004` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-ERROR-005` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-ERROR-006` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-ERROR-007` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-ERROR-008` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-ERROR-009` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-ERROR-010` | `covered` | `sdk_kernel_consistency` |
-| `S-ERROR-011` | `covered` | `sdk_kernel_consistency` |
-| `S-ERROR-012` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
-| `S-ERROR-013` | `covered` | `sdk_kernel_consistency` |
-| `S-ERROR-014` | `covered` | `sdk_kernel_consistency` |
-| `S-ERROR-015` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
+| `S-ERROR-011` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-ERROR-012` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-ERROR-013` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-ERROR-014` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-ERROR-015` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-GATE-001` | `covered` | `sdk_kernel_consistency` |
-| `S-GATE-010` | `covered` | `sdk_kernel_consistency` |
-| `S-GATE-020` | `covered` | `sdk_kernel_consistency` |
+| `S-GATE-010` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
+| `S-GATE-020` | `covered` | `sdk_kernel_consistency`, `sdk_boundary_gate` |
 | `S-GATE-030` | `covered` | `sdk_kernel_consistency` |
-| `S-GATE-040` | `covered` | `sdk_kernel_consistency` |
+| `S-GATE-040` | `covered` | `sdk_kernel_consistency`, `sdk_mod_hardcut_gate` |
 | `S-GATE-050` | `covered` | `sdk_kernel_consistency` |
 | `S-GATE-060` | `covered` | `sdk_kernel_consistency` |
 | `S-GATE-070` | `covered` | `sdk_kernel_consistency` |
 | `S-GATE-080` | `covered` | `sdk_kernel_consistency` |
 | `S-GATE-090` | `covered` | `sdk_kernel_consistency` |
 | `S-GATE-091` | `covered` | `sdk_kernel_consistency` |
-| `S-MOD-001` | `covered` | `sdk_kernel_consistency` |
-| `S-MOD-002` | `covered` | `sdk_kernel_consistency` |
-| `S-MOD-003` | `covered` | `sdk_kernel_consistency` |
-| `S-MOD-004` | `covered` | `sdk_kernel_consistency` |
-| `S-MOD-005` | `covered` | `sdk_kernel_consistency` |
+| `S-MOD-001` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-MOD-002` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-MOD-003` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-MOD-004` | `covered` | `sdk_kernel_consistency`, `sdk_mod_hardcut_gate` |
+| `S-MOD-005` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-MOD-006` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
 | `S-MOD-010` | `covered` | `sdk_kernel_consistency` |
-| `S-MOD-011` | `covered` | `sdk_kernel_consistency` |
-| `S-REALM-010` | `covered` | `sdk_kernel_consistency` |
-| `S-REALM-011` | `covered` | `sdk_kernel_consistency` |
-| `S-REALM-012` | `covered` | `sdk_kernel_consistency` |
-| `S-REALM-013` | `covered` | `sdk_kernel_consistency` |
-| `S-REALM-014` | `covered` | `sdk_kernel_consistency` |
-| `S-REALM-015` | `covered` | `sdk_kernel_consistency` |
-| `S-REALM-019` | `covered` | `sdk_kernel_consistency` |
-| `S-REALM-027` | `covered` | `sdk_kernel_consistency` |
-| `S-REALM-028` | `covered` | `sdk_kernel_consistency` |
-| `S-REALM-029` | `covered` | `sdk_kernel_consistency` |
-| `S-REALM-031` | `covered` | `sdk_kernel_consistency` |
-| `S-REALM-035` | `covered` | `sdk_kernel_consistency` |
-| `S-REALM-036` | `covered` | `sdk_kernel_consistency` |
-| `S-REALM-037` | `covered` | `sdk_kernel_consistency` |
-| `S-RUNTIME-010` | `covered` | `sdk_kernel_consistency`, `sdk_lint_gate` |
-| `S-RUNTIME-011` | `covered` | `sdk_kernel_consistency`, `sdk_lint_gate` |
-| `S-RUNTIME-012` | `covered` | `sdk_kernel_consistency` |
-| `S-RUNTIME-015` | `covered` | `sdk_kernel_consistency` |
-| `S-RUNTIME-023` | `covered` | `sdk_kernel_consistency` |
-| `S-RUNTIME-028` | `covered` | `sdk_kernel_consistency` |
-| `S-RUNTIME-045` | `covered` | `sdk_kernel_consistency` |
-| `S-RUNTIME-050` | `covered` | `sdk_kernel_consistency` |
-| `S-RUNTIME-066` | `covered` | `sdk_kernel_consistency` |
-| `S-RUNTIME-067` | `covered` | `sdk_kernel_consistency` |
-| `S-RUNTIME-068` | `covered` | `sdk_kernel_consistency` |
-| `S-RUNTIME-069` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
-| `S-RUNTIME-070` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
-| `S-RUNTIME-071` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
-| `S-SCOPE-001` | `covered` | `sdk_kernel_consistency` |
+| `S-MOD-011` | `na` | `sdk_kernel_consistency` |
+| `S-REALM-010` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-REALM-011` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-REALM-012` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-REALM-013` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-REALM-014` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-REALM-015` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-REALM-019` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-REALM-027` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-REALM-028` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-REALM-029` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-REALM-031` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-REALM-035` | `na` | — |
+| `S-REALM-036` | `na` | — |
+| `S-REALM-037` | `na` | — |
+| `S-RUNTIME-010` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency`, `sdk_lint_gate` |
+| `S-RUNTIME-011` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency`, `sdk_lint_gate` |
+| `S-RUNTIME-012` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-RUNTIME-015` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-RUNTIME-023` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-RUNTIME-028` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-RUNTIME-045` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-RUNTIME-050` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-RUNTIME-066` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-RUNTIME-067` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-RUNTIME-068` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-RUNTIME-069` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-RUNTIME-070` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-RUNTIME-071` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-SCOPE-001` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-SCOPE-002` | `covered` | `sdk_kernel_consistency` |
 | `S-SCOPE-003` | `covered` | `sdk_kernel_consistency` |
-| `S-SCOPE-004` | `covered` | `sdk_kernel_consistency` |
-| `S-SCOPE-005` | `covered` | `sdk_kernel_consistency` |
+| `S-SCOPE-004` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-SCOPE-005` | `covered` | `sdk_kernel_consistency`, `sdk_boundary_gate` |
 | `S-SURFACE-001` | `covered` | `sdk_kernel_consistency` |
-| `S-SURFACE-002` | `covered` | `sdk_kernel_consistency` |
-| `S-SURFACE-003` | `covered` | `sdk_kernel_consistency` |
-| `S-SURFACE-004` | `covered` | `sdk_kernel_consistency` |
-| `S-SURFACE-005` | `covered` | `sdk_kernel_consistency`, `sdk_realm_legacy_gate` |
+| `S-SURFACE-002` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-SURFACE-003` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-SURFACE-004` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-SURFACE-005` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency`, `sdk_realm_legacy_gate` |
 | `S-SURFACE-009` | `covered` | `sdk_kernel_consistency` |
-| `S-TRANSPORT-001` | `covered` | `sdk_kernel_consistency`, `sdk_lint_gate` |
-| `S-TRANSPORT-002` | `covered` | `sdk_kernel_consistency`, `sdk_lint_gate` |
-| `S-TRANSPORT-003` | `covered` | `sdk_kernel_consistency` |
-| `S-TRANSPORT-004` | `covered` | `sdk_kernel_consistency` |
-| `S-TRANSPORT-005` | `covered` | `sdk_kernel_consistency` |
-| `S-TRANSPORT-006` | `covered` | `sdk_kernel_consistency` |
-| `S-TRANSPORT-007` | `covered` | `sdk_kernel_consistency` |
+| `S-TRANSPORT-001` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency`, `sdk_lint_gate` |
+| `S-TRANSPORT-002` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency`, `sdk_lint_gate` |
+| `S-TRANSPORT-003` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-TRANSPORT-004` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-TRANSPORT-005` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-TRANSPORT-006` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-TRANSPORT-007` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-TRANSPORT-008` | `covered` | `sdk_kernel_consistency` |
 | `S-TRANSPORT-009` | `covered` | `sdk_kernel_consistency` |
-| `S-TRANSPORT-010` | `covered` | `sdk_kernel_consistency` |
-| `S-TRANSPORT-011` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
-| `S-TRANSPORT-012` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
-| `S-TRANSPORT-013` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
+| `S-TRANSPORT-010` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-TRANSPORT-011` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-TRANSPORT-012` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-TRANSPORT-013` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |

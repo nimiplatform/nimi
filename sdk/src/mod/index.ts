@@ -7,3 +7,4 @@ export * from './utils/index.js';
 export * from './model-options/index.js';
 export * from './runtime-route.js';
 export type * from './types/index.js';
+export type { ModSdkHost } from './internal/host-types.js';

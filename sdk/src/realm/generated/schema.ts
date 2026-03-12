@@ -480,86 +480,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/agent/four-dimension/attributes/{accountId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get four-dimensional attributes
-         * @description Get the four-dimensional attributes for a specific account (User or Agent)
-         */
-        get: operations["FourDimensionAttributeController_getAttributes"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/four-dimension/compare": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Compare attributes between two accounts
-         * @description Compare four-dimensional attributes between two accounts and get differences
-         */
-        post: operations["FourDimensionAttributeController_compareAttributes"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/four-dimension/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get own four-dimensional attributes
-         * @description Get the four-dimensional attributes for the current authenticated account
-         */
-        get: operations["FourDimensionAttributeController_getOwnAttributes"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/four-dimension/query-by-tier": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Query accounts by tier requirements
-         * @description Find accounts that meet minimum tier requirements for discovery/matching
-         */
-        get: operations["FourDimensionAttributeController_queryByTier"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/agent/handle/{handle}": {
         parameters: {
             query?: never;
@@ -2947,6 +2867,23 @@ export type paths = {
         put?: never;
         /** Create a worldview snapshot */
         post: operations["WorldController_createWorldviewSnapshot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/world/by-id/{worldId}/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get posts scoped to a specific world */
+        get: operations["getWorldPosts"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5346,8 +5283,6 @@ export type components = {
         };
         RefreshTokenDto: {
             refreshToken?: string;
-            /** @description Alias for refreshToken */
-            refresh_token?: string;
         };
         RejectGiftDto: {
             reason?: string;

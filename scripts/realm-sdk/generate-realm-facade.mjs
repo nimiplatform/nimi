@@ -39,7 +39,7 @@ export function writeRealmFacade(repoRoot) {
   lines.push("export { requestDataExport, requestAccountDeletion } from './extensions/account-data.js';");
   lines.push('');
   lines.push('// Explicit service type exports for public naming checks.');
-  lines.push("export type { MeTwoFactorService, SocialDefaultVisibilityService, SocialAttributesService } from './client-types.js';");
+  lines.push("export type { MeTwoFactorService, SocialDefaultVisibilityService } from './client-types.js';");
   lines.push('');
   lines.push('// vNext realm client exports.');
   lines.push("export { Realm } from './client.js';");
