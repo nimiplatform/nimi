@@ -124,7 +124,6 @@
 | `K-DAEMON-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
 | `K-DAEMON-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
 | `K-DAEMON-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-DAEMON-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
 | `K-DAEMON-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
 | `K-DAEMON-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
 | `K-DAEMON-007` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |

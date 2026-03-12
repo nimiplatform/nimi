@@ -28,7 +28,6 @@ import (
 	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 	modelservice "github.com/nimiplatform/nimi/runtime/internal/services/model"
 	workflowservice "github.com/nimiplatform/nimi/runtime/internal/services/workflow"
-	"github.com/nimiplatform/nimi/runtime/internal/workerproxy"
 	"google.golang.org/grpc"
 	grpcHealth "google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
@@ -43,7 +42,6 @@ type Server struct {
 	healthServer *grpcHealth.Server
 	aiHealth     *providerhealth.Tracker
 	auditStore   *auditlog.Store
-	workerPool   *workerproxy.ConnPool
 	aiSvc        *aiservice.Service
 	localService *localservice.Service
 }
@@ -105,50 +103,38 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	healthpb.RegisterHealthServer(g, h)
 	runtimev1.RegisterRuntimeAuditServiceServer(g, auditservice.New(state, logger, aiHealth, auditStore))
 
-	var workerPool *workerproxy.ConnPool
-	var aiSvc *aiservice.Service
-	var localSvc *localservice.Service
-	if cfg.WorkerMode {
-		workerPool = workerproxy.NewConnPool(logger)
-		runtimev1.RegisterRuntimeAiServiceServer(g, workerproxy.NewAIProxy(workerPool))
-		runtimev1.RegisterRuntimeWorkflowServiceServer(g, workerproxy.NewWorkflowProxy(workerPool))
-		runtimev1.RegisterRuntimeModelServiceServer(g, workerproxy.NewModelProxy(workerPool))
-		runtimev1.RegisterRuntimeLocalServiceServer(g, workerproxy.NewLocalServiceProxy(workerPool))
-		logger.Info("runtime worker proxy mode enabled")
-	} else {
-		connStore := connectorservice.NewConnectorStore(connectorservice.ResolveBasePath())
-		if err := connStore.ReconcileStartup(); err != nil {
-			logger.Warn("connector store reconcile startup failed", "error", err)
-		}
-		if err := connectorservice.EnsureLocalConnectors(connStore); err != nil {
-			logger.Warn("local connector bootstrap failed", "error", err)
-		}
-
-		cloudDefs := buildCloudConnectorDefs(cfg)
-		if err := connectorservice.EnsureCloudConnectorsFromConfig(connStore, cloudDefs); err != nil {
-			logger.Warn("cloud connector auto-registration failed", "error", err)
-		}
-
-		aiSvc = aiservice.New(logger, modelRegistry, aiHealth, auditStore, connStore, cfg)
-		aiSvc.SetModelRegistryPersistencePath(registryPath)
-		runtimev1.RegisterRuntimeAiServiceServer(g, aiSvc)
-
-		runtimev1.RegisterRuntimeWorkflowServiceServer(g, workflowservice.New(logger))
-		modelSvc := modelservice.New(logger, modelRegistry)
-		modelSvc.SetPersistencePath(registryPath)
-		runtimev1.RegisterRuntimeModelServiceServer(g, modelSvc)
-		localSvc = localservice.New(logger, auditStore, cfg.LocalStatePath, cfg.LocalAuditCapacity)
-		runtimev1.RegisterRuntimeLocalServiceServer(g, localSvc)
-		aiSvc.SetLocalModelLister(localSvc)
-		aiSvc.SetLocalImageProfileResolver(localSvc)
-
-		connSvc := connectorservice.New(logger, connStore, auditStore)
-		connSvc.SetCloudProvider(aiSvc.CloudProvider())
-		connSvc.SetLocalModelLister(localSvc)
-		connSvc.SetModelCatalogResolver(aiSvc.SpeechCatalogResolver())
-		runtimev1.RegisterRuntimeConnectorServiceServer(g, connSvc)
-		logger.Info("runtime in-process mode enabled")
+	connStore := connectorservice.NewConnectorStore(connectorservice.ResolveBasePath())
+	if err := connStore.ReconcileStartup(); err != nil {
+		logger.Warn("connector store reconcile startup failed", "error", err)
 	}
+	if err := connectorservice.EnsureLocalConnectors(connStore); err != nil {
+		logger.Warn("local connector bootstrap failed", "error", err)
+	}
+
+	cloudDefs := buildCloudConnectorDefs(cfg)
+	if err := connectorservice.EnsureCloudConnectorsFromConfig(connStore, cloudDefs); err != nil {
+		logger.Warn("cloud connector auto-registration failed", "error", err)
+	}
+
+	aiSvc := aiservice.New(logger, modelRegistry, aiHealth, auditStore, connStore, cfg)
+	aiSvc.SetModelRegistryPersistencePath(registryPath)
+	runtimev1.RegisterRuntimeAiServiceServer(g, aiSvc)
+
+	runtimev1.RegisterRuntimeWorkflowServiceServer(g, workflowservice.New(logger))
+	modelSvc := modelservice.New(logger, modelRegistry)
+	modelSvc.SetPersistencePath(registryPath)
+	runtimev1.RegisterRuntimeModelServiceServer(g, modelSvc)
+	localSvc := localservice.New(logger, auditStore, cfg.LocalStatePath, cfg.LocalAuditCapacity)
+	runtimev1.RegisterRuntimeLocalServiceServer(g, localSvc)
+	aiSvc.SetLocalModelLister(localSvc)
+	aiSvc.SetLocalImageProfileResolver(localSvc)
+
+	connSvc := connectorservice.New(logger, connStore, auditStore)
+	connSvc.SetCloudProvider(aiSvc.CloudProvider())
+	connSvc.SetLocalModelLister(localSvc)
+	connSvc.SetModelCatalogResolver(aiSvc.SpeechCatalogResolver())
+	runtimev1.RegisterRuntimeConnectorServiceServer(g, connSvc)
+	logger.Info("runtime in-process mode enabled")
 
 	runtimev1.RegisterRuntimeGrantServiceServer(g, grantSvc)
 	runtimev1.RegisterRuntimeAuthServiceServer(g, authservice.NewWithDependencies(
@@ -166,7 +152,6 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		healthServer: h,
 		aiHealth:     aiHealth,
 		auditStore:   auditStore,
-		workerPool:   workerPool,
 		aiSvc:        aiSvc,
 		localService: localSvc,
 	}
@@ -187,7 +172,7 @@ func (s *Server) AIService() *aiservice.Service {
 }
 
 // LocalService returns the in-process local runtime service for engine
-// manager injection. Returns nil in worker mode.
+// manager injection.
 func (s *Server) LocalService() *localservice.Service {
 	return s.localService
 }
@@ -214,17 +199,9 @@ func (s *Server) Stop(ctx context.Context) error {
 
 	select {
 	case <-done:
-		if s.workerPool != nil {
-			if err := s.workerPool.Close(); err != nil {
-				return err
-			}
-		}
 		return nil
 	case <-ctx.Done():
 		s.grpcServer.Stop()
-		if s.workerPool != nil {
-			_ = s.workerPool.Close()
-		}
 		return ctx.Err()
 	}
 }

@@ -23,7 +23,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/httpserver"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
-	"github.com/nimiplatform/nimi/runtime/internal/workers"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -38,7 +37,6 @@ type Daemon struct {
 	http       *httpserver.Server
 	aiHealth   *providerhealth.Tracker
 	auditStore *auditlog.Store
-	workers    *workers.Supervisor
 	engineMgr  *engine.Manager
 
 	newEngineManager func(logger *slog.Logger, baseDir string, onState engine.StateChangeFunc) (*engine.Manager, error)
@@ -47,8 +45,6 @@ type Daemon struct {
 	providerFailureHintMu sync.RWMutex
 	providerFailureHints  map[string]string
 }
-
-var runtimeWorkerNames = []string{"ai", "model", "workflow", "local"}
 
 var (
 	engineCrashAttemptPattern    = regexp.MustCompile(`attempt=(\d+)/(\d+)`)
@@ -79,20 +75,6 @@ func (d *Daemon) Run(ctx context.Context) error {
 	d.http.SetAIHealthTracker(d.aiHealth)
 	d.state.SetStatus(health.StatusStarting, "booting")
 	d.grpc.SyncServingState()
-
-	workerCtx, stopWorkers := context.WithCancel(context.Background())
-	defer stopWorkers()
-	if d.cfg.WorkerMode {
-		d.workers = workers.New(d.logger, "", d.onWorkerStateChange)
-		if err := d.workers.Start(workerCtx, runtimeWorkerNames); err != nil {
-			d.logger.Error("start worker supervisor failed", "error", err)
-			reason := fmt.Sprintf("worker:supervisor start failed (%v)", err)
-			d.state.SetStatus(health.StatusStopped, reason)
-			d.grpc.SyncServingState()
-			appendStartupFailureAudit(d.auditStore, reason)
-			return fmt.Errorf("startup failed: %w", err)
-		}
-	}
 
 	samplerStop := make(chan struct{})
 	go d.sampleRuntimeResource(samplerStop)
@@ -130,7 +112,6 @@ func (d *Daemon) Run(ctx context.Context) error {
 		}
 	}
 
-	stopWorkers()
 	close(samplerStop)
 	close(aiProbeStop)
 	shutdownErr := d.shutdown()
@@ -142,25 +123,6 @@ func (d *Daemon) Run(ctx context.Context) error {
 		return serveErr
 	}
 	return shutdownErr
-}
-
-func (d *Daemon) onWorkerStateChange(name string, running bool, err error) {
-	snapshot := d.state.Snapshot()
-	if snapshot.Status == health.StatusStopping || snapshot.Status == health.StatusStopped {
-		return
-	}
-	if !running {
-		d.state.SetStatus(health.StatusDegraded, fmt.Sprintf("worker:%s unavailable (%v)", name, err))
-		d.grpc.SyncServingState()
-		return
-	}
-	if d.workers != nil && d.workers.AllRunning(runtimeWorkerNames) {
-		current := d.state.Snapshot()
-		if current.Status == health.StatusDegraded && strings.HasPrefix(current.Reason, "worker:") {
-			d.state.SetStatus(health.StatusReady, "ready")
-			d.grpc.SyncServingState()
-		}
-	}
 }
 
 func (d *Daemon) shutdown() error {
@@ -330,7 +292,7 @@ func configuredAIProviderTargets() []aiProviderTarget {
 //   - 404 = try next path
 //   - other 4xx/5xx = unhealthy
 func probeAIProvider(client *http.Client, target aiProviderTarget) error {
-	paths := []string{"/healthz", "/models", "/v1/models"}
+	paths := []string{"/healthz", "/v1/models"}
 	var lastErr error
 	for _, path := range paths {
 		endpoint := resolveProbeEndpoint(target.Base, path)
@@ -562,7 +524,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 			svc.SetLocalAIManagedEndpoint("")
 		}
 		svc.SetLocalAIImageBackendConfig(strings.TrimSpace(strings.ToLower(d.cfg.EngineLocalAIImageBackendMode)) != "disabled", d.cfg.EngineLocalAIImageBackendAddress)
-		svc.SetEngineManager(newEngineManagerBridge(engine.NewServiceAdapter(mgr)))
+		svc.SetEngineManager(engine.NewServiceAdapter(mgr))
 		if err := svc.SyncManagedLocalAIAssets(ctx); err != nil {
 			skipLocalAIBootstrap = d.recordLocalAIBootstrapFailure(fmt.Sprintf("sync managed localai assets: %v", err))
 		}

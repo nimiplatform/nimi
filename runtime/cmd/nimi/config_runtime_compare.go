@@ -31,9 +31,6 @@ func restartRequiredFieldsChanged(before, after config.FileConfig) bool {
 	if intPtrValue(before.ShutdownTimeoutSeconds) != intPtrValue(after.ShutdownTimeoutSeconds) {
 		return true
 	}
-	if boolPtrValue(before.WorkerMode) != boolPtrValue(after.WorkerMode) {
-		return true
-	}
 	if authJWTFieldValue(before, func(jwtCfg *config.FileConfigJWT) string { return jwtCfg.Issuer }) != authJWTFieldValue(after, func(jwtCfg *config.FileConfigJWT) string { return jwtCfg.Issuer }) {
 		return true
 	}
@@ -62,13 +59,6 @@ func authJWTFieldValue(fileCfg config.FileConfig, selector func(*config.FileConf
 func intPtrValue(p *int) int {
 	if p == nil {
 		return 0
-	}
-	return *p
-}
-
-func boolPtrValue(p *bool) bool {
-	if p == nil {
-		return false
 	}
 	return *p
 }

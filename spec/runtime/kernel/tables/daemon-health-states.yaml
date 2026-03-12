@@ -17,12 +17,12 @@ machines:
         source_rule: K-DAEMON-002
       - from: READY
         to: DEGRADED
-        trigger: worker_unavailable_or_provider_all_unhealthy
-        source_rule: K-DAEMON-004
+        trigger: provider_all_unhealthy
+        source_rule: K-PROV-003
       - from: DEGRADED
         to: READY
-        trigger: worker_recovered_or_provider_recovered
-        source_rule: K-DAEMON-004
+        trigger: provider_recovered
+        source_rule: K-PROV-003
       - from: READY
         to: STOPPING
         trigger: shutdown_signal

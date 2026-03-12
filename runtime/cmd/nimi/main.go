@@ -11,7 +11,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/entrypoint"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
-	"github.com/nimiplatform/nimi/runtime/internal/workerentry"
 	"os"
 	"strings"
 	"time"
@@ -23,14 +22,6 @@ var Version = "0.0.0-dev"
 
 func main() {
 	args := normalizeRootArgs(os.Args)
-
-	if len(args) >= 3 && args[1] == "worker" {
-		if err := workerentry.Run(args[2]); err != nil {
-			fmt.Fprintf(os.Stderr, "worker failed: %v\n", err)
-			os.Exit(1)
-		}
-		return
-	}
 
 	if len(args) < 2 {
 		printUsage()

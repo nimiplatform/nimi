@@ -11,8 +11,8 @@ States: `STOPPED`, `STARTING`, `READY`, `DEGRADED`, `STOPPING`
 | `STOPPED` | `STARTING` | `daemon_boot` | `K-DAEMON-001` |
 | `STARTING` | `READY` | `servers_listening_and_health_ok` | `K-DAEMON-002` |
 | `STARTING` | `STOPPED` | `startup_failure` | `K-DAEMON-002` |
-| `READY` | `DEGRADED` | `worker_unavailable_or_provider_all_unhealthy` | `K-DAEMON-004` |
-| `DEGRADED` | `READY` | `worker_recovered_or_provider_recovered` | `K-DAEMON-004` |
+| `READY` | `DEGRADED` | `provider_all_unhealthy` | `K-PROV-003` |
+| `DEGRADED` | `READY` | `provider_recovered` | `K-PROV-003` |
 | `READY` | `STOPPING` | `shutdown_signal` | `K-DAEMON-003` |
 | `DEGRADED` | `STOPPING` | `shutdown_signal` | `K-DAEMON-003` |
 | `STOPPING` | `STOPPED` | `shutdown_complete` | `K-DAEMON-003` |

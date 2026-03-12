@@ -84,20 +84,7 @@ func (s *Service) buildWorkflowOutput(taskID string, record *taskRecord) *struct
 }
 
 func (s *Service) runtimeAIClient() runtimev1.RuntimeAiServiceClient {
-	if s.aiClient != nil {
-		return s.aiClient
-	}
-	if s.workerPool == nil {
-		return nil
-	}
-	conn, err := s.workerPool.Conn("ai")
-	if err != nil {
-		if s.logger != nil {
-			s.logger.Debug("workflow ai worker unavailable", "error", err)
-		}
-		return nil
-	}
-	return runtimev1.NewRuntimeAiServiceClient(conn)
+	return s.aiClient
 }
 
 func promptAsMessages(prompt string) []*runtimev1.ChatMessage {

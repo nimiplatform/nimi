@@ -5,7 +5,6 @@
   "shutdownTimeoutSeconds": 10,
   "localStatePath": "~/.nimi/runtime/local-state.json",
   "localModelsPath": "~/.nimi/models",
-  "workerMode": false,
   "aiHealthIntervalSeconds": 8,
   "aiHttpTimeoutSeconds": 30,
   "globalConcurrencyLimit": 8,

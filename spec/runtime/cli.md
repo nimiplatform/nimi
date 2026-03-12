@@ -6,7 +6,7 @@
 ## 0. 权威导入
 
 - `kernel/cli-onboarding-contract.md`（K-CLI-001, K-CLI-002, K-CLI-003, K-CLI-005, K-CLI-007, K-CLI-008, K-CLI-009, K-CLI-009a, K-CLI-010, K-CLI-011, K-CLI-012, K-CLI-013, K-CLI-014, K-CLI-015）
-- `kernel/daemon-lifecycle.md`（K-DAEMON-001, K-DAEMON-004, K-DAEMON-008）
+- `kernel/daemon-lifecycle.md`（K-DAEMON-001, K-DAEMON-003, K-DAEMON-008）
 - `kernel/model-service-contract.md`（K-MODEL-001, K-MODEL-006）
 - `kernel/provider-health-contract.md`（K-PROV-001, K-PROV-005）
 - `kernel/config-contract.md`（K-CFG-001, K-CFG-005, K-CFG-006）

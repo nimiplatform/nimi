@@ -3,7 +3,6 @@ package workflow
 import (
 	"context"
 	"log/slog"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -16,7 +15,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
-	"github.com/nimiplatform/nimi/runtime/internal/workerproxy"
 )
 
 const (
@@ -87,8 +85,7 @@ type Service struct {
 	resultStore   *resultStore
 	artifactStore *artifactStore
 
-	aiClient     runtimev1.RuntimeAiServiceClient
-	workerPool   *workerproxy.ConnPool
+	aiClient runtimev1.RuntimeAiServiceClient
 }
 
 func New(logger *slog.Logger, opts ...Option) *Service {
@@ -111,10 +108,6 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 		}
 	} else {
 		svc.artifactStore = store
-	}
-
-	if strings.EqualFold(strings.TrimSpace(os.Getenv("NIMI_RUNTIME_WORKER_ROLE")), "workflow") {
-		svc.workerPool = workerproxy.NewConnPool(logger)
 	}
 
 	for _, opt := range opts {

@@ -23,11 +23,10 @@ Runtime daemon 维护全局健康状态，枚举固定为：
 Daemon 启动固定为以下阶段：
 
 1. **Config**：加载配置（`K-DAEMON-009`），校验地址与超时。
-2. **Workers**：若 worker 模式启用，启动 worker supervisor（`K-DAEMON-004`）。失败则状态置 `STOPPED`，写审计（`runtime.lifecycle` / `startup.failed`），返回错误。
-3. **Servers**：并行启动 gRPC server 与 HTTP server。
-4. **Engines**：若引擎 SUPERVISED 模式启用（`K-LENG-004`），创建 engine.Manager 并按配置启动 enabled 的引擎。引擎就绪后注入 endpoint 环境变量。启动失败不阻塞 daemon，标记 `DEGRADED`，并写入引擎 bootstrap 失败审计与 provider 不健康原因上下文。
-5. **Ready**：状态从 `STARTING` 迁移到 `READY`，同步 gRPC health serving status。
-6. **Probes**：启动资源采样（1s 周期，内存）与 AI Provider 健康探测（`K-PROV-003`）。
+2. **Servers**：并行启动 gRPC server 与 HTTP server。
+3. **Engines**：若引擎 SUPERVISED 模式启用（`K-LENG-004`），创建 engine.Manager 并按配置启动 enabled 的引擎。引擎就绪后注入 endpoint 环境变量。启动失败不阻塞 daemon，标记 `DEGRADED`，并写入引擎 bootstrap 失败审计与 provider 不健康原因上下文。
+4. **Ready**：状态从 `STARTING` 迁移到 `READY`，同步 gRPC health serving status。
+5. **Probes**：启动资源采样（1s 周期，内存）与 AI Provider 健康探测（`K-PROV-003`）。
 
 ## K-DAEMON-003 优雅停机
 
@@ -35,11 +34,10 @@ Daemon 启动固定为以下阶段：
 
 1. 状态迁移到 `STOPPING`，同步 gRPC health serving status。
 2. 停止 supervised 引擎（`engineMgr.StopAll()`，`K-LENG-004`）。
-3. 停止 worker supervisor。
-4. 停止资源采样与 AI Provider 探测。
-5. 带超时关闭 HTTP server（默认 10s，通过 `K-DAEMON-009` 配置）。
-6. 带超时关闭 gRPC server（GracefulStop，同一超时后 ForceStop）。
-7. 状态迁移到 `STOPPED`。
+3. 停止资源采样与 AI Provider 探测。
+4. 带超时关闭 HTTP server（默认 10s，通过 `K-DAEMON-009` 配置）。
+5. 带超时关闭 gRPC server（GracefulStop，同一超时后 ForceStop）。
+6. 状态迁移到 `STOPPED`。
 
 停机期间只读方法允许通过 lifecycle 拦截器（`K-DAEMON-005`）。
 
@@ -47,37 +45,15 @@ Daemon 启动固定为以下阶段：
 
 | 子系统状态机 | STOPPING 行为 | 引用 |
 |---|---|---|
-| 活跃 ScenarioJob（K-JOB-001） | lifecycle 拦截器拒绝新请求（`UNAVAILABLE`）；已提交的 in-flight job 继续执行直到 gRPC GracefulStop 超时后强制终止 | K-DAEMON-003 step 5 |
-| 活跃 Workflow（K-WF-003） | 同 ScenarioJob：新请求拒绝，in-flight workflow 在 GracefulStop 期内继续，超时后强制终止。客户端收到流断开 | K-DAEMON-003 step 5 |
-| 活跃 StreamScenario | GracefulStop 等待活跃流完成或超时后 ForceStop 中断。客户端收到 gRPC status 中断 | K-DAEMON-003 step 5 |
+| 活跃 ScenarioJob（K-JOB-001） | lifecycle 拦截器拒绝新请求（`UNAVAILABLE`）；已提交的 in-flight job 继续执行直到 gRPC GracefulStop 超时后强制终止 | K-DAEMON-003 step 4 |
+| 活跃 Workflow（K-WF-003） | 同 ScenarioJob：新请求拒绝，in-flight workflow 在 GracefulStop 期内继续，超时后强制终止。客户端收到流断开 | K-DAEMON-003 step 4 |
+| 活跃 StreamScenario | GracefulStop 等待活跃流完成或超时后 ForceStop 中断。客户端收到 gRPC status 中断 | K-DAEMON-003 step 4 |
 | 长生命周期订阅流（K-STREAM-010） | server 以 `CANCELLED` 关闭所有活跃订阅流 | K-STREAM-010 |
-| Supervised 引擎（K-LENG-004） | 向所有引擎进程发送 SIGTERM，超时后 SIGKILL。引擎停止在 worker/gRPC 关闭前执行 | K-DAEMON-003 step 2 |
-| Provider 探测（K-PROV-003） | 停止探测 | K-DAEMON-003 step 4 |
+| Supervised 引擎（K-LENG-004） | 向所有引擎进程发送 SIGTERM，超时后 SIGKILL。引擎停止在 gRPC/HTTP 关闭前执行 | K-DAEMON-003 step 2 |
+| Provider 探测（K-PROV-003） | 停止探测 | K-DAEMON-003 step 3 |
 | Session 内存 map（K-AUTHSVC-012） | 进程退出后丢失，所有 session 失效 | K-AUTHSVC-012 |
 
 **设计决策**：Phase 1 不实现 in-flight 任务的优雅排空（drain）——GracefulStop 超时到期后直接 ForceStop。此决策基于：桌面端 daemon 重启预期为低频事件，AI 推理任务可由客户端重试恢复。若未来引入服务端持久化队列，可在此基础上添加排空协议。
-
-## K-DAEMON-004 Worker 监管
-
-Worker 模式启用时（`NIMI_RUNTIME_WORKER_MODE=true`），daemon 以 supervisor 角色管理子进程：
-
-- **Worker 名称枚举**：`ai`、`model`、`workflow`、`local`。仅此 4 个有效名称，其他忽略。
-- **Worker → Service 映射**：
-
-| Worker 名称 | 对应 gRPC Service | 说明 |
-|---|---|---|
-| `ai` | `RuntimeAiService` | AI 推理执行（ExecuteScenario/StreamScenario/ScenarioJob/VoiceAsset） |
-| `model` | `RuntimeModelService` | 模型注册与管理 |
-| `workflow` | `RuntimeWorkflowService` | 工作流 DAG 执行 |
-| `local` | `RuntimeLocalService` | 本地模型生命周期管理 |
-- **启动**：为每个 worker 启动独立 goroutine 执行重启循环。
-- **重启策略**：2s base backoff + uniform jitter [0, 500ms]，context 取消时退出循环。
-- **环境注入**：`NIMI_RUNTIME_WORKER_ROLE=<name>`，`NIMI_RUNTIME_WORKER_SOCKET=<socket_path>`。
-- **Socket 路径**：`~/.nimi/runtime/worker-<name>.sock`（Unix Domain Socket）。
-- **存活检测**：supervisor 通过 `os.Process.Wait()` 检测 worker 进程退出。每个 worker 在独立 goroutine 中执行 `Wait()`，进程退出时立即触发状态回调与重启循环。
-- **状态回调**：worker 停止时触发 `onStateChange(name, running=false, err)`：
-  - 若 daemon 非 `STOPPING`/`STOPPED`，健康状态降级为 `DEGRADED`（reason: `worker:<name> unavailable`）。
-  - 所有 worker 恢复运行后，若当前为 worker 原因的 `DEGRADED`，恢复为 `READY`。
 
 ## K-DAEMON-005 gRPC 拦截器链
 

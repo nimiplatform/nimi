@@ -61,10 +61,6 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 	case "defaultCloudProvider":
 		cfg.DefaultCloudProvider = strings.TrimSpace(value)
 		return nil
-	case "workerMode":
-		v := strings.ToLower(strings.TrimSpace(value)) == "true"
-		cfg.WorkerMode = &v
-		return nil
 	case "aiHealthIntervalSeconds":
 		parsed, err := strconv.Atoi(strings.TrimSpace(value))
 		if err != nil {
@@ -274,9 +270,6 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 		return nil
 	case "defaultCloudProvider":
 		cfg.DefaultCloudProvider = strings.TrimSpace(defaultCfg.DefaultCloudProvider)
-		return nil
-	case "workerMode":
-		cfg.WorkerMode = defaultCfg.WorkerMode
 		return nil
 	case "aiHealthIntervalSeconds":
 		cfg.AIHealthIntervalSeconds = defaultCfg.AIHealthIntervalSeconds

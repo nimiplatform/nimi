@@ -40,9 +40,6 @@ func mergeFileConfigWithDefaults(raw config.FileConfig) config.FileConfig {
 	if v := strings.TrimSpace(raw.DefaultCloudProvider); v != "" {
 		merged.DefaultCloudProvider = v
 	}
-	if raw.WorkerMode != nil {
-		merged.WorkerMode = raw.WorkerMode
-	}
 	if raw.AIHealthIntervalSeconds != nil {
 		merged.AIHealthIntervalSeconds = raw.AIHealthIntervalSeconds
 	}

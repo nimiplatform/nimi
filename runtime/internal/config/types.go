@@ -36,10 +36,6 @@ type Config struct {
 	// sessions. Requests above this bound are rejected. Default: 86400. (K-AUTHSVC-004)
 	SessionTTLMaxSeconds int
 
-	// WorkerMode enables runtime worker supervisor/proxy mode.
-	// Default: false. (K-DAEMON-004, K-DAEMON-009)
-	WorkerMode bool
-
 	// AIHealthIntervalSeconds is the interval in seconds between AI provider
 	// health probes. Default: 8. (K-DAEMON-009)
 	AIHealthIntervalSeconds int
@@ -172,7 +168,6 @@ type FileConfig struct {
 	DefaultLocalTextModel  string `json:"defaultLocalTextModel,omitempty"`
 	DefaultCloudProvider   string `json:"defaultCloudProvider,omitempty"`
 
-	WorkerMode              *bool  `json:"workerMode,omitempty"`
 	AIHealthIntervalSeconds *int   `json:"aiHealthIntervalSeconds,omitempty"`
 	AIHTTPTimeoutSeconds    *int   `json:"aiHttpTimeoutSeconds,omitempty"`
 	GlobalConcurrencyLimit  *int   `json:"globalConcurrencyLimit,omitempty"`

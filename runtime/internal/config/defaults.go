@@ -16,7 +16,6 @@ func DefaultFileConfig() FileConfig {
 		ShutdownTimeoutSeconds:  intPtr(10),
 		LocalStatePath:          "~/" + defaultLocalStateRelPath,
 		LocalModelsPath:         "~/" + defaultLocalModelsRelPath,
-		WorkerMode:              boolPtr(false),
 		AIHealthIntervalSeconds: intPtr(8),
 		AIHTTPTimeoutSeconds:    intPtr(30),
 		GlobalConcurrencyLimit:  intPtr(8),

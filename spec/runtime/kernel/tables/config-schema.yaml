@@ -37,13 +37,6 @@ fields:
     description: 本地状态持久化路径
     source_rule: K-LOCAL-016
 
-  - key: workerMode
-    type: bool
-    default: "false"
-    reload: restart
-    description: 是否启用 worker 模式
-    source_rule: K-DAEMON-004
-
   - key: aiHealthIntervalSeconds
     type: int
     default: "8"

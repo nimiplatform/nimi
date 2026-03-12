@@ -349,9 +349,6 @@ rules:
   - rule_id: K-DAEMON-003
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
-  - rule_id: K-DAEMON-004
-    status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
   - rule_id: K-DAEMON-005
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
