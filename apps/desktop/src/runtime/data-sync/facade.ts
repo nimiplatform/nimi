@@ -29,6 +29,7 @@ import type {
   WorldLevelAuditEventDto,
 } from '@nimiplatform/sdk/realm';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
+import { extractRuntimeErrorFields } from '@runtime/telemetry/error-fields';
 import {
   getOfflineCoordinator,
   isRealmOfflineError,
@@ -162,12 +163,18 @@ export class DataSync {
             });
           },
           onRefreshFailed: (error: unknown) => {
+            const errorFields = extractRuntimeErrorFields(error);
             emitRuntimeLog({
               level: 'warn',
               area: 'datasync',
               message: 'action:token-refresh:failed',
+              traceId: errorFields.traceId,
               details: {
-                error: error instanceof Error ? error.message : String(error || ''),
+                reasonCode: errorFields.reasonCode,
+                actionHint: errorFields.actionHint,
+                retryable: errorFields.retryable,
+                traceId: errorFields.traceId,
+                error: errorFields.message || (error instanceof Error ? error.message : String(error || '')),
               },
             });
             this.authCallbacks?.clearAuth();
@@ -190,13 +197,19 @@ export class DataSync {
   }
 
   private emitDataSyncError(action: string, error: unknown, details: Record<string, unknown> = {}) {
+    const errorFields = extractRuntimeErrorFields(error);
     emitRuntimeLog({
       level: 'error',
       area: 'datasync',
       message: `action:${action}:failed`,
+      traceId: errorFields.traceId,
       details: {
         ...details,
-        error: error instanceof Error ? error.message : String(error || ''),
+        reasonCode: errorFields.reasonCode,
+        actionHint: errorFields.actionHint,
+        retryable: errorFields.retryable,
+        traceId: errorFields.traceId,
+        error: errorFields.message || (error instanceof Error ? error.message : String(error || '')),
       },
     });
   }

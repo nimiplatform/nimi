@@ -6,6 +6,7 @@ import type {
   ModManifest,
 } from '../contracts/types';
 import { emitRuntimeLog } from '../../telemetry/logger';
+import { extractRuntimeErrorFields } from '../../telemetry/error-fields';
 import type { SandboxManager } from '../sandbox/sandbox-manager';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
@@ -57,16 +58,22 @@ export async function persistStageTrailRecords(
         occurredAt: item.createdAt,
       });
     } catch (error) {
+      const errorFields = extractRuntimeErrorFields(error);
       emitRuntimeLog({
         level: 'error',
         area: 'execution-kernel',
         message: 'action:audit-persistence:failed',
+        traceId: errorFields.traceId,
         details: {
           decisionId: item.decisionId,
           modId: item.modId,
           stage: item.stage,
           eventType,
-          error: error instanceof Error ? error.message : String(error || ''),
+          reasonCode: errorFields.reasonCode,
+          actionHint: errorFields.actionHint,
+          retryable: errorFields.retryable,
+          traceId: errorFields.traceId,
+          error: errorFields.message || (error instanceof Error ? error.message : String(error || '')),
         },
       });
     }

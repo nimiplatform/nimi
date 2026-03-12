@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { refreshRuntimeModDeveloperHostState } from '@renderer/mod-ui/lifecycle/runtime-mod-shell-state';
 import { reconcileRuntimeLocalMods } from '@renderer/mod-ui/lifecycle/runtime-mod-developer-host';
 import { Button, Card, PageShell, SectionTitle, StatusBadge } from './settings-layout-components';
@@ -46,7 +47,16 @@ export function DeveloperPage() {
       setResolvedNimiDataDir(dirs.nimiDataDir);
       setResolvedInstalledModsDir(dirs.installedModsDir);
       setNimiDataDirInput(dirs.nimiDataDir);
-    }).catch(() => {});
+    }).catch((error) => {
+      logRendererEvent({
+        level: 'warn',
+        area: 'settings-developer',
+        message: 'get-runtime-mod-storage-dirs:failed',
+        details: {
+          error: error instanceof Error ? error.message : String(error || ''),
+        },
+      });
+    });
   }, []);
 
   const sourceSummary = useMemo(() => ({

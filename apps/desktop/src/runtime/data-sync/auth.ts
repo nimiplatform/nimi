@@ -21,11 +21,15 @@ export function traceIdOf(debug?: PasswordAuthDebug): string | undefined {
 }
 
 export function emitAuthLog(options: AuthLogOptions): void {
+  const flowId = typeof options.details?.flowId === 'string' && options.details.flowId.trim()
+    ? options.details.flowId.trim()
+    : options.traceId;
   emitRuntimeLog({
     level: options.level,
     area: 'datasync-auth',
     message: options.message,
-    flowId: options.traceId,
+    traceId: options.traceId,
+    flowId,
     source: options.source,
     costMs: options.costMs,
     details: options.details,

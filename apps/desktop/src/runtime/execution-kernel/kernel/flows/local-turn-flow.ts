@@ -1,5 +1,6 @@
 import type { ExecuteLocalKernelTurnResult } from '../../../llm-adapter/execution/types';
 import { emitRuntimeLog } from '../../../telemetry/logger';
+import { extractRuntimeErrorFields } from '../../../telemetry/error-fields';
 import type { ExecuteLocalTurnInput, KernelStage } from '../../contracts/types';
 
 type LocalTurnFlowInput = {
@@ -94,16 +95,22 @@ export async function runLocalTurnFlow({
         occurredAt: new Date().toISOString(),
       });
     } catch (auditError) {
+      const errorFields = extractRuntimeErrorFields(auditError);
       emitRuntimeLog({
         level: 'error',
         area: 'execution-kernel',
         message: 'action:audit-persistence:failed',
+        traceId: errorFields.traceId,
         details: {
           eventType: 'LOCAL_TURN_EXECUTED',
           provider: input.provider,
           requestId: input.requestId,
           sessionId: input.sessionId,
-          error: auditError instanceof Error ? auditError.message : String(auditError || ''),
+          reasonCode: errorFields.reasonCode,
+          actionHint: errorFields.actionHint,
+          retryable: errorFields.retryable,
+          traceId: errorFields.traceId,
+          error: errorFields.message || (auditError instanceof Error ? auditError.message : String(auditError || '')),
         },
       });
     }
@@ -126,16 +133,22 @@ export async function runLocalTurnFlow({
         occurredAt: new Date().toISOString(),
       });
     } catch (auditError) {
+      const errorFields = extractRuntimeErrorFields(auditError);
       emitRuntimeLog({
         level: 'error',
         area: 'execution-kernel',
         message: 'action:audit-persistence:failed',
+        traceId: errorFields.traceId,
         details: {
           eventType: 'LOCAL_TURN_FAILED',
           provider: input.provider,
           requestId: input.requestId,
           sessionId: input.sessionId,
-          error: auditError instanceof Error ? auditError.message : String(auditError || ''),
+          reasonCode: errorFields.reasonCode,
+          actionHint: errorFields.actionHint,
+          retryable: errorFields.retryable,
+          traceId: errorFields.traceId,
+          error: errorFields.message || (auditError instanceof Error ? auditError.message : String(auditError || '')),
         },
       });
     }

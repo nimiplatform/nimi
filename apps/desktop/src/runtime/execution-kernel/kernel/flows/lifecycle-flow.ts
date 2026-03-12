@@ -1,4 +1,5 @@
 import { emitRuntimeLog } from '../../../telemetry/logger';
+import { extractRuntimeErrorFields } from '../../../telemetry/error-fields';
 import type {
   InstallInput,
   KernelStage,
@@ -49,15 +50,21 @@ async function appendLifecycleAudit(input: LifecycleAuditInput) {
       occurredAt: new Date().toISOString(),
     });
   } catch (error) {
+    const errorFields = extractRuntimeErrorFields(error);
     emitRuntimeLog({
       level: 'error',
       area: 'execution-kernel',
       message: 'action:audit-persistence:failed',
+      traceId: errorFields.traceId,
       details: {
         modId: input.modId,
         version: input.version,
         eventType: input.eventType,
-        error: error instanceof Error ? error.message : String(error || ''),
+        reasonCode: errorFields.reasonCode,
+        actionHint: errorFields.actionHint,
+        retryable: errorFields.retryable,
+        traceId: errorFields.traceId,
+        error: errorFields.message || (error instanceof Error ? error.message : String(error || '')),
       },
     });
   }
