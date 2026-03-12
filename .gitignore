@@ -47,4 +47,7 @@ dev/
 dev/*
 !dev/config/
 dev/config/*
+# checked-in dev baselines/templates required by repo scripts
+!dev/config/ai-context-budget.yaml
 !dev/config/live-gate-baseline.yaml
+!dev/live-test.env.example
