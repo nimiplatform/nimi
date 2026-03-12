@@ -8,7 +8,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -97,11 +96,15 @@ func manifestStruct(input map[string]any, keys ...string) (*structpb.Struct, err
 func (s *Service) RemoveLocalModel(_ context.Context, req *runtimev1.RemoveLocalModelRequest) (*runtimev1.RemoveLocalModelResponse, error) {
 	localModelID := strings.TrimSpace(req.GetLocalModelId())
 	if localModelID == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "local model id is required")
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			ActionHint: "set_local_model_id",
+		})
 	}
 	current := s.modelByID(localModelID)
 	if current == nil {
-		return nil, status.Errorf(codes.NotFound, "local model %s not found", localModelID)
+		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			ActionHint: "install_or_select_existing_local_model",
+		})
 	}
 	if boundServiceID := s.findBoundServiceID(localModelID); boundServiceID != "" {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)

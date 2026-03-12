@@ -93,6 +93,10 @@ func LoadFileConfig(path string) (FileConfig, error) {
 	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
 		return FileConfig{}, fmt.Errorf("parse runtime config file %q: %w", path, err)
 	}
+	parsed, err = migrateFileConfig(path, content, parsed)
+	if err != nil {
+		return FileConfig{}, fmt.Errorf("validate runtime config file %q: %w", path, err)
+	}
 	if err := ValidateFileConfig(parsed); err != nil {
 		return FileConfig{}, fmt.Errorf("validate runtime config file %q: %w", path, err)
 	}

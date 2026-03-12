@@ -19,7 +19,9 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -294,6 +296,9 @@ func (s *Service) SubscribeRuntimeHealthEvents(_ *runtimev1.SubscribeRuntimeHeal
 			}
 			if err := stream.Send(event); err != nil {
 				return err
+			}
+			if snapshot.Status == health.StatusStopping {
+				return status.Error(codes.Canceled, "runtime stopping")
 			}
 		}
 	}

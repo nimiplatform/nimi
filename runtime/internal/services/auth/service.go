@@ -12,9 +12,9 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -110,17 +110,17 @@ func NewWithDependencies(logger *slog.Logger, registry *appregistry.Registry, au
 	}
 }
 
-func (s *Service) RegisterApp(_ context.Context, req *runtimev1.RegisterAppRequest) (*runtimev1.RegisterAppResponse, error) {
+func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppRequest) (*runtimev1.RegisterAppResponse, error) {
 	appID := strings.TrimSpace(req.GetAppId())
 	if appID == "" {
-		s.emitAudit("RegisterApp", appID, "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		s.emitAudit(ctx, "RegisterApp", appID, "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		return &runtimev1.RegisterAppResponse{
 			Accepted:   false,
 			ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
 		}, nil
 	}
 	if reasonCode, _, ok := appregistry.ValidateManifest(req.GetModeManifest()); !ok {
-		s.emitAudit("RegisterApp", appID, "", reasonCode)
+		s.emitAudit(ctx, "RegisterApp", appID, "", reasonCode)
 		return &runtimev1.RegisterAppResponse{
 			Accepted:   false,
 			ReasonCode: reasonCode,
@@ -148,7 +148,7 @@ func (s *Service) RegisterApp(_ context.Context, req *runtimev1.RegisterAppReque
 	s.mu.Unlock()
 	s.registry.Upsert(appID, req.GetModeManifest(), req.GetCapabilities())
 
-	s.emitAudit("RegisterApp", appID, "", runtimev1.ReasonCode_ACTION_EXECUTED)
+	s.emitAudit(ctx, "RegisterApp", appID, "", runtimev1.ReasonCode_ACTION_EXECUTED)
 	s.logger.Info("app registered", "app_id", appID, "app_instance_id", instanceID)
 	return &runtimev1.RegisterAppResponse{
 		AppInstanceId: instanceID,
@@ -157,14 +157,14 @@ func (s *Service) RegisterApp(_ context.Context, req *runtimev1.RegisterAppReque
 	}, nil
 }
 
-func (s *Service) OpenSession(_ context.Context, req *runtimev1.OpenSessionRequest) (*runtimev1.OpenSessionResponse, error) {
+func (s *Service) OpenSession(ctx context.Context, req *runtimev1.OpenSessionRequest) (*runtimev1.OpenSessionResponse, error) {
 	appID := strings.TrimSpace(req.GetAppId())
 	instanceID := strings.TrimSpace(req.GetAppInstanceId())
 	deviceID := strings.TrimSpace(req.GetDeviceId())
 	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
 
 	if appID == "" || instanceID == "" || subjectUserID == "" {
-		s.emitAudit("OpenSession", appID, subjectUserID, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		s.emitAudit(ctx, "OpenSession", appID, subjectUserID, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		return &runtimev1.OpenSessionResponse{ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID}, nil
 	}
 
@@ -172,14 +172,14 @@ func (s *Service) OpenSession(_ context.Context, req *runtimev1.OpenSessionReque
 	_, exists := s.apps[appID+"::"+instanceID]
 	s.mu.RUnlock()
 	if !exists {
-		s.emitAudit("OpenSession", appID, subjectUserID, runtimev1.ReasonCode_APP_NOT_REGISTERED)
+		s.emitAudit(ctx, "OpenSession", appID, subjectUserID, runtimev1.ReasonCode_APP_NOT_REGISTERED)
 		return &runtimev1.OpenSessionResponse{ReasonCode: runtimev1.ReasonCode_APP_NOT_REGISTERED}, nil
 	}
 
 	now := time.Now().UTC()
 	ttl, err := s.resolveTTL(req.GetTtlSeconds(), 3600)
 	if err != nil {
-		s.emitAudit("OpenSession", appID, subjectUserID, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		s.emitAudit(ctx, "OpenSession", appID, subjectUserID, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		return nil, err
 	}
 	expiresAt := now.Add(ttl)
@@ -200,7 +200,7 @@ func (s *Service) OpenSession(_ context.Context, req *runtimev1.OpenSessionReque
 	}
 	s.mu.Unlock()
 
-	s.emitAuditWithPayload("OpenSession", appID, subjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+	s.emitAuditWithPayload(ctx, "OpenSession", appID, subjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
 		"session_id": sessionID,
 	})
 	return &runtimev1.OpenSessionResponse{
@@ -212,16 +212,16 @@ func (s *Service) OpenSession(_ context.Context, req *runtimev1.OpenSessionReque
 	}, nil
 }
 
-func (s *Service) RefreshSession(_ context.Context, req *runtimev1.RefreshSessionRequest) (*runtimev1.RefreshSessionResponse, error) {
+func (s *Service) RefreshSession(ctx context.Context, req *runtimev1.RefreshSessionRequest) (*runtimev1.RefreshSessionResponse, error) {
 	sessionID := strings.TrimSpace(req.GetSessionId())
 	if sessionID == "" {
-		s.emitAudit("RefreshSession", "", "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		s.emitAudit(ctx, "RefreshSession", "", "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		return &runtimev1.RefreshSessionResponse{ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID}, nil
 	}
 
 	ttl, err := s.resolveTTL(req.GetTtlSeconds(), 3600)
 	if err != nil {
-		s.emitAudit("RefreshSession", "", "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		s.emitAudit(ctx, "RefreshSession", "", "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		return nil, err
 	}
 
@@ -229,7 +229,7 @@ func (s *Service) RefreshSession(_ context.Context, req *runtimev1.RefreshSessio
 	session, exists := s.appSessions[sessionID]
 	if !exists || session.Revoked {
 		s.mu.Unlock()
-		s.emitAudit("RefreshSession", session.AppID, session.SubjectUserID, runtimev1.ReasonCode_APP_TOKEN_REVOKED)
+		s.emitAudit(ctx, "RefreshSession", session.AppID, session.SubjectUserID, runtimev1.ReasonCode_APP_TOKEN_REVOKED)
 		return &runtimev1.RefreshSessionResponse{ReasonCode: runtimev1.ReasonCode_APP_TOKEN_REVOKED}, nil
 	}
 
@@ -238,7 +238,7 @@ func (s *Service) RefreshSession(_ context.Context, req *runtimev1.RefreshSessio
 		session.Revoked = true
 		s.appSessions[sessionID] = session
 		s.mu.Unlock()
-		s.emitAudit("RefreshSession", session.AppID, session.SubjectUserID, runtimev1.ReasonCode_SESSION_EXPIRED)
+		s.emitAudit(ctx, "RefreshSession", session.AppID, session.SubjectUserID, runtimev1.ReasonCode_SESSION_EXPIRED)
 		return &runtimev1.RefreshSessionResponse{ReasonCode: runtimev1.ReasonCode_SESSION_EXPIRED}, nil
 	}
 
@@ -248,7 +248,7 @@ func (s *Service) RefreshSession(_ context.Context, req *runtimev1.RefreshSessio
 	s.appSessions[sessionID] = session
 	s.mu.Unlock()
 
-	s.emitAuditWithPayload("RefreshSession", session.AppID, session.SubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+	s.emitAuditWithPayload(ctx, "RefreshSession", session.AppID, session.SubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
 		"session_id": sessionID,
 	})
 	return &runtimev1.RefreshSessionResponse{
@@ -259,10 +259,10 @@ func (s *Service) RefreshSession(_ context.Context, req *runtimev1.RefreshSessio
 	}, nil
 }
 
-func (s *Service) RevokeSession(_ context.Context, req *runtimev1.RevokeSessionRequest) (*runtimev1.Ack, error) {
+func (s *Service) RevokeSession(ctx context.Context, req *runtimev1.RevokeSessionRequest) (*runtimev1.Ack, error) {
 	sessionID := strings.TrimSpace(req.GetSessionId())
 	if sessionID == "" {
-		s.emitAudit("RevokeSession", "", "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		s.emitAudit(ctx, "RevokeSession", "", "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		return &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, ActionHint: "set session_id"}, nil
 	}
 
@@ -274,30 +274,30 @@ func (s *Service) RevokeSession(_ context.Context, req *runtimev1.RevokeSessionR
 	}
 	s.mu.Unlock()
 
-	s.emitAuditWithPayload("RevokeSession", session.AppID, session.SubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+	s.emitAuditWithPayload(ctx, "RevokeSession", session.AppID, session.SubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
 		"session_id": sessionID,
 	})
 	return &runtimev1.Ack{Ok: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
-func (s *Service) RegisterExternalPrincipal(_ context.Context, req *runtimev1.RegisterExternalPrincipalRequest) (*runtimev1.RegisterExternalPrincipalResponse, error) {
+func (s *Service) RegisterExternalPrincipal(ctx context.Context, req *runtimev1.RegisterExternalPrincipalRequest) (*runtimev1.RegisterExternalPrincipalResponse, error) {
 	appID := strings.TrimSpace(req.GetAppId())
 	externalID := strings.TrimSpace(req.GetExternalPrincipalId())
 	if appID == "" || externalID == "" {
-		s.emitAudit("RegisterExternalPrincipal", appID, "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		s.emitAudit(ctx, "RegisterExternalPrincipal", appID, "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		return &runtimev1.RegisterExternalPrincipalResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID}, nil
 	}
 	if req.GetProofType() != runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT {
-		s.emitAudit("RegisterExternalPrincipal", appID, "", runtimev1.ReasonCode_AUTH_UNSUPPORTED_PROOF_TYPE)
+		s.emitAudit(ctx, "RegisterExternalPrincipal", appID, "", runtimev1.ReasonCode_AUTH_UNSUPPORTED_PROOF_TYPE)
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AUTH_UNSUPPORTED_PROOF_TYPE)
 	}
 	signatureKeyID := strings.TrimSpace(req.GetSignatureKeyId())
 	if signatureKeyID == "" {
-		s.emitAudit("RegisterExternalPrincipal", appID, "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		s.emitAudit(ctx, "RegisterExternalPrincipal", appID, "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	if err := validateJWTSignatureKey(signatureKeyID); err != nil {
-		s.emitAudit("RegisterExternalPrincipal", appID, "", runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+		s.emitAudit(ctx, "RegisterExternalPrincipal", appID, "", runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
 	}
 
@@ -315,24 +315,24 @@ func (s *Service) RegisterExternalPrincipal(_ context.Context, req *runtimev1.Re
 	s.externalPrincipals[principalKey(appID, externalID)] = principal
 	s.mu.Unlock()
 
-	s.emitAuditWithPayload("RegisterExternalPrincipal", appID, "", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+	s.emitAuditWithPayload(ctx, "RegisterExternalPrincipal", appID, "", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
 		"external_principal_id": externalID,
 		"proof_type":            req.GetProofType().String(),
 	})
 	return &runtimev1.RegisterExternalPrincipalResponse{Accepted: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
-func (s *Service) OpenExternalPrincipalSession(_ context.Context, req *runtimev1.OpenExternalPrincipalSessionRequest) (*runtimev1.OpenExternalPrincipalSessionResponse, error) {
+func (s *Service) OpenExternalPrincipalSession(ctx context.Context, req *runtimev1.OpenExternalPrincipalSessionRequest) (*runtimev1.OpenExternalPrincipalSessionResponse, error) {
 	appID := strings.TrimSpace(req.GetAppId())
 	externalID := strings.TrimSpace(req.GetExternalPrincipalId())
 	proof := strings.TrimSpace(req.GetProof())
 
 	if appID == "" || externalID == "" {
-		s.emitAudit("OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		s.emitAudit(ctx, "OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		return &runtimev1.OpenExternalPrincipalSessionResponse{ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID}, nil
 	}
 	if proof == "" {
-		s.emitAudit("OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_EXTERNAL_PRINCIPAL_PROOF_MISSING)
+		s.emitAudit(ctx, "OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_EXTERNAL_PRINCIPAL_PROOF_MISSING)
 		return &runtimev1.OpenExternalPrincipalSessionResponse{ReasonCode: runtimev1.ReasonCode_EXTERNAL_PRINCIPAL_PROOF_MISSING}, nil
 	}
 
@@ -340,7 +340,7 @@ func (s *Service) OpenExternalPrincipalSession(_ context.Context, req *runtimev1
 	principal, exists := s.externalPrincipals[principalKey(appID, externalID)]
 	s.mu.RUnlock()
 	if !exists {
-		s.emitAudit("OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_EXTERNAL_PRINCIPAL_NOT_REGISTERED)
+		s.emitAudit(ctx, "OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_EXTERNAL_PRINCIPAL_NOT_REGISTERED)
 		return &runtimev1.OpenExternalPrincipalSessionResponse{ReasonCode: runtimev1.ReasonCode_EXTERNAL_PRINCIPAL_NOT_REGISTERED}, nil
 	}
 
@@ -348,13 +348,13 @@ func (s *Service) OpenExternalPrincipalSession(_ context.Context, req *runtimev1
 	if err := validateExternalProof(proof, principal); err != nil {
 		switch {
 		case errors.Is(err, ErrUnsupportedProofType):
-			s.emitAudit("OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_AUTH_UNSUPPORTED_PROOF_TYPE)
+			s.emitAudit(ctx, "OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_AUTH_UNSUPPORTED_PROOF_TYPE)
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AUTH_UNSUPPORTED_PROOF_TYPE)
 		case errors.Is(err, ErrTokenExpired):
-			s.emitAudit("OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_AUTH_TOKEN_EXPIRED)
+			s.emitAudit(ctx, "OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_AUTH_TOKEN_EXPIRED)
 			return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_EXPIRED)
 		default:
-			s.emitAudit("OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+			s.emitAudit(ctx, "OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
 			return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
 		}
 	}
@@ -362,7 +362,7 @@ func (s *Service) OpenExternalPrincipalSession(_ context.Context, req *runtimev1
 	now := time.Now().UTC()
 	ttl, err := s.resolveTTL(req.GetTtlSeconds(), 3600)
 	if err != nil {
-		s.emitAudit("OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		s.emitAudit(ctx, "OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		return nil, err
 	}
 	expiresAt := now.Add(ttl)
@@ -380,7 +380,7 @@ func (s *Service) OpenExternalPrincipalSession(_ context.Context, req *runtimev1
 	}
 	s.mu.Unlock()
 
-	s.emitAuditWithPayload("OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+	s.emitAuditWithPayload(ctx, "OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
 		"external_principal_id": externalID,
 		"external_session_id":   externalSessionID,
 	})
@@ -392,10 +392,10 @@ func (s *Service) OpenExternalPrincipalSession(_ context.Context, req *runtimev1
 	}, nil
 }
 
-func (s *Service) RevokeExternalPrincipalSession(_ context.Context, req *runtimev1.RevokeExternalPrincipalSessionRequest) (*runtimev1.Ack, error) {
+func (s *Service) RevokeExternalPrincipalSession(ctx context.Context, req *runtimev1.RevokeExternalPrincipalSessionRequest) (*runtimev1.Ack, error) {
 	externalSessionID := strings.TrimSpace(req.GetExternalSessionId())
 	if externalSessionID == "" {
-		s.emitAudit("RevokeExternalPrincipalSession", "", "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		s.emitAudit(ctx, "RevokeExternalPrincipalSession", "", "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		return &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, ActionHint: "set external_session_id"}, nil
 	}
 
@@ -407,7 +407,7 @@ func (s *Service) RevokeExternalPrincipalSession(_ context.Context, req *runtime
 	}
 	s.mu.Unlock()
 
-	s.emitAuditWithPayload("RevokeExternalPrincipalSession", session.AppID, "", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+	s.emitAuditWithPayload(ctx, "RevokeExternalPrincipalSession", session.AppID, "", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
 		"external_principal_id": session.ExternalPrincipalID,
 		"external_session_id":   externalSessionID,
 	})
@@ -420,8 +420,9 @@ func (s *Service) resolveTTL(rawSeconds int32, fallbackSeconds int32) (time.Dura
 		return time.Duration(fallbackSeconds) * time.Second, nil
 	}
 	if rawSeconds < s.ttlMinSeconds || rawSeconds > s.ttlMaxSeconds {
-		return 0, status.Errorf(codes.InvalidArgument,
-			"ttl_seconds %d out of range [%d, %d]", rawSeconds, s.ttlMinSeconds, s.ttlMaxSeconds)
+		return 0, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, grpcerr.ReasonOptions{
+			ActionHint: "set_ttl_seconds_within_allowed_range",
+		})
 	}
 	return time.Duration(rawSeconds) * time.Second, nil
 }
@@ -443,11 +444,11 @@ func cloneModeManifest(input *runtimev1.AppModeManifest) *runtimev1.AppModeManif
 }
 
 // emitAudit writes an audit event for auth operations (K-AUTHSVC-007).
-func (s *Service) emitAudit(operation string, appID string, subjectUserID string, reasonCode runtimev1.ReasonCode) {
-	s.emitAuditWithPayload(operation, appID, subjectUserID, reasonCode, nil)
+func (s *Service) emitAudit(ctx context.Context, operation string, appID string, subjectUserID string, reasonCode runtimev1.ReasonCode) {
+	s.emitAuditWithPayload(ctx, operation, appID, subjectUserID, reasonCode, nil)
 }
 
-func (s *Service) emitAuditWithPayload(operation string, appID string, subjectUserID string, reasonCode runtimev1.ReasonCode, payload map[string]any) {
+func (s *Service) emitAuditWithPayload(ctx context.Context, operation string, appID string, subjectUserID string, reasonCode runtimev1.ReasonCode, payload map[string]any) {
 	if s.auditStore == nil {
 		return
 	}
@@ -455,7 +456,7 @@ func (s *Service) emitAuditWithPayload(operation string, appID string, subjectUs
 	if len(payload) > 0 {
 		payloadStruct, _ = structpb.NewStruct(payload)
 	}
-	traceID := ulid.Make().String()
+	traceID := strings.TrimSpace(envelope.ParseTraceIDFromContext(ctx))
 	s.auditStore.AppendEvent(&runtimev1.AuditEventRecord{
 		Domain:        "runtime.auth",
 		Operation:     operation,

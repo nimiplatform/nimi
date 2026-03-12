@@ -1,11 +1,14 @@
 package grant
 
 import (
+	"context"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/nimiplatform/nimi/runtime/internal/scopecatalog"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 )
@@ -77,7 +80,7 @@ func WithAuditStore(store *auditlog.Store) func(*Service) {
 }
 
 // emitAudit writes an audit event for grant operations (K-GRANT-007).
-func (s *Service) emitAudit(operation string, appID string, subjectUserID string, reasonCode runtimev1.ReasonCode) {
+func (s *Service) emitAudit(ctx context.Context, operation string, appID string, subjectUserID string, reasonCode runtimev1.ReasonCode) {
 	if s.auditStore == nil {
 		return
 	}
@@ -87,5 +90,6 @@ func (s *Service) emitAudit(operation string, appID string, subjectUserID string
 		AppId:         appID,
 		SubjectUserId: subjectUserID,
 		ReasonCode:    reasonCode,
+		TraceId:       strings.TrimSpace(envelope.ParseTraceIDFromContext(ctx)),
 	})
 }

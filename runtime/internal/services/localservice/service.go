@@ -7,6 +7,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
 const (
@@ -27,20 +28,7 @@ type EngineManager interface {
 }
 
 // EngineInfo holds engine status data returned by the manager.
-type EngineInfo struct {
-	Engine              string
-	Version             string
-	Endpoint            string
-	Port                int
-	Status              string
-	PID                 int
-	Platform            string
-	BinaryPath          string
-	BinarySizeBytes     int64
-	StartedAt           string
-	LastHealthyAt       string
-	ConsecutiveFailures int
-}
+type EngineInfo = engine.EngineInfoDTO
 
 // Service implements RuntimeLocalService with persisted local state.
 type Service struct {

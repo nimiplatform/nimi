@@ -14,7 +14,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
-func (s *Service) AuthorizeExternalPrincipal(_ context.Context, req *runtimev1.AuthorizeExternalPrincipalRequest) (*runtimev1.AuthorizeExternalPrincipalResponse, error) {
+func (s *Service) AuthorizeExternalPrincipal(ctx context.Context, req *runtimev1.AuthorizeExternalPrincipalRequest) (*runtimev1.AuthorizeExternalPrincipalResponse, error) {
 	appID := strings.TrimSpace(req.GetAppId())
 	externalID := strings.TrimSpace(req.GetExternalPrincipalId())
 	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
@@ -136,7 +136,7 @@ func (s *Service) AuthorizeExternalPrincipal(_ context.Context, req *runtimev1.A
 	s.policyTokens[policyKey][tokenID] = true
 	s.mu.Unlock()
 
-	s.emitAudit("AuthorizeExternalPrincipal", appID, subjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED)
+	s.emitAudit(ctx, "AuthorizeExternalPrincipal", appID, subjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED)
 	s.logger.Info("token authorized", "token_id", tokenID, "app_id", appID, "external_principal_id", externalID)
 
 	return &runtimev1.AuthorizeExternalPrincipalResponse{

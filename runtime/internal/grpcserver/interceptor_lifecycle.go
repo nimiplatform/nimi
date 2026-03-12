@@ -30,6 +30,9 @@ var readOnlyMethods = map[string]bool{
 	"/nimi.runtime.v1.RuntimeGrantService/ListTokenChain":                  true,
 	"/nimi.runtime.v1.RuntimeModelService/ListModels":                      true,
 	"/nimi.runtime.v1.RuntimeModelService/CheckModelHealth":                true,
+	"/nimi.runtime.v1.RuntimeConnectorService/ListConnectors":              true,
+	"/nimi.runtime.v1.RuntimeConnectorService/GetConnector":                true,
+	"/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels":         true,
 	"/nimi.runtime.v1.RuntimeLocalService/ListLocalModels":                 true,
 	"/nimi.runtime.v1.RuntimeLocalService/ListLocalArtifacts":              true,
 	"/nimi.runtime.v1.RuntimeLocalService/ListVerifiedModels":              true,
@@ -43,6 +46,8 @@ var readOnlyMethods = map[string]bool{
 	"/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth":         true,
 	"/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog":                 true,
 	"/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits":                 true,
+	"/nimi.runtime.v1.RuntimeLocalService/ListEngines":                     true,
+	"/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus":                 true,
 	"/grpc.health.v1.Health/Check":                                         true,
 	"/grpc.health.v1.Health/Watch":                                         true,
 }

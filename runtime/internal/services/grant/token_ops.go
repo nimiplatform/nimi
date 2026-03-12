@@ -16,11 +16,11 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 )
 
-func (s *Service) ValidateAppAccessToken(_ context.Context, req *runtimev1.ValidateAppAccessTokenRequest) (*runtimev1.ValidateAppAccessTokenResponse, error) {
+func (s *Service) ValidateAppAccessToken(ctx context.Context, req *runtimev1.ValidateAppAccessTokenRequest) (*runtimev1.ValidateAppAccessTokenResponse, error) {
 	tokenID := strings.TrimSpace(req.GetTokenId())
 	appID := strings.TrimSpace(req.GetAppId())
 	if tokenID == "" || appID == "" {
-		s.emitAudit("ValidateAppAccessToken", appID, "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		s.emitAudit(ctx, "ValidateAppAccessToken", appID, "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		return &runtimev1.ValidateAppAccessTokenResponse{
 			Valid:      false,
 			ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
@@ -34,48 +34,48 @@ func (s *Service) ValidateAppAccessToken(_ context.Context, req *runtimev1.Valid
 	s.mu.RUnlock()
 
 	if !exists || token.AppID != appID {
-		s.emitAudit("ValidateAppAccessToken", appID, "", runtimev1.ReasonCode_APP_GRANT_INVALID)
+		s.emitAudit(ctx, "ValidateAppAccessToken", appID, "", runtimev1.ReasonCode_APP_GRANT_INVALID)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_GRANT_INVALID, ActionHint: "reauthorize_external_principal"}, nil
 	}
 	if token.Revoked {
-		s.emitAudit("ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_TOKEN_REVOKED)
+		s.emitAudit(ctx, "ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_TOKEN_REVOKED)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_TOKEN_REVOKED, ActionHint: "reauthorize_external_principal"}, nil
 	}
 	if time.Now().UTC().After(token.ExpiresAt) {
-		s.emitAudit("ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_TOKEN_EXPIRED)
+		s.emitAudit(ctx, "ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_TOKEN_EXPIRED)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_TOKEN_EXPIRED, ActionHint: "refresh_authorization"}, nil
 	}
 	if currentPolicyVersion != "" && token.PolicyVersion != currentPolicyVersion {
-		s.emitAudit("ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_GRANT_INVALID)
+		s.emitAudit(ctx, "ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_GRANT_INVALID)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_GRANT_INVALID, ActionHint: "refresh_authorization_policy"}, nil
 	}
 	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
 	if subjectUserID != "" && subjectUserID != token.SubjectUserID {
-		s.emitAudit("ValidateAppAccessToken", appID, subjectUserID, runtimev1.ReasonCode_APP_GRANT_INVALID)
+		s.emitAudit(ctx, "ValidateAppAccessToken", appID, subjectUserID, runtimev1.ReasonCode_APP_GRANT_INVALID)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_GRANT_INVALID, ActionHint: "set_matching_subject_user_id"}, nil
 	}
 	if !s.catalog.IsPublished(token.IssuedScopeCatalog) {
-		s.emitAudit("ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED)
+		s.emitAudit(ctx, "ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED, ActionHint: "use_published_scope_catalog_version"}, nil
 	}
 	if s.catalog.HasRevokedScope(token.IssuedScopeCatalog, token.Scopes) {
-		s.emitAudit("ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_REVOKED)
+		s.emitAudit(ctx, "ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_REVOKED)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_SCOPE_REVOKED, ActionHint: "reauthorize_with_active_scopes"}, nil
 	}
 	if hasRealmScope(req.GetRequestedScopes()) {
-		s.emitAudit("ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+		s.emitAudit(ctx, "ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, ActionHint: "route_realm_scopes_via_realm_domain"}, nil
 	}
 	if !scopesAllowed(token.Scopes, req.GetRequestedScopes()) {
-		s.emitAudit("ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+		s.emitAudit(ctx, "ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, ActionHint: "request_allowed_scopes_only"}, nil
 	}
 	if !selectorsWithin(token.ResourceSelectors, req.GetResourceSelectors()) {
-		s.emitAudit("ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_RESOURCE_OUT_OF_SCOPE)
+		s.emitAudit(ctx, "ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_RESOURCE_OUT_OF_SCOPE)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_RESOURCE_OUT_OF_SCOPE, ActionHint: "request_resources_within_selector"}, nil
 	}
 
-	s.emitAudit("ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED)
+	s.emitAudit(ctx, "ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED)
 	return &runtimev1.ValidateAppAccessTokenResponse{
 		Valid:                     true,
 		ReasonCode:                runtimev1.ReasonCode_ACTION_EXECUTED,
@@ -86,10 +86,10 @@ func (s *Service) ValidateAppAccessToken(_ context.Context, req *runtimev1.Valid
 	}, nil
 }
 
-func (s *Service) RevokeAppAccessToken(_ context.Context, req *runtimev1.RevokeAppAccessTokenRequest) (*runtimev1.Ack, error) {
+func (s *Service) RevokeAppAccessToken(ctx context.Context, req *runtimev1.RevokeAppAccessTokenRequest) (*runtimev1.Ack, error) {
 	tokenID := strings.TrimSpace(req.GetTokenId())
 	if tokenID == "" {
-		s.emitAudit("RevokeAppAccessToken", "", "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		s.emitAudit(ctx, "RevokeAppAccessToken", "", "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		return &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, ActionHint: "set token_id"}, nil
 	}
 
@@ -100,11 +100,11 @@ func (s *Service) RevokeAppAccessToken(_ context.Context, req *runtimev1.RevokeA
 	}
 	s.mu.Unlock()
 
-	s.emitAudit("RevokeAppAccessToken", token.AppID, token.SubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED)
+	s.emitAudit(ctx, "RevokeAppAccessToken", token.AppID, token.SubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED)
 	return &runtimev1.Ack{Ok: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
-func (s *Service) IssueDelegatedAccessToken(_ context.Context, req *runtimev1.IssueDelegatedAccessTokenRequest) (*runtimev1.IssueDelegatedAccessTokenResponse, error) {
+func (s *Service) IssueDelegatedAccessToken(ctx context.Context, req *runtimev1.IssueDelegatedAccessTokenRequest) (*runtimev1.IssueDelegatedAccessTokenResponse, error) {
 	appID := strings.TrimSpace(req.GetAppId())
 	parentID := strings.TrimSpace(req.GetParentTokenId())
 	if appID == "" || parentID == "" {
@@ -193,7 +193,7 @@ func (s *Service) IssueDelegatedAccessToken(_ context.Context, req *runtimev1.Is
 	}
 	s.policyTokens[key][tokenID] = true
 
-	s.emitAudit("IssueDelegatedAccessToken", parent.AppID, parent.SubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED)
+	s.emitAudit(ctx, "IssueDelegatedAccessToken", parent.AppID, parent.SubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED)
 	return &runtimev1.IssueDelegatedAccessTokenResponse{
 		TokenId:         tokenID,
 		ParentTokenId:   parent.TokenID,
@@ -203,10 +203,10 @@ func (s *Service) IssueDelegatedAccessToken(_ context.Context, req *runtimev1.Is
 	}, nil
 }
 
-func (s *Service) ListTokenChain(_ context.Context, req *runtimev1.ListTokenChainRequest) (*runtimev1.ListTokenChainResponse, error) {
+func (s *Service) ListTokenChain(ctx context.Context, req *runtimev1.ListTokenChainRequest) (*runtimev1.ListTokenChainResponse, error) {
 	root := strings.TrimSpace(req.GetRootTokenId())
 	if root == "" {
-		s.emitAudit("ListTokenChain", "", "", runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_REQUIRED)
+		s.emitAudit(ctx, "ListTokenChain", "", "", runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_REQUIRED)
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_REQUIRED)
 	}
 
@@ -214,7 +214,7 @@ func (s *Service) ListTokenChain(_ context.Context, req *runtimev1.ListTokenChai
 	defer s.mu.RUnlock()
 
 	if _, exists := s.tokens[root]; !exists {
-		s.emitAudit("ListTokenChain", "", "", runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND)
+		s.emitAudit(ctx, "ListTokenChain", "", "", runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND)
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND)
 	}
 
@@ -222,7 +222,7 @@ func (s *Service) ListTokenChain(_ context.Context, req *runtimev1.ListTokenChai
 	if appID != "" {
 		rootToken := s.tokens[root]
 		if rootToken.AppID != appID {
-			s.emitAudit("ListTokenChain", appID, "", runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND)
+			s.emitAudit(ctx, "ListTokenChain", appID, "", runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND)
 			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND)
 		}
 	}
@@ -231,7 +231,7 @@ func (s *Service) ListTokenChain(_ context.Context, req *runtimev1.ListTokenChai
 	filterDigest := pagination.FilterDigest(appID, root, strconv.FormatBool(includeRevoked))
 	cursor, err := pagination.ValidatePageToken(req.GetPageToken(), filterDigest)
 	if err != nil {
-		s.emitAudit("ListTokenChain", appID, "", runtimev1.ReasonCode_PAGE_TOKEN_INVALID)
+		s.emitAudit(ctx, "ListTokenChain", appID, "", runtimev1.ReasonCode_PAGE_TOKEN_INVALID)
 		return nil, err
 	}
 
@@ -302,7 +302,7 @@ func (s *Service) ListTokenChain(_ context.Context, req *runtimev1.ListTokenChai
 		if idx, convErr := strconv.Atoi(cursor); convErr == nil && idx >= 0 && idx <= len(entries) {
 			startIdx = idx
 		} else {
-			s.emitAudit("ListTokenChain", appID, "", runtimev1.ReasonCode_PAGE_TOKEN_INVALID)
+			s.emitAudit(ctx, "ListTokenChain", appID, "", runtimev1.ReasonCode_PAGE_TOKEN_INVALID)
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PAGE_TOKEN_INVALID)
 		}
 	}
@@ -325,7 +325,7 @@ func (s *Service) ListTokenChain(_ context.Context, req *runtimev1.ListTokenChai
 		nextToken = pagination.Encode(strconv.Itoa(endIdx), filterDigest)
 	}
 
-	s.emitAudit("ListTokenChain", "", "", runtimev1.ReasonCode_ACTION_EXECUTED)
+	s.emitAudit(ctx, "ListTokenChain", "", "", runtimev1.ReasonCode_ACTION_EXECUTED)
 	return &runtimev1.ListTokenChainResponse{
 		Entries:       page,
 		NextPageToken: nextToken,

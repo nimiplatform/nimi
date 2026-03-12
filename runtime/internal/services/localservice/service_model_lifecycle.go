@@ -16,11 +16,15 @@ import (
 func (s *Service) StartLocalModel(ctx context.Context, req *runtimev1.StartLocalModelRequest) (*runtimev1.StartLocalModelResponse, error) {
 	localModelID := strings.TrimSpace(req.GetLocalModelId())
 	if localModelID == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "local model id is required")
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			ActionHint: "set_local_model_id",
+		})
 	}
 	current := s.modelByID(localModelID)
 	if current == nil {
-		return nil, status.Errorf(codes.NotFound, "local model %s not found", localModelID)
+		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			ActionHint: "install_or_select_existing_local_model",
+		})
 	}
 	if current.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
@@ -65,7 +69,9 @@ func (s *Service) StartLocalModel(ctx context.Context, req *runtimev1.StartLocal
 		s.resetModelRecovery(localModelID)
 		latest := s.modelByID(localModelID)
 		if latest == nil {
-			return nil, status.Errorf(codes.NotFound, "local model %s not found", localModelID)
+			return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+				ActionHint: "install_or_select_existing_local_model",
+			})
 		}
 		return &runtimev1.StartLocalModelResponse{Model: latest}, nil
 	}
@@ -89,11 +95,15 @@ func (s *Service) StartLocalModel(ctx context.Context, req *runtimev1.StartLocal
 func (s *Service) StopLocalModel(_ context.Context, req *runtimev1.StopLocalModelRequest) (*runtimev1.StopLocalModelResponse, error) {
 	localModelID := strings.TrimSpace(req.GetLocalModelId())
 	if localModelID == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "local model id is required")
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			ActionHint: "set_local_model_id",
+		})
 	}
 	current := s.modelByID(localModelID)
 	if current == nil {
-		return nil, status.Errorf(codes.NotFound, "local model %s not found", localModelID)
+		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			ActionHint: "install_or_select_existing_local_model",
+		})
 	}
 	model, err := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED, "model stopped")
 	if err != nil {
@@ -114,7 +124,9 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 	}
 	s.mu.RUnlock()
 	if target != "" && len(models) == 0 {
-		return nil, status.Errorf(codes.NotFound, "local model %s not found", target)
+		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			ActionHint: "install_or_select_existing_local_model",
+		})
 	}
 
 	result := make([]*runtimev1.LocalModelHealth, 0, len(models))
