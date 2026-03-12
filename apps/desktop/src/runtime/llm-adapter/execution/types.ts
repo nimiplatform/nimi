@@ -1,4 +1,4 @@
-export const PRIVATE_PROVIDER_TIMEOUT_MS = 60_000;
+export const TEXT_GENERATE_TIMEOUT_MS = 30_000;
 
 export type FetchImpl = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 

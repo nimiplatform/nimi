@@ -3,7 +3,7 @@ import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 
 export const STREAM_FIRST_PACKET_TIMEOUT_MS = 10_000;
 export const STREAM_TEXT_TOTAL_TIMEOUT_MS = 120_000;
-export const STREAM_SPEECH_TOTAL_TIMEOUT_MS = 120_000;
+export const STREAM_SPEECH_TOTAL_TIMEOUT_MS = 45_000;
 export const STREAM_VIDEO_TOTAL_TIMEOUT_MS = 300_000;
 
 export type StreamPhase = 'idle' | 'waiting' | 'streaming' | 'done' | 'error' | 'cancelled';

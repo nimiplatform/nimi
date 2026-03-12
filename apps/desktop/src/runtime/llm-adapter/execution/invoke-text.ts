@@ -11,7 +11,7 @@ import {
   toLocalAiReasonCode,
 } from './runtime-ai-bridge';
 import type { InvokeModLlmInput, InvokeModLlmOutput } from './types';
-import { PRIVATE_PROVIDER_TIMEOUT_MS } from './types';
+import { TEXT_GENERATE_TIMEOUT_MS } from './types';
 import { buildLocalId } from './utils';
 import { emitRuntimeLog } from '../../telemetry/logger';
 import { createNimiError } from '@nimiplatform/sdk/runtime';
@@ -60,11 +60,11 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
       modelId: resolved.modelId,
       engine: resolved.provider,
       endpoint: resolved.endpoint,
-      timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
+      timeoutMs: TEXT_GENERATE_TIMEOUT_MS,
     });
     const callOptions = await buildRuntimeCallOptions({
       modId: input.modId,
-      timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
+      timeoutMs: TEXT_GENERATE_TIMEOUT_MS,
       source: resolved.source,
       connectorId: input.connectorId,
       providerEndpoint: resolved.endpoint,
@@ -88,7 +88,7 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
         modelId: resolved.modelId,
         routePolicy: resolved.routePolicy,
         fallback: resolved.fallbackPolicy,
-        timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
+        timeoutMs: TEXT_GENERATE_TIMEOUT_MS,
         connectorId: String(input.connectorId || ''),
       },
       scenarioType: SCENARIO_TYPE_TEXT_GENERATE,
