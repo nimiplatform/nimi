@@ -120,10 +120,10 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	aiSvc.SetModelRegistryPersistencePath(registryPath)
 	runtimev1.RegisterRuntimeAiServiceServer(g, aiSvc)
 
-	runtimev1.RegisterRuntimeWorkflowServiceServer(g, workflowservice.New(logger))
-	modelSvc := modelservice.New(logger, modelRegistry)
+	runtimev1.RegisterRuntimeWorkflowServiceServer(g, workflowservice.New(logger)) // Phase 2 Draft
+	modelSvc := modelservice.New(logger, modelRegistry)                           // Phase 2 Draft
 	modelSvc.SetPersistencePath(registryPath)
-	runtimev1.RegisterRuntimeModelServiceServer(g, modelSvc)
+	runtimev1.RegisterRuntimeModelServiceServer(g, modelSvc) // Phase 2 Draft
 	localSvc := localservice.New(logger, auditStore, cfg.LocalStatePath, cfg.LocalAuditCapacity)
 	runtimev1.RegisterRuntimeLocalServiceServer(g, localSvc)
 	aiSvc.SetLocalModelLister(localSvc)
@@ -141,8 +141,8 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		logger, appRegistry, auditStore,
 		cfg.SessionTTLMinSeconds, cfg.SessionTTLMaxSeconds,
 	))
-	runtimev1.RegisterRuntimeKnowledgeServiceServer(g, knowledgeservice.New(logger))
-	runtimev1.RegisterRuntimeAppServiceServer(g, appservice.New(logger))
+	runtimev1.RegisterRuntimeKnowledgeServiceServer(g, knowledgeservice.New(logger)) // Phase 2 Draft
+	runtimev1.RegisterRuntimeAppServiceServer(g, appservice.New(logger))            // Phase 2 Draft
 
 	s := &Server{
 		addr:         addr,

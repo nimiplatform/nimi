@@ -2799,3 +2799,127 @@ func TestEngineStatusToProtoMapping(t *testing.T) {
 		}
 	}
 }
+
+// --- State machine exhaustive verification ---
+
+func TestLocalModelLifecycleTransitionsMatchSpec(t *testing.T) {
+	installed := runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED
+	active := runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE
+	unhealthy := runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY
+	removed := runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED
+
+	allStates := []runtimev1.LocalModelStatus{installed, active, unhealthy, removed}
+
+	// Spec: local_model_lifecycle — 8 valid transitions.
+	tests := []struct {
+		name string
+		from runtimev1.LocalModelStatus
+		to   runtimev1.LocalModelStatus
+		want bool
+	}{
+		// Positive: all 8 spec transitions
+		{"INSTALLED->ACTIVE (start_or_health_recovered)", installed, active, true},
+		{"ACTIVE->UNHEALTHY (health_probe_failed)", active, unhealthy, true},
+		{"UNHEALTHY->ACTIVE (recovery_probe_passed)", unhealthy, active, true},
+		{"ACTIVE->REMOVED (remove_model)", active, removed, true},
+		{"UNHEALTHY->REMOVED (force_remove_model)", unhealthy, removed, true},
+		{"ACTIVE->INSTALLED (stop_model)", active, installed, true},
+		{"UNHEALTHY->INSTALLED (stop_model_from_unhealthy)", unhealthy, installed, true},
+		{"INSTALLED->REMOVED (remove_model_from_installed)", installed, removed, true},
+
+		// Negative: invalid transitions
+		{"INSTALLED->UNHEALTHY (invalid)", installed, unhealthy, false},
+		{"INSTALLED->INSTALLED (self-loop)", installed, installed, false},
+		{"ACTIVE->ACTIVE (self-loop)", active, active, false},
+		{"UNHEALTHY->UNHEALTHY (self-loop)", unhealthy, unhealthy, false},
+		{"REMOVED->INSTALLED (terminal)", removed, installed, false},
+		{"REMOVED->ACTIVE (terminal)", removed, active, false},
+		{"REMOVED->UNHEALTHY (terminal)", removed, unhealthy, false},
+		{"REMOVED->REMOVED (terminal self-loop)", removed, removed, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isValidModelTransition(tt.from, tt.to)
+			if got != tt.want {
+				t.Errorf("isValidModelTransition(%s, %s) = %v, want %v", tt.from, tt.to, got, tt.want)
+			}
+		})
+	}
+
+	// Verify cardinality: 4 states, 8 valid transitions total.
+	if len(allStates) != 4 {
+		t.Fatalf("expected 4 model states, got %d", len(allStates))
+	}
+	validCount := 0
+	for _, from := range allStates {
+		for _, to := range allStates {
+			if isValidModelTransition(from, to) {
+				validCount++
+			}
+		}
+	}
+	if validCount != 8 {
+		t.Errorf("expected exactly 8 valid model transitions, got %d", validCount)
+	}
+}
+
+func TestLocalServiceLifecycleTransitionsMatchSpec(t *testing.T) {
+	installed := runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED
+	active := runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE
+	unhealthy := runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY
+	removed := runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED
+
+	allStates := []runtimev1.LocalServiceStatus{installed, active, unhealthy, removed}
+
+	// Spec: local_service_lifecycle — 8 valid transitions.
+	tests := []struct {
+		name string
+		from runtimev1.LocalServiceStatus
+		to   runtimev1.LocalServiceStatus
+		want bool
+	}{
+		// Positive: all 8 spec transitions
+		{"INSTALLED->ACTIVE (spawn_and_probe_ok)", installed, active, true},
+		{"ACTIVE->UNHEALTHY (health_probe_failed)", active, unhealthy, true},
+		{"UNHEALTHY->ACTIVE (restart_and_probe_ok)", unhealthy, active, true},
+		{"ACTIVE->REMOVED (stop_and_cleanup)", active, removed, true},
+		{"UNHEALTHY->REMOVED (force_stop_and_cleanup)", unhealthy, removed, true},
+		{"ACTIVE->INSTALLED (stop_service)", active, installed, true},
+		{"UNHEALTHY->INSTALLED (stop_service_from_unhealthy)", unhealthy, installed, true},
+		{"INSTALLED->REMOVED (remove_service_from_installed)", installed, removed, true},
+
+		// Negative: invalid transitions
+		{"INSTALLED->UNHEALTHY (invalid)", installed, unhealthy, false},
+		{"INSTALLED->INSTALLED (self-loop)", installed, installed, false},
+		{"ACTIVE->ACTIVE (self-loop)", active, active, false},
+		{"UNHEALTHY->UNHEALTHY (self-loop)", unhealthy, unhealthy, false},
+		{"REMOVED->INSTALLED (terminal)", removed, installed, false},
+		{"REMOVED->ACTIVE (terminal)", removed, active, false},
+		{"REMOVED->UNHEALTHY (terminal)", removed, unhealthy, false},
+		{"REMOVED->REMOVED (terminal self-loop)", removed, removed, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isValidServiceTransition(tt.from, tt.to)
+			if got != tt.want {
+				t.Errorf("isValidServiceTransition(%s, %s) = %v, want %v", tt.from, tt.to, got, tt.want)
+			}
+		})
+	}
+
+	// Verify cardinality: 4 states, 8 valid transitions total.
+	if len(allStates) != 4 {
+		t.Fatalf("expected 4 service states, got %d", len(allStates))
+	}
+	validCount := 0
+	for _, from := range allStates {
+		for _, to := range allStates {
+			if isValidServiceTransition(from, to) {
+				validCount++
+			}
+		}
+	}
+	if validCount != 8 {
+		t.Errorf("expected exactly 8 valid service transitions, got %d", validCount)
+	}
+}

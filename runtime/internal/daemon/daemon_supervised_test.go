@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -8,9 +9,12 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
+	"time"
+	"unsafe"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
@@ -19,6 +23,112 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 )
+
+func newTestDaemon(t *testing.T, logger *slog.Logger) *Daemon {
+	t.Helper()
+	daemon := New(config.Config{
+		GRPCAddr:       "127.0.0.1:0",
+		HTTPAddr:       "127.0.0.1:0",
+		LocalStatePath: filepath.Join(t.TempDir(), "local-state.json"),
+	}, logger, "test")
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		t.Cleanup(func() { svc.Close() })
+	}
+	return daemon
+}
+
+func setUnexportedField[T any](t *testing.T, target any, fieldName string, value T) {
+	t.Helper()
+	field := reflect.ValueOf(target).Elem().FieldByName(fieldName)
+	if !field.IsValid() {
+		t.Fatalf("field %s not found", fieldName)
+	}
+	reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Set(reflect.ValueOf(value))
+}
+
+func newHealthyEngineManager(t *testing.T, kind engine.EngineKind, port int) *engine.Manager {
+	t.Helper()
+	manager, err := engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
+	if err != nil {
+		t.Fatalf("create engine manager: %v", err)
+	}
+	supervisor := engine.NewSupervisor(engine.EngineConfig{Kind: kind, Port: port}, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
+	setUnexportedField(t, supervisor, "status", engine.StatusHealthy)
+	setUnexportedField(t, supervisor, "lastHealthyAt", time.Now())
+	setUnexportedField(t, manager, "supervisors", map[engine.EngineKind]*engine.Supervisor{
+		kind: supervisor,
+	})
+	return manager
+}
+
+func TestOnEngineStateChangeHealthyDoesNotReinjectAfterCleanBootstrap(t *testing.T) {
+	var logBuf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&logBuf, nil))
+	daemon := newTestDaemon(t, logger)
+	daemon.engineMgr = newHealthyEngineManager(t, engine.EngineLocalAI, 1234)
+
+	daemon.injectEngineEndpointEnv(engine.EngineLocalAI, "NIMI_RUNTIME_LOCAL_AI_BASE_URL", "bootstrap")
+	daemon.onEngineStateChange("localai", "healthy", "ready")
+
+	logs := logBuf.String()
+	if count := strings.Count(logs, "msg=\"engine endpoint env injected\""); count != 1 {
+		t.Fatalf("expected exactly one endpoint injection log on clean boot, got %d logs:\n%s", count, logs)
+	}
+	if !strings.Contains(logs, "source=bootstrap") {
+		t.Fatalf("expected bootstrap injection log, got:\n%s", logs)
+	}
+	if strings.Contains(logs, "source=recovered") {
+		t.Fatalf("did not expect recovered injection on clean boot, got:\n%s", logs)
+	}
+}
+
+func TestOnEngineStateChangeHealthyReinjectsOnlyForSameEngineRecovery(t *testing.T) {
+	var logBuf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&logBuf, nil))
+	daemon := newTestDaemon(t, logger)
+	daemon.engineMgr = newHealthyEngineManager(t, engine.EngineLocalAI, 1234)
+	daemon.state.SetStatus(health.StatusDegraded, "engine:localai unhealthy (probe failed)")
+	daemon.setProviderFailureHint("local", "engine unhealthy (localai: probe failed)")
+
+	daemon.onEngineStateChange("localai", "healthy", "probe recovered")
+
+	logs := logBuf.String()
+	if count := strings.Count(logs, "msg=\"engine endpoint env injected\""); count != 1 {
+		t.Fatalf("expected one recovered injection log, got %d logs:\n%s", count, logs)
+	}
+	if !strings.Contains(logs, "source=recovered") {
+		t.Fatalf("expected recovered injection log, got:\n%s", logs)
+	}
+	if got := daemon.state.Snapshot().Status; got != health.StatusReady {
+		t.Fatalf("expected daemon to recover to ready, got %s", got)
+	}
+	if hint := daemon.providerFailureHint("local"); hint != "" {
+		t.Fatalf("expected local provider failure hint to clear on same-engine recovery, got %q", hint)
+	}
+}
+
+func TestOnEngineStateChangeHealthyDoesNotRecoverDifferentEngineFailure(t *testing.T) {
+	var logBuf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&logBuf, nil))
+	daemon := newTestDaemon(t, logger)
+	daemon.engineMgr = newHealthyEngineManager(t, engine.EngineLocalAI, 1234)
+	daemon.state.SetStatus(health.StatusDegraded, "engine:nexa unhealthy (probe failed)")
+	daemon.setProviderFailureHint("local", "keep-local-hint")
+
+	daemon.onEngineStateChange("localai", "healthy", "ready")
+
+	logs := logBuf.String()
+	if strings.Contains(logs, "msg=\"engine endpoint env injected\"") {
+		t.Fatalf("did not expect endpoint reinjection while another engine is degraded, got:\n%s", logs)
+	}
+	snapshot := daemon.state.Snapshot()
+	if snapshot.Status != health.StatusDegraded || snapshot.Reason != "engine:nexa unhealthy (probe failed)" {
+		t.Fatalf("expected unrelated degraded state to remain untouched, got %s (%s)", snapshot.Status, snapshot.Reason)
+	}
+	if hint := daemon.providerFailureHint("local"); hint != "keep-local-hint" {
+		t.Fatalf("expected local provider hint to remain untouched, got %q", hint)
+	}
+}
 
 func TestStartSupervisedEnginesManagerInitFailureDegradesAndAudits(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))

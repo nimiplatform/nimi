@@ -185,3 +185,49 @@ func TestWithReasonCodeAlreadyExistsForMediaIdempotencyConflict(t *testing.T) {
 		t.Fatalf("unexpected reason: %v", reason)
 	}
 }
+
+func TestReasonCodeEnumValuesMatchSpec(t *testing.T) {
+	tests := []struct {
+		name string
+		got  int32
+		want int32
+	}{
+		{"SESSION_EXPIRED", int32(runtimev1.ReasonCode_SESSION_EXPIRED), 7},
+		{"AUTH_TOKEN_INVALID", int32(runtimev1.ReasonCode_AUTH_TOKEN_INVALID), 300},
+		{"AUTH_TOKEN_EXPIRED", int32(runtimev1.ReasonCode_AUTH_TOKEN_EXPIRED), 301},
+		{"AI_CONNECTOR_NOT_FOUND", int32(runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND), 310},
+		{"AI_CONNECTOR_DISABLED", int32(runtimev1.ReasonCode_AI_CONNECTOR_DISABLED), 311},
+		{"AI_CONNECTOR_CREDENTIAL_MISSING", int32(runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING), 312},
+		{"AI_REQUEST_CREDENTIAL_CONFLICT", int32(runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_CONFLICT), 330},
+		{"AI_APP_ID_REQUIRED", int32(runtimev1.ReasonCode_AI_APP_ID_REQUIRED), 340},
+		{"AI_MODEL_ID_REQUIRED", int32(runtimev1.ReasonCode_AI_MODEL_ID_REQUIRED), 350},
+		{"AI_MODEL_NOT_FOUND", int32(runtimev1.ReasonCode_AI_MODEL_NOT_FOUND), 200},
+		{"AI_MODALITY_NOT_SUPPORTED", int32(runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED), 351},
+		{"AI_LOCAL_MODEL_UNAVAILABLE", int32(runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE), 352},
+		{"AI_FINISH_LENGTH", int32(runtimev1.ReasonCode_AI_FINISH_LENGTH), 370},
+		{"AI_FINISH_CONTENT_FILTER", int32(runtimev1.ReasonCode_AI_FINISH_CONTENT_FILTER), 371},
+		{"AI_PROVIDER_ENDPOINT_FORBIDDEN", int32(runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN), 390},
+		{"AI_PROVIDER_AUTH_FAILED", int32(runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED), 391},
+		{"AI_PROVIDER_UNAVAILABLE", int32(runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE), 202},
+		{"AI_PROVIDER_INTERNAL", int32(runtimev1.ReasonCode_AI_PROVIDER_INTERNAL), 392},
+		{"AI_PROVIDER_RATE_LIMITED", int32(runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED), 393},
+		{"AI_PROVIDER_TIMEOUT", int32(runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT), 394},
+		{"AI_STREAM_BROKEN", int32(runtimev1.ReasonCode_AI_STREAM_BROKEN), 208},
+		{"AI_MEDIA_SPEC_INVALID", int32(runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID), 410},
+		{"AI_MEDIA_JOB_NOT_FOUND", int32(runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND), 412},
+		{"AI_MEDIA_IDEMPOTENCY_CONFLICT", int32(runtimev1.ReasonCode_AI_MEDIA_IDEMPOTENCY_CONFLICT), 414},
+		{"AI_VOICE_INPUT_INVALID", int32(runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID), 420},
+		{"AI_VOICE_ASSET_NOT_FOUND", int32(runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND), 422},
+		{"WF_DAG_INVALID", int32(runtimev1.ReasonCode_WF_DAG_INVALID), 440},
+		{"APP_MODE_DOMAIN_FORBIDDEN", int32(runtimev1.ReasonCode_APP_MODE_DOMAIN_FORBIDDEN), 500},
+		{"GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND", int32(runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND), 510},
+		{"PAGE_TOKEN_INVALID", int32(runtimev1.ReasonCode_PAGE_TOKEN_INVALID), 520},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.got != tc.want {
+				t.Errorf("ReasonCode_%s = %d, want %d (spec: reason-codes.yaml)", tc.name, tc.got, tc.want)
+			}
+		})
+	}
+}

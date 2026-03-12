@@ -1,6 +1,7 @@
 package auditlog
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -201,5 +202,56 @@ func TestListEventsPageSizeExact200(t *testing.T) {
 	})
 	if len(resp.Events) != 200 {
 		t.Fatalf("page size 200 should be allowed, got %d", len(resp.Events))
+	}
+}
+
+// TestAuditRetentionPolicyEnforced verifies K-AUDIT-020: the event ring
+// buffer enforces capacity limits, evicting the oldest events when full.
+func TestAuditRetentionPolicyEnforced(t *testing.T) {
+	const bufSize = 5
+	const totalEvents = 10
+	store := New(bufSize, 100)
+
+	// Insert 10 events with sequential operation names so we can identify them.
+	now := time.Now().UTC()
+	for i := 0; i < totalEvents; i++ {
+		payload, _ := structpb.NewStruct(map[string]any{"seq": float64(i)})
+		store.AppendEvent(&runtimev1.AuditEventRecord{
+			Domain:    "retention",
+			Operation: "op-" + strconv.Itoa(i),
+			Timestamp: timestamppb.New(now.Add(time.Duration(i) * time.Second)),
+			Payload:   payload,
+		})
+	}
+
+	// Query all retained events (page size larger than buffer).
+	resp := store.ListEvents(&runtimev1.ListAuditEventsRequest{
+		Domain:   "retention",
+		PageSize: 200,
+	})
+	if got := len(resp.Events); got != bufSize {
+		t.Fatalf("expected %d retained events, got %d", bufSize, got)
+	}
+
+	// ListEvents returns newest-first; collect operations in insertion order.
+	retained := make([]string, len(resp.Events))
+	for i, event := range resp.Events {
+		retained[len(resp.Events)-1-i] = event.GetOperation()
+	}
+
+	// Only the last 5 events (op-5 through op-9) should survive.
+	for i, op := range retained {
+		expected := "op-" + strconv.Itoa(bufSize+i)
+		if op != expected {
+			t.Errorf("retained[%d] = %q, want %q", i, op, expected)
+		}
+	}
+
+	// Verify the oldest events (op-0 through op-4) are gone.
+	for _, event := range resp.Events {
+		seq := event.Payload.GetFields()["seq"].GetNumberValue()
+		if seq < float64(bufSize) {
+			t.Errorf("evicted event seq=%.0f should not be present", seq)
+		}
 	}
 }

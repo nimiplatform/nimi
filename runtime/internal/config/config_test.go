@@ -1025,3 +1025,49 @@ func TestMigrationIsIdempotent(t *testing.T) {
 		t.Fatalf("expected migrated config to be idempotent across reloads")
 	}
 }
+
+func TestConfigDefaultsMatchSpec(t *testing.T) {
+	// Verify that Load() defaults match the spec values from config-schema.yaml.
+	// The spec values are embedded directly as a truth table rather than parsing
+	// YAML, so any drift between code defaults and schema spec fails this test.
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "missing-config.json"))
+	clearRuntimeConfigEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+
+	type specEntry struct {
+		field string
+		got   any
+		want  any
+	}
+
+	table := []specEntry{
+		{"grpcAddr", cfg.GRPCAddr, "127.0.0.1:46371"},
+		{"httpAddr", cfg.HTTPAddr, "127.0.0.1:46372"},
+		{"globalConcurrencyLimit", cfg.GlobalConcurrencyLimit, 8},
+		{"perAppConcurrencyLimit", cfg.PerAppConcurrencyLimit, 2},
+		{"idempotencyCapacity", cfg.IdempotencyCapacity, 10000},
+		{"maxDelegationDepth", cfg.MaxDelegationDepth, 3},
+		{"auditRingBufferSize", cfg.AuditRingBufferSize, 20000},
+		{"usageStatsBufferSize", cfg.UsageStatsBufferSize, 50000},
+		{"localAuditCapacity", cfg.LocalAuditCapacity, 5000},
+		{"sessionTtlMinSeconds", cfg.SessionTTLMinSeconds, 60},
+		{"sessionTtlMaxSeconds", cfg.SessionTTLMaxSeconds, 86400},
+		{"aiHealthIntervalSeconds", cfg.AIHealthIntervalSeconds, 8},
+		{"aiHttpTimeoutSeconds", cfg.AIHTTPTimeoutSeconds, 30},
+		{"allowLoopbackProviderEndpoint", cfg.AllowLoopbackProviderEndpoint, false},
+		{"engineLocalAIEnabled", cfg.EngineLocalAIEnabled, false},
+		{"engineNexaEnabled", cfg.EngineNexaEnabled, false},
+	}
+
+	for _, tc := range table {
+		if !reflect.DeepEqual(tc.got, tc.want) {
+			t.Errorf("spec alignment %s: got=%v want=%v", tc.field, tc.got, tc.want)
+		}
+	}
+}

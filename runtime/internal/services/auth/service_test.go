@@ -451,3 +451,64 @@ func TestAuthServiceAuditUsesIncomingTraceID(t *testing.T) {
 		t.Fatalf("expected audit id to be set")
 	}
 }
+
+func TestRevokeSessionIdempotent(t *testing.T) {
+	// K-AUTHSVC-005: revoking a session twice returns OK both times.
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	ctx := context.Background()
+
+	registerResp, err := svc.RegisterApp(ctx, &runtimev1.RegisterAppRequest{
+		AppId:    "nimi.desktop",
+		DeviceId: "local-device",
+		ModeManifest: &runtimev1.AppModeManifest{
+			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
+			RuntimeRequired: true,
+			RealmRequired:   true,
+			WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
+		},
+	})
+	if err != nil {
+		t.Fatalf("register app: %v", err)
+	}
+
+	openResp, err := svc.OpenSession(ctx, &runtimev1.OpenSessionRequest{
+		AppId:         "nimi.desktop",
+		AppInstanceId: registerResp.GetAppInstanceId(),
+		DeviceId:      "local-device",
+		SubjectUserId: "user-001",
+		TtlSeconds:    600,
+	})
+	if err != nil {
+		t.Fatalf("open session: %v", err)
+	}
+
+	// First revoke must succeed.
+	revokeResp, err := svc.RevokeSession(ctx, &runtimev1.RevokeSessionRequest{SessionId: openResp.GetSessionId()})
+	if err != nil {
+		t.Fatalf("first revoke: %v", err)
+	}
+	if !revokeResp.GetOk() {
+		t.Fatalf("first revoke must be ok")
+	}
+
+	// Second revoke of the same session must also succeed (idempotent).
+	revokeResp2, err := svc.RevokeSession(ctx, &runtimev1.RevokeSessionRequest{SessionId: openResp.GetSessionId()})
+	if err != nil {
+		t.Fatalf("second revoke must not error: %v", err)
+	}
+	if !revokeResp2.GetOk() {
+		t.Fatalf("second revoke must be ok")
+	}
+
+	// Refreshing the revoked session must indicate revocation.
+	refreshResp, err := svc.RefreshSession(ctx, &runtimev1.RefreshSessionRequest{
+		SessionId:  openResp.GetSessionId(),
+		TtlSeconds: 600,
+	})
+	if err != nil {
+		t.Fatalf("refresh after double revoke: %v", err)
+	}
+	if refreshResp.GetReasonCode() != runtimev1.ReasonCode_APP_TOKEN_REVOKED {
+		t.Fatalf("expected APP_TOKEN_REVOKED, got %v", refreshResp.GetReasonCode())
+	}
+}

@@ -658,6 +658,15 @@ func (d *Daemon) injectEngineEndpointEnv(kind engine.EngineKind, envKey string, 
 	)
 }
 
+func engineUnhealthyReasonMatches(reason string, engineName string) bool {
+	normalizedEngine := strings.TrimSpace(strings.ToLower(engineName))
+	if normalizedEngine == "" {
+		return false
+	}
+	expectedPrefix := fmt.Sprintf("engine:%s unhealthy (", normalizedEngine)
+	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(reason)), expectedPrefix)
+}
+
 func (d *Daemon) onEngineStateChange(engineName string, status string, detail string) {
 	snapshot := d.state.Snapshot()
 	if snapshot.Status == health.StatusStopping || snapshot.Status == health.StatusStopped {
@@ -685,16 +694,21 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 			}
 		}
 	case "healthy":
-		if kind, envKey, ok := engineEnvKey(engineName); ok {
-			d.injectEngineEndpointEnv(kind, envKey, "recovered")
-		}
-		if kind, ok := engineKindForName(engineName); ok {
-			if providerName, ok := providerTargetNameForEngine(kind); ok {
-				d.clearProviderFailureHint(providerName)
+		recoveringSameEngine := snapshot.Status == health.StatusDegraded &&
+			engineUnhealthyReasonMatches(snapshot.Reason, engineName)
+		if recoveringSameEngine {
+			if kind, envKey, ok := engineEnvKey(engineName); ok {
+				d.injectEngineEndpointEnv(kind, envKey, "recovered")
 			}
 		}
-		current := d.state.Snapshot()
-		if current.Status == health.StatusDegraded && strings.HasPrefix(current.Reason, "engine:") {
+		if recoveringSameEngine {
+			if kind, ok := engineKindForName(engineName); ok {
+				if providerName, ok := providerTargetNameForEngine(kind); ok {
+					d.clearProviderFailureHint(providerName)
+				}
+			}
+		}
+		if recoveringSameEngine {
 			d.state.SetStatus(health.StatusReady, "ready")
 			d.grpc.SyncServingState()
 		}

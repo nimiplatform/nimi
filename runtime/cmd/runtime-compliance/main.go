@@ -276,7 +276,11 @@ func runtimeChecklist() []checklistItemSpec {
 		pkgNimillm     = "github.com/nimiplatform/nimi/runtime/internal/nimillm"
 		pkgProtocol    = "github.com/nimiplatform/nimi/runtime/internal/protocol"
 		pkgScheduler   = "github.com/nimiplatform/nimi/runtime/internal/scheduler"
-		pkgWorkflow    = "github.com/nimiplatform/nimi/runtime/internal/services/workflow"
+		pkgLocalService = "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
+		pkgWorkflow     = "github.com/nimiplatform/nimi/runtime/internal/services/workflow"
+		pkgConfig       = "github.com/nimiplatform/nimi/runtime/internal/config"
+		pkgGrpcErr      = "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+		pkgAuth         = "github.com/nimiplatform/nimi/runtime/internal/services/auth"
 	)
 
 	return []checklistItemSpec{
@@ -660,6 +664,77 @@ func runtimeChecklist() []checklistItemSpec {
 			Requirement: "key source subject_user_id requirement",
 			Tests: []testRef{
 				{Package: pkgAI, Name: "TestPrepareScenarioRequestRequiresSubjectForTokenAPI"},
+			},
+		},
+		{
+			ID:          "RS-11-49",
+			Requirement: "local model lifecycle state machine enumeration (K-LOCAL-005)",
+			Tests: []testRef{
+				{Package: pkgLocalService, Name: "TestLocalModelLifecycleTransitionsMatchSpec"},
+			},
+		},
+		{
+			ID:          "RS-11-50",
+			Requirement: "local service lifecycle state machine enumeration (K-LOCAL-005)",
+			Tests: []testRef{
+				{Package: pkgLocalService, Name: "TestLocalServiceLifecycleTransitionsMatchSpec"},
+			},
+		},
+		{
+			ID:          "RS-11-51",
+			Requirement: "connector status state machine (K-RPC-011)",
+			Tests: []testRef{
+				{Package: pkgConnector, Name: "TestConnectorStatusTransitionsMatchSpec"},
+			},
+		},
+		{
+			ID:          "RS-11-52",
+			Requirement: "connector delete flow state machine (K-RPC-011)",
+			Tests: []testRef{
+				{Package: pkgConnector, Name: "TestConnectorDeleteFlowTransitionsMatchSpec"},
+			},
+		},
+		{
+			ID:          "RS-11-53",
+			Requirement: "revoke session idempotency (K-AUTHSVC-005)",
+			Tests: []testRef{
+				{Package: pkgAuth, Name: "TestRevokeSessionIdempotent"},
+			},
+		},
+		{
+			ID:          "RS-11-54",
+			Requirement: "AI timeout defaults match spec (K-DAEMON-008)",
+			Tests: []testRef{
+				{Package: pkgAI, Name: "TestAITimeoutDefaultsMatchSpec"},
+				{Package: pkgAI, Name: "TestMinStreamChunkBytesMatchesSpec"},
+			},
+		},
+		{
+			ID:          "RS-11-55",
+			Requirement: "scenario job subscribe terminal then close (K-STREAM-005)",
+			Tests: []testRef{
+				{Package: pkgAI, Name: "TestSubscribeJobEventsTerminalThenClose"},
+			},
+		},
+		{
+			ID:          "RS-11-56",
+			Requirement: "audit retention policy enforcement (K-AUDIT-020)",
+			Tests: []testRef{
+				{Package: pkgAuditLog, Name: "TestAuditRetentionPolicyEnforced"},
+			},
+		},
+		{
+			ID:          "RS-11-57",
+			Requirement: "config defaults match spec schema (K-CFG-014/016/017)",
+			Tests: []testRef{
+				{Package: pkgConfig, Name: "TestConfigDefaultsMatchSpec"},
+			},
+		},
+		{
+			ID:          "RS-11-58",
+			Requirement: "reason code enum values match spec (K-RPC-011)",
+			Tests: []testRef{
+				{Package: pkgGrpcErr, Name: "TestReasonCodeEnumValuesMatchSpec"},
 			},
 		},
 	}

@@ -226,3 +226,157 @@ func (s *scenarioJobEventCollector) SetTrailer(_ metadata.MD)       {}
 func (s *scenarioJobEventCollector) Context() context.Context       { return s.ctx }
 func (s *scenarioJobEventCollector) SendMsg(any) error              { return nil }
 func (s *scenarioJobEventCollector) RecvMsg(any) error              { return nil }
+
+// TestSubscribeJobEventsTerminalThenClose (K-STREAM-005) verifies that when a
+// scenario job reaches a terminal state, subscribers receive the terminal event
+// and that subscribing to an already-terminal job returns the full backlog with
+// terminal=true.
+func TestSubscribeJobEventsTerminalThenClose(t *testing.T) {
+	store := newScenarioJobStore()
+
+	// Create a SUBMITTED job.
+	job := &runtimev1.ScenarioJob{
+		JobId:        "stream-edge-001",
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+		TraceId:      "trace-stream-001",
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	snapshot := store.create(job, cancel)
+	if snapshot == nil {
+		t.Fatalf("store.create returned nil")
+	}
+
+	// Subscribe before any transitions beyond SUBMITTED.
+	subID, ch, backlog, terminal, ok := store.subscribe("stream-edge-001", 32)
+	if !ok {
+		t.Fatalf("subscribe should succeed for existing job")
+	}
+	if terminal {
+		t.Fatalf("terminal should be false for a SUBMITTED job")
+	}
+	// Backlog should contain the SUBMITTED event emitted by create.
+	if len(backlog) == 0 {
+		t.Fatalf("backlog should contain the SUBMITTED event")
+	}
+	if backlog[0].GetEventType() != runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_SUBMITTED {
+		t.Fatalf("first backlog event should be SUBMITTED, got %v", backlog[0].GetEventType())
+	}
+
+	// Transition to RUNNING.
+	if _, ok := store.transition(
+		"stream-edge-001",
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
+		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING,
+		nil,
+	); !ok {
+		t.Fatalf("transition to RUNNING failed")
+	}
+
+	// Transition to COMPLETED (terminal).
+	if _, ok := store.transition(
+		"stream-edge-001",
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
+		func(j *runtimev1.ScenarioJob) {
+			j.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
+		},
+	); !ok {
+		t.Fatalf("transition to COMPLETED failed")
+	}
+
+	// Drain events from the channel; expect RUNNING then COMPLETED.
+	var received []*runtimev1.ScenarioJobEvent
+	timeout := time.After(2 * time.Second)
+	for {
+		select {
+		case event, open := <-ch:
+			if !open {
+				// Channel was closed by unsubscribe; stop draining.
+				goto drained
+			}
+			received = append(received, event)
+			if isTerminalScenarioJobEvent(event.GetEventType()) {
+				goto drained
+			}
+		case <-timeout:
+			t.Fatalf("timed out waiting for events on subscriber channel")
+		}
+	}
+drained:
+	if len(received) < 2 {
+		t.Fatalf("expected at least 2 events (RUNNING + COMPLETED), got %d", len(received))
+	}
+
+	var gotRunning, gotCompleted bool
+	for _, event := range received {
+		switch event.GetEventType() {
+		case runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING:
+			gotRunning = true
+		case runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED:
+			gotCompleted = true
+		}
+	}
+	if !gotRunning {
+		t.Fatalf("expected RUNNING event on subscriber channel")
+	}
+	if !gotCompleted {
+		t.Fatalf("expected COMPLETED (terminal) event on subscriber channel")
+	}
+
+	// Unsubscribe closes the channel.
+	store.unsubscribe("stream-edge-001", subID)
+	select {
+	case _, open := <-ch:
+		if open {
+			t.Fatalf("channel should be closed after unsubscribe")
+		}
+	default:
+		// Channel already closed — acceptable.
+	}
+	_ = ctx // keep linter happy
+
+	// --- Late subscriber: subscribe to an already-terminal job ---
+	lateSubID, lateCh, lateBacklog, lateTerminal, lateOK := store.subscribe("stream-edge-001", 32)
+	if !lateOK {
+		t.Fatalf("late subscribe should succeed for existing terminal job")
+	}
+	if !lateTerminal {
+		t.Fatalf("late subscriber should see terminal=true")
+	}
+	// Backlog should contain all events: SUBMITTED, RUNNING, COMPLETED.
+	if len(lateBacklog) < 3 {
+		t.Fatalf("late backlog should have at least 3 events (SUBMITTED+RUNNING+COMPLETED), got %d", len(lateBacklog))
+	}
+	var lateHasSubmitted, lateHasRunning, lateHasCompleted bool
+	for _, event := range lateBacklog {
+		switch event.GetEventType() {
+		case runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_SUBMITTED:
+			lateHasSubmitted = true
+		case runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING:
+			lateHasRunning = true
+		case runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED:
+			lateHasCompleted = true
+		}
+	}
+	if !lateHasSubmitted {
+		t.Fatalf("late backlog missing SUBMITTED event")
+	}
+	if !lateHasRunning {
+		t.Fatalf("late backlog missing RUNNING event")
+	}
+	if !lateHasCompleted {
+		t.Fatalf("late backlog missing COMPLETED event")
+	}
+
+	// Clean up late subscriber.
+	store.unsubscribe("stream-edge-001", lateSubID)
+	select {
+	case _, open := <-lateCh:
+		if open {
+			t.Fatalf("late channel should be closed after unsubscribe")
+		}
+	default:
+	}
+}
