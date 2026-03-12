@@ -1,15 +1,6 @@
-export function asRecord(
-  value: unknown,
-  options?: { allowArray?: boolean },
-): Record<string, unknown> {
-  if (!value || typeof value !== 'object') {
-    return {};
-  }
-  if (!options?.allowArray && Array.isArray(value)) {
-    return {};
-  }
-  return value as Record<string, unknown>;
-}
+import { asRecord } from '../internal/utils.js';
+
+export { asRecord };
 
 export function safeParseJson<T>(text: string, fallback: T): T {
   try {

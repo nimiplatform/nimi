@@ -1,4 +1,5 @@
 import type { NimiError, NimiErrorSource } from '../types/index.js';
+import { asRecord, readString } from '../internal/utils.js';
 import { ReasonCode } from '../types/index.js';
 
 export type CreateNimiErrorInput = {
@@ -24,23 +25,6 @@ export function isNimiError(error: unknown): error is NimiError {
     && typeof record.retryable === 'boolean'
     && typeof record.source === 'string'
   );
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
-  }
-  return value as Record<string, unknown>;
-}
-
-function readString(record: Record<string, unknown>, keys: string[]): string {
-  for (const key of keys) {
-    const value = record[key];
-    if (typeof value === 'string' && value.trim()) {
-      return value.trim();
-    }
-  }
-  return '';
 }
 
 function readBoolean(record: Record<string, unknown>, keys: string[]): boolean | undefined {

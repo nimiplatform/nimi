@@ -14,6 +14,7 @@ import {
 } from './generated/runtime/v1/workflow';
 import { RuntimeHealthStatus } from './generated/runtime/v1/audit';
 import { Struct } from './generated/google/protobuf/struct.js';
+import { asRecord, normalizeText, nowIso } from '../internal/utils.js';
 import { RuntimeMethodIds, isRuntimeStreamMethod } from './method-ids.js';
 import type {
   NimiFallbackPolicy,
@@ -90,14 +91,7 @@ function buildRuntimeMethodLookup(): Readonly<Record<string, RuntimeMethodLookup
 
   return Object.freeze(lookup);
 }
-
-export function nowIso(): string {
-  return new Date().toISOString();
-}
-
-export function normalizeText(value: unknown): string {
-  return String(value || '').trim();
-}
+export { asRecord, normalizeText, nowIso };
 
 export function ensureText(value: unknown, fieldName: string): string {
   const normalized = normalizeText(value);
@@ -138,13 +132,6 @@ export function toFinishReason(value: FinishReason): NimiFinishReason {
     default:
       return 'stop';
   }
-}
-
-export function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
-  }
-  return value as Record<string, unknown>;
 }
 
 export function parseCount(value: unknown): number | undefined {

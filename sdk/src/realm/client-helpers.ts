@@ -1,5 +1,6 @@
 import { ReasonCode } from '../types/index.js';
 import { asNimiError, createNimiError } from '../runtime/errors.js';
+import { asRecord, normalizeText, nowIso } from '../internal/utils.js';
 import type { NimiError } from '../types/index.js';
 
 type MergeHandleSource = Record<string, unknown>;
@@ -16,20 +17,7 @@ type MergedHandle<Handles extends Array<MergeHandleSource | undefined>> = UnionT
 
 export const DEFAULT_REALM_TIMEOUT_MS = 10000;
 
-export function nowIso(): string {
-  return new Date().toISOString();
-}
-
-export function normalizeText(value: unknown): string {
-  return String(value || '').trim();
-}
-
-export function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
-  }
-  return value as Record<string, unknown>;
-}
+export { asRecord, normalizeText, nowIso };
 
 function pickString(record: Record<string, unknown>, keys: string[]): string {
   for (const key of keys) {

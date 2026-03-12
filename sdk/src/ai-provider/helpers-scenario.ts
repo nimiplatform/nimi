@@ -10,6 +10,7 @@ import {
   type RuntimeDefaults,
   type RuntimeForAiProvider,
 } from './types.js';
+import { asRecord, normalizeText } from '../internal/utils.js';
 import { ExecutionMode, ScenarioJobStatus } from '../runtime/generated/runtime/v1/ai.js';
 
 type ScenarioJobExecution = {
@@ -18,10 +19,6 @@ type ScenarioJobExecution = {
   routeDecision: AiRoutePolicy;
   modelResolved: string;
 };
-
-function normalizeText(value: unknown): string {
-  return String(value || '').trim();
-}
 
 function ensureText(value: unknown, fieldName: string): string {
   const normalized = normalizeText(value);
@@ -34,13 +31,6 @@ function ensureText(value: unknown, fieldName: string): string {
     });
   }
   return normalized;
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
-  }
-  return value as Record<string, unknown>;
 }
 
 function fromRouteDecision(value: unknown): AiRoutePolicy {

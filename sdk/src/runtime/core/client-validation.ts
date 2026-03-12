@@ -16,6 +16,7 @@ import {
   type UpdateConnectorRequest,
 } from '../generated/runtime/v1/connector.js';
 import { ExternalPrincipalType } from '../generated/runtime/v1/common.js';
+import { normalizeText } from '../../internal/utils.js';
 import type {
   RuntimeCallOptions,
   RuntimeStreamCallOptions,
@@ -45,9 +46,7 @@ export function ensureAppId(appId: string): string {
   return normalized;
 }
 
-export function normalizeText(value: unknown): string {
-  return String(value || '').trim();
-}
+export { normalizeText };
 
 function hasOwnField(value: object, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(value, key);

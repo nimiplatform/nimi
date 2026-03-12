@@ -21,6 +21,7 @@ import {
   type RuntimeDefaults,
   type RuntimeForAiProvider,
 } from './types.js';
+import { asRecord, normalizeText } from '../internal/utils.js';
 export {
   collectArtifacts,
   executeScenarioJob,
@@ -28,10 +29,7 @@ export {
   toEmbeddingVectors,
   toEmbeddingVectorsFromScenarioOutput,
 } from './helpers-scenario.js';
-
-export function normalizeText(value: unknown): string {
-  return String(value || '').trim();
-}
+export { asRecord, normalizeText };
 
 export function ensureText(value: unknown, fieldName: string): string {
   const normalized = normalizeText(value);
@@ -124,13 +122,6 @@ export function toFinishReason(value: unknown): LanguageModelV3FinishReason {
     default:
       return { unified: 'other', raw: undefined };
   }
-}
-
-export function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
-  }
-  return value as Record<string, unknown>;
 }
 
 export function extractTextValue(part: unknown): string {

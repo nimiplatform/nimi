@@ -1,4 +1,5 @@
 import { asNimiError } from '../../runtime/errors.js';
+import { asRecord } from '../../internal/utils.js';
 import { ReasonCode } from '../../types/index.js';
 import type { Realm } from '../client.js';
 
@@ -47,13 +48,6 @@ export type RequestAccountDeletionOutput = {
   message?: string;
   scheduledDeletionAt?: string;
 };
-
-function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
-  }
-  return value as Record<string, unknown>;
-}
 
 function asText(value: unknown): string {
   return String(value || '').trim();
