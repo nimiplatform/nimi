@@ -14,7 +14,7 @@ const noopCloseModTab: UiExtensionContext['closeModTab'] = () => {
   // no-op in web shell
 };
 const noopIsModTabOpen: UiExtensionContext['isModTabOpen'] = () => false;
-const noopIsModTabInLru: UiExtensionContext['isModTabInLru'] = () => false;
+const noopIsModTabRetained: UiExtensionContext['isModTabRetained'] = () => false;
 const noopGetModLifecycleState: UiExtensionContext['getModLifecycleState'] = () => 'active';
 const noopMarkModFused: UiExtensionContext['markModFused'] = () => {
   // no-op in web shell
@@ -33,7 +33,7 @@ const WEB_EXTENSION_CONTEXT: UiExtensionContext = {
   openModTab: noopOpenModTab,
   closeModTab: noopCloseModTab,
   isModTabOpen: noopIsModTabOpen,
-  isModTabInLru: noopIsModTabInLru,
+  isModTabRetained: noopIsModTabRetained,
   getModLifecycleState: noopGetModLifecycleState,
   markModFused: noopMarkModFused,
   clearModFuse: noopClearModFuse,

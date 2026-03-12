@@ -120,6 +120,7 @@ Passed:
 - `pnpm check:runtime-mod-hook-hardcut`
 - `pnpm check:mods-no-runtime-sdk`
 - `pnpm --filter @nimiplatform/desktop test`
+- `pnpm --filter @nimiplatform/web build`
 - `pnpm check:desktop-spec-kernel-consistency`
 - `pnpm check:desktop-spec-kernel-docs-drift`
 - `pnpm check:agents-freshness`
@@ -128,27 +129,17 @@ Passed:
 - `pnpm check:no-legacy-imports`
 - `pnpm check:no-absolute-user-paths`
 
-Failed outside the SDK hard-cut scope:
-
-- `pnpm --filter @nimiplatform/web build`
-
-Observed errors:
-
-- `apps/web/../desktop/src/shell/renderer/features/mod-hub/mod-hub-controller.ts`: missing `readRuntimeLocalModAsset`
-- `apps/web/src/desktop-adapter/slot-context.web.ts`: `UiExtensionContext` type mismatch around `isModTabInLru`
-
 ## Residual Risks
 
-- The repo currently contains unrelated in-flight changes outside the SDK hard-cut scope; release evidence for the SDK is strong, but monorepo-wide green status is not yet restored.
 - Some consumer files were updated by a bulk import codemod and may carry noisy formatting-only diffs; no remaining forbidden business imports were found outside documented denylist and guardrail locations.
 
 ## Release Readiness
 
-Rating: `Conditional`
+Rating: `Ready`
 
 Rationale:
 
 - SDK mod surface alignment is complete.
 - Forwarding shell violations were removed.
-- Import boundary, consumer smoke, structure-budget, spec consistency, and desktop downstream validation all passed.
-- Monorepo release status is still blocked by an existing `apps/web` type/build failure that is not caused by the SDK mod surface hard-cut itself.
+- Import boundary, consumer smoke, structure-budget, spec consistency, and downstream desktop/web validation all passed.
+- No remaining release blocker was observed in the verified SDK hard-cut path.

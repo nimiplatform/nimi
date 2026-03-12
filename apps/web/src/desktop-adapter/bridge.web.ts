@@ -39,6 +39,7 @@ import type {
   RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
+  RuntimeLocalAsset,
   RuntimeLocalManifestSummary,
   RuntimeModStorageDirs,
   RuntimeModSourceType,
@@ -113,6 +114,10 @@ export async function listRuntimeLocalModManifests(): Promise<RuntimeLocalManife
 
 export async function readRuntimeLocalModEntry(_path: string): Promise<string> {
   throw new Error('Local mod entry is only available in desktop runtime');
+}
+
+export async function readRuntimeLocalModAsset(_path: string): Promise<RuntimeLocalAsset> {
+  throw new Error('Local mod asset is only available in desktop runtime');
 }
 
 export async function listInstalledRuntimeMods(): Promise<RuntimeLocalManifestSummary[]> {
@@ -311,6 +316,7 @@ export const desktopBridge = {
   reloadAllRuntimeMods,
   listRuntimeModInstallProgress,
   readInstalledRuntimeModManifest,
+  readRuntimeLocalModAsset,
   readRuntimeLocalModEntry,
   subscribeRuntimeModInstallProgress,
   subscribeRuntimeModSourceChanged,
