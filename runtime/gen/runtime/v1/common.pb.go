@@ -133,11 +133,14 @@ const (
 	ReasonCode_WF_TIMEOUT              ReasonCode = 442
 	ReasonCode_WF_TASK_NOT_FOUND       ReasonCode = 443
 	// APP_AUTH family (500+)
-	ReasonCode_APP_MODE_DOMAIN_FORBIDDEN ReasonCode = 500
-	ReasonCode_APP_MODE_SCOPE_FORBIDDEN  ReasonCode = 501
-	ReasonCode_APP_MODE_MANIFEST_INVALID ReasonCode = 502
-	ReasonCode_APP_SCOPE_FORBIDDEN       ReasonCode = 503
-	ReasonCode_APP_SCOPE_REVOKED         ReasonCode = 504
+	ReasonCode_APP_MODE_DOMAIN_FORBIDDEN     ReasonCode = 500
+	ReasonCode_APP_MODE_SCOPE_FORBIDDEN      ReasonCode = 501
+	ReasonCode_APP_MODE_MANIFEST_INVALID     ReasonCode = 502
+	ReasonCode_APP_SCOPE_FORBIDDEN           ReasonCode = 503
+	ReasonCode_APP_SCOPE_REVOKED             ReasonCode = 504
+	ReasonCode_APP_MESSAGE_PAYLOAD_TOO_LARGE ReasonCode = 550
+	ReasonCode_APP_MESSAGE_RATE_LIMITED      ReasonCode = 551
+	ReasonCode_APP_MESSAGE_LOOP_DETECTED     ReasonCode = 552
 	// GRANT family (510+)
 	ReasonCode_GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND ReasonCode = 510
 	ReasonCode_GRANT_TOKEN_CHAIN_ROOT_REQUIRED  ReasonCode = 511
@@ -242,6 +245,9 @@ var (
 		502: "APP_MODE_MANIFEST_INVALID",
 		503: "APP_SCOPE_FORBIDDEN",
 		504: "APP_SCOPE_REVOKED",
+		550: "APP_MESSAGE_PAYLOAD_TOO_LARGE",
+		551: "APP_MESSAGE_RATE_LIMITED",
+		552: "APP_MESSAGE_LOOP_DETECTED",
 		510: "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND",
 		511: "GRANT_TOKEN_CHAIN_ROOT_REQUIRED",
 		520: "PAGE_TOKEN_INVALID",
@@ -341,6 +347,9 @@ var (
 		"APP_MODE_MANIFEST_INVALID":             502,
 		"APP_SCOPE_FORBIDDEN":                   503,
 		"APP_SCOPE_REVOKED":                     504,
+		"APP_MESSAGE_PAYLOAD_TOO_LARGE":         550,
+		"APP_MESSAGE_RATE_LIMITED":              551,
+		"APP_MESSAGE_LOOP_DETECTED":             552,
 		"GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND":      510,
 		"GRANT_TOKEN_CHAIN_ROOT_REQUIRED":       511,
 		"PAGE_TOKEN_INVALID":                    520,
@@ -827,7 +836,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xe9\x17\n" +
+	"actionHint*\xcc\x18\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -924,7 +933,10 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x18APP_MODE_SCOPE_FORBIDDEN\x10\xf5\x03\x12\x1e\n" +
 	"\x19APP_MODE_MANIFEST_INVALID\x10\xf6\x03\x12\x18\n" +
 	"\x13APP_SCOPE_FORBIDDEN\x10\xf7\x03\x12\x16\n" +
-	"\x11APP_SCOPE_REVOKED\x10\xf8\x03\x12%\n" +
+	"\x11APP_SCOPE_REVOKED\x10\xf8\x03\x12\"\n" +
+	"\x1dAPP_MESSAGE_PAYLOAD_TOO_LARGE\x10\xa6\x04\x12\x1d\n" +
+	"\x18APP_MESSAGE_RATE_LIMITED\x10\xa7\x04\x12\x1e\n" +
+	"\x19APP_MESSAGE_LOOP_DETECTED\x10\xa8\x04\x12%\n" +
 	" GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND\x10\xfe\x03\x12$\n" +
 	"\x1fGRANT_TOKEN_CHAIN_ROOT_REQUIRED\x10\xff\x03\x12\x17\n" +
 	"\x12PAGE_TOKEN_INVALID\x10\x88\x04\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\xa9\x01\n" +

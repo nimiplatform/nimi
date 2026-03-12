@@ -523,6 +523,18 @@ export enum ReasonCode {
      */
     APP_SCOPE_REVOKED = 504,
     /**
+     * @generated from protobuf enum value: APP_MESSAGE_PAYLOAD_TOO_LARGE = 550;
+     */
+    APP_MESSAGE_PAYLOAD_TOO_LARGE = 550,
+    /**
+     * @generated from protobuf enum value: APP_MESSAGE_RATE_LIMITED = 551;
+     */
+    APP_MESSAGE_RATE_LIMITED = 551,
+    /**
+     * @generated from protobuf enum value: APP_MESSAGE_LOOP_DETECTED = 552;
+     */
+    APP_MESSAGE_LOOP_DETECTED = 552,
+    /**
      * GRANT family (510+)
      *
      * @generated from protobuf enum value: GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND = 510;

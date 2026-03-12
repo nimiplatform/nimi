@@ -222,6 +222,9 @@ func TestReasonCodeEnumValuesMatchSpec(t *testing.T) {
 		{"APP_MODE_DOMAIN_FORBIDDEN", int32(runtimev1.ReasonCode_APP_MODE_DOMAIN_FORBIDDEN), 500},
 		{"GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND", int32(runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND), 510},
 		{"PAGE_TOKEN_INVALID", int32(runtimev1.ReasonCode_PAGE_TOKEN_INVALID), 520},
+		{"APP_MESSAGE_PAYLOAD_TOO_LARGE", int32(runtimev1.ReasonCode_APP_MESSAGE_PAYLOAD_TOO_LARGE), 550},
+		{"APP_MESSAGE_RATE_LIMITED", int32(runtimev1.ReasonCode_APP_MESSAGE_RATE_LIMITED), 551},
+		{"APP_MESSAGE_LOOP_DETECTED", int32(runtimev1.ReasonCode_APP_MESSAGE_LOOP_DETECTED), 552},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

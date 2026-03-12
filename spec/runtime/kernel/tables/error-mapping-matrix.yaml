@@ -322,6 +322,21 @@ mappings:
     surface: scope_revocation_check
     exit_shape: grpc_status
     source_rule: K-GRANT-010
+  - reason_code: APP_MESSAGE_PAYLOAD_TOO_LARGE
+    grpc_code: INVALID_ARGUMENT
+    surface: app_message_send
+    exit_shape: grpc_status
+    source_rule: K-APP-005
+  - reason_code: APP_MESSAGE_RATE_LIMITED
+    grpc_code: RESOURCE_EXHAUSTED
+    surface: app_message_send
+    exit_shape: grpc_status
+    source_rule: K-APP-005
+  - reason_code: APP_MESSAGE_LOOP_DETECTED
+    grpc_code: FAILED_PRECONDITION
+    surface: app_message_send
+    exit_shape: grpc_status
+    source_rule: K-APP-005
   - reason_code: WF_DAG_INVALID
     grpc_code: INVALID_ARGUMENT
     surface: workflow_submit

@@ -287,3 +287,15 @@ codes:
     value: 520
     family: PAGE
     source_rule: K-PAGE-002
+  - name: APP_MESSAGE_PAYLOAD_TOO_LARGE
+    value: 550
+    family: APP_AUTH
+    source_rule: K-APP-005
+  - name: APP_MESSAGE_RATE_LIMITED
+    value: 551
+    family: APP_AUTH
+    source_rule: K-APP-005
+  - name: APP_MESSAGE_LOOP_DETECTED
+    value: 552
+    family: APP_AUTH
+    source_rule: K-APP-005

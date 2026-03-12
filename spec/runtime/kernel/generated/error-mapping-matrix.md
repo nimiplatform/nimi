@@ -68,6 +68,9 @@
 | `APP_MODE_MANIFEST_INVALID` | `INVALID_ARGUMENT` | `register_app_manifest_validation` | `grpc_status` | `K-AUTHSVC-010` |
 | `APP_SCOPE_FORBIDDEN` | `PERMISSION_DENIED` | `scope_prefix_gate` | `grpc_status` | `K-GRANT-009` |
 | `APP_SCOPE_REVOKED` | `PERMISSION_DENIED` | `scope_revocation_check` | `grpc_status` | `K-GRANT-010` |
+| `APP_MESSAGE_PAYLOAD_TOO_LARGE` | `INVALID_ARGUMENT` | `app_message_send` | `grpc_status` | `K-APP-005` |
+| `APP_MESSAGE_RATE_LIMITED` | `RESOURCE_EXHAUSTED` | `app_message_send` | `grpc_status` | `K-APP-005` |
+| `APP_MESSAGE_LOOP_DETECTED` | `FAILED_PRECONDITION` | `app_message_send` | `grpc_status` | `K-APP-005` |
 | `WF_DAG_INVALID` | `INVALID_ARGUMENT` | `workflow_submit` | `grpc_status` | `K-WF-010` |
 | `WF_NODE_CONFIG_MISMATCH` | `INVALID_ARGUMENT` | `workflow_submit` | `grpc_status` | `K-WF-002` |
 | `WF_TIMEOUT` | `DEADLINE_EXCEEDED` | `workflow_execute` | `grpc_status` | `K-WF-003` |
