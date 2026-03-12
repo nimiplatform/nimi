@@ -26,12 +26,16 @@ Mod Hub 从 AppStore 读取：
 - `registeredRuntimeModIds`
 - `runtimeModDisabledIds`
 - `runtimeModUninstalledIds`
+- `runtimeModFailures`
+- `fusedRuntimeMods`
+- `runtimeModDiagnostics`
 - catalog list / update check 结果
 
 计算派生状态：
 - `installed`：本地已安装 mod
 - `available`：catalog 中可发现但当前未安装的 mod
 - `update-available`：已安装且存在 catalog 更新目标的 mod
+- `failed/conflict`：本地注册失败、fuse 失败或 source conflict 的 mod
 
 ### Mod Governance (D-MOD-007)
 
@@ -43,12 +47,12 @@ Disable / Uninstall 当前激活的 mod 时，fallback 导航到 `'mods'`。
 
 ## UI Contract
 
-Mod Hub 采用单页列表布局：
-- 顶部搜索
-- 已安装分组
-- 可安装分组
-- 本地路径 / URL 安装入口
-- 行内展示版本、trust tier、update、re-consent、warning 信息
+Mod Hub 采用单页双态布局：
+- 默认态：中心搜索 + `Open Mods Folder` + 已安装 Dock/Grid
+- 聚焦态：展开 unified management list
+- unified list 保留 `Installed` / `Available` 分组，并统一承载行内管理动作
+- 本地 path / URL 安装入口不再出现在页面内；本地安装由用户通过 `Open Mods Folder` 手动复制完成
+- 行内展示版本、trust tier、update、re-consent、warning、failed/conflict 信息
 
 ## CI 门禁引用
 

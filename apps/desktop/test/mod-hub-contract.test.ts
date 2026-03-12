@@ -3,7 +3,11 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { toRuntimeModRow } from '../src/shell/renderer/features/mod-hub/mod-hub-model';
+import {
+  buildDockMods,
+  buildManagementSections,
+  toRuntimeModRow,
+} from '../src/shell/renderer/features/mod-hub/mod-hub-model';
 import type { AppTab } from '../src/shell/renderer/app-shell/providers/store-types';
 
 // ---------------------------------------------------------------------------
@@ -55,6 +59,9 @@ test('toRuntimeModRow returns correct fields for enabled mod', () => {
   assert.equal(row.source, 'runtime');
   assert.equal(row.version, 'v1.2.3');
   assert.equal(row.author, 'Test Author');
+  assert.equal(row.visualState, 'enabled');
+  assert.equal(row.primaryAction?.kind, 'open');
+  assert.equal(row.canOpenFromDock, true);
   assert.ok(row.iconBg, 'iconBg should be a non-empty string');
   assert.ok(row.iconText, 'iconText should be a non-empty string');
 });
@@ -67,6 +74,9 @@ test('toRuntimeModRow returns correct fields for disabled mod', () => {
 
   assert.equal(row.isInstalled, true);
   assert.equal(row.isEnabled, false);
+  assert.equal(row.visualState, 'disabled');
+  assert.equal(row.primaryAction?.kind, 'enable');
+  assert.equal(row.canOpenFromDock, false);
 });
 
 test('toRuntimeModRow handles missing manifest fields gracefully', () => {
@@ -154,54 +164,71 @@ test('mod classification: installed but not registered → disabled', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 4. Search filter logic (pure)
+// 4. Dock/list derivation logic (pure)
 // ---------------------------------------------------------------------------
 
-function filterMods(
-  mods: Array<{ name: string; description: string }>,
-  query: string,
-): typeof mods {
-  const q = query.toLowerCase().trim();
-  if (!q) return mods;
-  return mods.filter(
-    (mod) =>
-      mod.name.toLowerCase().includes(q) ||
-      mod.description.toLowerCase().includes(q),
-  );
-}
+test('buildDockMods keeps installed items only and prioritizes openable mods', () => {
+  const openable = toRuntimeModRow(makeSummary({ id: 'mod.open', name: 'Openable' }) as never, 0, {
+    isInstalled: true,
+    isEnabled: true,
+  });
+  const needsAttention = toRuntimeModRow(makeSummary({ id: 'mod.update', name: 'Needs Update' }) as never, 1, {
+    isInstalled: true,
+    isEnabled: true,
+    availableUpdateVersion: '2.0.0',
+  });
+  const notInstalled = toRuntimeModRow(makeSummary({ id: 'mod.off', name: 'Off' }) as never, 2, {
+    isInstalled: false,
+    isEnabled: false,
+  });
 
-test('search filter: empty query returns all mods', () => {
-  const mods = [
-    { name: 'Local Chat', description: 'Chat locally' },
-    { name: 'Theme', description: 'Dark mode' },
-  ];
-  assert.equal(filterMods(mods, '').length, 2);
-  assert.equal(filterMods(mods, '  ').length, 2);
+  const dock = buildDockMods([needsAttention, notInstalled, openable]);
+
+  assert.deepEqual(dock.map((item) => item.id), ['mod.open', 'mod.update']);
 });
 
-test('search filter: matches by name (case-insensitive)', () => {
-  const mods = [
-    { name: 'Local Chat', description: 'Chat locally' },
-    { name: 'Theme', description: 'Dark mode' },
-  ];
-  assert.equal(filterMods(mods, 'local').length, 1);
-  assert.equal(filterMods(mods, 'LOCAL').length, 1);
-  assert.equal(filterMods(mods, 'Chat').length, 1);
+test('buildManagementSections groups installed before available catalog mods', () => {
+  const installed = toRuntimeModRow(makeSummary({ id: 'mod.installed', name: 'Installed' }) as never, 0, {
+    isInstalled: true,
+    isEnabled: true,
+  });
+  const available = {
+    ...toRuntimeModRow(makeSummary({ id: 'mod.available', name: 'Available' }) as never, 1, {
+      isInstalled: false,
+      isEnabled: false,
+    }),
+    source: 'catalog' as const,
+  };
+
+  const sections = buildManagementSections({
+    mods: [available, installed],
+    query: '',
+  });
+
+  assert.deepEqual(sections[0]?.mods.map((item) => item.id), ['mod.installed']);
+  assert.deepEqual(sections[1]?.mods.map((item) => item.id), ['mod.available']);
 });
 
-test('search filter: matches by description', () => {
-  const mods = [
-    { name: 'Local Chat', description: 'Chat locally' },
-    { name: 'Theme', description: 'Dark mode' },
-  ];
-  assert.equal(filterMods(mods, 'dark').length, 1);
-});
+test('buildManagementSections filters by search query', () => {
+  const sections = buildManagementSections({
+    mods: [
+      toRuntimeModRow(makeSummary({ id: 'mod.local', name: 'Local Chat', description: 'Chat locally' }) as never, 0, {
+        isInstalled: true,
+        isEnabled: true,
+      }),
+      {
+        ...toRuntimeModRow(makeSummary({ id: 'mod.theme', name: 'Theme', description: 'Dark mode' }) as never, 1, {
+          isInstalled: false,
+          isEnabled: false,
+        }),
+        source: 'catalog' as const,
+      },
+    ],
+    query: 'dark',
+  });
 
-test('search filter: no matches', () => {
-  const mods = [
-    { name: 'Local Chat', description: 'Chat locally' },
-  ];
-  assert.equal(filterMods(mods, 'nonexistent').length, 0);
+  assert.equal(sections[0]?.mods.length, 0);
+  assert.deepEqual(sections[1]?.mods.map((item) => item.id), ['mod.theme']);
 });
 
 // ---------------------------------------------------------------------------
@@ -231,15 +258,26 @@ test('ModHub i18n keys are complete in both en.json and zh.json', () => {
 
   const requiredKeys = [
     'title',
+    'subtitle',
     'searchPlaceholder',
-    'resultsCount',
-    'installedCount',
-    'installFromPathTitle',
-    'installFromPathAction',
-    'installFromUrlTitle',
-    'installFromUrlAction',
+    'manageResults',
+    'installedDock',
+    'openModsFolder',
+    'installedDockSection',
+    'managePanelTitle',
+    'managePanelDescription',
+    'emptyDock',
     'installedSection',
     'availableSection',
+    'actionOpen',
+    'actionInstall',
+    'actionUpdate',
+    'actionEnable',
+    'actionDisable',
+    'actionRemove',
+    'actionRetry',
+    'actionOpenFolder',
+    'moreActions',
     'noSearchResults',
   ];
 
@@ -295,6 +333,35 @@ test('mod hub controller fallback target is mods without removed alias', () => {
     0,
     `Expected 0 removed alias fallback calls, found ${removedAliasCalls.length}`,
   );
+});
+
+test('mod hub controller no longer exposes path/url install state', () => {
+  const controllerPath = resolve(
+    import.meta.dirname,
+    '../src/shell/renderer/features/mod-hub/mod-hub-controller.ts',
+  );
+  const source = readFileSync(controllerPath, 'utf-8');
+
+  assert.doesNotMatch(source, /\bpathSource\b/);
+  assert.doesNotMatch(source, /\burlSource\b/);
+  assert.doesNotMatch(source, /\bonInstallFromPath\b/);
+  assert.doesNotMatch(source, /\bonInstallFromUrl\b/);
+  assert.match(source, /\bonOpenModsFolder\b/);
+  assert.match(source, /\bonRetryMod\b/);
+});
+
+test('mod hub view renders dock-first layout without local install forms', () => {
+  const viewPath = resolve(
+    import.meta.dirname,
+    '../src/shell/renderer/features/mod-hub/mod-hub-view.tsx',
+  );
+  const source = readFileSync(viewPath, 'utf-8');
+
+  assert.match(source, /onFocus=\{model\.onSearchFocus\}/);
+  assert.match(source, /model\.isSearchFocused/);
+  assert.match(source, /model\.onOpenModsFolder/);
+  assert.doesNotMatch(source, /installFromPath/i);
+  assert.doesNotMatch(source, /installFromUrl/i);
 });
 
 test('store types no longer include removed app tab alias', () => {

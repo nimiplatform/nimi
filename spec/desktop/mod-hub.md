@@ -4,7 +4,7 @@
 
 ## Scope
 
-Mod Hub 功能域 — GitHub-first static catalog、Mod 发现、安装、更新、卸载，以及手动本地/远程预构建包安装。
+Mod Hub 功能域 — GitHub-first static catalog、Mod 发现、安装、更新、卸载，以及本地 installed mods 目录管理。
 
 ## Module Map
 
@@ -21,7 +21,7 @@ Mod Hub 没有独立 sidebar tab，也不存在旧的内嵌 alias route。
 ### Mod Governance (D-MOD-001 — D-MOD-019)
 
 市场安装流触发 8 阶段执行内核：
-1. Discovery → 从 catalog、本地目录、`.zip` 或 URL 获取预构建 mod 包引用
+1. Discovery → 从 catalog 或已落盘的 installed mods 目录获取 mod 包引用
 2. Manifest/Compat → 解析清单和版本兼容性
 3. Signature/Auth → 校验 digest、signature、revocation，并记录供应链元数据与风险提示
 4. Dependency/Build → 校验预构建包结构与依赖
@@ -30,7 +30,7 @@ Mod Hub 没有独立 sidebar tab，也不存在旧的内嵌 alias route。
 7. Lifecycle → 设为 ENABLED
 8. Audit → 记录安装决策
 
-没有 catalog 时，Mod Hub 仍必须提供 `Install from path` / `Install from URL`。
+本地 sideload 仍受 `D-MOD-003` 的 `sideload` 信任模型约束，但产品 UI 不再提供任意 path / URL 输入框。用户如需本地安装，必须通过 `Open Mods Folder` 打开 desktop managed installed mods 目录后手动复制。
 
 Catalog v1 约束：
 
@@ -48,7 +48,19 @@ Catalog v1 约束：
 ### State (D-STATE-004)
 
 - `activeTab = 'mods'` 时渲染单页 Mod Hub。
-- 已安装 mod、catalog 可发现 mod、更新提示和手动安装入口必须出现在同一个 Hub 页面中，而不是拆成旧的两段式结构。
+- 已安装 mod、catalog 可发现 mod、更新提示和本地文件夹入口必须出现在同一个 Hub 页面中，而不是拆成旧的两段式结构。
+
+## UI Contract
+
+- 默认态采用 Launchpad / Dock 风格：仅展示已安装 mod 的图标墙。
+- 页面必须提供 `Open Mods Folder` 按钮，打开 desktop managed installed mods 目录。
+- 搜索框获得焦点时，Hub 必须展开 unified management list：
+  - 默认按 `Installed` → `Available via Catalog` 分组
+  - 输入非空时统一过滤，但保留分组标题
+- Unified list 行项目必须承载完整管理动作：
+  - `Install / Update / Open / Enable / Disable / Uninstall / Retry`
+  - 低频或破坏性动作可进入 `More` 菜单
+- 冲突态或失败态 mod 必须在 unified list 明确展示原因，并只暴露安全动作。
 
 ## CI 门禁引用
 

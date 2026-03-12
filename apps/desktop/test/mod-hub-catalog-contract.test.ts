@@ -196,6 +196,69 @@ test('toCatalogModRow marks nimi-app packages as unsupported in desktop v1', () 
   assert.equal(row.badge, 'community');
   assert.deepEqual(row.consentReasons, ['community-package']);
   assert.deepEqual(row.addedCapabilities, ['runtime.execute']);
+  assert.equal(row.primaryAction, null);
+});
+
+test('toCatalogModRow exposes install action for supported remote desktop mods', () => {
+  const row = toCatalogModRow({
+    packageId: 'world.nimi.remote-catalog',
+    packageType: 'desktop-mod',
+    name: 'Remote Catalog Mod',
+    description: 'Installable from governed catalog',
+    latestVersion: '1.0.0',
+    latestChannel: 'stable',
+    publisher: {
+      publisherId: 'nimi',
+      displayName: 'Nimi',
+      trustTier: 'official',
+    },
+    state: {
+      listed: true,
+      yanked: false,
+      quarantined: false,
+    },
+    keywords: [],
+    tags: [],
+  }, {
+    isInstalled: false,
+    isEnabled: false,
+  });
+
+  assert.equal(row.visualState, 'available');
+  assert.equal(row.primaryAction?.kind, 'install');
+});
+
+test('toCatalogModRow prioritizes retry for failed installed mods', () => {
+  const row = toCatalogModRow({
+    packageId: 'world.nimi.failed',
+    packageType: 'desktop-mod',
+    name: 'Failed Mod',
+    description: 'Broken at startup',
+    latestVersion: '1.1.0',
+    latestChannel: 'stable',
+    publisher: {
+      publisherId: 'nimi',
+      displayName: 'Nimi',
+      trustTier: 'official',
+    },
+    state: {
+      listed: true,
+      yanked: false,
+      quarantined: false,
+    },
+    keywords: [],
+    tags: [],
+  }, {
+    isInstalled: true,
+    isEnabled: false,
+    runtimeStatus: 'failed',
+    runtimeError: 'boom',
+    runtimeSourceDir: '/mods/world.nimi.failed',
+  });
+
+  assert.equal(row.visualState, 'failed');
+  assert.equal(row.primaryAction?.kind, 'retry');
+  assert.deepEqual(row.menuActions.map((item) => item.kind), ['uninstall', 'open-folder']);
 });
 
 test('parseCatalogReleaseRecord keeps reserved nimi-app metadata fields', () => {

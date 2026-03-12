@@ -3,7 +3,9 @@ import type {
   CatalogPackageSummary,
   CatalogTrustTier,
   RuntimeLocalManifestSummary,
+  RuntimeModDiagnosticRecord,
 } from '@renderer/bridge';
+import type { RuntimeModRegisterFailure } from '@runtime/mod';
 
 export const MOD_HUB_COLORS = {
   brand50: '#ecfeff',
@@ -30,11 +32,27 @@ export const MOD_HUB_COLORS = {
 
 export type BadgeType = 'verified' | 'catalog' | 'official' | 'community';
 export type ModHubModSource = 'runtime' | 'catalog';
-export type ModHubRuntimeAction = 'install' | 'uninstall' | 'enable' | 'disable' | 'settings' | 'update';
-export type ModHubPendingActionType =
-  | ModHubRuntimeAction
-  | 'install-from-path'
-  | 'install-from-url';
+export type ModHubRuntimeAction = 'install' | 'uninstall' | 'enable' | 'disable' | 'update' | 'retry';
+export type ModHubActionKind = ModHubRuntimeAction | 'open' | 'open-folder';
+export type ModHubPendingActionType = ModHubRuntimeAction;
+export type ModHubVisualState =
+  | 'failed'
+  | 'conflict'
+  | 'update-available'
+  | 'enabled'
+  | 'disabled'
+  | 'available';
+export type ModHubActionTone = 'primary' | 'secondary' | 'danger' | 'ghost';
+
+export type ModHubActionDescriptor = {
+  kind: ModHubActionKind;
+  tone: ModHubActionTone;
+};
+
+export type ModHubSection = {
+  key: 'installed' | 'available';
+  mods: ModHubMod[];
+};
 
 export type ModHubMod = {
   id: string;
@@ -65,10 +83,19 @@ export type ModHubMod = {
   runtimeStatus?: 'loaded' | 'disabled' | 'failed' | 'conflict';
   runtimeSourceType?: 'installed' | 'dev';
   runtimeSourceDir?: string;
+  runtimeManifestPath?: string;
   runtimeConflict?: boolean;
+  runtimeError?: string;
+  runtimeConflictPaths?: string[];
   isInstalled: boolean;
   isEnabled: boolean;
   publisherVerified?: boolean;
+  visualState: ModHubVisualState;
+  statusLabelKey: string;
+  canOpenFromDock: boolean;
+  primaryAction: ModHubActionDescriptor | null;
+  secondaryAction: ModHubActionDescriptor | null;
+  menuActions: ModHubActionDescriptor[];
 };
 
 function normalizeRuntimeDisplayName(input: {
@@ -93,12 +120,190 @@ function normalizeRuntimeDisplayName(input: {
   return candidate;
 }
 
+function trustTierBadge(trustTier: CatalogTrustTier | string | undefined): BadgeType | undefined {
+  if (trustTier === 'official') return 'official';
+  if (trustTier === 'verified') return 'verified';
+  if (trustTier === 'community') return 'community';
+  return undefined;
+}
+
+function resolveVisualState(mod: {
+  isInstalled: boolean;
+  isEnabled: boolean;
+  runtimeStatus?: ModHubMod['runtimeStatus'];
+  availableUpdateVersion?: string;
+}): ModHubVisualState {
+  if (mod.runtimeStatus === 'conflict') return 'conflict';
+  if (mod.runtimeStatus === 'failed') return 'failed';
+  if (mod.isInstalled && mod.availableUpdateVersion) return 'update-available';
+  if (mod.isInstalled && mod.isEnabled) return 'enabled';
+  if (mod.isInstalled) return 'disabled';
+  return 'available';
+}
+
+function resolveStatusLabelKey(visualState: ModHubVisualState): string {
+  switch (visualState) {
+    case 'failed':
+      return 'statusFailed';
+    case 'conflict':
+      return 'statusConflict';
+    case 'update-available':
+      return 'statusUpdateReady';
+    case 'enabled':
+      return 'statusEnabled';
+    case 'disabled':
+      return 'statusDisabled';
+    default:
+      return 'statusAvailable';
+  }
+}
+
+function resolvePrimaryAction(mod: {
+  visualState: ModHubVisualState;
+  isInstalled: boolean;
+  supportedByDesktop?: boolean;
+  installDisabledReason?: string;
+}): ModHubActionDescriptor | null {
+  if (!mod.isInstalled) {
+    if (mod.supportedByDesktop === false || mod.installDisabledReason) {
+      return null;
+    }
+    return { kind: 'install', tone: 'primary' };
+  }
+  switch (mod.visualState) {
+    case 'failed':
+      return { kind: 'retry', tone: 'primary' };
+    case 'conflict':
+      return null;
+    case 'update-available':
+      return { kind: 'update', tone: 'primary' };
+    case 'enabled':
+      return { kind: 'open', tone: 'primary' };
+    case 'disabled':
+      return { kind: 'enable', tone: 'primary' };
+    default:
+      return null;
+  }
+}
+
+function resolveSecondaryAction(mod: {
+  visualState: ModHubVisualState;
+  isInstalled: boolean;
+  isEnabled: boolean;
+  runtimeStatus?: ModHubMod['runtimeStatus'];
+}): ModHubActionDescriptor | null {
+  if (!mod.isInstalled) {
+    return null;
+  }
+  switch (mod.visualState) {
+    case 'update-available':
+      if (mod.isEnabled && mod.runtimeStatus === 'loaded') {
+        return { kind: 'open', tone: 'secondary' };
+      }
+      return { kind: 'enable', tone: 'secondary' };
+    case 'enabled':
+      return { kind: 'disable', tone: 'secondary' };
+    default:
+      return null;
+  }
+}
+
+function resolveMenuActions(mod: {
+  isInstalled: boolean;
+  isEnabled: boolean;
+  visualState: ModHubVisualState;
+  runtimeSourceDir?: string;
+  runtimeManifestPath?: string;
+}): ModHubActionDescriptor[] {
+  if (!mod.isInstalled) {
+    return [];
+  }
+  const actions: ModHubActionDescriptor[] = [];
+  if (mod.visualState === 'failed' && mod.isEnabled) {
+    actions.push({ kind: 'disable', tone: 'ghost' });
+  }
+  actions.push({ kind: 'uninstall', tone: 'danger' });
+  if (String(mod.runtimeSourceDir || '').trim() || String(mod.runtimeManifestPath || '').trim()) {
+    actions.push({ kind: 'open-folder', tone: 'ghost' });
+  }
+  return actions;
+}
+
+function decorateModHubMod(base: Omit<ModHubMod, 'visualState' | 'statusLabelKey' | 'canOpenFromDock' | 'primaryAction' | 'secondaryAction' | 'menuActions'>): ModHubMod {
+  const visualState = resolveVisualState(base);
+  return {
+    ...base,
+    visualState,
+    statusLabelKey: resolveStatusLabelKey(visualState),
+    canOpenFromDock: base.isInstalled && base.isEnabled && base.runtimeStatus === 'loaded' && !base.availableUpdateVersion,
+    primaryAction: resolvePrimaryAction({
+      visualState,
+      isInstalled: base.isInstalled,
+      supportedByDesktop: base.supportedByDesktop,
+      installDisabledReason: base.installDisabledReason,
+    }),
+    secondaryAction: resolveSecondaryAction({
+      visualState,
+      isInstalled: base.isInstalled,
+      isEnabled: base.isEnabled,
+      runtimeStatus: base.runtimeStatus,
+    }),
+    menuActions: resolveMenuActions({
+      isInstalled: base.isInstalled,
+      isEnabled: base.isEnabled,
+      visualState,
+      runtimeSourceDir: base.runtimeSourceDir,
+      runtimeManifestPath: base.runtimeManifestPath,
+    }),
+  };
+}
+
+function resolveRuntimeStatus(input: {
+  isInstalled: boolean;
+  isEnabled: boolean;
+  diagnostic?: RuntimeModDiagnosticRecord | null;
+  failure?: RuntimeModRegisterFailure | null;
+  fused?: { reason: string; lastError: string; at: string } | null;
+}): ModHubMod['runtimeStatus'] {
+  if (input.diagnostic?.status === 'conflict') {
+    return 'conflict';
+  }
+  if (input.failure || input.fused || input.diagnostic?.status === 'invalid') {
+    return 'failed';
+  }
+  if (input.isInstalled && input.isEnabled) {
+    return 'loaded';
+  }
+  return 'disabled';
+}
+
+function resolveRuntimeError(input: {
+  diagnostic?: RuntimeModDiagnosticRecord | null;
+  failure?: RuntimeModRegisterFailure | null;
+  fused?: { reason: string; lastError: string; at: string } | null;
+}): string {
+  return String(
+    input.failure?.error
+      || input.fused?.lastError
+      || input.diagnostic?.error
+      || '',
+  ).trim();
+}
+
 export function toRuntimeModRow(
   summary: RuntimeLocalManifestSummary,
   index: number,
   input: {
     isInstalled: boolean;
     isEnabled: boolean;
+    availableUpdateVersion?: string;
+    advisoryCount?: number;
+    requiresUserConsent?: boolean;
+    consentReasons?: CatalogConsentReason[];
+    addedCapabilities?: string[];
+    diagnostic?: RuntimeModDiagnosticRecord | null;
+    failure?: RuntimeModRegisterFailure | null;
+    fused?: { reason: string; lastError: string; at: string } | null;
   },
 ): ModHubMod {
   const manifest = summary.manifest && typeof summary.manifest === 'object'
@@ -133,7 +338,7 @@ export function toRuntimeModRow(
     : null;
   const publisherVerified = Boolean(publisherRecord?.verified);
 
-  return {
+  return decorateModHubMod({
     id,
     name: displayName,
     description,
@@ -145,22 +350,27 @@ export function toRuntimeModRow(
     source: 'runtime',
     packageType: 'desktop-mod',
     catalogPackageId: id,
-    runtimeStatus: input.isEnabled ? 'loaded' : 'disabled',
+    trustTier: undefined,
+    releaseChannel: undefined,
+    advisoryCount: input.advisoryCount || 0,
+    availableUpdateVersion: input.availableUpdateVersion,
+    requiresUserConsent: input.requiresUserConsent,
+    consentReasons: input.consentReasons,
+    addedCapabilities: input.addedCapabilities,
+    supportedByDesktop: true,
+    installDisabledReason: undefined,
+    warningText: undefined,
+    runtimeStatus: resolveRuntimeStatus(input),
     runtimeSourceType: summary.sourceType,
     runtimeSourceDir: summary.sourceDir,
-    runtimeConflict: false,
+    runtimeManifestPath: summary.path,
+    runtimeConflict: input.diagnostic?.status === 'conflict',
+    runtimeError: resolveRuntimeError(input),
+    runtimeConflictPaths: Array.isArray(input.diagnostic?.conflictPaths) ? input.diagnostic?.conflictPaths : [],
     isInstalled: input.isInstalled,
     isEnabled: input.isEnabled,
     publisherVerified,
-    supportedByDesktop: true,
-  };
-}
-
-function trustTierBadge(trustTier: CatalogTrustTier | string | undefined): BadgeType | undefined {
-  if (trustTier === 'official') return 'official';
-  if (trustTier === 'verified') return 'verified';
-  if (trustTier === 'community') return 'community';
-  return undefined;
+  });
 }
 
 export function toCatalogModRow(
@@ -174,12 +384,20 @@ export function toCatalogModRow(
     requiresUserConsent?: boolean;
     consentReasons?: CatalogConsentReason[];
     addedCapabilities?: string[];
+    runtimeStatus?: ModHubMod['runtimeStatus'];
+    runtimeSourceType?: 'installed' | 'dev';
+    runtimeSourceDir?: string;
+    runtimeManifestPath?: string;
+    runtimeError?: string;
+    runtimeConflict?: boolean;
+    runtimeConflictPaths?: string[];
   },
 ): ModHubMod {
   const trustTier = summary.publisher.trustTier;
   const isSupported = summary.packageType === 'desktop-mod';
   const version = input.installedVersion || summary.latestVersion || '0.0.0';
-  return {
+
+  return decorateModHubMod({
     id: summary.packageId,
     name: summary.name,
     description: summary.description,
@@ -211,10 +429,80 @@ export function toCatalogModRow(
         : trustTier === 'community'
           ? 'Community package. Review publisher and capabilities before enabling.'
           : undefined,
+    runtimeStatus: input.runtimeStatus,
+    runtimeSourceType: input.runtimeSourceType,
+    runtimeSourceDir: input.runtimeSourceDir,
+    runtimeManifestPath: input.runtimeManifestPath,
+    runtimeConflict: input.runtimeConflict,
+    runtimeError: input.runtimeError,
+    runtimeConflictPaths: input.runtimeConflictPaths || [],
     isInstalled: input.isInstalled,
     isEnabled: input.isEnabled,
     publisherVerified: trustTier === 'official' || trustTier === 'verified',
-  };
+  });
+}
+
+function managementPriority(mod: ModHubMod): number {
+  switch (mod.visualState) {
+    case 'failed':
+    case 'conflict':
+      return 5;
+    case 'update-available':
+      return 4;
+    case 'enabled':
+      return 3;
+    case 'disabled':
+      return 2;
+    default:
+      return 1;
+  }
+}
+
+export function sortModsForManagement(input: readonly ModHubMod[]): ModHubMod[] {
+  return [...input].sort((a, b) => {
+    const priorityDiff = managementPriority(b) - managementPriority(a);
+    if (priorityDiff !== 0) return priorityDiff;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+export function sortModsForDock(input: readonly ModHubMod[]): ModHubMod[] {
+  return [...input].sort((a, b) => {
+    const aScore = a.canOpenFromDock ? 2 : a.isInstalled ? 1 : 0;
+    const bScore = b.canOpenFromDock ? 2 : b.isInstalled ? 1 : 0;
+    if (aScore !== bScore) return bScore - aScore;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+export function buildDockMods(input: readonly ModHubMod[]): ModHubMod[] {
+  return sortModsForDock(input.filter((item) => item.isInstalled));
+}
+
+export function buildManagementSections(input: {
+  mods: readonly ModHubMod[];
+  query: string;
+}): ModHubSection[] {
+  const query = input.query.toLowerCase().trim();
+  const visibleMods = (query
+    ? input.mods.filter(
+        (mod) =>
+          mod.name.toLowerCase().includes(query)
+          || mod.description.toLowerCase().includes(query)
+          || mod.author.toLowerCase().includes(query)
+          || String(mod.catalogPackageId || '').toLowerCase().includes(query),
+      )
+    : input.mods
+  );
+  const installed = sortModsForManagement(visibleMods.filter((mod) => mod.isInstalled));
+  const available = sortModsForManagement(
+    visibleMods.filter((mod) => !mod.isInstalled && mod.source === 'catalog'),
+  );
+
+  return [
+    { key: 'installed', mods: installed },
+    { key: 'available', mods: available },
+  ];
 }
 
 export function describeConsentReason(reason: CatalogConsentReason): string {
