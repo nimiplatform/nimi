@@ -10,6 +10,8 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/oklog/ulid/v2"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -80,7 +82,7 @@ func (s *Service) BuildIndex(_ context.Context, req *runtimev1.BuildIndexRequest
 	_, exists := s.indexes[key]
 	if exists && !req.GetOverwrite() {
 		s.mu.Unlock()
-		return &runtimev1.BuildIndexResponse{TaskId: taskID, Accepted: false, ReasonCode: runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN}, nil
+		return nil, status.Error(codes.AlreadyExists, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED.String())
 	}
 	s.indexes[key] = record
 	s.mu.Unlock()
@@ -102,7 +104,7 @@ func (s *Service) SearchIndex(_ context.Context, req *runtimev1.SearchIndexReque
 	record, exists := s.indexes[indexKey(appID, subjectUserID, indexID)]
 	s.mu.RUnlock()
 	if !exists {
-		return &runtimev1.SearchIndexResponse{Hits: []*runtimev1.SearchHit{}, ReasonCode: runtimev1.ReasonCode_APP_GRANT_INVALID}, nil
+		return &runtimev1.SearchIndexResponse{Hits: []*runtimev1.SearchHit{}, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 	}
 
 	topK := int(req.GetTopK())

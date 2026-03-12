@@ -3,8 +3,10 @@ package workflow
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
+	"sync"
 	"testing"
 	"time"
 
@@ -611,6 +613,36 @@ func (s *workflowEventCollector) Context() context.Context     { return s.ctx }
 func (s *workflowEventCollector) SendMsg(any) error            { return nil }
 func (s *workflowEventCollector) RecvMsg(any) error            { return nil }
 
+type blockingWorkflowEventCollector struct {
+	ctx    context.Context
+	gate   chan struct{}
+	once   sync.Once
+	mu     sync.Mutex
+	events []*runtimev1.WorkflowEvent
+}
+
+func (s *blockingWorkflowEventCollector) Send(event *runtimev1.WorkflowEvent) error {
+	s.once.Do(func() {
+		<-s.gate
+	})
+	cloned := proto.Clone(event)
+	copy, ok := cloned.(*runtimev1.WorkflowEvent)
+	if !ok {
+		copy = &runtimev1.WorkflowEvent{}
+	}
+	s.mu.Lock()
+	s.events = append(s.events, copy)
+	s.mu.Unlock()
+	return nil
+}
+
+func (s *blockingWorkflowEventCollector) SetHeader(metadata.MD) error  { return nil }
+func (s *blockingWorkflowEventCollector) SendHeader(metadata.MD) error { return nil }
+func (s *blockingWorkflowEventCollector) SetTrailer(metadata.MD)       {}
+func (s *blockingWorkflowEventCollector) Context() context.Context     { return s.ctx }
+func (s *blockingWorkflowEventCollector) SendMsg(any) error            { return nil }
+func (s *blockingWorkflowEventCollector) RecvMsg(any) error            { return nil }
+
 func TestGetWorkflowNotFoundReasonCode(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	resp, err := svc.GetWorkflow(context.Background(), &runtimev1.GetWorkflowRequest{TaskId: "nonexistent"})
@@ -652,6 +684,54 @@ func TestSubscribeWorkflowEventsNotFoundReasonCode(t *testing.T) {
 	}
 	if st.Code() != codes.NotFound {
 		t.Fatalf("expected NotFound, got %v", st.Code())
+	}
+}
+
+func TestSubscribeWorkflowEventsTerminalEventPriority(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	ctx := context.Background()
+
+	submitResp, err := svc.SubmitWorkflow(ctx, &runtimev1.SubmitWorkflowRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		Definition:    longWorkflowDefinition(20),
+		TimeoutMs:     30_000,
+	})
+	if err != nil {
+		t.Fatalf("submit workflow: %v", err)
+	}
+
+	stream := &blockingWorkflowEventCollector{
+		ctx:  context.Background(),
+		gate: make(chan struct{}),
+	}
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.SubscribeWorkflowEvents(&runtimev1.SubscribeWorkflowEventsRequest{TaskId: submitResp.GetTaskId()}, stream)
+	}()
+
+	waitWorkflowStatus(t, svc, submitResp.GetTaskId(), runtimev1.WorkflowStatus_WORKFLOW_STATUS_COMPLETED, 3*time.Second)
+	close(stream.gate)
+
+	err = <-done
+	if status.Code(err) != codes.ResourceExhausted {
+		t.Fatalf("expected resource exhausted, got %v", err)
+	}
+
+	stream.mu.Lock()
+	defer stream.mu.Unlock()
+	if len(stream.events) == 0 {
+		t.Fatal("expected delivered events before close")
+	}
+	hasTerminal := false
+	for _, event := range stream.events {
+		if isTerminalEvent(event.GetEventType()) {
+			hasTerminal = true
+			break
+		}
+	}
+	if !hasTerminal {
+		t.Fatal("expected terminal event to be retained under backpressure")
 	}
 }
 
@@ -708,4 +788,26 @@ func (f *fakeRuntimeAIClient) DeleteVoiceAsset(context.Context, *runtimev1.Delet
 
 func (f *fakeRuntimeAIClient) ListPresetVoices(context.Context, *runtimev1.ListPresetVoicesRequest, ...grpc.CallOption) (*runtimev1.ListPresetVoicesResponse, error) {
 	return nil, status.Error(12, "unimplemented")
+}
+
+func longWorkflowDefinition(nodes int) *runtimev1.WorkflowDefinition {
+	definition := &runtimev1.WorkflowDefinition{
+		WorkflowType: "long.pipeline",
+		Nodes:        make([]*runtimev1.WorkflowNode, 0, nodes),
+	}
+	for i := 0; i < nodes; i++ {
+		nodeID := fmt.Sprintf("n%d", i)
+		node := &runtimev1.WorkflowNode{
+			NodeId:   nodeID,
+			NodeType: runtimev1.WorkflowNodeType_WORKFLOW_NODE_TRANSFORM_TEMPLATE,
+			TypeConfig: &runtimev1.WorkflowNode_TemplateConfig{
+				TemplateConfig: &runtimev1.TemplateNodeConfig{Template: nodeID},
+			},
+		}
+		if i > 0 {
+			node.DependsOn = []string{fmt.Sprintf("n%d", i-1)}
+		}
+		definition.Nodes = append(definition.Nodes, node)
+	}
+	return definition
 }

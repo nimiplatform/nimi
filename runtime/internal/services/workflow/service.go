@@ -15,6 +15,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
+	"github.com/nimiplatform/nimi/runtime/internal/streamutil"
 )
 
 const (
@@ -42,7 +43,7 @@ type taskRecord struct {
 type subscriber struct {
 	ID     uint64
 	TaskID string
-	Ch     chan *runtimev1.WorkflowEvent
+	Relay  *streamutil.Relay[*runtimev1.WorkflowEvent]
 }
 
 type Option func(*Service)
@@ -258,29 +259,20 @@ func (s *Service) SubscribeWorkflowEvents(req *runtimev1.SubscribeWorkflowEvents
 	}
 	defer s.removeSubscriber(sub.ID)
 
+	done := make(chan error, 1)
+	go func() {
+		done <- sub.Relay.Run(stream.Context(), func(event *runtimev1.WorkflowEvent) error {
+			return stream.Send(event)
+		})
+	}()
+
 	for _, event := range backlog {
-		if err := stream.Send(event); err != nil {
+		if err := sub.Relay.Enqueue(event); err != nil {
 			return err
 		}
 	}
 	if terminal {
-		return nil
+		sub.Relay.Close()
 	}
-
-	for {
-		select {
-		case <-stream.Context().Done():
-			return nil
-		case event, ok := <-sub.Ch:
-			if !ok {
-				return nil
-			}
-			if err := stream.Send(event); err != nil {
-				return err
-			}
-			if isTerminalEvent(event.GetEventType()) {
-				return nil
-			}
-		}
-	}
+	return <-done
 }

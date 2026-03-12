@@ -246,20 +246,11 @@ func (s *Service) publishEvent(taskID string, event *runtimev1.WorkflowEvent) er
 	s.mu.Unlock()
 
 	for _, sub := range targets {
-		clone := cloneEvent(emitted)
-		select {
-		case sub.Ch <- clone:
-			continue
-		default:
+		if err := sub.Relay.Enqueue(cloneEvent(emitted)); err != nil && s.logger != nil {
+			s.logger.Warn("workflow subscriber relay closed", "subscriber_id", sub.ID, "task_id", taskID, "error", err)
 		}
-
-		select {
-		case <-sub.Ch:
-		default:
-		}
-		select {
-		case sub.Ch <- clone:
-		default:
+		if isTerminalEvent(emitted.GetEventType()) {
+			sub.Relay.Close()
 		}
 	}
 	return nil

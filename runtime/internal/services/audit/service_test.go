@@ -239,6 +239,46 @@ func (s *providerHealthStreamCollector) Send(event *runtimev1.AIProviderHealthEv
 	return nil
 }
 
+type blockingRuntimeHealthStreamCollector struct {
+	ctx  context.Context
+	gate chan struct{}
+	once sync.Once
+}
+
+func (s *blockingRuntimeHealthStreamCollector) Send(*runtimev1.RuntimeHealthEvent) error {
+	s.once.Do(func() {
+		<-s.gate
+	})
+	return nil
+}
+
+func (s *blockingRuntimeHealthStreamCollector) SetHeader(metadata.MD) error  { return nil }
+func (s *blockingRuntimeHealthStreamCollector) SendHeader(metadata.MD) error { return nil }
+func (s *blockingRuntimeHealthStreamCollector) SetTrailer(metadata.MD)       {}
+func (s *blockingRuntimeHealthStreamCollector) Context() context.Context     { return s.ctx }
+func (s *blockingRuntimeHealthStreamCollector) SendMsg(any) error            { return nil }
+func (s *blockingRuntimeHealthStreamCollector) RecvMsg(any) error            { return nil }
+
+type blockingProviderHealthStreamCollector struct {
+	ctx  context.Context
+	gate chan struct{}
+	once sync.Once
+}
+
+func (s *blockingProviderHealthStreamCollector) Send(*runtimev1.AIProviderHealthEvent) error {
+	s.once.Do(func() {
+		<-s.gate
+	})
+	return nil
+}
+
+func (s *blockingProviderHealthStreamCollector) SetHeader(metadata.MD) error  { return nil }
+func (s *blockingProviderHealthStreamCollector) SendHeader(metadata.MD) error { return nil }
+func (s *blockingProviderHealthStreamCollector) SetTrailer(metadata.MD)       {}
+func (s *blockingProviderHealthStreamCollector) Context() context.Context     { return s.ctx }
+func (s *blockingProviderHealthStreamCollector) SendMsg(any) error            { return nil }
+func (s *blockingProviderHealthStreamCollector) RecvMsg(any) error            { return nil }
+
 func (s *providerHealthStreamCollector) SetHeader(metadata.MD) error  { return nil }
 func (s *providerHealthStreamCollector) SendHeader(metadata.MD) error { return nil }
 func (s *providerHealthStreamCollector) SetTrailer(metadata.MD)       {}
@@ -468,7 +508,7 @@ func TestExportAuditEventsCompressed(t *testing.T) {
 	}
 }
 
-func TestExportAuditEventsSequenceIncreases(t *testing.T) {
+func TestExportAuditEventsSequenceStartsFromZero(t *testing.T) {
 	state := health.NewState()
 	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
 
@@ -479,9 +519,69 @@ func TestExportAuditEventsSequenceIncreases(t *testing.T) {
 		t.Fatalf("ExportAuditEvents: %v", err)
 	}
 	for i, chunk := range stream.chunks {
-		if chunk.GetSequence() != uint64(i+1) {
-			t.Fatalf("chunk %d sequence: got=%d want=%d", i, chunk.GetSequence(), i+1)
+		if chunk.GetSequence() != uint64(i) {
+			t.Fatalf("chunk %d sequence: got=%d want=%d", i, chunk.GetSequence(), i)
 		}
+	}
+}
+
+func TestSubscribeRuntimeHealthEventsSlowConsumerClosed(t *testing.T) {
+	state := health.NewState()
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	stream := &blockingRuntimeHealthStreamCollector{ctx: ctx, gate: make(chan struct{})}
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.SubscribeRuntimeHealthEvents(&runtimev1.SubscribeRuntimeHealthEventsRequest{}, stream)
+	}()
+
+	time.Sleep(20 * time.Millisecond)
+	for i := 0; i < 32; i++ {
+		state.SetActivity(int32(i), 0, 0)
+		time.Sleep(2 * time.Millisecond)
+	}
+	close(stream.gate)
+
+	select {
+	case err := <-done:
+		if status.Code(err) != codes.ResourceExhausted {
+			t.Fatalf("expected resource exhausted, got %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("subscribe runtime health did not close on slow consumer")
+	}
+}
+
+func TestSubscribeAIProviderHealthEventsSlowConsumerClosed(t *testing.T) {
+	state := health.NewState()
+	tracker := providerhealth.New()
+	tracker.Mark("cloud-nimillm", true, "")
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), tracker)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	stream := &blockingProviderHealthStreamCollector{ctx: ctx, gate: make(chan struct{})}
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.SubscribeAIProviderHealthEvents(&runtimev1.SubscribeAIProviderHealthEventsRequest{}, stream)
+	}()
+
+	time.Sleep(20 * time.Millisecond)
+	for i := 0; i < 32; i++ {
+		tracker.Mark("cloud-nimillm", i%2 == 0, "flip")
+		time.Sleep(2 * time.Millisecond)
+	}
+	close(stream.gate)
+
+	select {
+	case err := <-done:
+		if status.Code(err) != codes.ResourceExhausted {
+			t.Fatalf("expected resource exhausted, got %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("subscribe provider health did not close on slow consumer")
 	}
 }
 

@@ -4,11 +4,13 @@ import (
 	"time"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/streamutil"
 )
 
 func (s *Service) addSubscriber(taskID string) (subscriber, []*runtimev1.WorkflowEvent, bool, error) {
@@ -24,7 +26,14 @@ func (s *Service) addSubscriber(taskID string) (subscriber, []*runtimev1.Workflo
 	sub := subscriber{
 		ID:     s.nextSubID,
 		TaskID: taskID,
-		Ch:     make(chan *runtimev1.WorkflowEvent, 32),
+		Relay: streamutil.NewRelay(streamutil.RelayOptions[*runtimev1.WorkflowEvent]{
+			Budget:              32,
+			MaxConsecutiveDrops: 3,
+			CloseErr:            status.Error(codes.ResourceExhausted, "slow consumer"),
+			IsTerminal: func(event *runtimev1.WorkflowEvent) bool {
+				return isTerminalEvent(event.GetEventType())
+			},
+		}),
 	}
 	s.subscribers[sub.ID] = sub
 
@@ -45,7 +54,7 @@ func (s *Service) removeSubscriber(id uint64) {
 		return
 	}
 	delete(s.subscribers, id)
-	close(sub.Ch)
+	sub.Relay.Close()
 }
 
 func (s *Service) getTask(taskID string) (*taskRecord, bool) {

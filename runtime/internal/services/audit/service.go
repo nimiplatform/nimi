@@ -17,6 +17,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
+	"github.com/nimiplatform/nimi/runtime/internal/streamutil"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -139,7 +140,7 @@ func (s *Service) ExportAuditEvents(req *runtimev1.ExportAuditEventsRequest, str
 		eof := i == len(chunks)-1
 		if err := stream.Send(&runtimev1.AuditExportChunk{
 			ExportId: exportID,
-			Sequence: uint64(i + 1),
+			Sequence: uint64(i),
 			Chunk:    part,
 			Eof:      eof,
 			MimeType: exportMimeType(req.GetFormat(), req.GetCompress()),
@@ -226,10 +227,24 @@ func (s *Service) SubscribeAIProviderHealthEvents(_ *runtimev1.SubscribeAIProvid
 		return nil
 	}
 
+	relay := streamutil.NewRelay(streamutil.RelayOptions[*runtimev1.AIProviderHealthEvent]{
+		Budget:              16,
+		MaxConsecutiveDrops: 3,
+		CloseErr:            status.Error(codes.ResourceExhausted, "slow consumer"),
+	})
+	defer relay.Close()
+
+	done := make(chan error, 1)
+	go func() {
+		done <- relay.Run(stream.Context(), func(event *runtimev1.AIProviderHealthEvent) error {
+			return stream.Send(event)
+		})
+	}()
+
 	var sequence uint64
 	for _, item := range projectProviderHealthSnapshots(s.providerTrack.List()) {
 		sequence++
-		if err := stream.Send(providerProjectionToEvent(sequence, item)); err != nil {
+		if err := relay.Enqueue(providerProjectionToEvent(sequence, item)); err != nil {
 			return err
 		}
 	}
@@ -257,7 +272,7 @@ func (s *Service) SubscribeAIProviderHealthEvents(_ *runtimev1.SubscribeAIProvid
 			}
 			for _, projection := range projections {
 				sequence++
-				if err := stream.Send(providerProjectionToEvent(sequence, projection)); err != nil {
+				if err := relay.Enqueue(providerProjectionToEvent(sequence, projection)); err != nil {
 					return err
 				}
 			}
@@ -268,6 +283,20 @@ func (s *Service) SubscribeAIProviderHealthEvents(_ *runtimev1.SubscribeAIProvid
 func (s *Service) SubscribeRuntimeHealthEvents(_ *runtimev1.SubscribeRuntimeHealthEventsRequest, stream grpc.ServerStreamingServer[runtimev1.RuntimeHealthEvent]) error {
 	updates, cancel := s.state.Subscribe(8)
 	defer cancel()
+
+	relay := streamutil.NewRelay(streamutil.RelayOptions[*runtimev1.RuntimeHealthEvent]{
+		Budget:              8,
+		MaxConsecutiveDrops: 3,
+		CloseErr:            status.Error(codes.ResourceExhausted, "slow consumer"),
+	})
+	defer relay.Close()
+
+	done := make(chan error, 1)
+	go func() {
+		done <- relay.Run(stream.Context(), func(event *runtimev1.RuntimeHealthEvent) error {
+			return stream.Send(event)
+		})
+	}()
 
 	var seq uint64
 	for {
@@ -294,10 +323,14 @@ func (s *Service) SubscribeRuntimeHealthEvents(_ *runtimev1.SubscribeRuntimeHeal
 				VramBytes:           snapshot.VRAMBytes,
 				SampledAt:           timestamppb.New(snapshot.SampledAt),
 			}
-			if err := stream.Send(event); err != nil {
+			if err := relay.Enqueue(event); err != nil {
 				return err
 			}
 			if snapshot.Status == health.StatusStopping {
+				relay.Close()
+				if err := <-done; err != nil {
+					return err
+				}
 				return status.Error(codes.Canceled, "runtime stopping")
 			}
 		}

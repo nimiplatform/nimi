@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"strings"
 	"time"
@@ -9,7 +10,11 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/oklog/ulid/v2"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
+
+type pullExecutor func(modelID string, complete func(runtimev1.ModelStatus))
 
 // Service implements RuntimeModelService with an in-memory registry.
 type Service struct {
@@ -18,6 +23,7 @@ type Service struct {
 
 	registry        *modelregistry.Registry
 	persistencePath string
+	pullExecutor    pullExecutor
 }
 
 func New(logger *slog.Logger, registry ...*modelregistry.Registry) *Service {
@@ -25,14 +31,26 @@ func New(logger *slog.Logger, registry ...*modelregistry.Registry) *Service {
 	if len(registry) > 0 && registry[0] != nil {
 		models = registry[0]
 	}
-	return &Service{
-		logger:   logger,
-		registry: models,
+	svc := &Service{
+		logger:       logger,
+		registry:     models,
+		pullExecutor: defaultPullExecutor,
 	}
+	return svc
+}
+
+func defaultPullExecutor(modelID string, complete func(runtimev1.ModelStatus)) {
+	go complete(runtimev1.ModelStatus_MODEL_STATUS_INSTALLED)
 }
 
 func (s *Service) SetPersistencePath(path string) {
 	s.persistencePath = strings.TrimSpace(path)
+}
+
+func (s *Service) SetPullExecutor(executor pullExecutor) {
+	if executor != nil {
+		s.pullExecutor = executor
+	}
 }
 
 func (s *Service) ListModels(context.Context, *runtimev1.ListModelsRequest) (*runtimev1.ListModelsResponse, error) {
@@ -49,21 +67,40 @@ func (s *Service) PullModel(_ context.Context, req *runtimev1.PullModelRequest) 
 		}, nil
 	}
 
-	taskID := ulid.Make().String()
 	now := time.Now().UTC()
-
-	s.registry.Upsert(modelregistry.Entry{
-		ModelID:      modelID,
-		Version:      version,
-		Status:       runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
-		Capabilities: inferCapabilities(modelID),
-		LastHealthAt: now,
-		Source:       strings.TrimSpace(req.GetSource()),
-	})
+	entry, exists := s.registry.Get(modelID)
+	if exists {
+		if !canTransitionModel(entry.Status, runtimev1.ModelStatus_MODEL_STATUS_PULLING) {
+			return nil, status.Errorf(codes.FailedPrecondition, "invalid model transition %s -> %s", entry.Status, runtimev1.ModelStatus_MODEL_STATUS_PULLING)
+		}
+		entry.Version = version
+		entry.Status = runtimev1.ModelStatus_MODEL_STATUS_PULLING
+		entry.Capabilities = inferCapabilities(modelID)
+		entry.LastHealthAt = now
+		entry.Source = strings.TrimSpace(req.GetSource())
+		s.registry.Upsert(entry)
+	} else {
+		s.registry.Upsert(modelregistry.Entry{
+			ModelID:      modelID,
+			Version:      version,
+			Status:       runtimev1.ModelStatus_MODEL_STATUS_PULLING,
+			Capabilities: inferCapabilities(modelID),
+			LastHealthAt: now,
+			Source:       strings.TrimSpace(req.GetSource()),
+		})
+	}
 	s.persistRegistry()
 
-	s.logger.Info("model pulled", "task_id", taskID, "model_id", modelID, "version", version, "app_id", req.GetAppId())
+	taskID := ulid.Make().String()
+	if s.pullExecutor != nil {
+		s.pullExecutor(modelID, func(next runtimev1.ModelStatus) {
+			if err := s.transitionModel(modelID, next); err != nil && s.logger != nil {
+				s.logger.Warn("model transition failed", "model_id", modelID, "status", next, "error", err)
+			}
+		})
+	}
 
+	s.logger.Info("model pull accepted", "task_id", taskID, "model_id", modelID, "version", version, "app_id", req.GetAppId())
 	return &runtimev1.PullModelResponse{
 		TaskId:     taskID,
 		Accepted:   true,
@@ -81,8 +118,7 @@ func (s *Service) RemoveModel(_ context.Context, req *runtimev1.RemoveModelReque
 		}, nil
 	}
 
-	exists := s.registry.Remove(modelID)
-
+	entry, exists := s.registry.Get(modelID)
 	if !exists {
 		return &runtimev1.Ack{
 			Ok:         false,
@@ -90,6 +126,11 @@ func (s *Service) RemoveModel(_ context.Context, req *runtimev1.RemoveModelReque
 			ActionHint: "pull model first",
 		}, nil
 	}
+	if !canTransitionModel(entry.Status, runtimev1.ModelStatus_MODEL_STATUS_REMOVED) {
+		return nil, status.Errorf(codes.FailedPrecondition, "invalid model transition %s -> %s", entry.Status, runtimev1.ModelStatus_MODEL_STATUS_REMOVED)
+	}
+
+	s.registry.Remove(modelID)
 	s.persistRegistry()
 
 	s.logger.Info("model removed", "model_id", modelID, "app_id", req.GetAppId())
@@ -110,7 +151,6 @@ func (s *Service) CheckModelHealth(_ context.Context, req *runtimev1.CheckModelH
 	}
 
 	item, exists := s.registry.Get(modelID)
-
 	if !exists {
 		return &runtimev1.CheckModelHealthResponse{
 			Healthy:    false,
@@ -131,6 +171,21 @@ func (s *Service) CheckModelHealth(_ context.Context, req *runtimev1.CheckModelH
 		Healthy:    true,
 		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 	}, nil
+}
+
+func (s *Service) transitionModel(modelID string, next runtimev1.ModelStatus) error {
+	entry, exists := s.registry.Get(modelID)
+	if !exists {
+		return fmt.Errorf("model not found: %s", modelID)
+	}
+	if !canTransitionModel(entry.Status, next) {
+		return fmt.Errorf("invalid model transition %s -> %s", entry.Status, next)
+	}
+	entry.Status = next
+	entry.LastHealthAt = time.Now().UTC()
+	s.registry.Upsert(entry)
+	s.persistRegistry()
+	return nil
 }
 
 func (s *Service) persistRegistry() {

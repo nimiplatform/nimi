@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestKnowledgeIndexLifecycle(t *testing.T) {
@@ -66,7 +68,51 @@ func TestKnowledgeIndexLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("search after delete: %v", err)
 	}
-	if searchAfterDelete.ReasonCode != runtimev1.ReasonCode_APP_GRANT_INVALID {
-		t.Fatalf("expected APP_GRANT_INVALID after delete, got %v", searchAfterDelete.ReasonCode)
+	if searchAfterDelete.ReasonCode != runtimev1.ReasonCode_ACTION_EXECUTED {
+		t.Fatalf("expected ACTION_EXECUTED after delete, got %v", searchAfterDelete.ReasonCode)
+	}
+	if len(searchAfterDelete.GetHits()) != 0 {
+		t.Fatalf("expected no hits after delete, got %d", len(searchAfterDelete.GetHits()))
+	}
+}
+
+func TestBuildIndexExistingNoOverwriteReasonCode(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	ctx := context.Background()
+	req := &runtimev1.BuildIndexRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		IndexId:       "chat-memory",
+		SourceUris:    []string{"memory://chat/1"},
+	}
+
+	if _, err := svc.BuildIndex(ctx, req); err != nil {
+		t.Fatalf("initial build: %v", err)
+	}
+	_, err := svc.BuildIndex(ctx, req)
+	if status.Code(err) != codes.AlreadyExists {
+		t.Fatalf("expected already exists, got %v", err)
+	}
+	if status.Convert(err).Message() != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED.String() {
+		t.Fatalf("unexpected reason: %s", status.Convert(err).Message())
+	}
+}
+
+func TestSearchIndexNotFoundReturnsEmpty(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	resp, err := svc.SearchIndex(context.Background(), &runtimev1.SearchIndexRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		IndexId:       "missing",
+		Query:         "hello",
+	})
+	if err != nil {
+		t.Fatalf("search missing index: %v", err)
+	}
+	if resp.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
+		t.Fatalf("unexpected reason code: %v", resp.GetReasonCode())
+	}
+	if len(resp.GetHits()) != 0 {
+		t.Fatalf("expected empty hits, got %d", len(resp.GetHits()))
 	}
 }
