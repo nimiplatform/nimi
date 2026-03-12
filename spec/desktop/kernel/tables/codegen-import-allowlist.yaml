@@ -1,14 +1,11 @@
 imports:
-  - path: '@nimiplatform/sdk/mod/runtime'
+  - path: '@nimiplatform/sdk/mod'
     policy: allow
     source_rule: D-CODEGEN-030
-  - path: '@nimiplatform/sdk/mod/runtime-route'
+  - path: '@nimiplatform/sdk/mod/shell'
     policy: allow
     source_rule: D-CODEGEN-030
-  - path: '@nimiplatform/sdk/mod/hook'
-    policy: allow
-    source_rule: D-CODEGEN-030
-  - path: '@nimiplatform/sdk/mod/types'
+  - path: '@nimiplatform/sdk/mod/lifecycle'
     policy: allow
     source_rule: D-CODEGEN-030
   - path: '@nimiplatform/sdk/mod/host'

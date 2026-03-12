@@ -13,17 +13,9 @@ SDK 已完成单包收敛：
 - `@nimiplatform/sdk/types`
 - `@nimiplatform/sdk/scope`
 - `@nimiplatform/sdk/ai-provider`
-- `@nimiplatform/sdk/mod/hook`
-- `@nimiplatform/sdk/mod/runtime`
-- `@nimiplatform/sdk/mod/types`
+- `@nimiplatform/sdk/mod`
 - `@nimiplatform/sdk/mod/shell`
-- `@nimiplatform/sdk/mod/logging`
-- `@nimiplatform/sdk/mod/i18n`
-- `@nimiplatform/sdk/mod/settings`
-- `@nimiplatform/sdk/mod/utils`
-- `@nimiplatform/sdk/mod/model-options`
-- `@nimiplatform/sdk/mod/runtime-route`
-- `@nimiplatform/sdk/mod/host`
+- `@nimiplatform/sdk/mod/lifecycle`
 
 ## Guardrails
 

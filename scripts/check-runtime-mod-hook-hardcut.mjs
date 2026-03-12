@@ -21,6 +21,11 @@ const scanRoots = [
 const allowedExtensions = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs', '.md', '.yaml', '.yml']);
 
 const bannedChecks = [
+  {
+    label: 'removed stable mod subpath',
+    pattern: /@nimiplatform\/sdk\/mod\/(?:hook|runtime|types|logging|i18n|settings|utils|model-options|runtime-route|host)\b/g,
+  },
+  { label: 'forbidden mod ui surface', pattern: /@nimiplatform\/sdk\/mod\/ui\b/g },
   { label: 'legacy mod ai package', pattern: /@nimiplatform\/sdk\/mod\/ai\b/g },
   { label: 'legacy createAiClient surface', pattern: /\bcreateAiClient\b/g },
   { label: 'legacy ModAiClient surface', pattern: /\bModAiClient\b/g },
@@ -42,6 +47,22 @@ const bannedChecks = [
 ];
 
 const failures = [];
+
+function shouldIgnoreMatch(relPath, line) {
+  if (relPath === 'spec/sdk/kernel/mod-contract.md' && line.includes('@nimiplatform/sdk/mod/ui')) {
+    return true;
+  }
+  if (relPath === 'spec/desktop/kernel/codegen-contract.md' && line.includes('@nimiplatform/sdk/mod/host')) {
+    return true;
+  }
+  if (relPath === 'spec/desktop/kernel/tables/codegen-import-allowlist.yaml' && line.includes('@nimiplatform/sdk/mod/host')) {
+    return true;
+  }
+  if (relPath === 'apps/desktop/src/runtime/mod/codegen/preflight.ts' && line.includes('@nimiplatform/sdk/mod/host import is forbidden')) {
+    return true;
+  }
+  return false;
+}
 
 function shouldSkipPath(absPath) {
   const relPath = relative(repoRoot, absPath).replaceAll('\\', '/');
@@ -76,6 +97,9 @@ function walk(absPath) {
     for (const check of bannedChecks) {
       check.pattern.lastIndex = 0;
       if (check.pattern.test(line)) {
+        if (shouldIgnoreMatch(relPath, line)) {
+          continue;
+        }
         failures.push(`${relPath}:${index + 1}: ${check.label}: ${line.trim()}`);
       }
     }

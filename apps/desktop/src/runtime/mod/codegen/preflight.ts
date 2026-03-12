@@ -85,7 +85,7 @@ const CODEGEN_DENY_PATTERNS: DenyPattern[] = [
   },
   {
     reasonCode: ReasonCode.CODEGEN_PATTERN_HOST_IMPORT_FORBIDDEN,
-    pattern: /@nimiplatform\/mod-sdk\/host/,
+    pattern: /@nimiplatform\/sdk\/mod\/host\b|sdk\/src\/mod\/host\.js\b|sdk\/src\/mod\/internal\//,
     detail: '@nimiplatform/sdk/mod/host import is forbidden in codegen mods',
   },
 ];

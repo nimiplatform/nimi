@@ -31,7 +31,7 @@ codegen 产物 manifest 必须满足以下全部约束：
 codegen mod 的模块边界约束：
 
 - **Runtime 导出契约**：生成入口必须导出 `createRuntimeMod`，且运行时能力不超过 manifest 声明。
-- **稳定导入面**：setup 仅允许使用 `@nimiplatform/sdk/mod/*` 稳定导入面。
+- **稳定导入面**：setup 仅允许使用 `@nimiplatform/sdk/mod`，以及在确有需要时使用 `@nimiplatform/sdk/mod/shell`、`@nimiplatform/sdk/mod/lifecycle`。
 
 ## D-CODEGEN-020 — Capability Tier 模型
 
@@ -48,7 +48,7 @@ codegen mod 能力分三级治理（完整列表见 `codegen-capability-tiers.ya
 
 codegen mod 的导入约束（完整列表见 `codegen-import-allowlist.yaml`）：
 
-- **Allowlist**：允许导入 `@nimiplatform/sdk/mod/runtime`、`@nimiplatform/sdk/mod/runtime-route`、`@nimiplatform/sdk/mod/hook`、`@nimiplatform/sdk/mod/types`。
+- **Allowlist**：允许导入 `@nimiplatform/sdk/mod`、`@nimiplatform/sdk/mod/shell`、`@nimiplatform/sdk/mod/lifecycle`。
 - **Denylist**：禁止导入 `@nimiplatform/sdk/mod/host`、`@nimiplatform/sdk/mod/internal/*` 与第三方未登记依赖。
 - **V1 Closed APIs**：禁止 turn/inter-mod/action 注册入口。
 - **High-risk deny**：禁止外部网络、动态执行和高风险本地能力直连。
