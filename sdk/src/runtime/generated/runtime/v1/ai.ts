@@ -44,6 +44,44 @@ export interface ChatMessage {
      * @generated from protobuf field: string name = 3
      */
     name: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ChatContentPart parts = 4
+     */
+    parts: ChatContentPart[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ChatContentImageURL
+ */
+export interface ChatContentImageURL {
+    /**
+     * @generated from protobuf field: string url = 1
+     */
+    url: string;
+    /**
+     * @generated from protobuf field: string detail = 2
+     */
+    detail: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ChatContentPart
+ */
+export interface ChatContentPart {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ChatContentPartType type = 1
+     */
+    type: ChatContentPartType;
+    /**
+     * @generated from protobuf field: string text = 2
+     */
+    text: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ChatContentImageURL image_url = 3
+     */
+    imageUrl?: ChatContentImageURL;
+    /**
+     * @generated from protobuf field: string video_url = 4
+     */
+    videoUrl: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ToolSpec
@@ -1472,6 +1510,27 @@ export enum SpeechAlignmentUnit {
     CHAR = 2
 }
 /**
+ * @generated from protobuf enum nimi.runtime.v1.ChatContentPartType
+ */
+export enum ChatContentPartType {
+    /**
+     * @generated from protobuf enum value: CHAT_CONTENT_PART_TYPE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: CHAT_CONTENT_PART_TYPE_TEXT = 1;
+     */
+    TEXT = 1,
+    /**
+     * @generated from protobuf enum value: CHAT_CONTENT_PART_TYPE_IMAGE_URL = 2;
+     */
+    IMAGE_URL = 2,
+    /**
+     * @generated from protobuf enum value: CHAT_CONTENT_PART_TYPE_VIDEO_URL = 3;
+     */
+    VIDEO_URL = 3
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.ScenarioJobStatus
  */
 export enum ScenarioJobStatus {
@@ -1551,7 +1610,8 @@ class ChatMessage$Type extends MessageType<ChatMessage> {
         super("nimi.runtime.v1.ChatMessage", [
             { no: 1, name: "role", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "content", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "parts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ChatContentPart }
         ]);
     }
     create(value?: PartialMessage<ChatMessage>): ChatMessage {
@@ -1559,6 +1619,7 @@ class ChatMessage$Type extends MessageType<ChatMessage> {
         message.role = "";
         message.content = "";
         message.name = "";
+        message.parts = [];
         if (value !== undefined)
             reflectionMergePartial<ChatMessage>(this, message, value);
         return message;
@@ -1576,6 +1637,9 @@ class ChatMessage$Type extends MessageType<ChatMessage> {
                     break;
                 case /* string name */ 3:
                     message.name = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.ChatContentPart parts */ 4:
+                    message.parts.push(ChatContentPart.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1598,6 +1662,9 @@ class ChatMessage$Type extends MessageType<ChatMessage> {
         /* string name = 3; */
         if (message.name !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.name);
+        /* repeated nimi.runtime.v1.ChatContentPart parts = 4; */
+        for (let i = 0; i < message.parts.length; i++)
+            ChatContentPart.internalBinaryWrite(message.parts[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1608,6 +1675,131 @@ class ChatMessage$Type extends MessageType<ChatMessage> {
  * @generated MessageType for protobuf message nimi.runtime.v1.ChatMessage
  */
 export const ChatMessage = new ChatMessage$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ChatContentImageURL$Type extends MessageType<ChatContentImageURL> {
+    constructor() {
+        super("nimi.runtime.v1.ChatContentImageURL", [
+            { no: 1, name: "url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ChatContentImageURL>): ChatContentImageURL {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.url = "";
+        message.detail = "";
+        if (value !== undefined)
+            reflectionMergePartial<ChatContentImageURL>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ChatContentImageURL): ChatContentImageURL {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string url */ 1:
+                    message.url = reader.string();
+                    break;
+                case /* string detail */ 2:
+                    message.detail = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ChatContentImageURL, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string url = 1; */
+        if (message.url !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.url);
+        /* string detail = 2; */
+        if (message.detail !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.detail);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ChatContentImageURL
+ */
+export const ChatContentImageURL = new ChatContentImageURL$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ChatContentPart$Type extends MessageType<ChatContentPart> {
+    constructor() {
+        super("nimi.runtime.v1.ChatContentPart", [
+            { no: 1, name: "type", kind: "enum", T: () => ["nimi.runtime.v1.ChatContentPartType", ChatContentPartType, "CHAT_CONTENT_PART_TYPE_"] },
+            { no: 2, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "image_url", kind: "message", T: () => ChatContentImageURL },
+            { no: 4, name: "video_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ChatContentPart>): ChatContentPart {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.type = 0;
+        message.text = "";
+        message.videoUrl = "";
+        if (value !== undefined)
+            reflectionMergePartial<ChatContentPart>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ChatContentPart): ChatContentPart {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ChatContentPartType type */ 1:
+                    message.type = reader.int32();
+                    break;
+                case /* string text */ 2:
+                    message.text = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ChatContentImageURL image_url */ 3:
+                    message.imageUrl = ChatContentImageURL.internalBinaryRead(reader, reader.uint32(), options, message.imageUrl);
+                    break;
+                case /* string video_url */ 4:
+                    message.videoUrl = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ChatContentPart, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ChatContentPartType type = 1; */
+        if (message.type !== 0)
+            writer.tag(1, WireType.Varint).int32(message.type);
+        /* string text = 2; */
+        if (message.text !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.text);
+        /* nimi.runtime.v1.ChatContentImageURL image_url = 3; */
+        if (message.imageUrl)
+            ChatContentImageURL.internalBinaryWrite(message.imageUrl, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* string video_url = 4; */
+        if (message.videoUrl !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.videoUrl);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ChatContentPart
+ */
+export const ChatContentPart = new ChatContentPart$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ToolSpec$Type extends MessageType<ToolSpec> {
     constructor() {

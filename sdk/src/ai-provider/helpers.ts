@@ -11,6 +11,7 @@ import {
   type RuntimeStreamCallOptions,
 } from '../runtime/index.js';
 import { Struct } from '../runtime/generated/google/protobuf/struct.js';
+import { ChatContentPartType } from '../runtime/generated/runtime/v1/ai.js';
 import { ReasonCode, type AiFallbackPolicy, type AiRoutePolicy } from '../types/index.js';
 import {
   FALLBACK_POLICY_ALLOW,
@@ -140,10 +141,17 @@ export function extractTextValue(part: unknown): string {
 
 export function toRuntimePrompt(prompt: LanguageModelV3Prompt): {
   systemPrompt: string;
+  hasTextInput: boolean;
   input: Array<{
     role: string;
     content: string;
     name: string;
+    parts: Array<{
+      type: ChatContentPartType;
+      text: string;
+      imageUrl?: { url: string; detail: string };
+      videoUrl: string;
+    }>;
   }>;
 } {
   const system: string[] = [];
@@ -151,35 +159,140 @@ export function toRuntimePrompt(prompt: LanguageModelV3Prompt): {
     role: string;
     content: string;
     name: string;
+    parts: Array<{
+      type: ChatContentPartType;
+      text: string;
+      imageUrl?: { url: string; detail: string };
+      videoUrl: string;
+    }>;
   }> = [];
+  let hasTextInput = false;
 
   for (const message of prompt) {
     if (message.role === 'system') {
-      const text = normalizeText(message.content);
+      const text = extractPromptText(message.content);
       if (text) {
         system.push(text);
       }
       continue;
     }
 
-    const content = Array.isArray(message.content)
-      ? message.content.map(extractTextValue).filter((text: string) => text.length > 0).join('\n')
-      : '';
-    if (!content) {
+    const textContent = extractPromptText(message.content);
+    const parts = Array.isArray(message.content)
+      ? extractContentParts(message.content)
+      : (textContent ? [createTextChatContentPart(textContent)] : []);
+
+    if (!textContent && parts.length === 0) {
       continue;
+    }
+    if (textContent) {
+      hasTextInput = true;
     }
 
     input.push({
       role: message.role,
-      content,
+      content: textContent,
       name: '',
+      parts,
     });
   }
 
   return {
     systemPrompt: system.join('\n\n'),
+    hasTextInput,
     input,
   };
+}
+
+function extractPromptText(content: unknown): string {
+  if (Array.isArray(content)) {
+    return content.map(extractTextValue).filter((text: string) => text.length > 0).join('\n');
+  }
+  return normalizeText(content);
+}
+
+function extractFileUrl(part: Record<string, unknown>): string | undefined {
+  const data = part.data;
+  if (data instanceof URL) {
+    return data.toString();
+  }
+  if (typeof data === 'string') {
+    const trimmed = data.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    // v1: skip non-URL strings (base64, data URIs) — URL-only policy
+  }
+  // v1: skip Uint8Array — URL-only policy
+  return undefined;
+}
+
+function createTextChatContentPart(text: string): {
+  type: ChatContentPartType;
+  text: string;
+  imageUrl?: { url: string; detail: string };
+  videoUrl: string;
+} {
+  return {
+    type: ChatContentPartType.TEXT,
+    text,
+    videoUrl: '',
+  };
+}
+
+function extractContentParts(
+  content: unknown[],
+): Array<{
+  type: ChatContentPartType;
+  text: string;
+  imageUrl?: { url: string; detail: string };
+  videoUrl: string;
+}> {
+  const result: Array<{
+    type: ChatContentPartType;
+    text: string;
+    imageUrl?: { url: string; detail: string };
+    videoUrl: string;
+  }> = [];
+
+  for (const part of content) {
+    const record = asRecord(part);
+    if (record.type === 'text') {
+      const text = normalizeText(record.text);
+      if (text) {
+        result.push(createTextChatContentPart(text));
+      }
+    } else if (record.type === 'reasoning') {
+      const text = normalizeText(record.text);
+      if (text) {
+        result.push(createTextChatContentPart(text));
+      }
+    } else if (record.type === 'file') {
+      const mediaType = normalizeText(record.mediaType);
+      if (mediaType && mediaType.startsWith('image/')) {
+        const url = extractFileUrl(record);
+        if (url) {
+          result.push({
+            type: ChatContentPartType.IMAGE_URL,
+            text: '',
+            imageUrl: { url, detail: 'auto' },
+            videoUrl: '',
+          });
+        }
+      } else if (mediaType && mediaType.startsWith('video/')) {
+        const url = extractFileUrl(record);
+        if (url) {
+          result.push({
+            type: ChatContentPartType.VIDEO_URL,
+            text: '',
+            videoUrl: url,
+          });
+        }
+      }
+    }
+  }
+
+  return result;
 }
 
 export function extractGenerateText(output: unknown): string {

@@ -29,9 +29,14 @@ export type NimiTraceInfo = {
   routeDecision?: NimiRoutePolicy;
 };
 
+export type TextMessageContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; imageUrl: string; detail?: 'auto' | 'low' | 'high' }
+  | { type: 'video_url'; videoUrl: string };
+
 export type TextMessage = {
   role: 'system' | 'user' | 'assistant' | 'tool';
-  content: string;
+  content: string | TextMessageContentPart[];
   name?: string;
 };
 

@@ -564,6 +564,76 @@ test('createNimiAiProvider text model maps runtime generate response', async () 
   assert.equal(result.usage.outputTokens.total, 7);
 });
 
+test('createNimiAiProvider text model projects ChatMessage parts with dual-written content', async () => {
+  let capturedRequest: Record<string, unknown> | null = null;
+  const runtime = createRuntimeStub({
+    generate: async (request) => {
+      capturedRequest = request as Record<string, unknown>;
+      return {
+        output: {
+          fields: {
+            text: {
+              kind: {
+                oneofKind: 'stringValue',
+                stringValue: 'multimodal ok',
+              },
+            },
+          },
+        },
+        finishReason: 1,
+        usage: {
+          inputTokens: '5',
+          outputTokens: '3',
+        },
+        routeDecision: 1,
+        modelResolved: 'chat/default',
+        traceId: 'trace-multimodal-generate',
+      };
+    },
+  });
+
+  const model = createNimiAiProvider({
+    runtime,
+    appId: APP_ID,
+    subjectUserId: SUBJECT_USER_ID,
+  })('chat/default');
+
+  await model.doGenerate({
+    prompt: [
+      {
+        role: 'system',
+        content: [
+          { type: 'text', text: 'system instructions' },
+          { type: 'file', mediaType: 'image/png', data: 'https://example.com/system.png' },
+        ] as never,
+      },
+      {
+        role: 'user',
+        content: [
+          { type: 'file', mediaType: 'image/png', data: 'https://example.com/image.png' },
+          { type: 'file', mediaType: 'video/mp4', data: 'https://example.com/video.mp4' },
+          { type: 'text', text: 'describe the scene' },
+        ] as never,
+      },
+    ],
+    providerOptions: {},
+  });
+
+  assert.ok(capturedRequest);
+  assert.equal(capturedRequest.systemPrompt, 'system instructions');
+  const input = capturedRequest.input as Array<Record<string, unknown>>;
+  assert.equal(input.length, 1);
+  assert.equal(input[0]?.content, 'describe the scene');
+  const parts = input[0]?.parts as Array<Record<string, unknown>>;
+  assert.equal(parts.length, 3);
+  assert.equal(parts[0]?.type, 2);
+  assert.equal((parts[0]?.imageUrl as { url?: string })?.url, 'https://example.com/image.png');
+  assert.equal(parts[1]?.type, 3);
+  assert.equal(parts[1]?.videoUrl, 'https://example.com/video.mp4');
+  assert.equal(parts[2]?.type, 1);
+  assert.equal(parts[2]?.text, 'describe the scene');
+});
+
 test('createNimiAiProvider text streaming maps delta and finish events', async () => {
   const runtime = createRuntimeStub({
     streamGenerate: async function* () {

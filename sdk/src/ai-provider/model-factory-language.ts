@@ -50,7 +50,7 @@ export function createLanguageModelImpl(
     doGenerate: async (options: LanguageModelV3CallOptions): Promise<LanguageModelV3GenerateResult> => {
       try {
         const prompt = toRuntimePrompt(options.prompt);
-        if (prompt.input.length === 0) {
+        if (!prompt.hasTextInput) {
           throw createPromptRequiredError();
         }
 
@@ -108,7 +108,7 @@ export function createLanguageModelImpl(
     doStream: async (options: LanguageModelV3CallOptions): Promise<LanguageModelV3StreamResult> => {
       try {
         const prompt = toRuntimePrompt(options.prompt);
-        if (prompt.input.length === 0) {
+        if (!prompt.hasTextInput) {
           throw createPromptRequiredError();
         }
 

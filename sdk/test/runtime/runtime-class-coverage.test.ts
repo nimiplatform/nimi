@@ -24,6 +24,7 @@ import {
   PolicyMode,
 } from '../../src/runtime/generated/runtime/v1/grant.js';
 import {
+  ChatContentPartType,
   CancelScenarioJobRequest,
   CancelScenarioJobResponse,
   ExecuteScenarioRequest,
@@ -463,6 +464,135 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
         extensions: [],
       }),
       (error: unknown) => asNimiError(error, { source: 'sdk' }).reasonCode === ReasonCode.AUTH_CONTEXT_MISSING,
+    );
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
+test('Runtime text helpers dual-write text content and multimodal ChatMessage parts', async () => {
+  const capturedTextRequests: ExecuteScenarioRequest[] = [];
+
+  installNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      if (input.methodId !== RuntimeMethodIds.ai.executeScenario) {
+        return encodeUnary(input.methodId);
+      }
+      const request = ExecuteScenarioRequest.fromBinary(input.request);
+      capturedTextRequests.push(request);
+      return ExecuteScenarioResponse.toBinary(
+        ExecuteScenarioResponse.create({
+          output: Struct.fromJson({ text: 'ok' } as never),
+          finishReason: FinishReason.STOP,
+          routeDecision: RoutePolicy.CLOUD,
+          modelResolved: 'cloud/model',
+          traceId: 'trace-multimodal-runtime',
+        }),
+      );
+    },
+    openStream: async () => {
+      throw new Error('unexpected stream');
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+      subjectContext: {
+        subjectUserId: 'subject-from-context',
+      },
+    });
+
+    await runtime.ai.text.generate({
+      model: 'cloud/model',
+      input: [
+        {
+          role: 'system',
+          content: [
+            { type: 'text', text: 'system from content parts' },
+            { type: 'image_url', imageUrl: 'https://example.com/system.png' },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            { type: 'image_url', imageUrl: 'https://example.com/image.png', detail: 'high' },
+            { type: 'text', text: 'describe image' },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            { type: 'video_url', videoUrl: 'https://example.com/clip.mp4' },
+            { type: 'text', text: 'prior video context' },
+          ],
+        },
+      ],
+      system: 'explicit system',
+      route: 'cloud',
+      fallback: 'allow',
+    });
+
+    const textGenerate = capturedTextRequests[0]?.spec?.spec.oneofKind === 'textGenerate'
+      ? capturedTextRequests[0]?.spec?.spec.textGenerate
+      : undefined;
+
+    assert.equal(textGenerate?.systemPrompt, 'system from content parts\n\nexplicit system');
+    assert.equal(textGenerate?.input.length, 2);
+    assert.equal(textGenerate?.input[0]?.content, 'describe image');
+    assert.equal(textGenerate?.input[0]?.parts[0]?.type, ChatContentPartType.IMAGE_URL);
+    assert.equal(textGenerate?.input[0]?.parts[0]?.imageUrl?.url, 'https://example.com/image.png');
+    assert.equal(textGenerate?.input[0]?.parts[0]?.imageUrl?.detail, 'high');
+    assert.equal(textGenerate?.input[0]?.parts[1]?.type, ChatContentPartType.TEXT);
+    assert.equal(textGenerate?.input[0]?.parts[1]?.text, 'describe image');
+    assert.equal(textGenerate?.input[1]?.content, 'prior video context');
+    assert.equal(textGenerate?.input[1]?.parts[0]?.type, ChatContentPartType.VIDEO_URL);
+    assert.equal(textGenerate?.input[1]?.parts[0]?.videoUrl, 'https://example.com/clip.mp4');
+    assert.equal(textGenerate?.input[1]?.parts[1]?.type, ChatContentPartType.TEXT);
+    assert.equal(textGenerate?.input[1]?.parts[1]?.text, 'prior video context');
+
+    await runtime.ai.text.generate({
+      model: 'cloud/model',
+      input: [
+        { role: 'user', content: 'plain text path' },
+      ],
+      route: 'cloud',
+      fallback: 'allow',
+    });
+
+    const plainTextGenerate = capturedTextRequests[1]?.spec?.spec.oneofKind === 'textGenerate'
+      ? capturedTextRequests[1]?.spec?.spec.textGenerate
+      : undefined;
+    assert.equal(plainTextGenerate?.input[0]?.content, 'plain text path');
+    assert.equal(plainTextGenerate?.input[0]?.parts.length, 1);
+    assert.equal(plainTextGenerate?.input[0]?.parts[0]?.type, ChatContentPartType.TEXT);
+    assert.equal(plainTextGenerate?.input[0]?.parts[0]?.text, 'plain text path');
+
+    await assert.rejects(
+      () => runtime.ai.text.generate({
+        model: 'cloud/model',
+        input: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image_url', imageUrl: 'https://example.com/only-image.png' },
+            ],
+          },
+        ],
+        route: 'cloud',
+        fallback: 'allow',
+      }),
+      (error: unknown) => {
+        assert.equal(typeof error, 'object');
+        assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.AI_INPUT_INVALID);
+        assert.match(String((error as { message?: string }).message || ''), /non-system text message/i);
+        return true;
+      },
     );
   } finally {
     clearNodeGrpcBridge();

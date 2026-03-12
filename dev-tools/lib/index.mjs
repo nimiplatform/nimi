@@ -9,8 +9,8 @@ import { parse as parseYaml } from 'yaml';
 import { createReleaseManifest } from './release-manifest.mjs';
 import { createAppScaffold } from './app-scaffold.mjs';
 
-const SDK_VERSION = '^0.4.0';
-const DEV_TOOLS_VERSION = '^0.4.0';
+const SDK_VERSION = '^0.4.4';
+const DEV_TOOLS_VERSION = '^0.4.4';
 const REACT_VERSION = '^19.1.0';
 const TYPESCRIPT_VERSION = '^5.9.3';
 const TSX_VERSION = '^4.21.0';
