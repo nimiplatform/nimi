@@ -13,6 +13,7 @@ import (
 )
 
 func TestUnaryAuthnInterceptorRejectsMalformedAuthorizationHeader(t *testing.T) {
+	// K-AUTH-007: authn failure stops the request before later stages execute.
 	validator, err := authn.NewValidator("", "", "")
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)

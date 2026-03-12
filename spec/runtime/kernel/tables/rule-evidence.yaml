@@ -24,16 +24,16 @@ evidence_catalog:
 rules:
   - rule_id: K-APP-001
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-APP-002
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-APP-003
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-APP-004
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-APP-005
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
@@ -156,19 +156,19 @@ rules:
     evidence_refs: [runtime_kernel_consistency]
   - rule_id: K-AUDIT-021
     status: covered
-    evidence_refs: [runtime_kernel_consistency]
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
   - rule_id: K-AUTH-001
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTH-002
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTH-003
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTH-004
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTH-005
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
@@ -177,34 +177,34 @@ rules:
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
   - rule_id: K-AUTH-007
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTHN-001
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTHN-002
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTHN-003
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTHN-004
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTHN-005
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTHN-006
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
   - rule_id: K-AUTHN-007
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTHN-008
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTHN-009
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTHSVC-001
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
@@ -216,16 +216,16 @@ rules:
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
   - rule_id: K-AUTHSVC-004
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTHSVC-005
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
   - rule_id: K-AUTHSVC-006
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTHSVC-007
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTHSVC-008
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
@@ -234,16 +234,16 @@ rules:
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
   - rule_id: K-AUTHSVC-010
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTHSVC-011
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTHSVC-012
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-AUTHSVC-013
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-CFG-001
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
@@ -288,7 +288,7 @@ rules:
     evidence_refs: [runtime_kernel_consistency]
   - rule_id: K-CFG-015
     status: covered
-    evidence_refs: [runtime_kernel_consistency]
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
   - rule_id: K-CFG-016
     status: covered
     evidence_refs: [runtime_kernel_consistency]
@@ -465,37 +465,37 @@ rules:
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
   - rule_id: K-GRANT-003
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-GRANT-004
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-GRANT-005
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-GRANT-006
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-GRANT-007
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-GRANT-008
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-GRANT-009
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-GRANT-010
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-GRANT-011
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-GRANT-012
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-GRANT-013
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-JOB-001
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
@@ -1041,13 +1041,13 @@ rules:
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-STREAM-002
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-STREAM-003
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-STREAM-004
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-STREAM-005
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
@@ -1056,7 +1056,7 @@ rules:
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-STREAM-007
     status: covered
-    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
   - rule_id: K-STREAM-008
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]

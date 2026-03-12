@@ -10,6 +10,7 @@ import (
 )
 
 func TestInterceptorChainOrderMatchesSpec(t *testing.T) {
+	// K-AUTH-007: authn must run before authz in the interceptor chain.
 	expected := []string{"version", "lifecycle", "protocol", "authn", "authz", "audit", "handler"}
 	unaryOrder := make([]string, 0, len(expected))
 

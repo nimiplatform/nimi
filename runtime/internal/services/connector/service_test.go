@@ -168,6 +168,7 @@ func TestGetConnectorNotFound(t *testing.T) {
 }
 
 func TestGetConnectorOwnerMismatch(t *testing.T) {
+	// K-AUTH-002: owner mismatch must be hidden as NOT_FOUND.
 	svc := newTestService(t)
 	user1Ctx := userContext("user-1")
 	user2Ctx := userContext("user-2")
@@ -188,6 +189,71 @@ func TestGetConnectorOwnerMismatch(t *testing.T) {
 	st, _ := status.FromError(err)
 	if st.Code() != codes.NotFound {
 		t.Errorf("expected NotFound, got %v", st.Code())
+	}
+}
+
+func TestListConnectorsAnonymousOnlySeesLocal(t *testing.T) {
+	// K-AUTH-001: anonymous callers may only see LOCAL_MODEL connectors.
+	svc := newTestService(t)
+
+	if err := EnsureLocalConnectors(svc.store); err != nil {
+		t.Fatalf("EnsureLocalConnectors: %v", err)
+	}
+	if _, err := svc.CreateConnector(userContext("user-1"), &runtimev1.CreateConnectorRequest{
+		Provider: "openai",
+		ApiKey:   "key",
+	}); err != nil {
+		t.Fatalf("CreateConnector: %v", err)
+	}
+
+	resp, err := svc.ListConnectors(context.Background(), &runtimev1.ListConnectorsRequest{})
+	if err != nil {
+		t.Fatalf("ListConnectors: %v", err)
+	}
+	if len(resp.GetConnectors()) != 6 {
+		t.Fatalf("expected 6 local connectors, got %d", len(resp.GetConnectors()))
+	}
+	for _, connector := range resp.GetConnectors() {
+		if connector.GetKind() != runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL {
+			t.Fatalf("anonymous caller must not see remote connector: %+v", connector)
+		}
+	}
+}
+
+func TestConnectorOwnerTypeMapping(t *testing.T) {
+	// K-AUTH-003: REMOTE_MANAGED maps to REALM_USER, LOCAL_MODEL maps to SYSTEM.
+	svc := newTestService(t)
+
+	created, err := svc.CreateConnector(userContext("user-1"), &runtimev1.CreateConnectorRequest{
+		Provider: "openai",
+		ApiKey:   "key",
+	})
+	if err != nil {
+		t.Fatalf("CreateConnector: %v", err)
+	}
+	if created.GetConnector().GetKind() != runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED {
+		t.Fatalf("expected remote managed connector, got %v", created.GetConnector().GetKind())
+	}
+	if created.GetConnector().GetOwnerType() != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER {
+		t.Fatalf("expected remote connector owner type REALM_USER, got %v", created.GetConnector().GetOwnerType())
+	}
+
+	if err := EnsureLocalConnectors(svc.store); err != nil {
+		t.Fatalf("EnsureLocalConnectors: %v", err)
+	}
+	localResp, err := svc.ListConnectors(context.Background(), &runtimev1.ListConnectorsRequest{
+		KindFilter: runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL,
+	})
+	if err != nil {
+		t.Fatalf("ListConnectors local: %v", err)
+	}
+	if len(localResp.GetConnectors()) == 0 {
+		t.Fatal("expected local connectors")
+	}
+	for _, connector := range localResp.GetConnectors() {
+		if connector.GetOwnerType() != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM {
+			t.Fatalf("expected local connector owner type SYSTEM, got %v", connector.GetOwnerType())
+		}
 	}
 }
 
@@ -258,6 +324,52 @@ func TestUpdateConnector(t *testing.T) {
 	}
 	if updated.Connector.Label != "New" {
 		t.Errorf("expected label 'New', got %q", updated.Connector.Label)
+	}
+}
+
+func TestConnectorManagementRequiresAuth(t *testing.T) {
+	// K-AUTH-004: create/update/delete require a valid JWT identity.
+	svc := newTestService(t)
+
+	_, err := svc.CreateConnector(context.Background(), &runtimev1.CreateConnectorRequest{
+		Provider: "openai",
+		ApiKey:   "key",
+	})
+	if err == nil {
+		t.Fatal("expected unauthenticated create to fail")
+	}
+	if st, _ := status.FromError(err); st.Code() != codes.Unauthenticated {
+		t.Fatalf("expected create unauthenticated, got %v", st.Code())
+	}
+
+	created, err := svc.CreateConnector(userContext("user-1"), &runtimev1.CreateConnectorRequest{
+		Provider: "openai",
+		ApiKey:   "key",
+	})
+	if err != nil {
+		t.Fatalf("CreateConnector: %v", err)
+	}
+	connectorID := created.GetConnector().GetConnectorId()
+
+	_, err = svc.UpdateConnector(context.Background(), &runtimev1.UpdateConnectorRequest{
+		ConnectorId: connectorID,
+		Label:       proto.String("renamed"),
+	})
+	if err == nil {
+		t.Fatal("expected unauthenticated update to fail")
+	}
+	if st, _ := status.FromError(err); st.Code() != codes.Unauthenticated {
+		t.Fatalf("expected update unauthenticated, got %v", st.Code())
+	}
+
+	_, err = svc.DeleteConnector(context.Background(), &runtimev1.DeleteConnectorRequest{
+		ConnectorId: connectorID,
+	})
+	if err == nil {
+		t.Fatal("expected unauthenticated delete to fail")
+	}
+	if st, _ := status.FromError(err); st.Code() != codes.Unauthenticated {
+		t.Fatalf("expected delete unauthenticated, got %v", st.Code())
 	}
 }
 

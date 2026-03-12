@@ -17,6 +17,7 @@ func newTestService() *Service {
 }
 
 func TestSendAppMessageSuccess(t *testing.T) {
+	// K-APP-001: RuntimeAppService accepts and persists the send path.
 	svc := newTestService()
 	resp, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
 		FromAppId:     "app-a",
@@ -39,6 +40,7 @@ func TestSendAppMessageSuccess(t *testing.T) {
 }
 
 func TestSendAppMessageMissingFields(t *testing.T) {
+	// K-APP-002: invalid app message envelopes fail closed.
 	svc := newTestService()
 	tests := []struct {
 		name string
@@ -66,6 +68,7 @@ func TestSendAppMessageMissingFields(t *testing.T) {
 }
 
 func TestSubscribeAppMessagesFiltering(t *testing.T) {
+	// K-APP-003: subscriptions filter by app_id and subject_user_id.
 	svc := newTestService()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -123,6 +126,7 @@ func TestSubscribeAppMessagesFiltering(t *testing.T) {
 }
 
 func TestSubscribeAppMessagesFromAppFilter(t *testing.T) {
+	// K-APP-004: event filtering honors from_app_id.
 	svc := newTestService()
 
 	ctx, cancel := context.WithCancel(context.Background())

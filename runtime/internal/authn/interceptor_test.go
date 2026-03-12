@@ -41,6 +41,7 @@ func TestExtractBearerTokenMalformedHeader(t *testing.T) {
 }
 
 func TestAuthenticateRejectsMalformedHeader(t *testing.T) {
+	// K-AUTHN-001/K-AUTHN-007: malformed Authorization never downgrades to anonymous.
 	v, err := NewValidator("", "", "")
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)
@@ -65,6 +66,7 @@ func TestAuthenticateRejectsMalformedHeader(t *testing.T) {
 }
 
 func TestAuthenticateProjectsIdentityForValidBearerToken(t *testing.T) {
+	// K-AUTHN-008: successful auth projects the identity into context.
 	key := generateRSAKey(t)
 	claims := validClaims()
 	server := newJWKSTestServer(t, jwksDocument{
@@ -94,6 +96,7 @@ func TestAuthenticateProjectsIdentityForValidBearerToken(t *testing.T) {
 }
 
 func TestAuthenticateMapsInvalidTokenToAuthTokenInvalid(t *testing.T) {
+	// K-AUTHN-007: invalid tokens map to UNAUTHENTICATED + AUTH_TOKEN_INVALID.
 	validator, err := NewValidator("", "", "")
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)

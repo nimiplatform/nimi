@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -981,5 +982,46 @@ func TestLoadFileConfigMigratesMissingSchemaVersion(t *testing.T) {
 	}
 	if _, err := os.Stat(path + ".bak"); err != nil {
 		t.Fatalf("expected migration backup file, got %v", err)
+	}
+}
+
+func TestMigrationIsIdempotent(t *testing.T) {
+	// K-CFG-015: replaying the same migration yields the same migrated output.
+	path := filepath.Join(t.TempDir(), "config.json")
+	raw := `{
+  "grpcAddr": "127.0.0.1:47001",
+  "providers": {
+    "gemini": {
+      "apiKeyEnv": "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY"
+    }
+  }
+}`
+	if err := os.WriteFile(path, []byte(raw), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	firstCfg, err := LoadFileConfig(path)
+	if err != nil {
+		t.Fatalf("LoadFileConfig first pass: %v", err)
+	}
+	firstContent, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read migrated config: %v", err)
+	}
+
+	secondCfg, err := LoadFileConfig(path)
+	if err != nil {
+		t.Fatalf("LoadFileConfig second pass: %v", err)
+	}
+	secondContent, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read migrated config second pass: %v", err)
+	}
+
+	if !reflect.DeepEqual(firstCfg, secondCfg) {
+		t.Fatalf("expected repeated migration loads to match: first=%+v second=%+v", firstCfg, secondCfg)
+	}
+	if string(firstContent) != string(secondContent) {
+		t.Fatalf("expected migrated config to be idempotent across reloads")
 	}
 }
