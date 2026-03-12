@@ -74,7 +74,8 @@ async function writeConsumerPackageJson(appDir, sdkTarballPath) {
 
 async function writeSmokeEntry(appDir) {
   const source = [
-    "import { Runtime, Realm } from '@nimiplatform/sdk';",
+    "import { Runtime } from '@nimiplatform/sdk/runtime';",
+    "import { Realm } from '@nimiplatform/sdk/realm';",
     "import { Modal } from '@nimiplatform/sdk/runtime';",
     "import { ReasonCode } from '@nimiplatform/sdk/types';",
     "import { createScopeModule } from '@nimiplatform/sdk/scope';",
@@ -106,7 +107,7 @@ async function writeSmokeEntry(appDir) {
     "if (typeof normalizeRuntimeRouteSource !== 'function') throw new Error('mod runtime-route export invalid');",
     "if (typeof clearModSdkHost !== 'function') throw new Error('mod host export invalid');",
     "if (typeof Modal !== 'object') throw new Error('runtime export invalid');",
-    "const realm = new Realm({ baseUrl: 'https://realm.nimi.xyz', auth: { accessToken: Realm.NO_AUTH } });",
+    "const realm = new Realm({ baseUrl: 'https://realm.nimi.xyz', auth: null });",
     "if (typeof realm.raw?.request !== 'function') throw new Error('realm raw request export invalid');",
     "if (typeof realm.connect !== 'function') throw new Error('realm connect export invalid');",
     "if (typeof ReasonCode !== 'object') throw new Error('types export invalid');",

@@ -35,7 +35,7 @@ function buildBasicAppTemplate(versions) {
     {
       path: 'index.ts',
       content: [
-        "import { Runtime } from '@nimiplatform/sdk';",
+        "import { Runtime } from '@nimiplatform/sdk/runtime';",
         '',
         'const runtime = new Runtime();',
         '',
@@ -95,7 +95,7 @@ function buildVercelAIAppTemplate(versions) {
     {
       path: 'index.ts',
       content: [
-        "import { Runtime } from '@nimiplatform/sdk';",
+        "import { Runtime } from '@nimiplatform/sdk/runtime';",
         "import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';",
         "import { generateText } from 'ai';",
         '',

@@ -130,7 +130,7 @@ test('Realm services facade uses instance config (no global OpenAPI mutation)', 
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-service.nimi.xyz',
-      auth: { accessToken: Realm.NO_AUTH },
+      auth: null,
     });
 
     await realm.services.AuthService.passwordLogin({
@@ -165,7 +165,7 @@ test('Realm maps HTTP errors to NimiError with layered reasonCode/actionHint', a
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-error.nimi.xyz',
-      auth: { accessToken: Realm.NO_AUTH },
+      auth: null,
     });
 
     let thrown: unknown = null;
@@ -206,7 +206,7 @@ test('Realm maps HTTP 422 to CONFIG_INVALID when reasonCode is absent', async ()
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-validation.nimi.xyz',
-      auth: { accessToken: Realm.NO_AUTH },
+      auth: null,
     });
 
     let thrown: unknown = null;
@@ -250,7 +250,7 @@ test('Realm maps default 404/409/429 status codes when reasonCode is absent', as
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-status-map.nimi.xyz',
-      auth: { accessToken: Realm.NO_AUTH },
+      auth: null,
     });
 
     const expectations: Array<{
@@ -290,7 +290,7 @@ test('Realm maps network failures to REALM_UNAVAILABLE', async () => {
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-network.nimi.xyz',
-      auth: { accessToken: Realm.NO_AUTH },
+      auth: null,
     });
 
     let thrown: unknown = null;
@@ -334,7 +334,7 @@ test('Realm maps timeout abort to REALM_UNAVAILABLE (not OPERATION_ABORTED)', as
     const realm = new Realm({
       baseUrl: 'https://realm-timeout.nimi.xyz',
       timeoutMs: 10,
-      auth: { accessToken: Realm.NO_AUTH },
+      auth: null,
     });
 
     let thrown: unknown = null;
@@ -379,7 +379,7 @@ test('Realm maps external abort signal to OPERATION_ABORTED', async () => {
     const realm = new Realm({
       baseUrl: 'https://realm-abort.nimi.xyz',
       timeoutMs: 1000,
-      auth: { accessToken: Realm.NO_AUTH },
+      auth: null,
     });
     const controller = new AbortController();
     const requestPromise = realm.raw.request({
@@ -699,7 +699,7 @@ test('Realm.decodeTokenExpiry parses valid and invalid JWTs', () => {
   assert.equal(Realm.decodeTokenExpiry(malformedJwt), null);
 });
 
-test('Realm NO_AUTH does not send Authorization header (SDKREALM-016)', async () => {
+test('Realm explicit unauthenticated mode does not send Authorization header (SDKREALM-016)', async () => {
   const originalFetch = globalThis.fetch;
   const capturedHeaders: Record<string, string>[] = [];
 
@@ -720,13 +720,13 @@ test('Realm NO_AUTH does not send Authorization header (SDKREALM-016)', async ()
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-noauth.nimi.xyz',
-      auth: { accessToken: Realm.NO_AUTH },
+      auth: null,
     });
 
     await realm.raw.request({ method: 'GET', path: '/api/public' });
 
     assert.equal(capturedHeaders.length, 1);
-    assert.equal(capturedHeaders[0]?.authorization, undefined, 'NO_AUTH must not emit Authorization header');
+    assert.equal(capturedHeaders[0]?.authorization, undefined, 'unauthenticated mode must not emit Authorization header');
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -750,7 +750,7 @@ test('Realm ready() emits error event on probe failure (SDKREALM-019)', async ()
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-ready-error.nimi.xyz',
-      auth: { accessToken: Realm.NO_AUTH },
+      auth: null,
     });
 
     realm.events.on('error', (event) => {
@@ -784,7 +784,7 @@ test('Realm services support path-first call pattern for mixed path/query method
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-params.nimi.xyz',
-      auth: { accessToken: Realm.NO_AUTH },
+      auth: null,
     });
 
     await realm.services.HumanChatService.listMessages('chat-123', 20);

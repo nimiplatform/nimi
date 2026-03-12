@@ -43,7 +43,7 @@ import type {
 // runtime-guards: checkRuntimeVersionCompatibility branches
 // ---------------------------------------------------------------------------
 
-test('runtime-guards: checkRuntimeVersionCompatibility returns true when already checked', () => {
+test('runtime-guards: checkRuntimeVersionCompatibility returns compatible status when already checked', () => {
   const result = checkRuntimeVersionCompatibility({
     version: '0.1.0',
     versionChecked: true,
@@ -51,7 +51,9 @@ test('runtime-guards: checkRuntimeVersionCompatibility returns true when already
     emitTelemetry: () => {},
     emitError: () => {},
   });
-  assert.equal(result, true);
+  assert.equal(result.state, 'compatible');
+  assert.equal(result.compatible, true);
+  assert.equal(result.runtimeMajor, 0);
 });
 
 test('runtime-guards: checkRuntimeVersionCompatibility throws for unparseable version', () => {
@@ -97,7 +99,9 @@ test('runtime-guards: checkRuntimeVersionCompatibility succeeds for matching maj
     emitTelemetry: (name) => { telemetryName = name; },
     emitError: () => {},
   });
-  assert.equal(result, true);
+  assert.equal(result.state, 'compatible');
+  assert.equal(result.compatible, true);
+  assert.equal(result.runtimeMajor, 0);
   assert.equal(telemetryName, 'runtime.version.compatible');
 });
 
@@ -109,7 +113,9 @@ test('runtime-guards: checkRuntimeVersionCompatibility handles v-prefixed versio
     emitTelemetry: () => {},
     emitError: () => {},
   });
-  assert.equal(result, true);
+  assert.equal(result.state, 'compatible');
+  assert.equal(result.compatible, true);
+  assert.equal(result.runtimeMajor, 0);
 });
 
 // ---------------------------------------------------------------------------
@@ -463,4 +469,3 @@ test('runtime-guards: runtimeAiRequestRequiresSubject reads x-nimi- alt keys fro
   });
   assert.equal(result, true);
 });
-

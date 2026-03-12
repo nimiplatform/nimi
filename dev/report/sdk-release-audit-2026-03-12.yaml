@@ -1,0 +1,69 @@
+audit:
+  timestamp: "2026-03-12"
+  sdk_version: "0.4.0"
+  release_set_version: "0.4.0"
+  spec_baseline: "nimi/spec/sdk/ + nimi/spec/runtime/"
+
+  rule_compliance:
+    total_s_rules: null
+    compliant_before: null
+    compliant_after: null
+    note: "Rule totals were not recomputed in this pass; gate evidence and targeted gap closure were verified."
+    gaps_closed:
+      - "S-TRANSPORT-005 (Runtime.versionCompatibility() + structured compatibility state)"
+      - "S-ERROR-009 (non-error terminal finish reasons verified as finishReason, not thrown)"
+      - "S-ERROR-014 (node-grpc / tauri-ipc structured error parity test)"
+      - "S-REALM-012 (Realm.NO_AUTH removed; explicit unauthenticated mode uses auth: null | undefined)"
+
+  legacy_hardcut:
+    removed:
+      - "close(force) dead parameter from Runtime.close()"
+      - "close(force) dead parameter from Realm.close()"
+      - "_responseMetadataObserver removed from public RuntimeCallOptions"
+      - "_responseMetadataObserver removed from public RuntimeNodeGrpcTransportConfig"
+      - "_responseMetadataObserver removed from public RuntimeTauriIpcTransportConfig"
+      - "Realm.NO_AUTH sentinel constant"
+      - "duplicate asRecord implementations consolidated into sdk/src/internal/utils.ts"
+      - "duplicate normalizeText implementations consolidated into sdk/src/internal/utils.ts"
+      - "duplicate nowIso implementations consolidated into sdk/src/internal/utils.ts"
+      - "duplicate readString implementations consolidated into sdk/src/internal/utils.ts"
+      - "root sdk index narrowed to shared core exports only"
+
+  verified_existing_coverage:
+    - "S-RUNTIME-071 already covered by sdk/test/runtime/runtime-client-write-semantics.test.ts"
+    - "S-GATE-010 engine passthrough already covered by sdk/test/runtime/runtime-passthrough-coverage.test.ts"
+
+  tests:
+    added:
+      - "sdk/test/runtime/runtime-version-compat.test.ts"
+      - "sdk/test/runtime/runtime-non-error-terminal.test.ts"
+      - "sdk/test/runtime/transport-error-parity.test.ts"
+      - "sdk/test/realm/realm-no-auth.test.ts"
+    updated:
+      - "sdk/test/runtime/transport-branch-runtime-guards.test.ts"
+      - "sdk/test/realm/realm-client.test.ts"
+    command:
+      - "pnpm --filter @nimiplatform/sdk test"
+    result: "passed"
+
+  gates:
+    passed:
+      - "pnpm check:sdk-import-boundary"
+      - "pnpm check:sdk-public-naming"
+      - "pnpm check:sdk-single-package-layout"
+      - "pnpm check:no-create-nimi-client"
+      - "pnpm check:no-global-openapi-config"
+      - "pnpm check:sdk-realm-legacy-clean"
+      - "pnpm check:reason-code-constants"
+      - "pnpm check:runtime-bridge-method-drift"
+      - "pnpm check:sdk-coverage"
+      - "pnpm check:sdk-consumer-smoke"
+      - "pnpm check:sdk-version-matrix"
+      - "pnpm check:sdk-spec-kernel-consistency"
+      - "pnpm check:sdk-spec-kernel-docs-drift"
+
+  release_readiness:
+    blocking: []
+    advisory:
+      - "sdk/dist and generated tarball contents were regenerated during smoke and coverage gates; review before release packaging if you want a clean worktree."
+    verdict: "RELEASE READY"
