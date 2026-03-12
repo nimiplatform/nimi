@@ -212,14 +212,13 @@ export function AgentDetailPanel() {
           name: agent.displayName,
           handle: agent.handle,
           avatarUrl: agent.avatarUrl,
-          description: agent.category || '',
           tags: [],
-          badgeText: '',
           worldId: agent.worldId,
           worldName: null,
           worldBannerUrl: agent.worldBannerUrl,
           isAgent: true,
           bio: agent.bio,
+          category: agent.category,
         } : null}
         agentLimit={agentLimitQuery.data ?? null}
         onClose={() => setAddFriendModalOpen(false)}

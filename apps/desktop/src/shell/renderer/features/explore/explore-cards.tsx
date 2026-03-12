@@ -49,9 +49,6 @@ export type ExploreAgentCardData = {
   giftStats?: Record<string, number>;
   // World score for progress bar
   worldScoreEwma?: number;
-  // Legacy fields for compatibility
-  description: string;
-  badgeText: string;
 };
 
 export type ExplorePostCardData = {
@@ -178,6 +175,7 @@ export function ExploreAgentCard({
       onOpen();
     }
   };
+  const bioText = agent.bio || (agent.category ? `${agent.category} agent` : 'Public agent');
 
   return (
     <div className="flex flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -212,7 +210,7 @@ export function ExploreAgentCard({
         </div>
       </div>
 
-      <p className="mt-3 line-clamp-2 text-sm text-gray-600">{agent.description}</p>
+      <p className="mt-3 line-clamp-2 text-sm text-gray-600">{bioText}</p>
 
       <div className="mt-auto flex items-center gap-2 pt-4">
         <button
@@ -251,14 +249,15 @@ export function AgentRecommendationCard({
   onAddFriend?: () => void;
   onOpen?: () => void;
 }) {
+  const fallbackBio = agent.category ? `${agent.category} agent` : 'Public agent';
   const palette = getSemanticAgentPalette({
     category: agent.category,
     origin: agent.origin,
-    description: agent.bio || agent.description,
+    description: agent.bio || fallbackBio,
     worldName: agent.worldName,
     tags: agent.tags,
   });
-  const bioText = agent.bio || agent.description || i18n.t('Explore.noBioYet', { defaultValue: 'No bio yet' });
+  const bioText = agent.bio || fallbackBio || i18n.t('Explore.noBioYet', { defaultValue: 'No bio yet' });
   const worldText = agent.worldName || agent.origin || agent.category || i18n.t('Profile.unknownWorld', { defaultValue: 'Unknown world' });
   const themeLabel = agent.category || agent.tags[0] || agent.origin || 'General';
 
@@ -453,10 +452,11 @@ export function TopAgentCard({
   onSendGift?: () => void;
   onOpen?: () => void;
 }) {
+  const fallbackBio = agent.category ? `${agent.category} agent` : 'Public agent';
   const palette = getSemanticAgentPalette({
     category: agent.category,
     origin: agent.origin,
-    description: agent.bio || agent.description,
+    description: agent.bio || fallbackBio,
     worldName: agent.worldName,
     tags: agent.tags,
   });
@@ -466,7 +466,7 @@ export function TopAgentCard({
   const likesCount = typeof agent.likesCount === 'number' ? agent.likesCount : 0;
   const worldScore = agent.worldScoreEwma ?? 0;
   const themeLabel = agent.tags[0] || agent.category || agent.origin || 'community';
-  const bioText = agent.bio || agent.description || i18n.t('Explore.noBioYet', { defaultValue: 'No bio yet' });
+  const bioText = agent.bio || fallbackBio || i18n.t('Explore.noBioYet', { defaultValue: 'No bio yet' });
   const worldText = agent.worldName || i18n.t('Profile.unknownWorld', { defaultValue: 'Unknown world' });
   const originText = agent.origin || agent.category || 'GENERAL';
 

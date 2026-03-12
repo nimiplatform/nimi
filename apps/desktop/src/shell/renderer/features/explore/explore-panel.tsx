@@ -182,9 +182,6 @@ function mapAgent(raw: unknown, worldsMap: Map<string, { bannerUrl: string | nul
     giftStats,
     // World score
     worldScoreEwma,
-    // Legacy fields
-    description: category ? `${category} agent` : 'Public agent',
-    badgeText: origin ? `Origin: ${origin}` : 'Community',
   };
 }
 

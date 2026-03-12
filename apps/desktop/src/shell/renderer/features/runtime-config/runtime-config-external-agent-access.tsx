@@ -172,7 +172,7 @@ export function ExternalAgentAccessPanel() {
         />
 
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" disabled={busy} onClick={handleIssueToken}>
+          <Button variant="secondary" size="sm" disabled={busy || !gatewayEnabled} onClick={handleIssueToken}>
             {busy
               ? t('runtimeConfig.eaa.issuing', { defaultValue: 'Issuing...' })
               : t('runtimeConfig.eaa.issueToken', { defaultValue: 'Issue Token' })}
@@ -190,7 +190,7 @@ export function ExternalAgentAccessPanel() {
             <div className="rounded-md border border-amber-200 bg-amber-50 p-2 text-[11px] text-amber-900 break-all">
               {issuedToken}
             </div>
-            <Button variant="ghost" size="sm" disabled={busy || !tokenId.trim()} onClick={() => handleRevokeToken()}>
+            <Button variant="ghost" size="sm" disabled={busy || !gatewayEnabled || !tokenId.trim()} onClick={() => handleRevokeToken()}>
               {t('runtimeConfig.eaa.revokeThisToken', { defaultValue: 'Revoke This Token' })}
             </Button>
           </div>
@@ -243,7 +243,7 @@ export function ExternalAgentAccessPanel() {
                       <button
                         type="button"
                         className="text-[11px] font-medium text-red-600 hover:text-red-700 disabled:text-gray-400"
-                        disabled={busy}
+                        disabled={busy || !gatewayEnabled}
                         onClick={() => handleRevokeToken(token.tokenId)}
                       >
                         {t('runtimeConfig.eaa.revoke', { defaultValue: 'Revoke' })}
