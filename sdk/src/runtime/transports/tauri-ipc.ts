@@ -8,6 +8,7 @@ import type {
   RuntimeTransport,
   RuntimeUnaryCall,
 } from '../types';
+import type { RuntimeTauriIpcTransportConfigInternal } from '../types-internal.js';
 
 type TauriInvoke = (command: string, payload?: unknown) => Promise<unknown>;
 type TauriListenUnsubscribe = () => void;
@@ -231,12 +232,15 @@ function normalizeRequestBytes(input: unknown): Uint8Array {
   });
 }
 
-export function createTauriIpcTransport(config: RuntimeTauriIpcTransportConfig): RuntimeTransport {
+export function createTauriIpcTransport(
+  config: RuntimeTauriIpcTransportConfig,
+): RuntimeTransport {
+  const internalConfig = config as RuntimeTauriIpcTransportConfigInternal;
   return {
     invokeUnary: async (input: RuntimeUnaryCall<RuntimeWireMessage>): Promise<RuntimeWireMessage> => {
       const invoke = ensureTauriInvoke();
       try {
-        const result = await invokeCommand(invoke, config, 'unary', {
+        const result = await invokeCommand(invoke, internalConfig, 'unary', {
           methodId: input.methodId,
           requestBytesBase64: toBase64(normalizeRequestBytes(input.request)),
           metadata: input.metadata,
@@ -252,7 +256,7 @@ export function createTauriIpcTransport(config: RuntimeTauriIpcTransportConfig):
             source: 'runtime',
           });
         }
-        const observer = input._responseMetadataObserver || config._responseMetadataObserver;
+        const observer = input._responseMetadataObserver || internalConfig._responseMetadataObserver;
         if (observer && response.responseMetadata) {
           const meta = response.responseMetadata;
           if (typeof meta === 'object' && Object.keys(meta).length > 0) {
@@ -297,7 +301,7 @@ export function createTauriIpcTransport(config: RuntimeTauriIpcTransportConfig):
           return;
         }
         try {
-          await invokeCommand(invoke, config, 'stream_close', { streamId });
+          await invokeCommand(invoke, internalConfig, 'stream_close', { streamId });
         } catch {
           // best effort
         }
@@ -349,13 +353,13 @@ export function createTauriIpcTransport(config: RuntimeTauriIpcTransportConfig):
       };
 
       try {
-        const opened = await invokeCommand(invoke, config, 'stream_open', {
+        const opened = await invokeCommand(invoke, internalConfig, 'stream_open', {
         methodId: input.methodId,
         requestBytesBase64: toBase64(normalizeRequestBytes(input.request)),
         metadata: input.metadata,
         authorization: input.authorization,
         timeoutMs: input.timeoutMs,
-        eventNamespace: config.eventNamespace,
+        eventNamespace: internalConfig.eventNamespace,
       });
         const response = asObject(opened) as Partial<StreamOpenResponse>;
         streamId = String(response.streamId || '').trim();
@@ -368,7 +372,7 @@ export function createTauriIpcTransport(config: RuntimeTauriIpcTransportConfig):
           });
         }
 
-        unsubscribe = await Promise.resolve(listen(createEventName(config, streamId), (event) => {
+        unsubscribe = await Promise.resolve(listen(createEventName(internalConfig, streamId), (event) => {
           const payload = asObject(event.payload) as Partial<StreamEventEnvelope>;
           const eventType = String(payload.eventType || '').trim();
 
@@ -480,7 +484,7 @@ export function createTauriIpcTransport(config: RuntimeTauriIpcTransportConfig):
     closeStream: async (input: RuntimeStreamCloseCall): Promise<void> => {
       const invoke = ensureTauriInvoke();
       try {
-        await invokeCommand(invoke, config, 'stream_close', {
+        await invokeCommand(invoke, internalConfig, 'stream_close', {
           streamId: input.streamId,
         });
       } catch (error) {

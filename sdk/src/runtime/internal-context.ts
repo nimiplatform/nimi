@@ -1,5 +1,9 @@
 import type { RuntimeCallOptions, RuntimeClient, RuntimeStreamCallOptions } from './types.js';
 import type { RuntimeOptions } from './types.js';
+import type {
+  RuntimeCallOptionsInternal,
+  RuntimeStreamCallOptionsInternal,
+} from './types-internal.js';
 
 /**
  * Internal context object passed to extracted module functions.
@@ -22,7 +26,7 @@ export interface RuntimeInternalContext {
     metadata?: Record<string, string>;
     idempotencyKey?: string;
     _responseMetadataObserver?: (metadata: Record<string, string>) => void;
-  }) => RuntimeCallOptions;
+  }) => RuntimeCallOptionsInternal;
 
   /** Resolve stream call options from input metadata/timeout/signal. */
   resolveRuntimeStreamOptions: (input: {
@@ -30,7 +34,7 @@ export interface RuntimeInternalContext {
     metadata?: Record<string, string>;
     idempotencyKey?: string;
     signal?: AbortSignal;
-  }) => RuntimeStreamCallOptions;
+  }) => RuntimeStreamCallOptionsInternal;
 
   /** Resolve the subject user ID from explicit value, options, or resolver. */
   resolveSubjectUserId: (explicit?: string) => Promise<string>;

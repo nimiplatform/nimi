@@ -1,4 +1,5 @@
 import { asNimiError, createNimiError } from '../errors';
+import { asRecord, readString } from '../../internal/utils.js';
 import { ReasonCode } from '../../types/index.js';
 import type {
   RuntimeNodeGrpcTransportConfig,
@@ -8,6 +9,7 @@ import type {
   RuntimeTransport,
   RuntimeUnaryCall,
 } from '../types';
+import type { RuntimeNodeGrpcTransportConfigInternal } from '../types-internal.js';
 import type {
   CallOptions,
   ChannelCredentials,
@@ -208,23 +210,6 @@ function isRetryableGrpcError(grpc: GrpcModule, error: ServiceError): boolean {
     || error.code === grpc.status.ABORTED;
 }
 
-function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
-  }
-  return value as Record<string, unknown>;
-}
-
-function readString(record: Record<string, unknown>, keys: string[]): string {
-  for (const key of keys) {
-    const value = record[key];
-    if (typeof value === 'string' && value.trim()) {
-      return value.trim();
-    }
-  }
-  return '';
-}
-
 function readBoolean(record: Record<string, unknown>, keys: string[]): boolean | undefined {
   for (const key of keys) {
     const value = record[key];
@@ -334,8 +319,11 @@ function normalizeServiceError(
   };
 }
 
-export function createNodeGrpcTransport(config: RuntimeNodeGrpcTransportConfig): RuntimeTransport {
-  const endpoint = normalizeEndpoint(config.endpoint);
+export function createNodeGrpcTransport(
+  config: RuntimeNodeGrpcTransportConfig,
+): RuntimeTransport {
+  const internalConfig = config as RuntimeNodeGrpcTransportConfigInternal;
+  const endpoint = normalizeEndpoint(internalConfig.endpoint);
   if (!endpoint) {
     throw createNimiError({
       message: 'node-grpc transport requires endpoint',
@@ -363,8 +351,8 @@ export function createNodeGrpcTransport(config: RuntimeNodeGrpcTransportConfig):
       const grpc = await loadGrpcModule();
       const client = new grpc.Client(
         endpoint,
-        toChannelCredentials(grpc, config),
-        toChannelOptions(config),
+        toChannelCredentials(grpc, internalConfig),
+        toChannelOptions(internalConfig),
       );
       return { grpc, client };
     })();
@@ -406,7 +394,7 @@ export function createNodeGrpcTransport(config: RuntimeNodeGrpcTransportConfig):
           resolve(response);
         },
       );
-      const observer = input._responseMetadataObserver || config._responseMetadataObserver;
+      const observer = input._responseMetadataObserver || internalConfig._responseMetadataObserver;
       if (observer) {
         call.on('metadata', (md: { get(key: string): (string | Buffer)[] }) => {
           const collected: Record<string, string> = {};
@@ -604,7 +592,7 @@ export function createNodeGrpcTransport(config: RuntimeNodeGrpcTransportConfig):
     invokeUnary: async (input: RuntimeUnaryCall<RuntimeWireMessage>): Promise<RuntimeWireMessage> => {
       try {
         if (nodeGrpcBridge) {
-          return await nodeGrpcBridge.invokeUnary(config, input);
+          return await nodeGrpcBridge.invokeUnary(internalConfig, input);
         }
         return await invokeUnaryInternal(input);
       } catch (error) {
@@ -618,7 +606,7 @@ export function createNodeGrpcTransport(config: RuntimeNodeGrpcTransportConfig):
     openStream: async (input: RuntimeOpenStreamCall<RuntimeWireMessage>): Promise<AsyncIterable<RuntimeWireMessage>> => {
       try {
         if (nodeGrpcBridge) {
-          return await nodeGrpcBridge.openStream(config, input);
+          return await nodeGrpcBridge.openStream(internalConfig, input);
         }
         return await openStreamInternal(input);
       } catch (error) {
@@ -632,7 +620,7 @@ export function createNodeGrpcTransport(config: RuntimeNodeGrpcTransportConfig):
     closeStream: async (input: RuntimeStreamCloseCall): Promise<void> => {
       try {
         if (nodeGrpcBridge) {
-          await nodeGrpcBridge.closeStream(config, input);
+          await nodeGrpcBridge.closeStream(internalConfig, input);
           return;
         }
         await closeStreamInternal(input);

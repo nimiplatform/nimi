@@ -44,9 +44,11 @@ type RealmEventPayloadMap = {
 
 type OpenApiClient = ReturnType<typeof createClient<paths>>;
 
-export class Realm {
-  static readonly NO_AUTH = '__NIMI_REALM_NO_AUTH__';
+function hasOwn(value: object, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
 
+export class Realm {
   readonly auth: RealmAuthApi;
 
   readonly users: RealmUserApi;
@@ -85,10 +87,11 @@ export class Realm {
 
   constructor(options: RealmOptions) {
     this.baseUrl = resolveBaseUrl(options.baseUrl);
-    const accessToken = options.auth?.accessToken;
-    if (!accessToken) {
+    const authProvided = hasOwn(options, 'auth');
+    const unauthenticated = authProvided && (options.auth == null || options.auth.accessToken == null);
+    if (!authProvided || (!unauthenticated && !options.auth?.accessToken)) {
       throw createNimiError({
-        message: 'realm token is required (use Realm.NO_AUTH for unauthenticated access)',
+        message: 'realm token is required (set auth explicitly to null or undefined for unauthenticated access)',
         reasonCode: ReasonCode.SDK_REALM_TOKEN_REQUIRED,
         actionHint: 'set_realm_auth_access_token',
         source: 'sdk',
@@ -173,9 +176,7 @@ export class Realm {
     };
   }
 
-  async close(input?: { force?: boolean }): Promise<void> {
-    void input;
-
+  async close(): Promise<void> {
     if (this.#state.status === 'closed') {
       return;
     }
@@ -431,15 +432,15 @@ export class Realm {
   }
 
   async #resolveAccessToken(): Promise<string> {
+    if (this.#options.auth == null) {
+      return '';
+    }
     const accessToken = this.#options.auth?.accessToken;
     let resolved: string;
     if (typeof accessToken === 'function') {
       resolved = normalizeText(await accessToken());
     } else {
       resolved = normalizeText(accessToken);
-    }
-    if (resolved === Realm.NO_AUTH) {
-      return '';
     }
     return resolved;
   }

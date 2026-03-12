@@ -12,6 +12,7 @@ import type {
   RuntimeStreamCallOptions,
   RuntimeTransport,
 } from '../types.js';
+import type { RuntimeClientConfigInternal } from '../types-internal.js';
 import {
   RuntimeStreamMethodCodecs,
   RuntimeUnaryMethodCodecs,
@@ -32,7 +33,7 @@ import {
   toUnaryCall,
 } from './client-auth.js';
 
-function createTransport(config: RuntimeClientConfig): RuntimeTransport {
+function createTransport(config: RuntimeClientConfigInternal): RuntimeTransport {
   if (config.transport.type === 'tauri-ipc') {
     return createTauriIpcTransport(config.transport);
   }
@@ -40,7 +41,7 @@ function createTransport(config: RuntimeClientConfig): RuntimeTransport {
 }
 
 export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
-  const config: RuntimeClientConfig = {
+  const config: RuntimeClientConfigInternal = {
     ...input,
     appId: ensureAppId(input.appId),
   };

@@ -12,6 +12,11 @@ import type {
   RuntimeUnaryCall,
   RuntimeWireMessage,
 } from '../types.js';
+import type {
+  RuntimeCallOptionsInternal,
+  RuntimeClientConfigInternal,
+  RuntimeStreamCallOptionsInternal,
+} from '../types-internal.js';
 import { mergeRuntimeMetadata } from './metadata.js';
 import {
   normalizeText,
@@ -38,7 +43,7 @@ function formatAuthorizationHeader(accessToken: string): string {
 }
 
 async function resolveAuthorization(
-  config: RuntimeClientConfig,
+  config: RuntimeClientConfig | RuntimeClientConfigInternal,
   methodId: string,
   request: unknown,
   options?: RuntimeCallOptions | RuntimeStreamCallOptions,
@@ -69,8 +74,17 @@ async function resolveAuthorization(
 
 function withIdempotencyKey(
   methodId: string,
-  options?: RuntimeCallOptions | RuntimeStreamCallOptions,
-): RuntimeCallOptions | RuntimeStreamCallOptions | undefined {
+  options?:
+    | RuntimeCallOptions
+    | RuntimeStreamCallOptions
+    | RuntimeCallOptionsInternal
+    | RuntimeStreamCallOptionsInternal,
+):
+  | RuntimeCallOptions
+  | RuntimeStreamCallOptions
+  | RuntimeCallOptionsInternal
+  | RuntimeStreamCallOptionsInternal
+  | undefined {
   if (!isRuntimeWriteMethod(methodId)) {
     return options;
   }
@@ -84,13 +98,13 @@ function withIdempotencyKey(
 }
 
 export async function toUnaryCall(
-  config: RuntimeClientConfig,
+  config: RuntimeClientConfig | RuntimeClientConfigInternal,
   methodId: string,
   request: RuntimeWireMessage,
   normalizedRequest: unknown,
-  options?: RuntimeCallOptions,
+  options?: RuntimeCallOptions | RuntimeCallOptionsInternal,
 ): Promise<RuntimeUnaryCall<RuntimeWireMessage>> {
-  const resolvedOptions = withIdempotencyKey(methodId, options) as RuntimeCallOptions | undefined;
+  const resolvedOptions = withIdempotencyKey(methodId, options) as RuntimeCallOptionsInternal | undefined;
   return {
     methodId,
     request,
@@ -102,13 +116,13 @@ export async function toUnaryCall(
 }
 
 export async function toStreamCall(
-  config: RuntimeClientConfig,
+  config: RuntimeClientConfig | RuntimeClientConfigInternal,
   methodId: string,
   request: RuntimeWireMessage,
   normalizedRequest: unknown,
-  options?: RuntimeStreamCallOptions,
+  options?: RuntimeStreamCallOptions | RuntimeStreamCallOptionsInternal,
 ): Promise<RuntimeOpenStreamCall<RuntimeWireMessage>> {
-  const resolvedOptions = withIdempotencyKey(methodId, options) as RuntimeStreamCallOptions | undefined;
+  const resolvedOptions = withIdempotencyKey(methodId, options) as RuntimeStreamCallOptionsInternal | undefined;
   return {
     methodId,
     request,

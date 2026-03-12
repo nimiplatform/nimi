@@ -10,6 +10,16 @@ export type NimiError = Error & {
   details?: Record<string, unknown>;
 };
 
+export type VersionCompatibilityStatus = {
+  state: 'unknown' | 'compatible' | 'incompatible';
+  compatible: boolean;
+  checked: boolean;
+  sdkRuntimeMajor: number;
+  runtimeVersion: string | null;
+  runtimeMajor: number | null;
+  reason?: 'metadata_missing' | 'runtime_version_unparseable' | 'major_mismatch';
+};
+
 export type ScopeName = string;
 
 export type ScopeCatalogVersion = string;

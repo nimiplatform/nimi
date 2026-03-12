@@ -31,7 +31,7 @@ export type RealmOptions = {
     refreshToken?: string | (() => Promise<string> | string);
     onTokenRefreshed?: (result: RealmTokenRefreshResult) => void;
     onRefreshFailed?: (error: unknown) => void;
-  };
+  } | null;
   headers?: Record<string, string> | (() => Promise<Record<string, string>> | Record<string, string>);
   timeoutMs?: number;
   fetchImpl?: RealmFetchImpl;

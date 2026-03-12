@@ -1,4 +1,3 @@
-export * from './realm/index.js';
-export * from './runtime/index.js';
-export * from './scope/index.js';
-export * from './types/index.js';
+export { asNimiError } from './runtime/errors.js';
+export type { NimiError, VersionCompatibilityStatus } from './types/index.js';
+export { ReasonCode, isRetryableReasonCode } from './types/index.js';

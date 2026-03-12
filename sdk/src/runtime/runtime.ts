@@ -1,6 +1,6 @@
 import { createEventBus } from '../internal/event-bus.js';
 import { createScopeModule, type ScopeModule } from '../scope/index.js';
-import { ReasonCode } from '../types/index.js';
+import { ReasonCode, type VersionCompatibilityStatus } from '../types/index.js';
 import { asNimiError, createNimiError } from './errors.js';
 import { RuntimeMethodIds } from './method-ids.js';
 import type {
@@ -128,6 +128,15 @@ export class Runtime {
     status: 'idle',
   };
   #runtimeVersion: string | null = null;
+  #versionCompatibility: VersionCompatibilityStatus = {
+    state: 'unknown',
+    compatible: true,
+    checked: false,
+    sdkRuntimeMajor: SDK_RUNTIME_MAJOR_VERSION,
+    runtimeVersion: null,
+    runtimeMajor: null,
+    reason: 'metadata_missing',
+  };
   #versionChecked = false;
   readonly #options: RuntimeOptions;
   readonly #scopeModule: ScopeModule;
@@ -314,8 +323,7 @@ export class Runtime {
     });
   }
 
-  async close(input?: { force?: boolean }): Promise<void> {
-    void input;
+  async close(): Promise<void> {
     closeRuntime({
       state: this.#state,
       setState: (state) => {
@@ -337,6 +345,10 @@ export class Runtime {
 
   runtimeVersion(): string | null {
     return this.#runtimeVersion;
+  }
+
+  versionCompatibility(): VersionCompatibilityStatus {
+    return { ...this.#versionCompatibility };
   }
 
   async health(): Promise<RuntimeHealth> {
@@ -478,13 +490,17 @@ export class Runtime {
   }
 
   #checkVersionCompatibility(version: string): void {
-    this.#versionChecked = checkRuntimeVersionCompatibility({
+    const status = checkRuntimeVersionCompatibility({
       version,
       versionChecked: this.#versionChecked,
       sdkRuntimeMajor: SDK_RUNTIME_MAJOR_VERSION,
       emitTelemetry: (name, data) => this.#emitTelemetry(name, data),
       emitError: (error) => this.#eventBus.emit('error', { error, at: nowIso() }),
+      setStatus: (nextStatus) => {
+        this.#versionCompatibility = nextStatus;
+      },
     });
+    this.#versionChecked = status.compatible;
   }
 
   #assertMethodAvailable(moduleKey: string, methodKey: string): void {

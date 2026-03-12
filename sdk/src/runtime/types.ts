@@ -1,4 +1,4 @@
-import type { NimiError } from '../types/index.js';
+import type { NimiError, VersionCompatibilityStatus } from '../types/index.js';
 import type { RuntimeClient } from './types-client-interfaces.js';
 
 export type * from './types-media.js';
@@ -36,8 +36,6 @@ export type RuntimeCallOptions = {
   metadata?: RuntimeMetadata;
   timeoutMs?: number;
   idempotencyKey?: string;
-  /** @internal Side-channel for unary response metadata extraction. */
-  _responseMetadataObserver?: RuntimeResponseMetadataObserver;
 };
 
 export type RuntimeStreamCallOptions = RuntimeCallOptions & {
@@ -52,16 +50,12 @@ export type RuntimeNodeGrpcTransportConfig = {
     serverName?: string;
     rootCertPem?: string;
   };
-  /** @internal Side-channel for response metadata extraction (e.g. x-nimi-runtime-version). */
-  _responseMetadataObserver?: RuntimeResponseMetadataObserver;
 };
 
 export type RuntimeTauriIpcTransportConfig = {
   type: 'tauri-ipc';
   commandNamespace?: string;
   eventNamespace?: string;
-  /** @internal Side-channel for response metadata extraction (e.g. x-nimi-runtime-version). */
-  _responseMetadataObserver?: RuntimeResponseMetadataObserver;
 };
 
 export type RuntimeTransportConfig = RuntimeNodeGrpcTransportConfig | RuntimeTauriIpcTransportConfig;
@@ -144,6 +138,8 @@ export type RuntimeHealth = {
   vramBytes?: string;
   sampledAt?: string;
 };
+
+export type { VersionCompatibilityStatus };
 
 export type RuntimeTelemetryEvent = {
   name: string;

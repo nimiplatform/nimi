@@ -10,12 +10,14 @@ import {
   sleep,
 } from './helpers.js';
 import type {
-  RuntimeCallOptions,
   RuntimeClient,
   RuntimeConnectionState,
   RuntimeOptions,
-  RuntimeStreamCallOptions,
 } from './types.js';
+import type {
+  RuntimeCallOptionsInternal,
+  RuntimeStreamCallOptionsInternal,
+} from './types-internal.js';
 
 export function resolveRetryConfig(options: RuntimeOptions): { maxAttempts: number; backoffMs: number } {
   const maxAttemptsRaw = options.retry?.maxAttempts;
@@ -199,7 +201,7 @@ export function resolveRuntimeCallOptions(
     idempotencyKey?: string;
     _responseMetadataObserver?: (metadata: Record<string, string>) => void;
   },
-): RuntimeCallOptions {
+): RuntimeCallOptionsInternal {
   const timeoutMs = typeof input.timeoutMs === 'number'
     ? input.timeoutMs
     : options.timeoutMs;
@@ -265,7 +267,7 @@ export function resolveRuntimeStreamOptions(
     idempotencyKey?: string;
     signal?: AbortSignal;
   },
-): RuntimeStreamCallOptions {
+): RuntimeStreamCallOptionsInternal {
   return {
     ...resolveRuntimeCallOptions(options, input),
     signal: input.signal,

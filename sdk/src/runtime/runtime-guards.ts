@@ -1,5 +1,5 @@
 import { ReasonCode } from '../types/index.js';
-import type { NimiError } from '../types/index.js';
+import type { NimiError, VersionCompatibilityStatus } from '../types/index.js';
 import { asNimiError, createNimiError } from './errors.js';
 import { RoutePolicy } from './generated/runtime/v1/ai.js';
 import { normalizeText, parseSemverMajor } from './helpers.js';
@@ -11,22 +11,39 @@ export function checkRuntimeVersionCompatibility(input: {
   sdkRuntimeMajor: number;
   emitTelemetry: (name: string, data?: Record<string, unknown>) => void;
   emitError: (error: NimiError) => void;
-}): boolean {
-  if (input.versionChecked) {
-    return true;
-  }
-
+  setStatus?: (status: VersionCompatibilityStatus) => void;
+}): VersionCompatibilityStatus {
   const runtimeMajor = parseSemverMajor(input.version);
+  const baseStatus: VersionCompatibilityStatus = {
+    state: 'incompatible',
+    compatible: false,
+    checked: true,
+    sdkRuntimeMajor: input.sdkRuntimeMajor,
+    runtimeVersion: input.version,
+    runtimeMajor,
+  };
   if (runtimeMajor === null) {
-    throw createNimiError({
+    const status: VersionCompatibilityStatus = {
+      ...baseStatus,
+      reason: 'runtime_version_unparseable',
+    };
+    input.setStatus?.(status);
+    const error = createNimiError({
       message: `runtime version is unparseable: ${input.version}`,
       reasonCode: ReasonCode.SDK_RUNTIME_VERSION_INCOMPATIBLE,
       actionHint: 'check_runtime_version_format',
       source: 'sdk',
     });
+    input.emitError(error);
+    throw error;
   }
 
   if (runtimeMajor !== input.sdkRuntimeMajor) {
+    const status: VersionCompatibilityStatus = {
+      ...baseStatus,
+      reason: 'major_mismatch',
+    };
+    input.setStatus?.(status);
     const error = createNimiError({
       message: `runtime major version ${runtimeMajor} is incompatible with SDK major version ${input.sdkRuntimeMajor}`,
       reasonCode: ReasonCode.SDK_RUNTIME_VERSION_INCOMPATIBLE,
@@ -37,11 +54,22 @@ export function checkRuntimeVersionCompatibility(input: {
     throw error;
   }
 
-  input.emitTelemetry('runtime.version.compatible', {
+  const status: VersionCompatibilityStatus = {
+    state: 'compatible',
+    compatible: true,
+    checked: true,
+    sdkRuntimeMajor: input.sdkRuntimeMajor,
     runtimeVersion: input.version,
-    sdkMajor: input.sdkRuntimeMajor,
-  });
-  return true;
+    runtimeMajor,
+  };
+  input.setStatus?.(status);
+  if (!input.versionChecked) {
+    input.emitTelemetry('runtime.version.compatible', {
+      runtimeVersion: input.version,
+      sdkMajor: input.sdkRuntimeMajor,
+    });
+  }
+  return status;
 }
 
 export function assertRuntimeMethodAvailable(input: {
