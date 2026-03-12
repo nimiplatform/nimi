@@ -1,5 +1,6 @@
 import { startTransition } from 'react';
 import type { AppStoreSet, AppStoreState } from './store-types';
+import { MAX_OPEN_MOD_TABS, type OpenModWorkspaceTabResult } from './mod-workspace-policy';
 import {
   loadRuntimeModLifecycleState,
   loadRuntimeModSettingsState,
@@ -115,11 +116,13 @@ export function createModWorkspaceSlice(set: AppStoreSet): ModWorkspaceSlice {
         };
       }),
     openModWorkspaceTab: (tabId, title, modId) => {
+      let result: OpenModWorkspaceTabResult = 'rejected-limit';
       startTransition(() => {
         set((state) => {
           const now = Date.now();
           const existing = state.modWorkspaceTabs.find((tab) => tab.tabId === tabId);
           if (existing) {
+            result = 'activated-existing';
             return {
               activeTab: tabId,
               modWorkspaceTabs: state.modWorkspaceTabs.map((tab) => (
@@ -129,6 +132,11 @@ export function createModWorkspaceSlice(set: AppStoreSet): ModWorkspaceSlice {
               )),
             };
           }
+          if (state.modWorkspaceTabs.length >= MAX_OPEN_MOD_TABS) {
+            result = 'rejected-limit';
+            return {};
+          }
+          result = 'opened';
           return {
             activeTab: tabId,
             modWorkspaceTabs: [
@@ -144,6 +152,7 @@ export function createModWorkspaceSlice(set: AppStoreSet): ModWorkspaceSlice {
           };
         });
       });
+      return result;
     },
     closeModWorkspaceTab: (tabId) =>
       set((state) => {

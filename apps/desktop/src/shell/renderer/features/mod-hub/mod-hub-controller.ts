@@ -6,7 +6,7 @@ import {
   type CatalogPackageSummary,
   type RuntimeLocalManifestSummary,
 } from '@renderer/bridge';
-import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
   discoverSideloadRuntimeMods,
   registerRuntimeMods,
@@ -20,6 +20,7 @@ import {
   syncSingleRuntimeModShellState,
 } from '@renderer/mod-ui/lifecycle/runtime-mod-shell-state';
 import { removeRuntimeModStyles } from '@renderer/mod-ui/lifecycle/runtime-mod-styles';
+import { showModTabLimitBanner } from '@renderer/mod-ui/host/mod-tab-limit-banner';
 import { retryRuntimeMod } from '@renderer/mod-ui/host/retry-runtime-mod';
 import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
@@ -332,8 +333,15 @@ export function useModHubPageModel(): ModHubPageModel {
     const targetMod = mergedMods.find((item) => item.id === normalized);
     const title = targetMod?.name || normalized;
     const tabId = resolveModTabId(normalized);
-    openModWorkspaceTab(tabId, title, normalized);
-    setActiveTab(tabId as AppTab);
+    const result = openModWorkspaceTab(tabId, title, normalized);
+    if (result === 'rejected-limit') {
+      showModTabLimitBanner({
+        setStatusBanner: useAppStore.getState().setStatusBanner,
+        setActiveTab: (tab) => {
+          setActiveTab(tab);
+        },
+      });
+    }
   }, [mergedMods, openModWorkspaceTab, setActiveTab]);
 
   const onActivateDockMod = useCallback((modId: string) => {

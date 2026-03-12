@@ -2,13 +2,11 @@ import { useMemo, useRef } from 'react';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
 import {
-  MOD_ROUTE_LRU_CAPACITY,
   getRouteLifecycleState,
   isRouteTabOpen,
   isRouteTabRetained,
 } from '@renderer/mod-ui/lifecycle/route-lifecycle';
-
-export const MOD_TAB_LRU_CAPACITY = MOD_ROUTE_LRU_CAPACITY;
+import { showModTabLimitBanner } from './mod-tab-limit-banner';
 
 type UseUiExtensionContextOptions = {
   sidebarCollapsed?: boolean;
@@ -20,6 +18,7 @@ export function useUiExtensionContext(options: UseUiExtensionContextOptions = {}
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const closeModWorkspaceTab = useAppStore((state) => state.closeModWorkspaceTab);
+  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const touchModWorkspaceTab = useAppStore((state) => state.touchModWorkspaceTab);
   const modWorkspaceTabs = useAppStore((state) => state.modWorkspaceTabs);
   const markRuntimeModFused = useAppStore((state) => state.markRuntimeModFused);
@@ -47,13 +46,21 @@ export function useUiExtensionContext(options: UseUiExtensionContextOptions = {}
         setActiveTab(tab as AppTab);
       },
       openModTab: (tabId, modId, title) => {
-        openModWorkspaceTab(tabId, title, modId);
+        const result = openModWorkspaceTab(tabId, title, modId);
+        if (result === 'rejected-limit') {
+          showModTabLimitBanner({
+            setStatusBanner,
+            setActiveTab: (tab) => {
+              setActiveTab(tab);
+            },
+          });
+        }
       },
       closeModTab: (tabId) => {
         closeModWorkspaceTab(tabId);
       },
       isModTabOpen: (tabId) => isRouteTabOpen(tabId, modWorkspaceTabsRef.current),
-      isModTabInLru: (tabId) => isRouteTabRetained(tabId, activeTab, modWorkspaceTabsRef.current),
+      isModTabRetained: (tabId) => isRouteTabRetained(tabId, activeTab, modWorkspaceTabsRef.current),
       getModLifecycleState: (tabId) => getRouteLifecycleState(tabId, activeTab, modWorkspaceTabsRef.current),
       markModFused: (modId, error, reason) => {
         markRuntimeModFused(modId, error, reason || 'render-failed');
@@ -79,6 +86,7 @@ export function useUiExtensionContext(options: UseUiExtensionContextOptions = {}
       options.sidebarCollapsed,
       openModWorkspaceTab,
       setActiveTab,
+      setStatusBanner,
       touchModWorkspaceTab,
       runtimeFields,
       setRuntimeFields,

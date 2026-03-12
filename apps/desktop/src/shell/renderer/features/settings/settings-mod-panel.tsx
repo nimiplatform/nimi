@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
+import { showModTabLimitBanner } from '@renderer/mod-ui/host/mod-tab-limit-banner';
 import { C } from './settings-assets';
 import { Button, Card, PageShell, SectionTitle, StatusBadge } from './settings-layout-components';
 import { loadStoredSettingsModId, persistStoredSettingsModId } from './settings-storage';
@@ -146,8 +147,15 @@ export function ModSettingsPage() {
 
   const handleOpenModWorkspace = () => {
     if (!selectedMod) return;
-    openModWorkspaceTab(`mod:${selectedMod.id}`, selectedMod.name, selectedMod.id);
-    setActiveTab(`mod:${selectedMod.id}` as AppTab);
+    const result = openModWorkspaceTab(`mod:${selectedMod.id}`, selectedMod.name, selectedMod.id);
+    if (result === 'rejected-limit') {
+      showModTabLimitBanner({
+        setStatusBanner,
+        setActiveTab: (tab) => {
+          setActiveTab(tab as AppTab);
+        },
+      });
+    }
   };
 
   return (

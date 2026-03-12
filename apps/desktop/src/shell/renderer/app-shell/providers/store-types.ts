@@ -9,6 +9,7 @@ import type {
 import type { RuntimeModRegisterFailure } from '@runtime/mod';
 import type { RuntimeModSettingsMap } from '@nimiplatform/sdk/mod/settings';
 import type { OfflineTier } from '@runtime/offline/types.js';
+import type { OpenModWorkspaceTabResult } from './mod-workspace-policy';
 
 export type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';
 export type AppTab =
@@ -121,7 +122,7 @@ export type AppStoreState = {
   setRuntimeModDisabledIds: (modIds: string[]) => void;
   setRuntimeModUninstalledIds: (modIds: string[]) => void;
   setRuntimeModSettings: (modId: string, settings: Record<string, unknown>) => void;
-  openModWorkspaceTab: (tabId: `mod:${string}`, title: string, modId: string) => void;
+  openModWorkspaceTab: (tabId: `mod:${string}`, title: string, modId: string) => OpenModWorkspaceTabResult;
   closeModWorkspaceTab: (tabId: `mod:${string}`) => void;
   touchModWorkspaceTab: (tabId: `mod:${string}`) => void;
   markRuntimeModFused: (modId: string, error: string, reason: string) => void;
