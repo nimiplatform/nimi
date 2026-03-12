@@ -128,7 +128,8 @@ export async function listLocalAiRuntimeArtifacts(
     pageSize: 0,
     pageToken: '',
   });
-  return (Array.isArray(response.artifacts) ? response.artifacts : []).map((item) => parseArtifactRecord(item));
+  const artifacts = Array.isArray(response.artifacts) ? (response.artifacts as unknown[]) : [];
+  return artifacts.map((item: unknown) => parseArtifactRecord(item));
 }
 
 export async function listLocalAiRuntimeVerifiedArtifacts(
@@ -140,7 +141,8 @@ export async function listLocalAiRuntimeVerifiedArtifacts(
     pageSize: 0,
     pageToken: '',
   });
-  return (Array.isArray(response.artifacts) ? response.artifacts : []).map((item) => parseVerifiedArtifactDescriptor(item));
+  const artifacts = Array.isArray(response.artifacts) ? (response.artifacts as unknown[]) : [];
+  return artifacts.map((item: unknown) => parseVerifiedArtifactDescriptor(item));
 }
 
 export async function searchLocalAiRuntimeCatalog(

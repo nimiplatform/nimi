@@ -23,6 +23,23 @@ const CONNECTOR_OWNER_TYPE_SYSTEM = 1;
 
 let cachedProviderCatalog: ProviderCatalogEntry[] | null = null;
 
+type RuntimeConnectorLike = {
+  connectorId: string;
+  provider: string;
+  endpoint: string;
+  label: string;
+  hasCredential: boolean;
+  ownerType: number;
+  kind: number;
+  status: number;
+};
+
+type RuntimeConnectorModelLike = {
+  available?: boolean;
+  modelId?: string;
+  capabilities?: string[];
+};
+
 function runtimeReasonCodeName(value: unknown): string {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return '';
@@ -38,15 +55,18 @@ export async function sdkListProviderCatalog(): Promise<ProviderCatalogEntry[]> 
   if (cachedProviderCatalog) return cachedProviderCatalog;
   const runtime = getPlatformClient().runtime;
   const response = await runtime.connector.listProviderCatalog({}, CONNECTOR_CALL_OPTIONS);
-  cachedProviderCatalog = response.providers || [];
-  return cachedProviderCatalog;
+  const providers = Array.isArray(response.providers)
+    ? (response.providers as ProviderCatalogEntry[])
+    : [];
+  cachedProviderCatalog = providers;
+  return providers;
 }
 
 export function resolveProviderEndpoint(
   provider: string,
   catalog: ProviderCatalogEntry[],
 ): string {
-  const entry = catalog.find((e) => e.provider === provider);
+  const entry = catalog.find((item: ProviderCatalogEntry) => item.provider === provider);
   return entry?.defaultEndpoint || '';
 }
 
@@ -113,10 +133,13 @@ export async function sdkListConnectors(): Promise<ApiConnector[]> {
     { pageSize: 0, pageToken: '', kindFilter: 0, statusFilter: 0, providerFilter: '' },
     CONNECTOR_CALL_OPTIONS,
   );
-  const remoteConnectors = (response.connectors || []).filter(
-    (c) => c.kind === CONNECTOR_KIND_REMOTE_MANAGED,
+  const connectors = Array.isArray(response.connectors)
+    ? (response.connectors as RuntimeConnectorLike[])
+    : [];
+  const remoteConnectors = connectors.filter(
+    (connector: RuntimeConnectorLike) => connector.kind === CONNECTOR_KIND_REMOTE_MANAGED,
   );
-  return remoteConnectors.map((c) => sdkConnectorToApiConnector(c, providerCatalog));
+  return remoteConnectors.map((connector: RuntimeConnectorLike) => sdkConnectorToApiConnector(connector, providerCatalog));
 }
 
 export async function sdkCreateConnector(input: {
@@ -229,15 +252,18 @@ export async function sdkListConnectorModelDescriptors(
       },
       CONNECTOR_CALL_OPTIONS,
     );
-    const pageItems = (response.models || [])
-      .filter((item) => item.available)
-      .map((item) => ({
+    const models = Array.isArray(response.models)
+      ? (response.models as RuntimeConnectorModelLike[])
+      : [];
+    const pageItems = models
+      .filter((item: RuntimeConnectorModelLike) => Boolean(item.available))
+      .map((item: RuntimeConnectorModelLike) => ({
         modelId: String(item.modelId || '').trim(),
         capabilities: Array.isArray(item.capabilities)
-          ? item.capabilities.map((capability) => String(capability || '').trim()).filter(Boolean)
+          ? item.capabilities.map((capability: string) => String(capability || '').trim()).filter(Boolean)
           : [],
       }))
-      .filter((item) => item.modelId.length > 0);
+      .filter((item: ConnectorModelInfo) => item.modelId.length > 0);
     for (const item of pageItems) {
       if (seenModelIds.has(item.modelId)) {
         continue;

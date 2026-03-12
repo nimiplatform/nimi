@@ -47,7 +47,7 @@ function normalizeProviderEntry(entry: ModelCatalogProviderEntry): RuntimeModelC
 export async function sdkListModelCatalogProviders(): Promise<RuntimeModelCatalogProvider[]> {
   const runtime = getPlatformClient().runtime;
   const response = await runtime.connector.listModelCatalogProviders({}, CATALOG_CALL_OPTIONS);
-  const providers = (response.providers || []).map(normalizeProviderEntry);
+  const providers: RuntimeModelCatalogProvider[] = (response.providers || []).map(normalizeProviderEntry);
   providers.sort((a, b) => a.provider.localeCompare(b.provider));
   return providers;
 }

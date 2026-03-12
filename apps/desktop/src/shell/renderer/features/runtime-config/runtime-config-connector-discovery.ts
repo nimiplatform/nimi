@@ -52,7 +52,7 @@ export async function checkLocalHealth(): Promise<{
   normalizedStatus: ProviderStatusV11;
 }> {
   const runtime = getPlatformClient().runtime;
-  const result = await runtime.audit.getRuntimeHealth({}, { timeoutMs: 5000 }).catch((error) => {
+  const result = await runtime.audit.getRuntimeHealth({}, { timeoutMs: 5000 }).catch((error: unknown) => {
     throw asNimiError(error, {
       reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
       actionHint: 'check_runtime_daemon_health',

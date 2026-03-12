@@ -37,6 +37,13 @@ export type ListVoicesInput = {
   providerEndpoint?: string;
 };
 
+type RuntimeVoiceLike = {
+  voiceId?: string;
+  name?: string;
+  lang?: string;
+  supportedLangs?: string[];
+};
+
 function ensureRouteSpeechModelId(model: string, routeSource: 'local' | 'cloud'): string {
   const normalized = String(model || '').trim();
   if (!normalized) return normalized;
@@ -94,16 +101,17 @@ export class NimiSpeechEngine {
       connectorId: normalizedInput.connectorId,
       metadata,
     });
-    return result.voices.map(v => ({
-      id: v.voiceId,
+    const voices = Array.isArray(result.voices) ? (result.voices as RuntimeVoiceLike[]) : [];
+    return voices.map((voice) => ({
+      id: String(voice.voiceId || '').trim(),
       providerId: normalizedInput.providerId || '',
-      name: v.name,
-      lang: v.lang,
-      langs: v.supportedLangs,
+      name: String(voice.name || voice.voiceId || '').trim(),
+      lang: voice.lang,
+      langs: voice.supportedLangs,
       modelResolved: result.modelResolved || undefined,
       voiceCatalogSource: result.voiceCatalogSource || undefined,
       voiceCatalogVersion: result.voiceCatalogVersion || undefined,
-    }));
+    })).filter((voice) => voice.id.length > 0 && voice.name.length > 0);
   }
 
   async openStream(input: OpenStreamInput): Promise<SpeechStreamOpenResult> {

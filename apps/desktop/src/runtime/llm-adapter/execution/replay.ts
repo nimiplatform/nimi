@@ -1,4 +1,4 @@
-import type { Runtime } from '@nimiplatform/sdk';
+import type { Runtime } from '@nimiplatform/sdk/runtime';
 import { ExecutionMode, ScenarioJobStatus, ScenarioType } from '@nimiplatform/sdk/runtime';
 import {
   asRuntimeInvokeError,
