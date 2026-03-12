@@ -91,6 +91,8 @@ export default defineConfig({
           text: 'Architecture',
           items: [
             { text: 'Overview', link: '/architecture/' },
+            { text: 'Nimi Coding', link: '/architecture/nimi-coding' },
+            { text: 'Nimi Coding (CN)', link: '/architecture/nimi-coding_cn' },
             { text: 'Spec Map', link: '/architecture/spec-map' },
             { text: 'Realm Interconnect Paradigm', link: '/architecture/realm-interconnect-paradigm' },
             { text: 'MCP Agent Interaction (CN)', link: '/architecture/mcp-agent-interaction_cn' },

@@ -4,7 +4,7 @@ Open-source AI runtime for apps.
 
 Build AI apps that run local and cloud models through one runtime, one SDK, and one operational surface.
 
-[Website](https://nimi.xyz) | [Getting Started](docs/getting-started/index.md) | [SDK Reference](docs/reference/sdk.md) | [Examples](examples/README.md) | [Spec](spec/INDEX.md) | [Discord](https://discord.gg/BQwHJvPn)
+[Website](https://nimi.xyz) | [Getting Started](docs/getting-started/index.md) | [Nimi Coding](docs/architecture/nimi-coding.md) | [SDK Reference](docs/reference/sdk.md) | [Examples](examples/README.md) | [Spec](spec/INDEX.md) | [Discord](https://discord.gg/BQwHJvPn)
 
 ## Install
 

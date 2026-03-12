@@ -1,12 +1,13 @@
-# Oriented-AI Spec Coding
+# Nimi Coding
 
 > Status: Active
-> Version: 1.0 (Generic)
+> Version: 1.0
 > Maintainer: @snowzane
 > Created: 2026-03-03
-> Last Updated: 2026-03-03
-> Scope: 通用方法论（项目无关）
+> Last Updated: 2026-03-12
+> Scope: Nimi 对外方法论
 > Language: 中文为主，关键术语保留英文
+> Legacy Alias: Oriented-AI Spec Coding
 
 ---
 
@@ -14,8 +15,8 @@
 
 ### A1. 定义
 
-**Oriented-AI Spec Coding** 是一种面向 AI 主执行者（AI-first executor）的 Spec-first 工程方法。  
-它把“规范（Spec）”从说明性文档升级为“可执行治理系统”，并要求以下顺序成为默认路径：
+**Nimi Coding** 是一种围绕 AI 可读、可强制、分层且可交叉校验的事实源进行软件开发的方法。  
+它把这套事实源体系升级为面向 AI 主执行者（AI-first executor）的可执行治理系统，并要求以下顺序成为默认路径：
 
 `Rule -> Table -> Generate -> Check -> Evidence`
 
@@ -90,7 +91,7 @@
 
 ### B6. No Execution-State Pollution in Spec
 
-规范文档只承载“应然契约”，不承载“某次执行状态”。  
+规范性事实源只承载“应然契约”，不承载“某次执行状态”。  
 执行状态应进入报告或计划文档，而非规范正文。
 
 ### B7. Gate-based Enforcement Language

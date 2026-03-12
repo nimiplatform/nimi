@@ -30,6 +30,6 @@ features:
     title: Runtime-Backed
     details: Streaming, health, model lifecycle, and operational commands live in the same runtime system.
   - icon: 🧩
-    title: Spec-Driven Underneath
-    details: Usage docs stay human-first. Normative contracts still live in spec/.
+    title: Nimi Coding Underneath
+    details: "The repo is governed by Nimi Coding: an AI-readable source-of-truth system with layered contracts, structured facts, generated views, and drift checks."
 ---

@@ -1,12 +1,13 @@
-# Oriented-AI Spec Coding
+# Nimi Coding
 
 > Status: Active
-> Version: 1.0 (Generic)
+> Version: 1.0
 > Maintainer: @snowzane
 > Created: 2026-03-03
-> Last Updated: 2026-03-03
-> Scope: Project-agnostic methodology
+> Last Updated: 2026-03-12
+> Scope: Nimi public methodology
 > Language: English
+> Legacy Alias: Oriented-AI Spec Coding
 
 ---
 
@@ -14,8 +15,8 @@
 
 ### A1. Definition
 
-**Oriented-AI Spec Coding** is a Spec-first engineering methodology for AI-first executors.  
-It upgrades "spec" from descriptive documentation to an executable governance system, with one default lifecycle:
+**Nimi Coding** is software development against an AI-readable, enforceable, layered, cross-checked source of truth.  
+It treats source-of-truth artifacts as an executable governance system for AI-first executors, with one default lifecycle:
 
 `Rule -> Table -> Generate -> Check -> Evidence`
 
@@ -90,7 +91,7 @@ Cross-doc, cross-table, and cross-check references should depend on anchors, not
 
 ### B6. No Execution-State Pollution in Spec
 
-Spec documents define normative contracts, not run snapshots.  
+Normative source-of-truth documents define contracts, not run snapshots.  
 Execution state belongs in reports/plans, not in normative sections.
 
 ### B7. Gate-based Enforcement Language

@@ -1,6 +1,6 @@
 # Protocol Reference
 
-Nimi protocol contracts are layered and spec-driven.
+Nimi protocol contracts are layered and governed by Nimi Coding's source-of-truth system.
 
 ## Layers
 
