@@ -31,21 +31,11 @@ type VoiceWorkflowResult struct {
 	Metadata         map[string]any
 }
 
-// simpleVoiceAdapterDefaults maps providers that share the same adapter logic
-// (resolve URL → resolve paths → build headers → try endpoints) to their
-// default endpoint paths. Providers with genuinely different workflows
-// (dashscope, elevenlabs, fish_audio) are handled by dedicated functions.
-var simpleVoiceAdapterDefaults = map[string][]string{}
-
 // SupportsVoiceWorkflowProvider reports whether nimillm has a real provider-native
 // voice workflow adapter for the provider.
 func SupportsVoiceWorkflowProvider(provider string) bool {
 	p := strings.TrimSpace(strings.ToLower(provider))
-	if p == "dashscope" || p == "elevenlabs" || p == "fish_audio" || p == "stepfun" {
-		return true
-	}
-	_, ok := simpleVoiceAdapterDefaults[p]
-	return ok
+	return p == "dashscope" || p == "elevenlabs" || p == "fish_audio" || p == "stepfun"
 }
 
 // ExecuteVoiceWorkflow dispatches a voice workflow request to the appropriate
@@ -70,11 +60,7 @@ func ExecuteVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg Med
 	case "stepfun":
 		return executeStepFunVoiceWorkflow(ctx, req, cfg)
 	default:
-		defaults, ok := simpleVoiceAdapterDefaults[provider]
-		if !ok {
-			return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
-		}
-		return executeSimpleVoiceWorkflow(ctx, req, cfg, provider, defaults)
+		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
 	}
 }
 

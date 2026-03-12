@@ -77,7 +77,7 @@ func mapProbeSpeechVoices(payload probeSpeechVoicesResponse, modelID string) []*
 		if !voiceSupportsTargetModel(entry, normalizedTarget, targetBase) {
 			continue
 		}
-		voiceID := firstNonEmptyString(
+		voiceID := FirstNonEmpty(
 			entry.ID,
 			entry.VoiceID,
 			entry.Voice,
@@ -93,8 +93,8 @@ func mapProbeSpeechVoices(payload probeSpeechVoicesResponse, modelID string) []*
 		}
 		seen[voiceKey] = struct{}{}
 
-		name := firstNonEmptyString(entry.DisplayName, entry.Name, voiceID)
-		lang := firstNonEmptyString(entry.Lang, entry.Language, entry.Locale)
+		name := FirstNonEmpty(entry.DisplayName, entry.Name, voiceID)
+		lang := FirstNonEmpty(entry.Lang, entry.Language, entry.Locale)
 		supportedLangs := normalizeStringSlice(entry.SupportedLangs)
 		if len(supportedLangs) == 0 {
 			supportedLangs = normalizeStringSlice(entry.Languages)
@@ -167,16 +167,6 @@ func voiceModelIDBase(value string) string {
 	}
 	segments := strings.Split(normalized, "/")
 	return strings.TrimSpace(segments[len(segments)-1])
-}
-
-func firstNonEmptyString(values ...string) string {
-	for _, value := range values {
-		trimmed := strings.TrimSpace(value)
-		if trimmed != "" {
-			return trimmed
-		}
-	}
-	return ""
 }
 
 func normalizeStringSlice(values []string) []string {

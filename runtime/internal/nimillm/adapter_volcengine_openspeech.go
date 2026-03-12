@@ -59,7 +59,7 @@ func ExecuteBytedanceOpenSpeech(
 		if opts := scenarioExtensionPayloadForScenario(req); len(opts) > 0 {
 			payload["extensions"] = opts
 		}
-		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, "/api/v1/tts"), apiKey, payload)
+		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, "/api/v1/tts"), apiKey, payload, nil)
 		if err != nil {
 			return nil, nil, "", err
 		}
@@ -126,7 +126,7 @@ func ExecuteBytedanceOpenSpeech(
 			opts := scenarioExtensions
 			payload["extensions"] = opts
 		}
-		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, "/api/v3/auc/bigmodel/recognize/flash"), apiKey, payload)
+		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, "/api/v3/auc/bigmodel/recognize/flash"), apiKey, payload, nil)
 		if err != nil {
 			return nil, nil, "", err
 		}

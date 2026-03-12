@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/entrypoint"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"io"
 	"os"
 	"os/exec"
@@ -372,8 +373,8 @@ func (m *Manager) statusWithConfig(cfg config.Config, configPath string, probe b
 	}
 	if metadataExists && metadata.PID == lockPID {
 		status.Mode = ModeBackground
-		status.GRPCAddr = firstNonEmptyString(strings.TrimSpace(metadata.GRPCAddr), status.GRPCAddr)
-		status.ConfigPath = firstNonEmptyString(strings.TrimSpace(metadata.ConfigPath), status.ConfigPath)
+		status.GRPCAddr = nimillm.FirstNonEmpty(strings.TrimSpace(metadata.GRPCAddr), status.GRPCAddr)
+		status.ConfigPath = nimillm.FirstNonEmpty(strings.TrimSpace(metadata.ConfigPath), status.ConfigPath)
 		status.LogPath = strings.TrimSpace(metadata.LogPath)
 		status.StartedAt = strings.TrimSpace(metadata.StartedAt)
 		status.Version = strings.TrimSpace(metadata.Version)
@@ -628,15 +629,6 @@ func writeBytesAtomic(path string, content []byte, mode os.FileMode) error {
 		return err
 	}
 	return nil
-}
-
-func firstNonEmptyString(values ...string) string {
-	for _, value := range values {
-		if trimmed := strings.TrimSpace(value); trimmed != "" {
-			return trimmed
-		}
-	}
-	return ""
 }
 
 func minDuration(left time.Duration, right time.Duration) time.Duration {

@@ -112,7 +112,7 @@ func ExecuteMiniMaxTask(
 			if isMiniMaxNativeTTSPath(endpointPath) {
 				payload = miniMaxPayload
 			}
-			body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, endpointPath), apiKey, payload)
+			body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, endpointPath), apiKey, payload, nil)
 			if err != nil {
 				if status.Code(err) == codes.NotFound {
 					lastErr = err

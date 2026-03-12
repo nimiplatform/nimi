@@ -1,7 +1,6 @@
 package daemon
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -10,7 +9,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
-	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -119,61 +117,6 @@ func (d *Daemon) decorateProviderProbeError(providerName string, probeErr error)
 		return probeErr
 	}
 	return fmt.Errorf("%s; probe error: %w", hint, probeErr)
-}
-
-// engineManagerBridge adapts engine.ServiceAdapter to localservice.EngineManager interface.
-type engineManagerBridge struct {
-	adapter *engine.ServiceAdapter
-}
-
-func newEngineManagerBridge(adapter *engine.ServiceAdapter) *engineManagerBridge {
-	return &engineManagerBridge{adapter: adapter}
-}
-
-func (b *engineManagerBridge) ListEngines() []localservice.EngineInfo {
-	dtos := b.adapter.ListEngines()
-	result := make([]localservice.EngineInfo, len(dtos))
-	for i, dto := range dtos {
-		result[i] = dtoToEngineInfo(dto)
-	}
-	return result
-}
-
-func (b *engineManagerBridge) EnsureEngine(ctx context.Context, engineName string, version string) error {
-	return b.adapter.EnsureEngine(ctx, engineName, version)
-}
-
-func (b *engineManagerBridge) StartEngine(ctx context.Context, engineName string, port int, version string) error {
-	return b.adapter.StartEngine(ctx, engineName, port, version)
-}
-
-func (b *engineManagerBridge) StopEngine(engineName string) error {
-	return b.adapter.StopEngine(engineName)
-}
-
-func (b *engineManagerBridge) EngineStatus(engineName string) (localservice.EngineInfo, error) {
-	dto, err := b.adapter.EngineStatus(engineName)
-	if err != nil {
-		return localservice.EngineInfo{}, err
-	}
-	return dtoToEngineInfo(dto), nil
-}
-
-func dtoToEngineInfo(dto engine.EngineInfoDTO) localservice.EngineInfo {
-	return localservice.EngineInfo{
-		Engine:              dto.Engine,
-		Version:             dto.Version,
-		Endpoint:            dto.Endpoint,
-		Port:                dto.Port,
-		Status:              dto.Status,
-		PID:                 dto.PID,
-		Platform:            dto.Platform,
-		BinaryPath:          dto.BinaryPath,
-		BinarySizeBytes:     dto.BinarySizeBytes,
-		StartedAt:           dto.StartedAt,
-		LastHealthyAt:       dto.LastHealthyAt,
-		ConsecutiveFailures: dto.ConsecutiveFailures,
-	}
 }
 
 func appendProviderHealthAudit(store *auditlog.Store, providerName string, before providerhealth.Snapshot, after providerhealth.Snapshot) {

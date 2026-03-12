@@ -38,11 +38,9 @@ func preferredRoute(modelID string) runtimev1.RoutePolicy {
 
 // Delegate to nimillm exports.
 var (
-	checkModelAvailabilityWithScope = nimillm.CheckModelAvailabilityWithScope
-	fallbackEmbed                   = nimillm.FallbackEmbed
-	artifactUsage                   = nimillm.ArtifactUsage
-	mapProviderRequestError         = nimillm.MapProviderRequestError
-	mapProviderHTTPError            = nimillm.MapProviderHTTPError
+	artifactUsage           = nimillm.ArtifactUsage
+	mapProviderRequestError = nimillm.MapProviderRequestError
+	mapProviderHTTPError    = nimillm.MapProviderHTTPError
 )
 
 func normalizeFallbackText(input string) string {

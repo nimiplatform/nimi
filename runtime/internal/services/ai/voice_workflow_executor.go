@@ -292,7 +292,7 @@ func buildVoiceWorkflowPayload(
 		payload["instruction_text"] = instruction
 		payload["description"] = instruction
 		payload["preview_text"] = previewText
-		payload["text"] = firstNonEmptyString(previewText, instruction)
+		payload["text"] = nimillm.FirstNonEmpty(previewText, instruction)
 		if explicitPreferredName != "" {
 			payload["preferred_name"] = explicitPreferredName
 		}
@@ -401,16 +401,6 @@ func resolveVoiceWorkflowPreferredName(req *runtimev1.SubmitScenarioJobRequest) 
 		}
 	}
 	return "nimi-voice-" + strings.ToLower(ulid.Make().String())
-}
-
-func firstNonEmptyString(values ...string) string {
-	for _, value := range values {
-		trimmed := strings.TrimSpace(value)
-		if trimmed != "" {
-			return trimmed
-		}
-	}
-	return ""
 }
 
 func firstNonEmptyStringSlice(values ...[]string) []string {

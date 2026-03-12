@@ -32,6 +32,35 @@ type Backend struct {
 	allowLoopbackEndpoint   bool
 }
 
+type openAIMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+	Name    string `json:"name,omitempty"`
+}
+
+func buildOpenAIMessages(systemPrompt string, input []*runtimev1.ChatMessage) []openAIMessage {
+	messages := make([]openAIMessage, 0, len(input)+1)
+	if prompt := strings.TrimSpace(systemPrompt); prompt != "" {
+		messages = append(messages, openAIMessage{Role: "system", Content: prompt})
+	}
+	for _, item := range input {
+		content := strings.TrimSpace(item.GetContent())
+		if content == "" {
+			continue
+		}
+		role := strings.TrimSpace(item.GetRole())
+		if role == "" {
+			role = "user"
+		}
+		messages = append(messages, openAIMessage{
+			Role:    role,
+			Content: content,
+			Name:    strings.TrimSpace(item.GetName()),
+		})
+	}
+	return messages
+}
+
 // NewBackend creates a new OpenAI-compatible backend.
 // Returns nil if baseURL is empty.
 func NewBackend(name string, baseURL string, apiKey string, timeout time.Duration) *Backend {
@@ -172,11 +201,6 @@ func (b *Backend) newRequest(ctx context.Context, method string, endpoint string
 
 // GenerateText sends a non-streaming chat completion request.
 func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	type openAIMessage struct {
-		Role    string `json:"role"`
-		Content string `json:"content"`
-		Name    string `json:"name,omitempty"`
-	}
 	type chatRequest struct {
 		Model       string          `json:"model"`
 		Messages    []openAIMessage `json:"messages"`
@@ -198,25 +222,7 @@ func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*run
 		} `json:"usage"`
 	}
 
-	messages := make([]openAIMessage, 0, len(input)+1)
-	if prompt := strings.TrimSpace(systemPrompt); prompt != "" {
-		messages = append(messages, openAIMessage{Role: "system", Content: prompt})
-	}
-	for _, item := range input {
-		content := strings.TrimSpace(item.GetContent())
-		if content == "" {
-			continue
-		}
-		role := strings.TrimSpace(item.GetRole())
-		if role == "" {
-			role = "user"
-		}
-		messages = append(messages, openAIMessage{
-			Role:    role,
-			Content: content,
-			Name:    strings.TrimSpace(item.GetName()),
-		})
-	}
+	messages := buildOpenAIMessages(systemPrompt, input)
 	if len(messages) == 0 {
 		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
@@ -263,11 +269,6 @@ func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*run
 
 // StreamGenerateText sends a streaming chat completion request.
 func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	type openAIMessage struct {
-		Role    string `json:"role"`
-		Content string `json:"content"`
-		Name    string `json:"name,omitempty"`
-	}
 	type streamOptions struct {
 		IncludeUsage bool `json:"include_usage"`
 	}
@@ -294,25 +295,7 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 		} `json:"usage"`
 	}
 
-	messages := make([]openAIMessage, 0, len(input)+1)
-	if prompt := strings.TrimSpace(systemPrompt); prompt != "" {
-		messages = append(messages, openAIMessage{Role: "system", Content: prompt})
-	}
-	for _, item := range input {
-		content := strings.TrimSpace(item.GetContent())
-		if content == "" {
-			continue
-		}
-		role := strings.TrimSpace(item.GetRole())
-		if role == "" {
-			role = "user"
-		}
-		messages = append(messages, openAIMessage{
-			Role:    role,
-			Content: content,
-			Name:    strings.TrimSpace(item.GetName()),
-		})
-	}
+	messages := buildOpenAIMessages(systemPrompt, input)
 	if len(messages) == 0 {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}

@@ -164,54 +164,34 @@ func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 	if IsContentFilterMessage(strings.ToLower(providerMessage)) {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED)
 	}
+	const genericProviderFailure = "provider request failed"
+	const genericAuthFailure = "provider authentication failed"
+	const genericModelNotFound = "requested model is unavailable"
 	switch statusCode {
 	case http.StatusBadRequest:
 		grpcCode, reasonCode, actionHint := classifyProviderBadRequest(providerMessage)
-		if providerMessage != "" {
-			return grpcerr.WithReasonCodeOptions(grpcCode, reasonCode, grpcerr.ReasonOptions{
-				ActionHint: actionHint,
-				Message:    providerMessage,
-				Metadata: map[string]string{
-					"provider_message": providerMessage,
-				},
-			})
-		}
 		return grpcerr.WithReasonCodeOptions(grpcCode, reasonCode, grpcerr.ReasonOptions{
 			ActionHint: actionHint,
+			Message:    genericProviderFailure,
 		})
 	case http.StatusUnauthorized, http.StatusForbidden:
-		if providerMessage != "" {
-			return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED, grpcerr.ReasonOptions{
-				Message: providerMessage,
-				Metadata: map[string]string{
-					"provider_message": providerMessage,
-				},
-			})
-		}
-		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED)
+		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED, grpcerr.ReasonOptions{
+			Message: genericAuthFailure,
+		})
 	case http.StatusPaymentRequired:
-		if providerMessage != "" {
-			grpcCode, reasonCode, actionHint := classifyProviderBadRequest(providerMessage)
-			return grpcerr.WithReasonCodeOptions(grpcCode, reasonCode, grpcerr.ReasonOptions{
-				ActionHint: actionHint,
-				Message:    providerMessage,
-				Metadata: map[string]string{
-					"provider_message": providerMessage,
-				},
-			})
+		if providerMessage == "" {
+			return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED)
 		}
-		return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED)
+		grpcCode, reasonCode, actionHint := classifyProviderBadRequest(providerMessage)
+		return grpcerr.WithReasonCodeOptions(grpcCode, reasonCode, grpcerr.ReasonOptions{
+			ActionHint: actionHint,
+			Message:    genericProviderFailure,
+		})
 	case http.StatusNotFound:
-		if providerMessage != "" {
-			return grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, grpcerr.ReasonOptions{
-				ActionHint: "switch_model_or_refresh_connector_models",
-				Message:    providerMessage,
-				Metadata: map[string]string{
-					"provider_message": providerMessage,
-				},
-			})
-		}
-		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
+		return grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, grpcerr.ReasonOptions{
+			ActionHint: "switch_model_or_refresh_connector_models",
+			Message:    genericModelNotFound,
+		})
 	case http.StatusRequestTimeout, http.StatusGatewayTimeout:
 		return grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
 	case http.StatusTooManyRequests:

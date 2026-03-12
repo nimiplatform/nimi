@@ -64,7 +64,7 @@ func ExecuteAWSPollyTTS(
 		[]string{"tts_paths", "speech_paths"},
 		[]string{"/v1/speech"},
 	)
-	body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), apiKey, payload)
+	body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), apiKey, payload, nil)
 	if err != nil {
 		return nil, nil, "", err
 	}

@@ -68,7 +68,7 @@ func ExecuteFishAudioTTS(
 	}
 
 	endpoint := resolveFishAudioTTSPath(ext)
-	body, err := doCustomHeaderJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), apiKey, payload, headers)
+	body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), apiKey, payload, headers)
 	if err != nil {
 		return nil, nil, "", err
 	}

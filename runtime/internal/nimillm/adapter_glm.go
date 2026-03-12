@@ -231,7 +231,7 @@ func ExecuteGLMNative(
 		if options := scenarioExtensionPayloadForScenario(req); len(options) > 0 {
 			payload["extensions"] = options
 		}
-		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, resolveGLMAPIPath(baseURL, "audio/speech")), apiKey, payload)
+		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, resolveGLMAPIPath(baseURL, "audio/speech")), apiKey, payload, nil)
 		if err != nil {
 			return nil, nil, "", err
 		}

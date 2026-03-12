@@ -214,7 +214,7 @@ func ExecuteAlibabaNative(
 			payload["extensions"] = scenarioExtensions
 		}
 		ttsPath := resolveAlibabaTTSPath(scenarioExtensions)
-		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, ttsPath), apiKey, payload)
+		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, ttsPath), apiKey, payload, nil)
 		if err != nil {
 			return nil, nil, "", err
 		}

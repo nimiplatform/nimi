@@ -162,11 +162,11 @@ func (p *CloudProvider) ResolveModelID(raw string) string {
 
 // CheckModelAvailability checks if a model is available via cloud providers.
 func (p *CloudProvider) CheckModelAvailability(modelID string) error {
-	if err := CheckModelAvailabilityWithScope(modelID, runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD); err != nil {
-		return err
-	}
 	_, _, explicit, ok := p.PickBackend(modelID)
 	if explicit && !ok {
+		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	if !ok {
 		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	return nil
@@ -223,7 +223,7 @@ func (p *CloudProvider) Embed(ctx context.Context, modelID string, inputs []stri
 		p.rememberDecision(modelID, backend.Name)
 		return backend.Embed(ctx, resolvedModelID, inputs)
 	}
-	return FallbackEmbed(inputs), nil, nil
+	return nil, nil, grpcerr.WithReasonCode(codes.Unimplemented, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
 }
 
 // EmbedWithTarget routes an embedding request, optionally using a RemoteTarget override.
@@ -246,7 +246,7 @@ func (p *CloudProvider) EmbedWithTarget(ctx context.Context, modelID string, inp
 		p.rememberDecision(modelID, backend.Name)
 		return backend.Embed(ctx, resolvedModelID, inputs)
 	}
-	return FallbackEmbed(inputs), nil, nil
+	return nil, nil, grpcerr.WithReasonCode(codes.Unimplemented, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
 }
 
 // StreamGenerateText routes a streaming text generation request.

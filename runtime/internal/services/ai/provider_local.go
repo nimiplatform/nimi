@@ -61,9 +61,6 @@ func (p *localProvider) ResolveModelID(raw string) string {
 }
 
 func (p *localProvider) CheckModelAvailability(modelID string) error {
-	if err := nimillm.CheckModelAvailabilityWithScope(modelID, runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL); err != nil {
-		return err
-	}
 	_, _, explicit, ok, _ := p.pickBackend(modelID)
 	if explicit && !ok {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODEL_PROVIDER_MISMATCH)
@@ -115,7 +112,7 @@ func (p *localProvider) Embed(ctx context.Context, modelID string, inputs []stri
 	if !ok {
 		return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
-	return nimillm.FallbackEmbed(inputs), nil, nil
+	return nil, nil, grpcerr.WithReasonCode(codes.Unimplemented, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
 }
 
 // ResolveMediaBackend returns the underlying Backend for sync media operations.
