@@ -437,7 +437,7 @@ function OwnershipBadge({ ownershipType }: { ownershipType?: string }) {
     >
       {isMasterOwned
         ? i18n.t('Contacts.tabMyAgents', { defaultValue: 'My Agents' })
-        : i18n.t('world', { defaultValue: 'World' })}
+        : i18n.t('Common.world', { defaultValue: 'World' })}
     </span>
   );
 }

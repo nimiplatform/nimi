@@ -96,7 +96,7 @@ function toNotificationItemView(raw: unknown): NotificationItemView | null {
     createdAt: toStringValue(payload.createdAt),
     isRead: toBooleanValue(payload.isRead),
     actorId: toStringValue(actor?.id).trim() || null,
-    actorName: actorName || actorHandle || i18n.t('common.unknown', { defaultValue: 'Unknown' }),
+    actorName: actorName || actorHandle || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
     actorHandle,
     actorAvatarUrl: rawActorAvatarUrl || null,
     actorIsAgent: toBooleanValue(actor?.isAgent),
@@ -616,7 +616,7 @@ export function NotificationPanel() {
                 disabled={rejectingGift}
                 className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
               >
-                {t('common.cancel', { defaultValue: 'Cancel' })}
+                {t('Common.cancel', { defaultValue: 'Cancel' })}
               </button>
               <button
                 type="button"

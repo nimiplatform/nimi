@@ -33,8 +33,8 @@ export function ModWorkspaceTabs(props: ModWorkspaceTabsProps) {
                   ? 'border-white/70 bg-[#f7fbfd] text-[#1A1D1F] shadow-[0_10px_24px_rgba(15,23,42,0.08)]'
                   : 'border-white/10 bg-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.82)] hover:bg-[rgba(255,255,255,0.12)]'
               }`}
-              aria-label={i18n.t('Nav.home', { defaultValue: 'Home' })}
-              title={i18n.t('Nav.home', { defaultValue: 'Home' })}
+              aria-label={i18n.t('Navigation.home', { defaultValue: 'Home' })}
+              title={i18n.t('Navigation.home', { defaultValue: 'Home' })}
             >
               <span className="flex h-4 w-4 items-center justify-center">
                 {renderShellNavIcon('home')}

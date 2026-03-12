@@ -80,7 +80,7 @@ export function SendGiftModal(props: SendGiftModalProps) {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5">
-          <h2 className="text-lg font-semibold text-gray-900">{t('sendGem') || 'Send Gem'}</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('GiftSend.sendGem') || 'Send Gem'}</h2>
           <button
             type="button"
             onClick={props.onClose}
@@ -116,7 +116,7 @@ export function SendGiftModal(props: SendGiftModalProps) {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4ECCA3]/20">
                 <GemIcon className="h-6 w-6 text-[#4ECCA3]" />
               </div>
-              <span className="font-medium text-[#4ECCA3]">{t('gemAmount') || 'Gem Amount'}</span>
+              <span className="font-medium text-[#4ECCA3]">{t('GiftSend.gemAmount') || 'Gem Amount'}</span>
             </div>
             <div>
               <input
@@ -133,25 +133,25 @@ export function SendGiftModal(props: SendGiftModalProps) {
               />
             </div>
             <p className="mt-2 text-xs text-[#4ECCA3]/70">
-              {t('minSendAmount') || 'Min: 1 GEM'}
+              {t('GiftSend.minSendAmount') || 'Min: 1 GEM'}
             </p>
           </div>
 
           {/* Message Input */}
           <div className="mt-6">
             <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-400">
-              {t('messageOptional') || 'Message (Optional)'}
+              {t('GiftSend.messageOptional') || 'Message (Optional)'}
             </label>
             <textarea
               value={message}
               onChange={(event) => setMessage(event.target.value.slice(0, 200))}
               rows={3}
-              placeholder={t('addNiceMessage') || 'Add a nice message...'}
+              placeholder={t('GiftSend.addNiceMessage') || 'Add a nice message...'}
               className="w-full resize-none rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-[#4ECCA3] focus:bg-white focus:ring-2 focus:ring-[#4ECCA3]/20"
             />
             <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-400">
               <LockIcon className="h-3.5 w-3.5" />
-              <span>{t('onlyRecipientCanSee') || 'Only recipient can see'}</span>
+              <span>{t('GiftSend.onlyRecipientCanSee') || 'Only recipient can see'}</span>
             </div>
           </div>
 
@@ -176,18 +176,18 @@ export function SendGiftModal(props: SendGiftModalProps) {
             {sending ? (
               <>
                 <LoadingSpinner className="h-4 w-4" />
-                {t('sending') || 'Sending...'}
+                {t('GiftSend.sending') || 'Sending...'}
               </>
             ) : gemAmount > 0 ? (
               <>
-                <span>{t('sendGem') || 'Send Gem'}</span>
+                <span>{t('GiftSend.sendGem') || 'Send Gem'}</span>
                 <span className="opacity-60">|</span>
                 <span>{gemAmount} GEM</span>
                 <SendIcon className="h-4 w-4" />
               </>
             ) : (
               <>
-                {t('sendGem') || 'Send Gem'}
+                {t('GiftSend.sendGem') || 'Send Gem'}
                 <SendIcon className="h-4 w-4" />
               </>
             )}

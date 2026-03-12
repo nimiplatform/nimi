@@ -309,7 +309,13 @@
     "openNotifications": "Open Notifications",
     "createPost": "Create Post",
     "openAccountMenu": "Account Menu",
-    "close": "Close"
+    "close": "Close",
+    "moreOptions": "More options",
+    "block": "Block",
+    "unknown": "Unknown",
+    "notSet": "Not set",
+    "backToTop": "Back to top",
+    "world": "World"
   },
   "Settings": {
     "sectionAccount": "Account",
@@ -622,13 +628,6 @@
     "today": "Today",
     "yesterday": "Yesterday"
   },
-  "ChatTimeline": {
-    "nextPage": "Next page",
-    "previousPage": "Previous page",
-    "stopGenerating": "Stop generating",
-    "streamInterrupted": "Response interrupted",
-    "videoMessage": "Video"
-  },
   "Home": {
     "pageTitle": "Moments",
     "clear": "Clear",
@@ -938,14 +937,15 @@
     "noAgentSelected": "No agent selected",
     "noAgentDataAvailable": "No agent data available"
   },
-  "world": "World",
-  "sendGem": "Send Gem",
-  "gemAmount": "Gem Amount",
-  "minSendAmount": "Min: 1 GEM",
-  "messageOptional": "Message (Optional)",
-  "addNiceMessage": "Add a nice message...",
-  "onlyRecipientCanSee": "Only recipient can see",
-  "sending": "Sending...",
+  "GiftSend": {
+    "sendGem": "Send Gem",
+    "gemAmount": "Gem Amount",
+    "minSendAmount": "Min: 1 GEM",
+    "messageOptional": "Message (Optional)",
+    "addNiceMessage": "Add a nice message...",
+    "onlyRecipientCanSee": "Only recipient can see",
+    "sending": "Sending..."
+  },
   "Contacts": {
     "title": "Contacts",
     "addContact": "Add Contact",
@@ -2064,19 +2064,6 @@
       "noModelsMatchingSearch": "No models found matching your search",
       "searching": "Searching..."
     }
-  },
-  "common": {
-    "cancel": "Cancel",
-    "close": "Close",
-    "moreOptions": "More options",
-    "block": "Block",
-    "remove": "Remove",
-    "unknown": "Unknown",
-    "notSet": "Not set",
-    "backToTop": "Back to top"
-  },
-  "Nav": {
-    "home": "Home"
   },
   "Layout": {
     "resizeChatList": "Resize chat list",

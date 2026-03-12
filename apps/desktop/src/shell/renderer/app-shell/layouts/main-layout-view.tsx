@@ -515,7 +515,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
           <aside className={`flex h-full shrink-0 flex-col bg-white transition-[width] duration-200 ${sidebarWidthClass}`}>
             <div className="flex h-14 shrink-0 items-center justify-center">
               <SidebarTooltipButton
-                label={t('Nav.home', { defaultValue: 'Home' })}
+                label={t('Navigation.home', { defaultValue: 'Home' })}
                 onClick={() => {
                   setSettingsMenuOpen(false);
                   props.onNav('home');

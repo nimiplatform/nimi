@@ -282,7 +282,7 @@ function ReplyForm({
           onClick={onCancel}
           className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
         >
-          {i18n.t('common.cancel', { defaultValue: 'Cancel' })}
+          {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
         </button>
         <button
           onClick={() => {

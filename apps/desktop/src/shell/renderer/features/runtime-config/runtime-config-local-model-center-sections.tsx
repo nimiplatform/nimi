@@ -254,7 +254,7 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
           </h3>
         </div>
         <button type="button" onClick={props.onClose} className="text-xs text-gray-400 hover:text-gray-600">
-          {i18n.t('common.cancel', { defaultValue: 'Cancel' })}
+          {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
         </button>
       </div>
       <div className="flex items-center gap-3">
@@ -532,7 +532,7 @@ export function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSec
             <div className="flex items-center gap-2">
               {canPause ? <button type="button" onClick={() => props.onPause(event.installSessionId)} className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50">{i18n.t('runtimeConfig.localModelCenter.pause', { defaultValue: 'Pause' })}</button> : null}
               {canResume ? <button type="button" onClick={() => props.onResume(event.installSessionId)} className="rounded bg-mint-500 px-2 py-1 text-xs text-white hover:bg-mint-600">{i18n.t('runtimeConfig.localModelCenter.resume', { defaultValue: 'Resume' })}</button> : null}
-              {canCancel ? <button type="button" onClick={() => props.onCancel(event.installSessionId)} className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:border-red-200 hover:text-red-600">{i18n.t('common.cancel', { defaultValue: 'Cancel' })}</button> : null}
+              {canCancel ? <button type="button" onClick={() => props.onCancel(event.installSessionId)} className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:border-red-200 hover:text-red-600">{i18n.t('Common.cancel', { defaultValue: 'Cancel' })}</button> : null}
             </div>
           </div>
         );

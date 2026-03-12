@@ -292,12 +292,12 @@ export function toChatProfileSummary(input: {
       || fallback.displayName
       || source.handle
       || fallback.handle
-      || i18n.t('common.unknown', { defaultValue: 'Unknown' }),
+      || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
   ).trim();
   const handleValue = String(source.handle || fallback.handle || '').trim();
   return {
     id: String(source.id || fallback.id || '').trim(),
-    displayName: displayName || i18n.t('common.unknown', { defaultValue: 'Unknown' }),
+    displayName: displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
     handle: handleValue ? (handleValue.startsWith('@') ? handleValue : `@${handleValue}`) : '@unknown',
     avatarUrl: typeof source.avatarUrl === 'string'
       ? source.avatarUrl

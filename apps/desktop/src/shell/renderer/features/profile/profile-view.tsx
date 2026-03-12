@@ -230,7 +230,7 @@ export function ProfileView(props: ProfileViewProps) {
                 type="button"
                 onClick={props.onBack}
                 className="absolute left-5 top-5 flex h-10 w-10 items-center justify-center rounded-full border border-white/35 bg-white/16 text-white backdrop-blur-md transition hover:bg-white/24"
-                title={t('common.close', { defaultValue: 'Close' })}
+                title={t('Common.close', { defaultValue: 'Close' })}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18" />
@@ -245,7 +245,7 @@ export function ProfileView(props: ProfileViewProps) {
                     type="button"
                     onClick={() => setShowMenu(!showMenu)}
                     className="flex h-10 w-10 items-center justify-center rounded-full border border-white/35 bg-white/16 text-white backdrop-blur-md transition hover:bg-white/24"
-                    title={t('common.moreOptions', { defaultValue: 'More options' })}
+                    title={t('Common.moreOptions', { defaultValue: 'More options' })}
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                       <circle cx="12" cy="6" r="2" />
@@ -264,7 +264,7 @@ export function ProfileView(props: ProfileViewProps) {
                         className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 transition hover:bg-gray-50"
                       >
                         <AlertIcon className="h-4 w-4 text-gray-400" />
-                        {t('common.block', { defaultValue: 'Block' })}
+                        {t('Common.block', { defaultValue: 'Block' })}
                       </button>
                       <button
                         type="button"
@@ -428,9 +428,9 @@ export function ProfileView(props: ProfileViewProps) {
                         Reference details and profile attributes for this contact.
                       </p>
                       <div className="mt-5 space-y-3.5">
-                        <InfoTile icon={<CalendarIcon className="h-4 w-4" />} label={t('Profile.joined', { defaultValue: 'Joined' })} value={formatProfileDate(profile.createdAt) || t('common.unknown', { defaultValue: 'Unknown' })} />
+                        <InfoTile icon={<CalendarIcon className="h-4 w-4" />} label={t('Profile.joined', { defaultValue: 'Joined' })} value={formatProfileDate(profile.createdAt) || t('Common.unknown', { defaultValue: 'Unknown' })} />
                         <InfoTile icon={<LocationIcon className="h-4 w-4" />} label={t('Profile.location', { defaultValue: 'Location' })} value={locationLabel} />
-                        <InfoTile icon={<UserIcon className="h-4 w-4" />} label={t('Profile.gender', { defaultValue: 'Gender' })} value={profile.gender || t('common.notSet', { defaultValue: 'Not set' })} />
+                        <InfoTile icon={<UserIcon className="h-4 w-4" />} label={t('Profile.gender', { defaultValue: 'Gender' })} value={profile.gender || t('Common.notSet', { defaultValue: 'Not set' })} />
                         <InfoTile icon={<LanguageIcon className="h-4 w-4" />} label={t('Profile.languages', { defaultValue: 'Languages' })} value={languageLabel} />
                       </div>
                     </section>
@@ -496,7 +496,7 @@ export function ProfileView(props: ProfileViewProps) {
                 disabled={isDeleting}
                 className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
               >
-                {t('common.cancel', { defaultValue: 'Cancel' })}
+                {t('Common.cancel', { defaultValue: 'Cancel' })}
               </button>
               <button
                 type="button"
@@ -506,7 +506,7 @@ export function ProfileView(props: ProfileViewProps) {
               >
                 {isDeleting
                   ? t('Profile.removing', { defaultValue: 'Removing...' })
-                  : t('common.remove', { defaultValue: 'Remove' })}
+                  : t('Common.remove', { defaultValue: 'Remove' })}
               </button>
             </div>
           </div>
@@ -538,7 +538,7 @@ export function ProfileView(props: ProfileViewProps) {
                 disabled={isBlocking}
                 className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
               >
-                {t('common.cancel', { defaultValue: 'Cancel' })}
+                {t('Common.cancel', { defaultValue: 'Cancel' })}
               </button>
               <button
                 type="button"
@@ -548,7 +548,7 @@ export function ProfileView(props: ProfileViewProps) {
               >
                 {isBlocking
                   ? t('Profile.blocking', { defaultValue: 'Blocking...' })
-                  : t('common.block', { defaultValue: 'Block' })}
+                  : t('Common.block', { defaultValue: 'Block' })}
               </button>
             </div>
           </div>

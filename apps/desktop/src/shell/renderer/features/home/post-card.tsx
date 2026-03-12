@@ -336,7 +336,7 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
     setStatusBanner({
       kind: 'success',
       message: i18n.t('Home.friendRequestSentTo', {
-        name: post.author?.displayName || post.author?.handle || i18n.t('common.unknown', { defaultValue: 'Unknown' }),
+        name: post.author?.displayName || post.author?.handle || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
         defaultValue: 'Friend request sent to {{name}}',
       }),
     });
@@ -491,7 +491,7 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
       <SendGiftModal
         open={ui.isSendGiftOpen && Boolean(authorId)}
         receiverId={authorId}
-        receiverName={post.author?.displayName || i18n.t('common.unknown', { defaultValue: 'Unknown' })}
+        receiverName={post.author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' })}
         receiverHandle={post.author?.handle || ''}
         receiverAvatarUrl={post.author?.avatarUrl}
         onClose={() => ui.setIsSendGiftOpen(false)}
@@ -499,7 +499,7 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
           setStatusBanner({
             kind: 'success',
             message: i18n.t('Contacts.giftSentTo', {
-              name: post.author?.displayName || post.author?.handle || i18n.t('common.unknown', { defaultValue: 'Unknown' }),
+              name: post.author?.displayName || post.author?.handle || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
               defaultValue: 'Gift sent to {{name}}',
             }),
           });
@@ -509,7 +509,7 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
 
       <AddFriendModal
         author={{
-          name: post.author?.displayName || i18n.t('common.unknown', { defaultValue: 'Unknown' }),
+          name: post.author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
           handle: post.author?.handle || '',
           avatarUrl: post.author?.avatarUrl,
           isAgent: post.author?.isAgent || false,
@@ -521,7 +521,7 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
 
       <BlockUserConfirmModal
         isOpen={ui.showBlockConfirm}
-        authorName={post.author?.displayName || post.author?.handle || i18n.t('common.unknown', { defaultValue: 'Unknown' })}
+        authorName={post.author?.displayName || post.author?.handle || i18n.t('Common.unknown', { defaultValue: 'Unknown' })}
         pending={ui.isBlocking}
         onClose={() => ui.setShowBlockConfirm(false)}
         onConfirm={() => {
@@ -581,7 +581,7 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
         profileId={authorId}
         profileSeed={authorId ? {
           id: authorId,
-          displayName: post.author?.displayName || i18n.t('common.unknown', { defaultValue: 'Unknown' }),
+          displayName: post.author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
           handle: post.author?.handle || '',
           avatarUrl: post.author?.avatarUrl,
           bio: typeof authorRecord?.bio === 'string' ? authorRecord.bio : null,

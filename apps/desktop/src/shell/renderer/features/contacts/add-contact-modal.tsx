@@ -383,7 +383,7 @@ export function AddContactModal(props: AddContactModalProps) {
             disabled={adding}
             className="rounded-xl px-5 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
           >
-            {t('common.cancel', { defaultValue: 'Cancel' })}
+            {t('Common.cancel', { defaultValue: 'Cancel' })}
           </button>
           <button
             type="button"

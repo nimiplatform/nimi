@@ -103,7 +103,7 @@ export function ContactsSearchResults({
   const worldGroupList: Array<{id: TabFilter; title: string; items: ContactRecord[]; worldId?: string}> = worldGroups.size > 0
     ? Array.from(worldGroups.entries()).map(([worldId, items]) => ({
         id: 'world' as TabFilter,
-        title: matchedWorldNames.get(worldId) || t('world') || 'World',
+        title: matchedWorldNames.get(worldId) || t('Common.world') || 'World',
         items,
         worldId,
       }))

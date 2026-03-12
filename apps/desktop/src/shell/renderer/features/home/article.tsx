@@ -39,7 +39,7 @@ export type PostCardArticleProps = {
 };
 
 export function PostCardArticle(props: PostCardArticleProps) {
-  const authorName = props.post.author?.displayName || i18n.t('common.unknown', { defaultValue: 'Unknown' });
+  const authorName = props.post.author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' });
   const authorHandle = props.post.author?.handle || '';
   const SHOW_AVATAR_STATUS_INDICATOR = false;
   const isRecent = new Date().getTime() - new Date(props.post.createdAt).getTime() < 3600000; // 1 hour

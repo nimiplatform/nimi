@@ -159,7 +159,7 @@ function CatalogVariantPicker(props: {
             {i18n.t('runtimeConfig.localModelCenter.selectVariant', { defaultValue: 'Select Variant' })}
           </span>
           <button type="button" onClick={props.onClose} className="text-xs text-gray-400 hover:text-gray-600">
-            {i18n.t('common.close', { defaultValue: 'Close' })}
+            {i18n.t('Common.close', { defaultValue: 'Close' })}
           </button>
         </div>
         <div className="border-b border-gray-100 bg-[#F7FBF8] px-3 py-3">

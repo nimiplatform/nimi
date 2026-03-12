@@ -126,7 +126,7 @@ export function BlockConfirmDialog({
             onClick={onCancel}
             className="rounded-full px-5 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100"
           >
-            {i18n.t('common.cancel', { defaultValue: 'Cancel' })}
+            {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
           </button>
           <button
             type="button"
@@ -167,7 +167,7 @@ export function UnblockConfirmDialog({
             onClick={onCancel}
             className="rounded-full px-5 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100"
           >
-            {i18n.t('common.cancel', { defaultValue: 'Cancel' })}
+            {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
           </button>
           <button
             type="button"

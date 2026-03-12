@@ -174,7 +174,7 @@ export function ProfilePanel() {
       setStatusBanner({
         kind: 'success',
         message: i18n.t('Contacts.friendRequestSentOrAccepted', {
-          name: profile?.displayName || profile?.handle || i18n.t('common.unknown', { defaultValue: 'Unknown' }),
+          name: profile?.displayName || profile?.handle || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
           defaultValue: 'Friend request sent or accepted for {{name}}.',
         }),
       });
@@ -285,7 +285,7 @@ export function ProfilePanel() {
           setStatusBanner({
             kind: 'success',
             message: i18n.t('Contacts.giftSentTo', {
-              name: profile?.displayName || profile?.handle || i18n.t('common.unknown', { defaultValue: 'Unknown' }),
+              name: profile?.displayName || profile?.handle || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
               defaultValue: 'Gift sent to {{name}}',
             }),
           });

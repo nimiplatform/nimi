@@ -16,7 +16,7 @@ function getChatTitle(chat: ChatViewDto): string {
       : null;
   const displayName = String(otherUser?.displayName || '').trim();
   const handle = String(otherUser?.handle || '').trim();
-  return displayName || handle || String(record.id || i18n.t('common.unknown', { defaultValue: 'Unknown' }));
+  return displayName || handle || String(record.id || i18n.t('Common.unknown', { defaultValue: 'Unknown' }));
 }
 
 function getChatPreview(

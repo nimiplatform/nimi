@@ -334,7 +334,7 @@ export function ContactDetailViewContent(input: {
                   </Tooltip>
                 ) : (input.onBlock || input.onRemove) ? (
                   <div className="relative">
-                    <Tooltip content={t('common.moreOptions', { defaultValue: 'More options' })} placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
+                    <Tooltip content={t('Common.moreOptions', { defaultValue: 'More options' })} placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
                       <button
                         ref={menuButtonRef}
                         type="button"
@@ -359,7 +359,7 @@ export function ContactDetailViewContent(input: {
                             className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-700 transition hover:bg-slate-50"
                           >
                             <AlertIcon className="h-4 w-4 text-slate-400" />
-                            {t('common.block', { defaultValue: 'Block' })}
+                            {t('Common.block', { defaultValue: 'Block' })}
                           </button>
                         ) : null}
                         {input.onRemove ? (
@@ -712,7 +712,7 @@ export function ContactDetailViewContent(input: {
         <button
           type="button"
           onClick={scrollToTop}
-          aria-label={t('common.backToTop', { defaultValue: 'Back to top' })}
+          aria-label={t('Common.backToTop', { defaultValue: 'Back to top' })}
           className="fixed bottom-8 right-8 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-[#4ECCA3]/35 bg-white/92 text-[#1f8f69] shadow-[0_18px_40px_rgba(31,143,105,0.18)] backdrop-blur-md transition hover:-translate-y-0.5 hover:border-[#4ECCA3]/60 hover:shadow-[0_22px_46px_rgba(31,143,105,0.24)]"
         >
           <ArrowUpIcon className="h-5 w-5" />
