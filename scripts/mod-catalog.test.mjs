@@ -17,16 +17,19 @@ test('generateModCatalog builds static index files from release sidecars', () =>
   const sourceDir = path.join(root, 'mods');
   const outDir = path.join(root, 'catalog');
   fs.mkdirSync(path.join(sourceDir, 'demo', 'dist', 'packages'), { recursive: true });
+  fs.mkdirSync(path.join(sourceDir, 'demo', 'assets'), { recursive: true });
   fs.writeFileSync(path.join(sourceDir, 'demo', 'mod.manifest.yaml'), [
     'id: world.nimi.demo',
     'name: Demo Mod',
     'version: 1.2.0',
     'description: Demo release',
+    'iconAsset: ./assets/icon.svg',
     'entry: ./dist/mods/demo/index.js',
     'capabilities:',
     '  - ui.register.ui-extension.app.sidebar.mods',
     '',
   ].join('\n'));
+  fs.writeFileSync(path.join(sourceDir, 'demo', 'assets', 'icon.svg'), '<svg />\n');
   fs.writeFileSync(path.join(sourceDir, 'demo', 'dist', 'packages', 'release.manifest.json'), JSON.stringify({
     packageType: 'desktop-mod',
     packageId: 'world.nimi.demo',
@@ -74,10 +77,13 @@ test('generateModCatalog builds static index files from release sidecars', () =>
   assert.equal(result.packageCount, 1);
   const packages = JSON.parse(fs.readFileSync(path.join(outDir, 'index/v1/packages.json'), 'utf8'));
   assert.equal(packages[0]?.packageId, 'world.nimi.demo');
+  assert.equal(packages[0]?.iconUrl, 'assets/mod-icons/world.nimi.demo.svg');
   const packageRecord = JSON.parse(fs.readFileSync(path.join(outDir, 'index/v1/packages/world.nimi.demo.json'), 'utf8'));
   assert.equal(packageRecord.signers[0]?.signerId, 'nimi.release');
+  assert.equal(packageRecord.iconUrl, 'assets/mod-icons/world.nimi.demo.svg');
   const releaseRecord = JSON.parse(fs.readFileSync(path.join(outDir, 'index/v1/releases/world.nimi.demo/1.2.0.json'), 'utf8'));
   assert.equal(releaseRecord.channel, 'stable');
+  assert.equal(fs.readFileSync(path.join(outDir, 'index/v1/assets/mod-icons/world.nimi.demo.svg'), 'utf8'), '<svg />\n');
   assert.equal(validateStaticModCatalog({ catalogDir: outDir }).packageCount, 1);
 });
 
@@ -105,17 +111,20 @@ test('updateModCatalog appends a new release and updates channel pointers', () =
   const sourceDir = path.join(root, 'mods');
   const signersFile = path.join(root, 'signers.json');
   fs.mkdirSync(path.join(sourceDir, 'demo', 'dist', 'packages'), { recursive: true });
+  fs.mkdirSync(path.join(sourceDir, 'demo', 'assets'), { recursive: true });
   fs.writeFileSync(path.join(sourceDir, 'demo', 'mod.manifest.yaml'), [
     'id: world.nimi.demo',
     'name: Demo Mod',
     'version: 1.2.0',
     'description: Demo release',
+    'iconAsset: ./assets/icon.svg',
     'keywords:',
     '  - demo',
     'tags:',
     '  - official',
     '',
   ].join('\n'));
+  fs.writeFileSync(path.join(sourceDir, 'demo', 'assets', 'icon.svg'), '<svg />\n');
   fs.writeFileSync(signersFile, JSON.stringify({
     signers: {
       'nimi.release': {
@@ -197,6 +206,103 @@ test('updateModCatalog appends a new release and updates channel pointers', () =
   assert.equal(packageRecord.channels.stable, '1.3.0');
   assert.equal(packageRecord.releases.length, 2);
   assert.equal(packageRecord.releases[0]?.version, '1.3.0');
+  assert.equal(packageRecord.iconUrl, 'assets/mod-icons/world.nimi.demo.svg');
+});
+
+test('updateModCatalog preserves existing iconUrl when manifestFile is omitted', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-catalog-preserve-icon-'));
+  const catalogDir = path.join(root, 'catalog');
+  const sourceDir = path.join(root, 'mods');
+  const signersFile = path.join(root, 'signers.json');
+  fs.mkdirSync(path.join(sourceDir, 'demo', 'dist', 'packages'), { recursive: true });
+  fs.mkdirSync(path.join(sourceDir, 'demo', 'assets'), { recursive: true });
+  fs.writeFileSync(path.join(sourceDir, 'demo', 'mod.manifest.yaml'), [
+    'id: world.nimi.demo',
+    'name: Demo Mod',
+    'version: 1.0.0',
+    'description: Demo release',
+    'iconAsset: ./assets/icon.svg',
+    '',
+  ].join('\n'));
+  fs.writeFileSync(path.join(sourceDir, 'demo', 'assets', 'icon.svg'), '<svg />\n');
+  fs.writeFileSync(signersFile, JSON.stringify({
+    signers: {
+      'nimi.release': {
+        algorithm: 'ed25519',
+        publicKey: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+      },
+    },
+  }, null, 2));
+  fs.writeFileSync(path.join(sourceDir, 'demo', 'dist', 'packages', 'release.manifest.json'), JSON.stringify({
+    packageType: 'desktop-mod',
+    packageId: 'world.nimi.demo',
+    version: '1.0.0',
+    channel: 'stable',
+    artifactUrl: 'https://example.com/world.nimi.demo-1.0.0.zip',
+    sha256: 'a'.repeat(64),
+    signature: 'sig',
+    signerId: 'nimi.release',
+    minDesktopVersion: '0.1.0',
+    minHookApiVersion: 'v1',
+    capabilities: [],
+    requiresReconsentOnCapabilityIncrease: false,
+    publisher: {
+      publisherId: 'nimi',
+      displayName: 'Nimi',
+      trustTier: 'official',
+    },
+    source: {
+      repoUrl: 'https://github.com/nimiplatform/nimi-mods',
+      releaseTag: 'v1.0.0',
+    },
+    state: {
+      listed: true,
+      yanked: false,
+      quarantined: false,
+    },
+  }, null, 2));
+  generateModCatalog({ sourceDir, outDir: catalogDir, signersFile });
+
+  const releasePath = path.join(root, 'release-next.json');
+  fs.writeFileSync(releasePath, JSON.stringify({
+    packageType: 'desktop-mod',
+    packageId: 'world.nimi.demo',
+    version: '1.1.0',
+    channel: 'stable',
+    artifactUrl: 'https://example.com/world.nimi.demo-1.1.0.zip',
+    sha256: 'b'.repeat(64),
+    signature: 'sig',
+    signerId: 'nimi.release',
+    minDesktopVersion: '0.1.0',
+    minHookApiVersion: 'v1',
+    capabilities: [],
+    requiresReconsentOnCapabilityIncrease: false,
+    publisher: {
+      publisherId: 'nimi',
+      displayName: 'Nimi',
+      trustTier: 'official',
+    },
+    source: {
+      repoUrl: 'https://github.com/nimiplatform/nimi-mods',
+      releaseTag: 'v1.1.0',
+    },
+    state: {
+      listed: true,
+      yanked: false,
+      quarantined: false,
+    },
+  }, null, 2));
+
+  updateModCatalog({
+    catalogDir,
+    releaseManifestPaths: [releasePath],
+    signersFile,
+    expectedPackageId: 'world.nimi.demo',
+    expectedChannel: 'stable',
+  });
+
+  const packageRecord = JSON.parse(fs.readFileSync(path.join(catalogDir, 'index/v1/packages/world.nimi.demo.json'), 'utf8'));
+  assert.equal(packageRecord.iconUrl, 'assets/mod-icons/world.nimi.demo.svg');
 });
 
 test('updateModCatalog accepts reserved nimi-app fields and rejects them for desktop-mod', () => {

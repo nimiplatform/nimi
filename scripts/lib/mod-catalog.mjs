@@ -58,6 +58,38 @@ function normalizeOptionalString(value) {
   return normalized || undefined;
 }
 
+function sanitizeCatalogAssetName(value) {
+  return String(value || '').trim().replace(/[^a-zA-Z0-9._-]+/g, '-');
+}
+
+function resolveManifestIconAsset(modManifest) {
+  const record = modManifest && typeof modManifest === 'object' ? modManifest : {};
+  return normalizeOptionalString(record.iconAsset);
+}
+
+function buildCatalogIconPath(packageId) {
+  return `assets/mod-icons/${sanitizeCatalogAssetName(packageId || 'mod')}.svg`;
+}
+
+function copyManifestIconAsset({ manifestFile, modManifest, indexDir, packageId }) {
+  const iconAsset = resolveManifestIconAsset(modManifest);
+  if (!iconAsset || !manifestFile) {
+    return undefined;
+  }
+  if (!iconAsset.toLowerCase().endsWith('.svg')) {
+    throw new Error(`manifest iconAsset must point to an .svg file: ${iconAsset}`);
+  }
+  const sourcePath = path.resolve(path.dirname(manifestFile), iconAsset);
+  if (!fs.existsSync(sourcePath)) {
+    throw new Error(`manifest iconAsset file is missing: ${sourcePath}`);
+  }
+  const relativeCatalogPath = buildCatalogIconPath(packageId);
+  const targetPath = path.join(indexDir, relativeCatalogPath);
+  ensureDir(path.dirname(targetPath));
+  fs.copyFileSync(sourcePath, targetPath);
+  return relativeCatalogPath;
+}
+
 function findManifestFile(modDir) {
   const candidates = ['mod.manifest.yaml', 'mod.manifest.yml', 'mod.manifest.json'];
   for (const candidate of candidates) {
@@ -186,6 +218,7 @@ function validatePackageSummary(summary, label = 'package summary') {
   if (record.latestChannel != null) ensureNonEmptyString(record.latestChannel, `${label}.latestChannel`);
   normalizeStringArray(record.keywords);
   normalizeStringArray(record.tags);
+  if (record.iconUrl != null) ensureNonEmptyString(record.iconUrl, `${label}.iconUrl`);
 }
 
 function validatePackageRecord(packageRecord) {
@@ -200,6 +233,7 @@ function validatePackageRecord(packageRecord) {
   validatePublisher(record.publisher, 'package record.publisher');
   validateState(record.state, 'package record.state');
   const channels = ensureObject(record.channels, 'package record.channels');
+  if (record.iconUrl != null) ensureNonEmptyString(record.iconUrl, 'package record.iconUrl');
   const signers = Array.isArray(record.signers) ? record.signers : [];
   const releases = Array.isArray(record.releases) ? record.releases : [];
   if (releases.length === 0) {
@@ -265,6 +299,7 @@ function buildPackageSummary(packageRecord) {
     state: packageRecord.state,
     keywords: packageRecord.keywords,
     tags: packageRecord.tags,
+    iconUrl: packageRecord.iconUrl,
   };
 }
 
@@ -279,6 +314,9 @@ function buildPackageMetadata({ modManifest, packageOverride, existingPackageRec
     description: String(packageOverride.description || resolvedManifest.description || existing.description || packageId).trim(),
     keywords: normalizeStringArray(packageOverride.keywords || resolvedManifest.keywords || existing.keywords),
     tags: normalizeStringArray(packageOverride.tags || resolvedManifest.tags || existing.tags),
+    iconUrl: resolveManifestIconAsset(resolvedManifest)
+      ? buildCatalogIconPath(packageId)
+      : normalizeOptionalString(existing.iconUrl),
   };
 }
 
@@ -319,6 +357,7 @@ function buildPackageRecord({
     channels,
     keywords: metadata.keywords,
     tags: metadata.tags,
+    iconUrl: metadata.iconUrl,
     signers,
     releases: sortedReleases,
   };
@@ -472,6 +511,15 @@ export function validateStaticModCatalog({ catalogDir }) {
     if (packageRecord.packageType !== summary.packageType) {
       throw new Error(`package file ${packagePath} packageType mismatch`);
     }
+    if (normalizeOptionalString(packageRecord.iconUrl) !== normalizeOptionalString(summary.iconUrl)) {
+      throw new Error(`package file ${packagePath} iconUrl mismatch`);
+    }
+    if (packageRecord.iconUrl && !/^[a-z]+:\/\//i.test(packageRecord.iconUrl)) {
+      const iconPath = path.join(indexDir, packageRecord.iconUrl);
+      if (!fs.existsSync(iconPath)) {
+        throw new Error(`package file ${packagePath} iconUrl target is missing: ${iconPath}`);
+      }
+    }
     for (const release of packageRecord.releases) {
       const releasePath = path.join(indexDir, 'releases', packageRecord.packageId, `${release.version}.json`);
       const storedRelease = readJson(releasePath);
@@ -536,6 +584,18 @@ export function updateModCatalog({
       signerRegistry: registry,
       packageOverride,
     });
+    if (manifestFile) {
+      const manifestValue = readYamlOrJson(manifestFile);
+      const copiedIconUrl = copyManifestIconAsset({
+        manifestFile,
+        modManifest: manifestValue,
+        indexDir: shell.indexDir,
+        packageId: packageRecord.packageId,
+      });
+      if (copiedIconUrl) {
+        packageRecord.iconUrl = copiedIconUrl;
+      }
+    }
     writeJson(
       path.join(shell.indexDir, 'packages', `${packageRecord.packageId}.json`),
       packageRecord,
@@ -588,6 +648,15 @@ export function generateModCatalog({ sourceDir, outDir, signersFile }) {
       packageOverride,
       existingPackageRecord: null,
     });
+    const copiedIconUrl = copyManifestIconAsset({
+      manifestFile: manifestPath,
+      modManifest,
+      indexDir: path.join(outDir, 'index', 'v1'),
+      packageId: packageRecord.packageId,
+    });
+    if (copiedIconUrl) {
+      packageRecord.iconUrl = copiedIconUrl;
+    }
     packageRecords.push(packageRecord);
     packageSummaries.push(buildPackageSummary(packageRecord));
   }
