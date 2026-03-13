@@ -45,7 +45,7 @@ export default function VideoStudioPage() {
 
     const validTypes = ['video/mp4', 'video/quicktime', 'video/webm'];
     if (!validTypes.includes(file.type)) {
-      setUploadError('Unsupported format. Use MP4, MOV, or WebM.');
+      setUploadError(t('videoStudio.unsupportedFormat', 'Unsupported format. Use MP4, MOV, or WebM.'));
       return;
     }
 
@@ -171,7 +171,7 @@ export default function VideoStudioPage() {
           {uploading ? (
             <div className="space-y-3">
               <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
-              <p className="text-sm text-white">Uploading... {uploadProgress}%</p>
+              <p className="text-sm text-white">{t('videoStudio.uploading', { progress: uploadProgress })}</p>
               <div className="w-64 mx-auto bg-neutral-800 rounded-full h-1.5">
                 <div
                   className="bg-white h-1.5 rounded-full transition-all"
@@ -182,7 +182,7 @@ export default function VideoStudioPage() {
                 onClick={() => { xhrRef.current?.abort(); }}
                 className="rounded px-3 py-1 text-xs font-medium text-red-400 hover:bg-red-500/10 transition-colors"
               >
-                Cancel
+                {t('videoStudio.cancel', 'Cancel')}
               </button>
             </div>
           ) : (
@@ -192,7 +192,7 @@ export default function VideoStudioPage() {
                 {t('videoStudio.dropzone', 'Drag and drop video files here, or click to browse')}
               </p>
               <p className="text-xs text-neutral-600">
-                MP4, MOV, WebM
+                {t('videoStudio.formatHint', 'MP4, MOV, WebM')}
               </p>
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -265,7 +265,7 @@ export default function VideoStudioPage() {
                     onClick={() => setVideos((v) => v.filter((item) => item.id !== video.id))}
                     className="rounded px-3 py-1 text-xs font-medium text-red-400/70 hover:bg-red-500/10 hover:text-red-400 transition-colors"
                   >
-                    Remove
+                    {t('videoStudio.remove', 'Remove')}
                   </button>
                 </div>
               ))}

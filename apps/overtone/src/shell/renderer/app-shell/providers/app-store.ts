@@ -57,6 +57,12 @@ export interface AppState {
   trimStart: number | null;
   trimEnd: number | null;
 
+  draftPost: { title: string; description: string; tags: string[] } | null;
+  provenanceConfirmed: boolean;
+  publishStatus: 'idle' | 'uploading' | 'creating' | 'done' | 'error';
+  publishError: string | null;
+  publishedPostId: string | null;
+
   setRuntimeStatus: (status: ReadinessStatus, error?: string) => void;
   setRealmConnection: (configured: boolean, authenticated: boolean) => void;
   setReadiness: (input: {
@@ -82,6 +88,10 @@ export interface AppState {
   setTrimStart: (seconds: number) => void;
   setTrimEnd: (seconds: number) => void;
   clearTrim: () => void;
+  setDraftPost: (draft: AppState['draftPost']) => void;
+  setProvenanceConfirmed: (confirmed: boolean) => void;
+  setPublishStatus: (status: AppState['publishStatus'], error?: string) => void;
+  setPublishedPostId: (postId: string | null) => void;
   startProject: () => void;
   resetProject: () => void;
 }
@@ -112,6 +122,12 @@ export const useAppStore = create<AppState>((set) => ({
   trimStart: null,
   trimEnd: null,
 
+  draftPost: null,
+  provenanceConfirmed: false,
+  publishStatus: 'idle',
+  publishError: null,
+  publishedPostId: null,
+
   setRuntimeStatus: (status, error) =>
     set({ runtimeStatus: status, runtimeError: error ?? null }),
 
@@ -138,9 +154,17 @@ export const useAppStore = create<AppState>((set) => ({
     set((state) => ({
       takes: [...state.takes, take],
       selectedTakeId: take.takeId,
+      publishStatus: 'idle',
+      publishError: null,
+      publishedPostId: null,
     })),
 
-  selectTake: (takeId) => set({ selectedTakeId: takeId }),
+  selectTake: (takeId) => set({
+    selectedTakeId: takeId,
+    publishStatus: 'idle',
+    publishError: null,
+    publishedPostId: null,
+  }),
 
   toggleFavorite: (takeId) =>
     set((state) => ({
@@ -168,6 +192,9 @@ export const useAppStore = create<AppState>((set) => ({
         audioBuffers: nextAudioBuffers,
         selectedTakeId: state.selectedTakeId === takeId ? (nextTakes[0]?.takeId ?? null) : state.selectedTakeId,
         compareTakeIds: nextCompare,
+        publishStatus: state.selectedTakeId === takeId ? 'idle' : state.publishStatus,
+        publishError: state.selectedTakeId === takeId ? null : state.publishError,
+        publishedPostId: state.selectedTakeId === takeId ? null : state.publishedPostId,
       };
     }),
 
@@ -207,6 +234,15 @@ export const useAppStore = create<AppState>((set) => ({
 
   clearTrim: () => set({ trimStart: null, trimEnd: null }),
 
+  setDraftPost: (draft) => set({ draftPost: draft }),
+
+  setProvenanceConfirmed: (confirmed) => set({ provenanceConfirmed: confirmed }),
+
+  setPublishStatus: (status, error) =>
+    set({ publishStatus: status, publishError: status === 'error' ? (error ?? 'Unknown error') : null }),
+
+  setPublishedPostId: (postId) => set({ publishedPostId: postId }),
+
   startProject: () =>
     set({ projectId: `proj-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` }),
 
@@ -222,5 +258,10 @@ export const useAppStore = create<AppState>((set) => ({
       compareTakeIds: [null, null],
       trimStart: null,
       trimEnd: null,
+      draftPost: null,
+      provenanceConfirmed: false,
+      publishStatus: 'idle',
+      publishError: null,
+      publishedPostId: null,
     }),
 }));

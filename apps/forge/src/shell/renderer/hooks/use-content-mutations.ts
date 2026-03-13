@@ -6,6 +6,7 @@ import { useMutation } from '@tanstack/react-query';
 import {
   createImageDirectUpload,
   createVideoDirectUpload,
+  createAudioDirectUpload,
   createPost,
   updatePost,
   deletePost,
@@ -18,6 +19,10 @@ export function useContentMutations() {
 
   const videoUploadMutation = useMutation({
     mutationFn: async () => await createVideoDirectUpload(),
+  });
+
+  const audioUploadMutation = useMutation({
+    mutationFn: async () => await createAudioDirectUpload(),
   });
 
   const createPostMutation = useMutation({
@@ -38,6 +43,7 @@ export function useContentMutations() {
   return {
     imageUploadMutation,
     videoUploadMutation,
+    audioUploadMutation,
     createPostMutation,
     updatePostMutation,
     deletePostMutation,

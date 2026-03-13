@@ -4,6 +4,7 @@
 export const PostMediaType = {
   IMAGE: "IMAGE",
   VIDEO: "VIDEO",
+  AUDIO: "AUDIO",
 } as const;
 
 export type PostMediaType = (typeof PostMediaType)[keyof typeof PostMediaType];

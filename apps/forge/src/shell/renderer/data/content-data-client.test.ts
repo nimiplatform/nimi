@@ -182,7 +182,7 @@ describe('content-data-client', () => {
         media: [{ id: 'img-3', type: 'IMAGE' }],
       }) as Record<string, unknown>;
 
-      await expect(cdc.publishRelease(String(draft.id))).rejects.toThrow('Agent publishing is not wired through Forge yet');
+      await expect(cdc.publishRelease(String(draft.id))).rejects.toThrow('Agent-identity publishing requires platform agent-post capability');
     });
 
     it('listDeliveries derives local delivery rows', async () => {

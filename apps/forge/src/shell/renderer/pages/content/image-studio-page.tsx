@@ -142,9 +142,9 @@ export default function ImageStudioPage() {
                 onChange={(e) => setTemplate(e.target.value)}
                 className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white focus:border-neutral-500 focus:outline-none"
               >
-                <option value="">Custom Prompt</option>
-                {TEMPLATES.map((t) => (
-                  <option key={t.id} value={t.id}>{t.label}</option>
+                <option value="">{t('imageStudio.customPrompt', 'Custom Prompt')}</option>
+                {TEMPLATES.map((tmpl) => (
+                  <option key={tmpl.id} value={tmpl.id}>{t(`imageStudio.template${tmpl.id.charAt(0).toUpperCase()}${tmpl.id.slice(1)}`, tmpl.label)}</option>
                 ))}
               </select>
             </div>
@@ -158,7 +158,7 @@ export default function ImageStudioPage() {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 rows={4}
-                placeholder="Describe the image you want to generate..."
+                placeholder={t('imageStudio.promptPlaceholder', 'Describe the image you want to generate...')}
                 className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none resize-none"
               />
             </div>
@@ -172,7 +172,7 @@ export default function ImageStudioPage() {
                 value={negativePrompt}
                 onChange={(e) => setNegativePrompt(e.target.value)}
                 rows={2}
-                placeholder="Things to avoid..."
+                placeholder={t('imageStudio.negativePromptPlaceholder', 'Things to avoid...')}
                 className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none resize-none"
               />
             </div>
@@ -272,13 +272,13 @@ export default function ImageStudioPage() {
                           onClick={() => void handleSaveToLibrary(img)}
                           className="rounded bg-white px-3 py-1 text-xs font-medium text-black"
                         >
-                          Save
+                          {t('imageStudio.save', 'Save')}
                         </button>
                         <button
                           onClick={() => setGallery((g) => g.filter((i) => i.id !== img.id))}
                           className="rounded bg-neutral-700 px-3 py-1 text-xs font-medium text-white"
                         >
-                          Delete
+                          {t('imageStudio.delete', 'Delete')}
                         </button>
                       </div>
                     </div>

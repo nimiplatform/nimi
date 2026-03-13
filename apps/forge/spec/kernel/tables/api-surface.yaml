@@ -180,21 +180,21 @@ creator:
 
   - method: GET
     path: /api/creator/agents/{agentId}
-    status: new
+    status: existing
     feature: agent-detail
     controller: creator.controller.ts
     description: Get agent detail including ownerType/world binding
 
   - method: PATCH
     path: /api/creator/agents/{agentId}
-    status: new
+    status: existing
     feature: agent-detail
     controller: creator.controller.ts
     description: Update agent profile, DNA, and world binding
 
   - method: DELETE
     path: /api/creator/agents/{agentId}
-    status: new
+    status: existing
     feature: agent-detail
     controller: creator.controller.ts
     description: Archive or delete agent
@@ -245,7 +245,7 @@ media:
 
   - method: POST
     path: /api/media/audio/direct-upload
-    status: new
+    status: existing
     feature: music-studio, content-library
     controller: media.controller.ts
     description: Upload generated song or audio asset
@@ -410,5 +410,5 @@ economy:
 
 # ── Summary ──────────────────────────────────────────────
 # Total endpoints: 57
-#   Existing: 53
-#   New:      4 (agent detail completion: 3, media audio upload: 1)
+#   Existing: 57
+#   New:      0 (all endpoints now implemented)

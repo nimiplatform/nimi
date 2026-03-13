@@ -15,7 +15,7 @@ function toRecord(value: unknown): Record<string, unknown> {
 // ── Types ────────────────────────────────────────────────────
 
 export type PostMediaItem = {
-  type: 'IMAGE' | 'VIDEO';
+  type: 'IMAGE' | 'VIDEO' | 'AUDIO';
   id: string;
   duration?: number;
   thumbnail?: string;
@@ -47,8 +47,14 @@ function toPostList(payload: unknown): PostSummary[] {
       media: Array.isArray(item.media)
         ? (item.media as unknown[]).map((m) => {
             const mr = toRecord(m);
+            const rawType = String(mr.type || 'IMAGE');
+            const type: PostMediaItem['type'] = rawType === 'VIDEO'
+              ? 'VIDEO'
+              : rawType === 'AUDIO'
+                ? 'AUDIO'
+                : 'IMAGE';
             return {
-              type: (String(mr.type || 'IMAGE') === 'VIDEO' ? 'VIDEO' : 'IMAGE') as PostMediaItem['type'],
+              type,
               id: String(mr.id || ''),
               duration: mr.duration ? Number(mr.duration) : undefined,
               thumbnail: mr.thumbnail ? String(mr.thumbnail) : undefined,

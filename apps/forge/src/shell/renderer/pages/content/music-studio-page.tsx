@@ -5,9 +5,10 @@
  * Generation requires runtime AI client — stubbed until integration.
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getPlatformClient } from '@runtime/platform-client.js';
+import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
 
 const MUSIC_TEMPLATES = [
   { id: 'opening', label: 'Opening Theme' },
@@ -30,8 +31,16 @@ type GeneratedTrack = {
   prompt: string;
   style: string;
   duration: number;
+  audioUrl: string;
+  mimeType: string;
   timestamp: number;
 };
+
+function revokeObjectUrl(url: string) {
+  if (url.startsWith('blob:')) {
+    URL.revokeObjectURL(url);
+  }
+}
 
 export default function MusicStudioPage() {
   const { t } = useTranslation();
@@ -45,7 +54,80 @@ export default function MusicStudioPage() {
   const [title, setTitle] = useState('');
   const [tracks, setTracks] = useState<GeneratedTrack[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [savingTrackId, setSavingTrackId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { audioUploadMutation, createPostMutation } = useContentMutations();
+  const trackUrlsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    trackUrlsRef.current = tracks.map((track) => track.audioUrl);
+  }, [tracks]);
+
+  useEffect(() => () => {
+    trackUrlsRef.current.forEach((url) => revokeObjectUrl(url));
+  }, []);
+
+  function removeTrack(trackId: string) {
+    setTracks((prev) => {
+      const track = prev.find((item) => item.id === trackId);
+      if (track) {
+        revokeObjectUrl(track.audioUrl);
+      }
+      return prev.filter((item) => item.id !== trackId);
+    });
+  }
+
+  async function handleSaveTrack(trackId: string) {
+    setSavingTrackId(trackId);
+    setError(null);
+    try {
+      const track = tracks.find((item) => item.id === trackId);
+      if (!track) {
+        throw new Error('Track not found');
+      }
+
+      const upload = await audioUploadMutation.mutateAsync();
+      const record = upload && typeof upload === 'object' ? (upload as Record<string, unknown>) : {};
+      const uploadUrl = String(record.uploadUrl || '');
+      const key = String(record.key || '');
+
+      if (!uploadUrl || !key) {
+        throw new Error('Audio upload credentials are incomplete');
+      }
+
+      const sourceResponse = await fetch(track.audioUrl);
+      const audioBlob = await sourceResponse.blob();
+      const uploadResponse = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: audioBlob,
+        headers: {
+          'Content-Type': track.mimeType || audioBlob.type || 'audio/mpeg',
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+      }
+
+      await createPostMutation.mutateAsync({
+        caption: track.title || track.prompt,
+        media: [
+          {
+            type: 'AUDIO',
+            id: key,
+            duration: track.duration,
+          },
+        ],
+        tags: [track.style],
+      });
+
+      removeTrack(trackId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      setSavingTrackId(null);
+    }
+  }
 
   async function handleGenerate() {
     if (!prompt.trim()) return;
@@ -62,14 +144,36 @@ export default function MusicStudioPage() {
         durationSeconds: duration,
         instrumental,
       });
-      const newTracks: GeneratedTrack[] = result.artifacts.map((a) => ({
-        id: a.artifactId || crypto.randomUUID(),
-        title: title || 'Untitled',
-        prompt,
-        style,
-        duration,
-        timestamp: Date.now(),
-      }));
+      const createdUrls: string[] = [];
+      const newTracks: GeneratedTrack[] = [];
+      try {
+        for (const artifact of result.artifacts) {
+          let audioUrl = artifact.uri || '';
+          const mimeType = artifact.mimeType || 'audio/mpeg';
+          if (!audioUrl && artifact.bytes && artifact.bytes.length > 0) {
+            const audioBytes = Uint8Array.from(artifact.bytes);
+            audioUrl = URL.createObjectURL(new Blob([audioBytes], { type: mimeType }));
+            createdUrls.push(audioUrl);
+          }
+          if (!audioUrl) {
+            throw new Error('Generated track is missing playable audio data');
+          }
+
+          newTracks.push({
+            id: artifact.artifactId || crypto.randomUUID(),
+            title: title || 'Untitled',
+            prompt,
+            style,
+            duration: artifact.durationMs ? Math.max(1, Math.round(Number(artifact.durationMs) / 1000)) : duration,
+            audioUrl,
+            mimeType,
+            timestamp: Date.now(),
+          });
+        }
+      } catch (err) {
+        createdUrls.forEach((url) => revokeObjectUrl(url));
+        throw err;
+      }
       setTracks((prev) => [...newTracks, ...prev]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Generation failed');
@@ -102,9 +206,9 @@ export default function MusicStudioPage() {
                 onChange={(e) => setTemplate(e.target.value)}
                 className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white focus:border-neutral-500 focus:outline-none"
               >
-                <option value="">Custom</option>
-                {MUSIC_TEMPLATES.map((t) => (
-                  <option key={t.id} value={t.id}>{t.label}</option>
+                <option value="">{t('musicStudio.customTemplate', 'Custom')}</option>
+                {MUSIC_TEMPLATES.map((tmpl) => (
+                  <option key={tmpl.id} value={tmpl.id}>{t(`musicStudio.template${tmpl.id.charAt(0).toUpperCase()}${tmpl.id.slice(1)}`, tmpl.label)}</option>
                 ))}
               </select>
             </div>
@@ -118,7 +222,7 @@ export default function MusicStudioPage() {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Track title..."
+                placeholder={t('musicStudio.titlePlaceholder', 'Track title...')}
                 className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none"
               />
             </div>
@@ -132,7 +236,7 @@ export default function MusicStudioPage() {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 rows={3}
-                placeholder="Describe the mood and feel of the music..."
+                placeholder={t('musicStudio.promptPlaceholder', 'Describe the mood and feel of the music...')}
                 className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none resize-none"
               />
             </div>
@@ -151,7 +255,7 @@ export default function MusicStudioPage() {
                       : 'bg-neutral-800 text-neutral-400'
                   }`}
                 >
-                  {instrumental ? 'Instrumental' : 'Vocal'}
+                  {instrumental ? t('musicStudio.instrumental', 'Instrumental') : t('musicStudio.vocal', 'Vocal')}
                 </button>
               </div>
               <textarea
@@ -159,7 +263,7 @@ export default function MusicStudioPage() {
                 onChange={(e) => setLyrics(e.target.value)}
                 rows={4}
                 disabled={instrumental}
-                placeholder={instrumental ? 'Instrumental mode — no lyrics needed' : 'Write or paste lyrics...'}
+                placeholder={instrumental ? t('musicStudio.instrumentalPlaceholder', 'Instrumental mode — no lyrics needed') : t('musicStudio.lyricsPlaceholder', 'Write or paste lyrics...')}
                 className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none resize-none disabled:opacity-50"
               />
             </div>
@@ -260,20 +364,24 @@ export default function MusicStudioPage() {
                         </p>
                       </div>
                       <div className="flex gap-2">
-                        <button className="rounded bg-white px-3 py-1 text-xs font-medium text-black">
-                          Save
+                        <button
+                          onClick={() => void handleSaveTrack(track.id)}
+                          disabled={savingTrackId === track.id}
+                          className="rounded bg-white px-3 py-1 text-xs font-medium text-black disabled:opacity-50"
+                        >
+                          {savingTrackId === track.id ? t('musicStudio.saving', 'Saving...') : t('musicStudio.save', 'Save')}
                         </button>
                         <button
-                          onClick={() => setTracks((t) => t.filter((i) => i.id !== track.id))}
+                          onClick={() => removeTrack(track.id)}
                           className="rounded bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-400 hover:text-white"
                         >
-                          Discard
+                          {t('musicStudio.discard', 'Discard')}
                         </button>
                       </div>
                     </div>
                     {/* Waveform placeholder */}
                     <div className="mt-2 h-8 rounded bg-neutral-800 flex items-center justify-center">
-                      <span className="text-[10px] text-neutral-600">Waveform preview</span>
+                      <span className="text-[10px] text-neutral-600">{t('musicStudio.waveformPreview', 'Waveform preview')}</span>
                     </div>
                   </div>
                 ))}

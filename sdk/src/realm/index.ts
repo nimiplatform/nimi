@@ -25,6 +25,7 @@ export { AgentWakeStrategy } from './generated/models/AgentWakeStrategy';
 export type { AggregateMetricsDto } from './generated/models/AggregateMetricsDto';
 export { ApiKeyType } from './generated/models/ApiKeyType';
 export type { ApproveRequestDto } from './generated/models/ApproveRequestDto';
+export type { AudioDirectUploadResponseDto } from './generated/models/AudioDirectUploadResponseDto';
 export type { AuthTokensDto } from './generated/models/AuthTokensDto';
 export type { AuthTwoFactorVerifyInput } from './generated/models/AuthTwoFactorVerifyInput';
 export type { BatchCreateAgentsRequestDto } from './generated/models/BatchCreateAgentsRequestDto';

@@ -102,6 +102,18 @@ describe('app-store', () => {
       expect(useAppStore.getState().selectedTakeId).toBe('t1');
     });
 
+    it('selectTake clears published state for the newly selected take', () => {
+      useAppStore.getState().addTake(makeTake('t1'));
+      useAppStore.getState().addTake(makeTake('t2'));
+      useAppStore.getState().setPublishStatus('done');
+      useAppStore.getState().setPublishedPostId('post-1');
+
+      useAppStore.getState().selectTake('t1');
+
+      expect(useAppStore.getState().publishStatus).toBe('idle');
+      expect(useAppStore.getState().publishedPostId).toBeNull();
+    });
+
     it('toggleFavorite flips favorite flag', () => {
       useAppStore.getState().addTake(makeTake('t1'));
       useAppStore.getState().toggleFavorite('t1');
@@ -129,8 +141,12 @@ describe('app-store', () => {
       useAppStore.getState().addTake(makeTake('t1'));
       useAppStore.getState().addTake(makeTake('t2'));
       useAppStore.getState().selectTake('t1');
+      useAppStore.getState().setPublishStatus('done');
+      useAppStore.getState().setPublishedPostId('post-2');
       useAppStore.getState().discardTake('t1');
       expect(useAppStore.getState().selectedTakeId).toBe('t2');
+      expect(useAppStore.getState().publishStatus).toBe('idle');
+      expect(useAppStore.getState().publishedPostId).toBeNull();
     });
   });
 
@@ -218,6 +234,75 @@ describe('app-store', () => {
       expect(state.trimStart).toBeNull();
       expect(state.trimEnd).toBeNull();
       expect(state.selectedTakeId).toBeNull();
+    });
+  });
+
+  describe('publish', () => {
+    it('setDraftPost sets and reads draft', () => {
+      const draft = { title: 'My Song', description: 'A great song', tags: ['indie', 'folk'] };
+      useAppStore.getState().setDraftPost(draft);
+      expect(useAppStore.getState().draftPost).toEqual(draft);
+    });
+
+    it('setDraftPost clears with null', () => {
+      useAppStore.getState().setDraftPost({ title: 'T', description: 'D', tags: [] });
+      useAppStore.getState().setDraftPost(null);
+      expect(useAppStore.getState().draftPost).toBeNull();
+    });
+
+    it('setProvenanceConfirmed toggles flag', () => {
+      expect(useAppStore.getState().provenanceConfirmed).toBe(false);
+      useAppStore.getState().setProvenanceConfirmed(true);
+      expect(useAppStore.getState().provenanceConfirmed).toBe(true);
+      useAppStore.getState().setProvenanceConfirmed(false);
+      expect(useAppStore.getState().provenanceConfirmed).toBe(false);
+    });
+
+    it('setPublishStatus transitions through states', () => {
+      useAppStore.getState().setPublishStatus('uploading');
+      expect(useAppStore.getState().publishStatus).toBe('uploading');
+      expect(useAppStore.getState().publishError).toBeNull();
+
+      useAppStore.getState().setPublishStatus('creating');
+      expect(useAppStore.getState().publishStatus).toBe('creating');
+
+      useAppStore.getState().setPublishStatus('done');
+      expect(useAppStore.getState().publishStatus).toBe('done');
+    });
+
+    it('setPublishStatus stores error on error state', () => {
+      useAppStore.getState().setPublishStatus('error', 'upload failed');
+      expect(useAppStore.getState().publishStatus).toBe('error');
+      expect(useAppStore.getState().publishError).toBe('upload failed');
+    });
+
+    it('setPublishStatus clears error on non-error state', () => {
+      useAppStore.getState().setPublishStatus('error', 'some error');
+      useAppStore.getState().setPublishStatus('idle');
+      expect(useAppStore.getState().publishError).toBeNull();
+    });
+
+    it('setPublishedPostId stores and clears post ID', () => {
+      useAppStore.getState().setPublishedPostId('post-123');
+      expect(useAppStore.getState().publishedPostId).toBe('post-123');
+      useAppStore.getState().setPublishedPostId(null);
+      expect(useAppStore.getState().publishedPostId).toBeNull();
+    });
+
+    it('resetProject clears all publish state', () => {
+      useAppStore.getState().startProject();
+      useAppStore.getState().setDraftPost({ title: 'T', description: 'D', tags: ['tag'] });
+      useAppStore.getState().setProvenanceConfirmed(true);
+      useAppStore.getState().setPublishStatus('done');
+      useAppStore.getState().setPublishedPostId('post-abc');
+
+      useAppStore.getState().resetProject();
+      const state = useAppStore.getState();
+      expect(state.draftPost).toBeNull();
+      expect(state.provenanceConfirmed).toBe(false);
+      expect(state.publishStatus).toBe('idle');
+      expect(state.publishError).toBeNull();
+      expect(state.publishedPostId).toBeNull();
     });
   });
 });

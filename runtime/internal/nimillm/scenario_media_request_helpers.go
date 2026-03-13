@@ -81,6 +81,8 @@ func scenarioExtensionNamespaceForType(scenarioType runtimev1.ScenarioType) stri
 		return "nimi.scenario.speech_synthesize.request"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		return "nimi.scenario.speech_transcribe.request"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
+		return "nimi.scenario.music_generate.request"
 	default:
 		return ""
 	}

@@ -2494,6 +2494,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/media/audio/direct-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create audio upload */
+        post: operations["createAudioDirectUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/media/images/direct-upload": {
         parameters: {
             query?: never;
@@ -4289,6 +4306,12 @@ export type components = {
         /** @enum {string} */
         ApiKeyType: "PERSONAL" | "ENTERPRISE";
         ApproveRequestDto: Record<string, never>;
+        AudioDirectUploadResponseDto: {
+            /** @description R2 storage key to reference in post media */
+            key: string;
+            /** @description Presigned URL for uploading audio to R2 */
+            uploadUrl: string;
+        };
         Auth2faVerifyDto: {
             code: string;
             tempToken: string;
@@ -5274,7 +5297,7 @@ export type components = {
             width?: number;
         };
         /** @enum {string} */
-        PostMediaType: "IMAGE" | "VIDEO";
+        PostMediaType: "IMAGE" | "VIDEO" | "AUDIO";
         PostSearchResponseDto: {
             items: components["schemas"]["SearchPostDto"][];
             page: components["schemas"]["CursorPageMetaDto"];

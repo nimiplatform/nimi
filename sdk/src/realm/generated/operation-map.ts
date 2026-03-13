@@ -1964,6 +1964,17 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false
   },
+  "MediaService.createAudioDirectUpload": {
+    "operationId": "createAudioDirectUpload",
+    "method": "POST",
+    "path": "/api/media/audio/direct-upload",
+    "service": "MediaService",
+    "methodName": "createAudioDirectUpload",
+    "tag": "Media",
+    "parameters": [],
+    "hasBody": false,
+    "bodyRequired": false
+  },
   "MediaService.createImageDirectUpload": {
     "operationId": "createImageDirectUpload",
     "method": "POST",
@@ -5320,6 +5331,7 @@ export const REALM_SERVICE_METHODS = {
     "getAuthJwks": "JwksService.getAuthJwks"
   },
   "MediaService": {
+    "createAudioDirectUpload": "MediaService.createAudioDirectUpload",
     "createImageDirectUpload": "MediaService.createImageDirectUpload",
     "createVideoDirectUpload": "MediaService.createVideoDirectUpload",
     "getVideoToken": "MediaService.getVideoToken"

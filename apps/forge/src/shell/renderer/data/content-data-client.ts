@@ -57,6 +57,10 @@ export async function createVideoDirectUpload(requireSignedUrls?: string) {
   return realm().services.MediaService.createVideoDirectUpload(requireSignedUrls);
 }
 
+export async function createAudioDirectUpload() {
+  return realm().services.MediaService.createAudioDirectUpload();
+}
+
 export async function getVideoToken(uid: string) {
   return realm().services.MediaService.getVideoToken(uid);
 }
@@ -167,7 +171,7 @@ export async function publishRelease(_releaseId: string): Promise<unknown> {
     throw new Error('Publish draft not found');
   }
   if (draft.identity === 'AGENT') {
-    throw new Error('Agent publishing is not wired through Forge yet');
+    throw new Error('Agent-identity publishing requires platform agent-post capability, which is not yet exposed through the Forge realm client.');
   }
   if (draft.media.length === 0) {
     throw new Error('At least one image or video asset is required to publish');

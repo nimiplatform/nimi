@@ -19,7 +19,11 @@ type RuntimeProbeResult = {
   error?: string;
 };
 
-function syncRealmFromEnv(): Pick<RuntimeProbeResult, 'realmConfigured' | 'realmAuthenticated'> {
+async function syncRealmFromEnv(): Promise<{
+  realmConfigured: boolean;
+  realmAuthenticated: boolean;
+  realmIssue?: string;
+}> {
   const baseUrl = String(import.meta.env.VITE_NIMI_REALM_BASE_URL || '').trim();
   const accessToken = String(import.meta.env.VITE_NIMI_REALM_ACCESS_TOKEN || '').trim();
   if (!baseUrl || !accessToken) {
@@ -29,15 +33,25 @@ function syncRealmFromEnv(): Pick<RuntimeProbeResult, 'realmConfigured' | 'realm
       realmAuthenticated: false,
     };
   }
-  initRealmInstance(baseUrl, accessToken);
-  return {
-    realmConfigured: true,
-    realmAuthenticated: true,
-  };
+  const realm = initRealmInstance(baseUrl, accessToken);
+
+  try {
+    await realm.ready({ timeoutMs: 5_000 });
+    return {
+      realmConfigured: true,
+      realmAuthenticated: true,
+    };
+  } catch {
+    return {
+      realmConfigured: true,
+      realmAuthenticated: false,
+      realmIssue: 'Realm authentication probe failed. Check your access token.',
+    };
+  }
 }
 
 async function ensureRuntimeReady(): Promise<RuntimeProbeResult> {
-  const realm = syncRealmFromEnv();
+  const realm = await syncRealmFromEnv();
   let status = await getDaemonStatus();
 
   if (!status.running) {
@@ -65,6 +79,9 @@ async function ensureRuntimeReady(): Promise<RuntimeProbeResult> {
   }
 
   const issues: string[] = [];
+  if (realm.realmIssue) {
+    issues.push(realm.realmIssue);
+  }
   let textConnectorId: string | undefined;
   let textModelId: string | undefined;
   let musicConnectorId: string | undefined;

@@ -6,7 +6,9 @@
 
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCreatorPostsQuery, type PostSummary } from '@renderer/hooks/use-content-queries.js';
+import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
 
 type AssetType = 'ALL' | 'IMAGE' | 'VIDEO' | 'AUDIO';
 type ViewMode = 'grid' | 'list';
@@ -14,8 +16,10 @@ type ViewMode = 'grid' | 'list';
 export default function ContentLibraryPage() {
   const { t } = useTranslation();
 
+  const queryClient = useQueryClient();
   const postsQuery = useCreatorPostsQuery({ limit: 50 });
   const posts = postsQuery.data || [];
+  const { deletePostMutation } = useContentMutations();
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<AssetType>('ALL');
@@ -26,7 +30,7 @@ export default function ContentLibraryPage() {
   const allAssets = useMemo(() => {
     const assets: Array<{
       id: string;
-      type: 'IMAGE' | 'VIDEO';
+      type: 'IMAGE' | 'VIDEO' | 'AUDIO';
       postId: string;
       caption: string;
       tags: string[];
@@ -65,6 +69,20 @@ export default function ContentLibraryPage() {
     return list;
   }, [allAssets, typeFilter, search]);
 
+  async function handleDeleteSelected() {
+    const postIds = new Set<string>();
+    for (const asset of allAssets) {
+      if (selectedIds.has(asset.id)) {
+        postIds.add(asset.postId);
+      }
+    }
+    for (const postId of postIds) {
+      await deletePostMutation.mutateAsync(postId);
+    }
+    setSelectedIds(new Set());
+    await queryClient.invalidateQueries({ queryKey: ['forge', 'content', 'posts'] });
+  }
+
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -91,16 +109,20 @@ export default function ContentLibraryPage() {
           {selectedIds.size > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-neutral-400">
-                {selectedIds.size} selected
+                {t('contentLibrary.selected', { count: selectedIds.size })}
               </span>
               <button
                 onClick={() => setSelectedIds(new Set())}
                 className="rounded px-3 py-1.5 text-xs font-medium text-neutral-400 hover:text-white transition-colors"
               >
-                Clear
+                {t('contentLibrary.clear', 'Clear')}
               </button>
-              <button className="rounded px-3 py-1.5 text-xs font-medium text-red-400/70 hover:bg-red-500/10 hover:text-red-400 transition-colors">
-                Delete
+              <button
+                onClick={() => void handleDeleteSelected()}
+                disabled={deletePostMutation.isPending}
+                className="rounded px-3 py-1.5 text-xs font-medium text-red-400/70 hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-50"
+              >
+                {deletePostMutation.isPending ? t('contentLibrary.deleting', 'Deleting...') : t('contentLibrary.delete', 'Delete')}
               </button>
             </div>
           )}
