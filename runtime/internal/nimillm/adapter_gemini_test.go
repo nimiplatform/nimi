@@ -134,6 +134,7 @@ func TestExecuteGeminiTranscribeRejectsUnsupportedAdvancedOptions(t *testing.T) 
 
 func TestExecuteGeminiImageGenerateContentUsesNativeEndpoint(t *testing.T) {
 	imageBytes := []byte("gemini-image")
+	referenceBytes := []byte("reference-image")
 	var captured map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.URL.Path != "/v1beta/models/gemini-3.1-flash-image-preview:generateContent" {
@@ -157,9 +158,9 @@ func TestExecuteGeminiImageGenerateContentUsesNativeEndpoint(t *testing.T) {
 								"text": "Here you go!",
 							},
 							{
-								"inlineData": map[string]any{
-									"mimeType": "image/png",
-									"data":     base64.StdEncoding.EncodeToString(imageBytes),
+								"inline_data": map[string]any{
+									"mime_type": "image/png",
+									"data":      base64.StdEncoding.EncodeToString(imageBytes),
 								},
 							},
 						},
@@ -183,8 +184,9 @@ func TestExecuteGeminiImageGenerateContentUsesNativeEndpoint(t *testing.T) {
 			Spec: &runtimev1.ScenarioSpec{
 				Spec: &runtimev1.ScenarioSpec_ImageGenerate{
 					ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{
-						Prompt: "A moon over the ocean.",
-						Size:   "1024x1024",
+						Prompt:          "A moon over the ocean.",
+						Size:            "1024x1024",
+						ReferenceImages: []string{"data:image/png;base64," + base64.StdEncoding.EncodeToString(referenceBytes)},
 					},
 				},
 			},
@@ -220,8 +222,8 @@ func TestExecuteGeminiImageGenerateContentUsesNativeEndpoint(t *testing.T) {
 		t.Fatalf("expected content map, got=%T", contents[0])
 	}
 	parts, ok := content["parts"].([]any)
-	if !ok || len(parts) != 1 {
-		t.Fatalf("expected single prompt part, got=%T len=%d", content["parts"], len(parts))
+	if !ok || len(parts) != 2 {
+		t.Fatalf("expected prompt + reference image parts, got=%T len=%d", content["parts"], len(parts))
 	}
 	part, ok := parts[0].(map[string]any)
 	if !ok {
@@ -230,13 +232,27 @@ func TestExecuteGeminiImageGenerateContentUsesNativeEndpoint(t *testing.T) {
 	if got := strings.TrimSpace(ValueAsString(part["text"])); got != "A moon over the ocean." {
 		t.Fatalf("unexpected prompt=%q", got)
 	}
+	imagePart, ok := parts[1].(map[string]any)
+	if !ok {
+		t.Fatalf("expected image part map, got=%T", parts[1])
+	}
+	inlineData, ok := imagePart["inline_data"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected inline_data payload, got=%T", imagePart["inline_data"])
+	}
+	if got := strings.TrimSpace(ValueAsString(inlineData["mime_type"])); got != "image/png" {
+		t.Fatalf("unexpected inline_data mime_type=%q", got)
+	}
+	if got := strings.TrimSpace(ValueAsString(inlineData["data"])); got != base64.StdEncoding.EncodeToString(referenceBytes) {
+		t.Fatalf("unexpected inline_data data=%q", got)
+	}
 
 	generationConfig, ok := captured["generationConfig"].(map[string]any)
 	if !ok {
 		t.Fatalf("expected generationConfig, got=%T", captured["generationConfig"])
 	}
 	modalities, ok := generationConfig["responseModalities"].([]any)
-	if !ok || len(modalities) != 1 || strings.TrimSpace(ValueAsString(modalities[0])) != "Image" {
+	if !ok || len(modalities) != 1 || strings.TrimSpace(ValueAsString(modalities[0])) != "IMAGE" {
 		t.Fatalf("unexpected responseModalities=%v", generationConfig["responseModalities"])
 	}
 	imageConfig, ok := generationConfig["imageConfig"].(map[string]any)

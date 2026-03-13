@@ -307,6 +307,36 @@ func ExtractImageArtifactFromMap(payload map[string]any) ([]byte, string, string
 			}
 		}
 	}
+	if inlineData := payload["inline_data"]; inlineData != nil {
+		if typed, ok := inlineData.(map[string]any); ok {
+			if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromMap(typed); len(artifactBytes) > 0 {
+				return artifactBytes, FirstNonEmpty(mimeType, nestedMIME), artifactURI
+			}
+		}
+	}
+	if fileData := payload["fileData"]; fileData != nil {
+		if typed, ok := fileData.(map[string]any); ok {
+			if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromMap(typed); len(artifactBytes) > 0 {
+				return artifactBytes, FirstNonEmpty(mimeType, nestedMIME), artifactURI
+			}
+		}
+	}
+	if fileData := payload["file_data"]; fileData != nil {
+		if typed, ok := fileData.(map[string]any); ok {
+			if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromMap(typed); len(artifactBytes) > 0 {
+				return artifactBytes, FirstNonEmpty(mimeType, nestedMIME), artifactURI
+			}
+		}
+	}
+	if artifactURI := strings.TrimSpace(FirstNonEmpty(
+		ValueAsString(payload["fileUri"]),
+		ValueAsString(payload["file_uri"]),
+		ValueAsString(payload["uri"]),
+	)); artifactURI != "" {
+		if artifactBytes, nestedMIME, resolvedURI := ExtractImageArtifactFromAny(artifactURI); len(artifactBytes) > 0 {
+			return artifactBytes, FirstNonEmpty(mimeType, nestedMIME), FirstNonEmpty(resolvedURI, artifactURI)
+		}
+	}
 	if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromAny(payload["content"]); len(artifactBytes) > 0 {
 		return artifactBytes, FirstNonEmpty(mimeType, nestedMIME), artifactURI
 	}

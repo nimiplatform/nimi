@@ -4,9 +4,13 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"io"
+	"mime"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +20,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
@@ -243,7 +248,7 @@ func ExecuteGeminiImageGenerateContent(
 
 	resolvedModel := normalizeGeminiGenerateContentModel(modelResolved)
 	generationConfig := map[string]any{
-		"responseModalities": []string{"Image"},
+		"responseModalities": []string{"IMAGE"},
 	}
 	if aspectRatio := resolveGeminiImageAspectRatio(spec); aspectRatio != "" {
 		generationConfig["imageConfig"] = map[string]any{
@@ -254,14 +259,16 @@ func ExecuteGeminiImageGenerateContent(
 	payload := map[string]any{
 		"contents": []map[string]any{
 			{
-				"parts": []map[string]any{
-					{
-						"text": prompt,
-					},
-				},
+				"parts": []map[string]any{{"text": prompt}},
 			},
 		},
 		"generationConfig": generationConfig,
+	}
+	if referenceParts, err := buildGeminiReferenceImageParts(ctx, spec.GetReferenceImages()); err != nil {
+		return nil, nil, "", err
+	} else if len(referenceParts) > 0 {
+		content := payload["contents"].([]map[string]any)
+		content[0]["parts"] = append(content[0]["parts"].([]map[string]any), referenceParts...)
 	}
 
 	responsePayload := map[string]any{}
@@ -369,6 +376,111 @@ func resolveGeminiGenerateContentHTTPTimeout(req *runtimev1.SubmitScenarioJobReq
 		return defaultHTTPTimeout
 	}
 	return time.Duration(timeoutMS) * time.Millisecond
+}
+
+func buildGeminiReferenceImageParts(ctx context.Context, referenceImages []string) ([]map[string]any, error) {
+	parts := make([]map[string]any, 0, len(referenceImages))
+	for _, raw := range referenceImages {
+		location := strings.TrimSpace(raw)
+		if location == "" {
+			continue
+		}
+		payload, mimeType, err := resolveGeminiReferenceImageBytes(ctx, location)
+		if err != nil {
+			return nil, err
+		}
+		if len(payload) == 0 {
+			continue
+		}
+		if mimeType == "" {
+			mimeType = "image/png"
+		}
+		parts = append(parts, map[string]any{
+			"inline_data": map[string]any{
+				"mime_type": mimeType,
+				"data":      base64.StdEncoding.EncodeToString(payload),
+			},
+		})
+	}
+	return parts, nil
+}
+
+func resolveGeminiReferenceImageBytes(ctx context.Context, location string) ([]byte, string, error) {
+	value := strings.TrimSpace(location)
+	if value == "" {
+		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	if strings.HasPrefix(strings.ToLower(value), "data:") {
+		return decodeGeminiDataURL(value)
+	}
+	if isRemoteHTTPURL(value) {
+		if err := endpointsec.ValidateEndpoint(value, false); err != nil {
+			return nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
+		}
+		request, err := http.NewRequestWithContext(ctx, http.MethodGet, value, nil)
+		if err != nil {
+			return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		response, err := http.DefaultClient.Do(request)
+		if err != nil {
+			return nil, "", MapProviderRequestError(err)
+		}
+		defer response.Body.Close()
+		if response.StatusCode < 200 || response.StatusCode >= 300 {
+			return nil, "", MapProviderHTTPError(response.StatusCode, nil)
+		}
+		payload, err := io.ReadAll(io.LimitReader(response.Body, maxDecodedMediaURLBytes+1))
+		if err != nil {
+			return nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		}
+		if len(payload) == 0 || len(payload) > maxDecodedMediaURLBytes {
+			return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+		return payload, strings.TrimSpace(response.Header.Get("Content-Type")), nil
+	}
+	pathValue := value
+	if strings.HasPrefix(strings.ToLower(value), "file://") {
+		parsed, err := url.Parse(value)
+		if err == nil && strings.TrimSpace(parsed.Path) != "" {
+			pathValue = parsed.Path
+		}
+	}
+	payload, err := os.ReadFile(pathValue)
+	if err != nil {
+		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	if len(payload) == 0 || len(payload) > maxDecodedMediaURLBytes {
+		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	mimeType := strings.TrimSpace(mime.TypeByExtension(strings.ToLower(filepath.Ext(pathValue))))
+	if mimeType == "" {
+		mimeType = strings.TrimSpace(http.DetectContentType(payload))
+	}
+	return payload, mimeType, nil
+}
+
+func decodeGeminiDataURL(value string) ([]byte, string, error) {
+	commaIndex := strings.Index(value, ",")
+	if commaIndex <= 5 {
+		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	header := strings.TrimSpace(value[:commaIndex])
+	payload := strings.TrimSpace(value[commaIndex+1:])
+	if !strings.HasSuffix(strings.ToLower(header), ";base64") {
+		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	mimeType := strings.TrimPrefix(strings.Split(header, ";")[0], "data:")
+	decoded, err := base64.StdEncoding.DecodeString(payload)
+	if err != nil || len(decoded) == 0 {
+		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	if len(decoded) > maxDecodedMediaURLBytes {
+		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	if strings.TrimSpace(mimeType) == "" {
+		mimeType = strings.TrimSpace(http.DetectContentType(decoded))
+	}
+	return decoded, mimeType, nil
 }
 
 func ExecuteGeminiTranscribe(
