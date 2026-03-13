@@ -1,0 +1,47 @@
+# Relay Bootstrap Phases
+# Source of truth for RL-BOOT-*
+
+phases:
+  - id: MAIN_INIT
+    order: 1
+    process: main
+    description: Electron app ready, parse env vars, init Runtime (node-grpc) + Realm
+    source_rule: RL-BOOT-001
+    blocking: true
+
+  - id: SOCKET_CONNECT
+    order: 2
+    process: main
+    description: Establish socket.io connection to Realm realtime endpoint
+    source_rule: RL-BOOT-001
+    blocking: false
+
+  - id: IPC_REGISTER
+    order: 3
+    process: main
+    description: Register all ipcMain.handle handlers
+    source_rule: RL-BOOT-001
+    blocking: true
+
+  - id: WINDOW_CREATE
+    order: 4
+    process: main
+    description: Create BrowserWindow, load renderer
+    source_rule: RL-BOOT-001
+    blocking: true
+
+  - id: RENDERER_HEALTH
+    order: 5
+    process: renderer
+    description: Health check via relay:health
+    source_rule: RL-BOOT-002
+    blocking: false
+    timeout_ms: 15000
+
+  - id: RENDERER_AGENT_RESOLVE
+    order: 6
+    process: renderer
+    description: Resolve initial agent (env var or Realm fetch + user selection)
+    source_rule: RL-BOOT-002
+    blocking: true
+    depends_on: RENDERER_HEALTH

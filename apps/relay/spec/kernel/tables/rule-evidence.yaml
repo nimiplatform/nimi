@@ -1,0 +1,241 @@
+# Relay Rule Evidence Index
+# Maps each rule to its implementation status and planned evidence
+#
+# status values:
+#   planned   — contract defined, no implementation yet
+#   partial   — some code exists but incomplete or tests need live service
+#   verified  — implementation exists with runnable test coverage
+
+rules:
+  # Bootstrap
+  - id: RL-BOOT-001
+    contract: kernel/bootstrap-contract.md
+    status: verified
+    evidence_path: apps/relay/src/main/index.ts
+    test: apps/relay/test/bootstrap.test.ts
+    note: 5-step initialization sequence — env parse, Runtime+Realm init, socket.io, IPC handlers, BrowserWindow
+
+  - id: RL-BOOT-002
+    contract: kernel/bootstrap-contract.md
+    status: verified
+    evidence_path: apps/relay/src/renderer/infra/bootstrap.ts
+    test: apps/relay/test/bootstrap.test.ts
+    note: Health check with 15s timeout, realtime status listener, agent profile fetch from Realm (RL-CORE-003)
+
+  - id: RL-BOOT-003
+    contract: kernel/bootstrap-contract.md
+    status: verified
+    evidence_path: apps/relay/src/main/env.ts
+    test: apps/relay/test/bootstrap.test.ts
+    note: All 5 env vars parsed with required/optional validation — direct import unit tests
+
+  - id: RL-BOOT-004
+    contract: kernel/bootstrap-contract.md
+    status: verified
+    evidence_path: apps/relay/src/renderer/features/chat/chat-page.tsx
+    test: apps/relay/test/bootstrap.test.ts
+    note: RuntimeUnavailable component with retry button, stub fallback, feature gating. Health handler throws on error (BUG-1 fix) ensuring runtimeAvailable correctly reflects degradation
+
+  # IPC Bridge
+  - id: RL-IPC-001
+    contract: kernel/ipc-bridge-contract.md
+    status: verified
+    evidence_path: apps/relay/src/main/ipc-handlers.ts
+    test: apps/relay/test/ipc-handlers.test.ts
+    note: Dynamic source extraction verifies all channels use relay: prefix and match ipc-channels.yaml
+
+  - id: RL-IPC-002
+    contract: kernel/ipc-bridge-contract.md
+    status: verified
+    evidence_path: apps/relay/src/main/ipc-handlers.ts
+    test: apps/relay/test/ipc-handlers.test.ts
+    note: All unary handlers via ipcMain.handle, error shape via normalizeIpcError
+
+  - id: RL-IPC-003
+    contract: kernel/ipc-bridge-contract.md
+    status: verified
+    evidence_path: apps/relay/src/main/stream-manager.ts
+    test: apps/relay/test/stream-manager.test.ts
+    note: Generic 3-phase stream protocol — open/chunk/end/error/cancel with unit tests
+
+  - id: RL-IPC-004
+    contract: kernel/ipc-bridge-contract.md
+    status: verified
+    evidence_path: apps/relay/src/preload/index.ts
+    test: apps/relay/test/preload.test.ts
+    note: contextBridge with listener ID pattern, never exposes raw ipcRenderer — verified by source analysis
+
+  - id: RL-IPC-005
+    contract: kernel/ipc-bridge-contract.md
+    status: verified
+    evidence_path: apps/relay/src/preload/index.ts
+    test: apps/relay/test/ipc-handlers.test.ts
+    note: Structured-clone compatible error normalization + Uint8Array→base64 round-trip test
+
+  - id: RL-IPC-006
+    contract: kernel/ipc-bridge-contract.md
+    status: verified
+    evidence_path: apps/relay/src/main/ipc-handlers.ts
+    test: apps/relay/test/ipc-handlers.test.ts
+    note: relay:ai:generate, relay:ai:stream:open, relay:ai:stream:cancel — SDK method verification
+
+  - id: RL-IPC-007
+    contract: kernel/ipc-bridge-contract.md
+    status: verified
+    evidence_path: apps/relay/src/main/ipc-handlers.ts
+    test: apps/relay/test/ipc-handlers.test.ts
+    note: TTS, STT, image, video generate + job management — all media channels verified
+
+  - id: RL-IPC-008
+    contract: kernel/ipc-bridge-contract.md
+    status: verified
+    evidence_path: apps/relay/src/main/ipc-handlers.ts
+    test: apps/relay/test/ipc-handlers.test.ts
+    note: relay:realm:request passthrough with optional agentId, method/path/body/headers
+
+  - id: RL-IPC-009
+    contract: kernel/ipc-bridge-contract.md
+    status: verified
+    evidence_path: apps/relay/src/main/realtime-relay.ts
+    test: apps/relay/test/ipc-handlers.test.ts
+    note: message/presence/status forwarding + subscribe/unsubscribe + websocket transport
+
+  # Transport Validation
+  - id: RL-TRANS-001
+    contract: kernel/transport-validation.md
+    status: partial
+    evidence_path: apps/relay/src/main/platform-client.ts
+    test: apps/relay/test/transport-smoke.test.ts
+    note: Test written — requires live runtime daemon to verify
+
+  - id: RL-TRANS-002
+    contract: kernel/transport-validation.md
+    status: partial
+    evidence_path: apps/relay/src/main/stream-manager.ts
+    test: apps/relay/test/transport-smoke.test.ts
+    note: Test written — requires live runtime daemon to verify
+
+  - id: RL-TRANS-003
+    contract: kernel/transport-validation.md
+    status: partial
+    evidence_path: apps/relay/src/main/platform-client.ts
+    test: apps/relay/test/transport-smoke.test.ts
+    note: Token provider function + counting provider test — requires live runtime to verify
+
+  - id: RL-TRANS-004
+    contract: kernel/transport-validation.md
+    status: partial
+    evidence_path: apps/relay/src/main/platform-client.ts
+    test: apps/relay/test/transport-smoke.test.ts
+    note: runtimeVersion + versionCompatibility tests — requires live runtime to verify
+
+  - id: RL-TRANS-005
+    contract: kernel/transport-validation.md
+    status: partial
+    evidence_path: apps/relay/src/main/ipc-handlers.ts
+    test: apps/relay/test/transport-smoke.test.ts
+    note: NimiError field assertions (reasonCode, actionHint) — requires live runtime to verify
+
+  # Interop
+  - id: RL-INTOP-001
+    contract: kernel/interop-contract.md
+    status: partial
+    evidence_path: apps/relay/src/renderer/features/chat/hooks/use-human-chat.ts
+    test: apps/relay/test/interop-smoke.test.ts
+    note: Interop smoke test created — requires Realm instance + 2 socket connections to verify
+
+  - id: RL-INTOP-002
+    contract: kernel/interop-contract.md
+    status: verified
+    evidence_path: apps/relay/src/main/platform-client.ts
+    note: appId set to 'nimi.relay', appMode FULL — constant assertion
+
+  - id: RL-INTOP-003
+    contract: kernel/interop-contract.md
+    status: partial
+    evidence_path: apps/relay/src/main/realtime-relay.ts
+    test: apps/relay/test/interop-smoke.test.ts
+    note: Socket.io connection + event forwarding — interop smoke test requires live Realm
+
+  # Agent Core
+  - id: RL-CORE-001
+    contract: kernel/agent-core-contract.md
+    status: verified
+    evidence_path: apps/relay/src/renderer/app-shell/providers/app-store.ts
+    test: apps/relay/test/agent-core.test.ts
+    note: All surfaces gated on currentAgent — zustand store unit tests
+
+  - id: RL-CORE-002
+    contract: kernel/agent-core-contract.md
+    status: verified
+    evidence_path: apps/relay/src/renderer/app-shell/providers/app-store.ts
+    test: apps/relay/test/agent-core.test.ts
+    note: Agent change resets chat, cancels TTS/video streams, unloads Live2D, resubscribes realtime
+
+  - id: RL-CORE-003
+    contract: kernel/agent-core-contract.md
+    status: verified
+    evidence_path: apps/relay/src/renderer/infra/bootstrap.ts
+    test: apps/relay/test/agent-core.test.ts
+    note: Fetches full agent profile from Realm when NIMI_AGENT_ID set, falls back to stub
+
+  - id: RL-CORE-004
+    contract: kernel/agent-core-contract.md
+    status: verified
+    evidence_path: apps/relay/src/main/ipc-handlers.ts
+    test: apps/relay/test/agent-core.test.ts
+    note: agentId in every agent-scoped IPC input payload — requireAgentId guard enforced at IPC layer for ai:generate, ai:stream:open, media:tts:synthesize, media:video:generate
+
+  # Features
+  - id: RL-FEAT-001
+    contract: kernel/feature-contract.md
+    status: verified
+    evidence_path: apps/relay/src/renderer/features/chat/hooks/use-agent-chat.ts
+    test: apps/relay/test/features/agent-chat.test.ts
+    note: AI chat with streaming, cancel, voice integration — contract compliance verified
+
+  - id: RL-FEAT-002
+    contract: kernel/feature-contract.md
+    status: verified
+    evidence_path: apps/relay/src/renderer/features/chat/hooks/use-human-chat.ts
+    test: apps/relay/test/features/human-chat.test.ts
+    note: Human chat tab with Realm REST + socket.io realtime, channel per agent
+
+  - id: RL-FEAT-003
+    contract: kernel/feature-contract.md
+    status: verified
+    evidence_path: apps/relay/src/renderer/features/voice/hooks/use-speech-playback.ts
+    test: apps/relay/test/features/tts.test.ts
+    note: TTS synthesis + Web Audio playback + lip sync + listVoices hook + voice selector UI. synthesize accepts optional voiceId override from voice selector (BUG-3 fix)
+
+  - id: RL-FEAT-004
+    contract: kernel/feature-contract.md
+    status: verified
+    evidence_path: apps/relay/src/renderer/features/voice/hooks/use-speech-transcribe.ts
+    test: apps/relay/test/features/stt.test.ts
+    note: Agent-independent STT via MediaRecorder, base64 audio, transcript feeds agent chat
+
+  - id: RL-FEAT-005
+    contract: kernel/feature-contract.md
+    status: verified
+    evidence_path: apps/relay/src/renderer/features/buddy/live2d/model-manager.ts
+    test: apps/relay/test/features/live2d.test.ts
+    note: >
+      PIXI.Application + Live2DModel.from() + animation controller with blink/breath/saccade/lip-sync plugins.
+      Lip sync wired via zustand bridge from TTS audio analyser. Tap interaction on canvas.
+
+  - id: RL-FEAT-006
+    contract: kernel/feature-contract.md
+    status: verified
+    evidence_path: apps/relay/src/renderer/features/video/hooks/use-video-generate.ts
+    test: apps/relay/test/features/video.test.ts
+    note: >
+      Video tab — prompt input, generate, status display, VideoPlayer.
+      Async job subscription via stream protocol. Agent change cancels in-flight jobs.
+
+  - id: RL-FEAT-007
+    contract: kernel/feature-contract.md
+    status: verified
+    evidence_path: apps/relay/src/renderer/features/agent/hooks/use-agent-profile.ts
+    test: apps/relay/test/features/agent-profile.test.ts
+    note: Realm fetch agent list with full field mapping (voice_model, voice_id, live2d_model_url — BUG-2 fix), agent card UI, switch agent resets all sessions — zustand tests

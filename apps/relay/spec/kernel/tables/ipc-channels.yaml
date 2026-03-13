@@ -1,0 +1,148 @@
+# Relay Electron IPC Channel Registry
+# Source of truth for RL-IPC-006, RL-IPC-007, RL-IPC-008, RL-IPC-009
+
+channels:
+  # AI consume (all carry agentId per RL-CORE-004)
+  - channel: relay:ai:generate
+    type: unary
+    module: ai
+    sdk_method: runtime.ai.text.generate
+    source_rule: RL-IPC-006
+
+  - channel: relay:ai:stream:open
+    type: stream-open
+    module: ai
+    sdk_method: runtime.ai.text.stream
+    source_rule: RL-IPC-006
+
+  - channel: relay:ai:stream:cancel
+    type: stream-cancel
+    module: ai
+    source_rule: RL-IPC-006
+
+  # gRPC stream events (main → renderer)
+  - channel: relay:stream:chunk
+    type: event
+    direction: main-to-renderer
+    source_rule: RL-IPC-003
+
+  - channel: relay:stream:end
+    type: event
+    direction: main-to-renderer
+    source_rule: RL-IPC-003
+
+  - channel: relay:stream:error
+    type: event
+    direction: main-to-renderer
+    source_rule: RL-IPC-003
+
+  # Media
+  - channel: relay:media:tts:synthesize
+    type: unary
+    module: media
+    sdk_method: runtime.media.tts.synthesize
+    source_rule: RL-IPC-007
+
+  - channel: relay:media:tts:voices
+    type: unary
+    module: media
+    sdk_method: runtime.media.tts.listVoices
+    source_rule: RL-IPC-007
+
+  - channel: relay:media:stt:transcribe
+    type: unary
+    module: media
+    sdk_method: runtime.media.stt.transcribe
+    source_rule: RL-IPC-007
+
+  - channel: relay:media:image:generate
+    type: unary
+    module: media
+    sdk_method: runtime.media.image.generate
+    source_rule: RL-IPC-007
+
+  - channel: relay:media:video:generate
+    type: unary
+    module: media
+    sdk_method: runtime.media.video.generate
+    source_rule: RL-IPC-007
+
+  # Video job management
+  - channel: relay:media:video:job:subscribe
+    type: stream-open
+    module: media
+    sdk_method: runtime.media.jobs.subscribe
+    description: Subscribe to video job status events
+    source_rule: RL-IPC-007
+
+  - channel: relay:media:video:job:get
+    type: unary
+    module: media
+    sdk_method: runtime.media.jobs.get
+    description: Get video job status (polling fallback)
+    source_rule: RL-IPC-007
+
+  - channel: relay:media:video:job:artifacts
+    type: unary
+    module: media
+    sdk_method: runtime.media.jobs.getArtifacts
+    description: Get completed job artifacts
+    source_rule: RL-IPC-007
+
+  - channel: relay:media:video:job:cancel
+    type: stream-cancel
+    module: media
+    description: Cancel video job subscription stream
+    source_rule: RL-IPC-007
+
+  # Realm passthrough
+  - channel: relay:realm:request
+    type: unary
+    module: realm
+    description: REST request passthrough (agentId optional per RL-CORE-004)
+    source_rule: RL-IPC-008
+
+  # Realtime event forwarding (socket.io → renderer)
+  - channel: relay:realtime:message
+    type: event
+    direction: main-to-renderer
+    description: New message in subscribed channel
+    source_rule: RL-IPC-009
+
+  - channel: relay:realtime:presence
+    type: event
+    direction: main-to-renderer
+    description: User presence change
+    source_rule: RL-IPC-009
+
+  - channel: relay:realtime:status
+    type: event
+    direction: main-to-renderer
+    description: Socket.io connection status change
+    source_rule: RL-IPC-009
+
+  - channel: relay:realtime:subscribe
+    type: unary
+    module: realtime
+    description: Subscribe to a channel
+    source_rule: RL-IPC-009
+
+  - channel: relay:realtime:unsubscribe
+    type: unary
+    module: realtime
+    description: Unsubscribe from a channel
+    source_rule: RL-IPC-009
+
+  # Config
+  - channel: relay:config
+    type: unary
+    module: config
+    description: Expose non-secret env defaults (agentId, worldId) to renderer
+    source_rule: RL-CORE-003
+
+  # Health
+  - channel: relay:health
+    type: unary
+    module: health
+    sdk_method: runtime.health
+    source_rule: RL-IPC-002

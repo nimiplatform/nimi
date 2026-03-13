@@ -1,0 +1,64 @@
+# Relay Feature Capabilities
+# Source of truth for RL-FEAT-*
+
+features:
+  - id: agent-chat
+    display_name: Agent Chat (Local AI)
+    requires_runtime: true
+    requires_realm: false
+    requires_agent: true
+    sdk_module: runtime.ai
+    source_rule: RL-FEAT-001
+
+  - id: human-chat
+    display_name: Human Chat
+    requires_runtime: false
+    requires_realm: true
+    requires_agent: true
+    requires_socket: true
+    sdk_module: realm
+    source_rule: RL-FEAT-002
+
+  - id: tts
+    display_name: Text-to-Speech
+    requires_runtime: true
+    requires_realm: false
+    requires_agent: true
+    sdk_module: runtime.media.tts
+    note: listVoices requires model (mandatory); agent profile resolves default model + voiceId
+    source_rule: RL-FEAT-003
+
+  - id: stt
+    display_name: Speech-to-Text
+    requires_runtime: true
+    requires_realm: false
+    requires_agent: false
+    note: STT call is agent-independent; consumption of transcript is agent-scoped via RL-FEAT-001
+    sdk_module: runtime.media.stt
+    source_rule: RL-FEAT-004
+
+  - id: live2d
+    display_name: Live2D Character
+    requires_runtime: false
+    requires_realm: false
+    requires_agent: true
+    renderer_only: true
+    source_rule: RL-FEAT-005
+
+  - id: video
+    display_name: Video Generation
+    requires_runtime: true
+    requires_realm: false
+    requires_agent: true
+    async_job: true
+    sdk_module: runtime.media.video + runtime.media.jobs
+    note: Job status via media.jobs.subscribe/get, not video.status (which does not exist)
+    source_rule: RL-FEAT-006
+
+  - id: agent-profile
+    display_name: Agent Profile & Selection
+    requires_runtime: false
+    requires_realm: true
+    requires_agent: false
+    sdk_module: realm
+    source_rule: RL-FEAT-007
