@@ -5,6 +5,7 @@ export interface NormalizedError {
   reasonCode?: string;
   message: string;
   actionHint?: string;
+  traceId?: string;
 }
 
 export function normalizeError(error: unknown): NormalizedError {
@@ -14,6 +15,7 @@ export function normalizeError(error: unknown): NormalizedError {
       reasonCode: typeof asAny.reasonCode === 'string' ? asAny.reasonCode : undefined,
       message: error.message,
       actionHint: typeof asAny.actionHint === 'string' ? asAny.actionHint : undefined,
+      traceId: typeof asAny.traceId === 'string' ? asAny.traceId : undefined,
     };
   }
   return { message: String(error) };

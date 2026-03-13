@@ -2,11 +2,13 @@
 // RL-CORE-001 — No agent selected → show selection prompt
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAgentProfile } from '../hooks/use-agent-profile.js';
 import type { Agent } from '../../../app-shell/providers/app-store.js';
 import { AgentCard } from './agent-card.js';
 
 export function AgentSelector() {
+  const { t } = useTranslation();
   const { currentAgent, fetchAgentList, selectAgent } = useAgentProfile();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +43,7 @@ export function AgentSelector() {
           onClick={() => selectAgent(null)}
           className="mt-2 text-xs text-gray-500 hover:text-gray-300"
         >
-          Switch agent
+          {t('agent.switchAgent')}
         </button>
       </div>
     );
@@ -50,14 +52,14 @@ export function AgentSelector() {
   if (loading) {
     return (
       <div className="p-4 text-center text-gray-500 text-sm">
-        Loading agents...
+        {t('agent.loadingAgents')}
       </div>
     );
   }
 
   return (
     <div className="p-4 space-y-3">
-      <h2 className="text-sm font-medium text-gray-300">Select an Agent</h2>
+      <h2 className="text-sm font-medium text-gray-300">{t('agent.selectAnAgent')}</h2>
 
       {/* Agent list from Realm */}
       {agents.length > 0 && (
@@ -78,7 +80,7 @@ export function AgentSelector() {
       {fetchError && (
         <div className="space-y-2">
           <p className="text-xs text-gray-500">
-            Realm unreachable. Enter an agent ID manually:
+            {t('agent.realmUnreachable')}
           </p>
           <div className="flex gap-1">
             <input
@@ -94,14 +96,14 @@ export function AgentSelector() {
               disabled={!manualId.trim()}
               className="px-2 py-1 bg-blue-600 text-white rounded text-xs disabled:opacity-50"
             >
-              Go
+              {t('agent.go')}
             </button>
           </div>
         </div>
       )}
 
       {!fetchError && agents.length === 0 && (
-        <p className="text-xs text-gray-500">No agents available</p>
+        <p className="text-xs text-gray-500">{t('agent.noAgentsAvailable')}</p>
       )}
     </div>
   );

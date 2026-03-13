@@ -2,6 +2,7 @@
 // RL-FEAT-001 (AI) + RL-FEAT-002 (Human) + RL-FEAT-003/004 voice integration + RL-FEAT-006 (Video)
 
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAgentChat } from './hooks/use-agent-chat.js';
 import { useHumanChat } from './hooks/use-human-chat.js';
 import { useVideoGenerate } from '../video/hooks/use-video-generate.js';
@@ -15,6 +16,7 @@ import { getBridge } from '../../bridge/electron-bridge.js';
 type ChatMode = 'ai' | 'human' | 'video';
 
 export function ChatPage() {
+  const { t } = useTranslation();
   const currentAgent = useAppStore((s) => s.currentAgent);
   const runtimeAvailable = useAppStore((s) => s.runtimeAvailable);
   const realtimeConnected = useAppStore((s) => s.realtimeConnected);
@@ -50,8 +52,8 @@ export function ChatPage() {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center text-gray-400">
-          <p className="text-lg font-medium mb-2">No Agent Selected</p>
-          <p className="text-sm">Select an agent from the sidebar to start chatting</p>
+          <p className="text-lg font-medium mb-2">{t('agent.noAgentSelected')}</p>
+          <p className="text-sm">{t('agent.selectFromSidebar')}</p>
         </div>
       </div>
     );
@@ -64,19 +66,19 @@ export function ChatPage() {
         <TabButton
           active={mode === 'ai'}
           onClick={() => setMode('ai')}
-          label="AI Chat"
+          label={t('chat.aiChat')}
           disabled={!runtimeAvailable}
         />
         <TabButton
           active={mode === 'human'}
           onClick={() => setMode('human')}
-          label="Human Chat"
+          label={t('chat.humanChat')}
           disabled={!realtimeConnected}
         />
         <TabButton
           active={mode === 'video'}
           onClick={() => setMode('video')}
-          label="Video"
+          label={t('video.tab')}
           disabled={!runtimeAvailable}
         />
       </div>
@@ -85,7 +87,7 @@ export function ChatPage() {
       {mode === 'ai' && (
         <>
           {!runtimeAvailable ? (
-            <RuntimeUnavailable onRetry={handleRetryRuntime} feature="AI chat" />
+            <RuntimeUnavailable onRetry={handleRetryRuntime} feature={t('chat.aiChat')} />
           ) : (
             <>
               <ChatView messages={ai.messages} />
@@ -95,7 +97,7 @@ export function ChatPage() {
                     onClick={ai.cancelStream}
                     className="text-xs text-gray-400 hover:text-white"
                   >
-                    Stop generating
+                    {t('chat.stopGenerating')}
                   </button>
                 )}
                 <div className="ml-auto">
@@ -108,7 +110,7 @@ export function ChatPage() {
               <MessageInput
                 onSend={ai.sendMessage}
                 disabled={!ai.canChat || ai.isStreaming}
-                placeholder={`Message ${currentAgent.name}...`}
+                placeholder={t('chat.messageAgent', { name: currentAgent.name })}
               />
             </>
           )}
@@ -121,8 +123,8 @@ export function ChatPage() {
           {!realtimeConnected ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center text-gray-400">
-                <p className="text-lg font-medium mb-2">Realtime Disconnected</p>
-                <p className="text-sm">Human chat requires a socket.io connection</p>
+                <p className="text-lg font-medium mb-2">{t('degradation.realtimeDisconnected')}</p>
+                <p className="text-sm">{t('degradation.humanChatRequiresSocket')}</p>
               </div>
             </div>
           ) : (
@@ -130,7 +132,7 @@ export function ChatPage() {
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {human.messages.length === 0 && (
                   <div className="text-center text-gray-500 mt-8">
-                    <p className="text-sm">No messages yet in this channel</p>
+                    <p className="text-sm">{t('chat.noMessages')}</p>
                   </div>
                 )}
                 {human.messages.map((msg) => (
@@ -145,7 +147,7 @@ export function ChatPage() {
               <MessageInput
                 onSend={human.sendMessage}
                 disabled={!human.canChat}
-                placeholder="Send a message..."
+                placeholder={t('chat.sendMessage')}
               />
             </>
           )}
@@ -156,7 +158,7 @@ export function ChatPage() {
       {mode === 'video' && (
         <>
           {!runtimeAvailable ? (
-            <RuntimeUnavailable onRetry={handleRetryRuntime} feature="Video generation" />
+            <RuntimeUnavailable onRetry={handleRetryRuntime} feature={t('video.tab')} />
           ) : (
             <VideoPanel video={video} agentName={currentAgent.name} />
           )}
@@ -168,16 +170,17 @@ export function ChatPage() {
 
 // RL-BOOT-004: Runtime unavailable with retry affordance
 function RuntimeUnavailable({ onRetry, feature }: { onRetry: () => void; feature: string }) {
+  const { t } = useTranslation();
   return (
     <div className="flex-1 flex items-center justify-center">
       <div className="text-center text-gray-400">
-        <p className="text-lg font-medium mb-2">Runtime Unavailable</p>
-        <p className="text-sm mb-4">{feature} requires a running runtime daemon</p>
+        <p className="text-lg font-medium mb-2">{t('degradation.runtimeUnavailable')}</p>
+        <p className="text-sm mb-4">{t('degradation.featureRequiresRuntime', { feature })}</p>
         <button
           onClick={onRetry}
           className="px-4 py-2 bg-gray-700 text-gray-200 rounded-lg text-sm hover:bg-gray-600 transition-colors"
         >
-          Retry Connection
+          {t('degradation.retryConnection')}
         </button>
       </div>
     </div>
@@ -192,6 +195,7 @@ function VideoPanel({
   video: ReturnType<typeof useVideoGenerate>;
   agentName: string;
 }) {
+  const { t } = useTranslation();
   const [prompt, setPrompt] = useState('');
 
   const handleSubmit = () => {
@@ -211,25 +215,25 @@ function VideoPanel({
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {video.status === 'idle' && (
           <div className="text-center text-gray-500 mt-8">
-            <p className="text-sm">Enter a prompt to generate a video with {agentName}</p>
+            <p className="text-sm">{t('video.enterPrompt', { name: agentName })}</p>
           </div>
         )}
 
         {video.status === 'submitting' && (
           <div className="text-center text-gray-400 mt-8">
-            <p className="text-sm">Submitting generation request...</p>
+            <p className="text-sm">{t('video.submitting')}</p>
           </div>
         )}
 
         {video.status === 'processing' && (
           <div className="text-center text-gray-400 mt-8">
             <div className="inline-block w-6 h-6 border-2 border-gray-500 border-t-blue-500 rounded-full animate-spin mb-3" />
-            <p className="text-sm">Processing video...</p>
+            <p className="text-sm">{t('video.processing')}</p>
             <button
               onClick={video.cancel}
               className="mt-3 text-xs text-gray-500 hover:text-gray-300"
             >
-              Cancel
+              {t('video.cancel')}
             </button>
           </div>
         )}
@@ -240,7 +244,7 @@ function VideoPanel({
 
         {video.status === 'error' && (
           <div className="text-center text-red-400 mt-8">
-            <p className="text-sm">Video generation failed</p>
+            <p className="text-sm">{t('video.failed')}</p>
           </div>
         )}
       </div>
@@ -252,7 +256,7 @@ function VideoPanel({
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
           disabled={video.status === 'submitting' || video.status === 'processing'}
-          placeholder="Describe the video you want to generate..."
+          placeholder={t('video.describeVideo')}
           className="flex-1 bg-gray-800 text-white rounded-lg px-4 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
         />
         <button
@@ -260,7 +264,7 @@ function VideoPanel({
           disabled={!prompt.trim() || !video.canGenerate || video.status === 'submitting' || video.status === 'processing'}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Generate
+          {t('video.generate')}
         </button>
       </div>
     </div>

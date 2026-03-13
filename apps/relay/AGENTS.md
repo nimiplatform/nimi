@@ -22,7 +22,7 @@ Rule ID namespace: `RL-*` (RL-BOOT, RL-IPC, RL-TRANS, RL-INTOP, RL-CORE, RL-FEAT
 
 ## Hard Boundaries
 
-- AI IPC handlers must use the SDK convenience API (`runtime.generate()` / `runtime.stream()`), not the low-level API (`runtime.ai.text.generate()` / `runtime.ai.text.stream()`).
+- AI IPC handlers must use the low-level SDK API (`runtime.ai.text.generate()` / `runtime.ai.text.stream()`) as specified by RL-IPC-006, with input transformation handled by `input-transform.ts`.
 - Preload event listeners return string IDs (not cleanup functions) due to `contextBridge` serialization constraints. Use `removeListener(id)` to unregister.
 - Main + preload output as CJS (`.cjs`) via tsup. Renderer built by Vite.
 

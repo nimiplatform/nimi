@@ -1,0 +1,62 @@
+{
+  "app": {
+    "name": "Nimi Relay",
+    "connecting": "Connecting..."
+  },
+  "status": {
+    "runtime": "Runtime",
+    "realtime": "Realtime"
+  },
+  "agent": {
+    "label": "Agent: {{name}}",
+    "noAgentSelected": "No Agent Selected",
+    "selectFromSidebar": "Select an agent from the sidebar to start chatting",
+    "switchAgent": "Switch agent",
+    "selectAnAgent": "Select an Agent",
+    "loadingAgents": "Loading agents...",
+    "realmUnreachable": "Realm unreachable. Enter an agent ID manually:",
+    "go": "Go",
+    "noAgentsAvailable": "No agents available"
+  },
+  "chat": {
+    "aiChat": "AI Chat",
+    "humanChat": "Human Chat",
+    "stopGenerating": "Stop generating",
+    "startConversation": "Start a conversation with the agent",
+    "typeMessage": "Type a message...",
+    "send": "Send",
+    "noMessages": "No messages yet in this channel",
+    "messageAgent": "Message {{name}}...",
+    "sendMessage": "Send a message..."
+  },
+  "degradation": {
+    "runtimeUnavailable": "Runtime Unavailable",
+    "featureRequiresRuntime": "{{feature}} requires a running runtime daemon",
+    "retryConnection": "Retry Connection",
+    "realtimeDisconnected": "Realtime Disconnected",
+    "humanChatRequiresSocket": "Human chat requires a socket.io connection"
+  },
+  "voice": {
+    "mic": "Mic",
+    "stop": "Stop",
+    "playing": "Playing...",
+    "speak": "Speak",
+    "defaultVoice": "Default"
+  },
+  "video": {
+    "tab": "Video",
+    "generate": "Generate",
+    "cancel": "Cancel",
+    "submitting": "Submitting generation request...",
+    "processing": "Processing video...",
+    "failed": "Video generation failed",
+    "enterPrompt": "Enter a prompt to generate a video with {{name}}",
+    "describeVideo": "Describe the video you want to generate...",
+    "noVideo": "No video available"
+  },
+  "live2d": {
+    "loadingModel": "Loading model...",
+    "failedToLoad": "Failed to load model",
+    "loadingLive2d": "Loading Live2D..."
+  }
+}

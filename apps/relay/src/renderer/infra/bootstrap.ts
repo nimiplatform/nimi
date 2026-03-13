@@ -3,6 +3,7 @@
 
 import { getBridge } from '../bridge/electron-bridge.js';
 import { useAppStore, type Agent } from '../app-shell/providers/app-store.js';
+import { initI18n } from '../i18n/index.js';
 
 const BOOTSTRAP_TIMEOUT_MS = 15_000;
 
@@ -12,6 +13,9 @@ export interface BootstrapResult {
 }
 
 export async function bootstrap(): Promise<BootstrapResult> {
+  // Initialize i18n before any UI rendering
+  await initI18n();
+
   const bridge = getBridge();
   const store = useAppStore.getState();
 

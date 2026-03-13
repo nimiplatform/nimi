@@ -68,7 +68,7 @@ describe('RL-BOOT-003 — Environment Variable Resolution', () => {
 // ─── RL-BOOT-001 — Main Process Initialization Sequence ─────────────────
 
 describe('RL-BOOT-001 — Main Process Initialization Sequence', () => {
-  it('index.ts follows 5-step sequence: env → platform → realtime → IPC → window', () => {
+  it('index.ts follows 6-step sequence: env → platform(runtime+realm) → realtime → IPC → window', () => {
     const source = readFileSync(path.join(srcMain, 'index.ts'), 'utf-8');
     const body = source.slice(source.indexOf('app.whenReady()'));
     assert.ok(body, 'app.whenReady() must exist');

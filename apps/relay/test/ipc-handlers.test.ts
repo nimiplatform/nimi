@@ -90,6 +90,22 @@ describe('RL-IPC-005 — Error Normalization (normalizeError)', () => {
     assert.ok('message' in result, 'must have message');
     assert.ok('reasonCode' in result, 'must have reasonCode (may be undefined)');
     assert.ok('actionHint' in result, 'must have actionHint (may be undefined)');
+    assert.ok('traceId' in result, 'must have traceId (may be undefined)');
+  });
+
+  it('extracts traceId from NimiError (RL-TRANS-005)', () => {
+    const error = Object.assign(new Error('rpc failed'), {
+      reasonCode: 'UNAVAILABLE',
+      traceId: 'trace-abc-123',
+    });
+    const result = normalizeError(error);
+    assert.equal(result.traceId, 'trace-abc-123');
+  });
+
+  it('ignores non-string traceId', () => {
+    const error = Object.assign(new Error('bad'), { traceId: 42 });
+    const result = normalizeError(error);
+    assert.equal(result.traceId, undefined, 'numeric traceId should be filtered');
   });
 });
 

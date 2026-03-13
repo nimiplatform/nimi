@@ -57,16 +57,17 @@ app.whenReady().then(() => {
   // Step 1: Parse environment variables (RL-BOOT-003)
   env = parseEnv();
 
-  // Step 2: Initialize Runtime (node-grpc) + Realm (openapi-fetch)
+  // Steps 2-3: Initialize Runtime (node-grpc) + Realm (openapi-fetch)
+  // RL-BOOT-001 spec defines these as separate steps; combined here in initPlatformClient
   ({ runtime, realm } = initPlatformClient(env));
 
-  // Step 3: Establish socket.io connection (RL-INTOP-003)
+  // Step 4: Establish socket.io connection (RL-INTOP-003)
   initRealtimeRelay(env.NIMI_REALM_URL, env.NIMI_ACCESS_TOKEN, getWebContents);
 
-  // Step 4: Register IPC handlers (RL-IPC-001 ~ 009)
+  // Step 5: Register IPC handlers (RL-IPC-001 ~ 009)
   registerIpcHandlers(runtime, realm, getWebContents, env);
 
-  // Step 5: Create BrowserWindow and load renderer
+  // Step 6: Create BrowserWindow and load renderer
   createWindow();
 });
 

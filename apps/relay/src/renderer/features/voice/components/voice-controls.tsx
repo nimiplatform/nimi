@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSpeechTranscribe } from '../hooks/use-speech-transcribe.js';
 import { useSpeechPlayback } from '../hooks/use-speech-playback.js';
 import { useListVoices } from '../hooks/use-list-voices.js';
@@ -10,6 +11,7 @@ interface VoiceControlsProps {
 }
 
 export function VoiceControls({ onTranscript, lastAssistantText }: VoiceControlsProps) {
+  const { t } = useTranslation();
   const currentAgent = useAppStore((s) => s.currentAgent);
   const { isRecording, transcript, startRecording, stopRecording, canTranscribe } =
     useSpeechTranscribe();
@@ -46,7 +48,7 @@ export function VoiceControls({ onTranscript, lastAssistantText }: VoiceControls
             : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
         } disabled:opacity-50`}
       >
-        {isRecording ? 'Stop' : 'Mic'}
+        {isRecording ? t('voice.stop') : t('voice.mic')}
       </button>
 
       {/* RL-FEAT-003: Voice selector — browse available voices */}
@@ -58,7 +60,7 @@ export function VoiceControls({ onTranscript, lastAssistantText }: VoiceControls
           className="px-2 py-1.5 rounded-lg text-xs bg-gray-700 text-gray-300 border-none outline-none disabled:opacity-50"
         >
           {currentAgent?.voiceId && !voices.some((v) => v.voiceId === currentAgent.voiceId) && (
-            <option value={currentAgent.voiceId}>Default</option>
+            <option value={currentAgent.voiceId}>{t('voice.defaultVoice')}</option>
           )}
           {voices.map((v) => (
             <option key={v.voiceId} value={v.voiceId}>
@@ -74,7 +76,7 @@ export function VoiceControls({ onTranscript, lastAssistantText }: VoiceControls
           disabled={!canSpeak || isPlaying}
           className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:opacity-50"
         >
-          {isPlaying ? 'Playing...' : 'Speak'}
+          {isPlaying ? t('voice.playing') : t('voice.speak')}
         </button>
       )}
     </div>

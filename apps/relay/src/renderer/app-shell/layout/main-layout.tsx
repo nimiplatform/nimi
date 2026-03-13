@@ -2,6 +2,7 @@
 // Phase 5.3: Left sidebar (agent) + Center (chat) + Right sidebar (buddy)
 
 import { lazy, Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../providers/app-store.js';
 import { AgentSelector } from '../../features/agent/components/agent-selector.js';
 
@@ -11,6 +12,7 @@ const BuddyCanvas = lazy(() =>
 );
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const currentAgent = useAppStore((s) => s.currentAgent);
   const runtimeAvailable = useAppStore((s) => s.runtimeAvailable);
   const realtimeConnected = useAppStore((s) => s.realtimeConnected);
@@ -20,16 +22,16 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
       {/* Status bar */}
       <header className="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-800">
         <div className="flex items-center gap-3">
-          <h1 className="text-sm font-semibold">Nimi Relay</h1>
+          <h1 className="text-sm font-semibold">{t('app.name')}</h1>
           {currentAgent && (
             <span className="text-xs text-gray-400">
-              Agent: {currentAgent.name}
+              {t('agent.label', { name: currentAgent.name })}
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <StatusDot active={runtimeAvailable} label="Runtime" />
-          <StatusDot active={realtimeConnected} label="Realtime" />
+          <StatusDot active={runtimeAvailable} label={t('status.runtime')} />
+          <StatusDot active={realtimeConnected} label={t('status.realtime')} />
         </div>
       </header>
 
@@ -50,7 +52,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
           <aside className="w-72 flex-shrink-0 border-l border-gray-800 overflow-hidden">
             <Suspense fallback={
               <div className="flex items-center justify-center h-full">
-                <span className="text-sm text-gray-500">Loading Live2D...</span>
+                <span className="text-sm text-gray-500">{t('live2d.loadingLive2d')}</span>
               </div>
             }>
               <BuddyCanvas />

@@ -1,0 +1,62 @@
+{
+  "app": {
+    "name": "Nimi Relay",
+    "connecting": "连接中..."
+  },
+  "status": {
+    "runtime": "运行时",
+    "realtime": "实时连接"
+  },
+  "agent": {
+    "label": "智能体: {{name}}",
+    "noAgentSelected": "未选择智能体",
+    "selectFromSidebar": "从侧边栏选择一个智能体以开始对话",
+    "switchAgent": "切换智能体",
+    "selectAnAgent": "选择智能体",
+    "loadingAgents": "加载智能体中...",
+    "realmUnreachable": "无法连接 Realm，请手动输入智能体 ID：",
+    "go": "确定",
+    "noAgentsAvailable": "暂无可用智能体"
+  },
+  "chat": {
+    "aiChat": "AI 对话",
+    "humanChat": "消息",
+    "stopGenerating": "停止生成",
+    "startConversation": "开始与智能体对话",
+    "typeMessage": "输入消息...",
+    "send": "发送",
+    "noMessages": "此频道暂无消息",
+    "messageAgent": "给 {{name}} 发消息...",
+    "sendMessage": "发送消息..."
+  },
+  "degradation": {
+    "runtimeUnavailable": "运行时不可用",
+    "featureRequiresRuntime": "{{feature}}需要运行中的运行时守护进程",
+    "retryConnection": "重试连接",
+    "realtimeDisconnected": "实时连接已断开",
+    "humanChatRequiresSocket": "消息功能需要 socket.io 连接"
+  },
+  "voice": {
+    "mic": "麦克风",
+    "stop": "停止",
+    "playing": "播放中...",
+    "speak": "朗读",
+    "defaultVoice": "默认"
+  },
+  "video": {
+    "tab": "视频",
+    "generate": "生成",
+    "cancel": "取消",
+    "submitting": "提交生成请求中...",
+    "processing": "处理视频中...",
+    "failed": "视频生成失败",
+    "enterPrompt": "输入提示词，与 {{name}} 一起生成视频",
+    "describeVideo": "描述你想生成的视频...",
+    "noVideo": "暂无视频"
+  },
+  "live2d": {
+    "loadingModel": "加载模型中...",
+    "failedToLoad": "模型加载失败",
+    "loadingLive2d": "加载 Live2D..."
+  }
+}
