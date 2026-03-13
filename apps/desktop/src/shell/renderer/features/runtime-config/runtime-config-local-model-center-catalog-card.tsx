@@ -224,7 +224,7 @@ function CatalogVariantPicker(props: {
             </p>
           </div>
         ) : (
-          <div className="max-h-48 divide-y divide-gray-100 overflow-y-auto">
+          <div className="app-scroll-shell max-h-48 divide-y divide-gray-100 overflow-y-auto">
             {props.variantList.map((variant) => (
               <button
                 key={variant.filename}

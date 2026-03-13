@@ -471,7 +471,7 @@ function TopSupportersModal({
         </div>
 
         {/* Supporters List */}
-        <div className="max-h-[400px] overflow-y-auto">
+            <div className="app-scroll-shell max-h-[400px] overflow-y-auto">
           {MOCK_TOP_SUPPORTERS.map((supporter) => (
             <div 
               key={supporter.id}

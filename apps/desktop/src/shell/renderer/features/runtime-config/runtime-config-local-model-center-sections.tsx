@@ -69,7 +69,7 @@ export function LocalModelCenterModModeView(props: ModModeViewProps) {
           {i18n.t('runtimeConfig.localModelCenter.localModels', { defaultValue: 'Local Models' })}
         </h2>
       </div>
-      <div className="flex-1 overflow-y-auto p-6">
+    <div className="app-scroll-shell flex-1 overflow-y-auto p-6">
         <div className="space-y-6">
           <div className="space-y-4 rounded-2xl bg-white p-6 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
             <div>

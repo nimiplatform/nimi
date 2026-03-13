@@ -146,7 +146,7 @@ export function AgentDetailView(props: AgentDetailViewProps) {
         <h1 className={APP_PAGE_TITLE_CLASS}>{t('AgentDetail.title')}</h1>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-gray-50">
+      <div className="app-scroll-shell flex-1 overflow-y-auto bg-gray-50">
         <div className="mx-auto max-w-md px-6 py-8">
           {/* Profile Card */}
           <div className="relative rounded-[24px] bg-white shadow-lg overflow-hidden">

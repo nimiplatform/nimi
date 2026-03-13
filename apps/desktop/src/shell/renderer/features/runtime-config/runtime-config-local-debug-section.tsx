@@ -308,7 +308,7 @@ function LocalDebugContent() {
       </div>
 
       {/* Timeline */}
-      <div className="max-h-[calc(100vh-30rem)] overflow-y-auto rounded-xl border border-gray-100 bg-gray-50/50">
+      <div className="app-scroll-shell max-h-[calc(100vh-30rem)] overflow-y-auto rounded-xl border border-gray-100 bg-gray-50/50">
         {filteredAudits.length === 0 ? (
           <p className="px-5 py-8 text-center text-sm text-gray-500">
             {t('runtimeConfig.runtime.noLocalAuditEvents', {

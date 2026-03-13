@@ -526,7 +526,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               </SidebarTooltipButton>
             </div>
 
-            <nav className="flex-1 overflow-y-auto pt-2">
+            <nav className="app-scroll-shell flex-1 overflow-y-auto pt-2">
               <div className="flex flex-col gap-1">
                 {primaryCoreNavItems.map((item) => (
                   <NavLink
@@ -692,7 +692,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
 
           <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/20 to-transparent" />
 
-          <div className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#4ECCA3/30_transparent]">
+          <div className="app-scroll-shell flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#4ECCA3/30_transparent]">
             <div className="px-2">
               <button
                 type="button"

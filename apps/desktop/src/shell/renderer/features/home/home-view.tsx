@@ -113,7 +113,7 @@ export function HomeView(props: HomeViewProps) {
         <h1 className={APP_PAGE_TITLE_CLASS}>{t('Home.pageTitle')}</h1>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-gray-50">
+      <div className="app-scroll-shell flex-1 overflow-y-auto bg-gray-50">
         <div className="mx-auto max-w-2xl px-6 py-0">
           {/* Create Post Prompt */}
           <button

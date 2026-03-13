@@ -210,7 +210,7 @@ export function ExternalAgentAccessPanel() {
         {tokens.length <= 0 ? (
           <p className="text-xs text-gray-500">{t('runtimeConfig.eaa.noTokensIssued', { defaultValue: 'No tokens issued.' })}</p>
         ) : (
-          <div className="max-h-64 space-y-2 overflow-auto">
+            <div className="app-scroll-shell max-h-64 space-y-2 overflow-auto">
             {tokens.map((token) => {
               const isRevoked = Boolean(token.revokedAt);
               const isExpired = token.expiresAt && new Date(token.expiresAt).getTime() < Date.now();

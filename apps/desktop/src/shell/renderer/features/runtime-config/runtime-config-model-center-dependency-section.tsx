@@ -214,7 +214,7 @@ export function ModelCenterDependencySection(props: ModelCenterDependencySection
               </div>
 
               {props.dependencyPlanPreview.dependencies.length > 0 && (
-                <div className="space-y-1 max-h-32 overflow-y-auto">
+          <div className="app-scroll-shell space-y-1 max-h-32 overflow-y-auto">
                   {props.dependencyPlanPreview.dependencies.map((dep) => (
                     <div key={dependencyDisplayKey(dep)} className="flex items-center justify-between text-xs py-1">
                       <span className="text-gray-700">{dependencyDisplayKey(dep)}</span>

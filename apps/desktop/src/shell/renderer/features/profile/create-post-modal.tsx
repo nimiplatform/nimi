@@ -462,7 +462,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+          <div className="app-scroll-shell flex-1 overflow-y-auto px-5 py-4">
           <input
             ref={fileInputRef}
             type="file"

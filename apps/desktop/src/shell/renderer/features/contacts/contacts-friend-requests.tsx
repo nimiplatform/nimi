@@ -114,7 +114,7 @@ export function FriendRequestsList({
   const pendingCount = sortedRequests.filter(r => !acceptedRequests.has(r.userId) && !rejectedRequests.has(r.userId)).length;
 
   return (
-    <div className="flex-1 bg-[#F0F4F8] overflow-y-auto">
+      <div className="app-scroll-shell flex-1 bg-[#F0F4F8] overflow-y-auto">
       <div className="mx-auto max-w-6xl px-6 py-6">
         <div className="flex gap-6">
           {/* 请求列表 - 全宽显示 */}

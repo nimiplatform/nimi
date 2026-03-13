@@ -647,7 +647,7 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white">
-      <div className="flex-1 overflow-y-auto">
+      <div className="app-scroll-shell flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto p-6 space-y-6">
           <LocalModelCenterToolbar
             checkingHealth={props.checkingHealth}

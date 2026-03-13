@@ -349,7 +349,7 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
               : i18n.t('runtimeConfig.catalog.noCatalogMatch', { defaultValue: 'No catalog model matched your query.' })}
           </p>
         ) : (
-          <div className="space-y-2 max-h-64 overflow-y-auto">
+                <div className="app-scroll-shell space-y-2 max-h-64 overflow-y-auto">
             {catalogItems.map((item) => {
               const selected = selectedCatalogItemId === item.itemId;
               return (
@@ -502,7 +502,7 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
               : i18n.t('runtimeConfig.catalog.noVerifiedMatch', { defaultValue: 'No verified model matched your query.' })}
           </p>
         ) : (
-          <div className="space-y-2 max-h-64 overflow-y-auto">
+                <div className="app-scroll-shell space-y-2 max-h-64 overflow-y-auto">
             {filteredVerifiedModels.map((item) => {
               const installing = installingVerifiedTemplateId === item.templateId;
               return (

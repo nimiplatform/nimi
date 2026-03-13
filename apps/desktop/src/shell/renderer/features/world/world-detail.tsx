@@ -173,7 +173,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   });
 
   return (
-    <div className="h-full overflow-y-auto bg-[#f8fafb]">
+    <div className="app-scroll-shell h-full overflow-y-auto bg-[#f8fafb]">
       <XianxiaWorldTemplate
         world={worldData}
         agents={agents}

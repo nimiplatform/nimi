@@ -255,7 +255,7 @@ export function MessageTimeline() {
         </header>
 
         {/* Messages */}
-        <div className="flex-1 space-y-4 overflow-y-auto bg-white px-4 py-4">
+        <div className="app-scroll-shell flex-1 space-y-4 overflow-y-auto bg-white px-4 py-4">
           {messages.length === 0 ? (
             <p className="text-center text-sm text-gray-500">{t('Chat.noMessages')}</p>
           ) : (
@@ -486,7 +486,7 @@ export function MessageTimeline() {
 
       {profilePanelTarget ? (
         <aside className="flex h-full w-80 shrink-0 flex-col border-l border-gray-200 bg-white">
-          <div className="flex-1 overflow-y-auto">
+          <div className="app-scroll-shell flex-1 overflow-y-auto">
             <div className="px-4 py-4">
               <ChatProfileCard 
                 profileData={toProfileData(profileQuery.data || profileSummary)}

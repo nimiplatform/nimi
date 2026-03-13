@@ -150,7 +150,7 @@ export function RuntimeSelect({
         </svg>
       </button>
       {open ? (
-        <div className={`absolute z-50 mt-1 min-w-full max-w-[min(28rem,calc(100vw-2rem))] overflow-auto border border-mint-100 bg-white py-1 shadow-lg ${menuClass}`}>
+      <div className={`app-scroll-shell absolute z-50 mt-1 min-w-full max-w-[min(28rem,calc(100vw-2rem))] overflow-auto border border-mint-100 bg-white py-1 shadow-lg ${menuClass}`}>
           {options.map((option) => {
             const selected = option.value === value;
             return (

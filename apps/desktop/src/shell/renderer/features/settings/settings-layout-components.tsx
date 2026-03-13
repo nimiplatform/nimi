@@ -59,7 +59,7 @@ export function PageShell({
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex-1 overflow-y-auto bg-[#F8F9FB]">
+      <div className="app-scroll-shell flex-1 overflow-y-auto bg-[#F8F9FB]">
         <div className="mx-auto max-w-2xl px-6 py-6" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {children}
         </div>

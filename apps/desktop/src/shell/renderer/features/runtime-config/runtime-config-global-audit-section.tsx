@@ -149,7 +149,7 @@ export function GlobalAuditSection({
       </div>
 
       {/* Event List */}
-      <div className="max-h-[calc(100vh-32rem)] overflow-y-auto rounded-lg border border-gray-200 bg-white/60">
+      <div className="app-scroll-shell max-h-[calc(100vh-32rem)] overflow-y-auto rounded-lg border border-gray-200 bg-white/60">
         {events.length === 0 ? (
           <p className="px-4 py-6 text-center text-sm text-gray-500">
             {loading

@@ -458,7 +458,7 @@ export function NotificationPanel() {
       </div>
 
       {/* Notification List */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+      <div className="app-scroll-shell min-h-0 flex-1 overflow-y-auto px-6 py-4">
         <div className="mx-auto max-w-2xl space-y-3">
           {notificationsQuery.isPending && items.length === 0 ? (
             <div className="rounded-2xl bg-white p-8 text-center text-sm text-gray-400">

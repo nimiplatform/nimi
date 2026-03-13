@@ -60,7 +60,7 @@ export function EmojiPickerPanel(input: {
           ) : null}
         </div>
       </div>
-      <div className="max-h-[260px] overflow-y-auto p-3">
+      <div className="app-scroll-shell max-h-[260px] overflow-y-auto p-3">
         <div className="grid grid-cols-8 gap-1">
           {activeCategory.emojis.map((emoji, index) => (
             <button
@@ -114,7 +114,7 @@ export function LocationPickerPanel(input: {
           />
         </div>
       </div>
-      <div className="max-h-48 overflow-y-auto py-2">
+      <div className="app-scroll-shell max-h-48 overflow-y-auto py-2">
         {input.loadingLocations ? (
           <div className="px-3 py-4 text-center text-sm text-gray-500">
             {i18n.t('Profile.CreatePost.loadingLocations', { defaultValue: 'Loading locations...' })}
@@ -195,7 +195,7 @@ export function TagPickerPanel(input: {
           />
         </div>
       </div>
-      <div className="max-h-48 overflow-y-auto py-2">
+      <div className="app-scroll-shell max-h-48 overflow-y-auto py-2">
         {input.filteredTags.length > 0 ? (
           <div className="mb-1">
             {input.filteredTags.map((tag) => (

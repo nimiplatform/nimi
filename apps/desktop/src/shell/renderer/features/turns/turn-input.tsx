@@ -517,7 +517,7 @@ export function TurnInput(props: TurnInputProps = {}) {
           </div>
 
           {/* Emoji grid */}
-          <div className="p-3 max-h-[260px] overflow-y-auto">
+          <div className="app-scroll-shell p-3 max-h-[260px] overflow-y-auto">
             <div className="grid grid-cols-8 gap-1">
               {activeCategory.emojis.map((emoji, index) => (
                 <button
