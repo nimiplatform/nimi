@@ -1,0 +1,140 @@
+# Forge — Route Table
+# Authoritative source for all application routes.
+# Referenced by: kernel contracts, feature-matrix.yaml
+
+routes:
+  # ── Dashboard ──────────────────────────────────────────
+  - path: /
+    feature: dashboard
+    component: DashboardPage
+    lazy: false
+    description: Creator home — quick stats and navigation
+
+  # ── World Management (FG-WORLD-*) ─────────────────────
+  - path: /worlds
+    feature: world-list
+    component: WorldListPage
+    lazy: true
+    description: List of creator's worlds (published + drafts)
+
+  - path: /worlds/create
+    feature: world-create
+    component: WorldCreatePage
+    lazy: true
+    description: CREATE pipeline — 7-step world creation flow
+
+  - path: /worlds/:worldId/maintain
+    feature: world-maintain
+    component: WorldMaintainPage
+    lazy: true
+    description: MAINTAIN pipeline — published world editing
+
+  # ── Agent Management (FG-AGENT-*) ─────────────────────
+  - path: /agents
+    feature: agent-list
+    component: AgentListPage
+    lazy: true
+    description: List of creator's agents
+
+  - path: /agents/:agentId
+    feature: agent-detail
+    component: AgentDetailPage
+    lazy: true
+    description: Agent detail — profile, DNA editor, preview, keys
+
+  # ── Content Creation (FG-CONTENT-*) ───────────────────
+  - path: /content/images
+    feature: image-studio
+    component: ImageStudioPage
+    lazy: true
+    description: AI image generation studio
+
+  - path: /content/videos
+    feature: video-studio
+    component: VideoStudioPage
+    lazy: true
+    description: Video upload and management
+
+  - path: /content/music
+    feature: music-studio
+    component: MusicStudioPage
+    lazy: true
+    description: AI music generation studio
+
+  - path: /content/library
+    feature: content-library
+    component: ContentLibraryPage
+    lazy: true
+    description: Unified asset browser
+
+  - path: /publish/releases
+    feature: publish-releases
+    component: PublishReleasesPage
+    lazy: true
+    description: Publish workspace for local drafts, publish history, and post composition
+
+  - path: /publish/channels
+    feature: publish-channels
+    component: PublishChannelsPage
+    lazy: true
+    description: Publish identity and internal destination settings
+
+  # ── Copyright Management (FG-IP-*) ────────────────────
+  - path: /copyright
+    feature: copyright
+    component: CopyrightPage
+    lazy: true
+    description: Deferred copyright extension placeholder
+
+  # ── Revenue (FG-REV-*) ────────────────────────────────
+  - path: /revenue
+    feature: revenue-dashboard
+    component: RevenueDashboardPage
+    lazy: true
+    description: Revenue dashboard — KPIs, charts, breakdown
+
+  - path: /revenue/withdrawals
+    feature: revenue-withdrawals
+    component: WithdrawalsPage
+    lazy: true
+    description: Withdrawal management and Stripe Connect
+
+  # ── Template Marketplace (FG-TPL-*) ───────────────────
+  - path: /templates
+    feature: template-browse
+    component: TemplateBrowsePage
+    lazy: true
+    description: Deferred template marketplace placeholder
+
+  - path: /templates/mine
+    feature: template-mine
+    component: MyTemplatesPage
+    lazy: true
+    description: Deferred template publishing placeholder
+
+  - path: /templates/:templateId
+    feature: template-detail
+    component: TemplateDetailPage
+    lazy: true
+    description: Deferred template detail placeholder
+
+  # ── AI Advisors (FG-ADV-*) ────────────────────────────
+  - path: /advisors
+    feature: advisor-hub
+    component: AdvisorHubPage
+    lazy: true
+    description: AI advisor selection and sessions
+
+  # ── Analytics (FG-ANA-*) ──────────────────────────────
+  - path: /analytics
+    feature: analytics
+    component: AnalyticsPage
+    lazy: true
+    description: Deferred analytics extension placeholder
+
+  # ── Settings ──────────────────────────────────────────
+  - path: /settings
+    feature: settings
+    component: SettingsPage
+    lazy: true
+    description: App preferences and configuration

@@ -1,0 +1,414 @@
+# Forge — API Surface
+# Authoritative inventory of all backend API endpoints used or required.
+# status: existing = already implemented | new = requires new backend work
+
+# ── World Control (existing) ─────────────────────────────
+world-control:
+  - method: GET
+    path: /api/world-control/access/me
+    status: existing
+    feature: app-shell, world-list
+    controller: world-control.controller.ts
+    description: Check creator access status
+
+  - method: GET
+    path: /api/world-control/landing
+    status: existing
+    feature: world-list
+    controller: world-control.controller.ts
+    description: Get landing mode (NO_ACCESS / CREATE / MAINTAIN)
+
+# ── World Drafts (existing) ──────────────────────────────
+world-drafts:
+  - method: POST
+    path: /api/world-drafts
+    status: existing
+    feature: world-create
+    controller: world-control.controller.ts
+    description: Create new world draft
+
+  - method: GET
+    path: /api/world-drafts
+    status: existing
+    feature: world-list, world-create
+    controller: world-control.controller.ts
+    description: List creator's drafts
+
+  - method: GET
+    path: /api/world-drafts/{draftId}
+    status: existing
+    feature: world-create
+    controller: world-control.controller.ts
+    description: Get draft detail
+
+  - method: PATCH
+    path: /api/world-drafts/{draftId}
+    status: existing
+    feature: world-create
+    controller: world-control.controller.ts
+    description: Update draft
+
+  - method: POST
+    path: /api/world-drafts/{draftId}/publish
+    status: existing
+    feature: world-create
+    controller: world-control.controller.ts
+    description: Publish draft → create world
+
+# ── Worlds (existing) ────────────────────────────────────
+worlds:
+  - method: GET
+    path: /api/worlds/mine
+    status: existing
+    feature: world-list
+    controller: world-control.controller.ts
+    description: List creator's published worlds
+
+  - method: GET
+    path: /api/worlds/{worldId}/maintenance
+    status: existing
+    feature: world-maintain
+    controller: world-control.controller.ts
+    description: Get world maintenance data
+
+  - method: PATCH
+    path: /api/worlds/{worldId}/maintenance
+    status: existing
+    feature: world-maintain
+    controller: world-control.controller.ts
+    description: Update world maintenance data
+
+  - method: GET
+    path: /api/worlds/{worldId}/events
+    status: existing
+    feature: world-create, world-maintain, advisor-hub
+    controller: world-control.controller.ts
+    description: List world events
+
+  - method: POST
+    path: /api/worlds/{worldId}/events/batch-upsert
+    status: existing
+    feature: world-create, world-maintain
+    controller: world-control.controller.ts
+    description: Batch upsert events
+
+  - method: DELETE
+    path: /api/worlds/{worldId}/events/{eventId}
+    status: existing
+    feature: world-maintain
+    controller: world-control.controller.ts
+    description: Delete event
+
+  - method: GET
+    path: /api/worlds/{worldId}/lorebooks
+    status: existing
+    feature: world-create, world-maintain, advisor-hub
+    controller: world-control.controller.ts
+    description: List lorebook entries
+
+  - method: POST
+    path: /api/worlds/{worldId}/lorebooks/batch-upsert
+    status: existing
+    feature: world-create, world-maintain
+    controller: world-control.controller.ts
+    description: Batch upsert lorebooks
+
+  - method: DELETE
+    path: /api/worlds/{worldId}/lorebooks/{lorebookId}
+    status: existing
+    feature: world-maintain
+    controller: world-control.controller.ts
+    description: Delete lorebook entry
+
+  - method: GET
+    path: /api/worlds/{worldId}/visual-bindings
+    status: existing
+    feature: world-maintain, content-library
+    controller: world-control.controller.ts
+    description: List visual bindings
+
+  - method: POST
+    path: /api/worlds/{worldId}/visual-bindings/batch-upsert
+    status: existing
+    feature: world-maintain, image-studio
+    controller: world-control.controller.ts
+    description: Batch upsert visual bindings
+
+  - method: DELETE
+    path: /api/worlds/{worldId}/visual-bindings/{bindingId}
+    status: existing
+    feature: world-maintain
+    controller: world-control.controller.ts
+    description: Delete visual binding
+
+  - method: GET
+    path: /api/worlds/{worldId}/mutations
+    status: existing
+    feature: world-maintain
+    controller: world-control.controller.ts
+    description: List world mutations
+
+  - method: GET
+    path: /api/worlds/{worldId}/scenes
+    status: existing
+    feature: world-maintain
+    controller: world-control.controller.ts
+    description: List world scenes
+
+  - method: GET
+    path: /api/worlds/{worldId}/narrative-contexts
+    status: existing
+    feature: world-maintain
+    controller: world-control.controller.ts
+    description: List narrative contexts
+
+# ── Creator (existing) ───────────────────────────────────
+creator:
+  - method: GET
+    path: /api/creator/agents
+    status: existing
+    feature: agent-list, world-create
+    controller: creator.controller.ts
+    description: List creator's agents
+
+  - method: POST
+    path: /api/creator/agents
+    status: existing
+    feature: agent-detail
+    controller: creator.controller.ts
+    description: Create agent
+
+  - method: GET
+    path: /api/creator/agents/{agentId}
+    status: new
+    feature: agent-detail
+    controller: creator.controller.ts
+    description: Get agent detail including ownerType/world binding
+
+  - method: PATCH
+    path: /api/creator/agents/{agentId}
+    status: new
+    feature: agent-detail
+    controller: creator.controller.ts
+    description: Update agent profile, DNA, and world binding
+
+  - method: DELETE
+    path: /api/creator/agents/{agentId}
+    status: new
+    feature: agent-detail
+    controller: creator.controller.ts
+    description: Archive or delete agent
+
+  - method: POST
+    path: /api/creator/agents/batch-create
+    status: existing
+    feature: world-create
+    controller: creator.controller.ts
+    description: Batch create agents (from publish)
+
+  - method: GET
+    path: /api/creator/keys
+    status: existing
+    feature: agent-detail
+    controller: creator.controller.ts
+    description: List API keys
+
+  - method: POST
+    path: /api/creator/keys
+    status: existing
+    feature: agent-detail
+    controller: creator.controller.ts
+    description: Create API key
+
+  - method: DELETE
+    path: /api/creator/keys/{id}
+    status: existing
+    feature: agent-detail
+    controller: creator.controller.ts
+    description: Delete API key
+
+# ── Media (existing) ─────────────────────────────────────
+media:
+  - method: POST
+    path: /api/media/images/direct-upload
+    status: existing
+    feature: image-studio, content-library
+    controller: media.controller.ts
+    description: Upload image
+
+  - method: POST
+    path: /api/media/videos/direct-upload
+    status: existing
+    feature: video-studio
+    controller: media.controller.ts
+    description: Upload video
+
+  - method: POST
+    path: /api/media/audio/direct-upload
+    status: new
+    feature: music-studio, content-library
+    controller: media.controller.ts
+    description: Upload generated song or audio asset
+
+  - method: GET
+    path: /api/media/videos/{uid}/token
+    status: existing
+    feature: video-studio
+    controller: media.controller.ts
+    description: Get video playback token
+
+# ── Posts (existing) ─────────────────────────────────────
+posts:
+  - method: GET
+    path: /api/world/posts
+    status: existing
+    feature: publish-releases
+    controller: post.controller.ts
+    description: List creator feed items and publish history views
+
+  - method: POST
+    path: /api/world/posts
+    status: existing
+    feature: publish-releases
+    controller: post.controller.ts
+    description: Create creator-authored post
+
+  - method: GET
+    path: /api/world/posts/by-id/{id}
+    status: existing
+    feature: publish-releases
+    controller: post.controller.ts
+    description: Get post detail
+
+  - method: PATCH
+    path: /api/world/posts/by-id/{id}
+    status: existing
+    feature: publish-releases
+    controller: post.controller.ts
+    description: Update post
+
+  - method: DELETE
+    path: /api/world/posts/by-id/{id}
+    status: existing
+    feature: publish-releases
+    controller: post.controller.ts
+    description: Delete post
+
+  - method: GET
+    path: /api/world/by-id/{worldId}/posts
+    status: existing
+    feature: publish-releases
+    controller: world-post.controller.ts
+    description: List posts scoped to a world
+
+# ── Economy (existing) ───────────────────────────────────
+economy:
+  - method: GET
+    path: /api/economy/balances
+    status: existing
+    feature: revenue-dashboard, template-browse
+    controller: economy.controller.ts
+    description: Get Spark + Gem balances
+
+  - method: GET
+    path: /api/economy/spark/history
+    status: existing
+    feature: revenue-dashboard, advisor-hub
+    controller: economy.controller.ts
+    description: Spark transaction history
+
+  - method: GET
+    path: /api/economy/gem/history
+    status: existing
+    feature: revenue-dashboard
+    controller: economy.controller.ts
+    description: Gem transaction history
+
+  - method: GET
+    path: /api/economy/revenue-share/config
+    status: existing
+    feature: revenue-dashboard
+    controller: economy.controller.ts
+    description: Revenue share configuration
+
+  - method: GET
+    path: /api/economy/revenue-share/agent-origin/{agentId}
+    status: existing
+    feature: revenue-dashboard, advisor-hub
+    controller: economy.controller.ts
+    description: Per-agent revenue origin
+
+  - method: GET
+    path: /api/economy/revenue-share/preview
+    status: existing
+    feature: revenue-dashboard, advisor-hub
+    controller: economy.controller.ts
+    description: Revenue preview
+
+  - method: GET
+    path: /api/economy/withdrawals/config
+    status: existing
+    feature: revenue-withdrawals
+    controller: economy.controller.ts
+    description: Withdrawal configuration
+
+  - method: GET
+    path: /api/economy/withdrawals/can-withdraw
+    status: existing
+    feature: revenue-withdrawals
+    controller: economy.controller.ts
+    description: Check withdrawal eligibility
+
+  - method: GET
+    path: /api/economy/withdrawals/calculate
+    status: existing
+    feature: revenue-withdrawals
+    controller: economy.controller.ts
+    description: Calculate withdrawal amount
+
+  - method: POST
+    path: /api/economy/withdrawals/create
+    status: existing
+    feature: revenue-withdrawals
+    controller: economy.controller.ts
+    description: Create withdrawal
+
+  - method: GET
+    path: /api/economy/withdrawals/history
+    status: existing
+    feature: revenue-withdrawals
+    controller: economy.controller.ts
+    description: Withdrawal history
+
+  - method: GET
+    path: /api/economy/withdrawals/by-id/{id}
+    status: existing
+    feature: revenue-withdrawals
+    controller: economy.controller.ts
+    description: Withdrawal detail
+
+  - method: GET
+    path: /api/economy/connect/status
+    status: existing
+    feature: revenue-withdrawals
+    controller: economy.controller.ts
+    description: Stripe Connect status
+
+  - method: POST
+    path: /api/economy/connect/onboarding
+    status: existing
+    feature: revenue-withdrawals
+    controller: economy.controller.ts
+    description: Start Stripe Connect onboarding
+
+  - method: POST
+    path: /api/economy/connect/dashboard
+    status: existing
+    feature: revenue-withdrawals
+    controller: economy.controller.ts
+    description: Get Stripe dashboard URL
+
+# ── Summary ──────────────────────────────────────────────
+# Total endpoints: 57
+#   Existing: 53
+#   New:      4 (agent detail completion: 3, media audio upload: 1)

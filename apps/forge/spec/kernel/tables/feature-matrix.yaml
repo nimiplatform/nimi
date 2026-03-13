@@ -1,0 +1,270 @@
+# Forge — Feature Matrix
+# Authoritative source for feature phasing, priority, and dependencies.
+# Referenced by: execution-plan.md, kernel contracts
+
+features:
+  # ── Phase 1: App Shell ──────────────────────────────────
+  - feature: app-shell
+    phase: 1
+    priority: P0
+    contract: FG-SHELL-*
+    backend-dependency: none
+    migration-source: desktop app (trimmed)
+    description: Tauri config, Rust shell, Vite config, package.json
+
+  - feature: bootstrap
+    phase: 1
+    priority: P0
+    contract: FG-SHELL-003
+    backend-dependency: none
+    migration-source: desktop runtime-bootstrap.ts (simplified)
+    description: 7-step bootstrap sequence
+
+  - feature: auth
+    phase: 1
+    priority: P0
+    contract: FG-SHELL-004
+    backend-dependency: none (reuse auth API)
+    migration-source: desktop auth flow
+    description: JWT auth + creator access gate
+
+  - feature: layout
+    phase: 1
+    priority: P0
+    contract: FG-SHELL-005
+    backend-dependency: none
+    migration-source: new (creator-specific layout)
+    description: Sidebar navigation + content area
+
+  - feature: routing
+    phase: 1
+    priority: P0
+    contract: FG-SHELL-005
+    backend-dependency: none
+    migration-source: new
+    description: React Router with lazy-loaded routes
+
+  - feature: dashboard
+    phase: 1
+    priority: P1
+    contract: FG-SHELL-*
+    backend-dependency: none
+    migration-source: new
+    description: Home page with quick stats and navigation cards
+
+  # ── Phase 2: World Management ───────────────────────────
+  - feature: world-list
+    phase: 2
+    priority: P0
+    contract: FG-WORLD-*
+    backend-dependency: none (existing API)
+    migration-source: world-studio ui/
+    description: World list with drafts and published worlds
+
+  - feature: world-create
+    phase: 2
+    priority: P0
+    contract: FG-WORLD-003
+    backend-dependency: none (existing API)
+    migration-source: world-studio ui/create/
+    description: CREATE pipeline — 7-step world creation
+
+  - feature: world-maintain
+    phase: 2
+    priority: P0
+    contract: FG-WORLD-004
+    backend-dependency: none (existing API)
+    migration-source: world-studio ui/maintain/
+    description: MAINTAIN pipeline — published world editing
+
+  - feature: world-data-client
+    phase: 2
+    priority: P0
+    contract: FG-WORLD-002
+    backend-dependency: none (existing API)
+    migration-source: world-studio data/ (rewrite)
+    description: Data layer rewrite — hookClient → SDK realm client
+
+  - feature: world-state-store
+    phase: 2
+    priority: P0
+    contract: FG-WORLD-005
+    backend-dependency: none
+    migration-source: world-studio state/workspace-store.ts (adapt)
+    description: Zustand workspace store without mod awareness
+
+  # ── Phase 3: Agent Management ───────────────────────────
+  - feature: agent-list
+    phase: 3
+    priority: P0
+    contract: FG-AGENT-001
+    backend-dependency: existing API plus ownerType/detail fields
+    migration-source: new UI, existing API
+    description: Agent list with search/filter/sort and ownership modes
+
+  - feature: agent-detail
+    phase: 3
+    priority: P0
+    contract: FG-AGENT-001
+    backend-dependency: existing API plus detail/update/delete endpoints if absent
+    migration-source: new UI, existing API
+    description: Agent detail with tabbed interface and explicit CRUD
+
+  - feature: agent-dna-editor
+    phase: 3
+    priority: P0
+    contract: FG-AGENT-002
+    backend-dependency: none
+    migration-source: world-engine services/agent-dna-traits.ts
+    description: DNA trait editor with sliders and validation
+
+  - feature: agent-preview
+    phase: 3
+    priority: P1
+    contract: FG-AGENT-003
+    backend-dependency: none
+    migration-source: new (runtime AI text.stream)
+    description: Live personality preview via AI conversation
+
+  - feature: api-key-management
+    phase: 3
+    priority: P1
+    contract: FG-AGENT-004
+    backend-dependency: none (existing API)
+    migration-source: new UI, existing API
+    description: API key CRUD for programmatic agent access
+
+  # ── Phase 4: Content Creation ───────────────────────────
+  - feature: image-studio
+    phase: 4
+    priority: P0
+    contract: FG-CONTENT-001
+    backend-dependency: none (existing API)
+    migration-source: new (runtime AI image.generate)
+    description: AI image generation with prompt builder
+
+  - feature: video-studio
+    phase: 4
+    priority: P1
+    contract: FG-CONTENT-002
+    backend-dependency: none (existing API)
+    migration-source: new UI, existing API
+    description: Video upload and management
+
+  - feature: music-studio
+    phase: 4
+    priority: P0
+    contract: FG-CONTENT-006
+    backend-dependency: NEW — media audio direct-upload extension
+    migration-source: new (runtime AI music.generate)
+    description: AI song generation with lyrics/style builder
+
+  - feature: content-library
+    phase: 4
+    priority: P1
+    contract: FG-CONTENT-003
+    backend-dependency: none (existing API)
+    migration-source: new
+    description: Unified asset browser with tagging
+
+  - feature: publish-releases
+    phase: 4
+    priority: P0
+    contract: FG-CONTENT-007
+    backend-dependency: existing realm post capabilities; app workflow state only
+    migration-source: new UI on top of existing post/feed primitives
+    description: Publish workspace for local drafts, identity selection, and publish history
+
+  - feature: publish-channels
+    phase: 4
+    priority: P1
+    contract: FG-CONTENT-007
+    backend-dependency: none (app-level publish identity semantics)
+    migration-source: new UI vocabulary on top of existing post destinations
+    description: Publish identity and internal destination settings
+
+  # ── Phase 5: Revenue + Copyright ────────────────────────
+  - feature: revenue-dashboard
+    phase: 5
+    priority: P0
+    contract: FG-REV-002, FG-REV-003
+    backend-dependency: none (existing API)
+    migration-source: new UI, existing API
+    description: Revenue KPIs, charts, earnings breakdown
+
+  - feature: revenue-withdrawals
+    phase: 5
+    priority: P0
+    contract: FG-REV-004, FG-REV-005
+    backend-dependency: none (existing API)
+    migration-source: new UI, existing API
+    description: Stripe Connect + withdrawal management
+
+  - feature: copyright
+    phase: 5
+    priority: P1
+    contract: FG-IP-*
+    backend-dependency: deferred extension — out of current execution scope
+    migration-source: future design
+    description: Optional future copyright workflows; not a current Forge blocker
+
+  # ── Phase 6: Extensions ────────────────────────────────
+  - feature: template-browse
+    phase: 6
+    priority: P1
+    contract: FG-TPL-004
+    backend-dependency: deferred extension — requires separate world-template design
+    migration-source: future design based on world-studio/world draft semantics
+    description: Deferred template marketplace browsing
+
+  - feature: template-mine
+    phase: 6
+    priority: P1
+    contract: FG-TPL-003, FG-TPL-007
+    backend-dependency: deferred extension — shared with template-browse
+    migration-source: future design
+    description: Deferred template publishing and management
+
+  - feature: template-detail
+    phase: 6
+    priority: P1
+    contract: FG-TPL-004, FG-TPL-005
+    backend-dependency: deferred extension — shared with template-browse
+    migration-source: future design
+    description: Deferred template detail and fork workflow
+
+  - feature: advisor-hub
+    phase: 6
+    priority: P2
+    contract: FG-ADV-*
+    backend-dependency: none (runtime AI local)
+    migration-source: new
+    description: AI advisor sessions (world/agent/revenue)
+
+  - feature: analytics
+    phase: 6
+    priority: P2
+    contract: FG-ANA-*
+    backend-dependency: deferred extension — independent analytics module
+    migration-source: future design
+    description: Deferred analytics dashboards and cohort views
+
+  - feature: settings
+    phase: 6
+    priority: P2
+    contract: FG-SHELL-*
+    backend-dependency: none
+    migration-source: new
+    description: App preferences and configuration
+
+# ── Summary ───────────────────────────────────────────────
+# Phase 1: 6 features (all P0, no backend)
+# Phase 2: 5 features (all P0, no backend)
+# Phase 3: 5 features (3 P0 + 2 P1, conditional backend for agent detail extension)
+# Phase 4: 6 features (3 P0 + 3 P1, only music needs backend)
+# Phase 5: 3 features (2 P0 + 1 P1, copyright deferred)
+# Phase 6: 6 features (3 P1 + 3 P2, templates + analytics deferred)
+# Total: 31 features
+#   No backend: 26
+#   Current-scope backend extensions: 2 feature areas (agent detail completion, music upload)
+#   Deferred extension: 5 (copyright, template-browse, template-mine, template-detail, analytics)
