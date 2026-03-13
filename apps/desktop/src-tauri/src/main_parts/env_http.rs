@@ -547,6 +547,9 @@ fn oauth_listen_for_code_blocking(
     loop {
         match listener.accept() {
             Ok((mut stream, _)) => {
+                stream
+                    .set_nonblocking(false)
+                    .map_err(|error| error.to_string())?;
                 let _ = stream.set_read_timeout(Some(std::time::Duration::from_secs(5)));
                 let target = read_request_target(&mut stream)?;
                 if !target.starts_with(expected_path.as_str()) {
@@ -653,4 +656,3 @@ fn redact_body_preview(input: &str, max_bytes: usize) -> String {
     }
     preview_text_utf8_safe(input, max_bytes)
 }
-
