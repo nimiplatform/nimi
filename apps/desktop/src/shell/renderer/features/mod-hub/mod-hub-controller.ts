@@ -140,6 +140,7 @@ export type ModHubPendingAction = {
 } | null;
 
 export type ModHubPageModel = {
+  loading: boolean;
   searchQuery: string;
   filteredMods: ModHubMod[];
   dockMods: ModHubMod[];
@@ -175,6 +176,8 @@ export function useModHubPageModel(): ModHubPageModel {
   const [localIconImageSrcs, setLocalIconImageSrcs] = useState<Record<string, string>>({});
   const [installedModsDir, setInstalledModsDir] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [storageReady, setStorageReady] = useState(false);
+  const [catalogReady, setCatalogReady] = useState(false);
   const [availableUpdates, setAvailableUpdates] = useState<Record<string, {
     version: string;
     advisoryCount: number;
@@ -199,9 +202,11 @@ export function useModHubPageModel(): ModHubPageModel {
     void desktopBridge.getRuntimeModStorageDirs().then((dirs) => {
       if (cancelled) return;
       setInstalledModsDir(dirs.installedModsDir);
+      setStorageReady(true);
     }).catch(() => {
       if (cancelled) return;
       setInstalledModsDir('');
+      setStorageReady(true);
     });
     return () => {
       cancelled = true;
@@ -228,10 +233,12 @@ export function useModHubPageModel(): ModHubPageModel {
             addedCapabilities: item.addedCapabilities,
           },
         ])));
+        setCatalogReady(true);
       } catch {
         if (cancelled) return;
         setCatalogMods([]);
         setAvailableUpdates({});
+        setCatalogReady(true);
       }
     })();
     return () => {
@@ -367,6 +374,7 @@ export function useModHubPageModel(): ModHubPageModel {
   );
 
   const dockMods = useMemo(() => buildDockMods(mergedMods), [mergedMods]);
+  const loading = !storageReady || !catalogReady;
 
   const onSearchFocus = useCallback(() => {
     setIsSearchFocused(true);
@@ -667,6 +675,7 @@ export function useModHubPageModel(): ModHubPageModel {
   }, [setActiveTab]);
 
   return {
+    loading,
     searchQuery,
     filteredMods,
     dockMods,

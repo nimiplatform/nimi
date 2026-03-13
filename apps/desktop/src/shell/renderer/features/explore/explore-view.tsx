@@ -43,6 +43,10 @@ type ExploreViewProps = {
   onWorldOpen?: (worldId: string) => void;
 };
 
+function ExploreSkeletonBlock({ className }: { className: string }) {
+  return <div className={`animate-pulse rounded-3xl bg-white/80 ${className}`} />;
+}
+
 export function ExploreView(props: ExploreViewProps) {
   const { t } = useTranslation();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -136,6 +140,59 @@ export function ExploreView(props: ExploreViewProps) {
       resizeObserver?.disconnect();
     };
   }, []);
+
+  if (props.loading) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col bg-[#F0F4F8]">
+        <div className="shrink-0 bg-[#F0F4F8] px-6 py-4">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
+            <ExploreSkeletonBlock className="h-9 w-40 rounded-xl" />
+            <ExploreSkeletonBlock className="h-11 w-[300px] rounded-full" />
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto bg-[#F0F4F8]">
+          <div className="mx-auto max-w-6xl space-y-10 px-6 py-8">
+            <section className="space-y-3">
+              <ExploreSkeletonBlock className="h-6 w-24 rounded-lg" />
+              <ExploreSkeletonBlock className="h-[280px] w-full rounded-[2rem]" />
+            </section>
+            <section className="space-y-4">
+              <div className="flex items-center justify-between">
+                <ExploreSkeletonBlock className="h-6 w-28 rounded-lg" />
+                <ExploreSkeletonBlock className="h-7 w-7 rounded-full" />
+              </div>
+              <div className="flex gap-4 overflow-hidden">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <ExploreSkeletonBlock key={index} className="h-[210px] min-w-[260px] flex-1 rounded-[2rem]" />
+                ))}
+              </div>
+            </section>
+            <section className="space-y-6">
+              <ExploreSkeletonBlock className="h-7 w-36 rounded-lg" />
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="rounded-[2rem] border border-white/70 bg-white p-5 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <ExploreSkeletonBlock className="h-10 w-10 rounded-full" />
+                      <div className="space-y-2">
+                        <ExploreSkeletonBlock className="h-4 w-24 rounded" />
+                        <ExploreSkeletonBlock className="h-3 w-20 rounded" />
+                      </div>
+                    </div>
+                    <div className="mt-4 space-y-2">
+                      <ExploreSkeletonBlock className="h-4 w-full rounded" />
+                      <ExploreSkeletonBlock className="h-4 w-5/6 rounded" />
+                    </div>
+                    <ExploreSkeletonBlock className="mt-4 h-56 w-full rounded-[1.5rem]" />
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

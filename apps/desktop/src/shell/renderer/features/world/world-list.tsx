@@ -187,10 +187,52 @@ export function WorldList() {
 
   if (worldsQuery.isPending) {
     return (
-      <div className="flex h-full items-center justify-center" style={{ backgroundColor: '#F0F4F8' }}>
-        <div className="flex flex-col items-center gap-3 text-gray-400">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-mint-500" />
-          <span className="text-sm">{t('World.loading')}</span>
+      <div className="flex min-h-0 flex-1 flex-col" style={{ backgroundColor: '#F0F4F8' }}>
+        <div className="shrink-0 px-6 py-4">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
+            <div className="space-y-2">
+              <div className="h-8 w-36 animate-pulse rounded-xl bg-white/80" />
+              <div className="h-3 w-24 animate-pulse rounded bg-white/70" />
+            </div>
+            <div className="h-11 w-[300px] animate-pulse rounded-full bg-white/80" />
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          <div className="mx-auto max-w-6xl space-y-8">
+            <div className="space-y-4">
+              <div className="h-6 w-28 animate-pulse rounded-lg bg-white/80" />
+              <div className="rounded-3xl bg-white p-6 shadow-sm">
+                <div className="mb-5 h-40 animate-pulse rounded-[1.5rem] bg-slate-100" />
+                <div className="flex items-start gap-5">
+                  <div className="h-20 w-20 animate-pulse rounded-2xl bg-slate-100" />
+                  <div className="flex-1 space-y-3">
+                    <div className="h-6 w-56 animate-pulse rounded bg-slate-100" />
+                    <div className="h-4 w-28 animate-pulse rounded bg-slate-100" />
+                    <div className="h-4 w-full animate-pulse rounded bg-slate-100" />
+                    <div className="flex gap-2">
+                      <div className="h-7 w-20 animate-pulse rounded-full bg-slate-100" />
+                      <div className="h-7 w-24 animate-pulse rounded-full bg-slate-100" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="h-6 w-32 animate-pulse rounded-lg bg-white/80" />
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="rounded-3xl bg-white p-5 shadow-sm">
+                    <div className="mb-4 h-32 animate-pulse rounded-[1.5rem] bg-slate-100" />
+                    <div className="space-y-3">
+                      <div className="h-5 w-40 animate-pulse rounded bg-slate-100" />
+                      <div className="h-4 w-full animate-pulse rounded bg-slate-100" />
+                      <div className="h-4 w-3/4 animate-pulse rounded bg-slate-100" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -237,7 +279,7 @@ export function WorldList() {
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto px-6 py-6" style={{ backgroundColor: '#F0F4F8' }}>
+      <div className="app-scroll-shell flex-1 overflow-y-auto px-6 py-6" style={{ backgroundColor: '#F0F4F8' }}>
         <div className="mx-auto max-w-6xl">
           {/* Main World Card */}
           {mainWorld && !searchText && (

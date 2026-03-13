@@ -86,6 +86,10 @@ function dockAccentClass(visualState: string): string {
   }
 }
 
+function ModHubSkeletonBlock({ className }: { className: string }) {
+  return <div className={`animate-pulse rounded-2xl bg-white/90 ${className}`} />;
+}
+
 export function ModHubView(model: ModHubPageModel) {
   const { t } = useTranslation();
   const searchBarRef = useRef<HTMLDivElement | null>(null);
@@ -128,6 +132,71 @@ export function ModHubView(model: ModHubPageModel) {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [settingsOpen]);
+
+  if (model.loading) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#F5F5F7]">
+        <div className="z-10 shrink-0 bg-[#F5F5F7]/95 px-8 py-8 backdrop-blur-sm">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-6">
+            <ModHubSkeletonBlock className="h-10 w-40 rounded-xl" />
+            <div className="flex items-center gap-3">
+              <ModHubSkeletonBlock className="h-11 w-80 rounded-full" />
+              <ModHubSkeletonBlock className="h-11 w-11" />
+            </div>
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-6xl space-y-12 px-8 pb-10">
+            <section>
+              <ModHubSkeletonBlock className="mb-6 h-4 w-28 rounded-lg" />
+              <div className="grid grid-cols-4 gap-x-4 gap-y-8 md:grid-cols-6 lg:grid-cols-8">
+                {Array.from({ length: 10 }).map((_, index) => (
+                  <div key={index} className="flex flex-col items-center gap-3">
+                    <ModHubSkeletonBlock className="h-16 w-16 rounded-2xl" />
+                    <ModHubSkeletonBlock className="h-3 w-16 rounded" />
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-[28px] border border-gray-100 bg-white p-6 shadow-sm">
+              <div className="mb-6 border-b border-gray-50 pb-4">
+                <ModHubSkeletonBlock className="h-7 w-48 rounded-xl" />
+              </div>
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <div key={index} className="rounded-2xl border border-gray-100 p-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex min-w-0 flex-1 items-start gap-4">
+                        <ModHubSkeletonBlock className="h-12 w-12 rounded-xl" />
+                        <div className="min-w-0 flex-1 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <ModHubSkeletonBlock className="h-5 w-28 rounded" />
+                            <ModHubSkeletonBlock className="h-5 w-12 rounded-full" />
+                            <ModHubSkeletonBlock className="h-5 w-16 rounded-full" />
+                          </div>
+                          <ModHubSkeletonBlock className="h-4 w-3/4 rounded" />
+                          <div className="flex gap-2">
+                            <ModHubSkeletonBlock className="h-5 w-20 rounded-md" />
+                            <ModHubSkeletonBlock className="h-5 w-24 rounded-md" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <ModHubSkeletonBlock className="h-9 w-9 rounded-full" />
+                        <ModHubSkeletonBlock className="h-6 w-11 rounded-full" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#F5F5F7]">
@@ -183,7 +252,7 @@ export function ModHubView(model: ModHubPageModel) {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="app-scroll-shell min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-6xl space-y-12 px-8 pb-10">
           <div
             className={`overflow-hidden transition-all duration-300 ease-in-out ${

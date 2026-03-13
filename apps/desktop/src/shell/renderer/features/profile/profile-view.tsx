@@ -29,6 +29,106 @@ type ProfileViewProps = {
 
 const TABS: ProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gifts'];
 
+function ProfileSkeletonBlock(props: { className: string }) {
+  return <div className={`animate-pulse rounded-full bg-slate-200/75 ${props.className}`} />;
+}
+
+function ProfileLoadingSkeleton() {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col bg-[#F0F4F8]">
+      <div className="app-scroll-shell flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-7xl px-5 py-5">
+          <div className="overflow-hidden rounded-[28px] border border-[#dbe3ea] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+            <div className="relative h-[190px] w-full overflow-hidden bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200">
+              <div className="absolute left-5 top-5">
+                <ProfileSkeletonBlock className="h-10 w-10" />
+              </div>
+              <div className="absolute right-5 top-5">
+                <ProfileSkeletonBlock className="h-10 w-10" />
+              </div>
+            </div>
+
+            <div className="relative border-b border-[#edf2f6] bg-white px-7 pb-6 pt-0">
+              <div className="-mt-14 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+                <div className="flex min-w-0 flex-1 gap-5">
+                  <div className="relative shrink-0">
+                    <div className="rounded-[26px] border border-white/80 bg-white p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.16)]">
+                      <ProfileSkeletonBlock className="h-24 w-24 rounded-[22px]" />
+                    </div>
+                  </div>
+
+                  <div className="min-w-0 flex-1 pt-14 xl:pt-10">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <ProfileSkeletonBlock className="h-9 w-48 rounded-lg" />
+                      <ProfileSkeletonBlock className="h-8 w-28 rounded-full" />
+                    </div>
+                    <ProfileSkeletonBlock className="mt-3 h-5 w-32 rounded-md" />
+                    <ProfileSkeletonBlock className="mt-4 h-4 w-full rounded-md" />
+                    <ProfileSkeletonBlock className="mt-2 h-4 w-4/5 rounded-md" />
+                    <div className="mt-4 flex flex-wrap gap-2.5">
+                      <ProfileSkeletonBlock className="h-9 w-36 rounded-full" />
+                      <ProfileSkeletonBlock className="h-9 w-40 rounded-full" />
+                      <ProfileSkeletonBlock className="h-9 w-32 rounded-full" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex shrink-0 flex-col items-end gap-3">
+                  <div className="flex flex-wrap gap-3">
+                    <ProfileSkeletonBlock className="h-[74px] w-[92px] rounded-[18px]" />
+                    <ProfileSkeletonBlock className="h-[74px] w-[92px] rounded-[18px]" />
+                    <ProfileSkeletonBlock className="h-[74px] w-[92px] rounded-[18px]" />
+                  </div>
+                  <div className="flex w-full flex-wrap justify-end gap-2">
+                    <ProfileSkeletonBlock className="h-11 w-28 rounded-full" />
+                    <ProfileSkeletonBlock className="h-11 w-28 rounded-full" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-b border-[#edf2f6] bg-white px-6">
+              <div className="flex items-center justify-between">
+                <div className="flex gap-3 py-3">
+                  <ProfileSkeletonBlock className="h-6 w-16 rounded-md" />
+                  <ProfileSkeletonBlock className="h-6 w-24 rounded-md" />
+                  <ProfileSkeletonBlock className="h-6 w-16 rounded-md" />
+                  <ProfileSkeletonBlock className="h-6 w-16 rounded-md" />
+                </div>
+                <ProfileSkeletonBlock className="h-4 w-20 rounded-md" />
+              </div>
+            </div>
+
+            <div className="bg-[#f7f9fc] px-6 py-6">
+              <div className="mb-6 flex items-center justify-between gap-4">
+                <ProfileSkeletonBlock className="h-5 w-28 rounded-md" />
+                <div className="h-px flex-1 bg-gradient-to-r from-[#d8e1e8] to-transparent opacity-80" />
+                <ProfileSkeletonBlock className="h-4 w-16 rounded-md" />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={`profile-post-skeleton-${index}`} className="rounded-[24px] bg-white p-5 shadow-[0_6px_24px_rgba(15,23,42,0.05)]">
+                    <div className="flex items-center gap-3">
+                      <ProfileSkeletonBlock className="h-11 w-11 shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <ProfileSkeletonBlock className="h-4 w-28 rounded-md" />
+                        <ProfileSkeletonBlock className="h-3 w-20 rounded-md" />
+                      </div>
+                    </div>
+                    <ProfileSkeletonBlock className="mt-4 h-4 w-full rounded-md" />
+                    <ProfileSkeletonBlock className="mt-2 h-4 w-5/6 rounded-md" />
+                    <ProfileSkeletonBlock className="mt-4 h-40 w-full rounded-[18px]" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function getProfileTabLabel(t: ReturnType<typeof useTranslation>['t'], tab: ProfileTab): string {
   switch (tab) {
     case 'Posts':
@@ -158,14 +258,7 @@ export function ProfileView(props: ProfileViewProps) {
   };
 
   if (props.loading) {
-    return (
-      <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-[#4ECCA3]" />
-          {t('ProfileView.loading')}
-        </div>
-      </div>
-    );
+    return <ProfileLoadingSkeleton />;
   }
 
   if (props.error) {
@@ -219,7 +312,7 @@ export function ProfileView(props: ProfileViewProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#F0F4F8]">
-      <div className="flex-1 overflow-y-auto">
+      <div className="app-scroll-shell flex-1 overflow-y-auto">
         <div className="mx-auto max-w-7xl px-5 py-5">
           <div className="overflow-hidden rounded-[28px] border border-[#dbe3ea] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
             <div className="relative h-[190px] w-full overflow-hidden" style={agentHeaderStyle}>
@@ -248,9 +341,9 @@ export function ProfileView(props: ProfileViewProps) {
                     title={t('Common.moreOptions', { defaultValue: 'More options' })}
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <circle cx="12" cy="6" r="2" />
+                      <circle cx="6" cy="12" r="2" />
                       <circle cx="12" cy="12" r="2" />
-                      <circle cx="12" cy="18" r="2" />
+                      <circle cx="18" cy="12" r="2" />
                     </svg>
                   </button>
                   {showMenu && (

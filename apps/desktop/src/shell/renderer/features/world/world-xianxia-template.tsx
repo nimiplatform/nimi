@@ -198,10 +198,50 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
 
   if (props.loading) {
     return (
-      <div className="min-h-screen bg-[#0a0f0c] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-[#4ECCA3]">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#4ECCA3]/30 border-t-[#4ECCA3]" />
-          <span className="text-sm text-[#e8f5ee]/60">{t('WorldDetail.loading')}</span>
+      <div className="min-h-screen bg-[#0a0f0c] px-5 py-6 text-[#e8f5ee]">
+        <div className="mx-auto w-full max-w-[1240px] space-y-5">
+          <div className="flex items-center justify-between gap-5 py-2">
+            <div className="flex items-center gap-3.5">
+              <div className="h-11 w-11 animate-pulse rounded-xl bg-[#173422]" />
+              <div className="space-y-2">
+                <div className="h-5 w-28 animate-pulse rounded bg-[#173422]" />
+                <div className="h-3 w-24 animate-pulse rounded bg-[#173422]" />
+              </div>
+            </div>
+            <div className="flex gap-2.5">
+              <div className="h-10 w-28 animate-pulse rounded-full bg-[#173422]" />
+              <div className="h-10 w-32 animate-pulse rounded-full bg-[#173422]" />
+            </div>
+          </div>
+          <section className="overflow-hidden rounded-[32px] border border-[#173422] bg-[#0f1713] p-8 md:p-10">
+            <div className="mb-6 flex gap-2.5">
+              <div className="h-7 w-24 animate-pulse rounded-full bg-[#173422]" />
+              <div className="h-7 w-20 animate-pulse rounded-full bg-[#173422]" />
+              <div className="h-7 w-24 animate-pulse rounded-full bg-[#173422]" />
+            </div>
+            <div className="flex flex-col gap-8 lg:flex-row">
+              <div className="flex flex-1 gap-5">
+                <div className="h-28 w-28 animate-pulse rounded-[28px] bg-[#173422]" />
+                <div className="flex-1 space-y-4">
+                  <div className="h-10 w-64 animate-pulse rounded bg-[#173422]" />
+                  <div className="h-5 w-40 animate-pulse rounded bg-[#173422]" />
+                  <div className="h-4 w-full animate-pulse rounded bg-[#173422]" />
+                  <div className="h-4 w-5/6 animate-pulse rounded bg-[#173422]" />
+                </div>
+              </div>
+              <div className="grid min-w-[280px] grid-cols-2 gap-4">
+                <div className="h-28 animate-pulse rounded-[24px] bg-[#173422]" />
+                <div className="h-28 animate-pulse rounded-[24px] bg-[#173422]" />
+                <div className="h-28 animate-pulse rounded-[24px] bg-[#173422]" />
+                <div className="h-28 animate-pulse rounded-[24px] bg-[#173422]" />
+              </div>
+            </div>
+          </section>
+          <div className="grid gap-5 lg:grid-cols-[1.1fr_1.3fr_1fr]">
+            <div className="h-[420px] animate-pulse rounded-[28px] bg-[#0f1713]" />
+            <div className="h-[420px] animate-pulse rounded-[28px] bg-[#0f1713]" />
+            <div className="h-[420px] animate-pulse rounded-[28px] bg-[#0f1713]" />
+          </div>
         </div>
       </div>
     );

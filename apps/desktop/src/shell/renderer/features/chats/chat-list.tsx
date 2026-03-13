@@ -8,6 +8,42 @@ import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { formatLocaleDate, formatRelativeLocaleTime, i18n } from '@renderer/i18n';
 
+function ChatSkeletonBlock(props: { className: string }) {
+  return <div className={`animate-pulse rounded-full bg-slate-200/75 ${props.className}`} />;
+}
+
+function ChatListLoadingSkeleton() {
+  return (
+    <div className="flex h-full flex-col bg-[#F8F9FB]">
+      <div className="flex h-14 shrink-0 items-center justify-between px-4">
+        <ChatSkeletonBlock className="h-7 w-20 rounded-lg" />
+      </div>
+
+      <div className="px-3 pb-3">
+        <div className="flex h-10 w-full items-center rounded-full bg-white px-4 shadow-sm">
+          <ChatSkeletonBlock className="h-4 w-4 shrink-0" />
+          <ChatSkeletonBlock className="ml-3 h-4 w-40 rounded-md" />
+        </div>
+      </div>
+
+      <div className="app-scroll-shell flex-1 space-y-2 overflow-y-auto px-3 py-2 pb-3">
+        {Array.from({ length: 8 }).map((_, index) => (
+          <div key={`chat-skeleton-row-${index}`} className="flex gap-3 rounded-lg bg-white p-3 shadow-sm">
+            <ChatSkeletonBlock className="h-12 w-12 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-3">
+                <ChatSkeletonBlock className="h-4 w-24 rounded-md" />
+                <ChatSkeletonBlock className="h-3 w-10 rounded-md" />
+              </div>
+              <ChatSkeletonBlock className="mt-2 h-3.5 w-5/6 rounded-md" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function getChatTitle(chat: ChatViewDto): string {
   const record = chat as unknown as Record<string, unknown>;
   const otherUser =
@@ -129,7 +165,7 @@ export function ChatList() {
   // 默认不自动选择第一个聊天，保持空状态
 
   if (chatsQuery.isPending) {
-    return <div className="p-4 text-sm text-gray-500">{t('Chat.loading')}</div>;
+    return <ChatListLoadingSkeleton />;
   }
 
   if (chatsQuery.isError) {
@@ -161,7 +197,7 @@ export function ChatList() {
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto py-2 px-3 pb-3">
+      <div className="app-scroll-shell flex-1 overflow-y-auto py-2 px-3 pb-3">
         {chats.length === 0 ? (
           <p className="p-4 text-center text-sm text-gray-500">{t('Chat.noChats')}</p>
         ) : (

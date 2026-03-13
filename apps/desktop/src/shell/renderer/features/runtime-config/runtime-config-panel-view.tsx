@@ -13,6 +13,10 @@ import { ModsPage } from './runtime-config-page-mods';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { useRuntimeConfigPanelController } from './runtime-config-panel-controller';
 
+function RuntimeSkeletonBlock({ className }: { className: string }) {
+  return <div className={`animate-pulse rounded-2xl bg-white ${className}`} />;
+}
+
 export function RuntimeConfigPanelBody() {
   const model = useRuntimeConfigPanelController();
   return <RuntimeConfigPanelView model={model} />;
@@ -79,10 +83,34 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
 
   if (!state) {
     return (
-      <div className="flex min-h-0 flex-1 items-center justify-center">
-        <div className="rounded-[10px] border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
-          {t('runtimeConfig.panel.loading', { defaultValue: 'Loading runtime config...' })}
-        </div>
+      <div className="flex min-h-0 flex-1 bg-[#F8F9FB]">
+        <aside className="flex w-[224px] shrink-0 flex-col bg-[#F8F9FB] px-4 py-4">
+          <RuntimeSkeletonBlock className="h-9 w-32 rounded-xl" />
+          <div className="mt-5 space-y-3">
+            {Array.from({ length: 7 }).map((_, index) => (
+              <RuntimeSkeletonBlock key={index} className="h-11 w-full" />
+            ))}
+          </div>
+        </aside>
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">
+          <div className="flex h-14 shrink-0 items-center justify-between px-6">
+            <RuntimeSkeletonBlock className="h-8 w-40 rounded-xl" />
+            <div className="flex items-center gap-2">
+              <RuntimeSkeletonBlock className="h-7 w-24 rounded-full" />
+              <RuntimeSkeletonBlock className="h-7 w-20 rounded-full" />
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto bg-white">
+            <div className="mx-auto max-w-5xl space-y-6 p-6">
+              <RuntimeSkeletonBlock className="h-36 w-full" />
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <RuntimeSkeletonBlock className="h-48 w-full" />
+                <RuntimeSkeletonBlock className="h-48 w-full" />
+              </div>
+              <RuntimeSkeletonBlock className="h-64 w-full" />
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
@@ -94,7 +122,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   return (
     <div ref={containerRef} className="flex min-h-0 flex-1 bg-[#F8F9FB]">
       <aside
-        className="relative flex shrink-0 flex-col overflow-y-auto bg-[#F8F9FB]"
+        className="app-scroll-shell relative flex shrink-0 flex-col overflow-y-auto bg-[#F8F9FB]"
         style={{ width: `${sidebarWidth}px` }}
       >
         <div className="flex h-14 shrink-0 items-center px-5">
@@ -130,7 +158,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-white">
+        <div className="app-scroll-shell flex-1 overflow-y-auto bg-white">
           {activePage === 'local' ? (
             <LocalPage model={model} state={state} />
           ) : (

@@ -17,6 +17,82 @@ import { BlockConfirmDialog, UnblockConfirmDialog } from './contacts-blocked-use
 import { ContactsSearchResults, ContactsCategoryAccordion } from './contacts-category-list.js';
 import { ContactDetailView } from './contact-detail-view.js';
 
+function SkeletonBlock(props: { className: string }) {
+  return <div className={`animate-pulse rounded-full bg-slate-200/75 ${props.className}`} />;
+}
+
+function ContactsLoadingSkeleton() {
+  return (
+    <div className="flex h-full bg-[#F5F7FA]">
+      <aside className="relative flex w-[320px] shrink-0 flex-col bg-[#F8F9FB]">
+        <div className="flex h-14 shrink-0 items-center px-4">
+          <SkeletonBlock className="h-7 w-28 rounded-lg" />
+        </div>
+
+        <div className="px-3 pb-4">
+          <div className="flex h-10 items-center gap-2">
+            <div className="flex h-10 flex-1 items-center rounded-full bg-white px-4 shadow-sm">
+              <SkeletonBlock className="h-4 w-4 shrink-0" />
+              <SkeletonBlock className="ml-3 h-4 w-36 rounded-md" />
+            </div>
+            <SkeletonBlock className="h-10 w-10 rounded-[12px]" />
+          </div>
+        </div>
+
+        <div className="app-scroll-shell flex-1 space-y-3 overflow-y-auto px-3 py-2">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div key={`contacts-skeleton-row-${index}`} className="rounded-2xl bg-white/80 p-3 shadow-sm">
+              <div className="flex items-center gap-3">
+                <SkeletonBlock className="h-11 w-11 shrink-0" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <SkeletonBlock className="h-4 w-24 rounded-md" />
+                  <SkeletonBlock className="h-3 w-32 rounded-md" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </aside>
+
+      <main className="flex min-w-0 flex-1 flex-col bg-white p-8">
+        <div className="mx-auto flex h-full w-full max-w-3xl flex-col">
+          <div className="mb-8 flex items-center gap-4">
+            <SkeletonBlock className="h-20 w-20 shrink-0" />
+            <div className="flex-1 space-y-3">
+              <SkeletonBlock className="h-7 w-40 rounded-lg" />
+              <SkeletonBlock className="h-4 w-56 rounded-md" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={`contacts-stat-skeleton-${index}`} className="rounded-2xl bg-slate-50 p-4">
+                <SkeletonBlock className="mx-auto h-6 w-14 rounded-md" />
+                <SkeletonBlock className="mx-auto mt-2 h-3 w-16 rounded-md" />
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 space-y-4">
+            <SkeletonBlock className="h-5 w-32 rounded-md" />
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={`contacts-detail-skeleton-${index}`} className="space-y-2">
+                <SkeletonBlock className="h-4 w-full rounded-md" />
+                <SkeletonBlock className="h-4 w-5/6 rounded-md" />
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-auto flex gap-3 pt-8">
+            <SkeletonBlock className="h-11 w-32 rounded-xl" />
+            <SkeletonBlock className="h-11 w-28 rounded-xl" />
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
 export function ContactsView(props: ContactsViewProps) {
   const MIN_CONTACTS_SIDEBAR_WIDTH = 280;
   const MAX_CONTACTS_SIDEBAR_WIDTH = 420;
@@ -318,11 +394,7 @@ export function ContactsView(props: ContactsViewProps) {
   const profileError = profileQuery.isError && !!selectedContact;
 
   if (props.loading) {
-    return (
-      <div className="flex h-full items-center justify-center bg-[#F5F7FA]">
-        <span className="text-sm text-gray-500">{t('Contacts.loading')}</span>
-      </div>
-    );
+    return <ContactsLoadingSkeleton />;
   }
 
   if (props.error) {
@@ -341,7 +413,7 @@ export function ContactsView(props: ContactsViewProps) {
         style={{ width: `${sidebarWidth}px` }}
       >
         {/* 顶部标题 */}
-        <div className="flex h-14 items-center px-4 shrink-0">
+        <div className="flex h-14 items-center px-4 pb-1 shrink-0">
           <h1 className={`${APP_PAGE_TITLE_CLASS} text-[22px]`}>{t('Contacts.title')}</h1>
         </div>
 
@@ -349,12 +421,12 @@ export function ContactsView(props: ContactsViewProps) {
         <div className="px-3 pb-3">
           <div className="flex h-10 items-center gap-2">
             <div className="flex h-10 min-w-0 max-w-[268px] flex-1 items-center rounded-full bg-white px-4 shadow-sm">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 self-center">
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
               <input
-                className="ml-2 min-w-0 flex-1 bg-transparent text-sm text-gray-700 outline-none placeholder:text-gray-400"
+                className="ml-2 min-w-0 flex-1 self-center bg-transparent text-sm leading-none text-gray-700 outline-none placeholder:text-gray-400"
                 placeholder={t('Contacts.searchPlaceholder', { defaultValue: 'Search friends' })}
                 value={props.searchText}
                 onChange={(e) => props.onSearchTextChange(e.target.value)}
@@ -383,10 +455,10 @@ export function ContactsView(props: ContactsViewProps) {
               <button
                 type="button"
                 onClick={props.onOpenAddContact}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border-2 border-[#4ECCA3] bg-white text-[#4ECCA3] shadow-sm transition-colors hover:bg-[#4ECCA3]/5"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#4ECCA3] text-white shadow-[0_8px_20px_rgba(78,204,163,0.28)] transition-all hover:bg-[#41b992] hover:shadow-[0_10px_24px_rgba(78,204,163,0.34)]"
                 aria-label={t('Contacts.addContact', { defaultValue: 'Add Friend' })}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round" className="self-center">
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
@@ -396,7 +468,7 @@ export function ContactsView(props: ContactsViewProps) {
         </div>
 
         {/* 可展开的分类列表或搜索结果 */}
-        <div className="flex-1 overflow-y-auto py-1.5 space-y-0.5">
+        <div className="app-scroll-shell flex-1 overflow-y-auto py-1.5 space-y-0.5">
           {props.searchText.trim() ? (
             <ContactsSearchResults
               searchText={props.searchText}
@@ -443,7 +515,7 @@ export function ContactsView(props: ContactsViewProps) {
       </aside>
 
       {/* 右侧详情区 - 使用 ProfileView */}
-      <main className="flex-1 flex flex-col min-w-0 bg-white overflow-y-auto">
+      <main className="app-scroll-shell flex-1 flex flex-col min-w-0 bg-white overflow-y-auto">
         {selectedRequest ? (
           // 单个好友请求详情
           <FriendRequestDetail
