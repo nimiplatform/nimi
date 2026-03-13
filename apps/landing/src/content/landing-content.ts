@@ -132,6 +132,20 @@ export type LandingContent = {
       description: string;
     }>;
     downloadCta: string;
+    availability: {
+      eyebrow: string;
+      items: string[];
+    };
+  };
+  faq: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    communityCta: string;
+    items: Array<{
+      question: string;
+      answer: string;
+    }>;
   };
   security: {
     title: string;
@@ -413,6 +427,39 @@ export const LANDING_CONTENT: Record<LandingLocale, LandingContent> = {
         { icon: 'models', title: 'Model Management', description: 'Install, update, and switch models from one place.' },
       ],
       downloadCta: 'Download Desktop App',
+      availability: {
+        eyebrow: 'Compatibility / Availability',
+        items: [
+          'Desktop for macOS and Windows',
+          'CLI + SDK work independently of the desktop app',
+          'Local-first by default',
+          'Realm remains optional',
+        ],
+      },
+    },
+    faq: {
+      eyebrow: 'FAQ',
+      title: 'Common questions before you start',
+      description: "Have a question that isn't answered here? Jump into the community and ask the core team directly.",
+      communityCta: 'Join Nimi Discord',
+      items: [
+        {
+          question: 'Do I need the desktop app to use Nimi?',
+          answer: 'No. You can work directly with the runtime and SDK. Desktop is an additional workspace for chat, model management, and mods.',
+        },
+        {
+          question: 'Can I run both local and cloud models through the same runtime?',
+          answer: 'Yes. That is one of the core ideas behind Nimi: keep one runtime surface while switching between local execution and connected cloud providers.',
+        },
+        {
+          question: 'What is open source and what is managed?',
+          answer: 'The runtime, SDK, and desktop app are open source. Realm is an optional managed cloud layer, and its contracts are exposed publicly through the SDK.',
+        },
+        {
+          question: 'How do mods fit into Nimi?',
+          answer: 'Mods are runtime-native extensions and experiences that build on the same Nimi execution surface instead of bypassing it.',
+        },
+      ],
     },
     security: {
       title: 'Security by design',
@@ -611,6 +658,39 @@ export const LANDING_CONTENT: Record<LandingLocale, LandingContent> = {
         { icon: 'models', title: '模型管理', description: '在一处完成安装、更新和切换模型。' },
       ],
       downloadCta: '下载桌面应用',
+      availability: {
+        eyebrow: 'Compatibility / Availability',
+        items: [
+          'Desktop 支持 macOS 和 Windows',
+          'CLI 与 SDK 可独立于桌面应用使用',
+          '默认本地优先',
+          'Realm 为可选能力',
+        ],
+      },
+    },
+    faq: {
+      eyebrow: 'FAQ',
+      title: '开始之前你最可能会问的几个问题',
+      description: '如果这里还没有回答你的问题，也可以直接进入社区，向核心团队继续提问。',
+      communityCta: '加入 Nimi Discord',
+      items: [
+        {
+          question: '必须安装 Desktop 才能使用 Nimi 吗？',
+          answer: '不是。你也可以直接使用 runtime 和 SDK。Desktop 更像是在其之上提供聊天、模型管理和 mods 工作区。',
+        },
+        {
+          question: '我能通过同一个 runtime 同时跑本地和云端模型吗？',
+          answer: '可以。这正是 Nimi 的核心思路之一：在同一套 runtime 表层下切换本地执行和云端 provider，而不是维护两套接入方式。',
+        },
+        {
+          question: '哪些部分是开源的，哪些是托管的？',
+          answer: 'runtime、SDK 和桌面应用是开源的。Realm 是可选的托管云层，它的接口契约会通过 SDK 对外公开。',
+        },
+        {
+          question: 'mods 在 Nimi 里是什么角色？',
+          answer: 'mods 是建立在同一套 Nimi runtime 执行表层上的原生扩展与体验，而不是绕过 runtime 的外挂能力。',
+        },
+      ],
     },
     security: {
       title: '以安全设计为出发点',

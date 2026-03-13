@@ -342,7 +342,7 @@ export function ContactsView(props: ContactsViewProps) {
       >
         {/* 顶部标题 */}
         <div className="flex h-14 items-center px-4 shrink-0">
-          <h1 className={APP_PAGE_TITLE_CLASS}>{t('Contacts.title')}</h1>
+          <h1 className={`${APP_PAGE_TITLE_CLASS} text-[22px]`}>{t('Contacts.title')}</h1>
         </div>
 
         {/* 搜索框 */}
@@ -383,10 +383,10 @@ export function ContactsView(props: ContactsViewProps) {
               <button
                 type="button"
                 onClick={props.onOpenAddContact}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[999px] border-2 border-[#4ECCA3] bg-white text-[#4ECCA3] shadow-sm transition-colors hover:bg-[#4ECCA3]/5"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border-2 border-[#4ECCA3] bg-white text-[#4ECCA3] shadow-sm transition-colors hover:bg-[#4ECCA3]/5"
                 aria-label={t('Contacts.addContact', { defaultValue: 'Add Friend' })}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
@@ -495,7 +495,7 @@ export function ContactsView(props: ContactsViewProps) {
             }}
             onBlock={selectedContact ? () => setBlockingContact(selectedContact) : undefined}
             onRemove={selectedContact ? () => props.onRemoveFriend(selectedContact) : undefined}
-            showMessageButton={Boolean(selectedContact?.isAgent && flags.mode === 'desktop')}
+            showMessageButton
           />
         ) : (
           // 空状态 - 显示 Nimi Logo

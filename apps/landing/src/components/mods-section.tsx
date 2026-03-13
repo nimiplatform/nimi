@@ -464,19 +464,30 @@ export function ModsSection(props: ModsSectionProps) {
                 </svg>
               </button>
 
-              <div className="relative flex items-center gap-4">
+              <div className="relative flex items-start gap-4">
+                {/* 2×2 frosted grid icon — height stretches to match text column */}
                 <div
-                  className={[
-                    'flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[rgba(16,185,129,0.2)] bg-[rgba(16,185,129,0.06)]',
-                    MOD_IMAGE_LOGOS[activeMod.name] ? 'overflow-hidden' : '',
-                  ].join(' ')}
+                  className="flex min-w-[3.4rem] shrink-0 self-stretch items-center justify-center border border-white/10 bg-white/[0.05] px-2 backdrop-blur-[10px]"
                   style={{ color: activeMod.color }}
                 >
-                  {MOD_IMAGE_LOGOS[activeMod.name] ? (
-                    <img src={MOD_IMAGE_LOGOS[activeMod.name]} alt={`${activeMod.name} logo`} className="h-full w-full object-contain p-2" />
-                  ) : (
-                    <ModGlyph icon={activeMod.icon} className="h-7 w-7" />
-                  )}
+                  <div className="grid grid-cols-2 gap-[5px]">
+                    {[0, 1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="flex h-[1.45rem] w-[1.45rem] items-center justify-center bg-white/[0.08]"
+                      >
+                        {MOD_IMAGE_LOGOS[activeMod.name] ? (
+                          <img
+                            src={MOD_IMAGE_LOGOS[activeMod.name]}
+                            alt=""
+                            className="h-[0.95rem] w-[0.95rem] object-contain opacity-70"
+                          />
+                        ) : (
+                          <ModGlyph icon={activeMod.icon} className="h-3 w-3 opacity-55" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div>

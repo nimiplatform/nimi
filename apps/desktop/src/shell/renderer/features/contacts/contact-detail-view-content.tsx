@@ -385,273 +385,261 @@ export function ContactDetailViewContent(input: {
             <div className="relative px-8 pb-8">
               <div className="-mt-20 grid gap-6 xl:grid-cols-[minmax(0,1fr),320px]">
                 <div className="min-w-0">
-                  <div className="rounded-[30px] border border-white/38 bg-white/40 px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[18px] supports-[backdrop-filter]:bg-white/30 xl:px-7">
-                    <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
-                      <div className="flex shrink-0 flex-col items-center gap-3 xl:w-[180px] xl:pt-[6px]">
-                        <div className="group relative cursor-pointer">
-                          <div className="relative">
-                            <EntityAvatar
-                              imageUrl={isEditing ? draft.avatarUrl || null : profile.avatarUrl}
-                              name={isEditing ? draft.displayName || profile.displayName : profile.displayName}
-                              kind={profile.isAgent ? 'agent' : 'human'}
-                              sizeClassName="h-32 w-32"
-                              textClassName="text-4xl font-bold"
-                              fallbackClassName={profile.isAgent ? undefined : 'bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-[#1f8f69]'}
-                              className={profile.isAgent ? '' : 'rounded-full border border-white/85 shadow-[0_14px_34px_rgba(15,23,42,0.12)]'}
-                            />
-
-                            {SHOW_AVATAR_ONLINE_INDICATOR && profile.isOnline ? (
-                              <span className="absolute bottom-2 right-2 h-5 w-5 rounded-full border-[3px] border-white bg-[#28c189] shadow-md" />
-                            ) : null}
-
-                            {isEditing && input.isOwnProfile ? (
-                              <>
-                                <input
-                                  ref={avatarInputRef}
-                                  type="file"
-                                  accept={ACCEPTED_AVATAR_TYPES.join(',')}
-                                  className="hidden"
-                                  onChange={(event) => {
-                                    void handleAvatarSelect(event);
-                                  }}
-                                />
-                                <div
-                                  onClick={() => !isUploadingAvatar && avatarInputRef.current?.click()}
-                                  className={`absolute inset-0 flex items-center justify-center ${profile.isAgent ? 'rounded-[12px]' : 'rounded-full'} transition-all ${
-                                    isUploadingAvatar
-                                      ? 'bg-black/50'
-                                      : 'cursor-pointer bg-black/0 group-hover:bg-black/40'
-                                  }`}
-                                >
-                                  {isUploadingAvatar ? (
-                                    <div className="flex flex-col items-center gap-2 text-white">
-                                      <SpinnerIcon className="h-7 w-7 border-white/30 border-t-white" />
-                                      <span className="text-xs font-medium">{t('Profile.avatarUploading', { defaultValue: 'Uploading avatar...' })}</span>
-                                    </div>
-                                  ) : (
-                                    <div className="flex flex-col items-center gap-2 text-white opacity-0 transition-opacity group-hover:opacity-100">
-                                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                          <polyline points="17 8 12 3 7 8" />
-                                          <line x1="12" y1="3" x2="12" y2="15" />
-                                        </svg>
-                                      </div>
-                                      <span className="text-xs font-medium">
-                                        {t('Contacts.changePhoto', { defaultValue: 'Change Photo' })}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                              </>
-                            ) : null}
-                          </div>
-                        </div>
-
-                        {isEditing && input.isOwnProfile ? (
-                          <p className="text-[11px] text-slate-400">
-                            {t('Profile.uploadLimit', { defaultValue: 'JPG or PNG, max 5MB' })}
-                          </p>
-                        ) : null}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-                          <div className="min-w-0 flex-1 xl:max-w-[620px]">
-                            <div className="flex flex-wrap items-center gap-2" />
-                            {isEditing ? (
-                              <div className="mt-3 space-y-4">
-                                <label className="block">
-                                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                                    {t('Contacts.displayName', { defaultValue: 'Display name' })}
-                                  </span>
-                                  <input
-                                    type="text"
-                                    value={draft.displayName}
-                                    onChange={(event) => setDraft((current) => ({ ...current, displayName: event.target.value }))}
-                                    className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[28px] font-semibold leading-[1.05] tracking-[0.02em] text-[#1A1A1B] outline-none transition focus:border-[#4ECCA3] focus:ring-4 focus:ring-[#4ECCA3]/10"
-                                  />
-                                </label>
-                                <label className="block">
-                                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                                    {t('Contacts.handle', { defaultValue: 'Handle' })}
-                                  </span>
-                                  <input
-                                    type="text"
-                                    value={profile.handle}
-                                    disabled
-                                    className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[13px] font-medium tracking-[0.02em] text-[#6E6E73]"
-                                  />
-                                </label>
-                                <label className="block">
-                                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                                    {t('Contacts.bio', { defaultValue: 'Bio' })}
-                                  </span>
-                                  <textarea
-                                    value={draft.bio}
-                                    onChange={(event) => setDraft((current) => ({ ...current, bio: event.target.value }))}
-                                    rows={4}
-                                    className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[14px] leading-[1.7] text-[#424245] outline-none transition focus:border-[#4ECCA3] focus:ring-4 focus:ring-[#4ECCA3]/10"
-                                  />
-                                </label>
-                              </div>
-                            ) : (
-                              <>
-                                <h1 className="mt-1 text-[30px] font-semibold leading-[1.05] tracking-[0.05em] text-[#1A1A1B] xl:text-[32px]">
-                                  {profile.displayName}
-                                </h1>
-                                <p className="mt-2 text-[13px] font-medium tracking-[0.02em] text-[#6E6E73]">
-                                  {profile.handle}
-                                </p>
-                                <p className="mt-5 max-w-[420px] text-[14px] leading-[1.7] text-[#424245]">
-                                  {headline}
-                                </p>
-                              </>
-                            )}
-                            <div className="mt-4 xl:hidden">
-                              <div className="grid max-w-[228px] grid-cols-3 gap-2">
-                                <StatTile label={t('Profile.friends', { defaultValue: 'Friends' })} value={friendCount} />
-                                <StatTile label={t('Profile.posts', { defaultValue: 'Posts' })} value={postCount} />
-                                <StatTile label={t('Profile.likes', { defaultValue: 'Likes' })} value={likesCount} />
-                              </div>
-                              {isEditing && input.isOwnProfile ? (
-                                <div className="mt-4">
-                                  <ContactDetailSaveActions
-                                    draftDisplayName={draft.displayName}
-                                    isSaving={isSaving}
-                                    isUploadingAvatar={isUploadingAvatar}
-                                    onCancel={cancelEditing}
-                                    onSave={() => {
-                                      void handleSaveProfile();
-                                    }}
-                                    saveError={saveError}
-                                    stacked
-                                  />
-                                </div>
-                              ) : (
-                                <div className="mt-3 flex items-center gap-2">
-                                  <ContactDetailActionButtons
-                                    onMessage={input.onMessage}
-                                    onSendGift={input.onSendGift}
-                                    showGiftButton={showGiftButton}
-                                    showMessageButton={showMessageButton}
-                                  />
-                                </div>
-                              )}
-                            </div>
-                            {isEditing ? (
-                              <div className="mt-7 rounded-[24px] border border-[#dbe7e3] bg-[linear-gradient(180deg,rgba(78,204,163,0.08)_0%,rgba(255,255,255,0.95)_100%)] p-5 shadow-[0_14px_34px_rgba(78,204,163,0.08)]">
-                                <div className="mb-4 flex items-center gap-2">
-                                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#4ECCA3]/12 text-[#1f8f69]">
-                                    <PencilIcon className="h-4 w-4" />
-                                  </span>
-                                  <div>
-                                    <div className="text-sm font-semibold text-slate-900">
-                                      {t('Contacts.editMode', { defaultValue: 'Edit mode' })}
-                                    </div>
-                                    <div className="text-xs text-slate-500">
-                                      {t('Contacts.editModeDescription', {
-                                        defaultValue: 'Update your public profile details shown across Moments, Contacts, and chat.',
-                                      })}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                  <EditableField
-                                    label={t('Contacts.city', { defaultValue: 'City' })}
-                                    value={draft.city}
-                                    onChange={(value) => setDraft((current) => ({ ...current, city: value }))}
-                                  />
-                                  <EditableField
-                                    label={t('Contacts.countryCode', { defaultValue: 'Country code' })}
-                                    value={draft.countryCode}
-                                    onChange={(value) => setDraft((current) => ({ ...current, countryCode: value.toUpperCase() }))}
-                                  />
-                                  <EditableField
-                                    label={t('Contacts.gender', { defaultValue: 'Gender' })}
-                                    value={draft.gender}
-                                    onChange={(value) => setDraft((current) => ({ ...current, gender: value }))}
-                                  />
-                                  <EditableField
-                                    label={t('Contacts.languages', { defaultValue: 'Languages' })}
-                                    value={draft.languages}
-                                    onChange={(value) => setDraft((current) => ({ ...current, languages: value }))}
-                                    placeholder={t('Contacts.languagesPlaceholder', { defaultValue: 'English, Chinese' })}
-                                  />
-                                  <div className="md:col-span-2">
-                                    <EditableField
-                                      label={t('Contacts.tags', { defaultValue: 'Tags' })}
-                                      value={draft.tags}
-                                      onChange={(value) => setDraft((current) => ({ ...current, tags: value }))}
-                                      placeholder={t('Contacts.tagsPlaceholder', { defaultValue: 'creator, traveler, world-native' })}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            ) : (
-                              <>
-                                <div className="mt-7 grid max-w-[460px] grid-cols-2 gap-x-12 gap-y-3.5 text-sm text-slate-600">
-                                  <InlineMeta value={joinedLabel} icon={<CalendarIcon className="h-3.5 w-3.5" />} />
-                                  <InlineMeta value={locationLabel} icon={<LocationIcon className="h-3.5 w-3.5" />} />
-                                  <WorldMetaLink
-                                    value={worldLabel}
-                                    canVisit={canVisitWorld}
-                                    onClick={canVisitWorld ? () => input.onVisitWorld(worldNavigationId) : undefined}
-                                  />
-                                  <InlineMeta value={originLabel} icon={<OriginIcon className="h-3.5 w-3.5" />} />
-                                </div>
-                                {profile.tags.length > 0 ? (
-                                  <div className="mt-7 flex flex-wrap gap-2.5">
-                                    {profile.tags.map((tag) => (
-                                      <span
-                                        key={tag}
-                                        className="rounded-full bg-[rgba(15,23,42,0.05)] px-3 py-1.5 text-[12px] font-medium backdrop-blur-sm transition hover:bg-[rgba(15,23,42,0.08)] hover:shadow-[0_8px_22px_rgba(15,23,42,0.07)]"
-                                        style={{ color: '#1f8f69' }}
-                                      >
-                                        {tag}
-                                      </span>
-                                    ))}
-                                  </div>
-                                ) : null}
-                              </>
-                            )}
-                          </div>
-
-                          <div className={`hidden shrink-0 xl:ml-auto xl:flex xl:w-[344px] xl:flex-col xl:items-end xl:pl-10 ${isEditing ? '' : 'xl:border-l xl:border-white/35'}`}>
-                            <div className="mt-[6px] flex w-full items-center justify-end gap-3">
-                              <ContactDetailActionButtons
-                                onMessage={input.onMessage}
-                                onSendGift={input.onSendGift}
-                                showGiftButton={showGiftButton}
-                                showMessageButton={showMessageButton}
+                  <div className="relative rounded-[30px] border border-white/38 bg-white/40 px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[18px] supports-[backdrop-filter]:bg-white/30 xl:px-7">
+                    <div className={isEditing
+                      ? 'grid grid-cols-[150px_minmax(0,1fr)_220px] items-start gap-6 lg:grid-cols-[160px_minmax(0,1fr)_250px] xl:grid-cols-[180px_minmax(0,1fr)_280px] xl:gap-8'
+                      : 'grid grid-cols-[150px_minmax(0,1fr)] items-start gap-6 pr-[280px] lg:grid-cols-[160px_minmax(0,1fr)] lg:pr-[300px] xl:grid-cols-[180px_minmax(0,1fr)] xl:gap-8 xl:pr-[340px]'}>
+                      <div className="flex shrink-0 flex-col items-center gap-3 pt-[6px]">
+                          <div className="group relative cursor-pointer">
+                            <div className="relative">
+                              <EntityAvatar
+                                imageUrl={isEditing ? draft.avatarUrl || null : profile.avatarUrl}
+                                name={isEditing ? draft.displayName || profile.displayName : profile.displayName}
+                                kind={profile.isAgent ? 'agent' : 'human'}
+                                sizeClassName="h-32 w-32"
+                                textClassName="text-4xl font-bold"
+                                fallbackClassName={profile.isAgent ? undefined : 'bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-[#1f8f69]'}
+                                className={profile.isAgent ? '' : 'rounded-full border border-white/85 shadow-[0_14px_34px_rgba(15,23,42,0.12)]'}
                               />
+
+                              {SHOW_AVATAR_ONLINE_INDICATOR && profile.isOnline ? (
+                                <span className="absolute bottom-2 right-2 h-5 w-5 rounded-full border-[3px] border-white bg-[#28c189] shadow-md" />
+                              ) : null}
+
+                              {isEditing && input.isOwnProfile ? (
+                                <>
+                                  <input
+                                    ref={avatarInputRef}
+                                    type="file"
+                                    accept={ACCEPTED_AVATAR_TYPES.join(',')}
+                                    className="hidden"
+                                    onChange={(event) => {
+                                      void handleAvatarSelect(event);
+                                    }}
+                                  />
+                                  <div
+                                    onClick={() => !isUploadingAvatar && avatarInputRef.current?.click()}
+                                    className={`absolute inset-0 flex items-center justify-center ${profile.isAgent ? 'rounded-[12px]' : 'rounded-full'} transition-all ${
+                                      isUploadingAvatar
+                                        ? 'bg-black/50'
+                                        : 'cursor-pointer bg-black/0 group-hover:bg-black/40'
+                                    }`}
+                                  >
+                                    {isUploadingAvatar ? (
+                                      <div className="flex flex-col items-center gap-2 text-white">
+                                        <SpinnerIcon className="h-7 w-7 border-white/30 border-t-white" />
+                                        <span className="text-xs font-medium">{t('Profile.avatarUploading', { defaultValue: 'Uploading avatar...' })}</span>
+                                      </div>
+                                    ) : (
+                                      <div className="flex flex-col items-center gap-2 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+                                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                            <polyline points="17 8 12 3 7 8" />
+                                            <line x1="12" y1="3" x2="12" y2="15" />
+                                          </svg>
+                                        </div>
+                                        <span className="text-xs font-medium">
+                                          {t('Contacts.changePhoto', { defaultValue: 'Change Photo' })}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </>
+                              ) : null}
                             </div>
-                            <div className="mt-[62px] grid w-[260px] grid-cols-[1fr_18px_1fr_18px_1fr] items-start gap-x-0">
-                              <StatTile label={t('Profile.friends', { defaultValue: 'Friends' })} value={friendCount} />
-                              <StatDivider />
-                              <StatTile label={t('Profile.posts', { defaultValue: 'Posts' })} value={postCount} />
-                              <StatDivider />
-                              <StatTile label={t('Profile.likes', { defaultValue: 'Likes' })} value={likesCount} />
+                          </div>
+
+                          {isEditing && input.isOwnProfile ? (
+                            <p className="text-[11px] text-slate-400">
+                              {t('Profile.uploadLimit', { defaultValue: 'JPG or PNG, max 5MB' })}
+                            </p>
+                          ) : null}
+                        </div>
+
+                      <div className="min-w-0 self-start max-w-[480px] lg:max-w-[560px] xl:max-w-[620px]">
+                        <div className="flex flex-wrap items-center gap-2" />
+                        {isEditing ? (
+                          <div className="mt-3 space-y-4">
+                            <label className="block">
+                              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                                {t('Contacts.displayName', { defaultValue: 'Display name' })}
+                              </span>
+                              <input
+                                type="text"
+                                value={draft.displayName}
+                                onChange={(event) => setDraft((current) => ({ ...current, displayName: event.target.value }))}
+                                className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[28px] font-semibold leading-[1.05] tracking-[0.02em] text-[#1A1A1B] outline-none transition focus:border-[#4ECCA3] focus:ring-4 focus:ring-[#4ECCA3]/10"
+                              />
+                            </label>
+                            <label className="block">
+                              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                                {t('Contacts.handle', { defaultValue: 'Handle' })}
+                              </span>
+                              <input
+                                type="text"
+                                value={profile.handle}
+                                disabled
+                                className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[13px] font-medium tracking-[0.02em] text-[#6E6E73]"
+                              />
+                            </label>
+                            <label className="block">
+                              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                                {t('Contacts.bio', { defaultValue: 'Bio' })}
+                              </span>
+                              <textarea
+                                value={draft.bio}
+                                onChange={(event) => setDraft((current) => ({ ...current, bio: event.target.value }))}
+                                rows={4}
+                                className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[14px] leading-[1.7] text-[#424245] outline-none transition focus:border-[#4ECCA3] focus:ring-4 focus:ring-[#4ECCA3]/10"
+                              />
+                            </label>
+                          </div>
+                        ) : (
+                          <>
+                            <h1 className="mt-1 text-[30px] font-semibold leading-[1.05] tracking-[0.05em] text-[#1A1A1B] xl:text-[32px]">
+                              {profile.displayName}
+                            </h1>
+                            <p className="mt-2 text-[13px] font-medium tracking-[0.02em] text-[#6E6E73]">
+                              {profile.handle}
+                            </p>
+                            <p className="mt-5 max-w-[420px] text-[14px] leading-[1.7] text-[#424245]">
+                              {headline}
+                            </p>
+                          </>
+                        )}
+                        {isEditing ? (
+                          <div className="mt-7 rounded-[24px] border border-[#dbe7e3] bg-[linear-gradient(180deg,rgba(78,204,163,0.08)_0%,rgba(255,255,255,0.95)_100%)] p-5 shadow-[0_14px_34px_rgba(78,204,163,0.08)]">
+                            <div className="mb-4 flex items-center gap-2">
+                              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#4ECCA3]/12 text-[#1f8f69]">
+                                <PencilIcon className="h-4 w-4" />
+                              </span>
+                              <div>
+                                <div className="text-sm font-semibold text-slate-900">
+                                  {t('Contacts.editMode', { defaultValue: 'Edit mode' })}
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                  {t('Contacts.editModeDescription', {
+                                    defaultValue: 'Update your public profile details shown across Moments, Contacts, and chat.',
+                                  })}
+                                </div>
+                              </div>
                             </div>
-                            {input.isOwnProfile && isEditing ? (
-                              <div className="mt-8 w-full">
-                                <ContactDetailSaveActions
-                                  draftDisplayName={draft.displayName}
-                                  isSaving={isSaving}
-                                  isUploadingAvatar={isUploadingAvatar}
-                                  onCancel={cancelEditing}
-                                  onSave={() => {
-                                    void handleSaveProfile();
-                                  }}
-                                  saveError={saveError}
-                                  stacked={false}
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                              <EditableField
+                                label={t('Contacts.city', { defaultValue: 'City' })}
+                                value={draft.city}
+                                onChange={(value) => setDraft((current) => ({ ...current, city: value }))}
+                              />
+                              <EditableField
+                                label={t('Contacts.countryCode', { defaultValue: 'Country code' })}
+                                value={draft.countryCode}
+                                onChange={(value) => setDraft((current) => ({ ...current, countryCode: value.toUpperCase() }))}
+                              />
+                              <EditableField
+                                label={t('Contacts.gender', { defaultValue: 'Gender' })}
+                                value={draft.gender}
+                                onChange={(value) => setDraft((current) => ({ ...current, gender: value }))}
+                              />
+                              <EditableField
+                                label={t('Contacts.languages', { defaultValue: 'Languages' })}
+                                value={draft.languages}
+                                onChange={(value) => setDraft((current) => ({ ...current, languages: value }))}
+                                placeholder={t('Contacts.languagesPlaceholder', { defaultValue: 'English, Chinese' })}
+                              />
+                              <div className="md:col-span-2">
+                                <EditableField
+                                  label={t('Contacts.tags', { defaultValue: 'Tags' })}
+                                  value={draft.tags}
+                                  onChange={(value) => setDraft((current) => ({ ...current, tags: value }))}
+                                  placeholder={t('Contacts.tagsPlaceholder', { defaultValue: 'creator, traveler, world-native' })}
                                 />
                               </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="mt-7 grid max-w-[460px] grid-cols-2 gap-x-12 gap-y-3.5 text-sm text-slate-600">
+                              <InlineMeta value={joinedLabel} icon={<CalendarIcon className="h-3.5 w-3.5" />} />
+                              <InlineMeta value={locationLabel} icon={<LocationIcon className="h-3.5 w-3.5" />} />
+                              <WorldMetaLink
+                                value={worldLabel}
+                                canVisit={canVisitWorld}
+                                onClick={canVisitWorld ? () => input.onVisitWorld(worldNavigationId) : undefined}
+                              />
+                              <InlineMeta value={originLabel} icon={<OriginIcon className="h-3.5 w-3.5" />} />
+                            </div>
+                            {profile.tags.length > 0 ? (
+                              <div className="mt-7 flex flex-wrap gap-2.5">
+                                {profile.tags.map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="rounded-full bg-[rgba(15,23,42,0.05)] px-3 py-1.5 text-[12px] font-medium backdrop-blur-sm transition hover:bg-[rgba(15,23,42,0.08)] hover:shadow-[0_8px_22px_rgba(15,23,42,0.07)]"
+                                    style={{ color: '#1f8f69' }}
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
                             ) : null}
+                          </>
+                        )}
+                      </div>
+
+                      {isEditing ? (
+                        <div className="flex w-full shrink-0 flex-col items-end gap-6 self-start border-l border-transparent pt-[6px] pl-5 lg:pl-6 xl:pl-8">
+                          <div className="w-full mt-auto">
+                            <ContactDetailSaveActions
+                              draftDisplayName={draft.displayName}
+                              isSaving={isSaving}
+                              isUploadingAvatar={isUploadingAvatar}
+                              onCancel={cancelEditing}
+                              onSave={() => {
+                                void handleSaveProfile();
+                              }}
+                              saveError={saveError}
+                              stacked={false}
+                            />
                           </div>
                         </div>
-                      </div>
+                      ) : null}
                     </div>
+                    {!isEditing ? (
+                      <>
+                        <div className="absolute right-7 top-7 hidden items-center justify-end gap-3 xl:flex xl:right-8 xl:top-8">
+                          <ContactDetailActionButtons
+                            onMessage={input.onMessage}
+                            onSendGift={input.onSendGift}
+                            showGiftButton={showGiftButton}
+                            showMessageButton={showMessageButton}
+                          />
+                        </div>
+                        <div className="absolute right-7 top-1/2 hidden w-[240px] -translate-y-1/2 xl:block xl:right-8 xl:w-[260px]">
+                          <div className="grid grid-cols-[1fr_18px_1fr_18px_1fr] items-start gap-x-0">
+                            <StatTile label={t('Profile.friends', { defaultValue: 'Friends' })} value={friendCount} />
+                            <StatDivider />
+                            <StatTile label={t('Profile.posts', { defaultValue: 'Posts' })} value={postCount} />
+                            <StatDivider />
+                            <StatTile label={t('Profile.likes', { defaultValue: 'Likes' })} value={likesCount} />
+                          </div>
+                        </div>
+                        <div className="mt-5 space-y-4 xl:hidden">
+                          <div className="flex items-center gap-2">
+                            <ContactDetailActionButtons
+                              onMessage={input.onMessage}
+                              onSendGift={input.onSendGift}
+                              showGiftButton={showGiftButton}
+                              showMessageButton={showMessageButton}
+                            />
+                          </div>
+                          <div className="grid max-w-[228px] grid-cols-3 gap-2">
+                            <StatTile label={t('Profile.friends', { defaultValue: 'Friends' })} value={friendCount} />
+                            <StatTile label={t('Profile.posts', { defaultValue: 'Posts' })} value={postCount} />
+                            <StatTile label={t('Profile.likes', { defaultValue: 'Likes' })} value={likesCount} />
+                          </div>
+                        </div>
+                      </>
+                    ) : null}
                   </div>
 
                   <div className="mt-6">

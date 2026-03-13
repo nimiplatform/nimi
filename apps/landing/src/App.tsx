@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DesktopSection } from './components/desktop-section.js';
+import { FaqSection } from './components/faq-section.js';
 import { HeroSection } from './components/hero-section.js';
 import { ArchitectureSection } from './components/architecture-section.js';
 import { LanguageToggle } from './components/language-toggle.js';
@@ -63,7 +64,7 @@ export function App() {
   }, [locale]);
 
   const content = getLandingContent(locale);
-  const sectionNavItems = [
+  const sectionNavItems: Array<{ href: string; label: string; external?: boolean }> = [
     { href: '#install', label: content.nav.install },
     { href: '#sdk', label: content.nav.sdk },
     { href: '#catalog', label: content.nav.catalog },
@@ -71,7 +72,6 @@ export function App() {
     { href: '#desktop', label: content.nav.desktop },
     { href: '#security', label: content.nav.security },
     { href: '#mods', label: content.nav.mods },
-    { href: links.discordUrl, label: content.nav.discord, external: true },
   ];
 
   return (
@@ -144,6 +144,7 @@ export function App() {
         <ModsSection content={content.mods} links={links} locale={locale} />
         <SecuritySection content={content.security} />
         <OpenSourceSection content={content.openSource} links={links} locale={locale} />
+        <FaqSection content={content.faq} links={links} />
       </main>
 
       <footer className="pb-10 pt-2">

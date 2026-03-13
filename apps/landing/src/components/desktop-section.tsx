@@ -10,6 +10,7 @@ export type DesktopSectionProps = {
 
 export function DesktopSection(props: DesktopSectionProps) {
   const [primaryFeature, secondaryFeature, tertiaryFeature, quaternaryFeature] = props.content.features;
+  const availability = props.content.availability;
   const isChinese = props.locale === 'zh';
   const chromeLabels = isChinese
     ? {
@@ -55,6 +56,22 @@ export function DesktopSection(props: DesktopSectionProps) {
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#e1fbef] via-[#e2fafe] to-[#e8f2fe] opacity-80" />
 
       <div className="container-nimi relative z-10 mx-auto max-w-[1060px]">
+        <div className="mb-8 rounded-[24px] border border-white/70 bg-white/70 p-5 shadow-[0_18px_48px_-24px_rgba(14,165,233,0.18)] backdrop-blur-xl md:mb-10 md:p-6">
+          <p className="text-[12px] font-bold uppercase tracking-[0.24em] text-[#2bb28f]">
+            {availability.eyebrow}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {availability.items.map((item) => (
+              <span
+                key={item}
+                className="inline-flex min-h-10 items-center rounded-full border border-[#38d6a3]/20 bg-white/90 px-4 py-2 text-[13px] font-semibold text-slate-700 shadow-[0_8px_20px_rgba(45,212,191,0.06)]"
+              >
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+
         <div className="reveal relative flex flex-col rounded-[24px] border border-white bg-white shadow-[0_20px_50px_-15px_rgba(45,212,191,0.1),_0_0_40px_rgba(0,0,0,0.03)] xl:min-h-[480px] xl:flex-row">
           <div className="flex flex-col justify-center p-10 md:p-14 lg:p-16 xl:w-[42%] xl:pr-10 2xl:w-[45%]">
             <h3 className="text-[42px] font-bold leading-[1.12] tracking-tight text-slate-900 md:text-5xl">

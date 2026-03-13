@@ -25,6 +25,10 @@ import { retryRuntimeMod } from '@renderer/mod-ui/host/retry-runtime-mod';
 import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import {
+  persistStoredSettingsModId,
+  persistStoredSettingsSelected,
+} from '@renderer/features/settings/settings-storage';
+import {
   buildDockMods,
   buildManagementSections,
   describeConsentReasons,
@@ -158,6 +162,7 @@ export type ModHubPageModel = {
   onDisableMod: (modId: string) => void;
   onRetryMod: (modId: string) => void;
   onOpenModFolder: (modId: string) => void;
+  onOpenModSettings: (modId: string) => void;
   onOpenModsFolder: () => void;
   onSelectMod: (modId: string | null) => void;
 };
@@ -653,6 +658,14 @@ export function useModHubPageModel(): ModHubPageModel {
     });
   }, [installedModsDir]);
 
+  const onOpenModSettings = useCallback((modId: string) => {
+    const normalized = normalizeModId(modId);
+    if (!normalized) return;
+    persistStoredSettingsSelected('extensions');
+    persistStoredSettingsModId(normalized);
+    setActiveTab('settings');
+  }, [setActiveTab]);
+
   return {
     searchQuery,
     filteredMods,
@@ -676,6 +689,7 @@ export function useModHubPageModel(): ModHubPageModel {
     onDisableMod,
     onRetryMod,
     onOpenModFolder,
+    onOpenModSettings,
     onOpenModsFolder,
     onSelectMod,
   };

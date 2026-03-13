@@ -36,7 +36,7 @@ export function PostFeedWithMediaPreview({
 
   return (
     <div className="space-y-8">
-      <section className="grid grid-cols-1 items-start gap-6 md:grid-cols-2">
+      <section className="grid grid-cols-1 items-start gap-6 min-[980px]:grid-cols-2">
         {posts.map((post) => (
           <div
             key={post.id}
@@ -54,7 +54,7 @@ export function PostFeedWithMediaPreview({
           </div>
         ))}
         {loadError ? (
-          <div className="rounded-2xl border border-red-200/60 bg-red-50/80 px-4 py-3 text-xs text-red-700 backdrop-blur-sm md:col-span-2">
+          <div className="rounded-2xl border border-red-200/60 bg-red-50/80 px-4 py-3 text-xs text-red-700 backdrop-blur-sm min-[980px]:col-span-2">
             <p>{loadError}</p>
             <button
               type="button"
@@ -65,8 +65,8 @@ export function PostFeedWithMediaPreview({
             </button>
           </div>
         ) : null}
-        {loadingMore ? <div className="md:col-span-2">{skeleton}</div> : null}
-        <div ref={loadMoreRef} className="h-1 md:col-span-2" />
+        {loadingMore ? <div className="min-[980px]:col-span-2">{skeleton}</div> : null}
+        <div ref={loadMoreRef} className="h-1 min-[980px]:col-span-2" />
       </section>
     </div>
   );

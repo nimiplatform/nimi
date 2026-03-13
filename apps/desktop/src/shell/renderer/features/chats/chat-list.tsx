@@ -140,7 +140,7 @@ export function ChatList() {
     <div className="flex h-full flex-col bg-[#F8F9FB]">
       {/* Header */}
       <div className="flex h-14 items-center justify-between px-4 shrink-0">
-        <h1 className={APP_PAGE_TITLE_CLASS}>{t('Chat.title')}</h1>
+        <h1 className={`${APP_PAGE_TITLE_CLASS} text-[22px]`}>{t('Chat.title')}</h1>
       </div>
 
       {/* Top row: search only */}

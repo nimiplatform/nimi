@@ -348,10 +348,9 @@ export function ExploreView(props: ExploreViewProps) {
 
           <section className="mt-12">
             <div className="mb-6 flex items-center justify-between">
-              <h2 className={`${APP_DISPLAY_SECTION_TITLE_CLASS}`} style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.1em' }}>
+              <h2 className={APP_DISPLAY_SECTION_TITLE_CLASS} style={{ fontFamily: 'var(--font-display)' }}>
                 {t('Explore.dynamicFeed', { defaultValue: 'Dynamic Feed' })}
               </h2>
-              <div className="h-[1px] flex-1 mx-6 bg-gradient-to-r from-gray-200 to-transparent opacity-50" />
             </div>
             <PostFeed
               key={props.postFeedKey}

@@ -269,23 +269,6 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
           />
         </div>
 
-        {/* Fixed back button - top left */}
-        {props.onBack && (
-          <button
-            onClick={props.onBack}
-            className="fixed z-50 flex items-center justify-center w-10 h-10 rounded-full bg-black/50 border border-[#4ECCA3]/20 text-[#4ECCA3] hover:bg-black/70 hover:border-[#4ECCA3]/40 transition-all"
-            style={{ 
-              top: '24px',
-              left: '24px'
-            }}
-            aria-label={t('WorldDetail.backToList', { defaultValue: 'Back to List' })}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-          </button>
-        )}
-
         <div className="relative z-10 w-[min(1400px,calc(100vw-48px))] mx-auto py-6 flex flex-col gap-5">
           {/* Hero Banner - Large sci-fi/cultivation themed image */}
           <section className="relative overflow-hidden rounded-[20px] border border-[#4ECCA3]/20">
@@ -331,6 +314,21 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                   OASIS WORLD
                 </span>
               </div>
+
+              {/* Back button inside hero card */}
+              {props.onBack && (
+                <div className="absolute left-4 top-4 z-20">
+                  <button
+                    onClick={props.onBack}
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-[#4ECCA3]/20 bg-black/45 text-[#4ECCA3] backdrop-blur-md transition-all hover:bg-black/65 hover:border-[#4ECCA3]/40"
+                    aria-label={t('WorldDetail.backToList', { defaultValue: 'Back to List' })}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                </div>
+              )}
 
               {/* Hero content - bottom area */}
               <div className="absolute bottom-0 left-0 right-0 p-8">
@@ -412,8 +410,11 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
               {/* World Name + ID Badge */}
               <div className="flex items-center gap-3 mb-3 flex-wrap">
                 <h3 className="text-xl font-bold text-[#e8f5ee]">{displayValue(world.name)}</h3>
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#4ECCA3]/10 border border-[#4ECCA3]/20 text-xs text-[#4ECCA3] font-mono">
-                  ID: {world.id ? (world.id.length > 20 ? world.id.slice(0, 16) + '...' : world.id) : 'N/A'}
+                <div className="inline-flex max-w-full items-start gap-2 rounded-lg border border-[#4ECCA3]/20 bg-[#4ECCA3]/10 px-3 py-1.5 text-xs font-mono text-[#4ECCA3]">
+                  <span className="shrink-0">ID:</span>
+                  <span className="break-all whitespace-normal">
+                    {world.id || 'N/A'}
+                  </span>
                 </div>
               </div>
 

@@ -98,7 +98,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
         style={{ width: `${sidebarWidth}px` }}
       >
         <div className="flex h-14 shrink-0 items-center px-5">
-          <h1 className={APP_PAGE_TITLE_CLASS}>{t('runtimeConfig.panel.title', { defaultValue: 'AI Runtime' })}</h1>
+          <h1 className={`${APP_PAGE_TITLE_CLASS} text-[22px]`}>{t('runtimeConfig.panel.title', { defaultValue: 'AI Runtime' })}</h1>
         </div>
         <RuntimeSidebar
           activePage={activePage}
@@ -122,7 +122,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
       <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">
         <div className="flex h-14 shrink-0 items-center bg-white px-6">
           <div className="flex w-full items-center justify-between">
-            <h2 className={APP_PAGE_TITLE_CLASS}>{pageMeta.name}</h2>
+            <h2 className={`${APP_PAGE_TITLE_CLASS} text-[22px]`}>{pageMeta.name}</h2>
             <div className="flex items-center gap-2">
               <DaemonStatusBadge running={daemonRunning} />
               <StatusBadge status={runtimeStatus} />

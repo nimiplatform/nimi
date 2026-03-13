@@ -33,7 +33,7 @@ export const MOD_HUB_COLORS = {
 export type BadgeType = 'verified' | 'catalog' | 'official' | 'community';
 export type ModHubModSource = 'runtime' | 'catalog';
 export type ModHubRuntimeAction = 'install' | 'uninstall' | 'enable' | 'disable' | 'update' | 'retry';
-export type ModHubActionKind = ModHubRuntimeAction | 'open' | 'open-folder';
+export type ModHubActionKind = ModHubRuntimeAction | 'open' | 'open-folder' | 'settings';
 export type ModHubPendingActionType = ModHubRuntimeAction;
 export type ModHubVisualState =
   | 'failed'
@@ -229,6 +229,7 @@ function resolveMenuActions(mod: {
     actions.push({ kind: 'disable', tone: 'ghost' });
   }
   actions.push({ kind: 'uninstall', tone: 'danger' });
+  actions.push({ kind: 'settings', tone: 'ghost' });
   if (String(mod.runtimeSourceDir || '').trim() || String(mod.runtimeManifestPath || '').trim()) {
     actions.push({ kind: 'open-folder', tone: 'ghost' });
   }

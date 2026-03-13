@@ -1,11 +1,32 @@
 import { ChromeTab } from '@renderer/components/chrome-tab.js';
 import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { renderShellNavIcon } from '@renderer/app-shell/layouts/navigation-config';
 
 type ModWorkspaceTabsProps = {
   placement?: 'content' | 'titlebar';
 };
+
+function BentoMenuIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 13 13"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      {[
+        [0.75, 0.75],
+        [7.25, 0.75],
+        [0.75, 7.25],
+        [7.25, 7.25]
+      ].map(([x, y]) => (
+        <rect key={`${x}-${y}`} x={x} y={y} width="5" height="5" rx="0.45" fill="currentColor" />
+      ))}
+    </svg>
+  );
+}
 
 export function ModWorkspaceTabs(props: ModWorkspaceTabsProps) {
   const placement = props.placement || 'content';
@@ -27,17 +48,17 @@ export function ModWorkspaceTabs(props: ModWorkspaceTabsProps) {
           <div className="inline-flex min-w-max items-end gap-1.5 pr-2">
             <button
               type="button"
-              onClick={() => setActiveTab('home')}
-              className={`mb-0 flex h-9 w-9 items-center justify-center rounded-[14px] border transition-colors ${
-                activeTab === 'home'
-                  ? 'border-white/70 bg-[#f7fbfd] text-[#1A1D1F] shadow-[0_10px_24px_rgba(15,23,42,0.08)]'
-                  : 'border-white/10 bg-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.82)] hover:bg-[rgba(255,255,255,0.12)]'
+              onClick={() => setActiveTab('mods')}
+              className={`mb-0 flex h-[30px] w-[30px] items-center justify-center rounded-[8px] border transition-colors ${
+                activeTab === 'mods'
+                  ? 'border-white/70 bg-[#f7fbfd] text-[#4ECCA3] shadow-[0_10px_24px_rgba(15,23,42,0.08)]'
+                  : 'border-white/8 bg-[rgba(255,255,255,0.03)] text-[rgba(255,255,255,0.82)] hover:bg-[rgba(255,255,255,0.08)]'
               }`}
-              aria-label={i18n.t('Navigation.home', { defaultValue: 'Home' })}
-              title={i18n.t('Navigation.home', { defaultValue: 'Home' })}
+              aria-label={i18n.t('Navigation.mods', { defaultValue: 'Mods' })}
+              title={i18n.t('Navigation.mods', { defaultValue: 'Mods' })}
             >
-              <span className="flex h-4 w-4 items-center justify-center">
-                {renderShellNavIcon('home')}
+              <span className="flex h-[13px] w-[13px] items-center justify-center">
+                <BentoMenuIcon />
               </span>
             </button>
             {modWorkspaceTabs.map((tab) => {

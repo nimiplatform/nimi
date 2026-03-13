@@ -276,10 +276,10 @@ export function AgentRecommendationCard({
           e.stopPropagation();
           onAddFriend?.();
         }}
-        className="absolute right-3 top-3 z-10 flex h-5.5 w-5.5 items-center justify-center rounded-full bg-mint-500 text-white shadow-sm transition-all hover:scale-110 hover:bg-mint-600"
+        className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-mint-500 text-white shadow-sm transition-all hover:scale-110 hover:bg-mint-600"
         aria-label={i18n.t('Contacts.addContact', { defaultValue: 'Add Friend' })}
       >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
@@ -302,7 +302,7 @@ export function AgentRecommendationCard({
           imageUrl={agent.avatarUrl}
           name={agent.name}
           kind="agent"
-          sizeClassName="h-16 w-16"
+          sizeClassName="h-20 w-20"
           textClassName="text-lg font-semibold"
         />
         <OnlineIndicator isOnline={agent.isOnline} />

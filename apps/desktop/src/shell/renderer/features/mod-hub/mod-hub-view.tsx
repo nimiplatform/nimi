@@ -43,24 +43,26 @@ function DockTile({
     <button
       type="button"
       onClick={onClick}
-      className="group flex flex-col items-center gap-1.5 rounded-lg px-1 py-2 transition-transform hover:scale-105 active:scale-95"
+      className="group flex flex-col items-center gap-3 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 active:scale-95"
     >
       <div
-        className="relative flex h-[3.25rem] w-[3.25rem] items-center justify-center rounded-[13px] text-sm font-bold text-white shadow-[0_3px_10px_rgba(0,0,0,0.15)] transition-shadow group-hover:shadow-[0_6px_20px_rgba(0,0,0,0.22)]"
-        style={{ background: iconBg }}
+        className={`relative flex h-16 w-16 items-center justify-center rounded-2xl text-sm font-bold text-white transition-all duration-200 group-hover:scale-110 ${
+          iconImageSrc ? '' : 'shadow-sm group-hover:shadow-md'
+        }`}
+        style={{ background: iconImageSrc ? 'transparent' : iconBg }}
       >
         {iconImageSrc ? (
           <img
             src={iconImageSrc}
             alt={`${modName} logo`}
-            className="h-full w-full object-contain p-1"
+            className="h-full w-full object-contain"
           />
         ) : (
           iconText
         )}
-        <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-[1.5px] border-[#f7f5f0] ${accentClassName}`} />
+        <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-[1.5px] border-[#F5F5F7] ${accentClassName}`} />
       </div>
-      <span className="line-clamp-1 max-w-[72px] text-center text-[11px] leading-tight text-stone-500 transition-colors group-hover:text-stone-800">
+      <span className="line-clamp-2 max-w-[84px] text-center text-[12px] font-medium leading-tight text-gray-700 transition-colors group-hover:text-gray-900">
         {modName}
       </span>
     </button>
@@ -128,42 +130,40 @@ export function ModHubView(model: ModHubPageModel) {
   }, [settingsOpen]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#f7f5f0]">
-      {/* Header */}
-      <div className="z-10 shrink-0 border-b border-stone-200/60 bg-[#f7f5f0]/95 px-6 py-2.5 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#F5F5F7]">
+      <div className="z-10 shrink-0 bg-[#F5F5F7]/95 px-8 py-8 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-6">
           <h1 className={APP_PAGE_TITLE_CLASS}>{t('ModHub.title')}</h1>
-          <div className="flex items-center gap-2.5">
-            {/* Search bar */}
-            <div ref={searchBarRef} className="relative w-[280px]">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400">
+          <div className="flex items-center gap-3">
+            <div ref={searchBarRef} className="relative w-80">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                 {ICON_SEARCH}
               </span>
               <input
                 ref={inputRef}
                 type="text"
-                className="h-9 w-full rounded-md border border-stone-200/80 bg-white/90 pl-9 pr-4 text-sm text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200"
+                className="h-11 w-full rounded-full border border-gray-200 bg-white pl-10 pr-4 text-sm text-gray-900 shadow-sm outline-none transition-shadow placeholder:text-gray-400 focus:border-transparent focus:ring-2 focus:ring-green-400"
                 placeholder={t('ModHub.searchPlaceholder')}
                 value={model.searchQuery}
                 onFocus={model.onSearchFocus}
                 onChange={(event) => model.onSearchQueryChange(event.target.value)}
               />
             </div>
-            {/* Settings dropdown */}
             <div ref={settingsRef} className="relative">
               <button
                 type="button"
                 onClick={() => setSettingsOpen((prev) => !prev)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-stone-200/80 bg-white/80 text-stone-400 transition hover:bg-white hover:text-stone-600"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-400 shadow-sm transition hover:text-gray-600"
+                aria-label={t('ModHub.moreActions')}
               >
                 {ICON_SETTINGS}
               </button>
               {settingsOpen ? (
-                <div className="absolute right-0 top-full z-50 mt-1.5 w-56 overflow-hidden rounded-xl border border-stone-200/80 bg-white py-1 shadow-lg">
-                  <div className="px-3.5 py-2 text-[11px] tabular-nums text-stone-400">
+                <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-gray-100 bg-white py-1 shadow-[0_12px_32px_rgba(15,23,42,0.10)]">
+                  <div className="px-3.5 py-2 text-[11px] tabular-nums text-gray-400">
                     {t('ModHub.installedDock', { count: model.installedModsCount })}
                   </div>
-                  <div className="mx-2 border-t border-stone-100" />
+                  <div className="mx-2 border-t border-gray-100" />
                   <button
                     type="button"
                     onClick={() => {
@@ -171,7 +171,7 @@ export function ModHubView(model: ModHubPageModel) {
                       setSettingsOpen(false);
                     }}
                     disabled={!model.installedModsDir}
-                    className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-stone-600 transition-colors hover:bg-stone-50 disabled:opacity-40"
+                    className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-40"
                   >
                     {ICON_FOLDER}
                     {t('ModHub.openModsFolder')}
@@ -183,18 +183,19 @@ export function ModHubView(model: ModHubPageModel) {
         </div>
       </div>
 
-      {/* Scrollable content */}
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-5xl px-6 py-5">
-          {/* Launchpad-style dock */}
+        <div className="mx-auto max-w-6xl space-y-12 px-8 pb-10">
           <div
             className={`overflow-hidden transition-all duration-300 ease-in-out ${
-              showDock ? 'mb-6 max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+              showDock ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
             }`}
           >
             {model.dockMods.length > 0 ? (
-              <div className="rounded-2xl bg-white/50 px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur-sm">
-                <div className="grid grid-cols-5 justify-items-center gap-x-1 gap-y-1 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-8 xl:grid-cols-9">
+              <section>
+                <div className="mb-6 px-2 text-sm font-medium uppercase tracking-[0.16em] text-gray-500">
+                  {t('ModHub.installedDockSection')}
+                </div>
+                <div className="grid grid-cols-4 gap-x-4 gap-y-8 md:grid-cols-6 lg:grid-cols-8">
                   {model.dockMods.map((mod) => (
                     <DockTile
                       key={mod.id}
@@ -207,26 +208,27 @@ export function ModHubView(model: ModHubPageModel) {
                     />
                   ))}
                 </div>
-              </div>
+              </section>
             ) : (
-              <div className="rounded-xl border border-dashed border-stone-200 px-6 py-8 text-center text-sm text-stone-400">
+              <div className="rounded-3xl border border-dashed border-slate-200 bg-white px-6 py-8 text-center text-sm text-slate-400">
                 {t('ModHub.emptyDock')}
               </div>
             )}
           </div>
 
-          {/* Extension list sections */}
           {model.managementSections.map((section) => {
             if (section.mods.length === 0) return null;
-            const title = section.key === 'installed'
-              ? t('ModHub.installedSection', { count: section.mods.length })
-              : t('ModHub.availableSection', { count: section.mods.length });
+            const isInstalledSection = section.key === 'installed';
             return (
-              <section key={section.key} className="mb-5">
-                <div className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-400">
-                  {title}
+              <section key={section.key} className="rounded-[28px] border border-gray-100 bg-white p-6 shadow-sm">
+                <div className="mb-6 flex items-center justify-between border-b border-gray-50 pb-4">
+                  <h2 className="text-lg font-semibold text-gray-800">
+                    {isInstalledSection
+                      ? t('ModHub.installedSection', { count: section.mods.length })
+                      : t('ModHub.availableSection', { count: section.mods.length })}
+                  </h2>
                 </div>
-                <div className="divide-y divide-stone-100 overflow-hidden rounded-xl border border-stone-200/70 bg-white">
+                <div className="space-y-2">
                   {section.mods.map((mod) => (
                     <ModHubRow
                       key={mod.id}
@@ -241,6 +243,7 @@ export function ModHubView(model: ModHubPageModel) {
                       onDisableMod={model.onDisableMod}
                       onRetryMod={model.onRetryMod}
                       onOpenModFolder={model.onOpenModFolder}
+                      onOpenModSettings={model.onOpenModSettings}
                       onSelectMod={model.onSelectMod}
                     />
                   ))}
@@ -250,7 +253,7 @@ export function ModHubView(model: ModHubPageModel) {
           })}
 
           {!hasVisibleResults && (
-            <div className="rounded-xl border border-dashed border-stone-200 px-6 py-14 text-center text-sm text-stone-400">
+            <div className="rounded-3xl border border-dashed border-slate-200 bg-white px-6 py-14 text-center text-sm text-slate-400">
               {t('ModHub.noSearchResults')}
             </div>
           )}

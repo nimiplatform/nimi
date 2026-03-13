@@ -16,9 +16,12 @@ const ICON_ELLIPSIS = (
   </svg>
 );
 
+const SWITCH_TRACK_CLASS =
+  "peer h-6 w-11 rounded-full bg-gray-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#56D3B2] peer-checked:shadow-[0_0_0_1px_rgba(86,211,178,0.12)] peer-checked:after:translate-x-full peer-checked:after:border-white";
+
 function ModBadge({ label, className }: { label: string; className: string }) {
   return (
-    <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium leading-none ${className}`}>
+    <span className={`inline-flex rounded-md px-2 py-1 text-[10px] font-semibold uppercase leading-none tracking-[0.04em] ${className}`}>
       {label}
     </span>
   );
@@ -42,6 +45,8 @@ function actionLabelKey(kind: ModHubActionDescriptor['kind']): string {
       return 'actionRetry';
     case 'open-folder':
       return 'actionOpenFolder';
+    case 'settings':
+      return 'actionSettings';
     default:
       return 'actionOpen';
   }
@@ -50,13 +55,13 @@ function actionLabelKey(kind: ModHubActionDescriptor['kind']): string {
 function primaryBtnClass(tone: ModHubActionDescriptor['tone']): string {
   switch (tone) {
     case 'primary':
-      return 'bg-emerald-600 text-white hover:bg-emerald-700';
+      return 'rounded-[10px] bg-[#00C48C] text-white shadow-[0_4px_12px_rgba(0,196,140,0.20)] hover:bg-[#00b07e]';
     case 'secondary':
-      return 'bg-stone-100 text-stone-700 hover:bg-stone-200';
+      return 'rounded-[10px] bg-transparent text-slate-500 hover:bg-slate-100 hover:text-slate-700';
     case 'danger':
-      return 'bg-rose-50 text-rose-700 hover:bg-rose-100';
+      return 'rounded-[10px] bg-rose-50 text-rose-700 hover:bg-rose-100';
     default:
-      return 'bg-stone-50 text-stone-600 hover:bg-stone-100';
+      return 'rounded-[10px] bg-slate-50 text-slate-600 hover:bg-slate-100';
   }
 }
 
@@ -91,6 +96,7 @@ export function ModHubRow({
   onUpdateMod,
   onRetryMod,
   onOpenModFolder,
+  onOpenModSettings,
   onSelectMod,
 }: {
   mod: ModHubMod;
@@ -104,6 +110,7 @@ export function ModHubRow({
   onUpdateMod?: ((modId: string) => void) | null;
   onRetryMod?: ((modId: string) => void) | null;
   onOpenModFolder?: ((modId: string) => void) | null;
+  onOpenModSettings?: ((modId: string) => void) | null;
   onSelectMod?: ((modId: string | null) => void) | null;
 }) {
   const { t } = useTranslation();
@@ -132,6 +139,15 @@ export function ModHubRow({
     pendingAction?.modId === mod.id && pendingAction?.action === action
   );
 
+  const canToggle = mod.isInstalled && mod.visualState !== 'conflict' && mod.visualState !== 'failed';
+  const toggleLoading = isActionLoading(mod.isEnabled ? 'disable' : 'enable');
+  const openAction = mod.primaryAction?.kind === 'open'
+    ? mod.primaryAction
+    : mod.secondaryAction?.kind === 'open'
+      ? mod.secondaryAction
+      : null;
+  const fallbackPrimaryAction = openAction ? null : mod.primaryAction;
+
   const runAction = (action: ModHubActionDescriptor['kind']) => {
     switch (action) {
       case 'install':
@@ -158,17 +174,20 @@ export function ModHubRow({
       case 'open-folder':
         onOpenModFolder?.(mod.id);
         break;
+      case 'settings':
+        onOpenModSettings?.(mod.id);
+        break;
       default:
         break;
     }
   };
 
   const renderActionBtn = (action: ModHubActionDescriptor, variant: 'primary' | 'secondary') => {
-    const loading = action.kind !== 'open' && action.kind !== 'open-folder' && isActionLoading(action.kind);
+    const loading = action.kind !== 'open' && action.kind !== 'open-folder' && action.kind !== 'settings' && isActionLoading(action.kind);
     const disabled = action.kind === 'install' && (mod.supportedByDesktop === false || Boolean(mod.installDisabledReason));
     const classes = variant === 'primary'
-      ? `rounded-md px-3 py-1 text-xs font-medium ${primaryBtnClass(action.tone)}`
-      : 'rounded-md px-2.5 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700';
+      ? `px-5 py-2 text-[14px] font-semibold ${primaryBtnClass(action.tone)}`
+      : 'rounded-[10px] px-4 py-2 text-[14px] font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700';
     return (
       <button
         key={`${action.kind}-${variant}`}
@@ -186,67 +205,92 @@ export function ModHubRow({
     );
   };
 
+  const handleRowClick = () => {
+    if (openAction) {
+      runAction('open');
+      return;
+    }
+    onSelectMod?.(isSelected ? null : mod.id);
+  };
+
   return (
     <div
-      className={`group relative cursor-pointer px-4 py-3 transition-colors ${
-        isSelected ? 'bg-emerald-50/50' : 'hover:bg-stone-50/60'
+      className={`group relative cursor-pointer rounded-2xl border py-4 transition-colors ${
+        isSelected
+          ? 'border-gray-100 bg-gray-50'
+          : `border-transparent hover:border-gray-100 hover:bg-gray-50 ${mod.isInstalled && !mod.isEnabled ? 'opacity-70' : ''}`
       }`}
-      onClick={() => onSelectMod?.(isSelected ? null : mod.id)}
+      onClick={handleRowClick}
     >
-      {isSelected && (
-        <div className="absolute bottom-2 left-0 top-2 w-[3px] rounded-r-full bg-emerald-500" />
-      )}
+      {isSelected ? (
+        <div className="absolute bottom-4 left-[-24px] top-4 w-[3px] rounded-r-full bg-emerald-500" />
+      ) : null}
 
-      <div className="flex items-start gap-3">
-        {/* Icon */}
-        <div
-          className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl text-xs font-bold text-white shadow-sm"
-          style={{ background: mod.iconBg }}
-        >
-          {mod.iconImageSrc ? (
-            <img
-              src={mod.iconImageSrc}
-              alt={`${mod.name} logo`}
-              className="h-full w-full object-contain p-1"
-            />
-          ) : (
-            mod.iconText
-          )}
+      <div className="flex items-center justify-between gap-4 px-4">
+        <div className="flex min-w-0 flex-1 items-start gap-4">
+          <div
+            className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl text-xs font-bold text-white ${
+              mod.iconImageSrc ? '' : 'shadow-sm'
+            } ${mod.isInstalled && !mod.isEnabled ? 'grayscale' : ''}`}
+            style={{ background: mod.iconImageSrc ? 'transparent' : mod.iconBg }}
+          >
+            {mod.iconImageSrc ? (
+              <img
+                src={mod.iconImageSrc}
+                alt={`${mod.name} logo`}
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              mod.iconText
+            )}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="truncate text-base font-medium text-gray-900">{mod.name}</span>
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">{mod.version}</span>
+              <ModBadge label={stateBadge.label} className={stateBadge.className} />
+              {mod.badge === 'official' ? <ModBadge label={t('ModHub.badgeOfficial')} className="bg-emerald-50 text-emerald-700" /> : null}
+              {mod.badge === 'verified' ? <ModBadge label={t('ModHub.badgeVerified')} className="bg-sky-50 text-sky-700" /> : null}
+              {mod.badge === 'community' ? <ModBadge label={t('ModHub.badgeCommunity')} className="bg-amber-50 text-amber-800" /> : null}
+            </div>
+            <p className="mt-1 line-clamp-1 max-w-3xl text-sm text-gray-500">{mod.description}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+              <span className="rounded-md border border-gray-100 bg-gray-50 px-2 py-0.5">{mod.author}</span>
+              {mod.packageType ? <span className="rounded-md border border-gray-100 bg-gray-50 px-2 py-0.5">{mod.packageType}</span> : null}
+              {mod.installs ? <span>{mod.installs}</span> : null}
+              {mod.rating ? (
+                <span className="inline-flex items-center gap-0.5 text-amber-500">
+                  {ICON_STAR} {mod.rating}
+                </span>
+              ) : null}
+              {mod.availableUpdateVersion ? (
+                <span className="font-medium text-sky-600">
+                  {t('ModHub.updateVersion', { version: mod.availableUpdateVersion.replace(/^v/i, '') })}
+                </span>
+              ) : null}
+            </div>
+          </div>
         </div>
 
-        {/* Info */}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <span className="truncate text-[13px] font-semibold text-stone-900">{mod.name}</span>
-            <span className="shrink-0 text-[11px] text-stone-400">{mod.version}</span>
-            <ModBadge label={stateBadge.label} className={stateBadge.className} />
-            {mod.badge === 'official' ? <ModBadge label={t('ModHub.badgeOfficial')} className="bg-emerald-50 text-emerald-700" /> : null}
-            {mod.badge === 'verified' ? <ModBadge label={t('ModHub.badgeVerified')} className="bg-sky-50 text-sky-700" /> : null}
-            {mod.badge === 'community' ? <ModBadge label={t('ModHub.badgeCommunity')} className="bg-amber-50 text-amber-800" /> : null}
-          </div>
-          <p className="mt-0.5 line-clamp-1 text-xs leading-relaxed text-stone-500">{mod.description}</p>
-          <div className="mt-1 flex items-center gap-2 text-[11px] text-stone-400">
-            <span>{mod.author}</span>
-            {mod.packageType ? <span className="text-stone-300">|</span> : null}
-            {mod.packageType ? <span>{mod.packageType}</span> : null}
-            {mod.installs ? <span>{mod.installs}</span> : null}
-            {mod.rating ? (
-              <span className="inline-flex items-center gap-0.5 text-amber-500">
-                {ICON_STAR} {mod.rating}
-              </span>
-            ) : null}
-            {mod.availableUpdateVersion ? (
-              <span className="font-medium text-sky-600">
-                {t('ModHub.updateVersion', { version: mod.availableUpdateVersion.replace(/^v/i, '') })}
-              </span>
-            ) : null}
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
-          {mod.primaryAction ? renderActionBtn(mod.primaryAction, 'primary') : null}
-          {mod.secondaryAction ? renderActionBtn(mod.secondaryAction, 'secondary') : null}
+        <div className="ml-4 flex shrink-0 items-center gap-4">
+          {fallbackPrimaryAction ? renderActionBtn(fallbackPrimaryAction, 'primary') : null}
+          {!openAction && mod.secondaryAction ? renderActionBtn(mod.secondaryAction, 'secondary') : null}
+          {canToggle ? (
+            <label
+              className="relative inline-flex items-center cursor-pointer"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <input
+                type="checkbox"
+                className="peer sr-only"
+                checked={mod.isEnabled}
+                disabled={toggleLoading}
+                onChange={() => runAction(mod.isEnabled ? 'disable' : 'enable')}
+              />
+              <div className={SWITCH_TRACK_CLASS} />
+            </label>
+          ) : null}
           {mod.menuActions.length > 0 ? (
             <div ref={menuRef} className="relative">
               <button
@@ -255,7 +299,7 @@ export function ModHubRow({
                   event.stopPropagation();
                   setMenuOpen((current) => !current);
                 }}
-                className={`flex h-7 w-7 items-center justify-center rounded-md text-stone-400 transition hover:bg-stone-100 hover:text-stone-600 ${
+                className={`flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 ${
                   menuOpen || isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                 }`}
                 aria-label={t('ModHub.moreActions')}
@@ -263,7 +307,7 @@ export function ModHubRow({
                 {ICON_ELLIPSIS}
               </button>
               {menuOpen ? (
-                <div className="absolute right-0 top-8 z-30 min-w-[140px] overflow-hidden rounded-lg border border-stone-200/80 bg-white py-1 shadow-lg">
+                <div className="absolute right-0 top-9 z-30 min-w-[160px] overflow-hidden rounded-xl border border-slate-200/80 bg-white py-1 shadow-[0_12px_28px_rgba(15,23,42,0.10)]">
                   {mod.menuActions.map((action) => (
                     <button
                       key={action.kind}
@@ -276,7 +320,7 @@ export function ModHubRow({
                       className={`flex w-full items-center px-3 py-1.5 text-left text-xs transition ${
                         action.tone === 'danger'
                           ? 'text-rose-600 hover:bg-rose-50'
-                          : 'text-stone-600 hover:bg-stone-50'
+                          : 'text-slate-600 hover:bg-slate-50'
                       }`}
                     >
                       {t(`ModHub.${actionLabelKey(action.kind)}`)}
@@ -289,9 +333,8 @@ export function ModHubRow({
         </div>
       </div>
 
-      {/* Expanded details on selection */}
       {isSelected ? (
-        <div className="ml-14 mt-2.5 space-y-2">
+        <div className="ml-[64px] mt-3 space-y-2.5 px-4 pb-1">
           {mod.visualState === 'conflict' ? (
             <div className="rounded-lg border border-amber-200/80 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">
               <p className="font-medium">{t('ModHub.conflictWarningTitle')}</p>
@@ -300,7 +343,7 @@ export function ModHubRow({
               </p>
               {Array.isArray(mod.runtimeConflictPaths) && mod.runtimeConflictPaths.length > 0 ? (
                 <p className="mt-1 break-all text-[10px] text-amber-700">
-                  {mod.runtimeConflictPaths.join(' Â· ')}
+                  {mod.runtimeConflictPaths.join(' ¡¤ ')}
                 </p>
               ) : null}
             </div>
@@ -347,3 +390,4 @@ export function ModHubRow({
     </div>
   );
 }
+
