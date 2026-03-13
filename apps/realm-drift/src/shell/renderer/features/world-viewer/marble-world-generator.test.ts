@@ -31,13 +31,12 @@ describe('MarbleWorldGenerator', () => {
     expect(generator.providerName).toBe('World Labs Marble');
   });
 
-  it('generate delegates to generateMarbleWorld', async () => {
+  it('generate delegates to generateMarbleWorld with textPrompt', async () => {
     generateMarbleWorld.mockResolvedValue('op-123');
 
     const result = await generator.generate({
-      worldId: 'w1',
       displayName: 'Test World',
-      prompt: 'A castle',
+      textPrompt: 'A castle',
       quality: 'draft',
     });
 
@@ -52,14 +51,15 @@ describe('MarbleWorldGenerator', () => {
     generateMarbleWorld.mockResolvedValue('op-456');
     const ac = new AbortController();
 
-    await generator.generate({
-      worldId: 'w1',
-      displayName: 'Forest World',
-      prompt: 'A forest',
-      imageUrl: 'https://example.com/img.jpg',
-      quality: 'standard',
-      signal: ac.signal,
-    });
+    await generator.generate(
+      {
+        displayName: 'Forest World',
+        textPrompt: 'A forest',
+        imageUrl: 'https://example.com/img.jpg',
+        quality: 'standard',
+      },
+      ac.signal,
+    );
 
     expect(generateMarbleWorld).toHaveBeenCalledWith(
       { displayName: 'Forest World', prompt: 'A forest', quality: 'standard', imageUrl: 'https://example.com/img.jpg' },
@@ -67,37 +67,72 @@ describe('MarbleWorldGenerator', () => {
     );
   });
 
-  it('poll returns result with viewer URL', async () => {
+  it('poll yields pending then completed result with viewer URL', async () => {
     pollMarbleOperation.mockResolvedValue({
       done: true,
       worldId: 'marble-w1',
-      worldViewerUrl: 'https://marble.worldlabs.ai/viewer/marble-w1',
+      worldViewerUrl: 'https://marble.worldlabs.ai/world/marble-w1',
     });
 
-    const result = await generator.poll('op-123');
+    const ac = new AbortController();
+    const results = [];
+    for await (const update of generator.poll('op-123', ac.signal)) {
+      results.push(update);
+    }
 
-    expect(result).toEqual({
-      operationId: 'op-123',
-      worldViewerUrl: 'https://marble.worldlabs.ai/viewer/marble-w1',
+    expect(results.length).toBe(2);
+    expect(results[0]).toEqual({ status: 'pending' });
+    expect(results[1]).toEqual({
+      status: 'completed',
+      viewerUrl: 'https://marble.worldlabs.ai/world/marble-w1',
+      thumbnailUrl: null,
+      worldId: 'marble-w1',
+      error: null,
     });
   });
 
-  it('poll throws on error result', async () => {
+  it('poll yields failed result on error', async () => {
     pollMarbleOperation.mockResolvedValue({
       done: true,
       error: 'Content filter blocked',
     });
 
-    await expect(generator.poll('op-fail')).rejects.toThrow('Content filter blocked');
+    const ac = new AbortController();
+    const results = [];
+    for await (const update of generator.poll('op-fail', ac.signal)) {
+      results.push(update);
+    }
+
+    expect(results.length).toBe(2);
+    expect(results[0]).toEqual({ status: 'pending' });
+    expect(results[1]).toEqual({
+      status: 'failed',
+      viewerUrl: null,
+      thumbnailUrl: null,
+      worldId: null,
+      error: 'Content filter blocked',
+    });
   });
 
-  it('poll throws when no viewer URL', async () => {
+  it('poll yields failed when no viewer URL', async () => {
     pollMarbleOperation.mockResolvedValue({
       done: true,
       worldViewerUrl: '',
     });
 
-    await expect(generator.poll('op-no-url')).rejects.toThrow('MARBLE_NO_VIEWER_URL');
+    const ac = new AbortController();
+    const results = [];
+    for await (const update of generator.poll('op-no-url', ac.signal)) {
+      results.push(update);
+    }
+
+    expect(results[1]).toEqual({
+      status: 'failed',
+      viewerUrl: null,
+      thumbnailUrl: null,
+      worldId: null,
+      error: 'MARBLE_NO_VIEWER_URL',
+    });
   });
 
   it('getViewerUrl returns null for unknown operations', () => {
@@ -108,11 +143,14 @@ describe('MarbleWorldGenerator', () => {
     pollMarbleOperation.mockResolvedValue({
       done: true,
       worldId: 'marble-w2',
-      worldViewerUrl: 'https://marble.worldlabs.ai/viewer/marble-w2',
+      worldViewerUrl: 'https://marble.worldlabs.ai/world/marble-w2',
     });
 
-    await generator.poll('op-200');
+    const ac = new AbortController();
+    for await (const _ of generator.poll('op-200', ac.signal)) {
+      // consume
+    }
 
-    expect(generator.getViewerUrl('op-200')).toBe('https://marble.worldlabs.ai/viewer/marble-w2');
+    expect(generator.getViewerUrl('op-200')).toBe('https://marble.worldlabs.ai/world/marble-w2');
   });
 });

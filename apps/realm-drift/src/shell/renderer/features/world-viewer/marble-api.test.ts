@@ -47,8 +47,28 @@ describe('marble-api', () => {
 
     const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
     const body = JSON.parse(options.body as string);
-    expect(body.prompt.image_url).toBe('https://example.com/image.jpg');
+    expect(body.world_prompt.type).toBe('image');
+    expect(body.world_prompt.image_url).toBe('https://example.com/image.jpg');
     expect(body.model).toBe('standard');
+  });
+
+  it('generateMarbleWorld sends text prompt with correct world_prompt structure', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ operationId: 'op-text' }),
+    });
+
+    await generateMarbleWorld({
+      displayName: 'Text World',
+      prompt: 'A magical forest',
+      quality: 'mini',
+    });
+
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(options.body as string);
+    expect(body.world_prompt.type).toBe('text');
+    expect(body.world_prompt.text_prompt).toBe('A magical forest');
+    expect(body.world_prompt.image_url).toBeUndefined();
   });
 
   it('throws on HTTP error responses', async () => {
@@ -111,7 +131,7 @@ describe('pollMarbleOperation', () => {
           done: true,
           response: {
             world_id: 'marble-w1',
-            assets: [{ type: 'web_viewer', url: 'https://marble.worldlabs.ai/viewer/marble-w1' }],
+            assets: [{ type: 'web_viewer', url: 'https://marble.worldlabs.ai/world/marble-w1' }],
           },
         }),
       });
@@ -123,7 +143,7 @@ describe('pollMarbleOperation', () => {
 
     const result = await promise;
     expect(result.done).toBe(true);
-    expect(result.worldViewerUrl).toBe('https://marble.worldlabs.ai/viewer/marble-w1');
+    expect(result.worldViewerUrl).toBe('https://marble.worldlabs.ai/world/marble-w1');
     expect(result.worldId).toBe('marble-w1');
   });
 
@@ -136,7 +156,7 @@ describe('pollMarbleOperation', () => {
           world_id: 'marble-w2',
           assets: [
             { type: 'thumbnail', url: 'https://example.com/thumb.jpg' },
-            { type: 'viewer', url: 'https://marble.worldlabs.ai/viewer/marble-w2' },
+            { type: 'viewer', url: 'https://marble.worldlabs.ai/world/marble-w2' },
           ],
         },
       }),
@@ -144,7 +164,7 @@ describe('pollMarbleOperation', () => {
 
     const result = await pollMarbleOperation('op-456');
 
-    expect(result.worldViewerUrl).toBe('https://marble.worldlabs.ai/viewer/marble-w2');
+    expect(result.worldViewerUrl).toBe('https://marble.worldlabs.ai/world/marble-w2');
   });
 
   it('constructs viewer URL from worldId when no asset match', async () => {
@@ -161,7 +181,7 @@ describe('pollMarbleOperation', () => {
 
     const result = await pollMarbleOperation('op-789');
 
-    expect(result.worldViewerUrl).toBe('https://marble.worldlabs.ai/viewer/marble-w3');
+    expect(result.worldViewerUrl).toBe('https://marble.worldlabs.ai/world/marble-w3');
   });
 
   it('returns error when operation has error', async () => {
@@ -249,7 +269,7 @@ describe('pollMarbleOperation', () => {
           done: true,
           response: {
             world_id: 'marble-w4',
-            assets: [{ type: 'web_viewer', url: 'https://marble.worldlabs.ai/viewer/marble-w4' }],
+            assets: [{ type: 'web_viewer', url: 'https://marble.worldlabs.ai/world/marble-w4' }],
           },
         }),
       });
@@ -261,6 +281,6 @@ describe('pollMarbleOperation', () => {
 
     const result = await promise;
     expect(result.done).toBe(true);
-    expect(result.worldViewerUrl).toBe('https://marble.worldlabs.ai/viewer/marble-w4');
+    expect(result.worldViewerUrl).toBe('https://marble.worldlabs.ai/world/marble-w4');
   });
 });

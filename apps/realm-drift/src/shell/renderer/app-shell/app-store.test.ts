@@ -13,6 +13,7 @@ describe('DriftAppStore', () => {
       activeChat: null,
       activeRightPanelTab: 'agents',
       humanChats: {},
+      activeHumanChat: null,
       friendList: [],
       onlineUsers: new Set(),
     });
@@ -66,6 +67,36 @@ describe('DriftAppStore', () => {
 
       useAppStore.getState().clearMarbleJob('world1');
       expect(useAppStore.getState().marbleJobs['world1']).toBeUndefined();
+    });
+
+    it('supports idle status', () => {
+      const job = {
+        operationId: null,
+        status: 'idle' as const,
+        startedAt: null,
+      };
+      useAppStore.getState().setMarbleJob('world2', job);
+      expect(useAppStore.getState().marbleJobs['world2']?.status).toBe('idle');
+    });
+
+    it('stores viewerUrl and error fields', () => {
+      const job = {
+        operationId: 'op2',
+        status: 'completed' as const,
+        viewerUrl: 'https://marble.worldlabs.ai/world/w1',
+        startedAt: 1000,
+      };
+      useAppStore.getState().setMarbleJob('world3', job);
+      expect(useAppStore.getState().marbleJobs['world3']?.viewerUrl).toBe('https://marble.worldlabs.ai/world/w1');
+
+      const failedJob = {
+        operationId: 'op3',
+        status: 'failed' as const,
+        error: 'Generation timed out',
+        startedAt: 2000,
+      };
+      useAppStore.getState().setMarbleJob('world4', failedJob);
+      expect(useAppStore.getState().marbleJobs['world4']?.error).toBe('Generation timed out');
     });
   });
 
@@ -147,6 +178,95 @@ describe('DriftAppStore', () => {
         timestamp: 2000,
       });
       expect(useAppStore.getState().humanChats['chat1']?.messages.length).toBe(1);
+    });
+
+    it('keeps active human chat in sync when realtime message arrives', () => {
+      useAppStore.getState().setHumanChat('chat-sync', {
+        chatId: 'chat-sync',
+        friendUserId: 'f1',
+        messages: [],
+      });
+      useAppStore.getState().setActiveHumanChat({
+        chatId: 'chat-sync',
+        friendName: 'Alice',
+        messages: [],
+        loading: false,
+      });
+
+      useAppStore.getState().appendHumanChatMessage('chat-sync', {
+        id: 'hm-sync',
+        role: 'assistant',
+        content: 'realtime hello',
+        timestamp: 4000,
+      });
+
+      expect(useAppStore.getState().activeHumanChat?.messages).toHaveLength(1);
+      expect(useAppStore.getState().activeHumanChat?.messages[0]?.content).toBe('realtime hello');
+    });
+  });
+
+  describe('activeHumanChat', () => {
+    it('sets and clears active human chat', () => {
+      useAppStore.getState().setActiveHumanChat({
+        chatId: 'chat1',
+        friendName: 'Alice',
+        messages: [],
+        loading: false,
+      });
+      expect(useAppStore.getState().activeHumanChat?.chatId).toBe('chat1');
+      expect(useAppStore.getState().activeHumanChat?.friendName).toBe('Alice');
+
+      useAppStore.getState().setActiveHumanChat(null);
+      expect(useAppStore.getState().activeHumanChat).toBeNull();
+    });
+
+    it('appends message to active human chat', () => {
+      useAppStore.getState().setActiveHumanChat({
+        chatId: 'chat2',
+        friendName: 'Bob',
+        messages: [],
+        loading: false,
+      });
+
+      useAppStore.getState().appendActiveHumanMessage({
+        id: 'hm2',
+        role: 'user',
+        content: 'hey Bob',
+        timestamp: 3000,
+      });
+
+      expect(useAppStore.getState().activeHumanChat?.messages.length).toBe(1);
+      expect(useAppStore.getState().activeHumanChat?.messages[0]?.content).toBe('hey Bob');
+    });
+
+    it('has loading state', () => {
+      useAppStore.getState().setActiveHumanChat({
+        chatId: 'chat3',
+        friendName: 'Carol',
+        messages: [],
+        loading: true,
+      });
+      expect(useAppStore.getState().activeHumanChat?.loading).toBe(true);
+    });
+
+    it('updates and removes active human chat messages through shared chat actions', () => {
+      useAppStore.getState().setHumanChat('chat4', {
+        chatId: 'chat4',
+        friendUserId: 'f4',
+        messages: [{ id: 'm1', role: 'assistant', content: 'old', timestamp: 1 }],
+      });
+      useAppStore.getState().setActiveHumanChat({
+        chatId: 'chat4',
+        friendName: 'Dana',
+        messages: [{ id: 'm1', role: 'assistant', content: 'old', timestamp: 1 }],
+        loading: false,
+      });
+
+      useAppStore.getState().updateHumanMessage('chat4', 'm1', 'new');
+      expect(useAppStore.getState().activeHumanChat?.messages[0]?.content).toBe('new');
+
+      useAppStore.getState().removeHumanMessage('chat4', 'm1');
+      expect(useAppStore.getState().activeHumanChat?.messages).toHaveLength(0);
     });
   });
 

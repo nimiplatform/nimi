@@ -30,27 +30,34 @@ export function assembleRawContext(ctx: RawWorldContext): string {
   if (ctx.worldview.culture) worldviewParts.push(`Culture: ${ctx.worldview.culture}`);
   if (ctx.worldview.history) worldviewParts.push(`History: ${ctx.worldview.history}`);
   if (ctx.worldview.lore) worldviewParts.push(`Lore: ${ctx.worldview.lore}`);
+  if (ctx.worldview.spaceTopology) worldviewParts.push(`Space Topology: ${ctx.worldview.spaceTopology}`);
+  if (ctx.worldview.coreSystem) worldviewParts.push(`Core System: ${ctx.worldview.coreSystem}`);
+  if (ctx.worldview.causality) worldviewParts.push(`Causality: ${ctx.worldview.causality}`);
+  if (ctx.worldview.tone) worldviewParts.push(`Tone: ${ctx.worldview.tone}`);
   if (worldviewParts.length > 0) {
     parts.push('');
     parts.push('Worldview:');
     parts.push(worldviewParts.join('\n'));
   }
 
-  // Scenes
+  // Scenes (up to 3 per RD-MARBLE-002)
   if (ctx.scenes.length > 0) {
     parts.push('');
     parts.push('Key Locations:');
-    for (const scene of ctx.scenes.slice(0, 10)) {
+    for (const scene of ctx.scenes.slice(0, 3)) {
       const desc = scene.description ? ` - ${scene.description}` : '';
       parts.push(`  • ${scene.name}${desc}`);
     }
   }
 
-  // Lorebooks
-  if (ctx.lorebooks.length > 0) {
+  // Lorebooks (up to 5, filtered per RD-MARBLE-002)
+  const filteredLorebooks = ctx.lorebooks.filter(
+    (entry) => entry.enabled !== false && entry.constant !== false,
+  );
+  if (filteredLorebooks.length > 0) {
     parts.push('');
     parts.push('Lore Entries:');
-    for (const entry of ctx.lorebooks.slice(0, 8)) {
+    for (const entry of filteredLorebooks.slice(0, 5)) {
       const content = entry.content ? ` - ${entry.content.slice(0, 200)}` : '';
       parts.push(`  • ${entry.title}${content}`);
     }
@@ -84,14 +91,18 @@ export async function composeMarblePrompt(
   try {
     const { runtime } = getPlatformClient();
     const systemPrompt = [
-      'You are a visual scene designer. Given world data, produce a concise visual description',
-      'optimized for 3D environment generation. Focus on:',
-      '- Physical landscape, terrain, and atmospheric conditions',
-      '- Architectural style and key structures',
-      '- Lighting, color palette, and mood',
-      '- Scale and spatial layout',
+      'You are a 3D environment description writer. Given structured world data,',
+      'produce a vivid, spatially-detailed visual description of this world as a',
+      'single explorable 3D environment. Focus on:',
+      '- Physical landscape and architecture',
+      '- Lighting, atmosphere, and weather',
+      '- Key visual landmarks and spatial relationships',
+      '- Materials, textures, and color palette',
+      '- Scale and perspective',
       '',
-      'Output ONLY the visual description, no commentary. Keep it under 500 words.',
+      'Output a single paragraph (max 2000 characters) describing what this world',
+      'LOOKS like as a 3D scene. Do not include character names, plot points, or',
+      'abstract concepts — only visual, spatial, and atmospheric details.',
     ].join('\n');
 
     const output = await runtime.ai.text.stream({

@@ -6,36 +6,58 @@ export class MarbleWorldGenerator implements WorldGenerator {
 
   private viewerUrls = new Map<string, string>();
 
-  async generate(input: WorldGeneratorInput): Promise<{ operationId: string }> {
+  async generate(input: WorldGeneratorInput, signal?: AbortSignal): Promise<{ operationId: string }> {
     const marbleQuality = input.quality === 'draft' ? 'mini' : input.quality;
     const operationId = await generateMarbleWorld(
       {
         displayName: input.displayName,
-        prompt: input.prompt,
+        prompt: input.textPrompt,
         imageUrl: input.imageUrl,
         quality: marbleQuality as 'mini' | 'standard',
       },
-      input.signal,
+      signal,
     );
     return { operationId };
   }
 
-  async poll(operationId: string, signal?: AbortSignal): Promise<WorldGeneratorResult> {
+  async *poll(operationId: string, signal: AbortSignal): AsyncGenerator<
+    { status: 'pending' } | WorldGeneratorResult
+  > {
+    // Yield pending while polling
+    yield { status: 'pending' as const };
+
     const result = await pollMarbleOperation(operationId, signal);
 
     if (result.error) {
-      throw new Error(result.error);
+      yield {
+        status: 'failed' as const,
+        viewerUrl: null,
+        thumbnailUrl: null,
+        worldId: null,
+        error: result.error,
+      };
+      return;
     }
 
     if (!result.worldViewerUrl) {
-      throw new Error('MARBLE_NO_VIEWER_URL');
+      yield {
+        status: 'failed' as const,
+        viewerUrl: null,
+        thumbnailUrl: null,
+        worldId: null,
+        error: 'MARBLE_NO_VIEWER_URL',
+      };
+      return;
     }
 
     this.viewerUrls.set(operationId, result.worldViewerUrl);
 
-    return {
-      operationId,
-      worldViewerUrl: result.worldViewerUrl,
+    yield {
+      status: 'completed' as const,
+      viewerUrl: result.worldViewerUrl,
+      thumbnailUrl: null,
+      worldId: result.worldId ?? null,
+      error: null,
     };
   }
 

@@ -8,15 +8,23 @@ export function buildSystemPrompt(agent: WorldAgent, world: WorldDetailWithAgent
   parts.push(`You are ${agent.name}, a character in the world "${world.name}".`);
 
   if (agent.bio) {
-    parts.push(`\nAbout you: ${agent.bio}`);
+    parts.push('');
+    parts.push(agent.bio);
   }
 
-  parts.push(`\nWorld context:`);
-  if (world.description) parts.push(`- ${world.description}`);
-  if (world.genre) parts.push(`- Genre: ${world.genre}`);
-  if (world.era) parts.push(`- Era: ${world.era}`);
+  if (world.description) {
+    parts.push('');
+    parts.push(`World description: ${world.description}`);
+  }
 
-  parts.push('\nStay in character. Respond naturally as this character would.');
+  if (world.genre || world.era) {
+    parts.push('');
+    if (world.genre) parts.push(`Genre: ${world.genre}`);
+    if (world.era) parts.push(`Era: ${world.era}`);
+  }
+
+  parts.push('');
+  parts.push('Stay in character. Respond as this character would within the context of this world.');
 
   return parts.join('\n');
 }
@@ -51,7 +59,7 @@ export async function streamAgentChat(input: StreamChatInput): Promise<void> {
       input: conversationInput as unknown as string,
       system: systemPrompt,
       route: 'cloud',
-      metadata: { surfaceId: 'realm-drift', worldId: world.id, agentId: agent.id },
+      metadata: { surfaceId: 'realm-drift', extra: JSON.stringify({ worldId: world.id, agentId: agent.id }) },
       signal,
     });
 

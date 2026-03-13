@@ -57,11 +57,22 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('Stay in character');
   });
 
+  it('includes in-character instruction matching spec', () => {
+    const prompt = buildSystemPrompt(agent, world);
+    expect(prompt).toContain('Stay in character. Respond as this character would within the context of this world.');
+  });
+
+  it('includes world description with correct format', () => {
+    const prompt = buildSystemPrompt(agent, world);
+    expect(prompt).toContain('World description: A mystical fantasy realm');
+  });
+
   it('handles agent without bio', () => {
     const noBioAgent: WorldAgent = { id: 'a2', name: 'Silent One' };
     const prompt = buildSystemPrompt(noBioAgent, world);
     expect(prompt).toContain('Silent One');
-    expect(prompt).not.toContain('About you:');
+    // Bio should not appear in any form
+    expect(prompt).not.toContain('Wise wizard');
   });
 });
 
@@ -149,8 +160,7 @@ describe('streamAgentChat', () => {
     expect(callArgs.route).toBe('cloud');
     expect(callArgs.metadata).toEqual({
       surfaceId: 'realm-drift',
-      worldId: 'w1',
-      agentId: 'a1',
+      extra: JSON.stringify({ worldId: 'w1', agentId: 'a1' }),
     });
     expect(callArgs.system).toBeTruthy();
     expect(callArgs.signal).toBe(ac.signal);

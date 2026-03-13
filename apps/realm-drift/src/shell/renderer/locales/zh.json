@@ -1,0 +1,83 @@
+{
+  "app": {
+    "name": "Realm Drift"
+  },
+  "bootstrap": {
+    "loading": "正在加载 Realm Drift...",
+    "error": "启动失败：{{message}}"
+  },
+  "auth": {
+    "loginTitle": "登录 Realm Drift",
+    "identifierPlaceholder": "邮箱或用户名",
+    "passwordPlaceholder": "密码",
+    "login": "登录",
+    "signingIn": "登录中...",
+    "loginFailed": "登录失败",
+    "accountBlocked": "账号已被封禁",
+    "twoFactorTitle": "两步验证",
+    "twoFactorHint": "请输入验证器应用中的 6 位验证码。",
+    "verify": "验证",
+    "2faFailed": "验证失败",
+    "backToLogin": "返回登录"
+  },
+  "browser": {
+    "title": "我的世界",
+    "searchPlaceholder": "搜索世界...",
+    "empty": "未找到世界",
+    "agents": "{{count}} 个智能体",
+    "agents_plural": "{{count}} 个智能体",
+    "marbleReady": "3D 已就绪",
+    "marbleGenerating": "生成中..."
+  },
+  "viewer": {
+    "back": "返回",
+    "tabAgents": "智能体",
+    "tabPeople": "好友",
+    "generate": "生成 3D 世界",
+    "regenerate": "重新生成",
+    "generating": "生成中...",
+    "elapsed": "已用时 {{seconds}} 秒",
+    "qualityMini": "快速（约30秒）",
+    "qualityStandard": "标准（约5分钟）",
+    "idle": "点击「生成」将此世界数据转为 3D 世界",
+    "ready": "3D 世界已就绪",
+    "error": "生成失败",
+    "retry": "重试",
+    "cancel": "取消",
+    "missingApiKey": "未配置 Marble API 密钥，请设置 VITE_MARBLE_API_KEY。",
+    "promptPreview": "提示词预览",
+    "editPrompt": "编辑提示词",
+    "pollTimeout": "生成超时，已超过 10 分钟。",
+    "generationFailed": "生成失败",
+    "estimatedTimeMini": "约30秒",
+    "estimatedTimeStandard": "约5分钟",
+    "iframeTitle": "Marble 3D 查看器"
+  },
+  "chat": {
+    "placeholder": "输入消息...",
+    "send": "发送",
+    "emptyState": "选择一个智能体开始聊天",
+    "agentEmpty": "此世界暂无智能体",
+    "streaming": "思考中..."
+  },
+  "humanChat": {
+    "placeholder": "输入消息...",
+    "send": "发送",
+    "emptyState": "选择好友开始聊天",
+    "noFriends": "还没有好友",
+    "openFailed": "打开聊天失败",
+    "sendFailed": "发送消息失败",
+    "online": "在线",
+    "offline": "离线",
+    "friendListFailed": "加载好友列表失败"
+  },
+  "error": {
+    "networkError": "连接已断开，请检查网络。",
+    "runtimeUnavailable": "AI 运行时不可用，请稍后重试。",
+    "rateLimited": "请求过于频繁，请稍候。",
+    "unauthorized": "身份验证已过期，请重新登录。",
+    "forbidden": "您没有权限访问此资源。",
+    "serverError": "服务器错误，请稍后重试。",
+    "retry": "重试"
+  }
+}

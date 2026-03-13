@@ -45,7 +45,13 @@
     "retry": "Retry",
     "cancel": "Cancel",
     "missingApiKey": "Marble API key is not configured. Set VITE_MARBLE_API_KEY.",
-    "promptPreview": "Prompt Preview"
+    "promptPreview": "Prompt Preview",
+    "editPrompt": "Edit Prompt",
+    "pollTimeout": "Generation timed out after 10 minutes.",
+    "generationFailed": "Generation failed",
+    "estimatedTimeMini": "~30s",
+    "estimatedTimeStandard": "~5min",
+    "iframeTitle": "Marble 3D Viewer"
   },
   "chat": {
     "placeholder": "Type a message...",
@@ -59,8 +65,11 @@
     "send": "Send",
     "emptyState": "Select a friend to start chatting",
     "noFriends": "No friends yet",
+    "openFailed": "Failed to open chat",
+    "sendFailed": "Failed to send message",
     "online": "Online",
-    "offline": "Offline"
+    "offline": "Offline",
+    "friendListFailed": "Failed to load friend list"
   },
   "error": {
     "networkError": "Connection lost. Please check your network.",

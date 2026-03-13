@@ -72,15 +72,15 @@ export async function generateMarbleWorld(
   input: MarbleGenerateInput,
   signal?: AbortSignal,
 ): Promise<string> {
+  const worldPrompt: Record<string, unknown> = input.imageUrl
+    ? { type: 'image', image_url: input.imageUrl }
+    : { type: 'text', text_prompt: input.prompt };
+
   const body: Record<string, unknown> = {
     display_name: input.displayName,
     model: input.quality === 'standard' ? 'standard' : 'mini',
-    prompt: { text: input.prompt },
+    world_prompt: worldPrompt,
   };
-
-  if (input.imageUrl) {
-    (body.prompt as Record<string, unknown>).image_url = input.imageUrl;
-  }
 
   const data = await marbleFetch('/worlds:generate', {
     method: 'POST',
@@ -127,7 +127,7 @@ export async function pollMarbleOperation(
           }
         }
         if (!worldViewerUrl && worldId) {
-          worldViewerUrl = `https://marble.worldlabs.ai/viewer/${worldId}`;
+          worldViewerUrl = `https://marble.worldlabs.ai/world/${worldId}`;
         }
 
         const error = data.error as Record<string, unknown> | undefined;

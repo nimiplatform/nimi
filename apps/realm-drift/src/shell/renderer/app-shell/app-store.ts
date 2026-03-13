@@ -11,12 +11,12 @@ export type AuthUser = {
 export type AuthStatus = 'bootstrapping' | 'authenticated' | 'unauthenticated';
 
 export type MarbleJobState = {
-  operationId: string;
-  marbleWorldId?: string;
-  status: 'generating' | 'completed' | 'failed';
-  worldViewerUrl?: string;
-  errorMessage?: string;
-  startedAt: number;
+  operationId: string | null;
+  marbleWorldId?: string | null;
+  status: 'idle' | 'generating' | 'completed' | 'failed';
+  viewerUrl?: string | null;
+  error?: string | null;
+  startedAt: number | null;
 };
 
 export type ChatMessage = {
@@ -39,6 +39,13 @@ export type HumanChatState = {
   chatId: string;
   friendUserId: string;
   messages: ChatMessage[];
+};
+
+export type ActiveHumanChat = {
+  chatId: string;
+  friendName: string;
+  messages: ChatMessage[];
+  loading: boolean;
 };
 
 export type FriendInfo = {
@@ -73,6 +80,7 @@ export interface DriftAppStore {
 
   // Human chat
   humanChats: Record<string, HumanChatState>;
+  activeHumanChat: ActiveHumanChat | null;
 
   // Social
   friendList: FriendInfo[];
@@ -99,7 +107,9 @@ export interface DriftAppStore {
 
   // Human chat actions
   setHumanChat(chatId: string, chat: HumanChatState): void;
+  setActiveHumanChat(chat: ActiveHumanChat | null): void;
   appendHumanChatMessage(chatId: string, message: ChatMessage): void;
+  appendActiveHumanMessage(message: ChatMessage): void;
   updateHumanMessage(chatId: string, messageId: string, content: string): void;
   removeHumanMessage(chatId: string, messageId: string): void;
 
@@ -124,6 +134,7 @@ export const useAppStore = create<DriftAppStore>((set, get) => ({
   activeChat: null,
   activeRightPanelTab: 'agents',
   humanChats: {},
+  activeHumanChat: null,
   friendList: [],
   onlineUsers: new Set<string>(),
 
@@ -201,11 +212,21 @@ export const useAppStore = create<DriftAppStore>((set, get) => ({
     }));
   },
 
+  setActiveHumanChat(chat) {
+    set({ activeHumanChat: chat });
+  },
+
   appendHumanChatMessage(chatId, message) {
     set((state) => {
       const existing = state.humanChats[chatId];
       if (!existing) return state;
       return {
+        activeHumanChat: state.activeHumanChat?.chatId === chatId
+          ? {
+            ...state.activeHumanChat,
+            messages: [...state.activeHumanChat.messages, message],
+          }
+          : state.activeHumanChat,
         humanChats: {
           ...state.humanChats,
           [chatId]: {
@@ -217,18 +238,38 @@ export const useAppStore = create<DriftAppStore>((set, get) => ({
     });
   },
 
+  appendActiveHumanMessage(message) {
+    const current = get().activeHumanChat;
+    if (!current) return;
+    set({
+      activeHumanChat: {
+        ...current,
+        messages: [...current.messages, message],
+      },
+    });
+  },
+
   updateHumanMessage(chatId, messageId, content) {
     set((state) => {
       const existing = state.humanChats[chatId];
       if (!existing) return state;
+      const nextMessages = existing.messages.map((m) =>
+        m.id === messageId ? { ...m, content } : m,
+      );
       return {
+        activeHumanChat: state.activeHumanChat?.chatId === chatId
+          ? {
+            ...state.activeHumanChat,
+            messages: state.activeHumanChat.messages.map((m) =>
+              m.id === messageId ? { ...m, content } : m,
+            ),
+          }
+          : state.activeHumanChat,
         humanChats: {
           ...state.humanChats,
           [chatId]: {
             ...existing,
-            messages: existing.messages.map((m) =>
-              m.id === messageId ? { ...m, content } : m,
-            ),
+            messages: nextMessages,
           },
         },
       };
@@ -240,6 +281,12 @@ export const useAppStore = create<DriftAppStore>((set, get) => ({
       const existing = state.humanChats[chatId];
       if (!existing) return state;
       return {
+        activeHumanChat: state.activeHumanChat?.chatId === chatId
+          ? {
+            ...state.activeHumanChat,
+            messages: state.activeHumanChat.messages.filter((m) => m.id !== messageId),
+          }
+          : state.activeHumanChat,
         humanChats: {
           ...state.humanChats,
           [chatId]: {

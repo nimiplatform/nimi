@@ -27,10 +27,12 @@ export function WorldViewerPage() {
   const appendHumanChatMessage = useAppStore((s) => s.appendHumanChatMessage);
   const updateHumanMessage = useAppStore((s) => s.updateHumanMessage);
   const removeHumanMessage = useAppStore((s) => s.removeHumanMessage);
+  const clearMarbleJob = useAppStore((s) => s.clearMarbleJob);
   const [quality, setQuality] = useState<'mini' | 'standard'>(() => {
     const env = (import.meta as { env?: Record<string, string> }).env;
     return (env?.VITE_MARBLE_QUALITY === 'standard' ? 'standard' : 'mini') as 'mini' | 'standard';
   });
+  const [friendListError, setFriendListError] = useState<string | null>(null);
 
   // Parallel data fetches
   const worldQuery = useWorldDetailWithAgentsQuery(worldId || '');
@@ -113,8 +115,9 @@ export function WorldViewerPage() {
           appContext: String(f.appContext || '') || undefined,
         })),
       );
-    } catch {
-      // Non-critical
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : t('humanChat.friendListFailed');
+      setFriendListError(msg);
     }
   }
 
@@ -138,6 +141,15 @@ export function WorldViewerPage() {
           {worldQuery.data?.name ?? '...'}
         </h1>
         <div className="flex-1" />
+
+        {/* Regenerate button */}
+        <button
+          onClick={() => { if (worldId) clearMarbleJob(worldId); }}
+          className="rounded-lg bg-neutral-800 px-3 py-1 text-xs text-neutral-300 hover:bg-neutral-700 transition-colors"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+        >
+          {t('viewer.regenerate')}
+        </button>
 
         {/* Quality toggle */}
         <div

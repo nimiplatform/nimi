@@ -105,6 +105,32 @@ describe('assembleRawContext', () => {
     expect(result).not.toContain('Genre:');
     expect(result).not.toContain('Geography:');
   });
+
+  it('includes worldview physics fields (spaceTopology, coreSystem, causality, tone)', () => {
+    const ctx = makeFullContext();
+    ctx.worldview.spaceTopology = 'Infinite plane with floating islands';
+    ctx.worldview.coreSystem = 'Mana crystallization engine';
+    ctx.worldview.causality = 'Deterministic with magical exceptions';
+    ctx.worldview.tone = 'Epic and mysterious';
+
+    const result = assembleRawContext(ctx);
+
+    expect(result).toContain('Space Topology: Infinite plane with floating islands');
+    expect(result).toContain('Core System: Mana crystallization engine');
+    expect(result).toContain('Causality: Deterministic with magical exceptions');
+    expect(result).toContain('Tone: Epic and mysterious');
+  });
+
+  it('omits worldview physics fields when absent', () => {
+    const ctx = makeSparseContext();
+
+    const result = assembleRawContext(ctx);
+
+    expect(result).not.toContain('Space Topology:');
+    expect(result).not.toContain('Core System:');
+    expect(result).not.toContain('Causality:');
+    expect(result).not.toContain('Tone:');
+  });
 });
 
 describe('composeMarblePrompt', () => {

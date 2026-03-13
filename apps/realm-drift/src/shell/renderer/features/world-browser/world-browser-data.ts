@@ -30,8 +30,10 @@ export type WorldDetailWithAgents = {
 export type WorldAgent = {
   id: string;
   name: string;
+  handle?: string;
   bio?: string;
   avatarUrl?: string;
+  ownerType?: string;
 };
 
 export type WorldviewData = {
@@ -40,6 +42,10 @@ export type WorldviewData = {
   geography?: string;
   culture?: string;
   history?: string;
+  spaceTopology?: string;
+  coreSystem?: string;
+  causality?: string;
+  tone?: string;
 };
 
 export type WorldScene = {
@@ -54,6 +60,8 @@ export type WorldLorebook = {
   title: string;
   content?: string;
   category?: string;
+  enabled?: boolean;
+  constant?: boolean;
 };
 
 function extractString(obj: Record<string, unknown>, key: string): string {
@@ -101,8 +109,10 @@ export async function getWorldDetailWithAgents(worldId: string): Promise<WorldDe
   const agents = ((data.agents ?? []) as Record<string, unknown>[]).map((a) => ({
     id: extractString(a, 'id'),
     name: extractString(a, 'name'),
+    handle: extractString(a, 'handle') || undefined,
     bio: extractString(a, 'bio') || extractString(a, 'description') || undefined,
     avatarUrl: extractString(a, 'avatarUrl') || undefined,
+    ownerType: extractString(a, 'ownerType') || undefined,
   }));
 
   return {
@@ -131,6 +141,10 @@ export async function getWorldview(worldId: string): Promise<WorldviewData> {
     geography: extractString(data, 'geography') || undefined,
     culture: extractString(data, 'culture') || undefined,
     history: extractString(data, 'history') || undefined,
+    spaceTopology: extractString(data, 'spaceTopology') || undefined,
+    coreSystem: extractString(data, 'coreSystem') || undefined,
+    causality: extractString(data, 'causality') || undefined,
+    tone: extractString(data, 'tone') || undefined,
   };
 }
 
@@ -165,5 +179,7 @@ export async function listWorldLorebooks(worldId: string): Promise<WorldLorebook
     title: extractString(l, 'title') || extractString(l, 'name'),
     content: extractString(l, 'content') || undefined,
     category: extractString(l, 'category') || undefined,
+    enabled: l.enabled !== undefined ? Boolean(l.enabled) : undefined,
+    constant: l.constant !== undefined ? Boolean(l.constant) : undefined,
   }));
 }
