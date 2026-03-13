@@ -8,6 +8,7 @@ const PAGE_SIZE = 15;
 
 type PostsTabProps = {
   profileId: string;
+  layout?: 'grid' | 'masonry';
 };
 
 function toErrorMessage(error: unknown, fallback: string): string {
@@ -35,7 +36,7 @@ function PostSkeleton() {
   );
 }
 
-export function PostsTab({ profileId }: PostsTabProps) {
+export function PostsTab({ profileId, layout = 'grid' }: PostsTabProps) {
   const { t } = useTranslation();
   const [posts, setPosts] = useState<PostDto[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -160,6 +161,7 @@ export function PostsTab({ profileId }: PostsTabProps) {
       retryLabel={t('Common.retry')}
       skeleton={<PostSkeleton />}
       onRetryLoadMore={() => { void fetchPosts(cursor); }}
+      layout={layout}
       onDeletePost={(postId) => {
         setPosts((current) => current.filter((item) => item.id !== postId));
       }}

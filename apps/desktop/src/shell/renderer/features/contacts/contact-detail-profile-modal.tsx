@@ -212,6 +212,69 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
     toChatErrorMessage,
   ]);
 
+  const handleBlock = useCallback(async () => {
+    if (!profile) {
+      return;
+    }
+    try {
+      await dataSync.blockUser({
+        id: profile.id,
+        displayName: profile.displayName,
+        handle: profile.handle,
+        avatarUrl: profile.avatarUrl,
+        isAgent: profile.isAgent,
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['contact-detail-modal-profile'], exact: false }),
+      ]);
+      setStatusBanner({
+        kind: 'success',
+        message: t('Contacts.blockUserSuccess', {
+          name: profile.displayName || profile.handle || t('Common.unknown', { defaultValue: 'Unknown' }),
+          defaultValue: 'Blocked {{name}}',
+        }),
+      });
+      props.onClose();
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: error instanceof Error && error.message.trim()
+          ? error.message
+          : t('Contacts.blockUserFailed', { defaultValue: 'Failed to block user' }),
+      });
+    }
+  }, [profile, props, queryClient, setStatusBanner, t]);
+
+  const handleRemove = useCallback(async () => {
+    if (!profile) {
+      return;
+    }
+    try {
+      await dataSync.removeFriend(profile.id);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['chats'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['contact-detail-modal-profile'], exact: false }),
+      ]);
+      setStatusBanner({
+        kind: 'success',
+        message: t('Contacts.removeFriendSuccess', {
+          name: profile.displayName || profile.handle || t('Common.unknown', { defaultValue: 'Unknown' }),
+          defaultValue: 'Removed {{name}} from friends',
+        }),
+      });
+      props.onClose();
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: error instanceof Error && error.message.trim()
+          ? error.message
+          : t('Contacts.removeFriendFailed', { defaultValue: 'Failed to remove friend' }),
+      });
+    }
+  }, [profile, props, queryClient, setStatusBanner, t]);
+
   if (!props.open || !profile) {
     return null;
   }
@@ -219,10 +282,10 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
   return (
     <>
       <div
-        className="fixed inset-0 z-[120] bg-black/42 backdrop-blur-sm"
+        className="fixed inset-x-0 bottom-0 top-14 z-[120] bg-black/42 backdrop-blur-sm"
         onClick={props.onClose}
       />
-      <div className="fixed inset-0 z-[121]">
+      <div className="fixed inset-x-0 bottom-0 top-14 z-[121]">
         <div
           className="relative flex h-full w-full overflow-hidden bg-white"
           onClick={(event) => event.stopPropagation()}
@@ -248,6 +311,12 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
                 void handleMessage();
               }}
               onSendGift={() => setGiftModalOpen(true)}
+              onBlock={() => {
+                void handleBlock();
+              }}
+              onRemove={profile.isFriend ? () => {
+                void handleRemove();
+              } : undefined}
               showMessageButton
               fullBleed
             />

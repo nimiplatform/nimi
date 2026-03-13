@@ -8,6 +8,7 @@ const PAGE_SIZE = 20;
 
 type LikesTabProps = {
   profileId: string;
+  layout?: 'grid' | 'masonry';
 };
 
 function toErrorMessage(error: unknown, fallback: string): string {
@@ -35,7 +36,7 @@ function LikeSkeleton() {
   );
 }
 
-export function LikesTab({ profileId }: LikesTabProps) {
+export function LikesTab({ profileId, layout = 'grid' }: LikesTabProps) {
   const { t } = useTranslation();
   const [likedPosts, setLikedPosts] = useState<PostDto[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -155,6 +156,7 @@ export function LikesTab({ profileId }: LikesTabProps) {
       retryLabel="Retry"
       skeleton={<LikeSkeleton />}
       onRetryLoadMore={() => { void fetchLiked(cursor); }}
+      layout={layout}
       onDeletePost={(postId) => {
         setLikedPosts((current) => current.filter((item) => item.id !== postId));
       }}

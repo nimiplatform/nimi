@@ -1,4 +1,4 @@
-import { Suspense, lazy, type ReactNode } from 'react';
+import { Suspense, lazy, useEffect, useState, type ReactNode, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { i18n } from '@renderer/i18n';
 import { Tooltip } from '@renderer/components/tooltip.js';
@@ -67,10 +67,88 @@ const GiftsTab = lazy(async () => {
 
 export function ContactDetailLoadingState({ label }: { label: string }) {
   return (
-    <div className="flex flex-1 items-center justify-center bg-[#f3f6f8]">
-      <div className="flex flex-col items-center gap-3 text-sm text-slate-500">
-        <div className="h-9 w-9 animate-spin rounded-full border-2 border-slate-200 border-t-[#1f8f69]" />
-        {label}
+    <div className="flex h-full min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,#eef3f4_0%,#f7fafb_48%,#fcfefd_100%)]">
+      <div className="app-scroll-shell flex-1 overflow-y-auto">
+        <div className="mx-auto flex min-h-full w-full max-w-[1440px] flex-col px-6 py-6">
+          <section className="relative overflow-hidden rounded-[34px] bg-white shadow-[0_30px_90px_rgba(15,23,42,0.10)]">
+            <div className="relative h-[220px] animate-pulse bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 px-8 py-7">
+              <div className="absolute right-8 top-7 h-11 w-11 rounded-full bg-white/60" />
+              <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white via-white/82 to-transparent" />
+            </div>
+
+            <div className="relative z-10 -mt-12 px-8 pb-8">
+              <div className="rounded-[30px] border border-white/38 bg-white/40 px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[18px] supports-[backdrop-filter]:bg-white/30 xl:px-7">
+                <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)] lg:gap-8">
+                  <div className="flex shrink-0 flex-col items-center gap-3 lg:pt-[6px]">
+                    <div className="h-32 w-32 animate-pulse rounded-full bg-slate-200/80" />
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="h-9 w-52 animate-pulse rounded-lg bg-slate-200/80" />
+                    <div className="mt-3 h-5 w-28 animate-pulse rounded-md bg-slate-200/70" />
+                    <div className="mt-5 h-4 w-full max-w-[420px] animate-pulse rounded-md bg-slate-200/70" />
+                    <div className="mt-2 h-4 w-4/5 max-w-[380px] animate-pulse rounded-md bg-slate-200/70" />
+
+                    <div className="mt-7 grid max-w-[460px] grid-cols-2 gap-x-12 gap-y-3.5">
+                      {Array.from({ length: 4 }).map((_, index) => (
+                        <div key={`contact-meta-skeleton-${index}`} className="flex items-center gap-2.5">
+                          <div className="h-4 w-4 animate-pulse rounded-full bg-slate-200/80" />
+                          <div className="h-4 w-28 animate-pulse rounded-md bg-slate-200/70" />
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-7 flex flex-wrap gap-2.5">
+                      <div className="h-8 w-20 animate-pulse rounded-full bg-slate-200/75" />
+                      <div className="h-8 w-24 animate-pulse rounded-full bg-slate-200/75" />
+                      <div className="h-8 w-16 animate-pulse rounded-full bg-slate-200/75" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <div className="px-5">
+                    <div className="rounded-[24px] border border-white/60 bg-white/70 p-4 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="grid max-w-[320px] grid-cols-3 gap-2 lg:flex-1">
+                          {Array.from({ length: 3 }).map((_, index) => (
+                            <div key={`contact-stat-skeleton-${index}`} className="text-center">
+                              <div className="mx-auto h-3 w-12 animate-pulse rounded-md bg-slate-200/70" />
+                              <div className="mx-auto mt-3 h-9 w-14 animate-pulse rounded-md bg-slate-200/80" />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex items-center gap-2 lg:justify-end">
+                          <div className="h-10 w-10 animate-pulse rounded-full bg-slate-200/80" />
+                          <div className="h-10 w-10 animate-pulse rounded-full bg-slate-200/80" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 px-4">
+                    <div className="relative flex flex-wrap gap-6 border-b border-slate-200/70 pb-3">
+                      <div className="h-5 w-12 animate-pulse rounded-md bg-slate-200/75" />
+                      <div className="h-5 w-24 animate-pulse rounded-md bg-slate-200/75" />
+                      <div className="h-5 w-12 animate-pulse rounded-md bg-slate-200/75" />
+                      <div className="h-5 w-12 animate-pulse rounded-md bg-slate-200/75" />
+                    </div>
+                  </div>
+
+                  <div className="px-5 py-5">
+                    <div className="space-y-6">
+                      <div className="h-5 w-28 animate-pulse rounded-full bg-slate-200/80" />
+                      <div className="grid gap-6 md:grid-cols-2">
+                        <div className="h-56 animate-pulse rounded-[26px] border border-white/70 bg-white/70 shadow-[0_6px_24px_rgba(15,23,42,0.05)]" />
+                        <div className="h-56 animate-pulse rounded-[26px] border border-white/70 bg-white/70 shadow-[0_6px_24px_rgba(15,23,42,0.05)]" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );
@@ -117,6 +195,13 @@ function ContactDetailActionButtons(input: {
   onSendGift: () => void;
   showGiftButton: boolean;
   showMessageButton: boolean;
+  showMoreButton?: boolean;
+  showMenu?: boolean;
+  menuButtonRef?: RefObject<HTMLButtonElement | null>;
+  menuRef?: RefObject<HTMLDivElement | null>;
+  onToggleMenu?: () => void;
+  onBlock?: () => void;
+  onRemove?: () => void;
 }) {
   return (
     <>
@@ -137,6 +222,48 @@ function ContactDetailActionButtons(input: {
             onClick={input.onSendGift}
           />
         </Tooltip>
+      ) : null}
+      {input.showMoreButton ? (
+        <div className="relative">
+          <Tooltip content={i18n.t('Common.moreOptions', { defaultValue: 'More options' })} placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
+            <button
+              ref={input.menuButtonRef}
+              type="button"
+              onClick={input.onToggleMenu}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.05)] backdrop-blur-sm transition hover:border-[#4ECCA3]/45 hover:bg-[#4ECCA3]/12 hover:text-[#1f8f69]"
+              aria-label={i18n.t('Common.moreOptions', { defaultValue: 'More options' })}
+            >
+              <DotsIcon className="h-4 w-4" />
+            </button>
+          </Tooltip>
+          {input.showMenu ? (
+            <div
+              ref={input.menuRef}
+              className="absolute right-0 top-full z-20 mt-2 w-44 rounded-2xl border border-slate-100 bg-white py-1.5 shadow-[0_22px_64px_rgba(15,23,42,0.18)]"
+            >
+              {input.onBlock ? (
+                <button
+                  type="button"
+                  onClick={input.onBlock}
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+                >
+                  <AlertIcon className="h-4 w-4 text-slate-400" />
+                  {i18n.t('Common.block', { defaultValue: 'Block' })}
+                </button>
+              ) : null}
+              {input.onRemove ? (
+                <button
+                  type="button"
+                  onClick={input.onRemove}
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-600 transition hover:bg-red-50"
+                >
+                  <TrashIcon className="h-4 w-4 text-red-500" />
+                  {i18n.t('Profile.removeFriend', { defaultValue: 'Remove Friend' })}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       ) : null}
     </>
   );
@@ -180,11 +307,124 @@ function ContactDetailSaveActions(input: {
   );
 }
 
+function ContactDetailStatsActionsBlock(input: {
+  friendCount: number;
+  postCount: number;
+  likesCount: number;
+  isEditing: boolean;
+  isOwnProfile: boolean | undefined;
+  draftDisplayName: string;
+  isSaving: boolean;
+  isUploadingAvatar: boolean;
+  onCancel: () => void;
+  onSave: () => void;
+  saveError: string | null;
+  onMessage: () => void;
+  onSendGift: () => void;
+  showGiftButton: boolean;
+  showMessageButton: boolean;
+  showMoreButton?: boolean;
+  showMenu?: boolean;
+  menuButtonRef?: RefObject<HTMLButtonElement | null>;
+  menuRef?: RefObject<HTMLDivElement | null>;
+  onToggleMenu?: () => void;
+  onBlock?: () => void;
+  onRemove?: () => void;
+}) {
+  if (input.isEditing) {
+    return input.isOwnProfile ? (
+      <div className="rounded-[24px] border border-white/60 bg-white/70 p-4 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
+        <ContactDetailSaveActions
+          draftDisplayName={input.draftDisplayName}
+          isSaving={input.isSaving}
+          isUploadingAvatar={input.isUploadingAvatar}
+          onCancel={input.onCancel}
+          onSave={input.onSave}
+          saveError={input.saveError}
+          stacked
+        />
+      </div>
+    ) : null;
+  }
+
+  return (
+    <div className="rounded-[24px] border border-white/60 bg-white/70 p-4 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="grid max-w-[320px] grid-cols-3 gap-2 lg:flex-1">
+          <StatTile label={i18n.t('Profile.friends', { defaultValue: 'Friends' })} value={input.friendCount} />
+          <StatTile label={i18n.t('Profile.posts', { defaultValue: 'Posts' })} value={input.postCount} />
+          <StatTile label={i18n.t('Profile.likes', { defaultValue: 'Likes' })} value={input.likesCount} />
+        </div>
+        <div className="flex items-center gap-2 lg:justify-end">
+          <ContactDetailActionButtons
+            onMessage={input.onMessage}
+            onSendGift={input.onSendGift}
+            showGiftButton={input.showGiftButton}
+            showMessageButton={input.showMessageButton}
+            showMoreButton={input.showMoreButton}
+            showMenu={input.showMenu}
+            menuButtonRef={input.menuButtonRef}
+            menuRef={input.menuRef}
+            onToggleMenu={input.onToggleMenu}
+            onBlock={input.onBlock}
+            onRemove={input.onRemove}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ContactDetailDesktopStatsActions(input: {
+  friendCount: number;
+  postCount: number;
+  likesCount: number;
+  onMessage: () => void;
+  onSendGift: () => void;
+  showGiftButton: boolean;
+  showMessageButton: boolean;
+  showMoreButton?: boolean;
+  showMenu?: boolean;
+  menuButtonRef?: RefObject<HTMLButtonElement | null>;
+  menuRef?: RefObject<HTMLDivElement | null>;
+  onToggleMenu?: () => void;
+  onBlock?: () => void;
+  onRemove?: () => void;
+}) {
+  return (
+    <div className="flex w-[240px] shrink-0 flex-col items-end">
+      <div className="flex items-center justify-end gap-3">
+        <ContactDetailActionButtons
+          onMessage={input.onMessage}
+          onSendGift={input.onSendGift}
+          showGiftButton={input.showGiftButton}
+          showMessageButton={input.showMessageButton}
+          showMoreButton={input.showMoreButton}
+          showMenu={input.showMenu}
+          menuButtonRef={input.menuButtonRef}
+          menuRef={input.menuRef}
+          onToggleMenu={input.onToggleMenu}
+          onBlock={input.onBlock}
+          onRemove={input.onRemove}
+        />
+      </div>
+      <div className="mt-[40px] grid w-full grid-cols-[1fr_18px_1fr_18px_1fr] items-start gap-x-0">
+        <StatTile label={i18n.t('Profile.friends', { defaultValue: 'Friends' })} value={input.friendCount} />
+        <StatDivider />
+        <StatTile label={i18n.t('Profile.posts', { defaultValue: 'Posts' })} value={input.postCount} />
+        <StatDivider />
+        <StatTile label={i18n.t('Profile.likes', { defaultValue: 'Likes' })} value={input.likesCount} />
+      </div>
+    </div>
+  );
+}
+
 export function ContactDetailViewContent(input: {
   controller: ContactDetailViewController;
   onVisitWorld: (worldId: string) => void;
 } & ContactDetailViewProps) {
   const { t } = useTranslation();
+  const [isWideLayout, setIsWideLayout] = useState(() => window.innerWidth >= 1180);
   const {
     activeTab,
     avatarInputRef,
@@ -248,6 +488,16 @@ export function ContactDetailViewContent(input: {
   const showGiftButton = !input.isOwnProfile;
   const showMessageButton = input.showMessageButton !== false;
 
+  useEffect(() => {
+    const syncLayoutMode = () => {
+      setIsWideLayout(window.innerWidth >= 1180);
+    };
+
+    syncLayoutMode();
+    window.addEventListener('resize', syncLayoutMode);
+    return () => window.removeEventListener('resize', syncLayoutMode);
+  }, []);
+
   const renderTabPanel = (tab: ProfileTab) => {
     if (!visitedTabs.includes(tab)) {
       return null;
@@ -256,13 +506,13 @@ export function ContactDetailViewContent(input: {
     let content: ReactNode;
     switch (tab) {
       case 'Posts':
-        content = <PostsTab profileId={profile.id} />;
+        content = <PostsTab profileId={profile.id} layout="masonry" />;
         break;
       case 'Collections':
-        content = <CollectionsTab profileId={profile.id} canManageSavedPosts={Boolean(input.isOwnProfile)} />;
+        content = <CollectionsTab profileId={profile.id} canManageSavedPosts={Boolean(input.isOwnProfile)} layout="masonry" />;
         break;
       case 'Likes':
-        content = <LikesTab profileId={profile.id} />;
+        content = <LikesTab profileId={profile.id} layout="masonry" />;
         break;
       case 'Gifts':
         content = <GiftsTab />;
@@ -282,7 +532,7 @@ export function ContactDetailViewContent(input: {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,#eef3f4_0%,#f7fafb_48%,#fcfefd_100%)]">
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
+      <div ref={scrollContainerRef} className="app-scroll-shell flex-1 overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
         <div className={input.fullBleed ? 'flex min-h-full w-full flex-col' : 'mx-auto flex min-h-full w-full max-w-[1440px] flex-col px-6 py-6'}>
           <section className="relative overflow-hidden rounded-[34px] bg-white shadow-[0_30px_90px_rgba(15,23,42,0.10)]">
             <div className="relative h-[220px] px-8 py-7" style={headerStyle}>
@@ -332,52 +582,6 @@ export function ContactDetailViewContent(input: {
                       </span>
                     </button>
                   </Tooltip>
-                ) : (input.onBlock || input.onRemove) ? (
-                  <div className="relative">
-                    <Tooltip content={t('Common.moreOptions', { defaultValue: 'More options' })} placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
-                      <button
-                        ref={menuButtonRef}
-                        type="button"
-                        onClick={() => setShowMenu((value) => !value)}
-                        className="flex h-11 w-11 items-center justify-center rounded-full border border-[#475569]/18 bg-[#334155]/52 text-white shadow-[0_10px_24px_rgba(15,23,42,0.12)] backdrop-blur-md transition hover:bg-[#334155]/64"
-                      >
-                        <DotsIcon className="h-4 w-4" />
-                      </button>
-                    </Tooltip>
-                    {showMenu ? (
-                      <div
-                        ref={menuRef}
-                        className="absolute right-0 top-full z-20 mt-2 w-44 rounded-2xl border border-slate-100 bg-white py-1.5 shadow-[0_22px_64px_rgba(15,23,42,0.18)]"
-                      >
-                        {input.onBlock ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowMenu(false);
-                              input.onBlock?.();
-                            }}
-                            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-700 transition hover:bg-slate-50"
-                          >
-                            <AlertIcon className="h-4 w-4 text-slate-400" />
-                            {t('Common.block', { defaultValue: 'Block' })}
-                          </button>
-                        ) : null}
-                        {input.onRemove ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowMenu(false);
-                              input.onRemove?.();
-                            }}
-                            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-600 transition hover:bg-red-50"
-                          >
-                            <TrashIcon className="h-4 w-4 text-red-500" />
-                            {t('Profile.removeFriend', { defaultValue: 'Remove Friend' })}
-                          </button>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
                 ) : null}
               </div>
             </div>
@@ -385,11 +589,9 @@ export function ContactDetailViewContent(input: {
             <div className="relative px-8 pb-8">
               <div className="-mt-20 grid gap-6 xl:grid-cols-[minmax(0,1fr),320px]">
                 <div className="min-w-0">
-                  <div className="relative rounded-[30px] border border-white/38 bg-white/40 px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[18px] supports-[backdrop-filter]:bg-white/30 xl:px-7">
-                    <div className={isEditing
-                      ? 'grid grid-cols-[150px_minmax(0,1fr)_220px] items-start gap-6 lg:grid-cols-[160px_minmax(0,1fr)_250px] xl:grid-cols-[180px_minmax(0,1fr)_280px] xl:gap-8'
-                      : 'grid grid-cols-[150px_minmax(0,1fr)] items-start gap-6 pr-[280px] lg:grid-cols-[160px_minmax(0,1fr)] lg:pr-[300px] xl:grid-cols-[180px_minmax(0,1fr)] xl:gap-8 xl:pr-[340px]'}>
-                      <div className="flex shrink-0 flex-col items-center gap-3 pt-[6px]">
+                  <div className="rounded-[30px] border border-white/38 bg-white/40 px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[18px] supports-[backdrop-filter]:bg-white/30 xl:px-7">
+                    <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)] lg:gap-8">
+                      <div className="flex shrink-0 flex-col items-center gap-3 lg:pt-[6px]">
                           <div className="group relative cursor-pointer">
                             <div className="relative">
                               <EntityAvatar
@@ -457,139 +659,175 @@ export function ContactDetailViewContent(input: {
                           ) : null}
                         </div>
 
-                      <div className="min-w-0 self-start max-w-[480px] lg:max-w-[560px] xl:max-w-[620px]">
-                        <div className="flex flex-wrap items-center gap-2" />
-                        {isEditing ? (
-                          <div className="mt-3 space-y-4">
-                            <label className="block">
-                              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                                {t('Contacts.displayName', { defaultValue: 'Display name' })}
-                              </span>
-                              <input
-                                type="text"
-                                value={draft.displayName}
-                                onChange={(event) => setDraft((current) => ({ ...current, displayName: event.target.value }))}
-                                className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[28px] font-semibold leading-[1.05] tracking-[0.02em] text-[#1A1A1B] outline-none transition focus:border-[#4ECCA3] focus:ring-4 focus:ring-[#4ECCA3]/10"
-                              />
-                            </label>
-                            <label className="block">
-                              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                                {t('Contacts.handle', { defaultValue: 'Handle' })}
-                              </span>
-                              <input
-                                type="text"
-                                value={profile.handle}
-                                disabled
-                                className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[13px] font-medium tracking-[0.02em] text-[#6E6E73]"
-                              />
-                            </label>
-                            <label className="block">
-                              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                                {t('Contacts.bio', { defaultValue: 'Bio' })}
-                              </span>
-                              <textarea
-                                value={draft.bio}
-                                onChange={(event) => setDraft((current) => ({ ...current, bio: event.target.value }))}
-                                rows={4}
-                                className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[14px] leading-[1.7] text-[#424245] outline-none transition focus:border-[#4ECCA3] focus:ring-4 focus:ring-[#4ECCA3]/10"
-                              />
-                            </label>
-                          </div>
-                        ) : (
-                          <>
-                            <h1 className="mt-1 text-[30px] font-semibold leading-[1.05] tracking-[0.05em] text-[#1A1A1B] xl:text-[32px]">
-                              {profile.displayName}
-                            </h1>
-                            <p className="mt-2 text-[13px] font-medium tracking-[0.02em] text-[#6E6E73]">
-                              {profile.handle}
-                            </p>
-                            <p className="mt-5 max-w-[420px] text-[14px] leading-[1.7] text-[#424245]">
-                              {headline}
-                            </p>
-                          </>
-                        )}
-                        {isEditing ? (
-                          <div className="mt-7 rounded-[24px] border border-[#dbe7e3] bg-[linear-gradient(180deg,rgba(78,204,163,0.08)_0%,rgba(255,255,255,0.95)_100%)] p-5 shadow-[0_14px_34px_rgba(78,204,163,0.08)]">
-                            <div className="mb-4 flex items-center gap-2">
-                              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#4ECCA3]/12 text-[#1f8f69]">
-                                <PencilIcon className="h-4 w-4" />
-                              </span>
-                              <div>
-                                <div className="text-sm font-semibold text-slate-900">
-                                  {t('Contacts.editMode', { defaultValue: 'Edit mode' })}
-                                </div>
-                                <div className="text-xs text-slate-500">
-                                  {t('Contacts.editModeDescription', {
-                                    defaultValue: 'Update your public profile details shown across Moments, Contacts, and chat.',
-                                  })}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                              <EditableField
-                                label={t('Contacts.city', { defaultValue: 'City' })}
-                                value={draft.city}
-                                onChange={(value) => setDraft((current) => ({ ...current, city: value }))}
-                              />
-                              <EditableField
-                                label={t('Contacts.countryCode', { defaultValue: 'Country code' })}
-                                value={draft.countryCode}
-                                onChange={(value) => setDraft((current) => ({ ...current, countryCode: value.toUpperCase() }))}
-                              />
-                              <EditableField
-                                label={t('Contacts.gender', { defaultValue: 'Gender' })}
-                                value={draft.gender}
-                                onChange={(value) => setDraft((current) => ({ ...current, gender: value }))}
-                              />
-                              <EditableField
-                                label={t('Contacts.languages', { defaultValue: 'Languages' })}
-                                value={draft.languages}
-                                onChange={(value) => setDraft((current) => ({ ...current, languages: value }))}
-                                placeholder={t('Contacts.languagesPlaceholder', { defaultValue: 'English, Chinese' })}
-                              />
-                              <div className="md:col-span-2">
-                                <EditableField
-                                  label={t('Contacts.tags', { defaultValue: 'Tags' })}
-                                  value={draft.tags}
-                                  onChange={(value) => setDraft((current) => ({ ...current, tags: value }))}
-                                  placeholder={t('Contacts.tagsPlaceholder', { defaultValue: 'creator, traveler, world-native' })}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="mt-7 grid max-w-[460px] grid-cols-2 gap-x-12 gap-y-3.5 text-sm text-slate-600">
-                              <InlineMeta value={joinedLabel} icon={<CalendarIcon className="h-3.5 w-3.5" />} />
-                              <InlineMeta value={locationLabel} icon={<LocationIcon className="h-3.5 w-3.5" />} />
-                              <WorldMetaLink
-                                value={worldLabel}
-                                canVisit={canVisitWorld}
-                                onClick={canVisitWorld ? () => input.onVisitWorld(worldNavigationId) : undefined}
-                              />
-                              <InlineMeta value={originLabel} icon={<OriginIcon className="h-3.5 w-3.5" />} />
-                            </div>
-                            {profile.tags.length > 0 ? (
-                              <div className="mt-7 flex flex-wrap gap-2.5">
-                                {profile.tags.map((tag) => (
-                                  <span
-                                    key={tag}
-                                    className="rounded-full bg-[rgba(15,23,42,0.05)] px-3 py-1.5 text-[12px] font-medium backdrop-blur-sm transition hover:bg-[rgba(15,23,42,0.08)] hover:shadow-[0_8px_22px_rgba(15,23,42,0.07)]"
-                                    style={{ color: '#1f8f69' }}
-                                  >
-                                    {tag}
+                      <div className="min-w-0">
+                        <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2" />
+                            {isEditing ? (
+                              <div className="mt-3 space-y-4">
+                                <label className="block">
+                                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                                    {t('Contacts.displayName', { defaultValue: 'Display name' })}
                                   </span>
-                                ))}
+                                  <input
+                                    type="text"
+                                    value={draft.displayName}
+                                    onChange={(event) => setDraft((current) => ({ ...current, displayName: event.target.value }))}
+                                    className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[28px] font-semibold leading-[1.05] tracking-[0.02em] text-[#1A1A1B] outline-none transition focus:border-[#4ECCA3] focus:ring-4 focus:ring-[#4ECCA3]/10"
+                                  />
+                                </label>
+                                <label className="block">
+                                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                                    {t('Contacts.handle', { defaultValue: 'Handle' })}
+                                  </span>
+                                  <input
+                                    type="text"
+                                    value={profile.handle}
+                                    disabled
+                                    className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[13px] font-medium tracking-[0.02em] text-[#6E6E73]"
+                                  />
+                                </label>
+                                <label className="block">
+                                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                                    {t('Contacts.bio', { defaultValue: 'Bio' })}
+                                  </span>
+                                  <textarea
+                                    value={draft.bio}
+                                    onChange={(event) => setDraft((current) => ({ ...current, bio: event.target.value }))}
+                                    rows={4}
+                                    className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[14px] leading-[1.7] text-[#424245] outline-none transition focus:border-[#4ECCA3] focus:ring-4 focus:ring-[#4ECCA3]/10"
+                                  />
+                                </label>
+                              </div>
+                            ) : (
+                              <div className={isWideLayout ? 'flex items-start justify-between gap-8' : 'block'}>
+                                <div className="min-w-0 flex-1">
+                                  <h1 className="mt-1 text-[30px] font-semibold leading-[1.05] tracking-[0.05em] text-[#1A1A1B] lg:text-[32px]">
+                                    {profile.displayName}
+                                  </h1>
+                                  <p className="mt-2 text-[13px] font-medium tracking-[0.02em] text-[#6E6E73]">
+                                    {profile.handle}
+                                  </p>
+                                  <p className="mt-5 max-w-[420px] text-[14px] leading-[1.7] text-[#424245]">
+                                    {headline}
+                                  </p>
+                                  <div className="mt-7">
+                                    <div className="grid max-w-[460px] grid-cols-2 gap-x-12 gap-y-3.5 text-sm text-slate-600">
+                                      <InlineMeta value={joinedLabel} icon={<CalendarIcon className="h-3.5 w-3.5" />} />
+                                      <InlineMeta value={locationLabel} icon={<LocationIcon className="h-3.5 w-3.5" />} />
+                                      <WorldMetaLink
+                                        value={worldLabel}
+                                        canVisit={canVisitWorld}
+                                        onClick={canVisitWorld ? () => input.onVisitWorld(worldNavigationId) : undefined}
+                                      />
+                                      <InlineMeta value={originLabel} icon={<OriginIcon className="h-3.5 w-3.5" />} />
+                                    </div>
+                                    {profile.tags.length > 0 ? (
+                                      <div className="mt-7 flex flex-wrap gap-2.5">
+                                        {profile.tags.map((tag) => (
+                                          <span
+                                            key={tag}
+                                            className="rounded-full bg-[rgba(15,23,42,0.05)] px-3 py-1.5 text-[12px] font-medium backdrop-blur-sm transition hover:bg-[rgba(15,23,42,0.08)] hover:shadow-[0_8px_22px_rgba(15,23,42,0.07)]"
+                                            style={{ color: '#1f8f69' }}
+                                          >
+                                            {tag}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                </div>
+                                {isWideLayout ? (
+                                  <ContactDetailDesktopStatsActions
+                                    friendCount={friendCount}
+                                    postCount={postCount}
+                                    likesCount={likesCount}
+                                    onMessage={input.onMessage}
+                                    onSendGift={input.onSendGift}
+                                    showGiftButton={showGiftButton}
+                                    showMessageButton={showMessageButton}
+                                    showMoreButton={Boolean(input.onBlock || input.onRemove)}
+                                    showMenu={showMenu}
+                                    menuButtonRef={menuButtonRef}
+                                    menuRef={menuRef}
+                                    onToggleMenu={() => setShowMenu((value) => !value)}
+                                    onBlock={input.onBlock ? () => {
+                                      setShowMenu(false);
+                                      input.onBlock?.();
+                                    } : undefined}
+                                    onRemove={input.onRemove ? () => {
+                                      setShowMenu(false);
+                                      input.onRemove?.();
+                                    } : undefined}
+                                  />
+                                ) : null}
+                              </div>
+                            )}
+                            {isEditing ? (
+                              <div className="mt-7 rounded-[24px] border border-[#dbe7e3] bg-[linear-gradient(180deg,rgba(78,204,163,0.08)_0%,rgba(255,255,255,0.95)_100%)] p-5 shadow-[0_14px_34px_rgba(78,204,163,0.08)]">
+                                <div className="mb-4 flex items-center gap-2">
+                                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#4ECCA3]/12 text-[#1f8f69]">
+                                    <PencilIcon className="h-4 w-4" />
+                                  </span>
+                                  <div>
+                                    <div className="text-sm font-semibold text-slate-900">
+                                      {t('Contacts.editMode', { defaultValue: 'Edit mode' })}
+                                    </div>
+                                    <div className="text-xs text-slate-500">
+                                      {t('Contacts.editModeDescription', {
+                                        defaultValue: 'Update your public profile details shown across Moments, Contacts, and chat.',
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                  <EditableField
+                                    label={t('Contacts.city', { defaultValue: 'City' })}
+                                    value={draft.city}
+                                    onChange={(value) => setDraft((current) => ({ ...current, city: value }))}
+                                  />
+                                  <EditableField
+                                    label={t('Contacts.countryCode', { defaultValue: 'Country code' })}
+                                    value={draft.countryCode}
+                                    onChange={(value) => setDraft((current) => ({ ...current, countryCode: value.toUpperCase() }))}
+                                  />
+                                  <EditableField
+                                    label={t('Contacts.gender', { defaultValue: 'Gender' })}
+                                    value={draft.gender}
+                                    onChange={(value) => setDraft((current) => ({ ...current, gender: value }))}
+                                  />
+                                  <EditableField
+                                    label={t('Contacts.languages', { defaultValue: 'Languages' })}
+                                    value={draft.languages}
+                                    onChange={(value) => setDraft((current) => ({ ...current, languages: value }))}
+                                    placeholder={t('Contacts.languagesPlaceholder', { defaultValue: 'English, Chinese' })}
+                                  />
+                                  <div className="md:col-span-2">
+                                    <EditableField
+                                      label={t('Contacts.tags', { defaultValue: 'Tags' })}
+                                      value={draft.tags}
+                                      onChange={(value) => setDraft((current) => ({ ...current, tags: value }))}
+                                      placeholder={t('Contacts.tagsPlaceholder', { defaultValue: 'creator, traveler, world-native' })}
+                                    />
+                                  </div>
+                                </div>
                               </div>
                             ) : null}
-                          </>
-                        )}
+                          </div>
                       </div>
+                    </div>
+                  </div>
 
-                      {isEditing ? (
-                        <div className="flex w-full shrink-0 flex-col items-end gap-6 self-start border-l border-transparent pt-[6px] pl-5 lg:pl-6 xl:pl-8">
-                          <div className="w-full mt-auto">
-                            <ContactDetailSaveActions
+                  <div className="mt-6">
+                    <section className="min-w-0 space-y-6">
+                      <div className="bg-transparent">
+                        {!isWideLayout ? (
+                          <div className="px-5">
+                            <ContactDetailStatsActionsBlock
+                              friendCount={friendCount}
+                              postCount={postCount}
+                              likesCount={likesCount}
+                              isEditing={isEditing}
+                              isOwnProfile={input.isOwnProfile}
                               draftDisplayName={draft.displayName}
                               isSaving={isSaving}
                               isUploadingAvatar={isUploadingAvatar}
@@ -598,53 +836,27 @@ export function ContactDetailViewContent(input: {
                                 void handleSaveProfile();
                               }}
                               saveError={saveError}
-                              stacked={false}
-                            />
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                    {!isEditing ? (
-                      <>
-                        <div className="absolute right-7 top-7 hidden items-center justify-end gap-3 xl:flex xl:right-8 xl:top-8">
-                          <ContactDetailActionButtons
-                            onMessage={input.onMessage}
-                            onSendGift={input.onSendGift}
-                            showGiftButton={showGiftButton}
-                            showMessageButton={showMessageButton}
-                          />
-                        </div>
-                        <div className="absolute right-7 top-1/2 hidden w-[240px] -translate-y-1/2 xl:block xl:right-8 xl:w-[260px]">
-                          <div className="grid grid-cols-[1fr_18px_1fr_18px_1fr] items-start gap-x-0">
-                            <StatTile label={t('Profile.friends', { defaultValue: 'Friends' })} value={friendCount} />
-                            <StatDivider />
-                            <StatTile label={t('Profile.posts', { defaultValue: 'Posts' })} value={postCount} />
-                            <StatDivider />
-                            <StatTile label={t('Profile.likes', { defaultValue: 'Likes' })} value={likesCount} />
-                          </div>
-                        </div>
-                        <div className="mt-5 space-y-4 xl:hidden">
-                          <div className="flex items-center gap-2">
-                            <ContactDetailActionButtons
                               onMessage={input.onMessage}
                               onSendGift={input.onSendGift}
                               showGiftButton={showGiftButton}
                               showMessageButton={showMessageButton}
+                              showMoreButton={Boolean(input.onBlock || input.onRemove)}
+                              showMenu={showMenu}
+                              menuButtonRef={menuButtonRef}
+                              menuRef={menuRef}
+                              onToggleMenu={() => setShowMenu((value) => !value)}
+                              onBlock={input.onBlock ? () => {
+                                setShowMenu(false);
+                                input.onBlock?.();
+                              } : undefined}
+                              onRemove={input.onRemove ? () => {
+                                setShowMenu(false);
+                                input.onRemove?.();
+                              } : undefined}
                             />
                           </div>
-                          <div className="grid max-w-[228px] grid-cols-3 gap-2">
-                            <StatTile label={t('Profile.friends', { defaultValue: 'Friends' })} value={friendCount} />
-                            <StatTile label={t('Profile.posts', { defaultValue: 'Posts' })} value={postCount} />
-                            <StatTile label={t('Profile.likes', { defaultValue: 'Likes' })} value={likesCount} />
-                          </div>
-                        </div>
-                      </>
-                    ) : null}
-                  </div>
+                        ) : null}
 
-                  <div className="mt-6">
-                    <section className="min-w-0 space-y-6">
-                      <div className="bg-transparent">
                         <div className="px-4">
                           <div
                             ref={tabListRef}

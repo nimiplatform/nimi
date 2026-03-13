@@ -11,6 +11,7 @@ const SAVED_POSTS_UPDATED_EVENT = 'nimi:saved-posts-updated';
 type CollectionsTabProps = {
   profileId: string;
   canManageSavedPosts?: boolean;
+  layout?: 'grid' | 'masonry';
 };
 
 function CollectionSkeleton() {
@@ -53,7 +54,7 @@ function toErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-export function CollectionsTab({ canManageSavedPosts = true }: CollectionsTabProps) {
+export function CollectionsTab({ canManageSavedPosts = true, layout = 'grid' }: CollectionsTabProps) {
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [posts, setPosts] = useState<PostDto[]>([]);
   const [offset, setOffset] = useState(0);
@@ -244,6 +245,7 @@ export function CollectionsTab({ canManageSavedPosts = true }: CollectionsTabPro
       retryLabel="Retry"
       skeleton={<CollectionSkeleton />}
       onRetryLoadMore={() => { void fetchSavedPosts(offset); }}
+      layout={layout}
       onDeletePost={(postId) => {
         setPosts((current) => current.filter((item) => item.id !== postId));
       }}
