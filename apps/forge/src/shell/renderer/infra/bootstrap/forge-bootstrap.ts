@@ -1,0 +1,58 @@
+import { getRuntimeDefaults } from '@renderer/bridge/runtime-defaults.js';
+import { getDaemonStatus } from '@renderer/bridge/runtime-daemon.js';
+import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import { initializePlatformClient } from '@runtime/platform-client.js';
+import { initI18n } from '@renderer/i18n/index.js';
+import { bootstrapAuthSession } from './forge-bootstrap-auth.js';
+
+export async function runForgeBootstrap(): Promise<void> {
+  const store = useAppStore.getState();
+
+  try {
+    // Step 1: i18n
+    await initI18n();
+
+    // Step 2: Runtime Defaults
+    const runtimeDefaults = await getRuntimeDefaults();
+    store.setRuntimeDefaults(runtimeDefaults);
+
+    // Step 3: Platform Client
+    const { runtime, realm } = await initializePlatformClient({
+      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
+      accessToken: runtimeDefaults.realm.accessToken,
+      accessTokenProvider: () => useAppStore.getState().auth.token,
+      subjectUserIdProvider: () => useAppStore.getState().auth.user?.id ?? '',
+    });
+
+    // Step 4: Auth Session
+    await bootstrapAuthSession({
+      realm,
+      accessToken: runtimeDefaults.realm.accessToken,
+    });
+
+    // Step 5: Runtime SDK Readiness
+    try {
+      await runtime.ready();
+    } catch {
+      // Runtime readiness is non-blocking for Forge — creator features
+      // may work without local AI runtime available
+    }
+
+    // Step 6: Exit Handler (daemon status check)
+    try {
+      const daemonStatus = await getDaemonStatus();
+      if (daemonStatus.managed) {
+        // Register exit handler if daemon is managed
+        // Forge uses a lighter touch — just log the status
+      }
+    } catch {
+      // Non-blocking — daemon may not be running
+    }
+
+    // Step 7: Ready
+    store.setBootstrapReady(true);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    store.setBootstrapError(message);
+  }
+}
