@@ -19,6 +19,8 @@ func scenarioModal(req *runtimev1.SubmitScenarioJobRequest) runtimev1.Modal {
 		return runtimev1.Modal_MODAL_TTS
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		return runtimev1.Modal_MODAL_STT
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
+		return runtimev1.Modal_MODAL_MUSIC
 	default:
 		return runtimev1.Modal_MODAL_UNSPECIFIED
 	}

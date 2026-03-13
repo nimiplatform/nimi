@@ -167,4 +167,15 @@ func TestServicePublicSettersAndAccessors(t *testing.T) {
 	if backend == nil || !available {
 		t.Fatalf("localai backend should be hot-swapped after endpoint injection")
 	}
+	svc.SetLocalProviderEndpoint("sidecar", "http://127.0.0.1:19191", "sidecar-key")
+	sidecarBackend, resolvedModel, explicit, available, _ := local.pickBackend("sidecar/stable-audio-open-sidecar")
+	if sidecarBackend == nil || !available {
+		t.Fatalf("sidecar backend should be hot-swapped after endpoint injection")
+	}
+	if sidecarBackend.Name != "local-sidecar" {
+		t.Fatalf("unexpected sidecar backend name: %q", sidecarBackend.Name)
+	}
+	if resolvedModel != "stable-audio-open-sidecar" || !explicit {
+		t.Fatalf("unexpected sidecar resolution: model=%q explicit=%v", resolvedModel, explicit)
+	}
 }

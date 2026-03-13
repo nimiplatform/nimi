@@ -35,7 +35,8 @@ func scenarioAllowedModes(scenarioType runtimev1.ScenarioType) []runtimev1.Execu
 		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
-		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
+		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
 		return []runtimev1.ExecutionMode{
 			runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		}
@@ -70,6 +71,8 @@ func scenarioRequiredCapabilities(scenarioType runtimev1.ScenarioType) []string 
 		return []string{aicapabilities.VoiceWorkflowTTSV2V}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
 		return []string{aicapabilities.VoiceWorkflowTTST2V}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
+		return []string{aicapabilities.MusicGenerate}
 	default:
 		return nil
 	}

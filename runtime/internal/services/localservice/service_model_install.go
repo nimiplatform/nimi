@@ -111,10 +111,22 @@ func resolveInstallPlanEndpoint(engine string, requestEndpoint string, fallbackE
 	if endpoint := strings.TrimSpace(fallbackEndpoint); endpoint != "" {
 		return endpoint
 	}
+	if engineRequiresExplicitEndpoint(engine) {
+		return ""
+	}
 	if strings.EqualFold(strings.TrimSpace(engine), "localai") {
 		return defaultLocalEndpoint
 	}
-	return ""
+	return defaultLocalEndpoint
+}
+
+func engineRequiresExplicitEndpoint(engine string) bool {
+	switch strings.ToLower(strings.TrimSpace(engine)) {
+	case "nexa", "sidecar":
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *Service) evaluateInstallPlanAvailability(plan *runtimev1.LocalInstallPlanDescriptor) {
@@ -130,7 +142,7 @@ func (s *Service) evaluateInstallPlanAvailability(plan *runtimev1.LocalInstallPl
 		endpoint := strings.TrimSpace(plan.GetEndpoint())
 		if endpoint == "" {
 			plan.InstallAvailable = false
-			if engine == "nexa" {
+			if engineRequiresExplicitEndpoint(engine) {
 				plan.ReasonCode = runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String()
 			} else {
 				plan.ReasonCode = "LOCAL_ENDPOINT_REQUIRED"
@@ -171,7 +183,7 @@ func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLoc
 	}
 	engine := defaultString(strings.TrimSpace(req.GetEngine()), "localai")
 	endpoint := strings.TrimSpace(req.GetEndpoint())
-	if strings.EqualFold(engine, "nexa") && endpoint == "" {
+	if engineRequiresExplicitEndpoint(engine) && endpoint == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
 	}
 	if endpoint == "" {
@@ -302,7 +314,7 @@ func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocal
 	if endpoint == "" {
 		endpoint = manifestStringDefault(manifest, "endpoint")
 	}
-	if strings.EqualFold(engine, "nexa") && strings.TrimSpace(endpoint) == "" {
+	if engineRequiresExplicitEndpoint(engine) && strings.TrimSpace(endpoint) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
 	}
 	if endpoint == "" {

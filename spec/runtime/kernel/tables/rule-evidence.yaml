@@ -871,6 +871,15 @@ rules:
   - rule_id: K-MMPROV-033
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
+  - rule_id: K-MMPROV-034
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
+  - rule_id: K-MMPROV-035
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
+  - rule_id: K-MMPROV-036
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
   - rule_id: K-MODEL-001
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_test_gate]

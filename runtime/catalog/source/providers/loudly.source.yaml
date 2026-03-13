@@ -1,0 +1,48 @@
+schema_version: 3
+provider: loudly
+catalog_version: 2026-03-13-loudly-v1
+generated_target: runtime/catalog/providers/loudly.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: https://soundtracks.loudly.com
+  requires_explicit_endpoint: false
+defaults:
+  provider: loudly
+  model_type: music
+  capabilities: []
+  pricing:
+    unit: request
+    input: unknown
+    output: unknown
+    currency: USD
+    as_of: 2026-03-13
+    notes: Loudly Music API pricing varies by enterprise contract and output type.
+
+sources:
+  - source_id: loudly_music_api
+    url: https://www.loudly.com/rest/music
+    retrieved_at: 2026-03-13
+    note: Loudly Music API overview page.
+  - source_id: loudly_openapi
+    url: https://b2b-soundtracks-swagger-prd.loudly.com/swagger/b2b_swagger.yaml
+    retrieved_at: 2026-03-13
+    note: Loudly B2B swagger definition.
+
+models:
+  - model_id: loudly-vega-2
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities: [music.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-13
+      notes: Loudly prompt song pricing varies by plan and rendering options.
+    source_ids: [loudly_music_api, loudly_openapi]
+    aliases:
+      - VEGA_2
+      - prompt-songs

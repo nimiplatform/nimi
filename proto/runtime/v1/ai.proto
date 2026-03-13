@@ -17,6 +17,7 @@ enum Modal {
   MODAL_TTS = 4;
   MODAL_STT = 5;
   MODAL_EMBEDDING = 6;
+  MODAL_MUSIC = 7;
 }
 
 enum ScenarioType {
@@ -29,6 +30,7 @@ enum ScenarioType {
   SCENARIO_TYPE_SPEECH_TRANSCRIBE = 6;
   SCENARIO_TYPE_VOICE_CLONE = 7;
   SCENARIO_TYPE_VOICE_DESIGN = 8;
+  SCENARIO_TYPE_MUSIC_GENERATE = 9;
 }
 
 enum ExecutionMode {
@@ -255,6 +257,16 @@ message VoiceDesignScenarioSpec {
   VoiceT2VInput input = 2;
 }
 
+message MusicGenerateScenarioSpec {
+  string prompt = 1;
+  string negative_prompt = 2;
+  string lyrics = 3;
+  string style = 4;
+  string title = 5;
+  int32 duration_seconds = 6;
+  bool instrumental = 7;
+}
+
 message ScenarioSpec {
   oneof spec {
     TextGenerateScenarioSpec text_generate = 1;
@@ -265,6 +277,7 @@ message ScenarioSpec {
     SpeechTranscribeScenarioSpec speech_transcribe = 6;
     VoiceCloneScenarioSpec voice_clone = 7;
     VoiceDesignScenarioSpec voice_design = 8;
+    MusicGenerateScenarioSpec music_generate = 9;
   }
 }
 

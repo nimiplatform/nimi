@@ -41,6 +41,39 @@ export function createCatalogChecks(context) {
       .filter((entry) => entry.provider);
   }
 
+  function normalizeStringArray(value) {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    return value
+      .map((item) => String(item || '').trim())
+      .filter(Boolean);
+  }
+
+  function aggregateProviderCapabilities(parsed) {
+    const capabilitySet = new Set();
+    const defaults = normalizeStringArray(parsed?.defaults?.capabilities).map((item) => item.toLowerCase());
+    const models = Array.isArray(parsed?.models) ? parsed.models : [];
+    for (const model of models) {
+      const declared = normalizeStringArray(model?.capabilities).map((item) => item.toLowerCase());
+      const effective = declared.length > 0 ? declared : defaults;
+      for (const capability of effective) {
+        capabilitySet.add(capability);
+      }
+    }
+    const workflows = Array.isArray(parsed?.voice_workflow_models) ? parsed.voice_workflow_models : [];
+    for (const workflow of workflows) {
+      const workflowType = String(workflow?.workflow_type || '').trim().toLowerCase();
+      if (workflowType === 'tts_v2v') {
+        capabilitySet.add('voice_workflow.tts_v2v');
+      }
+      if (workflowType === 'tts_t2v') {
+        capabilitySet.add('voice_workflow.tts_t2v');
+      }
+    }
+    return [...capabilitySet].sort((a, b) => a.localeCompare(b));
+  }
+
   function listTtsProvidersFromSnapshots() {
     if (!fs.existsSync(runtimeCatalogProvidersDir)) {
       return [];
@@ -178,6 +211,13 @@ export function createCatalogChecks(context) {
           : 'default_or_explicit';
       if (String(capabilityEntry?.endpoint_requirement || '').trim() !== expectedRequirement) {
         fail(`${relPath} provider ${provider} endpoint_requirement mismatch with provider-capabilities`);
+      }
+      const expectedCapabilities = aggregateProviderCapabilities(parsed);
+      const actualCapabilities = normalizeStringArray(capabilityEntry?.capabilities)
+        .map((item) => item.toLowerCase())
+        .sort((a, b) => a.localeCompare(b));
+      if (JSON.stringify(actualCapabilities) !== JSON.stringify(expectedCapabilities)) {
+        fail(`${relPath} provider ${provider} capabilities mismatch with provider-capabilities`);
       }
 
       const catalogEntry = catalogByProvider.get(provider);

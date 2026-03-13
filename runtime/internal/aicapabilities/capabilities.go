@@ -3,17 +3,19 @@ package aicapabilities
 import "strings"
 
 const (
-	TextGenerate       = "text.generate"
-	TextGenerateVision = "text.generate.vision"
-	TextGenerateAudio  = "text.generate.audio"
-	TextGenerateVideo  = "text.generate.video"
-	TextEmbed          = "text.embed"
-	ImageGenerate       = "image.generate"
-	VideoGenerate       = "video.generate"
-	AudioSynthesize     = "audio.synthesize"
-	AudioTranscribe     = "audio.transcribe"
-	VoiceWorkflowTTSV2V = "voice_workflow.tts_v2v"
-	VoiceWorkflowTTST2V = "voice_workflow.tts_t2v"
+	TextGenerate           = "text.generate"
+	TextGenerateVision     = "text.generate.vision"
+	TextGenerateAudio      = "text.generate.audio"
+	TextGenerateVideo      = "text.generate.video"
+	TextEmbed              = "text.embed"
+	ImageGenerate          = "image.generate"
+	VideoGenerate          = "video.generate"
+	AudioSynthesize        = "audio.synthesize"
+	AudioTranscribe        = "audio.transcribe"
+	VoiceWorkflowTTSV2V    = "voice_workflow.tts_v2v"
+	VoiceWorkflowTTST2V    = "voice_workflow.tts_t2v"
+	MusicGenerate          = "music.generate"
+	MusicGenerateIteration = "music.generate.iteration"
 )
 
 // NormalizeCatalogCapability returns the canonical catalog capability token.
@@ -42,6 +44,10 @@ func NormalizeCatalogCapability(value string) string {
 		return VoiceWorkflowTTSV2V
 	case VoiceWorkflowTTST2V:
 		return VoiceWorkflowTTST2V
+	case MusicGenerate:
+		return MusicGenerate
+	case MusicGenerateIteration:
+		return MusicGenerateIteration
 	default:
 		return ""
 	}

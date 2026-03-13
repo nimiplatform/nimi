@@ -8,3 +8,4 @@
 | `localai` | `—` | `supervised` | `openai_compatible` | `true` | `K-LENG-004` |
 | `nexa` | `—` | `attached_endpoint` | `openai_compatible` | `true` | `K-LENG-005` |
 | `nexa` | `—` | `supervised` | `openai_compatible` | `true` | `K-LENG-004` |
+| `sidecar` | `—` | `attached_endpoint` | `nimi_music_http` | `true` | `K-LENG-005` |

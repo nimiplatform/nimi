@@ -14,6 +14,16 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+func resolveServiceInstallEndpoint(engine string, requestEndpoint string, modelEndpoint string) string {
+	if endpoint := strings.TrimSpace(requestEndpoint); endpoint != "" {
+		return endpoint
+	}
+	if engineRequiresExplicitEndpoint(engine) {
+		return strings.TrimSpace(modelEndpoint)
+	}
+	return defaultServiceEndpoint
+}
+
 func (s *Service) ListLocalServices(_ context.Context, req *runtimev1.ListLocalServicesRequest) (*runtimev1.ListLocalServicesResponse, error) {
 	statusFilter := req.GetStatusFilter()
 	s.mu.RLock()
@@ -103,7 +113,7 @@ func (s *Service) InstallLocalService(_ context.Context, req *runtimev1.InstallL
 		Title:        defaultString(strings.TrimSpace(req.GetTitle()), serviceID),
 		Engine:       engine,
 		ArtifactType: "binary",
-		Endpoint:     defaultString(strings.TrimSpace(req.GetEndpoint()), defaultServiceEndpoint),
+		Endpoint:     resolveServiceInstallEndpoint(engine, strings.TrimSpace(req.GetEndpoint()), strings.TrimSpace(model.GetEndpoint())),
 		Capabilities: capabilities,
 		LocalModelId: localModelID,
 		Status:       runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED,

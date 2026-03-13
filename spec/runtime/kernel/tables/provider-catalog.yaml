@@ -105,6 +105,11 @@ providers:
     default_text_model: null
     requires_explicit_endpoint: true
     source_rule: K-MCAT-027
+  - provider: loudly
+    default_endpoint: https://soundtracks.loudly.com
+    default_text_model: null
+    requires_explicit_endpoint: false
+    source_rule: K-MCAT-027
   - provider: luma
     default_endpoint: null
     default_text_model: null
@@ -117,6 +122,11 @@ providers:
     source_rule: K-MCAT-027
   - provider: mistral
     default_endpoint: https://api.mistral.ai/v1
+    default_text_model: null
+    requires_explicit_endpoint: false
+    source_rule: K-MCAT-027
+  - provider: mubert
+    default_endpoint: https://music-api.mubert.com/api/v3
     default_text_model: null
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027
@@ -165,18 +175,28 @@ providers:
     default_text_model: null
     requires_explicit_endpoint: true
     source_rule: K-MCAT-027
+  - provider: soundverse
+    default_endpoint: https://api.soundverse.ai
+    default_text_model: null
+    requires_explicit_endpoint: false
+    source_rule: K-MCAT-027
   - provider: spark
     default_endpoint: https://spark-api-open.xf-yun.com/v1
     default_text_model: null
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027
   - provider: stability
-    default_endpoint: null
+    default_endpoint: https://api.stability.ai
     default_text_model: null
-    requires_explicit_endpoint: true
+    requires_explicit_endpoint: false
     source_rule: K-MCAT-027
   - provider: stepfun
     default_endpoint: https://api.stepfun.ai/v1
+    default_text_model: null
+    requires_explicit_endpoint: false
+    source_rule: K-MCAT-027
+  - provider: suno
+    default_endpoint: https://apibox.erweima.ai
     default_text_model: null
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027

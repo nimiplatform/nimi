@@ -1,6 +1,6 @@
 version: 1
 provider: stability
-catalog_version: 2026-03-05-stability-v1
+catalog_version: 2026-03-13-stability-v2
 models:
   - model_id: stable-diffusion-3.5-large
     provider: stability
@@ -17,7 +17,7 @@ models:
       notes: Image generation pricing varies by resolution and quality.
     source_ref:
       url: https://platform.stability.ai/docs/api-reference
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-03-13
       note: Stability AI API reference.
   - model_id: sd3.5-large
     provider: stability
@@ -34,7 +34,7 @@ models:
       notes: Image generation pricing varies by resolution and quality.
     source_ref:
       url: https://platform.stability.ai/docs/api-reference
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-03-13
       note: Stability AI API reference.
   - model_id: stable-diffusion-3.5-medium
     provider: stability
@@ -51,7 +51,7 @@ models:
       notes: Image generation pricing varies by resolution and quality.
     source_ref:
       url: https://platform.stability.ai/docs/api-reference
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-03-13
       note: Stability AI API reference.
   - model_id: sd3.5-medium
     provider: stability
@@ -68,6 +68,60 @@ models:
       notes: Image generation pricing varies by resolution and quality.
     source_ref:
       url: https://platform.stability.ai/docs/api-reference
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-03-13
+      note: Stability AI API reference.
+  - model_id: stable-audio-2
+    provider: stability
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+      - music.generate.iteration
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-13
+      notes: Stable Audio pricing varies by model version, request size, and plan.
+    source_ref:
+      url: https://platform.stability.ai/docs/api-reference
+      retrieved_at: 2026-03-13
+      note: Stability AI API reference.
+  - model_id: stable-audio-2.0
+    provider: stability
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+      - music.generate.iteration
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-13
+      notes: Stable Audio pricing varies by model version, request size, and plan.
+    source_ref:
+      url: https://platform.stability.ai/docs/api-reference
+      retrieved_at: 2026-03-13
+      note: Stability AI API reference.
+  - model_id: stable-audio
+    provider: stability
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+      - music.generate.iteration
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-13
+      notes: Stable Audio pricing varies by model version, request size, and plan.
+    source_ref:
+      url: https://platform.stability.ai/docs/api-reference
+      retrieved_at: 2026-03-13
       note: Stability AI API reference.
 voices: []

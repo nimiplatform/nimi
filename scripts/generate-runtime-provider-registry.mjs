@@ -22,7 +22,7 @@ const supplementalProviders = [
     requiresExplicitEndpoint: true,
     defaultEndpoint: '',
     defaultTextModel: '',
-    supports: { text: true, embed: true, image: true, video: true, tts: true, stt: true, ttsV2V: false, ttsT2V: false },
+    supports: { text: true, embed: true, image: true, video: true, tts: true, stt: true, music: false, musicIteration: false, ttsV2V: false, ttsT2V: false },
   },
   {
     id: 'openai_compatible',
@@ -32,7 +32,7 @@ const supplementalProviders = [
     requiresExplicitEndpoint: true,
     defaultEndpoint: '',
     defaultTextModel: '',
-    supports: { text: true, embed: true, image: true, video: true, tts: true, stt: true, ttsV2V: false, ttsT2V: false },
+    supports: { text: true, embed: true, image: true, video: true, tts: true, stt: true, music: false, musicIteration: false, ttsV2V: false, ttsT2V: false },
   },
   {
     id: 'volcengine_openspeech',
@@ -42,17 +42,20 @@ const supplementalProviders = [
     requiresExplicitEndpoint: false,
     defaultEndpoint: 'https://openspeech.bytedance.com/api/v1',
     defaultTextModel: '',
-    supports: { text: false, embed: false, image: false, video: false, tts: true, stt: true, ttsV2V: false, ttsT2V: false },
+    supports: { text: false, embed: false, image: false, video: false, tts: true, stt: true, music: false, musicIteration: false, ttsV2V: false, ttsT2V: false },
   },
 ];
 
 const canonicalModelCapabilities = new Set([
   'text.generate',
+  'text.generate.vision',
   'text.embed',
   'image.generate',
   'video.generate',
   'audio.synthesize',
   'audio.transcribe',
+  'music.generate',
+  'music.generate.iteration',
 ]);
 
 function normalizeProvider(value) {
@@ -98,6 +101,8 @@ function capabilityFlags(sourceDoc) {
   let video = false;
   let tts = false;
   let stt = false;
+  let music = false;
+  let musicIteration = false;
 
   for (const model of models) {
     const capabilities = normalizeStringArray(model?.capabilities).map((entry) => entry.toLowerCase());
@@ -124,6 +129,12 @@ function capabilityFlags(sourceDoc) {
       if (capability === 'audio.transcribe') {
         stt = true;
       }
+      if (capability === 'music.generate') {
+        music = true;
+      }
+      if (capability === 'music.generate.iteration') {
+        musicIteration = true;
+      }
     }
   }
 
@@ -140,7 +151,35 @@ function capabilityFlags(sourceDoc) {
     }
   }
 
-  return { text, embed, image, video, tts, stt, ttsV2V, ttsT2V };
+  return { text, embed, image, video, tts, stt, music, musicIteration, ttsV2V, ttsT2V };
+}
+
+function collectProviderCapabilities(sourceDoc) {
+  const defaults = normalizeStringArray(sourceDoc?.defaults?.capabilities);
+  const models = Array.isArray(sourceDoc?.models) ? sourceDoc.models : [];
+  const capabilitySet = new Set();
+  for (const model of models) {
+    const capabilities = normalizeStringArray(model?.capabilities);
+    const effectiveCaps = capabilities.length > 0 ? capabilities : defaults;
+    for (const capability of effectiveCaps) {
+      const normalized = capability.toLowerCase();
+      if (!canonicalModelCapabilities.has(normalized)) {
+        throw new Error(`provider ${sourceDoc?.provider || '<unknown>'} uses non-canonical capability token: ${capability}`);
+      }
+      capabilitySet.add(normalized);
+    }
+  }
+  const workflows = Array.isArray(sourceDoc?.voice_workflow_models) ? sourceDoc.voice_workflow_models : [];
+  for (const workflow of workflows) {
+    const workflowType = String(workflow?.workflow_type || '').trim().toLowerCase();
+    if (workflowType === 'tts_v2v') {
+      capabilitySet.add('voice_workflow.tts_v2v');
+    }
+    if (workflowType === 'tts_t2v') {
+      capabilitySet.add('voice_workflow.tts_t2v');
+    }
+  }
+  return [...capabilitySet].sort((left, right) => left.localeCompare(right));
 }
 
 function readRuntimeMetadata(sourceDoc, providerID) {
@@ -210,6 +249,8 @@ function renderProviderRecord(record) {
     `\t\tSupportsVideo: ${boolLiteral(record.supports.video)},\n` +
     `\t\tSupportsTTS: ${boolLiteral(record.supports.tts)},\n` +
     `\t\tSupportsSTT: ${boolLiteral(record.supports.stt)},\n` +
+    `\t\tSupportsMusic: ${boolLiteral(record.supports.music)},\n` +
+    `\t\tSupportsMusicIteration: ${boolLiteral(record.supports.musicIteration)},\n` +
     `\t\tSupportsTTSV2V: ${boolLiteral(record.supports.ttsV2V)},\n` +
     `\t\tSupportsTTST2V: ${boolLiteral(record.supports.ttsT2V)},\n` +
     `\t},`;
@@ -241,6 +282,7 @@ async function loadSourceProviders() {
       defaultTextModel: runtimeMetadata.defaultTextModel,
       requiresExplicitEndpoint: runtimeMetadata.requiresExplicitEndpoint,
       supports: capabilityFlags(doc),
+      capabilities: collectProviderCapabilities(doc),
     });
   }
 
@@ -279,6 +321,7 @@ function providerCapabilitiesTableDoc(records) {
       managed_connector_supported: Boolean(record.managedConnectorSupported),
       inline_supported: Boolean(record.inlineSupported),
       endpoint_requirement: endpointRequirementFor(record),
+      capabilities: Array.isArray(record.capabilities) ? record.capabilities : [],
       sources: record.runtimePlane === 'local'
         ? ['K-MCAT-027', 'K-LOCAL-001', 'K-LOCAL-002']
         : ['K-MCAT-027', 'K-CONN-008', 'K-KEYSRC-001'],
@@ -309,7 +352,7 @@ function renderGoFile(records) {
   const remoteProvidersLiteral = remoteProviders.map((id) => `\t${goString(id)},`).join('\n');
   const allProvidersLiteral = allProviders.map((id) => `\t${goString(id)},`).join('\n');
 
-  return `// Code generated by scripts/generate-runtime-provider-registry.mjs. DO NOT EDIT.\n\npackage providerregistry\n\n// ProviderRecord captures runtime routing and capability metadata for one provider.\ntype ProviderRecord struct {\n\tID string\n\tRuntimePlane string\n\tManagedConnectorSupported bool\n\tInlineSupported bool\n\tDefaultEndpoint string\n\tDefaultTextModel string\n\tRequiresExplicitEndpoint bool\n\tSupportsText bool\n\tSupportsEmbed bool\n\tSupportsImage bool\n\tSupportsVideo bool\n\tSupportsTTS bool\n\tSupportsSTT bool\n\tSupportsTTSV2V bool\n\tSupportsTTST2V bool\n}\n\nvar AllProviders = []string{\n${allProvidersLiteral}\n}\n\nvar SourceProviders = []string{\n${sourceProvidersLiteral}\n}\n\nvar RemoteProviders = []string{\n${remoteProvidersLiteral}\n}\n\nvar Records = map[string]ProviderRecord{\n${providerRecords}\n}\n`;
+  return `// Code generated by scripts/generate-runtime-provider-registry.mjs. DO NOT EDIT.\n\npackage providerregistry\n\n// ProviderRecord captures runtime routing and capability metadata for one provider.\ntype ProviderRecord struct {\n\tID string\n\tRuntimePlane string\n\tManagedConnectorSupported bool\n\tInlineSupported bool\n\tDefaultEndpoint string\n\tDefaultTextModel string\n\tRequiresExplicitEndpoint bool\n\tSupportsText bool\n\tSupportsEmbed bool\n\tSupportsImage bool\n\tSupportsVideo bool\n\tSupportsTTS bool\n\tSupportsSTT bool\n\tSupportsMusic bool\n\tSupportsMusicIteration bool\n\tSupportsTTSV2V bool\n\tSupportsTTST2V bool\n}\n\nvar AllProviders = []string{\n${allProvidersLiteral}\n}\n\nvar SourceProviders = []string{\n${sourceProvidersLiteral}\n}\n\nvar RemoteProviders = []string{\n${remoteProvidersLiteral}\n}\n\nvar Records = map[string]ProviderRecord{\n${providerRecords}\n}\n`;
 }
 
 function renderSDKFile(records) {

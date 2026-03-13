@@ -39,7 +39,8 @@ func unsupportedCapabilityReasonCode(scenarioType runtimev1.ScenarioType) runtim
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
-		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:
+		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
 		return runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:

@@ -109,6 +109,10 @@ func normalizeWarmResolvedModelID(modelID string) string {
 		return strings.TrimSpace(normalized[len("localai/"):])
 	case strings.HasPrefix(lower, "nexa/"):
 		return strings.TrimSpace(normalized[len("nexa/"):])
+	case strings.HasPrefix(lower, "sidecar/"):
+		return strings.TrimSpace(normalized[len("sidecar/"):])
+	case strings.HasPrefix(lower, "localsidecar/"):
+		return strings.TrimSpace(normalized[len("localsidecar/"):])
 	case strings.HasPrefix(lower, "local/"):
 		return strings.TrimSpace(normalized[len("local/"):])
 	default:

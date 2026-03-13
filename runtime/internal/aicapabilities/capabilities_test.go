@@ -15,6 +15,8 @@ func TestNormalizeCatalogCapability(t *testing.T) {
 		{AudioTranscribe, AudioTranscribe},
 		{VoiceWorkflowTTSV2V, VoiceWorkflowTTSV2V},
 		{VoiceWorkflowTTST2V, VoiceWorkflowTTST2V},
+		{MusicGenerate, MusicGenerate},
+		{MusicGenerateIteration, MusicGenerateIteration},
 		{"TEXT.GENERATE", TextGenerate},
 		{"  text.generate  ", TextGenerate},
 		{"unknown.cap", ""},
@@ -29,7 +31,7 @@ func TestNormalizeCatalogCapability(t *testing.T) {
 }
 
 func TestHasCatalogCapability(t *testing.T) {
-	caps := []string{"text.generate", "image.generate"}
+	caps := []string{"text.generate", "image.generate", "music.generate.iteration"}
 
 	if !HasCatalogCapability(caps, TextGenerate) {
 		t.Fatal("should find text.generate")
@@ -39,6 +41,9 @@ func TestHasCatalogCapability(t *testing.T) {
 	}
 	if HasCatalogCapability(caps, VideoGenerate) {
 		t.Fatal("should not find video.generate")
+	}
+	if !HasCatalogCapability(caps, MusicGenerateIteration) {
+		t.Fatal("should find music.generate.iteration")
 	}
 }
 

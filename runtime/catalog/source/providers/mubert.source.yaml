@@ -1,0 +1,48 @@
+schema_version: 3
+provider: mubert
+catalog_version: 2026-03-13-mubert-v1
+generated_target: runtime/catalog/providers/mubert.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: https://music-api.mubert.com/api/v3
+  requires_explicit_endpoint: false
+defaults:
+  provider: mubert
+  model_type: music
+  capabilities: []
+  pricing:
+    unit: request
+    input: unknown
+    output: unknown
+    currency: USD
+    as_of: 2026-03-13
+    notes: Mubert API pricing varies by contract tier, render mode, and usage volume.
+
+sources:
+  - source_id: mubert_api_page
+    url: https://mubert.com/api
+    retrieved_at: 2026-03-13
+    note: Mubert API overview page.
+  - source_id: mubert_apiary
+    url: https://mubertmusicapiv3.docs.apiary.io/api-description-document
+    retrieved_at: 2026-03-13
+    note: Mubert v3 API blueprint.
+
+models:
+  - model_id: mubert-track-v3
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities: [music.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-13
+      notes: Track render pricing varies by commercial plan and API contract.
+    source_ids: [mubert_api_page, mubert_apiary]
+    aliases:
+      - public-tracks
+      - mubert-track

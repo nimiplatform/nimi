@@ -10,6 +10,11 @@ targets:
     api_key_env: NIMI_RUNTIME_LOCAL_NEXA_API_KEY
     category: local
     source_rule: K-PROV-002
+  - name: local-sidecar
+    base_url_env: NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL
+    api_key_env: NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY
+    category: local
+    source_rule: K-PROV-002
   - name: cloud-nimillm
     base_url_env: NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL
     api_key_env: NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY

@@ -20,6 +20,22 @@ routes:
     capability: stt
     adapter: localai_native_adapter
     source_rule: K-LOCAL-017
+  - provider: localai
+    capability: music
+    adapter: localai_music_adapter
+    source_rule: K-LOCAL-017
+  - provider: localai
+    capability: music.generate
+    adapter: localai_music_adapter
+    source_rule: K-LOCAL-017
+  - provider: sidecar
+    capability: music
+    adapter: sidecar_music_adapter
+    source_rule: K-LOCAL-017
+  - provider: sidecar
+    capability: music.generate
+    adapter: sidecar_music_adapter
+    source_rule: K-LOCAL-017
   - provider: "*"
     capability: "*"
     adapter: openai_compat_adapter

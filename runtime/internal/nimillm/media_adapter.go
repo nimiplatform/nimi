@@ -8,6 +8,7 @@ import (
 type MediaAdapterConfig struct {
 	BaseURL string
 	APIKey  string
+	Headers map[string]string
 }
 
 // JobStateUpdater allows adapters to update async job polling state

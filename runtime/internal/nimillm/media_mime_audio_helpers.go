@@ -136,6 +136,16 @@ func ApplySpeechSpecMetadata(artifact *runtimev1.ScenarioArtifact, spec *runtime
 	}
 }
 
+// ApplyMusicSpecMetadata applies music generation spec metadata onto the artifact.
+func ApplyMusicSpecMetadata(artifact *runtimev1.ScenarioArtifact, spec *runtimev1.MusicGenerateScenarioSpec) {
+	if artifact == nil || spec == nil {
+		return
+	}
+	if spec.GetDurationSeconds() > 0 {
+		artifact.DurationMs = int64(spec.GetDurationSeconds()) * 1000
+	}
+}
+
 // ApplyTranscriptionSpecMetadata applies transcription spec metadata (audio
 // URI, speaker count) onto the artifact.
 func ApplyTranscriptionSpecMetadata(artifact *runtimev1.ScenarioArtifact, spec *runtimev1.SpeechTranscribeScenarioSpec, audioURI string) {

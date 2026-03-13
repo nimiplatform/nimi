@@ -6,6 +6,9 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
+    capabilities:
+      - text.generate
+      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -16,6 +19,8 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
+    capabilities:
+      - audio.synthesize
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -26,6 +31,11 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
+    capabilities:
+      - image.generate
+      - text.embed
+      - text.generate
+      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -36,6 +46,8 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
+    capabilities:
+      - audio.synthesize
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -46,6 +58,9 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
+    capabilities:
+      - text.generate
+      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -56,6 +71,9 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
+    capabilities:
+      - text.embed
+      - text.generate
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -66,6 +84,15 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
+    capabilities:
+      - audio.synthesize
+      - audio.transcribe
+      - image.generate
+      - text.embed
+      - text.generate
+      - text.generate.vision
+      - voice_workflow.tts_t2v
+      - voice_workflow.tts_v2v
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -76,6 +103,8 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
+    capabilities:
+      - text.generate
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -86,6 +115,10 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
+    capabilities:
+      - audio.synthesize
+      - voice_workflow.tts_t2v
+      - voice_workflow.tts_v2v
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -96,6 +129,9 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
+    capabilities:
+      - text.generate
+      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -106,6 +142,9 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
+    capabilities:
+      - audio.synthesize
+      - voice_workflow.tts_v2v
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -116,6 +155,8 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
+    capabilities:
+      - image.generate
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -126,6 +167,12 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
+    capabilities:
+      - audio.transcribe
+      - image.generate
+      - text.embed
+      - text.generate
+      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -136,6 +183,12 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
+    capabilities:
+      - audio.transcribe
+      - image.generate
+      - text.embed
+      - text.generate
+      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -146,6 +199,8 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
+    capabilities:
+      - audio.synthesize
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -156,6 +211,8 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
+    capabilities:
+      - video.generate
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -166,6 +223,9 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
+    capabilities:
+      - text.generate
+      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -176,6 +236,10 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
+    capabilities:
+      - image.generate
+      - text.embed
+      - text.generate
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -186,6 +250,8 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
+    capabilities:
+      - image.generate
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -196,6 +262,9 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
+    capabilities:
+      - image.generate
+      - text.generate
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -206,6 +275,9 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
+    capabilities:
+      - image.generate
+      - video.generate
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -216,16 +288,33 @@ providers:
     managed_connector_supported: true
     inline_supported: false
     endpoint_requirement: empty_string_only
+    capabilities:
+      - audio.synthesize
+      - music.generate
     sources:
       - K-MCAT-027
       - K-LOCAL-001
       - K-LOCAL-002
+  - provider: loudly
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    capabilities:
+      - music.generate
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
   - provider: luma
     runtime_plane: remote
     execution_module: nimillm
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
+    capabilities:
+      - video.generate
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -236,6 +325,10 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
+    capabilities:
+      - image.generate
+      - text.generate
+      - video.generate
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -246,6 +339,22 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
+    capabilities:
+      - text.embed
+      - text.generate
+      - text.generate.vision
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: mubert
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    capabilities:
+      - music.generate
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -256,6 +365,7 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
+    capabilities: []
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -266,6 +376,14 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
+    capabilities:
+      - audio.synthesize
+      - audio.transcribe
+      - image.generate
+      - text.embed
+      - text.generate
+      - text.generate.vision
+      - video.generate
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -276,6 +394,7 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
+    capabilities: []
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -286,6 +405,8 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
+    capabilities:
+      - text.generate
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -296,6 +417,8 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
+    capabilities:
+      - text.generate
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -306,6 +429,8 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
+    capabilities:
+      - video.generate
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -316,6 +441,9 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
+    capabilities:
+      - text.embed
+      - text.generate
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -326,6 +454,8 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
+    capabilities:
+      - video.generate
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -336,6 +466,21 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
+    capabilities:
+      - text.embed
+      - text.generate
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: soundverse
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    capabilities:
+      - music.generate
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -346,6 +491,8 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
+    capabilities:
+      - text.generate
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -355,7 +502,11 @@ providers:
     execution_module: nimillm
     managed_connector_supported: true
     inline_supported: true
-    endpoint_requirement: explicit_required
+    endpoint_requirement: default_or_explicit
+    capabilities:
+      - image.generate
+      - music.generate
+      - music.generate.iteration
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -366,6 +517,25 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
+    capabilities:
+      - audio.synthesize
+      - image.generate
+      - text.generate
+      - text.generate.vision
+      - voice_workflow.tts_v2v
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: suno
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    capabilities:
+      - music.generate
+      - music.generate.iteration
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -376,6 +546,9 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
+    capabilities:
+      - text.generate
+      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -386,6 +559,12 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
+    capabilities:
+      - audio.synthesize
+      - image.generate
+      - text.embed
+      - text.generate
+      - video.generate
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -396,6 +575,7 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
+    capabilities: []
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -406,6 +586,10 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
+    capabilities:
+      - image.generate
+      - text.generate
+      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008

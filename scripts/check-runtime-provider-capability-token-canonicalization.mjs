@@ -33,6 +33,8 @@ const canonicalCapabilityTokens = [
   'video.generate',
   'audio.synthesize',
   'audio.transcribe',
+  'music.generate',
+  'music.generate.iteration',
   'voice_workflow.tts_v2v',
   'voice_workflow.tts_t2v',
 ];

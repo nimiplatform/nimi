@@ -29,6 +29,8 @@ func TestEnsureLocalQualifiedModel(t *testing.T) {
 		{"local/qwen2.5", "local/qwen2.5"},
 		{"localai/phi3", "localai/phi3"},
 		{"nexa/llama", "nexa/llama"},
+		{"sidecar/musicgen", "sidecar/musicgen"},
+		{"localsidecar/stable-audio-open", "localsidecar/stable-audio-open"},
 		{"", ""},
 		{"  ", ""},
 	}
@@ -134,6 +136,8 @@ func TestIsHighLevelQualifiedModel(t *testing.T) {
 		{"local/qwen2.5", true},
 		{"localai/phi3", true},
 		{"nexa/llama", true},
+		{"sidecar/musicgen", true},
+		{"localsidecar/stable-audio-open", true},
 		{"openai/gpt-4", true},
 		{"cloud/gpt-4", true},
 		{"gpt-4", false},

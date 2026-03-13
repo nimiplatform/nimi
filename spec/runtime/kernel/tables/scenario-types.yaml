@@ -24,3 +24,6 @@ entries:
   - scenario_type: VOICE_DESIGN
     description: Voice design scenario.
     source_rule: K-RPC-002
+  - scenario_type: MUSIC_GENERATE
+    description: Music generation scenario.
+    source_rule: K-RPC-002

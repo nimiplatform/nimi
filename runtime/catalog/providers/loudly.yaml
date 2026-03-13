@@ -1,0 +1,56 @@
+version: 1
+provider: loudly
+catalog_version: 2026-03-13-loudly-v1
+models:
+  - model_id: loudly-vega-2
+    provider: loudly
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-13
+      notes: Loudly prompt song pricing varies by plan and rendering options.
+    source_ref:
+      url: https://www.loudly.com/rest/music
+      retrieved_at: 2026-03-13
+      note: Loudly Music API overview page.
+  - model_id: VEGA_2
+    provider: loudly
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-13
+      notes: Loudly prompt song pricing varies by plan and rendering options.
+    source_ref:
+      url: https://www.loudly.com/rest/music
+      retrieved_at: 2026-03-13
+      note: Loudly Music API overview page.
+  - model_id: prompt-songs
+    provider: loudly
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-13
+      notes: Loudly prompt song pricing varies by plan and rendering options.
+    source_ref:
+      url: https://www.loudly.com/rest/music
+      retrieved_at: 2026-03-13
+      note: Loudly Music API overview page.
+voices: []

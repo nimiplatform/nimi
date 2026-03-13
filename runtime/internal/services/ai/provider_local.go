@@ -17,6 +17,7 @@ type localProvider struct {
 	mu      sync.RWMutex
 	localai *nimillm.Backend
 	nexa    *nimillm.Backend
+	sidecar *nimillm.Backend
 }
 
 func (p *localProvider) setBackend(providerID string, backend *nimillm.Backend) {
@@ -30,16 +31,18 @@ func (p *localProvider) setBackend(providerID string, backend *nimillm.Backend) 
 		p.localai = backend
 	case "nexa":
 		p.nexa = backend
+	case "sidecar":
+		p.sidecar = backend
 	}
 }
 
-func (p *localProvider) backends() (*nimillm.Backend, *nimillm.Backend) {
+func (p *localProvider) backends() (*nimillm.Backend, *nimillm.Backend, *nimillm.Backend) {
 	if p == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 	p.mu.RLock()
 	defer p.mu.RUnlock()
-	return p.localai, p.nexa
+	return p.localai, p.nexa, p.sidecar
 }
 
 func (p *localProvider) Route() runtimev1.RoutePolicy {
@@ -56,6 +59,12 @@ func (p *localProvider) ResolveModelID(raw string) string {
 	}
 	if strings.HasPrefix(modelID, "nexa/") {
 		modelID = strings.TrimSpace(strings.TrimPrefix(modelID, "nexa/"))
+	}
+	if strings.HasPrefix(modelID, "sidecar/") {
+		modelID = strings.TrimSpace(strings.TrimPrefix(modelID, "sidecar/"))
+	}
+	if strings.HasPrefix(modelID, "localsidecar/") {
+		modelID = strings.TrimSpace(strings.TrimPrefix(modelID, "localsidecar/"))
 	}
 	return modelID
 }
@@ -148,7 +157,7 @@ func (p *localProvider) StreamGenerateTextScenario(
 }
 
 func (p *localProvider) pickBackend(modelID string) (*nimillm.Backend, string, bool, bool, bool) {
-	localAIBackend, nexaBackend := p.backends()
+	localAIBackend, nexaBackend, sidecarBackend := p.backends()
 	id := strings.TrimSpace(modelID)
 	if id == "" {
 		return nil, "", false, false, false
@@ -166,12 +175,17 @@ func (p *localProvider) pickBackend(modelID string) (*nimillm.Backend, string, b
 			return localAIBackend, rest, true, localAIBackend != nil, false
 		case "nexa":
 			return nexaBackend, rest, true, nexaBackend != nil, true
+		case "sidecar", "localsidecar":
+			return sidecarBackend, rest, true, sidecarBackend != nil, false
 		case "local":
 			if localAIBackend != nil {
 				return localAIBackend, rest, true, true, false
 			}
 			if nexaBackend != nil {
 				return nexaBackend, rest, true, true, true
+			}
+			if sidecarBackend != nil {
+				return sidecarBackend, rest, true, true, false
 			}
 			return nil, rest, true, false, false
 		}
@@ -182,6 +196,9 @@ func (p *localProvider) pickBackend(modelID string) (*nimillm.Backend, string, b
 	}
 	if nexaBackend != nil {
 		return nexaBackend, id, false, true, true
+	}
+	if sidecarBackend != nil {
+		return sidecarBackend, id, false, true, false
 	}
 	return nil, id, false, false, false
 }

@@ -195,6 +195,18 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_STT, "openai"); got != adapterOpenAICompat {
 		t.Fatalf("unexpected openai stt adapter: %s", got)
 	}
+	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_MUSIC, "stability"); got != adapterStabilityMusic {
+		t.Fatalf("unexpected stability music adapter: %s", got)
+	}
+	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_MUSIC, "soundverse"); got != adapterSoundverseMusic {
+		t.Fatalf("unexpected soundverse music adapter: %s", got)
+	}
+	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_MUSIC, "mubert"); got != adapterMubertMusic {
+		t.Fatalf("unexpected mubert music adapter: %s", got)
+	}
+	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_MUSIC, "loudly"); got != adapterLoudlyMusic {
+		t.Fatalf("unexpected loudly music adapter: %s", got)
+	}
 	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_STT, "groq"); got != adapterOpenAICompat {
 		t.Fatalf("unexpected groq stt adapter: %s", got)
 	}
@@ -206,6 +218,12 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	}
 	if got := resolveMediaAdapterName("whisper-large-v3", "", runtimev1.Modal_MODAL_STT, "localai"); got != adapterLocalAINative {
 		t.Fatalf("unexpected localai stt adapter: %s", got)
+	}
+	if got := resolveMediaAdapterName("ace-step-local", "", runtimev1.Modal_MODAL_MUSIC, "localai"); got != adapterLocalAIMusic {
+		t.Fatalf("unexpected localai music adapter: %s", got)
+	}
+	if got := resolveMediaAdapterName("sidecar/stable-audio-open-sidecar", "", runtimev1.Modal_MODAL_MUSIC, "sidecar"); got != adapterSidecarMusic {
+		t.Fatalf("unexpected sidecar music adapter: %s", got)
 	}
 	if got := resolveMediaAdapterName("nexa/qwen", "", runtimev1.Modal_MODAL_IMAGE, ""); got != adapterNexaNative {
 		t.Fatalf("unexpected adapter: %s", got)

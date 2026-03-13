@@ -21,11 +21,14 @@ const scopeLabel = 'active';
 const generateCommand = 'pnpm generate:runtime-catalog';
 const canonicalModelCapabilities = new Set([
   'text.generate',
+  'text.generate.vision',
   'text.embed',
   'image.generate',
   'video.generate',
   'audio.synthesize',
   'audio.transcribe',
+  'music.generate',
+  'music.generate.iteration',
 ]);
 
 function normalizeProvider(value) {

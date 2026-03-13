@@ -43,7 +43,8 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
-		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
+		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
 		return s.submitScenarioAsyncJob(ctx, req, mode, ignored)
 	default:
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
@@ -332,6 +333,11 @@ func (s *Service) submitScenarioAsyncJob(
 	if err := s.validateScenarioCapability(req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
 		return nil, err
 	}
+	if _, iteration, resolveErr := resolveMusicGenerateExtensionPayload(req); resolveErr != nil {
+		return nil, resolveErr
+	} else if supportErr := validateMusicGenerateIterationSupport(s, modelResolved, remoteTarget, selectedProvider, iteration); supportErr != nil {
+		return nil, supportErr
+	}
 	s.recordRouteAutoSwitch(
 		req.GetHead().GetAppId(),
 		req.GetHead().GetSubjectUserId(),
@@ -474,6 +480,9 @@ func (s *Service) executeScenarioAsyncJob(
 		case adapterStabilityNative:
 			cfg := s.resolveNativeAdapterConfig("stability", remoteTarget)
 			artifacts, usage, providerJobID, err = nimillm.ExecuteStabilityImage(ctx, cfg, req, modelResolved)
+		case adapterStabilityMusic:
+			cfg := s.resolveNativeAdapterConfig("stability", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteStabilityMusic(ctx, cfg, req, modelResolved)
 		case adapterKlingTask:
 			cfg := s.resolveNativeAdapterConfig("kling", remoteTarget)
 			artifacts, usage, providerJobID, err = nimillm.ExecuteKlingTask(ctx, cfg, s, jobID, req, modelResolved)
@@ -492,6 +501,23 @@ func (s *Service) executeScenarioAsyncJob(
 		case adapterStepFunNative:
 			cfg := s.resolveNativeAdapterConfig("stepfun", remoteTarget)
 			artifacts, usage, providerJobID, err = nimillm.ExecuteStepFunMedia(ctx, cfg, req, modelResolved)
+		case adapterSoundverseMusic:
+			cfg := s.resolveNativeAdapterConfig("soundverse", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteSoundverseMusic(ctx, cfg, req, modelResolved)
+		case adapterMubertMusic:
+			cfg := s.resolveNativeAdapterConfig("mubert", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteMubertMusic(ctx, cfg, s, jobID, req, modelResolved)
+		case adapterLoudlyMusic:
+			cfg := s.resolveNativeAdapterConfig("loudly", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteLoudlyMusic(ctx, cfg, req, modelResolved)
+		case adapterLocalAIMusic:
+			creds := s.config.LocalProviders["localai"]
+			cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey, Headers: creds.Headers}
+			artifacts, usage, providerJobID, err = nimillm.ExecuteLocalAIMusic(ctx, cfg, req, modelResolved)
+		case adapterSidecarMusic:
+			creds := s.config.LocalProviders["sidecar"]
+			cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey, Headers: creds.Headers}
+			artifacts, usage, providerJobID, err = nimillm.ExecuteSidecarMusic(ctx, cfg, req, modelResolved)
 		default:
 			artifacts, usage, providerJobID, err = executeBackendSyncMedia(ctx, s, s.logger, req, selectedProvider, modelResolved, adapterName, remoteTarget, s.selector.cloudProvider, s.speechCatalog)
 		}

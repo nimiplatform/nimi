@@ -12,3 +12,4 @@
 | `SPEECH_TRANSCRIBE` | Speech transcription scenario. | `K-RPC-002` |
 | `VOICE_CLONE` | Voice clone scenario. | `K-RPC-002` |
 | `VOICE_DESIGN` | Voice design scenario. | `K-RPC-002` |
+| `MUSIC_GENERATE` | Music generation scenario. | `K-RPC-002` |

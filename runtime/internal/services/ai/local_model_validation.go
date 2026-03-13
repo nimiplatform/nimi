@@ -108,6 +108,12 @@ func parseLocalModelSelector(modelID string) localModelSelector {
 	case strings.HasPrefix(lower, "nexa/"):
 		selector.explicitEngine = "nexa"
 		selector.modelID = strings.TrimSpace(raw[len("nexa/"):])
+	case strings.HasPrefix(lower, "sidecar/"):
+		selector.explicitEngine = "sidecar"
+		selector.modelID = strings.TrimSpace(raw[len("sidecar/"):])
+	case strings.HasPrefix(lower, "localsidecar/"):
+		selector.explicitEngine = "sidecar"
+		selector.modelID = strings.TrimSpace(raw[len("localsidecar/"):])
 	case strings.HasPrefix(lower, "local/"):
 		selector.preferLocalAI = true
 		selector.modelID = strings.TrimSpace(raw[len("local/"):])
@@ -154,6 +160,11 @@ func selectActiveLocalModel(models []*runtimev1.LocalModelRecord, selector local
 			}
 		}
 		for _, model := range candidates {
+			if strings.EqualFold(strings.TrimSpace(model.GetEngine()), "sidecar") {
+				return model, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+			}
+		}
+		for _, model := range candidates {
 			if strings.EqualFold(strings.TrimSpace(model.GetEngine()), "nexa") {
 				return model, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 			}
@@ -195,6 +206,9 @@ func selectRunnableLocalModel(models []*runtimev1.LocalModelRecord, selector loc
 
 	if selector.preferLocalAI {
 		if selected := firstActiveLocalModel(filterLocalModelsByEngine(candidates, "localai")); selected != nil {
+			return selected, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
+		}
+		if selected := firstActiveLocalModel(filterLocalModelsByEngine(candidates, "sidecar")); selected != nil {
 			return selected, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
 		}
 		if selected := firstActiveLocalModel(filterLocalModelsByEngine(candidates, "nexa")); selected != nil {
@@ -300,10 +314,12 @@ func localEnginePriority(engine string) int {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
 	case "localai":
 		return 0
-	case "nexa":
+	case "sidecar":
 		return 1
-	default:
+	case "nexa":
 		return 2
+	default:
+		return 3
 	}
 }
 

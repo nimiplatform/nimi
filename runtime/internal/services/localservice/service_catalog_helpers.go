@@ -48,10 +48,19 @@ func adapterForProviderCapability(provider string, capability string) string {
 	normalizedProvider := strings.ToLower(strings.TrimSpace(provider))
 	normalizedCapability := strings.ToLower(strings.TrimSpace(capability))
 	switch normalizedProvider {
+	case "sidecar":
+		switch normalizedCapability {
+		case "music", "music.generate":
+			return "sidecar_music_adapter"
+		default:
+			return "openai_compat_adapter"
+		}
 	case "nexa":
 		return "nexa_native_adapter"
 	case "localai":
 		switch normalizedCapability {
+		case "music", "music.generate":
+			return "localai_music_adapter"
 		case "image", "video", "tts", "speech", "stt", "transcription", "vision", "multimodal", "audio_chat", "video_chat", "text.generate.vision", "text.generate.audio", "text.generate.video":
 			return "localai_native_adapter"
 		default:
@@ -69,6 +78,11 @@ func apiPathForProviderCapability(provider string, capability string) string {
 		return "/v1/embeddings"
 	case "image":
 		return "/v1/images/generations"
+	case "music", "music.generate":
+		if strings.EqualFold(strings.TrimSpace(provider), "localai") {
+			return "/v1/audio/speech"
+		}
+		return "/v1/music/generate"
 	case "video":
 		if strings.EqualFold(strings.TrimSpace(provider), "nexa") {
 			return "/v1/video/generations"

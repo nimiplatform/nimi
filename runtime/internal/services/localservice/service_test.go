@@ -2180,6 +2180,96 @@ func TestResolveModelInstallPlanNexaEndpointRequired(t *testing.T) {
 	}
 }
 
+func TestResolveModelInstallPlanSidecarEndpointRequired(t *testing.T) {
+	svc := newTestService(t)
+	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
+		ModelId:      "local/stable-audio-open-sidecar",
+		Engine:       "sidecar",
+		Capabilities: []string{"music"},
+	})
+	if err != nil {
+		t.Fatalf("resolve model install plan: %v", err)
+	}
+	plan := resp.GetPlan()
+	if plan.GetInstallAvailable() {
+		t.Fatalf("sidecar attached-endpoint plan without endpoint must be unavailable")
+	}
+	if plan.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String() {
+		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
+	}
+	if strings.TrimSpace(plan.GetEndpoint()) != "" {
+		t.Fatalf("sidecar endpoint should remain empty when not provided, got %q", plan.GetEndpoint())
+	}
+}
+
+func TestInstallLocalModelSidecarRequiresEndpoint(t *testing.T) {
+	svc := newTestService(t)
+	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/stable-audio-open-sidecar",
+		Engine:       "sidecar",
+		Capabilities: []string{"music"},
+	})
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED {
+		t.Fatalf("expected reason code %s, got=%v ok=%v err=%v", runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED, reason, ok, err)
+	}
+}
+
+func TestLocalNodeCatalogSidecarMusicAdapter(t *testing.T) {
+	svc := newTestService(t)
+
+	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/stable-audio-open-sidecar",
+		Capabilities: []string{"music"},
+		Engine:       "sidecar",
+		Endpoint:     "http://127.0.0.1:19191",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-sidecar-music",
+		Title:        "Sidecar Music Service",
+		Engine:       "sidecar",
+		Capabilities: []string{"music"},
+		LocalModelId: modelResp.GetModel().GetLocalModelId(),
+	}); err != nil {
+		t.Fatalf("install local service: %v", err)
+	}
+	if _, err := svc.StartLocalService(context.Background(), &runtimev1.StartLocalServiceRequest{
+		ServiceId: "svc-sidecar-music",
+	}); err != nil {
+		t.Fatalf("start local service: %v", err)
+	}
+
+	nodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
+		Provider:   "sidecar",
+		Capability: "music",
+	})
+	if err != nil {
+		t.Fatalf("list node catalog: %v", err)
+	}
+	if len(nodesResp.GetNodes()) != 1 {
+		t.Fatalf("node count mismatch: got=%d want=1", len(nodesResp.GetNodes()))
+	}
+	node := nodesResp.GetNodes()[0]
+	if node.GetAdapter() != "sidecar_music_adapter" {
+		t.Fatalf("sidecar music adapter mismatch: %s", node.GetAdapter())
+	}
+	if node.GetApiPath() != "/v1/music/generate" {
+		t.Fatalf("sidecar music api path mismatch: %s", node.GetApiPath())
+	}
+	if node.GetBackend() != "sidecar" || node.GetProvider() != "sidecar" {
+		t.Fatalf("sidecar node backend/provider mismatch: backend=%s provider=%s", node.GetBackend(), node.GetProvider())
+	}
+	if node.GetProviderHints() == nil {
+		t.Fatalf("sidecar music node must include provider hints")
+	}
+	if got, want := node.GetProviderHints().GetExtra()["endpoint"], "http://127.0.0.1:19191"; got != want {
+		t.Fatalf("sidecar music endpoint mismatch: got=%q want=%q", got, want)
+	}
+}
+
 func TestResolveModelInstallPlanCatalogSupervisedRequiresEngineManager(t *testing.T) {
 	svc := newTestService(t)
 	svc.mu.Lock()

@@ -47,7 +47,7 @@ type scenarioStreamingTextProvider interface {
 
 // Config controls local/cloud provider connectivity.
 type Config struct {
-	LocalProviders        map[string]nimillm.ProviderCredentials // "localai", "nexa"
+	LocalProviders        map[string]nimillm.ProviderCredentials // "localai", "nexa", "sidecar"
 	CloudProviders        map[string]nimillm.ProviderCredentials // "nimillm", "dashscope", ...
 	ProviderDefaultModels map[string]string
 	DefaultLocalTextModel string
@@ -119,13 +119,19 @@ func loadConfigFromEnv() Config {
 	if localNexaBase != "" || localNexaKey != "" {
 		localProviders["nexa"] = nimillm.ProviderCredentials{BaseURL: localNexaBase, APIKey: localNexaKey}
 	}
+	localSidecarBase := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL"))
+	localSidecarKey := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY"))
+	if localSidecarBase != "" || localSidecarKey != "" {
+		localProviders["sidecar"] = nimillm.ProviderCredentials{BaseURL: localSidecarBase, APIKey: localSidecarKey}
+	}
 
 	cloudProviders := make(map[string]nimillm.ProviderCredentials)
 	for _, b := range cloudProviderEnvBindings {
 		baseURL := strings.TrimSpace(os.Getenv(b.baseEnv))
 		apiKey := strings.TrimSpace(os.Getenv(b.keyEnv))
-		if baseURL != "" || apiKey != "" {
-			cloudProviders[b.id] = nimillm.ProviderCredentials{BaseURL: baseURL, APIKey: apiKey}
+		headers := providerCredentialHeadersFromEnv(b.id)
+		if baseURL != "" || apiKey != "" || len(headers) > 0 {
+			cloudProviders[b.id] = nimillm.ProviderCredentials{BaseURL: baseURL, APIKey: apiKey, Headers: headers}
 		}
 	}
 
@@ -189,8 +195,10 @@ func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, 
 
 	localaiCreds := normalized.LocalProviders["localai"]
 	nexaCreds := normalized.LocalProviders["nexa"]
+	sidecarCreds := normalized.LocalProviders["sidecar"]
 	localAIBackend := newLocalBackend("local-localai", localaiCreds, normalized)
 	nexaBackend := newLocalBackend("local-nexa", nexaCreds, normalized)
+	sidecarBackend := newLocalBackend("local-sidecar", sidecarCreds, normalized)
 	targetConfig := runtimecfg.Config{
 		DefaultLocalTextModel: normalized.DefaultLocalTextModel,
 		DefaultCloudProvider:  normalized.DefaultCloudProvider,
@@ -212,6 +220,7 @@ func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, 
 		local: &localProvider{
 			localai: localAIBackend,
 			nexa:    nexaBackend,
+			sidecar: sidecarBackend,
 		},
 		cloud:         cloudProvider,
 		cloudProvider: cloudProvider,
@@ -226,4 +235,21 @@ func newLocalBackend(name string, creds nimillm.ProviderCredentials, cfg Config)
 		return nimillm.NewSecuredBackend(name, creds.BaseURL, creds.APIKey, normalized.AIHTTPTimeout, true)
 	}
 	return nimillm.NewBackend(name, creds.BaseURL, creds.APIKey, normalized.AIHTTPTimeout)
+}
+
+func providerCredentialHeadersFromEnv(providerID string) map[string]string {
+	switch strings.TrimSpace(strings.ToLower(providerID)) {
+	case "mubert":
+		headers := map[string]string{}
+		if customerID := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_MUBERT_CUSTOMER_ID")); customerID != "" {
+			headers["customer-id"] = customerID
+		}
+		if accessToken := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_MUBERT_ACCESS_TOKEN")); accessToken != "" {
+			headers["access-token"] = accessToken
+		}
+		if len(headers) > 0 {
+			return headers
+		}
+	}
+	return nil
 }

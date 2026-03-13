@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import {
@@ -253,6 +254,7 @@ function main() {
     video: ['VIDEO_MODEL_ID', 'MODEL_ID'],
     tts: ['TTS_MODEL_ID', 'MODEL_ID'],
     stt: ['STT_MODEL_ID', 'MODEL_ID'],
+    music: ['MUSIC_MODEL_ID', 'MODEL_ID'],
     voice_clone: ['VOICE_CLONE_MODEL_ID', 'TTS_MODEL_ID'],
     voice_design: ['VOICE_DESIGN_MODEL_ID', 'TTS_MODEL_ID'],
   };
@@ -277,6 +279,22 @@ function main() {
   }
   if (missingCapabilityEnvBlocks.length > 0) {
     failures.push(`dev/live-test.env.example missing capability env blocks: ${missingCapabilityEnvBlocks.sort((a, b) => a.localeCompare(b)).join(', ')}`);
+  }
+
+  const localCapabilities = sourceProviderCapabilityMatrix.get('local') || new Set();
+  const liveEnvTemplateContent = fs.readFileSync(liveEnvTemplatePath, 'utf8');
+  if (localCapabilities.has('music')) {
+    const requiredLocalSidecarVars = [
+      'NIMI_LIVE_LOCAL_SIDECAR_BASE_URL=',
+      'NIMI_LIVE_LOCAL_SIDECAR_API_KEY=',
+      'NIMI_LIVE_LOCAL_SIDECAR_MUSIC_MODEL_ID=',
+    ];
+    const missingLocalSidecarVars = requiredLocalSidecarVars.filter(
+      (variable) => !liveEnvTemplateContent.includes(variable),
+    );
+    if (missingLocalSidecarVars.length > 0) {
+      failures.push(`dev/live-test.env.example missing local sidecar live env vars required for local music coverage: ${missingLocalSidecarVars.join(', ')}`);
+    }
   }
 
   const knownRuntimeProviderUniverse = new Set([

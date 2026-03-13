@@ -92,7 +92,7 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 | `model_id` | 是 | 安装时使用的 model_id |
 | `repo` | 条件必填 | 模型仓库地址；`install_kind=verified-hf-multi-file` 时必填 |
 | `capabilities` | 是 | 能力列表（`chat`/`embedding` 等） |
-| `engine` | 是 | 目标引擎（`localai`/`nexa`） |
+| `engine` | 是 | 目标引擎（`localai`/`nexa`/`sidecar`） |
 | `entry` | 条件必填 | 引擎内模型入口标识；`install_kind=verified-hf-multi-file` 时必填 |
 | `files` | 条件必填 | 组成文件列表；`install_kind=verified-hf-multi-file` 时必填 |
 | `hashes` | 条件必填 | 文件哈希校验（`sha256:{hex}` 格式）；`install_kind=verified-hf-multi-file` 时必填 |
@@ -195,6 +195,8 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 | `localai` | `video` | `localai_native_adapter` |
 | `localai` | `tts` | `localai_native_adapter` |
 | `localai` | `stt` | `localai_native_adapter` |
+| `localai` | `music` / `music.generate` | `localai_music_adapter` |
+| `sidecar` | `music` / `music.generate` | `sidecar_music_adapter` |
 | `*`（任意） | `*`（任意） | `openai_compat_adapter` |
 
 匹配顺序：精确匹配优先于通配符。
@@ -221,7 +223,7 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 2. 对每个 Service 的 `capabilities` 做笛卡尔积：每个 capability 生成一个 Node。
 3. 每个 Node 填充：
    - `node_id`：`<service_id>:<capability>` 格式。
-   - `provider`：从 engine 推导（`localai` → `localai`，`nexa` → `nexa`）。
+   - `provider`：从 engine 推导（`localai` → `localai`，`nexa` → `nexa`，`sidecar` → `sidecar`）。
    - `adapter`：按 `K-LOCAL-017` 路由。
    - `available`：健康且未被策略门控（`K-LOCAL-018`）。
    - `provider_hints`：引擎特定适配信息。
@@ -235,10 +237,11 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 |---|---|
 | `localai/` | 仅匹配 `localai` 引擎的已安装模型 |
 | `nexa/` | 仅匹配 `nexa` 引擎的已安装模型 |
-| `local/` | 优先匹配 `localai`，未命中则回退 `nexa` |
+| `sidecar/` / `localsidecar/` | 仅匹配 `sidecar` 引擎的已安装模型 |
+| `local/` | 优先匹配 `localai`，未命中则回退 `sidecar`，再回退 `nexa` |
 | 无前缀 | 按已安装模型的 `model_id` 精确匹配 |
 
-前缀在匹配时剥除（`localai/llama3.1` 匹配 `model_id=llama3.1` 且 `engine=localai`）。
+前缀在匹配时剥除（`localai/llama3.1` 匹配 `model_id=llama3.1` 且 `engine=localai`；`sidecar/musicgen` 匹配 `model_id=musicgen` 且 `engine=sidecar`）。
 
 未知前缀（如 `ollama/`）视为无前缀，按 `model_id` 全文精确匹配（不剥除前缀）。
 

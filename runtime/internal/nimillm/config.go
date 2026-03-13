@@ -11,6 +11,7 @@ import (
 type ProviderCredentials struct {
 	BaseURL string
 	APIKey  string
+	Headers map[string]string
 }
 
 // CloudConfig holds all cloud provider connection parameters.

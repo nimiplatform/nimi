@@ -48,6 +48,13 @@ const (
 	adapterRunwayTask          = "runway_task_adapter"
 	adapterGoogleVeoOperation  = "google_veo_operation_adapter"
 	adapterStepFunNative       = "stepfun_native_adapter"
+	adapterSunoNative          = "suno_native_adapter"
+	adapterStabilityMusic      = "stability_music_adapter"
+	adapterSoundverseMusic     = "soundverse_music_adapter"
+	adapterMubertMusic         = "mubert_music_adapter"
+	adapterLoudlyMusic         = "loudly_music_adapter"
+	adapterLocalAIMusic        = "localai_music_adapter"
+	adapterSidecarMusic        = "sidecar_music_adapter"
 )
 
 type mediaAdapterStrategy struct {
@@ -55,6 +62,7 @@ type mediaAdapterStrategy struct {
 	Video string
 	TTS   string
 	STT   string
+	Music string
 }
 
 func (s mediaAdapterStrategy) forModal(modal runtimev1.Modal) string {
@@ -67,6 +75,8 @@ func (s mediaAdapterStrategy) forModal(modal runtimev1.Modal) string {
 		return strings.TrimSpace(s.TTS)
 	case runtimev1.Modal_MODAL_STT:
 		return strings.TrimSpace(s.STT)
+	case runtimev1.Modal_MODAL_MUSIC:
+		return strings.TrimSpace(s.Music)
 	default:
 		return ""
 	}
@@ -78,12 +88,16 @@ var mediaAdapterStrategiesByProvider = map[string]mediaAdapterStrategy{
 		Video: adapterLocalAINative,
 		TTS:   adapterLocalAINative,
 		STT:   adapterLocalAINative,
+		Music: adapterLocalAIMusic,
 	},
 	"nexa": {
 		Image: adapterNexaNative,
 		Video: adapterNexaNative,
 		TTS:   adapterNexaNative,
 		STT:   adapterNexaNative,
+	},
+	"sidecar": {
+		Music: adapterSidecarMusic,
 	},
 	// --- Existing native adapters ---
 	"volcengine_openspeech": {
@@ -146,6 +160,7 @@ var mediaAdapterStrategiesByProvider = map[string]mediaAdapterStrategy{
 	},
 	"stability": {
 		Image: adapterStabilityNative,
+		Music: adapterStabilityMusic,
 	},
 	// --- Video native adapters ---
 	"kling": {
@@ -169,6 +184,19 @@ var mediaAdapterStrategiesByProvider = map[string]mediaAdapterStrategy{
 		Image: adapterStepFunNative,
 		TTS:   adapterStepFunNative,
 	},
+	// --- Music native adapters ---
+	"suno": {
+		Music: adapterSunoNative,
+	},
+	"soundverse": {
+		Music: adapterSoundverseMusic,
+	},
+	"mubert": {
+		Music: adapterMubertMusic,
+	},
+	"loudly": {
+		Music: adapterLoudlyMusic,
+	},
 }
 
 func scenarioModalFromType(scenarioType runtimev1.ScenarioType) runtimev1.Modal {
@@ -181,6 +209,8 @@ func scenarioModalFromType(scenarioType runtimev1.ScenarioType) runtimev1.Modal 
 		return runtimev1.Modal_MODAL_TTS
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		return runtimev1.Modal_MODAL_STT
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
+		return runtimev1.Modal_MODAL_MUSIC
 	default:
 		return runtimev1.Modal_MODAL_UNSPECIFIED
 	}
@@ -240,6 +270,17 @@ func validateSubmitScenarioAsyncJobRequest(req *runtimev1.SubmitScenarioJobReque
 		}
 		if spec.GetSpeakerCount() < 0 || spec.GetSpeakerCount() > 32 {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
+		spec := req.GetSpec().GetMusicGenerate()
+		if spec == nil || strings.TrimSpace(spec.GetPrompt()) == "" {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+		}
+		if spec.GetDurationSeconds() < 0 || spec.GetDurationSeconds() > 600 {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+		if _, _, err := resolveMusicGenerateExtensionPayload(req); err != nil {
+			return err
 		}
 	default:
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
@@ -419,6 +460,8 @@ func defaultScenarioJobTimeout(scenarioType runtimev1.ScenarioType) time.Duratio
 		return defaultSynthesizeTimeout
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		return defaultTranscribeTimeout
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
+		return defaultGenerateMusicTimeout
 	default:
 		return defaultGenerateTimeout
 	}
@@ -488,6 +531,8 @@ func mediaScenarioExtensionNamespace(scenarioType runtimev1.ScenarioType) string
 		return "nimi.scenario.speech_synthesize.request"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		return "nimi.scenario.speech_transcribe.request"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
+		return "nimi.scenario.music_generate.request"
 	default:
 		return ""
 	}
@@ -525,6 +570,13 @@ func executeBackendSyncMedia(
 		backendModelID = modelResolved
 	}
 	scenarioExtensions := nimillm.ScenarioExtensionPayloadForType(req.GetScenarioType(), req.GetExtensions())
+	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE {
+		normalizedExtensions, _, resolveErr := resolveMusicGenerateExtensionPayload(req)
+		if resolveErr != nil {
+			return nil, nil, "", resolveErr
+		}
+		scenarioExtensions = normalizedExtensions
+	}
 
 	switch req.GetScenarioType() {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
@@ -674,6 +726,32 @@ func executeBackendSyncMedia(
 		}
 		artifact := nimillm.BinaryArtifact(nimillm.ResolveTranscriptionArtifactMIME(spec), []byte(text), artifactMeta)
 		nimillm.ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
+		return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
+
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
+		spec := req.GetSpec().GetMusicGenerate()
+		if spec == nil {
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		payload, usage, err := backend.GenerateMusic(ctx, backendModelID, spec, scenarioExtensions)
+		if err != nil {
+			return nil, nil, "", err
+		}
+		artifactMeta := map[string]any{
+			"adapter":          adapterName,
+			"prompt":           strings.TrimSpace(spec.GetPrompt()),
+			"negative_prompt":  strings.TrimSpace(spec.GetNegativePrompt()),
+			"lyrics":           strings.TrimSpace(spec.GetLyrics()),
+			"style":            strings.TrimSpace(spec.GetStyle()),
+			"title":            strings.TrimSpace(spec.GetTitle()),
+			"duration_seconds": spec.GetDurationSeconds(),
+			"instrumental":     spec.GetInstrumental(),
+		}
+		if len(scenarioExtensions) > 0 {
+			artifactMeta["extensions"] = scenarioExtensions
+		}
+		artifact := nimillm.BinaryArtifact("audio/mpeg", payload, artifactMeta)
+		nimillm.ApplyMusicSpecMetadata(artifact, spec)
 		return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
 
 	default:

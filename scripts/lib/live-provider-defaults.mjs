@@ -10,6 +10,8 @@ const MODEL_CAPABILITY_ENV_SUFFIX = new Map([
   ['video.generate', 'VIDEO_MODEL_ID'],
   ['audio.synthesize', 'TTS_MODEL_ID'],
   ['audio.transcribe', 'STT_MODEL_ID'],
+  ['music.generate', 'MUSIC_MODEL_ID'],
+  ['music.generate.iteration', 'MUSIC_MODEL_ID'],
 ]);
 
 const WORKFLOW_ENV_SUFFIX = new Map([
@@ -36,6 +38,41 @@ function normalizeStringArray(value) {
 
 function hasValue(value) {
   return String(value || '').trim() !== '';
+}
+
+function localProviderLiveConfigured(env) {
+  return [
+    env.NIMI_LIVE_LOCAL_BASE_URL,
+    env.NIMI_LIVE_LOCAL_API_KEY,
+    env.NIMI_LIVE_LOCAL_SIDECAR_BASE_URL,
+    env.NIMI_LIVE_LOCAL_SIDECAR_API_KEY,
+  ].some(hasValue);
+}
+
+function findFirstLocalSidecarMusicModel(doc) {
+  const defaults = normalizeStringArray(doc?.defaults?.capabilities)
+    .map((capability) => capability.toLowerCase());
+  const models = Array.isArray(doc?.models) ? doc.models : [];
+  for (const model of models) {
+    const modelID = String(model?.model_id || '').trim();
+    if (!modelID) {
+      continue;
+    }
+    const capabilities = normalizeStringArray(model?.capabilities)
+      .map((capability) => capability.toLowerCase());
+    const effectiveCapabilities = capabilities.length > 0 ? capabilities : defaults;
+    if (!effectiveCapabilities.includes('music.generate') && !effectiveCapabilities.includes('music.generate.iteration')) {
+      continue;
+    }
+    const aliases = normalizeStringArray(model?.aliases).map((alias) => alias.toLowerCase());
+    if (
+      modelID.toLowerCase().includes('sidecar')
+      || aliases.some((alias) => alias.startsWith('sidecar/'))
+    ) {
+      return modelID;
+    }
+  }
+  return '';
 }
 
 function firstString(values) {
@@ -158,7 +195,10 @@ export function synthesizeLiveProviderEnvDefaults({ repoRoot, env = process.env 
 
     const token = providerEnvToken(provider);
     const apiKeyEnv = `NIMI_LIVE_${token}_API_KEY`;
-    if (!hasValue(env[apiKeyEnv])) {
+    const providerConfigured = provider === 'local'
+      ? localProviderLiveConfigured(env)
+      : hasValue(env[apiKeyEnv]);
+    if (!providerConfigured) {
       continue;
     }
 
@@ -178,6 +218,14 @@ export function synthesizeLiveProviderEnvDefaults({ repoRoot, env = process.env 
       }
       derivedEnv[envKey] = value;
       added = true;
+    }
+
+    if (provider === 'local' && hasValue(env.NIMI_LIVE_LOCAL_SIDECAR_BASE_URL)) {
+      const sidecarModelID = findFirstLocalSidecarMusicModel(doc);
+      if (hasValue(sidecarModelID) && !hasValue(env.NIMI_LIVE_LOCAL_SIDECAR_MUSIC_MODEL_ID)) {
+        derivedEnv.NIMI_LIVE_LOCAL_SIDECAR_MUSIC_MODEL_ID = sidecarModelID;
+        added = true;
+      }
     }
 
     if (added) {

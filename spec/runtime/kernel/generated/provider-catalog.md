@@ -25,9 +25,11 @@
 | `ideogram` | — | `true` | `K-MCAT-027` |
 | `kimi` | `https://api.moonshot.cn/v1` | `false` | `K-MCAT-027` |
 | `kling` | — | `true` | `K-MCAT-027` |
+| `loudly` | `https://soundtracks.loudly.com` | `false` | `K-MCAT-027` |
 | `luma` | — | `true` | `K-MCAT-027` |
 | `minimax` | `https://api.minimax.chat/v1` | `false` | `K-MCAT-027` |
 | `mistral` | `https://api.mistral.ai/v1` | `false` | `K-MCAT-027` |
+| `mubert` | `https://music-api.mubert.com/api/v3` | `false` | `K-MCAT-027` |
 | `nimillm` | — | `true` | `K-MCAT-027` |
 | `openai` | `https://api.openai.com/v1` | `false` | `K-MCAT-027` |
 | `openai_compatible` | — | `true` | `K-MCAT-027` |
@@ -37,9 +39,11 @@
 | `qianfan` | `https://qianfan.baidubce.com/v2` | `false` | `K-MCAT-027` |
 | `runway` | — | `true` | `K-MCAT-027` |
 | `siliconflow` | — | `true` | `K-MCAT-027` |
+| `soundverse` | `https://api.soundverse.ai` | `false` | `K-MCAT-027` |
 | `spark` | `https://spark-api-open.xf-yun.com/v1` | `false` | `K-MCAT-027` |
-| `stability` | — | `true` | `K-MCAT-027` |
+| `stability` | `https://api.stability.ai` | `false` | `K-MCAT-027` |
 | `stepfun` | `https://api.stepfun.ai/v1` | `false` | `K-MCAT-027` |
+| `suno` | `https://apibox.erweima.ai` | `false` | `K-MCAT-027` |
 | `together` | — | `true` | `K-MCAT-027` |
 | `volcengine` | `https://ark.cn-beijing.volces.com/api/v3` | `false` | `K-MCAT-027` |
 | `volcengine_openspeech` | `https://openspeech.bytedance.com/api/v1` | `false` | `K-MCAT-027` |

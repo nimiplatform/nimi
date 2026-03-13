@@ -1,13 +1,13 @@
 schema_version: 3
 provider: stability
-catalog_version: 2026-03-05-stability-v1
+catalog_version: 2026-03-13-stability-v2
 generated_target: runtime/catalog/providers/stability.yaml
 runtime:
   runtime_plane: remote
   managed_connector_supported: true
   inline_supported: true
-  default_endpoint: null
-  requires_explicit_endpoint: true
+  default_endpoint: https://api.stability.ai
+  requires_explicit_endpoint: false
 defaults:
   provider: stability
   model_type: image
@@ -23,8 +23,12 @@ defaults:
 sources:
   - source_id: stability_api_doc
     url: https://platform.stability.ai/docs/api-reference
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-03-13
     note: Stability AI API reference.
+  - source_id: stability_audio_to_audio_guide
+    url: https://kb.stability.ai/knowledge-base/tips-for-using-the-audio-to-audio-api
+    retrieved_at: 2026-03-13
+    note: Stability AI Stable Audio audio-to-audio guidance.
 
 models:
   - model_id: stable-diffusion-3.5-large
@@ -56,3 +60,19 @@ models:
     source_ids: [stability_api_doc]
     aliases:
       - sd3.5-medium
+
+  - model_id: stable-audio-2
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities: [music.generate, music.generate.iteration]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-13
+      notes: Stable Audio pricing varies by model version, request size, and plan.
+    source_ids: [stability_api_doc, stability_audio_to_audio_guide]
+    aliases:
+      - stable-audio-2.0
+      - stable-audio

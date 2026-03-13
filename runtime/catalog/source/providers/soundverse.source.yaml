@@ -1,0 +1,48 @@
+schema_version: 3
+provider: soundverse
+catalog_version: 2026-03-13-soundverse-v1
+generated_target: runtime/catalog/providers/soundverse.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: https://api.soundverse.ai
+  requires_explicit_endpoint: false
+defaults:
+  provider: soundverse
+  model_type: music
+  capabilities: []
+  pricing:
+    unit: request
+    input: unknown
+    output: unknown
+    currency: USD
+    as_of: 2026-03-13
+    notes: Soundverse enterprise pricing varies by contract and request type.
+
+sources:
+  - source_id: soundverse_api_docs
+    url: https://help.soundverse.ai/api_documentation
+    retrieved_at: 2026-03-13
+    note: Soundverse public API documentation.
+  - source_id: soundverse_api_page
+    url: https://www.soundverse.ai/api
+    retrieved_at: 2026-03-13
+    note: Soundverse API overview page.
+
+models:
+  - model_id: soundverse-song-v5
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities: [music.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-13
+      notes: Song generation pricing varies by enterprise contract and generation mode.
+    source_ids: [soundverse_api_docs, soundverse_api_page]
+    aliases:
+      - soundverse-v5-song
+      - generate-song-sync

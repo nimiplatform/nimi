@@ -84,6 +84,7 @@ const kernelFiles = [
   'spec/runtime/kernel/nimillm-contract.md',
   'spec/runtime/kernel/model-catalog-contract.md',
   'spec/runtime/kernel/multimodal-provider-contract.md',
+  'spec/runtime/kernel/music-scenario-extension-contract.md',
   'spec/runtime/kernel/delivery-gates-contract.md',
   'spec/runtime/kernel/proto-governance-contract.md',
   'spec/runtime/kernel/tables/multimodal-canonical-fields.yaml',

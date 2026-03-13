@@ -364,8 +364,8 @@ function renderProviderCapabilities(doc, sourceName) {
   const providers = Array.isArray(doc?.providers) ? doc.providers : [];
   let out = header('Generated Provider Capabilities', sourceName);
 
-  out += '| Provider | Plane | Execution Module | Managed Connector | Inline | Endpoint Requirement | Sources |\n';
-  out += '|---|---|---|---|---|---|---|\n';
+  out += '| Provider | Plane | Execution Module | Managed Connector | Inline | Endpoint Requirement | Capabilities | Sources |\n';
+  out += '|---|---|---|---|---|---|---|---|\n';
   for (const item of providers) {
     const provider = String(item?.provider || '').trim();
     if (!provider) continue;
@@ -375,11 +375,14 @@ function renderProviderCapabilities(doc, sourceName) {
     const managed = mdBool(Boolean(item?.managed_connector_supported));
     const inline = mdBool(Boolean(item?.inline_supported));
     const endpointRequirement = String(item?.endpoint_requirement || '').trim() || 'unknown';
+    const capabilities = Array.isArray(item?.capabilities)
+      ? item.capabilities.map((v) => `\`${String(v)}\``).join(', ')
+      : '—';
     const sourceRules = Array.isArray(item?.sources)
       ? item.sources.map((v) => `\`${String(v)}\``).join(', ')
       : '—';
 
-    out += `| \`${provider}\` | \`${plane}\` | \`${moduleName}\` | \`${managed}\` | \`${inline}\` | \`${endpointRequirement}\` | ${sourceRules || '—'} |\n`;
+    out += `| \`${provider}\` | \`${plane}\` | \`${moduleName}\` | \`${managed}\` | \`${inline}\` | \`${endpointRequirement}\` | ${capabilities || '—'} | ${sourceRules || '—'} |\n`;
   }
   out += '\n';
 

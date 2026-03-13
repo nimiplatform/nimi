@@ -57,6 +57,11 @@ func TestLiveSmokeProviderCapabilityMatrix(t *testing.T) {
 					runLiveSmokeMediaForProvider(t, providerID, record, runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE)
 				})
 			}
+			if record.SupportsMusic {
+				t.Run("music", func(t *testing.T) {
+					runLiveSmokeMediaForProvider(t, providerID, record, runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE)
+				})
+			}
 			if record.SupportsTTSV2V {
 				t.Run("voice_clone", func(t *testing.T) {
 					runLiveSmokeVoiceWorkflowForProvider(t, providerID, record, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE)
@@ -68,6 +73,64 @@ func TestLiveSmokeProviderCapabilityMatrix(t *testing.T) {
 				})
 			}
 		})
+	}
+}
+
+func TestLiveSmokeLocalSidecarMusicPromptOnly(t *testing.T) {
+	sidecarBaseURL := strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SIDECAR_BASE_URL"))
+	if sidecarBaseURL == "" {
+		t.Skip("set NIMI_LIVE_LOCAL_SIDECAR_BASE_URL to run local sidecar music live smoke")
+	}
+	modelID := liveEnvFirst("NIMI_LIVE_LOCAL_SIDECAR_MUSIC_MODEL_ID", "NIMI_LIVE_LOCAL_MUSIC_MODEL_ID")
+	if modelID == "" {
+		t.Skip("set NIMI_LIVE_LOCAL_SIDECAR_MUSIC_MODEL_ID or NIMI_LIVE_LOCAL_MUSIC_MODEL_ID to run local sidecar music live smoke")
+	}
+	record, ok := providerregistry.Lookup("local")
+	if !ok || !record.SupportsMusic {
+		t.Skip("local provider does not advertise music support")
+	}
+
+	svc := newLiveSmokeServiceForProvider(t, "local", record)
+	submitResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         liveSmokeMatrixAppID,
+			SubjectUserId: liveSmokeMatrixUserID,
+			ModelId:       qualifyLocalSidecarLiveModelID(modelID),
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_MusicGenerate{MusicGenerate: &runtimev1.MusicGenerateScenarioSpec{
+				Prompt: "A short atmospheric cue with warm pads and a gentle pulse.",
+				Title:  "Nimi Local Sidecar Smoke",
+			}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit local sidecar music scenario job failed: %v", err)
+	}
+	job := waitLiveSmokeScenarioJob(t, svc, submitResp.GetJob().GetJobId())
+	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("local sidecar music job status not completed: %s reason=%s detail=%s", job.GetStatus().String(), job.GetReasonCode().String(), job.GetReasonDetail())
+	}
+	artifactsResp, err := svc.GetScenarioArtifacts(context.Background(), &runtimev1.GetScenarioArtifactsRequest{
+		JobId: submitResp.GetJob().GetJobId(),
+	})
+	if err != nil {
+		t.Fatalf("GetScenarioArtifacts(%s): %v", submitResp.GetJob().GetJobId(), err)
+	}
+	if len(artifactsResp.GetArtifacts()) == 0 {
+		t.Fatalf("local sidecar music live smoke returned no artifacts")
+	}
+	first := artifactsResp.GetArtifacts()[0]
+	if len(first.GetBytes()) == 0 && strings.TrimSpace(first.GetUri()) == "" {
+		t.Fatalf("local sidecar music artifact must contain bytes or uri")
+	}
+	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(first.GetMimeType())), "audio/") {
+		t.Fatalf("local sidecar music artifact mime type must be audio/*, got %q", first.GetMimeType())
 	}
 }
 
@@ -87,10 +150,13 @@ func newLiveSmokeServiceForProvider(t *testing.T, providerID string, record prov
 	if providerID == "local" {
 		baseURL := requiredLiveEnv(t, "NIMI_LIVE_LOCAL_BASE_URL")
 		apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_API_KEY"))
+		sidecarBaseURL := strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SIDECAR_BASE_URL"))
+		sidecarAPIKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SIDECAR_API_KEY"))
 		return newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 			LocalProviders: map[string]nimillm.ProviderCredentials{
 				"localai": {BaseURL: baseURL, APIKey: apiKey},
 				"nexa":    {BaseURL: baseURL, APIKey: apiKey},
+				"sidecar": {BaseURL: firstNonEmptyString(sidecarBaseURL, baseURL), APIKey: firstNonEmptyString(sidecarAPIKey, apiKey)},
 			},
 		})
 	}
@@ -98,9 +164,18 @@ func newLiveSmokeServiceForProvider(t *testing.T, providerID string, record prov
 	envToken := liveProviderEnvToken(providerID)
 	baseURL := liveEnvOrDefault(t, "NIMI_LIVE_"+envToken+"_BASE_URL", record.DefaultEndpoint)
 	apiKey := requiredLiveEnv(t, "NIMI_LIVE_"+envToken+"_API_KEY")
+	headers := map[string]string{}
+	if providerID == "mubert" {
+		if customerID := strings.TrimSpace(os.Getenv("NIMI_LIVE_MUBERT_CUSTOMER_ID")); customerID != "" {
+			headers["customer-id"] = customerID
+		}
+		if accessToken := strings.TrimSpace(os.Getenv("NIMI_LIVE_MUBERT_ACCESS_TOKEN")); accessToken != "" {
+			headers["access-token"] = accessToken
+		}
+	}
 	return newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
-			providerID: {BaseURL: baseURL, APIKey: apiKey},
+			providerID: {BaseURL: baseURL, APIKey: apiKey, Headers: headers},
 		},
 	})
 }
@@ -122,6 +197,19 @@ func qualifyLiveModelIDForRoute(providerID string, modelID string) string {
 		return modelID
 	}
 	return "cloud/" + modelID
+}
+
+func qualifyLocalSidecarLiveModelID(modelID string) string {
+	normalized := strings.TrimSpace(modelID)
+	lower := strings.ToLower(normalized)
+	switch {
+	case normalized == "":
+		return ""
+	case strings.HasPrefix(lower, "sidecar/"), strings.HasPrefix(lower, "localsidecar/"):
+		return normalized
+	default:
+		return "sidecar/" + normalized
+	}
 }
 
 func resolveLiveTTSVoiceRef(t *testing.T, svc *Service, providerID string, modelID string) string {
@@ -162,6 +250,16 @@ func liveEnvFirst(keys ...string) string {
 	for _, key := range keys {
 		if value := strings.TrimSpace(os.Getenv(key)); value != "" {
 			return value
+		}
+	}
+	return ""
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed != "" {
+			return trimmed
 		}
 	}
 	return ""
@@ -425,6 +523,12 @@ func runLiveSmokeMediaForProvider(t *testing.T, providerID string, record provid
 		spec.Spec = &runtimev1.ScenarioSpec_SpeechTranscribe{SpeechTranscribe: &runtimev1.SpeechTranscribeScenarioSpec{
 			MimeType:    mimeType,
 			AudioSource: audioSource,
+		}}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
+		modelID = qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, "MUSIC_MODEL_ID", "MODEL_ID"))
+		spec.Spec = &runtimev1.ScenarioSpec_MusicGenerate{MusicGenerate: &runtimev1.MusicGenerateScenarioSpec{
+			Prompt: "A short cinematic electronic cue with warm synths and a steady pulse.",
+			Title:  "Nimi Live Smoke Cue",
 		}}
 	default:
 		t.Fatalf("unsupported media scenario type: %v", scenarioType)

@@ -1,6 +1,6 @@
 version: 1
 provider: local
-catalog_version: 2026-03-05-local-v2
+catalog_version: 2026-03-13-local-v3
 models:
   - model_id: qwen3-tts-local
     provider: local
@@ -174,6 +174,210 @@ models:
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
+  - model_id: ace-step-local
+    provider: local
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://localai.io/features/text-to-audio/
+      retrieved_at: 2026-03-13
+      note: LocalAI text-to-audio documentation covering ACE-Step and MusicGen backends.
+  - model_id: localai/ace-step
+    provider: local
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://localai.io/features/text-to-audio/
+      retrieved_at: 2026-03-13
+      note: LocalAI text-to-audio documentation covering ACE-Step and MusicGen backends.
+  - model_id: ace-step-turbo
+    provider: local
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://localai.io/features/text-to-audio/
+      retrieved_at: 2026-03-13
+      note: LocalAI text-to-audio documentation covering ACE-Step and MusicGen backends.
+  - model_id: musicgen-local
+    provider: local
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://localai.io/features/text-to-audio/
+      retrieved_at: 2026-03-13
+      note: LocalAI text-to-audio documentation covering ACE-Step and MusicGen backends.
+  - model_id: localai/musicgen
+    provider: local
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://localai.io/features/text-to-audio/
+      retrieved_at: 2026-03-13
+      note: LocalAI text-to-audio documentation covering ACE-Step and MusicGen backends.
+  - model_id: transformers-musicgen
+    provider: local
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://localai.io/features/text-to-audio/
+      retrieved_at: 2026-03-13
+      note: LocalAI text-to-audio documentation covering ACE-Step and MusicGen backends.
+  - model_id: audiocraft-musicgen-sidecar
+    provider: local
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://facebookresearch.github.io/audiocraft/docs/MUSICGEN.html
+      retrieved_at: 2026-03-13
+      note: Meta AudioCraft MusicGen documentation.
+  - model_id: sidecar/musicgen
+    provider: local
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://facebookresearch.github.io/audiocraft/docs/MUSICGEN.html
+      retrieved_at: 2026-03-13
+      note: Meta AudioCraft MusicGen documentation.
+  - model_id: sidecar/audiocraft-musicgen
+    provider: local
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://facebookresearch.github.io/audiocraft/docs/MUSICGEN.html
+      retrieved_at: 2026-03-13
+      note: Meta AudioCraft MusicGen documentation.
+  - model_id: stable-audio-open-sidecar
+    provider: local
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://stability.ai/news/introducing-stable-audio-open
+      retrieved_at: 2026-03-13
+      note: Stable Audio Open announcement and positioning.
+  - model_id: sidecar/stable-audio-open
+    provider: local
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://stability.ai/news/introducing-stable-audio-open
+      retrieved_at: 2026-03-13
+      note: Stable Audio Open announcement and positioning.
+  - model_id: stable-audio-open
+    provider: local
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://stability.ai/news/introducing-stable-audio-open
+      retrieved_at: 2026-03-13
+      note: Stable Audio Open announcement and positioning.
 voices:
   - voice_id: en_US-lessac-medium
     voice_set_id: local:piper-defaults-v1

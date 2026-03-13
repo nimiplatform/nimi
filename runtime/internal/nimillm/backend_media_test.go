@@ -12,6 +12,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 func TestBackendGenerateImageLocalAIForwardsScenarioExtensions(t *testing.T) {
@@ -244,6 +245,63 @@ func TestBackendTranscribeForwardsScenarioExtensions(t *testing.T) {
 	}
 	if got := strings.TrimSpace(ValueAsString(capturedExtensions["segment_mode"])); got != "detailed" {
 		t.Fatalf("expected transcription extension to be forwarded, got=%q", got)
+	}
+}
+
+func TestBackendGenerateMusicNormalizesIterationExtensions(t *testing.T) {
+	var captured map[string]any
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/music/generations" {
+			http.NotFound(w, r)
+			return
+		}
+		captured = decodeJSONBodyForBackendMediaTest(t, r)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"data": []map[string]any{
+				{"b64_audio": base64.StdEncoding.EncodeToString([]byte("music-generic"))},
+			},
+		})
+	}))
+	defer server.Close()
+
+	backend := NewBackend("cloud-suno", server.URL, "", time.Second)
+	_, _, err := backend.GenerateMusic(context.Background(), "suno-v4", &runtimev1.MusicGenerateScenarioSpec{
+		Prompt: "continue this idea",
+		Title:  "Continuation",
+	}, map[string]any{
+		"mode":                "extend",
+		"source_audio_base64": "aGVsbG8=",
+		"trim_start_sec":      3.25,
+	})
+	if err != nil {
+		t.Fatalf("GenerateMusic failed: %v", err)
+	}
+
+	capturedExtensions, ok := captured["extensions"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected music extensions map, got=%T", captured["extensions"])
+	}
+	if got := strings.TrimSpace(ValueAsString(capturedExtensions["mode"])); got != "extend" {
+		t.Fatalf("expected normalized music mode, got=%q", got)
+	}
+	if got := capturedExtensions["trim_start_sec"]; got != 3.25 {
+		t.Fatalf("expected normalized trim_start_sec, got=%#v", got)
+	}
+}
+
+func TestBackendGenerateMusicRejectsIterationForUnsupportedBackend(t *testing.T) {
+	backend := NewBackend("cloud-openai", "http://127.0.0.1", "", time.Second)
+	_, _, err := backend.GenerateMusic(context.Background(), "music-model", &runtimev1.MusicGenerateScenarioSpec{
+		Prompt: "continue this idea",
+	}, map[string]any{
+		"mode":                "extend",
+		"source_audio_base64": "aGVsbG8=",
+	})
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got reason=%v ok=%v err=%v", reason, ok, err)
 	}
 }
 

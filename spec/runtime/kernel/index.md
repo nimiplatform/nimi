@@ -56,6 +56,7 @@
 | `nimillm-contract.md` | `K-NIMI-*` | remote 执行边界、流式与审计对齐 |
 | `model-catalog-contract.md` | `K-MCAT-*` | 模型/voice catalog SSOT、远程覆写与 fail-close 语义 |
 | `multimodal-provider-contract.md` | `K-MMPROV-*` | canonical 输入、artifact、adapter 与路由约束 |
+| `music-scenario-extension-contract.md` | `K-MMPROV-*` | `MUSIC_GENERATE` iteration 扩展字段、校验与 provider fail-close 基线 |
 | `delivery-gates-contract.md` | `K-GATE-*` | 交付门定义与证据路由 |
 | `proto-governance-contract.md` | `K-PROTO-*` | proto 治理、兼容策略、发布门禁 |
 

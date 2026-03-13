@@ -1,0 +1,56 @@
+version: 1
+provider: mubert
+catalog_version: 2026-03-13-mubert-v1
+models:
+  - model_id: mubert-track-v3
+    provider: mubert
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-13
+      notes: Track render pricing varies by commercial plan and API contract.
+    source_ref:
+      url: https://mubert.com/api
+      retrieved_at: 2026-03-13
+      note: Mubert API overview page.
+  - model_id: public-tracks
+    provider: mubert
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-13
+      notes: Track render pricing varies by commercial plan and API contract.
+    source_ref:
+      url: https://mubert.com/api
+      retrieved_at: 2026-03-13
+      note: Mubert API overview page.
+  - model_id: mubert-track
+    provider: mubert
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-13
+      notes: Track render pricing varies by commercial plan and API contract.
+    source_ref:
+      url: https://mubert.com/api
+      retrieved_at: 2026-03-13
+      note: Mubert API overview page.
+voices: []

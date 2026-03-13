@@ -4,10 +4,11 @@
 
 ## K-LENG-001 引擎类型枚举
 
-Phase 1 支持两种本地推理引擎：
+Phase 1 支持三种本地推理引擎：
 
 - `localai`：LocalAI 引擎，OpenAI-compatible HTTP 服务。
 - `nexa`：Nexa 引擎，OpenAI-compatible HTTP 服务。
+- `sidecar`：外部自托管 music sidecar，使用 Nimi music canonical HTTP 协议；当前仅支持 `ATTACHED_ENDPOINT`。
 
 引擎类型值域以 `tables/local-engine-catalog.yaml` 为唯一事实源。
 
@@ -26,7 +27,7 @@ Phase 1 同时支持 `ATTACHED_ENDPOINT` 和 `SUPERVISED` 两种模式。
 
 - `endpoint` 必须指向已运行的 HTTP 服务（格式：`http://<host>:<port>[/<base_path>]`）。
 - runtime 不负责启动、停止或重启该进程。
-- 健康探测协议见 `K-LENG-007`。
+- `localai` / `nexa` 的健康探测协议见 `K-LENG-007`；`sidecar` 当前不纳入 RuntimeLocalService 的标准引擎健康探测与生命周期管理，availability 由实际请求结果决定。
 - `endpoint` 缺失或空字符串时，按 `K-LENG-005` 注入默认端点。
 
 ## K-LENG-004 SUPERVISED 约束
@@ -37,6 +38,7 @@ Phase 1 同时支持 `ATTACHED_ENDPOINT` 和 `SUPERVISED` 两种模式。
 - 信号处理：`SIGTERM` 优雅关闭，超时（默认 10 秒）后 `SIGKILL`。
 - 重启策略：指数退避（2s base + jitter），最大重试 5 次，累计失败后标记 `UNHEALTHY`。
 - 进程退出码非零视为异常，写审计并触发状态迁移。
+- 当前仅 `localai` / `nexa` 支持 `SUPERVISED`；`sidecar` 不属于 daemon-managed engine。
 
 ### 二进制管理
 
@@ -58,6 +60,8 @@ Phase 1 同时支持 `ATTACHED_ENDPOINT` 和 `SUPERVISED` 两种模式。
 
 - LocalAI：`NIMI_RUNTIME_LOCAL_AI_BASE_URL={endpoint}/v1`
 - Nexa：`NIMI_RUNTIME_LOCAL_NEXA_BASE_URL={endpoint}/v1`
+
+`sidecar` 不做 runtime 注入与进程管理，调用方直接通过 `NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL` / `NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY` 提供 attached endpoint。
 
 ### 配置
 
@@ -115,15 +119,17 @@ ENV 覆盖：`NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED`、`NIMI_RUNTIME_ENGINE_LOCALA
 
 - `localai`：`http://127.0.0.1:1234/v1`
 - `nexa`：无默认端点，`endpoint` 必须显式提供。
+- `sidecar`：无默认端点，`endpoint` 必须显式提供。
 
 当安装或启动时 `endpoint` 为空：
 
 - `localai`：自动注入默认端点。
 - `nexa`：返回 `INVALID_ARGUMENT` + `AI_LOCAL_ENDPOINT_REQUIRED`。
+- `sidecar`：返回 `INVALID_ARGUMENT` + `AI_LOCAL_ENDPOINT_REQUIRED`。
 
-## K-LENG-006 OpenAI-compatible HTTP 协议基线
+## K-LENG-006 Local HTTP 协议基线
 
-所有 Phase 1 引擎均遵循 OpenAI-compatible HTTP API：
+`localai` 与 `nexa` 遵循 OpenAI-compatible HTTP API：
 
 - 文本生成：`POST /v1/chat/completions`（`stream=false`）
 - 流式生成：`POST /v1/chat/completions`（`stream=true`）
@@ -133,7 +139,14 @@ ENV 覆盖：`NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED`、`NIMI_RUNTIME_ENGINE_LOCALA
 - 语音合成：`POST /v1/audio/speech`
 - 语音识别：`POST /v1/audio/transcriptions`
 
-引擎特有的非标 API（如 LocalAI 的 video backend）通过 `LocalProviderHints` 描述，不作为通用协议基线。
+`sidecar` 使用 Nimi music canonical HTTP 协议，不属于 OpenAI-compatible 基线：
+
+- `POST /v1/music/generate`
+- 请求体字段与 `MusicGenerateScenarioSpec` canonical 字段对齐（`prompt` / `negative_prompt` / `lyrics` / `style` / `title` / `duration_seconds` / `instrumental`）
+- Phase 1 只要求 prompt-only；是否支持 iteration 由 provider capability 与 runtime strategy 决定，不能假定 sidecar 默认支持
+- 响应可直接返回音频 bytes，或返回 `audio_url` / `audio_base64` JSON 包装
+
+引擎特有的非标 API（如 LocalAI 的 video backend、music sidecar 的 canonical music path）通过 `LocalProviderHints` 或 runtime adapter 描述，不作为通用 OpenAI-compatible 协议基线。
 
 LocalAI 动态图片工作流补充：
 
@@ -156,7 +169,7 @@ LocalAI text-chat multimodal 补充：
 
 ## K-LENG-007 健康探测协议
 
-> 本协议适用于本地引擎健康探测。云端 provider 探测使用 K-PROV-003（探测路径与健康判定标准不同）。
+> 本协议适用于 OpenAI-compatible 本地引擎健康探测。云端 provider 探测使用 K-PROV-003（探测路径与健康判定标准不同）。
 
 健康探测使用 `GET /v1/models`：
 
@@ -172,12 +185,14 @@ LocalAI text-chat multimodal 补充：
 
 探测频率由调用方决定（daemon 默认 8 秒周期），本规则仅定义协议。
 
+`sidecar` 当前不纳入该标准探测协议，也不进入 RuntimeLocalService 的 supervised engine 生命周期；其 attached endpoint 可用性由实际 music 请求在 runtime adapter 层 fail-close。
+
 ## K-LENG-008 引擎配置来源优先级
 
 引擎相关配置项（endpoint、api_key 等）的来源按以下优先级合并（高优先覆盖低优先）：
 
 1. RPC 请求参数（`InstallLocalModel.endpoint` 等）
-2. 环境变量（`NIMI_RUNTIME_LOCAL_AI_BASE_URL`、`NIMI_RUNTIME_LOCAL_NEXA_BASE_URL` 等，命名与 `K-PROV-002` 一致）
+2. 环境变量（`NIMI_RUNTIME_LOCAL_AI_BASE_URL`、`NIMI_RUNTIME_LOCAL_NEXA_BASE_URL`、`NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL` 等，命名与 `K-PROV-002` 一致）
 3. 配置文件（`K-DAEMON-009` 定义的配置路径，即 `~/.nimi/config.json` 的 provider 相关段）
 4. 引擎默认值（`K-LENG-005`）
 

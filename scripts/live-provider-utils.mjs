@@ -11,6 +11,7 @@ export const CAPABILITY_INTERFACE_ORDER = [
   'video',
   'tts',
   'stt',
+  'music',
   'voice_clone',
   'voice_design',
 ];
@@ -25,6 +26,7 @@ export const SDK_INTERFACE_ORDER = [...CAPABILITY_INTERFACE_ORDER];
 const PROVIDER_ALIASES = {
   local: 'local',
   localprovider: 'local',
+  localsidecar: 'local',
   nimillm: 'nimillm',
   openai: 'openai',
   anthropic: 'anthropic',
@@ -138,6 +140,9 @@ function capabilityFromModelCapability(value) {
   }
   if (normalized === 'audio.transcribe') {
     return 'stt';
+  }
+  if (normalized === 'music.generate' || normalized === 'music.generate.iteration') {
+    return 'music';
   }
   return '';
 }
@@ -288,6 +293,9 @@ function normalizeMediaModality(value) {
   if (normalized === 'stt') {
     return 'stt';
   }
+  if (normalized === 'music') {
+    return 'music';
+  }
   return '';
 }
 
@@ -309,6 +317,15 @@ export function parseRuntimeLiveTestDefinitions(runtimeLiveSmokePath) {
         );
       }
     }
+  }
+
+  if (source.includes('TestLiveSmokeLocalSidecarMusicPromptOnly')) {
+    ensureNestedMapSet(
+      definitions,
+      'local',
+      'music',
+      'TestLiveSmokeLocalSidecarMusicPromptOnly',
+    );
   }
 
   const fnRegex = /func\s+(TestLiveSmoke(?:Connector)?[A-Za-z0-9]+(?:GenerateText|Embed|SubmitScenarioJobModalities|TTS))\s*\(/g;
@@ -404,7 +421,7 @@ export function parseSdkLiveTestDefinitions(sdkLiveSmokePath) {
     const testName = `nimi sdk ai-provider live smoke: ${label} generate text`;
     ensureNestedMapSet(definitions, provider, 'generate', testName);
   }
-  const capabilityRegex = /test\(\s*['"]nimi sdk ai-provider live smoke:\s*([^'"]+?)\s+(generate|embed|image|video|tts|stt|voice_clone|voice_design)['"]/g;
+  const capabilityRegex = /test\(\s*['"]nimi sdk ai-provider live smoke:\s*([^'"]+?)\s+(generate|embed|image|video|tts|stt|music|voice_clone|voice_design)['"]/g;
   while ((match = capabilityRegex.exec(source)) !== null) {
     const providerLabel = String(match[1] || '').trim();
     const provider = canonicalProviderId(providerLabel);
@@ -432,6 +449,7 @@ export function parseLiveEnvTemplateProviders(envTemplatePath) {
     'VIDEO_MODEL_ID',
     'TTS_MODEL_ID',
     'STT_MODEL_ID',
+    'MUSIC_MODEL_ID',
     'MODEL_ID',
     'BASE_URL',
     'API_KEY',
@@ -449,6 +467,9 @@ export function parseLiveEnvTemplateProviders(envTemplatePath) {
 
     const variable = variableMatch[1];
     if (variable === 'NIMI_LIVE_STT_AUDIO_URI' || variable === 'NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI') {
+      continue;
+    }
+    if (variable.startsWith('NIMI_LIVE_LOCAL_SIDECAR_')) {
       continue;
     }
     const raw = variable.slice('NIMI_LIVE_'.length);

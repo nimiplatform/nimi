@@ -557,6 +557,59 @@ func (b *Backend) GenerateVideo(ctx context.Context, modelID string, spec *runti
 	return payload, usage, nil
 }
 
+// GenerateMusic sends a music generation request.
+func (b *Backend) GenerateMusic(ctx context.Context, modelID string, spec *runtimev1.MusicGenerateScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, error) {
+	type musicResponse struct {
+		Data []struct {
+			B64Audio string `json:"b64_audio"`
+			B64JSON  string `json:"b64_json"`
+			URL      string `json:"url"`
+		} `json:"data"`
+		Output []struct {
+			B64Audio string `json:"b64_audio"`
+			URL      string `json:"url"`
+		} `json:"output"`
+	}
+
+	prompt := strings.TrimSpace(spec.GetPrompt())
+	requestBody, err := buildMusicGenerationRequest(b.Name, modelID, spec, scenarioExtensions)
+	if err != nil {
+		return nil, nil, err
+	}
+	paths := []string{"/v1/music/generations", "/v1/audio/generations"}
+	var respBody musicResponse
+	for _, path := range paths {
+		err = b.postJSON(ctx, path, requestBody, &respBody)
+		if err == nil {
+			break
+		}
+		if status.Code(err) == codes.NotFound {
+			continue
+		}
+		return nil, nil, err
+	}
+	if err != nil {
+		return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+	}
+
+	var b64Data string
+	var mediaURL string
+	if len(respBody.Data) > 0 {
+		b64Data = FirstNonEmpty(respBody.Data[0].B64Audio, respBody.Data[0].B64JSON)
+		mediaURL = respBody.Data[0].URL
+	}
+	if b64Data == "" && mediaURL == "" && len(respBody.Output) > 0 {
+		b64Data = respBody.Output[0].B64Audio
+		mediaURL = respBody.Output[0].URL
+	}
+	payload, err := b.DecodeMedia(ctx, b64Data, mediaURL)
+	if err != nil {
+		return nil, nil, err
+	}
+	usage := ArtifactUsage(prompt, payload, 420)
+	return payload, usage, nil
+}
+
 // SynthesizeSpeech sends a text-to-speech request.
 func (b *Backend) SynthesizeSpeech(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesizeScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, error) {
 	type speechRequest struct {

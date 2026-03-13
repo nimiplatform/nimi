@@ -115,6 +115,8 @@ func mediaScenarioSupportedByProviderRecord(record providerregistry.ProviderReco
 		return record.SupportsTTS
 	case runtimev1.Modal_MODAL_STT:
 		return record.SupportsSTT
+	case runtimev1.Modal_MODAL_MUSIC:
+		return record.SupportsMusic
 	default:
 		return false
 	}
@@ -174,7 +176,7 @@ func (s *Service) resolveNativeAdapterConfig(configKey string, remoteTarget *nim
 		return nimillm.MediaAdapterConfig{BaseURL: remoteTarget.Endpoint, APIKey: remoteTarget.APIKey}
 	}
 	creds := s.config.CloudProviders[configKey]
-	return nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey}
+	return nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey, Headers: creds.Headers}
 }
 
 func reasonCodeFromMediaError(err error) runtimev1.ReasonCode {

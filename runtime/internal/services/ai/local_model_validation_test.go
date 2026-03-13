@@ -40,6 +40,8 @@ func TestParseLocalModelSelector(t *testing.T) {
 	}{
 		{modelID: "localai/qwen", explicitEngine: "localai", normalizedID: "qwen"},
 		{modelID: "nexa/qwen", explicitEngine: "nexa", normalizedID: "qwen"},
+		{modelID: "sidecar/qwen", explicitEngine: "sidecar", normalizedID: "qwen"},
+		{modelID: "localsidecar/qwen", explicitEngine: "sidecar", normalizedID: "qwen"},
 		{modelID: "local/qwen", preferLocalAI: true, normalizedID: "qwen"},
 		{modelID: "raw-model", normalizedID: "raw-model"},
 		{modelID: "   ", normalizedID: ""},
@@ -56,6 +58,7 @@ func TestParseLocalModelSelector(t *testing.T) {
 func TestSelectActiveLocalModel(t *testing.T) {
 	models := []*runtimev1.LocalModelRecord{
 		{LocalModelId: "b", ModelId: "qwen", Engine: "nexa"},
+		{LocalModelId: "c", ModelId: "qwen", Engine: "sidecar"},
 		{LocalModelId: "a", ModelId: "qwen", Engine: "localai"},
 	}
 
@@ -67,6 +70,11 @@ func TestSelectActiveLocalModel(t *testing.T) {
 	selected, reason = selectActiveLocalModel(models, localModelSelector{modelID: "qwen", explicitEngine: "nexa"})
 	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED || selected.GetEngine() != "nexa" {
 		t.Fatalf("expected explicit nexa, got selected=%v reason=%v", selected.GetEngine(), reason)
+	}
+
+	selected, reason = selectActiveLocalModel(models, localModelSelector{modelID: "qwen", explicitEngine: "sidecar"})
+	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED || selected.GetEngine() != "sidecar" {
+		t.Fatalf("expected explicit sidecar, got selected=%v reason=%v", selected.GetEngine(), reason)
 	}
 
 	_, reason = selectActiveLocalModel(models, localModelSelector{modelID: "qwen", explicitEngine: "unknown"})
@@ -89,7 +97,10 @@ func TestLocalEnginePriorityAndProfileRequirement(t *testing.T) {
 	if localEnginePriority("localai") >= localEnginePriority("nexa") {
 		t.Fatalf("unexpected local engine priority ordering")
 	}
-	if localEnginePriority("other") != 2 {
+	if localEnginePriority("sidecar") >= localEnginePriority("nexa") {
+		t.Fatalf("unexpected sidecar engine priority ordering")
+	}
+	if localEnginePriority("other") != 3 {
 		t.Fatalf("unexpected default engine priority")
 	}
 
@@ -197,6 +208,20 @@ func TestValidateLocalModelRequest(t *testing.T) {
 	}
 	if err := svc.validateLocalModelRequest(context.Background(), "nexa/qwen", nil); err != nil {
 		t.Fatalf("expected nexa selector to succeed, got %v", err)
+	}
+	dualEnginePageWithSidecar := &runtimev1.ListLocalModelsResponse{
+		Models: []*runtimev1.LocalModelRecord{
+			{ModelId: "qwen", Engine: "localai", LocalInvokeProfileId: "invoke"},
+			{ModelId: "qwen", Engine: "sidecar", LocalInvokeProfileId: "invoke"},
+			{ModelId: "qwen", Engine: "nexa", LocalInvokeProfileId: "invoke"},
+		},
+	}
+	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalModelsResponse{
+		dualEnginePageWithSidecar,
+		dualEnginePageWithSidecar,
+	}}
+	if err := svc.validateLocalModelRequest(context.Background(), "sidecar/qwen", nil); err != nil {
+		t.Fatalf("expected sidecar selector to succeed, got %v", err)
 	}
 
 	// Case-insensitive modelId matching should succeed across desktop/go-runtime normalization.

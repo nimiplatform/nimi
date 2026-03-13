@@ -71,7 +71,7 @@ function runRuntimeTests() {
   process.stdout.write('[live-test-matrix] running runtime live smoke tests...\n');
   const result = spawnSync(
     'go',
-    ['test', './internal/services/ai/', '-v', '-run', 'TestLiveSmokeProviderCapabilityMatrix', '-timeout', '15m', '-count=1'],
+    ['test', './internal/services/ai/', '-v', '-run', 'TestLiveSmokeProviderCapabilityMatrix|TestLiveSmokeLocalSidecarMusicPromptOnly', '-timeout', '15m', '-count=1'],
     {
       cwd: runtimeDir,
       env: liveEnv,

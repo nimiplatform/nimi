@@ -1,0 +1,56 @@
+version: 1
+provider: soundverse
+catalog_version: 2026-03-13-soundverse-v1
+models:
+  - model_id: soundverse-song-v5
+    provider: soundverse
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-13
+      notes: Song generation pricing varies by enterprise contract and generation mode.
+    source_ref:
+      url: https://help.soundverse.ai/api_documentation
+      retrieved_at: 2026-03-13
+      note: Soundverse public API documentation.
+  - model_id: soundverse-v5-song
+    provider: soundverse
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-13
+      notes: Song generation pricing varies by enterprise contract and generation mode.
+    source_ref:
+      url: https://help.soundverse.ai/api_documentation
+      retrieved_at: 2026-03-13
+      note: Soundverse public API documentation.
+  - model_id: generate-song-sync
+    provider: soundverse
+    model_type: music
+    updated_at: 2026-03-13
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-13
+      notes: Song generation pricing varies by enterprise contract and generation mode.
+    source_ref:
+      url: https://help.soundverse.ai/api_documentation
+      retrieved_at: 2026-03-13
+      note: Soundverse public API documentation.
+voices: []

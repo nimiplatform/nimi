@@ -38,3 +38,9 @@ engines:
     start_command: "server --host 127.0.0.1 --port {port}"
     default_port: 8000
     startup_timeout_seconds: 30
+  - engine: sidecar
+    default_endpoint: ""
+    runtime_mode: attached_endpoint
+    protocol: nimi_music_http
+    phase1: true
+    source_rule: K-LENG-005
