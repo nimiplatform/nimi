@@ -2,34 +2,38 @@
 layout: home
 
 hero:
-  name: Nimi Developer Portal
-  text: Open-Source AI Runtime For Apps
-  tagline: One runtime and one SDK for local and cloud AI. Start local, switch to cloud, keep the same surface.
+  name: Nimi
+  text: Open-Source AI Runtime
+  tagline: One runtime for local and cloud AI. Use it, build with it, or extend it.
   actions:
     - theme: brand
-      text: Getting Started
-      link: /getting-started/
+      text: Start Using Nimi
+      link: /user/
     - theme: alt
-      text: SDK Reference
-      link: /reference/sdk
+      text: Build An App
+      link: /app-dev/
     - theme: alt
-      text: Runtime Reference
-      link: /reference/runtime
+      text: Build A Mod
+      link: /mod-dev/
     - theme: alt
       text: GitHub
       link: https://github.com/nimiplatform/nimi
 
 features:
-  - icon: 🚀
-    title: First Run Fast
-    details: Install Nimi, run `nimi start`, then generate with `nimi run "..."` or `nimi run "..." --provider ...`.
-  - icon: 📐
-    title: Local And Cloud, Same Surface
-    details: Local defaults to the bundled local text target. Cloud can use one-shot `--provider ...` or a reusable machine default with `--cloud`.
-  - icon: 🧪
-    title: Runtime-Backed
-    details: Streaming, health, model lifecycle, and operational commands live in the same runtime system.
-  - icon: 🧩
-    title: Nimi Coding Underneath
-    details: "The repo is governed by Nimi Coding: an AI-readable source-of-truth system with layered contracts, structured facts, generated views, and drift checks."
+  - title: Install And Run
+    details: Install Nimi, start the runtime, generate with local or cloud models from the CLI. No code needed.
+    link: /user/install
+    linkText: Get started
+  - title: Local And Cloud, Same Surface
+    details: Local defaults to bundled models. Cloud uses --provider or --cloud. Same commands, same runtime.
+    link: /user/providers
+    linkText: Set up providers
+  - title: SDK For Apps
+    details: "One SDK for runtime and realm: import { Runtime } from '@nimiplatform/sdk/runtime'."
+    link: /app-dev/
+    linkText: Start building
+  - title: Nimi Coding
+    details: AI-readable source-of-truth governance with layered contracts, structured facts, and drift checks.
+    link: /nimi-coding
+    linkText: Learn the methodology
 ---
