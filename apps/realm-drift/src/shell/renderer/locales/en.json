@@ -1,0 +1,74 @@
+{
+  "app": {
+    "name": "Realm Drift"
+  },
+  "bootstrap": {
+    "loading": "Loading Realm Drift...",
+    "error": "Failed to start: {{message}}"
+  },
+  "auth": {
+    "loginTitle": "Sign in to Realm Drift",
+    "identifierPlaceholder": "Email or handle",
+    "passwordPlaceholder": "Password",
+    "login": "Sign In",
+    "signingIn": "Signing in...",
+    "loginFailed": "Login failed",
+    "accountBlocked": "Account is blocked",
+    "twoFactorTitle": "Two-Factor Authentication",
+    "twoFactorHint": "Enter the 6-digit code from your authenticator app.",
+    "verify": "Verify",
+    "2faFailed": "Verification failed",
+    "backToLogin": "Back to login"
+  },
+  "browser": {
+    "title": "My Worlds",
+    "searchPlaceholder": "Search worlds...",
+    "empty": "No worlds found",
+    "agents": "{{count}} agent",
+    "agents_plural": "{{count}} agents",
+    "marbleReady": "3D Ready",
+    "marbleGenerating": "Generating..."
+  },
+  "viewer": {
+    "back": "Back",
+    "tabAgents": "Agents",
+    "tabPeople": "People",
+    "generate": "Generate 3D World",
+    "regenerate": "Regenerate",
+    "generating": "Generating...",
+    "elapsed": "{{seconds}}s elapsed",
+    "qualityMini": "Mini (~30s)",
+    "qualityStandard": "Standard (~5min)",
+    "idle": "Click Generate to create a 3D world from this world's data",
+    "ready": "3D world ready",
+    "error": "Generation failed",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "missingApiKey": "Marble API key is not configured. Set VITE_MARBLE_API_KEY.",
+    "promptPreview": "Prompt Preview"
+  },
+  "chat": {
+    "placeholder": "Type a message...",
+    "send": "Send",
+    "emptyState": "Select an agent to start chatting",
+    "agentEmpty": "No agents in this world",
+    "streaming": "Thinking..."
+  },
+  "humanChat": {
+    "placeholder": "Type a message...",
+    "send": "Send",
+    "emptyState": "Select a friend to start chatting",
+    "noFriends": "No friends yet",
+    "online": "Online",
+    "offline": "Offline"
+  },
+  "error": {
+    "networkError": "Connection lost. Please check your network.",
+    "runtimeUnavailable": "AI runtime unavailable. Please try again later.",
+    "rateLimited": "Too many requests. Please wait a moment.",
+    "unauthorized": "Authentication expired. Please sign in again.",
+    "forbidden": "You do not have permission to access this resource.",
+    "serverError": "Server error. Please try again later.",
+    "retry": "Retry"
+  }
+}

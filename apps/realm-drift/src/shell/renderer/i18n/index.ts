@@ -1,0 +1,27 @@
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import en from '@renderer/locales/en.json';
+
+const resources = {
+  en: { translation: en },
+};
+
+export async function initI18n(language?: string): Promise<void> {
+  const detectedLanguage = language || 'en';
+  await i18n
+    .use(initReactI18next)
+    .init({
+      resources,
+      lng: detectedLanguage,
+      fallbackLng: 'en',
+      interpolation: {
+        escapeValue: false,
+      },
+    });
+}
+
+export function changeLocale(locale: string): void {
+  void i18n.changeLanguage(locale);
+}
+
+export { i18n };
