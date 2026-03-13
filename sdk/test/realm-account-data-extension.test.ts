@@ -106,3 +106,45 @@ test('account-data extension maps 404 backend gaps to UNAVAILABLE result', async
   assert.equal(deletionResult.status, 'UNAVAILABLE');
   assert.equal(deletionResult.reasonCode, 'REALM_ACCOUNT_DATA_UNAVAILABLE');
 });
+
+test('requestDataExport treats 501 as backend unavailable', async () => {
+  const error = new Error('not implemented') as Error & {
+    reasonCode?: string;
+    details?: Record<string, unknown>;
+  };
+  error.details = {
+    httpStatus: 501,
+  };
+  const realm = createFakeRealm(async () => {
+    throw error;
+  });
+
+  const result = await requestDataExport(realm as unknown as Realm, {});
+  assert.equal(result.accepted, false);
+  assert.equal(result.status, 'UNAVAILABLE');
+  assert.equal(result.reasonCode, 'REALM_ACCOUNT_DATA_UNAVAILABLE');
+});
+
+test('account-data extension rethrows non-availability errors', async () => {
+  const error = new Error('boom') as Error & {
+    reasonCode?: string;
+    details?: Record<string, unknown>;
+  };
+  error.reasonCode = ReasonCode.REALM_UNAVAILABLE;
+  error.details = {
+    httpStatus: 500,
+  };
+  const realm = createFakeRealm(async () => {
+    throw error;
+  });
+
+  await assert.rejects(
+    () => requestAccountDeletion(realm as unknown as Realm, {}),
+    (thrown: unknown) => {
+      const normalized = thrown as { reasonCode?: string; details?: Record<string, unknown> };
+      assert.equal(normalized.reasonCode, ReasonCode.REALM_UNAVAILABLE);
+      assert.equal(normalized.details?.httpStatus, 500);
+      return true;
+    },
+  );
+});
