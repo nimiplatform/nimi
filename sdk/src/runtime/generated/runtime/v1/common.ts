@@ -443,6 +443,22 @@ export enum ReasonCode {
      */
     AI_MEDIA_IDEMPOTENCY_CONFLICT = 414,
     /**
+     * @generated from protobuf enum value: AI_ARTIFACT_UPLOAD_INVALID = 415;
+     */
+    AI_ARTIFACT_UPLOAD_INVALID = 415,
+    /**
+     * @generated from protobuf enum value: AI_ARTIFACT_UPLOAD_TOO_LARGE = 416;
+     */
+    AI_ARTIFACT_UPLOAD_TOO_LARGE = 416,
+    /**
+     * @generated from protobuf enum value: AI_REALTIME_SESSION_NOT_FOUND = 417;
+     */
+    AI_REALTIME_SESSION_NOT_FOUND = 417,
+    /**
+     * @generated from protobuf enum value: AI_REALTIME_SESSION_CLOSED = 418;
+     */
+    AI_REALTIME_SESSION_CLOSED = 418,
+    /**
      * VOICE family (420+)
      *
      * @generated from protobuf enum value: AI_VOICE_INPUT_INVALID = 420;

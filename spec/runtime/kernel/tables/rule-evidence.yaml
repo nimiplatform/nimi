@@ -865,6 +865,12 @@ rules:
   - rule_id: K-MMPROV-031
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
+  - rule_id: K-MMPROV-032
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage, runtime_test_gate]
+  - rule_id: K-MMPROV-033
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_test_gate]
   - rule_id: K-MODEL-001
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_test_gate]

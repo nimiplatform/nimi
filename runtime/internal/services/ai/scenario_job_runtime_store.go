@@ -22,16 +22,25 @@ type scenarioJobRecord struct {
 	cancel      context.CancelFunc
 }
 
+type uploadedArtifactRecord struct {
+	appID         string
+	subjectUserID string
+	traceID       string
+	artifact      *runtimev1.ScenarioArtifact
+}
+
 type scenarioJobStore struct {
 	mu          sync.RWMutex
 	jobs        map[string]*scenarioJobRecord
 	idempotency map[string]string
+	uploads     map[string]*uploadedArtifactRecord
 }
 
 func newScenarioJobStore() *scenarioJobStore {
 	return &scenarioJobStore{
 		jobs:        make(map[string]*scenarioJobRecord),
 		idempotency: make(map[string]string),
+		uploads:     make(map[string]*uploadedArtifactRecord),
 	}
 }
 
@@ -189,6 +198,16 @@ func (s *scenarioJobStore) findArtifact(appID string, subjectUserID string, arti
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
+	if uploaded := s.uploads[id]; uploaded != nil {
+		if wantAppID != "" && strings.TrimSpace(uploaded.appID) != wantAppID {
+			return nil, "", false
+		}
+		if wantSubjectUserID != "" && strings.TrimSpace(uploaded.subjectUserID) != wantSubjectUserID {
+			return nil, "", false
+		}
+		return cloneScenarioArtifact(uploaded.artifact), strings.TrimSpace(uploaded.traceID), true
+	}
+
 	for _, record := range s.jobs {
 		if record == nil || record.job == nil {
 			continue
@@ -208,6 +227,26 @@ func (s *scenarioJobStore) findArtifact(appID string, subjectUserID string, arti
 		}
 	}
 	return nil, "", false
+}
+
+func (s *scenarioJobStore) storeUploadedArtifact(appID string, subjectUserID string, traceID string, artifact *runtimev1.ScenarioArtifact) *runtimev1.ScenarioArtifact {
+	if artifact == nil {
+		return nil
+	}
+	artifactID := strings.TrimSpace(artifact.GetArtifactId())
+	if artifactID == "" {
+		return nil
+	}
+	cloned := cloneScenarioArtifact(artifact)
+	s.mu.Lock()
+	s.uploads[artifactID] = &uploadedArtifactRecord{
+		appID:         strings.TrimSpace(appID),
+		subjectUserID: strings.TrimSpace(subjectUserID),
+		traceID:       strings.TrimSpace(traceID),
+		artifact:      cloned,
+	}
+	s.mu.Unlock()
+	return cloneScenarioArtifact(cloned)
 }
 
 func (s *scenarioJobStore) subscribe(jobID string, buffer int) (uint64, <-chan *runtimev1.ScenarioJobEvent, []*runtimev1.ScenarioJobEvent, bool, bool) {

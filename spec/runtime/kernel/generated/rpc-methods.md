@@ -20,6 +20,18 @@ Source: `K-RPC-002`
 | `ListVoiceAssets` | `unary` |
 | `DeleteVoiceAsset` | `unary` |
 | `ListPresetVoices` | `unary` |
+| `UploadArtifact` | `client_stream` |
+
+## RuntimeAiRealtimeService
+
+Source: `K-MMPROV-031`
+
+| Method | Type |
+|---|---|
+| `OpenRealtimeSession` | `unary` |
+| `AppendRealtimeInput` | `unary` |
+| `ReadRealtimeEvents` | `server_stream` |
+| `CloseRealtimeSession` | `unary` |
 
 ## ConnectorService
 

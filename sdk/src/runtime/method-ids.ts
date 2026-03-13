@@ -29,6 +29,12 @@ export const RuntimeMethodIds = {
     deleteVoiceAsset: '/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset',
     listPresetVoices: '/nimi.runtime.v1.RuntimeAiService/ListPresetVoices',
   },
+  aiRealtime: {
+    openRealtimeSession: '/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession',
+    appendRealtimeInput: '/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput',
+    readRealtimeEvents: '/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents',
+    closeRealtimeSession: '/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession',
+  },
   workflow: {
     submit: '/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow',
     get: '/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow',
@@ -119,6 +125,7 @@ export const RuntimeAllowlistedMethodIds: readonly string[] = Object.freeze(
 export const RuntimeStreamMethodIds: readonly string[] = Object.freeze([
   RuntimeMethodIds.ai.streamScenario,
   RuntimeMethodIds.ai.subscribeScenarioJobEvents,
+  RuntimeMethodIds.aiRealtime.readRealtimeEvents,
   RuntimeMethodIds.workflow.subscribeEvents,
   RuntimeMethodIds.app.subscribeAppMessages,
   RuntimeMethodIds.audit.exportAuditEvents,
@@ -142,6 +149,9 @@ export const RuntimeWriteMethodIds: readonly string[] = Object.freeze([
   RuntimeMethodIds.ai.submitScenarioJob,
   RuntimeMethodIds.ai.cancelScenarioJob,
   RuntimeMethodIds.ai.deleteVoiceAsset,
+  RuntimeMethodIds.aiRealtime.openRealtimeSession,
+  RuntimeMethodIds.aiRealtime.appendRealtimeInput,
+  RuntimeMethodIds.aiRealtime.closeRealtimeSession,
   RuntimeMethodIds.workflow.submit,
   RuntimeMethodIds.workflow.cancel,
   RuntimeMethodIds.model.pull,

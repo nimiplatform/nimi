@@ -141,6 +141,10 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       listVoiceAssets: unary(RuntimeMethodIds.ai.listVoiceAssets),
       deleteVoiceAsset: unary(RuntimeMethodIds.ai.deleteVoiceAsset),
       listPresetVoices: unary(RuntimeMethodIds.ai.listPresetVoices),
+      openRealtimeSession: unary(RuntimeMethodIds.aiRealtime.openRealtimeSession),
+      appendRealtimeInput: unary(RuntimeMethodIds.aiRealtime.appendRealtimeInput),
+      readRealtimeEvents: stream(RuntimeMethodIds.aiRealtime.readRealtimeEvents),
+      closeRealtimeSession: unary(RuntimeMethodIds.aiRealtime.closeRealtimeSession),
     },
     workflow: {
       submit: unary(RuntimeMethodIds.workflow.submit),

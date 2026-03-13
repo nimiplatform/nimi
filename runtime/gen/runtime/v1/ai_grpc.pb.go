@@ -31,6 +31,7 @@ const (
 	RuntimeAiService_ListVoiceAssets_FullMethodName            = "/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets"
 	RuntimeAiService_DeleteVoiceAsset_FullMethodName           = "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset"
 	RuntimeAiService_ListPresetVoices_FullMethodName           = "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices"
+	RuntimeAiService_UploadArtifact_FullMethodName             = "/nimi.runtime.v1.RuntimeAiService/UploadArtifact"
 )
 
 // RuntimeAiServiceClient is the client API for RuntimeAiService service.
@@ -49,6 +50,7 @@ type RuntimeAiServiceClient interface {
 	ListVoiceAssets(ctx context.Context, in *ListVoiceAssetsRequest, opts ...grpc.CallOption) (*ListVoiceAssetsResponse, error)
 	DeleteVoiceAsset(ctx context.Context, in *DeleteVoiceAssetRequest, opts ...grpc.CallOption) (*DeleteVoiceAssetResponse, error)
 	ListPresetVoices(ctx context.Context, in *ListPresetVoicesRequest, opts ...grpc.CallOption) (*ListPresetVoicesResponse, error)
+	UploadArtifact(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadArtifactRequest, UploadArtifactResponse], error)
 }
 
 type runtimeAiServiceClient struct {
@@ -197,6 +199,19 @@ func (c *runtimeAiServiceClient) ListPresetVoices(ctx context.Context, in *ListP
 	return out, nil
 }
 
+func (c *runtimeAiServiceClient) UploadArtifact(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadArtifactRequest, UploadArtifactResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[2], RuntimeAiService_UploadArtifact_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[UploadArtifactRequest, UploadArtifactResponse]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAiService_UploadArtifactClient = grpc.ClientStreamingClient[UploadArtifactRequest, UploadArtifactResponse]
+
 // RuntimeAiServiceServer is the server API for RuntimeAiService service.
 // All implementations should embed UnimplementedRuntimeAiServiceServer
 // for forward compatibility.
@@ -213,6 +228,7 @@ type RuntimeAiServiceServer interface {
 	ListVoiceAssets(context.Context, *ListVoiceAssetsRequest) (*ListVoiceAssetsResponse, error)
 	DeleteVoiceAsset(context.Context, *DeleteVoiceAssetRequest) (*DeleteVoiceAssetResponse, error)
 	ListPresetVoices(context.Context, *ListPresetVoicesRequest) (*ListPresetVoicesResponse, error)
+	UploadArtifact(grpc.ClientStreamingServer[UploadArtifactRequest, UploadArtifactResponse]) error
 }
 
 // UnimplementedRuntimeAiServiceServer should be embedded to have
@@ -257,6 +273,9 @@ func (UnimplementedRuntimeAiServiceServer) DeleteVoiceAsset(context.Context, *De
 }
 func (UnimplementedRuntimeAiServiceServer) ListPresetVoices(context.Context, *ListPresetVoicesRequest) (*ListPresetVoicesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListPresetVoices not implemented")
+}
+func (UnimplementedRuntimeAiServiceServer) UploadArtifact(grpc.ClientStreamingServer[UploadArtifactRequest, UploadArtifactResponse]) error {
+	return status.Error(codes.Unimplemented, "method UploadArtifact not implemented")
 }
 func (UnimplementedRuntimeAiServiceServer) testEmbeddedByValue() {}
 
@@ -480,6 +499,13 @@ func _RuntimeAiService_ListPresetVoices_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAiService_UploadArtifact_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(RuntimeAiServiceServer).UploadArtifact(&grpc.GenericServerStream[UploadArtifactRequest, UploadArtifactResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAiService_UploadArtifactServer = grpc.ClientStreamingServer[UploadArtifactRequest, UploadArtifactResponse]
+
 // RuntimeAiService_ServiceDesc is the grpc.ServiceDesc for RuntimeAiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -538,6 +564,11 @@ var RuntimeAiService_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "SubscribeScenarioJobEvents",
 			Handler:       _RuntimeAiService_SubscribeScenarioJobEvents_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "UploadArtifact",
+			Handler:       _RuntimeAiService_UploadArtifact_Handler,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "runtime/v1/ai.proto",

@@ -27,6 +27,19 @@ services:
         type: unary
       - name: ListPresetVoices
         type: unary
+      - name: UploadArtifact
+        type: client_stream
+  - name: RuntimeAiRealtimeService
+    source_rule: K-MMPROV-031
+    methods:
+      - name: OpenRealtimeSession
+        type: unary
+      - name: AppendRealtimeInput
+        type: unary
+      - name: ReadRealtimeEvents
+        type: server_stream
+      - name: CloseRealtimeSession
+        type: unary
   - name: ConnectorService
     source_rule: K-RPC-003
     methods:

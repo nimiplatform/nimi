@@ -5,6 +5,11 @@ service_mappings:
     mapping_status: renamed_service
     phase: phase1
     source_rule: K-RPC-005
+  - design_service: RuntimeAiRealtimeService
+    proto_service: RuntimeAiRealtimeService
+    mapping_status: aligned
+    phase: phase1
+    source_rule: K-RPC-005
   - design_service: ConnectorService
     proto_service: RuntimeConnectorService
     mapping_status: aligned
@@ -110,6 +115,31 @@ method_mappings:
     design_method: ListPresetVoices
     proto_service: RuntimeAiService
     proto_method: ListPresetVoices
+    mapping_status: aligned
+  - design_service: AIService
+    design_method: UploadArtifact
+    proto_service: RuntimeAiService
+    proto_method: UploadArtifact
+    mapping_status: aligned
+  - design_service: RuntimeAiRealtimeService
+    design_method: OpenRealtimeSession
+    proto_service: RuntimeAiRealtimeService
+    proto_method: OpenRealtimeSession
+    mapping_status: aligned
+  - design_service: RuntimeAiRealtimeService
+    design_method: AppendRealtimeInput
+    proto_service: RuntimeAiRealtimeService
+    proto_method: AppendRealtimeInput
+    mapping_status: aligned
+  - design_service: RuntimeAiRealtimeService
+    design_method: ReadRealtimeEvents
+    proto_service: RuntimeAiRealtimeService
+    proto_method: ReadRealtimeEvents
+    mapping_status: aligned
+  - design_service: RuntimeAiRealtimeService
+    design_method: CloseRealtimeSession
+    proto_service: RuntimeAiRealtimeService
+    proto_method: CloseRealtimeSession
     mapping_status: aligned
   - design_service: ConnectorService
     design_method: CreateConnector

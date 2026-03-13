@@ -26,8 +26,12 @@ import {
   ValidateAppAccessTokenResponse,
 } from '../generated/runtime/v1/grant';
 import {
+  AppendRealtimeInputRequest,
+  AppendRealtimeInputResponse,
   CancelScenarioJobRequest,
   CancelScenarioJobResponse,
+  CloseRealtimeSessionRequest,
+  CloseRealtimeSessionResponse,
   ExecuteScenarioRequest,
   ExecuteScenarioResponse,
   GetScenarioArtifactsRequest,
@@ -36,6 +40,10 @@ import {
   GetScenarioJobResponse,
   ListScenarioProfilesRequest,
   ListScenarioProfilesResponse,
+  OpenRealtimeSessionRequest,
+  OpenRealtimeSessionResponse,
+  ReadRealtimeEventsRequest,
+  RealtimeEvent,
   ScenarioJobEvent,
   StreamScenarioEvent,
   StreamScenarioRequest,
@@ -301,6 +309,18 @@ export const RuntimeUnaryMethodCodecs: Record<string, RuntimeUnaryMethodCodec<un
     requestType: ListPresetVoicesRequest,
     responseType: ListPresetVoicesResponse,
   },
+  [RuntimeMethodIds.aiRealtime.openRealtimeSession]: {
+    requestType: OpenRealtimeSessionRequest,
+    responseType: OpenRealtimeSessionResponse,
+  },
+  [RuntimeMethodIds.aiRealtime.appendRealtimeInput]: {
+    requestType: AppendRealtimeInputRequest,
+    responseType: AppendRealtimeInputResponse,
+  },
+  [RuntimeMethodIds.aiRealtime.closeRealtimeSession]: {
+    requestType: CloseRealtimeSessionRequest,
+    responseType: CloseRealtimeSessionResponse,
+  },
   [RuntimeMethodIds.workflow.submit]: {
     requestType: SubmitWorkflowRequest,
     responseType: SubmitWorkflowResponse,
@@ -555,6 +575,10 @@ export const RuntimeStreamMethodCodecs: Record<string, RuntimeStreamMethodCodec<
   [RuntimeMethodIds.ai.subscribeScenarioJobEvents]: {
     requestType: SubscribeScenarioJobEventsRequest,
     eventType: ScenarioJobEvent,
+  },
+  [RuntimeMethodIds.aiRealtime.readRealtimeEvents]: {
+    requestType: ReadRealtimeEventsRequest,
+    eventType: RealtimeEvent,
   },
   [RuntimeMethodIds.workflow.subscribeEvents]: {
     requestType: SubscribeWorkflowEventsRequest,

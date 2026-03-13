@@ -1211,6 +1211,76 @@ export interface ArtifactChunk {
     traceId: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.UploadArtifactMetadata
+ */
+export interface UploadArtifactMetadata {
+    /**
+     * @generated from protobuf field: string app_id = 1
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: string subject_user_id = 2
+     */
+    subjectUserId: string;
+    /**
+     * @generated from protobuf field: string mime_type = 3
+     */
+    mimeType: string;
+    /**
+     * @generated from protobuf field: string display_name = 4
+     */
+    displayName: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.UploadArtifactChunk
+ */
+export interface UploadArtifactChunk {
+    /**
+     * @generated from protobuf field: uint64 sequence = 1
+     */
+    sequence: string;
+    /**
+     * @generated from protobuf field: bytes bytes = 2
+     */
+    bytes: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.UploadArtifactRequest
+ */
+export interface UploadArtifactRequest {
+    /**
+     * @generated from protobuf oneof: payload
+     */
+    payload: {
+        oneofKind: "metadata";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.UploadArtifactMetadata metadata = 1
+         */
+        metadata: UploadArtifactMetadata;
+    } | {
+        oneofKind: "chunk";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.UploadArtifactChunk chunk = 2
+         */
+        chunk: UploadArtifactChunk;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.UploadArtifactResponse
+ */
+export interface UploadArtifactResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ScenarioArtifact artifact = 1
+     */
+    artifact?: ScenarioArtifact;
+    /**
+     * @generated from protobuf field: string trace_id = 2
+     */
+    traceId: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.OpenRealtimeSessionRequest
  */
 export interface OpenRealtimeSessionRequest {
@@ -5673,6 +5743,246 @@ class ArtifactChunk$Type extends MessageType<ArtifactChunk> {
  */
 export const ArtifactChunk = new ArtifactChunk$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class UploadArtifactMetadata$Type extends MessageType<UploadArtifactMetadata> {
+    constructor() {
+        super("nimi.runtime.v1.UploadArtifactMetadata", [
+            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<UploadArtifactMetadata>): UploadArtifactMetadata {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appId = "";
+        message.subjectUserId = "";
+        message.mimeType = "";
+        message.displayName = "";
+        if (value !== undefined)
+            reflectionMergePartial<UploadArtifactMetadata>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UploadArtifactMetadata): UploadArtifactMetadata {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string app_id */ 1:
+                    message.appId = reader.string();
+                    break;
+                case /* string subject_user_id */ 2:
+                    message.subjectUserId = reader.string();
+                    break;
+                case /* string mime_type */ 3:
+                    message.mimeType = reader.string();
+                    break;
+                case /* string display_name */ 4:
+                    message.displayName = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UploadArtifactMetadata, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string app_id = 1; */
+        if (message.appId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appId);
+        /* string subject_user_id = 2; */
+        if (message.subjectUserId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.subjectUserId);
+        /* string mime_type = 3; */
+        if (message.mimeType !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.mimeType);
+        /* string display_name = 4; */
+        if (message.displayName !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.displayName);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UploadArtifactMetadata
+ */
+export const UploadArtifactMetadata = new UploadArtifactMetadata$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UploadArtifactChunk$Type extends MessageType<UploadArtifactChunk> {
+    constructor() {
+        super("nimi.runtime.v1.UploadArtifactChunk", [
+            { no: 1, name: "sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 2, name: "bytes", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<UploadArtifactChunk>): UploadArtifactChunk {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.sequence = "0";
+        message.bytes = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<UploadArtifactChunk>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UploadArtifactChunk): UploadArtifactChunk {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* uint64 sequence */ 1:
+                    message.sequence = reader.uint64().toString();
+                    break;
+                case /* bytes bytes */ 2:
+                    message.bytes = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UploadArtifactChunk, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* uint64 sequence = 1; */
+        if (message.sequence !== "0")
+            writer.tag(1, WireType.Varint).uint64(message.sequence);
+        /* bytes bytes = 2; */
+        if (message.bytes.length)
+            writer.tag(2, WireType.LengthDelimited).bytes(message.bytes);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UploadArtifactChunk
+ */
+export const UploadArtifactChunk = new UploadArtifactChunk$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UploadArtifactRequest$Type extends MessageType<UploadArtifactRequest> {
+    constructor() {
+        super("nimi.runtime.v1.UploadArtifactRequest", [
+            { no: 1, name: "metadata", kind: "message", oneof: "payload", T: () => UploadArtifactMetadata },
+            { no: 2, name: "chunk", kind: "message", oneof: "payload", T: () => UploadArtifactChunk }
+        ]);
+    }
+    create(value?: PartialMessage<UploadArtifactRequest>): UploadArtifactRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.payload = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<UploadArtifactRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UploadArtifactRequest): UploadArtifactRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.UploadArtifactMetadata metadata */ 1:
+                    message.payload = {
+                        oneofKind: "metadata",
+                        metadata: UploadArtifactMetadata.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).metadata)
+                    };
+                    break;
+                case /* nimi.runtime.v1.UploadArtifactChunk chunk */ 2:
+                    message.payload = {
+                        oneofKind: "chunk",
+                        chunk: UploadArtifactChunk.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).chunk)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UploadArtifactRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.UploadArtifactMetadata metadata = 1; */
+        if (message.payload.oneofKind === "metadata")
+            UploadArtifactMetadata.internalBinaryWrite(message.payload.metadata, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.UploadArtifactChunk chunk = 2; */
+        if (message.payload.oneofKind === "chunk")
+            UploadArtifactChunk.internalBinaryWrite(message.payload.chunk, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UploadArtifactRequest
+ */
+export const UploadArtifactRequest = new UploadArtifactRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UploadArtifactResponse$Type extends MessageType<UploadArtifactResponse> {
+    constructor() {
+        super("nimi.runtime.v1.UploadArtifactResponse", [
+            { no: 1, name: "artifact", kind: "message", T: () => ScenarioArtifact },
+            { no: 2, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<UploadArtifactResponse>): UploadArtifactResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.traceId = "";
+        if (value !== undefined)
+            reflectionMergePartial<UploadArtifactResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UploadArtifactResponse): UploadArtifactResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ScenarioArtifact artifact */ 1:
+                    message.artifact = ScenarioArtifact.internalBinaryRead(reader, reader.uint32(), options, message.artifact);
+                    break;
+                case /* string trace_id */ 2:
+                    message.traceId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UploadArtifactResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ScenarioArtifact artifact = 1; */
+        if (message.artifact)
+            ScenarioArtifact.internalBinaryWrite(message.artifact, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string trace_id = 2; */
+        if (message.traceId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.traceId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UploadArtifactResponse
+ */
+export const UploadArtifactResponse = new UploadArtifactResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class OpenRealtimeSessionRequest$Type extends MessageType<OpenRealtimeSessionRequest> {
     constructor() {
         super("nimi.runtime.v1.OpenRealtimeSessionRequest", [
@@ -6658,7 +6968,8 @@ export const RuntimeAiService = new ServiceType("nimi.runtime.v1.RuntimeAiServic
     { name: "GetVoiceAsset", options: {}, I: GetVoiceAssetRequest, O: GetVoiceAssetResponse },
     { name: "ListVoiceAssets", options: {}, I: ListVoiceAssetsRequest, O: ListVoiceAssetsResponse },
     { name: "DeleteVoiceAsset", options: {}, I: DeleteVoiceAssetRequest, O: DeleteVoiceAssetResponse },
-    { name: "ListPresetVoices", options: {}, I: ListPresetVoicesRequest, O: ListPresetVoicesResponse }
+    { name: "ListPresetVoices", options: {}, I: ListPresetVoicesRequest, O: ListPresetVoicesResponse },
+    { name: "UploadArtifact", clientStreaming: true, options: {}, I: UploadArtifactRequest, O: UploadArtifactResponse }
 ]);
 /**
  * @generated ServiceType for protobuf service nimi.runtime.v1.RuntimeAiRealtimeService

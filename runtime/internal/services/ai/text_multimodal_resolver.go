@@ -212,9 +212,6 @@ func (s *Service) resolveTextGenerateArtifactPath(
 		if len(artifact.GetBytes()) == 0 {
 			return "", "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		if !isLocalAITextGenerateRoute(modelResolved, remoteTarget, selected) {
-			return "", "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
-		}
 		path, cleanup, err := writeTextGenerateArtifactTempFile(firstNonEmpty(ref.GetMimeType(), artifact.GetMimeType()), artifact.GetBytes())
 		if err != nil {
 			return "", "", nil, err

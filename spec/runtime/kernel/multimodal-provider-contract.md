@@ -252,4 +252,31 @@ TTS provider 纳入执行以下分层规则：
 - `AppendRealtimeInput` 负责增量输入（text/audio）
 - `ReadRealtimeEvents` 负责 text delta / audio chunk / terminal event 的 server stream
 - `CloseRealtimeSession` 负责显式结束会话
-- 若 provider 或 adapter 尚未实现 realtime，runtime 必须返回 `UNIMPLEMENTED`，不得伪造成普通 `TEXT_GENERATE` 流式响应
+- v1 provider-backed realtime 只要求 LocalAI text+audio：
+  - 输入允许 `ChatMessage(TEXT parts only)` 与 `RealtimeAudioInput`
+  - 输出允许 `RealtimeTextDelta`、`RealtimeAudioChunk`、`RealtimeCompleted`、`RealtimeFailed`
+  - 单 session 只允许一个活跃 reader；冲突 reader 必须 fail-close
+- 其他 provider 若尚未实现 realtime，runtime 必须显式返回 unsupported / unimplemented，不得伪造成普通 `TEXT_GENERATE` 流式响应
+
+## K-MMPROV-032 AI Artifact Upload Ingress
+
+大媒体 upload-first ingress 必须通过 `RuntimeAiService.UploadArtifact` 暴露，供 `artifact_ref.artifact_id` 在 `TEXT_GENERATE` 与 realtime 中复用。
+
+- RPC 形态固定为 client-stream：
+  - 首帧必须携带 `UploadArtifactMetadata`
+  - 后续帧必须携带按序 `UploadArtifactChunk`
+- v1 允许的媒体范围仅为 `image/*`、`audio/*`、`video/*`
+- 上传完成前不得被 scenario 或 realtime 消费
+- `UploadArtifact` 返回的 `artifact_id` 只能在同 app / subject 作用域内消费
+- v1 不要求 resumable / multipart lifecycle；单次 upload 完成即得 `artifact_ref.artifact_id`
+- 非法首帧、mime 或 chunk 序号必须返回 `AI_ARTIFACT_UPLOAD_INVALID`
+- 超限上传必须返回 `AI_ARTIFACT_UPLOAD_TOO_LARGE`
+
+## K-MMPROV-033 Remote OpenAI Text Multimodal Baseline
+
+远端 OpenAI text-chat multimodal provider-specific mapper 的 v1 基线固定为 `image + audio`。
+
+- `IMAGE_URL` 继续走 provider-native `image_url`
+- `AUDIO_URL` 与可解析的 `artifact_ref(audio)` 必须映射为 provider-native audio input part
+- `VIDEO_URL` 与 `artifact_ref(video)` 在远端 OpenAI 路径本轮必须 fail-close 为 `AI_MEDIA_OPTION_UNSUPPORTED`
+- generic OpenAI-compatible mapper 不得假装支持 audio/video；只有明确 provider-native `openai` mapper 才能放开 `text.generate.audio`

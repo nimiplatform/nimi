@@ -552,6 +552,10 @@ func (c *recordingRuntimeAIClient) ListPresetVoices(_ context.Context, _ *runtim
 	return &runtimev1.ListPresetVoicesResponse{}, nil
 }
 
+func (c *recordingRuntimeAIClient) UploadArtifact(_ context.Context, _ ...grpc.CallOption) (grpc.ClientStreamingClient[runtimev1.UploadArtifactRequest, runtimev1.UploadArtifactResponse], error) {
+	return nil, status.Error(codes.Unimplemented, "unimplemented")
+}
+
 func (c *recordingRuntimeAIClient) findScenarioReqByType(scenarioType runtimev1.ScenarioType) *runtimev1.SubmitScenarioJobRequest {
 	for _, req := range c.scenarioSubmitReqs {
 		if req.GetScenarioType() == scenarioType {

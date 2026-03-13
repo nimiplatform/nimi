@@ -528,6 +528,30 @@ message ArtifactChunk {
   string trace_id = 9;
 }
 
+message UploadArtifactMetadata {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string mime_type = 3;
+  string display_name = 4;
+}
+
+message UploadArtifactChunk {
+  uint64 sequence = 1;
+  bytes bytes = 2;
+}
+
+message UploadArtifactRequest {
+  oneof payload {
+    UploadArtifactMetadata metadata = 1;
+    UploadArtifactChunk chunk = 2;
+  }
+}
+
+message UploadArtifactResponse {
+  ScenarioArtifact artifact = 1;
+  string trace_id = 2;
+}
+
 message OpenRealtimeSessionRequest {
   ScenarioRequestHead head = 1;
   string system_prompt = 2;
@@ -643,6 +667,7 @@ service RuntimeAiService {
   rpc ListVoiceAssets(ListVoiceAssetsRequest) returns (ListVoiceAssetsResponse);
   rpc DeleteVoiceAsset(DeleteVoiceAssetRequest) returns (DeleteVoiceAssetResponse);
   rpc ListPresetVoices(ListPresetVoicesRequest) returns (ListPresetVoicesResponse);
+  rpc UploadArtifact(stream UploadArtifactRequest) returns (UploadArtifactResponse);
 }
 
 service RuntimeAiRealtimeService {

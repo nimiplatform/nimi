@@ -32,6 +32,7 @@ const (
 	defaultGenerateVideoTimeout = 300 * time.Second
 	defaultSynthesizeTimeout    = 45 * time.Second
 	defaultTranscribeTimeout    = 90 * time.Second
+	defaultGenerateMusicTimeout = 300 * time.Second
 )
 
 // Service implements RuntimeAiService with deterministic in-memory behavior.
@@ -46,6 +47,7 @@ type Service struct {
 	registryPath             string
 	scheduler                *scheduler.Scheduler
 	scenarioJobs             *scenarioJobStore
+	realtimeSessions         *realtimeSessionStore
 	voiceAssets              *voiceAssetStore
 	connStore                *connector.ConnectorStore
 	localModel               localModelLister
@@ -120,6 +122,7 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 		registry:                 registry,
 		scheduler:                scheduler.New(scheduler.Config{GlobalConcurrency: globalConc, PerAppConcurrency: perAppConc, StarvationThreshold: 30 * time.Second}),
 		scenarioJobs:             newScenarioJobStore(),
+		realtimeSessions:         newRealtimeSessionStore(),
 		voiceAssets:              newVoiceAssetStore(),
 		connStore:                connStore,
 		streamFirstPacketTimeout: defaultStreamFirstTimeout,

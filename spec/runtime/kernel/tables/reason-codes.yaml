@@ -203,6 +203,22 @@ codes:
     value: 414
     family: MEDIA
     source_rule: K-ERR-007
+  - name: AI_ARTIFACT_UPLOAD_INVALID
+    value: 415
+    family: MEDIA
+    source_rule: K-MMPROV-032
+  - name: AI_ARTIFACT_UPLOAD_TOO_LARGE
+    value: 416
+    family: MEDIA
+    source_rule: K-MMPROV-032
+  - name: AI_REALTIME_SESSION_NOT_FOUND
+    value: 417
+    family: MEDIA
+    source_rule: K-MMPROV-031
+  - name: AI_REALTIME_SESSION_CLOSED
+    value: 418
+    family: MEDIA
+    source_rule: K-MMPROV-031
   - name: AI_VOICE_INPUT_INVALID
     value: 420
     family: VOICE

@@ -790,6 +790,10 @@ func (f *fakeRuntimeAIClient) ListPresetVoices(context.Context, *runtimev1.ListP
 	return nil, status.Error(12, "unimplemented")
 }
 
+func (f *fakeRuntimeAIClient) UploadArtifact(context.Context, ...grpc.CallOption) (grpc.ClientStreamingClient[runtimev1.UploadArtifactRequest, runtimev1.UploadArtifactResponse], error) {
+	return nil, status.Error(12, "unimplemented")
+}
+
 func longWorkflowDefinition(nodes int) *runtimev1.WorkflowDefinition {
 	definition := &runtimev1.WorkflowDefinition{
 		WorkflowType: "long.pipeline",

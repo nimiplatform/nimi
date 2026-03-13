@@ -39,6 +39,10 @@
 | `AI_MEDIA_JOB_NOT_FOUND` | `NOT_FOUND` | `media_control` | `grpc_status` | `K-JOB-001` |
 | `AI_MEDIA_JOB_NOT_CANCELLABLE` | `FAILED_PRECONDITION` | `cancel_media_job` | `grpc_status` | `K-JOB-001` |
 | `AI_MEDIA_IDEMPOTENCY_CONFLICT` | `ALREADY_EXISTS` | `submit_media_job` | `grpc_status` | `K-ERR-007` |
+| `AI_ARTIFACT_UPLOAD_INVALID` | `INVALID_ARGUMENT` | `ai_artifact_upload` | `grpc_status` | `K-MMPROV-032` |
+| `AI_ARTIFACT_UPLOAD_TOO_LARGE` | `INVALID_ARGUMENT` | `ai_artifact_upload` | `grpc_status` | `K-MMPROV-032` |
+| `AI_REALTIME_SESSION_NOT_FOUND` | `NOT_FOUND` | `ai_realtime_session` | `grpc_status` | `K-MMPROV-031` |
+| `AI_REALTIME_SESSION_CLOSED` | `FAILED_PRECONDITION` | `ai_realtime_session` | `grpc_status` | `K-MMPROV-031` |
 | `AI_VOICE_INPUT_INVALID` | `INVALID_ARGUMENT` | `submit_voice_job` | `grpc_status` | `K-VOICE-010` |
 | `AI_VOICE_WORKFLOW_UNSUPPORTED` | `FAILED_PRECONDITION` | `submit_voice_job` | `grpc_status` | `K-VOICE-010` |
 | `AI_VOICE_ASSET_NOT_FOUND` | `NOT_FOUND` | `voice_asset_query_or_delete` | `grpc_status` | `K-VOICE-010` |

@@ -24,8 +24,12 @@ import type {
   ValidateAppAccessTokenResponse,
 } from './generated/runtime/v1/grant';
 import type {
+  AppendRealtimeInputRequest,
+  AppendRealtimeInputResponse,
   CancelScenarioJobRequest,
   CancelScenarioJobResponse,
+  CloseRealtimeSessionRequest,
+  CloseRealtimeSessionResponse,
   ExecuteScenarioRequest,
   ExecuteScenarioResponse,
   GetScenarioArtifactsRequest,
@@ -34,6 +38,10 @@ import type {
   GetScenarioJobResponse,
   ListScenarioProfilesRequest,
   ListScenarioProfilesResponse,
+  OpenRealtimeSessionRequest,
+  OpenRealtimeSessionResponse,
+  ReadRealtimeEventsRequest,
+  RealtimeEvent,
   ScenarioJobEvent,
   StreamScenarioEvent,
   StreamScenarioRequest,
@@ -235,6 +243,16 @@ export type RuntimeAiClient = {
   listVoiceAssets(request: ListVoiceAssetsRequest, options?: RuntimeCallOptions): Promise<ListVoiceAssetsResponse>;
   deleteVoiceAsset(request: DeleteVoiceAssetRequest, options?: RuntimeCallOptions): Promise<DeleteVoiceAssetResponse>;
   listPresetVoices(request: ListPresetVoicesRequest, options?: RuntimeCallOptions): Promise<ListPresetVoicesResponse>;
+  openRealtimeSession(request: OpenRealtimeSessionRequest, options?: RuntimeCallOptions): Promise<OpenRealtimeSessionResponse>;
+  appendRealtimeInput(request: AppendRealtimeInputRequest, options?: RuntimeCallOptions): Promise<AppendRealtimeInputResponse>;
+  readRealtimeEvents(
+    request: ReadRealtimeEventsRequest,
+    options?: RuntimeStreamCallOptions,
+  ): Promise<AsyncIterable<RealtimeEvent>>;
+  closeRealtimeSession(
+    request: CloseRealtimeSessionRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<CloseRealtimeSessionResponse>;
 };
 
 export type RuntimeWorkflowClient = {

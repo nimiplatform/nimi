@@ -16,8 +16,12 @@ import type {
   TextStreamOutput,
 } from './types-media.js';
 import type {
+  AppendRealtimeInputRequest,
+  AppendRealtimeInputResponse,
   CancelScenarioJobRequest,
   CancelScenarioJobResponse,
+  CloseRealtimeSessionRequest,
+  CloseRealtimeSessionResponse,
   ExecuteScenarioRequest,
   ExecuteScenarioResponse,
   GetScenarioArtifactsRequest,
@@ -26,12 +30,17 @@ import type {
   GetScenarioJobResponse,
   ListScenarioProfilesRequest,
   ListScenarioProfilesResponse,
+  OpenRealtimeSessionRequest,
+  OpenRealtimeSessionResponse,
+  ReadRealtimeEventsRequest,
+  RealtimeEvent,
   ScenarioJobEvent,
   StreamScenarioEvent,
   StreamScenarioRequest,
   SubmitScenarioJobRequest,
   SubmitScenarioJobResponse,
   SubscribeScenarioJobEventsRequest,
+  UploadArtifactResponse,
 } from './generated/runtime/v1/ai';
 import type {
   DeleteVoiceAssetRequest,
@@ -96,6 +105,20 @@ export type RuntimeAiSubmitScenarioJobRequestInput =
     head: Omit<NonNullable<SubmitScenarioJobRequest['head']>, 'subjectUserId'> & { subjectUserId?: string };
   };
 
+export type RuntimeAiOpenRealtimeSessionRequestInput =
+  Omit<OpenRealtimeSessionRequest, 'head'>
+  & {
+    head: Omit<NonNullable<OpenRealtimeSessionRequest['head']>, 'subjectUserId'> & { subjectUserId?: string };
+  };
+
+export type RuntimeAiUploadArtifactInput = {
+  subjectUserId?: string;
+  mimeType: string;
+  bytes: Uint8Array;
+  displayName?: string;
+  chunkSize?: number;
+};
+
 export type RuntimeAiModule = {
   executeScenario(
     request: RuntimeAiExecuteScenarioRequestInput,
@@ -133,6 +156,23 @@ export type RuntimeAiModule = {
   listVoiceAssets(request: ListVoiceAssetsRequest, options?: RuntimeCallOptions): Promise<ListVoiceAssetsResponse>;
   deleteVoiceAsset(request: DeleteVoiceAssetRequest, options?: RuntimeCallOptions): Promise<DeleteVoiceAssetResponse>;
   listPresetVoices(request: ListPresetVoicesRequest, options?: RuntimeCallOptions): Promise<ListPresetVoicesResponse>;
+  uploadArtifact(input: RuntimeAiUploadArtifactInput, options?: RuntimeCallOptions): Promise<UploadArtifactResponse>;
+  openRealtimeSession(
+    request: RuntimeAiOpenRealtimeSessionRequestInput,
+    options?: RuntimeCallOptions,
+  ): Promise<OpenRealtimeSessionResponse>;
+  appendRealtimeInput(
+    request: AppendRealtimeInputRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<AppendRealtimeInputResponse>;
+  readRealtimeEvents(
+    request: ReadRealtimeEventsRequest,
+    options?: RuntimeStreamCallOptions,
+  ): Promise<AsyncIterable<RealtimeEvent>>;
+  closeRealtimeSession(
+    request: CloseRealtimeSessionRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<CloseRealtimeSessionResponse>;
   text: {
     generate(input: TextGenerateInput): Promise<TextGenerateOutput>;
     stream(input: TextStreamInput): Promise<TextStreamOutput>;

@@ -14,6 +14,9 @@ import type { OpenRealtimeSessionRequest } from "./ai";
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { RuntimeAiService } from "./ai";
+import type { UploadArtifactResponse } from "./ai";
+import type { UploadArtifactRequest } from "./ai";
+import type { ClientStreamingCall } from "@protobuf-ts/runtime-rpc";
 import type { ListPresetVoicesResponse } from "./voice";
 import type { ListPresetVoicesRequest } from "./voice";
 import type { DeleteVoiceAssetResponse } from "./voice";
@@ -99,6 +102,10 @@ export interface IRuntimeAiServiceClient {
      * @generated from protobuf rpc: ListPresetVoices
      */
     listPresetVoices(input: ListPresetVoicesRequest, options?: RpcOptions): UnaryCall<ListPresetVoicesRequest, ListPresetVoicesResponse>;
+    /**
+     * @generated from protobuf rpc: UploadArtifact
+     */
+    uploadArtifact(options?: RpcOptions): ClientStreamingCall<UploadArtifactRequest, UploadArtifactResponse>;
 }
 // Removed messages: ListTokenProviderModelsRequest (fields 1-5),
 // TokenProviderModelDescriptor (fields 1-3), ListTokenProviderModelsResponse (fields 1-4),
@@ -197,6 +204,13 @@ export class RuntimeAiServiceClient implements IRuntimeAiServiceClient, ServiceI
     listPresetVoices(input: ListPresetVoicesRequest, options?: RpcOptions): UnaryCall<ListPresetVoicesRequest, ListPresetVoicesResponse> {
         const method = this.methods[11], opt = this._transport.mergeOptions(options);
         return stackIntercept<ListPresetVoicesRequest, ListPresetVoicesResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: UploadArtifact
+     */
+    uploadArtifact(options?: RpcOptions): ClientStreamingCall<UploadArtifactRequest, UploadArtifactResponse> {
+        const method = this.methods[12], opt = this._transport.mergeOptions(options);
+        return stackIntercept<UploadArtifactRequest, UploadArtifactResponse>("clientStreaming", this._transport, method, opt);
     }
 }
 /**

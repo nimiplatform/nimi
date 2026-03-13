@@ -1,7 +1,11 @@
 package nimillm
 
 import (
+	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -103,6 +107,24 @@ func TestHasUnsupportedOpenAITextChatParts(t *testing.T) {
 		}
 		if hasUnsupportedOpenAITextChatParts(input) {
 			t.Fatal("expected image_url to remain supported")
+		}
+	})
+
+	t.Run("audio parts are allowed for provider-native openai path", func(t *testing.T) {
+		input := []*runtimev1.ChatMessage{
+			{
+				Role: "user",
+				Parts: []*runtimev1.ChatContentPart{
+					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "transcribe"},
+					{
+						Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL,
+						AudioUrl: "https://example.com/sample.wav",
+					},
+				},
+			},
+		}
+		if hasUnsupportedOpenAITextChatParts(input) {
+			t.Fatal("expected audio_url to remain supported for provider-native openai path")
 		}
 	})
 
@@ -500,5 +522,99 @@ func TestGenerateTextRejectsUnsupportedOpenAITextChatParts(t *testing.T) {
 	_, _, _, err := backend.GenerateText(t.Context(), "openai/gpt-4o", input, "", 0, 0, 0)
 	if err == nil {
 		t.Fatal("expected unsupported video input to reject before provider call")
+	}
+}
+
+func TestGenerateTextOpenAIProviderNativeAudioRequest(t *testing.T) {
+	audioFile, err := os.CreateTemp(t.TempDir(), "openai-audio-*.wav")
+	if err != nil {
+		t.Fatalf("create temp audio: %v", err)
+	}
+	if _, err := audioFile.Write([]byte("RIFFdemo")); err != nil {
+		t.Fatalf("write temp audio: %v", err)
+	}
+	if err := audioFile.Close(); err != nil {
+		t.Fatalf("close temp audio: %v", err)
+	}
+
+	var captured map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/chat/completions" {
+			http.NotFound(w, r)
+			return
+		}
+		captured = decodeJSONBodyForBackendMediaTest(t, r)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"heard it"},"finish_reason":"stop"}],"usage":{"prompt_tokens":4,"completion_tokens":2}}`))
+	}))
+	defer server.Close()
+
+	backend := NewBackend("cloud-openai", server.URL, "", 0)
+	if backend == nil {
+		t.Fatal("expected backend")
+	}
+	text, _, _, err := backend.GenerateText(context.Background(), "gpt-4o-audio-preview", []*runtimev1.ChatMessage{
+		{
+			Role: "user",
+			Parts: []*runtimev1.ChatContentPart{
+				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "transcribe this"},
+				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL, AudioUrl: audioFile.Name()},
+			},
+		},
+	}, "", 0, 0, 0)
+	if err != nil {
+		t.Fatalf("generate text: %v", err)
+	}
+	if text != "heard it" {
+		t.Fatalf("unexpected text output: %q", text)
+	}
+
+	messages, ok := captured["messages"].([]any)
+	if !ok || len(messages) != 1 {
+		t.Fatalf("expected single captured message, got=%T len=%d", captured["messages"], len(messages))
+	}
+	message, ok := messages[0].(map[string]any)
+	if !ok {
+		t.Fatalf("expected message object, got %T", messages[0])
+	}
+	content, ok := message["content"].([]any)
+	if !ok || len(content) != 2 {
+		t.Fatalf("expected text+audio content array, got=%T len=%d", message["content"], len(content))
+	}
+	audioPart, ok := content[1].(map[string]any)
+	if !ok {
+		t.Fatalf("expected audio part object, got %T", content[1])
+	}
+	if audioPart["type"] != "input_audio" {
+		t.Fatalf("expected input_audio type, got %v", audioPart["type"])
+	}
+	audioPayload, ok := audioPart["input_audio"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected input_audio payload, got %T", audioPart["input_audio"])
+	}
+	if audioPayload["format"] != "wav" {
+		t.Fatalf("expected wav format, got %v", audioPayload["format"])
+	}
+	if audioPayload["data"] == "" {
+		t.Fatal("expected base64 audio payload")
+	}
+}
+
+func TestGenerateTextGenericOpenAICompatibleRejectsAudioPart(t *testing.T) {
+	backend := NewBackend("cloud-generic", "https://example.com", "", 0)
+	if backend == nil {
+		t.Fatal("expected backend")
+	}
+	_, _, _, err := backend.GenerateText(context.Background(), "generic-model", []*runtimev1.ChatMessage{
+		{
+			Role: "user",
+			Parts: []*runtimev1.ChatContentPart{
+				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "transcribe"},
+				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL, AudioUrl: "https://example.com/sample.wav"},
+			},
+		},
+	}, "", 0, 0, 0)
+	if err == nil {
+		t.Fatal("expected generic openai-compatible path to reject audio")
 	}
 }

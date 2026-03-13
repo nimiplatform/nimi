@@ -177,6 +177,26 @@ mappings:
     surface: submit_media_job
     exit_shape: grpc_status
     source_rule: K-ERR-007
+  - reason_code: AI_ARTIFACT_UPLOAD_INVALID
+    grpc_code: INVALID_ARGUMENT
+    surface: ai_artifact_upload
+    exit_shape: grpc_status
+    source_rule: K-MMPROV-032
+  - reason_code: AI_ARTIFACT_UPLOAD_TOO_LARGE
+    grpc_code: INVALID_ARGUMENT
+    surface: ai_artifact_upload
+    exit_shape: grpc_status
+    source_rule: K-MMPROV-032
+  - reason_code: AI_REALTIME_SESSION_NOT_FOUND
+    grpc_code: NOT_FOUND
+    surface: ai_realtime_session
+    exit_shape: grpc_status
+    source_rule: K-MMPROV-031
+  - reason_code: AI_REALTIME_SESSION_CLOSED
+    grpc_code: FAILED_PRECONDITION
+    surface: ai_realtime_session
+    exit_shape: grpc_status
+    source_rule: K-MMPROV-031
   - reason_code: AI_VOICE_INPUT_INVALID
     grpc_code: INVALID_ARGUMENT
     surface: submit_voice_job

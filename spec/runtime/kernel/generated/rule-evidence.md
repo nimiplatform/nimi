@@ -296,6 +296,8 @@
 | `K-MMPROV-029` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
 | `K-MMPROV-030` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
 | `K-MMPROV-031` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
+| `K-MMPROV-032` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
+| `K-MMPROV-033` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
 | `K-MODEL-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
 | `K-MODEL-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
 | `K-MODEL-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |

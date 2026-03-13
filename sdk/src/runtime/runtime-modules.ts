@@ -5,6 +5,7 @@ import {
   runtimeStreamText,
   runtimeGenerateEmbedding,
 } from './runtime-ai-text.js';
+import { runtimeUploadArtifact } from './runtime-ai-upload.js';
 import {
   runtimeSubmitScenarioJobForMedia,
   runtimeGetScenarioJobForMedia,
@@ -26,8 +27,10 @@ import { runtimeAiRequestRequiresSubject } from './runtime-guards.js';
 import type {
   RuntimeAiModule,
   RuntimeAiExecuteScenarioRequestInput,
+  RuntimeAiOpenRealtimeSessionRequestInput,
   RuntimeAiStreamScenarioRequestInput,
   RuntimeAiSubmitScenarioJobRequestInput,
+  RuntimeAiUploadArtifactInput,
   RuntimeAppAuthClient,
   RuntimeAuditClient,
   RuntimeAuthClient,
@@ -385,6 +388,29 @@ export function createAiModule(
     ),
     listPresetVoices: async (request, optionsValue) => invokeWithClient(
       async (client) => client.ai.listPresetVoices(request, optionsValue),
+    ),
+    uploadArtifact: async (uploadInput, optionsValue) => runtimeUploadArtifact(
+      ctx,
+      uploadInput as RuntimeAiUploadArtifactInput,
+      optionsValue,
+    ),
+    openRealtimeSession: async (request, optionsValue) => {
+      const normalizedRequest = await withScenarioHeadSubjectUserId(
+        request as RuntimeAiOpenRealtimeSessionRequestInput,
+        optionsValue,
+      );
+      return invokeWithClient(
+        async (client) => client.ai.openRealtimeSession(normalizedRequest, optionsValue),
+      );
+    },
+    appendRealtimeInput: async (request, optionsValue) => invokeWithClient(
+      async (client) => client.ai.appendRealtimeInput(request, optionsValue),
+    ),
+    readRealtimeEvents: async (request, optionsValue) => invokeWithClient(
+      async (client) => client.ai.readRealtimeEvents(request, optionsValue),
+    ),
+    closeRealtimeSession: async (request, optionsValue) => invokeWithClient(
+      async (client) => client.ai.closeRealtimeSession(request, optionsValue),
     ),
     text: {
       generate: async (textInput) => runtimeGenerateText(ctx, textInput),

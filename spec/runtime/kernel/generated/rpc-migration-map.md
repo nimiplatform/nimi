@@ -7,6 +7,7 @@
 | Design Service | Proto Service | Status | Phase | Source |
 |---|---|---|---|---|
 | `AIService` | `RuntimeAiService` | `renamed_service` | `phase1` | `K-RPC-005` |
+| `RuntimeAiRealtimeService` | `RuntimeAiRealtimeService` | `aligned` | `phase1` | `K-RPC-005` |
 | `ConnectorService` | `RuntimeConnectorService` | `aligned` | `phase1` | `K-RPC-005` |
 | `RuntimeLocalService` | `RuntimeLocalService` | `aligned` | `phase1` | `K-RPC-004` |
 | `RuntimeAuthService` | `RuntimeAuthService` | `aligned` | `phase1` | `K-AUTHSVC-002` |
@@ -33,6 +34,11 @@
 | `AIService` | `ListVoiceAssets` | `RuntimeAiService` | `ListVoiceAssets` | `aligned` |
 | `AIService` | `DeleteVoiceAsset` | `RuntimeAiService` | `DeleteVoiceAsset` | `aligned` |
 | `AIService` | `ListPresetVoices` | `RuntimeAiService` | `ListPresetVoices` | `aligned` |
+| `AIService` | `UploadArtifact` | `RuntimeAiService` | `UploadArtifact` | `aligned` |
+| `RuntimeAiRealtimeService` | `OpenRealtimeSession` | `RuntimeAiRealtimeService` | `OpenRealtimeSession` | `aligned` |
+| `RuntimeAiRealtimeService` | `AppendRealtimeInput` | `RuntimeAiRealtimeService` | `AppendRealtimeInput` | `aligned` |
+| `RuntimeAiRealtimeService` | `ReadRealtimeEvents` | `RuntimeAiRealtimeService` | `ReadRealtimeEvents` | `aligned` |
+| `RuntimeAiRealtimeService` | `CloseRealtimeSession` | `RuntimeAiRealtimeService` | `CloseRealtimeSession` | `aligned` |
 | `ConnectorService` | `CreateConnector` | `RuntimeConnectorService` | `CreateConnector` | `aligned` |
 | `ConnectorService` | `GetConnector` | `RuntimeConnectorService` | `GetConnector` | `aligned` |
 | `ConnectorService` | `ListConnectors` | `RuntimeConnectorService` | `ListConnectors` | `aligned` |
