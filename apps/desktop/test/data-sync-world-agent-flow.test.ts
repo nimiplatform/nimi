@@ -41,6 +41,17 @@ describe('D-DSYNC-005: world flow source scanning', () => {
       'loadWorldEvents must be exported from world-flow',
     );
   });
+
+  test('D-DSYNC-005: loadWorldEvents uses the public WorldsService endpoint', () => {
+    assert.ok(
+      worldFlowSource.includes('realm.services.WorldsService.worldControllerGetWorldEvents'),
+      'loadWorldEvents must use the public WorldsService world events endpoint',
+    );
+    assert.ok(
+      !worldFlowSource.includes('realm.services.WorldControlService.worldControlControllerListWorldEvents'),
+      'loadWorldEvents must not depend on the maintainer-only WorldControlService endpoint',
+    );
+  });
 });
 
 describe('D-DSYNC-011: agent ownership flow source scanning', () => {

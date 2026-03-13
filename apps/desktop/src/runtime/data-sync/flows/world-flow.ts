@@ -182,7 +182,7 @@ export async function loadWorldEvents(
   }
   try {
     const payload = await callApi(
-      (realm) => realm.services.WorldControlService.worldControlControllerListWorldEvents(normalizedWorldId),
+      (realm) => realm.services.WorldsService.worldControllerGetWorldEvents(normalizedWorldId),
       'Failed to load world events',
     );
     const record = toRecord(payload);

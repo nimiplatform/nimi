@@ -5084,6 +5084,24 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false
   },
+  "WorldsService.worldControllerGetWorldEvents": {
+    "operationId": "WorldController_getWorldEvents",
+    "method": "GET",
+    "path": "/api/world/by-id/{id}/events",
+    "service": "WorldsService",
+    "methodName": "worldControllerGetWorldEvents",
+    "tag": "Worlds",
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false
+  },
   "WorldsService.worldControllerGetWorldLevelAudits": {
     "operationId": "WorldController_getWorldLevelAudits",
     "method": "GET",
@@ -5595,6 +5613,7 @@ export const REALM_SERVICE_METHODS = {
     "worldControllerGetWorld": "WorldsService.worldControllerGetWorld",
     "worldControllerGetWorldAgents": "WorldsService.worldControllerGetWorldAgents",
     "worldControllerGetWorldDetailWithAgents": "WorldsService.worldControllerGetWorldDetailWithAgents",
+    "worldControllerGetWorldEvents": "WorldsService.worldControllerGetWorldEvents",
     "worldControllerGetWorldLevelAudits": "WorldsService.worldControllerGetWorldLevelAudits",
     "worldControllerGetWorldview": "WorldsService.worldControllerGetWorldview",
     "worldControllerGetWorldviewEvents": "WorldsService.worldControllerGetWorldviewEvents",

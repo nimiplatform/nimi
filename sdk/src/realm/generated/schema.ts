@@ -2825,6 +2825,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/world/by-id/{id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List public world events */
+        get: operations["WorldController_getWorldEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/world/by-id/{id}/level/audits": {
         parameters: {
             query?: never;
