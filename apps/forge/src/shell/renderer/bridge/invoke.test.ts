@@ -25,11 +25,12 @@ describe('BridgeError', () => {
 
 describe('invoke', () => {
   const mockTauriInvoke = vi.fn<(cmd: string, payload?: unknown) => Promise<unknown>>();
+  const tauriWindow = window as unknown as Record<string, unknown>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset window.__TAURI__ between tests
-    (window as Record<string, unknown>).__TAURI__ = undefined;
+    tauriWindow.__TAURI__ = undefined;
   });
 
   it('throws BridgeError when hasTauriInvoke returns false', async () => {
@@ -45,7 +46,7 @@ describe('invoke', () => {
     mockHasTauriInvoke.mockReturnValue(true);
     mockTauriInvoke.mockResolvedValue({ success: true });
 
-    (window as Record<string, unknown>).__TAURI__ = {
+    tauriWindow.__TAURI__ = {
       core: { invoke: mockTauriInvoke },
     };
 
@@ -59,7 +60,7 @@ describe('invoke', () => {
     mockHasTauriInvoke.mockReturnValue(true);
     mockTauriInvoke.mockRejectedValue(new Error('network timeout'));
 
-    (window as Record<string, unknown>).__TAURI__ = {
+    tauriWindow.__TAURI__ = {
       core: { invoke: mockTauriInvoke },
     };
 
@@ -78,7 +79,7 @@ describe('invoke', () => {
     mockHasTauriInvoke.mockReturnValue(true);
     mockTauriInvoke.mockRejectedValue('string rejection');
 
-    (window as Record<string, unknown>).__TAURI__ = {
+    tauriWindow.__TAURI__ = {
       core: { invoke: mockTauriInvoke },
     };
 
@@ -96,23 +97,24 @@ describe('invoke', () => {
 
 describe('invokeChecked', () => {
   const mockTauriInvoke = vi.fn<(cmd: string, payload?: unknown) => Promise<unknown>>();
+  const tauriWindow = window as unknown as Record<string, unknown>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (window as Record<string, unknown>).__TAURI__ = undefined;
+    tauriWindow.__TAURI__ = undefined;
   });
 
   it('calls parseResult on the invoke result', async () => {
     mockHasTauriInvoke.mockReturnValue(true);
     mockTauriInvoke.mockResolvedValue({ value: 123 });
 
-    (window as Record<string, unknown>).__TAURI__ = {
+    tauriWindow.__TAURI__ = {
       core: { invoke: mockTauriInvoke },
     };
 
     const parseResult = vi.fn((raw: unknown) => {
-      const record = raw as Record<string, number>;
-      return record.value * 2;
+      const record = raw as { value?: number };
+      return (record.value ?? 0) * 2;
     });
 
     const result = await invokeChecked('compute', { input: 'x' }, parseResult);

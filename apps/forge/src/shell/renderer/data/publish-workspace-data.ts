@@ -223,7 +223,7 @@ export function createPublishDraft(
     media: Array.isArray(payload.media)
       ? payload.media
           .map((item) => ({
-            assetId: String(item.assetId || item.id || '').trim(),
+            assetId: String(item.assetId || '').trim(),
             type: parseMediaType(item.type),
           }))
           .filter((item) => Boolean(item.assetId))

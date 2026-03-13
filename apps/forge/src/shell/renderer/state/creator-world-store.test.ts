@@ -7,8 +7,18 @@ const mockDefaultSnapshot = {
   sourceRef: '',
   selectedStartTimeId: '',
   selectedCharacters: [],
-  panel: { activePanel: 'source' },
-  parseJob: { status: 'idle', chunks: [], errors: [] },
+  panel: { searchText: '', selectedWorldId: '', selectedDraftId: '', activeMaintainTab: 'WORLD' },
+  parseJob: {
+    phase: 'idle',
+    chunkTotal: 0,
+    chunkProcessed: 0,
+    chunkCompleted: 0,
+    chunkFailed: 0,
+    progress: 0,
+    etaSeconds: null,
+    startedAt: null,
+    updatedAt: null,
+  },
   knowledgeGraph: { events: { primary: [], secondary: [] }, characters: [], locations: [] },
   worldPatch: {},
   worldviewPatch: {},
@@ -16,7 +26,7 @@ const mockDefaultSnapshot = {
   lorebooksDraft: [],
   phase1Artifact: null,
   assets: {
-    worldCover: { status: 'idle', url: '' },
+    worldCover: { status: 'idle', imageUrl: null },
     characterPortraits: {},
     locationImages: {},
   },
@@ -50,13 +60,13 @@ vi.mock('@world-engine/state/workspace/normalize.js', () => ({
   syncSnapshot: vi.fn((s: unknown) => s),
 }));
 
-const mockLoadLocalStorageJson = vi.fn(() => null);
-const mockSaveLocalStorageJson = vi.fn();
+const mockLoadLocalStorageJson = vi.fn<(...args: unknown[]) => unknown>(() => null);
+const mockSaveLocalStorageJson = vi.fn<(...args: unknown[]) => void>();
 
 vi.mock('@nimiplatform/sdk/mod', () => ({
   asRecord: (v: unknown) => (v && typeof v === 'object' ? v : {}),
-  loadLocalStorageJson: (...args: unknown[]) => mockLoadLocalStorageJson(...args),
-  saveLocalStorageJson: (...args: unknown[]) => mockSaveLocalStorageJson(...args),
+  loadLocalStorageJson: (...args: unknown[]) => mockLoadLocalStorageJson(...(args as [unknown?, unknown?, unknown?])),
+  saveLocalStorageJson: (...args: unknown[]) => mockSaveLocalStorageJson(...(args as [unknown?, unknown?])),
 }));
 
 const { useCreatorWorldStore } = await import('./creator-world-store.js');
@@ -106,19 +116,19 @@ describe('creator-world-store', () => {
 
     it('deep merges panel', () => {
       useCreatorWorldStore.setState({
-        snapshot: { ...freshSnapshot(), panel: { activePanel: 'source', extra: 'keep' } as never },
+        snapshot: { ...freshSnapshot(), panel: { activeMaintainTab: 'WORLD', extra: 'keep' } as never },
       });
-      useCreatorWorldStore.getState().patchSnapshot({ panel: { activePanel: 'events' } } as never);
+      useCreatorWorldStore.getState().patchSnapshot({ panel: { activeMaintainTab: 'EVENTS' } } as never);
       const panel = useCreatorWorldStore.getState().snapshot.panel;
-      expect(panel.activePanel).toBe('events');
+      expect(panel.activeMaintainTab).toBe('EVENTS');
       expect((panel as Record<string, unknown>).extra).toBe('keep');
     });
 
     it('deep merges parseJob', () => {
-      useCreatorWorldStore.getState().patchSnapshot({ parseJob: { status: 'running' } } as never);
+      useCreatorWorldStore.getState().patchSnapshot({ parseJob: { phase: 'extract' } } as never);
       const parseJob = useCreatorWorldStore.getState().snapshot.parseJob;
-      expect(parseJob.status).toBe('running');
-      expect(parseJob.chunks).toEqual([]);
+      expect(parseJob.phase).toBe('extract');
+      expect(parseJob.chunkTotal).toBe(0);
     });
 
     it('deep merges knowledgeGraph events', () => {
@@ -214,10 +224,11 @@ describe('creator-world-store', () => {
         },
       } as never);
       const drafts = useCreatorWorldStore.getState().snapshot.agentSync.draftsByCharacter;
-      expect(drafts.Alice).toBeDefined();
-      expect(drafts.Alice.handle).toBe('alice_handle');
-      expect(drafts.Alice.concept).toBe('hero');
-      expect(drafts.Alice.characterName).toBe('Alice');
+      const alice = drafts.Alice;
+      expect(alice).toBeDefined();
+      expect(alice?.handle).toBe('alice_handle');
+      expect(alice?.concept).toBe('hero');
+      expect(alice?.characterName).toBe('Alice');
     });
 
     it('deep merges eventGraphLayout', () => {
@@ -310,17 +321,17 @@ describe('creator-world-store', () => {
 
   describe('patchPanel', () => {
     it('shallow merges panel', () => {
-      useCreatorWorldStore.getState().patchPanel({ activePanel: 'events' } as never);
-      expect(useCreatorWorldStore.getState().snapshot.panel.activePanel).toBe('events');
+      useCreatorWorldStore.getState().patchPanel({ activeMaintainTab: 'EVENTS' } as never);
+      expect(useCreatorWorldStore.getState().snapshot.panel.activeMaintainTab).toBe('EVENTS');
     });
 
     it('preserves existing panel fields', () => {
       useCreatorWorldStore.setState({
-        snapshot: { ...freshSnapshot(), panel: { activePanel: 'source', tab: 'info' } as never },
+        snapshot: { ...freshSnapshot(), panel: { activeMaintainTab: 'WORLD', tab: 'info' } as never },
       });
-      useCreatorWorldStore.getState().patchPanel({ activePanel: 'characters' } as never);
+      useCreatorWorldStore.getState().patchPanel({ activeMaintainTab: 'LOREBOOKS' } as never);
       const panel = useCreatorWorldStore.getState().snapshot.panel as Record<string, unknown>;
-      expect(panel.activePanel).toBe('characters');
+      expect(panel.activeMaintainTab).toBe('LOREBOOKS');
       expect(panel.tab).toBe('info');
     });
   });
@@ -365,7 +376,8 @@ describe('creator-world-store', () => {
       });
       useCreatorWorldStore.getState().persistForUser('user-1');
       expect(mockSaveLocalStorageJson).toHaveBeenCalled();
-      const [key] = mockSaveLocalStorageJson.mock.calls[0];
+      const firstCall = mockSaveLocalStorageJson.mock.calls[0] || [];
+      const [key] = firstCall;
       expect(key).toContain('user-1');
     });
 

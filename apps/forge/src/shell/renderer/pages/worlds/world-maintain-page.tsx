@@ -14,6 +14,13 @@ import type {
   EventNodeDraft,
   WorldLorebookDraftRow,
 } from '@world-engine/contracts.js';
+import type {
+  WorldStudioActionsSlice,
+  WorldStudioLayoutSlice,
+  WorldStudioMainSlice,
+  WorldStudioStatusSlice,
+  WorldStudioWorkflowSlice,
+} from '@world-engine/controllers/world-studio-screen-model.js';
 import { useCreatorWorldStore } from '@renderer/state/creator-world-store.js';
 import {
   useWorldResourceQueries,
@@ -22,7 +29,7 @@ import {
 import { useWorldMutations } from '@renderer/hooks/use-world-mutations.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 
-type MaintainTab = 'WORLD' | 'WORLDVIEW' | 'EVENTS' | 'LOREBOOKS' | 'MUTATIONS';
+type MaintainTab = 'WORLD' | 'WORLDVIEW' | 'EVENTS' | 'LOREBOOKS';
 
 export default function WorldMaintainPage() {
   const { t } = useTranslation();
@@ -149,20 +156,6 @@ export default function WorldMaintainPage() {
     }
   }, [worldId, snapshot.eventsDraft, mutations.syncEventsMutation, queryClient, eventSyncMode]);
 
-  const onDeleteFirstEvent = useCallback(async () => {
-    if (!worldId) return;
-    const first = snapshot.eventsDraft.primary[0] || snapshot.eventsDraft.secondary[0];
-    if (!first) return;
-    const eventId = (first as unknown as Record<string, unknown>).id;
-    if (!eventId || typeof eventId !== 'string') return;
-    try {
-      await mutations.deleteEventMutation.mutateAsync({ worldId, eventId });
-      await queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'events', worldId] });
-    } catch (err) {
-      setError(`Failed to delete event: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }, [worldId, snapshot.eventsDraft, mutations.deleteEventMutation, queryClient]);
-
   const onSyncLorebooks = useCallback(async () => {
     if (!worldId) return;
     try {
@@ -179,26 +172,195 @@ export default function WorldMaintainPage() {
     }
   }, [worldId, snapshot.lorebooksDraft, mutations.syncLorebooksMutation, queryClient]);
 
-  const onDeleteFirstLorebook = useCallback(async () => {
-    if (!worldId) return;
-    const first = snapshot.lorebooksDraft[0];
-    if (!first) return;
-    const lorebookId = (first as unknown as Record<string, unknown>).id;
-    if (!lorebookId || typeof lorebookId !== 'string') return;
-    try {
-      await mutations.deleteLorebookMutation.mutateAsync({ worldId, lorebookId });
-      await queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'lorebooks', worldId] });
-    } catch (err) {
-      setError(`Failed to delete lorebook: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }, [worldId, snapshot.lorebooksDraft, mutations.deleteLorebookMutation, queryClient]);
-
   // Derived
   const working = mutations.saveMaintenanceMutation.isPending
     || mutations.syncEventsMutation.isPending
     || mutations.syncLorebooksMutation.isPending;
 
   const mutationsList: WorldMutationSummary[] = mutationsQuery.data || [];
+  const dirtyLabels = Object.entries(snapshot.unsavedChangesByPanel)
+    .filter(([, dirty]) => dirty)
+    .map(([key]) => key);
+
+  const layout: WorldStudioLayoutSlice = {
+    title: 'Forge World Maintenance',
+    subtitle: 'Maintain the selected world',
+    currentObjectLabel: worldId || 'World',
+    dirtySummary: {
+      hasDirty: dirtyLabels.length > 0,
+      count: dirtyLabels.length,
+      labels: dirtyLabels,
+      shortLabel: dirtyLabels.length > 0 ? `${dirtyLabels.length} dirty` : 'Saved',
+    },
+    settingsDrawerOpen: false,
+    setSettingsDrawerOpen: () => undefined,
+    toggleSettingsDrawer: () => undefined,
+  };
+
+  const workflow: WorldStudioWorkflowSlice = {
+    landing: { target: 'MAINTAIN', worldId: worldId || null, reason: null },
+    landingTarget: 'MAINTAIN',
+    worlds: [],
+    drafts: [],
+    primaryWorld: null,
+    latestDraft: null,
+    selectedWorldId: worldId,
+    selectedDraftId: '',
+    createDisplayStage: 'IMPORT',
+    createStageAccess: {
+      IMPORT: { enabled: true, reason: null },
+      CURATE: { enabled: true, reason: null },
+      GENERATE: { enabled: true, reason: null },
+      REVIEW: { enabled: true, reason: null },
+    },
+    maintainSection: activeTab,
+  };
+
+  const main: WorldStudioMainSlice = {
+    snapshot,
+    phase1: null,
+    phase2: null,
+    sourceMode: 'TEXT',
+    sourceEncoding: 'utf-8',
+    filePreviewText: '',
+    retryWithFineRoute: false,
+    retryScope: 'all',
+    retryConcurrency: 1,
+    retryErrorCode: null,
+    routeOptions: null,
+    eventSyncMode,
+    selectedAgentSyncCharacters: snapshot.agentSync.selectedCharacterIds,
+    eventsGraph: snapshot.eventsDraft,
+    timeFlowRatio: '',
+    currentTimeNode: '',
+    importSubview: 'PREPARE',
+    reviewSubview: 'EDIT',
+    working,
+  };
+
+  const status: WorldStudioStatusSlice = {
+    landingLoading: false,
+    activeTask: snapshot.taskState.activeTask,
+    recentTasks: snapshot.taskState.recentTasks,
+    expertMode: snapshot.taskState.expertMode,
+    notice,
+    error,
+    conflictReloadSummary: null,
+    hasMaintenanceConflict: false,
+    maintenanceEditorSnapshotVersion: snapshot.editorSnapshotVersion,
+    mutations: mutationsList,
+    storyProjectionCount: 0,
+    storyProjectionMissingContextCount: 0,
+    storyProjectionLatestAt: '',
+    primaryEventCount: snapshot.eventsDraft.primary.length,
+    secondaryEventCount: snapshot.eventsDraft.secondary.length,
+    missingPrimaryEvidenceCount: 0,
+    eventCharacterCoverage: 0,
+    eventLocationCoverage: 0,
+    terminalChunkSuccess: 0,
+    terminalChunkTotal: 0,
+    terminalChunkFailed: 0,
+    terminalTopFailure: null,
+  };
+
+  const actions: WorldStudioActionsSlice = {
+    workflow: {
+      loadLanding: async () => undefined,
+      openMaintenance: () => undefined,
+      openCreate: () => undefined,
+      selectCreateDisplayStage: () => undefined,
+      selectMaintainSection: onTabChange,
+      refreshWorkspace: async () => undefined,
+    },
+    source: {
+      onSourceTextChange: () => undefined,
+      onSourceRefChange: () => undefined,
+      onSourceEncodingChange: () => undefined,
+      onSelectSourceFile: async () => undefined,
+      startExtraction: async () => undefined,
+      retryFailed: async () => undefined,
+      retryFailedByErrorCode: async () => undefined,
+      clearRetryErrorCode: () => undefined,
+      setRetryWithFineRoute: () => undefined,
+      setRetryScope: () => undefined,
+      setRetryConcurrency: () => undefined,
+    },
+    curate: {
+      onSelectStartTimeId: () => undefined,
+      onToggleCharacter: () => undefined,
+      onEventsGraphChange: () => undefined,
+      onEventGraphLayoutChange: () => undefined,
+      refreshQualityGate: () => undefined,
+      continueToGenerate: async () => undefined,
+    },
+    generate: {
+      onTimeFlowRatioChange: () => undefined,
+      onCurrentTimeNodeChange: () => undefined,
+      onFutureEventsTextChange: () => undefined,
+      onGenerateWorldCover: async () => undefined,
+      onGenerateCharacterPortrait: async () => undefined,
+      onToggleAgentSyncCharacter: () => undefined,
+      onAgentDraftChange: () => undefined,
+      runPhase2: async () => undefined,
+    },
+    review: {
+      onWorldPatchChange,
+      onWorldviewPatchChange,
+      onEventsChange,
+      onLorebooksChange,
+      onEventGraphLayoutChange,
+      saveDraft: async () => undefined,
+      publishDraft: async () => undefined,
+      backToEdit: () => undefined,
+    },
+    maintain: {
+      onWorldPatchChange,
+      onWorldviewPatchChange,
+      onEventsChange,
+      onLorebooksChange,
+      onEventGraphLayoutChange,
+      onEventSyncModeChange: setEventSyncMode,
+      saveMaintenance: async () => {
+        await mutations.saveMaintenanceMutation.mutateAsync({
+          worldId,
+          worldPatch: snapshot.worldPatch,
+          worldviewPatch: snapshot.worldviewPatch,
+          reason: 'Forge manual save',
+          ifSnapshotVersion: snapshot.editorSnapshotVersion || undefined,
+        });
+      },
+      syncEvents: async () => {
+        await onSyncEvents();
+      },
+      syncLorebooks: async () => {
+        await onSyncLorebooks();
+      },
+      refreshResources: async () => {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'maintenance', worldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'events', worldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'lorebooks', worldId] }),
+        ]);
+      },
+      reloadRemote: async () => {
+        await queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'maintenance', worldId] });
+      },
+      adoptRemoteSnapshot: () => undefined,
+    },
+    routing: {
+      onRouteSourceChange: () => undefined,
+      onRouteConnectorChange: () => undefined,
+      onRouteModelChange: () => undefined,
+      onClearRouteBinding: () => undefined,
+      onRebuildEmbeddingIndex: async () => undefined,
+      onSetExpertMode: (value) => patchSnapshot({ taskState: { expertMode: value } }),
+    },
+    task: {
+      pauseTask: () => false,
+      resumeTask: async () => false,
+      cancelTask: () => false,
+    },
+  };
 
   const loading = maintenanceQuery.isLoading || eventsQuery.isLoading || lorebooksQuery.isLoading;
 
@@ -267,27 +429,11 @@ export default function WorldMaintainPage() {
       {/* Workbench */}
       <div className="min-h-0 flex-1">
         <MaintainWorkbench
-          activeTab={activeTab}
-          onTabChange={onTabChange}
-          worldPatch={snapshot.worldPatch}
-          worldviewPatch={snapshot.worldviewPatch}
-          events={snapshot.eventsDraft}
-          eventsSyncMode={eventSyncMode}
-          editorSnapshotVersion={snapshot.editorSnapshotVersion}
-          eventGraphLayout={snapshot.eventGraphLayout}
-          lorebooksDraft={snapshot.lorebooksDraft}
-          mutations={mutationsList}
-          working={working}
-          onWorldPatchChange={onWorldPatchChange}
-          onWorldviewPatchChange={onWorldviewPatchChange}
-          onEventsChange={onEventsChange}
-          onEventGraphLayoutChange={onEventGraphLayoutChange}
-          onEventsSyncModeChange={setEventSyncMode}
-          onLorebooksChange={onLorebooksChange}
-          onSyncEvents={onSyncEvents}
-          onDeleteFirstEvent={onDeleteFirstEvent}
-          onSyncLorebooks={onSyncLorebooks}
-          onDeleteFirstLorebook={onDeleteFirstLorebook}
+          layout={layout}
+          workflow={workflow}
+          main={main}
+          status={status}
+          actions={actions}
         />
       </div>
     </div>

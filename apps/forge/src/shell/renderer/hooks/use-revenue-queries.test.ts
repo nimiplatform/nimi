@@ -150,8 +150,9 @@ describe('useSparkHistoryQuery', () => {
     const { result } = renderHook(() => useSparkHistoryQuery(true), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toHaveLength(1);
-    expect(result.current.data![0].id).toBe('h3');
+    const data = result.current.data ?? [];
+    expect(data).toHaveLength(1);
+    expect(data[0]?.id).toBe('h3');
   });
 });
 

@@ -271,10 +271,11 @@ describe('publish-workspace-data', () => {
       const d3 = mod.createPublishDraft({ title: 'Third' });
       const list = mod.listPublishDrafts();
       expect(list).toHaveLength(3);
+      const [first, second, third] = list;
       // Most recent first (createPublishDraft sets updatedAt = now, so d3 is newest)
-      expect(list[0].id).toBe(d3.id);
-      expect(list[1].id).toBe(d2.id);
-      expect(list[2].id).toBe(d1.id);
+      expect(first?.id).toBe(d3.id);
+      expect(second?.id).toBe(d2.id);
+      expect(third?.id).toBe(d1.id);
     });
 
     it('returns all drafts when status is undefined', () => {
@@ -296,7 +297,7 @@ describe('publish-workspace-data', () => {
 
       const draftsOnly = mod.listPublishDrafts('DRAFT');
       expect(draftsOnly).toHaveLength(1);
-      expect(draftsOnly[0].id).toBe(d2.id);
+      expect(draftsOnly[0]?.id).toBe(d2.id);
     });
 
     it('filters by PUBLISHED status', () => {
@@ -306,8 +307,8 @@ describe('publish-workspace-data', () => {
 
       const published = mod.listPublishDrafts('PUBLISHED');
       expect(published).toHaveLength(1);
-      expect(published[0].id).toBe(d1.id);
-      expect(published[0].status).toBe('PUBLISHED');
+      expect(published[0]?.id).toBe(d1.id);
+      expect(published[0]?.status).toBe('PUBLISHED');
     });
   });
 
@@ -432,7 +433,7 @@ describe('publish-workspace-data', () => {
       mod.deletePublishDraft(d2.id);
       const remaining = mod.listPublishDrafts();
       expect(remaining).toHaveLength(1);
-      expect(remaining[0].id).toBe(d1.id);
+      expect(remaining[0]?.id).toBe(d1.id);
     });
 
     it('getPublishDraft returns null after deletion', () => {
@@ -501,7 +502,7 @@ describe('publish-workspace-data', () => {
       const draft = mod.createPublishDraft({ title: 'Deliveries' });
       const deliveries = mod.listPublishDeliveries(draft.id);
       expect(deliveries).toHaveLength(1);
-      expect(deliveries[0].channelId).toBe('INTERNAL_FEED');
+      expect(deliveries[0]?.channelId).toBe('INTERNAL_FEED');
     });
 
     it('returns rows for all enabled channels', () => {
@@ -528,18 +529,18 @@ describe('publish-workspace-data', () => {
     it('delivery status is DRAFT for unpublished drafts', () => {
       const draft = mod.createPublishDraft({ title: 'Draft status' });
       const deliveries = mod.listPublishDeliveries(draft.id);
-      expect(deliveries[0].status).toBe('DRAFT');
-      expect(deliveries[0].publishedPostId).toBeNull();
-      expect(deliveries[0].publishedAt).toBeNull();
+      expect(deliveries[0]?.status).toBe('DRAFT');
+      expect(deliveries[0]?.publishedPostId).toBeNull();
+      expect(deliveries[0]?.publishedAt).toBeNull();
     });
 
     it('delivery status is PUBLISHED for published drafts', () => {
       const draft = mod.createPublishDraft({ title: 'Published status' });
       mod.markPublishDraftPublished(draft.id, 'post-99');
       const deliveries = mod.listPublishDeliveries(draft.id);
-      expect(deliveries[0].status).toBe('PUBLISHED');
-      expect(deliveries[0].publishedPostId).toBe('post-99');
-      expect(deliveries[0].publishedAt).toBeTruthy();
+      expect(deliveries[0]?.status).toBe('PUBLISHED');
+      expect(deliveries[0]?.publishedPostId).toBe('post-99');
+      expect(deliveries[0]?.publishedAt).toBeTruthy();
     });
   });
 
@@ -565,8 +566,8 @@ describe('publish-workspace-data', () => {
       storage.set('nimi:forge:publish-workspace', '<<garbage>>');
       const channels = mod.listPublishChannels();
       expect(channels).toHaveLength(2);
-      expect(channels[0].enabled).toBe(true);
-      expect(channels[1].enabled).toBe(false);
+      expect(channels[0]?.enabled).toBe(true);
+      expect(channels[1]?.enabled).toBe(false);
     });
 
     it('recovers after corrupted state is overwritten by a write', () => {
@@ -608,7 +609,7 @@ describe('publish-workspace-data', () => {
       );
       const drafts = mod.listPublishDrafts();
       expect(drafts).toHaveLength(1);
-      expect(drafts[0].id).toBe('valid-1');
+      expect(drafts[0]?.id).toBe('valid-1');
     });
   });
 });

@@ -11,6 +11,13 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { CreateWorkbench } from '@world-engine/ui/create/create-workbench.js';
 import type { Phase1Result, Phase2Result } from '@world-engine/generation/pipeline.js';
+import type {
+  WorldStudioActionsSlice,
+  WorldStudioMainSlice,
+  WorldStudioRoutingSlice,
+  WorldStudioStatusSlice,
+  WorldStudioWorkflowSlice,
+} from '@world-engine/controllers/world-studio-screen-model.js';
 import {
   runPhase1ExtractionFromChunks,
   runPhase2DraftGeneration,
@@ -114,6 +121,30 @@ function resolveGeneratedImageUrl(artifacts: Array<{ url?: string; uri?: string;
   return '';
 }
 
+function toCreateDisplayStage(step: WorldStudioCreateStep): WorldStudioWorkflowSlice['createDisplayStage'] {
+  if (step === 'CHECKPOINTS') return 'CURATE';
+  if (step === 'SYNTHESIZE') return 'GENERATE';
+  if (step === 'DRAFT' || step === 'PUBLISH') return 'REVIEW';
+  return 'IMPORT';
+}
+
+function toImportSubview(step: WorldStudioCreateStep): WorldStudioMainSlice['importSubview'] {
+  if (step === 'SOURCE') return 'PREPARE';
+  if (step === 'INGEST' || step === 'EXTRACT') return 'RUNNING';
+  return 'RESULT';
+}
+
+function toReviewSubview(step: WorldStudioCreateStep): WorldStudioMainSlice['reviewSubview'] {
+  return step === 'PUBLISH' ? 'PUBLISH_REVIEW' : 'EDIT';
+}
+
+function toDraftStatus(step: WorldStudioCreateStep): 'DRAFT' | 'SYNTHESIZE' | 'REVIEW' | 'PUBLISH' | 'FAILED' {
+  if (step === 'SYNTHESIZE') return 'SYNTHESIZE';
+  if (step === 'DRAFT') return 'REVIEW';
+  if (step === 'PUBLISH') return 'PUBLISH';
+  return 'DRAFT';
+}
+
 export default function WorldCreatePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -181,6 +212,7 @@ export default function WorldCreatePage() {
   // Local UI state
   const [phase1, setPhase1] = useState<Phase1Result | null>(null);
   const [phase2, setPhase2] = useState<Phase2Result | null>(null);
+  const [activeDraftId, setActiveDraftId] = useState(resumeDraftId);
   const [sourceMode, setSourceMode] = useState<'TEXT' | 'FILE'>('TEXT');
   const [sourceEncoding, setSourceEncoding] = useState<'utf-8' | 'gb18030' | 'utf-16le'>('utf-8');
   const [filePreviewText, setFilePreviewText] = useState('');
@@ -750,6 +782,257 @@ export default function WorldCreatePage() {
     : snapshot.selectedCharacters;
   const timeFlowRatio = String((snapshot.worldPatch as Record<string, unknown>).timeFlowRatio || '1');
   const currentTimeNode = String((snapshot.worldviewPatch as Record<string, unknown>).currentTimeNode || '');
+  const createDisplayStage = toCreateDisplayStage(snapshot.createStep);
+  const importSubview = toImportSubview(snapshot.createStep);
+  const reviewSubview = toReviewSubview(snapshot.createStep);
+
+  const persistDraft = useCallback(async () => {
+    const result = await mutations.saveDraftMutation.mutateAsync({
+      draftId: activeDraftId || undefined,
+      sourceType: sourceMode,
+      sourceRef: snapshot.sourceRef || '',
+      status: toDraftStatus(snapshot.createStep),
+      pipelineState: {
+        createStep: snapshot.createStep,
+        parseJob: snapshot.parseJob,
+        phase1Artifact: snapshot.phase1Artifact,
+      },
+      draftPayload: {
+        sourceText: snapshot.sourceText,
+        sourceRef: snapshot.sourceRef,
+        worldPatch: snapshot.worldPatch,
+        worldviewPatch: snapshot.worldviewPatch,
+        eventsDraft: snapshot.eventsDraft,
+        lorebooksDraft: snapshot.lorebooksDraft,
+        futureEventsText: snapshot.futureEventsText,
+        selectedStartTimeId: snapshot.selectedStartTimeId,
+        selectedCharacters: snapshot.selectedCharacters,
+      },
+    });
+    const record = result && typeof result === 'object' ? (result as Record<string, unknown>) : {};
+    const draftId = String(record.id || activeDraftId || '').trim();
+    if (draftId) {
+      setActiveDraftId(draftId);
+    }
+    return draftId;
+  }, [activeDraftId, mutations.saveDraftMutation, snapshot, sourceMode]);
+
+  const publishDraft = useCallback(async () => {
+    const draftId = (await persistDraft()) || activeDraftId;
+    if (!draftId) {
+      throw new Error('Draft id is required before publishing.');
+    }
+    await mutations.publishDraftMutation.mutateAsync({
+      draftId,
+      reason: 'Forge manual publish',
+    });
+    setNotice('Draft published.');
+  }, [activeDraftId, mutations.publishDraftMutation, persistDraft]);
+
+  const workflow: WorldStudioWorkflowSlice = {
+    landing: { target: 'CREATE', worldId: null, reason: null },
+    landingTarget: 'CREATE',
+    worlds: [],
+    drafts: [],
+    primaryWorld: null,
+    latestDraft: null,
+    selectedWorldId: '',
+    selectedDraftId: activeDraftId,
+    createDisplayStage,
+    createStageAccess: {
+      IMPORT: { enabled: true, reason: null },
+      CURATE: { enabled: true, reason: null },
+      GENERATE: { enabled: true, reason: null },
+      REVIEW: { enabled: true, reason: null },
+    },
+    maintainSection: 'WORLD',
+  };
+
+  const main: WorldStudioMainSlice = {
+    snapshot,
+    phase1,
+    phase2,
+    sourceMode,
+    sourceEncoding,
+    filePreviewText,
+    retryWithFineRoute,
+    retryScope,
+    retryConcurrency,
+    retryErrorCode,
+    routeOptions: null,
+    eventSyncMode: 'merge',
+    selectedAgentSyncCharacters,
+    eventsGraph: snapshot.eventsDraft,
+    timeFlowRatio,
+    currentTimeNode,
+    importSubview,
+    reviewSubview,
+    working,
+  };
+
+  const routing: WorldStudioRoutingSlice = {
+    activeCoarseRouteSource: 'local',
+    activeCoarseRouteConnectorId: '',
+    activeFineRouteSource: 'local',
+    activeFineRouteConnectorId: '',
+    effectiveCoarseRouteBinding: null,
+    effectiveFineRouteBinding: null,
+    coarseRouteModelOptions: [],
+    fineRouteModelOptions: [],
+    routeConnectors: [],
+    routeConfigReady: true,
+    routeConfigReasonCode: '',
+    routeConfigActionHint: 'none',
+    coarseRouteReadiness: { ready: true, reasonCode: '', actionHint: 'none', message: '' },
+    fineRouteReadiness: { ready: true, reasonCode: '', actionHint: 'none', message: '' },
+    embeddingReadiness: { healthy: true, reasonCode: '', actionHint: 'none', message: '' },
+    embeddingIndexStatus: 'idle',
+    embeddingEntryCount: 0,
+    embeddingIndexLastBuiltAt: null,
+    embeddingIndexErrorMessage: null,
+    effectiveCoarseRouteSummary: '',
+    effectiveFineRouteSummary: '',
+  };
+
+  const status: WorldStudioStatusSlice = {
+    landingLoading: false,
+    activeTask: snapshot.taskState.activeTask,
+    recentTasks: snapshot.taskState.recentTasks,
+    expertMode: snapshot.taskState.expertMode,
+    notice,
+    error: null,
+    conflictReloadSummary: null,
+    hasMaintenanceConflict: false,
+    maintenanceEditorSnapshotVersion: snapshot.editorSnapshotVersion,
+    mutations: [],
+    storyProjectionCount: Array.isArray(phase2?.worldEvents) ? phase2.worldEvents.length : 0,
+    storyProjectionMissingContextCount: 0,
+    storyProjectionLatestAt: '',
+    primaryEventCount: snapshot.eventsDraft.primary.length,
+    secondaryEventCount: snapshot.eventsDraft.secondary.length,
+    missingPrimaryEvidenceCount: 0,
+    eventCharacterCoverage: snapshot.selectedCharacters.length,
+    eventLocationCoverage: 0,
+    terminalChunkSuccess: snapshot.parseJob.chunkCompleted,
+    terminalChunkTotal: snapshot.parseJob.chunkTotal,
+    terminalChunkFailed: snapshot.parseJob.chunkFailed,
+    terminalTopFailure: null,
+  };
+
+  const actions: WorldStudioActionsSlice = {
+    workflow: {
+      loadLanding: async () => undefined,
+      openMaintenance: () => undefined,
+      openCreate: (draftId) => {
+        setActiveDraftId(draftId || '');
+      },
+      selectCreateDisplayStage: (stage) => {
+        if (stage === 'IMPORT') {
+          onStepChange('SOURCE');
+          return;
+        }
+        if (stage === 'CURATE') {
+          onStepChange('CHECKPOINTS');
+          return;
+        }
+        if (stage === 'GENERATE') {
+          onStepChange('SYNTHESIZE');
+          return;
+        }
+        onStepChange('DRAFT');
+      },
+      selectMaintainSection: () => undefined,
+      refreshWorkspace: async () => undefined,
+      openRuntimeSetup: () => navigate('/runtime'),
+    },
+    source: {
+      onSourceTextChange,
+      onSourceRefChange,
+      onSourceEncodingChange,
+      onSelectSourceFile: async (file) => {
+        onSelectSourceFile(file);
+      },
+      startExtraction: async () => {
+        onRunPhase1();
+      },
+      retryFailed: async () => {
+        onRunFailedChunks();
+      },
+      retryFailedByErrorCode: async (errorCode) => {
+        onRunFailedChunksByErrorCode(errorCode);
+      },
+      clearRetryErrorCode: () => setRetryErrorCode(null),
+      setRetryWithFineRoute,
+      setRetryScope,
+      setRetryConcurrency,
+    },
+    curate: {
+      onSelectStartTimeId,
+      onToggleCharacter,
+      onEventsGraphChange,
+      onEventGraphLayoutChange,
+      refreshQualityGate: onRefreshQualityGate,
+      continueToGenerate: async () => {
+        onRunPhase2();
+      },
+    },
+    generate: {
+      onTimeFlowRatioChange,
+      onCurrentTimeNodeChange,
+      onFutureEventsTextChange,
+      onGenerateWorldCover: async () => {
+        onGenerateWorldCover();
+      },
+      onGenerateCharacterPortrait: async (name) => {
+        onGenerateCharacterPortrait(name);
+      },
+      onToggleAgentSyncCharacter,
+      onAgentDraftChange,
+      runPhase2: async () => {
+        onRunPhase2();
+      },
+    },
+    review: {
+      onWorldPatchChange,
+      onWorldviewPatchChange,
+      onEventsChange: onEventsGraphChange,
+      onLorebooksChange,
+      onEventGraphLayoutChange,
+      saveDraft: async () => {
+        await persistDraft();
+        setNotice('Draft saved.');
+      },
+      publishDraft,
+      backToEdit: () => onStepChange('DRAFT'),
+    },
+    maintain: {
+      onWorldPatchChange,
+      onWorldviewPatchChange,
+      onEventsChange: onEventsGraphChange,
+      onLorebooksChange,
+      onEventGraphLayoutChange,
+      onEventSyncModeChange: async () => undefined,
+      saveMaintenance: async () => undefined,
+      syncEvents: async () => undefined,
+      syncLorebooks: async () => undefined,
+      refreshResources: async () => undefined,
+      reloadRemote: async () => undefined,
+      adoptRemoteSnapshot: () => undefined,
+    },
+    routing: {
+      onRouteSourceChange: () => undefined,
+      onRouteConnectorChange: () => undefined,
+      onRouteModelChange: () => undefined,
+      onClearRouteBinding: () => undefined,
+      onRebuildEmbeddingIndex: async () => undefined,
+      onSetExpertMode: (value) => patchSnapshot({ taskState: { expertMode: value } }),
+    },
+    task: {
+      pauseTask: () => false,
+      resumeTask: async () => false,
+      cancelTask: () => false,
+    },
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -781,65 +1064,11 @@ export default function WorldCreatePage() {
       {/* Workbench */}
       <div className="min-h-0 flex-1">
         <CreateWorkbench
-          step={snapshot.createStep}
-          onStepChange={onStepChange}
-          sourceText={snapshot.sourceText || ''}
-          sourceRef={snapshot.sourceRef || ''}
-          sourceMode={sourceMode}
-          sourceEncoding={sourceEncoding}
-          filePreviewText={filePreviewText}
-          parseJob={snapshot.parseJob}
-          chunkTasks={snapshot.phase1Artifact?.chunkTasks || []}
-          phase1={phase1}
-          qualityGate={phase1?.qualityGate || null}
-          phase2={phase2}
-          knowledgeGraph={snapshot.knowledgeGraph}
-          assets={snapshot.assets}
-          selectedStartTimeId={snapshot.selectedStartTimeId || ''}
-          selectedCharacters={snapshot.selectedCharacters}
-          selectedAgentSyncCharacters={selectedAgentSyncCharacters}
-          agentDraftsByCharacter={snapshot.agentSync.draftsByCharacter}
-          worldPatch={snapshot.worldPatch}
-          worldviewPatch={snapshot.worldviewPatch}
-          events={snapshot.eventsDraft}
-          eventGraphLayout={snapshot.eventGraphLayout}
-          lorebooksDraft={snapshot.lorebooksDraft}
-          futureEventsText={snapshot.futureEventsText || ''}
-          expertMode={snapshot.taskState.expertMode}
-          timeFlowRatio={timeFlowRatio}
-          currentTimeNode={currentTimeNode}
-          working={working}
-          onSourceTextChange={onSourceTextChange}
-          onSourceRefChange={onSourceRefChange}
-          onSourceEncodingChange={onSourceEncodingChange}
-          onSelectSourceFile={onSelectSourceFile}
-          onSelectStartTimeId={onSelectStartTimeId}
-          onToggleCharacter={onToggleCharacter}
-          onToggleAgentSyncCharacter={onToggleAgentSyncCharacter}
-          onTimeFlowRatioChange={onTimeFlowRatioChange}
-          onCurrentTimeNodeChange={onCurrentTimeNodeChange}
-          onFutureEventsTextChange={onFutureEventsTextChange}
-          onGenerateWorldCover={onGenerateWorldCover}
-          onGenerateCharacterPortrait={onGenerateCharacterPortrait}
-          onWorldPatchChange={onWorldPatchChange}
-          onWorldviewPatchChange={onWorldviewPatchChange}
-          onAgentDraftChange={onAgentDraftChange}
-          onEventsGraphChange={onEventsGraphChange}
-          onEventGraphLayoutChange={onEventGraphLayoutChange}
-          onLorebooksChange={onLorebooksChange}
-          onRunPhase1={onRunPhase1}
-          onRunFailedChunks={onRunFailedChunks}
-          onRunFailedChunksByErrorCode={onRunFailedChunksByErrorCode}
-          retryWithFineRoute={retryWithFineRoute}
-          onRetryWithFineRouteChange={setRetryWithFineRoute}
-          retryScope={retryScope}
-          onRetryScopeChange={setRetryScope}
-          retryConcurrency={retryConcurrency}
-          onRetryConcurrencyChange={setRetryConcurrency}
-          retryErrorCode={retryErrorCode}
-          onClearRetryErrorCode={() => setRetryErrorCode(null)}
-          onRefreshQualityGate={onRefreshQualityGate}
-          onRunPhase2={onRunPhase2}
+          workflow={workflow}
+          main={main}
+          routing={routing}
+          status={status}
+          actions={actions}
         />
       </div>
     </div>

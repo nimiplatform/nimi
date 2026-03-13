@@ -89,8 +89,9 @@ describe('useAgentListQuery', () => {
     const { result } = renderHook(() => useAgentListQuery(true), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toHaveLength(1);
-    expect(result.current.data![0].id).toBe('a2');
+    const data = result.current.data ?? [];
+    expect(data).toHaveLength(1);
+    expect(data[0]?.id).toBe('a2');
   });
 });
 
@@ -191,7 +192,8 @@ describe('useCreatorKeysQuery', () => {
     const { result } = renderHook(() => useCreatorKeysQuery(true), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toHaveLength(1);
-    expect(result.current.data![0].keyPreview).toBe('sk_****xyz');
+    const data = result.current.data ?? [];
+    expect(data).toHaveLength(1);
+    expect(data[0]?.keyPreview).toBe('sk_****xyz');
   });
 });
