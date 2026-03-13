@@ -9,7 +9,7 @@ const resources = {
 };
 
 export async function initI18n(language?: string): Promise<void> {
-  const detectedLanguage = language || navigator.language?.startsWith('zh') ? 'zh' : 'en';
+  const detectedLanguage = language || (navigator.language?.startsWith('zh') ? 'zh' : 'en');
   await i18n
     .use(initReactI18next)
     .init({

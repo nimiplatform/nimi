@@ -153,6 +153,7 @@ function AgentCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
   const ownerBadge = agent.ownershipType === 'WORLD_OWNED'
     ? 'bg-blue-500/20 text-blue-400'
     : 'bg-purple-500/20 text-purple-400';
@@ -183,14 +184,14 @@ function AgentCard({
               {agent.displayName || agent.handle}
             </p>
             <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${ownerBadge}`}>
-              {agent.ownershipType === 'WORLD_OWNED' ? 'WORLD' : 'MASTER'}
+              {agent.ownershipType === 'WORLD_OWNED' ? t('agents.badgeWorld', 'WORLD') : t('agents.badgeMaster', 'MASTER')}
             </span>
             <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${statusColors[agent.status] || 'bg-neutral-700 text-neutral-300'}`}>
               {agent.status}
             </span>
           </div>
           <p className="text-xs text-neutral-500 truncate">
-            @{agent.handle} · {agent.concept || 'No concept'} · {formatDate(agent.updatedAt)}
+            @{agent.handle} · {agent.concept || t('agents.noConcept', 'No concept')} · {formatDate(agent.updatedAt)}
           </p>
         </div>
       </div>
@@ -199,16 +200,16 @@ function AgentCard({
           onClick={onEdit}
           className="rounded px-3 py-1 text-xs font-medium text-neutral-300 hover:bg-neutral-800 transition-colors"
         >
-          Edit
+          {t('agents.edit', 'Edit')}
         </button>
         <button
           onClick={(e) => {
             e.stopPropagation();
-            if (confirm('Delete this agent?')) void onDelete();
+            if (confirm(t('agents.confirmDelete', 'Delete this agent?'))) void onDelete();
           }}
           className="rounded px-3 py-1 text-xs font-medium text-red-400/70 hover:bg-red-500/10 hover:text-red-400 transition-colors"
         >
-          Delete
+          {t('agents.delete', 'Delete')}
         </button>
       </div>
     </div>
@@ -235,38 +236,38 @@ function CreateAgentForm({
       <h3 className="text-sm font-semibold text-white">{t('agents.createNew', 'Create Agent')}</h3>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs text-neutral-400 mb-1">Handle *</label>
+          <label className="block text-xs text-neutral-400 mb-1">{t('agents.handleLabel', 'Handle *')}</label>
           <input
             type="text"
             value={handle}
             onChange={(e) => setHandle(e.target.value)}
-            placeholder="my-agent"
+            placeholder={t('agents.handlePlaceholder', 'my-agent')}
             className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none"
           />
         </div>
         <div>
-          <label className="block text-xs text-neutral-400 mb-1">Display Name</label>
+          <label className="block text-xs text-neutral-400 mb-1">{t('agents.displayNameLabel', 'Display Name')}</label>
           <input
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="My Agent"
+            placeholder={t('agents.displayNamePlaceholder', 'My Agent')}
             className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none"
           />
         </div>
       </div>
       <div>
-        <label className="block text-xs text-neutral-400 mb-1">Concept *</label>
+        <label className="block text-xs text-neutral-400 mb-1">{t('agents.conceptLabel', 'Concept *')}</label>
         <textarea
           value={concept}
           onChange={(e) => setConcept(e.target.value)}
-          placeholder="A brief description of this agent's personality and purpose..."
+          placeholder={t('agents.conceptPlaceholder', "A brief description of this agent's personality and purpose...")}
           rows={3}
           className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none resize-none"
         />
       </div>
       <div>
-        <label className="block text-xs text-neutral-400 mb-1">Ownership</label>
+        <label className="block text-xs text-neutral-400 mb-1">{t('agents.ownershipLabel', 'Ownership')}</label>
         <div className="flex gap-2">
           {(['MASTER_OWNED', 'WORLD_OWNED'] as const).map((type) => (
             <button
@@ -276,7 +277,7 @@ function CreateAgentForm({
                 ownershipType === type ? 'bg-white text-black' : 'bg-neutral-800 text-neutral-400 hover:text-white'
               }`}
             >
-              {type === 'MASTER_OWNED' ? 'Master' : 'World'}
+              {type === 'MASTER_OWNED' ? t('agents.ownerMaster', 'Master') : t('agents.ownerWorld', 'World')}
             </button>
           ))}
         </div>
@@ -286,7 +287,7 @@ function CreateAgentForm({
           onClick={onCancel}
           className="rounded px-4 py-1.5 text-sm text-neutral-400 hover:text-white transition-colors"
         >
-          Cancel
+          {t('agents.cancel', 'Cancel')}
         </button>
         <button
           onClick={() => {
@@ -301,7 +302,7 @@ function CreateAgentForm({
           disabled={creating || !handle.trim() || !concept.trim()}
           className="rounded-lg bg-white px-4 py-1.5 text-sm font-medium text-black hover:bg-neutral-200 disabled:opacity-50 transition-colors"
         >
-          {creating ? 'Creating...' : 'Create'}
+          {creating ? t('agents.creating', 'Creating...') : t('agents.create', 'Create')}
         </button>
       </div>
     </div>

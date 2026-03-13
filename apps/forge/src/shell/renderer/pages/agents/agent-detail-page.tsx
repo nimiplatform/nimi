@@ -49,7 +49,7 @@ export default function AgentDetailPage() {
   if (!agentId) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-neutral-400">No agent ID provided</p>
+        <p className="text-neutral-400">{t('agentDetail.noAgentId', 'No agent ID provided')}</p>
       </div>
     );
   }
@@ -65,7 +65,7 @@ export default function AgentDetailPage() {
   if (!agent) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-neutral-400">Agent not found</p>
+        <p className="text-neutral-400">{t('agentDetail.notFound', 'Agent not found')}</p>
       </div>
     );
   }
@@ -208,12 +208,12 @@ function ProfileTab({
     <div className="space-y-6">
       {/* Status bar */}
       <div className="flex items-center gap-3 text-xs text-neutral-500">
-        <span>Status: <strong className="text-neutral-300">{agent.status}</strong></span>
-        <span>State: <strong className="text-neutral-300">{agent.state}</strong></span>
-        <span>Ownership: <strong className="text-neutral-300">{agent.ownershipType === 'WORLD_OWNED' ? 'World' : 'Master'}</strong></span>
-        {agent.worldId && <span>World: <strong className="text-neutral-300">{agent.worldId}</strong></span>}
-        <span>Created: {formatDate(agent.createdAt)}</span>
-        <span>Updated: {formatDate(agent.updatedAt)}</span>
+        <span>{t('agentDetail.statusLabel', 'Status:')} <strong className="text-neutral-300">{agent.status}</strong></span>
+        <span>{t('agentDetail.stateLabel', 'State:')} <strong className="text-neutral-300">{agent.state}</strong></span>
+        <span>{t('agentDetail.ownershipLabel', 'Ownership:')} <strong className="text-neutral-300">{agent.ownershipType === 'WORLD_OWNED' ? t('agentDetail.ownerWorld', 'World') : t('agentDetail.ownerMaster', 'Master')}</strong></span>
+        {agent.worldId && <span>{t('agentDetail.worldLabel', 'World:')} <strong className="text-neutral-300">{agent.worldId}</strong></span>}
+        <span>{t('agentDetail.createdLabel', 'Created:')} {formatDate(agent.createdAt)}</span>
+        <span>{t('agentDetail.updatedLabel', 'Updated:')} {formatDate(agent.updatedAt)}</span>
       </div>
 
       {/* Editable fields */}
@@ -241,7 +241,7 @@ function ProfileTab({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            placeholder="Detailed description of the agent..."
+            placeholder={t('agentDetail.descriptionPlaceholder', 'Detailed description of the agent...')}
             className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none resize-none"
           />
         </FieldGroup>
@@ -251,7 +251,7 @@ function ProfileTab({
             value={scenario}
             onChange={(e) => setScenario(e.target.value)}
             rows={3}
-            placeholder="The scenario or setting for this agent..."
+            placeholder={t('agentDetail.scenarioPlaceholder', 'The scenario or setting for this agent...')}
             className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none resize-none"
           />
         </FieldGroup>
@@ -261,7 +261,7 @@ function ProfileTab({
             value={greeting}
             onChange={(e) => setGreeting(e.target.value)}
             rows={2}
-            placeholder="The first message the agent sends..."
+            placeholder={t('agentDetail.greetingPlaceholder', 'The first message the agent sends...')}
             className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none resize-none"
           />
         </FieldGroup>
@@ -278,7 +278,7 @@ function ProfileTab({
                     : 'bg-neutral-800 text-neutral-400 hover:text-white'
                 }`}
               >
-                {strategy}
+                {strategy === 'PASSIVE' ? t('agentDetail.passive', 'PASSIVE') : t('agentDetail.proactive', 'PROACTIVE')}
               </button>
             ))}
           </div>
@@ -464,14 +464,14 @@ function DnaTab({
               className="rounded px-2 py-0.5 text-xs text-neutral-500 hover:text-white hover:bg-neutral-800 transition-colors"
               title="Randomize"
             >
-              Randomize
+              {t('agentDetail.randomize', 'Randomize')}
             </button>
             <button
               onClick={() => setPrimaryType(currentPrimary)}
               className="rounded px-2 py-0.5 text-xs text-neutral-500 hover:text-white hover:bg-neutral-800 transition-colors"
               title="Reset to saved value"
             >
-              Reset
+              {t('agentDetail.reset', 'Reset')}
             </button>
           </div>
         </div>
@@ -513,14 +513,14 @@ function DnaTab({
               className="rounded px-2 py-0.5 text-xs text-neutral-500 hover:text-white hover:bg-neutral-800 transition-colors"
               title="Randomize"
             >
-              Randomize
+              {t('agentDetail.randomize', 'Randomize')}
             </button>
             <button
               onClick={() => setSecondaryTraits(currentSecondary)}
               className="rounded px-2 py-0.5 text-xs text-neutral-500 hover:text-white hover:bg-neutral-800 transition-colors"
               title="Reset to saved value"
             >
-              Reset
+              {t('agentDetail.reset', 'Reset')}
             </button>
           </div>
         </div>
@@ -605,7 +605,7 @@ function DnaTab({
           value={rulesText}
           onChange={(e) => setRulesText(e.target.value)}
           rows={6}
-          placeholder="e.g. Never break character\nDo not discuss real-world politics\nAlways respond in character voice"
+          placeholder={t('agentDetail.rulesPlaceholder', 'e.g. Never break character\nDo not discuss real-world politics\nAlways respond in character voice')}
           className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none resize-y font-mono"
         />
       </div>
@@ -662,7 +662,7 @@ function DnaTab({
               value={soulPrimeText}
               onChange={(e) => setSoulPrimeText(e.target.value)}
               rows={10}
-              placeholder="Enter the agent's soul prime / system prompt..."
+              placeholder={t('agentDetail.soulPrimePlaceholder', "Enter the agent's soul prime / system prompt...")}
               className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none resize-y font-mono"
             />
             <div className="flex justify-end mt-3">
@@ -802,13 +802,13 @@ function PreviewTab({ agent }: { agent: AgentDetail }) {
               {t('agentDetail.systemPromptPreview', 'System Prompt Preview')}
             </p>
             <div className="text-xs text-neutral-400 space-y-1">
-              <p><span className="text-neutral-600">Primary:</span> {primaryType}</p>
-              <p><span className="text-neutral-600">Secondary:</span> {secondaryTraits}</p>
+              <p><span className="text-neutral-600">{t('agentDetail.primaryLabel', 'Primary:')}</span> {primaryType}</p>
+              <p><span className="text-neutral-600">{t('agentDetail.secondaryLabel', 'Secondary:')}</span> {secondaryTraits}</p>
               {agent.concept && (
-                <p><span className="text-neutral-600">Concept:</span> {agent.concept}</p>
+                <p><span className="text-neutral-600">{t('agentDetail.conceptLabel', 'Concept:')}</span> {agent.concept}</p>
               )}
               {agent.scenario && (
-                <p><span className="text-neutral-600">Scenario:</span> {agent.scenario}</p>
+                <p><span className="text-neutral-600">{t('agentDetail.scenarioLabel', 'Scenario:')}</span> {agent.scenario}</p>
               )}
             </div>
           </div>
@@ -914,7 +914,7 @@ function KeysTab({
               type="text"
               value={keyName}
               onChange={(e) => setKeyName(e.target.value)}
-              placeholder="e.g. production-key"
+              placeholder={t('agentDetail.keyNamePlaceholder', 'e.g. production-key')}
               className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none"
             />
           </FieldGroup>
@@ -923,7 +923,7 @@ function KeysTab({
               onClick={() => { setShowForm(false); setKeyName(''); }}
               className="rounded px-4 py-1.5 text-sm text-neutral-400 hover:text-white transition-colors"
             >
-              Cancel
+              {t('agentDetail.cancel', 'Cancel')}
             </button>
             <button
               onClick={() => {
@@ -936,7 +936,7 @@ function KeysTab({
               disabled={creatingKey || !keyName.trim()}
               className="rounded-lg bg-white px-4 py-1.5 text-sm font-medium text-black hover:bg-neutral-200 disabled:opacity-50 transition-colors"
             >
-              {creatingKey ? 'Creating...' : 'Create'}
+              {creatingKey ? t('agentDetail.creating', 'Creating...') : t('agentDetail.create', 'Create')}
             </button>
           </div>
         </div>
@@ -964,20 +964,20 @@ function KeysTab({
                 <p className="text-sm font-medium text-white">{key.name}</p>
                 <p className="text-xs text-neutral-500 mt-0.5">
                   <code className="bg-neutral-800 rounded px-1.5 py-0.5">{key.keyPreview}</code>
-                  <span className="ml-2">Created: {formatDate(key.createdAt)}</span>
-                  {key.lastUsedAt && <span className="ml-2">Last used: {formatDate(key.lastUsedAt)}</span>}
-                  {key.expiresAt && <span className="ml-2">Expires: {formatDate(key.expiresAt)}</span>}
+                  <span className="ml-2">{t('agentDetail.createdAt', 'Created:')} {formatDate(key.createdAt)}</span>
+                  {key.lastUsedAt && <span className="ml-2">{t('agentDetail.lastUsed', 'Last used:')} {formatDate(key.lastUsedAt)}</span>}
+                  {key.expiresAt && <span className="ml-2">{t('agentDetail.expiresAt', 'Expires:')} {formatDate(key.expiresAt)}</span>}
                 </p>
               </div>
               <button
                 onClick={() => {
-                  if (confirm('Revoke this key? This cannot be undone.')) {
+                  if (confirm(t('agentDetail.confirmRevoke', 'Revoke this key? This cannot be undone.'))) {
                     void onRevokeKey(key.id);
                   }
                 }}
                 className="ml-3 rounded px-3 py-1 text-xs font-medium text-red-400/70 hover:bg-red-500/10 hover:text-red-400 transition-colors"
               >
-                Revoke
+                {t('agentDetail.revoke', 'Revoke')}
               </button>
             </div>
           ))}

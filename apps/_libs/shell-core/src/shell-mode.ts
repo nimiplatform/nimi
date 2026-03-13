@@ -1,4 +1,4 @@
-export type ShellMode = 'desktop' | 'web';
+export type ShellMode = 'desktop' | 'web' | 'forge';
 
 export type ShellFeatureFlags = {
   mode: ShellMode;
@@ -21,7 +21,7 @@ function hasTauriRuntime(): boolean {
 
 function resolveShellModeFromEnv(): ShellMode {
   const raw = String((import.meta as { env?: Record<string, string> }).env?.VITE_NIMI_SHELL_MODE || '').trim().toLowerCase();
-  if (raw === 'desktop' || raw === 'web') {
+  if (raw === 'desktop' || raw === 'web' || raw === 'forge') {
     return raw;
   }
   if (typeof window === 'undefined') {
@@ -51,6 +51,8 @@ export function getShellFeatureFlags(): ShellFeatureFlags {
 
   const mode = resolveShellModeFromEnv();
   const isDesktop = mode === 'desktop';
+  const isForge = mode === 'forge';
+  const isTauriShell = isDesktop || isForge;
   const enableMenuBarShell = isDesktop && isMacDesktopEnvironment();
 
   cachedFlags = {
@@ -58,10 +60,10 @@ export function getShellFeatureFlags(): ShellFeatureFlags {
     enableRuntimeTab: isDesktop,
     enableModUi: isDesktop,
     enableModWorkspaceTabs: isDesktop,
-    enableSettingsExtensions: isDesktop,
-    enableTitlebarDrag: isDesktop,
+    enableSettingsExtensions: isTauriShell,
+    enableTitlebarDrag: isTauriShell,
     enableMenuBarShell,
-    enableRuntimeBootstrap: isDesktop,
+    enableRuntimeBootstrap: isTauriShell,
   };
 
   return cachedFlags;

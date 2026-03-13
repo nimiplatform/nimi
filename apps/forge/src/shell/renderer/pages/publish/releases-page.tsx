@@ -188,15 +188,6 @@ export default function ReleasesPage() {
           </button>
         </div>
 
-        <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 px-4 py-3">
-          <p className="text-sm text-yellow-400 font-medium mb-1">
-            {t('releases.backendNotice', 'Publish Workspace Not Wired Yet')}
-          </p>
-          <p className="text-xs text-yellow-400/70">
-            {t('releases.backendNoticeDetail', 'This screen will be implemented as a Forge app workflow on top of existing post capabilities. It no longer depends on a separate publishing backend module.')}
-          </p>
-        </div>
-
         {error && (
           <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             {error}

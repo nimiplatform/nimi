@@ -68,15 +68,6 @@ export default function ChannelsPage() {
           </p>
         </div>
 
-        <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 px-4 py-3">
-          <p className="text-sm text-yellow-400 font-medium mb-1">
-            {t('channels.backendNotice', 'Publish Identity Workflow Not Wired Yet')}
-          </p>
-          <p className="text-xs text-yellow-400/70">
-            {t('channels.backendNoticeDetail', 'Internal destinations are Forge UI semantics over existing post primitives. No separate publishing backend module is required for them.')}
-          </p>
-        </div>
-
         {error && (
           <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             {error}
