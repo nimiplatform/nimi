@@ -1,4 +1,8 @@
 import { defineConfig } from 'vitepress'
+import { navEn } from './nav-en'
+import { navZh } from './nav-zh'
+import { sidebarEn } from './sidebar-en'
+import { sidebarZh } from './sidebar-zh'
 
 export default defineConfig({
   title: 'Nimi',
@@ -20,149 +24,46 @@ export default defineConfig({
     'examples/README.md': 'app-dev/recipes.md',
   },
 
-  themeConfig: {
-    nav: [
-      { text: 'Nimi Coding', link: '/nimi-coding' },
-      { text: 'Users', link: '/user/' },
-      { text: 'App Developers', link: '/app-dev/' },
-      { text: 'Mod Developers', link: '/mod-dev/' },
-      {
-        text: 'More',
-        items: [
-          { text: 'Runtime Integrator', link: '/guides/runtime-integrator' },
-          { text: 'Reference', link: '/reference/sdk' },
-          { text: 'Architecture', link: '/architecture/' },
-          { text: 'Contribute', link: '/contribute/' },
-        ],
+  locales: {
+    root: {
+      label: 'English',
+      lang: 'en',
+      themeConfig: {
+        nav: navEn,
+        sidebar: sidebarEn,
       },
-    ],
-
-    sidebar: {
-      '/nimi-coding': [
-        {
-          text: 'Nimi Coding',
-          items: [
-            { text: 'Nimi Coding', link: '/nimi-coding' },
-            { text: 'Nimi Coding (CN)', link: '/nimi-coding_cn' },
-          ],
-        },
-        {
-          text: 'Architecture',
-          items: [
-            { text: 'Overview', link: '/architecture/' },
-            { text: 'Spec Map', link: '/architecture/spec-map' },
-          ],
-        },
-      ],
-
-      '/user/': [
-        {
-          text: 'Using Nimi',
-          items: [
-            { text: 'Quickstart', link: '/user/' },
-            { text: 'Install', link: '/user/install' },
-            { text: 'CLI Commands', link: '/user/cli' },
-            { text: 'Cloud Providers', link: '/user/providers' },
-            { text: 'Models', link: '/user/models' },
-            { text: 'Desktop App', link: '/user/desktop' },
-            { text: 'Troubleshooting', link: '/user/troubleshooting' },
-            { text: 'FAQ', link: '/user/faq' },
-          ],
-        },
-      ],
-
-      '/app-dev/': [
-        {
-          text: 'App Development',
-          items: [
-            { text: 'Overview', link: '/app-dev/' },
-            { text: 'SDK Setup', link: '/app-dev/sdk-setup' },
-            { text: 'App Developer Guide', link: '/app-dev/guide' },
-            { text: 'Recipes', link: '/app-dev/recipes' },
-            { text: 'Production Checklist', link: '/app-dev/production-checklist' },
-          ],
-        },
-        {
-          text: 'Reference',
-          items: [
-            { text: 'SDK', link: '/reference/sdk' },
-            { text: 'Runtime', link: '/reference/runtime' },
-            { text: 'Protocol', link: '/reference/protocol' },
-            { text: 'Error Codes', link: '/reference/error-codes' },
-            { text: 'Provider Matrix', link: '/reference/provider-matrix' },
-            { text: 'Compatibility Matrix', link: '/reference/compatibility-matrix' },
-          ],
-        },
-      ],
-
-      '/mod-dev/': [
-        {
-          text: 'Mod Development',
-          items: [
-            { text: 'Overview', link: '/mod-dev/' },
-            { text: 'Development Guide', link: '/mod-dev/guide' },
-            { text: 'Release & Submission', link: '/mod-dev/release' },
-            { text: 'Release Guide (CN)', link: '/mod-dev/release_cn' },
-          ],
-        },
-        {
-          text: 'Reference',
-          items: [
-            { text: 'SDK (Mod surface)', link: '/reference/sdk' },
-            { text: 'Error Codes', link: '/reference/error-codes' },
-            { text: 'Compatibility Matrix', link: '/reference/compatibility-matrix' },
-          ],
-        },
-      ],
-
-      '/guides/': [
-        {
-          text: 'Guides',
-          items: [
-            { text: 'Runtime Integrator', link: '/guides/runtime-integrator' },
-          ],
-        },
-        {
-          text: 'Related',
-          items: [
-            { text: 'Runtime Reference', link: '/reference/runtime' },
-            { text: 'Provider Matrix', link: '/reference/provider-matrix' },
-          ],
-        },
-      ],
-
-      '/reference/': [
-        {
-          text: 'Reference',
-          items: [
-            { text: 'SDK', link: '/reference/sdk' },
-            { text: 'Runtime', link: '/reference/runtime' },
-            { text: 'Protocol', link: '/reference/protocol' },
-            { text: 'Error Codes', link: '/reference/error-codes' },
-            { text: 'Provider Matrix', link: '/reference/provider-matrix' },
-            { text: 'Compatibility Matrix', link: '/reference/compatibility-matrix' },
-          ],
-        },
-      ],
-
-      '/architecture/': [
-        {
-          text: 'Architecture',
-          items: [
-            { text: 'Overview', link: '/architecture/' },
-            { text: 'Nimi Coding', link: '/nimi-coding' },
-            { text: 'Spec Map', link: '/architecture/spec-map' },
-            { text: 'Realm Interconnect', link: '/architecture/realm-interconnect-paradigm' },
-            { text: 'Realm Interconnect (CN)', link: '/architecture/realm-interconnect-paradigm_cn' },
-            { text: 'AI Agent Security', link: '/architecture/ai-agent-security-interface' },
-            { text: 'AI Agent Security (Summary)', link: '/architecture/ai-agent-security-interface-summary' },
-            { text: 'AI Agent Security (CN)', link: '/architecture/ai-agent-security-interface_cn' },
-            { text: 'MCP Agent (CN)', link: '/architecture/mcp-agent-interaction_cn' },
-          ],
-        },
-      ],
     },
+    zh: {
+      label: '中文',
+      lang: 'zh-CN',
+      title: 'Nimi',
+      description: 'Nimi 开源 AI Runtime 的使用、开发与扩展文档。',
+      themeConfig: {
+        nav: navZh,
+        sidebar: sidebarZh,
+        outline: {
+          label: '本页目录',
+        },
+        docFooter: {
+          prev: '上一页',
+          next: '下一页',
+        },
+        lastUpdated: {
+          text: '最后更新',
+        },
+        editLink: {
+          pattern: 'https://github.com/nimiplatform/nimi/edit/main/docs/:path',
+          text: '在 GitHub 上编辑此页',
+        },
+        returnToTopLabel: '返回顶部',
+        sidebarMenuLabel: '菜单',
+        darkModeSwitchLabel: '深色模式',
+        langMenuLabel: '语言',
+      },
+    },
+  },
 
+  themeConfig: {
     socialLinks: [
       { icon: 'github', link: 'https://github.com/nimiplatform/nimi' },
       { icon: 'discord', link: 'https://discord.gg/BQwHJvPn' },
@@ -175,6 +76,27 @@ export default defineConfig({
 
     search: {
       provider: 'local',
+      options: {
+        locales: {
+          zh: {
+            translations: {
+              button: {
+                buttonText: '搜索文档',
+                buttonAriaLabel: '搜索文档',
+              },
+              modal: {
+                noResultsText: '无法找到相关结果',
+                resetButtonTitle: '清除查询条件',
+                footer: {
+                  selectText: '选择',
+                  navigateText: '切换',
+                  closeText: '关闭',
+                },
+              },
+            },
+          },
+        },
+      },
     },
 
     footer: {
