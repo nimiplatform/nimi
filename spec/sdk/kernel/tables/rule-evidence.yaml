@@ -349,6 +349,10 @@ rules:
     status: covered
     evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
     test_files: [sdk/test/runtime/runtime-client-write-semantics.test.ts]
+  - rule_id: S-RUNTIME-072
+    status: covered
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-media-branch.test.ts]
 
   # --- Scope Contract (S-SCOPE) ---
   - rule_id: S-SCOPE-001

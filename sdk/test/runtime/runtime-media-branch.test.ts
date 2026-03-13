@@ -11,6 +11,7 @@ import {
 } from '../../src/runtime/generated/runtime/v1/ai.js';
 import type { RuntimeInternalContext } from '../../src/runtime/internal-context.js';
 import {
+  buildMusicIterationExtensions,
   buildLocalImageWorkflowExtensions,
   runtimeBuildSubmitScenarioJobRequestForMedia,
   runtimeCancelScenarioJobForMedia,
@@ -21,6 +22,7 @@ import {
   runtimeWaitForScenarioJobCompletion,
   toSpeechTimingMode,
 } from '../../src/runtime/runtime-media.js';
+import { runtimeGenerateMusicIteration } from '../../src/runtime/runtime-modality.js';
 
 // ---------------------------------------------------------------------------
 // Mock RuntimeInternalContext factory
@@ -63,6 +65,146 @@ function createMockContext(overrides?: {
 // ---------------------------------------------------------------------------
 // buildLocalImageWorkflowExtensions
 // ---------------------------------------------------------------------------
+
+test('buildMusicIterationExtensions normalizes canonical payload keys', () => {
+  const result = buildMusicIterationExtensions({
+    mode: 'extend',
+    sourceAudioBase64: 'aGVsbG8=',
+    sourceMimeType: 'audio/mpeg',
+    trimStartSec: 1.5,
+    trimEndSec: 8,
+  });
+  assert.deepEqual(result, {
+    mode: 'extend',
+    source_audio_base64: 'aGVsbG8=',
+    source_mime_type: 'audio/mpeg',
+    trim_start_sec: 1.5,
+    trim_end_sec: 8,
+  });
+});
+
+test('buildMusicIterationExtensions rejects invalid base64 input', () => {
+  assert.throws(
+    () => buildMusicIterationExtensions({
+      mode: 'extend',
+      sourceAudioBase64: 'not-base64###',
+    }),
+    (error: unknown) => {
+      const err = error as { reasonCode?: string };
+      return err.reasonCode === ReasonCode.AI_MEDIA_SPEC_INVALID;
+    },
+  );
+});
+
+test('buildMusicIterationExtensions rejects invalid trim ordering', () => {
+  assert.throws(
+    () => buildMusicIterationExtensions({
+      mode: 'extend',
+      sourceAudioBase64: 'aGVsbG8=',
+      trimStartSec: 8,
+      trimEndSec: 2,
+    }),
+    (error: unknown) => {
+      const err = error as { reasonCode?: string };
+      return err.reasonCode === ReasonCode.AI_MEDIA_SPEC_INVALID;
+    },
+  );
+});
+
+test('runtimeGenerateMusicIteration wires canonical extensions through music generate flow', async () => {
+  let capturedSubmitRequest: unknown;
+  const ctx = createMockContext({
+    invokeWithClient: async (op) => op({
+      ai: {
+        submitScenarioJob: async (request: unknown) => {
+          capturedSubmitRequest = request;
+          return {
+            job: {
+              jobId: 'music-job-1',
+              status: ScenarioJobStatus.SUBMITTED,
+            },
+          };
+        },
+        getScenarioJob: async () => ({
+          job: {
+            jobId: 'music-job-1',
+            status: ScenarioJobStatus.COMPLETED,
+          },
+        }),
+        getScenarioArtifacts: async () => ({
+          artifacts: [{
+            artifactId: 'artifact-1',
+            mimeType: 'audio/mpeg',
+            bytes: new Uint8Array([1, 2, 3]),
+          }],
+          traceId: 'trace-1',
+        }),
+      },
+    } as never),
+  });
+
+  const output = await runtimeGenerateMusicIteration(ctx, {
+    model: 'suno-v4',
+    prompt: 'continue this track',
+    iteration: {
+      mode: 'extend',
+      sourceAudioBase64: 'aGVsbG8=',
+      trimStartSec: 1,
+      trimEndSec: 4,
+    },
+  });
+
+  assert.equal(output.job.jobId, 'music-job-1');
+  const submitRequest = capturedSubmitRequest as {
+    extensions?: Array<{
+      namespace?: string;
+      payload?: {
+        fields?: Record<string, {
+          kind?: {
+            oneofKind?: string;
+            stringValue?: string;
+            numberValue?: number;
+          };
+        }>;
+      };
+    }>;
+  };
+  assert.equal(submitRequest.extensions?.[0]?.namespace, 'nimi.scenario.music_generate.request');
+  assert.equal(
+    submitRequest.extensions?.[0]?.payload?.fields?.mode?.kind?.stringValue,
+    'extend',
+  );
+  assert.equal(
+    submitRequest.extensions?.[0]?.payload?.fields?.trim_start_sec?.kind?.numberValue,
+    1,
+  );
+});
+
+test('runtimeGenerateMusicIteration fails fast on invalid iteration input', async () => {
+  let invoked = false;
+  const ctx = createMockContext({
+    invokeWithClient: async (op) => {
+      invoked = true;
+      return op({ ai: {} } as never);
+    },
+  });
+
+  await assert.rejects(
+    () => runtimeGenerateMusicIteration(ctx, {
+      model: 'suno-v4',
+      prompt: 'broken',
+      iteration: {
+        mode: 'extend',
+        sourceAudioBase64: '',
+      },
+    }),
+    (error: unknown) => {
+      const err = error as { reasonCode?: string };
+      return err.reasonCode === ReasonCode.AI_MEDIA_SPEC_INVALID;
+    },
+  );
+  assert.equal(invoked, false);
+});
 
 test('buildLocalImageWorkflowExtensions: components not an array returns empty merged', () => {
   const result = buildLocalImageWorkflowExtensions({ components: undefined });
@@ -776,6 +918,36 @@ test('build request: stt modal with audio bytes', async () => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// runtimeBuildSubmitScenarioJobRequestForMedia: music modal branches
+// ---------------------------------------------------------------------------
+
+test('build request: music modal maps canonical iteration extension namespace', async () => {
+  const ctx = createMockContext();
+  const result = await runtimeBuildSubmitScenarioJobRequestForMedia(ctx, {
+    modal: 'music',
+    input: {
+      model: 'suno-v4',
+      prompt: 'continue this song',
+      title: 'Continuation',
+      extensions: buildMusicIterationExtensions({
+        mode: 'reference',
+        sourceAudioBase64: 'aGVsbG8=',
+        sourceMimeType: 'audio/wav',
+      }),
+    },
+  });
+
+  assert.equal(result.spec?.spec.oneofKind, 'musicGenerate');
+  assert.equal(result.extensions.length, 1);
+  assert.equal(result.extensions[0]?.namespace, 'nimi.scenario.music_generate.request');
+  const fields = result.extensions[0]?.payload?.fields ?? {};
+  assert.equal(fields.mode?.kind.oneofKind, 'stringValue');
+  assert.equal(fields.mode?.kind.stringValue, 'reference');
+  assert.equal(fields.source_audio_base64?.kind.oneofKind, 'stringValue');
+  assert.equal(fields.source_audio_base64?.kind.stringValue, 'aGVsbG8=');
+});
+
 test('build request: stt modal with audio url', async () => {
   const ctx = createMockContext();
   const result = await runtimeBuildSubmitScenarioJobRequestForMedia(ctx, {
@@ -1323,6 +1495,16 @@ test('build request: stt modal maps to SPEECH_TRANSCRIBE scenario type', async (
   });
   // ScenarioType.SPEECH_TRANSCRIBE = 6
   assert.equal(result.scenarioType, 6);
+});
+
+test('build request: music modal maps to MUSIC_GENERATE scenario type', async () => {
+  const ctx = createMockContext();
+  const result = await runtimeBuildSubmitScenarioJobRequestForMedia(ctx, {
+    modal: 'music',
+    input: { model: 'm', prompt: 'p' },
+  });
+  // ScenarioType.MUSIC_GENERATE = 9
+  assert.equal(result.scenarioType, 9);
 });
 
 // ---------------------------------------------------------------------------

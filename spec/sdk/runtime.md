@@ -32,6 +32,7 @@
 - `S-RUNTIME-010` / `S-TRANSPORT-001`: Node.js 环境允许 `new Runtime()` 走本地 `node-grpc` 默认值；非 Node 环境缺失 transport 时必须 fail-close。
 - `S-RUNTIME-011` / `S-SURFACE-002`: runtime 子路径公开方法集合以 `runtime-method-groups.yaml` 为权威，不能漂移到 legacy runtime surface。
 - `S-RUNTIME-011`: `Runtime.generate()` / `Runtime.stream()` 允许作为 first-run convenience surface，但必须复用现有 runtime text projection，并采用 bare local / provider default / provider explicit 的 high-level targeting 语义。
+- `S-RUNTIME-011`: `runtime.media.music.iterate()` 允许作为 music iteration 的 first-class convenience surface，但必须继续复用 `MUSIC_GENERATE` + `ScenarioJob` + artifact 主链，不得新增私有 RPC。
 - `S-SURFACE-003`: 已移除的 legacy runtime interface naming 不得回流。
 - `S-RUNTIME-012`: `connectorId`、业务 body 与 metadata 必须分层传递，不能把 transport 元数据塞回请求体。
 - `S-RUNTIME-023`: deferred 服务必须显式暴露“不可用”语义，不冒充 active。
@@ -39,10 +40,12 @@
 - `S-TRANSPORT-007` / `S-TRANSPORT-008` / `S-TRANSPORT-009`: 流式终帧、超时与 chunk 边界必须按 runtime 协议透传。
 - `S-TRANSPORT-010`: Bearer 注入只允许发生在规定的路由/方法集，anonymous local consume 与只读 local RPC 不得强塞鉴权。
 - `S-ERROR-009` / `S-ERROR-012` / `S-ERROR-014`: 非错误终端 reason、Mode D `CANCELLED`、以及 `node-grpc` / `tauri-ipc` 的结构化错误投影必须等价。
+- `S-RUNTIME-072`: `runtime.media.music.iterate()` 必须对 iteration 输入做客户端 fail-fast 预校验，但不得替代 runtime 权威校验。
 
 - `LocalArtifact*` RPC 与 companion asset 列表/安装/导入/删除
 - 主模型 `engine_config` 字段投影
 - runtime image helper `buildLocalImageWorkflowExtensions()`，用于编码 `components` 与 `profile_overrides`
+- runtime music helper `buildMusicIterationExtensions()`，仅作为低层 escape hatch；官方主路径是 `runtime.media.music.iterate()`
 
 ## 4. 非目标
 

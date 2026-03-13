@@ -63,6 +63,7 @@ export type {
 } from './runtime-convenience.js';
 export * from './runtime-realm-bridge.js';
 export {
+  buildMusicIterationExtensions,
   buildLocalImageWorkflowExtensions,
   type LocalImageWorkflowComponentSelection,
   type LocalImageWorkflowExtensionInput,

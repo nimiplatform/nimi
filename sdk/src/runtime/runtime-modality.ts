@@ -9,10 +9,13 @@ import {
 } from './generated/runtime/v1/ai';
 import type { ListPresetVoicesRequest, VoicePresetDescriptor } from './generated/runtime/v1/voice';
 import type { RuntimeInternalContext } from './internal-context.js';
-import { toSpeechTimingMode } from './runtime-media.js';
+import { buildMusicIterationExtensions, toSpeechTimingMode } from './runtime-media.js';
 import type {
   ImageGenerateInput,
   ImageGenerateOutput,
+  MusicIterateInput,
+  MusicGenerateInput,
+  MusicGenerateOutput,
   NimiTraceInfo,
   SpeechListVoicesInput,
   SpeechListVoicesOutput,
@@ -120,6 +123,44 @@ export async function runtimeSynthesizeSpeech(
     artifacts: artifacts.artifacts,
     trace,
   };
+}
+
+export async function runtimeGenerateMusic(
+  ctx: RuntimeInternalContext,
+  input: MusicGenerateInput,
+): Promise<MusicGenerateOutput> {
+  const submitted = await runtimeSubmitScenarioJobForMedia(ctx, {
+    modal: 'music',
+    input,
+  });
+
+  const job = await runtimeWaitForScenarioJobCompletion(ctx, submitted.jobId, {
+    timeoutMs: input.timeoutMs,
+    signal: input.signal,
+  });
+  const artifacts = await runtimeGetScenarioArtifactsForMedia(ctx, job.jobId);
+
+  const trace = toTraceInfo({
+    traceId: artifacts.traceId || job.traceId,
+    modelResolved: job.modelResolved,
+    routeDecision: job.routeDecision,
+  });
+
+  return {
+    job,
+    artifacts: artifacts.artifacts,
+    trace,
+  };
+}
+
+export async function runtimeGenerateMusicIteration(
+  ctx: RuntimeInternalContext,
+  input: MusicIterateInput,
+): Promise<MusicGenerateOutput> {
+  return runtimeGenerateMusic(ctx, {
+    ...input,
+    extensions: buildMusicIterationExtensions(input.iteration),
+  });
 }
 
 export async function runtimeTranscribeSpeech(

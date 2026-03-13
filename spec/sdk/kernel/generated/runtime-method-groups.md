@@ -39,6 +39,17 @@ Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 | `UpsertModelCatalogProvider` | `S-SURFACE-002` |
 | `DeleteModelCatalogProvider` | `S-SURFACE-002` |
 
+## ai_realtime_service_projection
+
+Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
+
+| Method | Source Rule |
+|---|---|
+| `OpenRealtimeSession` | `S-SURFACE-002` |
+| `AppendRealtimeInput` | `S-SURFACE-002` |
+| `ReadRealtimeEvents` | `S-SURFACE-002` |
+| `CloseRealtimeSession` | `S-SURFACE-002` |
+
 ## local_service_projection
 
 Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1

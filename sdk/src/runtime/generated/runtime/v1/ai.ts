@@ -410,6 +410,39 @@ export interface VoiceDesignScenarioSpec {
     input?: VoiceT2VInput;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.MusicGenerateScenarioSpec
+ */
+export interface MusicGenerateScenarioSpec {
+    /**
+     * @generated from protobuf field: string prompt = 1
+     */
+    prompt: string;
+    /**
+     * @generated from protobuf field: string negative_prompt = 2
+     */
+    negativePrompt: string;
+    /**
+     * @generated from protobuf field: string lyrics = 3
+     */
+    lyrics: string;
+    /**
+     * @generated from protobuf field: string style = 4
+     */
+    style: string;
+    /**
+     * @generated from protobuf field: string title = 5
+     */
+    title: string;
+    /**
+     * @generated from protobuf field: int32 duration_seconds = 6
+     */
+    durationSeconds: number;
+    /**
+     * @generated from protobuf field: bool instrumental = 7
+     */
+    instrumental: boolean;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ScenarioSpec
  */
 export interface ScenarioSpec {
@@ -464,6 +497,12 @@ export interface ScenarioSpec {
          * @generated from protobuf field: nimi.runtime.v1.VoiceDesignScenarioSpec voice_design = 8
          */
         voiceDesign: VoiceDesignScenarioSpec;
+    } | {
+        oneofKind: "musicGenerate";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.MusicGenerateScenarioSpec music_generate = 9
+         */
+        musicGenerate: MusicGenerateScenarioSpec;
     } | {
         oneofKind: undefined;
     };
@@ -1608,7 +1647,11 @@ export enum Modal {
     /**
      * @generated from protobuf enum value: MODAL_EMBEDDING = 6;
      */
-    EMBEDDING = 6
+    EMBEDDING = 6,
+    /**
+     * @generated from protobuf enum value: MODAL_MUSIC = 7;
+     */
+    MUSIC = 7
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ScenarioType
@@ -1649,7 +1692,11 @@ export enum ScenarioType {
     /**
      * @generated from protobuf enum value: SCENARIO_TYPE_VOICE_DESIGN = 8;
      */
-    VOICE_DESIGN = 8
+    VOICE_DESIGN = 8,
+    /**
+     * @generated from protobuf enum value: SCENARIO_TYPE_MUSIC_GENERATE = 9;
+     */
+    MUSIC_GENERATE = 9
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExecutionMode
@@ -3253,6 +3300,101 @@ class VoiceDesignScenarioSpec$Type extends MessageType<VoiceDesignScenarioSpec> 
  */
 export const VoiceDesignScenarioSpec = new VoiceDesignScenarioSpec$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class MusicGenerateScenarioSpec$Type extends MessageType<MusicGenerateScenarioSpec> {
+    constructor() {
+        super("nimi.runtime.v1.MusicGenerateScenarioSpec", [
+            { no: 1, name: "prompt", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "negative_prompt", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "lyrics", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "style", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "duration_seconds", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 7, name: "instrumental", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<MusicGenerateScenarioSpec>): MusicGenerateScenarioSpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.prompt = "";
+        message.negativePrompt = "";
+        message.lyrics = "";
+        message.style = "";
+        message.title = "";
+        message.durationSeconds = 0;
+        message.instrumental = false;
+        if (value !== undefined)
+            reflectionMergePartial<MusicGenerateScenarioSpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MusicGenerateScenarioSpec): MusicGenerateScenarioSpec {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string prompt */ 1:
+                    message.prompt = reader.string();
+                    break;
+                case /* string negative_prompt */ 2:
+                    message.negativePrompt = reader.string();
+                    break;
+                case /* string lyrics */ 3:
+                    message.lyrics = reader.string();
+                    break;
+                case /* string style */ 4:
+                    message.style = reader.string();
+                    break;
+                case /* string title */ 5:
+                    message.title = reader.string();
+                    break;
+                case /* int32 duration_seconds */ 6:
+                    message.durationSeconds = reader.int32();
+                    break;
+                case /* bool instrumental */ 7:
+                    message.instrumental = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: MusicGenerateScenarioSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string prompt = 1; */
+        if (message.prompt !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.prompt);
+        /* string negative_prompt = 2; */
+        if (message.negativePrompt !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.negativePrompt);
+        /* string lyrics = 3; */
+        if (message.lyrics !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.lyrics);
+        /* string style = 4; */
+        if (message.style !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.style);
+        /* string title = 5; */
+        if (message.title !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.title);
+        /* int32 duration_seconds = 6; */
+        if (message.durationSeconds !== 0)
+            writer.tag(6, WireType.Varint).int32(message.durationSeconds);
+        /* bool instrumental = 7; */
+        if (message.instrumental !== false)
+            writer.tag(7, WireType.Varint).bool(message.instrumental);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.MusicGenerateScenarioSpec
+ */
+export const MusicGenerateScenarioSpec = new MusicGenerateScenarioSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
     constructor() {
         super("nimi.runtime.v1.ScenarioSpec", [
@@ -3263,7 +3405,8 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
             { no: 5, name: "speech_synthesize", kind: "message", oneof: "spec", T: () => SpeechSynthesizeScenarioSpec },
             { no: 6, name: "speech_transcribe", kind: "message", oneof: "spec", T: () => SpeechTranscribeScenarioSpec },
             { no: 7, name: "voice_clone", kind: "message", oneof: "spec", T: () => VoiceCloneScenarioSpec },
-            { no: 8, name: "voice_design", kind: "message", oneof: "spec", T: () => VoiceDesignScenarioSpec }
+            { no: 8, name: "voice_design", kind: "message", oneof: "spec", T: () => VoiceDesignScenarioSpec },
+            { no: 9, name: "music_generate", kind: "message", oneof: "spec", T: () => MusicGenerateScenarioSpec }
         ]);
     }
     create(value?: PartialMessage<ScenarioSpec>): ScenarioSpec {
@@ -3326,6 +3469,12 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
                         voiceDesign: VoiceDesignScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).voiceDesign)
                     };
                     break;
+                case /* nimi.runtime.v1.MusicGenerateScenarioSpec music_generate */ 9:
+                    message.spec = {
+                        oneofKind: "musicGenerate",
+                        musicGenerate: MusicGenerateScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).musicGenerate)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -3362,6 +3511,9 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
         /* nimi.runtime.v1.VoiceDesignScenarioSpec voice_design = 8; */
         if (message.spec.oneofKind === "voiceDesign")
             VoiceDesignScenarioSpec.internalBinaryWrite(message.spec.voiceDesign, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.MusicGenerateScenarioSpec music_generate = 9; */
+        if (message.spec.oneofKind === "musicGenerate")
+            MusicGenerateScenarioSpec.internalBinaryWrite(message.spec.musicGenerate, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

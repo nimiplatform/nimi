@@ -16,6 +16,8 @@ import {
 import {
   runtimeGenerateImage,
   runtimeGenerateVideo,
+  runtimeGenerateMusicIteration,
+  runtimeGenerateMusic,
   runtimeSynthesizeSpeech,
   runtimeTranscribeSpeech,
   runtimeStreamImage,
@@ -439,6 +441,10 @@ export function createMediaModule(ctx: RuntimeInternalContext): RuntimeMediaModu
     },
     stt: {
       transcribe: async (input) => runtimeTranscribeSpeech(ctx, input),
+    },
+    music: {
+      generate: async (input) => runtimeGenerateMusic(ctx, input),
+      iterate: async (input) => runtimeGenerateMusicIteration(ctx, input),
     },
     jobs: {
       submit: async (input) => runtimeSubmitScenarioJobForMedia(ctx, input),

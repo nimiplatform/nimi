@@ -184,6 +184,18 @@ function normalizeCloudModelId(modelId: string): string {
   return `cloud/${normalizedModelId}`;
 }
 
+function qualifyLocalSidecarMusicModel(modelId: string): string {
+  const normalizedModelId = String(modelId || '').trim();
+  const lower = normalizedModelId.toLowerCase();
+  if (!normalizedModelId) {
+    return normalizedModelId;
+  }
+  if (lower.startsWith('sidecar/') || lower.startsWith('localsidecar/')) {
+    return normalizedModelId;
+  }
+  return `sidecar/${normalizedModelId}`;
+}
+
 function createSdkTextModel(
   endpoint: string,
   routePolicy: 'local' | 'cloud',
@@ -255,6 +267,60 @@ test('nimi sdk ai-provider live smoke: local provider generate text', {
     const detail = error instanceof Error ? error.message : String(error || '');
     throw new Error(`sdk local live smoke failed: ${detail}; output=${outputText}`);
   }
+});
+
+test('nimi sdk ai-provider live smoke: local sidecar music', {
+  skip: process.env.NIMI_SDK_LIVE !== '1',
+  timeout: 300_000,
+}, async (t) => {
+  const sidecarBaseURL = requiredEnvOrSkip(t, 'NIMI_LIVE_LOCAL_SIDECAR_BASE_URL');
+  const modelID = requiredAnyEnvOrSkip(t, ['NIMI_LIVE_LOCAL_SIDECAR_MUSIC_MODEL_ID', 'NIMI_LIVE_LOCAL_MUSIC_MODEL_ID']);
+  if (!sidecarBaseURL || !modelID) {
+    return;
+  }
+  const localBaseURL = envValue(['NIMI_LIVE_LOCAL_BASE_URL']) || 'http://127.0.0.1:8000/v1';
+  const localAPIKey = String(process.env.NIMI_LIVE_LOCAL_API_KEY || '').trim();
+  const sidecarAPIKey = String(process.env.NIMI_LIVE_LOCAL_SIDECAR_API_KEY || '').trim();
+
+  await withRuntimeDaemon({
+    appId: APP_ID,
+    runtimeEnv: {
+      NIMI_RUNTIME_LOCAL_AI_BASE_URL: localBaseURL,
+      ...(localAPIKey ? { NIMI_RUNTIME_LOCAL_AI_API_KEY: localAPIKey } : {}),
+      NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL: sidecarBaseURL,
+      ...(sidecarAPIKey ? { NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY: sidecarAPIKey } : {}),
+    },
+    run: async ({ endpoint }) => {
+      const runtime = new Runtime({
+        appId: APP_ID,
+        transport: {
+          type: 'node-grpc',
+          endpoint,
+        },
+        defaults: {
+          callerKind: 'desktop-core',
+          callerId: 'sdk-ai-live-smoke',
+        },
+      });
+      const output = await runtime.media.music.generate({
+        model: qualifyLocalSidecarMusicModel(modelID),
+        prompt: 'A short atmospheric cue with warm pads and a gentle pulse.',
+        title: 'Nimi SDK Local Sidecar Smoke',
+        subjectUserId: SUBJECT_USER_ID,
+        route: 'local',
+        fallback: 'deny',
+        timeoutMs: 240_000,
+      });
+      assert.ok((output.job?.jobId || '').length > 0, 'local sidecar music job id should not be empty');
+      assert.ok(Array.isArray(output.artifacts) && output.artifacts.length > 0, 'local sidecar music should return at least one artifact');
+      const first = output.artifacts[0];
+      const mimeType = String(first?.mimeType || '').trim().toLowerCase();
+      assert.ok(mimeType.startsWith('audio/'), `local sidecar music artifact mimeType must be audio/*, got ${mimeType}`);
+      const bytesLength = first?.bytes?.length || 0;
+      const uri = String(first?.uri || '').trim();
+      assert.ok(bytesLength > 0 || uri.length > 0, 'local sidecar music artifact must contain bytes or uri');
+    },
+  });
 });
 
 test('nimi sdk ai-provider live smoke: nimillm generate text', {
@@ -538,6 +604,7 @@ type ProviderCapability =
   | 'video'
   | 'tts'
   | 'stt'
+  | 'music'
   | 'voice_clone'
   | 'voice_design';
 
@@ -562,6 +629,9 @@ function canonicalCapability(value: string): ProviderCapability | null {
   }
   if (normalized === 'audio.transcribe') {
     return 'stt';
+  }
+  if (normalized === 'music.generate' || normalized === 'music.generate.iteration') {
+    return 'music';
   }
   return null;
 }
@@ -802,9 +872,13 @@ function buildRuntimeEnvForProvider(t: { skip: (msg?: string) => void }, provide
       return null;
     }
     const apiKey = String(process.env.NIMI_LIVE_LOCAL_API_KEY || '').trim();
+    const sidecarBaseURL = String(process.env.NIMI_LIVE_LOCAL_SIDECAR_BASE_URL || '').trim();
+    const sidecarAPIKey = String(process.env.NIMI_LIVE_LOCAL_SIDECAR_API_KEY || '').trim();
     return {
       NIMI_RUNTIME_LOCAL_AI_BASE_URL: baseURL,
       ...(apiKey ? { NIMI_RUNTIME_LOCAL_AI_API_KEY: apiKey } : {}),
+      ...(sidecarBaseURL ? { NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL: sidecarBaseURL } : {}),
+      ...(sidecarAPIKey ? { NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY: sidecarAPIKey } : {}),
     };
   }
 
@@ -816,6 +890,12 @@ function buildRuntimeEnvForProvider(t: { skip: (msg?: string) => void }, provide
   return {
     ...(baseURL ? { [`NIMI_RUNTIME_CLOUD_${token}_BASE_URL`]: baseURL } : {}),
     [`NIMI_RUNTIME_CLOUD_${token}_API_KEY`]: apiKey,
+    ...(provider === 'mubert' && envValue(['NIMI_LIVE_MUBERT_CUSTOMER_ID'])
+      ? { NIMI_RUNTIME_CLOUD_MUBERT_CUSTOMER_ID: envValue(['NIMI_LIVE_MUBERT_CUSTOMER_ID']) }
+      : {}),
+    ...(provider === 'mubert' && envValue(['NIMI_LIVE_MUBERT_ACCESS_TOKEN'])
+      ? { NIMI_RUNTIME_CLOUD_MUBERT_ACCESS_TOKEN: envValue(['NIMI_LIVE_MUBERT_ACCESS_TOKEN']) }
+      : {}),
   };
 }
 
@@ -834,6 +914,8 @@ function capabilityModelID(t: { skip: (msg?: string) => void }, provider: string
       return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_TTS_MODEL_ID`, `NIMI_LIVE_${token}_MODEL_ID`]);
     case 'stt':
       return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_STT_MODEL_ID`, `NIMI_LIVE_${token}_MODEL_ID`]);
+    case 'music':
+      return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_MUSIC_MODEL_ID`, `NIMI_LIVE_${token}_MODEL_ID`]);
     case 'voice_clone':
       return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_VOICE_CLONE_MODEL_ID`, `NIMI_LIVE_${token}_TTS_MODEL_ID`]);
     case 'voice_design':
@@ -939,6 +1021,20 @@ async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, cap
     return;
   }
 
+  if (capability === 'music') {
+    const output = await runtime.media.music.generate({
+      model: routedModelId,
+      prompt: 'A short atmospheric cue for a product intro with warm synths and a gentle pulse.',
+      title: 'Nimi SDK Music Smoke',
+      subjectUserId: SUBJECT_USER_ID,
+      route,
+      fallback: 'deny',
+      timeoutMs: 240_000,
+    });
+    assert.ok((output.job?.jobId || '').length > 0, 'matrix music job id should not be empty');
+    return;
+  }
+
   const targetModelId = envValue([
     `NIMI_LIVE_${providerEnvToken(provider)}_${capability === 'voice_clone' ? 'VOICE_CLONE_MODEL_ID_TARGET_MODEL_ID' : 'VOICE_DESIGN_MODEL_ID_TARGET_MODEL_ID'}`,
   ]) || modelId;
@@ -1017,7 +1113,7 @@ async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, cap
 function registerSdkProviderCapabilityMatrixTests() {
   const matrix = loadSourceProviderCapabilityMatrix();
   const orderedProviders = [...matrix.keys()].sort((left, right) => left.localeCompare(right));
-  const orderedCapabilities: ProviderCapability[] = ['generate', 'embed', 'image', 'video', 'tts', 'stt', 'voice_clone', 'voice_design'];
+  const orderedCapabilities: ProviderCapability[] = ['generate', 'embed', 'image', 'video', 'tts', 'stt', 'music', 'voice_clone', 'voice_design'];
 
   for (const provider of orderedProviders) {
     const capabilitySet = matrix.get(provider) || new Set<ProviderCapability>();

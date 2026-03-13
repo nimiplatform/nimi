@@ -8,6 +8,7 @@ export const SERVICE_REGISTRY_TYPES_SECTION = [
   'export type RealmRawRequestInput = {',
   '  method: RealmHttpMethod;',
   '  path: string;',
+  '  pathParams?: Record<string, string | number>;',
   '  query?: Record<string, unknown>;',
   '  body?: unknown;',
   '  headers?: Record<string, string>;',
@@ -160,6 +161,7 @@ export const SERVICE_REGISTRY_TYPES_SECTION = [
   'type ServiceCallOptions = {',
   '  headers?: Record<string, string>;',
   '  timeoutMs?: number;',
+  '  signal?: AbortSignal;',
   '};',
   '',
 ];

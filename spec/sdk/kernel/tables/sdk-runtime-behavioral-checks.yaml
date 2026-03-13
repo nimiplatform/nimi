@@ -40,6 +40,10 @@ projections:
     rule: connector_field_prevalidation
     requirement: optional client-side CreateConnector api_key and UpdateConnector mutable-field checks
     source_rule: S-RUNTIME-071
+  - area: media
+    rule: music_iteration_fail_fast
+    requirement: runtime.media.music.iterate validates mode, source audio base64, and trim ordering before RPC submit
+    source_rule: S-RUNTIME-072
   # --- transport behavioral checks ---
   - area: transport
     rule: stream_finish_projection

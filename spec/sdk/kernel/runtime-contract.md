@@ -17,6 +17,8 @@ Runtime 子路径公开方法集合由 `runtime-method-groups.yaml` 约束，必
 
 允许在 `Runtime` 类上提供 ergonomic convenience 方法（如 `generate()` / `stream()`），但必须是对既有 runtime text surface 的薄投影，不得分叉推理语义、错误语义或 trace/usage 语义。
 
+media convenience 也必须遵守同一原则：新增 ergonomic API 只能封装既有 `ScenarioJob` + artifact 主链，不得引入新的推理语义或绕过 runtime 校验。`runtime.media.music.iterate()` 属于允许的薄投影，必须复用 `MUSIC_GENERATE` 与 `nimi.scenario.music_generate.request` 扩展面。
+
 high-level convenience targeting 必须满足：
 
 - `runtime.generate({ prompt })` / `stream({ prompt })`：本地默认文本模型
@@ -97,3 +99,14 @@ SDK 可在客户端侧对 Connector 操作执行预校验以改善 DX（`K-RPC-0
 - `UpdateConnector`: 至少包含一个可变字段，否则建议在客户端侧提前拒绝。
 
 此规则为建议性（SHOULD），服务端强制校验是权威。客户端预校验旨在减少无效 RPC 往返。
+
+## S-RUNTIME-072 Music Iteration Fail-Fast
+
+SDK 对 `runtime.media.music.iterate()` 必须执行最小 fail-fast 预校验，以减少无效 RPC 往返：
+
+- `mode` 只能是 `extend | remix | reference`
+- `sourceAudioBase64` 必须非空且可解码
+- `trimStartSec` / `trimEndSec` 必须为非负数
+- 同时提供 start/end 时必须 `trimEndSec > trimStartSec`
+
+该预校验不得替代 runtime 权威校验；服务端 reason code 仍是权威事实源。

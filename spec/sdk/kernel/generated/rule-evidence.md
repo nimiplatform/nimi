@@ -89,6 +89,7 @@
 | `S-RUNTIME-069` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-RUNTIME-070` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-RUNTIME-071` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-RUNTIME-072` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-SCOPE-001` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-SCOPE-002` | `covered` | `sdk_kernel_consistency` |
 | `S-SCOPE-003` | `covered` | `sdk_kernel_consistency` |

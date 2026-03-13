@@ -277,11 +277,54 @@ export type SpeechListVoicesOutput = {
   voiceCount?: number;
 };
 
+export type MusicGenerateInput = {
+  model: string;
+  prompt: string;
+  subjectUserId?: string;
+  negativePrompt?: string;
+  lyrics?: string;
+  style?: string;
+  title?: string;
+  durationSeconds?: number;
+  instrumental?: boolean;
+  extensions?: Record<string, unknown>;
+  route?: NimiRoutePolicy;
+  fallback?: NimiFallbackPolicy;
+  timeoutMs?: number;
+  connectorId?: string;
+  metadata?: Record<string, string>;
+  idempotencyKey?: string;
+  requestId?: string;
+  labels?: Record<string, string>;
+  signal?: AbortSignal;
+};
+
+export type MusicIterationMode = 'extend' | 'remix' | 'reference';
+
+export type MusicIterationExtensionInput = {
+  mode: MusicIterationMode;
+  sourceAudioBase64: string;
+  sourceMimeType?: string;
+  trimStartSec?: number;
+  trimEndSec?: number;
+};
+
+export type MusicIterateInput = Omit<MusicGenerateInput, 'extensions'> & {
+  iteration: MusicIterationExtensionInput;
+};
+
+export type MusicGenerateOutput = {
+  job: ScenarioJob;
+  artifacts: ScenarioArtifact[];
+  trace: NimiTraceInfo;
+};
+
 export type ScenarioJobSubmitInput =
   | { modal: 'image'; input: ImageGenerateInput }
   | { modal: 'video'; input: VideoGenerateInput }
   | { modal: 'tts'; input: SpeechSynthesizeInput }
-  | { modal: 'stt'; input: SpeechTranscribeInput };
+  | { modal: 'stt'; input: SpeechTranscribeInput }
+  | { modal: 'music'; input: MusicGenerateInput };
 
 export type RuntimeMediaModule = {
   image: {
@@ -299,6 +342,10 @@ export type RuntimeMediaModule = {
   };
   stt: {
     transcribe(input: SpeechTranscribeInput): Promise<SpeechTranscribeOutput>;
+  };
+  music: {
+    generate(input: MusicGenerateInput): Promise<MusicGenerateOutput>;
+    iterate(input: MusicIterateInput): Promise<MusicGenerateOutput>;
   };
   jobs: {
     submit(input: ScenarioJobSubmitInput): Promise<ScenarioJob>;

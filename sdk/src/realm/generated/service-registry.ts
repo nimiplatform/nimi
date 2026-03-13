@@ -7,6 +7,7 @@ import type { paths } from './schema.js';
 export type RealmRawRequestInput = {
   method: RealmHttpMethod;
   path: string;
+  pathParams?: Record<string, string | number>;
   query?: Record<string, unknown>;
   body?: unknown;
   headers?: Record<string, string>;
@@ -159,6 +160,7 @@ export type RealmGeneratedServiceRegistry = {
 type ServiceCallOptions = {
   headers?: Record<string, string>;
   timeoutMs?: number;
+  signal?: AbortSignal;
 };
 
 function hasValue(value: unknown): boolean {
@@ -177,6 +179,13 @@ function isServiceCallOptions(value: unknown): value is ServiceCallOptions {
   if (!isRecord(value)) {
     return false;
   }
+  const keys = Object.keys(value);
+  if (keys.length === 0) {
+    return false;
+  }
+  if (!keys.every((key) => key === 'headers' || key === 'timeoutMs' || key === 'signal')) {
+    return false;
+  }
   if ('timeoutMs' in value) {
     const timeoutMs = value.timeoutMs;
     if (timeoutMs !== undefined && !(typeof timeoutMs === 'number' && Number.isFinite(timeoutMs) && timeoutMs > 0)) {
@@ -189,17 +198,29 @@ function isServiceCallOptions(value: unknown): value is ServiceCallOptions {
       return false;
     }
   }
+  if ('signal' in value) {
+    const signal = value.signal;
+    if (signal !== undefined && signal !== null && typeof signal !== 'object') {
+      return false;
+    }
+  }
   return true;
 }
 
 function bindOperationInput(definition: RealmOperationDefinition, args: unknown[]): RealmRawRequestInput {
+  const values = [...args];
+  const trailing = values[values.length - 1];
+  const options = isServiceCallOptions(trailing) ? trailing : undefined;
+  if (options) {
+    values.pop();
+  }
   let index = 0;
   const query: Record<string, unknown> = {};
   const headerParams: Record<string, string> = {};
   let path = definition.path;
 
   for (const parameter of definition.parameters) {
-    const value = args[index];
+    const value = values[index];
     index += 1;
 
     if (parameter.in === 'path') {
@@ -231,13 +252,10 @@ function bindOperationInput(definition: RealmOperationDefinition, args: unknown[
     }
   }
 
-  const body = definition.hasBody ? args[index] : undefined;
+  const body = definition.hasBody ? values[index] : undefined;
   if (definition.hasBody) {
     index += 1;
   }
-
-  const maybeOptions = args[index];
-  const options = isServiceCallOptions(maybeOptions) ? maybeOptions : undefined;
   const headers = {
     ...headerParams,
     ...(options?.headers || {}),
@@ -250,6 +268,7 @@ function bindOperationInput(definition: RealmOperationDefinition, args: unknown[
     body,
     headers: Object.keys(headers).length > 0 ? headers : undefined,
     timeoutMs: options?.timeoutMs,
+    signal: options?.signal,
   };
 }
 

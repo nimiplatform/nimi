@@ -17,6 +17,8 @@ import {
 import type { RuntimeInternalContext } from './internal-context.js';
 import type {
   ImageGenerateInput,
+  MusicIterationExtensionInput,
+  MusicGenerateInput,
   NimiFallbackPolicy,
   NimiRoutePolicy,
   ScenarioJobSubmitInput,
@@ -48,6 +50,99 @@ export interface LocalImageWorkflowComponentSelection {
 export interface LocalImageWorkflowExtensionInput {
   components?: LocalImageWorkflowComponentSelection[];
   profileOverrides?: Record<string, unknown>;
+}
+
+const MUSIC_ITERATION_MODES = new Set(['extend', 'remix', 'reference']);
+
+export function buildMusicIterationExtensions(
+  input: MusicIterationExtensionInput,
+): Record<string, unknown> {
+  const mode = normalizeText(input.mode).toLowerCase();
+  const sourceAudioBase64 = normalizeText(input.sourceAudioBase64);
+  const trimStartSec = normalizeOptionalMusicIterationSecond(input.trimStartSec, 'trimStartSec');
+  const trimEndSec = normalizeOptionalMusicIterationSecond(input.trimEndSec, 'trimEndSec');
+
+  if (!MUSIC_ITERATION_MODES.has(mode)) {
+    throw createMusicIterationValidationError('music iteration mode must be extend, remix, or reference');
+  }
+  if (!sourceAudioBase64 || !isValidMusicIterationBase64(sourceAudioBase64)) {
+    throw createMusicIterationValidationError('music iteration sourceAudioBase64 must be valid base64 audio content');
+  }
+  if (
+    trimStartSec !== undefined
+    && trimEndSec !== undefined
+    && trimEndSec <= trimStartSec
+  ) {
+    throw createMusicIterationValidationError('music iteration trimEndSec must be greater than trimStartSec');
+  }
+
+  const payload: Record<string, unknown> = {
+    mode,
+    source_audio_base64: sourceAudioBase64,
+  };
+  if (input.sourceMimeType) {
+    payload.source_mime_type = normalizeText(input.sourceMimeType);
+  }
+  if (trimStartSec !== undefined) {
+    payload.trim_start_sec = trimStartSec;
+  }
+  if (trimEndSec !== undefined) {
+    payload.trim_end_sec = trimEndSec;
+  }
+  return payload;
+}
+
+function normalizeOptionalMusicIterationSecond(
+  value: number | undefined,
+  field: 'trimStartSec' | 'trimEndSec',
+): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  const normalized = Number(value);
+  if (!Number.isFinite(normalized) || normalized < 0) {
+    throw createMusicIterationValidationError(`music iteration ${field} must be a non-negative finite number`);
+  }
+  return normalized;
+}
+
+function createMusicIterationValidationError(message: string) {
+  return createNimiError({
+    message,
+    reasonCode: ReasonCode.AI_MEDIA_SPEC_INVALID,
+    actionHint: 'fix_music_iteration_input',
+    source: 'sdk',
+  });
+}
+
+function isValidMusicIterationBase64(value: string): boolean {
+  const normalized = value.replace(/\s+/g, '');
+  if (!normalized) {
+    return false;
+  }
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(normalized) || normalized.length % 4 === 1) {
+    return false;
+  }
+  if (typeof Buffer !== 'undefined') {
+    try {
+      const decoded = Buffer.from(normalized, 'base64');
+      if (decoded.length === 0) {
+        return false;
+      }
+      const canonical = decoded.toString('base64').replace(/=+$/u, '');
+      return canonical === normalized.replace(/=+$/u, '');
+    } catch {
+      return false;
+    }
+  }
+  if (typeof atob !== 'undefined') {
+    try {
+      return atob(normalized).length > 0;
+    } catch {
+      return false;
+    }
+  }
+  return false;
 }
 
 export function buildLocalImageWorkflowExtensions(
@@ -335,6 +430,27 @@ export async function runtimeBuildSubmitScenarioJobRequestForMedia(
     };
   }
 
+  if (input.modal === 'music') {
+    const value = input.input as MusicGenerateInput;
+    return {
+      ...base,
+      spec: {
+        spec: {
+          oneofKind: 'musicGenerate',
+          musicGenerate: {
+            prompt: normalizeText(value.prompt),
+            negativePrompt: normalizeText(value.negativePrompt),
+            lyrics: normalizeText(value.lyrics),
+            style: normalizeText(value.style),
+            title: normalizeText(value.title),
+            durationSeconds: Number(value.durationSeconds || 0),
+            instrumental: Boolean(value.instrumental),
+          },
+        },
+      },
+    };
+  }
+
   const value = input.input as SpeechTranscribeInput;
   const audioSource = value.audio.kind === 'bytes'
     ? {
@@ -406,6 +522,8 @@ function scenarioTypeFromModal(modal: ScenarioJobSubmitInput['modal']): Scenario
       return ScenarioType.SPEECH_SYNTHESIZE;
     case 'stt':
       return ScenarioType.SPEECH_TRANSCRIBE;
+    case 'music':
+      return ScenarioType.MUSIC_GENERATE;
     default:
       return ScenarioType.UNSPECIFIED;
   }
@@ -416,6 +534,7 @@ const MODAL_EXTENSION_NAMESPACE: Record<ScenarioJobSubmitInput['modal'], string>
   video: 'nimi.scenario.video.request',
   tts: 'nimi.scenario.speech_synthesize.request',
   stt: 'nimi.scenario.speech_transcribe.request',
+  music: 'nimi.scenario.music_generate.request',
 };
 
 function toScenarioExtensions(

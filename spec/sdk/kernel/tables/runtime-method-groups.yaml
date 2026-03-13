@@ -37,6 +37,17 @@ groups:
       - UpsertModelCatalogProvider
       - DeleteModelCatalogProvider
     source_rule: S-SURFACE-002
+  - group: ai_realtime_service_projection
+    service: RuntimeAiRealtimeService
+    phase: 1
+    status: active
+    source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - OpenRealtimeSession
+      - AppendRealtimeInput
+      - ReadRealtimeEvents
+      - CloseRealtimeSession
+    source_rule: S-SURFACE-002
   - group: local_service_projection
     service: RuntimeLocalService
     phase: 1

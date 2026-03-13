@@ -191,6 +191,7 @@ export type { TranslateRequestDto } from './generated/models/TranslateRequestDto
 export type { TranslateResponseDto } from './generated/models/TranslateResponseDto';
 export type { UpdateAgentDnaDto } from './generated/models/UpdateAgentDnaDto';
 export type { UpdateAgentVisibilityDto } from './generated/models/UpdateAgentVisibilityDto';
+export type { UpdateCreatorAgentDto } from './generated/models/UpdateCreatorAgentDto';
 export type { UpdateNarrativeSpineEventDto } from './generated/models/UpdateNarrativeSpineEventDto';
 export type { UpdatePasswordRequestDto } from './generated/models/UpdatePasswordRequestDto';
 export type { UpdatePostDto } from './generated/models/UpdatePostDto';

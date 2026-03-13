@@ -1,8 +1,14 @@
-export type RuntimeModality = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding';
+export type RuntimeModality = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | 'music';
 
-export type LocalEngine = 'localai' | 'nexa' | string;
+export type LocalEngine = 'localai' | 'nexa' | 'sidecar' | string;
 
-export type LocalAiProviderAdapter = 'openai_compat_adapter' | 'localai_native_adapter' | string;
+export type LocalAiProviderAdapter =
+  | 'openai_compat_adapter'
+  | 'localai_native_adapter'
+  | 'nexa_native_adapter'
+  | 'localai_music_adapter'
+  | 'sidecar_music_adapter'
+  | string;
 
 export type NexaProviderHints = {
   backend?: string;

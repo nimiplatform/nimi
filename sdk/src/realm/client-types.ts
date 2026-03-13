@@ -24,15 +24,25 @@ export type RealmTokenRefreshResult = {
 
 export type RealmFetchImpl = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
+export type RealmAuthOptions = {
+  accessToken?: string | (() => Promise<string> | string);
+  refreshToken?: string | (() => Promise<string> | string);
+  onTokenRefreshed?: (result: RealmTokenRefreshResult) => void;
+  onRefreshFailed?: (error: unknown) => void;
+};
+
+export type RealmRetryOptions = {
+  maxRetries?: number;
+  retryableStatuses?: number[];
+  backoffMs?: number;
+  maxBackoffMs?: number;
+};
+
 export type RealmOptions = {
   baseUrl: string;
-  auth?: {
-    accessToken?: string | (() => Promise<string> | string);
-    refreshToken?: string | (() => Promise<string> | string);
-    onTokenRefreshed?: (result: RealmTokenRefreshResult) => void;
-    onRefreshFailed?: (error: unknown) => void;
-  } | null;
+  auth?: RealmAuthOptions | null;
   headers?: Record<string, string> | (() => Promise<Record<string, string>> | Record<string, string>);
+  retry?: RealmRetryOptions;
   timeoutMs?: number;
   fetchImpl?: RealmFetchImpl;
   telemetry?: {
