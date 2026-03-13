@@ -318,7 +318,6 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
                 void handleRemove();
               } : undefined}
               showMessageButton
-              fullBleed
             />
           </div>
         </div>

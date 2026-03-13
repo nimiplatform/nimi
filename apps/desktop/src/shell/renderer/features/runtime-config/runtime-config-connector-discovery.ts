@@ -1,13 +1,14 @@
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { ProviderStatusV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { localAiRuntime } from '@runtime/local-ai-runtime';
-import { getPlatformClient } from '@runtime/platform-client';
+import type { GetRuntimeHealthResponse } from '@nimiplatform/sdk/runtime';
 import { asNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   sdkTestConnector,
   sdkListConnectorModelDescriptors,
 } from './runtime-config-connector-sdk-service';
+import { getRuntimeHealthCoordinator } from './runtime-health-coordinator';
 
 type HealthResult = {
   status: 'healthy' | 'degraded' | 'unreachable' | 'unsupported';
@@ -21,6 +22,32 @@ function statusFromRuntimeHealth(status: number): ProviderStatusV11 {
   if (status === 4) return 'degraded';
   if (status === 1 || status === 5) return 'unreachable';
   return 'idle';
+}
+
+function timestampToIsoString(ts?: { seconds: string; nanos: number }): string {
+  if (!ts) {
+    return new Date().toISOString();
+  }
+  const ms = Number(ts.seconds) * 1000 + Math.floor(ts.nanos / 1_000_000);
+  if (Number.isNaN(ms)) {
+    return new Date().toISOString();
+  }
+  return new Date(ms).toISOString();
+}
+
+export function normalizeRuntimeHealthResult(result: GetRuntimeHealthResponse): {
+  health: HealthResult;
+  normalizedStatus: ProviderStatusV11;
+} {
+  const normalizedStatus = statusFromRuntimeHealth(result.status);
+  return {
+    health: {
+      status: normalizedStatus === 'idle' ? 'healthy' : normalizedStatus as HealthResult['status'],
+      detail: String(result.reason || '').trim() || `runtime health ${normalizedStatus}`,
+      checkedAt: timestampToIsoString(result.sampledAt),
+    },
+    normalizedStatus,
+  };
 }
 
 export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV11) {
@@ -51,23 +78,19 @@ export async function checkLocalHealth(): Promise<{
   health: HealthResult;
   normalizedStatus: ProviderStatusV11;
 }> {
-  const runtime = getPlatformClient().runtime;
-  const result = await runtime.audit.getRuntimeHealth({}, { timeoutMs: 5000 }).catch((error: unknown) => {
+  try {
+    const snapshot = await getRuntimeHealthCoordinator().forceRefresh('local-health-check');
+    if (!snapshot.runtimeHealth) {
+      throw new Error(snapshot.error || snapshot.streamError || 'runtime health unavailable');
+    }
+    return normalizeRuntimeHealthResult(snapshot.runtimeHealth);
+  } catch (error) {
     throw asNimiError(error, {
       reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
       actionHint: 'check_runtime_daemon_health',
       source: 'runtime',
     });
-  });
-  const status = statusFromRuntimeHealth(result.status);
-  return {
-    health: {
-      status: status === 'idle' ? 'healthy' : status as HealthResult['status'],
-      detail: '',
-      checkedAt: new Date().toISOString(),
-    },
-    normalizedStatus: status,
-  };
+  }
 }
 
 export async function discoverConnectorModelsAndHealth(input: {

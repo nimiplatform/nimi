@@ -147,7 +147,7 @@ export function AgentDetailView(props: AgentDetailViewProps) {
       </div>
 
       <div className="app-scroll-shell flex-1 overflow-y-auto bg-gray-50">
-        <div className="mx-auto max-w-md px-6 py-8">
+        <div className="mx-auto w-[min(1400px,calc(100vw-48px))] py-8">
           {/* Profile Card */}
           <div className="relative rounded-[24px] bg-white shadow-lg overflow-hidden">
             {/* Banner Background */}

@@ -2,9 +2,8 @@ import { useEffect } from 'react';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { fetchProviderHealth, fetchRuntimeHealth, subscribeProviderHealth, subscribeRuntimeHealth } from '@renderer/features/runtime-config/runtime-config-audit-sdk-service';
+import { useRuntimeHealthCoordinatorState } from '@renderer/features/runtime-config/runtime-health-coordinator';
 
-const MENU_BAR_SYNC_INTERVAL_MS = 10_000;
 const MENU_BAR_SYNC_DEBOUNCE_MS = 250;
 
 function normalizeRuntimeHealthStatus(status: number | undefined): string | undefined {
@@ -46,100 +45,63 @@ function summarizeProviderStates(providers: Array<{ state?: unknown }>): {
 export function useMenuBarRuntimeSync(): void {
   const flags = getShellFeatureFlags();
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
+  const healthState = useRuntimeHealthCoordinatorState();
 
   useEffect(() => {
     if (!flags.enableMenuBarShell || !bootstrapReady || !desktopBridge.hasTauriInvoke()) {
       return;
     }
 
-    let disposed = false;
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-    let intervalId: ReturnType<typeof setInterval> | null = null;
-
     const runSync = async () => {
-      const updatedAt = new Date().toISOString();
       const payload: {
         runtimeHealthStatus?: string;
         runtimeHealthReason?: string;
         providerSummary?: { healthy: number; unhealthy: number; unknown: number; total: number };
         updatedAt: string;
       } = {
-        updatedAt,
+        updatedAt: healthState.lastStreamAt || healthState.lastFetchedAt || new Date().toISOString(),
       };
 
-      const [healthResult, providerResult] = await Promise.allSettled([
-        fetchRuntimeHealth(),
-        fetchProviderHealth(),
-      ]);
-
-      if (healthResult.status === 'fulfilled') {
-        payload.runtimeHealthStatus = normalizeRuntimeHealthStatus(healthResult.value.status);
-        if (healthResult.value.reason) {
-          payload.runtimeHealthReason = String(healthResult.value.reason);
+      if (healthState.runtimeHealth) {
+        payload.runtimeHealthStatus = normalizeRuntimeHealthStatus(healthState.runtimeHealth.status);
+        if (healthState.runtimeHealth.reason) {
+          payload.runtimeHealthReason = String(healthState.runtimeHealth.reason);
         }
-      } else {
-        payload.runtimeHealthReason = healthResult.reason instanceof Error
-          ? healthResult.reason.message
-          : String(healthResult.reason || 'runtime health unavailable');
       }
 
-      if (providerResult.status === 'fulfilled') {
-        payload.providerSummary = summarizeProviderStates(providerResult.value.providers || []);
+      if (!payload.runtimeHealthReason && (healthState.error || healthState.streamError)) {
+        payload.runtimeHealthReason = healthState.error || healthState.streamError || undefined;
       }
 
-      if (!disposed) {
-        await desktopBridge.syncMenuBarRuntimeHealth(payload).catch(() => undefined);
+      if (healthState.providerHealth.length > 0) {
+        payload.providerSummary = summarizeProviderStates(healthState.providerHealth);
       }
+
+      await desktopBridge.syncMenuBarRuntimeHealth(payload).catch(() => undefined);
     };
 
-    const queueSync = () => {
-      if (disposed) {
-        return;
-      }
-      if (debounceTimer) {
-        clearTimeout(debounceTimer);
-      }
-      debounceTimer = setTimeout(() => {
-        debounceTimer = null;
-        void runSync();
-      }, MENU_BAR_SYNC_DEBOUNCE_MS);
-    };
-
-    void runSync();
-    intervalId = setInterval(() => {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+    }
+    debounceTimer = setTimeout(() => {
+      debounceTimer = null;
       void runSync();
-    }, MENU_BAR_SYNC_INTERVAL_MS);
-
-    void subscribeRuntimeHealth()
-      .then(async (stream) => {
-        for await (const _event of stream) {
-          if (disposed) {
-            break;
-          }
-          queueSync();
-        }
-      })
-      .catch(() => undefined);
-
-    void subscribeProviderHealth()
-      .then(async (stream) => {
-        for await (const _event of stream) {
-          if (disposed) {
-            break;
-          }
-          queueSync();
-        }
-      })
-      .catch(() => undefined);
+    }, MENU_BAR_SYNC_DEBOUNCE_MS);
 
     return () => {
-      disposed = true;
       if (debounceTimer) {
         clearTimeout(debounceTimer);
       }
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
     };
-  }, [bootstrapReady, flags.enableMenuBarShell]);
+  }, [
+    bootstrapReady,
+    flags.enableMenuBarShell,
+    healthState.error,
+    healthState.lastFetchedAt,
+    healthState.lastStreamAt,
+    healthState.providerHealth,
+    healthState.runtimeHealth,
+    healthState.streamError,
+  ]);
 }

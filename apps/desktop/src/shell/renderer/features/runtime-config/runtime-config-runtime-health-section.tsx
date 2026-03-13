@@ -16,7 +16,6 @@ import {
   timestampToIso,
   relativeTimeShort,
 } from './runtime-config-global-audit-view-model.js';
-import { useRuntimeHealthStream } from './runtime-config-use-runtime-health-stream.js';
 
 // Icon Button Component
 function IconButton({
@@ -62,6 +61,9 @@ type RuntimeHealthSectionProps = {
   providerHealth: AIProviderHealthSnapshot[];
   loading: boolean;
   error: string | null;
+  streamConnected: boolean;
+  streamError: string | null;
+  stale: boolean;
   onRefresh: () => void;
 };
 
@@ -70,25 +72,13 @@ export function RuntimeHealthSection({
   providerHealth,
   loading,
   error,
+  streamConnected,
+  streamError,
+  stale,
   onRefresh,
 }: RuntimeHealthSectionProps) {
   const { t } = useTranslation();
-  const [liveEnabled] = useState(true);
-  const stream = useRuntimeHealthStream(liveEnabled);
-
-  const health = stream.latestHealth
-    ? {
-        status: stream.latestHealth.status,
-        reason: stream.latestHealth.reason,
-        queueDepth: stream.latestHealth.queueDepth,
-        activeWorkflows: stream.latestHealth.activeWorkflows,
-        activeInferenceJobs: stream.latestHealth.activeInferenceJobs,
-        cpuMilli: stream.latestHealth.cpuMilli,
-        memoryBytes: stream.latestHealth.memoryBytes,
-        vramBytes: stream.latestHealth.vramBytes,
-        sampledAt: stream.latestHealth.sampledAt,
-      }
-    : runtimeHealth;
+  const health = runtimeHealth;
 
   const [expandedProviders, setExpandedProviders] = useState<Set<string>>(new Set());
 
@@ -110,19 +100,19 @@ export function RuntimeHealthSection({
         <div className="flex items-center gap-2">
           <span
             className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-              stream.streaming
+              streamConnected && !stale
                 ? 'bg-green-100 text-green-700'
-                : liveEnabled
+                : runtimeHealth
                   ? 'bg-yellow-100 text-yellow-700'
                   : 'bg-gray-100 text-gray-600'
             }`}
           >
             <span className={`h-1.5 w-1.5 rounded-full ${
-              stream.streaming ? 'bg-green-500' : liveEnabled ? 'bg-yellow-500' : 'bg-gray-400'
+              streamConnected && !stale ? 'bg-green-500' : runtimeHealth ? 'bg-yellow-500' : 'bg-gray-400'
             }`} />
-            {stream.streaming
+            {streamConnected && !stale
               ? t('runtimeConfig.runtime.live', { defaultValue: 'Live' })
-              : liveEnabled
+              : runtimeHealth
                 ? t('runtimeConfig.runtime.connecting', { defaultValue: 'Connecting...' })
                 : t('runtimeConfig.runtime.off', { defaultValue: 'Off' })}
           </span>
@@ -139,9 +129,9 @@ export function RuntimeHealthSection({
         <p className="text-xs text-red-600">{error}</p>
       ) : null}
 
-      {stream.streamError ? (
+      {streamError ? (
         <p className="text-xs text-yellow-600">
-          {t('runtimeConfig.runtime.streamError', { defaultValue: 'Stream error' })}: {stream.streamError}
+          {t('runtimeConfig.runtime.streamError', { defaultValue: 'Stream error' })}: {streamError}
         </p>
       ) : null}
 

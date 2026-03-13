@@ -271,6 +271,9 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
         providerHealth={auditData.providerHealth}
         loading={auditData.healthLoading}
         error={auditData.healthError}
+        streamConnected={auditData.healthStreamConnected}
+        streamError={auditData.healthStreamError}
+        stale={auditData.healthStale}
         onRefresh={() => void auditData.loadHealth()}
       />
 

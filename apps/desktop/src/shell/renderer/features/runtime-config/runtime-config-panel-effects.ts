@@ -7,10 +7,10 @@ import { useRuntimeConfigHydrationEffect } from './runtime-config-effect-hydrati
 import { useRuntimeConfigVaultSyncEffect } from './runtime-config-effect-vault-sync';
 import { useRuntimeConfigRouteInitEffect } from './runtime-config-effect-route-init';
 import { useRuntimeConfigSetupAutodiscoverEffect } from './runtime-config-effect-setup-autodiscover';
-import { checkLocalHealth } from './runtime-config-connector-discovery';
+import { normalizeRuntimeHealthResult } from './runtime-config-connector-discovery';
+import { useRuntimeHealthCoordinatorState } from './runtime-health-coordinator';
 
 const LOCAL_SNAPSHOT_POLL_INTERVAL_MS = 30_000;
-const LOCAL_HEALTH_POLL_INTERVAL_MS = 30_000;
 
 type RuntimeConfigPanelEffectsInput = {
   bootstrapReady: boolean;
@@ -63,6 +63,8 @@ function mergeLocalSnapshot(
 }
 
 export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInput) {
+  const runtimeHealthState = useRuntimeHealthCoordinatorState();
+
   useRuntimeConfigHydrationEffect({
     bootstrapReady: input.bootstrapReady,
     hydrated: input.hydrated,
@@ -107,38 +109,31 @@ export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInp
   }, [input.hydrated, input.setState]);
 
   useEffect(() => {
-    if (!input.hydrated) return;
-    let cancelled = false;
-
-    const runHealthCheck = async () => {
-      try {
-        const { health, normalizedStatus } = await checkLocalHealth();
-        if (cancelled) return;
-        input.setState((previous) => {
-          if (!previous) return previous;
-          return {
-            ...previous,
-            local: {
-              ...previous.local,
-              status: normalizedStatus,
-              lastCheckedAt: health.checkedAt,
-              lastDetail: health.detail,
-            },
-          };
-        });
-      } catch {
-        // keep last known runtime health snapshot on polling failure
+    if (!input.hydrated || runtimeHealthState.stale || !runtimeHealthState.runtimeHealth) return;
+    const { health, normalizedStatus } = normalizeRuntimeHealthResult(runtimeHealthState.runtimeHealth);
+    input.setState((previous) => {
+      if (!previous) return previous;
+      if (
+        previous.local.status === normalizedStatus
+        && previous.local.lastCheckedAt === health.checkedAt
+        && previous.local.lastDetail === health.detail
+      ) {
+        return previous;
       }
-    };
-
-    void runHealthCheck();
-    const timer = setInterval(() => {
-      void runHealthCheck();
-    }, LOCAL_HEALTH_POLL_INTERVAL_MS);
-
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, [input.hydrated, input.setState]);
+      return {
+        ...previous,
+        local: {
+          ...previous.local,
+          status: normalizedStatus,
+          lastCheckedAt: health.checkedAt,
+          lastDetail: health.detail,
+        },
+      };
+    });
+  }, [
+    input.hydrated,
+    input.setState,
+    runtimeHealthState.runtimeHealth,
+    runtimeHealthState.stale,
+  ]);
 }

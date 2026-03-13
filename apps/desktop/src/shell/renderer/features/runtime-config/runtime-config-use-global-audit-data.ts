@@ -1,19 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type {
-  GetRuntimeHealthResponse,
   AIProviderHealthSnapshot,
   AuditEventRecord,
+  GetRuntimeHealthResponse,
   UsageStatRecord,
 } from '@nimiplatform/sdk/runtime';
 import { UsageWindow } from '@nimiplatform/sdk/runtime';
 import {
   fetchGlobalAuditEvents,
   fetchUsageStats,
-  fetchRuntimeHealth,
-  fetchProviderHealth,
   startAuditExport,
   dateToTimestamp,
 } from './runtime-config-audit-sdk-service.js';
+import { getRuntimeHealthCoordinator, useRuntimeHealthCoordinatorState } from './runtime-health-coordinator.js';
 
 type AuditFilters = {
   domain: string;
@@ -29,11 +28,7 @@ type UsageFilters = {
 };
 
 export function useGlobalAuditData(enabled: boolean) {
-  // --- Section 1: Health ---
-  const [runtimeHealth, setRuntimeHealth] = useState<GetRuntimeHealthResponse | null>(null);
-  const [providerHealth, setProviderHealth] = useState<AIProviderHealthSnapshot[]>([]);
-  const [healthLoading, setHealthLoading] = useState(false);
-  const [healthError, setHealthError] = useState<string | null>(null);
+  const healthState = useRuntimeHealthCoordinatorState();
 
   // --- Section 2: Global Audit ---
   const [auditEvents, setAuditEvents] = useState<AuditEventRecord[]>([]);
@@ -65,21 +60,11 @@ export function useGlobalAuditData(enabled: boolean) {
     setLocalDebugExpanded((prev) => !prev);
   }, []);
 
-  // --- Health loading ---
   const loadHealth = useCallback(async () => {
-    setHealthLoading(true);
-    setHealthError(null);
     try {
-      const [healthRes, providerRes] = await Promise.all([
-        fetchRuntimeHealth(),
-        fetchProviderHealth(),
-      ]);
-      setRuntimeHealth(healthRes);
-      setProviderHealth(providerRes.providers);
-    } catch (err) {
-      setHealthError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setHealthLoading(false);
+      await getRuntimeHealthCoordinator().forceRefresh('runtime-page-refresh');
+    } catch {
+      // Keep rendering the shared state snapshot on refresh failure.
     }
   }, []);
 
@@ -216,22 +201,10 @@ export function useGlobalAuditData(enabled: boolean) {
     });
   }, [loadUsageStats]);
 
-  // --- Auto-load on mount + health polling ---
-  const healthTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   useEffect(() => {
     if (!enabled) return;
-    void loadHealth();
     void loadAuditEvents();
     void loadUsageStats();
-
-    healthTimerRef.current = setInterval(() => {
-      void loadHealth();
-    }, 10_000);
-
-    return () => {
-      if (healthTimerRef.current) clearInterval(healthTimerRef.current);
-    };
   }, [enabled, loadHealth, loadAuditEvents, loadUsageStats]);
 
   // --- Usage summary ---
@@ -257,10 +230,13 @@ export function useGlobalAuditData(enabled: boolean) {
 
   return {
     // Health
-    runtimeHealth,
-    providerHealth,
-    healthLoading,
-    healthError,
+    runtimeHealth: enabled ? (healthState.runtimeHealth as GetRuntimeHealthResponse | null) : null,
+    providerHealth: enabled ? (healthState.providerHealth as AIProviderHealthSnapshot[]) : [],
+    healthLoading: enabled ? healthState.refreshing : false,
+    healthError: enabled ? (healthState.error || healthState.streamError) : null,
+    healthStreamConnected: enabled ? healthState.streamConnected : false,
+    healthStreamError: enabled ? healthState.streamError : null,
+    healthStale: enabled ? healthState.stale : true,
     loadHealth,
 
     // Audit
