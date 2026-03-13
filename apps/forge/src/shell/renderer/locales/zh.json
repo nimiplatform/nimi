@@ -277,7 +277,7 @@
     "addAsset": "添加资产",
     "mediaImage": "图片",
     "mediaVideo": "视频",
-    "assetIdPlaceholder": "填写图片/视频上传后的 asset id",
+    "assetIdPlaceholder": "填写已选择媒体资源的 asset id",
     "removeAsset": "移除",
     "historyTitle": "最近已发布帖子",
     "untitledPost": "未命名帖子",

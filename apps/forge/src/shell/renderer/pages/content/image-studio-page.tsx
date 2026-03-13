@@ -83,7 +83,7 @@ export default function ImageStudioPage() {
   async function handleSaveToLibrary(image: GeneratedImage) {
     setSaveError(null);
     try {
-      const result = await mutations.imageUploadMutation.mutateAsync();
+      const result = await mutations.imageUploadMutation.mutateAsync(undefined);
       const record = result && typeof result === 'object' ? (result as Record<string, unknown>) : {};
       const uploadUrl = String(record.uploadUrl || '');
 

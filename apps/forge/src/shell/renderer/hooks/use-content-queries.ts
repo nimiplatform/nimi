@@ -5,7 +5,7 @@
 import { useQuery } from '@tanstack/react-query';
 import {
   getHomeFeed,
-  getVideoToken,
+  getMediaAsset,
 } from '@renderer/data/content-data-client.js';
 
 function toRecord(value: unknown): Record<string, unknown> {
@@ -16,7 +16,8 @@ function toRecord(value: unknown): Record<string, unknown> {
 
 export type PostMediaItem = {
   type: 'IMAGE' | 'VIDEO' | 'AUDIO';
-  id: string;
+  assetId: string;
+  url?: string;
   duration?: number;
   thumbnail?: string;
 };
@@ -55,7 +56,8 @@ function toPostList(payload: unknown): PostSummary[] {
                 : 'IMAGE';
             return {
               type,
-              id: String(mr.id || ''),
+              assetId: String(mr.assetId || ''),
+              url: mr.url ? String(mr.url) : undefined,
               duration: mr.duration ? Number(mr.duration) : undefined,
               thumbnail: mr.thumbnail ? String(mr.thumbnail) : undefined,
             };
@@ -85,11 +87,11 @@ export function useCreatorPostsQuery(params?: {
   });
 }
 
-export function useVideoTokenQuery(uid: string) {
+export function useMediaAssetQuery(assetId: string) {
   return useQuery({
-    queryKey: ['forge', 'content', 'video-token', uid],
-    enabled: Boolean(uid),
+    queryKey: ['forge', 'content', 'media-asset', assetId],
+    enabled: Boolean(assetId),
     retry: false,
-    queryFn: async () => toRecord(await getVideoToken(uid)),
+    queryFn: async () => toRecord(await getMediaAsset(assetId)),
   });
 }

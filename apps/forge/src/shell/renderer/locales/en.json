@@ -277,7 +277,7 @@
     "addAsset": "Add Asset",
     "mediaImage": "Image",
     "mediaVideo": "Video",
-    "assetIdPlaceholder": "Asset id from image/video upload",
+    "assetIdPlaceholder": "Selected media asset id",
     "removeAsset": "Remove",
     "historyTitle": "Recent Published Posts",
     "untitledPost": "Untitled post",

@@ -62,7 +62,7 @@ describe('useContentMutations', () => {
     const { result } = renderHook(() => useContentMutations(), { wrapper });
 
     await act(async () => {
-      result.current.imageUploadMutation.mutate();
+      result.current.imageUploadMutation.mutate(undefined);
     });
 
     await vi.waitFor(() => expect(result.current.imageUploadMutation.isSuccess).toBe(true));

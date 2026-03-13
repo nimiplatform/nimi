@@ -89,16 +89,16 @@ export async function deleteWorldLorebook(worldId: string, lorebookId: string) {
 
 // ── Visual Bindings ────────────────────────────────────────
 
-export async function listWorldVisualBindings(worldId: string, query?: Record<string, unknown>) {
-  return realm().worlds.worldControlControllerListWorldVisualBindings(worldId, query?.take as number | undefined, query?.slot as string | undefined);
+export async function listWorldMediaBindings(worldId: string, query?: Record<string, unknown>) {
+  return realm().worlds.worldControlControllerListWorldMediaBindings(worldId, query?.take as number | undefined, query?.slot as string | undefined);
 }
 
-export async function batchUpsertWorldVisualBindings(worldId: string, payload: Record<string, unknown>) {
-  return realm().worlds.worldControlControllerBatchUpsertWorldVisualBindings(worldId, payload);
+export async function batchUpsertWorldMediaBindings(worldId: string, payload: Record<string, unknown>) {
+  return realm().worlds.worldControlControllerBatchUpsertWorldMediaBindings(worldId, payload);
 }
 
-export async function deleteWorldVisualBinding(worldId: string, bindingId: string) {
-  return realm().worlds.worldControlControllerDeleteWorldVisualBinding(worldId, bindingId);
+export async function deleteWorldMediaBinding(worldId: string, bindingId: string) {
+  return realm().worlds.worldControlControllerDeleteWorldMediaBinding(worldId, bindingId);
 }
 
 // ── Creator Agents ─────────────────────────────────────────

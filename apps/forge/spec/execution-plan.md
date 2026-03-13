@@ -162,7 +162,8 @@ Copyright, template marketplace, and analytics are retained only as deferred ext
 #### 4.2 Video Studio
 - Upload zone with drag-and-drop
 - Upload via `POST /api/media/videos/direct-upload`
-- Preview player with playback token
+- Finalize asset via `POST /api/media/assets/{assetId}/finalize`
+- Preview player resolves via `GET /api/media/assets/{assetId}`
 - Per FG-CONTENT-002
 
 #### 4.3 Music Studio
@@ -181,7 +182,8 @@ Copyright, template marketplace, and analytics are retained only as deferred ext
 
 #### 4.5 Audio Upload Backend (NEW)
 - Extend `media.controller.ts` with `POST /api/media/audio/direct-upload`
-- Keep upload semantics aligned with existing image/video direct-upload endpoints
+- Expose `MediaAsset` list/detail/finalize/update/delete endpoints
+- Keep upload semantics aligned with the unified media asset session contract
 - Run `pnpm --dir nimi-backend openapi:dump` after controller creation
 
 #### 4.6 Publishing Frontend

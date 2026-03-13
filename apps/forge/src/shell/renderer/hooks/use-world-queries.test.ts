@@ -9,7 +9,7 @@ const mockWorldDataClient = vi.hoisted(() => ({
   listWorldEvents: vi.fn(),
   getWorldMaintenance: vi.fn(),
   listWorldLorebooks: vi.fn(),
-  listWorldVisualBindings: vi.fn(),
+  listWorldMediaBindings: vi.fn(),
   listWorldMutations: vi.fn(),
 }));
 
@@ -44,7 +44,7 @@ describe('useWorldResourceQueries', () => {
     expect(result.current).toHaveProperty('eventsQuery');
     expect(result.current).toHaveProperty('lorebooksQuery');
     expect(result.current).toHaveProperty('mutationsQuery');
-    expect(result.current).toHaveProperty('visualBindingsQuery');
+    expect(result.current).toHaveProperty('mediaBindingsQuery');
   });
 
   it('when enabled=false, queries do not fetch', async () => {
@@ -63,7 +63,7 @@ describe('useWorldResourceQueries', () => {
     expect(mockWorldDataClient.listWorldEvents).not.toHaveBeenCalled();
     expect(mockWorldDataClient.listWorldLorebooks).not.toHaveBeenCalled();
     expect(mockWorldDataClient.listWorldMutations).not.toHaveBeenCalled();
-    expect(mockWorldDataClient.listWorldVisualBindings).not.toHaveBeenCalled();
+    expect(mockWorldDataClient.listWorldMediaBindings).not.toHaveBeenCalled();
   });
 
   it('draftsQuery normalizes { items: [...] } payload via toDraftSummaryList', async () => {

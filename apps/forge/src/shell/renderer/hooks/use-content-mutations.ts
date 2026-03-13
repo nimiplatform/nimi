@@ -14,15 +14,15 @@ import {
 
 export function useContentMutations() {
   const imageUploadMutation = useMutation({
-    mutationFn: async () => await createImageDirectUpload(),
+    mutationFn: async (requireSignedUrls?: string) => await createImageDirectUpload(requireSignedUrls),
   });
 
   const videoUploadMutation = useMutation({
-    mutationFn: async () => await createVideoDirectUpload(),
+    mutationFn: async (requireSignedUrls?: string) => await createVideoDirectUpload(requireSignedUrls),
   });
 
   const audioUploadMutation = useMutation({
-    mutationFn: async () => await createAudioDirectUpload(),
+    mutationFn: async (payload?: Record<string, unknown>) => await createAudioDirectUpload(payload),
   });
 
   const createPostMutation = useMutation({

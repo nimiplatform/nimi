@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getPlatformClient } from '@runtime/platform-client.js';
 import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
+import { finalizeMediaAsset } from '@renderer/data/content-data-client.js';
 
 const MUSIC_TEMPLATES = [
   { id: 'opening', label: 'Opening Theme' },
@@ -86,12 +87,19 @@ export default function MusicStudioPage() {
         throw new Error('Track not found');
       }
 
-      const upload = await audioUploadMutation.mutateAsync();
+      const upload = await audioUploadMutation.mutateAsync({
+        mimeType: track.mimeType,
+        filename: `${track.title || track.id}.${track.mimeType === 'audio/wav' ? 'wav' : track.mimeType === 'audio/flac' ? 'flac' : track.mimeType === 'audio/ogg' ? 'ogg' : 'mp3'}`,
+        title: track.title,
+        style: track.style,
+        lyricsSource: lyrics || undefined,
+        instrumental,
+      });
       const record = upload && typeof upload === 'object' ? (upload as Record<string, unknown>) : {};
       const uploadUrl = String(record.uploadUrl || '');
-      const key = String(record.key || '');
+      const assetId = String(record.assetId || '');
 
-      if (!uploadUrl || !key) {
+      if (!uploadUrl || !assetId) {
         throw new Error('Audio upload credentials are incomplete');
       }
 
@@ -109,12 +117,21 @@ export default function MusicStudioPage() {
         throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
       }
 
+      await finalizeMediaAsset(assetId, {
+        mimeType: track.mimeType || audioBlob.type || 'audio/mpeg',
+        durationSec: track.duration,
+        title: track.title,
+        style: track.style,
+        lyricsSource: instrumental ? undefined : lyrics || undefined,
+        instrumental,
+      });
+
       await createPostMutation.mutateAsync({
         caption: track.title || track.prompt,
         media: [
           {
             type: 'AUDIO',
-            id: key,
+            assetId,
             duration: track.duration,
           },
         ],

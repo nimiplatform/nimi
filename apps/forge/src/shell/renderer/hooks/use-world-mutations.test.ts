@@ -10,7 +10,7 @@ const mockWorldDataClient = vi.hoisted(() => ({
   updateWorldMaintenance: vi.fn(),
   batchUpsertWorldEvents: vi.fn(),
   batchUpsertWorldLorebooks: vi.fn(),
-  batchUpsertWorldVisualBindings: vi.fn(),
+  batchUpsertWorldMediaBindings: vi.fn(),
   deleteWorldEvent: vi.fn(),
   deleteWorldLorebook: vi.fn(),
   batchCreateCreatorAgents: vi.fn(),
@@ -19,12 +19,12 @@ const mockWorldDataClient = vi.hoisted(() => ({
   listWorldEvents: vi.fn(),
   getWorldMaintenance: vi.fn(),
   listWorldLorebooks: vi.fn(),
-  listWorldVisualBindings: vi.fn(),
+  listWorldMediaBindings: vi.fn(),
   listWorldMutations: vi.fn(),
   getMyWorldAccess: vi.fn(),
   resolveWorldLanding: vi.fn(),
   getWorldDraft: vi.fn(),
-  deleteWorldVisualBinding: vi.fn(),
+  deleteWorldMediaBinding: vi.fn(),
   listWorldNarrativeContexts: vi.fn(),
   listWorldScenes: vi.fn(),
   listCreatorAgents: vi.fn(),
@@ -58,7 +58,7 @@ describe('useWorldMutations', () => {
     expect(result.current).toHaveProperty('saveMaintenanceMutation');
     expect(result.current).toHaveProperty('syncLorebooksMutation');
     expect(result.current).toHaveProperty('syncEventsMutation');
-    expect(result.current).toHaveProperty('syncVisualBindingsMutation');
+    expect(result.current).toHaveProperty('syncMediaBindingsMutation');
     expect(result.current).toHaveProperty('deleteLorebookMutation');
     expect(result.current).toHaveProperty('deleteEventMutation');
     expect(result.current).toHaveProperty('batchCreateCreatorAgentsMutation');

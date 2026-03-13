@@ -7,15 +7,16 @@
 import { useState, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
-import { getVideoToken } from '@renderer/data/content-data-client.js';
+import { finalizeMediaAsset } from '@renderer/data/content-data-client.js';
 
 type UploadedVideo = {
   id: string;
   name: string;
   size: number;
   uploadedAt: string;
-  uid?: string;
-  playbackToken?: string;
+  assetId?: string;
+  storageRef?: string;
+  previewUrl?: string;
 };
 
 function formatFileSize(bytes: number): string {
@@ -54,10 +55,11 @@ export default function VideoStudioPage() {
     setUploadError(null);
 
     try {
-      const result = await mutations.videoUploadMutation.mutateAsync();
+      const result = await mutations.videoUploadMutation.mutateAsync(undefined);
       const record = result && typeof result === 'object' ? (result as Record<string, unknown>) : {};
       const uploadUrl = String(record.uploadUrl || '');
-      const videoUid = String(record.uid || '');
+      const assetId = String(record.assetId || '');
+      const storageRef = String(record.storageRef || '');
 
       if (!uploadUrl) {
         throw new Error('No upload URL returned from server');
@@ -108,26 +110,29 @@ export default function VideoStudioPage() {
         xhr.send(formData);
       });
 
-      // Fetch playback token for preview
-      let playbackToken: string | undefined;
-      if (videoUid) {
+      let previewUrl: string | undefined;
+      if (assetId) {
         try {
-          const tokenResult = await getVideoToken(videoUid);
-          const tokenRecord = tokenResult && typeof tokenResult === 'object' ? (tokenResult as Record<string, unknown>) : {};
-          playbackToken = tokenRecord.token ? String(tokenRecord.token) : undefined;
+          const finalized = await finalizeMediaAsset(assetId, {
+            mimeType: file.type,
+          });
+          const finalizedRecord =
+            finalized && typeof finalized === 'object' ? (finalized as Record<string, unknown>) : {};
+          previewUrl = finalizedRecord.url ? String(finalizedRecord.url) : undefined;
         } catch {
-          // Token fetch is non-critical
+          // Finalize fallback is non-critical for optimistic preview
         }
       }
 
       setVideos((prev) => [
         {
-          id: videoUid || String(Date.now()),
+          id: assetId || String(Date.now()),
           name: file.name,
           size: file.size,
           uploadedAt: new Date().toISOString(),
-          uid: videoUid || undefined,
-          playbackToken,
+          assetId: assetId || undefined,
+          storageRef: storageRef || undefined,
+          previewUrl,
         },
         ...prev,
       ]);
@@ -240,10 +245,10 @@ export default function VideoStudioPage() {
                   className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900/50 px-4 py-3"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    {video.playbackToken && video.uid ? (
+                    {video.storageRef ? (
                       <div className="h-10 w-14 flex-shrink-0 rounded bg-neutral-800 overflow-hidden">
                         <iframe
-                          src={`https://customer-${video.uid}.cloudflarestream.com/${video.uid}/iframe?poster=https://customer-${video.uid}.cloudflarestream.com/${video.uid}/thumbnails/thumbnail.jpg`}
+                          src={`https://iframe.videodelivery.net/${video.storageRef}`}
                           className="h-full w-full"
                           allow="autoplay; fullscreen"
                           title={video.name}

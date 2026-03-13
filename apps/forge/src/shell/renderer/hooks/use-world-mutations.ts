@@ -13,7 +13,7 @@ import {
   updateWorldMaintenance,
   batchUpsertWorldEvents,
   batchUpsertWorldLorebooks,
-  batchUpsertWorldVisualBindings,
+  batchUpsertWorldMediaBindings,
   deleteWorldEvent,
   deleteWorldLorebook,
   batchCreateCreatorAgents,
@@ -98,13 +98,13 @@ export function useWorldMutations() {
       }),
   });
 
-  const syncVisualBindingsMutation = useMutation({
+  const syncMediaBindingsMutation = useMutation({
     mutationFn: async (input: {
       worldId: string;
       bindingUpserts: Array<Record<string, unknown>>;
       reason: string;
     }) =>
-      await batchUpsertWorldVisualBindings(input.worldId, {
+      await batchUpsertWorldMediaBindings(input.worldId, {
         bindingUpserts: input.bindingUpserts,
         reason: input.reason,
       }),
@@ -137,7 +137,7 @@ export function useWorldMutations() {
     saveMaintenanceMutation,
     syncLorebooksMutation,
     syncEventsMutation,
-    syncVisualBindingsMutation,
+    syncMediaBindingsMutation,
     deleteLorebookMutation,
     deleteEventMutation,
     batchCreateCreatorAgentsMutation,

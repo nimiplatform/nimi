@@ -19,9 +19,9 @@ const mockWorldControlController = {
   worldControlControllerListWorldLorebooks: vi.fn(),
   worldControlControllerBatchUpsertWorldLorebooks: vi.fn(),
   worldControlControllerDeleteWorldLorebook: vi.fn(),
-  worldControlControllerListWorldVisualBindings: vi.fn(),
-  worldControlControllerBatchUpsertWorldVisualBindings: vi.fn(),
-  worldControlControllerDeleteWorldVisualBinding: vi.fn(),
+  worldControlControllerListWorldMediaBindings: vi.fn(),
+  worldControlControllerBatchUpsertWorldMediaBindings: vi.fn(),
+  worldControlControllerDeleteWorldMediaBinding: vi.fn(),
   worldControlControllerListWorldNarrativeContexts: vi.fn(),
   worldControlControllerListWorldScenes: vi.fn(),
 };
@@ -137,9 +137,9 @@ describe('world-data-client', () => {
     expect(mockWorldControlController.worldControlControllerDeleteWorldLorebook).toHaveBeenCalledWith('w1', 'l1');
   });
 
-  it('listWorldVisualBindings passes worldId', async () => {
-    await wdc.listWorldVisualBindings('w1');
-    expect(mockWorldControlController.worldControlControllerListWorldVisualBindings).toHaveBeenCalledWith('w1', undefined, undefined);
+  it('listWorldMediaBindings passes worldId', async () => {
+    await wdc.listWorldMediaBindings('w1');
+    expect(mockWorldControlController.worldControlControllerListWorldMediaBindings).toHaveBeenCalledWith('w1', undefined, undefined);
   });
 
   it('listCreatorAgents', async () => {

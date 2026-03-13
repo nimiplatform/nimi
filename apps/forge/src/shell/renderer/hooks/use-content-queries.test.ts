@@ -5,7 +5,7 @@ import React, { type ReactNode } from 'react';
 
 const mockContentDataClient = vi.hoisted(() => ({
   getHomeFeed: vi.fn(),
-  getVideoToken: vi.fn(),
+  getMediaAsset: vi.fn(),
   createImageDirectUpload: vi.fn(),
   createVideoDirectUpload: vi.fn(),
   createAudioDirectUpload: vi.fn(),
@@ -27,7 +27,7 @@ const mockContentDataClient = vi.hoisted(() => ({
 
 vi.mock('@renderer/data/content-data-client.js', () => mockContentDataClient);
 
-import { useCreatorPostsQuery, useVideoTokenQuery } from './use-content-queries.js';
+import { useCreatorPostsQuery, useMediaAssetQuery } from './use-content-queries.js';
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -49,7 +49,7 @@ describe('useCreatorPostsQuery', () => {
         {
           id: 'p1',
           caption: 'Hello world',
-          media: [{ id: 'img1', type: 'IMAGE' }],
+          media: [{ assetId: 'asset-img1', type: 'IMAGE' }],
           tags: ['fantasy'],
           authorId: 'user1',
           worldId: null,
@@ -70,7 +70,7 @@ describe('useCreatorPostsQuery', () => {
       caption: 'Hello world',
       tags: ['fantasy'],
     });
-    expect(result.current.data![0].media[0]).toMatchObject({ id: 'img1', type: 'IMAGE' });
+    expect(result.current.data![0].media[0]).toMatchObject({ assetId: 'asset-img1', type: 'IMAGE' });
   });
 
   it('preserves AUDIO media items from the feed payload', async () => {
@@ -79,7 +79,7 @@ describe('useCreatorPostsQuery', () => {
         {
           id: 'p-audio',
           caption: 'Theme song',
-          media: [{ id: 'audio1', type: 'AUDIO', duration: 60 }],
+          media: [{ assetId: 'asset-audio1', type: 'AUDIO', duration: 60 }],
           tags: ['cinematic'],
           authorId: 'user-audio',
           worldId: null,
@@ -95,7 +95,7 @@ describe('useCreatorPostsQuery', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(result.current.data?.[0]?.media[0]).toMatchObject({
-      id: 'audio1',
+      assetId: 'asset-audio1',
       type: 'AUDIO',
       duration: 60,
     });
@@ -142,29 +142,29 @@ describe('useCreatorPostsQuery', () => {
   });
 });
 
-describe('useVideoTokenQuery', () => {
+describe('useMediaAssetQuery', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('uses uid in key and is enabled when uid is truthy', async () => {
-    mockContentDataClient.getVideoToken.mockResolvedValue({ token: 'abc123' });
+  it('uses assetId in key and is enabled when assetId is truthy', async () => {
+    mockContentDataClient.getMediaAsset.mockResolvedValue({ id: 'asset-v1', url: 'https://stream.example.com/v1' });
 
     const wrapper = createWrapper();
-    const { result } = renderHook(() => useVideoTokenQuery('vid-uid-1'), { wrapper });
+    const { result } = renderHook(() => useMediaAssetQuery('asset-v1'), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockContentDataClient.getVideoToken).toHaveBeenCalledWith('vid-uid-1');
-    expect(result.current.data).toMatchObject({ token: 'abc123' });
+    expect(mockContentDataClient.getMediaAsset).toHaveBeenCalledWith('asset-v1');
+    expect(result.current.data).toMatchObject({ id: 'asset-v1', url: 'https://stream.example.com/v1' });
   });
 
-  it('is disabled when uid is empty', async () => {
+  it('is disabled when assetId is empty', async () => {
     const wrapper = createWrapper();
-    const { result } = renderHook(() => useVideoTokenQuery(''), { wrapper });
+    const { result } = renderHook(() => useMediaAssetQuery(''), { wrapper });
 
     await new Promise((r) => setTimeout(r, 50));
-    expect(mockContentDataClient.getVideoToken).not.toHaveBeenCalled();
+    expect(mockContentDataClient.getMediaAsset).not.toHaveBeenCalled();
     expect(result.current.fetchStatus).toBe('idle');
   });
 });

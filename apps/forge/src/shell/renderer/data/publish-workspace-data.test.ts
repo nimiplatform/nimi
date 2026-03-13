@@ -202,12 +202,12 @@ describe('publish-workspace-data', () => {
         title: '  Trimmed Title  ',
         caption: 'Some caption',
         tags: ['alpha', 'beta'],
-        media: [{ id: 'img-1', type: 'IMAGE' }],
+        media: [{ assetId: 'img-1', type: 'IMAGE' }],
       });
       expect(draft.title).toBe('Trimmed Title');
       expect(draft.caption).toBe('Some caption');
       expect(draft.tags).toEqual(['alpha', 'beta']);
-      expect(draft.media).toEqual([{ id: 'img-1', type: 'IMAGE' }]);
+      expect(draft.media).toEqual([{ assetId: 'img-1', type: 'IMAGE' }]);
     });
 
     it('uses default identity from settings when not specified', () => {
@@ -241,11 +241,11 @@ describe('publish-workspace-data', () => {
       const draft = mod.createPublishDraft({
         title: 'Media filter',
         media: [
-          { id: 'valid', type: 'IMAGE' },
-          { id: '', type: 'VIDEO' },
+          { assetId: 'valid', type: 'IMAGE' },
+          { assetId: '', type: 'VIDEO' },
         ],
       });
-      expect(draft.media).toEqual([{ id: 'valid', type: 'IMAGE' }]);
+      expect(draft.media).toEqual([{ assetId: 'valid', type: 'IMAGE' }]);
     });
 
     it('persists the draft to localStorage', () => {
@@ -356,9 +356,9 @@ describe('publish-workspace-data', () => {
     it('updates media', () => {
       const draft = mod.createPublishDraft({ title: 'Media' });
       const updated = mod.updatePublishDraft(draft.id, {
-        media: [{ id: 'vid-1', type: 'VIDEO' }],
+        media: [{ assetId: 'vid-1', type: 'VIDEO' }],
       });
-      expect(updated.media).toEqual([{ id: 'vid-1', type: 'VIDEO' }]);
+      expect(updated.media).toEqual([{ assetId: 'vid-1', type: 'VIDEO' }]);
     });
 
     it('updates identity', () => {

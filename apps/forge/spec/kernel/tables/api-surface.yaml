@@ -121,25 +121,25 @@ worlds:
     description: Delete lorebook entry
 
   - method: GET
-    path: /api/worlds/{worldId}/visual-bindings
+    path: /api/worlds/{worldId}/media-bindings
     status: existing
     feature: world-maintain, content-library
     controller: world-control.controller.ts
-    description: List visual bindings
+    description: List media bindings
 
   - method: POST
-    path: /api/worlds/{worldId}/visual-bindings/batch-upsert
+    path: /api/worlds/{worldId}/media-bindings/batch-upsert
     status: existing
     feature: world-maintain, image-studio
     controller: world-control.controller.ts
-    description: Batch upsert visual bindings
+    description: Batch upsert media bindings
 
   - method: DELETE
-    path: /api/worlds/{worldId}/visual-bindings/{bindingId}
+    path: /api/worlds/{worldId}/media-bindings/{bindingId}
     status: existing
     feature: world-maintain
     controller: world-control.controller.ts
-    description: Delete visual binding
+    description: Delete media binding
 
   - method: GET
     path: /api/worlds/{worldId}/mutations
@@ -251,11 +251,39 @@ media:
     description: Upload generated song or audio asset
 
   - method: GET
-    path: /api/media/videos/{uid}/token
+    path: /api/media/assets
     status: existing
-    feature: video-studio
+    feature: content-library
     controller: media.controller.ts
-    description: Get video playback token
+    description: List creator-owned media assets
+
+  - method: GET
+    path: /api/media/assets/{assetId}
+    status: existing
+    feature: content-library, video-studio
+    controller: media.controller.ts
+    description: Resolve media asset detail and preview access
+
+  - method: PATCH
+    path: /api/media/assets/{assetId}
+    status: existing
+    feature: content-library, music-studio
+    controller: media.controller.ts
+    description: Update media asset metadata
+
+  - method: POST
+    path: /api/media/assets/{assetId}/finalize
+    status: existing
+    feature: image-studio, video-studio, music-studio
+    controller: media.controller.ts
+    description: Finalize uploaded media asset metadata
+
+  - method: DELETE
+    path: /api/media/assets/{assetId}
+    status: existing
+    feature: content-library
+    controller: media.controller.ts
+    description: Soft delete media asset
 
 # ── Posts (existing) ─────────────────────────────────────
 posts:

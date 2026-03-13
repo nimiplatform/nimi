@@ -40,7 +40,7 @@ export default function ContentLibraryPage() {
     posts.forEach((post) => {
       post.media.forEach((m) => {
         assets.push({
-          id: m.id,
+          id: m.assetId,
           type: m.type,
           postId: post.id,
           caption: post.caption,

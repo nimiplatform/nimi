@@ -31,11 +31,11 @@ function toDraftMediaList(input: unknown): PublishDraftMedia[] | undefined {
     .map((item) => {
       const media = item && typeof item === 'object' ? item as Record<string, unknown> : {};
       return {
-        id: String(media.id || '').trim(),
+        assetId: String(media.assetId || media.id || '').trim(),
         type: (String(media.type || 'IMAGE') === 'VIDEO' ? 'VIDEO' : 'IMAGE') as PublishDraftMedia['type'],
       };
     })
-    .filter((item) => Boolean(item.id));
+    .filter((item) => Boolean(item.assetId));
 }
 
 function toChannelPatch(
@@ -57,12 +57,16 @@ export async function createVideoDirectUpload(requireSignedUrls?: string) {
   return realm().services.MediaService.createVideoDirectUpload(requireSignedUrls);
 }
 
-export async function createAudioDirectUpload() {
-  return realm().services.MediaService.createAudioDirectUpload();
+export async function createAudioDirectUpload(payload?: Record<string, unknown>) {
+  return realm().services.MediaService.createAudioDirectUpload(payload || {});
 }
 
-export async function getVideoToken(uid: string) {
-  return realm().services.MediaService.getVideoToken(uid);
+export async function getMediaAsset(assetId: string) {
+  return realm().services.MediaService.getMediaAsset(assetId);
+}
+
+export async function finalizeMediaAsset(assetId: string, payload?: Record<string, unknown>) {
+  return realm().services.MediaService.finalizeMediaAsset(assetId, payload || {});
 }
 
 // ── Posts ─────────────────────────────────────────────────────
@@ -177,7 +181,7 @@ export async function publishRelease(_releaseId: string): Promise<unknown> {
     throw new Error('At least one image or video asset is required to publish');
   }
   const created = await createPost({
-    media: draft.media.map((item) => ({ id: item.id, type: item.type })),
+    media: draft.media.map((item) => ({ assetId: item.assetId, type: item.type })),
     caption: draft.caption || undefined,
     tags: draft.tags.length > 0 ? draft.tags : undefined,
   });

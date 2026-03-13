@@ -21,7 +21,7 @@ type DraftMediaType = 'IMAGE' | 'VIDEO';
 type DraftIdentity = 'USER' | 'AGENT';
 
 type DraftMediaItem = {
-  id: string;
+  assetId: string;
   type: DraftMediaType;
 };
 
@@ -40,7 +40,7 @@ type PublishDraft = {
 };
 
 function emptyMedia(): DraftMediaItem {
-  return { id: '', type: 'IMAGE' };
+  return { assetId: '', type: 'IMAGE' };
 }
 
 export default function ReleasesPage() {
@@ -119,7 +119,9 @@ export default function ReleasesPage() {
       tags: parseTags(tagsInput),
       identity,
       agentId: identity === 'AGENT' ? agentId || null : null,
-      media: media.filter((item) => item.id.trim()).map((item) => ({ id: item.id.trim(), type: item.type })),
+      media: media
+        .filter((item) => item.assetId.trim())
+        .map((item) => ({ assetId: item.assetId.trim(), type: item.type })),
     }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['forge', 'publish', 'drafts'] });
@@ -388,7 +390,7 @@ export default function ReleasesPage() {
                     </div>
 
                     {media.map((item, index) => (
-                      <div key={`${index}-${item.id}`} className="grid gap-2 lg:grid-cols-[140px_minmax(0,1fr)_80px]">
+                      <div key={`${index}-${item.assetId}`} className="grid gap-2 lg:grid-cols-[140px_minmax(0,1fr)_80px]">
                         <select
                           value={item.type}
                           onChange={(event) => setMedia((current) => current.map((entry, entryIndex) => (
@@ -402,14 +404,14 @@ export default function ReleasesPage() {
                           <option value="VIDEO">{t('releases.mediaVideo', 'Video')}</option>
                         </select>
                         <input
-                          value={item.id}
+                          value={item.assetId}
                           onChange={(event) => setMedia((current) => current.map((entry, entryIndex) => (
                             entryIndex === index
-                              ? { ...entry, id: event.target.value }
+                              ? { ...entry, assetId: event.target.value }
                               : entry
                           )))}
                           className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white outline-none focus:border-neutral-500"
-                          placeholder={t('releases.assetIdPlaceholder', 'Asset id from image/video upload')}
+                          placeholder={t('releases.assetIdPlaceholder', 'Selected media asset id')}
                         />
                         <button
                           onClick={() => setMedia((current) => {

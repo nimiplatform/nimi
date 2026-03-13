@@ -12,7 +12,7 @@ import {
   listWorldEvents,
   getWorldMaintenance,
   listWorldLorebooks,
-  listWorldVisualBindings,
+  listWorldMediaBindings,
   listWorldMutations,
 } from '@renderer/data/world-data-client.js';
 
@@ -230,11 +230,11 @@ export function useWorldResourceQueries(input: {
     queryFn: async () => toMutationSummaryList(await listWorldMutations(input.worldId)),
   });
 
-  const visualBindingsQuery = useQuery({
-    queryKey: ['forge', 'world', 'visual-bindings', input.worldId],
+  const mediaBindingsQuery = useQuery({
+    queryKey: ['forge', 'world', 'media-bindings', input.worldId],
     enabled: input.enabled && Boolean(input.worldId),
     retry: false,
-    queryFn: async () => await listWorldVisualBindings(input.worldId),
+    queryFn: async () => await listWorldMediaBindings(input.worldId),
   });
 
   return {
@@ -244,6 +244,6 @@ export function useWorldResourceQueries(input: {
     eventsQuery,
     lorebooksQuery,
     mutationsQuery,
-    visualBindingsQuery,
+    mediaBindingsQuery,
   };
 }

@@ -12,7 +12,7 @@ export type PublishChannel = {
 };
 
 export type PublishDraftMedia = {
-  id: string;
+  assetId: string;
   type: PublishMediaType;
 };
 
@@ -80,10 +80,10 @@ function parseMedia(value: unknown): PublishDraftMedia[] {
   return value
     .map((item) => asRecord(item))
     .map((item) => ({
-      id: String(item.id || '').trim(),
+      assetId: String(item.assetId || item.id || '').trim(),
       type: parseMediaType(item.type),
     }))
-    .filter((item) => Boolean(item.id));
+    .filter((item) => Boolean(item.assetId));
 }
 
 function parseTags(value: unknown): string[] {
@@ -222,8 +222,11 @@ export function createPublishDraft(
     tags: Array.isArray(payload.tags) ? payload.tags.filter(Boolean) : [],
     media: Array.isArray(payload.media)
       ? payload.media
-          .map((item) => ({ id: String(item.id || '').trim(), type: parseMediaType(item.type) }))
-          .filter((item) => Boolean(item.id))
+          .map((item) => ({
+            assetId: String(item.assetId || item.id || '').trim(),
+            type: parseMediaType(item.type),
+          }))
+          .filter((item) => Boolean(item.assetId))
       : [],
     identity: payload.identity === 'AGENT' ? 'AGENT' : state.settings.defaultIdentity,
     agentId: payload.agentId ? String(payload.agentId) : state.settings.defaultAgentId,
@@ -256,7 +259,7 @@ export function updatePublishDraft(
     title: payload.title !== undefined ? String(payload.title || '').trim() : current.title,
     caption: payload.caption !== undefined ? String(payload.caption || '') : current.caption,
     tags: payload.tags ? payload.tags.filter(Boolean) : current.tags,
-    media: payload.media ? payload.media.filter((item) => Boolean(item.id)) : current.media,
+    media: payload.media ? payload.media.filter((item) => Boolean(item.assetId)) : current.media,
     identity: payload.identity ? (payload.identity === 'AGENT' ? 'AGENT' : 'USER') : current.identity,
     agentId: payload.agentId !== undefined ? (payload.agentId ? String(payload.agentId) : null) : current.agentId,
     updatedAt: nowIso(),

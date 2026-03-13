@@ -18,7 +18,9 @@ vi.stubGlobal('localStorage', {
 const mockMediaService = {
   createImageDirectUpload: vi.fn(),
   createVideoDirectUpload: vi.fn(),
-  getVideoToken: vi.fn(),
+  createAudioDirectUpload: vi.fn(),
+  getMediaAsset: vi.fn(),
+  finalizeMediaAsset: vi.fn(),
 };
 
 const mockPostService = {
@@ -55,24 +57,31 @@ describe('content-data-client', () => {
 
   describe('media upload', () => {
     it('createImageDirectUpload calls MediaService', async () => {
-      mockMediaService.createImageDirectUpload.mockResolvedValue({ uploadUrl: 'https://up', imageId: 'i1' });
+      mockMediaService.createImageDirectUpload.mockResolvedValue({ uploadUrl: 'https://up', assetId: 'asset-i1' });
       const result = await cdc.createImageDirectUpload();
       expect(mockMediaService.createImageDirectUpload).toHaveBeenCalledWith(undefined);
-      expect(result).toEqual({ uploadUrl: 'https://up', imageId: 'i1' });
+      expect(result).toEqual({ uploadUrl: 'https://up', assetId: 'asset-i1' });
     });
 
     it('createVideoDirectUpload calls MediaService', async () => {
-      mockMediaService.createVideoDirectUpload.mockResolvedValue({ uploadUrl: 'https://up', uid: 'v1' });
+      mockMediaService.createVideoDirectUpload.mockResolvedValue({ uploadUrl: 'https://up', assetId: 'asset-v1', storageRef: 'v1' });
       const result = await cdc.createVideoDirectUpload();
       expect(mockMediaService.createVideoDirectUpload).toHaveBeenCalledWith(undefined);
-      expect(result).toEqual({ uploadUrl: 'https://up', uid: 'v1' });
+      expect(result).toEqual({ uploadUrl: 'https://up', assetId: 'asset-v1', storageRef: 'v1' });
     });
 
-    it('getVideoToken calls with uid', async () => {
-      mockMediaService.getVideoToken.mockResolvedValue({ token: 'tok123' });
-      const result = await cdc.getVideoToken('v1');
-      expect(mockMediaService.getVideoToken).toHaveBeenCalledWith('v1');
-      expect(result).toEqual({ token: 'tok123' });
+    it('createAudioDirectUpload forwards payload', async () => {
+      mockMediaService.createAudioDirectUpload.mockResolvedValue({ uploadUrl: 'https://up', assetId: 'asset-a1' });
+      const result = await cdc.createAudioDirectUpload({ mimeType: 'audio/mpeg' });
+      expect(mockMediaService.createAudioDirectUpload).toHaveBeenCalledWith({ mimeType: 'audio/mpeg' });
+      expect(result).toEqual({ uploadUrl: 'https://up', assetId: 'asset-a1' });
+    });
+
+    it('getMediaAsset calls with assetId', async () => {
+      mockMediaService.getMediaAsset.mockResolvedValue({ id: 'asset-v1', url: 'https://stream.example.com/v1' });
+      const result = await cdc.getMediaAsset('asset-v1');
+      expect(mockMediaService.getMediaAsset).toHaveBeenCalledWith('asset-v1');
+      expect(result).toEqual({ id: 'asset-v1', url: 'https://stream.example.com/v1' });
     });
   });
 
@@ -161,13 +170,13 @@ describe('content-data-client', () => {
         title: 'Draft 4',
         caption: 'ready',
         tags: ['alpha'],
-        media: [{ id: 'img-2', type: 'IMAGE' }],
+        media: [{ assetId: 'img-2', type: 'IMAGE' }],
       }) as Record<string, unknown>;
 
       const published = await cdc.publishRelease(String(draft.id)) as Record<string, unknown>;
 
       expect(mockPostService.createPost).toHaveBeenCalledWith({
-        media: [{ id: 'img-2', type: 'IMAGE' }],
+        media: [{ assetId: 'img-2', type: 'IMAGE' }],
         caption: 'ready',
         tags: ['alpha'],
       });
@@ -179,7 +188,7 @@ describe('content-data-client', () => {
       const draft = await cdc.createRelease({
         identity: 'AGENT',
         agentId: 'agent-2',
-        media: [{ id: 'img-3', type: 'IMAGE' }],
+        media: [{ assetId: 'img-3', type: 'IMAGE' }],
       }) as Record<string, unknown>;
 
       await expect(cdc.publishRelease(String(draft.id))).rejects.toThrow('Agent-identity publishing requires platform agent-post capability');
@@ -189,7 +198,7 @@ describe('content-data-client', () => {
       mockPostService.createPost.mockResolvedValue({ id: 'post-2' });
       await cdc.updateChannel('INTERNAL_AGENT_PROFILE', { enabled: true });
       const draft = await cdc.createRelease({
-        media: [{ id: 'img-4', type: 'IMAGE' }],
+        media: [{ assetId: 'img-4', type: 'IMAGE' }],
       }) as Record<string, unknown>;
       await cdc.publishRelease(String(draft.id));
 

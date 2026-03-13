@@ -41,9 +41,9 @@ Approximately 25 data query functions require rewriting:
 | `data.query.worlds.lorebooks.list` | `realmClient.worlds.listLorebooks(worldId)` |
 | `data.query.worlds.lorebooks.batch-upsert` | `realmClient.worlds.batchUpsertLorebooks(worldId, body)` |
 | `data.query.worlds.lorebooks.delete` | `realmClient.worlds.deleteLorebook(worldId, lorebookId)` |
-| `data.query.worlds.visual-bindings.list` | `realmClient.worlds.listVisualBindings(worldId, params)` |
-| `data.query.worlds.visual-bindings.batch-upsert` | `realmClient.worlds.batchUpsertVisualBindings(worldId, body)` |
-| `data.query.worlds.visual-bindings.delete` | `realmClient.worlds.deleteVisualBinding(worldId, bindingId)` |
+| `data.query.worlds.media-bindings.list` | `realmClient.worlds.listMediaBindings(worldId, params)` |
+| `data.query.worlds.media-bindings.batch-upsert` | `realmClient.worlds.batchUpsertMediaBindings(worldId, body)` |
+| `data.query.worlds.media-bindings.delete` | `realmClient.worlds.deleteMediaBinding(worldId, bindingId)` |
 | `data.query.worlds.mutations.list` | `realmClient.worlds.listMutations(worldId)` |
 | `data.query.worlds.narrative-contexts.list` | `realmClient.worlds.listNarrativeContexts(worldId, params)` |
 | `data.query.worlds.scenes.list` | `realmClient.worlds.listScenes(worldId, params)` |
@@ -141,7 +141,7 @@ All required backend APIs already exist. No new backend work needed for World ma
 | World Maintenance | `GET/PATCH /api/worlds/:worldId/maintenance`, `GET /api/worlds/mine` | `world-control.controller.ts` |
 | World Events | `GET /api/worlds/:worldId/events`, `POST /api/worlds/:worldId/events/batch-upsert`, `DELETE /api/worlds/:worldId/events/:eventId` | `world-control.controller.ts` |
 | World Lorebooks | `GET /api/worlds/:worldId/lorebooks`, `POST /api/worlds/:worldId/lorebooks/batch-upsert`, `DELETE /api/worlds/:worldId/lorebooks/:lorebookId` | `world-control.controller.ts` |
-| Visual Bindings | `GET /api/worlds/:worldId/visual-bindings`, `POST /api/worlds/:worldId/visual-bindings/batch-upsert`, `DELETE /api/worlds/:worldId/visual-bindings/:bindingId` | `world-control.controller.ts` |
+| Media Bindings | `GET /api/worlds/:worldId/media-bindings`, `POST /api/worlds/:worldId/media-bindings/batch-upsert`, `DELETE /api/worlds/:worldId/media-bindings/:bindingId` | `world-control.controller.ts` |
 | Mutations | `GET /api/worlds/:worldId/mutations` | `world-control.controller.ts` |
 | Scenes | `GET /api/worlds/:worldId/scenes` | `world-control.controller.ts` |
 | Narrative Contexts | `GET /api/worlds/:worldId/narrative-contexts` | `world-control.controller.ts` |
@@ -159,3 +159,8 @@ Inherits WS-QG-001 through WS-QG-005. Quality gate logic lives in `@world-engine
 5. Quality gate blocks Phase 2 when critical issues exist (per WS-QG-003)
 6. All data operations use SDK realm client (no hookClient.data.query calls)
 7. World-Studio engine/services/generation code runs unchanged via `@world-engine` alias
+
+`media-bindings` remain world-display APIs only:
+- they bind existing assets, or create assets inline for world display during world workflows
+- they do not provide the canonical asset reference for social post publishing
+- post publishing references `Post.media[].assetId` directly
