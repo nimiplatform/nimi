@@ -1,0 +1,45 @@
+{
+  "name": "@nimiplatform/relay",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/main/index.cjs",
+  "scripts": {
+    "dev": "pnpm run build:main && concurrently -n main,renderer,electron \"tsup --watch\" \"vite\" \"pnpm run dev:electron\"",
+    "dev:electron": "electron .",
+    "build": "pnpm run build:main && pnpm run build:renderer",
+    "build:main": "tsup",
+    "build:renderer": "vite build",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.renderer.json",
+    "test": "tsx --test test/transport-smoke.test.ts",
+    "test:unit": "tsx --test test/bootstrap.test.ts test/ipc-handlers.test.ts test/stream-manager.test.ts test/preload.test.ts test/agent-core.test.ts test/input-transform.test.ts test/features/agent-chat.test.ts test/features/human-chat.test.ts test/features/tts.test.ts test/features/stt.test.ts test/features/live2d.test.ts test/features/video.test.ts test/features/agent-profile.test.ts test/features/animation-plugins.test.ts",
+    "test:interop": "tsx --test test/interop-smoke.test.ts",
+    "test:all": "tsx --test test/*.test.ts test/features/*.test.ts"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.1",
+    "@types/node": "^25.4.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.4",
+    "concurrently": "^9.1.2",
+    "electron": "^36.3.2",
+    "electron-builder": "^26.0.12",
+    "tailwindcss": "^4.2.1",
+    "tsup": "^8.5.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  },
+  "dependencies": {
+    "@nimiplatform/sdk": "workspace:*",
+    "@tanstack/react-query": "^5.90.21",
+    "pixi-live2d-display": "^0.4.0",
+    "pixi.js": "^6.5.10",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-router-dom": "^7.13.1",
+    "socket.io-client": "^4.8.3",
+    "zustand": "^5.0.11"
+  }
+}
