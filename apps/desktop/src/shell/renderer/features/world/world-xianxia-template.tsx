@@ -451,7 +451,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
               <div className="flex items-center gap-3 mb-3 flex-wrap">
                 <h3 className="text-xl font-bold text-[#e8f5ee]">{displayValue(world.name)}</h3>
                 <div className="inline-flex max-w-full items-start gap-2 rounded-lg border border-[#4ECCA3]/20 bg-[#4ECCA3]/10 px-3 py-1.5 text-xs font-mono text-[#4ECCA3]">
-                  <span className="shrink-0">ID:</span>
+                  <span className="shrink-0">{t('WorldDetail.xianxia.id')}:</span>
                   <span className="break-all whitespace-normal">
                     {world.id || 'N/A'}
                   </span>

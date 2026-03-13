@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
@@ -97,7 +96,6 @@ export function ContactsView(props: ContactsViewProps) {
   const MIN_CONTACTS_SIDEBAR_WIDTH = 280;
   const MAX_CONTACTS_SIDEBAR_WIDTH = 420;
   const { t } = useTranslation();
-  const flags = getShellFeatureFlags();
   const rememberedProfileId = useAppStore((state) => state.selectedProfileId);
   const setSelectedProfileIsAgent = useAppStore((state) => state.setSelectedProfileIsAgent);
   const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);

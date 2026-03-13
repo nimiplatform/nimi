@@ -258,7 +258,7 @@ test('toCatalogModRow prioritizes retry for failed installed mods', () => {
 
   assert.equal(row.visualState, 'failed');
   assert.equal(row.primaryAction?.kind, 'retry');
-  assert.deepEqual(row.menuActions.map((item) => item.kind), ['uninstall', 'open-folder']);
+  assert.deepEqual(row.menuActions.map((item) => item.kind), ['uninstall', 'settings', 'open-folder']);
 });
 
 test('parseCatalogReleaseRecord keeps reserved nimi-app metadata fields', () => {

@@ -65,7 +65,7 @@ const GiftsTab = lazy(async () => {
   return { default: module.GiftsTab };
 });
 
-export function ContactDetailLoadingState({ label }: { label: string }) {
+export function ContactDetailLoadingState({ label: _label }: { label: string }) {
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,#eef3f4_0%,#f7fafb_48%,#fcfefd_100%)]">
       <div className="app-scroll-shell flex-1 overflow-y-auto">

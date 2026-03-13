@@ -1561,6 +1561,7 @@
     "actionRemove": "移除",
     "actionRetry": "重试",
     "actionOpenFolder": "打开所在文件夹",
+    "actionSettings": "设置",
     "actionLoading": "处理中...",
     "moreActions": "更多操作",
     "newCapabilities": "新增能力",
