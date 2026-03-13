@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type WorldVisualAssetDetailDto = components['schemas']['WorldVisualAssetDetailDto'];
+export type MediaDirectUploadSessionDto = components['schemas']['MediaDirectUploadSessionDto'];

@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type VisualAssetCreateDto = components['schemas']['VisualAssetCreateDto'];
+export type WorldMediaAssetDetailDto = components['schemas']['WorldMediaAssetDetailDto'];

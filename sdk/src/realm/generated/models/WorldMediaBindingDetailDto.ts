@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type AudioDirectUploadResponseDto = components['schemas']['AudioDirectUploadResponseDto'];
+export type WorldMediaBindingDetailDto = components['schemas']['WorldMediaBindingDetailDto'];

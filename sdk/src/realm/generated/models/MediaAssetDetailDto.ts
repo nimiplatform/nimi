@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type DirectUploadResponseDto = components['schemas']['DirectUploadResponseDto'];
+export type MediaAssetDetailDto = components['schemas']['MediaAssetDetailDto'];

@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type WorldVisualBindingListDto = components['schemas']['WorldVisualBindingListDto'];
+export type FinalizeMediaAssetDto = components['schemas']['FinalizeMediaAssetDto'];

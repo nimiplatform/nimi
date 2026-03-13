@@ -1972,8 +1972,9 @@ export const REALM_OPERATION_MAP = {
     "methodName": "createAudioDirectUpload",
     "tag": "Media",
     "parameters": [],
-    "hasBody": false,
-    "bodyRequired": false
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json"
   },
   "MediaService.createImageDirectUpload": {
     "operationId": "createImageDirectUpload",
@@ -2011,16 +2012,16 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false
   },
-  "MediaService.getVideoToken": {
-    "operationId": "getVideoToken",
-    "method": "GET",
-    "path": "/api/media/videos/{uid}/token",
+  "MediaService.deleteMediaAsset": {
+    "operationId": "deleteMediaAsset",
+    "method": "DELETE",
+    "path": "/api/media/assets/{assetId}",
     "service": "MediaService",
-    "methodName": "getVideoToken",
+    "methodName": "deleteMediaAsset",
     "tag": "Media",
     "parameters": [
       {
-        "name": "uid",
+        "name": "assetId",
         "in": "path",
         "required": true,
         "valueType": "string"
@@ -2028,6 +2029,73 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasBody": false,
     "bodyRequired": false
+  },
+  "MediaService.finalizeMediaAsset": {
+    "operationId": "finalizeMediaAsset",
+    "method": "POST",
+    "path": "/api/media/assets/{assetId}/finalize",
+    "service": "MediaService",
+    "methodName": "finalizeMediaAsset",
+    "tag": "Media",
+    "parameters": [
+      {
+        "name": "assetId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json"
+  },
+  "MediaService.getMediaAsset": {
+    "operationId": "getMediaAsset",
+    "method": "GET",
+    "path": "/api/media/assets/{assetId}",
+    "service": "MediaService",
+    "methodName": "getMediaAsset",
+    "tag": "Media",
+    "parameters": [
+      {
+        "name": "assetId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false
+  },
+  "MediaService.listMediaAssets": {
+    "operationId": "listMediaAssets",
+    "method": "GET",
+    "path": "/api/media/assets",
+    "service": "MediaService",
+    "methodName": "listMediaAssets",
+    "tag": "Media",
+    "parameters": [],
+    "hasBody": false,
+    "bodyRequired": false
+  },
+  "MediaService.updateMediaAsset": {
+    "operationId": "updateMediaAsset",
+    "method": "PATCH",
+    "path": "/api/media/assets/{assetId}",
+    "service": "MediaService",
+    "methodName": "updateMediaAsset",
+    "tag": "Media",
+    "parameters": [
+      {
+        "name": "assetId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json"
   },
   "MeService.bindWallet": {
     "operationId": "bindWallet",
@@ -4287,12 +4355,12 @@ export const REALM_OPERATION_MAP = {
     "bodyRequired": true,
     "requestBodyContentType": "application/json"
   },
-  "WorldControlService.worldControlControllerBatchUpsertWorldVisualBindings": {
-    "operationId": "WorldControlController_batchUpsertWorldVisualBindings",
+  "WorldControlService.worldControlControllerBatchUpsertWorldMediaBindings": {
+    "operationId": "WorldControlController_batchUpsertWorldMediaBindings",
     "method": "POST",
-    "path": "/api/worlds/{worldId}/visual-bindings/batch-upsert",
+    "path": "/api/worlds/{worldId}/media-bindings/batch-upsert",
     "service": "WorldControlService",
-    "methodName": "worldControlControllerBatchUpsertWorldVisualBindings",
+    "methodName": "worldControlControllerBatchUpsertWorldMediaBindings",
     "tag": "World Control",
     "parameters": [
       {
@@ -4366,12 +4434,12 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false
   },
-  "WorldControlService.worldControlControllerDeleteWorldVisualBinding": {
-    "operationId": "WorldControlController_deleteWorldVisualBinding",
+  "WorldControlService.worldControlControllerDeleteWorldMediaBinding": {
+    "operationId": "WorldControlController_deleteWorldMediaBinding",
     "method": "DELETE",
-    "path": "/api/worlds/{worldId}/visual-bindings/{bindingId}",
+    "path": "/api/worlds/{worldId}/media-bindings/{bindingId}",
     "service": "WorldControlService",
-    "methodName": "worldControlControllerDeleteWorldVisualBinding",
+    "methodName": "worldControlControllerDeleteWorldMediaBinding",
     "tag": "World Control",
     "parameters": [
       {
@@ -4495,6 +4563,48 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false
   },
+  "WorldControlService.worldControlControllerListWorldMediaBindings": {
+    "operationId": "WorldControlController_listWorldMediaBindings",
+    "method": "GET",
+    "path": "/api/worlds/{worldId}/media-bindings",
+    "service": "WorldControlService",
+    "methodName": "worldControlControllerListWorldMediaBindings",
+    "tag": "World Control",
+    "parameters": [
+      {
+        "name": "worldId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "take",
+        "in": "query",
+        "required": false,
+        "valueType": "number"
+      },
+      {
+        "name": "slot",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      },
+      {
+        "name": "targetId",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      },
+      {
+        "name": "targetType",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false
+  },
   "WorldControlService.worldControlControllerListWorldMutations": {
     "operationId": "WorldControlController_listWorldMutations",
     "method": "GET",
@@ -4598,48 +4708,6 @@ export const REALM_OPERATION_MAP = {
         "in": "query",
         "required": false,
         "valueType": "string[]"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false
-  },
-  "WorldControlService.worldControlControllerListWorldVisualBindings": {
-    "operationId": "WorldControlController_listWorldVisualBindings",
-    "method": "GET",
-    "path": "/api/worlds/{worldId}/visual-bindings",
-    "service": "WorldControlService",
-    "methodName": "worldControlControllerListWorldVisualBindings",
-    "tag": "World Control",
-    "parameters": [
-      {
-        "name": "worldId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "take",
-        "in": "query",
-        "required": false,
-        "valueType": "number"
-      },
-      {
-        "name": "slot",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "targetId",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "targetType",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
       }
     ],
     "hasBody": false,
@@ -5334,7 +5402,11 @@ export const REALM_SERVICE_METHODS = {
     "createAudioDirectUpload": "MediaService.createAudioDirectUpload",
     "createImageDirectUpload": "MediaService.createImageDirectUpload",
     "createVideoDirectUpload": "MediaService.createVideoDirectUpload",
-    "getVideoToken": "MediaService.getVideoToken"
+    "deleteMediaAsset": "MediaService.deleteMediaAsset",
+    "finalizeMediaAsset": "MediaService.finalizeMediaAsset",
+    "getMediaAsset": "MediaService.getMediaAsset",
+    "listMediaAssets": "MediaService.listMediaAssets",
+    "updateMediaAsset": "MediaService.updateMediaAsset"
   },
   "MeService": {
     "bindWallet": "MeService.bindWallet",
@@ -5481,11 +5553,11 @@ export const REALM_SERVICE_METHODS = {
   "WorldControlService": {
     "worldControlControllerBatchUpsertWorldEvents": "WorldControlService.worldControlControllerBatchUpsertWorldEvents",
     "worldControlControllerBatchUpsertWorldLorebooks": "WorldControlService.worldControlControllerBatchUpsertWorldLorebooks",
-    "worldControlControllerBatchUpsertWorldVisualBindings": "WorldControlService.worldControlControllerBatchUpsertWorldVisualBindings",
+    "worldControlControllerBatchUpsertWorldMediaBindings": "WorldControlService.worldControlControllerBatchUpsertWorldMediaBindings",
     "worldControlControllerCreateDraft": "WorldControlService.worldControlControllerCreateDraft",
     "worldControlControllerDeleteWorldEvent": "WorldControlService.worldControlControllerDeleteWorldEvent",
     "worldControlControllerDeleteWorldLorebook": "WorldControlService.worldControlControllerDeleteWorldLorebook",
-    "worldControlControllerDeleteWorldVisualBinding": "WorldControlService.worldControlControllerDeleteWorldVisualBinding",
+    "worldControlControllerDeleteWorldMediaBinding": "WorldControlService.worldControlControllerDeleteWorldMediaBinding",
     "worldControlControllerGetDraft": "WorldControlService.worldControlControllerGetDraft",
     "worldControlControllerGetMaintenance": "WorldControlService.worldControlControllerGetMaintenance",
     "worldControlControllerGetMyAccess": "WorldControlService.worldControlControllerGetMyAccess",
@@ -5493,10 +5565,10 @@ export const REALM_SERVICE_METHODS = {
     "worldControlControllerListMyWorlds": "WorldControlService.worldControlControllerListMyWorlds",
     "worldControlControllerListWorldEvents": "WorldControlService.worldControlControllerListWorldEvents",
     "worldControlControllerListWorldLorebooks": "WorldControlService.worldControlControllerListWorldLorebooks",
+    "worldControlControllerListWorldMediaBindings": "WorldControlService.worldControlControllerListWorldMediaBindings",
     "worldControlControllerListWorldMutations": "WorldControlService.worldControlControllerListWorldMutations",
     "worldControlControllerListWorldNarrativeContexts": "WorldControlService.worldControlControllerListWorldNarrativeContexts",
     "worldControlControllerListWorldScenes": "WorldControlService.worldControlControllerListWorldScenes",
-    "worldControlControllerListWorldVisualBindings": "WorldControlService.worldControlControllerListWorldVisualBindings",
     "worldControlControllerPublishDraft": "WorldControlService.worldControlControllerPublishDraft",
     "worldControlControllerResolveLanding": "WorldControlService.worldControlControllerResolveLanding",
     "worldControlControllerUpdateDraft": "WorldControlService.worldControlControllerUpdateDraft",

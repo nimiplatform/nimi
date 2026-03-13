@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type BatchUpsertWorldVisualBindingsDto = components['schemas']['BatchUpsertWorldVisualBindingsDto'];
+export type WorldMediaBindingListDto = components['schemas']['WorldMediaBindingListDto'];
