@@ -144,6 +144,10 @@ pub enum ReasonCode {
     AiMediaJobNotFound = 412,
     AiMediaJobNotCancellable = 413,
     AiMediaIdempotencyConflict = 414,
+    AiArtifactUploadInvalid = 415,
+    AiArtifactUploadTooLarge = 416,
+    AiRealtimeSessionNotFound = 417,
+    AiRealtimeSessionClosed = 418,
     /// VOICE family (420+)
     AiVoiceInputInvalid = 420,
     AiVoiceWorkflowUnsupported = 421,
@@ -260,6 +264,10 @@ impl ReasonCode {
             Self::AiMediaJobNotFound => "AI_MEDIA_JOB_NOT_FOUND",
             Self::AiMediaJobNotCancellable => "AI_MEDIA_JOB_NOT_CANCELLABLE",
             Self::AiMediaIdempotencyConflict => "AI_MEDIA_IDEMPOTENCY_CONFLICT",
+            Self::AiArtifactUploadInvalid => "AI_ARTIFACT_UPLOAD_INVALID",
+            Self::AiArtifactUploadTooLarge => "AI_ARTIFACT_UPLOAD_TOO_LARGE",
+            Self::AiRealtimeSessionNotFound => "AI_REALTIME_SESSION_NOT_FOUND",
+            Self::AiRealtimeSessionClosed => "AI_REALTIME_SESSION_CLOSED",
             Self::AiVoiceInputInvalid => "AI_VOICE_INPUT_INVALID",
             Self::AiVoiceWorkflowUnsupported => "AI_VOICE_WORKFLOW_UNSUPPORTED",
             Self::AiVoiceAssetNotFound => "AI_VOICE_ASSET_NOT_FOUND",
@@ -381,6 +389,10 @@ impl ReasonCode {
             "AI_MEDIA_JOB_NOT_FOUND" => Some(Self::AiMediaJobNotFound),
             "AI_MEDIA_JOB_NOT_CANCELLABLE" => Some(Self::AiMediaJobNotCancellable),
             "AI_MEDIA_IDEMPOTENCY_CONFLICT" => Some(Self::AiMediaIdempotencyConflict),
+            "AI_ARTIFACT_UPLOAD_INVALID" => Some(Self::AiArtifactUploadInvalid),
+            "AI_ARTIFACT_UPLOAD_TOO_LARGE" => Some(Self::AiArtifactUploadTooLarge),
+            "AI_REALTIME_SESSION_NOT_FOUND" => Some(Self::AiRealtimeSessionNotFound),
+            "AI_REALTIME_SESSION_CLOSED" => Some(Self::AiRealtimeSessionClosed),
             "AI_VOICE_INPUT_INVALID" => Some(Self::AiVoiceInputInvalid),
             "AI_VOICE_WORKFLOW_UNSUPPORTED" => Some(Self::AiVoiceWorkflowUnsupported),
             "AI_VOICE_ASSET_NOT_FOUND" => Some(Self::AiVoiceAssetNotFound),
@@ -1771,6 +1783,17 @@ pub struct ChatContentImageUrl {
     pub detail: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ChatContentArtifactRef {
+    #[prost(string, tag = "1")]
+    pub artifact_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub local_artifact_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub mime_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub display_name: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ChatContentPart {
     #[prost(enumeration = "ChatContentPartType", tag = "1")]
     pub r#type: i32,
@@ -1780,6 +1803,10 @@ pub struct ChatContentPart {
     pub image_url: ::core::option::Option<ChatContentImageUrl>,
     #[prost(string, tag = "4")]
     pub video_url: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub audio_url: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "6")]
+    pub artifact_ref: ::core::option::Option<ChatContentArtifactRef>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ToolSpec {
@@ -1935,9 +1962,26 @@ pub struct VoiceDesignScenarioSpec {
     #[prost(message, optional, tag = "2")]
     pub input: ::core::option::Option<VoiceT2vInput>,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MusicGenerateScenarioSpec {
+    #[prost(string, tag = "1")]
+    pub prompt: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub negative_prompt: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub lyrics: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub style: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(int32, tag = "6")]
+    pub duration_seconds: i32,
+    #[prost(bool, tag = "7")]
+    pub instrumental: bool,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScenarioSpec {
-    #[prost(oneof = "scenario_spec::Spec", tags = "1, 2, 3, 4, 5, 6, 7, 8")]
+    #[prost(oneof = "scenario_spec::Spec", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9")]
     pub spec: ::core::option::Option<scenario_spec::Spec>,
 }
 /// Nested message and enum types in `ScenarioSpec`.
@@ -1960,6 +2004,8 @@ pub mod scenario_spec {
         VoiceClone(super::VoiceCloneScenarioSpec),
         #[prost(message, tag = "8")]
         VoiceDesign(super::VoiceDesignScenarioSpec),
+        #[prost(message, tag = "9")]
+        MusicGenerate(super::MusicGenerateScenarioSpec),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -2353,6 +2399,207 @@ pub struct ArtifactChunk {
     #[prost(string, tag = "9")]
     pub trace_id: ::prost::alloc::string::String,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UploadArtifactMetadata {
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub subject_user_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub mime_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub display_name: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UploadArtifactChunk {
+    #[prost(uint64, tag = "1")]
+    pub sequence: u64,
+    #[prost(bytes = "vec", tag = "2")]
+    pub bytes: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UploadArtifactRequest {
+    #[prost(oneof = "upload_artifact_request::Payload", tags = "1, 2")]
+    pub payload: ::core::option::Option<upload_artifact_request::Payload>,
+}
+/// Nested message and enum types in `UploadArtifactRequest`.
+pub mod upload_artifact_request {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Payload {
+        #[prost(message, tag = "1")]
+        Metadata(super::UploadArtifactMetadata),
+        #[prost(message, tag = "2")]
+        Chunk(super::UploadArtifactChunk),
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UploadArtifactResponse {
+    #[prost(message, optional, tag = "1")]
+    pub artifact: ::core::option::Option<ScenarioArtifact>,
+    #[prost(string, tag = "2")]
+    pub trace_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct OpenRealtimeSessionRequest {
+    #[prost(message, optional, tag = "1")]
+    pub head: ::core::option::Option<ScenarioRequestHead>,
+    #[prost(string, tag = "2")]
+    pub system_prompt: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub extensions: ::prost::alloc::vec::Vec<ScenarioExtension>,
+    #[prost(string, tag = "4")]
+    pub output_audio_format: ::prost::alloc::string::String,
+    #[prost(int32, tag = "5")]
+    pub output_sample_rate_hz: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct OpenRealtimeSessionResponse {
+    #[prost(string, tag = "1")]
+    pub session_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "RoutePolicy", tag = "2")]
+    pub route_decision: i32,
+    #[prost(string, tag = "3")]
+    pub model_resolved: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub trace_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RealtimeAudioInput {
+    #[prost(string, tag = "4")]
+    pub mime_type: ::prost::alloc::string::String,
+    #[prost(int32, tag = "5")]
+    pub sample_rate_hz: i32,
+    #[prost(bool, tag = "6")]
+    pub end_of_turn: bool,
+    #[prost(oneof = "realtime_audio_input::Source", tags = "1, 2, 3")]
+    pub source: ::core::option::Option<realtime_audio_input::Source>,
+}
+/// Nested message and enum types in `RealtimeAudioInput`.
+pub mod realtime_audio_input {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Source {
+        #[prost(bytes, tag = "1")]
+        AudioBytes(::prost::alloc::vec::Vec<u8>),
+        #[prost(string, tag = "2")]
+        AudioUri(::prost::alloc::string::String),
+        #[prost(message, tag = "3")]
+        ArtifactRef(super::ChatContentArtifactRef),
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RealtimeInputItem {
+    #[prost(oneof = "realtime_input_item::Item", tags = "1, 2")]
+    pub item: ::core::option::Option<realtime_input_item::Item>,
+}
+/// Nested message and enum types in `RealtimeInputItem`.
+pub mod realtime_input_item {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Item {
+        #[prost(message, tag = "1")]
+        Message(super::ChatMessage),
+        #[prost(message, tag = "2")]
+        Audio(super::RealtimeAudioInput),
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AppendRealtimeInputRequest {
+    #[prost(string, tag = "1")]
+    pub session_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "2")]
+    pub items: ::prost::alloc::vec::Vec<RealtimeInputItem>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppendRealtimeInputResponse {
+    #[prost(message, optional, tag = "1")]
+    pub ack: ::core::option::Option<Ack>,
+    #[prost(string, tag = "2")]
+    pub trace_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadRealtimeEventsRequest {
+    #[prost(string, tag = "1")]
+    pub session_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub after_sequence: u64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RealtimeSessionOpened {
+    #[prost(string, tag = "1")]
+    pub session_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub model_resolved: ::prost::alloc::string::String,
+    #[prost(enumeration = "RoutePolicy", tag = "3")]
+    pub route_decision: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RealtimeTextDelta {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RealtimeAudioChunk {
+    #[prost(bytes = "vec", tag = "1")]
+    pub chunk: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "2")]
+    pub mime_type: ::prost::alloc::string::String,
+    #[prost(int32, tag = "3")]
+    pub sample_rate_hz: i32,
+    #[prost(bool, tag = "4")]
+    pub eof: bool,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RealtimeCompleted {
+    #[prost(enumeration = "FinishReason", tag = "1")]
+    pub finish_reason: i32,
+    #[prost(message, optional, tag = "2")]
+    pub usage: ::core::option::Option<UsageStats>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RealtimeFailed {
+    #[prost(enumeration = "ReasonCode", tag = "1")]
+    pub reason_code: i32,
+    #[prost(string, tag = "2")]
+    pub action_hint: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RealtimeEvent {
+    #[prost(enumeration = "RealtimeEventType", tag = "1")]
+    pub event_type: i32,
+    #[prost(uint64, tag = "2")]
+    pub sequence: u64,
+    #[prost(string, tag = "3")]
+    pub trace_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(oneof = "realtime_event::Payload", tags = "10, 11, 12, 13, 14")]
+    pub payload: ::core::option::Option<realtime_event::Payload>,
+}
+/// Nested message and enum types in `RealtimeEvent`.
+pub mod realtime_event {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Payload {
+        #[prost(message, tag = "10")]
+        Opened(super::RealtimeSessionOpened),
+        #[prost(message, tag = "11")]
+        TextDelta(super::RealtimeTextDelta),
+        #[prost(message, tag = "12")]
+        AudioChunk(super::RealtimeAudioChunk),
+        #[prost(message, tag = "13")]
+        Completed(super::RealtimeCompleted),
+        #[prost(message, tag = "14")]
+        Failed(super::RealtimeFailed),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CloseRealtimeSessionRequest {
+    #[prost(string, tag = "1")]
+    pub session_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CloseRealtimeSessionResponse {
+    #[prost(message, optional, tag = "1")]
+    pub ack: ::core::option::Option<Ack>,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum Modal {
@@ -2363,6 +2610,7 @@ pub enum Modal {
     Tts = 4,
     Stt = 5,
     Embedding = 6,
+    Music = 7,
 }
 impl Modal {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -2378,6 +2626,7 @@ impl Modal {
             Self::Tts => "MODAL_TTS",
             Self::Stt => "MODAL_STT",
             Self::Embedding => "MODAL_EMBEDDING",
+            Self::Music => "MODAL_MUSIC",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -2390,6 +2639,7 @@ impl Modal {
             "MODAL_TTS" => Some(Self::Tts),
             "MODAL_STT" => Some(Self::Stt),
             "MODAL_EMBEDDING" => Some(Self::Embedding),
+            "MODAL_MUSIC" => Some(Self::Music),
             _ => None,
         }
     }
@@ -2406,6 +2656,7 @@ pub enum ScenarioType {
     SpeechTranscribe = 6,
     VoiceClone = 7,
     VoiceDesign = 8,
+    MusicGenerate = 9,
 }
 impl ScenarioType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -2423,6 +2674,7 @@ impl ScenarioType {
             Self::SpeechTranscribe => "SCENARIO_TYPE_SPEECH_TRANSCRIBE",
             Self::VoiceClone => "SCENARIO_TYPE_VOICE_CLONE",
             Self::VoiceDesign => "SCENARIO_TYPE_VOICE_DESIGN",
+            Self::MusicGenerate => "SCENARIO_TYPE_MUSIC_GENERATE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -2437,6 +2689,7 @@ impl ScenarioType {
             "SCENARIO_TYPE_SPEECH_TRANSCRIBE" => Some(Self::SpeechTranscribe),
             "SCENARIO_TYPE_VOICE_CLONE" => Some(Self::VoiceClone),
             "SCENARIO_TYPE_VOICE_DESIGN" => Some(Self::VoiceDesign),
+            "SCENARIO_TYPE_MUSIC_GENERATE" => Some(Self::MusicGenerate),
             _ => None,
         }
     }
@@ -2653,6 +2906,44 @@ impl StreamEventType {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
+pub enum RealtimeEventType {
+    Unspecified = 0,
+    RealtimeEventOpened = 1,
+    RealtimeEventTextDelta = 2,
+    RealtimeEventAudioChunk = 3,
+    RealtimeEventCompleted = 4,
+    RealtimeEventFailed = 5,
+}
+impl RealtimeEventType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "REALTIME_EVENT_TYPE_UNSPECIFIED",
+            Self::RealtimeEventOpened => "REALTIME_EVENT_OPENED",
+            Self::RealtimeEventTextDelta => "REALTIME_EVENT_TEXT_DELTA",
+            Self::RealtimeEventAudioChunk => "REALTIME_EVENT_AUDIO_CHUNK",
+            Self::RealtimeEventCompleted => "REALTIME_EVENT_COMPLETED",
+            Self::RealtimeEventFailed => "REALTIME_EVENT_FAILED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "REALTIME_EVENT_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "REALTIME_EVENT_OPENED" => Some(Self::RealtimeEventOpened),
+            "REALTIME_EVENT_TEXT_DELTA" => Some(Self::RealtimeEventTextDelta),
+            "REALTIME_EVENT_AUDIO_CHUNK" => Some(Self::RealtimeEventAudioChunk),
+            "REALTIME_EVENT_COMPLETED" => Some(Self::RealtimeEventCompleted),
+            "REALTIME_EVENT_FAILED" => Some(Self::RealtimeEventFailed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
 pub enum VideoMode {
     Unspecified = 0,
     T2v = 1,
@@ -2818,6 +3109,8 @@ pub enum ChatContentPartType {
     Text = 1,
     ImageUrl = 2,
     VideoUrl = 3,
+    AudioUrl = 4,
+    ArtifactRef = 5,
 }
 impl ChatContentPartType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -2830,6 +3123,8 @@ impl ChatContentPartType {
             Self::Text => "CHAT_CONTENT_PART_TYPE_TEXT",
             Self::ImageUrl => "CHAT_CONTENT_PART_TYPE_IMAGE_URL",
             Self::VideoUrl => "CHAT_CONTENT_PART_TYPE_VIDEO_URL",
+            Self::AudioUrl => "CHAT_CONTENT_PART_TYPE_AUDIO_URL",
+            Self::ArtifactRef => "CHAT_CONTENT_PART_TYPE_ARTIFACT_REF",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -2839,6 +3134,8 @@ impl ChatContentPartType {
             "CHAT_CONTENT_PART_TYPE_TEXT" => Some(Self::Text),
             "CHAT_CONTENT_PART_TYPE_IMAGE_URL" => Some(Self::ImageUrl),
             "CHAT_CONTENT_PART_TYPE_VIDEO_URL" => Some(Self::VideoUrl),
+            "CHAT_CONTENT_PART_TYPE_AUDIO_URL" => Some(Self::AudioUrl),
+            "CHAT_CONTENT_PART_TYPE_ARTIFACT_REF" => Some(Self::ArtifactRef),
             _ => None,
         }
     }
@@ -3357,6 +3654,245 @@ pub mod runtime_ai_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAiService",
                         "ListPresetVoices",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn upload_artifact(
+            &mut self,
+            request: impl tonic::IntoStreamingRequest<
+                Message = super::UploadArtifactRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::UploadArtifactResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/UploadArtifact",
+            );
+            let mut req = request.into_streaming_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("nimi.runtime.v1.RuntimeAiService", "UploadArtifact"),
+                );
+            self.inner.client_streaming(req, path, codec).await
+        }
+    }
+}
+/// Generated client implementations.
+pub mod runtime_ai_realtime_service_client {
+    #![allow(
+        unused_variables,
+        dead_code,
+        missing_docs,
+        clippy::wildcard_imports,
+        clippy::let_unit_value,
+    )]
+    use tonic::codegen::*;
+    use tonic::codegen::http::Uri;
+    #[derive(Debug, Clone)]
+    pub struct RuntimeAiRealtimeServiceClient<T> {
+        inner: tonic::client::Grpc<T>,
+    }
+    impl RuntimeAiRealtimeServiceClient<tonic::transport::Channel> {
+        /// Attempt to create a new client by connecting to a given endpoint.
+        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
+        where
+            D: TryInto<tonic::transport::Endpoint>,
+            D::Error: Into<StdError>,
+        {
+            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
+            Ok(Self::new(conn))
+        }
+    }
+    impl<T> RuntimeAiRealtimeServiceClient<T>
+    where
+        T: tonic::client::GrpcService<tonic::body::Body>,
+        T::Error: Into<StdError>,
+        T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
+        <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
+    {
+        pub fn new(inner: T) -> Self {
+            let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_origin(inner: T, origin: Uri) -> Self {
+            let inner = tonic::client::Grpc::with_origin(inner, origin);
+            Self { inner }
+        }
+        pub fn with_interceptor<F>(
+            inner: T,
+            interceptor: F,
+        ) -> RuntimeAiRealtimeServiceClient<InterceptedService<T, F>>
+        where
+            F: tonic::service::Interceptor,
+            T::ResponseBody: Default,
+            T: tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+                Response = http::Response<
+                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
+                >,
+            >,
+            <T as tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
+        {
+            RuntimeAiRealtimeServiceClient::new(
+                InterceptedService::new(inner, interceptor),
+            )
+        }
+        /// Compress requests with the given encoding.
+        ///
+        /// This requires the server to support it otherwise it might respond with an
+        /// error.
+        #[must_use]
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.send_compressed(encoding);
+            self
+        }
+        /// Enable decompressing responses.
+        #[must_use]
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.accept_compressed(encoding);
+            self
+        }
+        /// Limits the maximum size of a decoded message.
+        ///
+        /// Default: `4MB`
+        #[must_use]
+        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_decoding_message_size(limit);
+            self
+        }
+        /// Limits the maximum size of an encoded message.
+        ///
+        /// Default: `usize::MAX`
+        #[must_use]
+        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_encoding_message_size(limit);
+            self
+        }
+        pub async fn open_realtime_session(
+            &mut self,
+            request: impl tonic::IntoRequest<super::OpenRealtimeSessionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::OpenRealtimeSessionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiRealtimeService",
+                        "OpenRealtimeSession",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn append_realtime_input(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AppendRealtimeInputRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::AppendRealtimeInputResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiRealtimeService",
+                        "AppendRealtimeInput",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn read_realtime_events(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ReadRealtimeEventsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::RealtimeEvent>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiRealtimeService",
+                        "ReadRealtimeEvents",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        pub async fn close_realtime_session(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CloseRealtimeSessionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CloseRealtimeSessionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiRealtimeService",
+                        "CloseRealtimeSession",
                     ),
                 );
             self.inner.unary(req, path, codec).await
