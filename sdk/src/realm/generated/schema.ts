@@ -976,6 +976,25 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/creator/agents/{agentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Agent detail (creator scope) */
+        get: operations["CreatorController_getAgent"];
+        put?: never;
+        post?: never;
+        /** Delete Agent (creator scope) */
+        delete: operations["CreatorController_deleteAgent"];
+        options?: never;
+        head?: never;
+        /** Update Agent (creator scope) */
+        patch: operations["CreatorController_updateAgent"];
+        trace?: never;
+    };
     "/api/creator/keys": {
         parameters: {
             query?: never;
@@ -5727,6 +5746,16 @@ export type components = {
             dmVisibility?: components["schemas"]["Visibility"];
             /** @description Profile information visibility */
             profileVisibility?: components["schemas"]["Visibility"];
+        };
+        UpdateCreatorAgentDto: {
+            avatarUrl?: string;
+            bio?: string;
+            capabilities?: Record<string, never>;
+            category?: string;
+            contentRating?: string;
+            displayName?: string;
+            tags?: string[];
+            webhookUrl?: string;
         };
         UpdateNarrativeSpineEventDto: {
             canonFlag?: boolean;

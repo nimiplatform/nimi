@@ -1068,6 +1068,42 @@ export const REALM_OPERATION_MAP = {
     "bodyRequired": true,
     "requestBodyContentType": "application/json"
   },
+  "CreatorService.creatorControllerDeleteAgent": {
+    "operationId": "CreatorController_deleteAgent",
+    "method": "DELETE",
+    "path": "/api/creator/agents/{agentId}",
+    "service": "CreatorService",
+    "methodName": "creatorControllerDeleteAgent",
+    "tag": "Creator",
+    "parameters": [
+      {
+        "name": "agentId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false
+  },
+  "CreatorService.creatorControllerGetAgent": {
+    "operationId": "CreatorController_getAgent",
+    "method": "GET",
+    "path": "/api/creator/agents/{agentId}",
+    "service": "CreatorService",
+    "methodName": "creatorControllerGetAgent",
+    "tag": "Creator",
+    "parameters": [
+      {
+        "name": "agentId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false
+  },
   "CreatorService.creatorControllerListAgents": {
     "operationId": "CreatorController_listAgents",
     "method": "GET",
@@ -1107,6 +1143,25 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasBody": false,
     "bodyRequired": false
+  },
+  "CreatorService.creatorControllerUpdateAgent": {
+    "operationId": "CreatorController_updateAgent",
+    "method": "PATCH",
+    "path": "/api/creator/agents/{agentId}",
+    "service": "CreatorService",
+    "methodName": "creatorControllerUpdateAgent",
+    "tag": "Creator",
+    "parameters": [
+      {
+        "name": "agentId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json"
   },
   "DesktopService.desktopControllerResolveChatRoute": {
     "operationId": "DesktopController_resolveChatRoute",
@@ -5192,9 +5247,12 @@ export const REALM_SERVICE_METHODS = {
     "creatorControllerBatchCreateAgents": "CreatorService.creatorControllerBatchCreateAgents",
     "creatorControllerCreateAgent": "CreatorService.creatorControllerCreateAgent",
     "creatorControllerCreateKey": "CreatorService.creatorControllerCreateKey",
+    "creatorControllerDeleteAgent": "CreatorService.creatorControllerDeleteAgent",
+    "creatorControllerGetAgent": "CreatorService.creatorControllerGetAgent",
     "creatorControllerListAgents": "CreatorService.creatorControllerListAgents",
     "creatorControllerListKeys": "CreatorService.creatorControllerListKeys",
-    "creatorControllerRevokeKey": "CreatorService.creatorControllerRevokeKey"
+    "creatorControllerRevokeKey": "CreatorService.creatorControllerRevokeKey",
+    "creatorControllerUpdateAgent": "CreatorService.creatorControllerUpdateAgent"
   },
   "DesktopService": {
     "desktopControllerResolveChatRoute": "DesktopService.desktopControllerResolveChatRoute"
