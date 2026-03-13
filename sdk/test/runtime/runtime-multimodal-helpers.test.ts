@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { toRuntimeMessages } from '../../src/runtime/helpers.js';
 import { ChatContentPartType } from '../../src/runtime/generated/runtime/v1/ai.js';
+import { ReasonCode } from '../../src/types/index.js';
 
 test('toRuntimeMessages string input creates TEXT part for content', () => {
   const result = toRuntimeMessages('hello');
@@ -119,20 +120,27 @@ test('toRuntimeMessages multimodal content with multiple text parts concatenates
   assert.equal(result.input[0]!.parts[1]!.type, ChatContentPartType.TEXT);
 });
 
-test('toRuntimeMessages video_url part maps to VIDEO_URL type', () => {
+test('toRuntimeMessages keeps video_url, audio_url and artifact_ref parts', () => {
   const result = toRuntimeMessages([
     {
       role: 'user',
       content: [
-        { type: 'text', text: 'watch this' },
+        { type: 'text', text: 'watch and listen' },
         { type: 'video_url', videoUrl: 'https://example.com/video.mp4' },
+        { type: 'audio_url', audioUrl: 'https://example.com/audio.mp3' },
+        { type: 'artifact_ref', artifactId: 'artifact-1', mimeType: 'image/png' },
       ],
     },
   ]);
 
-  assert.equal(result.input[0]!.parts.length, 2);
+  assert.equal(result.input.length, 1);
+  assert.equal(result.input[0]!.parts.length, 4);
   assert.equal(result.input[0]!.parts[1]!.type, ChatContentPartType.VIDEO_URL);
   assert.equal(result.input[0]!.parts[1]!.videoUrl, 'https://example.com/video.mp4');
+  assert.equal(result.input[0]!.parts[2]!.type, ChatContentPartType.AUDIO_URL);
+  assert.equal(result.input[0]!.parts[2]!.audioUrl, 'https://example.com/audio.mp3');
+  assert.equal(result.input[0]!.parts[3]!.type, ChatContentPartType.ARTIFACT_REF);
+  assert.equal(result.input[0]!.parts[3]!.artifactRef?.artifactId, 'artifact-1');
 });
 
 test('toRuntimeMessages image_url defaults detail to auto', () => {
@@ -162,4 +170,22 @@ test('toRuntimeMessages explicit system param merges with inline system messages
   );
 
   assert.equal(result.systemPrompt, 'inline system\n\nexplicit system');
+});
+
+test('toRuntimeMessages rejects artifact_ref without identifiers', () => {
+  assert.throws(
+    () => toRuntimeMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'artifact_ref', mimeType: 'image/png' },
+        ],
+      },
+    ]),
+    (error: unknown) => {
+      assert.equal(typeof error, 'object');
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.AI_INPUT_INVALID);
+      return true;
+    },
+  );
 });

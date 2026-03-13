@@ -222,5 +222,34 @@ TTS provider 纳入执行以下分层规则：
 
 ## K-MMPROV-029 Deferred Custom Voice Extension
 
-云厂训练型 Custom Voice（训练作业、审批流程或长期部署语义）在本轮必须保持 provider extension 形态。  
+云厂训练型 Custom Voice（训练作业、审批流程或长期部署语义）在本轮必须保持 provider extension 形态。
 在形成跨 provider 可验证强类型抽象前，不得强行映射为标准 `tts_v2v` / `tts_t2v` 成功语义。
+
+## K-MMPROV-030 Text Chat Multimodal Preflight Guard
+
+`TEXT_GENERATE` 场景接受多模态 `ChatContentPart`（`parts` 字段）时，runtime 必须在调用 provider 前执行逐项模态预检：
+
+- `IMAGE_URL` -> 必须校验 `text.generate.vision`
+- `AUDIO_URL` -> 必须校验 `text.generate.audio`
+- `VIDEO_URL` -> 必须校验 `text.generate.video`
+- `ARTIFACT_REF` -> 必须先解析为可消费的 image/audio/video 输入，再按解析后的模态执行能力预检
+- 目标模型未声明对应 capability 时，必须 fail-close 返回 `AI_MODALITY_NOT_SUPPORTED`（K-NIMI-009）
+- catalog 中未找到模型条目时，允许放行；但 provider adapter 若缺少该模态映射，仍必须在执行前 fail-close，不得静默降级
+- 未知或未实现的 text-chat part type 必须返回 `AI_MEDIA_OPTION_UNSUPPORTED`
+
+`TEXT_GENERATE` v2 的输入/输出边界：
+
+- 输出始终是 text；媒体输出不得通过 `TEXT_GENERATE` 返回
+- 输入允许 `text`、`image_url`、`audio_url`、`video_url`、`artifact_ref`
+- 大媒体输入仅允许 `URL` 或 `artifact_ref`；inline binary / data URI 不得作为 text chat runtime contract
+- media-only prompt 合法；但 system-only 或空内容请求必须 fail-close 为 `AI_INPUT_INVALID`
+
+## K-MMPROV-031 Realtime Session Contract Boundary
+
+双向低延迟 text/audio 会话不得塞入 `AIService` 既有 scenario RPC；必须通过独立 `RuntimeAiRealtimeService` 暴露。
+
+- `OpenRealtimeSession` 负责会话建立与 route/model 决策
+- `AppendRealtimeInput` 负责增量输入（text/audio）
+- `ReadRealtimeEvents` 负责 text delta / audio chunk / terminal event 的 server stream
+- `CloseRealtimeSession` 负责显式结束会话
+- 若 provider 或 adapter 尚未实现 realtime，runtime 必须返回 `UNIMPLEMENTED`，不得伪造成普通 `TEXT_GENERATE` 流式响应

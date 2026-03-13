@@ -38,6 +38,235 @@ type openAIMessage struct {
 	Name    string `json:"name,omitempty"`
 }
 
+type openAIContentPart struct {
+	Type     string          `json:"type"`
+	Text     string          `json:"text,omitempty"`
+	ImageURL *openAIImageURL `json:"image_url,omitempty"`
+}
+
+type openAIImageURL struct {
+	URL    string `json:"url"`
+	Detail string `json:"detail,omitempty"`
+}
+
+type openAIMultimodalMessage struct {
+	Role    string `json:"role"`
+	Content any    `json:"content"`
+	Name    string `json:"name,omitempty"`
+}
+
+type localAIMessage struct {
+	Role          string   `json:"role"`
+	Content       string   `json:"content,omitempty"`
+	StringContent string   `json:"string_content,omitempty"`
+	StringImages  []string `json:"string_images,omitempty"`
+	StringVideos  []string `json:"string_videos,omitempty"`
+	StringAudios  []string `json:"string_audios,omitempty"`
+	Name          string   `json:"name,omitempty"`
+}
+
+func (b *Backend) supportsLocalAITextMultimodal() bool {
+	return strings.Contains(strings.ToLower(strings.TrimSpace(b.Name)), "localai")
+}
+
+func hasUnsupportedOpenAITextChatParts(input []*runtimev1.ChatMessage) bool {
+	for _, msg := range input {
+		for _, part := range msg.GetParts() {
+			switch part.GetType() {
+			case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT,
+				runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL:
+				continue
+			default:
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func hasUnsupportedLocalAITextChatParts(input []*runtimev1.ChatMessage) bool {
+	for _, msg := range input {
+		for _, part := range msg.GetParts() {
+			switch part.GetType() {
+			case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT,
+				runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
+				runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_VIDEO_URL,
+				runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL:
+				continue
+			default:
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func hasMultimodalParts(input []*runtimev1.ChatMessage) bool {
+	for _, msg := range input {
+		if len(msg.GetParts()) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func buildOpenAIMultimodalMessages(systemPrompt string, input []*runtimev1.ChatMessage) []openAIMultimodalMessage {
+	messages := make([]openAIMultimodalMessage, 0, len(input)+1)
+	if prompt := strings.TrimSpace(systemPrompt); prompt != "" {
+		messages = append(messages, openAIMultimodalMessage{Role: "system", Content: prompt})
+	}
+	for _, item := range input {
+		parts := item.GetParts()
+		role := strings.TrimSpace(item.GetRole())
+		if role == "" {
+			role = "user"
+		}
+		if len(parts) == 0 {
+			content := strings.TrimSpace(item.GetContent())
+			if content == "" {
+				continue
+			}
+			messages = append(messages, openAIMultimodalMessage{
+				Role:    role,
+				Content: content,
+				Name:    strings.TrimSpace(item.GetName()),
+			})
+			continue
+		}
+		contentParts := make([]openAIContentPart, 0, len(parts))
+		for _, part := range parts {
+			switch part.GetType() {
+			case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT:
+				text := strings.TrimSpace(part.GetText())
+				if text != "" {
+					contentParts = append(contentParts, openAIContentPart{Type: "text", Text: text})
+				}
+			case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL:
+				imgURL := part.GetImageUrl()
+				if imgURL != nil {
+					url := strings.TrimSpace(imgURL.GetUrl())
+					if url != "" {
+						cp := openAIContentPart{
+							Type:     "image_url",
+							ImageURL: &openAIImageURL{URL: url},
+						}
+						if detail := strings.TrimSpace(imgURL.GetDetail()); detail != "" {
+							cp.ImageURL.Detail = detail
+						}
+						contentParts = append(contentParts, cp)
+					}
+				}
+			}
+		}
+		if len(contentParts) == 0 {
+			continue
+		}
+		messages = append(messages, openAIMultimodalMessage{
+			Role:    role,
+			Content: contentParts,
+			Name:    strings.TrimSpace(item.GetName()),
+		})
+	}
+	return messages
+}
+
+func buildLocalAITextMessages(systemPrompt string, input []*runtimev1.ChatMessage) []localAIMessage {
+	messages := make([]localAIMessage, 0, len(input)+1)
+	if prompt := strings.TrimSpace(systemPrompt); prompt != "" {
+		messages = append(messages, localAIMessage{
+			Role:          "system",
+			Content:       prompt,
+			StringContent: prompt,
+		})
+	}
+	for _, item := range input {
+		role := strings.TrimSpace(item.GetRole())
+		if role == "" {
+			role = "user"
+		}
+		if len(item.GetParts()) == 0 {
+			content := strings.TrimSpace(item.GetContent())
+			if content == "" {
+				continue
+			}
+			messages = append(messages, localAIMessage{
+				Role:          role,
+				Content:       content,
+				StringContent: content,
+				Name:          strings.TrimSpace(item.GetName()),
+			})
+			continue
+		}
+
+		message := localAIMessage{
+			Role: role,
+			Name: strings.TrimSpace(item.GetName()),
+		}
+		textParts := make([]string, 0, len(item.GetParts()))
+		for _, part := range item.GetParts() {
+			switch part.GetType() {
+			case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT:
+				if text := strings.TrimSpace(part.GetText()); text != "" {
+					textParts = append(textParts, text)
+				}
+			case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL:
+				if imageURL := strings.TrimSpace(part.GetImageUrl().GetUrl()); imageURL != "" {
+					message.StringImages = append(message.StringImages, imageURL)
+				}
+			case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_VIDEO_URL:
+				if videoURL := strings.TrimSpace(part.GetVideoUrl()); videoURL != "" {
+					message.StringVideos = append(message.StringVideos, videoURL)
+				}
+			case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL:
+				if audioURL := strings.TrimSpace(part.GetAudioUrl()); audioURL != "" {
+					message.StringAudios = append(message.StringAudios, audioURL)
+				}
+			}
+		}
+		if len(textParts) > 0 {
+			text := strings.Join(textParts, "\n")
+			message.Content = text
+			message.StringContent = text
+		} else if fallback := strings.TrimSpace(item.GetContent()); fallback != "" {
+			message.Content = fallback
+			message.StringContent = fallback
+		}
+		if message.StringContent == "" && len(message.StringImages) == 0 && len(message.StringVideos) == 0 && len(message.StringAudios) == 0 {
+			continue
+		}
+		messages = append(messages, message)
+	}
+	return messages
+}
+
+func buildTextChatMessages(systemPrompt string, input []*runtimev1.ChatMessage, preferLocalAI bool) (any, error) {
+	if hasMultimodalParts(input) {
+		if preferLocalAI {
+			if hasUnsupportedLocalAITextChatParts(input) {
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+			}
+			messages := buildLocalAITextMessages(systemPrompt, input)
+			if len(messages) == 0 {
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+			}
+			return messages, nil
+		}
+		if hasUnsupportedOpenAITextChatParts(input) {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+		messages := buildOpenAIMultimodalMessages(systemPrompt, input)
+		if len(messages) == 0 {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		return messages, nil
+	}
+	messages := buildOpenAIMessages(systemPrompt, input)
+	if len(messages) == 0 {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	return messages, nil
+}
+
 func buildOpenAIMessages(systemPrompt string, input []*runtimev1.ChatMessage) []openAIMessage {
 	messages := make([]openAIMessage, 0, len(input)+1)
 	if prompt := strings.TrimSpace(systemPrompt); prompt != "" {
@@ -202,12 +431,12 @@ func (b *Backend) newRequest(ctx context.Context, method string, endpoint string
 // GenerateText sends a non-streaming chat completion request.
 func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
 	type chatRequest struct {
-		Model       string          `json:"model"`
-		Messages    []openAIMessage `json:"messages"`
-		Temperature *float32        `json:"temperature,omitempty"`
-		TopP        *float32        `json:"top_p,omitempty"`
-		MaxTokens   *int32          `json:"max_tokens,omitempty"`
-		Stream      bool            `json:"stream"`
+		Model       string   `json:"model"`
+		Messages    any      `json:"messages"`
+		Temperature *float32 `json:"temperature,omitempty"`
+		TopP        *float32 `json:"top_p,omitempty"`
+		MaxTokens   *int32   `json:"max_tokens,omitempty"`
+		Stream      bool     `json:"stream"`
 	}
 	type chatResponse struct {
 		Choices []struct {
@@ -222,9 +451,9 @@ func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*run
 		} `json:"usage"`
 	}
 
-	messages := buildOpenAIMessages(systemPrompt, input)
-	if len(messages) == 0 {
-		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	messages, err := buildTextChatMessages(systemPrompt, input, b.supportsLocalAITextMultimodal())
+	if err != nil {
+		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
 
 	reqBody := chatRequest{
@@ -273,13 +502,13 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 		IncludeUsage bool `json:"include_usage"`
 	}
 	type chatRequest struct {
-		Model         string          `json:"model"`
-		Messages      []openAIMessage `json:"messages"`
-		Temperature   *float32        `json:"temperature,omitempty"`
-		TopP          *float32        `json:"top_p,omitempty"`
-		MaxTokens     *int32          `json:"max_tokens,omitempty"`
-		Stream        bool            `json:"stream"`
-		StreamOptions *streamOptions  `json:"stream_options,omitempty"`
+		Model         string         `json:"model"`
+		Messages      any            `json:"messages"`
+		Temperature   *float32       `json:"temperature,omitempty"`
+		TopP          *float32       `json:"top_p,omitempty"`
+		MaxTokens     *int32         `json:"max_tokens,omitempty"`
+		Stream        bool           `json:"stream"`
+		StreamOptions *streamOptions `json:"stream_options,omitempty"`
 	}
 	type streamResponse struct {
 		Choices []struct {
@@ -295,9 +524,9 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 		} `json:"usage"`
 	}
 
-	messages := buildOpenAIMessages(systemPrompt, input)
-	if len(messages) == 0 {
-		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	messages, err := buildTextChatMessages(systemPrompt, input, b.supportsLocalAITextMultimodal())
+	if err != nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
 
 	reqBody := chatRequest{

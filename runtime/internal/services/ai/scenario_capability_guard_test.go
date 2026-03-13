@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"io"
 	"log/slog"
 	"testing"
@@ -103,5 +104,210 @@ func TestValidateScenarioCapabilityCatalogUnavailableAllowsLocalProvider(t *test
 	)
 	if err != nil {
 		t.Fatalf("expected local provider capability guard bypass, got error: %v", err)
+	}
+}
+
+func TestRequiredTextGenerateCapabilitiesEmpty(t *testing.T) {
+	if caps := requiredTextGenerateCapabilities(nil); len(caps) != 0 {
+		t.Fatalf("expected no required capabilities, got %#v", caps)
+	}
+	if caps := requiredTextGenerateCapabilities([]*runtimev1.ChatMessage{}); len(caps) != 0 {
+		t.Fatalf("expected no required capabilities, got %#v", caps)
+	}
+	if caps := requiredTextGenerateCapabilities([]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}}); len(caps) != 0 {
+		t.Fatalf("expected no required capabilities, got %#v", caps)
+	}
+}
+
+func TestRequiredTextGenerateCapabilitiesTextOnly(t *testing.T) {
+	input := []*runtimev1.ChatMessage{
+		{
+			Role: "user",
+			Parts: []*runtimev1.ChatContentPart{
+				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "just text"},
+			},
+		},
+	}
+	if caps := requiredTextGenerateCapabilities(input); len(caps) != 0 {
+		t.Fatalf("expected no required capabilities, got %#v", caps)
+	}
+}
+
+func TestRequiredTextGenerateCapabilitiesWithImage(t *testing.T) {
+	input := []*runtimev1.ChatMessage{
+		{
+			Role: "user",
+			Parts: []*runtimev1.ChatContentPart{
+				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "describe"},
+				{
+					Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
+					ImageUrl: &runtimev1.ChatContentImageURL{Url: "https://example.com/img.png"},
+				},
+			},
+		},
+	}
+	caps := requiredTextGenerateCapabilities(input)
+	if len(caps) != 1 || caps[0] != "text.generate.vision" {
+		t.Fatalf("unexpected capabilities: %#v", caps)
+	}
+}
+
+func TestUnsupportedTextGeneratePartTypeEmpty(t *testing.T) {
+	if partType, unsupported := unsupportedTextGeneratePartType(nil); unsupported {
+		t.Fatalf("expected no unsupported part type, got %s", partType.String())
+	}
+}
+
+func TestUnsupportedTextGeneratePartTypeImageOnlySupported(t *testing.T) {
+	input := []*runtimev1.ChatMessage{
+		{
+			Role: "user",
+			Parts: []*runtimev1.ChatContentPart{
+				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "describe"},
+				{
+					Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
+					ImageUrl: &runtimev1.ChatContentImageURL{Url: "https://example.com/img.png"},
+				},
+			},
+		},
+	}
+	if partType, unsupported := unsupportedTextGeneratePartType(input); unsupported {
+		t.Fatalf("expected image_url to stay supported, got %s", partType.String())
+	}
+}
+
+func TestUnsupportedTextGeneratePartTypeVideoAccepted(t *testing.T) {
+	input := []*runtimev1.ChatMessage{
+		{
+			Role: "user",
+			Parts: []*runtimev1.ChatContentPart{
+				{
+					Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_VIDEO_URL,
+					VideoUrl: "https://example.com/demo.mp4",
+				},
+			},
+		},
+	}
+	partType, unsupported := unsupportedTextGeneratePartType(input)
+	if unsupported {
+		t.Fatal("expected video_url to remain allowed")
+	}
+	if partType != runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_UNSPECIFIED {
+		t.Fatalf("part type mismatch: got=%s want=%s", partType.String(), runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_UNSPECIFIED.String())
+	}
+}
+
+func TestValidateTextGenerateInputPartsNoMediaPassthrough(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	input := []*runtimev1.ChatMessage{
+		{Role: "user", Content: "just text"},
+	}
+	err := svc.validateTextGenerateInputParts(context.Background(), "anthropic/claude-sonnet-4-6", nil, nil, input)
+	if err != nil {
+		t.Fatalf("expected nil error for input without media, got %v", err)
+	}
+}
+
+func TestValidateTextGenerateInputPartsUnknownCatalogModelPasses(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	input := []*runtimev1.ChatMessage{
+		{
+			Role: "user",
+			Parts: []*runtimev1.ChatContentPart{
+				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "describe"},
+				{
+					Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
+					ImageUrl: &runtimev1.ChatContentImageURL{Url: "https://example.com/img.png"},
+				},
+			},
+		},
+	}
+	err := svc.validateTextGenerateInputParts(context.Background(), "custom/vision-model", nil, nil, input)
+	if err != nil {
+		t.Fatalf("expected unknown catalog model to pass through, got %v", err)
+	}
+}
+
+func TestValidateTextGenerateInputPartsNonVisionModelRejects(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	input := []*runtimev1.ChatMessage{
+		{
+			Role: "user",
+			Parts: []*runtimev1.ChatContentPart{
+				{
+					Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
+					ImageUrl: &runtimev1.ChatContentImageURL{Url: "https://example.com/img.png"},
+				},
+			},
+		},
+	}
+	err := svc.validateTextGenerateInputParts(context.Background(), "openai/tts-1", nil, nil, input)
+	if err == nil {
+		t.Fatal("expected non-vision model to reject image input")
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok {
+		t.Fatalf("expected grpc reason code, got error: %v", err)
+	}
+	if reason != runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED {
+		t.Fatalf("reason code mismatch: got=%s want=%s", reason.String(), runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED.String())
+	}
+}
+
+func TestValidateTextGenerateInputPartsRejectsVideoForNonVideoModel(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	input := []*runtimev1.ChatMessage{
+		{
+			Role: "user",
+			Parts: []*runtimev1.ChatContentPart{
+				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "watch this"},
+				{
+					Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_VIDEO_URL,
+					VideoUrl: "https://example.com/demo.mp4",
+				},
+			},
+		},
+	}
+	err := svc.validateTextGenerateInputParts(context.Background(), "openai/tts-1", nil, nil, input)
+	if err == nil {
+		t.Fatal("expected non-video model to reject video input")
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok {
+		t.Fatalf("expected grpc reason code, got error: %v", err)
+	}
+	if reason != runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED {
+		t.Fatalf("reason code mismatch: got=%s want=%s", reason.String(), runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED.String())
+	}
+}
+
+func TestValidateTextGenerateInputPartsDelegatesImageVisionCheck(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	input := []*runtimev1.ChatMessage{
+		{
+			Role: "user",
+			Parts: []*runtimev1.ChatContentPart{
+				{
+					Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
+					ImageUrl: &runtimev1.ChatContentImageURL{Url: "https://example.com/img.png"},
+				},
+			},
+		},
+	}
+	err := svc.validateTextGenerateInputParts(context.Background(), "openai/tts-1", nil, nil, input)
+	if err == nil {
+		t.Fatal("expected non-vision model to reject image input")
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok {
+		t.Fatalf("expected grpc reason code, got error: %v", err)
+	}
+	if reason != runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED {
+		t.Fatalf("reason code mismatch: got=%s want=%s", reason.String(), runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED.String())
 	}
 }

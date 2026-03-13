@@ -134,18 +134,28 @@ func (s *Service) prepareScenarioRequest(ctx context.Context, head *runtimev1.Sc
 }
 
 func composeInputText(systemPrompt string, input []*runtimev1.ChatMessage) string {
-	parts := make([]string, 0, len(input)+1)
+	textParts := make([]string, 0, len(input)+1)
 	if trimmed := strings.TrimSpace(systemPrompt); trimmed != "" {
-		parts = append(parts, trimmed)
+		textParts = append(textParts, trimmed)
 	}
 	for _, message := range input {
+		if msgParts := message.GetParts(); len(msgParts) > 0 {
+			for _, part := range msgParts {
+				if part.GetType() == runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT {
+					if text := strings.TrimSpace(part.GetText()); text != "" {
+						textParts = append(textParts, text)
+					}
+				}
+			}
+			continue
+		}
 		content := strings.TrimSpace(message.GetContent())
 		if content == "" {
 			continue
 		}
-		parts = append(parts, content)
+		textParts = append(textParts, content)
 	}
-	return strings.Join(parts, "\n")
+	return strings.Join(textParts, "\n")
 }
 
 func splitText(text string, chunkSize int) []string {

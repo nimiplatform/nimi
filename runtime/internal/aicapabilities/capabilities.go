@@ -3,8 +3,11 @@ package aicapabilities
 import "strings"
 
 const (
-	TextGenerate        = "text.generate"
-	TextEmbed           = "text.embed"
+	TextGenerate       = "text.generate"
+	TextGenerateVision = "text.generate.vision"
+	TextGenerateAudio  = "text.generate.audio"
+	TextGenerateVideo  = "text.generate.video"
+	TextEmbed          = "text.embed"
 	ImageGenerate       = "image.generate"
 	VideoGenerate       = "video.generate"
 	AudioSynthesize     = "audio.synthesize"
@@ -19,6 +22,12 @@ func NormalizeCatalogCapability(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case TextGenerate:
 		return TextGenerate
+	case TextGenerateVision:
+		return TextGenerateVision
+	case TextGenerateAudio:
+		return TextGenerateAudio
+	case TextGenerateVideo:
+		return TextGenerateVideo
 	case TextEmbed:
 		return TextEmbed
 	case ImageGenerate:

@@ -299,6 +299,15 @@ func (s *Service) localArtifactByID(localArtifactID string) *runtimev1.LocalArti
 	return cloneLocalArtifact(s.artifacts[strings.TrimSpace(localArtifactID)])
 }
 
+func (s *Service) ResolveLocalAIArtifactPath(_ context.Context, localArtifactID string) (string, error) {
+	artifact := s.localArtifactByID(localArtifactID)
+	relPath, err := s.resolveLocalAIArtifactEntryPath(artifact)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(resolveLocalModelsPath(s.localModelsPath), filepath.FromSlash(relPath)), nil
+}
+
 func (s *Service) resolveLocalAIModelEntryPath(model *runtimev1.LocalModelRecord) (string, error) {
 	if model == nil {
 		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)

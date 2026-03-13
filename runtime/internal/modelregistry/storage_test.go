@@ -2,6 +2,7 @@ package modelregistry
 
 import (
 	"path/filepath"
+	"sort"
 	"testing"
 	"time"
 
@@ -58,5 +59,75 @@ func TestRegistrySaveAndLoad(t *testing.T) {
 	}
 	if item.ProviderHint != ProviderHintVolcengine {
 		t.Fatalf("provider hint mismatch: got=%s", item.ProviderHint)
+	}
+}
+
+func TestInferCapabilitiesVision(t *testing.T) {
+	tests := []struct {
+		name      string
+		modelID   string
+		wantCap   string
+		wantFound bool
+	}{
+		{
+			name:      "vision keyword produces text.generate.vision",
+			modelID:   "openai/gpt-4-vision-preview",
+			wantCap:   "text.generate.vision",
+			wantFound: true,
+		},
+		{
+			name:      "vl keyword produces text.generate.vision",
+			modelID:   "dashscope/qwen-vl-max",
+			wantCap:   "text.generate.vision",
+			wantFound: true,
+		},
+		{
+			name:      "plain text model has no vision capability",
+			modelID:   "openai/gpt-4o-mini",
+			wantCap:   "text.generate.vision",
+			wantFound: false,
+		},
+		{
+			name:      "all models get text.generate",
+			modelID:   "openai/gpt-4o-mini",
+			wantCap:   "text.generate",
+			wantFound: true,
+		},
+		{
+			name:      "tts model has no vision",
+			modelID:   "openai/tts-1",
+			wantCap:   "text.generate.vision",
+			wantFound: false,
+		},
+		{
+			name:      "tts model has audio.synthesize",
+			modelID:   "openai/tts-1",
+			wantCap:   "audio.synthesize",
+			wantFound: true,
+		},
+		{
+			name:      "embed model gets text.embed",
+			modelID:   "openai/text-embedding-ada-002",
+			wantCap:   "text.embed",
+			wantFound: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			caps := InferCapabilities(tt.modelID)
+			sorted := append([]string(nil), caps...)
+			sort.Strings(sorted)
+			found := false
+			for _, c := range sorted {
+				if c == tt.wantCap {
+					found = true
+					break
+				}
+			}
+			if found != tt.wantFound {
+				t.Fatalf("InferCapabilities(%q) capability %q: found=%v want=%v (all caps=%v)", tt.modelID, tt.wantCap, found, tt.wantFound, caps)
+			}
+		})
 	}
 }

@@ -123,6 +123,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	aiSvc := aiservice.New(logger, modelRegistry, aiHealth, auditStore, connStore, cfg)
 	aiSvc.SetModelRegistryPersistencePath(registryPath)
 	runtimev1.RegisterRuntimeAiServiceServer(g, aiSvc)
+	runtimev1.RegisterRuntimeAiRealtimeServiceServer(g, aiSvc)
 
 	runtimev1.RegisterRuntimeWorkflowServiceServer(g, workflowservice.New(logger)) // Phase 2 Draft
 	modelSvc := modelservice.New(logger, modelRegistry)                           // Phase 2 Draft
@@ -218,6 +219,7 @@ func (s *Server) SyncServingState() {
 	s.healthServer.SetServingStatus("", servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAuditService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAiService_ServiceDesc.ServiceName, servingStatus)
+	s.healthServer.SetServingStatus(runtimev1.RuntimeAiRealtimeService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeWorkflowService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeModelService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeLocalService_ServiceDesc.ServiceName, servingStatus)

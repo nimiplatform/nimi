@@ -525,13 +525,6 @@ test('Runtime text helpers dual-write text content and multimodal ChatMessage pa
             { type: 'text', text: 'describe image' },
           ],
         },
-        {
-          role: 'assistant',
-          content: [
-            { type: 'video_url', videoUrl: 'https://example.com/clip.mp4' },
-            { type: 'text', text: 'prior video context' },
-          ],
-        },
       ],
       system: 'explicit system',
       route: 'cloud',
@@ -543,18 +536,13 @@ test('Runtime text helpers dual-write text content and multimodal ChatMessage pa
       : undefined;
 
     assert.equal(textGenerate?.systemPrompt, 'system from content parts\n\nexplicit system');
-    assert.equal(textGenerate?.input.length, 2);
+    assert.equal(textGenerate?.input.length, 1);
     assert.equal(textGenerate?.input[0]?.content, 'describe image');
     assert.equal(textGenerate?.input[0]?.parts[0]?.type, ChatContentPartType.IMAGE_URL);
     assert.equal(textGenerate?.input[0]?.parts[0]?.imageUrl?.url, 'https://example.com/image.png');
     assert.equal(textGenerate?.input[0]?.parts[0]?.imageUrl?.detail, 'high');
     assert.equal(textGenerate?.input[0]?.parts[1]?.type, ChatContentPartType.TEXT);
     assert.equal(textGenerate?.input[0]?.parts[1]?.text, 'describe image');
-    assert.equal(textGenerate?.input[1]?.content, 'prior video context');
-    assert.equal(textGenerate?.input[1]?.parts[0]?.type, ChatContentPartType.VIDEO_URL);
-    assert.equal(textGenerate?.input[1]?.parts[0]?.videoUrl, 'https://example.com/clip.mp4');
-    assert.equal(textGenerate?.input[1]?.parts[1]?.type, ChatContentPartType.TEXT);
-    assert.equal(textGenerate?.input[1]?.parts[1]?.text, 'prior video context');
 
     await runtime.ai.text.generate({
       model: 'cloud/model',
@@ -573,27 +561,41 @@ test('Runtime text helpers dual-write text content and multimodal ChatMessage pa
     assert.equal(plainTextGenerate?.input[0]?.parts[0]?.type, ChatContentPartType.TEXT);
     assert.equal(plainTextGenerate?.input[0]?.parts[0]?.text, 'plain text path');
 
-    await assert.rejects(
-      () => runtime.ai.text.generate({
-        model: 'cloud/model',
-        input: [
-          {
-            role: 'user',
-            content: [
-              { type: 'image_url', imageUrl: 'https://example.com/only-image.png' },
-            ],
-          },
-        ],
-        route: 'cloud',
-        fallback: 'allow',
-      }),
-      (error: unknown) => {
-        assert.equal(typeof error, 'object');
-        assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.AI_INPUT_INVALID);
-        assert.match(String((error as { message?: string }).message || ''), /non-system text message/i);
-        return true;
-      },
-    );
+    await runtime.ai.text.generate({
+      model: 'cloud/model',
+      input: [
+        {
+          role: 'assistant',
+          content: [
+            { type: 'video_url', videoUrl: 'https://example.com/clip.mp4' },
+            { type: 'text', text: 'prior video context' },
+          ],
+        },
+      ],
+      route: 'cloud',
+      fallback: 'allow',
+    });
+
+    const videoGenerate = capturedTextRequests[2]?.spec?.spec.oneofKind === 'textGenerate'
+      ? capturedTextRequests[2]?.spec?.spec.textGenerate
+      : undefined;
+    assert.equal(videoGenerate?.input[0]?.parts[0]?.type, ChatContentPartType.VIDEO_URL);
+    assert.equal(videoGenerate?.input[0]?.parts[0]?.videoUrl, 'https://example.com/clip.mp4');
+    assert.equal(videoGenerate?.input[0]?.parts[1]?.type, ChatContentPartType.TEXT);
+
+    await runtime.ai.text.generate({
+      model: 'cloud/model',
+      input: [
+        {
+          role: 'user',
+          content: [
+            { type: 'image_url', imageUrl: 'https://example.com/only-image.png' },
+          ],
+        },
+      ],
+      route: 'cloud',
+      fallback: 'allow',
+    });
   } finally {
     clearNodeGrpcBridge();
   }

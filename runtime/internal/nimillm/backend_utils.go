@@ -124,6 +124,17 @@ func ComposeInputText(systemPrompt string, input []*runtimev1.ChatMessage) strin
 		builder.WriteString("\n")
 	}
 	for _, item := range input {
+		if parts := item.GetParts(); len(parts) > 0 {
+			for _, part := range parts {
+				if part.GetType() == runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT {
+					if text := strings.TrimSpace(part.GetText()); text != "" {
+						builder.WriteString(text)
+						builder.WriteString("\n")
+					}
+				}
+			}
+			continue
+		}
 		content := strings.TrimSpace(item.GetContent())
 		if content == "" {
 			continue

@@ -54,6 +54,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	if spec == nil {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+
 	if len(spec.GetInput()) == 0 && strings.TrimSpace(spec.GetSystemPrompt()) == "" {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
@@ -109,6 +110,14 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		modelResolved,
 		routeInfo,
 	)
+	resolved, err := s.resolveTextGenerateScenario(stream.Context(), req.GetHead(), modelResolved, remoteTarget, selectedProvider, spec)
+	if err != nil {
+		return err
+	}
+	defer resolved.release()
+	if err := s.validateTextGenerateInputParts(stream.Context(), modelResolved, remoteTarget, selectedProvider, resolved.spec.GetInput()); err != nil {
+		return err
+	}
 
 	traceID := ulid.Make().String()
 	var seq uint64
@@ -146,7 +155,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		return err
 	}
 
-	inputText := nimillm.ComposeInputText(spec.GetSystemPrompt(), spec.GetInput())
+	inputText := nimillm.ComposeInputText(resolved.spec.GetSystemPrompt(), resolved.spec.GetInput())
 	var usage *runtimev1.UsageStats
 	var finishReason runtimev1.FinishReason
 	streamSimulated := false
@@ -187,7 +196,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	scenarioGenerator, canGenerateScenario := selectedProvider.(scenarioTextProvider)
 	if remoteTarget != nil && s.selector.cloudProvider != nil {
 		requestCtx = nimillm.WithStreamSimulationFlag(requestCtx, &streamSimulated)
-		usage, finishReason, err = s.selector.cloudProvider.StreamGenerateTextScenarioWithTarget(requestCtx, modelResolved, spec, func(part string) error {
+		usage, finishReason, err = s.selector.cloudProvider.StreamGenerateTextScenarioWithTarget(requestCtx, modelResolved, resolved.spec, func(part string) error {
 			firstPacketSeen.Store(true)
 			return sendDelta(part)
 		}, remoteTarget)
@@ -196,7 +205,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		}
 	} else if canStreamScenario {
 		requestCtx = nimillm.WithStreamSimulationFlag(requestCtx, &streamSimulated)
-		usage, finishReason, err = scenarioStreamer.StreamGenerateTextScenario(requestCtx, modelResolved, spec, func(part string) error {
+		usage, finishReason, err = scenarioStreamer.StreamGenerateTextScenario(requestCtx, modelResolved, resolved.spec, func(part string) error {
 			firstPacketSeen.Store(true)
 			return sendDelta(part)
 		})
@@ -215,9 +224,9 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 			generateErr  error
 		)
 		if remoteTarget != nil && s.selector.cloudProvider != nil {
-			outputText, streamUsage, streamFinish, generateErr = s.selector.cloudProvider.GenerateTextScenarioWithTarget(requestCtx, modelResolved, spec, inputText, remoteTarget)
+			outputText, streamUsage, streamFinish, generateErr = s.selector.cloudProvider.GenerateTextScenarioWithTarget(requestCtx, modelResolved, resolved.spec, inputText, remoteTarget)
 		} else {
-			outputText, streamUsage, streamFinish, generateErr = scenarioGenerator.GenerateTextScenario(requestCtx, modelResolved, spec, inputText)
+			outputText, streamUsage, streamFinish, generateErr = scenarioGenerator.GenerateTextScenario(requestCtx, modelResolved, resolved.spec, inputText)
 		}
 		if generateErr != nil {
 			return failAndStop(generateErr)

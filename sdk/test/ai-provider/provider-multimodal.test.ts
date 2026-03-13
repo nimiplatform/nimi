@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { toRuntimePrompt } from '../../src/ai-provider/helpers.js';
 import { ChatContentPartType } from '../../src/runtime/generated/runtime/v1/ai.js';
+import { ReasonCode } from '../../src/types/index.js';
 
 test('toRuntimePrompt text-only prompt produces TEXT parts and correct content', () => {
   const result = toRuntimePrompt([
@@ -12,7 +13,7 @@ test('toRuntimePrompt text-only prompt produces TEXT parts and correct content',
     },
   ]);
 
-  assert.equal(result.hasTextInput, true);
+  assert.equal(result.hasNonSystemInput, true);
   assert.equal(result.systemPrompt, 'You are helpful');
   assert.equal(result.input.length, 1);
 
@@ -35,7 +36,7 @@ test('toRuntimePrompt file part with URL object maps to IMAGE_URL part', () => {
     },
   ]);
 
-  assert.equal(result.hasTextInput, true);
+  assert.equal(result.hasNonSystemInput, true);
   assert.equal(result.input.length, 1);
   const msg = result.input[0]!;
   assert.equal(msg.content, 'Describe this');
@@ -59,7 +60,7 @@ test('toRuntimePrompt file part with http string maps to IMAGE_URL part', () => 
     },
   ]);
 
-  assert.equal(result.hasTextInput, false);
+  assert.equal(result.hasNonSystemInput, true);
   assert.equal(result.input.length, 1);
   const msg = result.input[0]!;
   assert.equal(msg.parts.length, 1);
@@ -78,7 +79,7 @@ test('toRuntimePrompt file part with non-URL string is skipped (v1 URL-only)', (
     },
   ]);
 
-  assert.equal(result.hasTextInput, true);
+  assert.equal(result.hasNonSystemInput, true);
   assert.equal(result.input.length, 1);
   const msg = result.input[0]!;
 
@@ -99,16 +100,12 @@ test('toRuntimePrompt file part with video mediaType maps to VIDEO_URL part', ()
     },
   ]);
 
-  assert.equal(result.hasTextInput, true);
-  assert.equal(result.input.length, 1);
-  const msg = result.input[0]!;
-  assert.equal(msg.parts.length, 2);
-  assert.equal(msg.parts[0]!.type, ChatContentPartType.TEXT);
-  assert.equal(msg.parts[1]!.type, ChatContentPartType.VIDEO_URL);
-  assert.equal(msg.parts[1]!.videoUrl, 'https://example.com/demo.mp4');
+  assert.equal(result.hasNonSystemInput, true);
+  assert.equal(result.input[0]!.parts[1]!.type, ChatContentPartType.VIDEO_URL);
+  assert.equal(result.input[0]!.parts[1]!.videoUrl, 'https://example.com/demo.mp4');
 });
 
-test('toRuntimePrompt file part with audio mediaType is skipped', () => {
+test('toRuntimePrompt file part with audio mediaType maps to AUDIO_URL part', () => {
   const result = toRuntimePrompt([
     {
       role: 'user',
@@ -122,9 +119,9 @@ test('toRuntimePrompt file part with audio mediaType is skipped', () => {
   assert.equal(result.input.length, 1);
   const msg = result.input[0]!;
 
-  // only the TEXT part; audio file type is not supported in v1
-  assert.equal(msg.parts.length, 1);
-  assert.equal(msg.parts[0]!.type, ChatContentPartType.TEXT);
+  assert.equal(msg.parts.length, 2);
+  assert.equal(msg.parts[1]!.type, ChatContentPartType.AUDIO_URL);
+  assert.equal(msg.parts[1]!.audioUrl, 'https://example.com/audio.mp3');
 });
 
 test('toRuntimePrompt extracts text parts from system content arrays', () => {
@@ -142,12 +139,12 @@ test('toRuntimePrompt extracts text parts from system content arrays', () => {
     },
   ]);
 
-  assert.equal(result.hasTextInput, true);
+  assert.equal(result.hasNonSystemInput, true);
   assert.equal(result.systemPrompt, 'You are a vision assistant');
   assert.equal(result.input.length, 1);
 });
 
-test('toRuntimePrompt preserves media-only messages but marks missing text input', () => {
+test('toRuntimePrompt preserves media-only messages and marks non-system input present', () => {
   const result = toRuntimePrompt([
     {
       role: 'user',
@@ -157,7 +154,7 @@ test('toRuntimePrompt preserves media-only messages but marks missing text input
     },
   ]);
 
-  assert.equal(result.hasTextInput, false);
+  assert.equal(result.hasNonSystemInput, true);
   assert.equal(result.input.length, 1);
   assert.equal(result.input[0]!.parts.length, 1);
   assert.equal(result.input[0]!.parts[0]!.type, ChatContentPartType.IMAGE_URL);
@@ -211,6 +208,22 @@ test('toRuntimePrompt mixed file and text with URL object produces correct parts
   assert.equal(msg.parts[1]!.imageUrl?.url, 'https://example.com/a.png');
   assert.equal(msg.parts[2]!.type, ChatContentPartType.IMAGE_URL);
   assert.equal(msg.parts[2]!.imageUrl?.url, 'https://example.com/b.jpg');
+});
+
+test('toRuntimePrompt artifact-backed file part maps to ARTIFACT_REF', () => {
+  const result = toRuntimePrompt([
+    {
+      role: 'user',
+      content: [
+        { type: 'file', artifactId: 'artifact-123', mediaType: 'video/mp4' },
+      ],
+    },
+  ]);
+
+  assert.equal(result.hasNonSystemInput, true);
+  assert.equal(result.input[0]!.parts[0]!.type, ChatContentPartType.ARTIFACT_REF);
+  assert.equal(result.input[0]!.parts[0]!.artifactRef?.artifactId, 'artifact-123');
+  assert.equal(result.input[0]!.parts[0]!.artifactRef?.mimeType, 'video/mp4');
 });
 
 test('toRuntimePrompt empty content message is skipped', () => {

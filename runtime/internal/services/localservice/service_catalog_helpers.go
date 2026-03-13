@@ -52,7 +52,7 @@ func adapterForProviderCapability(provider string, capability string) string {
 		return "nexa_native_adapter"
 	case "localai":
 		switch normalizedCapability {
-		case "image", "video", "tts", "speech", "stt", "transcription":
+		case "image", "video", "tts", "speech", "stt", "transcription", "vision", "multimodal", "audio_chat", "video_chat", "text.generate.vision", "text.generate.audio", "text.generate.video":
 			return "localai_native_adapter"
 		default:
 			return "openai_compat_adapter"
@@ -117,7 +117,7 @@ func buildNodeProviderHints(
 			localAI.WhisperVariant = "whisper-large-v3"
 		case "image":
 			localAI.StablediffusionPipeline = "default"
-		case "video":
+		case "video", "vision", "multimodal", "audio_chat", "video_chat", "text.generate.vision", "text.generate.audio", "text.generate.video":
 			localAI.VideoBackend = "openai_compat"
 		}
 		hints.Localai = localAI

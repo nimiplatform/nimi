@@ -32,7 +32,15 @@ export type NimiTraceInfo = {
 export type TextMessageContentPart =
   | { type: 'text'; text: string }
   | { type: 'image_url'; imageUrl: string; detail?: 'auto' | 'low' | 'high' }
-  | { type: 'video_url'; videoUrl: string };
+  | { type: 'video_url'; videoUrl: string }
+  | { type: 'audio_url'; audioUrl: string }
+  | {
+    type: 'artifact_ref';
+    artifactId?: string;
+    localArtifactId?: string;
+    mimeType?: string;
+    displayName?: string;
+  };
 
 export type TextMessage = {
   role: 'system' | 'user' | 'assistant' | 'tool';

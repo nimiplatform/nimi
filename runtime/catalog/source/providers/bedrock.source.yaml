@@ -30,7 +30,7 @@ models:
   - model_id: anthropic.claude-sonnet-4-6-v1:0
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [text.generate]
+    capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown
@@ -45,7 +45,7 @@ models:
   - model_id: anthropic.claude-haiku-4-5-v1:0
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [text.generate]
+    capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown
@@ -60,7 +60,7 @@ models:
   - model_id: amazon.nova-pro-v1:0
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [text.generate]
+    capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown

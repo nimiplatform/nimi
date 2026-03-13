@@ -142,21 +142,38 @@ func cloneEntry(input Entry) Entry {
 // InferCapabilities returns heuristic capability strings for a model ID.
 // Exported so that both model and connector services can reuse it.
 func InferCapabilities(modelID string) []string {
-	caps := []string{"text.generate"}
+	seen := map[string]struct{}{}
+	add := func(values ...string) {
+		for _, value := range values {
+			if _, ok := seen[value]; ok {
+				continue
+			}
+			seen[value] = struct{}{}
+		}
+	}
+	add("text.generate")
 	lower := strings.ToLower(modelID)
 
 	if strings.Contains(lower, "embed") {
-		caps = append(caps, "text.embed")
+		add("text.embed")
 	}
 	if strings.Contains(lower, "stt") || strings.Contains(lower, "whisper") {
-		caps = append(caps, "audio.transcribe")
+		add("audio.transcribe")
 	}
 	if strings.Contains(lower, "tts") {
-		caps = append(caps, "audio.synthesize")
+		add("audio.synthesize")
 	}
 	if strings.Contains(lower, "vision") || strings.Contains(lower, "vl") {
-		caps = append(caps, "image.understand")
+		add("text.generate.vision")
 	}
+	if strings.Contains(lower, "omni") {
+		add("text.generate.vision", "text.generate.audio", "text.generate.video")
+	}
+	caps := make([]string, 0, len(seen))
+	for capability := range seen {
+		caps = append(caps, capability)
+	}
+	sort.Strings(caps)
 	return caps
 }
 

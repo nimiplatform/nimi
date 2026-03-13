@@ -52,6 +52,14 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	if err := s.validateScenarioCapability(req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
 		return nil, err
 	}
+	resolved, err := s.resolveTextGenerateScenario(ctx, req.GetHead(), modelResolved, remoteTarget, selectedProvider, spec)
+	if err != nil {
+		return nil, err
+	}
+	defer resolved.release()
+	if err := s.validateTextGenerateInputParts(ctx, modelResolved, remoteTarget, selectedProvider, resolved.spec.GetInput()); err != nil {
+		return nil, err
+	}
 	s.recordRouteAutoSwitch(
 		req.GetHead().GetAppId(),
 		req.GetHead().GetSubjectUserId(),
@@ -61,7 +69,7 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	)
 
 	traceID := ulid.Make().String()
-	inputText := nimillm.ComposeInputText(spec.GetSystemPrompt(), spec.GetInput())
+	inputText := nimillm.ComposeInputText(resolved.spec.GetSystemPrompt(), resolved.spec.GetInput())
 
 	var (
 		outputText   string
@@ -70,14 +78,14 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	)
 	if remoteTarget != nil {
 		if cp := s.selector.cloudProvider; cp != nil {
-			outputText, usage, finishReason, err = cp.GenerateTextScenarioWithTarget(requestCtx, modelResolved, spec, inputText, remoteTarget)
+			outputText, usage, finishReason, err = cp.GenerateTextScenarioWithTarget(requestCtx, modelResolved, resolved.spec, inputText, remoteTarget)
 		} else if scenarioProvider, ok := selectedProvider.(scenarioTextProvider); ok {
-			outputText, usage, finishReason, err = scenarioProvider.GenerateTextScenario(requestCtx, modelResolved, spec, inputText)
+			outputText, usage, finishReason, err = scenarioProvider.GenerateTextScenario(requestCtx, modelResolved, resolved.spec, inputText)
 		} else {
 			err = grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 		}
 	} else if scenarioProvider, ok := selectedProvider.(scenarioTextProvider); ok {
-		outputText, usage, finishReason, err = scenarioProvider.GenerateTextScenario(requestCtx, modelResolved, spec, inputText)
+		outputText, usage, finishReason, err = scenarioProvider.GenerateTextScenario(requestCtx, modelResolved, resolved.spec, inputText)
 	} else {
 		err = grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}

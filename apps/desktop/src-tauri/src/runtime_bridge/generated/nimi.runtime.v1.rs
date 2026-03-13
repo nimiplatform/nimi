@@ -166,6 +166,9 @@ pub enum ReasonCode {
     AppModeManifestInvalid = 502,
     AppScopeForbidden = 503,
     AppScopeRevoked = 504,
+    AppMessagePayloadTooLarge = 550,
+    AppMessageRateLimited = 551,
+    AppMessageLoopDetected = 552,
     /// GRANT family (510+)
     GrantTokenChainRootNotFound = 510,
     GrantTokenChainRootRequired = 511,
@@ -275,6 +278,9 @@ impl ReasonCode {
             Self::AppModeManifestInvalid => "APP_MODE_MANIFEST_INVALID",
             Self::AppScopeForbidden => "APP_SCOPE_FORBIDDEN",
             Self::AppScopeRevoked => "APP_SCOPE_REVOKED",
+            Self::AppMessagePayloadTooLarge => "APP_MESSAGE_PAYLOAD_TOO_LARGE",
+            Self::AppMessageRateLimited => "APP_MESSAGE_RATE_LIMITED",
+            Self::AppMessageLoopDetected => "APP_MESSAGE_LOOP_DETECTED",
             Self::GrantTokenChainRootNotFound => "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND",
             Self::GrantTokenChainRootRequired => "GRANT_TOKEN_CHAIN_ROOT_REQUIRED",
             Self::PageTokenInvalid => "PAGE_TOKEN_INVALID",
@@ -393,6 +399,9 @@ impl ReasonCode {
             "APP_MODE_MANIFEST_INVALID" => Some(Self::AppModeManifestInvalid),
             "APP_SCOPE_FORBIDDEN" => Some(Self::AppScopeForbidden),
             "APP_SCOPE_REVOKED" => Some(Self::AppScopeRevoked),
+            "APP_MESSAGE_PAYLOAD_TOO_LARGE" => Some(Self::AppMessagePayloadTooLarge),
+            "APP_MESSAGE_RATE_LIMITED" => Some(Self::AppMessageRateLimited),
+            "APP_MESSAGE_LOOP_DETECTED" => Some(Self::AppMessageLoopDetected),
             "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND" => Some(Self::GrantTokenChainRootNotFound),
             "GRANT_TOKEN_CHAIN_ROOT_REQUIRED" => Some(Self::GrantTokenChainRootRequired),
             "PAGE_TOKEN_INVALID" => Some(Self::PageTokenInvalid),
@@ -1743,7 +1752,7 @@ impl VoiceAssetStatus {
         }
     }
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ChatMessage {
     #[prost(string, tag = "1")]
     pub role: ::prost::alloc::string::String,
@@ -1751,6 +1760,26 @@ pub struct ChatMessage {
     pub content: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub name: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "4")]
+    pub parts: ::prost::alloc::vec::Vec<ChatContentPart>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ChatContentImageUrl {
+    #[prost(string, tag = "1")]
+    pub url: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub detail: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ChatContentPart {
+    #[prost(enumeration = "ChatContentPartType", tag = "1")]
+    pub r#type: i32,
+    #[prost(string, tag = "2")]
+    pub text: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub image_url: ::core::option::Option<ChatContentImageUrl>,
+    #[prost(string, tag = "4")]
+    pub video_url: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ToolSpec {
@@ -2778,6 +2807,38 @@ impl SpeechAlignmentUnit {
             "SPEECH_ALIGNMENT_UNIT_UNSPECIFIED" => Some(Self::Unspecified),
             "SPEECH_ALIGNMENT_UNIT_WORD" => Some(Self::Word),
             "SPEECH_ALIGNMENT_UNIT_CHAR" => Some(Self::Char),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ChatContentPartType {
+    Unspecified = 0,
+    Text = 1,
+    ImageUrl = 2,
+    VideoUrl = 3,
+}
+impl ChatContentPartType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "CHAT_CONTENT_PART_TYPE_UNSPECIFIED",
+            Self::Text => "CHAT_CONTENT_PART_TYPE_TEXT",
+            Self::ImageUrl => "CHAT_CONTENT_PART_TYPE_IMAGE_URL",
+            Self::VideoUrl => "CHAT_CONTENT_PART_TYPE_VIDEO_URL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "CHAT_CONTENT_PART_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "CHAT_CONTENT_PART_TYPE_TEXT" => Some(Self::Text),
+            "CHAT_CONTENT_PART_TYPE_IMAGE_URL" => Some(Self::ImageUrl),
+            "CHAT_CONTENT_PART_TYPE_VIDEO_URL" => Some(Self::VideoUrl),
             _ => None,
         }
     }

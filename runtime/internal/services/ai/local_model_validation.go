@@ -20,6 +20,7 @@ type localModelLister interface {
 
 type localImageProfileResolver interface {
 	ResolveLocalAIImageProfile(context.Context, string, map[string]any) (string, map[string]any, map[string]any, error)
+	ResolveLocalAIArtifactPath(context.Context, string) (string, error)
 }
 
 type localModelSelector struct {

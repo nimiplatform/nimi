@@ -39,6 +39,27 @@ Runtime kernel 的 RPC 覆盖范围为全量 proto 服务：
 11. `DeleteVoiceAsset`
 12. `ListPresetVoices`
 
+说明：
+
+- text/image/video/audio 等多模态输入能力属于现有 scenario 的输入扩展，不新增顶层 `multimodal.generate` RPC
+- `TEXT_GENERATE` 的多模态 uplift 继续复用 `ExecuteScenario` / `StreamScenario`
+- duplex realtime session 不属于 `AIService`，统一走独立 `RuntimeAiRealtimeService`
+
+## K-RPC-002A RuntimeAiRealtimeService 方法集合
+
+`RuntimeAiRealtimeService` 方法固定为：
+
+1. `OpenRealtimeSession`
+2. `AppendRealtimeInput`
+3. `ReadRealtimeEvents`
+4. `CloseRealtimeSession`
+
+说明：
+
+- v1 realtime session 只为 text/audio 双向会话预留 contract，不承担 `video + audio -> video + audio`
+- `ReadRealtimeEvents` 为 server-stream；duplex 语义通过 `Open + Append + Read + Close` 组合实现
+- 若 provider/adapter 未实现，runtime 必须返回明确 `UNIMPLEMENTED`，不得伪装成 `AIService` 普通 scenario
+
 ## K-RPC-003 ConnectorService 方法集合（design 权威）
 
 `ConnectorService` 方法固定为：

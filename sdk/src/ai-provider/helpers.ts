@@ -141,7 +141,7 @@ export function extractTextValue(part: unknown): string {
 
 export function toRuntimePrompt(prompt: LanguageModelV3Prompt): {
   systemPrompt: string;
-  hasTextInput: boolean;
+  hasNonSystemInput: boolean;
   input: Array<{
     role: string;
     content: string;
@@ -151,6 +151,13 @@ export function toRuntimePrompt(prompt: LanguageModelV3Prompt): {
       text: string;
       imageUrl?: { url: string; detail: string };
       videoUrl: string;
+      audioUrl: string;
+      artifactRef?: {
+        artifactId: string;
+        localArtifactId: string;
+        mimeType: string;
+        displayName: string;
+      };
     }>;
   }>;
 } {
@@ -164,9 +171,16 @@ export function toRuntimePrompt(prompt: LanguageModelV3Prompt): {
       text: string;
       imageUrl?: { url: string; detail: string };
       videoUrl: string;
+      audioUrl: string;
+      artifactRef?: {
+        artifactId: string;
+        localArtifactId: string;
+        mimeType: string;
+        displayName: string;
+      };
     }>;
   }> = [];
-  let hasTextInput = false;
+  let hasNonSystemInput = false;
 
   for (const message of prompt) {
     if (message.role === 'system') {
@@ -185,9 +199,7 @@ export function toRuntimePrompt(prompt: LanguageModelV3Prompt): {
     if (!textContent && parts.length === 0) {
       continue;
     }
-    if (textContent) {
-      hasTextInput = true;
-    }
+    hasNonSystemInput = true;
 
     input.push({
       role: message.role,
@@ -199,9 +211,18 @@ export function toRuntimePrompt(prompt: LanguageModelV3Prompt): {
 
   return {
     systemPrompt: system.join('\n\n'),
-    hasTextInput,
+    hasNonSystemInput,
     input,
   };
+}
+
+function createUnsupportedTextChatPartError() {
+  return createNimiError({
+    message: 'text chat multimodal requires text, image_url, video_url, audio_url, or artifact_ref content parts',
+    reasonCode: ReasonCode.AI_MEDIA_OPTION_UNSUPPORTED,
+    actionHint: 'use_supported_text_chat_media_parts',
+    source: 'sdk',
+  });
 }
 
 function extractPromptText(content: unknown): string {
@@ -232,11 +253,45 @@ function createTextChatContentPart(text: string): {
   text: string;
   imageUrl?: { url: string; detail: string };
   videoUrl: string;
+  audioUrl: string;
+  artifactRef?: {
+    artifactId: string;
+    localArtifactId: string;
+    mimeType: string;
+    displayName: string;
+  };
 } {
   return {
     type: ChatContentPartType.TEXT,
     text,
     videoUrl: '',
+    audioUrl: '',
+  };
+}
+
+function createArtifactRefPart(record: Record<string, unknown>) {
+  const artifactId = normalizeText(record.artifactId ?? record.artifact_id);
+  const localArtifactId = normalizeText(record.localArtifactId ?? record.local_artifact_id);
+  if (!artifactId && !localArtifactId) {
+    throw createNimiError({
+      message: 'artifact_ref file part requires artifactId or localArtifactId',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'set_artifact_ref_id',
+      source: 'sdk',
+    });
+  }
+  return {
+    type: ChatContentPartType.ARTIFACT_REF,
+    text: '',
+    imageUrl: undefined,
+    videoUrl: '',
+    audioUrl: '',
+    artifactRef: {
+      artifactId: artifactId || '',
+      localArtifactId: localArtifactId || '',
+      mimeType: normalizeText(record.mediaType ?? record.mimeType ?? record.mime_type),
+      displayName: normalizeText(record.displayName ?? record.display_name),
+    },
   };
 }
 
@@ -247,12 +302,26 @@ function extractContentParts(
   text: string;
   imageUrl?: { url: string; detail: string };
   videoUrl: string;
+  audioUrl: string;
+  artifactRef?: {
+    artifactId: string;
+    localArtifactId: string;
+    mimeType: string;
+    displayName: string;
+  };
 }> {
   const result: Array<{
     type: ChatContentPartType;
     text: string;
     imageUrl?: { url: string; detail: string };
     videoUrl: string;
+    audioUrl: string;
+    artifactRef?: {
+      artifactId: string;
+      localArtifactId: string;
+      mimeType: string;
+      displayName: string;
+    };
   }> = [];
 
   for (const part of content) {
@@ -268,6 +337,10 @@ function extractContentParts(
         result.push(createTextChatContentPart(text));
       }
     } else if (record.type === 'file') {
+      if (record.artifactId || record.artifact_id || record.localArtifactId || record.local_artifact_id) {
+        result.push(createArtifactRefPart(record));
+        continue;
+      }
       const mediaType = normalizeText(record.mediaType);
       if (mediaType && mediaType.startsWith('image/')) {
         const url = extractFileUrl(record);
@@ -277,6 +350,7 @@ function extractContentParts(
             text: '',
             imageUrl: { url, detail: 'auto' },
             videoUrl: '',
+            audioUrl: '',
           });
         }
       } else if (mediaType && mediaType.startsWith('video/')) {
@@ -285,9 +359,24 @@ function extractContentParts(
           result.push({
             type: ChatContentPartType.VIDEO_URL,
             text: '',
+            imageUrl: undefined,
             videoUrl: url,
+            audioUrl: '',
           });
         }
+      } else if (mediaType && mediaType.startsWith('audio/')) {
+        const url = extractFileUrl(record);
+        if (url) {
+          result.push({
+            type: ChatContentPartType.AUDIO_URL,
+            text: '',
+            imageUrl: undefined,
+            videoUrl: '',
+            audioUrl: url,
+          });
+        }
+      } else if (mediaType) {
+        throw createUnsupportedTextChatPartError();
       }
     }
   }

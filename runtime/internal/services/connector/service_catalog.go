@@ -8,8 +8,8 @@ import (
 	"google.golang.org/grpc/codes"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 func mapCatalogProviderSource(source aicatalog.ProviderSource) runtimev1.ModelCatalogProviderSource {
@@ -118,7 +118,7 @@ func modelMatchesCategory(model *runtimev1.LocalModelRecord, category runtimev1.
 	case runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_LLM:
 		return hasAny("chat", "llm", "text", "text.generate")
 	case runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_VISION:
-		return hasAny("vision", "vl", "multimodal", "image.understand")
+		return hasAny("vision", "vl", "multimodal", "image.understand", "audio_chat", "video_chat", "text.generate.vision", "text.generate.audio", "text.generate.video")
 	case runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_IMAGE:
 		return hasAny("image", "image.generate")
 	case runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_TTS:

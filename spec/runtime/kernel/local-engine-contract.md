@@ -143,6 +143,17 @@ LocalAI 动态图片工作流补充：
 - `profile_overrides` 仅允许覆盖非路径字段；若只有 `profile_overrides` 而没有显式 companion 选择，runtime 不得继续生成动态 alias profile。
 - LocalAI image 模型的健康判定不得仅依赖 `/v1/models` 静态列表。
 
+LocalAI text-chat multimodal 补充：
+
+- `localai` 必须支持通过 `POST /v1/chat/completions` 接收 text multimodal 输入
+- runtime 对具备 `text.generate.vision` / `text.generate.audio` / `text.generate.video` 的 LocalAI 模型，必须优先使用 native chat mapper，而不是退回通用 image-only OpenAI-compatible mapper
+- native mapper 必须支持：
+  - `string_images`
+  - `string_videos`
+  - `string_audios`
+  - `artifact_ref` 先解析为本地文件路径或可访问 URI 后再映射
+- 对声明了多模态 text capability 的 LocalAI 模型，健康/预热链路至少需要一次最小 text chat probe；仅 `/v1/models` 健康不可视为充分 ready
+
 ## K-LENG-007 健康探测协议
 
 > 本协议适用于本地引擎健康探测。云端 provider 探测使用 K-PROV-003（探测路径与健康判定标准不同）。

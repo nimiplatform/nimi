@@ -296,6 +296,16 @@ func (r *Resolver) SupportsScenario(providerType string, modelID string, scenari
 	}
 }
 
+// SupportsCapability reports whether a provider/model pair declares the given
+// canonical capability in catalog metadata.
+func (r *Resolver) SupportsCapability(providerType string, modelID string, capability string) (bool, error) {
+	model, err := r.ResolveModelEntry(providerType, modelID)
+	if err != nil {
+		return false, err
+	}
+	return aicapabilities.HasCatalogCapability(model.Capabilities, capability), nil
+}
+
 func resolveModelEntry(snapshot *indexedSnapshot, provider string, normalizedModel string) (ModelEntry, bool) {
 	providerModels := snapshot.models[provider]
 	if len(providerModels) == 0 {

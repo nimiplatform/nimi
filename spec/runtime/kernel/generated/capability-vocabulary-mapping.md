@@ -5,6 +5,9 @@
 ## Canonical Tokens
 
 - `text.generate`
+- `text.generate.vision`
+- `text.generate.audio`
+- `text.generate.video`
 - `text.embed`
 - `image.generate`
 - `video.generate`
@@ -16,6 +19,9 @@
 ## Local Manifest Tokens
 
 - `chat`
+- `vision`
+- `audio_chat`
+- `video_chat`
 - `image`
 - `video`
 - `tts`
@@ -36,6 +42,9 @@
 | Local Token | Canonical Token | Local Category | Source Rule |
 |---|---|---|---|
 | `chat` | `text.generate` | `LLM` | `K-LOCAL-002` |
+| `vision` | `text.generate.vision` | `VISION` | `K-LOCAL-002` |
+| `audio_chat` | `text.generate.audio` | `VISION` | `K-LOCAL-002` |
+| `video_chat` | `text.generate.video` | `VISION` | `K-LOCAL-002` |
 | `embedding` | `text.embed` | `LLM` | `K-LOCAL-002` |
 | `image` | `image.generate` | `IMAGE` | `K-LOCAL-002` |
 | `video` | `video.generate` | `—` | `K-LOCAL-002` |
@@ -62,4 +71,5 @@
 | `automatic-speech-recognition` | `stt` | — |
 | `feature-extraction` | `embedding` | — |
 | `sentence-similarity` | `embedding` | — |
+| `image-text-to-text` | `vision` | — |
 | `unknown` | `chat` | Fallback default for unrecognized pipeline tags |

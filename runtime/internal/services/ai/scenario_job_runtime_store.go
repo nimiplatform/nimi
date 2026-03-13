@@ -178,6 +178,38 @@ func (s *scenarioJobStore) listArtifacts(jobID string) ([]*runtimev1.ScenarioArt
 	return items, job.GetTraceId(), true
 }
 
+func (s *scenarioJobStore) findArtifact(appID string, subjectUserID string, artifactID string) (*runtimev1.ScenarioArtifact, string, bool) {
+	id := strings.TrimSpace(artifactID)
+	if id == "" {
+		return nil, "", false
+	}
+	wantAppID := strings.TrimSpace(appID)
+	wantSubjectUserID := strings.TrimSpace(subjectUserID)
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, record := range s.jobs {
+		if record == nil || record.job == nil {
+			continue
+		}
+		head := record.job.GetHead()
+		if wantAppID != "" && strings.TrimSpace(head.GetAppId()) != wantAppID {
+			continue
+		}
+		if wantSubjectUserID != "" && strings.TrimSpace(head.GetSubjectUserId()) != wantSubjectUserID {
+			continue
+		}
+		for _, artifact := range record.job.GetArtifacts() {
+			if strings.TrimSpace(artifact.GetArtifactId()) != id {
+				continue
+			}
+			return cloneScenarioArtifact(artifact), record.job.GetTraceId(), true
+		}
+	}
+	return nil, "", false
+}
+
 func (s *scenarioJobStore) subscribe(jobID string, buffer int) (uint64, <-chan *runtimev1.ScenarioJobEvent, []*runtimev1.ScenarioJobEvent, bool, bool) {
 	id := strings.TrimSpace(jobID)
 	if id == "" {

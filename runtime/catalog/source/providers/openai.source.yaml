@@ -155,7 +155,7 @@ models:
   - model_id: gpt-5.2
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [text.generate]
+    capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown
@@ -170,7 +170,7 @@ models:
   - model_id: gpt-5.2-pro
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [text.generate]
+    capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown
@@ -211,7 +211,7 @@ models:
   - model_id: o3
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [text.generate]
+    capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown
@@ -224,7 +224,7 @@ models:
   - model_id: o3-mini
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [text.generate]
+    capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown

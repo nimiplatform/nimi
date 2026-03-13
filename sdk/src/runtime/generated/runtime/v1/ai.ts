@@ -20,6 +20,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { Ack } from "./common";
 import { VoiceAsset } from "./voice";
 import { Timestamp } from "../../google/protobuf/timestamp";
 import { ReasonCode } from "./common";
@@ -63,6 +64,27 @@ export interface ChatContentImageURL {
     detail: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.ChatContentArtifactRef
+ */
+export interface ChatContentArtifactRef {
+    /**
+     * @generated from protobuf field: string artifact_id = 1
+     */
+    artifactId: string;
+    /**
+     * @generated from protobuf field: string local_artifact_id = 2
+     */
+    localArtifactId: string;
+    /**
+     * @generated from protobuf field: string mime_type = 3
+     */
+    mimeType: string;
+    /**
+     * @generated from protobuf field: string display_name = 4
+     */
+    displayName: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ChatContentPart
  */
 export interface ChatContentPart {
@@ -82,6 +104,14 @@ export interface ChatContentPart {
      * @generated from protobuf field: string video_url = 4
      */
     videoUrl: string;
+    /**
+     * @generated from protobuf field: string audio_url = 5
+     */
+    audioUrl: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ChatContentArtifactRef artifact_ref = 6
+     */
+    artifactRef?: ChatContentArtifactRef;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ToolSpec
@@ -1181,6 +1211,303 @@ export interface ArtifactChunk {
     traceId: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.OpenRealtimeSessionRequest
+ */
+export interface OpenRealtimeSessionRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ScenarioRequestHead head = 1
+     */
+    head?: ScenarioRequestHead;
+    /**
+     * @generated from protobuf field: string system_prompt = 2
+     */
+    systemPrompt: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ScenarioExtension extensions = 3
+     */
+    extensions: ScenarioExtension[];
+    /**
+     * @generated from protobuf field: string output_audio_format = 4
+     */
+    outputAudioFormat: string;
+    /**
+     * @generated from protobuf field: int32 output_sample_rate_hz = 5
+     */
+    outputSampleRateHz: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.OpenRealtimeSessionResponse
+ */
+export interface OpenRealtimeSessionResponse {
+    /**
+     * @generated from protobuf field: string session_id = 1
+     */
+    sessionId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RoutePolicy route_decision = 2
+     */
+    routeDecision: RoutePolicy;
+    /**
+     * @generated from protobuf field: string model_resolved = 3
+     */
+    modelResolved: string;
+    /**
+     * @generated from protobuf field: string trace_id = 4
+     */
+    traceId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RealtimeAudioInput
+ */
+export interface RealtimeAudioInput {
+    /**
+     * @generated from protobuf oneof: source
+     */
+    source: {
+        oneofKind: "audioBytes";
+        /**
+         * @generated from protobuf field: bytes audio_bytes = 1
+         */
+        audioBytes: Uint8Array;
+    } | {
+        oneofKind: "audioUri";
+        /**
+         * @generated from protobuf field: string audio_uri = 2
+         */
+        audioUri: string;
+    } | {
+        oneofKind: "artifactRef";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ChatContentArtifactRef artifact_ref = 3
+         */
+        artifactRef: ChatContentArtifactRef;
+    } | {
+        oneofKind: undefined;
+    };
+    /**
+     * @generated from protobuf field: string mime_type = 4
+     */
+    mimeType: string;
+    /**
+     * @generated from protobuf field: int32 sample_rate_hz = 5
+     */
+    sampleRateHz: number;
+    /**
+     * @generated from protobuf field: bool end_of_turn = 6
+     */
+    endOfTurn: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RealtimeInputItem
+ */
+export interface RealtimeInputItem {
+    /**
+     * @generated from protobuf oneof: item
+     */
+    item: {
+        oneofKind: "message";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ChatMessage message = 1
+         */
+        message: ChatMessage;
+    } | {
+        oneofKind: "audio";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.RealtimeAudioInput audio = 2
+         */
+        audio: RealtimeAudioInput;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AppendRealtimeInputRequest
+ */
+export interface AppendRealtimeInputRequest {
+    /**
+     * @generated from protobuf field: string session_id = 1
+     */
+    sessionId: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.RealtimeInputItem items = 2
+     */
+    items: RealtimeInputItem[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AppendRealtimeInputResponse
+ */
+export interface AppendRealtimeInputResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.Ack ack = 1
+     */
+    ack?: Ack;
+    /**
+     * @generated from protobuf field: string trace_id = 2
+     */
+    traceId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ReadRealtimeEventsRequest
+ */
+export interface ReadRealtimeEventsRequest {
+    /**
+     * @generated from protobuf field: string session_id = 1
+     */
+    sessionId: string;
+    /**
+     * @generated from protobuf field: uint64 after_sequence = 2
+     */
+    afterSequence: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RealtimeSessionOpened
+ */
+export interface RealtimeSessionOpened {
+    /**
+     * @generated from protobuf field: string session_id = 1
+     */
+    sessionId: string;
+    /**
+     * @generated from protobuf field: string model_resolved = 2
+     */
+    modelResolved: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RoutePolicy route_decision = 3
+     */
+    routeDecision: RoutePolicy;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RealtimeTextDelta
+ */
+export interface RealtimeTextDelta {
+    /**
+     * @generated from protobuf field: string text = 1
+     */
+    text: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RealtimeAudioChunk
+ */
+export interface RealtimeAudioChunk {
+    /**
+     * @generated from protobuf field: bytes chunk = 1
+     */
+    chunk: Uint8Array;
+    /**
+     * @generated from protobuf field: string mime_type = 2
+     */
+    mimeType: string;
+    /**
+     * @generated from protobuf field: int32 sample_rate_hz = 3
+     */
+    sampleRateHz: number;
+    /**
+     * @generated from protobuf field: bool eof = 4
+     */
+    eof: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RealtimeCompleted
+ */
+export interface RealtimeCompleted {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.FinishReason finish_reason = 1
+     */
+    finishReason: FinishReason;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.UsageStats usage = 2
+     */
+    usage?: UsageStats;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RealtimeFailed
+ */
+export interface RealtimeFailed {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 1
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: string action_hint = 2
+     */
+    actionHint: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RealtimeEvent
+ */
+export interface RealtimeEvent {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RealtimeEventType event_type = 1
+     */
+    eventType: RealtimeEventType;
+    /**
+     * @generated from protobuf field: uint64 sequence = 2
+     */
+    sequence: string;
+    /**
+     * @generated from protobuf field: string trace_id = 3
+     */
+    traceId: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp timestamp = 4
+     */
+    timestamp?: Timestamp;
+    /**
+     * @generated from protobuf oneof: payload
+     */
+    payload: {
+        oneofKind: "opened";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.RealtimeSessionOpened opened = 10
+         */
+        opened: RealtimeSessionOpened;
+    } | {
+        oneofKind: "textDelta";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.RealtimeTextDelta text_delta = 11
+         */
+        textDelta: RealtimeTextDelta;
+    } | {
+        oneofKind: "audioChunk";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.RealtimeAudioChunk audio_chunk = 12
+         */
+        audioChunk: RealtimeAudioChunk;
+    } | {
+        oneofKind: "completed";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.RealtimeCompleted completed = 13
+         */
+        completed: RealtimeCompleted;
+    } | {
+        oneofKind: "failed";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.RealtimeFailed failed = 14
+         */
+        failed: RealtimeFailed;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CloseRealtimeSessionRequest
+ */
+export interface CloseRealtimeSessionRequest {
+    /**
+     * @generated from protobuf field: string session_id = 1
+     */
+    sessionId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CloseRealtimeSessionResponse
+ */
+export interface CloseRealtimeSessionResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.Ack ack = 1
+     */
+    ack?: Ack;
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.Modal
  */
 export enum Modal {
@@ -1405,6 +1732,35 @@ export enum StreamEventType {
     STREAM_EVENT_FAILED = 7
 }
 /**
+ * @generated from protobuf enum nimi.runtime.v1.RealtimeEventType
+ */
+export enum RealtimeEventType {
+    /**
+     * @generated from protobuf enum value: REALTIME_EVENT_TYPE_UNSPECIFIED = 0;
+     */
+    REALTIME_EVENT_TYPE_UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: REALTIME_EVENT_OPENED = 1;
+     */
+    REALTIME_EVENT_OPENED = 1,
+    /**
+     * @generated from protobuf enum value: REALTIME_EVENT_TEXT_DELTA = 2;
+     */
+    REALTIME_EVENT_TEXT_DELTA = 2,
+    /**
+     * @generated from protobuf enum value: REALTIME_EVENT_AUDIO_CHUNK = 3;
+     */
+    REALTIME_EVENT_AUDIO_CHUNK = 3,
+    /**
+     * @generated from protobuf enum value: REALTIME_EVENT_COMPLETED = 4;
+     */
+    REALTIME_EVENT_COMPLETED = 4,
+    /**
+     * @generated from protobuf enum value: REALTIME_EVENT_FAILED = 5;
+     */
+    REALTIME_EVENT_FAILED = 5
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.VideoMode
  */
 export enum VideoMode {
@@ -1528,7 +1884,15 @@ export enum ChatContentPartType {
     /**
      * @generated from protobuf enum value: CHAT_CONTENT_PART_TYPE_VIDEO_URL = 3;
      */
-    VIDEO_URL = 3
+    VIDEO_URL = 3,
+    /**
+     * @generated from protobuf enum value: CHAT_CONTENT_PART_TYPE_AUDIO_URL = 4;
+     */
+    AUDIO_URL = 4,
+    /**
+     * @generated from protobuf enum value: CHAT_CONTENT_PART_TYPE_ARTIFACT_REF = 5;
+     */
+    ARTIFACT_REF = 5
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ScenarioJobStatus
@@ -1731,13 +2095,86 @@ class ChatContentImageURL$Type extends MessageType<ChatContentImageURL> {
  */
 export const ChatContentImageURL = new ChatContentImageURL$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class ChatContentArtifactRef$Type extends MessageType<ChatContentArtifactRef> {
+    constructor() {
+        super("nimi.runtime.v1.ChatContentArtifactRef", [
+            { no: 1, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "local_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ChatContentArtifactRef>): ChatContentArtifactRef {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifactId = "";
+        message.localArtifactId = "";
+        message.mimeType = "";
+        message.displayName = "";
+        if (value !== undefined)
+            reflectionMergePartial<ChatContentArtifactRef>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ChatContentArtifactRef): ChatContentArtifactRef {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string artifact_id */ 1:
+                    message.artifactId = reader.string();
+                    break;
+                case /* string local_artifact_id */ 2:
+                    message.localArtifactId = reader.string();
+                    break;
+                case /* string mime_type */ 3:
+                    message.mimeType = reader.string();
+                    break;
+                case /* string display_name */ 4:
+                    message.displayName = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ChatContentArtifactRef, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string artifact_id = 1; */
+        if (message.artifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.artifactId);
+        /* string local_artifact_id = 2; */
+        if (message.localArtifactId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.localArtifactId);
+        /* string mime_type = 3; */
+        if (message.mimeType !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.mimeType);
+        /* string display_name = 4; */
+        if (message.displayName !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.displayName);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ChatContentArtifactRef
+ */
+export const ChatContentArtifactRef = new ChatContentArtifactRef$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ChatContentPart$Type extends MessageType<ChatContentPart> {
     constructor() {
         super("nimi.runtime.v1.ChatContentPart", [
             { no: 1, name: "type", kind: "enum", T: () => ["nimi.runtime.v1.ChatContentPartType", ChatContentPartType, "CHAT_CONTENT_PART_TYPE_"] },
             { no: 2, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "image_url", kind: "message", T: () => ChatContentImageURL },
-            { no: 4, name: "video_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "video_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "audio_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "artifact_ref", kind: "message", T: () => ChatContentArtifactRef }
         ]);
     }
     create(value?: PartialMessage<ChatContentPart>): ChatContentPart {
@@ -1745,6 +2182,7 @@ class ChatContentPart$Type extends MessageType<ChatContentPart> {
         message.type = 0;
         message.text = "";
         message.videoUrl = "";
+        message.audioUrl = "";
         if (value !== undefined)
             reflectionMergePartial<ChatContentPart>(this, message, value);
         return message;
@@ -1765,6 +2203,12 @@ class ChatContentPart$Type extends MessageType<ChatContentPart> {
                     break;
                 case /* string video_url */ 4:
                     message.videoUrl = reader.string();
+                    break;
+                case /* string audio_url */ 5:
+                    message.audioUrl = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ChatContentArtifactRef artifact_ref */ 6:
+                    message.artifactRef = ChatContentArtifactRef.internalBinaryRead(reader, reader.uint32(), options, message.artifactRef);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1790,6 +2234,12 @@ class ChatContentPart$Type extends MessageType<ChatContentPart> {
         /* string video_url = 4; */
         if (message.videoUrl !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.videoUrl);
+        /* string audio_url = 5; */
+        if (message.audioUrl !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.audioUrl);
+        /* nimi.runtime.v1.ChatContentArtifactRef artifact_ref = 6; */
+        if (message.artifactRef)
+            ChatContentArtifactRef.internalBinaryWrite(message.artifactRef, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5222,6 +5672,977 @@ class ArtifactChunk$Type extends MessageType<ArtifactChunk> {
  * @generated MessageType for protobuf message nimi.runtime.v1.ArtifactChunk
  */
 export const ArtifactChunk = new ArtifactChunk$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class OpenRealtimeSessionRequest$Type extends MessageType<OpenRealtimeSessionRequest> {
+    constructor() {
+        super("nimi.runtime.v1.OpenRealtimeSessionRequest", [
+            { no: 1, name: "head", kind: "message", T: () => ScenarioRequestHead },
+            { no: 2, name: "system_prompt", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "extensions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ScenarioExtension },
+            { no: 4, name: "output_audio_format", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "output_sample_rate_hz", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<OpenRealtimeSessionRequest>): OpenRealtimeSessionRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.systemPrompt = "";
+        message.extensions = [];
+        message.outputAudioFormat = "";
+        message.outputSampleRateHz = 0;
+        if (value !== undefined)
+            reflectionMergePartial<OpenRealtimeSessionRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: OpenRealtimeSessionRequest): OpenRealtimeSessionRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ScenarioRequestHead head */ 1:
+                    message.head = ScenarioRequestHead.internalBinaryRead(reader, reader.uint32(), options, message.head);
+                    break;
+                case /* string system_prompt */ 2:
+                    message.systemPrompt = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.ScenarioExtension extensions */ 3:
+                    message.extensions.push(ScenarioExtension.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string output_audio_format */ 4:
+                    message.outputAudioFormat = reader.string();
+                    break;
+                case /* int32 output_sample_rate_hz */ 5:
+                    message.outputSampleRateHz = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: OpenRealtimeSessionRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ScenarioRequestHead head = 1; */
+        if (message.head)
+            ScenarioRequestHead.internalBinaryWrite(message.head, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string system_prompt = 2; */
+        if (message.systemPrompt !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.systemPrompt);
+        /* repeated nimi.runtime.v1.ScenarioExtension extensions = 3; */
+        for (let i = 0; i < message.extensions.length; i++)
+            ScenarioExtension.internalBinaryWrite(message.extensions[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* string output_audio_format = 4; */
+        if (message.outputAudioFormat !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.outputAudioFormat);
+        /* int32 output_sample_rate_hz = 5; */
+        if (message.outputSampleRateHz !== 0)
+            writer.tag(5, WireType.Varint).int32(message.outputSampleRateHz);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.OpenRealtimeSessionRequest
+ */
+export const OpenRealtimeSessionRequest = new OpenRealtimeSessionRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class OpenRealtimeSessionResponse$Type extends MessageType<OpenRealtimeSessionResponse> {
+    constructor() {
+        super("nimi.runtime.v1.OpenRealtimeSessionResponse", [
+            { no: 1, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "route_decision", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
+            { no: 3, name: "model_resolved", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<OpenRealtimeSessionResponse>): OpenRealtimeSessionResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.sessionId = "";
+        message.routeDecision = 0;
+        message.modelResolved = "";
+        message.traceId = "";
+        if (value !== undefined)
+            reflectionMergePartial<OpenRealtimeSessionResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: OpenRealtimeSessionResponse): OpenRealtimeSessionResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string session_id */ 1:
+                    message.sessionId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.RoutePolicy route_decision */ 2:
+                    message.routeDecision = reader.int32();
+                    break;
+                case /* string model_resolved */ 3:
+                    message.modelResolved = reader.string();
+                    break;
+                case /* string trace_id */ 4:
+                    message.traceId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: OpenRealtimeSessionResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string session_id = 1; */
+        if (message.sessionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.sessionId);
+        /* nimi.runtime.v1.RoutePolicy route_decision = 2; */
+        if (message.routeDecision !== 0)
+            writer.tag(2, WireType.Varint).int32(message.routeDecision);
+        /* string model_resolved = 3; */
+        if (message.modelResolved !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.modelResolved);
+        /* string trace_id = 4; */
+        if (message.traceId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.traceId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.OpenRealtimeSessionResponse
+ */
+export const OpenRealtimeSessionResponse = new OpenRealtimeSessionResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RealtimeAudioInput$Type extends MessageType<RealtimeAudioInput> {
+    constructor() {
+        super("nimi.runtime.v1.RealtimeAudioInput", [
+            { no: 1, name: "audio_bytes", kind: "scalar", oneof: "source", T: 12 /*ScalarType.BYTES*/ },
+            { no: 2, name: "audio_uri", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "artifact_ref", kind: "message", oneof: "source", T: () => ChatContentArtifactRef },
+            { no: 4, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "sample_rate_hz", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 6, name: "end_of_turn", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RealtimeAudioInput>): RealtimeAudioInput {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.source = { oneofKind: undefined };
+        message.mimeType = "";
+        message.sampleRateHz = 0;
+        message.endOfTurn = false;
+        if (value !== undefined)
+            reflectionMergePartial<RealtimeAudioInput>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RealtimeAudioInput): RealtimeAudioInput {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes audio_bytes */ 1:
+                    message.source = {
+                        oneofKind: "audioBytes",
+                        audioBytes: reader.bytes()
+                    };
+                    break;
+                case /* string audio_uri */ 2:
+                    message.source = {
+                        oneofKind: "audioUri",
+                        audioUri: reader.string()
+                    };
+                    break;
+                case /* nimi.runtime.v1.ChatContentArtifactRef artifact_ref */ 3:
+                    message.source = {
+                        oneofKind: "artifactRef",
+                        artifactRef: ChatContentArtifactRef.internalBinaryRead(reader, reader.uint32(), options, (message.source as any).artifactRef)
+                    };
+                    break;
+                case /* string mime_type */ 4:
+                    message.mimeType = reader.string();
+                    break;
+                case /* int32 sample_rate_hz */ 5:
+                    message.sampleRateHz = reader.int32();
+                    break;
+                case /* bool end_of_turn */ 6:
+                    message.endOfTurn = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RealtimeAudioInput, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes audio_bytes = 1; */
+        if (message.source.oneofKind === "audioBytes")
+            writer.tag(1, WireType.LengthDelimited).bytes(message.source.audioBytes);
+        /* string audio_uri = 2; */
+        if (message.source.oneofKind === "audioUri")
+            writer.tag(2, WireType.LengthDelimited).string(message.source.audioUri);
+        /* nimi.runtime.v1.ChatContentArtifactRef artifact_ref = 3; */
+        if (message.source.oneofKind === "artifactRef")
+            ChatContentArtifactRef.internalBinaryWrite(message.source.artifactRef, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* string mime_type = 4; */
+        if (message.mimeType !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.mimeType);
+        /* int32 sample_rate_hz = 5; */
+        if (message.sampleRateHz !== 0)
+            writer.tag(5, WireType.Varint).int32(message.sampleRateHz);
+        /* bool end_of_turn = 6; */
+        if (message.endOfTurn !== false)
+            writer.tag(6, WireType.Varint).bool(message.endOfTurn);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RealtimeAudioInput
+ */
+export const RealtimeAudioInput = new RealtimeAudioInput$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RealtimeInputItem$Type extends MessageType<RealtimeInputItem> {
+    constructor() {
+        super("nimi.runtime.v1.RealtimeInputItem", [
+            { no: 1, name: "message", kind: "message", oneof: "item", T: () => ChatMessage },
+            { no: 2, name: "audio", kind: "message", oneof: "item", T: () => RealtimeAudioInput }
+        ]);
+    }
+    create(value?: PartialMessage<RealtimeInputItem>): RealtimeInputItem {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.item = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<RealtimeInputItem>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RealtimeInputItem): RealtimeInputItem {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ChatMessage message */ 1:
+                    message.item = {
+                        oneofKind: "message",
+                        message: ChatMessage.internalBinaryRead(reader, reader.uint32(), options, (message.item as any).message)
+                    };
+                    break;
+                case /* nimi.runtime.v1.RealtimeAudioInput audio */ 2:
+                    message.item = {
+                        oneofKind: "audio",
+                        audio: RealtimeAudioInput.internalBinaryRead(reader, reader.uint32(), options, (message.item as any).audio)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RealtimeInputItem, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ChatMessage message = 1; */
+        if (message.item.oneofKind === "message")
+            ChatMessage.internalBinaryWrite(message.item.message, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.RealtimeAudioInput audio = 2; */
+        if (message.item.oneofKind === "audio")
+            RealtimeAudioInput.internalBinaryWrite(message.item.audio, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RealtimeInputItem
+ */
+export const RealtimeInputItem = new RealtimeInputItem$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppendRealtimeInputRequest$Type extends MessageType<AppendRealtimeInputRequest> {
+    constructor() {
+        super("nimi.runtime.v1.AppendRealtimeInputRequest", [
+            { no: 1, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "items", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RealtimeInputItem }
+        ]);
+    }
+    create(value?: PartialMessage<AppendRealtimeInputRequest>): AppendRealtimeInputRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.sessionId = "";
+        message.items = [];
+        if (value !== undefined)
+            reflectionMergePartial<AppendRealtimeInputRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppendRealtimeInputRequest): AppendRealtimeInputRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string session_id */ 1:
+                    message.sessionId = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.RealtimeInputItem items */ 2:
+                    message.items.push(RealtimeInputItem.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppendRealtimeInputRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string session_id = 1; */
+        if (message.sessionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.sessionId);
+        /* repeated nimi.runtime.v1.RealtimeInputItem items = 2; */
+        for (let i = 0; i < message.items.length; i++)
+            RealtimeInputItem.internalBinaryWrite(message.items[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppendRealtimeInputRequest
+ */
+export const AppendRealtimeInputRequest = new AppendRealtimeInputRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppendRealtimeInputResponse$Type extends MessageType<AppendRealtimeInputResponse> {
+    constructor() {
+        super("nimi.runtime.v1.AppendRealtimeInputResponse", [
+            { no: 1, name: "ack", kind: "message", T: () => Ack },
+            { no: 2, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AppendRealtimeInputResponse>): AppendRealtimeInputResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.traceId = "";
+        if (value !== undefined)
+            reflectionMergePartial<AppendRealtimeInputResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppendRealtimeInputResponse): AppendRealtimeInputResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.Ack ack */ 1:
+                    message.ack = Ack.internalBinaryRead(reader, reader.uint32(), options, message.ack);
+                    break;
+                case /* string trace_id */ 2:
+                    message.traceId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppendRealtimeInputResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.Ack ack = 1; */
+        if (message.ack)
+            Ack.internalBinaryWrite(message.ack, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string trace_id = 2; */
+        if (message.traceId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.traceId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppendRealtimeInputResponse
+ */
+export const AppendRealtimeInputResponse = new AppendRealtimeInputResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ReadRealtimeEventsRequest$Type extends MessageType<ReadRealtimeEventsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ReadRealtimeEventsRequest", [
+            { no: 1, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "after_sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ReadRealtimeEventsRequest>): ReadRealtimeEventsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.sessionId = "";
+        message.afterSequence = "0";
+        if (value !== undefined)
+            reflectionMergePartial<ReadRealtimeEventsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReadRealtimeEventsRequest): ReadRealtimeEventsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string session_id */ 1:
+                    message.sessionId = reader.string();
+                    break;
+                case /* uint64 after_sequence */ 2:
+                    message.afterSequence = reader.uint64().toString();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ReadRealtimeEventsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string session_id = 1; */
+        if (message.sessionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.sessionId);
+        /* uint64 after_sequence = 2; */
+        if (message.afterSequence !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.afterSequence);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ReadRealtimeEventsRequest
+ */
+export const ReadRealtimeEventsRequest = new ReadRealtimeEventsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RealtimeSessionOpened$Type extends MessageType<RealtimeSessionOpened> {
+    constructor() {
+        super("nimi.runtime.v1.RealtimeSessionOpened", [
+            { no: 1, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "model_resolved", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "route_decision", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] }
+        ]);
+    }
+    create(value?: PartialMessage<RealtimeSessionOpened>): RealtimeSessionOpened {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.sessionId = "";
+        message.modelResolved = "";
+        message.routeDecision = 0;
+        if (value !== undefined)
+            reflectionMergePartial<RealtimeSessionOpened>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RealtimeSessionOpened): RealtimeSessionOpened {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string session_id */ 1:
+                    message.sessionId = reader.string();
+                    break;
+                case /* string model_resolved */ 2:
+                    message.modelResolved = reader.string();
+                    break;
+                case /* nimi.runtime.v1.RoutePolicy route_decision */ 3:
+                    message.routeDecision = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RealtimeSessionOpened, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string session_id = 1; */
+        if (message.sessionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.sessionId);
+        /* string model_resolved = 2; */
+        if (message.modelResolved !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.modelResolved);
+        /* nimi.runtime.v1.RoutePolicy route_decision = 3; */
+        if (message.routeDecision !== 0)
+            writer.tag(3, WireType.Varint).int32(message.routeDecision);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RealtimeSessionOpened
+ */
+export const RealtimeSessionOpened = new RealtimeSessionOpened$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RealtimeTextDelta$Type extends MessageType<RealtimeTextDelta> {
+    constructor() {
+        super("nimi.runtime.v1.RealtimeTextDelta", [
+            { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RealtimeTextDelta>): RealtimeTextDelta {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.text = "";
+        if (value !== undefined)
+            reflectionMergePartial<RealtimeTextDelta>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RealtimeTextDelta): RealtimeTextDelta {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string text */ 1:
+                    message.text = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RealtimeTextDelta, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string text = 1; */
+        if (message.text !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.text);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RealtimeTextDelta
+ */
+export const RealtimeTextDelta = new RealtimeTextDelta$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RealtimeAudioChunk$Type extends MessageType<RealtimeAudioChunk> {
+    constructor() {
+        super("nimi.runtime.v1.RealtimeAudioChunk", [
+            { no: 1, name: "chunk", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 2, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "sample_rate_hz", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 4, name: "eof", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RealtimeAudioChunk>): RealtimeAudioChunk {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.chunk = new Uint8Array(0);
+        message.mimeType = "";
+        message.sampleRateHz = 0;
+        message.eof = false;
+        if (value !== undefined)
+            reflectionMergePartial<RealtimeAudioChunk>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RealtimeAudioChunk): RealtimeAudioChunk {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes chunk */ 1:
+                    message.chunk = reader.bytes();
+                    break;
+                case /* string mime_type */ 2:
+                    message.mimeType = reader.string();
+                    break;
+                case /* int32 sample_rate_hz */ 3:
+                    message.sampleRateHz = reader.int32();
+                    break;
+                case /* bool eof */ 4:
+                    message.eof = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RealtimeAudioChunk, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes chunk = 1; */
+        if (message.chunk.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.chunk);
+        /* string mime_type = 2; */
+        if (message.mimeType !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.mimeType);
+        /* int32 sample_rate_hz = 3; */
+        if (message.sampleRateHz !== 0)
+            writer.tag(3, WireType.Varint).int32(message.sampleRateHz);
+        /* bool eof = 4; */
+        if (message.eof !== false)
+            writer.tag(4, WireType.Varint).bool(message.eof);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RealtimeAudioChunk
+ */
+export const RealtimeAudioChunk = new RealtimeAudioChunk$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RealtimeCompleted$Type extends MessageType<RealtimeCompleted> {
+    constructor() {
+        super("nimi.runtime.v1.RealtimeCompleted", [
+            { no: 1, name: "finish_reason", kind: "enum", T: () => ["nimi.runtime.v1.FinishReason", FinishReason, "FINISH_REASON_"] },
+            { no: 2, name: "usage", kind: "message", T: () => UsageStats }
+        ]);
+    }
+    create(value?: PartialMessage<RealtimeCompleted>): RealtimeCompleted {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.finishReason = 0;
+        if (value !== undefined)
+            reflectionMergePartial<RealtimeCompleted>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RealtimeCompleted): RealtimeCompleted {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.FinishReason finish_reason */ 1:
+                    message.finishReason = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.UsageStats usage */ 2:
+                    message.usage = UsageStats.internalBinaryRead(reader, reader.uint32(), options, message.usage);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RealtimeCompleted, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.FinishReason finish_reason = 1; */
+        if (message.finishReason !== 0)
+            writer.tag(1, WireType.Varint).int32(message.finishReason);
+        /* nimi.runtime.v1.UsageStats usage = 2; */
+        if (message.usage)
+            UsageStats.internalBinaryWrite(message.usage, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RealtimeCompleted
+ */
+export const RealtimeCompleted = new RealtimeCompleted$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RealtimeFailed$Type extends MessageType<RealtimeFailed> {
+    constructor() {
+        super("nimi.runtime.v1.RealtimeFailed", [
+            { no: 1, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 2, name: "action_hint", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RealtimeFailed>): RealtimeFailed {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.reasonCode = 0;
+        message.actionHint = "";
+        if (value !== undefined)
+            reflectionMergePartial<RealtimeFailed>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RealtimeFailed): RealtimeFailed {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 1:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* string action_hint */ 2:
+                    message.actionHint = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RealtimeFailed, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ReasonCode reason_code = 1; */
+        if (message.reasonCode !== 0)
+            writer.tag(1, WireType.Varint).int32(message.reasonCode);
+        /* string action_hint = 2; */
+        if (message.actionHint !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.actionHint);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RealtimeFailed
+ */
+export const RealtimeFailed = new RealtimeFailed$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RealtimeEvent$Type extends MessageType<RealtimeEvent> {
+    constructor() {
+        super("nimi.runtime.v1.RealtimeEvent", [
+            { no: 1, name: "event_type", kind: "enum", T: () => ["nimi.runtime.v1.RealtimeEventType", RealtimeEventType] },
+            { no: 2, name: "sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "timestamp", kind: "message", T: () => Timestamp },
+            { no: 10, name: "opened", kind: "message", oneof: "payload", T: () => RealtimeSessionOpened },
+            { no: 11, name: "text_delta", kind: "message", oneof: "payload", T: () => RealtimeTextDelta },
+            { no: 12, name: "audio_chunk", kind: "message", oneof: "payload", T: () => RealtimeAudioChunk },
+            { no: 13, name: "completed", kind: "message", oneof: "payload", T: () => RealtimeCompleted },
+            { no: 14, name: "failed", kind: "message", oneof: "payload", T: () => RealtimeFailed }
+        ]);
+    }
+    create(value?: PartialMessage<RealtimeEvent>): RealtimeEvent {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.eventType = 0;
+        message.sequence = "0";
+        message.traceId = "";
+        message.payload = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<RealtimeEvent>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RealtimeEvent): RealtimeEvent {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.RealtimeEventType event_type */ 1:
+                    message.eventType = reader.int32();
+                    break;
+                case /* uint64 sequence */ 2:
+                    message.sequence = reader.uint64().toString();
+                    break;
+                case /* string trace_id */ 3:
+                    message.traceId = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp timestamp */ 4:
+                    message.timestamp = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.timestamp);
+                    break;
+                case /* nimi.runtime.v1.RealtimeSessionOpened opened */ 10:
+                    message.payload = {
+                        oneofKind: "opened",
+                        opened: RealtimeSessionOpened.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).opened)
+                    };
+                    break;
+                case /* nimi.runtime.v1.RealtimeTextDelta text_delta */ 11:
+                    message.payload = {
+                        oneofKind: "textDelta",
+                        textDelta: RealtimeTextDelta.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).textDelta)
+                    };
+                    break;
+                case /* nimi.runtime.v1.RealtimeAudioChunk audio_chunk */ 12:
+                    message.payload = {
+                        oneofKind: "audioChunk",
+                        audioChunk: RealtimeAudioChunk.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).audioChunk)
+                    };
+                    break;
+                case /* nimi.runtime.v1.RealtimeCompleted completed */ 13:
+                    message.payload = {
+                        oneofKind: "completed",
+                        completed: RealtimeCompleted.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).completed)
+                    };
+                    break;
+                case /* nimi.runtime.v1.RealtimeFailed failed */ 14:
+                    message.payload = {
+                        oneofKind: "failed",
+                        failed: RealtimeFailed.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).failed)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RealtimeEvent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.RealtimeEventType event_type = 1; */
+        if (message.eventType !== 0)
+            writer.tag(1, WireType.Varint).int32(message.eventType);
+        /* uint64 sequence = 2; */
+        if (message.sequence !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.sequence);
+        /* string trace_id = 3; */
+        if (message.traceId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.traceId);
+        /* google.protobuf.Timestamp timestamp = 4; */
+        if (message.timestamp)
+            Timestamp.internalBinaryWrite(message.timestamp, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.RealtimeSessionOpened opened = 10; */
+        if (message.payload.oneofKind === "opened")
+            RealtimeSessionOpened.internalBinaryWrite(message.payload.opened, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.RealtimeTextDelta text_delta = 11; */
+        if (message.payload.oneofKind === "textDelta")
+            RealtimeTextDelta.internalBinaryWrite(message.payload.textDelta, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.RealtimeAudioChunk audio_chunk = 12; */
+        if (message.payload.oneofKind === "audioChunk")
+            RealtimeAudioChunk.internalBinaryWrite(message.payload.audioChunk, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.RealtimeCompleted completed = 13; */
+        if (message.payload.oneofKind === "completed")
+            RealtimeCompleted.internalBinaryWrite(message.payload.completed, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.RealtimeFailed failed = 14; */
+        if (message.payload.oneofKind === "failed")
+            RealtimeFailed.internalBinaryWrite(message.payload.failed, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RealtimeEvent
+ */
+export const RealtimeEvent = new RealtimeEvent$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CloseRealtimeSessionRequest$Type extends MessageType<CloseRealtimeSessionRequest> {
+    constructor() {
+        super("nimi.runtime.v1.CloseRealtimeSessionRequest", [
+            { no: 1, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<CloseRealtimeSessionRequest>): CloseRealtimeSessionRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.sessionId = "";
+        if (value !== undefined)
+            reflectionMergePartial<CloseRealtimeSessionRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CloseRealtimeSessionRequest): CloseRealtimeSessionRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string session_id */ 1:
+                    message.sessionId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CloseRealtimeSessionRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string session_id = 1; */
+        if (message.sessionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.sessionId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CloseRealtimeSessionRequest
+ */
+export const CloseRealtimeSessionRequest = new CloseRealtimeSessionRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CloseRealtimeSessionResponse$Type extends MessageType<CloseRealtimeSessionResponse> {
+    constructor() {
+        super("nimi.runtime.v1.CloseRealtimeSessionResponse", [
+            { no: 1, name: "ack", kind: "message", T: () => Ack }
+        ]);
+    }
+    create(value?: PartialMessage<CloseRealtimeSessionResponse>): CloseRealtimeSessionResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<CloseRealtimeSessionResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CloseRealtimeSessionResponse): CloseRealtimeSessionResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.Ack ack */ 1:
+                    message.ack = Ack.internalBinaryRead(reader, reader.uint32(), options, message.ack);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CloseRealtimeSessionResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.Ack ack = 1; */
+        if (message.ack)
+            Ack.internalBinaryWrite(message.ack, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CloseRealtimeSessionResponse
+ */
+export const CloseRealtimeSessionResponse = new CloseRealtimeSessionResponse$Type();
 /**
  * @generated ServiceType for protobuf service nimi.runtime.v1.RuntimeAiService
  */
@@ -5238,4 +6659,13 @@ export const RuntimeAiService = new ServiceType("nimi.runtime.v1.RuntimeAiServic
     { name: "ListVoiceAssets", options: {}, I: ListVoiceAssetsRequest, O: ListVoiceAssetsResponse },
     { name: "DeleteVoiceAsset", options: {}, I: DeleteVoiceAssetRequest, O: DeleteVoiceAssetResponse },
     { name: "ListPresetVoices", options: {}, I: ListPresetVoicesRequest, O: ListPresetVoicesResponse }
+]);
+/**
+ * @generated ServiceType for protobuf service nimi.runtime.v1.RuntimeAiRealtimeService
+ */
+export const RuntimeAiRealtimeService = new ServiceType("nimi.runtime.v1.RuntimeAiRealtimeService", [
+    { name: "OpenRealtimeSession", options: {}, I: OpenRealtimeSessionRequest, O: OpenRealtimeSessionResponse },
+    { name: "AppendRealtimeInput", options: {}, I: AppendRealtimeInputRequest, O: AppendRealtimeInputResponse },
+    { name: "ReadRealtimeEvents", serverStreaming: true, options: {}, I: ReadRealtimeEventsRequest, O: RealtimeEvent },
+    { name: "CloseRealtimeSession", options: {}, I: CloseRealtimeSessionRequest, O: CloseRealtimeSessionResponse }
 ]);

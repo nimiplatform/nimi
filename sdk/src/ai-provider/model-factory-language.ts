@@ -30,9 +30,9 @@ import { ExecutionMode, ScenarioType } from '../runtime/generated/runtime/v1/ai.
 
 function createPromptRequiredError() {
   return createNimiError({
-    message: 'language model prompt must include at least one non-system text message',
+    message: 'language model prompt must include at least one non-system text or media message',
     reasonCode: ReasonCode.AI_INPUT_INVALID,
-    actionHint: 'add_user_or_assistant_text_message',
+    actionHint: 'add_user_or_assistant_content_message',
     source: 'sdk',
   });
 }
@@ -50,7 +50,7 @@ export function createLanguageModelImpl(
     doGenerate: async (options: LanguageModelV3CallOptions): Promise<LanguageModelV3GenerateResult> => {
       try {
         const prompt = toRuntimePrompt(options.prompt);
-        if (!prompt.hasTextInput) {
+        if (!prompt.hasNonSystemInput) {
           throw createPromptRequiredError();
         }
 
@@ -108,7 +108,7 @@ export function createLanguageModelImpl(
     doStream: async (options: LanguageModelV3CallOptions): Promise<LanguageModelV3StreamResult> => {
       try {
         const prompt = toRuntimePrompt(options.prompt);
-        if (!prompt.hasTextInput) {
+        if (!prompt.hasNonSystemInput) {
           throw createPromptRequiredError();
         }
 

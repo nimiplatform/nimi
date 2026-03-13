@@ -79,6 +79,15 @@ enum StreamEventType {
   STREAM_EVENT_FAILED = 7;
 }
 
+enum RealtimeEventType {
+  REALTIME_EVENT_TYPE_UNSPECIFIED = 0;
+  REALTIME_EVENT_OPENED = 1;
+  REALTIME_EVENT_TEXT_DELTA = 2;
+  REALTIME_EVENT_AUDIO_CHUNK = 3;
+  REALTIME_EVENT_COMPLETED = 4;
+  REALTIME_EVENT_FAILED = 5;
+}
+
 enum VideoMode {
   VIDEO_MODE_UNSPECIFIED = 0;
   VIDEO_MODE_T2V = 1;
@@ -118,6 +127,37 @@ message ChatMessage {
   string role = 1;
   string content = 2;
   string name = 3;
+  repeated ChatContentPart parts = 4;
+}
+
+enum ChatContentPartType {
+  CHAT_CONTENT_PART_TYPE_UNSPECIFIED = 0;
+  CHAT_CONTENT_PART_TYPE_TEXT = 1;
+  CHAT_CONTENT_PART_TYPE_IMAGE_URL = 2;
+  CHAT_CONTENT_PART_TYPE_VIDEO_URL = 3;
+  CHAT_CONTENT_PART_TYPE_AUDIO_URL = 4;
+  CHAT_CONTENT_PART_TYPE_ARTIFACT_REF = 5;
+}
+
+message ChatContentImageURL {
+  string url = 1;
+  string detail = 2;
+}
+
+message ChatContentArtifactRef {
+  string artifact_id = 1;
+  string local_artifact_id = 2;
+  string mime_type = 3;
+  string display_name = 4;
+}
+
+message ChatContentPart {
+  ChatContentPartType type = 1;
+  string text = 2;
+  ChatContentImageURL image_url = 3;
+  string video_url = 4;
+  string audio_url = 5;
+  ChatContentArtifactRef artifact_ref = 6;
 }
 
 message ToolSpec {
@@ -488,6 +528,103 @@ message ArtifactChunk {
   string trace_id = 9;
 }
 
+message OpenRealtimeSessionRequest {
+  ScenarioRequestHead head = 1;
+  string system_prompt = 2;
+  repeated ScenarioExtension extensions = 3;
+  string output_audio_format = 4;
+  int32 output_sample_rate_hz = 5;
+}
+
+message OpenRealtimeSessionResponse {
+  string session_id = 1;
+  RoutePolicy route_decision = 2;
+  string model_resolved = 3;
+  string trace_id = 4;
+}
+
+message RealtimeAudioInput {
+  oneof source {
+    bytes audio_bytes = 1;
+    string audio_uri = 2;
+    ChatContentArtifactRef artifact_ref = 3;
+  }
+  string mime_type = 4;
+  int32 sample_rate_hz = 5;
+  bool end_of_turn = 6;
+}
+
+message RealtimeInputItem {
+  oneof item {
+    ChatMessage message = 1;
+    RealtimeAudioInput audio = 2;
+  }
+}
+
+message AppendRealtimeInputRequest {
+  string session_id = 1;
+  repeated RealtimeInputItem items = 2;
+}
+
+message AppendRealtimeInputResponse {
+  Ack ack = 1;
+  string trace_id = 2;
+}
+
+message ReadRealtimeEventsRequest {
+  string session_id = 1;
+  uint64 after_sequence = 2;
+}
+
+message RealtimeSessionOpened {
+  string session_id = 1;
+  string model_resolved = 2;
+  RoutePolicy route_decision = 3;
+}
+
+message RealtimeTextDelta {
+  string text = 1;
+}
+
+message RealtimeAudioChunk {
+  bytes chunk = 1;
+  string mime_type = 2;
+  int32 sample_rate_hz = 3;
+  bool eof = 4;
+}
+
+message RealtimeCompleted {
+  FinishReason finish_reason = 1;
+  UsageStats usage = 2;
+}
+
+message RealtimeFailed {
+  ReasonCode reason_code = 1;
+  string action_hint = 2;
+}
+
+message RealtimeEvent {
+  RealtimeEventType event_type = 1;
+  uint64 sequence = 2;
+  string trace_id = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  oneof payload {
+    RealtimeSessionOpened opened = 10;
+    RealtimeTextDelta text_delta = 11;
+    RealtimeAudioChunk audio_chunk = 12;
+    RealtimeCompleted completed = 13;
+    RealtimeFailed failed = 14;
+  }
+}
+
+message CloseRealtimeSessionRequest {
+  string session_id = 1;
+}
+
+message CloseRealtimeSessionResponse {
+  Ack ack = 1;
+}
+
 // Removed messages: ListTokenProviderModelsRequest (fields 1-5),
 // TokenProviderModelDescriptor (fields 1-3), ListTokenProviderModelsResponse (fields 1-4),
 // CheckTokenProviderHealthRequest (fields 1-6), TokenProviderHealthSnapshot (fields 1-6),
@@ -506,4 +643,11 @@ service RuntimeAiService {
   rpc ListVoiceAssets(ListVoiceAssetsRequest) returns (ListVoiceAssetsResponse);
   rpc DeleteVoiceAsset(DeleteVoiceAssetRequest) returns (DeleteVoiceAssetResponse);
   rpc ListPresetVoices(ListPresetVoicesRequest) returns (ListPresetVoicesResponse);
+}
+
+service RuntimeAiRealtimeService {
+  rpc OpenRealtimeSession(OpenRealtimeSessionRequest) returns (OpenRealtimeSessionResponse);
+  rpc AppendRealtimeInput(AppendRealtimeInputRequest) returns (AppendRealtimeInputResponse);
+  rpc ReadRealtimeEvents(ReadRealtimeEventsRequest) returns (stream RealtimeEvent);
+  rpc CloseRealtimeSession(CloseRealtimeSessionRequest) returns (CloseRealtimeSessionResponse);
 }

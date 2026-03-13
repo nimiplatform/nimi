@@ -542,3 +542,221 @@ var RuntimeAiService_ServiceDesc = grpc.ServiceDesc{
 	},
 	Metadata: "runtime/v1/ai.proto",
 }
+
+const (
+	RuntimeAiRealtimeService_OpenRealtimeSession_FullMethodName  = "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession"
+	RuntimeAiRealtimeService_AppendRealtimeInput_FullMethodName  = "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput"
+	RuntimeAiRealtimeService_ReadRealtimeEvents_FullMethodName   = "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents"
+	RuntimeAiRealtimeService_CloseRealtimeSession_FullMethodName = "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession"
+)
+
+// RuntimeAiRealtimeServiceClient is the client API for RuntimeAiRealtimeService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type RuntimeAiRealtimeServiceClient interface {
+	OpenRealtimeSession(ctx context.Context, in *OpenRealtimeSessionRequest, opts ...grpc.CallOption) (*OpenRealtimeSessionResponse, error)
+	AppendRealtimeInput(ctx context.Context, in *AppendRealtimeInputRequest, opts ...grpc.CallOption) (*AppendRealtimeInputResponse, error)
+	ReadRealtimeEvents(ctx context.Context, in *ReadRealtimeEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RealtimeEvent], error)
+	CloseRealtimeSession(ctx context.Context, in *CloseRealtimeSessionRequest, opts ...grpc.CallOption) (*CloseRealtimeSessionResponse, error)
+}
+
+type runtimeAiRealtimeServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewRuntimeAiRealtimeServiceClient(cc grpc.ClientConnInterface) RuntimeAiRealtimeServiceClient {
+	return &runtimeAiRealtimeServiceClient{cc}
+}
+
+func (c *runtimeAiRealtimeServiceClient) OpenRealtimeSession(ctx context.Context, in *OpenRealtimeSessionRequest, opts ...grpc.CallOption) (*OpenRealtimeSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OpenRealtimeSessionResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiRealtimeService_OpenRealtimeSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAiRealtimeServiceClient) AppendRealtimeInput(ctx context.Context, in *AppendRealtimeInputRequest, opts ...grpc.CallOption) (*AppendRealtimeInputResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AppendRealtimeInputResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiRealtimeService_AppendRealtimeInput_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAiRealtimeServiceClient) ReadRealtimeEvents(ctx context.Context, in *ReadRealtimeEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RealtimeEvent], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAiRealtimeService_ServiceDesc.Streams[0], RuntimeAiRealtimeService_ReadRealtimeEvents_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ReadRealtimeEventsRequest, RealtimeEvent]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAiRealtimeService_ReadRealtimeEventsClient = grpc.ServerStreamingClient[RealtimeEvent]
+
+func (c *runtimeAiRealtimeServiceClient) CloseRealtimeSession(ctx context.Context, in *CloseRealtimeSessionRequest, opts ...grpc.CallOption) (*CloseRealtimeSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CloseRealtimeSessionResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiRealtimeService_CloseRealtimeSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// RuntimeAiRealtimeServiceServer is the server API for RuntimeAiRealtimeService service.
+// All implementations should embed UnimplementedRuntimeAiRealtimeServiceServer
+// for forward compatibility.
+type RuntimeAiRealtimeServiceServer interface {
+	OpenRealtimeSession(context.Context, *OpenRealtimeSessionRequest) (*OpenRealtimeSessionResponse, error)
+	AppendRealtimeInput(context.Context, *AppendRealtimeInputRequest) (*AppendRealtimeInputResponse, error)
+	ReadRealtimeEvents(*ReadRealtimeEventsRequest, grpc.ServerStreamingServer[RealtimeEvent]) error
+	CloseRealtimeSession(context.Context, *CloseRealtimeSessionRequest) (*CloseRealtimeSessionResponse, error)
+}
+
+// UnimplementedRuntimeAiRealtimeServiceServer should be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedRuntimeAiRealtimeServiceServer struct{}
+
+func (UnimplementedRuntimeAiRealtimeServiceServer) OpenRealtimeSession(context.Context, *OpenRealtimeSessionRequest) (*OpenRealtimeSessionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OpenRealtimeSession not implemented")
+}
+func (UnimplementedRuntimeAiRealtimeServiceServer) AppendRealtimeInput(context.Context, *AppendRealtimeInputRequest) (*AppendRealtimeInputResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AppendRealtimeInput not implemented")
+}
+func (UnimplementedRuntimeAiRealtimeServiceServer) ReadRealtimeEvents(*ReadRealtimeEventsRequest, grpc.ServerStreamingServer[RealtimeEvent]) error {
+	return status.Error(codes.Unimplemented, "method ReadRealtimeEvents not implemented")
+}
+func (UnimplementedRuntimeAiRealtimeServiceServer) CloseRealtimeSession(context.Context, *CloseRealtimeSessionRequest) (*CloseRealtimeSessionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CloseRealtimeSession not implemented")
+}
+func (UnimplementedRuntimeAiRealtimeServiceServer) testEmbeddedByValue() {}
+
+// UnsafeRuntimeAiRealtimeServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to RuntimeAiRealtimeServiceServer will
+// result in compilation errors.
+type UnsafeRuntimeAiRealtimeServiceServer interface {
+	mustEmbedUnimplementedRuntimeAiRealtimeServiceServer()
+}
+
+func RegisterRuntimeAiRealtimeServiceServer(s grpc.ServiceRegistrar, srv RuntimeAiRealtimeServiceServer) {
+	// If the following call panics, it indicates UnimplementedRuntimeAiRealtimeServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&RuntimeAiRealtimeService_ServiceDesc, srv)
+}
+
+func _RuntimeAiRealtimeService_OpenRealtimeSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OpenRealtimeSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiRealtimeServiceServer).OpenRealtimeSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiRealtimeService_OpenRealtimeSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiRealtimeServiceServer).OpenRealtimeSession(ctx, req.(*OpenRealtimeSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAiRealtimeService_AppendRealtimeInput_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AppendRealtimeInputRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiRealtimeServiceServer).AppendRealtimeInput(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiRealtimeService_AppendRealtimeInput_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiRealtimeServiceServer).AppendRealtimeInput(ctx, req.(*AppendRealtimeInputRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAiRealtimeService_ReadRealtimeEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ReadRealtimeEventsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RuntimeAiRealtimeServiceServer).ReadRealtimeEvents(m, &grpc.GenericServerStream[ReadRealtimeEventsRequest, RealtimeEvent]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAiRealtimeService_ReadRealtimeEventsServer = grpc.ServerStreamingServer[RealtimeEvent]
+
+func _RuntimeAiRealtimeService_CloseRealtimeSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CloseRealtimeSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiRealtimeServiceServer).CloseRealtimeSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiRealtimeService_CloseRealtimeSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiRealtimeServiceServer).CloseRealtimeSession(ctx, req.(*CloseRealtimeSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// RuntimeAiRealtimeService_ServiceDesc is the grpc.ServiceDesc for RuntimeAiRealtimeService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var RuntimeAiRealtimeService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "nimi.runtime.v1.RuntimeAiRealtimeService",
+	HandlerType: (*RuntimeAiRealtimeServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "OpenRealtimeSession",
+			Handler:    _RuntimeAiRealtimeService_OpenRealtimeSession_Handler,
+		},
+		{
+			MethodName: "AppendRealtimeInput",
+			Handler:    _RuntimeAiRealtimeService_AppendRealtimeInput_Handler,
+		},
+		{
+			MethodName: "CloseRealtimeSession",
+			Handler:    _RuntimeAiRealtimeService_CloseRealtimeSession_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ReadRealtimeEvents",
+			Handler:       _RuntimeAiRealtimeService_ReadRealtimeEvents_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "runtime/v1/ai.proto",
+}

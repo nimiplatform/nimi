@@ -30,7 +30,7 @@ models:
   - model_id: grok-4
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [text.generate]
+    capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown
@@ -43,7 +43,7 @@ models:
   - model_id: grok-3
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [text.generate]
+    capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown
@@ -56,7 +56,7 @@ models:
   - model_id: grok-3-mini
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [text.generate]
+    capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown
@@ -69,7 +69,7 @@ models:
   - model_id: grok-2-vision-1212
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [text.generate]
+    capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown

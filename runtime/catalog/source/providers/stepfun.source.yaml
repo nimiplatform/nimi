@@ -130,7 +130,7 @@ models:
   - model_id: step-3.5-flash
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [text.generate]
+    capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown
@@ -143,7 +143,7 @@ models:
   - model_id: step-3
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [text.generate]
+    capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown
@@ -156,7 +156,7 @@ models:
   - model_id: step-r1-v-mini
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [text.generate]
+    capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown
@@ -169,7 +169,7 @@ models:
   - model_id: step-2-mini
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [text.generate]
+    capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown

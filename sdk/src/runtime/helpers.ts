@@ -212,7 +212,7 @@ export function toRuntimeMessages(input: string | TextMessage[], system?: string
 
   const systemParts: string[] = [];
   const messages: ChatMessage[] = [];
-  let hasNonSystemText = false;
+  let hasNonSystemContent = false;
 
   if (Array.isArray(input)) {
     for (const message of input) {
@@ -232,9 +232,7 @@ export function toRuntimeMessages(input: string | TextMessage[], system?: string
         if (protoParts.length === 0 && !textContent) {
           continue;
         }
-        if (textContent) {
-          hasNonSystemText = true;
-        }
+        hasNonSystemContent = true;
         messages.push({
           role: message.role,
           content: textContent,
@@ -253,7 +251,7 @@ export function toRuntimeMessages(input: string | TextMessage[], system?: string
         systemParts.push(content);
         continue;
       }
-      hasNonSystemText = true;
+      hasNonSystemContent = true;
       messages.push({
         role: message.role,
         content,
@@ -268,11 +266,11 @@ export function toRuntimeMessages(input: string | TextMessage[], system?: string
     systemParts.push(explicitSystem);
   }
 
-  if (messages.length === 0 || !hasNonSystemText) {
+  if (messages.length === 0 || !hasNonSystemContent) {
     throw createNimiError({
-      message: 'text input must include at least one non-system text message',
+      message: 'text input must include at least one non-system message with text or media content',
       reasonCode: ReasonCode.AI_INPUT_INVALID,
-      actionHint: 'add_user_or_assistant_text_message',
+      actionHint: 'add_user_or_assistant_content_message',
       source: 'sdk',
     });
   }
@@ -283,16 +281,59 @@ export function toRuntimeMessages(input: string | TextMessage[], system?: string
   };
 }
 
+function createUnsupportedTextChatPartError() {
+  return createNimiError({
+    message: 'text chat multimodal requires text, image_url, video_url, audio_url, or artifact_ref content parts',
+    reasonCode: ReasonCode.AI_MEDIA_OPTION_UNSUPPORTED,
+    actionHint: 'use_supported_text_chat_media_parts',
+    source: 'sdk',
+  });
+}
+
 function createTextChatContentPart(text: string): {
   type: ChatContentPartType;
   text: string;
   imageUrl?: { url: string; detail: string };
   videoUrl: string;
+  audioUrl: string;
+  artifactRef?: {
+    artifactId: string;
+    localArtifactId: string;
+    mimeType: string;
+    displayName: string;
+  };
 } {
   return {
     type: ChatContentPartType.TEXT,
     text,
     videoUrl: '',
+    audioUrl: '',
+  };
+}
+
+function createArtifactRefChatContentPart(part: Extract<TextMessageContentPart, { type: 'artifact_ref' }>): ChatContentPart {
+  const artifactId = normalizeText(part.artifactId);
+  const localArtifactId = normalizeText(part.localArtifactId);
+  if (!artifactId && !localArtifactId) {
+    throw createNimiError({
+      message: 'artifact_ref requires artifactId or localArtifactId',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'set_artifact_ref_id',
+      source: 'sdk',
+    });
+  }
+  return {
+    type: ChatContentPartType.ARTIFACT_REF,
+    text: '',
+    imageUrl: undefined,
+    videoUrl: '',
+    audioUrl: '',
+    artifactRef: {
+      artifactId: artifactId || '',
+      localArtifactId: localArtifactId || '',
+      mimeType: normalizeText(part.mimeType),
+      displayName: normalizeText(part.displayName),
+    },
   };
 }
 
@@ -317,6 +358,7 @@ function contentPartsToProto(
             text: '',
             imageUrl: { url, detail: part.detail || 'auto' },
             videoUrl: '',
+            audioUrl: '',
           });
         }
         break;
@@ -327,11 +369,32 @@ function contentPartsToProto(
           result.push({
             type: ChatContentPartType.VIDEO_URL,
             text: '',
+            imageUrl: undefined,
             videoUrl: url,
+            audioUrl: '',
           });
         }
         break;
       }
+      case 'audio_url': {
+        const url = normalizeText(part.audioUrl);
+        if (url) {
+          result.push({
+            type: ChatContentPartType.AUDIO_URL,
+            text: '',
+            imageUrl: undefined,
+            videoUrl: '',
+            audioUrl: url,
+          });
+        }
+        break;
+      }
+      case 'artifact_ref': {
+        result.push(createArtifactRefChatContentPart(part));
+        break;
+      }
+      default:
+        throw createUnsupportedTextChatPartError();
     }
   }
   return result;

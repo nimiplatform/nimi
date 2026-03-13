@@ -2,6 +2,15 @@
 // @generated from protobuf file "runtime/v1/ai.proto" (package "nimi.runtime.v1", syntax proto3)
 // tslint:disable
 // @ts-nocheck
+import { RuntimeAiRealtimeService } from "./ai";
+import type { CloseRealtimeSessionResponse } from "./ai";
+import type { CloseRealtimeSessionRequest } from "./ai";
+import type { RealtimeEvent } from "./ai";
+import type { ReadRealtimeEventsRequest } from "./ai";
+import type { AppendRealtimeInputResponse } from "./ai";
+import type { AppendRealtimeInputRequest } from "./ai";
+import type { OpenRealtimeSessionResponse } from "./ai";
+import type { OpenRealtimeSessionRequest } from "./ai";
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { RuntimeAiService } from "./ai";
@@ -188,5 +197,64 @@ export class RuntimeAiServiceClient implements IRuntimeAiServiceClient, ServiceI
     listPresetVoices(input: ListPresetVoicesRequest, options?: RpcOptions): UnaryCall<ListPresetVoicesRequest, ListPresetVoicesResponse> {
         const method = this.methods[11], opt = this._transport.mergeOptions(options);
         return stackIntercept<ListPresetVoicesRequest, ListPresetVoicesResponse>("unary", this._transport, method, opt, input);
+    }
+}
+/**
+ * @generated from protobuf service nimi.runtime.v1.RuntimeAiRealtimeService
+ */
+export interface IRuntimeAiRealtimeServiceClient {
+    /**
+     * @generated from protobuf rpc: OpenRealtimeSession
+     */
+    openRealtimeSession(input: OpenRealtimeSessionRequest, options?: RpcOptions): UnaryCall<OpenRealtimeSessionRequest, OpenRealtimeSessionResponse>;
+    /**
+     * @generated from protobuf rpc: AppendRealtimeInput
+     */
+    appendRealtimeInput(input: AppendRealtimeInputRequest, options?: RpcOptions): UnaryCall<AppendRealtimeInputRequest, AppendRealtimeInputResponse>;
+    /**
+     * @generated from protobuf rpc: ReadRealtimeEvents
+     */
+    readRealtimeEvents(input: ReadRealtimeEventsRequest, options?: RpcOptions): ServerStreamingCall<ReadRealtimeEventsRequest, RealtimeEvent>;
+    /**
+     * @generated from protobuf rpc: CloseRealtimeSession
+     */
+    closeRealtimeSession(input: CloseRealtimeSessionRequest, options?: RpcOptions): UnaryCall<CloseRealtimeSessionRequest, CloseRealtimeSessionResponse>;
+}
+/**
+ * @generated from protobuf service nimi.runtime.v1.RuntimeAiRealtimeService
+ */
+export class RuntimeAiRealtimeServiceClient implements IRuntimeAiRealtimeServiceClient, ServiceInfo {
+    typeName = RuntimeAiRealtimeService.typeName;
+    methods = RuntimeAiRealtimeService.methods;
+    options = RuntimeAiRealtimeService.options;
+    constructor(private readonly _transport: RpcTransport) {
+    }
+    /**
+     * @generated from protobuf rpc: OpenRealtimeSession
+     */
+    openRealtimeSession(input: OpenRealtimeSessionRequest, options?: RpcOptions): UnaryCall<OpenRealtimeSessionRequest, OpenRealtimeSessionResponse> {
+        const method = this.methods[0], opt = this._transport.mergeOptions(options);
+        return stackIntercept<OpenRealtimeSessionRequest, OpenRealtimeSessionResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: AppendRealtimeInput
+     */
+    appendRealtimeInput(input: AppendRealtimeInputRequest, options?: RpcOptions): UnaryCall<AppendRealtimeInputRequest, AppendRealtimeInputResponse> {
+        const method = this.methods[1], opt = this._transport.mergeOptions(options);
+        return stackIntercept<AppendRealtimeInputRequest, AppendRealtimeInputResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: ReadRealtimeEvents
+     */
+    readRealtimeEvents(input: ReadRealtimeEventsRequest, options?: RpcOptions): ServerStreamingCall<ReadRealtimeEventsRequest, RealtimeEvent> {
+        const method = this.methods[2], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ReadRealtimeEventsRequest, RealtimeEvent>("serverStreaming", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: CloseRealtimeSession
+     */
+    closeRealtimeSession(input: CloseRealtimeSessionRequest, options?: RpcOptions): UnaryCall<CloseRealtimeSessionRequest, CloseRealtimeSessionResponse> {
+        const method = this.methods[3], opt = this._transport.mergeOptions(options);
+        return stackIntercept<CloseRealtimeSessionRequest, CloseRealtimeSessionResponse>("unary", this._transport, method, opt, input);
     }
 }

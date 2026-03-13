@@ -12,6 +12,9 @@ version: 1
 # and live-provider checks.
 canonical_tokens:
   - text.generate
+  - text.generate.vision
+  - text.generate.audio
+  - text.generate.video
   - text.embed
   - image.generate
   - video.generate
@@ -23,6 +26,9 @@ canonical_tokens:
 # Local runtime tokens (K-LOCAL-026 manifest capabilities field)
 local_manifest_tokens:
   - chat
+  - vision
+  - audio_chat
+  - video_chat
   - image
   - video
   - tts
@@ -45,6 +51,21 @@ local_to_canonical:
   - local_token: chat
     canonical_token: text.generate
     local_category: LLM
+    source_rule: K-LOCAL-002
+
+  - local_token: vision
+    canonical_token: text.generate.vision
+    local_category: VISION
+    source_rule: K-LOCAL-002
+
+  - local_token: audio_chat
+    canonical_token: text.generate.audio
+    local_category: VISION
+    source_rule: K-LOCAL-002
+
+  - local_token: video_chat
+    canonical_token: text.generate.video
+    local_category: VISION
     source_rule: K-LOCAL-002
 
   - local_token: embedding
@@ -100,6 +121,8 @@ huggingface_inference:
     local_token: embedding
   - pipeline_tag: sentence-similarity
     local_token: embedding
+  - pipeline_tag: image-text-to-text
+    local_token: vision
   - pipeline_tag: unknown
     local_token: chat
     note: Fallback default for unrecognized pipeline tags

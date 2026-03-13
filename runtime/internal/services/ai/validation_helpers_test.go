@@ -83,6 +83,86 @@ func TestTextHelpersAndTokenEstimation(t *testing.T) {
 	}
 }
 
+func TestComposeInputTextWithParts(t *testing.T) {
+	t.Run("parts take priority over content", func(t *testing.T) {
+		input := []*runtimev1.ChatMessage{
+			{
+				Role:    "user",
+				Content: "should be ignored",
+				Parts: []*runtimev1.ChatContentPart{
+					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "from parts"},
+				},
+			},
+		}
+		got := composeInputText("sys", input)
+		if got != "sys\nfrom parts" {
+			t.Fatalf("unexpected result: %q", got)
+		}
+	})
+
+	t.Run("image url parts are skipped text extracted", func(t *testing.T) {
+		input := []*runtimev1.ChatMessage{
+			{
+				Role: "user",
+				Parts: []*runtimev1.ChatContentPart{
+					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "describe this"},
+					{
+						Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
+						ImageUrl: &runtimev1.ChatContentImageURL{Url: "https://example.com/img.png"},
+					},
+					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "in detail"},
+				},
+			},
+		}
+		got := composeInputText("", input)
+		if got != "describe this\nin detail" {
+			t.Fatalf("unexpected result: %q", got)
+		}
+	})
+
+	t.Run("messages without parts use content fallback", func(t *testing.T) {
+		input := []*runtimev1.ChatMessage{
+			{Role: "user", Content: "fallback content"},
+		}
+		got := composeInputText("", input)
+		if got != "fallback content" {
+			t.Fatalf("unexpected result: %q", got)
+		}
+	})
+
+	t.Run("mixed messages parts and content", func(t *testing.T) {
+		input := []*runtimev1.ChatMessage{
+			{
+				Role: "user",
+				Parts: []*runtimev1.ChatContentPart{
+					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "part text"},
+				},
+			},
+			{Role: "assistant", Content: "reply"},
+		}
+		got := composeInputText("prompt", input)
+		if got != "prompt\npart text\nreply" {
+			t.Fatalf("unexpected result: %q", got)
+		}
+	})
+
+	t.Run("whitespace-only parts are skipped", func(t *testing.T) {
+		input := []*runtimev1.ChatMessage{
+			{
+				Role: "user",
+				Parts: []*runtimev1.ChatContentPart{
+					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "  "},
+					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "actual text"},
+				},
+			},
+		}
+		got := composeInputText("", input)
+		if got != "actual text" {
+			t.Fatalf("unexpected result: %q", got)
+		}
+	})
+}
+
 func TestSimpleCountersAndPredicates(t *testing.T) {
 	if got := wordCount(" a  bb c "); got != 3 {
 		t.Fatalf("word count mismatch: %d", got)

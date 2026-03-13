@@ -37,6 +37,7 @@ const (
 // Service implements RuntimeAiService with deterministic in-memory behavior.
 type Service struct {
 	runtimev1.UnimplementedRuntimeAiServiceServer
+	runtimev1.UnimplementedRuntimeAiRealtimeServiceServer
 	logger                   *slog.Logger
 	config                   Config
 	selector                 *routeSelector
