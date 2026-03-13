@@ -912,3 +912,69 @@ items:
     与 F-MODELUI-001 互补：F-MODELUI-001 负责前端展示，本条目负责后端
     目录数据结构和路由逻辑。与现有 provider-health 契约对齐——
     健康检查信息作为路由决策的输入之一。
+- item_id: F-AGUI-001
+  title: Agent 声明式 UI Surface 协议
+  priority: medium
+  category: integration
+  target_layers:
+  - runtime
+  - sdk
+  - desktop
+  - web
+  status: proposed
+  source_ids:
+  - RESEARCH-AUI-001
+  complexity: large
+  architecture_notes: 为 Nimi 定义受控的 Agent UI envelope，参考 A2UI
+    的声明式 JSON、surface 增量更新与组件 catalog 协议，但不直接把外部 draft
+    规范当作仓内权威契约。实现路径：(1) 在 SDK/Desktop/Web 层定义 Nimi 自有
+    Agent UI 消息模型，允许 runtime 或外部 agent 通过现有流式通道传递 UI
+    消息；(2) renderer 仅渲染白名单 catalog 中的组件，不接受可执行代码；
+    (3) UI action 一律映射到 `@nimiplatform/sdk/mod` facade 与 hook runtime，
+    禁止绕过 mod 边界直连 raw runtime SDK；(4) desktop/web 通过现有
+    `ui-extension.*` slot host 承载 Agent UI surface。协议设计应优先兼容
+    A2UI v0.8/v0.9 的稳定子集，而不是绑定外部 draft 的全部语义。
+- item_id: F-AGUI-002
+  title: Agent UI Path Binding 与 Generic Binder
+  priority: medium
+  category: platform
+  target_layers:
+  - sdk
+  - desktop
+  - web
+  status: proposed
+  source_ids:
+  - RESEARCH-AUI-001
+  complexity: medium
+  depends_on:
+  - F-AGUI-001
+  architecture_notes: 借鉴 A2UI v0.9 Generic Binder 与 path-based data
+    binding，为 Nimi 的 Agent UI 建立 schema 驱动的绑定层。实现路径：
+    (1) 用 Zod 或等价 schema 描述组件 props，并从 schema 反射出 DYNAMIC、
+    ACTION、STRUCTURAL、CHECKABLE 等行为；(2) 将 path 绑定到 mod
+    data capability、受控本地 UI state、或 UI extension context，而不是
+    任意全局对象；(3) 自动生成 setter、校验状态与 action closure，减少
+    每个组件手写 hooks；(4) 统一处理 renderer 级订阅与释放，避免在 Agent
+    UI 场景中引入 ad-hoc 状态同步逻辑。
+- item_id: F-AGUI-003
+  title: Agent UI 安全组件目录与富文本硬化
+  priority: medium
+  category: security
+  target_layers:
+  - sdk
+  - desktop
+  - web
+  status: proposed
+  source_ids:
+  - RESEARCH-AUI-001
+  complexity: medium
+  depends_on:
+  - F-AGUI-001
+  architecture_notes: 为 Agent 生成 UI 建立最小权限组件目录与富文本安全基线。
+    实现路径：(1) catalog 按 capability/slot 分层，默认 deny-by-default；
+    (2) 自定义组件注册需要显式 namespace，避免全局 singleton 注册冲突；
+    (3) Markdown/HTML 渲染建立统一 sanitize 管线，禁止 renderer
+    直接以未净化内容进入 `dangerouslySetInnerHTML`；(4) action payload、
+    data binding path 与 inline schema 都在 renderer 入口完成校验与错误回传。
+    该条目用于保证 Agent UI 作为可选能力引入后，不放大 desktop/web 的
+    当前信任边界。

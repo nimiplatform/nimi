@@ -5,3 +5,4 @@
 | Source ID | Title | Date | Path | Scope |
 |---|---|---|---|---|
 | `RESEARCH-OFANG-001` | OpenFang 竞品深度审计报告 | 2026-03-01 | `dev/research/openfang-competitive-audit-2026-03-01.md` | OpenFang v0.2.3 (Rust Agent OS) 架构、代码质量、安全、功能完整性、可扩展性审计及与 Nimi 对比 |
+| `RESEARCH-AUI-001` | A2UI 深度审计与 Nimi 对比校准 | 2026-03-14 | `dev/research/a2ui-nimi-audit-2026-03-14.md` | Google A2UI vendored 源码、协议状态、renderer 实现、安全模型与 Nimi mod/runtime/UI 边界对比校准 |
