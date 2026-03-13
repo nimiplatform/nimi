@@ -7,7 +7,7 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCreatorPostsQuery, type PostSummary } from '@renderer/hooks/use-content-queries.js';
+import { useMediaAssetQuery, useMediaAssetsQuery } from '@renderer/hooks/use-content-queries.js';
 import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
 
 type AssetType = 'ALL' | 'IMAGE' | 'VIDEO' | 'AUDIO';
@@ -17,70 +17,45 @@ export default function ContentLibraryPage() {
   const { t } = useTranslation();
 
   const queryClient = useQueryClient();
-  const postsQuery = useCreatorPostsQuery({ limit: 50 });
-  const posts = postsQuery.data || [];
-  const { deletePostMutation } = useContentMutations();
+  const assetsQuery = useMediaAssetsQuery(true);
+  const assets = assetsQuery.data || [];
+  const { deleteMediaAssetMutation } = useContentMutations();
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<AssetType>('ALL');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
-  // Flatten posts into individual media assets
-  const allAssets = useMemo(() => {
-    const assets: Array<{
-      id: string;
-      type: 'IMAGE' | 'VIDEO' | 'AUDIO';
-      postId: string;
-      caption: string;
-      tags: string[];
-      createdAt: string;
-    }> = [];
-
-    posts.forEach((post) => {
-      post.media.forEach((m) => {
-        assets.push({
-          id: m.assetId,
-          type: m.type,
-          postId: post.id,
-          caption: post.caption,
-          tags: post.tags,
-          createdAt: post.createdAt,
-        });
-      });
-    });
-
-    return assets;
-  }, [posts]);
+  const selectedAssetId = selectedIds.size === 1 ? Array.from(selectedIds)[0] || '' : '';
+  const selectedAssetQuery = useMediaAssetQuery(selectedAssetId);
+  const selectedAssetDetail = selectedAssetQuery.data;
 
   const filtered = useMemo(() => {
-    let list = allAssets;
+    let list = assets;
     if (typeFilter !== 'ALL') {
-      list = list.filter((a) => a.type === typeFilter);
+      list = list.filter((a) => a.mediaType === typeFilter);
     }
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
         (a) =>
-          a.caption.toLowerCase().includes(q) ||
-          a.tags.some((tag) => tag.toLowerCase().includes(q)),
+          String(a.title || '').toLowerCase().includes(q) ||
+          String(a.label || '').toLowerCase().includes(q) ||
+          a.tags.some((tag) => tag.toLowerCase().includes(q)) ||
+          a.ownerId.toLowerCase().includes(q),
       );
     }
     return list;
-  }, [allAssets, typeFilter, search]);
+  }, [assets, typeFilter, search]);
 
   async function handleDeleteSelected() {
-    const postIds = new Set<string>();
-    for (const asset of allAssets) {
-      if (selectedIds.has(asset.id)) {
-        postIds.add(asset.postId);
-      }
-    }
-    for (const postId of postIds) {
-      await deletePostMutation.mutateAsync(postId);
+    for (const assetId of selectedIds) {
+      await deleteMediaAssetMutation.mutateAsync(assetId);
     }
     setSelectedIds(new Set());
-    await queryClient.invalidateQueries({ queryKey: ['forge', 'content', 'posts'] });
+    await queryClient.invalidateQueries({ queryKey: ['forge', 'content', 'media-assets'] });
+    if (selectedAssetId) {
+      await queryClient.invalidateQueries({ queryKey: ['forge', 'content', 'media-asset', selectedAssetId] });
+    }
   }
 
   function toggleSelect(id: string) {
@@ -119,10 +94,10 @@ export default function ContentLibraryPage() {
               </button>
               <button
                 onClick={() => void handleDeleteSelected()}
-                disabled={deletePostMutation.isPending}
+                disabled={deleteMediaAssetMutation.isPending}
                 className="rounded px-3 py-1.5 text-xs font-medium text-red-400/70 hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-50"
               >
-                {deletePostMutation.isPending ? t('contentLibrary.deleting', 'Deleting...') : t('contentLibrary.delete', 'Delete')}
+                {deleteMediaAssetMutation.isPending ? t('contentLibrary.deleting', 'Deleting...') : t('contentLibrary.delete', 'Delete')}
               </button>
             </div>
           )}
@@ -173,7 +148,7 @@ export default function ContentLibraryPage() {
         </div>
 
         {/* Content */}
-        {postsQuery.isLoading ? (
+        {assetsQuery.isLoading ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
           </div>
@@ -181,13 +156,14 @@ export default function ContentLibraryPage() {
           <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-12 text-center">
             <div className="text-4xl text-neutral-700 mb-2">📁</div>
             <p className="text-sm text-neutral-500">
-              {allAssets.length === 0
+              {assets.length === 0
                 ? t('contentLibrary.noAssets', 'No content yet. Create images, videos, or music to build your library.')
                 : t('contentLibrary.noResults', 'No assets match your filters.')}
             </p>
           </div>
         ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
+            <div className="grid grid-cols-4 gap-3">
             {filtered.map((asset) => (
               <div
                 key={asset.id}
@@ -198,25 +174,85 @@ export default function ContentLibraryPage() {
                     : 'border-neutral-800 hover:border-neutral-700'
                 }`}
               >
-                <div className="aspect-square bg-neutral-900 flex items-center justify-center">
-                  <span className="text-2xl text-neutral-700">
-                    {asset.type === 'IMAGE' ? '🖼️' : asset.type === 'VIDEO' ? '📹' : '🎵'}
-                  </span>
-                </div>
+                {asset.url && asset.mediaType === 'IMAGE' ? (
+                  <img
+                    src={asset.url}
+                    alt={asset.title || asset.label || asset.id}
+                    className="aspect-square w-full object-cover bg-neutral-950"
+                  />
+                ) : (
+                  <div className="aspect-square bg-neutral-900 flex items-center justify-center">
+                    <span className="text-2xl text-neutral-700">
+                      {asset.mediaType === 'IMAGE' ? '🖼️' : asset.mediaType === 'VIDEO' ? '📹' : '🎵'}
+                    </span>
+                  </div>
+                )}
                 <div className="absolute top-2 right-2">
                   <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                    asset.type === 'IMAGE' ? 'bg-purple-500/20 text-purple-400' :
-                    asset.type === 'VIDEO' ? 'bg-blue-500/20 text-blue-400' :
+                    asset.mediaType === 'IMAGE' ? 'bg-amber-500/20 text-amber-300' :
+                    asset.mediaType === 'VIDEO' ? 'bg-sky-500/20 text-sky-300' :
                     'bg-green-500/20 text-green-400'
                   }`}>
-                    {asset.type}
+                    {asset.mediaType}
                   </span>
                 </div>
                 <div className="p-2">
-                  <p className="text-xs text-neutral-400 truncate">{asset.caption || 'Untitled'}</p>
+                  <p className="text-xs text-white truncate">{asset.title || asset.label || 'Untitled'}</p>
+                  <p className="mt-1 text-[11px] text-neutral-500 truncate">
+                    {asset.ownerKind} · {asset.ownerId}
+                  </p>
                 </div>
               </div>
             ))}
+            </div>
+            <aside className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">
+              {selectedAssetId ? (
+                selectedAssetQuery.isLoading ? (
+                  <div className="text-sm text-neutral-500">{t('contentLibrary.loadingDetails', 'Loading asset details...')}</div>
+                ) : selectedAssetDetail ? (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm font-semibold text-white">
+                        {String(selectedAssetDetail.title || selectedAssetDetail.label || selectedAssetId)}
+                      </p>
+                      <p className="text-xs text-neutral-500">
+                        {String(selectedAssetDetail.mediaType || '')} · {String(selectedAssetDetail.status || '')}
+                      </p>
+                    </div>
+                    <div className="space-y-1 text-xs text-neutral-400">
+                      <p>{String(selectedAssetDetail.ownerKind || '')} · {String(selectedAssetDetail.ownerId || '')}</p>
+                      <p>{String(selectedAssetDetail.deliveryAccess || '')} · {String(selectedAssetDetail.provider || '')}</p>
+                      <p className="break-all">{String(selectedAssetDetail.storageRef || '')}</p>
+                      {Array.isArray(selectedAssetDetail.tags) && selectedAssetDetail.tags.length > 0 ? (
+                        <p>{selectedAssetDetail.tags.join(', ')}</p>
+                      ) : null}
+                    </div>
+                    {typeof selectedAssetDetail.url === 'string' && selectedAssetDetail.url ? (
+                      selectedAssetDetail.mediaType === 'IMAGE' ? (
+                        <img
+                          src={selectedAssetDetail.url}
+                          alt={String(selectedAssetDetail.title || selectedAssetDetail.label || selectedAssetId)}
+                          className="w-full rounded-md border border-neutral-800 object-cover"
+                        />
+                      ) : (
+                        <a
+                          href={selectedAssetDetail.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex text-xs text-sky-300 hover:text-sky-200"
+                        >
+                          {t('contentLibrary.openPreview', 'Open preview')}
+                        </a>
+                      )
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="text-sm text-neutral-500">{t('contentLibrary.noDetails', 'Asset details are unavailable.')}</div>
+                )
+              ) : (
+                <div className="text-sm text-neutral-500">{t('contentLibrary.selectAsset', 'Select one asset to inspect owner and delivery details.')}</div>
+              )}
+            </aside>
           </div>
         ) : (
           <div className="space-y-1">
@@ -231,13 +267,15 @@ export default function ContentLibraryPage() {
                 }`}
               >
                 <span className="text-lg">
-                  {asset.type === 'IMAGE' ? '🖼️' : asset.type === 'VIDEO' ? '📹' : '🎵'}
+                  {asset.mediaType === 'IMAGE' ? '🖼️' : asset.mediaType === 'VIDEO' ? '📹' : '🎵'}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-white truncate">{asset.caption || 'Untitled'}</p>
+                  <p className="text-sm text-white truncate">{asset.title || asset.label || 'Untitled'}</p>
                   <p className="text-xs text-neutral-500">
-                    {asset.type} · {new Date(asset.createdAt).toLocaleDateString()}
-                    {asset.tags.length > 0 && ` · ${asset.tags.join(', ')}`}
+                    {asset.mediaType} · {new Date(asset.createdAt).toLocaleDateString()}
+                    {` · ${asset.ownerKind}:${asset.ownerId}`}
+                    {` · ${asset.deliveryAccess}`}
+                    {asset.tags.length > 0 ? ` · ${asset.tags.join(', ')}` : ''}
                   </p>
                 </div>
               </div>

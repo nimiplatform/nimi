@@ -7,6 +7,8 @@ import {
   createImageDirectUpload,
   createVideoDirectUpload,
   createAudioDirectUpload,
+  updateMediaAsset,
+  deleteMediaAsset,
   createPost,
   updatePost,
   deletePost,
@@ -23,6 +25,16 @@ export function useContentMutations() {
 
   const audioUploadMutation = useMutation({
     mutationFn: async (payload?: Record<string, unknown>) => await createAudioDirectUpload(payload),
+  });
+
+  const updateMediaAssetMutation = useMutation({
+    mutationFn: async (input: { assetId: string; payload: Record<string, unknown> }) =>
+      await updateMediaAsset(input.assetId, input.payload),
+  });
+
+  const deleteMediaAssetMutation = useMutation({
+    mutationFn: async (assetId: string) =>
+      await deleteMediaAsset(assetId),
   });
 
   const createPostMutation = useMutation({
@@ -44,6 +56,8 @@ export function useContentMutations() {
     imageUploadMutation,
     videoUploadMutation,
     audioUploadMutation,
+    updateMediaAssetMutation,
+    deleteMediaAssetMutation,
     createPostMutation,
     updatePostMutation,
     deletePostMutation,

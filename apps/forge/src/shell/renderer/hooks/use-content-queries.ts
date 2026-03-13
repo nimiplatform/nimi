@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   getHomeFeed,
   getMediaAsset,
+  listMediaAssets,
 } from '@renderer/data/content-data-client.js';
 
 function toRecord(value: unknown): Record<string, unknown> {
@@ -29,6 +30,25 @@ export type PostSummary = {
   tags: string[];
   authorId: string;
   worldId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MediaAssetSummary = {
+  id: string;
+  mediaType: 'IMAGE' | 'VIDEO' | 'AUDIO';
+  provider: string;
+  status: string;
+  storageRef: string;
+  url: string | null;
+  ownerKind: string;
+  ownerId: string;
+  worldId: string | null;
+  agentId: string | null;
+  deliveryAccess: string;
+  label: string | null;
+  title: string | null;
+  tags: string[];
   createdAt: string;
   updatedAt: string;
 };
@@ -72,6 +92,40 @@ function toPostList(payload: unknown): PostSummary[] {
     .filter((item) => Boolean(item.id));
 }
 
+function toMediaAssetList(payload: unknown): MediaAssetSummary[] {
+  const record = toRecord(payload);
+  const items = Array.isArray(record.items) ? (record.items as unknown[]) : [];
+  return items
+    .map((item) => toRecord(item))
+    .map((item) => {
+      const rawType = String(item.mediaType || 'IMAGE');
+      const mediaType: MediaAssetSummary['mediaType'] = rawType === 'VIDEO'
+        ? 'VIDEO'
+        : rawType === 'AUDIO'
+          ? 'AUDIO'
+          : 'IMAGE';
+      return {
+        id: String(item.id || ''),
+        mediaType,
+        provider: String(item.provider || ''),
+        status: String(item.status || ''),
+        storageRef: String(item.storageRef || ''),
+        url: item.url ? String(item.url) : null,
+        ownerKind: String(item.ownerKind || ''),
+        ownerId: String(item.ownerId || ''),
+        worldId: item.worldId ? String(item.worldId) : null,
+        agentId: item.agentId ? String(item.agentId) : null,
+        deliveryAccess: String(item.deliveryAccess || ''),
+        label: item.label ? String(item.label) : null,
+        title: item.title ? String(item.title) : null,
+        tags: Array.isArray(item.tags) ? (item.tags as unknown[]).map((tag) => String(tag || '')).filter(Boolean) : [],
+        createdAt: String(item.createdAt || ''),
+        updatedAt: String(item.updatedAt || ''),
+      };
+    })
+    .filter((item) => Boolean(item.id));
+}
+
 // ── Hooks ────────────────────────────────────────────────────
 
 export function useCreatorPostsQuery(params?: {
@@ -84,6 +138,15 @@ export function useCreatorPostsQuery(params?: {
     enabled,
     retry: false,
     queryFn: async () => toPostList(await getHomeFeed(params)),
+  });
+}
+
+export function useMediaAssetsQuery(enabled = true) {
+  return useQuery({
+    queryKey: ['forge', 'content', 'media-assets'],
+    enabled,
+    retry: false,
+    queryFn: async () => toMediaAssetList(await listMediaAssets()),
   });
 }
 

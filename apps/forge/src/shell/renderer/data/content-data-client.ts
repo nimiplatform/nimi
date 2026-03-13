@@ -29,7 +29,9 @@ function toDraftMediaList(input: unknown): PublishDraftMedia[] | undefined {
   if (!Array.isArray(input)) return undefined;
   return input
     .map((item) => {
-      const media = item && typeof item === 'object' ? item as Record<string, unknown> : {};
+      const media = item && typeof item === 'object'
+        ? (item as { assetId?: unknown; id?: unknown; type?: unknown })
+        : {};
       return {
         assetId: String(media.assetId || media.id || '').trim(),
         type: (String(media.type || 'IMAGE') === 'VIDEO' ? 'VIDEO' : 'IMAGE') as PublishDraftMedia['type'],
@@ -61,12 +63,24 @@ export async function createAudioDirectUpload(payload?: Record<string, unknown>)
   return realm().services.MediaService.createAudioDirectUpload(payload || {});
 }
 
+export async function listMediaAssets() {
+  return realm().services.MediaService.listMediaAssets();
+}
+
 export async function getMediaAsset(assetId: string) {
   return realm().services.MediaService.getMediaAsset(assetId);
 }
 
+export async function updateMediaAsset(assetId: string, payload: Record<string, unknown>) {
+  return realm().services.MediaService.updateMediaAsset(assetId, payload);
+}
+
 export async function finalizeMediaAsset(assetId: string, payload?: Record<string, unknown>) {
   return realm().services.MediaService.finalizeMediaAsset(assetId, payload || {});
+}
+
+export async function deleteMediaAsset(assetId: string) {
+  return realm().services.MediaService.deleteMediaAsset(assetId);
 }
 
 // ── Posts ─────────────────────────────────────────────────────

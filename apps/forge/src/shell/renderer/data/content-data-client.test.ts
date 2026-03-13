@@ -19,8 +19,11 @@ const mockMediaService = {
   createImageDirectUpload: vi.fn(),
   createVideoDirectUpload: vi.fn(),
   createAudioDirectUpload: vi.fn(),
+  listMediaAssets: vi.fn(),
   getMediaAsset: vi.fn(),
+  updateMediaAsset: vi.fn(),
   finalizeMediaAsset: vi.fn(),
+  deleteMediaAsset: vi.fn(),
 };
 
 const mockPostService = {
@@ -82,6 +85,28 @@ describe('content-data-client', () => {
       const result = await cdc.getMediaAsset('asset-v1');
       expect(mockMediaService.getMediaAsset).toHaveBeenCalledWith('asset-v1');
       expect(result).toEqual({ id: 'asset-v1', url: 'https://stream.example.com/v1' });
+    });
+
+    it('listMediaAssets calls MediaService without post indirection', async () => {
+      mockMediaService.listMediaAssets.mockResolvedValue({
+        items: [{ id: 'asset-v1', mediaType: 'VIDEO' }],
+      });
+      const result = await cdc.listMediaAssets();
+      expect(mockMediaService.listMediaAssets).toHaveBeenCalledWith();
+      expect(result).toEqual({ items: [{ id: 'asset-v1', mediaType: 'VIDEO' }] });
+    });
+
+    it('updateMediaAsset forwards asset id and payload', async () => {
+      mockMediaService.updateMediaAsset.mockResolvedValue({ id: 'asset-v1', title: 'Updated' });
+      const result = await cdc.updateMediaAsset('asset-v1', { title: 'Updated' });
+      expect(mockMediaService.updateMediaAsset).toHaveBeenCalledWith('asset-v1', { title: 'Updated' });
+      expect(result).toEqual({ id: 'asset-v1', title: 'Updated' });
+    });
+
+    it('deleteMediaAsset deletes by asset id', async () => {
+      mockMediaService.deleteMediaAsset.mockResolvedValue(undefined);
+      await cdc.deleteMediaAsset('asset-v1');
+      expect(mockMediaService.deleteMediaAsset).toHaveBeenCalledWith('asset-v1');
     });
   });
 

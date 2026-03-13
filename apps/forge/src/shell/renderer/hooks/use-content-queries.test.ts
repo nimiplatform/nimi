@@ -5,6 +5,7 @@ import React, { type ReactNode } from 'react';
 
 const mockContentDataClient = vi.hoisted(() => ({
   getHomeFeed: vi.fn(),
+  listMediaAssets: vi.fn(),
   getMediaAsset: vi.fn(),
   createImageDirectUpload: vi.fn(),
   createVideoDirectUpload: vi.fn(),
@@ -27,7 +28,7 @@ const mockContentDataClient = vi.hoisted(() => ({
 
 vi.mock('@renderer/data/content-data-client.js', () => mockContentDataClient);
 
-import { useCreatorPostsQuery, useMediaAssetQuery } from './use-content-queries.js';
+import { useCreatorPostsQuery, useMediaAssetQuery, useMediaAssetsQuery } from './use-content-queries.js';
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -64,13 +65,15 @@ describe('useCreatorPostsQuery', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(result.current.data).toHaveLength(1);
-    expect(result.current.data![0]).toMatchObject({
+    const data = result.current.data ?? [];
+    expect(data).toHaveLength(1);
+    const [firstPost] = data;
+    expect(firstPost).toMatchObject({
       id: 'p1',
       caption: 'Hello world',
       tags: ['fantasy'],
     });
-    expect(result.current.data![0].media[0]).toMatchObject({ assetId: 'asset-img1', type: 'IMAGE' });
+    expect(firstPost?.media[0]).toMatchObject({ assetId: 'asset-img1', type: 'IMAGE' });
   });
 
   it('preserves AUDIO media items from the feed payload', async () => {
@@ -120,10 +123,12 @@ describe('useCreatorPostsQuery', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(result.current.data).toHaveLength(1);
+    const data = result.current.data ?? [];
+    expect(data).toHaveLength(1);
     // authorId falls back to userId
-    expect(result.current.data![0].authorId).toBe('user2');
-    expect(result.current.data![0].worldId).toBe('w1');
+    const [firstPost] = data;
+    expect(firstPost?.authorId).toBe('user2');
+    expect(firstPost?.worldId).toBe('w1');
   });
 
   it('toPostList normalizer handles { items: [...] } payload', async () => {
@@ -137,8 +142,9 @@ describe('useCreatorPostsQuery', () => {
     const { result } = renderHook(() => useCreatorPostsQuery(undefined, true), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toHaveLength(1);
-    expect(result.current.data![0].id).toBe('p3');
+    const data = result.current.data ?? [];
+    expect(data).toHaveLength(1);
+    expect(data[0]?.id).toBe('p3');
   });
 });
 
@@ -166,5 +172,53 @@ describe('useMediaAssetQuery', () => {
     await new Promise((r) => setTimeout(r, 50));
     expect(mockContentDataClient.getMediaAsset).not.toHaveBeenCalled();
     expect(result.current.fetchStatus).toBe('idle');
+  });
+});
+
+describe('useMediaAssetsQuery', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('normalizes media asset list payload from the asset endpoint', async () => {
+    mockContentDataClient.listMediaAssets.mockResolvedValue({
+      items: [
+        {
+          id: 'asset-1',
+          mediaType: 'VIDEO',
+          provider: 'CF_STREAM',
+          status: 'READY',
+          storageRef: 'video-cf-1',
+          url: 'https://stream.example.com/v1',
+          ownerKind: 'WORLD',
+          ownerId: 'world-1',
+          deliveryAccess: 'SIGNED',
+          title: 'Launch Trailer',
+          label: 'Trailer',
+          tags: ['launch'],
+          worldId: 'world-1',
+          agentId: null,
+          createdAt: '2026-03-13T00:00:00.000Z',
+          updatedAt: '2026-03-13T00:00:00.000Z',
+        },
+      ],
+    });
+
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useMediaAssetsQuery(true), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockContentDataClient.listMediaAssets).toHaveBeenCalledWith();
+    expect(result.current.data).toEqual([
+      expect.objectContaining({
+        id: 'asset-1',
+        mediaType: 'VIDEO',
+        ownerKind: 'WORLD',
+        ownerId: 'world-1',
+        deliveryAccess: 'SIGNED',
+        title: 'Launch Trailer',
+      }),
+    ]);
   });
 });
