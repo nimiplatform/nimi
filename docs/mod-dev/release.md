@@ -2,7 +2,7 @@
 
 This guide is the operational playbook for shipping Nimi desktop mods and handling third-party listing requests.
 
-Chinese mirror: [`mod-release_cn.md`](./mod-release_cn.md)
+Chinese mirror: [`release_cn.md`](./release_cn.md)
 
 For the maintainer-facing step-by-step workflow for official mods that live in `nimi-mods/`, see `nimi-mods/RELEASE.md` in the repo root.
 

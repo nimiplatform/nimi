@@ -11,7 +11,7 @@ Use this path if you are building a third-party app that consumes Nimi runtime, 
 
 ## Recommended flow
 
-1. Start with [Getting Started](../getting-started/index.md).
+1. Start with [SDK Setup](./sdk-setup.md).
 2. Scaffold a repo with `pnpm dlx @nimiplatform/dev-tools nimi-app create --dir my-nimi-app --template basic`.
 3. Use [`examples/app-template`](../../examples/app-template) as the tracked minimal app shape.
 4. Use `examples/sdk/01-hello.ts` as the smallest baseline.

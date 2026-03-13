@@ -47,4 +47,4 @@ For a runnable mod repo template, see [`examples/mod-template`](../../examples/m
 
 For a mod SDK sample using `setModSdkHost()`, `createHookClient()`, and `createModRuntimeClient()`, see [`examples/mods/mod-basic.ts`](../../examples/mods/mod-basic.ts).
 
-For official release flow, catalog publishing, and third-party listing review, see [Mod Release And Submission Guide](./mod-release.md).
+For official release flow, catalog publishing, and third-party listing review, see [Mod Release And Submission Guide](./release.md).
