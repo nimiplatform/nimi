@@ -1,0 +1,217 @@
+# Realm Drift — Feature Matrix
+# Authoritative source for feature phasing, priority, and dependencies.
+# Referenced by: kernel contracts, dev/plan/execution-plan.md (non-normative)
+
+features:
+  # ── Phase 1: App Shell ───────────────────────────────────
+  - feature: app-shell
+    phase: 1
+    priority: P0
+    contract: RD-SHELL-*
+    backend-dependency: none
+    external-dependency: none
+    migration-source: forge app (trimmed)
+    description: Tauri config, Rust shell, Vite config, package.json
+
+  - feature: bootstrap
+    phase: 1
+    priority: P0
+    contract: RD-SHELL-003
+    backend-dependency: none
+    external-dependency: none
+    migration-source: forge forge-bootstrap.ts (simplified)
+    description: 5-step bootstrap sequence
+
+  - feature: auth
+    phase: 1
+    priority: P0
+    contract: RD-SHELL-004
+    backend-dependency: none (reuse auth API)
+    external-dependency: none
+    migration-source: forge auth flow
+    description: JWT auth — no creator access gate
+
+  - feature: layout
+    phase: 1
+    priority: P0
+    contract: RD-SHELL-005
+    backend-dependency: none
+    external-dependency: none
+    migration-source: new (minimal — no sidebar)
+    description: Full-screen browser + split-pane viewer layout
+
+  - feature: routing
+    phase: 1
+    priority: P0
+    contract: RD-SHELL-005
+    backend-dependency: none
+    external-dependency: none
+    migration-source: new
+    description: React Router with 2 routes
+
+  - feature: world-viewer
+    phase: 2
+    priority: P0
+    contract: RD-EXPLORE-002, RD-EXPLORE-003
+    backend-dependency: none (existing Realm API)
+    external-dependency: none
+    migration-source: new
+    description: Split-pane viewer page — parallel world data fetch + 70/30 layout
+
+  # ── Phase 2: World Browser ──────────────────────────────
+  - feature: world-browser
+    phase: 2
+    priority: P0
+    contract: RD-EXPLORE-001
+    backend-dependency: none (existing Realm API)
+    external-dependency: none
+    migration-source: new
+    description: Grid view of nimi worlds with icon, name, genre, era, agent count
+
+  - feature: world-data-fetch
+    phase: 2
+    priority: P0
+    contract: RD-EXPLORE-002
+    backend-dependency: none (existing Realm API)
+    external-dependency: none
+    migration-source: new
+    description: Parallel fetch of world detail, worldview, scenes, lorebooks
+
+  # ── Phase 3: Marble 3D Integration ──────────────────────
+  - feature: marble-api-client
+    phase: 3
+    priority: P0
+    contract: RD-MARBLE-*
+    backend-dependency: none
+    external-dependency: World Labs Marble API
+    migration-source: new
+    description: REST client for Marble API — generate, poll, status
+
+  - feature: prompt-composition
+    phase: 3
+    priority: P0
+    contract: RD-MARBLE-002
+    backend-dependency: none
+    external-dependency: Runtime SDK (LLM translation)
+    migration-source: new
+    description: LLM-powered visual translation of world data → 3D prompt, with direct-concatenation fallback
+
+  - feature: provider-abstraction
+    phase: 3
+    priority: P1
+    contract: RD-MARBLE-010
+    backend-dependency: none
+    external-dependency: none
+    migration-source: new
+    description: WorldGenerator interface abstracting Marble API, enabling future provider swap
+
+  - feature: marble-viewer-embed
+    phase: 3
+    priority: P0
+    contract: RD-EXPLORE-004
+    backend-dependency: none
+    external-dependency: World Labs Marble Viewer (iframe)
+    migration-source: new
+    description: Embed Marble web viewer via iframe with Tauri dual Webview fallback
+
+  - feature: viewer-state-machine
+    phase: 3
+    priority: P0
+    contract: RD-EXPLORE-005
+    backend-dependency: none
+    external-dependency: none
+    migration-source: new
+    description: Four-state UI — idle / generating / ready / error
+
+  # ── Phase 4: Agent Chat ──────────────────────────────────
+  - feature: agent-discovery
+    phase: 4
+    priority: P0
+    contract: RD-CHAT-001
+    backend-dependency: none (existing Realm API)
+    external-dependency: none
+    migration-source: new
+    description: List world agents with avatar, name, bio for selection
+
+  - feature: chat-streaming
+    phase: 4
+    priority: P0
+    contract: RD-CHAT-004
+    backend-dependency: none (existing Runtime service)
+    external-dependency: none
+    migration-source: desktop stream-controller pattern
+    description: Streaming chat via Runtime SDK text.stream
+
+  - feature: chat-panel-ui
+    phase: 4
+    priority: P0
+    contract: RD-CHAT-002
+    backend-dependency: none
+    external-dependency: none
+    migration-source: new
+    description: Chat message list + input + streaming delta rendering
+
+  # ── Phase 4b: Human Chat ─────────────────────────────────
+  - feature: human-chat-realtime
+    phase: 4
+    priority: P0
+    contract: RD-HCHAT-*
+    backend-dependency: none (existing Realm chat API + Socket.IO)
+    external-dependency: none
+    migration-source: desktop/relay realtime sync pattern
+    description: Socket.IO connection for real-time message delivery and presence
+
+  - feature: friend-list
+    phase: 4
+    priority: P0
+    contract: RD-HCHAT-003
+    backend-dependency: none (existing friends API)
+    external-dependency: none
+    migration-source: new
+    description: Friend list with online status and app context display
+
+  - feature: human-chat-panel
+    phase: 4
+    priority: P0
+    contract: RD-HCHAT-002
+    backend-dependency: none
+    external-dependency: none
+    migration-source: desktop/relay chat UI pattern
+    description: People tab in right panel with friend list and chat messages
+
+  - feature: cross-app-interop
+    phase: 4
+    priority: P0
+    contract: RD-HCHAT-007
+    backend-dependency: none
+    external-dependency: none
+    migration-source: relay interop pattern (RL-INTOP-001)
+    description: Messages sync across Realm Drift, Desktop, and Relay apps
+
+  # ── Phase 5: Polish ─────────────────────────────────────
+  - feature: loading-states
+    phase: 5
+    priority: P1
+    contract: RD-EXPLORE-005
+    backend-dependency: none
+    external-dependency: none
+    migration-source: new
+    description: Skeleton loaders, progress indicators, generation countdown
+
+  - feature: error-handling
+    phase: 5
+    priority: P1
+    contract: RD-EXPLORE-005
+    backend-dependency: none
+    external-dependency: none
+    migration-source: new
+    description: Marble API errors, Runtime errors, network failures
+
+  - feature: i18n
+    phase: 5
+    priority: P2
+    contract: RD-SHELL-*
+    backend-dependency: none
+    external-dependency: none
+    migration-source: forge i18n (minimal)
+    description: English-only i18n setup for demo

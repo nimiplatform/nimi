@@ -1,0 +1,138 @@
+# Realm Drift — External API Surface
+# Authoritative source for World Labs Marble API endpoints used by Realm Drift.
+# Referenced by: kernel/marble-integration-contract.md
+#
+# Base URL: https://api.worldlabs.ai/marble/v1
+# Auth: WLT-Api-Key header
+# Docs: https://docs.worldlabs.ai/api
+# Pricing: $1.00 USD per 1,250 credits
+
+endpoints:
+  # ── World Generation ─────────────────────────────────────
+  - method: POST
+    path: /worlds:generate
+    input: "{ display_name, model?, world_prompt: { type, text_prompt? | image_url? | images? | video_url? } }"
+    output: "Operation { operation_id, done, error, metadata, response }"
+    cost-standard: 1580 credits (~$1.26)
+    cost-mini: 230 credits (~$0.18)
+    latency-standard: ~5 minutes
+    latency-mini: ~30-45 seconds
+    description: Generate a 3D world from text, image, multi-image, or video input
+
+  # ── Operation Polling ────────────────────────────────────
+  - method: GET
+    path: /operations/{operation_id}
+    input: operation_id (path param)
+    output: "Operation { operation_id, done, error, metadata, response: World? }"
+    cost-standard: 0
+    cost-mini: 0
+    latency-standard: <1 second
+    latency-mini: <1 second
+    description: Poll generation status until done=true
+
+  # ── World Retrieval ──────────────────────────────────────
+  - method: GET
+    path: /worlds/{world_id}
+    input: world_id (path param)
+    output: "World { world_id, display_name, caption, assets, viewer_url }"
+    cost-standard: 0
+    cost-mini: 0
+    latency-standard: <1 second
+    latency-mini: <1 second
+    description: Retrieve a previously generated world and its assets
+
+  - method: GET
+    path: /worlds
+    input: none
+    output: "{ worlds: World[] }"
+    cost-standard: 0
+    cost-mini: 0
+    latency-standard: <1 second
+    latency-mini: <1 second
+    description: List all generated worlds for this API key
+
+  - method: DELETE
+    path: /worlds/{world_id}
+    input: world_id (path param)
+    output: "{ deleted: true }"
+    cost-standard: 0
+    cost-mini: 0
+    latency-standard: <1 second
+    latency-mini: <1 second
+    description: Delete a generated world
+
+  # ── Media Asset Upload ───────────────────────────────────
+  - method: POST
+    path: /media-assets:prepare_upload
+    input: "{ content_type, file_name }"
+    output: "{ media_asset_id, upload_url }"
+    cost-standard: 0
+    cost-mini: 0
+    latency-standard: <1 second
+    latency-mini: <1 second
+    description: Get signed upload URL for local image/video file
+
+  - method: GET
+    path: /media-assets/{media_asset_id}
+    input: media_asset_id (path param)
+    output: "MediaAsset { media_asset_id, status, url }"
+    cost-standard: 0
+    cost-mini: 0
+    latency-standard: <1 second
+    latency-mini: <1 second
+    description: Check upload status and get hosted URL for uploaded asset
+
+models:
+  - name: Marble 0.1-plus
+    quality: standard
+    description: Best quality, slower generation (~5 min)
+    realm-drift-default: false
+
+  - name: Marble 0.1-mini
+    quality: draft
+    description: Lower quality, faster iteration (~30-45 sec, ~7x cheaper)
+    realm-drift-default: true
+
+output-assets:
+  - type: 3D Gaussian Splats
+    format: SPZ
+    variants: [100k, 500k, full]
+    description: Primary 3D representation — point cloud with learned appearance
+
+  - type: Collider Mesh
+    format: GLB
+    description: Physics collision geometry for interaction
+
+  - type: Panorama
+    format: Image (PNG/JPG)
+    description: 360-degree equirectangular panorama of generated world
+
+  - type: Thumbnail
+    format: Image (PNG/JPG)
+    description: Preview image for listings
+
+  - type: Web Viewer
+    format: URL
+    template: "https://marble.worldlabs.ai/world/{world_id}"
+    description: Interactive 3D viewer hosted by World Labs
+
+input-types:
+  - type: text
+    field: text_prompt
+    description: Natural language description of desired 3D environment
+    limit: ~2000 characters recommended
+
+  - type: image
+    field: image_url
+    formats: [JPG, JPEG, PNG, WEBP]
+    description: Single reference image (public URL or uploaded via media-assets)
+
+  - type: multi_image
+    field: images
+    max-count: 4
+    description: Multiple images with optional azimuth angles (0, 90, 180, 270 degrees)
+
+  - type: video
+    field: video_url
+    formats: [MP4, MOV, MKV]
+    description: Video reference for environment generation

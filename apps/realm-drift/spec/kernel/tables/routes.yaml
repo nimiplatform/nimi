@@ -1,0 +1,18 @@
+# Realm Drift — Route Table
+# Authoritative source for all application routes.
+# Referenced by: kernel contracts, feature-matrix.yaml
+
+routes:
+  # ── World Browser ────────────────────────────────────────
+  - path: /
+    feature: world-browser
+    component: WorldBrowserPage
+    lazy: false
+    description: Grid of available nimi worlds — entry point for exploration
+
+  # ── World Viewer ─────────────────────────────────────────
+  - path: /world/:worldId
+    feature: world-viewer
+    component: WorldViewerPage
+    lazy: true
+    description: Split-pane view — Marble 3D viewer (left) + tabbed panel (Agents | People) (right)
