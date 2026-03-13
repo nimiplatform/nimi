@@ -6260,6 +6260,7 @@ export type components = {
             result?: string;
             summary?: string;
             timeRef?: string;
+            timelineSeq: number;
             title: string;
             updatedAt: string;
             updatedBy: string;
@@ -6314,6 +6315,7 @@ export type components = {
             result?: string;
             summary?: string;
             timeRef?: string;
+            timelineSeq: number;
             title: string;
         };
         WorldLandingDecisionDto: {

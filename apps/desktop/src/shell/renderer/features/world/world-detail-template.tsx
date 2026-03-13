@@ -48,6 +48,7 @@ export type WorldAgent = {
 // 事件数据类型
 export type WorldEvent = {
   id: string;
+  timelineSeq: number;
   time: string;
   title: string;
   tag: string;

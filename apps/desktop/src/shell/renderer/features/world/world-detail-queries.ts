@@ -10,6 +10,14 @@ const EVENT_HORIZON_TAG: Record<string, string> = {
   FUTURE: 'Future',
 };
 
+function toPositiveInt(value: unknown, fieldName: string): number {
+  const numeric = Number(value);
+  if (!Number.isInteger(numeric) || numeric < 1) {
+    throw new Error(`WORLD_DETAIL_${fieldName.toUpperCase()}_INVALID`);
+  }
+  return numeric;
+}
+
 function normalizeWorldId(worldId: string): string {
   return String(worldId || '').trim();
 }
@@ -18,6 +26,7 @@ function toWorldEvent(raw: Record<string, unknown>): WorldEvent {
   const horizon = typeof raw.eventHorizon === 'string' ? raw.eventHorizon : '';
   return {
     id: String(raw.id || ''),
+    timelineSeq: toPositiveInt(raw.timelineSeq, 'timeline_seq'),
     title: String(raw.title || 'Untitled Event'),
     description: String(raw.summary || raw.cause || raw.process || raw.result || ''),
     time: String(raw.timeRef || raw.createdAt || ''),
@@ -43,7 +52,9 @@ export async function fetchWorldDetailWithAgents(worldId: string) {
 
 export async function fetchWorldEvents(worldId: string): Promise<WorldEvent[]> {
   const events = await dataSync.loadWorldEvents(normalizeWorldId(worldId));
-  return events.map(toWorldEvent);
+  return events
+    .map(toWorldEvent)
+    .sort((left, right) => left.timelineSeq - right.timelineSeq || left.id.localeCompare(right.id));
 }
 
 export function prefetchWorldDetailAndEvents(worldId: string): void {
