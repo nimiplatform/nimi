@@ -78,6 +78,13 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
 社交 feed 方法：`loadPostFeed`、`createPost`、`createImageDirectUpload`、`createVideoDirectUpload`。
 
 - 使用基础设施：上下文锁、错误日志。
+- `createImageDirectUpload` / `createVideoDirectUpload` 返回 `MediaDirectUploadSessionDto` 语义：
+  - `assetId` 是后续 `createPost` 唯一允许写入的媒体引用
+  - `storageRef` 是 provider 传输层引用，仅供旧附件/上传 transport 路径使用，不得作为新 post 的媒体主键
+- `createPost` 的 post media 写入规则：
+  - `media[].assetId` 为唯一正式字段
+  - 不通过 `media-bindings` 反查资产
+  - 不再写入 `imageId` / `videoId` / `uid` / `key`
 
 ## D-DSYNC-008 — Explore 数据流
 

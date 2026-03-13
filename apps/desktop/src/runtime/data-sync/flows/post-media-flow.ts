@@ -1,8 +1,8 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
 import type { CreateReportDto } from '@nimiplatform/sdk/realm';
 import type { CreatePostDto } from '@nimiplatform/sdk/realm';
-import type { DirectUploadResponseDto } from '@nimiplatform/sdk/realm';
 import type { FeedResponseDto } from '@nimiplatform/sdk/realm';
+import type { MediaDirectUploadSessionDto } from '@nimiplatform/sdk/realm';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import type { ReportResponseDto } from '@nimiplatform/sdk/realm';
 import {
@@ -77,7 +77,7 @@ export async function createPost(
 export async function createImageDirectUpload(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
-): Promise<DirectUploadResponseDto> {
+): Promise<MediaDirectUploadSessionDto> {
   try {
     return await callApi(
       (realm) => realm.services.MediaService.createImageDirectUpload(),
@@ -92,19 +92,12 @@ export async function createImageDirectUpload(
 export async function createVideoDirectUpload(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
-): Promise<{ uid: string; uploadURL: string }> {
+): Promise<MediaDirectUploadSessionDto> {
   try {
-    const payload = await callApi(
+    return await callApi(
       (realm) => realm.services.MediaService.createVideoDirectUpload(),
       '创建视频上传失败',
     );
-    const record = payload && typeof payload === 'object'
-      ? payload as Record<string, unknown>
-      : {};
-    return {
-      uid: typeof record.uid === 'string' ? record.uid : '',
-      uploadURL: typeof record.uploadURL === 'string' ? record.uploadURL : '',
-    };
   } catch (error) {
     emitDataSyncError('create-video-direct-upload', error);
     throw error;

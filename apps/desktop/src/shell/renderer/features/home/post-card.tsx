@@ -25,7 +25,7 @@ function extractPostMediaId(media: unknown): string {
     return '';
   }
   const payload = media as Record<string, unknown>;
-  const candidates = [payload.id, payload.imageId, payload.videoId, payload.uid];
+  const candidates = [payload.assetId, payload.id, payload.imageId, payload.videoId, payload.uid];
   for (const candidate of candidates) {
     const value = String(candidate || '').trim();
     if (value) {

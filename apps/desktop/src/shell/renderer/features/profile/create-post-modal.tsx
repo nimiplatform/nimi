@@ -329,17 +329,17 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
             method: 'POST',
             body: formData,
           });
-          mediaId = upload.imageId;
+          mediaId = upload.assetId;
           mediaType = PostMediaType.IMAGE;
         } else {
           const uploadData = await dataSync.createVideoDirectUpload();
           const formData = new FormData();
           formData.append('file', activeMedia.file);
-          await fetch(uploadData.uploadURL, {
+          await fetch(uploadData.uploadUrl, {
             method: 'POST',
             body: formData,
           });
-          mediaId = uploadData.uid;
+          mediaId = uploadData.assetId;
           mediaType = PostMediaType.VIDEO;
         }
       } else {
@@ -350,7 +350,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
       const createdPost = await dataSync.createPost({
         media: [{
           type: mediaType,
-          id: mediaId,
+          assetId: mediaId,
         }],
         caption: stripHashtags(caption) || undefined,
         tags: tags.length > 0 ? tags : undefined,

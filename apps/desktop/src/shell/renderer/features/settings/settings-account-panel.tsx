@@ -317,7 +317,7 @@ export function ProfilePage() {
       if (!response.ok) {
         throw new Error(t('Profile.avatarUploadFailed'));
       }
-      const nextAvatarUrl = `${realmBaseUrl}/api/media/images/${encodeURIComponent(upload.imageId)}`;
+      const nextAvatarUrl = `${realmBaseUrl}/api/media/images/${encodeURIComponent(upload.storageRef)}`;
       setAvatarUrl(nextAvatarUrl);
       setStatusBanner({
         kind: 'success',

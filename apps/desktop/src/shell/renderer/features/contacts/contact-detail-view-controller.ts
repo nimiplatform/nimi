@@ -180,7 +180,7 @@ export function useContactDetailViewController(props: ContactDetailViewProps, re
       if (!response.ok) {
         throw new Error(i18n.t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }));
       }
-      const avatarUrl = `${realmBaseUrl}/api/media/images/${encodeURIComponent(upload.imageId)}`;
+      const avatarUrl = `${realmBaseUrl}/api/media/images/${encodeURIComponent(upload.storageRef)}`;
       setDraft((current) => ({ ...current, avatarUrl }));
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : i18n.t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }));

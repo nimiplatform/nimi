@@ -325,11 +325,11 @@ export function TurnInput(props: TurnInputProps = {}) {
         if (isImage) {
           const uploadInfo = await dataSync.createImageDirectUpload();
           uploadUrl = uploadInfo.uploadUrl;
-          mediaUid = uploadInfo.imageId;
+          mediaUid = uploadInfo.storageRef;
         } else {
           const uploadInfo = await dataSync.createVideoDirectUpload();
-          uploadUrl = uploadInfo.uploadURL;
-          mediaUid = uploadInfo.uid;
+          uploadUrl = uploadInfo.uploadUrl;
+          mediaUid = uploadInfo.storageRef;
         }
 
         if (!uploadUrl) {

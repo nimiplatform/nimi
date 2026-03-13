@@ -94,7 +94,7 @@ flows:
       - createPost
       - createImageDirectUpload
       - createVideoDirectUpload
-    description: Social feed posts and media uploads
+    description: Social feed posts and media uploads; direct-upload returns asset sessions and createPost references assetId only
     source_rule: D-DSYNC-007
 
   - flow: explore
