@@ -47,5 +47,14 @@
       "icons/icon.ico",
       "icons/icon.icns"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dev-placeholder",
+      "endpoints": [],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }
