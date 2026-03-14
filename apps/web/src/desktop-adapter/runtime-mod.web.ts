@@ -19,6 +19,22 @@ const runtimeHookRuntimeStub = {
   setSpeechFetchImpl: (_fetchImpl: unknown): void => {},
   setSpeechRouteResolver: (_resolver: unknown): void => {},
   setMissingDataCapabilityResolver: (_resolver: unknown): void => {},
+  storage: {
+    files: {
+      readText: async () => ({ path: '', text: '', sizeBytes: 0 }),
+      writeText: async () => ({ path: '', sizeBytes: 0 }),
+      readBytes: async () => ({ path: '', bytes: new Uint8Array(), sizeBytes: 0 }),
+      writeBytes: async () => ({ path: '', sizeBytes: 0 }),
+      delete: async () => false,
+      list: async () => [],
+      stat: async () => null,
+    },
+    sqlite: {
+      query: async () => [],
+      execute: async () => ({ rowsAffected: 0, lastInsertRowid: 0 }),
+      transaction: async () => ({ rowsAffected: 0, lastInsertRowid: 0 }),
+    },
+  },
 };
 
 export const CODEGEN_T0_CAPABILITY_PATTERNS = DESKTOP_CODEGEN_T0_CAPABILITY_PATTERNS;

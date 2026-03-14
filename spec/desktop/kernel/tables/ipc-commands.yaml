@@ -150,7 +150,7 @@ commands:
 
   - command: runtime_mod_uninstall
     module: mod-local
-    description: Uninstall an installed runtime mod
+    description: Uninstall an installed runtime mod package without deleting its mod-data directory
     source_rule: D-IPC-007
 
   - command: runtime_mod_read_manifest
@@ -231,6 +231,51 @@ commands:
   - command: runtime_mod_media_cache_gc
     module: mod-local
     description: Garbage-collect expired mod media cache entries
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_storage_file_read
+    module: mod-local
+    description: Read a text or binary file from the caller mod's files storage subtree
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_storage_file_write
+    module: mod-local
+    description: Atomically write a text or binary file into the caller mod's files storage subtree
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_storage_file_delete
+    module: mod-local
+    description: Delete a file or directory from the caller mod's files storage subtree
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_storage_file_list
+    module: mod-local
+    description: List entries under the caller mod's files storage subtree
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_storage_file_stat
+    module: mod-local
+    description: Read metadata for a path under the caller mod's files storage subtree
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_storage_sqlite_query
+    module: mod-local
+    description: Execute a read query against the caller mod's sqlite/main.db
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_storage_sqlite_execute
+    module: mod-local
+    description: Execute a write statement against the caller mod's sqlite/main.db
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_storage_sqlite_transaction
+    module: mod-local
+    description: Execute a write transaction against the caller mod's sqlite/main.db
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_storage_data_purge
+    module: mod-local
+    description: Delete the caller mod's host-managed mod-data directory
     source_rule: D-IPC-007
 
   # External agent (external_agent_gateway)

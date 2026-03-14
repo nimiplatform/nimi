@@ -216,6 +216,17 @@ export async function uninstallRuntimeMod(modId: string): Promise<RuntimeLocalMa
   }, parseRuntimeLocalManifestSummary);
 }
 
+export async function purgeRuntimeModData(modId: string): Promise<boolean> {
+  if (!hasTauriInvoke()) {
+    throw new Error('runtime_mod_storage_data_purge requires Tauri runtime');
+  }
+  return invoke('runtime_mod_storage_data_purge', {
+    payload: {
+      modId,
+    },
+  }).then((value) => Boolean(value));
+}
+
 export async function readInstalledRuntimeModManifest(input: {
   modId?: string;
   path?: string;

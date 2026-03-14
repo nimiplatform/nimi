@@ -87,7 +87,7 @@ Mod 本地持久化与审计命令集（`runtime_mod::commands`）：
 
 - `runtime_mod_list_local_manifests`：列出 runtime mods 目录中的本地 mod 清单摘要。
 - `runtime_mod_list_installed`：列出已安装 mod 清单。
-- `runtime_mod_install` / `runtime_mod_update` / `runtime_mod_uninstall`：mod 安装生命周期命令。
+- `runtime_mod_install` / `runtime_mod_update` / `runtime_mod_uninstall`：mod 安装生命周期命令。`runtime_mod_uninstall` 只卸载 package，不删除 `{nimi_data_dir}/mod-data/{mod_id}`。
 - `runtime_mod_read_manifest`：读取已安装 mod manifest。
 - `runtime_mod_install_progress`：查询安装进度事件。
 - `runtime_mod_read_local_entry`：读取 mod 入口源码。
@@ -97,6 +97,16 @@ Mod 本地持久化与审计命令集（`runtime_mod::commands`）：
 - `runtime_mod_get_action_verify_ticket` / `runtime_mod_put_action_verify_ticket` / `runtime_mod_delete_action_verify_ticket` / `runtime_mod_purge_action_verify_tickets`：action 验证票据。
 - `runtime_mod_put_action_execution_ledger` / `runtime_mod_query_action_execution_ledger` / `runtime_mod_purge_action_execution_ledger`：action 执行账本。
 - `runtime_mod_media_cache_put` / `runtime_mod_media_cache_gc`：mod 媒体缓存写入与垃圾回收。
+- `runtime_mod_storage_file_read` / `runtime_mod_storage_file_write` / `runtime_mod_storage_file_delete` / `runtime_mod_storage_file_list` / `runtime_mod_storage_file_stat`：host-managed mod files 子树访问。
+- `runtime_mod_storage_sqlite_query` / `runtime_mod_storage_sqlite_execute` / `runtime_mod_storage_sqlite_transaction`：host-managed per-mod sqlite 访问。
+- `runtime_mod_storage_data_purge`：显式删除 `{nimi_data_dir}/mod-data/{mod_id}`，供 Mod Hub / Settings 发起数据清理动作。
+
+存储边界固定如下：
+
+- installed mod package 继续位于 `{nimi_data_dir}/mods`。
+- mod 持久化数据固定位于 `{nimi_data_dir}/mod-data/{mod_id}`。
+- `files` 仅允许访问 `files/` 子树，拒绝绝对路径、空路径、`..` 与符号链接越界。
+- `sqlite` 仅允许访问 `sqlite/main.db`，并拒绝 `ATTACH`、`DETACH`、`VACUUM INTO`、`load_extension`。
 
 ## D-IPC-008 — External Agent 命令
 

@@ -11,9 +11,12 @@ use super::store::{
     get_runtime_mod_developer_mode_state, install_catalog_mod, install_runtime_mod,
     list_catalog_mods, list_installed_runtime_mods, list_local_mod_manifests,
     list_runtime_mod_diagnostics, list_runtime_mod_install_progress, list_runtime_mod_sources,
-    open_db, open_runtime_mod_dir, purge_action_execution_ledger, purge_action_idempotency_records,
-    purge_action_verify_tickets, put_action_execution_ledger_record, put_action_idempotency_record,
-    put_action_verify_ticket, put_media_cache, query_action_execution_ledger, query_runtime_audit,
+    mod_storage_file_delete, mod_storage_file_list, mod_storage_file_read, mod_storage_file_stat,
+    mod_storage_file_write, mod_storage_sqlite_execute, mod_storage_sqlite_query,
+    mod_storage_sqlite_transaction, open_db, open_runtime_mod_dir, purge_action_execution_ledger,
+    purge_action_idempotency_records, purge_action_verify_tickets, purge_mod_storage_data,
+    put_action_execution_ledger_record, put_action_idempotency_record, put_action_verify_ticket,
+    put_media_cache, query_action_execution_ledger, query_runtime_audit,
     read_installed_runtime_mod_manifest, read_local_mod_entry, reload_all_runtime_mods,
     read_local_mod_asset, reload_runtime_mod, remove_runtime_mod_source, restore_runtime_mod_backup,
     set_runtime_mod_developer_mode_state, sync_runtime_mod_source_watchers, uninstall_runtime_mod,
@@ -25,7 +28,13 @@ use super::store::{
     RuntimeLocalAssetPayload, RuntimeLocalManifestSummary, RuntimeMediaCacheGcResultPayload,
     RuntimeMediaCachePutResultPayload, RuntimeModDeveloperModeState, RuntimeModDiagnosticRecord,
     RuntimeModInstallProgressPayload, RuntimeModInstallResultPayload,
-    RuntimeModReloadResultPayload, RuntimeModSourceRecord,
+    RuntimeModReloadResultPayload, RuntimeModSourceRecord, RuntimeModStorageDataPurgePayload,
+    RuntimeModStorageFileDeletePayload, RuntimeModStorageFileListPayload,
+    RuntimeModStorageFileReadPayload, RuntimeModStorageFileReadResultPayload,
+    RuntimeModStorageFileStatPayload, RuntimeModStorageFileWritePayload,
+    RuntimeModStorageFileWriteResultPayload, RuntimeModStorageSqliteQueryPayload,
+    RuntimeModStorageSqliteExecuteResultPayload, RuntimeModStorageSqliteQueryResultPayload,
+    RuntimeModStorageSqliteTransactionPayload, RuntimeModStorageFileEntryPayload,
 };
 
 #[derive(Debug, Deserialize)]
@@ -488,6 +497,78 @@ pub fn runtime_mod_uninstall(
     payload: RuntimeModUninstallPayload,
 ) -> Result<RuntimeLocalManifestSummary, String> {
     uninstall_runtime_mod(&app, &payload.mod_id)
+}
+
+#[tauri::command]
+pub fn runtime_mod_storage_file_read(
+    app: AppHandle,
+    payload: RuntimeModStorageFileReadPayload,
+) -> Result<RuntimeModStorageFileReadResultPayload, String> {
+    mod_storage_file_read(&app, &payload)
+}
+
+#[tauri::command]
+pub fn runtime_mod_storage_file_write(
+    app: AppHandle,
+    payload: RuntimeModStorageFileWritePayload,
+) -> Result<RuntimeModStorageFileWriteResultPayload, String> {
+    mod_storage_file_write(&app, &payload)
+}
+
+#[tauri::command]
+pub fn runtime_mod_storage_file_delete(
+    app: AppHandle,
+    payload: RuntimeModStorageFileDeletePayload,
+) -> Result<bool, String> {
+    mod_storage_file_delete(&app, &payload)
+}
+
+#[tauri::command]
+pub fn runtime_mod_storage_file_list(
+    app: AppHandle,
+    payload: RuntimeModStorageFileListPayload,
+) -> Result<Vec<RuntimeModStorageFileEntryPayload>, String> {
+    mod_storage_file_list(&app, &payload)
+}
+
+#[tauri::command]
+pub fn runtime_mod_storage_file_stat(
+    app: AppHandle,
+    payload: RuntimeModStorageFileStatPayload,
+) -> Result<Option<RuntimeModStorageFileEntryPayload>, String> {
+    mod_storage_file_stat(&app, &payload)
+}
+
+#[tauri::command]
+pub fn runtime_mod_storage_sqlite_query(
+    app: AppHandle,
+    payload: RuntimeModStorageSqliteQueryPayload,
+) -> Result<RuntimeModStorageSqliteQueryResultPayload, String> {
+    mod_storage_sqlite_query(&app, &payload)
+}
+
+#[tauri::command]
+pub fn runtime_mod_storage_sqlite_execute(
+    app: AppHandle,
+    payload: RuntimeModStorageSqliteQueryPayload,
+) -> Result<RuntimeModStorageSqliteExecuteResultPayload, String> {
+    mod_storage_sqlite_execute(&app, &payload)
+}
+
+#[tauri::command]
+pub fn runtime_mod_storage_sqlite_transaction(
+    app: AppHandle,
+    payload: RuntimeModStorageSqliteTransactionPayload,
+) -> Result<RuntimeModStorageSqliteExecuteResultPayload, String> {
+    mod_storage_sqlite_transaction(&app, &payload)
+}
+
+#[tauri::command]
+pub fn runtime_mod_storage_data_purge(
+    app: AppHandle,
+    payload: RuntimeModStorageDataPurgePayload,
+) -> Result<bool, String> {
+    purge_mod_storage_data(&app, &payload.mod_id)
 }
 
 #[tauri::command]

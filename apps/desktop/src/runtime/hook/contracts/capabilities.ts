@@ -57,6 +57,16 @@ const DEFAULT_ACTION_ALLOWLIST = [
   'action.commit.*',
 ] as const;
 
+const DEFAULT_STORAGE_ALLOWLIST = [
+  'storage.files.read',
+  'storage.files.write',
+  'storage.files.delete',
+  'storage.files.list',
+  'storage.sqlite.query',
+  'storage.sqlite.execute',
+  'storage.sqlite.transaction',
+] as const;
+
 const DEFAULT_CODEGEN_ALLOWLIST = [
   'runtime.ai.text.generate',
   'runtime.ai.text.stream',
@@ -80,6 +90,7 @@ export const DEFAULT_SOURCE_ALLOWLIST: Record<HookSourceType, string[]> = {
     'ui.register.*',
     'inter-mod.request.*',
     'inter-mod.provide.*',
+    ...DEFAULT_STORAGE_ALLOWLIST,
     ...DEFAULT_RUNTIME_ALLOWLIST,
     ...DEFAULT_ACTION_ALLOWLIST,
     'audit.read.self',
@@ -95,6 +106,7 @@ export const DEFAULT_SOURCE_ALLOWLIST: Record<HookSourceType, string[]> = {
     'turn.register.post-state',
     'ui.register.*',
     'inter-mod.request.*',
+    ...DEFAULT_STORAGE_ALLOWLIST,
     ...DEFAULT_RUNTIME_ALLOWLIST,
     ...DEFAULT_ACTION_ALLOWLIST,
     'audit.read.self',
@@ -105,6 +117,7 @@ export const DEFAULT_SOURCE_ALLOWLIST: Record<HookSourceType, string[]> = {
     'data.query.*',
     'ui.register.*',
     'inter-mod.request.*',
+    ...DEFAULT_STORAGE_ALLOWLIST,
     ...DEFAULT_RUNTIME_ALLOWLIST,
     ...DEFAULT_ACTION_ALLOWLIST,
     'audit.read.self',
@@ -127,6 +140,34 @@ export function dataQueryCapability(name: string): HookCapabilityKey {
 
 export function dataRegisterCapability(name: string): HookCapabilityKey {
   return `data.register.${String(name || '').trim()}`;
+}
+
+export function storageFilesReadCapability(): HookCapabilityKey {
+  return 'storage.files.read';
+}
+
+export function storageFilesWriteCapability(): HookCapabilityKey {
+  return 'storage.files.write';
+}
+
+export function storageFilesDeleteCapability(): HookCapabilityKey {
+  return 'storage.files.delete';
+}
+
+export function storageFilesListCapability(): HookCapabilityKey {
+  return 'storage.files.list';
+}
+
+export function storageSqliteQueryCapability(): HookCapabilityKey {
+  return 'storage.sqlite.query';
+}
+
+export function storageSqliteExecuteCapability(): HookCapabilityKey {
+  return 'storage.sqlite.execute';
+}
+
+export function storageSqliteTransactionCapability(): HookCapabilityKey {
+  return 'storage.sqlite.transaction';
 }
 
 export function turnRegisterCapability(point: string): HookCapabilityKey {

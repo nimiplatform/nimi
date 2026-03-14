@@ -8,4 +8,5 @@
 | `data` | `data.query.*|data.register.*` | `D-HOOK-002` |
 | `turn` | `turn.register.*` | `D-HOOK-003` |
 | `ui` | `ui.register.*` | `D-HOOK-004` |
-| `inter-mod` | `inter-mod.request.*|inter-mod.provide.*` | `D-HOOK-005` |
+| `storage` | `storage.files.*|storage.sqlite.*` | `D-HOOK-005` |
+| `inter-mod` | `inter-mod.request.*|inter-mod.provide.*` | `D-HOOK-006` |

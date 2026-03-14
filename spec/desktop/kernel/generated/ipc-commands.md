@@ -32,7 +32,7 @@
 | `runtime_mod_reload_all` | `mod-local` | Trigger reload diagnostics for all runtime mods | `D-IPC-013` |
 | `runtime_mod_install` | `mod-local` | Install a prebuilt runtime mod from directory, archive, or URL | `D-IPC-007` |
 | `runtime_mod_update` | `mod-local` | Update an installed runtime mod from a prebuilt package source | `D-IPC-007` |
-| `runtime_mod_uninstall` | `mod-local` | Uninstall an installed runtime mod | `D-IPC-007` |
+| `runtime_mod_uninstall` | `mod-local` | Uninstall an installed runtime mod package without deleting its mod-data directory | `D-IPC-007` |
 | `runtime_mod_read_manifest` | `mod-local` | Read an installed runtime mod manifest | `D-IPC-007` |
 | `runtime_mod_install_progress` | `mod-local` | Query runtime mod install progress events | `D-IPC-007` |
 | `runtime_mod_read_local_entry` | `mod-local` | Read local mod entry source code | `D-IPC-007` |
@@ -49,6 +49,15 @@
 | `runtime_mod_purge_action_execution_ledger` | `mod-local` | Purge expired mod action execution ledger entries | `D-IPC-007` |
 | `runtime_mod_media_cache_put` | `mod-local` | Put media blob into mod media cache | `D-IPC-007` |
 | `runtime_mod_media_cache_gc` | `mod-local` | Garbage-collect expired mod media cache entries | `D-IPC-007` |
+| `runtime_mod_storage_file_read` | `mod-local` | Read a text or binary file from the caller mod's files storage subtree | `D-IPC-007` |
+| `runtime_mod_storage_file_write` | `mod-local` | Atomically write a text or binary file into the caller mod's files storage subtree | `D-IPC-007` |
+| `runtime_mod_storage_file_delete` | `mod-local` | Delete a file or directory from the caller mod's files storage subtree | `D-IPC-007` |
+| `runtime_mod_storage_file_list` | `mod-local` | List entries under the caller mod's files storage subtree | `D-IPC-007` |
+| `runtime_mod_storage_file_stat` | `mod-local` | Read metadata for a path under the caller mod's files storage subtree | `D-IPC-007` |
+| `runtime_mod_storage_sqlite_query` | `mod-local` | Execute a read query against the caller mod's sqlite/main.db | `D-IPC-007` |
+| `runtime_mod_storage_sqlite_execute` | `mod-local` | Execute a write statement against the caller mod's sqlite/main.db | `D-IPC-007` |
+| `runtime_mod_storage_sqlite_transaction` | `mod-local` | Execute a write transaction against the caller mod's sqlite/main.db | `D-IPC-007` |
+| `runtime_mod_storage_data_purge` | `mod-local` | Delete the caller mod's host-managed mod-data directory | `D-IPC-007` |
 | `external_agent_issue_token` | `external-agent` | Issue external agent access token | `D-IPC-008` |
 | `external_agent_revoke_token` | `external-agent` | Revoke external agent access token | `D-IPC-008` |
 | `external_agent_list_tokens` | `external-agent` | List external agent tokens | `D-IPC-008` |

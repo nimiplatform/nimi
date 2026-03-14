@@ -17,6 +17,7 @@ import { HookRuntimeActionService } from './services/action-service.js';
 import { HookRuntimeModLocalProfileSnapshotService } from './services/mod-local-profile-snapshot-service.js';
 import { HookActionSocialPreconditionService } from './services/action-social-precondition.js';
 import { createCoreSocialFriendshipResolver } from './services/action-social-resolver.js';
+import { HookRuntimeStorageService } from './services/storage-service.js';
 import { HookRuntimeTurnService } from './services/turn-service.js';
 import { HookRuntimeUiService } from './services/ui-service.js';
 import { TurnHookOrchestrator } from './turn-hook/turn-hook.js';
@@ -43,6 +44,7 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     private readonly permissionService: HookRuntimePermissionService;
     private readonly eventService: HookRuntimeEventService;
     private readonly dataService: HookRuntimeDataService;
+    private readonly storageService: HookRuntimeStorageService;
     private readonly turnService: HookRuntimeTurnService;
     private readonly uiService: HookRuntimeUiService;
     private readonly interModService: HookRuntimeInterModService;
@@ -51,6 +53,7 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     private readonly actionService: HookRuntimeActionService;
     private readonly modLocalProfileSnapshotService = new HookRuntimeModLocalProfileSnapshotService();
     private missingDataCapabilityResolver: MissingDataCapabilityResolver | null = null;
+    readonly storage: DesktopHookRuntimeFacade['storage'];
     constructor() {
         this.permissions.setSourceType('core:runtime', 'core');
         this.permissions.setBaseline('core:runtime', ['*']);
@@ -73,6 +76,10 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
             audit: this.audit,
             evaluatePermission,
             getMissingDataCapabilityResolver: () => this.missingDataCapabilityResolver,
+        });
+        this.storageService = new HookRuntimeStorageService({
+            audit: this.audit,
+            evaluatePermission,
         });
         this.turnService = new HookRuntimeTurnService({
             contracts: this.contracts,
@@ -125,6 +132,22 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
             socialPreconditionService,
             verifyExternalAgentContext: async (input) => verifyExternalAgentExecutionContext(input),
         });
+        this.storage = {
+            files: {
+                readText: (input) => this.storageService.readText(input),
+                writeText: (input) => this.storageService.writeText(input),
+                readBytes: (input) => this.storageService.readBytes(input),
+                writeBytes: (input) => this.storageService.writeBytes(input),
+                delete: (input) => this.storageService.delete(input),
+                list: (input) => this.storageService.list(input),
+                stat: (input) => this.storageService.stat(input),
+            },
+            sqlite: {
+                query: (input) => this.storageService.query(input),
+                execute: (input) => this.storageService.execute(input),
+                transaction: (input) => this.storageService.transaction(input),
+            },
+        };
     }
     setModSourceType(modId: string, sourceType: HookSourceType): void { this.lifecycleService.setModSourceType(modId, sourceType); }
     getModSourceType(modId: string): HookSourceType { return this.lifecycleService.getModSourceType(modId); }

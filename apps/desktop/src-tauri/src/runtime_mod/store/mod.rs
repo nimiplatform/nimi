@@ -386,6 +386,112 @@ pub struct RuntimeMediaCacheGcResultPayload {
     pub retained_count: usize,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModStorageFileReadPayload {
+    pub mod_id: String,
+    pub path: String,
+    pub format: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModStorageFileWritePayload {
+    pub mod_id: String,
+    pub path: String,
+    pub text: Option<String>,
+    pub bytes: Option<Vec<u8>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModStorageFileReadResultPayload {
+    pub path: String,
+    pub text: Option<String>,
+    pub bytes: Option<Vec<u8>>,
+    pub size_bytes: u64,
+    pub modified_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModStorageFileWriteResultPayload {
+    pub path: String,
+    pub size_bytes: u64,
+    pub modified_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModStorageFileDeletePayload {
+    pub mod_id: String,
+    pub path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModStorageFileListPayload {
+    pub mod_id: String,
+    pub path: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModStorageFileStatPayload {
+    pub mod_id: String,
+    pub path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModStorageFileEntryPayload {
+    pub path: String,
+    pub kind: String,
+    pub size_bytes: u64,
+    pub modified_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModStorageSqliteQueryPayload {
+    pub mod_id: String,
+    pub sql: String,
+    pub params: Option<Vec<serde_json::Value>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModStorageSqliteStatementPayload {
+    pub sql: String,
+    pub params: Option<Vec<serde_json::Value>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModStorageSqliteTransactionPayload {
+    pub mod_id: String,
+    pub statements: Vec<RuntimeModStorageSqliteStatementPayload>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModStorageSqliteQueryResultPayload {
+    pub rows: Vec<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModStorageSqliteExecuteResultPayload {
+    pub rows_affected: usize,
+    pub last_insert_rowid: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeModStorageDataPurgePayload {
+    pub mod_id: String,
+}
+
 include!("path_env.rs");
 include!("manifest_scan.rs");
 include!("source_registry.rs");
@@ -399,3 +505,4 @@ include!("audit_ledger.rs");
 include!("idempotency_verify.rs");
 include!("tokens_kv.rs");
 include!("media_cache.rs");
+include!("mod_storage.rs");

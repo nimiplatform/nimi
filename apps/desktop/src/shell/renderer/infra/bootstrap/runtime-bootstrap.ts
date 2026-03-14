@@ -14,7 +14,6 @@ import {
 } from '@runtime/mod';
 import { setRuntimeLogger } from '@runtime/telemetry/logger';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
-import { ReasonCode } from '@nimiplatform/sdk/types';
 import { desktopBridge, toRendererLogMessage } from '@renderer/bridge';
 import { createProxyFetch } from '@renderer/infra/bridge/proxy-fetch';
 import { queryClient } from '@renderer/infra/query-client/query-client';
@@ -49,67 +48,6 @@ import { isRuntimeDaemonReachable } from './runtime-bootstrap-runtime-availabili
 
 let bootstrapPromise: Promise<void> | null = null;
 let offlineCoordinatorBindingsReady = false;
-const MOD_STATE_CAPABILITY = 'data.store.mod-state';
-const MOD_STATE_STORAGE_PREFIX = 'nimi:mod-state:';
-const MOD_STATE_MAX_KEY_LENGTH = 256;
-const MOD_STATE_MAX_VALUE_LENGTH = 512 * 1024;
-
-function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
-  }
-  return value as Record<string, unknown>;
-}
-
-function normalizeModStateKey(value: unknown): string {
-  const key = String(value || '').trim();
-  if (!key || key.length > MOD_STATE_MAX_KEY_LENGTH) {
-    return '';
-  }
-  return key;
-}
-
-function scopedModStateStorageKey(key: string): string {
-  return `${MOD_STATE_STORAGE_PREFIX}${key}`;
-}
-
-function registerModStateDataCapability(): void {
-  const hookRuntime = getRuntimeHookRuntime();
-  hookRuntime.registerDataCapability(MOD_STATE_CAPABILITY, async (query) => {
-    const input = asRecord(query);
-    const op = String(input.op || '').trim().toLowerCase();
-    const key = normalizeModStateKey(input.key);
-    if (!key) {
-      return { ok: false, reasonCode: ReasonCode.MOD_STATE_INVALID_KEY };
-    }
-    if (typeof globalThis === 'undefined' || !globalThis.localStorage) {
-      return { ok: false, reasonCode: ReasonCode.MOD_STATE_UNAVAILABLE };
-    }
-
-    const storageKey = scopedModStateStorageKey(key);
-    try {
-      if (op === 'get') {
-        const value = globalThis.localStorage.getItem(storageKey);
-        return { ok: true, value };
-      }
-      if (op === 'set') {
-        const value = String(input.value || '');
-        if (value.length > MOD_STATE_MAX_VALUE_LENGTH) {
-          return { ok: false, reasonCode: ReasonCode.MOD_STATE_VALUE_TOO_LARGE };
-        }
-        globalThis.localStorage.setItem(storageKey, value);
-        return { ok: true };
-      }
-      if (op === 'delete') {
-        globalThis.localStorage.removeItem(storageKey);
-        return { ok: true };
-      }
-      return { ok: false, reasonCode: ReasonCode.MOD_STATE_INVALID_OP };
-    } catch {
-      return { ok: false, reasonCode: ReasonCode.MOD_STATE_STORAGE_ERROR };
-    }
-  });
-}
 
 function suspendRuntimeCallbacksForL2(): void {
   const hookRuntime = getRuntimeHookRuntime();
@@ -318,7 +256,6 @@ export function bootstrapRuntime(): Promise<void> {
         await ensureCoreWorldDataCapabilitiesRegistered();
         return hookRuntime.listDataCapabilities().includes(capability);
       });
-      registerModStateDataCapability();
       await ensureCoreWorldDataCapabilitiesRegistered();
 
       const runtimeModResult = await registerBootstrapRuntimeMods({

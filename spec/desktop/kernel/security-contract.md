@@ -41,7 +41,7 @@ OAuth 流程通过 Tauri IPC 执行（参考 `D-IPC-006`）：
 
 ## D-SEC-005 — Mod 能力沙箱
 
-Mod 执行在能力沙箱内（参考 `D-HOOK-007`、`D-MOD-005`）：
+Mod 执行在能力沙箱内（参考 `D-HOOK-008`、`D-MOD-005`）：
 
 - Source type 决定可用能力集。
 - 未声明的能力调用被拒绝。

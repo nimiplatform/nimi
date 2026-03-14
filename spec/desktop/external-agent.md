@@ -32,7 +32,7 @@ Desktop External Agent Access 面板是 ExternalPrincipal token 的唯一 UI 投
 4. 在同一面板展示一次性明文 token 和可撤销 token ledger；
 5. 后续 revoke/list 仅基于 token ledger，不重复暴露历史明文 token。
 
-### Hook (D-HOOK-009)
+### Hook (D-HOOK-010)
 
 Action capability 域：`action.discover.*` / `action.dry-run.*` / `action.verify.*` / `action.commit.*`。
 

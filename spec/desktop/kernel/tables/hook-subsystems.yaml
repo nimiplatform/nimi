@@ -22,7 +22,12 @@ subsystems:
     description: UI slot registration for visual extension points
     source_rule: D-HOOK-004
 
+  - name: storage
+    namespace: "storage.files.*|storage.sqlite.*"
+    description: Host-managed per-mod file and sqlite persistence
+    source_rule: D-HOOK-005
+
   - name: inter-mod
     namespace: "inter-mod.request.*|inter-mod.provide.*"
     description: Cross-mod RPC-style request/provide channels
-    source_rule: D-HOOK-005
+    source_rule: D-HOOK-006

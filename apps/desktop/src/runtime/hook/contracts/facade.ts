@@ -1,6 +1,7 @@
 import type { AgentProfileReadFilterInput, AgentProfileReadFilterResult, AuditStats, HookCallRecord, HookRegistration, HookSourceType, MissingDataCapabilityResolver, TurnHookPoint, } from './types.js';
 import type { HookActionAuditFilter, HookActionAuditRecord, HookActionCommitRequest, HookActionCommitResult, HookActionDescriptorView, HookActionDiscoverFilter, HookActionDryRunRequest, HookActionRegistrationInput, HookActionRegistryChangeEvent, HookActionVerifyRequest, HookActionVerifyResult, HookActionResult, } from './action.js';
 import { type RuntimeCanonicalCapability } from "@nimiplatform/sdk/mod";
+import type { HookStorageFileEntry, HookStorageFileReadResult, HookStorageFileWriteResult, HookStorageSqliteExecuteResult, HookStorageSqliteStatement } from "@nimiplatform/sdk/mod";
 export type HookModLocalProfileEntry = {
     entryId: string;
     kind: 'model' | 'artifact' | 'service' | 'node';
@@ -43,6 +44,66 @@ export type HookModLocalProfileSnapshotResolver = (input: {
     routeSourceHint?: 'cloud' | 'local';
 }) => Promise<HookModLocalProfileSnapshot>;
 export interface DesktopHookRuntimeFacade {
+    readonly storage: {
+        files: {
+            readText: (input: {
+                modId: string;
+                sourceType?: HookSourceType;
+                path: string;
+            }) => Promise<HookStorageFileReadResult>;
+            writeText: (input: {
+                modId: string;
+                sourceType?: HookSourceType;
+                path: string;
+                content: string;
+            }) => Promise<HookStorageFileWriteResult>;
+            readBytes: (input: {
+                modId: string;
+                sourceType?: HookSourceType;
+                path: string;
+            }) => Promise<HookStorageFileReadResult>;
+            writeBytes: (input: {
+                modId: string;
+                sourceType?: HookSourceType;
+                path: string;
+                content: Uint8Array;
+            }) => Promise<HookStorageFileWriteResult>;
+            delete: (input: {
+                modId: string;
+                sourceType?: HookSourceType;
+                path: string;
+            }) => Promise<boolean>;
+            list: (input: {
+                modId: string;
+                sourceType?: HookSourceType;
+                path?: string;
+            }) => Promise<HookStorageFileEntry[]>;
+            stat: (input: {
+                modId: string;
+                sourceType?: HookSourceType;
+                path: string;
+            }) => Promise<HookStorageFileEntry | null>;
+        };
+        sqlite: {
+            query: (input: {
+                modId: string;
+                sourceType?: HookSourceType;
+                sql: string;
+                params?: unknown[];
+            }) => Promise<Record<string, unknown>[]>;
+            execute: (input: {
+                modId: string;
+                sourceType?: HookSourceType;
+                sql: string;
+                params?: unknown[];
+            }) => Promise<HookStorageSqliteExecuteResult>;
+            transaction: (input: {
+                modId: string;
+                sourceType?: HookSourceType;
+                statements: HookStorageSqliteStatement[];
+            }) => Promise<HookStorageSqliteExecuteResult>;
+        };
+    };
     setModSourceType(modId: string, sourceType: HookSourceType): void;
     getModSourceType(modId: string): HookSourceType;
     setCapabilityBaseline(modId: string, capabilities: string[]): void;

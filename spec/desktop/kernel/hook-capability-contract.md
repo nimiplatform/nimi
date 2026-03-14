@@ -4,7 +4,7 @@
 
 ## Scope
 
-Desktop Hook 能力模型契约。定义 5 个 hook 子系统、capability key 格式、source-type 权限白名单、wildcard 匹配语义。
+Desktop Hook 能力模型契约。定义 6 个 hook 子系统、capability key 格式、source-type 权限白名单、wildcard 匹配语义。
 
 ## D-HOOK-001 — Event 子系统
 
@@ -47,7 +47,27 @@ UI 扩展槽位注册：
 - `ui.register(...)` 不得被视为“mod 可直接注入 shared React tree”的承诺。
 - route tab identity 在 Desktop host 中固定使用 `tabId`；route visibility / retention / lifecycle 由 host 管理，不属于 hook payload 本身。
 
-## D-HOOK-005 — Inter-Mod 子系统
+## D-HOOK-005 — Storage 子系统
+
+Desktop host 提供的 mod 本地持久化能力：
+
+- `storage.files.read`
+- `storage.files.write`
+- `storage.files.delete`
+- `storage.files.list`
+- `storage.sqlite.query`
+- `storage.sqlite.execute`
+- `storage.sqlite.transaction`
+
+约束：
+
+- 持久化根固定为 `{nimi_data_dir}/mod-data/{mod_id}`。
+- mod 身份只能由 host caller context 决定，payload 不得自报 `modId`。
+- `files` 只允许相对路径访问该 mod 自己的 `files/` 子树。
+- `sqlite` 只允许访问该 mod 自己的 `sqlite/main.db`。
+- `codegen` 不开放任何 `storage.*` 能力。
+
+## D-HOOK-006 — Inter-Mod 子系统
 
 跨 mod RPC 通信：
 
@@ -55,7 +75,7 @@ UI 扩展槽位注册：
 - `inter-mod.provide.<channel>`：在指定通道提供服务。
 - `builtin` 支持 request + provide，其他 source types 仅支持 request。
 
-## D-HOOK-006 — Capability Key 格式
+## D-HOOK-007 — Capability Key 格式
 
 Capability key 采用点分层级格式：`<subsystem>.<action>.<target>`。
 
@@ -63,14 +83,14 @@ Capability key 采用点分层级格式：`<subsystem>.<action>.<target>`。
 - 匹配：`capabilityMatches(pattern, key)` — 支持 `*` wildcard。
 - 批量匹配：`anyCapabilityMatches(patterns, key)` — 任一模式匹配即通过。
 
-## D-HOOK-007 — Source-Type 权限网关
+## D-HOOK-008 — Source-Type 权限网关
 
 5 种 source types 按信任级别递减排列：
 
 1. `core`：全权限 `*`。
-2. `builtin`：完整 5 子系统 + runtime facade + action + audit/meta（含 `meta.read.all`）。
-3. `injected`：完整 event/data/ui/inter-mod + 受限 turn hook（仅 pre-model, post-state）+ 完整 runtime facade + action + audit/meta（无 `meta.read.all`、无 `inter-mod.provide`）。
-4. `sideload`：event.publish + data.query + ui.register + inter-mod.request + 完整 runtime facade + action + audit/meta（无 event.subscribe、无 data.register、无 turn hook、无 `inter-mod.provide`）。
+2. `builtin`：完整 6 子系统 + runtime facade + action + audit/meta（含 `meta.read.all`）。
+3. `injected`：完整 event/data/storage/ui/inter-mod + 受限 turn hook（仅 pre-model, post-state）+ 完整 runtime facade + action + audit/meta（无 `meta.read.all`、无 `inter-mod.provide`）。
+4. `sideload`：event.publish + data.query + storage + ui.register + inter-mod.request + 完整 runtime facade + action + audit/meta（无 event.subscribe、无 data.register、无 turn hook、无 `inter-mod.provide`）。
 5. `codegen`：最小权限（runtime text facade + `ui-extension.app.*` 槽位 + `data-api.user-*` 数据 API + audit/meta.read.self）。
 
 Capability 检查流程：
@@ -85,7 +105,7 @@ Capability 检查流程：
 - Runtime canonical capability token 负责在 `runtime.route.listOptions/resolve/checkHealth` 中判定 connector/model/workflow 的支持面。
 - Hook permission key 不是 provider/model 能力真相；Desktop 不得用 `runtime.*` permission 反推 `text.generate` / `audio.synthesize` / `voice_workflow.tts_v2v` 等 runtime canonical capability。
 
-## D-HOOK-008 — Runtime Capability 域
+## D-HOOK-009 — Runtime Capability 域
 
 所有非 codegen source types 共享完整 runtime facade 能力集：
 
@@ -109,13 +129,13 @@ legacy runtime-aligned mod/hook surface 已硬切移除，不得回流旧的 mod
 
 - `pnpm check:runtime-mod-hook-hardcut`
 
-## D-HOOK-009 — Action Capability 域
+## D-HOOK-010 — Action Capability 域
 
 所有非 codegen source types 共享 action 能力集：
 
 - `action.discover.*` / `action.dry-run.*` / `action.verify.*` / `action.commit.*`
 
-## D-HOOK-010 — Audit / Meta Capability 域
+## D-HOOK-011 — Audit / Meta Capability 域
 
 辅助能力域，用于 mod 自检和平台元数据读取：
 
@@ -123,7 +143,7 @@ legacy runtime-aligned mod/hook surface 已硬切移除，不得回流旧的 mod
 - `meta.read.self`：读取本 mod 的元数据（所有 source types 均可用，包括 `codegen`）。
 - `meta.read.all`：读取全局 mod 元数据（仅 `builtin` 可用）。
 
-## D-HOOK-011 — Route Runtime Lifecycle Boundary
+## D-HOOK-012 — Route Runtime Lifecycle Boundary
 
 Desktop host 必须将 route runtime lifecycle 与 package lifecycle 分开处理。
 

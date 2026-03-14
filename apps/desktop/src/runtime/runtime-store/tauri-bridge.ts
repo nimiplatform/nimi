@@ -88,6 +88,43 @@ export type RuntimeExternalAgentContextVerificationInput = {
   bridgeExecutionId?: string;
 };
 
+export type RuntimeModStorageFileKind = 'file' | 'directory';
+
+export type RuntimeModStorageFileEntry = {
+  path: string;
+  kind: RuntimeModStorageFileKind;
+  sizeBytes: number;
+  modifiedAt?: string;
+};
+
+export type RuntimeModStorageFileReadResult = {
+  path: string;
+  text?: string;
+  bytes?: Uint8Array;
+  sizeBytes: number;
+  modifiedAt?: string;
+};
+
+export type RuntimeModStorageFileWriteResult = {
+  path: string;
+  sizeBytes: number;
+  modifiedAt?: string;
+};
+
+export type RuntimeModStorageSqliteStatement = {
+  sql: string;
+  params?: unknown[];
+};
+
+export type RuntimeModStorageSqliteQueryResult = {
+  rows: Record<string, unknown>[];
+};
+
+export type RuntimeModStorageSqliteExecuteResult = {
+  rowsAffected: number;
+  lastInsertRowid: number;
+};
+
 function readGlobalTauriInvoke(): TauriInvoke | null {
   const value = globalThis as TauriLikeGlobal;
   const windowCore = value.window?.__TAURI__?.core;
@@ -103,6 +140,81 @@ function readGlobalTauriInvoke(): TauriInvoke | null {
   }
 
   return null;
+}
+
+function asObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function parseStorageFileEntry(value: unknown): RuntimeModStorageFileEntry | null {
+  const row = asObject(value);
+  const path = String(row.path || '').trim();
+  const kind = String(row.kind || '').trim() === 'directory' ? 'directory' : 'file';
+  const sizeBytes = Number(row.sizeBytes);
+  if (!path || !Number.isFinite(sizeBytes) || sizeBytes < 0) {
+    return null;
+  }
+  const modifiedAt = String(row.modifiedAt || '').trim() || undefined;
+  return {
+    path,
+    kind,
+    sizeBytes,
+    modifiedAt,
+  };
+}
+
+function parseStorageFileReadResult(value: unknown): RuntimeModStorageFileReadResult | null {
+  const row = asObject(value);
+  const path = String(row.path || '').trim();
+  const sizeBytes = Number(row.sizeBytes);
+  if (!path || !Number.isFinite(sizeBytes) || sizeBytes < 0) {
+    return null;
+  }
+  const text = typeof row.text === 'string' ? row.text : undefined;
+  const bytes = Array.isArray(row.bytes)
+    ? Uint8Array.from(
+      row.bytes
+        .map((item) => Number(item))
+        .filter((item) => Number.isInteger(item) && item >= 0 && item <= 255),
+    )
+    : undefined;
+  const modifiedAt = String(row.modifiedAt || '').trim() || undefined;
+  return {
+    path,
+    text,
+    bytes,
+    sizeBytes,
+    modifiedAt,
+  };
+}
+
+function parseStorageFileWriteResult(value: unknown): RuntimeModStorageFileWriteResult | null {
+  const row = asObject(value);
+  const path = String(row.path || '').trim();
+  const sizeBytes = Number(row.sizeBytes);
+  if (!path || !Number.isFinite(sizeBytes) || sizeBytes < 0) {
+    return null;
+  }
+  return {
+    path,
+    sizeBytes,
+    modifiedAt: String(row.modifiedAt || '').trim() || undefined,
+  };
+}
+
+function parseStorageSqliteExecuteResult(value: unknown): RuntimeModStorageSqliteExecuteResult | null {
+  const row = asObject(value);
+  const rowsAffected = Number(row.rowsAffected);
+  const lastInsertRowid = Number(row.lastInsertRowid);
+  if (!Number.isFinite(rowsAffected) || rowsAffected < 0 || !Number.isFinite(lastInsertRowid)) {
+    return null;
+  }
+  return {
+    rowsAffected,
+    lastInsertRowid,
+  };
 }
 
 export function hasRuntimeStoreInvoke() {
@@ -363,6 +475,220 @@ export async function verifyExternalAgentExecutionContext(
     return false;
   }
   const result = await invoke('external_agent_verify_execution_context', {
+    payload: input,
+  });
+  return result === true;
+}
+
+export async function readRuntimeModStorageText(input: {
+  modId: string;
+  path: string;
+}): Promise<RuntimeModStorageFileReadResult> {
+  const invoke = readGlobalTauriInvoke();
+  if (!invoke) {
+    throw new Error('runtime mod storage file read requires Tauri runtime');
+  }
+  const result = await invoke('runtime_mod_storage_file_read', {
+    payload: {
+      modId: input.modId,
+      path: input.path,
+      format: 'text',
+    },
+  });
+  const parsed = parseStorageFileReadResult(result);
+  if (!parsed || typeof parsed.text !== 'string') {
+    throw new Error('runtime mod storage file read returned invalid text payload');
+  }
+  return parsed;
+}
+
+export async function readRuntimeModStorageBytes(input: {
+  modId: string;
+  path: string;
+}): Promise<RuntimeModStorageFileReadResult> {
+  const invoke = readGlobalTauriInvoke();
+  if (!invoke) {
+    throw new Error('runtime mod storage file read requires Tauri runtime');
+  }
+  const result = await invoke('runtime_mod_storage_file_read', {
+    payload: {
+      modId: input.modId,
+      path: input.path,
+      format: 'bytes',
+    },
+  });
+  const parsed = parseStorageFileReadResult(result);
+  if (!parsed || !parsed.bytes) {
+    throw new Error('runtime mod storage file read returned invalid bytes payload');
+  }
+  return parsed;
+}
+
+export async function writeRuntimeModStorageText(input: {
+  modId: string;
+  path: string;
+  text: string;
+}): Promise<RuntimeModStorageFileWriteResult> {
+  const invoke = readGlobalTauriInvoke();
+  if (!invoke) {
+    throw new Error('runtime mod storage file write requires Tauri runtime');
+  }
+  const result = await invoke('runtime_mod_storage_file_write', {
+    payload: {
+      modId: input.modId,
+      path: input.path,
+      text: input.text,
+    },
+  });
+  const parsed = parseStorageFileWriteResult(result);
+  if (!parsed) {
+    throw new Error('runtime mod storage file write returned invalid payload');
+  }
+  return parsed;
+}
+
+export async function writeRuntimeModStorageBytes(input: {
+  modId: string;
+  path: string;
+  bytes: Uint8Array;
+}): Promise<RuntimeModStorageFileWriteResult> {
+  const invoke = readGlobalTauriInvoke();
+  if (!invoke) {
+    throw new Error('runtime mod storage file write requires Tauri runtime');
+  }
+  const result = await invoke('runtime_mod_storage_file_write', {
+    payload: {
+      modId: input.modId,
+      path: input.path,
+      bytes: Array.from(input.bytes),
+    },
+  });
+  const parsed = parseStorageFileWriteResult(result);
+  if (!parsed) {
+    throw new Error('runtime mod storage file write returned invalid payload');
+  }
+  return parsed;
+}
+
+export async function deleteRuntimeModStoragePath(input: {
+  modId: string;
+  path: string;
+}): Promise<boolean> {
+  const invoke = readGlobalTauriInvoke();
+  if (!invoke) {
+    throw new Error('runtime mod storage file delete requires Tauri runtime');
+  }
+  const result = await invoke('runtime_mod_storage_file_delete', {
+    payload: input,
+  });
+  return result === true;
+}
+
+export async function listRuntimeModStorage(input: {
+  modId: string;
+  path?: string;
+}): Promise<RuntimeModStorageFileEntry[]> {
+  const invoke = readGlobalTauriInvoke();
+  if (!invoke) {
+    throw new Error('runtime mod storage file list requires Tauri runtime');
+  }
+  const result = await invoke('runtime_mod_storage_file_list', {
+    payload: input,
+  });
+  if (!Array.isArray(result)) {
+    throw new Error('runtime mod storage file list returned invalid payload');
+  }
+  return result
+    .map(parseStorageFileEntry)
+    .filter((entry): entry is RuntimeModStorageFileEntry => Boolean(entry));
+}
+
+export async function statRuntimeModStoragePath(input: {
+  modId: string;
+  path: string;
+}): Promise<RuntimeModStorageFileEntry | null> {
+  const invoke = readGlobalTauriInvoke();
+  if (!invoke) {
+    throw new Error('runtime mod storage file stat requires Tauri runtime');
+  }
+  const result = await invoke('runtime_mod_storage_file_stat', {
+    payload: input,
+  });
+  if (result == null) {
+    return null;
+  }
+  const parsed = parseStorageFileEntry(result);
+  if (!parsed) {
+    throw new Error('runtime mod storage file stat returned invalid payload');
+  }
+  return parsed;
+}
+
+export async function queryRuntimeModStorageSqlite(input: {
+  modId: string;
+  sql: string;
+  params?: unknown[];
+}): Promise<RuntimeModStorageSqliteQueryResult> {
+  const invoke = readGlobalTauriInvoke();
+  if (!invoke) {
+    throw new Error('runtime mod storage sqlite query requires Tauri runtime');
+  }
+  const result = await invoke('runtime_mod_storage_sqlite_query', {
+    payload: input,
+  });
+  const row = asObject(result);
+  return {
+    rows: Array.isArray(row.rows)
+      ? row.rows.map((entry) => asObject(entry))
+      : [],
+  };
+}
+
+export async function executeRuntimeModStorageSqlite(input: {
+  modId: string;
+  sql: string;
+  params?: unknown[];
+}): Promise<RuntimeModStorageSqliteExecuteResult> {
+  const invoke = readGlobalTauriInvoke();
+  if (!invoke) {
+    throw new Error('runtime mod storage sqlite execute requires Tauri runtime');
+  }
+  const result = await invoke('runtime_mod_storage_sqlite_execute', {
+    payload: input,
+  });
+  const parsed = parseStorageSqliteExecuteResult(result);
+  if (!parsed) {
+    throw new Error('runtime mod storage sqlite execute returned invalid payload');
+  }
+  return parsed;
+}
+
+export async function transactRuntimeModStorageSqlite(input: {
+  modId: string;
+  statements: RuntimeModStorageSqliteStatement[];
+}): Promise<RuntimeModStorageSqliteExecuteResult> {
+  const invoke = readGlobalTauriInvoke();
+  if (!invoke) {
+    throw new Error('runtime mod storage sqlite transaction requires Tauri runtime');
+  }
+  const result = await invoke('runtime_mod_storage_sqlite_transaction', {
+    payload: input,
+  });
+  const parsed = parseStorageSqliteExecuteResult(result);
+  if (!parsed) {
+    throw new Error('runtime mod storage sqlite transaction returned invalid payload');
+  }
+  return parsed;
+}
+
+export async function purgeRuntimeModStorageData(input: {
+  modId: string;
+}): Promise<boolean> {
+  const invoke = readGlobalTauriInvoke();
+  if (!invoke) {
+    throw new Error('runtime mod storage purge requires Tauri runtime');
+  }
+  const result = await invoke('runtime_mod_storage_data_purge', {
     payload: input,
   });
   return result === true;

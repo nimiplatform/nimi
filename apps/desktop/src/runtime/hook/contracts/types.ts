@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 
 export type HookDecision = 'ALLOW' | 'ALLOW_WITH_WARNING' | 'DENY';
-export type HookType = 'event-bus' | 'data-api' | 'ui-extension' | 'turn-hook' | 'inter-mod' | 'runtime' | 'action';
+export type HookType = 'event-bus' | 'data-api' | 'storage' | 'ui-extension' | 'turn-hook' | 'inter-mod' | 'runtime' | 'action';
 export type HookSourceType = 'builtin' | 'injected' | 'sideload' | 'core' | 'codegen';
 export type TurnHookPoint = 'pre-policy' | 'pre-model' | 'post-state' | 'pre-commit';
 

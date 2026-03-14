@@ -24,7 +24,7 @@ companion artifact、`engineConfig` 与 LocalAI 动态图片工作流（`profile
 
 `checkLocalLlmHealth` — 验证本地引擎可用性。
 
-### Hook Capability (D-HOOK-008)
+### Hook Capability (D-HOOK-009)
 
 mod 如需枚举 companion assets，必须显式声明 `runtime.local.artifacts.list`。如需读取推荐组合或发起一键安装，请显式声明：
 
