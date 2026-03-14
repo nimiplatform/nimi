@@ -312,6 +312,7 @@ mod tests {
         let state = LocalAiRuntimeState {
             version: 11,
             models: vec![model_fixture("model-a"), model_fixture("model-b")],
+            artifacts: Vec::new(),
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),
@@ -363,6 +364,7 @@ mod tests {
         let current = LocalAiRuntimeState {
             version: 11,
             models: vec![],
+            artifacts: Vec::new(),
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),
@@ -378,6 +380,7 @@ mod tests {
         let incoming = LocalAiRuntimeState {
             version: 11,
             models: vec![model_fixture("model-a")],
+            artifacts: Vec::new(),
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),
@@ -398,6 +401,7 @@ mod tests {
         let current = LocalAiRuntimeState {
             version: 11,
             models: vec![],
+            artifacts: Vec::new(),
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),
@@ -413,6 +417,7 @@ mod tests {
         let incoming = LocalAiRuntimeState {
             version: 11,
             models: vec![],
+            artifacts: Vec::new(),
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),
@@ -438,6 +443,7 @@ mod tests {
         let current = LocalAiRuntimeState {
             version: 11,
             models: vec![],
+            artifacts: Vec::new(),
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),
@@ -453,6 +459,7 @@ mod tests {
         let incoming = LocalAiRuntimeState {
             version: 11,
             models: vec![],
+            artifacts: Vec::new(),
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),

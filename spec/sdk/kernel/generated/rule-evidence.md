@@ -61,6 +61,8 @@
 | `S-MOD-006` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
 | `S-MOD-010` | `covered` | `sdk_kernel_consistency` |
 | `S-MOD-011` | `na` | `sdk_kernel_consistency` |
+| `S-MOD-012` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-MOD-013` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-REALM-010` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-REALM-011` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-REALM-012` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |

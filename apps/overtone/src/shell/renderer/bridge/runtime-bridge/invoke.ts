@@ -1,4 +1,5 @@
 import { hasTauriInvoke } from './env.js';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { RuntimeBridgeErrorPayload } from './types.js';
 
 export class BridgeError extends Error {
@@ -36,7 +37,7 @@ export async function invoke<T = unknown>(
 ): Promise<T> {
   if (!hasTauriInvoke()) {
     throw new BridgeError({
-      reasonCode: 'RUNTIME_BRIDGE_NOT_AVAILABLE',
+      reasonCode: ReasonCode.RUNTIME_BRIDGE_DAEMON_UNAVAILABLE,
       actionHint: 'run_in_tauri_shell',
       traceId: '',
       retryable: false,
@@ -52,7 +53,7 @@ export async function invoke<T = unknown>(
       throw new BridgeError(parsed);
     }
     throw new BridgeError({
-      reasonCode: 'RUNTIME_BRIDGE_INVOKE_FAILED',
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
       actionHint: 'check_runtime_bridge_logs',
       traceId: '',
       retryable: false,

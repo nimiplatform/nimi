@@ -90,35 +90,36 @@ pub fn runtime_local_models_catalog_resolve_install_plan(
 }
 
 #[tauri::command]
-pub fn runtime_local_dependencies_resolve(
+pub fn runtime_local_profiles_resolve(
     app: AppHandle,
-    payload: LocalAiDependenciesResolvePayload,
-) -> Result<LocalAiDependencyResolutionPlan, String> {
+    payload: LocalAiProfilesResolvePayload,
+) -> Result<LocalAiProfileResolutionPlan, String> {
     append_app_audit_event_non_blocking(
         &app,
-        EVENT_DEPENDENCY_RESOLVE_INVOKED,
+        EVENT_PROFILE_RESOLVE_INVOKED,
         None,
         None,
         Some(serde_json::json!({
             "modId": payload.mod_id.clone(),
+            "profileId": payload.profile.id.clone(),
             "capability": payload.capability.clone(),
-            "hasDependencies": payload.dependencies.is_some(),
-            "hasDeviceProfile": true,
-            "deviceProfile": payload.device_profile.clone(),
+            "entryCount": payload.profile.entries.len(),
+            "consumeCapabilities": payload.profile.consume_capabilities.clone(),
+            "hasDeviceProfile": payload.device_profile.is_some(),
         })),
     );
-    match resolve_dependency_plan(&app, &payload) {
+    match resolve_profile_plan(&app, &payload) {
         Ok(plan) => Ok(plan),
         Err(error) => {
             append_app_audit_event_non_blocking(
                 &app,
-                EVENT_DEPENDENCY_RESOLVE_FAILED,
+                EVENT_PROFILE_RESOLVE_FAILED,
                 None,
                 None,
                 Some(serde_json::json!({
                     "modId": payload.mod_id,
+                    "profileId": payload.profile.id,
                     "capability": payload.capability,
-                    "deviceProfile": payload.device_profile,
                     "reasonCode": extract_reason_code(error.as_str()),
                     "error": error,
                 })),
@@ -132,4 +133,3 @@ pub fn runtime_local_dependencies_resolve(
 pub fn runtime_local_device_profile_collect(app: AppHandle) -> Result<LocalAiDeviceProfile, String> {
     Ok(collect_device_profile(&app))
 }
-

@@ -3,12 +3,12 @@ import test from 'node:test';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
-  parseDependencyApplyResult,
-  parseDependencyResolutionPlan,
+  parseExecutionApplyResult,
+  parseExecutionPlan,
 } from '../src/runtime/local-ai-runtime/parsers.js';
 
-test('parseDependencyResolutionPlan normalizes device profile and selections', () => {
-  const parsed = parseDependencyResolutionPlan({
+test('parseExecutionPlan normalizes device profile and selections', () => {
+  const parsed = parseExecutionPlan({
     planId: 'plan-1',
     modId: 'local-chat',
     capability: 'chat',
@@ -21,10 +21,10 @@ test('parseDependencyResolutionPlan normalizes device profile and selections', (
       diskFreeBytes: 12345,
       ports: [{ port: 8080, available: true }, { port: -1, available: false }],
     },
-    dependencies: [
+    entries: [
       {
-        dependencyId: 'dep-model',
-        kind: 'LOCAL_DEPENDENCY_KIND_MODEL',
+        entryId: 'dep-model',
+        kind: 'LOCAL_EXECUTION_ENTRY_KIND_MODEL',
         capability: 'chat',
         required: true,
         selected: true,
@@ -34,7 +34,7 @@ test('parseDependencyResolutionPlan normalizes device profile and selections', (
     ],
     selectionRationale: [
       {
-        dependencyId: 'dep-model',
+        entryId: 'dep-model',
         selected: true,
         reasonCode: ReasonCode.ACTION_EXECUTED,
         detail: 'verified model matched',
@@ -42,7 +42,7 @@ test('parseDependencyResolutionPlan normalizes device profile and selections', (
     ],
     preflightDecisions: [
       {
-        dependencyId: 'dep-model',
+        entryId: 'dep-model',
         target: 'python',
         check: 'python_available',
         ok: true,
@@ -55,18 +55,18 @@ test('parseDependencyResolutionPlan normalizes device profile and selections', (
 
   assert.equal(parsed.deviceProfile.arch, 'arm64');
   assert.deepEqual(parsed.deviceProfile.ports, [{ port: 8080, available: true }]);
-  assert.equal(parsed.dependencies[0]?.kind, 'model');
+  assert.equal(parsed.entries[0]?.kind, 'model');
   assert.equal(parsed.selectionRationale[0]?.reasonCode, ReasonCode.ACTION_EXECUTED);
   assert.equal(parsed.preflightDecisions[0]?.check, 'python_available');
 });
 
-test('parseDependencyApplyResult reuses model and service parsers', () => {
-  const parsed = parseDependencyApplyResult({
+test('parseExecutionApplyResult reuses model and service parsers', () => {
+  const parsed = parseExecutionApplyResult({
     planId: 'plan-1',
     modId: 'local-chat',
-    dependencies: [
+    entries: [
       {
-        dependencyId: 'dep-service',
+        entryId: 'dep-service',
         kind: 2,
         selected: true,
         preferred: false,
@@ -123,7 +123,7 @@ test('parseDependencyApplyResult reuses model and service parsers', () => {
     warnings: [],
   });
 
-  assert.equal(parsed.dependencies[0]?.kind, 'service');
+  assert.equal(parsed.entries[0]?.kind, 'service');
   assert.equal(parsed.installedModels[0]?.status, 'active');
   assert.equal(parsed.services[0]?.status, 'active');
   assert.equal(parsed.stageResults[0]?.stage, 'install');

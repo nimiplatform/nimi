@@ -1,7 +1,7 @@
 import { resolveModRuntimeContext } from '../internal/runtime-access.js';
 import type { ModRuntimeContextInput } from '../types/runtime-mod.js';
 import type {
-  ModRuntimeDependencySnapshot,
+  ModRuntimeLocalProfileSnapshot,
   ModRuntimeInspector,
   ModRuntimeRepairAction,
 } from './types.js';
@@ -21,11 +21,11 @@ export function createModRuntimeInspector(
   }
   const runtimeContext = resolveModRuntimeContext(context);
 
-  const getDependencySnapshot = async (
+  const getLocalProfileSnapshot = async (
     capability?: RuntimeCanonicalCapability,
     routeSourceHint?: 'cloud' | 'local',
-  ): Promise<ModRuntimeDependencySnapshot> => {
-    return runtimeContext.runtimeHost.getModAiDependencySnapshot({
+  ): Promise<ModRuntimeLocalProfileSnapshot> => {
+    return runtimeContext.runtimeHost.getModLocalProfileSnapshot({
       modId: normalizedModId,
       capability,
       routeSourceHint,
@@ -33,12 +33,12 @@ export function createModRuntimeInspector(
   };
 
   const getRepairActions = async (capability?: RuntimeCanonicalCapability): Promise<ModRuntimeRepairAction[]> => {
-    const snapshot = await getDependencySnapshot(capability);
+    const snapshot = await getLocalProfileSnapshot(capability);
     return snapshot.repairActions;
   };
 
   return {
-    getDependencySnapshot,
+    getLocalProfileSnapshot,
     getRepairActions,
   };
 }

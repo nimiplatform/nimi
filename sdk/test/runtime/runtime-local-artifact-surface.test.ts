@@ -34,6 +34,16 @@ test('runtime method groups classify local artifact RPCs correctly', () => {
   }
 });
 
+test('runtime method groups classify local profile RPCs correctly', () => {
+  assert.equal(RuntimeLocalAnonymousMethodIds.includes(RuntimeMethodIds.local.resolveProfile), true);
+  assert.equal(isRuntimeLocalAnonymousMethod(RuntimeMethodIds.local.resolveProfile), true);
+  assert.equal(isRuntimeWriteMethod(RuntimeMethodIds.local.resolveProfile), false);
+
+  assert.equal(RuntimeWriteMethodIds.includes(RuntimeMethodIds.local.applyProfile), true);
+  assert.equal(isRuntimeWriteMethod(RuntimeMethodIds.local.applyProfile), true);
+  assert.equal(isRuntimeLocalAnonymousMethod(RuntimeMethodIds.local.applyProfile), false);
+});
+
 test('buildLocalImageWorkflowExtensions normalizes workflow selections and preserves unrelated extensions', () => {
   const extensions = buildLocalImageWorkflowExtensions(
     {

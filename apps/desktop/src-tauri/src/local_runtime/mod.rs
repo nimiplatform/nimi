@@ -1,3 +1,4 @@
+mod artifact_registry;
 mod audit;
 mod capability_matrix;
 mod catalog;
@@ -20,3 +21,4 @@ mod store;
 mod supervisor;
 mod types;
 mod verified_models;
+mod verified_artifacts;

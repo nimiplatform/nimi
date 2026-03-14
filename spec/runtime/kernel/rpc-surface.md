@@ -117,19 +117,19 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 23. `CheckLocalServiceHealth`
 24. `RemoveLocalService`
 25. `ListNodeCatalog`
-26. `ResolveDependencies`
-27. `ApplyDependencies`
+26. `ResolveProfile`
+27. `ApplyProfile`
 28. `ListLocalAudits`
-29. `AppendInferenceAudit`
-30. `AppendRuntimeAudit`
+31. `AppendInferenceAudit`
+32. `AppendRuntimeAudit`
 
 **Tier 4 — 引擎进程管理（K-LENG-004）：**
 
-31. `ListEngines`
-32. `EnsureEngine`
-33. `StartEngine`
-34. `StopEngine`
-35. `GetEngineStatus`
+33. `ListEngines`
+34. `EnsureEngine`
+35. `StartEngine`
+36. `StopEngine`
+37. `GetEngineStatus`
 
 `WarmLocalModel` 的语义限定为“就绪/预热”读路径：允许解析已安装 local model / local service、触发一次最小执行以加载模型，但不得改变安装态、配置态或 desktop 独占的生命周期写权限（`K-LOCAL-028`）。
 

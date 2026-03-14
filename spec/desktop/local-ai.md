@@ -26,7 +26,10 @@ companion artifact、`engineConfig` 与 LocalAI 动态图片工作流（`profile
 
 ### Hook Capability (D-HOOK-008)
 
-mod 如需枚举 companion assets，必须显式声明 `runtime.local.artifacts.list`。
+mod 如需枚举 companion assets，必须显式声明 `runtime.local.artifacts.list`。如需读取推荐组合或发起一键安装，请显式声明：
+
+- `runtime.local.profiles.list`
+- `runtime.local.profiles.install.request`
 
 ### LLM (D-LLM-006)
 
@@ -58,7 +61,7 @@ mod 如需枚举 companion assets，必须显式声明 `runtime.local.artifacts.
 
 主模型 acquisition 固定为 download / detect / import 三条路径；Desktop execution-plane 负责主模型下载、orphan detect/scaffold 和 `model.manifest.json` import。
 
-companion artifact 的状态真相与安装落盘由 runtime local service 统一维护。Desktop 负责触发 verified install、`artifact.manifest.json` import 和状态渲染，不复制第二套 artifact store。
+companion artifact 的状态真相与安装落盘由 Desktop Tauri `local_runtime` 统一维护。Desktop 不再经 runtime SDK `RuntimeLocalService` 维护第二条 artifact 管理路径。
 
 ### HuggingFace 搜索
 
@@ -73,6 +76,16 @@ Desktop Rust 层实现完整下载管线（`K-LOCAL-024`）：
 - 逐文件 SHA256 校验
 - 原子提交（staging → rename，失败 rollback）
 - 进度通过 Tauri event channel 推送至前端
+
+### Mod Profile 安装流
+
+面向 mod 与 Runtime Config 的推荐安装 UX 必须围绕 `manifest.ai.profiles` 展开，而不是直接暴露底层 dependency list：
+
+- Desktop 只在选中某个 mod 时展示该 mod 声明的 profiles。
+- profile 是用户可理解的安装组合，可包含主模型、companion artifact、service 与 node。
+- host 在执行前必须弹出确认。
+- Tauri bridge 必须提供 `runtime_local_profiles_resolve` / `runtime_local_profiles_apply` 作为 profile 执行入口；内部允许继续复用 dependency resolver / apply。
+- companion artifact 安装与移除通过 `runtime_local_artifacts_*` command surface 执行；用户入口仍可被 profile/install UX 聚合，但执行面不得绕经 runtime SDK。
 
 ### 存储布局
 
@@ -89,6 +102,9 @@ companion artifact manifest 也必须位于 `~/.nimi/models/` 根下的某个子
 | Command | 方向 | 说明 |
 |---|---|---|
 | `runtime_local_models_install` / `runtime_local_models_install_verified` | Frontend → Rust | 创建模型安装会话并入队 |
+| `runtime_local_artifacts_list` / `runtime_local_artifacts_verified_list` | Frontend → Rust | 查询 companion artifact 已安装项与 verified catalog |
+| `runtime_local_artifacts_install_verified` | Frontend → Rust | 安装 verified companion artifact |
+| `runtime_local_artifacts_import` / `runtime_local_artifacts_remove` | Frontend → Rust | 导入或移除 companion artifact |
 | `runtime_local_downloads_cancel` | Frontend → Rust | 取消进行中的下载，清理 staging |
 | `runtime_local_models_catalog_search` | Frontend → Rust | 搜索 HuggingFace/catalog 模型 |
 

@@ -1,4 +1,4 @@
-import type { DesktopHookRuntimeFacade, HookModAiDependencySnapshot, HookModAiDependencySnapshotResolver, } from './contracts/facade.js';
+import type { DesktopHookRuntimeFacade, HookModLocalProfileSnapshot, HookModLocalProfileSnapshotResolver, } from './contracts/facade.js';
 import type { AgentProfileReadFilterInput, AgentProfileReadFilterResult, HookType, HookSourceType, MissingDataCapabilityResolver, TurnHookPoint, } from './contracts/types.js';
 import { HookContractRegistry } from './contracts/contract-registry.js';
 import { DataApi } from './data-api/data-api.js';
@@ -14,7 +14,7 @@ import { HookRuntimeLifecycleService } from './services/lifecycle-service.js';
 import { HookRuntimeMetaService } from './services/meta-service.js';
 import { HookRuntimePermissionService } from './services/permission-service.js';
 import { HookRuntimeActionService } from './services/action-service.js';
-import { HookRuntimeModAiDependencySnapshotService } from './services/mod-ai-dependency-snapshot-service.js';
+import { HookRuntimeModLocalProfileSnapshotService } from './services/mod-local-profile-snapshot-service.js';
 import { HookActionSocialPreconditionService } from './services/action-social-precondition.js';
 import { createCoreSocialFriendshipResolver } from './services/action-social-resolver.js';
 import { HookRuntimeTurnService } from './services/turn-service.js';
@@ -49,7 +49,7 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     private readonly lifecycleService: HookRuntimeLifecycleService;
     private readonly metaService: HookRuntimeMetaService;
     private readonly actionService: HookRuntimeActionService;
-    private readonly modAiDependencySnapshotService = new HookRuntimeModAiDependencySnapshotService();
+    private readonly modLocalProfileSnapshotService = new HookRuntimeModLocalProfileSnapshotService();
     private missingDataCapabilityResolver: MissingDataCapabilityResolver | null = null;
     constructor() {
         this.permissions.setSourceType('core:runtime', 'core');
@@ -135,7 +135,7 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     setDenialCapabilities(modId: string, capabilities: string[]): void { this.lifecycleService.setDenialCapabilities(modId, capabilities); }
     clearDenialCapabilities(modId: string): void { this.lifecycleService.clearDenialCapabilities(modId); }
     setMissingDataCapabilityResolver(resolver: MissingDataCapabilityResolver | null): void { this.missingDataCapabilityResolver = resolver; }
-    setModAiDependencySnapshotResolver(resolver: HookModAiDependencySnapshotResolver | null): void { this.modAiDependencySnapshotService.setResolver(resolver); }
+    setModLocalProfileSnapshotResolver(resolver: HookModLocalProfileSnapshotResolver | null): void { this.modLocalProfileSnapshotService.setResolver(resolver); }
     authorizeRuntimeCapability(input: {
         modId: string;
         sourceType?: HookSourceType;
@@ -154,12 +154,12 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
             startedAt: Date.now(),
         });
     }
-    getModAiDependencySnapshot(input: {
+    getModLocalProfileSnapshot(input: {
         modId: string;
         capability?: RuntimeCanonicalCapability;
         routeSourceHint?: 'cloud' | 'local';
-    }): Promise<HookModAiDependencySnapshot> {
-        return this.modAiDependencySnapshotService.getSnapshot(input);
+    }): Promise<HookModLocalProfileSnapshot> {
+        return this.modLocalProfileSnapshotService.getSnapshot(input);
     }
     suspendMod(modId: string): void { this.lifecycleService.suspendMod(modId); }
     subscribeEvent(input: {

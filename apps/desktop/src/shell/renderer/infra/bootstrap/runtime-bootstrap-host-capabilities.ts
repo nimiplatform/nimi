@@ -1,5 +1,9 @@
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
-import { localAiRuntime, } from '@runtime/local-ai-runtime';
+import {
+    findLocalAiProfileById,
+    localAiRuntime,
+    normalizeLocalAiProfilesDeclaration,
+} from '@runtime/local-ai-runtime';
 import type { CheckLlmHealthInput, ExecuteLocalKernelTurnInput, ExecuteLocalKernelTurnResult, ProviderHealth, } from '@runtime/llm-adapter';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -21,9 +25,10 @@ import {
 } from '../../features/turns/scenario-job-controller';
 import { createResolveRuntimeBinding } from './runtime-bootstrap-route-resolvers';
 import { loadRuntimeRouteOptions } from './runtime-bootstrap-route-options';
-import { cacheSpeechArtifactsForDesktopPlayback, createModAiDependencySnapshotResolver, } from './runtime-bootstrap-host-capabilities-dependencies';
+import { cacheSpeechArtifactsForDesktopPlayback, createModLocalProfileSnapshotResolver, } from './runtime-bootstrap-host-capabilities-profiles';
 import { ensureResolvedLocalModelAvailable, getRuntimeFieldsFromStore, hydrateLocalRouteBindingFromOptions, hydrateCloudRouteBindingFromOptions, requireModel, toResolvedBinding, toRouteHealthResult, } from './runtime-bootstrap-host-capabilities-routing';
 import { type ModSdkHost, type RuntimeLlmHealthInput, type RuntimeLlmHealthResult, type ModRuntimeResolvedBinding, type RuntimeCanonicalCapability, type RuntimeRouteBinding, type RuntimeRouteOptionsSnapshot } from "@nimiplatform/sdk/mod";
+import { ReasonCode } from '@nimiplatform/sdk/types';
 type HostCapabilityInput = {
     checkLocalLlmHealth: (input: CheckLlmHealthInput) => Promise<ProviderHealth>;
     executeLocalKernelTurn: (input: ExecuteLocalKernelTurnInput) => Promise<ExecuteLocalKernelTurnResult>;
@@ -34,10 +39,29 @@ type HostCapabilityInput = {
     }, task: () => Promise<T>) => Promise<T>;
     getRuntimeHookRuntime: () => DesktopHookRuntimeService;
 };
+function asRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value)
+        ? value as Record<string, unknown>
+        : {};
+}
+function readManifestProfiles(modId: string) {
+    const normalizedModId = String(modId || '').trim();
+    if (!normalizedModId) {
+        return [];
+    }
+    const summaries = useAppStore.getState().localManifestSummaries || [];
+    const summary = summaries.find((item) => String(item.id || '').trim() === normalizedModId) || null;
+    if (!summary) {
+        return [];
+    }
+    const manifest = asRecord(summary.manifest);
+    const ai = asRecord(manifest.ai);
+    return normalizeLocalAiProfilesDeclaration(ai.profiles);
+}
 export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdkHost {
     const lifecycleManager = new LifecycleSubscriptionManager();
     const hookRuntime = input.getRuntimeHookRuntime();
-    hookRuntime.setModAiDependencySnapshotResolver(createModAiDependencySnapshotResolver());
+    hookRuntime.setModLocalProfileSnapshotResolver(createModLocalProfileSnapshotResolver());
     const resolveRuntimeBinding = createResolveRuntimeBinding(() => getRuntimeFieldsFromStore());
     const authorizeRuntimeCapability = (payload: {
         modId: string;
@@ -262,7 +286,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                 fetchImpl?: typeof fetch;
             }, task: () => Promise<T>) => input.withOpenApiContextLock<T>(context, task),
             getRuntimeHookRuntime: () => hookRuntime,
-            getModAiDependencySnapshot: (payload) => hookRuntime.getModAiDependencySnapshot(payload),
+            getModLocalProfileSnapshot: (payload) => hookRuntime.getModLocalProfileSnapshot(payload),
             route: {
                 listOptions: async ({ capability, modId }) => {
                     authorizeRuntimeCapability({
@@ -301,6 +325,81 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                         capabilityKey: 'runtime.local.artifacts.list',
                     });
                     return localAiRuntime.listArtifacts(payload);
+                },
+                listProfiles: async ({ modId }) => {
+                    authorizeRuntimeCapability({
+                        modId,
+                        capabilityKey: 'runtime.local.profiles.list',
+                    });
+                    return readManifestProfiles(modId);
+                },
+                requestProfileInstall: async ({ modId, profileId, confirmMessage }) => {
+                    authorizeRuntimeCapability({
+                        modId,
+                        capabilityKey: 'runtime.local.profiles.install.request',
+                    });
+                    const profiles = readManifestProfiles(modId);
+                    const profile = findLocalAiProfileById(profiles, profileId);
+                    if (!profile) {
+                        return {
+                            modId,
+                            profileId: String(profileId || '').trim(),
+                            accepted: false,
+                            declined: false,
+                            warnings: ['profile not found'],
+                            reasonCode: ReasonCode.LOCAL_AI_PROFILE_NOT_FOUND,
+                        };
+                    }
+                    const message = String(confirmMessage || '').trim()
+                        || `Install recommended local profile "${profile.title}" for ${modId}?`;
+                    const accepted = typeof window !== 'undefined' && typeof window.confirm === 'function'
+                        ? window.confirm(message)
+                        : true;
+                    if (!accepted) {
+                        return {
+                            modId,
+                            profileId: profile.id,
+                            accepted: false,
+                            declined: true,
+                            warnings: ['user declined local profile install'],
+                            reasonCode: ReasonCode.LOCAL_AI_PROFILE_INSTALL_DECLINED,
+                        };
+                    }
+                    const plan = await localAiRuntime.resolveProfile({
+                        modId,
+                        profile,
+                    });
+                    const result = await localAiRuntime.applyProfile(plan, { caller: 'core' });
+                    return {
+                        modId,
+                        profileId: profile.id,
+                        accepted: true,
+                        declined: false,
+                        warnings: result.warnings,
+                        reasonCode: result.reasonCode,
+                    };
+                },
+                getProfileInstallStatus: async ({ modId, profileId }) => {
+                    authorizeRuntimeCapability({
+                        modId,
+                        capabilityKey: 'runtime.local.profiles.list',
+                    });
+                    const profiles = readManifestProfiles(modId);
+                    const profile = findLocalAiProfileById(profiles, profileId);
+                    if (!profile) {
+                        return {
+                            modId,
+                            profileId: String(profileId || '').trim(),
+                            status: 'missing',
+                            warnings: ['profile not found'],
+                            missingEntries: [String(profileId || '').trim()].filter(Boolean),
+                            updatedAt: new Date().toISOString(),
+                        };
+                    }
+                    return localAiRuntime.getProfileInstallStatus({
+                        modId,
+                        profile,
+                    });
                 },
             },
             ai: {

@@ -81,8 +81,8 @@ Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 | `CheckLocalServiceHealth` | `S-SURFACE-002` |
 | `RemoveLocalService` | `S-SURFACE-002` |
 | `ListNodeCatalog` | `S-SURFACE-002` |
-| `ResolveDependencies` | `S-SURFACE-002` |
-| `ApplyDependencies` | `S-SURFACE-002` |
+| `ResolveProfile` | `S-SURFACE-002` |
+| `ApplyProfile` | `S-SURFACE-002` |
 | `ListLocalAudits` | `S-SURFACE-002` |
 | `AppendInferenceAudit` | `S-SURFACE-002` |
 | `AppendRuntimeAudit` | `S-SURFACE-002` |

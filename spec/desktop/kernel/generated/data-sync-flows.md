@@ -118,7 +118,7 @@ Source Rule: `D-DSYNC-006`
 
 ## feed
 
-Social feed posts and media uploads
+Social feed posts and media uploads; direct-upload returns asset sessions and createPost references assetId only
 
 Source Rule: `D-DSYNC-007`
 

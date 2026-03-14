@@ -41,6 +41,7 @@ func TestUnaryLifecycleInterceptorAllowsLocalArtifactReadsWhenStopping(t *testin
 	for _, fullMethod := range []string{
 		"/nimi.runtime.v1.RuntimeLocalService/ListLocalArtifacts",
 		"/nimi.runtime.v1.RuntimeLocalService/ListVerifiedArtifacts",
+		"/nimi.runtime.v1.RuntimeLocalService/ResolveProfile",
 	} {
 		handlerCalled := false
 		_, err := interceptor(

@@ -2,6 +2,7 @@ package localservice
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -1008,50 +1009,40 @@ func TestLocalRecoveryProbeIntervalBackoff(t *testing.T) {
 	}
 }
 
-func TestLocalResolveAndApplyDependencies(t *testing.T) {
+func TestLocalResolveAndApplyExecutionPlan(t *testing.T) {
 	svc := newTestService(t)
 
-	planResp, err := svc.ResolveDependencies(context.Background(), &runtimev1.ResolveDependenciesRequest{
-		ModId:      "world.nimi.user-math-quiz",
-		Capability: "chat",
-		Dependencies: &runtimev1.LocalDependenciesDeclarationDescriptor{
-			Required: []*runtimev1.LocalDependencyOptionDescriptor{
+	plan := resolveExecutionPlan(&executionResolveRequest{
+		modID:      "world.nimi.user-math-quiz",
+		capability: "chat",
+		entries: &runtimev1.LocalExecutionDeclarationDescriptor{
+			Required: []*runtimev1.LocalExecutionOptionDescriptor{
 				{
-					DependencyId: "dep.chat.model",
-					Kind:         runtimev1.LocalDependencyKind_LOCAL_DEPENDENCY_KIND_MODEL,
-					Capability:   "chat",
-					ModelId:      "local/chat-default",
-					Engine:       "localai",
+					EntryId:    "dep.chat.model",
+					Kind:       runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_MODEL,
+					Capability: "chat",
+					ModelId:    "local/chat-default",
+					Engine:     "localai",
 				},
 				{
-					DependencyId: "dep.chat.service",
-					Kind:         runtimev1.LocalDependencyKind_LOCAL_DEPENDENCY_KIND_SERVICE,
-					Capability:   "chat",
-					ModelId:      "local/chat-default",
-					ServiceId:    "svc-chat",
-					Engine:       "localai",
+					EntryId:    "dep.chat.service",
+					Kind:       runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_SERVICE,
+					Capability: "chat",
+					ModelId:    "local/chat-default",
+					ServiceId:  "svc-chat",
+					Engine:     "localai",
 				},
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("resolve dependencies: %v", err)
-	}
-	plan := planResp.GetPlan()
 	if plan.GetPlanId() == "" {
 		t.Fatalf("plan id must not be empty")
 	}
-	if len(plan.GetDependencies()) != 2 {
-		t.Fatalf("resolved dependency count mismatch: got=%d want=2", len(plan.GetDependencies()))
+	if len(plan.GetEntries()) != 2 {
+		t.Fatalf("resolved dependency count mismatch: got=%d want=2", len(plan.GetEntries()))
 	}
 
-	applyResp, err := svc.ApplyDependencies(context.Background(), &runtimev1.ApplyDependenciesRequest{
-		Plan: plan,
-	})
-	if err != nil {
-		t.Fatalf("apply dependencies: %v", err)
-	}
-	result := applyResp.GetResult()
+	result := svc.applyExecutionPlanStrict(context.Background(), plan)
 	if result.GetPlanId() != plan.GetPlanId() {
 		t.Fatalf("applied plan mismatch: got=%q want=%q", result.GetPlanId(), plan.GetPlanId())
 	}
@@ -1077,6 +1068,171 @@ func TestLocalResolveAndApplyDependencies(t *testing.T) {
 	}
 	if result.GetRollbackApplied() {
 		t.Fatalf("happy path apply must not set rollback_applied")
+	}
+}
+
+func TestLocalResolveProfileSeparatesDependencyAndArtifactEntries(t *testing.T) {
+	svc := newTestService(t)
+	required := true
+	optional := false
+
+	resp, err := svc.ResolveProfile(context.Background(), &runtimev1.ResolveProfileRequest{
+		ModId: "world.nimi.user-image-studio",
+		Profile: &runtimev1.LocalProfileDescriptor{
+			Id:                  "quality-best",
+			Title:               "Quality Best",
+			Recommended:         true,
+			ConsumeCapabilities: []string{"image"},
+			Entries: []*runtimev1.LocalProfileEntryDescriptor{
+				{
+					EntryId:    "profile.image.model",
+					Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_MODEL,
+					Capability: "image",
+					Required:   &required,
+					ModelId:    "local/image-best",
+					Engine:     "localai",
+				},
+				{
+					EntryId:      "profile.image.vae",
+					Kind:         runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ARTIFACT,
+					Capability:   "image",
+					Required:     &required,
+					TemplateId:   "verified.artifact.z_image.vae",
+					ArtifactId:   "local/z_image_ae",
+					ArtifactKind: runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
+					Engine:       "localai",
+				},
+				{
+					EntryId:    "profile.image.helper",
+					Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_MODEL,
+					Capability: "chat",
+					Required:   &optional,
+					ModelId:    "local/helper-chat",
+					Engine:     "localai",
+				},
+			},
+		},
+		Capability: "image",
+	})
+	if err != nil {
+		t.Fatalf("resolve profile: %v", err)
+	}
+
+	plan := resp.GetPlan()
+	if plan.GetPlanId() == "" {
+		t.Fatalf("profile plan id must not be empty")
+	}
+	if plan.GetProfileId() != "quality-best" {
+		t.Fatalf("profile id mismatch: got=%q", plan.GetProfileId())
+	}
+	if plan.GetExecutionPlan() == nil {
+		t.Fatalf("execution plan must be present")
+	}
+	if plan.GetExecutionPlan().GetPlanId() != plan.GetPlanId() {
+		t.Fatalf("execution plan should share profile plan id: got=%q want=%q", plan.GetExecutionPlan().GetPlanId(), plan.GetPlanId())
+	}
+	if len(plan.GetExecutionPlan().GetEntries()) != 1 {
+		t.Fatalf("expected only image runtime entry after capability filter, got=%d", len(plan.GetExecutionPlan().GetEntries()))
+	}
+	if len(plan.GetArtifactEntries()) != 1 {
+		t.Fatalf("expected one artifact entry, got=%d", len(plan.GetArtifactEntries()))
+	}
+	if plan.GetArtifactEntries()[0].GetInstalled() {
+		t.Fatalf("artifact should not be marked installed before apply")
+	}
+}
+
+func TestLocalApplyProfileInstallsCompanionArtifacts(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.SetLocalAIRegistrationConfig(modelsRoot, "", false)
+	required := true
+
+	payload := []byte("verified-vae")
+	sum := sha256.Sum256(payload)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/Tongyi-MAI/Z-Image-Turbo/resolve/main/vae/diffusion_pytorch_model.safetensors" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write(payload)
+	}))
+	defer server.Close()
+
+	svc.hfDownloadBaseURL = server.URL
+	svc.verifiedArtifacts = []*runtimev1.LocalVerifiedArtifactDescriptor{
+		{
+			TemplateId: "verified.artifact.z_image.vae",
+			Title:      "Z-Image AE",
+			ArtifactId: "local/z_image_ae",
+			Kind:       runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
+			Engine:     "localai",
+			Entry:      "vae/diffusion_pytorch_model.safetensors",
+			Files:      []string{"vae/diffusion_pytorch_model.safetensors"},
+			License:    "tongyi",
+			Repo:       "Tongyi-MAI/Z-Image-Turbo",
+			Revision:   "main",
+			Hashes: map[string]string{
+				"vae/diffusion_pytorch_model.safetensors": fmt.Sprintf("sha256:%x", sum),
+			},
+		},
+	}
+
+	resolveResp, err := svc.ResolveProfile(context.Background(), &runtimev1.ResolveProfileRequest{
+		ModId: "world.nimi.user-image-studio",
+		Profile: &runtimev1.LocalProfileDescriptor{
+			Id:                  "quality-best",
+			Title:               "Quality Best",
+			Recommended:         true,
+			ConsumeCapabilities: []string{"image"},
+			Entries: []*runtimev1.LocalProfileEntryDescriptor{
+				{
+					EntryId:    "profile.image.model",
+					Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_MODEL,
+					Capability: "image",
+					Required:   &required,
+					ModelId:    "local/image-best",
+					Engine:     "localai",
+				},
+				{
+					EntryId:      "profile.image.vae",
+					Kind:         runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ARTIFACT,
+					Capability:   "image",
+					Required:     &required,
+					TemplateId:   "verified.artifact.z_image.vae",
+					ArtifactId:   "local/z_image_ae",
+					ArtifactKind: runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
+					Engine:       "localai",
+				},
+			},
+		},
+		Capability: "image",
+	})
+	if err != nil {
+		t.Fatalf("resolve profile: %v", err)
+	}
+
+	applyResp, err := svc.ApplyProfile(context.Background(), &runtimev1.ApplyProfileRequest{
+		Plan: resolveResp.GetPlan(),
+	})
+	if err != nil {
+		t.Fatalf("apply profile: %v", err)
+	}
+	result := applyResp.GetResult()
+	if result.GetReasonCode() != "ACTION_EXECUTED" {
+		t.Fatalf("profile apply reason mismatch: got=%q", result.GetReasonCode())
+	}
+	if result.GetExecutionResult() == nil {
+		t.Fatalf("execution result must be present")
+	}
+	if len(result.GetExecutionResult().GetInstalledModels()) != 1 {
+		t.Fatalf("expected one installed model, got=%d", len(result.GetExecutionResult().GetInstalledModels()))
+	}
+	if len(result.GetInstalledArtifacts()) != 1 {
+		t.Fatalf("expected one installed artifact, got=%d", len(result.GetInstalledArtifacts()))
+	}
+	if result.GetInstalledArtifacts()[0].GetArtifactId() != "local/z_image_ae" {
+		t.Fatalf("artifact id mismatch: got=%q", result.GetInstalledArtifacts()[0].GetArtifactId())
 	}
 }
 
@@ -1482,134 +1638,115 @@ func TestLocalCollectDeviceProfileUsesRealProbe(t *testing.T) {
 	}
 }
 
-func TestLocalResolveDependenciesFailsOnInvalidRequired(t *testing.T) {
-	svc := newTestService(t)
-	resp, err := svc.ResolveDependencies(context.Background(), &runtimev1.ResolveDependenciesRequest{
-		ModId:      "world.nimi.invalid-required",
-		Capability: "chat",
-		Dependencies: &runtimev1.LocalDependenciesDeclarationDescriptor{
-			Required: []*runtimev1.LocalDependencyOptionDescriptor{
+func TestLocalResolveExecutionPlanFailsOnInvalidRequired(t *testing.T) {
+	newTestService(t)
+	plan := resolveExecutionPlan(&executionResolveRequest{
+		modID:      "world.nimi.invalid-required",
+		capability: "chat",
+		entries: &runtimev1.LocalExecutionDeclarationDescriptor{
+			Required: []*runtimev1.LocalExecutionOptionDescriptor{
 				{
-					DependencyId: "dep.invalid.service",
-					Kind:         runtimev1.LocalDependencyKind_LOCAL_DEPENDENCY_KIND_SERVICE,
-					Capability:   "chat",
-					Engine:       "localai",
+					EntryId:    "dep.invalid.service",
+					Kind:       runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_SERVICE,
+					Capability: "chat",
+					Engine:     "localai",
 				},
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("resolve dependencies: %v", err)
-	}
-	plan := resp.GetPlan()
 	if plan.GetReasonCode() != "LOCAL_DEPENDENCY_REQUIRED_UNSATISFIED" {
 		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
 	}
-	if len(plan.GetDependencies()) != 1 || plan.GetDependencies()[0].GetSelected() {
-		t.Fatalf("required dependency should be rejected: %#v", plan.GetDependencies())
+	if len(plan.GetEntries()) != 1 || plan.GetEntries()[0].GetSelected() {
+		t.Fatalf("required dependency should be rejected: %#v", plan.GetEntries())
 	}
 }
 
-func TestLocalResolveDependenciesRejectsWorkflowKind(t *testing.T) {
-	svc := newTestService(t)
-	resp, err := svc.ResolveDependencies(context.Background(), &runtimev1.ResolveDependenciesRequest{
-		ModId:      "world.nimi.invalid-workflow-kind",
-		Capability: "chat",
-		Dependencies: &runtimev1.LocalDependenciesDeclarationDescriptor{
-			Required: []*runtimev1.LocalDependencyOptionDescriptor{
+func TestLocalResolveExecutionPlanRejectsWorkflowKind(t *testing.T) {
+	newTestService(t)
+	plan := resolveExecutionPlan(&executionResolveRequest{
+		modID:      "world.nimi.invalid-workflow-kind",
+		capability: "chat",
+		entries: &runtimev1.LocalExecutionDeclarationDescriptor{
+			Required: []*runtimev1.LocalExecutionOptionDescriptor{
 				{
-					DependencyId: "dep.invalid.workflow",
-					Kind:         runtimev1.LocalDependencyKind(4),
-					Capability:   "chat",
+					EntryId:    "dep.invalid.workflow",
+					Kind:       runtimev1.LocalExecutionEntryKind(4),
+					Capability: "chat",
 				},
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("resolve dependencies: %v", err)
-	}
-	plan := resp.GetPlan()
 	if plan.GetReasonCode() != "LOCAL_DEPENDENCY_REQUIRED_UNSATISFIED" {
 		t.Fatalf("unexpected plan reason code: %s", plan.GetReasonCode())
 	}
-	if len(plan.GetDependencies()) != 1 {
-		t.Fatalf("resolved dependency count mismatch: got=%d want=1", len(plan.GetDependencies()))
+	if len(plan.GetEntries()) != 1 {
+		t.Fatalf("resolved dependency count mismatch: got=%d want=1", len(plan.GetEntries()))
 	}
-	dependency := plan.GetDependencies()[0]
+	dependency := plan.GetEntries()[0]
 	if dependency.GetSelected() {
 		t.Fatalf("unsupported workflow kind must not be selected")
 	}
-	if dependency.GetReasonCode() != "LOCAL_DEPENDENCY_KIND_UNSUPPORTED" {
+	if dependency.GetReasonCode() != "LOCAL_EXECUTION_ENTRY_KIND_UNSUPPORTED" {
 		t.Fatalf("unexpected dependency reason code: %s", dependency.GetReasonCode())
 	}
 }
 
-func TestLocalApplyDependenciesShortCircuitsOnPreflight(t *testing.T) {
+func TestLocalApplyExecutionPlanShortCircuitsOnPreflight(t *testing.T) {
 	svc := newTestService(t)
-	result, err := svc.ApplyDependencies(context.Background(), &runtimev1.ApplyDependenciesRequest{
-		Plan: &runtimev1.LocalDependencyResolutionPlan{
-			PlanId: "dep-plan-preflight",
-			ModId:  "world.nimi.preflight-fail",
-			Dependencies: []*runtimev1.LocalDependencyDescriptor{
-				{
-					DependencyId: "dep.python-required",
-					Kind:         runtimev1.LocalDependencyKind_LOCAL_DEPENDENCY_KIND_MODEL,
-					Selected:     true,
-					Required:     true,
-					ModelId:      "local/python-model",
-					Capability:   "chat",
-					Engine:       "python-runtime",
-				},
+	result := svc.applyExecutionPlanStrict(context.Background(), &runtimev1.LocalExecutionPlan{
+		PlanId: "dep-plan-preflight",
+		ModId:  "world.nimi.preflight-fail",
+		Entries: []*runtimev1.LocalExecutionEntryDescriptor{
+			{
+				EntryId:    "dep.python-required",
+				Kind:       runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_MODEL,
+				Selected:   true,
+				Required:   true,
+				ModelId:    "local/python-model",
+				Capability: "chat",
+				Engine:     "python-runtime",
 			},
-			DeviceProfile: &runtimev1.LocalDeviceProfile{
-				Os:   "darwin",
-				Arch: "arm64",
-				Python: &runtimev1.LocalPythonProfile{
-					Available: false,
-				},
+		},
+		DeviceProfile: &runtimev1.LocalDeviceProfile{
+			Os:   "darwin",
+			Arch: "arm64",
+			Python: &runtimev1.LocalPythonProfile{
+				Available: false,
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("apply dependencies: %v", err)
+	if result.GetReasonCode() != "LOCAL_DEPENDENCY_PYTHON_REQUIRED" {
+		t.Fatalf("unexpected reason code: %s", result.GetReasonCode())
 	}
-	if result.GetResult().GetReasonCode() != "LOCAL_DEPENDENCY_PYTHON_REQUIRED" {
-		t.Fatalf("unexpected reason code: %s", result.GetResult().GetReasonCode())
-	}
-	if len(result.GetResult().GetInstalledModels()) != 0 || len(result.GetResult().GetServices()) != 0 {
+	if len(result.GetInstalledModels()) != 0 || len(result.GetServices()) != 0 {
 		t.Fatalf("preflight failure should block install stage")
 	}
 }
 
-func TestLocalApplyDependenciesFailsWhenNodeUnresolved(t *testing.T) {
+func TestLocalApplyExecutionPlanFailsWhenNodeUnresolved(t *testing.T) {
 	svc := newTestService(t)
-	resp, err := svc.ApplyDependencies(context.Background(), &runtimev1.ApplyDependenciesRequest{
-		Plan: &runtimev1.LocalDependencyResolutionPlan{
-			PlanId: "dep-plan-node-missing",
-			ModId:  "world.nimi.node-missing",
-			Dependencies: []*runtimev1.LocalDependencyDescriptor{
-				{
-					DependencyId: "dep.node.chat",
-					Kind:         runtimev1.LocalDependencyKind_LOCAL_DEPENDENCY_KIND_NODE,
-					Selected:     true,
-					Required:     true,
-					Capability:   "chat",
-					NodeId:       "node_missing_chat",
-				},
+	result := svc.applyExecutionPlanStrict(context.Background(), &runtimev1.LocalExecutionPlan{
+		PlanId: "dep-plan-node-missing",
+		ModId:  "world.nimi.node-missing",
+		Entries: []*runtimev1.LocalExecutionEntryDescriptor{
+			{
+				EntryId:    "dep.node.chat",
+				Kind:       runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_NODE,
+				Selected:   true,
+				Required:   true,
+				Capability: "chat",
+				NodeId:     "node_missing_chat",
 			},
-			DeviceProfile: &runtimev1.LocalDeviceProfile{
-				Os:   "darwin",
-				Arch: "arm64",
-				Python: &runtimev1.LocalPythonProfile{
-					Available: true,
-				},
+		},
+		DeviceProfile: &runtimev1.LocalDeviceProfile{
+			Os:   "darwin",
+			Arch: "arm64",
+			Python: &runtimev1.LocalPythonProfile{
+				Available: true,
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("apply dependencies: %v", err)
-	}
-	result := resp.GetResult()
 	if result.GetReasonCode() != "LOCAL_DEPENDENCY_NODE_UNRESOLVED" {
 		t.Fatalf("unexpected reason code: %s", result.GetReasonCode())
 	}
@@ -1618,7 +1755,7 @@ func TestLocalApplyDependenciesFailsWhenNodeUnresolved(t *testing.T) {
 	}
 }
 
-func TestLocalApplyDependenciesPassesWhenNodeResolved(t *testing.T) {
+func TestLocalApplyExecutionPlanPassesWhenNodeResolved(t *testing.T) {
 	svc := newTestService(t)
 
 	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
@@ -1656,34 +1793,28 @@ func TestLocalApplyDependenciesPassesWhenNodeResolved(t *testing.T) {
 	}
 	nodeID := nodesResp.GetNodes()[0].GetNodeId()
 
-	resp, err := svc.ApplyDependencies(context.Background(), &runtimev1.ApplyDependenciesRequest{
-		Plan: &runtimev1.LocalDependencyResolutionPlan{
-			PlanId: "dep-plan-node-ready",
-			ModId:  "world.nimi.node-ready",
-			Dependencies: []*runtimev1.LocalDependencyDescriptor{
-				{
-					DependencyId: "dep.node.chat",
-					Kind:         runtimev1.LocalDependencyKind_LOCAL_DEPENDENCY_KIND_NODE,
-					Selected:     true,
-					Required:     true,
-					Capability:   "chat",
-					ServiceId:    "svc-node-chat",
-					NodeId:       nodeID,
-				},
+	result := svc.applyExecutionPlanStrict(context.Background(), &runtimev1.LocalExecutionPlan{
+		PlanId: "dep-plan-node-ready",
+		ModId:  "world.nimi.node-ready",
+		Entries: []*runtimev1.LocalExecutionEntryDescriptor{
+			{
+				EntryId:    "dep.node.chat",
+				Kind:       runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_NODE,
+				Selected:   true,
+				Required:   true,
+				Capability: "chat",
+				ServiceId:  "svc-node-chat",
+				NodeId:     nodeID,
 			},
-			DeviceProfile: &runtimev1.LocalDeviceProfile{
-				Os:   "darwin",
-				Arch: "arm64",
-				Python: &runtimev1.LocalPythonProfile{
-					Available: true,
-				},
+		},
+		DeviceProfile: &runtimev1.LocalDeviceProfile{
+			Os:   "darwin",
+			Arch: "arm64",
+			Python: &runtimev1.LocalPythonProfile{
+				Available: true,
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("apply dependencies: %v", err)
-	}
-	result := resp.GetResult()
 	if result.GetReasonCode() != "ACTION_EXECUTED" {
 		t.Fatalf("unexpected reason code: %s", result.GetReasonCode())
 	}
@@ -1965,34 +2096,31 @@ func TestLocalRemoveModelRejectedWhenServiceBound(t *testing.T) {
 	}
 }
 
-func TestLocalResolveDependenciesRejectsServiceWithoutModelID(t *testing.T) {
-	svc := newTestService(t)
+func TestLocalResolveExecutionPlanRejectsServiceWithoutModelID(t *testing.T) {
+	newTestService(t)
 
-	resp, err := svc.ResolveDependencies(context.Background(), &runtimev1.ResolveDependenciesRequest{
-		ModId:      "world.nimi.service-without-model",
-		Capability: "chat",
-		Dependencies: &runtimev1.LocalDependenciesDeclarationDescriptor{
-			Required: []*runtimev1.LocalDependencyOptionDescriptor{
+	plan := resolveExecutionPlan(&executionResolveRequest{
+		modID:      "world.nimi.service-without-model",
+		capability: "chat",
+		entries: &runtimev1.LocalExecutionDeclarationDescriptor{
+			Required: []*runtimev1.LocalExecutionOptionDescriptor{
 				{
-					DependencyId: "dep.chat.service",
-					Kind:         runtimev1.LocalDependencyKind_LOCAL_DEPENDENCY_KIND_SERVICE,
-					ServiceId:    "svc-chat",
-					Capability:   "chat",
-					Engine:       "localai",
+					EntryId:    "dep.chat.service",
+					Kind:       runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_SERVICE,
+					ServiceId:  "svc-chat",
+					Capability: "chat",
+					Engine:     "localai",
 				},
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("resolve dependencies: %v", err)
+	if plan.GetReasonCode() != "LOCAL_DEPENDENCY_REQUIRED_UNSATISFIED" {
+		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
 	}
-	if resp.GetPlan().GetReasonCode() != "LOCAL_DEPENDENCY_REQUIRED_UNSATISFIED" {
-		t.Fatalf("unexpected reason code: %s", resp.GetPlan().GetReasonCode())
-	}
-	if len(resp.GetPlan().GetDependencies()) != 1 {
+	if len(plan.GetEntries()) != 1 {
 		t.Fatalf("expected one dependency in plan")
 	}
-	dep := resp.GetPlan().GetDependencies()[0]
+	dep := plan.GetEntries()[0]
 	if dep.GetSelected() {
 		t.Fatalf("service dependency without modelId must not be selected")
 	}
@@ -2331,34 +2459,28 @@ func TestResolveModelInstallPlanCatalogSupervisedWithManagerAvailable(t *testing
 	}
 }
 
-func TestLocalApplyDependenciesRejectsUnsupportedKindInPreflight(t *testing.T) {
+func TestLocalApplyExecutionPlanRejectsUnsupportedKindInPreflight(t *testing.T) {
 	svc := newTestService(t)
-	resp, err := svc.ApplyDependencies(context.Background(), &runtimev1.ApplyDependenciesRequest{
-		Plan: &runtimev1.LocalDependencyResolutionPlan{
-			PlanId: "dep-plan-unsupported-kind",
-			ModId:  "world.nimi.unsupported-kind",
-			Dependencies: []*runtimev1.LocalDependencyDescriptor{
-				{
-					DependencyId: "dep.unsupported.kind",
-					Kind:         runtimev1.LocalDependencyKind(99),
-					Selected:     true,
-					Required:     true,
-				},
+	result := svc.applyExecutionPlanStrict(context.Background(), &runtimev1.LocalExecutionPlan{
+		PlanId: "dep-plan-unsupported-kind",
+		ModId:  "world.nimi.unsupported-kind",
+		Entries: []*runtimev1.LocalExecutionEntryDescriptor{
+			{
+				EntryId:  "dep.unsupported.kind",
+				Kind:     runtimev1.LocalExecutionEntryKind(99),
+				Selected: true,
+				Required: true,
 			},
-			DeviceProfile: &runtimev1.LocalDeviceProfile{
-				Os:   "darwin",
-				Arch: "arm64",
-				Python: &runtimev1.LocalPythonProfile{
-					Available: true,
-				},
+		},
+		DeviceProfile: &runtimev1.LocalDeviceProfile{
+			Os:   "darwin",
+			Arch: "arm64",
+			Python: &runtimev1.LocalPythonProfile{
+				Available: true,
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("apply dependencies: %v", err)
-	}
-	result := resp.GetResult()
-	if result.GetReasonCode() != "LOCAL_DEPENDENCY_KIND_UNSUPPORTED" {
+	if result.GetReasonCode() != "LOCAL_EXECUTION_ENTRY_KIND_UNSUPPORTED" {
 		t.Fatalf("unexpected reason code: %s", result.GetReasonCode())
 	}
 	if result.GetRollbackApplied() {
@@ -2368,7 +2490,7 @@ func TestLocalApplyDependenciesRejectsUnsupportedKindInPreflight(t *testing.T) {
 
 func TestLocalRollbackApplyCombinesReasonCodesOnRollbackFailure(t *testing.T) {
 	svc := newTestService(t)
-	result := &runtimev1.LocalDependencyApplyResult{
+	result := &runtimev1.LocalExecutionApplyResult{
 		ReasonCode: "LOCAL_DEPENDENCY_MODEL_HEALTH_FAILED",
 	}
 

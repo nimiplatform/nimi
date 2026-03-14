@@ -118,9 +118,9 @@ services:
         type: unary
       - name: ListNodeCatalog
         type: unary
-      - name: ResolveDependencies
+      - name: ResolveProfile
         type: unary
-      - name: ApplyDependencies
+      - name: ApplyProfile
         type: unary
       - name: ListLocalAudits
         type: unary

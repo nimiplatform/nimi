@@ -158,7 +158,7 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
 
 补充约束：
 
-- companion artifact（`vae` / `llm` / `controlnet` / `lora`）列表与安装状态通过 runtime local facade 暴露，不新增平行 Tauri artifact 命令字面量。
+- companion artifact（`vae` / `llm` / `controlnet` / `lora`）列表、verified catalog、安装、导入、移除与 orphan 管理统一落在 Tauri `runtime_local_artifacts_*` command surface；不得再经 runtime SDK `RuntimeLocalService` 绕行第二条执行路径。
 - LocalAI 动态图片工作流的 `engineConfig`、`components`、`profile_overrides` 必须沿 `desktop -> sdk/runtime -> runtime` 原样透传；Desktop 不得改写为绝对路径。
 
 cloud 路径必须固定经由 Runtime connector APIs；Desktop 不得恢复 legacy adapter factory、直接 `listModels()` 或 `healthCheck()` 调用以绕开 Runtime。
@@ -191,6 +191,8 @@ Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）
 - `runtime_local_models_health`：模型健康检查。
 - `runtime_local_models_reveal_in_folder`：在系统文件管理器中打开模型目录。
 - `runtime_local_models_scan_orphans` / `runtime_local_models_scaffold_orphan`：孤立模型文件扫描与脚手架导入。
+- `runtime_local_artifacts_list` / `runtime_local_artifacts_verified_list`：列出已安装 / verified companion artifacts。
+- `runtime_local_artifacts_install_verified` / `runtime_local_artifacts_import` / `runtime_local_artifacts_remove`：companion artifact 安装、导入、移除。
 - `runtime_local_artifacts_scan_orphans` / `runtime_local_artifacts_scaffold_orphan`：孤立 companion 文件扫描与脚手架导入。
 - `runtime_local_audits_list` / `runtime_local_append_inference_audit` / `runtime_local_append_runtime_audit`：推理与运行时审计。
 - `runtime_local_pick_manifest_path`：选取 `~/.nimi/models/**/model.manifest.json`。
@@ -198,15 +200,15 @@ Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）
 - `runtime_local_pick_model_file`：选取任意待导入的主模型文件。
 - `runtime_local_services_list` / `runtime_local_services_install` / `runtime_local_services_start` / `runtime_local_services_stop` / `runtime_local_services_health` / `runtime_local_services_remove`：本地服务管理。
 - `runtime_local_nodes_catalog_list`：列出活跃服务的能力节点。
-- `runtime_local_dependencies_resolve` / `runtime_local_dependencies_apply`：依赖解析与应用。
+- `runtime_local_profiles_resolve` / `runtime_local_profiles_apply`：profile-centric mod install flow 的一等 Tauri 命令，负责解析并执行 `manifest.ai.profiles` 中的 runtime entries。
 - `runtime_local_device_profile_collect`：设备能力采集（CPU/GPU/NPU/disk/ports）。
 - `local-runtime://download-progress`：下载进度事件通道，事件字段包含 `state`（`queued|running|paused|failed|completed|cancelled`）、`reasonCode?`、`retryable?`。
 
 companion artifact 补充：
 
-- artifact list / verified list / install / import / remove 通过受管 Local Runtime bridge facade 暴露，但其数据面来自 runtime SDK `RuntimeLocalService`，不是新增 Tauri lifecycle command。
+- artifact list / verified list / install / import / remove 是一等 `runtime_local_artifacts_*` Tauri commands，数据真相由 Desktop/Tauri local runtime state 维护。
 - companion acquisition 支持 verified artifact install、`artifact.manifest.json` import，以及独立的 orphan detect/scaffold lane；不得复用主模型 capability selector 或 scaffold command。
-- `runtime_local_artifacts_scaffold_orphan` 固定生成 `engine=localai` 的 `artifact.manifest.json`，随后再经 runtime local facade 执行 `importLocalArtifact`。
+- `runtime_local_artifacts_scaffold_orphan` 固定生成 `engine=localai` 的 `artifact.manifest.json`，随后再经 `runtime_local_artifacts_import` 纳管。
 - verified companion install 的失败恢复通过 desktop `Artifact Tasks` 行内 `Retry` 完成；artifact task 不是 download session。
 - `artifact.manifest.json` picker 与 `model.manifest.json` picker 必须物理拆分，且都只允许 runtime models root 下的路径。
 - Desktop 启动时必须先执行 Desktop/Tauri 已知模型 -> go-runtime 的 reconcile，再将 go-runtime-only 模型通过 `runtime_local_models_adopt` 自动纳管到 Tauri state。

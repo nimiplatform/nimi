@@ -158,6 +158,63 @@ export type ModRuntimeListLocalArtifactsInput = {
   engine?: string;
 };
 
+export type ModRuntimeLocalProfileEntryKind = 'model' | 'artifact' | 'service' | 'node';
+
+export type ModRuntimeLocalProfileRequirement = {
+  minGpuMemoryGb?: number;
+  minDiskBytes?: number;
+  platforms?: string[];
+  notes?: string[];
+};
+
+export type ModRuntimeLocalProfileDescriptorEntry = {
+  entryId: string;
+  kind: ModRuntimeLocalProfileEntryKind;
+  title?: string;
+  description?: string;
+  capability?: RuntimeCanonicalCapability | string;
+  required?: boolean;
+  preferred?: boolean;
+  modelId?: string;
+  repo?: string;
+  serviceId?: string;
+  nodeId?: string;
+  engine?: string;
+  artifactId?: string;
+  artifactKind?: ModRuntimeLocalArtifactKind;
+  templateId?: string;
+  revision?: string;
+  tags?: string[];
+};
+
+export type ModRuntimeLocalProfile = {
+  id: string;
+  title: string;
+  description?: string;
+  recommended: boolean;
+  consumeCapabilities: Array<RuntimeCanonicalCapability | string>;
+  entries: ModRuntimeLocalProfileDescriptorEntry[];
+  requirements?: ModRuntimeLocalProfileRequirement;
+};
+
+export type ModRuntimeLocalProfileInstallStatus = {
+  modId: string;
+  profileId: string;
+  status: 'ready' | 'missing' | 'degraded';
+  warnings: string[];
+  missingEntries: string[];
+  updatedAt: string;
+};
+
+export type ModRuntimeLocalProfileInstallResult = {
+  modId: string;
+  profileId: string;
+  accepted: boolean;
+  declined: boolean;
+  warnings: string[];
+  reasonCode?: string;
+};
+
 export type ModRuntimeLocalArtifactRecord = {
   localArtifactId: string;
   artifactId: string;
@@ -186,6 +243,9 @@ export type ModRuntimeClient = {
   };
   local: {
     listArtifacts(input?: ModRuntimeListLocalArtifactsInput): Promise<ModRuntimeLocalArtifactRecord[]>;
+    listProfiles(): Promise<ModRuntimeLocalProfile[]>;
+    requestProfileInstall(input: { profileId: string; confirmMessage?: string }): Promise<ModRuntimeLocalProfileInstallResult>;
+    getProfileInstallStatus(input: { profileId: string }): Promise<ModRuntimeLocalProfileInstallStatus>;
   };
   ai: {
     text: {
@@ -229,14 +289,17 @@ export type ModRuntimeClient = {
   };
 };
 
-export type ModRuntimeDependencyEntry = {
-  dependencyId: string;
-  kind: 'model' | 'service' | 'node';
+export type ModRuntimeLocalProfileEntry = {
+  entryId: string;
+  kind: 'model' | 'artifact' | 'service' | 'node';
   capability?: RuntimeCanonicalCapability;
   required: boolean;
   selected: boolean;
   preferred: boolean;
   modelId?: string;
+  artifactId?: string;
+  artifactKind?: ModRuntimeLocalArtifactKind;
+  templateId?: string;
   repo?: string;
   engine?: string;
   serviceId?: string;
@@ -249,26 +312,26 @@ export type ModRuntimeRepairAction = {
   actionId: string;
   label: string;
   reasonCode: string;
-  dependencyId?: string;
+  entryId?: string;
   capability?: RuntimeCanonicalCapability;
 };
 
-export type ModRuntimeDependencySnapshot = {
+export type ModRuntimeLocalProfileSnapshot = {
   modId: string;
   planId?: string;
   status: 'ready' | 'missing' | 'degraded';
   routeSource: 'local' | 'cloud' | 'mixed' | 'unknown';
   reasonCode?: string;
   warnings: string[];
-  dependencies: ModRuntimeDependencyEntry[];
+  entries: ModRuntimeLocalProfileEntry[];
   repairActions: ModRuntimeRepairAction[];
   updatedAt: string;
 };
 
 export type ModRuntimeInspector = {
-  getDependencySnapshot: (
+  getLocalProfileSnapshot: (
     capability?: RuntimeCanonicalCapability,
     routeSourceHint?: 'cloud' | 'local',
-  ) => Promise<ModRuntimeDependencySnapshot>;
+  ) => Promise<ModRuntimeLocalProfileSnapshot>;
   getRepairActions: (capability?: RuntimeCanonicalCapability) => Promise<ModRuntimeRepairAction[]>;
 };

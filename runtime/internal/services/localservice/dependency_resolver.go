@@ -15,24 +15,31 @@ type dependencyCandidateCheck struct {
 	warnings   []string
 }
 
-func resolveDependencyPlan(req *runtimev1.ResolveDependenciesRequest) *runtimev1.LocalDependencyResolutionPlan {
+type executionResolveRequest struct {
+	modID         string
+	capability    string
+	entries       *runtimev1.LocalExecutionDeclarationDescriptor
+	deviceProfile *runtimev1.LocalDeviceProfile
+}
+
+func resolveExecutionPlan(req *executionResolveRequest) *runtimev1.LocalExecutionPlan {
 	if req == nil {
-		return &runtimev1.LocalDependencyResolutionPlan{
+		return &runtimev1.LocalExecutionPlan{
 			PlanId:     "dep_plan_" + ulid.Make().String(),
 			ReasonCode: "LOCAL_DEPENDENCY_REQUEST_REQUIRED",
 			Warnings:   []string{"resolve request is required"},
 		}
 	}
 
-	capability := strings.TrimSpace(req.GetCapability())
-	profile := cloneDeviceProfile(req.GetDeviceProfile())
+	capability := strings.TrimSpace(req.capability)
+	profile := cloneDeviceProfile(req.deviceProfile)
 	if profile == nil {
 		profile = collectDeviceProfile()
 	}
 
-	declaration := req.GetDependencies()
+	declaration := req.entries
 	if declaration == nil {
-		declaration = &runtimev1.LocalDependenciesDeclarationDescriptor{}
+		declaration = &runtimev1.LocalExecutionDeclarationDescriptor{}
 	}
 
 	preferredByCapability := make(map[string]string)
@@ -45,23 +52,23 @@ func resolveDependencyPlan(req *runtimev1.ResolveDependenciesRequest) *runtimev1
 		preferredByCapability[capabilityKey] = dependencyID
 	}
 
-	plan := &runtimev1.LocalDependencyResolutionPlan{
+	plan := &runtimev1.LocalExecutionPlan{
 		PlanId:             "dep_plan_" + ulid.Make().String(),
-		ModId:              strings.TrimSpace(req.GetModId()),
+		ModId:              strings.TrimSpace(req.modID),
 		Capability:         capability,
 		DeviceProfile:      profile,
-		Dependencies:       make([]*runtimev1.LocalDependencyDescriptor, 0, 16),
-		SelectionRationale: make([]*runtimev1.LocalDependencySelectionRationale, 0, 16),
+		Entries:            make([]*runtimev1.LocalExecutionEntryDescriptor, 0, 16),
+		SelectionRationale: make([]*runtimev1.LocalExecutionSelectionRationale, 0, 16),
 		PreflightDecisions: make([]*runtimev1.LocalPreflightDecision, 0, 16),
 		Warnings:           []string{},
 	}
 
-	appendDecision := func(opt *runtimev1.LocalDependencyOptionDescriptor, required bool, selected bool, preferred bool, check dependencyCandidateCheck) {
+	appendDecision := func(opt *runtimev1.LocalExecutionOptionDescriptor, required bool, selected bool, preferred bool, check dependencyCandidateCheck) {
 		if opt == nil {
 			return
 		}
-		descriptor := &runtimev1.LocalDependencyDescriptor{
-			DependencyId: strings.TrimSpace(opt.GetDependencyId()),
+		descriptor := &runtimev1.LocalExecutionEntryDescriptor{
+			EntryId:    strings.TrimSpace(opt.GetEntryId()),
 			Kind:         opt.GetKind(),
 			Capability:   strings.TrimSpace(opt.GetCapability()),
 			Required:     required,
@@ -76,15 +83,15 @@ func resolveDependencyPlan(req *runtimev1.ResolveDependenciesRequest) *runtimev1
 			Warnings:     append([]string(nil), check.warnings...),
 		}
 
-		plan.Dependencies = append(plan.Dependencies, descriptor)
-		plan.SelectionRationale = append(plan.SelectionRationale, &runtimev1.LocalDependencySelectionRationale{
-			DependencyId: descriptor.GetDependencyId(),
+		plan.Entries = append(plan.Entries, descriptor)
+		plan.SelectionRationale = append(plan.SelectionRationale, &runtimev1.LocalExecutionSelectionRationale{
+			EntryId:    descriptor.GetEntryId(),
 			Selected:     selected,
 			ReasonCode:   check.reasonCode,
 			Detail:       check.detail,
 		})
 		plan.PreflightDecisions = append(plan.PreflightDecisions, &runtimev1.LocalPreflightDecision{
-			DependencyId: descriptor.GetDependencyId(),
+			EntryId:    descriptor.GetEntryId(),
 			Target:       preflightTargetForDependency(descriptor),
 			Check:        defaultString(check.check, "dependency-shape"),
 			Ok:           check.ok,
@@ -114,7 +121,7 @@ func resolveDependencyPlan(req *runtimev1.ResolveDependenciesRequest) *runtimev1
 		selected := false
 		if check.ok {
 			preferredID := preferredByCapability[strings.TrimSpace(item.GetCapability())]
-			if preferredID != "" && preferredID == strings.TrimSpace(item.GetDependencyId()) {
+			if preferredID != "" && preferredID == strings.TrimSpace(item.GetEntryId()) {
 				selected = true
 				check.reasonCode = "LOCAL_DEPENDENCY_OPTIONAL_PREFERRED_SELECTED"
 				check.detail = "optional dependency selected by preferred map"
@@ -134,7 +141,7 @@ func resolveDependencyPlan(req *runtimev1.ResolveDependenciesRequest) *runtimev1
 		options := alt.GetOptions()
 		checks := make([]dependencyCandidateCheck, len(options))
 		selectedID := ""
-		preferredAlternativeID := strings.TrimSpace(alt.GetPreferredDependencyId())
+		preferredAlternativeID := strings.TrimSpace(alt.GetPreferredEntryId())
 		if preferredAlternativeID == "" && capability != "" {
 			preferredAlternativeID = preferredByCapability[capability]
 		}
@@ -144,7 +151,7 @@ func resolveDependencyPlan(req *runtimev1.ResolveDependenciesRequest) *runtimev1
 			if !checks[idx].ok {
 				continue
 			}
-			dependencyID := strings.TrimSpace(item.GetDependencyId())
+			dependencyID := strings.TrimSpace(item.GetEntryId())
 			if selectedID == "" {
 				selectedID = dependencyID
 			}
@@ -160,7 +167,7 @@ func resolveDependencyPlan(req *runtimev1.ResolveDependenciesRequest) *runtimev1
 		}
 
 		for idx, item := range options {
-			dependencyID := strings.TrimSpace(item.GetDependencyId())
+			dependencyID := strings.TrimSpace(item.GetEntryId())
 			selected := selectedID != "" && dependencyID == selectedID
 			preferred := preferredAlternativeID != "" && dependencyID == preferredAlternativeID
 			check := checks[idx]
@@ -175,10 +182,10 @@ func resolveDependencyPlan(req *runtimev1.ResolveDependenciesRequest) *runtimev1
 		}
 	}
 
-	if len(plan.Dependencies) == 0 && capability != "" {
-		item := &runtimev1.LocalDependencyOptionDescriptor{
-			DependencyId: "dep_" + slug(capability),
-			Kind:         runtimev1.LocalDependencyKind_LOCAL_DEPENDENCY_KIND_MODEL,
+	if len(plan.Entries) == 0 && capability != "" {
+		item := &runtimev1.LocalExecutionOptionDescriptor{
+			EntryId: "dep_" + slug(capability),
+			Kind:         runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_MODEL,
 			Capability:   capability,
 			ModelId:      "local/" + capability + "-default",
 			Engine:       "localai",
@@ -201,7 +208,7 @@ func resolveDependencyPlan(req *runtimev1.ResolveDependenciesRequest) *runtimev1
 	return plan
 }
 
-func evaluateDependencyCandidate(opt *runtimev1.LocalDependencyOptionDescriptor, profile *runtimev1.LocalDeviceProfile) dependencyCandidateCheck {
+func evaluateDependencyCandidate(opt *runtimev1.LocalExecutionOptionDescriptor, profile *runtimev1.LocalDeviceProfile) dependencyCandidateCheck {
 	if opt == nil {
 		return dependencyCandidateCheck{
 			ok:         false,
@@ -211,28 +218,28 @@ func evaluateDependencyCandidate(opt *runtimev1.LocalDependencyOptionDescriptor,
 			warnings:   []string{"dependency option missing"},
 		}
 	}
-	dependencyID := strings.TrimSpace(opt.GetDependencyId())
+	dependencyID := strings.TrimSpace(opt.GetEntryId())
 	if dependencyID == "" {
 		return dependencyCandidateCheck{
 			ok:         false,
 			check:      "dependency-shape",
 			reasonCode: "LOCAL_DEPENDENCY_ID_REQUIRED",
-			detail:     "dependencyId is required",
-			warnings:   []string{"dependencyId is required"},
+			detail:     "entryId is required",
+			warnings:   []string{"entryId is required"},
 		}
 	}
-	if opt.GetKind() == runtimev1.LocalDependencyKind_LOCAL_DEPENDENCY_KIND_UNSPECIFIED {
+	if opt.GetKind() == runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_UNSPECIFIED {
 		return dependencyCandidateCheck{
 			ok:         false,
 			check:      "dependency-shape",
-			reasonCode: "LOCAL_DEPENDENCY_KIND_REQUIRED",
+			reasonCode: "LOCAL_EXECUTION_ENTRY_KIND_REQUIRED",
 			detail:     dependencyID + " kind is required",
 			warnings:   []string{"dependency kind is required"},
 		}
 	}
 
 	switch opt.GetKind() {
-	case runtimev1.LocalDependencyKind_LOCAL_DEPENDENCY_KIND_MODEL:
+	case runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_MODEL:
 		if strings.TrimSpace(opt.GetModelId()) == "" {
 			return dependencyCandidateCheck{
 				ok:         false,
@@ -242,7 +249,7 @@ func evaluateDependencyCandidate(opt *runtimev1.LocalDependencyOptionDescriptor,
 				warnings:   []string{"model dependency requires modelId"},
 			}
 		}
-	case runtimev1.LocalDependencyKind_LOCAL_DEPENDENCY_KIND_SERVICE:
+	case runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_SERVICE:
 		if strings.TrimSpace(opt.GetServiceId()) == "" {
 			return dependencyCandidateCheck{
 				ok:         false,
@@ -261,7 +268,7 @@ func evaluateDependencyCandidate(opt *runtimev1.LocalDependencyOptionDescriptor,
 				warnings:   []string{"service dependency requires modelId"},
 			}
 		}
-	case runtimev1.LocalDependencyKind_LOCAL_DEPENDENCY_KIND_NODE:
+	case runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_NODE:
 		if strings.TrimSpace(opt.GetNodeId()) == "" {
 			return dependencyCandidateCheck{
 				ok:         false,
@@ -275,7 +282,7 @@ func evaluateDependencyCandidate(opt *runtimev1.LocalDependencyOptionDescriptor,
 		return dependencyCandidateCheck{
 			ok:         false,
 			check:      "dependency-shape",
-			reasonCode: "LOCAL_DEPENDENCY_KIND_UNSUPPORTED",
+			reasonCode: "LOCAL_EXECUTION_ENTRY_KIND_UNSUPPORTED",
 			detail:     dependencyID + " kind is unsupported",
 			warnings:   []string{"dependency kind is unsupported"},
 		}
@@ -333,18 +340,18 @@ func requiresNPU(engine string) bool {
 	return strings.Contains(engine, "npu")
 }
 
-func preflightTargetForDependency(dep *runtimev1.LocalDependencyDescriptor) string {
+func preflightTargetForDependency(dep *runtimev1.LocalExecutionEntryDescriptor) string {
 	if dep == nil {
 		return ""
 	}
 	switch dep.GetKind() {
-	case runtimev1.LocalDependencyKind_LOCAL_DEPENDENCY_KIND_MODEL:
-		return defaultString(dep.GetModelId(), dep.GetDependencyId())
-	case runtimev1.LocalDependencyKind_LOCAL_DEPENDENCY_KIND_SERVICE:
-		return defaultString(dep.GetServiceId(), dep.GetDependencyId())
-	case runtimev1.LocalDependencyKind_LOCAL_DEPENDENCY_KIND_NODE:
-		return defaultString(dep.GetNodeId(), dep.GetDependencyId())
+	case runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_MODEL:
+		return defaultString(dep.GetModelId(), dep.GetEntryId())
+	case runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_SERVICE:
+		return defaultString(dep.GetServiceId(), dep.GetEntryId())
+	case runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_NODE:
+		return defaultString(dep.GetNodeId(), dep.GetEntryId())
 	default:
-		return dep.GetDependencyId()
+		return dep.GetEntryId()
 	}
 }

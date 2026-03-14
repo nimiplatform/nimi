@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import type { CapabilityV11, RuntimePageIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import type { RuntimePageIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { persistRuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-storage-persist';
 import { addRuntimeConfigOpenPageListener } from '@renderer/features/runtime-config/runtime-config-navigation-events';
 import { useRuntimeConfigPanelEffects } from './runtime-config-panel-effects';
@@ -158,15 +158,15 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     setStatusBanner,
   });
 
-  const resolveRuntimeDependencies = useCallback(async (
+  const resolveRuntimeProfile = useCallback(async (
     modId: string,
-    capability?: CapabilityV11 | string,
-  ) => installActions.resolveRuntimeDependencies(modId, capability), [installActions]);
+    profileId: string,
+  ) => installActions.resolveRuntimeProfile(modId, profileId), [installActions]);
 
-  const applyRuntimeDependencies = useCallback(async (
+  const applyRuntimeProfile = useCallback(async (
     modId: string,
-    capability?: CapabilityV11 | string,
-  ) => installActions.applyRuntimeDependencies(modId, capability), [installActions]);
+    profileId: string,
+  ) => installActions.applyRuntimeProfile(modId, profileId), [installActions]);
 
   return {
     state: panelState.state,
@@ -184,7 +184,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     orderedConnectors: derived.orderedConnectors,
     filteredLocalModels: derived.filteredLocalModels,
     filteredConnectorModels: derived.filteredConnectorModels,
-    runtimeDependencyTargets: derived.runtimeDependencyTargets,
+    runtimeProfileTargets: derived.runtimeProfileTargets,
     registeredRuntimeModIds,
     runtimeDaemonStatus: daemon.runtimeDaemonStatus,
     runtimeDaemonBusyAction: daemon.runtimeDaemonBusyAction,
@@ -198,8 +198,8 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     discoverLocalModels: commands.discoverLocalModels,
     runLocalHealthCheck: commands.runLocalHealthCheck,
     testSelectedConnector: commands.testSelectedConnector,
-    resolveRuntimeDependencies,
-    applyRuntimeDependencies,
+    resolveRuntimeProfile,
+    applyRuntimeProfile,
     installCatalogLocalModel: installActions.installCatalogLocalModel,
     installLocalModel: installActions.installLocalModel,
     installVerifiedLocalModel: installActions.installVerifiedLocalModel,

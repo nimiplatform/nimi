@@ -23,13 +23,13 @@ export function LocalPage({ model, state }: LocalPageProps) {
         discovering={model.discovering}
         checkingHealth={model.checkingHealth}
         displayMode="runtime"
-        runtimeDependencyTargets={model.runtimeDependencyTargets}
+        runtimeProfileTargets={model.runtimeProfileTargets}
         localModelQuery={model.localModelQuery}
         filteredLocalModels={model.filteredLocalModels}
         onDiscover={model.discoverLocalModels}
         onHealthCheck={model.runLocalHealthCheck}
-        onResolveDependencies={model.resolveRuntimeDependencies}
-        onApplyDependencies={model.applyRuntimeDependencies}
+        onResolveProfile={model.resolveRuntimeProfile}
+        onApplyProfile={model.applyRuntimeProfile}
         onInstallCatalogItem={model.installCatalogLocalModel}
         onInstall={model.installLocalModel}
         onInstallVerified={model.installVerifiedLocalModel}

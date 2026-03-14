@@ -1,14 +1,15 @@
 import type {
   LocalAiArtifactKind,
   LocalAiCatalogItemDescriptor,
-  LocalAiDependencyResolutionPlan,
   LocalAiDownloadSessionSummary,
   LocalAiDownloadState,
   LocalAiDownloadProgressEvent,
   LocalAiInstallPayload,
   LocalAiInstallPlanDescriptor,
+  LocalAiProfileApplyResult,
+  LocalAiProfileResolutionPlan,
 } from '@runtime/local-ai-runtime';
-import type { RuntimeDependencyTargetDescriptor } from './runtime-config-panel-types';
+import type { RuntimeProfileTargetDescriptor } from './runtime-config-panel-types';
 import type { RuntimeConfigStateV11, RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 
 export type LocalModelCenterProps = {
@@ -16,16 +17,16 @@ export type LocalModelCenterProps = {
   discovering: boolean;
   checkingHealth: boolean;
   displayMode?: 'runtime' | 'mod';
-  lockedDependencyModId?: string;
-  runtimeDependencyTargets: RuntimeDependencyTargetDescriptor[];
-  selectedDependencyModId?: string;
-  onSelectDependencyModId?: (modId: string) => void;
+  lockedProfileModId?: string;
+  runtimeProfileTargets: RuntimeProfileTargetDescriptor[];
+  selectedProfileModId?: string;
+  onSelectProfileModId?: (modId: string) => void;
   localModelQuery: string;
   filteredLocalModels: string[];
   onDiscover: () => Promise<void>;
   onHealthCheck: () => Promise<void>;
-  onResolveDependencies: (modId: string, capability?: string) => Promise<LocalAiDependencyResolutionPlan>;
-  onApplyDependencies: (modId: string, capability?: string) => Promise<void>;
+  onResolveProfile: (modId: string, profileId: string) => Promise<LocalAiProfileResolutionPlan>;
+  onApplyProfile: (modId: string, profileId: string) => Promise<LocalAiProfileApplyResult>;
   onInstallCatalogItem: (
     item: LocalAiCatalogItemDescriptor,
     options?: {
@@ -197,6 +198,25 @@ export function pruneProgressSessions(
     next[sessionId] = state;
   }
   return changed ? next : sessions;
+}
+
+export function resolveSelectedRuntimeProfileTarget(
+  runtimeProfileTargets: RuntimeProfileTargetDescriptor[],
+  selectedProfileModId: string | undefined,
+): RuntimeProfileTargetDescriptor | null {
+  const modId = String(selectedProfileModId || '').trim();
+  if (!modId) {
+    return null;
+  }
+  return runtimeProfileTargets.find((target) => target.modId === modId) || null;
+}
+
+export function shouldShowRuntimeProfileInstallSection(
+  runtimeProfileTargets: RuntimeProfileTargetDescriptor[],
+  selectedProfileModId: string | undefined,
+): boolean {
+  const target = resolveSelectedRuntimeProfileTarget(runtimeProfileTargets, selectedProfileModId);
+  return Boolean(target && target.profiles.length > 0);
 }
 
 function isInteractiveDownloadState(state: LocalAiDownloadState): boolean {

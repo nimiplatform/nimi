@@ -7,17 +7,19 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { normalizeError, type NormalizedError } from '../src/main/error-utils.js';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const srcMain = path.join(testDir, '..', 'src', 'main');
 const specTables = path.join(testDir, '..', 'spec', 'kernel', 'tables');
+const TEST_REASON_CODE = 'TEST';
 
 // ── Extracted Logic: requireAgentId (from ipc-handlers.ts:25-32) ─────────
 
 function requireAgentId(input: Record<string, unknown>): void {
   if (!input.agentId || typeof input.agentId !== 'string') {
     throw Object.assign(new Error('agentId is required for agent-scoped IPC calls'), {
-      reasonCode: 'MISSING_AGENT_ID',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
       actionHint: 'Select an agent before using this feature',
     });
   }
@@ -49,12 +51,12 @@ describe('RL-IPC-005 — Error Normalization (normalizeError)', () => {
 
   it('normalizes NimiError with reasonCode and actionHint', () => {
     const error = Object.assign(new Error('model not found'), {
-      reasonCode: 'MODEL_NOT_FOUND',
+      reasonCode: ReasonCode.AI_MODEL_NOT_FOUND,
       actionHint: 'Check the model name',
     });
     const result = normalizeError(error);
     assert.equal(result.message, 'model not found');
-    assert.equal(result.reasonCode, 'MODEL_NOT_FOUND');
+    assert.equal(result.reasonCode, ReasonCode.AI_MODEL_NOT_FOUND);
     assert.equal(result.actionHint, 'Check the model name');
   });
 
@@ -77,7 +79,7 @@ describe('RL-IPC-005 — Error Normalization (normalizeError)', () => {
 
   it('returns structured-clone-compatible shape', () => {
     const error = Object.assign(new Error('test'), {
-      reasonCode: 'TEST',
+      reasonCode: TEST_REASON_CODE,
       actionHint: 'hint',
     });
     const result = normalizeError(error);
@@ -95,7 +97,7 @@ describe('RL-IPC-005 — Error Normalization (normalizeError)', () => {
 
   it('extracts traceId from NimiError (RL-TRANS-005)', () => {
     const error = Object.assign(new Error('rpc failed'), {
-      reasonCode: 'UNAVAILABLE',
+      reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
       traceId: 'trace-abc-123',
     });
     const result = normalizeError(error);

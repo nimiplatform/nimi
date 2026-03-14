@@ -1,0 +1,242 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+import { useAppStore } from '../src/shell/renderer/app-shell/providers/app-store';
+import { localAiRuntime } from '../src/runtime/local-ai-runtime';
+import { buildRuntimeHostCapabilities } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities.js';
+import { ReasonCode } from '@nimiplatform/sdk/types';
+
+function createHost() {
+  return buildRuntimeHostCapabilities({
+    checkLocalLlmHealth: async () => ({ healthy: true, status: 'healthy' }) as never,
+    executeLocalKernelTurn: async () => ({ outputText: '' }) as never,
+    withOpenApiContextLock: async (_context, task) => task(),
+    getRuntimeHookRuntime: () => ({
+      setModLocalProfileSnapshotResolver: () => {},
+      authorizeRuntimeCapability: () => {},
+    }) as never,
+  });
+}
+
+function installWindowConfirm(confirm: (message: string) => boolean): () => void {
+  const globals = globalThis as typeof globalThis & {
+    window?: { confirm?: (message: string) => boolean };
+  };
+  const previous = globals.window;
+  globals.window = { ...(previous || {}), confirm };
+  return () => {
+    if (previous) {
+      globals.window = previous;
+      return;
+    }
+    delete globals.window;
+  };
+}
+
+test('requestProfileInstall resolves and applies only after host confirm acceptance', async () => {
+  const originalGetState = useAppStore.getState;
+  const originalResolveProfile = localAiRuntime.resolveProfile;
+  const originalApplyProfile = localAiRuntime.applyProfile;
+
+  let confirmMessage = '';
+  const restoreWindow = installWindowConfirm((message) => {
+    confirmMessage = message;
+    return true;
+  });
+
+  useAppStore.getState = (() => ({
+    localManifestSummaries: [{
+      id: 'world.nimi.local-image',
+      manifest: {
+        ai: {
+          profiles: [{
+            id: 'balanced-fast',
+            title: 'Balanced Fast',
+            recommended: true,
+            consumeCapabilities: ['image'],
+            entries: [],
+          }],
+        },
+      },
+    }],
+  })) as typeof useAppStore.getState;
+
+  let resolved = 0;
+  let applied = 0;
+  localAiRuntime.resolveProfile = (async () => {
+    resolved += 1;
+    return {
+      planId: 'plan-balanced-fast',
+      modId: 'world.nimi.local-image',
+      profileId: 'balanced-fast',
+      title: 'Balanced Fast',
+      recommended: true,
+      consumeCapabilities: ['image'],
+      executionPlan: {
+        planId: 'plan-balanced-fast',
+        modId: 'world.nimi.local-image',
+        capability: 'image',
+        deviceProfile: { os: 'darwin', arch: 'arm64', gpu: { available: true }, python: { available: true }, npu: { available: false, ready: false }, diskFreeBytes: 0, ports: [] },
+        entries: [],
+        selectionRationale: [],
+        preflightDecisions: [],
+        warnings: [],
+      },
+      artifactEntries: [],
+      warnings: [],
+    };
+  }) as typeof localAiRuntime.resolveProfile;
+  localAiRuntime.applyProfile = (async () => {
+    applied += 1;
+    return {
+      planId: 'plan-balanced-fast',
+      modId: 'world.nimi.local-image',
+      profileId: 'balanced-fast',
+      executionResult: {
+        planId: 'plan-balanced-fast',
+        modId: 'world.nimi.local-image',
+        entries: [],
+        installedModels: [],
+        services: [],
+        capabilities: [],
+        stageResults: [],
+        preflightDecisions: [],
+        rollbackApplied: false,
+        warnings: [],
+      },
+      installedArtifacts: [],
+      warnings: [],
+      reasonCode: ReasonCode.ACTION_EXECUTED,
+    };
+  }) as typeof localAiRuntime.applyProfile;
+
+  try {
+    const host = createHost();
+    const result = await host.runtime.local.requestProfileInstall({
+      modId: 'world.nimi.local-image',
+      profileId: 'balanced-fast',
+    });
+
+    assert.equal(result.accepted, true);
+    assert.equal(result.declined, false);
+    assert.equal(resolved, 1);
+    assert.equal(applied, 1);
+    assert.match(confirmMessage, /Balanced Fast/);
+  } finally {
+    restoreWindow();
+    useAppStore.getState = originalGetState;
+    localAiRuntime.resolveProfile = originalResolveProfile;
+    localAiRuntime.applyProfile = originalApplyProfile;
+  }
+});
+
+test('requestProfileInstall returns declined without executing install when host confirm rejects', async () => {
+  const originalGetState = useAppStore.getState;
+  const originalResolveProfile = localAiRuntime.resolveProfile;
+  const originalApplyProfile = localAiRuntime.applyProfile;
+  const restoreWindow = installWindowConfirm(() => false);
+
+  useAppStore.getState = (() => ({
+    localManifestSummaries: [{
+      id: 'world.nimi.local-image',
+      manifest: {
+        ai: {
+          profiles: [{
+            id: 'balanced-fast',
+            title: 'Balanced Fast',
+            recommended: true,
+            consumeCapabilities: ['image'],
+            entries: [],
+          }],
+        },
+      },
+    }],
+  })) as typeof useAppStore.getState;
+
+  let resolved = 0;
+  let applied = 0;
+  localAiRuntime.resolveProfile = (async () => {
+    resolved += 1;
+    throw new Error('UNEXPECTED_RESOLVE');
+  }) as typeof localAiRuntime.resolveProfile;
+  localAiRuntime.applyProfile = (async () => {
+    applied += 1;
+    throw new Error('UNEXPECTED_APPLY');
+  }) as typeof localAiRuntime.applyProfile;
+
+  try {
+    const host = createHost();
+    const result = await host.runtime.local.requestProfileInstall({
+      modId: 'world.nimi.local-image',
+      profileId: 'balanced-fast',
+      confirmMessage: 'Install this profile?',
+    });
+
+    assert.equal(result.accepted, false);
+    assert.equal(result.declined, true);
+    assert.equal(result.reasonCode, ReasonCode.LOCAL_AI_PROFILE_INSTALL_DECLINED);
+    assert.equal(resolved, 0);
+    assert.equal(applied, 0);
+  } finally {
+    restoreWindow();
+    useAppStore.getState = originalGetState;
+    localAiRuntime.resolveProfile = originalResolveProfile;
+    localAiRuntime.applyProfile = originalApplyProfile;
+  }
+});
+
+test('requestProfileInstall returns LOCAL_AI_PROFILE_NOT_FOUND when the selected profile is absent', async () => {
+  const originalGetState = useAppStore.getState;
+  const originalResolveProfile = localAiRuntime.resolveProfile;
+  const originalApplyProfile = localAiRuntime.applyProfile;
+  const restoreWindow = installWindowConfirm(() => {
+    throw new Error('UNEXPECTED_CONFIRM');
+  });
+
+  useAppStore.getState = (() => ({
+    localManifestSummaries: [{
+      id: 'world.nimi.local-image',
+      manifest: {
+        ai: {
+          profiles: [{
+            id: 'balanced-fast',
+            title: 'Balanced Fast',
+            recommended: true,
+            consumeCapabilities: ['image'],
+            entries: [],
+          }],
+        },
+      },
+    }],
+  })) as typeof useAppStore.getState;
+
+  let resolved = 0;
+  let applied = 0;
+  localAiRuntime.resolveProfile = (async () => {
+    resolved += 1;
+    throw new Error('UNEXPECTED_RESOLVE');
+  }) as typeof localAiRuntime.resolveProfile;
+  localAiRuntime.applyProfile = (async () => {
+    applied += 1;
+    throw new Error('UNEXPECTED_APPLY');
+  }) as typeof localAiRuntime.applyProfile;
+
+  try {
+    const host = createHost();
+    const result = await host.runtime.local.requestProfileInstall({
+      modId: 'world.nimi.local-image',
+      profileId: 'missing-profile',
+    });
+
+    assert.equal(result.accepted, false);
+    assert.equal(result.declined, false);
+    assert.equal(result.reasonCode, ReasonCode.LOCAL_AI_PROFILE_NOT_FOUND);
+    assert.equal(resolved, 0);
+    assert.equal(applied, 0);
+  } finally {
+    restoreWindow();
+    useAppStore.getState = originalGetState;
+    localAiRuntime.resolveProfile = originalResolveProfile;
+    localAiRuntime.applyProfile = originalApplyProfile;
+  }
+});

@@ -1,6 +1,6 @@
 version: 2
 rule_compliance:
-  total_s_rules: 97
+  total_s_rules: 99
   audit_date: "2026-03-12"
   sdk_version: "0.4.0"
 
@@ -236,6 +236,14 @@ rules:
     status: na
     evidence_refs: [sdk_kernel_consistency]
     na_reason: "Phase 2 deferred; RuntimeAppService (app_service_projection) not yet projected"
+  - rule_id: S-MOD-012
+    status: covered
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/mod/mod-runtime-local-profiles.test.ts]
+  - rule_id: S-MOD-013
+    status: covered
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/mod/mod-runtime-local-profiles.test.ts]
 
   # --- Realm Contract (S-REALM) ---
   - rule_id: S-REALM-010

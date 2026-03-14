@@ -1,10 +1,10 @@
 import type { LocalAiModelRecord, LocalAiServiceDescriptor } from './types';
 
-export type LocalAiDependencyKind = 'model' | 'service' | 'node';
+export type LocalAiExecutionEntryKind = 'model' | 'service' | 'node';
 
-export type LocalAiDependencyOptionDescriptor = {
-  dependencyId: string;
-  kind: LocalAiDependencyKind;
+export type LocalAiExecutionOptionDescriptor = {
+  entryId: string;
+  kind: LocalAiExecutionEntryKind;
   capability?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string;
   title?: string;
   modelId?: string;
@@ -14,22 +14,22 @@ export type LocalAiDependencyOptionDescriptor = {
   engine?: string;
 };
 
-export type LocalAiDependencyAlternativeDescriptor = {
+export type LocalAiExecutionAlternativeDescriptor = {
   alternativeId: string;
-  preferredDependencyId?: string;
-  options: LocalAiDependencyOptionDescriptor[];
+  preferredEntryId?: string;
+  options: LocalAiExecutionOptionDescriptor[];
 };
 
-export type LocalAiDependenciesDeclarationDescriptor = {
-  required?: LocalAiDependencyOptionDescriptor[];
-  optional?: LocalAiDependencyOptionDescriptor[];
-  alternatives?: LocalAiDependencyAlternativeDescriptor[];
+export type LocalAiExecutionDeclarationDescriptor = {
+  required?: LocalAiExecutionOptionDescriptor[];
+  optional?: LocalAiExecutionOptionDescriptor[];
+  alternatives?: LocalAiExecutionAlternativeDescriptor[];
   preferred?: Partial<Record<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding', string>>;
 };
 
-export type LocalAiDependencyDescriptor = {
-  dependencyId: string;
-  kind: LocalAiDependencyKind;
+export type LocalAiExecutionEntryDescriptor = {
+  entryId: string;
+  kind: LocalAiExecutionEntryKind;
   capability?: string;
   required: boolean;
   selected: boolean;
@@ -78,7 +78,7 @@ export type LocalAiDeviceProfile = {
 };
 
 export type LocalAiPreflightDecision = {
-  dependencyId?: string;
+  entryId?: string;
   target: string;
   check: string;
   ok: boolean;
@@ -86,40 +86,40 @@ export type LocalAiPreflightDecision = {
   detail: string;
 };
 
-export type LocalAiDependencySelectionRationale = {
-  dependencyId: string;
+export type LocalAiExecutionSelectionRationale = {
+  entryId: string;
   selected: boolean;
   reasonCode: string;
   detail: string;
 };
 
-export type LocalAiDependencyApplyStageResult = {
+export type LocalAiExecutionStageResult = {
   stage: string;
   ok: boolean;
   reasonCode?: string;
   detail?: string;
 };
 
-export type LocalAiDependencyResolutionPlan = {
+export type LocalAiExecutionPlan = {
   planId: string;
   modId: string;
   capability?: string;
   deviceProfile: LocalAiDeviceProfile;
-  dependencies: LocalAiDependencyDescriptor[];
-  selectionRationale: LocalAiDependencySelectionRationale[];
+  entries: LocalAiExecutionEntryDescriptor[];
+  selectionRationale: LocalAiExecutionSelectionRationale[];
   preflightDecisions: LocalAiPreflightDecision[];
   warnings: string[];
   reasonCode?: string;
 };
 
-export type LocalAiDependencyApplyResult = {
+export type LocalAiExecutionApplyResult = {
   planId: string;
   modId: string;
-  dependencies: LocalAiDependencyDescriptor[];
+  entries: LocalAiExecutionEntryDescriptor[];
   installedModels: LocalAiModelRecord[];
   services: LocalAiServiceDescriptor[];
   capabilities: string[];
-  stageResults: LocalAiDependencyApplyStageResult[];
+  stageResults: LocalAiExecutionStageResult[];
   preflightDecisions: LocalAiPreflightDecision[];
   rollbackApplied: boolean;
   warnings: string[];

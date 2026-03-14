@@ -1,7 +1,10 @@
 import type {
-  LocalAiDependenciesDeclarationDescriptor as LocalAiDependencyDeclaration,
-  LocalAiDeviceProfile as LocalAiDependencyDeviceProfile,
+  LocalAiExecutionDeclarationDescriptor,
+  LocalAiDeviceProfile,
 } from './types-dependencies';
+import type {
+  LocalAiProfileResolvePayload,
+} from './types-profiles';
 
 export type LocalAiModelStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
 export type LocalAiArtifactKind = 'vae' | 'llm' | 'clip' | 'controlnet' | 'lora' | 'auxiliary';
@@ -234,29 +237,46 @@ export type LocalAiCatalogResolveInstallPlanPayload = {
 };
 
 export type {
-  LocalAiDependencyKind,
-  LocalAiDependencyOptionDescriptor,
-  LocalAiDependencyAlternativeDescriptor,
-  LocalAiDependenciesDeclarationDescriptor,
-  LocalAiDependencyDescriptor,
+  LocalAiExecutionEntryKind,
+  LocalAiExecutionOptionDescriptor,
+  LocalAiExecutionAlternativeDescriptor,
+  LocalAiExecutionDeclarationDescriptor,
+  LocalAiExecutionEntryDescriptor,
   LocalAiGpuProfile,
   LocalAiPythonProfile,
   LocalAiNpuProfile,
   LocalAiPortAvailability,
   LocalAiDeviceProfile,
   LocalAiPreflightDecision,
-  LocalAiDependencySelectionRationale,
-  LocalAiDependencyApplyStageResult,
-  LocalAiDependencyResolutionPlan,
-  LocalAiDependencyApplyResult,
+  LocalAiExecutionSelectionRationale,
+  LocalAiExecutionStageResult,
+  LocalAiExecutionPlan,
+  LocalAiExecutionApplyResult,
 } from './types-dependencies';
+export type {
+  LocalAiProfileEntryKind,
+  LocalAiProfileRequirementDescriptor,
+  LocalAiProfileEntryDescriptor,
+  LocalAiProfileDescriptor,
+  LocalAiProfileTargetDescriptor,
+  LocalAiProfileArtifactPlanEntry,
+  LocalAiProfileResolutionPlan,
+  LocalAiProfileApplyResult,
+  LocalAiProfileInstallStatus,
+  LocalAiProfileResolvePayload,
+  LocalAiProfileInstallRequest,
+  LocalAiProfileInstallRequestResult,
+  LocalAiProfileExecutionBridge,
+} from './types-profiles';
 
-export type LocalAiDependenciesResolvePayload = {
+export type LocalAiExecutionResolvePayload = {
   modId: string;
   capability?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string;
-  dependencies?: LocalAiDependencyDeclaration;
-  deviceProfile: LocalAiDependencyDeviceProfile;
+  entries?: LocalAiExecutionDeclarationDescriptor;
+  deviceProfile: LocalAiDeviceProfile;
 };
+
+export type LocalAiProfilesResolvePayload = LocalAiProfileResolvePayload;
 
 export type LocalAiServiceStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
 

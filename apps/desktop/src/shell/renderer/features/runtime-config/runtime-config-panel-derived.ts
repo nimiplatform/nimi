@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { RuntimeLocalManifestSummary } from '@renderer/bridge';
+import { normalizeLocalAiProfilesDeclaration } from '@runtime/local-ai-runtime';
 import {
   CAPABILITIES_V11,
   VENDOR_ORDER_V11,
@@ -32,10 +33,11 @@ export type RuntimeConfigPanelDerivedModel = {
   orderedConnectors: RuntimeConfigStateV11['connectors'];
   filteredLocalModels: string[];
   filteredConnectorModels: string[];
-  runtimeDependencyTargets: Array<{
+  runtimeProfileTargets: Array<{
     modId: string;
     modName: string;
     consumeCapabilities: CapabilityV11[];
+    profiles: ReturnType<typeof normalizeLocalAiProfilesDeclaration>;
   }>;
   runtimeStatus: ProviderStatusV11 | null;
 };
@@ -77,31 +79,21 @@ export function useRuntimeConfigPanelDerived(input: {
     ? (input.state.local.status === 'healthy' ? 'healthy' : (selectedConnector?.status || input.state.local.status))
     : null;
 
-  const runtimeDependencyTargets = useMemo(() => {
+  const runtimeProfileTargets = useMemo(() => {
     const registeredOrder = new Map(input.registeredRuntimeModIds.map((modId, index) => [String(modId || '').trim(), index]));
     const targets: Array<{
       modId: string;
       modName: string;
       consumeCapabilities: CapabilityV11[];
+      profiles: ReturnType<typeof normalizeLocalAiProfilesDeclaration>;
     }> = [];
     for (const summary of input.localManifestSummaries) {
       const modId = String(summary.id || '').trim();
       if (!modId || !input.registeredRuntimeModIds.includes(modId)) continue;
       const manifest = asRecord(summary.manifest);
       const ai = asRecord(manifest.ai);
-      const dependencies = asRecord(ai.dependencies);
-      const hasDependencies = (
-        Array.isArray(dependencies.required)
-        || Array.isArray(dependencies.optional)
-        || Array.isArray(dependencies.alternatives)
-        || (
-          dependencies.preferred
-          && typeof dependencies.preferred === 'object'
-          && !Array.isArray(dependencies.preferred)
-          && Object.keys(dependencies.preferred as Record<string, unknown>).length > 0
-        )
-      );
-      if (!hasDependencies) continue;
+      const profiles = normalizeLocalAiProfilesDeclaration(ai.profiles);
+      if (profiles.length <= 0) continue;
       const consumeCapabilities = Array.isArray(ai.consume)
         ? Array.from(new Set(
           ai.consume
@@ -113,6 +105,7 @@ export function useRuntimeConfigPanelDerived(input: {
         modId,
         modName: String(summary.name || '').trim() || modId,
         consumeCapabilities: consumeCapabilities.length > 0 ? consumeCapabilities : ['chat'],
+        profiles,
       });
     }
     targets.sort((left, right) => {
@@ -136,7 +129,7 @@ export function useRuntimeConfigPanelDerived(input: {
     orderedConnectors,
     filteredLocalModels,
     filteredConnectorModels,
-    runtimeDependencyTargets,
+    runtimeProfileTargets,
     runtimeStatus,
   };
 }

@@ -69,13 +69,15 @@
 | `runtime_local_audits_list` | `local-runtime` | List local AI inference audits | `D-IPC-011` |
 | `runtime_local_pick_manifest_path` | `local-runtime` | Pick a local AI model manifest file path under the runtime models root via native file dialog | `D-IPC-011` |
 | `runtime_local_pick_artifact_manifest_path` | `local-runtime` | Pick a local AI artifact manifest file path under the runtime models root via native file dialog | `D-IPC-011` |
+| `runtime_local_artifacts_list` | `local-runtime` | List local AI companion artifacts tracked by the Tauri local runtime state | `D-IPC-011` |
+| `runtime_local_artifacts_verified_list` | `local-runtime` | List verified companion artifacts available for managed install | `D-IPC-011` |
 | `runtime_local_models_verified_list` | `local-runtime` | List verified local AI models | `D-IPC-011` |
 | `runtime_local_models_catalog_search` | `local-runtime` | Search local AI model catalog (verified + Hugging Face) | `D-IPC-011` |
 | `runtime_local_models_catalog_list_variants` | `local-runtime` | List model variants for a catalog item (quantization levels, formats) | `D-IPC-011` |
 | `runtime_local_models_catalog_resolve_install_plan` | `local-runtime` | Resolve install plan for a selected catalog item | `D-IPC-011` |
-| `runtime_local_dependencies_resolve` | `local-runtime` | Resolve local runtime dependencies for a mod capability | `D-IPC-011` |
+| `runtime_local_profiles_resolve` | `local-runtime` | Resolve a mod-declared local AI profile into an executable runtime plan | `D-IPC-011` |
 | `runtime_local_device_profile_collect` | `local-runtime` | Collect local device profile (CPU/GPU/NPU/disk/ports) | `D-IPC-011` |
-| `runtime_local_dependencies_apply` | `local-runtime` | Apply resolved local runtime dependency plan | `D-IPC-011` |
+| `runtime_local_profiles_apply` | `local-runtime` | Apply a resolved local AI profile after host confirmation | `D-IPC-011` |
 | `runtime_local_services_list` | `local-runtime` | List local runtime managed services | `D-IPC-011` |
 | `runtime_local_services_install` | `local-runtime` | Install local runtime managed service | `D-IPC-011` |
 | `runtime_local_services_start` | `local-runtime` | Start local runtime managed service | `D-IPC-011` |
@@ -85,15 +87,18 @@
 | `runtime_local_nodes_catalog_list` | `local-runtime` | List local capability nodes from active services | `D-IPC-011` |
 | `runtime_local_models_install` | `local-runtime` | Install a local AI model | `D-IPC-011` |
 | `runtime_local_models_install_verified` | `local-runtime` | Install a verified local AI model | `D-IPC-011` |
+| `runtime_local_artifacts_install_verified` | `local-runtime` | Install a verified local AI companion artifact | `D-IPC-011` |
 | `runtime_local_downloads_list` | `local-runtime` | List local AI model download sessions | `D-IPC-011` |
 | `runtime_local_downloads_pause` | `local-runtime` | Pause a local AI model download session | `D-IPC-011` |
 | `runtime_local_downloads_resume` | `local-runtime` | Resume a paused/failed local AI model download session | `D-IPC-011` |
 | `runtime_local_downloads_cancel` | `local-runtime` | Cancel a local AI model download session | `D-IPC-011` |
 | `runtime_local_models_import` | `local-runtime` | Import a local AI model from structured record | `D-IPC-011` |
+| `runtime_local_artifacts_import` | `local-runtime` | Import a local AI companion artifact from artifact.manifest.json | `D-IPC-011` |
 | `runtime_local_models_adopt` | `local-runtime` | Adopt a go-runtime discovered local AI model into desktop state without download | `D-IPC-011` |
 | `runtime_local_pick_model_file` | `local-runtime` | Pick a local model file for import via native file dialog | `D-IPC-011` |
 | `runtime_local_models_import_file` | `local-runtime` | Import a model file with copy, hash, and manifest generation | `D-IPC-011` |
 | `runtime_local_models_remove` | `local-runtime` | Remove a local AI model | `D-IPC-011` |
+| `runtime_local_artifacts_remove` | `local-runtime` | Remove a local AI companion artifact | `D-IPC-011` |
 | `runtime_local_models_start` | `local-runtime` | Start a local AI model | `D-IPC-011` |
 | `runtime_local_models_stop` | `local-runtime` | Stop a local AI model | `D-IPC-011` |
 | `runtime_local_models_health` | `local-runtime` | Health check for local AI models | `D-IPC-011` |

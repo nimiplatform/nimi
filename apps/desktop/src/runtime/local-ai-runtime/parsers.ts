@@ -11,14 +11,24 @@ import type {
   LocalAiProviderHints,
   LocalAiCatalogItemDescriptor,
   LocalAiInstallPlanDescriptor,
-  LocalAiDependencyApplyResult,
+  LocalAiExecutionApplyResult,
+  LocalAiProfileApplyResult,
+  LocalAiProfileArtifactPlanEntry,
+  LocalAiProfileEntryDescriptor,
+  LocalAiProfileRequirementDescriptor,
+  LocalAiProfileResolutionPlan,
   LocalAiServiceStatus,
   LocalAiServiceDescriptor,
   LocalAiNodeDescriptor,
 } from './types';
 import { asRecord, asString } from './parser-primitives';
 import { asPlainObject } from './parser-helpers';
-import { parseApplyStageResult, parseDependencyDescriptor, parsePreflightDecision } from './parsers-dependencies';
+import {
+  parseExecutionStageResult,
+  parseExecutionEntryDescriptor,
+  parseExecutionPlan,
+  parsePreflightDecision,
+} from './parsers-dependencies';
 export { asRecord, asString } from './parser-primitives';
 export {
   assertLifecycleWriteAllowed,
@@ -27,13 +37,13 @@ export {
   readGlobalTauriEventListen,
 } from './parser-helpers';
 export {
-  normalizeDependencyKind,
-  parseApplyStageResult,
-  parseDependencyDescriptor,
-  parseDependencyResolutionPlan,
+  normalizeExecutionEntryKind,
+  parseExecutionStageResult,
+  parseExecutionEntryDescriptor,
+  parseExecutionPlan,
   parseDeviceProfile,
   parsePreflightDecision,
-  parseSelectionRationale,
+  parseExecutionSelectionRationale,
 } from './parsers-dependencies';
 export {
   normalizeDownloadState,
@@ -191,6 +201,108 @@ export function parseArtifactRecord(value: unknown): LocalAiArtifactRecord {
     updatedAt: asString(record.updatedAt),
     healthDetail: asString(record.healthDetail) || undefined,
     metadata: asPlainObject(record.metadata),
+  };
+}
+
+function parseProfileRequirementDescriptor(value: unknown): LocalAiProfileRequirementDescriptor | undefined {
+  const record = asRecord(value);
+  if (Object.keys(record).length === 0) {
+    return undefined;
+  }
+  const minGpuMemoryGb = Number(record.minGpuMemoryGb);
+  const minDiskBytes = Number(record.minDiskBytes);
+  const platforms = Array.isArray(record.platforms)
+    ? record.platforms.map((item) => asString(item)).filter(Boolean)
+    : [];
+  const notes = Array.isArray(record.notes)
+    ? record.notes.map((item) => asString(item)).filter(Boolean)
+    : [];
+  return {
+    minGpuMemoryGb: Number.isFinite(minGpuMemoryGb) ? minGpuMemoryGb : undefined,
+    minDiskBytes: Number.isFinite(minDiskBytes) && minDiskBytes >= 0 ? minDiskBytes : undefined,
+    platforms,
+    notes,
+  };
+}
+
+function parseProfileEntryDescriptor(value: unknown): LocalAiProfileEntryDescriptor {
+  const record = asRecord(value);
+  const tags = Array.isArray(record.tags)
+    ? record.tags.map((item) => asString(item)).filter(Boolean)
+    : [];
+  return {
+    entryId: asString(record.entryId || record.id),
+    kind: asString(record.kind) as LocalAiProfileEntryDescriptor['kind'],
+    title: asString(record.title) || undefined,
+    description: asString(record.description) || undefined,
+    capability: asString(record.capability) || undefined,
+    required: typeof record.required === 'boolean' ? Boolean(record.required) : undefined,
+    preferred: typeof record.preferred === 'boolean' ? Boolean(record.preferred) : undefined,
+    modelId: asString(record.modelId) || undefined,
+    repo: asString(record.repo) || undefined,
+    serviceId: asString(record.serviceId) || undefined,
+    nodeId: asString(record.nodeId) || undefined,
+    engine: asString(record.engine) || undefined,
+    artifactId: asString(record.artifactId) || undefined,
+    artifactKind: asString(record.artifactKind) as LocalAiProfileEntryDescriptor['artifactKind'] || undefined,
+    templateId: asString(record.templateId) || undefined,
+    revision: asString(record.revision) || undefined,
+    tags,
+  };
+}
+
+function parseProfileArtifactPlanEntry(value: unknown): LocalAiProfileArtifactPlanEntry {
+  const entry = parseProfileEntryDescriptor(value);
+  const record = asRecord(value);
+  return {
+    ...entry,
+    kind: 'artifact',
+    installed: Boolean(record.installed),
+  };
+}
+
+export function parseProfileResolutionPlan(value: unknown): LocalAiProfileResolutionPlan {
+  const record = asRecord(value);
+  const artifactEntries = Array.isArray(record.artifactEntries)
+    ? record.artifactEntries.map((item) => parseProfileArtifactPlanEntry(item))
+    : [];
+  const warnings = Array.isArray(record.warnings)
+    ? record.warnings.map((item) => asString(item)).filter(Boolean)
+    : [];
+  return {
+    planId: asString(record.planId),
+    modId: asString(record.modId),
+    profileId: asString(record.profileId),
+    title: asString(record.title),
+    description: asString(record.description) || undefined,
+    recommended: Boolean(record.recommended),
+    consumeCapabilities: Array.isArray(record.consumeCapabilities)
+      ? record.consumeCapabilities.map((item) => asString(item)).filter(Boolean)
+      : [],
+    requirements: parseProfileRequirementDescriptor(record.requirements),
+    executionPlan: parseExecutionPlan(record.executionPlan),
+    artifactEntries,
+    warnings,
+    reasonCode: asString(record.reasonCode) || undefined,
+  };
+}
+
+export function parseProfileApplyResult(value: unknown): LocalAiProfileApplyResult {
+  const record = asRecord(value);
+  const installedArtifacts = Array.isArray(record.installedArtifacts)
+    ? record.installedArtifacts.map((item) => parseArtifactRecord(item))
+    : [];
+  const warnings = Array.isArray(record.warnings)
+    ? record.warnings.map((item) => asString(item)).filter(Boolean)
+    : [];
+  return {
+    planId: asString(record.planId),
+    modId: asString(record.modId),
+    profileId: asString(record.profileId),
+    executionResult: parseExecutionApplyResult(record.executionResult),
+    installedArtifacts,
+    warnings,
+    reasonCode: asString(record.reasonCode) || undefined,
   };
 }
 
@@ -384,10 +496,10 @@ export function parseInstallPlanDescriptor(value: unknown): LocalAiInstallPlanDe
   };
 }
 
-export function parseDependencyApplyResult(value: unknown): LocalAiDependencyApplyResult {
+export function parseExecutionApplyResult(value: unknown): LocalAiExecutionApplyResult {
   const record = asRecord(value);
-  const dependencies = Array.isArray(record.dependencies)
-    ? record.dependencies.map((item) => parseDependencyDescriptor(item))
+  const entries = Array.isArray(record.entries)
+    ? record.entries.map((item) => parseExecutionEntryDescriptor(item))
     : [];
   const installedModels = Array.isArray(record.installedModels)
     ? record.installedModels.map((item) => parseModelRecord(item))
@@ -399,7 +511,7 @@ export function parseDependencyApplyResult(value: unknown): LocalAiDependencyApp
     ? record.capabilities.map((item) => asString(item)).filter(Boolean)
     : [];
   const stageResults = Array.isArray(record.stageResults)
-    ? record.stageResults.map((item) => parseApplyStageResult(item))
+    ? record.stageResults.map((item) => parseExecutionStageResult(item))
     : [];
   const preflightDecisions = Array.isArray(record.preflightDecisions)
     ? record.preflightDecisions.map((item) => parsePreflightDecision(item))
@@ -410,7 +522,7 @@ export function parseDependencyApplyResult(value: unknown): LocalAiDependencyApp
   return {
     planId: asString(record.planId),
     modId: asString(record.modId),
-    dependencies,
+    entries,
     installedModels,
     services,
     capabilities,

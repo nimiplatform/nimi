@@ -102,12 +102,12 @@ test('mod runtime client uses injected runtime context without global host', asy
       deleteAsset: async () => ({} as never),
       listPresetVoices: async () => ({} as never),
     },
-    getModAiDependencySnapshot: async () => ({
+    getModLocalProfileSnapshot: async () => ({
       modId: 'mod.context.test',
       status: 'ready' as const,
       routeSource: 'local' as const,
       warnings: [],
-      dependencies: [],
+      entries: [],
       repairActions: [],
       updatedAt: new Date(0).toISOString(),
     }),
@@ -215,12 +215,12 @@ test('mod runtime client forwards media.jobs.submit through injected runtime con
       deleteAsset: async () => ({} as never),
       listPresetVoices: async () => ({} as never),
     },
-    getModAiDependencySnapshot: async () => ({
+    getModLocalProfileSnapshot: async () => ({
       modId: 'mod.context.test',
       status: 'ready' as const,
       routeSource: 'local' as const,
       warnings: [],
-      dependencies: [],
+      entries: [],
       repairActions: [],
       updatedAt: new Date(0).toISOString(),
     }),
@@ -323,12 +323,12 @@ test('mod runtime client route health uses injected runtime context', async () =
       deleteAsset: async () => ({} as never),
       listPresetVoices: async () => ({} as never),
     },
-    getModAiDependencySnapshot: async () => ({
+    getModLocalProfileSnapshot: async () => ({
       modId: 'mod.context.test',
       status: 'ready' as const,
       routeSource: 'local' as const,
       warnings: [],
-      dependencies: [],
+      entries: [],
       repairActions: [],
       updatedAt: new Date(0).toISOString(),
     }),
@@ -425,14 +425,14 @@ test('mod runtime inspector forwards canonical dependency capability tokens', as
       deleteAsset: async () => ({} as never),
       listPresetVoices: async () => ({} as never),
     },
-    getModAiDependencySnapshot: async (input: Record<string, unknown>) => {
+    getModLocalProfileSnapshot: async (input: Record<string, unknown>) => {
       snapshotCalls.push(input);
       return {
         modId: 'mod.context.test',
         status: 'ready' as const,
         routeSource: 'local' as const,
         warnings: [],
-        dependencies: [],
+        entries: [],
         repairActions: [],
         updatedAt: new Date(0).toISOString(),
       };
@@ -444,7 +444,7 @@ test('mod runtime inspector forwards canonical dependency capability tokens', as
     runtime: {} as RuntimeHookRuntimeFacade,
   });
 
-  await inspector.getDependencySnapshot('audio.synthesize', 'local');
+  await inspector.getLocalProfileSnapshot('audio.synthesize', 'local');
 
   assert.equal(snapshotCalls.length, 1);
   assert.equal(snapshotCalls[0]?.modId, 'mod.context.test');
@@ -535,12 +535,12 @@ test('mod runtime client image.generate keeps minimal payload', async () => {
       deleteAsset: async () => ({} as never),
       listPresetVoices: async () => ({} as never),
     },
-    getModAiDependencySnapshot: async () => ({
+    getModLocalProfileSnapshot: async () => ({
       modId: 'mod.context.test',
       status: 'ready' as const,
       routeSource: 'local' as const,
       warnings: [],
-      dependencies: [],
+      entries: [],
       repairActions: [],
       updatedAt: new Date(0).toISOString(),
     }),

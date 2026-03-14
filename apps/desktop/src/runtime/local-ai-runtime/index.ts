@@ -17,8 +17,8 @@ import {
   resumeLocalAiRuntimeDownload,
   cancelLocalAiRuntimeDownload,
   collectLocalAiRuntimeDeviceProfile,
-  resolveLocalAiRuntimeDependencies,
-  applyLocalAiRuntimeDependencies,
+  applyLocalAiRuntimeProfile,
+  getLocalAiRuntimeProfileInstallStatus,
   listLocalAiRuntimeServices,
   installLocalAiRuntimeService,
   startLocalAiRuntimeService,
@@ -44,6 +44,7 @@ import {
   scaffoldLocalAiRuntimeOrphan,
   scaffoldLocalAiRuntimeArtifactOrphan,
   installLocalAiRuntimeVerifiedArtifact,
+  resolveLocalAiRuntimeProfile,
 } from './commands';
 import type {
   GgufVariantDescriptor,
@@ -55,11 +56,15 @@ import type {
   LocalAiCatalogResolveInstallPlanPayload,
   LocalAiCatalogSearchPayload,
   LocalAiAuditQuery,
-  LocalAiDependenciesDeclarationDescriptor,
-  LocalAiDependenciesResolvePayload,
-  LocalAiDependencyDescriptor,
-  LocalAiDependencyResolutionPlan,
-  LocalAiDependencyApplyResult,
+  LocalAiProfileApplyResult,
+  LocalAiProfileDescriptor,
+  LocalAiProfileEntryDescriptor,
+  LocalAiProfileInstallRequest,
+  LocalAiProfileInstallRequestResult,
+  LocalAiProfileInstallStatus,
+  LocalAiProfileResolutionPlan,
+  LocalAiProfileResolvePayload,
+  LocalAiProfileTargetDescriptor,
   LocalAiDeviceProfile,
   LocalAiDownloadSessionSummary,
   LocalAiDownloadState,
@@ -77,6 +82,8 @@ import type {
   LocalAiServiceDescriptor,
   LocalAiServicesInstallPayload,
   LocalAiNodeDescriptor,
+  LocalAiExecutionEntryDescriptor,
+  LocalAiExecutionPlan,
   LocalAiCapabilityMatrixEntry,
   LocalAiNodesCatalogListPayload,
   LocalAiModelHealth,
@@ -114,6 +121,12 @@ import {
   syncModelRemoveToGoRuntime,
   reconcileModelsToGoRuntime,
 } from './go-runtime-sync';
+export {
+  bridgeLocalAiProfile,
+  findLocalAiProfileById,
+  normalizeLocalAiProfilesDeclaration,
+  profileSupportsCapability,
+} from './profile-manifest';
 
 export {
   GoRuntimeSyncError,
@@ -136,11 +149,15 @@ export type {
   LocalAiCatalogResolveInstallPlanPayload,
   LocalAiCatalogSearchPayload,
   LocalAiAuditQuery,
-  LocalAiDependenciesDeclarationDescriptor,
-  LocalAiDependenciesResolvePayload,
-  LocalAiDependencyDescriptor,
-  LocalAiDependencyResolutionPlan,
-  LocalAiDependencyApplyResult,
+  LocalAiProfileApplyResult,
+  LocalAiProfileDescriptor,
+  LocalAiProfileEntryDescriptor,
+  LocalAiProfileInstallRequest,
+  LocalAiProfileInstallRequestResult,
+  LocalAiProfileInstallStatus,
+  LocalAiProfileResolutionPlan,
+  LocalAiProfileResolvePayload,
+  LocalAiProfileTargetDescriptor,
   LocalAiDeviceProfile,
   LocalAiDownloadSessionSummary,
   LocalAiDownloadState,
@@ -158,6 +175,8 @@ export type {
   LocalAiServiceDescriptor,
   LocalAiServicesInstallPayload,
   LocalAiNodeDescriptor,
+  LocalAiExecutionEntryDescriptor,
+  LocalAiExecutionPlan,
   LocalAiCapabilityMatrixEntry,
   LocalAiNodesCatalogListPayload,
   LocalAiModelHealth,
@@ -189,11 +208,12 @@ export type LocalAiRuntimeFacade = {
   listRepoGgufVariants: (repo: string) => Promise<GgufVariantDescriptor[]>;
   resolveInstallPlan: (payload: LocalAiCatalogResolveInstallPlanPayload) => Promise<LocalAiInstallPlanDescriptor>;
   collectDeviceProfile: () => Promise<LocalAiDeviceProfile>;
-  resolveDependencies: (payload: LocalAiDependenciesResolvePayload) => Promise<LocalAiDependencyResolutionPlan>;
-  applyDependencies: (
-    plan: LocalAiDependencyResolutionPlan,
+  resolveProfile: (payload: LocalAiProfileResolvePayload) => Promise<LocalAiProfileResolutionPlan>;
+  applyProfile: (
+    plan: LocalAiProfileResolutionPlan,
     options?: LocalAiRuntimeWriteOptions,
-  ) => Promise<LocalAiDependencyApplyResult>;
+  ) => Promise<LocalAiProfileApplyResult>;
+  getProfileInstallStatus: (payload: LocalAiProfileResolvePayload) => Promise<LocalAiProfileInstallStatus>;
   listServices: () => Promise<LocalAiServiceDescriptor[]>;
   installService: (
     payload: LocalAiServicesInstallPayload,
@@ -299,8 +319,9 @@ export const localAiRuntime: LocalAiRuntimeFacade = {
   listRepoGgufVariants: listLocalAiRuntimeRepoGgufVariants,
   resolveInstallPlan: resolveLocalAiRuntimeInstallPlan,
   collectDeviceProfile: collectLocalAiRuntimeDeviceProfile,
-  resolveDependencies: resolveLocalAiRuntimeDependencies,
-  applyDependencies: applyLocalAiRuntimeDependencies,
+  resolveProfile: resolveLocalAiRuntimeProfile,
+  applyProfile: applyLocalAiRuntimeProfile,
+  getProfileInstallStatus: getLocalAiRuntimeProfileInstallStatus,
   listServices: listLocalAiRuntimeServices,
   installService: installLocalAiRuntimeService,
   startService: startLocalAiRuntimeService,

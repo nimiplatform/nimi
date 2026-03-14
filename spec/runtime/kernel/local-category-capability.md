@@ -135,25 +135,25 @@ Phase 1 模型目录来源：
 
 ## K-LOCAL-013 依赖解析模型
 
-`LocalDependenciesDeclarationDescriptor` 定义四类依赖：
+`LocalExecutionDeclarationDescriptor` 定义四类执行条目声明：
 
 | 类型 | 语义 | 缺失行为 |
 |---|---|---|
 | `required` | 必须满足 | 解析失败，reason_code 报错 |
 | `optional` | 可选增强 | 跳过，生成 warning |
-| `alternatives` | 互选组（多选一） | 按 `preferred_dependency_id` 优先选择；全部不可用则失败 |
-| `preferred` | 全局偏好映射（`capability → dependency_id`） | 仅影响 alternatives 中的选择优先级 |
+| `alternatives` | 互选组（多选一） | 按 `preferred_entry_id` 优先选择；全部不可用则失败 |
+| `preferred` | 全局偏好映射（`capability → entry_id`） | 仅影响 alternatives 中的选择优先级 |
 
 解析过程：
 
 1. 遍历 `required` → 全部必须可满足。
 2. 遍历 `optional` → 尽力满足。
 3. 遍历 `alternatives` → 按 preferred > 声明顺序选择。
-4. 输出 `LocalDependencyResolutionPlan`，含 `selection_rationale` 与 `preflight_decisions`。
+4. 输出 `LocalExecutionPlan`，含 `selection_rationale` 与 `preflight_decisions`。
 
 ## K-LOCAL-014 Apply 管道四阶段
 
-`ApplyDependencies` 执行解析计划，分四阶段：
+`ApplyProfile` 执行 profile 解析结果中的 `LocalExecutionPlan`，分四阶段：
 
 | 阶段 | 名称 | 动作 |
 |---|---|---|
@@ -162,7 +162,17 @@ Phase 1 模型目录来源：
 | 3 | `bootstrap` | 执行 `StartLocalService`（ATTACHED_ENDPOINT 模式为连接验证） |
 | 4 | `health` | 执行健康探测（`K-LENG-007`），确认服务可用 |
 
-每个阶段产出 `LocalDependencyApplyStageResult{stage, ok, reason_code, detail}`。
+每个阶段产出 `LocalExecutionStageResult{stage, ok, reason_code, detail}`。
+
+## K-LOCAL-014A Profile 执行面
+
+`ResolveProfile` / `ApplyProfile` 为本地 AI 推荐组合的一等执行入口：
+
+- `ResolveProfile` 接收单个 `LocalProfileDescriptor`，并将其中的 model / service / node entries 归一化为 `LocalExecutionPlan`。
+- profile 中的 artifact entries 不进入 execution resolver，而是单独暴露在 `LocalProfileResolutionPlan.artifact_entries`。
+- `ApplyProfile` 必须先执行 `execution_plan`，再补齐 companion artifact install。
+- daemon 不负责枚举 mod manifest 中声明了哪些 profile；profile 列举职责仍属于 desktop / mod host。daemon 只负责执行传入的单个 profile。
+- capability filter 存在时，只执行与该 capability 匹配或未显式声明 capability 的 profile entry。
 
 ## K-LOCAL-015 Apply 失败回滚
 

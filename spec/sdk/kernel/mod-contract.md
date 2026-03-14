@@ -65,3 +65,32 @@ source-type 与 capability 分级需要与 desktop hook allowlist 一致。
 inter-mod 与 runtime app messaging 的桥接语义必须可追溯且不破坏边界。
 
 > **Phase 2 deferred**：`RuntimeAppService`（`app_service_projection`）为 Phase 2 服务，桥接语义定义推迟至该服务投影就绪时补充。当前仅约束边界不可突破，具体协议待定。
+
+## S-MOD-012 Local AI Profile Contract
+
+mod 如需声明本地 AI 推荐安装方案，公开 manifest contract 必须使用 `manifest.ai.profiles`，不得再以 `manifest.ai.dependencies` 作为用户-facing 主契约。
+
+- `ai.profiles[]` 是用户可理解、可安装的推荐组合单位。
+- profile 必须至少包含：
+  - `id`
+  - `title`
+  - `recommended`
+  - `consumeCapabilities[]`
+  - `entries[]`
+- `entries[]` 允许声明：
+  - `model`
+  - `artifact`
+  - `service`
+  - `node`
+- profile 命名完全自定义；SDK contract 不内建高/中/低枚举。
+
+## S-MOD-013 Local AI Install Request Boundary
+
+mod-facing 本地 AI profile 安装必须通过 host-injected facade 发起“请求安装”，不得暴露静默直接安装 contract。
+
+- 允许的稳定 facade 语义：
+  - `runtime.local.listProfiles()`
+  - `runtime.local.requestProfileInstall(...)`
+  - `runtime.local.getProfileInstallStatus(...)`
+- host 必须保留最终确认权。
+- profile 解析可在内部归一化为执行计划，但执行计划不是 mod manifest 的公开 contract。

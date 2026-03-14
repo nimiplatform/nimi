@@ -322,14 +322,14 @@ method_mappings:
     proto_method: ListNodeCatalog
     mapping_status: aligned
   - design_service: RuntimeLocalService
-    design_method: ResolveDependencies
+    design_method: ResolveProfile
     proto_service: RuntimeLocalService
-    proto_method: ResolveDependencies
+    proto_method: ResolveProfile
     mapping_status: aligned
   - design_service: RuntimeLocalService
-    design_method: ApplyDependencies
+    design_method: ApplyProfile
     proto_service: RuntimeLocalService
-    proto_method: ApplyDependencies
+    proto_method: ApplyProfile
     mapping_status: aligned
   - design_service: RuntimeLocalService
     design_method: ListLocalAudits

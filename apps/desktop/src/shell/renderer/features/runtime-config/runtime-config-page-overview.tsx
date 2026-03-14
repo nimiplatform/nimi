@@ -170,8 +170,8 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
           />
           <StatTile
             title={t('runtimeConfig.overview.aiMods', { defaultValue: 'AI Mods' })}
-            value={model.runtimeDependencyTargets.length}
-            subtitle={t('runtimeConfig.overview.withAiDeps', { defaultValue: 'with AI dependencies' })}
+            value={model.runtimeProfileTargets.length}
+            subtitle={t('runtimeConfig.overview.withAiProfiles', { defaultValue: 'with AI profiles' })}
             onClick={() => model.onChangePage('mods')}
           />
         </div>
@@ -426,8 +426,8 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
             onClick={() => model.onChangePage('runtime')}
           />
           <QuickLinkCard
-            title={t('runtimeConfig.overview.modDependencies', { defaultValue: 'Mod Dependencies' })}
-            description={t('runtimeConfig.overview.modDependenciesDescription', { defaultValue: 'Configure AI for mods' })}
+            title={t('runtimeConfig.overview.modProfiles', { defaultValue: 'Mod Dependencies' })}
+            description={t('runtimeConfig.overview.modProfilesDescription', { defaultValue: 'Configure AI for mods' })}
             onClick={() => model.onChangePage('mods')}
           />
         </div>
