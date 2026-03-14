@@ -22,7 +22,10 @@ function joinClasses(...values: Array<string | undefined>): string {
   return values.filter(Boolean).join(' ');
 }
 
-function assignRef<T>(ref: Ref<T> | undefined, value: T): void {
+function assignRef<T>(
+  ref: Ref<T> | undefined,
+  value: T,
+): void {
   if (!ref) {
     return;
   }
