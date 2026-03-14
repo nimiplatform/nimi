@@ -68,6 +68,33 @@ pnpm --filter @nimiplatform/web typecheck
 pnpm --filter @nimiplatform/web build
 ```
 
+## Cloudflare Pages
+
+Production is intended to run as a Cloudflare Pages site on the primary web
+origin, with same-origin proxying for backend traffic.
+
+- Custom domain: your primary web origin (for example `app.example.com`)
+- Static assets: served by Pages from `dist/`
+- Backend proxy: [`public/_worker.js`](/Users/snwozy/nimi-realm/nimi/apps/web/public/_worker.js)
+  forwards `/api/*` and `/socket.io/*` to `API_ORIGIN`
+- Example `API_ORIGIN`: `https://api.example.com`
+
+Suggested Pages project settings:
+
+- Root directory: `nimi`
+- Build command: `pnpm install --frozen-lockfile && pnpm --filter @nimiplatform/web build`
+- Build output directory: `apps/web/dist`
+
+Suggested Pages environment variables:
+
+- `VITE_NIMI_SHELL_MODE=web`
+- `API_ORIGIN=https://api.example.com`
+
+Notes:
+
+- In production web mode, runtime request code uses same-origin API routing.
+- `VITE_NIMI_REALM_URL` is only relevant for local Vite dev proxy behavior.
+
 ## Sync Rule
 
 When desktop renderer evolves:
