@@ -266,7 +266,6 @@ function formatWorldClock(world: WorldListItem): string {
   }
   return formatWorldDate(worldDate, clockConfig);
 }
-
 type WorldChronoPanelState = {
   hour: number;
   minute: number;
@@ -304,6 +303,7 @@ function resolveWorldChronoPanelState(world: WorldListItem, nowMs: number): Worl
 }
 
 function WorldChronoPanel({ world, compact = false }: { world: WorldListItem; compact?: boolean }) {
+  const { t } = useTranslation();
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
@@ -335,7 +335,9 @@ function WorldChronoPanel({ world, compact = false }: { world: WorldListItem; co
         }}
       >
       <div className="mb-2 flex items-center justify-between gap-4">
-        <span className={`${compact ? 'text-[7px]' : 'text-[10px]'} uppercase tracking-[0.2em] text-[#56D3B2]/85`}>WORLD SYNC</span>
+        <span className={`${compact ? 'text-[7px]' : 'text-[10px]'} uppercase tracking-[0.2em] text-[#56D3B2]/85`}>
+          {t('World.syncTicker')}
+        </span>
         <span
           className={`text-right ${compact ? 'text-[10px]' : 'text-[13px]'} font-medium tracking-[0.08em] text-white/92`}
           style={{ textShadow: '1.5px 0 rgba(255,0,255,0.55), -1px 0 rgba(86,211,178,0.8)' }}
@@ -358,7 +360,7 @@ function WorldChronoPanel({ world, compact = false }: { world: WorldListItem; co
 
       <div className={`${compact ? 'mt-2' : 'mt-4'}`}>
         <span className={`mb-1.5 block ${compact ? 'text-[7px]' : 'text-[9px]'} uppercase tracking-[0.16em] text-[#8EF0D8]`}>
-          CHRONO FLOW: {chrono.flowRatio.toFixed(1)}X
+          {t('World.chronoFlow', { value: chrono.flowRatio.toFixed(1) })}
         </span>
         <div className="relative h-[2px] overflow-hidden bg-white/10">
           <div
