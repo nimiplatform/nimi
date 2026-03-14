@@ -16,7 +16,6 @@ const agentsSpecs = [
   { rel: 'scripts/AGENTS.md', maxLines: 30 },
   { rel: 'apps/desktop/AGENTS.md', maxLines: 30 },
   { rel: 'apps/web/AGENTS.md', maxLines: 30 },
-  { rel: 'apps/landing/AGENTS.md', maxLines: 30 },
   { rel: 'proto/AGENTS.md', maxLines: 30 },
 ];
 
@@ -54,7 +53,6 @@ function collectKnownPnpmScripts() {
   const packageFiles = [
     'apps/desktop/package.json',
     'apps/web/package.json',
-    'apps/landing/package.json',
     'sdk/package.json',
     'docs/package.json',
     'examples/package.json',

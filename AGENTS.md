@@ -28,5 +28,5 @@
 - Runtime chain order:
   - `runtime`: `go build ./...`, `go vet ./...`, `go test ./...`, `go run ./cmd/runtime-compliance --gate`
   - `sdk`: `pnpm --filter @nimiplatform/sdk test`, `pnpm check:sdk-coverage`, `pnpm check:sdk-consumer-smoke`
-  - `desktop and web`: `pnpm --filter @nimiplatform/desktop test`, `pnpm --filter @nimiplatform/web build`, `pnpm --filter @nimiplatform/landing build`
+  - `desktop and web`: `pnpm --filter @nimiplatform/desktop test`, `pnpm --filter @nimiplatform/web build`
 - Live/provider hard gates: `pnpm check:live-provider-invariants`, `pnpm check:runtime-mod-hook-hardcut`, `pnpm check:mods-no-runtime-sdk`, `pnpm check:local-chat-e2e`.

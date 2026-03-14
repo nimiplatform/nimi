@@ -71,7 +71,7 @@ const checks = [
     forbidden: ['Run: nimi serve', '--model local/qwen2.5'],
   },
   {
-    file: 'apps/landing/src/content/landing-content.ts',
+    file: 'apps/web/src/landing/content/landing-content.ts',
     required: [
       "command: 'nimi start'",
       'command: \'nimi run "What is Nimi?"\'',
