@@ -18,17 +18,115 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
 }
 
-function resolveTimeFlowRatio(timeModel: Record<string, unknown> | null | undefined): number {
-  const ratio = timeModel?.timeFlowRatio;
-  return typeof ratio === 'number' && Number.isFinite(ratio) && ratio > 0 ? ratio : 1;
+function readString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function readNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function toWorldComputed(raw: unknown, fallback: WorldListItem['computed']): WorldListItem['computed'] {
+  const record = asRecord(raw);
+  const time = asRecord(record?.time);
+  const languages = asRecord(record?.languages);
+  const entry = asRecord(record?.entry);
+  const score = asRecord(record?.score);
+
+  return {
+    time: {
+      currentWorldTime: readString(time?.currentWorldTime) ?? fallback.time.currentWorldTime,
+      currentLabel: readString(time?.currentLabel) ?? fallback.time.currentLabel,
+      eraLabel: readString(time?.eraLabel) ?? fallback.time.eraLabel,
+      flowRatio: Math.max(0.0001, readNumber(time?.flowRatio) ?? fallback.time.flowRatio),
+      isPaused: typeof time?.isPaused === 'boolean' ? time.isPaused : fallback.time.isPaused,
+    },
+    languages: {
+      primary: readString(languages?.primary) ?? fallback.languages.primary,
+      common: Array.isArray(languages?.common)
+        ? languages.common.filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+        : fallback.languages.common,
+    },
+    entry: {
+      recommendedAgents: Array.isArray(entry?.recommendedAgents)
+        ? entry.recommendedAgents.reduce<WorldListItem['computed']['entry']['recommendedAgents']>((acc, item) => {
+          const agent = asRecord(item);
+          if (!agent?.id) {
+            return acc;
+          }
+          acc.push({
+            id: String(agent.id),
+            name: String(agent.name || 'Unknown'),
+            handle: readString(agent.handle) ?? undefined,
+            avatarUrl: readString(agent.avatarUrl) ?? undefined,
+          });
+          return acc;
+        }, [])
+        : fallback.entry.recommendedAgents,
+    },
+    score: {
+      scoreEwma: readNumber(score?.scoreEwma) ?? fallback.score.scoreEwma,
+    },
+    featuredAgentCount: readNumber(record?.featuredAgentCount) ?? fallback.featuredAgentCount,
+  };
+}
+
+function formatAgentHandle(agent: Record<string, unknown>, display: Record<string, unknown> | null, name: string): string {
+  return readString(display?.role)
+    ? `@${String(display?.role)}`
+    : (readString(agent.handle) ? `@${String(agent.handle)}` : `@${name}`);
+}
+
+function toWorldAgent(agent: Record<string, unknown>, worldCreatedAt: string): WorldAgent {
+  const display = asRecord(agent.display);
+  const name = String(agent.name || 'Unknown');
+
+  return {
+    id: String(agent.id || ''),
+    name,
+    handle: formatAgentHandle(agent, display, name),
+    bio: String(agent.bio || 'No description available.'),
+    role: readString(display?.role),
+    faction: readString(display?.faction),
+    rank: readString(display?.rank),
+    sceneName: readString(display?.sceneName),
+    location: readString(display?.location),
+    createdAt: typeof agent.createdAt === 'string' ? agent.createdAt : worldCreatedAt,
+    avatarUrl: agent.avatarUrl ? String(agent.avatarUrl) : undefined,
+  };
+}
+
+function orderAgentsByRecommendation(agentRecords: Array<Record<string, unknown>>, recommendedIds: string[]): Array<Record<string, unknown>> {
+  if (recommendedIds.length === 0) {
+    return agentRecords;
+  }
+  const byId = new Map(agentRecords.map((agent) => [String(agent.id || ''), agent]));
+  const ordered: Array<Record<string, unknown>> = [];
+  const seen = new Set<string>();
+
+  for (const id of recommendedIds) {
+    const agent = byId.get(id);
+    if (agent && !seen.has(id)) {
+      ordered.push(agent);
+      seen.add(id);
+    }
+  }
+
+  for (const agent of agentRecords) {
+    const id = String(agent.id || '');
+    if (!seen.has(id)) {
+      ordered.push(agent);
+    }
+  }
+
+  return ordered;
 }
 
 function toXianxiaWorldData(
   world: WorldListItem,
   detail?: Record<string, unknown> | null,
 ): XianxiaWorldData {
-  const detailTimeModel = asRecord(detail?.timeModel);
-  const timeModel = detailTimeModel ?? world.timeModel ?? null;
+  const computed = toWorldComputed(detail?.computed, world.computed);
   return {
     id: world.id,
     name: (detail?.name as string) ?? world.name,
@@ -55,15 +153,11 @@ function toXianxiaWorldData(
     scoreE: (detail?.scoreE as number) ?? world.scoreE,
     scoreEwma: (detail?.scoreEwma as number) ?? world.scoreEwma,
     scoreQ: (detail?.scoreQ as number) ?? world.scoreQ,
-    timeFlowRatio: resolveTimeFlowRatio(timeModel),
+    flowRatio: computed.time.flowRatio,
     transitInLimit: (detail?.transitInLimit as number) ?? world.transitInLimit,
     genre: (detail?.genre as string | null) ?? world.genre,
     era: (detail?.era as string | null) ?? world.era,
     themes: (detail?.themes as string[] | null) ?? world.themes,
-    timeModel,
-    clockConfig: (detail?.clockConfig as Record<string, unknown> | null) ?? null,
-    languages: (detail?.languages as Record<string, unknown> | null) ?? world.languages ?? null,
-    sceneTimeConfig: (detail?.sceneTimeConfig as Record<string, unknown> | null) ?? null,
   };
 }
 
@@ -94,16 +188,10 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   const worldData = toXianxiaWorldData(world, detail);
 
   const agentRecords = Array.isArray(detail?.agents) ? (detail.agents as Array<Record<string, unknown>>) : [];
-  const agents: WorldAgent[] = agentRecords.map((agent) => ({
-    id: String(agent.id || ''),
-    name: String(agent.name || 'Unknown'),
-    handle: agent.role
-      ? `@${String(agent.role)}`
-      : (agent.handle ? `@${String(agent.handle)}` : `@${String(agent.name || 'Unknown')}`),
-    bio: String(agent.bio || 'No description available.'),
-    createdAt: typeof agent.createdAt === 'string' ? agent.createdAt : world.createdAt,
-    avatarUrl: agent.avatarUrl ? String(agent.avatarUrl) : undefined,
-  }));
+  const detailComputed = toWorldComputed(detail?.computed, world.computed);
+  const recommendedIds = detailComputed.entry.recommendedAgents.map((agent) => agent.id);
+  const agents: WorldAgent[] = orderAgentsByRecommendation(agentRecords, recommendedIds)
+    .map((agent) => toWorldAgent(agent, world.createdAt));
 
   const events = worldEventsQuery.data || [];
 

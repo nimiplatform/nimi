@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
@@ -23,6 +23,38 @@ export type WorldAgentItem = {
   bio?: string;
   avatarUrl?: string | null;
   createdAt?: string;
+};
+
+export type WorldComputedTime = {
+  currentWorldTime: string | null;
+  currentLabel: string | null;
+  eraLabel: string | null;
+  flowRatio: number;
+  isPaused: boolean;
+};
+
+export type WorldComputedLanguages = {
+  primary: string | null;
+  common: string[];
+};
+
+export type WorldComputedEntryAgent = {
+  id: string;
+  name: string;
+  handle?: string | null;
+  avatarUrl?: string | null;
+};
+
+export type WorldComputed = {
+  time: WorldComputedTime;
+  languages: WorldComputedLanguages;
+  entry: {
+    recommendedAgents: WorldComputedEntryAgent[];
+  };
+  score: {
+    scoreEwma: number;
+  };
+  featuredAgentCount: number;
 };
 
 export type WorldListItem = {
@@ -55,11 +87,8 @@ export type WorldListItem = {
   scoreE: number;
   scoreEwma: number;
   scoreQ: number;
-  timeFlowRatio: number;
   transitInLimit: number;
-  timeModel?: Record<string, unknown> | null;
-  clockConfig?: Record<string, unknown> | null;
-  languages?: Record<string, unknown> | null;
+  computed: WorldComputed;
   agents?: WorldAgentItem[];
 };
 
@@ -71,72 +100,84 @@ function readRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
 }
 
-function readNumberField(source: Record<string, unknown> | null | undefined, keys: string[]): number | null {
-  if (!source) {
+function readBoolean(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null;
+}
+
+function readNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function toComputedAgent(raw: unknown): WorldComputedEntryAgent | null {
+  const record = readRecord(raw);
+  if (!record?.id) {
     return null;
   }
-  for (const key of keys) {
-    const value = source[key];
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value;
-    }
-  }
-  return null;
+  return {
+    id: String(record.id),
+    name: String(record.name || 'Unknown'),
+    handle: readString(record.handle),
+    avatarUrl: readString(record.avatarUrl),
+  };
 }
 
-function readStringField(source: Record<string, unknown> | null | undefined, keys: string[]): string | null {
-  if (!source) {
-    return null;
-  }
-  for (const key of keys) {
-    const value = source[key];
-    if (typeof value === 'string' && value.trim()) {
-      return value.trim();
-    }
-  }
-  return null;
+function toWorldComputed(raw: unknown): WorldComputed {
+  const record = readRecord(raw);
+  const time = readRecord(record?.time);
+  const languages = readRecord(record?.languages);
+  const entry = readRecord(record?.entry);
+  const score = readRecord(record?.score);
+
+  return {
+    time: {
+      currentWorldTime: readString(time?.currentWorldTime),
+      currentLabel: readString(time?.currentLabel),
+      eraLabel: readString(time?.eraLabel),
+      flowRatio: Math.max(0.0001, readNumber(time?.flowRatio) ?? 1),
+      isPaused: readBoolean(time?.isPaused) ?? false,
+    },
+    languages: {
+      primary: readString(languages?.primary),
+      common: Array.isArray(languages?.common)
+        ? languages.common.filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+        : [],
+    },
+    entry: {
+      recommendedAgents: Array.isArray(entry?.recommendedAgents)
+        ? entry.recommendedAgents.map(toComputedAgent).filter((value): value is WorldComputedEntryAgent => Boolean(value))
+        : [],
+    },
+    score: {
+      scoreEwma: readNumber(score?.scoreEwma) ?? 0,
+    },
+    featuredAgentCount: readNumber(record?.featuredAgentCount) ?? 0,
+  };
 }
 
-function resolveTimeFlowRatio(timeModel: Record<string, unknown> | null | undefined): number {
-  const ratio = readNumberField(timeModel, ['timeFlowRatio']);
-  return ratio && ratio > 0 ? ratio : 1;
-}
-
-function resolveCurrentWorldDate(
-  clockConfig: Record<string, unknown> | null | undefined,
-  timeFlowRatio: number,
+function resolveProjectedWorldDate(
+  time: WorldComputedTime,
+  anchorNowMs: number,
   nowMs: number,
 ): Date | null {
-  const realAnchorRaw = readStringField(clockConfig, ['anchorRealTime']);
-  const worldAnchorRaw = readStringField(clockConfig, ['pausedAt', 'anchorWorldTime']);
-  if (!realAnchorRaw || !worldAnchorRaw) {
+  if (!time.currentWorldTime) {
     return null;
   }
-  const realAnchor = new Date(realAnchorRaw);
-  const worldAnchor = new Date(worldAnchorRaw);
-  if (Number.isNaN(realAnchor.getTime()) || Number.isNaN(worldAnchor.getTime())) {
+  const anchor = new Date(time.currentWorldTime);
+  if (Number.isNaN(anchor.getTime())) {
     return null;
   }
-  if (clockConfig?.isPaused === true) {
-    return worldAnchor;
+  if (time.isPaused) {
+    return anchor;
   }
-  const elapsedRealMs = Math.max(0, nowMs - realAnchor.getTime());
-  return new Date(worldAnchor.getTime() + elapsedRealMs * Math.max(0.0001, timeFlowRatio));
+  const elapsedClientMs = Math.max(0, nowMs - anchorNowMs);
+  return new Date(anchor.getTime() + elapsedClientMs * Math.max(0.0001, time.flowRatio));
 }
 
-function formatWorldDate(
-  worldDate: Date,
-  clockConfig: Record<string, unknown> | null | undefined,
-): string {
-  const timeFormat = readRecord(clockConfig?.timeFormat);
-  const datePattern = readStringField(timeFormat, ['datePattern']) ?? '{year}-{month}-{day}';
-  return datePattern
-    .replaceAll('{year}', String(worldDate.getUTCFullYear()))
-    .replaceAll('{month}', String(worldDate.getUTCMonth() + 1))
-    .replaceAll('{day}', String(worldDate.getUTCDate()))
-    .replaceAll('{hour}', String(worldDate.getUTCHours()).padStart(2, '0'))
-    .replaceAll('{minute}', String(worldDate.getUTCMinutes()).padStart(2, '0'))
-    .replaceAll('{second}', String(worldDate.getUTCSeconds()).padStart(2, '0'));
+function formatProjectedWorldDate(worldDate: Date | null): string {
+  if (!worldDate || Number.isNaN(worldDate.getTime())) {
+    return 'N/A';
+  }
+  return `${worldDate.getUTCFullYear()}-${String(worldDate.getUTCMonth() + 1).padStart(2, '0')}-${String(worldDate.getUTCDate()).padStart(2, '0')} ${String(worldDate.getUTCHours()).padStart(2, '0')}:${String(worldDate.getUTCMinutes()).padStart(2, '0')}:${String(worldDate.getUTCSeconds()).padStart(2, '0')}`;
 }
 
 function resolveWorldType(raw: Record<string, unknown>): string {
@@ -210,11 +251,8 @@ export function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
     scoreE: typeof raw.scoreE === 'number' ? raw.scoreE : 0,
     scoreEwma: typeof raw.scoreEwma === 'number' ? raw.scoreEwma : 0,
     scoreQ: typeof raw.scoreQ === 'number' ? raw.scoreQ : 0,
-    timeFlowRatio: resolveTimeFlowRatio(readRecord(raw.timeModel)),
     transitInLimit: typeof raw.transitInLimit === 'number' ? raw.transitInLimit : 0,
-    timeModel: readRecord(raw.timeModel),
-    clockConfig: readRecord(raw.clockConfig),
-    languages: readRecord(raw.languages),
+    computed: toWorldComputed(raw.computed),
     agents: parsedAgents,
   };
 }
@@ -258,14 +296,6 @@ function getWorldScoring(world: WorldListItem): string {
   return Number.isFinite(score) ? `${Math.round(score)}` : '0';
 }
 
-function formatWorldClock(world: WorldListItem): string {
-  const clockConfig = readRecord(world.clockConfig);
-  const worldDate = resolveCurrentWorldDate(clockConfig, world.timeFlowRatio, Date.now());
-  if (!worldDate) {
-    return 'N/A';
-  }
-  return formatWorldDate(worldDate, clockConfig);
-}
 type WorldChronoPanelState = {
   hour: number;
   minute: number;
@@ -277,10 +307,13 @@ type WorldChronoPanelState = {
   progress: number;
 };
 
-function resolveWorldChronoPanelState(world: WorldListItem, nowMs: number): WorldChronoPanelState | null {
-  const clockConfig = readRecord(world.clockConfig);
-  const flowRatio = Math.max(0.0001, world.timeFlowRatio);
-  const worldDate = resolveCurrentWorldDate(clockConfig, flowRatio, nowMs);
+function resolveWorldChronoPanelState(
+  world: WorldListItem,
+  anchorNowMs: number,
+  nowMs: number,
+): WorldChronoPanelState | null {
+  const flowRatio = Math.max(0.0001, world.computed.time.flowRatio);
+  const worldDate = resolveProjectedWorldDate(world.computed.time, anchorNowMs, nowMs);
   if (!worldDate) {
     return null;
   }
@@ -288,7 +321,7 @@ function resolveWorldChronoPanelState(world: WorldListItem, nowMs: number): Worl
   const minute = worldDate.getUTCMinutes();
   const second = worldDate.getUTCSeconds();
   const millisecond = worldDate.getUTCMilliseconds();
-  const dateLabel = formatWorldDate(worldDate, clockConfig);
+  const dateLabel = world.computed.time.currentLabel || formatProjectedWorldDate(worldDate);
 
   return {
     hour,
@@ -305,6 +338,7 @@ function resolveWorldChronoPanelState(world: WorldListItem, nowMs: number): Worl
 function WorldChronoPanel({ world, compact = false }: { world: WorldListItem; compact?: boolean }) {
   const { t } = useTranslation();
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const anchorNowMsRef = useRef(Date.now());
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -315,7 +349,7 @@ function WorldChronoPanel({ world, compact = false }: { world: WorldListItem; co
     };
   }, []);
 
-  const chrono = resolveWorldChronoPanelState(world, nowMs);
+  const chrono = resolveWorldChronoPanelState(world, anchorNowMsRef.current, nowMs);
   if (!chrono) {
     return null;
   }

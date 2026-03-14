@@ -181,7 +181,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
   const { t } = useTranslation();
   const world = props.world;
   const worldSummary = world.overview || world.description;
-  const timeFlowRatio = world.timeFlowRatio || 1;
+  const flowRatio = world.flowRatio || 1;
   const [showCreateAgent, setShowCreateAgent] = useState(false);
   const getAgentPalette = (agent: WorldAgent) => getSemanticAgentPalette({
     description: agent.bio || world.description,
@@ -433,7 +433,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                   {/* Right: Time Flow Dynamics */}
                   <div className="flex-shrink-0 w-[120px] h-[120px]">
                     <TimeFlowDynamics
-                      ratio={timeFlowRatio}
+                      ratio={flowRatio}
                       className="h-full"
                       variant="compact"
                     />
@@ -656,6 +656,21 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                     <p className="text-xs text-[#e8f5ee]/60 leading-relaxed line-clamp-2">
                       {displayValue(agent.bio, 'No bio available')}
                     </p>
+
+                    {(agent.sceneName || agent.location) ? (
+                      <div className="mt-3 space-y-1 text-[11px] text-[#8EBFA7]">
+                        {agent.sceneName ? (
+                          <div className="truncate">
+                            {displayValue(agent.sceneName)}
+                          </div>
+                        ) : null}
+                        {agent.location ? (
+                          <div className="truncate text-[#e8f5ee]/45">
+                            {displayValue(agent.location)}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </article>
                 ))
               ) : (

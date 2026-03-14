@@ -4234,6 +4234,17 @@ export type components = {
             sentiment: "positive" | "neutral" | "cynical";
             summary?: string;
         };
+        AgentDisplayDto: {
+            faction?: string;
+            isNative: boolean;
+            isTransitGuest: boolean;
+            location?: string;
+            rank?: string;
+            role?: string;
+            sceneName?: string;
+            statusSummary?: string;
+            voiceSummary?: string;
+        };
         AgentDnaDto: {
             appearance: components["schemas"]["AgentAppearanceDto"];
             biological: components["schemas"]["AgentBiologicalDto"];
@@ -6393,6 +6404,7 @@ export type components = {
             bio?: string;
             /** Format: date-time */
             createdAt: string;
+            display: components["schemas"]["AgentDisplayDto"];
             handle?: string;
             id: string;
             /** @enum {string} */
@@ -6402,10 +6414,28 @@ export type components = {
             role?: string;
             stats?: components["schemas"]["AgentStatsDto"];
         };
+        WorldComputedEntryDto: {
+            recommendedAgents: components["schemas"]["WorldRecommendedAgentDto"][];
+        };
+        WorldComputedLanguagesDto: {
+            common: string[];
+            primary?: string;
+        };
+        WorldComputedScoreDto: {
+            scoreEwma: number;
+        };
+        WorldComputedTimeDto: {
+            currentLabel?: string;
+            currentWorldTime?: string;
+            eraLabel?: string;
+            flowRatio: number;
+            isPaused: boolean;
+        };
         WorldDetailDto: {
             agentCount: number;
             bannerUrl?: string;
             clockConfig?: Record<string, never>;
+            computed: components["schemas"]["WorldDisplayComputedDto"];
             /** @enum {string} */
             contentRating: "UNRATED" | "G" | "PG13" | "R18" | "EXPLICIT";
             /** Format: date-time */
@@ -6454,6 +6484,7 @@ export type components = {
             agents: components["schemas"]["WorldAgentSummaryDto"][];
             bannerUrl?: string;
             clockConfig?: Record<string, never>;
+            computed: components["schemas"]["WorldDisplayComputedDto"];
             /** @enum {string} */
             contentRating: "UNRATED" | "G" | "PG13" | "R18" | "EXPLICIT";
             /** Format: date-time */
@@ -6496,6 +6527,13 @@ export type components = {
             type: "OASIS" | "CREATOR";
             /** Format: date-time */
             updatedAt?: string;
+        };
+        WorldDisplayComputedDto: {
+            entry: components["schemas"]["WorldComputedEntryDto"];
+            featuredAgentCount: number;
+            languages: components["schemas"]["WorldComputedLanguagesDto"];
+            score: components["schemas"]["WorldComputedScoreDto"];
+            time: components["schemas"]["WorldComputedTimeDto"];
         };
         WorldDraftDetailDto: {
             createdAt: string;
@@ -6823,6 +6861,15 @@ export type components = {
             status?: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
             tagline?: string;
             themes?: string[];
+        };
+        WorldRecommendedAgentDto: {
+            avatarUrl?: string;
+            display?: components["schemas"]["AgentDisplayDto"];
+            handle?: string;
+            id: string;
+            /** @enum {string} */
+            importance: "PRIMARY" | "SECONDARY" | "BACKGROUND";
+            name: string;
         };
         WorldSceneDetailDto: {
             activeEntities: string[];

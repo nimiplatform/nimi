@@ -267,7 +267,6 @@ export default function WorldMaintainPage() {
     selectedAgentSyncCharacters: snapshot.agentSync.selectedCharacterIds,
     eventsGraph: snapshot.eventsDraft,
     timeFlowRatio: getTimeFlowRatioFromWorldviewPatch(snapshot.worldviewPatch),
-    currentTimeNode: '',
     importSubview: 'PREPARE',
     reviewSubview: 'EDIT',
     working,
@@ -339,7 +338,6 @@ export default function WorldMaintainPage() {
     },
     generate: {
       onTimeFlowRatioChange: () => undefined,
-      onCurrentTimeNodeChange: () => undefined,
       onFutureEventsTextChange: () => undefined,
       onGenerateWorldCover: async () => undefined,
       onGenerateCharacterPortrait: async () => undefined,

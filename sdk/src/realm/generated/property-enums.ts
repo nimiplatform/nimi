@@ -992,6 +992,14 @@ export const WorldPatchStatus = {
 
 export type WorldPatchStatus = (typeof WorldPatchStatus)[keyof typeof WorldPatchStatus];
 
+export const WorldRecommendedAgentImportance = {
+  PRIMARY: "PRIMARY",
+  SECONDARY: "SECONDARY",
+  BACKGROUND: "BACKGROUND",
+} as const satisfies Record<string, components['schemas']['WorldRecommendedAgentDto']['importance']>;
+
+export type WorldRecommendedAgentImportance = (typeof WorldRecommendedAgentImportance)[keyof typeof WorldRecommendedAgentImportance];
+
 export const WorldSummaryStatus = {
   DRAFT: "DRAFT",
   PENDING_REVIEW: "PENDING_REVIEW",

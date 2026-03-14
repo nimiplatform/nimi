@@ -315,9 +315,6 @@ export default function WorldCreatePage() {
   const onTimeFlowRatioChange = useCallback((value: string) =>
     patchSnapshot({ worldviewPatch: setTimeFlowRatioOnWorldviewPatch(snapshot.worldviewPatch, value) }), [patchSnapshot, snapshot.worldviewPatch]);
 
-  const onCurrentTimeNodeChange = useCallback((value: string) =>
-    patchSnapshot({ worldviewPatch: { ...snapshot.worldviewPatch, currentTimeNode: value } }), [patchSnapshot, snapshot.worldviewPatch]);
-
   const onFutureEventsTextChange = useCallback((value: string) =>
     patchSnapshot({ futureEventsText: value }), [patchSnapshot]);
 
@@ -808,7 +805,6 @@ export default function WorldCreatePage() {
     ? snapshot.agentSync.selectedCharacterIds
     : snapshot.selectedCharacters;
   const timeFlowRatio = getTimeFlowRatioFromWorldviewPatch(snapshot.worldviewPatch);
-  const currentTimeNode = String((snapshot.worldviewPatch as Record<string, unknown>).currentTimeNode || '');
   const createDisplayStage = toCreateDisplayStage(snapshot.createStep);
   const importSubview = toImportSubview(snapshot.createStep);
   const reviewSubview = toReviewSubview(snapshot.createStep);
@@ -893,7 +889,6 @@ export default function WorldCreatePage() {
     selectedAgentSyncCharacters,
     eventsGraph: snapshot.eventsDraft,
     timeFlowRatio,
-    currentTimeNode,
     importSubview,
     reviewSubview,
     working,
@@ -1012,7 +1007,6 @@ export default function WorldCreatePage() {
     },
     generate: {
       onTimeFlowRatioChange,
-      onCurrentTimeNodeChange,
       onFutureEventsTextChange,
       onGenerateWorldCover: async () => {
         onGenerateWorldCover();

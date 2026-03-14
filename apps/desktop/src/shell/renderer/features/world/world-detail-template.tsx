@@ -30,15 +30,11 @@ export type WorldDetailData = {
   scoreE: number;  // Engagement Score
   scoreEwma: number; // Exponentially Weighted Moving Average
   scoreQ: number;  // Quality Score
-  timeFlowRatio: number;
+  flowRatio: number;
   transitInLimit: number;
   genre?: string | null;
   era?: string | null;
   themes?: string[] | null;
-  timeModel?: Record<string, unknown> | null;
-  clockConfig?: Record<string, unknown> | null;
-  languages?: Record<string, unknown> | null;
-  sceneTimeConfig?: Record<string, unknown> | null;
 };
 
 // 智能体数据类型
@@ -47,6 +43,11 @@ export type WorldAgent = {
   name: string;
   handle: string;
   bio: string;
+  role?: string | null;
+  faction?: string | null;
+  rank?: string | null;
+  sceneName?: string | null;
+  location?: string | null;
   avatarUrl?: string | null;
   createdAt: string;
 };
@@ -120,7 +121,7 @@ const fieldDefinitions = [
   { key: 'agentCount', title: '智能体数量', format: (v: number) => `${v} 个 Agent` },
   { key: 'nativeAgentLimit', title: '原生限制', format: (v: number) => `${v}` },
   { key: 'lorebookEntryLimit', title: '知识库限制', format: (v: number) => `${v}` },
-  { key: 'timeFlowRatio', title: '时间流速', format: (v: number) => `${v.toFixed(1)}x` },
+  { key: 'flowRatio', title: '时间流速', format: (v: number) => `${v.toFixed(1)}x` },
   { key: 'transitInLimit', title: '转入限制', format: (v: number) => `${v}` },
   { key: 'createdAt', title: '创建时间', format: (v: string) => new Date(v).toLocaleString('zh-CN') },
   { key: 'creatorId', title: '创建者', format: (v: string | null) => v || '未知' },
@@ -383,7 +384,7 @@ export function WorldDetailTemplate(props: WorldDetailTemplateProps) {
                 {/* 时间流速 */}
                 <div className="bg-black/20 rounded-2xl p-4 border border-white/10 backdrop-blur-sm">
                   <div className="text-xs text-white/60 mb-2 font-medium">{t('WorldDetail.timeFlow')}</div>
-                  <div className="text-2xl font-bold text-white">{props.world.timeFlowRatio.toFixed(1)}×</div>
+                  <div className="text-2xl font-bold text-white">{props.world.flowRatio.toFixed(1)}×</div>
                 </div>
                 {/* 智能体数量 */}
                 <div className="bg-black/20 rounded-2xl p-4 border border-white/10 backdrop-blur-sm">
@@ -413,7 +414,7 @@ export function WorldDetailTemplate(props: WorldDetailTemplateProps) {
                   </span>
                 )}
                 <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/10 text-white/80 border border-white/10">
-                  TIME FLOW × {props.world.timeFlowRatio.toFixed(1)}
+                  TIME FLOW × {props.world.flowRatio.toFixed(1)}
                 </span>
                 <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/10 text-white/80 border border-white/10">
                   LEVEL · Lv.{props.world.level}

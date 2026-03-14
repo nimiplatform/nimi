@@ -34,10 +34,28 @@ function createPlaceholderWorld(worldId: string): WorldListItem {
     scoreE: 0,
     scoreEwma: 0,
     scoreQ: 0,
-    timeFlowRatio: 1,
     transitInLimit: 0,
-    timeModel: { timeFlowRatio: 1 },
     agents: [],
+    computed: {
+      time: {
+        currentWorldTime: null,
+        currentLabel: null,
+        eraLabel: null,
+        flowRatio: 1,
+        isPaused: false,
+      },
+      languages: {
+        primary: null,
+        common: [],
+      },
+      entry: {
+        recommendedAgents: [],
+      },
+      score: {
+        scoreEwma: 0,
+      },
+      featuredAgentCount: 0,
+    },
   };
 }
 
