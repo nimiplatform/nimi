@@ -11,6 +11,7 @@ export { AgentCategory } from './generated/models/AgentCategory';
 export type { AgentCommunicationDto } from './generated/models/AgentCommunicationDto';
 export type { AgentDnaDto } from './generated/models/AgentDnaDto';
 export type { AgentIdentityDto } from './generated/models/AgentIdentityDto';
+export { AgentImportance } from './generated/models/AgentImportance';
 export type { AgentMetadataDto } from './generated/models/AgentMetadataDto';
 export { AgentOrigin } from './generated/models/AgentOrigin';
 export type { AgentOriginDto } from './generated/models/AgentOriginDto';
@@ -19,6 +20,7 @@ export type { AgentPersonalityDto } from './generated/models/AgentPersonalityDto
 export type { AgentProfileDto } from './generated/models/AgentProfileDto';
 export { AgentRelationType } from './generated/models/AgentRelationType';
 export { AgentState } from './generated/models/AgentState';
+export type { AgentStatsDto } from './generated/models/AgentStatsDto';
 export type { AgentVisibilitySettingsDto } from './generated/models/AgentVisibilitySettingsDto';
 export type { AgentVoiceConfigDto } from './generated/models/AgentVoiceConfigDto';
 export { AgentWakeStrategy } from './generated/models/AgentWakeStrategy';
@@ -32,6 +34,7 @@ export type { BatchUpsertWorldEventsDto } from './generated/models/BatchUpsertWo
 export type { BatchUpsertWorldLorebooksDto } from './generated/models/BatchUpsertWorldLorebooksDto';
 export type { BatchUpsertWorldMediaBindingsDto } from './generated/models/BatchUpsertWorldMediaBindingsDto';
 export type { BindEmailDto } from './generated/models/BindEmailDto';
+export type { CalendarSystemDto } from './generated/models/CalendarSystemDto';
 export type { CanWithdrawDto } from './generated/models/CanWithdrawDto';
 export type { CausalChainDto } from './generated/models/CausalChainDto';
 export type { CausalityModelDto } from './generated/models/CausalityModelDto';
@@ -253,6 +256,7 @@ export type { WorldEventGraphSummaryDto } from './generated/models/WorldEventGra
 export type { WorldEventListDto } from './generated/models/WorldEventListDto';
 export type { WorldEventUpsertDto } from './generated/models/WorldEventUpsertDto';
 export type { WorldLandingDecisionDto } from './generated/models/WorldLandingDecisionDto';
+export type { WorldLanguageDto } from './generated/models/WorldLanguageDto';
 export type { WorldLevelAuditEventDto } from './generated/models/WorldLevelAuditEventDto';
 export type { WorldLorebookDetailDto } from './generated/models/WorldLorebookDetailDto';
 export type { WorldLorebookListDto } from './generated/models/WorldLorebookListDto';
@@ -274,6 +278,7 @@ export type { WorldSummaryDto } from './generated/models/WorldSummaryDto';
 export type { WorldSummaryListDto } from './generated/models/WorldSummaryListDto';
 export type { WorldviewDetailDto } from './generated/models/WorldviewDetailDto';
 export type { WorldviewEventDto } from './generated/models/WorldviewEventDto';
+export type { WorldviewLanguagesDto } from './generated/models/WorldviewLanguagesDto';
 export type { WorldviewPatchDto } from './generated/models/WorldviewPatchDto';
 export type { WorldviewSnapshotDto } from './generated/models/WorldviewSnapshotDto';
 

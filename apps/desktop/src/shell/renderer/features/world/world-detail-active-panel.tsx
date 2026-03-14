@@ -36,6 +36,7 @@ function createPlaceholderWorld(worldId: string): WorldListItem {
     scoreQ: 0,
     timeFlowRatio: 1,
     transitInLimit: 0,
+    timeModel: { timeFlowRatio: 1 },
     agents: [],
   };
 }

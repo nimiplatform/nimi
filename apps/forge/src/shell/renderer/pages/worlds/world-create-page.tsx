@@ -37,6 +37,33 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { getWorldDraft } from '@renderer/data/world-data-client.js';
 import { getPlatformClient } from '@runtime/platform-client.js';
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function setTimeFlowRatioOnWorldviewPatch(worldviewPatch: Record<string, unknown>, value: string): Record<string, unknown> {
+  const numeric = Number(value);
+  const timeModel = asRecord(worldviewPatch.timeModel);
+  return {
+    ...worldviewPatch,
+    timeModel: {
+      ...timeModel,
+      timeFlowRatio: Number.isFinite(numeric) ? numeric : 1,
+    },
+  };
+}
+
+function getTimeFlowRatioFromWorldviewPatch(worldviewPatch: Record<string, unknown>): string {
+  const timeModel = asRecord(worldviewPatch.timeModel);
+  const ratio = timeModel.timeFlowRatio;
+  if (typeof ratio === 'number' && Number.isFinite(ratio)) {
+    return String(ratio);
+  }
+  return '1';
+}
+
 /**
  * Builds a WorldStudioRuntimeAiClient that bridges the Forge platform Runtime
  * to the interface expected by world-engine pipeline functions.
@@ -286,7 +313,7 @@ export default function WorldCreatePage() {
   }, [patchSnapshot, snapshot.agentSync]);
 
   const onTimeFlowRatioChange = useCallback((value: string) =>
-    patchSnapshot({ worldPatch: { ...snapshot.worldPatch, timeFlowRatio: value } }), [patchSnapshot, snapshot.worldPatch]);
+    patchSnapshot({ worldviewPatch: setTimeFlowRatioOnWorldviewPatch(snapshot.worldviewPatch, value) }), [patchSnapshot, snapshot.worldviewPatch]);
 
   const onCurrentTimeNodeChange = useCallback((value: string) =>
     patchSnapshot({ worldviewPatch: { ...snapshot.worldviewPatch, currentTimeNode: value } }), [patchSnapshot, snapshot.worldviewPatch]);
@@ -780,7 +807,7 @@ export default function WorldCreatePage() {
   const selectedAgentSyncCharacters = snapshot.agentSync.selectedCharacterIds.length > 0
     ? snapshot.agentSync.selectedCharacterIds
     : snapshot.selectedCharacters;
-  const timeFlowRatio = String((snapshot.worldPatch as Record<string, unknown>).timeFlowRatio || '1');
+  const timeFlowRatio = getTimeFlowRatioFromWorldviewPatch(snapshot.worldviewPatch);
   const currentTimeNode = String((snapshot.worldviewPatch as Record<string, unknown>).currentTimeNode || '');
   const createDisplayStage = toCreateDisplayStage(snapshot.createStep);
   const importSubview = toImportSubview(snapshot.createStep);
@@ -845,7 +872,9 @@ export default function WorldCreatePage() {
       GENERATE: { enabled: true, reason: null },
       REVIEW: { enabled: true, reason: null },
     },
-    maintainSection: 'WORLD',
+    activeDomain: 'WORLD',
+    activeSection: 'BASE',
+    selectedAgentId: '',
   };
 
   const main: WorldStudioMainSlice = {
@@ -868,6 +897,9 @@ export default function WorldCreatePage() {
     importSubview,
     reviewSubview,
     working,
+    creatorAgents: [],
+    selectedCreatorAgent: null,
+    mediaBindings: [],
   };
 
   const routing: WorldStudioRoutingSlice = {
@@ -941,7 +973,9 @@ export default function WorldCreatePage() {
         }
         onStepChange('DRAFT');
       },
+      selectMaintainDomain: () => undefined,
       selectMaintainSection: () => undefined,
+      selectMaintainAgent: () => undefined,
       refreshWorkspace: async () => undefined,
       openRuntimeSetup: () => navigate('/runtime'),
     },
@@ -1015,6 +1049,12 @@ export default function WorldCreatePage() {
       saveMaintenance: async () => undefined,
       syncEvents: async () => undefined,
       syncLorebooks: async () => undefined,
+      deleteFirstEvent: async () => undefined,
+      deleteFirstLorebook: async () => undefined,
+      createAgentsFromDrafts: async () => undefined,
+      updateCreatorAgentMetadata: async () => undefined,
+      setSectionDirty: () => undefined,
+      syncMediaBindings: async () => undefined,
       refreshResources: async () => undefined,
       reloadRemote: async () => undefined,
       adoptRemoteSnapshot: () => undefined,

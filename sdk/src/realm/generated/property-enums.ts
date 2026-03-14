@@ -135,6 +135,16 @@ export const CreateTransitType = {
 
 export type CreateTransitType = (typeof CreateTransitType)[keyof typeof CreateTransitType];
 
+export const CreateWorldContentRating = {
+  UNRATED: "UNRATED",
+  G: "G",
+  PG13: "PG13",
+  R18: "R18",
+  EXPLICIT: "EXPLICIT",
+} as const satisfies Record<string, components['schemas']['CreateWorldDto']['contentRating']>;
+
+export type CreateWorldContentRating = (typeof CreateWorldContentRating)[keyof typeof CreateWorldContentRating];
+
 export const CreateWorldDraftSourceType = {
   TEXT: "TEXT",
   FILE: "FILE",
@@ -657,6 +667,24 @@ export const WorldAccessRecordStatus = {
 
 export type WorldAccessRecordStatus = (typeof WorldAccessRecordStatus)[keyof typeof WorldAccessRecordStatus];
 
+export const WorldAgentSummaryImportance = {
+  PRIMARY: "PRIMARY",
+  SECONDARY: "SECONDARY",
+  BACKGROUND: "BACKGROUND",
+} as const satisfies Record<string, components['schemas']['WorldAgentSummaryDto']['importance']>;
+
+export type WorldAgentSummaryImportance = (typeof WorldAgentSummaryImportance)[keyof typeof WorldAgentSummaryImportance];
+
+export const WorldDetailContentRating = {
+  UNRATED: "UNRATED",
+  G: "G",
+  PG13: "PG13",
+  R18: "R18",
+  EXPLICIT: "EXPLICIT",
+} as const satisfies Record<string, components['schemas']['WorldDetailDto']['contentRating']>;
+
+export type WorldDetailContentRating = (typeof WorldDetailContentRating)[keyof typeof WorldDetailContentRating];
+
 export const WorldDetailFreezeReason = {
   QUOTA_OVERFLOW: "QUOTA_OVERFLOW",
   WORLD_INACTIVE: "WORLD_INACTIVE",
@@ -688,6 +716,16 @@ export const WorldDetailType = {
 } as const satisfies Record<string, components['schemas']['WorldDetailDto']['type']>;
 
 export type WorldDetailType = (typeof WorldDetailType)[keyof typeof WorldDetailType];
+
+export const WorldDetailWithAgentsContentRating = {
+  UNRATED: "UNRATED",
+  G: "G",
+  PG13: "PG13",
+  R18: "R18",
+  EXPLICIT: "EXPLICIT",
+} as const satisfies Record<string, components['schemas']['WorldDetailWithAgentsDto']['contentRating']>;
+
+export type WorldDetailWithAgentsContentRating = (typeof WorldDetailWithAgentsContentRating)[keyof typeof WorldDetailWithAgentsContentRating];
 
 export const WorldDetailWithAgentsFreezeReason = {
   QUOTA_OVERFLOW: "QUOTA_OVERFLOW",
@@ -839,7 +877,10 @@ export const WorldMediaBindingDetailSlot = {
   WORLD_ICON: "WORLD_ICON",
   WORLD_BANNER: "WORLD_BANNER",
   WORLD_GALLERY: "WORLD_GALLERY",
+  WORLD_THEME_AUDIO: "WORLD_THEME_AUDIO",
+  WORLD_TRAILER_VIDEO: "WORLD_TRAILER_VIDEO",
   SCENE_BACKGROUND: "SCENE_BACKGROUND",
+  SCENE_AMBIENT_AUDIO: "SCENE_AMBIENT_AUDIO",
   EVENT_CG: "EVENT_CG",
   WORLDVIEW_REFERENCE: "WORLDVIEW_REFERENCE",
   AGENT_AVATAR: "AGENT_AVATAR",
@@ -847,6 +888,7 @@ export const WorldMediaBindingDetailSlot = {
   AGENT_EXPRESSION: "AGENT_EXPRESSION",
   AGENT_OUTFIT: "AGENT_OUTFIT",
   AGENT_CANDIDATE: "AGENT_CANDIDATE",
+  AGENT_VOICE_SAMPLE: "AGENT_VOICE_SAMPLE",
 } as const satisfies Record<string, components['schemas']['WorldMediaBindingDetailDto']['slot']>;
 
 export type WorldMediaBindingDetailSlot = (typeof WorldMediaBindingDetailSlot)[keyof typeof WorldMediaBindingDetailSlot];
@@ -865,7 +907,10 @@ export const WorldMediaBindingUpsertSlot = {
   WORLD_ICON: "WORLD_ICON",
   WORLD_BANNER: "WORLD_BANNER",
   WORLD_GALLERY: "WORLD_GALLERY",
+  WORLD_THEME_AUDIO: "WORLD_THEME_AUDIO",
+  WORLD_TRAILER_VIDEO: "WORLD_TRAILER_VIDEO",
   SCENE_BACKGROUND: "SCENE_BACKGROUND",
+  SCENE_AMBIENT_AUDIO: "SCENE_AMBIENT_AUDIO",
   EVENT_CG: "EVENT_CG",
   WORLDVIEW_REFERENCE: "WORLDVIEW_REFERENCE",
   AGENT_AVATAR: "AGENT_AVATAR",
@@ -873,6 +918,7 @@ export const WorldMediaBindingUpsertSlot = {
   AGENT_EXPRESSION: "AGENT_EXPRESSION",
   AGENT_OUTFIT: "AGENT_OUTFIT",
   AGENT_CANDIDATE: "AGENT_CANDIDATE",
+  AGENT_VOICE_SAMPLE: "AGENT_VOICE_SAMPLE",
 } as const satisfies Record<string, components['schemas']['WorldMediaBindingUpsertDto']['slot']>;
 
 export type WorldMediaBindingUpsertSlot = (typeof WorldMediaBindingUpsertSlot)[keyof typeof WorldMediaBindingUpsertSlot];
@@ -925,6 +971,16 @@ export const WorldNarrativeContextDetailTargetSubjectType = {
 } as const satisfies Record<string, components['schemas']['WorldNarrativeContextDetailDto']['targetSubjectType']>;
 
 export type WorldNarrativeContextDetailTargetSubjectType = (typeof WorldNarrativeContextDetailTargetSubjectType)[keyof typeof WorldNarrativeContextDetailTargetSubjectType];
+
+export const WorldPatchContentRating = {
+  UNRATED: "UNRATED",
+  G: "G",
+  PG13: "PG13",
+  R18: "R18",
+  EXPLICIT: "EXPLICIT",
+} as const satisfies Record<string, components['schemas']['WorldPatchDto']['contentRating']>;
+
+export type WorldPatchContentRating = (typeof WorldPatchContentRating)[keyof typeof WorldPatchContentRating];
 
 export const WorldPatchStatus = {
   DRAFT: "DRAFT",

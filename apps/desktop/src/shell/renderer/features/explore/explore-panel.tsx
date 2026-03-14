@@ -9,7 +9,7 @@ import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-d
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { ExploreView } from './explore-view';
 import type { ExploreAgentCardData, FeaturedWorldCardData } from './explore-cards';
-import type { WorldListItem } from '../world/world-list';
+import { toWorldListItem, type WorldListItem } from '../world/world-list';
 import { prefetchWorldDetailAndEvents } from '../world/world-detail-queries.js';
 import { prefetchWorldDetailPanel } from '../world/world-detail-route-state';
 import { QuickAddFriendModal } from './quick-add-friend-modal';
@@ -26,7 +26,6 @@ const DEFAULT_FEATURED_WORLDS: FeaturedWorldCardData[] = [
     subtitle: 'Build & Automate',
     imageUrl: null,
     gradient: 'linear-gradient(135deg, #134e5e 0%, #71b280 100%)',
-    isPublic: true,
     creatorAvatarUrl: null,
   },
   {
@@ -35,7 +34,6 @@ const DEFAULT_FEATURED_WORLDS: FeaturedWorldCardData[] = [
     subtitle: 'Art, Music & Stories',
     imageUrl: null,
     gradient: 'linear-gradient(135deg, #4a0e4e 0%, #c94b4b 100%)',
-    isPublic: true,
     creatorAvatarUrl: null,
   },
   {
@@ -44,7 +42,6 @@ const DEFAULT_FEATURED_WORLDS: FeaturedWorldCardData[] = [
     subtitle: 'Discuss & Stories',
     imageUrl: null,
     gradient: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-    isPublic: true,
     creatorAvatarUrl: null,
   },
 ];
@@ -122,7 +119,10 @@ function mapAgent(raw: unknown, worldsMap: Map<string, { bannerUrl: string | nul
   const wakeStrategy = asString(agent?.wakeStrategy).trim()
     || asString(agentProfile?.wakeStrategy).trim();
   const ownershipType = asString(agent?.ownershipType || agentProfile?.ownershipType).trim();
-  const isPublic = agent?.isPublic === true;
+  const accountVisibility = asString(source.accountVisibility).trim()
+    || asString(agent?.accountVisibility).trim()
+    || asString(agentProfile?.accountVisibility).trim()
+    || null;
   
   // Tags - combine category, origin, and any custom tags
   const customTags = Array.isArray(source.tags) 
@@ -172,7 +172,7 @@ function mapAgent(raw: unknown, worldsMap: Map<string, { bannerUrl: string | nul
     state,
     ownershipType,
     wakeStrategy,
-    isPublic,
+    accountVisibility,
     isOnline,
     // Social/Stats
     tags,
@@ -191,42 +191,6 @@ function parseAgents(agentsResult: unknown, worldsMap: Map<string, { bannerUrl: 
   return raw
     .map((item) => mapAgent(item, worldsMap))
     .filter((item): item is ExploreAgentCardData => item !== null);
-}
-
-function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
-  return {
-    id: String(raw.id || ''),
-    name: String(raw.name || 'Unknown World'),
-    description: typeof raw.description === 'string' ? raw.description : null,
-    genre: typeof raw.genre === 'string' ? raw.genre : null,
-    themes: Array.isArray(raw.themes)
-      ? raw.themes.filter((t): t is string => typeof t === 'string')
-      : [],
-    era: typeof raw.era === 'string' ? raw.era : null,
-    iconUrl: typeof raw.iconUrl === 'string' ? raw.iconUrl : null,
-    bannerUrl: typeof raw.bannerUrl === 'string' ? raw.bannerUrl : null,
-    type: typeof raw.type === 'string' ? raw.type : 'CREATOR',
-    status: typeof raw.status === 'string' ? raw.status : 'DRAFT',
-    level: typeof raw.level === 'number' ? raw.level : 1,
-    levelUpdatedAt: typeof raw.levelUpdatedAt === 'string' ? raw.levelUpdatedAt : null,
-    agentCount: typeof raw.agentCount === 'number' ? raw.agentCount : 0,
-    createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
-    updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : null,
-    creatorId: typeof raw.creatorId === 'string' ? raw.creatorId : null,
-    freezeReason: typeof raw.freezeReason === 'string' ? raw.freezeReason : null,
-    lorebookEntryLimit: typeof raw.lorebookEntryLimit === 'number' ? raw.lorebookEntryLimit : 0,
-    nativeAgentLimit: typeof raw.nativeAgentLimit === 'number' ? raw.nativeAgentLimit : 0,
-    nativeCreationState:
-      typeof raw.nativeCreationState === 'string' ? raw.nativeCreationState : 'OPEN',
-    scoreA: typeof raw.scoreA === 'number' ? raw.scoreA : 0,
-    scoreC: typeof raw.scoreC === 'number' ? raw.scoreC : 0,
-    scoreE: typeof raw.scoreE === 'number' ? raw.scoreE : 0,
-    scoreEwma: typeof raw.scoreEwma === 'number' ? raw.scoreEwma : 0,
-    scoreQ: typeof raw.scoreQ === 'number' ? raw.scoreQ : 0,
-    timeFlowRatio: typeof raw.timeFlowRatio === 'number' ? raw.timeFlowRatio : 1,
-    transitInLimit: typeof raw.transitInLimit === 'number' ? raw.transitInLimit : 0,
-    agents: undefined,
-  };
 }
 
 export function ExplorePanel() {

@@ -8,6 +8,10 @@ export type WorldDetailData = {
   id: string;
   name: string;
   description: string | null;
+  tagline?: string | null;
+  motto?: string | null;
+  overview?: string | null;
+  contentRating?: string | null;
   iconUrl: string | null;
   bannerUrl: string | null;
   type: 'OASIS' | 'CREATOR';
@@ -31,7 +35,9 @@ export type WorldDetailData = {
   genre?: string | null;
   era?: string | null;
   themes?: string[] | null;
+  timeModel?: Record<string, unknown> | null;
   clockConfig?: Record<string, unknown> | null;
+  languages?: Record<string, unknown> | null;
   sceneTimeConfig?: Record<string, unknown> | null;
 };
 

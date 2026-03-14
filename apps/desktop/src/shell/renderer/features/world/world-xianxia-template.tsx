@@ -180,6 +180,8 @@ const displayValue = (value: unknown, fallback = 'N/A') => {
 export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
   const { t } = useTranslation();
   const world = props.world;
+  const worldSummary = world.overview || world.description;
+  const timeFlowRatio = world.timeFlowRatio || 1;
   const [showCreateAgent, setShowCreateAgent] = useState(false);
   const getAgentPalette = (agent: WorldAgent) => getSemanticAgentPalette({
     description: agent.bio || world.description,
@@ -347,7 +349,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
               {/* Top right badge */}
               <div className="absolute top-4 right-4">
                 <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs tracking-wider uppercase bg-[#4ECCA3]/20 text-[#4ECCA3] border border-[#4ECCA3]/40 font-semibold backdrop-blur-sm">
-                  OASIS WORLD
+                  {world.type === 'OASIS' ? 'OASIS WORLD' : 'CREATOR WORLD'}
                 </span>
               </div>
 
@@ -406,14 +408,24 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                     
                     {/* Title and description */}
                     <div className="flex-1 min-w-0">
+                      {world.tagline ? (
+                        <p className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#4ECCA3]">
+                          {world.tagline}
+                        </p>
+                      ) : null}
                       <h1
                         className="text-[42px] leading-tight font-serif tracking-wide text-white drop-shadow-lg mb-2"
                         style={{ fontFamily: '"Noto Serif SC", serif' }}
                       >
                         {displayValue(world.name)}
                       </h1>
+                      {world.motto ? (
+                        <p className="mb-2 text-sm italic text-white/80">
+                          {world.motto}
+                        </p>
+                      ) : null}
                       <p className="text-base text-white/70 leading-relaxed max-w-2xl">
-                        {displayValue(world.description)}
+                        {displayValue(worldSummary)}
                       </p>
                     </div>
                   </div>
@@ -421,7 +433,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                   {/* Right: Time Flow Dynamics */}
                   <div className="flex-shrink-0 w-[120px] h-[120px]">
                     <TimeFlowDynamics
-                      ratio={world.timeFlowRatio || 1.0}
+                      ratio={timeFlowRatio}
                       className="h-full"
                       variant="compact"
                     />
@@ -481,7 +493,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
               <div className="mb-5">
                 <div className="text-xs text-[#4ECCA3] mb-2">{t('WorldDetail.description')}</div>
                 <p className="text-sm text-[#e8f5ee]/70 leading-relaxed">
-                  {displayValue(world.description)}
+                  {displayValue(worldSummary)}
                 </p>
               </div>
             </section>

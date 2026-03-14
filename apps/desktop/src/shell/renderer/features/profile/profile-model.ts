@@ -32,7 +32,7 @@ export type ProfileData = {
   agentCategory: string | null;
   agentOrigin: string | null;
   agentTier: string | null;
-  agentIsPublic: boolean | null;
+  agentAccountVisibility: string | null;
   agentWakeStrategy: string | null;
   agentOwnershipType: string | null;
   agentWorldId: string | null;
@@ -87,7 +87,16 @@ export function toProfileData(raw: Record<string, unknown>): ProfileData {
     agentCategory: agent && typeof agent.category === 'string' ? agent.category : null,
     agentOrigin: agent && typeof agent.origin === 'string' ? agent.origin : null,
     agentTier: agent && typeof agent.tier === 'string' ? agent.tier : null,
-    agentIsPublic: agent && typeof agent.isPublic === 'boolean' ? agent.isPublic : null,
+    agentAccountVisibility: (
+      (agent && typeof agent.accountVisibility === 'string' ? agent.accountVisibility : null)
+      || (
+        raw.agentProfile
+        && typeof raw.agentProfile === 'object'
+        && typeof (raw.agentProfile as Record<string, unknown>).accountVisibility === 'string'
+          ? String((raw.agentProfile as Record<string, unknown>).accountVisibility)
+          : null
+      )
+    ),
     agentWakeStrategy: agent && typeof agent.wakeStrategy === 'string' ? agent.wakeStrategy : null,
     agentOwnershipType: (
       (agent && typeof agent.ownershipType === 'string' ? agent.ownershipType : null)

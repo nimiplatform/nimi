@@ -116,11 +116,11 @@ describe('creator-world-store', () => {
 
     it('deep merges panel', () => {
       useCreatorWorldStore.setState({
-        snapshot: { ...freshSnapshot(), panel: { activeMaintainTab: 'WORLD', extra: 'keep' } as never },
+        snapshot: { ...freshSnapshot(), panel: { activeSection: 'BASE', extra: 'keep' } as never },
       });
-      useCreatorWorldStore.getState().patchSnapshot({ panel: { activeMaintainTab: 'EVENTS' } } as never);
+      useCreatorWorldStore.getState().patchSnapshot({ panel: { activeSection: 'WORLD_EVENTS' } } as never);
       const panel = useCreatorWorldStore.getState().snapshot.panel;
-      expect(panel.activeMaintainTab).toBe('EVENTS');
+      expect(panel.activeSection).toBe('WORLD_EVENTS');
       expect((panel as Record<string, unknown>).extra).toBe('keep');
     });
 
@@ -321,17 +321,17 @@ describe('creator-world-store', () => {
 
   describe('patchPanel', () => {
     it('shallow merges panel', () => {
-      useCreatorWorldStore.getState().patchPanel({ activeMaintainTab: 'EVENTS' } as never);
-      expect(useCreatorWorldStore.getState().snapshot.panel.activeMaintainTab).toBe('EVENTS');
+      useCreatorWorldStore.getState().patchPanel({ activeSection: 'WORLD_EVENTS' } as never);
+      expect(useCreatorWorldStore.getState().snapshot.panel.activeSection).toBe('WORLD_EVENTS');
     });
 
     it('preserves existing panel fields', () => {
       useCreatorWorldStore.setState({
-        snapshot: { ...freshSnapshot(), panel: { activeMaintainTab: 'WORLD', tab: 'info' } as never },
+        snapshot: { ...freshSnapshot(), panel: { activeSection: 'BASE', tab: 'info' } as never },
       });
-      useCreatorWorldStore.getState().patchPanel({ activeMaintainTab: 'LOREBOOKS' } as never);
+      useCreatorWorldStore.getState().patchPanel({ activeSection: 'LOREBOOKS' } as never);
       const panel = useCreatorWorldStore.getState().snapshot.panel as Record<string, unknown>;
-      expect(panel.activeMaintainTab).toBe('LOREBOOKS');
+      expect(panel.activeSection).toBe('LOREBOOKS');
       expect(panel.tab).toBe('info');
     });
   });

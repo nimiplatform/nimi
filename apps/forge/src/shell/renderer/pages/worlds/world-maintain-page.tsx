@@ -31,6 +31,21 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 
 type MaintainTab = 'WORLD' | 'WORLDVIEW' | 'EVENTS' | 'LOREBOOKS';
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function getTimeFlowRatioFromWorldviewPatch(worldviewPatch: Record<string, unknown>): string {
+  const timeModel = asRecord(worldviewPatch.timeModel);
+  const ratio = timeModel.timeFlowRatio;
+  if (typeof ratio === 'number' && Number.isFinite(ratio)) {
+    return String(ratio);
+  }
+  return '1';
+}
+
 export default function WorldMaintainPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -55,7 +70,7 @@ export default function WorldMaintainPage() {
   // Set selected world
   useEffect(() => {
     if (worldId && snapshot.panel.selectedWorldId !== worldId) {
-      patchPanel({ selectedWorldId: worldId });
+      patchPanel({ selectedWorldId: worldId, activeDomain: 'WORLD' });
     }
   }, [worldId, snapshot.panel.selectedWorldId, patchPanel]);
 
@@ -113,9 +128,23 @@ export default function WorldMaintainPage() {
   }, [lorebooksQuery.data, patchSnapshot]);
 
   // Tab management
-  const activeTab = snapshot.panel.activeMaintainTab;
+  const activeSection = snapshot.panel.activeSection;
+  const activeTab: MaintainTab = activeSection === 'WORLDVIEW'
+    ? 'WORLDVIEW'
+    : activeSection === 'WORLD_EVENTS'
+      ? 'EVENTS'
+      : activeSection === 'LOREBOOKS'
+        ? 'LOREBOOKS'
+        : 'WORLD';
   const onTabChange = useCallback((tab: MaintainTab) => {
-    patchPanel({ activeMaintainTab: tab });
+    patchPanel({
+      activeDomain: 'WORLD',
+      activeSection: tab === 'WORLD'
+        ? 'BASE'
+        : tab === 'EVENTS'
+          ? 'WORLD_EVENTS'
+          : tab,
+    });
   }, [patchPanel]);
 
   // Data callbacks
@@ -213,7 +242,13 @@ export default function WorldMaintainPage() {
       GENERATE: { enabled: true, reason: null },
       REVIEW: { enabled: true, reason: null },
     },
-    maintainSection: activeTab,
+    activeDomain: 'WORLD',
+    activeSection: activeTab === 'WORLD'
+      ? 'BASE'
+      : activeTab === 'EVENTS'
+        ? 'WORLD_EVENTS'
+        : activeTab,
+    selectedAgentId: '',
   };
 
   const main: WorldStudioMainSlice = {
@@ -231,11 +266,14 @@ export default function WorldMaintainPage() {
     eventSyncMode,
     selectedAgentSyncCharacters: snapshot.agentSync.selectedCharacterIds,
     eventsGraph: snapshot.eventsDraft,
-    timeFlowRatio: '',
+    timeFlowRatio: getTimeFlowRatioFromWorldviewPatch(snapshot.worldviewPatch),
     currentTimeNode: '',
     importSubview: 'PREPARE',
     reviewSubview: 'EDIT',
     working,
+    creatorAgents: [],
+    selectedCreatorAgent: null,
+    mediaBindings: [],
   };
 
   const status: WorldStudioStatusSlice = {
@@ -269,7 +307,13 @@ export default function WorldMaintainPage() {
       openMaintenance: () => undefined,
       openCreate: () => undefined,
       selectCreateDisplayStage: () => undefined,
-      selectMaintainSection: onTabChange,
+      selectMaintainDomain: () => undefined,
+      selectMaintainSection: (section) => {
+        if (section === 'BASE') onTabChange('WORLD');
+        else if (section === 'WORLD_EVENTS') onTabChange('EVENTS');
+        else if (section === 'WORLDVIEW' || section === 'LOREBOOKS') onTabChange(section);
+      },
+      selectMaintainAgent: () => undefined,
       refreshWorkspace: async () => undefined,
     },
     source: {
@@ -335,6 +379,12 @@ export default function WorldMaintainPage() {
       syncLorebooks: async () => {
         await onSyncLorebooks();
       },
+      deleteFirstEvent: async () => undefined,
+      deleteFirstLorebook: async () => undefined,
+      createAgentsFromDrafts: async () => undefined,
+      updateCreatorAgentMetadata: async () => undefined,
+      setSectionDirty: () => undefined,
+      syncMediaBindings: async () => undefined,
       refreshResources: async () => {
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'maintenance', worldId] }),

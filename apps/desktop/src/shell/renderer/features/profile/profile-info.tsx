@@ -18,7 +18,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 export function ProfileInfo({ profile }: ProfileInfoProps) {
   const { t } = useTranslation();
   const hasBasicInfo = profile.createdAt || profile.city || profile.countryCode || profile.gender || profile.languages.length > 0;
-  const hasAgentInfo = profile.isAgent && (profile.agentState || profile.agentCategory || profile.agentOrigin || profile.agentWakeStrategy || profile.agentIsPublic !== null);
+  const hasAgentInfo = profile.isAgent && (profile.agentState || profile.agentCategory || profile.agentOrigin || profile.agentWakeStrategy || profile.agentAccountVisibility !== null);
 
   if (!hasBasicInfo && !hasAgentInfo && profile.tags.length === 0) return null;
 
@@ -73,10 +73,10 @@ export function ProfileInfo({ profile }: ProfileInfoProps) {
             {profile.agentCategory ? <InfoRow label={t('Profile.info.category', { defaultValue: 'Category' })} value={profile.agentCategory} /> : null}
             {profile.agentOrigin ? <InfoRow label={t('Profile.info.origin', { defaultValue: 'Origin' })} value={profile.agentOrigin} /> : null}
             {profile.agentWakeStrategy ? <InfoRow label={t('Profile.info.wakeStrategy', { defaultValue: 'Wake Strategy' })} value={profile.agentWakeStrategy} /> : null}
-            {profile.agentIsPublic !== null ? (
+            {profile.agentAccountVisibility !== null ? (
               <InfoRow
                 label={t('Profile.info.visibility', { defaultValue: 'Visibility' })}
-                value={profile.agentIsPublic
+                value={profile.agentAccountVisibility === 'PUBLIC'
                   ? t('Profile.info.public', { defaultValue: 'Public' })
                   : t('Profile.info.private', { defaultValue: 'Private' })}
               />

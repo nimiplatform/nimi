@@ -14,14 +14,29 @@ import {
   worldEventsQueryKey,
 } from './world-detail-queries';
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+}
+
+function resolveTimeFlowRatio(timeModel: Record<string, unknown> | null | undefined): number {
+  const ratio = timeModel?.timeFlowRatio;
+  return typeof ratio === 'number' && Number.isFinite(ratio) && ratio > 0 ? ratio : 1;
+}
+
 function toXianxiaWorldData(
   world: WorldListItem,
   detail?: Record<string, unknown> | null,
 ): XianxiaWorldData {
+  const detailTimeModel = asRecord(detail?.timeModel);
+  const timeModel = detailTimeModel ?? world.timeModel ?? null;
   return {
     id: world.id,
     name: (detail?.name as string) ?? world.name,
     description: (detail?.description as string | null) ?? world.description,
+    tagline: (detail?.tagline as string | null) ?? world.tagline ?? null,
+    motto: (detail?.motto as string | null) ?? world.motto ?? null,
+    overview: (detail?.overview as string | null) ?? world.overview ?? null,
+    contentRating: (detail?.contentRating as string | null) ?? world.contentRating ?? null,
     iconUrl: (detail?.iconUrl as string | null) ?? world.iconUrl,
     bannerUrl: (detail?.bannerUrl as string | null) ?? world.bannerUrl,
     type: ((detail?.type as string) ?? world.type) === 'OASIS' ? 'OASIS' : 'CREATOR',
@@ -40,12 +55,14 @@ function toXianxiaWorldData(
     scoreE: (detail?.scoreE as number) ?? world.scoreE,
     scoreEwma: (detail?.scoreEwma as number) ?? world.scoreEwma,
     scoreQ: (detail?.scoreQ as number) ?? world.scoreQ,
-    timeFlowRatio: (detail?.timeFlowRatio as number) ?? world.timeFlowRatio,
+    timeFlowRatio: resolveTimeFlowRatio(timeModel),
     transitInLimit: (detail?.transitInLimit as number) ?? world.transitInLimit,
     genre: (detail?.genre as string | null) ?? world.genre,
     era: (detail?.era as string | null) ?? world.era,
     themes: (detail?.themes as string[] | null) ?? world.themes,
+    timeModel,
     clockConfig: (detail?.clockConfig as Record<string, unknown> | null) ?? null,
+    languages: (detail?.languages as Record<string, unknown> | null) ?? world.languages ?? null,
     sceneTimeConfig: (detail?.sceneTimeConfig as Record<string, unknown> | null) ?? null,
   };
 }

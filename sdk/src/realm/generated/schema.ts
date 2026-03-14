@@ -4250,10 +4250,19 @@ export type components = {
             summary?: string;
             worldview: string;
         };
+        /**
+         * @description Narrative importance tier inside the world
+         * @enum {string}
+         */
+        AgentImportance: "PRIMARY" | "SECONDARY" | "BACKGROUND";
         AgentMetadataDto: {
+            /** @description Agent current active worldId */
+            activeWorldId?: string;
             /** @description Agent category: GENERAL, COMPANION, ASSISTANT, CREATIVE, GAME, EDUCATION, BUSINESS */
             category?: components["schemas"]["AgentCategory"];
-            isPublic?: boolean;
+            /** @description Narrative importance tier inside the world */
+            importance?: components["schemas"]["AgentImportance"];
+            liveState?: Record<string, never>;
             /** @description Agent origin: OFFICIAL, PARTNER, COMMUNITY */
             origin?: components["schemas"]["AgentOrigin"];
             /** @description WORLD_OWNED ownership audit field */
@@ -4291,6 +4300,7 @@ export type components = {
          */
         AgentOwnershipType: "MASTER_OWNED" | "WORLD_OWNED";
         AgentPersonalityDto: {
+            emotionBaseline?: string;
             goals: string[];
             interests: string[];
             mbti: string;
@@ -4298,15 +4308,19 @@ export type components = {
             summary?: string;
         };
         AgentProfileDto: {
+            activeWorldId?: string;
             dna?: Record<string, never>;
             /** Format: date-time */
             dnaConfirmedAt?: string | null;
+            importance?: components["schemas"]["AgentImportance"];
+            liveState?: Record<string, never>;
             /** @description WORLD_OWNED ownership audit field */
             ownerWorldId?: string | null;
             /** @description Ownership semantics: MASTER_OWNED or WORLD_OWNED */
             ownershipType?: components["schemas"]["AgentOwnershipType"];
             /** @description Lifecycle state: INCUBATING, READY, ACTIVE, SUSPENDED, FAILED */
             state?: components["schemas"]["AgentState"];
+            stats?: components["schemas"]["AgentStatsDto"];
             /** @description Agent current residence worldId */
             worldId?: string;
         };
@@ -4317,6 +4331,14 @@ export type components = {
          * @enum {string}
          */
         AgentState: "INCUBATING" | "READY" | "ACTIVE" | "SUSPENDED" | "FAILED";
+        AgentStatsDto: {
+            engagementCount?: number;
+            influenceTier?: number;
+            interactionTier?: number;
+            /** Format: date-time */
+            lastActiveAt?: string | null;
+            vitalityScore?: number;
+        };
         AgentVisibilitySettingsDto: {
             /**
              * @description Account discoverability visibility
@@ -4340,9 +4362,11 @@ export type components = {
             profileVisibility: components["schemas"]["Visibility"];
         };
         AgentVoiceConfigDto: {
+            description?: string;
+            emotionEnabled?: boolean;
             pitch?: number;
             speed?: number;
-            voiceId: string;
+            voiceId?: string;
         };
         /**
          * @description Wake strategy: PASSIVE, PROACTIVE, SCHEDULED
@@ -4394,6 +4418,12 @@ export type components = {
         BindEmailDto: {
             email: string;
             password: string;
+        };
+        CalendarSystemDto: {
+            daysPerMonth?: number;
+            daysPerWeek?: number;
+            hoursPerDay?: number;
+            monthsPerYear?: number;
         };
         CanWithdrawDto: {
             /** @description Current Gem balance */
@@ -4783,12 +4813,15 @@ export type components = {
         };
         CreateWorldDto: {
             bannerUrl?: string;
+            /** @enum {string} */
+            contentRating?: "UNRATED" | "G" | "PG13" | "R18" | "EXPLICIT";
             description?: string;
             iconUrl?: string;
+            motto?: string;
             /** @example Crystal Garden */
             name: string;
-            /** @example 1 */
-            timeFlowRatio?: number;
+            overview?: string;
+            tagline?: string;
         };
         CreatorCapabilitiesResponseDto: {
             /** @description Allowed actions */
@@ -5877,7 +5910,8 @@ export type components = {
         };
         TimeModelDto: {
             allowReverse?: boolean;
-            flowRatio?: number;
+            calendarSystem?: components["schemas"]["CalendarSystemDto"];
+            timeFlowRatio?: number;
             /** @enum {string} */
             type: "TICK_BASED" | "CONTINUOUS" | "RELATIVE";
             unit?: string;
@@ -6354,19 +6388,26 @@ export type components = {
             userId: string;
         };
         WorldAgentSummaryDto: {
+            activeWorldId: string;
             avatarUrl?: string;
             bio?: string;
             /** Format: date-time */
             createdAt: string;
             handle?: string;
             id: string;
+            /** @enum {string} */
+            importance: "PRIMARY" | "SECONDARY" | "BACKGROUND";
+            liveState?: Record<string, never>;
             name: string;
             role?: string;
+            stats?: components["schemas"]["AgentStatsDto"];
         };
         WorldDetailDto: {
             agentCount: number;
             bannerUrl?: string;
             clockConfig?: Record<string, never>;
+            /** @enum {string} */
+            contentRating: "UNRATED" | "G" | "PG13" | "R18" | "EXPLICIT";
             /** Format: date-time */
             createdAt: string;
             creatorId?: string;
@@ -6377,14 +6418,17 @@ export type components = {
             genre?: string;
             iconUrl?: string;
             id: string;
+            languages?: Record<string, never>;
             level: number;
             /** Format: date-time */
             levelUpdatedAt?: string;
             lorebookEntryLimit: number;
+            motto?: string;
             name: string;
             nativeAgentLimit: number;
             /** @enum {string} */
             nativeCreationState: "OPEN" | "NATIVE_CREATION_FROZEN";
+            overview?: string;
             /** Format: date-time */
             reviewedAt?: string;
             reviewedBy?: string;
@@ -6396,8 +6440,9 @@ export type components = {
             scoreQ: number;
             /** @enum {string} */
             status: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
+            tagline?: string;
             themes?: string[];
-            timeFlowRatio: number;
+            timeModel?: Record<string, never>;
             transitInLimit: number;
             /** @enum {string} */
             type: "OASIS" | "CREATOR";
@@ -6409,6 +6454,8 @@ export type components = {
             agents: components["schemas"]["WorldAgentSummaryDto"][];
             bannerUrl?: string;
             clockConfig?: Record<string, never>;
+            /** @enum {string} */
+            contentRating: "UNRATED" | "G" | "PG13" | "R18" | "EXPLICIT";
             /** Format: date-time */
             createdAt: string;
             creatorId?: string;
@@ -6419,14 +6466,17 @@ export type components = {
             genre?: string;
             iconUrl?: string;
             id: string;
+            languages?: Record<string, never>;
             level: number;
             /** Format: date-time */
             levelUpdatedAt?: string;
             lorebookEntryLimit: number;
+            motto?: string;
             name: string;
             nativeAgentLimit: number;
             /** @enum {string} */
             nativeCreationState: "OPEN" | "NATIVE_CREATION_FROZEN";
+            overview?: string;
             /** Format: date-time */
             reviewedAt?: string;
             reviewedBy?: string;
@@ -6438,8 +6488,9 @@ export type components = {
             scoreQ: number;
             /** @enum {string} */
             status: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
+            tagline?: string;
             themes?: string[];
-            timeFlowRatio: number;
+            timeModel?: Record<string, never>;
             transitInLimit: number;
             /** @enum {string} */
             type: "OASIS" | "CREATOR";
@@ -6566,6 +6617,17 @@ export type components = {
             target: "NO_ACCESS" | "CREATE" | "MAINTAIN";
             worldId?: string;
         };
+        WorldLanguageDto: {
+            category?: string;
+            description?: string;
+            id: string;
+            isCommon?: boolean;
+            name: string;
+            realWorldBasis?: string;
+            spokenSample?: string;
+            usedBy?: string[];
+            writingSample?: string;
+        };
         WorldLevelAuditEventDto: {
             a?: number;
             actor: string;
@@ -6679,7 +6741,7 @@ export type components = {
             priority: number;
             scopeWorldId: string;
             /** @enum {string} */
-            slot: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "SCENE_BACKGROUND" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE";
+            slot: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE";
             tags: string[];
             targetId: string;
             /** @enum {string} */
@@ -6699,7 +6761,7 @@ export type components = {
             intentPrompt?: string;
             priority?: number;
             /** @enum {string} */
-            slot: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "SCENE_BACKGROUND" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE";
+            slot: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE";
             tags?: string[];
             targetId: string;
             /** @enum {string} */
@@ -6748,15 +6810,19 @@ export type components = {
         };
         WorldPatchDto: {
             bannerUrl?: string;
+            /** @enum {string} */
+            contentRating?: "UNRATED" | "G" | "PG13" | "R18" | "EXPLICIT";
             description?: string;
             era?: string;
             genre?: string;
             iconUrl?: string;
+            motto?: string;
             name?: string;
+            overview?: string;
             /** @enum {string} */
             status?: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
+            tagline?: string;
             themes?: string[];
-            timeFlowRatio?: number;
         };
         WorldSceneDetailDto: {
             activeEntities: string[];
@@ -6798,6 +6864,7 @@ export type components = {
                 [key: string]: unknown;
             };
             id: string;
+            languages?: components["schemas"]["WorldviewLanguagesDto"];
             /** @enum {string} */
             lifecycle: "ACTIVE" | "MAINTENANCE" | "FROZEN" | "ARCHIVED";
             narrativeHooks?: {
@@ -6838,6 +6905,9 @@ export type components = {
             version: number;
             worldviewId: string;
         };
+        WorldviewLanguagesDto: {
+            languages: components["schemas"]["WorldLanguageDto"][];
+        };
         WorldviewPatchDto: {
             causality?: {
                 [key: string]: unknown;
@@ -6846,6 +6916,9 @@ export type components = {
                 [key: string]: unknown;
             };
             existences?: {
+                [key: string]: unknown;
+            };
+            languages?: {
                 [key: string]: unknown;
             };
             /** @enum {string} */

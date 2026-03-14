@@ -29,6 +29,10 @@ export type WorldListItem = {
   id: string;
   name: string;
   description: string | null;
+  tagline?: string | null;
+  motto?: string | null;
+  overview?: string | null;
+  contentRating?: string | null;
   genre: string | null;
   themes: string[];
   era: string | null;
@@ -53,7 +57,9 @@ export type WorldListItem = {
   scoreQ: number;
   timeFlowRatio: number;
   transitInLimit: number;
+  timeModel?: Record<string, unknown> | null;
   clockConfig?: Record<string, unknown> | null;
+  languages?: Record<string, unknown> | null;
   agents?: WorldAgentItem[];
 };
 
@@ -89,6 +95,48 @@ function readStringField(source: Record<string, unknown> | null | undefined, key
     }
   }
   return null;
+}
+
+function resolveTimeFlowRatio(timeModel: Record<string, unknown> | null | undefined): number {
+  const ratio = readNumberField(timeModel, ['timeFlowRatio']);
+  return ratio && ratio > 0 ? ratio : 1;
+}
+
+function resolveCurrentWorldDate(
+  clockConfig: Record<string, unknown> | null | undefined,
+  timeFlowRatio: number,
+  nowMs: number,
+): Date | null {
+  const realAnchorRaw = readStringField(clockConfig, ['anchorRealTime']);
+  const worldAnchorRaw = readStringField(clockConfig, ['pausedAt', 'anchorWorldTime']);
+  if (!realAnchorRaw || !worldAnchorRaw) {
+    return null;
+  }
+  const realAnchor = new Date(realAnchorRaw);
+  const worldAnchor = new Date(worldAnchorRaw);
+  if (Number.isNaN(realAnchor.getTime()) || Number.isNaN(worldAnchor.getTime())) {
+    return null;
+  }
+  if (clockConfig?.isPaused === true) {
+    return worldAnchor;
+  }
+  const elapsedRealMs = Math.max(0, nowMs - realAnchor.getTime());
+  return new Date(worldAnchor.getTime() + elapsedRealMs * Math.max(0.0001, timeFlowRatio));
+}
+
+function formatWorldDate(
+  worldDate: Date,
+  clockConfig: Record<string, unknown> | null | undefined,
+): string {
+  const timeFormat = readRecord(clockConfig?.timeFormat);
+  const datePattern = readStringField(timeFormat, ['datePattern']) ?? '{year}-{month}-{day}';
+  return datePattern
+    .replaceAll('{year}', String(worldDate.getUTCFullYear()))
+    .replaceAll('{month}', String(worldDate.getUTCMonth() + 1))
+    .replaceAll('{day}', String(worldDate.getUTCDate()))
+    .replaceAll('{hour}', String(worldDate.getUTCHours()).padStart(2, '0'))
+    .replaceAll('{minute}', String(worldDate.getUTCMinutes()).padStart(2, '0'))
+    .replaceAll('{second}', String(worldDate.getUTCSeconds()).padStart(2, '0'));
 }
 
 function resolveWorldType(raw: Record<string, unknown>): string {
@@ -133,6 +181,10 @@ export function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
     id: String(raw.id || ''),
     name: String(raw.name || 'Unknown World'),
     description: typeof raw.description === 'string' ? raw.description : null,
+    tagline: typeof raw.tagline === 'string' ? raw.tagline : null,
+    motto: typeof raw.motto === 'string' ? raw.motto : null,
+    overview: typeof raw.overview === 'string' ? raw.overview : null,
+    contentRating: typeof raw.contentRating === 'string' ? raw.contentRating : null,
     genre: typeof raw.genre === 'string' ? raw.genre : null,
     themes: Array.isArray(raw.themes)
       ? raw.themes.filter((t): t is string => typeof t === 'string')
@@ -158,9 +210,11 @@ export function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
     scoreE: typeof raw.scoreE === 'number' ? raw.scoreE : 0,
     scoreEwma: typeof raw.scoreEwma === 'number' ? raw.scoreEwma : 0,
     scoreQ: typeof raw.scoreQ === 'number' ? raw.scoreQ : 0,
-    timeFlowRatio: typeof raw.timeFlowRatio === 'number' ? raw.timeFlowRatio : 1,
+    timeFlowRatio: resolveTimeFlowRatio(readRecord(raw.timeModel)),
     transitInLimit: typeof raw.transitInLimit === 'number' ? raw.transitInLimit : 0,
+    timeModel: readRecord(raw.timeModel),
     clockConfig: readRecord(raw.clockConfig),
+    languages: readRecord(raw.languages),
     agents: parsedAgents,
   };
 }
@@ -206,36 +260,11 @@ function getWorldScoring(world: WorldListItem): string {
 
 function formatWorldClock(world: WorldListItem): string {
   const clockConfig = readRecord(world.clockConfig);
-  const createdAt = new Date(world.createdAt);
-  if (Number.isNaN(createdAt.getTime())) {
+  const worldDate = resolveCurrentWorldDate(clockConfig, world.timeFlowRatio, Date.now());
+  if (!worldDate) {
     return 'N/A';
   }
-
-  const startYear = readNumberField(clockConfig, ['startYear']) ?? createdAt.getUTCFullYear();
-  const startMonth = readNumberField(clockConfig, ['startMonth']) ?? 1;
-  const startDay = readNumberField(clockConfig, ['startDay']) ?? 1;
-  const monthsPerYear = Math.max(1, readNumberField(clockConfig, ['monthsPerYear']) ?? 12);
-  const daysPerMonth = Math.max(1, readNumberField(clockConfig, ['daysPerMonth']) ?? 30);
-  const flowRatio = Math.max(0.0001, readNumberField(clockConfig, ['flowRatio', 'timeFlowRatio']) ?? world.timeFlowRatio ?? 1);
-  const format = readStringField(clockConfig, ['format']) ?? '{year}-{month}-{day}';
-
-  const elapsedMs = Math.max(0, Date.now() - createdAt.getTime());
-  const elapsedWorldDays = Math.floor((elapsedMs / 86400000) * flowRatio);
-  const totalStartDays = (startMonth - 1) * daysPerMonth + (startDay - 1);
-  const totalDays = totalStartDays + elapsedWorldDays;
-  const year = startYear + Math.floor(totalDays / (monthsPerYear * daysPerMonth));
-  const dayOfYear = totalDays % (monthsPerYear * daysPerMonth);
-  const month = Math.floor(dayOfYear / daysPerMonth) + 1;
-  const day = (dayOfYear % daysPerMonth) + 1;
-
-  if (format.includes('{year}') || format.includes('{month}') || format.includes('{day}')) {
-    return format
-      .replaceAll('{year}', String(year))
-      .replaceAll('{month}', String(month))
-      .replaceAll('{day}', String(day));
-  }
-
-  return `${format} ${year}年 ${month}月 ${day}日`;
+  return formatWorldDate(worldDate, clockConfig);
 }
 
 type WorldChronoPanelState = {
@@ -251,53 +280,16 @@ type WorldChronoPanelState = {
 
 function resolveWorldChronoPanelState(world: WorldListItem, nowMs: number): WorldChronoPanelState | null {
   const clockConfig = readRecord(world.clockConfig);
-  const createdAt = new Date(world.createdAt);
-  if (Number.isNaN(createdAt.getTime())) {
+  const flowRatio = Math.max(0.0001, world.timeFlowRatio);
+  const worldDate = resolveCurrentWorldDate(clockConfig, flowRatio, nowMs);
+  if (!worldDate) {
     return null;
   }
-
-  const startYear = readNumberField(clockConfig, ['startYear']) ?? createdAt.getUTCFullYear();
-  const startMonth = readNumberField(clockConfig, ['startMonth']) ?? 1;
-  const startDay = readNumberField(clockConfig, ['startDay']) ?? 1;
-  const startHour = readNumberField(clockConfig, ['startHour']) ?? createdAt.getUTCHours();
-  const startMinute = readNumberField(clockConfig, ['startMinute']) ?? createdAt.getUTCMinutes();
-  const startSecond = readNumberField(clockConfig, ['startSecond']) ?? createdAt.getUTCSeconds();
-  const monthsPerYear = Math.max(1, readNumberField(clockConfig, ['monthsPerYear']) ?? 12);
-  const daysPerMonth = Math.max(1, readNumberField(clockConfig, ['daysPerMonth']) ?? 30);
-  const flowRatio = Math.max(0.0001, readNumberField(clockConfig, ['flowRatio', 'timeFlowRatio']) ?? world.timeFlowRatio ?? 1);
-  const format = readStringField(clockConfig, ['format']) ?? '{year}-{month}-{day}';
-
-  const elapsedRealMs = Math.max(0, nowMs - createdAt.getTime());
-  const elapsedWorldMs = elapsedRealMs * flowRatio;
-  const msPerDay = 24 * 60 * 60 * 1000;
-  const msPerMonth = daysPerMonth * msPerDay;
-  const msPerYear = monthsPerYear * msPerMonth;
-  const totalStartMs =
-    ((((startMonth - 1) * daysPerMonth + (startDay - 1)) * 24 + startHour) * 60 * 60 +
-      startMinute * 60 +
-      startSecond) *
-    1000;
-  const totalWorldMs = totalStartMs + elapsedWorldMs;
-  const year = startYear + Math.floor(totalWorldMs / msPerYear);
-  const yearRemainder = totalWorldMs % msPerYear;
-  const month = Math.floor(yearRemainder / msPerMonth) + 1;
-  const monthRemainder = yearRemainder % msPerMonth;
-  const day = Math.floor(monthRemainder / msPerDay) + 1;
-  const dayRemainder = monthRemainder % msPerDay;
-  const hour = Math.floor(dayRemainder / 3600000);
-  const minute = Math.floor((dayRemainder % 3600000) / 60000);
-  const second = Math.floor((dayRemainder % 60000) / 1000);
-  const millisecond = Math.floor(dayRemainder % 1000);
-  const dateLabel =
-    format.includes('{year}') || format.includes('{month}') || format.includes('{day}')
-      ? format
-          .replaceAll('{year}', String(year))
-          .replaceAll('{month}', String(month))
-          .replaceAll('{day}', String(day))
-          .replaceAll('{hour}', String(hour).padStart(2, '0'))
-          .replaceAll('{minute}', String(minute).padStart(2, '0'))
-          .replaceAll('{second}', String(second).padStart(2, '0'))
-      : `${format} ${year}年 ${month}月 ${day}日`;
+  const hour = worldDate.getUTCHours();
+  const minute = worldDate.getUTCMinutes();
+  const second = worldDate.getUTCSeconds();
+  const millisecond = worldDate.getUTCMilliseconds();
+  const dateLabel = formatWorldDate(worldDate, clockConfig);
 
   return {
     hour,
@@ -306,7 +298,7 @@ function resolveWorldChronoPanelState(world: WorldListItem, nowMs: number): Worl
     millisecond,
     flowRatio,
     dateLabel,
-    compactDateLabel: `${year}.${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}`,
+    compactDateLabel: `${worldDate.getUTCFullYear()}.${String(worldDate.getUTCMonth() + 1).padStart(2, '0')}.${String(worldDate.getUTCDate()).padStart(2, '0')}`,
     progress: Math.max(8, Math.min(100, (Math.log10(flowRatio + 1) / Math.log10(1000 + 1)) * 100)),
   };
 }

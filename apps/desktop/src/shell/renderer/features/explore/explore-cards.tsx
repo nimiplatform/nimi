@@ -39,7 +39,7 @@ export type ExploreAgentCardData = {
   state?: string;
   ownershipType?: string;
   wakeStrategy?: string;
-  isPublic?: boolean;
+  accountVisibility?: string | null;
   isOnline?: boolean;
   // Social/Stats
   tags: string[];
@@ -73,7 +73,6 @@ export type FeaturedWorldCardData = {
   subtitle: string;
   imageUrl: string | null;
   gradient: string;
-  isPublic: boolean;
   creatorAvatarUrl: string | null;
 };
 
@@ -205,7 +204,7 @@ export function ExploreAgentCard({
               <span className="block truncate text-sm font-bold text-gray-800">{agent.name}</span>
               <span className="block truncate text-xs text-gray-400">@{agent.handle}</span>
             </button>
-            {agent.isPublic !== false && <PublicBadge />}
+            {agent.accountVisibility === 'PUBLIC' && <PublicBadge />}
           </div>
         </div>
       </div>
@@ -293,7 +292,7 @@ export function AgentRecommendationCard({
           >
             {themeLabel}
           </span>
-          {agent.isPublic !== false && <PublicBadge size="small" />}
+          {agent.accountVisibility === 'PUBLIC' && <PublicBadge size="small" />}
         </div>
 
       {/* Avatar */}
