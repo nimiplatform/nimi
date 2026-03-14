@@ -2,7 +2,7 @@
 
 ## Scope
 
-Realm kernel is the single authoritative source for cross-domain realm public boundary rules.
+Realm kernel is the single authoritative source for cross-domain realm public boundary, creator asset, and interop rules.
 Every realm domain document must explicitly reference kernel Rule IDs; it must not duplicate kernel prose.
 
 ## Rule ID Format
@@ -12,6 +12,7 @@ Every realm domain document must explicitly reference kernel Rule IDs; it must n
 | Domain | Mnemonic | Kernel Document |
 |---|---|---|
 | `BOUND` | Boundary vocabulary | `boundary-vocabulary-contract.md` |
+| `ASSET` | Creator asset contract | `asset-contract.md` |
 | `ECON` | Economy contract | `economy-contract.md` |
 | `INTEROP` | Interop mapping | `interop-mapping-contract.md` |
 
@@ -28,7 +29,8 @@ Every realm domain document must explicitly reference kernel Rule IDs; it must n
 
 | Kernel Document | Rule ID Range | Description |
 |---|---|---|
-| `boundary-vocabulary-contract.md` | `R-BOUND-*` | World/Agent/Social public vocabulary and boundaries |
+| `boundary-vocabulary-contract.md` | `R-BOUND-*` | World/Agent/Social/Asset public vocabulary and boundaries |
+| `asset-contract.md` | `R-ASSET-*` | Creator asset types, NovelAsset requirements, release invariants |
 | `economy-contract.md` | `R-ECON-*` | Creator Key, pricing, revenue distribution |
 | `interop-mapping-contract.md` | `R-INTEROP-*` | Six primitive → realm mapping + graduation criteria |
 
@@ -36,7 +38,8 @@ Every realm domain document must explicitly reference kernel Rule IDs; it must n
 
 | Table | Kernel Document | Description |
 |---|---|---|
-| `tables/public-vocabulary.yaml` | `boundary-vocabulary-contract.md` | Unified vocabulary (3 boundary stubs) |
+| `tables/public-vocabulary.yaml` | `boundary-vocabulary-contract.md` | Unified vocabulary (4 boundary stubs) |
+| `tables/realm-asset-types.yaml` | `asset-contract.md` | Creator asset types and NovelAsset field contract |
 | `tables/creator-key-tiers.yaml` | `economy-contract.md` | Tier pricing table |
 | `tables/revenue-event-types.yaml` | `economy-contract.md` | Revenue event types |
 | `tables/share-plan-fields.yaml` | `economy-contract.md` | Share plan fields and validation |

@@ -4,7 +4,7 @@
 > Source: `spec/realm/kernel/tables/rule-evidence.yaml`
 | Evidence Ref | Type | Command | Path | Description |
 |---|---|---|---|---|
-| `realm_kernel_consistency` | `static_gate` | `pnpm check:realm-spec-kernel-consistency` | `scripts/check-realm-spec-kernel-consistency.mjs` | Kernel rule integrity, vocabulary alignment, economy arithmetic, primitive mapping status, and graduation log checks for Realm domain. |
+| `realm_kernel_consistency` | `static_gate` | `pnpm check:realm-spec-kernel-consistency` | `scripts/check-realm-spec-kernel-consistency.mjs` | Kernel rule integrity, vocabulary alignment, creator asset field coverage, economy arithmetic, primitive mapping status, and graduation log checks for Realm domain. |
 | `realm_timeflow_contract_test` | `test_gate` | `cd runtime && go test ./internal/protocol -run TestValidateTimeflowContractAcceptsCanonicalPayload -count=1` | `runtime/internal/protocol/realm_primitives_contract_test.go` | Executable contract test for graduated timeflow primitive mapping. |
 | `realm_economy_contract_test` | `test_gate` | `cd runtime && go test ./internal/protocol -run TestValidateEconomyContractAcceptsCanonicalPayload -count=1` | `runtime/internal/protocol/realm_primitives_contract_test.go` | Executable contract test for graduated economy primitive mapping. |
 | `runtime_compliance_gate` | `static_gate` | `cd runtime && go run ./cmd/runtime-compliance --gate` | `runtime/cmd/runtime-compliance/main.go` | Runtime compliance gate including realm primitive contract coverage checklist. |
@@ -16,7 +16,13 @@
 | `R-BOUND-001` | `covered` | `realm_kernel_consistency` |
 | `R-BOUND-002` | `covered` | `realm_kernel_consistency` |
 | `R-BOUND-003` | `covered` | `realm_kernel_consistency` |
+| `R-BOUND-004` | `covered` | `realm_kernel_consistency` |
 | `R-BOUND-010` | `covered` | `realm_kernel_consistency` |
+| `R-ASSET-001` | `covered` | `realm_kernel_consistency` |
+| `R-ASSET-010` | `covered` | `realm_kernel_consistency` |
+| `R-ASSET-011` | `covered` | `realm_kernel_consistency` |
+| `R-ASSET-012` | `covered` | `realm_kernel_consistency` |
+| `R-ASSET-020` | `covered` | `realm_kernel_consistency` |
 | `R-ECON-001` | `covered` | `realm_kernel_consistency` |
 | `R-ECON-010` | `covered` | `realm_kernel_consistency` |
 | `R-ECON-020` | `covered` | `realm_kernel_consistency` |

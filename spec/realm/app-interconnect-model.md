@@ -6,7 +6,8 @@
 
 | Kernel Location | Rule IDs |
 |---|---|
-| `kernel/boundary-vocabulary-contract.md` | R-BOUND-001, R-BOUND-002, R-BOUND-003, R-BOUND-010 |
+| `kernel/boundary-vocabulary-contract.md` | R-BOUND-001, R-BOUND-002, R-BOUND-003, R-BOUND-004, R-BOUND-010 |
+| `kernel/asset-contract.md` | R-ASSET-001, R-ASSET-010, R-ASSET-020 |
 | `kernel/interop-mapping-contract.md` | R-INTEROP-001, R-INTEROP-002 |
 | `kernel/economy-contract.md` | R-ECON-010, R-ECON-020, R-ECON-030, R-ECON-040 |
 | `spec/platform/kernel/protocol-contract.md` | P-PROTO-002, P-PROTO-003, P-PROTO-020, P-PROTO-030, P-PROTO-035, P-PROTO-040, P-PROTO-050, P-PROTO-060, P-PROTO-070, P-PROTO-100–105 |
@@ -27,7 +28,8 @@
 | Realm 承担六原语语义执行主权 | P-PROTO-003, P-PROTO-100–105 |
 | 应用可按模式渐进接入（render/extension） | P-PROTO-050, P-PROTO-060 |
 | 互联建立在授权与委托约束上，而非默认放权 | P-PROTO-020, P-PROTO-030, P-PROTO-035, P-PROTO-040 |
-| 跨应用边界词汇必须统一且可依赖 | R-BOUND-001, R-BOUND-002, R-BOUND-003, R-BOUND-010 |
+| 跨应用边界词汇必须统一且可依赖 | R-BOUND-001, R-BOUND-002, R-BOUND-003, R-BOUND-004, R-BOUND-010 |
+| 个人创作发布可以落到 creator-owned realm asset，而不是 app 私有发布后端 | R-ASSET-001, R-ASSET-010, R-ASSET-020 |
 | 经济与归因必须可审计、不可混账 | R-ECON-010, R-ECON-020, R-ECON-030, R-ECON-040 |
 | 六原语映射必须按状态治理并可毕业 | R-INTEROP-001, R-INTEROP-002 |
 | SDK Realm 接入必须保持实例隔离与认证边界 | S-REALM-010, S-REALM-012, S-REALM-014, S-REALM-028, S-REALM-029 |
@@ -35,9 +37,10 @@
 ## 3. 阅读路径
 
 1. 先读协议主权与模式边界：`spec/platform/kernel/protocol-contract.md`（P-PROTO-003 / 050 / 060 / 070 / 100–105）。
-2. 再读 Realm 边界与互操作：`kernel/boundary-vocabulary-contract.md`、`kernel/interop-mapping-contract.md`。
+2. 再读 Realm 边界与 creator asset：`kernel/boundary-vocabulary-contract.md`、`kernel/asset-contract.md`。
 3. 如涉及经济互联，再读 `kernel/economy-contract.md` 与相关 tables。
-4. 最后回到 SDK 接入边界：`spec/sdk/kernel/realm-contract.md`。
+4. 最后补读 `kernel/interop-mapping-contract.md`。
+5. 最后回到 SDK 接入边界：`spec/sdk/kernel/realm-contract.md`。
 
 ## 4. 现状态说明
 

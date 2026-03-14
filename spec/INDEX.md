@@ -266,7 +266,7 @@ Platform 规范采用 kernel + domain 的两层结构，覆盖平台架构、协
 
 ## Realm（当前）
 
-Realm 规范采用 kernel + domain 的两层结构，覆盖公共边界词汇、创作者经济、原语互操作映射。
+Realm 规范采用 kernel + domain 的两层结构，覆盖公共边界词汇、creator asset、创作者经济、原语互操作映射。
 
 - Kernel（唯一事实源）：`spec/realm/kernel/`
 - Tables（事实源）：`spec/realm/kernel/tables/`
@@ -275,6 +275,7 @@ Realm 规范采用 kernel + domain 的两层结构，覆盖公共边界词汇、
   - `spec/realm/world.md`
   - `spec/realm/agent.md`
   - `spec/realm/social.md`
+  - `spec/realm/asset.md`
   - `spec/realm/world-creator-economy.md`
   - `spec/realm/creator-revenue-policy.md`
   - `spec/realm/app-interconnect-model.md`
@@ -284,7 +285,13 @@ Realm 规范采用 kernel + domain 的两层结构，覆盖公共边界词汇、
 
 1. `spec/realm/kernel/boundary-vocabulary-contract.md`
 2. `spec/realm/kernel/tables/public-vocabulary.yaml`
-3. 受影响 domain 文档（`world.md` / `agent.md` / `social.md`）
+3. 受影响 domain 文档（`world.md` / `agent.md` / `social.md` / `asset.md`）
+
+### 修改 realm creator asset / NovelAsset
+
+1. `spec/realm/kernel/asset-contract.md`
+2. `spec/realm/kernel/tables/realm-asset-types.yaml`
+3. 受影响 domain 文档（`asset.md` / `app-interconnect-model.md`）
 
 ### 修改创作者经济 / 定价 / 收入
 

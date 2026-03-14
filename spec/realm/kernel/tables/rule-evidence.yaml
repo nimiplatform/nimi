@@ -4,7 +4,7 @@ evidence_catalog:
     type: static_gate
     command: pnpm check:realm-spec-kernel-consistency
     path: scripts/check-realm-spec-kernel-consistency.mjs
-    description: Kernel rule integrity, vocabulary alignment, economy arithmetic, primitive mapping status, and graduation log checks for Realm domain.
+    description: Kernel rule integrity, vocabulary alignment, creator asset field coverage, economy arithmetic, primitive mapping status, and graduation log checks for Realm domain.
   realm_timeflow_contract_test:
     type: test_gate
     command: cd runtime && go test ./internal/protocol -run TestValidateTimeflowContractAcceptsCanonicalPayload -count=1
@@ -31,7 +31,25 @@ rules:
   - rule_id: R-BOUND-003
     status: covered
     evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-BOUND-004
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
   - rule_id: R-BOUND-010
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-ASSET-001
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-ASSET-010
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-ASSET-011
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-ASSET-012
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-ASSET-020
     status: covered
     evidence_refs: [realm_kernel_consistency]
   - rule_id: R-ECON-001

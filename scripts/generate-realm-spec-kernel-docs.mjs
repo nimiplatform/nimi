@@ -13,6 +13,7 @@ const outDir = path.join(repoRoot, 'spec', 'realm', 'kernel', 'generated');
 
 const specs = [
   { input: 'public-vocabulary.yaml', output: 'public-vocabulary.md', render: renderPublicVocabulary },
+  { input: 'realm-asset-types.yaml', output: 'realm-asset-types.md', render: renderRealmAssetTypes },
   { input: 'creator-key-tiers.yaml', output: 'creator-key-tiers.md', render: renderCreatorKeyTiers },
   { input: 'revenue-event-types.yaml', output: 'revenue-event-types.md', render: renderRevenueEventTypes },
   { input: 'share-plan-fields.yaml', output: 'share-plan-fields.md', render: renderSharePlanFields },
@@ -124,6 +125,62 @@ function renderCreatorKeyTiers(doc, sourceName) {
     out += '\n## Constraints\n\n';
     for (const constraint of constraints) {
       out += `- ${String(constraint)}\n`;
+    }
+    out += '\n';
+  }
+
+  return normalizeMarkdown(out);
+}
+
+function renderRealmAssetTypes(doc, sourceName) {
+  const assetTypes = Array.isArray(doc?.asset_types) ? doc.asset_types : [];
+  const metadataFields = Array.isArray(doc?.metadata_fields) ? doc.metadata_fields : [];
+  const structureFields = Array.isArray(doc?.structure_fields) ? doc.structure_fields : [];
+  const releaseEventFields = Array.isArray(doc?.release_event_fields) ? doc.release_event_fields : [];
+  const mutationInvariants = Array.isArray(doc?.mutation_invariants) ? doc.mutation_invariants : [];
+
+  let out = header('Generated Realm Asset Types', sourceName);
+
+  out += '## Asset Types\n\n';
+  out += '| Type | Granularity | Owner Model | Mutation Model | Lifecycle | Internal Structure | Release Model | Source |\n';
+  out += '|---|---|---|---|---|---|---|---|\n';
+  for (const asset of assetTypes) {
+    const type = String(asset?.type || '').trim();
+    if (!type) continue;
+    out += `| \`${type}\` | ${String(asset?.granularity || '').trim()} | ${String(asset?.owner_model || '').trim()} | ${String(asset?.mutation_model || '').trim()} | ${String(asset?.lifecycle || '').trim()} | ${String(asset?.internal_structure || '').trim()} | ${String(asset?.release_model || '').trim()} | \`${String(asset?.source_rule || '').trim()}\` |\n`;
+  }
+
+  out += '\n## Metadata Fields\n\n';
+  out += '| Field | Category | Type | Required | Source |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const field of metadataFields) {
+    const name = String(field?.field || '').trim();
+    if (!name) continue;
+    out += `| \`${name}\` | ${String(field?.category || '').trim()} | \`${String(field?.type || '').trim()}\` | ${String(field?.required ?? '').trim()} | \`${String(field?.source_rule || '').trim()}\` |\n`;
+  }
+
+  out += '\n## Structure Fields\n\n';
+  out += '| Field | Type | Required | Source |\n';
+  out += '|---|---|---|---|\n';
+  for (const field of structureFields) {
+    const name = String(field?.field || '').trim();
+    if (!name) continue;
+    out += `| \`${name}\` | \`${String(field?.type || '').trim()}\` | ${String(field?.required ?? '').trim()} | \`${String(field?.source_rule || '').trim()}\` |\n`;
+  }
+
+  out += '\n## Release Event Fields\n\n';
+  out += '| Field | Type | Required | Source |\n';
+  out += '|---|---|---|---|\n';
+  for (const field of releaseEventFields) {
+    const name = String(field?.field || '').trim();
+    if (!name) continue;
+    out += `| \`${name}\` | \`${String(field?.type || '').trim()}\` | ${String(field?.required ?? '').trim()} | \`${String(field?.source_rule || '').trim()}\` |\n`;
+  }
+
+  if (mutationInvariants.length > 0) {
+    out += '\n## Mutation Invariants\n\n';
+    for (const invariant of mutationInvariants) {
+      out += `- ${String(invariant?.rule || '').trim()} (\`${String(invariant?.source_rule || '').trim()}\`)\n`;
     }
     out += '\n';
   }

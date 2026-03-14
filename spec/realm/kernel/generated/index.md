@@ -5,6 +5,7 @@
 | File | Source |
 |---|---|
 | `public-vocabulary.md` | `tables/public-vocabulary.yaml` |
+| `realm-asset-types.md` | `tables/realm-asset-types.yaml` |
 | `creator-key-tiers.md` | `tables/creator-key-tiers.yaml` |
 | `revenue-event-types.md` | `tables/revenue-event-types.yaml` |
 | `share-plan-fields.md` | `tables/share-plan-fields.yaml` |

@@ -43,3 +43,19 @@
 **Relationship Lifecycle:** PENDING -> ACTIVE -> BLOCKED (可逆至 ACTIVE)
 
 **Relationship Types:** HUMAN_HUMAN, HUMAN_AGENT, AGENT_AGENT, AGENT_HUMAN
+
+## asset (`R-BOUND-004`)
+
+| Term | Description |
+|---|---|
+| `RealmAsset` | Realm 中可发布、可维护的创作者资产 |
+| `AssetOwner` | 资产归属主体（creator/self owner） |
+| `AssetVisibility` | 资产可见性（draft/private/public） |
+| `AssetReleaseEvent` | 资产正式发布记录 |
+| `NovelAsset` | 书籍级连载小说资产类型 |
+
+**Lifecycle:** draft -> published -> maintained -> archived
+
+**Change Domains:** metadata/structure/releases/archive
+
+**Ownership Model:** creator-owned personal asset

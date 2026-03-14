@@ -31,6 +31,7 @@ function realmRuleHeadingRe() {
 // --- Load tables ---
 
 const vocabularyTable = readYaml('spec/realm/kernel/tables/public-vocabulary.yaml');
+const assetTypesTable = readYaml('spec/realm/kernel/tables/realm-asset-types.yaml');
 const tiersTable = readYaml('spec/realm/kernel/tables/creator-key-tiers.yaml');
 const revenueTable = readYaml('spec/realm/kernel/tables/revenue-event-types.yaml');
 const sharePlanTable = readYaml('spec/realm/kernel/tables/share-plan-fields.yaml');
@@ -43,7 +44,7 @@ const ruleEvidenceTable = readYaml('spec/realm/kernel/tables/rule-evidence.yaml'
 // ========================================================
 
 const boundaries = Array.isArray(vocabularyTable?.boundaries) ? vocabularyTable.boundaries : [];
-const requiredDomains = new Set(['world', 'agent', 'social']);
+const requiredDomains = new Set(['world', 'agent', 'social', 'asset']);
 const foundDomains = new Set();
 
 for (const boundary of boundaries) {
@@ -84,7 +85,115 @@ for (const required of requiredDomains) {
 }
 
 // ========================================================
-// Check 2: creator-key-tiers.yaml — pricing monotonic ascending, tier names unique
+// Check 2: realm-asset-types.yaml — NovelAsset definition and field inventory
+// ========================================================
+
+const assetTypes = Array.isArray(assetTypesTable?.asset_types) ? assetTypesTable.asset_types : [];
+const metadataFields = Array.isArray(assetTypesTable?.metadata_fields) ? assetTypesTable.metadata_fields : [];
+const structureFields = Array.isArray(assetTypesTable?.structure_fields) ? assetTypesTable.structure_fields : [];
+const releaseEventFields = Array.isArray(assetTypesTable?.release_event_fields) ? assetTypesTable.release_event_fields : [];
+const mutationInvariants = Array.isArray(assetTypesTable?.mutation_invariants) ? assetTypesTable.mutation_invariants : [];
+
+if (assetTypes.length === 0) {
+  fail('realm-asset-types.yaml: asset_types must not be empty');
+}
+
+const assetTypeNames = new Set();
+let foundNovelAsset = false;
+for (const asset of assetTypes) {
+  const type = String(asset?.type || '').trim();
+  if (!type) {
+    fail('realm-asset-types.yaml: asset_type entry missing type');
+    continue;
+  }
+  if (assetTypeNames.has(type)) {
+    fail(`realm-asset-types.yaml: duplicate asset type: ${type}`);
+  }
+  assetTypeNames.add(type);
+  if (type === 'NovelAsset') foundNovelAsset = true;
+  for (const fieldName of ['granularity', 'owner_model', 'mutation_model', 'lifecycle', 'internal_structure', 'release_model']) {
+    if (!String(asset?.[fieldName] || '').trim()) {
+      fail(`realm-asset-types.yaml ${type}: missing required field: ${fieldName}`);
+    }
+  }
+  const source = String(asset?.source_rule || '').trim();
+  if (source && !REALM_RULE_ID_RE.test(source)) {
+    fail(`realm-asset-types.yaml ${type}: invalid source_rule format: ${source}`);
+  }
+}
+if (!foundNovelAsset) {
+  fail('realm-asset-types.yaml: missing required asset type: NovelAsset');
+}
+
+function checkFieldInventory(entries, sectionName, requiredFieldNames) {
+  if (entries.length === 0) {
+    fail(`realm-asset-types.yaml: ${sectionName} must not be empty`);
+    return;
+  }
+  const seenFields = new Set();
+  for (const entry of entries) {
+    const name = String(entry?.field || '').trim();
+    if (!name) {
+      fail(`realm-asset-types.yaml ${sectionName}: field entry missing field name`);
+      continue;
+    }
+    if (seenFields.has(name)) {
+      fail(`realm-asset-types.yaml ${sectionName}: duplicate field name: ${name}`);
+    }
+    seenFields.add(name);
+    if (!String(entry?.type || '').trim()) {
+      fail(`realm-asset-types.yaml ${sectionName}/${name}: missing required field: type`);
+    }
+    if (entry?.required == null) {
+      fail(`realm-asset-types.yaml ${sectionName}/${name}: missing required field: required`);
+    }
+    if ('category' in entry && !String(entry?.category || '').trim()) {
+      fail(`realm-asset-types.yaml ${sectionName}/${name}: missing required field: category`);
+    }
+    const source = String(entry?.source_rule || '').trim();
+    if (source && !REALM_RULE_ID_RE.test(source)) {
+      fail(`realm-asset-types.yaml ${sectionName}/${name}: invalid source_rule format: ${source}`);
+    }
+  }
+  for (const requiredField of requiredFieldNames) {
+    if (!seenFields.has(requiredField)) {
+      fail(`realm-asset-types.yaml ${sectionName}: missing required field entry: ${requiredField}`);
+    }
+  }
+}
+
+checkFieldInventory(
+  metadataFields,
+  'metadata_fields',
+  ['title', 'owner', 'genreTags', 'summary', 'language', 'maturity', 'visibility', 'serializationStatus', 'publishedChapterCursor', 'volumeCount', 'chapterCount']
+);
+checkFieldInventory(
+  structureFields,
+  'structure_fields',
+  ['volumes', 'chapters', 'chapterOrder', 'publishedChapterCursor']
+);
+checkFieldInventory(
+  releaseEventFields,
+  'release_event_fields',
+  ['assetId', 'releaseId', 'publishedChapters', 'publishedAt', 'traceId', 'operator']
+);
+
+if (mutationInvariants.length === 0) {
+  fail('realm-asset-types.yaml: mutation_invariants must not be empty');
+}
+for (const invariant of mutationInvariants) {
+  const ruleText = String(invariant?.rule || '').trim();
+  const source = String(invariant?.source_rule || '').trim();
+  if (!ruleText) {
+    fail('realm-asset-types.yaml mutation_invariants: entry missing rule text');
+  }
+  if (source && !REALM_RULE_ID_RE.test(source)) {
+    fail(`realm-asset-types.yaml mutation_invariants: invalid source_rule format: ${source}`);
+  }
+}
+
+// ========================================================
+// Check 3: creator-key-tiers.yaml — pricing monotonic ascending, tier names unique
 // ========================================================
 
 const tiers = Array.isArray(tiersTable?.tiers) ? tiersTable.tiers : [];
@@ -125,7 +234,7 @@ for (const tier of tiers) {
 }
 
 // ========================================================
-// Check 3: revenue-event-types.yaml — type names unique, required fields present
+// Check 4: revenue-event-types.yaml — type names unique, required fields present
 // ========================================================
 
 const eventTypes = Array.isArray(revenueTable?.event_types) ? revenueTable.event_types : [];
@@ -162,7 +271,7 @@ for (const event of eventTypes) {
 }
 
 // ========================================================
-// Check 4: share-plan-fields.yaml — field names unique, required fields present
+// Check 5: share-plan-fields.yaml — field names unique, required fields present
 // ========================================================
 
 const fields = Array.isArray(sharePlanTable?.fields) ? sharePlanTable.fields : [];
@@ -225,7 +334,7 @@ for (const ledger of ledgers) {
 }
 
 // ========================================================
-// Check 5: primitive-mapping-status.yaml — all 6 primitives present, valid statuses
+// Check 6: primitive-mapping-status.yaml — all 6 primitives present, valid statuses
 // ========================================================
 
 const mappings = Array.isArray(mappingTable?.mappings) ? mappingTable.mappings : [];
@@ -278,13 +387,33 @@ for (const required of requiredPrimitives) {
 }
 
 // ========================================================
-// Check 6: R-* source format validation across all tables
+// Check 7: R-* source format validation across all tables
 // ========================================================
 
 const allSourceRefs = new Set();
 
 for (const boundary of boundaries) {
   const source = String(boundary?.source_rule || '').trim();
+  if (source) allSourceRefs.add(source);
+}
+for (const asset of assetTypes) {
+  const source = String(asset?.source_rule || '').trim();
+  if (source) allSourceRefs.add(source);
+}
+for (const field of metadataFields) {
+  const source = String(field?.source_rule || '').trim();
+  if (source) allSourceRefs.add(source);
+}
+for (const field of structureFields) {
+  const source = String(field?.source_rule || '').trim();
+  if (source) allSourceRefs.add(source);
+}
+for (const field of releaseEventFields) {
+  const source = String(field?.source_rule || '').trim();
+  if (source) allSourceRefs.add(source);
+}
+for (const invariant of mutationInvariants) {
+  const source = String(invariant?.source_rule || '').trim();
   if (source) allSourceRefs.add(source);
 }
 for (const tier of tiers) {
@@ -324,15 +453,17 @@ for (const ref of allSourceRefs) {
 }
 
 // ========================================================
-// Check 7: Kernel contract files exist
+// Check 8: Kernel contract files exist
 // ========================================================
 
 const kernelDir = path.join(cwd, 'spec', 'realm', 'kernel');
 const requiredKernelFiles = [
   'index.md',
   'boundary-vocabulary-contract.md',
+  'asset-contract.md',
   'economy-contract.md',
   'interop-mapping-contract.md',
+  'tables/realm-asset-types.yaml',
   'tables/primitive-graduation-log.yaml',
   'tables/rule-evidence.yaml',
 ];
@@ -344,7 +475,7 @@ for (const file of requiredKernelFiles) {
 }
 
 // ========================================================
-// Check 8 (CI-1): creator-key-tiers.yaml cumulative revenue arithmetic verification
+// Check 9 (CI-1): creator-key-tiers.yaml cumulative revenue arithmetic verification
 // ========================================================
 
 let cumulativeRevenue = 0;
@@ -368,7 +499,7 @@ for (const tier of tiers) {
 }
 
 // ========================================================
-// Check 9 (CI-2): realm vs platform primitive name set alignment
+// Check 10 (CI-2): realm vs platform primitive name set alignment
 // ========================================================
 
 const platformPrimitivesPath = path.join(cwd, 'spec', 'platform', 'kernel', 'tables', 'protocol-primitives.yaml');
@@ -412,7 +543,7 @@ if (fs.existsSync(platformContractPath)) {
 }
 
 // ========================================================
-// Check 10 (CI-3): graduation log aligns with COVERED primitive mappings
+// Check 11 (CI-3): graduation log aligns with COVERED primitive mappings
 // ========================================================
 
 const graduationEntries = Array.isArray(graduationLogTable?.entries) ? graduationLogTable.entries : [];
@@ -467,7 +598,7 @@ for (const mapping of mappings) {
 }
 
 // ========================================================
-// Check 11 (CI-4): domain document Normative Imports Rule ID existence verification
+// Check 12 (CI-4): domain document Normative Imports Rule ID existence verification
 // ========================================================
 
 const domainDocsDir = path.join(cwd, 'spec', 'realm');
@@ -475,7 +606,7 @@ const kernelContractsDir = path.join(cwd, 'spec', 'realm', 'kernel');
 
 // Collect all R-*-NNN[letter] rule IDs defined in kernel contracts
 const definedRuleIds = new Set();
-const kernelContractFiles = ['boundary-vocabulary-contract.md', 'economy-contract.md', 'interop-mapping-contract.md'];
+const kernelContractFiles = ['boundary-vocabulary-contract.md', 'asset-contract.md', 'economy-contract.md', 'interop-mapping-contract.md'];
 
 for (const file of kernelContractFiles) {
   const filePath = path.join(kernelContractsDir, file);
@@ -521,7 +652,7 @@ for (const file of domainDocFiles) {
 }
 
 // ========================================================
-// Check 12 (CI-5): validation_rules source → economy-contract.md section heading cross-reference
+// Check 13 (CI-5): validation_rules source → economy-contract.md section heading cross-reference
 // ========================================================
 
 const economyContractPath = path.join(kernelContractsDir, 'economy-contract.md');
@@ -544,7 +675,7 @@ if (fs.existsSync(economyContractPath)) {
 }
 
 // ========================================================
-// Check 13 (CI-6): YAML vocabulary term names align with kernel contract prose
+// Check 14 (CI-6): YAML vocabulary term names align with kernel contract prose
 // ========================================================
 
 const boundaryContractPath = path.join(kernelContractsDir, 'boundary-vocabulary-contract.md');
@@ -569,6 +700,17 @@ if (fs.existsSync(boundaryContractPath)) {
       if (!sectionText.includes(term)) {
         fail(`public-vocabulary.yaml ${domain}/${term}: term not found in ${source} section of boundary-vocabulary-contract.md`);
       }
+    }
+  }
+}
+
+const assetContractPath = path.join(kernelContractsDir, 'asset-contract.md');
+if (fs.existsSync(assetContractPath)) {
+  const assetContent = fs.readFileSync(assetContractPath, 'utf8');
+  for (const asset of assetTypes) {
+    const type = String(asset?.type || '').trim();
+    if (type && !assetContent.includes(type)) {
+      fail(`realm-asset-types.yaml asset_types/${type}: type not found in asset-contract.md`);
     }
   }
 }

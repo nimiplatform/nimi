@@ -1,0 +1,131 @@
+version: 1
+asset_types:
+  - type: NovelAsset
+    granularity: book
+    owner_model: creator-owned personal asset
+    mutation_model: evolving serialized asset
+    lifecycle: "draft -> published -> maintained -> archived"
+    internal_structure: "volumes[] + chapters[] + chapter order + publishedChapterCursor"
+    release_model: "append-only NovelReleaseEvent"
+    source_rule: R-ASSET-010
+
+metadata_fields:
+  - field: title
+    category: identity
+    type: string
+    required: true
+    source_rule: R-ASSET-011
+  - field: subtitle
+    category: identity
+    type: string
+    required: false
+    source_rule: R-ASSET-011
+  - field: owner
+    category: identity
+    type: AssetOwner
+    required: true
+    source_rule: R-ASSET-011
+  - field: genreTags
+    category: discovery
+    type: string[]
+    required: true
+    source_rule: R-ASSET-011
+  - field: summary
+    category: discovery
+    type: string
+    required: true
+    source_rule: R-ASSET-011
+  - field: language
+    category: discovery
+    type: string
+    required: true
+    source_rule: R-ASSET-011
+  - field: maturity
+    category: discovery
+    type: string
+    required: true
+    source_rule: R-ASSET-011
+  - field: visibility
+    category: discovery
+    type: AssetVisibility
+    required: true
+    source_rule: R-ASSET-011
+  - field: serializationStatus
+    category: serialization
+    type: string
+    required: true
+    source_rule: R-ASSET-011
+  - field: publishedChapterCursor
+    category: serialization
+    type: integer
+    required: true
+    source_rule: R-ASSET-011
+  - field: volumeCount
+    category: serialization
+    type: integer
+    required: true
+    source_rule: R-ASSET-011
+  - field: chapterCount
+    category: serialization
+    type: integer
+    required: true
+    source_rule: R-ASSET-011
+  - field: coverAssetRef
+    category: media
+    type: string
+    required: false
+    source_rule: R-ASSET-011
+
+structure_fields:
+  - field: volumes
+    type: Volume[]
+    required: true
+    source_rule: R-ASSET-012
+  - field: chapters
+    type: Chapter[]
+    required: true
+    source_rule: R-ASSET-012
+  - field: chapterOrder
+    type: string[]
+    required: true
+    source_rule: R-ASSET-012
+  - field: publishedChapterCursor
+    type: integer
+    required: true
+    source_rule: R-ASSET-012
+
+release_event_fields:
+  - field: assetId
+    type: string
+    required: true
+    source_rule: R-ASSET-012
+  - field: releaseId
+    type: string
+    required: true
+    source_rule: R-ASSET-012
+  - field: publishedChapters
+    type: string[]
+    required: true
+    source_rule: R-ASSET-012
+  - field: publishedAt
+    type: datetime
+    required: true
+    source_rule: R-ASSET-012
+  - field: traceId
+    type: string
+    required: true
+    source_rule: R-ASSET-012
+  - field: operator
+    type: string
+    required: true
+    source_rule: R-ASSET-012
+
+mutation_invariants:
+  - rule: "NovelAsset is the primary publishable entity; volumes and chapters remain internal structure."
+    source_rule: R-ASSET-010
+  - rule: "Serialized publish retries must not duplicate chapter exposure."
+    source_rule: R-ASSET-020
+  - rule: "Successful publishes append release events instead of replacing history."
+    source_rule: R-ASSET-020
+  - rule: "Routine updates must not silently rewind already published chapters."
+    source_rule: R-ASSET-020
