@@ -72,6 +72,14 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, '');
   const realmProxyTarget = resolveRealmProxyTarget(env);
   const realtimeProxyTarget = resolveRealtimeProxyTarget(env, realmProxyTarget);
+  const externalStoreShimPath = path.resolve(
+    __dirname,
+    '../desktop/src/shell/renderer/compat/use-sync-external-store-shim.ts',
+  );
+  const externalStoreShimWithSelectorPath = path.resolve(
+    __dirname,
+    '../desktop/src/shell/renderer/compat/use-sync-external-store-shim-with-selector.ts',
+  );
 
   return {
     plugins: [react(), tailwindcss()],
@@ -80,15 +88,40 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_NIMI_SHELL_MODE': JSON.stringify('web'),
     },
     optimizeDeps: {
-      exclude: [
+      include: [
         '@react-three/fiber',
         '@react-three/drei',
         '@react-three/postprocessing',
         'postprocessing',
+        'zustand',
+        'zustand/traditional',
+        'scheduler',
+        'use-sync-external-store/shim/with-selector',
+        'use-sync-external-store/shim/with-selector.js',
       ],
     },
     resolve: {
+      dedupe: [
+        'react',
+        'react-dom',
+        'scheduler',
+        'zustand',
+        'use-sync-external-store',
+      ],
       alias: [
+        // Match desktop dev behavior when the shared renderer pulls raw /@fs deps.
+        {
+          find: /^use-sync-external-store\/shim\/with-selector\.js$/,
+          replacement: externalStoreShimWithSelectorPath,
+        },
+        {
+          find: /^use-sync-external-store\/shim\/with-selector$/,
+          replacement: externalStoreShimWithSelectorPath,
+        },
+        {
+          find: /^use-sync-external-store\/shim$/,
+          replacement: externalStoreShimPath,
+        },
         {
           find: '@renderer/infra/bootstrap/runtime-bootstrap',
           replacement: path.resolve(__dirname, 'src/desktop-adapter/runtime-bootstrap.web.ts'),

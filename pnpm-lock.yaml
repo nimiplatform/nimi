@@ -506,12 +506,24 @@ importers:
       '@nimiplatform/shell-core':
         specifier: workspace:*
         version: link:../_libs/shell-core
+      '@react-three/drei':
+        specifier: ^10.7.7
+        version: 10.7.7(@react-three/fiber@9.5.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(three@0.183.2))(@types/react@19.2.14)(@types/three@0.183.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(three@0.183.2)
+      '@react-three/fiber':
+        specifier: ^9.5.0
+        version: 9.5.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(three@0.183.2)
+      '@react-three/postprocessing':
+        specifier: ^3.0.4
+        version: 3.0.4(@react-three/fiber@9.5.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(three@0.183.2))(@types/three@0.183.1)(react@19.2.4)(three@0.183.2)
       '@tanstack/react-query':
         specifier: ^5.90.21
         version: 5.90.21(react@19.2.4)
       ai:
         specifier: 6.0.116
         version: 6.0.116(zod@4.3.6)
+      postprocessing:
+        specifier: ^6.36.6
+        version: 6.38.3(three@0.183.2)
       react:
         specifier: 19.2.4
         version: 19.2.4
@@ -521,12 +533,18 @@ importers:
       react-router-dom:
         specifier: ^7.13.1
         version: 7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      scheduler:
+        specifier: ^0.27.0
+        version: 0.27.0
       simplex-noise:
         specifier: ^4.0.3
         version: 4.0.3
       three:
         specifier: ^0.183.2
         version: 0.183.2
+      use-sync-external-store:
+        specifier: ^1.6.0
+        version: 1.6.0(react@19.2.4)
       zod:
         specifier: 4.3.6
         version: 4.3.6
