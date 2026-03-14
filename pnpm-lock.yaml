@@ -65,6 +65,9 @@ importers:
       react-router-dom:
         specifier: ^7.13.1
         version: 7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      scheduler:
+        specifier: ^0.27.0
+        version: 0.27.0
       simplex-noise:
         specifier: ^4.0.3
         version: 4.0.3
@@ -74,6 +77,9 @@ importers:
       three:
         specifier: ^0.183.2
         version: 0.183.2
+      use-sync-external-store:
+        specifier: ^1.6.0
+        version: 1.6.0(react@19.2.4)
       zod:
         specifier: 4.3.6
         version: 4.3.6

@@ -57,6 +57,14 @@ export default defineConfig(({ mode }) => {
   loadDesktopBuildEnvFiles();
   const env = loadEnv(mode, __dirname, '');
   const fsAllowList = resolveFsAllowList(env);
+  const externalStoreShimPath = path.resolve(
+    __dirname,
+    'src/shell/renderer/compat/use-sync-external-store-shim.ts',
+  );
+  const externalStoreShimWithSelectorPath = path.resolve(
+    __dirname,
+    'src/shell/renderer/compat/use-sync-external-store-shim-with-selector.ts',
+  );
 
   return {
     root: path.resolve(__dirname, 'src/shell/renderer'),
@@ -65,13 +73,58 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_NIMI_SHELL_MODE': JSON.stringify('desktop'),
     },
     publicDir: false,
+    optimizeDeps: {
+      // Force Vite to prebundle the react-three -> zustand/traditional chain so
+      // the browser never evaluates the raw CJS shim entry as native ESM.
+      include: [
+        '@react-three/fiber',
+        '@react-three/drei',
+        '@react-three/postprocessing',
+        'zustand',
+        'zustand/traditional',
+        'use-sync-external-store/shim/with-selector',
+        'use-sync-external-store/shim/with-selector.js',
+      ],
+    },
     resolve: {
-      alias: {
-        '@runtime': path.resolve(__dirname, 'src/runtime'),
-        '@renderer': path.resolve(__dirname, 'src/shell/renderer'),
-        '@nimiplatform/sdk': path.resolve(__dirname, '../../sdk/src'),
-        '@nimiplatform/shell-core': path.resolve(__dirname, '../_libs/shell-core/src'),
-      },
+      dedupe: [
+        'react',
+        'react-dom',
+        'scheduler',
+        'zustand',
+        'use-sync-external-store',
+      ],
+      alias: [
+        // Guard dev mode when Vite serves the raw /@fs zustand ESM entry.
+        {
+          find: /^use-sync-external-store\/shim\/with-selector\.js$/,
+          replacement: externalStoreShimWithSelectorPath,
+        },
+        {
+          find: /^use-sync-external-store\/shim\/with-selector$/,
+          replacement: externalStoreShimWithSelectorPath,
+        },
+        {
+          find: /^use-sync-external-store\/shim$/,
+          replacement: externalStoreShimPath,
+        },
+        {
+          find: '@runtime',
+          replacement: path.resolve(__dirname, 'src/runtime'),
+        },
+        {
+          find: '@renderer',
+          replacement: path.resolve(__dirname, 'src/shell/renderer'),
+        },
+        {
+          find: '@nimiplatform/sdk',
+          replacement: path.resolve(__dirname, '../../sdk/src'),
+        },
+        {
+          find: '@nimiplatform/shell-core',
+          replacement: path.resolve(__dirname, '../_libs/shell-core/src'),
+        },
+      ],
     },
     plugins: [
       react(),
@@ -105,21 +158,15 @@ export default defineConfig(({ mode }) => {
             if (normalizedId.includes('/apps/desktop/src/runtime/data-sync/')) {
               return 'runtime-data-sync';
             }
-            if (normalizedId.includes('/apps/desktop/src/runtime/local-ai-runtime/')) {
-              return 'runtime-local-ai';
-            }
-            if (normalizedId.includes('/apps/desktop/src/shell/renderer/bridge/runtime-bridge/local-ai')) {
-              return 'runtime-bridge-local-ai';
-            }
-            if (normalizedId.includes('/apps/desktop/src/shell/renderer/bridge/runtime-bridge/external-agent')) {
-              return 'runtime-bridge-external-agent';
-            }
             if (
-              normalizedId.includes('/apps/desktop/src/shell/renderer/bridge/runtime-bridge/')
+              normalizedId.includes('/apps/desktop/src/runtime/local-ai-runtime/')
+              || normalizedId.includes('/apps/desktop/src/shell/renderer/bridge/runtime-bridge/local-ai')
+              || normalizedId.includes('/apps/desktop/src/shell/renderer/bridge/runtime-bridge/external-agent')
+              || normalizedId.includes('/apps/desktop/src/shell/renderer/bridge/runtime-bridge/')
               || normalizedId.endsWith('/apps/desktop/src/shell/renderer/bridge/runtime-bridge.ts')
               || normalizedId.endsWith('/apps/desktop/src/shell/renderer/bridge.ts')
             ) {
-              return 'runtime-bridge-core';
+              return 'runtime-bridge';
             }
 
             if (!id.includes('node_modules')) {
@@ -141,15 +188,31 @@ export default defineConfig(({ mode }) => {
               return 'vendor-ai';
             }
             if (id.includes('/three/') || id.includes('/simplex-noise/')) {
-              return 'vendor-3d';
+              return 'vendor-three-core';
             }
-            if (id.includes('/zustand/')) {
-              return 'vendor-state';
+            if (
+              id.includes('/@react-three/')
+              || id.includes('/postprocessing/')
+              || id.includes('/three-stdlib/')
+            ) {
+              return 'vendor-three-react';
+            }
+            if (
+              id.includes('/socket.io-client/')
+              || id.includes('/engine.io-client/')
+              || id.includes('/socket.io-parser/')
+              || id.includes('/engine.io-parser/')
+            ) {
+              return 'vendor-socket';
+            }
+            if (id.includes('/ajv/') || id.includes('/zod/') || id.includes('/yaml/')) {
+              return 'vendor-data';
             }
             return 'vendor-misc';
           },
         },
       },
+      chunkSizeWarningLimit: 800,
     },
   };
 });
