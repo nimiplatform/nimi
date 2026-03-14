@@ -49,6 +49,13 @@ test('D-IPC-009: exact match → none severity, ok=true', () => {
   assert.equal(result.severity, 'none');
 });
 
+test('D-IPC-009: explicit desktop version source is honored', () => {
+  const result = checkDaemonVersion('0.2.0', '0.2.0');
+  assert.equal(result.ok, true);
+  assert.equal(result.severity, 'none');
+  assert.equal(result.desktopVersion, '0.2.0');
+});
+
 test('D-IPC-009: v-prefix → parsed correctly', () => {
   const result = checkDaemonVersion('v0.1.0');
   assert.equal(result.ok, true);
@@ -59,4 +66,22 @@ test('D-IPC-009: unparseable version → warn severity, ok=true', () => {
   const result = checkDaemonVersion('not-a-version');
   assert.equal(result.ok, true);
   assert.equal(result.severity, 'warn');
+});
+
+test('D-IPC-009: packaged desktop requires exact match when strict mode is enabled', () => {
+  const result = checkDaemonVersion('0.2.0', '0.1.0', { strictExactMatch: true });
+  assert.equal(result.ok, false);
+  assert.equal(result.severity, 'fatal');
+});
+
+test('D-IPC-009: packaged desktop treats missing daemon version as fatal in strict mode', () => {
+  const result = checkDaemonVersion(undefined, '0.1.0', { strictExactMatch: true });
+  assert.equal(result.ok, false);
+  assert.equal(result.severity, 'fatal');
+});
+
+test('D-IPC-009: packaged desktop treats unparseable daemon version as fatal in strict mode', () => {
+  const result = checkDaemonVersion('not-a-version', '0.1.0', { strictExactMatch: true });
+  assert.equal(result.ok, false);
+  assert.equal(result.severity, 'fatal');
 });

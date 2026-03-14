@@ -6,6 +6,9 @@ export type {
 } from './shared.js';
 
 export type {
+  DesktopReleaseInfo,
+  DesktopUpdateCheckResult,
+  DesktopUpdateState,
   RealmDefaults,
   RuntimeExecutionDefaults,
   RuntimeDefaults,
@@ -52,6 +55,9 @@ export type {
 } from './runtime-types.js';
 
 export {
+  parseDesktopReleaseInfo,
+  parseDesktopUpdateCheckResult,
+  parseDesktopUpdateState,
   parseRuntimeDefaults,
   parseSystemResourceSnapshot,
   parseRuntimeBridgeDaemonStatus,

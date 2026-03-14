@@ -1,4 +1,5 @@
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { DESKTOP_VERSION_FALLBACK } from './desktop-version';
 
 export type VersionCheckResult = {
   ok: boolean;
@@ -6,6 +7,10 @@ export type VersionCheckResult = {
   desktopVersion: string;
   severity: 'none' | 'warn' | 'fatal';
   message: string;
+};
+
+export type VersionCheckOptions = {
+  strictExactMatch?: boolean;
 };
 
 function parseSemver(version: string): { major: number; minor: number; patch: number } | null {
@@ -20,24 +25,31 @@ function parseSemver(version: string): { major: number; minor: number; patch: nu
   };
 }
 
-const DESKTOP_VERSION = '0.1.0';
-
-export function checkDaemonVersion(daemonVersion: string | undefined): VersionCheckResult {
-  const desktopVersion = DESKTOP_VERSION;
+export function checkDaemonVersion(
+  daemonVersion: string | undefined,
+  desktopVersionInput: string | undefined = DESKTOP_VERSION_FALLBACK,
+  options: VersionCheckOptions = {},
+): VersionCheckResult {
+  const desktopVersion = String(desktopVersionInput || '').trim() || DESKTOP_VERSION_FALLBACK;
+  const strictExactMatch = options.strictExactMatch === true;
 
   if (!daemonVersion) {
     logRendererEvent({
-      level: 'warn',
+      level: strictExactMatch ? 'error' : 'warn',
       area: 'version-check',
-      message: 'phase:version-check:daemon-version-missing',
-      details: { desktopVersion },
+      message: strictExactMatch
+        ? 'phase:version-check:daemon-version-missing-fatal'
+        : 'phase:version-check:daemon-version-missing',
+      details: { desktopVersion, strictExactMatch },
     });
     return {
-      ok: true,
+      ok: !strictExactMatch,
       daemonVersion: null,
       desktopVersion,
-      severity: 'warn',
-      message: 'Daemon did not report version; skipping version negotiation',
+      severity: strictExactMatch ? 'fatal' : 'warn',
+      message: strictExactMatch
+        ? `Daemon did not report version; packaged desktop requires exact runtime match for ${desktopVersion}`
+        : 'Daemon did not report version; skipping version negotiation',
     };
   }
 
@@ -46,17 +58,21 @@ export function checkDaemonVersion(daemonVersion: string | undefined): VersionCh
 
   if (!daemonParsed || !desktopParsed) {
     logRendererEvent({
-      level: 'warn',
+      level: strictExactMatch ? 'error' : 'warn',
       area: 'version-check',
-      message: 'phase:version-check:semver-parse-failed',
-      details: { daemonVersion, desktopVersion },
+      message: strictExactMatch
+        ? 'phase:version-check:semver-parse-failed-fatal'
+        : 'phase:version-check:semver-parse-failed',
+      details: { daemonVersion, desktopVersion, strictExactMatch },
     });
     return {
-      ok: true,
+      ok: !strictExactMatch,
       daemonVersion,
       desktopVersion,
-      severity: 'warn',
-      message: `Cannot parse version strings (daemon=${daemonVersion}, desktop=${desktopVersion})`,
+      severity: strictExactMatch ? 'fatal' : 'warn',
+      message: strictExactMatch
+        ? `Packaged desktop requires exact semver match (daemon=${daemonVersion}, desktop=${desktopVersion})`
+        : `Cannot parse version strings (daemon=${daemonVersion}, desktop=${desktopVersion})`,
     };
   }
 
@@ -78,17 +94,21 @@ export function checkDaemonVersion(daemonVersion: string | undefined): VersionCh
 
   if (daemonParsed.minor !== desktopParsed.minor || daemonParsed.patch !== desktopParsed.patch) {
     logRendererEvent({
-      level: 'warn',
+      level: strictExactMatch ? 'error' : 'warn',
       area: 'version-check',
-      message: 'phase:version-check:minor-patch-mismatch',
-      details: { daemonVersion, desktopVersion },
+      message: strictExactMatch
+        ? 'phase:version-check:exact-mismatch'
+        : 'phase:version-check:minor-patch-mismatch',
+      details: { daemonVersion, desktopVersion, strictExactMatch },
     });
     return {
-      ok: true,
+      ok: !strictExactMatch,
       daemonVersion,
       desktopVersion,
-      severity: 'warn',
-      message: `Version drift: daemon=${daemonVersion}, desktop=${desktopVersion}`,
+      severity: strictExactMatch ? 'fatal' : 'warn',
+      message: strictExactMatch
+        ? `Packaged desktop requires exact version match: daemon=${daemonVersion}, desktop=${desktopVersion}. Bootstrap aborted.`
+        : `Version drift: daemon=${daemonVersion}, desktop=${desktopVersion}`,
     };
   }
 

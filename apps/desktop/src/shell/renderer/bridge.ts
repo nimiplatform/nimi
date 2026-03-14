@@ -2,8 +2,14 @@ import {
   appendLocalAiInferenceAudit,
   confirmPrivateSync,
   completeMenuBarQuit,
+  desktopUpdateCheck,
+  desktopUpdateDownload,
+  desktopUpdateInstall,
+  desktopUpdateRestart,
   desktopBridge as runtimeDesktopBridge,
   focusMainWindow,
+  getDesktopReleaseInfo,
+  getDesktopUpdateState,
   getRuntimeBridgeConfig,
   getRuntimeBridgeStatus,
   getRuntimeDefaults,
@@ -46,6 +52,7 @@ import {
   completeExternalAgentExecution,
   getExternalAgentGatewayStatus,
   subscribeExternalAgentActionExecuteRequests,
+  subscribeDesktopUpdateState,
   proxyHttp,
   readInstalledRuntimeModManifest,
   readRuntimeLocalModAsset,
@@ -68,6 +75,9 @@ import {
   restoreRuntimeModBackup,
 } from '@renderer/bridge/runtime-bridge';
 import type {
+  DesktopReleaseInfo,
+  DesktopUpdateCheckResult,
+  DesktopUpdateState,
   LocalAiAuditEvent,
   LocalAiAuditListPayload,
   LocalAiInferenceAuditPayload,
@@ -128,6 +138,9 @@ import type {
 } from '@renderer/bridge/runtime-bridge';
 
 export type {
+  DesktopReleaseInfo,
+  DesktopUpdateCheckResult,
+  DesktopUpdateState,
   LocalAiAuditEvent,
   LocalAiAuditListPayload,
   LocalAiInferenceAuditPayload,
@@ -197,6 +210,12 @@ export {
 
 export const desktopBridge = {
   hasTauriInvoke: runtimeDesktopBridge.hasTauriInvoke,
+  getDesktopReleaseInfo,
+  getDesktopUpdateState,
+  desktopUpdateCheck,
+  desktopUpdateDownload,
+  desktopUpdateInstall,
+  desktopUpdateRestart,
   getRuntimeBridgeStatus,
   getRuntimeBridgeConfig,
   getSystemResourceSnapshot,
@@ -252,6 +271,7 @@ export const desktopBridge = {
   completeExternalAgentExecution,
   getExternalAgentGatewayStatus,
   subscribeExternalAgentActionExecuteRequests,
+  subscribeDesktopUpdateState,
   subscribeRuntimeModInstallProgress,
   subscribeRuntimeModSourceChanged,
   subscribeRuntimeModReloadResult,

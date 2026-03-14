@@ -1,5 +1,7 @@
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { DESKTOP_VERSION_FALLBACK } from '@renderer/infra/bootstrap/desktop-version';
 import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
 import { SlotHost } from '@renderer/mod-ui/host/slot-host';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
@@ -70,6 +72,7 @@ type LoginViewProps = {
 export function LoginView(props: LoginViewProps) {
   const { t } = useTranslation();
   const flags = getShellFeatureFlags();
+  const desktopReleaseInfo = useAppStore((state) => state.desktopReleaseInfo);
   const features = [
     {
       icon: <IconPerson />,
@@ -87,6 +90,9 @@ export function LoginView(props: LoginViewProps) {
       desc: t('AuthLogin.featureLocalRuntimeDesc', { defaultValue: 'Run models privately on your device' }),
     },
   ] as const;
+  const versionLabel = flags.mode === 'web'
+    ? t('AuthLogin.webVersion', { defaultValue: 'Nimi Web' })
+    : `Nimi Desktop v${desktopReleaseInfo?.desktopVersion || DESKTOP_VERSION_FALLBACK}`;
 
   return (
     <div className="flex h-screen w-screen bg-gray-50">
@@ -210,9 +216,7 @@ export function LoginView(props: LoginViewProps) {
           ) : null}
 
           <p className="mt-8 text-center text-xs text-gray-400">
-            {flags.mode === 'web'
-              ? t('AuthLogin.webVersion', { defaultValue: 'Nimi Web v1.0.0' })
-              : t('AuthLogin.desktopVersion', { defaultValue: 'Nimi Desktop v1.0.0' })}
+            {versionLabel}
           </p>
         </div>
       </div>

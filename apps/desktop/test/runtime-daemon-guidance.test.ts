@@ -16,28 +16,28 @@ function createDaemonStatus(input: Partial<RuntimeBridgeDaemonStatus>): RuntimeB
   };
 }
 
-test('describeRuntimeDaemonIssue maps missing nimi binary to actionable guidance', () => {
+test('describeRuntimeDaemonIssue maps missing bundled runtime to actionable guidance', () => {
   const issue = describeRuntimeDaemonIssue({
     status: createDaemonStatus({
-      lastError: 'RUNTIME_BRIDGE_RUNTIME_BINARY_NOT_FOUND: release mode requires `nimi` in PATH (or set NIMI_RUNTIME_BINARY)',
+      lastError: 'RUNTIME_BRIDGE_BUNDLED_RUNTIME_UNAVAILABLE: release mode requires a bundled runtime staged under ~/.nimi/runtime',
     }),
   });
 
   assert.deepEqual(issue, {
     code: 'runtime_binary_missing',
-    title: 'Nimi runtime binary not found',
-    message: 'Desktop could not find the `nimi` binary. Install it or set `NIMI_RUNTIME_BINARY`, then refresh or start the runtime daemon again.',
-    rawError: 'RUNTIME_BRIDGE_RUNTIME_BINARY_NOT_FOUND: release mode requires `nimi` in PATH (or set NIMI_RUNTIME_BINARY)',
+    title: 'Bundled runtime is unavailable',
+    message: 'Desktop could not stage the bundled `nimi` runtime. Restart the app or reinstall this desktop release.',
+    rawError: 'RUNTIME_BRIDGE_BUNDLED_RUNTIME_UNAVAILABLE: release mode requires a bundled runtime staged under ~/.nimi/runtime',
   });
 });
 
 test('describeRuntimeDaemonIssue accepts controller error text even when status is empty', () => {
   const issue = describeRuntimeDaemonIssue({
-    runtimeDaemonError: 'runtime daemon start failed: RUNTIME_BRIDGE_RUNTIME_BINARY_NOT_FOUND',
+    runtimeDaemonError: 'runtime daemon start failed: RUNTIME_BRIDGE_BUNDLED_RUNTIME_MISSING',
   });
 
   assert.equal(issue?.code, 'runtime_binary_missing');
-  assert.match(String(issue?.message || ''), /NIMI_RUNTIME_BINARY/);
+  assert.match(String(issue?.message || ''), /bundled `nimi` runtime/);
 });
 
 test('describeRuntimeDaemonIssue returns null for unrelated runtime errors', () => {

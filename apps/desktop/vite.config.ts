@@ -53,6 +53,13 @@ function resolveFsAllowList(env: Record<string, string>): string[] {
   return Array.from(results);
 }
 
+function desktopPackageVersion(): string {
+  const pkgPath = path.resolve(__dirname, 'package.json');
+  const raw = fs.readFileSync(pkgPath, 'utf8');
+  const pkg = JSON.parse(raw) as { version?: string };
+  return String(pkg.version || '').trim() || '0.0.0';
+}
+
 export default defineConfig(({ mode }) => {
   loadDesktopBuildEnvFiles();
   const env = loadEnv(mode, __dirname, '');
@@ -70,6 +77,7 @@ export default defineConfig(({ mode }) => {
     root: path.resolve(__dirname, 'src/shell/renderer'),
     envPrefix: ['VITE_', 'NIMI_'],
     define: {
+      'import.meta.env.VITE_NIMI_DESKTOP_VERSION': JSON.stringify(desktopPackageVersion()),
       'import.meta.env.VITE_NIMI_SHELL_MODE': JSON.stringify('desktop'),
     },
     publicDir: false,

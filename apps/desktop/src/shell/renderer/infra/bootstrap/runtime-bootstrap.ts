@@ -135,6 +135,29 @@ export function bootstrapRuntime(): Promise<void> {
       flowId,
     });
 
+    let releaseInfo: Awaited<ReturnType<typeof desktopBridge.getDesktopReleaseInfo>> | null = null;
+    if (desktopBridge.hasTauriInvoke()) {
+      try {
+        releaseInfo = await desktopBridge.getDesktopReleaseInfo();
+        useAppStore.getState().setDesktopReleaseInfo(releaseInfo);
+        useAppStore.getState().setDesktopReleaseError(null);
+      } catch (error) {
+        const message = safeErrorMessage(error);
+        useAppStore.getState().setDesktopReleaseInfo(null);
+        useAppStore.getState().setDesktopReleaseError(message);
+        useAppStore.getState().setStatusBanner({
+          kind: 'warning',
+          message,
+        });
+        logRendererEvent({
+          level: 'warn',
+          area: 'renderer-bootstrap',
+          message: 'phase:desktop-release:read-failed',
+          flowId,
+          details: { error: message },
+        });
+      }
+    }
     const defaults = await desktopBridge.getRuntimeDefaults();
     let daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
     const runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
@@ -149,8 +172,14 @@ export function bootstrapRuntime(): Promise<void> {
         },
       });
     }
-    const versionResult = checkDaemonVersion(daemonStatus.version);
-    if (!versionResult.ok) {
+    const versionResult = checkDaemonVersion(
+      daemonStatus.version,
+      releaseInfo?.desktopVersion,
+      {
+        strictExactMatch: daemonStatus.launchMode === 'RELEASE' && !runtimeUnavailable,
+      },
+    );
+    if (!runtimeUnavailable && !versionResult.ok) {
       throw new Error(versionResult.message);
     }
     registerExitHandler({ managed: daemonStatus.managed });

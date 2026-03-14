@@ -5,6 +5,9 @@ import {
   parseRequiredString,
 } from './shared.js';
 import type {
+  DesktopReleaseInfo,
+  DesktopUpdateCheckResult,
+  DesktopUpdateState,
   AvailableModUpdate,
   CatalogInstallResult,
   CatalogPackageRecord,
@@ -91,6 +94,44 @@ export function parseRuntimeDefaults(value: unknown): RuntimeDefaults {
       provider: String(runtimeRecord.provider || '').trim(),
       userConfirmedUpload: Boolean(runtimeRecord.userConfirmedUpload),
     },
+  };
+}
+
+export function parseDesktopReleaseInfo(value: unknown): DesktopReleaseInfo {
+  const record = assertRecord(value, 'desktop_release_info_get returned invalid payload');
+  return {
+    desktopVersion: parseRequiredString(record.desktopVersion, 'desktopVersion', 'desktop_release_info_get'),
+    runtimeVersion: parseRequiredString(record.runtimeVersion, 'runtimeVersion', 'desktop_release_info_get'),
+    channel: parseRequiredString(record.channel, 'channel', 'desktop_release_info_get'),
+    commit: parseRequiredString(record.commit, 'commit', 'desktop_release_info_get'),
+    builtAt: parseRequiredString(record.builtAt, 'builtAt', 'desktop_release_info_get'),
+    runtimeReady: Boolean(record.runtimeReady),
+    runtimeStagedPath: parseOptionalString(record.runtimeStagedPath),
+    runtimeLastError: parseOptionalString(record.runtimeLastError),
+  };
+}
+
+export function parseDesktopUpdateState(value: unknown): DesktopUpdateState {
+  const record = assertRecord(value, 'desktop_update_state_get returned invalid payload');
+  return {
+    status: parseRequiredString(record.status, 'status', 'desktop_update_state_get'),
+    currentVersion: parseRequiredString(record.currentVersion, 'currentVersion', 'desktop_update_state_get'),
+    targetVersion: parseOptionalString(record.targetVersion),
+    downloadedBytes: parseOptionalNumber(record.downloadedBytes) || 0,
+    totalBytes: parseOptionalNumber(record.totalBytes),
+    lastError: parseOptionalString(record.lastError),
+    readyToRestart: Boolean(record.readyToRestart),
+  };
+}
+
+export function parseDesktopUpdateCheckResult(value: unknown): DesktopUpdateCheckResult {
+  const record = assertRecord(value, 'desktop_update_check returned invalid payload');
+  return {
+    available: Boolean(record.available),
+    currentVersion: parseRequiredString(record.currentVersion, 'currentVersion', 'desktop_update_check'),
+    targetVersion: parseOptionalString(record.targetVersion),
+    notes: parseOptionalString(record.notes),
+    pubDate: parseOptionalString(record.pubDate),
   };
 }
 

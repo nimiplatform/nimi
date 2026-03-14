@@ -25,6 +25,35 @@ export type RuntimeDefaults = {
   runtime: RuntimeExecutionDefaults;
 };
 
+export type DesktopReleaseInfo = {
+  desktopVersion: string;
+  runtimeVersion: string;
+  channel: string;
+  commit: string;
+  builtAt: string;
+  runtimeReady: boolean;
+  runtimeStagedPath?: string;
+  runtimeLastError?: string;
+};
+
+export type DesktopUpdateState = {
+  status: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'installing' | 'readyToRestart' | 'error' | string;
+  currentVersion: string;
+  targetVersion?: string;
+  downloadedBytes: number;
+  totalBytes?: number;
+  lastError?: string;
+  readyToRestart: boolean;
+};
+
+export type DesktopUpdateCheckResult = {
+  available: boolean;
+  currentVersion: string;
+  targetVersion?: string;
+  notes?: string;
+  pubDate?: string;
+};
+
 export type SystemResourceSnapshot = {
   cpuPercent: number;
   memoryUsedBytes: number;

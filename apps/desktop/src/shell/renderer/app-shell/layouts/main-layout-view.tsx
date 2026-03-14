@@ -15,6 +15,7 @@ import {
 } from '@renderer/features/settings/settings-storage';
 import { loadWorldDetailPanelModule, WorldDetailRouteLoading } from '@renderer/features/world/world-detail-route-state';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
+import { DesktopReleaseStrip } from './desktop-release-strip';
 import { MainLayoutTopBar } from './main-layout-topbar';
 import { OfflineShellStrip } from './offline-shell-strip';
 import { ScenarioJobStatusHost } from '@renderer/features/turns/scenario-job-status-host';
@@ -563,6 +564,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <OfflineShellStrip />
+          <DesktopReleaseStrip />
           <StatusBanner />
           <ScenarioJobStatusHost />
 

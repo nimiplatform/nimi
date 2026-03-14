@@ -1,8 +1,9 @@
 import { i18n } from '@renderer/i18n';
 import type { RuntimeBridgeDaemonStatus } from '@renderer/bridge';
 
-const RUNTIME_BINARY_NOT_FOUND_CODE = 'RUNTIME_BRIDGE_RUNTIME_BINARY_NOT_FOUND';
-const RUNTIME_BINARY_NOT_FOUND_TEXT = 'release mode requires `nimi` in PATH';
+const RUNTIME_BINARY_NOT_FOUND_CODE = 'RUNTIME_BRIDGE_BUNDLED_RUNTIME_UNAVAILABLE';
+const RUNTIME_BINARY_MISSING_CODE = 'RUNTIME_BRIDGE_BUNDLED_RUNTIME_MISSING';
+const RUNTIME_BINARY_NOT_FOUND_TEXT = 'release mode requires a bundled runtime staged under ~/.nimi/runtime';
 
 export type RuntimeDaemonIssue = {
   code: 'runtime_binary_missing';
@@ -45,16 +46,20 @@ export function describeRuntimeDaemonIssue(input: {
     return null;
   }
 
-  if (rawError.includes(RUNTIME_BINARY_NOT_FOUND_CODE) || rawError.includes(RUNTIME_BINARY_NOT_FOUND_TEXT)) {
+  if (
+    rawError.includes(RUNTIME_BINARY_NOT_FOUND_CODE)
+    || rawError.includes(RUNTIME_BINARY_MISSING_CODE)
+    || rawError.includes(RUNTIME_BINARY_NOT_FOUND_TEXT)
+  ) {
     return {
       code: 'runtime_binary_missing',
       title: translateRuntimeDaemonText(
         'runtimeConfig.runtime.runtimeBinaryMissingTitle',
-        'Nimi runtime binary not found',
+        'Bundled runtime is unavailable',
       ),
       message: translateRuntimeDaemonText(
         'runtimeConfig.runtime.runtimeBinaryMissingMessage',
-        'Desktop could not find the `nimi` binary. Install it or set `NIMI_RUNTIME_BINARY`, then refresh or start the runtime daemon again.',
+        'Desktop could not stage the bundled `nimi` runtime. Restart the app or reinstall this desktop release.',
       ),
       rawError,
     };

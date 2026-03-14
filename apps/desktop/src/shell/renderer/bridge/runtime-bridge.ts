@@ -1,6 +1,15 @@
 import { hasTauriInvoke } from './runtime-bridge/env';
 import { logRendererEvent, toRendererLogMessage } from './runtime-bridge/logging';
 import {
+  desktopUpdateCheck,
+  desktopUpdateDownload,
+  desktopUpdateInstall,
+  desktopUpdateRestart,
+  getDesktopReleaseInfo,
+  getDesktopUpdateState,
+  subscribeDesktopUpdateState,
+} from './runtime-bridge/desktop-release';
+import {
   getRuntimeBridgeConfig,
   getRuntimeBridgeStatus,
   restartRuntimeBridge,
@@ -80,6 +89,9 @@ export type LocalAiWriteOptions = {
 };
 
 export type {
+  DesktopReleaseInfo,
+  DesktopUpdateCheckResult,
+  DesktopUpdateState,
   RendererLogLevel,
   RendererLogMessage,
   RuntimeBridgeDaemonStatus,
@@ -147,6 +159,13 @@ export type {
 } from './runtime-bridge/types';
 
 export {
+  getDesktopReleaseInfo,
+  getDesktopUpdateState,
+  desktopUpdateCheck,
+  desktopUpdateDownload,
+  desktopUpdateInstall,
+  desktopUpdateRestart,
+  subscribeDesktopUpdateState,
   hasTauriInvoke,
   logRendererEvent,
   toRendererLogMessage,
@@ -226,6 +245,13 @@ export {
 export const desktopBridge = {
   hasTauriInvoke,
   logRendererEvent,
+  getDesktopReleaseInfo,
+  getDesktopUpdateState,
+  desktopUpdateCheck,
+  desktopUpdateDownload,
+  desktopUpdateInstall,
+  desktopUpdateRestart,
+  subscribeDesktopUpdateState,
   getRuntimeBridgeStatus,
   getRuntimeBridgeConfig,
   getSystemResourceSnapshot,

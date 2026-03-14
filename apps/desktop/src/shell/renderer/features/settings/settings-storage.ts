@@ -1,6 +1,7 @@
 export const SETTINGS_SELECTED_STORAGE_KEY = 'nimi.settings.selected';
 export const SETTINGS_SELECTED_MOD_ID_STORAGE_KEY = 'nimi.settings.modId';
 export const SETTINGS_PERFORMANCE_PREFERENCES_STORAGE_KEY = 'nimi.settings.performance.preferences.v1';
+export const SETTINGS_PERFORMANCE_PREFERENCES_EVENT = 'nimi:settings:performance-preferences-changed';
 
 export function loadStoredSettingsSelected(fallback: string): string {
   try {
@@ -49,6 +50,8 @@ const DEFAULT_PERFORMANCE_PREFERENCES: PerformancePreferences = {
   developerMode: false,
 };
 
+const performancePreferenceSubscribers = new Set<(prefs: PerformancePreferences) => void>();
+
 export function loadStoredPerformancePreferences(): PerformancePreferences {
   try {
     const raw = localStorage.getItem(SETTINGS_PERFORMANCE_PREFERENCES_STORAGE_KEY);
@@ -73,16 +76,51 @@ export function loadStoredPerformancePreferences(): PerformancePreferences {
 
 export function persistStoredPerformancePreferences(prefs: PerformancePreferences): void {
   try {
+    const normalized = {
+      hardwareAcceleration: prefs.hardwareAcceleration === true,
+      reduceAnimations: prefs.reduceAnimations === true,
+      autoUpdate: prefs.autoUpdate === true,
+      developerMode: prefs.developerMode === true,
+    };
     localStorage.setItem(
       SETTINGS_PERFORMANCE_PREFERENCES_STORAGE_KEY,
-      JSON.stringify({
-        hardwareAcceleration: prefs.hardwareAcceleration === true,
-        reduceAnimations: prefs.reduceAnimations === true,
-        autoUpdate: prefs.autoUpdate === true,
-        developerMode: prefs.developerMode === true,
+      JSON.stringify(normalized),
+    );
+    for (const subscriber of performancePreferenceSubscribers) {
+      subscriber(normalized);
+    }
+    globalThis.window?.dispatchEvent?.(
+      new CustomEvent(SETTINGS_PERFORMANCE_PREFERENCES_EVENT, {
+        detail: normalized,
       }),
     );
   } catch {
     // ignore
   }
+}
+
+export function subscribeStoredPerformancePreferences(
+  onChange: (prefs: PerformancePreferences) => void,
+): () => void {
+  performancePreferenceSubscribers.add(onChange);
+  const eventTarget = globalThis.window;
+  if (!eventTarget?.addEventListener) {
+    return () => {
+      performancePreferenceSubscribers.delete(onChange);
+    };
+  }
+
+  const onStorageEvent = (event: Event) => {
+    const storageEvent = event as StorageEvent;
+    if (storageEvent.key && storageEvent.key !== SETTINGS_PERFORMANCE_PREFERENCES_STORAGE_KEY) {
+      return;
+    }
+    onChange(loadStoredPerformancePreferences());
+  };
+
+  eventTarget.addEventListener('storage', onStorageEvent);
+  return () => {
+    performancePreferenceSubscribers.delete(onChange);
+    eventTarget.removeEventListener('storage', onStorageEvent);
+  };
 }

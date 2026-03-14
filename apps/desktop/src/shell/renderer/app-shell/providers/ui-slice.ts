@@ -5,6 +5,9 @@ import type { AppStoreSet, AppStoreState } from './store-types';
 type UiSlice = Pick<AppStoreState,
   | 'bootstrapReady'
   | 'bootstrapError'
+  | 'desktopReleaseInfo'
+  | 'desktopReleaseError'
+  | 'desktopUpdateState'
   | 'activeTab'
   | 'previousTab'
   | 'selectedChatId'
@@ -17,6 +20,9 @@ type UiSlice = Pick<AppStoreState,
   | 'setOfflineTier'
   | 'setBootstrapReady'
   | 'setBootstrapError'
+  | 'setDesktopReleaseInfo'
+  | 'setDesktopReleaseError'
+  | 'setDesktopUpdateState'
   | 'setActiveTab'
   | 'setSelectedChatId'
   | 'setSelectedProfileId'
@@ -33,6 +39,9 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
   return {
     bootstrapReady: false,
     bootstrapError: null,
+    desktopReleaseInfo: null,
+    desktopReleaseError: null,
+    desktopUpdateState: null,
     activeTab: 'chat',
     previousTab: null,
     selectedChatId: null,
@@ -45,6 +54,9 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     setOfflineTier: (tier) => set({ offlineTier: tier }),
     setBootstrapReady: (ready) => set({ bootstrapReady: ready }),
     setBootstrapError: (message) => set({ bootstrapError: message }),
+    setDesktopReleaseInfo: (info) => set({ desktopReleaseInfo: info }),
+    setDesktopReleaseError: (message) => set({ desktopReleaseError: message }),
+    setDesktopUpdateState: (state) => set({ desktopUpdateState: state }),
     setActiveTab: (tab) => {
       startTransition(() => {
         set({ activeTab: tab });

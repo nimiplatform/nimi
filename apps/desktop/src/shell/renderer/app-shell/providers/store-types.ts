@@ -1,4 +1,6 @@
 import type {
+  DesktopReleaseInfo,
+  DesktopUpdateState,
   RuntimeDefaults,
   RuntimeModDeveloperModeState,
   RuntimeModDiagnosticRecord,
@@ -66,6 +68,9 @@ export type ModWorkspaceTab = {
 export type AppStoreState = {
   bootstrapReady: boolean;
   bootstrapError: string | null;
+  desktopReleaseInfo: DesktopReleaseInfo | null;
+  desktopReleaseError: string | null;
+  desktopUpdateState: DesktopUpdateState | null;
   runtimeDefaults: RuntimeDefaults | null;
   auth: {
     status: AuthStatus;
@@ -98,6 +103,9 @@ export type AppStoreState = {
   setOfflineTier: (tier: OfflineTier) => void;
   setBootstrapReady: (ready: boolean) => void;
   setBootstrapError: (message: string | null) => void;
+  setDesktopReleaseInfo: (info: DesktopReleaseInfo | null) => void;
+  setDesktopReleaseError: (message: string | null) => void;
+  setDesktopUpdateState: (state: DesktopUpdateState | null) => void;
   setRuntimeDefaults: (defaults: RuntimeDefaults) => void;
   setAuthBootstrapping: () => void;
   setAuthSession: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void;

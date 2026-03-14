@@ -15,6 +15,9 @@ import { getRuntimeDefaults } from '@renderer/bridge/runtime-bridge/runtime-defa
 import { oauthListenForCode, oauthTokenExchange } from '@renderer/bridge/runtime-bridge/oauth';
 import { confirmPrivateSync, focusMainWindow, openExternalUrl, startWindowDrag } from '@renderer/bridge/runtime-bridge/ui';
 import type {
+  DesktopReleaseInfo,
+  DesktopUpdateCheckResult,
+  DesktopUpdateState,
   AvailableModUpdate,
   CatalogConsentReason,
   CatalogInstallResult,
@@ -57,6 +60,9 @@ import type {
 } from '@renderer/bridge/runtime-bridge/types';
 
 export type {
+  DesktopReleaseInfo,
+  DesktopUpdateCheckResult,
+  DesktopUpdateState,
   AvailableModUpdate,
   CatalogConsentReason,
   CatalogInstallResult,
@@ -106,6 +112,36 @@ export {
 
 function unsupportedDesktopRuntime(message: string): never {
   throw new Error(message);
+}
+
+export async function getDesktopReleaseInfo(): Promise<DesktopReleaseInfo> {
+  unsupportedDesktopRuntime('Application release metadata is only available in desktop runtime');
+}
+
+export async function getDesktopUpdateState(): Promise<DesktopUpdateState> {
+  unsupportedDesktopRuntime('Application update state is only available in desktop runtime');
+}
+
+export async function desktopUpdateCheck(): Promise<DesktopUpdateCheckResult> {
+  unsupportedDesktopRuntime('Application update is only available in desktop runtime');
+}
+
+export async function desktopUpdateDownload(): Promise<DesktopUpdateCheckResult> {
+  unsupportedDesktopRuntime('Application update is only available in desktop runtime');
+}
+
+export async function desktopUpdateInstall(): Promise<DesktopUpdateState> {
+  unsupportedDesktopRuntime('Application update is only available in desktop runtime');
+}
+
+export async function desktopUpdateRestart(): Promise<void> {
+  unsupportedDesktopRuntime('Application update is only available in desktop runtime');
+}
+
+export async function subscribeDesktopUpdateState(
+  _listener: (event: DesktopUpdateState) => void,
+): Promise<() => void> {
+  unsupportedDesktopRuntime('Application update events are only available in desktop runtime');
 }
 
 export async function listRuntimeLocalModManifests(): Promise<RuntimeLocalManifestSummary[]> {
@@ -280,6 +316,13 @@ export async function setRuntimeBridgeConfig(configJson: string): Promise<Runtim
 
 export const desktopBridge = {
   hasTauriInvoke,
+  getDesktopReleaseInfo,
+  getDesktopUpdateState,
+  desktopUpdateCheck,
+  desktopUpdateDownload,
+  desktopUpdateInstall,
+  desktopUpdateRestart,
+  subscribeDesktopUpdateState,
   getRuntimeBridgeStatus,
   getRuntimeBridgeConfig,
   getSystemResourceSnapshot,

@@ -9,6 +9,7 @@ import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetr
 import { getCurrentLocale, i18n, onI18nIssue } from '@renderer/i18n';
 import { useMenuBarNavigationListener } from '@renderer/infra/menu-bar/menu-bar-navigation-listener';
 import { useMenuBarRuntimeSync } from '@renderer/infra/menu-bar/menu-bar-runtime-sync';
+import { useDesktopUpdatesBootstrap } from '@renderer/infra/bootstrap/desktop-updates';
 import { useRuntimeHealthCoordinatorBootstrap } from '@renderer/features/runtime-config/runtime-health-coordinator';
 
 const WEB_BOOTSTRAP_TIMEOUT_MS = 15000;
@@ -29,6 +30,7 @@ function AppBoot() {
   useMenuBarNavigationListener();
   useRuntimeHealthCoordinatorBootstrap(bootstrapReady);
   useMenuBarRuntimeSync();
+  useDesktopUpdatesBootstrap(bootstrapReady);
 
   useEffect(() => {
     const flowId = createRendererFlowId('renderer-bootstrap');
