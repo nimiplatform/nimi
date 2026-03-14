@@ -20,9 +20,12 @@ import {
   type CapabilityOption,
   type InstallEngineOption,
   type LocalModelCenterProps,
+  normalizeSelectedProfileCapability,
   normalizeCapabilityOption,
   normalizeInstallEngine,
   parseTimestamp,
+  resolveProfileCapabilityOptions,
+  resolveSelectedRuntimeProfileTarget,
 } from './runtime-config-model-center-utils';
 import {
   filterInstalledArtifacts,
@@ -65,6 +68,7 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
   const [artifactTasks, setArtifactTasks] = useState<ArtifactTaskEntry[]>([]);
   const [internalSelectedProfileModId, setInternalSelectedProfileModId] = useState('');
   const [selectedProfileId, setSelectedProfileId] = useState('');
+  const [selectedProfileCapability, setSelectedProfileCapability] = useState('');
   const [profilePlanPreview, setProfilePlanPreview] = useState<LocalAiProfileResolutionPlan | null>(null);
   const [loadingProfilePlan, setLoadingProfilePlan] = useState(false);
 
@@ -124,29 +128,53 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       setSelectedProfileId(String(props.runtimeProfileTargets[0]?.profiles[0]?.id || '').trim());
     }
   }, [props.runtimeProfileTargets, selectedProfileModId]);
+  const selectedProfileTarget = useMemo(
+    () => resolveSelectedRuntimeProfileTarget(props.runtimeProfileTargets, selectedProfileModId),
+    [props.runtimeProfileTargets, selectedProfileModId],
+  );
+  const selectedProfile = useMemo(() => {
+    if (!selectedProfileTarget) {
+      return null;
+    }
+    return selectedProfileTarget.profiles.find((profile) => profile.id === selectedProfileId)
+      || selectedProfileTarget.profiles[0]
+      || null;
+  }, [selectedProfileId, selectedProfileTarget]);
+
+  useEffect(() => {
+    const nextCapability = normalizeSelectedProfileCapability(selectedProfile, selectedProfileCapability);
+    if (nextCapability !== selectedProfileCapability) {
+      setSelectedProfileCapability(nextCapability);
+    }
+  }, [selectedProfile, selectedProfileCapability]);
 
   const resolveProfilePlanPreview = useCallback(async () => {
     const modId = String(selectedProfileModId || '').trim();
-    const target = props.runtimeProfileTargets.find((item) => item.modId === modId) || null;
-    const profileId = String(selectedProfileId || '').trim() || String(target?.profiles[0]?.id || '').trim();
+    const profileId = String(selectedProfileId || '').trim() || String(selectedProfileTarget?.profiles[0]?.id || '').trim();
+    const capabilityOptions = resolveProfileCapabilityOptions(selectedProfile);
+    const capability = normalizeSelectedProfileCapability(selectedProfile, selectedProfileCapability);
     if (!modId || !profileId) {
+      setProfilePlanPreview(null);
+      return;
+    }
+    if (capabilityOptions.length > 1 && !capability) {
       setProfilePlanPreview(null);
       return;
     }
     setLoadingProfilePlan(true);
     try {
-      const plan = await props.onResolveProfile(modId, profileId);
+      const plan = await props.onResolveProfile(modId, profileId, capability || undefined);
       setProfilePlanPreview(plan);
     } catch {
       setProfilePlanPreview(null);
     } finally {
       setLoadingProfilePlan(false);
     }
-  }, [props, selectedProfileModId, selectedProfileId]);
+  }, [props, selectedProfile, selectedProfileCapability, selectedProfileId, selectedProfileModId, selectedProfileTarget]);
 
   useEffect(() => {
     setProfilePlanPreview(null);
-  }, [selectedProfileModId, selectedProfileId]);
+  }, [selectedProfileCapability, selectedProfileId, selectedProfileModId]);
 
   const sortedModels = useMemo(
     () => [...props.state.local.models].sort((left, right) => {
@@ -637,6 +665,7 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
         loadingProfilePlan={loadingProfilePlan}
         profileSelectionLocked={profileSelectionLocked}
         selectedProfileId={selectedProfileId}
+        selectedProfileCapability={selectedProfileCapability}
         profilePlanPreview={profilePlanPreview}
         runtimeProfileTargets={props.runtimeProfileTargets}
         onSetSelectedProfileModId={(modId) => {
@@ -644,9 +673,14 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
             setInternalSelectedProfileModId(modId);
             props.onSelectProfileModId?.(modId);
             setSelectedProfileId('');
+            setSelectedProfileCapability('');
           }
         }}
-        onSetSelectedProfileId={setSelectedProfileId}
+        onSetSelectedProfileId={(profileId) => {
+          setSelectedProfileId(profileId);
+          setSelectedProfileCapability('');
+        }}
+        onSetSelectedProfileCapability={setSelectedProfileCapability}
         onResolveProfilePlanPreview={() => void resolveProfilePlanPreview()}
         onApplyProfile={props.onApplyProfile}
         onNavigateToSetup={props.onNavigateToSetup}

@@ -105,8 +105,14 @@ test('mod runtime client forwards local profile methods with mod id', async () =
   });
 
   const profiles = await client.local.listProfiles();
-  const request = await client.local.requestProfileInstall({ profileId: 'balanced-fast' });
-  const status = await client.local.getProfileInstallStatus({ profileId: 'balanced-fast' });
+  const request = await client.local.requestProfileInstall({
+    profileId: 'balanced-fast',
+    capability: 'image.generate',
+  });
+  const status = await client.local.getProfileInstallStatus({
+    profileId: 'balanced-fast',
+    capability: 'image.generate',
+  });
 
   assert.equal(profiles[0]?.id, 'balanced-fast');
   assert.equal(request.accepted, true);
@@ -118,4 +124,6 @@ test('mod runtime client forwards local profile methods with mod id', async () =
   ]);
   assert.equal(calls[0]?.modId, 'mod.profile.test');
   assert.equal(calls[1]?.profileId, 'balanced-fast');
+  assert.equal(calls[1]?.capability, 'image.generate');
+  assert.equal(calls[2]?.capability, 'image.generate');
 });

@@ -2,6 +2,10 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LocalAiProfileApplyResult, LocalAiProfileResolutionPlan } from '@runtime/local-ai-runtime';
 import type { RuntimeProfileTargetDescriptor } from './runtime-config-panel-types';
+import {
+  normalizeSelectedProfileCapability,
+  resolveProfileCapabilityOptions,
+} from './runtime-config-model-center-utils';
 import { RuntimeSelect } from './runtime-config-primitives';
 
 function RefreshIcon({ className = '' }: { className?: string }) {
@@ -76,13 +80,15 @@ export type ModelCenterProfileSectionProps = {
   selectedProfileModId: string;
   profileSelectionLocked: boolean;
   selectedProfileId: string;
+  selectedProfileCapability: string;
   selectedProfileTarget: RuntimeProfileTargetDescriptor | null;
   executionPlanPreview: LocalAiProfileResolutionPlan | null;
   runtimeProfileTargets: RuntimeProfileTargetDescriptor[];
   onSetSelectedProfileModId: (modId: string) => void;
   onSetSelectedProfileId: (profileId: string) => void;
+  onSetSelectedProfileCapability: (capability: string) => void;
   onResolveProfilePlanPreview: () => void;
-  onApplyProfile: (modId: string, profileId: string) => Promise<LocalAiProfileApplyResult>;
+  onApplyProfile: (modId: string, profileId: string, capability?: string) => Promise<LocalAiProfileApplyResult>;
 };
 
 function summaryLine(plan: LocalAiProfileResolutionPlan): string {
@@ -104,6 +110,15 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
       || props.selectedProfileTarget.profiles[0]
       || null;
   }, [props.selectedProfileTarget, props.selectedProfileId]);
+  const capabilityOptions = useMemo(
+    () => resolveProfileCapabilityOptions(selectedProfile),
+    [selectedProfile],
+  );
+  const effectiveCapability = useMemo(
+    () => normalizeSelectedProfileCapability(selectedProfile, props.selectedProfileCapability),
+    [props.selectedProfileCapability, selectedProfile],
+  );
+  const capabilitySelectionMissing = capabilityOptions.length > 1 && !effectiveCapability;
 
   return (
     <div className="rounded-xl border border-mint-100 bg-mint-50/30 p-4 space-y-3">
@@ -119,7 +134,7 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
         <Button
           variant="secondary"
           size="sm"
-          disabled={props.loadingProfilePlan || !props.selectedProfileModId || !selectedProfile}
+          disabled={props.loadingProfilePlan || !props.selectedProfileModId || !selectedProfile || capabilitySelectionMissing}
           onClick={() => void props.onResolveProfilePlanPreview()}
           icon={<RefreshIcon />}
         >
@@ -207,6 +222,36 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
                 </div>
               ) : null}
 
+              {capabilityOptions.length > 1 ? (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    {t('runtimeConfig.local.profileCapability', { defaultValue: 'Capability' })}
+                  </label>
+                  <RuntimeSelect
+                    value={effectiveCapability}
+                    onChange={props.onSetSelectedProfileCapability}
+                    className="w-full md:max-w-xs"
+                    options={[
+                      {
+                        value: '',
+                        label: t('runtimeConfig.local.selectCapability', { defaultValue: 'Select capability' }),
+                      },
+                      ...capabilityOptions.map((capability) => ({
+                        value: capability,
+                        label: capability,
+                      })),
+                    ]}
+                  />
+                  {!effectiveCapability ? (
+                    <p className="mt-1 text-xs text-amber-700">
+                      {t('runtimeConfig.local.selectProfileCapability', {
+                        defaultValue: 'Select which capability to resolve and install for this profile.',
+                      })}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
               {selectedProfile.requirements ? (
                 <div className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
                   {selectedProfile.requirements.minGpuMemoryGb
@@ -264,7 +309,7 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
               <Button
                 variant="primary"
                 size="sm"
-                disabled={applyingProfile || !selectedProfile}
+                disabled={applyingProfile || !selectedProfile || capabilitySelectionMissing}
                 onClick={() => {
                   if (!selectedProfile) {
                     return;
@@ -275,6 +320,7 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
                       const result = await props.onApplyProfile(
                         props.selectedProfileModId,
                         selectedProfile.id,
+                        effectiveCapability || undefined,
                       );
                       setApplySummary(t('runtimeConfig.local.profileInstalled', {
                         defaultValue: 'Installed {{profileId}}: {{artifactCount}} artifact(s)',

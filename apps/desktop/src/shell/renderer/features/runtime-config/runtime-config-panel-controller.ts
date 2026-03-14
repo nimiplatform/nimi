@@ -161,12 +161,14 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   const resolveRuntimeProfile = useCallback(async (
     modId: string,
     profileId: string,
-  ) => installActions.resolveRuntimeProfile(modId, profileId), [installActions]);
+    capability?: string,
+  ) => installActions.resolveRuntimeProfile(modId, profileId, capability), [installActions]);
 
   const applyRuntimeProfile = useCallback(async (
     modId: string,
     profileId: string,
-  ) => installActions.applyRuntimeProfile(modId, profileId), [installActions]);
+    capability?: string,
+  ) => installActions.applyRuntimeProfile(modId, profileId, capability), [installActions]);
 
   return {
     state: panelState.state,

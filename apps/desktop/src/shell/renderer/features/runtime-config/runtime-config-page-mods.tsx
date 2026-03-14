@@ -6,7 +6,11 @@ import { SectionTitle } from '@renderer/features/settings/settings-layout-compon
 import type { RuntimeConfigPanelControllerModel, RuntimeProfileTargetDescriptor } from './runtime-config-panel-types';
 import { ModelCenterProfileSection } from './runtime-config-model-center-profile-section';
 import { Button } from './runtime-config-primitives';
-import { resolveSelectedRuntimeProfileTarget } from './runtime-config-model-center-utils';
+import {
+  normalizeSelectedProfileCapability,
+  resolveProfileCapabilityOptions,
+  resolveSelectedRuntimeProfileTarget,
+} from './runtime-config-model-center-utils';
 
 type ModsPageProps = {
   model: RuntimeConfigPanelControllerModel;
@@ -23,6 +27,7 @@ export function ModsPage({ model, state }: ModsPageProps) {
   const { runtimeProfileTargets } = model;
   const [selectedModId, setSelectedModId] = useState('');
   const [selectedProfileId, setSelectedProfileId] = useState('');
+  const [selectedProfileCapability, setSelectedProfileCapability] = useState('');
   const [executionPlanPreview, setExecutionPlanPreview] = useState<LocalAiProfileResolutionPlan | null>(null);
   const [loadingPlan, setLoadingPlan] = useState(false);
 
@@ -36,6 +41,7 @@ export function ModsPage({ model, state }: ModsPageProps) {
     if (!runtimeProfileTargets.some((t) => t.modId === selectedModId)) {
       setSelectedModId(runtimeProfileTargets[0]?.modId || '');
       setSelectedProfileId(runtimeProfileTargets[0]?.profiles[0]?.id || '');
+      setSelectedProfileCapability('');
     }
   }, [runtimeProfileTargets, selectedModId]);
 
@@ -47,30 +53,52 @@ export function ModsPage({ model, state }: ModsPageProps) {
   useEffect(() => {
     if (!selectedTarget) {
       setSelectedProfileId('');
+      setSelectedProfileCapability('');
       return;
     }
     if (!selectedTarget.profiles.some((profile) => profile.id === selectedProfileId)) {
       setSelectedProfileId(selectedTarget.profiles[0]?.id || '');
     }
   }, [selectedProfileId, selectedTarget]);
+  const selectedProfile = useMemo(() => {
+    if (!selectedTarget) {
+      return null;
+    }
+    return selectedTarget.profiles.find((profile) => profile.id === selectedProfileId)
+      || selectedTarget.profiles[0]
+      || null;
+  }, [selectedProfileId, selectedTarget]);
+
+  useEffect(() => {
+    const nextCapability = normalizeSelectedProfileCapability(selectedProfile, selectedProfileCapability);
+    if (nextCapability !== selectedProfileCapability) {
+      setSelectedProfileCapability(nextCapability);
+    }
+  }, [selectedProfile, selectedProfileCapability]);
 
   const resolvePlanPreview = useCallback(async (input?: { modId?: string; profileId?: string }) => {
     const modId = String(input?.modId ?? selectedModId).trim();
     const profileId = String(input?.profileId ?? selectedProfileId).trim();
+    const capabilityOptions = resolveProfileCapabilityOptions(selectedProfile);
+    const capability = normalizeSelectedProfileCapability(selectedProfile, selectedProfileCapability);
     if (!modId || !profileId) {
+      setExecutionPlanPreview(null);
+      return;
+    }
+    if (capabilityOptions.length > 1 && !capability) {
       setExecutionPlanPreview(null);
       return;
     }
     setLoadingPlan(true);
     try {
-      const plan = await model.resolveRuntimeProfile(modId, profileId);
+      const plan = await model.resolveRuntimeProfile(modId, profileId, capability || undefined);
       setExecutionPlanPreview(plan);
     } catch {
       setExecutionPlanPreview(null);
     } finally {
       setLoadingPlan(false);
     }
-  }, [model, selectedModId, selectedProfileId]);
+  }, [model, selectedModId, selectedProfileCapability, selectedProfileId, selectedProfile]);
 
   useEffect(() => {
     if (!selectedModId) {
@@ -79,7 +107,7 @@ export function ModsPage({ model, state }: ModsPageProps) {
     }
     const timer = setTimeout(() => { void resolvePlanPreview(); }, 140);
     return () => { clearTimeout(timer); };
-  }, [resolvePlanPreview, selectedModId, selectedProfileId]);
+  }, [resolvePlanPreview, selectedModId, selectedProfileCapability, selectedProfileId]);
 
   if (runtimeProfileTargets.length === 0) {
     return (
@@ -123,7 +151,10 @@ export function ModsPage({ model, state }: ModsPageProps) {
                   target={target}
                   state={state}
                   active={active}
-                  onSelect={() => setSelectedModId(target.modId)}
+                  onSelect={() => {
+                    setSelectedModId(target.modId);
+                    setSelectedProfileCapability('');
+                  }}
                 />
               );
             })}
@@ -177,11 +208,16 @@ export function ModsPage({ model, state }: ModsPageProps) {
               selectedProfileModId={selectedModId}
               profileSelectionLocked
               selectedProfileId={selectedProfileId}
+              selectedProfileCapability={selectedProfileCapability}
               selectedProfileTarget={selectedTarget}
               executionPlanPreview={executionPlanPreview}
               runtimeProfileTargets={runtimeProfileTargets}
               onSetSelectedProfileModId={setSelectedModId}
-              onSetSelectedProfileId={setSelectedProfileId}
+              onSetSelectedProfileId={(profileId) => {
+                setSelectedProfileId(profileId);
+                setSelectedProfileCapability('');
+              }}
+              onSetSelectedProfileCapability={setSelectedProfileCapability}
               onResolveProfilePlanPreview={() => void resolvePlanPreview()}
               onApplyProfile={model.applyRuntimeProfile}
             />

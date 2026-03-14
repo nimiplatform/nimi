@@ -46,12 +46,14 @@ type ModModeViewProps = {
   loadingProfilePlan: boolean;
   profileSelectionLocked: boolean;
   selectedProfileId: string;
+  selectedProfileCapability: string;
   profilePlanPreview: LocalAiProfileResolutionPlan | null;
   runtimeProfileTargets: RuntimeProfileTargetDescriptor[];
   onSetSelectedProfileModId: (modId: string) => void;
   onSetSelectedProfileId: (profileId: string) => void;
+  onSetSelectedProfileCapability: (capability: string) => void;
   onResolveProfilePlanPreview: () => void;
-  onApplyProfile: (modId: string, profileId: string) => Promise<LocalAiProfileApplyResult>;
+  onApplyProfile: (modId: string, profileId: string, capability?: string) => Promise<LocalAiProfileApplyResult>;
   onNavigateToSetup?: (pageId: RuntimeSetupPageIdV11) => void;
 };
 
@@ -112,11 +114,13 @@ export function LocalModelCenterModModeView(props: ModModeViewProps) {
               selectedProfileModId={props.selectedProfileModId}
               profileSelectionLocked={props.profileSelectionLocked}
               selectedProfileId={props.selectedProfileId}
+              selectedProfileCapability={props.selectedProfileCapability}
               selectedProfileTarget={selectedProfileTarget}
               executionPlanPreview={props.profilePlanPreview}
               runtimeProfileTargets={props.runtimeProfileTargets}
               onSetSelectedProfileModId={props.onSetSelectedProfileModId}
               onSetSelectedProfileId={props.onSetSelectedProfileId}
+              onSetSelectedProfileCapability={props.onSetSelectedProfileCapability}
               onResolveProfilePlanPreview={props.onResolveProfilePlanPreview}
               onApplyProfile={props.onApplyProfile}
             />

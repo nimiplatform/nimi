@@ -6,6 +6,7 @@ import type {
   LocalAiDownloadProgressEvent,
   LocalAiInstallPayload,
   LocalAiInstallPlanDescriptor,
+  LocalAiProfileDescriptor,
   LocalAiProfileApplyResult,
   LocalAiProfileResolutionPlan,
 } from '@runtime/local-ai-runtime';
@@ -25,8 +26,8 @@ export type LocalModelCenterProps = {
   filteredLocalModels: string[];
   onDiscover: () => Promise<void>;
   onHealthCheck: () => Promise<void>;
-  onResolveProfile: (modId: string, profileId: string) => Promise<LocalAiProfileResolutionPlan>;
-  onApplyProfile: (modId: string, profileId: string) => Promise<LocalAiProfileApplyResult>;
+  onResolveProfile: (modId: string, profileId: string, capability?: string) => Promise<LocalAiProfileResolutionPlan>;
+  onApplyProfile: (modId: string, profileId: string, capability?: string) => Promise<LocalAiProfileApplyResult>;
   onInstallCatalogItem: (
     item: LocalAiCatalogItemDescriptor,
     options?: {
@@ -209,6 +210,37 @@ export function resolveSelectedRuntimeProfileTarget(
     return null;
   }
   return runtimeProfileTargets.find((target) => target.modId === modId) || null;
+}
+
+export function resolveProfileCapabilityOptions(
+  profile: LocalAiProfileDescriptor | null | undefined,
+): string[] {
+  if (!profile) {
+    return [];
+  }
+  const consumeCapabilities = Array.isArray(profile.consumeCapabilities)
+    ? profile.consumeCapabilities
+    : [];
+  const entryCapabilities = Array.isArray(profile.entries)
+    ? profile.entries.map((entry) => entry.capability)
+    : [];
+  return Array.from(new Set(
+    [...consumeCapabilities, ...entryCapabilities]
+      .map((value) => String(value || '').trim())
+      .filter(Boolean),
+  ));
+}
+
+export function normalizeSelectedProfileCapability(
+  profile: LocalAiProfileDescriptor | null | undefined,
+  selectedCapability: string | undefined,
+): string {
+  const capabilityOptions = resolveProfileCapabilityOptions(profile);
+  if (capabilityOptions.length === 1) {
+    return capabilityOptions[0] || '';
+  }
+  const normalized = String(selectedCapability || '').trim();
+  return capabilityOptions.includes(normalized) ? normalized : '';
 }
 
 export function shouldShowRuntimeProfileInstallSection(

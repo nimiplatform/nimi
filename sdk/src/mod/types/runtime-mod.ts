@@ -89,11 +89,13 @@ export type ModRuntimeHost = {
     requestProfileInstall: (input: {
       modId: string;
       profileId: string;
+      capability?: RuntimeCanonicalCapability | string;
       confirmMessage?: string;
     }) => Promise<ModRuntimeLocalProfileInstallResult>;
     getProfileInstallStatus: (input: {
       modId: string;
       profileId: string;
+      capability?: RuntimeCanonicalCapability | string;
     }) => Promise<ModRuntimeLocalProfileInstallStatus>;
   };
   ai: {

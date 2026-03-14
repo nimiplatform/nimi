@@ -333,7 +333,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                     });
                     return readManifestProfiles(modId);
                 },
-                requestProfileInstall: async ({ modId, profileId, confirmMessage }) => {
+                requestProfileInstall: async ({ modId, profileId, capability, confirmMessage }) => {
                     authorizeRuntimeCapability({
                         modId,
                         capabilityKey: 'runtime.local.profiles.install.request',
@@ -368,6 +368,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                     const plan = await localAiRuntime.resolveProfile({
                         modId,
                         profile,
+                        capability: String(capability || '').trim() || undefined,
                     });
                     const result = await localAiRuntime.applyProfile(plan, { caller: 'core' });
                     return {
@@ -379,7 +380,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                         reasonCode: result.reasonCode,
                     };
                 },
-                getProfileInstallStatus: async ({ modId, profileId }) => {
+                getProfileInstallStatus: async ({ modId, profileId, capability }) => {
                     authorizeRuntimeCapability({
                         modId,
                         capabilityKey: 'runtime.local.profiles.list',
@@ -399,6 +400,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                     return localAiRuntime.getProfileInstallStatus({
                         modId,
                         profile,
+                        capability: String(capability || '').trim() || undefined,
                     });
                 },
             },

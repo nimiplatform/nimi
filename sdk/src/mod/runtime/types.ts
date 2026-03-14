@@ -244,8 +244,15 @@ export type ModRuntimeClient = {
   local: {
     listArtifacts(input?: ModRuntimeListLocalArtifactsInput): Promise<ModRuntimeLocalArtifactRecord[]>;
     listProfiles(): Promise<ModRuntimeLocalProfile[]>;
-    requestProfileInstall(input: { profileId: string; confirmMessage?: string }): Promise<ModRuntimeLocalProfileInstallResult>;
-    getProfileInstallStatus(input: { profileId: string }): Promise<ModRuntimeLocalProfileInstallStatus>;
+    requestProfileInstall(input: {
+      profileId: string;
+      capability?: RuntimeCanonicalCapability | string;
+      confirmMessage?: string;
+    }): Promise<ModRuntimeLocalProfileInstallResult>;
+    getProfileInstallStatus(input: {
+      profileId: string;
+      capability?: RuntimeCanonicalCapability | string;
+    }): Promise<ModRuntimeLocalProfileInstallStatus>;
   };
   ai: {
     text: {

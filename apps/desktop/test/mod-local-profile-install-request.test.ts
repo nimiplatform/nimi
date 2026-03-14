@@ -63,8 +63,10 @@ test('requestProfileInstall resolves and applies only after host confirm accepta
 
   let resolved = 0;
   let applied = 0;
-  localAiRuntime.resolveProfile = (async () => {
+  let resolvedCapability = '';
+  localAiRuntime.resolveProfile = (async (input?: Record<string, unknown>) => {
     resolved += 1;
+    resolvedCapability = String(input?.capability || '');
     return {
       planId: 'plan-balanced-fast',
       modId: 'world.nimi.local-image',
@@ -115,18 +117,70 @@ test('requestProfileInstall resolves and applies only after host confirm accepta
     const result = await host.runtime.local.requestProfileInstall({
       modId: 'world.nimi.local-image',
       profileId: 'balanced-fast',
+      capability: 'image',
     });
 
     assert.equal(result.accepted, true);
     assert.equal(result.declined, false);
     assert.equal(resolved, 1);
     assert.equal(applied, 1);
+    assert.equal(resolvedCapability, 'image');
     assert.match(confirmMessage, /Balanced Fast/);
   } finally {
     restoreWindow();
     useAppStore.getState = originalGetState;
     localAiRuntime.resolveProfile = originalResolveProfile;
     localAiRuntime.applyProfile = originalApplyProfile;
+  }
+});
+
+test('getProfileInstallStatus forwards capability to local runtime profile status resolver', async () => {
+  const originalGetState = useAppStore.getState;
+  const originalGetProfileInstallStatus = localAiRuntime.getProfileInstallStatus;
+
+  useAppStore.getState = (() => ({
+    localManifestSummaries: [{
+      id: 'world.nimi.local-image',
+      manifest: {
+        ai: {
+          profiles: [{
+            id: 'balanced-fast',
+            title: 'Balanced Fast',
+            recommended: true,
+            consumeCapabilities: ['image', 'embedding'],
+            entries: [],
+          }],
+        },
+      },
+    }],
+  })) as typeof useAppStore.getState;
+
+  let observedCapability = '';
+  localAiRuntime.getProfileInstallStatus = (async (input?: Record<string, unknown>) => {
+    observedCapability = String(input?.capability || '');
+    return {
+      modId: 'world.nimi.local-image',
+      profileId: 'balanced-fast',
+      status: 'ready',
+      warnings: [],
+      missingEntries: [],
+      updatedAt: new Date(0).toISOString(),
+    };
+  }) as typeof localAiRuntime.getProfileInstallStatus;
+
+  try {
+    const host = createHost();
+    const result = await host.runtime.local.getProfileInstallStatus({
+      modId: 'world.nimi.local-image',
+      profileId: 'balanced-fast',
+      capability: 'image',
+    });
+
+    assert.equal(result.status, 'ready');
+    assert.equal(observedCapability, 'image');
+  } finally {
+    useAppStore.getState = originalGetState;
+    localAiRuntime.getProfileInstallStatus = originalGetProfileInstallStatus;
   }
 });
 

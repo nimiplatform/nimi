@@ -60,10 +60,12 @@ export type RuntimeConfigInstallActions = {
   resolveRuntimeProfile: (
     modId: string,
     profileId: string,
+    capability?: string,
   ) => Promise<LocalAiProfileResolutionPlan>;
   applyRuntimeProfile: (
     modId: string,
     profileId: string,
+    capability?: string,
   ) => Promise<LocalAiProfileApplyResult>;
   installCatalogLocalModel: (
     item: LocalAiCatalogItemDescriptor,
@@ -324,6 +326,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
   const resolveRuntimeProfile = useCallback(async (
     modId: string,
     profileId: string,
+    capability?: string,
   ): Promise<LocalAiProfileResolutionPlan> => {
     const profiles = findManifestProfilesByModId(modId);
     const profile = findLocalAiProfileById(profiles, profileId);
@@ -333,16 +336,18 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     return localAiRuntime.resolveProfile({
       modId,
       profile,
+      capability: String(capability || '').trim() || undefined,
     });
   }, [findManifestProfilesByModId]);
 
   const applyRuntimeProfile = useCallback(async (
     modId: string,
     profileId: string,
+    capability?: string,
   ): Promise<LocalAiProfileApplyResult> => {
     try {
       assertRuntimeWriteAllowed();
-      const plan = await resolveRuntimeProfile(modId, profileId);
+      const plan = await resolveRuntimeProfile(modId, profileId, capability);
       const confirmMessage = `Install recommended local profile "${plan.title}" for ${modId}?`;
       if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(confirmMessage)) {
         throw new Error('LOCAL_AI_PROFILE_INSTALL_DECLINED');

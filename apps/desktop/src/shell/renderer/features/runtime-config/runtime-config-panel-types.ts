@@ -54,10 +54,12 @@ export type RuntimeConfigPanelControllerModel = {
   resolveRuntimeProfile: (
     modId: string,
     profileId: string,
+    capability?: string,
   ) => Promise<LocalAiProfileResolutionPlan>;
   applyRuntimeProfile: (
     modId: string,
     profileId: string,
+    capability?: string,
   ) => Promise<LocalAiProfileApplyResult>;
   installCatalogLocalModel: (
     item: LocalAiCatalogItemDescriptor,
