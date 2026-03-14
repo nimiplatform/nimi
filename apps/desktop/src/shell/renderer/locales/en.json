@@ -716,6 +716,12 @@
     "noSearchResults": "No worlds found",
     "syncedFromDesktop": "Synced from Desktop",
     "primaryInstance": "Primary Instance",
+    "totalPlayers": "Total Players",
+    "averageSession": "Average Session",
+    "worldStability": "World Stability",
+    "totalAgent": "Total Agent",
+    "time": "Time",
+    "worldScoring": "World Scoring",
     "createAgent": {
       "title": "Create New Agent",
       "subtitle": "Bring a new character to life in {{worldName}}",

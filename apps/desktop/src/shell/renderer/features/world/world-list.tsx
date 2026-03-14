@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
@@ -53,11 +53,42 @@ export type WorldListItem = {
   scoreQ: number;
   timeFlowRatio: number;
   transitInLimit: number;
+  clockConfig?: Record<string, unknown> | null;
   agents?: WorldAgentItem[];
 };
 
 function readString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function readRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+}
+
+function readNumberField(source: Record<string, unknown> | null | undefined, keys: string[]): number | null {
+  if (!source) {
+    return null;
+  }
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function readStringField(source: Record<string, unknown> | null | undefined, keys: string[]): string | null {
+  if (!source) {
+    return null;
+  }
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+  return null;
 }
 
 function resolveWorldType(raw: Record<string, unknown>): string {
@@ -129,6 +160,7 @@ export function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
     scoreQ: typeof raw.scoreQ === 'number' ? raw.scoreQ : 0,
     timeFlowRatio: typeof raw.timeFlowRatio === 'number' ? raw.timeFlowRatio : 1,
     transitInLimit: typeof raw.transitInLimit === 'number' ? raw.transitInLimit : 0,
+    clockConfig: readRecord(raw.clockConfig),
     agents: parsedAgents,
   };
 }
@@ -150,6 +182,201 @@ const tagStyles: Record<string, { bg: string; text: string }> = {
 function getTagStyle(type: string, value?: string): { bg: string; text: string } {
   const key = value?.toLowerCase() || type.toLowerCase();
   return tagStyles[key] ?? DEFAULT_TAG_STYLE;
+}
+
+function formatCompactStat(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) {
+    return '0';
+  }
+  if (value >= 1000) {
+    const compact = (value / 1000).toFixed(value >= 10000 ? 0 : 1);
+    return `${compact.replace(/\.0$/, '')}k`;
+  }
+  return String(Math.round(value));
+}
+
+function getWorldAgentTotal(world: WorldListItem): string {
+  return formatCompactStat(world.agentCount);
+}
+
+function getWorldScoring(world: WorldListItem): string {
+  const score = world.scoreQ || world.scoreEwma || Math.round((world.scoreA + world.scoreC + world.scoreE) / 3);
+  return Number.isFinite(score) ? `${Math.round(score)}` : '0';
+}
+
+function formatWorldClock(world: WorldListItem): string {
+  const clockConfig = readRecord(world.clockConfig);
+  const createdAt = new Date(world.createdAt);
+  if (Number.isNaN(createdAt.getTime())) {
+    return 'N/A';
+  }
+
+  const startYear = readNumberField(clockConfig, ['startYear']) ?? createdAt.getUTCFullYear();
+  const startMonth = readNumberField(clockConfig, ['startMonth']) ?? 1;
+  const startDay = readNumberField(clockConfig, ['startDay']) ?? 1;
+  const monthsPerYear = Math.max(1, readNumberField(clockConfig, ['monthsPerYear']) ?? 12);
+  const daysPerMonth = Math.max(1, readNumberField(clockConfig, ['daysPerMonth']) ?? 30);
+  const flowRatio = Math.max(0.0001, readNumberField(clockConfig, ['flowRatio', 'timeFlowRatio']) ?? world.timeFlowRatio ?? 1);
+  const format = readStringField(clockConfig, ['format']) ?? '{year}-{month}-{day}';
+
+  const elapsedMs = Math.max(0, Date.now() - createdAt.getTime());
+  const elapsedWorldDays = Math.floor((elapsedMs / 86400000) * flowRatio);
+  const totalStartDays = (startMonth - 1) * daysPerMonth + (startDay - 1);
+  const totalDays = totalStartDays + elapsedWorldDays;
+  const year = startYear + Math.floor(totalDays / (monthsPerYear * daysPerMonth));
+  const dayOfYear = totalDays % (monthsPerYear * daysPerMonth);
+  const month = Math.floor(dayOfYear / daysPerMonth) + 1;
+  const day = (dayOfYear % daysPerMonth) + 1;
+
+  if (format.includes('{year}') || format.includes('{month}') || format.includes('{day}')) {
+    return format
+      .replaceAll('{year}', String(year))
+      .replaceAll('{month}', String(month))
+      .replaceAll('{day}', String(day));
+  }
+
+  return `${format} ${year}年 ${month}月 ${day}日`;
+}
+
+type WorldChronoPanelState = {
+  hour: number;
+  minute: number;
+  second: number;
+  millisecond: number;
+  flowRatio: number;
+  dateLabel: string;
+  compactDateLabel: string;
+  progress: number;
+};
+
+function resolveWorldChronoPanelState(world: WorldListItem, nowMs: number): WorldChronoPanelState | null {
+  const clockConfig = readRecord(world.clockConfig);
+  const createdAt = new Date(world.createdAt);
+  if (Number.isNaN(createdAt.getTime())) {
+    return null;
+  }
+
+  const startYear = readNumberField(clockConfig, ['startYear']) ?? createdAt.getUTCFullYear();
+  const startMonth = readNumberField(clockConfig, ['startMonth']) ?? 1;
+  const startDay = readNumberField(clockConfig, ['startDay']) ?? 1;
+  const startHour = readNumberField(clockConfig, ['startHour']) ?? createdAt.getUTCHours();
+  const startMinute = readNumberField(clockConfig, ['startMinute']) ?? createdAt.getUTCMinutes();
+  const startSecond = readNumberField(clockConfig, ['startSecond']) ?? createdAt.getUTCSeconds();
+  const monthsPerYear = Math.max(1, readNumberField(clockConfig, ['monthsPerYear']) ?? 12);
+  const daysPerMonth = Math.max(1, readNumberField(clockConfig, ['daysPerMonth']) ?? 30);
+  const flowRatio = Math.max(0.0001, readNumberField(clockConfig, ['flowRatio', 'timeFlowRatio']) ?? world.timeFlowRatio ?? 1);
+  const format = readStringField(clockConfig, ['format']) ?? '{year}-{month}-{day}';
+
+  const elapsedRealMs = Math.max(0, nowMs - createdAt.getTime());
+  const elapsedWorldMs = elapsedRealMs * flowRatio;
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const msPerMonth = daysPerMonth * msPerDay;
+  const msPerYear = monthsPerYear * msPerMonth;
+  const totalStartMs =
+    ((((startMonth - 1) * daysPerMonth + (startDay - 1)) * 24 + startHour) * 60 * 60 +
+      startMinute * 60 +
+      startSecond) *
+    1000;
+  const totalWorldMs = totalStartMs + elapsedWorldMs;
+  const year = startYear + Math.floor(totalWorldMs / msPerYear);
+  const yearRemainder = totalWorldMs % msPerYear;
+  const month = Math.floor(yearRemainder / msPerMonth) + 1;
+  const monthRemainder = yearRemainder % msPerMonth;
+  const day = Math.floor(monthRemainder / msPerDay) + 1;
+  const dayRemainder = monthRemainder % msPerDay;
+  const hour = Math.floor(dayRemainder / 3600000);
+  const minute = Math.floor((dayRemainder % 3600000) / 60000);
+  const second = Math.floor((dayRemainder % 60000) / 1000);
+  const millisecond = Math.floor(dayRemainder % 1000);
+  const dateLabel =
+    format.includes('{year}') || format.includes('{month}') || format.includes('{day}')
+      ? format
+          .replaceAll('{year}', String(year))
+          .replaceAll('{month}', String(month))
+          .replaceAll('{day}', String(day))
+          .replaceAll('{hour}', String(hour).padStart(2, '0'))
+          .replaceAll('{minute}', String(minute).padStart(2, '0'))
+          .replaceAll('{second}', String(second).padStart(2, '0'))
+      : `${format} ${year}年 ${month}月 ${day}日`;
+
+  return {
+    hour,
+    minute,
+    second,
+    millisecond,
+    flowRatio,
+    dateLabel,
+    compactDateLabel: `${year}.${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}`,
+    progress: Math.max(8, Math.min(100, (Math.log10(flowRatio + 1) / Math.log10(1000 + 1)) * 100)),
+  };
+}
+
+function WorldChronoPanel({ world, compact = false }: { world: WorldListItem; compact?: boolean }) {
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 80);
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  const chrono = resolveWorldChronoPanelState(world, nowMs);
+  if (!chrono) {
+    return null;
+  }
+
+  const flowPulse = (chrono.millisecond / 999) * 48;
+  const flowWidth = Math.min(100, Math.max(18, chrono.progress * 0.42 + flowPulse));
+
+  return (
+    <div
+      className={`${compact ? 'min-w-[150px] max-w-[180px] px-3 py-2.5' : 'min-w-[300px] max-w-[340px] px-6 py-5'} rounded-[16px] text-white`}
+        style={{
+          background: 'rgba(255, 255, 255, 0.03)',
+          backdropFilter: compact ? 'blur(18px)' : 'blur(18px)',
+          WebkitBackdropFilter: compact ? 'blur(18px)' : 'blur(18px)',
+          border: '1px solid rgba(255, 255, 255, 0.14)',
+          boxShadow: 'none',
+        }}
+      >
+      <div className="mb-2 flex items-center justify-between gap-4">
+        <span className={`${compact ? 'text-[7px]' : 'text-[10px]'} uppercase tracking-[0.2em] text-[#56D3B2]/85`}>WORLD SYNC</span>
+        <span
+          className={`text-right ${compact ? 'text-[10px]' : 'text-[13px]'} font-medium tracking-[0.08em] text-white/92`}
+          style={{ textShadow: '1.5px 0 rgba(255,0,255,0.55), -1px 0 rgba(86,211,178,0.8)' }}
+        >
+          {chrono.compactDateLabel}
+        </span>
+      </div>
+
+      <div className={`${compact ? 'mt-1.5' : 'mt-3'} flex items-end text-white`}>
+        <div className={`font-mono ${compact ? 'text-[18px]' : 'text-[38px]'} font-black leading-none tracking-[-0.04em]`}>
+          {String(chrono.hour).padStart(2, '0')}:{String(chrono.minute).padStart(2, '0')}
+        </div>
+        <div className={`${compact ? 'ml-1.5' : 'ml-3'} flex flex-col pb-0.5`}>
+          <span className={`${compact ? 'text-[11px]' : 'text-lg'} leading-none text-[#56D3B2]`}>:{String(chrono.second).padStart(2, '0')}</span>
+          <span className={`${compact ? 'mt-0.5 text-[8px]' : 'mt-1 text-[11px]'} font-mono leading-none text-fuchsia-300/80`}>
+            {String(chrono.millisecond).padStart(3, '0')}
+          </span>
+        </div>
+      </div>
+
+      <div className={`${compact ? 'mt-2' : 'mt-4'}`}>
+        <span className={`mb-1.5 block ${compact ? 'text-[7px]' : 'text-[9px]'} uppercase tracking-[0.16em] text-[#8EF0D8]`}>
+          CHRONO FLOW: {chrono.flowRatio.toFixed(1)}X
+        </span>
+        <div className="relative h-[2px] overflow-hidden bg-white/10">
+          <div
+            className="absolute inset-y-0 left-0 bg-[#56D3B2] shadow-[0_0_10px_rgba(86,211,178,0.9)]"
+            style={{ width: `${flowWidth}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function WorldList() {
@@ -288,154 +515,143 @@ export function WorldList() {
         <div className="mx-auto max-w-6xl">
           {/* Main World Card */}
           {mainWorld && !searchText && (
-            <div className="mb-10">
+            <div className="mb-24">
               <h2 className={`${APP_DISPLAY_SECTION_TITLE_CLASS} mb-4`} style={{ fontFamily: 'var(--font-display)', color: '#F8FAFF' }}>{t('World.mainWorld')}</h2>
-              <div
-                onClick={() => openWorldDetail(mainWorld.id)}
-                className="group relative min-h-[640px] cursor-pointer overflow-hidden rounded-[34px] border border-white/10 transition-all duration-500 hover:-translate-y-1"
-                style={{
-                  background:
-                    'radial-gradient(circle at top, rgba(120,119,198,0.24), rgba(18,22,39,0.95) 58%), linear-gradient(180deg, rgba(22,17,38,0.86), rgba(39,33,69,0.92))',
-                  boxShadow: '0 28px 60px rgba(9,12,24,0.35)',
-                }}
-              >
-                {mainWorld.bannerUrl ? (
-                  <div className="absolute inset-0">
-                    <img
-                      src={mainWorld.bannerUrl}
-                      alt={mainWorld.name}
-                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-                    />
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(24,16,44,0.34)_0%,rgba(24,16,44,0.14)_24%,rgba(24,16,44,0.18)_48%,rgba(24,16,44,0.78)_82%,rgba(24,16,44,0.92)_100%)]" />
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_18%,rgba(255,255,255,0.14),transparent_18%),radial-gradient(circle_at_28%_18%,rgba(167,139,250,0.18),transparent_26%),radial-gradient(circle_at_76%_24%,rgba(103,232,249,0.16),transparent_22%)]" />
-                  </div>
-                ) : null}
-
-                <div className="relative flex h-full flex-col justify-end p-8">
-                  <div
-                    className="w-full max-w-[760px] rounded-[28px] border border-white/14 px-7 py-6 backdrop-blur-2xl transition-transform duration-500 group-hover:translate-y-[-2px]"
-                    style={{
-                      background:
-                        'linear-gradient(180deg, rgba(30,27,50,0.68) 0%, rgba(41,35,67,0.74) 100%)',
-                      boxShadow: '0 18px 40px rgba(8,10,18,0.28), inset 0 1px 0 rgba(255,255,255,0.10)',
-                    }}
-                  >
-                    <div className="flex items-start gap-5">
-                      <div className="relative shrink-0">
-                        {mainWorld.iconUrl ? (
-                          <img
-                            src={mainWorld.iconUrl}
-                            alt={mainWorld.name}
-                            className="h-24 w-24 rounded-[24px] object-cover shadow-[0_12px_24px_rgba(0,0,0,0.24)] ring-1 ring-white/12"
-                          />
-                        ) : (
-                          <div
-                            className="flex h-24 w-24 items-center justify-center rounded-[24px] text-4xl font-bold text-white shadow-[0_12px_24px_rgba(0,0,0,0.24)]"
-                            style={{ background: 'linear-gradient(135deg, #7C6BFF 0%, #A855F7 50%, #F0ABFC 100%)' }}
-                          >
-                            {mainWorld.name.charAt(0).toUpperCase()}
-                          </div>
-                        )}
+                <div
+                  onClick={() => openWorldDetail(mainWorld.id)}
+                  className="group relative cursor-pointer transition-all duration-500 hover:-translate-y-1"
+                  style={{
+                    boxShadow: 'none',
+                  }}
+                >
+                  {mainWorld.bannerUrl ? (
+                    <div className="relative h-[470px] overflow-visible">
+                      <div className="absolute inset-x-0 top-0 bottom-[48px] overflow-hidden rounded-[34px] border border-white/10 [clip-path:inset(0_round_34px)]">
+                        <img
+                          src={mainWorld.bannerUrl}
+                          alt={mainWorld.name}
+                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                        />
+                        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(24,16,44,0.20)_0%,rgba(24,16,44,0.07)_26%,rgba(24,16,44,0.10)_50%,rgba(24,16,44,0.32)_84%,rgba(24,16,44,0.48)_100%)]" />
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_18%,rgba(255,255,255,0.14),transparent_18%),radial-gradient(circle_at_28%_18%,rgba(167,139,250,0.18),transparent_26%),radial-gradient(circle_at_76%_24%,rgba(103,232,249,0.16),transparent_22%)]" />
                       </div>
 
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-3">
-                          <h3 className="truncate text-[42px] font-semibold leading-none tracking-[-0.03em] text-white">
-                            {mainWorld.name}
-                          </h3>
-                          <span className="inline-flex items-center gap-1.5 text-xs text-white/72">
-                            <svg
-                              width="14"
-                              height="14"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <rect x="3" y="11" width="18" height="10" rx="2" />
-                              <circle cx="12" cy="5" r="2" />
-                              <path d="M12 7v4" />
-                              <line x1="8" y1="16" x2="8" y2="16" />
-                              <line x1="16" y1="16" x2="16" y2="16" />
-                            </svg>
-                            {mainWorld.agentCount}
-                          </span>
-                        </div>
+                    <div className="absolute bottom-[-8px] left-1/2 z-10 w-[calc(100%-1.5rem)] max-w-[1000px] -translate-x-1/2">
+                        <div
+                          className="rounded-[28px] border px-7 py-6 backdrop-blur-[56px] transition-transform duration-500 group-hover:translate-y-[-2px]"
+                          style={{
+                          background:
+                            'linear-gradient(180deg, rgba(30,27,50,0.0008) 0%, rgba(41,35,67,0.003) 100%)',
+                          borderColor: 'rgba(255,255,255,0.035)',
+                          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.006)',
+                          }}
+                        >
+                        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="flex min-w-0 flex-1 items-start gap-5">
+                            <div className="relative shrink-0">
+                              {mainWorld.iconUrl ? (
+                                <img
+                                  src={mainWorld.iconUrl}
+                                  alt={mainWorld.name}
+                                  className="h-24 w-24 rounded-[24px] object-cover shadow-[0_12px_24px_rgba(0,0,0,0.24)] ring-1 ring-white/12"
+                                />
+                              ) : (
+                                <div
+                                  className="flex h-24 w-24 items-center justify-center rounded-[24px] text-4xl font-bold text-white shadow-[0_12px_24px_rgba(0,0,0,0.24)]"
+                                  style={{ background: 'linear-gradient(135deg, #7C6BFF 0%, #A855F7 50%, #F0ABFC 100%)' }}
+                                >
+                                  {mainWorld.name.charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                            </div>
 
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                          <span
-                            className="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-200"
-                            style={{ background: 'rgba(52,211,153,0.20)' }}
-                          >
-                            {mainWorld.status}
-                          </span>
-                          <span
-                            className="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-cyan-100"
-                            style={{ background: 'rgba(125,211,252,0.18)' }}
-                          >
-                            {mainWorld.nativeCreationState}
-                          </span>
-                        </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-3">
+                                <h3 className="truncate text-[42px] font-semibold leading-none tracking-[-0.03em] text-white">
+                                  {mainWorld.name}
+                                </h3>
+                                <span className="inline-flex items-center gap-1.5 text-sm font-medium text-white/72">
+                                  <svg
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <path d="M16 16c-1.5-1.5-3-2-4-2s-2.5.5-4 2" />
+                                    <path d="M8 10a4 4 0 1 1 8 0" />
+                                    <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Z" />
+                                  </svg>
+                                  {mainWorld.agentCount}
+                                </span>
+                              </div>
 
-                        {(mainWorld.genre || mainWorld.era || mainWorld.themes.length > 0) && (
-                          <div className="mt-3 flex flex-wrap items-center gap-2">
-                            {mainWorld.genre && (
-                              <span className="rounded-full bg-white/14 px-3 py-1 text-xs font-medium text-white/85">
-                                {mainWorld.genre}
-                              </span>
-                            )}
-                            {mainWorld.era && (
-                              <span className="rounded-full bg-white/14 px-3 py-1 text-xs font-medium text-white/85">
-                                {mainWorld.era}
-                              </span>
-                            )}
-                            {mainWorld.themes.slice(0, 5).map((theme, idx) => (
-                              <span key={idx} className="rounded-full bg-white/12 px-3 py-1 text-xs font-medium text-white/82">
-                                {theme}
-                              </span>
-                            ))}
-                            {mainWorld.themes.length > 5 && (
-                              <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/70">
-                                +{mainWorld.themes.length - 5}
-                              </span>
-                            )}
+                              <div className="mt-3 flex flex-wrap items-center gap-2">
+                                <span
+                                  className="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-200"
+                                  style={{ background: 'rgba(52,211,153,0.14)' }}
+                                >
+                                  {mainWorld.status}
+                                </span>
+                                <span
+                                  className="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-cyan-100"
+                                  style={{ background: 'rgba(125,211,252,0.12)' }}
+                                >
+                                  {mainWorld.nativeCreationState}
+                                </span>
+                              </div>
+
+                              {(mainWorld.genre || mainWorld.era || mainWorld.themes.length > 0) && (
+                                <div className="mt-3 flex flex-wrap items-center gap-2">
+                                  {mainWorld.genre && (
+                                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/82">
+                                      {mainWorld.genre}
+                                    </span>
+                                  )}
+                                  {mainWorld.era && (
+                                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/82">
+                                      {mainWorld.era}
+                                    </span>
+                                  )}
+                                  {mainWorld.themes.slice(0, 5).map((theme, idx) => (
+                                    <span key={idx} className="rounded-full bg-white/8 px-3 py-1 text-xs font-medium text-white/76">
+                                      {theme}
+                                    </span>
+                                  ))}
+                                  {mainWorld.themes.length > 5 && (
+                                    <span className="rounded-full bg-white/6 px-3 py-1 text-xs font-medium text-white/64">
+                                      +{mainWorld.themes.length - 5}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
+                              {mainWorld.description ? (
+                                <p className="mt-4 text-base leading-7 text-white/72">{mainWorld.description}</p>
+                              ) : null}
+
+                            </div>
                           </div>
-                        )}
 
-                        {mainWorld.description ? (
-                          <p className="mt-4 text-base leading-7 text-white/78">{mainWorld.description}</p>
-                        ) : null}
-
-                        <div className="mt-3 flex items-center gap-2 text-sm text-white/62">
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M16 16c-1.5-1.5-3-2-4-2s-2.5.5-4 2" />
-                            <path d="M8 10a4 4 0 1 1 8 0" />
-                            <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Z" />
-                          </svg>
-                          <span>{t('World.primaryInstance', { defaultValue: 'Primary Instance' })}</span>
+                          <div className="shrink-0 lg:pt-1">
+                            <WorldChronoPanel world={mainWorld} />
+                          </div>
                         </div>
+
                       </div>
                     </div>
                   </div>
-                </div>
+                ) : null}
               </div>
             </div>
           )}
 
           {/* Sub Worlds Grid */}
-          <div>
-            <h2 className={`${APP_DISPLAY_SECTION_TITLE_CLASS} mb-4`} style={{ fontFamily: 'var(--font-display)', color: searchText ? '#1A1A1A' : '#F8FAFF' }}>
+          <div className="pt-8">
+            <h2 className={`${APP_DISPLAY_SECTION_TITLE_CLASS} mb-6`} style={{ fontFamily: 'var(--font-display)', color: searchText ? '#1A1A1A' : '#F8FAFF' }}>
               {searchText ? t('World.searchResults') : t('World.subWorlds')}
             </h2>
             {subWorlds.length === 0 ? (
@@ -481,13 +697,16 @@ export function WorldList() {
                       }}
                     >
                       {world.bannerUrl && (
-                        <div className="relative -mx-5 -mt-5 mb-4 h-24 overflow-hidden rounded-t-2xl">
+                        <div className="relative -mx-5 -mt-5 mb-4 h-24 overflow-hidden rounded-t-[24px]">
                           <img
                             src={world.bannerUrl}
                             alt={world.name}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                            <div className="absolute right-3 top-0 z-10">
+                              <WorldChronoPanel world={world} compact />
+                            </div>
                         </div>
                       )}
 
@@ -509,25 +728,6 @@ export function WorldList() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <h3 className="font-semibold truncate" style={{ color: '#1A1A1A', fontWeight: 600 }}>{world.name}</h3>
-                            <span className="inline-flex items-center gap-1 text-[10px] shrink-0" style={{ color: '#666666' }}>
-                              <svg
-                                width="12"
-                                height="12"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <rect x="3" y="11" width="18" height="10" rx="2" />
-                                <circle cx="12" cy="5" r="2" />
-                                <path d="M12 7v4" />
-                                <line x1="8" y1="16" x2="8" y2="16" />
-                                <line x1="16" y1="16" x2="16" y2="16" />
-                              </svg>
-                              {world.agentCount}
-                            </span>
                           </div>
                           <div className="flex items-center gap-1.5 mt-1.5">
                             <span

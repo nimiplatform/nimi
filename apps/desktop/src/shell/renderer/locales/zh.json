@@ -716,6 +716,12 @@
     "noSearchResults": "未找到世界",
     "syncedFromDesktop": "已从桌面同步",
     "primaryInstance": "主实例",
+    "totalPlayers": "总玩家数",
+    "averageSession": "平均会话时长",
+    "worldStability": "世界稳定度",
+    "totalAgent": "Agent 总数",
+    "time": "时间",
+    "worldScoring": "世界评分",
     "createAgent": {
       "title": "创建新 Agent",
       "subtitle": "在 {{worldName}} 中塑造一个新角色",

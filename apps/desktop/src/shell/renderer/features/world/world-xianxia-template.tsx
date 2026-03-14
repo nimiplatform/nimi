@@ -151,11 +151,7 @@ function getStatusGlowConfig(status: string) {
   }
 }
 
-export type XianxiaWorldData = WorldDetailData & {
-  subtitle?: string;
-  quote?: string;
-  narrative?: string;
-};
+export type XianxiaWorldData = WorldDetailData;
 
 export type XianxiaWorldTemplateProps = {
   world: XianxiaWorldData;
@@ -374,7 +370,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
               <div className="absolute bottom-0 left-0 right-0 p-8">
                 <div className="flex items-end justify-between gap-6">
                   {/* Left: Icon + Title + Description */}
-                  <div className="flex items-end gap-6 flex-1 min-w-0">
+                  <div className="flex items-start gap-6 flex-1 min-w-0">
                     {/* World icon with glow */}
                     {world.iconUrl ? (
                       <div className="relative flex-shrink-0" style={{ animation: 'float 6s ease-in-out infinite' }}>
@@ -409,7 +405,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                     )}
                     
                     {/* Title and description */}
-                    <div className="flex-1 min-w-0 pb-1">
+                    <div className="flex-1 min-w-0">
                       <h1
                         className="text-[42px] leading-tight font-serif tracking-wide text-white drop-shadow-lg mb-2"
                         style={{ fontFamily: '"Noto Serif SC", serif' }}
@@ -417,7 +413,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                         {displayValue(world.name)}
                       </h1>
                       <p className="text-base text-white/70 leading-relaxed max-w-2xl">
-                        {world.subtitle || world.description}
+                        {displayValue(world.description)}
                       </p>
                     </div>
                   </div>
@@ -488,33 +484,6 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                   {displayValue(world.description)}
                 </p>
               </div>
-
-              {/* World Narrative */}
-              {world.narrative && (
-                <div className="mb-5">
-                  <div className="text-xs text-[#4ECCA3] mb-2 flex items-center gap-1">
-                    {t('WorldDetail.xianxia.narrativeLabel')}
-                    <span
-                      className="text-[#4ECCA3]/50"
-                      title={t('WorldDetail.sampleData', { defaultValue: 'Sample data' })}
-                    >
-                      *
-                    </span>
-                  </div>
-                  <p className="text-sm text-[#e8f5ee]/70 leading-relaxed whitespace-pre-line">
-                    {displayValue(world.narrative)}
-                  </p>
-                </div>
-              )}
-
-              {/* Quote */}
-              {world.quote && (
-                <div className="p-4 rounded-xl bg-[#4ECCA3]/5 border border-[#4ECCA3]/10">
-                  <p className="text-sm text-[#e8f5ee]/80 leading-relaxed italic">
-                    {displayValue(world.quote)}
-                  </p>
-                </div>
-              )}
             </section>
 
             {/* Middle Column - Scoring Matrix */}
