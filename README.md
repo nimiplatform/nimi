@@ -122,6 +122,34 @@ Nimi has three practical layers:
 
 Realm is Nimi's optional cloud state layer for identity, memory, and cross-app continuity.
 
+## Future Schedule
+
+| Time | Focus | What expect |
+|---|---|---|
+| Now | Multimodal foundation | Nimi is actively building the runtime base for image, speech, and media workflows |
+| Now | Knowledge and RAG foundation | Nimi is actively building document ingestion, retrieval, and grounded answer flows |
+| `03-20` | Reading and model UX | Better Markdown rendering, Mermaid, LaTeX, stronger code blocks, AI artifact metadata, local device reporting, and a clearer model selector |
+| `03-27` | Core runtime unlocks | MCP support, OpenAI-compatible API access, workflow triggers, document processing, and the first usable RAG loop |
+| `04-10` | Smarter agent workflows | Web search, proactive scheduled agents, persona editing, prompt variables, context compression, RAG citations, model catalog upgrades, and stronger audit visibility |
+| `04-24` | Creator and workflow tools | Mod marketplace, creator/community features, visual workflow editor, human approval steps, moderation, and deeper RAG controls |
+| `05-15` | Next interaction layer | Agent UI surfaces, browser-side lightweight inference, OAuth login, image-generation mod, avatar experiences, social and IM integrations, mobile work, sandboxing, IDE extension, and cross-instance agent flows |
+
+Current progress at a glance:
+
+| Area | Status | What it means |
+|---|---|---|
+| Multimodal | Foundation defined, first delivery in progress | Nimi is moving beyond text into image, speech, and media workflows |
+| Knowledge / RAG | Foundation defined, first delivery in progress | Upload documents, search them, and ground answers with retrieval |
+| MCP | Next major runtime unlock | Nimi will connect more naturally to external agent and tool ecosystems |
+| Agent UI | Planned for May | Agents will be able to drive safe, structured UI instead of text-only responses |
+| Marketplace + Mods | Planned for April | Better discovery, installation, and sharing of Nimi extensions |
+
+| Notes | Meaning |
+|---|---|
+| Schedule dates | Dates refer to the first usable slice of a feature, not the final polished version |
+| Delivery order | Nimi ships runtime and SDK foundations first, then desktop, web, and ecosystem features on top |
+
+
 ## Examples
 
 The onboarding ladder lives in [examples/README.md](examples/README.md).
