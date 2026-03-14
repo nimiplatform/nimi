@@ -48,11 +48,40 @@ export async function registerCreatorDataCapabilities(): Promise<void> {
     return Array.isArray(payload) ? payload : [];
   });
 
+  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.creatorAgentsGet, async (query) => {
+    const agentId = String(toRecord(query).agentId || '').trim();
+    if (!agentId) {
+      return null;
+    }
+    const payload = await requestRealm<unknown>({
+      method: 'GET',
+      url: '/api/creator/agents/{agentId}',
+      path: { agentId },
+    });
+    return toObjectOr(payload, {});
+  });
+
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.creatorAgentsCreate, async (query) => {
     const payload = await requestRealm<unknown>({
       method: 'POST',
       url: '/api/creator/agents',
       body: toRecord(query),
+    });
+    return toObjectOr(payload, {});
+  });
+
+  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.creatorAgentsUpdate, async (query) => {
+    const record = toRecord(query);
+    const agentId = String(record.agentId || '').trim();
+    if (!agentId) {
+      throw new Error('CREATOR_AGENT_ID_REQUIRED');
+    }
+    const patch = toRecord(record.patch);
+    const payload = await requestRealm<unknown>({
+      method: 'PATCH',
+      url: '/api/creator/agents/{agentId}',
+      path: { agentId },
+      body: patch,
     });
     return toObjectOr(payload, {});
   });

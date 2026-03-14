@@ -74,7 +74,9 @@ export const WORLD_DATA_API_CAPABILITIES = {
   worldsMine: 'data-api.world.worlds.mine',
   mutationsList: 'data-api.world.mutations.list',
   creatorAgentsList: 'data-api.creator.agents.list',
+  creatorAgentsGet: 'data-api.creator.agents.get',
   creatorAgentsCreate: 'data-api.creator.agents.create',
+  creatorAgentsUpdate: 'data-api.creator.agents.update',
   creatorAgentsBatchCreate: 'data-api.creator.agents.batch-create',
 } as const;
 

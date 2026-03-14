@@ -150,7 +150,7 @@ export default defineConfig(({ mode }) => {
           manualChunks(id) {
             const normalizedId = id.split(path.sep).join('/');
             if (normalizedId.includes('/sdk/src/runtime/generated/')) {
-              return 'sdk-runtime-generated';
+              return 'vendor-sdk-runtime-generated';
             }
             if (normalizedId.includes('/sdk/src/')) {
               return 'sdk-client';
