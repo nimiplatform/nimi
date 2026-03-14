@@ -1,5 +1,12 @@
 fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
+    let updater_pubkey = crate::desktop_updates::configured_updater_pubkey();
+    let updater_plugin = if let Some(pubkey) = updater_pubkey {
+        tauri_plugin_updater::Builder::new().pubkey(pubkey).build()
+    } else {
+        tauri_plugin_updater::Builder::new().build()
+    };
     tauri::Builder::default()
+        .plugin(updater_plugin)
         .setup(|app| {
             eprintln!("[boot:{:}] setup entered", now_ms());
             let gateway_state =
@@ -7,6 +14,25 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             external_agent_gateway::start_external_agent_gateway(gateway_state.clone());
             app.manage(gateway_state);
             app.manage(crate::menu_bar_shell::MenuBarShellStore::new());
+            match crate::desktop_release::initialize(&app.handle()) {
+                Ok(info) => {
+                    eprintln!(
+                        "[boot:{:}] desktop release initialized version={} runtime={} ready={}",
+                        now_ms(),
+                        info.desktop_version,
+                        info.runtime_version,
+                        info.runtime_ready,
+                    );
+                }
+                Err(error) => {
+                    crate::desktop_release::record_initialize_error(error.clone());
+                    eprintln!(
+                        "[boot:{:}] desktop release initialization failed: {}",
+                        now_ms(),
+                        error
+                    );
+                }
+            }
             #[cfg(target_os = "macos")]
             let configured_traffic_light_position = app
                 .config()
@@ -102,6 +128,12 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
         })
         .invoke_handler(tauri::generate_handler![
             runtime_defaults,
+            desktop_release::desktop_release_info_get,
+            desktop_updates::desktop_update_state_get,
+            desktop_updates::desktop_update_check,
+            desktop_updates::desktop_update_download,
+            desktop_updates::desktop_update_install,
+            desktop_updates::desktop_update_restart,
             get_system_resource_snapshot,
             http_request,
             open_external_url,

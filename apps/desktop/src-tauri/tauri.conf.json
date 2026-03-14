@@ -35,8 +35,13 @@
     }
   },
   "bundle": {
-    "active": false,
+    "active": true,
+    "createUpdaterArtifacts": true,
     "targets": "all",
+    "resources": [
+      "resources/desktop-release-manifest.json",
+      "resources/runtime"
+    ],
     "icon": [
       "icons/icon.png",
       "icons/icon.ico",

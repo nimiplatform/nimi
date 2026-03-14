@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use std::fs::File as StdFile;
 use std::io::{Read, Write};
 
-const CURRENT_DESKTOP_VERSION: &str = "0.1.0";
+const CURRENT_DESKTOP_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CURRENT_HOOK_API_VERSION: &str = "v1";
 const MOD_CATALOG_BASE_URL_ENV: &str = "NIMI_MOD_CATALOG_BASE_URL";
 

@@ -1,0 +1,9 @@
+{
+  "version": "0.1.0",
+  "platform": "generated",
+  "archivePath": "runtime/generated/nimi-runtime.zip",
+  "binaryPath": "bin/nimi",
+  "sha256": "generated-at-build",
+  "builtAt": "1970-01-01T00:00:00.000Z",
+  "commit": "dev"
+}

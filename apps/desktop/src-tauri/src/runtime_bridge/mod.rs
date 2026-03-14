@@ -168,6 +168,16 @@ pub fn restart_daemon() -> Result<RuntimeBridgeDaemonStatus, String> {
 }
 
 #[cfg(test)]
+pub(crate) fn reset_channel_invalidation_count() {
+    channel_pool::reset_invalidation_count();
+}
+
+#[cfg(test)]
+pub(crate) fn channel_invalidation_count() -> usize {
+    channel_pool::invalidation_count()
+}
+
+#[cfg(test)]
 mod tests {
     use super::{
         is_allowlisted_method, is_stream_method, stream_event_name_with_namespace,

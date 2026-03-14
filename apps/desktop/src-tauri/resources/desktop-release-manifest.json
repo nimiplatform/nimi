@@ -1,0 +1,10 @@
+{
+  "desktopVersion": "0.1.0",
+  "runtimeVersion": "0.1.0",
+  "channel": "stable",
+  "commit": "dev",
+  "runtimeArchivePath": "runtime/generated/nimi-runtime.zip",
+  "runtimeSha256": "generated-at-build",
+  "runtimeBinaryPath": "bin/nimi",
+  "builtAt": "1970-01-01T00:00:00.000Z"
+}

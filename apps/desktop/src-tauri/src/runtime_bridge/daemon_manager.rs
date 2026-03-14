@@ -17,7 +17,6 @@ use daemon_command::{
 };
 
 const DEFAULT_GRPC_ADDR: &str = "127.0.0.1:46371";
-const DEFAULT_RUNTIME_BINARY: &str = "nimi";
 const DEFAULT_RUNTIME_BRIDGE_MODE: &str = "RELEASE";
 const RUNTIME_BRIDGE_MODE_ENV: &str = "NIMI_RUNTIME_BRIDGE_MODE";
 
@@ -37,6 +36,7 @@ pub struct RuntimeBridgeDaemonStatus {
     pub launch_mode: String,
     pub grpc_addr: String,
     pub pid: Option<u32>,
+    pub version: Option<String>,
     pub last_error: Option<String>,
     pub debug_log_path: Option<String>,
 }
@@ -83,10 +83,24 @@ pub(crate) fn grpc_addr() -> String {
 }
 
 fn runtime_binary() -> String {
+    runtime_binary_test_override()
+        .or_else(|| {
+            crate::desktop_release::staged_runtime_binary_path()
+                .map(|path| path.display().to_string())
+        })
+        .unwrap_or_default()
+}
+
+#[cfg(test)]
+fn runtime_binary_test_override() -> Option<String> {
     std::env::var("NIMI_RUNTIME_BINARY")
         .ok()
         .filter(|value| !value.trim().is_empty())
-        .unwrap_or_else(|| DEFAULT_RUNTIME_BINARY.to_string())
+}
+
+#[cfg(not(test))]
+fn runtime_binary_test_override() -> Option<String> {
+    None
 }
 
 fn read_non_empty_env(name: &str) -> Option<String> {
@@ -148,6 +162,49 @@ fn probe_running(addr: &str) -> bool {
     TcpStream::connect_timeout(&parsed, Duration::from_millis(120)).is_ok()
 }
 
+fn parse_runtime_version_payload(payload: &Value) -> Result<String, String> {
+    let version = payload
+        .get("nimi")
+        .and_then(|value| value.as_str())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            bridge_error(
+                "RUNTIME_BRIDGE_VERSION_PARSE_FAILED",
+                "runtime version payload is missing `nimi`",
+            )
+        })?;
+    Ok(version.to_string())
+}
+
+fn probe_runtime_version(mode: daemon_command::RuntimeBridgeMode) -> Result<String, String> {
+    let payload = run_runtime_cli_json_with_error_code(
+        &["version", "--json"],
+        None,
+        "RUNTIME_BRIDGE_VERSION_PARSE_FAILED",
+        "invalid runtime version output",
+    )?;
+    let version = parse_runtime_version_payload(&payload)?;
+    if mode == daemon_command::RuntimeBridgeMode::Release {
+        let expected = crate::desktop_release::current_release_version().ok_or_else(|| {
+            bridge_error(
+                "RUNTIME_BRIDGE_RELEASE_VERSION_UNAVAILABLE",
+                "desktop release metadata is unavailable while probing bundled runtime version",
+            )
+        })?;
+        if version != expected {
+            return Err(bridge_error(
+                "RUNTIME_BRIDGE_VERSION_MISMATCH",
+                format!(
+                    "bundled runtime reported version {version} but desktop release expects {expected}"
+                )
+                .as_str(),
+            ));
+        }
+    }
+    Ok(version)
+}
+
 fn wait_until_running(addr: &str) -> bool {
     for _ in 0..20 {
         if probe_running(addr) {
@@ -197,12 +254,21 @@ pub fn status() -> RuntimeBridgeDaemonStatus {
         last_error = None;
     }
 
+    let version = match probe_runtime_version(mode) {
+        Ok(value) => Some(value),
+        Err(error) => {
+            last_error = Some(error);
+            None
+        }
+    };
+
     RuntimeBridgeDaemonStatus {
         running,
         managed,
         launch_mode: runtime_bridge_mode_label(mode).to_string(),
         grpc_addr: addr,
         pid,
+        version,
         last_error,
         debug_log_path: daemon_debug_log_path_store()
             .lock()
@@ -329,12 +395,23 @@ pub fn config_set(payload: &str) -> Result<Value, String> {
 }
 
 fn run_runtime_cli_json(args: &[&str], stdin_payload: Option<&str>) -> Result<Value, String> {
+    run_runtime_cli_json_with_error_code(
+        args,
+        stdin_payload,
+        "RUNTIME_BRIDGE_CONFIG_PARSE_FAILED",
+        "invalid runtime config cli output",
+    )
+}
+
+fn run_runtime_cli_json_with_error_code(
+    args: &[&str],
+    stdin_payload: Option<&str>,
+    error_code: &str,
+    error_context: &str,
+) -> Result<Value, String> {
     let output = run_runtime_cli(args, stdin_payload)?;
     serde_json::from_str::<Value>(output.trim()).map_err(|error| {
-        bridge_error(
-            "RUNTIME_BRIDGE_CONFIG_PARSE_FAILED",
-            format!("invalid runtime config cli output: {error}").as_str(),
-        )
+        bridge_error(error_code, format!("{error_context}: {error}").as_str())
     })
 }
 
@@ -413,6 +490,7 @@ mod tests {
         config_get, config_set, grpc_addr, runtime_cli_command_spec, runtime_config_path, start,
         status, stop, DEFAULT_GRPC_ADDR,
     };
+    use crate::desktop_release::{reset_test_state, set_test_release_version};
     use std::fs;
     use std::path::PathBuf;
     use std::sync::{Mutex, OnceLock};
@@ -539,7 +617,7 @@ mod tests {
                 with_env_var("NIMI_RUNTIME_GRPC_ADDR", "127.0.0.1:46379", || {
                     let result = start();
                     let error = result.err().unwrap_or_default();
-                    assert!(error.contains("RUNTIME_BRIDGE_DAEMON_START_FAILED"));
+                    assert!(error.contains("RUNTIME_BRIDGE_BUNDLED_RUNTIME_MISSING"));
 
                     let snapshot = status();
                     assert!(snapshot.last_error.is_some());
@@ -549,7 +627,7 @@ mod tests {
 
         let _ = stop();
         let snapshot = status();
-        assert!(snapshot.last_error.is_none());
+        assert_ne!(snapshot.last_error.as_deref(), Some("RUNTIME_BRIDGE_BUNDLED_RUNTIME_MISSING"));
     }
 
     #[cfg(unix)]
@@ -677,17 +755,82 @@ exit 9
 
     #[cfg(unix)]
     #[test]
+    fn status_uses_runtime_cli_truth_for_release_mode_version() {
+        let _guard = env_guard();
+        reset_test_state();
+        set_test_release_version("0.9.1");
+        let dir = make_temp_dir("runtime-version-cli");
+        let fake_nimi = dir.join("nimi");
+        write_executable(
+            &fake_nimi,
+            r#"#!/bin/sh
+if [ "$1" = "version" ] && [ "$2" = "--json" ]; then
+  printf '%s\n' '{"nimi":"0.9.1"}'
+  exit 0
+fi
+exit 7
+"#,
+        );
+
+        with_env_var("NIMI_RUNTIME_BINARY", fake_nimi.to_str().expect("fake nimi path"), || {
+            with_env_var("NIMI_RUNTIME_BRIDGE_MODE", "RELEASE", || {
+                let snapshot = status();
+                assert_eq!(snapshot.version.as_deref(), Some("0.9.1"));
+                assert!(snapshot.last_error.is_none());
+            });
+        });
+        let _ = fs::remove_dir_all(dir);
+        reset_test_state();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn status_surfaces_runtime_version_mismatch_error() {
+        let _guard = env_guard();
+        reset_test_state();
+        set_test_release_version("0.9.1");
+        let dir = make_temp_dir("runtime-version-mismatch");
+        let fake_nimi = dir.join("nimi");
+        write_executable(
+            &fake_nimi,
+            r#"#!/bin/sh
+if [ "$1" = "version" ] && [ "$2" = "--json" ]; then
+  printf '%s\n' '{"nimi":"0.9.2"}'
+  exit 0
+fi
+exit 7
+"#,
+        );
+
+        with_env_var("NIMI_RUNTIME_BINARY", fake_nimi.to_str().expect("fake nimi path"), || {
+            with_env_var("NIMI_RUNTIME_BRIDGE_MODE", "RELEASE", || {
+                let snapshot = status();
+                assert!(snapshot.version.is_none());
+                assert!(
+                    snapshot
+                        .last_error
+                        .as_deref()
+                        .unwrap_or_default()
+                        .contains("RUNTIME_BRIDGE_VERSION_MISMATCH")
+                );
+            });
+        });
+        let _ = fs::remove_dir_all(dir);
+        reset_test_state();
+    }
+
+    #[cfg(unix)]
+    #[test]
     fn runtime_cli_command_spec_release_mode_uses_binary_branch() {
         let _guard = env_guard();
         let dir = make_temp_dir("runtime-cli-release-path");
         let fake_nimi = dir.join("nimi");
         write_executable(&fake_nimi, "#!/bin/sh\nexit 0\n");
 
-        with_env_var("PATH", dir.to_str().expect("temp path"), || {
-            std::env::remove_var("NIMI_RUNTIME_BINARY");
+        with_env_var("NIMI_RUNTIME_BINARY", fake_nimi.to_str().expect("fake nimi path"), || {
             with_env_var("NIMI_RUNTIME_BRIDGE_MODE", "RELEASE", || {
                 let spec = runtime_cli_command_spec(&["config", "get", "--json"]).expect("spec");
-                assert_eq!(spec.program, "nimi");
+                assert_eq!(spec.program, fake_nimi.display().to_string());
                 assert_eq!(spec.args[0], "config");
                 assert_eq!(spec.args[1], "get");
                 assert_eq!(spec.args[2], "--json");
@@ -709,7 +852,7 @@ exit 9
                 let error = runtime_cli_command_spec(&["config", "get", "--json"])
                     .err()
                     .unwrap_or_default();
-                assert!(error.contains("RUNTIME_BRIDGE_RUNTIME_BINARY_NOT_FOUND"));
+                assert!(error.contains("RUNTIME_BRIDGE_BUNDLED_RUNTIME_UNAVAILABLE"));
             });
         });
 

@@ -99,6 +99,7 @@ mod tests {
                 launch_mode: "RELEASE".to_string(),
                 grpc_addr: "127.0.0.1:46371".to_string(),
                 pid: Some(42),
+                version: None,
                 last_error: None,
                 debug_log_path: None,
             }),
