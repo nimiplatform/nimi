@@ -101,7 +101,7 @@ export default defineConfig({
 
     footer: {
       message: 'Released under Apache-2.0 (runtime, sdk, proto) / MIT (desktop, nimi-mods, web) / CC-BY-4.0 (docs)',
-      copyright: 'Copyright © 2024-present Nimi Platform',
+      copyright: 'Copyright © 2026-present Nimi Platform',
     },
   },
 })

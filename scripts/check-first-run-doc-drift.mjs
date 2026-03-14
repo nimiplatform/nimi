@@ -31,23 +31,19 @@ const checks = [
   {
     file: 'docs/index.md',
     required: [
-      'nimi start',
-      'nimi run "..."',
-      'nimi run "..." --provider ...',
+      'link: /user/',
+      'link: /app-dev/',
+      'link: /mod-dev/',
     ],
     forbidden: ['nimi serve', '--yes', '--model local/...', '--provider ... --model ...'],
   },
   {
     file: 'docs/getting-started/index.md',
     required: [
-      'nimi start',
-      'nimi run "What is Nimi?"',
-      'nimi run "What is Nimi?" --provider gemini',
+      "window.location.replace('/user/')",
+      'This page has moved to [Using Nimi](/user/).',
     ],
     forbidden: ['nimi serve', '--model local/qwen2.5', '--provider gemini --model'],
-    ordered: [
-      ['nimi run "What is Nimi?" --provider gemini', 'nimi provider set gemini --api-key-env'],
-    ],
   },
   {
     file: 'examples/README.md',
@@ -73,8 +69,8 @@ const checks = [
   {
     file: 'apps/web/src/landing/content/landing-content.ts',
     required: [
-      "command: 'nimi start'",
-      'command: \'nimi run "What is Nimi?"\'',
+      "command: 'curl -fsSL https://install.nimi.xyz | sh'",
+      "command: 'npm install -g @nimiplatform/nimi'",
     ],
     forbidden: ["command: 'nimi serve'", '--yes', '--model local/qwen2.5'],
   },
