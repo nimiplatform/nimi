@@ -212,6 +212,12 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true,
       sourcemap: true,
       rollupOptions: {
+        input: {
+          main: path.resolve(__dirname, 'index.html'),
+          blueyard: path.resolve(__dirname, 'blueyard.html'),
+          terms: path.resolve(__dirname, 'terms.html'),
+          privacy: path.resolve(__dirname, 'privacy.html'),
+        },
         output: {
           manualChunks(id) {
             const normalizedId = id.split(path.sep).join('/');

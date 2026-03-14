@@ -1,22 +1,52 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { initI18n } from '@renderer/i18n';
+import { App as LandingApp } from './landing/App.js';
+import { isWebShellHashRoute } from './site-entry-hash.js';
 import './web-styles.css';
+import './landing/styles.css';
 
-const App = lazy(async () => {
+let appI18nInitPromise: Promise<void> | null = null;
+
+const WebShellApp = lazy(async () => {
+  appI18nInitPromise ??= initI18n();
+  await appI18nInitPromise;
   const mod = await import('@renderer/App');
   return { default: mod.default };
 });
+
+function SiteEntry() {
+  const [hash, setHash] = useState(() => window.location.hash);
+
+  useEffect(() => {
+    function handleHashChange() {
+      setHash(window.location.hash);
+    }
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
+
+  if (!isWebShellHashRoute(hash)) {
+    return <LandingApp />;
+  }
+
+  return (
+    <Suspense fallback={null}>
+      <WebShellApp />
+    </Suspense>
+  );
+}
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error('Missing #root mount node');
 }
 
-void initI18n().finally(() => {
-  createRoot(rootElement).render(
-    <Suspense fallback={null}>
-      <App />
-    </Suspense>,
-  );
-});
+createRoot(rootElement).render(
+  <React.StrictMode>
+    <SiteEntry />
+  </React.StrictMode>,
+);

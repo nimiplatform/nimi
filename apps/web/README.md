@@ -1,19 +1,24 @@
 # Nimi Web
 
-`nimi-web` is the web-shell target for `apps/desktop` renderer.
+`nimi-web` is the primary web site target for Nimi.
 
-It reuses desktop renderer UI directly, while removing desktop-only runtime/mod execution paths through compile-time adapters.
+It serves a landing homepage at `/`, keeps static legal pages in the same build, and reuses the `apps/desktop` renderer for hash-routed web-shell flows such as `/#/login`.
 
 ## Goals
 
 - Reuse `desktop` non-mod UI with minimal drift.
 - Keep one renderer development source of truth (`desktop`).
-- Deploy as a standard Vite web app without Tauri runtime dependency.
+- Deploy landing, legal pages, and web-shell from a standard Vite web app without Tauri runtime dependency.
 
 ## How It Works
 
-- Entry reuses desktop renderer app:
-  - `src/main.tsx` -> `@renderer/App`
+- Entry is split by URL hash:
+  - `/` renders landing content from `src/landing/**`
+  - `/#/...` lazy-loads `@renderer/App`
+- Static pages are emitted from the same build:
+  - `/terms.html`
+  - `/privacy.html`
+  - `/blueyard.html`
 - Vite/TS path aliases point to desktop sources:
   - `@renderer/*` -> `../desktop/src/shell/renderer/*`
   - `@runtime/*` -> `../desktop/src/runtime/*`
@@ -27,6 +32,8 @@ It reuses desktop renderer UI directly, while removing desktop-only runtime/mod 
   - `@renderer/features/mod-hub/mod-hub-page`
 
 These adapters live in `src/desktop-adapter/`.
+
+Landing-specific code lives in `src/landing/`.
 
 ## Environment
 
