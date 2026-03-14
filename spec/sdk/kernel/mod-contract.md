@@ -17,6 +17,13 @@ mod 子路径不得直连 runtime/realm 私有客户端。
 ## S-MOD-004 Stable Export Surface
 
 mod 导出面必须使用稳定子路径，不允许 root forwarding 壳层扩散。
+当前稳定的 mod storage surface 包括：
+
+- `createHookClient(...).storage`
+- `@nimiplatform/sdk/mod/storage`
+
+其中 `@nimiplatform/sdk/mod/storage` 可以提供基于 host sqlite 的 convenience facade（例如 `createModKvStore(...)`），但不得扩展为新的 desktop hook subsystem 或新的宿主 capability。
+
 以下 legacy surface 已硬切移除，不得回流：
 
 - 旧的 mod AI 专用子路径

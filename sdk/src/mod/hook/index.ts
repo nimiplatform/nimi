@@ -3,6 +3,7 @@ import { createActionClient } from './action-client';
 import { createAuditClient, createMetaClient } from './meta-client';
 import { createEventClient } from './event-client';
 import { createDataClient } from './data-client';
+import { createStorageClient } from './storage-client';
 import { createTurnClient } from './turn-client';
 import { createUiClient } from './ui-client';
 import { createInterModClient } from './inter-mod-client';
@@ -24,6 +25,10 @@ export function createHookClient(modId: string, context?: ModRuntimeContextInput
       runtime,
     }),
     data: createDataClient({
+      modId: normalizedModId,
+      runtime,
+    }),
+    storage: createStorageClient({
       modId: normalizedModId,
       runtime,
     }),

@@ -7,6 +7,7 @@ import type {
   HookMetaClient,
 } from './meta';
 import type { HookProfileClient } from './profile';
+import type { HookStorageClient } from './storage';
 import type { HookTurnClient } from './turn';
 import type { HookUiClient } from './ui';
 
@@ -19,11 +20,13 @@ export type * from './ui';
 export type * from './inter-mod';
 export type * from './meta';
 export type * from './profile';
+export type * from './storage';
 
 export type HookClient = {
   action: HookActionClient;
   event: HookEventClient;
   data: HookDataClient;
+  storage: HookStorageClient;
   turn: HookTurnClient;
   ui: HookUiClient;
   interMod: HookInterModClient;

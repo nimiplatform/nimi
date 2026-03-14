@@ -17,6 +17,8 @@
 
 稳定公开的 mod-facing shell 与 route lifecycle facade 仅允许通过 renderer-agnostic 子路径暴露，并且 route runtime identity 当前固定为 `tabId`。
 
+mod 本地持久化通过 host-injected `createHookClient(...).storage` 与 `@nimiplatform/sdk/mod/storage` 暴露；不再要求 mod 自己依赖浏览器存储原语。`mod/storage` 允许在 SDK 层提供像 `createModKvStore(...)` 这样的 sqlite-backed convenience facade，但不引入新的宿主能力模型。
+
 本地 AI 推荐组合相关稳定 surface 同时遵循 `S-MOD-012` 与 `S-MOD-013`：manifest 必须声明 `ai.profiles`，安装只能通过 host 确认后的 request surface 发起。
 
 ## 2. 阅读路径

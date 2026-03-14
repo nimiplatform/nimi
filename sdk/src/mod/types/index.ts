@@ -24,6 +24,14 @@ export type {
   HookDataClient,
 } from './data';
 export type {
+  HookStorageClient,
+  HookStorageFileEntry,
+  HookStorageFileReadResult,
+  HookStorageFileWriteResult,
+  HookStorageSqliteExecuteResult,
+  HookStorageSqliteStatement,
+} from './storage';
+export type {
   HookEventClient,
 } from './event';
 export type {

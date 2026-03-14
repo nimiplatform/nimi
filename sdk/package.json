@@ -41,6 +41,10 @@
       "types": "./dist/mod/lifecycle.d.ts",
       "default": "./dist/mod/lifecycle.js"
     },
+    "./mod/storage": {
+      "types": "./dist/mod/storage/index.d.ts",
+      "default": "./dist/mod/storage/index.js"
+    },
     "./scope": {
       "types": "./dist/scope/index.d.ts",
       "default": "./dist/scope/index.js"
