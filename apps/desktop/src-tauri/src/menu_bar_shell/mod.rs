@@ -10,6 +10,7 @@ pub use state::MenuBarShellStore;
 
 use crate::runtime_bridge;
 
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub const MENU_BAR_OPEN_TAB_EVENT: &str = "menu-bar://open-tab";
 pub const MENU_BAR_QUIT_REQUESTED_EVENT: &str = "menu-bar://quit-requested";
 

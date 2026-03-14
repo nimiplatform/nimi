@@ -83,6 +83,7 @@ impl MenuBarShellStore {
         Self::default()
     }
 
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     pub fn set_handles(&self, handles: MenuBarMenuHandles) {
         let mut inner = self
             .inner
