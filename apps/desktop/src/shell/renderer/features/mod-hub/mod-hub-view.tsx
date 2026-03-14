@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { useTranslation } from 'react-i18next';
 import { ModHubRow } from './mod-hub-row';
@@ -146,8 +147,7 @@ export function ModHubView(model: ModHubPageModel) {
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-6xl space-y-12 px-8 pb-10">
+        <ScrollShell className="min-h-0 flex-1" contentClassName="mx-auto max-w-6xl space-y-12 px-8 pb-10">
             <section>
               <ModHubSkeletonBlock className="mb-6 h-4 w-28 rounded-lg" />
               <div className="grid grid-cols-4 gap-x-4 gap-y-8 md:grid-cols-6 lg:grid-cols-8">
@@ -192,8 +192,7 @@ export function ModHubView(model: ModHubPageModel) {
                 ))}
               </div>
             </section>
-          </div>
-        </div>
+        </ScrollShell>
       </div>
     );
   }
@@ -252,8 +251,7 @@ export function ModHubView(model: ModHubPageModel) {
         </div>
       </div>
 
-      <div className="app-scroll-shell min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-6xl space-y-12 px-8 pb-10">
+      <ScrollShell className="min-h-0 flex-1" contentClassName="mx-auto max-w-6xl space-y-12 px-8 pb-10">
           <div
             className={`overflow-hidden transition-all duration-300 ease-in-out ${
               showDock ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
@@ -326,8 +324,7 @@ export function ModHubView(model: ModHubPageModel) {
               {t('ModHub.noSearchResults')}
             </div>
           )}
-        </div>
-      </div>
+      </ScrollShell>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import type {
   OrphanModelFile,
 } from '@runtime/local-ai-runtime';
 import { i18n } from '@renderer/i18n';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import type { LocalModelOptionV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { RuntimeSelect } from './runtime-config-primitives';
 import {
@@ -224,7 +225,7 @@ function CatalogVariantPicker(props: {
             </p>
           </div>
         ) : (
-          <div className="app-scroll-shell max-h-48 divide-y divide-gray-100 overflow-y-auto">
+          <ScrollShell className="max-h-48 divide-y divide-gray-100" viewportClassName="max-h-48">
             {props.variantList.map((variant) => (
               <button
                 key={variant.filename}
@@ -239,7 +240,7 @@ function CatalogVariantPicker(props: {
                 ) : null}
               </button>
             ))}
-          </div>
+          </ScrollShell>
         )}
       </div>
     </div>

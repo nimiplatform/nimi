@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-detail-profile-modal.js';
 import { CreatePostModal } from '../profile/create-post-modal.js';
@@ -113,8 +114,11 @@ export function HomeView(props: HomeViewProps) {
         <h1 className={APP_PAGE_TITLE_CLASS}>{t('Home.pageTitle')}</h1>
       </div>
 
-      <div className="app-scroll-shell flex-1 overflow-y-auto bg-gray-50">
-        <div className="mx-auto max-w-2xl px-6 py-0">
+      <ScrollShell
+        className="flex-1 bg-gray-50"
+        viewportClassName="bg-gray-50"
+        contentClassName="mx-auto max-w-2xl px-6 py-0"
+      >
           {/* Create Post Prompt */}
           <button
             type="button"
@@ -154,8 +158,7 @@ export function HomeView(props: HomeViewProps) {
               )}
             />
           </div>
-        </div>
-      </div>
+      </ScrollShell>
 
       <CreatePostModal
         open={createPostOpen}

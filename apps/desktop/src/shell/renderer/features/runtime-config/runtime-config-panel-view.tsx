@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { RUNTIME_PAGE_META } from './runtime-config-meta-v11';
 import { RuntimeSidebar } from './runtime-config-sidebar';
@@ -100,16 +101,14 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
               <RuntimeSkeletonBlock className="h-7 w-20 rounded-full" />
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto bg-white">
-            <div className="mx-auto max-w-5xl space-y-6 p-6">
-              <RuntimeSkeletonBlock className="h-36 w-full" />
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <RuntimeSkeletonBlock className="h-48 w-full" />
-                <RuntimeSkeletonBlock className="h-48 w-full" />
-              </div>
-              <RuntimeSkeletonBlock className="h-64 w-full" />
+          <ScrollShell className="flex-1 bg-white" viewportClassName="bg-white" contentClassName="mx-auto max-w-5xl space-y-6 p-6">
+            <RuntimeSkeletonBlock className="h-36 w-full" />
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <RuntimeSkeletonBlock className="h-48 w-full" />
+              <RuntimeSkeletonBlock className="h-48 w-full" />
             </div>
-          </div>
+            <RuntimeSkeletonBlock className="h-64 w-full" />
+          </ScrollShell>
         </main>
       </div>
     );
@@ -121,8 +120,10 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
 
   return (
     <div ref={containerRef} className="flex min-h-0 flex-1 bg-[#F8F9FB]">
-      <aside
-        className="app-scroll-shell relative flex shrink-0 flex-col overflow-y-auto bg-[#F8F9FB]"
+      <ScrollShell
+        as="aside"
+        className="relative flex shrink-0 flex-col bg-[#F8F9FB]"
+        viewportClassName="bg-[#F8F9FB]"
         style={{ width: `${sidebarWidth}px` }}
       >
         <div className="flex h-14 shrink-0 items-center px-5">
@@ -145,7 +146,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           onMouseDown={startResize}
           className="absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize bg-transparent"
         />
-      </aside>
+      </ScrollShell>
 
       <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">
         <div className="flex h-14 shrink-0 items-center bg-white px-6">
@@ -158,7 +159,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           </div>
         </div>
 
-        <div className="app-scroll-shell flex-1 overflow-y-auto bg-white">
+        <ScrollShell className="flex-1 bg-white" viewportClassName="bg-white">
           {activePage === 'local' ? (
             <LocalPage model={model} state={state} />
           ) : (
@@ -180,7 +181,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
               )}
             </div>
           )}
-        </div>
+        </ScrollShell>
       </main>
     </div>
   );

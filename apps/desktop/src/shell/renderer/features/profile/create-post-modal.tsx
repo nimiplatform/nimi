@@ -2,6 +2,7 @@ import { useCallback, useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import {
   ACCEPTED_IMAGE_TYPES,
@@ -462,7 +463,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
         </div>
 
         {/* Body */}
-          <div className="app-scroll-shell flex-1 overflow-y-auto px-5 py-4">
+        <ScrollShell className="flex-1" contentClassName="px-5 py-4">
           <input
             ref={fileInputRef}
             type="file"
@@ -691,12 +692,12 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
               <span className="text-xs text-gray-400">{caption.length}/{MAX_CAPTION_LENGTH}</span>
             </div>
           </div>
+        </ScrollShell>
 
-          {/* Error */}
-          {error ? (
-            <div className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
-          ) : null}
-        </div>
+        {/* Error */}
+        {error ? (
+          <div className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+        ) : null}
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 border-t border-gray-200 px-5 py-4">

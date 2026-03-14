@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { i18n } from '@renderer/i18n';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import {
   localAiRuntime,
   type LocalAiCatalogItemDescriptor,
@@ -349,7 +350,7 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
               : i18n.t('runtimeConfig.catalog.noCatalogMatch', { defaultValue: 'No catalog model matched your query.' })}
           </p>
         ) : (
-                <div className="app-scroll-shell space-y-2 max-h-64 overflow-y-auto">
+                <ScrollShell className="max-h-64" viewportClassName="max-h-64" contentClassName="space-y-2">
             {catalogItems.map((item) => {
               const selected = selectedCatalogItemId === item.itemId;
               return (
@@ -390,7 +391,7 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
                 </button>
               );
             })}
-          </div>
+          </ScrollShell>
         )}
       </div>
 
@@ -502,7 +503,7 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
               : i18n.t('runtimeConfig.catalog.noVerifiedMatch', { defaultValue: 'No verified model matched your query.' })}
           </p>
         ) : (
-                <div className="app-scroll-shell space-y-2 max-h-64 overflow-y-auto">
+                <ScrollShell className="max-h-64" viewportClassName="max-h-64" contentClassName="space-y-2">
             {filteredVerifiedModels.map((item) => {
               const installing = installingVerifiedTemplateId === item.templateId;
               return (
@@ -540,7 +541,7 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
                 </div>
               );
             })}
-          </div>
+          </ScrollShell>
         )}
       </div>
     </div>

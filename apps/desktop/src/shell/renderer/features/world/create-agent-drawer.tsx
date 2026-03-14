@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 
 export type CreateAgentInput = {
   handle: string;
@@ -177,7 +178,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
         onClick={props.onClose}
       />
       <aside
-        className={`pointer-events-auto absolute right-0 top-0 flex h-screen w-full max-w-[40vw] min-w-[420px] flex-col border-l border-emerald-400/25 bg-[#0B1313]/85 shadow-[-24px_0_60px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-transform duration-300 ease-out ${props.isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`pointer-events-auto absolute right-0 top-12 flex h-[calc(100vh-3rem)] w-full max-w-[40vw] min-w-[420px] flex-col rounded-tl-[28px] border-l border-t border-emerald-400/25 bg-[#0B1313]/85 shadow-[-24px_0_60px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-transform duration-300 ease-out ${props.isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
         <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-emerald-300/70 to-transparent shadow-[0_0_20px_rgba(16,185,129,0.45)]" />
 
@@ -211,7 +212,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
           </div>
         </header>
 
-        <div className="app-scroll-shell min-h-0 flex-1 overflow-y-auto">
+        <ScrollShell className="min-h-0 flex-1">
           {/* World Banner & Description Header */}
           {(hasWorldBanner || hasWorldDescription) && (
             <div className="relative w-full">
@@ -539,7 +540,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
               </div>
             </section>
           </div>
-        </div>
+        </ScrollShell>
 
         <footer className="sticky bottom-0 z-10 border-t border-emerald-400/12 bg-[#0B1313]/80 px-7 py-5 backdrop-blur-xl">
           <div className="flex items-center justify-between gap-4">

@@ -1,6 +1,7 @@
 import React from 'react';
 import { i18n } from '@renderer/i18n';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import type { ContactRequestRecord } from './contacts-model.js';
 
 // 单个好友请求详情组件
@@ -114,8 +115,11 @@ export function FriendRequestsList({
   const pendingCount = sortedRequests.filter(r => !acceptedRequests.has(r.userId) && !rejectedRequests.has(r.userId)).length;
 
   return (
-      <div className="app-scroll-shell flex-1 bg-[#F0F4F8] overflow-y-auto">
-      <div className="mx-auto max-w-6xl px-6 py-6">
+      <ScrollShell
+        className="flex-1 bg-[#F0F4F8]"
+        viewportClassName="bg-[#F0F4F8]"
+        contentClassName="mx-auto max-w-6xl px-6 py-6"
+      >
         <div className="flex gap-6">
           {/* 请求列表 - 全宽显示 */}
           <div className="flex-1 min-w-0 w-full">
@@ -219,7 +223,6 @@ export function FriendRequestsList({
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </ScrollShell>
   );
 }

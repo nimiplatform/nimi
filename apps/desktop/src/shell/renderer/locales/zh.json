@@ -715,6 +715,7 @@
     "noWorlds": "暂无子世界",
     "noSearchResults": "未找到世界",
     "syncedFromDesktop": "已从桌面同步",
+    "primaryInstance": "主实例",
     "createAgent": {
       "title": "创建新 Agent",
       "subtitle": "在 {{worldName}} 中塑造一个新角色",

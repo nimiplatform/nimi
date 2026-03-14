@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import type { AgentDetailData } from './agent-detail-model';
 import { getStateBadgeColor } from './agent-detail-model';
@@ -146,8 +147,11 @@ export function AgentDetailView(props: AgentDetailViewProps) {
         <h1 className={APP_PAGE_TITLE_CLASS}>{t('AgentDetail.title')}</h1>
       </div>
 
-      <div className="app-scroll-shell flex-1 overflow-y-auto bg-gray-50">
-        <div className="mx-auto w-[min(1400px,calc(100vw-48px))] py-8">
+      <ScrollShell
+        className="flex-1 bg-gray-50"
+        viewportClassName="bg-gray-50"
+        contentClassName="mx-auto max-w-md px-6 py-8"
+      >
           {/* Profile Card */}
           <div className="relative rounded-[24px] bg-white shadow-lg overflow-hidden">
             {/* Banner Background */}
@@ -324,8 +328,7 @@ export function AgentDetailView(props: AgentDetailViewProps) {
           </div>
 
 
-        </div>
-      </div>
+      </ScrollShell>
     </div>
   );
 }

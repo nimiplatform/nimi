@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { i18n } from '@renderer/i18n';
 import { Tooltip } from '@renderer/components/tooltip.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { formatProfileDate, type ProfileTab } from '@renderer/features/profile/profile-model';
 import {
   AlertIcon,
@@ -68,8 +69,10 @@ const GiftsTab = lazy(async () => {
 export function ContactDetailLoadingState({ label: _label }: { label: string }) {
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,#eef3f4_0%,#f7fafb_48%,#fcfefd_100%)]">
-      <div className="app-scroll-shell flex-1 overflow-y-auto">
-        <div className="mx-auto flex min-h-full w-[min(1400px,calc(100vw-48px))] flex-col py-6">
+      <ScrollShell
+        className="flex-1"
+        contentClassName="mx-auto flex min-h-full w-full max-w-[1440px] flex-col px-6 py-6"
+      >
           <section className="relative overflow-hidden rounded-[34px] bg-white shadow-[0_30px_90px_rgba(15,23,42,0.10)]">
             <div className="relative h-[220px] animate-pulse bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 px-8 py-7">
               <div className="absolute right-8 top-7 h-11 w-11 rounded-full bg-white/60" />
@@ -148,8 +151,7 @@ export function ContactDetailLoadingState({ label: _label }: { label: string }) 
               </div>
             </div>
           </section>
-        </div>
-      </div>
+      </ScrollShell>
     </div>
   );
 }
@@ -532,8 +534,11 @@ export function ContactDetailViewContent(input: {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,#eef3f4_0%,#f7fafb_48%,#fcfefd_100%)]">
-      <div ref={scrollContainerRef} className="app-scroll-shell flex-1 overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
-        <div className={input.fullBleed ? 'flex min-h-full w-full flex-col' : 'mx-auto flex min-h-full w-[min(1400px,calc(100vw-48px))] flex-col py-6'}>
+      <ScrollShell
+        ref={scrollContainerRef}
+        className="flex-1"
+        contentClassName={input.fullBleed ? 'flex min-h-full w-full flex-col' : 'mx-auto flex min-h-full w-full max-w-[1440px] flex-col px-6 py-6'}
+      >
           <section className="relative overflow-hidden rounded-[34px] bg-white shadow-[0_30px_90px_rgba(15,23,42,0.10)]">
             <div className="relative h-[220px] px-8 py-7" style={headerStyle}>
               {canVisitWorld ? (
@@ -906,8 +911,7 @@ export function ContactDetailViewContent(input: {
               </div>
             </div>
           </section>
-        </div>
-      </div>
+      </ScrollShell>
       {input.isOwnProfile && showScrollTop ? (
         <button
           type="button"

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AuditEventRecord } from '@nimiplatform/sdk/runtime';
 import { CallerKind } from '@nimiplatform/sdk/runtime';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { Tooltip } from '@renderer/components/tooltip.js';
 import { Button, Card, RuntimeSelect } from './runtime-config-primitives.js';
 import {
@@ -149,7 +150,10 @@ export function GlobalAuditSection({
       </div>
 
       {/* Event List */}
-      <div className="app-scroll-shell max-h-[calc(100vh-32rem)] overflow-y-auto rounded-lg border border-gray-200 bg-white/60">
+      <ScrollShell
+        className="max-h-[calc(100vh-32rem)] rounded-lg border border-gray-200 bg-white/60"
+        viewportClassName="max-h-[calc(100vh-32rem)]"
+      >
         {events.length === 0 ? (
           <p className="px-4 py-6 text-center text-sm text-gray-500">
             {loading
@@ -161,7 +165,7 @@ export function GlobalAuditSection({
             <AuditEventRow key={event.auditId} event={event} />
           ))
         )}
-      </div>
+      </ScrollShell>
 
       {/* Load More */}
       {hasNextPage ? (

@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { APP_DISPLAY_SECTION_TITLE_CLASS, APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { PostCard } from '../home/post-card';
 import { PostFeed } from '../home/post-feed';
 import {
@@ -53,7 +54,6 @@ export function ExploreView(props: ExploreViewProps) {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [topAgentsPage, setTopAgentsPage] = useState(0);
   const [topAgentsDirection, setTopAgentsDirection] = useState<'forward' | 'backward'>('forward');
-  const [scrollbarMetrics, setScrollbarMetrics] = useState({ visible: false, top: 0, height: 0 });
 
   // Filter worlds with banners
   const worldsWithBanners = props.worldBanners.filter((w) => w.bannerUrl);
@@ -99,48 +99,6 @@ export function ExploreView(props: ExploreViewProps) {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  useEffect(() => {
-    const node = scrollContainerRef.current;
-    if (!node) {
-      return;
-    }
-
-    const updateScrollbarMetrics = () => {
-      const { scrollTop, clientHeight, scrollHeight } = node;
-      if (scrollHeight <= clientHeight + 1) {
-        setScrollbarMetrics({ visible: false, top: 0, height: 0 });
-        return;
-      }
-
-      const trackHeight = clientHeight - 24;
-      const thumbHeight = Math.max(44, (clientHeight / scrollHeight) * trackHeight);
-      const maxThumbTop = Math.max(trackHeight - thumbHeight, 0);
-      const maxScrollTop = Math.max(scrollHeight - clientHeight, 1);
-      const thumbTop = (scrollTop / maxScrollTop) * maxThumbTop;
-
-      setScrollbarMetrics({
-        visible: true,
-        top: thumbTop,
-        height: thumbHeight,
-      });
-    };
-
-    updateScrollbarMetrics();
-    node.addEventListener('scroll', updateScrollbarMetrics, { passive: true });
-    window.addEventListener('resize', updateScrollbarMetrics);
-
-    const resizeObserver = typeof ResizeObserver !== 'undefined'
-      ? new ResizeObserver(() => updateScrollbarMetrics())
-      : null;
-    resizeObserver?.observe(node);
-
-    return () => {
-      node.removeEventListener('scroll', updateScrollbarMetrics);
-      window.removeEventListener('resize', updateScrollbarMetrics);
-      resizeObserver?.disconnect();
-    };
-  }, []);
-
   if (props.loading) {
     return (
       <div className="flex min-h-0 flex-1 flex-col bg-[#F0F4F8]">
@@ -150,8 +108,7 @@ export function ExploreView(props: ExploreViewProps) {
             <ExploreSkeletonBlock className="h-11 w-[300px] rounded-full" />
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto bg-[#F0F4F8]">
-          <div className="mx-auto max-w-6xl space-y-10 px-6 py-8">
+        <ScrollShell className="flex-1 bg-[#F0F4F8]" viewportClassName="bg-[#F0F4F8]" contentClassName="mx-auto max-w-6xl space-y-10 px-6 py-8">
             <section className="space-y-3">
               <ExploreSkeletonBlock className="h-6 w-24 rounded-lg" />
               <ExploreSkeletonBlock className="h-[280px] w-full rounded-[2rem]" />
@@ -188,8 +145,7 @@ export function ExploreView(props: ExploreViewProps) {
                 ))}
               </div>
             </section>
-          </div>
-        </div>
+        </ScrollShell>
       </div>
     );
   }
@@ -205,15 +161,6 @@ export function ExploreView(props: ExploreViewProps) {
           from { opacity: 0; transform: translateX(-18px); }
           to { opacity: 1; transform: translateX(0); }
         }
-        .explore-scroll-shell {
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-        }
-        .explore-scroll-shell::-webkit-scrollbar {
-          display: none;
-          width: 0;
-          height: 0;
-        }
       `}</style>
       {/* Header bar */}
       <div className="shrink-0 bg-[#F0F4F8] px-6 py-4">
@@ -227,6 +174,7 @@ export function ExploreView(props: ExploreViewProps) {
                 {ICON_SEARCH}
               </span>
               <input
+                type="search"
                 className="w-full rounded-full border border-white/70 bg-white/85 py-2.5 pl-11 pr-5 text-sm text-gray-900 placeholder:text-gray-400 shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none backdrop-blur-xl transition-all focus:border-emerald-200 focus:bg-white focus:shadow-[0_14px_36px_rgba(16,185,129,0.10)] focus:ring-4 focus:ring-emerald-100/70"
                 placeholder={t('Explore.searchPlaceholder', { defaultValue: 'Search worlds, agents, posts...' })}
                 value={props.searchText}
@@ -238,9 +186,12 @@ export function ExploreView(props: ExploreViewProps) {
       </div>
 
       {/* Scrollable content */}
-      <div className="relative min-h-0 flex-1 bg-[#F0F4F8]">
-        <div ref={scrollContainerRef} className="explore-scroll-shell h-full overflow-y-auto bg-[#F0F4F8]">
-          <div className="mx-auto max-w-6xl px-6 py-8">
+      <ScrollShell
+        ref={scrollContainerRef}
+        className="min-h-0 flex-1 bg-[#F0F4F8]"
+        viewportClassName="bg-[#F0F4F8]"
+        contentClassName="mx-auto max-w-6xl px-6 py-8"
+      >
           {/* World Banner Carousel */}
           {worldsWithBanners.length > 0 && (
             <section className="relative mb-10">
@@ -421,21 +372,7 @@ export function ExploreView(props: ExploreViewProps) {
               className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2"
             />
           </section>
-          </div>
-        </div>
-        {scrollbarMetrics.visible ? (
-          <div className="pointer-events-none absolute bottom-3 right-1 top-3 z-10 w-[10px]">
-            <div className="absolute inset-x-[3px] inset-y-0 rounded-full bg-transparent" />
-            <div
-              className="absolute right-[1px] w-[6px] rounded-full bg-[rgba(148,163,184,0.36)] transition-colors duration-200 hover:bg-[rgba(148,163,184,0.52)]"
-              style={{
-                top: `${scrollbarMetrics.top}px`,
-                height: `${scrollbarMetrics.height}px`,
-              }}
-            />
-          </div>
-        ) : null}
-      </div>
+      </ScrollShell>
 
       <button
         type="button"

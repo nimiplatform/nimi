@@ -7,6 +7,7 @@ import type { ChatViewDto } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import nimiLogo from '@renderer/assets/logo-gray.png';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal.js';
 import { toProfileData } from '@renderer/features/profile/profile-model';
 import { ChatProfileCard } from './message-timeline-profile-card.js';
@@ -255,7 +256,11 @@ export function MessageTimeline() {
         </header>
 
         {/* Messages */}
-        <div className="app-scroll-shell flex-1 space-y-4 overflow-y-auto bg-white px-4 py-4">
+        <ScrollShell
+          className="flex-1 bg-white"
+          viewportClassName="bg-white"
+          contentClassName="space-y-4 px-4 py-4"
+        >
           {messages.length === 0 ? (
             <p className="text-center text-sm text-gray-500">{t('Chat.noMessages')}</p>
           ) : (
@@ -468,7 +473,7 @@ export function MessageTimeline() {
           )}
 
           <div ref={bottomRef} />
-        </div>
+        </ScrollShell>
         <div
           role="separator"
           aria-orientation="horizontal"
@@ -486,22 +491,20 @@ export function MessageTimeline() {
 
       {profilePanelTarget ? (
         <aside className="flex h-full w-80 shrink-0 flex-col border-l border-gray-200 bg-white">
-          <div className="app-scroll-shell flex-1 overflow-y-auto">
-            <div className="px-4 py-4">
-              <ChatProfileCard 
-                profileData={toProfileData(profileQuery.data || profileSummary)}
-                onClose={() => setProfilePanelTarget(null)}
-                onViewFullProfile={() => {
-                  if (!profileSummary.id) return;
-                  navigateToProfile(profileSummary.id, profileSummary.isAgent ? 'agent-detail' : 'profile');
-                }}
-                viewFullProfileLabel={profileActionLabel}
-                onOpenGift={profilePanelTarget === 'other' && profileSummary.id
-                  ? () => setGiftModalOpen(true)
-                  : undefined}
-              />
-            </div>
-          </div>
+          <ScrollShell className="flex-1" contentClassName="px-4 py-4">
+            <ChatProfileCard
+              profileData={toProfileData(profileQuery.data || profileSummary)}
+              onClose={() => setProfilePanelTarget(null)}
+              onViewFullProfile={() => {
+                if (!profileSummary.id) return;
+                navigateToProfile(profileSummary.id, profileSummary.isAgent ? 'agent-detail' : 'profile');
+              }}
+              viewFullProfileLabel={profileActionLabel}
+              onOpenGift={profilePanelTarget === 'other' && profileSummary.id
+                ? () => setGiftModalOpen(true)
+                : undefined}
+            />
+          </ScrollShell>
         </aside>
       ) : null}
 

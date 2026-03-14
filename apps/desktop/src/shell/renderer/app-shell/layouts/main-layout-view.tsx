@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import { i18n } from '@renderer/i18n';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
 import { resolveRouteTabExtension } from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
 import { StatusBanner } from '@renderer/ui/feedback/status-banner';
@@ -526,7 +527,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               </SidebarTooltipButton>
             </div>
 
-            <nav className="app-scroll-shell flex-1 overflow-y-auto pt-2">
+            <ScrollShell as="nav" className="flex-1" viewportClassName="pt-2">
               <div className="flex flex-col gap-1">
                 {primaryCoreNavItems.map((item) => (
                   <NavLink
@@ -555,7 +556,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   />
                 ) : null}
               </div>
-            </nav>
+            </ScrollShell>
 
           </aside>
         )}
@@ -692,7 +693,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
 
           <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/20 to-transparent" />
 
-          <div className="app-scroll-shell flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#4ECCA3/30_transparent]">
+          <ScrollShell className="flex-1">
             <div className="px-2">
               <button
                 type="button"
@@ -765,7 +766,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                 </svg>
               </button>
             </div>
-          </div>
+          </ScrollShell>
         </div>
       ) : null}
     </div>

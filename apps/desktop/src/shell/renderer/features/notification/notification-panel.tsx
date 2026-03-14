@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { formatLocaleDate, formatRelativeLocaleTime, i18n } from '@renderer/i18n';
@@ -458,8 +459,10 @@ export function NotificationPanel() {
       </div>
 
       {/* Notification List */}
-      <div className="app-scroll-shell min-h-0 flex-1 overflow-y-auto px-6 py-4">
-        <div className="mx-auto max-w-2xl space-y-3">
+      <ScrollShell
+        className="min-h-0 flex-1"
+        contentClassName="mx-auto max-w-2xl space-y-3 px-6 py-4"
+      >
           {notificationsQuery.isPending && items.length === 0 ? (
             <div className="rounded-2xl bg-white p-8 text-center text-sm text-gray-400">
               <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-mint-200 border-t-mint-500" />
@@ -581,8 +584,7 @@ export function NotificationPanel() {
               </button>
             </div>
           ) : null}
-        </div>
-      </div>
+      </ScrollShell>
 
       {/* Reject Gift Modal */}
       {rejectingItem && (

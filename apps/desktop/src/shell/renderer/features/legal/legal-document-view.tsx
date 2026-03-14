@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 
 type LegalSection = {
   title: string;
@@ -20,8 +21,11 @@ export function LegalDocumentView(props: { documentKey: 'terms' | 'privacy' }) {
   const content = t(`Legal.${props.documentKey}`, { returnObjects: true }) as unknown as LegalDocumentContent;
 
   return (
-    <div className="app-scroll-shell flex min-h-0 flex-1 flex-col overflow-y-auto bg-gray-50">
-      <div className="mx-auto max-w-3xl px-6 py-10">
+    <ScrollShell
+      className="flex min-h-0 flex-1 flex-col bg-gray-50"
+      viewportClassName="bg-gray-50"
+      contentClassName="mx-auto max-w-3xl px-6 py-10"
+    >
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">{content.title}</h1>
           <p className="mt-2 text-sm text-gray-500">{content.lastUpdatedLabel}: {content.lastUpdated}</p>
@@ -51,7 +55,6 @@ export function LegalDocumentView(props: { documentKey: 'terms' | 'privacy' }) {
         <div className="mt-12 border-t border-gray-200 pt-8 text-center text-xs text-gray-400">
           <p>{content.footer}</p>
         </div>
-      </div>
-    </div>
+    </ScrollShell>
   );
 }

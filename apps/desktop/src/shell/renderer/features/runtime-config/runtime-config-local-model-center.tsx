@@ -13,6 +13,7 @@ import {
   type OrphanModelFile,
 } from '@runtime/local-ai-runtime';
 import { i18n } from '@renderer/i18n';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import {
   CAPABILITY_OPTIONS,
   PROGRESS_RETENTION_MS,
@@ -647,8 +648,7 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white">
-      <div className="app-scroll-shell flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <ScrollShell className="flex-1" contentClassName="mx-auto max-w-4xl space-y-6 p-6">
           <LocalModelCenterToolbar
             checkingHealth={props.checkingHealth}
             localHealthy={localHealthy}
@@ -788,8 +788,7 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
               onInstallMissingArtifacts={(artifacts) => { void installMissingArtifactsForModel(artifacts); }}
             />
           ) : null}
-        </div>
-      </div>
+      </ScrollShell>
     </div>
   );
 }

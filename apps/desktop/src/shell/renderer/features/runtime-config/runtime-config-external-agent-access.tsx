@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import {
   getExternalAgentGatewayStatus,
   issueExternalAgentToken,
@@ -210,7 +211,7 @@ export function ExternalAgentAccessPanel() {
         {tokens.length <= 0 ? (
           <p className="text-xs text-gray-500">{t('runtimeConfig.eaa.noTokensIssued', { defaultValue: 'No tokens issued.' })}</p>
         ) : (
-            <div className="app-scroll-shell max-h-64 space-y-2 overflow-auto">
+            <ScrollShell className="max-h-64" viewportClassName="max-h-64" contentClassName="space-y-2">
             {tokens.map((token) => {
               const isRevoked = Boolean(token.revokedAt);
               const isExpired = token.expiresAt && new Date(token.expiresAt).getTime() < Date.now();
@@ -256,7 +257,7 @@ export function ExternalAgentAccessPanel() {
                 </div>
               );
             })}
-          </div>
+          </ScrollShell>
         )}
       </Card>
     </div>

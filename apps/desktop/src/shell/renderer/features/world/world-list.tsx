@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { APP_DISPLAY_SECTION_TITLE_CLASS, APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { prefetchWorldDetailAndEvents, worldListQueryKey } from './world-detail-queries';
@@ -197,7 +198,7 @@ export function WorldList() {
             <div className="h-11 w-[300px] animate-pulse rounded-full bg-white/80" />
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <ScrollShell className="flex-1" contentClassName="px-6 py-6">
           <div className="mx-auto max-w-6xl space-y-8">
             <div className="space-y-4">
               <div className="h-6 w-28 animate-pulse rounded-lg bg-white/80" />
@@ -233,7 +234,7 @@ export function WorldList() {
               </div>
             </div>
           </div>
-        </div>
+        </ScrollShell>
       </div>
     );
   }
@@ -247,19 +248,23 @@ export function WorldList() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col" style={{ backgroundColor: '#F0F4F8' }}>
+    <div
+      className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
+      style={{ background: 'linear-gradient(180deg, #1B1530 0%, #231E3B 14%, #312A4F 36%, #E7EDF6 100%)' }}
+    >
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[460px] bg-[radial-gradient(circle_at_top,_rgba(125,211,252,0.18),_transparent_42%),radial-gradient(circle_at_18%_20%,_rgba(168,85,247,0.16),_transparent_28%),radial-gradient(circle_at_82%_18%,_rgba(56,189,248,0.14),_transparent_24%)]" />
       {/* Header bar */}
-      <div className="shrink-0 px-6 py-4" style={{ backgroundColor: '#F0F4F8' }}>
+      <div className="relative shrink-0 px-6 py-6">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
           <div className="min-w-0">
-            <h1 className={APP_PAGE_TITLE_CLASS} style={{ color: '#1A1A1A' }}>{t('World.title')}</h1>
-            <span className="text-xs" style={{ color: '#888888' }}>
+            <h1 className={APP_PAGE_TITLE_CLASS} style={{ color: '#F8FAFF' }}>{t('World.title')}</h1>
+            <span className="text-xs" style={{ color: 'rgba(226,232,240,0.78)' }}>
               {t('World.syncedFromDesktop', { defaultValue: 'Synced from Desktop' })}
             </span>
           </div>
-          <div className="w-[300px] shrink-0">
+          <div className="w-[340px] shrink-0">
             <div className="group relative">
-              <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-emerald-500">
+              <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-white/45 transition-colors group-focus-within:text-emerald-300">
                 {ICON_SEARCH}
               </span>
               <input
@@ -271,7 +276,7 @@ export function WorldList() {
                 placeholder={t('World.searchByNameOrDescription', {
                   defaultValue: 'Search worlds by name or description...',
                 })}
-                className="w-full rounded-full border border-white/70 bg-white/85 py-2.5 pl-11 pr-5 text-sm text-gray-900 placeholder:text-gray-400 shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none backdrop-blur-xl transition-all focus:border-emerald-200 focus:bg-white focus:shadow-[0_14px_36px_rgba(16,185,129,0.10)] focus:ring-4 focus:ring-emerald-100/70"
+                className="w-full rounded-full border border-white/12 bg-white/10 py-2.5 pl-11 pr-5 text-sm text-white placeholder:text-white/45 shadow-[0_18px_40px_rgba(6,10,24,0.22)] outline-none backdrop-blur-xl transition-all focus:border-emerald-300/40 focus:bg-white/14 focus:shadow-[0_18px_50px_rgba(16,185,129,0.14)] focus:ring-4 focus:ring-emerald-300/10"
               />
             </div>
           </div>
@@ -279,142 +284,149 @@ export function WorldList() {
       </div>
 
       {/* Scrollable content */}
-      <div className="app-scroll-shell flex-1 overflow-y-auto px-6 py-6" style={{ backgroundColor: '#F0F4F8' }}>
+      <ScrollShell className="flex-1" viewportClassName="" contentClassName="px-6 pb-10 pt-2">
         <div className="mx-auto max-w-6xl">
           {/* Main World Card */}
           {mainWorld && !searchText && (
-            <div className="mb-8">
-              <h2 className={`${APP_DISPLAY_SECTION_TITLE_CLASS} mb-4`} style={{ fontFamily: 'var(--font-display)', color: '#1A1A1A' }}>{t('World.mainWorld')}</h2>
+            <div className="mb-10">
+              <h2 className={`${APP_DISPLAY_SECTION_TITLE_CLASS} mb-4`} style={{ fontFamily: 'var(--font-display)', color: '#F8FAFF' }}>{t('World.mainWorld')}</h2>
               <div
                 onClick={() => openWorldDetail(mainWorld.id)}
-                className="group cursor-pointer rounded-3xl bg-white p-6 transition-all duration-300 hover:-translate-y-1"
-                style={{ 
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.04)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.08)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.04)';
+                className="group relative min-h-[640px] cursor-pointer overflow-hidden rounded-[34px] border border-white/10 transition-all duration-500 hover:-translate-y-1"
+                style={{
+                  background:
+                    'radial-gradient(circle at top, rgba(120,119,198,0.24), rgba(18,22,39,0.95) 58%), linear-gradient(180deg, rgba(22,17,38,0.86), rgba(39,33,69,0.92))',
+                  boxShadow: '0 28px 60px rgba(9,12,24,0.35)',
                 }}
               >
-                {mainWorld.bannerUrl && (
-                  <div className="relative -mx-6 -mt-6 mb-5 h-40 overflow-hidden rounded-t-3xl">
+                {mainWorld.bannerUrl ? (
+                  <div className="absolute inset-0">
                     <img
                       src={mainWorld.bannerUrl}
                       alt={mainWorld.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
+                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(24,16,44,0.34)_0%,rgba(24,16,44,0.14)_24%,rgba(24,16,44,0.18)_48%,rgba(24,16,44,0.78)_82%,rgba(24,16,44,0.92)_100%)]" />
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_18%,rgba(255,255,255,0.14),transparent_18%),radial-gradient(circle_at_28%_18%,rgba(167,139,250,0.18),transparent_26%),radial-gradient(circle_at_76%_24%,rgba(103,232,249,0.16),transparent_22%)]" />
                   </div>
-                )}
+                ) : null}
 
-                <div className="flex items-start gap-5">
-                  <div className="relative shrink-0">
-                    {mainWorld.iconUrl ? (
-                      <img
-                        src={mainWorld.iconUrl}
-                        alt={mainWorld.name}
-                        className="h-20 w-20 rounded-2xl object-cover shadow-sm"
-                      />
-                    ) : (
-                      <div className="flex h-20 w-20 items-center justify-center rounded-2xl text-3xl font-bold text-white shadow-sm"
-                        style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)' }}>
-                        {mainWorld.name.charAt(0).toUpperCase()}
+                <div className="relative flex h-full flex-col justify-end p-8">
+                  <div
+                    className="w-full max-w-[760px] rounded-[28px] border border-white/14 px-7 py-6 backdrop-blur-2xl transition-transform duration-500 group-hover:translate-y-[-2px]"
+                    style={{
+                      background:
+                        'linear-gradient(180deg, rgba(30,27,50,0.68) 0%, rgba(41,35,67,0.74) 100%)',
+                      boxShadow: '0 18px 40px rgba(8,10,18,0.28), inset 0 1px 0 rgba(255,255,255,0.10)',
+                    }}
+                  >
+                    <div className="flex items-start gap-5">
+                      <div className="relative shrink-0">
+                        {mainWorld.iconUrl ? (
+                          <img
+                            src={mainWorld.iconUrl}
+                            alt={mainWorld.name}
+                            className="h-24 w-24 rounded-[24px] object-cover shadow-[0_12px_24px_rgba(0,0,0,0.24)] ring-1 ring-white/12"
+                          />
+                        ) : (
+                          <div
+                            className="flex h-24 w-24 items-center justify-center rounded-[24px] text-4xl font-bold text-white shadow-[0_12px_24px_rgba(0,0,0,0.24)]"
+                            style={{ background: 'linear-gradient(135deg, #7C6BFF 0%, #A855F7 50%, #F0ABFC 100%)' }}
+                          >
+                            {mainWorld.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-xl font-semibold truncate" style={{ color: '#1A1A1A', fontWeight: 600 }}>{mainWorld.name}</h3>
-                      <span className="inline-flex items-center gap-1 text-xs shrink-0" style={{ color: '#666666' }}>
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <rect x="3" y="11" width="18" height="10" rx="2" />
-                          <circle cx="12" cy="5" r="2" />
-                          <path d="M12 7v4" />
-                          <line x1="8" y1="16" x2="8" y2="16" />
-                          <line x1="16" y1="16" x2="16" y2="16" />
-                        </svg>
-                        {mainWorld.agentCount}
-                      </span>
-                    </div>
 
-                    <div className="flex items-center gap-2 mt-2">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${getTagStyle('status', mainWorld.status).bg} ${getTagStyle('status', mainWorld.status).text}`}
-                        style={{ borderRadius: '9999px' }}
-                      >
-                        {mainWorld.status}
-                      </span>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${getTagStyle('creation', mainWorld.nativeCreationState).bg} ${getTagStyle('creation', mainWorld.nativeCreationState).text}`}
-                        style={{ borderRadius: '9999px' }}
-                      >
-                        {mainWorld.nativeCreationState}
-                      </span>
-                    </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-3">
+                          <h3 className="truncate text-[42px] font-semibold leading-none tracking-[-0.03em] text-white">
+                            {mainWorld.name}
+                          </h3>
+                          <span className="inline-flex items-center gap-1.5 text-xs text-white/72">
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <rect x="3" y="11" width="18" height="10" rx="2" />
+                              <circle cx="12" cy="5" r="2" />
+                              <path d="M12 7v4" />
+                              <line x1="8" y1="16" x2="8" y2="16" />
+                              <line x1="16" y1="16" x2="16" y2="16" />
+                            </svg>
+                            {mainWorld.agentCount}
+                          </span>
+                        </div>
 
-                    {(mainWorld.genre || mainWorld.era || mainWorld.themes.length > 0) && (
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        {mainWorld.genre && (
-                          <span 
-                            className={`inline-block px-3 py-1 text-xs font-medium ${getTagStyle('genre').bg} ${getTagStyle('genre').text}`}
-                            style={{ borderRadius: '9999px' }}
-                          >
-                            {mainWorld.genre}
-                          </span>
-                        )}
-                        {mainWorld.era && (
-                          <span 
-                            className={`inline-block px-3 py-1 text-xs font-medium ${getTagStyle('era').bg} ${getTagStyle('era').text}`}
-                            style={{ borderRadius: '9999px' }}
-                          >
-                            {mainWorld.era}
-                          </span>
-                        )}
-                        {mainWorld.themes.slice(0, 3).map((theme, idx) => (
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
                           <span
-                            key={idx}
-                            className={`inline-block px-3 py-1 text-xs font-medium ${getTagStyle('theme').bg} ${getTagStyle('theme').text}`}
-                            style={{ borderRadius: '9999px' }}
+                            className="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-200"
+                            style={{ background: 'rgba(52,211,153,0.20)' }}
                           >
-                            {theme}
+                            {mainWorld.status}
                           </span>
-                        ))}
-                        {mainWorld.themes.length > 3 && (
-                          <span 
-                            className="inline-block px-3 py-1 text-xs font-medium bg-gray-100 text-gray-500"
-                            style={{ borderRadius: '9999px' }}
+                          <span
+                            className="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-cyan-100"
+                            style={{ background: 'rgba(125,211,252,0.18)' }}
                           >
-                            +{mainWorld.themes.length - 3}
+                            {mainWorld.nativeCreationState}
                           </span>
+                        </div>
+
+                        {(mainWorld.genre || mainWorld.era || mainWorld.themes.length > 0) && (
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            {mainWorld.genre && (
+                              <span className="rounded-full bg-white/14 px-3 py-1 text-xs font-medium text-white/85">
+                                {mainWorld.genre}
+                              </span>
+                            )}
+                            {mainWorld.era && (
+                              <span className="rounded-full bg-white/14 px-3 py-1 text-xs font-medium text-white/85">
+                                {mainWorld.era}
+                              </span>
+                            )}
+                            {mainWorld.themes.slice(0, 5).map((theme, idx) => (
+                              <span key={idx} className="rounded-full bg-white/12 px-3 py-1 text-xs font-medium text-white/82">
+                                {theme}
+                              </span>
+                            ))}
+                            {mainWorld.themes.length > 5 && (
+                              <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/70">
+                                +{mainWorld.themes.length - 5}
+                              </span>
+                            )}
+                          </div>
                         )}
-                      </div>
-                    )}
 
-                    {mainWorld.description && (
-                      <p 
-                        className="mt-3 text-sm line-clamp-2"
-                        style={{ color: '#666666', lineHeight: 1.5 }}
-                      >
-                        {mainWorld.description}
-                      </p>
-                    )}
+                        {mainWorld.description ? (
+                          <p className="mt-4 text-base leading-7 text-white/78">{mainWorld.description}</p>
+                        ) : null}
 
-                    {mainWorld.creatorId && (
-                      <div className="mt-2 text-xs" style={{ color: '#888888' }}>
-                        {t('WorldDetail.creatorId', { id: mainWorld.creatorId })}
+                        <div className="mt-3 flex items-center gap-2 text-sm text-white/62">
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M16 16c-1.5-1.5-3-2-4-2s-2.5.5-4 2" />
+                            <path d="M8 10a4 4 0 1 1 8 0" />
+                            <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Z" />
+                          </svg>
+                          <span>{t('World.primaryInstance', { defaultValue: 'Primary Instance' })}</span>
+                        </div>
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -423,7 +435,7 @@ export function WorldList() {
 
           {/* Sub Worlds Grid */}
           <div>
-            <h2 className={`${APP_DISPLAY_SECTION_TITLE_CLASS} mb-4`} style={{ fontFamily: 'var(--font-display)', color: '#1A1A1A' }}>
+            <h2 className={`${APP_DISPLAY_SECTION_TITLE_CLASS} mb-4`} style={{ fontFamily: 'var(--font-display)', color: searchText ? '#1A1A1A' : '#F8FAFF' }}>
               {searchText ? t('World.searchResults') : t('World.subWorlds')}
             </h2>
             {subWorlds.length === 0 ? (
@@ -446,21 +458,26 @@ export function WorldList() {
                 </p>
               </div>
             ) : (
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-x-7 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
                 {subWorlds.map((world) => {
                   return (
                     <div
                       key={world.id}
                       onClick={() => openWorldDetail(world.id)}
-                      className="group cursor-pointer rounded-2xl bg-white p-5 transition-all duration-300 hover:-translate-y-1"
+                      className="group cursor-pointer overflow-hidden rounded-[24px] border border-white/10 p-5 transition-all duration-300 hover:-translate-y-1"
                       style={{ 
-                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.04)',
+                        background: searchText ? '#FFFFFF' : 'linear-gradient(180deg, rgba(255,255,255,0.92), rgba(245,247,252,0.90))',
+                        boxShadow: searchText ? '0 8px 24px rgba(0, 0, 0, 0.04)' : '0 14px 36px rgba(12,14,26,0.14)',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.08)';
+                        e.currentTarget.style.boxShadow = searchText
+                          ? '0 12px 32px rgba(0, 0, 0, 0.08)'
+                          : '0 20px 44px rgba(12,14,26,0.2)';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.04)';
+                        e.currentTarget.style.boxShadow = searchText
+                          ? '0 8px 24px rgba(0, 0, 0, 0.04)'
+                          : '0 14px 36px rgba(12,14,26,0.14)';
                       }}
                     >
                       {world.bannerUrl && (
@@ -587,7 +604,7 @@ export function WorldList() {
             )}
           </div>
         </div>
-      </div>
+      </ScrollShell>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import type { LocalAiAuditEvent } from '@runtime/local-ai-runtime';
 import { useTranslation } from 'react-i18next';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { Tooltip } from '@renderer/components/tooltip.js';
 import { formatLocaleDateTime, formatRelativeLocaleTime } from '@renderer/i18n';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
@@ -308,7 +309,10 @@ function LocalDebugContent() {
       </div>
 
       {/* Timeline */}
-      <div className="app-scroll-shell max-h-[calc(100vh-30rem)] overflow-y-auto rounded-xl border border-gray-100 bg-gray-50/50">
+      <ScrollShell
+        className="max-h-[calc(100vh-30rem)] rounded-xl border border-gray-100 bg-gray-50/50"
+        viewportClassName="max-h-[calc(100vh-30rem)]"
+      >
         {filteredAudits.length === 0 ? (
           <p className="px-5 py-8 text-center text-sm text-gray-500">
             {t('runtimeConfig.runtime.noLocalAuditEvents', {
@@ -322,7 +326,7 @@ function LocalDebugContent() {
             ))}
           </div>
         )}
-      </div>
+      </ScrollShell>
     </div>
   );
 }

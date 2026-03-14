@@ -1,4 +1,5 @@
 import type { Location } from './create-post-modal-helpers.js';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { i18n } from '@renderer/i18n';
 
 export function EmojiPickerPanel(input: {
@@ -60,7 +61,7 @@ export function EmojiPickerPanel(input: {
           ) : null}
         </div>
       </div>
-      <div className="app-scroll-shell max-h-[260px] overflow-y-auto p-3">
+      <ScrollShell className="max-h-[260px]" viewportClassName="max-h-[260px]" contentClassName="p-3">
         <div className="grid grid-cols-8 gap-1">
           {activeCategory.emojis.map((emoji, index) => (
             <button
@@ -73,7 +74,7 @@ export function EmojiPickerPanel(input: {
             </button>
           ))}
         </div>
-      </div>
+      </ScrollShell>
     </div>
   );
 }
@@ -114,7 +115,7 @@ export function LocationPickerPanel(input: {
           />
         </div>
       </div>
-      <div className="app-scroll-shell max-h-48 overflow-y-auto py-2">
+      <ScrollShell className="max-h-48" viewportClassName="max-h-48" contentClassName="py-2">
         {input.loadingLocations ? (
           <div className="px-3 py-4 text-center text-sm text-gray-500">
             {i18n.t('Profile.CreatePost.loadingLocations', { defaultValue: 'Loading locations...' })}
@@ -151,7 +152,7 @@ export function LocationPickerPanel(input: {
               : i18n.t('Profile.CreatePost.noWorldsAvailable', { defaultValue: 'No worlds available' })}
           </div>
         )}
-      </div>
+      </ScrollShell>
     </div>
   );
 }
@@ -195,7 +196,7 @@ export function TagPickerPanel(input: {
           />
         </div>
       </div>
-      <div className="app-scroll-shell max-h-48 overflow-y-auto py-2">
+      <ScrollShell className="max-h-48" viewportClassName="max-h-48" contentClassName="py-2">
         {input.filteredTags.length > 0 ? (
           <div className="mb-1">
             {input.filteredTags.map((tag) => (
@@ -252,7 +253,7 @@ export function TagPickerPanel(input: {
             {i18n.t('Profile.CreatePost.typeToSearchOrCreateTag', { defaultValue: 'Type to search or create a new tag' })}
           </div>
         ) : null}
-      </div>
+      </ScrollShell>
     </div>
   );
 }

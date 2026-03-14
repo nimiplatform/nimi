@@ -2,6 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { XianxiaWorldTemplate, type XianxiaWorldData } from './world-xianxia-template';
 import type { WorldListItem } from './world-list';
@@ -173,7 +174,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   });
 
   return (
-    <div className="app-scroll-shell h-full overflow-y-auto bg-[#f8fafb]">
+    <ScrollShell className="h-full bg-[#f8fafb]" viewportClassName="bg-[#f8fafb]">
       <XianxiaWorldTemplate
         world={worldData}
         agents={agents}
@@ -190,6 +191,6 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
         onCreateAgent={(input) => createAgentMutation.mutate(input)}
         createAgentMutating={createAgentMutation.isPending}
       />
-    </div>
+    </ScrollShell>
   );
 }

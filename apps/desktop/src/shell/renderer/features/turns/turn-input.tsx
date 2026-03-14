@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { SlotHost } from '@renderer/mod-ui/host/slot-host';
 import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
@@ -517,7 +518,7 @@ export function TurnInput(props: TurnInputProps = {}) {
           </div>
 
           {/* Emoji grid */}
-          <div className="app-scroll-shell p-3 max-h-[260px] overflow-y-auto">
+          <ScrollShell className="max-h-[260px]" viewportClassName="max-h-[260px]" contentClassName="p-3">
             <div className="grid grid-cols-8 gap-1">
               {activeCategory.emojis.map((emoji, index) => (
                 <button
@@ -530,7 +531,7 @@ export function TurnInput(props: TurnInputProps = {}) {
                 </button>
               ))}
             </div>
-          </div>
+          </ScrollShell>
         </div>
       )}
 

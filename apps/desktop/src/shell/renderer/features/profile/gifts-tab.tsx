@@ -1,5 +1,6 @@
 ﻿import { useState } from 'react';
 import { formatLocaleDate, formatLocaleNumber, i18n } from '@renderer/i18n';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 
 // Mock data for gift feed
 const MOCK_GIFT_FEED = [
@@ -471,7 +472,7 @@ function TopSupportersModal({
         </div>
 
         {/* Supporters List */}
-            <div className="app-scroll-shell max-h-[400px] overflow-y-auto">
+            <ScrollShell className="max-h-[400px]" viewportClassName="max-h-[400px]">
           {MOCK_TOP_SUPPORTERS.map((supporter) => (
             <div 
               key={supporter.id}
@@ -507,7 +508,7 @@ function TopSupportersModal({
               </div>
             </div>
           ))}
-        </div>
+        </ScrollShell>
 
         {/* Footer */}
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">

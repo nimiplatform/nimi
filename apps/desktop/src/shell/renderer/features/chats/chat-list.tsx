@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import type { ChatViewDto } from '@nimiplatform/sdk/realm';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { formatLocaleDate, formatRelativeLocaleTime, i18n } from '@renderer/i18n';
@@ -26,7 +27,10 @@ function ChatListLoadingSkeleton() {
         </div>
       </div>
 
-      <div className="app-scroll-shell flex-1 space-y-2 overflow-y-auto px-3 py-2 pb-3">
+      <ScrollShell
+        className="flex-1"
+        contentClassName="space-y-2 px-3 py-2 pb-3"
+      >
         {Array.from({ length: 8 }).map((_, index) => (
           <div key={`chat-skeleton-row-${index}`} className="flex gap-3 rounded-lg bg-white p-3 shadow-sm">
             <ChatSkeletonBlock className="h-12 w-12 shrink-0" />
@@ -39,7 +43,7 @@ function ChatListLoadingSkeleton() {
             </div>
           </div>
         ))}
-      </div>
+      </ScrollShell>
     </div>
   );
 }
@@ -197,7 +201,10 @@ export function ChatList() {
       </div>
 
       {/* List */}
-      <div className="app-scroll-shell flex-1 overflow-y-auto py-2 px-3 pb-3">
+      <ScrollShell
+        className="flex-1"
+        contentClassName="px-3 py-2 pb-3"
+      >
         {chats.length === 0 ? (
           <p className="p-4 text-center text-sm text-gray-500">{t('Chat.noChats')}</p>
         ) : (
@@ -273,7 +280,7 @@ export function ChatList() {
             );
           })
         )}
-      </div>
+      </ScrollShell>
     </div>
   );
 }

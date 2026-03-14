@@ -715,6 +715,7 @@
     "noWorlds": "No sub worlds",
     "noSearchResults": "No worlds found",
     "syncedFromDesktop": "Synced from Desktop",
+    "primaryInstance": "Primary Instance",
     "createAgent": {
       "title": "Create New Agent",
       "subtitle": "Bring a new character to life in {{worldName}}",

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { Tooltip } from '@renderer/components/tooltip.js';
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model';
@@ -38,7 +39,10 @@ function ContactsLoadingSkeleton() {
           </div>
         </div>
 
-        <div className="app-scroll-shell flex-1 space-y-3 overflow-y-auto px-3 py-2">
+        <ScrollShell
+          className="flex-1"
+          contentClassName="space-y-3 px-3 py-2"
+        >
           {Array.from({ length: 6 }).map((_, index) => (
             <div key={`contacts-skeleton-row-${index}`} className="rounded-2xl bg-white/80 p-3 shadow-sm">
               <div className="flex items-center gap-3">
@@ -50,7 +54,7 @@ function ContactsLoadingSkeleton() {
               </div>
             </div>
           ))}
-        </div>
+        </ScrollShell>
       </aside>
 
       <main className="flex min-w-0 flex-1 flex-col bg-white p-8">
@@ -466,7 +470,10 @@ export function ContactsView(props: ContactsViewProps) {
         </div>
 
         {/* 可展开的分类列表或搜索结果 */}
-        <div className="app-scroll-shell flex-1 overflow-y-auto py-1.5 space-y-0.5">
+        <ScrollShell
+          className="flex-1"
+          contentClassName="space-y-0.5 py-1.5"
+        >
           {props.searchText.trim() ? (
             <ContactsSearchResults
               searchText={props.searchText}
@@ -502,7 +509,7 @@ export function ContactsView(props: ContactsViewProps) {
               }}
             />
           )}
-        </div>
+        </ScrollShell>
         <div
           role="separator"
           aria-orientation="vertical"
@@ -513,7 +520,11 @@ export function ContactsView(props: ContactsViewProps) {
       </aside>
 
       {/* 右侧详情区 - 使用 ProfileView */}
-      <main className="app-scroll-shell flex-1 flex flex-col min-w-0 bg-white overflow-y-auto">
+      <ScrollShell
+        as="main"
+        className="flex min-w-0 flex-1 flex-col bg-white"
+        viewportClassName="bg-white"
+      >
         {selectedRequest ? (
           // 单个好友请求详情
           <FriendRequestDetail
@@ -580,7 +591,7 @@ export function ContactsView(props: ContactsViewProps) {
             </div>
           </div>
         )}
-      </main>
+      </ScrollShell>
 
       {/* Block 确认对话框 */}
       {blockingContact && (

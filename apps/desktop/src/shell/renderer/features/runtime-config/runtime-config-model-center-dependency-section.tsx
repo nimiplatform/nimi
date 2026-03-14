@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LocalAiDependencyResolutionPlan } from '@runtime/local-ai-runtime';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import type { RuntimeDependencyTargetDescriptor } from './runtime-config-panel-types';
 import { CAPABILITY_OPTIONS, type CapabilityOption } from './runtime-config-model-center-utils';
 import { RuntimeSelect } from './runtime-config-primitives';
@@ -214,7 +215,7 @@ export function ModelCenterDependencySection(props: ModelCenterDependencySection
               </div>
 
               {props.dependencyPlanPreview.dependencies.length > 0 && (
-          <div className="app-scroll-shell space-y-1 max-h-32 overflow-y-auto">
+          <ScrollShell className="max-h-32" viewportClassName="max-h-32" contentClassName="space-y-1">
                   {props.dependencyPlanPreview.dependencies.map((dep) => (
                     <div key={dependencyDisplayKey(dep)} className="flex items-center justify-between text-xs py-1">
                       <span className="text-gray-700">{dependencyDisplayKey(dep)}</span>
@@ -232,7 +233,7 @@ export function ModelCenterDependencySection(props: ModelCenterDependencySection
                       </div>
                     </div>
                   ))}
-                </div>
+                </ScrollShell>
               )}
 
               <Button

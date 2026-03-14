@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import type { ProfileData, ProfileTab } from './profile-model';
 import { formatProfileDate } from './profile-model';
 import { PostsTab } from './posts-tab';
@@ -36,8 +37,7 @@ function ProfileSkeletonBlock(props: { className: string }) {
 function ProfileLoadingSkeleton() {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#F0F4F8]">
-      <div className="app-scroll-shell flex-1 overflow-y-auto">
-        <div className="mx-auto w-[min(1400px,calc(100vw-48px))] py-5">
+      <ScrollShell className="flex-1" contentClassName="mx-auto max-w-7xl px-5 py-5">
           <div className="overflow-hidden rounded-[28px] border border-[#dbe3ea] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
             <div className="relative h-[190px] w-full overflow-hidden bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200">
               <div className="absolute left-5 top-5">
@@ -123,8 +123,7 @@ function ProfileLoadingSkeleton() {
               </div>
             </div>
           </div>
-        </div>
-      </div>
+      </ScrollShell>
     </div>
   );
 }
@@ -312,8 +311,7 @@ export function ProfileView(props: ProfileViewProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#F0F4F8]">
-      <div className="app-scroll-shell flex-1 overflow-y-auto">
-        <div className="mx-auto w-[min(1400px,calc(100vw-48px))] py-5">
+      <ScrollShell className="flex-1" contentClassName="mx-auto max-w-7xl px-5 py-5">
           <div className="overflow-hidden rounded-[28px] border border-[#dbe3ea] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
             <div className="relative h-[190px] w-full overflow-hidden" style={agentHeaderStyle}>
               <div className="absolute inset-0 bg-gradient-to-r from-[#191f2d]/16 via-transparent to-[#ffffff]/10" />
@@ -563,8 +561,7 @@ export function ProfileView(props: ProfileViewProps) {
               )}
             </div>
           </div>
-        </div>
-      </div>
+      </ScrollShell>
 
       {/* Delete Friend Confirmation Modal */}
       {showDeleteModal && (

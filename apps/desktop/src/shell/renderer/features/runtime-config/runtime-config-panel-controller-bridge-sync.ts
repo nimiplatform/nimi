@@ -7,6 +7,7 @@ import {
   buildRuntimeBridgeConfigFromState,
   serializeRuntimeBridgeProjection,
 } from './runtime-bridge-config';
+import { replaceConnectorsInState } from './runtime-config-connector-actions';
 import { asRecord, type SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 
 const RUNTIME_BRIDGE_CONFIG_RESTART_REQUIRED = 'CONFIG_RESTART_REQUIRED';
@@ -57,7 +58,6 @@ export function useRuntimeConfigBridgeSync(input: UseRuntimeConfigBridgeSyncInpu
             const { sdkListConnectors } = await import('./runtime-config-connector-sdk-service');
             const connectors = await sdkListConnectors();
             if (!cancelled && connectors.length > 0) {
-              const { replaceConnectorsInState } = await import('./runtime-config-connector-actions');
               setState((previous) => {
                 if (!previous) return previous;
                 return replaceConnectorsInState(previous, connectors);
