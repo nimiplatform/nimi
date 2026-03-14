@@ -46,13 +46,21 @@ enum LocalEngineRuntimeMode {
   LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT = 2;
 }
 
-enum LocalDependencyKind {
-  LOCAL_DEPENDENCY_KIND_UNSPECIFIED = 0;
-  LOCAL_DEPENDENCY_KIND_MODEL = 1;
-  LOCAL_DEPENDENCY_KIND_SERVICE = 2;
-  LOCAL_DEPENDENCY_KIND_NODE = 3;
+enum LocalExecutionEntryKind {
+  LOCAL_EXECUTION_ENTRY_KIND_UNSPECIFIED = 0;
+  LOCAL_EXECUTION_ENTRY_KIND_MODEL = 1;
+  LOCAL_EXECUTION_ENTRY_KIND_SERVICE = 2;
+  LOCAL_EXECUTION_ENTRY_KIND_NODE = 3;
   reserved 4;
-  reserved "LOCAL_DEPENDENCY_KIND_WORKFLOW";
+  reserved "LOCAL_EXECUTION_ENTRY_KIND_WORKFLOW";
+}
+
+enum LocalProfileEntryKind {
+  LOCAL_PROFILE_ENTRY_KIND_UNSPECIFIED = 0;
+  LOCAL_PROFILE_ENTRY_KIND_MODEL = 1;
+  LOCAL_PROFILE_ENTRY_KIND_ARTIFACT = 2;
+  LOCAL_PROFILE_ENTRY_KIND_SERVICE = 3;
+  LOCAL_PROFILE_ENTRY_KIND_NODE = 4;
 }
 
 message LocalModelSource {
@@ -263,9 +271,9 @@ message LocalDeviceProfile {
   repeated LocalPortAvailability ports = 7;
 }
 
-message LocalDependencyOptionDescriptor {
-  string dependency_id = 1;
-  LocalDependencyKind kind = 2;
+message LocalExecutionOptionDescriptor {
+  string entry_id = 1;
+  LocalExecutionEntryKind kind = 2;
   string capability = 3;
   string title = 4;
   string model_id = 5;
@@ -277,22 +285,22 @@ message LocalDependencyOptionDescriptor {
   string engine = 10;
 }
 
-message LocalDependencyAlternativeDescriptor {
+message LocalExecutionAlternativeDescriptor {
   string alternative_id = 1;
-  string preferred_dependency_id = 2;
-  repeated LocalDependencyOptionDescriptor options = 3;
+  string preferred_entry_id = 2;
+  repeated LocalExecutionOptionDescriptor options = 3;
 }
 
-message LocalDependenciesDeclarationDescriptor {
-  repeated LocalDependencyOptionDescriptor required = 1;
-  repeated LocalDependencyOptionDescriptor optional = 2;
-  repeated LocalDependencyAlternativeDescriptor alternatives = 3;
+message LocalExecutionDeclarationDescriptor {
+  repeated LocalExecutionOptionDescriptor required = 1;
+  repeated LocalExecutionOptionDescriptor optional = 2;
+  repeated LocalExecutionAlternativeDescriptor alternatives = 3;
   map<string, string> preferred = 4;
 }
 
-message LocalDependencyDescriptor {
-  string dependency_id = 1;
-  LocalDependencyKind kind = 2;
+message LocalExecutionEntryDescriptor {
+  string entry_id = 1;
+  LocalExecutionEntryKind kind = 2;
   string capability = 3;
   bool required = 4;
   bool selected = 5;
@@ -309,7 +317,7 @@ message LocalDependencyDescriptor {
 }
 
 message LocalPreflightDecision {
-  string dependency_id = 1;
+  string entry_id = 1;
   string target = 2;
   string check = 3;
   bool ok = 4;
@@ -317,26 +325,26 @@ message LocalPreflightDecision {
   string detail = 6;
 }
 
-message LocalDependencySelectionRationale {
-  string dependency_id = 1;
+message LocalExecutionSelectionRationale {
+  string entry_id = 1;
   bool selected = 2;
   string reason_code = 3;
   string detail = 4;
 }
 
-message LocalDependencyResolutionPlan {
+message LocalExecutionPlan {
   string plan_id = 1;
   string mod_id = 2;
   string capability = 3;
   LocalDeviceProfile device_profile = 4;
-  repeated LocalDependencyDescriptor dependencies = 5;
-  repeated LocalDependencySelectionRationale selection_rationale = 6;
+  repeated LocalExecutionEntryDescriptor entries = 5;
+  repeated LocalExecutionSelectionRationale selection_rationale = 6;
   repeated LocalPreflightDecision preflight_decisions = 7;
   repeated string warnings = 8;
   string reason_code = 9;
 }
 
-message LocalDependencyApplyStageResult {
+message LocalExecutionStageResult {
   string stage = 1;
   bool ok = 2;
   string reason_code = 3;
@@ -357,18 +365,85 @@ message LocalServiceDescriptor {
   string updated_at = 11;
 }
 
-message LocalDependencyApplyResult {
+message LocalExecutionApplyResult {
   string plan_id = 1;
   string mod_id = 2;
-  repeated LocalDependencyDescriptor dependencies = 3;
+  repeated LocalExecutionEntryDescriptor entries = 3;
   repeated LocalModelRecord installed_models = 4;
   repeated LocalServiceDescriptor services = 5;
   repeated string capabilities = 6;
-  repeated LocalDependencyApplyStageResult stage_results = 7;
+  repeated LocalExecutionStageResult stage_results = 7;
   repeated LocalPreflightDecision preflight_decisions = 8;
   bool rollback_applied = 9;
   repeated string warnings = 10;
   string reason_code = 11;
+}
+
+message LocalProfileRequirementDescriptor {
+  double min_gpu_memory_gb = 1;
+  int64 min_disk_bytes = 2;
+  repeated string platforms = 3;
+  repeated string notes = 4;
+}
+
+message LocalProfileEntryDescriptor {
+  string entry_id = 1;
+  LocalProfileEntryKind kind = 2;
+  string title = 3;
+  string description = 4;
+  string capability = 5;
+  optional bool required = 6;
+  optional bool preferred = 7;
+  string model_id = 8;
+  string repo = 9;
+  string service_id = 10;
+  string node_id = 11;
+  string engine = 12;
+  string artifact_id = 13;
+  LocalArtifactKind artifact_kind = 14;
+  string template_id = 15;
+  string revision = 16;
+  repeated string tags = 17;
+}
+
+message LocalProfileDescriptor {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  bool recommended = 4;
+  repeated string consume_capabilities = 5;
+  repeated LocalProfileEntryDescriptor entries = 6;
+  LocalProfileRequirementDescriptor requirements = 7;
+}
+
+message LocalProfileArtifactPlanEntry {
+  LocalProfileEntryDescriptor entry = 1;
+  bool installed = 2;
+}
+
+message LocalProfileResolutionPlan {
+  string plan_id = 1;
+  string mod_id = 2;
+  string profile_id = 3;
+  string title = 4;
+  string description = 5;
+  bool recommended = 6;
+  repeated string consume_capabilities = 7;
+  LocalProfileRequirementDescriptor requirements = 8;
+  LocalExecutionPlan execution_plan = 9;
+  repeated LocalProfileArtifactPlanEntry artifact_entries = 10;
+  repeated string warnings = 11;
+  string reason_code = 12;
+}
+
+message LocalProfileApplyResult {
+  string plan_id = 1;
+  string mod_id = 2;
+  string profile_id = 3;
+  LocalExecutionApplyResult execution_result = 4;
+  repeated LocalArtifactRecord installed_artifacts = 5;
+  repeated string warnings = 6;
+  string reason_code = 7;
 }
 
 message LocalNodeDescriptor {

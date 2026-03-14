@@ -1,21 +1,23 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
+  findLocalAiProfileById,
   localAiRuntime,
+  normalizeLocalAiProfilesDeclaration,
   type GoRuntimeSyncTarget,
   type LocalAiArtifactKind,
   syncModelInstallToGoRuntime,
   syncModelStartToGoRuntime,
   reconcileModelsToGoRuntime,
-  type LocalAiDependenciesDeclarationDescriptor,
-  type LocalAiDependencyResolutionPlan,
   type LocalAiCatalogItemDescriptor,
   type LocalAiInstallPayload,
   type LocalAiInstallPlanDescriptor,
+  type LocalAiProfileApplyResult,
+  type LocalAiProfileDescriptor,
+  type LocalAiProfileResolutionPlan,
 } from '@runtime/local-ai-runtime';
 import { createOfflineError, getOfflineCoordinator } from '@runtime/offline';
 import { i18n } from '@renderer/i18n';
-import type { CapabilityV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 import { asRecord } from './runtime-config-panel-controller-utils';
 import {
@@ -55,14 +57,14 @@ export type RuntimeConfigInstallActions = {
     plan: LocalAiInstallPlanDescriptor,
     source: 'catalog' | 'manual' | 'verified',
   ) => void;
-  resolveRuntimeDependencies: (
+  resolveRuntimeProfile: (
     modId: string,
-    capability?: CapabilityV11 | string,
-  ) => Promise<LocalAiDependencyResolutionPlan>;
-  applyRuntimeDependencies: (
+    profileId: string,
+  ) => Promise<LocalAiProfileResolutionPlan>;
+  applyRuntimeProfile: (
     modId: string,
-    capability?: CapabilityV11 | string,
-  ) => Promise<void>;
+    profileId: string,
+  ) => Promise<LocalAiProfileApplyResult>;
   installCatalogLocalModel: (
     item: LocalAiCatalogItemDescriptor,
     options?: {
@@ -305,49 +307,47 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     });
   }, [runInstallPlanLifecycle, setStatusBanner]);
 
-  const findManifestDependenciesByModId = useCallback((modId: string): LocalAiDependenciesDeclarationDescriptor | null => {
+  const findManifestProfilesByModId = useCallback((modId: string): LocalAiProfileDescriptor[] => {
     const normalizedModId = String(modId || '').trim();
     if (!normalizedModId) {
-      return null;
+      return [];
     }
     const summary = localManifestSummaries.find((item) => String(item.id || '').trim() === normalizedModId) || null;
     if (!summary) {
-      return null;
+      return [];
     }
     const manifest = asRecord(summary.manifest);
     const ai = asRecord(manifest.ai);
-    const dependencies = ai.dependencies;
-    if (dependencies && typeof dependencies === 'object' && !Array.isArray(dependencies)) {
-      return dependencies as LocalAiDependenciesDeclarationDescriptor;
-    }
-    return null;
+    return normalizeLocalAiProfilesDeclaration(ai.profiles);
   }, [localManifestSummaries]);
 
-  const resolveRuntimeDependencies = useCallback(async (
+  const resolveRuntimeProfile = useCallback(async (
     modId: string,
-    capability?: CapabilityV11 | string,
-  ): Promise<LocalAiDependencyResolutionPlan> => {
-    const dependencies = findManifestDependenciesByModId(modId);
-    if (!dependencies) {
-      throw new Error(`dependencies missing in manifest: ${modId}`);
+    profileId: string,
+  ): Promise<LocalAiProfileResolutionPlan> => {
+    const profiles = findManifestProfilesByModId(modId);
+    const profile = findLocalAiProfileById(profiles, profileId);
+    if (!profile) {
+      throw new Error(`profile missing in manifest: ${modId}/${profileId}`);
     }
-    const deviceProfile = await localAiRuntime.collectDeviceProfile();
-    return localAiRuntime.resolveDependencies({
+    return localAiRuntime.resolveProfile({
       modId,
-      capability: String(capability || '').trim() || undefined,
-      dependencies,
-      deviceProfile,
+      profile,
     });
-  }, [findManifestDependenciesByModId]);
+  }, [findManifestProfilesByModId]);
 
-  const applyRuntimeDependencies = useCallback(async (
+  const applyRuntimeProfile = useCallback(async (
     modId: string,
-    capability?: CapabilityV11 | string,
-  ) => {
+    profileId: string,
+  ): Promise<LocalAiProfileApplyResult> => {
     try {
       assertRuntimeWriteAllowed();
-      const plan = await resolveRuntimeDependencies(modId, capability);
-      const result = await localAiRuntime.applyDependencies(plan, { caller: 'core' });
+      const plan = await resolveRuntimeProfile(modId, profileId);
+      const confirmMessage = `Install recommended local profile "${plan.title}" for ${modId}?`;
+      if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(confirmMessage)) {
+        throw new Error('LOCAL_AI_PROFILE_INSTALL_DECLINED');
+      }
+      const result = await localAiRuntime.applyProfile(plan, { caller: 'core' });
       await refreshLocalSnapshot();
       try {
         const fullModels = await localAiRuntime.list();
@@ -360,37 +360,40 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
         setStatusBanner({
           kind: 'warning',
           message: translateRuntimeLocalText(
-            'runtimeConfig.local.dependenciesAppliedSyncFailed',
-            'Dependencies applied, but Go runtime sync failed: {{message}}',
+            'runtimeConfig.local.profileAppliedSyncFailed',
+            'Profile installed, but Go runtime sync failed: {{message}}',
             { message: syncError instanceof Error ? syncError.message : String(syncError || '') },
           ),
         });
-        return;
+        return result;
       }
       setStatusBanner({
         kind: 'success',
         message: translateRuntimeLocalText(
-          'runtimeConfig.local.dependenciesAppliedSummary',
-          'Dependencies applied for {{modId}}: {{modelCount}} model(s), {{serviceCount}} service(s)',
+          'runtimeConfig.local.profileAppliedSummary',
+          'Installed profile {{profileId}} for {{modId}}: {{modelCount}} model(s), {{serviceCount}} service(s), {{artifactCount}} artifact(s)',
           {
             modId,
-            modelCount: result.installedModels.length,
-            serviceCount: result.services.length,
+            profileId,
+            modelCount: result.executionResult.installedModels.length,
+            serviceCount: result.executionResult.services.length,
+            artifactCount: result.installedArtifacts.length,
           },
         ),
       });
+      return result;
     } catch (error) {
       setStatusBanner({
         kind: 'error',
         message: translateRuntimeLocalText(
-          'runtimeConfig.local.dependencyApplyFailed',
-          'Dependency apply failed: {{message}}',
+          'runtimeConfig.local.profileApplyFailed',
+          'Profile install failed: {{message}}',
           { message: error instanceof Error ? error.message : String(error || '') },
         ),
       });
       throw error;
     }
-  }, [assertRuntimeWriteAllowed, recordGoRuntimeSyncFailure, refreshLocalSnapshot, resolveRuntimeDependencies, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, recordGoRuntimeSyncFailure, refreshLocalSnapshot, resolveRuntimeProfile, setStatusBanner]);
 
   const installCatalogLocalModel = useCallback(async (
     item: LocalAiCatalogItemDescriptor,
@@ -585,8 +588,8 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     installSessionMeta,
     onDownloadComplete,
     retryInstall,
-    resolveRuntimeDependencies,
-    applyRuntimeDependencies,
+    resolveRuntimeProfile,
+    applyRuntimeProfile,
     installCatalogLocalModel,
     installLocalModel,
     installVerifiedLocalModel,

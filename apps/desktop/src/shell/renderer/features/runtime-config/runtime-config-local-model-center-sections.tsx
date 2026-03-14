@@ -3,17 +3,18 @@ import { i18n } from '@renderer/i18n';
 import type {
   LocalAiArtifactRecord,
   LocalAiDownloadProgressEvent,
+  LocalAiProfileApplyResult,
+  LocalAiProfileResolutionPlan,
   LocalAiVerifiedArtifactDescriptor,
   LocalAiVerifiedModelDescriptor,
-  LocalAiDependencyResolutionPlan,
 } from '@runtime/local-ai-runtime';
 import type {
   RuntimeConfigStateV11,
   RuntimeSetupPageIdV11,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import type { RuntimeDependencyTargetDescriptor } from './runtime-config-panel-types';
+import type { RuntimeProfileTargetDescriptor } from './runtime-config-panel-types';
 import { RuntimeSelect } from './runtime-config-primitives';
-import { ModelCenterDependencySection } from './runtime-config-model-center-dependency-section';
+import { ModelCenterProfileSection } from './runtime-config-model-center-profile-section';
 import {
   CAPABILITY_OPTIONS,
   downloadStateLabel,
@@ -21,6 +22,7 @@ import {
   formatDownloadPhaseLabel,
   formatEta,
   formatSpeed,
+  resolveSelectedRuntimeProfileTarget,
   type CapabilityOption,
 } from './runtime-config-model-center-utils';
 import {
@@ -39,28 +41,31 @@ import {
 
 type ModModeViewProps = {
   state: RuntimeConfigStateV11;
-  selectedDependencyModId: string;
-  loadingDependencyPlan: boolean;
-  dependencySelectionLocked: boolean;
-  selectedDependencyCapability: 'auto' | CapabilityOption;
-  dependencyPlanPreview: LocalAiDependencyResolutionPlan | null;
-  runtimeDependencyTargets: RuntimeDependencyTargetDescriptor[];
-  onSetSelectedDependencyModId: (modId: string) => void;
-  onSetSelectedDependencyCapability: (capability: 'auto' | CapabilityOption) => void;
-  onResolveDependencyPlanPreview: () => void;
-  onApplyDependencies: (modId: string, capability?: string) => Promise<void>;
+  selectedProfileModId: string;
+  loadingProfilePlan: boolean;
+  profileSelectionLocked: boolean;
+  selectedProfileId: string;
+  profilePlanPreview: LocalAiProfileResolutionPlan | null;
+  runtimeProfileTargets: RuntimeProfileTargetDescriptor[];
+  onSetSelectedProfileModId: (modId: string) => void;
+  onSetSelectedProfileId: (profileId: string) => void;
+  onResolveProfilePlanPreview: () => void;
+  onApplyProfile: (modId: string, profileId: string) => Promise<LocalAiProfileApplyResult>;
   onNavigateToSetup?: (pageId: RuntimeSetupPageIdV11) => void;
 };
 
 export function LocalModelCenterModModeView(props: ModModeViewProps) {
-  const modCapabilities = props.runtimeDependencyTargets.find((item) => item.modId === props.selectedDependencyModId)?.consumeCapabilities || [];
+  const modCapabilities = props.runtimeProfileTargets.find((item) => item.modId === props.selectedProfileModId)?.consumeCapabilities || [];
   const capabilityStatuses = modCapabilities.map((capability) => {
     const localNode = props.state.local.nodeMatrix.find((node) => node.capability === capability && node.available);
     const hasLocalModel = props.state.local.models.some((model) => model.status === 'active' && model.capabilities.includes(capability));
     return { capability, localAvailable: Boolean(localNode) || hasLocalModel };
   });
   const hasUnavailable = capabilityStatuses.some((item) => !item.localAvailable);
-  const selectedDependencyTarget = props.runtimeDependencyTargets.find((item) => item.modId === props.selectedDependencyModId) || null;
+  const selectedProfileTarget = resolveSelectedRuntimeProfileTarget(
+    props.runtimeProfileTargets,
+    props.selectedProfileModId,
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white">
@@ -74,13 +79,13 @@ export function LocalModelCenterModModeView(props: ModModeViewProps) {
           <div className="space-y-4 rounded-2xl bg-white p-6 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
             <div>
               <h4 className="text-sm font-semibold text-gray-900">
-                {selectedDependencyTarget?.modName
-                  || props.selectedDependencyModId
+                {selectedProfileTarget?.modName
+                  || props.selectedProfileModId
                   || i18n.t('runtimeConfig.localModelCenter.runtimeMod', { defaultValue: 'Runtime Mod' })}
               </h4>
               <p className="text-xs text-gray-500">
-                {i18n.t('runtimeConfig.localModelCenter.modDependenciesDescription', {
-                  defaultValue: 'Configure only this mod&apos;s declared model dependencies.',
+                {i18n.t('runtimeConfig.localModelCenter.modProfilesDescription', {
+                  defaultValue: 'Configure only this mod&apos;s declared local AI profiles.',
                 })}
               </p>
             </div>
@@ -101,19 +106,19 @@ export function LocalModelCenterModModeView(props: ModModeViewProps) {
                 </div>
               </div>
             ) : null}
-            <ModelCenterDependencySection
+            <ModelCenterProfileSection
               isModMode
-              loadingDependencyPlan={props.loadingDependencyPlan}
-              selectedDependencyModId={props.selectedDependencyModId}
-              dependencySelectionLocked={props.dependencySelectionLocked}
-              selectedDependencyTarget={selectedDependencyTarget}
-              selectedDependencyCapability={props.selectedDependencyCapability}
-              dependencyPlanPreview={props.dependencyPlanPreview}
-              runtimeDependencyTargets={props.runtimeDependencyTargets}
-              onSetSelectedDependencyModId={props.onSetSelectedDependencyModId}
-              onSetSelectedDependencyCapability={props.onSetSelectedDependencyCapability}
-              onResolveDependencyPlanPreview={props.onResolveDependencyPlanPreview}
-              onApplyDependencies={props.onApplyDependencies}
+              loadingProfilePlan={props.loadingProfilePlan}
+              selectedProfileModId={props.selectedProfileModId}
+              profileSelectionLocked={props.profileSelectionLocked}
+              selectedProfileId={props.selectedProfileId}
+              selectedProfileTarget={selectedProfileTarget}
+              executionPlanPreview={props.profilePlanPreview}
+              runtimeProfileTargets={props.runtimeProfileTargets}
+              onSetSelectedProfileModId={props.onSetSelectedProfileModId}
+              onSetSelectedProfileId={props.onSetSelectedProfileId}
+              onResolveProfilePlanPreview={props.onResolveProfilePlanPreview}
+              onApplyProfile={props.onApplyProfile}
             />
           </div>
           {hasUnavailable ? (

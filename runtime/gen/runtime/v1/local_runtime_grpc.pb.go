@@ -37,8 +37,8 @@ const (
 	RuntimeLocalService_CheckLocalModelHealth_FullMethodName   = "/nimi.runtime.v1.RuntimeLocalService/CheckLocalModelHealth"
 	RuntimeLocalService_WarmLocalModel_FullMethodName          = "/nimi.runtime.v1.RuntimeLocalService/WarmLocalModel"
 	RuntimeLocalService_CollectDeviceProfile_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile"
-	RuntimeLocalService_ResolveDependencies_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/ResolveDependencies"
-	RuntimeLocalService_ApplyDependencies_FullMethodName       = "/nimi.runtime.v1.RuntimeLocalService/ApplyDependencies"
+	RuntimeLocalService_ResolveProfile_FullMethodName          = "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile"
+	RuntimeLocalService_ApplyProfile_FullMethodName            = "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile"
 	RuntimeLocalService_ListLocalServices_FullMethodName       = "/nimi.runtime.v1.RuntimeLocalService/ListLocalServices"
 	RuntimeLocalService_InstallLocalService_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/InstallLocalService"
 	RuntimeLocalService_StartLocalService_FullMethodName       = "/nimi.runtime.v1.RuntimeLocalService/StartLocalService"
@@ -78,8 +78,8 @@ type RuntimeLocalServiceClient interface {
 	CheckLocalModelHealth(ctx context.Context, in *CheckLocalModelHealthRequest, opts ...grpc.CallOption) (*CheckLocalModelHealthResponse, error)
 	WarmLocalModel(ctx context.Context, in *WarmLocalModelRequest, opts ...grpc.CallOption) (*WarmLocalModelResponse, error)
 	CollectDeviceProfile(ctx context.Context, in *CollectDeviceProfileRequest, opts ...grpc.CallOption) (*CollectDeviceProfileResponse, error)
-	ResolveDependencies(ctx context.Context, in *ResolveDependenciesRequest, opts ...grpc.CallOption) (*ResolveDependenciesResponse, error)
-	ApplyDependencies(ctx context.Context, in *ApplyDependenciesRequest, opts ...grpc.CallOption) (*ApplyDependenciesResponse, error)
+	ResolveProfile(ctx context.Context, in *ResolveProfileRequest, opts ...grpc.CallOption) (*ResolveProfileResponse, error)
+	ApplyProfile(ctx context.Context, in *ApplyProfileRequest, opts ...grpc.CallOption) (*ApplyProfileResponse, error)
 	ListLocalServices(ctx context.Context, in *ListLocalServicesRequest, opts ...grpc.CallOption) (*ListLocalServicesResponse, error)
 	InstallLocalService(ctx context.Context, in *InstallLocalServiceRequest, opts ...grpc.CallOption) (*InstallLocalServiceResponse, error)
 	StartLocalService(ctx context.Context, in *StartLocalServiceRequest, opts ...grpc.CallOption) (*StartLocalServiceResponse, error)
@@ -286,20 +286,20 @@ func (c *runtimeLocalServiceClient) CollectDeviceProfile(ctx context.Context, in
 	return out, nil
 }
 
-func (c *runtimeLocalServiceClient) ResolveDependencies(ctx context.Context, in *ResolveDependenciesRequest, opts ...grpc.CallOption) (*ResolveDependenciesResponse, error) {
+func (c *runtimeLocalServiceClient) ResolveProfile(ctx context.Context, in *ResolveProfileRequest, opts ...grpc.CallOption) (*ResolveProfileResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ResolveDependenciesResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_ResolveDependencies_FullMethodName, in, out, cOpts...)
+	out := new(ResolveProfileResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ResolveProfile_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeLocalServiceClient) ApplyDependencies(ctx context.Context, in *ApplyDependenciesRequest, opts ...grpc.CallOption) (*ApplyDependenciesResponse, error) {
+func (c *runtimeLocalServiceClient) ApplyProfile(ctx context.Context, in *ApplyProfileRequest, opts ...grpc.CallOption) (*ApplyProfileResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ApplyDependenciesResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_ApplyDependencies_FullMethodName, in, out, cOpts...)
+	out := new(ApplyProfileResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ApplyProfile_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -478,8 +478,8 @@ type RuntimeLocalServiceServer interface {
 	CheckLocalModelHealth(context.Context, *CheckLocalModelHealthRequest) (*CheckLocalModelHealthResponse, error)
 	WarmLocalModel(context.Context, *WarmLocalModelRequest) (*WarmLocalModelResponse, error)
 	CollectDeviceProfile(context.Context, *CollectDeviceProfileRequest) (*CollectDeviceProfileResponse, error)
-	ResolveDependencies(context.Context, *ResolveDependenciesRequest) (*ResolveDependenciesResponse, error)
-	ApplyDependencies(context.Context, *ApplyDependenciesRequest) (*ApplyDependenciesResponse, error)
+	ResolveProfile(context.Context, *ResolveProfileRequest) (*ResolveProfileResponse, error)
+	ApplyProfile(context.Context, *ApplyProfileRequest) (*ApplyProfileResponse, error)
 	ListLocalServices(context.Context, *ListLocalServicesRequest) (*ListLocalServicesResponse, error)
 	InstallLocalService(context.Context, *InstallLocalServiceRequest) (*InstallLocalServiceResponse, error)
 	StartLocalService(context.Context, *StartLocalServiceRequest) (*StartLocalServiceResponse, error)
@@ -559,11 +559,11 @@ func (UnimplementedRuntimeLocalServiceServer) WarmLocalModel(context.Context, *W
 func (UnimplementedRuntimeLocalServiceServer) CollectDeviceProfile(context.Context, *CollectDeviceProfileRequest) (*CollectDeviceProfileResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CollectDeviceProfile not implemented")
 }
-func (UnimplementedRuntimeLocalServiceServer) ResolveDependencies(context.Context, *ResolveDependenciesRequest) (*ResolveDependenciesResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ResolveDependencies not implemented")
+func (UnimplementedRuntimeLocalServiceServer) ResolveProfile(context.Context, *ResolveProfileRequest) (*ResolveProfileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResolveProfile not implemented")
 }
-func (UnimplementedRuntimeLocalServiceServer) ApplyDependencies(context.Context, *ApplyDependenciesRequest) (*ApplyDependenciesResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ApplyDependencies not implemented")
+func (UnimplementedRuntimeLocalServiceServer) ApplyProfile(context.Context, *ApplyProfileRequest) (*ApplyProfileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ApplyProfile not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) ListLocalServices(context.Context, *ListLocalServicesRequest) (*ListLocalServicesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListLocalServices not implemented")
@@ -954,38 +954,38 @@ func _RuntimeLocalService_CollectDeviceProfile_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeLocalService_ResolveDependencies_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ResolveDependenciesRequest)
+func _RuntimeLocalService_ResolveProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveProfileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).ResolveDependencies(ctx, in)
+		return srv.(RuntimeLocalServiceServer).ResolveProfile(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeLocalService_ResolveDependencies_FullMethodName,
+		FullMethod: RuntimeLocalService_ResolveProfile_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).ResolveDependencies(ctx, req.(*ResolveDependenciesRequest))
+		return srv.(RuntimeLocalServiceServer).ResolveProfile(ctx, req.(*ResolveProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeLocalService_ApplyDependencies_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ApplyDependenciesRequest)
+func _RuntimeLocalService_ApplyProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ApplyProfileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).ApplyDependencies(ctx, in)
+		return srv.(RuntimeLocalServiceServer).ApplyProfile(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeLocalService_ApplyDependencies_FullMethodName,
+		FullMethod: RuntimeLocalService_ApplyProfile_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).ApplyDependencies(ctx, req.(*ApplyDependenciesRequest))
+		return srv.(RuntimeLocalServiceServer).ApplyProfile(ctx, req.(*ApplyProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1340,12 +1340,12 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeLocalService_CollectDeviceProfile_Handler,
 		},
 		{
-			MethodName: "ResolveDependencies",
-			Handler:    _RuntimeLocalService_ResolveDependencies_Handler,
+			MethodName: "ResolveProfile",
+			Handler:    _RuntimeLocalService_ResolveProfile_Handler,
 		},
 		{
-			MethodName: "ApplyDependencies",
-			Handler:    _RuntimeLocalService_ApplyDependencies_Handler,
+			MethodName: "ApplyProfile",
+			Handler:    _RuntimeLocalService_ApplyProfile_Handler,
 		},
 		{
 			MethodName: "ListLocalServices",

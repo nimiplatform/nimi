@@ -139,51 +139,19 @@ pub struct LocalAiRuntimeAuditPayload {
     pub payload: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiDependencyOptionPayload {
-    pub dependency_id: String,
-    pub kind: String,
-    pub capability: Option<String>,
-    pub title: Option<String>,
-    pub model_id: Option<String>,
-    pub repo: Option<String>,
-    pub service_id: Option<String>,
-    pub node_id: Option<String>,
-    pub workflow_id: Option<String>,
-    pub engine: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiDependencyAlternativePayload {
-    pub alternative_id: String,
-    pub preferred_dependency_id: Option<String>,
-    pub options: Vec<LocalAiDependencyOptionPayload>,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiDependenciesDeclarationPayload {
-    pub required: Option<Vec<LocalAiDependencyOptionPayload>>,
-    pub optional: Option<Vec<LocalAiDependencyOptionPayload>>,
-    pub alternatives: Option<Vec<LocalAiDependencyAlternativePayload>>,
-    pub preferred: Option<std::collections::HashMap<String, String>>,
-}
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiDependenciesResolvePayload {
+pub struct LocalAiProfilesResolvePayload {
     pub mod_id: String,
+    pub profile: LocalAiProfileDescriptor,
     pub capability: Option<String>,
-    pub dependencies: Option<LocalAiDependenciesDeclarationPayload>,
-    pub device_profile: LocalAiDeviceProfile,
+    pub device_profile: Option<LocalAiDeviceProfile>,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiDependenciesApplyPayload {
-    pub plan: LocalAiDependencyResolutionPlan,
+pub struct LocalAiProfilesApplyPayload {
+    pub plan: LocalAiProfileResolutionPlan,
 }
 
 #[derive(Debug, Deserialize)]

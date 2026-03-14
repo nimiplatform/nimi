@@ -740,17 +740,17 @@ export interface LocalDeviceProfile {
     ports: LocalPortAvailability[];
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalDependencyOptionDescriptor
+ * @generated from protobuf message nimi.runtime.v1.LocalExecutionOptionDescriptor
  */
-export interface LocalDependencyOptionDescriptor {
+export interface LocalExecutionOptionDescriptor {
     /**
-     * @generated from protobuf field: string dependency_id = 1
+     * @generated from protobuf field: string entry_id = 1
      */
-    dependencyId: string;
+    entryId: string;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalDependencyKind kind = 2
+     * @generated from protobuf field: nimi.runtime.v1.LocalExecutionEntryKind kind = 2
      */
-    kind: LocalDependencyKind;
+    kind: LocalExecutionEntryKind;
     /**
      * @generated from protobuf field: string capability = 3
      */
@@ -781,38 +781,38 @@ export interface LocalDependencyOptionDescriptor {
     engine: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalDependencyAlternativeDescriptor
+ * @generated from protobuf message nimi.runtime.v1.LocalExecutionAlternativeDescriptor
  */
-export interface LocalDependencyAlternativeDescriptor {
+export interface LocalExecutionAlternativeDescriptor {
     /**
      * @generated from protobuf field: string alternative_id = 1
      */
     alternativeId: string;
     /**
-     * @generated from protobuf field: string preferred_dependency_id = 2
+     * @generated from protobuf field: string preferred_entry_id = 2
      */
-    preferredDependencyId: string;
+    preferredEntryId: string;
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalDependencyOptionDescriptor options = 3
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalExecutionOptionDescriptor options = 3
      */
-    options: LocalDependencyOptionDescriptor[];
+    options: LocalExecutionOptionDescriptor[];
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalDependenciesDeclarationDescriptor
+ * @generated from protobuf message nimi.runtime.v1.LocalExecutionDeclarationDescriptor
  */
-export interface LocalDependenciesDeclarationDescriptor {
+export interface LocalExecutionDeclarationDescriptor {
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalDependencyOptionDescriptor required = 1
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalExecutionOptionDescriptor required = 1
      */
-    required: LocalDependencyOptionDescriptor[];
+    required: LocalExecutionOptionDescriptor[];
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalDependencyOptionDescriptor optional = 2
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalExecutionOptionDescriptor optional = 2
      */
-    optional: LocalDependencyOptionDescriptor[];
+    optional: LocalExecutionOptionDescriptor[];
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalDependencyAlternativeDescriptor alternatives = 3
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalExecutionAlternativeDescriptor alternatives = 3
      */
-    alternatives: LocalDependencyAlternativeDescriptor[];
+    alternatives: LocalExecutionAlternativeDescriptor[];
     /**
      * @generated from protobuf field: map<string, string> preferred = 4
      */
@@ -821,17 +821,17 @@ export interface LocalDependenciesDeclarationDescriptor {
     };
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalDependencyDescriptor
+ * @generated from protobuf message nimi.runtime.v1.LocalExecutionEntryDescriptor
  */
-export interface LocalDependencyDescriptor {
+export interface LocalExecutionEntryDescriptor {
     /**
-     * @generated from protobuf field: string dependency_id = 1
+     * @generated from protobuf field: string entry_id = 1
      */
-    dependencyId: string;
+    entryId: string;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalDependencyKind kind = 2
+     * @generated from protobuf field: nimi.runtime.v1.LocalExecutionEntryKind kind = 2
      */
-    kind: LocalDependencyKind;
+    kind: LocalExecutionEntryKind;
     /**
      * @generated from protobuf field: string capability = 3
      */
@@ -882,9 +882,9 @@ export interface LocalDependencyDescriptor {
  */
 export interface LocalPreflightDecision {
     /**
-     * @generated from protobuf field: string dependency_id = 1
+     * @generated from protobuf field: string entry_id = 1
      */
-    dependencyId: string;
+    entryId: string;
     /**
      * @generated from protobuf field: string target = 2
      */
@@ -907,13 +907,13 @@ export interface LocalPreflightDecision {
     detail: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalDependencySelectionRationale
+ * @generated from protobuf message nimi.runtime.v1.LocalExecutionSelectionRationale
  */
-export interface LocalDependencySelectionRationale {
+export interface LocalExecutionSelectionRationale {
     /**
-     * @generated from protobuf field: string dependency_id = 1
+     * @generated from protobuf field: string entry_id = 1
      */
-    dependencyId: string;
+    entryId: string;
     /**
      * @generated from protobuf field: bool selected = 2
      */
@@ -928,9 +928,9 @@ export interface LocalDependencySelectionRationale {
     detail: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalDependencyResolutionPlan
+ * @generated from protobuf message nimi.runtime.v1.LocalExecutionPlan
  */
-export interface LocalDependencyResolutionPlan {
+export interface LocalExecutionPlan {
     /**
      * @generated from protobuf field: string plan_id = 1
      */
@@ -948,13 +948,13 @@ export interface LocalDependencyResolutionPlan {
      */
     deviceProfile?: LocalDeviceProfile;
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalDependencyDescriptor dependencies = 5
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalExecutionEntryDescriptor entries = 5
      */
-    dependencies: LocalDependencyDescriptor[];
+    entries: LocalExecutionEntryDescriptor[];
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalDependencySelectionRationale selection_rationale = 6
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalExecutionSelectionRationale selection_rationale = 6
      */
-    selectionRationale: LocalDependencySelectionRationale[];
+    selectionRationale: LocalExecutionSelectionRationale[];
     /**
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalPreflightDecision preflight_decisions = 7
      */
@@ -969,9 +969,9 @@ export interface LocalDependencyResolutionPlan {
     reasonCode: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalDependencyApplyStageResult
+ * @generated from protobuf message nimi.runtime.v1.LocalExecutionStageResult
  */
-export interface LocalDependencyApplyStageResult {
+export interface LocalExecutionStageResult {
     /**
      * @generated from protobuf field: string stage = 1
      */
@@ -1039,9 +1039,9 @@ export interface LocalServiceDescriptor {
     updatedAt: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalDependencyApplyResult
+ * @generated from protobuf message nimi.runtime.v1.LocalExecutionApplyResult
  */
-export interface LocalDependencyApplyResult {
+export interface LocalExecutionApplyResult {
     /**
      * @generated from protobuf field: string plan_id = 1
      */
@@ -1051,9 +1051,9 @@ export interface LocalDependencyApplyResult {
      */
     modId: string;
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalDependencyDescriptor dependencies = 3
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalExecutionEntryDescriptor entries = 3
      */
-    dependencies: LocalDependencyDescriptor[];
+    entries: LocalExecutionEntryDescriptor[];
     /**
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalModelRecord installed_models = 4
      */
@@ -1067,9 +1067,9 @@ export interface LocalDependencyApplyResult {
      */
     capabilities: string[];
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalDependencyApplyStageResult stage_results = 7
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalExecutionStageResult stage_results = 7
      */
-    stageResults: LocalDependencyApplyStageResult[];
+    stageResults: LocalExecutionStageResult[];
     /**
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalPreflightDecision preflight_decisions = 8
      */
@@ -1084,6 +1084,232 @@ export interface LocalDependencyApplyResult {
     warnings: string[];
     /**
      * @generated from protobuf field: string reason_code = 11
+     */
+    reasonCode: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalProfileRequirementDescriptor
+ */
+export interface LocalProfileRequirementDescriptor {
+    /**
+     * @generated from protobuf field: double min_gpu_memory_gb = 1
+     */
+    minGpuMemoryGb: number;
+    /**
+     * @generated from protobuf field: int64 min_disk_bytes = 2
+     */
+    minDiskBytes: string;
+    /**
+     * @generated from protobuf field: repeated string platforms = 3
+     */
+    platforms: string[];
+    /**
+     * @generated from protobuf field: repeated string notes = 4
+     */
+    notes: string[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalProfileEntryDescriptor
+ */
+export interface LocalProfileEntryDescriptor {
+    /**
+     * @generated from protobuf field: string entry_id = 1
+     */
+    entryId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalProfileEntryKind kind = 2
+     */
+    kind: LocalProfileEntryKind;
+    /**
+     * @generated from protobuf field: string title = 3
+     */
+    title: string;
+    /**
+     * @generated from protobuf field: string description = 4
+     */
+    description: string;
+    /**
+     * @generated from protobuf field: string capability = 5
+     */
+    capability: string;
+    /**
+     * @generated from protobuf field: optional bool required = 6
+     */
+    required?: boolean;
+    /**
+     * @generated from protobuf field: optional bool preferred = 7
+     */
+    preferred?: boolean;
+    /**
+     * @generated from protobuf field: string model_id = 8
+     */
+    modelId: string;
+    /**
+     * @generated from protobuf field: string repo = 9
+     */
+    repo: string;
+    /**
+     * @generated from protobuf field: string service_id = 10
+     */
+    serviceId: string;
+    /**
+     * @generated from protobuf field: string node_id = 11
+     */
+    nodeId: string;
+    /**
+     * @generated from protobuf field: string engine = 12
+     */
+    engine: string;
+    /**
+     * @generated from protobuf field: string artifact_id = 13
+     */
+    artifactId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalArtifactKind artifact_kind = 14
+     */
+    artifactKind: LocalArtifactKind;
+    /**
+     * @generated from protobuf field: string template_id = 15
+     */
+    templateId: string;
+    /**
+     * @generated from protobuf field: string revision = 16
+     */
+    revision: string;
+    /**
+     * @generated from protobuf field: repeated string tags = 17
+     */
+    tags: string[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalProfileDescriptor
+ */
+export interface LocalProfileDescriptor {
+    /**
+     * @generated from protobuf field: string id = 1
+     */
+    id: string;
+    /**
+     * @generated from protobuf field: string title = 2
+     */
+    title: string;
+    /**
+     * @generated from protobuf field: string description = 3
+     */
+    description: string;
+    /**
+     * @generated from protobuf field: bool recommended = 4
+     */
+    recommended: boolean;
+    /**
+     * @generated from protobuf field: repeated string consume_capabilities = 5
+     */
+    consumeCapabilities: string[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalProfileEntryDescriptor entries = 6
+     */
+    entries: LocalProfileEntryDescriptor[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalProfileRequirementDescriptor requirements = 7
+     */
+    requirements?: LocalProfileRequirementDescriptor;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalProfileArtifactPlanEntry
+ */
+export interface LocalProfileArtifactPlanEntry {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalProfileEntryDescriptor entry = 1
+     */
+    entry?: LocalProfileEntryDescriptor;
+    /**
+     * @generated from protobuf field: bool installed = 2
+     */
+    installed: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalProfileResolutionPlan
+ */
+export interface LocalProfileResolutionPlan {
+    /**
+     * @generated from protobuf field: string plan_id = 1
+     */
+    planId: string;
+    /**
+     * @generated from protobuf field: string mod_id = 2
+     */
+    modId: string;
+    /**
+     * @generated from protobuf field: string profile_id = 3
+     */
+    profileId: string;
+    /**
+     * @generated from protobuf field: string title = 4
+     */
+    title: string;
+    /**
+     * @generated from protobuf field: string description = 5
+     */
+    description: string;
+    /**
+     * @generated from protobuf field: bool recommended = 6
+     */
+    recommended: boolean;
+    /**
+     * @generated from protobuf field: repeated string consume_capabilities = 7
+     */
+    consumeCapabilities: string[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalProfileRequirementDescriptor requirements = 8
+     */
+    requirements?: LocalProfileRequirementDescriptor;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalExecutionPlan execution_plan = 9
+     */
+    executionPlan?: LocalExecutionPlan;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalProfileArtifactPlanEntry artifact_entries = 10
+     */
+    artifactEntries: LocalProfileArtifactPlanEntry[];
+    /**
+     * @generated from protobuf field: repeated string warnings = 11
+     */
+    warnings: string[];
+    /**
+     * @generated from protobuf field: string reason_code = 12
+     */
+    reasonCode: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalProfileApplyResult
+ */
+export interface LocalProfileApplyResult {
+    /**
+     * @generated from protobuf field: string plan_id = 1
+     */
+    planId: string;
+    /**
+     * @generated from protobuf field: string mod_id = 2
+     */
+    modId: string;
+    /**
+     * @generated from protobuf field: string profile_id = 3
+     */
+    profileId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalExecutionApplyResult execution_result = 4
+     */
+    executionResult?: LocalExecutionApplyResult;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalArtifactRecord installed_artifacts = 5
+     */
+    installedArtifacts: LocalArtifactRecord[];
+    /**
+     * @generated from protobuf field: repeated string warnings = 6
+     */
+    warnings: string[];
+    /**
+     * @generated from protobuf field: string reason_code = 7
      */
     reasonCode: string;
 }
@@ -1360,25 +1586,50 @@ export enum LocalEngineRuntimeMode {
     ATTACHED_ENDPOINT = 2
 }
 /**
- * @generated from protobuf enum nimi.runtime.v1.LocalDependencyKind
+ * @generated from protobuf enum nimi.runtime.v1.LocalExecutionEntryKind
  */
-export enum LocalDependencyKind {
+export enum LocalExecutionEntryKind {
     /**
-     * @generated from protobuf enum value: LOCAL_DEPENDENCY_KIND_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: LOCAL_EXECUTION_ENTRY_KIND_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: LOCAL_DEPENDENCY_KIND_MODEL = 1;
+     * @generated from protobuf enum value: LOCAL_EXECUTION_ENTRY_KIND_MODEL = 1;
      */
     MODEL = 1,
     /**
-     * @generated from protobuf enum value: LOCAL_DEPENDENCY_KIND_SERVICE = 2;
+     * @generated from protobuf enum value: LOCAL_EXECUTION_ENTRY_KIND_SERVICE = 2;
      */
     SERVICE = 2,
     /**
-     * @generated from protobuf enum value: LOCAL_DEPENDENCY_KIND_NODE = 3;
+     * @generated from protobuf enum value: LOCAL_EXECUTION_ENTRY_KIND_NODE = 3;
      */
     NODE = 3
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.LocalProfileEntryKind
+ */
+export enum LocalProfileEntryKind {
+    /**
+     * @generated from protobuf enum value: LOCAL_PROFILE_ENTRY_KIND_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_PROFILE_ENTRY_KIND_MODEL = 1;
+     */
+    MODEL = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_PROFILE_ENTRY_KIND_ARTIFACT = 2;
+     */
+    ARTIFACT = 2,
+    /**
+     * @generated from protobuf enum value: LOCAL_PROFILE_ENTRY_KIND_SERVICE = 3;
+     */
+    SERVICE = 3,
+    /**
+     * @generated from protobuf enum value: LOCAL_PROFILE_ENTRY_KIND_NODE = 4;
+     */
+    NODE = 4
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class LocalModelSource$Type extends MessageType<LocalModelSource> {
@@ -3397,11 +3648,11 @@ class LocalDeviceProfile$Type extends MessageType<LocalDeviceProfile> {
  */
 export const LocalDeviceProfile = new LocalDeviceProfile$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalDependencyOptionDescriptor$Type extends MessageType<LocalDependencyOptionDescriptor> {
+class LocalExecutionOptionDescriptor$Type extends MessageType<LocalExecutionOptionDescriptor> {
     constructor() {
-        super("nimi.runtime.v1.LocalDependencyOptionDescriptor", [
-            { no: 1, name: "dependency_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "kind", kind: "enum", T: () => ["nimi.runtime.v1.LocalDependencyKind", LocalDependencyKind, "LOCAL_DEPENDENCY_KIND_"] },
+        super("nimi.runtime.v1.LocalExecutionOptionDescriptor", [
+            { no: 1, name: "entry_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "kind", kind: "enum", T: () => ["nimi.runtime.v1.LocalExecutionEntryKind", LocalExecutionEntryKind, "LOCAL_EXECUTION_ENTRY_KIND_"] },
             { no: 3, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -3411,9 +3662,9 @@ class LocalDependencyOptionDescriptor$Type extends MessageType<LocalDependencyOp
             { no: 10, name: "engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<LocalDependencyOptionDescriptor>): LocalDependencyOptionDescriptor {
+    create(value?: PartialMessage<LocalExecutionOptionDescriptor>): LocalExecutionOptionDescriptor {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.dependencyId = "";
+        message.entryId = "";
         message.kind = 0;
         message.capability = "";
         message.title = "";
@@ -3423,18 +3674,18 @@ class LocalDependencyOptionDescriptor$Type extends MessageType<LocalDependencyOp
         message.nodeId = "";
         message.engine = "";
         if (value !== undefined)
-            reflectionMergePartial<LocalDependencyOptionDescriptor>(this, message, value);
+            reflectionMergePartial<LocalExecutionOptionDescriptor>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalDependencyOptionDescriptor): LocalDependencyOptionDescriptor {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalExecutionOptionDescriptor): LocalExecutionOptionDescriptor {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string dependency_id */ 1:
-                    message.dependencyId = reader.string();
+                case /* string entry_id */ 1:
+                    message.entryId = reader.string();
                     break;
-                case /* nimi.runtime.v1.LocalDependencyKind kind */ 2:
+                case /* nimi.runtime.v1.LocalExecutionEntryKind kind */ 2:
                     message.kind = reader.int32();
                     break;
                 case /* string capability */ 3:
@@ -3469,11 +3720,11 @@ class LocalDependencyOptionDescriptor$Type extends MessageType<LocalDependencyOp
         }
         return message;
     }
-    internalBinaryWrite(message: LocalDependencyOptionDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string dependency_id = 1; */
-        if (message.dependencyId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.dependencyId);
-        /* nimi.runtime.v1.LocalDependencyKind kind = 2; */
+    internalBinaryWrite(message: LocalExecutionOptionDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string entry_id = 1; */
+        if (message.entryId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.entryId);
+        /* nimi.runtime.v1.LocalExecutionEntryKind kind = 2; */
         if (message.kind !== 0)
             writer.tag(2, WireType.Varint).int32(message.kind);
         /* string capability = 3; */
@@ -3504,28 +3755,28 @@ class LocalDependencyOptionDescriptor$Type extends MessageType<LocalDependencyOp
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalDependencyOptionDescriptor
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalExecutionOptionDescriptor
  */
-export const LocalDependencyOptionDescriptor = new LocalDependencyOptionDescriptor$Type();
+export const LocalExecutionOptionDescriptor = new LocalExecutionOptionDescriptor$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalDependencyAlternativeDescriptor$Type extends MessageType<LocalDependencyAlternativeDescriptor> {
+class LocalExecutionAlternativeDescriptor$Type extends MessageType<LocalExecutionAlternativeDescriptor> {
     constructor() {
-        super("nimi.runtime.v1.LocalDependencyAlternativeDescriptor", [
+        super("nimi.runtime.v1.LocalExecutionAlternativeDescriptor", [
             { no: 1, name: "alternative_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "preferred_dependency_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "options", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalDependencyOptionDescriptor }
+            { no: 2, name: "preferred_entry_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "options", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalExecutionOptionDescriptor }
         ]);
     }
-    create(value?: PartialMessage<LocalDependencyAlternativeDescriptor>): LocalDependencyAlternativeDescriptor {
+    create(value?: PartialMessage<LocalExecutionAlternativeDescriptor>): LocalExecutionAlternativeDescriptor {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.alternativeId = "";
-        message.preferredDependencyId = "";
+        message.preferredEntryId = "";
         message.options = [];
         if (value !== undefined)
-            reflectionMergePartial<LocalDependencyAlternativeDescriptor>(this, message, value);
+            reflectionMergePartial<LocalExecutionAlternativeDescriptor>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalDependencyAlternativeDescriptor): LocalDependencyAlternativeDescriptor {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalExecutionAlternativeDescriptor): LocalExecutionAlternativeDescriptor {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -3533,11 +3784,11 @@ class LocalDependencyAlternativeDescriptor$Type extends MessageType<LocalDepende
                 case /* string alternative_id */ 1:
                     message.alternativeId = reader.string();
                     break;
-                case /* string preferred_dependency_id */ 2:
-                    message.preferredDependencyId = reader.string();
+                case /* string preferred_entry_id */ 2:
+                    message.preferredEntryId = reader.string();
                     break;
-                case /* repeated nimi.runtime.v1.LocalDependencyOptionDescriptor options */ 3:
-                    message.options.push(LocalDependencyOptionDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated nimi.runtime.v1.LocalExecutionOptionDescriptor options */ 3:
+                    message.options.push(LocalExecutionOptionDescriptor.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3550,16 +3801,16 @@ class LocalDependencyAlternativeDescriptor$Type extends MessageType<LocalDepende
         }
         return message;
     }
-    internalBinaryWrite(message: LocalDependencyAlternativeDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: LocalExecutionAlternativeDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string alternative_id = 1; */
         if (message.alternativeId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.alternativeId);
-        /* string preferred_dependency_id = 2; */
-        if (message.preferredDependencyId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.preferredDependencyId);
-        /* repeated nimi.runtime.v1.LocalDependencyOptionDescriptor options = 3; */
+        /* string preferred_entry_id = 2; */
+        if (message.preferredEntryId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.preferredEntryId);
+        /* repeated nimi.runtime.v1.LocalExecutionOptionDescriptor options = 3; */
         for (let i = 0; i < message.options.length; i++)
-            LocalDependencyOptionDescriptor.internalBinaryWrite(message.options[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+            LocalExecutionOptionDescriptor.internalBinaryWrite(message.options[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3567,42 +3818,42 @@ class LocalDependencyAlternativeDescriptor$Type extends MessageType<LocalDepende
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalDependencyAlternativeDescriptor
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalExecutionAlternativeDescriptor
  */
-export const LocalDependencyAlternativeDescriptor = new LocalDependencyAlternativeDescriptor$Type();
+export const LocalExecutionAlternativeDescriptor = new LocalExecutionAlternativeDescriptor$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalDependenciesDeclarationDescriptor$Type extends MessageType<LocalDependenciesDeclarationDescriptor> {
+class LocalExecutionDeclarationDescriptor$Type extends MessageType<LocalExecutionDeclarationDescriptor> {
     constructor() {
-        super("nimi.runtime.v1.LocalDependenciesDeclarationDescriptor", [
-            { no: 1, name: "required", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalDependencyOptionDescriptor },
-            { no: 2, name: "optional", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalDependencyOptionDescriptor },
-            { no: 3, name: "alternatives", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalDependencyAlternativeDescriptor },
+        super("nimi.runtime.v1.LocalExecutionDeclarationDescriptor", [
+            { no: 1, name: "required", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalExecutionOptionDescriptor },
+            { no: 2, name: "optional", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalExecutionOptionDescriptor },
+            { no: 3, name: "alternatives", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalExecutionAlternativeDescriptor },
             { no: 4, name: "preferred", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } }
         ]);
     }
-    create(value?: PartialMessage<LocalDependenciesDeclarationDescriptor>): LocalDependenciesDeclarationDescriptor {
+    create(value?: PartialMessage<LocalExecutionDeclarationDescriptor>): LocalExecutionDeclarationDescriptor {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.required = [];
         message.optional = [];
         message.alternatives = [];
         message.preferred = {};
         if (value !== undefined)
-            reflectionMergePartial<LocalDependenciesDeclarationDescriptor>(this, message, value);
+            reflectionMergePartial<LocalExecutionDeclarationDescriptor>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalDependenciesDeclarationDescriptor): LocalDependenciesDeclarationDescriptor {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalExecutionDeclarationDescriptor): LocalExecutionDeclarationDescriptor {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* repeated nimi.runtime.v1.LocalDependencyOptionDescriptor required */ 1:
-                    message.required.push(LocalDependencyOptionDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated nimi.runtime.v1.LocalExecutionOptionDescriptor required */ 1:
+                    message.required.push(LocalExecutionOptionDescriptor.internalBinaryRead(reader, reader.uint32(), options));
                     break;
-                case /* repeated nimi.runtime.v1.LocalDependencyOptionDescriptor optional */ 2:
-                    message.optional.push(LocalDependencyOptionDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated nimi.runtime.v1.LocalExecutionOptionDescriptor optional */ 2:
+                    message.optional.push(LocalExecutionOptionDescriptor.internalBinaryRead(reader, reader.uint32(), options));
                     break;
-                case /* repeated nimi.runtime.v1.LocalDependencyAlternativeDescriptor alternatives */ 3:
-                    message.alternatives.push(LocalDependencyAlternativeDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated nimi.runtime.v1.LocalExecutionAlternativeDescriptor alternatives */ 3:
+                    message.alternatives.push(LocalExecutionAlternativeDescriptor.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 case /* map<string, string> preferred */ 4:
                     this.binaryReadMap4(message.preferred, reader, options);
@@ -3618,8 +3869,8 @@ class LocalDependenciesDeclarationDescriptor$Type extends MessageType<LocalDepen
         }
         return message;
     }
-    private binaryReadMap4(map: LocalDependenciesDeclarationDescriptor["preferred"], reader: IBinaryReader, options: BinaryReadOptions): void {
-        let len = reader.uint32(), end = reader.pos + len, key: keyof LocalDependenciesDeclarationDescriptor["preferred"] | undefined, val: LocalDependenciesDeclarationDescriptor["preferred"][any] | undefined;
+    private binaryReadMap4(map: LocalExecutionDeclarationDescriptor["preferred"], reader: IBinaryReader, options: BinaryReadOptions): void {
+        let len = reader.uint32(), end = reader.pos + len, key: keyof LocalExecutionDeclarationDescriptor["preferred"] | undefined, val: LocalExecutionDeclarationDescriptor["preferred"][any] | undefined;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
@@ -3629,21 +3880,21 @@ class LocalDependenciesDeclarationDescriptor$Type extends MessageType<LocalDepen
                 case 2:
                     val = reader.string();
                     break;
-                default: throw new globalThis.Error("unknown map entry field for nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.preferred");
+                default: throw new globalThis.Error("unknown map entry field for nimi.runtime.v1.LocalExecutionDeclarationDescriptor.preferred");
             }
         }
         map[key ?? ""] = val ?? "";
     }
-    internalBinaryWrite(message: LocalDependenciesDeclarationDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* repeated nimi.runtime.v1.LocalDependencyOptionDescriptor required = 1; */
+    internalBinaryWrite(message: LocalExecutionDeclarationDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.LocalExecutionOptionDescriptor required = 1; */
         for (let i = 0; i < message.required.length; i++)
-            LocalDependencyOptionDescriptor.internalBinaryWrite(message.required[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* repeated nimi.runtime.v1.LocalDependencyOptionDescriptor optional = 2; */
+            LocalExecutionOptionDescriptor.internalBinaryWrite(message.required[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalExecutionOptionDescriptor optional = 2; */
         for (let i = 0; i < message.optional.length; i++)
-            LocalDependencyOptionDescriptor.internalBinaryWrite(message.optional[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* repeated nimi.runtime.v1.LocalDependencyAlternativeDescriptor alternatives = 3; */
+            LocalExecutionOptionDescriptor.internalBinaryWrite(message.optional[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalExecutionAlternativeDescriptor alternatives = 3; */
         for (let i = 0; i < message.alternatives.length; i++)
-            LocalDependencyAlternativeDescriptor.internalBinaryWrite(message.alternatives[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+            LocalExecutionAlternativeDescriptor.internalBinaryWrite(message.alternatives[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         /* map<string, string> preferred = 4; */
         for (let k of globalThis.Object.keys(message.preferred))
             writer.tag(4, WireType.LengthDelimited).fork().tag(1, WireType.LengthDelimited).string(k).tag(2, WireType.LengthDelimited).string(message.preferred[k]).join();
@@ -3654,15 +3905,15 @@ class LocalDependenciesDeclarationDescriptor$Type extends MessageType<LocalDepen
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalDependenciesDeclarationDescriptor
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalExecutionDeclarationDescriptor
  */
-export const LocalDependenciesDeclarationDescriptor = new LocalDependenciesDeclarationDescriptor$Type();
+export const LocalExecutionDeclarationDescriptor = new LocalExecutionDeclarationDescriptor$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalDependencyDescriptor$Type extends MessageType<LocalDependencyDescriptor> {
+class LocalExecutionEntryDescriptor$Type extends MessageType<LocalExecutionEntryDescriptor> {
     constructor() {
-        super("nimi.runtime.v1.LocalDependencyDescriptor", [
-            { no: 1, name: "dependency_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "kind", kind: "enum", T: () => ["nimi.runtime.v1.LocalDependencyKind", LocalDependencyKind, "LOCAL_DEPENDENCY_KIND_"] },
+        super("nimi.runtime.v1.LocalExecutionEntryDescriptor", [
+            { no: 1, name: "entry_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "kind", kind: "enum", T: () => ["nimi.runtime.v1.LocalExecutionEntryKind", LocalExecutionEntryKind, "LOCAL_EXECUTION_ENTRY_KIND_"] },
             { no: 3, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "required", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 5, name: "selected", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
@@ -3676,9 +3927,9 @@ class LocalDependencyDescriptor$Type extends MessageType<LocalDependencyDescript
             { no: 14, name: "warnings", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<LocalDependencyDescriptor>): LocalDependencyDescriptor {
+    create(value?: PartialMessage<LocalExecutionEntryDescriptor>): LocalExecutionEntryDescriptor {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.dependencyId = "";
+        message.entryId = "";
         message.kind = 0;
         message.capability = "";
         message.required = false;
@@ -3692,18 +3943,18 @@ class LocalDependencyDescriptor$Type extends MessageType<LocalDependencyDescript
         message.reasonCode = "";
         message.warnings = [];
         if (value !== undefined)
-            reflectionMergePartial<LocalDependencyDescriptor>(this, message, value);
+            reflectionMergePartial<LocalExecutionEntryDescriptor>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalDependencyDescriptor): LocalDependencyDescriptor {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalExecutionEntryDescriptor): LocalExecutionEntryDescriptor {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string dependency_id */ 1:
-                    message.dependencyId = reader.string();
+                case /* string entry_id */ 1:
+                    message.entryId = reader.string();
                     break;
-                case /* nimi.runtime.v1.LocalDependencyKind kind */ 2:
+                case /* nimi.runtime.v1.LocalExecutionEntryKind kind */ 2:
                     message.kind = reader.int32();
                     break;
                 case /* string capability */ 3:
@@ -3750,11 +4001,11 @@ class LocalDependencyDescriptor$Type extends MessageType<LocalDependencyDescript
         }
         return message;
     }
-    internalBinaryWrite(message: LocalDependencyDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string dependency_id = 1; */
-        if (message.dependencyId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.dependencyId);
-        /* nimi.runtime.v1.LocalDependencyKind kind = 2; */
+    internalBinaryWrite(message: LocalExecutionEntryDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string entry_id = 1; */
+        if (message.entryId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.entryId);
+        /* nimi.runtime.v1.LocalExecutionEntryKind kind = 2; */
         if (message.kind !== 0)
             writer.tag(2, WireType.Varint).int32(message.kind);
         /* string capability = 3; */
@@ -3797,14 +4048,14 @@ class LocalDependencyDescriptor$Type extends MessageType<LocalDependencyDescript
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalDependencyDescriptor
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalExecutionEntryDescriptor
  */
-export const LocalDependencyDescriptor = new LocalDependencyDescriptor$Type();
+export const LocalExecutionEntryDescriptor = new LocalExecutionEntryDescriptor$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class LocalPreflightDecision$Type extends MessageType<LocalPreflightDecision> {
     constructor() {
         super("nimi.runtime.v1.LocalPreflightDecision", [
-            { no: 1, name: "dependency_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "entry_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "target", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "check", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "ok", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
@@ -3814,7 +4065,7 @@ class LocalPreflightDecision$Type extends MessageType<LocalPreflightDecision> {
     }
     create(value?: PartialMessage<LocalPreflightDecision>): LocalPreflightDecision {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.dependencyId = "";
+        message.entryId = "";
         message.target = "";
         message.check = "";
         message.ok = false;
@@ -3829,8 +4080,8 @@ class LocalPreflightDecision$Type extends MessageType<LocalPreflightDecision> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string dependency_id */ 1:
-                    message.dependencyId = reader.string();
+                case /* string entry_id */ 1:
+                    message.entryId = reader.string();
                     break;
                 case /* string target */ 2:
                     message.target = reader.string();
@@ -3859,9 +4110,9 @@ class LocalPreflightDecision$Type extends MessageType<LocalPreflightDecision> {
         return message;
     }
     internalBinaryWrite(message: LocalPreflightDecision, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string dependency_id = 1; */
-        if (message.dependencyId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.dependencyId);
+        /* string entry_id = 1; */
+        if (message.entryId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.entryId);
         /* string target = 2; */
         if (message.target !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.target);
@@ -3888,32 +4139,32 @@ class LocalPreflightDecision$Type extends MessageType<LocalPreflightDecision> {
  */
 export const LocalPreflightDecision = new LocalPreflightDecision$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalDependencySelectionRationale$Type extends MessageType<LocalDependencySelectionRationale> {
+class LocalExecutionSelectionRationale$Type extends MessageType<LocalExecutionSelectionRationale> {
     constructor() {
-        super("nimi.runtime.v1.LocalDependencySelectionRationale", [
-            { no: 1, name: "dependency_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+        super("nimi.runtime.v1.LocalExecutionSelectionRationale", [
+            { no: 1, name: "entry_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "selected", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 3, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<LocalDependencySelectionRationale>): LocalDependencySelectionRationale {
+    create(value?: PartialMessage<LocalExecutionSelectionRationale>): LocalExecutionSelectionRationale {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.dependencyId = "";
+        message.entryId = "";
         message.selected = false;
         message.reasonCode = "";
         message.detail = "";
         if (value !== undefined)
-            reflectionMergePartial<LocalDependencySelectionRationale>(this, message, value);
+            reflectionMergePartial<LocalExecutionSelectionRationale>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalDependencySelectionRationale): LocalDependencySelectionRationale {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalExecutionSelectionRationale): LocalExecutionSelectionRationale {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string dependency_id */ 1:
-                    message.dependencyId = reader.string();
+                case /* string entry_id */ 1:
+                    message.entryId = reader.string();
                     break;
                 case /* bool selected */ 2:
                     message.selected = reader.bool();
@@ -3935,10 +4186,10 @@ class LocalDependencySelectionRationale$Type extends MessageType<LocalDependency
         }
         return message;
     }
-    internalBinaryWrite(message: LocalDependencySelectionRationale, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string dependency_id = 1; */
-        if (message.dependencyId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.dependencyId);
+    internalBinaryWrite(message: LocalExecutionSelectionRationale, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string entry_id = 1; */
+        if (message.entryId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.entryId);
         /* bool selected = 2; */
         if (message.selected !== false)
             writer.tag(2, WireType.Varint).bool(message.selected);
@@ -3955,39 +4206,39 @@ class LocalDependencySelectionRationale$Type extends MessageType<LocalDependency
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalDependencySelectionRationale
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalExecutionSelectionRationale
  */
-export const LocalDependencySelectionRationale = new LocalDependencySelectionRationale$Type();
+export const LocalExecutionSelectionRationale = new LocalExecutionSelectionRationale$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalDependencyResolutionPlan$Type extends MessageType<LocalDependencyResolutionPlan> {
+class LocalExecutionPlan$Type extends MessageType<LocalExecutionPlan> {
     constructor() {
-        super("nimi.runtime.v1.LocalDependencyResolutionPlan", [
+        super("nimi.runtime.v1.LocalExecutionPlan", [
             { no: 1, name: "plan_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "mod_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "device_profile", kind: "message", T: () => LocalDeviceProfile },
-            { no: 5, name: "dependencies", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalDependencyDescriptor },
-            { no: 6, name: "selection_rationale", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalDependencySelectionRationale },
+            { no: 5, name: "entries", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalExecutionEntryDescriptor },
+            { no: 6, name: "selection_rationale", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalExecutionSelectionRationale },
             { no: 7, name: "preflight_decisions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalPreflightDecision },
             { no: 8, name: "warnings", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<LocalDependencyResolutionPlan>): LocalDependencyResolutionPlan {
+    create(value?: PartialMessage<LocalExecutionPlan>): LocalExecutionPlan {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.planId = "";
         message.modId = "";
         message.capability = "";
-        message.dependencies = [];
+        message.entries = [];
         message.selectionRationale = [];
         message.preflightDecisions = [];
         message.warnings = [];
         message.reasonCode = "";
         if (value !== undefined)
-            reflectionMergePartial<LocalDependencyResolutionPlan>(this, message, value);
+            reflectionMergePartial<LocalExecutionPlan>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalDependencyResolutionPlan): LocalDependencyResolutionPlan {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalExecutionPlan): LocalExecutionPlan {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -4004,11 +4255,11 @@ class LocalDependencyResolutionPlan$Type extends MessageType<LocalDependencyReso
                 case /* nimi.runtime.v1.LocalDeviceProfile device_profile */ 4:
                     message.deviceProfile = LocalDeviceProfile.internalBinaryRead(reader, reader.uint32(), options, message.deviceProfile);
                     break;
-                case /* repeated nimi.runtime.v1.LocalDependencyDescriptor dependencies */ 5:
-                    message.dependencies.push(LocalDependencyDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated nimi.runtime.v1.LocalExecutionEntryDescriptor entries */ 5:
+                    message.entries.push(LocalExecutionEntryDescriptor.internalBinaryRead(reader, reader.uint32(), options));
                     break;
-                case /* repeated nimi.runtime.v1.LocalDependencySelectionRationale selection_rationale */ 6:
-                    message.selectionRationale.push(LocalDependencySelectionRationale.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated nimi.runtime.v1.LocalExecutionSelectionRationale selection_rationale */ 6:
+                    message.selectionRationale.push(LocalExecutionSelectionRationale.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 case /* repeated nimi.runtime.v1.LocalPreflightDecision preflight_decisions */ 7:
                     message.preflightDecisions.push(LocalPreflightDecision.internalBinaryRead(reader, reader.uint32(), options));
@@ -4030,7 +4281,7 @@ class LocalDependencyResolutionPlan$Type extends MessageType<LocalDependencyReso
         }
         return message;
     }
-    internalBinaryWrite(message: LocalDependencyResolutionPlan, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: LocalExecutionPlan, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string plan_id = 1; */
         if (message.planId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.planId);
@@ -4043,12 +4294,12 @@ class LocalDependencyResolutionPlan$Type extends MessageType<LocalDependencyReso
         /* nimi.runtime.v1.LocalDeviceProfile device_profile = 4; */
         if (message.deviceProfile)
             LocalDeviceProfile.internalBinaryWrite(message.deviceProfile, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
-        /* repeated nimi.runtime.v1.LocalDependencyDescriptor dependencies = 5; */
-        for (let i = 0; i < message.dependencies.length; i++)
-            LocalDependencyDescriptor.internalBinaryWrite(message.dependencies[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
-        /* repeated nimi.runtime.v1.LocalDependencySelectionRationale selection_rationale = 6; */
+        /* repeated nimi.runtime.v1.LocalExecutionEntryDescriptor entries = 5; */
+        for (let i = 0; i < message.entries.length; i++)
+            LocalExecutionEntryDescriptor.internalBinaryWrite(message.entries[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalExecutionSelectionRationale selection_rationale = 6; */
         for (let i = 0; i < message.selectionRationale.length; i++)
-            LocalDependencySelectionRationale.internalBinaryWrite(message.selectionRationale[i], writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+            LocalExecutionSelectionRationale.internalBinaryWrite(message.selectionRationale[i], writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         /* repeated nimi.runtime.v1.LocalPreflightDecision preflight_decisions = 7; */
         for (let i = 0; i < message.preflightDecisions.length; i++)
             LocalPreflightDecision.internalBinaryWrite(message.preflightDecisions[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
@@ -4065,30 +4316,30 @@ class LocalDependencyResolutionPlan$Type extends MessageType<LocalDependencyReso
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalDependencyResolutionPlan
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalExecutionPlan
  */
-export const LocalDependencyResolutionPlan = new LocalDependencyResolutionPlan$Type();
+export const LocalExecutionPlan = new LocalExecutionPlan$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalDependencyApplyStageResult$Type extends MessageType<LocalDependencyApplyStageResult> {
+class LocalExecutionStageResult$Type extends MessageType<LocalExecutionStageResult> {
     constructor() {
-        super("nimi.runtime.v1.LocalDependencyApplyStageResult", [
+        super("nimi.runtime.v1.LocalExecutionStageResult", [
             { no: 1, name: "stage", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "ok", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 3, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<LocalDependencyApplyStageResult>): LocalDependencyApplyStageResult {
+    create(value?: PartialMessage<LocalExecutionStageResult>): LocalExecutionStageResult {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.stage = "";
         message.ok = false;
         message.reasonCode = "";
         message.detail = "";
         if (value !== undefined)
-            reflectionMergePartial<LocalDependencyApplyStageResult>(this, message, value);
+            reflectionMergePartial<LocalExecutionStageResult>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalDependencyApplyStageResult): LocalDependencyApplyStageResult {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalExecutionStageResult): LocalExecutionStageResult {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -4116,7 +4367,7 @@ class LocalDependencyApplyStageResult$Type extends MessageType<LocalDependencyAp
         }
         return message;
     }
-    internalBinaryWrite(message: LocalDependencyApplyStageResult, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: LocalExecutionStageResult, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string stage = 1; */
         if (message.stage !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.stage);
@@ -4136,9 +4387,9 @@ class LocalDependencyApplyStageResult$Type extends MessageType<LocalDependencyAp
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalDependencyApplyStageResult
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalExecutionStageResult
  */
-export const LocalDependencyApplyStageResult = new LocalDependencyApplyStageResult$Type();
+export const LocalExecutionStageResult = new LocalExecutionStageResult$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class LocalServiceDescriptor$Type extends MessageType<LocalServiceDescriptor> {
     constructor() {
@@ -4267,27 +4518,27 @@ class LocalServiceDescriptor$Type extends MessageType<LocalServiceDescriptor> {
  */
 export const LocalServiceDescriptor = new LocalServiceDescriptor$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalDependencyApplyResult$Type extends MessageType<LocalDependencyApplyResult> {
+class LocalExecutionApplyResult$Type extends MessageType<LocalExecutionApplyResult> {
     constructor() {
-        super("nimi.runtime.v1.LocalDependencyApplyResult", [
+        super("nimi.runtime.v1.LocalExecutionApplyResult", [
             { no: 1, name: "plan_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "mod_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "dependencies", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalDependencyDescriptor },
+            { no: 3, name: "entries", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalExecutionEntryDescriptor },
             { no: 4, name: "installed_models", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalModelRecord },
             { no: 5, name: "services", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalServiceDescriptor },
             { no: 6, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "stage_results", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalDependencyApplyStageResult },
+            { no: 7, name: "stage_results", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalExecutionStageResult },
             { no: 8, name: "preflight_decisions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalPreflightDecision },
             { no: 9, name: "rollback_applied", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 10, name: "warnings", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 11, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<LocalDependencyApplyResult>): LocalDependencyApplyResult {
+    create(value?: PartialMessage<LocalExecutionApplyResult>): LocalExecutionApplyResult {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.planId = "";
         message.modId = "";
-        message.dependencies = [];
+        message.entries = [];
         message.installedModels = [];
         message.services = [];
         message.capabilities = [];
@@ -4297,10 +4548,10 @@ class LocalDependencyApplyResult$Type extends MessageType<LocalDependencyApplyRe
         message.warnings = [];
         message.reasonCode = "";
         if (value !== undefined)
-            reflectionMergePartial<LocalDependencyApplyResult>(this, message, value);
+            reflectionMergePartial<LocalExecutionApplyResult>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalDependencyApplyResult): LocalDependencyApplyResult {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalExecutionApplyResult): LocalExecutionApplyResult {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -4311,8 +4562,8 @@ class LocalDependencyApplyResult$Type extends MessageType<LocalDependencyApplyRe
                 case /* string mod_id */ 2:
                     message.modId = reader.string();
                     break;
-                case /* repeated nimi.runtime.v1.LocalDependencyDescriptor dependencies */ 3:
-                    message.dependencies.push(LocalDependencyDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated nimi.runtime.v1.LocalExecutionEntryDescriptor entries */ 3:
+                    message.entries.push(LocalExecutionEntryDescriptor.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 case /* repeated nimi.runtime.v1.LocalModelRecord installed_models */ 4:
                     message.installedModels.push(LocalModelRecord.internalBinaryRead(reader, reader.uint32(), options));
@@ -4323,8 +4574,8 @@ class LocalDependencyApplyResult$Type extends MessageType<LocalDependencyApplyRe
                 case /* repeated string capabilities */ 6:
                     message.capabilities.push(reader.string());
                     break;
-                case /* repeated nimi.runtime.v1.LocalDependencyApplyStageResult stage_results */ 7:
-                    message.stageResults.push(LocalDependencyApplyStageResult.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated nimi.runtime.v1.LocalExecutionStageResult stage_results */ 7:
+                    message.stageResults.push(LocalExecutionStageResult.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 case /* repeated nimi.runtime.v1.LocalPreflightDecision preflight_decisions */ 8:
                     message.preflightDecisions.push(LocalPreflightDecision.internalBinaryRead(reader, reader.uint32(), options));
@@ -4349,16 +4600,16 @@ class LocalDependencyApplyResult$Type extends MessageType<LocalDependencyApplyRe
         }
         return message;
     }
-    internalBinaryWrite(message: LocalDependencyApplyResult, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: LocalExecutionApplyResult, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string plan_id = 1; */
         if (message.planId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.planId);
         /* string mod_id = 2; */
         if (message.modId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.modId);
-        /* repeated nimi.runtime.v1.LocalDependencyDescriptor dependencies = 3; */
-        for (let i = 0; i < message.dependencies.length; i++)
-            LocalDependencyDescriptor.internalBinaryWrite(message.dependencies[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalExecutionEntryDescriptor entries = 3; */
+        for (let i = 0; i < message.entries.length; i++)
+            LocalExecutionEntryDescriptor.internalBinaryWrite(message.entries[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         /* repeated nimi.runtime.v1.LocalModelRecord installed_models = 4; */
         for (let i = 0; i < message.installedModels.length; i++)
             LocalModelRecord.internalBinaryWrite(message.installedModels[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
@@ -4368,9 +4619,9 @@ class LocalDependencyApplyResult$Type extends MessageType<LocalDependencyApplyRe
         /* repeated string capabilities = 6; */
         for (let i = 0; i < message.capabilities.length; i++)
             writer.tag(6, WireType.LengthDelimited).string(message.capabilities[i]);
-        /* repeated nimi.runtime.v1.LocalDependencyApplyStageResult stage_results = 7; */
+        /* repeated nimi.runtime.v1.LocalExecutionStageResult stage_results = 7; */
         for (let i = 0; i < message.stageResults.length; i++)
-            LocalDependencyApplyStageResult.internalBinaryWrite(message.stageResults[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+            LocalExecutionStageResult.internalBinaryWrite(message.stageResults[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         /* repeated nimi.runtime.v1.LocalPreflightDecision preflight_decisions = 8; */
         for (let i = 0; i < message.preflightDecisions.length; i++)
             LocalPreflightDecision.internalBinaryWrite(message.preflightDecisions[i], writer.tag(8, WireType.LengthDelimited).fork(), options).join();
@@ -4390,9 +4641,628 @@ class LocalDependencyApplyResult$Type extends MessageType<LocalDependencyApplyRe
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalDependencyApplyResult
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalExecutionApplyResult
  */
-export const LocalDependencyApplyResult = new LocalDependencyApplyResult$Type();
+export const LocalExecutionApplyResult = new LocalExecutionApplyResult$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalProfileRequirementDescriptor$Type extends MessageType<LocalProfileRequirementDescriptor> {
+    constructor() {
+        super("nimi.runtime.v1.LocalProfileRequirementDescriptor", [
+            { no: 1, name: "min_gpu_memory_gb", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ },
+            { no: 2, name: "min_disk_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 3, name: "platforms", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "notes", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalProfileRequirementDescriptor>): LocalProfileRequirementDescriptor {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.minGpuMemoryGb = 0;
+        message.minDiskBytes = "0";
+        message.platforms = [];
+        message.notes = [];
+        if (value !== undefined)
+            reflectionMergePartial<LocalProfileRequirementDescriptor>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalProfileRequirementDescriptor): LocalProfileRequirementDescriptor {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* double min_gpu_memory_gb */ 1:
+                    message.minGpuMemoryGb = reader.double();
+                    break;
+                case /* int64 min_disk_bytes */ 2:
+                    message.minDiskBytes = reader.int64().toString();
+                    break;
+                case /* repeated string platforms */ 3:
+                    message.platforms.push(reader.string());
+                    break;
+                case /* repeated string notes */ 4:
+                    message.notes.push(reader.string());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalProfileRequirementDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* double min_gpu_memory_gb = 1; */
+        if (message.minGpuMemoryGb !== 0)
+            writer.tag(1, WireType.Bit64).double(message.minGpuMemoryGb);
+        /* int64 min_disk_bytes = 2; */
+        if (message.minDiskBytes !== "0")
+            writer.tag(2, WireType.Varint).int64(message.minDiskBytes);
+        /* repeated string platforms = 3; */
+        for (let i = 0; i < message.platforms.length; i++)
+            writer.tag(3, WireType.LengthDelimited).string(message.platforms[i]);
+        /* repeated string notes = 4; */
+        for (let i = 0; i < message.notes.length; i++)
+            writer.tag(4, WireType.LengthDelimited).string(message.notes[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalProfileRequirementDescriptor
+ */
+export const LocalProfileRequirementDescriptor = new LocalProfileRequirementDescriptor$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalProfileEntryDescriptor$Type extends MessageType<LocalProfileEntryDescriptor> {
+    constructor() {
+        super("nimi.runtime.v1.LocalProfileEntryDescriptor", [
+            { no: 1, name: "entry_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "kind", kind: "enum", T: () => ["nimi.runtime.v1.LocalProfileEntryKind", LocalProfileEntryKind, "LOCAL_PROFILE_ENTRY_KIND_"] },
+            { no: 3, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "required", kind: "scalar", opt: true, T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "preferred", kind: "scalar", opt: true, T: 8 /*ScalarType.BOOL*/ },
+            { no: 8, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "repo", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "service_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "node_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 14, name: "artifact_kind", kind: "enum", T: () => ["nimi.runtime.v1.LocalArtifactKind", LocalArtifactKind, "LOCAL_ARTIFACT_KIND_"] },
+            { no: 15, name: "template_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 16, name: "revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 17, name: "tags", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalProfileEntryDescriptor>): LocalProfileEntryDescriptor {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.entryId = "";
+        message.kind = 0;
+        message.title = "";
+        message.description = "";
+        message.capability = "";
+        message.modelId = "";
+        message.repo = "";
+        message.serviceId = "";
+        message.nodeId = "";
+        message.engine = "";
+        message.artifactId = "";
+        message.artifactKind = 0;
+        message.templateId = "";
+        message.revision = "";
+        message.tags = [];
+        if (value !== undefined)
+            reflectionMergePartial<LocalProfileEntryDescriptor>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalProfileEntryDescriptor): LocalProfileEntryDescriptor {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string entry_id */ 1:
+                    message.entryId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalProfileEntryKind kind */ 2:
+                    message.kind = reader.int32();
+                    break;
+                case /* string title */ 3:
+                    message.title = reader.string();
+                    break;
+                case /* string description */ 4:
+                    message.description = reader.string();
+                    break;
+                case /* string capability */ 5:
+                    message.capability = reader.string();
+                    break;
+                case /* optional bool required */ 6:
+                    message.required = reader.bool();
+                    break;
+                case /* optional bool preferred */ 7:
+                    message.preferred = reader.bool();
+                    break;
+                case /* string model_id */ 8:
+                    message.modelId = reader.string();
+                    break;
+                case /* string repo */ 9:
+                    message.repo = reader.string();
+                    break;
+                case /* string service_id */ 10:
+                    message.serviceId = reader.string();
+                    break;
+                case /* string node_id */ 11:
+                    message.nodeId = reader.string();
+                    break;
+                case /* string engine */ 12:
+                    message.engine = reader.string();
+                    break;
+                case /* string artifact_id */ 13:
+                    message.artifactId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalArtifactKind artifact_kind */ 14:
+                    message.artifactKind = reader.int32();
+                    break;
+                case /* string template_id */ 15:
+                    message.templateId = reader.string();
+                    break;
+                case /* string revision */ 16:
+                    message.revision = reader.string();
+                    break;
+                case /* repeated string tags */ 17:
+                    message.tags.push(reader.string());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalProfileEntryDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string entry_id = 1; */
+        if (message.entryId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.entryId);
+        /* nimi.runtime.v1.LocalProfileEntryKind kind = 2; */
+        if (message.kind !== 0)
+            writer.tag(2, WireType.Varint).int32(message.kind);
+        /* string title = 3; */
+        if (message.title !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.title);
+        /* string description = 4; */
+        if (message.description !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.description);
+        /* string capability = 5; */
+        if (message.capability !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.capability);
+        /* optional bool required = 6; */
+        if (message.required !== undefined)
+            writer.tag(6, WireType.Varint).bool(message.required);
+        /* optional bool preferred = 7; */
+        if (message.preferred !== undefined)
+            writer.tag(7, WireType.Varint).bool(message.preferred);
+        /* string model_id = 8; */
+        if (message.modelId !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.modelId);
+        /* string repo = 9; */
+        if (message.repo !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.repo);
+        /* string service_id = 10; */
+        if (message.serviceId !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.serviceId);
+        /* string node_id = 11; */
+        if (message.nodeId !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.nodeId);
+        /* string engine = 12; */
+        if (message.engine !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.engine);
+        /* string artifact_id = 13; */
+        if (message.artifactId !== "")
+            writer.tag(13, WireType.LengthDelimited).string(message.artifactId);
+        /* nimi.runtime.v1.LocalArtifactKind artifact_kind = 14; */
+        if (message.artifactKind !== 0)
+            writer.tag(14, WireType.Varint).int32(message.artifactKind);
+        /* string template_id = 15; */
+        if (message.templateId !== "")
+            writer.tag(15, WireType.LengthDelimited).string(message.templateId);
+        /* string revision = 16; */
+        if (message.revision !== "")
+            writer.tag(16, WireType.LengthDelimited).string(message.revision);
+        /* repeated string tags = 17; */
+        for (let i = 0; i < message.tags.length; i++)
+            writer.tag(17, WireType.LengthDelimited).string(message.tags[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalProfileEntryDescriptor
+ */
+export const LocalProfileEntryDescriptor = new LocalProfileEntryDescriptor$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalProfileDescriptor$Type extends MessageType<LocalProfileDescriptor> {
+    constructor() {
+        super("nimi.runtime.v1.LocalProfileDescriptor", [
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "recommended", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "consume_capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "entries", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalProfileEntryDescriptor },
+            { no: 7, name: "requirements", kind: "message", T: () => LocalProfileRequirementDescriptor }
+        ]);
+    }
+    create(value?: PartialMessage<LocalProfileDescriptor>): LocalProfileDescriptor {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.id = "";
+        message.title = "";
+        message.description = "";
+        message.recommended = false;
+        message.consumeCapabilities = [];
+        message.entries = [];
+        if (value !== undefined)
+            reflectionMergePartial<LocalProfileDescriptor>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalProfileDescriptor): LocalProfileDescriptor {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string id */ 1:
+                    message.id = reader.string();
+                    break;
+                case /* string title */ 2:
+                    message.title = reader.string();
+                    break;
+                case /* string description */ 3:
+                    message.description = reader.string();
+                    break;
+                case /* bool recommended */ 4:
+                    message.recommended = reader.bool();
+                    break;
+                case /* repeated string consume_capabilities */ 5:
+                    message.consumeCapabilities.push(reader.string());
+                    break;
+                case /* repeated nimi.runtime.v1.LocalProfileEntryDescriptor entries */ 6:
+                    message.entries.push(LocalProfileEntryDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* nimi.runtime.v1.LocalProfileRequirementDescriptor requirements */ 7:
+                    message.requirements = LocalProfileRequirementDescriptor.internalBinaryRead(reader, reader.uint32(), options, message.requirements);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalProfileDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string id = 1; */
+        if (message.id !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.id);
+        /* string title = 2; */
+        if (message.title !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.title);
+        /* string description = 3; */
+        if (message.description !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.description);
+        /* bool recommended = 4; */
+        if (message.recommended !== false)
+            writer.tag(4, WireType.Varint).bool(message.recommended);
+        /* repeated string consume_capabilities = 5; */
+        for (let i = 0; i < message.consumeCapabilities.length; i++)
+            writer.tag(5, WireType.LengthDelimited).string(message.consumeCapabilities[i]);
+        /* repeated nimi.runtime.v1.LocalProfileEntryDescriptor entries = 6; */
+        for (let i = 0; i < message.entries.length; i++)
+            LocalProfileEntryDescriptor.internalBinaryWrite(message.entries[i], writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalProfileRequirementDescriptor requirements = 7; */
+        if (message.requirements)
+            LocalProfileRequirementDescriptor.internalBinaryWrite(message.requirements, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalProfileDescriptor
+ */
+export const LocalProfileDescriptor = new LocalProfileDescriptor$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalProfileArtifactPlanEntry$Type extends MessageType<LocalProfileArtifactPlanEntry> {
+    constructor() {
+        super("nimi.runtime.v1.LocalProfileArtifactPlanEntry", [
+            { no: 1, name: "entry", kind: "message", T: () => LocalProfileEntryDescriptor },
+            { no: 2, name: "installed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalProfileArtifactPlanEntry>): LocalProfileArtifactPlanEntry {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.installed = false;
+        if (value !== undefined)
+            reflectionMergePartial<LocalProfileArtifactPlanEntry>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalProfileArtifactPlanEntry): LocalProfileArtifactPlanEntry {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalProfileEntryDescriptor entry */ 1:
+                    message.entry = LocalProfileEntryDescriptor.internalBinaryRead(reader, reader.uint32(), options, message.entry);
+                    break;
+                case /* bool installed */ 2:
+                    message.installed = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalProfileArtifactPlanEntry, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalProfileEntryDescriptor entry = 1; */
+        if (message.entry)
+            LocalProfileEntryDescriptor.internalBinaryWrite(message.entry, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* bool installed = 2; */
+        if (message.installed !== false)
+            writer.tag(2, WireType.Varint).bool(message.installed);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalProfileArtifactPlanEntry
+ */
+export const LocalProfileArtifactPlanEntry = new LocalProfileArtifactPlanEntry$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalProfileResolutionPlan$Type extends MessageType<LocalProfileResolutionPlan> {
+    constructor() {
+        super("nimi.runtime.v1.LocalProfileResolutionPlan", [
+            { no: 1, name: "plan_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "mod_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "profile_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "recommended", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "consume_capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "requirements", kind: "message", T: () => LocalProfileRequirementDescriptor },
+            { no: 9, name: "execution_plan", kind: "message", T: () => LocalExecutionPlan },
+            { no: 10, name: "artifact_entries", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalProfileArtifactPlanEntry },
+            { no: 11, name: "warnings", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalProfileResolutionPlan>): LocalProfileResolutionPlan {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.planId = "";
+        message.modId = "";
+        message.profileId = "";
+        message.title = "";
+        message.description = "";
+        message.recommended = false;
+        message.consumeCapabilities = [];
+        message.artifactEntries = [];
+        message.warnings = [];
+        message.reasonCode = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalProfileResolutionPlan>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalProfileResolutionPlan): LocalProfileResolutionPlan {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string plan_id */ 1:
+                    message.planId = reader.string();
+                    break;
+                case /* string mod_id */ 2:
+                    message.modId = reader.string();
+                    break;
+                case /* string profile_id */ 3:
+                    message.profileId = reader.string();
+                    break;
+                case /* string title */ 4:
+                    message.title = reader.string();
+                    break;
+                case /* string description */ 5:
+                    message.description = reader.string();
+                    break;
+                case /* bool recommended */ 6:
+                    message.recommended = reader.bool();
+                    break;
+                case /* repeated string consume_capabilities */ 7:
+                    message.consumeCapabilities.push(reader.string());
+                    break;
+                case /* nimi.runtime.v1.LocalProfileRequirementDescriptor requirements */ 8:
+                    message.requirements = LocalProfileRequirementDescriptor.internalBinaryRead(reader, reader.uint32(), options, message.requirements);
+                    break;
+                case /* nimi.runtime.v1.LocalExecutionPlan execution_plan */ 9:
+                    message.executionPlan = LocalExecutionPlan.internalBinaryRead(reader, reader.uint32(), options, message.executionPlan);
+                    break;
+                case /* repeated nimi.runtime.v1.LocalProfileArtifactPlanEntry artifact_entries */ 10:
+                    message.artifactEntries.push(LocalProfileArtifactPlanEntry.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated string warnings */ 11:
+                    message.warnings.push(reader.string());
+                    break;
+                case /* string reason_code */ 12:
+                    message.reasonCode = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalProfileResolutionPlan, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string plan_id = 1; */
+        if (message.planId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.planId);
+        /* string mod_id = 2; */
+        if (message.modId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.modId);
+        /* string profile_id = 3; */
+        if (message.profileId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.profileId);
+        /* string title = 4; */
+        if (message.title !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.title);
+        /* string description = 5; */
+        if (message.description !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.description);
+        /* bool recommended = 6; */
+        if (message.recommended !== false)
+            writer.tag(6, WireType.Varint).bool(message.recommended);
+        /* repeated string consume_capabilities = 7; */
+        for (let i = 0; i < message.consumeCapabilities.length; i++)
+            writer.tag(7, WireType.LengthDelimited).string(message.consumeCapabilities[i]);
+        /* nimi.runtime.v1.LocalProfileRequirementDescriptor requirements = 8; */
+        if (message.requirements)
+            LocalProfileRequirementDescriptor.internalBinaryWrite(message.requirements, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalExecutionPlan execution_plan = 9; */
+        if (message.executionPlan)
+            LocalExecutionPlan.internalBinaryWrite(message.executionPlan, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalProfileArtifactPlanEntry artifact_entries = 10; */
+        for (let i = 0; i < message.artifactEntries.length; i++)
+            LocalProfileArtifactPlanEntry.internalBinaryWrite(message.artifactEntries[i], writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* repeated string warnings = 11; */
+        for (let i = 0; i < message.warnings.length; i++)
+            writer.tag(11, WireType.LengthDelimited).string(message.warnings[i]);
+        /* string reason_code = 12; */
+        if (message.reasonCode !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalProfileResolutionPlan
+ */
+export const LocalProfileResolutionPlan = new LocalProfileResolutionPlan$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalProfileApplyResult$Type extends MessageType<LocalProfileApplyResult> {
+    constructor() {
+        super("nimi.runtime.v1.LocalProfileApplyResult", [
+            { no: 1, name: "plan_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "mod_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "profile_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "execution_result", kind: "message", T: () => LocalExecutionApplyResult },
+            { no: 5, name: "installed_artifacts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalArtifactRecord },
+            { no: 6, name: "warnings", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalProfileApplyResult>): LocalProfileApplyResult {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.planId = "";
+        message.modId = "";
+        message.profileId = "";
+        message.installedArtifacts = [];
+        message.warnings = [];
+        message.reasonCode = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalProfileApplyResult>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalProfileApplyResult): LocalProfileApplyResult {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string plan_id */ 1:
+                    message.planId = reader.string();
+                    break;
+                case /* string mod_id */ 2:
+                    message.modId = reader.string();
+                    break;
+                case /* string profile_id */ 3:
+                    message.profileId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalExecutionApplyResult execution_result */ 4:
+                    message.executionResult = LocalExecutionApplyResult.internalBinaryRead(reader, reader.uint32(), options, message.executionResult);
+                    break;
+                case /* repeated nimi.runtime.v1.LocalArtifactRecord installed_artifacts */ 5:
+                    message.installedArtifacts.push(LocalArtifactRecord.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated string warnings */ 6:
+                    message.warnings.push(reader.string());
+                    break;
+                case /* string reason_code */ 7:
+                    message.reasonCode = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalProfileApplyResult, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string plan_id = 1; */
+        if (message.planId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.planId);
+        /* string mod_id = 2; */
+        if (message.modId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.modId);
+        /* string profile_id = 3; */
+        if (message.profileId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.profileId);
+        /* nimi.runtime.v1.LocalExecutionApplyResult execution_result = 4; */
+        if (message.executionResult)
+            LocalExecutionApplyResult.internalBinaryWrite(message.executionResult, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalArtifactRecord installed_artifacts = 5; */
+        for (let i = 0; i < message.installedArtifacts.length; i++)
+            LocalArtifactRecord.internalBinaryWrite(message.installedArtifacts[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* repeated string warnings = 6; */
+        for (let i = 0; i < message.warnings.length; i++)
+            writer.tag(6, WireType.LengthDelimited).string(message.warnings[i]);
+        /* string reason_code = 7; */
+        if (message.reasonCode !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalProfileApplyResult
+ */
+export const LocalProfileApplyResult = new LocalProfileApplyResult$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class LocalNodeDescriptor$Type extends MessageType<LocalNodeDescriptor> {
     constructor() {

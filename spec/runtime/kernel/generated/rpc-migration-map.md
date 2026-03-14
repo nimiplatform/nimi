@@ -75,8 +75,8 @@
 | `RuntimeLocalService` | `CheckLocalServiceHealth` | `RuntimeLocalService` | `CheckLocalServiceHealth` | `aligned` |
 | `RuntimeLocalService` | `RemoveLocalService` | `RuntimeLocalService` | `RemoveLocalService` | `aligned` |
 | `RuntimeLocalService` | `ListNodeCatalog` | `RuntimeLocalService` | `ListNodeCatalog` | `aligned` |
-| `RuntimeLocalService` | `ResolveDependencies` | `RuntimeLocalService` | `ResolveDependencies` | `aligned` |
-| `RuntimeLocalService` | `ApplyDependencies` | `RuntimeLocalService` | `ApplyDependencies` | `aligned` |
+| `RuntimeLocalService` | `ResolveProfile` | `RuntimeLocalService` | `ResolveProfile` | `aligned` |
+| `RuntimeLocalService` | `ApplyProfile` | `RuntimeLocalService` | `ApplyProfile` | `aligned` |
 | `RuntimeLocalService` | `ListLocalAudits` | `RuntimeLocalService` | `ListLocalAudits` | `aligned` |
 | `RuntimeLocalService` | `AppendInferenceAudit` | `RuntimeLocalService` | `AppendInferenceAudit` | `aligned` |
 | `RuntimeLocalService` | `AppendRuntimeAudit` | `RuntimeLocalService` | `AppendRuntimeAudit` | `aligned` |

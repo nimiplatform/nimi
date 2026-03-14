@@ -1,18 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { LocalAiDependencyResolutionPlan } from '@runtime/local-ai-runtime';
+import type { LocalAiProfileResolutionPlan } from '@runtime/local-ai-runtime';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
-import type { RuntimeConfigPanelControllerModel, RuntimeDependencyTargetDescriptor } from './runtime-config-panel-types';
-import { ModelCenterDependencySection } from './runtime-config-model-center-dependency-section';
+import type { RuntimeConfigPanelControllerModel, RuntimeProfileTargetDescriptor } from './runtime-config-panel-types';
+import { ModelCenterProfileSection } from './runtime-config-model-center-profile-section';
 import { Button } from './runtime-config-primitives';
+import { resolveSelectedRuntimeProfileTarget } from './runtime-config-model-center-utils';
 
 type ModsPageProps = {
   model: RuntimeConfigPanelControllerModel;
   state: RuntimeConfigStateV11;
 };
-
-type CapabilityOption = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding';
 
 // SurfaceCard component matching Overview page style
 function SurfaceCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
@@ -21,57 +20,68 @@ function SurfaceCard({ children, className = '' }: { children: React.ReactNode; 
 
 export function ModsPage({ model, state }: ModsPageProps) {
   const { t } = useTranslation();
-  const { runtimeDependencyTargets } = model;
+  const { runtimeProfileTargets } = model;
   const [selectedModId, setSelectedModId] = useState('');
-  const [selectedCapability, setSelectedCapability] = useState<'auto' | CapabilityOption>('auto');
-  const [dependencyPlanPreview, setDependencyPlanPreview] = useState<LocalAiDependencyResolutionPlan | null>(null);
+  const [selectedProfileId, setSelectedProfileId] = useState('');
+  const [executionPlanPreview, setExecutionPlanPreview] = useState<LocalAiProfileResolutionPlan | null>(null);
   const [loadingPlan, setLoadingPlan] = useState(false);
 
   // Auto-select first mod
   useEffect(() => {
-    if (runtimeDependencyTargets.length === 0) {
+    if (runtimeProfileTargets.length === 0) {
       setSelectedModId('');
-      setDependencyPlanPreview(null);
+      setExecutionPlanPreview(null);
       return;
     }
-    if (!runtimeDependencyTargets.some((t) => t.modId === selectedModId)) {
-      setSelectedModId(runtimeDependencyTargets[0]?.modId || '');
+    if (!runtimeProfileTargets.some((t) => t.modId === selectedModId)) {
+      setSelectedModId(runtimeProfileTargets[0]?.modId || '');
+      setSelectedProfileId(runtimeProfileTargets[0]?.profiles[0]?.id || '');
     }
-  }, [runtimeDependencyTargets, selectedModId]);
+  }, [runtimeProfileTargets, selectedModId]);
 
   const selectedTarget = useMemo(
-    () => runtimeDependencyTargets.find((t) => t.modId === selectedModId) || null,
-    [runtimeDependencyTargets, selectedModId],
+    () => resolveSelectedRuntimeProfileTarget(runtimeProfileTargets, selectedModId),
+    [runtimeProfileTargets, selectedModId],
   );
 
-  const resolvePlanPreview = useCallback(async (input?: { modId?: string; capability?: 'auto' | CapabilityOption }) => {
+  useEffect(() => {
+    if (!selectedTarget) {
+      setSelectedProfileId('');
+      return;
+    }
+    if (!selectedTarget.profiles.some((profile) => profile.id === selectedProfileId)) {
+      setSelectedProfileId(selectedTarget.profiles[0]?.id || '');
+    }
+  }, [selectedProfileId, selectedTarget]);
+
+  const resolvePlanPreview = useCallback(async (input?: { modId?: string; profileId?: string }) => {
     const modId = String(input?.modId ?? selectedModId).trim();
-    const capability = input?.capability ?? selectedCapability;
-    if (!modId) {
-      setDependencyPlanPreview(null);
+    const profileId = String(input?.profileId ?? selectedProfileId).trim();
+    if (!modId || !profileId) {
+      setExecutionPlanPreview(null);
       return;
     }
     setLoadingPlan(true);
     try {
-      const plan = await model.resolveRuntimeDependencies(modId, capability === 'auto' ? undefined : capability);
-      setDependencyPlanPreview(plan);
+      const plan = await model.resolveRuntimeProfile(modId, profileId);
+      setExecutionPlanPreview(plan);
     } catch {
-      setDependencyPlanPreview(null);
+      setExecutionPlanPreview(null);
     } finally {
       setLoadingPlan(false);
     }
-  }, [model, selectedCapability, selectedModId]);
+  }, [model, selectedModId, selectedProfileId]);
 
   useEffect(() => {
     if (!selectedModId) {
-      setDependencyPlanPreview(null);
+      setExecutionPlanPreview(null);
       return;
     }
     const timer = setTimeout(() => { void resolvePlanPreview(); }, 140);
     return () => { clearTimeout(timer); };
-  }, [resolvePlanPreview, selectedCapability, selectedModId]);
+  }, [resolvePlanPreview, selectedModId, selectedProfileId]);
 
-  if (runtimeDependencyTargets.length === 0) {
+  if (runtimeProfileTargets.length === 0) {
     return (
       <SurfaceCard className="p-8 text-center">
         <div className="mx-auto h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
@@ -93,19 +103,19 @@ export function ModsPage({ model, state }: ModsPageProps) {
     <div className="space-y-8">
       {/* Mod list */}
       <section>
-        <SectionTitle description={t('runtimeConfig.mods.modsWithAiDepsDesc', { defaultValue: 'Select a mod to configure its AI dependencies.' })}>
-          {t('runtimeConfig.mods.modsWithAiDeps')}
+        <SectionTitle description={t('runtimeConfig.mods.modsWithAiProfilesDesc', { defaultValue: 'Select a mod to configure its AI profiles.' })}>
+          {t('runtimeConfig.mods.modsWithAiProfiles')}
         </SectionTitle>
         <SurfaceCard className="mt-3 p-5">
           <div className="mb-4 text-xs text-gray-500">
             {t('runtimeConfig.mods.registeredModsSummary', {
-              defaultValue: '{{registered}} registered mods · {{configured}} with AI dependencies',
+              defaultValue: '{{registered}} registered mods · {{configured}} with AI profiles',
               registered: model.registeredRuntimeModIds.length,
-              configured: runtimeDependencyTargets.length,
+              configured: runtimeProfileTargets.length,
             })}
           </div>
           <div className="space-y-2">
-            {runtimeDependencyTargets.map((target) => {
+            {runtimeProfileTargets.map((target) => {
               const active = target.modId === selectedModId;
               return (
                 <ModTargetRow
@@ -124,7 +134,7 @@ export function ModsPage({ model, state }: ModsPageProps) {
       {/* Selected mod detail */}
       {selectedTarget ? (
         <section>
-          <SectionTitle description={t('runtimeConfig.mods.selectedModDescription', { defaultValue: 'Configure the selected mod\'s AI model dependencies.' })}>
+          <SectionTitle description={t('runtimeConfig.mods.selectedModDescription', { defaultValue: 'Configure the selected mod\'s recommended local AI profiles.' })}>
             {selectedTarget.modName}
           </SectionTitle>
           <SurfaceCard className="mt-3 p-5 space-y-5">
@@ -160,20 +170,20 @@ export function ModsPage({ model, state }: ModsPageProps) {
               </div>
             ) : null}
 
-            {/* Dependency resolution */}
-            <ModelCenterDependencySection
+            {/* Profile installation */}
+            <ModelCenterProfileSection
               isModMode
-              loadingDependencyPlan={loadingPlan}
-              selectedDependencyModId={selectedModId}
-              dependencySelectionLocked
-              selectedDependencyTarget={selectedTarget}
-              selectedDependencyCapability={selectedCapability}
-              dependencyPlanPreview={dependencyPlanPreview}
-              runtimeDependencyTargets={runtimeDependencyTargets}
-              onSetSelectedDependencyModId={setSelectedModId}
-              onSetSelectedDependencyCapability={setSelectedCapability}
-              onResolveDependencyPlanPreview={() => void resolvePlanPreview()}
-              onApplyDependencies={model.applyRuntimeDependencies}
+              loadingProfilePlan={loadingPlan}
+              selectedProfileModId={selectedModId}
+              profileSelectionLocked
+              selectedProfileId={selectedProfileId}
+              selectedProfileTarget={selectedTarget}
+              executionPlanPreview={executionPlanPreview}
+              runtimeProfileTargets={runtimeProfileTargets}
+              onSetSelectedProfileModId={setSelectedModId}
+              onSetSelectedProfileId={setSelectedProfileId}
+              onResolveProfilePlanPreview={() => void resolvePlanPreview()}
+              onApplyProfile={model.applyRuntimeProfile}
             />
 
             {/* Setup required warning */}
@@ -210,7 +220,7 @@ function ModTargetRow({
   active,
   onSelect,
 }: {
-  target: RuntimeDependencyTargetDescriptor;
+  target: RuntimeProfileTargetDescriptor;
   state: RuntimeConfigStateV11;
   active: boolean;
   onSelect: () => void;

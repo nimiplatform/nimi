@@ -3,6 +3,7 @@
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+const TEST_REASON_CODE = 'TEST_CODE';
 import {
   resolveModelAndRoute,
   toTextGenerateInput,
@@ -163,12 +164,12 @@ describe('normalizeError (shared error-utils)', () => {
   it('normalizes Error with reasonCode and actionHint', async () => {
     const mod = await import('../src/main/error-utils.js');
     const error = Object.assign(new Error('test'), {
-      reasonCode: 'TEST_CODE',
+      reasonCode: TEST_REASON_CODE,
       actionHint: 'try again',
     });
     const result = mod.normalizeError(error);
     assert.equal(result.message, 'test');
-    assert.equal(result.reasonCode, 'TEST_CODE');
+    assert.equal(result.reasonCode, TEST_REASON_CODE);
     assert.equal(result.actionHint, 'try again');
   });
 

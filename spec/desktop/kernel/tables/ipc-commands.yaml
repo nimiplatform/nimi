@@ -336,6 +336,16 @@ commands:
     description: Pick a local AI artifact manifest file path under the runtime models root via native file dialog
     source_rule: D-IPC-011
 
+  - command: runtime_local_artifacts_list
+    module: local-runtime
+    description: List local AI companion artifacts tracked by the Tauri local runtime state
+    source_rule: D-IPC-011
+
+  - command: runtime_local_artifacts_verified_list
+    module: local-runtime
+    description: List verified companion artifacts available for managed install
+    source_rule: D-IPC-011
+
   - command: runtime_local_models_verified_list
     module: local-runtime
     description: List verified local AI models
@@ -356,9 +366,9 @@ commands:
     description: Resolve install plan for a selected catalog item
     source_rule: D-IPC-011
 
-  - command: runtime_local_dependencies_resolve
+  - command: runtime_local_profiles_resolve
     module: local-runtime
-    description: Resolve local runtime dependencies for a mod capability
+    description: Resolve a mod-declared local AI profile into an executable runtime plan
     source_rule: D-IPC-011
 
   - command: runtime_local_device_profile_collect
@@ -366,9 +376,9 @@ commands:
     description: Collect local device profile (CPU/GPU/NPU/disk/ports)
     source_rule: D-IPC-011
 
-  - command: runtime_local_dependencies_apply
+  - command: runtime_local_profiles_apply
     module: local-runtime
-    description: Apply resolved local runtime dependency plan
+    description: Apply a resolved local AI profile after host confirmation
     source_rule: D-IPC-011
 
   - command: runtime_local_services_list
@@ -416,6 +426,11 @@ commands:
     description: Install a verified local AI model
     source_rule: D-IPC-011
 
+  - command: runtime_local_artifacts_install_verified
+    module: local-runtime
+    description: Install a verified local AI companion artifact
+    source_rule: D-IPC-011
+
   - command: runtime_local_downloads_list
     module: local-runtime
     description: List local AI model download sessions
@@ -441,6 +456,11 @@ commands:
     description: Import a local AI model from structured record
     source_rule: D-IPC-011
 
+  - command: runtime_local_artifacts_import
+    module: local-runtime
+    description: Import a local AI companion artifact from artifact.manifest.json
+    source_rule: D-IPC-011
+
   - command: runtime_local_models_adopt
     module: local-runtime
     description: Adopt a go-runtime discovered local AI model into desktop state without download
@@ -459,6 +479,11 @@ commands:
   - command: runtime_local_models_remove
     module: local-runtime
     description: Remove a local AI model
+    source_rule: D-IPC-011
+
+  - command: runtime_local_artifacts_remove
+    module: local-runtime
+    description: Remove a local AI companion artifact
     source_rule: D-IPC-011
 
   - command: runtime_local_models_start

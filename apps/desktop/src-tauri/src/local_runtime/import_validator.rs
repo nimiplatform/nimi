@@ -8,8 +8,9 @@ use url::Url;
 
 use super::types::{
     generate_ulid_string, normalize_non_empty, now_iso_timestamp, slugify_local_model_id,
-    ImportedModelManifest, LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus,
-    DEFAULT_LOCAL_ENDPOINT,
+    ImportedArtifactManifest, ImportedModelManifest, LocalAiArtifactKind, LocalAiArtifactRecord,
+    LocalAiArtifactSource, LocalAiArtifactStatus, LocalAiModelRecord, LocalAiModelSource,
+    LocalAiModelStatus, DEFAULT_LOCAL_ENDPOINT,
 };
 
 const SUPPORTED_CAPABILITIES: [&str; 6] = ["chat", "image", "video", "tts", "stt", "embedding"];
@@ -178,6 +179,83 @@ fn assert_required_manifest_fields(manifest: &ImportedModelManifest) -> Result<(
     Ok(())
 }
 
+fn normalize_artifact_kind(value: &str) -> Result<LocalAiArtifactKind, String> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "vae" => Ok(LocalAiArtifactKind::Vae),
+        "llm" => Ok(LocalAiArtifactKind::Llm),
+        "clip" => Ok(LocalAiArtifactKind::Clip),
+        "controlnet" => Ok(LocalAiArtifactKind::Controlnet),
+        "lora" => Ok(LocalAiArtifactKind::Lora),
+        "auxiliary" | "aux" => Ok(LocalAiArtifactKind::Auxiliary),
+        other => Err(err(
+            "LOCAL_AI_IMPORT_ARTIFACT_KIND_INVALID",
+            format!("artifact kind 不受支持: {other}"),
+        )),
+    }
+}
+
+fn assert_required_artifact_manifest_fields(manifest: &ImportedArtifactManifest) -> Result<(), String> {
+    if manifest.schema_version.trim().is_empty() {
+        return Err(err(
+            "LOCAL_AI_IMPORT_ARTIFACT_SCHEMA_VERSION_MISSING",
+            "artifact manifest.schemaVersion 不能为空",
+        ));
+    }
+    if manifest.artifact_id.trim().is_empty() {
+        return Err(err(
+            "LOCAL_AI_IMPORT_ARTIFACT_ID_MISSING",
+            "artifact manifest.artifactId 不能为空",
+        ));
+    }
+    let _ = normalize_artifact_kind(&manifest.kind)?;
+    if manifest.engine.trim().is_empty() {
+        return Err(err(
+            "LOCAL_AI_IMPORT_ARTIFACT_ENGINE_MISSING",
+            "artifact manifest.engine 不能为空",
+        ));
+    }
+    if manifest.entry.trim().is_empty() {
+        return Err(err(
+            "LOCAL_AI_IMPORT_ARTIFACT_ENTRY_MISSING",
+            "artifact manifest.entry 不能为空",
+        ));
+    }
+    if !manifest.files.is_empty() {
+        let entry = manifest.entry.trim();
+        if !manifest.files.iter().any(|item| item.trim() == entry) {
+            return Err(err(
+                "LOCAL_AI_IMPORT_ARTIFACT_ENTRY_NOT_IN_FILES",
+                "artifact manifest.entry 必须存在于 manifest.files",
+            ));
+        }
+    }
+    if manifest.license.trim().is_empty() {
+        return Err(err(
+            "LOCAL_AI_IMPORT_ARTIFACT_LICENSE_MISSING",
+            "artifact manifest.license 不能为空",
+        ));
+    }
+    if manifest.source.repo.trim().is_empty() {
+        return Err(err(
+            "LOCAL_AI_IMPORT_ARTIFACT_SOURCE_REPO_MISSING",
+            "artifact manifest.source.repo 不能为空",
+        ));
+    }
+    if manifest.source.revision.trim().is_empty() {
+        return Err(err(
+            "LOCAL_AI_IMPORT_ARTIFACT_SOURCE_REVISION_MISSING",
+            "artifact manifest.source.revision 不能为空",
+        ));
+    }
+    if manifest.hashes.is_empty() {
+        return Err(err(
+            "LOCAL_AI_IMPORT_ARTIFACT_HASHES_MISSING",
+            "artifact manifest.hashes 不能为空",
+        ));
+    }
+    Ok(())
+}
+
 fn assert_manifest_hashes(
     manifest: &ImportedModelManifest,
     manifest_path: &Path,
@@ -336,6 +414,39 @@ pub fn parse_and_validate_manifest(path: &Path) -> Result<ImportedModelManifest,
     Ok(manifest)
 }
 
+pub fn parse_and_validate_artifact_manifest(path: &Path) -> Result<ImportedArtifactManifest, String> {
+    let raw = fs::read_to_string(path).map_err(|error| {
+        err(
+            "LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_READ_FAILED",
+            format!("读取 artifact manifest 失败 ({}): {error}", path.display()),
+        )
+    })?;
+    let manifest = serde_json::from_str::<ImportedArtifactManifest>(&raw).map_err(|error| {
+        err(
+            "LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_PARSE_FAILED",
+            format!("解析 artifact manifest JSON 失败: {error}"),
+        )
+    })?;
+    assert_required_artifact_manifest_fields(&manifest)?;
+    let model_like_manifest = ImportedModelManifest {
+        schema_version: manifest.schema_version.clone(),
+        model_id: manifest.artifact_id.clone(),
+        capabilities: vec!["image".to_string()],
+        engine: manifest.engine.clone(),
+        entry: manifest.entry.clone(),
+        files: manifest.files.clone(),
+        license: manifest.license.clone(),
+        source: super::types::ImportedModelSource {
+            repo: manifest.source.repo.clone(),
+            revision: manifest.source.revision.clone(),
+        },
+        hashes: manifest.hashes.clone(),
+        engine_config: None,
+    };
+    assert_manifest_hashes(&model_like_manifest, path)?;
+    Ok(manifest)
+}
+
 pub fn manifest_to_model_record(
     manifest: &ImportedModelManifest,
     endpoint_override: Option<&str>,
@@ -367,6 +478,39 @@ pub fn manifest_to_model_record(
         updated_at: now,
         health_detail: None,
         engine_config: manifest.engine_config.clone(),
+    })
+}
+
+pub fn manifest_to_artifact_record(
+    manifest: &ImportedArtifactManifest,
+) -> Result<LocalAiArtifactRecord, String> {
+    let slug = slugify_local_model_id(&manifest.artifact_id);
+    let local_artifact_id = format!("local_artifact_{slug}_{}", generate_ulid_string());
+    let now = now_iso_timestamp();
+    let kind = normalize_artifact_kind(&manifest.kind)?;
+
+    Ok(LocalAiArtifactRecord {
+        local_artifact_id,
+        artifact_id: manifest.artifact_id.trim().to_string(),
+        kind,
+        engine: normalize_non_empty(&manifest.engine, "localai"),
+        entry: manifest.entry.trim().to_string(),
+        files: if manifest.files.is_empty() {
+            vec![manifest.entry.trim().to_string()]
+        } else {
+            manifest.files.iter().map(|item| item.trim().to_string()).collect()
+        },
+        license: manifest.license.trim().to_string(),
+        source: LocalAiArtifactSource {
+            repo: manifest.source.repo.trim().to_string(),
+            revision: manifest.source.revision.trim().to_string(),
+        },
+        hashes: manifest.hashes.clone(),
+        status: LocalAiArtifactStatus::Installed,
+        installed_at: now.clone(),
+        updated_at: now,
+        health_detail: None,
+        metadata: manifest.metadata.clone(),
     })
 }
 

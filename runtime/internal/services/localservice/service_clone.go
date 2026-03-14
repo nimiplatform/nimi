@@ -99,11 +99,51 @@ func cloneDeviceProfile(input *runtimev1.LocalDeviceProfile) *runtimev1.LocalDev
 	return cloned
 }
 
-func cloneDependencyDescriptor(input *runtimev1.LocalDependencyDescriptor) *runtimev1.LocalDependencyDescriptor {
+func cloneDependencyDescriptor(input *runtimev1.LocalExecutionEntryDescriptor) *runtimev1.LocalExecutionEntryDescriptor {
 	if input == nil {
 		return nil
 	}
-	cloned, _ := proto.Clone(input).(*runtimev1.LocalDependencyDescriptor)
+	cloned, _ := proto.Clone(input).(*runtimev1.LocalExecutionEntryDescriptor)
+	return cloned
+}
+
+func cloneProfileEntryDescriptor(input *runtimev1.LocalProfileEntryDescriptor) *runtimev1.LocalProfileEntryDescriptor {
+	if input == nil {
+		return nil
+	}
+	cloned, _ := proto.Clone(input).(*runtimev1.LocalProfileEntryDescriptor)
+	return cloned
+}
+
+func cloneProfileRequirement(input *runtimev1.LocalProfileRequirementDescriptor) *runtimev1.LocalProfileRequirementDescriptor {
+	if input == nil {
+		return nil
+	}
+	cloned, _ := proto.Clone(input).(*runtimev1.LocalProfileRequirementDescriptor)
+	return cloned
+}
+
+func cloneProfileDescriptor(input *runtimev1.LocalProfileDescriptor) *runtimev1.LocalProfileDescriptor {
+	if input == nil {
+		return nil
+	}
+	cloned, _ := proto.Clone(input).(*runtimev1.LocalProfileDescriptor)
+	return cloned
+}
+
+func cloneProfileArtifactPlanEntry(input *runtimev1.LocalProfileArtifactPlanEntry) *runtimev1.LocalProfileArtifactPlanEntry {
+	if input == nil {
+		return nil
+	}
+	cloned, _ := proto.Clone(input).(*runtimev1.LocalProfileArtifactPlanEntry)
+	return cloned
+}
+
+func cloneDependencyApplyResult(input *runtimev1.LocalExecutionApplyResult) *runtimev1.LocalExecutionApplyResult {
+	if input == nil {
+		return nil
+	}
+	cloned, _ := proto.Clone(input).(*runtimev1.LocalExecutionApplyResult)
 	return cloned
 }
 

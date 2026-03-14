@@ -135,7 +135,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           activeModelCount={activeModelCount}
           connectorCount={state.connectors.length}
           healthyConnectorCount={healthyConnectorCount}
-          modCount={model.runtimeDependencyTargets.length}
+          modCount={model.runtimeProfileTargets.length}
           daemonRunning={daemonRunning}
         />
         <div

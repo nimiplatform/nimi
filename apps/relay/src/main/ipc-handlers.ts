@@ -10,6 +10,7 @@
 import { ipcMain, type WebContents } from 'electron';
 import type { Runtime } from '@nimiplatform/sdk/runtime';
 import type { Realm } from '@nimiplatform/sdk/realm';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
   SpeechSynthesizeInput,
   SpeechListVoicesInput,
@@ -22,10 +23,12 @@ import { normalizeError } from './error-utils.js';
 import { toTextGenerateInput, toTextStreamInput, type IpcAiGenerateInput, type IpcAiStreamInput } from './input-transform.js';
 import type { RelayEnv } from './env.js';
 
+const RELAY_REASON_CODE_MISSING_AGENT_ID = ReasonCode.AI_INPUT_INVALID;
+
 function requireAgentId(input: Record<string, unknown>): void {
   if (!input.agentId || typeof input.agentId !== 'string') {
     throw Object.assign(new Error('agentId is required for agent-scoped IPC calls'), {
-      reasonCode: 'MISSING_AGENT_ID',
+      reasonCode: RELAY_REASON_CODE_MISSING_AGENT_ID,
       actionHint: 'Select an agent before using this feature',
     });
   }

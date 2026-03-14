@@ -2,6 +2,10 @@
 // DO NOT EDIT MANUALLY.
 
 pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
+    "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
+    "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
+    "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
+    "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
     "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
     "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
     "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
@@ -14,10 +18,6 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
     "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
     "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
-    "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
-    "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
-    "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
-    "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
     "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
     "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
     "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents",
@@ -55,7 +55,7 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeKnowledgeService/SearchIndex",
     "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit",
     "/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit",
-    "/nimi.runtime.v1.RuntimeLocalService/ApplyDependencies",
+    "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile",
     "/nimi.runtime.v1.RuntimeLocalService/CheckLocalModelHealth",
     "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth",
     "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile",
@@ -78,8 +78,8 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalArtifact",
     "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalModel",
     "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalService",
-    "/nimi.runtime.v1.RuntimeLocalService/ResolveDependencies",
     "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan",
+    "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile",
     "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels",
     "/nimi.runtime.v1.RuntimeLocalService/StartEngine",
     "/nimi.runtime.v1.RuntimeLocalService/StartLocalModel",
@@ -99,9 +99,9 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
 ];
 
 pub const RUNTIME_BRIDGE_STREAM_METHODS: &[&str] = &[
+    "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
     "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
     "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
-    "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
     "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
     "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents",
     "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents",

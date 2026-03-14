@@ -79,8 +79,8 @@ groups:
       - CheckLocalServiceHealth
       - RemoveLocalService
       - ListNodeCatalog
-      - ResolveDependencies
-      - ApplyDependencies
+      - ResolveProfile
+      - ApplyProfile
       - ListLocalAudits
       - AppendInferenceAudit
       - AppendRuntimeAudit

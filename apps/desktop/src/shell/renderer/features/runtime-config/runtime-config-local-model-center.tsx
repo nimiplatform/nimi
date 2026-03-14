@@ -5,8 +5,8 @@ import {
   type LocalAiArtifactRecord,
   type LocalAiDownloadProgressEvent,
   type GgufVariantDescriptor,
-  type LocalAiDependencyResolutionPlan,
   type LocalAiCatalogItemDescriptor,
+  type LocalAiProfileResolutionPlan,
   type LocalAiVerifiedArtifactDescriptor,
   type LocalAiVerifiedModelDescriptor,
   type OrphanArtifactFile,
@@ -62,10 +62,10 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
   const [artifactBusy, setArtifactBusy] = useState(false);
   const [artifactPendingTemplateIds, setArtifactPendingTemplateIds] = useState<string[]>([]);
   const [artifactTasks, setArtifactTasks] = useState<ArtifactTaskEntry[]>([]);
-  const [internalSelectedDependencyModId, setInternalSelectedDependencyModId] = useState('');
-  const [selectedDependencyCapability, setSelectedDependencyCapability] = useState<'auto' | CapabilityOption>('auto');
-  const [dependencyPlanPreview, setDependencyPlanPreview] = useState<LocalAiDependencyResolutionPlan | null>(null);
-  const [loadingDependencyPlan, setLoadingDependencyPlan] = useState(false);
+  const [internalSelectedProfileModId, setInternalSelectedProfileModId] = useState('');
+  const [selectedProfileId, setSelectedProfileId] = useState('');
+  const [profilePlanPreview, setProfilePlanPreview] = useState<LocalAiProfileResolutionPlan | null>(null);
+  const [loadingProfilePlan, setLoadingProfilePlan] = useState(false);
 
   const [showImportMenu, setShowImportMenu] = useState(false);
   const [showImportFileDialog, setShowImportFileDialog] = useState(false);
@@ -102,40 +102,50 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
 
   const displayMode: 'runtime' | 'mod' = props.displayMode === 'mod' ? 'mod' : 'runtime';
   const isModMode = displayMode === 'mod';
-  const lockedDependencyModId = String(props.lockedDependencyModId || '').trim();
-  const dependencySelectionLocked = isModMode && Boolean(lockedDependencyModId);
-  const selectedDependencyModId = useMemo(
+  const lockedProfileModId = String(props.lockedProfileModId || '').trim();
+  const profileSelectionLocked = isModMode && Boolean(lockedProfileModId);
+  const selectedProfileModId = useMemo(
     () => (
-      lockedDependencyModId
-      || String(props.selectedDependencyModId || '').trim()
-      || internalSelectedDependencyModId
+      lockedProfileModId
+      || String(props.selectedProfileModId || '').trim()
+      || internalSelectedProfileModId
     ),
-    [internalSelectedDependencyModId, lockedDependencyModId, props.selectedDependencyModId],
+    [internalSelectedProfileModId, lockedProfileModId, props.selectedProfileModId],
   );
 
-  const resolveDependencyPlanPreview = useCallback(async () => {
-    const modId = String(selectedDependencyModId || '').trim();
-    if (!modId) {
-      setDependencyPlanPreview(null);
+  useEffect(() => {
+    if (selectedProfileModId || props.runtimeProfileTargets.length <= 0) {
       return;
     }
-    setLoadingDependencyPlan(true);
-    try {
-      const plan = await props.onResolveDependencies(
-        modId,
-        selectedDependencyCapability === 'auto' ? undefined : selectedDependencyCapability,
-      );
-      setDependencyPlanPreview(plan);
-    } catch {
-      setDependencyPlanPreview(null);
-    } finally {
-      setLoadingDependencyPlan(false);
+    const nextModId = String(props.runtimeProfileTargets[0]?.modId || '').trim();
+    if (nextModId) {
+      setInternalSelectedProfileModId(nextModId);
+      setSelectedProfileId(String(props.runtimeProfileTargets[0]?.profiles[0]?.id || '').trim());
     }
-  }, [props, selectedDependencyCapability, selectedDependencyModId]);
+  }, [props.runtimeProfileTargets, selectedProfileModId]);
+
+  const resolveProfilePlanPreview = useCallback(async () => {
+    const modId = String(selectedProfileModId || '').trim();
+    const target = props.runtimeProfileTargets.find((item) => item.modId === modId) || null;
+    const profileId = String(selectedProfileId || '').trim() || String(target?.profiles[0]?.id || '').trim();
+    if (!modId || !profileId) {
+      setProfilePlanPreview(null);
+      return;
+    }
+    setLoadingProfilePlan(true);
+    try {
+      const plan = await props.onResolveProfile(modId, profileId);
+      setProfilePlanPreview(plan);
+    } catch {
+      setProfilePlanPreview(null);
+    } finally {
+      setLoadingProfilePlan(false);
+    }
+  }, [props, selectedProfileModId, selectedProfileId]);
 
   useEffect(() => {
-    setDependencyPlanPreview(null);
-  }, [selectedDependencyCapability, selectedDependencyModId]);
+    setProfilePlanPreview(null);
+  }, [selectedProfileModId, selectedProfileId]);
 
   const sortedModels = useMemo(
     () => [...props.state.local.models].sort((left, right) => {
@@ -622,21 +632,22 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
     return (
       <LocalModelCenterModModeView
         state={props.state}
-        selectedDependencyModId={selectedDependencyModId}
-        loadingDependencyPlan={loadingDependencyPlan}
-        dependencySelectionLocked={dependencySelectionLocked}
-        selectedDependencyCapability={selectedDependencyCapability}
-        dependencyPlanPreview={dependencyPlanPreview}
-        runtimeDependencyTargets={props.runtimeDependencyTargets}
-        onSetSelectedDependencyModId={(modId) => {
-          if (!dependencySelectionLocked) {
-            setInternalSelectedDependencyModId(modId);
-            props.onSelectDependencyModId?.(modId);
+        selectedProfileModId={selectedProfileModId}
+        loadingProfilePlan={loadingProfilePlan}
+        profileSelectionLocked={profileSelectionLocked}
+        selectedProfileId={selectedProfileId}
+        profilePlanPreview={profilePlanPreview}
+        runtimeProfileTargets={props.runtimeProfileTargets}
+        onSetSelectedProfileModId={(modId) => {
+          if (!profileSelectionLocked) {
+            setInternalSelectedProfileModId(modId);
+            props.onSelectProfileModId?.(modId);
+            setSelectedProfileId('');
           }
         }}
-        onSetSelectedDependencyCapability={setSelectedDependencyCapability}
-        onResolveDependencyPlanPreview={() => void resolveDependencyPlanPreview()}
-        onApplyDependencies={props.onApplyDependencies}
+        onSetSelectedProfileId={setSelectedProfileId}
+        onResolveProfilePlanPreview={() => void resolveProfilePlanPreview()}
+        onApplyProfile={props.onApplyProfile}
         onNavigateToSetup={props.onNavigateToSetup}
       />
     );

@@ -1,35 +1,88 @@
 #[tauri::command]
-pub fn runtime_local_dependencies_apply(
+pub fn runtime_local_profiles_apply(
     app: AppHandle,
-    payload: LocalAiDependenciesApplyPayload,
-) -> Result<LocalAiDependencyApplyResult, String> {
+    payload: LocalAiProfilesApplyPayload,
+) -> Result<LocalAiProfileApplyResult, String> {
     append_app_audit_event_non_blocking(
         &app,
-        EVENT_DEPENDENCY_APPLY_STARTED,
+        EVENT_PROFILE_APPLY_STARTED,
         None,
         None,
         Some(serde_json::json!({
             "modId": payload.plan.mod_id.clone(),
+            "profileId": payload.plan.profile_id.clone(),
             "planId": payload.plan.plan_id.clone(),
-            "dependencyCount": payload.plan.dependencies.len(),
+            "runtimeEntryCount": payload.plan.execution_plan.dependencies.len(),
+            "artifactEntryCount": payload.plan.artifact_entries.len(),
         })),
     );
-    match run_dependency_apply(&app, &payload.plan) {
-        Ok(result) => {
+    match run_dependency_apply(&app, &payload.plan.execution_plan) {
+        Ok(execution_result) => {
+            let execution_reason_code = execution_result.reason_code.clone();
+            let mut warnings = payload.plan.warnings.clone();
+            let mut installed_artifacts = Vec::new();
+            let mut reason_code = execution_reason_code.clone();
+            for entry in &payload.plan.artifact_entries {
+                let template_id = normalize_optional(entry.template_id.clone());
+                if template_id.is_none() {
+                    warnings.push(format!(
+                        "LOCAL_AI_PROFILE_ARTIFACT_TEMPLATE_ID_REQUIRED: entryId={} requires templateId",
+                        entry.entry_id
+                    ));
+                    if entry.required != Some(false) {
+                        reason_code = Some("LOCAL_AI_PROFILE_ARTIFACT_TEMPLATE_ID_REQUIRED".to_string());
+                        break;
+                    }
+                    continue;
+                }
+                match find_verified_artifact(template_id.as_deref().unwrap_or_default()) {
+                    Some(descriptor) => match install_verified_artifact_descriptor(&app, &descriptor) {
+                        Ok(record) => installed_artifacts.push(serde_json::to_value(record).unwrap_or_default()),
+                        Err(error) => {
+                            warnings.push(error.clone());
+                            if entry.required != Some(false) {
+                                reason_code = Some(extract_reason_code(error.as_str()));
+                                break;
+                            }
+                        }
+                    },
+                    None => {
+                        warnings.push(format!(
+                            "LOCAL_AI_VERIFIED_ARTIFACT_TEMPLATE_NOT_FOUND: templateId={}",
+                            template_id.unwrap_or_default()
+                        ));
+                        if entry.required != Some(false) {
+                            reason_code = Some("LOCAL_AI_VERIFIED_ARTIFACT_TEMPLATE_NOT_FOUND".to_string());
+                            break;
+                        }
+                    }
+                }
+            }
+            let result = LocalAiProfileApplyResult {
+                plan_id: payload.plan.plan_id.clone(),
+                mod_id: payload.plan.mod_id.clone(),
+                profile_id: payload.plan.profile_id.clone(),
+                execution_result,
+                installed_artifacts,
+                warnings: warnings
+                    .into_iter()
+                    .filter(|value| !value.trim().is_empty())
+                    .collect::<std::collections::BTreeSet<_>>()
+                    .into_iter()
+                    .collect::<Vec<_>>(),
+                reason_code: reason_code.or(execution_reason_code),
+            };
             append_app_audit_event_non_blocking(
                 &app,
-                EVENT_DEPENDENCY_APPLY_COMPLETED,
+                EVENT_PROFILE_APPLY_COMPLETED,
                 None,
                 None,
                 Some(serde_json::json!({
                     "modId": result.mod_id.clone(),
+                    "profileId": result.profile_id.clone(),
                     "planId": result.plan_id.clone(),
-                    "installedModelCount": result.installed_models.len(),
-                    "serviceCount": result.services.len(),
-                    "capabilities": result.capabilities.clone(),
-                    "stageResults": result.stage_results.clone(),
-                    "preflightDecisionCount": result.preflight_decisions.len(),
-                    "rollbackApplied": result.rollback_applied,
+                    "installedModelCount": result.execution_result.installed_models.len(),
+                    "serviceCount": result.execution_result.services.len(),
                     "warningCount": result.warnings.len(),
                 })),
             );
@@ -38,11 +91,12 @@ pub fn runtime_local_dependencies_apply(
         Err(failure) => {
             append_app_audit_event_non_blocking(
                 &app,
-                EVENT_DEPENDENCY_APPLY_FAILED,
+                EVENT_PROFILE_APPLY_FAILED,
                 None,
                 None,
                 Some(serde_json::json!({
                     "modId": payload.plan.mod_id,
+                    "profileId": payload.plan.profile_id,
                     "planId": payload.plan.plan_id,
                     "reasonCode": extract_reason_code(failure.error.as_str()),
                     "rollbackApplied": failure.rollback_applied,
@@ -312,4 +366,3 @@ pub fn runtime_local_nodes_catalog_list(
     );
     Ok(nodes)
 }
-

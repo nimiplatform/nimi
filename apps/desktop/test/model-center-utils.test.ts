@@ -7,6 +7,7 @@ import {
   formatDownloadPhaseLabel,
   formatEta,
   formatSpeed,
+  resolveSelectedRuntimeProfileTarget,
   normalizeCapabilityOption,
   normalizeInstallEngine,
   HIGHLIGHT_CLEAR_MS,
@@ -14,6 +15,7 @@ import {
   PROGRESS_RETENTION_MS,
   PROGRESS_SESSION_LIMIT,
   pruneProgressSessions,
+  shouldShowRuntimeProfileInstallSection,
   sortProgressSessions,
   statusLabel,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-model-center-utils';
@@ -194,6 +196,34 @@ describe('formatDownloadPhaseLabel', () => {
 
   test('unknown phase falls back to normalized text', () => {
     assert.equal(formatDownloadPhaseLabel('queued'), 'queued');
+  });
+});
+
+describe('runtime profile target selection', () => {
+  const targets = [
+    {
+      modId: 'world.nimi.mod-a',
+      modName: 'Mod A',
+      consumeCapabilities: ['chat'],
+      profiles: [{ id: 'a-default', title: 'A Default', recommended: true, consumeCapabilities: ['chat'], entries: [] }],
+    },
+    {
+      modId: 'world.nimi.mod-b',
+      modName: 'Mod B',
+      consumeCapabilities: ['image'],
+      profiles: [{ id: 'b-default', title: 'B Default', recommended: true, consumeCapabilities: ['image'], entries: [] }],
+    },
+  ];
+
+  test('returns only the selected mod target', () => {
+    const selected = resolveSelectedRuntimeProfileTarget(targets as never, 'world.nimi.mod-b');
+    assert.equal(selected?.modId, 'world.nimi.mod-b');
+    assert.equal(selected?.profiles[0]?.id, 'b-default');
+  });
+
+  test('does not fall back when selected mod is missing', () => {
+    assert.equal(resolveSelectedRuntimeProfileTarget(targets as never, 'world.nimi.missing'), null);
+    assert.equal(shouldShowRuntimeProfileInstallSection(targets as never, 'world.nimi.missing'), false);
   });
 });
 

@@ -1,37 +1,37 @@
 import type {
-  LocalAiDependencyKind,
-  LocalAiDependencyDescriptor,
+  LocalAiExecutionEntryKind,
+  LocalAiExecutionEntryDescriptor,
   LocalAiDeviceProfile,
   LocalAiPreflightDecision,
-  LocalAiDependencySelectionRationale,
-  LocalAiDependencyApplyStageResult,
-  LocalAiDependencyResolutionPlan,
+  LocalAiExecutionSelectionRationale,
+  LocalAiExecutionStageResult,
+  LocalAiExecutionPlan,
 } from './types';
 import { asRecord, asString } from './parser-primitives';
 
-export function normalizeDependencyKind(value: unknown): LocalAiDependencyKind {
+export function normalizeExecutionEntryKind(value: unknown): LocalAiExecutionEntryKind {
   if (typeof value === 'number') {
     if (value === 2) return 'service';
     if (value === 3) return 'node';
     return 'model';
   }
   const raw = asString(value).toLowerCase();
-  if (raw === 'local_dependency_kind_service' || raw === '2') return 'service';
-  if (raw === 'local_dependency_kind_node' || raw === '3') return 'node';
+  if (raw === 'local_execution_entry_kind_service' || raw === '2') return 'service';
+  if (raw === 'local_execution_entry_kind_node' || raw === '3') return 'node';
   if (raw === 'service' || raw === 'node') {
     return raw;
   }
   return 'model';
 }
 
-export function parseDependencyDescriptor(value: unknown): LocalAiDependencyDescriptor {
+export function parseExecutionEntryDescriptor(value: unknown): LocalAiExecutionEntryDescriptor {
   const record = asRecord(value);
   const warnings = Array.isArray(record.warnings)
     ? record.warnings.map((item) => asString(item)).filter(Boolean)
     : [];
   return {
-    dependencyId: asString(record.dependencyId),
-    kind: normalizeDependencyKind(record.kind),
+    entryId: asString(record.entryId),
+    kind: normalizeExecutionEntryKind(record.kind),
     capability: asString(record.capability) || undefined,
     required: Boolean(record.required),
     selected: Boolean(record.selected),
@@ -87,7 +87,7 @@ export function parseDeviceProfile(value: unknown): LocalAiDeviceProfile {
 export function parsePreflightDecision(value: unknown): LocalAiPreflightDecision {
   const record = asRecord(value);
   return {
-    dependencyId: asString(record.dependencyId) || undefined,
+    entryId: asString(record.entryId) || undefined,
     target: asString(record.target),
     check: asString(record.check),
     ok: Boolean(record.ok),
@@ -96,17 +96,17 @@ export function parsePreflightDecision(value: unknown): LocalAiPreflightDecision
   };
 }
 
-export function parseSelectionRationale(value: unknown): LocalAiDependencySelectionRationale {
+export function parseExecutionSelectionRationale(value: unknown): LocalAiExecutionSelectionRationale {
   const record = asRecord(value);
   return {
-    dependencyId: asString(record.dependencyId),
+    entryId: asString(record.entryId),
     selected: Boolean(record.selected),
     reasonCode: asString(record.reasonCode),
     detail: asString(record.detail),
   };
 }
 
-export function parseApplyStageResult(value: unknown): LocalAiDependencyApplyStageResult {
+export function parseExecutionStageResult(value: unknown): LocalAiExecutionStageResult {
   const record = asRecord(value);
   return {
     stage: asString(record.stage),
@@ -116,13 +116,13 @@ export function parseApplyStageResult(value: unknown): LocalAiDependencyApplySta
   };
 }
 
-export function parseDependencyResolutionPlan(value: unknown): LocalAiDependencyResolutionPlan {
+export function parseExecutionPlan(value: unknown): LocalAiExecutionPlan {
   const record = asRecord(value);
-  const dependencies = Array.isArray(record.dependencies)
-    ? record.dependencies.map((item) => parseDependencyDescriptor(item))
+  const entries = Array.isArray(record.entries)
+    ? record.entries.map((item) => parseExecutionEntryDescriptor(item))
     : [];
   const selectionRationale = Array.isArray(record.selectionRationale)
-    ? record.selectionRationale.map((item) => parseSelectionRationale(item))
+    ? record.selectionRationale.map((item) => parseExecutionSelectionRationale(item))
     : [];
   const preflightDecisions = Array.isArray(record.preflightDecisions)
     ? record.preflightDecisions.map((item) => parsePreflightDecision(item))
@@ -135,7 +135,7 @@ export function parseDependencyResolutionPlan(value: unknown): LocalAiDependency
     modId: asString(record.modId),
     capability: asString(record.capability) || undefined,
     deviceProfile: parseDeviceProfile(record.deviceProfile),
-    dependencies,
+    entries,
     selectionRationale,
     preflightDecisions,
     warnings,

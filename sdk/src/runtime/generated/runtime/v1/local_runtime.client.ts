@@ -34,10 +34,10 @@ import type { InstallLocalServiceResponse } from "./local_runtime";
 import type { InstallLocalServiceRequest } from "./local_runtime";
 import type { ListLocalServicesResponse } from "./local_runtime";
 import type { ListLocalServicesRequest } from "./local_runtime";
-import type { ApplyDependenciesResponse } from "./local_runtime";
-import type { ApplyDependenciesRequest } from "./local_runtime";
-import type { ResolveDependenciesResponse } from "./local_runtime";
-import type { ResolveDependenciesRequest } from "./local_runtime";
+import type { ApplyProfileResponse } from "./local_runtime";
+import type { ApplyProfileRequest } from "./local_runtime";
+import type { ResolveProfileResponse } from "./local_runtime";
+import type { ResolveProfileRequest } from "./local_runtime";
 import type { CollectDeviceProfileResponse } from "./local_runtime";
 import type { CollectDeviceProfileRequest } from "./local_runtime";
 import type { WarmLocalModelResponse } from "./local_runtime";
@@ -154,13 +154,13 @@ export interface IRuntimeLocalServiceClient {
      */
     collectDeviceProfile(input: CollectDeviceProfileRequest, options?: RpcOptions): UnaryCall<CollectDeviceProfileRequest, CollectDeviceProfileResponse>;
     /**
-     * @generated from protobuf rpc: ResolveDependencies
+     * @generated from protobuf rpc: ResolveProfile
      */
-    resolveDependencies(input: ResolveDependenciesRequest, options?: RpcOptions): UnaryCall<ResolveDependenciesRequest, ResolveDependenciesResponse>;
+    resolveProfile(input: ResolveProfileRequest, options?: RpcOptions): UnaryCall<ResolveProfileRequest, ResolveProfileResponse>;
     /**
-     * @generated from protobuf rpc: ApplyDependencies
+     * @generated from protobuf rpc: ApplyProfile
      */
-    applyDependencies(input: ApplyDependenciesRequest, options?: RpcOptions): UnaryCall<ApplyDependenciesRequest, ApplyDependenciesResponse>;
+    applyProfile(input: ApplyProfileRequest, options?: RpcOptions): UnaryCall<ApplyProfileRequest, ApplyProfileResponse>;
     /**
      * @generated from protobuf rpc: ListLocalServices
      */
@@ -360,18 +360,18 @@ export class RuntimeLocalServiceClient implements IRuntimeLocalServiceClient, Se
         return stackIntercept<CollectDeviceProfileRequest, CollectDeviceProfileResponse>("unary", this._transport, method, opt, input);
     }
     /**
-     * @generated from protobuf rpc: ResolveDependencies
+     * @generated from protobuf rpc: ResolveProfile
      */
-    resolveDependencies(input: ResolveDependenciesRequest, options?: RpcOptions): UnaryCall<ResolveDependenciesRequest, ResolveDependenciesResponse> {
+    resolveProfile(input: ResolveProfileRequest, options?: RpcOptions): UnaryCall<ResolveProfileRequest, ResolveProfileResponse> {
         const method = this.methods[18], opt = this._transport.mergeOptions(options);
-        return stackIntercept<ResolveDependenciesRequest, ResolveDependenciesResponse>("unary", this._transport, method, opt, input);
+        return stackIntercept<ResolveProfileRequest, ResolveProfileResponse>("unary", this._transport, method, opt, input);
     }
     /**
-     * @generated from protobuf rpc: ApplyDependencies
+     * @generated from protobuf rpc: ApplyProfile
      */
-    applyDependencies(input: ApplyDependenciesRequest, options?: RpcOptions): UnaryCall<ApplyDependenciesRequest, ApplyDependenciesResponse> {
+    applyProfile(input: ApplyProfileRequest, options?: RpcOptions): UnaryCall<ApplyProfileRequest, ApplyProfileResponse> {
         const method = this.methods[19], opt = this._transport.mergeOptions(options);
-        return stackIntercept<ApplyDependenciesRequest, ApplyDependenciesResponse>("unary", this._transport, method, opt, input);
+        return stackIntercept<ApplyProfileRequest, ApplyProfileResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: ListLocalServices

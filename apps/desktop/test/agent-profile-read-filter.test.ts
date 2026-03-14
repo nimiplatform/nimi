@@ -61,12 +61,12 @@ function createRuntimeContext(hookRuntime: ReturnType<typeof getRuntimeHookRunti
       healthy: true,
       status: 'healthy',
     }),
-    getModAiDependencySnapshot: async () => ({
+    getModLocalProfileSnapshot: async () => ({
       modId: MINTYOU_MOD_ID,
       status: 'ready',
       routeSource: 'unknown',
       warnings: [],
-      dependencies: [],
+      entries: [],
       repairActions: [],
       updatedAt: new Date().toISOString(),
     }),

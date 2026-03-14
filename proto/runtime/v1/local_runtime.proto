@@ -197,23 +197,23 @@ message CollectDeviceProfileResponse {
   LocalDeviceProfile profile = 1;
 }
 
-message ResolveDependenciesRequest {
+message ResolveProfileRequest {
   string mod_id = 1;
-  string capability = 2;
-  LocalDependenciesDeclarationDescriptor dependencies = 3;
+  LocalProfileDescriptor profile = 2;
+  string capability = 3;
   LocalDeviceProfile device_profile = 4;
 }
 
-message ResolveDependenciesResponse {
-  LocalDependencyResolutionPlan plan = 1;
+message ResolveProfileResponse {
+  LocalProfileResolutionPlan plan = 1;
 }
 
-message ApplyDependenciesRequest {
-  LocalDependencyResolutionPlan plan = 1;
+message ApplyProfileRequest {
+  LocalProfileResolutionPlan plan = 1;
 }
 
-message ApplyDependenciesResponse {
-  LocalDependencyApplyResult result = 1;
+message ApplyProfileResponse {
+  LocalProfileApplyResult result = 1;
 }
 
 message ListLocalServicesRequest {
@@ -366,8 +366,8 @@ service RuntimeLocalService {
   rpc CheckLocalModelHealth(CheckLocalModelHealthRequest) returns (CheckLocalModelHealthResponse);
   rpc WarmLocalModel(WarmLocalModelRequest) returns (WarmLocalModelResponse);
   rpc CollectDeviceProfile(CollectDeviceProfileRequest) returns (CollectDeviceProfileResponse);
-  rpc ResolveDependencies(ResolveDependenciesRequest) returns (ResolveDependenciesResponse);
-  rpc ApplyDependencies(ApplyDependenciesRequest) returns (ApplyDependenciesResponse);
+  rpc ResolveProfile(ResolveProfileRequest) returns (ResolveProfileResponse);
+  rpc ApplyProfile(ApplyProfileRequest) returns (ApplyProfileResponse);
   rpc ListLocalServices(ListLocalServicesRequest) returns (ListLocalServicesResponse);
   rpc InstallLocalService(InstallLocalServiceRequest) returns (InstallLocalServiceResponse);
   rpc StartLocalService(StartLocalServiceRequest) returns (StartLocalServiceResponse);

@@ -99,12 +99,12 @@ test('mod runtime client forwards local artifact listing with mod id and filters
       deleteAsset: async () => ({} as never),
       listPresetVoices: async () => ({} as never),
     },
-    getModAiDependencySnapshot: async () => ({
+    getModLocalProfileSnapshot: async () => ({
       modId: 'mod.local.artifacts.test',
       status: 'ready' as const,
       routeSource: 'local' as const,
       warnings: [],
-      dependencies: [],
+      entries: [],
       repairActions: [],
       updatedAt: new Date(0).toISOString(),
     }),

@@ -123,18 +123,6 @@ func (s *Service) CollectDeviceProfile(_ context.Context, req *runtimev1.Collect
 	return &runtimev1.CollectDeviceProfileResponse{Profile: collectDeviceProfile(req.GetExtraPorts()...)}, nil
 }
 
-func (s *Service) ResolveDependencies(_ context.Context, req *runtimev1.ResolveDependenciesRequest) (*runtimev1.ResolveDependenciesResponse, error) {
-	return &runtimev1.ResolveDependenciesResponse{
-		Plan: resolveDependencyPlan(req),
-	}, nil
-}
-
-func (s *Service) ApplyDependencies(ctx context.Context, req *runtimev1.ApplyDependenciesRequest) (*runtimev1.ApplyDependenciesResponse, error) {
-	return &runtimev1.ApplyDependenciesResponse{
-		Result: s.applyDependenciesStrict(ctx, req.GetPlan()),
-	}, nil
-}
-
 func localModelSortCategory(model *runtimev1.LocalModelRecord) string {
 	if model == nil {
 		return "zzzz"

@@ -45,6 +45,17 @@ export function createModRuntimeClient(modId: string, context?: ModRuntimeContex
         modId: normalizedModId,
         ...input,
       }),
+      listProfiles: async () => runtimeHost.local.listProfiles({
+        modId: normalizedModId,
+      }),
+      requestProfileInstall: async (input) => runtimeHost.local.requestProfileInstall({
+        modId: normalizedModId,
+        ...input,
+      }),
+      getProfileInstallStatus: async (input) => runtimeHost.local.getProfileInstallStatus({
+        modId: normalizedModId,
+        ...input,
+      }),
     },
     ai: {
       text: {

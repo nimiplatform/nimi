@@ -80,8 +80,8 @@ import {
   RemoveModelRequest,
 } from '../generated/runtime/v1/model';
 import {
-  ApplyDependenciesRequest,
-  ApplyDependenciesResponse,
+  ApplyProfileRequest,
+  ApplyProfileResponse,
   AppendInferenceAuditRequest,
   AppendRuntimeAuditRequest,
   CheckLocalModelHealthRequest,
@@ -122,8 +122,8 @@ import {
   RemoveLocalModelResponse,
   RemoveLocalServiceRequest,
   RemoveLocalServiceResponse,
-  ResolveDependenciesRequest,
-  ResolveDependenciesResponse,
+  ResolveProfileRequest,
+  ResolveProfileResponse,
   ResolveModelInstallPlanRequest,
   ResolveModelInstallPlanResponse,
   SearchCatalogModelsRequest,
@@ -421,13 +421,13 @@ export const RuntimeUnaryMethodCodecs: Record<string, RuntimeUnaryMethodCodec<un
     requestType: CollectDeviceProfileRequest,
     responseType: CollectDeviceProfileResponse,
   },
-  [RuntimeMethodIds.local.resolveDependencies]: {
-    requestType: ResolveDependenciesRequest,
-    responseType: ResolveDependenciesResponse,
+  [RuntimeMethodIds.local.resolveProfile]: {
+    requestType: ResolveProfileRequest,
+    responseType: ResolveProfileResponse,
   },
-  [RuntimeMethodIds.local.applyDependencies]: {
-    requestType: ApplyDependenciesRequest,
-    responseType: ApplyDependenciesResponse,
+  [RuntimeMethodIds.local.applyProfile]: {
+    requestType: ApplyProfileRequest,
+    responseType: ApplyProfileResponse,
   },
   [RuntimeMethodIds.local.listLocalServices]: {
     requestType: ListLocalServicesRequest,

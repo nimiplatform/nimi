@@ -82,8 +82,8 @@ Source: `K-RPC-004`
 | `CheckLocalServiceHealth` | `unary` |
 | `RemoveLocalService` | `unary` |
 | `ListNodeCatalog` | `unary` |
-| `ResolveDependencies` | `unary` |
-| `ApplyDependencies` | `unary` |
+| `ResolveProfile` | `unary` |
+| `ApplyProfile` | `unary` |
 | `ListLocalAudits` | `unary` |
 | `AppendInferenceAudit` | `unary` |
 | `AppendRuntimeAudit` | `unary` |

@@ -65,14 +65,14 @@ function buildFallbackRuntimeModSdkContext(): ModRuntimeContext {
                 detail: 'runtime mod sdk context provider is not ready',
             }),
             getRuntimeHookRuntime: () => hookRuntime,
-            getModAiDependencySnapshot: async (input: {
+            getModLocalProfileSnapshot: async (input: {
                 modId: string;
             }) => ({
                 modId: String(input.modId || '').trim(),
                 status: 'missing',
                 routeSource: 'unknown',
                 warnings: ['runtime mod sdk context provider is not ready'],
-                dependencies: [],
+                entries: [],
                 repairActions: [],
                 updatedAt: new Date().toISOString(),
             }),
@@ -90,6 +90,9 @@ function buildFallbackRuntimeModSdkContext(): ModRuntimeContext {
             },
             local: {
                 listArtifacts: async () => { throw notReady(); },
+                listProfiles: async () => { throw notReady(); },
+                requestProfileInstall: async () => { throw notReady(); },
+                getProfileInstallStatus: async () => { throw notReady(); },
             },
             ai: {
                 text: {

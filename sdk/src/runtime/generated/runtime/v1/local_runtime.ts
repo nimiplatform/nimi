@@ -28,9 +28,9 @@ import { LocalAuditTimeRange } from "./local_runtime_types";
 import { LocalNodeDescriptor } from "./local_runtime_types";
 import { LocalServiceDescriptor } from "./local_runtime_types";
 import { LocalServiceStatus } from "./local_runtime_types";
-import { LocalDependencyApplyResult } from "./local_runtime_types";
-import { LocalDependencyResolutionPlan } from "./local_runtime_types";
-import { LocalDependenciesDeclarationDescriptor } from "./local_runtime_types";
+import { LocalProfileApplyResult } from "./local_runtime_types";
+import { LocalProfileResolutionPlan } from "./local_runtime_types";
+import { LocalProfileDescriptor } from "./local_runtime_types";
 import { LocalDeviceProfile } from "./local_runtime_types";
 import { LocalModelHealth } from "./local_runtime_types";
 import { LocalInstallPlanDescriptor } from "./local_runtime_types";
@@ -554,52 +554,52 @@ export interface CollectDeviceProfileResponse {
     profile?: LocalDeviceProfile;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.ResolveDependenciesRequest
+ * @generated from protobuf message nimi.runtime.v1.ResolveProfileRequest
  */
-export interface ResolveDependenciesRequest {
+export interface ResolveProfileRequest {
     /**
      * @generated from protobuf field: string mod_id = 1
      */
     modId: string;
     /**
-     * @generated from protobuf field: string capability = 2
+     * @generated from protobuf field: nimi.runtime.v1.LocalProfileDescriptor profile = 2
+     */
+    profile?: LocalProfileDescriptor;
+    /**
+     * @generated from protobuf field: string capability = 3
      */
     capability: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalDependenciesDeclarationDescriptor dependencies = 3
-     */
-    dependencies?: LocalDependenciesDeclarationDescriptor;
     /**
      * @generated from protobuf field: nimi.runtime.v1.LocalDeviceProfile device_profile = 4
      */
     deviceProfile?: LocalDeviceProfile;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.ResolveDependenciesResponse
+ * @generated from protobuf message nimi.runtime.v1.ResolveProfileResponse
  */
-export interface ResolveDependenciesResponse {
+export interface ResolveProfileResponse {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalDependencyResolutionPlan plan = 1
+     * @generated from protobuf field: nimi.runtime.v1.LocalProfileResolutionPlan plan = 1
      */
-    plan?: LocalDependencyResolutionPlan;
+    plan?: LocalProfileResolutionPlan;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.ApplyDependenciesRequest
+ * @generated from protobuf message nimi.runtime.v1.ApplyProfileRequest
  */
-export interface ApplyDependenciesRequest {
+export interface ApplyProfileRequest {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalDependencyResolutionPlan plan = 1
+     * @generated from protobuf field: nimi.runtime.v1.LocalProfileResolutionPlan plan = 1
      */
-    plan?: LocalDependencyResolutionPlan;
+    plan?: LocalProfileResolutionPlan;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.ApplyDependenciesResponse
+ * @generated from protobuf message nimi.runtime.v1.ApplyProfileResponse
  */
-export interface ApplyDependenciesResponse {
+export interface ApplyProfileResponse {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalDependencyApplyResult result = 1
+     * @generated from protobuf field: nimi.runtime.v1.LocalProfileApplyResult result = 1
      */
-    result?: LocalDependencyApplyResult;
+    result?: LocalProfileApplyResult;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListLocalServicesRequest
@@ -3002,24 +3002,24 @@ class CollectDeviceProfileResponse$Type extends MessageType<CollectDeviceProfile
  */
 export const CollectDeviceProfileResponse = new CollectDeviceProfileResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ResolveDependenciesRequest$Type extends MessageType<ResolveDependenciesRequest> {
+class ResolveProfileRequest$Type extends MessageType<ResolveProfileRequest> {
     constructor() {
-        super("nimi.runtime.v1.ResolveDependenciesRequest", [
+        super("nimi.runtime.v1.ResolveProfileRequest", [
             { no: 1, name: "mod_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "dependencies", kind: "message", T: () => LocalDependenciesDeclarationDescriptor },
+            { no: 2, name: "profile", kind: "message", T: () => LocalProfileDescriptor },
+            { no: 3, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "device_profile", kind: "message", T: () => LocalDeviceProfile }
         ]);
     }
-    create(value?: PartialMessage<ResolveDependenciesRequest>): ResolveDependenciesRequest {
+    create(value?: PartialMessage<ResolveProfileRequest>): ResolveProfileRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.modId = "";
         message.capability = "";
         if (value !== undefined)
-            reflectionMergePartial<ResolveDependenciesRequest>(this, message, value);
+            reflectionMergePartial<ResolveProfileRequest>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResolveDependenciesRequest): ResolveDependenciesRequest {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResolveProfileRequest): ResolveProfileRequest {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -3027,11 +3027,11 @@ class ResolveDependenciesRequest$Type extends MessageType<ResolveDependenciesReq
                 case /* string mod_id */ 1:
                     message.modId = reader.string();
                     break;
-                case /* string capability */ 2:
-                    message.capability = reader.string();
+                case /* nimi.runtime.v1.LocalProfileDescriptor profile */ 2:
+                    message.profile = LocalProfileDescriptor.internalBinaryRead(reader, reader.uint32(), options, message.profile);
                     break;
-                case /* nimi.runtime.v1.LocalDependenciesDeclarationDescriptor dependencies */ 3:
-                    message.dependencies = LocalDependenciesDeclarationDescriptor.internalBinaryRead(reader, reader.uint32(), options, message.dependencies);
+                case /* string capability */ 3:
+                    message.capability = reader.string();
                     break;
                 case /* nimi.runtime.v1.LocalDeviceProfile device_profile */ 4:
                     message.deviceProfile = LocalDeviceProfile.internalBinaryRead(reader, reader.uint32(), options, message.deviceProfile);
@@ -3047,16 +3047,16 @@ class ResolveDependenciesRequest$Type extends MessageType<ResolveDependenciesReq
         }
         return message;
     }
-    internalBinaryWrite(message: ResolveDependenciesRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: ResolveProfileRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string mod_id = 1; */
         if (message.modId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.modId);
-        /* string capability = 2; */
+        /* nimi.runtime.v1.LocalProfileDescriptor profile = 2; */
+        if (message.profile)
+            LocalProfileDescriptor.internalBinaryWrite(message.profile, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* string capability = 3; */
         if (message.capability !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.capability);
-        /* nimi.runtime.v1.LocalDependenciesDeclarationDescriptor dependencies = 3; */
-        if (message.dependencies)
-            LocalDependenciesDeclarationDescriptor.internalBinaryWrite(message.dependencies, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+            writer.tag(3, WireType.LengthDelimited).string(message.capability);
         /* nimi.runtime.v1.LocalDeviceProfile device_profile = 4; */
         if (message.deviceProfile)
             LocalDeviceProfile.internalBinaryWrite(message.deviceProfile, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
@@ -3067,29 +3067,29 @@ class ResolveDependenciesRequest$Type extends MessageType<ResolveDependenciesReq
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.ResolveDependenciesRequest
+ * @generated MessageType for protobuf message nimi.runtime.v1.ResolveProfileRequest
  */
-export const ResolveDependenciesRequest = new ResolveDependenciesRequest$Type();
+export const ResolveProfileRequest = new ResolveProfileRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ResolveDependenciesResponse$Type extends MessageType<ResolveDependenciesResponse> {
+class ResolveProfileResponse$Type extends MessageType<ResolveProfileResponse> {
     constructor() {
-        super("nimi.runtime.v1.ResolveDependenciesResponse", [
-            { no: 1, name: "plan", kind: "message", T: () => LocalDependencyResolutionPlan }
+        super("nimi.runtime.v1.ResolveProfileResponse", [
+            { no: 1, name: "plan", kind: "message", T: () => LocalProfileResolutionPlan }
         ]);
     }
-    create(value?: PartialMessage<ResolveDependenciesResponse>): ResolveDependenciesResponse {
+    create(value?: PartialMessage<ResolveProfileResponse>): ResolveProfileResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         if (value !== undefined)
-            reflectionMergePartial<ResolveDependenciesResponse>(this, message, value);
+            reflectionMergePartial<ResolveProfileResponse>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResolveDependenciesResponse): ResolveDependenciesResponse {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResolveProfileResponse): ResolveProfileResponse {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalDependencyResolutionPlan plan */ 1:
-                    message.plan = LocalDependencyResolutionPlan.internalBinaryRead(reader, reader.uint32(), options, message.plan);
+                case /* nimi.runtime.v1.LocalProfileResolutionPlan plan */ 1:
+                    message.plan = LocalProfileResolutionPlan.internalBinaryRead(reader, reader.uint32(), options, message.plan);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3102,10 +3102,10 @@ class ResolveDependenciesResponse$Type extends MessageType<ResolveDependenciesRe
         }
         return message;
     }
-    internalBinaryWrite(message: ResolveDependenciesResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalDependencyResolutionPlan plan = 1; */
+    internalBinaryWrite(message: ResolveProfileResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalProfileResolutionPlan plan = 1; */
         if (message.plan)
-            LocalDependencyResolutionPlan.internalBinaryWrite(message.plan, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+            LocalProfileResolutionPlan.internalBinaryWrite(message.plan, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3113,29 +3113,29 @@ class ResolveDependenciesResponse$Type extends MessageType<ResolveDependenciesRe
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.ResolveDependenciesResponse
+ * @generated MessageType for protobuf message nimi.runtime.v1.ResolveProfileResponse
  */
-export const ResolveDependenciesResponse = new ResolveDependenciesResponse$Type();
+export const ResolveProfileResponse = new ResolveProfileResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ApplyDependenciesRequest$Type extends MessageType<ApplyDependenciesRequest> {
+class ApplyProfileRequest$Type extends MessageType<ApplyProfileRequest> {
     constructor() {
-        super("nimi.runtime.v1.ApplyDependenciesRequest", [
-            { no: 1, name: "plan", kind: "message", T: () => LocalDependencyResolutionPlan }
+        super("nimi.runtime.v1.ApplyProfileRequest", [
+            { no: 1, name: "plan", kind: "message", T: () => LocalProfileResolutionPlan }
         ]);
     }
-    create(value?: PartialMessage<ApplyDependenciesRequest>): ApplyDependenciesRequest {
+    create(value?: PartialMessage<ApplyProfileRequest>): ApplyProfileRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         if (value !== undefined)
-            reflectionMergePartial<ApplyDependenciesRequest>(this, message, value);
+            reflectionMergePartial<ApplyProfileRequest>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ApplyDependenciesRequest): ApplyDependenciesRequest {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ApplyProfileRequest): ApplyProfileRequest {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalDependencyResolutionPlan plan */ 1:
-                    message.plan = LocalDependencyResolutionPlan.internalBinaryRead(reader, reader.uint32(), options, message.plan);
+                case /* nimi.runtime.v1.LocalProfileResolutionPlan plan */ 1:
+                    message.plan = LocalProfileResolutionPlan.internalBinaryRead(reader, reader.uint32(), options, message.plan);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3148,10 +3148,10 @@ class ApplyDependenciesRequest$Type extends MessageType<ApplyDependenciesRequest
         }
         return message;
     }
-    internalBinaryWrite(message: ApplyDependenciesRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalDependencyResolutionPlan plan = 1; */
+    internalBinaryWrite(message: ApplyProfileRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalProfileResolutionPlan plan = 1; */
         if (message.plan)
-            LocalDependencyResolutionPlan.internalBinaryWrite(message.plan, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+            LocalProfileResolutionPlan.internalBinaryWrite(message.plan, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3159,29 +3159,29 @@ class ApplyDependenciesRequest$Type extends MessageType<ApplyDependenciesRequest
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.ApplyDependenciesRequest
+ * @generated MessageType for protobuf message nimi.runtime.v1.ApplyProfileRequest
  */
-export const ApplyDependenciesRequest = new ApplyDependenciesRequest$Type();
+export const ApplyProfileRequest = new ApplyProfileRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ApplyDependenciesResponse$Type extends MessageType<ApplyDependenciesResponse> {
+class ApplyProfileResponse$Type extends MessageType<ApplyProfileResponse> {
     constructor() {
-        super("nimi.runtime.v1.ApplyDependenciesResponse", [
-            { no: 1, name: "result", kind: "message", T: () => LocalDependencyApplyResult }
+        super("nimi.runtime.v1.ApplyProfileResponse", [
+            { no: 1, name: "result", kind: "message", T: () => LocalProfileApplyResult }
         ]);
     }
-    create(value?: PartialMessage<ApplyDependenciesResponse>): ApplyDependenciesResponse {
+    create(value?: PartialMessage<ApplyProfileResponse>): ApplyProfileResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         if (value !== undefined)
-            reflectionMergePartial<ApplyDependenciesResponse>(this, message, value);
+            reflectionMergePartial<ApplyProfileResponse>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ApplyDependenciesResponse): ApplyDependenciesResponse {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ApplyProfileResponse): ApplyProfileResponse {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalDependencyApplyResult result */ 1:
-                    message.result = LocalDependencyApplyResult.internalBinaryRead(reader, reader.uint32(), options, message.result);
+                case /* nimi.runtime.v1.LocalProfileApplyResult result */ 1:
+                    message.result = LocalProfileApplyResult.internalBinaryRead(reader, reader.uint32(), options, message.result);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3194,10 +3194,10 @@ class ApplyDependenciesResponse$Type extends MessageType<ApplyDependenciesRespon
         }
         return message;
     }
-    internalBinaryWrite(message: ApplyDependenciesResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalDependencyApplyResult result = 1; */
+    internalBinaryWrite(message: ApplyProfileResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalProfileApplyResult result = 1; */
         if (message.result)
-            LocalDependencyApplyResult.internalBinaryWrite(message.result, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+            LocalProfileApplyResult.internalBinaryWrite(message.result, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3205,9 +3205,9 @@ class ApplyDependenciesResponse$Type extends MessageType<ApplyDependenciesRespon
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.ApplyDependenciesResponse
+ * @generated MessageType for protobuf message nimi.runtime.v1.ApplyProfileResponse
  */
-export const ApplyDependenciesResponse = new ApplyDependenciesResponse$Type();
+export const ApplyProfileResponse = new ApplyProfileResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ListLocalServicesRequest$Type extends MessageType<ListLocalServicesRequest> {
     constructor() {
@@ -4554,8 +4554,8 @@ export const RuntimeLocalService = new ServiceType("nimi.runtime.v1.RuntimeLocal
     { name: "CheckLocalModelHealth", options: {}, I: CheckLocalModelHealthRequest, O: CheckLocalModelHealthResponse },
     { name: "WarmLocalModel", options: {}, I: WarmLocalModelRequest, O: WarmLocalModelResponse },
     { name: "CollectDeviceProfile", options: {}, I: CollectDeviceProfileRequest, O: CollectDeviceProfileResponse },
-    { name: "ResolveDependencies", options: {}, I: ResolveDependenciesRequest, O: ResolveDependenciesResponse },
-    { name: "ApplyDependencies", options: {}, I: ApplyDependenciesRequest, O: ApplyDependenciesResponse },
+    { name: "ResolveProfile", options: {}, I: ResolveProfileRequest, O: ResolveProfileResponse },
+    { name: "ApplyProfile", options: {}, I: ApplyProfileRequest, O: ApplyProfileResponse },
     { name: "ListLocalServices", options: {}, I: ListLocalServicesRequest, O: ListLocalServicesResponse },
     { name: "InstallLocalService", options: {}, I: InstallLocalServiceRequest, O: InstallLocalServiceResponse },
     { name: "StartLocalService", options: {}, I: StartLocalServiceRequest, O: StartLocalServiceResponse },

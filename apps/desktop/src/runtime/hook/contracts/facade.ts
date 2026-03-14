@@ -1,14 +1,17 @@
 import type { AgentProfileReadFilterInput, AgentProfileReadFilterResult, AuditStats, HookCallRecord, HookRegistration, HookSourceType, MissingDataCapabilityResolver, TurnHookPoint, } from './types.js';
 import type { HookActionAuditFilter, HookActionAuditRecord, HookActionCommitRequest, HookActionCommitResult, HookActionDescriptorView, HookActionDiscoverFilter, HookActionDryRunRequest, HookActionRegistrationInput, HookActionRegistryChangeEvent, HookActionVerifyRequest, HookActionVerifyResult, HookActionResult, } from './action.js';
 import { type RuntimeCanonicalCapability } from "@nimiplatform/sdk/mod";
-export type HookModAiDependencyEntry = {
-    dependencyId: string;
-    kind: 'model' | 'service' | 'node';
+export type HookModLocalProfileEntry = {
+    entryId: string;
+    kind: 'model' | 'artifact' | 'service' | 'node';
     capability?: RuntimeCanonicalCapability;
     required: boolean;
     selected: boolean;
     preferred: boolean;
     modelId?: string;
+    artifactId?: string;
+    artifactKind?: 'vae' | 'llm' | 'clip' | 'controlnet' | 'lora' | 'auxiliary';
+    templateId?: string;
     repo?: string;
     engine?: string;
     serviceId?: string;
@@ -16,29 +19,29 @@ export type HookModAiDependencyEntry = {
     reasonCode?: string;
     warnings: string[];
 };
-export type HookModAiDependencyRepairAction = {
+export type HookModLocalProfileRepairAction = {
     actionId: string;
     label: string;
     reasonCode: string;
-    dependencyId?: string;
+    entryId?: string;
     capability?: RuntimeCanonicalCapability;
 };
-export type HookModAiDependencySnapshot = {
+export type HookModLocalProfileSnapshot = {
     modId: string;
     planId?: string;
     status: 'ready' | 'missing' | 'degraded';
     routeSource: 'local' | 'cloud' | 'mixed' | 'unknown';
     reasonCode?: string;
     warnings: string[];
-    dependencies: HookModAiDependencyEntry[];
-    repairActions: HookModAiDependencyRepairAction[];
+    entries: HookModLocalProfileEntry[];
+    repairActions: HookModLocalProfileRepairAction[];
     updatedAt: string;
 };
-export type HookModAiDependencySnapshotResolver = (input: {
+export type HookModLocalProfileSnapshotResolver = (input: {
     modId: string;
     capability?: RuntimeCanonicalCapability;
     routeSourceHint?: 'cloud' | 'local';
-}) => Promise<HookModAiDependencySnapshot>;
+}) => Promise<HookModLocalProfileSnapshot>;
 export interface DesktopHookRuntimeFacade {
     setModSourceType(modId: string, sourceType: HookSourceType): void;
     getModSourceType(modId: string): HookSourceType;
@@ -49,12 +52,12 @@ export interface DesktopHookRuntimeFacade {
     setDenialCapabilities(modId: string, capabilities: string[]): void;
     clearDenialCapabilities(modId: string): void;
     setMissingDataCapabilityResolver(resolver: MissingDataCapabilityResolver | null): void;
-    setModAiDependencySnapshotResolver(resolver: HookModAiDependencySnapshotResolver | null): void;
-    getModAiDependencySnapshot(input: {
+    setModLocalProfileSnapshotResolver(resolver: HookModLocalProfileSnapshotResolver | null): void;
+    getModLocalProfileSnapshot(input: {
         modId: string;
         capability?: RuntimeCanonicalCapability;
         routeSourceHint?: 'cloud' | 'local';
-    }): Promise<HookModAiDependencySnapshot>;
+    }): Promise<HookModLocalProfileSnapshot>;
     suspendMod(modId: string): void;
     subscribeEvent(input: {
         modId: string;

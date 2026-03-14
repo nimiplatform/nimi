@@ -23,7 +23,7 @@ export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; descrip
   },
   mods: {
     name: 'Mods',
-    description: 'AI dependency management for registered mods.',
+    description: 'Recommended local AI profile setup for registered mods.',
   },
 };
 

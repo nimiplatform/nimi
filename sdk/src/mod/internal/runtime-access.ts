@@ -10,7 +10,7 @@ import type {
   ModRuntimeContextInput,
   ModRuntimeHost,
 } from '../types/runtime-mod';
-import type { ModRuntimeDependencySnapshot } from '../runtime/types';
+import type { ModRuntimeLocalProfileSnapshot } from '../runtime/types';
 import type { RuntimeCanonicalCapability } from '../runtime-route.js';
 
 export function getRuntimeHost(): ModRuntimeHost {
@@ -40,12 +40,12 @@ export function resolveModRuntimeContext(input?: ModRuntimeContextInput): ModRun
   };
 }
 
-export async function getModAiDependencySnapshot(input: {
+export async function getModLocalProfileSnapshot(input: {
   modId: string;
   capability?: RuntimeCanonicalCapability;
   routeSourceHint?: 'cloud' | 'local';
-}, context?: ModRuntimeContextInput): Promise<ModRuntimeDependencySnapshot> {
-  return resolveRuntimeHost(context).getModAiDependencySnapshot({
+}, context?: ModRuntimeContextInput): Promise<ModRuntimeLocalProfileSnapshot> {
+  return resolveRuntimeHost(context).getModLocalProfileSnapshot({
     modId: String(input.modId || '').trim(),
     capability: input.capability,
     routeSourceHint: input.routeSourceHint,

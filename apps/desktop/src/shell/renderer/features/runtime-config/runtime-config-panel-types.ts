@@ -7,15 +7,18 @@ import type { RuntimeBridgeDaemonStatus } from '@renderer/bridge';
 import type {
   LocalAiArtifactKind,
   LocalAiCatalogItemDescriptor,
-  LocalAiDependencyResolutionPlan,
   LocalAiInstallPayload,
   LocalAiInstallPlanDescriptor,
+  LocalAiProfileApplyResult,
+  LocalAiProfileDescriptor,
+  LocalAiProfileResolutionPlan,
 } from '@runtime/local-ai-runtime';
 
-export type RuntimeDependencyTargetDescriptor = {
+export type RuntimeProfileTargetDescriptor = {
   modId: string;
   modName: string;
   consumeCapabilities: CapabilityV11[];
+  profiles: LocalAiProfileDescriptor[];
 };
 
 export type RuntimeConfigPanelControllerModel = {
@@ -34,7 +37,7 @@ export type RuntimeConfigPanelControllerModel = {
   orderedConnectors: RuntimeConfigStateV11['connectors'];
   filteredLocalModels: string[];
   filteredConnectorModels: string[];
-  runtimeDependencyTargets: RuntimeDependencyTargetDescriptor[];
+  runtimeProfileTargets: RuntimeProfileTargetDescriptor[];
   registeredRuntimeModIds: string[];
   runtimeDaemonStatus: RuntimeBridgeDaemonStatus | null;
   runtimeDaemonBusyAction: 'start' | 'restart' | 'stop' | null;
@@ -48,14 +51,14 @@ export type RuntimeConfigPanelControllerModel = {
   discoverLocalModels: () => Promise<void>;
   runLocalHealthCheck: () => Promise<void>;
   testSelectedConnector: () => Promise<void>;
-  resolveRuntimeDependencies: (
+  resolveRuntimeProfile: (
     modId: string,
-    capability?: CapabilityV11 | string,
-  ) => Promise<LocalAiDependencyResolutionPlan>;
-  applyRuntimeDependencies: (
+    profileId: string,
+  ) => Promise<LocalAiProfileResolutionPlan>;
+  applyRuntimeProfile: (
     modId: string,
-    capability?: CapabilityV11 | string,
-  ) => Promise<void>;
+    profileId: string,
+  ) => Promise<LocalAiProfileApplyResult>;
   installCatalogLocalModel: (
     item: LocalAiCatalogItemDescriptor,
     options?: {

@@ -20,7 +20,7 @@ async function publishTake(input: {
   try {
     input.onStatus('uploading');
 
-    const upload = (await realm.media.createAudioDirectUpload()) as {
+    const upload = (await realm.media.createAudioDirectUpload({ mimeType: 'audio/mpeg' })) as {
       uploadUrl: string;
       key: string;
     };

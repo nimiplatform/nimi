@@ -134,7 +134,7 @@ test('passthrough: model module methods are callable and forwarded', async () =>
 });
 
 // ---------------------------------------------------------------------------
-// local (35 methods)
+// local (37 methods)
 // ---------------------------------------------------------------------------
 test('passthrough: local module methods are callable and forwarded', async () => {
   const { clients, guardCalls, invokeCalls } = createMockClients();
@@ -143,7 +143,7 @@ test('passthrough: local module methods are callable and forwarded', async () =>
     'searchCatalogModels', 'resolveModelInstallPlan', 'installLocalModel', 'installVerifiedModel',
     'installVerifiedArtifact', 'importLocalModel', 'importLocalArtifact', 'removeLocalModel',
     'removeLocalArtifact', 'startLocalModel', 'stopLocalModel', 'checkLocalModelHealth',
-    'warmLocalModel', 'collectDeviceProfile', 'resolveDependencies', 'applyDependencies',
+    'warmLocalModel', 'collectDeviceProfile', 'resolveProfile', 'applyProfile',
     'listLocalServices', 'installLocalService', 'startLocalService', 'stopLocalService',
     'checkLocalServiceHealth', 'removeLocalService', 'listNodeCatalog', 'listLocalAudits',
     'appendInferenceAudit', 'appendRuntimeAudit', 'listEngines', 'ensureEngine',

@@ -10,8 +10,11 @@ import type {
 } from '../types/llm';
 import type {
   ModRuntimeBoundEmbeddingGenerateInput,
-  ModRuntimeDependencySnapshot,
+  ModRuntimeLocalProfileSnapshot,
   ModRuntimeBoundImageGenerateInput,
+  ModRuntimeLocalProfile,
+  ModRuntimeLocalProfileInstallResult,
+  ModRuntimeLocalProfileInstallStatus,
   ModRuntimeListLocalArtifactsInput,
   ModRuntimeLocalArtifactRecord,
   ModRuntimeBoundSpeechListVoicesInput,
@@ -159,11 +162,11 @@ export type ModSdkHost = {
       task: () => Promise<T>,
     ) => Promise<T>;
     getRuntimeHookRuntime: () => RuntimeHookRuntimeFacade;
-    getModAiDependencySnapshot: (input: {
+    getModLocalProfileSnapshot: (input: {
       modId: string;
       capability?: RuntimeCanonicalCapability;
       routeSourceHint?: 'cloud' | 'local';
-    }) => Promise<ModRuntimeDependencySnapshot>;
+    }) => Promise<ModRuntimeLocalProfileSnapshot>;
     route: {
       listOptions: (input: {
         modId: string;
@@ -180,11 +183,23 @@ export type ModSdkHost = {
         binding?: RuntimeRouteBinding;
       }) => Promise<RuntimeRouteHealthResult>;
     };
-    local: {
-      listArtifacts: (input: ModRuntimeListLocalArtifactsInput & {
-        modId: string;
-      }) => Promise<ModRuntimeLocalArtifactRecord[]>;
-    };
+  local: {
+    listArtifacts: (input: ModRuntimeListLocalArtifactsInput & {
+      modId: string;
+    }) => Promise<ModRuntimeLocalArtifactRecord[]>;
+    listProfiles: (input: {
+      modId: string;
+    }) => Promise<ModRuntimeLocalProfile[]>;
+    requestProfileInstall: (input: {
+      modId: string;
+      profileId: string;
+      confirmMessage?: string;
+    }) => Promise<ModRuntimeLocalProfileInstallResult>;
+    getProfileInstallStatus: (input: {
+      modId: string;
+      profileId: string;
+    }) => Promise<ModRuntimeLocalProfileInstallStatus>;
+  };
     ai: {
       text: {
         generate: (input: ModRuntimeBoundTextGenerateInput & { modId: string }) => Promise<TextGenerateOutput>;

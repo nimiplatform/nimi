@@ -58,3 +58,18 @@ include!("repo_normalization.rs");
 include!("download_transport.rs");
 include!("install_flow.rs");
 include!("tests.rs");
+
+pub(super) fn download_file_for_local_runtime<F>(
+    url: &str,
+    destination: &std::path::PathBuf,
+    on_progress: &mut F,
+) -> Result<(), String>
+where
+    F: FnMut(HfDownloadProgress) -> HfDownloadControl,
+{
+    download_file_with_resume(url, destination, on_progress)
+}
+
+pub(super) fn sha256_hex_for_local_runtime(path: &std::path::Path) -> Result<String, String> {
+    sha256_hex_streaming_with_progress(path, &mut |_bytes_verified, _bytes_total| true)
+}

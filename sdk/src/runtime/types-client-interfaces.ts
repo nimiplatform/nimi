@@ -78,8 +78,8 @@ import type {
   RemoveModelRequest,
 } from './generated/runtime/v1/model';
 import type {
-  ApplyDependenciesRequest,
-  ApplyDependenciesResponse,
+  ApplyProfileRequest,
+  ApplyProfileResponse,
   AppendInferenceAuditRequest,
   AppendRuntimeAuditRequest,
   CheckLocalModelHealthRequest,
@@ -120,8 +120,8 @@ import type {
   RemoveLocalModelResponse,
   RemoveLocalServiceRequest,
   RemoveLocalServiceResponse,
-  ResolveDependenciesRequest,
-  ResolveDependenciesResponse,
+  ResolveProfileRequest,
+  ResolveProfileResponse,
   ResolveModelInstallPlanRequest,
   ResolveModelInstallPlanResponse,
   SearchCatalogModelsRequest,
@@ -294,8 +294,8 @@ export type RuntimeLocalServiceClient = {
   checkLocalModelHealth(request: CheckLocalModelHealthRequest, options?: RuntimeCallOptions): Promise<CheckLocalModelHealthResponse>;
   warmLocalModel(request: WarmLocalModelRequest, options?: RuntimeCallOptions): Promise<WarmLocalModelResponse>;
   collectDeviceProfile(request: CollectDeviceProfileRequest, options?: RuntimeCallOptions): Promise<CollectDeviceProfileResponse>;
-  resolveDependencies(request: ResolveDependenciesRequest, options?: RuntimeCallOptions): Promise<ResolveDependenciesResponse>;
-  applyDependencies(request: ApplyDependenciesRequest, options?: RuntimeCallOptions): Promise<ApplyDependenciesResponse>;
+  resolveProfile(request: ResolveProfileRequest, options?: RuntimeCallOptions): Promise<ResolveProfileResponse>;
+  applyProfile(request: ApplyProfileRequest, options?: RuntimeCallOptions): Promise<ApplyProfileResponse>;
   listLocalServices(request: ListLocalServicesRequest, options?: RuntimeCallOptions): Promise<ListLocalServicesResponse>;
   installLocalService(request: InstallLocalServiceRequest, options?: RuntimeCallOptions): Promise<InstallLocalServiceResponse>;
   startLocalService(request: StartLocalServiceRequest, options?: RuntimeCallOptions): Promise<StartLocalServiceResponse>;

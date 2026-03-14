@@ -83,12 +83,12 @@ warning 不阻止安装，仅在 `InstallPlanDescriptor.warnings` 中输出。
 
 Phase 1 不缓存设备画像：每次 `CollectDeviceProfile` 调用都实时采集所有字段。
 
-> **触发点枚举**：daemon 不主动周期性采集。画像仅在以下时机刷新：(1) `CollectDeviceProfile` RPC，(2) `ResolveModelInstallPlan`/`ResolveDependencies` 流程内，(3) `StartLocalModel`/`StartLocalService` 流程内（`K-DEV-009`）。
+> **触发点枚举**：daemon 不主动周期性采集。画像仅在以下时机刷新：(1) `CollectDeviceProfile` RPC，(2) `ResolveModelInstallPlan`/`ResolveProfile` 执行面归一化流程内，(3) `StartLocalModel`/`StartLocalService` 流程内（`K-DEV-009`）。
 
 未来可按需引入 TTL 缓存（不超过 60 秒），但必须保证以下场景强制刷新：
 
 - `ResolveModelInstallPlan` 调用时
-- `ResolveDependencies` 调用时
+- `ResolveProfile` 调用时
 - 用户显式请求设备画像时
 
 ## K-DEV-009 运行时设备画像重校验

@@ -50,88 +50,136 @@ fn normalize_capability_filter(value: Option<String>) -> Option<String> {
     normalize_optional(value).map(|item| item.to_ascii_lowercase())
 }
 
-fn to_dependency_option_input(option: &LocalAiDependencyOptionPayload) -> DependencyOptionInput {
+fn profile_entry_matches_capability(
+    entry: &LocalAiProfileEntryDescriptor,
+    capability_filter: Option<&str>,
+) -> bool {
+    match capability_filter.and_then(normalize_non_empty) {
+        Some(filter) => match normalize_non_empty(entry.capability.as_deref().unwrap_or_default()) {
+            Some(entry_capability) => entry_capability.eq_ignore_ascii_case(&filter),
+            None => true,
+        },
+        None => true,
+    }
+}
+
+fn profile_entry_is_artifact(entry: &LocalAiProfileEntryDescriptor) -> bool {
+    entry.kind.trim().eq_ignore_ascii_case("artifact")
+}
+
+fn to_profile_artifact_plan_entry(
+    entry: &LocalAiProfileEntryDescriptor,
+) -> LocalAiProfileArtifactPlanEntry {
+    LocalAiProfileArtifactPlanEntry {
+        entry_id: entry.entry_id.clone(),
+        kind: "artifact".to_string(),
+        title: entry.title.clone(),
+        description: entry.description.clone(),
+        capability: entry.capability.clone(),
+        required: entry.required,
+        preferred: entry.preferred,
+        model_id: entry.model_id.clone(),
+        repo: entry.repo.clone(),
+        service_id: entry.service_id.clone(),
+        node_id: entry.node_id.clone(),
+        engine: entry.engine.clone(),
+        artifact_id: entry.artifact_id.clone(),
+        artifact_kind: entry.artifact_kind.clone(),
+        template_id: entry.template_id.clone(),
+        revision: entry.revision.clone(),
+        tags: entry.tags.clone(),
+        installed: false,
+    }
+}
+
+fn to_dependency_option_input_from_profile(
+    entry: &LocalAiProfileEntryDescriptor,
+) -> DependencyOptionInput {
     DependencyOptionInput {
-        dependency_id: normalize_non_empty(option.dependency_id.as_str()).unwrap_or_default(),
-        kind: normalize_dependency_kind(option.kind.as_str()),
-        capability: normalize_optional(option.capability.clone())
-            .map(|item| item.to_ascii_lowercase()),
-        title: normalize_optional(option.title.clone()),
-        model_id: normalize_optional(option.model_id.clone()),
-        repo: normalize_optional(option.repo.clone()),
-        engine: normalize_optional(option.engine.clone()),
-        service_id: normalize_optional(option.service_id.clone()),
-        node_id: normalize_optional(option.node_id.clone()),
-        workflow_id: normalize_optional(option.workflow_id.clone()),
+        dependency_id: normalize_non_empty(entry.entry_id.as_str()).unwrap_or_default(),
+        kind: normalize_dependency_kind(entry.kind.as_str()),
+        capability: normalize_optional(entry.capability.clone()).map(|item| item.to_ascii_lowercase()),
+        title: normalize_optional(entry.title.clone()),
+        model_id: normalize_optional(entry.model_id.clone()),
+        repo: normalize_optional(entry.repo.clone()),
+        engine: normalize_optional(entry.engine.clone()),
+        service_id: normalize_optional(entry.service_id.clone()),
+        node_id: normalize_optional(entry.node_id.clone()),
+        workflow_id: None,
     }
 }
 
-fn to_dependency_declaration_input(
-    payload: Option<LocalAiDependenciesDeclarationPayload>,
-) -> DependencyDeclarationInput {
-    let payload = payload.unwrap_or(LocalAiDependenciesDeclarationPayload {
-        required: None,
-        optional: None,
-        alternatives: None,
-        preferred: None,
-    });
-    let required = payload
-        .required
-        .unwrap_or_default()
+fn bridge_profile_to_dependency_declaration(
+    profile: &LocalAiProfileDescriptor,
+    capability_filter: Option<&str>,
+) -> (DependencyDeclarationInput, Vec<LocalAiProfileArtifactPlanEntry>) {
+    let filtered_entries = profile
+        .entries
         .iter()
-        .map(to_dependency_option_input)
+        .filter(|entry| profile_entry_matches_capability(entry, capability_filter))
+        .cloned()
         .collect::<Vec<_>>();
-    let optional = payload
-        .optional
-        .unwrap_or_default()
+    let dependency_entries = filtered_entries
         .iter()
-        .map(to_dependency_option_input)
+        .filter(|entry| !profile_entry_is_artifact(entry))
+        .cloned()
         .collect::<Vec<_>>();
-    let alternatives = payload
-        .alternatives
-        .unwrap_or_default()
+    let required = dependency_entries
         .iter()
-        .map(|item| DependencyAlternativeInput {
-            alternative_id: item.alternative_id.clone(),
-            preferred_dependency_id: normalize_optional(item.preferred_dependency_id.clone()),
-            options: item
-                .options
-                .iter()
-                .map(to_dependency_option_input)
-                .collect::<Vec<_>>(),
-        })
+        .filter(|entry| entry.required != Some(false))
+        .map(to_dependency_option_input_from_profile)
         .collect::<Vec<_>>();
-    let preferred = payload
-        .preferred
-        .unwrap_or_default()
-        .into_iter()
-        .map(|(key, value)| (key.trim().to_ascii_lowercase(), value.trim().to_string()))
-        .filter(|(key, value)| !key.is_empty() && !value.is_empty())
-        .collect::<std::collections::HashMap<_, _>>();
-    DependencyDeclarationInput {
-        required,
-        optional,
-        alternatives,
-        preferred,
-    }
+    let optional = dependency_entries
+        .iter()
+        .filter(|entry| entry.required == Some(false))
+        .map(to_dependency_option_input_from_profile)
+        .collect::<Vec<_>>();
+    let artifact_entries = filtered_entries
+        .iter()
+        .filter(|entry| profile_entry_is_artifact(entry))
+        .map(to_profile_artifact_plan_entry)
+        .collect::<Vec<_>>();
+
+    (
+        DependencyDeclarationInput {
+            required,
+            optional,
+            alternatives: Vec::new(),
+            preferred: std::collections::HashMap::new(),
+        },
+        artifact_entries,
+    )
 }
 
-fn next_dependency_plan_id(mod_id: &str) -> String {
+fn next_profile_plan_id(mod_id: &str, profile_id: &str) -> String {
     let now_ms = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_millis();
-    format!("dep-plan-{}-{now_ms}", slugify_local_model_id(mod_id))
+    format!(
+        "profile-plan-{}-{}-{now_ms}",
+        slugify_local_model_id(mod_id),
+        slugify_local_model_id(profile_id)
+    )
 }
 
-fn resolve_dependency_plan(
+fn resolve_profile_plan(
     app: &AppHandle,
-    payload: &LocalAiDependenciesResolvePayload,
-) -> Result<LocalAiDependencyResolutionPlan, String> {
+    payload: &LocalAiProfilesResolvePayload,
+) -> Result<LocalAiProfileResolutionPlan, String> {
     let mod_id = normalize_non_empty(payload.mod_id.as_str())
-        .ok_or_else(|| "LOCAL_AI_DEPENDENCY_MOD_ID_REQUIRED: modId is required".to_string())?;
+        .ok_or_else(|| "LOCAL_AI_PROFILE_MOD_ID_REQUIRED: modId is required".to_string())?;
+    let profile_id = normalize_non_empty(payload.profile.id.as_str())
+        .ok_or_else(|| "LOCAL_AI_PROFILE_ID_REQUIRED: profile.id is required".to_string())?;
+    let title = normalize_non_empty(payload.profile.title.as_str())
+        .ok_or_else(|| "LOCAL_AI_PROFILE_TITLE_REQUIRED: profile.title is required".to_string())?;
     let capability_filter = normalize_capability_filter(payload.capability.clone());
-    let declaration = to_dependency_declaration_input(payload.dependencies.clone());
+    let device_profile = payload
+        .device_profile
+        .clone()
+        .unwrap_or_else(|| collect_device_profile(app));
+    let (declaration, artifact_entries) =
+        bridge_profile_to_dependency_declaration(&payload.profile, capability_filter.as_deref());
     let mut state = load_state(app)?;
     if state.capability_matrix.is_empty() {
         refresh_state_capability_matrix_with_provider_probe(app, &mut state);
@@ -139,19 +187,34 @@ fn resolve_dependency_plan(
     }
     let resolved = resolve_dependencies(&DependencyResolveInput {
         capability_filter: capability_filter.clone(),
-        device_profile: payload.device_profile.clone(),
+        device_profile: device_profile.clone(),
         capability_matrix: state.capability_matrix.clone(),
         declaration,
     })?;
-
-    Ok(LocalAiDependencyResolutionPlan {
-        plan_id: next_dependency_plan_id(mod_id.as_str()),
-        mod_id,
+    let plan_id = next_profile_plan_id(mod_id.as_str(), profile_id.as_str());
+    let execution_plan = LocalAiDependencyResolutionPlan {
+        plan_id: plan_id.clone(),
+        mod_id: mod_id.clone(),
         capability: capability_filter,
-        device_profile: payload.device_profile.clone(),
+        device_profile,
         dependencies: resolved.dependencies,
         selection_rationale: resolved.selection_rationale,
         preflight_decisions: resolved.preflight_decisions,
+        warnings: resolved.warnings.clone(),
+        reason_code: resolved.reason_code.clone(),
+    };
+
+    Ok(LocalAiProfileResolutionPlan {
+        plan_id,
+        mod_id,
+        profile_id: profile_id.to_string(),
+        title: title.to_string(),
+        description: normalize_optional(payload.profile.description.clone()),
+        recommended: payload.profile.recommended,
+        consume_capabilities: payload.profile.consume_capabilities.clone(),
+        requirements: payload.profile.requirements.clone(),
+        execution_plan,
+        artifact_entries,
         warnings: resolved.warnings,
         reason_code: resolved.reason_code,
     })
@@ -337,3 +400,112 @@ fn start_service_runtime(
     }
 }
 
+#[cfg(test)]
+mod profile_tests {
+    use super::{
+        bridge_profile_to_dependency_declaration, next_profile_plan_id, LocalAiProfileDescriptor,
+        LocalAiProfileEntryDescriptor,
+    };
+
+    fn profile_fixture() -> LocalAiProfileDescriptor {
+        LocalAiProfileDescriptor {
+            id: "image-default".to_string(),
+            title: "Image Default".to_string(),
+            description: Some("Balanced image stack".to_string()),
+            recommended: true,
+            consume_capabilities: vec!["image".to_string()],
+            entries: vec![
+                LocalAiProfileEntryDescriptor {
+                    entry_id: "image-model".to_string(),
+                    kind: "model".to_string(),
+                    title: Some("Primary image model".to_string()),
+                    description: None,
+                    capability: Some("image".to_string()),
+                    required: Some(true),
+                    preferred: Some(true),
+                    model_id: Some("black-forest-labs/flux-dev".to_string()),
+                    repo: Some("black-forest-labs/flux-dev".to_string()),
+                    service_id: None,
+                    node_id: None,
+                    engine: Some("localai".to_string()),
+                    artifact_id: None,
+                    artifact_kind: None,
+                    template_id: None,
+                    revision: None,
+                    tags: vec!["recommended".to_string()],
+                },
+                LocalAiProfileEntryDescriptor {
+                    entry_id: "companion-vae".to_string(),
+                    kind: "artifact".to_string(),
+                    title: Some("Recommended VAE".to_string()),
+                    description: None,
+                    capability: Some("image".to_string()),
+                    required: Some(true),
+                    preferred: Some(true),
+                    model_id: None,
+                    repo: None,
+                    service_id: None,
+                    node_id: None,
+                    engine: Some("localai".to_string()),
+                    artifact_id: Some("flux/vae".to_string()),
+                    artifact_kind: Some("vae".to_string()),
+                    template_id: Some("verified/flux-vae".to_string()),
+                    revision: None,
+                    tags: vec![],
+                },
+                LocalAiProfileEntryDescriptor {
+                    entry_id: "chat-helper".to_string(),
+                    kind: "model".to_string(),
+                    title: Some("Chat helper".to_string()),
+                    description: None,
+                    capability: Some("chat".to_string()),
+                    required: Some(false),
+                    preferred: Some(false),
+                    model_id: Some("qwen/qwen3".to_string()),
+                    repo: Some("qwen/qwen3".to_string()),
+                    service_id: None,
+                    node_id: None,
+                    engine: Some("localai".to_string()),
+                    artifact_id: None,
+                    artifact_kind: None,
+                    template_id: None,
+                    revision: None,
+                    tags: vec![],
+                },
+            ],
+            requirements: None,
+        }
+    }
+
+    #[test]
+    fn bridge_profile_to_dependency_declaration_separates_runtime_and_artifact_entries() {
+        let profile = profile_fixture();
+        let (declaration, artifacts) =
+            bridge_profile_to_dependency_declaration(&profile, Some("image"));
+
+        assert_eq!(declaration.required.len(), 1);
+        assert_eq!(declaration.required[0].dependency_id, "image-model");
+        assert!(declaration.optional.is_empty());
+        assert_eq!(artifacts.len(), 1);
+        assert_eq!(artifacts[0].entry_id, "companion-vae");
+        assert_eq!(artifacts[0].kind, "artifact");
+        assert_eq!(artifacts[0].template_id.as_deref(), Some("verified/flux-vae"));
+    }
+
+    #[test]
+    fn bridge_profile_to_dependency_declaration_keeps_optional_entries_without_capability_filter() {
+        let profile = profile_fixture();
+        let (declaration, artifacts) = bridge_profile_to_dependency_declaration(&profile, None);
+
+        assert_eq!(declaration.required.len(), 1);
+        assert_eq!(declaration.optional.len(), 1);
+        assert_eq!(declaration.optional[0].dependency_id, "chat-helper");
+        assert_eq!(artifacts.len(), 1);
+    }
+
+    #[test]
+    fn next_profile_plan_id_includes_mod_and_profile_slug() {
+        let plan_id = next_profile_plan_id("image/mod", "quality-best");
+        assert!(plan_id.starts_with("profile-plan-image-mod-quality-best-"));
+    }
+}
