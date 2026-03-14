@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { ReasonCode } from '@nimiplatform/sdk';
 import { createHookClient } from '@nimiplatform/sdk/mod';
 import { loadAgentDetails } from '../src/runtime/data-sync/flows/agent-runtime-flow';
 import {
@@ -20,36 +19,50 @@ import {
   respondToRequest,
 } from '../../../nimi-mods/runtime/mint-you/src/services/photo-auth.js';
 
-type LocalStorageLike = {
-  getItem: (key: string) => string | null;
-  setItem: (key: string, value: string) => void;
-  removeItem: (key: string) => void;
-  clear: () => void;
-};
+function installRuntimeStorageTauriMock(): () => void {
+  const storage = new Map<string, string>();
+  const globalRecord = globalThis as Record<string, unknown>;
+  const previousTauri = globalRecord.__TAURI__;
 
-function installLocalStorage(): () => void {
-  const store = new Map<string, string>();
-  const previous = (globalThis as typeof globalThis & {
-    localStorage?: LocalStorageLike;
-  }).localStorage;
-  const localStorage: LocalStorageLike = {
-    getItem: (key) => (store.has(key) ? store.get(key) || null : null),
-    setItem: (key, value) => {
-      store.set(String(key), String(value));
-    },
-    removeItem: (key) => {
-      store.delete(String(key));
-    },
-    clear: () => {
-      store.clear();
+  globalRecord.__TAURI__ = {
+    core: {
+      invoke: async (command: string, payload?: unknown) => {
+        if (command === 'runtime_mod_storage_sqlite_query') {
+          const params = (payload as { payload?: { params?: unknown[] } })?.payload?.params || [];
+          const namespace = String(params[0] || '');
+          const key = String(params[1] || '');
+          const stored = storage.get(`${namespace}:${key}`);
+          return stored == null ? { rows: [] } : { rows: [{ value: stored }] };
+        }
+
+        if (command === 'runtime_mod_storage_sqlite_execute') {
+          const sql = String((payload as { payload?: { sql?: string } })?.payload?.sql || '').toLowerCase();
+          const params = (payload as { payload?: { params?: unknown[] } })?.payload?.params || [];
+          const namespace = String(params[0] || '');
+          const key = String(params[1] || '');
+          if (sql.includes('create table if not exists mod_state_kv')) {
+            return { rowsAffected: 0, lastInsertRowid: 0 };
+          }
+          if (sql.includes('insert into mod_state_kv')) {
+            storage.set(`${namespace}:${key}`, String(params[2] || ''));
+            return { rowsAffected: 1, lastInsertRowid: 0 };
+          }
+          if (sql.includes('delete from mod_state_kv')) {
+            storage.delete(`${namespace}:${key}`);
+            return { rowsAffected: 1, lastInsertRowid: 0 };
+          }
+        }
+
+        throw new Error(`UNEXPECTED_TAURI_COMMAND:${command}`);
+      },
     },
   };
-  (globalThis as typeof globalThis & { localStorage?: LocalStorageLike }).localStorage = localStorage;
+
   return () => {
-    if (previous) {
-      (globalThis as typeof globalThis & { localStorage?: LocalStorageLike }).localStorage = previous;
+    if (typeof previousTauri === 'undefined') {
+      delete globalRecord.__TAURI__;
     } else {
-      delete (globalThis as typeof globalThis & { localStorage?: LocalStorageLike }).localStorage;
+      globalRecord.__TAURI__ = previousTauri;
     }
   };
 }
@@ -175,32 +188,6 @@ function createRuntimeContext(hookRuntime: ReturnType<typeof getRuntimeHookRunti
   };
 }
 
-function installModStateCapability(hookRuntime: ReturnType<typeof getRuntimeHookRuntime>): void {
-  hookRuntime.registerDataCapability('data.store.mod-state', (query) => {
-    const op = String(query.op || '');
-    const key = String(query.key || '');
-    const storage = globalThis.localStorage;
-    if (!storage) {
-      return { ok: false, reasonCode: ReasonCode.MOD_STATE_UNAVAILABLE };
-    }
-
-    const storageKey = `nimi:mod-state:${key}`;
-    if (op === 'get') {
-      return { ok: true, value: storage.getItem(storageKey) };
-    }
-    if (op === 'set') {
-      storage.setItem(storageKey, String(query.value || ''));
-      return { ok: true };
-    }
-    if (op === 'delete') {
-      storage.removeItem(storageKey);
-      return { ok: true };
-    }
-
-    return { ok: false, reasonCode: ReasonCode.MOD_STATE_INVALID_OP };
-  });
-}
-
 function installModSdkHost(runtimeHost: Record<string, unknown>): () => void {
   setInternalModSdkHost({
     runtime: runtimeHost as never,
@@ -227,14 +214,13 @@ function installModSdkHost(runtimeHost: Record<string, unknown>): () => void {
 }
 
 test('loadAgentDetails reapplies mint-you profile filter per viewer on cached profiles', async () => {
-  const restoreLocalStorage = installLocalStorage();
   resetRuntimeHostForTesting();
+  const restoreTauri = installRuntimeStorageTauriMock();
 
   try {
     const hookRuntime = getRuntimeHookRuntime();
     hookRuntime.setModSourceType(MINTYOU_MOD_ID, 'builtin');
     hookRuntime.setCapabilityBaseline(MINTYOU_MOD_ID, [MINTYOU_RUNTIME_PROFILE_READ_AGENT]);
-    installModStateCapability(hookRuntime);
 
     const runtimeContext = createRuntimeContext(hookRuntime);
     const restoreHost = installModSdkHost(runtimeContext.runtimeHost as Record<string, unknown>);
@@ -276,8 +262,8 @@ test('loadAgentDetails reapplies mint-you profile filter per viewer on cached pr
       const fetchCountAfterInitialLoad = fetchCount;
       assert.equal(fetchCountAfterInitialLoad > 0, true);
 
-      await requestPhoto(hookClient.data, 'viewer-b', agentId, 'world-cache');
-      await respondToRequest(hookClient.data, agentId, 'viewer-b', 'world-cache', true);
+      await requestPhoto(hookClient.storage, 'viewer-b', agentId, 'world-cache');
+      await respondToRequest(hookClient.storage, agentId, 'viewer-b', 'world-cache', true);
 
       const authorized = await loadAgentDetails(callApi as never, emitDataSyncError, agentId, {
         viewerUserId: 'viewer-b',
@@ -298,6 +284,6 @@ test('loadAgentDetails reapplies mint-you profile filter per viewer on cached pr
     }
   } finally {
     resetRuntimeHostForTesting();
-    restoreLocalStorage();
+    restoreTauri();
   }
 });
