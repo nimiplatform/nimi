@@ -30,6 +30,15 @@ Desktop 规范验收门禁与执行证据契约，覆盖 kernel 规则集合 `D-
 - `rule-evidence.yaml` 可为 canonical runtime config path、runtime-only cloud routing、runtime-aligned mod/hook surface、local-ai bridge 命令边界、manifest capabilities-only policy 绑定额外静态 gate。
 - 这些 hard-cut gate 不替代 lint/test/e2e，只负责阻断 legacy surface 回流。
 
+### Self-Update Hard-Cut Coverage (D-BOOT-001, D-IPC-002, D-IPC-009)
+
+- desktop self-update 必须覆盖三类验证：
+  - Rust/Tauri：release info fail-close、bundled runtime `nimi version --json` 真值校验、running/not-running version probe 优先级、download/install 两阶段 updater 状态机、stop/update 前后的 channel invalidation。
+  - Renderer/Web adapter：packaged desktop exact-match gate、`desktopReleaseError` 在 strip 与设置页可见、web adapter unsupported fail-close、update banner/status i18n。
+  - Release scripts/CI：`check:version-sync`、`check:desktop-release-sync`、updater artifacts `latest.json` / `.sig` / 平台 bundle 类型校验。
+- release workflow 若缺少 runtime archive、release manifest、updater signature、public key、endpoint，必须 fail-close。
+- desktop dry-run CI 必须在 Linux / macOS / Windows 三平台执行 bundled runtime 准备、release resource 校验、updater 产物校验，并上传 dry-run 产物供审计。
+
 ### Offline / Degradation Coverage (D-OFFLINE-001, D-OFFLINE-004)
 
 - 离线降级与重连冲突策略的规范源为 `kernel/offline-degradation-contract.md`。
@@ -39,6 +48,8 @@ Desktop 规范验收门禁与执行证据契约，覆盖 kernel 规则集合 `D-
 
 - `pnpm check:desktop-spec-kernel-consistency`
 - `pnpm check:desktop-spec-kernel-docs-drift`
+- `pnpm --filter @nimiplatform/desktop run check:version-sync`
+- `pnpm --filter @nimiplatform/desktop run check:desktop-release-sync`
 - `pnpm --filter @nimiplatform/desktop lint`
 - `pnpm --filter @nimiplatform/desktop test`
 - `pnpm check:desktop-mods-smoke --all`

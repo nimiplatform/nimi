@@ -13,7 +13,9 @@ Desktop 应用启动序列契约。定义 renderer 进程从 `bootstrapRuntime()
 Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；legacy 路径 `.nimi/runtime/config.json` 已硬切移除，不得在 bootstrap 或 backend fallback 中回流。
 
 - `runtime_defaults` 读取不要求 daemon 已运行。
-- 缺少 `nimi` binary、未设置 `NIMI_RUNTIME_BINARY`、或 runtime daemon 当前不可用时，Desktop 必须继续 bootstrap，并将 runtime 标记为 unavailable。
+- packaged desktop 必须先完成 bundled runtime staging。release 模式下不允许依赖 `PATH`、用户手工 binary、或产品语义上的 `NIMI_RUNTIME_BINARY` 覆盖。
+- 若 bundled runtime staging / 版本校验失败，Desktop shell 必须继续 bootstrap，但将 runtime 标记为 unavailable 并暴露结构化错误。
+- 只有 source development 的 runtime 模式才允许 `go run ./cmd/nimi` / `PATH` 解析流程。
 - 只有 shell 级致命错误才进入 `D-BOOT-008` 错误路径。
 - 后续依赖：DataSync 初始化、Platform Client 初始化。
 
@@ -24,7 +26,7 @@ Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；leg
 - 写入目标：`auth.jwt.jwksUrl`、`auth.jwt.issuer`、`auth.jwt.audience`（K-DAEMON-009）。
 - 数据来源：`runtime_defaults.realm.{jwksUrl,jwtIssuer,jwtAudience}`。
 - 写入流程：`runtime_bridge_config_get` → 合并配置 → `runtime_bridge_config_set`。
-- 若 runtime 当前 unavailable（例如 release 模式找不到 `nimi` binary），必须跳过该步骤，不得阻断 app shell。
+- 若 runtime 当前 unavailable（例如 bundled runtime staging 失败），必须跳过该步骤，不得阻断 app shell。
 
 重启分支（基于 `reasonCode`）：
 
@@ -92,6 +94,11 @@ Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；leg
 - `bootstrapReady = false`、`bootstrapError = message`。
 - 清除 auth session。
 - 日志级别：`error`。
+
+packaged desktop release 校验补充：
+
+- release metadata 读取失败、bundled runtime staging 失败、或 runtime 自报版本与 packaged desktop 不一致，不得由 renderer / backend 合成 fallback release info。
+- 这些错误属于 runtime unavailable / release invalid，可通过 `desktopReleaseError` 和设置页状态呈现；是否进入 shell-fatal 只取决于后续是否仍有必须依赖 runtime exact match 的 bootstrap 步骤被触发。
 
 ## D-BOOT-009 — 幂等性守卫
 

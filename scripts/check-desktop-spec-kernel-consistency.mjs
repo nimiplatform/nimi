@@ -11,6 +11,7 @@ const kernelFiles = [
   'spec/desktop/kernel/index.md',
   'spec/desktop/kernel/bootstrap-contract.md',
   'spec/desktop/kernel/bridge-ipc-contract.md',
+  'spec/desktop/kernel/self-update-contract.md',
   'spec/desktop/kernel/state-contract.md',
   'spec/desktop/kernel/auth-session-contract.md',
   'spec/desktop/kernel/data-sync-contract.md',

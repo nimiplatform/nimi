@@ -338,11 +338,11 @@ jobs:
       matrix:
         include:
           - platform: ubuntu-22.04
-            extra_args: ""
+            extra_args: "appimage"
           - platform: macos-latest
-            extra_args: ""
+            extra_args: "app"
           - platform: windows-latest
-            extra_args: ""
+            extra_args: "nsis"
     runs-on: ${{ matrix.platform }}
     env:
       RELEASE_VERSION: ${{ needs.resolve.outputs.version_plain }}
@@ -404,38 +404,57 @@ jobs:
           go install github.com/sigstore/cosign/v2/cmd/cosign@v2.6.2
           go install github.com/anchore/syft/cmd/syft@v1.42.2
 
-      - name: Validate desktop package and tauri versions
-        run: |
-          set -euo pipefail
-          node <<'NODE'
-          const fs = require('node:fs');
-          const expected = process.env.RELEASE_VERSION;
-
-          const desktopPkg = JSON.parse(fs.readFileSync('apps/desktop/package.json', 'utf8'));
-          const tauriCfg = JSON.parse(fs.readFileSync('apps/desktop/src-tauri/tauri.conf.json', 'utf8'));
-          const violations = [];
-
-          if (desktopPkg.version !== expected) {
-            violations.push(`apps/desktop/package.json version mismatch: expected ${expected}, got ${desktopPkg.version}`);
-          }
-          if (tauriCfg.version !== expected) {
-            violations.push(`apps/desktop/src-tauri/tauri.conf.json version mismatch: expected ${expected}, got ${tauriCfg.version}`);
-          }
-
-          if (violations.length > 0) {
-            process.stderr.write(`${violations.map((line) => `- ${line}`).join('\\n')}\\n`);
-            process.exit(1);
-          }
-          NODE
-
       - name: Validate desktop mods env contract
         run: pnpm --filter @nimiplatform/desktop run env:check:mods-root
+
+      - name: Validate desktop updater signing inputs
+        run: |
+          set -euo pipefail
+          if [[ -z "${NIMI_DESKTOP_UPDATER_PUBLIC_KEY:-}" ]]; then
+            echo "NIMI_DESKTOP_UPDATER_PUBLIC_KEY is required" >&2
+            exit 1
+          fi
+          if [[ -z "${NIMI_DESKTOP_UPDATER_ENDPOINT:-}" ]]; then
+            echo "NIMI_DESKTOP_UPDATER_ENDPOINT is required" >&2
+            exit 1
+          fi
+          if [[ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]]; then
+            echo "TAURI_SIGNING_PRIVATE_KEY is required" >&2
+            exit 1
+          fi
+        env:
+          NIMI_DESKTOP_UPDATER_PUBLIC_KEY: ${{ vars.NIMI_DESKTOP_UPDATER_PUBLIC_KEY }}
+          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+
+      - name: Prepare bundled runtime resources
+        run: |
+          pnpm --filter @nimiplatform/desktop run prepare:runtime-bundle -- \
+            --version "${RELEASE_VERSION}" \
+            --channel stable \
+            --commit "${GITHUB_SHA}"
+
+      - name: Validate desktop version sync
+        run: pnpm --filter @nimiplatform/desktop run check:version-sync -- --expected "${RELEASE_VERSION}"
+
+      - name: Validate bundled runtime manifest
+        run: pnpm --filter @nimiplatform/desktop run check:desktop-release-sync -- --expected "${RELEASE_VERSION}"
 
       - name: Build desktop artifacts
         id: tauri_build
         uses: tauri-apps/tauri-action@73fb865345c54760d875b94642314f8c0c894afa # action-v0.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NIMI_DESKTOP_UPDATER_PUBLIC_KEY: ${{ vars.NIMI_DESKTOP_UPDATER_PUBLIC_KEY }}
+          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           projectPath: apps/desktop
           tagName: ${{ needs.resolve.outputs.publish == 'true' && needs.resolve.outputs.tag || '' }}
@@ -443,8 +462,15 @@ jobs:
           releaseBody: ${{ needs.resolve.outputs.publish == 'true' && 'Automated desktop bundle built by release workflow.' || '' }}
           releaseDraft: false
           prerelease: ${{ contains(needs.resolve.outputs.version, '-') }}
-          includeUpdaterJson: false
-          args: --config src-tauri/tauri.conf.json --bundles app --ci --no-sign ${{ matrix.extra_args }}
+          includeUpdaterJson: true
+          updaterJsonPreferNsis: true
+          args: --config src-tauri/tauri.conf.json --bundles ${{ matrix.extra_args }} --ci
+
+      - name: Validate desktop updater artifacts
+        env:
+          NIMI_ARTIFACT_PATHS_JSON: ${{ steps.tauri_build.outputs.artifactPaths }}
+          NIMI_EXPECTED_BUNDLE: ${{ matrix.extra_args }}
+        run: pnpm --filter @nimiplatform/desktop run check:desktop-updater-artifacts
 
       - name: Generate SBOM + sign desktop artifacts
         id: desktop_supply_chain

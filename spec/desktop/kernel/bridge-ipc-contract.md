@@ -23,7 +23,7 @@ Daemon 管理命令集：`runtime_bridge_status`、`runtime_bridge_start`、`run
 - `managed: boolean`
 - `launchMode: 'RUNTIME' | 'RELEASE' | 'INVALID'`
 - `grpcAddr: string`
-- `daemonVersion: string`（daemon 版本号，用于 D-IPC-009 版本协商）
+- `version?: string`（release 模式下必须来自 bundled runtime 执行 `nimi version --json` 的自报版本，不得取自 manifest 猜测值）
 
 **Runtime 健康状态 UI 映射**（对应 Runtime K-DAEMON-001 五态）：
 
@@ -126,15 +126,33 @@ Mod 本地持久化与审计命令集（`runtime_mod::commands`）：
 - 结构化日志：invoke-start、invoke-success、invoke-failed。
 - 错误归一化：`toBridgeUserError()` 将 Tauri 错误转为用户可读消息。
 
-**版本协商**（引用 SDK `S-TRANSPORT-005`）：
+**版本协商**（引用 SDK `S-TRANSPORT-005`，并受 `self-update-contract.md` 约束）：
 
 Desktop 编译发布与 Runtime daemon 独立更新，版本偏差是真实场景。版本兼容行为：
 
-- **major 不兼容**：Desktop 启动时检测到 Runtime major 版本断裂，必须 fail-close 并向用户展示升级提示，不允许静默降级为"部分可用"。
-- **minor/patch 差异**：允许通过方法可用性检查做受控降级。不可用的 Phase 2 方法在 UI 中标记为"需要更新运行时"。
-- **版本信息获取**：通过 `runtime_bridge_status` 返回的 `daemonVersion` 字段（D-IPC-002 `RuntimeBridgeDaemonStatus`）获取。解析为 semver，与 Desktop 编译时嵌入的兼容版本范围比对。
+- **packaged desktop / release 模式**：Desktop 启动时必须要求 runtime exact match。missing / unparseable / mismatch 全部是 blocking error，不允许任何 drift。
+- **source development / runtime 模式**：可继续沿用 major fail-close、minor/patch warn 的受控兼容行为。
+- **版本信息获取**：通过 `runtime_bridge_status` 返回的 `version` 字段（D-IPC-002 `RuntimeBridgeDaemonStatus`）获取。release 模式下该值必须是 runtime 自报真值；runtime/source 模式下可按开发态语义提供。
 - **降级行为**：功能不可用的场景在 UI 中展示明确提示，不隐藏功能入口。
-- **与 SDK S-TRANSPORT-005 的关系**：S-TRANSPORT-005 定义的"metadata 交换"版本协商是通用 SDK 契约。Desktop 通过 `daemonVersion` IPC 字段实现等效功能（Tauri IPC 传输无需 gRPC metadata），满足 S-TRANSPORT-005 的语义要求。
+- **与 SDK S-TRANSPORT-005 的关系**：S-TRANSPORT-005 定义的"metadata 交换"版本协商是通用 SDK 契约。Desktop 通过 `version` IPC 字段实现等效功能（Tauri IPC 传输无需 gRPC metadata），满足 S-TRANSPORT-005 的语义要求。
+
+### Desktop Self-Update Surface (D-IPC-002, D-IPC-009)
+
+Desktop 自更新命令集：
+
+- `desktop_release_info_get`
+- `desktop_update_state_get`
+- `desktop_update_check`
+- `desktop_update_download`
+- `desktop_update_install`
+- `desktop_update_restart`
+
+约束：
+
+- `desktop_release_info_get` 仅在 release metadata 初始化成功时返回 `DesktopReleaseInfo`；初始化失败必须返回错误，不得合成 fallback 版本。
+- `desktop_update_download` 必须仅执行下载、验签与缓存 update bytes，并在成功后停在 `downloaded` 状态，不得隐式进入安装。
+- `desktop_update_install` 必须仅消费已缓存的 update bytes。调用前必须先停止 managed runtime、失效 channel pool、再进入 updater 安装阶段；未下载时必须 fail-close。
+- `desktop_update_state_get` / desktop update 事件流必须共享同一个状态机语义：`idle -> checking -> available -> downloading -> downloaded -> installing -> readyToRestart -> error`。
 
 ## D-IPC-012 — IPC 桥与 SDK 路径分界
 

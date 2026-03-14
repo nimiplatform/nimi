@@ -50,6 +50,12 @@ Web 模式 token 存储使用 localStorage 而非 Tauri backend。
 
 Web 模式下 `hasTauriInvoke()` 返回 `false`，所有 IPC 命令不可用。
 
+desktop-only surface 的额外约束：
+
+- application self-update / release metadata API 在 Web 必须 fail-close。
+- `getDesktopReleaseInfo`、`getDesktopUpdateState`、`desktopUpdateCheck`、`desktopUpdateInstall`、`desktopUpdateRestart`、`subscribeDesktopUpdateState` 不得返回 `null`、`idle`、或 no-op unsubscribe 等伪状态。
+- 调用这些 surface 时唯一允许的结果是明确的 unsupported error。
+
 **Fetch 替代策略**：Web 模式仍复用 `createProxyFetch()` 作为统一 HTTP 适配器（`D-NET-004`），但 `desktopBridge.proxyHttp()` 在 `hasTauriInvoke() = false` 时会直接 fallback 到浏览器原生 `fetch()`。因此 Web 不经过 Tauri IPC，也不具备 Desktop 的 CORS 绕过能力；Realm 部署必须提供同源路由或正确的 CORS 头。
 
 ### Web Bootstrap 序列 (D-BOOT-001~011 投影)
