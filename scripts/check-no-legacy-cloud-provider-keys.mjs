@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { extname, resolve, relative } from 'node:path';
 
-const repoRoot = resolve(new URL('..', import.meta.url).pathname);
+const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const scanRoots = [
   'runtime/internal',
   'runtime/cmd',
