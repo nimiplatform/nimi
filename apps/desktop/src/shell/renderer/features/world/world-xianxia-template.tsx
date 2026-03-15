@@ -14,6 +14,8 @@ import type {
 } from './world-detail-types';
 import { TimeFlowDynamics } from './time-flow-dynamics';
 import { WorldScoringMatrix } from './world-scoring-matrix';
+import { CreateAgentDrawer, type CreateAgentInput } from './create-agent-drawer';
+import { WorldDetailSkeletonPage } from './world-detail-route-state';
 
 const statusGlowStyles = `
   @keyframes pulse-glow {
@@ -1204,15 +1206,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
   const [showCreateAgent, setShowCreateAgent] = useState(false);
 
   if (props.loading) {
-    return (
-      <div className="min-h-screen bg-[#0a0f0c] px-5 py-6 text-[#e8f5ee]">
-        <div className="mx-auto max-w-[1400px] space-y-5">
-          <div className="h-[420px] animate-pulse rounded-[28px] bg-[#0f1713]" />
-          <div className="h-[480px] animate-pulse rounded-[24px] bg-[#0f1713]" />
-          <div className="h-[560px] animate-pulse rounded-[22px] bg-[#0f1713]" />
-        </div>
-      </div>
-    );
+    return <WorldDetailSkeletonPage />;
   }
 
   if (props.error || !world) {
@@ -1276,13 +1270,271 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
             onVoiceAgent={props.onVoiceAgent}
           />
 
-          <WorldExtendedSection
-            semantic={props.semantic}
-            audits={props.audits}
-            publicAssets={props.publicAssets}
-            auditsLoading={props.auditsLoading}
-            publicAssetsLoading={props.publicAssetsLoading}
-          />
+          {/* Main Content Grid - 3 Columns */}
+          <div className="grid grid-cols-[1fr_1.2fr_1fr] gap-5">
+            {/* Left Column - World Overview */}
+            <section className="relative overflow-hidden rounded-[16px] border border-[#4ECCA3]/15 bg-[#0f1612]/80 backdrop-blur-sm p-5">
+              {/* Top glow line */}
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/50 to-transparent" />
+
+              {/* Section Title */}
+              <div className="flex items-center gap-2 mb-5">
+                <span className="text-sm text-[#4ECCA3] font-medium">{t('WorldDetail.section.overview')}</span>
+              </div>
+
+              {/* World Name + ID Badge */}
+              <div className="flex items-center gap-3 mb-3 flex-wrap">
+                <h3 className="text-xl font-bold text-[#e8f5ee]">{displayValue(world.name)}</h3>
+                <div className="inline-flex max-w-full items-start gap-2 rounded-lg border border-[#4ECCA3]/20 bg-[#4ECCA3]/10 px-3 py-1.5 text-xs font-mono text-[#4ECCA3]">
+                  <span className="shrink-0">{t('WorldDetail.xianxia.id')}:</span>
+                  <span className="break-all whitespace-normal">
+                    {world.id || 'N/A'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Meta info row */}
+              <div className="flex items-center gap-4 mb-5 text-xs text-[#e8f5ee]/60">
+                <span className="inline-flex items-center gap-1.5">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                  {world.createdAt ? formatDateTime(world.createdAt) : 'N/A'}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                  {t('WorldDetail.agents', {
+                    count: world.agentCount !== undefined ? world.agentCount : 0,
+                    defaultValue: '{{count}} Agents',
+                  })}
+                </span>
+              </div>
+
+              {/* Description */}
+              <div className="mb-5">
+                <div className="text-xs text-[#4ECCA3] mb-2">{t('WorldDetail.description')}</div>
+                <p className="text-sm text-[#e8f5ee]/70 leading-relaxed">
+                  {displayValue(worldSummary)}
+                </p>
+              </div>
+            </section>
+
+            {/* Middle Column - Scoring Matrix */}
+            <section className="relative overflow-hidden rounded-[16px] border border-[#4ECCA3]/15 bg-[#0f1612]/80 backdrop-blur-sm">
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/50 to-transparent" />
+              <WorldScoringMatrix
+                data={{
+                  scoreA: world.scoreA,
+                  scoreC: world.scoreC,
+                  scoreQ: world.scoreQ,
+                  scoreE: world.scoreE,
+                  scoreEwma: world.scoreEwma,
+                }}
+                className="h-full"
+              />
+            </section>
+
+            {/* Right Column - Chronicle */}
+            <section className="relative overflow-hidden rounded-[16px] border border-[#4ECCA3]/15 bg-[#0f1612]/80 backdrop-blur-sm p-5">
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/50 to-transparent" />
+
+              {/* Section Title */}
+              <div className="flex items-center gap-2 mb-5">
+                <span className="text-sm text-[#4ECCA3] font-medium">{t('WorldDetail.section.timeline')}</span>
+              </div>
+
+              {/* Timeline */}
+              <div className="relative flex flex-col gap-4">
+                {/* Timeline line */}
+                <div className="absolute left-[11px] top-2 bottom-2 w-px bg-gradient-to-b from-[#4ECCA3] via-[#4ECCA3]/30 to-transparent" />
+
+                {props.eventsLoading ? (
+                  <>
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="relative pl-8 animate-pulse">
+                        <div className="absolute left-0 top-0 w-6 h-6 rounded-full bg-[#173422]" />
+                        <div className="h-3 w-20 rounded bg-[#173422] mb-2" />
+                        <div className="p-3 rounded-xl bg-[#0a0f0c]/60 border border-[#4ECCA3]/10 space-y-2">
+                          <div className="h-4 w-32 rounded bg-[#173422]" />
+                          <div className="h-3 w-full rounded bg-[#173422]" />
+                          <div className="h-3 w-4/5 rounded bg-[#173422]" />
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                ) : props.events.length > 0 ? (
+                  props.events.slice(0, 5).map((event) => (
+                    <div key={event.id} className="relative pl-8">
+                      {/* Timeline dot */}
+                      <div className="absolute left-0 top-0 w-6 h-6 rounded-full bg-[#0f1612] border-2 border-[#4ECCA3]/30 flex items-center justify-center">
+                        <div className="w-2 h-2 rounded-full bg-[#4ECCA3]" />
+                      </div>
+
+                      {/* Date */}
+                      <div className="text-xs text-[#4ECCA3] tracking-wider mb-1">
+                        {event.time ? formatDateTime(event.time) : 'N/A'}
+                      </div>
+
+                      {/* Content */}
+                      <div className="p-3 rounded-xl bg-[#0a0f0c]/60 border border-[#4ECCA3]/10">
+                        <h4 className="text-sm font-bold text-[#e8f5ee] mb-1">
+                          {displayValue(event.title)}
+                        </h4>
+                        <p className="text-xs text-[#e8f5ee]/50 leading-relaxed line-clamp-3">
+                          {displayValue(event.description)}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="pl-8 p-4 text-center text-[#e8f5ee]/50 text-sm">
+                    {t('WorldDetail.xianxia.timeline.noData')}
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
+
+          {/* Bottom Section - World Agents */}
+          <section className="relative overflow-hidden rounded-[16px] border border-[#4ECCA3]/15 bg-[#0f1612]/80 backdrop-blur-sm p-5">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/50 to-transparent" />
+
+            {/* Section Title */}
+            <div className="flex items-center justify-between mb-5">
+              <span className="text-sm text-[#4ECCA3] font-medium">{t('WorldDetail.section.agents')}</span>
+            </div>
+
+            {/* Agent Grid - 4 columns per row */}
+            <div className="grid auto-rows-fr grid-cols-4 gap-4">
+              {/* 创建�?Agent 专属卡片 */}
+              {props.onCreateAgent && (
+                <article
+                  onClick={() => setShowCreateAgent(true)}
+                  className="group relative h-full min-h-[174px] w-full min-w-0 cursor-pointer overflow-hidden rounded-xl border-2 border-dashed bg-gradient-to-br from-[#0b120e]/60 to-[#111a15]/78 p-4 transition-all duration-500 hover:-translate-y-0.5 hover:shadow-[0_0_30px_rgba(78,204,163,0.18)]"
+                  style={{
+                    borderColor: 'rgba(117, 240, 194, 0.48)',
+                    boxShadow: 'inset 0 0 0 1px rgba(117, 240, 194, 0.06), inset 0 0 22px rgba(78, 204, 163, 0.08)',
+                  }}
+                >
+                  {/* 呼吸灯效果的微光动画 */}
+                  <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    <div 
+                      className="absolute inset-0 rounded-xl animate-pulse"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(78,204,163,0) 0%, rgba(78,204,163,0.1) 50%, rgba(78,204,163,0) 100%)',
+                      }}
+                    />
+                  </div>
+                  
+                  <div className="relative z-10 flex h-full min-h-[140px] flex-col items-center justify-center">
+                    {/* 大号薄荷�?+ �?*/}
+                    <div 
+                      className="w-14 h-14 rounded-full flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"
+                      style={{ background: 'linear-gradient(135deg, #4ECCA3, #3DBB94)' }}
+                    >
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                    </div>
+                    {/* 文案 */}
+                    <span className="text-sm font-semibold tracking-[0.01em] text-[#76e6bf]">
+                      {t('World.createAgent.title', { defaultValue: 'Create New Agent' })}
+                    </span>
+                  </div>
+                </article>
+              )}
+
+              {props.agentsLoading ? (
+                <>
+                  {[0, 1, 2, 3].map((i) => (
+                    <div key={i} className="h-[174px] rounded-xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/60 p-4 animate-pulse">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-14 h-14 rounded-[10px] bg-[#173422]" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 w-24 rounded bg-[#173422]" />
+                          <div className="h-3 w-16 rounded bg-[#173422]" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="h-3 w-full rounded bg-[#173422]" />
+                        <div className="h-3 w-5/6 rounded bg-[#173422]" />
+                      </div>
+                    </div>
+                  ))}
+                </>
+              ) : props.agents.length > 0 ? (
+                props.agents.map((agent) => (
+                  <article
+                    key={agent.id}
+                    className="relative h-full min-h-[174px] w-full min-w-0 overflow-hidden rounded-xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/60 p-4"
+                  >
+                    {/* Agent header */}
+                    <div className="flex items-start gap-3 mb-3">
+                      {/* Theme exception: xianxia cards intentionally keep a tighter silhouette. */}
+                      <EntityAvatar
+                        imageUrl={agent.avatarUrl}
+                        name={agent.name || 'Agent'}
+                        kind="agent"
+                        sizeClassName="h-14 w-14"
+                        radiusClassName="rounded-[10px]"
+                        innerRadiusClassName="rounded-[8px]"
+                        textClassName="text-lg font-serif"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-bold text-[#e8f5ee] truncate">
+                          {displayValue(agent.name)}
+                        </h4>
+                        <div className="text-xs truncate" style={{ color: getAgentPalette(agent).accent }}>
+                          {displayValue(agent.handle)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bio */}
+                    <p className="text-xs text-[#e8f5ee]/60 leading-relaxed line-clamp-2">
+                      {displayValue(agent.bio, 'No bio available')}
+                    </p>
+
+                    {(agent.sceneName || agent.location) ? (
+                      <div className="mt-3 space-y-1 text-[11px] text-[#8EBFA7]">
+                        {agent.sceneName ? (
+                          <div className="truncate">
+                            {displayValue(agent.sceneName)}
+                          </div>
+                        ) : null}
+                        {agent.location ? (
+                          <div className="truncate text-[#e8f5ee]/45">
+                            {displayValue(agent.location)}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </article>
+                ))
+              ) : (
+                <div className="col-span-4 py-16 flex flex-col items-center justify-center text-center">
+                  <div className="w-16 h-16 mb-4 rounded-full bg-[#4ECCA3]/10 border border-[#4ECCA3]/20 flex items-center justify-center">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4ECCA3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  </div>
+                  <p className="text-[#e8f5ee]/60 text-sm">
+                    {t('WorldDetail.noAgentsYet', { defaultValue: 'No agents in this world yet' })}
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
         </div>
       </div>
 

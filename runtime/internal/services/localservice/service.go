@@ -12,6 +12,7 @@ import (
 
 const (
 	defaultLocalEndpoint      = "http://127.0.0.1:1234/v1"
+	defaultNimiMediaEndpoint  = "http://127.0.0.1:8321/v1"
 	defaultServiceEndpoint    = "http://127.0.0.1:8080"
 	defaultLocalAuditCapacity = 5000
 	localAuditDomain          = "runtime.local_runtime"
@@ -42,6 +43,7 @@ type Service struct {
 	localAIModelsConfigPath        string
 	localAIManaged                 bool
 	localAIManagedEndpoint         string
+	nimiMediaManagedEndpoint       string
 	localAIImageBackendConfigured  bool
 	localAIImageBackendUp          bool
 	localAIImageBackendAddr        string

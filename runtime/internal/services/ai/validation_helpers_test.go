@@ -214,7 +214,7 @@ func TestPrepareScenarioRequestAllowsAnonymousLocal(t *testing.T) {
 		AppId:       "nimi.desktop",
 		ModelId:     "local/qwen",
 		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-	})
+	}, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE)
 	if err != nil {
 		t.Fatalf("expected anonymous local request to succeed, got %v", err)
 	}
@@ -230,7 +230,7 @@ func TestPrepareScenarioRequestRequiresSubjectForTokenAPI(t *testing.T) {
 		AppId:       "nimi.desktop",
 		ModelId:     "openai/gpt-4o-mini",
 		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-	})
+	}, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE)
 	if err == nil {
 		t.Fatalf("expected cloud request without subject user id to fail")
 	}

@@ -248,15 +248,12 @@ func mapHFRowToCatalogItem(row hfModelSearchEntry, engineFilter string) (*runtim
 	if err != nil {
 		return nil, false
 	}
-	engine := strings.ToLower(defaultString(strings.TrimSpace(engineFilter), "localai"))
-	if engine == "" {
-		engine = "localai"
-	}
-	endpoint := ""
-	if engine == "localai" {
-		endpoint = defaultLocalEndpoint
-	}
 	capabilities := inferCapabilitiesFromHF(row.PipelineTag, row.Tags)
+	engine := strings.ToLower(defaultLocalEngine(strings.TrimSpace(engineFilter), capabilities))
+	endpoint := ""
+	if !engineRequiresExplicitEndpoint(engine) {
+		endpoint = defaultEndpointForEngine(engine)
+	}
 	tags := normalizeStringSlice(append(append([]string(nil), row.Tags...), capabilities...))
 	license := ""
 	if row.CardData != nil {

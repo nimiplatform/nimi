@@ -366,6 +366,14 @@ export function getCachedContacts(): SocialContactSnapshot {
   return cachedContacts;
 }
 
+export function isPendingSentRequestInContacts(
+  contacts: { pendingSent?: Array<Record<string, unknown>> } | undefined,
+  userId: string,
+): boolean {
+  if (!contacts?.pendingSent?.length) return false;
+  return contacts.pendingSent.some((req) => req.userId === userId);
+}
+
 export function updateCachedContacts(snapshot: SocialContactSnapshot) {
   cachedContacts = { ...snapshot };
 }

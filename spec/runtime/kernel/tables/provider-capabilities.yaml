@@ -290,7 +290,12 @@ providers:
     endpoint_requirement: empty_string_only
     capabilities:
       - audio.synthesize
+      - audio.transcribe
+      - image.generate
       - music.generate
+      - text.embed
+      - text.generate
+      - video.generate
     sources:
       - K-MCAT-027
       - K-LOCAL-001

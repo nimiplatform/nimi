@@ -8,4 +8,6 @@
 | `localai` | `—` | `supervised` | `openai_compatible` | `true` | `K-LENG-004` |
 | `nexa` | `—` | `attached_endpoint` | `openai_compatible` | `true` | `K-LENG-005` |
 | `nexa` | `—` | `supervised` | `openai_compatible` | `true` | `K-LENG-004` |
+| `nimi_media` | `http://127.0.0.1:8321/v1` | `attached_endpoint` | `openai_compatible` | `true` | `K-LENG-005` |
+| `nimi_media` | `—` | `supervised` | `openai_compatible` | `true` | `K-LENG-004` |
 | `sidecar` | `—` | `attached_endpoint` | `nimi_music_http` | `true` | `K-LENG-005` |

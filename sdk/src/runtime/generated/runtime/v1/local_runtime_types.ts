@@ -422,6 +422,35 @@ export interface LocalProviderHintsNexa {
     gateDetail: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.LocalProviderHintsNimiMedia
+ */
+export interface LocalProviderHintsNimiMedia {
+    /**
+     * @generated from protobuf field: string backend = 1
+     */
+    backend: string;
+    /**
+     * @generated from protobuf field: string preferred_adapter = 2
+     */
+    preferredAdapter: string;
+    /**
+     * @generated from protobuf field: string family = 3
+     */
+    family: string;
+    /**
+     * @generated from protobuf field: string image_driver = 4
+     */
+    imageDriver: string;
+    /**
+     * @generated from protobuf field: string video_driver = 5
+     */
+    videoDriver: string;
+    /**
+     * @generated from protobuf field: string device = 6
+     */
+    device: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.LocalProviderHints
  */
 export interface LocalProviderHints {
@@ -433,6 +462,10 @@ export interface LocalProviderHints {
      * @generated from protobuf field: nimi.runtime.v1.LocalProviderHintsNexa nexa = 2
      */
     nexa?: LocalProviderHintsNexa;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalProviderHintsNimiMedia nimi_media = 3
+     */
+    nimiMedia?: LocalProviderHintsNimiMedia;
     /**
      * @generated from protobuf field: map<string, string> extra = 10
      */
@@ -2753,11 +2786,99 @@ class LocalProviderHintsNexa$Type extends MessageType<LocalProviderHintsNexa> {
  */
 export const LocalProviderHintsNexa = new LocalProviderHintsNexa$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class LocalProviderHintsNimiMedia$Type extends MessageType<LocalProviderHintsNimiMedia> {
+    constructor() {
+        super("nimi.runtime.v1.LocalProviderHintsNimiMedia", [
+            { no: 1, name: "backend", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "preferred_adapter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "family", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "image_driver", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "video_driver", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "device", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalProviderHintsNimiMedia>): LocalProviderHintsNimiMedia {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.backend = "";
+        message.preferredAdapter = "";
+        message.family = "";
+        message.imageDriver = "";
+        message.videoDriver = "";
+        message.device = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalProviderHintsNimiMedia>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalProviderHintsNimiMedia): LocalProviderHintsNimiMedia {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string backend */ 1:
+                    message.backend = reader.string();
+                    break;
+                case /* string preferred_adapter */ 2:
+                    message.preferredAdapter = reader.string();
+                    break;
+                case /* string family */ 3:
+                    message.family = reader.string();
+                    break;
+                case /* string image_driver */ 4:
+                    message.imageDriver = reader.string();
+                    break;
+                case /* string video_driver */ 5:
+                    message.videoDriver = reader.string();
+                    break;
+                case /* string device */ 6:
+                    message.device = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalProviderHintsNimiMedia, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string backend = 1; */
+        if (message.backend !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.backend);
+        /* string preferred_adapter = 2; */
+        if (message.preferredAdapter !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.preferredAdapter);
+        /* string family = 3; */
+        if (message.family !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.family);
+        /* string image_driver = 4; */
+        if (message.imageDriver !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.imageDriver);
+        /* string video_driver = 5; */
+        if (message.videoDriver !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.videoDriver);
+        /* string device = 6; */
+        if (message.device !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.device);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalProviderHintsNimiMedia
+ */
+export const LocalProviderHintsNimiMedia = new LocalProviderHintsNimiMedia$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class LocalProviderHints$Type extends MessageType<LocalProviderHints> {
     constructor() {
         super("nimi.runtime.v1.LocalProviderHints", [
             { no: 1, name: "localai", kind: "message", T: () => LocalProviderHintsLocalAi },
             { no: 2, name: "nexa", kind: "message", T: () => LocalProviderHintsNexa },
+            { no: 3, name: "nimi_media", kind: "message", T: () => LocalProviderHintsNimiMedia },
             { no: 10, name: "extra", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } }
         ]);
     }
@@ -2778,6 +2899,9 @@ class LocalProviderHints$Type extends MessageType<LocalProviderHints> {
                     break;
                 case /* nimi.runtime.v1.LocalProviderHintsNexa nexa */ 2:
                     message.nexa = LocalProviderHintsNexa.internalBinaryRead(reader, reader.uint32(), options, message.nexa);
+                    break;
+                case /* nimi.runtime.v1.LocalProviderHintsNimiMedia nimi_media */ 3:
+                    message.nimiMedia = LocalProviderHintsNimiMedia.internalBinaryRead(reader, reader.uint32(), options, message.nimiMedia);
                     break;
                 case /* map<string, string> extra */ 10:
                     this.binaryReadMap10(message.extra, reader, options);
@@ -2816,6 +2940,9 @@ class LocalProviderHints$Type extends MessageType<LocalProviderHints> {
         /* nimi.runtime.v1.LocalProviderHintsNexa nexa = 2; */
         if (message.nexa)
             LocalProviderHintsNexa.internalBinaryWrite(message.nexa, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalProviderHintsNimiMedia nimi_media = 3; */
+        if (message.nimiMedia)
+            LocalProviderHintsNimiMedia.internalBinaryWrite(message.nimiMedia, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         /* map<string, string> extra = 10; */
         for (let k of globalThis.Object.keys(message.extra))
             writer.tag(10, WireType.LengthDelimited).fork().tag(1, WireType.LengthDelimited).string(k).tag(2, WireType.LengthDelimited).string(message.extra[k]).join();

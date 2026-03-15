@@ -37,19 +37,21 @@ func TestParseLocalModelSelector(t *testing.T) {
 		explicitEngine string
 		preferLocalAI  bool
 		normalizedID   string
+		modal          runtimev1.Modal
 	}{
 		{modelID: "localai/qwen", explicitEngine: "localai", normalizedID: "qwen"},
 		{modelID: "nexa/qwen", explicitEngine: "nexa", normalizedID: "qwen"},
+		{modelID: "nimi_media/qwen", explicitEngine: "nimi_media", normalizedID: "qwen"},
 		{modelID: "sidecar/qwen", explicitEngine: "sidecar", normalizedID: "qwen"},
 		{modelID: "localsidecar/qwen", explicitEngine: "sidecar", normalizedID: "qwen"},
-		{modelID: "local/qwen", preferLocalAI: true, normalizedID: "qwen"},
+		{modelID: "local/qwen", preferLocalAI: true, normalizedID: "qwen", modal: runtimev1.Modal_MODAL_VIDEO},
 		{modelID: "raw-model", normalizedID: "raw-model"},
 		{modelID: "   ", normalizedID: ""},
 	}
 
 	for _, tt := range tests {
-		sel := parseLocalModelSelector(tt.modelID)
-		if sel.explicitEngine != tt.explicitEngine || sel.preferLocalAI != tt.preferLocalAI || sel.modelID != tt.normalizedID {
+		sel := parseLocalModelSelector(tt.modelID, tt.modal)
+		if sel.explicitEngine != tt.explicitEngine || sel.preferLocalAI != tt.preferLocalAI || sel.modelID != tt.normalizedID || sel.modal != tt.modal {
 			t.Fatalf("selector mismatch for %q: %+v", tt.modelID, sel)
 		}
 	}
@@ -100,7 +102,10 @@ func TestLocalEnginePriorityAndProfileRequirement(t *testing.T) {
 	if localEnginePriority("sidecar") >= localEnginePriority("nexa") {
 		t.Fatalf("unexpected sidecar engine priority ordering")
 	}
-	if localEnginePriority("other") != 3 {
+	if localEnginePriority("nimi_media") <= localEnginePriority("nexa") {
+		t.Fatalf("unexpected nimi_media engine priority ordering")
+	}
+	if localEnginePriority("other") != 4 {
 		t.Fatalf("unexpected default engine priority")
 	}
 
@@ -137,18 +142,18 @@ func TestValidateLocalModelRequest(t *testing.T) {
 	svc := newTestService(logger)
 
 	// Non-local route should bypass local model validation.
-	if err := svc.validateLocalModelRequest(context.Background(), "openai/gpt-4", nil); err != nil {
+	if err := svc.validateLocalModelRequest(context.Background(), "openai/gpt-4", nil, runtimev1.Modal_MODAL_UNSPECIFIED); err != nil {
 		t.Fatalf("non-local model should bypass validation: %v", err)
 	}
 
 	// Remote target bypass path.
-	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen", &nimillm.RemoteTarget{ProviderType: "openai"}); err != nil {
+	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen", &nimillm.RemoteTarget{ProviderType: "openai"}, runtimev1.Modal_MODAL_UNSPECIFIED); err != nil {
 		t.Fatalf("remote target should bypass validation: %v", err)
 	}
 
 	// Local lister error maps to local model unavailable.
 	svc.localModel = &fakeLocalModelLister{err: errors.New("boom")}
-	err := svc.validateLocalModelRequest(context.Background(), "local/qwen", nil)
+	err := svc.validateLocalModelRequest(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_UNSPECIFIED)
 	reason, ok := grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
 		t.Fatalf("expected local model unavailable, got=%v ok=%v", reason, ok)
@@ -158,7 +163,7 @@ func TestValidateLocalModelRequest(t *testing.T) {
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalModelsResponse{{
 		Models: []*runtimev1.LocalModelRecord{{ModelId: "other", Engine: "localai"}},
 	}}}
-	err = svc.validateLocalModelRequest(context.Background(), "local/qwen", nil)
+	err = svc.validateLocalModelRequest(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_UNSPECIFIED)
 	reason, ok = grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
 		t.Fatalf("expected local model unavailable, got=%v ok=%v", reason, ok)
@@ -168,7 +173,7 @@ func TestValidateLocalModelRequest(t *testing.T) {
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalModelsResponse{{
 		Models: []*runtimev1.LocalModelRecord{{ModelId: "qwen", Engine: "localai", Capabilities: []string{"custom"}}},
 	}}}
-	err = svc.validateLocalModelRequest(context.Background(), "local/qwen", nil)
+	err = svc.validateLocalModelRequest(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_UNSPECIFIED)
 	reason, ok = grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING {
 		t.Fatalf("expected profile missing, got=%v ok=%v", reason, ok)
@@ -178,7 +183,7 @@ func TestValidateLocalModelRequest(t *testing.T) {
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalModelsResponse{{
 		Models: []*runtimev1.LocalModelRecord{{ModelId: "qwen", Engine: "localai"}},
 	}}}
-	err = svc.validateLocalModelRequest(context.Background(), "nexa/qwen", nil)
+	err = svc.validateLocalModelRequest(context.Background(), "nexa/qwen", nil, runtimev1.Modal_MODAL_UNSPECIFIED)
 	reason, ok = grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_MODEL_PROVIDER_MISMATCH {
 		t.Fatalf("expected provider mismatch, got=%v ok=%v", reason, ok)
@@ -188,7 +193,7 @@ func TestValidateLocalModelRequest(t *testing.T) {
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalModelsResponse{{
 		Models: []*runtimev1.LocalModelRecord{{ModelId: "qwen", Engine: "localai", LocalInvokeProfileId: "invoke"}},
 	}}}
-	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen", nil); err != nil {
+	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_UNSPECIFIED); err != nil {
 		t.Fatalf("expected local model validation success, got %v", err)
 	}
 
@@ -203,10 +208,10 @@ func TestValidateLocalModelRequest(t *testing.T) {
 		dualEnginePage,
 		dualEnginePage,
 	}}
-	if err := svc.validateLocalModelRequest(context.Background(), "localai/qwen", nil); err != nil {
+	if err := svc.validateLocalModelRequest(context.Background(), "localai/qwen", nil, runtimev1.Modal_MODAL_UNSPECIFIED); err != nil {
 		t.Fatalf("expected localai selector to succeed, got %v", err)
 	}
-	if err := svc.validateLocalModelRequest(context.Background(), "nexa/qwen", nil); err != nil {
+	if err := svc.validateLocalModelRequest(context.Background(), "nexa/qwen", nil, runtimev1.Modal_MODAL_UNSPECIFIED); err != nil {
 		t.Fatalf("expected nexa selector to succeed, got %v", err)
 	}
 	dualEnginePageWithSidecar := &runtimev1.ListLocalModelsResponse{
@@ -220,7 +225,7 @@ func TestValidateLocalModelRequest(t *testing.T) {
 		dualEnginePageWithSidecar,
 		dualEnginePageWithSidecar,
 	}}
-	if err := svc.validateLocalModelRequest(context.Background(), "sidecar/qwen", nil); err != nil {
+	if err := svc.validateLocalModelRequest(context.Background(), "sidecar/qwen", nil, runtimev1.Modal_MODAL_UNSPECIFIED); err != nil {
 		t.Fatalf("expected sidecar selector to succeed, got %v", err)
 	}
 
@@ -228,7 +233,7 @@ func TestValidateLocalModelRequest(t *testing.T) {
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalModelsResponse{{
 		Models: []*runtimev1.LocalModelRecord{{ModelId: "Qwen", Engine: "localai", LocalInvokeProfileId: "invoke"}},
 	}}}
-	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen", nil); err != nil {
+	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_UNSPECIFIED); err != nil {
 		t.Fatalf("expected case-insensitive local model validation success, got %v", err)
 	}
 }
@@ -245,7 +250,7 @@ func TestValidateLocalModelRequestIncludesUnhealthyDetail(t *testing.T) {
 		}},
 	}}}
 
-	err := svc.validateLocalModelRequest(context.Background(), "local/unsloth/Z-Image-Turbo-GGUF", nil)
+	err := svc.validateLocalModelRequest(context.Background(), "local/unsloth/Z-Image-Turbo-GGUF", nil, runtimev1.Modal_MODAL_IMAGE)
 	reason, ok := grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
 		t.Fatalf("expected local model unavailable, got=%v ok=%v", reason, ok)
@@ -255,5 +260,29 @@ func TestValidateLocalModelRequestIncludesUnhealthyDetail(t *testing.T) {
 	}
 	if err == nil || !strings.Contains(err.Error(), "stablediffusion backend") {
 		t.Fatalf("expected unhealthy detail in structured error payload, got %v", err)
+	}
+}
+
+func TestValidateLocalModelRequestPrefersWindowsModalEngines(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := newTestService(logger)
+	origGOOS := localModelValidationGOOS
+	localModelValidationGOOS = "windows"
+	defer func() { localModelValidationGOOS = origGOOS }()
+
+	page := &runtimev1.ListLocalModelsResponse{
+		Models: []*runtimev1.LocalModelRecord{
+			{ModelId: "qwen", Engine: "localai", LocalInvokeProfileId: "invoke"},
+			{ModelId: "qwen", Engine: "nexa", LocalInvokeProfileId: "invoke"},
+			{ModelId: "qwen", Engine: "nimi_media", LocalInvokeProfileId: "invoke"},
+		},
+	}
+	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalModelsResponse{page, page}}
+
+	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_TTS); err != nil {
+		t.Fatalf("expected windows tts local model validation success via nexa, got %v", err)
+	}
+	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_IMAGE); err != nil {
+		t.Fatalf("expected windows image local model validation success via nimi_media, got %v", err)
 	}
 }

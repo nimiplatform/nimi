@@ -20,6 +20,7 @@ export type ProfileData = {
   isAgent: boolean;
   isOnline: boolean;
   isFriend: boolean;
+  isPendingFriendRequest: boolean;
   createdAt: string;
   tags: string[];
   languages: string[];
@@ -163,6 +164,7 @@ export function toProfileData(raw: Record<string, unknown>): ProfileData {
       )
     ),
     isFriend: raw.isFriend === true,
+    isPendingFriendRequest: raw.isPendingFriendRequest === true,
   };
 }
 

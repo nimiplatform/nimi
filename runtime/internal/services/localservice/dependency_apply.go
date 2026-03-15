@@ -103,7 +103,7 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 				ModelId:      modelID,
 				Repo:         dep.GetRepo(),
 				Capabilities: normalizeStringSlice([]string{dep.GetCapability()}),
-				Engine:       defaultString(dep.GetEngine(), "localai"),
+				Engine:       defaultLocalEngine(dep.GetEngine(), []string{dep.GetCapability()}),
 			})
 			if err != nil || installed.GetModel() == nil {
 				detail := defaultString(fmt.Sprintf("%v", err), "model install returned empty response")
@@ -130,7 +130,7 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 			installed, err := s.InstallLocalService(ctx, &runtimev1.InstallLocalServiceRequest{
 				ServiceId:    serviceID,
 				Title:        serviceID,
-				Engine:       defaultString(dep.GetEngine(), "localai"),
+				Engine:       defaultLocalEngine(dep.GetEngine(), []string{dep.GetCapability()}),
 				Capabilities: normalizeStringSlice([]string{dep.GetCapability()}),
 				LocalModelId: localModelID,
 			})

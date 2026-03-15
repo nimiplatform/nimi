@@ -38,7 +38,7 @@ func validateMusicGenerateIterationSupport(
 	if iteration == nil {
 		return nil
 	}
-	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected)
+	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_MUSIC)
 	if providerType == "" || !providerregistry.Contains(providerType) {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}

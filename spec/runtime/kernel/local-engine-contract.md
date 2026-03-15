@@ -4,10 +4,11 @@
 
 ## K-LENG-001 引擎类型枚举
 
-Phase 1 支持三种本地推理引擎：
+Phase 1 支持四种本地推理引擎：
 
 - `localai`：LocalAI 引擎，OpenAI-compatible HTTP 服务。
 - `nexa`：Nexa 引擎，OpenAI-compatible HTTP 服务。
+- `nimi_media`：Nimi 受管本地图像/视频引擎，基于 `diffusers`，暴露 OpenAI-compatible image/video 子集 HTTP 服务。
 - `sidecar`：外部自托管 music sidecar，使用 Nimi music canonical HTTP 协议；当前仅支持 `ATTACHED_ENDPOINT`。
 
 引擎类型值域以 `tables/local-engine-catalog.yaml` 为唯一事实源。
@@ -27,7 +28,7 @@ Phase 1 同时支持 `ATTACHED_ENDPOINT` 和 `SUPERVISED` 两种模式。
 
 - `endpoint` 必须指向已运行的 HTTP 服务（格式：`http://<host>:<port>[/<base_path>]`）。
 - runtime 不负责启动、停止或重启该进程。
-- `localai` / `nexa` 的健康探测协议见 `K-LENG-007`；`sidecar` 当前不纳入 RuntimeLocalService 的标准引擎健康探测与生命周期管理，availability 由实际请求结果决定。
+- `localai` / `nexa` / `nimi_media` 的健康探测协议见 `K-LENG-007`；`sidecar` 当前不纳入 RuntimeLocalService 的标准引擎健康探测与生命周期管理，availability 由实际请求结果决定。
 - `endpoint` 缺失或空字符串时，按 `K-LENG-005` 注入默认端点。
 
 ## K-LENG-004 SUPERVISED 约束
@@ -38,7 +39,7 @@ Phase 1 同时支持 `ATTACHED_ENDPOINT` 和 `SUPERVISED` 两种模式。
 - 信号处理：`SIGTERM` 优雅关闭，超时（默认 10 秒）后 `SIGKILL`。
 - 重启策略：指数退避（2s base + jitter），最大重试 5 次，累计失败后标记 `UNHEALTHY`。
 - 进程退出码非零视为异常，写审计并触发状态迁移。
-- 当前仅 `localai` / `nexa` 支持 `SUPERVISED`；`sidecar` 不属于 daemon-managed engine。
+- 当前仅 `localai` / `nexa` / `nimi_media` 支持 `SUPERVISED`；`sidecar` 不属于 daemon-managed engine。
 
 ### 二进制管理
 
@@ -46,14 +47,15 @@ Phase 1 同时支持 `ATTACHED_ENDPOINT` 和 `SUPERVISED` 两种模式。
 - 注册表：`~/.nimi/engines/registry.json`，atomic write（temp→rename）。
 - LocalAI：从 GitHub Releases 下载，SHA256 校验，支持 darwin/arm64、darwin/amd64、linux/amd64、linux/arm64。
 - Windows 当前不支持 LocalAI `SUPERVISED` 托管；Windows 用户必须通过 WSL / Docker 等外部进程提供 `ATTACHED_ENDPOINT`。
-- Nexa：系统安装（`exec.LookPath("nexa")`），不自动下载。未安装时返回 `FAILED_PRECONDITION` + 安装引导。
+- Nexa：非 Windows 平台使用系统安装（`exec.LookPath("nexa")`）；Windows 使用 runtime 托管的 `uv + Python` 环境安装 `nexaai` 并执行 `nexa serve`。
+- `nimi_media`：runtime 使用 `uv + Python 3.12` 受管环境安装 `diffusers` 推理栈，并启动内置 `nimi_media_server.py`；Phase 1 的 managed support 仅覆盖 `windows/amd64`。
 
 ### 进程管理
 
 - PID 文件：`~/.nimi/engines/{engine}/supervised.pid`，用于僵尸进程清理。
 - 端口分配：优先使用配置端口，冲突时 port+1 递增尝试最多 10 次。
-- 启动等待：LocalAI 默认 120 秒（首次下载 GPU backend 可能较慢），Nexa 默认 30 秒。
-- 健康探测：LocalAI 使用 `GET /readyz`（HTTP 200=健康），Nexa 使用 `GET /`（body 含 "Nexa SDK is running"=健康）。
+- 启动等待：LocalAI 默认 120 秒（首次下载 GPU backend 可能较慢），Nexa 默认 30 秒，`nimi_media` 默认 180 秒（首次安装 Torch / diffusers 依赖可能较慢）。
+- 健康探测：LocalAI 使用 `GET /readyz`（HTTP 200=健康），Nexa 使用 `GET /`（body 含 "Nexa SDK is running"=健康），`nimi_media` 使用 `GET /readyz`（body 含 `"status": "ok"`=健康）。
 
 ### env var 注入
 
@@ -61,6 +63,7 @@ Phase 1 同时支持 `ATTACHED_ENDPOINT` 和 `SUPERVISED` 两种模式。
 
 - LocalAI：`NIMI_RUNTIME_LOCAL_AI_BASE_URL={endpoint}/v1`
 - Nexa：`NIMI_RUNTIME_LOCAL_NEXA_BASE_URL={endpoint}/v1`
+- `nimi_media`：`NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL={endpoint}/v1`
 
 `sidecar` 不做 runtime 注入与进程管理，调用方直接通过 `NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL` / `NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY` 提供 attached endpoint。
 
@@ -81,12 +84,13 @@ FileConfig `engines` 段：
         "address": "127.0.0.1:50052"
       }
     },
-    "nexa":    { "enabled": false, "version": "", "port": 8000 }
+    "nexa": { "enabled": false, "version": "", "port": 8000 },
+    "nimi_media": { "enabled": false, "version": "0.1.0", "port": 8321 }
   }
 }
 ```
 
-ENV 覆盖：`NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED`、`NIMI_RUNTIME_ENGINE_LOCALAI_VERSION`、`NIMI_RUNTIME_ENGINE_LOCALAI_PORT`；Nexa 同理（`NEXA` 替代 `LOCALAI`）。
+ENV 覆盖：`NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED`、`NIMI_RUNTIME_ENGINE_LOCALAI_VERSION`、`NIMI_RUNTIME_ENGINE_LOCALAI_PORT`；Nexa 与 `nimi_media` 同理（分别替换为 `NEXA` / `NIMI_MEDIA`）。
 
 受管 LocalAI image backend 约束：
 
@@ -123,12 +127,14 @@ ENV 覆盖：`NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED`、`NIMI_RUNTIME_ENGINE_LOCALA
 
 - `localai`：`http://127.0.0.1:1234/v1`
 - `nexa`：无默认端点，`endpoint` 必须显式提供。
+- `nimi_media`：`http://127.0.0.1:8321/v1`
 - `sidecar`：无默认端点，`endpoint` 必须显式提供。
 
 当安装或启动时 `endpoint` 为空：
 
 - `localai`：自动注入默认端点。
 - `nexa`：返回 `INVALID_ARGUMENT` + `AI_LOCAL_ENDPOINT_REQUIRED`。
+- `nimi_media`：自动注入默认端点。
 - `sidecar`：返回 `INVALID_ARGUMENT` + `AI_LOCAL_ENDPOINT_REQUIRED`。
 
 ## K-LENG-006 Local HTTP 协议基线
@@ -143,6 +149,15 @@ ENV 覆盖：`NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED`、`NIMI_RUNTIME_ENGINE_LOCALA
 - 语音合成：`POST /v1/audio/speech`
 - 语音识别：`POST /v1/audio/transcriptions`
 
+`nimi_media` 遵循 OpenAI-compatible image/video 子集 HTTP API：
+
+- 模型列表：`GET /v1/models`
+- 图像生成：`POST /v1/images/generations`
+- 视频生成：`POST /v1/video/generations`
+- 兼容别名：`POST /v1/videos/generations`
+
+`nimi_media` 当前不承诺 `chat` / `embeddings` / `audio` 路径，也不承诺任意 DAG、custom nodes、LoRA/ControlNet 全生态兼容。
+
 `sidecar` 使用 Nimi music canonical HTTP 协议，不属于 OpenAI-compatible 基线：
 
 - `POST /v1/music/generate`
@@ -150,7 +165,7 @@ ENV 覆盖：`NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED`、`NIMI_RUNTIME_ENGINE_LOCALA
 - Phase 1 只要求 prompt-only；是否支持 iteration 由 provider capability 与 runtime strategy 决定，不能假定 sidecar 默认支持
 - 响应可直接返回音频 bytes，或返回 `audio_url` / `audio_base64` JSON 包装
 
-引擎特有的非标 API（如 LocalAI 的 video backend、music sidecar 的 canonical music path）通过 `LocalProviderHints` 或 runtime adapter 描述，不作为通用 OpenAI-compatible 协议基线。
+引擎特有的非标 API（如 LocalAI 的 video backend、`nimi_media` 的 `diffusers` family driver、music sidecar 的 canonical music path）通过 `LocalProviderHints` 或 runtime adapter 描述，不作为通用 OpenAI-compatible 协议基线。
 
 LocalAI 动态图片工作流补充：
 
@@ -196,7 +211,7 @@ LocalAI text-chat multimodal 补充：
 引擎相关配置项（endpoint、api_key 等）的来源按以下优先级合并（高优先覆盖低优先）：
 
 1. RPC 请求参数（`InstallLocalModel.endpoint` 等）
-2. 环境变量（`NIMI_RUNTIME_LOCAL_AI_BASE_URL`、`NIMI_RUNTIME_LOCAL_NEXA_BASE_URL`、`NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL` 等，命名与 `K-PROV-002` 一致）
+2. 环境变量（`NIMI_RUNTIME_LOCAL_AI_BASE_URL`、`NIMI_RUNTIME_LOCAL_NEXA_BASE_URL`、`NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL`、`NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL` 等，命名与 `K-PROV-002` 一致）
 3. 配置文件（`K-DAEMON-009` 定义的配置路径，即 `~/.nimi/config.json` 的 provider 相关段）
 4. 引擎默认值（`K-LENG-005`）
 

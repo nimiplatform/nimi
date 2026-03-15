@@ -57,6 +57,13 @@ func adapterForProviderCapability(provider string, capability string) string {
 		}
 	case "nexa":
 		return "nexa_native_adapter"
+	case "nimi_media":
+		switch normalizedCapability {
+		case "image", "video":
+			return "nimi_media_native_adapter"
+		default:
+			return "openai_compat_adapter"
+		}
 	case "localai":
 		switch normalizedCapability {
 		case "music", "music.generate":
@@ -84,7 +91,7 @@ func apiPathForProviderCapability(provider string, capability string) string {
 		}
 		return "/v1/music/generate"
 	case "video":
-		if strings.EqualFold(strings.TrimSpace(provider), "nexa") {
+		if strings.EqualFold(strings.TrimSpace(provider), "nexa") || strings.EqualFold(strings.TrimSpace(provider), "nimi_media") {
 			return "/v1/video/generations"
 		}
 		return "/v1/videos/generations"
@@ -172,6 +179,19 @@ func buildNodeProviderHints(
 			GateReason:                gateReason,
 			GateDetail:                gateDetail,
 		}
+	case "nimi_media":
+		hints.NimiMedia = &runtimev1.LocalProviderHintsNimiMedia{
+			Backend:          "diffusers",
+			PreferredAdapter: strings.TrimSpace(adapter),
+			Family:           defaultString(strings.TrimSpace(hints.GetExtra()["family"]), "diffusers"),
+			ImageDriver:      "flux",
+			VideoDriver:      "wan",
+			Device:           defaultString(strings.TrimSpace(hints.GetExtra()["device"]), "cuda"),
+		}
+		hints.Extra["family"] = defaultString(strings.TrimSpace(hints.GetExtra()["family"]), "diffusers")
+		hints.Extra["image_driver"] = "flux"
+		hints.Extra["video_driver"] = "wan"
+		hints.Extra["device"] = defaultString(strings.TrimSpace(hints.GetExtra()["device"]), "cuda")
 	}
 	return hints
 }
@@ -242,6 +262,9 @@ func defaultVerifiedModels() []*runtimev1.LocalVerifiedModelDescriptor {
 			"offload_params_to_cpu:true",
 		},
 	})
+	chatEngine := defaultLocalEngine("", []string{"chat"})
+	sttEngine := defaultLocalEngine("", []string{"stt"})
+	imageEngine := defaultLocalEngine("", []string{"image"})
 	return []*runtimev1.LocalVerifiedModelDescriptor{
 		{
 			TemplateId:  "verified.chat.llama3_8b",
@@ -254,12 +277,12 @@ func defaultVerifiedModels() []*runtimev1.LocalVerifiedModelDescriptor {
 			Capabilities: []string{
 				"chat",
 			},
-			Engine:         "localai",
+			Engine:         chatEngine,
 			Entry:          "./dist/index.js",
 			Files:          []string{"model.gguf"},
 			License:        "llama3",
 			Hashes:         map[string]string{},
-			Endpoint:       defaultLocalEndpoint,
+			Endpoint:       defaultEndpointForEngine(chatEngine),
 			FileCount:      1,
 			TotalSizeBytes: 0,
 			Tags:           []string{"chat", "verified"},
@@ -275,33 +298,33 @@ func defaultVerifiedModels() []*runtimev1.LocalVerifiedModelDescriptor {
 			Capabilities: []string{
 				"stt",
 			},
-			Engine:         "localai",
+			Engine:         sttEngine,
 			Entry:          "./dist/index.js",
 			Files:          []string{"model.bin"},
 			License:        "mit",
 			Hashes:         map[string]string{},
-			Endpoint:       defaultLocalEndpoint,
+			Endpoint:       defaultEndpointForEngine(sttEngine),
 			FileCount:      1,
 			TotalSizeBytes: 0,
 			Tags:           []string{"stt", "verified"},
 		},
 		{
-			TemplateId:     "verified.image.z_image_turbo",
-			Title:          "Z-Image Turbo (GGUF)",
-			Description:    "Recommended verified LocalAI image main model for dynamic workflow assembly",
-			InstallKind:    "download",
-			ModelId:        "local/z_image_turbo",
-			Repo:           "jayn7/Z-Image-Turbo-GGUF",
-			Revision:       "main",
-			Capabilities:   []string{"image"},
-			Engine:         "localai",
-			Entry:          "z_image_turbo-Q4_K_M.gguf",
-			Files:          []string{"z_image_turbo-Q4_K_M.gguf"},
-			License:        "apache-2.0",
+			TemplateId:   "verified.image.z_image_turbo",
+			Title:        "Z-Image Turbo (GGUF)",
+			Description:  "Recommended verified LocalAI image main model for dynamic workflow assembly",
+			InstallKind:  "download",
+			ModelId:      "local/z_image_turbo",
+			Repo:         "jayn7/Z-Image-Turbo-GGUF",
+			Revision:     "main",
+			Capabilities: []string{"image"},
+			Engine:       imageEngine,
+			Entry:        "z_image_turbo-Q4_K_M.gguf",
+			Files:        []string{"z_image_turbo-Q4_K_M.gguf"},
+			License:      "apache-2.0",
 			Hashes: map[string]string{
 				"z_image_turbo-Q4_K_M.gguf": "sha256:745ec270db042409fde084d6b5cfccabf214a7fe5a494edf994a391125656afd",
 			},
-			Endpoint:       defaultLocalEndpoint,
+			Endpoint:       defaultEndpointForEngine(imageEngine),
 			FileCount:      1,
 			TotalSizeBytes: 4981532736,
 			Tags:           []string{"image", "verified", "recommended", "z-image"},

@@ -24,7 +24,7 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
-	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead())
+	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead(), req.GetScenarioType())
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 	}
 	inputs := spec.GetInputs()
 
-	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead())
+	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead(), req.GetScenarioType())
 	if err != nil {
 		return nil, err
 	}

@@ -45,6 +45,8 @@ import { startAuthStateWatcher } from './auth-state-watcher';
 import { checkDaemonVersion } from './version-check';
 import { registerExitHandler } from './exit-handler';
 import { isRuntimeDaemonReachable } from './runtime-bootstrap-runtime-availability';
+import { isFriendInContacts } from '@runtime/data-sync/flows/social-flow';
+import { getCachedContacts } from '@runtime/data-sync/flows/profile-flow-social';
 
 let bootstrapPromise: Promise<void> | null = null;
 let offlineCoordinatorBindingsReady = false;
@@ -243,7 +245,7 @@ export function bootstrapRuntime(): Promise<void> {
       getCurrentUser: () => {
         return useAppStore.getState().auth.user;
       },
-      isFriend: () => false,
+      isFriend: (userId: string) => isFriendInContacts(getCachedContacts(), userId),
     });
 
     startAuthStateWatcher();

@@ -11,6 +11,8 @@
 | `localai` | `stt` | `localai_native_adapter` | `K-LOCAL-017` |
 | `localai` | `music` | `localai_music_adapter` | `K-LOCAL-017` |
 | `localai` | `music.generate` | `localai_music_adapter` | `K-LOCAL-017` |
+| `nimi_media` | `image` | `nimi_media_native_adapter` | `K-LOCAL-017` |
+| `nimi_media` | `video` | `nimi_media_native_adapter` | `K-LOCAL-017` |
 | `sidecar` | `music` | `sidecar_music_adapter` | `K-LOCAL-017` |
 | `sidecar` | `music.generate` | `sidecar_music_adapter` | `K-LOCAL-017` |
 | `*` | `*` | `openai_compat_adapter` | `K-LOCAL-017` |

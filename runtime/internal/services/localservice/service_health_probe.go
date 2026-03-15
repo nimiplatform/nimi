@@ -204,7 +204,11 @@ func modelProbeEndpoint(model *runtimev1.LocalModelRecord) string {
 	if model == nil {
 		return defaultLocalEndpoint
 	}
-	return defaultString(strings.TrimSpace(model.GetEndpoint()), defaultLocalEndpoint)
+	endpoint := strings.TrimSpace(model.GetEndpoint())
+	if strings.EqualFold(strings.TrimSpace(model.GetEngine()), "nimi_media") {
+		return defaultString(endpoint, defaultNimiMediaEndpoint)
+	}
+	return defaultString(endpoint, defaultLocalEndpoint)
 }
 
 func shouldUseManagedLocalAIEndpoint(endpoint string) bool {
@@ -212,10 +216,21 @@ func shouldUseManagedLocalAIEndpoint(endpoint string) bool {
 	return trimmed == "" || strings.EqualFold(trimmed, defaultLocalEndpoint)
 }
 
+func shouldUseManagedNimiMediaEndpoint(endpoint string) bool {
+	trimmed := strings.TrimSpace(endpoint)
+	return trimmed == "" || strings.EqualFold(trimmed, defaultNimiMediaEndpoint)
+}
+
 func (s *Service) managedLocalAIEndpoint() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return strings.TrimSpace(s.localAIManagedEndpoint)
+}
+
+func (s *Service) managedNimiMediaEndpoint() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return strings.TrimSpace(s.nimiMediaManagedEndpoint)
 }
 
 func (s *Service) effectiveLocalModelEndpoint(model *runtimev1.LocalModelRecord) string {
@@ -228,6 +243,12 @@ func (s *Service) effectiveLocalModelEndpoint(model *runtimev1.LocalModelRecord)
 			return managedEndpoint
 		}
 	}
+	if strings.EqualFold(strings.TrimSpace(model.GetEngine()), "nimi_media") {
+		if managedEndpoint := s.managedNimiMediaEndpoint(); managedEndpoint != "" && shouldUseManagedNimiMediaEndpoint(endpoint) {
+			return managedEndpoint
+		}
+		return defaultString(endpoint, defaultNimiMediaEndpoint)
+	}
 	return defaultString(endpoint, defaultLocalEndpoint)
 }
 
@@ -236,6 +257,14 @@ func (s *Service) normalizeRequestedLocalModelEndpoint(engine string, endpoint s
 	if strings.EqualFold(strings.TrimSpace(engine), "localai") {
 		if managedEndpoint := s.managedLocalAIEndpoint(); managedEndpoint != "" && shouldUseManagedLocalAIEndpoint(trimmedEndpoint) {
 			return managedEndpoint
+		}
+	}
+	if strings.EqualFold(strings.TrimSpace(engine), "nimi_media") {
+		if managedEndpoint := s.managedNimiMediaEndpoint(); managedEndpoint != "" && shouldUseManagedNimiMediaEndpoint(trimmedEndpoint) {
+			return managedEndpoint
+		}
+		if trimmedEndpoint == "" {
+			return defaultNimiMediaEndpoint
 		}
 	}
 	return trimmedEndpoint

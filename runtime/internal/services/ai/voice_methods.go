@@ -133,7 +133,7 @@ func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPrese
 		return nil, err
 	}
 	routePolicy := inferVoiceListRoutePolicy(effectiveModelID, remoteTarget)
-	if err := s.validateLocalModelRequest(ctx, effectiveModelID, remoteTarget); err != nil {
+	if err := s.validateLocalModelRequest(ctx, effectiveModelID, remoteTarget, runtimev1.Modal_MODAL_TTS); err != nil {
 		return nil, err
 	}
 
@@ -153,7 +153,7 @@ func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPrese
 	if remoteTarget != nil {
 		providerType = strings.TrimSpace(remoteTarget.ProviderType)
 	} else {
-		providerType = inferMediaProviderTypeFromSelectedBackend(selectedProvider, modelResolved)
+		providerType = inferMediaProviderTypeFromSelectedBackend(selectedProvider, modelResolved, runtimev1.Modal_MODAL_TTS)
 	}
 	voices, source, catalogVersion, err := resolveCatalogVoicesForSubject(ctx, modelResolved, providerType, s.speechCatalog)
 	if err != nil {

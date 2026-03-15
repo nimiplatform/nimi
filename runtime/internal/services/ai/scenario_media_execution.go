@@ -15,6 +15,10 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
 
+type localModalMediaProvider interface {
+	resolveMediaBackendForModal(modelID string, modal runtimev1.Modal) (*nimillm.Backend, string, string)
+}
+
 // executeBackendSyncMedia routes sync media operations through the underlying
 // Backend (via MediaBackendProvider) rather than the Provider interface.
 func executeBackendSyncMedia(
@@ -31,8 +35,15 @@ func executeBackendSyncMedia(
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
 	var backend *nimillm.Backend
 	var backendModelID string
+	modal := scenarioModalFromType(req.GetScenarioType())
 	if remoteTarget != nil && cloudProvider != nil {
 		backend, backendModelID = cloudProvider.ResolveMediaBackendWithTarget(modelResolved, remoteTarget)
+	} else if modalProvider, ok := selectedProvider.(localModalMediaProvider); ok {
+		var providerType string
+		backend, backendModelID, providerType = modalProvider.resolveMediaBackendForModal(modelResolved, modal)
+		if adapterName == "" && providerType != "" {
+			adapterName = resolveMediaAdapterName(req.GetHead().GetModelId(), modelResolved, modal, providerType)
+		}
 	} else {
 		mbp, ok := selectedProvider.(nimillm.MediaBackendProvider)
 		if !ok || mbp == nil {

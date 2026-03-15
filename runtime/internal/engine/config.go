@@ -8,6 +8,7 @@ type EngineKind string
 const (
 	EngineLocalAI EngineKind = "localai"
 	EngineNexa    EngineKind = "nexa"
+	EngineNimiMedia EngineKind = "nimi_media"
 
 	engineLocalAIImageBackend EngineKind = "localai-image-backend"
 )
@@ -181,6 +182,24 @@ func DefaultNexaConfig() EngineConfig {
 		HealthPath:       "/",
 		HealthResponse:   "Nexa SDK is running",
 		StartupTimeout:   30 * time.Second,
+		HealthInterval:   30 * time.Second,
+		MaxRestarts:      5,
+		RestartBaseDelay: 2 * time.Second,
+		ShutdownTimeout:  10 * time.Second,
+	}
+}
+
+// DefaultNimiMediaConfig returns the default configuration for the managed
+// diffusers-backed image/video engine.
+func DefaultNimiMediaConfig() EngineConfig {
+	return EngineConfig{
+		Kind:             EngineNimiMedia,
+		Port:             8321,
+		Version:          "0.1.0",
+		HealthMode:       HealthModeHTTP,
+		HealthPath:       "/readyz",
+		HealthResponse:   "\"status\": \"ok\"",
+		StartupTimeout:   180 * time.Second,
 		HealthInterval:   30 * time.Second,
 		MaxRestarts:      5,
 		RestartBaseDelay: 2 * time.Second,

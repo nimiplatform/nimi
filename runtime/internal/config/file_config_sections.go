@@ -19,7 +19,7 @@ func isCanonicalProviderName(raw string) bool {
 		return false
 	}
 	switch trimmed {
-	case "local", "nexa", "nimillm", "openai", "anthropic", "dashscope", "volcengine", "azure", "mistral", "groq", "xai", "qianfan", "hunyuan", "spark", "volcengine_openspeech", "gemini", "minimax", "kimi", "glm", "deepseek", "openrouter", "openai_compatible":
+	case "local", "nexa", "nimi_media", "nimillm", "openai", "anthropic", "dashscope", "volcengine", "azure", "mistral", "groq", "xai", "qianfan", "hunyuan", "spark", "volcengine_openspeech", "gemini", "minimax", "kimi", "glm", "deepseek", "openrouter", "openai_compatible":
 		return true
 	default:
 		return false
@@ -44,6 +44,10 @@ func fileConfigEngineBool(fileCfg FileConfig, engine string) *bool {
 		if fileCfg.Engines.Nexa != nil {
 			return fileCfg.Engines.Nexa.Enabled
 		}
+	case "nimi_media":
+		if fileCfg.Engines.NimiMedia != nil {
+			return fileCfg.Engines.NimiMedia.Enabled
+		}
 	}
 	return nil
 }
@@ -59,6 +63,8 @@ func fileConfigEngineString(fileCfg FileConfig, engine string, field string) str
 		cfg = fileCfg.Engines.LocalAI
 	case "nexa":
 		cfg = fileCfg.Engines.Nexa
+	case "nimi_media":
+		cfg = fileCfg.Engines.NimiMedia
 	}
 	if cfg == nil {
 		return ""
@@ -81,6 +87,8 @@ func fileConfigEngineInt(fileCfg FileConfig, engine string, field string) *int {
 		cfg = fileCfg.Engines.LocalAI
 	case "nexa":
 		cfg = fileCfg.Engines.Nexa
+	case "nimi_media":
+		cfg = fileCfg.Engines.NimiMedia
 	}
 	if cfg == nil {
 		return nil

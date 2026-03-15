@@ -1,6 +1,6 @@
 schema_version: 3
 provider: local
-catalog_version: 2026-03-13-local-v3
+catalog_version: 2026-03-15-local-v4
 generated_target: runtime/catalog/providers/local.yaml
 runtime:
   runtime_plane: local
@@ -66,6 +66,18 @@ sources:
     url: https://github.com/Stability-AI/stable-audio-tools
     retrieved_at: 2026-03-13
     note: Stable Audio tools repository for self-hosted inference.
+  - source_id: nexa_python_quickstart
+    url: https://docs.nexa.ai/en/nexa-sdk-python/quickstart
+    retrieved_at: 2026-03-15
+    note: Nexa Python quickstart covering local LLM, embedding, TTS, and ASR flows.
+  - source_id: diffusers_flux_docs
+    url: https://huggingface.co/docs/diffusers/api/pipelines/flux
+    retrieved_at: 2026-03-15
+    note: Official Diffusers FLUX pipeline documentation.
+  - source_id: diffusers_wan_docs
+    url: https://huggingface.co/docs/diffusers/api/pipelines/wan
+    retrieved_at: 2026-03-15
+    note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
 
 language_profiles:
   region_v1: [zh-cn, en-us, fr-fr, de-de, ru-ru, it-it, es-es, pt-pt, ja-jp, ko-kr]
@@ -163,6 +175,63 @@ models:
       voice_set_ref: kokoro-defaults-v1
       supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
       langs_ref: short_v1
+
+  - model_id: qwen3-chat-local
+    model_type: chat
+    updated_at: 2026-03-15
+    capabilities: [text.generate]
+    source_ids: [nexa_python_quickstart]
+    aliases:
+      - local/qwen3-chat
+      - nexa/qwen3-chat
+
+  - model_id: nomic-embed-text-local
+    model_type: embedding
+    updated_at: 2026-03-15
+    capabilities: [text.embed]
+    source_ids: [nexa_python_quickstart]
+    aliases:
+      - local/nomic-embed-text
+      - nexa/nomic-embed-text
+
+  - model_id: whisper-large-v3-local
+    model_type: stt
+    updated_at: 2026-03-15
+    capabilities: [audio.transcribe]
+    source_ids: [nexa_python_quickstart]
+    aliases:
+      - local/whisper-large-v3
+      - nexa/whisper-large-v3
+
+  - model_id: flux.1-schnell-local
+    model_type: image
+    updated_at: 2026-03-15
+    capabilities: [image.generate]
+    source_ids: [diffusers_flux_docs]
+    aliases:
+      - local/flux.1-schnell
+      - nimi_media/flux.1-schnell
+
+  - model_id: wan2.1-video-local
+    model_type: video
+    updated_at: 2026-03-15
+    capabilities: [video.generate]
+    source_ids: [diffusers_wan_docs]
+    video_generation:
+      modes: [t2v, i2v_first_frame]
+      input_roles:
+        t2v: [prompt]
+        i2v_first_frame: [prompt, first_frame]
+      limits:
+        resolution: [480p, 720p]
+      options:
+        supports: [resolution, ratio, duration_sec]
+        constraints: {}
+      outputs:
+        video_url: true
+    aliases:
+      - local/wan2.1-video
+      - nimi_media/wan2.1-video
 
   - model_id: ace-step-local
     model_type: music

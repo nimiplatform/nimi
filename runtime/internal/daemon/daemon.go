@@ -274,6 +274,7 @@ func configuredAIProviderTargets() []aiProviderTarget {
 
 	add("local", os.Getenv("NIMI_RUNTIME_LOCAL_AI_BASE_URL"), os.Getenv("NIMI_RUNTIME_LOCAL_AI_API_KEY"))
 	add("local-nexa", os.Getenv("NIMI_RUNTIME_LOCAL_NEXA_BASE_URL"), os.Getenv("NIMI_RUNTIME_LOCAL_NEXA_API_KEY"))
+	add("local-nimi-media", os.Getenv("NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL"), os.Getenv("NIMI_RUNTIME_LOCAL_NIMI_MEDIA_API_KEY"))
 	add("local-sidecar", os.Getenv("NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL"), os.Getenv("NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY"))
 	add("cloud-nimillm", os.Getenv("NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY"))
 	add("cloud-dashscope", os.Getenv("NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY"))
@@ -524,6 +525,11 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		} else {
 			svc.SetLocalAIManagedEndpoint("")
 		}
+		if d.cfg.EngineNimiMediaEnabled {
+			svc.SetNimiMediaManagedEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineNimiMediaPort))
+		} else {
+			svc.SetNimiMediaManagedEndpoint("")
+		}
 		svc.SetLocalAIImageBackendConfig(strings.TrimSpace(strings.ToLower(d.cfg.EngineLocalAIImageBackendMode)) != "disabled", d.cfg.EngineLocalAIImageBackendAddress)
 		svc.SetEngineManager(engine.NewServiceAdapter(mgr))
 		if err := svc.SyncManagedLocalAIAssets(ctx); err != nil {
@@ -536,7 +542,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		kind   engine.EngineKind
 		detail string
 	}
-	failures := make(chan bootstrapFailure, 2)
+	failures := make(chan bootstrapFailure, 3)
 	startEngine := d.startEngineFn
 	if startEngine == nil {
 		startEngine = d.startEngine
@@ -562,6 +568,10 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	if d.cfg.EngineNexaEnabled {
 		bootstrap(engine.EngineNexa, d.cfg.EngineNexaVersion, d.cfg.EngineNexaPort,
 			"NIMI_RUNTIME_LOCAL_NEXA_BASE_URL")
+	}
+	if d.cfg.EngineNimiMediaEnabled {
+		bootstrap(engine.EngineNimiMedia, d.cfg.EngineNimiMediaVersion, d.cfg.EngineNimiMediaPort,
+			"NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL")
 	}
 
 	wg.Wait()
@@ -597,6 +607,8 @@ func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, versio
 		cfg = engine.DefaultLocalAIConfig()
 	case engine.EngineNexa:
 		cfg = engine.DefaultNexaConfig()
+	case engine.EngineNimiMedia:
+		cfg = engine.DefaultNimiMediaConfig()
 	default:
 		return fmt.Errorf("unsupported engine kind: %s", kind)
 	}

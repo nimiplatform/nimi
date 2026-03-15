@@ -1,6 +1,6 @@
 version: 1
 provider: local
-catalog_version: 2026-03-13-local-v3
+catalog_version: 2026-03-15-local-v4
 models:
   - model_id: qwen3-tts-local
     provider: local
@@ -174,6 +174,285 @@ models:
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
+  - model_id: qwen3-chat-local
+    provider: local
+    model_type: chat
+    updated_at: 2026-03-15
+    capabilities:
+      - text.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://docs.nexa.ai/en/nexa-sdk-python/quickstart
+      retrieved_at: 2026-03-15
+      note: Nexa Python quickstart covering local LLM, embedding, TTS, and ASR flows.
+  - model_id: local/qwen3-chat
+    provider: local
+    model_type: chat
+    updated_at: 2026-03-15
+    capabilities:
+      - text.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://docs.nexa.ai/en/nexa-sdk-python/quickstart
+      retrieved_at: 2026-03-15
+      note: Nexa Python quickstart covering local LLM, embedding, TTS, and ASR flows.
+  - model_id: nexa/qwen3-chat
+    provider: local
+    model_type: chat
+    updated_at: 2026-03-15
+    capabilities:
+      - text.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://docs.nexa.ai/en/nexa-sdk-python/quickstart
+      retrieved_at: 2026-03-15
+      note: Nexa Python quickstart covering local LLM, embedding, TTS, and ASR flows.
+  - model_id: nomic-embed-text-local
+    provider: local
+    model_type: embedding
+    updated_at: 2026-03-15
+    capabilities:
+      - text.embed
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://docs.nexa.ai/en/nexa-sdk-python/quickstart
+      retrieved_at: 2026-03-15
+      note: Nexa Python quickstart covering local LLM, embedding, TTS, and ASR flows.
+  - model_id: local/nomic-embed-text
+    provider: local
+    model_type: embedding
+    updated_at: 2026-03-15
+    capabilities:
+      - text.embed
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://docs.nexa.ai/en/nexa-sdk-python/quickstart
+      retrieved_at: 2026-03-15
+      note: Nexa Python quickstart covering local LLM, embedding, TTS, and ASR flows.
+  - model_id: nexa/nomic-embed-text
+    provider: local
+    model_type: embedding
+    updated_at: 2026-03-15
+    capabilities:
+      - text.embed
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://docs.nexa.ai/en/nexa-sdk-python/quickstart
+      retrieved_at: 2026-03-15
+      note: Nexa Python quickstart covering local LLM, embedding, TTS, and ASR flows.
+  - model_id: whisper-large-v3-local
+    provider: local
+    model_type: stt
+    updated_at: 2026-03-15
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://docs.nexa.ai/en/nexa-sdk-python/quickstart
+      retrieved_at: 2026-03-15
+      note: Nexa Python quickstart covering local LLM, embedding, TTS, and ASR flows.
+  - model_id: local/whisper-large-v3
+    provider: local
+    model_type: stt
+    updated_at: 2026-03-15
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://docs.nexa.ai/en/nexa-sdk-python/quickstart
+      retrieved_at: 2026-03-15
+      note: Nexa Python quickstart covering local LLM, embedding, TTS, and ASR flows.
+  - model_id: nexa/whisper-large-v3
+    provider: local
+    model_type: stt
+    updated_at: 2026-03-15
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://docs.nexa.ai/en/nexa-sdk-python/quickstart
+      retrieved_at: 2026-03-15
+      note: Nexa Python quickstart covering local LLM, embedding, TTS, and ASR flows.
+  - model_id: flux.1-schnell-local
+    provider: local
+    model_type: image
+    updated_at: 2026-03-15
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/docs/diffusers/api/pipelines/flux
+      retrieved_at: 2026-03-15
+      note: Official Diffusers FLUX pipeline documentation.
+  - model_id: local/flux.1-schnell
+    provider: local
+    model_type: image
+    updated_at: 2026-03-15
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/docs/diffusers/api/pipelines/flux
+      retrieved_at: 2026-03-15
+      note: Official Diffusers FLUX pipeline documentation.
+  - model_id: nimi_media/flux.1-schnell
+    provider: local
+    model_type: image
+    updated_at: 2026-03-15
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/docs/diffusers/api/pipelines/flux
+      retrieved_at: 2026-03-15
+      note: Official Diffusers FLUX pipeline documentation.
+  - model_id: wan2.1-video-local
+    provider: local
+    model_type: video
+    updated_at: 2026-03-15
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/docs/diffusers/api/pipelines/wan
+      retrieved_at: 2026-03-15
+      note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
+    video_generation: &a2
+      modes:
+        - t2v
+        - i2v_first_frame
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+      limits:
+        resolution:
+          - 480p
+          - 720p
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+        constraints: {}
+      outputs:
+        video_url: true
+  - model_id: local/wan2.1-video
+    provider: local
+    model_type: video
+    updated_at: 2026-03-15
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/docs/diffusers/api/pipelines/wan
+      retrieved_at: 2026-03-15
+      note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
+    video_generation: *a2
+  - model_id: nimi_media/wan2.1-video
+    provider: local
+    model_type: video
+    updated_at: 2026-03-15
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/docs/diffusers/api/pipelines/wan
+      retrieved_at: 2026-03-15
+      note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
+    video_generation: *a2
   - model_id: ace-step-local
     provider: local
     model_type: music

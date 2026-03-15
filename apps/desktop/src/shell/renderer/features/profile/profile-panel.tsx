@@ -13,6 +13,7 @@ import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
 import { toProfileData } from './profile-model';
 import type { ContactRecord } from '@renderer/features/contacts/contacts-model';
+import { getCachedContacts, isPendingSentRequestInContacts } from '@runtime/data-sync/flows/profile-flow-social';
 
 function toErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
@@ -57,8 +58,12 @@ export function ProfilePanel() {
         const result = await dataSync.loadUserProfile(selectedProfileId!);
         const data = result as Record<string, unknown>;
         // API may not return isFriend — check local contacts
-        if (data.isFriend !== true && dataSync.isFriend(selectedProfileId!)) {
+        if (data.isFriend !== true && (dataSync.isFriend(selectedProfileId!) || Boolean(getContactFromCache(selectedProfileId!)))) {
           return { ...data, isFriend: true };
+        }
+        // Check if a pending sent request exists in local cache
+        if (data.isPendingFriendRequest !== true && isPendingSentRequestInContacts(getCachedContacts(), selectedProfileId!)) {
+          return { ...data, isPendingFriendRequest: true };
         }
         return data;
       } catch (error) {
@@ -324,7 +329,7 @@ export function ProfilePanel() {
         onMessage={() => {
           void onMessage();
         }}
-        onAddFriend={!isOwnProfile ? () => {
+        onAddFriend={!isOwnProfile && !profile.isFriend && !profile.isPendingFriendRequest ? () => {
           void onAddFriend();
         } : undefined}
         canAddFriend={!addFriendBlocked}

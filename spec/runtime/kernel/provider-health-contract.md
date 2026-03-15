@@ -29,6 +29,7 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 |---|---|---|
 | `local` | `NIMI_RUNTIME_LOCAL_AI_BASE_URL` | `NIMI_RUNTIME_LOCAL_AI_API_KEY` |
 | `local-nexa` | `NIMI_RUNTIME_LOCAL_NEXA_BASE_URL` | `NIMI_RUNTIME_LOCAL_NEXA_API_KEY` |
+| `local-nimi-media` | `NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL` | `NIMI_RUNTIME_LOCAL_NIMI_MEDIA_API_KEY` |
 | `local-sidecar` | `NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL` | `NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY` |
 | `cloud-nimillm` | `NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL` | `NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY` |
 | `cloud-dashscope` | `NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL` | `NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY` |
@@ -64,7 +65,7 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 
 配置文件中的 provider 名称仅允许 canonical 值：
 
-- `local`、`nexa`、`sidecar`
+- `local`、`nexa`、`nimi_media`、`sidecar`
 - `nimillm`
 - `dashscope`
 - `volcengine`、`volcengine_openspeech`
@@ -96,6 +97,7 @@ Gemini 默认：当配置了 `NIMI_RUNTIME_CLOUD_GEMINI_API_KEY` 且未配置 Ba
 |---|---|---|
 | `local` | `local` | LocalAI 引擎 |
 | `local-nexa` | `local` | Nexa 引擎 |
+| `local-nimi-media` | `local` | Nimi Media 引擎 |
 | `local-sidecar` | `local` | Attached music sidecar |
 | `cloud-nimillm` | `nimillm` | NimiLLM 代理层 |
 | `cloud-dashscope` | `dashscope` | 阿里云 DashScope |

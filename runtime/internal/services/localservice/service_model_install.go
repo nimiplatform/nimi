@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -22,7 +23,7 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 	catalogItem := cloneCatalogItem(s.resolveCatalogItem(req))
 	s.mu.RUnlock()
 	if catalogItem != nil {
-		engine := defaultString(catalogItem.GetEngine(), "localai")
+		engine := defaultLocalEngine(catalogItem.GetEngine(), catalogItem.GetCapabilities())
 		plan := &runtimev1.LocalInstallPlanDescriptor{
 			PlanId:            "plan_" + ulid.Make().String(),
 			ItemId:            catalogItem.GetItemId(),
@@ -64,7 +65,8 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 		return &runtimev1.ResolveModelInstallPlanResponse{Plan: plan}, nil
 	}
 
-	engine := defaultString(strings.TrimSpace(req.GetEngine()), "localai")
+	capabilities := normalizeStringSlice(req.GetCapabilities())
+	engine := defaultLocalEngine(strings.TrimSpace(req.GetEngine()), capabilities)
 	plan := &runtimev1.LocalInstallPlanDescriptor{
 		PlanId:            "plan_" + ulid.Make().String(),
 		ItemId:            req.GetItemId(),
@@ -73,7 +75,7 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 		ModelId:           strings.TrimSpace(req.GetModelId()),
 		Repo:              strings.TrimSpace(req.GetRepo()),
 		Revision:          defaultString(strings.TrimSpace(req.GetRevision()), "main"),
-		Capabilities:      normalizeStringSlice(req.GetCapabilities()),
+		Capabilities:      capabilities,
 		Engine:            engine,
 		EngineRuntimeMode: runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT,
 		InstallKind:       "download",
@@ -114,10 +116,7 @@ func resolveInstallPlanEndpoint(engine string, requestEndpoint string, fallbackE
 	if engineRequiresExplicitEndpoint(engine) {
 		return ""
 	}
-	if strings.EqualFold(strings.TrimSpace(engine), "localai") {
-		return defaultLocalEndpoint
-	}
-	return defaultLocalEndpoint
+	return defaultEndpointForEngine(engine)
 }
 
 func engineRequiresExplicitEndpoint(engine string) bool {
@@ -127,6 +126,30 @@ func engineRequiresExplicitEndpoint(engine string) bool {
 	default:
 		return false
 	}
+}
+
+func defaultLocalEngine(raw string, capabilities []string) string {
+	if trimmed := strings.TrimSpace(raw); trimmed != "" {
+		return trimmed
+	}
+	if runtime.GOOS == "windows" {
+		for _, capability := range capabilities {
+			switch strings.ToLower(strings.TrimSpace(capability)) {
+			case "image", "video", "image.generate", "video.generate":
+				return "nimi_media"
+			case "chat", "embedding", "embed", "tts", "speech", "stt", "transcription", "text.generate", "text.embed", "audio.synthesize", "audio.transcribe":
+				return "nexa"
+			}
+		}
+	}
+	return "localai"
+}
+
+func defaultEndpointForEngine(engine string) string {
+	if strings.EqualFold(strings.TrimSpace(engine), "nimi_media") {
+		return defaultNimiMediaEndpoint
+	}
+	return defaultLocalEndpoint
 }
 
 func (s *Service) evaluateInstallPlanAvailability(plan *runtimev1.LocalInstallPlanDescriptor) {
@@ -181,13 +204,18 @@ func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLoc
 	if modelID == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
 	}
-	engine := defaultString(strings.TrimSpace(req.GetEngine()), "localai")
+	capabilities := normalizeStringSlice(req.GetCapabilities())
+	engine := defaultLocalEngine(strings.TrimSpace(req.GetEngine()), capabilities)
 	endpoint := strings.TrimSpace(req.GetEndpoint())
 	if engineRequiresExplicitEndpoint(engine) && endpoint == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
 	}
 	if endpoint == "" {
-		endpoint = defaultLocalEndpoint
+		if strings.EqualFold(engine, "nimi_media") {
+			endpoint = defaultNimiMediaEndpoint
+		} else {
+			endpoint = defaultLocalEndpoint
+		}
 	}
 	endpoint = s.normalizeRequestedLocalModelEndpoint(engine, endpoint)
 
@@ -209,7 +237,7 @@ func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLoc
 	record := &runtimev1.LocalModelRecord{
 		LocalModelId: localModelID,
 		ModelId:      modelID,
-		Capabilities: normalizeStringSlice(req.GetCapabilities()),
+		Capabilities: capabilities,
 		Engine:       engine,
 		Entry:        defaultString(strings.TrimSpace(req.GetEntry()), "./dist/index.js"),
 		License:      defaultString(strings.TrimSpace(req.GetLicense()), "unknown"),
@@ -308,7 +336,7 @@ func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocal
 	if modelID == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
 	}
-	engine := defaultString(manifestStringDefault(manifest, "engine"), "localai")
+	engine := defaultLocalEngine(manifestStringDefault(manifest, "engine"), nil)
 	entry := defaultString(manifestStringDefault(manifest, "entry"), "./dist/index.js")
 	license := defaultString(manifestStringDefault(manifest, "license"), "unknown")
 	endpoint := strings.TrimSpace(req.GetEndpoint())
@@ -319,7 +347,7 @@ func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocal
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
 	}
 	if endpoint == "" {
-		endpoint = defaultLocalEndpoint
+		endpoint = defaultEndpointForEngine(engine)
 	}
 	endpoint = s.normalizeRequestedLocalModelEndpoint(engine, endpoint)
 

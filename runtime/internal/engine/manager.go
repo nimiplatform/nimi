@@ -143,7 +143,9 @@ func (m *Manager) EnsureEngine(ctx context.Context, cfg EngineConfig) (EngineCon
 	case EngineLocalAI:
 		return m.ensureLocalAI(ctx, cfg)
 	case EngineNexa:
-		return m.ensureNexa(cfg)
+		return m.ensureNexa(ctx, cfg)
+	case EngineNimiMedia:
+		return ensureNimiMedia(ctx, m.baseDir, cfg)
 	default:
 		return cfg, fmt.Errorf("unknown engine kind: %s", cfg.Kind)
 	}
@@ -194,7 +196,10 @@ func (m *Manager) ensureLocalAI(ctx context.Context, cfg EngineConfig) (EngineCo
 	return cfg, nil
 }
 
-func (m *Manager) ensureNexa(cfg EngineConfig) (EngineConfig, error) {
+func (m *Manager) ensureNexa(ctx context.Context, cfg EngineConfig) (EngineConfig, error) {
+	if currentGOOS() == "windows" {
+		return ensureManagedNexa(ctx, m.baseDir, cfg)
+	}
 	path, err := nexaLookPath()
 	if err != nil {
 		return cfg, err
@@ -314,7 +319,7 @@ func (m *Manager) ListEngines() []SupervisorInfo {
 	}
 	m.mu.RUnlock()
 
-	knownKinds := []EngineKind{EngineLocalAI, EngineNexa}
+	knownKinds := []EngineKind{EngineLocalAI, EngineNexa, EngineNimiMedia}
 	result := make([]SupervisorInfo, 0, len(running)+len(knownKinds))
 	seen := make(map[EngineKind]bool, len(running)+len(knownKinds))
 
@@ -352,6 +357,8 @@ func (m *Manager) stoppedEngineInfo(kind EngineKind) SupervisorInfo {
 		cfg = DefaultLocalAIConfig()
 	case EngineNexa:
 		cfg = DefaultNexaConfig()
+	case EngineNimiMedia:
+		cfg = DefaultNimiMediaConfig()
 	default:
 		return SupervisorInfo{Kind: kind, Status: StatusStopped}
 	}
@@ -376,11 +383,25 @@ func (m *Manager) stoppedEngineInfo(kind EngineKind) SupervisorInfo {
 			}
 		}
 	case EngineNexa:
+		if currentGOOS() == "windows" {
+			path := managedNexaBinary(engineVersionDir(m.baseDir, EngineNexa, cfg.Version))
+			if fi, statErr := os.Stat(path); statErr == nil {
+				info.BinaryPath = strings.TrimSpace(path)
+				info.BinarySizeBytes = fi.Size()
+			}
+			return info
+		}
 		if path, err := nexaLookPath(); err == nil {
 			info.BinaryPath = strings.TrimSpace(path)
 			if fi, statErr := os.Stat(info.BinaryPath); statErr == nil {
 				info.BinarySizeBytes = fi.Size()
 			}
+		}
+	case EngineNimiMedia:
+		path := managedPythonPath(engineVersionDir(m.baseDir, EngineNimiMedia, cfg.Version))
+		if fi, statErr := os.Stat(path); statErr == nil {
+			info.BinaryPath = strings.TrimSpace(path)
+			info.BinarySizeBytes = fi.Size()
 		}
 	}
 

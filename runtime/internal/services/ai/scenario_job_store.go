@@ -64,7 +64,7 @@ func (s *Service) submitVoiceWorkflowJob(
 		return nil, err
 	}
 
-	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead())
+	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead(), req.GetScenarioType())
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (s *Service) submitVoiceWorkflowJob(
 	if err := s.validateScenarioCapability(ctx, req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
 		return nil, err
 	}
-	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selectedProvider)
+	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selectedProvider, scenarioModalFromType(req.GetScenarioType()))
 	if err := s.validateCatalogAwareScenarioSupport(ctx, req.GetScenarioType(), providerType, modelResolved, req.GetSpec()); err != nil {
 		return nil, err
 	}
@@ -301,7 +301,7 @@ func (s *Service) submitScenarioAsyncJob(
 		return nil, err
 	}
 
-	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead())
+	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead(), req.GetScenarioType())
 	if err != nil {
 		return nil, err
 	}
@@ -419,7 +419,7 @@ func (s *Service) executeScenarioAsyncJob(
 	if remoteTarget != nil {
 		providerType = remoteTarget.ProviderType
 	} else {
-		providerType = inferMediaProviderTypeFromSelectedBackend(selectedProvider, modelResolved)
+		providerType = inferMediaProviderTypeFromSelectedBackend(selectedProvider, modelResolved, scenarioModalFromType(req.GetScenarioType()))
 	}
 	adapterName := resolveMediaAdapterName(req.GetHead().GetModelId(), modelResolved, scenarioModalFromType(req.GetScenarioType()), providerType)
 	var (

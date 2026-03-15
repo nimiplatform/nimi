@@ -50,6 +50,10 @@
 | `ConnectorService` | `ListModelCatalogProviders` | `RuntimeConnectorService` | `ListModelCatalogProviders` | `aligned` |
 | `ConnectorService` | `UpsertModelCatalogProvider` | `RuntimeConnectorService` | `UpsertModelCatalogProvider` | `aligned` |
 | `ConnectorService` | `DeleteModelCatalogProvider` | `RuntimeConnectorService` | `DeleteModelCatalogProvider` | `aligned` |
+| `ConnectorService` | `ListCatalogProviderModels` | `RuntimeConnectorService` | `ListCatalogProviderModels` | `aligned` |
+| `ConnectorService` | `GetCatalogModelDetail` | `RuntimeConnectorService` | `GetCatalogModelDetail` | `aligned` |
+| `ConnectorService` | `UpsertCatalogModelOverlay` | `RuntimeConnectorService` | `UpsertCatalogModelOverlay` | `aligned` |
+| `ConnectorService` | `DeleteCatalogModelOverlay` | `RuntimeConnectorService` | `DeleteCatalogModelOverlay` | `aligned` |
 | `RuntimeLocalService` | `ListLocalModels` | `RuntimeLocalService` | `ListLocalModels` | `aligned` |
 | `RuntimeLocalService` | `ListLocalArtifacts` | `RuntimeLocalService` | `ListLocalArtifacts` | `aligned` |
 | `RuntimeLocalService` | `ListVerifiedModels` | `RuntimeLocalService` | `ListVerifiedModels` | `aligned` |

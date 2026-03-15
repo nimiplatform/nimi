@@ -179,9 +179,19 @@ message LocalProviderHintsNexa {
   string gate_detail = 13;
 }
 
+message LocalProviderHintsNimiMedia {
+  string backend = 1;
+  string preferred_adapter = 2;
+  string family = 3;
+  string image_driver = 4;
+  string video_driver = 5;
+  string device = 6;
+}
+
 message LocalProviderHints {
   LocalProviderHintsLocalAi localai = 1;
   LocalProviderHintsNexa nexa = 2;
+  LocalProviderHintsNimiMedia nimi_media = 3;
   map<string, string> extra = 10;
 }
 

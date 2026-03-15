@@ -14,14 +14,14 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func inferScenarioProviderType(modelResolved string, remoteTarget *nimillm.RemoteTarget, selected provider) string {
+func inferScenarioProviderType(modelResolved string, remoteTarget *nimillm.RemoteTarget, selected provider, modal runtimev1.Modal) string {
 	if remoteTarget != nil {
 		providerType := strings.TrimSpace(strings.ToLower(remoteTarget.ProviderType))
 		if providerType != "" {
 			return providerType
 		}
 	}
-	if providerType := inferMediaProviderTypeFromSelectedBackend(selected, modelResolved); providerType != "" {
+	if providerType := inferMediaProviderTypeFromSelectedBackend(selected, modelResolved, modal); providerType != "" {
 		return strings.ToLower(strings.TrimSpace(providerType))
 	}
 	normalized := strings.ToLower(strings.TrimSpace(modelResolved))
@@ -74,7 +74,7 @@ func (s *Service) validateScenarioCapability(
 	remoteTarget *nimillm.RemoteTarget,
 	selected provider,
 ) error {
-	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected)
+	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected, scenarioModalFromType(scenarioType))
 	if providerType == "" {
 		return nil
 	}
@@ -174,7 +174,7 @@ func (s *Service) validateLocalTextGenerateInputCapabilities(
 	if err != nil {
 		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
-	selected, reason, detail := selectRunnableLocalModel(models, parseLocalModelSelector(modelResolved))
+	selected, reason, detail := selectRunnableLocalModel(models, parseLocalModelSelector(modelResolved, runtimev1.Modal_MODAL_UNSPECIFIED))
 	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		if detail != "" {
 			return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, reason, grpcerr.ReasonOptions{
@@ -203,7 +203,7 @@ func (s *Service) validateRemoteTextGenerateInputCapabilities(
 	if len(required) == 0 {
 		return nil
 	}
-	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected)
+	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_UNSPECIFIED)
 	if providerType == "" {
 		return nil
 	}

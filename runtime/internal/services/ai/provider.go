@@ -47,7 +47,7 @@ type scenarioStreamingTextProvider interface {
 
 // Config controls local/cloud provider connectivity.
 type Config struct {
-	LocalProviders        map[string]nimillm.ProviderCredentials // "localai", "nexa", "sidecar"
+	LocalProviders        map[string]nimillm.ProviderCredentials // "localai", "nexa", "nimi_media", "sidecar"
 	CloudProviders        map[string]nimillm.ProviderCredentials // "nimillm", "dashscope", ...
 	ProviderDefaultModels map[string]string
 	DefaultLocalTextModel string
@@ -118,6 +118,11 @@ func loadConfigFromEnv() Config {
 	localNexaKey := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_NEXA_API_KEY"))
 	if localNexaBase != "" || localNexaKey != "" {
 		localProviders["nexa"] = nimillm.ProviderCredentials{BaseURL: localNexaBase, APIKey: localNexaKey}
+	}
+	localNimiMediaBase := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL"))
+	localNimiMediaKey := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_NIMI_MEDIA_API_KEY"))
+	if localNimiMediaBase != "" || localNimiMediaKey != "" {
+		localProviders["nimi_media"] = nimillm.ProviderCredentials{BaseURL: localNimiMediaBase, APIKey: localNimiMediaKey}
 	}
 	localSidecarBase := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL"))
 	localSidecarKey := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY"))
@@ -195,9 +200,11 @@ func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, 
 
 	localaiCreds := normalized.LocalProviders["localai"]
 	nexaCreds := normalized.LocalProviders["nexa"]
+	nimiMediaCreds := normalized.LocalProviders["nimi_media"]
 	sidecarCreds := normalized.LocalProviders["sidecar"]
 	localAIBackend := newLocalBackend("local-localai", localaiCreds, normalized)
 	nexaBackend := newLocalBackend("local-nexa", nexaCreds, normalized)
+	nimiMediaBackend := newLocalBackend("local-nimi_media", nimiMediaCreds, normalized)
 	sidecarBackend := newLocalBackend("local-sidecar", sidecarCreds, normalized)
 	targetConfig := runtimecfg.Config{
 		DefaultLocalTextModel: normalized.DefaultLocalTextModel,
@@ -218,9 +225,10 @@ func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, 
 	}
 	return &routeSelector{
 		local: &localProvider{
-			localai: localAIBackend,
-			nexa:    nexaBackend,
-			sidecar: sidecarBackend,
+			localai:    localAIBackend,
+			nexa:       nexaBackend,
+			nimimedia:  nimiMediaBackend,
+			sidecar:    sidecarBackend,
 		},
 		cloud:         cloudProvider,
 		cloudProvider: cloudProvider,

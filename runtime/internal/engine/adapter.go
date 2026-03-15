@@ -119,6 +119,8 @@ func resolveEngineConfig(engineName string, version string, port int) (EngineCon
 		cfg = DefaultLocalAIConfig()
 	case EngineNexa:
 		cfg = DefaultNexaConfig()
+	case EngineNimiMedia:
+		cfg = DefaultNimiMediaConfig()
 	default:
 		return EngineConfig{}, fmt.Errorf("unknown engine: %s", engineName)
 	}
@@ -138,6 +140,8 @@ func parseEngineKind(name string) (EngineKind, error) {
 		return EngineLocalAI, nil
 	case EngineNexa:
 		return EngineNexa, nil
+	case EngineNimiMedia:
+		return EngineNimiMedia, nil
 	default:
 		return "", fmt.Errorf("unknown engine kind: %q", name)
 	}

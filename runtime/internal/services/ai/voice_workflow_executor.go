@@ -92,7 +92,7 @@ func (s *Service) resolveVoiceWorkflow(ctx context.Context, providerType string,
 		provider = inferVoiceAssetProvider(modelResolved)
 	}
 	if provider == "" {
-		provider = inferScenarioProviderType(modelResolved, nil, nil)
+		provider = inferScenarioProviderType(modelResolved, nil, nil, runtimev1.Modal_MODAL_UNSPECIFIED)
 	}
 	return s.speechCatalog.ResolveVoiceWorkflowForSubject(catalogSubjectUserIDFromContext(ctx), provider, modelResolved, workflowType)
 }

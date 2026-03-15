@@ -59,7 +59,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
-	remoteTarget, err := s.prepareScenarioRequest(stream.Context(), req.GetHead())
+	remoteTarget, err := s.prepareScenarioRequest(stream.Context(), req.GetHead(), req.GetScenarioType())
 	if err != nil {
 		return err
 	}
@@ -281,7 +281,7 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
-	remoteTarget, err := s.prepareScenarioRequest(stream.Context(), req.GetHead())
+	remoteTarget, err := s.prepareScenarioRequest(stream.Context(), req.GetHead(), req.GetScenarioType())
 	if err != nil {
 		return err
 	}

@@ -256,7 +256,7 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	localProvider := &localProvider{
 		localai: &nimillm.Backend{Name: "local-localai"},
 	}
-	if got := inferMediaProviderTypeFromSelectedBackend(localProvider, "z-image-turbo"); got != "localai" {
+	if got := inferMediaProviderTypeFromSelectedBackend(localProvider, "z-image-turbo", runtimev1.Modal_MODAL_IMAGE); got != "localai" {
 		t.Fatalf("unexpected local provider backend type: %q", got)
 	}
 

@@ -151,6 +151,16 @@ type Config struct {
 	// EngineNexaPort is the port for the supervised Nexa instance.
 	// Default: 8000. (K-LENG-004)
 	EngineNexaPort int
+
+	// EngineNimiMediaEnabled enables the supervised diffusers-backed media
+	// engine used for local image/video generation.
+	EngineNimiMediaEnabled bool
+
+	// EngineNimiMediaVersion is the managed media engine version.
+	EngineNimiMediaVersion string
+
+	// EngineNimiMediaPort is the port for the supervised media engine.
+	EngineNimiMediaPort int
 }
 
 // FileConfig is the on-disk JSON schema for runtime configuration.
@@ -189,8 +199,9 @@ type FileConfig struct {
 
 // FileConfigEngines holds supervised engine configuration in the config file.
 type FileConfigEngines struct {
-	LocalAI *FileConfigEngine `json:"localai,omitempty"`
-	Nexa    *FileConfigEngine `json:"nexa,omitempty"`
+	LocalAI   *FileConfigEngine `json:"localai,omitempty"`
+	Nexa      *FileConfigEngine `json:"nexa,omitempty"`
+	NimiMedia *FileConfigEngine `json:"nimi_media,omitempty"`
 }
 
 // FileConfigEngine holds configuration for a single supervised engine.

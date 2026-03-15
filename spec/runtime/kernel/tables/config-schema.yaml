@@ -184,6 +184,27 @@ fields:
     description: Nexa 监听端口
     source_rule: K-LENG-004
 
+  - key: engines.nimi_media.enabled
+    type: bool
+    default: "false"
+    reload: restart
+    description: 启用 Nimi Media 引擎 SUPERVISED 模式
+    source_rule: K-LENG-004
+
+  - key: engines.nimi_media.version
+    type: string
+    default: "0.1.0"
+    reload: restart
+    description: Nimi Media 受管引擎版本
+    source_rule: K-LENG-004
+
+  - key: engines.nimi_media.port
+    type: int
+    default: "8321"
+    reload: restart
+    description: Nimi Media 监听端口
+    source_rule: K-LENG-004
+
   - key: defaultLocalTextModel
     type: string
     default: ""

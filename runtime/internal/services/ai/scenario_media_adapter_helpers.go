@@ -19,6 +19,7 @@ const (
 	adapterOpenAICompat        = "openai_compat_adapter"
 	adapterLocalAINative       = "localai_native_adapter"
 	adapterNexaNative          = "nexa_native_adapter"
+	adapterNimiMediaNative     = "nimi_media_native_adapter"
 	adapterBytedanceOpenSpeech = "bytedance_openspeech_adapter"
 	adapterBytedanceARKTask    = "bytedance_ark_task_adapter"
 	adapterAlibabaNative       = "alibaba_native_adapter"
@@ -90,6 +91,10 @@ var mediaAdapterStrategiesByProvider = map[string]mediaAdapterStrategy{
 		Video: adapterNexaNative,
 		TTS:   adapterNexaNative,
 		STT:   adapterNexaNative,
+	},
+	"nimi_media": {
+		Image: adapterNimiMediaNative,
+		Video: adapterNimiMediaNative,
 	},
 	"sidecar": {
 		Music: adapterSidecarMusic,
@@ -284,6 +289,8 @@ func resolveMediaAdapterName(modelID string, modelResolved string, modal runtime
 		return adapterLocalAINative
 	case strings.HasPrefix(lowerModel, "nexa/"):
 		return adapterNexaNative
+	case strings.HasPrefix(lowerModel, "nimi_media/"):
+		return adapterNimiMediaNative
 	}
 
 	if strategy, ok := mediaAdapterStrategiesByProvider[providerLower]; ok {
@@ -332,10 +339,15 @@ func mediaScenarioSupportedByProviderRecord(record providerregistry.ProviderReco
 	}
 }
 
-func inferMediaProviderTypeFromSelectedBackend(selectedProvider provider, modelResolved string) string {
+func inferMediaProviderTypeFromSelectedBackend(selectedProvider provider, modelResolved string, modal runtimev1.Modal) string {
 	if cloud, ok := selectedProvider.(*nimillm.CloudProvider); ok && cloud != nil {
 		if backend, _, _, _ := cloud.PickBackend(modelResolved); backend != nil {
 			return inferMediaProviderTypeFromBackendName(backend)
+		}
+	}
+	if modalProvider, ok := selectedProvider.(localModalMediaProvider); ok && modalProvider != nil {
+		if _, _, providerType := modalProvider.resolveMediaBackendForModal(modelResolved, modal); providerType != "" {
+			return providerType
 		}
 	}
 	if backendProvider, ok := selectedProvider.(nimillm.MediaBackendProvider); ok && backendProvider != nil {

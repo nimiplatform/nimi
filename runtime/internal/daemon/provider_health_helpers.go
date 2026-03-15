@@ -20,6 +20,8 @@ func engineEnvKey(engineName string) (engine.EngineKind, string, bool) {
 		return engine.EngineLocalAI, "NIMI_RUNTIME_LOCAL_AI_BASE_URL", true
 	case string(engine.EngineNexa):
 		return engine.EngineNexa, "NIMI_RUNTIME_LOCAL_NEXA_BASE_URL", true
+	case string(engine.EngineNimiMedia):
+		return engine.EngineNimiMedia, "NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL", true
 	default:
 		return "", "", false
 	}
@@ -33,6 +35,8 @@ func providerTargetNameForEngine(kind engine.EngineKind) (string, bool) {
 		return "local", true
 	case engine.EngineNexa:
 		return "local-nexa", true
+	case engine.EngineNimiMedia:
+		return "local-nimi-media", true
 	default:
 		return "", false
 	}
@@ -44,6 +48,8 @@ func localProviderEnvBinding(kind engine.EngineKind) (string, string, bool) {
 		return "localai", "NIMI_RUNTIME_LOCAL_AI_API_KEY", true
 	case engine.EngineNexa:
 		return "nexa", "NIMI_RUNTIME_LOCAL_NEXA_API_KEY", true
+	case engine.EngineNimiMedia:
+		return "nimi_media", "NIMI_RUNTIME_LOCAL_NIMI_MEDIA_API_KEY", true
 	default:
 		return "", "", false
 	}
@@ -55,6 +61,8 @@ func engineKindForName(engineName string) (engine.EngineKind, bool) {
 		return engine.EngineLocalAI, true
 	case string(engine.EngineNexa):
 		return engine.EngineNexa, true
+	case string(engine.EngineNimiMedia):
+		return engine.EngineNimiMedia, true
 	case "localai-image-backend":
 		return engine.EngineKind("localai-image-backend"), true
 	default:

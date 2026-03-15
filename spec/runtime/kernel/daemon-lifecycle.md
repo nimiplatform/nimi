@@ -136,7 +136,7 @@ Phase 1 配置文件 schema 权威字段清单见 `tables/config-schema.yaml`（
 
 消费端（Desktop）仅在收到 `CONFIG_RESTART_REQUIRED` 时提示用户重启 runtime。
 
-`providers.*`、`engines.localai.*`、`engines.nexa.*` 变更属于 restart 范畴，必须返回 `CONFIG_RESTART_REQUIRED`。
+`providers.*`、`engines.localai.*`、`engines.nexa.*`、`engines.nimi_media.*` 变更属于 restart 范畴，必须返回 `CONFIG_RESTART_REQUIRED`。
 
 ## K-DAEMON-010 HTTP 健康端点
 

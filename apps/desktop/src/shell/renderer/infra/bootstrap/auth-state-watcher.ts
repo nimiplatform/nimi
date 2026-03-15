@@ -38,6 +38,10 @@ export function startAuthStateWatcher() {
       if (auth.token !== prev.token) {
         dataSync.scheduleProactiveRefresh(auth.token);
       }
+      // 首次登录时后台预加载社交联系人，确保 isFriend 检查在任何 profile 查看前可用
+      if (prev.status !== 'authenticated') {
+        void dataSync.loadSocialSnapshot().catch(() => {});
+      }
     } else if (auth.status === 'anonymous' && prev.status !== 'anonymous') {
       dataSync.setToken('');
       dataSync.setRefreshToken('');

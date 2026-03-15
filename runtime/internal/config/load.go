@@ -30,6 +30,8 @@ func Load() (Config, error) {
 	localAIPortFromFile := fileConfigEngineInt(fileCfg, "localai", "port")
 	nexaEnabledFromFile := fileConfigEngineBool(fileCfg, "nexa")
 	nexaPortFromFile := fileConfigEngineInt(fileCfg, "nexa", "port")
+	nimiMediaEnabledFromFile := fileConfigEngineBool(fileCfg, "nimi_media")
+	nimiMediaPortFromFile := fileConfigEngineInt(fileCfg, "nimi_media", "port")
 
 	cfg := Config{
 		GRPCAddr:                      readString("NIMI_RUNTIME_GRPC_ADDR", nimillm.FirstNonEmpty(fileCfg.GRPCAddr, defaultGRPCAddr)),
@@ -80,6 +82,9 @@ func Load() (Config, error) {
 		EngineNexaEnabled: readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_ENABLED", nexaEnabledFromFile, false),
 		EngineNexaVersion: readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_VERSION", fileConfigEngineString(fileCfg, "nexa", "version"), ""),
 		EngineNexaPort:    readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_PORT", nexaPortFromFile, 8000),
+		EngineNimiMediaEnabled: readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NIMI_MEDIA_ENABLED", nimiMediaEnabledFromFile, false),
+		EngineNimiMediaVersion: readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NIMI_MEDIA_VERSION", fileConfigEngineString(fileCfg, "nimi_media", "version"), "0.1.0"),
+		EngineNimiMediaPort:    readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NIMI_MEDIA_PORT", nimiMediaPortFromFile, 8321),
 	}
 
 	imageBackendArgs, err := readStringSliceJSONWithFileConfigFallback(

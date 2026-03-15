@@ -133,6 +133,43 @@ func (s *Service) SetLocalAIManagedEndpoint(endpoint string) {
 	}
 }
 
+// SetNimiMediaManagedEndpoint records the managed nimi_media endpoint exposed
+// by the daemon and rewrites default media model endpoints to that value.
+func (s *Service) SetNimiMediaManagedEndpoint(endpoint string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.nimiMediaManagedEndpoint = strings.TrimSpace(endpoint)
+	if s.nimiMediaManagedEndpoint == "" {
+		return
+	}
+
+	updatedAt := nowISO()
+	changed := false
+	for localModelID, model := range s.models {
+		if model == nil || model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
+			continue
+		}
+		if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "nimi_media") {
+			continue
+		}
+		if !shouldUseManagedNimiMediaEndpoint(model.GetEndpoint()) {
+			continue
+		}
+		if strings.TrimSpace(model.GetEndpoint()) == s.nimiMediaManagedEndpoint {
+			continue
+		}
+		cloned := cloneLocalModel(model)
+		cloned.Endpoint = s.nimiMediaManagedEndpoint
+		cloned.UpdatedAt = updatedAt
+		s.models[localModelID] = cloned
+		changed = true
+	}
+	if changed {
+		s.persistStateLocked()
+	}
+}
+
 // SetLocalAIImageBackendConfig records whether the managed LocalAI image
 // backend is configured for daemon-supervised LocalAI image workflows.
 func (s *Service) SetLocalAIImageBackendConfig(enabled bool, address string) {

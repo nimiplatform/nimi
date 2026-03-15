@@ -329,11 +329,13 @@ func evaluateDependencyCandidate(opt *runtimev1.LocalExecutionOptionDescriptor, 
 }
 
 func requiresGPU(engine string) bool {
-	return strings.Contains(engine, "cuda") || strings.Contains(engine, "nvidia") || strings.Contains(engine, "gpu")
+	normalized := strings.ToLower(strings.TrimSpace(engine))
+	return normalized == "nimi_media" || strings.Contains(normalized, "cuda") || strings.Contains(normalized, "nvidia") || strings.Contains(normalized, "gpu")
 }
 
 func requiresPython(engine string) bool {
-	return strings.Contains(engine, "python") || strings.Contains(engine, "py")
+	normalized := strings.ToLower(strings.TrimSpace(engine))
+	return normalized == "nexa" || normalized == "nimi_media" || strings.Contains(normalized, "python") || strings.Contains(normalized, "py")
 }
 
 func requiresNPU(engine string) bool {

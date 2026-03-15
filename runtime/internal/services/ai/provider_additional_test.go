@@ -163,12 +163,12 @@ func TestServicePublicSettersAndAccessors(t *testing.T) {
 	if !ok || local == nil {
 		t.Fatalf("expected local provider")
 	}
-	backend, _, _, available, _ := local.pickBackend("localai/dynamic-image")
+	backend, _, _, available, _ := local.pickAvailabilityBackend("localai/dynamic-image")
 	if backend == nil || !available {
 		t.Fatalf("localai backend should be hot-swapped after endpoint injection")
 	}
 	svc.SetLocalProviderEndpoint("sidecar", "http://127.0.0.1:19191", "sidecar-key")
-	sidecarBackend, resolvedModel, explicit, available, _ := local.pickBackend("sidecar/stable-audio-open-sidecar")
+	sidecarBackend, resolvedModel, explicit, available, _ := local.pickAvailabilityBackend("sidecar/stable-audio-open-sidecar")
 	if sidecarBackend == nil || !available {
 		t.Fatalf("sidecar backend should be hot-swapped after endpoint injection")
 	}

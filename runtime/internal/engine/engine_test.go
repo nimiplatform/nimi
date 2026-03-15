@@ -600,8 +600,8 @@ func TestNewManager(t *testing.T) {
 
 	// ListEngines should include known engines even when not running.
 	engines := mgr.ListEngines()
-	if len(engines) != 2 {
-		t.Fatalf("expected 2 known engines (localai+nexa), got %d", len(engines))
+	if len(engines) != 3 {
+		t.Fatalf("expected 3 known engines (localai+nexa+nimi_media), got %d", len(engines))
 	}
 	seen := map[EngineKind]bool{}
 	for _, info := range engines {
@@ -610,8 +610,8 @@ func TestNewManager(t *testing.T) {
 			t.Fatalf("expected stopped status for non-running engine %s, got %s", info.Kind, info.Status)
 		}
 	}
-	if !seen[EngineLocalAI] || !seen[EngineNexa] {
-		t.Fatalf("expected list to include localai and nexa, got %+v", engines)
+	if !seen[EngineLocalAI] || !seen[EngineNexa] || !seen[EngineNimiMedia] {
+		t.Fatalf("expected list to include localai, nexa, and nimi_media, got %+v", engines)
 	}
 }
 
@@ -691,8 +691,8 @@ func TestServiceAdapterListEnginesEmpty(t *testing.T) {
 
 	adapter := NewServiceAdapter(mgr)
 	engines := adapter.ListEngines()
-	if len(engines) != 2 {
-		t.Fatalf("expected 2 known engines, got %d", len(engines))
+	if len(engines) != 3 {
+		t.Fatalf("expected 3 known engines, got %d", len(engines))
 	}
 	seen := map[string]bool{}
 	for _, info := range engines {
@@ -701,8 +701,8 @@ func TestServiceAdapterListEnginesEmpty(t *testing.T) {
 			t.Fatalf("expected stopped status for non-running engine %s, got %s", info.Engine, info.Status)
 		}
 	}
-	if !seen[string(EngineLocalAI)] || !seen[string(EngineNexa)] {
-		t.Fatalf("expected adapter list to include localai and nexa, got %+v", engines)
+	if !seen[string(EngineLocalAI)] || !seen[string(EngineNexa)] || !seen[string(EngineNimiMedia)] {
+		t.Fatalf("expected adapter list to include localai, nexa, and nimi_media, got %+v", engines)
 	}
 }
 
@@ -1254,7 +1254,7 @@ func TestNexaCommandArgs(t *testing.T) {
 	cmd := nexaCommand(cfg)
 	args := strings.Join(cmd.Args[1:], " ")
 
-	for _, want := range []string{"server", "--host", "127.0.0.1", "--port", "9000"} {
+	for _, want := range []string{"serve", "--host", "127.0.0.1", "--port", "9000"} {
 		if !strings.Contains(args, want) {
 			t.Errorf("expected args to contain %q, got: %s", want, args)
 		}

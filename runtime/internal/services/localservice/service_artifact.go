@@ -158,7 +158,7 @@ func (s *Service) ImportLocalArtifact(_ context.Context, req *runtimev1.ImportLo
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
 	}
-	engine := defaultString(manifestStringDefault(manifest, "engine"), "localai")
+	engine := defaultLocalEngine(manifestStringDefault(manifest, "engine"), nil)
 	entry := strings.TrimSpace(manifestStringDefault(manifest, "entry"))
 	if entry == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)

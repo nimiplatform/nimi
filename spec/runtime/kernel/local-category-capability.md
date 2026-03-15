@@ -92,7 +92,7 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 | `model_id` | 是 | 安装时使用的 model_id |
 | `repo` | 条件必填 | 模型仓库地址；`install_kind=verified-hf-multi-file` 时必填 |
 | `capabilities` | 是 | 能力列表（`chat`/`embedding` 等） |
-| `engine` | 是 | 目标引擎（`localai`/`nexa`/`sidecar`） |
+| `engine` | 是 | 目标引擎（`localai`/`nexa`/`nimi_media`/`sidecar`） |
 | `entry` | 条件必填 | 引擎内模型入口标识；`install_kind=verified-hf-multi-file` 时必填 |
 | `files` | 条件必填 | 组成文件列表；`install_kind=verified-hf-multi-file` 时必填 |
 | `hashes` | 条件必填 | 文件哈希校验（`sha256:{hex}` 格式）；`install_kind=verified-hf-multi-file` 时必填 |
@@ -201,6 +201,8 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 | Provider | Capability | Adapter |
 |---|---|---|
 | `nexa` | `*`（任意） | `nexa_native_adapter` |
+| `nimi_media` | `image` | `nimi_media_native_adapter` |
+| `nimi_media` | `video` | `nimi_media_native_adapter` |
 | `localai` | `image` | `localai_native_adapter` |
 | `localai` | `video` | `localai_native_adapter` |
 | `localai` | `tts` | `localai_native_adapter` |
@@ -223,7 +225,7 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
   - `policy_gate_allows_npu=false` → `npu_usable=false`
   - 三者均为 `true` → `npu_usable=true`
 - 门控信息通过 `LocalProviderHints` 透传给审计与调用方。
-- 类型映射：`LocalProviderHintsNexa.policy_gate` 为 string（门控规则标识符）；`AppendInferenceAuditRequest.policy_gate` 为 `google.protobuf.Struct`（结构化门控上下文，含 gate/reason/detail）。两者表达不同粒度，不要求类型对齐。
+- 类型映射：`LocalProviderHintsNexa.policy_gate` 为 string（门控规则标识符）；`LocalProviderHintsNimiMedia` 承载 `family/image_driver/video_driver/device` 等执行提示；`AppendInferenceAuditRequest.policy_gate` 为 `google.protobuf.Struct`（结构化门控上下文，含 gate/reason/detail）。两者表达不同粒度，不要求类型对齐。
 
 ## K-LOCAL-019 Node 目录生成规则
 
@@ -233,7 +235,7 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 2. 对每个 Service 的 `capabilities` 做笛卡尔积：每个 capability 生成一个 Node。
 3. 每个 Node 填充：
    - `node_id`：`<service_id>:<capability>` 格式。
-   - `provider`：从 engine 推导（`localai` → `localai`，`nexa` → `nexa`，`sidecar` → `sidecar`）。
+   - `provider`：从 engine 推导（`localai` → `localai`，`nexa` → `nexa`，`nimi_media` → `nimi_media`，`sidecar` → `sidecar`）。
    - `adapter`：按 `K-LOCAL-017` 路由。
    - `available`：健康且未被策略门控（`K-LOCAL-018`）。
    - `provider_hints`：引擎特定适配信息。
@@ -247,11 +249,12 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 |---|---|
 | `localai/` | 仅匹配 `localai` 引擎的已安装模型 |
 | `nexa/` | 仅匹配 `nexa` 引擎的已安装模型 |
+| `nimi_media/` | 仅匹配 `nimi_media` 引擎的已安装模型 |
 | `sidecar/` / `localsidecar/` | 仅匹配 `sidecar` 引擎的已安装模型 |
-| `local/` | 优先匹配 `localai`，未命中则回退 `sidecar`，再回退 `nexa` |
+| `local/` | 按 host + modal 做偏好路由：Windows 下 `image/video -> nimi_media`、`tts/stt -> nexa`；其余情况优先 `localai`，再回退其他兼容引擎 |
 | 无前缀 | 按已安装模型的 `model_id` 精确匹配 |
 
-前缀在匹配时剥除（`localai/llama3.1` 匹配 `model_id=llama3.1` 且 `engine=localai`；`sidecar/musicgen` 匹配 `model_id=musicgen` 且 `engine=sidecar`）。
+前缀在匹配时剥除（`localai/llama3.1` 匹配 `model_id=llama3.1` 且 `engine=localai`；`nimi_media/flux.1-schnell` 匹配 `model_id=flux.1-schnell` 且 `engine=nimi_media`；`sidecar/musicgen` 匹配 `model_id=musicgen` 且 `engine=sidecar`）。
 
 未知前缀（如 `ollama/`）视为无前缀，按 `model_id` 全文精确匹配（不剥除前缀）。
 

@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"sort"
 	"strings"
 
@@ -27,9 +28,12 @@ type localModelSelector struct {
 	modelID        string
 	explicitEngine string
 	preferLocalAI  bool
+	modal          runtimev1.Modal
 }
 
-func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelID string, remoteTarget *nimillm.RemoteTarget) error {
+var localModelValidationGOOS = runtime.GOOS
+
+func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelID string, remoteTarget *nimillm.RemoteTarget, modal runtimev1.Modal) error {
 	if remoteTarget != nil {
 		return nil
 	}
@@ -52,7 +56,7 @@ func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelI
 		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 
-	selector := parseLocalModelSelector(resolvedModelID)
+	selector := parseLocalModelSelector(resolvedModelID, modal)
 	selected, reason, unavailableDetail := selectRunnableLocalModel(localModels, selector)
 	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		if reason == runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE && strings.TrimSpace(unavailableDetail) != "" {
@@ -97,10 +101,10 @@ func (s *Service) listAllActiveLocalModels(ctx context.Context) ([]*runtimev1.Lo
 	return s.listAllLocalModels(ctx, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE)
 }
 
-func parseLocalModelSelector(modelID string) localModelSelector {
+func parseLocalModelSelector(modelID string, modal runtimev1.Modal) localModelSelector {
 	raw := strings.TrimSpace(modelID)
 	lower := strings.ToLower(raw)
-	selector := localModelSelector{}
+	selector := localModelSelector{modal: modal}
 	switch {
 	case strings.HasPrefix(lower, "localai/"):
 		selector.explicitEngine = "localai"
@@ -108,6 +112,9 @@ func parseLocalModelSelector(modelID string) localModelSelector {
 	case strings.HasPrefix(lower, "nexa/"):
 		selector.explicitEngine = "nexa"
 		selector.modelID = strings.TrimSpace(raw[len("nexa/"):])
+	case strings.HasPrefix(lower, "nimi_media/"):
+		selector.explicitEngine = "nimi_media"
+		selector.modelID = strings.TrimSpace(raw[len("nimi_media/"):])
 	case strings.HasPrefix(lower, "sidecar/"):
 		selector.explicitEngine = "sidecar"
 		selector.modelID = strings.TrimSpace(raw[len("sidecar/"):])
@@ -154,19 +161,11 @@ func selectActiveLocalModel(models []*runtimev1.LocalModelRecord, selector local
 	}
 
 	if selector.preferLocalAI {
-		for _, model := range candidates {
-			if strings.EqualFold(strings.TrimSpace(model.GetEngine()), "localai") {
-				return model, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
-			}
-		}
-		for _, model := range candidates {
-			if strings.EqualFold(strings.TrimSpace(model.GetEngine()), "sidecar") {
-				return model, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
-			}
-		}
-		for _, model := range candidates {
-			if strings.EqualFold(strings.TrimSpace(model.GetEngine()), "nexa") {
-				return model, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+		for _, engine := range localPreferredEngines(selector.modal) {
+			for _, model := range candidates {
+				if strings.EqualFold(strings.TrimSpace(model.GetEngine()), engine) {
+					return model, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+				}
 			}
 		}
 		return nil, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE
@@ -205,14 +204,10 @@ func selectRunnableLocalModel(models []*runtimev1.LocalModelRecord, selector loc
 	}
 
 	if selector.preferLocalAI {
-		if selected := firstActiveLocalModel(filterLocalModelsByEngine(candidates, "localai")); selected != nil {
-			return selected, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
-		}
-		if selected := firstActiveLocalModel(filterLocalModelsByEngine(candidates, "sidecar")); selected != nil {
-			return selected, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
-		}
-		if selected := firstActiveLocalModel(filterLocalModelsByEngine(candidates, "nexa")); selected != nil {
-			return selected, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
+		for _, engine := range localPreferredEngines(selector.modal) {
+			if selected := firstActiveLocalModel(filterLocalModelsByEngine(candidates, engine)); selected != nil {
+				return selected, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
+			}
 		}
 		return nil, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, unavailableLocalModelDetail(candidates)
 	}
@@ -318,8 +313,35 @@ func localEnginePriority(engine string) int {
 		return 1
 	case "nexa":
 		return 2
-	default:
+	case "nimi_media":
 		return 3
+	default:
+		return 4
+	}
+}
+
+func localPreferredEngines(modal runtimev1.Modal) []string {
+	if localModelValidationGOOS == "windows" {
+		switch modal {
+		case runtimev1.Modal_MODAL_IMAGE, runtimev1.Modal_MODAL_VIDEO:
+			return []string{"nimi_media", "localai", "nexa", "sidecar"}
+		case runtimev1.Modal_MODAL_TTS, runtimev1.Modal_MODAL_STT:
+			return []string{"nexa", "localai", "sidecar", "nimi_media"}
+		case runtimev1.Modal_MODAL_MUSIC:
+			return []string{"sidecar", "localai", "nexa", "nimi_media"}
+		default:
+			return []string{"localai", "sidecar", "nexa", "nimi_media"}
+		}
+	}
+	switch modal {
+	case runtimev1.Modal_MODAL_IMAGE, runtimev1.Modal_MODAL_VIDEO:
+		return []string{"localai", "nimi_media", "nexa", "sidecar"}
+	case runtimev1.Modal_MODAL_TTS, runtimev1.Modal_MODAL_STT:
+		return []string{"localai", "nexa", "sidecar", "nimi_media"}
+	case runtimev1.Modal_MODAL_MUSIC:
+		return []string{"sidecar", "localai", "nexa", "nimi_media"}
+	default:
+		return []string{"localai", "sidecar", "nexa", "nimi_media"}
 	}
 }
 

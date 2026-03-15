@@ -52,7 +52,7 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 	if req == nil || req.GetHead() == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead())
+	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead(), runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 	if err != nil {
 		return nil, err
 	}
-	if routeDecision != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || inferScenarioProviderType(modelResolved, remoteTarget, selectedProvider) != "localai" {
+	if routeDecision != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || inferScenarioProviderType(modelResolved, remoteTarget, selectedProvider, runtimev1.Modal_MODAL_UNSPECIFIED) != "localai" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	backend, realtimeModel, err := resolveLocalAIRealtimeBackend(selectedProvider, modelResolved)
