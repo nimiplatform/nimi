@@ -14,7 +14,6 @@ import type {
 } from './world-detail-types';
 import { TimeFlowDynamics } from './time-flow-dynamics';
 import { WorldScoringMatrix } from './world-scoring-matrix';
-import { CreateAgentDrawer, type CreateAgentInput } from './create-agent-drawer';
 import { WorldDetailSkeletonPage } from './world-detail-route-state';
 
 const statusGlowStyles = `
@@ -1320,7 +1319,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
               <div className="mb-5">
                 <div className="text-xs text-[#4ECCA3] mb-2">{t('WorldDetail.description')}</div>
                 <p className="text-sm text-[#e8f5ee]/70 leading-relaxed">
-                  {displayValue(worldSummary)}
+                  {displayValue(world.overview || world.description)}
                 </p>
               </div>
             </section>
@@ -1491,7 +1490,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                         <h4 className="text-sm font-bold text-[#e8f5ee] truncate">
                           {displayValue(agent.name)}
                         </h4>
-                        <div className="text-xs truncate" style={{ color: getAgentPalette(agent).accent }}>
+                        <div className="text-xs truncate" style={{ color: getSemanticAgentPalette({ description: agent.bio, worldName: agent.name }).accent }}>
                           {displayValue(agent.handle)}
                         </div>
                       </div>
