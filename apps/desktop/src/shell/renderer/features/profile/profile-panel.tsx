@@ -1,7 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
-import { dataSync } from '@runtime/data-sync';
+import {
+  dataSync,
+  getCachedContacts,
+  isPendingSentRequestInContacts,
+} from '@runtime/data-sync';
 import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ContactDetailView, type EditableProfileDraft } from '@renderer/features/contacts/contact-detail-view.js';
@@ -13,7 +17,6 @@ import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
 import { toProfileData } from './profile-model';
 import type { ContactRecord } from '@renderer/features/contacts/contacts-model';
-import { getCachedContacts, isPendingSentRequestInContacts } from '@runtime/data-sync/flows/profile-flow-social';
 
 function toErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
