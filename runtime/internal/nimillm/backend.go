@@ -210,18 +210,6 @@ func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*run
 		MaxTokens   *int32   `json:"max_tokens,omitempty"`
 		Stream      bool     `json:"stream"`
 	}
-	type chatResponse struct {
-		Choices []struct {
-			FinishReason string `json:"finish_reason"`
-			Message      struct {
-				Content string `json:"content"`
-			} `json:"message"`
-		} `json:"choices"`
-		Usage struct {
-			PromptTokens     int64 `json:"prompt_tokens"`
-			CompletionTokens int64 `json:"completion_tokens"`
-		} `json:"usage"`
-	}
 
 	messages, err := buildTextChatMessages(ctx, systemPrompt, input, b)
 	if err != nil {
@@ -246,26 +234,50 @@ func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*run
 		reqBody.MaxTokens = &max
 	}
 
-	var respBody chatResponse
+	respBody := map[string]any{}
 	if err := b.postJSON(ctx, "/v1/chat/completions", reqBody, &respBody); err != nil {
 		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
-	if len(respBody.Choices) == 0 {
+	choices, ok := respBody["choices"].([]any)
+	if !ok || len(choices) == 0 {
 		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	text := strings.TrimSpace(respBody.Choices[0].Message.Content)
+	text := strings.TrimSpace(extractChatCompletionMessageText(respBody))
 	if text == "" {
 		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
+	usagePayload := MapField(respBody, "usage")
+	promptTokens := ValueAsInt64(MapField(usagePayload, "prompt_tokens"))
+	completionTokens := ValueAsInt64(MapField(usagePayload, "completion_tokens"))
+	totalTokens := ValueAsInt64(MapField(usagePayload, "total_tokens"))
+	if completionTokens == 0 && totalTokens > promptTokens {
+		completionTokens = totalTokens - promptTokens
+	}
 	usage := &runtimev1.UsageStats{
-		InputTokens:  MaxInt64(0, respBody.Usage.PromptTokens),
-		OutputTokens: MaxInt64(0, respBody.Usage.CompletionTokens),
+		InputTokens:  MaxInt64(0, promptTokens),
+		OutputTokens: MaxInt64(0, completionTokens),
 		ComputeMs:    0,
 	}
 	if usage.GetInputTokens() == 0 && usage.GetOutputTokens() == 0 {
 		usage = EstimateUsage(ComposeInputText(systemPrompt, input), text)
 	}
-	return text, usage, MapOpenAIFinishReason(respBody.Choices[0].FinishReason), nil
+	finish := runtimev1.FinishReason_FINISH_REASON_STOP
+	if rawFinish := extractChatCompletionFinishReason(respBody); rawFinish != "" {
+		finish = MapOpenAIFinishReason(rawFinish)
+	}
+	return text, usage, finish, nil
+}
+
+func extractChatCompletionFinishReason(payload map[string]any) string {
+	choices, ok := payload["choices"].([]any)
+	if !ok || len(choices) == 0 {
+		return ""
+	}
+	firstChoice, ok := choices[0].(map[string]any)
+	if !ok {
+		return ""
+	}
+	return strings.TrimSpace(ValueAsString(firstChoice["finish_reason"]))
 }
 
 // StreamGenerateText sends a streaming chat completion request.

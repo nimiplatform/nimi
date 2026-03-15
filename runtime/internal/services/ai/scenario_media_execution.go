@@ -269,7 +269,7 @@ func validateConnectorTTSModelSupport(
 		return err
 	}
 
-	matchedModelID, ok := findProbeModelID(models, resolvedModelID)
+	matchedModelID, ok := resolveConnectorTTSModelID(models, resolvedModelID, remoteTarget.ProviderType, voiceCatalog)
 	if !ok {
 		providerMessage := fmt.Sprintf("connector model %q not listed by provider", strings.TrimSpace(resolvedModelID))
 		return grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, grpcerr.ReasonOptions{

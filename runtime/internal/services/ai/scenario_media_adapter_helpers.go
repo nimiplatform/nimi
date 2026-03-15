@@ -9,6 +9,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
+	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
@@ -218,6 +219,25 @@ func findProbeModelID(models []nimillm.ProbeModel, targetModelID string) (string
 		if modelIDBase(id) == targetBase {
 			return id, true
 		}
+	}
+	return "", false
+}
+
+func resolveConnectorTTSModelID(
+	models []nimillm.ProbeModel,
+	targetModelID string,
+	providerType string,
+	voiceCatalog *catalog.Resolver,
+) (string, bool) {
+	if resolved, ok := findProbeModelID(models, targetModelID); ok {
+		return resolved, true
+	}
+	target := strings.TrimSpace(targetModelID)
+	if target == "" || voiceCatalog == nil {
+		return "", false
+	}
+	if _, _, _, err := resolveSpeechVoicesForModelWithProviderType(target, strings.TrimSpace(providerType), voiceCatalog); err == nil {
+		return target, true
 	}
 	return "", false
 }

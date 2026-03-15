@@ -316,7 +316,26 @@ function buildLocalRouteMetadataFallback(error: unknown, capability: RuntimeCano
         goRuntimeModels: [],
     };
 }
-function buildSelectedBinding(input: {
+function firstAvailableBinding(localModels: RuntimeRouteLocalOption[], connectors: RuntimeRouteConnectorOption[]): RuntimeRouteBinding | null {
+  if (localModels.length > 0) {
+    return toLocalBinding(localModels[0]!);
+  }
+  for (const connector of connectors) {
+    const model = String(connector.models[0] || '').trim();
+    if (!model) {
+      continue;
+    }
+    return {
+      source: 'cloud',
+      connectorId: connector.id,
+      model,
+      provider: String(connector.provider || '').trim() || undefined,
+    };
+  }
+  return null;
+}
+
+export function buildSelectedBinding(input: {
     capability: RuntimeCanonicalCapability;
     runtimeFields: RuntimeFields;
     localModels: RuntimeRouteLocalOption[];
@@ -340,7 +359,11 @@ function buildSelectedBinding(input: {
         if (localModels.length > 0) {
             return toLocalBinding(localModels[0]!);
         }
-        return preferredBinding;
+        return firstAvailableBinding(localModels, connectors) || {
+            ...preferredBinding,
+            model: '',
+            modelId: undefined,
+        };
     }
     const preferredBinding: RuntimeRouteBinding = {
         source: 'cloud',
@@ -361,7 +384,7 @@ function buildSelectedBinding(input: {
     if (matchedBinding) {
         return matchedBinding;
     }
-    return availableBindings[0] || mergeCloudBindingProvider(preferredBinding, connectors);
+    return firstAvailableBinding(localModels, connectors) || mergeCloudBindingProvider(preferredBinding, connectors);
 }
 export async function loadRuntimeRouteOptions(input: {
     capability: RuntimeCanonicalCapability;

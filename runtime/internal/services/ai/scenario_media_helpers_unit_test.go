@@ -7,6 +7,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/codes"
@@ -291,6 +292,16 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	}
 	if resolved, ok := findProbeModelID(models, "gpt-4o-mini"); !ok || resolved != "gpt-4o-mini@latest" {
 		t.Fatalf("findProbeModelID base fallback mismatch: ok=%v resolved=%q", ok, resolved)
+	}
+	voiceCatalog, err := catalog.NewResolver(catalog.ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+	if resolved, ok := resolveConnectorTTSModelID(models, "qwen-tts", "dashscope", voiceCatalog); !ok || resolved != "qwen-tts" {
+		t.Fatalf("resolveConnectorTTSModelID catalog fallback mismatch: ok=%v resolved=%q", ok, resolved)
+	}
+	if resolved, ok := resolveConnectorTTSModelID(models, "qwen-tts-missing", "dashscope", voiceCatalog); ok || resolved != "" {
+		t.Fatalf("resolveConnectorTTSModelID should reject missing catalog model: ok=%v resolved=%q", ok, resolved)
 	}
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{

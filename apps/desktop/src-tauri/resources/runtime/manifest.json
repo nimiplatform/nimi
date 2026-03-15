@@ -1,9 +1,9 @@
 {
   "version": "0.1.0",
-  "platform": "generated",
-  "archivePath": "runtime/generated/nimi-runtime.zip",
+  "platform": "darwin-arm64",
+  "archivePath": "runtime/darwin-arm64/nimi-runtime.zip",
   "binaryPath": "bin/nimi",
-  "sha256": "generated-at-build",
-  "builtAt": "1970-01-01T00:00:00.000Z",
-  "commit": "dev"
+  "sha256": "076252ffc5a097d660c7d133232e2054049d9ca2d89cd8e9309942fbefbe9309",
+  "builtAt": "2026-03-15T07:44:24.590Z",
+  "commit": "4467509cfdb2689b5f8391e038f7d255a02baac0"
 }

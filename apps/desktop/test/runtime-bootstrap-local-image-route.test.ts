@@ -5,6 +5,7 @@ import {
   hydrateLocalRouteBindingFromOptions,
 } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities-routing.js';
 import {
+  buildSelectedBinding,
   pickPreferredGoRuntimeModel,
 } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-options';
 
@@ -118,4 +119,33 @@ test('hydrateLocalRouteBindingFromOptions clears stale removed go-runtime metada
 
   assert.equal(hydrated.goRuntimeLocalModelId, undefined);
   assert.equal(hydrated.goRuntimeStatus, undefined);
+});
+
+test('buildSelectedBinding falls back to cloud embedding connector when no local embedding model exists', () => {
+  const selected = buildSelectedBinding({
+    capability: 'text.embed',
+    runtimeFields: {
+      provider: 'localai',
+      runtimeModelType: 'chat',
+      localProviderEndpoint: 'http://127.0.0.1:1234/v1',
+      localProviderModel: 'qwen2.5-7b-instruct',
+      localOpenAiEndpoint: 'http://127.0.0.1:1234/v1',
+      connectorId: '',
+    },
+    localModels: [],
+    connectors: [{
+      id: 'openai-main',
+      label: 'OpenAI',
+      provider: 'openai',
+      models: ['text-embedding-3-small'],
+      modelCapabilities: {
+        'text-embedding-3-small': ['text.embed'],
+      },
+      modelProfiles: [],
+    }],
+  });
+
+  assert.equal(selected.source, 'cloud');
+  assert.equal(selected.connectorId, 'openai-main');
+  assert.equal(selected.model, 'text-embedding-3-small');
 });

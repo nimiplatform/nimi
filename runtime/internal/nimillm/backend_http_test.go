@@ -68,3 +68,49 @@ func TestBackendStreamGenerateTextBrokenChunkReturnsReasonCode(t *testing.T) {
 		t.Fatalf("expected AI_STREAM_BROKEN, got %v", reason)
 	}
 }
+
+func TestBackendGenerateTextUsesFlexibleMessageExtraction(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"choices":[{
+				"finish_reason":"stop",
+				"message":{
+					"content":[
+						{"text":"这本书是《三体：地球往事》。"},
+						{"text":"它讲的是背叛、生存与死亡。"}
+					]
+				}
+			}],
+			"usage":{"prompt_tokens":8,"total_tokens":20}
+		}`))
+	}))
+	defer server.Close()
+
+	backend := NewBackend("openai", server.URL, "", 5*time.Second)
+	if backend == nil {
+		t.Fatal("expected backend")
+	}
+
+	text, usage, finish, err := backend.GenerateText(
+		context.Background(),
+		"gpt-4o-mini",
+		[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+		"",
+		0,
+		0,
+		0,
+	)
+	if err != nil {
+		t.Fatalf("unexpected generate error: %v", err)
+	}
+	if finish != runtimev1.FinishReason_FINISH_REASON_STOP {
+		t.Fatalf("unexpected finish reason: %v", finish)
+	}
+	if usage == nil || usage.GetInputTokens() != 8 || usage.GetOutputTokens() != 12 {
+		t.Fatalf("unexpected usage: %+v", usage)
+	}
+	if got, want := text, "这本书是《三体：地球往事》。\n它讲的是背叛、生存与死亡。"; got != want {
+		t.Fatalf("text mismatch: got=%q want=%q", got, want)
+	}
+}
