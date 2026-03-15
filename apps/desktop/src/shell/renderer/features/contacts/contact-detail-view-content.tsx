@@ -24,6 +24,7 @@ import {
 } from './contact-detail-view-controller.js';
 import {
   ContactDetailDesktopStatsActions,
+  ContactDetailSaveActions,
   ContactDetailStatsActionsBlock,
 } from './contact-detail-view-content-shell.js';
 import { ContactDetailTabs } from './contact-detail-view-tabs.js';
@@ -98,7 +99,7 @@ export function ContactDetailViewContent(input: {
     ? t('Profile.agentNoSummary', { defaultValue: 'This contact has no public profile summary yet.' })
     : t('Profile.noDescription', { defaultValue: 'No profile summary has been added yet.' }));
   const showGiftButton = !input.isOwnProfile;
-  const showAddFriendButton = !input.isOwnProfile && !profile.isFriend && Boolean(input.onAddFriend);
+  const showAddFriendButton = !input.isOwnProfile && !profile.isFriend && !profile.isPendingFriendRequest && Boolean(input.onAddFriend);
   const showMessageButton = input.showMessageButton !== false;
 
   useEffect(() => {
@@ -410,6 +411,19 @@ export function ContactDetailViewContent(input: {
                                     />
                                   </div>
                                 </div>
+                              </div>
+                            ) : null}
+                            {isEditing && isWideLayout && input.isOwnProfile ? (
+                              <div className="mt-5">
+                                <ContactDetailSaveActions
+                                  draftDisplayName={draft.displayName}
+                                  isSaving={isSaving}
+                                  isUploadingAvatar={isUploadingAvatar}
+                                  onCancel={cancelEditing}
+                                  onSave={() => { void handleSaveProfile(); }}
+                                  saveError={saveError}
+                                  stacked={false}
+                                />
                               </div>
                             ) : null}
                           </div>
