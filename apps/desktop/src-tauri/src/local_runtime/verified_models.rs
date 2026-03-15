@@ -7,6 +7,13 @@ use super::types::LocalAiVerifiedModelDescriptor;
 const VERIFIED_TEMPLATE_ID_Z_IMAGE_TURBO: &str = "verified.image.z_image_turbo";
 const VERIFIED_TEMPLATE_ID_QWEN3_TTS_VOICEDESIGN: &str = "verified.qwen3-tts-12hz-1.7b-voicedesign";
 
+fn z_image_turbo_hashes() -> HashMap<String, String> {
+    HashMap::from([(
+        "z_image_turbo-Q4_K_M.gguf".to_string(),
+        "sha256:745ec270db042409fde084d6b5cfccabf214a7fe5a494edf994a391125656afd".to_string(),
+    )])
+}
+
 fn z_image_turbo_descriptor() -> LocalAiVerifiedModelDescriptor {
     let files = vec!["z_image_turbo-Q4_K_M.gguf".to_string()];
     LocalAiVerifiedModelDescriptor {
@@ -22,11 +29,11 @@ fn z_image_turbo_descriptor() -> LocalAiVerifiedModelDescriptor {
         engine: "localai".to_string(),
         entry: "z_image_turbo-Q4_K_M.gguf".to_string(),
         files: files.clone(),
-        license: "tongyi".to_string(),
-        hashes: HashMap::new(),
+        license: "apache-2.0".to_string(),
+        hashes: z_image_turbo_hashes(),
         endpoint: "http://127.0.0.1:1234/v1".to_string(),
         file_count: files.len(),
-        total_size_bytes: Some(0),
+        total_size_bytes: Some(4_981_532_736),
         tags: vec![
             "image".to_string(),
             "verified".to_string(),

@@ -360,13 +360,20 @@ export function buildSelectedBinding(input: {
         if (localModels.length > 0) {
             return toLocalBinding(localModels[0]!);
         }
+        if (input.capability === 'text.embed') {
+            return firstAvailableBinding(localModels, connectors) || {
+                ...preferredBinding,
+                model: '',
+                modelId: undefined,
+            };
+        }
         if (localMetadataDegraded) {
             return preferredBinding;
         }
-        return firstAvailableBinding(localModels, connectors) || {
+        return {
             ...preferredBinding,
-            model: '',
-            modelId: undefined,
+            adapter: defaultLocalAdapter(runtimeFields.provider, input.capability),
+            endpoint: String(runtimeFields.localProviderEndpoint || runtimeFields.localOpenAiEndpoint || '').trim() || undefined,
         };
     }
     const preferredBinding: RuntimeRouteBinding = {

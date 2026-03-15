@@ -2,6 +2,7 @@ import type { Realm } from '@nimiplatform/sdk/realm';
 import type { CreateReportDto } from '@nimiplatform/sdk/realm';
 import type { CreatePostDto } from '@nimiplatform/sdk/realm';
 import type { FeedResponseDto } from '@nimiplatform/sdk/realm';
+import type { FinalizeMediaAssetDto } from '@nimiplatform/sdk/realm';
 import type { MediaDirectUploadSessionDto } from '@nimiplatform/sdk/realm';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import type { ReportResponseDto } from '@nimiplatform/sdk/realm';
@@ -100,6 +101,23 @@ export async function createVideoDirectUpload(
     );
   } catch (error) {
     emitDataSyncError('create-video-direct-upload', error);
+    throw error;
+  }
+}
+
+export async function finalizeMediaAsset(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  assetId: string,
+  payload: FinalizeMediaAssetDto,
+): Promise<unknown> {
+  try {
+    return await callApi(
+      (realm) => realm.services.MediaService.finalizeMediaAsset(assetId, payload),
+      '瀹屾垚濯掍綋涓婁紶澶辫触',
+    );
+  } catch (error) {
+    emitDataSyncError('finalize-media-asset', error, { assetId });
     throw error;
   }
 }

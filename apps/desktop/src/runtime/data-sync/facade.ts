@@ -10,6 +10,7 @@ import type {
   CreateReviewDto,
   CreateSparkCheckoutDto,
   CreateWithdrawalDto,
+  FinalizeMediaAssetDto,
   MeTwoFactorPrepareOutput,
   MeTwoFactorVerifyInput,
   NotificationDto,
@@ -320,7 +321,9 @@ export class DataSync {
   createPost(payload: CreatePostDto) { return this.actions.createPost(payload); }
   createImageDirectUpload() { return this.actions.createImageDirectUpload(); }
   createVideoDirectUpload() { return this.actions.createVideoDirectUpload(); }
-  finalizeMediaAsset(assetId: string, body: FinalizeMediaAssetDto): Promise<MediaAssetDetailDto> { return this.actions.finalizeMediaAsset(assetId, body); }
+  finalizeMediaAsset(assetId: string, payload: FinalizeMediaAssetDto): Promise<MediaAssetDetailDto> {
+    return this.actions.finalizeMediaAsset(assetId, payload);
+  }
   deletePost(postId: string) { return this.actions.deletePost(postId); }
   updatePostVisibility(postId: string, visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE') {
     return this.actions.updatePostVisibility(postId, visibility);

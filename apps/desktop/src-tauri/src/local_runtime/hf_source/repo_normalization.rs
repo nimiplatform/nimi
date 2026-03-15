@@ -83,7 +83,7 @@ fn normalize_relative_file_path(value: &str) -> Result<String, String> {
         return Err("LOCAL_AI_INSTALL_FILE_PATH_INVALID: empty file path".to_string());
     }
     let path = Path::new(normalized.as_str());
-    if path.is_absolute() {
+    if path.is_absolute() || path.has_root() {
         return Err(format!(
             "LOCAL_AI_INSTALL_FILE_PATH_INVALID: absolute path is not allowed: {normalized}"
         ));

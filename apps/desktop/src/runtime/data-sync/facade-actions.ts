@@ -3,6 +3,7 @@ import type { DesktopChatRouteResultDto } from '@runtime/chat';
 import type { Realm } from '@nimiplatform/sdk/realm';
 import type { CreatePostDto } from '@nimiplatform/sdk/realm';
 import type { CreateReportDto } from '@nimiplatform/sdk/realm';
+import type { FinalizeMediaAssetDto } from '@nimiplatform/sdk/realm';
 import type { MeTwoFactorPrepareOutput } from '@nimiplatform/sdk/realm';
 import type { MeTwoFactorVerifyInput } from '@nimiplatform/sdk/realm';
 import type { OAuthProvider } from '@nimiplatform/sdk/realm';
@@ -356,8 +357,8 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       createImageDirectUpload(input.callApiTask, input.emitFacadeError),
     createVideoDirectUpload: async () =>
       createVideoDirectUpload(input.callApiTask, input.emitFacadeError),
-    finalizeMediaAsset: async (assetId: string, body: FinalizeMediaAssetDto) =>
-      finalizeMediaAsset(input.callApiTask, input.emitFacadeError, assetId, body),
+    finalizeMediaAsset: async (assetId: string, payload: FinalizeMediaAssetDto) =>
+      finalizeMediaAsset(input.callApiTask, input.emitFacadeError, assetId, payload),
     deletePost: async (postId: string) =>
       deletePost(input.callApiTask, input.emitFacadeError, postId),
     updatePostVisibility: async (
