@@ -1082,7 +1082,7 @@
     "humanBadge": "真人",
     "addContactTitle": "添加联系人",
     "closeAddContactModal": "关闭添加联系人弹窗",
-    "addContactSearchPlaceholder": "通过 handle 或 ID 搜索",
+    "addContactSearchPlaceholder": "通过 handle 搜索",
     "searching": "搜索中",
     "search": "搜索",
     "alreadyInContacts": "已经在你的联系人中。",
@@ -1673,8 +1673,8 @@
     "noSearchResults": "没有匹配的 Mod"
   },
   "AddContact": {
-    "inputRequired": "请输入用户账号或 ID",
-    "legacyPrefixUnsupported": "请直接输入 handle 或 ID，不要带 @ 或 ~。",
+    "inputRequired": "请输入用户账号",
+    "legacyPrefixUnsupported": "请直接输入 handle，不要带 @ 或 ~。",
     "searchFailed": "未找到该用户。",
     "addFailed": "添加该联系人失败。"
   },

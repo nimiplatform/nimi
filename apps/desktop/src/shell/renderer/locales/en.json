@@ -1082,7 +1082,7 @@
     "humanBadge": "Human",
     "addContactTitle": "Add Contact",
     "closeAddContactModal": "Close add contact modal",
-    "addContactSearchPlaceholder": "Search by handle or ID",
+    "addContactSearchPlaceholder": "Search by handle",
     "searching": "Searching",
     "search": "Search",
     "alreadyInContacts": "Already in your contacts.",
@@ -1673,8 +1673,8 @@
     "noSearchResults": "No mods match your search"
   },
   "AddContact": {
-    "inputRequired": "Please input a user handle or ID.",
-    "legacyPrefixUnsupported": "Use a handle or ID without @ or ~.",
+    "inputRequired": "Please input a user handle.",
+    "legacyPrefixUnsupported": "Use a handle without @ or ~.",
     "searchFailed": "Failed to find this user.",
     "addFailed": "Failed to add this contact."
   },

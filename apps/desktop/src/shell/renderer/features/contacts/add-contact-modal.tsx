@@ -27,7 +27,7 @@ function toErrorMessage(
     const next = error.message.trim();
     if (next === 'HANDLE_PREFIX_UNSUPPORTED') {
       return translate('AddContact.legacyPrefixUnsupported', {
-        defaultValue: 'Use a handle or ID without @ or ~.',
+        defaultValue: 'Use a handle without @ or ~.',
       });
     }
     if (next) {
@@ -204,7 +204,7 @@ export function AddContactModal(props: AddContactModalProps) {
                   }
                 }}
                 placeholder={t('Contacts.addContactSearchPlaceholder', {
-                  defaultValue: 'Search by handle or ID',
+                  defaultValue: 'Search by handle',
                 })}
                 className="h-11 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-8 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-300 focus:ring-2 focus:ring-mint-100"
               />
