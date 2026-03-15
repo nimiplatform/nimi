@@ -281,6 +281,79 @@ func TestLocalAISupervisedPlatformSupportedFor(t *testing.T) {
 	}
 }
 
+func TestNimiMediaSupervisedPlatformSupportedFor(t *testing.T) {
+	tests := []struct {
+		goos   string
+		goarch string
+		want   bool
+	}{
+		{goos: "windows", goarch: "amd64", want: true},
+		{goos: "windows", goarch: "arm64", want: false},
+		{goos: "linux", goarch: "amd64", want: false},
+		{goos: "darwin", goarch: "arm64", want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.goos+"-"+tt.goarch, func(t *testing.T) {
+			if got := NimiMediaSupervisedPlatformSupportedFor(tt.goos, tt.goarch); got != tt.want {
+				t.Fatalf("NimiMediaSupervisedPlatformSupportedFor(%q, %q) = %v, want %v", tt.goos, tt.goarch, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClassifyNimiMediaHost(t *testing.T) {
+	tests := []struct {
+		name      string
+		goos      string
+		goarch    string
+		gpuVendor string
+		cudaReady bool
+		want      NimiMediaHostSupport
+	}{
+		{
+			name:      "supported supervised",
+			goos:      "windows",
+			goarch:    "amd64",
+			gpuVendor: "nvidia",
+			cudaReady: true,
+			want:      NimiMediaHostSupportSupportedSupervised,
+		},
+		{
+			name:      "windows non nvidia attached only",
+			goos:      "windows",
+			goarch:    "amd64",
+			gpuVendor: "intel",
+			cudaReady: false,
+			want:      NimiMediaHostSupportAttachedOnly,
+		},
+		{
+			name:      "windows nvidia without cuda attached only",
+			goos:      "windows",
+			goarch:    "amd64",
+			gpuVendor: "nvidia",
+			cudaReady: false,
+			want:      NimiMediaHostSupportAttachedOnly,
+		},
+		{
+			name:      "non windows attached only",
+			goos:      "linux",
+			goarch:    "amd64",
+			gpuVendor: "nvidia",
+			cudaReady: true,
+			want:      NimiMediaHostSupportAttachedOnly,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ClassifyNimiMediaHost(tt.goos, tt.goarch, tt.gpuVendor, tt.cudaReady); got != tt.want {
+				t.Fatalf("ClassifyNimiMediaHost(%q, %q, %q, %t) = %q, want %q", tt.goos, tt.goarch, tt.gpuVendor, tt.cudaReady, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestLocalAIExpectedSHA256(t *testing.T) {
 	const version = "3.12.1"
 	const asset = "local-ai-v3.12.1-darwin-arm64"
