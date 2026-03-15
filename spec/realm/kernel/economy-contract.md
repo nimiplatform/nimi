@@ -18,6 +18,16 @@
 
 `off_world_trade` 事件（subject_to_share: false）记入平台运营账本（ops_spark_gem_ledger），不进入 Creator 分成池。此类事件仍须携带 callerKind + callerId + principalId 审计字段（R-ECON-040），以满足对账与审计要求。
 
+## R-ECON-011 — 礼物结算语义
+
+`MUST`: `sendGift` 必须引用 gift catalog 中的有效礼物项，发送方按礼物目录的 `sparkCost` 支付 Spark。
+
+`MUST`: `sendGift` 创建的是 gift transaction，不得被实现为直接向接收方账户充值 Gem。
+
+`MUST`: 接收方 Gem 入账发生在 `claimGift` 后；若接收方为 agent，则继续沿用既有 `gemToReceiver` / `gemToCreator` 语义完成分配。
+
+`MUST`: `rejectGift` / `refund` 等后续状态流转继续围绕 gift transaction 执行，不得跳过交易态直接修改 Gem 余额。
+
 ## R-ECON-020 — 分成计划（Share Plan）
 
 Share Plan 字段与校验规则详见 `tables/share-plan-fields.yaml`。

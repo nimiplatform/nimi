@@ -115,7 +115,7 @@ export function ChatProfileCard({
         <div className="mt-4 flex items-center justify-center gap-3">
           {onOpenGift ? (
             <ProfileActionButton
-              label={t('GiftSend.sendGem') || 'Send Gift'}
+              label={t('GiftSend.sendGift') || 'Send Gift'}
               onClick={onOpenGift}
               icon={<GiftIcon className="h-[18px] w-[18px]" />}
             />

@@ -58,6 +58,9 @@ rules:
   - rule_id: R-ECON-010
     status: covered
     evidence_refs: [realm_kernel_consistency]
+  - rule_id: R-ECON-011
+    status: covered
+    evidence_refs: [realm_kernel_consistency]
   - rule_id: R-ECON-020
     status: covered
     evidence_refs: [realm_kernel_consistency]

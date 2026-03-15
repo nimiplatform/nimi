@@ -25,6 +25,7 @@
 | `R-ASSET-020` | `covered` | `realm_kernel_consistency` |
 | `R-ECON-001` | `covered` | `realm_kernel_consistency` |
 | `R-ECON-010` | `covered` | `realm_kernel_consistency` |
+| `R-ECON-011` | `covered` | `realm_kernel_consistency` |
 | `R-ECON-020` | `covered` | `realm_kernel_consistency` |
 | `R-ECON-021` | `covered` | `realm_kernel_consistency` |
 | `R-ECON-022` | `covered` | `realm_kernel_consistency` |

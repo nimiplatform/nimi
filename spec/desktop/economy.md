@@ -38,6 +38,7 @@
 ### 礼物
 
 - 礼物目录：`loadGiftCatalog` 加载可用礼物列表。
+- 非规范语义摘要：发送方按礼物目录 `sparkCost` 支付 Spark，接收方在 `claimGift` 后获得 Gem；权威规则见 `spec/realm/kernel/economy-contract.md` `R-ECON-011`。
 - 发送礼物：`sendGift` 通过 `send-gift-modal.tsx` 弹窗完成。
 - 接收礼物：`claimGift` 领取 / `rejectGift` 拒绝。
 - 礼物评价：`createGiftReview` 对已收礼物进行评价。
