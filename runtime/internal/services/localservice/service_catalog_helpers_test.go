@@ -45,3 +45,18 @@ func TestBuildNodeProviderHintsNimiMediaDoesNotSynthesizeCatalogMetadata(t *test
 		t.Fatalf("extra device should not be synthesized")
 	}
 }
+
+func TestAdapterForProviderCapabilityHardCutsUnsupportedNexaMedia(t *testing.T) {
+	if got := adapterForProviderCapability("nexa", "image"); got != "openai_compat_adapter" {
+		t.Fatalf("nexa image adapter mismatch: %s", got)
+	}
+	if got := adapterForProviderCapability("nexa", "video"); got != "openai_compat_adapter" {
+		t.Fatalf("nexa video adapter mismatch: %s", got)
+	}
+	if got := adapterForProviderCapability("nexa", "tts"); got != "nexa_native_adapter" {
+		t.Fatalf("nexa tts adapter mismatch: %s", got)
+	}
+	if got := adapterForProviderCapability("nexa", "chat"); got != "nexa_native_adapter" {
+		t.Fatalf("nexa chat adapter mismatch: %s", got)
+	}
+}

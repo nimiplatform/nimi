@@ -1536,7 +1536,7 @@ func TestLocalNodeCatalogNexaVideoFailClose(t *testing.T) {
 		ServiceId:    "svc-nexa",
 		Title:        "Nexa Service",
 		Engine:       "nexa",
-		Capabilities: []string{"video", "chat"},
+		Capabilities: []string{"image", "video", "chat"},
 		LocalModelId: modelResp.GetModel().GetLocalModelId(),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
@@ -1553,10 +1553,11 @@ func TestLocalNodeCatalogNexaVideoFailClose(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list node catalog: %v", err)
 	}
-	if len(nodesResp.GetNodes()) != 2 {
-		t.Fatalf("node count mismatch: got=%d want=2", len(nodesResp.GetNodes()))
+	if len(nodesResp.GetNodes()) != 3 {
+		t.Fatalf("node count mismatch: got=%d want=3", len(nodesResp.GetNodes()))
 	}
 
+	var imageNode *runtimev1.LocalNodeDescriptor
 	var videoNode *runtimev1.LocalNodeDescriptor
 	var chatNode *runtimev1.LocalNodeDescriptor
 	for _, item := range nodesResp.GetNodes() {
@@ -1564,16 +1565,40 @@ func TestLocalNodeCatalogNexaVideoFailClose(t *testing.T) {
 			continue
 		}
 		switch item.GetCapabilities()[0] {
+		case "image":
+			imageNode = item
 		case "video":
 			videoNode = item
 		case "chat":
 			chatNode = item
 		}
 	}
-	if videoNode == nil || chatNode == nil {
-		t.Fatalf("expected both video/chat nodes in catalog")
+	if imageNode == nil || videoNode == nil || chatNode == nil {
+		t.Fatalf("expected image/video/chat nodes in catalog")
 	}
-	if videoNode.GetAdapter() != "nexa_native_adapter" {
+	if imageNode.GetAdapter() != "openai_compat_adapter" {
+		t.Fatalf("image adapter mismatch: %s", imageNode.GetAdapter())
+	}
+	if imageNode.GetAvailable() {
+		t.Fatalf("nexa image node must be fail-close unavailable")
+	}
+	if imageNode.GetReasonCode() != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String() {
+		t.Fatalf("nexa image reason code mismatch: %s", imageNode.GetReasonCode())
+	}
+	if imageNode.GetPolicyGate() != "nexa.image.unsupported" {
+		t.Fatalf("nexa image policy gate mismatch: %s", imageNode.GetPolicyGate())
+	}
+	if imageNode.GetProviderHints() == nil || imageNode.GetProviderHints().GetNexa() == nil {
+		t.Fatalf("nexa image node should include provider hints")
+	}
+	imageHints := imageNode.GetProviderHints().GetNexa()
+	if imageHints.GetPreferredAdapter() != "openai_compat_adapter" {
+		t.Fatalf("nexa image preferred adapter mismatch: %s", imageHints.GetPreferredAdapter())
+	}
+	if imageHints.GetPolicyGate() != imageNode.GetPolicyGate() {
+		t.Fatalf("nexa image policy gate mismatch: node=%s hints=%s", imageNode.GetPolicyGate(), imageHints.GetPolicyGate())
+	}
+	if videoNode.GetAdapter() != "openai_compat_adapter" {
 		t.Fatalf("video adapter mismatch: %s", videoNode.GetAdapter())
 	}
 	if videoNode.GetAvailable() {
@@ -1589,7 +1614,7 @@ func TestLocalNodeCatalogNexaVideoFailClose(t *testing.T) {
 		t.Fatalf("nexa video node should include provider hints")
 	}
 	videoHints := videoNode.GetProviderHints().GetNexa()
-	if videoHints.GetPreferredAdapter() != "nexa_native_adapter" {
+	if videoHints.GetPreferredAdapter() != "openai_compat_adapter" {
 		t.Fatalf("nexa video preferred adapter mismatch: %s", videoHints.GetPreferredAdapter())
 	}
 	if videoHints.GetPolicyGate() != videoNode.GetPolicyGate() {

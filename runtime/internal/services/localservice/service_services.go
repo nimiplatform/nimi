@@ -9,6 +9,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
@@ -459,10 +460,10 @@ func (s *Service) ListNodeCatalog(ctx context.Context, req *runtimev1.ListNodeCa
 			reasonCode := ""
 			policyGate := ""
 			availabilityDetail := ""
-			if provider == "nexa" && strings.EqualFold(strings.TrimSpace(capability), "video") {
+			if localrouting.IsKnownProvider(provider) && isKnownLocalCapability(capability) && !localrouting.ProviderSupportsCapability(provider, capability) {
 				available = false
 				reasonCode = runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String()
-				policyGate = "nexa.video.unsupported"
+				policyGate = unsupportedProviderCapabilityPolicyGate(provider, capability)
 			}
 			if available && (provider == "nexa" || provider == "nimi_media") && capabilityRequiresNodeProbe(provider, capability) {
 				model := models[strings.TrimSpace(service.GetLocalModelId())]
@@ -535,6 +536,35 @@ func (s *Service) ListNodeCatalog(ctx context.Context, req *runtimev1.ListNodeCa
 		Nodes:         nodes[start:end],
 		NextPageToken: next,
 	}, nil
+}
+
+func unsupportedProviderCapabilityPolicyGate(provider string, capability string) string {
+	normalizedProvider := strings.ToLower(strings.TrimSpace(provider))
+	switch localrouting.NormalizeCapability(capability) {
+	case "image.generate":
+		return normalizedProvider + ".image.unsupported"
+	case "video.generate":
+		return normalizedProvider + ".video.unsupported"
+	case "text.embed":
+		return normalizedProvider + ".embed.unsupported"
+	case "audio.synthesize":
+		return normalizedProvider + ".tts.unsupported"
+	case "audio.transcribe":
+		return normalizedProvider + ".stt.unsupported"
+	case "music.generate":
+		return normalizedProvider + ".music.unsupported"
+	default:
+		return normalizedProvider + ".text.unsupported"
+	}
+}
+
+func isKnownLocalCapability(capability string) bool {
+	switch localrouting.NormalizeCapability(capability) {
+	case "text.generate", "text.embed", "image.generate", "video.generate", "audio.synthesize", "audio.transcribe", "music.generate":
+		return true
+	default:
+		return false
+	}
 }
 
 func capabilityRequiresNodeProbe(provider string, capability string) bool {

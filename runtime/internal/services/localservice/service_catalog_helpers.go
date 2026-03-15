@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -46,29 +47,34 @@ func matchesCatalogSearch(item *runtimev1.LocalCatalogModelDescriptor, query str
 
 func adapterForProviderCapability(provider string, capability string) string {
 	normalizedProvider := strings.ToLower(strings.TrimSpace(provider))
-	normalizedCapability := strings.ToLower(strings.TrimSpace(capability))
+	normalizedCapability := localrouting.NormalizeCapability(capability)
 	switch normalizedProvider {
 	case "sidecar":
 		switch normalizedCapability {
-		case "music", "music.generate":
+		case "music.generate":
 			return "sidecar_music_adapter"
 		default:
 			return "openai_compat_adapter"
 		}
 	case "nexa":
-		return "nexa_native_adapter"
+		switch normalizedCapability {
+		case "text.generate", "text.embed", "audio.synthesize", "audio.transcribe":
+			return "nexa_native_adapter"
+		default:
+			return "openai_compat_adapter"
+		}
 	case "nimi_media":
 		switch normalizedCapability {
-		case "image", "video":
+		case "image.generate", "video.generate":
 			return "nimi_media_native_adapter"
 		default:
 			return "openai_compat_adapter"
 		}
 	case "localai":
 		switch normalizedCapability {
-		case "music", "music.generate":
+		case "music.generate":
 			return "localai_music_adapter"
-		case "image", "video", "tts", "speech", "stt", "transcription", "vision", "multimodal", "audio_chat", "video_chat", "text.generate.vision", "text.generate.audio", "text.generate.video":
+		case "image.generate", "video.generate", "audio.synthesize", "audio.transcribe", "vision", "multimodal", "audio_chat", "video_chat", "text.generate.vision", "text.generate.audio", "text.generate.video":
 			return "localai_native_adapter"
 		default:
 			return "openai_compat_adapter"
