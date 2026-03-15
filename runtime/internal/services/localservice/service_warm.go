@@ -43,7 +43,7 @@ func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalMo
 	defer cancel()
 
 	endpoint := s.effectiveLocalModelEndpoint(model)
-	if err := s.bootstrapEngineIfManaged(requestCtx, model.GetEngine(), endpoint); err != nil {
+	if err := s.bootstrapEngineIfManaged(requestCtx, model.GetEngine(), s.modelRuntimeMode(model.GetLocalModelId()), endpoint); err != nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
 			Message:    strings.TrimSpace(err.Error()),
 			ActionHint: "check_local_runtime_engine",
@@ -174,8 +174,8 @@ func warmLocalModelTimeout(timeoutMS int32) time.Duration {
 }
 
 func shouldRetryWarmProbe(engine string, endpoint string) bool {
-	_, shouldManage, err := parseManagedEndpointPort(engine, endpoint)
-	return err == nil && shouldManage
+	_, err := parseManagedEndpointPort(engine, endpoint)
+	return err == nil
 }
 
 func (s *Service) waitForWarmProbe(

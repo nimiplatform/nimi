@@ -55,6 +55,19 @@ func TestDefaultNexaConfig(t *testing.T) {
 	}
 }
 
+func TestDefaultNimiMediaConfig(t *testing.T) {
+	cfg := DefaultNimiMediaConfig()
+	if cfg.Kind != EngineNimiMedia {
+		t.Errorf("expected kind %s, got %s", EngineNimiMedia, cfg.Kind)
+	}
+	if cfg.HealthPath != "/healthz" {
+		t.Errorf("expected health path /healthz, got %s", cfg.HealthPath)
+	}
+	if cfg.HealthResponse != "\"ready\": true" {
+		t.Errorf("expected readiness response matcher, got %s", cfg.HealthResponse)
+	}
+}
+
 func TestEngineConfigEndpoint(t *testing.T) {
 	cfg := EngineConfig{Port: 5678}
 	if got := cfg.Endpoint(); got != "http://127.0.0.1:5678" {
@@ -482,6 +495,46 @@ func TestProbeHealthUnreachable(t *testing.T) {
 	}
 }
 
+func TestProbeNimiMediaHealthSuccess(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"ready":true}`))
+		case "/v1/catalog":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"models":[{"id":"flux.1-schnell","ready":true}]}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	if err := ProbeNimiMediaHealth(context.Background(), server.URL); err != nil {
+		t.Fatalf("expected nimi_media healthy, got %v", err)
+	}
+}
+
+func TestProbeNimiMediaHealthRequiresCatalog(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"ready":true}`))
+		case "/v1/catalog":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"models":[]}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	if err := ProbeNimiMediaHealth(context.Background(), server.URL); err == nil {
+		t.Fatal("expected nimi_media health probe to fail without ready catalog models")
+	}
+}
+
 func TestProbeSupervisorHealthTCP(t *testing.T) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -548,6 +601,32 @@ func TestWaitHealthyCancelled(t *testing.T) {
 	err := WaitHealthy(ctx, server.URL, "/readyz", "", 50*time.Millisecond, 5*time.Second)
 	if err == nil {
 		t.Error("expected cancel error, got nil")
+	}
+}
+
+func TestWaitNimiMediaHealthySuccess(t *testing.T) {
+	callCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			callCount++
+			if callCount < 2 {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"ready":true}`))
+		case "/v1/catalog":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"models":[{"id":"flux.1-schnell","ready":true}]}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	if err := WaitNimiMediaHealthy(context.Background(), server.URL, 50*time.Millisecond, 5*time.Second); err != nil {
+		t.Fatalf("expected nimi_media healthy after retries, got %v", err)
 	}
 }
 

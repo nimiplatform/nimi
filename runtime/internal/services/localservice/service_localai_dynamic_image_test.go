@@ -42,18 +42,15 @@ func TestResolveLocalAIImageProfileInjectsDynamicComponents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build engine config: %v", err)
 	}
-	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "z_image_turbo",
 		Capabilities: []string{"image"},
 		Engine:       "localai",
 		Entry:        "z_image_turbo-Q4_K_M.gguf",
 		EngineConfig: engineConfig,
 	})
-	if err != nil {
-		t.Fatalf("install local image model: %v", err)
-	}
 	svc.mu.Lock()
-	svc.models[modelResp.GetModel().GetLocalModelId()].Status = runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE
+	svc.models[modelResp.GetLocalModelId()].Status = runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE
 	svc.mu.Unlock()
 
 	vaePath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_ae"), "vae", "diffusion_pytorch_model.safetensors")
@@ -161,18 +158,15 @@ func TestResolveLocalAIImageProfileRejectsPathOverrides(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build engine config: %v", err)
 	}
-	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "z_image_turbo",
 		Capabilities: []string{"image"},
 		Engine:       "localai",
 		Entry:        "z_image_turbo-Q4_K_M.gguf",
 		EngineConfig: engineConfig,
 	})
-	if err != nil {
-		t.Fatalf("install local image model: %v", err)
-	}
 	svc.mu.Lock()
-	svc.models[modelResp.GetModel().GetLocalModelId()].Status = runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE
+	svc.models[modelResp.GetLocalModelId()].Status = runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE
 	svc.mu.Unlock()
 
 	_, _, _, err = svc.ResolveLocalAIImageProfile(context.Background(), "localai/z_image_turbo", map[string]any{
@@ -206,18 +200,15 @@ func TestResolveLocalAIImageProfileRejectsMissingComponents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build engine config: %v", err)
 	}
-	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "z_image_turbo",
 		Capabilities: []string{"image"},
 		Engine:       "localai",
 		Entry:        "z_image_turbo-Q4_K_M.gguf",
 		EngineConfig: engineConfig,
 	})
-	if err != nil {
-		t.Fatalf("install local image model: %v", err)
-	}
 	svc.mu.Lock()
-	svc.models[modelResp.GetModel().GetLocalModelId()].Status = runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE
+	svc.models[modelResp.GetLocalModelId()].Status = runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE
 	svc.mu.Unlock()
 
 	_, _, _, err = svc.ResolveLocalAIImageProfile(context.Background(), "localai/z_image_turbo", map[string]any{

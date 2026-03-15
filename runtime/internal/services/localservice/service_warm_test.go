@@ -77,17 +77,14 @@ func TestWarmLocalModelLoadsOnceAndCachesReadyState(t *testing.T) {
 
 func TestWarmLocalModelRejectsUnsupportedCapability(t *testing.T) {
 	svc := newTestService(t)
-	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/image-only",
 		Capabilities: []string{"image"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
 
-	_, err = svc.WarmLocalModel(context.Background(), &runtimev1.WarmLocalModelRequest{
-		LocalModelId: installed.GetModel().GetLocalModelId(),
+	_, err := svc.WarmLocalModel(context.Background(), &runtimev1.WarmLocalModelRequest{
+		LocalModelId: installed.GetLocalModelId(),
 	})
 	if err == nil {
 		t.Fatalf("expected warm to reject non-chat model")

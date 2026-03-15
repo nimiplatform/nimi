@@ -54,8 +54,10 @@ type Service struct {
 
 	mu                   sync.RWMutex
 	models               map[string]*runtimev1.LocalModelRecord
+	modelRuntimeModes    map[string]runtimev1.LocalEngineRuntimeMode
 	artifacts            map[string]*runtimev1.LocalArtifactRecord
 	services             map[string]*runtimev1.LocalServiceDescriptor
+	serviceRuntimeModes  map[string]runtimev1.LocalEngineRuntimeMode
 	audits               []*runtimev1.LocalAuditEvent
 	verified             []*runtimev1.LocalVerifiedModelDescriptor
 	verifiedArtifacts    []*runtimev1.LocalVerifiedArtifactDescriptor
@@ -90,8 +92,10 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		localModelsPath:         resolveLocalModelsPath(""),
 		localAIModelsConfigPath: resolveGeneratedLocalAIModelsConfigPath(""),
 		models:                  make(map[string]*runtimev1.LocalModelRecord),
+		modelRuntimeModes:       make(map[string]runtimev1.LocalEngineRuntimeMode),
 		artifacts:               make(map[string]*runtimev1.LocalArtifactRecord),
 		services:                make(map[string]*runtimev1.LocalServiceDescriptor),
+		serviceRuntimeModes:     make(map[string]runtimev1.LocalEngineRuntimeMode),
 		audits:                  make([]*runtimev1.LocalAuditEvent, 0, localAuditCapacity),
 		verified:                verified,
 		verifiedArtifacts:       verifiedArtifacts,

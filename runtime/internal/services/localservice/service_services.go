@@ -14,14 +14,11 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func resolveServiceInstallEndpoint(engine string, requestEndpoint string, modelEndpoint string) string {
+func resolveServiceInstallEndpoint(requestEndpoint string, modelEndpoint string) string {
 	if endpoint := strings.TrimSpace(requestEndpoint); endpoint != "" {
 		return endpoint
 	}
-	if engineRequiresExplicitEndpoint(engine) {
-		return strings.TrimSpace(modelEndpoint)
-	}
-	return defaultServiceEndpoint
+	return strings.TrimSpace(modelEndpoint)
 }
 
 func (s *Service) ListLocalServices(_ context.Context, req *runtimev1.ListLocalServicesRequest) (*runtimev1.ListLocalServicesResponse, error) {
@@ -75,6 +72,7 @@ func (s *Service) InstallLocalService(_ context.Context, req *runtimev1.InstallL
 	if model == nil || model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
+	modelMode := normalizeRuntimeMode(s.modelRuntimeModes[localModelID])
 
 	engine := defaultString(strings.TrimSpace(req.GetEngine()), model.GetEngine())
 	if !strings.EqualFold(engine, model.GetEngine()) {
@@ -107,13 +105,21 @@ func (s *Service) InstallLocalService(_ context.Context, req *runtimev1.InstallL
 	if len(capabilities) == 0 {
 		capabilities = []string{"chat"}
 	}
+	serviceMode := modelMode
+	if strings.TrimSpace(req.GetEndpoint()) != "" {
+		serviceMode = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
+	}
+	endpoint := resolveServiceInstallEndpoint(strings.TrimSpace(req.GetEndpoint()), strings.TrimSpace(model.GetEndpoint()))
+	if normalizeRuntimeMode(serviceMode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT && strings.TrimSpace(endpoint) == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
+	}
 
 	service := &runtimev1.LocalServiceDescriptor{
 		ServiceId:    serviceID,
 		Title:        defaultString(strings.TrimSpace(req.GetTitle()), serviceID),
 		Engine:       engine,
 		ArtifactType: "binary",
-		Endpoint:     resolveServiceInstallEndpoint(engine, strings.TrimSpace(req.GetEndpoint()), strings.TrimSpace(model.GetEndpoint())),
+		Endpoint:     storedEndpointForRuntimeMode(serviceMode, endpoint, s.managedEndpointForEngineLocked(engine)),
 		Capabilities: capabilities,
 		LocalModelId: localModelID,
 		Status:       runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED,
@@ -121,6 +127,7 @@ func (s *Service) InstallLocalService(_ context.Context, req *runtimev1.InstallL
 		UpdatedAt:    now,
 	}
 	s.services[service.GetServiceId()] = cloneServiceDescriptor(service)
+	s.setServiceRuntimeModeLocked(service.GetServiceId(), serviceMode)
 	s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
 		Id:         "audit_" + ulid.Make().String(),
 		EventType:  "service_install_completed",
@@ -168,8 +175,9 @@ func (s *Service) StartLocalService(ctx context.Context, req *runtimev1.StartLoc
 		current = activated
 	}
 
-	bootstrapErr := s.bootstrapEngineIfManaged(ctx, current.GetEngine(), serviceProbeEndpoint(current))
-	probe := s.probeEndpoint(ctx, current.GetEngine(), serviceProbeEndpoint(current))
+	probeEndpoint := s.serviceProbeEndpoint(current)
+	bootstrapErr := s.bootstrapEngineIfManaged(ctx, current.GetEngine(), s.serviceRuntimeMode(current.GetServiceId()), probeEndpoint)
+	probe := s.probeEndpoint(ctx, current.GetEngine(), probeEndpoint)
 	if probe.healthy {
 		s.resetServiceRecovery(serviceID)
 		latest := s.serviceByID(serviceID)
@@ -258,8 +266,9 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 		serviceID := strings.TrimSpace(service.GetServiceId())
 		switch service.GetStatus() {
 		case runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE:
-			bootstrapErr := s.bootstrapEngineIfManaged(ctx, service.GetEngine(), serviceProbeEndpoint(service))
-			probe := s.probeEndpoint(ctx, service.GetEngine(), serviceProbeEndpoint(service))
+			probeEndpoint := s.serviceProbeEndpoint(service)
+			bootstrapErr := s.bootstrapEngineIfManaged(ctx, service.GetEngine(), s.serviceRuntimeMode(serviceID), probeEndpoint)
+			probe := s.probeEndpoint(ctx, service.GetEngine(), probeEndpoint)
 			if probe.healthy {
 				s.resetServiceRecovery(serviceID)
 				healthRows = append(healthRows, service)
@@ -280,8 +289,9 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 			}
 			healthRows = append(healthRows, transitioned)
 		case runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY:
-			bootstrapErr := s.bootstrapEngineIfManaged(ctx, service.GetEngine(), serviceProbeEndpoint(service))
-			probe := s.probeEndpoint(ctx, service.GetEngine(), serviceProbeEndpoint(service))
+			probeEndpoint := s.serviceProbeEndpoint(service)
+			bootstrapErr := s.bootstrapEngineIfManaged(ctx, service.GetEngine(), s.serviceRuntimeMode(serviceID), probeEndpoint)
+			probe := s.probeEndpoint(ctx, service.GetEngine(), probeEndpoint)
 			if probe.healthy {
 				successes := s.serviceRecoverySuccess(serviceID, time.Now().UTC())
 				if successes >= localRecoverySuccessThreshold {
@@ -456,8 +466,8 @@ func (s *Service) ListNodeCatalog(ctx context.Context, req *runtimev1.ListNodeCa
 			}
 			if available && (provider == "nexa" || provider == "nimi_media") && capabilityRequiresNodeProbe(provider, capability) {
 				model := models[strings.TrimSpace(service.GetLocalModelId())]
-				probe := endpointProbeResult{}
-				endpoint := serviceProbeEndpoint(service)
+				var probe endpointProbeResult
+				endpoint := s.serviceProbeEndpoint(service)
 				if model != nil {
 					endpoint = s.effectiveLocalModelEndpoint(model)
 				}

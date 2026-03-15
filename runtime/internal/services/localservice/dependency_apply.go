@@ -99,13 +99,37 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 		switch dep.GetKind() {
 		case runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_MODEL:
 			modelID := defaultString(dep.GetModelId(), "local/default")
-			installed, err := s.InstallLocalModel(ctx, &runtimev1.InstallLocalModelRequest{
-				ModelId:      modelID,
-				Repo:         dep.GetRepo(),
-				Capabilities: normalizeStringSlice([]string{dep.GetCapability()}),
-				Engine:       defaultLocalEngine(dep.GetEngine(), []string{dep.GetCapability()}),
-			})
-			if err != nil || installed.GetModel() == nil {
+			capabilities := normalizeStringSlice([]string{dep.GetCapability()})
+			engine := defaultLocalEngine(dep.GetEngine(), capabilities)
+			binding := resolveInstallRuntimeBinding(engine, "", cloneDeviceProfile(plan.GetDeviceProfile()))
+			if normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT && strings.TrimSpace(binding.endpoint) == "" {
+				result.StageResults = append(result.StageResults, &runtimev1.LocalExecutionStageResult{
+					Stage:      applyStageInstall,
+					Ok:         false,
+					ReasonCode: runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String(),
+					Detail:     modelID,
+				})
+				result.ReasonCode = runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String()
+				s.rollbackApply(ctx, installedModelIDs, installedServiceIDs, result)
+				return result
+			}
+			modelRecord, err := s.installLocalModelRecord(
+				modelID,
+				capabilities,
+				engine,
+				"./dist/index.js",
+				"unknown",
+				dep.GetRepo(),
+				"main",
+				map[string]string{},
+				binding.endpoint,
+				binding.mode,
+				"",
+				nil,
+				"runtime_model_ready_after_install",
+				"model installed",
+			)
+			if err != nil || modelRecord == nil {
 				detail := defaultString(fmt.Sprintf("%v", err), "model install returned empty response")
 				result.StageResults = append(result.StageResults, &runtimev1.LocalExecutionStageResult{
 					Stage:      applyStageInstall,
@@ -117,7 +141,7 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 				s.rollbackApply(ctx, installedModelIDs, installedServiceIDs, result)
 				return result
 			}
-			modelRecord := cloneLocalModel(installed.GetModel())
+			modelRecord = cloneLocalModel(modelRecord)
 			result.InstalledModels = append(result.InstalledModels, modelRecord)
 			installedModelIDs = append(installedModelIDs, modelRecord.GetLocalModelId())
 			if ref := strings.TrimSpace(dep.GetModelId()); ref != "" {

@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -61,6 +62,93 @@ func WaitHealthy(ctx context.Context, endpoint string, healthPath string, expect
 			return fmt.Errorf("wait healthy timed out after %s", timeout)
 		case <-ticker.C:
 			if err := ProbeHealth(ctx, endpoint, healthPath, expectedBody); err == nil {
+				return nil
+			}
+		}
+	}
+}
+
+func ProbeNimiMediaHealth(ctx context.Context, endpoint string) error {
+	baseURL := strings.TrimSuffix(endpoint, "/")
+	healthURL := baseURL + "/healthz"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL, nil)
+	if err != nil {
+		return fmt.Errorf("build health request: %w", err)
+	}
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("health probe failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("health probe returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	healthPayload := struct {
+		Ready bool `json:"ready"`
+	}{}
+	if err := json.Unmarshal(body, &healthPayload); err != nil {
+		return fmt.Errorf("health probe parse failed: %w", err)
+	}
+	if !healthPayload.Ready {
+		return fmt.Errorf("health probe reported ready=false")
+	}
+
+	url := baseURL + "/v1/catalog"
+	req, err = http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return fmt.Errorf("build catalog request: %w", err)
+	}
+
+	resp, err = client.Do(req)
+	if err != nil {
+		return fmt.Errorf("catalog probe failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ = io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("catalog probe returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	payload := struct {
+		Models []struct {
+			ID    string `json:"id"`
+			Ready bool   `json:"ready"`
+		} `json:"models"`
+	}{}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return fmt.Errorf("catalog probe parse failed: %w", err)
+	}
+	for _, model := range payload.Models {
+		if strings.TrimSpace(model.ID) != "" && model.Ready {
+			return nil
+		}
+	}
+	return fmt.Errorf("catalog probe missing ready models")
+}
+
+func WaitNimiMediaHealthy(ctx context.Context, endpoint string, interval time.Duration, timeout time.Duration) error {
+	deadline := time.After(timeout)
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	if err := ProbeNimiMediaHealth(ctx, endpoint); err == nil {
+		return nil
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("wait healthy cancelled: %w", ctx.Err())
+		case <-deadline:
+			return fmt.Errorf("wait healthy timed out after %s", timeout)
+		case <-ticker.C:
+			if err := ProbeNimiMediaHealth(ctx, endpoint); err == nil {
 				return nil
 			}
 		}

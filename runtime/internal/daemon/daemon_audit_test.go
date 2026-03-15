@@ -114,3 +114,17 @@ func TestResolveProbeEndpointWithHealthPath(t *testing.T) {
 		t.Fatalf("unexpected health probe endpoint: %s", got)
 	}
 }
+
+func TestResolveProbeEndpointWithCatalogPath(t *testing.T) {
+	got := resolveProbeEndpoint("http://127.0.0.1:8321/v1", "/v1/catalog")
+	if got != "http://127.0.0.1:8321/v1/catalog" {
+		t.Fatalf("unexpected catalog probe endpoint: %s", got)
+	}
+}
+
+func TestProviderProbePathsUsesCanonicalNimiMediaCatalog(t *testing.T) {
+	got := providerProbePaths("local-nimi-media")
+	if len(got) != 2 || got[0] != "/healthz" || got[1] != "/v1/catalog" {
+		t.Fatalf("unexpected nimi_media probe paths: %v", got)
+	}
+}

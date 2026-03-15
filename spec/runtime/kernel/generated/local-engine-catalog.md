@@ -4,10 +4,10 @@
 > Source: `spec/runtime/kernel/tables/local-engine-catalog.yaml`
 | Engine | Default Endpoint | Runtime Mode | Protocol | Phase 1 | Source |
 |---|---|---|---|---|---|
-| `localai` | `http://127.0.0.1:1234/v1` | `attached_endpoint` | `openai_compatible` | `true` | `K-LENG-005` |
+| `localai` | `—` | `attached_endpoint` | `openai_compatible` | `true` | `K-LENG-005` |
 | `localai` | `—` | `supervised` | `openai_compatible` | `true` | `K-LENG-004` |
 | `nexa` | `—` | `attached_endpoint` | `openai_compatible` | `true` | `K-LENG-005` |
 | `nexa` | `—` | `supervised` | `openai_compatible` | `true` | `K-LENG-004` |
-| `nimi_media` | `http://127.0.0.1:8321/v1` | `attached_endpoint` | `nimi_runtime_media` | `true` | `K-LENG-005` |
+| `nimi_media` | `—` | `attached_endpoint` | `nimi_runtime_media` | `true` | `K-LENG-005` |
 | `nimi_media` | `—` | `supervised` | `nimi_runtime_media` | `true` | `K-LENG-004` |
 | `sidecar` | `—` | `attached_endpoint` | `nimi_music_http` | `true` | `K-LENG-005` |

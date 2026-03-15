@@ -46,7 +46,7 @@ func (s *Service) StartLocalModel(ctx context.Context, req *runtimev1.StartLocal
 	}
 
 	endpoint := s.effectiveLocalModelEndpoint(current)
-	bootstrapErr := s.bootstrapEngineIfManaged(ctx, current.GetEngine(), endpoint)
+	bootstrapErr := s.bootstrapEngineIfManaged(ctx, current.GetEngine(), s.modelRuntimeMode(localModelID), endpoint)
 	probe := s.probeEndpoint(ctx, current.GetEngine(), endpoint)
 	registration := s.localAIRegistrationForModel(current)
 	if modelProbeSucceeded(current, probe, registration) {
@@ -138,7 +138,7 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 		switch model.GetStatus() {
 		case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE:
 			endpoint := s.effectiveLocalModelEndpoint(model)
-			bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), endpoint)
+			bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), s.modelRuntimeMode(localModelID), endpoint)
 			probe := s.probeEndpoint(ctx, model.GetEngine(), endpoint)
 			registration := s.localAIRegistrationForModel(model)
 			if modelProbeSucceeded(model, probe, registration) {
@@ -162,7 +162,7 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 			result = append(result, modelHealth(transitioned))
 		case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY:
 			endpoint := s.effectiveLocalModelEndpoint(model)
-			bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), endpoint)
+			bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), s.modelRuntimeMode(localModelID), endpoint)
 			probe := s.probeEndpoint(ctx, model.GetEngine(), endpoint)
 			registration := s.localAIRegistrationForModel(model)
 			if modelProbeSucceeded(model, probe, registration) {
@@ -222,6 +222,9 @@ func (s *Service) shouldWarmLocalModelOnStart(
 		return false
 	}
 	if s.engineManagerOrNil() == nil {
+		return false
+	}
+	if s.modelRuntimeMode(model.GetLocalModelId()) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		return false
 	}
 	return shouldRetryWarmProbe(model.GetEngine(), endpoint)

@@ -233,6 +233,8 @@ func TestBuildLocalAIRegistrationsRejectsManagedNameConflicts(t *testing.T) {
 	}
 	svc.models[first.GetLocalModelId()] = first
 	svc.models[second.GetLocalModelId()] = second
+	svc.setModelRuntimeModeLocked(first.GetLocalModelId(), runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
+	svc.setModelRuntimeModeLocked(second.GetLocalModelId(), runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
 
 	registrations, rendered, err := svc.buildLocalAIRegistrations()
 	if err != nil {
@@ -337,18 +339,18 @@ func TestLocalAIRegistrationForDynamicProfileRecomputesWhenImageBackendRecovers(
 
 func installLocalAIModelForRegistrarTest(t *testing.T, svc *Service, modelID string, entry string, capabilities []string, endpoint string, engineConfig *structpb.Struct) *runtimev1.LocalModelRecord {
 	t.Helper()
-	resp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	req := &runtimev1.InstallLocalModelRequest{
 		ModelId:      modelID,
 		Capabilities: capabilities,
 		Engine:       "localai",
 		Entry:        entry,
 		Endpoint:     endpoint,
 		EngineConfig: engineConfig,
-	})
-	if err != nil {
-		t.Fatalf("install localai model %q: %v", modelID, err)
 	}
-	return resp.GetModel()
+	if strings.TrimSpace(endpoint) == "" {
+		return mustInstallSupervisedLocalModel(t, svc, req)
+	}
+	return mustInstallAttachedLocalModel(t, svc, req)
 }
 
 func writeManagedLocalAIManifest(t *testing.T, modelsPath string, modelID string, entry string, capabilities []string) {

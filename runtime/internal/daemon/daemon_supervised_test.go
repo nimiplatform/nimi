@@ -453,10 +453,44 @@ func TestStartSupervisedEnginesSkipsLocalAIBootstrapWhenAssetSyncFails(t *testin
 	}
 
 	localModelsPath := filepath.Join(t.TempDir(), "models")
+	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+	localModelID := "model_bootstrap_sync_fail"
+	now := time.Now().UTC().Format(time.RFC3339)
+	stateRaw, err := json.Marshal(map[string]any{
+		"schemaVersion": 1,
+		"savedAt":       now,
+		"models": []map[string]any{
+			{
+				"localModelId":      localModelID,
+				"modelId":           "local/bootstrap-sync-fail",
+				"capabilities":      []string{"chat"},
+				"engine":            "localai",
+				"entry":             "./weights/model.gguf",
+				"license":           "unknown",
+				"sourceRepo":        "",
+				"sourceRevision":    "main",
+				"hashes":            map[string]string{},
+				"endpoint":          "",
+				"status":            int32(runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED),
+				"installedAt":       now,
+				"updatedAt":         now,
+				"engineRuntimeMode": int32(runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED),
+			},
+		},
+		"artifacts": []map[string]any{},
+		"services":  []map[string]any{},
+		"audits":    []map[string]any{},
+	})
+	if err != nil {
+		t.Fatalf("marshal local state: %v", err)
+	}
+	if err := os.WriteFile(localStatePath, stateRaw, 0o600); err != nil {
+		t.Fatalf("write local state: %v", err)
+	}
 	cfg := config.Config{
 		GRPCAddr:             "127.0.0.1:0",
 		HTTPAddr:             "127.0.0.1:0",
-		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
+		LocalStatePath:       localStatePath,
 		LocalModelsPath:      localModelsPath,
 		AuditRingBufferSize:  64,
 		UsageStatsBufferSize: 64,
@@ -473,19 +507,6 @@ func TestStartSupervisedEnginesSkipsLocalAIBootstrapWhenAssetSyncFails(t *testin
 
 	manifestModelID := "local/bootstrap-sync-fail"
 	manifestEntry := "./weights/model.gguf"
-	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      manifestModelID,
-		Capabilities: []string{"chat"},
-		Engine:       "localai",
-		Entry:        manifestEntry,
-	})
-	if err != nil {
-		t.Fatalf("install managed localai model: %v", err)
-	}
-	if modelResp.GetModel().GetLocalModelId() == "" {
-		t.Fatalf("expected installed local model id")
-	}
-
 	modelSlug := "local-bootstrap-sync-fail"
 	entryPath := filepath.Join(localModelsPath, modelSlug, "weights", "model.gguf")
 	if err := os.MkdirAll(filepath.Dir(entryPath), 0o755); err != nil {

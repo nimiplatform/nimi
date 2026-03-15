@@ -97,7 +97,7 @@ func (s *Service) SetLocalAIRegistrationConfig(modelsPath string, modelsConfigPa
 }
 
 // SetLocalAIManagedEndpoint records the managed LocalAI endpoint exposed by the
-// daemon and rewrites default LocalAI model endpoints to that managed endpoint.
+// daemon and rewrites supervised LocalAI model endpoints to that managed endpoint.
 func (s *Service) SetLocalAIManagedEndpoint(endpoint string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -116,7 +116,7 @@ func (s *Service) SetLocalAIManagedEndpoint(endpoint string) {
 		if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "localai") {
 			continue
 		}
-		if !shouldUseManagedLocalAIEndpoint(model.GetEndpoint()) {
+		if normalizeRuntimeMode(s.modelRuntimeModes[localModelID]) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 			continue
 		}
 		if strings.TrimSpace(model.GetEndpoint()) == s.localAIManagedEndpoint {
@@ -134,7 +134,7 @@ func (s *Service) SetLocalAIManagedEndpoint(endpoint string) {
 }
 
 // SetNimiMediaManagedEndpoint records the managed nimi_media endpoint exposed
-// by the daemon and rewrites default media model endpoints to that value.
+// by the daemon and rewrites supervised media model endpoints to that value.
 func (s *Service) SetNimiMediaManagedEndpoint(endpoint string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -153,7 +153,7 @@ func (s *Service) SetNimiMediaManagedEndpoint(endpoint string) {
 		if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "nimi_media") {
 			continue
 		}
-		if !shouldUseManagedNimiMediaEndpoint(model.GetEndpoint()) {
+		if normalizeRuntimeMode(s.modelRuntimeModes[localModelID]) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 			continue
 		}
 		if strings.TrimSpace(model.GetEndpoint()) == s.nimiMediaManagedEndpoint {
@@ -298,7 +298,7 @@ func (s *Service) buildLocalAIRegistrations() (map[string]localAIRegistration, [
 			continue
 		}
 
-		registration := inspectLocalAIModelRegistration(model, modelsPath, managed, imageBackendUp)
+		registration := inspectLocalAIModelRegistration(model, s.modelRuntimeMode(model.GetLocalModelId()), modelsPath, managed, imageBackendUp)
 		registrations[model.GetLocalModelId()] = registration
 		if registration.Managed && strings.TrimSpace(registration.Problem) == "" {
 			candidateIndexes[registration.ExposedModelName] = append(candidateIndexes[registration.ExposedModelName], model.GetLocalModelId())
@@ -354,12 +354,18 @@ func (s *Service) buildLocalAIRegistrations() (map[string]localAIRegistration, [
 	return registrations, rendered, nil
 }
 
-func inspectLocalAIModelRegistration(model *runtimev1.LocalModelRecord, modelsPath string, managed bool, imageBackendUp bool) localAIRegistration {
+func inspectLocalAIModelRegistration(
+	model *runtimev1.LocalModelRecord,
+	mode runtimev1.LocalEngineRuntimeMode,
+	modelsPath string,
+	managed bool,
+	imageBackendUp bool,
+) localAIRegistration {
 	registration := localAIRegistration{
 		LocalModelID:     strings.TrimSpace(model.GetLocalModelId()),
 		ModelID:          strings.TrimSpace(model.GetModelId()),
 		ExposedModelName: normalizeLocalAIRegistrationModelID(model.GetModelId()),
-		Managed:          managed && localAIModelUsesManagedEngine(model),
+		Managed:          managed && normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 	}
 	if !registration.Managed {
 		return registration
@@ -477,14 +483,6 @@ func localAIBackendForCapabilities(capabilities []string) (string, error) {
 	return "llama-cpp", nil
 }
 
-func localAIModelUsesManagedEngine(model *runtimev1.LocalModelRecord) bool {
-	if model == nil {
-		return false
-	}
-	_, shouldManage, err := parseManagedEndpointPort("localai", modelProbeEndpoint(model))
-	return err == nil && shouldManage
-}
-
 func normalizeLocalAIRegistrationModelID(modelID string) string {
 	raw := strings.TrimSpace(modelID)
 	lower := strings.ToLower(raw)
@@ -558,11 +556,12 @@ func (s *Service) localAIRegistrationForModel(model *runtimev1.LocalModelRecord)
 	modelsPath := resolveLocalModelsPath(s.localModelsPath)
 	managed := s.localAIManaged
 	imageBackendUp := s.localAIImageBackendConfigured && s.localAIImageBackendUp
+	mode := s.modelRuntimeModes[localModelID]
 	s.mu.RUnlock()
 	if ok && !registration.DynamicProfile {
 		return registration
 	}
-	return inspectLocalAIModelRegistration(model, modelsPath, managed, imageBackendUp)
+	return inspectLocalAIModelRegistration(model, mode, modelsPath, managed, imageBackendUp)
 }
 
 func modelProbeSucceeded(model *runtimev1.LocalModelRecord, probe endpointProbeResult, registration localAIRegistration) bool {

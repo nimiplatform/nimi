@@ -250,10 +250,7 @@ func mapHFRowToCatalogItem(row hfModelSearchEntry, engineFilter string) (*runtim
 	}
 	capabilities := inferCapabilitiesFromHF(row.PipelineTag, row.Tags)
 	engine := strings.ToLower(defaultLocalEngine(strings.TrimSpace(engineFilter), capabilities))
-	endpoint := ""
-	if !engineRequiresExplicitEndpoint(engine) {
-		endpoint = defaultEndpointForEngine(engine)
-	}
+	binding := autoRecommendedRuntimeBinding(engine, collectDeviceProfile())
 	tags := normalizeStringSlice(append(append([]string(nil), row.Tags...), capabilities...))
 	license := ""
 	if row.CardData != nil {
@@ -275,10 +272,10 @@ func mapHFRowToCatalogItem(row hfModelSearchEntry, engineFilter string) (*runtim
 		TemplateId:        "",
 		Capabilities:      capabilities,
 		Engine:            engine,
-		EngineRuntimeMode: runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT,
+		EngineRuntimeMode: binding.mode,
 		InstallKind:       "download",
-		InstallAvailable:  true,
-		Endpoint:          endpoint,
+		InstallAvailable:  catalogBindingInstallAvailable(engine, binding, collectDeviceProfile()),
+		Endpoint:          binding.endpoint,
 		ProviderHints:     nil,
 		Entry:             "./dist/index.js",
 		Files:             []string{},

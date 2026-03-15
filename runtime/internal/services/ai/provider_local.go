@@ -11,6 +11,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
 
@@ -120,7 +121,7 @@ func (p *localProvider) GenerateTextScenario(
 }
 
 func (p *localProvider) Embed(ctx context.Context, modelID string, inputs []string) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
-	backend, resolvedModelID, explicit, ok, _ := p.pickTextBackend(modelID)
+	backend, resolvedModelID, explicit, ok, _ := p.pickEmbeddingBackend(modelID)
 	if explicit && !ok {
 		return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODEL_PROVIDER_MISMATCH)
 	}
@@ -166,6 +167,18 @@ func (p *localProvider) StreamGenerateTextScenario(
 }
 
 func (p *localProvider) pickAvailabilityBackend(modelID string) (*nimillm.Backend, string, bool, bool, bool) {
+	return p.pickCapabilityBackend(modelID, "text.generate", true, true)
+}
+
+func (p *localProvider) pickTextBackend(modelID string) (*nimillm.Backend, string, bool, bool, bool) {
+	return p.pickCapabilityBackend(modelID, "text.generate", false, false)
+}
+
+func (p *localProvider) pickEmbeddingBackend(modelID string) (*nimillm.Backend, string, bool, bool, bool) {
+	return p.pickCapabilityBackend(modelID, "text.embed", false, false)
+}
+
+func (p *localProvider) pickCapabilityBackend(modelID string, capability string, appendRemaining bool, allowNimiMediaExplicit bool) (*nimillm.Backend, string, bool, bool, bool) {
 	localAIBackend, nexaBackend, nimiMediaBackend, sidecarBackend := p.backends()
 	id := strings.TrimSpace(modelID)
 	if id == "" {
@@ -185,88 +198,69 @@ func (p *localProvider) pickAvailabilityBackend(modelID string) (*nimillm.Backen
 		case "nexa":
 			return nexaBackend, rest, true, nexaBackend != nil, true
 		case "nimi_media":
-			return nimiMediaBackend, rest, true, nimiMediaBackend != nil, false
+			if allowNimiMediaExplicit {
+				return nimiMediaBackend, rest, true, nimiMediaBackend != nil, false
+			}
+			return nil, rest, true, false, false
 		case "sidecar", "localsidecar":
 			return sidecarBackend, rest, true, sidecarBackend != nil, false
 		case "local":
-			if localAIBackend != nil {
-				return localAIBackend, rest, true, true, false
-			}
-			if nexaBackend != nil {
-				return nexaBackend, rest, true, true, true
-			}
-			if nimiMediaBackend != nil {
-				return nimiMediaBackend, rest, true, true, false
-			}
-			if sidecarBackend != nil {
-				return sidecarBackend, rest, true, true, false
+			for _, provider := range orderedLocalProviders(capability, appendRemaining) {
+				if backend := backendForLocalProvider(provider, localAIBackend, nexaBackend, nimiMediaBackend, sidecarBackend); backend != nil {
+					return backend, rest, true, true, provider == "nexa"
+				}
 			}
 			return nil, rest, true, false, false
 		}
 	}
 
-	if localAIBackend != nil {
-		return localAIBackend, id, false, true, false
-	}
-	if nexaBackend != nil {
-		return nexaBackend, id, false, true, true
-	}
-	if nimiMediaBackend != nil {
-		return nimiMediaBackend, id, false, true, false
-	}
-	if sidecarBackend != nil {
-		return sidecarBackend, id, false, true, false
+	for _, provider := range orderedLocalProviders(capability, appendRemaining) {
+		if backend := backendForLocalProvider(provider, localAIBackend, nexaBackend, nimiMediaBackend, sidecarBackend); backend != nil {
+			return backend, id, false, true, provider == "nexa"
+		}
 	}
 	return nil, id, false, false, false
 }
 
-func (p *localProvider) pickTextBackend(modelID string) (*nimillm.Backend, string, bool, bool, bool) {
-	localAIBackend, nexaBackend, _, sidecarBackend := p.backends()
-	id := strings.TrimSpace(modelID)
-	if id == "" {
-		return nil, "", false, false, false
+func orderedLocalProviders(capability string, appendRemaining bool) []string {
+	ordered := append([]string(nil), localrouting.PreferenceOrder(localProviderGOOS, capability)...)
+	if !appendRemaining {
+		return ordered
 	}
-
-	segments := strings.SplitN(id, "/", 2)
-	if len(segments) == 2 {
-		prefix := strings.ToLower(strings.TrimSpace(segments[0]))
-		rest := strings.TrimSpace(segments[1])
-		if rest == "" {
-			return nil, "", true, false, prefix == "nexa"
+	for _, provider := range []string{"localai", "nexa", "sidecar", "nimi_media"} {
+		seen := false
+		for _, existing := range ordered {
+			if provider == existing {
+				seen = true
+				break
+			}
 		}
-		switch prefix {
-		case "localai":
-			return localAIBackend, rest, true, localAIBackend != nil, false
-		case "nexa":
-			return nexaBackend, rest, true, nexaBackend != nil, true
-		case "nimi_media":
-			return nil, rest, true, false, false
-		case "sidecar", "localsidecar":
-			return sidecarBackend, rest, true, sidecarBackend != nil, false
-		case "local":
-			if localAIBackend != nil {
-				return localAIBackend, rest, true, true, false
-			}
-			if nexaBackend != nil {
-				return nexaBackend, rest, true, true, true
-			}
-			if sidecarBackend != nil {
-				return sidecarBackend, rest, true, true, false
-			}
-			return nil, rest, true, false, false
+		if !seen {
+			ordered = append(ordered, provider)
 		}
 	}
+	return ordered
+}
 
-	if localAIBackend != nil {
-		return localAIBackend, id, false, true, false
+func backendForLocalProvider(
+	provider string,
+	localAIBackend *nimillm.Backend,
+	nexaBackend *nimillm.Backend,
+	nimiMediaBackend *nimillm.Backend,
+	sidecarBackend *nimillm.Backend,
+) *nimillm.Backend {
+	switch strings.ToLower(strings.TrimSpace(provider)) {
+	case "localai":
+		return localAIBackend
+	case "nexa":
+		return nexaBackend
+	case "nimi_media":
+		return nimiMediaBackend
+	case "sidecar":
+		return sidecarBackend
+	default:
+		return nil
 	}
-	if nexaBackend != nil {
-		return nexaBackend, id, false, true, true
-	}
-	if sidecarBackend != nil {
-		return sidecarBackend, id, false, true, false
-	}
-	return nil, id, false, false, false
 }
 
 func (p *localProvider) resolveMediaBackendForModal(modelID string, modal runtimev1.Modal) (*nimillm.Backend, string, string) {
@@ -279,56 +273,9 @@ func (p *localProvider) resolveMediaBackendForModal(modelID string, modal runtim
 		return backend, resolved, providerType
 	}
 
-	if localProviderGOOS == "windows" {
-		switch modal {
-		case runtimev1.Modal_MODAL_IMAGE, runtimev1.Modal_MODAL_VIDEO:
-			if nimiMediaBackend != nil {
-				return nimiMediaBackend, id, "nimi_media"
-			}
-		case runtimev1.Modal_MODAL_TTS, runtimev1.Modal_MODAL_STT:
-			if nexaBackend != nil {
-				return nexaBackend, id, "nexa"
-			}
-		}
-	}
-
-	switch modal {
-	case runtimev1.Modal_MODAL_MUSIC:
-		if sidecarBackend != nil {
-			return sidecarBackend, id, "sidecar"
-		}
-		if localAIBackend != nil {
-			return localAIBackend, id, "localai"
-		}
-	case runtimev1.Modal_MODAL_TTS, runtimev1.Modal_MODAL_STT:
-		if localAIBackend != nil {
-			return localAIBackend, id, "localai"
-		}
-		if nexaBackend != nil {
-			return nexaBackend, id, "nexa"
-		}
-	case runtimev1.Modal_MODAL_IMAGE, runtimev1.Modal_MODAL_VIDEO:
-		if localAIBackend != nil {
-			return localAIBackend, id, "localai"
-		}
-		if nimiMediaBackend != nil {
-			return nimiMediaBackend, id, "nimi_media"
-		}
-		if nexaBackend != nil {
-			return nexaBackend, id, "nexa"
-		}
-	default:
-		if localAIBackend != nil {
-			return localAIBackend, id, "localai"
-		}
-		if nexaBackend != nil {
-			return nexaBackend, id, "nexa"
-		}
-		if nimiMediaBackend != nil {
-			return nimiMediaBackend, id, "nimi_media"
-		}
-		if sidecarBackend != nil {
-			return sidecarBackend, id, "sidecar"
+	for _, provider := range orderedLocalProviders(localRoutingCapabilityForModal(modal), modal == runtimev1.Modal_MODAL_UNSPECIFIED) {
+		if backend := backendForLocalProvider(provider, localAIBackend, nexaBackend, nimiMediaBackend, sidecarBackend); backend != nil {
+			return backend, id, provider
 		}
 	}
 	return nil, id, ""
@@ -361,29 +308,10 @@ func (p *localProvider) resolveExplicitMediaBackend(
 	case "sidecar", "localsidecar":
 		return sidecarBackend, rest, "sidecar", true
 	case "local":
-		if localProviderGOOS == "windows" {
-			switch modal {
-			case runtimev1.Modal_MODAL_IMAGE, runtimev1.Modal_MODAL_VIDEO:
-				if nimiMediaBackend != nil {
-					return nimiMediaBackend, rest, "nimi_media", true
-				}
-			case runtimev1.Modal_MODAL_TTS, runtimev1.Modal_MODAL_STT:
-				if nexaBackend != nil {
-					return nexaBackend, rest, "nexa", true
-				}
+		for _, provider := range orderedLocalProviders(localRoutingCapabilityForModal(modal), modal == runtimev1.Modal_MODAL_UNSPECIFIED) {
+			if backend := backendForLocalProvider(provider, localAIBackend, nexaBackend, nimiMediaBackend, sidecarBackend); backend != nil {
+				return backend, rest, provider, true
 			}
-		}
-		if localAIBackend != nil {
-			return localAIBackend, rest, "localai", true
-		}
-		if nexaBackend != nil {
-			return nexaBackend, rest, "nexa", true
-		}
-		if nimiMediaBackend != nil {
-			return nimiMediaBackend, rest, "nimi_media", true
-		}
-		if sidecarBackend != nil {
-			return sidecarBackend, rest, "sidecar", true
 		}
 		return nil, rest, "", true
 	default:

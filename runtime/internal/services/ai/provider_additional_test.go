@@ -179,3 +179,58 @@ func TestServicePublicSettersAndAccessors(t *testing.T) {
 		t.Fatalf("unexpected sidecar resolution: model=%q explicit=%v", resolvedModel, explicit)
 	}
 }
+
+func TestLocalProviderWindowsLocalRoutingPrefersNexaForTextAndEmbed(t *testing.T) {
+	origGOOS := localProviderGOOS
+	localProviderGOOS = "windows"
+	defer func() { localProviderGOOS = origGOOS }()
+
+	local := &localProvider{
+		localai: &nimillm.Backend{Name: "local-localai"},
+		nexa:    &nimillm.Backend{Name: "local-nexa"},
+	}
+
+	backend, resolvedModel, explicit, available, isNexa := local.pickTextBackend("local/qwen2.5")
+	if backend == nil || backend.Name != "local-nexa" {
+		t.Fatalf("expected windows local text backend to resolve to nexa, got %#v", backend)
+	}
+	if resolvedModel != "qwen2.5" || !explicit || !available || !isNexa {
+		t.Fatalf("unexpected text backend resolution: model=%q explicit=%v available=%v isNexa=%v", resolvedModel, explicit, available, isNexa)
+	}
+
+	embedBackend, embedModel, embedExplicit, embedAvailable, embedIsNexa := local.pickEmbeddingBackend("local/qwen2.5")
+	if embedBackend == nil || embedBackend.Name != "local-nexa" {
+		t.Fatalf("expected windows local embed backend to resolve to nexa, got %#v", embedBackend)
+	}
+	if embedModel != "qwen2.5" || !embedExplicit || !embedAvailable || !embedIsNexa {
+		t.Fatalf("unexpected embed backend resolution: model=%q explicit=%v available=%v isNexa=%v", embedModel, embedExplicit, embedAvailable, embedIsNexa)
+	}
+}
+
+func TestLocalProviderWindowsLocalAvailabilityAndImageRouting(t *testing.T) {
+	origGOOS := localProviderGOOS
+	localProviderGOOS = "windows"
+	defer func() { localProviderGOOS = origGOOS }()
+
+	local := &localProvider{
+		localai:   &nimillm.Backend{Name: "local-localai"},
+		nexa:      &nimillm.Backend{Name: "local-nexa"},
+		nimimedia: &nimillm.Backend{Name: "local-nimi-media"},
+	}
+
+	availabilityBackend, resolvedModel, explicit, available, isNexa := local.pickAvailabilityBackend("local/qwen2.5")
+	if availabilityBackend == nil || availabilityBackend.Name != "local-nexa" {
+		t.Fatalf("expected windows local availability to prefer nexa, got %#v", availabilityBackend)
+	}
+	if resolvedModel != "qwen2.5" || !explicit || !available || !isNexa {
+		t.Fatalf("unexpected availability resolution: model=%q explicit=%v available=%v isNexa=%v", resolvedModel, explicit, available, isNexa)
+	}
+
+	imageBackend, imageModel, providerType := local.resolveMediaBackendForModal("local/flux.1-schnell", runtimev1.Modal_MODAL_IMAGE)
+	if imageBackend == nil || imageBackend.Name != "local-nimi-media" {
+		t.Fatalf("expected windows local image backend to resolve to nimi_media, got %#v", imageBackend)
+	}
+	if imageModel != "flux.1-schnell" || providerType != "nimi_media" {
+		t.Fatalf("unexpected image resolution: model=%q providerType=%q", imageModel, providerType)
+	}
+}

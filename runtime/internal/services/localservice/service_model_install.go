@@ -12,6 +12,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.ResolveModelInstallPlanRequest) (*runtimev1.ResolveModelInstallPlanResponse, error) {
@@ -23,6 +24,13 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 	s.mu.RUnlock()
 	if catalogItem != nil {
 		engine := defaultLocalEngine(catalogItem.GetEngine(), catalogItem.GetCapabilities())
+		binding := resolveCatalogRuntimeBinding(
+			engine,
+			req.GetEndpoint(),
+			catalogItem.GetEngineRuntimeMode(),
+			catalogItem.GetEndpoint(),
+			deviceProfile,
+		)
 		plan := &runtimev1.LocalInstallPlanDescriptor{
 			PlanId:            "plan_" + ulid.Make().String(),
 			ItemId:            catalogItem.GetItemId(),
@@ -33,10 +41,10 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 			Revision:          defaultString(catalogItem.GetRevision(), "main"),
 			Capabilities:      append([]string(nil), catalogItem.GetCapabilities()...),
 			Engine:            engine,
-			EngineRuntimeMode: defaultRuntimeMode(catalogItem.GetEngineRuntimeMode()),
+			EngineRuntimeMode: binding.mode,
 			InstallKind:       defaultString(catalogItem.GetInstallKind(), "download"),
 			InstallAvailable:  true,
-			Endpoint:          resolveInstallPlanEndpoint(engine, req.GetEndpoint(), catalogItem.GetEndpoint()),
+			Endpoint:          binding.endpoint,
 			ProviderHints:     cloneProviderHints(catalogItem.GetProviderHints()),
 			Entry:             defaultString(catalogItem.GetEntry(), "./dist/index.js"),
 			Files:             append([]string(nil), catalogItem.GetFiles()...),
@@ -46,7 +54,7 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 			ReasonCode:        "ACTION_EXECUTED",
 			EngineConfig:      cloneStruct(catalogItem.GetEngineConfig()),
 		}
-		s.evaluateInstallPlanAvailability(plan)
+		s.evaluateInstallPlanAvailability(plan, binding.autoRecommended)
 		s.mu.Lock()
 		s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
 			Id:         "audit_" + ulid.Make().String(),
@@ -66,6 +74,7 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 
 	capabilities := normalizeStringSlice(req.GetCapabilities())
 	engine := defaultLocalEngine(strings.TrimSpace(req.GetEngine()), capabilities)
+	binding := resolveInstallRuntimeBinding(engine, strings.TrimSpace(req.GetEndpoint()), deviceProfile)
 	plan := &runtimev1.LocalInstallPlanDescriptor{
 		PlanId:            "plan_" + ulid.Make().String(),
 		ItemId:            req.GetItemId(),
@@ -76,10 +85,10 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 		Revision:          defaultString(strings.TrimSpace(req.GetRevision()), "main"),
 		Capabilities:      capabilities,
 		Engine:            engine,
-		EngineRuntimeMode: runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT,
+		EngineRuntimeMode: binding.mode,
 		InstallKind:       "download",
 		InstallAvailable:  true,
-		Endpoint:          resolveInstallPlanEndpoint(engine, strings.TrimSpace(req.GetEndpoint()), ""),
+		Endpoint:          binding.endpoint,
 		Entry:             defaultString(strings.TrimSpace(req.GetEntry()), "./dist/index.js"),
 		Files:             normalizeStringSlice(req.GetFiles()),
 		License:           defaultString(strings.TrimSpace(req.GetLicense()), "unknown"),
@@ -94,37 +103,12 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 		plan.Warnings = append(plan.GetWarnings(), "modelId is required for install plan resolution")
 		return &runtimev1.ResolveModelInstallPlanResponse{Plan: plan}, nil
 	}
-	s.evaluateInstallPlanAvailability(plan)
+	s.evaluateInstallPlanAvailability(plan, binding.autoRecommended)
 	return &runtimev1.ResolveModelInstallPlanResponse{Plan: plan}, nil
 }
 
-func defaultRuntimeMode(mode runtimev1.LocalEngineRuntimeMode) runtimev1.LocalEngineRuntimeMode {
-	if mode == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED {
-		return runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
-	}
-	return mode
-}
-
-func resolveInstallPlanEndpoint(engine string, requestEndpoint string, fallbackEndpoint string) string {
-	if endpoint := strings.TrimSpace(requestEndpoint); endpoint != "" {
-		return endpoint
-	}
-	if endpoint := strings.TrimSpace(fallbackEndpoint); endpoint != "" {
-		return endpoint
-	}
-	if engineRequiresExplicitEndpoint(engine) {
-		return ""
-	}
-	return defaultEndpointForEngine(engine)
-}
-
 func engineRequiresExplicitEndpoint(engine string) bool {
-	switch strings.ToLower(strings.TrimSpace(engine)) {
-	case "nexa", "sidecar":
-		return true
-	default:
-		return false
-	}
+	return strings.TrimSpace(engine) != ""
 }
 
 func defaultLocalEngine(raw string, capabilities []string) string {
@@ -140,19 +124,12 @@ func defaultLocalEngine(raw string, capabilities []string) string {
 	return "localai"
 }
 
-func defaultEndpointForEngine(engine string) string {
-	if strings.EqualFold(strings.TrimSpace(engine), "nimi_media") {
-		return defaultNimiMediaEndpoint
-	}
-	return defaultLocalEndpoint
-}
-
-func (s *Service) evaluateInstallPlanAvailability(plan *runtimev1.LocalInstallPlanDescriptor) {
+func (s *Service) evaluateInstallPlanAvailability(plan *runtimev1.LocalInstallPlanDescriptor, autoRecommended bool) {
 	if plan == nil {
 		return
 	}
 	engine := strings.ToLower(strings.TrimSpace(plan.GetEngine()))
-	mode := defaultRuntimeMode(plan.GetEngineRuntimeMode())
+	mode := normalizeRuntimeMode(plan.GetEngineRuntimeMode())
 	plan.EngineRuntimeMode = mode
 	deviceProfile := collectDeviceProfile()
 	if supportWarnings := managedEngineSupportWarnings(engine, deviceProfile); len(supportWarnings) > 0 {
@@ -164,23 +141,8 @@ func (s *Service) evaluateInstallPlanAvailability(plan *runtimev1.LocalInstallPl
 		endpoint := strings.TrimSpace(plan.GetEndpoint())
 		if endpoint == "" {
 			plan.InstallAvailable = false
-			if engineRequiresExplicitEndpoint(engine) {
-				plan.ReasonCode = runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String()
-			} else {
-				plan.ReasonCode = "LOCAL_ENDPOINT_REQUIRED"
-			}
+			plan.ReasonCode = runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String()
 			return
-		}
-		if strings.EqualFold(engine, "nimi_media") && shouldManageNimiMediaEndpoint(endpoint) {
-			classification, detail := classifyManagedEngineSupport(engine, deviceProfile)
-			if classification != localEngineSupportSupportedSupervised {
-				plan.InstallAvailable = false
-				plan.ReasonCode = runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String()
-				if strings.TrimSpace(detail) != "" {
-					plan.Warnings = append(plan.GetWarnings(), detail)
-				}
-				return
-			}
 		}
 		if _, err := buildEndpointProbeURL(engine, endpoint); err != nil {
 			plan.InstallAvailable = false
@@ -192,6 +154,16 @@ func (s *Service) evaluateInstallPlanAvailability(plan *runtimev1.LocalInstallPl
 	case runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED:
 		classification, detail := classifyManagedEngineSupport(engine, deviceProfile)
 		if classification != localEngineSupportSupportedSupervised {
+			if autoRecommended {
+				plan.EngineRuntimeMode = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
+				plan.Endpoint = ""
+				plan.InstallAvailable = false
+				plan.ReasonCode = runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String()
+				if strings.TrimSpace(detail) != "" {
+					plan.Warnings = append(plan.GetWarnings(), detail)
+				}
+				return
+			}
 			plan.InstallAvailable = false
 			plan.ReasonCode = "LOCAL_ENGINE_ATTACHED_ENDPOINT_ONLY"
 			if strings.TrimSpace(detail) != "" {
@@ -218,34 +190,22 @@ func (s *Service) evaluateInstallPlanAvailability(plan *runtimev1.LocalInstallPl
 	}
 }
 
-func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLocalModelRequest) (*runtimev1.InstallLocalModelResponse, error) {
-	modelID := strings.TrimSpace(req.GetModelId())
-	if modelID == "" {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
-	}
-	capabilities := normalizeStringSlice(req.GetCapabilities())
-	engine := defaultLocalEngine(strings.TrimSpace(req.GetEngine()), capabilities)
-	endpoint := strings.TrimSpace(req.GetEndpoint())
-	if engineRequiresExplicitEndpoint(engine) && endpoint == "" {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
-	}
-	if endpoint == "" {
-		if strings.EqualFold(engine, "nimi_media") {
-			endpoint = defaultNimiMediaEndpoint
-		} else {
-			endpoint = defaultLocalEndpoint
-		}
-	}
-	if strings.EqualFold(engine, "nimi_media") && shouldManageNimiMediaEndpoint(endpoint) {
-		if classification, detail := classifyManagedEngineSupport(engine, collectDeviceProfile()); classification != localEngineSupportSupportedSupervised {
-			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED, grpcerr.ReasonOptions{
-				Message:    defaultString(strings.TrimSpace(detail), "nimi_media requires an explicit attached endpoint on this host"),
-				ActionHint: "set_explicit_nimi_media_endpoint",
-			})
-		}
-	}
-	endpoint = s.normalizeRequestedLocalModelEndpoint(engine, endpoint)
-
+func (s *Service) installLocalModelRecord(
+	modelID string,
+	capabilities []string,
+	engine string,
+	entry string,
+	license string,
+	repo string,
+	revision string,
+	hashes map[string]string,
+	endpoint string,
+	mode runtimev1.LocalEngineRuntimeMode,
+	localInvokeProfileID string,
+	engineConfig *structpb.Struct,
+	auditEventType string,
+	auditDetail string,
+) (*runtimev1.LocalModelRecord, error) {
 	s.mu.RLock()
 	modelKey := localModelIdentityKey(modelID, engine)
 	for _, existing := range s.models {
@@ -260,24 +220,24 @@ func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLoc
 	s.mu.RUnlock()
 
 	now := nowISO()
-	localModelID := ulid.Make().String()
 	record := &runtimev1.LocalModelRecord{
-		LocalModelId: localModelID,
+		LocalModelId: ulid.Make().String(),
 		ModelId:      modelID,
 		Capabilities: capabilities,
 		Engine:       engine,
-		Entry:        defaultString(strings.TrimSpace(req.GetEntry()), "./dist/index.js"),
-		License:      defaultString(strings.TrimSpace(req.GetLicense()), "unknown"),
+		Entry:        entry,
+		License:      license,
 		Source: &runtimev1.LocalModelSource{
-			Repo:     strings.TrimSpace(req.GetRepo()),
-			Revision: defaultString(strings.TrimSpace(req.GetRevision()), "main"),
+			Repo:     repo,
+			Revision: revision,
 		},
-		Hashes:       cloneStringMap(req.GetHashes()),
-		Endpoint:     endpoint,
-		Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
-		InstalledAt:  now,
-		UpdatedAt:    now,
-		EngineConfig: cloneStruct(req.GetEngineConfig()),
+		Hashes:               cloneStringMap(hashes),
+		Endpoint:             s.storedEndpointForRuntimeMode(engine, mode, endpoint),
+		Status:               runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
+		InstalledAt:          now,
+		UpdatedAt:            now,
+		LocalInvokeProfileId: strings.TrimSpace(localInvokeProfileID),
+		EngineConfig:         cloneStruct(engineConfig),
 	}
 	if len(record.GetCapabilities()) == 0 {
 		record.Capabilities = []string{"chat"}
@@ -285,19 +245,53 @@ func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLoc
 
 	s.mu.Lock()
 	s.models[record.GetLocalModelId()] = cloneLocalModel(record)
+	s.setModelRuntimeModeLocked(record.GetLocalModelId(), mode)
 	s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
 		Id:           "audit_" + ulid.Make().String(),
-		EventType:    "runtime_model_ready_after_install",
+		EventType:    auditEventType,
 		OccurredAt:   now,
 		Source:       "local",
 		Modality:     firstCapability(record.GetCapabilities()),
 		ModelId:      record.GetModelId(),
 		LocalModelId: record.GetLocalModelId(),
-		Detail:       "model installed",
+		Detail:       auditDetail,
 	})
 	s.mu.Unlock()
 	if syncErr := s.SyncManagedLocalAIAssets(context.Background()); syncErr != nil {
-		s.logger.Warn("sync localai assets after install failed", "model_id", record.GetModelId(), "error", syncErr)
+		s.logger.Warn("sync localai assets after model mutation failed", "model_id", record.GetModelId(), "error", syncErr)
+	}
+	return record, nil
+}
+
+func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLocalModelRequest) (*runtimev1.InstallLocalModelResponse, error) {
+	modelID := strings.TrimSpace(req.GetModelId())
+	if modelID == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
+	}
+	capabilities := normalizeStringSlice(req.GetCapabilities())
+	engine := defaultLocalEngine(strings.TrimSpace(req.GetEngine()), capabilities)
+	endpoint := strings.TrimSpace(req.GetEndpoint())
+	if engineRequiresExplicitEndpoint(engine) && endpoint == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
+	}
+	record, err := s.installLocalModelRecord(
+		modelID,
+		capabilities,
+		engine,
+		defaultString(strings.TrimSpace(req.GetEntry()), "./dist/index.js"),
+		defaultString(strings.TrimSpace(req.GetLicense()), "unknown"),
+		strings.TrimSpace(req.GetRepo()),
+		defaultString(strings.TrimSpace(req.GetRevision()), "main"),
+		req.GetHashes(),
+		endpoint,
+		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT,
+		"",
+		req.GetEngineConfig(),
+		"runtime_model_ready_after_install",
+		"model installed",
+	)
+	if err != nil {
+		return nil, err
 	}
 	return &runtimev1.InstallLocalModelResponse{Model: record}, nil
 }
@@ -322,23 +316,34 @@ func (s *Service) InstallVerifiedModel(ctx context.Context, req *runtimev1.Insta
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_TEMPLATE_NOT_FOUND)
 	}
 
-	resp, err := s.InstallLocalModel(ctx, &runtimev1.InstallLocalModelRequest{
-		ModelId:      matched.GetModelId(),
-		Repo:         matched.GetRepo(),
-		Revision:     matched.GetRevision(),
-		Capabilities: append([]string(nil), matched.GetCapabilities()...),
-		Engine:       matched.GetEngine(),
-		Entry:        matched.GetEntry(),
-		Files:        append([]string(nil), matched.GetFiles()...),
-		License:      matched.GetLicense(),
-		Hashes:       cloneStringMap(matched.GetHashes()),
-		Endpoint:     defaultString(strings.TrimSpace(req.GetEndpoint()), matched.GetEndpoint()),
-		EngineConfig: cloneStruct(matched.GetEngineConfig()),
-	})
+	binding := resolveInstallRuntimeBinding(
+		matched.GetEngine(),
+		defaultString(strings.TrimSpace(req.GetEndpoint()), matched.GetEndpoint()),
+		collectDeviceProfile(),
+	)
+	if normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT && strings.TrimSpace(binding.endpoint) == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
+	}
+	record, err := s.installLocalModelRecord(
+		matched.GetModelId(),
+		append([]string(nil), matched.GetCapabilities()...),
+		matched.GetEngine(),
+		matched.GetEntry(),
+		matched.GetLicense(),
+		matched.GetRepo(),
+		matched.GetRevision(),
+		matched.GetHashes(),
+		binding.endpoint,
+		binding.mode,
+		"",
+		matched.GetEngineConfig(),
+		"runtime_model_ready_after_install",
+		"model installed",
+	)
 	if err != nil {
 		return nil, err
 	}
-	return &runtimev1.InstallVerifiedModelResponse{Model: resp.GetModel()}, nil
+	return &runtimev1.InstallVerifiedModelResponse{Model: record}, nil
 }
 
 func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocalModelRequest) (*runtimev1.ImportLocalModelResponse, error) {
@@ -373,10 +378,6 @@ func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocal
 	if engineRequiresExplicitEndpoint(engine) && strings.TrimSpace(endpoint) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
 	}
-	if endpoint == "" {
-		endpoint = defaultEndpointForEngine(engine)
-	}
-	endpoint = s.normalizeRequestedLocalModelEndpoint(engine, endpoint)
 
 	capabilities, capsErr := manifestStringSlice(manifest, "capabilities")
 	if capsErr != nil {
@@ -414,55 +415,24 @@ func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocal
 		repo = "file://" + manifestPath
 	}
 
-	s.mu.RLock()
-	modelKey := localModelIdentityKey(modelID, engine)
-	for _, existing := range s.models {
-		if existing.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
-			continue
-		}
-		if localModelIdentityKey(existing.GetModelId(), existing.GetEngine()) == modelKey {
-			s.mu.RUnlock()
-			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_LOCAL_MODEL_ALREADY_INSTALLED)
-		}
-	}
-	s.mu.RUnlock()
-
-	now := nowISO()
-
-	record := &runtimev1.LocalModelRecord{
-		LocalModelId: ulid.Make().String(),
-		ModelId:      modelID,
-		Capabilities: normalizeStringSlice(capabilities),
-		Engine:       engine,
-		Entry:        entry,
-		License:      license,
-		Source: &runtimev1.LocalModelSource{
-			Repo:     repo,
-			Revision: revision,
-		},
-		Hashes:               hashes,
-		Endpoint:             endpoint,
-		Status:               runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
-		InstalledAt:          now,
-		UpdatedAt:            now,
-		LocalInvokeProfileId: manifestStringDefault(manifest, "local_invoke_profile_id", "localInvokeProfileId"),
-		EngineConfig:         engineConfig,
-	}
-
-	s.mu.Lock()
-	s.models[record.GetLocalModelId()] = cloneLocalModel(record)
-	s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
-		Id:           "audit_" + ulid.Make().String(),
-		EventType:    "runtime_model_imported",
-		OccurredAt:   now,
-		Source:       "local",
-		ModelId:      record.GetModelId(),
-		LocalModelId: record.GetLocalModelId(),
-		Detail:       manifestPath,
-	})
-	s.mu.Unlock()
-	if syncErr := s.SyncManagedLocalAIAssets(context.Background()); syncErr != nil {
-		s.logger.Warn("sync localai assets after import failed", "model_id", record.GetModelId(), "error", syncErr)
+	record, err := s.installLocalModelRecord(
+		modelID,
+		normalizeStringSlice(capabilities),
+		engine,
+		entry,
+		license,
+		repo,
+		revision,
+		hashes,
+		endpoint,
+		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT,
+		manifestStringDefault(manifest, "local_invoke_profile_id", "localInvokeProfileId"),
+		engineConfig,
+		"runtime_model_imported",
+		manifestPath,
+	)
+	if err != nil {
+		return nil, err
 	}
 	return &runtimev1.ImportLocalModelResponse{Model: record}, nil
 }

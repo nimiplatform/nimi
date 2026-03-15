@@ -48,7 +48,7 @@ local provider 的能力暴露必须与本地 engine/capability 合同一致。
 `nimi_media` 补充：
 
 - runtime 到 `nimi_media` engine 的私有协议必须直接承接 runtime canonical image/video spec，不得再回落到 OpenAI-compatible `/v1/images/generations`、`/v1/video/generations` 或 `/v1/models`。
-- `nimi_media` engine 私有协议固定为：`GET /healthz`、`GET /readyz`、`GET /v1/catalog`、`POST /v1/media/image/generate`、`POST /v1/media/video/generate`。
+- `nimi_media` engine 私有协议固定为：`GET /healthz`、`GET /v1/catalog`、`POST /v1/media/image/generate`、`POST /v1/media/video/generate`。
 - `nimi_media` 只允许暴露真实 ready 的 image/video 模型目录；依赖未安装、CUDA 不可用、模型未解析、管线未初始化时必须 fail-close，不得伪造成功 artifact 或静态 model list。
 
 ## K-MMPROV-011 Workflow External Async

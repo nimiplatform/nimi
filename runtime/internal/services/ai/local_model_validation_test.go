@@ -99,13 +99,13 @@ func TestLocalEnginePriorityAndProfileRequirement(t *testing.T) {
 	if localEnginePriority("localai") >= localEnginePriority("nexa") {
 		t.Fatalf("unexpected local engine priority ordering")
 	}
-	if localEnginePriority("sidecar") >= localEnginePriority("nexa") {
-		t.Fatalf("unexpected sidecar engine priority ordering")
+	if localEnginePriority("sidecar") <= localEnginePriority("nexa") {
+		t.Fatalf("text routing should not prioritize sidecar over nexa")
 	}
-	if localEnginePriority("nimi_media") <= localEnginePriority("nexa") {
-		t.Fatalf("unexpected nimi_media engine priority ordering")
+	if localEnginePriority("nimi_media") <= localEnginePriority("sidecar") {
+		t.Fatalf("text routing should rank nimi_media after sidecar fallback")
 	}
-	if localEnginePriority("other") != 4 {
+	if localEnginePriority("other") <= localEnginePriority("nimi_media") {
 		t.Fatalf("unexpected default engine priority")
 	}
 

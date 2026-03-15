@@ -6,8 +6,8 @@ import "time"
 type EngineKind string
 
 const (
-	EngineLocalAI EngineKind = "localai"
-	EngineNexa    EngineKind = "nexa"
+	EngineLocalAI   EngineKind = "localai"
+	EngineNexa      EngineKind = "nexa"
 	EngineNimiMedia EngineKind = "nimi_media"
 
 	engineLocalAIImageBackend EngineKind = "localai-image-backend"
@@ -197,8 +197,8 @@ func DefaultNimiMediaConfig() EngineConfig {
 		Port:             8321,
 		Version:          "0.1.0",
 		HealthMode:       HealthModeHTTP,
-		HealthPath:       "/readyz",
-		HealthResponse:   "\"status\": \"ok\"",
+		HealthPath:       "/healthz",
+		HealthResponse:   "\"ready\": true",
 		StartupTimeout:   180 * time.Second,
 		HealthInterval:   30 * time.Second,
 		MaxRestarts:      5,

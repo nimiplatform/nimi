@@ -294,7 +294,7 @@ func configuredAIProviderTargets() []aiProviderTarget {
 //   - 404 = try next path
 //   - other 4xx/5xx = unhealthy
 func probeAIProvider(client *http.Client, target aiProviderTarget) error {
-	paths := []string{"/healthz", "/v1/models"}
+	paths := providerProbePaths(target.Name)
 	var lastErr error
 	for _, path := range paths {
 		endpoint := resolveProbeEndpoint(target.Base, path)
@@ -329,6 +329,13 @@ func probeAIProvider(client *http.Client, target aiProviderTarget) error {
 		return lastErr
 	}
 	return fmt.Errorf("unreachable")
+}
+
+func providerProbePaths(name string) []string {
+	if strings.EqualFold(strings.TrimSpace(name), "local-nimi-media") {
+		return []string{"/healthz", "/v1/catalog"}
+	}
+	return []string{"/healthz", "/v1/models"}
 }
 
 func resolveProbeEndpoint(base string, path string) string {

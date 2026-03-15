@@ -165,7 +165,7 @@ func buildNodeProviderHints(
 			npuProfile = deviceProfile.GetNpu()
 		}
 		hostNPUReady := npuProfile.GetReady()
-		modelProbeHasNPUCandidate := true
+		modelProbeHasNPUCandidate := false
 		policyGateAllowsNPU := normalizedPolicyGate == "" && hostNPUReady && modelProbeHasNPUCandidate
 		npuUsable := policyGateAllowsNPU && available
 		gateReason := ""
@@ -187,7 +187,7 @@ func buildNodeProviderHints(
 			PluginId:                  strings.TrimSpace(service.GetServiceId()),
 			DeviceId:                  defaultString(strings.TrimSpace(npuProfile.GetVendor()), "host-npu"),
 			ModelType:                 normalizedCapability,
-			NpuMode:                   defaultString(strings.TrimSpace(hints.GetExtra()["npu_mode"]), "auto"),
+			NpuMode:                   strings.TrimSpace(hints.GetExtra()["npu_mode"]),
 			PolicyGate:                normalizedPolicyGate,
 			HostNpuReady:              hostNPUReady,
 			ModelProbeHasNpuCandidate: modelProbeHasNPUCandidate,
@@ -200,15 +200,11 @@ func buildNodeProviderHints(
 		hints.NimiMedia = &runtimev1.LocalProviderHintsNimiMedia{
 			Backend:          "diffusers",
 			PreferredAdapter: strings.TrimSpace(adapter),
-			Family:           defaultString(strings.TrimSpace(hints.GetExtra()["family"]), "diffusers"),
-			ImageDriver:      "flux",
-			VideoDriver:      "wan",
-			Device:           defaultString(strings.TrimSpace(hints.GetExtra()["device"]), "cuda"),
+			Family:           strings.TrimSpace(hints.GetExtra()["family"]),
+			ImageDriver:      strings.TrimSpace(hints.GetExtra()["image_driver"]),
+			VideoDriver:      strings.TrimSpace(hints.GetExtra()["video_driver"]),
+			Device:           strings.TrimSpace(hints.GetExtra()["device"]),
 		}
-		hints.Extra["family"] = defaultString(strings.TrimSpace(hints.GetExtra()["family"]), "diffusers")
-		hints.Extra["image_driver"] = "flux"
-		hints.Extra["video_driver"] = "wan"
-		hints.Extra["device"] = defaultString(strings.TrimSpace(hints.GetExtra()["device"]), "cuda")
 	}
 	return hints
 }
@@ -299,7 +295,7 @@ func defaultVerifiedModels() []*runtimev1.LocalVerifiedModelDescriptor {
 			Files:          []string{"model.gguf"},
 			License:        "llama3",
 			Hashes:         map[string]string{},
-			Endpoint:       defaultEndpointForEngine(chatEngine),
+			Endpoint:       "",
 			FileCount:      1,
 			TotalSizeBytes: 0,
 			Tags:           []string{"chat", "verified"},
@@ -320,7 +316,7 @@ func defaultVerifiedModels() []*runtimev1.LocalVerifiedModelDescriptor {
 			Files:          []string{"model.bin"},
 			License:        "mit",
 			Hashes:         map[string]string{},
-			Endpoint:       defaultEndpointForEngine(sttEngine),
+			Endpoint:       "",
 			FileCount:      1,
 			TotalSizeBytes: 0,
 			Tags:           []string{"stt", "verified"},
@@ -341,7 +337,7 @@ func defaultVerifiedModels() []*runtimev1.LocalVerifiedModelDescriptor {
 			Hashes: map[string]string{
 				"z_image_turbo-Q4_K_M.gguf": "sha256:745ec270db042409fde084d6b5cfccabf214a7fe5a494edf994a391125656afd",
 			},
-			Endpoint:       defaultEndpointForEngine(imageEngine),
+			Endpoint:       "",
 			FileCount:      1,
 			TotalSizeBytes: 4981532736,
 			Tags:           []string{"image", "verified", "recommended", "z-image"},
@@ -401,7 +397,9 @@ func defaultVerifiedArtifacts() []*runtimev1.LocalVerifiedArtifactDescriptor {
 
 func defaultCatalogFromVerified(verified []*runtimev1.LocalVerifiedModelDescriptor) []*runtimev1.LocalCatalogModelDescriptor {
 	items := make([]*runtimev1.LocalCatalogModelDescriptor, 0, len(verified))
+	deviceProfile := collectDeviceProfile()
 	for _, item := range verified {
+		binding := autoRecommendedRuntimeBinding(item.GetEngine(), deviceProfile)
 		items = append(items, &runtimev1.LocalCatalogModelDescriptor{
 			ItemId:            "catalog_" + slug(item.GetTemplateId()),
 			Source:            "verified",
@@ -413,10 +411,10 @@ func defaultCatalogFromVerified(verified []*runtimev1.LocalVerifiedModelDescript
 			TemplateId:        item.GetTemplateId(),
 			Capabilities:      append([]string(nil), item.GetCapabilities()...),
 			Engine:            item.GetEngine(),
-			EngineRuntimeMode: runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT,
+			EngineRuntimeMode: binding.mode,
 			InstallKind:       item.GetInstallKind(),
-			InstallAvailable:  true,
-			Endpoint:          item.GetEndpoint(),
+			InstallAvailable:  catalogBindingInstallAvailable(item.GetEngine(), binding, deviceProfile),
+			Endpoint:          binding.endpoint,
 			Entry:             item.GetEntry(),
 			Files:             append([]string(nil), item.GetFiles()...),
 			License:           item.GetLicense(),

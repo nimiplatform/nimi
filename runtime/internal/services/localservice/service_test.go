@@ -152,15 +152,12 @@ func TestDefaultEndpointProbeNimiMediaCollectsReadyModels(t *testing.T) {
 func TestLocalModelLifecycle(t *testing.T) {
 	svc := newTestService(t)
 
-	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/test-chat",
 		Capabilities: []string{"chat", "chat"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
-	model := installed.GetModel()
+	model := installed
 	if model.GetLocalModelId() == "" {
 		t.Fatalf("local model id must not be empty")
 	}
@@ -226,17 +223,14 @@ func TestLocalStartLocalModelProbeFailureTransitionsUnhealthy(t *testing.T) {
 			probeURL: "http://127.0.0.1:1234/v1/models",
 		}
 	})
-	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/probe-fail-model",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
 
 	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: installed.GetModel().GetLocalModelId(),
+		LocalModelId: installed.GetLocalModelId(),
 	})
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
@@ -268,18 +262,15 @@ func TestLocalStartManagedLocalModelWarmsBeforeReportingActive(t *testing.T) {
 	svc := newTestServiceWithProbe(t, nil)
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
-	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	svc.SetLocalAIManagedEndpoint(server.URL + "/v1")
+	installed := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/qwen",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
-		Endpoint:     server.URL + "/v1",
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
 
 	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: installed.GetModel().GetLocalModelId(),
+		LocalModelId: installed.GetLocalModelId(),
 	})
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
@@ -295,7 +286,7 @@ func TestLocalStartManagedLocalModelWarmsBeforeReportingActive(t *testing.T) {
 	}
 
 	restarted, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: installed.GetModel().GetLocalModelId(),
+		LocalModelId: installed.GetLocalModelId(),
 	})
 	if err != nil {
 		t.Fatalf("restart local model after warm cache: %v", err)
@@ -325,18 +316,15 @@ func TestLocalStartManagedLocalModelWarmFailureTransitionsUnhealthy(t *testing.T
 
 	svc := newTestServiceWithProbe(t, nil)
 	svc.SetEngineManager(&mockEngineManager{})
-	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	svc.SetLocalAIManagedEndpoint(server.URL + "/v1")
+	installed := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/qwen",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
-		Endpoint:     server.URL + "/v1",
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
 
 	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: installed.GetModel().GetLocalModelId(),
+		LocalModelId: installed.GetLocalModelId(),
 	})
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
@@ -366,15 +354,12 @@ func TestLocalCheckLocalModelHealthRecoversAfterThreeProbes(t *testing.T) {
 			probeURL: "http://127.0.0.1:1234/v1/models",
 		}
 	})
-	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/recover-model",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
-	localModelID := installed.GetModel().GetLocalModelId()
+	localModelID := installed.GetLocalModelId()
 
 	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
 		LocalModelId: localModelID,
@@ -423,19 +408,16 @@ func TestLocalStartLocalServiceProbeFailureTransitionsUnhealthy(t *testing.T) {
 			probeURL: "http://127.0.0.1:8080/v1/models",
 		}
 	})
-	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/service-probe-model",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-probe-fail",
 		Engine:       "localai",
 		Capabilities: []string{"chat"},
-		LocalModelId: modelResp.GetModel().GetLocalModelId(),
+		LocalModelId: modelResp.GetLocalModelId(),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
@@ -471,19 +453,16 @@ func TestLocalCheckLocalServiceHealthRecoversAfterThreeProbes(t *testing.T) {
 			probeURL: "http://127.0.0.1:8080/v1/models",
 		}
 	})
-	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/service-recover-model",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-recover",
 		Engine:       "localai",
 		Capabilities: []string{"chat"},
-		LocalModelId: modelResp.GetModel().GetLocalModelId(),
+		LocalModelId: modelResp.GetLocalModelId(),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
@@ -556,17 +535,14 @@ func TestLocalDefaultProbeBuildsSingleV1ModelsPath(t *testing.T) {
 	defer server.Close()
 
 	svc := newTestServiceWithProbe(t, nil)
-	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/default-probe-model",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
 		Endpoint:     server.URL + "/v1",
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
 	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: installed.GetModel().GetLocalModelId(),
+		LocalModelId: installed.GetLocalModelId(),
 	})
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
@@ -584,17 +560,14 @@ func TestLocalStartLocalModelBootstrapsManagedEngine(t *testing.T) {
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
 
-	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	installed := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/bootstrap-model",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
 
 	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: installed.GetModel().GetLocalModelId(),
+		LocalModelId: installed.GetLocalModelId(),
 	})
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
@@ -618,19 +591,16 @@ func TestLocalStartLocalServiceBootstrapsManagedEngine(t *testing.T) {
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
 
-	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	modelResp := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/bootstrap-service-model",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-bootstrap",
 		Engine:       "localai",
 		Capabilities: []string{"chat"},
-		LocalModelId: modelResp.GetModel().GetLocalModelId(),
+		LocalModelId: modelResp.GetLocalModelId(),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
@@ -650,8 +620,8 @@ func TestLocalStartLocalServiceBootstrapsManagedEngine(t *testing.T) {
 	if mgr.lastStartEngine != "localai" {
 		t.Fatalf("expected engine localai, got %q", mgr.lastStartEngine)
 	}
-	if mgr.lastStartPort != 8080 {
-		t.Fatalf("expected bootstrap port 8080, got %d", mgr.lastStartPort)
+	if mgr.lastStartPort != 1234 {
+		t.Fatalf("expected bootstrap port 1234, got %d", mgr.lastStartPort)
 	}
 }
 
@@ -660,18 +630,15 @@ func TestLocalBootstrapSkipsNonLoopbackEndpoint(t *testing.T) {
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
 
-	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/non-loopback-model",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
 		Endpoint:     "https://example.com/v1",
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
 
 	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: installed.GetModel().GetLocalModelId(),
+		LocalModelId: installed.GetLocalModelId(),
 	})
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
@@ -689,15 +656,12 @@ func TestLocalCheckLocalModelHealthBootstrapsManagedEngine(t *testing.T) {
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
 
-	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	installed := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/health-bootstrap-model",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
-	localModelID := installed.GetModel().GetLocalModelId()
+	localModelID := installed.GetLocalModelId()
 	if _, err := svc.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "model active"); err != nil {
 		t.Fatalf("promote model to active: %v", err)
 	}
@@ -730,19 +694,16 @@ func TestLocalCheckLocalServiceHealthBootstrapsManagedEngine(t *testing.T) {
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
 
-	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	modelResp := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/health-bootstrap-service-model",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-health-bootstrap",
 		Engine:       "localai",
 		Capabilities: []string{"chat"},
-		LocalModelId: modelResp.GetModel().GetLocalModelId(),
+		LocalModelId: modelResp.GetLocalModelId(),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
@@ -768,8 +729,8 @@ func TestLocalCheckLocalServiceHealthBootstrapsManagedEngine(t *testing.T) {
 	if mgr.lastStartEngine != "localai" {
 		t.Fatalf("expected engine localai, got %q", mgr.lastStartEngine)
 	}
-	if mgr.lastStartPort != 8080 {
-		t.Fatalf("expected bootstrap port 8080, got %d", mgr.lastStartPort)
+	if mgr.lastStartPort != 1234 {
+		t.Fatalf("expected bootstrap port 1234, got %d", mgr.lastStartPort)
 	}
 }
 
@@ -778,15 +739,12 @@ func TestLocalCheckLocalModelHealthUnhealthyPathBootstrapsManagedEngine(t *testi
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
 
-	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	installed := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/health-unhealthy-bootstrap-model",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
-	localModelID := installed.GetModel().GetLocalModelId()
+	localModelID := installed.GetLocalModelId()
 	if _, err := svc.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "model active"); err != nil {
 		t.Fatalf("promote model to active: %v", err)
 	}
@@ -816,19 +774,16 @@ func TestLocalCheckLocalServiceHealthUnhealthyPathBootstrapsManagedEngine(t *tes
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
 
-	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	modelResp := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/health-unhealthy-bootstrap-service-model",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-health-unhealthy-bootstrap",
 		Engine:       "localai",
 		Capabilities: []string{"chat"},
-		LocalModelId: modelResp.GetModel().GetLocalModelId(),
+		LocalModelId: modelResp.GetLocalModelId(),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
@@ -1030,15 +985,12 @@ func TestLocalRecoverySweepPromotesUnhealthyModel(t *testing.T) {
 		}
 		return endpointProbeResult{healthy: false, detail: "startup failed"}
 	})
-	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/recovery-sweep-model",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
-	localModelID := installed.GetModel().GetLocalModelId()
+	localModelID := installed.GetLocalModelId()
 	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
 		LocalModelId: localModelID,
 	})
@@ -1422,21 +1374,18 @@ func TestLocalAuditContextEnvelopeAndFilters(t *testing.T) {
 func TestLocalNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 	svc := newTestService(t)
 
-	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/vision-chat-model",
 		Capabilities: []string{"image", "chat"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
 
 	installed, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-vision",
 		Title:        "Vision Service",
 		Engine:       "localai",
 		Capabilities: []string{"image", "chat"},
-		LocalModelId: modelResp.GetModel().GetLocalModelId(),
+		LocalModelId: modelResp.GetLocalModelId(),
 	})
 	if err != nil {
 		t.Fatalf("install local service: %v", err)
@@ -1527,20 +1476,17 @@ func TestLocalNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 func TestLocalNodeCatalogSortsByTypeThenNodeID(t *testing.T) {
 	svc := newTestService(t)
 
-	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/sort-catalog-model",
 		Capabilities: []string{"chat", "image"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-sort",
 		Title:        "Sort Service",
 		Engine:       "localai",
 		Capabilities: []string{"chat", "image"},
-		LocalModelId: modelResp.GetModel().GetLocalModelId(),
+		LocalModelId: modelResp.GetLocalModelId(),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
@@ -1649,8 +1595,8 @@ func TestLocalNodeCatalogNexaVideoFailClose(t *testing.T) {
 	if videoHints.GetPolicyGate() != videoNode.GetPolicyGate() {
 		t.Fatalf("nexa video policy gate mismatch: node=%s hints=%s", videoNode.GetPolicyGate(), videoHints.GetPolicyGate())
 	}
-	if videoHints.GetNpuMode() == "" {
-		t.Fatalf("nexa video npu mode must not be empty")
+	if videoHints.GetNpuMode() != "" {
+		t.Fatalf("nexa video npu mode should stay empty without real probe metadata")
 	}
 	if videoHints.GetPolicyGate() != "" && videoHints.GetPolicyGateAllowsNpu() {
 		t.Fatalf("nexa video policy gate should disable policyGateAllowsNpu")
@@ -1739,21 +1685,18 @@ func TestLocalNodeCatalogNexaTTSProbeFailClose(t *testing.T) {
 func TestLocalNodeCatalogCustomMissingProfileIsUnavailable(t *testing.T) {
 	svc := newTestService(t)
 
-	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "custom-node-model",
 		Engine:       "localai",
 		Capabilities: []string{"custom"},
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
 
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-custom",
 		Title:        "Custom Service",
 		Engine:       "localai",
 		Capabilities: []string{"custom"},
-		LocalModelId: modelResp.GetModel().GetLocalModelId(),
+		LocalModelId: modelResp.GetLocalModelId(),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
@@ -1919,21 +1862,18 @@ func TestLocalApplyExecutionPlanFailsWhenNodeUnresolved(t *testing.T) {
 func TestLocalApplyExecutionPlanPassesWhenNodeResolved(t *testing.T) {
 	svc := newTestService(t)
 
-	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/node-chat-model",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
 
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-node-chat",
 		Title:        "Node Chat Service",
 		Engine:       "localai",
 		Capabilities: []string{"chat"},
-		LocalModelId: modelResp.GetModel().GetLocalModelId(),
+		LocalModelId: modelResp.GetLocalModelId(),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
@@ -1986,20 +1926,18 @@ func TestLocalApplyExecutionPlanPassesWhenNodeResolved(t *testing.T) {
 
 func TestLocalInstallLocalModelRejectsDuplicateAndUsesULID(t *testing.T) {
 	svc := newTestService(t)
-	first, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	first := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId: "local/dup-model",
 		Engine:  "localai",
 	})
-	if err != nil {
-		t.Fatalf("install first local model: %v", err)
-	}
-	if _, parseErr := ulid.Parse(first.GetModel().GetLocalModelId()); parseErr != nil {
+	if _, parseErr := ulid.Parse(first.GetLocalModelId()); parseErr != nil {
 		t.Fatalf("local_model_id must be pure ULID: %v", parseErr)
 	}
 
-	_, err = svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId: "local/dup-model",
-		Engine:  "localai",
+	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:  "local/dup-model",
+		Engine:   "localai",
+		Endpoint: managedDefaultEndpointForEngine("localai"),
 	})
 	if err == nil {
 		t.Fatalf("expected duplicate install to fail")
@@ -2016,15 +1954,17 @@ func TestLocalInstallLocalModelRejectsDuplicateAndUsesULID(t *testing.T) {
 func TestLocalInstallLocalModelRejectsCanonicalAliasDuplicate(t *testing.T) {
 	svc := newTestService(t)
 	if _, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId: "z_image_turbo",
-		Engine:  "localai",
+		ModelId:  "z_image_turbo",
+		Engine:   "localai",
+		Endpoint: managedDefaultEndpointForEngine("localai"),
 	}); err != nil {
 		t.Fatalf("install bare model id: %v", err)
 	}
 
 	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId: "local/z_image_turbo",
-		Engine:  "localai",
+		ModelId:  "local/z_image_turbo",
+		Engine:   "localai",
+		Endpoint: managedDefaultEndpointForEngine("localai"),
 	})
 	if err == nil {
 		t.Fatalf("expected canonical alias duplicate install to fail")
@@ -2131,39 +2071,32 @@ func TestLocalInstallLocalServiceRequiresExistingLocalModel(t *testing.T) {
 func TestLocalInstallLocalServiceEnforcesModelServiceOneToOne(t *testing.T) {
 	svc := newTestService(t)
 
-	model1, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	model1 := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/service-bind-1",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install model1: %v", err)
-	}
-	model2, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	model2 := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/service-bind-2",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install model2: %v", err)
-	}
-
 	first, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-bind-1",
 		Engine:       "localai",
-		LocalModelId: model1.GetModel().GetLocalModelId(),
+		LocalModelId: model1.GetLocalModelId(),
 	})
 	if err != nil {
 		t.Fatalf("install first service: %v", err)
 	}
-	if first.GetService().GetLocalModelId() != model1.GetModel().GetLocalModelId() {
+	if first.GetService().GetLocalModelId() != model1.GetLocalModelId() {
 		t.Fatalf("service local_model_id mismatch")
 	}
 
 	secondTry, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-bind-2",
 		Engine:       "localai",
-		LocalModelId: model1.GetModel().GetLocalModelId(),
+		LocalModelId: model1.GetLocalModelId(),
 	})
 	if err == nil {
 		t.Fatalf("expected second service for same model to fail")
@@ -2182,7 +2115,7 @@ func TestLocalInstallLocalServiceEnforcesModelServiceOneToOne(t *testing.T) {
 	_, err = svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-bind-1",
 		Engine:       "localai",
-		LocalModelId: model2.GetModel().GetLocalModelId(),
+		LocalModelId: model2.GetLocalModelId(),
 	})
 	if err == nil {
 		t.Fatalf("expected rebinding existing service to another model to fail")
@@ -2203,6 +2136,7 @@ func TestLocalListLocalModelsSortByCategoryThenModelID(t *testing.T) {
 		ModelId:      "z-chat",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
+		Endpoint:     managedDefaultEndpointForEngine("localai"),
 	})
 	if err != nil {
 		t.Fatalf("install chat model: %v", err)
@@ -2211,6 +2145,7 @@ func TestLocalListLocalModelsSortByCategoryThenModelID(t *testing.T) {
 		ModelId:      "a-custom",
 		Capabilities: []string{"custom"},
 		Engine:       "localai",
+		Endpoint:     managedDefaultEndpointForEngine("localai"),
 	})
 	if err != nil {
 		t.Fatalf("install custom model: %v", err)
@@ -2219,6 +2154,7 @@ func TestLocalListLocalModelsSortByCategoryThenModelID(t *testing.T) {
 		ModelId:      "a-chat",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
+		Endpoint:     managedDefaultEndpointForEngine("localai"),
 	})
 	if err != nil {
 		t.Fatalf("install second chat model: %v", err)
@@ -2242,33 +2178,27 @@ func TestLocalListLocalModelsSortByCategoryThenModelID(t *testing.T) {
 func TestLocalListLocalServicesSortByServiceID(t *testing.T) {
 	svc := newTestService(t)
 
-	modelA, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	modelA := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/service-sort-a",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install modelA: %v", err)
-	}
-	modelB, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	modelB := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/service-sort-b",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install modelB: %v", err)
-	}
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-z",
 		Engine:       "localai",
-		LocalModelId: modelA.GetModel().GetLocalModelId(),
+		LocalModelId: modelA.GetLocalModelId(),
 	}); err != nil {
 		t.Fatalf("install svc-z: %v", err)
 	}
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-a",
 		Engine:       "localai",
-		LocalModelId: modelB.GetModel().GetLocalModelId(),
+		LocalModelId: modelB.GetLocalModelId(),
 	}); err != nil {
 		t.Fatalf("install svc-a: %v", err)
 	}
@@ -2288,24 +2218,21 @@ func TestLocalListLocalServicesSortByServiceID(t *testing.T) {
 func TestLocalRemoveModelRejectedWhenServiceBound(t *testing.T) {
 	svc := newTestService(t)
 
-	model, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	model := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/remove-guard",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install model: %v", err)
-	}
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-remove-guard",
 		Engine:       "localai",
-		LocalModelId: model.GetModel().GetLocalModelId(),
+		LocalModelId: model.GetLocalModelId(),
 	}); err != nil {
 		t.Fatalf("install service: %v", err)
 	}
 
-	_, err = svc.RemoveLocalModel(context.Background(), &runtimev1.RemoveLocalModelRequest{
-		LocalModelId: model.GetModel().GetLocalModelId(),
+	_, err := svc.RemoveLocalModel(context.Background(), &runtimev1.RemoveLocalModelRequest{
+		LocalModelId: model.GetLocalModelId(),
 	})
 	if err == nil {
 		t.Fatalf("expected remove model to fail while service is bound")
@@ -2387,7 +2314,7 @@ func TestLocalImportManifestValidation(t *testing.T) {
 	}
 
 	schemaInvalidPath := filepath.Join(tmpDir, "schema-invalid.json")
-	if err := os.WriteFile(schemaInvalidPath, []byte(`{"model_id":"local/test","engine":"localai","capabilities":"chat"}`), 0o600); err != nil {
+	if err := os.WriteFile(schemaInvalidPath, []byte(`{"model_id":"local/test","engine":"localai","endpoint":"http://127.0.0.1:1234/v1","capabilities":"chat"}`), 0o600); err != nil {
 		t.Fatalf("write schema invalid manifest: %v", err)
 	}
 	_, err = svc.ImportLocalModel(context.Background(), &runtimev1.ImportLocalModelRequest{ManifestPath: schemaInvalidPath})
@@ -2406,6 +2333,7 @@ func TestLocalImportManifestValidation(t *testing.T) {
 		"capabilities":            []string{"chat"},
 		"entry":                   "./dist/index.js",
 		"local_invoke_profile_id": "profile-chat-default",
+		"endpoint":                "http://127.0.0.1:1234/v1",
 		"source": map[string]any{
 			"repo":     "nimiplatform/import-model",
 			"revision": "main",
@@ -2447,14 +2375,14 @@ func TestLocalImportLocalAIModelUsesManagedEndpoint(t *testing.T) {
 		t.Fatalf("write manifest: %v", err)
 	}
 
-	resp, err := svc.ImportLocalModel(context.Background(), &runtimev1.ImportLocalModelRequest{
+	_, err = svc.ImportLocalModel(context.Background(), &runtimev1.ImportLocalModelRequest{
 		ManifestPath: manifestPath,
 	})
-	if err != nil {
-		t.Fatalf("import localai image manifest: %v", err)
+	if err == nil {
+		t.Fatal("expected import without explicit endpoint to fail-close")
 	}
-	if got, want := resp.GetModel().GetEndpoint(), "http://127.0.0.1:57510/v1"; got != want {
-		t.Fatalf("managed localai import endpoint mismatch: got=%q want=%q", got, want)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED {
+		t.Fatalf("unexpected reason for import without endpoint: reason=%v ok=%v err=%v", reason, ok, err)
 	}
 }
 
@@ -2523,7 +2451,10 @@ func TestResolveModelInstallPlanNexaEndpointRequired(t *testing.T) {
 	if plan.GetInstallAvailable() {
 		t.Fatalf("nexa attached-endpoint plan without endpoint must be unavailable")
 	}
-	if plan.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String() {
+	if plan.GetEngineRuntimeMode() != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		t.Fatalf("supported nexa host should auto-recommend supervised, got %s", plan.GetEngineRuntimeMode())
+	}
+	if plan.GetReasonCode() != "LOCAL_ENGINE_MANAGER_UNAVAILABLE" {
 		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
 	}
 	if strings.TrimSpace(plan.GetEndpoint()) != "" {
@@ -2758,7 +2689,7 @@ func TestInstallLocalModelNimiMediaRequiresExplicitEndpointOnUnsupportedHost(t *
 	if err == nil {
 		t.Fatal("expected explicit endpoint requirement for unsupported nimi_media host")
 	}
-	assertGRPCCode(t, err, "InstallLocalModel(nimi_media unsupported host)", codes.FailedPrecondition)
+	assertGRPCCode(t, err, "InstallLocalModel(nimi_media unsupported host)", codes.InvalidArgument)
 	assertGRPCReasonCode(t, err, "InstallLocalModel(nimi_media unsupported host)", runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
 }
 
@@ -2898,19 +2829,16 @@ func TestLocalStateRestoresAfterRestart(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	svc := New(logger, nil, statePath, 0)
-	installedModel, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+	installedModel := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/persisted-model",
 		Capabilities: []string{"chat"},
 		Engine:       "localai",
 	})
-	if err != nil {
-		t.Fatalf("install model: %v", err)
-	}
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-persisted",
 		Title:        "svc-persisted",
 		Capabilities: []string{"chat"},
-		LocalModelId: installedModel.GetModel().GetLocalModelId(),
+		LocalModelId: installedModel.GetLocalModelId(),
 	}); err != nil {
 		t.Fatalf("install service: %v", err)
 	}
@@ -2920,6 +2848,7 @@ func TestLocalStateRestoresAfterRestart(t *testing.T) {
 		"model_id":                "local/persisted-import",
 		"engine":                  "localai",
 		"capabilities":            []string{"chat"},
+		"endpoint":                "http://127.0.0.1:8091/v1",
 		"local_invoke_profile_id": "profile-persisted",
 	})
 	if err := os.WriteFile(manifestPath, manifestRaw, 0o600); err != nil {

@@ -435,27 +435,6 @@ func appendWarnings(detail string, warnings []string) string {
 	return base + "; warnings=" + strings.Join(warnings, ",")
 }
 
-func modelProbeEndpoint(model *runtimev1.LocalModelRecord) string {
-	if model == nil {
-		return defaultLocalEndpoint
-	}
-	endpoint := strings.TrimSpace(model.GetEndpoint())
-	if strings.EqualFold(strings.TrimSpace(model.GetEngine()), "nimi_media") {
-		return defaultString(endpoint, defaultNimiMediaEndpoint)
-	}
-	return defaultString(endpoint, defaultLocalEndpoint)
-}
-
-func shouldUseManagedLocalAIEndpoint(endpoint string) bool {
-	trimmed := strings.TrimSpace(endpoint)
-	return trimmed == "" || strings.EqualFold(trimmed, defaultLocalEndpoint)
-}
-
-func shouldUseManagedNimiMediaEndpoint(endpoint string) bool {
-	trimmed := strings.TrimSpace(endpoint)
-	return trimmed == "" || strings.EqualFold(trimmed, defaultNimiMediaEndpoint)
-}
-
 func (s *Service) managedLocalAIEndpoint() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -470,46 +449,16 @@ func (s *Service) managedNimiMediaEndpoint() string {
 
 func (s *Service) effectiveLocalModelEndpoint(model *runtimev1.LocalModelRecord) string {
 	if model == nil {
-		return defaultLocalEndpoint
+		return ""
 	}
-	endpoint := strings.TrimSpace(model.GetEndpoint())
-	if strings.EqualFold(strings.TrimSpace(model.GetEngine()), "localai") {
-		if managedEndpoint := s.managedLocalAIEndpoint(); managedEndpoint != "" && shouldUseManagedLocalAIEndpoint(endpoint) {
-			return managedEndpoint
-		}
-	}
-	if strings.EqualFold(strings.TrimSpace(model.GetEngine()), "nimi_media") {
-		if managedEndpoint := s.managedNimiMediaEndpoint(); managedEndpoint != "" && shouldUseManagedNimiMediaEndpoint(endpoint) {
-			return managedEndpoint
-		}
-		return defaultString(endpoint, defaultNimiMediaEndpoint)
-	}
-	return defaultString(endpoint, defaultLocalEndpoint)
+	return s.effectiveEndpointForRuntimeMode(model.GetEngine(), s.modelRuntimeMode(model.GetLocalModelId()), model.GetEndpoint())
 }
 
-func (s *Service) normalizeRequestedLocalModelEndpoint(engine string, endpoint string) string {
-	trimmedEndpoint := strings.TrimSpace(endpoint)
-	if strings.EqualFold(strings.TrimSpace(engine), "localai") {
-		if managedEndpoint := s.managedLocalAIEndpoint(); managedEndpoint != "" && shouldUseManagedLocalAIEndpoint(trimmedEndpoint) {
-			return managedEndpoint
-		}
-	}
-	if strings.EqualFold(strings.TrimSpace(engine), "nimi_media") {
-		if managedEndpoint := s.managedNimiMediaEndpoint(); managedEndpoint != "" && shouldUseManagedNimiMediaEndpoint(trimmedEndpoint) {
-			return managedEndpoint
-		}
-		if trimmedEndpoint == "" {
-			return defaultNimiMediaEndpoint
-		}
-	}
-	return trimmedEndpoint
-}
-
-func serviceProbeEndpoint(service *runtimev1.LocalServiceDescriptor) string {
+func (s *Service) serviceProbeEndpoint(service *runtimev1.LocalServiceDescriptor) string {
 	if service == nil {
-		return defaultServiceEndpoint
+		return ""
 	}
-	return defaultString(strings.TrimSpace(service.GetEndpoint()), defaultServiceEndpoint)
+	return s.effectiveEndpointForRuntimeMode(service.GetEngine(), s.serviceRuntimeMode(service.GetServiceId()), service.GetEndpoint())
 }
 
 func (s *Service) modelByID(localModelID string) *runtimev1.LocalModelRecord {
@@ -621,17 +570,17 @@ func recoveryProbeInterval(now time.Time, state *probeRecoveryState) time.Durati
 	return localRecoveryDefaultProbeInterval
 }
 
-func (s *Service) bootstrapEngineIfManaged(ctx context.Context, engine string, endpoint string) error {
+func (s *Service) bootstrapEngineIfManaged(ctx context.Context, engine string, mode runtimev1.LocalEngineRuntimeMode, endpoint string) error {
 	mgr := s.engineManagerOrNil()
 	if mgr == nil {
 		return nil
 	}
-	port, shouldManage, err := parseManagedEndpointPort(engine, endpoint)
+	if normalizeRuntimeMode(mode) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		return nil
+	}
+	port, err := parseManagedEndpointPort(engine, endpoint)
 	if err != nil {
 		return err
-	}
-	if !shouldManage {
-		return nil
 	}
 	profile := collectDeviceProfile()
 	if classification, detail := classifyManagedEngineSupport(engine, profile); classification != localEngineSupportSupportedSupervised {
@@ -656,43 +605,43 @@ func (s *Service) engineManagerOrNil() EngineManager {
 	return s.engineMgr
 }
 
-func parseManagedEndpointPort(engine string, endpoint string) (int, bool, error) {
+func parseManagedEndpointPort(engine string, endpoint string) (int, error) {
 	raw := strings.TrimSpace(endpoint)
 	if raw == "" {
 		def := defaultEnginePort(engine)
 		if def <= 0 {
-			return 0, false, nil
+			return 0, fmt.Errorf("managed endpoint unavailable")
 		}
-		return def, true, nil
+		return def, nil
 	}
 	if !strings.Contains(raw, "://") {
 		raw = "http://" + raw
 	}
 	parsed, err := url.Parse(raw)
 	if err != nil {
-		return 0, false, fmt.Errorf("parse endpoint: %w", err)
+		return 0, fmt.Errorf("parse endpoint: %w", err)
 	}
 	host := strings.TrimSpace(parsed.Hostname())
 	if host == "" {
-		return 0, false, fmt.Errorf("parse endpoint host: empty")
+		return 0, fmt.Errorf("parse endpoint host: empty")
 	}
 	if !isLoopbackHost(host) {
-		return 0, false, nil
+		return 0, fmt.Errorf("managed endpoint must resolve to loopback")
 	}
 
 	port := strings.TrimSpace(parsed.Port())
 	if port == "" {
 		def := defaultEnginePort(engine)
 		if def <= 0 {
-			return 0, false, nil
+			return 0, fmt.Errorf("managed endpoint port unavailable")
 		}
-		return def, true, nil
+		return def, nil
 	}
 	value, err := strconv.Atoi(port)
 	if err != nil || value <= 0 {
-		return 0, false, fmt.Errorf("parse endpoint port: %q", port)
+		return 0, fmt.Errorf("parse endpoint port: %q", port)
 	}
-	return value, true, nil
+	return value, nil
 }
 
 func isLoopbackHost(host string) bool {

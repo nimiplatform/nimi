@@ -76,6 +76,7 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 `InstallLocalModel` 的语义是注册 + 状态持久化：
 
 - 将 model_id/capabilities/engine/source/endpoint 等字段写入本地状态存储。
+- runtime 内部必须同时持久化 model 的 `engine_runtime_mode`，用于区分显式 `ATTACHED_ENDPOINT` 与自动选择的 `SUPERVISED` 生命周期语义；该内部状态当前不要求经现有 RPC 直接暴露。
 - 生成唯一 `local_model_id`（ULID 格式）。
 - 初始状态为 `INSTALLED`（`K-LOCAL-005` 状态机锚点）。
 - Desktop execution-plane 可在注册后触发模型获取流程（`K-LOCAL-023`/`K-LOCAL-024`）。Phase 1 模型获取由 desktop 独占执行（`K-LOCAL-028`），runtime 不主动发起下载。
@@ -127,7 +128,7 @@ Phase 1 模型目录来源：
 1. 采集设备画像（`K-DEV-001`）。
 2. 按 `K-DEV-007` 执行硬件-引擎兼容性检查，生成 warnings。
 3. 判定 `install_available`：
-   - `engine_runtime_mode=ATTACHED_ENDPOINT` 且 endpoint 可确定 → `true`。
+   - `engine_runtime_mode=ATTACHED_ENDPOINT` 且 endpoint 显式提供且合法 → `true`。
    - `engine_runtime_mode=SUPERVISED` 且引擎二进制可达 → `true`。
    - 否则 → `false`，`reason_code` 说明原因。
 4. 填充 `LocalProviderHints`（引擎特定适配信息）。
@@ -183,7 +184,7 @@ Apply 管道任一阶段失败时：
 - 回滚本身失败时，结果同时携带原始失败和回滚失败的 reason_code，不做二次回滚。
 - 回滚不触发删除外部资产（如已下载的模型文件），仅清理 runtime 内部注册状态。
 
-> **Phase 1 注释**：ATTACHED_ENDPOINT 模式下，stage 3（bootstrap）仅验证 endpoint 连接可达，stage 4（health）仅验证 `/v1/models` 可响应。回滚的实际影响范围为 stage 2 的注册清理（`InstallLocalModel`/`InstallLocalService` 产生的状态记录）。
+> **Phase 1 注释**：ATTACHED_ENDPOINT 模式下，stage 3（bootstrap）仅验证 endpoint 连接可达，stage 4（health）必须遵循 `K-LENG-007` 的 engine-specific 探测协议。对 `nimi_media`，固定为 `GET /healthz` + `GET /v1/catalog`，不得回退 `/v1/models`。回滚的实际影响范围为 stage 2 的注册清理（`InstallLocalModel`/`InstallLocalService` 产生的状态记录）。
 
 ## K-LOCAL-016 状态持久化规则
 
@@ -191,6 +192,7 @@ Apply 管道任一阶段失败时：
 
 - 写入使用原子操作：写临时文件 → rename（防止断电损坏）。
 - 文件格式包含 `schemaVersion`（当前 `1`），向前兼容时忽略未知字段。
+- `models[]` / `services[]` 的本地状态必须保留内部 `engine_runtime_mode`，以避免把显式 attached loopback 与自动推荐 supervised loopback 混淆。
 - 审计事件（`LocalAuditEvent`）追加存储，上限默认 5000 条（可通过 `K-DAEMON-009` 配置 `localAuditCapacity` 覆盖），超出时按 FIFO 淘汰。
 - 每次状态变更（install/remove/start/stop/health）都触发持久化。
 

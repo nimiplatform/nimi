@@ -457,7 +457,7 @@ class Handler(BaseHTTPRequestHandler):
         return
 
     def do_GET(self):
-        if self.path in ("/readyz", "/healthz"):
+        if self.path == "/healthz":
             payload = _health_payload()
             status = 200 if payload["ready"] else 503
             _json_response(self, status, payload)

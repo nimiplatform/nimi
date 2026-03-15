@@ -83,6 +83,9 @@ func (s *Service) updateModelStatus(localModelID string, status runtimev1.LocalM
 	current.UpdatedAt = now
 	current.HealthDetail = detail
 	s.models[id] = cloneLocalModel(current)
+	if status == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
+		delete(s.modelRuntimeModes, id)
+	}
 	if status != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
 		delete(s.modelProbeState, id)
 	}
@@ -117,6 +120,9 @@ func (s *Service) updateServiceStatus(serviceID string, status runtimev1.LocalSe
 	current.UpdatedAt = now
 	current.Detail = detail
 	s.services[id] = cloneServiceDescriptor(current)
+	if status == runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED {
+		delete(s.serviceRuntimeModes, id)
+	}
 	if status != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY {
 		delete(s.serviceProbeState, id)
 	}

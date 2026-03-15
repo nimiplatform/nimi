@@ -41,6 +41,7 @@ type localStateModelState struct {
 	InstalledAt          string            `json:"installedAt"`
 	UpdatedAt            string            `json:"updatedAt"`
 	HealthDetail         string            `json:"healthDetail"`
+	EngineRuntimeMode    int32             `json:"engineRuntimeMode,omitempty"`
 	LocalInvokeProfileID string            `json:"localInvokeProfileId,omitempty"`
 	EngineConfig         map[string]any    `json:"engineConfig,omitempty"`
 }
@@ -64,17 +65,18 @@ type localStateArtifactState struct {
 }
 
 type localStateServiceState struct {
-	ServiceID    string   `json:"serviceId"`
-	Title        string   `json:"title"`
-	Engine       string   `json:"engine"`
-	ArtifactType string   `json:"artifactType"`
-	Endpoint     string   `json:"endpoint"`
-	Capabilities []string `json:"capabilities"`
-	LocalModelID string   `json:"localModelId"`
-	Status       int32    `json:"status"`
-	Detail       string   `json:"detail"`
-	InstalledAt  string   `json:"installedAt"`
-	UpdatedAt    string   `json:"updatedAt"`
+	ServiceID         string   `json:"serviceId"`
+	Title             string   `json:"title"`
+	Engine            string   `json:"engine"`
+	ArtifactType      string   `json:"artifactType"`
+	Endpoint          string   `json:"endpoint"`
+	Capabilities      []string `json:"capabilities"`
+	LocalModelID      string   `json:"localModelId"`
+	Status            int32    `json:"status"`
+	Detail            string   `json:"detail"`
+	InstalledAt       string   `json:"installedAt"`
+	UpdatedAt         string   `json:"updatedAt"`
+	EngineRuntimeMode int32    `json:"engineRuntimeMode,omitempty"`
 }
 
 type localStateAuditState struct {
@@ -150,6 +152,7 @@ func (s *Service) restoreState() {
 			continue
 		}
 		modelRows = append(modelRows, record)
+		s.setModelRuntimeModeLocked(record.GetLocalModelId(), runtimev1.LocalEngineRuntimeMode(item.EngineRuntimeMode))
 	}
 	modelRows, modelsChanged := dedupeLocalModelRecords(modelRows)
 	if modelsChanged {
@@ -211,6 +214,7 @@ func (s *Service) restoreState() {
 			continue
 		}
 		s.services[record.GetServiceId()] = record
+		s.setServiceRuntimeModeLocked(record.GetServiceId(), runtimev1.LocalEngineRuntimeMode(item.EngineRuntimeMode))
 	}
 
 	s.audits = s.audits[:0]
@@ -283,6 +287,7 @@ func (s *Service) persistStateLocked() {
 			InstalledAt:          model.GetInstalledAt(),
 			UpdatedAt:            model.GetUpdatedAt(),
 			HealthDetail:         model.GetHealthDetail(),
+			EngineRuntimeMode:    int32(s.modelRuntimeModes[id]),
 			LocalInvokeProfileID: model.GetLocalInvokeProfileId(),
 			EngineConfig:         structToMap(model.GetEngineConfig()),
 		})
@@ -328,17 +333,18 @@ func (s *Service) persistStateLocked() {
 			continue
 		}
 		snapshot.Services = append(snapshot.Services, localStateServiceState{
-			ServiceID:    service.GetServiceId(),
-			Title:        service.GetTitle(),
-			Engine:       service.GetEngine(),
-			ArtifactType: service.GetArtifactType(),
-			Endpoint:     service.GetEndpoint(),
-			Capabilities: append([]string(nil), service.GetCapabilities()...),
-			LocalModelID: service.GetLocalModelId(),
-			Status:       int32(service.GetStatus()),
-			Detail:       service.GetDetail(),
-			InstalledAt:  service.GetInstalledAt(),
-			UpdatedAt:    service.GetUpdatedAt(),
+			ServiceID:         service.GetServiceId(),
+			Title:             service.GetTitle(),
+			Engine:            service.GetEngine(),
+			ArtifactType:      service.GetArtifactType(),
+			Endpoint:          service.GetEndpoint(),
+			Capabilities:      append([]string(nil), service.GetCapabilities()...),
+			LocalModelID:      service.GetLocalModelId(),
+			Status:            int32(service.GetStatus()),
+			Detail:            service.GetDetail(),
+			InstalledAt:       service.GetInstalledAt(),
+			UpdatedAt:         service.GetUpdatedAt(),
+			EngineRuntimeMode: int32(s.serviceRuntimeModes[id]),
 		})
 	}
 

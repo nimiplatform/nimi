@@ -11,6 +11,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
 )
@@ -143,8 +144,8 @@ func selectActiveLocalModel(models []*runtimev1.LocalModelRecord, selector local
 	}
 
 	sort.Slice(candidates, func(i, j int) bool {
-		pi := localEnginePriority(candidates[i].GetEngine())
-		pj := localEnginePriority(candidates[j].GetEngine())
+		pi := localEnginePriorityForModal(candidates[i].GetEngine(), selector.modal)
+		pj := localEnginePriorityForModal(candidates[j].GetEngine(), selector.modal)
 		if pi != pj {
 			return pi < pj
 		}
@@ -242,8 +243,8 @@ func firstActiveLocalModel(models []*runtimev1.LocalModelRecord) *runtimev1.Loca
 		return nil
 	}
 	sort.Slice(active, func(i, j int) bool {
-		pi := localEnginePriority(active[i].GetEngine())
-		pj := localEnginePriority(active[j].GetEngine())
+		pi := localEnginePriorityForModal(active[i].GetEngine(), runtimev1.Modal_MODAL_UNSPECIFIED)
+		pj := localEnginePriorityForModal(active[j].GetEngine(), runtimev1.Modal_MODAL_UNSPECIFIED)
 		if pi != pj {
 			return pi < pj
 		}
@@ -263,8 +264,8 @@ func unavailableLocalModelDetail(models []*runtimev1.LocalModelRecord) string {
 		if si != sj {
 			return si < sj
 		}
-		pi := localEnginePriority(sorted[i].GetEngine())
-		pj := localEnginePriority(sorted[j].GetEngine())
+		pi := localEnginePriorityForModal(sorted[i].GetEngine(), runtimev1.Modal_MODAL_UNSPECIFIED)
+		pj := localEnginePriorityForModal(sorted[j].GetEngine(), runtimev1.Modal_MODAL_UNSPECIFIED)
 		if pi != pj {
 			return pi < pj
 		}
@@ -306,42 +307,33 @@ func localModelStatusLabel(status runtimev1.LocalModelStatus) string {
 }
 
 func localEnginePriority(engine string) int {
-	switch strings.ToLower(strings.TrimSpace(engine)) {
-	case "localai":
-		return 0
-	case "sidecar":
-		return 1
-	case "nexa":
-		return 2
-	case "nimi_media":
-		return 3
-	default:
-		return 4
-	}
+	return localEnginePriorityForModal(engine, runtimev1.Modal_MODAL_UNSPECIFIED)
+}
+
+func localEnginePriorityForModal(engine string, modal runtimev1.Modal) int {
+	return localrouting.PreferenceRank(localModelValidationGOOS, localRoutingCapabilityForModal(modal), engine)
 }
 
 func localPreferredEngines(modal runtimev1.Modal) []string {
-	if localModelValidationGOOS == "windows" {
-		switch modal {
-		case runtimev1.Modal_MODAL_IMAGE, runtimev1.Modal_MODAL_VIDEO:
-			return []string{"nimi_media", "localai", "nexa", "sidecar"}
-		case runtimev1.Modal_MODAL_TTS, runtimev1.Modal_MODAL_STT:
-			return []string{"nexa", "localai", "sidecar", "nimi_media"}
-		case runtimev1.Modal_MODAL_MUSIC:
-			return []string{"sidecar", "localai", "nexa", "nimi_media"}
-		default:
-			return []string{"nexa", "localai", "sidecar", "nimi_media"}
-		}
-	}
+	return localrouting.PreferenceOrder(localModelValidationGOOS, localRoutingCapabilityForModal(modal))
+}
+
+func localRoutingCapabilityForModal(modal runtimev1.Modal) string {
 	switch modal {
-	case runtimev1.Modal_MODAL_IMAGE, runtimev1.Modal_MODAL_VIDEO:
-		return []string{"localai", "nimi_media", "nexa", "sidecar"}
-	case runtimev1.Modal_MODAL_TTS, runtimev1.Modal_MODAL_STT:
-		return []string{"localai", "nexa", "sidecar", "nimi_media"}
+	case runtimev1.Modal_MODAL_IMAGE:
+		return "image.generate"
+	case runtimev1.Modal_MODAL_VIDEO:
+		return "video.generate"
+	case runtimev1.Modal_MODAL_TTS:
+		return "audio.synthesize"
+	case runtimev1.Modal_MODAL_STT:
+		return "audio.transcribe"
 	case runtimev1.Modal_MODAL_MUSIC:
-		return []string{"sidecar", "localai", "nexa", "nimi_media"}
+		return "music.generate"
+	case runtimev1.Modal_MODAL_EMBEDDING:
+		return "text.embed"
 	default:
-		return []string{"localai", "sidecar", "nexa", "nimi_media"}
+		return "text.generate"
 	}
 }
 

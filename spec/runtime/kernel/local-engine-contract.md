@@ -29,7 +29,7 @@ Phase 1 同时支持 `ATTACHED_ENDPOINT` 和 `SUPERVISED` 两种模式。
 - `endpoint` 必须指向已运行的 HTTP 服务（格式：`http://<host>:<port>[/<base_path>]`）。
 - runtime 不负责启动、停止或重启该进程。
 - `localai` / `nexa` / `nimi_media` 的健康探测协议见 `K-LENG-007`；`sidecar` 当前不纳入 RuntimeLocalService 的标准引擎健康探测与生命周期管理，availability 由实际请求结果决定。
-- `endpoint` 缺失或空字符串时，按 `K-LENG-005` 注入默认端点。
+- `endpoint` 缺失或空字符串时视为未配置；runtime MUST fail-close，不得默认补回 loopback。
 - `nimi_media` 的 attached endpoint 逃生口必须是显式外部 endpoint。对不满足 `Windows x64 + NVIDIA CUDA` 的主机，runtime 不得把默认 loopback `http://127.0.0.1:8321/v1` 伪装成 attached fallback。
 
 ## K-LENG-004 SUPERVISED 约束
@@ -56,7 +56,7 @@ Phase 1 同时支持 `ATTACHED_ENDPOINT` 和 `SUPERVISED` 两种模式。
 - PID 文件：`~/.nimi/engines/{engine}/supervised.pid`，用于僵尸进程清理。
 - 端口分配：优先使用配置端口，冲突时 port+1 递增尝试最多 10 次。
 - 启动等待：LocalAI 默认 120 秒（首次下载 GPU backend 可能较慢），Nexa 默认 30 秒，`nimi_media` 默认 180 秒（首次安装 Torch / diffusers 依赖可能较慢）。
-- 健康探测：LocalAI 使用 `GET /readyz`（HTTP 200=健康），Nexa 使用 `GET /`（body 含 "Nexa SDK is running"=健康），`nimi_media` 使用 `GET /readyz`（body 含 `"status": "ok"`=健康）。
+- 受管引擎启动健康判定必须遵循 `K-LENG-007`。其中 `nimi_media` 的 canonical 健康协议固定为 `GET /healthz` + `GET /v1/catalog`；`/readyz` 不再属于 `nimi_media` contract。
 - Host 支持面判定：runtime 内部必须区分 `supported_supervised`、`attached_only`、`unsupported`。Phase 1 中 `nimi_media` 的 supervised host 只有 `Windows x64 + NVIDIA CUDA`；其余 host 至少视为 `attached_only`。
 
 ### env var 注入
@@ -127,17 +127,16 @@ ENV 覆盖：`NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED`、`NIMI_RUNTIME_ENGINE_LOCALA
 
 引擎默认端点以 `tables/local-engine-catalog.yaml` 为事实源：
 
-- `localai`：`http://127.0.0.1:1234/v1`
+- `localai`：ATTACHED_ENDPOINT 无默认端点；SUPERVISED 默认监听端口为 `1234`
 - `nexa`：无默认端点，`endpoint` 必须显式提供。
-- `nimi_media`：`http://127.0.0.1:8321/v1`
+- `nimi_media`：ATTACHED_ENDPOINT 无默认端点；SUPERVISED 默认监听端口为 `8321`
 - `sidecar`：无默认端点，`endpoint` 必须显式提供。
 
 当安装或启动时 `endpoint` 为空：
 
-- `localai`：自动注入默认端点。
-- `nexa`：返回 `INVALID_ARGUMENT` + `AI_LOCAL_ENDPOINT_REQUIRED`。
-- `nimi_media`：仅当 host 满足 supervised 条件时允许把默认端点解释为 daemon-managed loopback；否则必须要求显式 attached endpoint，并返回 fail-close。
-- `sidecar`：返回 `INVALID_ARGUMENT` + `AI_LOCAL_ENDPOINT_REQUIRED`。
+- `ATTACHED_ENDPOINT`：一律返回 fail-close；reason code 使用 `AI_LOCAL_ENDPOINT_REQUIRED`。
+- `SUPERVISED`：runtime 允许按受管引擎配置与默认端口解析 managed loopback；在 engine manager 产出真实 endpoint 前，状态中的 `endpoint` 可以为空。
+- 未显式指定 mode/endpoint 的自动推荐路径（如 catalog / install plan）可优先返回 `SUPERVISED`；显式 attached endpoint 语义不得被偷偷覆盖。
 
 ## K-LENG-006 Local HTTP 协议基线
 
@@ -153,12 +152,12 @@ ENV 覆盖：`NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED`、`NIMI_RUNTIME_ENGINE_LOCALA
 
 `nimi_media` 使用 runtime 私有 canonical media HTTP API：
 
-- 健康探测：`GET /healthz`、`GET /readyz`
+- 健康探测：`GET /healthz`
 - 目录探测：`GET /v1/catalog`
 - 图像生成：`POST /v1/media/image/generate`
 - 视频生成：`POST /v1/media/video/generate`
 
-`/healthz` 与 `/readyz` 必须只在依赖导入、设备探测、默认 image/video 模型解析、以及默认 image/video 管线初始化全部成功后返回 `200 + ready=true`；否则必须返回非 `2xx` 或 `ready=false`，并包含结构化 `detail`。
+`/healthz` 必须只在依赖导入、设备探测、默认 image/video 模型解析、以及默认 image/video 管线初始化全部成功后返回 `200 + ready=true`；否则必须返回非 `2xx` 或 `ready=false`，并包含结构化 `detail`。
 
 `/v1/catalog` 必须只暴露真实 ready 的模型与 capability，不得伪造静态 model list，也不得把 `not_loaded` / `unconfigured` / `dependency_missing` 的模型伪装成可用目录项。
 
@@ -207,6 +206,7 @@ LocalAI / Nexa 健康探测使用 `GET /v1/models`：
 - `/healthz` 返回 `200 + ready=true` 且 `/v1/catalog` 返回至少一个 ready model → 健康。
 - `/healthz` 非 200、`ready=false`、`/v1/catalog` 非 200，或目录为空/缺失目标 ready model → 不健康。
 - `nimi_media` 的目录探测不得退回 `/v1/models`，也不得把静态默认 driver 信息当作 ready 证据。
+- `ATTACHED_ENDPOINT` 与 `SUPERVISED` 两种模式都必须遵循同一 canonical 健康协议；二者均不得回退 `/v1/models`。
 
 Nexa capability probe 补充：
 
