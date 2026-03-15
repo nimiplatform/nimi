@@ -122,6 +122,48 @@ Desktop UI 必须让用户可观察每个 mod 的解析来源与冲突状态：
 - Developer Panel 必须展示 source directories 列表、每个目录发现的 mod、冲突项、reload 日志与错误链。
 - Mod Hub 负责发现、安装、更新与卸载，不应承担主要调试入口；来源路径与冲突排障应在 Mods Panel / Developer Panel 中完成。
 
+## D-SHELL-011 — World Detail Surface Order
+
+Desktop `world-detail` surface 必须保持稳定的大区块顺序：
+
+- `Hero`
+- `Dashboard`
+- `Core Rules`
+- `Timeline`
+- `Scenes`
+- `Agents`
+- `Extended`
+
+视觉强化组件只能存在于这些 section 的内部，不得改变大区块顺序或把线性内容（如 timeline / agents）并入其它布局区。
+
+## D-SHELL-012 — World Detail Deterministic Section Bento
+
+World Detail 允许在 section 内部使用 Bento grid，但必须满足：
+
+- 只能使用显式模板和固定 DOM 顺序，不得依赖 `grid-auto-flow: dense` 或其他会改变视觉顺序的自动补洞机制。
+- 卡片缺失时必须通过预定义模板收缩，不得保留空占位。
+- `Dashboard` 的主视觉行由评分矩阵与时间流速环组成，其余信息只能以下方文字信息卡进入确定性收缩模板。
+- `Core Rules` 的卡片顺序固定为：运转规则、禁忌、力量体系、界域星图、因果、语言；视觉卡存在时按固定 `4/8` 或 `8/4` 模板排布。
+- `Extended` 只能使用单列、`6/6` 或 `8/4` 的确定性模板。
+
+## D-SHELL-013 — World Detail Visual Card Mapping
+
+World Detail 的视觉卡片必须只消费现有 world detail 数据 contract：
+
+- `Dashboard` 不引入独立事件视觉卡；事件统计必须保留在线性 `Timeline` section 的文字/筛选语义内。
+- `Power System` 卡优先消费 `semantic.powerSystems[0]`，为空时 fallback 到 `semantic.standaloneLevels`；无 levels 时不渲染；levels 超过 `12` 时截断；其他 power systems 只能以 compact 文本显示。
+- `Realm Constellation`：来自 `semantic.topology`；realm 超过 `8` 时截断；无 realm 且无 topology 元信息时不渲染；仅有 topology 元信息时渲染 meta pills 与空态。
+- 上述卡片只能作为 `Core Rules` 的卡片内容，不得形成新的页面级布局体系。
+
+## D-SHELL-014 — World Detail Motion & Testability
+
+World Detail 的视觉卡与 section surface 必须满足：
+
+- 持续动画必须支持 `prefers-reduced-motion: reduce` 并降级为静态或弱动效。
+- 视觉卡 hover 信息必须通过可测试的 tooltip / overlay surface 呈现，不得只依赖 CSS `title`。
+- section root、关键视觉卡和可见的 layout surface 必须暴露稳定 `data-testid`。
+- World Detail 的实现、spec 和测试必须共同验证 live surface 仍然通过 `world-detail.tsx -> world-xianxia-template.tsx` 渲染。
+
 ## Fact Sources
 
 - `tables/app-tabs.yaml` — 导航 Tab 枚举

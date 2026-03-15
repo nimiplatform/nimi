@@ -124,6 +124,19 @@ features:
       - scenario_id: explore.panel-load
         source_rule: D-GATE-040
         spec_path: apps/desktop/e2e/specs/explore.panel-load.e2e.mjs
+  - feature: world-detail-surface
+    risk_tier: P2
+    required_layers:
+      - unit_contract
+    covers_tabs:
+      - world-detail
+    covers_bootstrap_phases: []
+    covers_ipc_commands: []
+    covers_runtime_pages: []
+    scenarios:
+      - scenario_id: world.surface-layout
+        source_rule: D-GATE-040
+        spec_path: apps/desktop/test/world-detail-bento-layout.test.ts
   - feature: runtime-config
     risk_tier: P1
     required_layers:

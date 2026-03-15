@@ -14,6 +14,10 @@ World 详情功能域 — World 详情页、语义数据、穿越管理、关卡
 
 ## Kernel References
 
+### UI Shell (`D-SHELL-011` ~ `D-SHELL-014`)
+
+- World Detail surface 顺序、分区式 Bento、视觉卡映射与 motion/testability 规则由 `D-SHELL-011` ~ `D-SHELL-014` 定义。
+
 ### DataSync (D-DSYNC-005)
 
 世界数据流（方法清单见 `D-DSYNC-005`）。

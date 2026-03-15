@@ -1612,6 +1612,17 @@
           "yes": "是",
           "no": "否"
         },
+        "visuals": {
+          "timeFlowTitle": "时间流速环",
+          "timeFlowSubtitle": "当前世界的时间加速度",
+          "cultivationLevelCount": "{{count}} 阶",
+          "constellationTitle": "界域星图",
+          "constellationSubtitle": "连接界域的拓扑与可达性",
+          "constellationEmpty": "当前只有拓扑元信息，还没有可展示的界域节点。",
+          "taboosSubtitle": "定义硬边界的禁忌规则",
+          "causalitySubtitle": "命运、因果与业力控制",
+          "languagesSubtitle": "语言、书写与口语样本"
+        },
         "hero": {
           "back": "返回",
           "oasisWorld": "OASIS 世界",
@@ -1625,6 +1636,11 @@
           "title": "世界观核心规则",
           "subtitle": "这个世界的核心运转规则",
           "operation": "世界如何运转",
+          "powerSystem": "力量体系",
+          "powerSystemSubtitle": "这个世界的主力量进阶路径与等级结构",
+          "primarySystem": "主体系",
+          "levelTierCount": "境界阶数",
+          "supportingSystem": "附属体系",
           "powerSystems": "力量 / 境界体系",
           "breakthroughCondition": "突破条件",
           "taboos": "禁忌",
@@ -1667,7 +1683,15 @@
           "title": "场景入口",
           "subtitle": "探索这个世界的关键地点",
           "noDescription": "暂无描述。",
-          "activeEntities": "活跃实体"
+          "activeEntities": "活跃实体",
+          "quickSheetTitle": "场景详情",
+          "quickSheetClose": "关闭",
+          "quickSheetDescription": "场景描述",
+          "quickSheetActiveEntities": "活跃角色",
+          "quickSheetRelatedEvents": "相关事件",
+          "quickSheetEnter": "进入体验",
+          "quickSheetViewAgents": "查看相关角色",
+          "quickSheetViewEvents": "查看相关事件"
         },
         "runtimeFacts": {
           "title": "世界运行事实",
@@ -1687,11 +1711,23 @@
           "latestAudit": "最近治理动作",
           "recommendedAgents": "推荐进入角色",
           "recommendedAgentsSubtitle": "首次进入推荐认识的角色",
+          "chronology": "纪年",
+          "chronologySubtitle": "当前世界时间事实",
           "chronologyAndLanguage": "纪年与语言",
           "chronologyAndLanguageSubtitle": "世界时间与语言事实",
+          "languages": "语言",
+          "languagesSubtitle": "这个世界常用的语言",
           "currentWorldTime": "当前世界时间",
           "primaryLanguage": "主语言",
           "commonLanguages": "常见语言"
+        },
+        "quickNav": {
+          "rules": "规则",
+          "characters": "入口角色",
+          "scenes": "场景",
+          "timeline": "事件",
+          "roster": "角色",
+          "governance": "治理"
         },
         "agents": {
           "title": "全部角色",
@@ -1703,6 +1739,12 @@
           "vitality": "活力值",
           "chat": "对话",
           "voice": "语音",
+          "quickSheetTitle": "角色详情",
+          "quickSheetClose": "关闭",
+          "quickSheetIdentity": "角色定位",
+          "quickSheetLocation": "当前所在",
+          "quickSheetBio": "角色简介",
+          "quickSheetViewProfile": "查看完整资料",
           "groupPrimary": "主要角色",
           "groupSecondary": "次要角色",
           "groupBackground": "背景角色"

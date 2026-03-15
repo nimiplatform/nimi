@@ -167,24 +167,28 @@ export type WorldSemanticSnapshotItem = {
   createdAt?: string | null;
 };
 
+export type WorldSemanticPowerSystem = {
+  name: string;
+  description?: string | null;
+  levels: WorldSemanticLevel[];
+  rules: string[];
+};
+
+export type WorldSemanticTopology = {
+  type?: string | null;
+  boundary?: string | null;
+  dimensions?: string | null;
+  realms: WorldSemanticRealm[];
+};
+
 export type WorldSemanticData = {
   operationTitle?: string | null;
   operationDescription?: string | null;
   operationRules: WorldSemanticRule[];
-  powerSystems: Array<{
-    name: string;
-    description?: string | null;
-    levels: WorldSemanticLevel[];
-    rules: string[];
-  }>;
+  powerSystems: WorldSemanticPowerSystem[];
   standaloneLevels: WorldSemanticLevel[];
   taboos: WorldSemanticTaboo[];
-  topology: {
-    type?: string | null;
-    boundary?: string | null;
-    dimensions?: string | null;
-    realms: WorldSemanticRealm[];
-  } | null;
+  topology: WorldSemanticTopology | null;
   causality: {
     type?: string | null;
     karmaEnabled?: boolean | null;
@@ -250,4 +254,27 @@ export type WorldPublicAssetsData = {
   scenes: WorldSceneItem[];
   mediaBindings: WorldMediaBindingItem[];
   mutations: WorldMutationItem[];
+};
+
+export type WorldDetailLayoutCard<Key extends string = string> = {
+  key: Key;
+  span: 4 | 6 | 8 | 12;
+};
+
+export type WorldDetailLayoutPlan<Key extends string = string> = {
+  cards: WorldDetailLayoutCard<Key>[];
+};
+
+export type CultivationRingsData = {
+  systemName: string;
+  systemDescription?: string | null;
+  levels: WorldSemanticLevel[];
+  extraSystems: WorldSemanticPowerSystem[];
+};
+
+export type RealmConstellationData = {
+  topologyType?: string | null;
+  boundary?: string | null;
+  dimensions?: string | null;
+  realms: WorldSemanticRealm[];
 };

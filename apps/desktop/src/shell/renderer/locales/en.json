@@ -1612,6 +1612,17 @@
           "yes": "Yes",
           "no": "No"
         },
+        "visuals": {
+          "timeFlowTitle": "Time Flow",
+          "timeFlowSubtitle": "Current temporal acceleration of the world",
+          "cultivationLevelCount": "{{count}} tiers",
+          "constellationTitle": "Realm Constellation",
+          "constellationSubtitle": "Topology and accessibility of connected realms",
+          "constellationEmpty": "Topology metadata exists, but there are no realm nodes to display yet.",
+          "taboosSubtitle": "Rules that define hard boundaries",
+          "causalitySubtitle": "Fate, karma, and causality controls",
+          "languagesSubtitle": "Languages, writing, and speech samples"
+        },
         "hero": {
           "back": "Back",
           "oasisWorld": "OASIS WORLD",
@@ -1625,6 +1636,11 @@
           "title": "World Core Rules",
           "subtitle": "The core rules that govern this world",
           "operation": "How the World Works",
+          "powerSystem": "Power System",
+          "powerSystemSubtitle": "Primary advancement path and level structure",
+          "primarySystem": "Primary System",
+          "levelTierCount": "Level Tiers",
+          "supportingSystem": "Supporting System",
           "powerSystems": "Power / Level Systems",
           "breakthroughCondition": "Breakthrough Condition",
           "taboos": "Taboos",
@@ -1667,7 +1683,15 @@
           "title": "Scene Gateways",
           "subtitle": "Key places to explore in this world",
           "noDescription": "No description.",
-          "activeEntities": "Active Entities"
+          "activeEntities": "Active Entities",
+          "quickSheetTitle": "Scene Details",
+          "quickSheetClose": "Close",
+          "quickSheetDescription": "Description",
+          "quickSheetActiveEntities": "Active Characters",
+          "quickSheetRelatedEvents": "Related Events",
+          "quickSheetEnter": "Enter Experience",
+          "quickSheetViewAgents": "View Related Agents",
+          "quickSheetViewEvents": "View Related Events"
         },
         "runtimeFacts": {
           "title": "World Runtime Facts",
@@ -1687,11 +1711,23 @@
           "latestAudit": "Latest governance action",
           "recommendedAgents": "Recommended Entry Agents",
           "recommendedAgentsSubtitle": "Recommended characters to meet first",
+          "chronology": "Chronology",
+          "chronologySubtitle": "Current world time facts",
           "chronologyAndLanguage": "Chronology & Languages",
           "chronologyAndLanguageSubtitle": "World time and language facts",
+          "languages": "Languages",
+          "languagesSubtitle": "Common languages in this world",
           "currentWorldTime": "Current World Time",
           "primaryLanguage": "Primary Language",
           "commonLanguages": "Common Languages"
+        },
+        "quickNav": {
+          "rules": "Rules",
+          "characters": "Entry Characters",
+          "scenes": "Scenes",
+          "timeline": "Events",
+          "roster": "Roster",
+          "governance": "Governance"
         },
         "agents": {
           "title": "All Agents",
@@ -1703,6 +1739,12 @@
           "vitality": "Vitality",
           "chat": "Chat",
           "voice": "Voice",
+          "quickSheetTitle": "Agent Details",
+          "quickSheetClose": "Close",
+          "quickSheetIdentity": "Identity",
+          "quickSheetLocation": "Current Location",
+          "quickSheetBio": "Overview",
+          "quickSheetViewProfile": "View Full Profile",
           "groupPrimary": "Primary Agents",
           "groupSecondary": "Secondary Agents",
           "groupBackground": "Background Agents"

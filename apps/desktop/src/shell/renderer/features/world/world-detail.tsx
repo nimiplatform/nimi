@@ -291,6 +291,10 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
     });
   };
 
+  const handleViewAgent = (agent: WorldAgent) => {
+    navigateToProfile(agent.id, 'agent-detail');
+  };
+
   const handleEnterEdit = () => {
     logRendererEvent({
       level: 'info',
@@ -389,6 +393,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
         onCreateSubWorld={handleCreateSubWorld}
         onChatAgent={handleChatAgent}
         onVoiceAgent={handleVoiceAgent}
+        onViewAgent={handleViewAgent}
         onCreateAgent={(input) => createAgentMutation.mutate(input)}
         createAgentMutating={createAgentMutation.isPending}
       />
