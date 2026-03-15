@@ -14,9 +14,12 @@ import type { SendMessageInputDto } from '@nimiplatform/sdk/realm';
 import type { CreateReviewDto } from '@nimiplatform/sdk/realm';
 import type { CreateSparkCheckoutDto } from '@nimiplatform/sdk/realm';
 import type { CreateWithdrawalDto } from '@nimiplatform/sdk/realm';
+import type { NotificationDto } from '@nimiplatform/sdk/realm';
+import type { NotificationListResultDto } from '@nimiplatform/sdk/realm';
 import type { UpdatePasswordRequestDto } from '@nimiplatform/sdk/realm';
 import type { UpdateUserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
 import type { UpdateUserSettingsDto } from '@nimiplatform/sdk/realm';
+import type { UnreadNotificationCountDto } from '@nimiplatform/sdk/realm';
 import type { PasswordAuthDebug } from './auth';
 import { loginWithPassword, logoutWithCleanup, registerWithPassword } from './flows/auth-flow';
 import {
@@ -158,6 +161,8 @@ type CreateDataSyncActionsInput = {
   isFriend: (userId: string) => boolean;
   getCurrentUser: () => Record<string, unknown> | null;
 };
+
+type DataSyncNotificationType = NonNullable<NotificationDto['type']>;
 
 export function createDataSyncActions(input: CreateDataSyncActionsInput) {
   const loadContacts = async () => loadContactList(input.callApiTask, input.emitFacadeError);
@@ -389,16 +394,16 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       rejectGift(input.callApiTask, input.emitFacadeError, giftTransactionId, payload),
     createGiftReview: async (payload: CreateReviewDto) =>
       createGiftReview(input.callApiTask, input.emitFacadeError, payload),
-    loadNotificationUnreadCount: async () =>
+    loadNotificationUnreadCount: async (): Promise<UnreadNotificationCountDto> =>
       loadNotificationUnreadCount(input.callApiTask, input.emitFacadeError),
     loadNotifications: async (
       options?: {
-        type?: 'SYSTEM' | 'INTERACTION' | 'POST_LIKE' | 'POST_COMMENT' | 'MENTION';
+        type?: DataSyncNotificationType;
         unreadOnly?: boolean;
         limit?: number;
         cursor?: string;
       },
-    ) =>
+    ): Promise<NotificationListResultDto> =>
       loadNotifications(input.callApiTask, input.emitFacadeError, options),
     markNotificationsRead: async (payload: MarkNotificationsReadInputDto) =>
       markNotificationsRead(input.callApiTask, input.emitFacadeError, payload),

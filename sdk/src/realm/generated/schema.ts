@@ -5985,6 +5985,14 @@ export type components = {
             original: string;
             translated: string;
         };
+        UnreadNotificationCountDto: {
+            /** @description Unread counts keyed by public notification type */
+            byType: {
+                [key: string]: number;
+            };
+            /** @description Total unread notifications */
+            total: number;
+        };
         UpdateAgentDnaDto: {
             dna: components["schemas"]["AgentDnaDto"];
         };

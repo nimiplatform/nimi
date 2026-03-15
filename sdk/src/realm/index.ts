@@ -198,6 +198,7 @@ export type { TransitDetailDto } from './generated/models/TransitDetailDto';
 export type { TransitSessionDataDto } from './generated/models/TransitSessionDataDto';
 export type { TranslateRequestDto } from './generated/models/TranslateRequestDto';
 export type { TranslateResponseDto } from './generated/models/TranslateResponseDto';
+export type { UnreadNotificationCountDto } from './generated/models/UnreadNotificationCountDto';
 export type { UpdateAgentDnaDto } from './generated/models/UpdateAgentDnaDto';
 export type { UpdateAgentVisibilityDto } from './generated/models/UpdateAgentVisibilityDto';
 export type { UpdateCreatorAgentDto } from './generated/models/UpdateCreatorAgentDto';

@@ -9,6 +9,7 @@ import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
 import { resolveRouteTabExtension } from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
 import { StatusBanner } from '@renderer/ui/feedback/status-banner';
+import { notificationQueryKeys } from '@renderer/features/notification/notification-query.js';
 import {
   loadStoredSettingsSelected,
   persistStoredSettingsSelected,
@@ -323,7 +324,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     refetchInterval: 60_000,
   });
   const unreadCountQuery = useQuery({
-    queryKey: ['topbar-notification-unread-count'],
+    queryKey: notificationQueryKeys.topbarUnreadCount,
     queryFn: async () => {
       const { dataSync } = await import('@runtime/data-sync');
       return dataSync.loadNotificationUnreadCount();

@@ -10,6 +10,7 @@ import { dataSync } from '@runtime/data-sync';
 import { getOfflineCoordinator } from '@runtime/offline';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { queryClient } from '@renderer/infra/query-client/query-client';
+import { invalidateNotificationQueries } from '@renderer/features/notification/notification-query.js';
 import {
   applyRealtimeMessageToChatsResult,
   applyRealtimeMessageUpdateToChatsResult,
@@ -369,6 +370,7 @@ export function useChatRealtimeSync(): void {
       void dataSync.flushChatOutbox();
       void dataSync.flushSocialOutbox();
       void queryClient.invalidateQueries({ queryKey: ['chats'] });
+      void invalidateNotificationQueries();
       if (selectedChatIdRef.current) {
         void queryClient.invalidateQueries({ queryKey: ['messages', selectedChatIdRef.current] });
       }
@@ -476,6 +478,10 @@ export function useChatRealtimeSync(): void {
         });
     };
 
+    const onNotification = () => {
+      void invalidateNotificationQueries();
+    };
+
     const onDisconnect = () => {
       offlineCoordinator.markRealmSocketReachable(false);
       // D-NET-007: Socket disconnected → refresh chat data from REST
@@ -510,6 +516,7 @@ export function useChatRealtimeSync(): void {
     socket.on('chat:session.ready', onSessionReady);
     socket.on('chat:event', onChatEvent);
     socket.on('chat:session.sync_required', onSyncRequired);
+    socket.on('notif:new', onNotification);
 
     return () => {
       socket.off('connect', onConnect);
@@ -517,6 +524,7 @@ export function useChatRealtimeSync(): void {
       socket.off('chat:session.ready', onSessionReady);
       socket.off('chat:event', onChatEvent);
       socket.off('chat:session.sync_required', onSyncRequired);
+      socket.off('notif:new', onNotification);
       socket.disconnect();
       if (socketRef.current === socket) {
         socketRef.current = null;

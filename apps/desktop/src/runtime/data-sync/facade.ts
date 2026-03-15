@@ -10,6 +10,8 @@ import type {
   CreateWithdrawalDto,
   MeTwoFactorPrepareOutput,
   MeTwoFactorVerifyInput,
+  NotificationDto,
+  NotificationListResultDto,
   OAuthProvider,
   RealmTokenRefreshResult,
   RejectGiftDto,
@@ -21,6 +23,7 @@ import type {
   SendMessageInputDto,
   SparkCheckoutSessionDto,
   SparkPackageDto,
+  UnreadNotificationCountDto,
   UpdatePasswordRequestDto,
   UpdateUserNotificationSettingsDto,
   UpdateUserSettingsDto,
@@ -62,6 +65,8 @@ export type DataSyncAuthCallbacks = {
   getCurrentUser: () => Record<string, unknown> | null;
   isFriend: (userId: string) => boolean;
 };
+
+type DataSyncNotificationType = NonNullable<NotificationDto['type']>;
 
 export class DataSync {
   private realmBaseUrl = '';
@@ -342,13 +347,13 @@ export class DataSync {
     return this.actions.rejectGift(giftTransactionId, payload);
   }
   createGiftReview(payload: CreateReviewDto) { return this.actions.createGiftReview(payload); }
-  loadNotificationUnreadCount() { return this.actions.loadNotificationUnreadCount(); }
+  loadNotificationUnreadCount(): Promise<UnreadNotificationCountDto> { return this.actions.loadNotificationUnreadCount(); }
   loadNotifications(options?: {
-    type?: 'SYSTEM' | 'INTERACTION' | 'POST_LIKE' | 'POST_COMMENT' | 'MENTION';
+    type?: DataSyncNotificationType;
     unreadOnly?: boolean;
     limit?: number;
     cursor?: string;
-  }) { return this.actions.loadNotifications(options); }
+  }): Promise<NotificationListResultDto> { return this.actions.loadNotifications(options); }
   markNotificationsRead(payload: { ids?: string[]; markAllBefore?: string }) {
     return this.actions.markNotificationsRead(payload);
   }

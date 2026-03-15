@@ -3,10 +3,13 @@ import type { MarkNotificationsReadInputDto } from '@nimiplatform/sdk/realm';
 import type { CreateReviewDto } from '@nimiplatform/sdk/realm';
 import type { CreateSparkCheckoutDto } from '@nimiplatform/sdk/realm';
 import type { CreateWithdrawalDto } from '@nimiplatform/sdk/realm';
+import type { NotificationDto } from '@nimiplatform/sdk/realm';
+import type { NotificationListResultDto } from '@nimiplatform/sdk/realm';
 import type { RejectGiftDto } from '@nimiplatform/sdk/realm';
 import type { SendGiftDto } from '@nimiplatform/sdk/realm';
 import type { SparkCheckoutSessionDto } from '@nimiplatform/sdk/realm';
 import type { SparkPackageDto } from '@nimiplatform/sdk/realm';
+import type { UnreadNotificationCountDto } from '@nimiplatform/sdk/realm';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { createOfflineError, getOfflineCoordinator } from '@runtime/offline';
 
@@ -16,6 +19,8 @@ type DataSyncErrorEmitter = (
   error: unknown,
   details?: Record<string, unknown>,
 ) => void;
+
+type DataSyncNotificationType = NonNullable<NotificationDto['type']>;
 
 function assertEconomyWriteOnline(action: string): void {
   if (getOfflineCoordinator().getTier() === 'L0') {
@@ -279,7 +284,7 @@ export async function createGiftReview(
 export async function loadNotificationUnreadCount(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
-) {
+): Promise<UnreadNotificationCountDto> {
   try {
     return await callApi(
       (realm) => realm.services.NotificationService.getUnreadCount(),
@@ -295,12 +300,12 @@ export async function loadNotifications(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
   options?: {
-    type?: 'SYSTEM' | 'INTERACTION' | 'POST_LIKE' | 'POST_COMMENT' | 'MENTION';
+    type?: DataSyncNotificationType;
     unreadOnly?: boolean;
     limit?: number;
     cursor?: string;
   },
-) {
+): Promise<NotificationListResultDto> {
   try {
     return await callApi(
       (realm) => realm.services.NotificationService.listNotifications(
