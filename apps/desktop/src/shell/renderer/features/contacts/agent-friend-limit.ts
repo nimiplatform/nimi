@@ -43,16 +43,19 @@ function isAgentFriend(friend: unknown): boolean {
 }
 
 export async function resolveAgentFriendLimit(): Promise<AgentFriendLimit> {
-  const [social, subscription] = await Promise.all([
-    dataSync.loadSocialSnapshot(),
-    dataSync.loadSubscriptionStatus(),
-  ]);
+  const social = await dataSync.loadSocialSnapshot();
   const socialRecord = social && typeof social === 'object'
     ? social as Record<string, unknown>
     : {};
-  const subscriptionRecord = subscription && typeof subscription === 'object'
-    ? subscription as Record<string, unknown>
-    : {};
+  let subscriptionRecord: Record<string, unknown> = {};
+  try {
+    const subscription = await dataSync.loadSubscriptionStatus();
+    subscriptionRecord = subscription && typeof subscription === 'object'
+      ? subscription as Record<string, unknown>
+      : {};
+  } catch {
+    // subscription API 失败时回退 FREE tier（limit=10）
+  }
 
   const tier = normalizeTier(subscriptionRecord.tier);
   const status = normalizeStatus(subscriptionRecord.status);

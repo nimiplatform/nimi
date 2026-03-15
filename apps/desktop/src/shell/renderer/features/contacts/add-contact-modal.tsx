@@ -73,7 +73,7 @@ export function AddContactModal(props: AddContactModalProps) {
     if (!candidate?.isAgent) {
       return true;
     }
-    return props.agentLimit?.canAdd !== false;
+    return props.agentLimit?.canAdd === true;
   }, [candidate?.isAgent, props.agentLimit?.canAdd]);
 
   const canAddContact = Boolean(
@@ -219,7 +219,7 @@ export function AddContactModal(props: AddContactModalProps) {
             </button>
           </div>
           {/* Agent Limit Info */}
-          {props.agentLimit ? (
+          {candidate?.isAgent && props.agentLimit ? (
             <div className="rounded-xl bg-gray-50 px-4 py-3">
               <div className="flex items-center gap-2">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
