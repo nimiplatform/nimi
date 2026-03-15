@@ -10,7 +10,7 @@ Desktop Tauri IPC 桥接契约。定义 renderer 进程通过 `window.__TAURI__.
 
 `runtime_defaults` 命令返回 `RuntimeDefaults`，包含：
 - `realm: RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken、jwksUrl、jwtIssuer、jwtAudience）
-- `runtime: RuntimeExecutionDefaults`（provider、model、agent 绑定参数）
+- `runtime: RuntimeExecutionDefaults`（provider、model 与可透传的 runtime execution 字段）
 
 所有字段通过 `parseRuntimeDefaults` 防御性解析。
 

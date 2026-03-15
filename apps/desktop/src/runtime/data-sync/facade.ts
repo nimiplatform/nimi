@@ -1,5 +1,4 @@
 import { withOpenApiContextLock } from '@runtime/context/openapi-context';
-import type { DesktopChatRouteRequestDto, DesktopChatRouteResultDto } from '@runtime/chat';
 import { Realm } from '@nimiplatform/sdk/realm';
 import type {
   ChatSyncResultDto,
@@ -47,10 +46,6 @@ import { readDataSyncHotState, writeDataSyncHotState } from './facade-hot-state'
 import { refreshDataSyncAccessToken } from './facade-refresh';
 import { DataSyncPollingManager } from './polling-manager';
 import type { CreatorEligibility } from './flows/settings-flow';
-import type {
-  AgentMemoryRecallQuery,
-  AgentMemorySliceQuery,
-} from './clients/agent-memory-client';
 import type {
   SceneQuotaDto,
   TransitCheckpointStatus,
@@ -389,28 +384,6 @@ export class DataSync {
     return this.actions.loadMoreExploreFeed(Math.min(limit, 100), cursor, tag);
   }
   loadAgentDetails(agentIdentifier: string) { return this.actions.loadAgentDetails(agentIdentifier); }
-  recallAgentMemoryForEntity(input: {
-    agentId: string;
-    entityId: string;
-    query?: AgentMemoryRecallQuery;
-  }) {
-    return this.actions.recallAgentMemoryForEntity(input);
-  }
-  listAgentCoreMemories(input: {
-    agentId: string;
-    query?: AgentMemorySliceQuery;
-  }) {
-    return this.actions.listAgentCoreMemories(input);
-  }
-  listAgentE2EMemories(input: {
-    agentId: string;
-    entityId: string;
-    query?: AgentMemorySliceQuery;
-  }) {
-    return this.actions.listAgentE2EMemories(input);
-  }
-  loadAgentMemoryStats(agentId: string) { return this.actions.loadAgentMemoryStats(agentId); }
-  resolveChatRoute(data: DesktopChatRouteRequestDto): Promise<DesktopChatRouteResultDto> { return this.actions.resolveChatRoute(data); }
   login(identifier: string, password: string, debug?: PasswordAuthDebug) {
     return this.actions.login(identifier, password, debug);
   }

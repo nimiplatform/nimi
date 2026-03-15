@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "postinstall": "node scripts/ensure-rust.mjs",
-    "dev": "pnpm run dev:cli",
-    "dev:cli": "tsx src/index.ts",
+    "dev": "pnpm run dev:shell",
     "env:check:runtime-mods-dir": "node scripts/dev-env-check.mjs --require-runtime-mods-dir",
     "env:check:mods-root": "node scripts/env-check-mods-root.mjs",
     "dev:renderer": "vite --host 127.0.0.1 --port 1420 --strictPort",

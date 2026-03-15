@@ -1,5 +1,3 @@
-import type { DesktopChatRouteRequestDto } from '@runtime/chat';
-import type { DesktopChatRouteResultDto } from '@runtime/chat';
 import type { Realm } from '@nimiplatform/sdk/realm';
 import type { CreatePostDto } from '@nimiplatform/sdk/realm';
 import type { CreateReportDto } from '@nimiplatform/sdk/realm';
@@ -57,17 +55,7 @@ import type { CreateMasterAgentInput } from './flows/social-flow';
 import { loadExploreFeedItems, loadMoreExploreFeedItems } from './flows/explore-flow';
 import {
   loadAgentDetails,
-  listAgentCoreMemories,
-  listAgentE2EMemories,
-  loadAgentMemoryStats,
-  recallAgentMemoryForEntity,
-  resolveChatRoute,
 } from './flows/agent-runtime-flow';
-import type {
-  AgentMemoryRecord,
-  AgentMemoryRecallQuery,
-  AgentMemorySliceQuery,
-} from './clients/agent-memory-client';
 import {
   loadMainWorld,
   loadWorldDetailById,
@@ -451,27 +439,6 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       loadAgentDetails(input.callApiTask, input.emitFacadeError, agentIdentifier, {
         viewerUserId: String(input.getCurrentUser()?.id || '').trim() || undefined,
       }),
-    recallAgentMemoryForEntity: async (inputPayload: {
-      agentId: string;
-      entityId: string;
-      query?: AgentMemoryRecallQuery;
-    }) =>
-      recallAgentMemoryForEntity(input.callApiTask, input.emitFacadeError, inputPayload),
-    listAgentCoreMemories: async (inputPayload: {
-      agentId: string;
-      query?: AgentMemorySliceQuery;
-    }): Promise<AgentMemoryRecord[]> =>
-      listAgentCoreMemories(input.callApiTask, input.emitFacadeError, inputPayload),
-    listAgentE2EMemories: async (inputPayload: {
-      agentId: string;
-      entityId: string;
-      query?: AgentMemorySliceQuery;
-    }): Promise<AgentMemoryRecord[]> =>
-      listAgentE2EMemories(input.callApiTask, input.emitFacadeError, inputPayload),
-    loadAgentMemoryStats: async (agentId: string) =>
-      loadAgentMemoryStats(input.callApiTask, input.emitFacadeError, agentId),
-    resolveChatRoute: async (data: DesktopChatRouteRequestDto): Promise<DesktopChatRouteResultDto> =>
-      resolveChatRoute(input.callApiTask, data, input.emitFacadeError),
     login: async (identifier: string, password: string, debug?: PasswordAuthDebug) =>
       loginWithPassword(
         input.callApiTask,

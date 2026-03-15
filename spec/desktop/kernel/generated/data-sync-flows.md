@@ -172,15 +172,10 @@ Source Rule: `D-DSYNC-010`
 
 ## agent
 
-Agent listing, memory, chat routing
+Agent listing only; Agent LLM route/memory stays in host data capabilities for mods
 
 Source Rule: `D-DSYNC-011`
 
 | Method |
 |---|
 | `loadMyAgents` |
-| `recallAgentMemoryForEntity` |
-| `listAgentCoreMemories` |
-| `listAgentE2EMemories` |
-| `loadAgentMemoryStats` |
-| `resolveChatRoute` |

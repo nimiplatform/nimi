@@ -45,9 +45,9 @@ test('parseRuntimeDefaults requires split realm/runtime payload', () => {
       localProviderModel: 'local-model',
       localOpenAiEndpoint: 'http://127.0.0.1:1234/v1',
       connectorId: 'test-ref',
-      targetType: 'AGENT',
-      targetAccountId: 'account-1',
-      agentId: 'agent-1',
+      targetType: '',
+      targetAccountId: '',
+      agentId: '',
       worldId: 'world-1',
       provider: 'local',
       userConfirmedUpload: true,
@@ -61,7 +61,7 @@ test('parseRuntimeDefaults requires split realm/runtime payload', () => {
   assert.equal(parsed.realm.jwtIssuer, 'http://localhost:3002');
   assert.equal(parsed.realm.jwtAudience, 'nimi-runtime');
   assert.equal(parsed.runtime.localProviderModel, 'local-model');
-  assert.equal(parsed.runtime.targetType, 'AGENT');
+  assert.equal(parsed.runtime.targetType, '');
   assert.equal(parsed.runtime.userConfirmedUpload, true);
 });
 

@@ -194,7 +194,7 @@
         "localProviderModel": "local-model",
         "localOpenAiEndpoint": "http://127.0.0.1:1234/v1",
         "credentialRefId": "",
-        "targetType": "AGENT",
+        "targetType": "",
         "targetAccountId": "",
         "agentId": "agent-e2e-alpha",
         "worldId": "world-e2e-1",

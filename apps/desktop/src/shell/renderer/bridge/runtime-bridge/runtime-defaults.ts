@@ -94,7 +94,7 @@ function readRuntimeDefaultsFallback(): RuntimeDefaults {
   const localProviderModel = readEnv('NIMI_LOCAL_PROVIDER_MODEL') || 'local-model';
   const localOpenAiEndpoint = readEnv('NIMI_LOCAL_OPENAI_ENDPOINT') || 'http://127.0.0.1:1234/v1';
   const connectorId = readEnv('NIMI_CREDENTIAL_REF_ID');
-  const targetType = readEnv('NIMI_TARGET_TYPE') || 'AGENT';
+  const targetType = readEnv('NIMI_TARGET_TYPE');
   const targetAccountId = readEnv('NIMI_TARGET_ACCOUNT_ID');
   const agentId = readEnv('NIMI_AGENT_ID');
   const worldId = readEnv('NIMI_WORLD_ID');

@@ -12,7 +12,6 @@
 - `features/runtime-config/pages/` — 5 个页面组件（overview / local / cloud / runtime / mods）
 - `features/runtime-config/panels/sidebar.tsx` — 左侧边栏导航
 - `features/runtime-config/domain/` — 系统资源、费用预估 mock hooks
-- `runtime/data-sync/facade.ts` — resolveChatRoute
 
 ## Navigation Model
 
@@ -90,7 +89,7 @@ Runtime 字段映射（`RuntimeFieldMap`）：
 - `runtimeModelType`：模型能力类型（chat/image/video/tts/stt/embedding）
 - `localProviderEndpoint` / `localProviderModel` / `localOpenAiEndpoint`：本地引擎绑定
 - `connectorId`：connector 引用（K-KEYSRC-001 managed 路径）
-- `targetType` / `targetAccountId` / `agentId` / `worldId`：执行目标
+- `targetType` / `targetAccountId` / `agentId` / `worldId`：可透传的执行上下文字段；Desktop core 不预置 Agent chat 目标
 - `mode`：对话模式（STORY / SCENE_TURN）
 
 ### IPC (D-IPC-002)
@@ -111,7 +110,7 @@ Provider 适配层：`provider` 字段确定执行路径（remote token API / lo
 
 ### LLM (D-LLM-002)
 
-路由策略：通过 `resolveChatRoute` 确定目标 agent 和 provider。
+Agent chat route 属于 host-only capability，不属于 Runtime Config product contract。
 
 ### LLM (D-LLM-003)
 

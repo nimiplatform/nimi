@@ -150,7 +150,7 @@ export type AppStoreSet = (
 ) => void;
 
 export const INITIAL_RUNTIME_FIELDS: RuntimeFieldMap = {
-  targetType: 'AGENT',
+  targetType: '',
   targetAccountId: '',
   agentId: '',
   targetId: '',

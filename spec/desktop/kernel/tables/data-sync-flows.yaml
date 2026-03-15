@@ -130,10 +130,5 @@ flows:
   - flow: agent
     methods:
       - loadMyAgents
-      - recallAgentMemoryForEntity
-      - listAgentCoreMemories
-      - listAgentE2EMemories
-      - loadAgentMemoryStats
-      - resolveChatRoute
-    description: Agent listing, memory, chat routing
+    description: Agent listing only; Agent LLM route/memory stays in host data capabilities for mods
     source_rule: D-DSYNC-011

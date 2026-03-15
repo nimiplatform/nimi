@@ -17,7 +17,7 @@ export function createRuntimeSlice(set: AppStoreSet): RuntimeSlice {
       set({
         runtimeDefaults: defaults,
         runtimeFields: {
-          targetType: String(defaults.runtime.targetType || 'AGENT'),
+          targetType: String(defaults.runtime.targetType || ''),
           targetAccountId: String(defaults.runtime.targetAccountId || ''),
           agentId: String(defaults.runtime.agentId || ''),
           targetId: '',

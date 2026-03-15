@@ -87,7 +87,7 @@ export function parseRuntimeDefaults(value: unknown): RuntimeDefaults {
         'runtime_defaults',
       ),
       connectorId: String(runtimeRecord.connectorId || '').trim(),
-      targetType: parseRequiredString(runtimeRecord.targetType, 'runtime.targetType', 'runtime_defaults'),
+      targetType: String(runtimeRecord.targetType || '').trim(),
       targetAccountId: String(runtimeRecord.targetAccountId || '').trim(),
       agentId: String(runtimeRecord.agentId || '').trim(),
       worldId: String(runtimeRecord.worldId || '').trim(),
