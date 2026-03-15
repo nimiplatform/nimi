@@ -1,5 +1,22 @@
 # 安装指南
 
+::: tip Early Access
+Nimi 目前处于 Early Access 阶段。核心功能已可使用，但 API 在版本迭代中可能调整。
+:::
+
+## 下载桌面应用
+
+桌面应用是开始使用 Nimi 的最快方式。
+
+| 平台 | 状态 |
+|---|---|
+| macOS (Apple Silicon) | 已发布 — [下载](https://nimi.xyz/download) |
+| macOS (Intel) | 已发布 — [下载](https://nimi.xyz/download) |
+| Windows | 即将推出 |
+| Linux | CLI + SDK 可用（见下文） |
+
+如果你偏好命令行或使用 Linux，请使用下方的 CLI 安装方式。
+
 ## 系统要求
 
 - **操作系统**：macOS（Apple Silicon 或 Intel）或 Linux（x86_64、arm64）

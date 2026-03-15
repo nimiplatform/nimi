@@ -63,13 +63,13 @@ export const landingContentEn: LandingContent = {
     discord: 'Discord',
   },
   hero: {
-    eyebrow: 'Install in seconds',
+    eyebrow: 'Early Access — Install in seconds',
     title: 'Local + cloud AI',
     titleAccent: '',
     title2: ' in ',
     titleAccent2: 'one runtime',
     subtitle: 'One CLI and one SDK to run any model, anywhere.',
-    description: '',
+    description: 'Nimi is in early access. Core runtime, SDK, and desktop app are functional and open for use. APIs may change between releases.',
     primaryCta: 'Download Desktop',
     docsCta: 'Read the docs',
     helperPrefix: 'Or',
@@ -133,7 +133,7 @@ export const landingContentEn: LandingContent = {
     localTitle: 'Offline / local',
     localHeadline: 'On-device voice and speech models are already in the stack.',
     localDescription:
-      'Current local catalog coverage is voice-first: Qwen3-TTS, CosyVoice2, GPT-SoVITS, F5-TTS, Piper, and Kokoro variants are available through the same runtime surface.',
+      'Current local catalog coverage spans voice, image, and video: Qwen3-TTS, CosyVoice2, GPT-SoVITS, F5-TTS, Piper, Kokoro for speech — plus Nimi Media for local image generation (FLUX) and video generation (Wan2.1) through the same runtime surface.',
     capabilitiesTitle: 'Capability spread',
     capabilitiesHeadline: 'Text, embeddings, image, video, TTS, and STT in one runtime.',
     capabilitiesDescription:
@@ -191,10 +191,11 @@ export const landingContentEn: LandingContent = {
     availability: {
       eyebrow: 'Compatibility / Availability',
       items: [
-        'Desktop for macOS and Windows',
+        'Desktop for macOS available now — Windows coming soon',
         'CLI + SDK work independently of the desktop app',
         'Local-first by default',
         'Realm remains optional',
+        'Early access: APIs and interfaces may change between releases',
       ],
     },
   },
@@ -275,7 +276,7 @@ export const landingContentEn: LandingContent = {
     githubCta: 'View on GitHub',
   },
   footer: {
-    line1: 'Nimi: Open-source AI runtime',
+    line1: 'Nimi: Open-source AI runtime (Early Access)',
     line2: 'Licenses: Apache-2.0 (runtime/sdk), MIT (apps), CC-BY-4.0 (docs)',
     termsLabel: 'Terms of Service',
     privacyLabel: 'Privacy Policy',

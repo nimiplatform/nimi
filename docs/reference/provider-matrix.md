@@ -29,6 +29,7 @@ This matrix documents advanced provider-qualified prefixes exposed by lower-leve
 |---|---|---|:---:|:---:|:---:|:---:|:---:|:---:|---|
 | [LocalAI](https://localai.io) | `local/` | GA | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | Full local multimodal routing |
 | [Nexa](https://nexa.ai/) | `local/` | Beta | ✅ | ✅ | ✅ | - | ✅ | ✅ | Video intentionally blocked by `nexa.video.unsupported` (`AI_ROUTE_UNSUPPORTED`) |
+| Nimi Media | `nimi_media/` | GA | - | - | ✅ | ✅ | - | - | Nimi-managed diffusers engine for local image (FLUX) and video (Wan2.1) generation |
 
 ## Cloud Providers
 

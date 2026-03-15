@@ -1,5 +1,7 @@
 # Nimi Docs
 
+> **Early Access** — Nimi is in active development. Core runtime, SDK, and desktop app are functional and open for use, but APIs may change between releases.
+
 Documentation for using, building with, and extending Nimi — the open-source AI runtime.
 
 Nimi gives you one runtime and one SDK for local and cloud AI, instead of stitching together separate model SDKs, local runners, streaming glue, and operational scripts.

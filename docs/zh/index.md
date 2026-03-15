@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Nimi
   text: 开源 AI 运行时
-  tagline: 一个运行时，统一本地与云端 AI。直接使用，基于它开发，或对它进行扩展。
+  tagline: "Early Access — 一个运行时，统一本地与云端 AI。直接使用，基于它开发，或对它进行扩展。"
   actions:
     - theme: brand
       text: 开始使用 Nimi

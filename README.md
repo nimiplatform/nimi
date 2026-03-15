@@ -1,10 +1,36 @@
-# Nimi
+<div align="center">
 
-Open-source AI runtime for apps.
+  # 🪸 Nimi: AI runtime for apps.
+
+  [![GitHub Repo](https://img.shields.io/badge/GitHub-Repo-black.svg?logo=github&style=flat-square)](https://github.com/nimiplatform/nimi)
+  [![Last Commit](https://img.shields.io/github/last-commit/nimiplatform/nimi?style=flat-square)](https://github.com/nimiplatform/nimi)
+  [![CI](https://img.shields.io/github/actions/workflow/status/nimiplatform/nimi/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/nimiplatform/nimi/actions/workflows/ci.yml)
+  [![License](https://img.shields.io/badge/license-Apache--2.0%20%2F%20MIT-blue?style=flat-square)](LICENSE)
+  [![Go](https://img.shields.io/badge/go-1.24-00ADD8?style=flat-square&logo=go&logoColor=white)](runtime/go.mod)
+  [![Node](https://img.shields.io/badge/node-%E2%89%A524-339933?style=flat-square&logo=node.js&logoColor=white)](package.json)
+</div>
+
+[Website](https://nimi.xyz) | [Getting Started](docs/getting-started/index.md) | [Nimi Coding](docs/architecture/nimi-coding.md) | [SDK Reference](docs/reference/sdk.md) | [Examples](examples/README.md) | [Spec](spec/INDEX.md) | [Discord](https://discord.gg/BQwHJvPn)
 
 Build AI apps that run local and cloud models through one runtime, one SDK, and one operational surface.
 
-[Website](https://nimi.xyz) | [Getting Started](docs/getting-started/index.md) | [Nimi Coding](docs/architecture/nimi-coding.md) | [SDK Reference](docs/reference/sdk.md) | [Examples](examples/README.md) | [Spec](spec/INDEX.md) | [Discord](https://discord.gg/BQwHJvPn)
+<p align="center">
+  <img src="docs/assets/banner.jpg" alt="Nimi Banner" width="1200">
+</p>
+
+> **Early Access** Expect breaking changes.
+> Core runtime, SDK, and desktop app are functional and open for use, but APIs and Realm may change between releases. We welcome feedback and contributions.
+
+## Download
+
+| Platform | Status | Link |
+|---|---|---|
+| macOS (Apple Silicon) | Coming Soon | [Download Desktop](https://nimi.xyz/download) |
+| macOS (Intel) | Coming Soon | [Download Desktop](https://nimi.xyz/download) |
+| Windows | Coming Soon | — |
+| Linux | CLI + SDK available | `curl -fsSL https://install.nimi.xyz \| sh` |
+
+The desktop app is the fastest way to get started. CLI and SDK work independently on all supported platforms.
 
 ## Install
 
@@ -15,9 +41,7 @@ curl -fsSL https://install.nimi.xyz | sh
 npm install -g @nimiplatform/nimi
 ```
 
-You do not need Go, pnpm, or a source checkout unless you are developing Nimi itself.
-
-## 30-Second Proof
+## 30-Second Start
 
 ```bash
 nimi start
@@ -196,7 +220,7 @@ Representative routing planes:
 
 | Plane | Examples |
 |---|---|
-| `local/*` | LocalAI, Nexa |
+| `local/*` | LocalAI, Nexa, Nimi Media |
 | `cloud/*` | OpenAI, Gemini, Anthropic, DeepSeek, GLM, MiniMax, DashScope, Volcengine |
 
 For a deeper matrix, see [provider docs](docs/reference/provider-matrix.md).

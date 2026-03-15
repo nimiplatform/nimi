@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Nimi
   text: Open-Source AI Runtime
-  tagline: One runtime for local and cloud AI. Use it, build with it, or extend it.
+  tagline: "Early Access — One runtime for local and cloud AI. Use it, build with it, or extend it."
   actions:
     - theme: brand
       text: Start Using Nimi

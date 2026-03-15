@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { LANDING_CONTENT } from '../src/landing/content/landing-content.js';
+import { loadLandingContent } from '../src/landing/content/landing-content.js';
 
-test('content includes hero install paths, SDK tabs, and mods in both locales', () => {
+test('content includes hero install paths, SDK tabs, and mods in both locales', async () => {
   for (const locale of ['en', 'zh'] as const) {
-    const content = LANDING_CONTENT[locale];
+    const content = await loadLandingContent(locale);
     assert.ok(content.hero.tabs.length >= 3);
     assert.equal(content.hero.tabs[1]?.command, 'curl -fsSL https://install.nimi.xyz | sh');
     assert.equal(content.hero.tabs[2]?.command, 'npm install -g @nimiplatform/nimi');

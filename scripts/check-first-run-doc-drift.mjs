@@ -67,7 +67,15 @@ const checks = [
     forbidden: ['Run: nimi serve', '--model local/qwen2.5'],
   },
   {
-    file: 'apps/web/src/landing/content/landing-content.ts',
+    file: 'apps/web/src/landing/content/landing-content.en.ts',
+    required: [
+      "command: 'curl -fsSL https://install.nimi.xyz | sh'",
+      "command: 'npm install -g @nimiplatform/nimi'",
+    ],
+    forbidden: ["command: 'nimi serve'", '--yes', '--model local/qwen2.5'],
+  },
+  {
+    file: 'apps/web/src/landing/content/landing-content.zh.ts',
     required: [
       "command: 'curl -fsSL https://install.nimi.xyz | sh'",
       "command: 'npm install -g @nimiplatform/nimi'",

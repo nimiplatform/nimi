@@ -29,6 +29,7 @@ Nimi Runtime 通过统一 API 路由 AI 请求。
 |---|---|---|:---:|:---:|:---:|:---:|:---:|:---:|---|
 | [LocalAI](https://localai.io) | `local/` | GA | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | Full local multimodal routing |
 | [Nexa](https://nexa.ai/) | `local/` | Beta | ✅ | ✅ | ✅ | - | ✅ | ✅ | Video intentionally blocked by `nexa.video.unsupported` (`AI_ROUTE_UNSUPPORTED`) |
+| Nimi Media | `nimi_media/` | GA | - | - | ✅ | ✅ | - | - | Nimi 受管 diffusers 引擎，支持本地图像 (FLUX) 和视频 (Wan2.1) 生成 |
 
 ## 云端 Provider
 

@@ -1,5 +1,22 @@
 # Installation Guide
 
+::: tip Early Access
+Nimi is in early access. Core features are functional, but APIs may change between releases.
+:::
+
+## Download Desktop App
+
+The desktop app is the fastest way to get started with Nimi.
+
+| Platform | Status |
+|---|---|
+| macOS (Apple Silicon) | Available — [Download](https://nimi.xyz/download) |
+| macOS (Intel) | Available — [Download](https://nimi.xyz/download) |
+| Windows | Coming Soon |
+| Linux | CLI + SDK available (see below) |
+
+If you prefer the command line or are on Linux, use the CLI install methods below.
+
 ## System Requirements
 
 - **Operating System**: macOS (Apple Silicon or Intel) or Linux (x86_64, arm64)
