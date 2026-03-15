@@ -47,12 +47,13 @@ export type PostCardAuthorProfileTarget = {
 type PostCardProps = {
   post: PostDto;
   onDelete?: () => void;
+  onBlock?: () => void;
   showAddFriendBadge?: boolean;
   onOpenAuthorProfile?: (target: PostCardAuthorProfileTarget) => void;
 };
 
 export function PostCard(input: PostCardProps) {
-  const { post, onDelete, showAddFriendBadge = true, onOpenAuthorProfile } = input;
+  const { post, onDelete, onBlock, showAddFriendBadge = true, onOpenAuthorProfile } = input;
   const queryClient = useQueryClient();
   const savedPostsStorageKey = 'nimi.desktop.saved-post-ids';
   const savedPostsUpdatedEvent = 'nimi:saved-posts-updated';
@@ -204,6 +205,7 @@ export function PostCard(input: PostCardProps) {
         kind: 'success',
         message: `Blocked ${post.author.displayName || post.author.handle}`,
       });
+      onBlock?.();
     } catch (error) {
       setStatusBanner({
         kind: 'error',

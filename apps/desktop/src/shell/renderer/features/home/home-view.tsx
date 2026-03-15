@@ -149,6 +149,7 @@ export function HomeView(props: HomeViewProps) {
                 <PostCard
                   post={post}
                   onDelete={() => setRefreshKey((k) => k + 1)}
+                  onBlock={() => setRefreshKey((k) => k + 1)}
                   showAddFriendBadge={false}
                   onOpenAuthorProfile={setSelectedFeedProfile}
                 />
