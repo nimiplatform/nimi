@@ -91,7 +91,13 @@ function looksLikeQualifiedRemoteModel(model: string): boolean {
   }
   const [prefix = ''] = normalized.split('/', 1);
   const lowered = prefix.toLowerCase();
-  if (lowered === 'cloud' || lowered === 'local' || lowered === 'localai' || lowered === 'nexa') {
+  if (
+    lowered === 'cloud'
+    || lowered === 'local'
+    || lowered === 'localai'
+    || lowered === 'nexa'
+    || lowered === 'nimi_media'
+  ) {
     return true;
   }
   return isLowercaseQualifiedPrefix(prefix) && REMOTE_PROVIDER_SET.has(lowered);

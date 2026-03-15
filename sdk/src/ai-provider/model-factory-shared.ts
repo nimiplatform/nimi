@@ -27,7 +27,15 @@ export function flattenImageProviderOptions(value: unknown): Record<string, unkn
   const applyLayer = (layer: Record<string, unknown>): void => {
     for (const [key, item] of Object.entries(layer)) {
       const normalizedKey = normalizeText(key);
-      if (!normalizedKey || normalizedKey === 'nimi' || normalizedKey === 'localai' || normalizedKey === 'nexa') {
+      if (
+        !normalizedKey
+        || normalizedKey === 'nimi'
+        || normalizedKey === 'localai'
+        || normalizedKey === 'nexa'
+        || normalizedKey === 'nimimedia'
+        || normalizedKey === 'nimi_media'
+        || normalizedKey === 'extra'
+      ) {
         continue;
       }
       flattened[normalizedKey] = item;
@@ -36,6 +44,9 @@ export function flattenImageProviderOptions(value: unknown): Record<string, unkn
 
   applyLayer(asRecord(topLevel.nexa));
   applyLayer(asRecord(topLevel.localai));
+  applyLayer(asRecord(topLevel.nimiMedia));
+  applyLayer(asRecord(topLevel.nimi_media));
+  applyLayer(asRecord(topLevel.extra));
   applyLayer(asRecord(topLevel.nimi));
   applyLayer(topLevel);
   return flattened;

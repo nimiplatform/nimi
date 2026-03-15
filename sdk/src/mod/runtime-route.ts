@@ -1,4 +1,4 @@
-import type { LocalAiProviderAdapter, LocalAiProviderHints } from './types/llm.js';
+import type { LocalProviderAdapter, LocalProviderHints } from './types/llm.js';
 import { asRecord } from './json-utils';
 
 export type RuntimeRouteSource = 'local' | 'cloud';
@@ -21,8 +21,8 @@ export type RuntimeRouteBinding = {
   provider?: string;
   localModelId?: string;
   engine?: string;
-  adapter?: LocalAiProviderAdapter;
-  providerHints?: LocalAiProviderHints;
+  adapter?: LocalProviderAdapter;
+  providerHints?: LocalProviderHints;
   endpoint?: string;
   goRuntimeLocalModelId?: string;
   goRuntimeStatus?: 'installed' | 'active' | 'unhealthy' | 'removed' | string;
@@ -52,8 +52,8 @@ export type RuntimeRouteLocalOption = {
   model: string;
   modelId?: string;
   provider?: string;
-  adapter?: LocalAiProviderAdapter;
-  providerHints?: LocalAiProviderHints;
+  adapter?: LocalProviderAdapter;
+  providerHints?: LocalProviderHints;
   endpoint?: string;
   status?: 'installed' | 'active' | 'unhealthy' | 'removed' | string;
   goRuntimeLocalModelId?: string;
@@ -106,7 +106,7 @@ export function parseRuntimeRouteBinding(value: unknown): RuntimeRouteBinding | 
     engine: String(record.engine || '').trim() || undefined,
     adapter: String(record.adapter || '').trim() || undefined,
     providerHints: record.providerHints && typeof record.providerHints === 'object' && !Array.isArray(record.providerHints)
-      ? record.providerHints as LocalAiProviderHints
+      ? record.providerHints as LocalProviderHints
       : undefined,
     endpoint: String(record.endpoint || '').trim() || undefined,
     goRuntimeLocalModelId: String(record.goRuntimeLocalModelId || '').trim() || undefined,
@@ -198,7 +198,7 @@ function parseLocalModels(value: unknown): RuntimeRouteLocalOption[] {
       provider: String(record.provider || '').trim() || undefined,
       adapter: String(record.adapter || '').trim() || undefined,
       providerHints: record.providerHints && typeof record.providerHints === 'object' && !Array.isArray(record.providerHints)
-        ? record.providerHints as LocalAiProviderHints
+        ? record.providerHints as LocalProviderHints
         : undefined,
       endpoint: String(record.endpoint || '').trim() || undefined,
       status: String(record.status || '').trim() || undefined,

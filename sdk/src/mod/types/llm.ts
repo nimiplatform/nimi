@@ -1,18 +1,19 @@
 export type RuntimeModality = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | 'music';
 
-export type LocalEngine = 'localai' | 'nexa' | 'sidecar' | string;
+export type LocalEngine = 'localai' | 'nexa' | 'nimi_media' | 'sidecar' | string;
 
-export type LocalAiProviderAdapter =
+export type LocalProviderAdapter =
   | 'openai_compat_adapter'
   | 'localai_native_adapter'
   | 'nexa_native_adapter'
+  | 'nimi_media_native_adapter'
   | 'localai_music_adapter'
   | 'sidecar_music_adapter'
   | string;
 
 export type NexaProviderHints = {
   backend?: string;
-  preferredAdapter?: LocalAiProviderAdapter;
+  preferredAdapter?: LocalProviderAdapter;
   pluginId?: string;
   deviceId?: string;
   modelType?: string;
@@ -26,23 +27,31 @@ export type NexaProviderHints = {
   gateDetail?: string;
 };
 
-export type LocalAiProviderHints = {
+export type NimiMediaProviderHints = {
+  preferredAdapter?: LocalProviderAdapter;
+  driver?: string;
+  family?: string;
+};
+
+export type LocalProviderHints = {
   localai?: {
     backend?: string;
-    preferredAdapter?: LocalAiProviderAdapter;
+    preferredAdapter?: LocalProviderAdapter;
     whisperVariant?: string;
     stablediffusionPipeline?: string;
     videoBackend?: string;
   };
   nexa?: NexaProviderHints;
+  nimiMedia?: NimiMediaProviderHints;
+  extra?: Record<string, unknown>;
 } & Record<string, unknown>;
 
 export type LocalRouteBinding = {
   source: 'local';
   runtimeModelType: RuntimeModality;
   provider: string;
-  adapter?: LocalAiProviderAdapter;
-  providerHints?: LocalAiProviderHints;
+  adapter?: LocalProviderAdapter;
+  providerHints?: LocalProviderHints;
   modelId?: string;
   localModelId: string;
   engine: LocalEngine;
@@ -60,8 +69,8 @@ export type CloudRouteBinding = {
   source: 'cloud';
   runtimeModelType: RuntimeModality;
   provider: string;
-  adapter?: LocalAiProviderAdapter;
-  providerHints?: LocalAiProviderHints;
+  adapter?: LocalProviderAdapter;
+  providerHints?: LocalProviderHints;
   connectorId: string;
   modelId?: string;
   model: string;
