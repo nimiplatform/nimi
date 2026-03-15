@@ -206,8 +206,20 @@ export function AddContactModal(props: AddContactModalProps) {
                 placeholder={t('Contacts.addContactSearchPlaceholder', {
                   defaultValue: 'Search by handle or ID',
                 })}
-                className="h-11 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-3 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-300 focus:ring-2 focus:ring-mint-100"
+                className="h-11 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-8 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-300 focus:ring-2 focus:ring-mint-100"
               />
+              {identifier && (
+                <button
+                  type="button"
+                  onClick={() => setIdentifier('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              )}
             </div>
             <button
               type="button"
