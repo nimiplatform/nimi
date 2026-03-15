@@ -598,7 +598,7 @@ export function ContactsView(props: ContactsViewProps) {
           />
         ) : (
           // 空状态 - 显示 Nimi Logo
-          <div className="flex-1 flex items-center justify-center bg-white">
+          <div className="h-full flex items-center justify-center bg-white">
             <div className="text-center">
               {/* Nimi Logo */}
               <img
