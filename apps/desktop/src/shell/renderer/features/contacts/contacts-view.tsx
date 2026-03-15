@@ -101,6 +101,7 @@ export function ContactsView(props: ContactsViewProps) {
   const MAX_CONTACTS_SIDEBAR_WIDTH = 420;
   const { t } = useTranslation();
   const rememberedProfileId = useAppStore((state) => state.selectedProfileId);
+  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const setSelectedProfileIsAgent = useAppStore((state) => state.setSelectedProfileIsAgent);
   const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -362,7 +363,7 @@ export function ContactsView(props: ContactsViewProps) {
     retry: 1,
   });
 
-  // 将 ContactRecord 转换为 ProfileData 用于 ProfileView
+  // 将 ContactRecord 转换为 ProfileData 用于共享详情页
   const selectedProfile: ProfileData | null = useMemo(() => {
     if (!selectedContact) return null;
 
@@ -519,7 +520,7 @@ export function ContactsView(props: ContactsViewProps) {
         />
       </aside>
 
-      {/* 右侧详情区 - 使用 ProfileView */}
+      {/* 右侧详情区 - 使用共享 profile 详情页 */}
       <ScrollShell
         as="main"
         className="flex min-w-0 flex-1 flex-col bg-white"
@@ -575,7 +576,20 @@ export function ContactsView(props: ContactsViewProps) {
               }
             }}
             onBlock={selectedContact ? () => setBlockingContact(selectedContact) : undefined}
-            onRemove={selectedContact ? () => props.onRemoveFriend(selectedContact) : undefined}
+            onRemove={selectedContact ? () => {
+              const removedContact = selectedContact;
+              props.onRemoveFriend(removedContact);
+              setSelectedContact(null);
+              setSelectedProfileId(null);
+              setSelectedProfileIsAgent(null);
+              setStatusBanner({
+                kind: 'success',
+                message: t('Contacts.friendRemoved', {
+                  name: removedContact.displayName || removedContact.handle || t('Common.unknown', { defaultValue: 'Unknown' }),
+                  defaultValue: 'Removed {{name}} from your friends.',
+                }),
+              });
+            } : undefined}
             showMessageButton
           />
         ) : (
@@ -623,7 +637,13 @@ export function ContactsView(props: ContactsViewProps) {
           setGiftTargetContact(null);
         }}
         onSent={() => {
-          // 可以添加成功提示
+          setStatusBanner({
+            kind: 'success',
+            message: t('Contacts.giftSentTo', {
+              name: giftTargetContact?.displayName || giftTargetContact?.handle || t('Common.unknown', { defaultValue: 'Unknown' }),
+              defaultValue: 'Gift sent to {{name}}',
+            }),
+          });
           setGiftModalOpen(false);
           setGiftTargetContact(null);
         }}
