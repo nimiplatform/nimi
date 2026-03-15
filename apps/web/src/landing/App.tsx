@@ -9,7 +9,7 @@ import { ModsSection } from './components/mods-section.js';
 import { OpenSourceSection } from './components/open-source-section.js';
 import { SecuritySection } from './components/security-section.js';
 import { SdkSection } from './components/sdk-section.js';
-import { getLandingContent } from './content/landing-content.js';
+import { loadLandingContent, type LandingContent } from './content/landing-content.js';
 import { resolveLandingLinks } from './config/landing-links.js';
 import {
   persistLocale,
@@ -56,6 +56,7 @@ export function App() {
     navigatorLanguage: getBrowserLanguage(),
     defaultLocale: import.meta.env.VITE_LANDING_DEFAULT_LOCALE,
   }));
+  const [content, setContent] = useState<LandingContent | null>(null);
 
   useEffect(() => {
     if (typeof document !== 'undefined') {
@@ -63,7 +64,23 @@ export function App() {
     }
   }, [locale]);
 
-  const content = getLandingContent(locale);
+  useEffect(() => {
+    let cancelled = false;
+
+    void loadLandingContent(locale).then((nextContent) => {
+      if (!cancelled) {
+        setContent(nextContent);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [locale]);
+
+  if (!content) {
+    return null;
+  }
   const sectionNavItems: Array<{ href: string; label: string; external?: boolean }> = [
     { href: '#install', label: content.nav.install },
     { href: '#sdk', label: content.nav.sdk },
