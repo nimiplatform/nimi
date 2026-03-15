@@ -149,7 +149,6 @@ Current progress at a glance:
 | Schedule dates | Dates refer to the first usable slice of a feature, not the final polished version |
 | Delivery order | Nimi ships runtime and SDK foundations first, then desktop, web, and ecosystem features on top |
 
-
 ## Examples
 
 The onboarding ladder lives in [examples/README.md](examples/README.md).

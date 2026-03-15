@@ -1,10 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { useRuntimeHealthCoordinatorState } from '@renderer/features/runtime-config/runtime-health-coordinator';
+import {
+  useRuntimeHealthCoordinatorState,
+  type RuntimeHealthCoordinatorState,
+} from '@renderer/features/runtime-config/runtime-health-coordinator';
+import type { MenuBarRuntimeHealthSyncPayload } from '@renderer/bridge/runtime-bridge/types';
 
 const MENU_BAR_SYNC_DEBOUNCE_MS = 250;
+export const MENU_BAR_SYNC_HEARTBEAT_MS = 10_000;
 
 function normalizeRuntimeHealthStatus(status: number | undefined): string | undefined {
   if (status === 1) return 'STOPPED';
@@ -42,66 +47,130 @@ function summarizeProviderStates(providers: Array<{ state?: unknown }>): {
   return summary;
 }
 
+export type MenuBarRuntimeSyncState = Pick<
+  RuntimeHealthCoordinatorState,
+  'runtimeHealth' | 'providerHealth' | 'lastFetchedAt' | 'lastStreamAt' | 'error' | 'streamError'
+>;
+
+export function buildMenuBarRuntimeSyncPayload(
+  healthState: MenuBarRuntimeSyncState,
+): MenuBarRuntimeHealthSyncPayload {
+  const payload: MenuBarRuntimeHealthSyncPayload = {
+    updatedAt: healthState.lastStreamAt || healthState.lastFetchedAt || new Date().toISOString(),
+  };
+
+  if (healthState.runtimeHealth) {
+    payload.runtimeHealthStatus = normalizeRuntimeHealthStatus(healthState.runtimeHealth.status);
+    if (healthState.runtimeHealth.reason) {
+      payload.runtimeHealthReason = String(healthState.runtimeHealth.reason);
+    }
+  }
+
+  if (!payload.runtimeHealthReason && (healthState.error || healthState.streamError)) {
+    payload.runtimeHealthReason = healthState.error || healthState.streamError || undefined;
+  }
+
+  if (healthState.providerHealth.length > 0) {
+    payload.providerSummary = summarizeProviderStates(healthState.providerHealth);
+  }
+
+  return payload;
+}
+
+export function buildMenuBarRuntimeSyncKey(payload: MenuBarRuntimeHealthSyncPayload): string {
+  return JSON.stringify({
+    runtimeHealthStatus: payload.runtimeHealthStatus ?? null,
+    runtimeHealthReason: payload.runtimeHealthReason ?? null,
+    providerSummary: payload.providerSummary ?? null,
+  });
+}
+
+export function shouldSyncMenuBarRuntimeHealth(
+  payload: MenuBarRuntimeHealthSyncPayload,
+  lastSync: { key: string | null; syncedAtMs: number },
+  nowMs: number,
+  heartbeatMs = MENU_BAR_SYNC_HEARTBEAT_MS,
+): boolean {
+  const nextKey = buildMenuBarRuntimeSyncKey(payload);
+  if (lastSync.key !== nextKey) {
+    return true;
+  }
+  return nowMs - lastSync.syncedAtMs >= heartbeatMs;
+}
+
 export function useMenuBarRuntimeSync(): void {
   const flags = getShellFeatureFlags();
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const healthState = useRuntimeHealthCoordinatorState();
+  const lastSyncRef = useRef<{ key: string | null; syncedAtMs: number }>({
+    key: null,
+    syncedAtMs: 0,
+  });
+
+  const enabled = flags.enableMenuBarShell && bootstrapReady && desktopBridge.hasTauriInvoke();
+  const payload = buildMenuBarRuntimeSyncPayload(healthState);
+  const payloadKey = buildMenuBarRuntimeSyncKey(payload);
+  const latestPayloadRef = useRef<MenuBarRuntimeHealthSyncPayload>(payload);
+  latestPayloadRef.current = payload;
 
   useEffect(() => {
-    if (!flags.enableMenuBarShell || !bootstrapReady || !desktopBridge.hasTauriInvoke()) {
+    if (!enabled) {
+      lastSyncRef.current = { key: null, syncedAtMs: 0 };
+    }
+  }, [enabled]);
+
+  useEffect(() => {
+    if (!enabled) {
       return;
     }
 
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-    const runSync = async () => {
-      const payload: {
-        runtimeHealthStatus?: string;
-        runtimeHealthReason?: string;
-        providerSummary?: { healthy: number; unhealthy: number; unknown: number; total: number };
-        updatedAt: string;
-      } = {
-        updatedAt: healthState.lastStreamAt || healthState.lastFetchedAt || new Date().toISOString(),
-      };
-
-      if (healthState.runtimeHealth) {
-        payload.runtimeHealthStatus = normalizeRuntimeHealthStatus(healthState.runtimeHealth.status);
-        if (healthState.runtimeHealth.reason) {
-          payload.runtimeHealthReason = String(healthState.runtimeHealth.reason);
+    let cancelled = false;
+    const debounceTimer = setTimeout(() => {
+      const nextPayload = latestPayloadRef.current;
+      const nowMs = Date.now();
+      if (!shouldSyncMenuBarRuntimeHealth(nextPayload, lastSyncRef.current, nowMs)) {
+        return;
+      }
+      const nextKey = buildMenuBarRuntimeSyncKey(nextPayload);
+      void desktopBridge.syncMenuBarRuntimeHealth(nextPayload).then(() => {
+        if (cancelled) {
+          return;
         }
-      }
-
-      if (!payload.runtimeHealthReason && (healthState.error || healthState.streamError)) {
-        payload.runtimeHealthReason = healthState.error || healthState.streamError || undefined;
-      }
-
-      if (healthState.providerHealth.length > 0) {
-        payload.providerSummary = summarizeProviderStates(healthState.providerHealth);
-      }
-
-      await desktopBridge.syncMenuBarRuntimeHealth(payload).catch(() => undefined);
-    };
-
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
-    }
-    debounceTimer = setTimeout(() => {
-      debounceTimer = null;
-      void runSync();
+        lastSyncRef.current = {
+          key: nextKey,
+          syncedAtMs: nowMs,
+        };
+      }).catch(() => undefined);
     }, MENU_BAR_SYNC_DEBOUNCE_MS);
 
     return () => {
-      if (debounceTimer) {
-        clearTimeout(debounceTimer);
-      }
+      cancelled = true;
+      clearTimeout(debounceTimer);
     };
-  }, [
-    bootstrapReady,
-    flags.enableMenuBarShell,
-    healthState.error,
-    healthState.lastFetchedAt,
-    healthState.lastStreamAt,
-    healthState.providerHealth,
-    healthState.runtimeHealth,
-    healthState.streamError,
-  ]);
+  }, [enabled, payloadKey]);
+
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
+    const heartbeatHandle = window.setInterval(() => {
+      const nextPayload = latestPayloadRef.current;
+      const nowMs = Date.now();
+      if (!shouldSyncMenuBarRuntimeHealth(nextPayload, lastSyncRef.current, nowMs)) {
+        return;
+      }
+      const nextKey = buildMenuBarRuntimeSyncKey(nextPayload);
+      void desktopBridge.syncMenuBarRuntimeHealth(nextPayload).then(() => {
+        lastSyncRef.current = {
+          key: nextKey,
+          syncedAtMs: nowMs,
+        };
+      }).catch(() => undefined);
+    }, MENU_BAR_SYNC_HEARTBEAT_MS);
+
+    return () => {
+      window.clearInterval(heartbeatHandle);
+    };
+  }, [enabled]);
 }

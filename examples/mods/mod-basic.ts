@@ -4,7 +4,7 @@
  * Run: npx tsx examples/mods/mod-basic.ts
  */
 import { clearModSdkHost, setModSdkHost } from '../../nimi-mods/shared/testing/mod-sdk-host.js';
-import { createHookClient, createModRuntimeClient, type RuntimeCanonicalCapability, type RuntimeRouteBinding, type RuntimeRouteOptionsSnapshot } from "@nimiplatform/sdk/mod";
+import { createHookClient, createModRuntimeClient, type ModSdkHost, type RuntimeCanonicalCapability, type RuntimeRouteBinding, type RuntimeRouteOptionsSnapshot } from "@nimiplatform/sdk/mod";
 const MOD_ID = 'world.nimi.my-mod';
 type HookEventHandler = (payload: unknown) => Promise<void> | void;
 type DataProviderHandler = (query: unknown) => Promise<unknown> | unknown;
@@ -215,7 +215,7 @@ function createMockHost() {
                 text: 'Local kernel turn is not part of this example.',
                 traceId: 'trace-demo-kernel',
             }),
-            withOpenApiContextLock: async (_context, task) => await task(),
+            withOpenApiContextLock: async (_context: Parameters<ModSdkHost['runtime']['withOpenApiContextLock']>[0], task: Parameters<ModSdkHost['runtime']['withOpenApiContextLock']>[1]) => await task(),
             getRuntimeHookRuntime: () => runtimeHook as never,
             getModAiDependencySnapshot: async () => ({
                 modId: MOD_ID,
@@ -230,14 +230,14 @@ function createMockHost() {
                 listArtifacts: async () => [],
             },
             route: {
-                listOptions: async (input) => {
+                listOptions: async (input: Parameters<ModSdkHost['runtime']['route']['listOptions']>[0]) => {
                     const snapshot = routeOptionsByCapability.get(input.capability);
                     if (!snapshot) {
                         throw new Error(`ROUTE_OPTIONS_NOT_FOUND:${input.capability}`);
                     }
                     return cloneValue(snapshot);
                 },
-                resolve: async (input) => {
+                resolve: async (input: Parameters<ModSdkHost['runtime']['route']['resolve']>[0]) => {
                     const snapshot = routeOptionsByCapability.get(input.capability);
                     const binding = input.binding || snapshot?.selected;
                     if (!binding) {
@@ -252,7 +252,7 @@ function createMockHost() {
                         adapter: binding.model.startsWith('elevenlabs/') ? 'elevenlabs' : 'openai_compatible',
                     };
                 },
-                checkHealth: async (input) => ({
+                checkHealth: async (input: Parameters<ModSdkHost['runtime']['route']['checkHealth']>[0]) => ({
                     ok: true,
                     capability: input.capability,
                     binding: input.binding || routeOptionsByCapability.get(input.capability)?.selected,
@@ -263,7 +263,7 @@ function createMockHost() {
             },
             ai: {
                 text: {
-                    generate: async (input) => ({
+                    generate: async (input: Parameters<ModSdkHost['runtime']['ai']['text']['generate']>[0]) => ({
                         text: `Demo answer for model=${input.model || textBinding.model}`,
                         finishReason: 'stop',
                         usage: {
@@ -277,7 +277,7 @@ function createMockHost() {
                             routeDecision: 'cloud',
                         },
                     }),
-                    stream: async (input) => ({
+                    stream: async (input: Parameters<ModSdkHost['runtime']['ai']['text']['stream']>[0]) => ({
                         stream: (async function* () {
                             yield { type: 'start' as const };
                             yield { type: 'delta' as const, text: 'Hello ' };
@@ -329,7 +329,7 @@ function createMockHost() {
                     },
                 },
                 tts: {
-                    listVoices: async (input) => ({
+                    listVoices: async (input: Parameters<ModSdkHost['runtime']['media']['tts']['listVoices']>[0]) => ({
                         voices: [
                             {
                                 voiceId: 'voice-demo-1',
@@ -344,7 +344,7 @@ function createMockHost() {
                         voiceCatalogVersion: 'demo-v1',
                         voiceCount: 1,
                     }),
-                    synthesize: async (input) => ({
+                    synthesize: async (input: Parameters<ModSdkHost['runtime']['media']['tts']['synthesize']>[0]) => ({
                         job: {
                             jobId: 'job-demo-tts',
                             status: 4,
@@ -449,7 +449,7 @@ function createMockHost() {
         },
         logging: {
             emitRuntimeLog: () => { },
-            createRendererFlowId: (prefix) => `${prefix}-demo-flow`,
+            createRendererFlowId: (prefix: Parameters<ModSdkHost['logging']['createRendererFlowId']>[0]) => `${prefix}-demo-flow`,
             logRendererEvent: () => { },
         },
     };
