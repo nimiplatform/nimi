@@ -22,7 +22,10 @@ import {
   UserPlusIcon,
 } from './settings-preferences-panel-parts';
 
-export { collectDesktopUpdatePanelAlerts } from './settings-preferences-panel-parts';
+export {
+  canUseDesktopUpdater,
+  collectDesktopUpdatePanelAlerts,
+} from './settings-preferences-panel-parts';
 
 export type NotificationForm = {
   directMessages: boolean;

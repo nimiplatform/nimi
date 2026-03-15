@@ -20,6 +20,7 @@ import {
 import {
   AnimationIcon,
   AwardIcon,
+  canUseDesktopUpdater,
   CodeIcon,
   collectDesktopUpdatePanelAlerts,
   CpuIcon,
@@ -131,7 +132,10 @@ export function PerformancePage() {
       error: t('Performance.updateStatusError'),
     }[desktopUpdateState.status] || desktopUpdateState.status)
     : t('Performance.updateStatusIdle');
-  const canCheckUpdates = Boolean(desktopReleaseInfo) && !desktopReleaseError;
+  const canCheckUpdates = canUseDesktopUpdater({
+    desktopReleaseError,
+    updaterAvailable: desktopReleaseInfo?.updaterAvailable,
+  });
   const canRestartForUpdate = desktopUpdateState?.readyToRestart === true;
   const isUpdateBusy = desktopUpdateState?.status === 'checking'
     || desktopUpdateState?.status === 'downloading'
@@ -139,6 +143,7 @@ export function PerformancePage() {
   const desktopUpdateAlerts = collectDesktopUpdatePanelAlerts({
     desktopReleaseError,
     runtimeLastError: desktopReleaseInfo?.runtimeLastError,
+    updaterUnavailableReason: desktopReleaseInfo?.updaterUnavailableReason,
     updateLastError: desktopUpdateState?.lastError,
   });
 

@@ -108,6 +108,8 @@ export function parseDesktopReleaseInfo(value: unknown): DesktopReleaseInfo {
     runtimeReady: Boolean(record.runtimeReady),
     runtimeStagedPath: parseOptionalString(record.runtimeStagedPath),
     runtimeLastError: parseOptionalString(record.runtimeLastError),
+    updaterAvailable: Boolean(record.updaterAvailable),
+    updaterUnavailableReason: parseOptionalString(record.updaterUnavailableReason),
   };
 }
 

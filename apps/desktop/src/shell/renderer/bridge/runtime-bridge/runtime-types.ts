@@ -34,6 +34,8 @@ export type DesktopReleaseInfo = {
   runtimeReady: boolean;
   runtimeStagedPath?: string;
   runtimeLastError?: string;
+  updaterAvailable: boolean;
+  updaterUnavailableReason?: string;
 };
 
 export type DesktopUpdateState = {

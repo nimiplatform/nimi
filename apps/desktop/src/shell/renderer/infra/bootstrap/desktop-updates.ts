@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { desktopBridge } from '@renderer/bridge';
+import { desktopBridge, type DesktopReleaseInfo } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { i18n } from '@renderer/i18n';
 import {
@@ -22,8 +22,9 @@ type IdleSchedulerWindow = Window & {
 export function shouldRunAutomaticUpdateCheck(
   preferences: PerformancePreferences,
   visibilityState: string | undefined,
+  updaterAvailable: boolean,
 ): boolean {
-  return preferences.autoUpdate === true && visibilityState !== 'hidden';
+  return preferences.autoUpdate === true && visibilityState !== 'hidden' && updaterAvailable;
 }
 
 function currentPerformancePreferences(): PerformancePreferences {
@@ -50,14 +51,42 @@ function scheduleIdleCheck(callback: () => void): () => void {
   };
 }
 
-async function syncDesktopReleaseInfo(): Promise<void> {
-  if (!desktopBridge.hasTauriInvoke()) {
+export function isDesktopUpdaterAvailable(releaseInfo: DesktopReleaseInfo | null | undefined): boolean {
+  return releaseInfo?.updaterAvailable === true;
+}
+
+function resolveUpdaterUnavailableMessage(releaseInfo: DesktopReleaseInfo | null | undefined): string {
+  const message = String(releaseInfo?.updaterUnavailableReason || '').trim();
+  if (message) {
+    return message;
+  }
+  return i18n.t('Performance.updateUnavailable', {
+    defaultValue: 'Desktop updates are unavailable in the current environment.',
+  });
+}
+
+function publishUpdaterUnavailableBanner(
+  releaseInfo: DesktopReleaseInfo | null | undefined,
+  silent: boolean | undefined,
+): void {
+  if (silent) {
     return;
+  }
+  useAppStore.getState().setStatusBanner({
+    kind: 'warning',
+    message: resolveUpdaterUnavailableMessage(releaseInfo),
+  });
+}
+
+async function syncDesktopReleaseInfo(): Promise<DesktopReleaseInfo | null> {
+  if (!desktopBridge.hasTauriInvoke()) {
+    return null;
   }
   try {
     const releaseInfo = await desktopBridge.getDesktopReleaseInfo();
     useAppStore.getState().setDesktopReleaseInfo(releaseInfo);
     useAppStore.getState().setDesktopReleaseError(null);
+    return releaseInfo;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error || 'desktop release metadata unavailable');
     useAppStore.getState().setDesktopReleaseInfo(null);
@@ -101,7 +130,11 @@ export async function runDesktopUpdateCheck(input: {
     return;
   }
   try {
-    await syncDesktopReleaseInfo();
+    const releaseInfo = await syncDesktopReleaseInfo();
+    if (!isDesktopUpdaterAvailable(releaseInfo)) {
+      publishUpdaterUnavailableBanner(releaseInfo, input.silent);
+      return;
+    }
     const checkResult = await desktopBridge.desktopUpdateCheck();
     await syncDesktopUpdateState();
     if (!checkResult.available) {
@@ -157,6 +190,11 @@ export async function runDesktopUpdateInstall(input: {
     return;
   }
   try {
+    const releaseInfo = await syncDesktopReleaseInfo();
+    if (!isDesktopUpdaterAvailable(releaseInfo)) {
+      publishUpdaterUnavailableBanner(releaseInfo, input.silent);
+      return;
+    }
     const existingState = await desktopBridge.getDesktopUpdateState().catch(() => null);
     if (!existingState?.readyToRestart && existingState?.status !== 'downloaded') {
       await desktopBridge.desktopUpdateDownload();
@@ -267,12 +305,14 @@ export function useDesktopUpdatesBootstrap(bootstrapReady: boolean) {
     let preferences = currentPerformancePreferences();
 
     const triggerAutomaticCheck = () => {
-      if (cancelled || !shouldRunAutomaticUpdateCheck(preferences, currentVisibilityState())) {
+      const updaterAvailable = isDesktopUpdaterAvailable(useAppStore.getState().desktopReleaseInfo);
+      if (cancelled || !shouldRunAutomaticUpdateCheck(preferences, currentVisibilityState(), updaterAvailable)) {
         return;
       }
       cancelIdle();
       cancelIdle = scheduleIdleCheck(() => {
-        if (cancelled || !shouldRunAutomaticUpdateCheck(preferences, currentVisibilityState())) {
+        const latestUpdaterAvailable = isDesktopUpdaterAvailable(useAppStore.getState().desktopReleaseInfo);
+        if (cancelled || !shouldRunAutomaticUpdateCheck(preferences, currentVisibilityState(), latestUpdaterAvailable)) {
           return;
         }
         void runDesktopUpdateCheck({

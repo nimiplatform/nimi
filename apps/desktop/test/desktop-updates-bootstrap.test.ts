@@ -64,7 +64,7 @@ test('automatic update checks require autoUpdate to be enabled', () => {
     developerMode: false,
   };
 
-  assert.equal(shouldRunAutomaticUpdateCheck(preferences, 'visible'), false);
+  assert.equal(shouldRunAutomaticUpdateCheck(preferences, 'visible', true), false);
 });
 
 test('automatic update checks do not run while document is hidden', () => {
@@ -75,8 +75,20 @@ test('automatic update checks do not run while document is hidden', () => {
     developerMode: false,
   };
 
-  assert.equal(shouldRunAutomaticUpdateCheck(preferences, 'hidden'), false);
-  assert.equal(shouldRunAutomaticUpdateCheck(preferences, 'visible'), true);
+  assert.equal(shouldRunAutomaticUpdateCheck(preferences, 'hidden', true), false);
+  assert.equal(shouldRunAutomaticUpdateCheck(preferences, 'visible', true), true);
+});
+
+test('automatic update checks require updater availability', () => {
+  const preferences: PerformancePreferences = {
+    hardwareAcceleration: true,
+    reduceAnimations: false,
+    autoUpdate: true,
+    developerMode: false,
+  };
+
+  assert.equal(shouldRunAutomaticUpdateCheck(preferences, 'visible', false), false);
+  assert.equal(shouldRunAutomaticUpdateCheck(preferences, 'visible', true), true);
 });
 
 test('performance preference subscribers receive persisted autoUpdate changes', async () => {

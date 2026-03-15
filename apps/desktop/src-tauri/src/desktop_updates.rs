@@ -217,18 +217,29 @@ pub fn configured_updater_pubkey() -> Option<String> {
         })
 }
 
+pub fn updater_unavailable_reason() -> Option<String> {
+    if configured_updater_pubkey().is_none() {
+        return Some(
+            "DESKTOP_UPDATER_UNAVAILABLE: updater public key is not configured at build time or runtime"
+                .to_string(),
+        );
+    }
+
+    updater_endpoint().err()
+}
+
+pub fn updater_available() -> bool {
+    updater_unavailable_reason().is_none()
+}
+
 fn ensure_updater_available(app: &AppHandle) -> Result<(), String> {
     let _ = app
         .path()
         .resolve("desktop-release-manifest.json", BaseDirectory::Resource)
         .ok();
-    if configured_updater_pubkey().is_none() {
-        return Err(
-            "DESKTOP_UPDATER_UNAVAILABLE: updater public key is not configured at build time or runtime"
-                .to_string(),
-        );
+    if let Some(message) = updater_unavailable_reason() {
+        return Err(message);
     }
-    updater_endpoint()?;
     Ok(())
 }
 
@@ -315,8 +326,8 @@ pub async fn check_for_update(app: AppHandle) -> Result<DesktopUpdateCheckResult
         let _ = sync_current_version(state);
         apply_state_event(state, UpdateStateEvent::Checking);
     });
-    match resolve_available_update(&app).await? {
-        Some(update) => {
+    match resolve_available_update(&app).await {
+        Ok(Some(update)) => {
             let target_version = Some(update.version.clone());
             let notes = update.body.clone();
             let pub_date = update.date.map(|value| value.to_string());
@@ -337,7 +348,7 @@ pub async fn check_for_update(app: AppHandle) -> Result<DesktopUpdateCheckResult
                 pub_date,
             })
         }
-        None => {
+        Ok(None) => {
             let current_version = current_release_version()?;
             set_state(Some(&app), |state| {
                 let _ = sync_current_version(state);
@@ -351,6 +362,7 @@ pub async fn check_for_update(app: AppHandle) -> Result<DesktopUpdateCheckResult
                 pub_date: None,
             })
         }
+        Err(error) => Err(set_error_state(Some(&app), error)),
     }
 }
 
@@ -361,9 +373,16 @@ pub async fn download_update(app: AppHandle) -> Result<DesktopUpdateCheckResult,
         let _ = sync_current_version(state);
         apply_state_event(state, UpdateStateEvent::Checking);
     });
-    let update = resolve_available_update(&app)
-        .await?
-        .ok_or_else(|| "DESKTOP_UPDATER_NO_UPDATE: no update available".to_string())?;
+    let update = match resolve_available_update(&app).await {
+        Ok(Some(update)) => update,
+        Ok(None) => {
+            return Err(set_error_state(
+                Some(&app),
+                "DESKTOP_UPDATER_NO_UPDATE: no update available".to_string(),
+            ));
+        }
+        Err(error) => return Err(set_error_state(Some(&app), error)),
+    };
     let current_version = update.current_version.clone();
     let target_version = Some(update.version.clone());
     let notes = update.body.clone();
@@ -518,8 +537,9 @@ mod tests {
     use super::{
         apply_state_event, clear_pending_update, configured_updater_endpoint_raw,
         configured_updater_pubkey, current_state, default_state, install_pending_downloaded_update,
-        reset_test_update_state, store_pending_update, PendingUpdatePayload,
-        UpdateStateEvent, DEFAULT_UPDATE_ENDPOINT,
+        reset_test_update_state, set_error_state, set_state, store_pending_update,
+        sync_current_version, updater_available, updater_unavailable_reason,
+        PendingUpdatePayload, UpdateStateEvent, DEFAULT_UPDATE_ENDPOINT,
     };
     use crate::desktop_release::{reset_test_state, set_test_release_version};
     use crate::runtime_bridge::{channel_invalidation_count, reset_channel_invalidation_count};
@@ -651,6 +671,18 @@ mod tests {
     }
 
     #[test]
+    fn updater_availability_reports_missing_pubkey() {
+        with_env(&[("NIMI_DESKTOP_UPDATER_PUBLIC_KEY", None)], || {
+            assert!(!updater_available());
+            assert!(
+                updater_unavailable_reason()
+                    .unwrap_or_default()
+                    .contains("DESKTOP_UPDATER_UNAVAILABLE")
+            );
+        });
+    }
+
+    #[test]
     fn configured_updater_endpoint_prefers_runtime_env() {
         with_env(
             &[(
@@ -671,6 +703,72 @@ mod tests {
         with_env(&[("NIMI_DESKTOP_UPDATER_ENDPOINT", None)], || {
             assert_eq!(configured_updater_endpoint_raw(), DEFAULT_UPDATE_ENDPOINT);
         });
+    }
+
+    #[test]
+    fn updater_availability_reports_invalid_endpoint() {
+        with_env(
+            &[
+                ("NIMI_DESKTOP_UPDATER_PUBLIC_KEY", Some("runtime-pubkey")),
+                ("NIMI_DESKTOP_UPDATER_ENDPOINT", Some("not-a-url")),
+            ],
+            || {
+                assert!(!updater_available());
+                assert!(
+                    updater_unavailable_reason()
+                        .unwrap_or_default()
+                        .contains("DESKTOP_UPDATER_ENDPOINT_INVALID")
+                );
+            },
+        );
+    }
+
+    #[test]
+    fn updater_unavailable_error_transitions_state_from_checking_to_error() {
+        with_release_version(|| {
+            set_state(None, |state| {
+                let _ = sync_current_version(state);
+                apply_state_event(state, UpdateStateEvent::Checking);
+            });
+            let error = set_error_state(
+                None,
+                updater_unavailable_reason().unwrap_or_default(),
+            );
+
+            let state = current_state().expect("state");
+            assert_eq!(state.status, "error");
+            assert_eq!(state.last_error.as_deref(), Some(error.as_str()));
+        });
+    }
+
+    #[test]
+    fn invalid_endpoint_error_transitions_state_from_checking_to_error() {
+        with_env(
+            &[
+                ("NIMI_RUNTIME_BRIDGE_MODE", Some("RUNTIME")),
+                ("NIMI_DESKTOP_UPDATER_PUBLIC_KEY", Some("runtime-pubkey")),
+                ("NIMI_DESKTOP_UPDATER_ENDPOINT", Some("not-a-url")),
+            ],
+            || {
+                reset_test_state();
+                set_test_release_version("0.1.0");
+                reset_test_update_state();
+                set_state(None, |state| {
+                    let _ = sync_current_version(state);
+                    apply_state_event(state, UpdateStateEvent::Checking);
+                });
+                let error = set_error_state(
+                    None,
+                    updater_unavailable_reason().unwrap_or_default(),
+                );
+
+                let state = current_state().expect("state");
+                assert_eq!(state.status, "error");
+                assert_eq!(state.last_error.as_deref(), Some(error.as_str()));
+                reset_test_update_state();
+                reset_test_state();
+            },
+        );
     }
 
     #[test]

@@ -40,3 +40,8 @@ Settings 的 Application Update 区域必须投影 desktop self-update 状态：
 ## CI 门禁引用
 
 本域涉及的 CI 门禁：`pnpm check:desktop-spec-kernel-consistency`（Check 1, 4, 9, 11, 13~14 相关规则）。
+## Desktop Update Availability
+
+- Settings MUST disable desktop update actions when `desktopReleaseInfo.updaterAvailable` is false.
+- Settings MUST surface `desktopReleaseInfo.updaterUnavailableReason` alongside existing release/runtime/update warnings.
+- `autoUpdate` only schedules automatic checks when updater availability is true; missing local updater config does not count as bootstrap failure by itself.

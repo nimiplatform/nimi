@@ -29,6 +29,10 @@ pub struct DesktopReleaseInfo {
     pub runtime_ready: bool,
     pub runtime_staged_path: Option<String>,
     pub runtime_last_error: Option<String>,
+    #[serde(default)]
+    pub updater_available: bool,
+    #[serde(default)]
+    pub updater_unavailable_reason: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -90,6 +94,25 @@ fn update_release_state(
     guard.runtime_last_error = runtime_last_error;
 }
 
+fn build_release_info(
+    manifest: &DesktopReleaseManifest,
+    staged_binary_path: Option<&PathBuf>,
+    runtime_last_error: Option<String>,
+) -> DesktopReleaseInfo {
+    DesktopReleaseInfo {
+        desktop_version: manifest.desktop_version.clone(),
+        runtime_version: manifest.runtime_version.clone(),
+        channel: manifest.channel.clone(),
+        commit: manifest.commit.clone(),
+        built_at: manifest.built_at.clone(),
+        runtime_ready: staged_binary_path.is_some(),
+        runtime_staged_path: staged_binary_path.map(|path| path.display().to_string()),
+        runtime_last_error,
+        updater_available: crate::desktop_updates::updater_available(),
+        updater_unavailable_reason: crate::desktop_updates::updater_unavailable_reason(),
+    }
+}
+
 fn set_runtime_error(message: String) {
     let manifest = {
         release_state()
@@ -136,16 +159,11 @@ pub fn initialize(app: &AppHandle) -> Result<DesktopReleaseInfo, String> {
                 runtime_reported_version,
                 None,
             );
-            Ok(DesktopReleaseInfo {
-                desktop_version: manifest.desktop_version,
-                runtime_version: manifest.runtime_version,
-                channel: manifest.channel,
-                commit: manifest.commit,
-                built_at: manifest.built_at,
-                runtime_ready: staged_binary_path.is_some(),
-                runtime_staged_path: staged_binary_path.map(|path| path.display().to_string()),
-                runtime_last_error: None,
-            })
+            Ok(build_release_info(
+                &manifest,
+                staged_binary_path.as_ref(),
+                None,
+            ))
         }
         Err(error) => {
             set_runtime_error(error.clone());
@@ -162,19 +180,11 @@ pub fn release_info() -> Result<DesktopReleaseInfo, String> {
         return Err(error.clone());
     }
     if let Some(manifest) = &guard.manifest {
-        return Ok(DesktopReleaseInfo {
-            desktop_version: manifest.desktop_version.clone(),
-            runtime_version: manifest.runtime_version.clone(),
-            channel: manifest.channel.clone(),
-            commit: manifest.commit.clone(),
-            built_at: manifest.built_at.clone(),
-            runtime_ready: guard.staged_binary_path.is_some(),
-            runtime_staged_path: guard
-                .staged_binary_path
-                .as_ref()
-                .map(|path| path.display().to_string()),
-            runtime_last_error: guard.runtime_last_error.clone(),
-        });
+        return Ok(build_release_info(
+            manifest,
+            guard.staged_binary_path.as_ref(),
+            guard.runtime_last_error.clone(),
+        ));
     }
     Err(bridge_error(
         "DESKTOP_RELEASE_INFO_UNAVAILABLE",
@@ -243,12 +253,13 @@ pub fn desktop_release_info_get() -> Result<DesktopReleaseInfo, String> {
 
 #[cfg(test)]
 mod tests {
-    use crate::test_support::{test_guard, with_env};
     use super::{
         cleanup_old_versions, current_runtime_state_path, release_info, reset_test_state,
         runtime_version_dir, sha256_hex, stage_runtime_archive, validate_release_manifest,
         DesktopReleaseManifest,
     };
+    use crate::test_support::{test_guard, with_env};
+    use serde_json::Value;
     use std::fs;
     use std::io::Write;
     use std::path::{Path, PathBuf};
@@ -321,6 +332,12 @@ mod tests {
         )
     }
 
+    fn read_current_runtime_state_json() -> Value {
+        let current_state = fs::read_to_string(current_runtime_state_path().expect("current state path"))
+            .expect("read current state");
+        serde_json::from_str::<Value>(&current_state).expect("parse current state")
+    }
+
     #[test]
     fn validate_release_manifest_rejects_mismatched_versions() {
         let archive = PathBuf::from("runtime.zip");
@@ -350,6 +367,41 @@ mod tests {
     }
 
     #[test]
+    fn release_info_reports_updater_availability_fields() {
+        reset_test_state();
+        with_env(
+            &[
+                ("NIMI_DESKTOP_UPDATER_PUBLIC_KEY", Some("runtime-pubkey")),
+                (
+                    "NIMI_DESKTOP_UPDATER_ENDPOINT",
+                    Some("https://updates.example.com/latest.json"),
+                ),
+            ],
+            || {
+                super::set_test_release_version("0.1.0");
+                let info = release_info().expect("release info");
+                assert!(info.updater_available);
+                assert_eq!(info.updater_unavailable_reason, None);
+            },
+        );
+    }
+
+    #[test]
+    fn release_info_reports_updater_unavailable_reason() {
+        reset_test_state();
+        with_env(&[("NIMI_DESKTOP_UPDATER_PUBLIC_KEY", None)], || {
+            super::set_test_release_version("0.1.0");
+            let info = release_info().expect("release info");
+            assert!(!info.updater_available);
+            assert!(
+                info.updater_unavailable_reason
+                    .unwrap_or_default()
+                    .contains("DESKTOP_UPDATER_UNAVAILABLE")
+            );
+        });
+    }
+
+    #[test]
     fn stage_runtime_archive_extracts_runtime_and_writes_current_state() {
         let home = temp_home("extracts");
         let archive = home.join("runtime.zip");
@@ -365,10 +417,9 @@ mod tests {
             assert!(staged.exists());
             assert_eq!(version, "1.2.3");
 
-            let current_state = fs::read_to_string(current_runtime_state_path().expect("current state path"))
-                .expect("read current state");
-            assert!(current_state.contains("\"version\": \"1.2.3\""));
-            assert!(current_state.contains(staged.display().to_string().as_str()));
+            let current_state = read_current_runtime_state_json();
+            assert_eq!(current_state["version"], "1.2.3");
+            assert_eq!(current_state["binaryPath"], staged.display().to_string());
         });
     }
 
@@ -393,10 +444,12 @@ mod tests {
             assert_eq!(staged, existing_binary);
             assert_eq!(version, "2.0.0");
 
-            let current_state = fs::read_to_string(current_runtime_state_path().expect("current state path"))
-                .expect("read current state");
-            assert!(current_state.contains("\"version\": \"2.0.0\""));
-            assert!(current_state.contains(existing_binary.display().to_string().as_str()));
+            let current_state = read_current_runtime_state_json();
+            assert_eq!(current_state["version"], "2.0.0");
+            assert_eq!(
+                current_state["binaryPath"],
+                existing_binary.display().to_string()
+            );
         });
     }
 

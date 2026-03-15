@@ -16,12 +16,16 @@ test('desktop release info parser accepts bundled runtime metadata', () => {
     builtAt: '2026-03-15T00:00:00Z',
     runtimeReady: true,
     runtimeStagedPath: '/tmp/nimi',
+    updaterAvailable: false,
+    updaterUnavailableReason: 'DESKTOP_UPDATER_UNAVAILABLE: updater public key is not configured at build time or runtime',
   });
 
   assert.equal(parsed.desktopVersion, '0.2.0');
   assert.equal(parsed.runtimeVersion, '0.2.0');
   assert.equal(parsed.runtimeReady, true);
   assert.equal(parsed.runtimeStagedPath, '/tmp/nimi');
+  assert.equal(parsed.updaterAvailable, false);
+  assert.match(parsed.updaterUnavailableReason || '', /DESKTOP_UPDATER_UNAVAILABLE/);
 });
 
 test('desktop update state parser accepts progress payload', () => {

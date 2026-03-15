@@ -54,11 +54,13 @@ export function SettingRow({ icon, title, description, checked, onChange }: Sett
 export function collectDesktopUpdatePanelAlerts(input: {
   desktopReleaseError?: string | null;
   runtimeLastError?: string | null;
+  updaterUnavailableReason?: string | null;
   updateLastError?: string | null;
 }): DesktopUpdatePanelAlert[] {
   const alerts: DesktopUpdatePanelAlert[] = [];
   const releaseError = String(input.desktopReleaseError || '').trim();
   const runtimeLastError = String(input.runtimeLastError || '').trim();
+  const updaterUnavailableReason = String(input.updaterUnavailableReason || '').trim();
   const updateLastError = String(input.updateLastError || '').trim();
 
   if (releaseError) {
@@ -67,11 +69,21 @@ export function collectDesktopUpdatePanelAlerts(input: {
   if (runtimeLastError) {
     alerts.push({ tone: 'warning', message: runtimeLastError });
   }
+  if (updaterUnavailableReason) {
+    alerts.push({ tone: 'warning', message: updaterUnavailableReason });
+  }
   if (updateLastError) {
     alerts.push({ tone: 'error', message: updateLastError });
   }
 
   return alerts;
+}
+
+export function canUseDesktopUpdater(input: {
+  desktopReleaseError?: string | null;
+  updaterAvailable?: boolean | null;
+}): boolean {
+  return !String(input.desktopReleaseError || '').trim() && input.updaterAvailable === true;
 }
 
 export function performanceEqual(left: PerformancePreferences, right: PerformancePreferences): boolean {
