@@ -15,7 +15,7 @@ import (
 
 func TestRunRuntimeConfigInitGetValidate(t *testing.T) {
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigCommandEnv(t)
 
@@ -63,7 +63,7 @@ func TestRunRuntimeConfigInitGetValidate(t *testing.T) {
 
 func TestRunRuntimeConfigSetAllowsInlineProviderAPIKey(t *testing.T) {
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigCommandEnv(t)
 
@@ -129,7 +129,7 @@ func TestRunRuntimeConfigSetAllowsInlineProviderAPIKey(t *testing.T) {
 
 func TestRunRuntimeConfigSetProvidersLocalRequiresRestart(t *testing.T) {
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigCommandEnv(t)
 
@@ -156,7 +156,7 @@ func TestRunRuntimeConfigSetProvidersLocalRequiresRestart(t *testing.T) {
 
 func TestRunRuntimeConfigSetEngineFieldsRequiresRestart(t *testing.T) {
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigCommandEnv(t)
 
@@ -198,7 +198,7 @@ func TestRunRuntimeConfigSetEngineFieldsRequiresRestart(t *testing.T) {
 
 func TestRunRuntimeConfigSetLocalAIImageBackendFieldsRequiresRestart(t *testing.T) {
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigCommandEnv(t)
 
@@ -252,7 +252,7 @@ func TestRunRuntimeConfigSetLocalAIImageBackendFieldsRequiresRestart(t *testing.
 
 func TestRunRuntimeConfigSetLocalModelsPathRequiresRestart(t *testing.T) {
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigCommandEnv(t)
 
@@ -287,7 +287,7 @@ func TestRunRuntimeConfigSetLocalModelsPathRequiresRestart(t *testing.T) {
 
 func TestRunRuntimeConfigSetAuthJWTFieldsRequireRestart(t *testing.T) {
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigCommandEnv(t)
 
@@ -333,7 +333,7 @@ func TestRunRuntimeConfigSetAuthJWTFieldsRequireRestart(t *testing.T) {
 
 func TestRunRuntimeConfigUnsetAuthJWTFieldsPrunesObject(t *testing.T) {
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigCommandEnv(t)
 
@@ -380,7 +380,7 @@ func TestRunRuntimeConfigUnsetAuthJWTFieldsPrunesObject(t *testing.T) {
 
 func TestRunRuntimeConfigSetRejectsInvalidJwksURL(t *testing.T) {
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigCommandEnv(t)
 
@@ -403,7 +403,7 @@ func TestRunRuntimeConfigSetRejectsInvalidJwksURL(t *testing.T) {
 
 func TestRunRuntimeConfigRejectsMigrateSubcommand(t *testing.T) {
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigCommandEnv(t)
 
@@ -415,7 +415,7 @@ func TestRunRuntimeConfigRejectsMigrateSubcommand(t *testing.T) {
 
 func TestRunRuntimeConfigSetReturnsWriteLocked(t *testing.T) {
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigCommandEnv(t)
 
@@ -443,7 +443,7 @@ func TestRunRuntimeConfigSetReturnsWriteLocked(t *testing.T) {
 
 func TestRunRuntimeConfigSetConcurrentWriteConflict(t *testing.T) {
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigCommandEnv(t)
 
@@ -507,7 +507,7 @@ func TestRunRuntimeConfigSetConcurrentWriteConflict(t *testing.T) {
 
 func TestRunRuntimeConfigValidateFailsOnInvalidSchema(t *testing.T) {
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigCommandEnv(t)
 

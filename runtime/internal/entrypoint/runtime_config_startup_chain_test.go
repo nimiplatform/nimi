@@ -7,9 +7,27 @@ import (
 	"testing"
 )
 
+func setEntrypointTestHome(t *testing.T, homeDir string) {
+	t.Helper()
+	t.Setenv("HOME", homeDir)
+	t.Setenv("USERPROFILE", homeDir)
+
+	volume := filepath.VolumeName(homeDir)
+	if volume == "" {
+		volume = "C:"
+	}
+	homePath := strings.TrimPrefix(homeDir, volume)
+	if homePath == "" {
+		homePath = string(os.PathSeparator)
+	}
+
+	t.Setenv("HOMEDRIVE", volume)
+	t.Setenv("HOMEPATH", homePath)
+}
+
 func TestRunDaemonFromArgsDoesNotMigrateLegacyRuntimeConfigOnStartup(t *testing.T) {
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setEntrypointTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigEnvForStartupTest(t)
 
@@ -46,7 +64,7 @@ func TestRunDaemonFromArgsDoesNotMigrateLegacyRuntimeConfigOnStartup(t *testing.
 
 func TestAcquireRuntimeInstanceLock(t *testing.T) {
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setEntrypointTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_LOCK_PATH", "")
 
 	unlock, err := acquireRuntimeInstanceLock()

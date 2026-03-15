@@ -54,7 +54,7 @@ func TestRunRuntimeInitMovedToNimiAppCreate(t *testing.T) {
 
 func TestRunRuntimeProviderSetListUnset(t *testing.T) {
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 
 	setOutput, err := captureStdoutFromRun(func() error {
@@ -135,7 +135,7 @@ func TestRunRuntimeProviderSetListUnset(t *testing.T) {
 
 func TestRunRuntimeProviderListPlainTextShowsNextStepWhenEmpty(t *testing.T) {
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 
 	output, err := captureStdoutFromRun(func() error {
@@ -204,7 +204,7 @@ func TestRunRuntimeProviderTestPlainText(t *testing.T) {
 func TestRunRuntimeDoctorJSON(t *testing.T) {
 	homeDir := t.TempDir()
 	configPath := filepath.Join(homeDir, ".nimi", "config.json")
-	t.Setenv("HOME", homeDir)
+	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	t.Setenv("NIMI_RUNTIME_CLOUD_OPENAI_API_KEY", "test-openai-key")
 
@@ -297,7 +297,7 @@ func TestRunRuntimeDoctorJSON(t *testing.T) {
 
 func TestRunRuntimeDoctorPlainTextShowsNextStepWhenRuntimeUnavailable(t *testing.T) {
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	t.Setenv("NIMI_RUNTIME_GRPC_ADDR", "127.0.0.1:1")
 
@@ -422,7 +422,7 @@ func TestRunTopLevelRunCloudInteractiveCredentialCapture(t *testing.T) {
 	addr, shutdown := startCmdTestOnboardingServer(t, service)
 	defer shutdown()
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	t.Setenv("NIMI_RUNTIME_GRPC_ADDR", addr)
 
@@ -536,7 +536,7 @@ func TestRunTopLevelRunCloudUsesDefaultProvider(t *testing.T) {
 	defer shutdown()
 	homeDir := t.TempDir()
 	configPath := filepath.Join(homeDir, ".nimi", "config.json")
-	t.Setenv("HOME", homeDir)
+	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	t.Setenv("NIMI_RUNTIME_GRPC_ADDR", addr)
 	if err := config.WriteFileConfig(configPath, config.FileConfig{
@@ -610,7 +610,7 @@ func TestRunTopLevelRunCloudRequiresDefaultProvider(t *testing.T) {
 func TestRunRuntimeProviderSetDefaultRequiresModelWithoutCatalogDefault(t *testing.T) {
 	homeDir := t.TempDir()
 	configPath := filepath.Join(homeDir, ".nimi", "config.json")
-	t.Setenv("HOME", homeDir)
+	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	err := runRuntimeProvider([]string{"set", "anthropic", "--api-key", "anthropic-inline-key", "--default"})
 	if err == nil {

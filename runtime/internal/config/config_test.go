@@ -9,9 +9,37 @@ import (
 	"time"
 )
 
+func setLocalAISupervisedPlatformForTest(t *testing.T, supported bool, platform string) {
+	t.Helper()
+	originalSupported := localAISupervisedPlatformSupported
+	originalPlatformString := localAIPlatformString
+	localAISupervisedPlatformSupported = func() bool { return supported }
+	localAIPlatformString = func() string { return platform }
+	t.Cleanup(func() {
+		localAISupervisedPlatformSupported = originalSupported
+		localAIPlatformString = originalPlatformString
+	})
+}
+
+func setRuntimeTestHome(t *testing.T, homeDir string) {
+	t.Helper()
+	t.Setenv("HOME", homeDir)
+	t.Setenv("USERPROFILE", homeDir)
+	volume := filepath.VolumeName(homeDir)
+	if volume == "" {
+		volume = "C:"
+	}
+	homePath := strings.TrimPrefix(homeDir, volume)
+	if homePath == "" {
+		homePath = string(os.PathSeparator)
+	}
+	t.Setenv("HOMEDRIVE", volume)
+	t.Setenv("HOMEPATH", homePath)
+}
+
 func TestLoadDefaultsWithoutConfigFile(t *testing.T) {
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setRuntimeTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "missing-config.json"))
 	clearRuntimeConfigEnv(t)
 
@@ -106,7 +134,7 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
 		t.Fatalf("write config file: %v", err)
 	}
 
-	t.Setenv("HOME", homeDir)
+	setRuntimeTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	clearRuntimeConfigEnv(t)
 	t.Setenv("NIMI_RUNTIME_CLOUD_GEMINI_API_KEY", "gemini-from-env")
@@ -181,6 +209,7 @@ func TestLoadLocalAIImageBackendConfigFromFile(t *testing.T) {
 
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	clearRuntimeConfigEnv(t)
+	setLocalAISupervisedPlatformForTest(t, true, "linux/amd64")
 
 	cfg, err := Load()
 	if err != nil {
@@ -223,6 +252,7 @@ func TestLoadAutoManagesLocalAIForLoopbackProvider(t *testing.T) {
 
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	clearRuntimeConfigEnv(t)
+	setLocalAISupervisedPlatformForTest(t, true, "linux/amd64")
 
 	cfg, err := Load()
 	if err != nil {
@@ -236,6 +266,37 @@ func TestLoadAutoManagesLocalAIForLoopbackProvider(t *testing.T) {
 	}
 	if cfg.EngineLocalAIPort != 2234 {
 		t.Fatalf("localai port should be inferred from providers.local baseUrl: got=%d want=2234", cfg.EngineLocalAIPort)
+	}
+}
+
+func TestLoadDoesNotAutoManageLocalAIForLoopbackProviderOnUnsupportedPlatform(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "providers": {
+    "local": {
+      "baseUrl": "http://127.0.0.1:2234/v1",
+      "apiKeyEnv": "LOCALAI_API_KEY"
+    }
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+	setLocalAISupervisedPlatformForTest(t, false, "windows/amd64")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if cfg.EngineLocalAIEnabled {
+		t.Fatalf("localai should stay disabled on unsupported supervised platforms")
+	}
+	if cfg.EngineLocalAIAutoManaged {
+		t.Fatalf("localai should not be marked auto-managed on unsupported supervised platforms")
 	}
 }
 
@@ -304,6 +365,36 @@ func TestLoadLocalAIExplicitEnabledFalseDisablesAutoManagement(t *testing.T) {
 	}
 }
 
+func TestLoadDisablesExplicitLocalAIEnableOnUnsupportedPlatform(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "engines": {
+    "localai": {
+      "enabled": true
+    }
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+	setLocalAISupervisedPlatformForTest(t, false, "windows/amd64")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if cfg.EngineLocalAIEnabled {
+		t.Fatalf("explicit supervised localai should be disabled on unsupported platforms")
+	}
+	if cfg.EngineLocalAIAutoManaged {
+		t.Fatalf("unsupported platforms must not mark localai auto-managed")
+	}
+}
+
 func TestLoadAutoManagedLocalAIPortInferenceFallbackAndOverride(t *testing.T) {
 	t.Run("fallback default port", func(t *testing.T) {
 		configPath := filepath.Join(t.TempDir(), "runtime-config.json")
@@ -322,6 +413,7 @@ func TestLoadAutoManagedLocalAIPortInferenceFallbackAndOverride(t *testing.T) {
 
 		t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 		clearRuntimeConfigEnv(t)
+		setLocalAISupervisedPlatformForTest(t, true, "linux/amd64")
 
 		cfg, err := Load()
 		if err != nil {
@@ -357,6 +449,7 @@ func TestLoadAutoManagedLocalAIPortInferenceFallbackAndOverride(t *testing.T) {
 
 		t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 		clearRuntimeConfigEnv(t)
+		setLocalAISupervisedPlatformForTest(t, true, "linux/amd64")
 
 		cfg, err := Load()
 		if err != nil {
@@ -426,7 +519,7 @@ func TestLoadInvalidConfigFileReturnsError(t *testing.T) {
 	}
 }
 
-func TestLoadRejectsLegacyNestedConfigSchema(t *testing.T) {
+func TestLoadMigratesLegacyNestedConfigSchema(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
@@ -440,12 +533,15 @@ func TestLoadRejectsLegacyNestedConfigSchema(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	clearRuntimeConfigEnv(t)
 
-	_, err := Load()
-	if err == nil {
-		t.Fatalf("expected parse error for nested legacy schema")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
 	}
-	if !strings.Contains(err.Error(), "parse runtime config file") {
-		t.Fatalf("unexpected error: %v", err)
+	if cfg.GRPCAddr != "127.0.0.1:50001" {
+		t.Fatalf("grpc addr mismatch after nested migration: got=%q", cfg.GRPCAddr)
+	}
+	if _, statErr := os.Stat(configPath + ".bak"); statErr != nil {
+		t.Fatalf("expected migration backup file: %v", statErr)
 	}
 }
 
@@ -607,7 +703,7 @@ func TestLoadRejectsLegacyProviderAlias(t *testing.T) {
 
 func TestLoadIgnoresLegacyRuntimeConfigPath(t *testing.T) {
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setRuntimeTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigEnv(t)
 
@@ -632,6 +728,41 @@ func TestLoadIgnoresLegacyRuntimeConfigPath(t *testing.T) {
 	}
 	if _, statErr := os.Stat(filepath.Join(homeDir, ".nimi/config.json")); !os.IsNotExist(statErr) {
 		t.Fatalf("canonical config should not be auto-created")
+	}
+}
+
+func TestLoadMigratesLegacyNestedRuntimeObjectAtCanonicalPath(t *testing.T) {
+	homeDir := t.TempDir()
+	setRuntimeTestHome(t, homeDir)
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
+	clearRuntimeConfigEnv(t)
+
+	configPath := filepath.Join(homeDir, ".nimi", "config.json")
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
+		t.Fatalf("mkdir canonical config dir: %v", err)
+	}
+	legacyBody := `{"schemaVersion":1,"runtime":{"grpcAddr":"127.0.0.1:59001"}}`
+	if err := os.WriteFile(configPath, []byte(legacyBody), 0o600); err != nil {
+		t.Fatalf("write legacy canonical config: %v", err)
+	}
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if cfg.GRPCAddr != "127.0.0.1:59001" {
+		t.Fatalf("grpc addr mismatch after legacy canonical migration: got=%q", cfg.GRPCAddr)
+	}
+
+	fileCfg, err := LoadFileConfig(configPath)
+	if err != nil {
+		t.Fatalf("LoadFileConfig after migration: %v", err)
+	}
+	if fileCfg.GRPCAddr != "127.0.0.1:59001" {
+		t.Fatalf("migrated file grpc addr mismatch: got=%q", fileCfg.GRPCAddr)
+	}
+	if _, statErr := os.Stat(configPath + ".bak"); statErr != nil {
+		t.Fatalf("expected migration backup file: %v", statErr)
 	}
 }
 
@@ -728,7 +859,7 @@ func TestLoadRejectsRemovedModelCatalogRemoteConfig(t *testing.T) {
 	}
 
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setRuntimeTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	clearRuntimeConfigEnv(t)
 
@@ -752,7 +883,7 @@ func TestLoadRejectsRemovedModelCatalogRemoteEnv(t *testing.T) {
 	}
 
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setRuntimeTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	clearRuntimeConfigEnv(t)
 	t.Setenv("NIMI_RUNTIME_MODEL_CATALOG_REMOTE_ENABLED", "false")
@@ -784,7 +915,7 @@ func TestLoadFlatFileConfig(t *testing.T) {
 	}
 
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setRuntimeTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	clearRuntimeConfigEnv(t)
 
@@ -1031,7 +1162,7 @@ func TestConfigDefaultsMatchSpec(t *testing.T) {
 	// The spec values are embedded directly as a truth table rather than parsing
 	// YAML, so any drift between code defaults and schema spec fails this test.
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setRuntimeTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "missing-config.json"))
 	clearRuntimeConfigEnv(t)
 
