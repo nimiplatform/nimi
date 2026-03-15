@@ -2,7 +2,8 @@ use tauri::AppHandle;
 
 use super::store::{load_state, save_state};
 use super::types::{
-    now_iso_timestamp, LocalAiModelRecord, LocalAiModelStatus, LocalAiRuntimeState,
+    normalize_local_inventory_id, now_iso_timestamp, LocalAiModelRecord, LocalAiModelStatus,
+    LocalAiRuntimeState,
 };
 
 fn rebuild_capability_index(state: &mut LocalAiRuntimeState) {
@@ -37,6 +38,19 @@ fn find_model_index(state: &LocalAiRuntimeState, local_model_id: &str) -> Option
         .position(|item| item.local_model_id.trim().to_ascii_lowercase() == normalized)
 }
 
+fn find_model_identity_index(
+    state: &LocalAiRuntimeState,
+    model_id: &str,
+    engine: &str,
+) -> Option<usize> {
+    let model_id = normalize_local_inventory_id(model_id);
+    let engine = engine.trim();
+    state.models.iter().position(|item| {
+        normalize_local_inventory_id(item.model_id.as_str()) == model_id
+            && item.engine.trim().eq_ignore_ascii_case(engine)
+    })
+}
+
 pub fn list_models(app: &AppHandle) -> Result<Vec<LocalAiModelRecord>, String> {
     let state = load_state(app)?;
     Ok(state.models)
@@ -48,9 +62,14 @@ pub fn upsert_model(
 ) -> Result<LocalAiModelRecord, String> {
     let mut state = load_state(app)?;
     let now = now_iso_timestamp();
+    record.model_id = normalize_local_inventory_id(record.model_id.as_str());
     record.updated_at = now;
 
     if let Some(index) = find_model_index(&state, &record.local_model_id) {
+        state.models[index] = record.clone();
+    } else if let Some(index) = find_model_identity_index(&state, &record.model_id, &record.engine)
+    {
+        record.local_model_id = state.models[index].local_model_id.clone();
         state.models[index] = record.clone();
     } else {
         state.models.push(record.clone());

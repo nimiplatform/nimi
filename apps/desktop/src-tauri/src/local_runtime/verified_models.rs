@@ -1,8 +1,49 @@
 use std::collections::HashMap;
 
+use serde_json::json;
+
 use super::types::LocalAiVerifiedModelDescriptor;
 
+const VERIFIED_TEMPLATE_ID_Z_IMAGE_TURBO: &str = "verified.image.z_image_turbo";
 const VERIFIED_TEMPLATE_ID_QWEN3_TTS_VOICEDESIGN: &str = "verified.qwen3-tts-12hz-1.7b-voicedesign";
+
+fn z_image_turbo_descriptor() -> LocalAiVerifiedModelDescriptor {
+    let files = vec!["z_image_turbo-Q4_K_M.gguf".to_string()];
+    LocalAiVerifiedModelDescriptor {
+        template_id: VERIFIED_TEMPLATE_ID_Z_IMAGE_TURBO.to_string(),
+        title: "Z-Image Turbo (GGUF)".to_string(),
+        description: "Recommended verified LocalAI image main model for dynamic workflow assembly"
+            .to_string(),
+        install_kind: "download".to_string(),
+        model_id: "local/z_image_turbo".to_string(),
+        repo: "jayn7/Z-Image-Turbo-GGUF".to_string(),
+        revision: "main".to_string(),
+        capabilities: vec!["image".to_string()],
+        engine: "localai".to_string(),
+        entry: "z_image_turbo-Q4_K_M.gguf".to_string(),
+        files: files.clone(),
+        license: "tongyi".to_string(),
+        hashes: HashMap::new(),
+        endpoint: "http://127.0.0.1:1234/v1".to_string(),
+        file_count: files.len(),
+        total_size_bytes: Some(0),
+        tags: vec![
+            "image".to_string(),
+            "verified".to_string(),
+            "recommended".to_string(),
+            "z-image".to_string(),
+        ],
+        engine_config: Some(json!({
+            "backend": "stablediffusion-ggml",
+            "cfg_scale": 1,
+            "options": [
+                "diffusion_model",
+                "offload_params_to_cpu:true"
+            ],
+            "step": 25
+        })),
+    }
+}
 
 fn qwen3_tts_voicedesign_files() -> Vec<String> {
     vec![
@@ -102,7 +143,10 @@ fn qwen3_tts_voicedesign_descriptor() -> LocalAiVerifiedModelDescriptor {
 }
 
 pub fn verified_model_list() -> Vec<LocalAiVerifiedModelDescriptor> {
-    vec![qwen3_tts_voicedesign_descriptor()]
+    vec![
+        z_image_turbo_descriptor(),
+        qwen3_tts_voicedesign_descriptor(),
+    ]
 }
 
 pub fn find_verified_model(template_id: &str) -> Option<LocalAiVerifiedModelDescriptor> {
@@ -119,12 +163,16 @@ pub fn find_verified_model(template_id: &str) -> Option<LocalAiVerifiedModelDesc
 mod tests {
     use super::{
         find_verified_model, verified_model_list, VERIFIED_TEMPLATE_ID_QWEN3_TTS_VOICEDESIGN,
+        VERIFIED_TEMPLATE_ID_Z_IMAGE_TURBO,
     };
 
     #[test]
-    fn verified_model_registry_contains_qwen_voice_design() {
+    fn verified_model_registry_contains_expected_entries() {
         let rows = verified_model_list();
         assert!(!rows.is_empty());
+        assert!(rows
+            .iter()
+            .any(|item| item.template_id == VERIFIED_TEMPLATE_ID_Z_IMAGE_TURBO));
         assert!(rows
             .iter()
             .any(|item| item.template_id == VERIFIED_TEMPLATE_ID_QWEN3_TTS_VOICEDESIGN));
@@ -132,13 +180,26 @@ mod tests {
 
     #[test]
     fn find_verified_model_returns_descriptor_by_template_id() {
+        let found = find_verified_model(VERIFIED_TEMPLATE_ID_Z_IMAGE_TURBO);
+        assert!(found.is_some());
+        let descriptor = found.expect("descriptor");
+        assert_eq!(descriptor.engine, "localai");
+        assert_eq!(descriptor.capabilities, vec!["image".to_string()]);
+        assert!(descriptor
+            .files
+            .contains(&"z_image_turbo-Q4_K_M.gguf".to_string()));
+        assert_eq!(descriptor.file_count, descriptor.files.len());
+        assert!(descriptor.tags.iter().any(|tag| tag == "recommended"));
+    }
+
+    #[test]
+    fn find_verified_model_returns_qwen_voice_design_by_template_id() {
         let found = find_verified_model(VERIFIED_TEMPLATE_ID_QWEN3_TTS_VOICEDESIGN);
         assert!(found.is_some());
         let descriptor = found.expect("descriptor");
         assert_eq!(descriptor.engine, "localai");
         assert_eq!(descriptor.capabilities, vec!["tts".to_string()]);
         assert!(descriptor.files.contains(&"model.safetensors".to_string()));
-        assert_eq!(descriptor.file_count, descriptor.files.len());
     }
 
     #[test]

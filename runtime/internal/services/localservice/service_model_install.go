@@ -192,11 +192,12 @@ func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLoc
 	endpoint = s.normalizeRequestedLocalModelEndpoint(engine, endpoint)
 
 	s.mu.RLock()
+	modelKey := localModelIdentityKey(modelID, engine)
 	for _, existing := range s.models {
 		if existing.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
 			continue
 		}
-		if strings.EqualFold(existing.GetModelId(), modelID) && strings.EqualFold(existing.GetEngine(), engine) {
+		if localModelIdentityKey(existing.GetModelId(), existing.GetEngine()) == modelKey {
 			s.mu.RUnlock()
 			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_LOCAL_MODEL_ALREADY_INSTALLED)
 		}
@@ -359,11 +360,12 @@ func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocal
 	}
 
 	s.mu.RLock()
+	modelKey := localModelIdentityKey(modelID, engine)
 	for _, existing := range s.models {
 		if existing.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
 			continue
 		}
-		if strings.EqualFold(existing.GetModelId(), modelID) && strings.EqualFold(existing.GetEngine(), engine) {
+		if localModelIdentityKey(existing.GetModelId(), existing.GetEngine()) == modelKey {
 			s.mu.RUnlock()
 			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_LOCAL_MODEL_ALREADY_INSTALLED)
 		}

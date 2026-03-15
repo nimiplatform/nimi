@@ -2,7 +2,8 @@ use tauri::AppHandle;
 
 use super::store::{load_state, save_state};
 use super::types::{
-    now_iso_timestamp, LocalAiArtifactRecord, LocalAiArtifactStatus, LocalAiRuntimeState,
+    normalize_local_inventory_id, now_iso_timestamp, LocalAiArtifactRecord, LocalAiArtifactStatus,
+    LocalAiRuntimeState,
 };
 
 fn find_artifact_index(state: &LocalAiRuntimeState, local_artifact_id: &str) -> Option<usize> {
@@ -18,12 +19,13 @@ fn find_artifact_identity_index(
     artifact_id: &str,
     kind: &super::types::LocalAiArtifactKind,
     engine: &str,
+    include_removed: bool,
 ) -> Option<usize> {
-    let artifact_id = artifact_id.trim();
+    let artifact_id = normalize_local_inventory_id(artifact_id);
     let engine = engine.trim();
     state.artifacts.iter().position(|item| {
-        item.status != LocalAiArtifactStatus::Removed
-            && item.artifact_id.trim() == artifact_id
+        (include_removed || item.status != LocalAiArtifactStatus::Removed)
+            && normalize_local_inventory_id(item.artifact_id.as_str()) == artifact_id
             && &item.kind == kind
             && item.engine.trim().eq_ignore_ascii_case(engine)
     })
@@ -41,8 +43,10 @@ pub fn find_installed_artifact_by_identity(
     engine: &str,
 ) -> Result<Option<LocalAiArtifactRecord>, String> {
     let state = load_state(app)?;
-    Ok(find_artifact_identity_index(&state, artifact_id, kind, engine)
-        .map(|index| state.artifacts[index].clone()))
+    Ok(
+        find_artifact_identity_index(&state, artifact_id, kind, engine, false)
+            .map(|index| state.artifacts[index].clone()),
+    )
 }
 
 pub fn upsert_artifact(
@@ -51,6 +55,7 @@ pub fn upsert_artifact(
 ) -> Result<LocalAiArtifactRecord, String> {
     let mut state = load_state(app)?;
     let now = now_iso_timestamp();
+    record.artifact_id = normalize_local_inventory_id(record.artifact_id.as_str());
     record.updated_at = now;
 
     if let Some(index) = find_artifact_index(&state, &record.local_artifact_id) {
@@ -60,6 +65,7 @@ pub fn upsert_artifact(
         &record.artifact_id,
         &record.kind,
         &record.engine,
+        true,
     ) {
         record.local_artifact_id = state.artifacts[index].local_artifact_id.clone();
         state.artifacts[index] = record.clone();

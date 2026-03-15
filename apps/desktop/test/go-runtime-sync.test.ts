@@ -154,7 +154,7 @@ test('findGoRuntimeModel matches modelId and engine case-insensitively', () => {
       updatedAt: '2026-03-08T00:00:00Z',
     },
   ], {
-    modelId: 'local-import/z_image_turbo-q4_k',
+    modelId: 'local/local-import/z_image_turbo-q4_k',
     engine: 'localai',
   });
 
@@ -195,7 +195,7 @@ test('toDesktopLocalModelRecord preserves structured runtime metadata', () => {
 
   assert.deepEqual(record, {
     localModelId: '01JMODEL',
-    modelId: 'local-import/z_image_turbo-q4_k',
+    modelId: 'local/local-import/z_image_turbo-q4_k',
     capabilities: ['image'],
     engine: 'localai',
     entry: 'z_image_turbo-Q4_K.gguf',

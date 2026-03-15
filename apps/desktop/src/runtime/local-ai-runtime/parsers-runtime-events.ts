@@ -11,6 +11,7 @@ import type {
   OrphanModelFile,
 } from './types';
 import { asRecord, asString } from './parser-primitives';
+import { toCanonicalLocalId } from './local-id';
 import { normalizeArtifactKind, normalizeStatus } from './parsers';
 
 export function parseModelHealth(value: unknown): LocalAiModelHealth {
@@ -67,7 +68,7 @@ export function parseAuditEvent(value: unknown): LocalAiAuditEvent {
     modality,
     reasonCode,
     detail,
-    modelId: asString(record.modelId) || undefined,
+    modelId: toCanonicalLocalId(record.modelId) || undefined,
     localModelId: asString(record.localModelId) || undefined,
     payload,
   };
@@ -106,7 +107,7 @@ export function parseDownloadProgressEvent(value: unknown): LocalAiDownloadProgr
   const retryable = typeof record.retryable === 'boolean' ? Boolean(record.retryable) : undefined;
   return {
     installSessionId: asString(record.installSessionId),
-    modelId: asString(record.modelId),
+    modelId: toCanonicalLocalId(record.modelId),
     localModelId: asString(record.localModelId) || undefined,
     phase: asString(record.phase) || 'download',
     bytesReceived: Number.isFinite(bytesReceived) && bytesReceived >= 0 ? bytesReceived : 0,
@@ -130,7 +131,7 @@ export function parseDownloadSessionSummary(value: unknown): LocalAiDownloadSess
   const etaRaw = Number(record.etaSeconds);
   return {
     installSessionId: asString(record.installSessionId),
-    modelId: asString(record.modelId),
+    modelId: toCanonicalLocalId(record.modelId),
     localModelId: asString(record.localModelId),
     phase: asString(record.phase) || 'download',
     state: normalizeDownloadState(record.state),
@@ -150,7 +151,7 @@ export function parseInstallAcceptedResponse(value: unknown): LocalAiInstallAcce
   const record = asRecord(value);
   return {
     installSessionId: asString(record.installSessionId),
-    modelId: asString(record.modelId),
+    modelId: toCanonicalLocalId(record.modelId),
     localModelId: asString(record.localModelId),
   };
 }
@@ -159,7 +160,7 @@ export function parseScaffoldArtifactResult(value: unknown): LocalAiScaffoldArti
   const record = asRecord(value);
   return {
     manifestPath: asString(record.manifestPath),
-    artifactId: asString(record.artifactId),
+    artifactId: toCanonicalLocalId(record.artifactId),
     kind: normalizeArtifactKind(record.kind),
   };
 }

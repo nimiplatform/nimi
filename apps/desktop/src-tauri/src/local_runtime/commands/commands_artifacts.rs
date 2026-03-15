@@ -263,6 +263,64 @@ pub fn runtime_local_artifacts_import(
 }
 
 #[tauri::command]
+pub fn runtime_local_artifacts_adopt(
+    app: AppHandle,
+    payload: LocalAiArtifactRecord,
+) -> Result<LocalAiArtifactRecord, String> {
+    let local_artifact_id = payload.local_artifact_id.trim();
+    if local_artifact_id.is_empty() {
+        return Err("LOCAL_AI_ARTIFACT_ID_REQUIRED: localArtifactId is required".to_string());
+    }
+    let artifact_id = payload.artifact_id.trim();
+    if artifact_id.is_empty() {
+        return Err("LOCAL_AI_ARTIFACT_ID_REQUIRED: artifactId is required".to_string());
+    }
+    let engine = payload.engine.trim();
+    if engine.is_empty() {
+        return Err("LOCAL_AI_ARTIFACT_ENGINE_REQUIRED: engine is required".to_string());
+    }
+    let entry = payload.entry.trim();
+    if entry.is_empty() {
+        return Err("LOCAL_AI_ARTIFACT_ENTRY_REQUIRED: entry is required".to_string());
+    }
+
+    let now = now_iso_timestamp();
+    upsert_artifact(
+        &app,
+        LocalAiArtifactRecord {
+            local_artifact_id: local_artifact_id.to_string(),
+            artifact_id: artifact_id.to_string(),
+            kind: payload.kind,
+            engine: engine.to_string(),
+            entry: entry.to_string(),
+            files: payload.files,
+            license: payload.license.trim().to_string(),
+            source: LocalAiArtifactSource {
+                repo: payload.source.repo.trim().to_string(),
+                revision: payload.source.revision.trim().to_string(),
+            },
+            hashes: payload.hashes,
+            status: payload.status,
+            installed_at: if payload.installed_at.trim().is_empty() {
+                now.clone()
+            } else {
+                payload.installed_at
+            },
+            updated_at: now,
+            health_detail: payload.health_detail.and_then(|value| {
+                let normalized = value.trim().to_string();
+                if normalized.is_empty() {
+                    None
+                } else {
+                    Some(normalized)
+                }
+            }),
+            metadata: payload.metadata,
+        },
+    )
+}
+
+#[tauri::command]
 pub fn runtime_local_artifacts_remove(
     app: AppHandle,
     payload: serde_json::Value,

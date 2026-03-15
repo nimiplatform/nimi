@@ -56,8 +56,7 @@ func (s *Service) ensureArtifactNotInstalled(
 	kind runtimev1.LocalArtifactKind,
 	engine string,
 ) error {
-	normalizedArtifactID := strings.TrimSpace(artifactID)
-	normalizedEngine := strings.TrimSpace(engine)
+	identityKey := localArtifactIdentityKey(artifactID, kind, engine)
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -65,9 +64,7 @@ func (s *Service) ensureArtifactNotInstalled(
 		if existing == nil || existing.GetStatus() == runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_REMOVED {
 			continue
 		}
-		if existing.GetArtifactId() == normalizedArtifactID &&
-			existing.GetKind() == kind &&
-			strings.EqualFold(existing.GetEngine(), normalizedEngine) {
+		if localArtifactIdentityKey(existing.GetArtifactId(), existing.GetKind(), existing.GetEngine()) == identityKey {
 			return grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_LOCAL_MODEL_ALREADY_INSTALLED)
 		}
 	}

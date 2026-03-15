@@ -23,6 +23,7 @@ import type {
 } from './types';
 import { asRecord, asString } from './parser-primitives';
 import { asPlainObject } from './parser-helpers';
+import { toCanonicalLocalId } from './local-id';
 import {
   parseExecutionStageResult,
   parseExecutionEntryDescriptor,
@@ -81,7 +82,7 @@ export function parseModelRecord(value: unknown): LocalAiModelRecord {
     : [];
   return {
     localModelId: asString(record.localModelId),
-    modelId: asString(record.modelId),
+    modelId: toCanonicalLocalId(record.modelId),
     capabilities,
     engine: asString(record.engine),
     entry: asString(record.entry),
@@ -183,7 +184,7 @@ export function parseArtifactRecord(value: unknown): LocalAiArtifactRecord {
     : [];
   return {
     localArtifactId: asString(record.localArtifactId),
-    artifactId: asString(record.artifactId),
+    artifactId: toCanonicalLocalId(record.artifactId),
     kind: normalizeArtifactKind(record.kind),
     engine: asString(record.engine),
     entry: asString(record.entry),
@@ -238,12 +239,12 @@ function parseProfileEntryDescriptor(value: unknown): LocalAiProfileEntryDescrip
     capability: asString(record.capability) || undefined,
     required: typeof record.required === 'boolean' ? Boolean(record.required) : undefined,
     preferred: typeof record.preferred === 'boolean' ? Boolean(record.preferred) : undefined,
-    modelId: asString(record.modelId) || undefined,
+    modelId: toCanonicalLocalId(record.modelId) || undefined,
     repo: asString(record.repo) || undefined,
     serviceId: asString(record.serviceId) || undefined,
     nodeId: asString(record.nodeId) || undefined,
     engine: asString(record.engine) || undefined,
-    artifactId: asString(record.artifactId) || undefined,
+    artifactId: toCanonicalLocalId(record.artifactId) || undefined,
     artifactKind: asString(record.artifactKind) as LocalAiProfileEntryDescriptor['artifactKind'] || undefined,
     templateId: asString(record.templateId) || undefined,
     revision: asString(record.revision) || undefined,
@@ -321,7 +322,7 @@ export function parseVerifiedArtifactDescriptor(value: unknown): LocalAiVerified
     templateId: asString(record.templateId),
     title: asString(record.title),
     description: asString(record.description),
-    artifactId: asString(record.artifactId),
+    artifactId: toCanonicalLocalId(record.artifactId),
     kind: normalizeArtifactKind(record.kind),
     engine: asString(record.engine),
     entry: asString(record.entry),

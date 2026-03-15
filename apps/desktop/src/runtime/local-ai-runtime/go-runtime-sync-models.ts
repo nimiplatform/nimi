@@ -1,5 +1,6 @@
 import { emitRuntimeLog } from '../telemetry/logger';
 import type { LocalAiModelRecord, LocalAiModelStatus } from './types';
+import { toCanonicalLocalId, toCanonicalLocalLookupKey } from './local-id';
 import type {
   GoRuntimeModelEntry,
   GoRuntimeSyncResult,
@@ -87,7 +88,7 @@ export function parseGoRuntimeModelEntry(value: unknown): GoRuntimeModelEntry {
   }
   return {
     localModelId: String(record.localModelId || '').trim(),
-    modelId: String(record.modelId || '').trim(),
+    modelId: toCanonicalLocalId(record.modelId),
     engine: normalizeEngine(record.engine),
     status: parsedStatus.status,
     statusRaw: parsedStatus.raw,
@@ -108,7 +109,7 @@ export function parseGoRuntimeModelEntry(value: unknown): GoRuntimeModelEntry {
 }
 
 export function syncLookupKey(modelId: string, engine: string): string {
-  return `${normalizeEngine(engine)}::${String(modelId || '').trim().toLowerCase()}`;
+  return `${normalizeEngine(engine)}::${toCanonicalLocalLookupKey(modelId)}`;
 }
 
 export function findGoRuntimeModel(
@@ -163,7 +164,7 @@ export function findDesktopModel(models: LocalAiModelRecord[], target: GoRuntime
 export function toDesktopLocalModelRecord(model: GoRuntimeModelEntry): LocalAiModelRecord {
   return {
     localModelId: model.localModelId,
-    modelId: model.modelId,
+    modelId: toCanonicalLocalId(model.modelId),
     capabilities: [...(model.capabilities || [])],
     engine: model.engine,
     entry: model.entry,

@@ -207,6 +207,87 @@ func TestInstallVerifiedArtifactHashMismatchRollsBack(t *testing.T) {
 	}
 }
 
+func TestInstallVerifiedArtifactRejectsCanonicalAliasDuplicate(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.SetLocalAIRegistrationConfig(modelsRoot, "", false)
+	svc.artifacts["artifact-bare"] = &runtimev1.LocalArtifactRecord{
+		LocalArtifactId: "artifact-bare",
+		ArtifactId:      "z_image_ae",
+		Kind:            runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
+		Engine:          "localai",
+		Entry:           "vae/diffusion_pytorch_model.safetensors",
+		Files:           []string{"vae/diffusion_pytorch_model.safetensors"},
+		Status:          runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_INSTALLED,
+		InstalledAt:     "2026-03-12T03:29:59.797625Z",
+		UpdatedAt:       "2026-03-12T03:29:59.797632Z",
+	}
+	svc.verifiedArtifacts = []*runtimev1.LocalVerifiedArtifactDescriptor{
+		{
+			TemplateId: "verified.artifact.z_image.vae",
+			Title:      "Z-Image AE",
+			ArtifactId: "local/z_image_ae",
+			Kind:       runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
+			Engine:     "localai",
+			Entry:      "vae/diffusion_pytorch_model.safetensors",
+			Files:      []string{"vae/diffusion_pytorch_model.safetensors"},
+			License:    "tongyi",
+			Repo:       "Tongyi-MAI/Z-Image-Turbo",
+			Revision:   "main",
+		},
+	}
+
+	_, err := svc.InstallVerifiedArtifact(context.Background(), &runtimev1.InstallVerifiedArtifactRequest{
+		TemplateId: "verified.artifact.z_image.vae",
+	})
+	if err == nil {
+		t.Fatalf("expected alias duplicate install to fail")
+	}
+	assertGRPCCode(t, err, "InstallVerifiedArtifact(alias_duplicate)", codes.AlreadyExists)
+}
+
+func TestListLocalArtifactsDedupesCanonicalAliasHistory(t *testing.T) {
+	svc := newTestService(t)
+	svc.artifacts = map[string]*runtimev1.LocalArtifactRecord{
+		"legacy-local": {
+			LocalArtifactId: "legacy-local",
+			ArtifactId:      "local/z_image_ae",
+			Kind:            runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
+			Engine:          "localai",
+			Entry:           "vae/diffusion_pytorch_model.safetensors",
+			Files:           []string{"vae/diffusion_pytorch_model.safetensors"},
+			Status:          runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_REMOVED,
+			InstalledAt:     "2026-03-12T03:22:04.126814Z",
+			UpdatedAt:       "2026-03-12T03:29:11.766458Z",
+		},
+		"current-bare": {
+			LocalArtifactId: "current-bare",
+			ArtifactId:      "z_image_ae",
+			Kind:            runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
+			Engine:          "localai",
+			Entry:           "vae/diffusion_pytorch_model.safetensors",
+			Files:           []string{"vae/diffusion_pytorch_model.safetensors"},
+			Status:          runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_INSTALLED,
+			InstalledAt:     "2026-03-12T03:29:59.797625Z",
+			UpdatedAt:       "2026-03-12T03:29:59.797632Z",
+		},
+	}
+
+	resp, err := svc.ListLocalArtifacts(context.Background(), &runtimev1.ListLocalArtifactsRequest{})
+	if err != nil {
+		t.Fatalf("list local artifacts: %v", err)
+	}
+	if len(resp.GetArtifacts()) != 1 {
+		t.Fatalf("expected one canonical artifact row, got %d", len(resp.GetArtifacts()))
+	}
+	if resp.GetArtifacts()[0].GetLocalArtifactId() != "current-bare" {
+		t.Fatalf("expected latest installed alias row to win, got %q", resp.GetArtifacts()[0].GetLocalArtifactId())
+	}
+	if resp.GetArtifacts()[0].GetStatus() != runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_INSTALLED {
+		t.Fatalf("expected installed status, got %s", resp.GetArtifacts()[0].GetStatus())
+	}
+}
+
 func TestRemoveLocalArtifactUsesReasonCodes(t *testing.T) {
 	svc := newTestService(t)
 	ctx := context.Background()

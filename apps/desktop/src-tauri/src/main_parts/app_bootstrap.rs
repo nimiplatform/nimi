@@ -241,6 +241,7 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             local_runtime::commands::runtime_local_models_import,
             local_runtime::commands::runtime_local_artifacts_import,
             local_runtime::commands::runtime_local_models_adopt,
+            local_runtime::commands::runtime_local_artifacts_adopt,
             local_runtime::commands::runtime_local_pick_model_file,
             local_runtime::commands::runtime_local_models_import_file,
             local_runtime::commands::runtime_local_models_remove,

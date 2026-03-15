@@ -199,8 +199,40 @@ func TestBuildLocalAIRegistrationsRejectsManagedNameConflicts(t *testing.T) {
 
 	writeManagedLocalAIManifest(t, modelsPath, "local/conflict-model", "./weights/model-a.gguf", []string{"chat"})
 	writeManagedLocalAIManifest(t, modelsPath, "localai/conflict-model", "./weights/model-b.gguf", []string{"chat"})
-	first := installLocalAIModelForRegistrarTest(t, svc, "local/conflict-model", "./weights/model-a.gguf", []string{"chat"}, "", nil)
-	second := installLocalAIModelForRegistrarTest(t, svc, "localai/conflict-model", "./weights/model-b.gguf", []string{"chat"}, "", nil)
+	first := &runtimev1.LocalModelRecord{
+		LocalModelId: "local-conflict-a",
+		ModelId:      "local/conflict-model",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+		Entry:        "./weights/model-a.gguf",
+		License:      "apache-2.0",
+		Source: &runtimev1.LocalModelSource{
+			Repo:     "test/conflict-a",
+			Revision: "main",
+		},
+		Endpoint:    defaultLocalEndpoint,
+		Status:      runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
+		InstalledAt: nowISO(),
+		UpdatedAt:   nowISO(),
+	}
+	second := &runtimev1.LocalModelRecord{
+		LocalModelId: "local-conflict-b",
+		ModelId:      "localai/conflict-model",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+		Entry:        "./weights/model-b.gguf",
+		License:      "apache-2.0",
+		Source: &runtimev1.LocalModelSource{
+			Repo:     "test/conflict-b",
+			Revision: "main",
+		},
+		Endpoint:    defaultLocalEndpoint,
+		Status:      runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
+		InstalledAt: nowISO(),
+		UpdatedAt:   nowISO(),
+	}
+	svc.models[first.GetLocalModelId()] = first
+	svc.models[second.GetLocalModelId()] = second
 
 	registrations, rendered, err := svc.buildLocalAIRegistrations()
 	if err != nil {

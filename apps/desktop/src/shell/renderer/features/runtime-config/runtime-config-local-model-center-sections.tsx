@@ -9,6 +9,7 @@ import type {
   LocalAiVerifiedArtifactDescriptor,
   LocalAiVerifiedModelDescriptor,
 } from '@runtime/local-ai-runtime';
+import { toCanonicalLocalLookupKey } from '@runtime/local-ai-runtime/local-id';
 import type {
   RuntimeConfigStateV11,
   RuntimeSetupPageIdV11,
@@ -306,7 +307,9 @@ function ArtifactRequirementBadges(props: ArtifactRequirementBadgesProps) {
     return null;
   }
 
-  const missingArtifacts = props.relatedArtifacts.filter((artifact) => !props.installedArtifactsById.has(artifact.artifactId.toLowerCase()));
+  const missingArtifacts = props.relatedArtifacts.filter((artifact) => (
+    !props.installedArtifactsById.has(toCanonicalLocalLookupKey(artifact.artifactId))
+  ));
   const hasPendingMissingArtifacts = missingArtifacts.some((artifact) => props.isArtifactPending(artifact.templateId));
 
   return (
@@ -327,7 +330,7 @@ function ArtifactRequirementBadges(props: ArtifactRequirementBadgesProps) {
         </button>
       ) : null}
       {props.relatedArtifacts.map((artifact) => {
-        const installed = props.installedArtifactsById.get(artifact.artifactId.toLowerCase()) || null;
+        const installed = props.installedArtifactsById.get(toCanonicalLocalLookupKey(artifact.artifactId)) || null;
         const pending = props.isArtifactPending(artifact.templateId);
         return (
           <div

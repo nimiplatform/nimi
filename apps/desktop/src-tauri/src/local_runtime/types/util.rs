@@ -17,6 +17,25 @@ pub fn normalize_non_empty(value: &str, fallback: &str) -> String {
     }
 }
 
+pub fn normalize_local_inventory_id(value: &str) -> String {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return String::new();
+    }
+    let lower = trimmed.to_ascii_lowercase();
+    for prefix in ["local/", "localai/", "nexa/", "sidecar/"] {
+        if lower.starts_with(prefix) {
+            let suffix = trimmed[prefix.len()..].trim();
+            return if suffix.is_empty() {
+                String::new()
+            } else {
+                format!("local/{suffix}")
+            };
+        }
+    }
+    format!("local/{trimmed}")
+}
+
 const CROCKFORD_BASE32: &[u8; 32] = b"0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // pragma: allowlist secret
 static ULID_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -96,7 +115,10 @@ pub fn slugify_local_model_id(input: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{generate_ulid_string, now_iso_timestamp, slugify_local_model_id};
+    use super::{
+        generate_ulid_string, normalize_local_inventory_id, now_iso_timestamp,
+        slugify_local_model_id,
+    };
 
     #[test]
     fn now_iso_timestamp_returns_rfc3339_millis_utc() {
@@ -132,6 +154,26 @@ mod tests {
     #[test]
     fn slugify_local_model_id_preserves_alphanumeric_lowercase() {
         assert_eq!(slugify_local_model_id("MyModel-V2.1"), "mymodel-v2-1");
+    }
+
+    #[test]
+    fn normalize_local_inventory_id_adds_local_prefix() {
+        assert_eq!(
+            normalize_local_inventory_id("z_image_turbo"),
+            "local/z_image_turbo"
+        );
+    }
+
+    #[test]
+    fn normalize_local_inventory_id_collapses_runtime_aliases() {
+        assert_eq!(
+            normalize_local_inventory_id("localai/z_image_ae"),
+            "local/z_image_ae"
+        );
+        assert_eq!(
+            normalize_local_inventory_id("nexa/qwen3_4b_companion"),
+            "local/qwen3_4b_companion"
+        );
     }
 
     #[test]

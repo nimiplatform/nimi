@@ -28,6 +28,7 @@ import {
   type ArtifactTaskEntry,
   type ArtifactTaskState,
 } from './runtime-config-local-model-center-helpers';
+import { toCanonicalLocalLookupKey } from '@runtime/local-ai-runtime/local-id';
 import { useLocalModelCenterImportActions } from './runtime-config-use-local-model-center-import-actions';
 
 type UseLocalModelCenterRuntimeStateInput = {
@@ -112,16 +113,16 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     [artifactKindFilter, deferredSearchQuery, sortedInstalledArtifacts],
   );
   const installedArtifactIds = useMemo(
-    () => new Set(sortedInstalledArtifacts.map((artifact) => artifact.artifactId.toLowerCase())),
+    () => new Set(sortedInstalledArtifacts.map((artifact) => toCanonicalLocalLookupKey(artifact.artifactId)).filter(Boolean)),
     [sortedInstalledArtifacts],
   );
   const installedArtifactsById = useMemo(
-    () => new Map(sortedInstalledArtifacts.map((artifact) => [artifact.artifactId.toLowerCase(), artifact] as const)),
+    () => new Map(sortedInstalledArtifacts.map((artifact) => [toCanonicalLocalLookupKey(artifact.artifactId), artifact] as const)),
     [sortedInstalledArtifacts],
   );
 
   const isInstalled = useCallback((modelId: string) => {
-    return sortedModels.some((model) => model.model.toLowerCase() === modelId.toLowerCase());
+    return sortedModels.some((model) => toCanonicalLocalLookupKey(model.model) === toCanonicalLocalLookupKey(modelId));
   }, [sortedModels]);
   const inferredCatalogCapability = useCallback((item: LocalAiCatalogItemDescriptor): CapabilityOption => (
     normalizeCapabilityOption(item.capabilities.find((capability) => (
@@ -238,7 +239,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   const visibleVerifiedArtifacts = useMemo(() => {
     const query = deferredSearchQuery.toLowerCase().trim();
     const candidates = verifiedArtifacts.filter((artifact) => {
-      if (installedArtifactIds.has(artifact.artifactId.toLowerCase())) {
+      if (installedArtifactIds.has(toCanonicalLocalLookupKey(artifact.artifactId))) {
         return false;
       }
       if (!query) {
@@ -346,7 +347,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   }, [markArtifactPending, props, refreshArtifactSections, upsertArtifactTask]);
 
   const installMissingArtifactsForModel = useCallback(async (artifacts: LocalAiVerifiedArtifactDescriptor[]) => {
-    const missing = artifacts.filter((artifact) => !installedArtifactsById.has(artifact.artifactId.toLowerCase()));
+    const missing = artifacts.filter((artifact) => !installedArtifactsById.has(toCanonicalLocalLookupKey(artifact.artifactId)));
     for (const artifact of missing) {
       await installVerifiedArtifact(artifact.templateId);
     }

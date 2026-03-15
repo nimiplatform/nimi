@@ -1852,6 +1852,68 @@ func TestLocalInstallLocalModelRejectsDuplicateAndUsesULID(t *testing.T) {
 	}
 }
 
+func TestLocalInstallLocalModelRejectsCanonicalAliasDuplicate(t *testing.T) {
+	svc := newTestService(t)
+	if _, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId: "z_image_turbo",
+		Engine:  "localai",
+	}); err != nil {
+		t.Fatalf("install bare model id: %v", err)
+	}
+
+	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId: "local/z_image_turbo",
+		Engine:  "localai",
+	})
+	if err == nil {
+		t.Fatalf("expected canonical alias duplicate install to fail")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.AlreadyExists {
+		t.Fatalf("expected AlreadyExists, got %v", st.Code())
+	}
+}
+
+func TestListLocalModelsDedupesCanonicalAliasHistory(t *testing.T) {
+	svc := newTestService(t)
+	svc.models = map[string]*runtimev1.LocalModelRecord{
+		"legacy-local": {
+			LocalModelId: "legacy-local",
+			ModelId:      "local/z_image_turbo",
+			Capabilities: []string{"image"},
+			Engine:       "localai",
+			Entry:        "z_image_turbo-Q4_K_M.gguf",
+			Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED,
+			InstalledAt:  "2026-03-12T03:22:03.108524Z",
+			UpdatedAt:    "2026-03-12T03:29:11.762573Z",
+		},
+		"current-bare": {
+			LocalModelId: "current-bare",
+			ModelId:      "z_image_turbo",
+			Capabilities: []string{"image"},
+			Engine:       "localai",
+			Entry:        "z_image_turbo-Q4_K_M.gguf",
+			Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+			InstalledAt:  "2026-03-12T03:29:58.769489Z",
+			UpdatedAt:    "2026-03-12T03:30:12.73915Z",
+		},
+	}
+
+	resp, err := svc.ListLocalModels(context.Background(), &runtimev1.ListLocalModelsRequest{})
+	if err != nil {
+		t.Fatalf("list local models: %v", err)
+	}
+	if len(resp.GetModels()) != 1 {
+		t.Fatalf("expected one canonical model row, got %d", len(resp.GetModels()))
+	}
+	if resp.GetModels()[0].GetLocalModelId() != "current-bare" {
+		t.Fatalf("expected latest active alias row to win, got %q", resp.GetModels()[0].GetLocalModelId())
+	}
+	if resp.GetModels()[0].GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+		t.Fatalf("expected active status, got %s", resp.GetModels()[0].GetStatus())
+	}
+}
+
 func TestLocalInstallLocalModelRequiresEndpointForNexa(t *testing.T) {
 	svc := newTestService(t)
 	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
@@ -2619,6 +2681,103 @@ func TestLocalStateRestoresAfterRestart(t *testing.T) {
 	}
 	if event.GetOperation() != "append_inference_audit" {
 		t.Fatalf("unexpected restored operation: %s", event.GetOperation())
+	}
+}
+
+func TestLocalStateRestoreReconcilesCanonicalAliasDuplicates(t *testing.T) {
+	statePath := filepath.Join(t.TempDir(), "local-state.json")
+	raw, err := json.Marshal(localStateSnapshot{
+		SchemaVersion: 1,
+		SavedAt:       "2026-03-15T00:00:00Z",
+		Models: []localStateModelState{
+			{
+				LocalModelID: "legacy-local-model",
+				ModelID:      "local/z_image_turbo",
+				Capabilities: []string{"image"},
+				Engine:       "localai",
+				Entry:        "z_image_turbo-Q4_K_M.gguf",
+				Status:       int32(runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED),
+				InstalledAt:  "2026-03-12T03:22:03.108524Z",
+				UpdatedAt:    "2026-03-12T03:29:11.762573Z",
+			},
+			{
+				LocalModelID: "current-bare-model",
+				ModelID:      "z_image_turbo",
+				Capabilities: []string{"image"},
+				Engine:       "localai",
+				Entry:        "z_image_turbo-Q4_K_M.gguf",
+				Status:       int32(runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE),
+				InstalledAt:  "2026-03-12T03:29:58.769489Z",
+				UpdatedAt:    "2026-03-12T03:30:12.73915Z",
+			},
+		},
+		Artifacts: []localStateArtifactState{
+			{
+				LocalArtifactID: "legacy-local-artifact",
+				ArtifactID:      "local/z_image_ae",
+				Kind:            int32(runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE),
+				Engine:          "localai",
+				Entry:           "vae/diffusion_pytorch_model.safetensors",
+				Files:           []string{"vae/diffusion_pytorch_model.safetensors"},
+				Status:          int32(runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_REMOVED),
+				InstalledAt:     "2026-03-12T03:22:04.126814Z",
+				UpdatedAt:       "2026-03-12T03:29:11.766458Z",
+			},
+			{
+				LocalArtifactID: "current-bare-artifact",
+				ArtifactID:      "z_image_ae",
+				Kind:            int32(runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE),
+				Engine:          "localai",
+				Entry:           "vae/diffusion_pytorch_model.safetensors",
+				Files:           []string{"vae/diffusion_pytorch_model.safetensors"},
+				Status:          int32(runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_INSTALLED),
+				InstalledAt:     "2026-03-12T03:29:59.797625Z",
+				UpdatedAt:       "2026-03-12T03:29:59.797632Z",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("marshal local state snapshot: %v", err)
+	}
+	if err := os.WriteFile(statePath, raw, 0o600); err != nil {
+		t.Fatalf("write local state snapshot: %v", err)
+	}
+
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	restarted := New(logger, nil, statePath, 0)
+	defer restarted.Close()
+
+	modelsResp, err := restarted.ListLocalModels(context.Background(), &runtimev1.ListLocalModelsRequest{})
+	if err != nil {
+		t.Fatalf("list models after restore: %v", err)
+	}
+	if len(modelsResp.GetModels()) != 1 {
+		t.Fatalf("expected one reconciled model row, got %d", len(modelsResp.GetModels()))
+	}
+	if modelsResp.GetModels()[0].GetLocalModelId() != "current-bare-model" {
+		t.Fatalf("expected current model row to win, got %q", modelsResp.GetModels()[0].GetLocalModelId())
+	}
+
+	artifactsResp, err := restarted.ListLocalArtifacts(context.Background(), &runtimev1.ListLocalArtifactsRequest{})
+	if err != nil {
+		t.Fatalf("list artifacts after restore: %v", err)
+	}
+	if len(artifactsResp.GetArtifacts()) != 1 {
+		t.Fatalf("expected one reconciled artifact row, got %d", len(artifactsResp.GetArtifacts()))
+	}
+	if artifactsResp.GetArtifacts()[0].GetLocalArtifactId() != "current-bare-artifact" {
+		t.Fatalf("expected current artifact row to win, got %q", artifactsResp.GetArtifacts()[0].GetLocalArtifactId())
+	}
+
+	persisted, err := loadLocalStateSnapshot(statePath)
+	if err != nil {
+		t.Fatalf("load healed local state snapshot: %v", err)
+	}
+	if len(persisted.Models) != 1 {
+		t.Fatalf("expected healed state to persist one model row, got %d", len(persisted.Models))
+	}
+	if len(persisted.Artifacts) != 1 {
+		t.Fatalf("expected healed state to persist one artifact row, got %d", len(persisted.Artifacts))
 	}
 }
 

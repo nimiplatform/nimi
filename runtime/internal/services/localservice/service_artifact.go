@@ -24,8 +24,14 @@ func (s *Service) ListLocalArtifacts(_ context.Context, req *runtimev1.ListLocal
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	artifacts := make([]*runtimev1.LocalArtifactRecord, 0, len(s.artifacts))
+	artifactRows := make([]*runtimev1.LocalArtifactRecord, 0, len(s.artifacts))
 	for _, artifact := range s.artifacts {
+		artifactRows = append(artifactRows, artifact)
+	}
+	artifactRows, _ = dedupeLocalArtifactRecords(artifactRows)
+
+	artifacts := make([]*runtimev1.LocalArtifactRecord, 0, len(artifactRows))
+	for _, artifact := range artifactRows {
 		if artifact == nil {
 			continue
 		}
@@ -253,13 +259,12 @@ func (s *Service) installLocalArtifactRecord(record *runtimev1.LocalArtifactReco
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	recordKey := localArtifactIdentityKey(record.GetArtifactId(), record.GetKind(), record.GetEngine())
 	for _, existing := range s.artifacts {
 		if existing == nil || existing.GetStatus() == runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_REMOVED {
 			continue
 		}
-		if existing.GetArtifactId() == record.GetArtifactId() &&
-			existing.GetKind() == record.GetKind() &&
-			strings.EqualFold(existing.GetEngine(), record.GetEngine()) {
+		if localArtifactIdentityKey(existing.GetArtifactId(), existing.GetKind(), existing.GetEngine()) == recordKey {
 			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_LOCAL_MODEL_ALREADY_INSTALLED)
 		}
 	}

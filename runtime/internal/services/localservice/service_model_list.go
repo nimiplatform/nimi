@@ -18,8 +18,14 @@ func (s *Service) ListLocalModels(_ context.Context, req *runtimev1.ListLocalMod
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	models := make([]*runtimev1.LocalModelRecord, 0, len(s.models))
+	modelRows := make([]*runtimev1.LocalModelRecord, 0, len(s.models))
 	for _, model := range s.models {
+		modelRows = append(modelRows, model)
+	}
+	modelRows, _ = dedupeLocalModelRecords(modelRows)
+
+	models := make([]*runtimev1.LocalModelRecord, 0, len(modelRows))
+	for _, model := range modelRows {
 		if statusFilter != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNSPECIFIED && model.GetStatus() != statusFilter {
 			continue
 		}

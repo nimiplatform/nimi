@@ -125,8 +125,51 @@ test('parseArtifactRecord and parseVerifiedArtifactDescriptor decode metadata in
     role: 'companion',
     slots: ['vae', 'llm'],
   });
+  assert.equal(artifact.artifactId, 'local/z-image-ae');
   assert.deepEqual(verified.metadata, {
     role: 'companion',
     slots: ['vae', 'llm'],
   });
+  assert.equal(verified.artifactId, 'local/z-image-ae');
+});
+
+test('parseModelRecord canonicalizes local runtime ids to local/ prefix', () => {
+  const model = parseModelRecord({
+    localModelId: '01JMODEL',
+    modelId: 'z_image_turbo',
+    capabilities: ['image'],
+    engine: 'localai',
+    entry: 'z_image_turbo-Q4_K_M.gguf',
+    license: 'apache-2.0',
+    source: {
+      repo: 'jayn7/Z-Image-Turbo-GGUF',
+      revision: 'main',
+    },
+    hashes: {},
+    endpoint: 'http://127.0.0.1:1234/v1',
+    status: 'active',
+    installedAt: '2026-03-08T00:00:00Z',
+    updatedAt: '2026-03-08T00:00:00Z',
+  });
+
+  const artifact = parseArtifactRecord({
+    localArtifactId: '01JART',
+    artifactId: 'localai/z_image_ae',
+    kind: 'vae',
+    engine: 'localai',
+    entry: 'ae.safetensors',
+    files: ['ae.safetensors'],
+    license: 'apache-2.0',
+    source: {
+      repo: 'Tongyi-MAI/Z-Image',
+      revision: 'main',
+    },
+    hashes: {},
+    status: 'installed',
+    installedAt: '2026-03-08T00:00:00Z',
+    updatedAt: '2026-03-08T00:00:00Z',
+  });
+
+  assert.equal(model.modelId, 'local/z_image_turbo');
+  assert.equal(artifact.artifactId, 'local/z_image_ae');
 });

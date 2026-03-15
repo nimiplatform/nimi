@@ -122,7 +122,9 @@ func (s *Service) restoreState() {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	healedSnapshot := false
 
+	modelRows := make([]*runtimev1.LocalModelRecord, 0, len(snapshot.Models))
 	for _, item := range snapshot.Models {
 		record := &runtimev1.LocalModelRecord{
 			LocalModelId: item.LocalModelID,
@@ -147,9 +149,17 @@ func (s *Service) restoreState() {
 		if record.GetLocalModelId() == "" {
 			continue
 		}
+		modelRows = append(modelRows, record)
+	}
+	modelRows, modelsChanged := dedupeLocalModelRecords(modelRows)
+	if modelsChanged {
+		healedSnapshot = true
+	}
+	for _, record := range modelRows {
 		s.models[record.GetLocalModelId()] = record
 	}
 
+	artifactRows := make([]*runtimev1.LocalArtifactRecord, 0, len(snapshot.Artifacts))
 	for _, item := range snapshot.Artifacts {
 		record := &runtimev1.LocalArtifactRecord{
 			LocalArtifactId: item.LocalArtifactID,
@@ -173,6 +183,13 @@ func (s *Service) restoreState() {
 		if record.GetLocalArtifactId() == "" {
 			continue
 		}
+		artifactRows = append(artifactRows, record)
+	}
+	artifactRows, artifactsChanged := dedupeLocalArtifactRecords(artifactRows)
+	if artifactsChanged {
+		healedSnapshot = true
+	}
+	for _, record := range artifactRows {
 		s.artifacts[record.GetLocalArtifactId()] = record
 	}
 
@@ -220,6 +237,9 @@ func (s *Service) restoreState() {
 		if len(s.audits) >= capacity {
 			break
 		}
+	}
+	if healedSnapshot {
+		s.persistStateLocked()
 	}
 }
 
