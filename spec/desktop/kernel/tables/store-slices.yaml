@@ -23,5 +23,5 @@ slices:
   - name: ui
     factory: createUiSlice
     file: ui-slice.ts
-    description: Active tab, selected IDs, navigation history, status banner
+    description: Active tab, selected IDs, profile detail overlay state, navigation history, status banner
     source_rule: D-STATE-004

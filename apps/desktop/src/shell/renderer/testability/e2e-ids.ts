@@ -3,6 +3,7 @@ export const E2E_IDS = {
   appBootstrapErrorScreen: 'app-bootstrap-error-screen',
   loginScreen: 'login-screen',
   mainShell: 'main-shell',
+  shellSidebarRail: 'shell-sidebar-rail',
   desktopReleaseStrip: 'desktop-release-strip',
   desktopReleaseOpenUpdates: 'desktop-release-open-updates',
   offlineStrip: 'offline-strip',

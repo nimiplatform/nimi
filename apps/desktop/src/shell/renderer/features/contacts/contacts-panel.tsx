@@ -189,7 +189,7 @@ export function ContactsPanel() {
   const onAddContact = useCallback(async (candidate: ContactSearchCandidate, _message?: string) => {
     try {
       if (candidate.isAgent && (!agentLimitQuery.data || !agentLimitQuery.data.canAdd)) {
-        throw new Error(agentLimitQuery.data.reason || t('Contacts.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }));
+        throw new Error(agentLimitQuery.data?.reason || t('Contacts.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }));
       }
       await dataSync.requestOrAcceptFriend(candidate.id);
       await Promise.all([refetchContacts(), agentLimitQuery.refetch()]);
@@ -217,7 +217,7 @@ export function ContactsPanel() {
   const onAcceptRequest = useCallback(async (request: ContactRequestRecord) => {
     try {
       if (request.isAgent && (!agentLimitQuery.data || !agentLimitQuery.data.canAdd)) {
-        throw new Error(agentLimitQuery.data.reason || t('Contacts.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }));
+        throw new Error(agentLimitQuery.data?.reason || t('Contacts.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }));
       }
       await dataSync.requestOrAcceptFriend(request.userId);
       await Promise.all([refetchContacts(), agentLimitQuery.refetch()]);

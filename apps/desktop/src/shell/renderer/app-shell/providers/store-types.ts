@@ -26,6 +26,7 @@ export type AppTab =
   | 'profile'
   | 'agent-detail'
   | 'world-detail'
+  | 'gift-inbox'
   | 'notification'
   | 'privacy-policy'
   | 'terms-of-service'
@@ -85,6 +86,8 @@ export type AppStoreState = {
   selectedProfileId: string | null;
   selectedProfileIsAgent: boolean | null;
   selectedWorldId: string | null;
+  selectedGiftTransactionId: string | null;
+  profileDetailOverlayOpen: boolean;
   chatProfilePanelTarget: 'self' | 'other' | null;
   localManifestSummaries: RuntimeLocalManifestSummary[];
   runtimeModSources: RuntimeModSourceRecord[];
@@ -117,9 +120,12 @@ export type AppStoreState = {
   setSelectedProfileId: (profileId: string | null) => void;
   setSelectedProfileIsAgent: (isAgent: boolean | null) => void;
   setSelectedWorldId: (worldId: string | null) => void;
+  setSelectedGiftTransactionId: (giftTransactionId: string | null) => void;
+  setProfileDetailOverlayOpen: (open: boolean) => void;
   setChatProfilePanelTarget: (target: 'self' | 'other' | null) => void;
   navigateToProfile: (profileId: string | null, tab: 'profile' | 'agent-detail') => void;
   navigateToWorld: (worldId: string) => void;
+  navigateToGiftInbox: (giftTransactionId?: string | null) => void;
   navigateBack: () => void;
   setLocalManifestSummaries: (manifests: RuntimeLocalManifestSummary[]) => void;
   setRuntimeModSources: (sources: RuntimeModSourceRecord[]) => void;

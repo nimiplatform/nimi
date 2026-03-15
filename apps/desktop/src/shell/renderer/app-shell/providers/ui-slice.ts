@@ -14,6 +14,7 @@ type UiSlice = Pick<AppStoreState,
   | 'selectedProfileId'
   | 'selectedProfileIsAgent'
   | 'selectedWorldId'
+  | 'profileDetailOverlayOpen'
   | 'chatProfilePanelTarget'
   | 'offlineTier'
   | 'statusBanner'
@@ -28,6 +29,7 @@ type UiSlice = Pick<AppStoreState,
   | 'setSelectedProfileId'
   | 'setSelectedProfileIsAgent'
   | 'setSelectedWorldId'
+  | 'setProfileDetailOverlayOpen'
   | 'setChatProfilePanelTarget'
   | 'navigateToProfile'
   | 'navigateToWorld'
@@ -48,6 +50,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     selectedProfileId: null,
     selectedProfileIsAgent: null,
     selectedWorldId: null,
+    profileDetailOverlayOpen: false,
     chatProfilePanelTarget: null,
     offlineTier: 'L0' as OfflineTier,
     statusBanner: null,
@@ -66,6 +69,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     setSelectedProfileId: (profileId) => set({ selectedProfileId: profileId }),
     setSelectedProfileIsAgent: (isAgent) => set({ selectedProfileIsAgent: isAgent }),
     setSelectedWorldId: (worldId) => set({ selectedWorldId: worldId }),
+    setProfileDetailOverlayOpen: (open) => set({ profileDetailOverlayOpen: open }),
     setChatProfilePanelTarget: (target) => set({ chatProfilePanelTarget: target }),
     navigateToProfile: (profileId, tab) =>
       set((state) => ({

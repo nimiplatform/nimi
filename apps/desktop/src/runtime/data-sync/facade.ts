@@ -10,7 +10,6 @@ import type {
   CreateReviewDto,
   CreateSparkCheckoutDto,
   CreateWithdrawalDto,
-  FinalizeMediaAssetDto,
   MeTwoFactorPrepareOutput,
   MeTwoFactorVerifyInput,
   NotificationDto,

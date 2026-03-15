@@ -59,7 +59,8 @@ Desktop host 对 mod workspace tab 的产品规则固定为：
 `createUiSlice` 管理 UI 导航状态：
 
 - `activeTab: AppTab`、`previousTab: AppTab | null`
-- `selectedChatId`、`selectedProfileId`、`selectedWorldId`
+- `selectedChatId`、`selectedProfileId`、`selectedProfileIsAgent`、`selectedWorldId`
+- `profileDetailOverlayOpen`：共享资料详情弹层占据主内容区时为 `true`，shell 左 rail 需要隐藏
 - `statusBanner: StatusBanner | null`
 - `bootstrapReady: boolean`、`bootstrapError: string | null`
 

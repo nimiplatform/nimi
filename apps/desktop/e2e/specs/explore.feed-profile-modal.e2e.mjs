@@ -16,10 +16,13 @@ describe('explore.feed-profile-modal', () => {
 
     await clickByTestId(E2E_IDS.feedPostAuthor('post-explore-author-1'));
     await waitForTestId(E2E_IDS.contactDetailProfileModal);
+    await waitForTestId(E2E_IDS.profileDetailSurface);
+    await waitForTestIdToDisappear(E2E_IDS.shellSidebarRail);
     await assertTextVisible('Explore Author');
 
     await clickByTestId(E2E_IDS.contactDetailProfileModalClose);
     await waitForTestIdToDisappear(E2E_IDS.contactDetailProfileModal);
     await waitForTestId(E2E_IDS.panel('explore'));
+    await waitForTestId(E2E_IDS.shellSidebarRail);
   });
 });

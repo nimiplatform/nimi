@@ -118,7 +118,6 @@ import {
 import type { MarkNotificationsReadInputDto } from '@nimiplatform/sdk/realm';
 import type { RejectGiftDto } from '@nimiplatform/sdk/realm';
 import type { SendGiftDto } from '@nimiplatform/sdk/realm';
-import type { FinalizeMediaAssetDto } from '@nimiplatform/sdk/realm';
 import {
   createReport,
   createImageDirectUpload,

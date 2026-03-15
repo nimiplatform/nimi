@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useTranslation } from 'react-i18next';
@@ -112,9 +112,20 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
   const queryClient = useQueryClient();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
+  const setProfileDetailOverlayOpen = useAppStore((state) => state.setProfileDetailOverlayOpen);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const [giftModalOpen, setGiftModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!props.open) {
+      return undefined;
+    }
+    setProfileDetailOverlayOpen(true);
+    return () => {
+      setProfileDetailOverlayOpen(false);
+    };
+  }, [props.open, setProfileDetailOverlayOpen]);
 
   const fallbackProfile = useMemo(
     () => toSeedProfileData(props.profileSeed),

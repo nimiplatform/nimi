@@ -292,6 +292,8 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const { t } = useTranslation();
   const flags = getShellFeatureFlags();
   const authStatus = useAppStore((state) => state.auth.status);
+  const selectedProfileId = useAppStore((state) => state.selectedProfileId);
+  const profileDetailOverlayOpen = useAppStore((state) => state.profileDetailOverlayOpen);
   const coreNavItems = getCoreNavItems();
   const quickNavItems = getQuickNavItems();
   const primaryCoreNavItems = coreNavItems.filter((item) => item.id !== 'settings' && item.id !== 'home');
@@ -313,6 +315,11 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     [activeModTab, props.activeTab],
   );
   const immersiveRoute = String(activeRouteExtension?.extension.shellMode || '').trim().toLowerCase() === 'immersive';
+  const hidePrimaryRail = immersiveRoute
+    || props.activeTab === 'agent-detail'
+    || props.activeTab === 'world-detail'
+    || (props.activeTab === 'profile' && Boolean(selectedProfileId))
+    || profileDetailOverlayOpen;
   const balancesQuery = useQuery({
     queryKey: ['topbar-currency-balances'],
     queryFn: async () => {
@@ -519,8 +526,11 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       />
 
       <div className="flex min-h-0 flex-1">
-        {immersiveRoute ? null : (
-          <aside className={`flex h-full shrink-0 flex-col bg-white transition-[width] duration-200 ${sidebarWidthClass}`}>
+        {hidePrimaryRail ? null : (
+          <aside
+            data-testid={E2E_IDS.shellSidebarRail}
+            className={`flex h-full shrink-0 flex-col bg-white transition-[width] duration-200 ${sidebarWidthClass}`}
+          >
             <div className="flex h-14 shrink-0 items-center justify-center">
               <SidebarTooltipButton
                 label={t('Navigation.home', { defaultValue: 'Home' })}
@@ -533,7 +543,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                 {nimiHomeNode}
               </SidebarTooltipButton>
             </div>
-
             <ScrollShell as="nav" className="flex-1" viewportClassName="pt-2">
               <div className="flex flex-col gap-1">
                 {primaryCoreNavItems.map((item) => (

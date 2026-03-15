@@ -1,5 +1,12 @@
 import { E2E_IDS } from '../helpers/selectors.mjs';
-import { assertActiveChat, assertScenario, assertTextVisible, clickByTestId, waitForTestId } from '../helpers/app.mjs';
+import {
+  assertActiveChat,
+  assertScenario,
+  assertTextVisible,
+  clickByTestId,
+  waitForTestId,
+  waitForTestIdToDisappear,
+} from '../helpers/app.mjs';
 
 describe('chat.open-thread', () => {
   it('opens a seeded chat thread and routes Open User Profile to the shared profile detail page', async () => {
@@ -13,6 +20,7 @@ describe('chat.open-thread', () => {
     await clickByTestId(E2E_IDS.chatOpenUserProfile);
     await waitForTestId(E2E_IDS.panel('profile'));
     await waitForTestId(E2E_IDS.profileDetailSurface);
+    await waitForTestIdToDisappear(E2E_IDS.shellSidebarRail);
     await assertTextVisible('Fixture Friend');
   });
 });
