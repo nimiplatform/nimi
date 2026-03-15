@@ -316,7 +316,7 @@ export function AuthMenu({
             disabled={pending || logoDisabled}
             className="relative group cursor-pointer focus:outline-none"
           >
-            <img src={logoUrl} alt="Nimi Logo" className="h-32 w-32 rounded-full object-cover transition-transform duration-200 group-hover:scale-105" />
+            <img src={logoUrl} alt="Nimi Logo" draggable={false} className="h-32 w-32 rounded-full object-cover transition-transform duration-200 group-hover:scale-105 select-none pointer-events-none" />
           </button>
 
           <div className="text-center">

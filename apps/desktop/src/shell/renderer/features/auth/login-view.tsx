@@ -99,7 +99,7 @@ export function LoginView(props: LoginViewProps) {
       <div className="brand-gradient relative hidden flex-1 items-center justify-center lg:flex">
         <div className="w-[342px]">
           <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white/20">
-            <img src={logoUrl} alt="Nimi Logo" className="h-16 w-16 object-contain" />
+            <img src={logoUrl} alt="Nimi Logo" draggable={false} className="h-16 w-16 object-contain select-none pointer-events-none" />
           </div>
           <h1 className="mt-8 text-4xl font-bold tracking-tight text-white">
             {t('AuthLogin.welcomeTitle', { defaultValue: 'Welcome to Nimi' })}
