@@ -16,6 +16,7 @@
 | `agent-detail` | `detail` | Agent Detail | `—` |
 | `world-detail` | `detail` | World Detail | `—` |
 | `notification` | `detail` | Notification | `—` |
+| `gift-inbox` | `detail` | Gifts | `—` |
 | `privacy-policy` | `detail` | Privacy Policy | `—` |
 | `terms-of-service` | `detail` | Terms of Service | `—` |
 | `mod:*` | `mod` | Mod Workspace | `enableModWorkspaceTabs` |

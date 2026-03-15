@@ -111,8 +111,9 @@ Source Rule: `D-DSYNC-006`
 | `loadWithdrawalHistory` |
 | `createWithdrawal` |
 | `loadGiftCatalog` |
+| `loadReceivedGifts` |
 | `sendGift` |
-| `claimGift` |
+| `acceptGift` |
 | `rejectGift` |
 | `createGiftReview` |
 
