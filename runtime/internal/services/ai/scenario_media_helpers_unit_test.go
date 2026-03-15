@@ -226,11 +226,14 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	if got := resolveMediaAdapterName("sidecar/stable-audio-open-sidecar", "", runtimev1.Modal_MODAL_MUSIC, "sidecar"); got != adapterSidecarMusic {
 		t.Fatalf("unexpected sidecar music adapter: %s", got)
 	}
-	if got := resolveMediaAdapterName("nexa/qwen", "", runtimev1.Modal_MODAL_IMAGE, ""); got != adapterNexaNative {
-		t.Fatalf("unexpected adapter: %s", got)
+	if got := resolveMediaAdapterName("nexa/qwen", "", runtimev1.Modal_MODAL_IMAGE, ""); got != "" {
+		t.Fatalf("unexpected adapter for unsupported nexa image route: %s", got)
 	}
-	if got := resolveMediaAdapterName("wan2.2", "", runtimev1.Modal_MODAL_VIDEO, "nexa"); got != adapterNexaNative {
-		t.Fatalf("unexpected nexa provider adapter: %s", got)
+	if got := resolveMediaAdapterName("wan2.2", "", runtimev1.Modal_MODAL_VIDEO, "nexa"); got != "" {
+		t.Fatalf("unexpected nexa provider adapter for unsupported video route: %s", got)
+	}
+	if got := resolveMediaAdapterName("nexa/whisper-large-v3", "", runtimev1.Modal_MODAL_STT, ""); got != adapterNexaNative {
+		t.Fatalf("unexpected nexa stt adapter: %s", got)
 	}
 	if got := resolveMediaAdapterName("", "kimi/k1", runtimev1.Modal_MODAL_IMAGE, ""); got != adapterKimiChatMultimodal {
 		t.Fatalf("unexpected adapter: %s", got)

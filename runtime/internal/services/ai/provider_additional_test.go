@@ -136,6 +136,23 @@ func TestLocalProviderLegacyWrappers(t *testing.T) {
 	}
 }
 
+func TestLocalProviderResolveModelIDPreservesExplicitEnginePrefixes(t *testing.T) {
+	p := &localProvider{}
+
+	cases := map[string]string{
+		"local/qwen2.5":               "qwen2.5",
+		"localai/z-image-turbo":       "localai/z-image-turbo",
+		"nexa/qwen-rerank":            "nexa/qwen-rerank",
+		"nimi_media/flux.1-schnell":   "nimi_media/flux.1-schnell",
+		"localsidecar/stable-audio-1": "localsidecar/stable-audio-1",
+	}
+	for input, want := range cases {
+		if got := p.ResolveModelID(input); got != want {
+			t.Fatalf("ResolveModelID(%q): got=%q want=%q", input, got, want)
+		}
+	}
+}
+
 func TestServicePublicSettersAndAccessors(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	constructed := New(logger, nil, nil, nil, nil, runtimecfg.Config{})
@@ -232,5 +249,69 @@ func TestLocalProviderWindowsLocalAvailabilityAndImageRouting(t *testing.T) {
 	}
 	if imageModel != "flux.1-schnell" || providerType != "nimi_media" {
 		t.Fatalf("unexpected image resolution: model=%q providerType=%q", imageModel, providerType)
+	}
+}
+
+func TestLocalProviderWindowsHardCutDoesNotFallbackAcrossEngines(t *testing.T) {
+	origGOOS := localProviderGOOS
+	localProviderGOOS = "windows"
+	defer func() { localProviderGOOS = origGOOS }()
+
+	local := &localProvider{
+		localai: &nimillm.Backend{Name: "local-localai"},
+	}
+
+	textBackend, resolvedModel, explicit, available, isNexa := local.pickTextBackend("local/qwen2.5")
+	if textBackend != nil || available {
+		t.Fatalf("windows local text must not fallback to localai: backend=%#v available=%v", textBackend, available)
+	}
+	if resolvedModel != "qwen2.5" || !explicit || isNexa {
+		t.Fatalf("unexpected text hard-cut resolution: model=%q explicit=%v isNexa=%v", resolvedModel, explicit, isNexa)
+	}
+
+	imageBackend, imageModel, providerType := local.resolveMediaBackendForModal("local/flux.1-schnell", runtimev1.Modal_MODAL_IMAGE)
+	if imageBackend != nil || providerType != "" {
+		t.Fatalf("windows local image must not fallback to localai: backend=%#v providerType=%q", imageBackend, providerType)
+	}
+	if imageModel != "flux.1-schnell" {
+		t.Fatalf("unexpected image hard-cut model resolution: %q", imageModel)
+	}
+}
+
+func TestLocalProviderExplicitEngineSelectionSurvivesRouting(t *testing.T) {
+	origGOOS := localProviderGOOS
+	localProviderGOOS = "darwin"
+	defer func() { localProviderGOOS = origGOOS }()
+
+	selector := newRouteSelector(Config{
+		LocalProviders: map[string]nimillm.ProviderCredentials{
+			"localai": {BaseURL: "http://127.0.0.1:18080/v1"},
+			"nexa":    {BaseURL: "http://127.0.0.1:18181/v1"},
+		},
+	})
+
+	provider, route, modelResolved, _, err := selector.resolveProvider(
+		context.Background(),
+		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		runtimev1.FallbackPolicy_FALLBACK_POLICY_ALLOW,
+		"nexa/qwen2.5",
+	)
+	if err != nil {
+		t.Fatalf("resolve explicit nexa route: %v", err)
+	}
+	if route != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || modelResolved != "nexa/qwen2.5" {
+		t.Fatalf("unexpected explicit nexa resolution: route=%v model=%q", route, modelResolved)
+	}
+
+	local, ok := provider.(*localProvider)
+	if !ok || local == nil {
+		t.Fatalf("expected local provider wrapper")
+	}
+	backend, resolvedModel, explicit, available, isNexa := local.pickAvailabilityBackend(modelResolved)
+	if backend == nil || backend.Name != "local-nexa" {
+		t.Fatalf("explicit nexa route should keep nexa backend, got %#v", backend)
+	}
+	if resolvedModel != "qwen2.5" || !explicit || !available || !isNexa {
+		t.Fatalf("unexpected explicit nexa availability: model=%q explicit=%v available=%v isNexa=%v", resolvedModel, explicit, available, isNexa)
 	}
 }

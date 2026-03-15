@@ -11,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 )
@@ -87,10 +88,8 @@ var mediaAdapterStrategiesByProvider = map[string]mediaAdapterStrategy{
 		Music: adapterLocalAIMusic,
 	},
 	"nexa": {
-		Image: adapterNexaNative,
-		Video: adapterNexaNative,
-		TTS:   adapterNexaNative,
-		STT:   adapterNexaNative,
+		TTS: adapterNexaNative,
+		STT: adapterNexaNative,
 	},
 	"nimi_media": {
 		Image: adapterNimiMediaNative,
@@ -286,17 +285,29 @@ func resolveMediaAdapterName(modelID string, modelResolved string, modal runtime
 
 	switch {
 	case strings.HasPrefix(lowerModel, "localai/"):
-		return adapterLocalAINative
+		if adapter := mediaAdapterStrategiesByProvider["localai"].forModal(modal); adapter != "" {
+			return adapter
+		}
+		return ""
 	case strings.HasPrefix(lowerModel, "nexa/"):
-		return adapterNexaNative
+		if adapter := mediaAdapterStrategiesByProvider["nexa"].forModal(modal); adapter != "" {
+			return adapter
+		}
+		return ""
 	case strings.HasPrefix(lowerModel, "nimi_media/"):
-		return adapterNimiMediaNative
+		if adapter := mediaAdapterStrategiesByProvider["nimi_media"].forModal(modal); adapter != "" {
+			return adapter
+		}
+		return ""
 	}
 
 	if strategy, ok := mediaAdapterStrategiesByProvider[providerLower]; ok {
 		if adapter := strategy.forModal(modal); adapter != "" {
 			return adapter
 		}
+	}
+	if localrouting.IsKnownProvider(providerLower) {
+		return ""
 	}
 	if strings.HasPrefix(lowerModel, "gemini-") || strings.HasPrefix(resolvedLower, "gemini-") {
 		if strategy, ok := mediaAdapterStrategiesByProvider["gemini"]; ok {

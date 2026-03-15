@@ -136,7 +136,7 @@ type EngineConfig struct {
 	// HealthPath is the HTTP path used for health probing.
 	HealthPath string
 
-	// HealthResponse is the expected body substring for health check (Nexa only).
+	// HealthResponse is the optional expected body substring for HTTP health checks.
 	HealthResponse string
 
 	// StartupTimeout is the maximum time to wait for the engine to become healthy.
@@ -164,7 +164,7 @@ func DefaultLocalAIConfig() EngineConfig {
 		Port:             1234,
 		Version:          "3.12.1",
 		HealthMode:       HealthModeHTTP,
-		HealthPath:       "/readyz",
+		HealthPath:       "/v1/models",
 		StartupTimeout:   120 * time.Second,
 		HealthInterval:   30 * time.Second,
 		MaxRestarts:      5,
@@ -179,8 +179,7 @@ func DefaultNexaConfig() EngineConfig {
 		Kind:             EngineNexa,
 		Port:             8000,
 		HealthMode:       HealthModeHTTP,
-		HealthPath:       "/",
-		HealthResponse:   "Nexa SDK is running",
+		HealthPath:       "/v1/models",
 		StartupTimeout:   30 * time.Second,
 		HealthInterval:   30 * time.Second,
 		MaxRestarts:      5,

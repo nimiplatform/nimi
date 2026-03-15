@@ -110,6 +110,28 @@ func TestValidateScenarioCapabilityCatalogUnavailableAllowsLocalProvider(t *test
 	}
 }
 
+func TestValidateScenarioCapabilityRejectsUnsupportedLocalNexaVideo(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	err := svc.validateScenarioCapability(
+		context.Background(),
+		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
+		"nexa/wan2.2",
+		nil,
+		&localProvider{},
+	)
+	if err == nil {
+		t.Fatal("expected capability guard error")
+	}
+	reasonCode, ok := grpcerr.ExtractReasonCode(err)
+	if !ok {
+		t.Fatalf("expected grpc reason code, got error: %v", err)
+	}
+	if reasonCode != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
+		t.Fatalf("reason code mismatch: got=%s want=%s", reasonCode.String(), runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+	}
+}
+
 func TestRequiredTextGenerateCapabilitiesEmpty(t *testing.T) {
 	if caps := requiredTextGenerateCapabilities(nil); len(caps) != 0 {
 		t.Fatalf("expected no required capabilities, got %#v", caps)

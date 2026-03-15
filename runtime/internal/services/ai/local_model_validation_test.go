@@ -74,7 +74,7 @@ func TestSelectActiveLocalModel(t *testing.T) {
 		t.Fatalf("expected explicit nexa, got selected=%v reason=%v", selected.GetEngine(), reason)
 	}
 
-	selected, reason = selectActiveLocalModel(models, localModelSelector{modelID: "qwen", explicitEngine: "sidecar"})
+	selected, reason = selectActiveLocalModel(models, localModelSelector{modelID: "qwen", explicitEngine: "sidecar", modal: runtimev1.Modal_MODAL_MUSIC})
 	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED || selected.GetEngine() != "sidecar" {
 		t.Fatalf("expected explicit sidecar, got selected=%v reason=%v", selected.GetEngine(), reason)
 	}
@@ -99,13 +99,10 @@ func TestLocalEnginePriorityAndProfileRequirement(t *testing.T) {
 	if localEnginePriority("localai") >= localEnginePriority("nexa") {
 		t.Fatalf("unexpected local engine priority ordering")
 	}
-	if localEnginePriority("sidecar") <= localEnginePriority("nexa") {
-		t.Fatalf("text routing should not prioritize sidecar over nexa")
+	if localEnginePriority("sidecar") != len(localPreferredEngines(runtimev1.Modal_MODAL_UNSPECIFIED)) {
+		t.Fatalf("unsupported text engines should rank after supported providers")
 	}
-	if localEnginePriority("nimi_media") <= localEnginePriority("sidecar") {
-		t.Fatalf("text routing should rank nimi_media after sidecar fallback")
-	}
-	if localEnginePriority("other") <= localEnginePriority("nimi_media") {
+	if localEnginePriority("other") < localEnginePriority("sidecar") {
 		t.Fatalf("unexpected default engine priority")
 	}
 
@@ -225,7 +222,7 @@ func TestValidateLocalModelRequest(t *testing.T) {
 		dualEnginePageWithSidecar,
 		dualEnginePageWithSidecar,
 	}}
-	if err := svc.validateLocalModelRequest(context.Background(), "sidecar/qwen", nil, runtimev1.Modal_MODAL_UNSPECIFIED); err != nil {
+	if err := svc.validateLocalModelRequest(context.Background(), "sidecar/qwen", nil, runtimev1.Modal_MODAL_MUSIC); err != nil {
 		t.Fatalf("expected sidecar selector to succeed, got %v", err)
 	}
 
@@ -235,6 +232,22 @@ func TestValidateLocalModelRequest(t *testing.T) {
 	}}}
 	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_UNSPECIFIED); err != nil {
 		t.Fatalf("expected case-insensitive local model validation success, got %v", err)
+	}
+}
+
+func TestValidateLocalModelRequestRejectsUnsupportedExplicitEngineModal(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := newTestService(logger)
+	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalModelsResponse{{
+		Models: []*runtimev1.LocalModelRecord{
+			{ModelId: "wan2.2", Engine: "nexa", LocalInvokeProfileId: "invoke"},
+		},
+	}}}
+
+	err := svc.validateLocalModelRequest(context.Background(), "nexa/wan2.2", nil, runtimev1.Modal_MODAL_VIDEO)
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
+		t.Fatalf("expected route unsupported, got=%v ok=%v", reason, ok)
 	}
 }
 
@@ -284,6 +297,34 @@ func TestValidateLocalModelRequestPrefersWindowsModalEngines(t *testing.T) {
 	}
 	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_IMAGE); err != nil {
 		t.Fatalf("expected windows image local model validation success via nimi_media, got %v", err)
+	}
+}
+
+func TestValidateLocalModelRequestWindowsHardCutDoesNotFallbackAcrossEngines(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := newTestService(logger)
+	origGOOS := localModelValidationGOOS
+	localModelValidationGOOS = "windows"
+	defer func() { localModelValidationGOOS = origGOOS }()
+
+	page := &runtimev1.ListLocalModelsResponse{
+		Models: []*runtimev1.LocalModelRecord{
+			{ModelId: "qwen", Engine: "localai", LocalInvokeProfileId: "invoke"},
+		},
+	}
+	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalModelsResponse{page, page}}
+
+	err := svc.validateLocalModelRequest(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_TTS)
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("expected windows tts hard-cut to fail without nexa, got=%v ok=%v", reason, ok)
+	}
+
+	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalModelsResponse{page, page}}
+	err = svc.validateLocalModelRequest(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_IMAGE)
+	reason, ok = grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("expected windows image hard-cut to fail without nimi_media, got=%v ok=%v", reason, ok)
 	}
 }
 

@@ -2,6 +2,8 @@ package localrouting
 
 import "strings"
 
+var allProviders = []string{"localai", "nexa", "nimi_media", "sidecar"}
+
 func NormalizeCapability(capability string) string {
 	switch strings.ToLower(strings.TrimSpace(capability)) {
 	case "chat", "text.generate":
@@ -23,36 +25,78 @@ func NormalizeCapability(capability string) string {
 	}
 }
 
+func NormalizeProvider(provider string) string {
+	switch strings.ToLower(strings.TrimSpace(provider)) {
+	case "localsidecar":
+		return "sidecar"
+	default:
+		return strings.ToLower(strings.TrimSpace(provider))
+	}
+}
+
+func IsKnownProvider(provider string) bool {
+	switch NormalizeProvider(provider) {
+	case "localai", "nexa", "nimi_media", "sidecar":
+		return true
+	default:
+		return false
+	}
+}
+
+func ProviderSupportsCapability(provider string, capability string) bool {
+	switch NormalizeProvider(provider) {
+	case "localai":
+		switch NormalizeCapability(capability) {
+		case "text.generate", "text.embed", "image.generate", "video.generate", "audio.synthesize", "audio.transcribe", "music.generate":
+			return true
+		}
+	case "nexa":
+		switch NormalizeCapability(capability) {
+		case "text.generate", "text.embed", "audio.synthesize", "audio.transcribe":
+			return true
+		}
+	case "nimi_media":
+		switch NormalizeCapability(capability) {
+		case "image.generate", "video.generate":
+			return true
+		}
+	case "sidecar":
+		return NormalizeCapability(capability) == "music.generate"
+	}
+	return false
+}
+
 func PreferenceOrder(goos string, capability string) []string {
 	normalizedGOOS := strings.ToLower(strings.TrimSpace(goos))
+	normalizedCapability := NormalizeCapability(capability)
 	switch normalizedGOOS {
 	case "windows":
-		switch NormalizeCapability(capability) {
+		switch normalizedCapability {
 		case "image.generate", "video.generate":
-			return []string{"nimi_media", "localai", "nexa", "sidecar"}
+			return supportedProvidersInOrder(normalizedCapability, "nimi_media")
 		case "text.generate", "text.embed", "audio.synthesize", "audio.transcribe":
-			return []string{"nexa", "localai", "sidecar", "nimi_media"}
+			return supportedProvidersInOrder(normalizedCapability, "nexa")
 		case "music.generate":
-			return []string{"sidecar", "localai", "nexa"}
+			return supportedProvidersInOrder(normalizedCapability, "sidecar")
 		default:
-			return []string{"localai", "sidecar", "nexa", "nimi_media"}
+			return supportedProvidersInOrder(normalizedCapability, "localai", "sidecar", "nexa", "nimi_media")
 		}
 	default:
-		switch NormalizeCapability(capability) {
+		switch normalizedCapability {
 		case "image.generate", "video.generate":
-			return []string{"localai", "nimi_media", "nexa", "sidecar"}
+			return supportedProvidersInOrder(normalizedCapability, "localai", "nimi_media", "nexa", "sidecar")
 		case "text.generate", "text.embed", "audio.synthesize", "audio.transcribe":
-			return []string{"localai", "nexa", "sidecar", "nimi_media"}
+			return supportedProvidersInOrder(normalizedCapability, "localai", "nexa", "sidecar", "nimi_media")
 		case "music.generate":
-			return []string{"sidecar", "localai", "nexa"}
+			return supportedProvidersInOrder(normalizedCapability, "sidecar", "localai", "nexa")
 		default:
-			return []string{"localai", "sidecar", "nexa", "nimi_media"}
+			return supportedProvidersInOrder(normalizedCapability, "localai", "sidecar", "nexa", "nimi_media")
 		}
 	}
 }
 
 func PreferenceRank(goos string, capability string, provider string) int {
-	normalizedProvider := strings.ToLower(strings.TrimSpace(provider))
+	normalizedProvider := NormalizeProvider(provider)
 	order := PreferenceOrder(goos, capability)
 	for index, engine := range order {
 		if normalizedProvider == engine {
@@ -60,4 +104,26 @@ func PreferenceRank(goos string, capability string, provider string) int {
 		}
 	}
 	return len(order)
+}
+
+func supportedProvidersInOrder(capability string, providers ...string) []string {
+	if len(providers) == 0 {
+		providers = allProviders
+	}
+	out := make([]string, 0, len(providers))
+	seen := make(map[string]struct{}, len(providers))
+	for _, provider := range providers {
+		normalizedProvider := NormalizeProvider(provider)
+		if normalizedProvider == "" {
+			continue
+		}
+		if _, ok := seen[normalizedProvider]; ok {
+			continue
+		}
+		seen[normalizedProvider] = struct{}{}
+		if ProviderSupportsCapability(normalizedProvider, capability) {
+			out = append(out, normalizedProvider)
+		}
+	}
+	return out
 }

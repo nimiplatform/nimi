@@ -11,6 +11,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
@@ -41,6 +42,9 @@ func executeBackendSyncMedia(
 	} else if modalProvider, ok := selectedProvider.(localModalMediaProvider); ok {
 		var providerType string
 		backend, backendModelID, providerType = modalProvider.resolveMediaBackendForModal(modelResolved, modal)
+		if providerType != "" && !localrouting.ProviderSupportsCapability(providerType, localRoutingCapabilityForModal(modal)) {
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+		}
 		if adapterName == "" && providerType != "" {
 			adapterName = resolveMediaAdapterName(req.GetHead().GetModelId(), modelResolved, modal, providerType)
 		}

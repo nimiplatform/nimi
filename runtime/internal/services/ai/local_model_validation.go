@@ -60,6 +60,9 @@ func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelI
 	selector := parseLocalModelSelector(resolvedModelID, modal)
 	selected, reason, unavailableDetail := selectRunnableLocalModel(localModels, selector)
 	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		if reason == runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, reason)
+		}
 		if reason == runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE && strings.TrimSpace(unavailableDetail) != "" {
 			return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, reason, grpcerr.ReasonOptions{
 				ActionHint: "inspect_local_runtime_model_health",
@@ -132,6 +135,9 @@ func parseLocalModelSelector(modelID string, modal runtimev1.Modal) localModelSe
 }
 
 func selectActiveLocalModel(models []*runtimev1.LocalModelRecord, selector localModelSelector) (*runtimev1.LocalModelRecord, runtimev1.ReasonCode) {
+	if explicitReason := unsupportedExplicitLocalEngineReason(selector); explicitReason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		return nil, explicitReason
+	}
 	candidates := make([]*runtimev1.LocalModelRecord, 0, len(models))
 	for _, model := range models {
 		if !strings.EqualFold(strings.TrimSpace(model.GetModelId()), selector.modelID) {
@@ -176,6 +182,9 @@ func selectActiveLocalModel(models []*runtimev1.LocalModelRecord, selector local
 }
 
 func selectRunnableLocalModel(models []*runtimev1.LocalModelRecord, selector localModelSelector) (*runtimev1.LocalModelRecord, runtimev1.ReasonCode, string) {
+	if explicitReason := unsupportedExplicitLocalEngineReason(selector); explicitReason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		return nil, explicitReason, ""
+	}
 	candidates := make([]*runtimev1.LocalModelRecord, 0, len(models))
 	for _, model := range models {
 		if model == nil {
@@ -217,6 +226,19 @@ func selectRunnableLocalModel(models []*runtimev1.LocalModelRecord, selector loc
 		return selected, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
 	}
 	return nil, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, unavailableLocalModelDetail(candidates)
+}
+
+func unsupportedExplicitLocalEngineReason(selector localModelSelector) runtimev1.ReasonCode {
+	if selector.explicitEngine == "" {
+		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+	}
+	if !localrouting.IsKnownProvider(selector.explicitEngine) {
+		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+	}
+	if !localrouting.ProviderSupportsCapability(selector.explicitEngine, localRoutingCapabilityForModal(selector.modal)) {
+		return runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED
+	}
+	return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
 func filterLocalModelsByEngine(models []*runtimev1.LocalModelRecord, engine string) []*runtimev1.LocalModelRecord {

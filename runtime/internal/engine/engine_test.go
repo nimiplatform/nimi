@@ -28,8 +28,8 @@ func TestDefaultLocalAIConfig(t *testing.T) {
 	if cfg.Version != "3.12.1" {
 		t.Errorf("expected version 3.12.1, got %s", cfg.Version)
 	}
-	if cfg.HealthPath != "/readyz" {
-		t.Errorf("expected health path /readyz, got %s", cfg.HealthPath)
+	if cfg.HealthPath != "/v1/models" {
+		t.Errorf("expected health path /v1/models, got %s", cfg.HealthPath)
 	}
 	if cfg.MaxRestarts != 5 {
 		t.Errorf("expected max restarts 5, got %d", cfg.MaxRestarts)
@@ -47,11 +47,11 @@ func TestDefaultNexaConfig(t *testing.T) {
 	if cfg.Port != 8000 {
 		t.Errorf("expected port 8000, got %d", cfg.Port)
 	}
-	if cfg.HealthPath != "/" {
-		t.Errorf("expected health path /, got %s", cfg.HealthPath)
+	if cfg.HealthPath != "/v1/models" {
+		t.Errorf("expected health path /v1/models, got %s", cfg.HealthPath)
 	}
-	if cfg.HealthResponse != "Nexa SDK is running" {
-		t.Errorf("expected health response, got %s", cfg.HealthResponse)
+	if cfg.HealthResponse != "" {
+		t.Errorf("expected empty health response matcher, got %s", cfg.HealthResponse)
 	}
 }
 
@@ -435,16 +435,16 @@ func TestPlatformString(t *testing.T) {
 
 func TestProbeHealthSuccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/readyz" {
+		if r.URL.Path == "/v1/models" {
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("ok"))
+			_, _ = w.Write([]byte(`{"data":[{"id":"qwen2.5"}]}`))
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)
 	}))
 	defer server.Close()
 
-	err := ProbeHealth(context.Background(), server.URL, "/readyz", "")
+	err := ProbeHealth(context.Background(), server.URL, "/v1/models", "")
 	if err != nil {
 		t.Errorf("expected healthy, got error: %v", err)
 	}
@@ -482,14 +482,14 @@ func TestProbeHealthServerError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	err := ProbeHealth(context.Background(), server.URL, "/readyz", "")
+	err := ProbeHealth(context.Background(), server.URL, "/v1/models", "")
 	if err == nil {
 		t.Error("expected error for 500 status, got nil")
 	}
 }
 
 func TestProbeHealthUnreachable(t *testing.T) {
-	err := ProbeHealth(context.Background(), "http://127.0.0.1:59999", "/readyz", "")
+	err := ProbeHealth(context.Background(), "http://127.0.0.1:59999", "/v1/models", "")
 	if err == nil {
 		t.Error("expected error for unreachable server, got nil")
 	}
@@ -562,10 +562,11 @@ func TestWaitHealthySuccess(t *testing.T) {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data":[{"id":"qwen2.5"}]}`))
 	}))
 	defer server.Close()
 
-	err := WaitHealthy(context.Background(), server.URL, "/readyz", "", 50*time.Millisecond, 5*time.Second)
+	err := WaitHealthy(context.Background(), server.URL, "/v1/models", "", 50*time.Millisecond, 5*time.Second)
 	if err != nil {
 		t.Errorf("expected healthy after retries, got error: %v", err)
 	}
@@ -580,7 +581,7 @@ func TestWaitHealthyTimeout(t *testing.T) {
 	}))
 	defer server.Close()
 
-	err := WaitHealthy(context.Background(), server.URL, "/readyz", "", 50*time.Millisecond, 200*time.Millisecond)
+	err := WaitHealthy(context.Background(), server.URL, "/v1/models", "", 50*time.Millisecond, 200*time.Millisecond)
 	if err == nil {
 		t.Error("expected timeout error, got nil")
 	}
@@ -598,7 +599,7 @@ func TestWaitHealthyCancelled(t *testing.T) {
 		cancel()
 	}()
 
-	err := WaitHealthy(ctx, server.URL, "/readyz", "", 50*time.Millisecond, 5*time.Second)
+	err := WaitHealthy(ctx, server.URL, "/v1/models", "", 50*time.Millisecond, 5*time.Second)
 	if err == nil {
 		t.Error("expected cancel error, got nil")
 	}

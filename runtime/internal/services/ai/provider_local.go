@@ -61,21 +61,6 @@ func (p *localProvider) ResolveModelID(raw string) string {
 	if strings.HasPrefix(modelID, "local/") {
 		modelID = strings.TrimSpace(strings.TrimPrefix(modelID, "local/"))
 	}
-	if strings.HasPrefix(modelID, "localai/") {
-		modelID = strings.TrimSpace(strings.TrimPrefix(modelID, "localai/"))
-	}
-	if strings.HasPrefix(modelID, "nexa/") {
-		modelID = strings.TrimSpace(strings.TrimPrefix(modelID, "nexa/"))
-	}
-	if strings.HasPrefix(modelID, "nimi_media/") {
-		modelID = strings.TrimSpace(strings.TrimPrefix(modelID, "nimi_media/"))
-	}
-	if strings.HasPrefix(modelID, "sidecar/") {
-		modelID = strings.TrimSpace(strings.TrimPrefix(modelID, "sidecar/"))
-	}
-	if strings.HasPrefix(modelID, "localsidecar/") {
-		modelID = strings.TrimSpace(strings.TrimPrefix(modelID, "localsidecar/"))
-	}
 	return modelID
 }
 
@@ -167,18 +152,18 @@ func (p *localProvider) StreamGenerateTextScenario(
 }
 
 func (p *localProvider) pickAvailabilityBackend(modelID string) (*nimillm.Backend, string, bool, bool, bool) {
-	return p.pickCapabilityBackend(modelID, "text.generate", true, true)
+	return p.pickCapabilityBackend(modelID, "text.generate", true)
 }
 
 func (p *localProvider) pickTextBackend(modelID string) (*nimillm.Backend, string, bool, bool, bool) {
-	return p.pickCapabilityBackend(modelID, "text.generate", false, false)
+	return p.pickCapabilityBackend(modelID, "text.generate", false)
 }
 
 func (p *localProvider) pickEmbeddingBackend(modelID string) (*nimillm.Backend, string, bool, bool, bool) {
-	return p.pickCapabilityBackend(modelID, "text.embed", false, false)
+	return p.pickCapabilityBackend(modelID, "text.embed", false)
 }
 
-func (p *localProvider) pickCapabilityBackend(modelID string, capability string, appendRemaining bool, allowNimiMediaExplicit bool) (*nimillm.Backend, string, bool, bool, bool) {
+func (p *localProvider) pickCapabilityBackend(modelID string, capability string, allowExplicitAvailability bool) (*nimillm.Backend, string, bool, bool, bool) {
 	localAIBackend, nexaBackend, nimiMediaBackend, sidecarBackend := p.backends()
 	id := strings.TrimSpace(modelID)
 	if id == "" {
@@ -194,18 +179,27 @@ func (p *localProvider) pickCapabilityBackend(modelID string, capability string,
 		}
 		switch prefix {
 		case "localai":
-			return localAIBackend, rest, true, localAIBackend != nil, false
+			if allowExplicitAvailability {
+				return localAIBackend, rest, true, localAIBackend != nil, false
+			}
+			return explicitCapabilityBackend("localai", capability, localAIBackend, rest, false)
 		case "nexa":
-			return nexaBackend, rest, true, nexaBackend != nil, true
+			if allowExplicitAvailability {
+				return nexaBackend, rest, true, nexaBackend != nil, true
+			}
+			return explicitCapabilityBackend("nexa", capability, nexaBackend, rest, true)
 		case "nimi_media":
-			if allowNimiMediaExplicit {
+			if allowExplicitAvailability {
 				return nimiMediaBackend, rest, true, nimiMediaBackend != nil, false
 			}
-			return nil, rest, true, false, false
+			return explicitCapabilityBackend("nimi_media", capability, nimiMediaBackend, rest, false)
 		case "sidecar", "localsidecar":
-			return sidecarBackend, rest, true, sidecarBackend != nil, false
+			if allowExplicitAvailability {
+				return sidecarBackend, rest, true, sidecarBackend != nil, false
+			}
+			return explicitCapabilityBackend("sidecar", capability, sidecarBackend, rest, false)
 		case "local":
-			for _, provider := range orderedLocalProviders(capability, appendRemaining) {
+			for _, provider := range orderedLocalProviders(capability) {
 				if backend := backendForLocalProvider(provider, localAIBackend, nexaBackend, nimiMediaBackend, sidecarBackend); backend != nil {
 					return backend, rest, true, true, provider == "nexa"
 				}
@@ -214,7 +208,7 @@ func (p *localProvider) pickCapabilityBackend(modelID string, capability string,
 		}
 	}
 
-	for _, provider := range orderedLocalProviders(capability, appendRemaining) {
+	for _, provider := range orderedLocalProviders(capability) {
 		if backend := backendForLocalProvider(provider, localAIBackend, nexaBackend, nimiMediaBackend, sidecarBackend); backend != nil {
 			return backend, id, false, true, provider == "nexa"
 		}
@@ -222,24 +216,8 @@ func (p *localProvider) pickCapabilityBackend(modelID string, capability string,
 	return nil, id, false, false, false
 }
 
-func orderedLocalProviders(capability string, appendRemaining bool) []string {
-	ordered := append([]string(nil), localrouting.PreferenceOrder(localProviderGOOS, capability)...)
-	if !appendRemaining {
-		return ordered
-	}
-	for _, provider := range []string{"localai", "nexa", "sidecar", "nimi_media"} {
-		seen := false
-		for _, existing := range ordered {
-			if provider == existing {
-				seen = true
-				break
-			}
-		}
-		if !seen {
-			ordered = append(ordered, provider)
-		}
-	}
-	return ordered
+func orderedLocalProviders(capability string) []string {
+	return append([]string(nil), localrouting.PreferenceOrder(localProviderGOOS, capability)...)
 }
 
 func backendForLocalProvider(
@@ -273,7 +251,7 @@ func (p *localProvider) resolveMediaBackendForModal(modelID string, modal runtim
 		return backend, resolved, providerType
 	}
 
-	for _, provider := range orderedLocalProviders(localRoutingCapabilityForModal(modal), modal == runtimev1.Modal_MODAL_UNSPECIFIED) {
+	for _, provider := range orderedLocalProviders(localRoutingCapabilityForModal(modal)) {
 		if backend := backendForLocalProvider(provider, localAIBackend, nexaBackend, nimiMediaBackend, sidecarBackend); backend != nil {
 			return backend, id, provider
 		}
@@ -298,17 +276,22 @@ func (p *localProvider) resolveExplicitMediaBackend(
 	if rest == "" {
 		return nil, "", "", true
 	}
+	capability := localRoutingCapabilityForModal(modal)
 	switch prefix {
 	case "localai":
-		return localAIBackend, rest, "localai", true
+		backend, resolved, providerType := explicitMediaBackend("localai", capability, localAIBackend, rest)
+		return backend, resolved, providerType, true
 	case "nexa":
-		return nexaBackend, rest, "nexa", true
+		backend, resolved, providerType := explicitMediaBackend("nexa", capability, nexaBackend, rest)
+		return backend, resolved, providerType, true
 	case "nimi_media":
-		return nimiMediaBackend, rest, "nimi_media", true
+		backend, resolved, providerType := explicitMediaBackend("nimi_media", capability, nimiMediaBackend, rest)
+		return backend, resolved, providerType, true
 	case "sidecar", "localsidecar":
-		return sidecarBackend, rest, "sidecar", true
+		backend, resolved, providerType := explicitMediaBackend("sidecar", capability, sidecarBackend, rest)
+		return backend, resolved, providerType, true
 	case "local":
-		for _, provider := range orderedLocalProviders(localRoutingCapabilityForModal(modal), modal == runtimev1.Modal_MODAL_UNSPECIFIED) {
+		for _, provider := range orderedLocalProviders(capability) {
 			if backend := backendForLocalProvider(provider, localAIBackend, nexaBackend, nimiMediaBackend, sidecarBackend); backend != nil {
 				return backend, rest, provider, true
 			}
@@ -317,4 +300,18 @@ func (p *localProvider) resolveExplicitMediaBackend(
 	default:
 		return nil, "", "", false
 	}
+}
+
+func explicitCapabilityBackend(provider string, capability string, backend *nimillm.Backend, modelID string, isNexa bool) (*nimillm.Backend, string, bool, bool, bool) {
+	if !localrouting.ProviderSupportsCapability(provider, capability) {
+		return nil, modelID, true, false, isNexa
+	}
+	return backend, modelID, true, backend != nil, isNexa
+}
+
+func explicitMediaBackend(provider string, capability string, backend *nimillm.Backend, modelID string) (*nimillm.Backend, string, string) {
+	if !localrouting.ProviderSupportsCapability(provider, capability) {
+		return nil, modelID, provider
+	}
+	return backend, modelID, provider
 }

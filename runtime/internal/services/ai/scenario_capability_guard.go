@@ -9,6 +9,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 	"google.golang.org/grpc/codes"
@@ -50,6 +51,27 @@ func unsupportedCapabilityReasonCode(scenarioType runtimev1.ScenarioType) runtim
 	}
 }
 
+func localScenarioCapability(scenarioType runtimev1.ScenarioType) (string, bool) {
+	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
+		return "text.generate", true
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
+		return "text.embed", true
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
+		return "image.generate", true
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:
+		return "video.generate", true
+	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
+		return "audio.synthesize", true
+	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
+		return "audio.transcribe", true
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
+		return "music.generate", true
+	default:
+		return "", false
+	}
+}
+
 func unsupportedTextGeneratePartType(input []*runtimev1.ChatMessage) (runtimev1.ChatContentPartType, bool) {
 	for _, msg := range input {
 		for _, part := range msg.GetParts() {
@@ -76,6 +98,12 @@ func (s *Service) validateScenarioCapability(
 ) error {
 	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected, scenarioModalFromType(scenarioType))
 	if providerType == "" {
+		return nil
+	}
+	if localrouting.IsKnownProvider(providerType) {
+		if capability, ok := localScenarioCapability(scenarioType); ok && !localrouting.ProviderSupportsCapability(providerType, capability) {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+		}
 		return nil
 	}
 	if !providerregistry.Contains(providerType) {
