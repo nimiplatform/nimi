@@ -101,6 +101,7 @@ function normalizeModelRoot(model: string): string {
 function inferLocalEngine(provider: string): string {
   const normalized = String(provider || '').trim().toLowerCase();
   if (normalized.includes('nexa')) return 'nexa';
+  if (normalized.includes('nimi_media') || normalized.includes('nimimedia')) return 'nimi_media';
   if (normalized.includes('localai') || normalized.includes('local')) return 'localai';
   return 'local';
 }
@@ -280,7 +281,7 @@ function ensureRouteModelId(model: string, routePolicy: number, provider: string
   }
   if (routePolicy === ROUTE_POLICY_CLOUD) return `cloud/${modelRoot}`;
   const engine = inferLocalEngine(provider);
-  if (engine === 'localai' || engine === 'nexa') {
+  if (engine === 'localai' || engine === 'nexa' || engine === 'nimi_media') {
     return `${engine}/${modelRoot}`;
   }
   return `local/${modelRoot}`;

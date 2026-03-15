@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { normalizeLocalModelV11, normalizePageIdV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types';
+import {
+  normalizeLocalModelV11,
+  normalizePageIdV11,
+  setRuntimeConfigPlatformForTests,
+} from '../src/shell/renderer/features/runtime-config/runtime-config-state-types';
 import {
   createDefaultStateV11,
   RUNTIME_CONFIG_STORAGE_KEY_V11,
@@ -259,31 +263,57 @@ test('state round-trip: persist activePage then normalize back correctly', () =>
   }
 });
 
-test('normalizeLocalModelV11: image and video models default to nimi_media', () => {
-  const image = normalizeLocalModelV11({
-    localModelId: 'local/flux-default',
-    model: 'flux/default',
-    capabilities: ['image'],
-  });
-  const video = normalizeLocalModelV11({
-    localModelId: 'local/wan-default',
-    model: 'wan/default',
-    capabilities: ['video'],
-  });
+test('normalizeLocalModelV11: windows image and video models default to nimi_media without fake endpoint', () => {
+  setRuntimeConfigPlatformForTests('windows');
+  try {
+    const image = normalizeLocalModelV11({
+      localModelId: 'local/flux-default',
+      model: 'flux/default',
+      capabilities: ['image'],
+    });
+    const video = normalizeLocalModelV11({
+      localModelId: 'local/wan-default',
+      model: 'wan/default',
+      capabilities: ['video'],
+    });
 
-  assert.equal(image.engine, 'nimi_media');
-  assert.equal(image.endpoint, 'http://127.0.0.1:8321/v1');
-  assert.equal(video.engine, 'nimi_media');
-  assert.equal(video.endpoint, 'http://127.0.0.1:8321/v1');
+    assert.equal(image.engine, 'nimi_media');
+    assert.equal(image.endpoint, '');
+    assert.equal(video.engine, 'nimi_media');
+    assert.equal(video.endpoint, '');
+  } finally {
+    setRuntimeConfigPlatformForTests(null);
+  }
 });
 
-test('normalizeLocalModelV11: embedding models default to nexa', () => {
-  const embedding = normalizeLocalModelV11({
-    localModelId: 'local/embed-default',
-    model: 'nexa/embed',
-    capabilities: ['embedding'],
-  });
+test('normalizeLocalModelV11: windows embedding models default to nexa without fake endpoint', () => {
+  setRuntimeConfigPlatformForTests('windows');
+  try {
+    const embedding = normalizeLocalModelV11({
+      localModelId: 'local/embed-default',
+      model: 'nexa/embed',
+      capabilities: ['embedding'],
+    });
 
-  assert.equal(embedding.engine, 'nexa');
-  assert.equal(embedding.endpoint, 'http://127.0.0.1:18181/v1');
+    assert.equal(embedding.engine, 'nexa');
+    assert.equal(embedding.endpoint, '');
+  } finally {
+    setRuntimeConfigPlatformForTests(null);
+  }
+});
+
+test('normalizeLocalModelV11: non-windows image models stay on localai by default', () => {
+  setRuntimeConfigPlatformForTests('darwin');
+  try {
+    const image = normalizeLocalModelV11({
+      localModelId: 'local/flux-default',
+      model: 'flux/default',
+      capabilities: ['image'],
+    });
+
+    assert.equal(image.engine, 'localai');
+    assert.equal(image.endpoint, 'http://127.0.0.1:1234/v1');
+  } finally {
+    setRuntimeConfigPlatformForTests(null);
+  }
 });

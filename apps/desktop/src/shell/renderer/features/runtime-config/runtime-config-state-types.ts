@@ -117,25 +117,41 @@ export type RuntimeConfigStateV11 = {
 export const DEFAULT_LOCAL_ENDPOINT_V11 = 'http://127.0.0.1:1234/v1';
 export const DEFAULT_OPENAI_ENDPOINT_V11 = 'http://127.0.0.1:1234/v1';
 export const DEFAULT_OPENROUTER_ENDPOINT_V11 = 'https://openrouter.ai/api/v1';
+let runtimeConfigPlatformForTests: 'windows' | 'darwin' | 'linux' | 'unknown' | null = null;
+
+function resolveRuntimeConfigPlatform(): 'windows' | 'darwin' | 'linux' | 'unknown' {
+  if (runtimeConfigPlatformForTests) return runtimeConfigPlatformForTests;
+  const globalProcess = (globalThis as { process?: { platform?: string } }).process;
+  const processPlatform = String(globalProcess?.platform || '').trim().toLowerCase();
+  if (processPlatform === 'win32') return 'windows';
+  if (processPlatform === 'darwin') return 'darwin';
+  if (processPlatform === 'linux') return 'linux';
+  const nav = globalThis as { navigator?: { platform?: string; userAgent?: string } };
+  const navigatorPlatform = `${String(nav.navigator?.platform || '').trim().toLowerCase()} ${String(nav.navigator?.userAgent || '').trim().toLowerCase()}`;
+  if (navigatorPlatform.includes('win')) return 'windows';
+  if (navigatorPlatform.includes('mac')) return 'darwin';
+  if (navigatorPlatform.includes('linux')) return 'linux';
+  return 'unknown';
+}
+
+export function setRuntimeConfigPlatformForTests(value: 'windows' | 'darwin' | 'linux' | 'unknown' | null): void {
+  runtimeConfigPlatformForTests = value;
+}
 
 function defaultEngineForCapabilities(capabilities: CapabilityV11[]): LocalModelOptionV11['engine'] {
-  if (capabilities.includes('image') || capabilities.includes('video')) {
-    return 'nimi_media';
-  }
-  if (capabilities.includes('tts') || capabilities.includes('stt') || capabilities.includes('embedding')) {
-    return 'nexa';
+  if (resolveRuntimeConfigPlatform() === 'windows') {
+    if (capabilities.includes('image') || capabilities.includes('video')) {
+      return 'nimi_media';
+    }
+    if (capabilities.includes('tts') || capabilities.includes('stt') || capabilities.includes('embedding') || capabilities.includes('chat')) {
+      return 'nexa';
+    }
   }
   return 'localai';
 }
 
 function defaultEndpointForEngine(engine: LocalModelOptionV11['engine']): string {
-  if (engine === 'nimi_media') {
-    return 'http://127.0.0.1:8321/v1';
-  }
-  if (engine === 'nexa') {
-    return 'http://127.0.0.1:18181/v1';
-  }
-  return DEFAULT_LOCAL_ENDPOINT_V11;
+  return engine === 'localai' ? DEFAULT_LOCAL_ENDPOINT_V11 : '';
 }
 
 export const VENDOR_LABELS_V11: Record<ApiVendor, string> = {
@@ -329,9 +345,7 @@ export function normalizeLocalNodeMatrixEntryV11(
       ? 'nimi_media'
       : String(raw.serviceId || '').toLowerCase().includes('nexa')
         ? 'nexa'
-        : normalizedCapability === 'image' || normalizedCapability === 'video'
-          ? 'nimi_media'
-          : 'localai'
+        : 'localai'
   );
   const adapterRaw = String(raw.adapter || '').trim().toLowerCase();
   let normalizedAdapter: LocalNodeMatrixEntryV11['adapter'];

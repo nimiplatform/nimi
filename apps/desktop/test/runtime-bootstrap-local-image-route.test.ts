@@ -7,6 +7,7 @@ import {
 import {
   buildSelectedBinding,
   pickPreferredGoRuntimeModel,
+  setLocalRoutePlatformForTests,
 } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-options';
 
 test('pickPreferredGoRuntimeModel ignores removed entries and prefers active state', () => {
@@ -182,4 +183,30 @@ test('buildSelectedBinding preserves local selection when local metadata is degr
   assert.equal(selected.modelId, 'qwen2.5-7b-instruct');
   assert.equal(selected.provider, 'localai');
   assert.equal(selected.engine, 'localai');
+});
+
+test('buildSelectedBinding falls back to windows nexa for text when runtime metadata is unavailable', () => {
+  setLocalRoutePlatformForTests('windows');
+  try {
+    const selected = buildSelectedBinding({
+      capability: 'text.generate',
+      runtimeFields: {
+        provider: 'local',
+        runtimeModelType: 'chat',
+        localProviderEndpoint: 'http://127.0.0.1:1234/v1',
+        localProviderModel: 'qwen3-chat',
+        localOpenAiEndpoint: 'http://127.0.0.1:1234/v1',
+        connectorId: '',
+      },
+      localModels: [],
+      connectors: [],
+      localMetadataDegraded: true,
+    });
+
+    assert.equal(selected.source, 'local');
+    assert.equal(selected.provider, 'nexa');
+    assert.equal(selected.engine, 'nexa');
+  } finally {
+    setLocalRoutePlatformForTests(null);
+  }
 });

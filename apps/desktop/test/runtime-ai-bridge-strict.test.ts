@@ -62,3 +62,14 @@ test('resolveSourceAndModel prefixes nexa selectors for local routes', () => {
   assert.equal(resolved.source, 'local');
   assert.equal(resolved.modelId, 'nexa/qwen-rerank');
 });
+
+test('resolveSourceAndModel prefixes nimi_media selectors for local routes', () => {
+  const resolved = resolveSourceAndModel({
+    provider: 'nimi_media',
+    model: 'flux.1-schnell',
+    localProviderEndpoint: 'http://127.0.0.1:8321/v1',
+  });
+
+  assert.equal(resolved.source, 'local');
+  assert.equal(resolved.modelId, 'nimi_media/flux.1-schnell');
+});

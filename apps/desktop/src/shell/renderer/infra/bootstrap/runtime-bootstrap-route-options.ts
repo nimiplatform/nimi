@@ -20,6 +20,35 @@ type ConnectorDescriptor = {
     provider?: string;
 };
 const LOCAL_SNAPSHOT_TIMEOUT_MS = 3500;
+let localRoutePlatformForTests: 'windows' | 'darwin' | 'linux' | 'unknown' | null = null;
+
+function resolveLocalRoutePlatform(): 'windows' | 'darwin' | 'linux' | 'unknown' {
+    if (localRoutePlatformForTests) {
+        return localRoutePlatformForTests;
+    }
+    const globalProcess = (globalThis as { process?: { platform?: string } }).process;
+    const processPlatform = String(globalProcess?.platform || '').trim().toLowerCase();
+    if (processPlatform === 'win32')
+        return 'windows';
+    if (processPlatform === 'darwin')
+        return 'darwin';
+    if (processPlatform === 'linux')
+        return 'linux';
+    const nav = globalThis as { navigator?: { platform?: string; userAgent?: string } };
+    const navigatorPlatform = `${String(nav.navigator?.platform || '').trim().toLowerCase()} ${String(nav.navigator?.userAgent || '').trim().toLowerCase()}`;
+    if (navigatorPlatform.includes('win'))
+        return 'windows';
+    if (navigatorPlatform.includes('mac'))
+        return 'darwin';
+    if (navigatorPlatform.includes('linux'))
+        return 'linux';
+    return 'unknown';
+}
+
+export function setLocalRoutePlatformForTests(value: 'windows' | 'darwin' | 'linux' | 'unknown' | null): void {
+    localRoutePlatformForTests = value;
+}
+
 function mapCanonicalCapabilityToLocalCapability(capability: RuntimeCanonicalCapability): 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | undefined {
     if (capability === 'text.generate')
         return 'chat';
@@ -68,18 +97,31 @@ function inferSource(provider: string): 'local' | 'cloud' {
     }
     return 'cloud';
 }
-function inferLocalEngine(provider: string, capability?: RuntimeCanonicalCapability): string {
-    const normalizedProvider = normalizeLocalEngine(provider);
-    if (normalizedProvider === 'nexa' || normalizedProvider === 'nimi_media') {
-        return normalizedProvider;
-    }
-    if (capability === 'image.generate' || capability === 'video.generate') {
-        return 'nimi_media';
-    }
-    if (capability === 'audio.synthesize' || capability === 'audio.transcribe' || capability === 'text.embed') {
-        return 'nexa';
+function fallbackLocalEngine(capability?: RuntimeCanonicalCapability): string {
+    if (resolveLocalRoutePlatform() === 'windows') {
+        if (capability === 'image.generate' || capability === 'video.generate') {
+            return 'nimi_media';
+        }
+        if (capability === 'text.generate'
+            || capability === 'text.embed'
+            || capability === 'audio.synthesize'
+            || capability === 'audio.transcribe') {
+            return 'nexa';
+        }
     }
     return 'localai';
+}
+function inferLocalEngine(provider: string, capability?: RuntimeCanonicalCapability, runtimeDefaultEngine?: string): string {
+    const rawProvider = String(provider || '').trim().toLowerCase();
+    if (rawProvider === 'localai' || rawProvider === 'nexa' || rawProvider === 'nimi_media' || rawProvider === 'nimimedia') {
+        return normalizeLocalEngine(rawProvider);
+    }
+    const defaultEngine = String(runtimeDefaultEngine || '').trim();
+    if (defaultEngine) {
+        const normalizedDefault = normalizeLocalEngine(defaultEngine);
+        return normalizedDefault;
+    }
+    return fallbackLocalEngine(capability);
 }
 function defaultLocalAdapter(provider: string, capability: RuntimeCanonicalCapability): string {
     const normalizedProvider = normalizeLocalEngine(provider);
@@ -135,6 +177,26 @@ function rankGoRuntimeStatus(value: unknown): number {
     if (status === 'removed')
         return 3;
     return 4;
+}
+function rankLocalStatus(value: unknown): number {
+    const status = String(value || '').trim().toLowerCase();
+    if (status === 'active')
+        return 0;
+    if (status === 'installed')
+        return 1;
+    if (status === 'unhealthy')
+        return 2;
+    if (status === 'removed')
+        return 3;
+    return 4;
+}
+function providerDefaultRank(providerHints: RuntimeRouteLocalOption['providerHints']): number {
+    const extra = providerHints?.extra;
+    if (!extra || typeof extra !== 'object') {
+        return Number.MAX_SAFE_INTEGER;
+    }
+    const numeric = Number((extra as Record<string, unknown>).local_default_rank);
+    return Number.isFinite(numeric) ? numeric : Number.MAX_SAFE_INTEGER;
 }
 export function pickPreferredGoRuntimeModel(goRuntimeModels: Array<{
     localModelId?: string;
@@ -354,6 +416,7 @@ export function buildSelectedBinding(input: {
     localModels: RuntimeRouteLocalOption[];
     connectors: RuntimeRouteConnectorOption[];
     localMetadataDegraded?: boolean;
+    runtimeDefaultEngine?: string;
 }): RuntimeRouteBinding {
     const { runtimeFields, localModels, connectors, localMetadataDegraded } = input;
     const preferredSource = inferSource(runtimeFields.provider);
@@ -363,8 +426,8 @@ export function buildSelectedBinding(input: {
             connectorId: '',
             model: String(runtimeFields.localProviderModel || '').trim(),
             modelId: normalizeLocalModelRoot(String(runtimeFields.localProviderModel || '').trim()) || undefined,
-            engine: inferLocalEngine(runtimeFields.provider, input.capability),
-            provider: inferLocalEngine(runtimeFields.provider, input.capability),
+            engine: inferLocalEngine(runtimeFields.provider, input.capability, input.runtimeDefaultEngine),
+            provider: inferLocalEngine(runtimeFields.provider, input.capability, input.runtimeDefaultEngine),
         };
         const matchedLocalModel = pickMatchingLocalOption(localModels, preferredBinding);
         if (matchedLocalModel) {
@@ -459,15 +522,21 @@ export async function loadRuntimeRouteOptions(input: {
         provider: string;
         adapter: string;
         providerHints?: RuntimeRouteLocalOption['providerHints'];
+        defaultRank: number;
     }>();
     for (const node of nodeCatalog) {
         const provider = normalizeLocalEngine(node.provider);
         const current = nodeByProvider.get(provider);
-        if (!current || (!current.providerHints && node.providerHints) || (!current.adapter && node.adapter)) {
+        const candidateRank = providerDefaultRank(node.providerHints);
+        if (!current
+            || candidateRank < current.defaultRank
+            || (!current.providerHints && node.providerHints)
+            || (!current.adapter && node.adapter)) {
             nodeByProvider.set(provider, {
                 provider,
                 adapter: String(node.adapter || '').trim(),
                 providerHints: node.providerHints,
+                defaultRank: candidateRank,
             });
         }
     }
@@ -494,18 +563,35 @@ export async function loadRuntimeRouteOptions(input: {
                 .map((capability) => normalizeCapabilityToken(capability))
                 .filter((capability): capability is RuntimeCanonicalCapability => Boolean(capability)),
         };
+    })
+        .sort((left, right) => {
+        const rankDelta = providerDefaultRank(left.providerHints) - providerDefaultRank(right.providerHints);
+        if (rankDelta !== 0) {
+            return rankDelta;
+        }
+        const statusDelta = rankLocalStatus(left.status) - rankLocalStatus(right.status);
+        if (statusDelta !== 0) {
+            return statusDelta;
+        }
+        return String(left.localModelId || '').localeCompare(String(right.localModelId || ''));
     });
+    const runtimeDefaultEngine = [...nodeByProvider.values()]
+        .sort((left, right) => left.defaultRank - right.defaultRank)[0]?.provider;
     const selected = buildSelectedBinding({
         capability: input.capability,
         runtimeFields,
         localModels: localModels,
         connectors,
         localMetadataDegraded,
+        runtimeDefaultEngine,
     });
+    const resolvedDefault = (localMetadataDegraded && selected.source === 'local')
+        ? selected
+        : (firstAvailableBinding(localModels, connectors) || selected);
     return {
         capability: input.capability,
         selected,
-        resolvedDefault: selected,
+        resolvedDefault,
         local: {
             models: localModels,
             defaultEndpoint: String(runtimeFields.localProviderEndpoint || runtimeFields.localOpenAiEndpoint || '').trim() || undefined,
