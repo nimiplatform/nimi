@@ -48,6 +48,8 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
   const locationBtnRef = useRef<HTMLButtonElement>(null);
   const tagBtnRef = useRef<HTMLButtonElement>(null);
   const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
+  const selectedFileRef = useRef(selectedFile);
+  selectedFileRef.current = selectedFile;
   const [selectedMediaRef, setSelectedMediaRef] = useState<SelectedMediaRef | null>(null);
   const [caption, setCaption] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -123,7 +125,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
   );
 
   const reset = useCallback(() => {
-    if (selectedFile) URL.revokeObjectURL(selectedFile.previewUrl);
+    if (selectedFileRef.current) URL.revokeObjectURL(selectedFileRef.current.previewUrl);
     setSelectedFile(null);
     setSelectedMediaRef(null);
     setCaption('');
@@ -135,15 +137,15 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
     setLocationSearch('');
     setTagSearch('');
     setSelectedTags([]);
-  }, [closeAllPanels, selectedFile]);
+  }, [closeAllPanels]);
 
   useEffect(() => {
     if (!open) {
       return;
     }
 
-    if (selectedFile) {
-      URL.revokeObjectURL(selectedFile.previewUrl);
+    if (selectedFileRef.current) {
+      URL.revokeObjectURL(selectedFileRef.current.previewUrl);
     }
 
     setSelectedFile(null);
@@ -171,7 +173,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
     setCaption('');
     setSelectedTags([]);
     setSelectedMediaRef(null);
-  }, [closeAllPanels, initialPost, open, selectedFile]);
+  }, [closeAllPanels, initialPost, open]);
 
   useEffect(() => {
     if (!open) {
