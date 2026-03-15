@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react';
 import type { WalletType } from './auth-helpers.js';
 import {
+  OAuthLoginState,
   buildDesktopCallbackReturnUrl,
   dataSync,
   loadPersistedAuthSession,
@@ -76,7 +77,17 @@ export async function handleVerifyEmailOtp(
       }),
       '验证码登录失败',
     );
-    await handleLoginResult(result, '验证码登录成功。', setters, desktopCtx);
+    if (result.loginState === OAuthLoginState.NEEDS_ONBOARDING && result.tokens) {
+      const accessToken = String(result.tokens.accessToken || '').trim();
+      const refreshToken = String(result.tokens.refreshToken || '').trim();
+      dataSync.setToken(accessToken);
+      dataSync.setRefreshToken(refreshToken);
+      setters.setPendingTokens(result.tokens);
+      setters.setOtpCode('');
+      setters.setView('email_set_password');
+      return;
+    }
+    await handleLoginResult(result, '验证码登录成功。', setters, desktopCtx, 'email_otp_verify');
   } catch (error) {
     setters.setLoginError(toErrorMessage(error, '验证码登录失败'));
   } finally {

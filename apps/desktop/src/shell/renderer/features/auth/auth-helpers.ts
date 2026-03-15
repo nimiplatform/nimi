@@ -21,6 +21,7 @@ export type AuthView =
   | 'email_register'
   | 'email_otp'
   | 'email_otp_verify'
+  | 'email_set_password'
   | 'email_2fa'
   | 'wallet_select';
 

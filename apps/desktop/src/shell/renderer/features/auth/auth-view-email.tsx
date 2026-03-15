@@ -126,12 +126,47 @@ export function AuthViewEmailLogin(props: {
 
 export function AuthViewEmailRegister(props: {
   email: string;
+  pending: boolean;
+  onEmailChange: (value: string) => void;
+  onSubmit: (event: FormEvent) => void;
+}) {
+  const { t } = useTranslation();
+  const { email, pending, onEmailChange, onSubmit } = props;
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-4 flex-1 flex flex-col">
+      <p className="text-sm text-muted-foreground">{t('Auth.registerHint')}</p>
+      <input
+        type="email"
+        value={email}
+        onChange={(event) => onEmailChange(event.target.value)}
+        className={`${inputBase} rounded-xl border-border px-4 py-3 h-auto text-sm`}
+        style={{ color: '#1A1A1A' }}
+        placeholder={t('Auth.emailPlaceholder')}
+        required
+      />
+      <div className="flex-1"></div>
+      <button
+        type="submit"
+        className={`${buttonBase} ${buttonDefault} w-full rounded-xl py-3 text-sm font-semibold`}
+        disabled={pending || !email.trim()}
+      >
+        {pending ? t('Auth.sending') : t('Auth.sendVerificationCode')}
+      </button>
+    </form>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// AuthViewEmailSetPassword
+// ---------------------------------------------------------------------------
+
+export function AuthViewEmailSetPassword(props: {
   password: string;
   confirmPassword: string;
   showPassword: boolean;
   showConfirmPassword: boolean;
   pending: boolean;
-  onEmailChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onConfirmPasswordChange: (value: string) => void;
   onShowPasswordToggle: () => void;
@@ -140,30 +175,32 @@ export function AuthViewEmailRegister(props: {
 }) {
   const { t } = useTranslation();
   const {
-    email, password, confirmPassword, showPassword, showConfirmPassword, pending,
-    onEmailChange, onPasswordChange, onConfirmPasswordChange,
-    onShowPasswordToggle, onShowConfirmPasswordToggle, onSubmit,
+    password,
+    confirmPassword,
+    showPassword,
+    showConfirmPassword,
+    pending,
+    onPasswordChange,
+    onConfirmPasswordChange,
+    onShowPasswordToggle,
+    onShowConfirmPasswordToggle,
+    onSubmit,
   } = props;
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <input
-        type="email"
-        value={email}
-        onChange={(event) => onEmailChange(event.target.value)}
-        className={`${inputBase} rounded-xl border-border px-4 py-3 h-auto`}
-        placeholder={t('Auth.emailPlaceholder')}
-        required
-      />
+      <p className="text-sm text-muted-foreground">{t('Auth.setPasswordHint')}</p>
       <div className="relative">
         <input
           type={showPassword ? 'text' : 'password'}
           value={password}
           onChange={(event) => onPasswordChange(event.target.value)}
           className={`${inputBase} rounded-xl border-border px-4 py-3 pr-12 h-auto`}
+          style={{ color: '#1A1A1A' }}
           placeholder={t('Auth.passwordMinChars')}
           required
           minLength={8}
+          autoComplete="new-password"
         />
         <button
           type="button"
@@ -192,9 +229,11 @@ export function AuthViewEmailRegister(props: {
           value={confirmPassword}
           onChange={(event) => onConfirmPasswordChange(event.target.value)}
           className={`${inputBase} rounded-xl border-border px-4 py-3 pr-12 h-auto`}
+          style={{ color: '#1A1A1A' }}
           placeholder={t('Auth.confirmPasswordPlaceholder')}
           required
           minLength={8}
+          autoComplete="new-password"
         />
         <button
           type="button"
@@ -206,10 +245,10 @@ export function AuthViewEmailRegister(props: {
       </div>
       <button
         type="submit"
-        className={`${buttonBase} ${buttonDefault} w-full mt-4 rounded-xl py-3 text-sm font-semibold`}
+        className={`${buttonBase} ${buttonDefault} w-full rounded-xl py-3 text-sm font-semibold`}
         disabled={pending}
       >
-        {pending ? t('Auth.creating') : t('Auth.createAccount')}
+        {pending ? t('Auth.settingPassword') : t('Auth.setPasswordButton')}
       </button>
     </form>
   );
@@ -288,7 +327,7 @@ export function AuthViewEmailOtpVerify(props: {
         className={`${buttonBase} ${buttonDefault} w-full rounded-xl py-3 text-sm font-semibold`}
         disabled={pending || otpCode.length !== 6}
       >
-        {pending ? t('Auth.verifying') : t('Auth.verifyAndLogin')}
+        {pending ? t('Auth.verifying') : t('Auth.verifyAndContinue')}
       </button>
       <button
         type="button"

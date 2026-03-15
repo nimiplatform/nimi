@@ -24,10 +24,12 @@ export type AuthMenuSetters = {
   setPending: (pending: boolean) => void;
   setLoginError: (error: string | null) => void;
   setShowLoginModal: (show: boolean) => void;
+  setPendingTokens: (tokens: AuthTokensDto | null) => void;
   setOtpCode: (code: string) => void;
   setOtpResendCountdown: (countdown: number) => void;
   setTempToken: (token: string) => void;
   setTwoFactorCode: (code: string) => void;
+  setTwoFactorReturnView: (view: AuthView) => void;
   setStatusBanner: (banner: StatusBanner | null) => void;
   setAuthSession: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void;
 };
@@ -105,6 +107,7 @@ export async function handleLoginResult(
   successMessage: string,
   setters: AuthMenuSetters,
   desktopCtx: DesktopCallbackContext,
+  twoFactorReturnView: AuthView = 'main',
 ): Promise<void> {
   if (result.loginState === OAuthLoginState.BLOCKED) {
     setters.setLoginError(String(result.blockedReason || '账号不可用，请联系支持团队。'));
@@ -114,6 +117,7 @@ export async function handleLoginResult(
   if (result.loginState === OAuthLoginState.NEEDS_TWO_FACTOR) {
     setters.setTempToken(String(result.tempToken || ''));
     setters.setTwoFactorCode('');
+    setters.setTwoFactorReturnView(twoFactorReturnView);
     setters.setView('email_2fa');
     return;
   }
@@ -255,7 +259,7 @@ export async function handleEmailLogin(
       clearRememberedLogin();
     }
 
-    await handleLoginResult(result, '登录成功。', setters, desktopCtx);
+    await handleLoginResult(result, '登录成功。', setters, desktopCtx, 'email_login');
   } catch (error) {
     setters.setLoginError(toErrorMessage(error, '邮箱登录失败'));
   } finally {
@@ -264,24 +268,18 @@ export async function handleEmailLogin(
 }
 
 // ---------------------------------------------------------------------------
-// handleEmailRegister
+// handleSetPasswordAfterOtp
 // ---------------------------------------------------------------------------
 
-export async function handleEmailRegister(
+export async function handleSetPasswordAfterOtp(
   event: FormEvent,
-  email: string,
   password: string,
   confirmPassword: string,
+  pendingTokens: AuthTokensDto,
   setters: AuthMenuSetters,
   desktopCtx: DesktopCallbackContext,
 ): Promise<void> {
   event.preventDefault();
-  const normalizedEmail = email.trim();
-  if (!normalizedEmail) {
-    setters.setLoginError('请输入邮箱');
-    return;
-  }
-
   if (password.length < 8) {
     setters.setLoginError('密码至少 8 位');
     return;
@@ -295,16 +293,13 @@ export async function handleEmailRegister(
   setters.setPending(true);
   setters.setLoginError(null);
   try {
-    const result = await dataSync.callApi(
-      (realm) => realm.services.AuthService.passwordRegister({
-        email: normalizedEmail,
-        password,
-      }),
-      '邮箱注册失败',
-    );
-    await handleLoginResult(result, '注册并登录成功。', setters, desktopCtx);
+    await dataSync.updatePassword({
+      newPassword: password,
+    });
+    setters.setPendingTokens(null);
+    await applyTokens(pendingTokens, '注册成功。', setters, desktopCtx);
   } catch (error) {
-    setters.setLoginError(toErrorMessage(error, '邮箱注册失败'));
+    setters.setLoginError(toErrorMessage(error, '设置密码失败'));
   } finally {
     setters.setPending(false);
   }

@@ -74,6 +74,8 @@ export function AuthMenuHeader(props: {
       ? t('Auth.authorizeDesktop')
     : view === 'email_register'
       ? t('Auth.signUp')
+      : view === 'email_set_password'
+        ? t('Auth.setPassword')
       : view === 'email_2fa'
         ? t('Auth.verification')
         : view === 'wallet_select'

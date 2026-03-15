@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
+import type { AuthTokensDto } from '@nimiplatform/sdk/realm';
 import type { AuthMenuProps, AuthView } from './auth-helpers.js';
 import {
   dataSync,
@@ -24,7 +25,7 @@ import type { AuthMenuSetters, DesktopCallbackContext } from './auth-menu-handle
 import {
   handleGoogleLogin as doGoogleLogin,
   handleEmailLogin as doEmailLogin,
-  handleEmailRegister as doEmailRegister,
+  handleSetPasswordAfterOtp as doSetPasswordAfterOtp,
   handleSocialLogin as doSocialLogin,
 } from './auth-menu-handlers.js';
 import {
@@ -40,6 +41,7 @@ import { AuthViewMain } from './auth-view-main.js';
 import {
   AuthViewEmailLogin,
   AuthViewEmailRegister,
+  AuthViewEmailSetPassword,
   AuthViewEmailOtp,
   AuthViewEmailOtpVerify,
   AuthViewEmail2Fa,
@@ -137,8 +139,11 @@ export function AuthMenu({
 
   const [otpCode, setOtpCode] = useState('');
   const [otpResendCountdown, setOtpResendCountdown] = useState(0);
+  const [pendingTokens, setPendingTokens] = useState<AuthTokensDto | null>(null);
+  const [otpEntryView, setOtpEntryView] = useState<'email_otp' | 'email_register'>('email_otp');
   const [tempToken, setTempToken] = useState('');
   const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [twoFactorReturnView, setTwoFactorReturnView] = useState<AuthView>('main');
 
   const googleClientId = useMemo(() => getGoogleClientId(), []);
   const twitterOauthConfig = useMemo(() => resolveSocialOauthConfig('TWITTER'), []);
@@ -149,10 +154,12 @@ export function AuthMenu({
     setPending,
     setLoginError,
     setShowLoginModal,
+    setPendingTokens,
     setOtpCode,
     setOtpResendCountdown,
     setTempToken,
     setTwoFactorCode,
+    setTwoFactorReturnView,
     setStatusBanner,
     setAuthSession,
   }), [setStatusBanner, setAuthSession]);
@@ -163,6 +170,28 @@ export function AuthMenu({
     desktopCallbackUser,
     authToken,
   }), [desktopCallbackRequest, desktopCallbackToken, desktopCallbackUser, authToken]);
+
+  const clearOtpFlowState = () => {
+    setOtpCode('');
+    setOtpResendCountdown(0);
+    setTempToken('');
+    setTwoFactorCode('');
+    setOtpEntryView('email_otp');
+    setTwoFactorReturnView('main');
+  };
+
+  const clearPendingOnboardingState = () => {
+    if (!pendingTokens) {
+      return;
+    }
+    dataSync.setToken('');
+    dataSync.setRefreshToken('');
+    setPendingTokens(null);
+    setPassword('');
+    setConfirmPassword('');
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  };
 
   useEffect(() => {
     onLogoHoverChange?.(isHoveringLogo);
@@ -232,22 +261,34 @@ export function AuthMenu({
     }
   }, []);
 
+  useEffect(() => {
+    if (view !== 'email_set_password') {
+      return;
+    }
+    setPassword('');
+    setConfirmPassword('');
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  }, [view]);
+
   const openModal = () => {
     if (!enableAuthModal) {
       return;
     }
 
+    clearPendingOnboardingState();
     setShowLoginModal(true);
     setView(initialModalView);
     setPending(false);
     setLoginError(null);
     setConfirmPassword('');
-    setOtpCode('');
-    setOtpResendCountdown(0);
-    setTempToken('');
-    setTwoFactorCode('');
+    clearOtpFlowState();
     const remembered = loadRememberedLogin();
-    if (!remembered?.rememberMe) {
+    if (remembered?.rememberMe) {
+      setEmail(remembered.email);
+      setPassword(remembered.password);
+      setRememberMe(true);
+    } else {
       setEmail('');
       setPassword('');
       setRememberMe(false);
@@ -259,25 +300,30 @@ export function AuthMenu({
       return;
     }
 
+    clearPendingOnboardingState();
     setShowLoginModal(true);
     setView(initialModalView);
     setPending(false);
     setLoginError(null);
     setConfirmPassword('');
-    setOtpCode('');
-    setOtpResendCountdown(0);
-    setTempToken('');
-    setTwoFactorCode('');
+    clearOtpFlowState();
     const remembered = loadRememberedLogin();
-    if (!remembered?.rememberMe) {
+    if (remembered?.rememberMe) {
+      setEmail(remembered.email);
+      setPassword(remembered.password);
+      setRememberMe(true);
+    } else {
       setEmail('');
       setPassword('');
+      setRememberMe(false);
     }
     setDidAutoOpenDesktopLogin(true);
   }, [desktopCallbackRequest, didAutoOpenDesktopLogin, enableAuthModal, initialModalView]);
 
   const closeModal = () => {
     if (pending) return;
+    clearPendingOnboardingState();
+    clearOtpFlowState();
     setShowLoginModal(false);
     setView('main');
     setLoginError(null);
@@ -285,9 +331,18 @@ export function AuthMenu({
 
   const handleHeaderBack = () => {
     if (view === 'email_otp_verify') {
-      setView('email_otp');
-    } else if (view === 'email_register' || view === 'email_2fa') {
+      setOtpCode('');
+      setView(otpEntryView);
+    } else if (view === 'email_set_password') {
+      clearPendingOnboardingState();
+      clearOtpFlowState();
+      setView(otpEntryView);
+    } else if (view === 'email_register') {
       setView('email_login');
+    } else if (view === 'email_2fa') {
+      setTempToken('');
+      setTwoFactorCode('');
+      setView(twoFactorReturnView);
     } else if (view === 'wallet_select') {
       setView('main');
     } else {
@@ -380,6 +435,9 @@ export function AuthMenu({
                 <AuthViewMain
                   pending={pending}
                   onSetView={(v) => {
+                    if (v === 'email_otp') {
+                      setOtpEntryView('email_otp');
+                    }
                     setView(v);
                     setLoginError(null);
                   }}
@@ -404,6 +462,8 @@ export function AuthMenu({
                   onRememberMeChange={setRememberMe}
                   onSubmit={(e) => { void doEmailLogin(e, email, password, rememberMe, setters, desktopCtx); }}
                   onSwitchToRegister={() => {
+                    setOtpEntryView('email_register');
+                    setConfirmPassword('');
                     setView('email_register');
                     setLoginError(null);
                   }}
@@ -413,17 +473,12 @@ export function AuthMenu({
               {view === 'email_register' ? (
                 <AuthViewEmailRegister
                   email={email}
-                  password={password}
-                  confirmPassword={confirmPassword}
-                  showPassword={showPassword}
-                  showConfirmPassword={showConfirmPassword}
                   pending={pending}
                   onEmailChange={setEmail}
-                  onPasswordChange={setPassword}
-                  onConfirmPasswordChange={setConfirmPassword}
-                  onShowPasswordToggle={() => setShowPassword((current) => !current)}
-                  onShowConfirmPasswordToggle={() => setShowConfirmPassword((current) => !current)}
-                  onSubmit={(e) => { void doEmailRegister(e, email, password, confirmPassword, setters, desktopCtx); }}
+                  onSubmit={(e) => {
+                    setOtpEntryView('email_register');
+                    void doRequestEmailOtp(e, email, setters);
+                  }}
                 />
               ) : null}
 
@@ -432,7 +487,10 @@ export function AuthMenu({
                   email={email}
                   pending={pending}
                   onEmailChange={setEmail}
-                  onSubmit={(e) => { void doRequestEmailOtp(e, email, setters); }}
+                  onSubmit={(e) => {
+                    setOtpEntryView('email_otp');
+                    void doRequestEmailOtp(e, email, setters);
+                  }}
                 />
               ) : null}
 
@@ -445,6 +503,23 @@ export function AuthMenu({
                   onOtpCodeChange={setOtpCode}
                   onSubmit={(e) => { void doVerifyEmailOtp(e, email, otpCode, setters, desktopCtx); }}
                   onResendOtp={() => { void doResendOtp(email, otpResendCountdown, setters); }}
+                />
+              ) : null}
+
+              {view === 'email_set_password' && pendingTokens ? (
+                <AuthViewEmailSetPassword
+                  password={password}
+                  confirmPassword={confirmPassword}
+                  showPassword={showPassword}
+                  showConfirmPassword={showConfirmPassword}
+                  pending={pending}
+                  onPasswordChange={setPassword}
+                  onConfirmPasswordChange={setConfirmPassword}
+                  onShowPasswordToggle={() => setShowPassword((current) => !current)}
+                  onShowConfirmPasswordToggle={() => setShowConfirmPassword((current) => !current)}
+                  onSubmit={(e) => {
+                    void doSetPasswordAfterOtp(e, password, confirmPassword, pendingTokens, setters, desktopCtx);
+                  }}
                 />
               ) : null}
 
