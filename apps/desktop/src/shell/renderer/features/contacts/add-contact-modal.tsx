@@ -18,9 +18,18 @@ type AddContactModalProps = {
   onAdd: (candidate: ContactSearchCandidate, message?: string) => Promise<void>;
 };
 
-function toErrorMessage(error: unknown, fallback: string): string {
+function toErrorMessage(
+  error: unknown,
+  fallback: string,
+  translate: (key: string, options?: Record<string, unknown>) => string,
+): string {
   if (error instanceof Error) {
     const next = error.message.trim();
+    if (next === 'HANDLE_PREFIX_UNSUPPORTED') {
+      return translate('AddContact.legacyPrefixUnsupported', {
+        defaultValue: 'Use a handle or ID without @ or ~.',
+      });
+    }
     if (next) {
       return next;
     }
@@ -111,7 +120,7 @@ export function AddContactModal(props: AddContactModalProps) {
     } catch (error) {
       setCandidate(null);
       setSelectedCandidate(null);
-      setSearchError(toErrorMessage(error, t('AddContact.searchFailed', { defaultValue: 'Failed to find this user.' })));
+      setSearchError(toErrorMessage(error, t('AddContact.searchFailed', { defaultValue: 'Failed to find this user.' }), t));
     } finally {
       setSearching(false);
     }
@@ -135,7 +144,7 @@ export function AddContactModal(props: AddContactModalProps) {
       await props.onAdd(selectedCandidate, message.trim() || undefined);
       props.onClose();
     } catch (error) {
-      setActionError(toErrorMessage(error, t('AddContact.addFailed', { defaultValue: 'Failed to add this contact.' })));
+      setActionError(toErrorMessage(error, t('AddContact.addFailed', { defaultValue: 'Failed to add this contact.' }), t));
     } finally {
       setAdding(false);
     }
@@ -195,7 +204,7 @@ export function AddContactModal(props: AddContactModalProps) {
                   }
                 }}
                 placeholder={t('Contacts.addContactSearchPlaceholder', {
-                  defaultValue: 'Search by @handle, ~agent, or ID',
+                  defaultValue: 'Search by handle or ID',
                 })}
                 className="h-11 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-3 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-300 focus:ring-2 focus:ring-mint-100"
               />

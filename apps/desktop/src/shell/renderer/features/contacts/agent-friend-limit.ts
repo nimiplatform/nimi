@@ -35,11 +35,7 @@ function isAgentFriend(friend: unknown): boolean {
     return false;
   }
   const payload = friend as Record<string, unknown>;
-  if (payload.isAgent === true) {
-    return true;
-  }
-  const handle = typeof payload.handle === 'string' ? payload.handle : '';
-  return handle.startsWith('~');
+  return payload.isAgent === true;
 }
 
 export async function resolveAgentFriendLimit(): Promise<AgentFriendLimit> {

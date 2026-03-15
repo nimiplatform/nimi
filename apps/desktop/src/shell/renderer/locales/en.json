@@ -678,7 +678,6 @@
     "missingAuthorForFriendRequest": "Cannot add friend: user ID not found",
     "missingAuthorForGift": "Cannot send gift: user ID not found",
     "missingAuthorForChat": "Cannot start chat: user ID not found",
-    "agentChatUnavailableFromMoments": "Agent chat is not available from Moments.",
     "likes": "Likes",
     "modifyVisibility": "Modify visibility",
     "noContent": "No content",
@@ -1083,7 +1082,7 @@
     "humanBadge": "Human",
     "addContactTitle": "Add Contact",
     "closeAddContactModal": "Close add contact modal",
-    "addContactSearchPlaceholder": "Search by @handle, ~agent, or ID",
+    "addContactSearchPlaceholder": "Search by handle or ID",
     "searching": "Searching",
     "search": "Search",
     "alreadyInContacts": "Already in your contacts.",
@@ -1176,8 +1175,7 @@
     "retryFailed": "Mod {{modId}} retry failed: {{error}}",
     "retryRecovered": "Mod {{modId}} recovered",
     "retryException": "Mod {{modId}} retry exception: {{error}}",
-    "bootstrapPartialFailure": "{{count}} mods failed to load. Error chain: {{chain}}",
-    "privateExecutionUnavailable": "No runtime mod is available for private execution."
+    "bootstrapPartialFailure": "{{count}} mods failed to load. Error chain: {{chain}}"
   },
   "ModSettings": {
     "pageTitle": "Extensions",
@@ -1676,6 +1674,7 @@
   },
   "AddContact": {
     "inputRequired": "Please input a user handle or ID.",
+    "legacyPrefixUnsupported": "Use a handle or ID without @ or ~.",
     "searchFailed": "Failed to find this user.",
     "addFailed": "Failed to add this contact."
   },

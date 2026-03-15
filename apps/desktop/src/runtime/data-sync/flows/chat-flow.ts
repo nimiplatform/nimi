@@ -19,6 +19,21 @@ type DataSyncErrorEmitter = (
   details?: Record<string, unknown>,
 ) => void;
 
+function isHumanChatThread(chat: unknown): boolean {
+  if (!chat || typeof chat !== 'object') {
+    return false;
+  }
+  const otherUser = (chat as { otherUser?: unknown }).otherUser;
+  if (!otherUser || typeof otherUser !== 'object') {
+    return true;
+  }
+  return (otherUser as { isAgent?: unknown }).isAgent !== true;
+}
+
+function filterHumanChatItems<T>(items: T[] | undefined): T[] {
+  return Array.isArray(items) ? items.filter((item) => isHumanChatThread(item)) : [];
+}
+
 type PendingChatOutboxEntry = {
   chatId: string;
   body: SendMessageInputDto;
@@ -95,15 +110,18 @@ export async function loadChatList(
       '加载会话列表失败',
     );
     const manager = await getOfflineCacheManager();
-    const items = Array.isArray(result?.items) ? result.items as Record<string, unknown>[] : [];
+    const items = filterHumanChatItems(result?.items as Record<string, unknown>[] | undefined);
     await manager.syncChatList(items);
-    return result;
+    return {
+      ...result,
+      items,
+    };
   } catch (error) {
     if (isRealmOfflineError(error)) {
       const manager = await getOfflineCacheManager();
       getOfflineCoordinator().markCacheFallbackUsed();
       return {
-        items: await manager.getCachedChatList(),
+        items: filterHumanChatItems(await manager.getCachedChatList()),
       };
     }
     emitDataSyncError('load-chats', error);
@@ -123,7 +141,10 @@ export async function loadMoreChatList(
       (realm) => realm.services.HumanChatService.listChats(20, cursor),
       '加载更多会话失败',
     );
-    return result;
+    return {
+      ...result,
+      items: filterHumanChatItems(result?.items as Record<string, unknown>[] | undefined),
+    };
   } catch (error) {
     emitDataSyncError('load-more-chats', error);
     throw error;

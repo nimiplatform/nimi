@@ -236,7 +236,7 @@ test('loadAgentDetails reapplies mint-you profile filter per viewer on cached pr
         id: agentId,
         isAgent: true,
         worldId: 'world-cache',
-        handle: '~cached-agent',
+        handle: 'cached-agent',
         referenceImageUrl: 'https://example.com/cached-photo.png',
       };
 

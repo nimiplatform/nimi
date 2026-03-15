@@ -6,7 +6,6 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { QuickAddFriendModal } from '@renderer/features/explore/quick-add-friend-modal';
 import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
-import { openDefaultPrivateExecutionMod } from '@renderer/mod-ui/lifecycle/default-private-execution';
 import { prefetchWorldDetailAndEvents } from '@renderer/features/world/world-detail-queries.js';
 import { prefetchWorldDetailPanel } from '@renderer/features/world/world-detail-route-state';
 import { toAgentDetailData } from './agent-detail-model';
@@ -16,7 +15,6 @@ export function AgentDetailPanel() {
   const authStatus = useAppStore((state) => state.auth.status);
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const navigateBack = useAppStore((state) => state.navigateBack);
-  const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const [giftModalOpen, setGiftModalOpen] = useState(false);
@@ -54,29 +52,10 @@ export function AgentDetailPanel() {
     return '';
   }, [profileQuery.data]);
 
-  const memoryStatsQuery = useQuery({
-    queryKey: ['agent-memory-stats', resolvedAgentId],
-    queryFn: async () => {
-      const result = await dataSync.loadAgentMemoryStats(resolvedAgentId);
-      return result as Record<string, unknown>;
-    },
-    enabled: authStatus === 'authenticated' && !!resolvedAgentId,
-  });
-
   const agent = useMemo(() => {
     if (!profileQuery.data) return null;
     return toAgentDetailData(profileQuery.data);
   }, [profileQuery.data]);
-
-  const memoryStats = useMemo(() => {
-    if (!memoryStatsQuery.data) return null;
-    const data = memoryStatsQuery.data;
-    return {
-      coreCount: typeof data.coreCount === 'number' ? data.coreCount : 0,
-      e2eCount: typeof data.e2eCount === 'number' ? data.e2eCount : 0,
-      profileCount: typeof data.profileCount === 'number' ? data.profileCount : 0,
-    };
-  }, [memoryStatsQuery.data]);
 
   // Extract stats from profile data (if available from API)
   const stats = useMemo(() => {
@@ -98,20 +77,6 @@ export function AgentDetailPanel() {
     const worldData = data.world as Record<string, unknown> | undefined;
     return (worldData?.scoreEwma as number) ?? (data.worldScoreEwma as number) ?? 0;
   }, [profileQuery.data]);
-
-  const onChat = () => {
-    if (!agent) {
-      return;
-    }
-    setRuntimeFields({
-      targetType: 'AGENT',
-      targetAccountId: agent.id,
-      agentId: agent.id,
-      targetId: agent.id,
-      worldId: agent.worldId || '',
-    });
-    openDefaultPrivateExecutionMod();
-  };
 
   const handleAddFriendClick = () => {
     if (!resolvedAgentId) return;
@@ -157,13 +122,11 @@ export function AgentDetailPanel() {
     <>
       <AgentDetailView
         agent={agent!}
-        memoryStats={memoryStats}
         stats={stats}
         worldScore={worldScore}
         loading={profileQuery.isPending}
         error={profileQuery.isError}
         onBack={navigateBack}
-        onChat={onChat}
         onOpenWorld={() => {
           if (!agent?.worldId) {
             return;
@@ -193,6 +156,7 @@ export function AgentDetailPanel() {
         receiverId={agent?.id || ''}
         receiverName={agent?.displayName || agent?.handle || 'Agent'}
         receiverHandle={agent?.handle}
+        receiverIsAgent
         receiverAvatarUrl={agent?.avatarUrl}
         onClose={() => setGiftModalOpen(false)}
         onSent={() => {

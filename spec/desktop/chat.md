@@ -19,6 +19,8 @@
 
 聊天数据流（方法清单见 `D-DSYNC-003`）。
 
+Desktop core chat surface 仅展示 human chat；Agent chat 不得出现在 ChatList / MessageTimeline 等 core product 组件中。
+
 ### State (D-STATE-004)
 
 - `selectedChatId`：当前选中的聊天 ID。
@@ -37,7 +39,8 @@ Turn 生命周期拦截：`pre-policy` → `pre-model` → `post-state` → `pre
 
 ### LLM (D-LLM-002)
 
-Turn 执行通过 `ExecuteLocalTurnInput` 路由到目标 agent 和 provider。
+Desktop core chat surface 的 turn 执行只承载 human chat 所需的通用 `ExecuteLocalTurnInput`。
+Agent chat route 不属于 core chat contract；mods 必须通过 host-only capability `data-api.core.agent.chat.route.resolve` 自行解析。
 
 ### Streaming (D-STRM-001~004)
 

@@ -174,7 +174,7 @@ async function resolvePendingRequestProfiles(
         '加载好友请求用户资料失败',
       ) as Record<string, unknown>;
       const handle = toNonEmptyString(profile.handle);
-      const isAgent = profile.isAgent === true || handle.startsWith('~');
+      const isAgent = profile.isAgent === true;
       return {
         id: userId,
         userId,
@@ -256,7 +256,7 @@ async function fetchBlockedUsers(
           handle,
           avatarUrl: toNullableString(item?.avatarUrl),
           bio: toNullableString(item?.bio),
-          isAgent: handle.startsWith('~'),
+          isAgent: item?.isAgent === true,
           blockedAt: toNullableString(item?.blockedAt),
           reason: toNullableString(item?.reason),
         } as Record<string, unknown>;

@@ -101,7 +101,7 @@ function mapAgent(raw: unknown, worldsMap: Map<string, { bannerUrl: string | nul
   const bio = asString(source.bio).trim()
     || asString(agentProfile?.bio).trim()
     || null;
-  const isAgent = source.isAgent === true || handle.startsWith('~');
+  const isAgent = source.isAgent === true || Boolean(agent) || Boolean(agentProfile);
   const isOnline = source.isOnline === true;
   
   // Agent fields
@@ -465,6 +465,7 @@ export function ExplorePanel() {
         receiverId={selectedAgentForGift?.id || ''}
         receiverName={selectedAgentForGift?.name || 'Agent'}
         receiverHandle={selectedAgentForGift?.handle}
+        receiverIsAgent={selectedAgentForGift?.isAgent === true}
         receiverAvatarUrl={selectedAgentForGift?.avatarUrl}
         onClose={() => {
           setGiftModalOpen(false);

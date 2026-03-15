@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
@@ -79,19 +79,6 @@ function getAvatarUrl(chat: ChatViewDto): string | null {
   return chat.otherUser?.avatarUrl || null;
 }
 
-function getIsAgent(chat: ChatViewDto): boolean {
-  const record = chat as unknown as Record<string, unknown>;
-  const otherUser =
-    record.otherUser && typeof record.otherUser === 'object'
-      ? (record.otherUser as Record<string, unknown>)
-      : null;
-  if (otherUser?.isAgent === true) {
-    return true;
-  }
-  const handle = String(otherUser?.handle || '').trim();
-  return handle.startsWith('~');
-}
-
 function resolveChatSortTime(chat: ChatViewDto): number {
   const primary = Date.parse(String(chat.lastMessageAt || ''));
   if (Number.isFinite(primary)) {
@@ -166,6 +153,17 @@ export function ChatList() {
       return title.includes(q) || preview.includes(q) || handle.includes(q);
     });
   }, [allChatsSorted, searchText]);
+
+  useEffect(() => {
+    if (!selectedChatId) {
+      return;
+    }
+    const exists = chats.some((chat) => String(chat.id || '') === String(selectedChatId));
+    if (!exists) {
+      setSelectedChatId(null);
+      setChatProfilePanelTarget(null);
+    }
+  }, [chats, selectedChatId, setChatProfilePanelTarget, setSelectedChatId]);
 
   // 默认不自动选择第一个聊天，保持空状态
 
@@ -249,7 +247,7 @@ export function ChatList() {
                   <EntityAvatar
                     imageUrl={getAvatarUrl(chat)}
                     name={title}
-                    kind={getIsAgent(chat) ? 'agent' : 'human'}
+                    kind="human"
                     sizeClassName="h-12 w-12"
                     className="transition-all"
                     textClassName="text-sm font-medium"

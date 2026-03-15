@@ -678,7 +678,6 @@
     "missingAuthorForFriendRequest": "无法添加好友：未找到用户 ID",
     "missingAuthorForGift": "无法送礼：未找到用户 ID",
     "missingAuthorForChat": "无法开始聊天：未找到用户 ID",
-    "agentChatUnavailableFromMoments": "动态页面暂不支持与 Agent 直接聊天。",
     "likes": "点赞",
     "modifyVisibility": "修改可见范围",
     "noContent": "暂无内容",
@@ -1083,7 +1082,7 @@
     "humanBadge": "真人",
     "addContactTitle": "添加联系人",
     "closeAddContactModal": "关闭添加联系人弹窗",
-    "addContactSearchPlaceholder": "通过 @handle、~agent 或 ID 搜索",
+    "addContactSearchPlaceholder": "通过 handle 或 ID 搜索",
     "searching": "搜索中",
     "search": "搜索",
     "alreadyInContacts": "已经在你的联系人中。",
@@ -1176,8 +1175,7 @@
     "retryFailed": "Mod {{modId}} 重试失败：{{error}}",
     "retryRecovered": "Mod {{modId}} 已恢复",
     "retryException": "Mod {{modId}} 重试异常：{{error}}",
-    "bootstrapPartialFailure": "部分 Mod 加载失败（{{count}}）。错误链：{{chain}}",
-    "privateExecutionUnavailable": "当前没有可用于私有执行的 Runtime Mod。"
+    "bootstrapPartialFailure": "部分 Mod 加载失败（{{count}}）。错误链：{{chain}}"
   },
   "ModSettings": {
     "pageTitle": "扩展",
@@ -1676,6 +1674,7 @@
   },
   "AddContact": {
     "inputRequired": "请输入用户账号或 ID",
+    "legacyPrefixUnsupported": "请直接输入 handle 或 ID，不要带 @ 或 ~。",
     "searchFailed": "未找到该用户。",
     "addFailed": "添加该联系人失败。"
   },

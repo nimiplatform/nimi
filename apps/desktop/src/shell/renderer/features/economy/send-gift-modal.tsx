@@ -14,14 +14,11 @@ type SendGiftModalProps = {
   receiverId: string;
   receiverName: string;
   receiverHandle?: string;
+  receiverIsAgent?: boolean;
   receiverAvatarUrl?: string | null;
   onClose: () => void;
   onSent?: () => void;
 };
-
-function isAgentReceiver(handle?: string): boolean {
-  return String(handle || '').trim().startsWith('~');
-}
 
 function formatSparkCost(value: number): string {
   return formatLocaleNumber(value, {
@@ -116,11 +113,11 @@ export function SendGiftModal(props: SendGiftModalProps) {
               <EntityAvatar
                 imageUrl={props.receiverAvatarUrl}
                 name={props.receiverName}
-                kind={isAgentReceiver(props.receiverHandle) ? 'agent' : 'human'}
+                kind={props.receiverIsAgent === true ? 'agent' : 'human'}
                 sizeClassName="h-20 w-20"
-                className={isAgentReceiver(props.receiverHandle) ? undefined : 'ring-4 ring-[#E0F7F4]'}
+                className={props.receiverIsAgent === true ? undefined : 'ring-4 ring-[#E0F7F4]'}
                 textClassName="text-2xl font-bold"
-                fallbackClassName={isAgentReceiver(props.receiverHandle) ? undefined : 'bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] text-[#4ECCA3]'}
+                fallbackClassName={props.receiverIsAgent === true ? undefined : 'bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] text-[#4ECCA3]'}
               />
             </div>
             <h3 className="mt-3 text-lg font-semibold text-gray-900">{props.receiverName}</h3>

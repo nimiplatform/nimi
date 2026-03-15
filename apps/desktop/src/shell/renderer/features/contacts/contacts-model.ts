@@ -84,7 +84,7 @@ export function formatContactRelativeTime(dateStr: string | null): string {
 
 export function toFriendContact(item: Record<string, unknown>): ContactRecord {
   const handle = String(item.handle || '');
-  const isAgent = item.isAgent === true || handle.startsWith('~');
+  const isAgent = item.isAgent === true;
   
   // Parse agent ownership type
   const agentProfile = item.agentProfile && typeof item.agentProfile === 'object'
@@ -202,7 +202,7 @@ export function toPendingRequestContact(item: Record<string, unknown>): ContactR
     handle,
     avatarUrl: typeof item.avatarUrl === 'string' ? item.avatarUrl : null,
     bio: typeof item.bio === 'string' ? item.bio : null,
-    isAgent: item.isAgent === true || handle.startsWith('~'),
+    isAgent: item.isAgent === true,
     direction: item.direction === 'sent' ? 'sent' : 'received',
     requestedAt: typeof item.requestedAt === 'string' ? item.requestedAt : null,
   };

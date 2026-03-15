@@ -594,7 +594,7 @@ export function ContactsView(props: ContactsViewProps) {
                 }),
               });
             } : undefined}
-            showMessageButton
+            showMessageButton={!selectedProfile?.isAgent}
           />
         ) : (
           // 空状态 - 显示 Nimi Logo
@@ -635,6 +635,7 @@ export function ContactsView(props: ContactsViewProps) {
         receiverId={giftTargetContact?.id || ''}
         receiverName={giftTargetContact?.displayName || giftTargetContact?.handle || 'User'}
         receiverHandle={giftTargetContact?.handle}
+        receiverIsAgent={giftTargetContact?.isAgent === true}
         receiverAvatarUrl={giftTargetContact?.avatarUrl}
         onClose={() => {
           setGiftModalOpen(false);

@@ -249,7 +249,7 @@ export function toChatProfileSummary(input: {
       : typeof fallback.avatarUrl === 'string'
         ? String(fallback.avatarUrl)
         : null,
-    isAgent: source.isAgent === true || fallback.isAgent === true || String(source.handle || fallback.handle || '').startsWith('~'),
+    isAgent: source.isAgent === true || fallback.isAgent === true,
     isOnline: source.isOnline === true || fallback.isOnline === true,
     bio: String(source.bio || '').trim(),
     presenceText: String(source.presenceText || fallback.presenceText || '').trim(),

@@ -11,7 +11,6 @@ import {
 } from '@renderer/features/contacts/contact-detail-view-content-shell.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
-import { openDefaultPrivateExecutionMod } from '@renderer/mod-ui/lifecycle/default-private-execution';
 import { toProfileData } from './profile-model';
 import type { ContactRecord } from '@renderer/features/contacts/contacts-model';
 
@@ -130,18 +129,6 @@ export function ProfilePanel() {
 
   const onMessage = async () => {
     if (!profile) {
-      return;
-    }
-
-    if (profile.isAgent) {
-      setRuntimeFields({
-        targetType: 'AGENT',
-        targetAccountId: profile.id,
-        agentId: profile.id,
-        targetId: profile.id,
-        worldId: profile.agentWorldId || '',
-      });
-      openDefaultPrivateExecutionMod();
       return;
     }
 
@@ -349,7 +336,7 @@ export function ProfilePanel() {
         onRemove={!isOwnProfile && profile.isFriend ? () => {
           void onRemoveProfile();
         } : undefined}
-        showMessageButton={!isOwnProfile}
+        showMessageButton={!isOwnProfile && !profile.isAgent}
         onSaveProfile={isOwnProfile ? onSaveOwnProfile : undefined}
       />
       <SendGiftModal
@@ -357,6 +344,7 @@ export function ProfilePanel() {
         receiverId={profile?.id || ''}
         receiverName={profile?.displayName || profile?.handle || 'User'}
         receiverHandle={profile?.handle}
+        receiverIsAgent={profile?.isAgent === true}
         receiverAvatarUrl={profile?.avatarUrl}
         onClose={() => setGiftModalOpen(false)}
         onSent={() => {

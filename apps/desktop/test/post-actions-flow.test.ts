@@ -35,3 +35,8 @@ test('edit post no longer shows coming soon path', () => {
   assert.doesNotMatch(postCardUiSource, /coming soon/i);
   assert.match(postCardUiSource, /setShowEditVisibilityModal\(true\)/);
 });
+
+test('post card does not keep an agent-chat unavailable branch in product UI', () => {
+  assert.match(postCardSource, /showChatButton=\{post\.author\?\.isAgent !== true\}/);
+  assert.doesNotMatch(postCardSource, /agentChatUnavailableFromMoments/);
+});

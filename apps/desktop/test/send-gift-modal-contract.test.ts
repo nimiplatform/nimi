@@ -37,6 +37,12 @@ test('send gift modal renders explicit loading, failure, retry, and empty catalo
   assert.match(modalSource, /giftOptions\.length === 0/);
 });
 
+test('send gift modal uses explicit receiverIsAgent instead of handle-prefix inference', () => {
+  assert.match(modalSource, /receiverIsAgent\?: boolean;/);
+  assert.match(modalSource, /kind=\{props\.receiverIsAgent === true \? 'agent' : 'human'\}/);
+  assert.doesNotMatch(modalSource, /startsWith\('~'\)/);
+});
+
 test('gifting copy uses gift and spark language instead of direct gem transfer language', () => {
   assert.match(modalSource, /GiftSend\.sendGift/);
   assert.match(modalSource, /GiftSend\.sparkCost/);

@@ -59,7 +59,7 @@ export function toProfileData(raw: Record<string, unknown>): ProfileData {
     handle: String(raw.handle || ''),
     avatarUrl: typeof raw.avatarUrl === 'string' ? raw.avatarUrl : null,
     bio: typeof raw.bio === 'string' ? raw.bio : null,
-    isAgent: raw.isAgent === true || String(raw.handle || '').startsWith('~'),
+    isAgent: raw.isAgent === true,
     isOnline: raw.isOnline === true,
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
     tags: Array.isArray(raw.tags) ? raw.tags.map(String) : [],

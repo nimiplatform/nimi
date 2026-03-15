@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { openDefaultPrivateExecutionMod } from '@renderer/mod-ui/lifecycle/default-private-execution';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal.js';
 import { toProfileData, type ProfileData } from '@renderer/features/profile/profile-model';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
@@ -85,28 +84,6 @@ function toSeedProfileData(seed: ContactDetailProfileSeed | null): ProfileData |
   } as Record<string, unknown>);
 }
 
-function extractAgentWorldId(profile: unknown): string {
-  if (!profile || typeof profile !== 'object') {
-    return '';
-  }
-  const payload = profile as Record<string, unknown>;
-  const direct = String(payload.worldId || '').trim();
-  if (direct) {
-    return direct;
-  }
-  const agent = payload.agent && typeof payload.agent === 'object'
-    ? (payload.agent as Record<string, unknown>)
-    : null;
-  const fromAgent = String(agent?.worldId || '').trim();
-  if (fromAgent) {
-    return fromAgent;
-  }
-  const agentProfile = payload.agentProfile && typeof payload.agentProfile === 'object'
-    ? (payload.agentProfile as Record<string, unknown>)
-    : null;
-  return String(agentProfile?.worldId || '').trim();
-}
-
 export function ContactDetailProfileModal(props: ContactDetailProfileModalProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -168,24 +145,6 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
       return;
     }
     if (profile.isAgent) {
-      let worldId = profile.agentWorldId || profile.agentOwnerWorldId || '';
-      if (!worldId) {
-        try {
-          const rawProfile = await dataSync.loadUserProfile(profile.id);
-          worldId = extractAgentWorldId(rawProfile);
-        } catch {
-          worldId = '';
-        }
-      }
-      setRuntimeFields({
-        targetType: 'AGENT',
-        targetAccountId: profile.id,
-        agentId: profile.id,
-        targetId: profile.id,
-        worldId,
-      });
-      openDefaultPrivateExecutionMod();
-      props.onClose();
       return;
     }
 
@@ -317,7 +276,7 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
               onRemove={profile.isFriend ? () => {
                 void handleRemove();
               } : undefined}
-              showMessageButton
+              showMessageButton={!profile.isAgent}
             />
           </div>
         </div>
@@ -328,6 +287,7 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
         receiverId={profile.id}
         receiverName={profile.displayName}
         receiverHandle={profile.handle}
+        receiverIsAgent={profile.isAgent === true}
         receiverAvatarUrl={profile.avatarUrl}
         onClose={() => setGiftModalOpen(false)}
         onSent={() => {

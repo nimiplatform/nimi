@@ -7,13 +7,11 @@ import { getStateBadgeColor } from './agent-detail-model';
 
 type AgentDetailViewProps = {
   agent: AgentDetailData;
-  memoryStats: { coreCount: number; e2eCount: number; profileCount: number } | null;
   stats?: { friendsCount: number; postsCount: number; likesCount: number } | null;
   worldScore?: number;
   loading: boolean;
   error: boolean;
   onBack: () => void;
-  onChat: () => void;
   onOpenWorld: () => void;
   onAddFriend: () => void;
   canAddFriend?: boolean;
@@ -283,16 +281,6 @@ export function AgentDetailView(props: AgentDetailViewProps) {
 
               {/* Action Buttons */}
               <div className="mt-6 flex items-center justify-center gap-4 pb-6">
-                <button
-                  type="button"
-                  onClick={props.onChat}
-                  className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-                  title={t('AgentDetail.chat')}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
-                </button>
                 <button
                   type="button"
                   onClick={props.onSendGift}

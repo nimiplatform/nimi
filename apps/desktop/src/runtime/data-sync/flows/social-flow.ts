@@ -2,6 +2,10 @@ import type { Realm } from '@nimiplatform/sdk/realm';
 
 type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 
+function hasLegacyHandlePrefix(value: string): boolean {
+  return value.startsWith('@') || value.startsWith('~');
+}
+
 function toStringOrUndefined(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
@@ -30,11 +34,12 @@ export async function searchUserByIdentifier(
 ): Promise<SearchUserResult> {
   const identifier = String(identifierInput || '').trim();
   if (!identifier) {
-    throw new Error('Please enter @handle or user ID');
+    throw new Error('Please enter a handle or user ID');
+  }
+  if (hasLegacyHandlePrefix(identifier)) {
+    throw new Error('HANDLE_PREFIX_UNSUPPORTED');
   }
 
-  const isHandleIdentifier = identifier.startsWith('@') || identifier.startsWith('~');
-  const maybeHandle = isHandleIdentifier ? identifier.slice(1) : identifier;
   const looksLikeUlid = /^[0-9A-HJKMNP-TV-Z]{26}$/i.test(identifier);
 
   let user: SearchUserResult | null = null;
@@ -63,23 +68,14 @@ export async function searchUserByIdentifier(
   };
 
   if (!looksLikeUlid) {
-    const handleCandidates = [
-      identifier,
-      maybeHandle,
-    ].filter((value, index, list) => Boolean(value) && list.indexOf(value) === index);
-    for (const handleCandidate of handleCandidates) {
-      try {
-        user = await resolveByHandle(handleCandidate);
-      } catch {
-        user = null;
-      }
-      if (user) {
-        break;
-      }
+    try {
+      user = await resolveByHandle(identifier);
+    } catch {
+      user = null;
     }
   }
 
-  if (!user && !isHandleIdentifier) {
+  if (!user) {
     const byId = await callApi(
       (realm) => realm.services.UserService.getUser(identifier),
       '根据用户ID查询失败',

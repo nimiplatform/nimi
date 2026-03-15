@@ -4,7 +4,7 @@
 
 ## Scope
 
-Agent 详情功能域 — Agent 详情页、Agent 列表、记忆管理、聊天路由。
+Agent 详情功能域 — Agent 详情页、Agent 列表、公开资料展示。
 
 ## Module Map
 
@@ -15,7 +15,7 @@ Agent 详情功能域 — Agent 详情页、Agent 列表、记忆管理、聊天
 
 ### DataSync (D-DSYNC-011)
 
-Agent 数据流（方法清单见 `D-DSYNC-011`）。
+Agent 数据流（方法清单见 `D-DSYNC-011`）。Desktop core product 仅承载 Agent 列表与公开详情读取，不承载 Agent LLM memory 或 chat route。
 
 ### State (D-STATE-004)
 

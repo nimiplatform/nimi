@@ -303,7 +303,7 @@ export function MessageTimeline() {
               const mediaPreviewUrl = message.localPreviewUrl || imageUrl || videoUrl;
               const isUploadingMedia = message.localUploadState === 'uploading';
               const resolvedMessageText = resolveMessageText(message) || t('ChatTimeline.emptyMessage');
-              const messageAvatarKind = !isMe && otherUser?.isAgent ? 'agent' : 'human';
+              const messageAvatarKind = 'human';
               const diagnostics = extractMessageDiagnostics(message);
               const hasDiagnosticData = Boolean(
                 diagnostics.interactionKind
@@ -474,7 +474,7 @@ export function MessageTimeline() {
               <EntityAvatar
                 imageUrl={contactAvatarUrl}
                 name={contactName}
-                kind={otherUser?.isAgent ? 'agent' : 'human'}
+                kind="human"
                 sizeClassName="mt-1 h-8 w-8 shrink-0"
                 textClassName="text-xs font-medium"
               />
@@ -507,7 +507,7 @@ export function MessageTimeline() {
               <EntityAvatar
                 imageUrl={contactAvatarUrl}
                 name={contactName}
-                kind={otherUser?.isAgent ? 'agent' : 'human'}
+                kind="human"
                 sizeClassName="mt-1 h-8 w-8 shrink-0"
                 textClassName="text-xs font-medium"
               />
@@ -552,7 +552,7 @@ export function MessageTimeline() {
               onClose={() => setProfilePanelTarget(null)}
               onViewFullProfile={() => {
                 if (!profileSummary.id) return;
-                navigateToProfile(profileSummary.id, profileSummary.isAgent ? 'agent-detail' : 'profile');
+                navigateToProfile(profileSummary.id, 'profile');
               }}
               viewFullProfileLabel={profileActionLabel}
               onOpenGift={profilePanelTarget === 'other' && profileSummary.id
@@ -568,6 +568,7 @@ export function MessageTimeline() {
         receiverId={otherUserId}
         receiverName={contactName}
         receiverHandle={String(otherUser?.handle || '')}
+        receiverIsAgent={otherUser?.isAgent === true}
         receiverAvatarUrl={contactAvatarUrl}
         onClose={() => setGiftModalOpen(false)}
         onSent={() => {

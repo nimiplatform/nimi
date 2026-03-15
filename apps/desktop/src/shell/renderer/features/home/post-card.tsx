@@ -401,14 +401,6 @@ export function PostCard(input: PostCardProps) {
       return;
     }
 
-    if (post.author?.isAgent) {
-      setStatusBanner({
-        kind: 'error',
-        message: i18n.t('Home.agentChatUnavailableFromMoments', { defaultValue: 'Agent chat is not available from Moments.' }),
-      });
-      return;
-    }
-
     try {
       const result = await dataSync.startChat(userId);
       if (!result?.chatId) {
@@ -547,6 +539,7 @@ export function PostCard(input: PostCardProps) {
         receiverId={authorId}
         receiverName={post.author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' })}
         receiverHandle={post.author?.handle || ''}
+        receiverIsAgent={post.author?.isAgent === true}
         receiverAvatarUrl={post.author?.avatarUrl}
         onClose={() => ui.setIsSendGiftOpen(false)}
         onSent={() => {

@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { openDefaultPrivateExecutionMod } from '@renderer/mod-ui/lifecycle/default-private-execution';
 import type {
   ContactRecord,
   ContactRequestRecord,
@@ -29,30 +28,6 @@ function toErrorMessage(error: unknown, fallback: string): string {
     }
   }
   return fallback;
-}
-
-function extractAgentWorldId(profile: unknown): string {
-  if (!profile || typeof profile !== 'object') {
-    return '';
-  }
-  const payload = profile as Record<string, unknown>;
-  const direct = String(payload.worldId || '').trim();
-  if (direct) {
-    return direct;
-  }
-
-  const agent = payload.agent && typeof payload.agent === 'object'
-    ? (payload.agent as Record<string, unknown>)
-    : null;
-  const fromAgent = String(agent?.worldId || '').trim();
-  if (fromAgent) {
-    return fromAgent;
-  }
-
-  const agentProfile = payload.agentProfile && typeof payload.agentProfile === 'object'
-    ? (payload.agentProfile as Record<string, unknown>)
-    : null;
-  return String(agentProfile?.worldId || '').trim();
 }
 
 export function ContactsPanel() {
@@ -357,23 +332,6 @@ export function ContactsPanel() {
 
   const onMessage = useCallback(async (contact: ContactRecord) => {
     if (contact.isAgent) {
-      let worldId = '';
-      try {
-        const profile = await dataSync.loadUserProfile(contact.id);
-        worldId = extractAgentWorldId(profile);
-      } catch {
-        // keep fallback empty worldId
-      }
-
-      setRuntimeFields({
-        targetType: 'AGENT',
-        targetAccountId: contact.id,
-        agentId: contact.id,
-        targetId: contact.id,
-        worldId,
-      });
-      // Open mod workspace tab before setting active tab
-      openDefaultPrivateExecutionMod();
       return;
     }
 

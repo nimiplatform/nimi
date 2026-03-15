@@ -20,7 +20,7 @@ function makePost(input: {
     authorId: input.authorId,
     author: {
       id: input.authorId,
-      handle: input.isAgent ? `~${input.authorId}` : `@${input.authorId}`,
+      handle: input.isAgent ? input.authorId : `@${input.authorId}`,
       displayName: input.isAgent ? 'Agent Author' : 'Human Author',
       isAgent: input.isAgent === true,
       createdAt: '2026-03-10T00:00:00.000Z',
