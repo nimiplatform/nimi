@@ -81,36 +81,40 @@ function assertSplitModules() {
     path.join(repoRoot, 'scripts', 'realm-sdk', 'generate-models.mjs'),
     path.join(repoRoot, 'scripts', 'realm-sdk', 'generate-property-enums.mjs'),
     path.join(repoRoot, 'scripts', 'realm-sdk', 'generate-realm-facade.mjs'),
-    path.join(repoRoot, 'scripts', 'realm-sdk', 'models.mjs'),
-    path.join(repoRoot, 'scripts', 'realm-sdk', 'operations.mjs'),
   ];
 
   for (const filePath of modules) {
     assert(existsSync(filePath), `missing split module: ${filePath}`);
   }
 
-  const operationsFacade = readFileSync(path.join(repoRoot, 'scripts', 'realm-sdk', 'operations.mjs'), 'utf8');
+  const operationsSource = readFileSync(path.join(repoRoot, 'scripts', 'realm-sdk', 'parse-operations.mjs'), 'utf8');
   assert(
-    operationsFacade.includes("export { parseRealmOperations } from './parse-operations.mjs';"),
-    'operations.mjs missing parse re-export',
-  );
-  assert(
-    operationsFacade.includes("export { writeOperationArtifacts } from './emit-operation-artifacts.mjs';"),
-    'operations.mjs missing emit re-export',
+    operationsSource.includes('export function parseRealmOperations(spec) {'),
+    'parse-operations.mjs missing parseRealmOperations export',
   );
 
-  const modelsFacade = readFileSync(path.join(repoRoot, 'scripts', 'realm-sdk', 'models.mjs'), 'utf8');
+  const emitSource = readFileSync(path.join(repoRoot, 'scripts', 'realm-sdk', 'emit-operation-artifacts.mjs'), 'utf8');
   assert(
-    modelsFacade.includes("export { writeGeneratedModels } from './generate-models.mjs';"),
-    'models.mjs missing writeGeneratedModels re-export',
+    emitSource.includes('export function writeOperationArtifacts(repoRoot, operations) {'),
+    'emit-operation-artifacts.mjs missing writeOperationArtifacts export',
   );
+
+  const modelsSource = readFileSync(path.join(repoRoot, 'scripts', 'realm-sdk', 'generate-models.mjs'), 'utf8');
   assert(
-    modelsFacade.includes("export { writePropertyEnums } from './generate-property-enums.mjs';"),
-    'models.mjs missing writePropertyEnums re-export',
+    modelsSource.includes('export function writeGeneratedModels(repoRoot, spec) {'),
+    'generate-models.mjs missing writeGeneratedModels export',
   );
+
+  const enumsSource = readFileSync(path.join(repoRoot, 'scripts', 'realm-sdk', 'generate-property-enums.mjs'), 'utf8');
   assert(
-    modelsFacade.includes("export { writeRealmFacade } from './generate-realm-facade.mjs';"),
-    'models.mjs missing writeRealmFacade re-export',
+    enumsSource.includes('export function writePropertyEnums(repoRoot, spec) {'),
+    'generate-property-enums.mjs missing writePropertyEnums export',
+  );
+
+  const facadeSource = readFileSync(path.join(repoRoot, 'scripts', 'realm-sdk', 'generate-realm-facade.mjs'), 'utf8');
+  assert(
+    facadeSource.includes('export function writeRealmFacade(repoRoot) {'),
+    'generate-realm-facade.mjs missing writeRealmFacade export',
   );
 }
 

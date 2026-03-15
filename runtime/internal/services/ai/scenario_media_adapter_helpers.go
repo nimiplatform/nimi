@@ -14,6 +14,196 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 )
 
+const (
+	adapterOpenAICompat        = "openai_compat_adapter"
+	adapterLocalAINative       = "localai_native_adapter"
+	adapterNexaNative          = "nexa_native_adapter"
+	adapterBytedanceOpenSpeech = "bytedance_openspeech_adapter"
+	adapterBytedanceARKTask    = "bytedance_ark_task_adapter"
+	adapterAlibabaNative       = "alibaba_native_adapter"
+	adapterGeminiOperation     = "gemini_operation_adapter"
+	adapterGeminiChatSTT       = "gemini_chat_transcribe_adapter"
+	adapterDashScopeChatSTT    = "dashscope_chat_transcribe_adapter"
+	adapterMiniMaxTask         = "minimax_task_adapter"
+	adapterGLMTask             = "glm_task_adapter"
+	adapterGLMNative           = "glm_native_adapter"
+	adapterKimiChatMultimodal  = "kimi_chat_multimodal_adapter"
+	adapterElevenLabsNative    = "elevenlabs_native_adapter"
+	adapterFishAudioNative     = "fish_audio_native_adapter"
+	adapterAWSPollyNative      = "aws_polly_native_adapter"
+	adapterAzureSpeechNative   = "azure_speech_native_adapter"
+	adapterGoogleCloudTTS      = "google_cloud_tts_adapter"
+	adapterFluxNative          = "flux_native_adapter"
+	adapterIdeogramNative      = "ideogram_native_adapter"
+	adapterStabilityNative     = "stability_native_adapter"
+	adapterKlingTask           = "kling_task_adapter"
+	adapterLumaTask            = "luma_task_adapter"
+	adapterPikaTask            = "pika_task_adapter"
+	adapterRunwayTask          = "runway_task_adapter"
+	adapterGoogleVeoOperation  = "google_veo_operation_adapter"
+	adapterStepFunNative       = "stepfun_native_adapter"
+	adapterSunoNative          = "suno_native_adapter"
+	adapterStabilityMusic      = "stability_music_adapter"
+	adapterSoundverseMusic     = "soundverse_music_adapter"
+	adapterMubertMusic         = "mubert_music_adapter"
+	adapterLoudlyMusic         = "loudly_music_adapter"
+	adapterLocalAIMusic        = "localai_music_adapter"
+	adapterSidecarMusic        = "sidecar_music_adapter"
+)
+
+type mediaAdapterStrategy struct {
+	Image string
+	Video string
+	TTS   string
+	STT   string
+	Music string
+}
+
+func (s mediaAdapterStrategy) forModal(modal runtimev1.Modal) string {
+	switch modal {
+	case runtimev1.Modal_MODAL_IMAGE:
+		return strings.TrimSpace(s.Image)
+	case runtimev1.Modal_MODAL_VIDEO:
+		return strings.TrimSpace(s.Video)
+	case runtimev1.Modal_MODAL_TTS:
+		return strings.TrimSpace(s.TTS)
+	case runtimev1.Modal_MODAL_STT:
+		return strings.TrimSpace(s.STT)
+	case runtimev1.Modal_MODAL_MUSIC:
+		return strings.TrimSpace(s.Music)
+	default:
+		return ""
+	}
+}
+
+var mediaAdapterStrategiesByProvider = map[string]mediaAdapterStrategy{
+	"localai": {
+		Image: adapterLocalAINative,
+		Video: adapterLocalAINative,
+		TTS:   adapterLocalAINative,
+		STT:   adapterLocalAINative,
+		Music: adapterLocalAIMusic,
+	},
+	"nexa": {
+		Image: adapterNexaNative,
+		Video: adapterNexaNative,
+		TTS:   adapterNexaNative,
+		STT:   adapterNexaNative,
+	},
+	"sidecar": {
+		Music: adapterSidecarMusic,
+	},
+	"volcengine_openspeech": {
+		TTS: adapterBytedanceOpenSpeech,
+		STT: adapterBytedanceOpenSpeech,
+	},
+	"volcengine": {
+		Image: adapterBytedanceARKTask,
+		Video: adapterBytedanceARKTask,
+	},
+	"dashscope": {
+		Image: adapterAlibabaNative,
+		Video: adapterAlibabaNative,
+		TTS:   adapterAlibabaNative,
+		STT:   adapterDashScopeChatSTT,
+	},
+	"gemini": {
+		Image: adapterGeminiOperation,
+		Video: adapterGeminiOperation,
+		TTS:   adapterGeminiOperation,
+		STT:   adapterGeminiChatSTT,
+	},
+	"minimax": {
+		Image: adapterMiniMaxTask,
+		Video: adapterMiniMaxTask,
+		TTS:   adapterMiniMaxTask,
+		STT:   adapterMiniMaxTask,
+	},
+	"glm": {
+		Image: adapterGLMNative,
+		Video: adapterGLMTask,
+		TTS:   adapterGLMNative,
+		STT:   adapterGLMNative,
+	},
+	"kimi": {
+		Image: adapterKimiChatMultimodal,
+	},
+	"elevenlabs": {
+		TTS: adapterElevenLabsNative,
+	},
+	"fish_audio": {
+		TTS: adapterFishAudioNative,
+	},
+	"aws_polly": {
+		TTS: adapterAWSPollyNative,
+	},
+	"azure_speech": {
+		TTS: adapterAzureSpeechNative,
+	},
+	"google_cloud_tts": {
+		TTS: adapterGoogleCloudTTS,
+	},
+	"flux": {
+		Image: adapterFluxNative,
+	},
+	"ideogram": {
+		Image: adapterIdeogramNative,
+	},
+	"stability": {
+		Image: adapterStabilityNative,
+		Music: adapterStabilityMusic,
+	},
+	"kling": {
+		Image: adapterKlingTask,
+		Video: adapterKlingTask,
+	},
+	"luma": {
+		Video: adapterLumaTask,
+	},
+	"pika": {
+		Video: adapterPikaTask,
+	},
+	"runway": {
+		Video: adapterRunwayTask,
+	},
+	"google_veo": {
+		Video: adapterGoogleVeoOperation,
+	},
+	"stepfun": {
+		Image: adapterStepFunNative,
+		TTS:   adapterStepFunNative,
+	},
+	"suno": {
+		Music: adapterSunoNative,
+	},
+	"soundverse": {
+		Music: adapterSoundverseMusic,
+	},
+	"mubert": {
+		Music: adapterMubertMusic,
+	},
+	"loudly": {
+		Music: adapterLoudlyMusic,
+	},
+}
+
+func scenarioModalFromType(scenarioType runtimev1.ScenarioType) runtimev1.Modal {
+	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
+		return runtimev1.Modal_MODAL_IMAGE
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:
+		return runtimev1.Modal_MODAL_VIDEO
+	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
+		return runtimev1.Modal_MODAL_TTS
+	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
+		return runtimev1.Modal_MODAL_STT
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
+		return runtimev1.Modal_MODAL_MUSIC
+	default:
+		return runtimev1.Modal_MODAL_UNSPECIFIED
+	}
+}
+
 func findProbeModelID(models []nimillm.ProbeModel, targetModelID string) (string, bool) {
 	targetComparable := normalizeComparableModelID(targetModelID)
 	targetBase := modelIDBase(targetModelID)
