@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   normalizeLocalModelV11,
   normalizePageIdV11,
@@ -42,14 +43,11 @@ test('normalizePageIdV11: unknown values fall back to "overview"', () => {
 // ---------------------------------------------------------------------------
 
 test('createDefaultStateV11: activePage defaults to "overview"', () => {
-  const state = createDefaultStateV11({
-    provider: 'local',
-    runtimeModelType: 'chat',
-    localProviderEndpoint: 'http://127.0.0.1:1234/v1',
-  });
+  const state = createDefaultStateV11({});
 
   assert.equal(state.activePage, 'overview');
   assert.equal(state.version, 12);
+  assert.equal(state.local.endpoint, '');
 });
 
 test('createDefaultStateV11: state shape keeps current navigation field only', () => {
@@ -135,16 +133,14 @@ test('normalizeStoredStateV11: accepts v12 snapshots and preserves local provide
       nodeMatrix: [{
         nodeId: 'image.generate.nimi_media',
         capability: 'image',
-        serviceId: 'nimi-media-openai-gateway',
+        serviceId: 'svc-nimi-media',
         provider: 'nimi_media',
         adapter: 'nimi_media_native_adapter',
         available: false,
-        reasonCode: 'LOCAL_PROVIDER_ATTACHED_ONLY',
+        reasonCode: ReasonCode.LOCAL_PROVIDER_ATTACHED_ONLY,
         providerHints: {
           nimiMedia: {
             preferredAdapter: 'nimi_media_native_adapter',
-            driver: 'flux',
-            family: 'diffusers',
           },
           extra: {
             runtime_support_class: 'attached_only',
@@ -161,7 +157,8 @@ test('normalizeStoredStateV11: accepts v12 snapshots and preserves local provide
   assert.equal(result.version, 12);
   assert.equal(result.local.models[0]?.engine, 'nimi_media');
   assert.equal(result.local.nodeMatrix[0]?.provider, 'nimi_media');
-  assert.equal(result.local.nodeMatrix[0]?.providerHints?.nimiMedia?.driver, 'flux');
+  assert.equal(result.local.nodeMatrix[0]?.serviceId, 'svc-nimi-media');
+  assert.equal(result.local.nodeMatrix[0]?.providerHints?.nimiMedia?.driver, undefined);
   assert.equal(result.local.nodeMatrix[0]?.providerHints?.extra?.runtime_support_class, 'attached_only');
 });
 
@@ -312,7 +309,7 @@ test('normalizeLocalModelV11: non-windows image models stay on localai by defaul
     });
 
     assert.equal(image.engine, 'localai');
-    assert.equal(image.endpoint, 'http://127.0.0.1:1234/v1');
+    assert.equal(image.endpoint, '');
   } finally {
     setRuntimeConfigPlatformForTests(null);
   }

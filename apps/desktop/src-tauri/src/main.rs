@@ -41,7 +41,7 @@ pub(crate) struct RuntimeExecutionDefaults {
     pub(crate) local_provider_endpoint: String,
     pub(crate) local_provider_model: String,
     pub(crate) local_open_ai_endpoint: String,
-    pub(crate) credential_ref_id: String,
+    pub(crate) connector_id: String,
     pub(crate) target_type: String,
     pub(crate) target_account_id: String,
     pub(crate) agent_id: String,

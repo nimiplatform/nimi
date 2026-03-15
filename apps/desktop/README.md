@@ -62,10 +62,10 @@ Environment variables:
 - `NIMI_REQUEST_ID`
 - `NIMI_SESSION_ID`
 - `NIMI_PROVIDER` (for LOCAL route)
-- `NIMI_LOCAL_PROVIDER_ENDPOINT` (default: `http://127.0.0.1:1234/v1`)
-- `NIMI_LOCAL_PROVIDER_MODEL` (default: `local-model`, or override by explicit route config)
-- `NIMI_LOCAL_OPENAI_ENDPOINT` (default: `http://127.0.0.1:1234/v1`, for LM Studio/OpenAI-compatible provider)
-- `NIMI_CREDENTIAL_REF_ID` (optional credential reference ID for vault-based secret lookup)
+- `NIMI_LOCAL_PROVIDER_ENDPOINT` (optional; leave empty when runtime has no local binding)
+- `NIMI_LOCAL_PROVIDER_MODEL` (optional explicit local model binding)
+- `NIMI_LOCAL_OPENAI_ENDPOINT` (optional OpenAI-compatible local binding)
+- `NIMI_CONNECTOR_ID` (optional connector ID for managed credential routing)
 
 Provider format examples:
 
