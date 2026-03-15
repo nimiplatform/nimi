@@ -239,7 +239,9 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
    - `adapter`：按 `K-LOCAL-017` 路由。
    - `available`：健康且未被策略门控（`K-LOCAL-018`）。
    - `nexa` 的 `tts/stt` node 还必须通过 capability probe：若 `/v1/models` 中缺失与目标 `model_id` 可比对的 model entry，则 node 必须 `available=false` + fail-close。
+   - `nimi_media` 的 `image/video` node 还必须通过 canonical catalog probe：若 `/v1/catalog` 中缺失与目标 `model_id` 可比对的 ready model entry，则 node 必须 `available=false` + fail-close。
    - `nimi_media` node 的 `provider_hints.extra` 必须暴露 runtime host 支持面（如 `runtime_support_class=supported_supervised|attached_only|unsupported`），供目录层解释为何当前 host 只能 attached。
+   - `provider_hints.extra.local_default_rank` 必须暴露当前 host + capability 下的默认 local engine 排序，供 Desktop/SDK 与 runtime 对齐默认路由。
    - `provider_hints`：引擎特定适配信息。
 4. 支持按 `capability`/`service_id`/`provider` 过滤。
 
@@ -253,7 +255,7 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 | `nexa/` | 仅匹配 `nexa` 引擎的已安装模型 |
 | `nimi_media/` | 仅匹配 `nimi_media` 引擎的已安装模型 |
 | `sidecar/` / `localsidecar/` | 仅匹配 `sidecar` 引擎的已安装模型 |
-| `local/` | 按 host + modal 做偏好路由：Windows 下 `image/video -> nimi_media`、`tts/stt -> nexa`；其余情况优先 `localai`，再回退其他兼容引擎 |
+| `local/` | 按 host + modal 做偏好路由：Windows 下 `text/embed/tts/stt -> nexa`、`image/video -> nimi_media`；其余情况优先 `localai`，再回退其他兼容引擎 |
 | 无前缀 | 按已安装模型的 `model_id` 精确匹配 |
 
 前缀在匹配时剥除（`localai/llama3.1` 匹配 `model_id=llama3.1` 且 `engine=localai`；`nimi_media/flux.1-schnell` 匹配 `model_id=flux.1-schnell` 且 `engine=nimi_media`；`sidecar/musicgen` 匹配 `model_id=musicgen` 且 `engine=sidecar`）。

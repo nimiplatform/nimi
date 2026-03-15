@@ -330,7 +330,7 @@ func localPreferredEngines(modal runtimev1.Modal) []string {
 		case runtimev1.Modal_MODAL_MUSIC:
 			return []string{"sidecar", "localai", "nexa", "nimi_media"}
 		default:
-			return []string{"localai", "sidecar", "nexa", "nimi_media"}
+			return []string{"nexa", "localai", "sidecar", "nimi_media"}
 		}
 	}
 	switch modal {

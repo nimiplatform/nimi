@@ -8,7 +8,7 @@ Phase 1 支持四种本地推理引擎：
 
 - `localai`：LocalAI 引擎，OpenAI-compatible HTTP 服务。
 - `nexa`：Nexa 引擎，OpenAI-compatible HTTP 服务。
-- `nimi_media`：Nimi 受管本地图像/视频引擎，基于 `diffusers`，暴露 OpenAI-compatible image/video 子集 HTTP 服务。
+- `nimi_media`：Nimi 受管本地图像/视频引擎，基于 `diffusers`，暴露 runtime 私有 canonical media HTTP 协议。
 - `sidecar`：外部自托管 music sidecar，使用 Nimi music canonical HTTP 协议；当前仅支持 `ATTACHED_ENDPOINT`。
 
 引擎类型值域以 `tables/local-engine-catalog.yaml` 为唯一事实源。
@@ -63,9 +63,9 @@ Phase 1 同时支持 `ATTACHED_ENDPOINT` 和 `SUPERVISED` 两种模式。
 
 引擎就绪后，runtime 自动设置以下环境变量供现有 AI provider 层自动接管：
 
-- LocalAI：`NIMI_RUNTIME_LOCAL_AI_BASE_URL={endpoint}/v1`
-- Nexa：`NIMI_RUNTIME_LOCAL_NEXA_BASE_URL={endpoint}/v1`
-- `nimi_media`：`NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL={endpoint}/v1`
+- LocalAI：`NIMI_RUNTIME_LOCAL_AI_BASE_URL={endpoint}`
+- Nexa：`NIMI_RUNTIME_LOCAL_NEXA_BASE_URL={endpoint}`
+- `nimi_media`：`NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL={endpoint}`
 
 `sidecar` 不做 runtime 注入与进程管理，调用方直接通过 `NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL` / `NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY` 提供 attached endpoint。
 
@@ -151,16 +151,18 @@ ENV 覆盖：`NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED`、`NIMI_RUNTIME_ENGINE_LOCALA
 - 语音合成：`POST /v1/audio/speech`
 - 语音识别：`POST /v1/audio/transcriptions`
 
-`nimi_media` 遵循 OpenAI-compatible image/video 子集 HTTP API：
+`nimi_media` 使用 runtime 私有 canonical media HTTP API：
 
-- 模型列表：`GET /v1/models`
-- 图像生成：`POST /v1/images/generations`
-- 视频生成：`POST /v1/video/generations`
-- 兼容别名：`POST /v1/videos/generations`
+- 健康探测：`GET /healthz`、`GET /readyz`
+- 目录探测：`GET /v1/catalog`
+- 图像生成：`POST /v1/media/image/generate`
+- 视频生成：`POST /v1/media/video/generate`
 
-`GET /v1/models` 的返回必须至少暴露当前 image/video 默认 driver 元信息（如 `family=diffusers`、`driver=flux|wan`、`device=cuda`），供 runtime health/probe 与目录层对齐。
+`/healthz` 与 `/readyz` 必须只在依赖导入、设备探测、默认 image/video 模型解析、以及默认 image/video 管线初始化全部成功后返回 `200 + ready=true`；否则必须返回非 `2xx` 或 `ready=false`，并包含结构化 `detail`。
 
-`nimi_media` 当前不承诺 `chat` / `embeddings` / `audio` 路径，也不承诺任意 DAG、custom nodes、LoRA/ControlNet 全生态兼容。
+`/v1/catalog` 必须只暴露真实 ready 的模型与 capability，不得伪造静态 model list，也不得把 `not_loaded` / `unconfigured` / `dependency_missing` 的模型伪装成可用目录项。
+
+`nimi_media` 当前仅承诺 `image.generate` / `video.generate` 两类 capability；不承诺 `chat` / `embeddings` / `audio` 路径，也不承诺任意 DAG、custom nodes、LoRA/ControlNet 全生态兼容。
 
 `sidecar` 使用 Nimi music canonical HTTP 协议，不属于 OpenAI-compatible 基线：
 
@@ -192,13 +194,19 @@ LocalAI text-chat multimodal 补充：
 
 ## K-LENG-007 健康探测协议
 
-> 本协议适用于 OpenAI-compatible 本地引擎健康探测。云端 provider 探测使用 K-PROV-003（探测路径与健康判定标准不同）。
+> 本协议适用于 runtime 受管本地引擎健康探测。云端 provider 探测使用 K-PROV-003（探测路径与健康判定标准不同）。
 
-健康探测使用 `GET /v1/models`：
+LocalAI / Nexa 健康探测使用 `GET /v1/models`：
 
 - HTTP 200 且响应包含有效模型列表 → 健康。
 - HTTP 非 200 或连接失败 → 不健康。
 - 探测超时：默认 5 秒，不可配置（Phase 1）。
+
+`nimi_media` 健康探测使用 `GET /healthz` + `GET /v1/catalog`：
+
+- `/healthz` 返回 `200 + ready=true` 且 `/v1/catalog` 返回至少一个 ready model → 健康。
+- `/healthz` 非 200、`ready=false`、`/v1/catalog` 非 200，或目录为空/缺失目标 ready model → 不健康。
+- `nimi_media` 的目录探测不得退回 `/v1/models`，也不得把静态默认 driver 信息当作 ready 证据。
 
 Nexa capability probe 补充：
 

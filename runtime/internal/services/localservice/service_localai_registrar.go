@@ -571,6 +571,8 @@ func modelProbeSucceeded(model *runtimev1.LocalModelRecord, probe endpointProbeR
 		return localAIModelProbeSucceeded(probe, registration)
 	case "nexa":
 		return nexaModelProbeSucceeded(model, probe)
+	case "nimi_media":
+		return nimiMediaModelProbeSucceeded(model, probe)
 	}
 	return probe.healthy
 }
@@ -581,8 +583,37 @@ func modelProbeFailureDetail(model *runtimev1.LocalModelRecord, probe endpointPr
 		return localAIModelProbeFailureDetail(probe, registration)
 	case "nexa":
 		return nexaModelProbeFailureDetail(model, probe)
+	case "nimi_media":
+		return nimiMediaModelProbeFailureDetail(model, probe)
 	}
 	return defaultString(probe.detail, "model probe failed")
+}
+
+func nimiMediaModelProbeSucceeded(model *runtimev1.LocalModelRecord, probe endpointProbeResult) bool {
+	if !probe.healthy {
+		return false
+	}
+	expectedModelName := strings.TrimSpace(model.GetModelId())
+	if expectedModelName == "" || len(probe.models) == 0 {
+		return false
+	}
+	_, ok := findComparableProbeModel(probe.models, expectedModelName)
+	return ok
+}
+
+func nimiMediaModelProbeFailureDetail(model *runtimev1.LocalModelRecord, probe endpointProbeResult) string {
+	if !probe.healthy {
+		return defaultString(probe.detail, "nimi_media model probe failed")
+	}
+	expectedModelName := strings.TrimSpace(model.GetModelId())
+	if expectedModelName == "" {
+		return "nimi_media probe requires a model id"
+	}
+	available := compactProbeModelIDs(probe.models)
+	if len(available) == 0 {
+		return fmt.Sprintf("nimi_media probe missing expected model %q", expectedModelName)
+	}
+	return fmt.Sprintf("nimi_media probe missing expected model %q; available_models=%s", expectedModelName, strings.Join(available, ","))
 }
 
 func localAIModelProbeSucceeded(probe endpointProbeResult, registration localAIRegistration) bool {

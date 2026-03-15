@@ -286,3 +286,33 @@ func TestValidateLocalModelRequestPrefersWindowsModalEngines(t *testing.T) {
 		t.Fatalf("expected windows image local model validation success via nimi_media, got %v", err)
 	}
 }
+
+func TestLocalPreferredEnginesPrefersWindowsTextAndEmbeddingViaNexa(t *testing.T) {
+	origGOOS := localModelValidationGOOS
+	localModelValidationGOOS = "windows"
+	defer func() { localModelValidationGOOS = origGOOS }()
+
+	models := []*runtimev1.LocalModelRecord{
+		{LocalModelId: "a", ModelId: "qwen", Engine: "localai"},
+		{LocalModelId: "b", ModelId: "qwen", Engine: "nexa"},
+		{LocalModelId: "c", ModelId: "qwen", Engine: "nimi_media"},
+	}
+
+	selected, reason := selectActiveLocalModel(models, localModelSelector{
+		modelID:       "qwen",
+		preferLocalAI: true,
+		modal:         runtimev1.Modal_MODAL_TEXT,
+	})
+	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED || selected.GetEngine() != "nexa" {
+		t.Fatalf("expected windows text route to prefer nexa, got engine=%v reason=%v", selected.GetEngine(), reason)
+	}
+
+	selected, reason = selectActiveLocalModel(models, localModelSelector{
+		modelID:       "qwen",
+		preferLocalAI: true,
+		modal:         runtimev1.Modal_MODAL_EMBEDDING,
+	})
+	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED || selected.GetEngine() != "nexa" {
+		t.Fatalf("expected windows embedding route to prefer nexa, got engine=%v reason=%v", selected.GetEngine(), reason)
+	}
+}

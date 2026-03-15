@@ -35,12 +35,14 @@ func newTestService(t *testing.T) *Service {
 	})
 }
 
-func newTestServiceWithProbe(t *testing.T, probe endpointProbeFunc) *Service {
+func newTestServiceWithProbe(t *testing.T, probe func(context.Context, string) endpointProbeResult) *Service {
 	t.Helper()
 	statePath := filepath.Join(t.TempDir(), "local-state.json")
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, statePath, 0)
 	if probe != nil {
-		svc.endpointProbe = probe
+		svc.endpointProbe = func(ctx context.Context, _ string, endpoint string) endpointProbeResult {
+			return probe(ctx, endpoint)
+		}
 	}
 	svc.hfCatalogSearch = func(_ context.Context, _ hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
 		return []*runtimev1.LocalCatalogModelDescriptor{}, nil
@@ -70,6 +72,81 @@ func containsWarning(values []string, target string) bool {
 		}
 	}
 	return false
+}
+
+func TestDefaultEndpointProbeNimiMediaRejectsEmptyReadyCatalog(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"status": "ok",
+				"ready":  true,
+				"detail": "warming complete",
+			})
+		case "/v1/catalog":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"status": "ok",
+				"ready":  true,
+				"detail": "catalog missing ready models",
+				"models": []map[string]any{},
+			})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	probe := defaultEndpointProbe(context.Background(), "nimi_media", server.URL)
+	if probe.healthy {
+		t.Fatal("expected nimi_media probe to fail when catalog has no ready models")
+	}
+	if !probe.responded {
+		t.Fatal("expected nimi_media probe to record HTTP response")
+	}
+	if !strings.Contains(probe.detail, "catalog") {
+		t.Fatalf("expected catalog detail in probe failure, got %q", probe.detail)
+	}
+}
+
+func TestDefaultEndpointProbeNimiMediaCollectsReadyModels(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"status": "ok",
+				"ready":  true,
+				"detail": "ready",
+			})
+		case "/v1/catalog":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"status": "ok",
+				"ready":  true,
+				"models": []map[string]any{
+					{"id": "flux.1-schnell", "ready": true},
+					{"id": "wan2.1-video", "ready": true},
+					{"id": "broken-model", "ready": false},
+				},
+			})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	probe := defaultEndpointProbe(context.Background(), "nimi_media", server.URL)
+	if !probe.healthy {
+		t.Fatalf("expected nimi_media probe to succeed, got detail=%q", probe.detail)
+	}
+	if !strings.Contains(probe.probeURL, "/v1/catalog") {
+		t.Fatalf("expected canonical catalog probe url, got %q", probe.probeURL)
+	}
+	if got := strings.Join(probe.models, ","); got != "flux.1-schnell,wan2.1-video" {
+		t.Fatalf("unexpected ready model list: %s", got)
+	}
 }
 
 func TestLocalModelLifecycle(t *testing.T) {

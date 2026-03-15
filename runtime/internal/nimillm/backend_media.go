@@ -17,6 +17,13 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
+func (b *Backend) isNimiMediaBackend() bool {
+	if b == nil {
+		return false
+	}
+	return strings.Contains(strings.ToLower(strings.TrimSpace(b.Name)), "nimi_media")
+}
+
 // Embed sends an embeddings request.
 func (b *Backend) Embed(ctx context.Context, modelID string, inputs []string) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
 	type embeddingsRequest struct {
@@ -394,6 +401,10 @@ func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec
 
 // GenerateImage sends an image generation request.
 func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runtimev1.ImageGenerateScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, error) {
+	if b.isNimiMediaBackend() {
+		return b.generateImageNimiMedia(ctx, modelID, spec, scenarioExtensions)
+	}
+
 	type imageRequest struct {
 		Model           string         `json:"model"`
 		Prompt          string         `json:"prompt"`
@@ -462,6 +473,10 @@ func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runti
 
 // GenerateVideo sends a video generation request.
 func (b *Backend) GenerateVideo(ctx context.Context, modelID string, spec *runtimev1.VideoGenerateScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, error) {
+	if b.isNimiMediaBackend() {
+		return b.generateVideoNimiMedia(ctx, modelID, spec, scenarioExtensions)
+	}
+
 	type videoRequest struct {
 		Model                    string           `json:"model"`
 		Prompt                   string           `json:"prompt"`

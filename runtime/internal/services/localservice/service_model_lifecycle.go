@@ -47,7 +47,7 @@ func (s *Service) StartLocalModel(ctx context.Context, req *runtimev1.StartLocal
 
 	endpoint := s.effectiveLocalModelEndpoint(current)
 	bootstrapErr := s.bootstrapEngineIfManaged(ctx, current.GetEngine(), endpoint)
-	probe := s.probeEndpoint(ctx, endpoint)
+	probe := s.probeEndpoint(ctx, current.GetEngine(), endpoint)
 	registration := s.localAIRegistrationForModel(current)
 	if modelProbeSucceeded(current, probe, registration) {
 		if s.shouldWarmLocalModelOnStart(current, endpoint, probe) {
@@ -139,7 +139,7 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 		case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE:
 			endpoint := s.effectiveLocalModelEndpoint(model)
 			bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), endpoint)
-			probe := s.probeEndpoint(ctx, endpoint)
+			probe := s.probeEndpoint(ctx, model.GetEngine(), endpoint)
 			registration := s.localAIRegistrationForModel(model)
 			if modelProbeSucceeded(model, probe, registration) {
 				s.resetModelRecovery(localModelID)
@@ -163,7 +163,7 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 		case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY:
 			endpoint := s.effectiveLocalModelEndpoint(model)
 			bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), endpoint)
-			probe := s.probeEndpoint(ctx, endpoint)
+			probe := s.probeEndpoint(ctx, model.GetEngine(), endpoint)
 			registration := s.localAIRegistrationForModel(model)
 			if modelProbeSucceeded(model, probe, registration) {
 				successes := s.modelRecoverySuccess(localModelID, time.Now().UTC())

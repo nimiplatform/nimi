@@ -204,6 +204,90 @@ func TestBackendGenerateVideoForwardsScenarioExtensions(t *testing.T) {
 	}
 }
 
+func TestBackendGenerateImageUsesNimiMediaCanonicalPath(t *testing.T) {
+	var captured map[string]any
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/media/image/generate" {
+			http.NotFound(w, r)
+			return
+		}
+		captured = decodeJSONBodyForBackendMediaTest(t, r)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"artifact": map[string]any{
+				"mime_type":   "image/png",
+				"data_base64": base64.StdEncoding.EncodeToString([]byte("image-nimi-media")),
+			},
+		})
+	}))
+	defer server.Close()
+
+	backend := NewBackend("local-nimi_media", server.URL, "", time.Second)
+	payload, _, err := backend.GenerateImage(context.Background(), "nimi_media/flux.1-schnell", &runtimev1.ImageGenerateScenarioSpec{
+		Prompt: "make a skyline",
+	}, map[string]any{"scheduler": "ddim"})
+	if err != nil {
+		t.Fatalf("GenerateImage failed: %v", err)
+	}
+	if string(payload) != "image-nimi-media" {
+		t.Fatalf("unexpected payload: %q", string(payload))
+	}
+	spec, ok := captured["spec"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected canonical spec payload, got=%T", captured["spec"])
+	}
+	if got := strings.TrimSpace(ValueAsString(spec["prompt"])); got != "make a skyline" {
+		t.Fatalf("expected prompt in canonical spec, got=%q", got)
+	}
+}
+
+func TestBackendGenerateVideoUsesNimiMediaCanonicalPath(t *testing.T) {
+	var captured map[string]any
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/media/video/generate" {
+			http.NotFound(w, r)
+			return
+		}
+		captured = decodeJSONBodyForBackendMediaTest(t, r)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"artifact": map[string]any{
+				"mime_type":   "video/mp4",
+				"data_base64": base64.StdEncoding.EncodeToString([]byte("video-nimi-media")),
+			},
+		})
+	}))
+	defer server.Close()
+
+	backend := NewBackend("local-nimi_media", server.URL, "", time.Second)
+	payload, _, err := backend.GenerateVideo(context.Background(), "nimi_media/wan2.1-video", &runtimev1.VideoGenerateScenarioSpec{
+		Prompt: "a sunrise over water",
+		Mode:   runtimev1.VideoMode_VIDEO_MODE_T2V,
+		Content: []*runtimev1.VideoContentItem{
+			{
+				Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+				Text: "a sunrise over water",
+			},
+		},
+		Options: &runtimev1.VideoGenerationOptions{},
+	}, map[string]any{"seed_mode": "locked"})
+	if err != nil {
+		t.Fatalf("GenerateVideo failed: %v", err)
+	}
+	if string(payload) != "video-nimi-media" {
+		t.Fatalf("unexpected payload: %q", string(payload))
+	}
+	spec, ok := captured["spec"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected canonical spec payload, got=%T", captured["spec"])
+	}
+	if got := strings.TrimSpace(ValueAsString(spec["prompt"])); got != "a sunrise over water" {
+		t.Fatalf("expected prompt in canonical spec, got=%q", got)
+	}
+}
+
 func TestBackendTranscribeForwardsScenarioExtensions(t *testing.T) {
 	var capturedExtensions map[string]any
 

@@ -15,18 +15,17 @@ const (
 )
 
 var nimiMediaPackages = []string{
-	"torch",
-	"torchvision",
-	"torchaudio",
-	"diffusers",
-	"transformers",
-	"accelerate",
-	"safetensors",
-	"sentencepiece",
-	"protobuf",
-	"pillow",
-	"imageio",
-	"imageio-ffmpeg",
+	"torch==2.7.1",
+	"torchvision==0.22.1",
+	"diffusers==0.37.0",
+	"transformers==5.3.0",
+	"accelerate==1.13.0",
+	"safetensors==0.7.0",
+	"sentencepiece==0.2.1",
+	"protobuf==6.33.5",
+	"pillow==12.1.0",
+	"imageio==2.37.3",
+	"imageio-ffmpeg==0.6.0",
 }
 
 func ensureNimiMedia(ctx context.Context, baseDir string, cfg EngineConfig) (EngineConfig, error) {

@@ -169,7 +169,7 @@ func (s *Service) StartLocalService(ctx context.Context, req *runtimev1.StartLoc
 	}
 
 	bootstrapErr := s.bootstrapEngineIfManaged(ctx, current.GetEngine(), serviceProbeEndpoint(current))
-	probe := s.probeEndpoint(ctx, serviceProbeEndpoint(current))
+	probe := s.probeEndpoint(ctx, current.GetEngine(), serviceProbeEndpoint(current))
 	if probe.healthy {
 		s.resetServiceRecovery(serviceID)
 		latest := s.serviceByID(serviceID)
@@ -259,7 +259,7 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 		switch service.GetStatus() {
 		case runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE:
 			bootstrapErr := s.bootstrapEngineIfManaged(ctx, service.GetEngine(), serviceProbeEndpoint(service))
-			probe := s.probeEndpoint(ctx, serviceProbeEndpoint(service))
+			probe := s.probeEndpoint(ctx, service.GetEngine(), serviceProbeEndpoint(service))
 			if probe.healthy {
 				s.resetServiceRecovery(serviceID)
 				healthRows = append(healthRows, service)
@@ -281,7 +281,7 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 			healthRows = append(healthRows, transitioned)
 		case runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY:
 			bootstrapErr := s.bootstrapEngineIfManaged(ctx, service.GetEngine(), serviceProbeEndpoint(service))
-			probe := s.probeEndpoint(ctx, serviceProbeEndpoint(service))
+			probe := s.probeEndpoint(ctx, service.GetEngine(), serviceProbeEndpoint(service))
 			if probe.healthy {
 				successes := s.serviceRecoverySuccess(serviceID, time.Now().UTC())
 				if successes >= localRecoverySuccessThreshold {
@@ -454,7 +454,7 @@ func (s *Service) ListNodeCatalog(ctx context.Context, req *runtimev1.ListNodeCa
 				reasonCode = runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String()
 				policyGate = "nexa.video.unsupported"
 			}
-			if available && provider == "nexa" && nexaCapabilityRequiresNodeProbe(capability) {
+			if available && (provider == "nexa" || provider == "nimi_media") && capabilityRequiresNodeProbe(provider, capability) {
 				model := models[strings.TrimSpace(service.GetLocalModelId())]
 				probe := endpointProbeResult{}
 				endpoint := serviceProbeEndpoint(service)
@@ -464,17 +464,17 @@ func (s *Service) ListNodeCatalog(ctx context.Context, req *runtimev1.ListNodeCa
 				if cached, ok := probeCache[endpoint]; ok {
 					probe = cached
 				} else {
-					probe = s.probeEndpoint(ctx, endpoint)
+					probe = s.probeEndpoint(ctx, provider, endpoint)
 					probeCache[endpoint] = probe
 				}
-				if model == nil || !nexaModelProbeSucceeded(model, probe) {
+				if model == nil || !providerCapabilityProbeSucceeded(provider, model, probe) {
 					available = false
 					reasonCode = runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String()
-					policyGate = "nexa.capability_probe.missing"
+					policyGate = provider + ".capability_probe.missing"
 					if model == nil {
-						availabilityDetail = "nexa capability probe requires an installed local model"
+						availabilityDetail = provider + " capability probe requires an installed local model"
 					} else {
-						availabilityDetail = nexaModelProbeFailureDetail(model, probe)
+						availabilityDetail = providerCapabilityProbeFailureDetail(provider, model, probe)
 					}
 				}
 			}
@@ -525,6 +525,44 @@ func (s *Service) ListNodeCatalog(ctx context.Context, req *runtimev1.ListNodeCa
 		Nodes:         nodes[start:end],
 		NextPageToken: next,
 	}, nil
+}
+
+func capabilityRequiresNodeProbe(provider string, capability string) bool {
+	switch strings.ToLower(strings.TrimSpace(provider)) {
+	case "nimi_media":
+		switch strings.ToLower(strings.TrimSpace(capability)) {
+		case "image", "image.generate", "video", "video.generate":
+			return true
+		default:
+			return false
+		}
+	case "nexa":
+		return nexaCapabilityRequiresNodeProbe(capability)
+	default:
+		return false
+	}
+}
+
+func providerCapabilityProbeSucceeded(provider string, model *runtimev1.LocalModelRecord, probe endpointProbeResult) bool {
+	switch strings.ToLower(strings.TrimSpace(provider)) {
+	case "nimi_media":
+		return nimiMediaModelProbeSucceeded(model, probe)
+	case "nexa":
+		return nexaModelProbeSucceeded(model, probe)
+	default:
+		return probe.healthy
+	}
+}
+
+func providerCapabilityProbeFailureDetail(provider string, model *runtimev1.LocalModelRecord, probe endpointProbeResult) string {
+	switch strings.ToLower(strings.TrimSpace(provider)) {
+	case "nimi_media":
+		return nimiMediaModelProbeFailureDetail(model, probe)
+	case "nexa":
+		return nexaModelProbeFailureDetail(model, probe)
+	default:
+		return defaultString(probe.detail, "provider capability probe failed")
+	}
 }
 
 func nexaCapabilityRequiresNodeProbe(capability string) bool {

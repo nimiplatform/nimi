@@ -41,19 +41,19 @@ engines:
   - engine: nimi_media
     default_endpoint: "http://127.0.0.1:8321/v1"
     runtime_mode: attached_endpoint
-    protocol: openai_compatible
+    protocol: nimi_runtime_media
     phase1: true
     source_rule: K-LENG-005
   - engine: nimi_media
     runtime_mode: supervised
-    protocol: openai_compatible
+    protocol: nimi_runtime_media
     phase1: true
     source_rule: K-LENG-004
     discovery: uv_managed_python
     supported_platforms:
       - windows/amd64
     health_path: "/readyz"
-    health_response: "\"status\": \"ok\""
+    health_response: "\"ready\": true"
     start_command: "python {engine_root}/nimi_media_server.py --host 127.0.0.1 --port {port}"
     default_port: 8321
     startup_timeout_seconds: 180

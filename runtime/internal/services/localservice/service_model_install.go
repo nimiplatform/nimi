@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -132,14 +131,10 @@ func defaultLocalEngine(raw string, capabilities []string) string {
 	if trimmed := strings.TrimSpace(raw); trimmed != "" {
 		return trimmed
 	}
-	if runtime.GOOS == "windows" {
-		for _, capability := range capabilities {
-			switch strings.ToLower(strings.TrimSpace(capability)) {
-			case "image", "video", "image.generate", "video.generate":
-				return "nimi_media"
-			case "chat", "embedding", "embed", "tts", "speech", "stt", "transcription", "text.generate", "text.embed", "audio.synthesize", "audio.transcribe":
-				return "nexa"
-			}
+	for _, capability := range capabilities {
+		order := localProviderPreferenceOrder(localRuntimeGOOSFromProfile(""), capability)
+		if len(order) > 0 {
+			return order[0]
 		}
 	}
 	return "localai"
@@ -187,7 +182,7 @@ func (s *Service) evaluateInstallPlanAvailability(plan *runtimev1.LocalInstallPl
 				return
 			}
 		}
-		if _, err := buildModelsProbeURL(endpoint); err != nil {
+		if _, err := buildEndpointProbeURL(engine, endpoint); err != nil {
 			plan.InstallAvailable = false
 			plan.ReasonCode = "LOCAL_ENDPOINT_INVALID"
 			return

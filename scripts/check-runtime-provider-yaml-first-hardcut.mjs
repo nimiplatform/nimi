@@ -81,7 +81,7 @@ function main() {
   const sourceReadme = readText(sourceReadmePath);
 
   const listConnectorModelsBody = extractFunctionBody(connectorService, 'ListConnectorModels');
-  if (!listConnectorModelsBody.includes('listCatalogConnectorModels(rec.Provider)')) {
+  if (!/\blistCatalogConnectorModels\(\s*[^,]+,\s*rec\.Provider\s*\)/u.test(listConnectorModelsBody)) {
     fail(`${rel(connectorServicePath)} ListConnectorModels must read from catalog resolver`);
   }
   if (listConnectorModelsBody.includes('ListModels(')) {

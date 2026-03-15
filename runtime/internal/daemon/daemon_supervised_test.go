@@ -234,16 +234,69 @@ func TestStartSupervisedEnginesDoesNotExposeManagedNimiMediaLoopbackOnAttachedOn
 		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
 	}
 
+	startCalls := make([]engine.EngineKind, 0, 1)
 	daemon.startEngineFn = func(_ context.Context, kind engine.EngineKind, _ string, _ int, _ string) error {
-		_ = kind
+		startCalls = append(startCalls, kind)
 		return nil
 	}
 
 	daemon.startSupervisedEngines(context.Background())
+	if daemon.engineMgr == nil {
+		t.Fatal("expected engine manager to initialize when only nimi_media is enabled")
+	}
+	if !slices.Equal(startCalls, []engine.EngineKind{engine.EngineNimiMedia}) {
+		t.Fatalf("expected attached-only host to still bootstrap nimi_media engine, got=%v", startCalls)
+	}
 
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		if managedEndpoint := getUnexportedStringField(t, svc, "nimiMediaManagedEndpoint"); managedEndpoint != "" {
 			t.Fatalf("managed nimi_media endpoint should stay empty on attached-only host, got %q", managedEndpoint)
+		}
+	}
+}
+
+func TestStartSupervisedEnginesExposesManagedNimiMediaLoopbackOnSupportedHost(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	cfg := config.Config{
+		GRPCAddr:               "127.0.0.1:0",
+		HTTPAddr:               "127.0.0.1:0",
+		LocalStatePath:         filepath.Join(t.TempDir(), "local-state.json"),
+		AuditRingBufferSize:    64,
+		UsageStatsBufferSize:   64,
+		EngineNimiMediaEnabled: true,
+		EngineNimiMediaPort:    8321,
+		EngineNimiMediaVersion: "0.1.0",
+	}
+	daemon := New(cfg, logger, "test")
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		t.Cleanup(func() { svc.Close() })
+	}
+
+	originalDetect := detectNimiMediaHostSupport
+	detectNimiMediaHostSupport = func() (engine.NimiMediaHostSupport, string) {
+		return engine.NimiMediaHostSupportSupportedSupervised, "supported"
+	}
+	t.Cleanup(func() {
+		detectNimiMediaHostSupport = originalDetect
+	})
+
+	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
+		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
+	}
+
+	startCalls := make([]engine.EngineKind, 0, 1)
+	daemon.startEngineFn = func(_ context.Context, kind engine.EngineKind, _ string, _ int, _ string) error {
+		startCalls = append(startCalls, kind)
+		return nil
+	}
+
+	daemon.startSupervisedEngines(context.Background())
+	if !slices.Equal(startCalls, []engine.EngineKind{engine.EngineNimiMedia}) {
+		t.Fatalf("expected supported host to bootstrap nimi_media engine, got=%v", startCalls)
+	}
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		if managedEndpoint := getUnexportedStringField(t, svc, "nimiMediaManagedEndpoint"); managedEndpoint != "http://127.0.0.1:8321/v1" {
+			t.Fatalf("expected managed nimi_media endpoint to be exposed on supported host, got %q", managedEndpoint)
 		}
 	}
 }

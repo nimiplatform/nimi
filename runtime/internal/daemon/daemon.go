@@ -482,7 +482,7 @@ func parseEngineCrashDetail(detail string) (attempt int, maxAttempt int, exitCod
 }
 
 func (d *Daemon) startSupervisedEngines(ctx context.Context) {
-	if !d.cfg.EngineLocalAIEnabled && !d.cfg.EngineNexaEnabled {
+	if !d.cfg.EngineLocalAIEnabled && !d.cfg.EngineNexaEnabled && !d.cfg.EngineNimiMediaEnabled {
 		return
 	}
 

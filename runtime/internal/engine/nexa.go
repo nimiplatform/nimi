@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-const managedNexaPackageSpec = "nexaai"
+const managedNexaPackageSpec = "nexaai==1.0.44"
 
 // nexaLookPath finds the Nexa binary in the system PATH.
 func nexaLookPath() (string, error) {

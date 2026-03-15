@@ -27,7 +27,7 @@ const (
 	localHealthProbeMaxResponseBodySize = 1 << 20
 )
 
-type endpointProbeFunc func(ctx context.Context, endpoint string) endpointProbeResult
+type endpointProbeFunc func(ctx context.Context, engine string, endpoint string) endpointProbeResult
 
 type endpointProbeResult struct {
 	healthy   bool
@@ -44,8 +44,17 @@ type probeRecoveryState struct {
 	lastProbeAt        time.Time
 }
 
-func defaultEndpointProbe(ctx context.Context, endpoint string) endpointProbeResult {
-	probeURL, err := buildModelsProbeURL(endpoint)
+func defaultEndpointProbe(ctx context.Context, engine string, endpoint string) endpointProbeResult {
+	switch strings.ToLower(strings.TrimSpace(engine)) {
+	case "nimi_media":
+		return probeNimiMediaEndpoint(ctx, endpoint)
+	default:
+		return probeOpenAICompatibleEndpoint(ctx, endpoint)
+	}
+}
+
+func probeOpenAICompatibleEndpoint(ctx context.Context, endpoint string) endpointProbeResult {
+	probeURL, err := buildOpenAIModelsProbeURL(endpoint)
 	if err != nil {
 		return endpointProbeResult{
 			healthy:  false,
@@ -124,7 +133,164 @@ func defaultEndpointProbe(ctx context.Context, endpoint string) endpointProbeRes
 	}
 }
 
-func buildModelsProbeURL(endpoint string) (string, error) {
+func probeNimiMediaEndpoint(ctx context.Context, endpoint string) endpointProbeResult {
+	healthURL, err := buildNimiMediaHealthProbeURL(endpoint)
+	if err != nil {
+		return endpointProbeResult{
+			healthy:  false,
+			detail:   "probe endpoint invalid: " + err.Error(),
+			probeURL: strings.TrimSpace(endpoint),
+		}
+	}
+	catalogURL, err := buildNimiMediaCatalogProbeURL(endpoint)
+	if err != nil {
+		return endpointProbeResult{
+			healthy:  false,
+			detail:   "probe endpoint invalid: " + err.Error(),
+			probeURL: strings.TrimSpace(endpoint),
+		}
+	}
+
+	probeCtx, cancel := context.WithTimeout(ctx, localHealthProbeTimeout)
+	defer cancel()
+
+	healthReq, err := http.NewRequestWithContext(probeCtx, http.MethodGet, healthURL, nil)
+	if err != nil {
+		return endpointProbeResult{
+			healthy:  false,
+			detail:   "probe request build failed: " + err.Error(),
+			probeURL: healthURL,
+		}
+	}
+	healthResp, err := (&http.Client{Timeout: localHealthProbeTimeout}).Do(healthReq)
+	if err != nil {
+		return endpointProbeResult{
+			healthy:  false,
+			detail:   "probe request failed: " + err.Error(),
+			probeURL: healthURL,
+		}
+	}
+	defer healthResp.Body.Close()
+
+	healthBody, _ := io.ReadAll(io.LimitReader(healthResp.Body, localHealthProbeMaxResponseBodySize))
+	if healthResp.StatusCode != http.StatusOK {
+		return endpointProbeResult{
+			healthy:   false,
+			responded: true,
+			detail:    nimiMediaProbeDetailFromBody(healthBody, fmt.Sprintf("probe status not ok: %d", healthResp.StatusCode)),
+			probeURL:  healthURL,
+		}
+	}
+
+	healthPayload := struct {
+		Status string `json:"status"`
+		Ready  bool   `json:"ready"`
+		Detail string `json:"detail"`
+	}{}
+	if err := json.Unmarshal(healthBody, &healthPayload); err != nil {
+		return endpointProbeResult{
+			healthy:   false,
+			responded: true,
+			detail:    "probe response parse failed: " + err.Error(),
+			probeURL:  healthURL,
+		}
+	}
+	if strings.ToLower(strings.TrimSpace(healthPayload.Status)) != "ok" || !healthPayload.Ready {
+		return endpointProbeResult{
+			healthy:   false,
+			responded: true,
+			detail:    defaultString(strings.TrimSpace(healthPayload.Detail), "nimi_media not ready"),
+			probeURL:  healthURL,
+		}
+	}
+
+	catalogReq, err := http.NewRequestWithContext(probeCtx, http.MethodGet, catalogURL, nil)
+	if err != nil {
+		return endpointProbeResult{
+			healthy:  false,
+			detail:   "catalog request build failed: " + err.Error(),
+			probeURL: catalogURL,
+		}
+	}
+	catalogResp, err := (&http.Client{Timeout: localHealthProbeTimeout}).Do(catalogReq)
+	if err != nil {
+		return endpointProbeResult{
+			healthy:  false,
+			detail:   "catalog request failed: " + err.Error(),
+			probeURL: catalogURL,
+		}
+	}
+	defer catalogResp.Body.Close()
+
+	catalogBody, _ := io.ReadAll(io.LimitReader(catalogResp.Body, localHealthProbeMaxResponseBodySize))
+	if catalogResp.StatusCode != http.StatusOK {
+		return endpointProbeResult{
+			healthy:   false,
+			responded: true,
+			detail:    nimiMediaProbeDetailFromBody(catalogBody, fmt.Sprintf("catalog status not ok: %d", catalogResp.StatusCode)),
+			probeURL:  catalogURL,
+		}
+	}
+
+	catalogPayload := struct {
+		Models []struct {
+			ID    string `json:"id"`
+			Ready bool   `json:"ready"`
+		} `json:"models"`
+		Detail string `json:"detail"`
+	}{}
+	if err := json.Unmarshal(catalogBody, &catalogPayload); err != nil {
+		return endpointProbeResult{
+			healthy:   false,
+			responded: true,
+			detail:    "catalog parse failed: " + err.Error(),
+			probeURL:  catalogURL,
+		}
+	}
+	modelIDs := make([]string, 0, len(catalogPayload.Models))
+	for _, item := range catalogPayload.Models {
+		if strings.TrimSpace(item.ID) == "" || !item.Ready {
+			continue
+		}
+		modelIDs = append(modelIDs, strings.TrimSpace(item.ID))
+	}
+	if len(modelIDs) == 0 {
+		return endpointProbeResult{
+			healthy:   false,
+			responded: true,
+			detail:    defaultString(strings.TrimSpace(catalogPayload.Detail), "catalog missing ready models"),
+			probeURL:  catalogURL,
+		}
+	}
+	return endpointProbeResult{
+		healthy:   true,
+		responded: true,
+		detail:    "probe succeeded",
+		probeURL:  catalogURL,
+		models:    modelIDs,
+	}
+}
+
+func nimiMediaProbeDetailFromBody(body []byte, fallback string) string {
+	payload := struct {
+		Detail string `json:"detail"`
+		Error  struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}{}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return fallback
+	}
+	if detail := strings.TrimSpace(payload.Detail); detail != "" {
+		return detail
+	}
+	if detail := strings.TrimSpace(payload.Error.Message); detail != "" {
+		return detail
+	}
+	return fallback
+}
+
+func buildOpenAIModelsProbeURL(endpoint string) (string, error) {
 	raw := strings.TrimSpace(endpoint)
 	if raw == "" {
 		return "", fmt.Errorf("endpoint required")
@@ -161,14 +327,80 @@ func buildModelsProbeURL(endpoint string) (string, error) {
 	return parsed.String(), nil
 }
 
-func (s *Service) probeEndpoint(ctx context.Context, endpoint string) endpointProbeResult {
+func buildNimiMediaHealthProbeURL(endpoint string) (string, error) {
+	parsed, rootPath, err := parseCanonicalProbeBaseURL(endpoint)
+	if err != nil {
+		return "", err
+	}
+	parsed.Path = path.Join(rootPath, "healthz")
+	return parsed.String(), nil
+}
+
+func buildNimiMediaCatalogProbeURL(endpoint string) (string, error) {
+	parsed, rootPath, err := parseCanonicalProbeBaseURL(endpoint)
+	if err != nil {
+		return "", err
+	}
+	parsed.Path = path.Join(rootPath, "v1", "catalog")
+	return parsed.String(), nil
+}
+
+func parseCanonicalProbeBaseURL(endpoint string) (*url.URL, string, error) {
+	raw := strings.TrimSpace(endpoint)
+	if raw == "" {
+		return nil, "", fmt.Errorf("endpoint required")
+	}
+	if !strings.Contains(raw, "://") {
+		raw = "http://" + raw
+	}
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return nil, "", err
+	}
+	if strings.TrimSpace(parsed.Scheme) == "" || strings.TrimSpace(parsed.Host) == "" {
+		return nil, "", fmt.Errorf("endpoint must include scheme and host")
+	}
+
+	cleanPath := strings.TrimSpace(parsed.Path)
+	if cleanPath == "" {
+		cleanPath = "/"
+	}
+	cleanPath = path.Clean("/" + strings.TrimPrefix(cleanPath, "/"))
+	switch {
+	case cleanPath == "." || cleanPath == "/":
+		cleanPath = "/"
+	case strings.HasSuffix(cleanPath, "/v1/catalog"):
+		cleanPath = strings.TrimSuffix(cleanPath, "/v1/catalog")
+	case strings.HasSuffix(cleanPath, "/v1/models"):
+		cleanPath = strings.TrimSuffix(cleanPath, "/v1/models")
+	case strings.HasSuffix(cleanPath, "/v1"):
+		cleanPath = strings.TrimSuffix(cleanPath, "/v1")
+	}
+	if cleanPath == "" {
+		cleanPath = "/"
+	}
+	parsed.RawQuery = ""
+	parsed.Fragment = ""
+	return parsed, cleanPath, nil
+}
+
+func buildEndpointProbeURL(engine string, endpoint string) (string, error) {
+	switch strings.ToLower(strings.TrimSpace(engine)) {
+	case "nimi_media":
+		return buildNimiMediaCatalogProbeURL(endpoint)
+	default:
+		return buildOpenAIModelsProbeURL(endpoint)
+	}
+}
+
+func (s *Service) probeEndpoint(ctx context.Context, engine string, endpoint string) endpointProbeResult {
 	s.mu.RLock()
 	probeFn := s.endpointProbe
 	s.mu.RUnlock()
 	if probeFn == nil {
 		probeFn = defaultEndpointProbe
 	}
-	return probeFn(ctx, endpoint)
+	return probeFn(ctx, engine, endpoint)
 }
 
 func startupCompatibilityWarnings(engine string, profile *runtimev1.LocalDeviceProfile) []string {

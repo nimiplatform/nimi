@@ -79,19 +79,26 @@ func adapterForProviderCapability(provider string, capability string) string {
 }
 
 func apiPathForProviderCapability(provider string, capability string) string {
+	normalizedProvider := strings.ToLower(strings.TrimSpace(provider))
 	cap := strings.ToLower(strings.TrimSpace(capability))
 	switch cap {
 	case "embedding", "embed":
 		return "/v1/embeddings"
 	case "image":
+		if normalizedProvider == "nimi_media" {
+			return "/v1/media/image/generate"
+		}
 		return "/v1/images/generations"
 	case "music", "music.generate":
-		if strings.EqualFold(strings.TrimSpace(provider), "localai") {
+		if normalizedProvider == "localai" {
 			return "/v1/audio/speech"
 		}
 		return "/v1/music/generate"
 	case "video":
-		if strings.EqualFold(strings.TrimSpace(provider), "nexa") || strings.EqualFold(strings.TrimSpace(provider), "nimi_media") {
+		if normalizedProvider == "nimi_media" {
+			return "/v1/media/video/generate"
+		}
+		if normalizedProvider == "nexa" {
 			return "/v1/video/generations"
 		}
 		return "/v1/videos/generations"
@@ -127,6 +134,10 @@ func buildNodeProviderHints(
 			"availability": fmt.Sprintf("%t", available),
 		},
 	}
+	hints.Extra["local_default_rank"] = fmt.Sprintf(
+		"%d",
+		localProviderPreferenceRank(localRuntimeGOOSFromProfile(deviceProfile.GetOs()), normalizedCapability, normalizedProvider),
+	)
 	if supportClass, supportDetail := classifyManagedEngineSupport(service.GetEngine(), deviceProfile); supportClass != "" {
 		hints.Extra["runtime_support_class"] = supportClass
 		if strings.TrimSpace(supportDetail) != "" {

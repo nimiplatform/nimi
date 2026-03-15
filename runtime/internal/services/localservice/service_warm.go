@@ -184,7 +184,7 @@ func (s *Service) waitForWarmProbe(
 	registration localAIRegistration,
 	endpoint string,
 ) endpointProbeResult {
-	probe := s.probeEndpoint(ctx, endpoint)
+	probe := s.probeEndpoint(ctx, model.GetEngine(), endpoint)
 	if modelProbeSucceeded(model, probe, registration) || probe.healthy || !shouldRetryWarmProbe(model.GetEngine(), endpoint) {
 		return probe
 	}
@@ -199,7 +199,7 @@ func (s *Service) waitForWarmProbe(
 		case <-timer.C:
 		}
 
-		probe = s.probeEndpoint(ctx, endpoint)
+		probe = s.probeEndpoint(ctx, model.GetEngine(), endpoint)
 		if modelProbeSucceeded(model, probe, registration) || probe.healthy {
 			return probe
 		}
