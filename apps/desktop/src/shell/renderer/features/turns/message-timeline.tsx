@@ -223,10 +223,11 @@ export function MessageTimeline() {
         data-active-chat-id=""
         className="flex h-full items-center justify-center bg-white"
       >
-        <img 
-          src={nimiLogo} 
-          alt="Nimi" 
-          className="w-64 h-64 object-contain"
+        <img
+          src={nimiLogo}
+          alt="Nimi"
+          className="w-64 h-64 object-contain select-none pointer-events-none"
+          draggable={false}
         />
       </section>
     );
@@ -525,7 +526,11 @@ export function MessageTimeline() {
         </div>
 
         <div className="shrink-0" style={{ height: `${composerHeight}px` }}>
-          <TurnInput className="h-full" showTopBorder={false} />
+          <TurnInput
+            className="h-full"
+            showTopBorder={false}
+            onOpenGift={otherUserId ? () => setGiftModalOpen(true) : undefined}
+          />
         </div>
       </div>
 
@@ -549,11 +554,11 @@ export function MessageTimeline() {
       ) : null}
 
       <SendGiftModal
-        open={giftModalOpen && profilePanelTarget === 'other' && Boolean(profileSummary.id)}
-        receiverId={profileSummary.id}
-        receiverName={profileSummary.displayName}
-        receiverHandle={profileSummary.handle}
-        receiverAvatarUrl={profileSummary.avatarUrl}
+        open={giftModalOpen && Boolean(otherUserId)}
+        receiverId={otherUserId}
+        receiverName={contactName}
+        receiverHandle={String(otherUser?.handle || '')}
+        receiverAvatarUrl={contactAvatarUrl}
         onClose={() => setGiftModalOpen(false)}
       />
     </section>

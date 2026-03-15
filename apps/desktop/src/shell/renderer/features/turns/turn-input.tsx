@@ -62,6 +62,7 @@ const EMOJI_CATEGORIES = [
 type TurnInputProps = {
   className?: string;
   showTopBorder?: boolean;
+  onOpenGift?: () => void;
 };
 
 type TooltipProps = {
@@ -101,6 +102,7 @@ function Tooltip({ children, content, placement = 'top' }: TooltipProps) {
 }
 
 export function TurnInput(props: TurnInputProps = {}) {
+  const { onOpenGift } = props;
   const { t } = useTranslation();
   const flags = getShellFeatureFlags();
   const selectedChatId = useAppStore((state) => state.selectedChatId);
@@ -622,6 +624,27 @@ export function TurnInput(props: TurnInputProps = {}) {
                 )}
               </button>
             </Tooltip>
+
+            {/* Send gift button */}
+            {onOpenGift ? (
+              <Tooltip content={t('GiftSend.sendGift')}>
+                <button
+                  type="button"
+                  onClick={onOpenGift}
+                  disabled={!selectedChatId || offlineTier === 'L2'}
+                  className="flex h-8 w-8 items-center justify-center rounded-full transition-colors text-gray-500 hover:bg-gray-200/50 hover:text-gray-700 disabled:opacity-40"
+                  aria-label={t('GiftSend.sendGift')}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="8" width="18" height="4" rx="1" />
+                    <path d="M12 8v13" />
+                    <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
+                    <path d="M7.5 8a2.5 2.5 0 1 1 0-5c2 0 4.5 2.2 4.5 5" />
+                    <path d="M16.5 8a2.5 2.5 0 1 0 0-5c-2 0-4.5 2.2-4.5 5" />
+                  </svg>
+                </button>
+              </Tooltip>
+            ) : null}
 
             {/* Hidden file input */}
             <input
