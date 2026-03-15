@@ -8,9 +8,9 @@
  * include a `@experimental` JSDoc tag with `@since <version>`.
  *
  * This script:
- * 1. Scans sdk packages src dirs for files under experimental paths
+ * 1. Scans the unified sdk src dir for files under experimental paths
  * 2. Checks for @since annotations with version info
- * 3. Compares against current package version to detect overdue promotions
+ * 3. Compares against the current sdk package version to detect overdue promotions
  */
 
 import { promises as fs } from 'node:fs';
@@ -20,7 +20,9 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
-const SDK_ROOT = path.join(repoRoot, 'sdk', 'packages');
+const SDK_ROOT = path.join(repoRoot, 'sdk');
+const SDK_SRC_ROOT = path.join(SDK_ROOT, 'src');
+const SDK_PACKAGE_JSON = path.join(SDK_ROOT, 'package.json');
 const MAX_MINOR_VERSIONS = 2;
 
 async function collectFiles(dir, pattern) {
@@ -52,16 +54,11 @@ async function main() {
   const experimentalFiles = [];
 
   // Find all experimental paths
-  const packages = await fs.readdir(SDK_ROOT, { withFileTypes: true });
-  for (const pkg of packages) {
-    if (!pkg.isDirectory()) continue;
-    const srcDir = path.join(SDK_ROOT, pkg.name, 'src');
-    const files = await collectFiles(srcDir, /\.tsx?$/);
-    for (const file of files) {
-      const relative = path.relative(repoRoot, file);
-      if (relative.includes('/experimental/') || relative.includes('\\experimental\\')) {
-        experimentalFiles.push({ file, relative, package: pkg.name });
-      }
+  const files = await collectFiles(SDK_SRC_ROOT, /\.tsx?$/);
+  for (const file of files) {
+    const relative = path.relative(repoRoot, file);
+    if (relative.includes('/experimental/') || relative.includes('\\experimental\\')) {
+      experimentalFiles.push({ file, relative });
     }
   }
 
@@ -71,7 +68,15 @@ async function main() {
   }
 
   // For each experimental file, check @since annotation
-  for (const { file, relative, package: pkgName } of experimentalFiles) {
+  let currentVersion;
+  try {
+    const raw = await fs.readFile(SDK_PACKAGE_JSON, 'utf8');
+    currentVersion = JSON.parse(raw).version;
+  } catch {
+    violations.push('cannot read package version from sdk/package.json');
+  }
+
+  for (const { file, relative } of experimentalFiles) {
     const content = await fs.readFile(file, 'utf8');
     const sinceMatch = content.match(/@since\s+(\d+\.\d+\.\d+)/);
 
@@ -81,13 +86,7 @@ async function main() {
     }
 
     // Read current package version
-    const pkgJsonPath = path.join(SDK_ROOT, pkgName, 'package.json');
-    let currentVersion;
-    try {
-      const raw = await fs.readFile(pkgJsonPath, 'utf8');
-      currentVersion = JSON.parse(raw).version;
-    } catch {
-      violations.push(`${relative}: cannot read package version from ${pkgName}/package.json`);
+    if (!currentVersion) {
       continue;
     }
 

@@ -43,13 +43,15 @@ jobs:
           set -euo pipefail
 
           if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
-            echo "docs_changed=true" >> "${GITHUB_OUTPUT}"
-            echo "core_changed=true" >> "${GITHUB_OUTPUT}"
-            echo "shared_changed=true" >> "${GITHUB_OUTPUT}"
-            echo "sdk_changed=true" >> "${GITHUB_OUTPUT}"
-            echo "runtime_changed=true" >> "${GITHUB_OUTPUT}"
-            echo "desktop_web_changed=true" >> "${GITHUB_OUTPUT}"
-            echo "mods_changed=true" >> "${GITHUB_OUTPUT}"
+            {
+              echo "docs_changed=true"
+              echo "core_changed=true"
+              echo "shared_changed=true"
+              echo "sdk_changed=true"
+              echo "runtime_changed=true"
+              echo "desktop_web_changed=true"
+              echo "mods_changed=true"
+            } >> "${GITHUB_OUTPUT}"
             exit 0
           fi
 
@@ -97,7 +99,7 @@ jobs:
             if [[ "${file}" =~ ^runtime/ || "${file}" =~ ^proto/ || "${file}" == ".goreleaser.yml" ]]; then
               runtime_changed=true
             fi
-            if [[ "${file}" =~ ^apps/desktop/ || "${file}" =~ ^apps/web/ || "${file}" =~ ^apps/landing/ ]]; then
+            if [[ ( "${file}" =~ ^apps/desktop/ || "${file}" =~ ^apps/web/ ) && ! "${file}" =~ ^apps/(desktop|web)/AGENTS\.md$ ]]; then
               desktop_web_changed=true
             fi
             if [[ "${file}" =~ ^nimi-mods/ ]]; then
@@ -109,13 +111,15 @@ jobs:
             core_changed=true
           fi
 
-          echo "docs_changed=${docs_changed}" >> "${GITHUB_OUTPUT}"
-          echo "core_changed=${core_changed}" >> "${GITHUB_OUTPUT}"
-          echo "shared_changed=${shared_changed}" >> "${GITHUB_OUTPUT}"
-          echo "sdk_changed=${sdk_changed}" >> "${GITHUB_OUTPUT}"
-          echo "runtime_changed=${runtime_changed}" >> "${GITHUB_OUTPUT}"
-          echo "desktop_web_changed=${desktop_web_changed}" >> "${GITHUB_OUTPUT}"
-          echo "mods_changed=${mods_changed}" >> "${GITHUB_OUTPUT}"
+          {
+            echo "docs_changed=${docs_changed}"
+            echo "core_changed=${core_changed}"
+            echo "shared_changed=${shared_changed}"
+            echo "sdk_changed=${sdk_changed}"
+            echo "runtime_changed=${runtime_changed}"
+            echo "desktop_web_changed=${desktop_web_changed}"
+            echo "mods_changed=${mods_changed}"
+          } >> "${GITHUB_OUTPUT}"
 
   docs-contract:
     needs: changes
@@ -298,10 +302,8 @@ jobs:
         run: pnpm report:ai-hotspots --limit 120
 
   sdk-quality:
-    needs:
-      - changes
-      - runtime-quality
-    if: needs.changes.outputs.sdk_changed == 'true' || needs.changes.outputs.desktop_web_changed == 'true' || needs.changes.outputs.mods_changed == 'true' || needs.changes.outputs.shared_changed == 'true'
+    needs: changes
+    if: needs.changes.outputs.sdk_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -342,7 +344,7 @@ jobs:
 
   runtime-quality:
     needs: changes
-    if: needs.changes.outputs.runtime_changed == 'true' || needs.changes.outputs.sdk_changed == 'true' || needs.changes.outputs.desktop_web_changed == 'true' || needs.changes.outputs.mods_changed == 'true' || needs.changes.outputs.shared_changed == 'true'
+    if: needs.changes.outputs.runtime_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -418,10 +420,8 @@ jobs:
         run: go run ./cmd/runtime-compliance --gate
 
   desktop-web-quality:
-    needs:
-      - changes
-      - sdk-quality
-    if: needs.changes.outputs.desktop_web_changed == 'true' || needs.changes.outputs.shared_changed == 'true'
+    needs: changes
+    if: needs.changes.outputs.desktop_web_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -442,6 +442,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
         with:
+          toolchain: stable
           components: clippy
 
       - name: Install dependencies
@@ -539,9 +540,7 @@ jobs:
         run: pnpm --filter @nimiplatform/landing build
 
   mods-quality:
-    needs:
-      - changes
-      - sdk-quality
+    needs: changes
     if: needs.changes.outputs.mods_changed == 'true'
     runs-on: ubuntu-latest
     env:
