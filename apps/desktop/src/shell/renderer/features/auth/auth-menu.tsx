@@ -478,7 +478,7 @@ export function AuthMenu({
               </div>
             </div>
 
-            <div className="absolute bottom-3 left-0 right-0 text-center text-[12px] font-normal" style={{ color: '#999999' }}>{t('Auth.poweredByNimi')}</div>
+            <div className="absolute bottom-2 left-0 right-0 text-center text-[12px] font-normal" style={{ color: '#999999' }}>{t('Auth.poweredByNimi')}</div>
           </div>
         </div>
       ) : null}

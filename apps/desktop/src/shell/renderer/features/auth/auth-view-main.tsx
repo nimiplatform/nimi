@@ -63,7 +63,7 @@ export function AuthViewMain(props: {
           onClick={() => {
             void onGoogleLogin();
           }}
-          disabled={pending}
+          disabled
         >
           <svg viewBox="0 0 24 24" className="mx-auto h-5 w-5">
             <path
