@@ -1379,6 +1379,24 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false
   },
+  "EconomyCurrencyGiftsService.economyControllerGetGiftTransaction": {
+    "operationId": "EconomyController_getGiftTransaction",
+    "method": "GET",
+    "path": "/api/economy/gifts/{id}",
+    "service": "EconomyCurrencyGiftsService",
+    "methodName": "economyControllerGetGiftTransaction",
+    "tag": "Economy (Currency & Gifts)",
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false
+  },
   "EconomyCurrencyGiftsService.economyControllerGetReceivedGifts": {
     "operationId": "EconomyController_getReceivedGifts",
     "method": "GET",
@@ -5388,6 +5406,7 @@ export const REALM_SERVICE_METHODS = {
     "economyControllerGetConnectStatus": "EconomyCurrencyGiftsService.economyControllerGetConnectStatus",
     "economyControllerGetGemHistory": "EconomyCurrencyGiftsService.economyControllerGetGemHistory",
     "economyControllerGetGiftCatalog": "EconomyCurrencyGiftsService.economyControllerGetGiftCatalog",
+    "economyControllerGetGiftTransaction": "EconomyCurrencyGiftsService.economyControllerGetGiftTransaction",
     "economyControllerGetReceivedGifts": "EconomyCurrencyGiftsService.economyControllerGetReceivedGifts",
     "economyControllerGetRevenueShareConfig": "EconomyCurrencyGiftsService.economyControllerGetRevenueShareConfig",
     "economyControllerGetSentGifts": "EconomyCurrencyGiftsService.economyControllerGetSentGifts",

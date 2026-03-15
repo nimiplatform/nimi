@@ -100,6 +100,7 @@ import {
   createWithdrawal,
   loadGemTransactionHistory,
   loadGiftCatalog,
+  loadGiftTransaction,
   loadSparkPackages,
   loadCurrencyBalances,
   loadNotificationUnreadCount,
@@ -116,12 +117,14 @@ import {
 import type { MarkNotificationsReadInputDto } from '@nimiplatform/sdk/realm';
 import type { RejectGiftDto } from '@nimiplatform/sdk/realm';
 import type { SendGiftDto } from '@nimiplatform/sdk/realm';
+import type { FinalizeMediaAssetDto } from '@nimiplatform/sdk/realm';
 import {
   createReport,
   createImageDirectUpload,
   createPost,
   createVideoDirectUpload,
   deletePost,
+  finalizeMediaAsset,
   likePost,
   loadPostFeed,
   unlikePost,
@@ -353,6 +356,8 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       createImageDirectUpload(input.callApiTask, input.emitFacadeError),
     createVideoDirectUpload: async () =>
       createVideoDirectUpload(input.callApiTask, input.emitFacadeError),
+    finalizeMediaAsset: async (assetId: string, body: FinalizeMediaAssetDto) =>
+      finalizeMediaAsset(input.callApiTask, input.emitFacadeError, assetId, body),
     deletePost: async (postId: string) =>
       deletePost(input.callApiTask, input.emitFacadeError, postId),
     updatePostVisibility: async (
@@ -386,6 +391,8 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       createWithdrawal(input.callApiTask, input.emitFacadeError, payload),
     loadGiftCatalog: async () =>
       loadGiftCatalog(input.callApiTask, input.emitFacadeError),
+    loadGiftTransaction: async (id: string) =>
+      loadGiftTransaction(input.callApiTask, input.emitFacadeError, id),
     sendGift: async (payload: SendGiftDto) =>
       sendGift(input.callApiTask, input.emitFacadeError, payload),
     claimGift: async (giftTransactionId: string) =>

@@ -1339,6 +1339,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/economy/gifts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a gift transaction by ID */
+        get: operations["EconomyController_getGiftTransaction"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/economy/gifts/{id}/claim": {
         parameters: {
             query?: never;

@@ -9,6 +9,7 @@ import nimiLogo from '@renderer/assets/logo-gray.png';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal.js';
+import { GiftMessageBubble, type GiftMessagePayload } from '@renderer/features/economy/gift-message-bubble.js';
 import { toProfileData } from '@renderer/features/profile/profile-model';
 import { ChatProfileCard } from './message-timeline-profile-card.js';
 import { TurnInput } from './turn-input';
@@ -292,10 +293,11 @@ export function MessageTimeline() {
               const messageProfileTarget: Exclude<ProfilePanelTarget, null> = isMe ? 'self' : 'other';
               const showTimestamp = shouldShowTimestamp(message, index > 0 ? (messages[index - 1] ?? null) : null);
               const timestampLabel = showTimestamp ? formatDateSeparator(message.createdAt) : '';
+              const isGiftMessage = String(message.type || '').toUpperCase() === 'GIFT';
               const isImageMessage = String(message.type || '').toUpperCase() === 'IMAGE';
               const isVideoMessage = String(message.type || '').toUpperCase() === 'VIDEO';
               const isMediaMessage = isImageMessage || isVideoMessage;
-              const avatarMarginTopClass = isMediaMessage ? 'mt-0' : 'mt-1';
+              const avatarMarginTopClass = isMediaMessage || isGiftMessage ? 'mt-0' : 'mt-1';
               const imageUrl = isImageMessage ? resolveImageMessageUrl(message, realmBaseUrl) : '';
               const videoUrl = isVideoMessage ? resolveVideoMessageUrl(message, realmBaseUrl) : '';
               const mediaPreviewUrl = message.localPreviewUrl || imageUrl || videoUrl;
@@ -339,12 +341,12 @@ export function MessageTimeline() {
                   {/* Bubble */}
                   <div className={`max-w-[75%] ${isMe ? 'text-right' : ''}`}>
                     <div className={`inline-block rounded-[18px] text-[15px] leading-snug ${
-                      isMediaMessage
+                      isMediaMessage || isGiftMessage
                         ? 'bg-transparent text-gray-900'
                         : isMe
                         ? 'bg-[#0066CC] text-white'
                         : 'bg-[#F2F2F7] text-gray-900'
-                    } ${isMediaMessage ? 'p-0 overflow-hidden' : 'px-4 py-2.5'}`}>
+                    } ${isMediaMessage || isGiftMessage ? 'p-0 overflow-hidden' : 'px-4 py-2.5'}`}>
                       {diagnostics.interactionKind && (
                         <div className={`mb-1 inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold ${
                           isMe
@@ -354,7 +356,13 @@ export function MessageTimeline() {
                           interaction: {diagnostics.interactionKind}
                         </div>
                       )}
-                      {isImageMessage ? (
+                      {isGiftMessage ? (
+                        <GiftMessageBubble
+                          payload={message.payload as unknown as GiftMessagePayload}
+                          isMe={isMe}
+                          currentUserId={currentUserId}
+                        />
+                      ) : isImageMessage ? (
                         mediaPreviewUrl ? (
                           <div className="relative">
                             <ChatMessageImage

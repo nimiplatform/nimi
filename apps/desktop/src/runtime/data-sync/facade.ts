@@ -5,6 +5,8 @@ import type {
   ChatSyncResultDto,
   CreatePostDto,
   CreateReportDto,
+  FinalizeMediaAssetDto,
+  MediaAssetDetailDto,
   CreateReviewDto,
   CreateSparkCheckoutDto,
   CreateWithdrawalDto,
@@ -318,6 +320,7 @@ export class DataSync {
   createPost(payload: CreatePostDto) { return this.actions.createPost(payload); }
   createImageDirectUpload() { return this.actions.createImageDirectUpload(); }
   createVideoDirectUpload() { return this.actions.createVideoDirectUpload(); }
+  finalizeMediaAsset(assetId: string, body: FinalizeMediaAssetDto): Promise<MediaAssetDetailDto> { return this.actions.finalizeMediaAsset(assetId, body); }
   deletePost(postId: string) { return this.actions.deletePost(postId); }
   updatePostVisibility(postId: string, visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE') {
     return this.actions.updatePostVisibility(postId, visibility);
@@ -341,6 +344,7 @@ export class DataSync {
   }
   createWithdrawal(payload: CreateWithdrawalDto) { return this.actions.createWithdrawal(payload); }
   loadGiftCatalog() { return this.actions.loadGiftCatalog(); }
+  loadGiftTransaction(id: string) { return this.actions.loadGiftTransaction(id); }
   sendGift(payload: SendGiftDto) { return this.actions.sendGift(payload); }
   claimGift(giftTransactionId: string) { return this.actions.claimGift(giftTransactionId); }
   rejectGift(giftTransactionId: string, payload: RejectGiftDto) {

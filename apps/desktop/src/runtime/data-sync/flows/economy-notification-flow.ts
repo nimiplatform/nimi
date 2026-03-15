@@ -262,6 +262,26 @@ export async function rejectGift(
   }
 }
 
+export async function loadGiftTransaction(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  id: string,
+) {
+  const normalizedId = String(id || '').trim();
+  if (!normalizedId) {
+    throw new Error('礼物交易 ID 不能为空');
+  }
+  try {
+    return await callApi(
+      (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerGetGiftTransaction(normalizedId),
+      '加载礼物详情失败',
+    );
+  } catch (error) {
+    emitDataSyncError('load-gift-transaction', error, { id: normalizedId });
+    throw error;
+  }
+}
+
 export async function createGiftReview(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
