@@ -203,7 +203,6 @@ export async function initI18n(): Promise<void> {
       lng: initialLocale,
       fallbackLng: 'en',
       interpolation: { escapeValue: false },
-      logBanner: false,
       resources: {
         [initialLocale]: { translation: messages },
       },
