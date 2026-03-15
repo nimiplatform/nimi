@@ -44,6 +44,8 @@ export type { ChatEventEnvelopeDto } from './generated/models/ChatEventEnvelopeD
 export type { ChatSyncResultDto } from './generated/models/ChatSyncResultDto';
 export type { ChatSyncSnapshotDto } from './generated/models/ChatSyncSnapshotDto';
 export type { ChatViewDto } from './generated/models/ChatViewDto';
+export type { CheckEmailDto } from './generated/models/CheckEmailDto';
+export type { CheckEmailResponseDto } from './generated/models/CheckEmailResponseDto';
 export type { CollapseGapDto } from './generated/models/CollapseGapDto';
 export type { ConnectDashboardLinkDto } from './generated/models/ConnectDashboardLinkDto';
 export type { ConnectOnboardingResponseDto } from './generated/models/ConnectOnboardingResponseDto';

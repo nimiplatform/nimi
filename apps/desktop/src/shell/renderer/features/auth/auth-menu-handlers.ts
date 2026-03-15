@@ -23,7 +23,6 @@ export type AuthMenuSetters = {
   setView: (view: AuthView) => void;
   setPending: (pending: boolean) => void;
   setLoginError: (error: string | null) => void;
-  setShowLoginModal: (show: boolean) => void;
   setPendingTokens: (tokens: AuthTokensDto | null) => void;
   setOtpCode: (code: string) => void;
   setOtpResendCountdown: (countdown: number) => void;
@@ -94,7 +93,6 @@ export async function applyTokens(
     message: successMessage,
   });
   setters.setLoginError(null);
-  setters.setShowLoginModal(false);
   setters.setView('main');
 }
 
@@ -259,7 +257,7 @@ export async function handleEmailLogin(
       clearRememberedLogin();
     }
 
-    await handleLoginResult(result, '登录成功。', setters, desktopCtx, 'email_login');
+    await handleLoginResult(result, '登录成功。', setters, desktopCtx, 'main');
   } catch (error) {
     setters.setLoginError(toErrorMessage(error, '邮箱登录失败'));
   } finally {
@@ -296,8 +294,37 @@ export async function handleSetPasswordAfterOtp(
     await dataSync.updatePassword({
       newPassword: password,
     });
+
+    const latestUser = await dataSync.loadCurrentUser().catch(() => null);
+    const latestUserRecord = latestUser && typeof latestUser === 'object'
+      ? (latestUser as AuthTokensDto['user'])
+      : null;
+    const finalizedTokens: AuthTokensDto = latestUserRecord
+      ? {
+          ...pendingTokens,
+          user: pendingTokens.user && typeof pendingTokens.user === 'object'
+            ? {
+                ...pendingTokens.user,
+                ...latestUserRecord,
+                hasPassword: true,
+              }
+            : {
+                ...latestUserRecord,
+                hasPassword: true,
+              },
+        }
+      : pendingTokens.user && typeof pendingTokens.user === 'object'
+        ? {
+            ...pendingTokens,
+            user: {
+              ...pendingTokens.user,
+              hasPassword: true,
+            },
+          }
+        : pendingTokens;
+
     setters.setPendingTokens(null);
-    await applyTokens(pendingTokens, '注册成功。', setters, desktopCtx);
+    await applyTokens(finalizedTokens, '注册成功。', setters, desktopCtx);
   } catch (error) {
     setters.setLoginError(toErrorMessage(error, '设置密码失败'));
   } finally {

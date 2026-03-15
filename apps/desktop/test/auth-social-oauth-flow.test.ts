@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 
 import { OAuthProvider } from '@nimiplatform/sdk/realm';
@@ -6,6 +8,11 @@ import {
   resolveSocialOauthConfig,
   toOauthProvider,
 } from '../src/shell/renderer/features/auth/social-oauth';
+
+const authViewMainSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/features/auth/auth-view-main.tsx'),
+  'utf8',
+);
 
 test('social oauth maps provider enum correctly', () => {
   assert.equal(toOauthProvider('TWITTER'), OAuthProvider.TWITTER);
@@ -55,4 +62,13 @@ test('social oauth is enabled when tauri invoke and env config are present', () 
       (globalThis as { window: unknown }).window = previousWindow;
     }
   }
+});
+
+test('embedded alternative panel includes google, twitter, tiktok, and web3 entry points', () => {
+  assert.match(authViewMainSource, /label=\{googleDisabledReason \? `Google unavailable:/);
+  assert.match(authViewMainSource, /disabled=\{pending \|\| Boolean\(googleDisabledReason\)\}/);
+  assert.match(authViewMainSource, /label=\{twitterDisabledReason \? `Twitter unavailable:/);
+  assert.match(authViewMainSource, /label=\{tikTokDisabledReason \? `TikTok unavailable:/);
+  assert.match(authViewMainSource, /label=\{t\('Auth\.web3'\)\}/);
+  assert.match(authViewMainSource, /onWeb3Login/);
 });

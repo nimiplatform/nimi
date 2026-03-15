@@ -788,6 +788,18 @@ export const REALM_OPERATION_MAP = {
     "bodyRequired": true,
     "requestBodyContentType": "application/json"
   },
+  "AuthService.checkEmail": {
+    "operationId": "checkEmail",
+    "method": "POST",
+    "path": "/api/auth/email/check",
+    "service": "AuthService",
+    "methodName": "checkEmail",
+    "tag": "Auth",
+    "parameters": [],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json"
+  },
   "AuthService.linkOauth": {
     "operationId": "linkOauth",
     "method": "POST",
@@ -5426,6 +5438,7 @@ export const REALM_SERVICE_METHODS = {
   "AuthService": {
     "bindEmail": "AuthService.bindEmail",
     "changeEmail": "AuthService.changeEmail",
+    "checkEmail": "AuthService.checkEmail",
     "linkOauth": "AuthService.linkOauth",
     "logout": "AuthService.logout",
     "oauthLogin": "AuthService.oauthLogin",

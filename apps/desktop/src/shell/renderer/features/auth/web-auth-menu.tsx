@@ -162,6 +162,7 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
   return (
     <main
       data-testid={E2E_IDS.loginScreen}
+      data-auth-mode={mode}
       className="relative min-h-screen overflow-hidden bg-[#f3f1ee] text-[#3b352c]"
       onMouseDown={handleRootMouseDown}
     >
@@ -172,12 +173,12 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
         />
       </Suspense>
       <AuthMenu
+        mode={mode}
         onLogoHoverChange={setIsLogoHovered}
         onLogoClick={mode === 'desktop-browser' ? handleDesktopLogoClick : undefined}
         logoHintText={mode === 'desktop-browser' ? desktopLogoHintText : undefined}
         logoErrorText={mode === 'desktop-browser' ? desktopAuthError : null}
         logoDisabled={false}
-        enableAuthModal={mode !== 'desktop-browser'}
         logoLoading={mode === 'desktop-browser' ? desktopAuthPending : false}
       />
     </main>

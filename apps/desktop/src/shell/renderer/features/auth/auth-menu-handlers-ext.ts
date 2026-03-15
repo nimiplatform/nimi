@@ -1,7 +1,6 @@
 import type { FormEvent } from 'react';
 import type { WalletType } from './auth-helpers.js';
 import {
-  OAuthLoginState,
   buildDesktopCallbackReturnUrl,
   dataSync,
   loadPersistedAuthSession,
@@ -10,6 +9,7 @@ import {
   resolveWalletProvider,
   toErrorMessage,
 } from './auth-helpers.js';
+import { shouldPromptPasswordSetupAfterEmailOtp } from './auth-email-flow.js';
 import type { AuthMenuSetters, DesktopCallbackContext } from './auth-menu-handlers.js';
 import { applyTokens, handleLoginResult } from './auth-menu-handlers.js';
 
@@ -77,7 +77,7 @@ export async function handleVerifyEmailOtp(
       }),
       '验证码登录失败',
     );
-    if (result.loginState === OAuthLoginState.NEEDS_ONBOARDING && result.tokens) {
+    if (result.tokens && shouldPromptPasswordSetupAfterEmailOtp(result)) {
       const accessToken = String(result.tokens.accessToken || '').trim();
       const refreshToken = String(result.tokens.refreshToken || '').trim();
       dataSync.setToken(accessToken);

@@ -13,6 +13,7 @@ import {
 // ---------------------------------------------------------------------------
 
 export type WebAuthMenuMode = 'embedded' | 'desktop-browser';
+export type EmbeddedAuthStage = 'logo' | 'email' | 'credential';
 
 export type AuthView =
   | 'main'
@@ -72,12 +73,12 @@ export type RememberedLogin = {
 };
 
 export type AuthMenuProps = {
+  mode: WebAuthMenuMode;
   onLogoHoverChange?: (hovered: boolean) => void;
   onLogoClick?: () => void;
   logoHintText?: string;
   logoErrorText?: string | null;
   logoDisabled?: boolean;
-  enableAuthModal?: boolean;
   logoLoading?: boolean;
 };
 

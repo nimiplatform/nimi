@@ -651,6 +651,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/email/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check email availability */
+        post: operations["checkEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/email/otp/request": {
         parameters: {
             query?: never;
@@ -4601,6 +4618,16 @@ export type components = {
             unreadCount: number;
             /** Format: date-time */
             updatedAt: string;
+        };
+        CheckEmailDto: {
+            /** @description Email address to check */
+            email: string;
+        };
+        CheckEmailResponseDto: {
+            /** @description Whether the email is available (not registered) */
+            available: boolean;
+            /** @description Whether the registered email already has a password configured */
+            hasPassword?: boolean;
         };
         CollapseGapDto: {
             /** @description Custom prompt for synthetic memory generation (max 500 chars) */

@@ -17,6 +17,10 @@ const authHelpersSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/auth/auth-helpers.ts'),
   'utf8',
 );
+const authViewMainSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/features/auth/auth-view-main.tsx'),
+  'utf8',
+);
 const authViewEmailSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/auth/auth-view-email.tsx'),
   'utf8',
@@ -67,12 +71,13 @@ test('desktop authorization keeps refresh token in auth store', () => {
 
 test('auth view types include email_set_password', () => {
   assert.match(authHelpersSource, /\|\s*'email_set_password'/);
+  assert.match(authHelpersSource, /export type EmbeddedAuthStage = 'logo' \| 'email' \| 'credential'/);
 });
 
 test('verify email otp sends onboarding users through password setup before login', () => {
   assert.match(
     authMenuHandlersExtSource,
-    /if \(result\.loginState === OAuthLoginState\.NEEDS_ONBOARDING && result\.tokens\) \{/,
+    /if \(result\.tokens && shouldPromptPasswordSetupAfterEmailOtp\(result\)\) \{/,
   );
   assert.match(authMenuHandlersExtSource, /dataSync\.setToken\(accessToken\)/);
   assert.match(authMenuHandlersExtSource, /dataSync\.setRefreshToken\(refreshToken\)/);
@@ -84,30 +89,40 @@ test('verify email otp sends onboarding users through password setup before logi
   );
 });
 
-test('auth menu keeps otp source and clears temporary onboarding auth', () => {
+test('embedded auth menu uses inline stages and clears temporary onboarding auth', () => {
   assert.match(
     authMenuSource,
-    /const \[otpEntryView, setOtpEntryView\] = useState<'email_otp' \| 'email_register'>\('email_otp'\)/,
+    /const \[embeddedStage, setEmbeddedStage\] = useState<EmbeddedAuthStage>\('logo'\)/,
   );
+  assert.match(authMenuSource, /const \[showAlternatives, setShowAlternatives\] = useState\(false\)/);
   assert.match(
     authMenuSource,
     /const \[twoFactorReturnView, setTwoFactorReturnView\] = useState<AuthView>\('main'\)/,
   );
+  assert.doesNotMatch(authMenuSource, /showLoginModal/);
   assert.match(authMenuSource, /const clearPendingOnboardingState = \(\) => \{/);
   assert.match(authMenuSource, /dataSync\.setToken\(''\)/);
   assert.match(authMenuSource, /dataSync\.setRefreshToken\(''\)/);
-  assert.match(authMenuSource, /if \(view === 'email_otp_verify'\) \{\s*setOtpCode\(''\);\s*setView\(otpEntryView\);/s);
-  assert.match(authMenuSource, /else if \(view === 'email_set_password'\) \{\s*clearPendingOnboardingState\(\);\s*clearOtpFlowState\(\);\s*setView\(otpEntryView\);/s);
-  assert.match(authMenuSource, /else if \(view === 'email_2fa'\) \{\s*setTempToken\(''\);\s*setTwoFactorCode\(''\);\s*setView\(twoFactorReturnView\);/s);
+  assert.match(authMenuSource, /if \(view === 'email_otp_verify'\) \{\s*setOtpCode\(''\);\s*setView\('main'\);\s*setEmbeddedStage\('credential'\);/s);
+  assert.match(authMenuSource, /else if \(view === 'email_set_password'\) \{\s*clearPendingOnboardingState\(\);\s*clearOtpFlowState\(\);\s*setView\('main'\);\s*setEmbeddedStage\('credential'\);/s);
+  assert.match(authMenuSource, /else if \(view === 'email_2fa'\) \{\s*setTempToken\(''\);\s*setTwoFactorCode\(''\);/s);
+  assert.match(authMenuSource, /else if \(view === 'wallet_select'\) \{\s*setView\('main'\);\s*setEmbeddedStage\('email'\);\s*setShowAlternatives\(true\);/s);
 });
 
-test('email auth views use register hint, password setup, and neutral otp copy', () => {
-  assert.doesNotMatch(
-    authViewEmailSource,
-    /export function AuthViewEmailRegister\(props: \{\s*email: string;\s*password:/s,
-  );
-  assert.match(authViewEmailSource, /t\('Auth\.registerHint'\)/);
-  assert.match(authViewEmailSource, /t\('Auth\.sendVerificationCode'\)/);
+test('embedded auth main view renders inline email bar and provider panel', () => {
+  assert.match(authViewMainSource, /data-testid=\{E2E_IDS\.loginEmailInput\}/);
+  assert.match(authViewMainSource, /data-testid=\{E2E_IDS\.loginAlternativeToggle\}/);
+  assert.match(authViewMainSource, /data-testid=\{E2E_IDS\.loginAlternativePanel\}/);
+  assert.match(authViewMainSource, /data-testid=\{E2E_IDS\.loginEmailSubmitArrow\}/);
+  assert.match(authViewMainSource, /disabled=\{pending \|\| Boolean\(googleDisabledReason\)\}/);
+  assert.match(authMenuSource, /data-testid=\{E2E_IDS\.loginLogoTrigger\}/);
+});
+
+test('email auth views use inline credential flow, password setup, and neutral otp copy', () => {
+  assert.match(authViewEmailSource, /export function AuthViewEmailLogin/);
+  assert.match(authViewEmailSource, /data-testid=\{E2E_IDS\.loginPasswordInput\}/);
+  assert.match(authViewEmailSource, /data-testid=\{E2E_IDS\.loginOtpButton\}/);
+  assert.match(authViewEmailSource, /t\('Auth\.useEmailCodeInstead'\)/);
   assert.match(authViewEmailSource, /export function AuthViewEmailSetPassword/);
   assert.match(authViewEmailSource, /t\('Auth\.setPasswordHint'\)/);
   assert.match(authViewEmailSource, /t\('Auth\.verifyAndContinue'\)/);
