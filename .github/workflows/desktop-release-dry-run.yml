@@ -78,6 +78,9 @@ jobs:
           - platform: windows-latest
             extra_args: nsis
     runs-on: ${{ matrix.platform }}
+    defaults:
+      run:
+        shell: bash
     env:
       RELEASE_VERSION: ${{ needs.resolve.outputs.version_plain }}
     steps:

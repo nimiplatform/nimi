@@ -150,6 +150,9 @@ jobs:
           sudo apt-get install -y webkit2gtk-driver xvfb
           cargo install tauri-driver --locked
 
+      - name: Build SDK surfaces for examples
+        run: pnpm build:sdk
+
       - name: Compile examples
         run: pnpm check:examples
 
@@ -458,7 +461,7 @@ jobs:
       - name: Install Linux desktop E2E dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y webkit2gtk-driver xvfb
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf webkit2gtk-driver xvfb
           cargo install tauri-driver --locked
 
       - name: Desktop cloud runtime-only gate

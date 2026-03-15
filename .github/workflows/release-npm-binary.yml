@@ -74,9 +74,11 @@ jobs:
             echo "runtime tag must start with v: ${TAG}" >&2
             exit 1
           fi
-          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
-          echo "version=${TAG#v}" >> "${GITHUB_OUTPUT}"
-          echo "publish=${PUBLISH}" >> "${GITHUB_OUTPUT}"
+          {
+            echo "tag=${TAG}"
+            echo "version=${TAG#v}"
+            echo "publish=${PUBLISH}"
+          } >> "${GITHUB_OUTPUT}"
 
       - name: Download runtime archives
         env:
