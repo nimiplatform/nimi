@@ -13,4 +13,7 @@ export const E2E_IDS = {
   messageTimeline: 'message-timeline',
   runtimeSidebarPage: (pageId) => `runtime-sidebar-page:${pageId}`,
   runtimePageRoot: (pageId) => `runtime-page:${pageId}`,
+  feedPostAuthor: (postId) => `feed-post-author:${postId}`,
+  contactDetailProfileModal: 'contact-detail-profile-modal',
+  contactDetailProfileModalClose: 'contact-detail-profile-modal-close',
 };

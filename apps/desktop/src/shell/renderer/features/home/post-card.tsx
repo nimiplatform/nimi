@@ -6,6 +6,7 @@ import { ReportReason } from '@nimiplatform/sdk/realm';
 import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-detail-profile-modal.js';
+import type { ContactDetailProfileSeed } from '@renderer/features/contacts/contact-detail-profile-modal.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { CreatePostModal } from '@renderer/features/profile/create-post-modal.js';
 import type { EditablePostSeed } from '@renderer/features/profile/create-post-modal-helpers.js';
@@ -45,16 +46,26 @@ function toBannerErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddFriendBadge?: boolean }) {
-  const { post, onDelete, showAddFriendBadge = true } = input;
+export type PostCardAuthorProfileTarget = {
+  profileId: string;
+  profileSeed: ContactDetailProfileSeed;
+};
+
+type PostCardProps = {
+  post: PostDto;
+  onDelete?: () => void;
+  showAddFriendBadge?: boolean;
+  onOpenAuthorProfile?: (target: PostCardAuthorProfileTarget) => void;
+};
+
+export function PostCard(input: PostCardProps) {
+  const { post, onDelete, showAddFriendBadge = true, onOpenAuthorProfile } = input;
   const queryClient = useQueryClient();
   const savedPostsStorageKey = 'nimi.desktop.saved-post-ids';
   const savedPostsUpdatedEvent = 'nimi:saved-posts-updated';
 
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
-  const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
-  const setSelectedProfileIsAgent = useAppStore((state) => state.setSelectedProfileIsAgent);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const authStatus = useAppStore((state) => state.auth.status);
@@ -117,6 +128,45 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
   )
     ? (post.author as Record<string, unknown>)
     : null;
+  const authorProfileSeed = useMemo<ContactDetailProfileSeed | null>(() => {
+    if (!authorId) {
+      return null;
+    }
+    return {
+      id: authorId,
+      displayName: post.author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
+      handle: post.author?.handle || '',
+      avatarUrl: post.author?.avatarUrl,
+      bio: typeof authorRecord?.bio === 'string' ? authorRecord.bio : null,
+      isAgent: post.author?.isAgent === true,
+      isOnline: authorRecord?.isOnline === true,
+      createdAt: typeof authorRecord?.createdAt === 'string' ? authorRecord.createdAt : '',
+      tags: Array.isArray(authorRecord?.tags) ? authorRecord.tags.map(String) : [],
+      city: typeof authorRecord?.city === 'string' ? authorRecord.city : null,
+      countryCode: typeof authorRecord?.countryCode === 'string' ? authorRecord.countryCode : null,
+      gender: typeof authorRecord?.gender === 'string' ? authorRecord.gender : null,
+      worldName: typeof authorRecord?.worldName === 'string' ? authorRecord.worldName : null,
+      worldBannerUrl: typeof authorRecord?.worldBannerUrl === 'string' ? authorRecord.worldBannerUrl : null,
+      friendsCount: typeof authorRecord?.friendsCount === 'number' ? authorRecord.friendsCount : undefined,
+      postsCount: typeof authorRecord?.postsCount === 'number' ? authorRecord.postsCount : undefined,
+      likesCount: typeof authorRecord?.likesCount === 'number'
+        ? authorRecord.likesCount
+        : typeof authorRecord?.likeCount === 'number'
+          ? authorRecord.likeCount
+          : undefined,
+      giftStats: authorRecord?.giftStats && typeof authorRecord.giftStats === 'object'
+        ? (authorRecord.giftStats as Record<string, number>)
+        : undefined,
+      agentState: typeof authorRecord?.state === 'string' ? authorRecord.state : null,
+      agentCategory: typeof authorRecord?.category === 'string' ? authorRecord.category : null,
+      agentOrigin: typeof authorRecord?.origin === 'string' ? authorRecord.origin : null,
+      agentTier: typeof authorRecord?.tier === 'string' ? authorRecord.tier : null,
+      agentWakeStrategy: typeof authorRecord?.wakeStrategy === 'string' ? authorRecord.wakeStrategy : null,
+      agentOwnershipType: typeof authorRecord?.ownershipType === 'string' ? authorRecord.ownershipType : null,
+      agentWorldId: typeof authorRecord?.worldId === 'string' ? authorRecord.worldId : null,
+      agentOwnerWorldId: typeof authorRecord?.ownerWorldId === 'string' ? authorRecord.ownerWorldId : null,
+    };
+  }, [authorId, authorRecord, post.author?.avatarUrl, post.author?.displayName, post.author?.handle, post.author?.isAgent]);
   const isAuthorFriend = authorRecord?.isFriend === true;
 
   useEffect(() => {
@@ -442,12 +492,18 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
   ]);
 
   const openAuthorProfile = useCallback(() => {
-    if (authorId) {
-      setSelectedProfileId(authorId);
-      setSelectedProfileIsAgent(post.author?.isAgent === true);
-      setProfileModalOpen(true);
+    if (!authorId || !authorProfileSeed) {
+      return;
     }
-  }, [authorId, post.author?.isAgent, setSelectedProfileId, setSelectedProfileIsAgent]);
+    if (onOpenAuthorProfile) {
+      onOpenAuthorProfile({
+        profileId: authorId,
+        profileSeed: authorProfileSeed,
+      });
+      return;
+    }
+    setProfileModalOpen(true);
+  }, [authorId, authorProfileSeed, onOpenAuthorProfile]);
 
   return (
     <>
@@ -579,40 +635,7 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
       <ContactDetailProfileModal
         open={profileModalOpen && Boolean(authorId)}
         profileId={authorId}
-        profileSeed={authorId ? {
-          id: authorId,
-          displayName: post.author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
-          handle: post.author?.handle || '',
-          avatarUrl: post.author?.avatarUrl,
-          bio: typeof authorRecord?.bio === 'string' ? authorRecord.bio : null,
-          isAgent: post.author?.isAgent === true,
-          isOnline: authorRecord?.isOnline === true,
-          createdAt: typeof authorRecord?.createdAt === 'string' ? authorRecord.createdAt : '',
-          tags: Array.isArray(authorRecord?.tags) ? authorRecord.tags.map(String) : [],
-          city: typeof authorRecord?.city === 'string' ? authorRecord.city : null,
-          countryCode: typeof authorRecord?.countryCode === 'string' ? authorRecord.countryCode : null,
-          gender: typeof authorRecord?.gender === 'string' ? authorRecord.gender : null,
-          worldName: typeof authorRecord?.worldName === 'string' ? authorRecord.worldName : null,
-          worldBannerUrl: typeof authorRecord?.worldBannerUrl === 'string' ? authorRecord.worldBannerUrl : null,
-          friendsCount: typeof authorRecord?.friendsCount === 'number' ? authorRecord.friendsCount : undefined,
-          postsCount: typeof authorRecord?.postsCount === 'number' ? authorRecord.postsCount : undefined,
-          likesCount: typeof authorRecord?.likesCount === 'number'
-            ? authorRecord.likesCount
-            : typeof authorRecord?.likeCount === 'number'
-              ? authorRecord.likeCount
-              : undefined,
-          giftStats: authorRecord?.giftStats && typeof authorRecord.giftStats === 'object'
-            ? (authorRecord.giftStats as Record<string, number>)
-            : undefined,
-          agentState: typeof authorRecord?.state === 'string' ? authorRecord.state : null,
-          agentCategory: typeof authorRecord?.category === 'string' ? authorRecord.category : null,
-          agentOrigin: typeof authorRecord?.origin === 'string' ? authorRecord.origin : null,
-          agentTier: typeof authorRecord?.tier === 'string' ? authorRecord.tier : null,
-          agentWakeStrategy: typeof authorRecord?.wakeStrategy === 'string' ? authorRecord.wakeStrategy : null,
-          agentOwnershipType: typeof authorRecord?.ownershipType === 'string' ? authorRecord.ownershipType : null,
-          agentWorldId: typeof authorRecord?.worldId === 'string' ? authorRecord.worldId : null,
-          agentOwnerWorldId: typeof authorRecord?.ownerWorldId === 'string' ? authorRecord.ownerWorldId : null,
-        } : null}
+        profileSeed={authorProfileSeed}
         onClose={() => setProfileModalOpen(false)}
       />
     </>

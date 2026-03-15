@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-detail-profile-modal.js';
 import { CreatePostModal } from '../profile/create-post-modal.js';
-import { PostCard } from './post-card';
+import { PostCard, type PostCardAuthorProfileTarget } from './post-card';
 import { PostFeed } from './post-feed';
 import { prepareHomeFeedItems } from './utils';
 
@@ -73,11 +72,8 @@ type HomeViewProps = {
 
 export function HomeView(props: HomeViewProps) {
   const { t } = useTranslation();
-  const selectedProfileId = useAppStore((state) => state.selectedProfileId);
-  const selectedProfileIsAgent = useAppStore((state) => state.selectedProfileIsAgent);
-  const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
-  const setSelectedProfileIsAgent = useAppStore((state) => state.setSelectedProfileIsAgent);
   const [createPostOpen, setCreatePostOpen] = useState(false);
+  const [selectedFeedProfile, setSelectedFeedProfile] = useState<PostCardAuthorProfileTarget | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isPublishing, setIsPublishing] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -154,6 +150,7 @@ export function HomeView(props: HomeViewProps) {
                   post={post}
                   onDelete={() => setRefreshKey((k) => k + 1)}
                   showAddFriendBadge={false}
+                  onOpenAuthorProfile={setSelectedFeedProfile}
                 />
               )}
             />
@@ -195,18 +192,10 @@ export function HomeView(props: HomeViewProps) {
       )}
 
       <ContactDetailProfileModal
-        open={Boolean(selectedProfileId)}
-        profileId={selectedProfileId || ''}
-        profileSeed={selectedProfileId ? {
-          id: selectedProfileId,
-          displayName: '',
-          handle: '',
-          isAgent: selectedProfileIsAgent === true,
-        } : null}
-        onClose={() => {
-          setSelectedProfileId(null);
-          setSelectedProfileIsAgent(null);
-        }}
+        open={Boolean(selectedFeedProfile)}
+        profileId={selectedFeedProfile?.profileId || ''}
+        profileSeed={selectedFeedProfile?.profileSeed || null}
+        onClose={() => setSelectedFeedProfile(null)}
       />
 
       {/* Floating Create Post Button */}

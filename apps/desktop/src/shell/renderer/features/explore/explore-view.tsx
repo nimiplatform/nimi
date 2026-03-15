@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { APP_DISPLAY_SECTION_TITLE_CLASS, APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
-import { PostCard } from '../home/post-card';
+import { PostCard, type PostCardAuthorProfileTarget } from '../home/post-card';
 import { PostFeed } from '../home/post-feed';
 import {
   AgentRecommendationCard,
@@ -41,6 +41,7 @@ type ExploreViewProps = {
   onAgentAddFriend: (agentId: string) => void;
   onAgentSendGift?: (agentId: string) => void;
   onAgentOpen?: (agentId: string) => void;
+  onPostAuthorOpen?: (target: PostCardAuthorProfileTarget) => void;
   onWorldOpen?: (worldId: string) => void;
 };
 
@@ -366,7 +367,11 @@ export function ExploreView(props: ExploreViewProps) {
               emptyText={t('Explore.noPosts')}
               renderItem={(post) => (
                 <div className="h-fit [contain:paint] [transform:translateZ(0)]">
-                  <PostCard post={post} onDelete={props.onPostDelete} />
+                  <PostCard
+                    post={post}
+                    onDelete={props.onPostDelete}
+                    onOpenAuthorProfile={props.onPostAuthorOpen}
+                  />
                 </div>
               )}
               className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2"

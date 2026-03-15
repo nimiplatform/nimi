@@ -17,6 +17,7 @@ export const scenarioRegistry = new Map([
   ['mods.panel-open', { bucket: 'journeys', profile: 'mods.panel-open.json', spec: 'apps/desktop/e2e/specs/mods.panel-open.e2e.mjs' }],
   ['contacts.panel-load', { bucket: 'journeys', profile: 'contacts.panel-load.json', spec: 'apps/desktop/e2e/specs/contacts.panel-load.e2e.mjs' }],
   ['explore.panel-load', { bucket: 'journeys', profile: 'explore.panel-load.json', spec: 'apps/desktop/e2e/specs/explore.panel-load.e2e.mjs' }],
+  ['explore.feed-profile-modal', { bucket: 'journeys', profile: 'explore.feed-profile-modal.json', spec: 'apps/desktop/e2e/specs/explore.feed-profile-modal.e2e.mjs' }],
   ['runtime.local-ai.panel-load', { bucket: 'journeys', profile: 'runtime.local-ai.panel-load.json', spec: 'apps/desktop/e2e/specs/runtime.local-ai.panel-load.e2e.mjs' }],
   ['runtime.external-agent.panel-load', { bucket: 'journeys', profile: 'runtime.external-agent.panel-load.json', spec: 'apps/desktop/e2e/specs/runtime.external-agent.panel-load.e2e.mjs' }],
 ]);

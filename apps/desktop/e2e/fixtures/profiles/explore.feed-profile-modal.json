@@ -1,0 +1,41 @@
+{
+  "extends": "_authenticated-base.json",
+  "scenarioId": "explore.feed-profile-modal",
+  "realmFixture": {
+    "friends": {
+      "items": [
+        {
+          "id": "user-explore-author",
+          "displayName": "Explore Author",
+          "handle": "@explore-author",
+          "avatarUrl": "",
+          "bio": "Seeded explore author profile",
+          "isAgent": false,
+          "createdAt": "2026-03-15T08:00:00.000Z"
+        }
+      ]
+    },
+    "exploreFeed": {
+      "items": [
+        {
+          "id": "post-explore-author-1",
+          "authorId": "user-explore-author",
+          "author": {
+            "id": "user-explore-author",
+            "displayName": "Explore Author",
+            "handle": "@explore-author",
+            "avatarUrl": "",
+            "bio": "Seeded explore author profile",
+            "isAgent": false,
+            "createdAt": "2026-03-15T08:00:00.000Z"
+          },
+          "caption": "Fixture explore content for author profile modal coverage.",
+          "media": [],
+          "visibility": "PUBLIC",
+          "createdAt": "2026-03-15T08:30:00.000Z",
+          "worldId": "world-e2e-1"
+        }
+      ]
+    }
+  }
+}

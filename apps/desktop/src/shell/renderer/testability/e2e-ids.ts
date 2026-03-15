@@ -13,4 +13,7 @@ export const E2E_IDS = {
   chatList: 'chat-list',
   chatRow: (chatId: string) => `chat-row:${chatId}`,
   messageTimeline: 'message-timeline',
+  feedPostAuthor: (postId: string) => `feed-post-author:${postId}`,
+  contactDetailProfileModal: 'contact-detail-profile-modal',
+  contactDetailProfileModalClose: 'contact-detail-profile-modal-close',
 } as const;

@@ -5,10 +5,11 @@ import type { PostDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
-import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-detail-profile-modal.js';
+import { ContactDetailProfileModal, type ContactDetailProfileSeed } from '@renderer/features/contacts/contact-detail-profile-modal.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { ExploreView } from './explore-view';
 import type { ExploreAgentCardData, FeaturedWorldCardData } from './explore-cards';
+import type { PostCardAuthorProfileTarget } from '../home/post-card';
 import { toWorldListItem } from '../world/world-list-model';
 import { prefetchWorldDetailAndEvents } from '../world/world-detail-queries.js';
 import { prefetchWorldDetailPanel } from '../world/world-detail-route-state';
@@ -193,18 +194,44 @@ function parseAgents(agentsResult: unknown, worldsMap: Map<string, { bannerUrl: 
     .filter((item): item is ExploreAgentCardData => item !== null);
 }
 
+function toProfileTargetFromAgent(agent: ExploreAgentCardData): PostCardAuthorProfileTarget {
+  const profileSeed: ContactDetailProfileSeed = {
+    id: agent.id,
+    displayName: agent.name,
+    handle: agent.handle,
+    avatarUrl: agent.avatarUrl,
+    bio: agent.bio,
+    isAgent: agent.isAgent,
+    isOnline: agent.isOnline,
+    tags: agent.tags,
+    worldName: agent.worldName,
+    worldBannerUrl: agent.worldBannerUrl,
+    friendsCount: agent.friendsCount,
+    postsCount: agent.postsCount,
+    likesCount: agent.likesCount,
+    giftStats: agent.giftStats,
+    agentState: agent.state,
+    agentCategory: agent.category,
+    agentOrigin: agent.origin,
+    agentTier: agent.tier,
+    agentWakeStrategy: agent.wakeStrategy,
+    agentOwnershipType: agent.ownershipType,
+    agentWorldId: agent.worldId,
+  };
+  return {
+    profileId: agent.id,
+    profileSeed,
+  };
+}
+
 export function ExplorePanel() {
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
-  const selectedProfileId = useAppStore((state) => state.selectedProfileId);
-  const selectedProfileIsAgent = useAppStore((state) => state.selectedProfileIsAgent);
-  const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
-  const setSelectedProfileIsAgent = useAppStore((state) => state.setSelectedProfileIsAgent);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedAgentForProfile, setSelectedAgentForProfile] = useState<ExploreAgentCardData | null>(null);
+  const [selectedProfileTarget, setSelectedProfileTarget] = useState<PostCardAuthorProfileTarget | null>(null);
 
   // Fetch worlds for banner carousel
   const worldsQuery = useQuery({
@@ -392,11 +419,12 @@ export function ExplorePanel() {
   const onAgentOpen = useCallback(
     (agentId: string) => {
       const target = agents.find((item) => item.id === agentId) || null;
-      setSelectedAgentForProfile(target);
-      setSelectedProfileId(agentId);
-      setSelectedProfileIsAgent(target?.isAgent === true);
+      if (!target) {
+        return;
+      }
+      setSelectedProfileTarget(toProfileTargetFromAgent(target));
     },
-    [agents, setSelectedProfileId, setSelectedProfileIsAgent],
+    [agents],
   );
 
   const agentLimit = agentLimitQuery.data ?? null;
@@ -419,6 +447,7 @@ export function ExplorePanel() {
         onAgentAddFriend={onAgentAddFriend}
         onAgentSendGift={onAgentSendGift}
         onAgentOpen={onAgentOpen}
+        onPostAuthorOpen={setSelectedProfileTarget}
         onWorldOpen={onWorldOpen}
       />
       <QuickAddFriendModal
@@ -454,50 +483,10 @@ export function ExplorePanel() {
         }}
       />
       <ContactDetailProfileModal
-        open={Boolean(selectedAgentForProfile?.id)}
-        profileId={selectedAgentForProfile?.id || ''}
-        profileSeed={selectedAgentForProfile ? {
-          id: selectedAgentForProfile.id,
-          displayName: selectedAgentForProfile.name,
-          handle: selectedAgentForProfile.handle,
-          avatarUrl: selectedAgentForProfile.avatarUrl,
-          bio: selectedAgentForProfile.bio,
-          isAgent: selectedAgentForProfile.isAgent,
-          isOnline: selectedAgentForProfile.isOnline,
-          tags: selectedAgentForProfile.tags,
-          worldName: selectedAgentForProfile.worldName,
-          worldBannerUrl: selectedAgentForProfile.worldBannerUrl,
-          friendsCount: selectedAgentForProfile.friendsCount,
-          postsCount: selectedAgentForProfile.postsCount,
-          likesCount: selectedAgentForProfile.likesCount,
-          giftStats: selectedAgentForProfile.giftStats,
-          agentState: selectedAgentForProfile.state,
-          agentCategory: selectedAgentForProfile.category,
-          agentOrigin: selectedAgentForProfile.origin,
-          agentTier: selectedAgentForProfile.tier,
-          agentWakeStrategy: selectedAgentForProfile.wakeStrategy,
-          agentOwnershipType: selectedAgentForProfile.ownershipType,
-          agentWorldId: selectedAgentForProfile.worldId,
-        } : null}
-        onClose={() => {
-          setSelectedAgentForProfile(null);
-          setSelectedProfileId(null);
-          setSelectedProfileIsAgent(null);
-        }}
-      />
-      <ContactDetailProfileModal
-        open={Boolean(!selectedAgentForProfile?.id && selectedProfileId)}
-        profileId={selectedProfileId || ''}
-        profileSeed={selectedProfileId ? {
-          id: selectedProfileId,
-          displayName: '',
-          handle: '',
-          isAgent: selectedProfileIsAgent === true,
-        } : null}
-        onClose={() => {
-          setSelectedProfileId(null);
-          setSelectedProfileIsAgent(null);
-        }}
+        open={Boolean(selectedProfileTarget)}
+        profileId={selectedProfileTarget?.profileId || ''}
+        profileSeed={selectedProfileTarget?.profileSeed || null}
+        onClose={() => setSelectedProfileTarget(null)}
       />
     </>
   );

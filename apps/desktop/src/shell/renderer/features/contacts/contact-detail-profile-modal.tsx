@@ -7,6 +7,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { openDefaultPrivateExecutionMod } from '@renderer/mod-ui/lifecycle/default-private-execution';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal.js';
 import { toProfileData, type ProfileData } from '@renderer/features/profile/profile-model';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ContactDetailView } from './contact-detail-view.js';
 
 export type ContactDetailProfileSeed = {
@@ -285,13 +286,14 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
         className="fixed inset-x-0 bottom-0 top-14 z-[120] bg-black/42 backdrop-blur-sm"
         onClick={props.onClose}
       />
-      <div className="fixed inset-x-0 bottom-0 top-14 z-[121]">
+      <div data-testid={E2E_IDS.contactDetailProfileModal} className="fixed inset-x-0 bottom-0 top-14 z-[121]">
         <div
           className="relative flex h-full w-full overflow-hidden bg-white"
           onClick={(event) => event.stopPropagation()}
         >
           <button
             type="button"
+            data-testid={E2E_IDS.contactDetailProfileModalClose}
             onClick={props.onClose}
             className="absolute left-6 top-6 z-[130] flex h-10 w-10 items-center justify-center rounded-full border border-[#4ECCA3]/20 bg-black/50 text-[#4ECCA3] transition-all hover:border-[#4ECCA3]/40 hover:bg-black/70"
             aria-label={i18n.t('Contacts.goBack', { defaultValue: 'Go Back' })}
