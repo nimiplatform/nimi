@@ -368,6 +368,13 @@ func minDuration(left time.Duration, right time.Duration) time.Duration {
 	return right
 }
 
+func restartJitterCap(delay time.Duration) time.Duration {
+	if delay <= 0 {
+		return 0
+	}
+	return minDuration(delay, time.Second)
+}
+
 func (s *Supervisor) monitor(ctx context.Context, epoch uint64) {
 	healthTicker := time.NewTicker(s.cfg.HealthInterval)
 	defer healthTicker.Stop()
@@ -474,7 +481,9 @@ func (s *Supervisor) handleCrash(ctx context.Context, procErr error, epoch uint6
 		return
 	}
 
-	// Exponential backoff with jitter.
+	// Exponential backoff with bounded jitter. Keep the jitter proportional to
+	// the current delay so short test backoffs do not balloon into second-long
+	// waits under load.
 	delay := s.cfg.RestartBaseDelay
 	for i := 1; i < failures; i++ {
 		delay *= 2
@@ -483,8 +492,10 @@ func (s *Supervisor) handleCrash(ctx context.Context, procErr error, epoch uint6
 			break
 		}
 	}
-	jitter := time.Duration(rand.Int64N(int64(time.Second)))
-	delay += jitter
+	jitterCap := restartJitterCap(delay)
+	if jitterCap > 0 {
+		delay += time.Duration(rand.Int64N(int64(jitterCap)))
+	}
 
 	s.setStatus(StatusUnhealthy, fmt.Sprintf("crash=%s attempt=%d/%d restarting", crashDetail, failures, s.cfg.MaxRestarts))
 	s.logger.Info("restarting engine after crash",

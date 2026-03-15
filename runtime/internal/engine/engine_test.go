@@ -756,8 +756,34 @@ func TestParseEngineKind(t *testing.T) {
 	}
 }
 
+func TestRestartJitterCap(t *testing.T) {
+	tests := []struct {
+		name  string
+		delay time.Duration
+		want  time.Duration
+	}{
+		{name: "zero", delay: 0, want: 0},
+		{name: "short delay stays bounded", delay: 10 * time.Millisecond, want: 10 * time.Millisecond},
+		{name: "sub-second delay stays bounded", delay: 500 * time.Millisecond, want: 500 * time.Millisecond},
+		{name: "long delay caps at one second", delay: 3 * time.Second, want: time.Second},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := restartJitterCap(tt.delay); got != tt.want {
+				t.Fatalf("restartJitterCap(%s) = %s, want %s", tt.delay, got, tt.want)
+			}
+		})
+	}
+}
+
 // --- Supervisor process lifecycle tests ---
 // These tests use real processes via shell scripts and require unix signals.
+
+func setSupervisorTestHome(t *testing.T) {
+	t.Helper()
+	t.Setenv("HOME", t.TempDir())
+}
 
 // writeTestScript creates an executable shell script in t.TempDir() and returns its path.
 func writeTestScript(t *testing.T, body string) string {
@@ -804,10 +830,22 @@ func waitForStatus(sup *Supervisor, want EngineStatus, timeout time.Duration) bo
 	return sup.Status() == want
 }
 
+func waitForCondition(timeout time.Duration, check func() bool) bool {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if check() {
+			return true
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return check()
+}
+
 func TestSupervisorStartStop(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("supervisor process tests require unix signals")
 	}
+	setSupervisorTestHome(t)
 
 	script := writeTestScript(t, "sleep 60")
 	cfg := testSupervisorCfg(script)
@@ -846,6 +884,7 @@ func TestSupervisorStartAlreadyRunning(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("supervisor process tests require unix signals")
 	}
+	setSupervisorTestHome(t)
 
 	script := writeTestScript(t, "sleep 60")
 	cfg := testSupervisorCfg(script)
@@ -883,26 +922,17 @@ func TestSupervisorCrashRestart(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("supervisor process tests require unix signals")
 	}
+	setSupervisorTestHome(t)
 
-	script := writeTestScript(t, "exit 1")
+	runLogPath := filepath.Join(t.TempDir(), "runs.log")
+	script := writeTestScript(t, "echo run >> "+runLogPath+"\nsleep 0.05\nexit 1")
 	cfg := testSupervisorCfg(script)
 	cfg.MaxRestarts = 10
 	cfg.HealthInterval = 500 * time.Millisecond
 	cfg.RestartBaseDelay = 10 * time.Millisecond
 	cfg.StartupTimeout = 200 * time.Millisecond
 
-	// Use a channel to wait for at least 2 "starting" state transitions.
-	startingCh := make(chan struct{}, 10)
-	onState := func(kind EngineKind, status EngineStatus, detail string) {
-		if status == StatusStarting {
-			select {
-			case startingCh <- struct{}{}:
-			default:
-			}
-		}
-	}
-
-	sup := NewSupervisor(cfg, testLogger(), onState)
+	sup := NewSupervisor(cfg, testLogger(), nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -912,18 +942,15 @@ func TestSupervisorCrashRestart(t *testing.T) {
 	}
 	defer func() { _ = sup.Stop() }()
 
-	// First "starting" from initial spawn.
-	select {
-	case <-startingCh:
-	case <-time.After(3 * time.Second):
-		t.Fatal("timed out waiting for first starting callback")
-	}
-
-	// Second "starting" from crash→restart.
-	select {
-	case <-startingCh:
-	case <-time.After(8 * time.Second):
-		t.Fatal("timed out waiting for restart starting callback — crash restart did not trigger")
+	if !waitForCondition(30*time.Second, func() bool {
+		data, err := os.ReadFile(runLogPath)
+		if err != nil {
+			return false
+		}
+		return strings.Count(string(data), "run\n") >= 2
+	}) {
+		data, _ := os.ReadFile(runLogPath)
+		t.Fatalf("timed out waiting for crash restart to spawn twice; got log %q", string(data))
 	}
 }
 
@@ -931,6 +958,7 @@ func TestSupervisorStopCancelsPendingRestart(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("supervisor process tests require unix signals")
 	}
+	setSupervisorTestHome(t)
 
 	script := writeTestScript(t, "exit 1")
 	cfg := testSupervisorCfg(script)
@@ -970,6 +998,7 @@ func TestSupervisorMaxRestartsExhausted(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("supervisor process tests require unix signals")
 	}
+	setSupervisorTestHome(t)
 
 	script := writeTestScript(t, "exit 1")
 	cfg := testSupervisorCfg(script)
@@ -996,6 +1025,7 @@ func TestSupervisorGracefulShutdown(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("supervisor process tests require unix signals")
 	}
+	setSupervisorTestHome(t)
 
 	script := writeTestScript(t, "sleep 60")
 	cfg := testSupervisorCfg(script)
@@ -1035,6 +1065,7 @@ func TestSupervisorForceKill(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("supervisor process tests require unix signals")
 	}
+	setSupervisorTestHome(t)
 
 	// Script traps SIGTERM and ignores it, forcing SIGKILL.
 	script := writeTestScript(t, "trap '' TERM; sleep 60")
@@ -1297,6 +1328,7 @@ func TestSupervisorStateCallback(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("supervisor process tests require unix signals")
 	}
+	setSupervisorTestHome(t)
 
 	script := writeTestScript(t, "sleep 60")
 	cfg := testSupervisorCfg(script)
