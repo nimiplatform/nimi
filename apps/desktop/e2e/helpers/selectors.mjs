@@ -10,10 +10,13 @@ export const E2E_IDS = {
   navTab: (tabId) => `nav-tab:${tabId}`,
   chatList: 'chat-list',
   chatRow: (chatId) => `chat-row:${chatId}`,
+  chatHeaderProfileToggle: 'chat-header-profile-toggle',
+  chatOpenUserProfile: 'chat-open-user-profile',
   messageTimeline: 'message-timeline',
   runtimeSidebarPage: (pageId) => `runtime-sidebar-page:${pageId}`,
   runtimePageRoot: (pageId) => `runtime-page:${pageId}`,
   feedPostAuthor: (postId) => `feed-post-author:${postId}`,
   contactDetailProfileModal: 'contact-detail-profile-modal',
   contactDetailProfileModalClose: 'contact-detail-profile-modal-close',
+  profileDetailSurface: 'profile-detail-surface',
 };

@@ -541,6 +541,11 @@ commands:
     description: Adopt a go-runtime discovered local AI model into desktop state without download
     source_rule: D-IPC-011
 
+  - command: runtime_local_artifacts_adopt
+    module: local-runtime
+    description: Adopt a go-runtime discovered local AI companion artifact into desktop state without import
+    source_rule: D-IPC-011
+
   - command: runtime_local_pick_model_file
     module: local-runtime
     description: Pick a local model file for import via native file dialog

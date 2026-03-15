@@ -340,8 +340,9 @@ export function buildSelectedBinding(input: {
     runtimeFields: RuntimeFields;
     localModels: RuntimeRouteLocalOption[];
     connectors: RuntimeRouteConnectorOption[];
+    localMetadataDegraded?: boolean;
 }): RuntimeRouteBinding {
-    const { runtimeFields, localModels, connectors } = input;
+    const { runtimeFields, localModels, connectors, localMetadataDegraded } = input;
     const preferredSource = inferSource(runtimeFields.provider);
     if (preferredSource === 'local') {
         const preferredBinding: RuntimeRouteBinding = {
@@ -358,6 +359,9 @@ export function buildSelectedBinding(input: {
         }
         if (localModels.length > 0) {
             return toLocalBinding(localModels[0]!);
+        }
+        if (localMetadataDegraded) {
+            return preferredBinding;
         }
         return firstAvailableBinding(localModels, connectors) || {
             ...preferredBinding,
@@ -425,8 +429,12 @@ export async function loadRuntimeRouteOptions(input: {
             modelProfiles: [],
         });
     }
+    let localMetadataDegraded = false;
     const { snapshot, nodeCatalog, goRuntimeModels } = await resolvedDeps.loadLocalRouteMetadata(input.capability)
-        .catch((error) => buildLocalRouteMetadataFallback(error, input.capability, input.modId));
+        .catch((error) => {
+        localMetadataDegraded = true;
+        return buildLocalRouteMetadataFallback(error, input.capability, input.modId);
+    });
     const nodeByProvider = new Map<string, {
         provider: string;
         adapter: string;
@@ -472,6 +480,7 @@ export async function loadRuntimeRouteOptions(input: {
         runtimeFields,
         localModels: localModels,
         connectors,
+        localMetadataDegraded,
     });
     return {
         capability: input.capability,

@@ -143,9 +143,43 @@ test('buildSelectedBinding falls back to cloud embedding connector when no local
       },
       modelProfiles: [],
     }],
+    localMetadataDegraded: false,
   });
 
   assert.equal(selected.source, 'cloud');
   assert.equal(selected.connectorId, 'openai-main');
   assert.equal(selected.model, 'text-embedding-3-small');
+});
+
+test('buildSelectedBinding preserves local selection when local metadata is degraded', () => {
+  const selected = buildSelectedBinding({
+    capability: 'text.generate',
+    runtimeFields: {
+      provider: 'localai',
+      runtimeModelType: 'chat',
+      localProviderEndpoint: 'http://127.0.0.1:1234/v1',
+      localProviderModel: 'qwen2.5-7b-instruct',
+      localOpenAiEndpoint: 'http://127.0.0.1:1234/v1',
+      connectorId: '',
+    },
+    localModels: [],
+    connectors: [{
+      id: 'openai-main',
+      label: 'OpenAI',
+      provider: 'openai',
+      models: ['gpt-4.1-mini'],
+      modelCapabilities: {
+        'gpt-4.1-mini': ['text.generate'],
+      },
+      modelProfiles: [],
+    }],
+    localMetadataDegraded: true,
+  });
+
+  assert.equal(selected.source, 'local');
+  assert.equal(selected.connectorId, '');
+  assert.equal(selected.model, 'qwen2.5-7b-instruct');
+  assert.equal(selected.modelId, 'qwen2.5-7b-instruct');
+  assert.equal(selected.provider, 'localai');
+  assert.equal(selected.engine, 'localai');
 });

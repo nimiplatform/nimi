@@ -4,6 +4,7 @@ import { Tooltip } from '@renderer/components/tooltip.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { ProfileData } from '@renderer/features/profile/profile-model';
 import { formatProfileDate } from '@renderer/features/profile/profile-model';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 export type ChatProfileCardProps = {
   profileData: ProfileData;
@@ -155,6 +156,7 @@ function ProfileActionButton(input: {
       <button
         type="button"
         onClick={input.onClick}
+        data-testid={input.variant === 'outline' ? E2E_IDS.chatOpenUserProfile : undefined}
         className={`flex h-10 w-10 items-center justify-center rounded-full transition-all active:translate-y-0 ${buttonClassName}`}
         aria-label={input.label}
       >

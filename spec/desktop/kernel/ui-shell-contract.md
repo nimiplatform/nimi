@@ -69,7 +69,7 @@ Content 面板映射：
 - `contacts` → `ContactsPanel`
 - `explore` → `ExplorePanel`
 - `settings` → `SettingsPanel`
-- `profile` → `ProfileView`
+- `profile` → `ProfilePanel`（承载共享 profile detail surface）
 - `runtime` → `RuntimeView`
 - `mods` → `ModsPanel`（gated by `enableModUi`）
 - `mod:*` → `ModWorkspacePanel`

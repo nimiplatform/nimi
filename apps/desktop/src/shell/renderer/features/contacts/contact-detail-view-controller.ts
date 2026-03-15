@@ -10,6 +10,9 @@ export type ContactDetailViewProps = {
   error: boolean;
   onClose: () => void;
   onMessage: () => void;
+  onAddFriend?: () => void;
+  canAddFriend?: boolean;
+  addFriendHint?: string | null;
   onSendGift: () => void;
   onBlock?: () => void;
   onRemove?: () => void;
@@ -180,7 +183,11 @@ export function useContactDetailViewController(props: ContactDetailViewProps, re
       if (!response.ok) {
         throw new Error(i18n.t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }));
       }
-      const avatarUrl = `${realmBaseUrl}/api/media/images/${encodeURIComponent(upload.storageRef)}`;
+      const finalized = await dataSync.finalizeMediaAsset(upload.assetId, {});
+      const avatarUrl = finalized.url;
+      if (!avatarUrl) {
+        throw new Error(i18n.t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }));
+      }
       setDraft((current) => ({ ...current, avatarUrl }));
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : i18n.t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }));

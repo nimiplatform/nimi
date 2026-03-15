@@ -110,6 +110,7 @@
 | `runtime_local_models_import` | `local-runtime` | Import a local AI model from structured record | `D-IPC-011` |
 | `runtime_local_artifacts_import` | `local-runtime` | Import a local AI companion artifact from artifact.manifest.json | `D-IPC-011` |
 | `runtime_local_models_adopt` | `local-runtime` | Adopt a go-runtime discovered local AI model into desktop state without download | `D-IPC-011` |
+| `runtime_local_artifacts_adopt` | `local-runtime` | Adopt a go-runtime discovered local AI companion artifact into desktop state without import | `D-IPC-011` |
 | `runtime_local_pick_model_file` | `local-runtime` | Pick a local model file for import via native file dialog | `D-IPC-011` |
 | `runtime_local_models_import_file` | `local-runtime` | Import a model file with copy, hash, and manifest generation | `D-IPC-011` |
 | `runtime_local_models_remove` | `local-runtime` | Remove a local AI model | `D-IPC-011` |

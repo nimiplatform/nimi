@@ -12,8 +12,11 @@ export const E2E_IDS = {
   runtimePageRoot: (pageId: string) => `runtime-page:${pageId}`,
   chatList: 'chat-list',
   chatRow: (chatId: string) => `chat-row:${chatId}`,
+  chatHeaderProfileToggle: 'chat-header-profile-toggle',
+  chatOpenUserProfile: 'chat-open-user-profile',
   messageTimeline: 'message-timeline',
   feedPostAuthor: (postId: string) => `feed-post-author:${postId}`,
   contactDetailProfileModal: 'contact-detail-profile-modal',
   contactDetailProfileModalClose: 'contact-detail-profile-modal-close',
+  profileDetailSurface: 'profile-detail-surface',
 } as const;

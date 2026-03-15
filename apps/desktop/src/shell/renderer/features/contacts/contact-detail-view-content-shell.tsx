@@ -13,6 +13,7 @@ import {
   StatDivider,
   StatTile,
   TrashIcon,
+  UserPlusIcon,
 } from './contact-detail-view-parts.js';
 
 const TOPBAR_TOOLTIP_CLASS = 'rounded-full bg-[#0f172a] px-3 py-1.5 text-xs font-semibold text-white shadow-[0_4px_20px_rgba(0,0,0,0.25)]';
@@ -145,6 +146,10 @@ export function ContactDetailTabFallback() {
 
 export function ContactDetailActionButtons(input: {
   onMessage: () => void;
+  onAddFriend?: () => void;
+  showAddFriendButton?: boolean;
+  canAddFriend?: boolean;
+  addFriendHint?: string | null;
   onSendGift: () => void;
   showGiftButton: boolean;
   showMessageButton: boolean;
@@ -161,6 +166,23 @@ export function ContactDetailActionButtons(input: {
       {input.showMessageButton ? (
         <Tooltip content={i18n.t('Contacts.chat', { defaultValue: 'Chat' })} placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
           <IconButton icon={<MessageIcon className="h-4 w-4" />} label={i18n.t('Contacts.chat', { defaultValue: 'Chat' })} onClick={input.onMessage} />
+        </Tooltip>
+      ) : null}
+      {input.showAddFriendButton && input.onAddFriend ? (
+        <Tooltip
+          content={input.canAddFriend === false && input.addFriendHint
+            ? input.addFriendHint
+            : i18n.t('ProfileView.addFriend', { defaultValue: 'Add Friend' })}
+          placement="bottom"
+          contentClassName={TOPBAR_TOOLTIP_CLASS}
+          multiline={Boolean(input.canAddFriend === false && input.addFriendHint)}
+        >
+          <IconButton
+            icon={<UserPlusIcon className="h-4 w-4" />}
+            label={i18n.t('ProfileView.addFriend', { defaultValue: 'Add Friend' })}
+            onClick={input.onAddFriend}
+            disabled={input.canAddFriend === false}
+          />
         </Tooltip>
       ) : null}
       {input.showGiftButton ? (
@@ -257,6 +279,10 @@ export function ContactDetailStatsActionsBlock(input: {
   onSave: () => void;
   saveError: string | null;
   onMessage: () => void;
+  onAddFriend?: () => void;
+  showAddFriendButton?: boolean;
+  canAddFriend?: boolean;
+  addFriendHint?: string | null;
   onSendGift: () => void;
   showGiftButton: boolean;
   showMessageButton: boolean;
@@ -292,8 +318,13 @@ export function ContactDetailStatsActionsBlock(input: {
           <StatTile label={i18n.t('Profile.posts', { defaultValue: 'Posts' })} value={input.postCount} />
           <StatTile label={i18n.t('Profile.likes', { defaultValue: 'Likes' })} value={input.likesCount} />
         </div>
-        <div className="flex items-center gap-2 lg:justify-end">
-          <ContactDetailActionButtons {...input} />
+        <div className="lg:min-w-[11rem]">
+          <div className="flex items-center gap-2 lg:justify-end">
+            <ContactDetailActionButtons {...input} />
+          </div>
+          {input.showAddFriendButton && input.canAddFriend === false && input.addFriendHint ? (
+            <p className="mt-2 text-xs text-amber-600 lg:text-right">{input.addFriendHint}</p>
+          ) : null}
         </div>
       </div>
     </div>
@@ -305,6 +336,10 @@ export function ContactDetailDesktopStatsActions(input: {
   postCount: number;
   likesCount: number;
   onMessage: () => void;
+  onAddFriend?: () => void;
+  showAddFriendButton?: boolean;
+  canAddFriend?: boolean;
+  addFriendHint?: string | null;
   onSendGift: () => void;
   showGiftButton: boolean;
   showMessageButton: boolean;
@@ -321,6 +356,9 @@ export function ContactDetailDesktopStatsActions(input: {
       <div className="flex items-center justify-end gap-3">
         <ContactDetailActionButtons {...input} />
       </div>
+      {input.showAddFriendButton && input.canAddFriend === false && input.addFriendHint ? (
+        <p className="mt-2 text-right text-xs text-amber-600">{input.addFriendHint}</p>
+      ) : null}
       <div className="mt-[40px] grid w-full grid-cols-[1fr_18px_1fr_18px_1fr] items-start gap-x-0">
         <StatTile label={i18n.t('Profile.friends', { defaultValue: 'Friends' })} value={input.friendCount} />
         <StatDivider />

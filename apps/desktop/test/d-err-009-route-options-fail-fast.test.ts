@@ -133,6 +133,7 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
   assert.equal(options.connectors[0]?.id, 'connector-openai');
   assert.equal(options.selected.source, 'local');
   assert.equal(options.selected.model, 'local-model');
+  assert.equal(options.resolvedDefault?.source, 'local');
 
   const degradedLog = logs.find((entry) => entry.message === 'action:load-local-route-metadata:degraded');
   assert.ok(degradedLog, 'local metadata timeout should emit a degrade log instead of rejecting the dialog');

@@ -110,7 +110,7 @@ export function AuthViewMain(props: {
         </CircleIconButton>
 
         <CircleIconButton
-          label="Address"
+          label={t('Auth.walletSelect')}
           onClick={() => {
             onSetView('wallet_select');
           }}

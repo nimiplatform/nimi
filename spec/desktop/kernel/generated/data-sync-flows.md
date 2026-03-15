@@ -118,7 +118,7 @@ Source Rule: `D-DSYNC-006`
 
 ## feed
 
-Social feed posts and media uploads; direct-upload returns asset sessions and createPost references assetId only
+Social feed posts and media uploads; direct-upload sessions require finalizeMediaAsset after S3 upload before createPost; createPost references assetId only
 
 Source Rule: `D-DSYNC-007`
 
@@ -128,6 +128,7 @@ Source Rule: `D-DSYNC-007`
 | `createPost` |
 | `createImageDirectUpload` |
 | `createVideoDirectUpload` |
+| `finalizeMediaAsset` |
 
 ## explore
 

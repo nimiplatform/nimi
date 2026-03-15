@@ -5,11 +5,14 @@ import { dataSync } from '@runtime/data-sync';
 import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ContactDetailView, type EditableProfileDraft } from '@renderer/features/contacts/contact-detail-view.js';
+import {
+  ContactDetailErrorState,
+  ContactDetailLoadingState,
+} from '@renderer/features/contacts/contact-detail-view-content-shell.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
 import { openDefaultPrivateExecutionMod } from '@renderer/mod-ui/lifecycle/default-private-execution';
 import { toProfileData } from './profile-model';
-import { ProfileView } from './profile-view';
 import type { ContactRecord } from '@renderer/features/contacts/contacts-model';
 
 function toErrorMessage(error: unknown, fallback: string): string {
@@ -171,6 +174,11 @@ export function ProfilePanel() {
         throw new Error(addFriendHint || i18n.t('Contacts.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }));
       }
       await dataSync.requestOrAcceptFriend(selectedProfileId);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['contact-profile'], exact: false }),
+      ]);
       setStatusBanner({
         kind: 'success',
         message: i18n.t('Contacts.friendRequestSentOrAccepted', {
@@ -183,6 +191,68 @@ export function ProfilePanel() {
       setStatusBanner({
         kind: 'error',
         message: toErrorMessage(error, i18n.t('Contacts.addContactFailed', { defaultValue: 'Failed to add contact' })),
+      });
+    }
+  };
+
+  const onBlockProfile = async () => {
+    if (!profile) {
+      return;
+    }
+    try {
+      await dataSync.blockUser({
+        id: profile.id,
+        displayName: profile.displayName,
+        handle: profile.handle,
+        avatarUrl: profile.avatarUrl,
+        bio: profile.bio,
+        isAgent: profile.isAgent,
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['contact-profile'], exact: false }),
+      ]);
+      setStatusBanner({
+        kind: 'success',
+        message: i18n.t('Contacts.blockUserSuccess', {
+          name: profile.displayName || profile.handle || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
+          defaultValue: 'Blocked {{name}}',
+        }),
+      });
+      navigateBack();
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: toErrorMessage(error, i18n.t('Contacts.blockUserFailed', { defaultValue: 'Failed to block user' })),
+      });
+    }
+  };
+
+  const onRemoveProfile = async () => {
+    if (!profile) {
+      return;
+    }
+    try {
+      await dataSync.removeFriend(profile.id);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['chats'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['contact-profile'], exact: false }),
+      ]);
+      setStatusBanner({
+        kind: 'success',
+        message: i18n.t('Contacts.removeFriendSuccess', {
+          name: profile.displayName || profile.handle || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
+          defaultValue: 'Removed {{name}} from friends',
+        }),
+      });
+      navigateBack();
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: toErrorMessage(error, i18n.t('Contacts.removeFriendFailed', { defaultValue: 'Failed to remove friend' })),
       });
     }
   };
@@ -234,7 +304,21 @@ export function ProfilePanel() {
     }
   };
 
-  if (!profile && !loading && !error) {
+  if (loading) {
+    return <ContactDetailLoadingState label={i18n.t('ProfileView.loading')} />;
+  }
+
+  if (error) {
+    return (
+      <ContactDetailErrorState
+        backLabel={i18n.t('Common.back')}
+        label={i18n.t('ProfileView.error')}
+        onClose={navigateBack}
+      />
+    );
+  }
+
+  if (!profile) {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
         {i18n.t('Profile.noProfileDataAvailable', { defaultValue: 'No profile data available' })}
@@ -244,36 +328,30 @@ export function ProfilePanel() {
 
   return (
     <>
-      {isOwnProfile ? (
-        <ContactDetailView
-          profile={profile!}
-          isOwnProfile
-          loading={loading}
-          error={error}
-          onClose={navigateBack}
-          onMessage={() => {
-            void onMessage();
-          }}
-          onSendGift={() => setGiftModalOpen(true)}
-          showMessageButton={false}
-          onSaveProfile={onSaveOwnProfile}
-        />
-      ) : (
-        <ProfileView
-          profile={profile!}
-          isOwnProfile={isOwnProfile}
-          loading={loading}
-          error={error}
-          onBack={navigateBack}
-          onMessage={() => {
-            void onMessage();
-          }}
-          onAddFriend={() => { void onAddFriend(); }}
-          canAddFriend={!addFriendBlocked}
-          addFriendHint={addFriendHint}
-          onSendGift={() => setGiftModalOpen(true)}
-        />
-      )}
+      <ContactDetailView
+        profile={profile}
+        isOwnProfile={isOwnProfile}
+        loading={loading}
+        error={error}
+        onClose={navigateBack}
+        onMessage={() => {
+          void onMessage();
+        }}
+        onAddFriend={!isOwnProfile ? () => {
+          void onAddFriend();
+        } : undefined}
+        canAddFriend={!addFriendBlocked}
+        addFriendHint={addFriendHint}
+        onSendGift={() => setGiftModalOpen(true)}
+        onBlock={!isOwnProfile ? () => {
+          void onBlockProfile();
+        } : undefined}
+        onRemove={!isOwnProfile && profile.isFriend ? () => {
+          void onRemoveProfile();
+        } : undefined}
+        showMessageButton={!isOwnProfile}
+        onSaveProfile={isOwnProfile ? onSaveOwnProfile : undefined}
+      />
       <SendGiftModal
         open={giftModalOpen && !isOwnProfile}
         receiverId={profile?.id || ''}

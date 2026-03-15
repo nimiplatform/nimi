@@ -178,17 +178,24 @@ export function IconButton({
   icon,
   label,
   onClick,
+  disabled = false,
 }: {
   icon: ReactNode;
   label: string;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-label={label}
-      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.05)] backdrop-blur-sm transition hover:border-[#4ECCA3]/45 hover:bg-[#4ECCA3]/12 hover:text-[#1f8f69]"
+      className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 shadow-[0_8px_20px_rgba(15,23,42,0.05)] backdrop-blur-sm transition ${
+        disabled
+          ? 'cursor-not-allowed text-slate-300 opacity-70'
+          : 'text-slate-700 hover:border-[#4ECCA3]/45 hover:bg-[#4ECCA3]/12 hover:text-[#1f8f69]'
+      }`}
     >
       {icon}
     </button>
@@ -256,6 +263,17 @@ export function GiftIcon({ className = '' }: { className?: string }) {
       <path d="M12 8v13" />
       <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
       <path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" />
+    </svg>
+  );
+}
+
+export function UserPlusIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="8.5" cy="7" r="4" />
+      <path d="M20 8v6" />
+      <path d="M17 11h6" />
     </svg>
   );
 }

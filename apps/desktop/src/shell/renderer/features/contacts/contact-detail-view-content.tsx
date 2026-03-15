@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { Tooltip } from '@renderer/components/tooltip.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { formatProfileDate } from '@renderer/features/profile/profile-model';
 import {
   ArrowUpIcon,
@@ -97,6 +98,7 @@ export function ContactDetailViewContent(input: {
     ? t('Profile.agentNoSummary', { defaultValue: 'This contact has no public profile summary yet.' })
     : t('Profile.noDescription', { defaultValue: 'No profile summary has been added yet.' }));
   const showGiftButton = !input.isOwnProfile;
+  const showAddFriendButton = !input.isOwnProfile && !profile.isFriend && Boolean(input.onAddFriend);
   const showMessageButton = input.showMessageButton !== false;
 
   useEffect(() => {
@@ -110,7 +112,10 @@ export function ContactDetailViewContent(input: {
   }, []);
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,#eef3f4_0%,#f7fafb_48%,#fcfefd_100%)]">
+    <div
+      data-testid={E2E_IDS.profileDetailSurface}
+      className="flex h-full min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,#eef3f4_0%,#f7fafb_48%,#fcfefd_100%)]"
+    >
       <ScrollShell
         ref={scrollContainerRef}
         className="flex-1"
@@ -333,6 +338,10 @@ export function ContactDetailViewContent(input: {
                                     postCount={postCount}
                                     likesCount={likesCount}
                                     onMessage={input.onMessage}
+                                    onAddFriend={input.onAddFriend}
+                                    showAddFriendButton={showAddFriendButton}
+                                    canAddFriend={input.canAddFriend}
+                                    addFriendHint={input.addFriendHint}
                                     onSendGift={input.onSendGift}
                                     showGiftButton={showGiftButton}
                                     showMessageButton={showMessageButton}
@@ -428,6 +437,10 @@ export function ContactDetailViewContent(input: {
                               }}
                               saveError={saveError}
                               onMessage={input.onMessage}
+                              onAddFriend={input.onAddFriend}
+                              showAddFriendButton={showAddFriendButton}
+                              canAddFriend={input.canAddFriend}
+                              addFriendHint={input.addFriendHint}
                               onSendGift={input.onSendGift}
                               showGiftButton={showGiftButton}
                               showMessageButton={showMessageButton}

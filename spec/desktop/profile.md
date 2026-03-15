@@ -8,7 +8,7 @@
 
 ## Module Map
 
-- `features/profile/` — 个人资料视图
+- `features/profile/` — 个人资料面板与共享资料详情路由
 - `runtime/data-sync/flows/user-flow.ts` — 用户数据流
 
 ## Kernel References
@@ -23,7 +23,7 @@ Agent 数据流（方法清单见 `D-DSYNC-011`）。
 
 ### State (D-STATE-004)
 
-- `activeTab = 'profile'` 时渲染 ProfileView。
+- `activeTab = 'profile'` 时渲染 `ProfilePanel`，并复用共享 profile detail surface。
 - `selectedProfileId`：选中的用户 ID。
 - `navigateToProfile(profileId, 'profile')` 导航到资料页。
 

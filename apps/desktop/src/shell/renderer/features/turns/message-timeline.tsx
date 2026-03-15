@@ -72,6 +72,7 @@ export function MessageTimeline() {
   const currentUser = useAppStore((state) => state.auth.user);
   const currentUserId = String(currentUser?.id || '');
   const currentUserAvatarUrl = typeof currentUser?.avatarUrl === 'string' ? currentUser.avatarUrl : null;
+  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const navigateToProfile = useAppStore((state) => state.navigateToProfile);
   const profilePanelTarget = useAppStore((state) => state.chatProfilePanelTarget);
   const setProfilePanelTarget = useAppStore((state) => state.setChatProfilePanelTarget);
@@ -266,6 +267,7 @@ export function MessageTimeline() {
           <button
             type="button"
             onClick={() => toggleProfilePanel('other')}
+            data-testid={E2E_IDS.chatHeaderProfileToggle}
             className="text-[15px] font-semibold text-gray-900 hover:text-gray-700 transition-colors"
             aria-label={profilePanelTarget === 'other'
               ? t('ChatTimeline.collapseUserProfile')
@@ -560,6 +562,15 @@ export function MessageTimeline() {
         receiverHandle={String(otherUser?.handle || '')}
         receiverAvatarUrl={contactAvatarUrl}
         onClose={() => setGiftModalOpen(false)}
+        onSent={() => {
+          setStatusBanner({
+            kind: 'success',
+            message: t('Contacts.giftSentTo', {
+              name: contactName,
+              defaultValue: 'Gift sent to {{name}}',
+            }),
+          });
+        }}
       />
     </section>
   );
