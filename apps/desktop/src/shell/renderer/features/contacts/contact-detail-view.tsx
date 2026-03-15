@@ -1,10 +1,12 @@
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
-  ContactDetailErrorState,
-  ContactDetailLoadingState,
   ContactDetailViewContent,
 } from './contact-detail-view-content.js';
+import {
+  ContactDetailErrorState,
+  ContactDetailLoadingState,
+} from './contact-detail-view-content-shell.js';
 import { type ContactDetailViewProps, useContactDetailViewController } from './contact-detail-view-controller.js';
 
 export type { EditableProfileDraft } from './contact-detail-view-parts.js';

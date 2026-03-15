@@ -3,11 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import {
-  runDesktopUpdateCheck,
-  runDesktopUpdateInstall,
-  runDesktopUpdateRestart,
-} from '@renderer/infra/bootstrap/desktop-updates';
 import type { UpdateUserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
 import type { UserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
 import {
@@ -15,8 +10,6 @@ import {
   SectionTitle,
 } from './settings-layout-components';
 import {
-  loadStoredPerformancePreferences,
-  persistStoredPerformancePreferences,
   type PerformancePreferences,
 } from './settings-storage';
 
@@ -48,7 +41,7 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (valu
   );
 }
 
-function SettingRow({ icon, title, description, checked, onChange }: SettingRowProps) {
+export function SettingRow({ icon, title, description, checked, onChange }: SettingRowProps) {
   return (
     <div className="flex items-center justify-between px-5 py-4 hover:bg-gray-50/50 transition-colors">
       <div className="flex items-center gap-4">
@@ -174,7 +167,7 @@ function notificationsEqual(left: NotificationForm, right: NotificationForm): bo
   );
 }
 
-function performanceEqual(left: PerformancePreferences, right: PerformancePreferences): boolean {
+export function performanceEqual(left: PerformancePreferences, right: PerformancePreferences): boolean {
   return (
     left.hardwareAcceleration === right.hardwareAcceleration
     && left.reduceAnimations === right.reduceAnimations
@@ -423,7 +416,7 @@ export function NotificationsPage() {
 }
 
 // Info Card Component
-function InfoCard({
+export function InfoCard({
   icon,
   label,
   value,
@@ -444,7 +437,7 @@ function InfoCard({
 }
 
 // Icons
-function BellIcon({ className = '' }: { className?: string }) {
+export function BellIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
@@ -453,7 +446,7 @@ function BellIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function MailIcon({ className = '' }: { className?: string }) {
+export function MailIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect width="20" height="16" x="2" y="4" rx="2" />
@@ -462,7 +455,7 @@ function MailIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function UserPlusIcon({ className = '' }: { className?: string }) {
+export function UserPlusIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -473,7 +466,7 @@ function UserPlusIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function AtSignIcon({ className = '' }: { className?: string }) {
+export function AtSignIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="4" />
@@ -482,7 +475,7 @@ function AtSignIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function HeartIcon({ className = '' }: { className?: string }) {
+export function HeartIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
@@ -490,7 +483,7 @@ function HeartIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function GiftIcon({ className = '' }: { className?: string }) {
+export function GiftIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="8" r="6" />
@@ -500,7 +493,7 @@ function GiftIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function AlertCircleIcon({ className = '' }: { className?: string }) {
+export function AlertCircleIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
@@ -510,7 +503,7 @@ function AlertCircleIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function MonitorIcon({ className = '' }: { className?: string }) {
+export function MonitorIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
@@ -520,7 +513,7 @@ function MonitorIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function InfoIcon({ className = '' }: { className?: string }) {
+export function InfoIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
@@ -530,7 +523,7 @@ function InfoIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function GpuIcon({ className = '' }: { className?: string }) {
+export function GpuIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="4" y="4" width="16" height="16" rx="2" />
@@ -547,7 +540,7 @@ function GpuIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function AnimationIcon({ className = '' }: { className?: string }) {
+export function AnimationIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polygon points="5 3 19 12 5 21 5 3" />
@@ -555,7 +548,7 @@ function AnimationIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function DownloadIcon({ className = '' }: { className?: string }) {
+export function DownloadIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -565,7 +558,7 @@ function DownloadIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function CodeIcon({ className = '' }: { className?: string }) {
+export function CodeIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="16 18 22 12 16 6" />
@@ -574,7 +567,7 @@ function CodeIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function ServerIcon({ className = '' }: { className?: string }) {
+export function ServerIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
@@ -585,7 +578,7 @@ function ServerIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function CpuIcon({ className = '' }: { className?: string }) {
+export function CpuIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="4" y="4" width="16" height="16" rx="2" />
@@ -602,7 +595,7 @@ function CpuIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function TargetIcon({ className = '' }: { className?: string }) {
+export function TargetIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
@@ -612,7 +605,7 @@ function TargetIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function AwardIcon({ className = '' }: { className?: string }) {
+export function AwardIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="8" r="7" />
@@ -635,7 +628,7 @@ function formatBytes(bytes: number | undefined): string {
   return `${value.toFixed(value >= 100 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 }
 
-function formatUpdateProgress(
+export function formatUpdateProgress(
   downloadedBytes: number,
   totalBytes: number | undefined,
   downloadedLabel: string,
@@ -645,322 +638,4 @@ function formatUpdateProgress(
   }
   const percent = Math.max(0, Math.min(100, Math.round((downloadedBytes / totalBytes) * 100)));
   return `${percent}% · ${formatBytes(downloadedBytes)} / ${formatBytes(totalBytes)}`;
-}
-
-export function PerformancePage() {
-  const { t } = useTranslation();
-  const setStatusBanner = useAppStore((s) => s.setStatusBanner);
-  const runtimeFields = useAppStore((s) => s.runtimeFields);
-  const desktopReleaseInfo = useAppStore((s) => s.desktopReleaseInfo);
-  const desktopReleaseError = useAppStore((s) => s.desktopReleaseError);
-  const desktopUpdateState = useAppStore((s) => s.desktopUpdateState);
-  const [preferences, setPreferences] = useState<PerformancePreferences>(() =>
-    loadStoredPerformancePreferences());
-  const [baseline, setBaseline] = useState<PerformancePreferences>(() =>
-    loadStoredPerformancePreferences());
-  const [saving, setSaving] = useState(false);
-  const autosaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const eligibilityQuery = useQuery({
-    queryKey: ['settings-creator-eligibility'],
-    queryFn: async () => dataSync.loadMyCreatorEligibility(),
-  });
-
-  const hasChanges = useMemo(() => !performanceEqual(preferences, baseline), [preferences, baseline]);
-
-  useEffect(() => () => {
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-    }
-  }, []);
-
-  const handleSave = async ({ silentSuccess = false }: { silentSuccess?: boolean } = {}) => {
-    if (saving || !hasChanges) {
-      if (!hasChanges) {
-        setStatusBanner({
-          kind: 'info',
-          message: t('Performance.noChanges'),
-        });
-      }
-      return;
-    }
-    setSaving(true);
-    try {
-      persistStoredPerformancePreferences(preferences);
-      setBaseline(preferences);
-      if (!silentSuccess) {
-        setStatusBanner({
-          kind: 'success',
-          message: t('Performance.saveSuccess'),
-        });
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  useEffect(() => {
-    if (saving || !hasChanges) {
-      if (autosaveTimerRef.current) {
-        clearTimeout(autosaveTimerRef.current);
-        autosaveTimerRef.current = null;
-      }
-      return;
-    }
-
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-    }
-
-    autosaveTimerRef.current = setTimeout(() => {
-      void handleSave({ silentSuccess: true });
-    }, 700);
-
-    return () => {
-      if (autosaveTimerRef.current) {
-        clearTimeout(autosaveTimerRef.current);
-        autosaveTimerRef.current = null;
-      }
-    };
-  }, [hasChanges, preferences, saving]);
-
-  const eligibility = eligibilityQuery.data;
-  const eligibilityText = eligibilityQuery.isPending
-    ? t('Performance.loadingEligibility')
-    : eligibilityQuery.isError
-      ? t('Performance.eligibilityLoadError')
-      : eligibility
-        ? `${eligibility.tier} · ${eligibility.status}`
-        : '-';
-  const isEligible = eligibility?.isEligible ?? false;
-  const updateStatusText = desktopUpdateState
-    ? ({
-      idle: t('Performance.updateStatusIdle'),
-      checking: t('Performance.updateStatusChecking'),
-      available: t('Performance.updateStatusAvailable'),
-      downloading: t('Performance.updateStatusDownloading'),
-      downloaded: t('Performance.updateStatusDownloaded'),
-      installing: t('Performance.updateStatusInstalling'),
-      readyToRestart: t('Performance.updateStatusReadyToRestart'),
-      error: t('Performance.updateStatusError'),
-    }[desktopUpdateState.status] || desktopUpdateState.status)
-    : t('Performance.updateStatusIdle');
-  const canCheckUpdates = Boolean(desktopReleaseInfo) && !desktopReleaseError;
-  const canRestartForUpdate = desktopUpdateState?.readyToRestart === true;
-  const isUpdateBusy = desktopUpdateState?.status === 'checking'
-    || desktopUpdateState?.status === 'downloading'
-    || desktopUpdateState?.status === 'installing';
-  const desktopUpdateAlerts = collectDesktopUpdatePanelAlerts({
-    desktopReleaseError,
-    runtimeLastError: desktopReleaseInfo?.runtimeLastError,
-    updateLastError: desktopUpdateState?.lastError,
-  });
-
-  return (
-    <PageShell
-      title={t('Performance.pageTitle')}
-      description={t('Performance.pageDescription')}
-    >
-      {/* Rendering Settings */}
-      <section className="mt-8">
-        <SectionTitle description={t('Performance.sectionRenderingDescription')}>
-          {t('Performance.sectionRendering')}
-        </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-          <SettingRow
-            icon={<GpuIcon className="h-5 w-5" />}
-            title={t('Performance.hardwareAcceleration')}
-            description={t('Performance.hardwareAccelerationDescription')}
-            checked={preferences.hardwareAcceleration}
-            onChange={(value) => setPreferences((previous) => ({ ...previous, hardwareAcceleration: value }))}
-          />
-          <div className="h-px bg-gray-50 mx-5" />
-          <SettingRow
-            icon={<AnimationIcon className="h-5 w-5" />}
-            title={t('Performance.reduceAnimations')}
-            description={t('Performance.reduceAnimationsDescription')}
-            checked={preferences.reduceAnimations}
-            onChange={(value) => setPreferences((previous) => ({ ...previous, reduceAnimations: value }))}
-          />
-        </div>
-      </section>
-
-      {/* Updates Settings */}
-      <section className="mt-8">
-        <SectionTitle description={t('Performance.sectionUpdatesDescription')}>
-          {t('Performance.sectionUpdates')}
-        </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-          <SettingRow
-            icon={<DownloadIcon className="h-5 w-5" />}
-            title={t('Performance.autoUpdate')}
-            description={t('Performance.autoUpdateDescription')}
-            checked={preferences.autoUpdate}
-            onChange={(value) => setPreferences((previous) => ({ ...previous, autoUpdate: value }))}
-          />
-        </div>
-        <div className="mt-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-gray-900">{t('Performance.appUpdateTitle')}</p>
-                <p className="mt-1 text-xs text-gray-500">
-                  {t('Performance.appUpdateDescription')}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  disabled={!canCheckUpdates || isUpdateBusy}
-                  className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-                  onClick={() => {
-                    void runDesktopUpdateCheck({ autoDownload: false, silent: false });
-                  }}
-                >
-                  {t('Performance.checkNow')}
-                </button>
-                <button
-                  type="button"
-                  disabled={!canCheckUpdates || isUpdateBusy || canRestartForUpdate}
-                  className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-                  onClick={() => {
-                    void runDesktopUpdateInstall({ silent: false });
-                  }}
-                >
-                  {t('Performance.downloadAndInstall')}
-                </button>
-                <button
-                  type="button"
-                  disabled={!canRestartForUpdate}
-                  className="rounded-lg bg-gray-900 px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-                  onClick={() => {
-                    void runDesktopUpdateRestart();
-                  }}
-                >
-                  {t('Performance.restartNow')}
-                </button>
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <InfoCard
-                icon={<DownloadIcon className="h-5 w-5" />}
-                label={t('Performance.desktopVersion')}
-                value={desktopReleaseInfo?.desktopVersion || '-'}
-              />
-              <InfoCard
-                icon={<ServerIcon className="h-5 w-5" />}
-                label={t('Performance.bundledRuntime')}
-                value={desktopReleaseInfo?.runtimeVersion || '-'}
-              />
-              <InfoCard
-                icon={<TargetIcon className="h-5 w-5" />}
-                label={t('Performance.updateStatus')}
-                value={updateStatusText}
-              />
-              <InfoCard
-                icon={<AwardIcon className="h-5 w-5" />}
-                label={t('Performance.targetVersion')}
-                value={desktopUpdateState?.targetVersion || '-'}
-              />
-            </div>
-
-            {desktopUpdateState?.status === 'downloading' ? (
-              <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-xs text-brand-700">
-                {formatUpdateProgress(
-                  desktopUpdateState.downloadedBytes,
-                  desktopUpdateState.totalBytes,
-                  t('Performance.updateProgressDownloaded'),
-                )}
-              </div>
-            ) : null}
-
-            {desktopUpdateAlerts.map((alert) => (
-              <div
-                key={`${alert.tone}:${alert.message}`}
-                className={alert.tone === 'error'
-                  ? 'rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700'
-                  : 'rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700'}
-              >
-                {alert.message}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Developer Settings */}
-      <section className="mt-8">
-        <SectionTitle description={t('Performance.sectionDeveloperDescription')}>
-          {t('Performance.sectionDeveloper')}
-        </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-          <SettingRow
-            icon={<CodeIcon className="h-5 w-5" />}
-            title={t('Performance.developerMode')}
-            description={t('Performance.developerModeDescription')}
-            checked={preferences.developerMode}
-            onChange={(value) => setPreferences((previous) => ({ ...previous, developerMode: value }))}
-          />
-        </div>
-      </section>
-
-      {/* Runtime Information */}
-      <section className="mt-8">
-        <SectionTitle>{t('Performance.sectionRuntimeInfo')}</SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div className="divide-y divide-gray-50">
-            <InfoCard
-              icon={<ServerIcon className="h-5 w-5" />}
-              label={t('Performance.provider')}
-              value={runtimeFields.provider || t('Performance.notConfigured')}
-            />
-            <InfoCard
-              icon={<CpuIcon className="h-5 w-5" />}
-              label={t('Performance.model')}
-              value={runtimeFields.localProviderModel || '-'}
-            />
-            <InfoCard
-              icon={<TargetIcon className="h-5 w-5" />}
-              label={t('Performance.mode')}
-              value={runtimeFields.mode}
-            />
-            <InfoCard
-              icon={<CodeIcon className="h-5 w-5" />}
-              label={t('Performance.targetType')}
-              value={runtimeFields.targetType}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Creator Eligibility */}
-      <section className="mt-8">
-        <SectionTitle>{t('Performance.sectionCreatorEligibility')}</SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${isEligible ? 'bg-mint-100 text-mint-600' : 'bg-gray-100 text-gray-500'}`}>
-                <AwardIcon className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">{t('Performance.eligibility')}</p>
-                <p className="text-xs text-gray-500">{eligibilityText}</p>
-              </div>
-            </div>
-            <span className={`rounded-full px-3 py-1 text-xs font-medium ${
-              isEligible 
-                ? 'bg-green-100 text-green-700' 
-                : 'bg-amber-100 text-amber-700'
-            }`}>
-              {isEligible ? t('Performance.eligible') : t('Performance.notEligible')}
-            </span>
-          </div>
-          {eligibility?.message ? (
-            <p className="mt-4 text-xs text-gray-500">{eligibility.message}</p>
-          ) : null}
-        </div>
-      </section>
-    </PageShell>
-  );
 }

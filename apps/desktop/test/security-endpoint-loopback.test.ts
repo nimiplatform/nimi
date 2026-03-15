@@ -31,13 +31,19 @@ const RUST_VALIDATOR_PATH = path.resolve(
   import.meta.dirname ?? __dirname,
   '../src-tauri/src/local_runtime/import_validator.rs',
 );
+const RUST_VALIDATOR_HELPERS_PATH = path.resolve(
+  import.meta.dirname ?? __dirname,
+  '../src-tauri/src/local_runtime/import_validator/helpers.rs',
+);
 const INVOKE_PATH = path.resolve(
   import.meta.dirname ?? __dirname,
   '../src/shell/renderer/bridge/runtime-bridge/invoke.ts',
 );
 
 const inferenceAuditSource = fs.readFileSync(INFERENCE_AUDIT_PATH, 'utf-8');
-const rustValidatorSource = fs.readFileSync(RUST_VALIDATOR_PATH, 'utf-8');
+const rustValidatorSource = [RUST_VALIDATOR_PATH, RUST_VALIDATOR_HELPERS_PATH]
+  .map((filePath) => fs.readFileSync(filePath, 'utf-8'))
+  .join('\n');
 const invokeSource = fs.readFileSync(INVOKE_PATH, 'utf-8');
 
 // ---------------------------------------------------------------------------
@@ -53,7 +59,7 @@ test('D-SEC-001: localhost passes loopback check', () => {
   // Rust validate_loopback_endpoint accepts 'localhost'
   assert.ok(
     rustValidatorSource.includes('.eq_ignore_ascii_case("localhost")'),
-    'Rust validator must accept localhost via case-insensitive comparison',
+    'Rust validator sources must accept localhost via case-insensitive comparison',
   );
 });
 
@@ -70,7 +76,7 @@ test('D-SEC-001: 127.0.0.1 passes loopback check', () => {
   // Rust uses parsed_ip.is_loopback() which covers 127.0.0.0/8
   assert.ok(
     rustValidatorSource.includes('.is_loopback()'),
-    'Rust validator must call is_loopback() on parsed IP (covers 127.0.0.0/8)',
+    'Rust validator sources must call is_loopback() on parsed IP (covers 127.0.0.0/8)',
   );
 });
 
@@ -91,7 +97,7 @@ test('D-SEC-001: [::1] passes loopback check', () => {
   // Rust strips brackets and parses as IpAddr, then calls is_loopback()
   assert.ok(
     rustValidatorSource.includes("trim_matches(|ch| ch == '[' || ch == ']')"),
-    'Rust validator must strip brackets from IPv6 host before parsing',
+    'Rust validator sources must strip brackets from IPv6 host before parsing',
   );
 });
 
@@ -108,7 +114,7 @@ test('D-SEC-001: remote address fails loopback check', () => {
   // Rust: non-loopback IPs produce an Err
   assert.ok(
     rustValidatorSource.includes('if !parsed_ip.is_loopback()'),
-    'Rust validator must reject non-loopback IP addresses',
+    'Rust validator sources must reject non-loopback IP addresses',
   );
 });
 
@@ -141,14 +147,14 @@ test('D-SEC-001: failure produces LOCAL_AI_ENDPOINT_NOT_LOOPBACK error', () => {
 test('D-SEC-001: Rust validate_loopback_endpoint function exists', () => {
   assert.ok(
     rustValidatorSource.includes('fn validate_loopback_endpoint('),
-    'import_validator.rs must define validate_loopback_endpoint',
+    'import_validator sources must define validate_loopback_endpoint',
   );
 });
 
 test('D-SEC-001: Rust validator emits LOCAL_AI_ENDPOINT_NOT_LOOPBACK on non-loopback host', () => {
   assert.ok(
     rustValidatorSource.includes('LOCAL_AI_ENDPOINT_NOT_LOOPBACK'),
-    'import_validator.rs must reference LOCAL_AI_ENDPOINT_NOT_LOOPBACK error code',
+    'import_validator sources must reference LOCAL_AI_ENDPOINT_NOT_LOOPBACK error code',
   );
 });
 

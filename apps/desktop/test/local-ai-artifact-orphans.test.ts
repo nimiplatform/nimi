@@ -13,6 +13,10 @@ const localModelCenterPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center.tsx',
 );
+const localModelCenterRuntimeStatePath = path.resolve(
+  process.cwd(),
+  'src/shell/renderer/features/runtime-config/runtime-config-use-local-model-center-runtime-state.ts',
+);
 const localModelCenterCardPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-catalog-card.tsx',
@@ -25,7 +29,12 @@ const localModelCenterSectionsPath = path.resolve(
 const runtimeCommandsSource = readFileSync(runtimeCommandsPath, 'utf-8');
 const runtimeIndexSource = readFileSync(runtimeIndexPath, 'utf-8');
 const installActionsSource = readFileSync(installActionsPath, 'utf-8');
-const localModelCenterSource = readFileSync(localModelCenterPath, 'utf-8');
+const localModelCenterSource = [
+  localModelCenterPath,
+  localModelCenterRuntimeStatePath,
+]
+  .map((filePath) => readFileSync(filePath, 'utf-8'))
+  .join('\n');
 const localModelCenterCardSource = readFileSync(localModelCenterCardPath, 'utf-8');
 const localModelCenterSectionsSource = readFileSync(localModelCenterSectionsPath, 'utf-8');
 
@@ -63,7 +72,7 @@ test('local model center keeps companion orphan lane separated from model orphan
 test('local model center state refreshes both orphan lanes after companion scaffold', () => {
   assert.match(localModelCenterSource, /scanArtifactOrphans\(\)/);
   assert.match(localModelCenterSource, /refreshAllOrphanFiles/);
-  assert.match(localModelCenterSource, /props\.onScaffoldArtifactOrphan\(orphanPath, kind\)/);
+  assert.match(localModelCenterSource, /scaffoldArtifactOrphanImport\(orphanPath\)|props\.onScaffoldArtifactOrphan\(orphanPath, kind\)/);
 });
 
 test('artifact tasks expose retry only through failed verified companion installs', () => {
