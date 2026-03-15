@@ -202,7 +202,7 @@ export function ExploreAgentCard({
               onClick={handleOpen}
             >
               <span className="block truncate text-sm font-bold text-gray-800">{agent.name}</span>
-              <span className="block truncate text-xs text-gray-400">@{agent.handle}</span>
+              <span className="block truncate text-xs text-gray-400">@{agent.handle.replace(/^@/, '')}</span>
             </button>
             {agent.accountVisibility === 'PUBLIC' && <PublicBadge />}
           </div>

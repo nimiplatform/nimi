@@ -106,7 +106,7 @@ export function QuickAddFriendModal(props: QuickAddFriendModalProps) {
             <h3 className="mt-3 text-lg font-bold text-gray-900">{agent.name}</h3>
             
             {/* Handle */}
-            <p className="text-sm text-gray-500">@{agent.handle}</p>
+            <p className="text-sm text-gray-500">@{agent.handle.replace(/^@/, '')}</p>
             
             {/* Tag */}
             <span className="mt-2 inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600">
