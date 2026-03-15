@@ -2,12 +2,12 @@ import type { Realm } from '@nimiplatform/sdk/realm';
 
 type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 
-function hasLegacyHandlePrefix(value: string): boolean {
-  return value.startsWith('@') || value.startsWith('~');
-}
-
 function toStringOrUndefined(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
+}
+
+function stripHandlePrefix(value: string): string {
+  return value.startsWith('@') || value.startsWith('~') ? value.slice(1) : value;
 }
 
 type SearchUserResult = {
@@ -32,12 +32,9 @@ export async function searchUserByIdentifier(
   identifierInput: string,
   isFriend: (userId: string) => boolean,
 ): Promise<SearchUserResult> {
-  const identifier = String(identifierInput || '').trim();
+  const identifier = stripHandlePrefix(String(identifierInput || '').trim());
   if (!identifier) {
     throw new Error('Please enter a handle or user ID');
-  }
-  if (hasLegacyHandlePrefix(identifier)) {
-    throw new Error('HANDLE_PREFIX_UNSUPPORTED');
   }
 
   const looksLikeUlid = /^[0-9A-HJKMNP-TV-Z]{26}$/i.test(identifier);
@@ -72,6 +69,14 @@ export async function searchUserByIdentifier(
       user = await resolveByHandle(identifier);
     } catch {
       user = null;
+    }
+    // If not found as human (@handle), retry with agent prefix (~handle)
+    if (!user) {
+      try {
+        user = await resolveByHandle(`~${identifier}`);
+      } catch {
+        user = null;
+      }
     }
   }
 

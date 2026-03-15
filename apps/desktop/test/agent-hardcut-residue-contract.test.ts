@@ -43,7 +43,6 @@ test('agent hard-cut residues stay confined to explicit host-private and rejecti
     findFilesContaining(/HANDLE_PREFIX_UNSUPPORTED/),
     [
       'src/runtime/data-sync/flows/agent-runtime-flow.ts',
-      'src/runtime/data-sync/flows/social-flow.ts',
       'src/shell/renderer/features/contacts/add-contact-modal.tsx',
     ],
   );

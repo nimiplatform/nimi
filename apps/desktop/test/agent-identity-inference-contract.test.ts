@@ -38,12 +38,11 @@ test('product-side social and explore flows do not infer agent identity from han
   assert.doesNotMatch(socialFlowSource, /buildHandleLookupCandidates/);
 });
 
-test('loadAgentDetails and searchUserByIdentifier reject legacy @ and ~ prefixes', async () => {
+test('loadAgentDetails rejects legacy @ and ~ prefixes', async () => {
   const callApi = async () => {
     throw new Error('UNEXPECTED_API_CALL');
   };
   const emitDataSyncError = () => {};
-  const isFriend = () => false;
 
   await assert.rejects(
     () => loadAgentDetails(callApi as never, emitDataSyncError, '@legacy'),
@@ -53,12 +52,21 @@ test('loadAgentDetails and searchUserByIdentifier reject legacy @ and ~ prefixes
     () => loadAgentDetails(callApi as never, emitDataSyncError, '~legacy'),
     /HANDLE_PREFIX_UNSUPPORTED/,
   );
+});
+
+test('searchUserByIdentifier strips @ and ~ prefixes and attempts lookup', async () => {
+  const callApi = async () => {
+    throw new Error('UNEXPECTED_API_CALL');
+  };
+  const isFriend = () => false;
+
+  // Prefix is stripped; lookup is attempted (API call made, not a prefix rejection)
   await assert.rejects(
     () => searchUserByIdentifier(callApi as never, '@legacy', isFriend),
-    /HANDLE_PREFIX_UNSUPPORTED/,
+    /UNEXPECTED_API_CALL/,
   );
   await assert.rejects(
     () => searchUserByIdentifier(callApi as never, '~legacy', isFriend),
-    /HANDLE_PREFIX_UNSUPPORTED/,
+    /UNEXPECTED_API_CALL/,
   );
 });
