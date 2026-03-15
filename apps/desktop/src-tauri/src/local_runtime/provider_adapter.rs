@@ -83,71 +83,6 @@ fn hint_preferred_adapter(
         .and_then(|local| local.preferred_adapter.clone())
 }
 
-fn nimi_media_driver_hint_for_capability(capability: &str) -> Option<String> {
-    match normalize_capability(capability).as_str() {
-        "image" => Some("flux".to_string()),
-        "video" => Some("wan".to_string()),
-        _ => None,
-    }
-}
-
-fn nimi_media_driver_hint_for_model(model_id: &str, capability: &str) -> Option<String> {
-    let normalized = model_id.trim().to_ascii_lowercase();
-    if normalized.is_empty() {
-        return nimi_media_driver_hint_for_capability(capability);
-    }
-    if capability.eq_ignore_ascii_case("image")
-        && (normalized.contains("flux") || normalized.contains("image"))
-    {
-        return Some("flux".to_string());
-    }
-    if capability.eq_ignore_ascii_case("video")
-        && (normalized.contains("wan") || normalized.contains("video"))
-    {
-        return Some("wan".to_string());
-    }
-    nimi_media_driver_hint_for_capability(capability)
-}
-
-pub fn localai_backend_hint_for_capability(capability: &str) -> Option<String> {
-    match normalize_capability(capability).as_str() {
-        "stt" => Some("whisper.cpp".to_string()),
-        "image" => Some("stablediffusion.cpp".to_string()),
-        "video" => Some("video".to_string()),
-        _ => None,
-    }
-}
-
-pub fn localai_backend_hint_for_model(model_id: &str, capability: &str) -> Option<String> {
-    let normalized = model_id.trim().to_ascii_lowercase();
-    if normalized.is_empty() {
-        return localai_backend_hint_for_capability(capability);
-    }
-    if capability.eq_ignore_ascii_case("stt")
-        && (normalized.contains("whisper")
-            || normalized.contains("moonshine")
-            || normalized.contains("transcrib"))
-    {
-        return Some("whisper.cpp".to_string());
-    }
-    if capability.eq_ignore_ascii_case("image")
-        && (normalized.contains("stable-diffusion")
-            || normalized.contains("stablediffusion")
-            || normalized.contains("diffusion")
-            || normalized.contains("flux"))
-    {
-        return Some("stablediffusion.cpp".to_string());
-    }
-    if capability.eq_ignore_ascii_case("video")
-        && (normalized.contains("ltx")
-            || normalized.contains("wan")
-            || normalized.contains("video"))
-    {
-        return Some("video-native".to_string());
-    }
-    localai_backend_hint_for_capability(capability)
-}
-
 fn localai_probe_model_matches_capability(model_id: &str, capability: &str) -> bool {
     let normalized = model_id.trim().to_ascii_lowercase();
     if normalized.is_empty() {
@@ -260,18 +195,8 @@ pub fn infer_backend_hint_for_provider(
     capability: &str,
     model_id: Option<&str>,
 ) -> Option<String> {
-    let normalized_provider = normalize_provider(Some(provider));
-    if normalized_provider == "nexa" {
-        return None;
-    }
-    if normalized_provider == "nimi_media" {
-        return model_id
-            .and_then(|value| nimi_media_driver_hint_for_model(value, capability))
-            .or_else(|| nimi_media_driver_hint_for_capability(capability));
-    }
-    model_id
-        .and_then(|value| localai_backend_hint_for_model(value, capability))
-        .or_else(|| localai_backend_hint_for_capability(capability))
+    let _ = (provider, capability, model_id);
+    None
 }
 
 pub fn default_provider_hints_for_provider_capability(
@@ -314,17 +239,15 @@ pub fn default_provider_hints_for_provider_capability(
                     normalized_provider.as_str(),
                     capability,
                 )),
-                driver: nimi_media_driver_hint_for_capability(capability),
-                family: Some("diffusers".to_string()),
+                driver: None,
+                family: None,
             }),
             extra: None,
         });
     }
-
-    let backend = localai_backend_hint_for_capability(capability)?;
     Some(LocalAiProviderHints {
         localai: Some(LocalAiProviderLocalHints {
-            backend: Some(backend),
+            backend: None,
             preferred_adapter: Some(default_adapter_for_capability(capability)),
             whisper_variant: None,
             stablediffusion_pipeline: None,
@@ -397,9 +320,6 @@ pub fn with_provider_backend_hint(
         if let Some(nimi_media) = current.nimi_media.as_mut() {
             if nimi_media.driver.is_none() {
                 nimi_media.driver = Some(backend_value);
-            }
-            if nimi_media.family.is_none() {
-                nimi_media.family = Some("diffusers".to_string());
             }
         }
         return;
@@ -511,6 +431,51 @@ pub fn default_policy_gate_for_provider(provider: &str) -> Option<String> {
         return Some("CPU_GPU_ONLY_LICENSE_GATED_NPU".to_string());
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        default_provider_hints_for_provider_capability, infer_backend_hint_for_provider,
+        with_provider_backend_hint,
+    };
+
+    #[test]
+    fn default_nimi_media_hints_do_not_synthesize_driver_or_family() {
+        let hints = default_provider_hints_for_provider_capability("nimi_media", "image")
+            .expect("nimi_media hints");
+        let nimi_media = hints.nimi_media.expect("nimi_media payload");
+        assert!(nimi_media.driver.is_none());
+        assert!(nimi_media.family.is_none());
+    }
+
+    #[test]
+    fn infer_backend_hint_does_not_guess_from_provider_or_model_name() {
+        assert_eq!(
+            infer_backend_hint_for_provider("nimi_media", "image", Some("flux.1-schnell")),
+            None
+        );
+        assert_eq!(
+            infer_backend_hint_for_provider("localai", "stt", Some("whisper-large-v3")),
+            None
+        );
+    }
+
+    #[test]
+    fn with_provider_backend_hint_preserves_explicit_runtime_metadata_only() {
+        let mut hints = default_provider_hints_for_provider_capability("nimi_media", "image");
+        with_provider_backend_hint(
+            "nimi_media",
+            &mut hints,
+            Some("runtime-driver".to_string()),
+            "image",
+        );
+        let nimi_media = hints
+            .and_then(|value| value.nimi_media)
+            .expect("nimi_media payload");
+        assert_eq!(nimi_media.driver.as_deref(), Some("runtime-driver"));
+        assert!(nimi_media.family.is_none());
+    }
 }
 
 fn parse_bool_env(value: Option<String>) -> Option<bool> {

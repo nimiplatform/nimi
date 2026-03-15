@@ -222,6 +222,9 @@ pub(super) fn resolve_effective_endpoint(
     if explicit.is_some() {
         return explicit;
     }
+    if artifact.artifact_type == LocalAiServiceArtifactType::AttachedEndpoint {
+        return None;
+    }
     Some(default_loopback_endpoint_for_artifact(artifact))
 }
 
@@ -247,8 +250,9 @@ pub(super) fn build_service_health_url(
     let endpoint = normalize_non_empty(Some(endpoint)).ok_or_else(|| {
         "LOCAL_AI_SERVICE_ENDPOINT_REQUIRED: service endpoint is missing".to_string()
     })?;
-    let health_endpoint =
-        normalize_non_empty(Some(health_endpoint)).unwrap_or_else(|| "/readyz".to_string());
+    let health_endpoint = normalize_non_empty(Some(health_endpoint)).ok_or_else(|| {
+        "LOCAL_AI_SERVICE_HEALTH_ENDPOINT_REQUIRED: service health endpoint is missing".to_string()
+    })?;
     if let Ok(url) = reqwest::Url::parse(health_endpoint.as_str()) {
         return Ok(url.to_string());
     }

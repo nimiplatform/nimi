@@ -82,8 +82,8 @@ fn allowed_http_origins() -> HashSet<String> {
         "http://127.0.0.1".to_string(),
         "http://localhost:3002".to_string(),
         "http://127.0.0.1:3002".to_string(),
-        env_value("NIMI_LOCAL_PROVIDER_ENDPOINT", "http://127.0.0.1:1234/v1"),
-        env_value("NIMI_LOCAL_OPENAI_ENDPOINT", "http://127.0.0.1:1234/v1"),
+        env_value("NIMI_LOCAL_PROVIDER_ENDPOINT", ""),
+        env_value("NIMI_LOCAL_OPENAI_ENDPOINT", ""),
     ];
 
     for candidate in candidates {

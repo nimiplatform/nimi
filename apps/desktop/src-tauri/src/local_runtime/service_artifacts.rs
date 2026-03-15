@@ -11,7 +11,7 @@ fn empty_env() -> HashMap<String, String> {
 
 fn localai_service_artifact() -> LocalAiServiceArtifact {
     LocalAiServiceArtifact {
-        service_id: "localai-openai-gateway".to_string(),
+        service_id: "localai".to_string(),
         artifact_type: LocalAiServiceArtifactType::Binary,
         engine: "localai".to_string(),
         install: LocalAiServiceInstallSpec {
@@ -140,7 +140,7 @@ fn localai_service_artifact() -> LocalAiServiceArtifact {
 
 fn nexa_service_artifact() -> LocalAiServiceArtifact {
     LocalAiServiceArtifact {
-        service_id: "nexa-openai-gateway".to_string(),
+        service_id: "nexa".to_string(),
         artifact_type: LocalAiServiceArtifactType::Binary,
         engine: "nexa".to_string(),
         install: LocalAiServiceInstallSpec {
@@ -298,7 +298,7 @@ fn nexa_service_artifact() -> LocalAiServiceArtifact {
 
 fn nimi_media_service_artifact() -> LocalAiServiceArtifact {
     LocalAiServiceArtifact {
-        service_id: "nimi-media-openai-gateway".to_string(),
+        service_id: "nimi_media".to_string(),
         artifact_type: LocalAiServiceArtifactType::PythonEnv,
         engine: "nimi_media".to_string(),
         install: LocalAiServiceInstallSpec {
@@ -330,8 +330,8 @@ fn nimi_media_service_artifact() -> LocalAiServiceArtifact {
             model_binding: None,
         },
         health: LocalAiServiceHealthSpec {
-            endpoint: "/health".to_string(),
-            capability_probe_endpoint: Some("/v1/models".to_string()),
+            endpoint: "/healthz".to_string(),
+            capability_probe_endpoint: Some("/v1/catalog".to_string()),
             interval_ms: 30_000,
             timeout_ms: 4_000,
         },
@@ -340,7 +340,7 @@ fn nimi_media_service_artifact() -> LocalAiServiceArtifact {
                 node_id: "image.generate.nimi_media".to_string(),
                 title: "Nimi Media Image Generation".to_string(),
                 capability: "image".to_string(),
-                api_path: "/v1/images/generations".to_string(),
+                api_path: "/v1/media/image/generate".to_string(),
                 input_schema: Some(serde_json::json!({
                     "prompt": "string",
                     "size": "string?",
@@ -354,7 +354,7 @@ fn nimi_media_service_artifact() -> LocalAiServiceArtifact {
                 node_id: "video.generate.nimi_media".to_string(),
                 title: "Nimi Media Video Generation".to_string(),
                 capability: "video".to_string(),
-                api_path: "/v1/video/generations".to_string(),
+                api_path: "/v1/media/video/generate".to_string(),
                 input_schema: Some(serde_json::json!({
                     "prompt": "string",
                     "durationSeconds": "number?",
@@ -384,4 +384,41 @@ pub fn find_service_artifact(service_id: &str) -> Option<LocalAiServiceArtifact>
             .eq_ignore_ascii_case(normalized.as_str())
             || item.engine.trim().eq_ignore_ascii_case(normalized.as_str())
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{find_service_artifact, service_artifact_registry};
+
+    #[test]
+    fn service_artifact_registry_uses_engine_ids_as_service_ids() {
+        let artifacts = service_artifact_registry();
+        assert!(artifacts
+            .iter()
+            .any(|artifact| artifact.service_id == "localai"));
+        assert!(artifacts
+            .iter()
+            .any(|artifact| artifact.service_id == "nexa"));
+        assert!(artifacts
+            .iter()
+            .any(|artifact| artifact.service_id == "nimi_media"));
+    }
+
+    #[test]
+    fn nimi_media_service_artifact_uses_canonical_health_and_media_paths() {
+        let artifact = find_service_artifact("nimi_media").expect("nimi_media artifact");
+        assert_eq!(artifact.health.endpoint, "/healthz");
+        assert_eq!(
+            artifact.health.capability_probe_endpoint.as_deref(),
+            Some("/v1/catalog")
+        );
+        assert!(artifact.nodes.iter().any(|node| {
+            node.node_id == "image.generate.nimi_media"
+                && node.api_path == "/v1/media/image/generate"
+        }));
+        assert!(artifact.nodes.iter().any(|node| {
+            node.node_id == "video.generate.nimi_media"
+                && node.api_path == "/v1/media/video/generate"
+        }));
+    }
 }

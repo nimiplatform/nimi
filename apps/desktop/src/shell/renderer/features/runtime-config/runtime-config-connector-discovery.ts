@@ -51,7 +51,7 @@ export function normalizeRuntimeHealthResult(result: GetRuntimeHealthResponse): 
 }
 
 export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV11) {
-  const endpoint = state.local.endpoint || 'http://127.0.0.1:1234/v1';
+  const endpoint = String(state.local.endpoint || '').trim();
   const models = await localRuntime.list();
   const nodes = await localRuntime.listNodesCatalog();
   const discovered = models.map((m) => m.modelId);

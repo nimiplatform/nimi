@@ -114,8 +114,8 @@ export type RuntimeConfigStateV11 = {
   selectedConnectorId: string;
 };
 
-export const DEFAULT_LOCAL_ENDPOINT_V11 = 'http://127.0.0.1:1234/v1';
-export const DEFAULT_OPENAI_ENDPOINT_V11 = 'http://127.0.0.1:1234/v1';
+export const DEFAULT_LOCAL_ENDPOINT_V11 = '';
+export const DEFAULT_OPENAI_ENDPOINT_V11 = '';
 export const DEFAULT_OPENROUTER_ENDPOINT_V11 = 'https://openrouter.ai/api/v1';
 let runtimeConfigPlatformForTests: 'windows' | 'darwin' | 'linux' | 'unknown' | null = null;
 
@@ -263,12 +263,13 @@ export function randomIdV11(prefix: string): string {
 }
 
 export function createConnectorV11(vendor: ApiVendor = 'openrouter', label?: string): ApiConnector {
+  const defaultEndpoint = vendor === 'openrouter' ? DEFAULT_OPENROUTER_ENDPOINT_V11 : DEFAULT_OPENAI_ENDPOINT_V11;
   return {
     id: randomIdV11('connector'),
     label: label || `${getVendorLabelV11(vendor)} Connector`,
     vendor,
     provider: '',
-    endpoint: DEFAULT_OPENAI_ENDPOINT_V11,
+    endpoint: defaultEndpoint,
     hasCredential: false,
     isSystemOwned: false,
     models: [],
@@ -285,12 +286,13 @@ export function normalizeConnectorModelsV11(vendor: ApiVendor, rawModels: unknow
 
 export function normalizeConnectorV11(raw: Partial<ApiConnector>): ApiConnector {
   const vendor = normalizeVendorV11(raw.vendor);
+  const defaultEndpoint = vendor === 'openrouter' ? DEFAULT_OPENROUTER_ENDPOINT_V11 : DEFAULT_OPENAI_ENDPOINT_V11;
   return {
     id: String(raw.id || randomIdV11('connector')),
     label: String(raw.label || `${getVendorLabelV11(vendor)} Connector`),
     vendor,
     provider: String(raw.provider || ''),
-    endpoint: normalizeEndpointV11(String(raw.endpoint || DEFAULT_OPENAI_ENDPOINT_V11), DEFAULT_OPENAI_ENDPOINT_V11),
+    endpoint: normalizeEndpointV11(String(raw.endpoint || defaultEndpoint), defaultEndpoint),
     hasCredential: Boolean(raw.hasCredential),
     isSystemOwned: Boolean(raw.isSystemOwned),
     models: normalizeConnectorModelsV11(vendor, raw.models),
@@ -340,13 +342,7 @@ export function normalizeLocalNodeMatrixEntryV11(
     || capability === 'cv'
     || capability === 'diarize'
   ) ? capability : 'chat';
-  const normalizedProvider = String(raw.provider || '').trim().toLowerCase() || (
-    String(raw.serviceId || '').toLowerCase().includes('nimi-media')
-      ? 'nimi_media'
-      : String(raw.serviceId || '').toLowerCase().includes('nexa')
-        ? 'nexa'
-        : 'localai'
-  );
+  const normalizedProvider = String(raw.provider || '').trim().toLowerCase();
   const adapterRaw = String(raw.adapter || '').trim().toLowerCase();
   let normalizedAdapter: LocalNodeMatrixEntryV11['adapter'];
   if (adapterRaw === 'localai_native_adapter') {
@@ -376,13 +372,7 @@ export function normalizeLocalNodeMatrixEntryV11(
   return {
     nodeId: String(raw.nodeId || '').trim() || randomIdV11('node'),
     capability: normalizedCapability,
-    serviceId: String(raw.serviceId || '').trim() || (
-      normalizedProvider === 'nimi_media'
-        ? 'nimi-media-openai-gateway'
-        : normalizedProvider === 'nexa'
-          ? 'nexa-openai-gateway'
-          : 'localai-openai-gateway'
-    ),
+    serviceId: String(raw.serviceId || '').trim(),
     provider: normalizedProvider,
     adapter: normalizedAdapter,
     backend: String(raw.backend || '').trim() || undefined,

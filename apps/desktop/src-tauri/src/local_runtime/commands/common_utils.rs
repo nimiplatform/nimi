@@ -77,13 +77,29 @@ fn extract_probe_model_ids(payload: &serde_json::Value) -> Vec<String> {
         .and_then(|value| value.as_array())
         .cloned()
         .unwrap_or_default();
-    let rows = if from_data.is_empty() {
-        payload.as_array().cloned().unwrap_or_default()
-    } else {
+    let from_catalog = payload
+        .get("models")
+        .and_then(|value| value.as_array())
+        .cloned()
+        .unwrap_or_default();
+    let rows = if !from_data.is_empty() {
         from_data
+    } else if !from_catalog.is_empty() {
+        from_catalog
+    } else {
+        payload.as_array().cloned().unwrap_or_default()
     };
     rows.into_iter()
-        .filter_map(|item| item.get("id").cloned().or(Some(item)))
+        .filter_map(|item| {
+            if item
+                .get("ready")
+                .and_then(|value| value.as_bool())
+                .is_some_and(|ready| !ready)
+            {
+                return None;
+            }
+            item.get("id").cloned().or(Some(item))
+        })
         .filter_map(|value| value.as_str().map(|item| item.trim().to_string()))
         .filter(|value| !value.is_empty())
         .collect::<Vec<_>>()
@@ -440,4 +456,3 @@ fn validate_audit_payload_contract(
     }
     Ok(())
 }
-

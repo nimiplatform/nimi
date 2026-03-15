@@ -1,4 +1,4 @@
-import { DEFAULT_LOCAL_ENDPOINT_V11, type RuntimeConfigStateV11 } from './runtime-config-state-types';
+import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 
 export const RUNTIME_CONFIG_STORAGE_KEY_V11 = 'nimi:runtime-config:v11';
 export const RUNTIME_CONFIG_STORAGE_KEY_V12 = 'nimi:runtime-config:v12';
@@ -24,7 +24,7 @@ export type StoredStateV11 = {
 };
 
 export function createDefaultStateV11(seed: RuntimeConfigSeedV11): RuntimeConfigStateV11 {
-  const endpoint = String(seed.localProviderEndpoint || seed.localOpenAiEndpoint || DEFAULT_LOCAL_ENDPOINT_V11).trim();
+  const endpoint = String(seed.localProviderEndpoint || seed.localOpenAiEndpoint || '').trim();
   return {
     version: 12,
     initializedByV11: false,

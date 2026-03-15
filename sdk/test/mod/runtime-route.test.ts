@@ -30,6 +30,32 @@ test('parseRuntimeRouteBinding keeps cloud provider metadata', () => {
   });
 });
 
+test('parseRuntimeRouteBinding treats empty local endpoint as unconfigured', () => {
+  const parsed = parseRuntimeRouteBinding({
+    source: 'local',
+    connectorId: '',
+    provider: 'nimi_media',
+    model: 'flux.1-schnell',
+    engine: 'nimi_media',
+    endpoint: '   ',
+  });
+
+  assert.deepEqual(parsed, {
+    source: 'local',
+    connectorId: '',
+    provider: 'nimi_media',
+    model: 'flux.1-schnell',
+    modelId: undefined,
+    localModelId: undefined,
+    engine: 'nimi_media',
+    adapter: undefined,
+    providerHints: undefined,
+    endpoint: undefined,
+    goRuntimeLocalModelId: undefined,
+    goRuntimeStatus: undefined,
+  });
+});
+
 test('parseRuntimeRouteOptions keeps connector providers and models', () => {
   const parsed = parseRuntimeRouteOptions({
     capability: 'image.generate',

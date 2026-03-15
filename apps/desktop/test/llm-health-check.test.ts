@@ -19,7 +19,7 @@ test('local endpoint GET /models ok → status healthy', async () => {
   assert.equal(result.detail, '');
   assert.equal(mockFetch.mock.callCount(), 1);
   const callArgs = mockFetch.mock.calls[0]!.arguments;
-  assert.ok(String(callArgs[0]).endsWith('/models'));
+  assert.ok(String(callArgs[0]).endsWith('/v1/models'));
 });
 
 test('local endpoint GET /models HTTP 503 → status degraded', async () => {
@@ -57,6 +57,30 @@ test('localOpenAiEndpoint used as fallback when localProviderEndpoint empty', as
 
   assert.equal(result.status, 'healthy');
   assert.equal(result.endpoint, 'http://127.0.0.1:1234/v1');
+});
+
+test('nimi_media health uses /healthz + /v1/catalog', async () => {
+  const mockFetch = mock.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith('/healthz')) {
+      return new Response(JSON.stringify({ ready: true }), { status: 200 });
+    }
+    if (url.endsWith('/v1/catalog')) {
+      return new Response(JSON.stringify({ models: [{ id: 'flux.1-schnell', ready: true }] }), { status: 200 });
+    }
+    return new Response('not found', { status: 404 });
+  });
+
+  const result = await checkLocalLlmHealth({
+    provider: 'nimi_media',
+    localProviderEndpoint: 'http://127.0.0.1:8321/v1',
+    fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+  });
+
+  assert.equal(result.status, 'healthy');
+  assert.equal(mockFetch.mock.callCount(), 2);
+  assert.ok(String(mockFetch.mock.calls[0]!.arguments[0]).endsWith('/healthz'));
+  assert.ok(String(mockFetch.mock.calls[1]!.arguments[0]).endsWith('/v1/catalog'));
 });
 
 test('no endpoint no connectorId → unsupported', async () => {

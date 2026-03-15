@@ -56,10 +56,10 @@ export type LocalRouteBinding = {
   localModelId: string;
   engine: LocalEngine;
   model: string;
-  endpoint: string;
-  localProviderEndpoint: string;
+  endpoint?: string;
+  localProviderEndpoint?: string;
   localProviderModel: string;
-  localOpenAiEndpoint: string;
+  localOpenAiEndpoint?: string;
   goRuntimeLocalModelId?: string;
   goRuntimeStatus?: 'installed' | 'active' | 'unhealthy' | 'removed' | string;
   connectorId: '';
@@ -74,8 +74,8 @@ export type CloudRouteBinding = {
   connectorId: string;
   modelId?: string;
   model: string;
-  endpoint: string;
-  localOpenAiEndpoint: string;
+  endpoint?: string;
+  localOpenAiEndpoint?: string;
 };
 
 export type ResolvedRuntimeRouteBinding = LocalRouteBinding | CloudRouteBinding;

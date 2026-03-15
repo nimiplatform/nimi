@@ -71,21 +71,9 @@ export function parseRuntimeDefaults(value: unknown): RuntimeDefaults {
       ),
     },
     runtime: {
-      localProviderEndpoint: parseRequiredString(
-        runtimeRecord.localProviderEndpoint,
-        'runtime.localProviderEndpoint',
-        'runtime_defaults',
-      ),
-      localProviderModel: parseRequiredString(
-        runtimeRecord.localProviderModel,
-        'runtime.localProviderModel',
-        'runtime_defaults',
-      ),
-      localOpenAiEndpoint: parseRequiredString(
-        runtimeRecord.localOpenAiEndpoint,
-        'runtime.localOpenAiEndpoint',
-        'runtime_defaults',
-      ),
+      localProviderEndpoint: String(runtimeRecord.localProviderEndpoint || '').trim(),
+      localProviderModel: String(runtimeRecord.localProviderModel || '').trim(),
+      localOpenAiEndpoint: String(runtimeRecord.localOpenAiEndpoint || '').trim(),
       connectorId: String(runtimeRecord.connectorId || '').trim(),
       targetType: String(runtimeRecord.targetType || '').trim(),
       targetAccountId: String(runtimeRecord.targetAccountId || '').trim(),

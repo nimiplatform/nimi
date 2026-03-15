@@ -6,9 +6,9 @@ use super::types::{
 mod managed;
 
 use self::managed::{
-    bootstrap_marker_provider, build_service_health_url, default_loopback_endpoint_for_artifact,
-    is_loopback_endpoint, managed_provider_strategy, maybe_authenticate_request,
-    normalize_non_empty, parse_version_parts, port_available, resolve_effective_endpoint,
+    bootstrap_marker_provider, build_service_health_url, is_loopback_endpoint,
+    managed_provider_strategy, maybe_authenticate_request, normalize_non_empty,
+    parse_version_parts, port_available, resolve_effective_endpoint,
 };
 pub use self::managed::{is_managed_service, start_managed_service, stop_managed_service};
 
@@ -23,16 +23,6 @@ pub fn normalize_service_descriptor(descriptor: &mut LocalAiServiceDescriptor) {
     }
     if descriptor.artifact_type.is_none() {
         descriptor.artifact_type = Some(artifact.artifact_type.clone());
-    }
-    if descriptor
-        .endpoint
-        .as_deref()
-        .unwrap_or_default()
-        .trim()
-        .is_empty()
-        && artifact.artifact_type == LocalAiServiceArtifactType::AttachedEndpoint
-    {
-        descriptor.endpoint = Some(default_loopback_endpoint_for_artifact(&artifact));
     }
 }
 
@@ -413,10 +403,22 @@ pub fn probe_service_endpoint_health(service_id: &str, endpoint: &str) -> Result
         artifact.service_id.as_str(),
     );
     match request.send() {
-        Ok(response) if response.status().is_success() => Ok(format!(
-            "service endpoint healthy: serviceId={} endpoint={}",
-            artifact.service_id, health_url
-        )),
+        Ok(response) if response.status().is_success() => {
+            if artifact.engine.eq_ignore_ascii_case("nimi_media") {
+                probe_service_capability_models(service_id, effective_endpoint.as_str()).map_err(
+                    |error| {
+                        format!(
+                            "LOCAL_AI_SERVICE_HEALTH_UNREACHABLE: serviceId={} endpoint={} error={error}",
+                            artifact.service_id, health_url
+                        )
+                    },
+                )?;
+            }
+            Ok(format!(
+                "service endpoint healthy: serviceId={} endpoint={}",
+                artifact.service_id, health_url
+            ))
+        }
         Ok(response) => Err(format!(
             "LOCAL_AI_SERVICE_HEALTH_UNREACHABLE: serviceId={} endpoint={} status={}",
             artifact.service_id,
@@ -440,7 +442,9 @@ pub fn probe_service_capability_models(
         .health
         .capability_probe_endpoint
         .as_deref()
-        .unwrap_or("/v1/models");
+        .ok_or_else(|| {
+            format!("LOCAL_AI_SERVICE_CAPABILITY_PROBE_UNSUPPORTED: serviceId={service_id}")
+        })?;
     let effective_endpoint = resolve_effective_endpoint(&artifact, Some(endpoint))
         .ok_or_else(|| format!("LOCAL_AI_SERVICE_ENDPOINT_REQUIRED: serviceId={service_id}"))?;
     let probe_url = build_service_health_url(effective_endpoint.as_str(), probe_endpoint)?;

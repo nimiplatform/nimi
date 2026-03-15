@@ -171,7 +171,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
                 local: { ...prev.local, endpoint },
               }));
             }}
-            placeholder={t('runtimeConfig.runtime.endpointPlaceholder', { defaultValue: 'http://127.0.0.1:1234/v1' })}
+            placeholder={t('runtimeConfig.runtime.endpointPlaceholder', { defaultValue: 'http://host:port[/base-path]' })}
           />
         </SurfaceCard>
       </section>

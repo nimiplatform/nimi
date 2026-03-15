@@ -65,6 +65,35 @@ test('parseRuntimeDefaults requires split realm/runtime payload', () => {
   assert.equal(parsed.runtime.userConfirmedUpload, true);
 });
 
+test('parseRuntimeDefaults allows empty local bindings', () => {
+  const parsed = parseRuntimeDefaults({
+    realm: {
+      realmBaseUrl: 'http://localhost:3002',
+      realtimeUrl: '',
+      accessToken: '',
+      jwksUrl: 'http://localhost:3002/api/auth/jwks',
+      jwtIssuer: 'http://localhost:3002',
+      jwtAudience: 'nimi-runtime',
+    },
+    runtime: {
+      localProviderEndpoint: '',
+      localProviderModel: '',
+      localOpenAiEndpoint: '',
+      connectorId: '',
+      targetType: '',
+      targetAccountId: '',
+      agentId: '',
+      worldId: '',
+      provider: '',
+      userConfirmedUpload: false,
+    },
+  });
+
+  assert.equal(parsed.runtime.localProviderEndpoint, '');
+  assert.equal(parsed.runtime.localProviderModel, '');
+  assert.equal(parsed.runtime.localOpenAiEndpoint, '');
+});
+
 test('parseRuntimeDefaults rejects legacy flat payload', () => {
   assert.throws(
     () => parseRuntimeDefaults({

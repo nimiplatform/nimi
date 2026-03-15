@@ -13,10 +13,10 @@
         "jwtAudience": "nimi-runtime"
       },
       "runtime": {
-        "localProviderEndpoint": "http://127.0.0.1:1234/v1",
-        "localProviderModel": "local-model",
-        "localOpenAiEndpoint": "http://127.0.0.1:1234/v1",
-        "credentialRefId": "",
+        "localProviderEndpoint": "",
+        "localProviderModel": "",
+        "localOpenAiEndpoint": "",
+        "connectorId": "",
         "targetType": "",
         "targetAccountId": "",
         "agentId": "",

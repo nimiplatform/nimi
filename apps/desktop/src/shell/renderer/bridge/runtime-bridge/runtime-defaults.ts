@@ -90,10 +90,10 @@ function readRuntimeDefaultsFallback(): RuntimeDefaults {
     realmPort,
   );
   const jwtAudience = readEnv('NIMI_REALM_JWT_AUDIENCE') || 'nimi-runtime';
-  const localProviderEndpoint = readEnv('NIMI_LOCAL_PROVIDER_ENDPOINT') || 'http://127.0.0.1:1234/v1';
-  const localProviderModel = readEnv('NIMI_LOCAL_PROVIDER_MODEL') || 'local-model';
-  const localOpenAiEndpoint = readEnv('NIMI_LOCAL_OPENAI_ENDPOINT') || 'http://127.0.0.1:1234/v1';
-  const connectorId = readEnv('NIMI_CREDENTIAL_REF_ID');
+  const localProviderEndpoint = readEnv('NIMI_LOCAL_PROVIDER_ENDPOINT');
+  const localProviderModel = readEnv('NIMI_LOCAL_PROVIDER_MODEL');
+  const localOpenAiEndpoint = readEnv('NIMI_LOCAL_OPENAI_ENDPOINT');
+  const connectorId = readEnv('NIMI_CONNECTOR_ID');
   const targetType = readEnv('NIMI_TARGET_TYPE');
   const targetAccountId = readEnv('NIMI_TARGET_ACCOUNT_ID');
   const agentId = readEnv('NIMI_AGENT_ID');
