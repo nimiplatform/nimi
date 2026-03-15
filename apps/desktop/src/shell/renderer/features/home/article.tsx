@@ -159,6 +159,23 @@ export function PostCardArticle(props: PostCardArticleProps) {
               </div>
             ) : null}
           </div>
+          {props.isOwnPost && props.post.visibility !== 'PUBLIC' ? (
+            <span className="flex items-center gap-1 text-[9px] text-slate-400" title={props.post.visibility === 'FRIENDS' ? 'Friends only' : 'Private'}>
+              {props.post.visibility === 'PRIVATE' ? (
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              ) : (
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              )}
+            </span>
+          ) : null}
           <span className="text-[9px] uppercase tracking-[0.2em] text-slate-400 font-medium">
             {formatLocaleDate(props.post.createdAt, { month: 'short', day: 'numeric' })}
           </span>
