@@ -1,126 +1,57 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
+import type { ReviewRating, UnreadNotificationCountDto } from '@nimiplatform/sdk/realm';
+import { ReviewRating as ReviewRatingEnum } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { formatLocaleDate, formatRelativeLocaleTime, i18n } from '@renderer/i18n';
-import { ReviewRating } from '@nimiplatform/sdk/realm';
-import { queryClient } from '@renderer/infra/query-client/query-client';
+import {
+  type NotificationFilterTab,
+  type NotificationItemView,
+  getNotificationBadgeKey,
+  getNotificationCategory,
+  getNotificationServerFilter,
+  isGiftReviewable,
+  toNotificationListView,
+} from './notification-model.js';
+import {
+  invalidateNotificationQueries,
+  notificationQueryKeys,
+  patchNotificationUnreadCaches,
+} from './notification-query.js';
 
 const PAGE_SIZE = 20;
+const FILTER_TABS: NotificationFilterTab[] = ['all', 'gift', 'request', 'mention', 'like', 'system'];
+const BUTTON_BASE_CLASS =
+  'flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60';
+const BUTTON_PRIMARY_CLASS =
+  `${BUTTON_BASE_CLASS} bg-mint-500 text-white shadow-sm hover:bg-mint-600 hover:shadow-md`;
+const BUTTON_SECONDARY_CLASS =
+  `${BUTTON_BASE_CLASS} border border-gray-200 bg-white text-gray-600 hover:bg-gray-50`;
 
-type NotificationType = 'all' | 'gift' | 'request' | 'mention' | 'like' | 'system';
+type ItemActionKind =
+  | 'friend-accept'
+  | 'friend-reject'
+  | 'gift-claim'
+  | 'gift-reject'
+  | 'review-positive'
+  | 'review-negative';
 
-type NotificationItemView = {
-  id: string;
-  type: string;
-  title: string;
-  body: string;
-  createdAt: string;
-  isRead: boolean;
-  actorId: string | null;
-  actorName: string;
-  actorHandle: string;
-  actorAvatarUrl: string | null;
-  actorIsAgent: boolean;
-  giftTransactionId: string | null;
-  giftStatus: string | null;
-  reviewId: string | null;
+type PendingItemAction = {
+  itemId: string;
+  action: ItemActionKind;
 };
 
-function toRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') {
-    return null;
+function parseUnreadCount(value: UnreadNotificationCountDto | null | undefined): number {
+  const total = Number(value?.total);
+  if (!Number.isFinite(total) || total < 0) {
+    return 0;
   }
-  return value as Record<string, unknown>;
-}
-
-function toStringValue(value: unknown, fallback = ''): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return String(value);
-  }
-  return fallback;
-}
-
-function toBooleanValue(value: unknown): boolean {
-  return value === true;
-}
-
-function parseUnreadCount(value: unknown): number {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return Math.max(0, Math.floor(value));
-  }
-  const payload = toRecord(value);
-  const candidates = [payload?.unreadCount, payload?.count, payload?.total];
-  for (const candidate of candidates) {
-    if (typeof candidate === 'number' && Number.isFinite(candidate)) {
-      return Math.max(0, Math.floor(candidate));
-    }
-    if (typeof candidate === 'string' && candidate.trim()) {
-      const parsed = Number(candidate);
-      if (Number.isFinite(parsed)) {
-        return Math.max(0, Math.floor(parsed));
-      }
-    }
-  }
-  return 0;
-}
-
-function toNotificationItemView(raw: unknown): NotificationItemView | null {
-  const payload = toRecord(raw);
-  if (!payload) {
-    return null;
-  }
-  const id = toStringValue(payload.id).trim();
-  if (!id) {
-    return null;
-  }
-  const actor = toRecord(payload.actor);
-  const target = toRecord(payload.target);
-  const data = toRecord(payload.data);
-  const actorName = toStringValue(actor?.displayName).trim();
-  const actorHandle = toStringValue(actor?.handle).trim();
-  const rawActorAvatarUrl = toStringValue(actor?.avatarUrl).trim();
-  const targetGiftTransactionId = toStringValue(target?.interactionId).trim();
-  const dataGiftTransactionId = toStringValue(data?.giftTransactionId).trim();
-  return {
-    id,
-    type: toStringValue(payload.type, 'unknown'),
-    title: toStringValue(payload.title, i18n.t('NotificationPanel.title', { defaultValue: 'Notification' })),
-    body: toStringValue(payload.body),
-    createdAt: toStringValue(payload.createdAt),
-    isRead: toBooleanValue(payload.isRead),
-    actorId: toStringValue(actor?.id).trim() || null,
-    actorName: actorName || actorHandle || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
-    actorHandle,
-    actorAvatarUrl: rawActorAvatarUrl || null,
-    actorIsAgent: toBooleanValue(actor?.isAgent),
-    giftTransactionId: targetGiftTransactionId || dataGiftTransactionId || null,
-    giftStatus: toStringValue(data?.status).trim() || null,
-    reviewId: toStringValue(data?.reviewId).trim() || null,
-  };
-}
-
-function parseNotificationList(value: unknown): {
-  items: NotificationItemView[];
-  nextCursor: string | null;
-  hasNext: boolean;
-} {
-  const payload = toRecord(value);
-  const rawItems = Array.isArray(payload?.items) ? payload.items : [];
-  const items = rawItems
-    .map((raw) => toNotificationItemView(raw))
-    .filter((item): item is NotificationItemView => item !== null);
-  const page = toRecord(payload?.page);
-  const nextCursor = toStringValue(page?.nextCursor).trim() || null;
-  const hasNext = page?.hasNext === true;
-  return { items, nextCursor, hasNext };
+  return Math.floor(total);
 }
 
 function formatNotificationTime(input: string): string {
@@ -135,26 +66,51 @@ function formatNotificationTime(input: string): string {
   return formatLocaleDate(date, { month: 'short', day: 'numeric' });
 }
 
-function getNotificationCategory(type: string): NotificationType {
-  const normalized = type.toLowerCase();
-  if (normalized.includes('gift')) return 'gift';
-  if (normalized.includes('friend_request')) return 'request';
-  if (normalized.includes('mention')) return 'mention';
-  if (normalized.includes('like')) return 'like';
-  if (normalized.includes('system')) return 'system';
-  return 'system';
+function toErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) {
+    const message = error.message.trim();
+    if (message) {
+      return message;
+    }
+  }
+  return fallback;
 }
 
-function isGiftReviewable(item: NotificationItemView): boolean {
-  return (
-    item.type === 'gift_status_updated' &&
-    Boolean(item.giftTransactionId) &&
-    (item.giftStatus === 'accepted' || item.giftStatus === 'rejected') &&
-    !item.reviewId
-  );
+function getBadgeDefaultLabel(key: string): string {
+  switch (key) {
+    case 'friendRequestReceived':
+      return 'Friend Request';
+    case 'friendRequestAccepted':
+      return 'Friend Accepted';
+    case 'friendRequestRejected':
+      return 'Friend Rejected';
+    case 'giftReceived':
+      return 'Gift Received';
+    case 'giftAccepted':
+      return 'Gift Accepted';
+    case 'giftRejected':
+      return 'Gift Rejected';
+    case 'giftStatusUpdated':
+      return 'Gift Updated';
+    case 'reviewReceived':
+      return 'Review Received';
+    default:
+      return 'System';
+  }
 }
 
-const FILTER_TABS: NotificationType[] = ['all', 'gift', 'request', 'mention', 'like', 'system'];
+function getActionLabel(
+  t: ReturnType<typeof useTranslation>['t'],
+  pendingAction: PendingItemAction | null,
+  itemId: string,
+  action: ItemActionKind,
+  fallback: string,
+  pendingFallback: string,
+): string {
+  return pendingAction?.itemId === itemId && pendingAction.action === action
+    ? pendingFallback
+    : fallback;
+}
 
 export function NotificationPanel() {
   const authStatus = useAppStore((state) => state.auth.status);
@@ -164,18 +120,28 @@ export function NotificationPanel() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasNext, setHasNext] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<NotificationType>('all');
+  const [activeFilter, setActiveFilter] = useState<NotificationFilterTab>('all');
   const [rejectingItem, setRejectingItem] = useState<NotificationItemView | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [rejectingGift, setRejectingGift] = useState(false);
+  const [markingAllRead, setMarkingAllRead] = useState(false);
+  const [pendingItemAction, setPendingItemAction] = useState<PendingItemAction | null>(null);
+  const [optimisticUnreadCount, setOptimisticUnreadCount] = useState<number | null>(null);
+
+  const serverFilter = useMemo(
+    () => getNotificationServerFilter(activeFilter),
+    [activeFilter],
+  );
 
   const notificationsQuery = useQuery({
-    queryKey: ['notification-page', authStatus],
-    queryFn: async () => dataSync.loadNotifications({ limit: PAGE_SIZE }),
+    queryKey: notificationQueryKeys.page(authStatus, serverFilter),
+    queryFn: async () => dataSync.loadNotifications({
+      limit: PAGE_SIZE,
+      ...(serverFilter ? { type: serverFilter } : {}),
+    }),
     enabled: authStatus === 'authenticated',
   });
   const unreadCountQuery = useQuery({
-    queryKey: ['notification-unread-count', authStatus],
+    queryKey: notificationQueryKeys.unreadCount(authStatus),
     queryFn: async () => dataSync.loadNotificationUnreadCount(),
     enabled: authStatus === 'authenticated',
     staleTime: 15_000,
@@ -183,169 +149,274 @@ export function NotificationPanel() {
   });
 
   useEffect(() => {
-    if (!notificationsQuery.data) {
-      return;
-    }
-    const parsed = parseNotificationList(notificationsQuery.data);
+    const parsed = toNotificationListView(
+      notificationsQuery.data,
+      t('NotificationPanel.title', { defaultValue: 'Notification' }),
+      i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
+    );
     setItems(parsed.items);
     setNextCursor(parsed.nextCursor);
     setHasNext(parsed.hasNext);
-  }, [notificationsQuery.data]);
+  }, [notificationsQuery.data, t]);
 
-  // Local unread count for optimistic updates
-  const [, setLocalUnreadCount] = useState(0);
-  
-  const unreadCount = useMemo(() => {
-    const serverCount = parseUnreadCount(unreadCountQuery.data);
-    // Use local count if items have been modified, otherwise use server count
-    const calculatedCount = items.filter((item) => !item.isRead).length;
-    return calculatedCount > 0 ? calculatedCount : serverCount;
-  }, [unreadCountQuery.data, items]);
-
-  // Sync local count when items change
   useEffect(() => {
-    setLocalUnreadCount(items.filter((item) => !item.isRead).length);
-  }, [items]);
+    if (unreadCountQuery.data) {
+      setOptimisticUnreadCount(null);
+    }
+  }, [unreadCountQuery.data]);
+
+  const unreadCount = optimisticUnreadCount ?? parseUnreadCount(unreadCountQuery.data);
 
   const filteredItems = useMemo(() => {
-    if (activeFilter === 'all') return items;
+    if (activeFilter === 'all') {
+      return items;
+    }
     return items.filter((item) => getNotificationCategory(item.type) === activeFilter);
-  }, [items, activeFilter]);
+  }, [activeFilter, items]);
 
-  // Helper to update topbar unread count optimistically
-  const updateTopbarUnreadCount = (newCount: number) => {
-    queryClient.setQueryData(['topbar-notification-unread-count'], (old: unknown) => {
-      if (old && typeof old === 'object') {
-        return { ...old, unreadCount: newCount, count: newCount };
-      }
-      return { unreadCount: newCount, count: newCount };
-    });
+  const updateUnreadCount = (nextUnreadCount: number) => {
+    setOptimisticUnreadCount(nextUnreadCount);
+    patchNotificationUnreadCaches(nextUnreadCount);
   };
+
+  const resetRejectDialog = () => {
+    setRejectingItem(null);
+    setRejectReason('');
+  };
+
+  const refreshNotifications = async () => {
+    await invalidateNotificationQueries();
+  };
+
+  const isBusyForItem = (itemId: string): boolean =>
+    pendingItemAction?.itemId === itemId;
 
   const markOneRead = async (id: string) => {
     const notificationId = String(id || '').trim();
-    if (!notificationId) return;
+    if (!notificationId) {
+      return;
+    }
+
     const target = items.find((item) => item.id === notificationId);
-    if (target?.isRead) return;
-    
-    // Optimistic update: immediately mark as read locally
-    setItems((previous) => previous.map((item) =>
+    if (!target || target.isRead || isBusyForItem(notificationId)) {
+      return;
+    }
+
+    const previousItems = items;
+    const previousUnreadCount = unreadCount;
+
+    setItems((previous) => previous.map((item) => (
       item.id === notificationId ? { ...item, isRead: true } : item
-    ));
-    setLocalUnreadCount((prev) => {
-      const newCount = Math.max(0, prev - 1);
-      updateTopbarUnreadCount(newCount);
-      return newCount;
-    });
-    
+    )));
+    updateUnreadCount(Math.max(0, previousUnreadCount - 1));
+
     try {
       await dataSync.markNotificationRead(notificationId);
-      // Silently refetch to sync with server
-      void unreadCountQuery.refetch();
+      await refreshNotifications();
     } catch (error) {
-      // Revert on error
-      setItems((previous) => previous.map((item) =>
-        item.id === notificationId ? { ...item, isRead: false } : item
-      ));
-      setLocalUnreadCount((prev) => {
-        const newCount = prev + 1;
-        updateTopbarUnreadCount(newCount);
-        return newCount;
-      });
+      setItems(previousItems);
+      updateUnreadCount(previousUnreadCount);
       setStatusBanner({
         kind: 'error',
-        message: error instanceof Error ? error.message : t('NotificationPanel.markReadError'),
+        message: toErrorMessage(error, t('NotificationPanel.markReadError')),
       });
     }
   };
 
   const markAllRead = async () => {
-    // Optimistic update: immediately mark all as read
-    const previousUnreadCount = items.filter((item) => !item.isRead).length;
-    const previousItems = [...items];
+    if (markingAllRead || unreadCount <= 0) {
+      return;
+    }
+
+    const previousItems = items;
+    const previousUnreadCount = unreadCount;
+
+    setMarkingAllRead(true);
     setItems((previous) => previous.map((item) => ({ ...item, isRead: true })));
-    setLocalUnreadCount(0);
-    updateTopbarUnreadCount(0);
-    
+    updateUnreadCount(0);
+
     try {
       await dataSync.markNotificationsRead({ markAllBefore: new Date().toISOString() });
-      void unreadCountQuery.refetch();
+      await refreshNotifications();
     } catch (error) {
-      // Revert on error
       setItems(previousItems);
-      setLocalUnreadCount(previousUnreadCount);
-      updateTopbarUnreadCount(previousUnreadCount);
+      updateUnreadCount(previousUnreadCount);
       setStatusBanner({
         kind: 'error',
-        message: error instanceof Error ? error.message : t('NotificationPanel.markAllReadError'),
+        message: toErrorMessage(error, t('NotificationPanel.markAllReadError')),
       });
+    } finally {
+      setMarkingAllRead(false);
     }
   };
 
-  const reloadNotifications = async () => {
-    await Promise.all([notificationsQuery.refetch(), unreadCountQuery.refetch()]);
+  const runItemAction = async (input: {
+    item: NotificationItemView;
+    action: ItemActionKind;
+    task: () => Promise<void>;
+    successMessage?: string;
+    errorMessage: string;
+    onSuccess?: () => void;
+  }) => {
+    if (pendingItemAction || markingAllRead) {
+      return;
+    }
+
+    setPendingItemAction({
+      itemId: input.item.id,
+      action: input.action,
+    });
+
+    try {
+      await input.task();
+      await refreshNotifications();
+      input.onSuccess?.();
+      if (input.successMessage) {
+        setStatusBanner({
+          kind: 'success',
+          message: input.successMessage,
+        });
+      }
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: toErrorMessage(error, input.errorMessage),
+      });
+    } finally {
+      setPendingItemAction((current) => (
+        current?.itemId === input.item.id && current.action === input.action
+          ? null
+          : current
+      ));
+    }
+  };
+
+  const acceptFriendRequest = async (item: NotificationItemView) => {
+    if (!item.actorId) {
+      setStatusBanner({
+        kind: 'error',
+        message: t('Contacts.acceptRequestFailed', { defaultValue: 'Failed to accept friend request' }),
+      });
+      return;
+    }
+    const actorId = item.actorId;
+
+    await runItemAction({
+      item,
+      action: 'friend-accept',
+      task: async () => {
+        await dataSync.requestOrAcceptFriend(actorId);
+      },
+      successMessage: t('Contacts.requestAccepted', {
+        name: item.actorName,
+        defaultValue: 'Accepted request from {{name}}.',
+      }),
+      errorMessage: t('Contacts.acceptRequestFailed', { defaultValue: 'Failed to accept friend request' }),
+    });
+  };
+
+  const rejectFriendRequest = async (item: NotificationItemView) => {
+    if (!item.actorId) {
+      setStatusBanner({
+        kind: 'error',
+        message: t('Contacts.rejectRequestFailed', { defaultValue: 'Failed to reject friend request' }),
+      });
+      return;
+    }
+    const actorId = item.actorId;
+
+    await runItemAction({
+      item,
+      action: 'friend-reject',
+      task: async () => {
+        await dataSync.rejectOrRemoveFriend(actorId);
+      },
+      successMessage: t('Contacts.requestRejected', {
+        name: item.actorName,
+        defaultValue: 'Rejected request from {{name}}.',
+      }),
+      errorMessage: t('Contacts.rejectRequestFailed', { defaultValue: 'Failed to reject friend request' }),
+    });
   };
 
   const claimGift = async (item: NotificationItemView) => {
-    if (!item.giftTransactionId) return;
-    try {
-      await dataSync.claimGift(item.giftTransactionId);
-      await markOneRead(item.id);
-      await reloadNotifications();
-    } catch (error) {
-      setStatusBanner({
-        kind: 'error',
-        message: error instanceof Error ? error.message : t('NotificationPanel.claimError'),
-      });
+    if (!item.giftTransactionId) {
+      return;
     }
+
+    await runItemAction({
+      item,
+      action: 'gift-claim',
+      task: async () => {
+        await dataSync.claimGift(item.giftTransactionId as string);
+      },
+      errorMessage: t('NotificationPanel.claimError'),
+    });
   };
 
   const submitRejectGift = async () => {
-    if (!rejectingItem?.giftTransactionId) return;
-    setRejectingGift(true);
-    try {
-      await dataSync.rejectGift(rejectingItem.giftTransactionId, {
-        reason: rejectReason.trim() || undefined,
-      });
-      await markOneRead(rejectingItem.id);
-      await reloadNotifications();
-      setRejectingItem(null);
-      setRejectReason('');
-    } catch (error) {
-      setStatusBanner({
-        kind: 'error',
-        message: error instanceof Error ? error.message : t('NotificationPanel.rejectError'),
-      });
-    } finally {
-      setRejectingGift(false);
+    if (!rejectingItem?.giftTransactionId) {
+      return;
     }
+
+    await runItemAction({
+      item: rejectingItem,
+      action: 'gift-reject',
+      task: async () => {
+        await dataSync.rejectGift(rejectingItem.giftTransactionId as string, {
+          reason: rejectReason.trim() || undefined,
+        });
+      },
+      errorMessage: t('NotificationPanel.rejectError'),
+      onSuccess: () => {
+        resetRejectDialog();
+      },
+    });
   };
 
-  const createReview = async (item: NotificationItemView, rating: ReviewRating) => {
-    if (!item.giftTransactionId) return;
-    try {
-      await dataSync.createGiftReview({ giftTransactionId: item.giftTransactionId, rating });
-      await markOneRead(item.id);
-      await reloadNotifications();
-      setStatusBanner({ kind: 'success', message: t('NotificationPanel.reviewSubmitted') });
-    } catch (error) {
-      setStatusBanner({
-        kind: 'error',
-        message: error instanceof Error ? error.message : t('NotificationPanel.reviewError'),
-      });
+  const createReview = async (item: NotificationItemView, rating: ReviewRating, action: ItemActionKind) => {
+    if (!item.giftTransactionId) {
+      return;
     }
+
+    await runItemAction({
+      item,
+      action,
+      task: async () => {
+        await dataSync.createGiftReview({
+          giftTransactionId: item.giftTransactionId as string,
+          rating,
+        });
+      },
+      successMessage: t('NotificationPanel.reviewSubmitted'),
+      errorMessage: t('NotificationPanel.reviewError'),
+    });
   };
 
   const loadMore = async () => {
-    if (!hasNext || !nextCursor || loadingMore) return;
+    if (!hasNext || !nextCursor || loadingMore) {
+      return;
+    }
     setLoadingMore(true);
     try {
-      const result = await dataSync.loadNotifications({ limit: PAGE_SIZE, cursor: nextCursor });
-      const parsed = parseNotificationList(result);
+      const result = await dataSync.loadNotifications({
+        limit: PAGE_SIZE,
+        cursor: nextCursor,
+        ...(serverFilter ? { type: serverFilter } : {}),
+      });
+      const parsed = toNotificationListView(
+        result,
+        t('NotificationPanel.title', { defaultValue: 'Notification' }),
+        i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
+      );
       setItems((previous) => {
         const byId = new Map<string, NotificationItemView>();
-        for (const item of previous) byId.set(item.id, item);
-        for (const item of parsed.items) byId.set(item.id, item);
+        for (const item of previous) {
+          byId.set(item.id, item);
+        }
+        for (const item of parsed.items) {
+          byId.set(item.id, item);
+        }
         return Array.from(byId.values());
       });
       setNextCursor(parsed.nextCursor);
@@ -353,59 +424,158 @@ export function NotificationPanel() {
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: error instanceof Error ? error.message : t('NotificationPanel.loadMoreError'),
+        message: toErrorMessage(error, t('NotificationPanel.loadMoreError')),
       });
     } finally {
       setLoadingMore(false);
     }
   };
 
-  const getActionButtons = (item: NotificationItemView, onClick: (e: React.MouseEvent) => void) => {
-    const btnBase = "flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all";
-    const btnPrimary = `${btnBase} bg-mint-500 text-white hover:bg-mint-600 shadow-sm hover:shadow-md`;
-    const btnSecondary = `${btnBase} bg-white text-gray-600 border border-gray-200 hover:bg-gray-50`;
+  const renderActionButtons = (item: NotificationItemView) => {
+    const itemBusy = isBusyForItem(item.id);
 
     if (item.type === 'friend_request_received') {
       return (
         <>
-          <button type="button" onClick={onClick} className={btnPrimary}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-            {t('Contacts.accept', { defaultValue: 'Accept' })}
+          <button
+            type="button"
+            disabled={itemBusy}
+            onClick={(event) => {
+              event.stopPropagation();
+              void acceptFriendRequest(item);
+            }}
+            className={BUTTON_PRIMARY_CLASS}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            {getActionLabel(
+              t,
+              pendingItemAction,
+              item.id,
+              'friend-accept',
+              t('Contacts.accept', { defaultValue: 'Accept' }),
+              t('NotificationPanel.accepting', { defaultValue: 'Accepting...' }),
+            )}
           </button>
-          <button type="button" onClick={onClick} className={btnSecondary}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-            {t('Contacts.reject', { defaultValue: 'Reject' })}
+          <button
+            type="button"
+            disabled={itemBusy}
+            onClick={(event) => {
+              event.stopPropagation();
+              void rejectFriendRequest(item);
+            }}
+            className={BUTTON_SECONDARY_CLASS}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+            {getActionLabel(
+              t,
+              pendingItemAction,
+              item.id,
+              'friend-reject',
+              t('Contacts.reject', { defaultValue: 'Reject' }),
+              t('NotificationPanel.rejecting', { defaultValue: 'Rejecting...' }),
+            )}
           </button>
         </>
       );
     }
+
     if (item.type === 'gift_received' && item.giftTransactionId) {
       return (
         <>
-          <button type="button" onClick={onClick} className={btnPrimary}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8" /><line x1="12" y1="2" x2="12" y2="15" /><polyline points="8 11 12 15 16 11" /></svg>
-            {t('NotificationPanel.claim', { defaultValue: 'Claim' })}
+          <button
+            type="button"
+            disabled={itemBusy}
+            onClick={(event) => {
+              event.stopPropagation();
+              void claimGift(item);
+            }}
+            className={BUTTON_PRIMARY_CLASS}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8" />
+              <line x1="12" y1="2" x2="12" y2="15" />
+              <polyline points="8 11 12 15 16 11" />
+            </svg>
+            {getActionLabel(
+              t,
+              pendingItemAction,
+              item.id,
+              'gift-claim',
+              t('NotificationPanel.claim', { defaultValue: 'Claim' }),
+              t('NotificationPanel.claiming', { defaultValue: 'Claiming...' }),
+            )}
           </button>
-          <button type="button" onClick={onClick} className={btnSecondary}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          <button
+            type="button"
+            disabled={itemBusy}
+            onClick={(event) => {
+              event.stopPropagation();
+              setRejectingItem(item);
+              setRejectReason('');
+            }}
+            className={BUTTON_SECONDARY_CLASS}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
             {t('NotificationPanel.reject', { defaultValue: 'Reject' })}
           </button>
         </>
       );
     }
+
     if (isGiftReviewable(item)) {
       return (
         <>
-          <button type="button" onClick={onClick} className={btnPrimary}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-            {t('NotificationPanel.reviewPositive', { defaultValue: 'Review+' })}
+          <button
+            type="button"
+            disabled={itemBusy}
+            onClick={(event) => {
+              event.stopPropagation();
+              void createReview(item, ReviewRatingEnum.POSITIVE, 'review-positive');
+            }}
+            className={BUTTON_PRIMARY_CLASS}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            {getActionLabel(
+              t,
+              pendingItemAction,
+              item.id,
+              'review-positive',
+              t('NotificationPanel.reviewPositive', { defaultValue: 'Review+' }),
+              t('NotificationPanel.submitting', { defaultValue: 'Submitting...' }),
+            )}
           </button>
-          <button type="button" onClick={onClick} className={btnSecondary}>
-            {t('NotificationPanel.reviewNegative', { defaultValue: 'Review-' })}
+          <button
+            type="button"
+            disabled={itemBusy}
+            onClick={(event) => {
+              event.stopPropagation();
+              void createReview(item, ReviewRatingEnum.NEGATIVE, 'review-negative');
+            }}
+            className={BUTTON_SECONDARY_CLASS}
+          >
+            {getActionLabel(
+              t,
+              pendingItemAction,
+              item.id,
+              'review-negative',
+              t('NotificationPanel.reviewNegative', { defaultValue: 'Review-' }),
+              t('NotificationPanel.submitting', { defaultValue: 'Submitting...' }),
+            )}
           </button>
         </>
       );
     }
+
     return null;
   };
 
@@ -419,10 +589,9 @@ export function NotificationPanel() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#F5F7FA]">
-      {/* Header */}
       <div className="flex h-16 shrink-0 items-center justify-between bg-white px-6">
         <h1 className={`${APP_PAGE_TITLE_CLASS} flex items-center gap-2`}>
-          Notifications
+          {t('NotificationPanel.title', { defaultValue: 'Notifications' })}
           {unreadCount > 0 ? (
             <span className="rounded-full bg-mint-500 px-2 py-0.5 text-xs font-semibold text-white">
               {unreadCount}
@@ -431,14 +600,18 @@ export function NotificationPanel() {
         </h1>
         <button
           type="button"
-          onClick={() => { void markAllRead(); }}
-          className="text-sm font-medium text-mint-600 hover:text-mint-700 transition-colors"
+          disabled={markingAllRead || unreadCount <= 0}
+          onClick={() => {
+            void markAllRead();
+          }}
+          className="text-sm font-medium text-mint-600 transition-colors hover:text-mint-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {t('NotificationPanel.markAllRead', { defaultValue: 'Mark All Read' })}
+          {markingAllRead
+            ? t('NotificationPanel.markingAllRead', { defaultValue: 'Marking...' })
+            : t('NotificationPanel.markAllRead', { defaultValue: 'Mark All Read' })}
         </button>
       </div>
 
-      {/* Filter Tabs */}
       <div className="flex items-center gap-2 bg-white px-6 py-3">
         {FILTER_TABS.map((tab) => (
           <button
@@ -448,7 +621,7 @@ export function NotificationPanel() {
             className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
               activeFilter === tab
                 ? 'bg-mint-500 text-white shadow-sm'
-                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
             }`}
           >
             {t(`NotificationPanel.filters.${tab}`, {
@@ -458,48 +631,56 @@ export function NotificationPanel() {
         ))}
       </div>
 
-      {/* Notification List */}
       <ScrollShell
         className="min-h-0 flex-1"
         contentClassName="mx-auto max-w-2xl space-y-3 px-6 py-4"
       >
-          {notificationsQuery.isPending && items.length === 0 ? (
-            <div className="rounded-2xl bg-white p-8 text-center text-sm text-gray-400">
-              <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-mint-200 border-t-mint-500" />
-              {t('NotificationPanel.loading', { defaultValue: 'Loading notifications...' })}
-            </div>
-          ) : null}
+        {notificationsQuery.isPending && items.length === 0 ? (
+          <div className="rounded-2xl bg-white p-8 text-center text-sm text-gray-400">
+            <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-mint-200 border-t-mint-500" />
+            {t('NotificationPanel.loading', { defaultValue: 'Loading notifications...' })}
+          </div>
+        ) : null}
 
-          {!notificationsQuery.isPending && filteredItems.length === 0 ? (
-            <div className="rounded-2xl bg-white p-8 text-center text-sm text-gray-400">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                </svg>
-              </div>
-              {t('NotificationPanel.empty', { defaultValue: 'No notifications' })}
-            </div>
-          ) : null}
+        {notificationsQuery.isError && items.length === 0 ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center text-sm text-red-700">
+            {t('NotificationPanel.loadError', { defaultValue: 'Failed to load notifications' })}
+          </div>
+        ) : null}
 
-          {filteredItems.map((item) => (
+        {!notificationsQuery.isPending && !notificationsQuery.isError && filteredItems.length === 0 ? (
+          <div className="rounded-2xl bg-white p-8 text-center text-sm text-gray-400">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+            </div>
+            {t('NotificationPanel.empty', { defaultValue: 'No notifications' })}
+          </div>
+        ) : null}
+
+        {filteredItems.map((item) => {
+          const badgeKey = getNotificationBadgeKey(item);
+          const itemBusy = isBusyForItem(item.id);
+
+          return (
             <div
               key={item.id}
-              onClick={() => { void markOneRead(item.id); }}
-              className={`group relative rounded-2xl p-4 transition-all duration-200 cursor-pointer ${
-                item.isRead
-                  ? 'bg-white'
-                  : 'bg-mint-50/60'
-              }`}
+              onClick={() => {
+                if (!itemBusy) {
+                  void markOneRead(item.id);
+                }
+              }}
+              className={`group relative cursor-pointer rounded-2xl p-4 transition-all duration-200 ${
+                item.isRead ? 'bg-white' : 'bg-mint-50/60'
+              } ${itemBusy ? 'pointer-events-none' : ''}`}
             >
-              {/* Unread Indicator Dot */}
-              {!item.isRead && (
+              {!item.isRead ? (
                 <div className="absolute right-4 top-4 h-2.5 w-2.5 rounded-full bg-mint-500 shadow-sm" />
-              )}
+              ) : null}
 
-              {/* Main Content Row */}
               <div className="flex gap-4">
-                {/* Avatar */}
                 <div className="relative shrink-0">
                   <EntityAvatar
                     imageUrl={item.actorAvatarUrl}
@@ -507,90 +688,77 @@ export function NotificationPanel() {
                     kind={item.actorIsAgent ? 'agent' : 'human'}
                     sizeClassName="h-12 w-12"
                     className={item.actorIsAgent ? undefined : 'ring-2 ring-gray-100'}
-                    fallbackClassName={item.actorIsAgent ? undefined : (item.isRead ? 'bg-gray-100 text-gray-500 ring-2 ring-gray-100' : 'bg-mint-100 text-mint-700 ring-2 ring-gray-100')}
+                    fallbackClassName={
+                      item.actorIsAgent
+                        ? undefined
+                        : (item.isRead
+                          ? 'bg-gray-100 text-gray-500 ring-2 ring-gray-100'
+                          : 'bg-mint-100 text-mint-700 ring-2 ring-gray-100')
+                    }
                     textClassName="text-sm font-semibold"
                   />
-                  {/* Status Badge */}
-                  {item.type === 'gift_received' && (
+                  {item.type === 'gift_received' ? (
                     <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-mint-500 text-white">
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                         <path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8" />
                         <line x1="12" y1="2" x2="12" y2="15" />
                       </svg>
                     </div>
-                  )}
+                  ) : null}
                 </div>
 
-                {/* Content */}
                 <div className="min-w-0 flex-1 pr-6">
-                  {/* Title Line */}
                   <p className="text-sm text-gray-800">
-                    <span className="font-bold">{item.actorName}</span>
-                    {' '}
-                    <span className="text-gray-600">{item.title.replace(item.actorName, '').trim()}</span>
-                    {' '}
+                    <span className="font-bold">{item.actorName}</span>{' '}
+                    <span className="text-gray-600">{item.title.replace(item.actorName, '').trim()}</span>{' '}
                     <span className="inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600">
-                      {item.type === 'friend_request_received'
-                        ? t('NotificationPanel.typeNotifications.friendRequestReceived', { defaultValue: 'Friend Request' })
-                        : item.type === 'gift_received'
-                          ? t('NotificationPanel.filters.gift', { defaultValue: 'Gifts' })
-                          : t(`NotificationPanel.filters.${getNotificationCategory(item.type)}`, {
-                            defaultValue: getNotificationCategory(item.type),
-                          })}
+                      {t(`NotificationPanel.typeNotifications.${badgeKey}`, {
+                        defaultValue: getBadgeDefaultLabel(badgeKey),
+                      })}
                     </span>
                   </p>
 
-                  {/* Time */}
                   <p className="mt-0.5 text-xs text-gray-400">{formatNotificationTime(item.createdAt)}</p>
 
-                  {/* Quote Bubble */}
-                  {item.body && (
+                  {item.body ? (
                     <div className="mt-2 inline-block max-w-full rounded-xl rounded-tl-sm bg-gray-100 px-3 py-2">
-                      <p className="text-sm text-gray-600 line-clamp-2">"{item.body}"</p>
+                      <p className="line-clamp-2 text-sm text-gray-600">"{item.body}"</p>
                     </div>
-                  )}
+                  ) : null}
 
-                  {/* Action Buttons */}
                   <div className="mt-3 flex items-center gap-2">
-                    {getActionButtons(item, (e) => {
-                      e.stopPropagation();
-                      if (item.type === 'friend_request_received') {
-                        void markOneRead(item.id);
-                      } else if (item.type === 'gift_received' && item.giftTransactionId) {
-                        void claimGift(item);
-                      } else if (isGiftReviewable(item)) {
-                        void createReview(item, ReviewRating.POSITIVE);
-                      } else {
-                        void markOneRead(item.id);
-                      }
-                    })}
+                    {renderActionButtons(item)}
                   </div>
                 </div>
               </div>
             </div>
-          ))}
+          );
+        })}
 
-          {hasNext ? (
-            <div className="flex justify-center pt-2">
-              <button
-                type="button"
-                onClick={() => { void loadMore(); }}
-                disabled={loadingMore}
-                className="rounded-xl bg-white px-5 py-2.5 text-sm font-medium text-gray-600 shadow-sm hover:bg-gray-50 disabled:opacity-50 transition-colors"
-              >
-                {loadingMore
-                  ? t('NotificationPanel.loadingMore', { defaultValue: 'Loading...' })
-                  : t('NotificationPanel.loadMore', { defaultValue: 'Load More' })}
-              </button>
-            </div>
-          ) : null}
+        {hasNext ? (
+          <div className="flex justify-center pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                void loadMore();
+              }}
+              disabled={loadingMore}
+              className="rounded-xl bg-white px-5 py-2.5 text-sm font-medium text-gray-600 shadow-sm transition-colors hover:bg-gray-50 disabled:opacity-50"
+            >
+              {loadingMore
+                ? t('NotificationPanel.loadingMore', { defaultValue: 'Loading...' })
+                : t('NotificationPanel.loadMore', { defaultValue: 'Load More' })}
+            </button>
+          </div>
+        ) : null}
       </ScrollShell>
 
-      {/* Reject Gift Modal */}
-      {rejectingItem && (
+      {rejectingItem ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl">
-            <h2 className="text-lg font-bold text-gray-900">{t('NotificationPanel.rejectGiftTitle')}</h2>
+            <h2 className="text-lg font-bold text-gray-900">
+              {t('NotificationPanel.rejectGiftTitle')}
+            </h2>
             <p className="mt-2 text-sm text-gray-600">
               {t('NotificationPanel.rejectGiftDescription', {
                 defaultValue: 'You are rejecting gift from {{name}}.',
@@ -614,26 +782,32 @@ export function NotificationPanel() {
             <div className="mt-4 flex items-center justify-end gap-2">
               <button
                 type="button"
-                onClick={() => { if (!rejectingGift) { setRejectingItem(null); setRejectReason(''); }}}
-                disabled={rejectingGift}
-                className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                onClick={() => {
+                  if (!pendingItemAction) {
+                    resetRejectDialog();
+                  }
+                }}
+                disabled={pendingItemAction?.action === 'gift-reject'}
+                className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {t('Common.cancel', { defaultValue: 'Cancel' })}
               </button>
               <button
                 type="button"
-                onClick={() => { void submitRejectGift(); }}
-                disabled={rejectingGift}
-                className="rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 transition-colors shadow-sm"
+                onClick={() => {
+                  void submitRejectGift();
+                }}
+                disabled={pendingItemAction?.action === 'gift-reject'}
+                className="rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {rejectingGift
+                {pendingItemAction?.action === 'gift-reject'
                   ? t('NotificationPanel.rejecting', { defaultValue: 'Rejecting...' })
                   : t('NotificationPanel.confirmReject', { defaultValue: 'Confirm Reject' })}
               </button>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

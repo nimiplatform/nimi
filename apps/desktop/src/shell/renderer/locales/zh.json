@@ -833,11 +833,15 @@
     "loginRequired": "请先登录后查看通知",
     "markReadError": "标记通知已读失败",
     "markAllReadError": "全部已读失败",
+    "markingAllRead": "处理中...",
+    "accepting": "接受中...",
+    "claiming": "领取中...",
     "claimError": "领取礼物失败",
     "rejectError": "拒收礼物失败",
     "loadMoreError": "加载更多通知失败",
     "reviewSubmitted": "评价已提交",
     "reviewError": "提交评价失败",
+    "submitting": "提交中...",
     "filters": {
       "all": "全部",
       "gift": "礼物",
@@ -849,6 +853,7 @@
     "typeNotifications": {
       "friendRequestReceived": "好友请求",
       "friendRequestAccepted": "好友通过",
+      "friendRequestRejected": "好友拒绝",
       "giftReceived": "收到礼物",
       "giftAccepted": "礼物被接收",
       "giftRejected": "礼物被拒绝",

@@ -833,11 +833,15 @@
     "loginRequired": "Please log in to view notifications",
     "markReadError": "Failed to mark notification as read",
     "markAllReadError": "Failed to mark all as read",
+    "markingAllRead": "Marking...",
+    "accepting": "Accepting...",
+    "claiming": "Claiming...",
     "claimError": "Failed to claim gift",
     "rejectError": "Failed to reject gift",
     "loadMoreError": "Failed to load more notifications",
     "reviewSubmitted": "Review submitted",
     "reviewError": "Failed to submit review",
+    "submitting": "Submitting...",
     "filters": {
       "all": "All",
       "gift": "Gifts",
@@ -849,6 +853,7 @@
     "typeNotifications": {
       "friendRequestReceived": "Friend Request",
       "friendRequestAccepted": "Friend Accepted",
+      "friendRequestRejected": "Friend Rejected",
       "giftReceived": "Gift Received",
       "giftAccepted": "Gift Accepted",
       "giftRejected": "Gift Rejected",

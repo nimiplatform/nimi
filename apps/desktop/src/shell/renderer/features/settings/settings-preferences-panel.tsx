@@ -24,8 +24,7 @@ import {
 
 export { collectDesktopUpdatePanelAlerts } from './settings-preferences-panel-parts';
 
-
-type NotificationForm = {
+export type NotificationForm = {
   directMessages: boolean;
   friendRequests: boolean;
   mentions: boolean;
@@ -37,7 +36,7 @@ type NotificationForm = {
   email: boolean;
 };
 
-const DEFAULT_NOTIFICATION_FORM: NotificationForm = {
+export const DEFAULT_NOTIFICATION_FORM: NotificationForm = {
   directMessages: true,
   friendRequests: true,
   mentions: true,
@@ -45,28 +44,42 @@ const DEFAULT_NOTIFICATION_FORM: NotificationForm = {
   giftReceived: true,
   giftActionRequired: true,
   inApp: true,
-  push: true,
-  email: false,
+  push: false,
+  email: true,
 };
 
-function toNotificationForm(input: UserNotificationSettingsDto | null | undefined): NotificationForm {
+function isEnabled(input: Array<boolean | null | undefined>, fallback = true): boolean {
+  const definedValues = input.filter((value): value is boolean => typeof value === 'boolean');
+  if (definedValues.length === 0) {
+    return fallback;
+  }
+  return definedValues.every((value) => value === true);
+}
+
+export function toNotificationForm(input: UserNotificationSettingsDto | null | undefined): NotificationForm {
   const activity = input?.activity;
   const channels = input?.channels;
   const gifts = input?.gifts;
   return {
-    directMessages: activity?.directMessages !== false,
-    friendRequests: activity?.friendRequests !== false,
-    mentions: activity?.mentions !== false,
-    likes: activity?.likes !== false,
-    giftReceived: gifts?.received !== false,
-    giftActionRequired: gifts?.actionRequired !== false,
-    inApp: channels?.inApp !== false,
-    push: channels?.push !== false,
-    email: channels?.email === true,
+    directMessages: isEnabled([activity?.directMessages], DEFAULT_NOTIFICATION_FORM.directMessages),
+    friendRequests: isEnabled([activity?.friendRequests], DEFAULT_NOTIFICATION_FORM.friendRequests),
+    mentions: isEnabled([activity?.mentions], DEFAULT_NOTIFICATION_FORM.mentions),
+    likes: isEnabled([activity?.likes], DEFAULT_NOTIFICATION_FORM.likes),
+    giftReceived: isEnabled(
+      [gifts?.received, gifts?.acceptedRejected],
+      DEFAULT_NOTIFICATION_FORM.giftReceived,
+    ),
+    giftActionRequired: isEnabled(
+      [gifts?.actionRequired, gifts?.refunds, gifts?.paymentFailed],
+      DEFAULT_NOTIFICATION_FORM.giftActionRequired,
+    ),
+    inApp: isEnabled([channels?.inApp], DEFAULT_NOTIFICATION_FORM.inApp),
+    push: isEnabled([channels?.push], DEFAULT_NOTIFICATION_FORM.push),
+    email: isEnabled([channels?.email], DEFAULT_NOTIFICATION_FORM.email),
   };
 }
 
-function toNotificationPayload(form: NotificationForm): UpdateUserNotificationSettingsDto {
+export function toNotificationPayload(form: NotificationForm): UpdateUserNotificationSettingsDto {
   return {
     activity: {
       directMessages: form.directMessages,
@@ -89,7 +102,7 @@ function toNotificationPayload(form: NotificationForm): UpdateUserNotificationSe
   };
 }
 
-function notificationsEqual(left: NotificationForm, right: NotificationForm): boolean {
+export function notificationsEqual(left: NotificationForm, right: NotificationForm): boolean {
   return (
     left.directMessages === right.directMessages
     && left.friendRequests === right.friendRequests
