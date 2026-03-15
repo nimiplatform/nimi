@@ -15,7 +15,7 @@
 ## 3. Rule ID 规范
 
 - 格式：`D-<DOMAIN>-NNN`
-- `DOMAIN` 固定枚举：`BOOT` `IPC` `STATE` `AUTH` `DSYNC` `HOOK` `MOD` `LLM` `SHELL` `ERR` `TEL` `NET` `SEC` `STRM` `OFFLINE` `CODEGEN`
+- `DOMAIN` 固定枚举：`BOOT` `IPC` `STATE` `AUTH` `DSYNC` `HOOK` `MOD` `LLM` `SHELL` `ERR` `TEL` `NET` `SEC` `STRM` `OFFLINE` `CODEGEN` `GATE`
 - `NNN` 三位递增编号，不复用。
 
 ## 4. 文档所有权
@@ -39,6 +39,7 @@
 | `streaming-consumption-contract.md` | `D-STRM-*` | 流式消费、取消与恢复语义 |
 | `offline-degradation-contract.md` | `D-OFFLINE-*` | Runtime/Realm 离线降级、缓存与重连冲突策略 |
 | `codegen-contract.md` | `D-CODEGEN-*` | mod codegen 规则、预检、门禁与回滚 |
+| `testing-gates-contract.md` | `D-GATE-*` | Desktop 测试治理、E2E 风险分层与发布门禁 |
 
 ## 5. 结构化事实源
 
@@ -61,6 +62,8 @@
 - `tables/error-codes.yaml`
 - `tables/log-areas.yaml`
 - `tables/build-chunks.yaml`
+- `tables/desktop-testing-gates.yaml`
+- `tables/desktop-feature-coverage.yaml`
 - `tables/rule-evidence.yaml`
 - `tables/codegen-import-allowlist.yaml`
 - `tables/codegen-capability-tiers.yaml`

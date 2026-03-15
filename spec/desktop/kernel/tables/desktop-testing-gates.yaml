@@ -1,0 +1,29 @@
+version: 1
+gates:
+  - gate: unit_contract_mock
+    command: pnpm --filter @nimiplatform/desktop test
+    source_rule: D-GATE-010
+  - gate: rust_tauri_integration
+    command: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml && cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets
+    source_rule: D-GATE-020
+  - gate: desktop_e2e_smoke
+    command: pnpm check:desktop-e2e-smoke
+    source_rule: D-GATE-030
+  - gate: desktop_e2e_journeys
+    command: pnpm check:desktop-e2e-journeys
+    source_rule: D-GATE-040
+  - gate: selector_testability
+    command: pnpm --filter @nimiplatform/desktop typecheck
+    source_rule: D-GATE-050
+  - gate: os_matrix
+    command: linux:PR+release; windows:release; macos:manual-smoke
+    source_rule: D-GATE-060
+  - gate: release_parity
+    command: pnpm check:desktop-e2e-smoke && pnpm check:desktop-e2e-journeys
+    source_rule: D-GATE-070
+  - gate: spec_consistency
+    command: pnpm check:desktop-spec-kernel-consistency
+    source_rule: D-GATE-080
+  - gate: docs_drift
+    command: pnpm check:desktop-spec-kernel-docs-drift
+    source_rule: D-GATE-080

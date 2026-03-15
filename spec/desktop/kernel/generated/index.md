@@ -21,6 +21,8 @@
 | `error-codes.md` | `tables/error-codes.yaml` |
 | `log-areas.md` | `tables/log-areas.yaml` |
 | `build-chunks.md` | `tables/build-chunks.yaml` |
+| `desktop-testing-gates.md` | `tables/desktop-testing-gates.yaml` |
+| `desktop-feature-coverage.md` | `tables/desktop-feature-coverage.yaml` |
 | `rule-evidence.md` | `tables/rule-evidence.yaml` |
 | `codegen-import-allowlist.md` | `tables/codegen-import-allowlist.yaml` |
 | `codegen-capability-tiers.md` | `tables/codegen-capability-tiers.yaml` |

@@ -9,6 +9,12 @@
 | `desktop_kernel_consistency` | `static_gate` | `pnpm check:desktop-spec-kernel-consistency` | `scripts/check-desktop-spec-kernel-consistency.mjs` | Kernel rule integrity and source/spec consistency checks for desktop domain. |
 | `desktop_lint_gate` | `lint_gate` | `pnpm --filter @nimiplatform/desktop lint` | `apps/desktop/package.json` | TypeScript/ESLint/Rust compile gates for desktop app implementation. |
 | `desktop_test_gate` | `test_gate` | `pnpm --filter @nimiplatform/desktop test` | `apps/desktop/package.json` | Desktop quality + unit tests for behavior regression coverage. |
+| `desktop_e2e_smoke_gate` | `e2e_gate` | `pnpm check:desktop-e2e-smoke` | `apps/desktop/package.json` | Desktop WebDriver smoke scenarios for Linux PR hard gate coverage. |
+| `desktop_e2e_journey_gate` | `e2e_gate` | `pnpm check:desktop-e2e-journeys` | `apps/desktop/package.json` | Desktop WebDriver journey matrix for release/nightly key path coverage. |
+| `desktop_rust_test_gate` | `rust_test_gate` | `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml` | `apps/desktop/src-tauri/Cargo.toml` | Tauri backend integration test gate for desktop runtime boundary behavior. |
+| `desktop_rust_clippy_gate` | `rust_static_gate` | `cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets` | `apps/desktop/src-tauri/Cargo.toml` | Tauri backend static analysis gate for desktop runtime boundary behavior. |
+| `desktop_macos_manual_smoke_policy` | `manual_policy` | `spec-only` | `spec/desktop/testing-gates.md` | Structured macOS non-blocking manual smoke checklist for menu-bar and packaged shell behavior. |
+| `desktop_e2e_failure_artifacts_gate` | `ci_artifact_policy` | `upload apps/desktop/reports/e2e/**` | `.github/workflows/ci.yml` | CI must retain desktop E2E screenshots, HTML, browser logs, backend logs, driver logs, and scenario manifests on failure. |
 | `desktop_mods_smoke_gate` | `smoke_gate` | `pnpm check:desktop-mods-smoke --all` | `scripts/check-desktop-mods-smoke.mjs` | Desktop runtime mod host can discover and validate installed prebuilt mod packages from the runtime mods directory. |
 | `runtime_mod_hook_hardcut_gate` | `static_gate` | `pnpm check:runtime-mod-hook-hardcut` | `scripts/check-runtime-mod-hook-hardcut.mjs` | Cross-layer runtime-aligned mod and hook surface hard-cut guard. |
 | `desktop_cloud_runtime_only_gate` | `static_gate` | `pnpm check:desktop-cloud-runtime-only` | `scripts/check-desktop-cloud-runtime-only.mjs` | Enforces cloud connector routing through runtime-owned APIs only. |
@@ -31,18 +37,18 @@
 | `D-AUTH-009` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-AUTH-010` | `covered` | `desktop_kernel_consistency`, `desktop_test_gate` |
 | `D-AUTH-011` | `covered` | `desktop_kernel_consistency`, `desktop_test_gate` |
-| `D-BOOT-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_runtime_config_path_gate` |
+| `D-BOOT-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_e2e_smoke_gate`, `desktop_runtime_config_path_gate` |
 | `D-BOOT-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-BOOT-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-BOOT-004` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-BOOT-005` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-BOOT-006` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-BOOT-007` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
-| `D-BOOT-008` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-BOOT-008` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_e2e_smoke_gate` |
 | `D-BOOT-009` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-BOOT-010` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-BOOT-011` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
-| `D-BOOT-012` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-BOOT-012` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_e2e_smoke_gate` |
 | `D-DSYNC-000` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-DSYNC-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-DSYNC-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
@@ -81,15 +87,15 @@
 | `D-HOOK-010` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-HOOK-011` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-HOOK-012` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
-| `D-IPC-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
-| `D-IPC-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-IPC-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_e2e_smoke_gate` |
+| `D-IPC-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_e2e_journey_gate` |
 | `D-IPC-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_runtime_config_path_gate` |
 | `D-IPC-004` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-IPC-005` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-IPC-006` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-IPC-007` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-IPC-008` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
-| `D-IPC-009` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-IPC-009` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_e2e_journey_gate` |
 | `D-IPC-010` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-IPC-011` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_local_ai_bridge_gate` |
 | `D-IPC-012` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_cloud_runtime_only_gate` |
@@ -144,14 +150,14 @@
 | `D-SEC-008` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-SEC-009` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-SEC-010` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
-| `D-SHELL-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-SHELL-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_e2e_smoke_gate` |
 | `D-SHELL-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-SHELL-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-SHELL-004` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-SHELL-005` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
-| `D-SHELL-006` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-SHELL-006` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_e2e_smoke_gate` |
 | `D-SHELL-007` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
-| `D-SHELL-008` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-SHELL-008` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_e2e_smoke_gate` |
 | `D-SHELL-009` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-SHELL-010` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-STATE-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
@@ -186,8 +192,17 @@
 | `D-CODEGEN-050` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-CODEGEN-060` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-CODEGEN-070` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
-| `D-OFFLINE-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-OFFLINE-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_e2e_smoke_gate` |
 | `D-OFFLINE-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-OFFLINE-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
-| `D-OFFLINE-004` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-OFFLINE-004` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_e2e_smoke_gate` |
 | `D-OFFLINE-005` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-GATE-001` | `covered` | `desktop_kernel_consistency`, `desktop_e2e_smoke_gate`, `desktop_e2e_journey_gate` |
+| `D-GATE-010` | `covered` | `desktop_kernel_consistency`, `desktop_test_gate` |
+| `D-GATE-020` | `covered` | `desktop_kernel_consistency`, `desktop_rust_test_gate`, `desktop_rust_clippy_gate` |
+| `D-GATE-030` | `covered` | `desktop_kernel_consistency`, `desktop_e2e_smoke_gate` |
+| `D-GATE-040` | `covered` | `desktop_kernel_consistency`, `desktop_e2e_journey_gate` |
+| `D-GATE-050` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_e2e_smoke_gate` |
+| `D-GATE-060` | `covered` | `desktop_kernel_consistency`, `desktop_e2e_journey_gate`, `desktop_macos_manual_smoke_policy` |
+| `D-GATE-070` | `covered` | `desktop_kernel_consistency`, `desktop_e2e_smoke_gate`, `desktop_e2e_journey_gate`, `desktop_e2e_failure_artifacts_gate` |
+| `D-GATE-080` | `covered` | `desktop_kernel_consistency` |

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
-const scenarioMediaHelpersPath = path.join(repoRoot, 'runtime', 'internal', 'services', 'ai', 'scenario_media_helpers.go');
+const runtimeAIServicePath = path.join(repoRoot, 'runtime', 'internal', 'services', 'ai');
 const cloudProviderPath = path.join(repoRoot, 'runtime', 'internal', 'nimillm', 'cloud_provider.go');
 const liveProviderUtilsPath = path.join(repoRoot, 'scripts', 'live-provider-utils.mjs');
 
@@ -32,15 +32,43 @@ function readText(absPath) {
   return fs.readFileSync(absPath, 'utf8');
 }
 
+function listRuntimeAIRouteFiles(absDir) {
+  const out = [];
+  for (const entry of fs.readdirSync(absDir, { withFileTypes: true })) {
+    const absPath = path.join(absDir, entry.name);
+    if (entry.isDirectory()) {
+      out.push(...listRuntimeAIRouteFiles(absPath));
+      continue;
+    }
+    if (!entry.isFile() || !entry.name.endsWith('.go') || entry.name.endsWith('_test.go')) {
+      continue;
+    }
+    if (!entry.name.startsWith('provider') && !entry.name.startsWith('scenario_')) {
+      continue;
+    }
+    out.push(absPath);
+  }
+  return out.sort((left, right) => left.localeCompare(right));
+}
+
 function main() {
-  const scenarioSource = readText(scenarioMediaHelpersPath);
+  const runtimeAIRouteFiles = listRuntimeAIRouteFiles(runtimeAIServicePath);
+  if (runtimeAIRouteFiles.length === 0) {
+    fail('runtime/internal/services/ai must keep provider/scenario routing files for alias hardcut checks');
+  }
+  const routingSources = runtimeAIRouteFiles.map((absPath) => ({
+    relPath: path.relative(repoRoot, absPath).replaceAll('\\', '/'),
+    source: readText(absPath),
+  }));
   const cloudSource = readText(cloudProviderPath);
   const liveUtilsSource = readText(liveProviderUtilsPath);
 
   for (const [alias, provider] of rejectOnlyAliases.entries()) {
     const routedPattern = new RegExp(`"${alias}"\\s*:`);
-    if (routedPattern.test(scenarioSource)) {
-      fail(`runtime/internal/services/ai/scenario_media_helpers.go must not route legacy alias ${alias}`);
+    for (const routeSource of routingSources) {
+      if (routedPattern.test(routeSource.source)) {
+        fail(`${routeSource.relPath} must not route legacy alias ${alias}`);
+      }
     }
 
     const rejectPattern = new RegExp(`"${alias}"\\s*:\\s*"${provider}"`);

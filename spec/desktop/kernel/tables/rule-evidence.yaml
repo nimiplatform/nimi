@@ -15,6 +15,36 @@ evidence_catalog:
     command: pnpm --filter @nimiplatform/desktop test
     path: apps/desktop/package.json
     description: Desktop quality + unit tests for behavior regression coverage.
+  desktop_e2e_smoke_gate:
+    type: e2e_gate
+    command: pnpm check:desktop-e2e-smoke
+    path: apps/desktop/package.json
+    description: Desktop WebDriver smoke scenarios for Linux PR hard gate coverage.
+  desktop_e2e_journey_gate:
+    type: e2e_gate
+    command: pnpm check:desktop-e2e-journeys
+    path: apps/desktop/package.json
+    description: Desktop WebDriver journey matrix for release/nightly key path coverage.
+  desktop_rust_test_gate:
+    type: rust_test_gate
+    command: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
+    path: apps/desktop/src-tauri/Cargo.toml
+    description: Tauri backend integration test gate for desktop runtime boundary behavior.
+  desktop_rust_clippy_gate:
+    type: rust_static_gate
+    command: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets
+    path: apps/desktop/src-tauri/Cargo.toml
+    description: Tauri backend static analysis gate for desktop runtime boundary behavior.
+  desktop_macos_manual_smoke_policy:
+    type: manual_policy
+    command: spec-only
+    path: spec/desktop/testing-gates.md
+    description: Structured macOS non-blocking manual smoke checklist for menu-bar and packaged shell behavior.
+  desktop_e2e_failure_artifacts_gate:
+    type: ci_artifact_policy
+    command: upload apps/desktop/reports/e2e/**
+    path: .github/workflows/ci.yml
+    description: CI must retain desktop E2E screenshots, HTML, browser logs, backend logs, driver logs, and scenario manifests on failure.
   desktop_mods_smoke_gate:
     type: smoke_gate
     command: pnpm check:desktop-mods-smoke --all
@@ -116,6 +146,7 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+      - desktop_e2e_smoke_gate
       - desktop_runtime_config_path_gate
   - rule_id: D-BOOT-002
     status: covered
@@ -159,6 +190,7 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+      - desktop_e2e_smoke_gate
   - rule_id: D-BOOT-009
     status: covered
     evidence_refs:
@@ -183,6 +215,7 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+      - desktop_e2e_smoke_gate
   - rule_id: D-DSYNC-000
     status: covered
     evidence_refs:
@@ -419,12 +452,14 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+      - desktop_e2e_smoke_gate
   - rule_id: D-IPC-002
     status: covered
     evidence_refs:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+      - desktop_e2e_journey_gate
   - rule_id: D-IPC-003
     status: covered
     evidence_refs:
@@ -468,6 +503,7 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+      - desktop_e2e_journey_gate
   - rule_id: D-IPC-010
     status: covered
     evidence_refs:
@@ -803,6 +839,7 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+      - desktop_e2e_smoke_gate
   - rule_id: D-SHELL-002
     status: covered
     evidence_refs:
@@ -833,6 +870,7 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+      - desktop_e2e_smoke_gate
   - rule_id: D-SHELL-007
     status: covered
     evidence_refs:
@@ -845,6 +883,7 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+      - desktop_e2e_smoke_gate
   - rule_id: D-SHELL-009
     status: covered
     evidence_refs:
@@ -1056,6 +1095,7 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+      - desktop_e2e_smoke_gate
   - rule_id: D-OFFLINE-002
     status: covered
     evidence_refs:
@@ -1074,9 +1114,60 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+      - desktop_e2e_smoke_gate
   - rule_id: D-OFFLINE-005
     status: covered
     evidence_refs:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+  - rule_id: D-GATE-001
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_e2e_smoke_gate
+      - desktop_e2e_journey_gate
+  - rule_id: D-GATE-010
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_test_gate
+  - rule_id: D-GATE-020
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_rust_test_gate
+      - desktop_rust_clippy_gate
+  - rule_id: D-GATE-030
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_e2e_smoke_gate
+  - rule_id: D-GATE-040
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_e2e_journey_gate
+  - rule_id: D-GATE-050
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_e2e_smoke_gate
+  - rule_id: D-GATE-060
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_e2e_journey_gate
+      - desktop_macos_manual_smoke_policy
+  - rule_id: D-GATE-070
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_e2e_smoke_gate
+      - desktop_e2e_journey_gate
+      - desktop_e2e_failure_artifacts_gate
+  - rule_id: D-GATE-080
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency

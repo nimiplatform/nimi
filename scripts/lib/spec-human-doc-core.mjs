@@ -457,7 +457,7 @@ export const desktopKernelFiles = [
   'mod-governance-contract.md', 'llm-adapter-contract.md', 'ui-shell-contract.md',
   'error-boundary-contract.md', 'telemetry-contract.md', 'network-contract.md',
   'security-contract.md', 'streaming-consumption-contract.md', 'offline-degradation-contract.md',
-  'codegen-contract.md',
+  'codegen-contract.md', 'testing-gates-contract.md',
 ];
 
 export const futureKernelFiles = [

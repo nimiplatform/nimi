@@ -1,0 +1,189 @@
+version: 1
+features:
+  - feature: boot-startup
+    risk_tier: P0
+    required_layers:
+      - unit_contract
+      - desktop_e2e_smoke
+      - desktop_e2e_recovery
+    covers_tabs: []
+    covers_bootstrap_phases:
+      - runtime-defaults
+      - platform-client
+      - datasync-init
+      - runtime-host
+      - runtime-mods
+      - external-agent
+      - auth-session
+      - bootstrap-ready
+    covers_ipc_commands:
+      - runtime_defaults
+      - runtime_bridge_status
+    covers_runtime_pages: []
+    scenarios:
+      - scenario_id: boot.anonymous.login-screen
+        source_rule: D-GATE-030
+        spec_path: apps/desktop/e2e/specs/boot.anonymous.login-screen.e2e.mjs
+      - scenario_id: boot.authenticated.main-shell
+        source_rule: D-GATE-030
+        spec_path: apps/desktop/e2e/specs/boot.authenticated.main-shell.e2e.mjs
+      - scenario_id: boot.runtime-unavailable.degraded-shell
+        source_rule: D-GATE-030
+        spec_path: apps/desktop/e2e/specs/boot.runtime-unavailable.degraded-shell.e2e.mjs
+      - scenario_id: boot.fatal-error-screen
+        source_rule: D-GATE-030
+        spec_path: apps/desktop/e2e/specs/boot.fatal-error-screen.e2e.mjs
+  - feature: shell-navigation
+    risk_tier: P0
+    required_layers:
+      - unit_contract
+      - desktop_e2e_smoke
+    covers_tabs:
+      - home
+      - chat
+      - contacts
+      - world
+      - explore
+      - runtime
+      - settings
+    covers_bootstrap_phases: []
+    covers_ipc_commands: []
+    covers_runtime_pages: []
+    scenarios:
+      - scenario_id: shell.core-navigation
+        source_rule: D-GATE-030
+        spec_path: apps/desktop/e2e/specs/shell.core-navigation.e2e.mjs
+  - feature: offline-recovery
+    risk_tier: P0
+    required_layers:
+      - unit_contract
+      - desktop_e2e_recovery
+    covers_tabs: []
+    covers_bootstrap_phases: []
+    covers_ipc_commands:
+      - runtime_bridge_status
+    covers_runtime_pages: []
+    scenarios:
+      - scenario_id: offline.banner-and-recovery
+        source_rule: D-GATE-030
+        spec_path: apps/desktop/e2e/specs/offline.banner-and-recovery.e2e.mjs
+  - feature: settings-release-preferences
+    risk_tier: P1
+    required_layers:
+      - unit_contract
+      - desktop_e2e_journey
+    covers_tabs:
+      - settings
+    covers_bootstrap_phases: []
+    covers_ipc_commands:
+      - desktop_release_info_get
+    covers_runtime_pages: []
+    scenarios:
+      - scenario_id: settings.release-strip-and-preferences
+        source_rule: D-GATE-040
+        spec_path: apps/desktop/e2e/specs/settings.release-strip-and-preferences.e2e.mjs
+  - feature: chat-core
+    risk_tier: P1
+    required_layers:
+      - unit_contract
+      - desktop_e2e_journey
+    covers_tabs:
+      - chat
+    covers_bootstrap_phases: []
+    covers_ipc_commands: []
+    covers_runtime_pages: []
+    scenarios:
+      - scenario_id: chat.open-thread
+        source_rule: D-GATE-040
+        spec_path: apps/desktop/e2e/specs/chat.open-thread.e2e.mjs
+  - feature: contacts-core
+    risk_tier: P1
+    required_layers:
+      - unit_contract
+      - desktop_e2e_journey
+    covers_tabs:
+      - contacts
+    covers_bootstrap_phases: []
+    covers_ipc_commands: []
+    covers_runtime_pages: []
+    scenarios:
+      - scenario_id: contacts.panel-load
+        source_rule: D-GATE-040
+        spec_path: apps/desktop/e2e/specs/contacts.panel-load.e2e.mjs
+  - feature: explore-entry
+    risk_tier: P1
+    required_layers:
+      - unit_contract
+      - desktop_e2e_journey
+    covers_tabs:
+      - explore
+    covers_bootstrap_phases: []
+    covers_ipc_commands: []
+    covers_runtime_pages: []
+    scenarios:
+      - scenario_id: explore.panel-load
+        source_rule: D-GATE-040
+        spec_path: apps/desktop/e2e/specs/explore.panel-load.e2e.mjs
+  - feature: runtime-config
+    risk_tier: P1
+    required_layers:
+      - unit_contract
+      - desktop_e2e_smoke
+    covers_tabs:
+      - runtime
+    covers_bootstrap_phases: []
+    covers_ipc_commands:
+      - runtime_bridge_config_get
+    covers_runtime_pages:
+      - overview
+    scenarios:
+      - scenario_id: runtime.config-panel-load
+        source_rule: D-GATE-030
+        spec_path: apps/desktop/e2e/specs/runtime.config-panel-load.e2e.mjs
+  - feature: local-ai-entry
+    risk_tier: P1
+    required_layers:
+      - unit_contract
+      - desktop_e2e_journey
+    covers_tabs:
+      - runtime
+    covers_bootstrap_phases: []
+    covers_ipc_commands: []
+    covers_runtime_pages:
+      - local
+    scenarios:
+      - scenario_id: runtime.local-ai.panel-load
+        source_rule: D-GATE-040
+        spec_path: apps/desktop/e2e/specs/runtime.local-ai.panel-load.e2e.mjs
+  - feature: external-agent-entry
+    risk_tier: P1
+    required_layers:
+      - unit_contract
+      - desktop_e2e_journey
+    covers_tabs:
+      - runtime
+    covers_bootstrap_phases:
+      - external-agent
+    covers_ipc_commands: []
+    covers_runtime_pages:
+      - runtime
+    scenarios:
+      - scenario_id: runtime.external-agent.panel-load
+        source_rule: D-GATE-040
+        spec_path: apps/desktop/e2e/specs/runtime.external-agent.panel-load.e2e.mjs
+  - feature: mods-panel
+    risk_tier: P1
+    required_layers:
+      - unit_contract
+      - desktop_e2e_journey
+    covers_tabs:
+      - mods
+    covers_bootstrap_phases:
+      - runtime-mods
+    covers_ipc_commands:
+      - runtime_mod_list_installed
+    covers_runtime_pages: []
+    scenarios:
+      - scenario_id: mods.panel-open
+        source_rule: D-GATE-040
+        spec_path: apps/desktop/e2e/specs/mods.panel-open.e2e.mjs

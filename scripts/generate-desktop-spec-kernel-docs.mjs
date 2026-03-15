@@ -98,6 +98,16 @@ const specs = [
     render: renderBuildChunks,
   },
   {
+    input: 'desktop-testing-gates.yaml',
+    output: 'desktop-testing-gates.md',
+    render: renderDesktopTestingGates,
+  },
+  {
+    input: 'desktop-feature-coverage.yaml',
+    output: 'desktop-feature-coverage.md',
+    render: renderDesktopFeatureCoverage,
+  },
+  {
     input: 'rule-evidence.yaml',
     output: 'rule-evidence.md',
     render: renderRuleEvidence,
@@ -483,6 +493,54 @@ function renderBuildChunks(doc, sourceName) {
     const lazy = mdBool(Boolean(item?.lazy));
     const sourceRule = String(item?.source_rule || '').trim() || '—';
     out += `| \`${chunk}\` | \`${lazy}\` | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderDesktopTestingGates(doc, sourceName) {
+  const gates = Array.isArray(doc?.gates) ? doc.gates : [];
+  let out = header('Generated Desktop Testing Gates', sourceName);
+
+  out += '| Gate | Command | Source Rule |\n';
+  out += '|---|---|---|\n';
+  for (const item of gates) {
+    const gate = String(item?.gate || '').trim();
+    if (!gate) continue;
+    const command = String(item?.command || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${gate}\` | \`${command}\` | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderDesktopFeatureCoverage(doc, sourceName) {
+  const features = Array.isArray(doc?.features) ? doc.features : [];
+  let out = header('Generated Desktop Feature Coverage', sourceName);
+
+  out += '| Feature | Risk Tier | Required Layers | Scenarios |\n';
+  out += '|---|---|---|---|\n';
+  for (const item of features) {
+    const feature = String(item?.feature || '').trim();
+    if (!feature) continue;
+    const riskTier = String(item?.risk_tier || '').trim() || '—';
+    const requiredLayers = Array.isArray(item?.required_layers)
+      ? item.required_layers.map((value) => `\`${String(value)}\``).join(', ')
+      : '—';
+    const scenarios = Array.isArray(item?.scenarios)
+      ? item.scenarios
+          .map((scenario) => {
+            const scenarioId = String(scenario?.scenario_id || '').trim();
+            const sourceRule = String(scenario?.source_rule || '').trim();
+            return scenarioId ? `\`${scenarioId}\`${sourceRule ? ` (${sourceRule})` : ''}` : '';
+          })
+          .filter(Boolean)
+          .join(', ')
+      : '—';
+    out += `| \`${feature}\` | \`${riskTier}\` | ${requiredLayers} | ${scenarios || '—'} |\n`;
   }
   out += '\n';
 

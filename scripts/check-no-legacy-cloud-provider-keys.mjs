@@ -97,6 +97,35 @@ function walk(absPath) {
   }
 }
 
+function listRuntimeAIRouteFiles() {
+  const aiRoot = resolve(repoRoot, 'runtime/internal/services/ai');
+  const out = [];
+
+  function visit(absPath) {
+    const entryStat = statSync(absPath);
+    if (entryStat.isDirectory()) {
+      for (const name of readdirSync(absPath)) {
+        visit(resolve(absPath, name));
+      }
+      return;
+    }
+
+    const relPath = relative(repoRoot, absPath).replaceAll('\\', '/');
+    const baseName = relPath.split('/').pop() || '';
+    if (!baseName.endsWith('.go') || baseName.endsWith('_test.go')) {
+      return;
+    }
+    if (!baseName.startsWith('provider') && !baseName.startsWith('scenario_')) {
+      return;
+    }
+    out.push(relPath);
+  }
+
+  visit(aiRoot);
+  out.sort((left, right) => left.localeCompare(right));
+  return out;
+}
+
 function checkNoLegacyAliasAcceptance() {
   const cloudProviderPath = resolve(repoRoot, 'runtime/internal/nimillm/cloud_provider.go');
   const cloudProviderContent = readFileSync(cloudProviderPath, 'utf8');
@@ -117,27 +146,16 @@ function checkNoLegacyAliasAcceptance() {
     failures.push('runtime/internal/nimillm/cloud_provider_probe.go: NormalizeTokenProviderID must reject legacy aliases');
   }
 
-  const routeFiles = [
-    'runtime/internal/services/ai/provider_helpers.go',
-    'runtime/internal/services/ai/scenario_media_helpers.go',
-    'runtime/internal/services/ai/scenario_sync_handlers.go',
-    'runtime/internal/services/ai/scenario_stream_handlers.go',
-    'runtime/internal/services/ai/scenario_job_store.go',
-  ];
+  const routeFiles = listRuntimeAIRouteFiles();
   const routeLegacyPattern = /(aliyun\/|alibaba\/|bytedance\/|byte\/|moonshot\/|zhipu\/|bigmodel\/)/;
-  let checkedRouteFileCount = 0;
   for (const relPath of routeFiles) {
     const absPath = resolve(repoRoot, relPath);
-    if (!existsSync(absPath)) {
-      continue;
-    }
-    checkedRouteFileCount += 1;
     const content = readFileSync(absPath, 'utf8');
     if (routeLegacyPattern.test(content)) {
       failures.push(`${relPath}: legacy model-id prefixes must not be accepted in routing logic`);
     }
   }
-  if (checkedRouteFileCount === 0) {
+  if (routeFiles.length === 0) {
     failures.push('runtime/internal/services/ai: failed to locate scenario routing files for legacy prefix verification');
   }
 }
