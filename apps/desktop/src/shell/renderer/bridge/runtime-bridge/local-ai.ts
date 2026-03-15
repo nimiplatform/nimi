@@ -1,162 +1,162 @@
-import { localAiRuntime } from '@runtime/local-ai-runtime';
+import { localRuntime } from '@runtime/local-runtime';
 import type {
-  LocalAiArtifactRecord,
-  LocalAiAuditEvent,
-  LocalAiAuditListPayload,
-  LocalAiDownloadProgressEvent,
-  LocalAiDownloadSessionSummary,
-  LocalAiInferenceAuditPayload,
-  LocalAiImportArtifactPayload,
-  LocalAiImportPayload,
-  LocalAiInstallAcceptedResponse,
-  LocalAiInstallVerifiedArtifactPayload,
-  LocalAiInstallPayload,
-  LocalAiInstallVerifiedPayload,
-  LocalAiListArtifactsPayload,
-  LocalAiListVerifiedArtifactsPayload,
-  LocalAiModelRecord,
-  LocalAiModelsHealthResult,
-  LocalAiVerifiedArtifactDescriptor,
-  LocalAiVerifiedModelDescriptor,
+  LocalRuntimeArtifactRecord,
+  LocalRuntimeAuditEvent,
+  LocalRuntimeAuditListPayload,
+  LocalRuntimeDownloadProgressEvent,
+  LocalRuntimeDownloadSessionSummary,
+  LocalRuntimeInferenceAuditPayload,
+  LocalRuntimeImportArtifactPayload,
+  LocalRuntimeImportPayload,
+  LocalRuntimeInstallAcceptedResponse,
+  LocalRuntimeInstallVerifiedArtifactPayload,
+  LocalRuntimeInstallPayload,
+  LocalRuntimeInstallVerifiedPayload,
+  LocalRuntimeListArtifactsPayload,
+  LocalRuntimeListVerifiedArtifactsPayload,
+  LocalRuntimeModelRecord,
+  LocalRuntimeModelsHealthResult,
+  LocalRuntimeVerifiedArtifactDescriptor,
+  LocalRuntimeVerifiedModelDescriptor,
 } from './types';
 
-export type LocalAiLifecycleCaller = 'core' | 'builtin' | 'injected' | 'sideload' | string;
+export type LocalRuntimeLifecycleCaller = 'core' | 'builtin' | 'injected' | 'sideload' | string;
 
-type LocalAiWriteOptions = {
-  caller?: LocalAiLifecycleCaller;
+type LocalRuntimeWriteOptions = {
+  caller?: LocalRuntimeLifecycleCaller;
 };
 
-export async function listLocalAiModels(): Promise<LocalAiModelRecord[]> {
-  return localAiRuntime.list();
+export async function listLocalRuntimeModels(): Promise<LocalRuntimeModelRecord[]> {
+  return localRuntime.list();
 }
 
-export async function listLocalAiArtifacts(
-  payload?: LocalAiListArtifactsPayload,
-): Promise<LocalAiArtifactRecord[]> {
-  return localAiRuntime.listArtifacts(payload);
+export async function listLocalRuntimeArtifacts(
+  payload?: LocalRuntimeListArtifactsPayload,
+): Promise<LocalRuntimeArtifactRecord[]> {
+  return localRuntime.listArtifacts(payload);
 }
 
-export async function listLocalAiVerifiedModels(): Promise<LocalAiVerifiedModelDescriptor[]> {
-  return localAiRuntime.listVerified();
+export async function listLocalRuntimeVerifiedModels(): Promise<LocalRuntimeVerifiedModelDescriptor[]> {
+  return localRuntime.listVerified();
 }
 
-export async function listLocalAiVerifiedArtifacts(
-  payload?: LocalAiListVerifiedArtifactsPayload,
-): Promise<LocalAiVerifiedArtifactDescriptor[]> {
-  return localAiRuntime.listVerifiedArtifacts(payload);
+export async function listLocalRuntimeVerifiedArtifacts(
+  payload?: LocalRuntimeListVerifiedArtifactsPayload,
+): Promise<LocalRuntimeVerifiedArtifactDescriptor[]> {
+  return localRuntime.listVerifiedArtifacts(payload);
 }
 
-export async function listLocalAiAudits(payload?: LocalAiAuditListPayload): Promise<LocalAiAuditEvent[]> {
-  return localAiRuntime.listAudits(payload);
+export async function listLocalRuntimeAudits(payload?: LocalRuntimeAuditListPayload): Promise<LocalRuntimeAuditEvent[]> {
+  return localRuntime.listAudits(payload);
 }
 
-export async function pickLocalAiManifestPath(): Promise<string | null> {
-  return localAiRuntime.pickManifestPath();
+export async function pickLocalRuntimeManifestPath(): Promise<string | null> {
+  return localRuntime.pickManifestPath();
 }
 
-export async function pickLocalAiArtifactManifestPath(): Promise<string | null> {
-  return localAiRuntime.pickArtifactManifestPath();
+export async function pickLocalRuntimeArtifactManifestPath(): Promise<string | null> {
+  return localRuntime.pickArtifactManifestPath();
 }
 
-export async function installLocalAiModel(
-  payload: LocalAiInstallPayload,
-  options?: LocalAiWriteOptions,
-): Promise<LocalAiInstallAcceptedResponse> {
-  return localAiRuntime.install(payload, options);
+export async function installLocalRuntimeModel(
+  payload: LocalRuntimeInstallPayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeInstallAcceptedResponse> {
+  return localRuntime.install(payload, options);
 }
 
-export async function installLocalAiVerifiedModel(
-  payload: LocalAiInstallVerifiedPayload,
-  options?: LocalAiWriteOptions,
-): Promise<LocalAiInstallAcceptedResponse> {
-  return localAiRuntime.installVerified(payload, options);
+export async function installLocalRuntimeVerifiedModel(
+  payload: LocalRuntimeInstallVerifiedPayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeInstallAcceptedResponse> {
+  return localRuntime.installVerified(payload, options);
 }
 
-export async function installLocalAiVerifiedArtifact(
-  payload: LocalAiInstallVerifiedArtifactPayload,
-  options?: LocalAiWriteOptions,
-): Promise<LocalAiArtifactRecord> {
-  return localAiRuntime.installVerifiedArtifact(payload, options);
+export async function installLocalRuntimeVerifiedArtifact(
+  payload: LocalRuntimeInstallVerifiedArtifactPayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeArtifactRecord> {
+  return localRuntime.installVerifiedArtifact(payload, options);
 }
 
-export async function listLocalAiDownloadSessions(): Promise<LocalAiDownloadSessionSummary[]> {
-  return localAiRuntime.listDownloads();
+export async function listLocalRuntimeDownloadSessions(): Promise<LocalRuntimeDownloadSessionSummary[]> {
+  return localRuntime.listDownloads();
 }
 
-export async function pauseLocalAiDownloadSession(
+export async function pauseLocalRuntimeDownloadSession(
   installSessionId: string,
-  options?: LocalAiWriteOptions,
-): Promise<LocalAiDownloadSessionSummary> {
-  return localAiRuntime.pauseDownload(installSessionId, options);
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeDownloadSessionSummary> {
+  return localRuntime.pauseDownload(installSessionId, options);
 }
 
-export async function resumeLocalAiDownloadSession(
+export async function resumeLocalRuntimeDownloadSession(
   installSessionId: string,
-  options?: LocalAiWriteOptions,
-): Promise<LocalAiDownloadSessionSummary> {
-  return localAiRuntime.resumeDownload(installSessionId, options);
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeDownloadSessionSummary> {
+  return localRuntime.resumeDownload(installSessionId, options);
 }
 
-export async function cancelLocalAiDownloadSession(
+export async function cancelLocalRuntimeDownloadSession(
   installSessionId: string,
-  options?: LocalAiWriteOptions,
-): Promise<LocalAiDownloadSessionSummary> {
-  return localAiRuntime.cancelDownload(installSessionId, options);
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeDownloadSessionSummary> {
+  return localRuntime.cancelDownload(installSessionId, options);
 }
 
-export async function importLocalAiModel(
-  payload: LocalAiImportPayload,
-  options?: LocalAiWriteOptions,
-): Promise<LocalAiModelRecord> {
-  return localAiRuntime.import(payload, options);
+export async function importLocalRuntimeModel(
+  payload: LocalRuntimeImportPayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeModelRecord> {
+  return localRuntime.import(payload, options);
 }
 
-export async function importLocalAiArtifact(
-  payload: LocalAiImportArtifactPayload,
-  options?: LocalAiWriteOptions,
-): Promise<LocalAiArtifactRecord> {
-  return localAiRuntime.importArtifact(payload, options);
+export async function importLocalRuntimeArtifact(
+  payload: LocalRuntimeImportArtifactPayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeArtifactRecord> {
+  return localRuntime.importArtifact(payload, options);
 }
 
-export async function removeLocalAiModel(
+export async function removeLocalRuntimeModel(
   localModelId: string,
-  options?: LocalAiWriteOptions,
-): Promise<LocalAiModelRecord> {
-  return localAiRuntime.remove(localModelId, options);
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeModelRecord> {
+  return localRuntime.remove(localModelId, options);
 }
 
-export async function removeLocalAiArtifact(
+export async function removeLocalRuntimeArtifact(
   localArtifactId: string,
-  options?: LocalAiWriteOptions,
-): Promise<LocalAiArtifactRecord> {
-  return localAiRuntime.removeArtifact(localArtifactId, options);
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeArtifactRecord> {
+  return localRuntime.removeArtifact(localArtifactId, options);
 }
 
-export async function startLocalAiModel(
+export async function startLocalRuntimeModel(
   localModelId: string,
-  options?: LocalAiWriteOptions,
-): Promise<LocalAiModelRecord> {
-  return localAiRuntime.start(localModelId, options);
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeModelRecord> {
+  return localRuntime.start(localModelId, options);
 }
 
-export async function stopLocalAiModel(
+export async function stopLocalRuntimeModel(
   localModelId: string,
-  options?: LocalAiWriteOptions,
-): Promise<LocalAiModelRecord> {
-  return localAiRuntime.stop(localModelId, options);
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeModelRecord> {
+  return localRuntime.stop(localModelId, options);
 }
 
-export async function healthLocalAiModels(localModelId?: string): Promise<LocalAiModelsHealthResult> {
-  const models = await localAiRuntime.health(localModelId);
+export async function healthLocalRuntimeModels(localModelId?: string): Promise<LocalRuntimeModelsHealthResult> {
+  const models = await localRuntime.health(localModelId);
   return { models };
 }
 
-export async function appendLocalAiInferenceAudit(payload: LocalAiInferenceAuditPayload): Promise<void> {
-  await localAiRuntime.appendInferenceAudit(payload);
+export async function appendLocalRuntimeInferenceAudit(payload: LocalRuntimeInferenceAuditPayload): Promise<void> {
+  await localRuntime.appendInferenceAudit(payload);
 }
 
-export async function subscribeLocalAiDownloadProgress(
-  listener: (event: LocalAiDownloadProgressEvent) => void,
+export async function subscribeLocalRuntimeDownloadProgress(
+  listener: (event: LocalRuntimeDownloadProgressEvent) => void,
 ): Promise<() => void> {
-  return localAiRuntime.subscribeDownloadProgress(listener);
+  return localRuntime.subscribeDownloadProgress(listener);
 }

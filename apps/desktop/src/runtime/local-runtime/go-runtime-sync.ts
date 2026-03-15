@@ -1,7 +1,7 @@
 import { getPlatformClient } from '../platform-client';
 import { toProtoStruct } from '@nimiplatform/sdk/runtime';
 import { emitRuntimeLog } from '../telemetry/logger';
-import { adoptLocalAiRuntimeModel } from './commands';
+import { adoptLocalRuntimeModel } from './commands';
 import {
   findDesktopModel,
   findGoRuntimeModel,
@@ -20,7 +20,7 @@ import type {
   GoRuntimeSyncResult,
   GoRuntimeSyncTarget,
 } from './go-runtime-sync-types';
-import type { LocalAiModelRecord } from './types';
+import type { LocalRuntimeModelRecord } from './types';
 
 export type {
   GoRuntimeBootstrapResult,
@@ -156,7 +156,7 @@ function toSyncResult(
   };
 }
 
-export async function syncModelInstallToGoRuntime(model: LocalAiModelRecord): Promise<GoRuntimeSyncResult> {
+export async function syncModelInstallToGoRuntime(model: LocalRuntimeModelRecord): Promise<GoRuntimeSyncResult> {
   const target: GoRuntimeSyncTarget = {
     modelId: model.modelId,
     engine: model.engine,
@@ -245,7 +245,7 @@ export async function syncModelRemoveToGoRuntime(target: GoRuntimeSyncTarget): P
   return syncLifecycleAction('remove', target);
 }
 
-export async function reconcileModelsToGoRuntime(models: LocalAiModelRecord[]): Promise<GoRuntimeSyncResult[]> {
+export async function reconcileModelsToGoRuntime(models: LocalRuntimeModelRecord[]): Promise<GoRuntimeSyncResult[]> {
   requireSdkLocal('reconcile', {
     modelId: 'local-models',
     engine: 'localai',
@@ -321,7 +321,7 @@ export async function reconcileModelsToGoRuntime(models: LocalAiModelRecord[]): 
 }
 
 export async function reconcileDesktopAndGoRuntimeModels(
-  desktopModels: LocalAiModelRecord[],
+  desktopModels: LocalRuntimeModelRecord[],
 ): Promise<GoRuntimeBootstrapResult> {
   const sanitizedDesktopModels = Array.isArray(desktopModels) ? desktopModels : [];
   let reconciled: GoRuntimeSyncResult[] = [];
@@ -341,7 +341,7 @@ export async function reconcileDesktopAndGoRuntimeModels(
   }
 
   const goRuntimeModels = await listGoRuntimeModelsSnapshot();
-  const adopted: LocalAiModelRecord[] = [];
+  const adopted: LocalRuntimeModelRecord[] = [];
   const desktopState = [...sanitizedDesktopModels];
 
   for (const goModel of goRuntimeModels) {
@@ -376,7 +376,7 @@ export async function reconcileDesktopAndGoRuntimeModels(
       continue;
     }
     try {
-      const adoptedModel = await adoptLocalAiRuntimeModel(toDesktopLocalModelRecord(goModel), { caller: 'core' });
+      const adoptedModel = await adoptLocalRuntimeModel(toDesktopLocalModelRecord(goModel), { caller: 'core' });
       adopted.push(adoptedModel);
       desktopState.push(adoptedModel);
     } catch (error: unknown) {

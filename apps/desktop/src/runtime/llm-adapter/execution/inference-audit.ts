@@ -1,4 +1,4 @@
-import { localAiRuntime } from '@runtime/local-ai-runtime';
+import { localRuntime } from '@runtime/local-runtime';
 import { emitRuntimeLog } from '../../telemetry/logger';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
@@ -23,7 +23,7 @@ export type InferenceAuditInput = {
   routeSource?: InferenceRouteSource;
   provider: string;
   modality: InferenceAuditModality;
-  adapter: 'openai_compat_adapter' | 'localai_native_adapter' | string;
+  adapter: 'openai_compat_adapter' | 'localai_native_adapter' | 'nexa_native_adapter' | 'nimi_media_native_adapter' | string;
   traceId?: string;
   model?: string;
   localModelId?: string;
@@ -164,7 +164,7 @@ export function emitInferenceAudit(input: InferenceAuditInput): void {
     return;
   }
 
-  void localAiRuntime.appendInferenceAudit({
+  void localRuntime.appendInferenceAudit({
     eventType: input.eventType,
     modId: input.modId,
     source: input.source,

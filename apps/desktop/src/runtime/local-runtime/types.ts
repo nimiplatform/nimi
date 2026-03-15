@@ -1,16 +1,16 @@
 import type {
-  LocalAiExecutionDeclarationDescriptor,
-  LocalAiDeviceProfile,
+  LocalRuntimeExecutionDeclarationDescriptor,
+  LocalRuntimeDeviceProfile,
 } from './types-dependencies';
 import type {
-  LocalAiProfileResolvePayload,
+  LocalRuntimeProfileResolvePayload,
 } from './types-profiles';
 
-export type LocalAiModelStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
-export type LocalAiArtifactKind = 'vae' | 'llm' | 'clip' | 'controlnet' | 'lora' | 'auxiliary';
-export type LocalAiArtifactStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
+export type LocalRuntimeModelStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
+export type LocalRuntimeArtifactKind = 'vae' | 'llm' | 'clip' | 'controlnet' | 'lora' | 'auxiliary';
+export type LocalRuntimeArtifactStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
 
-export type LocalAiModelRecord = {
+export type LocalRuntimeModelRecord = {
   localModelId: string;
   modelId: string;
   capabilities: string[];
@@ -23,17 +23,17 @@ export type LocalAiModelRecord = {
   };
   hashes: Record<string, string>;
   endpoint: string;
-  status: LocalAiModelStatus;
+  status: LocalRuntimeModelStatus;
   installedAt: string;
   updatedAt: string;
   healthDetail?: string;
   engineConfig?: Record<string, unknown>;
 };
 
-export type LocalAiArtifactRecord = {
+export type LocalRuntimeArtifactRecord = {
   localArtifactId: string;
   artifactId: string;
-  kind: LocalAiArtifactKind;
+  kind: LocalRuntimeArtifactKind;
   engine: string;
   entry: string;
   files: string[];
@@ -43,21 +43,21 @@ export type LocalAiArtifactRecord = {
     revision: string;
   };
   hashes: Record<string, string>;
-  status: LocalAiArtifactStatus;
+  status: LocalRuntimeArtifactStatus;
   installedAt: string;
   updatedAt: string;
   healthDetail?: string;
   metadata?: Record<string, unknown>;
 };
 
-export type LocalAiModelHealth = {
+export type LocalRuntimeModelHealth = {
   localModelId: string;
-  status: LocalAiModelStatus;
+  status: LocalRuntimeModelStatus;
   detail: string;
   endpoint: string;
 };
 
-export type LocalAiInstallPayload = {
+export type LocalRuntimeInstallPayload = {
   modelId: string;
   repo: string;
   revision?: string;
@@ -71,7 +71,7 @@ export type LocalAiInstallPayload = {
   engineConfig?: Record<string, unknown>;
 };
 
-export type LocalAiVerifiedModelDescriptor = {
+export type LocalRuntimeVerifiedModelDescriptor = {
   templateId: string;
   title: string;
   description: string;
@@ -92,12 +92,12 @@ export type LocalAiVerifiedModelDescriptor = {
   engineConfig?: Record<string, unknown>;
 };
 
-export type LocalAiVerifiedArtifactDescriptor = {
+export type LocalRuntimeVerifiedArtifactDescriptor = {
   templateId: string;
   title: string;
   description: string;
   artifactId: string;
-  kind: LocalAiArtifactKind;
+  kind: LocalRuntimeArtifactKind;
   engine: string;
   entry: string;
   files: string[];
@@ -111,21 +111,26 @@ export type LocalAiVerifiedArtifactDescriptor = {
   metadata?: Record<string, unknown>;
 };
 
-export type LocalAiEngineRuntimeMode = 'supervised' | 'attached-endpoint';
+export type LocalRuntimeEngineRuntimeMode = 'supervised' | 'attached-endpoint';
 
-export type LocalAiProviderAdapter = 'openai_compat_adapter' | 'localai_native_adapter' | string;
+export type LocalRuntimeProviderAdapter =
+  | 'openai_compat_adapter'
+  | 'localai_native_adapter'
+  | 'nexa_native_adapter'
+  | 'nimi_media_native_adapter'
+  | string;
 
-export type LocalAiProviderLocalHints = {
+export type LocalRuntimeProviderLocalHints = {
   backend?: string;
-  preferredAdapter?: LocalAiProviderAdapter;
+  preferredAdapter?: LocalRuntimeProviderAdapter;
   whisperVariant?: string;
   stablediffusionPipeline?: string;
   videoBackend?: string;
 };
 
-export type LocalAiProviderNexaHints = {
+export type LocalRuntimeProviderNexaHints = {
   backend?: string;
-  preferredAdapter?: LocalAiProviderAdapter;
+  preferredAdapter?: LocalRuntimeProviderAdapter;
   pluginId?: string;
   deviceId?: string;
   modelType?: string;
@@ -139,12 +144,20 @@ export type LocalAiProviderNexaHints = {
   gateDetail?: string;
 };
 
-export type LocalAiProviderHints = {
-  localai?: LocalAiProviderLocalHints;
-  nexa?: LocalAiProviderNexaHints;
+export type LocalRuntimeProviderNimiMediaHints = {
+  preferredAdapter?: LocalRuntimeProviderAdapter;
+  driver?: string;
+  family?: string;
+};
+
+export type LocalRuntimeProviderHints = {
+  localai?: LocalRuntimeProviderLocalHints;
+  nexa?: LocalRuntimeProviderNexaHints;
+  nimiMedia?: LocalRuntimeProviderNimiMediaHints;
+  extra?: Record<string, unknown>;
 } & Record<string, unknown>;
 
-export type LocalAiCatalogItemDescriptor = {
+export type LocalRuntimeCatalogItemDescriptor = {
   itemId: string;
   source: 'verified' | 'huggingface' | string;
   title: string;
@@ -155,11 +168,11 @@ export type LocalAiCatalogItemDescriptor = {
   templateId?: string;
   capabilities: Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string>;
   engine: string;
-  engineRuntimeMode: LocalAiEngineRuntimeMode;
+  engineRuntimeMode: LocalRuntimeEngineRuntimeMode;
   installKind: string;
   installAvailable: boolean;
   endpoint?: string;
-  providerHints?: LocalAiProviderHints;
+  providerHints?: LocalRuntimeProviderHints;
   entry?: string;
   files: string[];
   license?: string;
@@ -178,7 +191,7 @@ export type GgufVariantDescriptor = {
   sha256?: string;
 };
 
-export type LocalAiInstallPlanDescriptor = {
+export type LocalRuntimeInstallPlanDescriptor = {
   planId: string;
   itemId: string;
   source: 'verified' | 'huggingface' | string;
@@ -188,11 +201,11 @@ export type LocalAiInstallPlanDescriptor = {
   revision: string;
   capabilities: Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string>;
   engine: string;
-  engineRuntimeMode: LocalAiEngineRuntimeMode;
+  engineRuntimeMode: LocalRuntimeEngineRuntimeMode;
   installKind: string;
   installAvailable: boolean;
   endpoint: string;
-  providerHints?: LocalAiProviderHints;
+  providerHints?: LocalRuntimeProviderHints;
   entry: string;
   files: string[];
   license: string;
@@ -202,24 +215,24 @@ export type LocalAiInstallPlanDescriptor = {
   engineConfig?: Record<string, unknown>;
 };
 
-export type LocalAiCatalogSearchPayload = {
+export type LocalRuntimeCatalogSearchPayload = {
   query?: string;
   capability?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string;
   limit?: number;
 };
 
-export type LocalAiListArtifactsPayload = {
-  status?: LocalAiArtifactStatus;
-  kind?: LocalAiArtifactKind;
+export type LocalRuntimeListArtifactsPayload = {
+  status?: LocalRuntimeArtifactStatus;
+  kind?: LocalRuntimeArtifactKind;
   engine?: string;
 };
 
-export type LocalAiListVerifiedArtifactsPayload = {
-  kind?: LocalAiArtifactKind;
+export type LocalRuntimeListVerifiedArtifactsPayload = {
+  kind?: LocalRuntimeArtifactKind;
   engine?: string;
 };
 
-export type LocalAiCatalogResolveInstallPlanPayload = {
+export type LocalRuntimeCatalogResolveInstallPlanPayload = {
   itemId?: string;
   source?: 'verified' | 'huggingface' | string;
   templateId?: string;
@@ -237,50 +250,50 @@ export type LocalAiCatalogResolveInstallPlanPayload = {
 };
 
 export type {
-  LocalAiExecutionEntryKind,
-  LocalAiExecutionOptionDescriptor,
-  LocalAiExecutionAlternativeDescriptor,
-  LocalAiExecutionDeclarationDescriptor,
-  LocalAiExecutionEntryDescriptor,
-  LocalAiGpuProfile,
-  LocalAiPythonProfile,
-  LocalAiNpuProfile,
-  LocalAiPortAvailability,
-  LocalAiDeviceProfile,
-  LocalAiPreflightDecision,
-  LocalAiExecutionSelectionRationale,
-  LocalAiExecutionStageResult,
-  LocalAiExecutionPlan,
-  LocalAiExecutionApplyResult,
+  LocalRuntimeExecutionEntryKind,
+  LocalRuntimeExecutionOptionDescriptor,
+  LocalRuntimeExecutionAlternativeDescriptor,
+  LocalRuntimeExecutionDeclarationDescriptor,
+  LocalRuntimeExecutionEntryDescriptor,
+  LocalRuntimeGpuProfile,
+  LocalRuntimePythonProfile,
+  LocalRuntimeNpuProfile,
+  LocalRuntimePortAvailability,
+  LocalRuntimeDeviceProfile,
+  LocalRuntimePreflightDecision,
+  LocalRuntimeExecutionSelectionRationale,
+  LocalRuntimeExecutionStageResult,
+  LocalRuntimeExecutionPlan,
+  LocalRuntimeExecutionApplyResult,
 } from './types-dependencies';
 export type {
-  LocalAiProfileEntryKind,
-  LocalAiProfileRequirementDescriptor,
-  LocalAiProfileEntryDescriptor,
-  LocalAiProfileDescriptor,
-  LocalAiProfileTargetDescriptor,
-  LocalAiProfileArtifactPlanEntry,
-  LocalAiProfileResolutionPlan,
-  LocalAiProfileApplyResult,
-  LocalAiProfileInstallStatus,
-  LocalAiProfileResolvePayload,
-  LocalAiProfileInstallRequest,
-  LocalAiProfileInstallRequestResult,
-  LocalAiProfileExecutionBridge,
+  LocalRuntimeProfileEntryKind,
+  LocalRuntimeProfileRequirementDescriptor,
+  LocalRuntimeProfileEntryDescriptor,
+  LocalRuntimeProfileDescriptor,
+  LocalRuntimeProfileTargetDescriptor,
+  LocalRuntimeProfileArtifactPlanEntry,
+  LocalRuntimeProfileResolutionPlan,
+  LocalRuntimeProfileApplyResult,
+  LocalRuntimeProfileInstallStatus,
+  LocalRuntimeProfileResolvePayload,
+  LocalRuntimeProfileInstallRequest,
+  LocalRuntimeProfileInstallRequestResult,
+  LocalRuntimeProfileExecutionBridge,
 } from './types-profiles';
 
-export type LocalAiExecutionResolvePayload = {
+export type LocalRuntimeExecutionResolvePayload = {
   modId: string;
   capability?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string;
-  entries?: LocalAiExecutionDeclarationDescriptor;
-  deviceProfile: LocalAiDeviceProfile;
+  entries?: LocalRuntimeExecutionDeclarationDescriptor;
+  deviceProfile: LocalRuntimeDeviceProfile;
 };
 
-export type LocalAiProfilesResolvePayload = LocalAiProfileResolvePayload;
+export type LocalRuntimeProfilesResolvePayload = LocalRuntimeProfileResolvePayload;
 
-export type LocalAiServiceStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
+export type LocalRuntimeServiceStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
 
-export type LocalAiServiceDescriptor = {
+export type LocalRuntimeServiceDescriptor = {
   serviceId: string;
   title: string;
   engine: string;
@@ -288,13 +301,13 @@ export type LocalAiServiceDescriptor = {
   endpoint?: string;
   capabilities: string[];
   localModelId?: string;
-  status: LocalAiServiceStatus;
+  status: LocalRuntimeServiceStatus;
   detail?: string;
   installedAt: string;
   updatedAt: string;
 };
 
-export type LocalAiServicesInstallPayload = {
+export type LocalRuntimeServicesInstallPayload = {
   serviceId: string;
   title?: string;
   engine?: string;
@@ -303,24 +316,24 @@ export type LocalAiServicesInstallPayload = {
   localModelId?: string;
 };
 
-export type LocalAiNodesCatalogListPayload = {
+export type LocalRuntimeNodesCatalogListPayload = {
   capability?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string;
   serviceId?: string;
   provider?: string;
 };
 
-export type LocalAiNodeDescriptor = {
+export type LocalRuntimeNodeDescriptor = {
   nodeId: string;
   title: string;
   serviceId: string;
   capabilities: string[];
   provider: string;
-  adapter: LocalAiProviderAdapter;
+  adapter: LocalRuntimeProviderAdapter;
   backend?: string;
   backendSource?: string;
   available: boolean;
   reasonCode?: string;
-  providerHints?: LocalAiProviderHints;
+  providerHints?: LocalRuntimeProviderHints;
   policyGate?: string;
   apiPath?: string;
   inputSchema?: Record<string, unknown>;
@@ -328,7 +341,7 @@ export type LocalAiNodeDescriptor = {
   readOnly: boolean;
 };
 
-export type LocalAiCapabilityMatrixEntry = {
+export type LocalRuntimeCapabilityMatrixEntry = {
   serviceId: string;
   nodeId: string;
   capability: string;
@@ -337,32 +350,32 @@ export type LocalAiCapabilityMatrixEntry = {
   modelEngine?: string;
   backend?: string;
   backendSource: string;
-  adapter: LocalAiProviderAdapter;
+  adapter: LocalRuntimeProviderAdapter;
   available: boolean;
   reasonCode?: string;
-  providerHints?: LocalAiProviderHints;
+  providerHints?: LocalRuntimeProviderHints;
   policyGate?: string;
 };
 
-export type LocalAiInstallVerifiedPayload = {
+export type LocalRuntimeInstallVerifiedPayload = {
   templateId: string;
   endpoint?: string;
 };
 
-export type LocalAiInstallVerifiedArtifactPayload = {
+export type LocalRuntimeInstallVerifiedArtifactPayload = {
   templateId: string;
 };
 
-export type LocalAiImportPayload = {
+export type LocalRuntimeImportPayload = {
   manifestPath: string;
   endpoint?: string;
 };
 
-export type LocalAiImportArtifactPayload = {
+export type LocalRuntimeImportArtifactPayload = {
   manifestPath: string;
 };
 
-export type LocalAiImportFilePayload = {
+export type LocalRuntimeImportFilePayload = {
   filePath: string;
   modelName?: string;
   capabilities: string[];
@@ -370,14 +383,14 @@ export type LocalAiImportFilePayload = {
   endpoint?: string;
 };
 
-export type LocalAiInferenceAuditPayload = {
+export type LocalRuntimeInferenceAuditPayload = {
   eventType: 'inference_invoked' | 'inference_failed' | 'fallback_to_cloud';
   modId: string;
   source: 'local' | 'cloud';
   routeSource?: 'local' | 'cloud';
   provider: string;
   modality: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding';
-  adapter: LocalAiProviderAdapter;
+  adapter: LocalRuntimeProviderAdapter;
   traceId?: string;
   model?: string;
   localModelId?: string;
@@ -388,23 +401,23 @@ export type LocalAiInferenceAuditPayload = {
   extra?: Record<string, unknown>;
 };
 
-export type LocalAiRuntimeAuditPayload = {
+export type LocalRuntimeAuditPayload = {
   eventType: 'runtime_model_ready_after_install' | string;
   modelId?: string;
   localModelId?: string;
-  source?: LocalAiAuditSource;
-  modality?: LocalAiAuditModality;
+  source?: LocalRuntimeAuditSource;
+  modality?: LocalRuntimeAuditModality;
   reasonCode?: string;
   detail?: string;
   payload?: Record<string, unknown>;
 };
 
-export type LocalAiRuntimeWriteOptions = {
+export type LocalRuntimeWriteOptions = {
   caller?: 'core' | 'builtin' | 'injected' | 'sideload' | string;
 };
 
-export type LocalAiAuditSource = 'local' | 'cloud' | string;
-export type LocalAiAuditModality =
+export type LocalRuntimeAuditSource = 'local' | 'cloud' | string;
+export type LocalRuntimeAuditModality =
   | 'chat'
   | 'image'
   | 'video'
@@ -413,12 +426,12 @@ export type LocalAiAuditModality =
   | 'embedding'
   | string;
 
-export type LocalAiAuditEvent = {
+export type LocalRuntimeAuditEvent = {
   id: string;
   eventType: string;
   occurredAt: string;
-  source?: LocalAiAuditSource;
-  modality?: LocalAiAuditModality;
+  source?: LocalRuntimeAuditSource;
+  modality?: LocalRuntimeAuditModality;
   reasonCode?: string;
   detail?: string;
   modelId?: string;
@@ -426,32 +439,32 @@ export type LocalAiAuditEvent = {
   payload?: Record<string, unknown>;
 };
 
-export type LocalAiAuditTimeRange = {
+export type LocalRuntimeAuditTimeRange = {
   from?: string;
   to?: string;
 };
 
-export type LocalAiAuditQuery = {
+export type LocalRuntimeAuditQuery = {
   limit?: number;
   eventType?: string;
   eventTypes?: string[];
-  source?: LocalAiAuditSource;
-  modality?: LocalAiAuditModality;
+  source?: LocalRuntimeAuditSource;
+  modality?: LocalRuntimeAuditModality;
   localModelId?: string;
   modId?: string;
   reasonCode?: string;
-  timeRange?: LocalAiAuditTimeRange;
+  timeRange?: LocalRuntimeAuditTimeRange;
 };
 
-export type LocalAiRuntimeSnapshot = {
-  models: LocalAiModelRecord[];
-  health: LocalAiModelHealth[];
+export type LocalRuntimeSnapshot = {
+  models: LocalRuntimeModelRecord[];
+  health: LocalRuntimeModelHealth[];
   generatedAt: string;
 };
 
-export type LocalAiDownloadState = 'queued' | 'running' | 'paused' | 'failed' | 'completed' | 'cancelled';
+export type LocalRuntimeDownloadState = 'queued' | 'running' | 'paused' | 'failed' | 'completed' | 'cancelled';
 
-export type LocalAiDownloadProgressEvent = {
+export type LocalRuntimeDownloadProgressEvent = {
   installSessionId: string;
   modelId: string;
   localModelId?: string;
@@ -461,19 +474,19 @@ export type LocalAiDownloadProgressEvent = {
   speedBytesPerSec?: number;
   etaSeconds?: number;
   message?: string;
-  state: LocalAiDownloadState;
+  state: LocalRuntimeDownloadState;
   reasonCode?: string;
   retryable?: boolean;
   done: boolean;
   success: boolean;
 };
 
-export type LocalAiDownloadSessionSummary = {
+export type LocalRuntimeDownloadSessionSummary = {
   installSessionId: string;
   modelId: string;
   localModelId: string;
   phase: string;
-  state: LocalAiDownloadState;
+  state: LocalRuntimeDownloadState;
   bytesReceived: number;
   bytesTotal?: number;
   speedBytesPerSec?: number;
@@ -485,11 +498,11 @@ export type LocalAiDownloadSessionSummary = {
   updatedAt: string;
 };
 
-export type LocalAiDownloadControlPayload = {
+export type LocalRuntimeDownloadControlPayload = {
   installSessionId: string;
 };
 
-export type LocalAiInstallAcceptedResponse = {
+export type LocalRuntimeInstallAcceptedResponse = {
   installSessionId: string;
   modelId: string;
   localModelId: string;
@@ -507,20 +520,20 @@ export type OrphanArtifactFile = {
   sizeBytes: number;
 };
 
-export type LocalAiScaffoldOrphanPayload = {
+export type LocalRuntimeScaffoldOrphanPayload = {
   path: string;
   capabilities: string[];
   engine?: string;
   endpoint?: string;
 };
 
-export type LocalAiScaffoldArtifactPayload = {
+export type LocalRuntimeScaffoldArtifactPayload = {
   path: string;
-  kind: LocalAiArtifactKind;
+  kind: LocalRuntimeArtifactKind;
 };
 
-export type LocalAiScaffoldArtifactResult = {
+export type LocalRuntimeScaffoldArtifactResult = {
   manifestPath: string;
   artifactId: string;
-  kind: LocalAiArtifactKind;
+  kind: LocalRuntimeArtifactKind;
 };

@@ -1,7 +1,7 @@
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { hasTauriInvoke, tauriInvoke } from '../llm-adapter/tauri-bridge';
 import { emitRuntimeLog } from '../telemetry/logger';
-import type { LocalAiRuntimeWriteOptions } from './types';
+import type { LocalRuntimeWriteOptions } from './types';
 import { asRecord, asString } from './parser-primitives';
 
 type TauriEventUnsubscribe = () => void;
@@ -83,13 +83,13 @@ export function readGlobalTauriEventListen(): TauriEventListen | null {
   return null;
 }
 
-export function normalizeCaller(caller: LocalAiRuntimeWriteOptions['caller']): string {
+export function normalizeCaller(caller: LocalRuntimeWriteOptions['caller']): string {
   return asString(caller || 'core').toLowerCase() || 'core';
 }
 
 export function assertLifecycleWriteAllowed(
   command: string,
-  caller: LocalAiRuntimeWriteOptions['caller'],
+  caller: LocalRuntimeWriteOptions['caller'],
 ): void {
   const normalizedCaller = normalizeCaller(caller);
   if (normalizedCaller === 'core') return;
@@ -108,7 +108,7 @@ export function assertLifecycleWriteAllowed(
   throw new Error(`LOCAL_LIFECYCLE_WRITE_DENIED: caller=${normalizedCaller}`);
 }
 
-export async function invokeLocalAiCommand<T>(
+export async function invokeLocalRuntimeCommand<T>(
   command: string,
   args: Record<string, unknown> = {},
 ): Promise<T> {

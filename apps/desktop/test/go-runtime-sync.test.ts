@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { __internal } from '../src/runtime/local-ai-runtime/go-runtime-sync.js';
+import { __internal } from '../src/runtime/local-runtime/go-runtime-sync.js';
 
 test('findGoRuntimeModel prefers exact localModelId before modelId+engine', () => {
   const models = [

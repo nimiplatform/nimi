@@ -2,11 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { i18n } from '@renderer/i18n';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import {
-  localAiRuntime,
-  type LocalAiCatalogItemDescriptor,
-  type LocalAiInstallPlanDescriptor,
-  type LocalAiVerifiedModelDescriptor,
-} from '@runtime/local-ai-runtime';
+  localRuntime,
+  type LocalRuntimeCatalogItemDescriptor,
+  type LocalRuntimeInstallPlanDescriptor,
+  type LocalRuntimeVerifiedModelDescriptor,
+} from '@runtime/local-runtime';
 import { CAPABILITY_OPTIONS, type CapabilityOption } from './runtime-config-model-center-utils';
 import { RuntimeSelect } from './runtime-config-primitives';
 
@@ -147,7 +147,7 @@ function Input({
 
 export type ModelCenterCatalogSectionProps = {
   onInstallCatalogItem: (
-    item: LocalAiCatalogItemDescriptor,
+    item: LocalRuntimeCatalogItemDescriptor,
     options?: {
       entry?: string;
       files?: string[];
@@ -162,13 +162,13 @@ export type ModelCenterCatalogSectionProps = {
 export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps) {
   const [catalogQuery, setCatalogQuery] = useState('');
   const [catalogCapability, setCatalogCapability] = useState<'all' | CapabilityOption>('all');
-  const [catalogItems, setCatalogItems] = useState<LocalAiCatalogItemDescriptor[]>([]);
+  const [catalogItems, setCatalogItems] = useState<LocalRuntimeCatalogItemDescriptor[]>([]);
   const [loadingCatalog, setLoadingCatalog] = useState(false);
   const [selectedCatalogItemId, setSelectedCatalogItemId] = useState('');
-  const [planPreview, setPlanPreview] = useState<LocalAiInstallPlanDescriptor | null>(null);
+  const [planPreview, setPlanPreview] = useState<LocalRuntimeInstallPlanDescriptor | null>(null);
   const [loadingPlanPreview, setLoadingPlanPreview] = useState(false);
   const [installingCatalogItemId, setInstallingCatalogItemId] = useState('');
-  const [verifiedModels, setVerifiedModels] = useState<LocalAiVerifiedModelDescriptor[]>([]);
+  const [verifiedModels, setVerifiedModels] = useState<LocalRuntimeVerifiedModelDescriptor[]>([]);
   const [loadingVerifiedModels, setLoadingVerifiedModels] = useState(false);
   const [verifiedModelQuery, setVerifiedModelQuery] = useState('');
   const [installingVerifiedTemplateId, setInstallingVerifiedTemplateId] = useState('');
@@ -177,7 +177,7 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
   const refreshVerifiedModels = useCallback(async () => {
     setLoadingVerifiedModels(true);
     try {
-      const rows = await localAiRuntime.listVerified();
+      const rows = await localRuntime.listVerified();
       setVerifiedModels(rows);
     } catch {
       setVerifiedModels([]);
@@ -195,7 +195,7 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
     const capability = input.capability;
     setLoadingCatalog(true);
     try {
-      const rows = await localAiRuntime.searchCatalog({
+      const rows = await localRuntime.searchCatalog({
         query: query || undefined,
         capability: capability === 'all' ? undefined : capability,
         limit: 30,
@@ -251,7 +251,7 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
     void (async () => {
       setLoadingPlanPreview(true);
       try {
-        const plan = await localAiRuntime.resolveInstallPlan({
+        const plan = await localRuntime.resolveInstallPlan({
           itemId: selected.itemId,
           source: selected.source,
           templateId: selected.templateId,

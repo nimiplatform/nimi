@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { localAiRuntime, type LocalAiAuditEvent } from '@runtime/local-ai-runtime';
+import { localRuntime, type LocalRuntimeAuditEvent } from '@runtime/local-runtime';
 import {
   filterAuditEvents,
   summarizeAuditReasons,
@@ -18,7 +18,7 @@ function toIsoTimeRangeValue(value: string): string | undefined {
 
 export function useAuditPageData(enabled: boolean) {
   const [loadingAudits, setLoadingAudits] = useState(false);
-  const [auditEvents, setAuditEvents] = useState<LocalAiAuditEvent[]>([]);
+  const [auditEvents, setAuditEvents] = useState<LocalRuntimeAuditEvent[]>([]);
   const [auditEventType, setAuditEventType] = useState('all');
   const [auditSource, setAuditSource] = useState('all');
   const [auditModality, setAuditModality] = useState('all');
@@ -42,7 +42,7 @@ export function useAuditPageData(enabled: boolean) {
     const timeTo = toIsoTimeRangeValue(overrides?.timeTo ?? auditTimeTo);
     setLoadingAudits(true);
     try {
-      const audits = await localAiRuntime.listAudits({
+      const audits = await localRuntime.listAudits({
         limit: 500,
         eventType: eventType && eventType !== 'all' ? eventType : undefined,
         source: source && source !== 'all' ? source : undefined,

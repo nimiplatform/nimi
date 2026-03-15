@@ -5,7 +5,7 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   parseExecutionApplyResult,
   parseExecutionPlan,
-} from '../src/runtime/local-ai-runtime/parsers.js';
+} from '../src/runtime/local-runtime/parsers.js';
 
 test('parseExecutionPlan normalizes device profile and selections', () => {
   const parsed = parseExecutionPlan({

@@ -1,4 +1,4 @@
-import type { LocalAiAuditEvent } from '@runtime/local-ai-runtime';
+import type { LocalRuntimeAuditEvent } from '@runtime/local-runtime';
 import { useTranslation } from 'react-i18next';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { Tooltip } from '@renderer/components/tooltip.js';
@@ -331,7 +331,7 @@ function LocalDebugContent() {
   );
 }
 
-function LocalAuditEventCard({ event }: { event: LocalAiAuditEvent }) {
+function LocalAuditEventCard({ event }: { event: LocalRuntimeAuditEvent }) {
   const source = resolveAuditSource(event);
   const modality = resolveAuditModality(event);
   const reasonCode = resolveAuditReasonCode(event);

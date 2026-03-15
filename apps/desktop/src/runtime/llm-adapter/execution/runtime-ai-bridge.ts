@@ -629,7 +629,7 @@ export function extractRuntimeReasonCode(error: unknown): string | null {
   return null;
 }
 
-export function toLocalAiReasonCode(error: unknown): string | null {
+export function toLocalRuntimeReasonCode(error: unknown): string | null {
   const runtimeCode = extractRuntimeReasonCode(error);
   if (!runtimeCode) return null;
   return RUNTIME_REASON_CODE_TO_LOCAL_AI[runtimeCode] || null;

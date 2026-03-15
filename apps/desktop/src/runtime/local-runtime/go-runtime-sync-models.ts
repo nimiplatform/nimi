@@ -1,5 +1,5 @@
 import { emitRuntimeLog } from '../telemetry/logger';
-import type { LocalAiModelRecord, LocalAiModelStatus } from './types';
+import type { LocalRuntimeModelRecord, LocalRuntimeModelStatus } from './types';
 import { toCanonicalLocalId, toCanonicalLocalLookupKey } from './local-id';
 import type {
   GoRuntimeModelEntry,
@@ -38,7 +38,7 @@ export function normalizeEngine(value: unknown): string {
   return String(value || '').trim().toLowerCase() || 'localai';
 }
 
-export function parseGoStatus(value: unknown): { status: LocalAiModelStatus; raw: string; ambiguous: boolean } {
+export function parseGoStatus(value: unknown): { status: LocalRuntimeModelStatus; raw: string; ambiguous: boolean } {
   const raw = String(value ?? '').trim();
   const numeric = Number(value);
   if (numeric === GO_STATUS_INSTALLED || raw.toLowerCase() === 'installed' || raw === 'LOCAL_MODEL_STATUS_INSTALLED') {
@@ -56,11 +56,11 @@ export function parseGoStatus(value: unknown): { status: LocalAiModelStatus; raw
   return { status: 'installed', raw, ambiguous: true };
 }
 
-export function normalizeGoStatus(value: unknown): LocalAiModelStatus {
+export function normalizeGoStatus(value: unknown): LocalRuntimeModelStatus {
   return parseGoStatus(value).status;
 }
 
-export function statusPriority(status: LocalAiModelStatus, raw?: string): number {
+export function statusPriority(status: LocalRuntimeModelStatus, raw?: string): number {
   if (status === 'active') return 0;
   if (status === 'unhealthy') return 1;
   if (status === 'installed') {
@@ -145,7 +145,7 @@ export function findGoRuntimeModel(
   return { model: matched, matchedBy: 'modelId+engine' };
 }
 
-export function findDesktopModel(models: LocalAiModelRecord[], target: GoRuntimeSyncTarget): LocalAiModelRecord | null {
+export function findDesktopModel(models: LocalRuntimeModelRecord[], target: GoRuntimeSyncTarget): LocalRuntimeModelRecord | null {
   const localModelId = String(target.localModelId || '').trim();
   if (localModelId) {
     const direct = models.find((model) => String(model.localModelId || '').trim() === localModelId) || null;
@@ -161,7 +161,7 @@ export function findDesktopModel(models: LocalAiModelRecord[], target: GoRuntime
   return models.find((model) => syncLookupKey(model.modelId, model.engine) === syncLookupKey(modelId, engine)) || null;
 }
 
-export function toDesktopLocalModelRecord(model: GoRuntimeModelEntry): LocalAiModelRecord {
+export function toDesktopLocalModelRecord(model: GoRuntimeModelEntry): LocalRuntimeModelRecord {
   return {
     localModelId: model.localModelId,
     modelId: toCanonicalLocalId(model.modelId),

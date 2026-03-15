@@ -1,5 +1,5 @@
 import type { DesktopHookRuntimeService } from '@runtime/hook';
-import { localAiRuntime } from '@runtime/local-ai-runtime';
+import { localRuntime } from '@runtime/local-runtime';
 import { getOfflineCoordinator } from '@runtime/offline';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
@@ -41,7 +41,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
     },
     requiredCapabilities: ['action.commit.runtime.local-ai.models.list'],
     handler: async () => {
-      const models = await localAiRuntime.list();
+      const models = await localRuntime.list();
       return {
         ok: true,
         reasonCode: ReasonCode.ACTION_EXECUTED,
@@ -73,7 +73,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
     requiredCapabilities: ['action.commit.runtime.local-ai.models.health'],
     handler: async (input) => {
       const localModelId = String(input.input.localModelId || '').trim() || undefined;
-      const models = await localAiRuntime.health(localModelId);
+      const models = await localRuntime.health(localModelId);
       return {
         ok: true,
         reasonCode: ReasonCode.ACTION_EXECUTED,
@@ -110,7 +110,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
           actionHint: 'provide-local-model-id',
         };
       }
-      const model = await localAiRuntime.start(localModelId, { caller: 'core' });
+      const model = await localRuntime.start(localModelId, { caller: 'core' });
       return {
         ok: true,
         reasonCode: ReasonCode.ACTION_EXECUTED,
@@ -147,7 +147,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
           actionHint: 'provide-local-model-id',
         };
       }
-      const model = await localAiRuntime.stop(localModelId, { caller: 'core' });
+      const model = await localRuntime.stop(localModelId, { caller: 'core' });
       return {
         ok: true,
         reasonCode: ReasonCode.ACTION_EXECUTED,
@@ -184,7 +184,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
           actionHint: 'provide-local-model-id',
         };
       }
-      const model = await localAiRuntime.remove(localModelId, { caller: 'core' });
+      const model = await localRuntime.remove(localModelId, { caller: 'core' });
       return {
         ok: true,
         reasonCode: ReasonCode.ACTION_EXECUTED,
@@ -222,7 +222,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
           actionHint: 'provide-model-and-repo',
         };
       }
-      const accepted = await localAiRuntime.install({
+      const accepted = await localRuntime.install({
         modelId,
         repo,
         revision: String(input.input.revision || '').trim() || undefined,
@@ -269,7 +269,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
           actionHint: 'provide-manifest-path',
         };
       }
-      const model = await localAiRuntime.import({
+      const model = await localRuntime.import({
         manifestPath,
       }, { caller: 'core' });
       return {

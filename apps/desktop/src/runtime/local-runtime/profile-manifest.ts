@@ -1,10 +1,10 @@
 import type {
-  LocalAiExecutionOptionDescriptor,
+  LocalRuntimeExecutionOptionDescriptor,
 } from './types-dependencies';
 import type {
-  LocalAiProfileDescriptor,
-  LocalAiProfileEntryDescriptor,
-  LocalAiProfileExecutionBridge,
+  LocalRuntimeProfileDescriptor,
+  LocalRuntimeProfileEntryDescriptor,
+  LocalRuntimeProfileExecutionBridge,
 } from './types-profiles';
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -23,7 +23,7 @@ function normalizeBoolean(value: unknown, fallback = false): boolean {
   return typeof value === 'boolean' ? value : fallback;
 }
 
-function normalizeArtifactKind(value: unknown): LocalAiProfileEntryDescriptor['artifactKind'] {
+function normalizeArtifactKind(value: unknown): LocalRuntimeProfileEntryDescriptor['artifactKind'] {
   const normalized = String(value || '').trim().toLowerCase();
   if (
     normalized === 'vae'
@@ -38,7 +38,7 @@ function normalizeArtifactKind(value: unknown): LocalAiProfileEntryDescriptor['a
   return undefined;
 }
 
-function normalizeEntryKind(value: unknown): LocalAiProfileEntryDescriptor['kind'] | null {
+function normalizeEntryKind(value: unknown): LocalRuntimeProfileEntryDescriptor['kind'] | null {
   const normalized = String(value || '').trim().toLowerCase();
   if (
     normalized === 'model'
@@ -51,7 +51,7 @@ function normalizeEntryKind(value: unknown): LocalAiProfileEntryDescriptor['kind
   return null;
 }
 
-function normalizeProfileEntry(value: unknown): LocalAiProfileEntryDescriptor | null {
+function normalizeProfileEntry(value: unknown): LocalRuntimeProfileEntryDescriptor | null {
   const record = asRecord(value);
   const kind = normalizeEntryKind(record.kind);
   const entryId = String(record.entryId || record.id || '').trim();
@@ -79,9 +79,9 @@ function normalizeProfileEntry(value: unknown): LocalAiProfileEntryDescriptor | 
   };
 }
 
-export function normalizeLocalAiProfilesDeclaration(value: unknown): LocalAiProfileDescriptor[] {
+export function normalizeLocalRuntimeProfilesDeclaration(value: unknown): LocalRuntimeProfileDescriptor[] {
   const rows = Array.isArray(value) ? value : [];
-  const profiles = rows.map((row): LocalAiProfileDescriptor | null => {
+  const profiles = rows.map((row): LocalRuntimeProfileDescriptor | null => {
     const record = asRecord(row);
     const id = String(record.id || '').trim();
     const title = String(record.title || '').trim();
@@ -97,7 +97,7 @@ export function normalizeLocalAiProfilesDeclaration(value: unknown): LocalAiProf
       consumeCapabilities: asStringArray(record.consumeCapabilities),
       entries: (Array.isArray(record.entries) ? record.entries : [])
         .map((entry) => normalizeProfileEntry(entry))
-        .filter((entry): entry is LocalAiProfileEntryDescriptor => Boolean(entry)),
+        .filter((entry): entry is LocalRuntimeProfileEntryDescriptor => Boolean(entry)),
       requirements: Object.keys(requirements).length > 0
         ? {
           minGpuMemoryGb: Number.isFinite(Number(requirements.minGpuMemoryGb))
@@ -112,13 +112,13 @@ export function normalizeLocalAiProfilesDeclaration(value: unknown): LocalAiProf
         : undefined,
     };
   });
-  return profiles.filter((profile): profile is LocalAiProfileDescriptor => profile !== null);
+  return profiles.filter((profile): profile is LocalRuntimeProfileDescriptor => profile !== null);
 }
 
-export function findLocalAiProfileById(
-  profiles: LocalAiProfileDescriptor[],
+export function findLocalRuntimeProfileById(
+  profiles: LocalRuntimeProfileDescriptor[],
   profileId: string,
-): LocalAiProfileDescriptor | null {
+): LocalRuntimeProfileDescriptor | null {
   const normalizedProfileId = String(profileId || '').trim();
   if (!normalizedProfileId) {
     return null;
@@ -127,7 +127,7 @@ export function findLocalAiProfileById(
 }
 
 export function profileSupportsCapability(
-  profile: LocalAiProfileDescriptor,
+  profile: LocalRuntimeProfileDescriptor,
   capability?: string,
 ): boolean {
   const normalizedCapability = String(capability || '').trim();
@@ -140,7 +140,7 @@ export function profileSupportsCapability(
   return profile.entries.some((entry) => String(entry.capability || '').trim() === normalizedCapability);
 }
 
-function toExecutionOption(entry: LocalAiProfileEntryDescriptor): LocalAiExecutionOptionDescriptor {
+function toExecutionOption(entry: LocalRuntimeProfileEntryDescriptor): LocalRuntimeExecutionOptionDescriptor {
   return {
     entryId: entry.entryId,
     kind: entry.kind === 'service' ? 'service' : (entry.kind === 'node' ? 'node' : 'model'),
@@ -154,10 +154,10 @@ function toExecutionOption(entry: LocalAiProfileEntryDescriptor): LocalAiExecuti
   };
 }
 
-export function bridgeLocalAiProfile(
-  profile: LocalAiProfileDescriptor,
+export function bridgeLocalRuntimeProfile(
+  profile: LocalRuntimeProfileDescriptor,
   capability?: string,
-): LocalAiProfileExecutionBridge {
+): LocalRuntimeProfileExecutionBridge {
   const normalizedCapability = String(capability || '').trim();
   const filteredEntries = profile.entries.filter((entry) => (
     !normalizedCapability

@@ -1,21 +1,21 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
-  findLocalAiProfileById,
-  localAiRuntime,
-  normalizeLocalAiProfilesDeclaration,
+  findLocalRuntimeProfileById,
+  localRuntime,
+  normalizeLocalRuntimeProfilesDeclaration,
   type GoRuntimeSyncTarget,
-  type LocalAiArtifactKind,
+  type LocalRuntimeArtifactKind,
   syncModelInstallToGoRuntime,
   syncModelStartToGoRuntime,
   reconcileModelsToGoRuntime,
-  type LocalAiCatalogItemDescriptor,
-  type LocalAiInstallPayload,
-  type LocalAiInstallPlanDescriptor,
-  type LocalAiProfileApplyResult,
-  type LocalAiProfileDescriptor,
-  type LocalAiProfileResolutionPlan,
-} from '@runtime/local-ai-runtime';
+  type LocalRuntimeCatalogItemDescriptor,
+  type LocalRuntimeInstallPayload,
+  type LocalRuntimeInstallPlanDescriptor,
+  type LocalRuntimeProfileApplyResult,
+  type LocalRuntimeProfileDescriptor,
+  type LocalRuntimeProfileResolutionPlan,
+} from '@runtime/local-runtime';
 import { createOfflineError, getOfflineCoordinator } from '@runtime/offline';
 import { i18n } from '@renderer/i18n';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
@@ -45,7 +45,7 @@ function translateRuntimeLocalText(
 }
 
 export type RuntimeConfigInstallActions = {
-  installSessionMeta: Map<string, { plan: LocalAiInstallPlanDescriptor; installSource: string }>;
+  installSessionMeta: Map<string, { plan: LocalRuntimeInstallPlanDescriptor; installSource: string }>;
   onDownloadComplete: (
     installSessionId: string,
     success: boolean,
@@ -54,21 +54,21 @@ export type RuntimeConfigInstallActions = {
     modelId?: string,
   ) => Promise<void>;
   retryInstall: (
-    plan: LocalAiInstallPlanDescriptor,
+    plan: LocalRuntimeInstallPlanDescriptor,
     source: 'catalog' | 'manual' | 'verified',
   ) => void;
   resolveRuntimeProfile: (
     modId: string,
     profileId: string,
     capability?: string,
-  ) => Promise<LocalAiProfileResolutionPlan>;
+  ) => Promise<LocalRuntimeProfileResolutionPlan>;
   applyRuntimeProfile: (
     modId: string,
     profileId: string,
     capability?: string,
-  ) => Promise<LocalAiProfileApplyResult>;
+  ) => Promise<LocalRuntimeProfileApplyResult>;
   installCatalogLocalModel: (
-    item: LocalAiCatalogItemDescriptor,
+    item: LocalRuntimeCatalogItemDescriptor,
     options?: {
       entry?: string;
       files?: string[];
@@ -76,12 +76,12 @@ export type RuntimeConfigInstallActions = {
       engine?: string;
     },
   ) => Promise<void>;
-  installLocalModel: (payload: LocalAiInstallPayload) => Promise<void>;
+  installLocalModel: (payload: LocalRuntimeInstallPayload) => Promise<void>;
   installVerifiedLocalModel: (templateId: string) => Promise<void>;
   importLocalModel: () => Promise<void>;
   installVerifiedLocalArtifact: (templateId: string) => Promise<void>;
   importLocalArtifact: () => Promise<void>;
-  scaffoldLocalArtifactOrphan: (path: string, kind: LocalAiArtifactKind) => Promise<void>;
+  scaffoldLocalArtifactOrphan: (path: string, kind: LocalRuntimeArtifactKind) => Promise<void>;
   importLocalModelFile: (capabilities: string[], engine?: string) => Promise<void>;
   startLocalModel: (localModelId: string) => Promise<void>;
   stopLocalModel: (localModelId: string) => Promise<void>;
@@ -107,7 +107,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     target: GoRuntimeSyncTarget,
     error: unknown,
   ) => {
-    await localAiRuntime.appendAudit({
+    await localRuntime.appendAudit({
       eventType,
       modelId: String(target.modelId || '').trim(),
       localModelId: String(target.localModelId || '').trim() || undefined,
@@ -138,7 +138,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
   }, []);
 
   const installSessionMeta = useMemo(() => {
-    const meta = new Map<string, { plan: LocalAiInstallPlanDescriptor; installSource: string }>();
+    const meta = new Map<string, { plan: LocalRuntimeInstallPlanDescriptor; installSource: string }>();
     for (const [sessionId, entry] of pendingInstallsRef.current) {
       meta.set(sessionId, { plan: entry.plan, installSource: entry.installSource });
     }
@@ -182,8 +182,8 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     const installSource = session?.installSource || 'resume';
     const capabilities = session?.plan.capabilities || [];
     try {
-      await localAiRuntime.start(resolvedLocalModelId, { caller: 'core' });
-      const healthRows = await localAiRuntime.health(resolvedLocalModelId);
+      await localRuntime.start(resolvedLocalModelId, { caller: 'core' });
+      const healthRows = await localRuntime.health(resolvedLocalModelId);
       const targetHealth = healthRows.find((item) => item.localModelId === resolvedLocalModelId)
         || healthRows[0]
         || null;
@@ -227,7 +227,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
         localModelId: synced.localModelId,
       });
 
-      await localAiRuntime.appendAudit({
+      await localRuntime.appendAudit({
         eventType: 'runtime_model_ready_after_install',
         modelId: resolvedModelId,
         localModelId: resolvedLocalModelId,
@@ -263,9 +263,9 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     }
   }, [recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
 
-  const runInstallPlanLifecycle = useCallback((plan: LocalAiInstallPlanDescriptor, installSource: 'catalog' | 'manual' | 'verified') => {
+  const runInstallPlanLifecycle = useCallback((plan: LocalRuntimeInstallPlanDescriptor, installSource: 'catalog' | 'manual' | 'verified') => {
     assertRuntimeWriteAllowed();
-    localAiRuntime.install({
+    localRuntime.install({
       modelId: plan.modelId,
       repo: plan.repo,
       revision: plan.revision,
@@ -297,7 +297,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
   }, [assertRuntimeWriteAllowed, setStatusBanner]);
 
-  const retryInstall = useCallback((plan: LocalAiInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => {
+  const retryInstall = useCallback((plan: LocalRuntimeInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => {
     runInstallPlanLifecycle(plan, source);
     setStatusBanner({
       kind: 'info',
@@ -309,7 +309,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     });
   }, [runInstallPlanLifecycle, setStatusBanner]);
 
-  const findManifestProfilesByModId = useCallback((modId: string): LocalAiProfileDescriptor[] => {
+  const findManifestProfilesByModId = useCallback((modId: string): LocalRuntimeProfileDescriptor[] => {
     const normalizedModId = String(modId || '').trim();
     if (!normalizedModId) {
       return [];
@@ -320,20 +320,20 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     }
     const manifest = asRecord(summary.manifest);
     const ai = asRecord(manifest.ai);
-    return normalizeLocalAiProfilesDeclaration(ai.profiles);
+    return normalizeLocalRuntimeProfilesDeclaration(ai.profiles);
   }, [localManifestSummaries]);
 
   const resolveRuntimeProfile = useCallback(async (
     modId: string,
     profileId: string,
     capability?: string,
-  ): Promise<LocalAiProfileResolutionPlan> => {
+  ): Promise<LocalRuntimeProfileResolutionPlan> => {
     const profiles = findManifestProfilesByModId(modId);
-    const profile = findLocalAiProfileById(profiles, profileId);
+    const profile = findLocalRuntimeProfileById(profiles, profileId);
     if (!profile) {
       throw new Error(`profile missing in manifest: ${modId}/${profileId}`);
     }
-    return localAiRuntime.resolveProfile({
+    return localRuntime.resolveProfile({
       modId,
       profile,
       capability: String(capability || '').trim() || undefined,
@@ -344,7 +344,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     modId: string,
     profileId: string,
     capability?: string,
-  ): Promise<LocalAiProfileApplyResult> => {
+  ): Promise<LocalRuntimeProfileApplyResult> => {
     try {
       assertRuntimeWriteAllowed();
       const plan = await resolveRuntimeProfile(modId, profileId, capability);
@@ -352,10 +352,10 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(confirmMessage)) {
         throw new Error('LOCAL_AI_PROFILE_INSTALL_DECLINED');
       }
-      const result = await localAiRuntime.applyProfile(plan, { caller: 'core' });
+      const result = await localRuntime.applyProfile(plan, { caller: 'core' });
       await refreshLocalSnapshot();
       try {
-        const fullModels = await localAiRuntime.list();
+        const fullModels = await localRuntime.list();
         await reconcileModelsToGoRuntime(fullModels);
       } catch (syncError) {
         await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_dependency_apply', {
@@ -401,7 +401,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
   }, [assertRuntimeWriteAllowed, recordGoRuntimeSyncFailure, refreshLocalSnapshot, resolveRuntimeProfile, setStatusBanner]);
 
   const installCatalogLocalModel = useCallback(async (
-    item: LocalAiCatalogItemDescriptor,
+    item: LocalRuntimeCatalogItemDescriptor,
     options?: {
       entry?: string;
       files?: string[];
@@ -410,7 +410,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     },
   ) => {
     try {
-      const plan = await localAiRuntime.resolveInstallPlan({
+      const plan = await localRuntime.resolveInstallPlan({
         itemId: item.itemId,
         source: item.source,
         templateId: item.templateId,
@@ -436,9 +436,9 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     }
   }, [runInstallPlanLifecycle, setStatusBanner]);
 
-  const installLocalModel = useCallback(async (payload: LocalAiInstallPayload) => {
+  const installLocalModel = useCallback(async (payload: LocalRuntimeInstallPayload) => {
     try {
-      const resolved = await localAiRuntime.resolveInstallPlan({
+      const resolved = await localRuntime.resolveInstallPlan({
         source: 'huggingface',
         modelId: payload.modelId,
         repo: payload.repo,
@@ -451,7 +451,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
         hashes: payload.hashes,
         endpoint: payload.endpoint,
       });
-      const plan: LocalAiInstallPlanDescriptor = {
+      const plan: LocalRuntimeInstallPlanDescriptor = {
         ...resolved,
         modelId: String(payload.modelId || '').trim() || resolved.modelId,
         repo: String(payload.repo || '').trim() || resolved.repo,
@@ -486,7 +486,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       throw new Error('templateId is required');
     }
     try {
-      const plan = await localAiRuntime.resolveInstallPlan({
+      const plan = await localRuntime.resolveInstallPlan({
         source: 'verified',
         templateId: normalizedTemplateId,
       });
@@ -511,7 +511,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     }
     try {
       assertRuntimeWriteAllowed();
-      const artifact = await localAiRuntime.installVerifiedArtifact({
+      const artifact = await localRuntime.installVerifiedArtifact({
         templateId: normalizedTemplateId,
       }, { caller: 'core' });
       await refreshLocalSnapshot();
@@ -531,11 +531,11 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
   const importLocalArtifact = useCallback(async () => {
     try {
       assertRuntimeWriteAllowed();
-      const manifestPath = await localAiRuntime.pickArtifactManifestPath();
+      const manifestPath = await localRuntime.pickArtifactManifestPath();
       if (!manifestPath) {
         return;
       }
-      const imported = await localAiRuntime.importArtifact({ manifestPath }, { caller: 'core' });
+      const imported = await localRuntime.importArtifact({ manifestPath }, { caller: 'core' });
       await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
@@ -558,14 +558,14 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     }
   }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
 
-  const scaffoldLocalArtifactOrphan = useCallback(async (path: string, kind: LocalAiArtifactKind) => {
+  const scaffoldLocalArtifactOrphan = useCallback(async (path: string, kind: LocalRuntimeArtifactKind) => {
     try {
       assertRuntimeWriteAllowed();
-      const scaffolded = await localAiRuntime.scaffoldArtifactOrphan({
+      const scaffolded = await localRuntime.scaffoldArtifactOrphan({
         path,
         kind,
       }, { caller: 'core' });
-      const imported = await localAiRuntime.importArtifact({
+      const imported = await localRuntime.importArtifact({
         manifestPath: scaffolded.manifestPath,
       }, { caller: 'core' });
       await refreshLocalSnapshot();

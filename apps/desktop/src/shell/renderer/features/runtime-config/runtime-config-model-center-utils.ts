@@ -1,15 +1,15 @@
 import type {
-  LocalAiArtifactKind,
-  LocalAiCatalogItemDescriptor,
-  LocalAiDownloadSessionSummary,
-  LocalAiDownloadState,
-  LocalAiDownloadProgressEvent,
-  LocalAiInstallPayload,
-  LocalAiInstallPlanDescriptor,
-  LocalAiProfileDescriptor,
-  LocalAiProfileApplyResult,
-  LocalAiProfileResolutionPlan,
-} from '@runtime/local-ai-runtime';
+  LocalRuntimeArtifactKind,
+  LocalRuntimeCatalogItemDescriptor,
+  LocalRuntimeDownloadSessionSummary,
+  LocalRuntimeDownloadState,
+  LocalRuntimeDownloadProgressEvent,
+  LocalRuntimeInstallPayload,
+  LocalRuntimeInstallPlanDescriptor,
+  LocalRuntimeProfileDescriptor,
+  LocalRuntimeProfileApplyResult,
+  LocalRuntimeProfileResolutionPlan,
+} from '@runtime/local-runtime';
 import type { RuntimeProfileTargetDescriptor } from './runtime-config-panel-types';
 import type { RuntimeConfigStateV11, RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 
@@ -26,10 +26,10 @@ export type LocalModelCenterProps = {
   filteredLocalModels: string[];
   onDiscover: () => Promise<void>;
   onHealthCheck: () => Promise<void>;
-  onResolveProfile: (modId: string, profileId: string, capability?: string) => Promise<LocalAiProfileResolutionPlan>;
-  onApplyProfile: (modId: string, profileId: string, capability?: string) => Promise<LocalAiProfileApplyResult>;
+  onResolveProfile: (modId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileResolutionPlan>;
+  onApplyProfile: (modId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileApplyResult>;
   onInstallCatalogItem: (
-    item: LocalAiCatalogItemDescriptor,
+    item: LocalRuntimeCatalogItemDescriptor,
     options?: {
       entry?: string;
       files?: string[];
@@ -37,12 +37,12 @@ export type LocalModelCenterProps = {
       engine?: string;
     },
   ) => Promise<void>;
-  onInstall: (payload: LocalAiInstallPayload) => Promise<void>;
+  onInstall: (payload: LocalRuntimeInstallPayload) => Promise<void>;
   onInstallVerified: (templateId: string) => Promise<void>;
   onImport: () => Promise<void>;
   onInstallVerifiedArtifact: (templateId: string) => Promise<void>;
   onImportArtifact: () => Promise<void>;
-  onScaffoldArtifactOrphan: (path: string, kind: LocalAiArtifactKind) => Promise<void>;
+  onScaffoldArtifactOrphan: (path: string, kind: LocalRuntimeArtifactKind) => Promise<void>;
   onImportFile: (capabilities: string[], engine?: string) => Promise<void>;
   onStart: (localModelId: string) => Promise<void>;
   onStop: (localModelId: string) => Promise<void>;
@@ -59,16 +59,16 @@ export type LocalModelCenterProps = {
     localModelId?: string,
     modelId?: string,
   ) => Promise<void>;
-  onRetryInstall?: (plan: LocalAiInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => void;
-  installSessionMeta?: Map<string, { plan: LocalAiInstallPlanDescriptor; installSource: string }>;
+  onRetryInstall?: (plan: LocalRuntimeInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => void;
+  installSessionMeta?: Map<string, { plan: LocalRuntimeInstallPlanDescriptor; installSource: string }>;
 };
 
 export const CAPABILITY_OPTIONS = ['chat', 'image', 'video', 'tts', 'stt', 'embedding'] as const;
 export type CapabilityOption = typeof CAPABILITY_OPTIONS[number];
-export const INSTALL_ENGINE_OPTIONS = ['localai', 'nexa'] as const;
+export const INSTALL_ENGINE_OPTIONS = ['localai', 'nexa', 'nimi_media'] as const;
 export type InstallEngineOption = typeof INSTALL_ENGINE_OPTIONS[number];
 export type ProgressSessionState = {
-  event: LocalAiDownloadProgressEvent;
+  event: LocalRuntimeDownloadProgressEvent;
   updatedAtMs: number;
   createdAtMs: number;
   installSource?: 'catalog' | 'manual' | 'verified';
@@ -78,11 +78,11 @@ export const PROGRESS_SESSION_LIMIT = 6;
 export const PROGRESS_RETENTION_MS = 15 * 60 * 1000;
 export const HIGHLIGHT_CLEAR_MS = 8000;
 
-export function isDownloadTerminal(state: LocalAiDownloadState): boolean {
+export function isDownloadTerminal(state: LocalRuntimeDownloadState): boolean {
   return state === 'completed' || state === 'failed' || state === 'cancelled';
 }
 
-export function deriveDoneSuccessFromState(state: LocalAiDownloadState): { done: boolean; success: boolean } {
+export function deriveDoneSuccessFromState(state: LocalRuntimeDownloadState): { done: boolean; success: boolean } {
   if (state === 'completed') {
     return { done: true, success: true };
   }
@@ -93,8 +93,8 @@ export function deriveDoneSuccessFromState(state: LocalAiDownloadState): { done:
 }
 
 export function toProgressEventFromSummary(
-  summary: LocalAiDownloadSessionSummary,
-): LocalAiDownloadProgressEvent {
+  summary: LocalRuntimeDownloadSessionSummary,
+): LocalRuntimeDownloadProgressEvent {
   const terminal = deriveDoneSuccessFromState(summary.state);
   return {
     installSessionId: summary.installSessionId,
@@ -114,7 +114,7 @@ export function toProgressEventFromSummary(
   };
 }
 
-export function downloadStateLabel(state: LocalAiDownloadState): string {
+export function downloadStateLabel(state: LocalRuntimeDownloadState): string {
   if (state === 'queued') return 'Queued';
   if (state === 'running') return 'Running';
   if (state === 'paused') return 'Paused';
@@ -213,7 +213,7 @@ export function resolveSelectedRuntimeProfileTarget(
 }
 
 export function resolveProfileCapabilityOptions(
-  profile: LocalAiProfileDescriptor | null | undefined,
+  profile: LocalRuntimeProfileDescriptor | null | undefined,
 ): string[] {
   if (!profile) {
     return [];
@@ -232,7 +232,7 @@ export function resolveProfileCapabilityOptions(
 }
 
 export function normalizeSelectedProfileCapability(
-  profile: LocalAiProfileDescriptor | null | undefined,
+  profile: LocalRuntimeProfileDescriptor | null | undefined,
   selectedCapability: string | undefined,
 ): string {
   const capabilityOptions = resolveProfileCapabilityOptions(profile);
@@ -251,7 +251,7 @@ export function shouldShowRuntimeProfileInstallSection(
   return Boolean(target && target.profiles.length > 0);
 }
 
-function isInteractiveDownloadState(state: LocalAiDownloadState): boolean {
+function isInteractiveDownloadState(state: LocalRuntimeDownloadState): boolean {
   return state === 'queued' || state === 'running' || state === 'paused' || state === 'failed';
 }
 

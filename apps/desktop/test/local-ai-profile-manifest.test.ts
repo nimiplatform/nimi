@@ -2,12 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  bridgeLocalAiProfile,
-  normalizeLocalAiProfilesDeclaration,
-} from '../src/runtime/local-ai-runtime/index.js';
+  bridgeLocalRuntimeProfile,
+  normalizeLocalRuntimeProfilesDeclaration,
+} from '../src/runtime/local-runtime/index.js';
 
-test('normalizeLocalAiProfilesDeclaration parses profile bundles and artifact entries', () => {
-  const profiles = normalizeLocalAiProfilesDeclaration([
+test('normalizeLocalRuntimeProfilesDeclaration parses profile bundles and artifact entries', () => {
+  const profiles = normalizeLocalRuntimeProfilesDeclaration([
     {
       id: 'quality-best',
       title: 'Quality Best',
@@ -46,8 +46,8 @@ test('normalizeLocalAiProfilesDeclaration parses profile bundles and artifact en
   assert.equal(profiles[0]?.requirements?.minGpuMemoryGb, 12);
 });
 
-test('bridgeLocalAiProfile separates runtime dependencies from companion artifacts', () => {
-  const profile = normalizeLocalAiProfilesDeclaration([
+test('bridgeLocalRuntimeProfile separates runtime dependencies from companion artifacts', () => {
+  const profile = normalizeLocalRuntimeProfilesDeclaration([
     {
       id: 'balanced-fast',
       title: 'Balanced Fast',
@@ -76,7 +76,7 @@ test('bridgeLocalAiProfile separates runtime dependencies from companion artifac
   ])[0];
 
   assert.ok(profile);
-  const bridge = bridgeLocalAiProfile(profile);
+  const bridge = bridgeLocalRuntimeProfile(profile);
   assert.equal(bridge.runtimeEntries?.required?.length, 1);
   assert.equal(bridge.runtimeEntries?.required?.[0]?.modelId, 'nimi/image-fast');
   assert.equal(bridge.artifacts.length, 1);

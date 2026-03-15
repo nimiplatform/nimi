@@ -1,31 +1,31 @@
 import {
-  localAiRuntime,
+  localRuntime,
   reconcileDesktopAndGoRuntimeModels,
   type GoRuntimeBootstrapResult,
-  type LocalAiModelRecord,
-} from '@runtime/local-ai-runtime';
+  type LocalRuntimeModelRecord,
+} from '@runtime/local-runtime';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { safeErrorMessage } from './runtime-bootstrap-utils';
 
-type BootstrapLocalAiDeps = {
-  listDesktopModels: () => Promise<LocalAiModelRecord[]>;
-  reconcileModels: (models: LocalAiModelRecord[]) => Promise<GoRuntimeBootstrapResult>;
+type BootstrapLocalRuntimeDeps = {
+  listDesktopModels: () => Promise<LocalRuntimeModelRecord[]>;
+  reconcileModels: (models: LocalRuntimeModelRecord[]) => Promise<GoRuntimeBootstrapResult>;
   log: typeof logRendererEvent;
 };
 
-function defaultDeps(): BootstrapLocalAiDeps {
+function defaultDeps(): BootstrapLocalRuntimeDeps {
   return {
-    listDesktopModels: () => localAiRuntime.list(),
+    listDesktopModels: () => localRuntime.list(),
     reconcileModels: (models) => reconcileDesktopAndGoRuntimeModels(models),
     log: logRendererEvent,
   };
 }
 
-export async function reconcileLocalAiRuntimeBootstrapState(input: {
+export async function reconcileLocalRuntimeBootstrapState(input: {
   flowId?: string;
-  deps?: Partial<BootstrapLocalAiDeps>;
+  deps?: Partial<BootstrapLocalRuntimeDeps>;
 } = {}): Promise<GoRuntimeBootstrapResult> {
-  const deps: BootstrapLocalAiDeps = {
+  const deps: BootstrapLocalRuntimeDeps = {
     ...defaultDeps(),
     ...(input.deps || {}),
   };

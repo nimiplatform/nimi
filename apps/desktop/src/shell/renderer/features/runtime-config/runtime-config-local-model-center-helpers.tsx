@@ -1,9 +1,9 @@
 import type {
-  LocalAiArtifactKind,
-  LocalAiArtifactRecord,
-  LocalAiVerifiedArtifactDescriptor,
-  LocalAiVerifiedModelDescriptor,
-} from '@runtime/local-ai-runtime';
+  LocalRuntimeArtifactKind,
+  LocalRuntimeArtifactRecord,
+  LocalRuntimeVerifiedArtifactDescriptor,
+  LocalRuntimeVerifiedModelDescriptor,
+} from '@runtime/local-runtime';
 import { formatRelativeLocaleTime, i18n } from '@renderer/i18n';
 import { parseTimestamp, type ProgressSessionState } from './runtime-config-model-center-utils';
 
@@ -14,9 +14,9 @@ export const ARTIFACT_KIND_OPTIONS = [
   'controlnet',
   'lora',
   'auxiliary',
-] as const satisfies readonly LocalAiArtifactKind[];
+] as const satisfies readonly LocalRuntimeArtifactKind[];
 
-export function formatArtifactKindLabel(value: LocalAiArtifactKind): string {
+export function formatArtifactKindLabel(value: LocalRuntimeArtifactKind): string {
   switch (value) {
     case 'vae':
       return 'VAE';
@@ -52,7 +52,7 @@ function normalizeDescriptorToken(value: string | undefined | null): string {
   return String(value || '').trim().toLowerCase();
 }
 
-function collectModelFamilyHints(model: LocalAiVerifiedModelDescriptor): string[] {
+function collectModelFamilyHints(model: LocalRuntimeVerifiedModelDescriptor): string[] {
   const hints = new Set<string>();
   for (const tag of model.tags || []) {
     const normalized = normalizeDescriptorToken(tag);
@@ -93,8 +93,8 @@ function compareDescriptorTitles(
 }
 
 export function sortVerifiedModelsForDisplay(
-  models: LocalAiVerifiedModelDescriptor[],
-): LocalAiVerifiedModelDescriptor[] {
+  models: LocalRuntimeVerifiedModelDescriptor[],
+): LocalRuntimeVerifiedModelDescriptor[] {
   return [...models].sort((left, right) => {
     const leftRecommended = isRecommendedDescriptor(left.tags);
     const rightRecommended = isRecommendedDescriptor(right.tags);
@@ -105,7 +105,7 @@ export function sortVerifiedModelsForDisplay(
   });
 }
 
-const ARTIFACT_KIND_RANK: Record<LocalAiArtifactKind, number> = {
+const ARTIFACT_KIND_RANK: Record<LocalRuntimeArtifactKind, number> = {
   vae: 0,
   llm: 1,
   clip: 2,
@@ -115,8 +115,8 @@ const ARTIFACT_KIND_RANK: Record<LocalAiArtifactKind, number> = {
 };
 
 export function sortVerifiedArtifactsForDisplay(
-  artifacts: LocalAiVerifiedArtifactDescriptor[],
-): LocalAiVerifiedArtifactDescriptor[] {
+  artifacts: LocalRuntimeVerifiedArtifactDescriptor[],
+): LocalRuntimeVerifiedArtifactDescriptor[] {
   return [...artifacts].sort((left, right) => {
     const leftRecommended = isRecommendedDescriptor(left.tags);
     const rightRecommended = isRecommendedDescriptor(right.tags);
@@ -132,7 +132,7 @@ export function sortVerifiedArtifactsForDisplay(
   });
 }
 
-function collectArtifactFamilyHints(artifact: LocalAiVerifiedArtifactDescriptor): string[] {
+function collectArtifactFamilyHints(artifact: LocalRuntimeVerifiedArtifactDescriptor): string[] {
   const hints = new Set<string>();
   const family = normalizeDescriptorToken(typeof artifact.metadata?.family === 'string' ? artifact.metadata.family : '');
   if (family) {
@@ -149,10 +149,10 @@ function collectArtifactFamilyHints(artifact: LocalAiVerifiedArtifactDescriptor)
 }
 
 export function filterInstalledArtifacts(
-  artifacts: LocalAiArtifactRecord[],
-  kindFilter: 'all' | LocalAiArtifactKind,
+  artifacts: LocalRuntimeArtifactRecord[],
+  kindFilter: 'all' | LocalRuntimeArtifactKind,
   query: string,
-): LocalAiArtifactRecord[] {
+): LocalRuntimeArtifactRecord[] {
   return artifacts.filter((artifact) => {
     const matchesKind = kindFilter === 'all' || artifact.kind === kindFilter;
     if (!matchesKind) return false;
@@ -168,9 +168,9 @@ export function filterInstalledArtifacts(
 }
 
 export function relatedArtifactsForModel(
-  model: LocalAiVerifiedModelDescriptor,
-  artifacts: LocalAiVerifiedArtifactDescriptor[],
-): LocalAiVerifiedArtifactDescriptor[] {
+  model: LocalRuntimeVerifiedModelDescriptor,
+  artifacts: LocalRuntimeVerifiedArtifactDescriptor[],
+): LocalRuntimeVerifiedArtifactDescriptor[] {
   const capabilities = new Set((model.capabilities || []).map((value) => normalizeDescriptorToken(value)));
   if (!capabilities.has('image')) {
     return [];
@@ -191,7 +191,7 @@ export type ArtifactTaskEntry = {
   templateId: string;
   artifactId: string;
   title: string;
-  kind: LocalAiArtifactKind;
+  kind: LocalRuntimeArtifactKind;
   taskKind: 'verified-install';
   state: ArtifactTaskState;
   detail?: string;
@@ -322,6 +322,8 @@ export function Toggle({ checked, onChange, disabled }: { checked: boolean; onCh
 export function ModelIcon({ engine }: { engine: string }) {
   const colors: Record<string, string> = {
     localai: 'from-emerald-400 to-teal-500',
+    nexa: 'from-sky-400 to-cyan-500',
+    nimi_media: 'from-rose-400 to-orange-500',
     ollama: 'from-amber-400 to-orange-500',
     llamacpp: 'from-blue-400 to-indigo-500',
     vllm: 'from-purple-400 to-pink-500',

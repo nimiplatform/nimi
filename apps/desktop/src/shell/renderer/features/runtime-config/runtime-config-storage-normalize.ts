@@ -60,7 +60,7 @@ export function normalizeStoredStateV11(seed: RuntimeConfigSeedV11, parsed: Stor
   // Connectors are NOT loaded from localStorage — runtime bridge config (config.json)
   // is the single source of truth. Connectors start empty and are populated by bridge merge.
   return {
-    version: 11,
+    version: 12,
     initializedByV11: Boolean(parsed.initializedByV11),
     activePage: normalizePageIdV11(rawActivePage),
     diagnosticsCollapsed: parsed.diagnosticsCollapsed !== false,

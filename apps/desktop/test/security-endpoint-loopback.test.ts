@@ -13,7 +13,7 @@ import { toBridgeUserError } from '../src/shell/renderer/bridge/runtime-bridge/i
 //   2. TypeScript `isLoopbackHost` / `inferRouteSourceFromEndpoint` (renderer)
 //
 // The TypeScript `inferRouteSourceFromEndpoint` cannot be imported directly in
-// this test because its module transitively depends on `@runtime/local-ai-runtime`
+// this test because its module transitively depends on `@runtime/local-runtime`
 // which requires the Tauri environment.  Instead, we source-scan to verify the
 // TypeScript layer implements the correct loopback rules, and use behavioral
 // tests on the bridge error code map via `toBridgeUserError`.

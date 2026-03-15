@@ -19,7 +19,7 @@ export type ApiVendor =
 
 export type LocalModelOptionV11 = {
   localModelId: string;
-  engine: 'localai' | 'nexa' | string;
+  engine: 'localai' | 'nexa' | 'nimi_media' | string;
   model: string;
   endpoint: string;
   capabilities: CapabilityV11[];
@@ -34,14 +34,14 @@ export type NodeCapabilityV11 = CapabilityV11 | 'rerank' | 'cv' | 'diarize';
 export type LocalProviderHintsV11 = {
   localai?: {
     backend?: string;
-    preferredAdapter?: 'openai_compat_adapter' | 'localai_native_adapter' | string;
+    preferredAdapter?: 'openai_compat_adapter' | 'localai_native_adapter' | 'nimi_media_native_adapter' | string;
     whisperVariant?: string;
     stablediffusionPipeline?: string;
     videoBackend?: string;
   };
   nexa?: {
     backend?: string;
-    preferredAdapter?: 'openai_compat_adapter' | 'localai_native_adapter' | string;
+    preferredAdapter?: 'openai_compat_adapter' | 'localai_native_adapter' | 'nexa_native_adapter' | 'nimi_media_native_adapter' | string;
     pluginId?: string;
     deviceId?: string;
     modelType?: string;
@@ -54,14 +54,20 @@ export type LocalProviderHintsV11 = {
     gateReason?: string;
     gateDetail?: string;
   };
+  nimiMedia?: {
+    preferredAdapter?: 'nimi_media_native_adapter' | string;
+    driver?: string;
+    family?: string;
+  };
+  extra?: Record<string, unknown>;
 } & Record<string, unknown>;
 
 export type LocalNodeMatrixEntryV11 = {
   nodeId: string;
   capability: NodeCapabilityV11;
   serviceId: string;
-  provider: 'localai' | 'nexa' | string;
-  adapter: 'openai_compat_adapter' | 'localai_native_adapter';
+  provider: 'localai' | 'nexa' | 'nimi_media' | string;
+  adapter: 'openai_compat_adapter' | 'localai_native_adapter' | 'nexa_native_adapter' | 'nimi_media_native_adapter';
   backend?: string;
   backendSource?: string;
   available: boolean;
@@ -96,7 +102,7 @@ export type ApiConnector = {
 };
 
 export type RuntimeConfigStateV11 = {
-  version: 11;
+  version: 11 | 12;
   initializedByV11: boolean;
   activePage: RuntimePageIdV11;
   diagnosticsCollapsed: boolean;
@@ -111,6 +117,26 @@ export type RuntimeConfigStateV11 = {
 export const DEFAULT_LOCAL_ENDPOINT_V11 = 'http://127.0.0.1:1234/v1';
 export const DEFAULT_OPENAI_ENDPOINT_V11 = 'http://127.0.0.1:1234/v1';
 export const DEFAULT_OPENROUTER_ENDPOINT_V11 = 'https://openrouter.ai/api/v1';
+
+function defaultEngineForCapabilities(capabilities: CapabilityV11[]): LocalModelOptionV11['engine'] {
+  if (capabilities.includes('image') || capabilities.includes('video')) {
+    return 'nimi_media';
+  }
+  if (capabilities.includes('tts') || capabilities.includes('stt') || capabilities.includes('embedding')) {
+    return 'nexa';
+  }
+  return 'localai';
+}
+
+function defaultEndpointForEngine(engine: LocalModelOptionV11['engine']): string {
+  if (engine === 'nimi_media') {
+    return 'http://127.0.0.1:8321/v1';
+  }
+  if (engine === 'nexa') {
+    return 'http://127.0.0.1:18181/v1';
+  }
+  return DEFAULT_LOCAL_ENDPOINT_V11;
+}
 
 export const VENDOR_LABELS_V11: Record<ApiVendor, string> = {
   gpt: 'OpenAI',
@@ -270,11 +296,12 @@ export function normalizeLocalModelV11(raw: Partial<LocalModelOptionV11>): Local
       || value === 'stt'
       || value === 'embedding'
     ));
+  const engine = String(raw.engine || defaultEngineForCapabilities(capabilities)).trim() || defaultEngineForCapabilities(capabilities);
   return {
     localModelId,
-    engine: String(raw.engine || 'localai').trim() || 'localai',
+    engine,
     model: String(raw.model || localModelId).trim() || localModelId,
-    endpoint: normalizeEndpointV11(String(raw.endpoint || DEFAULT_LOCAL_ENDPOINT_V11), DEFAULT_LOCAL_ENDPOINT_V11),
+    endpoint: normalizeEndpointV11(String(raw.endpoint || defaultEndpointForEngine(engine)), defaultEndpointForEngine(engine)),
     capabilities: capabilities.length > 0 ? capabilities : ['chat'],
     status: raw.status === 'active' || raw.status === 'unhealthy' || raw.status === 'removed' ? raw.status : 'installed',
     hash: String(raw.hash || '').trim() || undefined,
@@ -298,26 +325,33 @@ export function normalizeLocalNodeMatrixEntryV11(
     || capability === 'diarize'
   ) ? capability : 'chat';
   const normalizedProvider = String(raw.provider || '').trim().toLowerCase() || (
-    String(raw.serviceId || '').toLowerCase().includes('nexa') ? 'nexa' : 'localai'
+    String(raw.serviceId || '').toLowerCase().includes('nimi-media')
+      ? 'nimi_media'
+      : String(raw.serviceId || '').toLowerCase().includes('nexa')
+        ? 'nexa'
+        : normalizedCapability === 'image' || normalizedCapability === 'video'
+          ? 'nimi_media'
+          : 'localai'
   );
   const adapterRaw = String(raw.adapter || '').trim().toLowerCase();
-  const normalizedAdapter: LocalNodeMatrixEntryV11['adapter'] = adapterRaw === 'localai_native_adapter'
-    ? 'localai_native_adapter'
-    : adapterRaw === 'openai_compat_adapter'
+  let normalizedAdapter: LocalNodeMatrixEntryV11['adapter'];
+  if (adapterRaw === 'localai_native_adapter') {
+    normalizedAdapter = 'localai_native_adapter';
+  } else if (adapterRaw === 'nexa_native_adapter') {
+    normalizedAdapter = 'nexa_native_adapter';
+  } else if (adapterRaw === 'nimi_media_native_adapter') {
+    normalizedAdapter = 'nimi_media_native_adapter';
+  } else if (adapterRaw === 'openai_compat_adapter') {
+    normalizedAdapter = 'openai_compat_adapter';
+  } else if (normalizedProvider === 'nexa') {
+    normalizedAdapter = 'nexa_native_adapter';
+  } else if (normalizedProvider === 'nimi_media') {
+    normalizedAdapter = 'nimi_media_native_adapter';
+  } else {
+    normalizedAdapter = normalizedCapability === 'chat' || normalizedCapability === 'embedding'
       ? 'openai_compat_adapter'
-      : normalizedProvider === 'nexa'
-        ? (
-          normalizedCapability === 'rerank'
-          || normalizedCapability === 'cv'
-          || normalizedCapability === 'diarize'
-            ? 'localai_native_adapter'
-            : 'openai_compat_adapter'
-        )
-        : (
-          normalizedCapability === 'chat' || normalizedCapability === 'embedding'
-            ? 'openai_compat_adapter'
-            : 'localai_native_adapter'
-        );
+      : 'localai_native_adapter';
+  }
   const hints = (
     raw.providerHints
     && typeof raw.providerHints === 'object'
@@ -328,7 +362,13 @@ export function normalizeLocalNodeMatrixEntryV11(
   return {
     nodeId: String(raw.nodeId || '').trim() || randomIdV11('node'),
     capability: normalizedCapability,
-    serviceId: String(raw.serviceId || '').trim() || 'localai-openai-gateway',
+    serviceId: String(raw.serviceId || '').trim() || (
+      normalizedProvider === 'nimi_media'
+        ? 'nimi-media-openai-gateway'
+        : normalizedProvider === 'nexa'
+          ? 'nexa-openai-gateway'
+          : 'localai-openai-gateway'
+    ),
     provider: normalizedProvider,
     adapter: normalizedAdapter,
     backend: String(raw.backend || '').trim() || undefined,

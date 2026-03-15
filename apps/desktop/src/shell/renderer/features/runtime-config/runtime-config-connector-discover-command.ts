@@ -4,7 +4,7 @@ import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeConfigStateUpdater } from './runtime-config-types';
 import { getOfflineCacheManager } from '@runtime/offline';
 import { discoverLocalModelsFromEndpoint } from './runtime-config-connector-discovery';
-import { localAiRuntime, reconcileModelsToGoRuntime } from '@runtime/local-ai-runtime';
+import { localRuntime, reconcileModelsToGoRuntime } from '@runtime/local-runtime';
 
 export async function runDiscoverLocalModelsCommand(input: {
   state: RuntimeConfigStateV11;
@@ -32,13 +32,13 @@ export async function runDiscoverLocalModelsCommand(input: {
 
   // Reconcile Tauri model state → Go runtime to fix registry divergence
   try {
-    const fullModels = await localAiRuntime.list();
+    const fullModels = await localRuntime.list();
     await (await getOfflineCacheManager()).syncModelManifests(
       fullModels as unknown as Record<string, unknown>[],
     );
     await reconcileModelsToGoRuntime(fullModels);
   } catch (error) {
-    await localAiRuntime.appendAudit({
+    await localRuntime.appendAudit({
       eventType: 'runtime_model_sync_failed_during_discovery',
       modelId: 'local-models',
       source: 'local',

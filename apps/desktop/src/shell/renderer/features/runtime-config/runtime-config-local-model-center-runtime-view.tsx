@@ -1,14 +1,14 @@
 import type { RefObject } from 'react';
 import type {
-  LocalAiArtifactKind,
-  LocalAiArtifactRecord,
-  LocalAiCatalogItemDescriptor,
+  LocalRuntimeArtifactKind,
+  LocalRuntimeArtifactRecord,
+  LocalRuntimeCatalogItemDescriptor,
   GgufVariantDescriptor,
-  LocalAiVerifiedArtifactDescriptor,
-  LocalAiVerifiedModelDescriptor,
+  LocalRuntimeVerifiedArtifactDescriptor,
+  LocalRuntimeVerifiedModelDescriptor,
   OrphanArtifactFile,
   OrphanModelFile,
-} from '@runtime/local-ai-runtime';
+} from '@runtime/local-runtime';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import type {
   ArtifactTaskEntry,
@@ -32,24 +32,24 @@ type DownloadState = ReturnType<typeof useLocalModelCenterDownloads>;
 
 type LocalModelCenterRuntimeViewProps = {
   artifactBusy: boolean;
-  artifactKindFilter: 'all' | LocalAiArtifactKind;
+  artifactKindFilter: 'all' | LocalRuntimeArtifactKind;
   artifactOrphanError: string;
   artifactOrphanFiles: OrphanArtifactFile[];
-  artifactOrphanKinds: Record<string, LocalAiArtifactKind>;
+  artifactOrphanKinds: Record<string, LocalRuntimeArtifactKind>;
   artifactPendingTemplateIds: string[];
   catalogCapability: 'all' | CapabilityOption;
   catalogDisplayCount: number;
-  catalogItems: LocalAiCatalogItemDescriptor[];
+  catalogItems: LocalRuntimeCatalogItemDescriptor[];
   checkingHealth: boolean;
   deferredSearchQuery: string;
   discovering: boolean;
-  filteredInstalledArtifacts: LocalAiArtifactRecord[];
+  filteredInstalledArtifacts: LocalRuntimeArtifactRecord[];
   filteredInstalledModels: LocalModelOptionV11[];
   hasSearchQuery: boolean;
   importFileCapability: CapabilityOption;
   importMenuRef: RefObject<HTMLDivElement | null>;
   installing: boolean;
-  installedArtifactsById: Map<string, LocalAiArtifactRecord>;
+  installedArtifactsById: Map<string, LocalRuntimeArtifactRecord>;
   isArtifactPending: (templateId: string) => boolean;
   loadingCatalog: boolean;
   loadingInstalledArtifacts: boolean;
@@ -57,8 +57,8 @@ type LocalModelCenterRuntimeViewProps = {
   loadingVerifiedArtifacts: boolean;
   loadingVerifiedModels: boolean;
   localHealthy: boolean;
-  onArtifactKindFilterChange: (value: 'all' | LocalAiArtifactKind) => void;
-  onArtifactOrphanKindChange: (path: string, kind: LocalAiArtifactKind) => void;
+  onArtifactKindFilterChange: (value: 'all' | LocalRuntimeArtifactKind) => void;
+  onArtifactOrphanKindChange: (path: string, kind: LocalRuntimeArtifactKind) => void;
   onCapabilityChange: (capability: CapabilityOption) => void;
   onCatalogCapabilityChange: (value: 'all' | CapabilityOption) => void;
   onCatalogCapabilityOverrideChange: (itemId: string, capability: CapabilityOption) => void;
@@ -70,8 +70,8 @@ type LocalModelCenterRuntimeViewProps = {
   onImportArtifact: () => void;
   onImportManifest: () => void;
   onInstallArtifact: (templateId: string) => void;
-  onInstallCatalogVariant: (item: LocalAiCatalogItemDescriptor, variantFilename: string) => void;
-  onInstallMissingArtifacts: (artifacts: LocalAiVerifiedArtifactDescriptor[]) => void;
+  onInstallCatalogVariant: (item: LocalRuntimeCatalogItemDescriptor, variantFilename: string) => void;
+  onInstallMissingArtifacts: (artifacts: LocalRuntimeVerifiedArtifactDescriptor[]) => void;
   onInstallVerifiedModel: (templateId: string) => void;
   onLoadMoreCatalog: () => void;
   onOpenImportFile: () => void;
@@ -89,25 +89,25 @@ type LocalModelCenterRuntimeViewProps = {
   onStartModel: (localModelId: string) => void;
   onStopModel: (localModelId: string) => void;
   onToggleImportMenu: () => void;
-  onToggleVariantPicker: (item: LocalAiCatalogItemDescriptor) => void;
+  onToggleVariantPicker: (item: LocalRuntimeCatalogItemDescriptor) => void;
   orphanCapabilities: Record<string, CapabilityOption>;
   orphanError: string;
   orphanFiles: OrphanModelFile[];
   orphanImportSessionByPath: Record<string, string>;
-  relatedArtifactsByModelTemplate: Map<string, LocalAiVerifiedArtifactDescriptor[]>;
+  relatedArtifactsByModelTemplate: Map<string, LocalRuntimeVerifiedArtifactDescriptor[]>;
   scaffoldingArtifactOrphan: string | null;
   scaffoldingOrphan: string | null;
   searchQuery: string;
-  selectedCatalogCapability: (item: LocalAiCatalogItemDescriptor) => CapabilityOption;
-  selectedCatalogEngine: (item: LocalAiCatalogItemDescriptor) => InstallEngineOption;
+  selectedCatalogCapability: (item: LocalRuntimeCatalogItemDescriptor) => CapabilityOption;
+  selectedCatalogEngine: (item: LocalRuntimeCatalogItemDescriptor) => InstallEngineOption;
   showImportFileDialog: boolean;
   showImportMenu: boolean;
   variantError: string;
   variantList: GgufVariantDescriptor[];
-  variantPickerItem: LocalAiCatalogItemDescriptor | null;
-  verifiedModels: LocalAiVerifiedModelDescriptor[];
+  variantPickerItem: LocalRuntimeCatalogItemDescriptor | null;
+  verifiedModels: LocalRuntimeVerifiedModelDescriptor[];
   visibleArtifactTasks: ArtifactTaskEntry[];
-  visibleVerifiedArtifacts: LocalAiVerifiedArtifactDescriptor[];
+  visibleVerifiedArtifacts: LocalRuntimeVerifiedArtifactDescriptor[];
   downloads: DownloadState['activeDownloads'];
   onCancelDownload: DownloadState['onCancelDownload'];
   lastCheckedAt?: string | null;

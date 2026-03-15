@@ -2,52 +2,52 @@ import { hasTauriInvoke, tauriInvoke } from '../llm-adapter/tauri-bridge';
 import { getPlatformClient } from '../platform-client';
 import type {
   GgufVariantDescriptor,
-  LocalAiArtifactRecord,
-  LocalAiImportArtifactPayload,
-  LocalAiModelRecord,
-  LocalAiVerifiedArtifactDescriptor,
-  LocalAiVerifiedModelDescriptor,
-  LocalAiCatalogSearchPayload,
-  LocalAiCatalogItemDescriptor,
-  LocalAiCatalogResolveInstallPlanPayload,
-  LocalAiInstallPlanDescriptor,
-  LocalAiDeviceProfile,
-  LocalAiExecutionPlan,
-  LocalAiProfileApplyResult,
-  LocalAiProfileEntryDescriptor,
-  LocalAiProfileInstallStatus,
-  LocalAiProfileResolutionPlan,
-  LocalAiProfileResolvePayload,
-  LocalAiServiceDescriptor,
-  LocalAiServicesInstallPayload,
-  LocalAiNodesCatalogListPayload,
-  LocalAiNodeDescriptor,
-  LocalAiAuditQuery,
-  LocalAiAuditEvent,
-  LocalAiInstallPayload,
-  LocalAiInstallVerifiedPayload,
-  LocalAiImportPayload,
-  LocalAiImportFilePayload,
-  LocalAiInstallVerifiedArtifactPayload,
-  LocalAiModelHealth,
-  LocalAiInferenceAuditPayload,
-  LocalAiRuntimeAuditPayload,
-  LocalAiDownloadProgressEvent,
-  LocalAiDownloadSessionSummary,
-  LocalAiInstallAcceptedResponse,
-  LocalAiRuntimeSnapshot,
-  LocalAiRuntimeWriteOptions,
-  LocalAiListArtifactsPayload,
-  LocalAiListVerifiedArtifactsPayload,
-  LocalAiScaffoldArtifactPayload,
-  LocalAiScaffoldArtifactResult,
+  LocalRuntimeArtifactRecord,
+  LocalRuntimeImportArtifactPayload,
+  LocalRuntimeModelRecord,
+  LocalRuntimeVerifiedArtifactDescriptor,
+  LocalRuntimeVerifiedModelDescriptor,
+  LocalRuntimeCatalogSearchPayload,
+  LocalRuntimeCatalogItemDescriptor,
+  LocalRuntimeCatalogResolveInstallPlanPayload,
+  LocalRuntimeInstallPlanDescriptor,
+  LocalRuntimeDeviceProfile,
+  LocalRuntimeExecutionPlan,
+  LocalRuntimeProfileApplyResult,
+  LocalRuntimeProfileEntryDescriptor,
+  LocalRuntimeProfileInstallStatus,
+  LocalRuntimeProfileResolutionPlan,
+  LocalRuntimeProfileResolvePayload,
+  LocalRuntimeServiceDescriptor,
+  LocalRuntimeServicesInstallPayload,
+  LocalRuntimeNodesCatalogListPayload,
+  LocalRuntimeNodeDescriptor,
+  LocalRuntimeAuditQuery,
+  LocalRuntimeAuditEvent,
+  LocalRuntimeInstallPayload,
+  LocalRuntimeInstallVerifiedPayload,
+  LocalRuntimeImportPayload,
+  LocalRuntimeImportFilePayload,
+  LocalRuntimeInstallVerifiedArtifactPayload,
+  LocalRuntimeModelHealth,
+  LocalRuntimeInferenceAuditPayload,
+  LocalRuntimeAuditPayload,
+  LocalRuntimeDownloadProgressEvent,
+  LocalRuntimeDownloadSessionSummary,
+  LocalRuntimeInstallAcceptedResponse,
+  LocalRuntimeSnapshot,
+  LocalRuntimeWriteOptions,
+  LocalRuntimeListArtifactsPayload,
+  LocalRuntimeListVerifiedArtifactsPayload,
+  LocalRuntimeScaffoldArtifactPayload,
+  LocalRuntimeScaffoldArtifactResult,
   OrphanModelFile,
   OrphanArtifactFile,
-  LocalAiScaffoldOrphanPayload,
+  LocalRuntimeScaffoldOrphanPayload,
 } from './types';
 import { localIdsMatch, toCanonicalLocalLookupKey } from './local-id';
 import {
-  invokeLocalAiCommand,
+  invokeLocalRuntimeCommand,
   parseArtifactRecord,
   parseModelRecord,
   parseVerifiedArtifactDescriptor,
@@ -89,7 +89,7 @@ function getSdkLocal(): LocalClient | null {
   }
 }
 
-function toArtifactStatusFilter(status?: LocalAiListArtifactsPayload['status']): number {
+function toArtifactStatusFilter(status?: LocalRuntimeListArtifactsPayload['status']): number {
   if (status === 'installed') return 1;
   if (status === 'active') return 2;
   if (status === 'unhealthy') return 3;
@@ -97,7 +97,7 @@ function toArtifactStatusFilter(status?: LocalAiListArtifactsPayload['status']):
   return 0;
 }
 
-function toArtifactKindFilter(kind?: LocalAiListArtifactsPayload['kind']): number {
+function toArtifactKindFilter(kind?: LocalRuntimeListArtifactsPayload['kind']): number {
   if (kind === 'vae') return 1;
   if (kind === 'llm') return 2;
   if (kind === 'clip') return 3;
@@ -107,7 +107,7 @@ function toArtifactKindFilter(kind?: LocalAiListArtifactsPayload['kind']): numbe
   return 0;
 }
 
-function artifactLookupKey(artifact: Pick<LocalAiArtifactRecord, 'artifactId' | 'kind' | 'engine'>): string {
+function artifactLookupKey(artifact: Pick<LocalRuntimeArtifactRecord, 'artifactId' | 'kind' | 'engine'>): string {
   return [
     toCanonicalLocalLookupKey(artifact.artifactId),
     String(artifact.kind || '').trim().toLowerCase(),
@@ -116,8 +116,8 @@ function artifactLookupKey(artifact: Pick<LocalAiArtifactRecord, 'artifactId' | 
 }
 
 async function listGoRuntimeArtifactsSnapshot(
-  payload?: LocalAiListArtifactsPayload,
-): Promise<LocalAiArtifactRecord[]> {
+  payload?: LocalRuntimeListArtifactsPayload,
+): Promise<LocalRuntimeArtifactRecord[]> {
   const runtime = getSdkLocal();
   if (!runtime) {
     return [];
@@ -134,24 +134,24 @@ async function listGoRuntimeArtifactsSnapshot(
   return artifacts.map((item) => parseArtifactRecord(item));
 }
 
-export async function listLocalAiRuntimeModels(): Promise<LocalAiModelRecord[]> {
-  const models = await invokeLocalAiCommand<unknown[]>('runtime_local_models_list');
+export async function listLocalRuntimeModels(): Promise<LocalRuntimeModelRecord[]> {
+  const models = await invokeLocalRuntimeCommand<unknown[]>('runtime_local_models_list');
   return (Array.isArray(models) ? models : []).map((item) => parseModelRecord(item));
 }
 
-export async function listLocalAiRuntimeVerifiedModels(): Promise<LocalAiVerifiedModelDescriptor[]> {
-  const models = await invokeLocalAiCommand<unknown[]>('runtime_local_models_verified_list');
+export async function listLocalRuntimeVerifiedModels(): Promise<LocalRuntimeVerifiedModelDescriptor[]> {
+  const models = await invokeLocalRuntimeCommand<unknown[]>('runtime_local_models_verified_list');
   return (Array.isArray(models) ? models : []).map((item) => parseVerifiedModelDescriptor(item));
 }
 
-export async function listLocalAiRuntimeArtifacts(
-  payload?: LocalAiListArtifactsPayload,
-): Promise<LocalAiArtifactRecord[]> {
+export async function listLocalRuntimeArtifacts(
+  payload?: LocalRuntimeListArtifactsPayload,
+): Promise<LocalRuntimeArtifactRecord[]> {
   if (getSdkLocal()) {
     try {
       const goRuntimeArtifacts = await listGoRuntimeArtifactsSnapshot(payload);
       for (const artifact of goRuntimeArtifacts) {
-        await adoptLocalAiRuntimeArtifact(artifact, { caller: 'core' }).catch(() => artifact);
+        await adoptLocalRuntimeArtifact(artifact, { caller: 'core' }).catch(() => artifact);
       }
       return goRuntimeArtifacts;
     } catch {
@@ -159,7 +159,7 @@ export async function listLocalAiRuntimeArtifacts(
     }
   }
 
-  const response = await invokeLocalAiCommand<unknown[]>('runtime_local_artifacts_list', {
+  const response = await invokeLocalRuntimeCommand<unknown[]>('runtime_local_artifacts_list', {
     payload: payload ? {
       status: payload.status,
       kind: payload.kind,
@@ -171,10 +171,10 @@ export async function listLocalAiRuntimeArtifacts(
   return [...byKey.values()];
 }
 
-export async function listLocalAiRuntimeVerifiedArtifacts(
-  payload?: LocalAiListVerifiedArtifactsPayload,
-): Promise<LocalAiVerifiedArtifactDescriptor[]> {
-  const response = await invokeLocalAiCommand<unknown[]>('runtime_local_artifacts_verified_list', {
+export async function listLocalRuntimeVerifiedArtifacts(
+  payload?: LocalRuntimeListVerifiedArtifactsPayload,
+): Promise<LocalRuntimeVerifiedArtifactDescriptor[]> {
+  const response = await invokeLocalRuntimeCommand<unknown[]>('runtime_local_artifacts_verified_list', {
     payload: payload ? {
       kind: payload.kind,
       engine: payload.engine,
@@ -183,10 +183,10 @@ export async function listLocalAiRuntimeVerifiedArtifacts(
   return (Array.isArray(response) ? response : []).map((item: unknown) => parseVerifiedArtifactDescriptor(item));
 }
 
-export async function searchLocalAiRuntimeCatalog(
-  payload?: LocalAiCatalogSearchPayload,
-): Promise<LocalAiCatalogItemDescriptor[]> {
-  const items = await invokeLocalAiCommand<unknown[]>('runtime_local_models_catalog_search', {
+export async function searchLocalRuntimeCatalog(
+  payload?: LocalRuntimeCatalogSearchPayload,
+): Promise<LocalRuntimeCatalogItemDescriptor[]> {
+  const items = await invokeLocalRuntimeCommand<unknown[]>('runtime_local_models_catalog_search', {
     payload: payload ? {
       query: payload.query,
       capability: payload.capability,
@@ -196,32 +196,32 @@ export async function searchLocalAiRuntimeCatalog(
   return (Array.isArray(items) ? items : []).map((item) => parseCatalogItemDescriptor(item));
 }
 
-export async function listLocalAiRuntimeRepoGgufVariants(
+export async function listLocalRuntimeRepoGgufVariants(
   repo: string,
 ): Promise<GgufVariantDescriptor[]> {
-  const items = await invokeLocalAiCommand<unknown[]>('runtime_local_models_catalog_list_variants', {
+  const items = await invokeLocalRuntimeCommand<unknown[]>('runtime_local_models_catalog_list_variants', {
     payload: { repo },
   });
   return (Array.isArray(items) ? items : []).map((item) => parseGgufVariantDescriptor(item));
 }
 
-export async function resolveLocalAiRuntimeInstallPlan(
-  payload: LocalAiCatalogResolveInstallPlanPayload,
-): Promise<LocalAiInstallPlanDescriptor> {
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_models_catalog_resolve_install_plan', {
+export async function resolveLocalRuntimeInstallPlan(
+  payload: LocalRuntimeCatalogResolveInstallPlanPayload,
+): Promise<LocalRuntimeInstallPlanDescriptor> {
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_models_catalog_resolve_install_plan', {
     payload,
   });
   return parseInstallPlanDescriptor(result);
 }
 
-export async function collectLocalAiRuntimeDeviceProfile(): Promise<LocalAiDeviceProfile> {
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_device_profile_collect');
+export async function collectLocalRuntimeDeviceProfile(): Promise<LocalRuntimeDeviceProfile> {
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_device_profile_collect');
   return parseDeviceProfile(result);
 }
 
 function artifactIdentityMatches(
-  entry: LocalAiProfileEntryDescriptor,
-  artifact: LocalAiArtifactRecord,
+  entry: LocalRuntimeProfileEntryDescriptor,
+  artifact: LocalRuntimeArtifactRecord,
 ): boolean {
   if (String(entry.artifactId || '').trim() && !localIdsMatch(entry.artifactId, artifact.artifactId)) {
     return false;
@@ -240,8 +240,8 @@ function artifactIdentityMatches(
 }
 
 function modelMatchesDependency(
-  dependency: LocalAiExecutionPlan['entries'][number],
-  model: LocalAiModelRecord,
+  dependency: LocalRuntimeExecutionPlan['entries'][number],
+  model: LocalRuntimeModelRecord,
 ): boolean {
   const modelId = String(dependency.modelId || '').trim();
   const engine = String(dependency.engine || '').trim().toLowerCase();
@@ -255,8 +255,8 @@ function modelMatchesDependency(
 }
 
 function serviceMatchesDependency(
-  dependency: LocalAiExecutionPlan['entries'][number],
-  service: LocalAiServiceDescriptor,
+  dependency: LocalRuntimeExecutionPlan['entries'][number],
+  service: LocalRuntimeServiceDescriptor,
 ): boolean {
   const serviceId = String(dependency.serviceId || '').trim().toLowerCase();
   if (!serviceId) {
@@ -265,10 +265,10 @@ function serviceMatchesDependency(
   return String(service.serviceId || '').trim().toLowerCase() === serviceId;
 }
 
-export async function resolveLocalAiRuntimeProfile(
-  payload: LocalAiProfileResolvePayload,
-): Promise<LocalAiProfileResolutionPlan> {
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_profiles_resolve', {
+export async function resolveLocalRuntimeProfile(
+  payload: LocalRuntimeProfileResolvePayload,
+): Promise<LocalRuntimeProfileResolutionPlan> {
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_profiles_resolve', {
     payload: {
       modId: payload.modId,
       profile: payload.profile,
@@ -278,7 +278,7 @@ export async function resolveLocalAiRuntimeProfile(
   });
   const plan = parseProfileResolutionPlan(result);
   const installedArtifacts = plan.artifactEntries.length > 0
-    ? await listLocalAiRuntimeArtifacts()
+    ? await listLocalRuntimeArtifacts()
     : [];
 
   return {
@@ -291,12 +291,12 @@ export async function resolveLocalAiRuntimeProfile(
   };
 }
 
-export async function applyLocalAiRuntimeProfile(
-  plan: LocalAiProfileResolutionPlan,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiProfileApplyResult> {
+export async function applyLocalRuntimeProfile(
+  plan: LocalRuntimeProfileResolutionPlan,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeProfileApplyResult> {
   assertLifecycleWriteAllowed('local_runtime_profiles_apply', options?.caller);
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_profiles_apply', {
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_profiles_apply', {
     payload: { plan },
   });
   const applyResult = parseProfileApplyResult(result);
@@ -311,14 +311,14 @@ export async function applyLocalAiRuntimeProfile(
   };
 }
 
-export async function getLocalAiRuntimeProfileInstallStatus(
-  payload: LocalAiProfileResolvePayload,
-): Promise<LocalAiProfileInstallStatus> {
-  const resolved = await resolveLocalAiRuntimeProfile(payload);
-  const models = await listLocalAiRuntimeModels();
-  const services = await listLocalAiRuntimeServices();
-  const nodes = await listLocalAiRuntimeNodesCatalog();
-  const artifacts = await listLocalAiRuntimeArtifacts();
+export async function getLocalRuntimeProfileInstallStatus(
+  payload: LocalRuntimeProfileResolvePayload,
+): Promise<LocalRuntimeProfileInstallStatus> {
+  const resolved = await resolveLocalRuntimeProfile(payload);
+  const models = await listLocalRuntimeModels();
+  const services = await listLocalRuntimeServices();
+  const nodes = await listLocalRuntimeNodesCatalog();
+  const artifacts = await listLocalRuntimeArtifacts();
   const warnings = [...resolved.warnings];
   const missingArtifacts = resolved.artifactEntries
     .filter((entry) => entry.required !== false && !artifacts.some((artifact) => artifactIdentityMatches(entry, artifact)))
@@ -370,127 +370,127 @@ export async function getLocalAiRuntimeProfileInstallStatus(
   };
 }
 
-export async function listLocalAiRuntimeServices(): Promise<LocalAiServiceDescriptor[]> {
-  const services = await invokeLocalAiCommand<unknown[]>('runtime_local_services_list');
+export async function listLocalRuntimeServices(): Promise<LocalRuntimeServiceDescriptor[]> {
+  const services = await invokeLocalRuntimeCommand<unknown[]>('runtime_local_services_list');
   return (Array.isArray(services) ? services : []).map((item) => parseServiceDescriptor(item));
 }
 
-export async function installLocalAiRuntimeService(
-  payload: LocalAiServicesInstallPayload,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiServiceDescriptor> {
+export async function installLocalRuntimeService(
+  payload: LocalRuntimeServicesInstallPayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeServiceDescriptor> {
   assertLifecycleWriteAllowed('local_runtime_services_install', options?.caller);
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_services_install', { payload });
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_services_install', { payload });
   return parseServiceDescriptor(result);
 }
 
-export async function startLocalAiRuntimeService(
+export async function startLocalRuntimeService(
   serviceId: string,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiServiceDescriptor> {
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeServiceDescriptor> {
   assertLifecycleWriteAllowed('local_runtime_services_start', options?.caller);
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_services_start', {
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_services_start', {
     payload: { serviceId },
   });
   return parseServiceDescriptor(result);
 }
 
-export async function stopLocalAiRuntimeService(
+export async function stopLocalRuntimeService(
   serviceId: string,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiServiceDescriptor> {
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeServiceDescriptor> {
   assertLifecycleWriteAllowed('local_runtime_services_stop', options?.caller);
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_services_stop', {
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_services_stop', {
     payload: { serviceId },
   });
   return parseServiceDescriptor(result);
 }
 
-export async function healthLocalAiRuntimeServices(serviceId?: string): Promise<LocalAiServiceDescriptor[]> {
-  const services = await invokeLocalAiCommand<unknown[]>('runtime_local_services_health', {
+export async function healthLocalRuntimeServices(serviceId?: string): Promise<LocalRuntimeServiceDescriptor[]> {
+  const services = await invokeLocalRuntimeCommand<unknown[]>('runtime_local_services_health', {
     payload: serviceId ? { serviceId } : undefined,
   });
   return (Array.isArray(services) ? services : []).map((item) => parseServiceDescriptor(item));
 }
 
-export async function removeLocalAiRuntimeService(
+export async function removeLocalRuntimeService(
   serviceId: string,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiServiceDescriptor> {
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeServiceDescriptor> {
   assertLifecycleWriteAllowed('local_runtime_services_remove', options?.caller);
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_services_remove', {
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_services_remove', {
     payload: { serviceId },
   });
   return parseServiceDescriptor(result);
 }
 
-export async function listLocalAiRuntimeNodesCatalog(
-  payload?: LocalAiNodesCatalogListPayload,
-): Promise<LocalAiNodeDescriptor[]> {
-  const nodes = await invokeLocalAiCommand<unknown[]>('runtime_local_nodes_catalog_list', {
+export async function listLocalRuntimeNodesCatalog(
+  payload?: LocalRuntimeNodesCatalogListPayload,
+): Promise<LocalRuntimeNodeDescriptor[]> {
+  const nodes = await invokeLocalRuntimeCommand<unknown[]>('runtime_local_nodes_catalog_list', {
     payload: payload || undefined,
   });
   return (Array.isArray(nodes) ? nodes : []).map((item) => parseNodeDescriptor(item));
 }
 
-export async function listLocalAiRuntimeAudits(query?: LocalAiAuditQuery): Promise<LocalAiAuditEvent[]> {
-  const events = await invokeLocalAiCommand<unknown[]>('runtime_local_audits_list', {
+export async function listLocalRuntimeAudits(query?: LocalRuntimeAuditQuery): Promise<LocalRuntimeAuditEvent[]> {
+  const events = await invokeLocalRuntimeCommand<unknown[]>('runtime_local_audits_list', {
     payload: query || undefined,
   });
   return (Array.isArray(events) ? events : []).map((item) => parseAuditEvent(item));
 }
 
-export async function pickLocalAiRuntimeManifestPath(): Promise<string | null> {
+export async function pickLocalRuntimeManifestPath(): Promise<string | null> {
   if (!hasTauriInvoke()) return null;
   const result = await tauriInvoke<string | null>('runtime_local_pick_manifest_path', {});
   return result || null;
 }
 
-export async function pickLocalAiRuntimeArtifactManifestPath(): Promise<string | null> {
+export async function pickLocalRuntimeArtifactManifestPath(): Promise<string | null> {
   if (!hasTauriInvoke()) return null;
   const result = await tauriInvoke<string | null>('runtime_local_pick_artifact_manifest_path', {});
   return result || null;
 }
 
-export async function pickLocalAiRuntimeModelFile(): Promise<string | null> {
+export async function pickLocalRuntimeModelFile(): Promise<string | null> {
   if (!hasTauriInvoke()) return null;
   const result = await tauriInvoke<string | null>('runtime_local_pick_model_file', {});
   return result || null;
 }
 
-export async function importLocalAiRuntimeModelFile(
-  payload: LocalAiImportFilePayload,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiInstallAcceptedResponse> {
+export async function importLocalRuntimeModelFile(
+  payload: LocalRuntimeImportFilePayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeInstallAcceptedResponse> {
   assertLifecycleWriteAllowed('local_runtime_models_import_file', options?.caller);
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_models_import_file', { payload });
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_models_import_file', { payload });
   return parseInstallAcceptedResponse(result);
 }
 
-export async function installLocalAiRuntimeModel(
-  payload: LocalAiInstallPayload,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiInstallAcceptedResponse> {
+export async function installLocalRuntimeModel(
+  payload: LocalRuntimeInstallPayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeInstallAcceptedResponse> {
   assertLifecycleWriteAllowed('local_runtime_models_install', options?.caller);
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_models_install', { payload });
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_models_install', { payload });
   return parseInstallAcceptedResponse(result);
 }
 
-export async function installLocalAiRuntimeVerifiedModel(
-  payload: LocalAiInstallVerifiedPayload,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiInstallAcceptedResponse> {
+export async function installLocalRuntimeVerifiedModel(
+  payload: LocalRuntimeInstallVerifiedPayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeInstallAcceptedResponse> {
   assertLifecycleWriteAllowed('local_runtime_models_install_verified', options?.caller);
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_models_install_verified', { payload });
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_models_install_verified', { payload });
   return parseInstallAcceptedResponse(result);
 }
 
-export async function installLocalAiRuntimeVerifiedArtifact(
-  payload: LocalAiInstallVerifiedArtifactPayload,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiArtifactRecord> {
+export async function installLocalRuntimeVerifiedArtifact(
+  payload: LocalRuntimeInstallVerifiedArtifactPayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeArtifactRecord> {
   assertLifecycleWriteAllowed('local_runtime_artifacts_install_verified', options?.caller);
-  const response = await invokeLocalAiCommand<unknown>('runtime_local_artifacts_install_verified', {
+  const response = await invokeLocalRuntimeCommand<unknown>('runtime_local_artifacts_install_verified', {
     payload: {
       templateId: String(payload.templateId || '').trim(),
     },
@@ -498,77 +498,77 @@ export async function installLocalAiRuntimeVerifiedArtifact(
   return parseArtifactRecord(response);
 }
 
-export async function listLocalAiRuntimeDownloadSessions(): Promise<LocalAiDownloadSessionSummary[]> {
-  const sessions = await invokeLocalAiCommand<unknown[]>('runtime_local_downloads_list');
+export async function listLocalRuntimeDownloadSessions(): Promise<LocalRuntimeDownloadSessionSummary[]> {
+  const sessions = await invokeLocalRuntimeCommand<unknown[]>('runtime_local_downloads_list');
   return (Array.isArray(sessions) ? sessions : []).map((item) => parseDownloadSessionSummary(item));
 }
 
-export async function pauseLocalAiRuntimeDownload(
+export async function pauseLocalRuntimeDownload(
   installSessionId: string,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiDownloadSessionSummary> {
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeDownloadSessionSummary> {
   assertLifecycleWriteAllowed('local_runtime_downloads_pause', options?.caller);
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_downloads_pause', {
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_downloads_pause', {
     payload: { installSessionId },
   });
   return parseDownloadSessionSummary(result);
 }
 
-export async function resumeLocalAiRuntimeDownload(
+export async function resumeLocalRuntimeDownload(
   installSessionId: string,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiDownloadSessionSummary> {
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeDownloadSessionSummary> {
   assertLifecycleWriteAllowed('local_runtime_downloads_resume', options?.caller);
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_downloads_resume', {
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_downloads_resume', {
     payload: { installSessionId },
   });
   return parseDownloadSessionSummary(result);
 }
 
-export async function cancelLocalAiRuntimeDownload(
+export async function cancelLocalRuntimeDownload(
   installSessionId: string,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiDownloadSessionSummary> {
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeDownloadSessionSummary> {
   assertLifecycleWriteAllowed('local_runtime_downloads_cancel', options?.caller);
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_downloads_cancel', {
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_downloads_cancel', {
     payload: { installSessionId },
   });
   return parseDownloadSessionSummary(result);
 }
 
-export async function importLocalAiRuntimeModel(
-  payload: LocalAiImportPayload,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiModelRecord> {
+export async function importLocalRuntimeModel(
+  payload: LocalRuntimeImportPayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeModelRecord> {
   assertLifecycleWriteAllowed('local_runtime_models_import', options?.caller);
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_models_import', { payload });
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_models_import', { payload });
   return parseModelRecord(result);
 }
 
-export async function adoptLocalAiRuntimeModel(
-  payload: LocalAiModelRecord,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiModelRecord> {
+export async function adoptLocalRuntimeModel(
+  payload: LocalRuntimeModelRecord,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeModelRecord> {
   assertLifecycleWriteAllowed('local_runtime_models_adopt', options?.caller);
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_models_adopt', { payload });
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_models_adopt', { payload });
   return parseModelRecord(result);
 }
 
-export async function adoptLocalAiRuntimeArtifact(
-  payload: LocalAiArtifactRecord,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiArtifactRecord> {
+export async function adoptLocalRuntimeArtifact(
+  payload: LocalRuntimeArtifactRecord,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeArtifactRecord> {
   assertLifecycleWriteAllowed('local_runtime_artifacts_adopt', options?.caller);
-  const response = await invokeLocalAiCommand<unknown>('runtime_local_artifacts_adopt', { payload });
+  const response = await invokeLocalRuntimeCommand<unknown>('runtime_local_artifacts_adopt', { payload });
   return parseArtifactRecord(response);
 }
 
-export async function importLocalAiRuntimeArtifact(
-  payload: LocalAiImportArtifactPayload,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiArtifactRecord> {
+export async function importLocalRuntimeArtifact(
+  payload: LocalRuntimeImportArtifactPayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeArtifactRecord> {
   assertLifecycleWriteAllowed('local_runtime_artifacts_import', options?.caller);
-  const response = await invokeLocalAiCommand<unknown>('runtime_local_artifacts_import', {
+  const response = await invokeLocalRuntimeCommand<unknown>('runtime_local_artifacts_import', {
     payload: {
       manifestPath: String(payload.manifestPath || '').trim(),
     },
@@ -576,76 +576,76 @@ export async function importLocalAiRuntimeArtifact(
   return parseArtifactRecord(response);
 }
 
-export async function removeLocalAiRuntimeModel(
+export async function removeLocalRuntimeModel(
   localModelId: string,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiModelRecord> {
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeModelRecord> {
   assertLifecycleWriteAllowed('local_runtime_models_remove', options?.caller);
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_models_remove', {
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_models_remove', {
     payload: { localModelId },
   });
   return parseModelRecord(result);
 }
 
-export async function removeLocalAiRuntimeArtifact(
+export async function removeLocalRuntimeArtifact(
   localArtifactId: string,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiArtifactRecord> {
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeArtifactRecord> {
   assertLifecycleWriteAllowed('local_runtime_artifacts_remove', options?.caller);
-  const response = await invokeLocalAiCommand<unknown>('runtime_local_artifacts_remove', {
+  const response = await invokeLocalRuntimeCommand<unknown>('runtime_local_artifacts_remove', {
     payload: { localArtifactId: String(localArtifactId || '').trim() },
   });
   return parseArtifactRecord(response);
 }
 
-export async function startLocalAiRuntimeModel(
+export async function startLocalRuntimeModel(
   localModelId: string,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiModelRecord> {
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeModelRecord> {
   assertLifecycleWriteAllowed('local_runtime_models_start', options?.caller);
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_models_start', {
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_models_start', {
     payload: { localModelId },
   });
   return parseModelRecord(result);
 }
 
-export async function stopLocalAiRuntimeModel(
+export async function stopLocalRuntimeModel(
   localModelId: string,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiModelRecord> {
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeModelRecord> {
   assertLifecycleWriteAllowed('local_runtime_models_stop', options?.caller);
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_models_stop', {
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_models_stop', {
     payload: { localModelId },
   });
   return parseModelRecord(result);
 }
 
-export async function healthLocalAiRuntimeModels(localModelId?: string): Promise<LocalAiModelHealth[]> {
-  const response = await invokeLocalAiCommand<{ models?: unknown[] }>('runtime_local_models_health', {
+export async function healthLocalRuntimeModels(localModelId?: string): Promise<LocalRuntimeModelHealth[]> {
+  const response = await invokeLocalRuntimeCommand<{ models?: unknown[] }>('runtime_local_models_health', {
     payload: localModelId ? { localModelId } : undefined,
   });
   const models = Array.isArray(response?.models) ? response.models : [];
   return models.map((item) => parseModelHealth(item));
 }
 
-export async function appendLocalAiRuntimeInferenceAudit(payload: LocalAiInferenceAuditPayload): Promise<void> {
-  await invokeLocalAiCommand<void>('runtime_local_append_inference_audit', { payload });
+export async function appendLocalRuntimeInferenceAudit(payload: LocalRuntimeInferenceAuditPayload): Promise<void> {
+  await invokeLocalRuntimeCommand<void>('runtime_local_append_inference_audit', { payload });
 }
 
-export async function appendLocalAiRuntimeAudit(payload: LocalAiRuntimeAuditPayload): Promise<void> {
-  await invokeLocalAiCommand<void>('runtime_local_append_runtime_audit', { payload });
+export async function appendLocalRuntimeAudit(payload: LocalRuntimeAuditPayload): Promise<void> {
+  await invokeLocalRuntimeCommand<void>('runtime_local_append_runtime_audit', { payload });
 }
 
-export async function revealLocalAiRuntimeModelInFolder(localModelId: string): Promise<void> {
-  await invokeLocalAiCommand<void>('runtime_local_models_reveal_in_folder', {
+export async function revealLocalRuntimeModelInFolder(localModelId: string): Promise<void> {
+  await invokeLocalRuntimeCommand<void>('runtime_local_models_reveal_in_folder', {
     payload: { localModelId },
   });
 }
 
 const LOCAL_AI_DOWNLOAD_PROGRESS_EVENT = 'local-ai://download-progress';
 
-export async function subscribeLocalAiRuntimeDownloadProgress(
-  listener: (event: LocalAiDownloadProgressEvent) => void,
+export async function subscribeLocalRuntimeDownloadProgress(
+  listener: (event: LocalRuntimeDownloadProgressEvent) => void,
 ): Promise<() => void> {
   const listen = readGlobalTauriEventListen();
   if (!listen) {
@@ -664,40 +664,40 @@ export async function subscribeLocalAiRuntimeDownloadProgress(
   return () => {};
 }
 
-export async function scanLocalAiRuntimeOrphans(): Promise<OrphanModelFile[]> {
-  const items = await invokeLocalAiCommand<unknown[]>('runtime_local_models_scan_orphans');
+export async function scanLocalRuntimeOrphans(): Promise<OrphanModelFile[]> {
+  const items = await invokeLocalRuntimeCommand<unknown[]>('runtime_local_models_scan_orphans');
   return (Array.isArray(items) ? items : []).map((item) => parseOrphanModelFile(item));
 }
 
-export async function scanLocalAiRuntimeArtifactOrphans(): Promise<OrphanArtifactFile[]> {
-  const items = await invokeLocalAiCommand<unknown[]>('runtime_local_artifacts_scan_orphans');
+export async function scanLocalRuntimeArtifactOrphans(): Promise<OrphanArtifactFile[]> {
+  const items = await invokeLocalRuntimeCommand<unknown[]>('runtime_local_artifacts_scan_orphans');
   return (Array.isArray(items) ? items : []).map((item) => parseOrphanArtifactFile(item));
 }
 
-export async function scaffoldLocalAiRuntimeOrphan(
-  payload: LocalAiScaffoldOrphanPayload,
-): Promise<LocalAiInstallAcceptedResponse> {
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_models_scaffold_orphan', {
+export async function scaffoldLocalRuntimeOrphan(
+  payload: LocalRuntimeScaffoldOrphanPayload,
+): Promise<LocalRuntimeInstallAcceptedResponse> {
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_models_scaffold_orphan', {
     payload,
   });
   return parseInstallAcceptedResponse(result);
 }
 
-export async function scaffoldLocalAiRuntimeArtifactOrphan(
-  payload: LocalAiScaffoldArtifactPayload,
-  options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiScaffoldArtifactResult> {
+export async function scaffoldLocalRuntimeArtifactOrphan(
+  payload: LocalRuntimeScaffoldArtifactPayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeScaffoldArtifactResult> {
   assertLifecycleWriteAllowed('local_runtime_artifacts_scaffold_orphan', options?.caller);
-  const result = await invokeLocalAiCommand<unknown>('runtime_local_artifacts_scaffold_orphan', {
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_artifacts_scaffold_orphan', {
     payload,
   });
   return parseScaffoldArtifactResult(result);
 }
 
-export async function fetchLocalAiRuntimeSnapshot(localModelId?: string): Promise<LocalAiRuntimeSnapshot> {
+export async function fetchLocalRuntimeSnapshot(localModelId?: string): Promise<LocalRuntimeSnapshot> {
   const [models, health] = await Promise.all([
-    listLocalAiRuntimeModels(),
-    healthLocalAiRuntimeModels(localModelId),
+    listLocalRuntimeModels(),
+    healthLocalRuntimeModels(localModelId),
   ]);
   return {
     models,

@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { normalizePageIdV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types';
-import { createDefaultStateV11, RUNTIME_CONFIG_STORAGE_KEY_V11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-defaults';
+import { normalizeLocalModelV11, normalizePageIdV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types';
+import {
+  createDefaultStateV11,
+  RUNTIME_CONFIG_STORAGE_KEY_V11,
+  RUNTIME_CONFIG_STORAGE_KEY_V12,
+} from '../src/shell/renderer/features/runtime-config/runtime-config-storage-defaults';
 import { normalizeStoredStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-normalize';
 import { persistRuntimeConfigStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-persist';
 import { RUNTIME_PAGE_META } from '../src/shell/renderer/features/runtime-config/runtime-config-meta-v11';
@@ -41,7 +45,7 @@ test('createDefaultStateV11: activePage defaults to "overview"', () => {
   });
 
   assert.equal(state.activePage, 'overview');
-  assert.equal(state.version, 11);
+  assert.equal(state.version, 12);
 });
 
 test('createDefaultStateV11: state shape keeps current navigation field only', () => {
@@ -54,9 +58,19 @@ test('createDefaultStateV11: state shape keeps current navigation field only', (
 // RUNTIME_PAGE_META
 // ---------------------------------------------------------------------------
 
-test('RUNTIME_PAGE_META covers all 6 pages', () => {
-  const expectedPages: Array<'overview' | 'local' | 'cloud' | 'catalog' | 'runtime' | 'mods'> = [
-    'overview', 'local', 'cloud', 'catalog', 'runtime', 'mods',
+test('RUNTIME_PAGE_META covers all current pages', () => {
+  const expectedPages: Array<
+    'overview' | 'local' | 'cloud' | 'catalog' | 'runtime' | 'mods' | 'data-management' | 'performance' | 'mod-developer'
+  > = [
+    'overview',
+    'local',
+    'cloud',
+    'catalog',
+    'runtime',
+    'mods',
+    'data-management',
+    'performance',
+    'mod-developer',
   ];
 
   for (const page of expectedPages) {
@@ -65,7 +79,7 @@ test('RUNTIME_PAGE_META covers all 6 pages', () => {
     assert.ok(RUNTIME_PAGE_META[page].description, `RUNTIME_PAGE_META["${page}"].description must be non-empty`);
   }
 
-  assert.equal(Object.keys(RUNTIME_PAGE_META).length, 6, 'RUNTIME_PAGE_META must have exactly 6 entries');
+  assert.equal(Object.keys(RUNTIME_PAGE_META).length, 9, 'RUNTIME_PAGE_META must have exactly 9 entries');
 });
 
 test('normalizeStoredStateV11: new activePage field takes precedence', () => {
@@ -91,6 +105,60 @@ test('normalizeStoredStateV11: new activePage field takes precedence', () => {
 
   const result = normalizeStoredStateV11(seed, stored as never);
   assert.equal(result.activePage, 'cloud');
+});
+
+test('normalizeStoredStateV11: accepts v12 snapshots and preserves local provider hints', () => {
+  const seed = { localProviderEndpoint: 'http://127.0.0.1:1234/v1' };
+
+  const stored = {
+    version: 12 as const,
+    initializedByV11: true,
+    activePage: 'runtime',
+    diagnosticsCollapsed: false,
+    uiMode: 'advanced',
+    selectedSource: 'local',
+    activeCapability: 'image',
+    local: {
+      endpoint: 'http://127.0.0.1:8321/v1',
+      models: [{
+        localModelId: 'local/flux-default',
+        engine: 'nimi_media',
+        model: 'flux/default',
+        endpoint: 'http://127.0.0.1:8321/v1',
+        capabilities: ['image'],
+        status: 'installed',
+      }],
+      nodeMatrix: [{
+        nodeId: 'image.generate.nimi_media',
+        capability: 'image',
+        serviceId: 'nimi-media-openai-gateway',
+        provider: 'nimi_media',
+        adapter: 'nimi_media_native_adapter',
+        available: false,
+        reasonCode: 'LOCAL_PROVIDER_ATTACHED_ONLY',
+        providerHints: {
+          nimiMedia: {
+            preferredAdapter: 'nimi_media_native_adapter',
+            driver: 'flux',
+            family: 'diffusers',
+          },
+          extra: {
+            runtime_support_class: 'attached_only',
+          },
+        },
+      }],
+      status: 'unsupported',
+      lastCheckedAt: null,
+      lastDetail: 'attached endpoint required',
+    },
+  };
+
+  const result = normalizeStoredStateV11(seed, stored as never);
+  assert.equal(result.version, 12);
+  assert.equal(result.local.models[0]?.engine, 'nimi_media');
+  assert.equal(result.local.nodeMatrix[0]?.provider, 'nimi_media');
+  assert.equal(result.local.nodeMatrix[0]?.providerHints?.nimiMedia?.driver, 'flux');
+  assert.equal(result.local.nodeMatrix[0]?.providerHints?.extra?.runtime_support_class, 'attached_only');
 });
 
 test('normalizeStoredStateV11: connectors always empty (bridge is source of truth)', () => {
@@ -140,10 +208,12 @@ test('persistRuntimeConfigStateV11: persists activePage to localStorage', () => 
 
     persistRuntimeConfigStateV11(state);
 
-    const raw = store.get(RUNTIME_CONFIG_STORAGE_KEY_V11);
+    const raw = store.get(RUNTIME_CONFIG_STORAGE_KEY_V12);
     assert.ok(raw, 'localStorage should contain persisted state');
 
     const parsed = JSON.parse(raw);
+    assert.equal(store.has(RUNTIME_CONFIG_STORAGE_KEY_V11), false, 'legacy V11 storage key should not be written');
+    assert.equal(parsed.version, 12, 'persisted snapshot should be upgraded to V12');
     assert.equal(parsed.activePage, 'mods', 'activePage should be persisted');
   } finally {
     delete (globalThis as Record<string, unknown>).localStorage;
@@ -174,7 +244,7 @@ test('state round-trip: persist activePage then normalize back correctly', () =>
 
     persistRuntimeConfigStateV11(original);
 
-    const raw = store.get(RUNTIME_CONFIG_STORAGE_KEY_V11);
+    const raw = store.get(RUNTIME_CONFIG_STORAGE_KEY_V12);
     assert.ok(raw);
 
     const parsed = JSON.parse(raw);
@@ -187,4 +257,33 @@ test('state round-trip: persist activePage then normalize back correctly', () =>
   } finally {
     delete (globalThis as Record<string, unknown>).localStorage;
   }
+});
+
+test('normalizeLocalModelV11: image and video models default to nimi_media', () => {
+  const image = normalizeLocalModelV11({
+    localModelId: 'local/flux-default',
+    model: 'flux/default',
+    capabilities: ['image'],
+  });
+  const video = normalizeLocalModelV11({
+    localModelId: 'local/wan-default',
+    model: 'wan/default',
+    capabilities: ['video'],
+  });
+
+  assert.equal(image.engine, 'nimi_media');
+  assert.equal(image.endpoint, 'http://127.0.0.1:8321/v1');
+  assert.equal(video.engine, 'nimi_media');
+  assert.equal(video.endpoint, 'http://127.0.0.1:8321/v1');
+});
+
+test('normalizeLocalModelV11: embedding models default to nexa', () => {
+  const embedding = normalizeLocalModelV11({
+    localModelId: 'local/embed-default',
+    model: 'nexa/embed',
+    capabilities: ['embedding'],
+  });
+
+  assert.equal(embedding.engine, 'nexa');
+  assert.equal(embedding.endpoint, 'http://127.0.0.1:18181/v1');
 });

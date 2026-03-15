@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { RuntimeLocalManifestSummary } from '@renderer/bridge';
-import { normalizeLocalAiProfilesDeclaration } from '@runtime/local-ai-runtime';
+import { normalizeLocalRuntimeProfilesDeclaration } from '@runtime/local-runtime';
 import {
   CAPABILITIES_V11,
   VENDOR_ORDER_V11,
@@ -37,7 +37,7 @@ export type RuntimeConfigPanelDerivedModel = {
     modId: string;
     modName: string;
     consumeCapabilities: CapabilityV11[];
-    profiles: ReturnType<typeof normalizeLocalAiProfilesDeclaration>;
+    profiles: ReturnType<typeof normalizeLocalRuntimeProfilesDeclaration>;
   }>;
   runtimeStatus: ProviderStatusV11 | null;
 };
@@ -85,14 +85,14 @@ export function useRuntimeConfigPanelDerived(input: {
       modId: string;
       modName: string;
       consumeCapabilities: CapabilityV11[];
-      profiles: ReturnType<typeof normalizeLocalAiProfilesDeclaration>;
+      profiles: ReturnType<typeof normalizeLocalRuntimeProfilesDeclaration>;
     }> = [];
     for (const summary of input.localManifestSummaries) {
       const modId = String(summary.id || '').trim();
       if (!modId || !input.registeredRuntimeModIds.includes(modId)) continue;
       const manifest = asRecord(summary.manifest);
       const ai = asRecord(manifest.ai);
-      const profiles = normalizeLocalAiProfilesDeclaration(ai.profiles);
+      const profiles = normalizeLocalRuntimeProfilesDeclaration(ai.profiles);
       if (profiles.length <= 0) continue;
       const consumeCapabilities = Array.isArray(ai.consume)
         ? Array.from(new Set(

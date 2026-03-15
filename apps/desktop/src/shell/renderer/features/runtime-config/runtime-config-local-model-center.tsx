@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  type LocalAiProfileResolutionPlan,
-} from '@runtime/local-ai-runtime';
+  type LocalRuntimeProfileResolutionPlan,
+} from '@runtime/local-runtime';
 import {
   type LocalModelCenterProps,
   normalizeSelectedProfileCapability,
@@ -16,7 +16,7 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
   const [internalSelectedProfileModId, setInternalSelectedProfileModId] = useState('');
   const [selectedProfileId, setSelectedProfileId] = useState('');
   const [selectedProfileCapability, setSelectedProfileCapability] = useState('');
-  const [profilePlanPreview, setProfilePlanPreview] = useState<LocalAiProfileResolutionPlan | null>(null);
+  const [profilePlanPreview, setProfilePlanPreview] = useState<LocalRuntimeProfileResolutionPlan | null>(null);
   const [loadingProfilePlan, setLoadingProfilePlan] = useState(false);
 
   const displayMode: 'runtime' | 'mod' = props.displayMode === 'mod' ? 'mod' : 'runtime';

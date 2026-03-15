@@ -1,5 +1,8 @@
 export function normalizeLocalEngine(value: unknown): string {
-  return String(value || '').trim().toLowerCase() === 'nexa' ? 'nexa' : 'localai';
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'nexa') return 'nexa';
+  if (normalized === 'nimi_media' || normalized === 'nimimedia') return 'nimi_media';
+  return 'localai';
 }
 
 export function normalizeLocalModelRoot(value: unknown): string {
@@ -8,6 +11,7 @@ export function normalizeLocalModelRoot(value: unknown): string {
   const lower = trimmed.toLowerCase();
   if (lower.startsWith('localai/')) return trimmed.slice('localai/'.length).trim();
   if (lower.startsWith('nexa/')) return trimmed.slice('nexa/'.length).trim();
+  if (lower.startsWith('nimi_media/')) return trimmed.slice('nimi_media/'.length).trim();
   if (lower.startsWith('local/')) return trimmed.slice('local/'.length).trim();
   return trimmed;
 }

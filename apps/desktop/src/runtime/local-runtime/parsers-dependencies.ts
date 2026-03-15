@@ -1,15 +1,15 @@
 import type {
-  LocalAiExecutionEntryKind,
-  LocalAiExecutionEntryDescriptor,
-  LocalAiDeviceProfile,
-  LocalAiPreflightDecision,
-  LocalAiExecutionSelectionRationale,
-  LocalAiExecutionStageResult,
-  LocalAiExecutionPlan,
+  LocalRuntimeExecutionEntryKind,
+  LocalRuntimeExecutionEntryDescriptor,
+  LocalRuntimeDeviceProfile,
+  LocalRuntimePreflightDecision,
+  LocalRuntimeExecutionSelectionRationale,
+  LocalRuntimeExecutionStageResult,
+  LocalRuntimeExecutionPlan,
 } from './types';
 import { asRecord, asString } from './parser-primitives';
 
-export function normalizeExecutionEntryKind(value: unknown): LocalAiExecutionEntryKind {
+export function normalizeExecutionEntryKind(value: unknown): LocalRuntimeExecutionEntryKind {
   if (typeof value === 'number') {
     if (value === 2) return 'service';
     if (value === 3) return 'node';
@@ -24,7 +24,7 @@ export function normalizeExecutionEntryKind(value: unknown): LocalAiExecutionEnt
   return 'model';
 }
 
-export function parseExecutionEntryDescriptor(value: unknown): LocalAiExecutionEntryDescriptor {
+export function parseExecutionEntryDescriptor(value: unknown): LocalRuntimeExecutionEntryDescriptor {
   const record = asRecord(value);
   const warnings = Array.isArray(record.warnings)
     ? record.warnings.map((item) => asString(item)).filter(Boolean)
@@ -46,7 +46,7 @@ export function parseExecutionEntryDescriptor(value: unknown): LocalAiExecutionE
   };
 }
 
-export function parseDeviceProfile(value: unknown): LocalAiDeviceProfile {
+export function parseDeviceProfile(value: unknown): LocalRuntimeDeviceProfile {
   const record = asRecord(value);
   const gpu = asRecord(record.gpu);
   const python = asRecord(record.python);
@@ -84,7 +84,7 @@ export function parseDeviceProfile(value: unknown): LocalAiDeviceProfile {
   };
 }
 
-export function parsePreflightDecision(value: unknown): LocalAiPreflightDecision {
+export function parsePreflightDecision(value: unknown): LocalRuntimePreflightDecision {
   const record = asRecord(value);
   return {
     entryId: asString(record.entryId) || undefined,
@@ -96,7 +96,7 @@ export function parsePreflightDecision(value: unknown): LocalAiPreflightDecision
   };
 }
 
-export function parseExecutionSelectionRationale(value: unknown): LocalAiExecutionSelectionRationale {
+export function parseExecutionSelectionRationale(value: unknown): LocalRuntimeExecutionSelectionRationale {
   const record = asRecord(value);
   return {
     entryId: asString(record.entryId),
@@ -106,7 +106,7 @@ export function parseExecutionSelectionRationale(value: unknown): LocalAiExecuti
   };
 }
 
-export function parseExecutionStageResult(value: unknown): LocalAiExecutionStageResult {
+export function parseExecutionStageResult(value: unknown): LocalRuntimeExecutionStageResult {
   const record = asRecord(value);
   return {
     stage: asString(record.stage),
@@ -116,7 +116,7 @@ export function parseExecutionStageResult(value: unknown): LocalAiExecutionStage
   };
 }
 
-export function parseExecutionPlan(value: unknown): LocalAiExecutionPlan {
+export function parseExecutionPlan(value: unknown): LocalRuntimeExecutionPlan {
   const record = asRecord(value);
   const entries = Array.isArray(record.entries)
     ? record.entries.map((item) => parseExecutionEntryDescriptor(item))

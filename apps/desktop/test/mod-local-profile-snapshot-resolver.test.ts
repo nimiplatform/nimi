@@ -2,16 +2,16 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { useAppStore } from '../src/shell/renderer/app-shell/providers/app-store';
-import { localAiRuntime } from '../src/runtime/local-ai-runtime';
+import { localRuntime } from '../src/runtime/local-runtime';
 import { createModLocalProfileSnapshotResolver } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities-profiles.js';
 
 test('profile snapshot resolver maps canonical capability tokens for mod-facing output', async () => {
   const originalGetState = useAppStore.getState;
-  const originalResolveProfile = localAiRuntime.resolveProfile;
-  const originalList = localAiRuntime.list;
-  const originalListArtifacts = localAiRuntime.listArtifacts;
-  const originalListServices = localAiRuntime.listServices;
-  const originalListNodesCatalog = localAiRuntime.listNodesCatalog;
+  const originalResolveProfile = localRuntime.resolveProfile;
+  const originalList = localRuntime.list;
+  const originalListArtifacts = localRuntime.listArtifacts;
+  const originalListServices = localRuntime.listServices;
+  const originalListNodesCatalog = localRuntime.listNodesCatalog;
 
   const resolveProfileCalls: Array<Record<string, unknown>> = [];
   const listNodesCatalogCalls: Array<Record<string, unknown>> = [];
@@ -39,7 +39,7 @@ test('profile snapshot resolver maps canonical capability tokens for mod-facing 
     }],
   })) as typeof useAppStore.getState;
 
-  localAiRuntime.resolveProfile = (async (input: Record<string, unknown>) => {
+  localRuntime.resolveProfile = (async (input: Record<string, unknown>) => {
     resolveProfileCalls.push(input);
     return {
       planId: 'plan-local-chat',
@@ -79,17 +79,17 @@ test('profile snapshot resolver maps canonical capability tokens for mod-facing 
         }],
       },
     };
-  }) as unknown as typeof localAiRuntime.resolveProfile;
-  localAiRuntime.list = (async () => []) as unknown as typeof localAiRuntime.list;
-  localAiRuntime.listArtifacts = (async () => []) as unknown as typeof localAiRuntime.listArtifacts;
-  localAiRuntime.listServices = (async () => [{
+  }) as unknown as typeof localRuntime.resolveProfile;
+  localRuntime.list = (async () => []) as unknown as typeof localRuntime.list;
+  localRuntime.listArtifacts = (async () => []) as unknown as typeof localRuntime.listArtifacts;
+  localRuntime.listServices = (async () => [{
     serviceId: 'qwen-tts-python',
     status: 'active',
-  }]) as unknown as typeof localAiRuntime.listServices;
-  localAiRuntime.listNodesCatalog = (async (input?: Record<string, unknown>) => {
+  }]) as unknown as typeof localRuntime.listServices;
+  localRuntime.listNodesCatalog = (async (input?: Record<string, unknown>) => {
     listNodesCatalogCalls.push(input || {});
     return [];
-  }) as unknown as typeof localAiRuntime.listNodesCatalog;
+  }) as unknown as typeof localRuntime.listNodesCatalog;
 
   try {
     const resolver = createModLocalProfileSnapshotResolver();
@@ -107,10 +107,10 @@ test('profile snapshot resolver maps canonical capability tokens for mod-facing 
     assert.equal(snapshot.entries[0]?.capability, 'audio.synthesize');
   } finally {
     useAppStore.getState = originalGetState;
-    localAiRuntime.resolveProfile = originalResolveProfile;
-    localAiRuntime.list = originalList;
-    localAiRuntime.listArtifacts = originalListArtifacts;
-    localAiRuntime.listServices = originalListServices;
-    localAiRuntime.listNodesCatalog = originalListNodesCatalog;
+    localRuntime.resolveProfile = originalResolveProfile;
+    localRuntime.list = originalList;
+    localRuntime.listArtifacts = originalListArtifacts;
+    localRuntime.listServices = originalListServices;
+    localRuntime.listNodesCatalog = originalListNodesCatalog;
   }
 });

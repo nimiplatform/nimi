@@ -1,7 +1,7 @@
 import { asNimiError, createNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { localAiRuntime, listGoRuntimeModelsSnapshot } from '@runtime/local-ai-runtime';
+import { localRuntime, listGoRuntimeModelsSnapshot } from '@runtime/local-runtime';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import { type RuntimeCanonicalCapability, type RuntimeRouteBinding, type RuntimeRouteConnectorOption, type RuntimeRouteLocalOption, type RuntimeRouteOptionsSnapshot } from "@nimiplatform/sdk/mod";
 import { normalizeLocalEngine, normalizeLocalModelRoot } from './runtime-bootstrap-utils';
@@ -63,18 +63,31 @@ function normalizeCapabilityToken(value: unknown): RuntimeCanonicalCapability | 
 }
 function inferSource(provider: string): 'local' | 'cloud' {
     const lower = String(provider || '').trim().toLowerCase();
-    if (lower.startsWith('local') || lower === 'localai' || lower === 'nexa') {
+    if (lower.startsWith('local') || lower === 'localai' || lower === 'nexa' || lower === 'nimi_media') {
         return 'local';
     }
     return 'cloud';
 }
-function inferLocalEngine(provider: string): string {
-    return String(provider || '').trim().toLowerCase() === 'nexa' ? 'nexa' : 'localai';
+function inferLocalEngine(provider: string, capability?: RuntimeCanonicalCapability): string {
+    const normalizedProvider = normalizeLocalEngine(provider);
+    if (normalizedProvider === 'nexa' || normalizedProvider === 'nimi_media') {
+        return normalizedProvider;
+    }
+    if (capability === 'image.generate' || capability === 'video.generate') {
+        return 'nimi_media';
+    }
+    if (capability === 'audio.synthesize' || capability === 'audio.transcribe' || capability === 'text.embed') {
+        return 'nexa';
+    }
+    return 'localai';
 }
 function defaultLocalAdapter(provider: string, capability: RuntimeCanonicalCapability): string {
     const normalizedProvider = normalizeLocalEngine(provider);
     if (normalizedProvider === 'nexa') {
         return 'nexa_native_adapter';
+    }
+    if (normalizedProvider === 'nimi_media') {
+        return 'nimi_media_native_adapter';
     }
     if (capability === 'image.generate'
         || capability === 'video.generate'
@@ -198,7 +211,7 @@ async function pollLocalSnapshotWithTimeout(): Promise<{
     let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
     try {
         return await Promise.race([
-            localAiRuntime.pollSnapshot().catch((error) => {
+            localRuntime.pollSnapshot().catch((error) => {
                 throw asNimiError(error, {
                     reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
                     actionHint: 'check_runtime_daemon_health',
@@ -225,12 +238,12 @@ async function pollLocalSnapshotWithTimeout(): Promise<{
 }
 type LocalRouteMetadata = {
     snapshot: Awaited<ReturnType<typeof pollLocalSnapshotWithTimeout>>;
-    nodeCatalog: Awaited<ReturnType<typeof localAiRuntime.listNodesCatalog>>;
+    nodeCatalog: Awaited<ReturnType<typeof localRuntime.listNodesCatalog>>;
     goRuntimeModels: Awaited<ReturnType<typeof listGoRuntimeModelsSnapshot>>;
 };
 type LocalRouteMetadataDeps = {
     pollLocalSnapshotWithTimeout: typeof pollLocalSnapshotWithTimeout;
-    listNodesCatalog: typeof localAiRuntime.listNodesCatalog;
+    listNodesCatalog: typeof localRuntime.listNodesCatalog;
     listGoRuntimeModelsSnapshot: typeof listGoRuntimeModelsSnapshot;
 };
 function rethrowLocalRouteMetadataError(input: {
@@ -261,7 +274,7 @@ export async function loadLocalRouteMetadata(capability: RuntimeCanonicalCapabil
     const localCapability = mapCanonicalCapabilityToLocalCapability(capability);
     const resolvedDeps: LocalRouteMetadataDeps = {
         pollLocalSnapshotWithTimeout,
-        listNodesCatalog: localAiRuntime.listNodesCatalog,
+        listNodesCatalog: localRuntime.listNodesCatalog,
         listGoRuntimeModelsSnapshot,
         ...deps,
     };
@@ -350,8 +363,8 @@ export function buildSelectedBinding(input: {
             connectorId: '',
             model: String(runtimeFields.localProviderModel || '').trim(),
             modelId: normalizeLocalModelRoot(String(runtimeFields.localProviderModel || '').trim()) || undefined,
-            engine: inferLocalEngine(runtimeFields.provider),
-            provider: normalizeLocalEngine(runtimeFields.provider),
+            engine: inferLocalEngine(runtimeFields.provider, input.capability),
+            provider: inferLocalEngine(runtimeFields.provider, input.capability),
         };
         const matchedLocalModel = pickMatchingLocalOption(localModels, preferredBinding);
         if (matchedLocalModel) {

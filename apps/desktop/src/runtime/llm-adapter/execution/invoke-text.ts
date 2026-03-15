@@ -8,7 +8,7 @@ import {
   extractTextFromGenerateOutput,
   getRuntimeClient,
   resolveSourceAndModel,
-  toLocalAiReasonCode,
+  toLocalRuntimeReasonCode,
 } from './runtime-ai-bridge';
 import type { InvokeModLlmInput, InvokeModLlmOutput } from './types';
 import { TEXT_GENERATE_TIMEOUT_MS } from './types';
@@ -187,7 +187,7 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
     const runtimeReasonCode = extractRuntimeReasonCode(normalizedError)
       || normalizedError.reasonCode
       || ReasonCode.RUNTIME_CALL_FAILED;
-    const localReasonCode = toLocalAiReasonCode(normalizedError) || undefined;
+    const localReasonCode = toLocalRuntimeReasonCode(normalizedError) || undefined;
     emitInferenceAudit({
       eventType: 'inference_failed',
       modId: input.modId,

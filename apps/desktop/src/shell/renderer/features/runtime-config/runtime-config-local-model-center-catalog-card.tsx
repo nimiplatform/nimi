@@ -1,13 +1,13 @@
 import type {
   GgufVariantDescriptor,
-  LocalAiArtifactKind,
-  LocalAiArtifactRecord,
-  LocalAiCatalogItemDescriptor,
-  LocalAiVerifiedArtifactDescriptor,
-  LocalAiVerifiedModelDescriptor,
+  LocalRuntimeArtifactKind,
+  LocalRuntimeArtifactRecord,
+  LocalRuntimeCatalogItemDescriptor,
+  LocalRuntimeVerifiedArtifactDescriptor,
+  LocalRuntimeVerifiedModelDescriptor,
   OrphanArtifactFile,
   OrphanModelFile,
-} from '@runtime/local-ai-runtime';
+} from '@runtime/local-runtime';
 import { i18n } from '@renderer/i18n';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import type { LocalModelOptionV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
@@ -40,11 +40,11 @@ type CatalogCardProps = {
   searchQuery: string;
   catalogCapability: 'all' | CapabilityOption;
   filteredInstalledModels: LocalModelOptionV11[];
-  filteredInstalledArtifacts: LocalAiArtifactRecord[];
+  filteredInstalledArtifacts: LocalRuntimeArtifactRecord[];
   loadingCatalog: boolean;
   loadingInstalledArtifacts: boolean;
   loadingVerifiedArtifacts: boolean;
-  artifactKindFilter: 'all' | LocalAiArtifactKind;
+  artifactKindFilter: 'all' | LocalRuntimeArtifactKind;
   artifactBusy: boolean;
   orphanFiles: OrphanModelFile[];
   orphanError: string;
@@ -53,53 +53,53 @@ type CatalogCardProps = {
   scaffoldingOrphan: string | null;
   artifactOrphanFiles: OrphanArtifactFile[];
   artifactOrphanError: string;
-  artifactOrphanKinds: Record<string, LocalAiArtifactKind>;
+  artifactOrphanKinds: Record<string, LocalRuntimeArtifactKind>;
   scaffoldingArtifactOrphan: string | null;
   hasSearchQuery: boolean;
-  verifiedModels: LocalAiVerifiedModelDescriptor[];
-  catalogItems: LocalAiCatalogItemDescriptor[];
+  verifiedModels: LocalRuntimeVerifiedModelDescriptor[];
+  catalogItems: LocalRuntimeCatalogItemDescriptor[];
   catalogDisplayCount: number;
-  relatedArtifactsByModelTemplate: Map<string, LocalAiVerifiedArtifactDescriptor[]>;
-  installedArtifactsById: Map<string, LocalAiArtifactRecord>;
-  variantPickerItem: LocalAiCatalogItemDescriptor | null;
+  relatedArtifactsByModelTemplate: Map<string, LocalRuntimeVerifiedArtifactDescriptor[]>;
+  installedArtifactsById: Map<string, LocalRuntimeArtifactRecord>;
+  variantPickerItem: LocalRuntimeCatalogItemDescriptor | null;
   variantList: GgufVariantDescriptor[];
   variantError: string;
   loadingVariants: boolean;
-  selectedCatalogCapability: (item: LocalAiCatalogItemDescriptor) => CapabilityOption;
-  selectedCatalogEngine: (item: LocalAiCatalogItemDescriptor) => InstallEngineOption;
+  selectedCatalogCapability: (item: LocalRuntimeCatalogItemDescriptor) => CapabilityOption;
+  selectedCatalogEngine: (item: LocalRuntimeCatalogItemDescriptor) => InstallEngineOption;
   isArtifactPending: (templateId: string) => boolean;
   onSearchQueryChange: (value: string) => void;
   onCatalogCapabilityChange: (value: 'all' | CapabilityOption) => void;
   onStartModel: (localModelId: string) => void;
   onStopModel: (localModelId: string) => void;
   onRemoveModel: (localModelId: string) => void;
-  onArtifactKindFilterChange: (value: 'all' | LocalAiArtifactKind) => void;
+  onArtifactKindFilterChange: (value: 'all' | LocalRuntimeArtifactKind) => void;
   onRefreshArtifacts: () => void;
   onRemoveArtifact: (localArtifactId: string) => void;
   onOrphanCapabilityChange: (path: string, capability: CapabilityOption) => void;
   onScaffoldOrphan: (path: string) => void;
-  onArtifactOrphanKindChange: (path: string, kind: LocalAiArtifactKind) => void;
+  onArtifactOrphanKindChange: (path: string, kind: LocalRuntimeArtifactKind) => void;
   onScaffoldArtifactOrphan: (path: string) => void;
-  onInstallMissingArtifacts: (artifacts: LocalAiVerifiedArtifactDescriptor[]) => void;
+  onInstallMissingArtifacts: (artifacts: LocalRuntimeVerifiedArtifactDescriptor[]) => void;
   onInstallVerifiedModel: (templateId: string) => void;
   onInstallArtifact: (templateId: string) => void;
-  onToggleVariantPicker: (item: LocalAiCatalogItemDescriptor) => void;
+  onToggleVariantPicker: (item: LocalRuntimeCatalogItemDescriptor) => void;
   onCloseVariantPicker: () => void;
   onCatalogCapabilityOverrideChange: (itemId: string, capability: CapabilityOption) => void;
   onCatalogEngineOverrideChange: (itemId: string, engine: InstallEngineOption) => void;
-  onInstallCatalogVariant: (item: LocalAiCatalogItemDescriptor, variantFilename: string) => void;
+  onInstallCatalogVariant: (item: LocalRuntimeCatalogItemDescriptor, variantFilename: string) => void;
   onLoadMoreCatalog: () => void;
   installing: boolean;
 };
 
 function VerifiedModelSearchRow(props: {
-  item: LocalAiVerifiedModelDescriptor;
-  relatedArtifacts: LocalAiVerifiedArtifactDescriptor[];
-  installedArtifactsById: Map<string, LocalAiArtifactRecord>;
+  item: LocalRuntimeVerifiedModelDescriptor;
+  relatedArtifacts: LocalRuntimeVerifiedArtifactDescriptor[];
+  installedArtifactsById: Map<string, LocalRuntimeArtifactRecord>;
   artifactBusy: boolean;
   installing: boolean;
   isArtifactPending: (templateId: string) => boolean;
-  onInstallMissingArtifacts: (artifacts: LocalAiVerifiedArtifactDescriptor[]) => void;
+  onInstallMissingArtifacts: (artifacts: LocalRuntimeVerifiedArtifactDescriptor[]) => void;
   onInstallArtifact: (templateId: string) => void;
   onInstallVerifiedModel: (templateId: string) => void;
 }) {
@@ -146,7 +146,7 @@ function VerifiedModelSearchRow(props: {
 }
 
 function CatalogVariantPicker(props: {
-  item: LocalAiCatalogItemDescriptor;
+  item: LocalRuntimeCatalogItemDescriptor;
   variantList: GgufVariantDescriptor[];
   variantError: string;
   loadingVariants: boolean;
@@ -367,7 +367,7 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
           <div className="flex items-center gap-2">
             <RuntimeSelect
               value={props.artifactKindFilter}
-              onChange={(next) => props.onArtifactKindFilterChange((next || 'all') as 'all' | LocalAiArtifactKind)}
+              onChange={(next) => props.onArtifactKindFilterChange((next || 'all') as 'all' | LocalRuntimeArtifactKind)}
               className="w-36"
               options={[
                 {
@@ -486,7 +486,7 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                 <div className="flex items-center gap-2">
                   <RuntimeSelect
                     value={props.artifactOrphanKinds[orphan.path] || 'vae'}
-                    onChange={(value) => props.onArtifactOrphanKindChange(orphan.path, (value || 'vae') as LocalAiArtifactKind)}
+                    onChange={(value) => props.onArtifactOrphanKindChange(orphan.path, (value || 'vae') as LocalRuntimeArtifactKind)}
                     className="w-36"
                     options={ARTIFACT_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatArtifactKindLabel(kind) }))}
                   />

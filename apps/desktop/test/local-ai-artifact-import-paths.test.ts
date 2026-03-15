@@ -15,7 +15,7 @@ const localModelCenterSectionsPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-sections.tsx',
 );
-const runtimeCommandsPath = path.resolve(process.cwd(), 'src/runtime/local-ai-runtime/commands.ts');
+const runtimeCommandsPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands.ts');
 const artifactOrphansCommandPath = path.resolve(
   process.cwd(),
   'src-tauri/src/local_runtime/commands/commands_artifact_orphans.rs',
@@ -32,7 +32,7 @@ type TauriInvokeCall = {
   payload: unknown;
 };
 
-test('pickLocalAiRuntimeArtifactManifestPath uses the dedicated Tauri command', async () => {
+test('pickLocalRuntimeArtifactManifestPath uses the dedicated Tauri command', async () => {
   const calls: TauriInvokeCall[] = [];
   const globalRecord = globalThis as Record<string, unknown>;
   const previousTauri = globalRecord.__TAURI__;
@@ -47,8 +47,8 @@ test('pickLocalAiRuntimeArtifactManifestPath uses the dedicated Tauri command', 
   };
 
   try {
-    const { pickLocalAiRuntimeArtifactManifestPath } = await import('../src/runtime/local-ai-runtime/commands');
-    const manifestPath = await pickLocalAiRuntimeArtifactManifestPath();
+    const { pickLocalRuntimeArtifactManifestPath } = await import('../src/runtime/local-runtime/commands');
+    const manifestPath = await pickLocalRuntimeArtifactManifestPath();
     assert.equal(manifestPath, '/tmp/runtime-models/demo/artifact.manifest.json');
     assert.deepEqual(calls, [{
       command: 'runtime_local_pick_artifact_manifest_path',
@@ -92,7 +92,7 @@ test('local model center keeps model and artifact import entries separated', () 
 test('artifact import command is wired to the dedicated Tauri artifact command', () => {
   assert.match(
     runtimeCommandsSource,
-    /export async function importLocalAiRuntimeArtifact[\s\S]*runtime_local_artifacts_import/,
+    /export async function importLocalRuntimeArtifact[\s\S]*runtime_local_artifacts_import/,
   );
 });
 
@@ -141,16 +141,16 @@ test('artifact runtime commands call dedicated Tauri artifact surfaces', async (
 
   try {
     const {
-      importLocalAiRuntimeArtifact,
-      installLocalAiRuntimeVerifiedArtifact,
-      listLocalAiRuntimeArtifacts,
-      removeLocalAiRuntimeArtifact,
-    } = await import('../src/runtime/local-ai-runtime/commands');
+      importLocalRuntimeArtifact,
+      installLocalRuntimeVerifiedArtifact,
+      listLocalRuntimeArtifacts,
+      removeLocalRuntimeArtifact,
+    } = await import('../src/runtime/local-runtime/commands');
 
-    await listLocalAiRuntimeArtifacts({ kind: 'vae', engine: 'localai' });
-    await installLocalAiRuntimeVerifiedArtifact({ templateId: 'verified.artifact.z_image.vae' }, { caller: 'core' });
-    await importLocalAiRuntimeArtifact({ manifestPath: '/tmp/artifact.manifest.json' }, { caller: 'core' });
-    await removeLocalAiRuntimeArtifact('artifact-1', { caller: 'core' });
+    await listLocalRuntimeArtifacts({ kind: 'vae', engine: 'localai' });
+    await installLocalRuntimeVerifiedArtifact({ templateId: 'verified.artifact.z_image.vae' }, { caller: 'core' });
+    await importLocalRuntimeArtifact({ manifestPath: '/tmp/artifact.manifest.json' }, { caller: 'core' });
+    await removeLocalRuntimeArtifact('artifact-1', { caller: 'core' });
 
     assert.deepEqual(calls, [
       {
@@ -228,8 +228,8 @@ test('profile apply trusts Tauri-installed artifacts and does not re-install the
   };
 
   try {
-    const { applyLocalAiRuntimeProfile } = await import('../src/runtime/local-ai-runtime/commands');
-    const result = await applyLocalAiRuntimeProfile({
+    const { applyLocalRuntimeProfile } = await import('../src/runtime/local-runtime/commands');
+    const result = await applyLocalRuntimeProfile({
       planId: 'plan-image',
       modId: 'mod.image',
       profileId: 'quality-best',

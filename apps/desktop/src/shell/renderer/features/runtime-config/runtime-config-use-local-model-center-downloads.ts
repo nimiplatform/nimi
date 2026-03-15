@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  localAiRuntime,
-  type LocalAiDownloadProgressEvent,
-} from '@runtime/local-ai-runtime';
+  localRuntime,
+  type LocalRuntimeDownloadProgressEvent,
+} from '@runtime/local-runtime';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import {
   PROGRESS_SESSION_LIMIT,
@@ -28,7 +28,7 @@ type DownloadCompleteHandler = (
 type UseLocalModelCenterDownloadsInput = {
   isModMode: boolean;
   onDownloadComplete?: DownloadCompleteHandler;
-  onProgressSettled?: (event: LocalAiDownloadProgressEvent) => void;
+  onProgressSettled?: (event: LocalRuntimeDownloadProgressEvent) => void;
 };
 
 export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloadsInput) {
@@ -48,7 +48,7 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
     let disposed = false;
     let unsubscribe: (() => void) | null = null;
 
-    void localAiRuntime.listDownloads()
+    void localRuntime.listDownloads()
       .then((sessions) => {
         if (disposed) {
           return;
@@ -77,7 +77,7 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
         });
       });
 
-    void localAiRuntime.subscribeDownloadProgress((event) => {
+    void localRuntime.subscribeDownloadProgress((event) => {
       if (disposed) {
         return;
       }
@@ -149,21 +149,21 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
   const onPauseDownload = useCallback((installSessionId: string) => {
     mergeSessionSummary(
       installSessionId,
-      async () => toProgressEventFromSummary(await localAiRuntime.pauseDownload(installSessionId, { caller: 'core' })),
+      async () => toProgressEventFromSummary(await localRuntime.pauseDownload(installSessionId, { caller: 'core' })),
     );
   }, [mergeSessionSummary]);
 
   const onResumeDownload = useCallback((installSessionId: string) => {
     mergeSessionSummary(
       installSessionId,
-      async () => toProgressEventFromSummary(await localAiRuntime.resumeDownload(installSessionId, { caller: 'core' })),
+      async () => toProgressEventFromSummary(await localRuntime.resumeDownload(installSessionId, { caller: 'core' })),
     );
   }, [mergeSessionSummary]);
 
   const onCancelDownload = useCallback((installSessionId: string) => {
     mergeSessionSummary(
       installSessionId,
-      async () => toProgressEventFromSummary(await localAiRuntime.cancelDownload(installSessionId, { caller: 'core' })),
+      async () => toProgressEventFromSummary(await localRuntime.cancelDownload(installSessionId, { caller: 'core' })),
     );
   }, [mergeSessionSummary]);
 

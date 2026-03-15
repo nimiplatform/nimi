@@ -1,16 +1,16 @@
 import {
-  localAiRuntime,
-  normalizeLocalAiProfilesDeclaration,
+  localRuntime,
+  normalizeLocalRuntimeProfilesDeclaration,
   profileSupportsCapability,
-  type LocalAiExecutionEntryDescriptor as LocalAiDependencyDescriptor,
-  type LocalAiExecutionPlan as LocalAiDependencyResolutionPlan,
-  type LocalAiModelRecord,
-  type LocalAiNodeDescriptor,
-  type LocalAiProfileDescriptor,
-  type LocalAiProfileEntryDescriptor,
-  type LocalAiProfileResolutionPlan,
-  type LocalAiServiceDescriptor,
-} from '@runtime/local-ai-runtime';
+  type LocalRuntimeExecutionEntryDescriptor as LocalRuntimeDependencyDescriptor,
+  type LocalRuntimeExecutionPlan as LocalRuntimeDependencyResolutionPlan,
+  type LocalRuntimeModelRecord,
+  type LocalRuntimeNodeDescriptor,
+  type LocalRuntimeProfileDescriptor,
+  type LocalRuntimeProfileEntryDescriptor,
+  type LocalRuntimeProfileResolutionPlan,
+  type LocalRuntimeServiceDescriptor,
+} from '@runtime/local-runtime';
 import type { SpeechSynthesizeOutput } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -21,7 +21,7 @@ function asRecord(value: unknown): Record<string, unknown> {
         ? value as Record<string, unknown>
         : {};
 }
-export function readManifestProfiles(modId: string): LocalAiProfileDescriptor[] {
+export function readManifestProfiles(modId: string): LocalRuntimeProfileDescriptor[] {
     const normalizedModId = String(modId || '').trim();
     if (!normalizedModId)
         return [];
@@ -31,9 +31,9 @@ export function readManifestProfiles(modId: string): LocalAiProfileDescriptor[] 
         return [];
     const manifest = asRecord(summary.manifest);
     const ai = asRecord(manifest.ai);
-    return normalizeLocalAiProfilesDeclaration(ai.profiles);
+    return normalizeLocalRuntimeProfilesDeclaration(ai.profiles);
 }
-function selectProfile(profiles: LocalAiProfileDescriptor[], capability?: RuntimeCanonicalCapability): LocalAiProfileDescriptor | null {
+function selectProfile(profiles: LocalRuntimeProfileDescriptor[], capability?: RuntimeCanonicalCapability): LocalRuntimeProfileDescriptor | null {
     if (profiles.length <= 0) {
         return null;
     }
@@ -166,7 +166,7 @@ export async function cacheSpeechArtifactsForDesktopPlayback(input: {
         mediaCachePut: input.mediaCachePut,
     })));
 }
-function mapCanonicalCapabilityToLocalAi(capability: RuntimeCanonicalCapability | undefined): string | undefined {
+function mapCanonicalCapabilityToLocalRuntime(capability: RuntimeCanonicalCapability | undefined): string | undefined {
     if (!capability)
         return undefined;
     if (capability === 'text.generate')
@@ -183,7 +183,7 @@ function mapCanonicalCapabilityToLocalAi(capability: RuntimeCanonicalCapability 
         return 'stt';
     return undefined;
 }
-function mapLocalAiCapabilityToCanonical(capability: unknown): RuntimeCanonicalCapability | undefined {
+function mapLocalRuntimeCapabilityToCanonical(capability: unknown): RuntimeCanonicalCapability | undefined {
     const normalized = String(capability || '').trim().toLowerCase();
     if (!normalized)
         return undefined;
@@ -201,11 +201,11 @@ function mapLocalAiCapabilityToCanonical(capability: unknown): RuntimeCanonicalC
         return 'audio.transcribe';
     return undefined;
 }
-function toDependencyEntries(dependencies: LocalAiDependencyResolutionPlan['entries']): ModRuntimeLocalProfileSnapshot['entries'] {
-    return dependencies.map((item: LocalAiDependencyDescriptor) => ({
+function toDependencyEntries(dependencies: LocalRuntimeDependencyResolutionPlan['entries']): ModRuntimeLocalProfileSnapshot['entries'] {
+    return dependencies.map((item: LocalRuntimeDependencyDescriptor) => ({
         entryId: item.entryId,
         kind: item.kind,
-        capability: mapLocalAiCapabilityToCanonical(item.capability),
+        capability: mapLocalRuntimeCapabilityToCanonical(item.capability),
         required: item.required,
         selected: item.selected,
         preferred: item.preferred,
@@ -221,14 +221,14 @@ function toDependencyEntries(dependencies: LocalAiDependencyResolutionPlan['entr
         warnings: Array.isArray(item.warnings) ? item.warnings : [],
     }));
 }
-function toDependencyEntry(item: LocalAiDependencyDescriptor, input?: {
+function toDependencyEntry(item: LocalRuntimeDependencyDescriptor, input?: {
     reasonCode?: string;
     warnings?: string[];
 }): ModRuntimeLocalProfileSnapshot['entries'][number] {
     return {
         entryId: item.entryId,
         kind: item.kind,
-        capability: mapLocalAiCapabilityToCanonical(item.capability),
+        capability: mapLocalRuntimeCapabilityToCanonical(item.capability),
         required: item.required,
         selected: item.selected,
         preferred: item.preferred,
@@ -244,11 +244,11 @@ function toDependencyEntry(item: LocalAiDependencyDescriptor, input?: {
         warnings: input?.warnings ?? (Array.isArray(item.warnings) ? item.warnings : []),
     };
 }
-function artifactRepairLabel(entry: LocalAiProfileEntryDescriptor): string {
+function artifactRepairLabel(entry: LocalRuntimeProfileEntryDescriptor): string {
     const artifactId = String(entry.artifactId || '').trim() || entry.entryId;
     return `Install artifact ${artifactId}`;
 }
-function findArtifactForEntry(entry: LocalAiProfileEntryDescriptor, artifacts: Awaited<ReturnType<typeof localAiRuntime.listArtifacts>>): Awaited<ReturnType<typeof localAiRuntime.listArtifacts>>[number] | null {
+function findArtifactForEntry(entry: LocalRuntimeProfileEntryDescriptor, artifacts: Awaited<ReturnType<typeof localRuntime.listArtifacts>>): Awaited<ReturnType<typeof localRuntime.listArtifacts>>[number] | null {
     return artifacts.find((artifact) => {
         const artifactId = String(entry.artifactId || '').trim();
         const kind = String(entry.artifactKind || '').trim();
@@ -266,8 +266,8 @@ function findArtifactForEntry(entry: LocalAiProfileEntryDescriptor, artifacts: A
     }) || null;
 }
 function assessArtifactRuntimeState(input: {
-    entry: LocalAiProfileEntryDescriptor;
-    artifacts: Awaited<ReturnType<typeof localAiRuntime.listArtifacts>>;
+    entry: LocalRuntimeProfileEntryDescriptor;
+    artifacts: Awaited<ReturnType<typeof localRuntime.listArtifacts>>;
 }): DependencyRuntimeAssessment {
     const warnings = [];
     const artifact = findArtifactForEntry(input.entry, input.artifacts);
@@ -283,7 +283,7 @@ function assessArtifactRuntimeState(input: {
             label: artifactRepairLabel(input.entry),
             reasonCode,
             entryId: input.entry.entryId,
-            capability: mapLocalAiCapabilityToCanonical(input.entry.capability),
+            capability: mapLocalRuntimeCapabilityToCanonical(input.entry.capability),
         });
     }
     else if (artifact.status === 'unhealthy') {
@@ -295,7 +295,7 @@ function assessArtifactRuntimeState(input: {
         entry: {
             entryId: input.entry.entryId,
             kind: 'artifact',
-            capability: mapLocalAiCapabilityToCanonical(input.entry.capability),
+            capability: mapLocalRuntimeCapabilityToCanonical(input.entry.capability),
             required: input.entry.required !== false,
             selected: true,
             preferred: input.entry.preferred === true,
@@ -322,7 +322,7 @@ type DependencyRuntimeAssessment = {
 };
 function buildDependencyRepairAction(input: {
     actionId: string;
-    dependency: LocalAiDependencyDescriptor;
+    dependency: LocalRuntimeDependencyDescriptor;
     reasonCode: string;
     label: string;
 }): ModRuntimeLocalProfileSnapshot['repairActions'][number] {
@@ -331,10 +331,10 @@ function buildDependencyRepairAction(input: {
         label: input.label,
         reasonCode: input.reasonCode,
         entryId: input.dependency.entryId,
-        capability: mapLocalAiCapabilityToCanonical(input.dependency.capability),
+        capability: mapLocalRuntimeCapabilityToCanonical(input.dependency.capability),
     };
 }
-function dependencyRepairLabel(dep: LocalAiDependencyDescriptor): string {
+function dependencyRepairLabel(dep: LocalRuntimeDependencyDescriptor): string {
     if (dep.kind === 'model') {
         const modelId = String(dep.modelId || '').trim() || dep.entryId;
         return `Install model ${modelId}`;
@@ -349,7 +349,7 @@ function dependencyRepairLabel(dep: LocalAiDependencyDescriptor): string {
     }
     return `Install runtime entry ${dep.entryId}`;
 }
-function findModelForDependency(dependency: LocalAiDependencyDescriptor, models: LocalAiModelRecord[]): LocalAiModelRecord | null {
+function findModelForDependency(dependency: LocalRuntimeDependencyDescriptor, models: LocalRuntimeModelRecord[]): LocalRuntimeModelRecord | null {
     const targetModelId = normalizeIdentifier(dependency.modelId);
     const targetEngine = normalizeIdentifier(dependency.engine);
     return models.find((model) => {
@@ -360,13 +360,13 @@ function findModelForDependency(dependency: LocalAiDependencyDescriptor, models:
         return normalizeIdentifier(model.engine) === targetEngine;
     }) || null;
 }
-function findServiceForDependency(dependency: LocalAiDependencyDescriptor, services: LocalAiServiceDescriptor[]): LocalAiServiceDescriptor | null {
+function findServiceForDependency(dependency: LocalRuntimeDependencyDescriptor, services: LocalRuntimeServiceDescriptor[]): LocalRuntimeServiceDescriptor | null {
     const targetServiceId = normalizeIdentifier(dependency.serviceId);
     if (!targetServiceId)
         return null;
     return services.find((service) => normalizeIdentifier(service.serviceId) === targetServiceId) || null;
 }
-function findNodeForDependency(dependency: LocalAiDependencyDescriptor, nodes: LocalAiNodeDescriptor[]): LocalAiNodeDescriptor | null {
+function findNodeForDependency(dependency: LocalRuntimeDependencyDescriptor, nodes: LocalRuntimeNodeDescriptor[]): LocalRuntimeNodeDescriptor | null {
     const targetNodeId = normalizeIdentifier(dependency.nodeId);
     if (!targetNodeId)
         return null;
@@ -379,7 +379,7 @@ function findNodeForDependency(dependency: LocalAiDependencyDescriptor, nodes: L
         return true;
     }) || null;
 }
-function selectedDependencyInstallAction(dependency: LocalAiDependencyDescriptor, reasonCode: string): ModRuntimeLocalProfileSnapshot['repairActions'][number] {
+function selectedDependencyInstallAction(dependency: LocalRuntimeDependencyDescriptor, reasonCode: string): ModRuntimeLocalProfileSnapshot['repairActions'][number] {
     return buildDependencyRepairAction({
         actionId: `install:${dependency.entryId}`,
         dependency,
@@ -388,10 +388,10 @@ function selectedDependencyInstallAction(dependency: LocalAiDependencyDescriptor
     });
 }
 function assessDependencyRuntimeState(input: {
-    dependency: LocalAiDependencyDescriptor;
-    models: LocalAiModelRecord[];
-    services: LocalAiServiceDescriptor[];
-    nodes: LocalAiNodeDescriptor[];
+    dependency: LocalRuntimeDependencyDescriptor;
+    models: LocalRuntimeModelRecord[];
+    services: LocalRuntimeServiceDescriptor[];
+    nodes: LocalRuntimeNodeDescriptor[];
 }): DependencyRuntimeAssessment {
     const { dependency, models, services, nodes } = input;
     const warnings = [...(Array.isArray(dependency.warnings) ? dependency.warnings : [])];
@@ -537,13 +537,13 @@ function dedupeRepairActions(actions: ModRuntimeLocalProfileSnapshot['repairActi
     }
     return Array.from(dedupe.values());
 }
-function isDependencyRequiredById(dependencies: LocalAiDependencyResolutionPlan['entries'], entryId: string | undefined): boolean {
+function isDependencyRequiredById(dependencies: LocalRuntimeDependencyResolutionPlan['entries'], entryId: string | undefined): boolean {
     const normalized = normalizeIdentifier(entryId);
     if (!normalized)
         return false;
-    return dependencies.some((item: LocalAiDependencyDescriptor) => normalizeIdentifier(item.entryId) === normalized && item.required);
+    return dependencies.some((item: LocalRuntimeDependencyDescriptor) => normalizeIdentifier(item.entryId) === normalized && item.required);
 }
-function buildRepairActionsFromPlan(plan: LocalAiDependencyResolutionPlan): ModRuntimeLocalProfileSnapshot['repairActions'] {
+function buildRepairActionsFromPlan(plan: LocalRuntimeDependencyResolutionPlan): ModRuntimeLocalProfileSnapshot['repairActions'] {
     const actions: ModRuntimeLocalProfileSnapshot['repairActions'] = [];
     for (const dep of plan.entries) {
         if (!dep.required || dep.selected)
@@ -553,7 +553,7 @@ function buildRepairActionsFromPlan(plan: LocalAiDependencyResolutionPlan): ModR
             label: dependencyRepairLabel(dep),
             reasonCode: dep.reasonCode || 'LOCAL_AI_DEPENDENCY_NOT_SELECTED',
             entryId: dep.entryId,
-            capability: mapLocalAiCapabilityToCanonical(dep.capability),
+            capability: mapLocalRuntimeCapabilityToCanonical(dep.capability),
         });
     }
     for (const decision of plan.preflightDecisions) {
@@ -583,7 +583,7 @@ export function createModLocalProfileSnapshotResolver(): (input: {
     return async (input) => {
         const modId = String(input.modId || '').trim();
         const capability = input.capability;
-        const localAiCapability = mapCanonicalCapabilityToLocalAi(capability);
+        const localRuntimeCapability = mapCanonicalCapabilityToLocalRuntime(capability);
         const routeSourceHint = input.routeSourceHint;
         if (routeSourceHint === 'cloud' && capability) {
             return {
@@ -646,23 +646,23 @@ export function createModLocalProfileSnapshotResolver(): (input: {
                 updatedAt: new Date().toISOString(),
             };
         }
-        const plan: LocalAiProfileResolutionPlan = await localAiRuntime.resolveProfile({
+        const plan: LocalRuntimeProfileResolutionPlan = await localRuntime.resolveProfile({
             modId,
-            capability: localAiCapability,
+            capability: localRuntimeCapability,
             profile,
         });
-        let models: LocalAiModelRecord[] = [];
-        let services: LocalAiServiceDescriptor[] = [];
-        let nodes: LocalAiNodeDescriptor[] = [];
-        let artifacts: Awaited<ReturnType<typeof localAiRuntime.listArtifacts>> = [];
+        let models: LocalRuntimeModelRecord[] = [];
+        let services: LocalRuntimeServiceDescriptor[] = [];
+        let nodes: LocalRuntimeNodeDescriptor[] = [];
+        let artifacts: Awaited<ReturnType<typeof localRuntime.listArtifacts>> = [];
         const inventoryWarnings: string[] = [];
         try {
             // Keep inventory reads serialized to avoid spiking the runtime bridge with
             // four concurrent IPC calls every time mods refresh dependency status.
-            models = await localAiRuntime.list();
-            services = await localAiRuntime.listServices();
-            nodes = await localAiRuntime.listNodesCatalog(localAiCapability ? { capability: localAiCapability } : undefined);
-            artifacts = await localAiRuntime.listArtifacts();
+            models = await localRuntime.list();
+            services = await localRuntime.listServices();
+            nodes = await localRuntime.listNodesCatalog(localRuntimeCapability ? { capability: localRuntimeCapability } : undefined);
+            artifacts = await localRuntime.listArtifacts();
         }
         catch (error) {
             inventoryWarnings.push(`runtime inventory unavailable: ${error instanceof Error ? error.message : String(error || '')}`);

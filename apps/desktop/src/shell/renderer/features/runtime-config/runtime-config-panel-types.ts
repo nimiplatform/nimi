@@ -5,20 +5,20 @@ import type {
 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { RuntimeBridgeDaemonStatus } from '@renderer/bridge';
 import type {
-  LocalAiArtifactKind,
-  LocalAiCatalogItemDescriptor,
-  LocalAiInstallPayload,
-  LocalAiInstallPlanDescriptor,
-  LocalAiProfileApplyResult,
-  LocalAiProfileDescriptor,
-  LocalAiProfileResolutionPlan,
-} from '@runtime/local-ai-runtime';
+  LocalRuntimeArtifactKind,
+  LocalRuntimeCatalogItemDescriptor,
+  LocalRuntimeInstallPayload,
+  LocalRuntimeInstallPlanDescriptor,
+  LocalRuntimeProfileApplyResult,
+  LocalRuntimeProfileDescriptor,
+  LocalRuntimeProfileResolutionPlan,
+} from '@runtime/local-runtime';
 
 export type RuntimeProfileTargetDescriptor = {
   modId: string;
   modName: string;
   consumeCapabilities: CapabilityV11[];
-  profiles: LocalAiProfileDescriptor[];
+  profiles: LocalRuntimeProfileDescriptor[];
 };
 
 export type RuntimeConfigPanelControllerModel = {
@@ -55,14 +55,14 @@ export type RuntimeConfigPanelControllerModel = {
     modId: string,
     profileId: string,
     capability?: string,
-  ) => Promise<LocalAiProfileResolutionPlan>;
+  ) => Promise<LocalRuntimeProfileResolutionPlan>;
   applyRuntimeProfile: (
     modId: string,
     profileId: string,
     capability?: string,
-  ) => Promise<LocalAiProfileApplyResult>;
+  ) => Promise<LocalRuntimeProfileApplyResult>;
   installCatalogLocalModel: (
-    item: LocalAiCatalogItemDescriptor,
+    item: LocalRuntimeCatalogItemDescriptor,
     options?: {
       entry?: string;
       files?: string[];
@@ -70,12 +70,12 @@ export type RuntimeConfigPanelControllerModel = {
       engine?: string;
     },
   ) => Promise<void>;
-  installLocalModel: (payload: LocalAiInstallPayload) => Promise<void>;
+  installLocalModel: (payload: LocalRuntimeInstallPayload) => Promise<void>;
   installVerifiedLocalModel: (templateId: string) => Promise<void>;
   importLocalModel: () => Promise<void>;
   installVerifiedLocalArtifact: (templateId: string) => Promise<void>;
   importLocalArtifact: () => Promise<void>;
-  scaffoldLocalArtifactOrphan: (path: string, kind: LocalAiArtifactKind) => Promise<void>;
+  scaffoldLocalArtifactOrphan: (path: string, kind: LocalRuntimeArtifactKind) => Promise<void>;
   importLocalModelFile: (capabilities: string[], engine?: string) => Promise<void>;
   startLocalModel: (localModelId: string) => Promise<void>;
   stopLocalModel: (localModelId: string) => Promise<void>;
@@ -94,6 +94,6 @@ export type RuntimeConfigPanelControllerModel = {
     localModelId?: string,
     modelId?: string,
   ) => Promise<void>;
-  retryInstall: (plan: LocalAiInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => void;
-  installSessionMeta: Map<string, { plan: LocalAiInstallPlanDescriptor; installSource: string }>;
+  retryInstall: (plan: LocalRuntimeInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => void;
+  installSessionMeta: Map<string, { plan: LocalRuntimeInstallPlanDescriptor; installSource: string }>;
 };

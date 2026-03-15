@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { reconcileLocalAiRuntimeBootstrapState } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-local-ai.js';
+import { reconcileLocalRuntimeBootstrapState } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-local-ai.js';
 
-test('reconcileLocalAiRuntimeBootstrapState reconciles desktop and go-runtime models on startup', async () => {
+test('reconcileLocalRuntimeBootstrapState reconciles desktop and go-runtime models on startup', async () => {
   const desktopModels = [{
     localModelId: '01JMODEL',
     modelId: 'local-import/z_image_turbo-q4_k',
@@ -22,7 +22,7 @@ test('reconcileLocalAiRuntimeBootstrapState reconciles desktop and go-runtime mo
     updatedAt: '2026-03-08T00:00:00Z',
   }];
   const logs: Array<Record<string, unknown>> = [];
-  const result = await reconcileLocalAiRuntimeBootstrapState({
+  const result = await reconcileLocalRuntimeBootstrapState({
     flowId: 'flow-bootstrap',
     deps: {
       listDesktopModels: async () => desktopModels,
@@ -50,9 +50,9 @@ test('reconcileLocalAiRuntimeBootstrapState reconciles desktop and go-runtime mo
   assert.equal(logs[0]?.message, 'phase:local-reconcile:done');
 });
 
-test('reconcileLocalAiRuntimeBootstrapState degrades gracefully when startup reconcile fails', async () => {
+test('reconcileLocalRuntimeBootstrapState degrades gracefully when startup reconcile fails', async () => {
   const logs: Array<Record<string, unknown>> = [];
-  const result = await reconcileLocalAiRuntimeBootstrapState({
+  const result = await reconcileLocalRuntimeBootstrapState({
     deps: {
       listDesktopModels: async () => [],
       reconcileModels: async () => {

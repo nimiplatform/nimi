@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { startLocalAiRuntimePolling, type LocalAiRuntimeSnapshot } from '@runtime/local-ai-runtime';
+import { startLocalRuntimePolling, type LocalRuntimeSnapshot } from '@runtime/local-runtime';
 import type { Dispatch, SetStateAction } from 'react';
 import type { RuntimeFieldMap, StatusBanner } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
@@ -28,7 +28,7 @@ type RuntimeConfigPanelEffectsInput = {
 
 function mergeLocalSnapshot(
   previous: RuntimeConfigStateV11,
-  snapshot: LocalAiRuntimeSnapshot,
+  snapshot: LocalRuntimeSnapshot,
 ): RuntimeConfigStateV11 {
   const nextModels = snapshot.models
     .filter((item) => item.status !== 'removed')
@@ -94,7 +94,7 @@ export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInp
 
   useEffect(() => {
     if (!input.hydrated) return;
-    const stop = startLocalAiRuntimePolling({
+    const stop = startLocalRuntimePolling({
       intervalMs: LOCAL_SNAPSHOT_POLL_INTERVAL_MS,
       onSnapshot: (snapshot) => {
         input.setState((previous) => {

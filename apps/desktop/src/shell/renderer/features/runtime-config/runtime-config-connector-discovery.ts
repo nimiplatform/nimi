@@ -1,6 +1,6 @@
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { ProviderStatusV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import { localAiRuntime } from '@runtime/local-ai-runtime';
+import { localRuntime } from '@runtime/local-runtime';
 import type { GetRuntimeHealthResponse } from '@nimiplatform/sdk/runtime';
 import { asNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
@@ -52,8 +52,8 @@ export function normalizeRuntimeHealthResult(result: GetRuntimeHealthResponse): 
 
 export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV11) {
   const endpoint = state.local.endpoint || 'http://127.0.0.1:1234/v1';
-  const models = await localAiRuntime.list();
-  const nodes = await localAiRuntime.listNodesCatalog();
+  const models = await localRuntime.list();
+  const nodes = await localRuntime.listNodesCatalog();
   const discovered = models.map((m) => m.modelId);
   const normalizedModels = models.map((m) => ({
     localModelId: m.localModelId || m.modelId,
@@ -68,8 +68,14 @@ export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV
     capability: ((n.capabilities || [])[0] || 'chat') as any,
     serviceId: n.serviceId || '',
     provider: n.provider || 'localai',
-    adapter: (n.adapter || 'openai_compat_adapter') as 'openai_compat_adapter' | 'localai_native_adapter',
+    adapter: (n.adapter || 'openai_compat_adapter') as
+      | 'openai_compat_adapter'
+      | 'localai_native_adapter'
+      | 'nexa_native_adapter'
+      | 'nimi_media_native_adapter',
     available: n.available !== false,
+    providerHints: n.providerHints,
+    reasonCode: n.reasonCode,
   }));
   return { endpoint, discovered, models: normalizedModels, nodeMatrix };
 }

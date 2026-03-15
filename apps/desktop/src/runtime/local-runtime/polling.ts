@@ -1,14 +1,14 @@
-import type { LocalAiRuntimeSnapshot } from './types';
-import { fetchLocalAiRuntimeSnapshot } from './commands';
+import type { LocalRuntimeSnapshot } from './types';
+import { fetchLocalRuntimeSnapshot } from './commands';
 
-export type LocalAiRuntimePollingOptions = {
+export type LocalRuntimePollingOptions = {
   localModelId?: string;
   intervalMs?: number;
-  onSnapshot: (snapshot: LocalAiRuntimeSnapshot) => void;
+  onSnapshot: (snapshot: LocalRuntimeSnapshot) => void;
   onError?: (error: unknown) => void;
 };
 
-export function startLocalAiRuntimePolling(options: LocalAiRuntimePollingOptions): () => void {
+export function startLocalRuntimePolling(options: LocalRuntimePollingOptions): () => void {
   const intervalMs = Number.isFinite(Number(options.intervalMs)) && Number(options.intervalMs) > 0
     ? Number(options.intervalMs)
     : 5000;
@@ -17,7 +17,7 @@ export function startLocalAiRuntimePolling(options: LocalAiRuntimePollingOptions
   const run = async () => {
     if (cancelled) return;
     try {
-      const snapshot = await fetchLocalAiRuntimeSnapshot(options.localModelId);
+      const snapshot = await fetchLocalRuntimeSnapshot(options.localModelId);
       if (!cancelled) {
         options.onSnapshot(snapshot);
       }

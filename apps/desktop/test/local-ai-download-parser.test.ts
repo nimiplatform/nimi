@@ -5,7 +5,7 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   parseDownloadProgressEvent,
   parseDownloadSessionSummary,
-} from '../src/runtime/local-ai-runtime/parsers.js';
+} from '../src/runtime/local-runtime/parsers.js';
 
 test('parseDownloadProgressEvent maps state/reason/retryable', () => {
   const parsed = parseDownloadProgressEvent({

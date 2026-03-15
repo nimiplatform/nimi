@@ -2,14 +2,14 @@ import type { RefObject } from 'react';
 import { i18n } from '@renderer/i18n';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import type {
-  LocalAiArtifactRecord,
-  LocalAiDownloadProgressEvent,
-  LocalAiProfileApplyResult,
-  LocalAiProfileResolutionPlan,
-  LocalAiVerifiedArtifactDescriptor,
-  LocalAiVerifiedModelDescriptor,
-} from '@runtime/local-ai-runtime';
-import { toCanonicalLocalLookupKey } from '@runtime/local-ai-runtime/local-id';
+  LocalRuntimeArtifactRecord,
+  LocalRuntimeDownloadProgressEvent,
+  LocalRuntimeProfileApplyResult,
+  LocalRuntimeProfileResolutionPlan,
+  LocalRuntimeVerifiedArtifactDescriptor,
+  LocalRuntimeVerifiedModelDescriptor,
+} from '@runtime/local-runtime';
+import { toCanonicalLocalLookupKey } from '@runtime/local-runtime/local-id';
 import type {
   RuntimeConfigStateV11,
   RuntimeSetupPageIdV11,
@@ -48,13 +48,13 @@ type ModModeViewProps = {
   profileSelectionLocked: boolean;
   selectedProfileId: string;
   selectedProfileCapability: string;
-  profilePlanPreview: LocalAiProfileResolutionPlan | null;
+  profilePlanPreview: LocalRuntimeProfileResolutionPlan | null;
   runtimeProfileTargets: RuntimeProfileTargetDescriptor[];
   onSetSelectedProfileModId: (modId: string) => void;
   onSetSelectedProfileId: (profileId: string) => void;
   onSetSelectedProfileCapability: (capability: string) => void;
   onResolveProfilePlanPreview: () => void;
-  onApplyProfile: (modId: string, profileId: string, capability?: string) => Promise<LocalAiProfileApplyResult>;
+  onApplyProfile: (modId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileApplyResult>;
   onNavigateToSetup?: (pageId: RuntimeSetupPageIdV11) => void;
 };
 
@@ -294,11 +294,11 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
 
 type ArtifactRequirementBadgesProps = {
   modelTemplateId: string;
-  relatedArtifacts: LocalAiVerifiedArtifactDescriptor[];
-  installedArtifactsById: Map<string, LocalAiArtifactRecord>;
+  relatedArtifacts: LocalRuntimeVerifiedArtifactDescriptor[];
+  installedArtifactsById: Map<string, LocalRuntimeArtifactRecord>;
   artifactBusy: boolean;
   isArtifactPending: (templateId: string) => boolean;
-  onInstallMissingArtifacts: (artifacts: LocalAiVerifiedArtifactDescriptor[]) => void;
+  onInstallMissingArtifacts: (artifacts: LocalRuntimeVerifiedArtifactDescriptor[]) => void;
   onInstallArtifact: (templateId: string) => void;
 };
 
@@ -375,7 +375,7 @@ type VerifiedArtifactsSectionProps = {
   hasSearchQuery: boolean;
   loadingVerifiedArtifacts: boolean;
   artifactBusy: boolean;
-  visibleVerifiedArtifacts: LocalAiVerifiedArtifactDescriptor[];
+  visibleVerifiedArtifacts: LocalRuntimeVerifiedArtifactDescriptor[];
   isArtifactPending: (templateId: string) => boolean;
   onRefresh: () => void;
   onInstallArtifact: (templateId: string) => void;
@@ -460,7 +460,7 @@ export function LocalModelCenterVerifiedArtifactsSection(props: VerifiedArtifact
 }
 
 type ActiveDownloadsSectionProps = {
-  downloads: LocalAiDownloadProgressEvent[];
+  downloads: LocalRuntimeDownloadProgressEvent[];
   onPause: (installSessionId: string) => void;
   onResume: (installSessionId: string) => void;
   onCancel: (installSessionId: string) => void;
@@ -632,14 +632,14 @@ type QuickPicksSectionProps = {
   loadingVerifiedModels: boolean;
   installing: boolean;
   artifactBusy: boolean;
-  verifiedModels: LocalAiVerifiedModelDescriptor[];
-  relatedArtifactsByModelTemplate: Map<string, LocalAiVerifiedArtifactDescriptor[]>;
-  installedArtifactsById: Map<string, LocalAiArtifactRecord>;
+  verifiedModels: LocalRuntimeVerifiedModelDescriptor[];
+  relatedArtifactsByModelTemplate: Map<string, LocalRuntimeVerifiedArtifactDescriptor[]>;
+  installedArtifactsById: Map<string, LocalRuntimeArtifactRecord>;
   isArtifactPending: (templateId: string) => boolean;
   onRefresh: () => void;
   onInstallVerifiedModel: (templateId: string) => void;
   onInstallArtifact: (templateId: string) => void;
-  onInstallMissingArtifacts: (artifacts: LocalAiVerifiedArtifactDescriptor[]) => void;
+  onInstallMissingArtifacts: (artifacts: LocalRuntimeVerifiedArtifactDescriptor[]) => void;
 };
 
 export function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps) {

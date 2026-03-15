@@ -1,8 +1,8 @@
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import {
-    findLocalAiProfileById,
-    localAiRuntime,
-} from '@runtime/local-ai-runtime';
+    findLocalRuntimeProfileById,
+    localRuntime,
+} from '@runtime/local-runtime';
 import type { CheckLlmHealthInput, ExecuteLocalKernelTurnInput, ExecuteLocalKernelTurnResult, ProviderHealth, } from '@runtime/llm-adapter';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -192,7 +192,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                         modId,
                         capabilityKey: 'runtime.local.artifacts.list',
                     });
-                    return localAiRuntime.listArtifacts(payload);
+                    return localRuntime.listArtifacts(payload);
                 },
                 listProfiles: async ({ modId }) => {
                     authorizeRuntimeCapability({
@@ -207,7 +207,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                         capabilityKey: 'runtime.local.profiles.install.request',
                     });
                     const profiles = readManifestProfiles(modId);
-                    const profile = findLocalAiProfileById(profiles, profileId);
+                    const profile = findLocalRuntimeProfileById(profiles, profileId);
                     if (!profile) {
                         return {
                             modId,
@@ -233,12 +233,12 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                             reasonCode: ReasonCode.LOCAL_AI_PROFILE_INSTALL_DECLINED,
                         };
                     }
-                    const plan = await localAiRuntime.resolveProfile({
+                    const plan = await localRuntime.resolveProfile({
                         modId,
                         profile,
                         capability: String(capability || '').trim() || undefined,
                     });
-                    const result = await localAiRuntime.applyProfile(plan, { caller: 'core' });
+                    const result = await localRuntime.applyProfile(plan, { caller: 'core' });
                     return {
                         modId,
                         profileId: profile.id,
@@ -254,7 +254,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                         capabilityKey: 'runtime.local.profiles.list',
                     });
                     const profiles = readManifestProfiles(modId);
-                    const profile = findLocalAiProfileById(profiles, profileId);
+                    const profile = findLocalRuntimeProfileById(profiles, profileId);
                     if (!profile) {
                         return {
                             modId,
@@ -265,7 +265,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                             updatedAt: new Date().toISOString(),
                         };
                     }
-                    return localAiRuntime.getProfileInstallStatus({
+                    return localRuntime.getProfileInstallStatus({
                         modId,
                         profile,
                         capability: String(capability || '').trim() || undefined,

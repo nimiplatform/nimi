@@ -3,6 +3,7 @@ import type { RuntimeFieldMap, StatusBanner } from '@renderer/app-shell/provider
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import {
   RUNTIME_CONFIG_STORAGE_KEY_V11,
+  RUNTIME_CONFIG_STORAGE_KEY_V12,
 } from '@renderer/features/runtime-config/runtime-config-storage-defaults';
 import { loadRuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-storage-persist';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
@@ -24,9 +25,12 @@ export function useRuntimeConfigHydrationEffect(input: HydrationEffectInput) {
   useEffect(() => {
     if (!input.bootstrapReady || input.hydrated) return;
 
-    const hadV11 = (() => {
+    const hadStoredState = (() => {
       try {
-        return Boolean(localStorage.getItem(RUNTIME_CONFIG_STORAGE_KEY_V11));
+        return Boolean(
+          localStorage.getItem(RUNTIME_CONFIG_STORAGE_KEY_V12)
+          || localStorage.getItem(RUNTIME_CONFIG_STORAGE_KEY_V11),
+        );
       } catch {
         return false;
       }
@@ -51,17 +55,17 @@ export function useRuntimeConfigHydrationEffect(input: HydrationEffectInput) {
       const flowId = createRendererFlowId('runtime-config');
       logRendererEvent({
         area: 'renderer-bootstrap',
-        message: 'runtime-config:v11-storage-initialized',
+        message: 'runtime-config:v12-storage-initialized',
         flowId,
         details: {
-          storageKey: RUNTIME_CONFIG_STORAGE_KEY_V11,
-          hadV11,
+          storageKey: RUNTIME_CONFIG_STORAGE_KEY_V12,
+          hadStoredState,
         },
       });
       markRuntimeConfigV11ResetLogged();
     }
 
-    if (!hadV11 && shouldEmitResetLog) {
+    if (!hadStoredState && shouldEmitResetLog) {
       input.setStatusBanner({ kind: 'info', message: '配置结构已升级，请重新确认模型绑定。' });
     }
   }, [

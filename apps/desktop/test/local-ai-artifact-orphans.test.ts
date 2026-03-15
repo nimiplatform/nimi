@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-const runtimeCommandsPath = path.resolve(process.cwd(), 'src/runtime/local-ai-runtime/commands.ts');
-const runtimeIndexPath = path.resolve(process.cwd(), 'src/runtime/local-ai-runtime/index.ts');
+const runtimeCommandsPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands.ts');
+const runtimeIndexPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/index.ts');
 const installActionsPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-panel-controller-install-actions.ts',
@@ -41,20 +41,20 @@ const localModelCenterSectionsSource = readFileSync(localModelCenterSectionsPath
 test('companion orphan runtime commands use dedicated Tauri command names', () => {
   assert.match(runtimeCommandsSource, /runtime_local_artifacts_scan_orphans/);
   assert.match(runtimeCommandsSource, /runtime_local_artifacts_scaffold_orphan/);
-  assert.match(runtimeCommandsSource, /export async function scanLocalAiRuntimeArtifactOrphans/);
-  assert.match(runtimeCommandsSource, /export async function scaffoldLocalAiRuntimeArtifactOrphan/);
+  assert.match(runtimeCommandsSource, /export async function scanLocalRuntimeArtifactOrphans/);
+  assert.match(runtimeCommandsSource, /export async function scaffoldLocalRuntimeArtifactOrphan/);
 });
 
 test('local runtime facade exports dedicated companion orphan methods', () => {
   assert.match(runtimeIndexSource, /scanArtifactOrphans:\s*\(\)\s*=>\s*Promise<OrphanArtifactFile\[]>/);
-  assert.match(runtimeIndexSource, /scaffoldArtifactOrphan:\s*\(\s*payload: LocalAiScaffoldArtifactPayload/);
-  assert.match(runtimeIndexSource, /scanArtifactOrphans:\s*scanLocalAiRuntimeArtifactOrphans/);
-  assert.match(runtimeIndexSource, /scaffoldArtifactOrphan:\s*scaffoldLocalAiRuntimeArtifactOrphan/);
+  assert.match(runtimeIndexSource, /scaffoldArtifactOrphan:\s*\(\s*payload: LocalRuntimeScaffoldArtifactPayload/);
+  assert.match(runtimeIndexSource, /scanArtifactOrphans:\s*scanLocalRuntimeArtifactOrphans/);
+  assert.match(runtimeIndexSource, /scaffoldArtifactOrphan:\s*scaffoldLocalRuntimeArtifactOrphan/);
 });
 
 test('artifact orphan controller scaffolds first, then imports through runtime local artifact import', () => {
   const match = installActionsSource.match(
-    /const scaffoldLocalArtifactOrphan = useCallback\(async \(path: string, kind: LocalAiArtifactKind\) => \{([\s\S]*?)\n\s*\}, \[[\s\S]*?\]\);/,
+    /const scaffoldLocalArtifactOrphan = useCallback\(async \(path: string, kind: LocalRuntimeArtifactKind\) => \{([\s\S]*?)\n\s*\}, \[[\s\S]*?\]\);/,
   );
   assert.ok(match, 'expected scaffoldLocalArtifactOrphan callback in install actions source');
   const body = String(match?.[1] || '');

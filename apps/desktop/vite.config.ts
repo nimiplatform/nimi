@@ -167,7 +167,7 @@ export default defineConfig(({ mode }) => {
               return 'runtime-data-sync';
             }
             if (
-              normalizedId.includes('/apps/desktop/src/runtime/local-ai-runtime/')
+              normalizedId.includes('/apps/desktop/src/runtime/local-runtime/')
               || normalizedId.includes('/apps/desktop/src/shell/renderer/bridge/runtime-bridge/local-ai')
               || normalizedId.includes('/apps/desktop/src/shell/renderer/bridge/runtime-bridge/external-agent')
               || normalizedId.includes('/apps/desktop/src/shell/renderer/bridge/runtime-bridge/')

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LocalModelOptionV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import { localAiRuntime } from '@runtime/local-ai-runtime';
+import { localRuntime } from '@runtime/local-runtime';
 import { StatusBadge } from './runtime-config-primitives';
 import { filterInstalledModels, statusLabel } from './runtime-config-model-center-utils';
 
@@ -335,7 +335,7 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      void localAiRuntime.revealInFolder(model.localModelId);
+                      void localRuntime.revealInFolder(model.localModelId);
                     }}
                     icon={<FolderIcon />}
                   >

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { useAppStore } from '../src/shell/renderer/app-shell/providers/app-store';
-import { localAiRuntime } from '../src/runtime/local-ai-runtime';
+import { localRuntime } from '../src/runtime/local-runtime';
 import { buildRuntimeHostCapabilities } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities.js';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
@@ -35,8 +35,8 @@ function installWindowConfirm(confirm: (message: string) => boolean): () => void
 
 test('requestProfileInstall resolves and applies only after host confirm acceptance', async () => {
   const originalGetState = useAppStore.getState;
-  const originalResolveProfile = localAiRuntime.resolveProfile;
-  const originalApplyProfile = localAiRuntime.applyProfile;
+  const originalResolveProfile = localRuntime.resolveProfile;
+  const originalApplyProfile = localRuntime.applyProfile;
 
   let confirmMessage = '';
   const restoreWindow = installWindowConfirm((message) => {
@@ -64,7 +64,7 @@ test('requestProfileInstall resolves and applies only after host confirm accepta
   let resolved = 0;
   let applied = 0;
   let resolvedCapability = '';
-  localAiRuntime.resolveProfile = (async (input?: Record<string, unknown>) => {
+  localRuntime.resolveProfile = (async (input?: Record<string, unknown>) => {
     resolved += 1;
     resolvedCapability = String(input?.capability || '');
     return {
@@ -87,8 +87,8 @@ test('requestProfileInstall resolves and applies only after host confirm accepta
       artifactEntries: [],
       warnings: [],
     };
-  }) as typeof localAiRuntime.resolveProfile;
-  localAiRuntime.applyProfile = (async () => {
+  }) as typeof localRuntime.resolveProfile;
+  localRuntime.applyProfile = (async () => {
     applied += 1;
     return {
       planId: 'plan-balanced-fast',
@@ -110,7 +110,7 @@ test('requestProfileInstall resolves and applies only after host confirm accepta
       warnings: [],
       reasonCode: ReasonCode.ACTION_EXECUTED,
     };
-  }) as typeof localAiRuntime.applyProfile;
+  }) as typeof localRuntime.applyProfile;
 
   try {
     const host = createHost();
@@ -129,14 +129,14 @@ test('requestProfileInstall resolves and applies only after host confirm accepta
   } finally {
     restoreWindow();
     useAppStore.getState = originalGetState;
-    localAiRuntime.resolveProfile = originalResolveProfile;
-    localAiRuntime.applyProfile = originalApplyProfile;
+    localRuntime.resolveProfile = originalResolveProfile;
+    localRuntime.applyProfile = originalApplyProfile;
   }
 });
 
 test('getProfileInstallStatus forwards capability to local runtime profile status resolver', async () => {
   const originalGetState = useAppStore.getState;
-  const originalGetProfileInstallStatus = localAiRuntime.getProfileInstallStatus;
+  const originalGetProfileInstallStatus = localRuntime.getProfileInstallStatus;
 
   useAppStore.getState = (() => ({
     localManifestSummaries: [{
@@ -156,7 +156,7 @@ test('getProfileInstallStatus forwards capability to local runtime profile statu
   })) as typeof useAppStore.getState;
 
   let observedCapability = '';
-  localAiRuntime.getProfileInstallStatus = (async (input?: Record<string, unknown>) => {
+  localRuntime.getProfileInstallStatus = (async (input?: Record<string, unknown>) => {
     observedCapability = String(input?.capability || '');
     return {
       modId: 'world.nimi.local-image',
@@ -166,7 +166,7 @@ test('getProfileInstallStatus forwards capability to local runtime profile statu
       missingEntries: [],
       updatedAt: new Date(0).toISOString(),
     };
-  }) as typeof localAiRuntime.getProfileInstallStatus;
+  }) as typeof localRuntime.getProfileInstallStatus;
 
   try {
     const host = createHost();
@@ -180,14 +180,14 @@ test('getProfileInstallStatus forwards capability to local runtime profile statu
     assert.equal(observedCapability, 'image');
   } finally {
     useAppStore.getState = originalGetState;
-    localAiRuntime.getProfileInstallStatus = originalGetProfileInstallStatus;
+    localRuntime.getProfileInstallStatus = originalGetProfileInstallStatus;
   }
 });
 
 test('requestProfileInstall returns declined without executing install when host confirm rejects', async () => {
   const originalGetState = useAppStore.getState;
-  const originalResolveProfile = localAiRuntime.resolveProfile;
-  const originalApplyProfile = localAiRuntime.applyProfile;
+  const originalResolveProfile = localRuntime.resolveProfile;
+  const originalApplyProfile = localRuntime.applyProfile;
   const restoreWindow = installWindowConfirm(() => false);
 
   useAppStore.getState = (() => ({
@@ -209,14 +209,14 @@ test('requestProfileInstall returns declined without executing install when host
 
   let resolved = 0;
   let applied = 0;
-  localAiRuntime.resolveProfile = (async () => {
+  localRuntime.resolveProfile = (async () => {
     resolved += 1;
     throw new Error('UNEXPECTED_RESOLVE');
-  }) as typeof localAiRuntime.resolveProfile;
-  localAiRuntime.applyProfile = (async () => {
+  }) as typeof localRuntime.resolveProfile;
+  localRuntime.applyProfile = (async () => {
     applied += 1;
     throw new Error('UNEXPECTED_APPLY');
-  }) as typeof localAiRuntime.applyProfile;
+  }) as typeof localRuntime.applyProfile;
 
   try {
     const host = createHost();
@@ -234,15 +234,15 @@ test('requestProfileInstall returns declined without executing install when host
   } finally {
     restoreWindow();
     useAppStore.getState = originalGetState;
-    localAiRuntime.resolveProfile = originalResolveProfile;
-    localAiRuntime.applyProfile = originalApplyProfile;
+    localRuntime.resolveProfile = originalResolveProfile;
+    localRuntime.applyProfile = originalApplyProfile;
   }
 });
 
 test('requestProfileInstall returns LOCAL_AI_PROFILE_NOT_FOUND when the selected profile is absent', async () => {
   const originalGetState = useAppStore.getState;
-  const originalResolveProfile = localAiRuntime.resolveProfile;
-  const originalApplyProfile = localAiRuntime.applyProfile;
+  const originalResolveProfile = localRuntime.resolveProfile;
+  const originalApplyProfile = localRuntime.applyProfile;
   const restoreWindow = installWindowConfirm(() => {
     throw new Error('UNEXPECTED_CONFIRM');
   });
@@ -266,14 +266,14 @@ test('requestProfileInstall returns LOCAL_AI_PROFILE_NOT_FOUND when the selected
 
   let resolved = 0;
   let applied = 0;
-  localAiRuntime.resolveProfile = (async () => {
+  localRuntime.resolveProfile = (async () => {
     resolved += 1;
     throw new Error('UNEXPECTED_RESOLVE');
-  }) as typeof localAiRuntime.resolveProfile;
-  localAiRuntime.applyProfile = (async () => {
+  }) as typeof localRuntime.resolveProfile;
+  localRuntime.applyProfile = (async () => {
     applied += 1;
     throw new Error('UNEXPECTED_APPLY');
-  }) as typeof localAiRuntime.applyProfile;
+  }) as typeof localRuntime.applyProfile;
 
   try {
     const host = createHost();
@@ -290,7 +290,7 @@ test('requestProfileInstall returns LOCAL_AI_PROFILE_NOT_FOUND when the selected
   } finally {
     restoreWindow();
     useAppStore.getState = originalGetState;
-    localAiRuntime.resolveProfile = originalResolveProfile;
-    localAiRuntime.applyProfile = originalApplyProfile;
+    localRuntime.resolveProfile = originalResolveProfile;
+    localRuntime.applyProfile = originalApplyProfile;
   }
 });

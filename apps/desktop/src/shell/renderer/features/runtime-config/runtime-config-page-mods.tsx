@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { LocalAiProfileResolutionPlan } from '@runtime/local-ai-runtime';
+import type { LocalRuntimeProfileResolutionPlan } from '@runtime/local-runtime';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
 import type { RuntimeConfigPanelControllerModel, RuntimeProfileTargetDescriptor } from './runtime-config-panel-types';
@@ -28,7 +28,7 @@ export function ModsPage({ model, state }: ModsPageProps) {
   const [selectedModId, setSelectedModId] = useState('');
   const [selectedProfileId, setSelectedProfileId] = useState('');
   const [selectedProfileCapability, setSelectedProfileCapability] = useState('');
-  const [executionPlanPreview, setExecutionPlanPreview] = useState<LocalAiProfileResolutionPlan | null>(null);
+  const [executionPlanPreview, setExecutionPlanPreview] = useState<LocalRuntimeProfileResolutionPlan | null>(null);
   const [loadingPlan, setLoadingPlan] = useState(false);
 
   // Auto-select first mod

@@ -4,11 +4,11 @@ import test from 'node:test';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   extractRuntimeReasonCode,
-  toLocalAiReasonCode,
+  toLocalRuntimeReasonCode,
 } from '../src/runtime/llm-adapter/execution/runtime-ai-bridge';
 
 test('runtime ai bridge keeps model-not-found reason distinguishable', () => {
-  const mapped = toLocalAiReasonCode({
+  const mapped = toLocalRuntimeReasonCode({
     reasonCode: ReasonCode.AI_MODEL_NOT_FOUND,
     actionHint: 'switch_model',
     traceId: 'trace-1',
@@ -24,7 +24,7 @@ test('runtime ai bridge maps modality and media option numeric reason codes', ()
 });
 
 test('runtime ai bridge keeps media-option reason distinguishable', () => {
-  const mapped = toLocalAiReasonCode({
+  const mapped = toLocalRuntimeReasonCode({
     reasonCode: ReasonCode.AI_MEDIA_OPTION_UNSUPPORTED,
     actionHint: 'adjust_tts_voice_or_audio_options',
     traceId: 'trace-2',
@@ -35,7 +35,7 @@ test('runtime ai bridge keeps media-option reason distinguishable', () => {
 });
 
 test('runtime ai bridge keeps generic AI_INPUT_INVALID distinguishable', () => {
-  const mapped = toLocalAiReasonCode({
+  const mapped = toLocalRuntimeReasonCode({
     reasonCode: ReasonCode.AI_INPUT_INVALID,
     actionHint: 'check_input_and_extensions',
     traceId: 'trace-3',

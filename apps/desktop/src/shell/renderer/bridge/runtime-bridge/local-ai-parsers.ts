@@ -4,21 +4,21 @@ import {
   parseRequiredString,
 } from './shared.js';
 import type {
-  LocalAiAuditEvent,
-  LocalAiDownloadProgressEvent,
-  LocalAiModelRecord,
-  LocalAiModelStatus,
-  LocalAiModelsHealthResult,
-  LocalAiVerifiedModelDescriptor,
+  LocalRuntimeAuditEvent,
+  LocalRuntimeDownloadProgressEvent,
+  LocalRuntimeModelRecord,
+  LocalRuntimeModelStatus,
+  LocalRuntimeModelsHealthResult,
+  LocalRuntimeVerifiedModelDescriptor,
 } from './local-ai-types.js';
 
-export function parseLocalAiModelRecord(value: unknown): LocalAiModelRecord {
+export function parseLocalRuntimeModelRecord(value: unknown): LocalRuntimeModelRecord {
   const record = assertRecord(value, 'local_runtime returned invalid model payload');
   const source = assertRecord(record.source, 'local_runtime model source is invalid');
   const hashes = assertRecord(record.hashes || {}, 'local_runtime model hashes is invalid');
   const rawCapabilities = Array.isArray(record.capabilities) ? record.capabilities : [];
   const statusValue = String(record.status || '').trim();
-  const normalizedStatus: LocalAiModelStatus = (
+  const normalizedStatus: LocalRuntimeModelStatus = (
     statusValue === 'active'
     || statusValue === 'unhealthy'
     || statusValue === 'removed'
@@ -48,7 +48,7 @@ export function parseLocalAiModelRecord(value: unknown): LocalAiModelRecord {
   };
 }
 
-export function parseLocalAiVerifiedModelDescriptor(value: unknown): LocalAiVerifiedModelDescriptor {
+export function parseLocalRuntimeVerifiedModelDescriptor(value: unknown): LocalRuntimeVerifiedModelDescriptor {
   const record = assertRecord(value, 'local_runtime_models_verified_list returned invalid payload');
   const hashes = assertRecord(record.hashes || {}, 'local_runtime_models_verified_list hashes is invalid');
   const files = Array.isArray(record.files)
@@ -85,28 +85,28 @@ export function parseLocalAiVerifiedModelDescriptor(value: unknown): LocalAiVeri
   };
 }
 
-export function parseLocalAiVerifiedModelDescriptorList(value: unknown): LocalAiVerifiedModelDescriptor[] {
+export function parseLocalRuntimeVerifiedModelDescriptorList(value: unknown): LocalRuntimeVerifiedModelDescriptor[] {
   if (!Array.isArray(value)) {
     return [];
   }
-  return value.map((item) => parseLocalAiVerifiedModelDescriptor(item));
+  return value.map((item) => parseLocalRuntimeVerifiedModelDescriptor(item));
 }
 
-export function parseLocalAiModelRecordList(value: unknown): LocalAiModelRecord[] {
+export function parseLocalRuntimeModelRecordList(value: unknown): LocalRuntimeModelRecord[] {
   if (!Array.isArray(value)) {
     return [];
   }
-  return value.map((item) => parseLocalAiModelRecord(item));
+  return value.map((item) => parseLocalRuntimeModelRecord(item));
 }
 
-export function parseLocalAiModelsHealthResult(value: unknown): LocalAiModelsHealthResult {
+export function parseLocalRuntimeModelsHealthResult(value: unknown): LocalRuntimeModelsHealthResult {
   const record = assertRecord(value, 'local_runtime_models_health returned invalid payload');
   const rows = Array.isArray(record.models) ? record.models : [];
   return {
     models: rows.map((item) => {
       const row = assertRecord(item, 'local_runtime_models_health model payload is invalid');
       const statusValue = String(row.status || '').trim();
-      const status: LocalAiModelStatus = (
+      const status: LocalRuntimeModelStatus = (
         statusValue === 'active'
         || statusValue === 'unhealthy'
         || statusValue === 'removed'
@@ -123,7 +123,7 @@ export function parseLocalAiModelsHealthResult(value: unknown): LocalAiModelsHea
   };
 }
 
-export function parseLocalAiAuditEvent(value: unknown): LocalAiAuditEvent {
+export function parseLocalRuntimeAuditEvent(value: unknown): LocalRuntimeAuditEvent {
   const record = assertRecord(value, 'local_runtime_audits_list returned invalid payload');
   const payload = record.payload && typeof record.payload === 'object' && !Array.isArray(record.payload)
     ? (record.payload as Record<string, unknown>)
@@ -146,14 +146,14 @@ export function parseLocalAiAuditEvent(value: unknown): LocalAiAuditEvent {
   };
 }
 
-export function parseLocalAiAuditEventList(value: unknown): LocalAiAuditEvent[] {
+export function parseLocalRuntimeAuditEventList(value: unknown): LocalRuntimeAuditEvent[] {
   if (!Array.isArray(value)) {
     return [];
   }
-  return value.map((item) => parseLocalAiAuditEvent(item));
+  return value.map((item) => parseLocalRuntimeAuditEvent(item));
 }
 
-export function parseLocalAiPickManifestResult(value: unknown): string | null {
+export function parseLocalRuntimePickManifestResult(value: unknown): string | null {
   if (value == null) {
     return null;
   }
@@ -161,7 +161,7 @@ export function parseLocalAiPickManifestResult(value: unknown): string | null {
   return normalized || null;
 }
 
-export function parseLocalAiDownloadProgressEvent(value: unknown): LocalAiDownloadProgressEvent {
+export function parseLocalRuntimeDownloadProgressEvent(value: unknown): LocalRuntimeDownloadProgressEvent {
   const record = assertRecord(value, 'local-ai://download-progress returned invalid payload');
   const bytesReceived = Number(record.bytesReceived);
   const bytesTotalRaw = Number(record.bytesTotal);

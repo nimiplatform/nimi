@@ -1,19 +1,19 @@
 import { useCallback, useRef, useState } from 'react';
 import {
-  localAiRuntime,
+  localRuntime,
   type GgufVariantDescriptor,
-  type LocalAiArtifactKind,
-  type LocalAiCatalogItemDescriptor,
-  type LocalAiDownloadProgressEvent,
-} from '@runtime/local-ai-runtime';
+  type LocalRuntimeArtifactKind,
+  type LocalRuntimeCatalogItemDescriptor,
+  type LocalRuntimeDownloadProgressEvent,
+} from '@runtime/local-runtime';
 import { i18n } from '@renderer/i18n';
 import type { CapabilityOption, InstallEngineOption, LocalModelCenterProps } from './runtime-config-model-center-utils';
 import { useLocalModelCenterDownloads } from './runtime-config-use-local-model-center-downloads';
 
 type UseLocalModelCenterImportActionsInput = {
-  artifactOrphanKinds: Record<string, LocalAiArtifactKind>;
-  getInstallEngine: (item: LocalAiCatalogItemDescriptor) => InstallEngineOption;
-  getLatestVerifiedCapability: (item: LocalAiCatalogItemDescriptor) => CapabilityOption;
+  artifactOrphanKinds: Record<string, LocalRuntimeArtifactKind>;
+  getInstallEngine: (item: LocalRuntimeCatalogItemDescriptor) => InstallEngineOption;
+  getLatestVerifiedCapability: (item: LocalRuntimeCatalogItemDescriptor) => CapabilityOption;
   isModMode: boolean;
   onRefreshAllOrphanFiles: () => Promise<void>;
   onRefreshArtifactSections: () => Promise<void>;
@@ -23,7 +23,7 @@ type UseLocalModelCenterImportActionsInput = {
 };
 
 export function useLocalModelCenterImportActions(input: UseLocalModelCenterImportActionsInput) {
-  const [variantPickerItem, setVariantPickerItem] = useState<LocalAiCatalogItemDescriptor | null>(null);
+  const [variantPickerItem, setVariantPickerItem] = useState<LocalRuntimeCatalogItemDescriptor | null>(null);
   const [variantList, setVariantList] = useState<GgufVariantDescriptor[]>([]);
   const [variantError, setVariantError] = useState('');
   const [loadingVariants, setLoadingVariants] = useState(false);
@@ -53,7 +53,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     void input.onRefreshAllOrphanFiles();
   }, [input]);
 
-  const handleSettledDownload = useCallback((event: LocalAiDownloadProgressEvent) => {
+  const handleSettledDownload = useCallback((event: LocalRuntimeDownloadProgressEvent) => {
     const orphanPath = Object.entries(orphanImportSessionByPathRef.current)
       .find(([, sessionId]) => sessionId === event.installSessionId)?.[0];
     if (orphanPath) {
@@ -77,7 +77,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
   const scaffoldOrphanImport = useCallback((orphanPath: string) => {
     setScaffoldingOrphan(orphanPath);
     setOrphanError('');
-    void localAiRuntime.scaffoldOrphan({
+    void localRuntime.scaffoldOrphan({
       path: orphanPath,
       capabilities: [input.orphanCapabilities[orphanPath] || 'chat'],
     }).then((accepted) => {
@@ -123,7 +123,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     setVariantList([]);
   }, []);
 
-  const toggleVariantPicker = useCallback((item: LocalAiCatalogItemDescriptor) => {
+  const toggleVariantPicker = useCallback((item: LocalRuntimeCatalogItemDescriptor) => {
     if (variantPickerItem?.itemId === item.itemId) {
       closeVariantPicker();
       return;
@@ -132,7 +132,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     setVariantList([]);
     setVariantError('');
     setLoadingVariants(true);
-    void localAiRuntime.listRepoGgufVariants(item.repo).then((variants) => {
+    void localRuntime.listRepoGgufVariants(item.repo).then((variants) => {
       setVariantList(variants);
       setLoadingVariants(false);
     }).catch((error) => {
@@ -149,7 +149,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
   }, [closeVariantPicker, variantPickerItem?.itemId]);
 
   const installCatalogVariant = useCallback(async (
-    item: LocalAiCatalogItemDescriptor,
+    item: LocalRuntimeCatalogItemDescriptor,
     variantFilename: string,
   ) => {
     await input.props.onInstallCatalogItem(item, {

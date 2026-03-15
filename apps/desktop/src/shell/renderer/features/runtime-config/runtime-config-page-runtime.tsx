@@ -445,6 +445,8 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
             <div className="space-y-2">
               {sortedNodeMatrix.map((row) => {
                 const nexaGate = row.providerHints?.nexa;
+                const runtimeSupportClass = String(row.providerHints?.extra?.runtime_support_class || '').trim();
+                const runtimeSupportDetail = String(row.providerHints?.extra?.runtime_support_detail || '').trim();
                 const hasNpuGateEvidence =
                   typeof nexaGate?.hostNpuReady === 'boolean' ||
                   typeof nexaGate?.modelProbeHasNpuCandidate === 'boolean' ||
@@ -460,7 +462,11 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
                         row.adapter
                       }
                       {row.backend ? ` · backend=${row.backend}` : ''}
+                      {runtimeSupportClass ? ` · runtimeSupport=${runtimeSupportClass}` : ''}
                     </p>
+                    {runtimeSupportDetail ? (
+                      <p className="text-xs text-gray-600">runtimeSupportDetail={runtimeSupportDetail}</p>
+                    ) : null}
                     {row.policyGate ? <p className="text-xs text-gray-600">policyGate={row.policyGate}</p> : null}
                     {hasNpuGateEvidence ? (
                       <p className="text-xs text-gray-600">
@@ -498,6 +504,11 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
                     ) : null}
                     {!row.available && row.reasonCode ? (
                       <p className="text-xs text-amber-700">reason={row.reasonCode}</p>
+                    ) : null}
+                    {(runtimeSupportClass === 'attached_only' || runtimeSupportClass === 'unsupported') ? (
+                      <p className="text-xs text-amber-700">
+                        Managed local engine is unavailable on this host. Configure an attached endpoint to use this provider.
+                      </p>
                     ) : null}
                   </div>
                 );

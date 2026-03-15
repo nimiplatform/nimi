@@ -1,25 +1,25 @@
 import type {
-  LocalAiArtifactKind,
-  LocalAiArtifactRecord,
-  LocalAiArtifactStatus,
-  LocalAiModelStatus,
-  LocalAiModelRecord,
-  LocalAiVerifiedArtifactDescriptor,
-  LocalAiVerifiedModelDescriptor,
-  LocalAiEngineRuntimeMode,
-  LocalAiProviderAdapter,
-  LocalAiProviderHints,
-  LocalAiCatalogItemDescriptor,
-  LocalAiInstallPlanDescriptor,
-  LocalAiExecutionApplyResult,
-  LocalAiProfileApplyResult,
-  LocalAiProfileArtifactPlanEntry,
-  LocalAiProfileEntryDescriptor,
-  LocalAiProfileRequirementDescriptor,
-  LocalAiProfileResolutionPlan,
-  LocalAiServiceStatus,
-  LocalAiServiceDescriptor,
-  LocalAiNodeDescriptor,
+  LocalRuntimeArtifactKind,
+  LocalRuntimeArtifactRecord,
+  LocalRuntimeArtifactStatus,
+  LocalRuntimeModelStatus,
+  LocalRuntimeModelRecord,
+  LocalRuntimeVerifiedArtifactDescriptor,
+  LocalRuntimeVerifiedModelDescriptor,
+  LocalRuntimeEngineRuntimeMode,
+  LocalRuntimeProviderAdapter,
+  LocalRuntimeProviderHints,
+  LocalRuntimeCatalogItemDescriptor,
+  LocalRuntimeInstallPlanDescriptor,
+  LocalRuntimeExecutionApplyResult,
+  LocalRuntimeProfileApplyResult,
+  LocalRuntimeProfileArtifactPlanEntry,
+  LocalRuntimeProfileEntryDescriptor,
+  LocalRuntimeProfileRequirementDescriptor,
+  LocalRuntimeProfileResolutionPlan,
+  LocalRuntimeServiceStatus,
+  LocalRuntimeServiceDescriptor,
+  LocalRuntimeNodeDescriptor,
 } from './types';
 import { asRecord, asString } from './parser-primitives';
 import { asPlainObject } from './parser-helpers';
@@ -33,7 +33,7 @@ import {
 export { asRecord, asString } from './parser-primitives';
 export {
   assertLifecycleWriteAllowed,
-  invokeLocalAiCommand,
+  invokeLocalRuntimeCommand,
   normalizeCaller,
   readGlobalTauriEventListen,
 } from './parser-helpers';
@@ -58,7 +58,7 @@ export {
   parseOrphanModelFile,
   parseScaffoldArtifactResult,
 } from './parsers-runtime-events';
-export function normalizeStatus(value: unknown): LocalAiModelStatus {
+export function normalizeStatus(value: unknown): LocalRuntimeModelStatus {
   if (typeof value === 'number') {
     if (value === 2) return 'active';
     if (value === 3) return 'unhealthy';
@@ -73,7 +73,7 @@ export function normalizeStatus(value: unknown): LocalAiModelStatus {
   return 'installed';
 }
 
-export function parseModelRecord(value: unknown): LocalAiModelRecord {
+export function parseModelRecord(value: unknown): LocalRuntimeModelRecord {
   const record = asRecord(value);
   const source = asRecord(record.source);
   const hashes = asRecord(record.hashes);
@@ -103,7 +103,7 @@ export function parseModelRecord(value: unknown): LocalAiModelRecord {
   };
 }
 
-export function parseVerifiedModelDescriptor(value: unknown): LocalAiVerifiedModelDescriptor {
+export function parseVerifiedModelDescriptor(value: unknown): LocalRuntimeVerifiedModelDescriptor {
   const record = asRecord(value);
   const hashes = asRecord(record.hashes);
   const files = Array.isArray(record.files)
@@ -143,7 +143,7 @@ export function parseVerifiedModelDescriptor(value: unknown): LocalAiVerifiedMod
   };
 }
 
-export function normalizeArtifactKind(value: unknown): LocalAiArtifactKind {
+export function normalizeArtifactKind(value: unknown): LocalRuntimeArtifactKind {
   if (typeof value === 'number') {
     if (value === 2) return 'llm';
     if (value === 3) return 'clip';
@@ -161,7 +161,7 @@ export function normalizeArtifactKind(value: unknown): LocalAiArtifactKind {
   return 'vae';
 }
 
-export function normalizeArtifactStatus(value: unknown): LocalAiArtifactStatus {
+export function normalizeArtifactStatus(value: unknown): LocalRuntimeArtifactStatus {
   if (typeof value === 'number') {
     if (value === 2) return 'active';
     if (value === 3) return 'unhealthy';
@@ -175,7 +175,7 @@ export function normalizeArtifactStatus(value: unknown): LocalAiArtifactStatus {
   return 'installed';
 }
 
-export function parseArtifactRecord(value: unknown): LocalAiArtifactRecord {
+export function parseArtifactRecord(value: unknown): LocalRuntimeArtifactRecord {
   const record = asRecord(value);
   const source = asRecord(record.source);
   const hashes = asRecord(record.hashes);
@@ -205,7 +205,7 @@ export function parseArtifactRecord(value: unknown): LocalAiArtifactRecord {
   };
 }
 
-function parseProfileRequirementDescriptor(value: unknown): LocalAiProfileRequirementDescriptor | undefined {
+function parseProfileRequirementDescriptor(value: unknown): LocalRuntimeProfileRequirementDescriptor | undefined {
   const record = asRecord(value);
   if (Object.keys(record).length === 0) {
     return undefined;
@@ -226,14 +226,14 @@ function parseProfileRequirementDescriptor(value: unknown): LocalAiProfileRequir
   };
 }
 
-function parseProfileEntryDescriptor(value: unknown): LocalAiProfileEntryDescriptor {
+function parseProfileEntryDescriptor(value: unknown): LocalRuntimeProfileEntryDescriptor {
   const record = asRecord(value);
   const tags = Array.isArray(record.tags)
     ? record.tags.map((item) => asString(item)).filter(Boolean)
     : [];
   return {
     entryId: asString(record.entryId || record.id),
-    kind: asString(record.kind) as LocalAiProfileEntryDescriptor['kind'],
+    kind: asString(record.kind) as LocalRuntimeProfileEntryDescriptor['kind'],
     title: asString(record.title) || undefined,
     description: asString(record.description) || undefined,
     capability: asString(record.capability) || undefined,
@@ -245,14 +245,14 @@ function parseProfileEntryDescriptor(value: unknown): LocalAiProfileEntryDescrip
     nodeId: asString(record.nodeId) || undefined,
     engine: asString(record.engine) || undefined,
     artifactId: toCanonicalLocalId(record.artifactId) || undefined,
-    artifactKind: asString(record.artifactKind) as LocalAiProfileEntryDescriptor['artifactKind'] || undefined,
+    artifactKind: asString(record.artifactKind) as LocalRuntimeProfileEntryDescriptor['artifactKind'] || undefined,
     templateId: asString(record.templateId) || undefined,
     revision: asString(record.revision) || undefined,
     tags,
   };
 }
 
-function parseProfileArtifactPlanEntry(value: unknown): LocalAiProfileArtifactPlanEntry {
+function parseProfileArtifactPlanEntry(value: unknown): LocalRuntimeProfileArtifactPlanEntry {
   const entry = parseProfileEntryDescriptor(value);
   const record = asRecord(value);
   return {
@@ -262,7 +262,7 @@ function parseProfileArtifactPlanEntry(value: unknown): LocalAiProfileArtifactPl
   };
 }
 
-export function parseProfileResolutionPlan(value: unknown): LocalAiProfileResolutionPlan {
+export function parseProfileResolutionPlan(value: unknown): LocalRuntimeProfileResolutionPlan {
   const record = asRecord(value);
   const artifactEntries = Array.isArray(record.artifactEntries)
     ? record.artifactEntries.map((item) => parseProfileArtifactPlanEntry(item))
@@ -288,7 +288,7 @@ export function parseProfileResolutionPlan(value: unknown): LocalAiProfileResolu
   };
 }
 
-export function parseProfileApplyResult(value: unknown): LocalAiProfileApplyResult {
+export function parseProfileApplyResult(value: unknown): LocalRuntimeProfileApplyResult {
   const record = asRecord(value);
   const installedArtifacts = Array.isArray(record.installedArtifacts)
     ? record.installedArtifacts.map((item) => parseArtifactRecord(item))
@@ -307,7 +307,7 @@ export function parseProfileApplyResult(value: unknown): LocalAiProfileApplyResu
   };
 }
 
-export function parseVerifiedArtifactDescriptor(value: unknown): LocalAiVerifiedArtifactDescriptor {
+export function parseVerifiedArtifactDescriptor(value: unknown): LocalRuntimeVerifiedArtifactDescriptor {
   const record = asRecord(value);
   const hashes = asRecord(record.hashes);
   const files = Array.isArray(record.files)
@@ -342,7 +342,7 @@ export function parseVerifiedArtifactDescriptor(value: unknown): LocalAiVerified
   };
 }
 
-export function normalizeEngineRuntimeMode(value: unknown): LocalAiEngineRuntimeMode {
+export function normalizeEngineRuntimeMode(value: unknown): LocalRuntimeEngineRuntimeMode {
   if (typeof value === 'number') {
     return value === 1 ? 'supervised' : 'attached-endpoint';
   }
@@ -353,29 +353,38 @@ export function normalizeEngineRuntimeMode(value: unknown): LocalAiEngineRuntime
   return asString(value) === 'supervised' ? 'supervised' : 'attached-endpoint';
 }
 
-export function normalizeProviderAdapter(value: unknown): LocalAiProviderAdapter {
+export function normalizeProviderAdapter(value: unknown): LocalRuntimeProviderAdapter {
   const raw = asString(value);
-  if (raw === 'localai_native_adapter') return raw;
+  if (
+    raw === 'localai_native_adapter'
+    || raw === 'nexa_native_adapter'
+    || raw === 'nimi_media_native_adapter'
+  ) {
+    return raw;
+  }
   return 'openai_compat_adapter';
 }
 
-export function parseProviderHints(value: unknown): LocalAiProviderHints | undefined {
+export function parseProviderHints(value: unknown): LocalRuntimeProviderHints | undefined {
   const record = asRecord(value);
   const localai = asRecord(record.localai);
   const nexa = asRecord(record.nexa);
+  const nimiMedia = asRecord(record.nimiMedia || record.nimi_media);
   const passthrough = Object.fromEntries(
-    Object.entries(record).filter(([key]) => key !== 'localai' && key !== 'nexa'),
+    Object.entries(record).filter(([key]) => key !== 'localai' && key !== 'nexa' && key !== 'nimiMedia' && key !== 'nimi_media'),
   );
   if (
     Object.keys(localai).length === 0
     && Object.keys(nexa).length === 0
+    && Object.keys(nimiMedia).length === 0
     && Object.keys(passthrough).length === 0
   ) {
     return undefined;
   }
   const preferredAdapter = asString(localai.preferredAdapter || localai.preferred_adapter);
   const nexaPreferredAdapter = asString(nexa.preferredAdapter || nexa.preferred_adapter);
-  const parsed: LocalAiProviderHints = { ...passthrough };
+  const nimiMediaPreferredAdapter = asString(nimiMedia.preferredAdapter || nimiMedia.preferred_adapter);
+  const parsed: LocalRuntimeProviderHints = { ...passthrough };
   if (Object.keys(localai).length > 0) {
     parsed.localai = {
       backend: asString(localai.backend) || undefined,
@@ -410,10 +419,22 @@ export function parseProviderHints(value: unknown): LocalAiProviderHints | undef
       gateDetail: asString(nexa.gateDetail || nexa.gate_detail) || undefined,
     };
   }
+  if (Object.keys(nimiMedia).length > 0) {
+    parsed.nimiMedia = {
+      preferredAdapter: nimiMediaPreferredAdapter
+        ? normalizeProviderAdapter(nimiMediaPreferredAdapter)
+        : undefined,
+      driver: asString(nimiMedia.driver) || undefined,
+      family: asString(nimiMedia.family) || undefined,
+    };
+  }
+  if (record.extra && typeof record.extra === 'object' && !Array.isArray(record.extra)) {
+    parsed.extra = asPlainObject(record.extra) || undefined;
+  }
   return parsed;
 }
 
-export function parseCatalogItemDescriptor(value: unknown): LocalAiCatalogItemDescriptor {
+export function parseCatalogItemDescriptor(value: unknown): LocalRuntimeCatalogItemDescriptor {
   const record = asRecord(value);
   const hashes = asRecord(record.hashes);
   const files = Array.isArray(record.files)
@@ -458,7 +479,7 @@ export function parseCatalogItemDescriptor(value: unknown): LocalAiCatalogItemDe
   };
 }
 
-export function parseInstallPlanDescriptor(value: unknown): LocalAiInstallPlanDescriptor {
+export function parseInstallPlanDescriptor(value: unknown): LocalRuntimeInstallPlanDescriptor {
   const record = asRecord(value);
   const hashes = asRecord(record.hashes);
   const files = Array.isArray(record.files)
@@ -497,7 +518,7 @@ export function parseInstallPlanDescriptor(value: unknown): LocalAiInstallPlanDe
   };
 }
 
-export function parseExecutionApplyResult(value: unknown): LocalAiExecutionApplyResult {
+export function parseExecutionApplyResult(value: unknown): LocalRuntimeExecutionApplyResult {
   const record = asRecord(value);
   const entries = Array.isArray(record.entries)
     ? record.entries.map((item) => parseExecutionEntryDescriptor(item))
@@ -535,7 +556,7 @@ export function parseExecutionApplyResult(value: unknown): LocalAiExecutionApply
   };
 }
 
-export function normalizeServiceStatus(value: unknown): LocalAiServiceStatus {
+export function normalizeServiceStatus(value: unknown): LocalRuntimeServiceStatus {
   if (typeof value === 'number') {
     if (value === 2) return 'active';
     if (value === 3) return 'unhealthy';
@@ -554,7 +575,7 @@ export function normalizeServiceStatus(value: unknown): LocalAiServiceStatus {
 
 export function normalizeServiceArtifactType(
   value: unknown,
-): LocalAiServiceDescriptor['artifactType'] {
+): LocalRuntimeServiceDescriptor['artifactType'] {
   const raw = asString(value).toLowerCase();
   if (raw === 'python-env' || raw === 'binary' || raw === 'attached-endpoint') {
     return raw;
@@ -562,7 +583,7 @@ export function normalizeServiceArtifactType(
   return undefined;
 }
 
-export function parseServiceDescriptor(value: unknown): LocalAiServiceDescriptor {
+export function parseServiceDescriptor(value: unknown): LocalRuntimeServiceDescriptor {
   const record = asRecord(value);
   const capabilities = Array.isArray(record.capabilities)
     ? record.capabilities.map((item) => asString(item)).filter(Boolean)
@@ -582,7 +603,7 @@ export function parseServiceDescriptor(value: unknown): LocalAiServiceDescriptor
   };
 }
 
-export function parseNodeDescriptor(value: unknown): LocalAiNodeDescriptor {
+export function parseNodeDescriptor(value: unknown): LocalRuntimeNodeDescriptor {
   const record = asRecord(value);
   return {
     nodeId: asString(record.nodeId),

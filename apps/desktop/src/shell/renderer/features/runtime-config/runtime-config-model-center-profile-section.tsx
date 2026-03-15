@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { LocalAiProfileApplyResult, LocalAiProfileResolutionPlan } from '@runtime/local-ai-runtime';
+import type { LocalRuntimeProfileApplyResult, LocalRuntimeProfileResolutionPlan } from '@runtime/local-runtime';
 import type { RuntimeProfileTargetDescriptor } from './runtime-config-panel-types';
 import {
   normalizeSelectedProfileCapability,
@@ -82,16 +82,16 @@ export type ModelCenterProfileSectionProps = {
   selectedProfileId: string;
   selectedProfileCapability: string;
   selectedProfileTarget: RuntimeProfileTargetDescriptor | null;
-  executionPlanPreview: LocalAiProfileResolutionPlan | null;
+  executionPlanPreview: LocalRuntimeProfileResolutionPlan | null;
   runtimeProfileTargets: RuntimeProfileTargetDescriptor[];
   onSetSelectedProfileModId: (modId: string) => void;
   onSetSelectedProfileId: (profileId: string) => void;
   onSetSelectedProfileCapability: (capability: string) => void;
   onResolveProfilePlanPreview: () => void;
-  onApplyProfile: (modId: string, profileId: string, capability?: string) => Promise<LocalAiProfileApplyResult>;
+  onApplyProfile: (modId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileApplyResult>;
 };
 
-function summaryLine(plan: LocalAiProfileResolutionPlan): string {
+function summaryLine(plan: LocalRuntimeProfileResolutionPlan): string {
   const selectedDependencies = plan.executionPlan.entries.filter((entry) => entry.selected).length;
   const artifactCount = plan.artifactEntries.length;
   return `${selectedDependencies} runtime entries · ${artifactCount} companion artifacts`;

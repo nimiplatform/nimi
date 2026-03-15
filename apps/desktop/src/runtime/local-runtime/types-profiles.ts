@@ -1,26 +1,26 @@
 import type {
-  LocalAiArtifactKind,
-  LocalAiArtifactRecord,
+  LocalRuntimeArtifactKind,
+  LocalRuntimeArtifactRecord,
 } from './types';
 import type {
-  LocalAiExecutionDeclarationDescriptor,
-  LocalAiExecutionApplyResult,
-  LocalAiExecutionPlan,
-  LocalAiDeviceProfile,
+  LocalRuntimeExecutionDeclarationDescriptor,
+  LocalRuntimeExecutionApplyResult,
+  LocalRuntimeExecutionPlan,
+  LocalRuntimeDeviceProfile,
 } from './types-dependencies';
 
-export type LocalAiProfileEntryKind = 'model' | 'artifact' | 'service' | 'node';
+export type LocalRuntimeProfileEntryKind = 'model' | 'artifact' | 'service' | 'node';
 
-export type LocalAiProfileRequirementDescriptor = {
+export type LocalRuntimeProfileRequirementDescriptor = {
   minGpuMemoryGb?: number;
   minDiskBytes?: number;
   platforms?: string[];
   notes?: string[];
 };
 
-export type LocalAiProfileEntryDescriptor = {
+export type LocalRuntimeProfileEntryDescriptor = {
   entryId: string;
-  kind: LocalAiProfileEntryKind;
+  kind: LocalRuntimeProfileEntryKind;
   title?: string;
   description?: string;
   capability?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string;
@@ -32,35 +32,35 @@ export type LocalAiProfileEntryDescriptor = {
   nodeId?: string;
   engine?: string;
   artifactId?: string;
-  artifactKind?: LocalAiArtifactKind;
+  artifactKind?: LocalRuntimeArtifactKind;
   templateId?: string;
   revision?: string;
   tags?: string[];
 };
 
-export type LocalAiProfileDescriptor = {
+export type LocalRuntimeProfileDescriptor = {
   id: string;
   title: string;
   description?: string;
   recommended: boolean;
   consumeCapabilities: Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string>;
-  entries: LocalAiProfileEntryDescriptor[];
-  requirements?: LocalAiProfileRequirementDescriptor;
+  entries: LocalRuntimeProfileEntryDescriptor[];
+  requirements?: LocalRuntimeProfileRequirementDescriptor;
 };
 
-export type LocalAiProfileTargetDescriptor = {
+export type LocalRuntimeProfileTargetDescriptor = {
   modId: string;
   modName: string;
   consumeCapabilities: Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string>;
-  profiles: LocalAiProfileDescriptor[];
+  profiles: LocalRuntimeProfileDescriptor[];
 };
 
-export type LocalAiProfileArtifactPlanEntry = LocalAiProfileEntryDescriptor & {
+export type LocalRuntimeProfileArtifactPlanEntry = LocalRuntimeProfileEntryDescriptor & {
   kind: 'artifact';
   installed: boolean;
 };
 
-export type LocalAiProfileResolutionPlan = {
+export type LocalRuntimeProfileResolutionPlan = {
   planId: string;
   modId: string;
   profileId: string;
@@ -68,24 +68,24 @@ export type LocalAiProfileResolutionPlan = {
   description?: string;
   recommended: boolean;
   consumeCapabilities: Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string>;
-  requirements?: LocalAiProfileRequirementDescriptor;
-  executionPlan: LocalAiExecutionPlan;
-  artifactEntries: LocalAiProfileArtifactPlanEntry[];
+  requirements?: LocalRuntimeProfileRequirementDescriptor;
+  executionPlan: LocalRuntimeExecutionPlan;
+  artifactEntries: LocalRuntimeProfileArtifactPlanEntry[];
   warnings: string[];
   reasonCode?: string;
 };
 
-export type LocalAiProfileApplyResult = {
+export type LocalRuntimeProfileApplyResult = {
   planId: string;
   modId: string;
   profileId: string;
-  executionResult: LocalAiExecutionApplyResult;
-  installedArtifacts: LocalAiArtifactRecord[];
+  executionResult: LocalRuntimeExecutionApplyResult;
+  installedArtifacts: LocalRuntimeArtifactRecord[];
   warnings: string[];
   reasonCode?: string;
 };
 
-export type LocalAiProfileInstallStatus = {
+export type LocalRuntimeProfileInstallStatus = {
   modId: string;
   profileId: string;
   status: 'ready' | 'missing' | 'degraded';
@@ -94,30 +94,30 @@ export type LocalAiProfileInstallStatus = {
   updatedAt: string;
 };
 
-export type LocalAiProfileResolvePayload = {
+export type LocalRuntimeProfileResolvePayload = {
   modId: string;
-  profile: LocalAiProfileDescriptor;
+  profile: LocalRuntimeProfileDescriptor;
   capability?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string;
-  deviceProfile?: LocalAiDeviceProfile;
+  deviceProfile?: LocalRuntimeDeviceProfile;
 };
 
-export type LocalAiProfileInstallRequest = {
+export type LocalRuntimeProfileInstallRequest = {
   modId: string;
   profileId: string;
   confirmMessage?: string;
 };
 
-export type LocalAiProfileInstallRequestResult = {
+export type LocalRuntimeProfileInstallRequestResult = {
   modId: string;
   profileId: string;
   accepted: boolean;
   declined: boolean;
-  plan?: LocalAiProfileResolutionPlan;
-  result?: LocalAiProfileApplyResult;
+  plan?: LocalRuntimeProfileResolutionPlan;
+  result?: LocalRuntimeProfileApplyResult;
   reasonCode?: string;
 };
 
-export type LocalAiProfileExecutionBridge = {
-  runtimeEntries?: LocalAiExecutionDeclarationDescriptor;
-  artifacts: LocalAiProfileEntryDescriptor[];
+export type LocalRuntimeProfileExecutionBridge = {
+  runtimeEntries?: LocalRuntimeExecutionDeclarationDescriptor;
+  artifacts: LocalRuntimeProfileEntryDescriptor[];
 };

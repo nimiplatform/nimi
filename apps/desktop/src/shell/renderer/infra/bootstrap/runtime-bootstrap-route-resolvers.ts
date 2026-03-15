@@ -11,7 +11,7 @@ type RuntimeFields = {
 };
 function inferSource(provider: string): SourceIdV11 {
     const lower = String(provider || '').trim().toLowerCase();
-    if (lower.startsWith('local') || lower === 'localai' || lower === 'nexa') {
+    if (lower.startsWith('local') || lower === 'localai' || lower === 'nexa' || lower === 'nimi_media') {
         return 'local';
     }
     return 'cloud';

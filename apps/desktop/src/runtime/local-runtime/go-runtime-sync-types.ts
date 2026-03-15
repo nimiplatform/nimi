@@ -1,10 +1,10 @@
-import type { LocalAiModelRecord, LocalAiModelStatus } from './types';
+import type { LocalRuntimeModelRecord, LocalRuntimeModelStatus } from './types';
 
 export type GoRuntimeModelEntry = {
   localModelId: string;
   modelId: string;
   engine: string;
-  status: LocalAiModelStatus;
+  status: LocalRuntimeModelStatus;
   statusRaw?: string;
   endpoint: string;
   capabilities: string[];
@@ -34,11 +34,11 @@ export type GoRuntimeSyncResult = {
   modelId: string;
   engine: string;
   localModelId: string;
-  status: LocalAiModelStatus;
+  status: LocalRuntimeModelStatus;
   matchedBy: 'install' | 'localModelId' | 'modelId+engine';
 };
 
 export type GoRuntimeBootstrapResult = {
   reconciled: GoRuntimeSyncResult[];
-  adopted: LocalAiModelRecord[];
+  adopted: LocalRuntimeModelRecord[];
 };

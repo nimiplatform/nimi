@@ -1,4 +1,4 @@
-import { localAiRuntime, listGoRuntimeModelsSnapshot, reconcileModelsToGoRuntime, type LocalAiModelRecord, } from '@runtime/local-ai-runtime';
+import { localRuntime, listGoRuntimeModelsSnapshot, reconcileModelsToGoRuntime, type LocalRuntimeModelRecord, } from '@runtime/local-runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { createResolveRuntimeBinding } from './runtime-bootstrap-route-resolvers';
 import { pickPreferredGoRuntimeModel } from './runtime-bootstrap-route-options';
@@ -65,7 +65,7 @@ export function hydrateLocalRouteBindingFromOptions(binding: RuntimeRouteBinding
     }
     const selected = options.selected.source === 'local' ? options.selected : null;
     const targetLocalModelId = String(binding.localModelId || '').trim();
-    const targetModelId = String(binding.modelId || binding.model || '').trim().replace(/^(localai|nexa|local)\//i, '');
+    const targetModelId = String(binding.modelId || binding.model || '').trim().replace(/^(localai|nexa|nimi_media|local)\//i, '');
     const targetEngine = String(binding.engine || binding.provider || '').trim().toLowerCase();
     const localModel = options.local.models.find((item) => ((targetLocalModelId && String(item.localModelId || '').trim() === targetLocalModelId)
         || (String(item.modelId || item.model || '').trim() === targetModelId
@@ -126,7 +126,7 @@ function localModelStatusPriority(status: string): number {
         return 3;
     return 4;
 }
-function pickDesktopLocalModel(models: LocalAiModelRecord[], resolved: ModRuntimeResolvedBinding): LocalAiModelRecord | null {
+function pickDesktopLocalModel(models: LocalRuntimeModelRecord[], resolved: ModRuntimeResolvedBinding): LocalRuntimeModelRecord | null {
     const targetLocalModelId = String(resolved.localModelId || '').trim();
     const targetModelId = normalizeLocalModelRoot(resolved.modelId || resolved.model);
     const targetEngine = normalizeLocalEngine(resolved.engine || resolved.provider || '');
@@ -148,7 +148,7 @@ export async function ensureResolvedLocalModelAvailable(resolved: ModRuntimeReso
     if (resolved.source !== 'local') {
         return resolved;
     }
-    const desktopModels = await localAiRuntime.list();
+    const desktopModels = await localRuntime.list();
     const desktopModel = pickDesktopLocalModel(desktopModels, resolved);
     if (!desktopModel) {
         return resolved;

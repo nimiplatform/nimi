@@ -5,7 +5,7 @@ import {
   parseArtifactRecord,
   parseModelRecord,
   parseVerifiedArtifactDescriptor,
-} from '../src/runtime/local-ai-runtime/parsers.js';
+} from '../src/runtime/local-runtime/parsers.js';
 
 test('parseModelRecord decodes engineConfig struct payloads into plain objects', () => {
   const parsed = parseModelRecord({

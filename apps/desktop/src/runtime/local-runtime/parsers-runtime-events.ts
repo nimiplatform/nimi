@@ -1,12 +1,12 @@
 import type {
   GgufVariantDescriptor,
-  LocalAiAuditEvent,
-  LocalAiDownloadState,
-  LocalAiDownloadProgressEvent,
-  LocalAiDownloadSessionSummary,
-  LocalAiScaffoldArtifactResult,
-  LocalAiInstallAcceptedResponse,
-  LocalAiModelHealth,
+  LocalRuntimeAuditEvent,
+  LocalRuntimeDownloadState,
+  LocalRuntimeDownloadProgressEvent,
+  LocalRuntimeDownloadSessionSummary,
+  LocalRuntimeScaffoldArtifactResult,
+  LocalRuntimeInstallAcceptedResponse,
+  LocalRuntimeModelHealth,
   OrphanArtifactFile,
   OrphanModelFile,
 } from './types';
@@ -14,7 +14,7 @@ import { asRecord, asString } from './parser-primitives';
 import { toCanonicalLocalId } from './local-id';
 import { normalizeArtifactKind, normalizeStatus } from './parsers';
 
-export function parseModelHealth(value: unknown): LocalAiModelHealth {
+export function parseModelHealth(value: unknown): LocalRuntimeModelHealth {
   const record = asRecord(value);
   return {
     localModelId: asString(record.localModelId),
@@ -51,7 +51,7 @@ export function parseOrphanArtifactFile(value: unknown): OrphanArtifactFile {
   };
 }
 
-export function parseAuditEvent(value: unknown): LocalAiAuditEvent {
+export function parseAuditEvent(value: unknown): LocalRuntimeAuditEvent {
   const record = asRecord(value);
   const payload = record.payload && typeof record.payload === 'object' && !Array.isArray(record.payload)
     ? (record.payload as Record<string, unknown>)
@@ -78,7 +78,7 @@ export function normalizeDownloadState(
   value: unknown,
   fallbackDone?: boolean,
   fallbackSuccess?: boolean,
-): LocalAiDownloadState {
+): LocalRuntimeDownloadState {
   const raw = asString(value).toLowerCase();
   if (
     raw === 'queued'
@@ -96,7 +96,7 @@ export function normalizeDownloadState(
   return 'running';
 }
 
-export function parseDownloadProgressEvent(value: unknown): LocalAiDownloadProgressEvent {
+export function parseDownloadProgressEvent(value: unknown): LocalRuntimeDownloadProgressEvent {
   const record = asRecord(value);
   const bytesReceived = Number(record.bytesReceived);
   const bytesTotalRaw = Number(record.bytesTotal);
@@ -123,7 +123,7 @@ export function parseDownloadProgressEvent(value: unknown): LocalAiDownloadProgr
   };
 }
 
-export function parseDownloadSessionSummary(value: unknown): LocalAiDownloadSessionSummary {
+export function parseDownloadSessionSummary(value: unknown): LocalRuntimeDownloadSessionSummary {
   const record = asRecord(value);
   const bytesReceived = Number(record.bytesReceived);
   const bytesTotalRaw = Number(record.bytesTotal);
@@ -147,7 +147,7 @@ export function parseDownloadSessionSummary(value: unknown): LocalAiDownloadSess
   };
 }
 
-export function parseInstallAcceptedResponse(value: unknown): LocalAiInstallAcceptedResponse {
+export function parseInstallAcceptedResponse(value: unknown): LocalRuntimeInstallAcceptedResponse {
   const record = asRecord(value);
   return {
     installSessionId: asString(record.installSessionId),
@@ -156,7 +156,7 @@ export function parseInstallAcceptedResponse(value: unknown): LocalAiInstallAcce
   };
 }
 
-export function parseScaffoldArtifactResult(value: unknown): LocalAiScaffoldArtifactResult {
+export function parseScaffoldArtifactResult(value: unknown): LocalRuntimeScaffoldArtifactResult {
   const record = asRecord(value);
   return {
     manifestPath: asString(record.manifestPath),

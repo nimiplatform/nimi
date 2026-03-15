@@ -2,23 +2,23 @@ import { useCallback } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
-  localAiRuntime,
+  localRuntime,
   type GoRuntimeSyncTarget,
   syncModelInstallToGoRuntime,
   syncModelStartToGoRuntime,
   syncModelStopToGoRuntime,
   syncModelRemoveToGoRuntime,
-  type LocalAiInstallAcceptedResponse,
-  type LocalAiInstallPlanDescriptor,
-} from '@runtime/local-ai-runtime';
+  type LocalRuntimeInstallAcceptedResponse,
+  type LocalRuntimeInstallPlanDescriptor,
+} from '@runtime/local-runtime';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import { createOfflineError, getOfflineCoordinator } from '@runtime/offline';
 import { i18n } from '@renderer/i18n';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 
 export type PendingInstallEntry = {
-  accepted: LocalAiInstallAcceptedResponse;
-  plan: LocalAiInstallPlanDescriptor;
+  accepted: LocalRuntimeInstallAcceptedResponse;
+  plan: LocalRuntimeInstallPlanDescriptor;
   installSource: 'catalog' | 'manual' | 'verified';
 };
 
@@ -84,7 +84,7 @@ export function useRuntimeConfigModelManagementActions(
     target: GoRuntimeSyncTarget,
     error: unknown,
   ) => {
-    await localAiRuntime.appendAudit({
+    await localRuntime.appendAudit({
       eventType,
       modelId: String(target.modelId || '').trim(),
       localModelId: String(target.localModelId || '').trim() || undefined,
@@ -108,11 +108,11 @@ export function useRuntimeConfigModelManagementActions(
   const importLocalModel = useCallback(async () => {
     try {
       assertRuntimeWriteAllowed();
-      const manifestPath = await localAiRuntime.pickManifestPath();
+      const manifestPath = await localRuntime.pickManifestPath();
       if (!manifestPath) {
         return;
       }
-      const imported = await localAiRuntime.import({ manifestPath }, { caller: 'core' });
+      const imported = await localRuntime.import({ manifestPath }, { caller: 'core' });
       try {
         const synced = await syncModelInstallToGoRuntime(imported);
         if (imported.status === 'active') {
@@ -160,11 +160,11 @@ export function useRuntimeConfigModelManagementActions(
   const importLocalModelFile = useCallback(async (capabilities: string[], engine?: string) => {
     try {
       assertRuntimeWriteAllowed();
-      const filePath = await localAiRuntime.pickModelFile();
+      const filePath = await localRuntime.pickModelFile();
       if (!filePath) {
         return;
       }
-      const accepted = await localAiRuntime.importFile({
+      const accepted = await localRuntime.importFile({
         filePath,
         capabilities,
         engine: engine || undefined,
@@ -190,7 +190,7 @@ export function useRuntimeConfigModelManagementActions(
           hashes: {},
           endpoint: '',
           warnings: [],
-        } as LocalAiInstallPlanDescriptor,
+        } as LocalRuntimeInstallPlanDescriptor,
         installSource: 'manual',
       });
       setPendingInstallVersion((version) => version + 1);
@@ -218,7 +218,7 @@ export function useRuntimeConfigModelManagementActions(
 
   const startLocalModel = useCallback(async (localModelId: string) => {
     assertRuntimeWriteAllowed();
-    const model = await localAiRuntime.start(localModelId, { caller: 'core' }).catch((error) => {
+    const model = await localRuntime.start(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
         message: translateRuntimeLocalText(
@@ -264,7 +264,7 @@ export function useRuntimeConfigModelManagementActions(
 
   const stopLocalModel = useCallback(async (localModelId: string) => {
     assertRuntimeWriteAllowed();
-    const model = await localAiRuntime.stop(localModelId, { caller: 'core' }).catch((error) => {
+    const model = await localRuntime.stop(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
         message: translateRuntimeLocalText(
@@ -310,10 +310,10 @@ export function useRuntimeConfigModelManagementActions(
 
   const restartLocalModel = useCallback(async (localModelId: string) => {
     assertRuntimeWriteAllowed();
-    let stoppedModel: Awaited<ReturnType<typeof localAiRuntime.stop>> | null = null;
+    let stoppedModel: Awaited<ReturnType<typeof localRuntime.stop>> | null = null;
     let resolvedModelId = localModelId;
     try {
-      stoppedModel = await localAiRuntime.stop(localModelId, { caller: 'core' }).catch((stopErr) => {
+      stoppedModel = await localRuntime.stop(localModelId, { caller: 'core' }).catch((stopErr) => {
         emitRuntimeLog({
           level: 'warn',
           area: 'local-ai',
@@ -335,7 +335,7 @@ export function useRuntimeConfigModelManagementActions(
           details: { localModelId, error: syncErr instanceof Error ? syncErr.message : String(syncErr) },
         });
       });
-      const startedModel = await localAiRuntime.start(localModelId, { caller: 'core' });
+      const startedModel = await localRuntime.start(localModelId, { caller: 'core' });
       await syncModelStartToGoRuntime({
         modelId: startedModel.modelId || resolvedModelId,
         engine: startedModel.engine,
@@ -370,7 +370,7 @@ export function useRuntimeConfigModelManagementActions(
 
   const removeLocalModel = useCallback(async (localModelId: string) => {
     assertRuntimeWriteAllowed();
-    const model = await localAiRuntime.remove(localModelId, { caller: 'core' }).catch((error) => {
+    const model = await localRuntime.remove(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
         message: translateRuntimeLocalText(
@@ -416,7 +416,7 @@ export function useRuntimeConfigModelManagementActions(
 
   const removeLocalArtifact = useCallback(async (localArtifactId: string) => {
     assertRuntimeWriteAllowed();
-    const artifact = await localAiRuntime.removeArtifact(localArtifactId, { caller: 'core' }).catch((error) => {
+    const artifact = await localRuntime.removeArtifact(localArtifactId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
         message: translateRuntimeLocalText(

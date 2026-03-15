@@ -1,14 +1,14 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  localAiRuntime,
-  type LocalAiArtifactKind,
-  type LocalAiArtifactRecord,
-  type LocalAiCatalogItemDescriptor,
-  type LocalAiVerifiedArtifactDescriptor,
-  type LocalAiVerifiedModelDescriptor,
+  localRuntime,
+  type LocalRuntimeArtifactKind,
+  type LocalRuntimeArtifactRecord,
+  type LocalRuntimeCatalogItemDescriptor,
+  type LocalRuntimeVerifiedArtifactDescriptor,
+  type LocalRuntimeVerifiedModelDescriptor,
   type OrphanArtifactFile,
   type OrphanModelFile,
-} from '@runtime/local-ai-runtime';
+} from '@runtime/local-runtime';
 import {
   CAPABILITY_OPTIONS,
   PROGRESS_RETENTION_MS,
@@ -28,7 +28,7 @@ import {
   type ArtifactTaskEntry,
   type ArtifactTaskState,
 } from './runtime-config-local-model-center-helpers';
-import { toCanonicalLocalLookupKey } from '@runtime/local-ai-runtime/local-id';
+import { toCanonicalLocalLookupKey } from '@runtime/local-runtime/local-id';
 import { useLocalModelCenterImportActions } from './runtime-config-use-local-model-center-import-actions';
 
 type UseLocalModelCenterRuntimeStateInput = {
@@ -40,16 +40,16 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   const [searchQuery, setSearchQuery] = useState('');
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [catalogCapability, setCatalogCapability] = useState<'all' | CapabilityOption>('all');
-  const [catalogItems, setCatalogItems] = useState<LocalAiCatalogItemDescriptor[]>([]);
+  const [catalogItems, setCatalogItems] = useState<LocalRuntimeCatalogItemDescriptor[]>([]);
   const [catalogDisplayCount, setCatalogDisplayCount] = useState(10);
   const [loadingCatalog, setLoadingCatalog] = useState(false);
-  const [verifiedModels, setVerifiedModels] = useState<LocalAiVerifiedModelDescriptor[]>([]);
+  const [verifiedModels, setVerifiedModels] = useState<LocalRuntimeVerifiedModelDescriptor[]>([]);
   const [loadingVerifiedModels, setLoadingVerifiedModels] = useState(false);
-  const [installedArtifacts, setInstalledArtifacts] = useState<LocalAiArtifactRecord[]>([]);
+  const [installedArtifacts, setInstalledArtifacts] = useState<LocalRuntimeArtifactRecord[]>([]);
   const [loadingInstalledArtifacts, setLoadingInstalledArtifacts] = useState(false);
-  const [verifiedArtifacts, setVerifiedArtifacts] = useState<LocalAiVerifiedArtifactDescriptor[]>([]);
+  const [verifiedArtifacts, setVerifiedArtifacts] = useState<LocalRuntimeVerifiedArtifactDescriptor[]>([]);
   const [loadingVerifiedArtifacts, setLoadingVerifiedArtifacts] = useState(false);
-  const [artifactKindFilter, setArtifactKindFilter] = useState<'all' | LocalAiArtifactKind>('all');
+  const [artifactKindFilter, setArtifactKindFilter] = useState<'all' | LocalRuntimeArtifactKind>('all');
   const [artifactBusy, setArtifactBusy] = useState(false);
   const [artifactPendingTemplateIds, setArtifactPendingTemplateIds] = useState<string[]>([]);
   const [artifactTasks, setArtifactTasks] = useState<ArtifactTaskEntry[]>([]);
@@ -62,7 +62,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   const [orphanFiles, setOrphanFiles] = useState<OrphanModelFile[]>([]);
   const [orphanCapabilities, setOrphanCapabilities] = useState<Record<string, CapabilityOption>>({});
   const [artifactOrphanFiles, setArtifactOrphanFiles] = useState<OrphanArtifactFile[]>([]);
-  const [artifactOrphanKinds, setArtifactOrphanKinds] = useState<Record<string, LocalAiArtifactKind>>({});
+  const [artifactOrphanKinds, setArtifactOrphanKinds] = useState<Record<string, LocalRuntimeArtifactKind>>({});
   useEffect(() => {
     if (!showImportMenu) {
       return undefined;
@@ -124,15 +124,15 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   const isInstalled = useCallback((modelId: string) => {
     return sortedModels.some((model) => toCanonicalLocalLookupKey(model.model) === toCanonicalLocalLookupKey(modelId));
   }, [sortedModels]);
-  const inferredCatalogCapability = useCallback((item: LocalAiCatalogItemDescriptor): CapabilityOption => (
+  const inferredCatalogCapability = useCallback((item: LocalRuntimeCatalogItemDescriptor): CapabilityOption => (
     normalizeCapabilityOption(item.capabilities.find((capability) => (
       CAPABILITY_OPTIONS.includes(capability as CapabilityOption)
     )))
   ), []);
-  const selectedCatalogCapability = useCallback((item: LocalAiCatalogItemDescriptor): CapabilityOption => (
+  const selectedCatalogCapability = useCallback((item: LocalRuntimeCatalogItemDescriptor): CapabilityOption => (
     catalogCapabilityOverrides[item.itemId] || inferredCatalogCapability(item)
   ), [catalogCapabilityOverrides, inferredCatalogCapability]);
-  const selectedCatalogEngine = useCallback((item: LocalAiCatalogItemDescriptor): InstallEngineOption => (
+  const selectedCatalogEngine = useCallback((item: LocalRuntimeCatalogItemDescriptor): InstallEngineOption => (
     catalogEngineOverrides[item.itemId] || normalizeInstallEngine(item.engine)
   ), [catalogEngineOverrides]);
   const searchQueryRef = useRef(deferredSearchQuery);
@@ -148,7 +148,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     }
     setLoadingCatalog(true);
     try {
-      const rows = await localAiRuntime.searchCatalog({
+      const rows = await localRuntime.searchCatalog({
         query,
         capability: capability === 'all' ? undefined : capability,
         limit: 30,
@@ -163,7 +163,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   const refreshVerifiedModels = useCallback(async () => {
     setLoadingVerifiedModels(true);
     try {
-      const rows = await localAiRuntime.listVerified();
+      const rows = await localRuntime.listVerified();
       setVerifiedModels(sortVerifiedModelsForDisplay(rows.filter((item) => !isInstalled(item.modelId))).slice(0, 5));
     } catch {
       setVerifiedModels([]);
@@ -174,7 +174,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   const refreshInstalledArtifacts = useCallback(async () => {
     setLoadingInstalledArtifacts(true);
     try {
-      setInstalledArtifacts(await localAiRuntime.listArtifacts(
+      setInstalledArtifacts(await localRuntime.listArtifacts(
         artifactKindFilter === 'all' ? undefined : { kind: artifactKindFilter },
       ));
     } catch {
@@ -186,7 +186,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   const refreshVerifiedArtifacts = useCallback(async () => {
     setLoadingVerifiedArtifacts(true);
     try {
-      setVerifiedArtifacts(await localAiRuntime.listVerifiedArtifacts(
+      setVerifiedArtifacts(await localRuntime.listVerifiedArtifacts(
         artifactKindFilter === 'all' ? undefined : { kind: artifactKindFilter },
       ));
     } catch {
@@ -197,14 +197,14 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   }, [artifactKindFilter]);
   const refreshOrphanFiles = useCallback(async () => {
     try {
-      setOrphanFiles(await localAiRuntime.scanOrphans());
+      setOrphanFiles(await localRuntime.scanOrphans());
     } catch {
       setOrphanFiles([]);
     }
   }, []);
   const refreshArtifactOrphanFiles = useCallback(async () => {
     try {
-      setArtifactOrphanFiles(await localAiRuntime.scanArtifactOrphans());
+      setArtifactOrphanFiles(await localRuntime.scanArtifactOrphans());
     } catch {
       setArtifactOrphanFiles([]);
     }
@@ -257,7 +257,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   }, [deferredSearchQuery, installedArtifactIds, verifiedArtifacts]);
 
   const relatedArtifactsByModelTemplate = useMemo(() => {
-    const next = new Map<string, LocalAiVerifiedArtifactDescriptor[]>();
+    const next = new Map<string, LocalRuntimeVerifiedArtifactDescriptor[]>();
     for (const model of verifiedModels) {
       next.set(model.templateId, sortVerifiedArtifactsForDisplay(relatedArtifactsForModel(model, verifiedArtifacts)));
     }
@@ -346,7 +346,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     }
   }, [markArtifactPending, props, refreshArtifactSections, upsertArtifactTask]);
 
-  const installMissingArtifactsForModel = useCallback(async (artifacts: LocalAiVerifiedArtifactDescriptor[]) => {
+  const installMissingArtifactsForModel = useCallback(async (artifacts: LocalRuntimeVerifiedArtifactDescriptor[]) => {
     const missing = artifacts.filter((artifact) => !installedArtifactsById.has(toCanonicalLocalLookupKey(artifact.artifactId)));
     for (const artifact of missing) {
       await installVerifiedArtifact(artifact.templateId);
@@ -407,7 +407,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   }, [importActions]);
 
   const installCatalogVariant = useCallback(async (
-    item: LocalAiCatalogItemDescriptor,
+    item: LocalRuntimeCatalogItemDescriptor,
     variantFilename: string,
   ) => {
     importActions.closeVariantPicker();
