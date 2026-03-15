@@ -497,7 +497,7 @@ export function TurnInput(props: TurnInputProps = {}) {
 
       {/* Input container with border */}
       <div className="relative flex h-full min-h-0 flex-col rounded-2xl border border-gray-200 bg-gray-50/50 p-3">
-        <div className="nimi-scrollbar min-h-0 flex-1 overflow-y-auto pr-2">
+        <ScrollShell className="min-h-0 flex-1" viewportClassName="pr-2">
           {pendingAttachments.length > 0 ? (
             <div className="mb-2 flex flex-wrap gap-2">
               {pendingAttachments.map((attachment, index) => (
@@ -576,7 +576,7 @@ export function TurnInput(props: TurnInputProps = {}) {
               handleSend();
             }}
           />
-        </div>
+        </ScrollShell>
 
         {/* Toolbar row */}
         <div className="mt-2 flex shrink-0 items-center justify-between">

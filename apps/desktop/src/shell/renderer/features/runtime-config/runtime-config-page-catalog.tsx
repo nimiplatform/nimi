@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { Button, Card, Input, RuntimeSelect } from './runtime-config-primitives';
 import {
   sdkDeleteCatalogModelOverlay,
@@ -572,7 +573,11 @@ function AddModelDialog(props: { provider: RuntimeModelCatalogProvider; formStat
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 p-4">
-      <div className="max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-[28px] bg-white p-5 shadow-[0_32px_120px_rgba(15,23,42,0.28)]">
+      <ScrollShell
+        className="max-h-[92vh] w-full max-w-6xl rounded-[28px] bg-white shadow-[0_32px_120px_rgba(15,23,42,0.28)]"
+        viewportClassName="max-h-[92vh] rounded-[28px]"
+        contentClassName="p-5"
+      >
         <div className="flex items-center justify-between gap-3">
           <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{props.provider.provider}</p><h3 className="mt-1 text-xl font-semibold text-slate-900">Add Personal Catalog Model</h3></div>
           <Button variant="ghost" size="sm" onClick={props.onClose}>Close</Button>
@@ -614,7 +619,7 @@ function AddModelDialog(props: { provider: RuntimeModelCatalogProvider; formStat
         <div className="space-y-3">{props.formState.workflows.map((workflow, index) => <div key={`workflow-${index}`} className="grid gap-3 rounded-2xl border border-slate-200 p-3 md:grid-cols-3"><Input label="Workflow Model ID" value={workflow.workflowModelId} onChange={(value) => updateWorkflow(index, { workflowModelId: value })} /><Input label="Workflow Type" value={workflow.workflowType} onChange={(value) => updateWorkflow(index, { workflowType: value })} /><Input label="Input Contract Ref" value={workflow.inputContractRef} onChange={(value) => updateWorkflow(index, { inputContractRef: value })} /><Input label="Output Persistence" value={workflow.outputPersistence} onChange={(value) => updateWorkflow(index, { outputPersistence: value })} /><Input label="Target Model Refs" value={workflow.targetModelRefs} onChange={(value) => updateWorkflow(index, { targetModelRefs: value })} placeholder={props.formState.modelId || 'model-id'} /><Input label="Langs" value={workflow.langs} onChange={(value) => updateWorkflow(index, { langs: value })} /><Input label="Source URL" value={workflow.sourceUrl} onChange={(value) => updateWorkflow(index, { sourceUrl: value })} /><Input label="Retrieved At" value={workflow.sourceRetrievedAt} onChange={(value) => updateWorkflow(index, { sourceRetrievedAt: value })} /><Input label="Note" value={workflow.sourceNote} onChange={(value) => updateWorkflow(index, { sourceNote: value })} /></div>)}</div>
         <div className="mt-4 grid gap-3 md:grid-cols-2"><Input label="Binding Workflow Refs" value={props.formState.bindingRefsText} onChange={(value) => setField('bindingRefsText', value)} placeholder="workflow-a, workflow-b" /><Input label="Binding Workflow Types" value={props.formState.bindingTypesText} onChange={(value) => setField('bindingTypesText', value)} placeholder="tts_v2v, tts_t2v" /></div>
         <div className="mt-5 flex items-center justify-end gap-2"><Button variant="secondary" onClick={props.onClose}>Cancel</Button><Button onClick={props.onSubmit} disabled={props.saving}>{props.saving ? 'Saving...' : 'Save Model'}</Button></div>
-      </div>
+      </ScrollShell>
     </div>
   );
 }

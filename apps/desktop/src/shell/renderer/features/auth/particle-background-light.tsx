@@ -193,12 +193,13 @@ export function ParticleBackgroundLight(
     window.addEventListener('mousemove', onMouseMove);
 
     let frameId: number;
-    const clock = new THREE.Clock();
+    const timer = new THREE.Timer();
 
     const animate = () => {
       frameId = requestAnimationFrame(animate);
-      const delta = clock.getDelta();
-      const time = clock.getElapsedTime() * CONFIG.timeScale;
+      timer.update();
+      const delta = timer.getDelta();
+      const time = timer.getElapsed() * CONFIG.timeScale;
 
       lineMaterial.uniforms['uMouse']?.value.copy(mouse3D);
 
