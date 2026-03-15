@@ -1,9 +1,10 @@
-import { Suspense, lazy, useState, useEffect, type ReactNode } from 'react';
+import { Suspense, lazy, useState, useEffect, type ReactNode, type MouseEvent } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { desktopBridge } from '@renderer/bridge';
 
 const LoginPage = lazy(async () => {
   const mod = await import('@renderer/features/auth/login-page');
@@ -58,14 +59,33 @@ function NimiLogoMark({ className = 'h-12 w-12' }: { className?: string }) {
   );
 }
 
+const MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX = 92;
+
 function SharedStatusShell(props: {
   eyebrow: string;
   title: string;
   description?: string;
   children?: ReactNode;
 }) {
+  const flags = getShellFeatureFlags();
+
+  const onDragRegionMouseDown = (event: MouseEvent<HTMLDivElement>) => {
+    if (!flags.enableTitlebarDrag) return;
+    if (event.button !== 0) return;
+    if (event.detail > 1) return;
+    if (event.clientX < MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX) return;
+    void desktopBridge.startWindowDrag().catch(() => {
+      // no-op
+    });
+  };
+
   return (
     <div className="relative min-h-screen overflow-hidden text-[#1f2937]">
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-0 z-20 h-8"
+        onMouseDown={onDragRegionMouseDown}
+      />
       <style>{`
         @keyframes nimi-float {
           0%, 100% { transform: translateY(0px); }
