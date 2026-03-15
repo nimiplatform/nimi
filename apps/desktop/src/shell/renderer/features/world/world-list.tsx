@@ -176,6 +176,10 @@ export function WorldList() {
               <h2 className={`${APP_DISPLAY_SECTION_TITLE_CLASS} mb-4`} style={{ fontFamily: 'var(--font-display)', color: '#F8FAFF' }}>{t('World.mainWorld')}</h2>
                 <div
                   onClick={() => openWorldDetail(mainWorld.id)}
+                  onMouseEnter={() => {
+                    prefetchWorldDetailPanel();
+                    prefetchWorldDetailAndEvents(mainWorld.id);
+                  }}
                   className="group relative cursor-pointer transition-all duration-500 hover:-translate-y-1"
                   style={{
                     boxShadow: 'none',
@@ -346,6 +350,8 @@ export function WorldList() {
                         e.currentTarget.style.boxShadow = searchText
                           ? '0 12px 32px rgba(0, 0, 0, 0.08)'
                           : '0 20px 44px rgba(12,14,26,0.2)';
+                        prefetchWorldDetailPanel();
+                        prefetchWorldDetailAndEvents(world.id);
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.boxShadow = searchText
