@@ -16,6 +16,23 @@ const ICON_SEARCH = (
   </svg>
 );
 
+const WORLD_SYNC_DOT_PULSE_KEYFRAMES = `
+  @keyframes world-sync-dot-pulse {
+    0% {
+      transform: scale(0.75);
+      opacity: 0.82;
+    }
+    65% {
+      transform: scale(2.2);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(2.45);
+      opacity: 0;
+    }
+  }
+`;
+
 export type WorldAgentItem = {
   id: string;
   name: string;
@@ -335,21 +352,19 @@ function resolveWorldChronoPanelState(
   };
 }
 
-function WorldChronoPanel({ world, compact = false }: { world: WorldListItem; compact?: boolean }) {
+function WorldChronoPanel({
+  world,
+  compact = false,
+  nowMs,
+  anchorNowMs,
+}: {
+  world: WorldListItem;
+  compact?: boolean;
+  nowMs: number;
+  anchorNowMs: number;
+}) {
   const { t } = useTranslation();
-  const [nowMs, setNowMs] = useState(() => Date.now());
-  const anchorNowMsRef = useRef(Date.now());
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setNowMs(Date.now());
-    }, 80);
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, []);
-
-  const chrono = resolveWorldChronoPanelState(world, anchorNowMsRef.current, nowMs);
+  const chrono = resolveWorldChronoPanelState(world, anchorNowMs, nowMs);
   if (!chrono) {
     return null;
   }
@@ -368,9 +383,19 @@ function WorldChronoPanel({ world, compact = false }: { world: WorldListItem; co
           boxShadow: 'none',
         }}
       >
+      <style>{WORLD_SYNC_DOT_PULSE_KEYFRAMES}</style>
       <div className="mb-2 flex items-center justify-between gap-4">
-        <span className={`${compact ? 'text-[7px]' : 'text-[10px]'} uppercase tracking-[0.2em] text-[#56D3B2]/85`}>
-          {t('World.syncTicker')}
+        <span className={`inline-flex items-center ${compact ? 'gap-1.5 text-[7px]' : 'gap-2 text-[10px]'} uppercase tracking-[0.2em] text-[#56D3B2]/85`}>
+          <span className={`relative inline-flex ${compact ? 'h-1.5 w-1.5' : 'h-2 w-2'} shrink-0`}>
+            <span
+              className="absolute inset-0 rounded-full bg-[#56D3B2]"
+              style={{
+                animation: 'world-sync-dot-pulse 0.95s ease-out infinite',
+              }}
+            />
+            <span className="absolute inset-0 rounded-full bg-[#56D3B2]" />
+          </span>
+          <span>{t('World.syncTicker')}</span>
         </span>
         <span
           className={`text-right ${compact ? 'text-[10px]' : 'text-[13px]'} font-medium tracking-[0.08em] text-white/92`}
@@ -411,6 +436,17 @@ export function WorldList() {
   const { t } = useTranslation();
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
   const [searchText, setSearchText] = useState('');
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const anchorNowMsRef = useRef(Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 250);
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, []);
 
   const openWorldDetail = (worldId: string) => {
     prefetchWorldDetailPanel();
@@ -665,7 +701,7 @@ export function WorldList() {
                           </div>
 
                           <div className="shrink-0 lg:pt-1">
-                            <WorldChronoPanel world={mainWorld} />
+                            <WorldChronoPanel world={mainWorld} nowMs={nowMs} anchorNowMs={anchorNowMsRef.current} />
                           </div>
                         </div>
 
@@ -733,7 +769,7 @@ export function WorldList() {
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                             <div className="absolute right-3 top-0 z-10">
-                              <WorldChronoPanel world={world} compact />
+                              <WorldChronoPanel world={world} compact nowMs={nowMs} anchorNowMs={anchorNowMsRef.current} />
                             </div>
                         </div>
                       )}
