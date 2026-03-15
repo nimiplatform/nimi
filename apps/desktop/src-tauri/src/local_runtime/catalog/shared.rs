@@ -51,6 +51,13 @@ pub(super) fn default_endpoint_for_engine(engine: &str) -> String {
 pub(super) fn infer_engine(repo: &str, tags: &[String], capabilities: &[String]) -> String {
     let normalized_repo = repo.trim().to_ascii_lowercase();
     let joined_tags = tags.join(" ").to_ascii_lowercase();
+    let has_image_or_video = capabilities
+        .iter()
+        .any(|item| item == "image" || item == "video");
+
+    if std::env::consts::OS == "windows" && has_image_or_video {
+        return "nimi_media".to_string();
+    }
 
     if normalized_repo.contains("nexa")
         || joined_tags.contains("nexa")

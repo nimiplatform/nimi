@@ -1,7 +1,7 @@
 use super::reason_codes::LOCAL_AI_ADAPTER_MISMATCH;
 use super::types::{
     LocalAiProviderAdapterKind, LocalAiProviderHints, LocalAiProviderLocalHints,
-    LocalAiProviderNexaHints,
+    LocalAiProviderNexaHints, LocalAiProviderNimiMediaHints,
 };
 
 fn normalize_capability(value: &str) -> String {
@@ -15,7 +15,7 @@ pub fn normalize_provider(value: Option<&str>) -> String {
     if normalized.is_empty() {
         return "localai".to_string();
     }
-    if normalized == "localai" || normalized == "nexa" {
+    if normalized == "localai" || normalized == "nexa" || normalized == "nimi_media" {
         return normalized;
     }
     normalized
@@ -31,6 +31,9 @@ pub fn provider_from_engine(engine: &str) -> String {
     }
     if normalized.starts_with("nexa") {
         return "nexa".to_string();
+    }
+    if normalized.starts_with("nimi_media") || normalized.starts_with("nimimedia") {
+        return "nimi_media".to_string();
     }
     if normalized.starts_with("localai") {
         return "localai".to_string();
@@ -54,6 +57,9 @@ pub fn default_adapter_for_provider_capability(
     if normalized_provider == "nexa" {
         return LocalAiProviderAdapterKind::NexaNativeAdapter;
     }
+    if normalized_provider == "nimi_media" {
+        return LocalAiProviderAdapterKind::NimiMediaNativeAdapter;
+    }
     default_adapter_for_capability(capability)
 }
 
@@ -67,9 +73,40 @@ fn hint_preferred_adapter(
             .and_then(|value| value.nexa.as_ref())
             .and_then(|nexa| nexa.preferred_adapter.clone());
     }
+    if normalized_provider == "nimi_media" {
+        return hints
+            .and_then(|value| value.nimi_media.as_ref())
+            .and_then(|nimi_media| nimi_media.preferred_adapter.clone());
+    }
     hints
         .and_then(|value| value.localai.as_ref())
         .and_then(|local| local.preferred_adapter.clone())
+}
+
+fn nimi_media_driver_hint_for_capability(capability: &str) -> Option<String> {
+    match normalize_capability(capability).as_str() {
+        "image" => Some("flux".to_string()),
+        "video" => Some("wan".to_string()),
+        _ => None,
+    }
+}
+
+fn nimi_media_driver_hint_for_model(model_id: &str, capability: &str) -> Option<String> {
+    let normalized = model_id.trim().to_ascii_lowercase();
+    if normalized.is_empty() {
+        return nimi_media_driver_hint_for_capability(capability);
+    }
+    if capability.eq_ignore_ascii_case("image")
+        && (normalized.contains("flux") || normalized.contains("image"))
+    {
+        return Some("flux".to_string());
+    }
+    if capability.eq_ignore_ascii_case("video")
+        && (normalized.contains("wan") || normalized.contains("video"))
+    {
+        return Some("wan".to_string());
+    }
+    nimi_media_driver_hint_for_capability(capability)
 }
 
 pub fn localai_backend_hint_for_capability(capability: &str) -> Option<String> {
@@ -190,6 +227,19 @@ fn nexa_probe_model_matches_capability(model_id: &str, capability: &str) -> bool
     }
 }
 
+fn nimi_media_probe_model_matches_capability(model_id: &str, capability: &str) -> bool {
+    let normalized = model_id.trim().to_ascii_lowercase();
+    if normalized.is_empty() {
+        return false;
+    }
+
+    match capability.to_ascii_lowercase().as_str() {
+        "image" => normalized.contains("flux") || normalized.contains("image"),
+        "video" => normalized.contains("wan") || normalized.contains("video"),
+        _ => false,
+    }
+}
+
 pub fn probe_model_matches_capability_for_provider(
     provider: &str,
     model_id: &str,
@@ -198,6 +248,9 @@ pub fn probe_model_matches_capability_for_provider(
     let normalized_provider = normalize_provider(Some(provider));
     if normalized_provider == "nexa" {
         return nexa_probe_model_matches_capability(model_id, capability);
+    }
+    if normalized_provider == "nimi_media" {
+        return nimi_media_probe_model_matches_capability(model_id, capability);
     }
     localai_probe_model_matches_capability(model_id, capability)
 }
@@ -210,6 +263,11 @@ pub fn infer_backend_hint_for_provider(
     let normalized_provider = normalize_provider(Some(provider));
     if normalized_provider == "nexa" {
         return None;
+    }
+    if normalized_provider == "nimi_media" {
+        return model_id
+            .and_then(|value| nimi_media_driver_hint_for_model(value, capability))
+            .or_else(|| nimi_media_driver_hint_for_capability(capability));
     }
     model_id
         .and_then(|value| localai_backend_hint_for_model(value, capability))
@@ -242,6 +300,24 @@ pub fn default_provider_hints_for_provider_capability(
                 gate_reason: None,
                 gate_detail: None,
             }),
+            nimi_media: None,
+            extra: None,
+        });
+    }
+
+    if normalized_provider == "nimi_media" {
+        return Some(LocalAiProviderHints {
+            localai: None,
+            nexa: None,
+            nimi_media: Some(LocalAiProviderNimiMediaHints {
+                preferred_adapter: Some(default_adapter_for_provider_capability(
+                    normalized_provider.as_str(),
+                    capability,
+                )),
+                driver: nimi_media_driver_hint_for_capability(capability),
+                family: Some("diffusers".to_string()),
+            }),
+            extra: None,
         });
     }
 
@@ -255,6 +331,8 @@ pub fn default_provider_hints_for_provider_capability(
             video_backend: None,
         }),
         nexa: None,
+        nimi_media: None,
+        extra: None,
     })
 }
 
@@ -267,6 +345,11 @@ pub fn provider_backend_hint_from_hints(
         return hints
             .and_then(|value| value.nexa.as_ref())
             .and_then(|nexa| nexa.backend.clone());
+    }
+    if normalized_provider == "nimi_media" {
+        return hints
+            .and_then(|value| value.nimi_media.as_ref())
+            .and_then(|nimi_media| nimi_media.driver.clone());
     }
     hints
         .and_then(|value| value.localai.as_ref())
@@ -307,6 +390,21 @@ pub fn with_provider_backend_hint(
         return;
     }
 
+    if normalized_provider == "nimi_media" {
+        if current.nimi_media.is_none() {
+            current.nimi_media = Some(LocalAiProviderNimiMediaHints::default());
+        }
+        if let Some(nimi_media) = current.nimi_media.as_mut() {
+            if nimi_media.driver.is_none() {
+                nimi_media.driver = Some(backend_value);
+            }
+            if nimi_media.family.is_none() {
+                nimi_media.family = Some("diffusers".to_string());
+            }
+        }
+        return;
+    }
+
     if current.localai.is_none() {
         current.localai = Some(LocalAiProviderLocalHints::default());
     }
@@ -323,6 +421,10 @@ pub fn adapter_supports_capability(adapter: &LocalAiProviderAdapterKind, capabil
         return matches!(adapter, LocalAiProviderAdapterKind::LocalaiNativeAdapter);
     }
     true
+}
+
+fn nimi_media_adapter_supports_capability(capability: &str) -> bool {
+    matches!(normalize_capability(capability).as_str(), "image" | "video")
 }
 
 fn nexa_adapter_supports_capability(capability: &str) -> bool {
@@ -345,6 +447,13 @@ pub fn adapter_supports_capability_for_provider(
             return false;
         }
         return matches!(adapter, LocalAiProviderAdapterKind::NexaNativeAdapter);
+    }
+
+    if normalized_provider == "nimi_media" {
+        if !nimi_media_adapter_supports_capability(capability) {
+            return false;
+        }
+        return matches!(adapter, LocalAiProviderAdapterKind::NimiMediaNativeAdapter);
     }
 
     if normalized_provider == "localai" {
@@ -389,6 +498,9 @@ pub fn provider_available_for_capability(provider: &str, capability: &str) -> bo
             normalize_capability(capability).as_str(),
             "chat" | "embedding" | "stt" | "tts" | "image" | "rerank" | "cv" | "diarize"
         );
+    }
+    if normalized_provider == "nimi_media" {
+        return matches!(normalize_capability(capability).as_str(), "image" | "video");
     }
     true
 }

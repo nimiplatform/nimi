@@ -296,8 +296,84 @@ fn nexa_service_artifact() -> LocalAiServiceArtifact {
     }
 }
 
+fn nimi_media_service_artifact() -> LocalAiServiceArtifact {
+    LocalAiServiceArtifact {
+        service_id: "nimi-media-openai-gateway".to_string(),
+        artifact_type: LocalAiServiceArtifactType::PythonEnv,
+        engine: "nimi_media".to_string(),
+        install: LocalAiServiceInstallSpec {
+            requirements: Vec::new(),
+            bootstrap: Some("engine-pack:nimi_media".to_string()),
+            binary_url: None,
+        },
+        preflight: vec![
+            LocalAiPreflightRule {
+                check: "port-available".to_string(),
+                reason_code: "LOCAL_AI_SERVICE_UNREACHABLE".to_string(),
+                params: Some(serde_json::json!({ "port": 8321 })),
+            },
+            LocalAiPreflightRule {
+                check: "disk-space".to_string(),
+                reason_code: "LOCAL_AI_SERVICE_UNREACHABLE".to_string(),
+                params: Some(serde_json::json!({ "minBytes": 536870912_u64 })),
+            },
+            LocalAiPreflightRule {
+                check: "endpoint-loopback".to_string(),
+                reason_code: "LOCAL_AI_SERVICE_UNREACHABLE".to_string(),
+                params: None,
+            },
+        ],
+        process: LocalAiServiceProcessSpec {
+            entry: "nimi_media_server.py".to_string(),
+            args: Vec::new(),
+            env: empty_env(),
+            model_binding: None,
+        },
+        health: LocalAiServiceHealthSpec {
+            endpoint: "/health".to_string(),
+            capability_probe_endpoint: Some("/v1/models".to_string()),
+            interval_ms: 30_000,
+            timeout_ms: 4_000,
+        },
+        nodes: vec![
+            LocalAiNodeContract {
+                node_id: "image.generate.nimi_media".to_string(),
+                title: "Nimi Media Image Generation".to_string(),
+                capability: "image".to_string(),
+                api_path: "/v1/images/generations".to_string(),
+                input_schema: Some(serde_json::json!({
+                    "prompt": "string",
+                    "size": "string?",
+                    "providerHints": "object?"
+                })),
+                output_schema: Some(serde_json::json!({
+                    "images": "object[]"
+                })),
+            },
+            LocalAiNodeContract {
+                node_id: "video.generate.nimi_media".to_string(),
+                title: "Nimi Media Video Generation".to_string(),
+                capability: "video".to_string(),
+                api_path: "/v1/video/generations".to_string(),
+                input_schema: Some(serde_json::json!({
+                    "prompt": "string",
+                    "durationSeconds": "number?",
+                    "providerHints": "object?"
+                })),
+                output_schema: Some(serde_json::json!({
+                    "videos": "object[]"
+                })),
+            },
+        ],
+    }
+}
+
 pub fn service_artifact_registry() -> Vec<LocalAiServiceArtifact> {
-    vec![localai_service_artifact(), nexa_service_artifact()]
+    vec![
+        localai_service_artifact(),
+        nexa_service_artifact(),
+        nimi_media_service_artifact(),
+    ]
 }
 
 pub fn find_service_artifact(service_id: &str) -> Option<LocalAiServiceArtifact> {

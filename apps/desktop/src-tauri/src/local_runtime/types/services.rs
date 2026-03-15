@@ -2,18 +2,15 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[allow(clippy::enum_variant_names)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum LocalAiProviderAdapterKind {
+    #[default]
     OpenaiCompatAdapter,
     LocalaiNativeAdapter,
     NexaNativeAdapter,
-}
-
-impl Default for LocalAiProviderAdapterKind {
-    fn default() -> Self {
-        Self::OpenaiCompatAdapter
-    }
+    NimiMediaNativeAdapter,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -75,6 +72,8 @@ pub struct LocalAiServiceHealthSpec {
 pub struct LocalAiProviderHints {
     pub localai: Option<LocalAiProviderLocalHints>,
     pub nexa: Option<LocalAiProviderNexaHints>,
+    pub nimi_media: Option<LocalAiProviderNimiMediaHints>,
+    pub extra: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -103,6 +102,14 @@ pub struct LocalAiProviderNexaHints {
     pub npu_usable: Option<bool>,
     pub gate_reason: Option<String>,
     pub gate_detail: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalAiProviderNimiMediaHints {
+    pub preferred_adapter: Option<LocalAiProviderAdapterKind>,
+    pub driver: Option<String>,
+    pub family: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

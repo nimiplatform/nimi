@@ -16,22 +16,32 @@ fn z_image_turbo_hashes() -> HashMap<String, String> {
 
 fn z_image_turbo_descriptor() -> LocalAiVerifiedModelDescriptor {
     let files = vec!["z_image_turbo-Q4_K_M.gguf".to_string()];
+    let image_engine = if std::env::consts::OS == "windows" {
+        "nimi_media"
+    } else {
+        "localai"
+    };
+    let image_endpoint = if image_engine == "nimi_media" {
+        "http://127.0.0.1:8321/v1"
+    } else {
+        "http://127.0.0.1:1234/v1"
+    };
     LocalAiVerifiedModelDescriptor {
         template_id: VERIFIED_TEMPLATE_ID_Z_IMAGE_TURBO.to_string(),
         title: "Z-Image Turbo (GGUF)".to_string(),
-        description: "Recommended verified LocalAI image main model for dynamic workflow assembly"
+        description: "Recommended verified local image main model for dynamic workflow assembly"
             .to_string(),
         install_kind: "download".to_string(),
         model_id: "local/z_image_turbo".to_string(),
         repo: "jayn7/Z-Image-Turbo-GGUF".to_string(),
         revision: "main".to_string(),
         capabilities: vec!["image".to_string()],
-        engine: "localai".to_string(),
+        engine: image_engine.to_string(),
         entry: "z_image_turbo-Q4_K_M.gguf".to_string(),
         files: files.clone(),
         license: "apache-2.0".to_string(),
         hashes: z_image_turbo_hashes(),
-        endpoint: "http://127.0.0.1:1234/v1".to_string(),
+        endpoint: image_endpoint.to_string(),
         file_count: files.len(),
         total_size_bytes: Some(4_981_532_736),
         tags: vec![
@@ -190,7 +200,12 @@ mod tests {
         let found = find_verified_model(VERIFIED_TEMPLATE_ID_Z_IMAGE_TURBO);
         assert!(found.is_some());
         let descriptor = found.expect("descriptor");
-        assert_eq!(descriptor.engine, "localai");
+        let expected_engine = if std::env::consts::OS == "windows" {
+            "nimi_media"
+        } else {
+            "localai"
+        };
+        assert_eq!(descriptor.engine, expected_engine);
         assert_eq!(descriptor.capabilities, vec!["image".to_string()]);
         assert!(descriptor
             .files

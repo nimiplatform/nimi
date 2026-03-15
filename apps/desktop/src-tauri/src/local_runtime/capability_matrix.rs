@@ -85,7 +85,7 @@ fn probe_models_for_capability<'a>(
             probe_model_matches_capability_for_provider(provider, item.as_str(), capability)
         })
         .collect::<Vec<_>>();
-    selected.sort_by(|left, right| left.cmp(right));
+    selected.sort();
     selected
 }
 
@@ -94,6 +94,26 @@ fn backend_source_rank(value: &str) -> i32 {
         "installed-model" => 3,
         "provider-probe" => 2,
         "catalog" => 1,
+        _ => 0,
+    }
+}
+
+fn provider_priority(capability: &str, provider: &str) -> i32 {
+    match capability.trim().to_ascii_lowercase().as_str() {
+        "image" | "video" => match provider.trim().to_ascii_lowercase().as_str() {
+            "nimi_media" => 3,
+            "localai" => 2,
+            "nexa" => 1,
+            _ => 0,
+        },
+        "chat" | "embedding" | "stt" | "tts" | "rerank" | "cv" | "diarize" => {
+            match provider.trim().to_ascii_lowercase().as_str() {
+                "nexa" => 3,
+                "localai" => 2,
+                "nimi_media" => 1,
+                _ => 0,
+            }
+        }
         _ => 0,
     }
 }
@@ -120,6 +140,14 @@ fn prefer_row(
     let current_reason_rank = if current.reason_code.is_some() { 0 } else { 1 };
     if candidate_reason_rank != current_reason_rank {
         return candidate_reason_rank > current_reason_rank;
+    }
+
+    let candidate_provider_rank =
+        provider_priority(candidate.capability.as_str(), candidate.provider.as_str());
+    let current_provider_rank =
+        provider_priority(current.capability.as_str(), current.provider.as_str());
+    if candidate_provider_rank != current_provider_rank {
+        return candidate_provider_rank > current_provider_rank;
     }
 
     let candidate_model = candidate.model_id.as_deref().unwrap_or_default();
@@ -337,17 +365,19 @@ pub fn build_capability_matrix_with_probe_and_device(
                     ) {
                         available = false;
                         reason_code = Some(LOCAL_AI_CAPABILITY_MISSING.to_string());
-                    } else if model_id.is_none() {
-                        available = false;
-                        reason_code = Some(LOCAL_AI_CAPABILITY_MISSING.to_string());
-                    } else if provider.eq_ignore_ascii_case("nexa")
-                        && nexa_capability_requires_npu(node.capability.as_str())
+                    } else if model_id.is_none()
+                        || (provider.eq_ignore_ascii_case("nexa")
+                            && nexa_capability_requires_npu(node.capability.as_str())
+                            && !nexa_gate
+                                .as_ref()
+                                .map(|item| item.npu_usable)
+                                .unwrap_or(false))
                     {
                         let gate_allows = nexa_gate
                             .as_ref()
                             .map(|item| item.npu_usable)
                             .unwrap_or(false);
-                        if !gate_allows {
+                        if model_id.is_none() || !gate_allows {
                             available = false;
                             reason_code = Some(LOCAL_AI_CAPABILITY_MISSING.to_string());
                         }

@@ -271,6 +271,16 @@ fn build_manifest_from_install_request(
         .clone()
         .unwrap_or_else(|| vec!["chat".to_string()]);
     let capabilities = normalize_and_validate_capabilities(&capabilities_input)?;
+    let default_engine = if capabilities.iter().any(|item| item == "image" || item == "video") {
+        "nimi_media"
+    } else if capabilities
+        .iter()
+        .any(|item| item == "tts" || item == "stt" || item == "embedding")
+    {
+        "nexa"
+    } else {
+        "localai"
+    };
 
     let hashes = if !computed_hashes.is_empty() {
         computed_hashes.clone()
@@ -282,7 +292,7 @@ fn build_manifest_from_install_request(
         schema_version: "1.0.0".to_string(),
         model_id: request.model_id.trim().to_string(),
         capabilities,
-        engine: normalize_non_empty(request.engine.as_deref().unwrap_or("localai"), "localai"),
+        engine: normalize_non_empty(request.engine.as_deref().unwrap_or(default_engine), default_engine),
         entry: entry_file.to_string(),
         files: files.to_vec(),
         license: normalize_non_empty(request.license.as_deref().unwrap_or("unknown"), "unknown"),
