@@ -202,7 +202,10 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 
 | Provider | Capability | Adapter |
 |---|---|---|
-| `nexa` | `*`（任意） | `nexa_native_adapter` |
+| `nexa` | `chat` / `text.generate` | `nexa_native_adapter` |
+| `nexa` | `embedding` / `embed` / `text.embed` | `nexa_native_adapter` |
+| `nexa` | `tts` / `speech` / `audio.synthesize` | `nexa_native_adapter` |
+| `nexa` | `stt` / `transcription` / `audio.transcribe` | `nexa_native_adapter` |
 | `nimi_media` | `image` | `nimi_media_native_adapter` |
 | `nimi_media` | `video` | `nimi_media_native_adapter` |
 | `localai` | `image` | `localai_native_adapter` |
@@ -221,6 +224,7 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 
 - `LocalNodeDescriptor.policy_gate` 字段描述门控规则标识（如 `nexa.video.unsupported`）。
 - 门控触发时：Node 的 `available=false`，`reason_code` 说明原因。
+- 对 host 已知但 capability 不受支持的 provider × capability 组合，runtime 必须设置 `<provider>.<capability>.unsupported` 风格的 policy gate，并且不得继续暴露 native adapter。
 - Nexa NPU 门控判定规则：
   - `host_npu_ready=false` → `npu_usable=false`
   - `model_probe_has_npu_candidate=false` → `npu_usable=false`
@@ -257,7 +261,7 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 | `nexa/` | 仅匹配 `nexa` 引擎的已安装模型 |
 | `nimi_media/` | 仅匹配 `nimi_media` 引擎的已安装模型 |
 | `sidecar/` / `localsidecar/` | 仅匹配 `sidecar` 引擎的已安装模型 |
-| `local/` | 按 host + modal 做偏好路由：Windows 下 `text/embed/tts/stt -> nexa`、`image/video -> nimi_media`；其余情况优先 `localai`，再回退其他兼容引擎 |
+| `local/` | 按 host + modal 做偏好路由：Windows 下 `text/embed/tts/stt -> nexa`、`image/video -> nimi_media`，指定默认引擎不可用时直接 fail-close；其余情况按该 modal 的兼容引擎序列选择，且只允许在真实支持该 modal 的引擎之间回退 |
 | 无前缀 | 按已安装模型的 `model_id` 精确匹配 |
 
 前缀在匹配时剥除（`localai/llama3.1` 匹配 `model_id=llama3.1` 且 `engine=localai`；`nimi_media/flux.1-schnell` 匹配 `model_id=flux.1-schnell` 且 `engine=nimi_media`；`sidecar/musicgen` 匹配 `model_id=musicgen` 且 `engine=sidecar`）。
@@ -265,6 +269,7 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 Windows 补充：
 
 - 当 host 对 `nimi_media` 仅为 `attached_only` 时，`local/image` 与 `local/video` 不得把默认 managed loopback 当作 attached fallback；只有显式 attached endpoint 可继续走 `nimi_media`。
+- Windows 的 `local/*` 默认路由不得跨引擎静默回退：`local/image` / `local/video` 不得回退到 `localai` 或 `nexa`，`local/text` / `local/embed` / `local/tts` / `local/stt` 不得回退到 `localai` 或 `nimi_media`。
 
 未知前缀（如 `ollama/`）视为无前缀，按 `model_id` 全文精确匹配（不剥除前缀）。
 

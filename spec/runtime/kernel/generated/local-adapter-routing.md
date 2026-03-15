@@ -4,7 +4,17 @@
 > Source: `spec/runtime/kernel/tables/local-adapter-routing.yaml`
 | Provider | Capability | Adapter | Source |
 |---|---|---|---|
-| `nexa` | `*` | `nexa_native_adapter` | `K-LOCAL-017` |
+| `nexa` | `chat` | `nexa_native_adapter` | `K-LOCAL-017` |
+| `nexa` | `text.generate` | `nexa_native_adapter` | `K-LOCAL-017` |
+| `nexa` | `embedding` | `nexa_native_adapter` | `K-LOCAL-017` |
+| `nexa` | `embed` | `nexa_native_adapter` | `K-LOCAL-017` |
+| `nexa` | `text.embed` | `nexa_native_adapter` | `K-LOCAL-017` |
+| `nexa` | `tts` | `nexa_native_adapter` | `K-LOCAL-017` |
+| `nexa` | `speech` | `nexa_native_adapter` | `K-LOCAL-017` |
+| `nexa` | `audio.synthesize` | `nexa_native_adapter` | `K-LOCAL-017` |
+| `nexa` | `stt` | `nexa_native_adapter` | `K-LOCAL-017` |
+| `nexa` | `transcription` | `nexa_native_adapter` | `K-LOCAL-017` |
+| `nexa` | `audio.transcribe` | `nexa_native_adapter` | `K-LOCAL-017` |
 | `localai` | `image` | `localai_native_adapter` | `K-LOCAL-017` |
 | `localai` | `video` | `localai_native_adapter` | `K-LOCAL-017` |
 | `localai` | `tts` | `localai_native_adapter` | `K-LOCAL-017` |

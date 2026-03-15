@@ -1,7 +1,47 @@
 version: 1
 routes:
   - provider: nexa
-    capability: "*"
+    capability: chat
+    adapter: nexa_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: nexa
+    capability: text.generate
+    adapter: nexa_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: nexa
+    capability: embedding
+    adapter: nexa_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: nexa
+    capability: embed
+    adapter: nexa_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: nexa
+    capability: text.embed
+    adapter: nexa_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: nexa
+    capability: tts
+    adapter: nexa_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: nexa
+    capability: speech
+    adapter: nexa_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: nexa
+    capability: audio.synthesize
+    adapter: nexa_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: nexa
+    capability: stt
+    adapter: nexa_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: nexa
+    capability: transcription
+    adapter: nexa_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: nexa
+    capability: audio.transcribe
     adapter: nexa_native_adapter
     source_rule: K-LOCAL-017
   - provider: localai
