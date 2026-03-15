@@ -1,0 +1,499 @@
+import { useCallback, useEffect, useState, type MutableRefObject } from 'react';
+import type { Phase1Result, Phase2Result } from '@world-engine/generation/pipeline.js';
+import { runPhase1ExtractionFromChunks, runPhase2DraftGeneration } from '@world-engine/generation/pipeline.js';
+import { splitSourceText } from '@world-engine/engine/chunker.js';
+import { toFailedChunkIndices } from '@world-engine/services/event-graph-map.js';
+import type {
+  WorldLorebookDraftRow,
+  WorldStudioCreateStep,
+  WorldStudioSnapshotPatch,
+  WorldStudioWorkspaceSnapshot,
+} from '@world-engine/contracts.js';
+import { useWorldMutations } from '@renderer/hooks/use-world-mutations.js';
+import { getPlatformClient } from '@runtime/platform-client.js';
+import {
+  createForgeAiClient,
+  resolveGeneratedImageUrl,
+  toDraftStatus,
+} from './world-create-page-helpers';
+type UseWorldCreatePageGenerationInput = {
+  activeDraftId: string;
+  mutations: ReturnType<typeof useWorldMutations>;
+  patchSnapshot: (patch: WorldStudioSnapshotPatch) => void;
+  retryConcurrency: number;
+  retryScope: 'all' | 'json' | 'coarse' | 'fine';
+  setActiveDraftId: (value: string) => void;
+  setCreateStep: (step: WorldStudioCreateStep) => void;
+  setNotice: (message: string | null) => void;
+  setRetryErrorCode: (value: string | null) => void;
+  snapshot: WorldStudioWorkspaceSnapshot;
+  sourceChunksRef: MutableRefObject<string[]>;
+  sourceMode: 'TEXT' | 'FILE';
+  sourceRawTextRef: MutableRefObject<string>;
+};
+export function useWorldCreatePageGeneration(input: UseWorldCreatePageGenerationInput) {
+  const [phase1, setPhase1] = useState<Phase1Result | null>(null);
+  const [phase2, setPhase2] = useState<Phase2Result | null>(null);
+  useEffect(() => {
+    const artifact = input.snapshot.phase1Artifact;
+    if (!artifact) {
+      if (phase1) {
+        setPhase1(null);
+      }
+      return;
+    }
+    if (phase1) {
+      return;
+    }
+    setPhase1({
+      startTimeOptions: artifact.startTimeOptions,
+      characterCandidates: artifact.characterCandidates,
+      knowledgeGraph: input.snapshot.knowledgeGraph,
+      finalDraftAccumulator: input.snapshot.finalDraftAccumulator,
+      qualityGate: artifact.qualityGate,
+      chunkTasks: artifact.chunkTasks,
+      rawText: JSON.stringify({ restoredFromArtifact: true, updatedAt: artifact.updatedAt }),
+    });
+  }, [input.snapshot.finalDraftAccumulator, input.snapshot.knowledgeGraph, input.snapshot.phase1Artifact, phase1]);
+  const onRunPhase1 = useCallback(() => {
+    const sourceText = input.sourceMode === 'FILE' ? input.sourceRawTextRef.current : (input.snapshot.sourceText || '');
+    if (!sourceText.trim()) {
+      input.setNotice('Please provide source text before running extraction.');
+      return;
+    }
+    input.setNotice(null);
+    input.setCreateStep('INGEST');
+    input.patchSnapshot({
+      parseJob: {
+        phase: 'ingest',
+        chunkTotal: 0,
+        chunkProcessed: 0,
+        chunkCompleted: 0,
+        chunkFailed: 0,
+        progress: 0.05,
+        etaSeconds: null,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+    const aiClient = createForgeAiClient();
+    const chunks = splitSourceText(sourceText);
+    input.sourceChunksRef.current = chunks;
+    void (async () => {
+      try {
+        const result = await runPhase1ExtractionFromChunks(aiClient, chunks, {
+          onProgress: (progress) => {
+            input.patchSnapshot({
+              parseJob: {
+                phase: progress.phase,
+                chunkTotal: progress.chunkTotal,
+                chunkProcessed: progress.chunkProcessed,
+                chunkCompleted: progress.chunkCompleted,
+                chunkFailed: progress.chunkFailed,
+                progress: progress.progress,
+                etaSeconds: progress.etaSeconds,
+                updatedAt: new Date().toISOString(),
+              },
+            });
+            if (progress.phase === 'extract') {
+              input.setCreateStep('EXTRACT');
+            }
+          },
+          onFinalDraftAccumulatorUpdate: (accumulator) => {
+            input.patchSnapshot({ finalDraftAccumulator: accumulator });
+          },
+        });
+        setPhase1(result);
+        input.patchSnapshot({
+          knowledgeGraph: result.knowledgeGraph,
+          finalDraftAccumulator: result.finalDraftAccumulator,
+          phase1Artifact: {
+            startTimeOptions: result.startTimeOptions,
+            characterCandidates: result.characterCandidates,
+            qualityGate: result.qualityGate,
+            chunkTasks: result.chunkTasks,
+            narrativeArc: null,
+            sourceDigest: '',
+            updatedAt: new Date().toISOString(),
+          },
+          parseJob: {
+            phase: 'done',
+            chunkTotal: result.qualityGate.metrics.totalChunks,
+            chunkProcessed: result.qualityGate.metrics.totalChunks,
+            chunkCompleted: result.qualityGate.metrics.successChunks,
+            chunkFailed: result.qualityGate.metrics.failedChunks,
+            progress: 1,
+            etaSeconds: 0,
+            updatedAt: new Date().toISOString(),
+          },
+        });
+        input.setCreateStep('CHECKPOINTS');
+        if (result.qualityGate.status === 'PASS') {
+          input.setNotice('Extraction completed. Confirm checkpoints.');
+        } else if (result.qualityGate.status === 'WARN') {
+          input.setNotice('Extraction completed with warnings. Confirm checkpoints before synthesize.');
+        } else {
+          input.setNotice('Extraction completed, but quality gate blocked. Try rerunning failed chunks.');
+        }
+      } catch (error) {
+        input.patchSnapshot({
+          parseJob: {
+            phase: 'failed',
+            updatedAt: new Date().toISOString(),
+          },
+        });
+        input.setNotice(error instanceof Error ? error.message : 'Phase 1 extraction failed.');
+      }
+    })();
+  }, [input]);
+  const runPhase1Retry = useCallback((failedIndices: number[], successNotice: string) => {
+    const sourceText = input.sourceMode === 'FILE' ? input.sourceRawTextRef.current : (input.snapshot.sourceText || '');
+    const allChunks = input.sourceChunksRef.current.length > 0
+      ? input.sourceChunksRef.current
+      : splitSourceText(sourceText);
+    const chunksToRetry = failedIndices.map((index) => allChunks[index]!).filter(Boolean);
+    const aiClient = createForgeAiClient();
+    input.patchSnapshot({
+      parseJob: {
+        phase: 'extract',
+        progress: 0.1,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+    input.setCreateStep('EXTRACT');
+    void (async () => {
+      try {
+        const result = await runPhase1ExtractionFromChunks(aiClient, chunksToRetry, {
+          chunkIndexMap: failedIndices,
+          maxConcurrency: input.retryConcurrency,
+          onProgress: (progress) => {
+            input.patchSnapshot({
+              parseJob: {
+                phase: progress.phase,
+                chunkTotal: progress.chunkTotal,
+                chunkProcessed: progress.chunkProcessed,
+                chunkCompleted: progress.chunkCompleted,
+                chunkFailed: progress.chunkFailed,
+                progress: progress.progress,
+                etaSeconds: progress.etaSeconds,
+                updatedAt: new Date().toISOString(),
+              },
+            });
+          },
+          onFinalDraftAccumulatorUpdate: (finalDraftAccumulator) => {
+            input.patchSnapshot({ finalDraftAccumulator });
+          },
+        });
+        setPhase1(result);
+        input.patchSnapshot({
+          knowledgeGraph: result.knowledgeGraph,
+          finalDraftAccumulator: result.finalDraftAccumulator,
+          phase1Artifact: {
+            startTimeOptions: result.startTimeOptions,
+            characterCandidates: result.characterCandidates,
+            qualityGate: result.qualityGate,
+            chunkTasks: result.chunkTasks,
+            narrativeArc: null,
+            sourceDigest: '',
+            updatedAt: new Date().toISOString(),
+          },
+          parseJob: {
+            phase: 'done',
+            progress: 1,
+            etaSeconds: 0,
+            updatedAt: new Date().toISOString(),
+          },
+        });
+        input.setCreateStep('CHECKPOINTS');
+        input.setNotice(successNotice);
+      } catch (error) {
+        input.patchSnapshot({
+          parseJob: {
+            phase: 'failed',
+            updatedAt: new Date().toISOString(),
+          },
+        });
+        input.setNotice(error instanceof Error ? error.message : 'Retry failed chunks failed.');
+      }
+    })();
+  }, [input]);
+  const onRunFailedChunks = useCallback(() => {
+    if (!phase1) {
+      input.setNotice('No Phase 1 result to retry from.');
+      return;
+    }
+    const sourceText = input.sourceMode === 'FILE' ? input.sourceRawTextRef.current : (input.snapshot.sourceText || '');
+    const allChunks = input.sourceChunksRef.current.length > 0
+      ? input.sourceChunksRef.current
+      : splitSourceText(sourceText);
+    if (allChunks.length === 0) {
+      input.setNotice('No source chunks available for retry.');
+      return;
+    }
+    const failedIndices = toFailedChunkIndices(
+      phase1.chunkTasks as Array<{ chunkIndex: number; status: 'success' | 'failed'; stage?: string; errorCode?: string; errorMessage?: string }>,
+      allChunks.length,
+      input.retryScope,
+    );
+    if (failedIndices.length === 0) {
+      input.setNotice('No failed chunks to retry.');
+      return;
+    }
+    input.setNotice(null);
+    runPhase1Retry(failedIndices, 'Failed chunks re-extracted. Confirm checkpoints.');
+  }, [input, phase1, runPhase1Retry]);
+  const onRunFailedChunksByErrorCode = useCallback((errorCode: string) => {
+    if (!phase1) {
+      input.setNotice('No Phase 1 result to retry from.');
+      return;
+    }
+    const sourceText = input.sourceMode === 'FILE' ? input.sourceRawTextRef.current : (input.snapshot.sourceText || '');
+    const allChunks = input.sourceChunksRef.current.length > 0
+      ? input.sourceChunksRef.current
+      : splitSourceText(sourceText);
+    if (allChunks.length === 0) {
+      input.setNotice('No source chunks available for retry.');
+      return;
+    }
+    const failedIndices = toFailedChunkIndices(
+      phase1.chunkTasks as Array<{ chunkIndex: number; status: 'success' | 'failed'; stage?: string; errorCode?: string; errorMessage?: string }>,
+      allChunks.length,
+      input.retryScope,
+      errorCode,
+    );
+    if (failedIndices.length === 0) {
+      input.setNotice(`No failed chunks matching error code "${errorCode}".`);
+      return;
+    }
+    input.setNotice(null);
+    input.setRetryErrorCode(errorCode);
+    runPhase1Retry(failedIndices, `Retry by error code "${errorCode}" completed. Confirm checkpoints.`);
+  }, [input, phase1, runPhase1Retry]);
+
+  const onRefreshQualityGate = useCallback(() => {
+    if (!phase1) {
+      return;
+    }
+    setPhase1({ ...phase1 });
+  }, [phase1]);
+
+  const onRunPhase2 = useCallback(() => {
+    if (!phase1 || !phase1.qualityGate.pass) {
+      input.setNotice('Phase 1 extraction must pass quality gate before synthesize.');
+      return;
+    }
+    if (!input.snapshot.selectedStartTimeId) {
+      input.setNotice('Please select a start time before synthesize.');
+      return;
+    }
+    if (input.snapshot.selectedCharacters.length === 0) {
+      input.setNotice('Please select at least one character before synthesize.');
+      return;
+    }
+    input.setNotice(null);
+    input.setCreateStep('SYNTHESIZE');
+    input.patchSnapshot({
+      parseJob: {
+        phase: 'synthesize',
+        progress: 0.9,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+    const aiClient = createForgeAiClient();
+    void (async () => {
+      try {
+        const result = await runPhase2DraftGeneration(aiClient, {
+          selectedStartTimeId: input.snapshot.selectedStartTimeId,
+          selectedCharacters: input.snapshot.selectedCharacters,
+          knowledgeGraph: input.snapshot.knowledgeGraph as Record<string, unknown>,
+          finalDraftAccumulator: input.snapshot.finalDraftAccumulator,
+        });
+        setPhase2(result);
+        const draftsByCharacter = (result.agentDrafts || []).reduce(
+          (accumulator, item) => {
+            const name = String(item.characterName || '').trim();
+            if (name) {
+              accumulator[name] = { ...item, dna: item.dna };
+            }
+            return accumulator;
+          },
+          {} as Record<string, (typeof result.agentDrafts)[number]>,
+        );
+        input.patchSnapshot({
+          worldPatch: result.world,
+          worldviewPatch: result.worldview,
+          lorebooksDraft: Array.isArray(result.worldLorebooks)
+            ? result.worldLorebooks.filter((item) => item && typeof item === 'object') as WorldLorebookDraftRow[]
+            : [],
+          futureEventsText: JSON.stringify(result.futureHistoricalEvents || [], null, 2),
+          finalDraftAccumulator: result.finalDraftAccumulator || input.snapshot.finalDraftAccumulator,
+          agentSync: {
+            ...input.snapshot.agentSync,
+            draftsByCharacter: {
+              ...input.snapshot.agentSync.draftsByCharacter,
+              ...draftsByCharacter,
+            },
+          },
+          parseJob: {
+            phase: 'done',
+            progress: 1,
+            chunkProcessed: input.snapshot.parseJob.chunkTotal,
+            etaSeconds: 0,
+            updatedAt: new Date().toISOString(),
+          },
+        });
+        input.setCreateStep('DRAFT');
+        input.setNotice('Synthesize completed. Draft editor is ready.');
+      } catch (error) {
+        input.patchSnapshot({
+          parseJob: {
+            phase: 'failed',
+            updatedAt: new Date().toISOString(),
+          },
+        });
+        input.setNotice(error instanceof Error ? error.message : 'Phase 2 synthesis failed.');
+      }
+    })();
+  }, [input, phase1]);
+
+  const onGenerateWorldCover = useCallback(() => {
+    input.setNotice(null);
+    input.patchSnapshot({
+      assets: {
+        worldCover: { status: 'running', imageUrl: null },
+      },
+    });
+    const { runtime } = getPlatformClient();
+    const world = input.snapshot.worldPatch as Record<string, unknown>;
+    const prompt = [
+      'Generate a cinematic world cover image.',
+      `World name: ${String(world.name || 'Untitled World')}`,
+      `World description: ${String(world.description || input.snapshot.knowledgeGraph.worldSetting || '')}`,
+    ].join('\n');
+    void (async () => {
+      try {
+        const result = await runtime.media.image.generate({
+          model: 'auto',
+          prompt,
+          responseFormat: 'url',
+        });
+        const imageUrl = resolveGeneratedImageUrl(result.artifacts);
+        input.patchSnapshot({
+          assets: {
+            worldCover: { status: 'succeeded', imageUrl },
+          },
+        });
+        input.setNotice('World cover generated.');
+      } catch (error) {
+        input.patchSnapshot({
+          assets: {
+            worldCover: { status: 'failed', imageUrl: null },
+          },
+        });
+        input.setNotice(error instanceof Error ? error.message : 'World cover generation failed.');
+      }
+    })();
+  }, [input]);
+
+  const onGenerateCharacterPortrait = useCallback((name: string) => {
+    input.setNotice(null);
+    const portraits = { ...input.snapshot.assets.characterPortraits };
+    portraits[name] = { status: 'running', imageUrl: null };
+    input.patchSnapshot({
+      assets: {
+        characterPortraits: portraits,
+      },
+    });
+    const { runtime } = getPlatformClient();
+    const prompt = [
+      'Generate a portrait image for this world character.',
+      `Character: ${name}`,
+      `World setting: ${input.snapshot.knowledgeGraph.worldSetting || 'N/A'}`,
+    ].join('\n');
+    void (async () => {
+      try {
+        const result = await runtime.media.image.generate({
+          model: 'auto',
+          prompt,
+          responseFormat: 'url',
+        });
+        const imageUrl = resolveGeneratedImageUrl(result.artifacts);
+        input.patchSnapshot({
+          assets: {
+            characterPortraits: {
+              ...input.snapshot.assets.characterPortraits,
+              [name]: { status: 'succeeded', imageUrl },
+            },
+          },
+        });
+        input.setNotice(`Portrait generated for ${name}.`);
+      } catch (error) {
+        input.patchSnapshot({
+          assets: {
+            characterPortraits: {
+              ...input.snapshot.assets.characterPortraits,
+              [name]: { status: 'failed', imageUrl: null },
+            },
+          },
+        });
+        input.setNotice(error instanceof Error ? error.message : `Portrait generation failed for ${name}.`);
+      }
+    })();
+  }, [input]);
+
+  const persistDraft = useCallback(async () => {
+    const result = await input.mutations.saveDraftMutation.mutateAsync({
+      draftId: input.activeDraftId || undefined,
+      sourceType: input.sourceMode,
+      sourceRef: input.snapshot.sourceRef || '',
+      status: toDraftStatus(input.snapshot.createStep),
+      pipelineState: {
+        createStep: input.snapshot.createStep,
+        parseJob: input.snapshot.parseJob,
+        phase1Artifact: input.snapshot.phase1Artifact,
+      },
+      draftPayload: {
+        sourceText: input.snapshot.sourceText,
+        sourceRef: input.snapshot.sourceRef,
+        worldPatch: input.snapshot.worldPatch,
+        worldviewPatch: input.snapshot.worldviewPatch,
+        eventsDraft: input.snapshot.eventsDraft,
+        lorebooksDraft: input.snapshot.lorebooksDraft,
+        futureEventsText: input.snapshot.futureEventsText,
+        selectedStartTimeId: input.snapshot.selectedStartTimeId,
+        selectedCharacters: input.snapshot.selectedCharacters,
+      },
+    });
+    const record = result && typeof result === 'object' ? result as Record<string, unknown> : {};
+    const draftId = String(record.id || input.activeDraftId || '').trim();
+    if (draftId) {
+      input.setActiveDraftId(draftId);
+    }
+    return draftId;
+  }, [input]);
+
+  const publishDraft = useCallback(async () => {
+    const draftId = (await persistDraft()) || input.activeDraftId;
+    if (!draftId) {
+      throw new Error('Draft id is required before publishing.');
+    }
+    await input.mutations.publishDraftMutation.mutateAsync({
+      draftId,
+      reason: 'Forge manual publish',
+    });
+    input.setNotice('Draft published.');
+  }, [input.activeDraftId, input.mutations.publishDraftMutation, input.setNotice, persistDraft]);
+
+  return {
+    onGenerateCharacterPortrait,
+    onGenerateWorldCover,
+    onRefreshQualityGate,
+    onRunFailedChunks,
+    onRunFailedChunksByErrorCode,
+    onRunPhase1,
+    onRunPhase2,
+    persistDraft,
+    phase1,
+    phase2,
+    publishDraft,
+  };
+}

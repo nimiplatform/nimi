@@ -185,6 +185,7 @@ describe('creator-world-store', () => {
         assets: { worldCover: { status: 'complete', url: 'https://img.png' } },
       } as never);
       expect(useCreatorWorldStore.getState().snapshot.assets.worldCover).toEqual({
+        imageUrl: null,
         status: 'complete',
         url: 'https://img.png',
       });
