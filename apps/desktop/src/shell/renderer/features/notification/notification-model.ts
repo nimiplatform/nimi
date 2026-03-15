@@ -18,6 +18,8 @@ export type NotificationItemView = {
   actorIsAgent: boolean;
   giftTransactionId: string | null;
   giftStatus: string | null;
+  giftMessage: string | null;
+  giftSparkCost: string | null;
   reviewId: string | null;
 };
 
@@ -165,6 +167,8 @@ export function toNotificationItemView(
     actorIsAgent: toBooleanValue(actor?.isAgent),
     giftTransactionId: targetGiftTransactionId || dataGiftTransactionId || null,
     giftStatus: toStringValue(data?.status).trim() || null,
+    giftMessage: toStringValue(data?.message).trim() || null,
+    giftSparkCost: toStringValue(data?.sparkCost).trim() || null,
     reviewId: toStringValue(data?.reviewId).trim() || null,
   };
 }

@@ -36,7 +36,7 @@ const BUTTON_SECONDARY_CLASS =
 type ItemActionKind =
   | 'friend-accept'
   | 'friend-reject'
-  | 'gift-claim'
+  | 'gift-accept'
   | 'gift-reject'
   | 'review-positive'
   | 'review-negative';
@@ -114,6 +114,7 @@ function getActionLabel(
 
 export function NotificationPanel() {
   const authStatus = useAppStore((state) => state.auth.status);
+  const navigateToGiftInbox = useAppStore((state) => state.navigateToGiftInbox);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const { t } = useTranslation();
   const [items, setItems] = useState<NotificationItemView[]>([]);
@@ -339,18 +340,18 @@ export function NotificationPanel() {
     });
   };
 
-  const claimGift = async (item: NotificationItemView) => {
+  const acceptGift = async (item: NotificationItemView) => {
     if (!item.giftTransactionId) {
       return;
     }
 
     await runItemAction({
       item,
-      action: 'gift-claim',
+      action: 'gift-accept',
       task: async () => {
-        await dataSync.claimGift(item.giftTransactionId as string);
+        await dataSync.acceptGift(item.giftTransactionId as string);
       },
-      errorMessage: t('NotificationPanel.claimError'),
+      errorMessage: t('NotificationPanel.acceptError', { defaultValue: 'Failed to accept gift' }),
     });
   };
 
@@ -492,22 +493,20 @@ export function NotificationPanel() {
             disabled={itemBusy}
             onClick={(event) => {
               event.stopPropagation();
-              void claimGift(item);
+              void acceptGift(item);
             }}
             className={BUTTON_PRIMARY_CLASS}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8" />
-              <line x1="12" y1="2" x2="12" y2="15" />
-              <polyline points="8 11 12 15 16 11" />
+              <polyline points="20 6 9 17 4 12" />
             </svg>
             {getActionLabel(
               t,
               pendingItemAction,
               item.id,
-              'gift-claim',
-              t('NotificationPanel.claim', { defaultValue: 'Claim' }),
-              t('NotificationPanel.claiming', { defaultValue: 'Claiming...' }),
+              'gift-accept',
+              t('NotificationPanel.accept', { defaultValue: 'Accept' }),
+              t('NotificationPanel.accepting', { defaultValue: 'Accepting...' }),
             )}
           </button>
           <button
@@ -663,12 +662,23 @@ export function NotificationPanel() {
         {filteredItems.map((item) => {
           const badgeKey = getNotificationBadgeKey(item);
           const itemBusy = isBusyForItem(item.id);
+          const giftMessage = item.giftMessage?.trim() || '';
+          const body = item.body.trim();
+          const showGiftMessage = Boolean(giftMessage);
+          const showBody = Boolean(body) && (!showGiftMessage || body !== giftMessage);
+          const shouldOpenGiftInbox = (
+            (item.type === 'gift_received' || item.type === 'gift_status_updated')
+            && Boolean(item.giftTransactionId)
+          );
 
           return (
             <div
               key={item.id}
               onClick={() => {
                 if (!itemBusy) {
+                  if (shouldOpenGiftInbox) {
+                    navigateToGiftInbox(item.giftTransactionId);
+                  }
                   void markOneRead(item.id);
                 }
               }}
@@ -712,9 +722,34 @@ export function NotificationPanel() {
 
                   <p className="mt-0.5 text-xs text-gray-400">{formatNotificationTime(item.createdAt)}</p>
 
-                  {item.body ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {item.giftSparkCost ? (
+                      <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
+                        {t('NotificationPanel.sparkAmount', {
+                          amount: item.giftSparkCost,
+                          defaultValue: '{{amount}} Spark',
+                        })}
+                      </span>
+                    ) : null}
+                    {shouldOpenGiftInbox ? (
+                      <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-medium text-gray-500">
+                        {t('NotificationPanel.viewGift', { defaultValue: 'View Gift' })}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {showBody ? (
                     <div className="mt-2 inline-block max-w-full rounded-xl rounded-tl-sm bg-gray-100 px-3 py-2">
-                      <p className="line-clamp-2 text-sm text-gray-600">"{item.body}"</p>
+                      <p className="line-clamp-2 text-sm text-gray-600">"{body}"</p>
+                    </div>
+                  ) : null}
+
+                  {showGiftMessage ? (
+                    <div className="mt-2 inline-block max-w-full rounded-xl rounded-tl-sm bg-mint-50 px-3 py-2">
+                      <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-mint-700">
+                        {t('NotificationPanel.senderMessage', { defaultValue: 'Sender message' })}
+                      </p>
+                      <p className="line-clamp-3 text-sm text-mint-900">"{giftMessage}"</p>
                     </div>
                   ) : null}
 

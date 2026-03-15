@@ -27,6 +27,8 @@ function createNotificationItem(input: Partial<NotificationItemView> & {
     actorIsAgent: input.actorIsAgent ?? false,
     giftTransactionId: input.giftTransactionId ?? null,
     giftStatus: input.giftStatus ?? null,
+    giftMessage: input.giftMessage ?? null,
+    giftSparkCost: input.giftSparkCost ?? null,
     reviewId: input.reviewId ?? null,
   };
 }
@@ -100,5 +102,42 @@ describe('notification model mapping', () => {
     assert.equal(result.items[0]?.actorName, 'Unknown');
     assert.equal(result.nextCursor, 'cursor-2');
     assert.equal(result.hasNext, true);
+  });
+
+  test('gift payload parsing preserves message and spark amount fields', () => {
+    const result = toNotificationListView({
+      items: [
+        {
+          id: 'notif-gift',
+          type: 'gift_received',
+          title: 'A gift arrived',
+          body: 'For you',
+          createdAt: '2026-03-15T00:00:00.000Z',
+          isRead: false,
+          actor: {
+            id: 'user-9',
+            displayName: 'Sender',
+            handle: '@sender',
+            avatarUrl: null,
+            isAgent: false,
+          },
+          target: {
+            interactionId: 'gift-tx-1',
+          },
+          data: {
+            sparkCost: '88',
+            message: 'Enjoy this one',
+          },
+        },
+      ],
+      page: {
+        hasNext: false,
+        nextCursor: null,
+      },
+    }, 'Notification', 'Unknown');
+
+    assert.equal(result.items[0]?.giftTransactionId, 'gift-tx-1');
+    assert.equal(result.items[0]?.giftSparkCost, '88');
+    assert.equal(result.items[0]?.giftMessage, 'Enjoy this one');
   });
 });

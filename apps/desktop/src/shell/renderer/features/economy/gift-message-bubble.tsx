@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { persistStoredSettingsSelected } from '@renderer/features/settings/settings-storage';
 
 export interface GiftMessagePayload {
   giftTransactionId: string;
@@ -13,7 +15,7 @@ export interface GiftMessagePayload {
   senderMessage: string | null;
 }
 
-type GiftStatus = 'PENDING' | 'CLAIMED' | 'REJECTED' | 'EXPIRED';
+type GiftStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'REFUNDED';
 
 interface GiftTransactionResult {
   id: string;
@@ -31,8 +33,9 @@ interface GiftMessageBubbleProps {
 
 export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageBubbleProps) {
   const { t } = useTranslation();
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
   const queryClient = useQueryClient();
-  const [actionLoading, setActionLoading] = useState<'claim' | 'reject' | null>(null);
+  const [actionLoading, setActionLoading] = useState<'accept' | 'reject' | null>(null);
 
   const txQuery = useQuery({
     queryKey: ['gift-transaction', payload.giftTransactionId],
@@ -48,16 +51,21 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
   const isReceiver = tx ? tx.receiverId === currentUserId : !isMe;
   const isPending = status === 'PENDING';
 
-  const handleClaim = async () => {
-    setActionLoading('claim');
+  const handleAccept = async () => {
+    setActionLoading('accept');
     try {
-      await dataSync.claimGift(payload.giftTransactionId);
+      await dataSync.acceptGift(payload.giftTransactionId);
       await queryClient.invalidateQueries({ queryKey: ['gift-transaction', payload.giftTransactionId] });
     } catch {
       // silently ignore
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const openWallet = () => {
+    persistStoredSettingsSelected('wallet');
+    setActiveTab('settings');
   };
 
   const handleReject = async () => {
@@ -72,7 +80,7 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
     }
   };
 
-  const statusBadge = status === 'CLAIMED' ? (
+  const statusBadge = status === 'ACCEPTED' ? (
     <span className="inline-block rounded-full bg-green-100 px-2.5 py-0.5 text-[11px] font-medium text-green-700">
       {t('GiftBubble.accepted', '已接受')}
     </span>
@@ -114,10 +122,10 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
           <button
             type="button"
             disabled={actionLoading !== null}
-            onClick={handleClaim}
+            onClick={handleAccept}
             className="rounded-full bg-[#0066CC] px-3 py-1 text-[12px] font-medium text-white disabled:opacity-50 hover:bg-[#0052A3] transition-colors"
           >
-            {actionLoading === 'claim' ? '...' : t('GiftBubble.accept', '接受')}
+            {actionLoading === 'accept' ? '...' : t('GiftBubble.accept', '接受')}
           </button>
           <button
             type="button"
@@ -128,7 +136,20 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
             {actionLoading === 'reject' ? '...' : t('GiftBubble.reject', '拒绝')}
           </button>
         </div>
-      ) : statusBadge}
+      ) : (
+        <div className="flex items-center gap-2">
+          {statusBadge}
+          {status === 'ACCEPTED' && isReceiver ? (
+            <button
+              type="button"
+              onClick={openWallet}
+              className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[12px] font-medium text-emerald-700 transition-colors hover:bg-emerald-100"
+            >
+              {t('GiftBubble.openWallet', '前往钱包')}
+            </button>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }

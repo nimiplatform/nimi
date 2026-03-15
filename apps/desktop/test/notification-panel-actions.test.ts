@@ -16,9 +16,10 @@ describe('notification panel action wiring', () => {
     assert.match(source, /dataSync\.rejectOrRemoveFriend\(actorId\)/);
   });
 
-  test('gift actions use explicit claim and reject flows', () => {
-    assert.match(source, /dataSync\.claimGift\(item\.giftTransactionId as string\)/);
+  test('gift actions use explicit accept and reject flows', () => {
+    assert.match(source, /dataSync\.acceptGift\(item\.giftTransactionId as string\)/);
     assert.match(source, /dataSync\.rejectGift\(rejectingItem\.giftTransactionId as string/);
+    assert.match(source, /navigateToGiftInbox\(item\.giftTransactionId\)/);
   });
 
   test('positive and negative gift reviews are wired separately', () => {
