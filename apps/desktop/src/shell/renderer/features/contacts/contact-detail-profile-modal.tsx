@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { i18n } from '@renderer/i18n';
 import { dataSync } from '@runtime/data-sync';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -291,18 +290,6 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
           className="relative flex h-full w-full overflow-hidden bg-white"
           onClick={(event) => event.stopPropagation()}
         >
-          <button
-            type="button"
-            data-testid={E2E_IDS.contactDetailProfileModalClose}
-            onClick={props.onClose}
-            className="absolute left-6 top-6 z-[130] flex h-10 w-10 items-center justify-center rounded-full border border-[#4ECCA3]/20 bg-black/50 text-[#4ECCA3] transition-all hover:border-[#4ECCA3]/40 hover:bg-black/70"
-            aria-label={i18n.t('Contacts.goBack', { defaultValue: 'Go Back' })}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-          </button>
-
           <div className="h-full min-h-0 flex-1 overflow-hidden">
             <ContactDetailView
               profile={profile}
