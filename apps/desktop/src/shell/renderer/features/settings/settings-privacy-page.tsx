@@ -19,7 +19,6 @@ const MODE_PRESETS: ModePresets = {
     profileVisibility: 'PUBLIC',
     friendRequestVisibility: 'PUBLIC',
     socialVisibility: 'FRIENDS',
-    friendListVisibility: 'PRIVATE',
     onlineStatusVisibility: 'PUBLIC',
     defaultPostVisibility: 'PUBLIC',
     dmVisibility: 'PUBLIC',
@@ -28,7 +27,6 @@ const MODE_PRESETS: ModePresets = {
     profileVisibility: 'PUBLIC',
     friendRequestVisibility: 'FRIENDS',
     socialVisibility: 'FRIENDS',
-    friendListVisibility: 'PRIVATE',
     onlineStatusVisibility: 'FRIENDS',
     defaultPostVisibility: 'FRIENDS',
     dmVisibility: 'FRIENDS',
@@ -37,7 +35,6 @@ const MODE_PRESETS: ModePresets = {
     profileVisibility: 'FRIENDS',
     friendRequestVisibility: 'FRIENDS',
     socialVisibility: 'PRIVATE',
-    friendListVisibility: 'PRIVATE',
     onlineStatusVisibility: 'PRIVATE',
     defaultPostVisibility: 'FRIENDS',
     dmVisibility: 'FRIENDS',
@@ -48,7 +45,6 @@ type PrivacyForm = {
   profileVisibility: VisibilityValue;
   friendRequestVisibility: VisibilityValue;
   socialVisibility: VisibilityValue;
-  friendListVisibility: VisibilityValue;
   onlineStatusVisibility: VisibilityValue;
   defaultPostVisibility: VisibilityValue;
   dmVisibility: VisibilityValue;
@@ -74,10 +70,6 @@ function toPrivacyForm(settings: UserSettingsDto | null | undefined): PrivacyFor
       DEFAULT_FORM.friendRequestVisibility,
     ),
     socialVisibility: normalizeVisibility(settings.socialVisibility, DEFAULT_FORM.socialVisibility),
-    friendListVisibility: normalizeVisibility(
-      settings.friendListVisibility,
-      DEFAULT_FORM.friendListVisibility,
-    ),
     onlineStatusVisibility: normalizeVisibility(
       settings.onlineStatusVisibility,
       DEFAULT_FORM.onlineStatusVisibility,
@@ -95,7 +87,6 @@ function toUpdatePayload(form: PrivacyForm): UpdateUserSettingsDto {
     profileVisibility: form.profileVisibility as Visibility,
     friendRequestVisibility: form.friendRequestVisibility as Visibility,
     socialVisibility: form.socialVisibility as Visibility,
-    friendListVisibility: form.friendListVisibility as Visibility,
     onlineStatusVisibility: form.onlineStatusVisibility as Visibility,
     defaultPostVisibility: form.defaultPostVisibility as Visibility,
     dmVisibility: form.dmVisibility as Visibility,
@@ -117,7 +108,6 @@ function formsEqual(left: PrivacyForm, right: PrivacyForm): boolean {
     left.profileVisibility === right.profileVisibility
     && left.friendRequestVisibility === right.friendRequestVisibility
     && left.socialVisibility === right.socialVisibility
-    && left.friendListVisibility === right.friendListVisibility
     && left.onlineStatusVisibility === right.onlineStatusVisibility
     && left.defaultPostVisibility === right.defaultPostVisibility
     && left.dmVisibility === right.dmVisibility
@@ -345,17 +335,6 @@ export function PrivacyPage() {
               }))}
               options={visibilitySelectOptions}
               helper={t('PrivacySettings.socialVisibilityHelper')}
-            />
-            <div className="h-px bg-gray-50" />
-            <SegmentedControl
-              label={t('PrivacySettings.friendListVisibilityLabel')}
-              value={form.friendListVisibility}
-              onChange={(value) => setForm((previous) => ({
-                ...previous,
-                friendListVisibility: normalizeVisibility(value, previous.friendListVisibility),
-              }))}
-              options={visibilitySelectOptions}
-              helper={t('PrivacySettings.friendListVisibilityHelper')}
             />
             <div className="h-px bg-gray-50" />
             <SegmentedControl
