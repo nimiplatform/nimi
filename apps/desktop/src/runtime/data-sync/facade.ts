@@ -40,6 +40,7 @@ import {
   isRealmOfflineError,
 } from '@runtime/offline';
 import type { DataSyncApiConfig, FetchImpl } from './api-core';
+import type { WorldEventsPayload } from './flows/world-flow';
 import { normalizeRealmBaseUrl, normalizeApiError, tryParseJsonLike } from './api-core';
 import type { PasswordAuthDebug } from './auth';
 import { readDataSyncHotState, writeDataSyncHotState } from './facade-hot-state';
@@ -265,7 +266,11 @@ export class DataSync {
   loadWorldLevelAudits(worldId: string, limit = 20): Promise<WorldLevelAuditEventDto[]> { return this.actions.loadWorldLevelAudits(worldId, limit); }
   loadWorldAgents(worldId: string): Promise<Array<Record<string, unknown>>> { return this.actions.loadWorldAgents(worldId); }
   loadWorldDetailWithAgents(worldId: string): Promise<Record<string, unknown> | null> { return this.actions.loadWorldDetailWithAgents(worldId); }
-  loadWorldEvents(worldId: string): Promise<Array<Record<string, unknown>>> { return this.actions.loadWorldEvents(worldId); }
+  loadWorldEvents(worldId: string): Promise<WorldEventsPayload> { return this.actions.loadWorldEvents(worldId); }
+  loadWorldLorebooks(worldId: string): Promise<{ worldId: string; items: Array<Record<string, unknown>> }> { return this.actions.loadWorldLorebooks(worldId); }
+  loadWorldScenes(worldId: string): Promise<{ worldId: string; items: Array<Record<string, unknown>> }> { return this.actions.loadWorldScenes(worldId); }
+  loadWorldMediaBindings(worldId: string): Promise<{ worldId: string; items: Array<Record<string, unknown>> }> { return this.actions.loadWorldMediaBindings(worldId); }
+  loadWorldMutations(worldId: string): Promise<{ worldId: string; items: Array<Record<string, unknown>> }> { return this.actions.loadWorldMutations(worldId); }
   loadSceneQuota(): Promise<SceneQuotaDto> { return this.actions.loadSceneQuota(); }
   startWorldTransit(input: {
     agentId: string;

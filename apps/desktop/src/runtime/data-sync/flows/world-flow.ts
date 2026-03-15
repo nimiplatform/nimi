@@ -21,6 +21,16 @@ export type WorldSemanticBundle = {
   worldviewSnapshots: Array<Record<string, unknown>>;
 };
 
+export type WorldEventsPayload = {
+  items: Array<Record<string, unknown>>;
+  eventGraphSummary: Record<string, unknown> | null;
+};
+
+export type WorldAssetListPayload = {
+  worldId: string;
+  items: Array<Record<string, unknown>>;
+};
+
 function toRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return null;
@@ -175,7 +185,7 @@ export async function loadWorldEvents(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
   worldId: string,
-): Promise<Array<Record<string, unknown>>> {
+): Promise<WorldEventsPayload> {
   const normalizedWorldId = String(worldId || '').trim();
   if (!normalizedWorldId) {
     throw new Error('WORLD_ID_REQUIRED');
@@ -187,13 +197,102 @@ export async function loadWorldEvents(
     );
     const record = toRecord(payload);
     if (record && Array.isArray(record.items)) {
-      return toRecordArray(record.items);
+      return {
+        items: toRecordArray(record.items),
+        eventGraphSummary: toRecord(record.eventGraphSummary),
+      };
     }
-    return toRecordArray(payload);
+    return {
+      items: toRecordArray(payload),
+      eventGraphSummary: null,
+    };
   } catch (error) {
     emitDataSyncError('load-world-events', error, { worldId: normalizedWorldId });
     throw error;
   }
+}
+
+async function loadWorldAssetList(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  worldId: string,
+  action: string,
+  task: (realm: Realm, worldId: string) => Promise<unknown>,
+): Promise<WorldAssetListPayload> {
+  const normalizedWorldId = String(worldId || '').trim();
+  if (!normalizedWorldId) {
+    throw new Error('WORLD_ID_REQUIRED');
+  }
+  try {
+    const payload = await callApi(
+      (realm) => task(realm, normalizedWorldId),
+      `Failed to ${action}`,
+    );
+    const record = toRecord(payload);
+    return {
+      worldId: normalizedWorldId,
+      items: record && Array.isArray(record.items) ? toRecordArray(record.items) : toRecordArray(payload),
+    };
+  } catch (error) {
+    emitDataSyncError(action, error, { worldId: normalizedWorldId });
+    throw error;
+  }
+}
+
+export async function loadWorldLorebooks(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  worldId: string,
+): Promise<WorldAssetListPayload> {
+  return loadWorldAssetList(
+    callApi,
+    emitDataSyncError,
+    worldId,
+    'load-world-lorebooks',
+    (realm, normalizedWorldId) => realm.services.WorldsService.worldControllerGetWorldLorebooks(normalizedWorldId),
+  );
+}
+
+export async function loadWorldScenes(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  worldId: string,
+): Promise<WorldAssetListPayload> {
+  return loadWorldAssetList(
+    callApi,
+    emitDataSyncError,
+    worldId,
+    'load-world-scenes',
+    (realm, normalizedWorldId) => realm.services.WorldsService.worldControllerGetWorldScenes(normalizedWorldId),
+  );
+}
+
+export async function loadWorldMediaBindings(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  worldId: string,
+): Promise<WorldAssetListPayload> {
+  return loadWorldAssetList(
+    callApi,
+    emitDataSyncError,
+    worldId,
+    'load-world-media-bindings',
+    (realm, normalizedWorldId) => realm.services.WorldsService.worldControllerGetWorldMediaBindings(normalizedWorldId),
+  );
+}
+
+export async function loadWorldMutations(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  worldId: string,
+): Promise<WorldAssetListPayload> {
+  return loadWorldAssetList(
+    callApi,
+    emitDataSyncError,
+    worldId,
+    'load-world-mutations',
+    (realm, normalizedWorldId) => realm.services.WorldsService.worldControllerGetWorldMutations(normalizedWorldId),
+  );
 }
 
 export async function loadWorldAgents(

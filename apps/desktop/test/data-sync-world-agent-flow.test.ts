@@ -52,6 +52,41 @@ describe('D-DSYNC-005: world flow source scanning', () => {
       'loadWorldEvents must not depend on the maintainer-only WorldControlService endpoint',
     );
   });
+
+  test('D-DSYNC-005: public world asset loaders use the public WorldsService endpoints', () => {
+    assert.ok(
+      worldFlowSource.includes('export async function loadWorldLorebooks'),
+      'loadWorldLorebooks must be exported from world-flow',
+    );
+    assert.ok(
+      worldFlowSource.includes('export async function loadWorldScenes'),
+      'loadWorldScenes must be exported from world-flow',
+    );
+    assert.ok(
+      worldFlowSource.includes('export async function loadWorldMediaBindings'),
+      'loadWorldMediaBindings must be exported from world-flow',
+    );
+    assert.ok(
+      worldFlowSource.includes('export async function loadWorldMutations'),
+      'loadWorldMutations must be exported from world-flow',
+    );
+    assert.ok(
+      worldFlowSource.includes('realm.services.WorldsService.worldControllerGetWorldLorebooks'),
+      'loadWorldLorebooks must use the public WorldsService lorebooks endpoint',
+    );
+    assert.ok(
+      worldFlowSource.includes('realm.services.WorldsService.worldControllerGetWorldScenes'),
+      'loadWorldScenes must use the public WorldsService scenes endpoint',
+    );
+    assert.ok(
+      worldFlowSource.includes('realm.services.WorldsService.worldControllerGetWorldMediaBindings'),
+      'loadWorldMediaBindings must use the public WorldsService media bindings endpoint',
+    );
+    assert.ok(
+      worldFlowSource.includes('realm.services.WorldsService.worldControllerGetWorldMutations'),
+      'loadWorldMutations must use the public WorldsService mutations endpoint',
+    );
+  });
 });
 
 describe('D-DSYNC-011: agent ownership flow source scanning', () => {

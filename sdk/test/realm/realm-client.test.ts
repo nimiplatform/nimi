@@ -828,8 +828,12 @@ test('Realm services support path-first call pattern for mixed path/query method
     await realm.services.HumanChatService.recallMessage('chat-123', 'msg-9');
     await realm.services.WorldsService.worldControllerGetWorldLevelAudits('world-7', 30);
     await realm.services.WorldsService.worldControllerGetWorldviewEvents('world-7', 0, 50);
+    await realm.services.WorldsService.worldControllerGetWorldLorebooks('world-7');
+    await realm.services.WorldsService.worldControllerGetWorldScenes('world-7');
+    await realm.services.WorldsService.worldControllerGetWorldMediaBindings('world-7');
+    await realm.services.WorldsService.worldControllerGetWorldMutations('world-7');
 
-    assert.equal(urls.length, 5);
+    assert.equal(urls.length, 9);
 
     const listMessagesUrl = new URL(urls[0] || '');
     assert.equal(listMessagesUrl.pathname, '/api/human/chats/chat-123/messages');
@@ -851,6 +855,18 @@ test('Realm services support path-first call pattern for mixed path/query method
     assert.equal(worldviewEventsUrl.pathname, '/api/world/by-id/world-7/worldview/events');
     assert.equal(worldviewEventsUrl.searchParams.get('offset'), '0');
     assert.equal(worldviewEventsUrl.searchParams.get('limit'), '50');
+
+    const lorebooksUrl = new URL(urls[5] || '');
+    assert.equal(lorebooksUrl.pathname, '/api/world/by-id/world-7/lorebooks');
+
+    const scenesUrl = new URL(urls[6] || '');
+    assert.equal(scenesUrl.pathname, '/api/world/by-id/world-7/scenes');
+
+    const mediaBindingsUrl = new URL(urls[7] || '');
+    assert.equal(mediaBindingsUrl.pathname, '/api/world/by-id/world-7/media-bindings');
+
+    const mutationsUrl = new URL(urls[8] || '');
+    assert.equal(mutationsUrl.pathname, '/api/world/by-id/world-7/mutations');
   } finally {
     globalThis.fetch = originalFetch;
   }

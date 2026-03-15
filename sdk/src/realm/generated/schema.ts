@@ -2876,6 +2876,57 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/world/by-id/{id}/lorebooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List public world lorebooks */
+        get: operations["WorldController_getWorldLorebooks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/world/by-id/{id}/media-bindings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List public world media bindings */
+        get: operations["WorldController_getWorldMediaBindings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/world/by-id/{id}/mutations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List public world mutations */
+        get: operations["WorldController_getWorldMutations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/world/by-id/{id}/return": {
         parameters: {
             query?: never;
@@ -2887,6 +2938,23 @@ export type paths = {
         put?: never;
         /** Return to main world */
         post: operations["WorldController_returnToMainWorld"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/world/by-id/{id}/scenes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List public world scenes */
+        get: operations["WorldController_getWorldScenes"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5330,7 +5398,6 @@ export type components = {
             editedAt?: string;
             id: string;
             isRead: boolean;
-            /** @description Canonical media payloads are asset-backed: IMAGE/VIDEO payloads return assetId and resolved url, with width/height/duration when available. */
             payload: {
                 [key: string]: unknown;
             } | null;
@@ -5791,7 +5858,6 @@ export type components = {
             interaction?: {
                 [key: string]: unknown;
             };
-            /** @description Canonical chat media writes use payload.assetId for IMAGE/VIDEO messages. Provider-specific keys such as imageId/videoId are not allowed. */
             payload?: Record<string, never>;
             replyToMessageId?: string;
             text?: string;
@@ -5857,7 +5923,6 @@ export type components = {
         };
         StartChatInputDto: {
             asFriendRequest?: boolean;
-            /** @description Canonical chat media writes use payload.assetId for IMAGE/VIDEO messages. Provider-specific keys such as imageId/videoId are not allowed. */
             payload?: Record<string, never>;
             targetAccountId: string;
             text?: string;

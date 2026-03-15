@@ -5,14 +5,41 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { XianxiaWorldTemplate, type XianxiaWorldData } from './world-xianxia-template';
+import type { WorldAuditItem, WorldAgent, WorldRecommendedAgent } from './world-detail-types';
 import type { WorldListItem } from './world-list-model';
-import type { WorldAgent } from './world-detail-template';
 import {
   fetchWorldDetailWithAgents,
   fetchWorldEvents,
+  fetchWorldLevelAudits,
+  fetchWorldPublicAssets,
+  fetchWorldSemanticBundle,
   worldDetailWithAgentsQueryKey,
   worldEventsQueryKey,
+  worldLevelAuditsQueryKey,
+  worldPublicAssetsQueryKey,
+  worldSemanticBundleQueryKey,
 } from './world-detail-queries';
+
+type DetailComputed = {
+  time: {
+    currentWorldTime: string | null;
+    currentLabel: string | null;
+    eraLabel: string | null;
+    flowRatio: number;
+    isPaused: boolean;
+  };
+  languages: {
+    primary: string | null;
+    common: string[];
+  };
+  entry: {
+    recommendedAgents: WorldRecommendedAgent[];
+  };
+  score: {
+    scoreEwma: number;
+  };
+  featuredAgentCount: number;
+};
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
@@ -26,7 +53,11 @@ function readNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
-function toWorldComputed(raw: unknown, fallback: WorldListItem['computed']): WorldListItem['computed'] {
+function readBoolean(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null;
+}
+
+function toWorldComputed(raw: unknown, fallback: WorldListItem['computed']): DetailComputed {
   const record = asRecord(raw);
   const time = asRecord(record?.time);
   const languages = asRecord(record?.languages);
@@ -39,7 +70,7 @@ function toWorldComputed(raw: unknown, fallback: WorldListItem['computed']): Wor
       currentLabel: readString(time?.currentLabel) ?? fallback.time.currentLabel,
       eraLabel: readString(time?.eraLabel) ?? fallback.time.eraLabel,
       flowRatio: Math.max(0.0001, readNumber(time?.flowRatio) ?? fallback.time.flowRatio),
-      isPaused: typeof time?.isPaused === 'boolean' ? time.isPaused : fallback.time.isPaused,
+      isPaused: readBoolean(time?.isPaused) ?? fallback.time.isPaused,
     },
     languages: {
       primary: readString(languages?.primary) ?? fallback.languages.primary,
@@ -49,20 +80,31 @@ function toWorldComputed(raw: unknown, fallback: WorldListItem['computed']): Wor
     },
     entry: {
       recommendedAgents: Array.isArray(entry?.recommendedAgents)
-        ? entry.recommendedAgents.reduce<WorldListItem['computed']['entry']['recommendedAgents']>((acc, item) => {
+        ? entry.recommendedAgents.reduce<WorldRecommendedAgent[]>((acc, item) => {
           const agent = asRecord(item);
           if (!agent?.id) {
             return acc;
           }
+          const display = asRecord(agent.display);
           acc.push({
             id: String(agent.id),
             name: String(agent.name || 'Unknown'),
-            handle: readString(agent.handle) ?? undefined,
-            avatarUrl: readString(agent.avatarUrl) ?? undefined,
+            handle: readString(agent.handle),
+            avatarUrl: readString(agent.avatarUrl),
+            importance: agent.importance === 'PRIMARY' || agent.importance === 'BACKGROUND' ? agent.importance : 'SECONDARY',
+            display: display
+              ? {
+                  role: readString(display.role),
+                  faction: readString(display.faction),
+                  rank: readString(display.rank),
+                  sceneName: readString(display.sceneName),
+                  location: readString(display.location),
+                }
+              : null,
           });
           return acc;
         }, [])
-        : fallback.entry.recommendedAgents,
+        : [],
     },
     score: {
       scoreEwma: readNumber(score?.scoreEwma) ?? fallback.score.scoreEwma,
@@ -72,13 +114,14 @@ function toWorldComputed(raw: unknown, fallback: WorldListItem['computed']): Wor
 }
 
 function formatAgentHandle(agent: Record<string, unknown>, display: Record<string, unknown> | null, name: string): string {
-  return readString(display?.role)
-    ? `@${String(display?.role)}`
-    : (readString(agent.handle) ? `@${String(agent.handle)}` : `@${name}`);
+  return readString(agent.handle)
+    ? `@${String(agent.handle)}`
+    : (readString(display?.role) ? `@${String(display?.role)}` : `@${name}`);
 }
 
 function toWorldAgent(agent: Record<string, unknown>, worldCreatedAt: string): WorldAgent {
   const display = asRecord(agent.display);
+  const stats = asRecord(agent.stats);
   const name = String(agent.name || 'Unknown');
 
   return {
@@ -93,33 +136,17 @@ function toWorldAgent(agent: Record<string, unknown>, worldCreatedAt: string): W
     location: readString(display?.location),
     createdAt: typeof agent.createdAt === 'string' ? agent.createdAt : worldCreatedAt,
     avatarUrl: agent.avatarUrl ? String(agent.avatarUrl) : undefined,
+    importance: agent.importance === 'PRIMARY' || agent.importance === 'BACKGROUND' ? agent.importance : 'SECONDARY',
+    stats: stats
+      ? {
+          vitalityScore: readNumber(stats.vitalityScore),
+          influenceTier: readString(stats.influenceTier),
+          interactionTier: readString(stats.interactionTier),
+          engagementCount: readNumber(stats.engagementCount),
+          lastActiveAt: readString(stats.lastActiveAt),
+        }
+      : null,
   };
-}
-
-function orderAgentsByRecommendation(agentRecords: Array<Record<string, unknown>>, recommendedIds: string[]): Array<Record<string, unknown>> {
-  if (recommendedIds.length === 0) {
-    return agentRecords;
-  }
-  const byId = new Map(agentRecords.map((agent) => [String(agent.id || ''), agent]));
-  const ordered: Array<Record<string, unknown>> = [];
-  const seen = new Set<string>();
-
-  for (const id of recommendedIds) {
-    const agent = byId.get(id);
-    if (agent && !seen.has(id)) {
-      ordered.push(agent);
-      seen.add(id);
-    }
-  }
-
-  for (const agent of agentRecords) {
-    const id = String(agent.id || '');
-    if (!seen.has(id)) {
-      ordered.push(agent);
-    }
-  }
-
-  return ordered;
 }
 
 function toXianxiaWorldData(
@@ -158,6 +185,12 @@ function toXianxiaWorldData(
     genre: (detail?.genre as string | null) ?? world.genre,
     era: (detail?.era as string | null) ?? world.era,
     themes: (detail?.themes as string[] | null) ?? world.themes,
+    currentWorldTime: computed.time.currentWorldTime,
+    currentTimeLabel: computed.time.currentLabel,
+    eraLabel: computed.time.eraLabel,
+    primaryLanguage: computed.languages.primary,
+    commonLanguages: computed.languages.common,
+    recommendedAgents: computed.entry.recommendedAgents,
   };
 }
 
@@ -184,18 +217,54 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
     enabled: isReady,
   });
 
+  const worldSemanticQuery = useQuery({
+    queryKey: worldSemanticBundleQueryKey(world.id),
+    queryFn: () => fetchWorldSemanticBundle(world.id),
+    enabled: isReady,
+  });
+
+  const worldAuditQuery = useQuery({
+    queryKey: worldLevelAuditsQueryKey(world.id),
+    queryFn: () => fetchWorldLevelAudits(world.id),
+    enabled: isReady,
+  });
+
+  const worldPublicAssetsQuery = useQuery({
+    queryKey: worldPublicAssetsQueryKey(world.id),
+    queryFn: () => fetchWorldPublicAssets(world.id),
+    enabled: isReady,
+  });
+
   const detail = worldCompositeQuery.data;
   const initialLoading = worldCompositeQuery.isPending && !detail;
   const initialError = worldCompositeQuery.isError && !detail;
   const worldData = toXianxiaWorldData(world, detail);
 
   const agentRecords = Array.isArray(detail?.agents) ? (detail.agents as Array<Record<string, unknown>>) : [];
-  const detailComputed = toWorldComputed(detail?.computed, world.computed);
-  const recommendedIds = detailComputed.entry.recommendedAgents.map((agent) => agent.id);
-  const agents: WorldAgent[] = orderAgentsByRecommendation(agentRecords, recommendedIds)
-    .map((agent) => toWorldAgent(agent, world.createdAt));
+  const agents: WorldAgent[] = agentRecords.map((agent) => toWorldAgent(agent, world.createdAt));
 
-  const events = worldEventsQuery.data || [];
+  const events = worldEventsQuery.data ?? { items: [], summary: null };
+  const semantic = worldSemanticQuery.data ?? {
+    operationTitle: null,
+    operationDescription: null,
+    operationRules: [],
+    powerSystems: [],
+    standaloneLevels: [],
+    taboos: [],
+    topology: null,
+    causality: null,
+    languages: [],
+    worldviewEvents: [],
+    worldviewSnapshots: [],
+    hasContent: false,
+  };
+  const audits: WorldAuditItem[] = worldAuditQuery.data ?? [];
+  const publicAssets = worldPublicAssetsQuery.data ?? {
+    lorebooks: [],
+    scenes: [],
+    mediaBindings: [],
+    mutations: [],
+  };
 
   const handleChatAgent = (agent: WorldAgent) => {
     logRendererEvent({
@@ -290,10 +359,16 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
         world={worldData}
         agents={agents}
         events={events}
+        semantic={semantic}
+        audits={audits}
+        publicAssets={publicAssets}
         loading={initialLoading}
         error={initialError}
         agentsLoading={worldCompositeQuery.isPending}
         eventsLoading={worldEventsQuery.isPending}
+        semanticLoading={worldSemanticQuery.isPending}
+        auditsLoading={worldAuditQuery.isPending}
+        publicAssetsLoading={worldPublicAssetsQuery.isPending}
         onBack={onBack}
         onEnterEdit={handleEnterEdit}
         onCreateSubWorld={handleCreateSubWorld}

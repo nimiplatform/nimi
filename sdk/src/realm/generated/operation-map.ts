@@ -5162,6 +5162,78 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false
   },
+  "WorldsService.worldControllerGetWorldLorebooks": {
+    "operationId": "WorldController_getWorldLorebooks",
+    "method": "GET",
+    "path": "/api/world/by-id/{id}/lorebooks",
+    "service": "WorldsService",
+    "methodName": "worldControllerGetWorldLorebooks",
+    "tag": "Worlds",
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false
+  },
+  "WorldsService.worldControllerGetWorldMediaBindings": {
+    "operationId": "WorldController_getWorldMediaBindings",
+    "method": "GET",
+    "path": "/api/world/by-id/{id}/media-bindings",
+    "service": "WorldsService",
+    "methodName": "worldControllerGetWorldMediaBindings",
+    "tag": "Worlds",
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false
+  },
+  "WorldsService.worldControllerGetWorldMutations": {
+    "operationId": "WorldController_getWorldMutations",
+    "method": "GET",
+    "path": "/api/world/by-id/{id}/mutations",
+    "service": "WorldsService",
+    "methodName": "worldControllerGetWorldMutations",
+    "tag": "Worlds",
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false
+  },
+  "WorldsService.worldControllerGetWorldScenes": {
+    "operationId": "WorldController_getWorldScenes",
+    "method": "GET",
+    "path": "/api/world/by-id/{id}/scenes",
+    "service": "WorldsService",
+    "methodName": "worldControllerGetWorldScenes",
+    "tag": "Worlds",
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false
+  },
   "WorldsService.worldControllerGetWorldview": {
     "operationId": "WorldController_getWorldview",
     "method": "GET",
@@ -5653,6 +5725,10 @@ export const REALM_SERVICE_METHODS = {
     "worldControllerGetWorldDetailWithAgents": "WorldsService.worldControllerGetWorldDetailWithAgents",
     "worldControllerGetWorldEvents": "WorldsService.worldControllerGetWorldEvents",
     "worldControllerGetWorldLevelAudits": "WorldsService.worldControllerGetWorldLevelAudits",
+    "worldControllerGetWorldLorebooks": "WorldsService.worldControllerGetWorldLorebooks",
+    "worldControllerGetWorldMediaBindings": "WorldsService.worldControllerGetWorldMediaBindings",
+    "worldControllerGetWorldMutations": "WorldsService.worldControllerGetWorldMutations",
+    "worldControllerGetWorldScenes": "WorldsService.worldControllerGetWorldScenes",
     "worldControllerGetWorldview": "WorldsService.worldControllerGetWorldview",
     "worldControllerGetWorldviewEvents": "WorldsService.worldControllerGetWorldviewEvents",
     "worldControllerGetWorldviewSnapshots": "WorldsService.worldControllerGetWorldviewSnapshots",

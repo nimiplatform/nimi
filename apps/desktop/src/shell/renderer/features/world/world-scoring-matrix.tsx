@@ -185,7 +185,7 @@ export function WorldScoringMatrix({ data, className = '' }: WorldScoringMatrixP
 
   return (
     <div
-      className={`relative w-full h-full flex flex-col rounded-[20px] overflow-hidden border border-[#4ECCA3]/20 ${className}`}
+      className={`relative flex w-full flex-col overflow-hidden rounded-[20px] border border-[#4ECCA3]/20 ${className}`}
       style={{ background: 'linear-gradient(135deg, #0a1210 0%, #0d1f16 50%, #0a1412 100%)' }}
     >
       {/* Title with decorative lines */}
@@ -198,7 +198,7 @@ export function WorldScoringMatrix({ data, className = '' }: WorldScoringMatrixP
       </div>
 
       {/* Upper Area: 3D Crystal - Full height canvas */}
-      <div className="flex-1 min-h-[280px]">
+      <div className="h-[260px] sm:h-[300px] xl:h-[340px]">
         <Canvas
           camera={{ position: [0, 0, 4.2], fov: 45 }}
           dpr={[1, 2]}
