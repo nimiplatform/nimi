@@ -8,8 +8,10 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 
 use super::{
-    bridge_error, now_iso_string, now_ms, runtime_staging_dir, runtime_versions_dir,
-    write_current_runtime_state, CurrentRuntimeState, DesktopReleaseManifest,
+    bridge_error, now_iso_string, now_ms, DesktopReleaseManifest,
+};
+use super::runtime_paths::{
+    runtime_staging_dir, runtime_versions_dir, write_current_runtime_state, CurrentRuntimeState,
 };
 
 pub(super) fn sha256_hex(path: &Path) -> Result<String, String> {

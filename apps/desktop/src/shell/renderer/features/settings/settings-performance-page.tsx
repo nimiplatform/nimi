@@ -31,7 +31,7 @@ import {
   ServerIcon,
   SettingRow,
   TargetIcon,
-} from './settings-preferences-panel';
+} from './settings-preferences-panel-parts';
 
 export function PerformancePage() {
   const { t } = useTranslation();

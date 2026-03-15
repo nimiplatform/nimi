@@ -21,7 +21,7 @@ function asRecord(value: unknown): Record<string, unknown> {
         ? value as Record<string, unknown>
         : {};
 }
-function readManifestProfiles(modId: string): LocalAiProfileDescriptor[] {
+export function readManifestProfiles(modId: string): LocalAiProfileDescriptor[] {
     const normalizedModId = String(modId || '').trim();
     if (!normalizedModId)
         return [];

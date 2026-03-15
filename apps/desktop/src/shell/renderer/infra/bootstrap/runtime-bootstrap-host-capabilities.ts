@@ -2,7 +2,6 @@ import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import {
     findLocalAiProfileById,
     localAiRuntime,
-    normalizeLocalAiProfilesDeclaration,
 } from '@runtime/local-ai-runtime';
 import type { CheckLlmHealthInput, ExecuteLocalKernelTurnInput, ExecuteLocalKernelTurnResult, ProviderHealth, } from '@runtime/llm-adapter';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
@@ -13,17 +12,11 @@ import type { DesktopHookRuntimeService } from '@runtime/hook';
 import { getPlatformClient } from '@runtime/platform-client';
 import { buildRuntimeRequestMetadata, ensureRuntimeLocalModelWarm, } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
 import { LifecycleSubscriptionManager } from '@renderer/mod-ui/lifecycle/lifecycle-subscription-manager';
-import {
-    getJobState,
-    feedJobEvent,
-    startJobTracking,
-    type JobControllerDeps,
-    type JobPollResult,
-    type JobStatus,
-} from '../../features/turns/scenario-job-controller';
+import { type JobPollResult } from '../../features/turns/scenario-job-controller';
 import { createResolveRuntimeBinding } from './runtime-bootstrap-route-resolvers';
 import { loadRuntimeRouteOptions } from './runtime-bootstrap-route-options';
-import { createModLocalProfileSnapshotResolver, } from './runtime-bootstrap-host-capabilities-profiles';
+import { createModLocalProfileSnapshotResolver, readManifestProfiles, } from './runtime-bootstrap-host-capabilities-profiles';
+import { createScenarioJobControllerDeps, feedControllerJobSnapshot, toControllerJobSnapshot } from './runtime-bootstrap-host-capabilities-jobs';
 import { buildRuntimeMediaCapabilities } from './runtime-bootstrap-host-capabilities-media';
 import { getRuntimeFieldsFromStore, hydrateLocalRouteBindingFromOptions, hydrateCloudRouteBindingFromOptions, requireModel, toResolvedBinding, toRouteHealthResult, } from './runtime-bootstrap-host-capabilities-routing';
 import { type ModSdkHost, type RuntimeLlmHealthInput, type RuntimeLlmHealthResult, type ModRuntimeResolvedBinding, type RuntimeCanonicalCapability, type RuntimeRouteBinding, type RuntimeRouteOptionsSnapshot } from "@nimiplatform/sdk/mod";
@@ -31,32 +24,9 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 type HostCapabilityInput = {
     checkLocalLlmHealth: (input: CheckLlmHealthInput) => Promise<ProviderHealth>;
     executeLocalKernelTurn: (input: ExecuteLocalKernelTurnInput) => Promise<ExecuteLocalKernelTurnResult>;
-    withOpenApiContextLock: <T>(context: {
-        realmBaseUrl: string;
-        accessToken?: string;
-        fetchImpl?: typeof fetch;
-    }, task: () => Promise<T>) => Promise<T>;
+    withOpenApiContextLock: <T>(context: { realmBaseUrl: string; accessToken?: string; fetchImpl?: typeof fetch }, task: () => Promise<T>) => Promise<T>;
     getRuntimeHookRuntime: () => DesktopHookRuntimeService;
 };
-function asRecord(value: unknown): Record<string, unknown> {
-    return value && typeof value === 'object' && !Array.isArray(value)
-        ? value as Record<string, unknown>
-        : {};
-}
-function readManifestProfiles(modId: string) {
-    const normalizedModId = String(modId || '').trim();
-    if (!normalizedModId) {
-        return [];
-    }
-    const summaries = useAppStore.getState().localManifestSummaries || [];
-    const summary = summaries.find((item) => String(item.id || '').trim() === normalizedModId) || null;
-    if (!summary) {
-        return [];
-    }
-    const manifest = asRecord(summary.manifest);
-    const ai = asRecord(manifest.ai);
-    return normalizeLocalAiProfilesDeclaration(ai.profiles);
-}
 export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdkHost {
     const lifecycleManager = new LifecycleSubscriptionManager();
     const hookRuntime = input.getRuntimeHookRuntime();
@@ -135,106 +105,6 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
         providerEndpoint: inputValue.endpoint,
     });
     const getRuntimeClient = () => getPlatformClient().runtime;
-    const normalizeScenarioJobStatus = (value: unknown): JobStatus | null => {
-        const numeric = Number(value);
-        if (numeric === 1)
-            return 'SUBMITTED';
-        if (numeric === 2)
-            return 'QUEUED';
-        if (numeric === 3)
-            return 'RUNNING';
-        if (numeric === 4)
-            return 'COMPLETED';
-        if (numeric === 5)
-            return 'FAILED';
-        if (numeric === 6)
-            return 'CANCELED';
-        if (numeric === 7)
-            return 'TIMEOUT';
-        const normalized = String(value || '').trim().toUpperCase();
-        if (normalized === 'SUBMITTED'
-            || normalized === 'QUEUED'
-            || normalized === 'RUNNING'
-            || normalized === 'COMPLETED'
-            || normalized === 'FAILED'
-            || normalized === 'CANCELED'
-            || normalized === 'TIMEOUT') {
-            return normalized;
-        }
-        return null;
-    };
-    const toControllerJobSnapshot = (value: unknown): JobPollResult | null => {
-        const record = value && typeof value === 'object' && !Array.isArray(value)
-            ? value as Record<string, unknown>
-            : {};
-        const status = normalizeScenarioJobStatus(record.status);
-        if (!status) {
-            return null;
-        }
-        const progress = Number(record.progress);
-        return {
-            status,
-            ...(String(record.reasonCode || '').trim()
-                ? { reasonCode: String(record.reasonCode || '').trim() }
-                : {}),
-            ...(String(record.reasonDetail || '').trim()
-                ? { reasonDetail: String(record.reasonDetail || '').trim() }
-                : {}),
-            ...(String(record.traceId || '').trim()
-                ? { traceId: String(record.traceId || '').trim() }
-                : {}),
-            ...(Number.isFinite(progress) ? { progress } : {}),
-        };
-    };
-    const feedControllerJobSnapshot = (jobId: string, value: unknown): void => {
-        const snapshot = toControllerJobSnapshot(value);
-        if (!snapshot) {
-            return;
-        }
-        if (getJobState(jobId).phase === 'idle') {
-            startJobTracking(jobId);
-        }
-        feedJobEvent(jobId, snapshot);
-    };
-    const createScenarioJobControllerDeps = (inputValue?: {
-        cancelReason?: string;
-        captureCancelResponse?: (value: unknown) => void;
-        capturePolledJob?: (value: unknown) => void;
-    }): JobControllerDeps => ({
-        pollJob: async (jobId: string) => {
-            const job = await getRuntimeClient().media.jobs.get(jobId);
-            inputValue?.capturePolledJob?.(job);
-            const snapshot = toControllerJobSnapshot(job);
-            if (!snapshot) {
-                throw new Error('DESKTOP_SCENARIO_JOB_STATUS_REQUIRED');
-            }
-            return snapshot;
-        },
-        cancelJob: async (jobId: string) => {
-            const job = await getRuntimeClient().media.jobs.cancel({
-                jobId,
-                reason: inputValue?.cancelReason,
-            });
-            inputValue?.captureCancelResponse?.(job);
-            const snapshot = toControllerJobSnapshot(job);
-            if (!snapshot) {
-                throw new Error('DESKTOP_SCENARIO_JOB_STATUS_REQUIRED');
-            }
-            return {
-                status: snapshot.status,
-                ...(snapshot.reasonCode ? { reasonCode: snapshot.reasonCode } : {}),
-            };
-        },
-        fetchArtifacts: async (jobId: string) => {
-            const artifactsResponse = await getRuntimeClient().media.jobs.getArtifacts(jobId);
-            if (!Array.isArray(artifactsResponse.artifacts)) {
-                return [];
-            }
-            return artifactsResponse.artifacts.map((artifact) => ({
-                ...(artifact as unknown as Record<string, unknown>),
-            }));
-        },
-    });
     const toKernelTurnInput = (payload: ModSdkHost['runtime']['executeLocalKernelTurn'] extends (input: infer T) => Promise<unknown> ? T : never): ExecuteLocalKernelTurnInput | null => {
         const runtime = getRuntimeFieldsFromStore();
         const provider = String(payload.provider || runtime.provider || '').trim();
@@ -519,7 +389,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                 getRuntimeClient,
                 feedControllerJobSnapshot,
                 toControllerJobSnapshot,
-                createScenarioJobControllerDeps,
+                createScenarioJobControllerDeps: (inputValue) => createScenarioJobControllerDeps({ getRuntimeClient }, inputValue),
             }),
             voice: {
                 getAsset: async ({ modId, request }) => {

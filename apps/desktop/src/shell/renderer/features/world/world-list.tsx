@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
@@ -7,7 +7,8 @@ import { APP_DISPLAY_SECTION_TITLE_CLASS, APP_PAGE_TITLE_CLASS } from '@renderer
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { prefetchWorldDetailAndEvents, worldListQueryKey } from './world-detail-queries';
 import { prefetchWorldDetailPanel } from './world-detail-route-state';
-import { isMainWorldType } from './shared';
+import { isMainWorld, toWorldListItem } from './world-list-model';
+import { WorldChronoPanel } from './world-list-chrono-panel';
 
 const ICON_SEARCH = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -15,264 +16,6 @@ const ICON_SEARCH = (
     <line x1="21" y1="21" x2="16.65" y2="16.65" />
   </svg>
 );
-
-const WORLD_SYNC_DOT_PULSE_KEYFRAMES = `
-  @keyframes world-sync-dot-pulse {
-    0% {
-      transform: scale(0.75);
-      opacity: 0.82;
-    }
-    65% {
-      transform: scale(2.2);
-      opacity: 0;
-    }
-    100% {
-      transform: scale(2.45);
-      opacity: 0;
-    }
-  }
-`;
-
-export type WorldAgentItem = {
-  id: string;
-  name: string;
-  handle?: string;
-  bio?: string;
-  avatarUrl?: string | null;
-  createdAt?: string;
-};
-
-export type WorldComputedTime = {
-  currentWorldTime: string | null;
-  currentLabel: string | null;
-  eraLabel: string | null;
-  flowRatio: number;
-  isPaused: boolean;
-};
-
-export type WorldComputedLanguages = {
-  primary: string | null;
-  common: string[];
-};
-
-export type WorldComputedEntryAgent = {
-  id: string;
-  name: string;
-  handle?: string | null;
-  avatarUrl?: string | null;
-};
-
-export type WorldComputed = {
-  time: WorldComputedTime;
-  languages: WorldComputedLanguages;
-  entry: {
-    recommendedAgents: WorldComputedEntryAgent[];
-  };
-  score: {
-    scoreEwma: number;
-  };
-  featuredAgentCount: number;
-};
-
-export type WorldListItem = {
-  id: string;
-  name: string;
-  description: string | null;
-  tagline?: string | null;
-  motto?: string | null;
-  overview?: string | null;
-  contentRating?: string | null;
-  genre: string | null;
-  themes: string[];
-  era: string | null;
-  iconUrl: string | null;
-  bannerUrl: string | null;
-  type: string;
-  status: string;
-  level: number;
-  levelUpdatedAt: string | null;
-  agentCount: number;
-  createdAt: string;
-  updatedAt: string | null;
-  creatorId: string | null;
-  freezeReason: string | null;
-  lorebookEntryLimit: number;
-  nativeAgentLimit: number;
-  nativeCreationState: string;
-  scoreA: number;
-  scoreC: number;
-  scoreE: number;
-  scoreEwma: number;
-  scoreQ: number;
-  transitInLimit: number;
-  computed: WorldComputed;
-  agents?: WorldAgentItem[];
-};
-
-function readString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
-}
-
-function readRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
-}
-
-function readBoolean(value: unknown): boolean | null {
-  return typeof value === 'boolean' ? value : null;
-}
-
-function readNumber(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
-}
-
-function toComputedAgent(raw: unknown): WorldComputedEntryAgent | null {
-  const record = readRecord(raw);
-  if (!record?.id) {
-    return null;
-  }
-  return {
-    id: String(record.id),
-    name: String(record.name || 'Unknown'),
-    handle: readString(record.handle),
-    avatarUrl: readString(record.avatarUrl),
-  };
-}
-
-function toWorldComputed(raw: unknown): WorldComputed {
-  const record = readRecord(raw);
-  const time = readRecord(record?.time);
-  const languages = readRecord(record?.languages);
-  const entry = readRecord(record?.entry);
-  const score = readRecord(record?.score);
-
-  return {
-    time: {
-      currentWorldTime: readString(time?.currentWorldTime),
-      currentLabel: readString(time?.currentLabel),
-      eraLabel: readString(time?.eraLabel),
-      flowRatio: Math.max(0.0001, readNumber(time?.flowRatio) ?? 1),
-      isPaused: readBoolean(time?.isPaused) ?? false,
-    },
-    languages: {
-      primary: readString(languages?.primary),
-      common: Array.isArray(languages?.common)
-        ? languages.common.filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
-        : [],
-    },
-    entry: {
-      recommendedAgents: Array.isArray(entry?.recommendedAgents)
-        ? entry.recommendedAgents.map(toComputedAgent).filter((value): value is WorldComputedEntryAgent => Boolean(value))
-        : [],
-    },
-    score: {
-      scoreEwma: readNumber(score?.scoreEwma) ?? 0,
-    },
-    featuredAgentCount: readNumber(record?.featuredAgentCount) ?? 0,
-  };
-}
-
-function resolveProjectedWorldDate(
-  time: WorldComputedTime,
-  anchorNowMs: number,
-  nowMs: number,
-): Date | null {
-  if (!time.currentWorldTime) {
-    return null;
-  }
-  const anchor = new Date(time.currentWorldTime);
-  if (Number.isNaN(anchor.getTime())) {
-    return null;
-  }
-  if (time.isPaused) {
-    return anchor;
-  }
-  const elapsedClientMs = Math.max(0, nowMs - anchorNowMs);
-  return new Date(anchor.getTime() + elapsedClientMs * Math.max(0.0001, time.flowRatio));
-}
-
-function formatProjectedWorldDate(worldDate: Date | null): string {
-  if (!worldDate || Number.isNaN(worldDate.getTime())) {
-    return 'N/A';
-  }
-  return `${worldDate.getUTCFullYear()}-${String(worldDate.getUTCMonth() + 1).padStart(2, '0')}-${String(worldDate.getUTCDate()).padStart(2, '0')} ${String(worldDate.getUTCHours()).padStart(2, '0')}:${String(worldDate.getUTCMinutes()).padStart(2, '0')}:${String(worldDate.getUTCSeconds()).padStart(2, '0')}`;
-}
-
-function resolveWorldType(raw: Record<string, unknown>): string {
-  return (
-    readString(raw.type) ??
-    readString(raw.worldType) ??
-    readString(raw.world_type) ??
-    'CREATOR'
-  );
-}
-
-function resolveCreatorId(raw: Record<string, unknown>): string | null {
-  return (
-    readString(raw.creatorId) ??
-    readString(raw.worldCreatorId) ??
-    readString(raw.world_creator_id) ??
-    null
-  );
-}
-
-function isMainWorld(item: Pick<WorldListItem, 'type' | 'creatorId'>): boolean {
-  return isMainWorldType(item.type) || !item.creatorId;
-}
-
-export function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
-  let parsedAgents: WorldAgentItem[] | undefined;
-  if (Array.isArray(raw.agents)) {
-    parsedAgents = raw.agents.map((a: unknown) => {
-      const agent = a as Record<string, unknown>;
-      return {
-        id: String(agent.id || ''),
-        name: String(agent.name || 'Unknown'),
-        handle: typeof agent.handle === 'string' ? agent.handle : undefined,
-        bio: typeof agent.bio === 'string' ? agent.bio : undefined,
-        avatarUrl: typeof agent.avatarUrl === 'string' ? agent.avatarUrl : null,
-        createdAt: typeof agent.createdAt === 'string' ? agent.createdAt : undefined,
-      };
-    });
-  }
-
-  return {
-    id: String(raw.id || ''),
-    name: String(raw.name || 'Unknown World'),
-    description: typeof raw.description === 'string' ? raw.description : null,
-    tagline: typeof raw.tagline === 'string' ? raw.tagline : null,
-    motto: typeof raw.motto === 'string' ? raw.motto : null,
-    overview: typeof raw.overview === 'string' ? raw.overview : null,
-    contentRating: typeof raw.contentRating === 'string' ? raw.contentRating : null,
-    genre: typeof raw.genre === 'string' ? raw.genre : null,
-    themes: Array.isArray(raw.themes)
-      ? raw.themes.filter((t): t is string => typeof t === 'string')
-      : [],
-    era: typeof raw.era === 'string' ? raw.era : null,
-    iconUrl: typeof raw.iconUrl === 'string' ? raw.iconUrl : null,
-    bannerUrl: typeof raw.bannerUrl === 'string' ? raw.bannerUrl : null,
-    type: resolveWorldType(raw),
-    status: typeof raw.status === 'string' ? raw.status : 'DRAFT',
-    level: typeof raw.level === 'number' ? raw.level : 1,
-    levelUpdatedAt: typeof raw.levelUpdatedAt === 'string' ? raw.levelUpdatedAt : null,
-    agentCount: typeof raw.agentCount === 'number' ? raw.agentCount : 0,
-    createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
-    updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : null,
-    creatorId: resolveCreatorId(raw),
-    freezeReason: typeof raw.freezeReason === 'string' ? raw.freezeReason : null,
-    lorebookEntryLimit: typeof raw.lorebookEntryLimit === 'number' ? raw.lorebookEntryLimit : 0,
-    nativeAgentLimit: typeof raw.nativeAgentLimit === 'number' ? raw.nativeAgentLimit : 0,
-    nativeCreationState:
-      typeof raw.nativeCreationState === 'string' ? raw.nativeCreationState : 'OPEN',
-    scoreA: typeof raw.scoreA === 'number' ? raw.scoreA : 0,
-    scoreC: typeof raw.scoreC === 'number' ? raw.scoreC : 0,
-    scoreE: typeof raw.scoreE === 'number' ? raw.scoreE : 0,
-    scoreEwma: typeof raw.scoreEwma === 'number' ? raw.scoreEwma : 0,
-    scoreQ: typeof raw.scoreQ === 'number' ? raw.scoreQ : 0,
-    transitInLimit: typeof raw.transitInLimit === 'number' ? raw.transitInLimit : 0,
-    computed: toWorldComputed(raw.computed),
-    agents: parsedAgents,
-  };
-}
 
 const DEFAULT_TAG_STYLE: { bg: string; text: string } = { bg: 'bg-gray-100', text: 'text-gray-600' };
 
@@ -293,160 +36,10 @@ function getTagStyle(type: string, value?: string): { bg: string; text: string }
   return tagStyles[key] ?? DEFAULT_TAG_STYLE;
 }
 
-function formatCompactStat(value: number): string {
-  if (!Number.isFinite(value) || value <= 0) {
-    return '0';
-  }
-  if (value >= 1000) {
-    const compact = (value / 1000).toFixed(value >= 10000 ? 0 : 1);
-    return `${compact.replace(/\.0$/, '')}k`;
-  }
-  return String(Math.round(value));
-}
-
-function getWorldAgentTotal(world: WorldListItem): string {
-  return formatCompactStat(world.agentCount);
-}
-
-function getWorldScoring(world: WorldListItem): string {
-  const score = world.scoreQ || world.scoreEwma || Math.round((world.scoreA + world.scoreC + world.scoreE) / 3);
-  return Number.isFinite(score) ? `${Math.round(score)}` : '0';
-}
-
-type WorldChronoPanelState = {
-  hour: number;
-  minute: number;
-  second: number;
-  millisecond: number;
-  flowRatio: number;
-  dateLabel: string;
-  compactDateLabel: string;
-  progress: number;
-};
-
-function resolveWorldChronoPanelState(
-  world: WorldListItem,
-  anchorNowMs: number,
-  nowMs: number,
-): WorldChronoPanelState | null {
-  const flowRatio = Math.max(0.0001, world.computed.time.flowRatio);
-  const worldDate = resolveProjectedWorldDate(world.computed.time, anchorNowMs, nowMs);
-  if (!worldDate) {
-    return null;
-  }
-  const hour = worldDate.getUTCHours();
-  const minute = worldDate.getUTCMinutes();
-  const second = worldDate.getUTCSeconds();
-  const millisecond = worldDate.getUTCMilliseconds();
-  const dateLabel = world.computed.time.currentLabel || formatProjectedWorldDate(worldDate);
-
-  return {
-    hour,
-    minute,
-    second,
-    millisecond,
-    flowRatio,
-    dateLabel,
-    compactDateLabel: `${worldDate.getUTCFullYear()}.${String(worldDate.getUTCMonth() + 1).padStart(2, '0')}.${String(worldDate.getUTCDate()).padStart(2, '0')}`,
-    progress: Math.max(8, Math.min(100, (Math.log10(flowRatio + 1) / Math.log10(1000 + 1)) * 100)),
-  };
-}
-
-function WorldChronoPanel({
-  world,
-  compact = false,
-  nowMs,
-  anchorNowMs,
-}: {
-  world: WorldListItem;
-  compact?: boolean;
-  nowMs: number;
-  anchorNowMs: number;
-}) {
-  const { t } = useTranslation();
-  const chrono = resolveWorldChronoPanelState(world, anchorNowMs, nowMs);
-  if (!chrono) {
-    return null;
-  }
-
-  const flowPulse = (chrono.millisecond / 999) * 48;
-  const flowWidth = Math.min(100, Math.max(18, chrono.progress * 0.42 + flowPulse));
-
-  return (
-    <div
-      className={`${compact ? 'min-w-[150px] max-w-[180px] px-3 py-2.5' : 'min-w-[300px] max-w-[340px] px-6 py-5'} rounded-[16px] text-white`}
-        style={{
-          background: 'rgba(255, 255, 255, 0.03)',
-          backdropFilter: compact ? 'blur(18px)' : 'blur(18px)',
-          WebkitBackdropFilter: compact ? 'blur(18px)' : 'blur(18px)',
-          border: '1px solid rgba(255, 255, 255, 0.14)',
-          boxShadow: 'none',
-        }}
-      >
-      <style>{WORLD_SYNC_DOT_PULSE_KEYFRAMES}</style>
-      <div className="mb-2 flex items-center justify-between gap-4">
-        <span className={`inline-flex items-center ${compact ? 'gap-1.5 text-[7px]' : 'gap-2 text-[10px]'} uppercase tracking-[0.2em] text-[#56D3B2]/85`}>
-          <span className={`relative inline-flex ${compact ? 'h-1.5 w-1.5' : 'h-2 w-2'} shrink-0`}>
-            <span
-              className="absolute inset-0 rounded-full bg-[#56D3B2]"
-              style={{
-                animation: 'world-sync-dot-pulse 0.95s ease-out infinite',
-              }}
-            />
-            <span className="absolute inset-0 rounded-full bg-[#56D3B2]" />
-          </span>
-          <span>{t('World.syncTicker')}</span>
-        </span>
-        <span
-          className={`text-right ${compact ? 'text-[10px]' : 'text-[13px]'} font-medium tracking-[0.08em] text-white/92`}
-          style={{ textShadow: '1.5px 0 rgba(255,0,255,0.55), -1px 0 rgba(86,211,178,0.8)' }}
-        >
-          {chrono.compactDateLabel}
-        </span>
-      </div>
-
-      <div className={`${compact ? 'mt-1.5' : 'mt-3'} flex items-end text-white`}>
-        <div className={`font-mono ${compact ? 'text-[18px]' : 'text-[38px]'} font-black leading-none tracking-[-0.04em]`}>
-          {String(chrono.hour).padStart(2, '0')}:{String(chrono.minute).padStart(2, '0')}
-        </div>
-        <div className={`${compact ? 'ml-1.5' : 'ml-3'} flex flex-col pb-0.5`}>
-          <span className={`${compact ? 'text-[11px]' : 'text-lg'} leading-none text-[#56D3B2]`}>:{String(chrono.second).padStart(2, '0')}</span>
-          <span className={`${compact ? 'mt-0.5 text-[8px]' : 'mt-1 text-[11px]'} font-mono leading-none text-fuchsia-300/80`}>
-            {String(chrono.millisecond).padStart(3, '0')}
-          </span>
-        </div>
-      </div>
-
-      <div className={`${compact ? 'mt-2' : 'mt-4'}`}>
-        <span className={`mb-1.5 block ${compact ? 'text-[7px]' : 'text-[9px]'} uppercase tracking-[0.16em] text-[#8EF0D8]`}>
-          {t('World.chronoFlow', { value: chrono.flowRatio.toFixed(1) })}
-        </span>
-        <div className="relative h-[2px] overflow-hidden bg-white/10">
-          <div
-            className="absolute inset-y-0 left-0 bg-[#56D3B2] shadow-[0_0_10px_rgba(86,211,178,0.9)]"
-            style={{ width: `${flowWidth}%` }}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function WorldList() {
   const { t } = useTranslation();
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
   const [searchText, setSearchText] = useState('');
-  const [nowMs, setNowMs] = useState(() => Date.now());
-  const anchorNowMsRef = useRef(Date.now());
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setNowMs(Date.now());
-    }, 250);
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, []);
 
   const openWorldDetail = (worldId: string) => {
     prefetchWorldDetailPanel();
@@ -701,7 +294,7 @@ export function WorldList() {
                           </div>
 
                           <div className="shrink-0 lg:pt-1">
-                            <WorldChronoPanel world={mainWorld} nowMs={nowMs} anchorNowMs={anchorNowMsRef.current} />
+                            <WorldChronoPanel world={mainWorld} />
                           </div>
                         </div>
 
@@ -769,7 +362,7 @@ export function WorldList() {
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                             <div className="absolute right-3 top-0 z-10">
-                              <WorldChronoPanel world={world} compact nowMs={nowMs} anchorNowMs={anchorNowMsRef.current} />
+                              <WorldChronoPanel world={world} compact />
                             </div>
                         </div>
                       )}

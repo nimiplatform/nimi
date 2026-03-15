@@ -1,19 +1,22 @@
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
-use tauri::path::BaseDirectory;
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 
+mod manifest;
 mod runtime_stage;
+mod runtime_paths;
+use manifest::{read_manifest, resolve_resource_path};
+#[cfg(test)]
+use manifest::validate_release_manifest;
+#[cfg(test)]
+use runtime_paths::current_runtime_state_path;
 use runtime_stage::stage_runtime_archive;
 #[cfg(test)]
 use runtime_stage::{cleanup_old_versions, runtime_version_dir, sha256_hex};
-
 const RELEASE_MANIFEST_FILE: &str = "desktop-release-manifest.json";
-const CURRENT_RUNTIME_STATE_FILE: &str = "current.json";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -39,14 +42,6 @@ pub struct DesktopReleaseManifest {
     pub runtime_sha256: String,
     pub runtime_binary_path: String,
     pub built_at: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct CurrentRuntimeState {
-    version: String,
-    binary_path: String,
-    switched_at: String,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -76,175 +71,6 @@ fn now_ms() -> u128 {
         .duration_since(UNIX_EPOCH)
         .map(|value| value.as_millis())
         .unwrap_or(0)
-}
-
-fn read_manifest_from_path(path: &Path) -> Result<DesktopReleaseManifest, String> {
-    let raw = fs::read_to_string(path).map_err(|error| {
-        bridge_error(
-            "DESKTOP_RELEASE_MANIFEST_READ_FAILED",
-            format!("failed to read {}: {error}", path.display()).as_str(),
-        )
-    })?;
-    serde_json::from_str::<DesktopReleaseManifest>(&raw).map_err(|error| {
-        bridge_error(
-            "DESKTOP_RELEASE_MANIFEST_PARSE_FAILED",
-            format!("failed to parse {}: {error}", path.display()).as_str(),
-        )
-    })
-}
-
-fn fallback_manifest_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("resources")
-        .join(RELEASE_MANIFEST_FILE)
-}
-
-fn resource_manifest_path(app: &AppHandle) -> Option<PathBuf> {
-    app.path()
-        .resolve(RELEASE_MANIFEST_FILE, BaseDirectory::Resource)
-        .ok()
-}
-
-fn manifest_path(app: &AppHandle) -> PathBuf {
-    resource_manifest_path(app)
-        .filter(|path| path.exists())
-        .unwrap_or_else(fallback_manifest_path)
-}
-
-fn read_manifest(app: &AppHandle) -> Result<DesktopReleaseManifest, String> {
-    let manifest = read_manifest_from_path(manifest_path(app).as_path())?;
-    validate_release_manifest(&manifest)?;
-    Ok(manifest)
-}
-
-fn validate_release_manifest(manifest: &DesktopReleaseManifest) -> Result<(), String> {
-    let desktop_version = manifest.desktop_version.trim();
-    let runtime_version = manifest.runtime_version.trim();
-    let expected_version = env!("CARGO_PKG_VERSION");
-
-    if desktop_version.is_empty() {
-        return Err(bridge_error(
-            "DESKTOP_RELEASE_VERSION_MISSING",
-            "desktopVersion is empty",
-        ));
-    }
-    if runtime_version.is_empty() {
-        return Err(bridge_error(
-            "DESKTOP_RELEASE_RUNTIME_VERSION_MISSING",
-            "runtimeVersion is empty",
-        ));
-    }
-    if desktop_version != runtime_version {
-        return Err(bridge_error(
-            "DESKTOP_RELEASE_VERSION_MISMATCH",
-            format!(
-                "desktopVersion {} does not match runtimeVersion {}",
-                desktop_version, runtime_version
-            )
-            .as_str(),
-        ));
-    }
-    if desktop_version != expected_version {
-        return Err(bridge_error(
-            "DESKTOP_RELEASE_VERSION_OUT_OF_SYNC",
-            format!(
-                "desktopVersion {} does not match packaged desktop version {}",
-                desktop_version, expected_version
-            )
-            .as_str(),
-        ));
-    }
-    if manifest.channel.trim().is_empty() {
-        return Err(bridge_error(
-            "DESKTOP_RELEASE_CHANNEL_MISSING",
-            "channel is empty",
-        ));
-    }
-    if manifest.runtime_binary_path.trim().is_empty() {
-        return Err(bridge_error(
-            "DESKTOP_RELEASE_RUNTIME_BINARY_PATH_MISSING",
-            "runtimeBinaryPath is empty",
-        ));
-    }
-    Ok(())
-}
-
-fn resolve_resource_path(app: &AppHandle, relative_path: &str) -> Result<PathBuf, String> {
-    let trimmed = relative_path.trim();
-    if trimmed.is_empty() {
-        return Err(bridge_error(
-            "DESKTOP_RELEASE_RESOURCE_PATH_INVALID",
-            "runtime archive path is empty",
-        ));
-    }
-    if let Ok(path) = app.path().resolve(trimmed, BaseDirectory::Resource) {
-        if path.exists() {
-            return Ok(path);
-        }
-    }
-    let fallback = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("resources")
-        .join(trimmed);
-    if fallback.exists() {
-        return Ok(fallback);
-    }
-    Err(bridge_error(
-        "DESKTOP_RELEASE_RESOURCE_MISSING",
-        format!("resource not found: {trimmed}").as_str(),
-    ))
-}
-
-fn runtime_root_dir() -> Result<PathBuf, String> {
-    let root = crate::desktop_paths::resolve_nimi_dir()?.join("runtime");
-    fs::create_dir_all(&root).map_err(|error| {
-        bridge_error(
-            "DESKTOP_RUNTIME_ROOT_CREATE_FAILED",
-            format!("failed to create runtime root {}: {error}", root.display()).as_str(),
-        )
-    })?;
-    Ok(root)
-}
-
-fn runtime_versions_dir() -> Result<PathBuf, String> {
-    let path = runtime_root_dir()?.join("versions");
-    fs::create_dir_all(&path).map_err(|error| {
-        bridge_error(
-            "DESKTOP_RUNTIME_VERSIONS_CREATE_FAILED",
-            format!("failed to create versions dir {}: {error}", path.display()).as_str(),
-        )
-    })?;
-    Ok(path)
-}
-
-fn runtime_staging_dir() -> Result<PathBuf, String> {
-    let path = runtime_root_dir()?.join("staging");
-    fs::create_dir_all(&path).map_err(|error| {
-        bridge_error(
-            "DESKTOP_RUNTIME_STAGING_CREATE_FAILED",
-            format!("failed to create staging dir {}: {error}", path.display()).as_str(),
-        )
-    })?;
-    Ok(path)
-}
-
-fn current_runtime_state_path() -> Result<PathBuf, String> {
-    Ok(runtime_root_dir()?.join(CURRENT_RUNTIME_STATE_FILE))
-}
-
-fn write_current_runtime_state(state: &CurrentRuntimeState) -> Result<(), String> {
-    let path = current_runtime_state_path()?;
-    let payload = serde_json::to_string_pretty(state).map_err(|error| {
-        bridge_error(
-            "DESKTOP_RUNTIME_CURRENT_STATE_SERIALIZE_FAILED",
-            error.to_string().as_str(),
-        )
-    })?;
-    fs::write(&path, payload).map_err(|error| {
-        bridge_error(
-            "DESKTOP_RUNTIME_CURRENT_STATE_WRITE_FAILED",
-            format!("failed to write {}: {error}", path.display()).as_str(),
-        )
-    })
 }
 
 fn update_release_state(
