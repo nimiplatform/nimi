@@ -19,18 +19,43 @@ export function normalizeMediaType(type: unknown): PostMediaType | null {
   return null;
 }
 
-export function resolveMediaUrl(media: PostDto['media'][number] | null | undefined): string | undefined {
+function resolveRealmMediaPath(realmBaseUrl: string, path: string): string | undefined {
+  const normalizedBase = String(realmBaseUrl || '').trim().replace(/\/$/, '');
+  const normalizedPath = String(path || '').trim();
+  if (!normalizedPath) {
+    return undefined;
+  }
+  if (/^https?:\/\//i.test(normalizedPath)) {
+    return normalizedPath;
+  }
+  if (normalizedPath.startsWith('/')) {
+    return normalizedBase ? `${normalizedBase}${normalizedPath}` : undefined;
+  }
+  return normalizedPath;
+}
+
+export function resolveMediaUrl(
+  media: PostDto['media'][number] | null | undefined,
+  realmBaseUrl: string,
+): string | undefined {
   if (!media) {
     return undefined;
   }
-  if (typeof media.url === 'string' && media.url.trim()) {
-    return media.url.trim();
-  }
-  const maybeUid = (media as Record<string, unknown>).uid;
-  if (typeof maybeUid === 'string' && maybeUid.trim()) {
-    return maybeUid.trim();
+  const directUrl = resolveRealmMediaPath(realmBaseUrl, media.url || '');
+  if (directUrl) {
+    return directUrl;
   }
   return undefined;
+}
+
+export function resolveMediaThumbnailUrl(
+  media: PostDto['media'][number] | null | undefined,
+  realmBaseUrl: string,
+): string | undefined {
+  if (!media) {
+    return undefined;
+  }
+  return resolveRealmMediaPath(realmBaseUrl, media.thumbnail || '');
 }
 
 export function resolveVideoPlaybackSource(rawUrl?: string): VideoPlaybackSource | null {

@@ -17,7 +17,7 @@ import { BlockUserConfirmModal, DeletePostConfirmModal } from './confirm-modals'
 import { EditVisibilityModal } from './edit-visibility-modal';
 import { ReportModal } from './report-modal';
 import { usePostCardUi } from './use-post-card-ui';
-import { normalizeMediaType, resolveMediaUrl, resolveVideoPlaybackSource } from './utils';
+import { normalizeMediaType, resolveMediaUrl, resolveMediaThumbnailUrl, resolveVideoPlaybackSource } from './utils';
 
 const INTERNAL_OPEN_CHAT_ERROR_CODE = 'HOME_OPEN_CHAT_FAILED';
 
@@ -26,14 +26,7 @@ function extractPostMediaId(media: unknown): string {
     return '';
   }
   const payload = media as Record<string, unknown>;
-  const candidates = [payload.assetId, payload.id, payload.imageId, payload.videoId, payload.uid];
-  for (const candidate of candidates) {
-    const value = String(candidate || '').trim();
-    if (value) {
-      return value;
-    }
-  }
-  return '';
+  return String(payload.assetId || '').trim();
 }
 
 function toBannerErrorMessage(error: unknown, fallback: string): string {
@@ -68,6 +61,7 @@ export function PostCard(input: PostCardProps) {
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
+  const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
   const authStatus = useAppStore((state) => state.auth.status);
   const currentUserId = useAppStore((state) => state.auth.user?.id);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -103,8 +97,8 @@ export function PostCard(input: PostCardProps) {
     })
     : null;
   const firstMediaType = normalizeMediaType(firstMedia?.type);
-  const firstMediaUrl = resolveMediaUrl(firstMedia);
-  const videoSource = firstMediaType === PostMediaType.VIDEO ? resolveVideoPlaybackSource(firstMediaUrl) : null;
+  const firstMediaUrl = resolveMediaUrl(firstMedia, realmBaseUrl);
+  const firstMediaThumbnail = resolveMediaThumbnailUrl(firstMedia, realmBaseUrl);
   const editPostSeed = useMemo<EditablePostSeed | null>(() => {
     if (!post.id) {
       return null;
@@ -122,6 +116,7 @@ export function PostCard(input: PostCardProps) {
       media,
     };
   }, [firstMedia, firstMediaType, firstMediaUrl, post.caption, post.id, post.tags, postVisibility]);
+  const videoSource = firstMediaType === PostMediaType.VIDEO ? resolveVideoPlaybackSource(firstMediaUrl) : null;
 
   const authorRecord = (
     post.author && typeof post.author === 'object'
@@ -519,7 +514,7 @@ export function PostCard(input: PostCardProps) {
         menuButtonRef={ui.menuButtonRef}
         firstMediaType={firstMediaType}
         firstMediaUrl={firstMediaUrl}
-        firstMediaThumbnail={firstMedia?.thumbnail}
+        firstMediaThumbnail={firstMediaThumbnail}
         videoSource={videoSource}
         onOpenAuthorProfile={openAuthorProfile}
         onOpenAddFriendModal={ui.openAddFriendModal}

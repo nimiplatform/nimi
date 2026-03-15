@@ -3,7 +3,11 @@ import test, { describe } from 'node:test';
 
 import type { PostDto } from '@nimiplatform/sdk/realm';
 
-import { prepareHomeFeedItems } from '../src/shell/renderer/features/home/utils.js';
+import {
+  prepareHomeFeedItems,
+  resolveMediaThumbnailUrl,
+  resolveMediaUrl,
+} from '../src/shell/renderer/features/home/utils.js';
 
 function makePost(input: {
   id: string;
@@ -52,5 +56,41 @@ describe('prepareHomeFeedItems', () => {
       result.map((post) => post.id),
       ['agent-post', 'human-post'],
     );
+  });
+});
+
+describe('media url resolution', () => {
+  test('expands relative media urls against the configured realm base url', () => {
+    const media = {
+      type: 'IMAGE',
+      url: '/api/media/images/example',
+    } as PostDto['media'][number];
+
+    assert.equal(
+      resolveMediaUrl(media, 'https://realm.example'),
+      'https://realm.example/api/media/images/example',
+    );
+  });
+
+  test('expands relative media thumbnails against the configured realm base url', () => {
+    const media = {
+      type: 'VIDEO',
+      url: 'https://cdn.example/video.m3u8',
+      thumbnail: '/api/media/video-thumbs/example',
+    } as PostDto['media'][number];
+
+    assert.equal(
+      resolveMediaThumbnailUrl(media, 'https://realm.example/'),
+      'https://realm.example/api/media/video-thumbs/example',
+    );
+  });
+
+  test('does not fall back to legacy uid-only media references', () => {
+    const media = {
+      type: 'VIDEO',
+      uid: 'legacy-video-uid',
+    } as PostDto['media'][number];
+
+    assert.equal(resolveMediaUrl(media, 'https://realm.example'), undefined);
   });
 });

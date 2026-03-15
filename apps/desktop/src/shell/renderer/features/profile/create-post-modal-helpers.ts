@@ -32,15 +32,7 @@ export function extractExistingMediaId(input: EditablePostSeed['media']): string
   if (!input || typeof input !== 'object') {
     return '';
   }
-  const payload = input as Record<string, unknown>;
-  const candidates = [payload.assetId, payload.id, payload.imageId, payload.videoId, payload.uid];
-  for (const candidate of candidates) {
-    const value = String(candidate || '').trim();
-    if (value) {
-      return value;
-    }
-  }
-  return '';
+  return String(input.id || '').trim();
 }
 
 export const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];

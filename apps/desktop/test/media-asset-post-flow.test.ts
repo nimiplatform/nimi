@@ -9,31 +9,20 @@ const createPostModalSource = fs.readFileSync(
   'utf8',
 );
 
-test('extractExistingMediaId prefers assetId and only falls back to legacy ids for playback', () => {
+test('extractExistingMediaId only accepts canonical media ids from the editable post seed', () => {
   assert.equal(
     extractExistingMediaId({
-      id: 'legacy-id',
-      assetId: 'asset-1',
-      imageId: 'image-legacy',
-      videoId: 'video-legacy',
+      id: 'asset-1',
       type: 'image',
     } as never),
     'asset-1',
   );
   assert.equal(
     extractExistingMediaId({
-      id: 'legacy-id',
-      videoId: 'video-legacy',
+      id: 'asset-video-1',
       type: 'video',
     } as never),
-    'legacy-id',
-  );
-  assert.equal(
-    extractExistingMediaId({
-      uid: 'video-uid',
-      type: 'video',
-    } as never),
-    'video-uid',
+    'asset-video-1',
   );
   assert.equal(extractExistingMediaId(null), '');
 });

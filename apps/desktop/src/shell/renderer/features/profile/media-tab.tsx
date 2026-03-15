@@ -54,15 +54,11 @@ export function MediaTab({ profileId, onMediaClick }: MediaTabProps) {
             setLoadingInitial(true);
           }
         }
-        const data = await dataSync.callApi((realm) =>
-          realm.services.PostService.getHomeFeed(
-            undefined,
-            undefined,
-            profileId,
-            MEDIA_PAGE_SIZE,
-            cursorArg ?? undefined,
-          ),
-        );
+        const data = await dataSync.loadPostFeed({
+          authorId: profileId,
+          limit: MEDIA_PAGE_SIZE,
+          cursor: cursorArg ?? undefined,
+        });
         const allItems = Array.isArray(data?.items) ? (data.items as PostDto[]) : [];
         const nextCursor = data?.page?.nextCursor ?? null;
         const mediaItems = allItems.filter((p) => p.media && p.media.length > 0);
