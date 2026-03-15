@@ -237,7 +237,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   });
 
   const detail = worldCompositeQuery.data;
-  const initialLoading = false;
+  const initialLoading = worldCompositeQuery.isPending && !detail;
   const initialError = worldCompositeQuery.isError && !detail;
   const worldData = toXianxiaWorldData(world, detail);
 

@@ -1070,10 +1070,7 @@ rules:
       - desktop_test_gate
   - rule_id: D-CODEGEN-001
     status: covered
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
+    evidence_refs: [desktop_kernel_consistency, desktop_lint_gate, desktop_test_gate]
   - rule_id: D-CODEGEN-010
     status: covered
     evidence_refs:
@@ -1083,34 +1080,19 @@ rules:
       - desktop_mod_capabilities_gate
   - rule_id: D-CODEGEN-016
     status: covered
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
+    evidence_refs: [desktop_kernel_consistency, desktop_lint_gate, desktop_test_gate]
   - rule_id: D-CODEGEN-020
     status: covered
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
+    evidence_refs: [desktop_kernel_consistency, desktop_lint_gate, desktop_test_gate]
   - rule_id: D-CODEGEN-030
     status: covered
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
+    evidence_refs: [desktop_kernel_consistency, desktop_lint_gate, desktop_test_gate]
   - rule_id: D-CODEGEN-040
     status: covered
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
+    evidence_refs: [desktop_kernel_consistency, desktop_lint_gate, desktop_test_gate]
   - rule_id: D-CODEGEN-050
     status: covered
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
+    evidence_refs: [desktop_kernel_consistency, desktop_lint_gate, desktop_test_gate]
   - rule_id: D-CODEGEN-060
     status: covered
     evidence_refs:

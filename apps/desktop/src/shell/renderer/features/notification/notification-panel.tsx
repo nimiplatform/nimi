@@ -23,6 +23,8 @@ import {
   notificationQueryKeys,
   patchNotificationUnreadCaches,
 } from './notification-query.js';
+import { RejectGiftDialog } from './notification-reject-gift-dialog.js';
+import { getActionLabel, getBadgeDefaultLabel } from './notification-panel-labels.js';
 
 const PAGE_SIZE = 20;
 const FILTER_TABS: NotificationFilterTab[] = ['all', 'gift', 'request', 'mention', 'like', 'system'];
@@ -74,42 +76,6 @@ function toErrorMessage(error: unknown, fallback: string): string {
     }
   }
   return fallback;
-}
-
-function getBadgeDefaultLabel(key: string): string {
-  switch (key) {
-    case 'friendRequestReceived':
-      return 'Friend Request';
-    case 'friendRequestAccepted':
-      return 'Friend Accepted';
-    case 'friendRequestRejected':
-      return 'Friend Rejected';
-    case 'giftReceived':
-      return 'Gift Received';
-    case 'giftAccepted':
-      return 'Gift Accepted';
-    case 'giftRejected':
-      return 'Gift Rejected';
-    case 'giftStatusUpdated':
-      return 'Gift Updated';
-    case 'reviewReceived':
-      return 'Review Received';
-    default:
-      return 'System';
-  }
-}
-
-function getActionLabel(
-  t: ReturnType<typeof useTranslation>['t'],
-  pendingAction: PendingItemAction | null,
-  itemId: string,
-  action: ItemActionKind,
-  fallback: string,
-  pendingFallback: string,
-): string {
-  return pendingAction?.itemId === itemId && pendingAction.action === action
-    ? pendingFallback
-    : fallback;
 }
 
 export function NotificationPanel() {
@@ -451,7 +417,6 @@ export function NotificationPanel() {
               <polyline points="20 6 9 17 4 12" />
             </svg>
             {getActionLabel(
-              t,
               pendingItemAction,
               item.id,
               'friend-accept',
@@ -473,7 +438,6 @@ export function NotificationPanel() {
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
             {getActionLabel(
-              t,
               pendingItemAction,
               item.id,
               'friend-reject',
@@ -501,7 +465,6 @@ export function NotificationPanel() {
               <polyline points="20 6 9 17 4 12" />
             </svg>
             {getActionLabel(
-              t,
               pendingItemAction,
               item.id,
               'gift-accept',
@@ -545,7 +508,6 @@ export function NotificationPanel() {
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
             </svg>
             {getActionLabel(
-              t,
               pendingItemAction,
               item.id,
               'review-positive',
@@ -563,7 +525,6 @@ export function NotificationPanel() {
             className={BUTTON_SECONDARY_CLASS}
           >
             {getActionLabel(
-              t,
               pendingItemAction,
               item.id,
               'review-negative',
@@ -784,59 +745,32 @@ export function NotificationPanel() {
       </ScrollShell>
 
       {rejectingItem ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl">
-            <h2 className="text-lg font-bold text-gray-900">
-              {t('NotificationPanel.rejectGiftTitle')}
-            </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              {t('NotificationPanel.rejectGiftDescription', {
-                defaultValue: 'You are rejecting gift from {{name}}.',
-                name: rejectingItem.actorName,
-              })}
-            </p>
-            <label className="mt-4 block text-xs font-medium text-gray-600" htmlFor="gift-reject-reason">
-              {t('NotificationPanel.rejectReason', { defaultValue: 'Reason (optional)' })}
-            </label>
-            <textarea
-              id="gift-reject-reason"
-              value={rejectReason}
-              onChange={(event) => setRejectReason(event.target.value)}
-              rows={3}
-              maxLength={160}
-              placeholder={t('NotificationPanel.rejectGiftReasonPlaceholder', {
-                defaultValue: "Tell them why you're rejecting...",
-              })}
-              className="mt-1 w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 outline-none focus:border-mint-300 focus:ring-2 focus:ring-mint-100"
-            />
-            <div className="mt-4 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  if (!pendingItemAction) {
-                    resetRejectDialog();
-                  }
-                }}
-                disabled={pendingItemAction?.action === 'gift-reject'}
-                className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {t('Common.cancel', { defaultValue: 'Cancel' })}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  void submitRejectGift();
-                }}
-                disabled={pendingItemAction?.action === 'gift-reject'}
-                className="rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {pendingItemAction?.action === 'gift-reject'
-                  ? t('NotificationPanel.rejecting', { defaultValue: 'Rejecting...' })
-                  : t('NotificationPanel.confirmReject', { defaultValue: 'Confirm Reject' })}
-              </button>
-            </div>
-          </div>
-        </div>
+        <RejectGiftDialog
+          actorName={rejectingItem.actorName}
+          rejectReason={rejectReason}
+          pending={pendingItemAction?.action === 'gift-reject'}
+          title={t('NotificationPanel.rejectGiftTitle')}
+          description={t('NotificationPanel.rejectGiftDescription', {
+            defaultValue: 'You are rejecting gift from {{name}}.',
+            name: rejectingItem.actorName,
+          })}
+          reasonLabel={t('NotificationPanel.rejectReason', { defaultValue: 'Reason (optional)' })}
+          reasonPlaceholder={t('NotificationPanel.rejectGiftReasonPlaceholder', {
+            defaultValue: "Tell them why you're rejecting...",
+          })}
+          cancelLabel={t('Common.cancel', { defaultValue: 'Cancel' })}
+          confirmLabel={t('NotificationPanel.confirmReject', { defaultValue: 'Confirm Reject' })}
+          pendingLabel={t('NotificationPanel.rejecting', { defaultValue: 'Rejecting...' })}
+          onReasonChange={setRejectReason}
+          onCancel={() => {
+            if (!pendingItemAction) {
+              resetRejectDialog();
+            }
+          }}
+          onSubmit={() => {
+            void submitRejectGift();
+          }}
+        />
       ) : null}
     </div>
   );

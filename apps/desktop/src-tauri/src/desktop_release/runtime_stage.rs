@@ -7,12 +7,10 @@ use std::time::SystemTime;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
-use super::{
-    bridge_error, now_iso_string, now_ms, DesktopReleaseManifest,
-};
 use super::runtime_paths::{
     runtime_staging_dir, runtime_versions_dir, write_current_runtime_state, CurrentRuntimeState,
 };
+use super::{bridge_error, now_iso_string, now_ms, DesktopReleaseManifest};
 
 pub(super) fn sha256_hex(path: &Path) -> Result<String, String> {
     let file = fs::File::open(path).map_err(|error| {
@@ -49,7 +47,11 @@ fn extract_zip_to_dir(archive_path: &Path, target_dir: &Path) -> Result<(), Stri
     let mut zip = zip::ZipArchive::new(file).map_err(|error| {
         bridge_error(
             "DESKTOP_RUNTIME_ARCHIVE_PARSE_FAILED",
-            format!("failed to parse archive {}: {error}", archive_path.display()).as_str(),
+            format!(
+                "failed to parse archive {}: {error}",
+                archive_path.display()
+            )
+            .as_str(),
         )
     })?;
     for index in 0..zip.len() {

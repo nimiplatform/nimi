@@ -69,9 +69,8 @@ pub(super) fn run_runtime_cli_json_with_error_code(
     error_context: &str,
 ) -> Result<Value, String> {
     let output = run_runtime_cli(args, stdin_payload)?;
-    serde_json::from_str::<Value>(output.trim()).map_err(|error| {
-        bridge_error(error_code, format!("{error_context}: {error}").as_str())
-    })
+    serde_json::from_str::<Value>(output.trim())
+        .map_err(|error| bridge_error(error_code, format!("{error_context}: {error}").as_str()))
 }
 
 fn run_runtime_cli(args: &[&str], stdin_payload: Option<&str>) -> Result<String, String> {

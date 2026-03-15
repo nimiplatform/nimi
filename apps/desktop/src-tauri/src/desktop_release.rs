@@ -6,11 +6,11 @@ use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
 mod manifest;
-mod runtime_stage;
 mod runtime_paths;
-use manifest::{read_manifest, resolve_resource_path};
+mod runtime_stage;
 #[cfg(test)]
 use manifest::validate_release_manifest;
+use manifest::{read_manifest, resolve_resource_path};
 #[cfg(test)]
 use runtime_paths::current_runtime_state_path;
 use runtime_stage::stage_runtime_archive;
@@ -333,8 +333,9 @@ mod tests {
     }
 
     fn read_current_runtime_state_json() -> Value {
-        let current_state = fs::read_to_string(current_runtime_state_path().expect("current state path"))
-            .expect("read current state");
+        let current_state =
+            fs::read_to_string(current_runtime_state_path().expect("current state path"))
+                .expect("read current state");
         serde_json::from_str::<Value>(&current_state).expect("parse current state")
     }
 
@@ -344,7 +345,9 @@ mod tests {
         let mut manifest = test_manifest_with_sha(&archive, "9.9.9", "deadbeef".to_string());
         manifest.runtime_version = "9.9.8".to_string();
 
-        let error = validate_release_manifest(&manifest).err().unwrap_or_default();
+        let error = validate_release_manifest(&manifest)
+            .err()
+            .unwrap_or_default();
         assert!(error.contains("DESKTOP_RELEASE_VERSION_MISMATCH"));
     }
 
@@ -353,7 +356,9 @@ mod tests {
         let archive = PathBuf::from("runtime.zip");
         let manifest = test_manifest_with_sha(&archive, "9.9.9", "deadbeef".to_string());
 
-        let error = validate_release_manifest(&manifest).err().unwrap_or_default();
+        let error = validate_release_manifest(&manifest)
+            .err()
+            .unwrap_or_default();
         assert!(error.contains("DESKTOP_RELEASE_VERSION_OUT_OF_SYNC"));
     }
 
@@ -393,11 +398,10 @@ mod tests {
             super::set_test_release_version("0.1.0");
             let info = release_info().expect("release info");
             assert!(!info.updater_available);
-            assert!(
-                info.updater_unavailable_reason
-                    .unwrap_or_default()
-                    .contains("DESKTOP_UPDATER_UNAVAILABLE")
-            );
+            assert!(info
+                .updater_unavailable_reason
+                .unwrap_or_default()
+                .contains("DESKTOP_UPDATER_UNAVAILABLE"));
         });
     }
 
@@ -413,7 +417,8 @@ mod tests {
         let manifest = test_manifest(&archive, "1.2.3");
 
         with_env(&[("HOME", home.to_str())], || {
-            let (staged, version) = stage_runtime_archive(&manifest, &archive).expect("stage runtime");
+            let (staged, version) =
+                stage_runtime_archive(&manifest, &archive).expect("stage runtime");
             assert!(staged.exists());
             assert_eq!(version, "1.2.3");
 
@@ -438,9 +443,11 @@ mod tests {
             let version_dir = runtime_version_dir("2.0.0").expect("version dir");
             fs::create_dir_all(version_dir.join("bin")).expect("create bin dir");
             let existing_binary = version_dir.join(test_binary_relative_path());
-            fs::write(&existing_binary, runtime_probe_fixture("2.0.0")).expect("write existing runtime");
+            fs::write(&existing_binary, runtime_probe_fixture("2.0.0"))
+                .expect("write existing runtime");
 
-            let (staged, version) = stage_runtime_archive(&manifest, &archive).expect("reuse runtime");
+            let (staged, version) =
+                stage_runtime_archive(&manifest, &archive).expect("reuse runtime");
             assert_eq!(staged, existing_binary);
             assert_eq!(version, "2.0.0");
 

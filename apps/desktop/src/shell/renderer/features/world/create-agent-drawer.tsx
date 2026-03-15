@@ -119,7 +119,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
       setForm(initialForm);
       setAvatarError(null);
     }
-  }, [props.isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [form.referenceImageUrl, props.isOpen]);
 
   const canSubmit = form.handle.trim().length > 0 && form.concept.trim().length > 0 && !props.submitting;
 

@@ -69,16 +69,17 @@ fn validate_release_resource_versions() {
     }
 }
 
-fn read_json_object(
-    path: &Path,
-) -> Result<serde_json::Map<String, serde_json::Value>, String> {
+fn read_json_object(path: &Path) -> Result<serde_json::Map<String, serde_json::Value>, String> {
     let raw = std::fs::read_to_string(path)
         .map_err(|error| format!("failed to read {}: {error}", path.display()))?;
     let value: serde_json::Value = serde_json::from_str(&raw)
         .map_err(|error| format!("failed to parse {}: {error}", path.display()))?;
     match value {
         serde_json::Value::Object(object) => Ok(object),
-        _ => Err(format!("expected {} to contain a JSON object", path.display())),
+        _ => Err(format!(
+            "expected {} to contain a JSON object",
+            path.display()
+        )),
     }
 }
 

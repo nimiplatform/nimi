@@ -800,7 +800,7 @@ function checkBridgeReasonCodeCoverage() {
 function checkLocalRuntimeIpcConsistency() {
   const tablePath = 'spec/desktop/kernel/tables/ipc-commands.yaml';
   const rustPath = 'apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs';
-  const tsPath = 'apps/desktop/src/runtime/local-ai-runtime/commands.ts';
+  const tsPath = 'apps/desktop/src/runtime/local-runtime/commands.ts';
   if (!fileExists(tablePath) || !fileExists(rustPath) || !fileExists(tsPath)) {
     fail(`local-runtime IPC parity inputs missing: ${[tablePath, rustPath, tsPath].filter((rel) => !fileExists(rel)).join(', ')}`);
     return;
@@ -825,6 +825,7 @@ function checkLocalRuntimeIpcConsistency() {
   const tsCommands = new Set(
     [
       ...read(tsPath).matchAll(/\binvokeLocalAiCommand(?:<[^>]+>)?\(\s*'((?:runtime_local_[a-z0-9_]+))'/gu),
+      ...read(tsPath).matchAll(/\binvokeLocalRuntimeCommand(?:<[^>]+>)?\(\s*'((?:runtime_local_[a-z0-9_]+))'/gu),
       ...read(tsPath).matchAll(/\btauriInvoke(?:<[^>]+>)?\(\s*'((?:runtime_local_[a-z0-9_]+))'/gu),
     ].map((match) => match[1]),
   );

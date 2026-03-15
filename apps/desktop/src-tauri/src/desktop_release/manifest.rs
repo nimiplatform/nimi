@@ -97,7 +97,10 @@ pub(super) fn validate_release_manifest(manifest: &DesktopReleaseManifest) -> Re
     Ok(())
 }
 
-pub(super) fn resolve_resource_path(app: &AppHandle, relative_path: &str) -> Result<PathBuf, String> {
+pub(super) fn resolve_resource_path(
+    app: &AppHandle,
+    relative_path: &str,
+) -> Result<PathBuf, String> {
     let trimmed = relative_path.trim();
     if trimmed.is_empty() {
         return Err(bridge_error(

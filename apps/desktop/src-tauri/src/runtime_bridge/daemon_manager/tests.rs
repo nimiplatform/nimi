@@ -38,10 +38,7 @@ fn runtime_config_path_defaults_to_new_location() {
     let _guard = test_guard();
     let home = make_temp_dir("path-default");
     with_env(
-        &[
-            ("HOME", home.to_str()),
-            ("NIMI_RUNTIME_CONFIG_PATH", None),
-        ],
+        &[("HOME", home.to_str()), ("NIMI_RUNTIME_CONFIG_PATH", None)],
         || {
             std::env::remove_var("NIMI_RUNTIME_CONFIG_PATH");
             let path = runtime_config_path().expect("runtime config path");
@@ -126,7 +123,10 @@ fn start_failure_sets_status_last_error() {
     let _ = stop();
     with_env(
         &[
-            ("NIMI_RUNTIME_BINARY", Some("/__nimi_runtime_missing_binary__")),
+            (
+                "NIMI_RUNTIME_BINARY",
+                Some("/__nimi_runtime_missing_binary__"),
+            ),
             ("NIMI_RUNTIME_GRPC_ADDR", Some("127.0.0.1:46379")),
         ],
         || {
@@ -141,7 +141,10 @@ fn start_failure_sets_status_last_error() {
 
     let _ = stop();
     let snapshot = status();
-    assert_ne!(snapshot.last_error.as_deref(), Some("RUNTIME_BRIDGE_BUNDLED_RUNTIME_MISSING"));
+    assert_ne!(
+        snapshot.last_error.as_deref(),
+        Some("RUNTIME_BRIDGE_BUNDLED_RUNTIME_MISSING")
+    );
 }
 
 #[cfg(unix)]
@@ -172,20 +175,17 @@ exit 7
     );
     write_executable(&script_path, script.as_str());
 
-    with_env(
-        &[("NIMI_RUNTIME_BINARY", script_path.to_str())],
-        || {
-            let get_payload = config_get().expect("config get");
-            assert_eq!(get_payload["path"], config_path.display().to_string());
+    with_env(&[("NIMI_RUNTIME_BINARY", script_path.to_str())], || {
+        let get_payload = config_get().expect("config get");
+        assert_eq!(get_payload["path"], config_path.display().to_string());
 
-            let payload = r#"{"schemaVersion":1,"grpcAddr":"127.0.0.1:50001"}"#;
-            let set_payload = config_set(payload).expect("config set");
-            assert_eq!(set_payload["reasonCode"], "CONFIG_RESTART_REQUIRED");
+        let payload = r#"{"schemaVersion":1,"grpcAddr":"127.0.0.1:50001"}"#;
+        let set_payload = config_set(payload).expect("config set");
+        assert_eq!(set_payload["reasonCode"], "CONFIG_RESTART_REQUIRED");
 
-            let captured = fs::read_to_string(&captured_stdin).expect("read captured stdin");
-            assert_eq!(captured, payload);
-        },
-    );
+        let captured = fs::read_to_string(&captured_stdin).expect("read captured stdin");
+        assert_eq!(captured, payload);
+    });
     let _ = fs::remove_dir_all(dir);
 }
 
@@ -201,16 +201,13 @@ exit 9
 "#;
     write_executable(&script_path, script);
 
-    with_env(
-        &[("NIMI_RUNTIME_BINARY", script_path.to_str())],
-        || {
-            let err = config_set(r#"{"schemaVersion":1}"#)
-                .err()
-                .unwrap_or_default();
-            assert!(err.contains("RUNTIME_BRIDGE_CONFIG_CLI_FAILED"));
-            assert!(err.contains("config failed from fake cli"));
-        },
-    );
+    with_env(&[("NIMI_RUNTIME_BINARY", script_path.to_str())], || {
+        let err = config_set(r#"{"schemaVersion":1}"#)
+            .err()
+            .unwrap_or_default();
+        assert!(err.contains("RUNTIME_BRIDGE_CONFIG_CLI_FAILED"));
+        assert!(err.contains("config failed from fake cli"));
+    });
     let _ = fs::remove_dir_all(dir);
 }
 
@@ -329,13 +326,11 @@ exit 7
         || {
             let snapshot = status();
             assert!(snapshot.version.is_none());
-            assert!(
-                snapshot
-                    .last_error
-                    .as_deref()
-                    .unwrap_or_default()
-                    .contains("RUNTIME_BRIDGE_VERSION_MISMATCH")
-            );
+            assert!(snapshot
+                .last_error
+                .as_deref()
+                .unwrap_or_default()
+                .contains("RUNTIME_BRIDGE_VERSION_MISMATCH"));
         },
     );
     let _ = fs::remove_dir_all(dir);

@@ -12,10 +12,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::Manager;
 
-mod desktop_release;
 mod desktop_e2e_fixture;
-mod desktop_updates;
 mod desktop_paths;
+mod desktop_release;
+mod desktop_updates;
 mod external_agent_gateway;
 mod local_runtime;
 mod menu_bar_shell;

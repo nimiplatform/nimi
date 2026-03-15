@@ -69,10 +69,7 @@ impl Drop for TestGuard {
 }
 
 #[cfg(test)]
-pub(crate) fn with_env<R>(
-    updates: &[(&str, Option<&str>)],
-    run: impl FnOnce() -> R,
-) -> R {
+pub(crate) fn with_env<R>(updates: &[(&str, Option<&str>)], run: impl FnOnce() -> R) -> R {
     let _guard = test_guard();
     let mut previous = HashMap::<String, Option<String>>::new();
     for (key, value) in updates {

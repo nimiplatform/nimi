@@ -2,10 +2,10 @@ use std::collections::HashMap;
 
 mod helpers;
 mod manifest_checks;
-pub(crate) use helpers::{normalize_and_validate_capabilities, validate_loopback_endpoint};
 use helpers::{
     err, normalize_manifest_hash, ARTIFACT_MANIFEST_FILE_NAME, MODEL_MANIFEST_FILE_NAME,
 };
+pub(crate) use helpers::{normalize_and_validate_capabilities, validate_loopback_endpoint};
 use manifest_checks::normalize_artifact_kind;
 pub(crate) use manifest_checks::{
     parse_and_validate_artifact_manifest, parse_and_validate_manifest,
@@ -18,7 +18,6 @@ use super::types::{
     LocalAiArtifactSource, LocalAiArtifactStatus, LocalAiModelRecord, LocalAiModelSource,
     LocalAiModelStatus,
 };
-
 
 pub fn manifest_to_model_record(
     manifest: &ImportedModelManifest,
@@ -71,7 +70,11 @@ pub fn manifest_to_artifact_record(
         files: if manifest.files.is_empty() {
             vec![manifest.entry.trim().to_string()]
         } else {
-            manifest.files.iter().map(|item| item.trim().to_string()).collect()
+            manifest
+                .files
+                .iter()
+                .map(|item| item.trim().to_string())
+                .collect()
         },
         license: manifest.license.trim().to_string(),
         source: LocalAiArtifactSource {

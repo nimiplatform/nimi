@@ -85,13 +85,18 @@ mod tests {
     #[test]
     fn verified_artifact_registry_contains_z_image_entries() {
         let rows = verified_artifact_list();
-        assert!(rows.iter().any(|item| item.template_id == "verified.artifact.z_image.vae"));
-        assert!(rows.iter().any(|item| item.template_id == "verified.artifact.z_image.qwen3_4b"));
+        assert!(rows
+            .iter()
+            .any(|item| item.template_id == "verified.artifact.z_image.vae"));
+        assert!(rows
+            .iter()
+            .any(|item| item.template_id == "verified.artifact.z_image.qwen3_4b"));
     }
 
     #[test]
     fn find_verified_artifact_returns_descriptor_by_template_id() {
-        let descriptor = find_verified_artifact("verified.artifact.z_image.vae").expect("descriptor");
+        let descriptor =
+            find_verified_artifact("verified.artifact.z_image.vae").expect("descriptor");
         assert_eq!(descriptor.artifact_id, "local/z_image_ae");
         assert_eq!(descriptor.engine, "localai");
     }

@@ -21,7 +21,9 @@ pub(super) fn sha256_hex_for_file(path: &Path) -> Result<String, String> {
     Ok(format!("{digest:x}"))
 }
 
-pub(super) fn assert_required_manifest_fields(manifest: &ImportedModelManifest) -> Result<(), String> {
+pub(super) fn assert_required_manifest_fields(
+    manifest: &ImportedModelManifest,
+) -> Result<(), String> {
     if manifest.schema_version.trim().is_empty() {
         return Err(err(
             "LOCAL_AI_IMPORT_MANIFEST_SCHEMA_VERSION_MISSING",

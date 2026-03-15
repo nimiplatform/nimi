@@ -7,6 +7,9 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Emitter};
 
+use super::artifact_registry::{
+    find_installed_artifact_by_identity, list_artifacts, remove_artifact, upsert_artifact,
+};
 use super::audit::{
     append_audit_event, EVENT_DEPENDENCY_APPLY_COMPLETED, EVENT_DEPENDENCY_APPLY_FAILED,
     EVENT_DEPENDENCY_APPLY_STARTED, EVENT_DEPENDENCY_RESOLVE_FAILED,
@@ -19,9 +22,6 @@ use super::audit::{
     EVENT_RUNTIME_MODEL_READY_AFTER_INSTALL, EVENT_SERVICE_INSTALL_COMPLETED,
     EVENT_SERVICE_INSTALL_FAILED, EVENT_SERVICE_INSTALL_STARTED,
 };
-use super::artifact_registry::{
-    find_installed_artifact_by_identity, list_artifacts, remove_artifact, upsert_artifact,
-};
 use super::capability_matrix::refresh_state_capability_matrix_with_probe_and_device;
 use super::catalog::{
     list_repo_gguf_variants, resolve_install_plan as resolve_catalog_install_plan, search_catalog,
@@ -31,8 +31,7 @@ use super::dependency_apply::{
     fail_progress, mark_capability_matrix_refresh, run_preflight_all, DependencyApplyProgress,
 };
 use super::dependency_resolver::{
-    resolve_dependencies, DependencyDeclarationInput, DependencyOptionInput,
-    DependencyResolveInput,
+    resolve_dependencies, DependencyDeclarationInput, DependencyOptionInput, DependencyResolveInput,
 };
 use super::device_profile::collect_device_profile;
 use super::download_manager;
@@ -68,11 +67,12 @@ use super::types::{
     LocalAiDependencyResolutionPlan, LocalAiDeviceProfile, LocalAiDownloadControlPayload,
     LocalAiDownloadProgressEvent, LocalAiDownloadSessionSummary, LocalAiDownloadState,
     LocalAiInstallPlanDescriptor, LocalAiInstallRequest, LocalAiModelHealth, LocalAiModelRecord,
-    LocalAiModelSource, LocalAiNodeDescriptor, LocalAiProfileApplyResult, LocalAiProfileDescriptor,
-    LocalAiProfileEntryDescriptor, LocalAiProfileArtifactPlanEntry, LocalAiProfileResolutionPlan,
-    LocalAiRuntimeState, LocalAiServiceArtifactType, LocalAiServiceDescriptor,
-    LocalAiServiceStatus, LocalAiVerifiedArtifactDescriptor, LocalAiVerifiedModelDescriptor,
-    OrphanArtifactFile, OrphanModelFile, DEFAULT_LOCAL_ENDPOINT, LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
+    LocalAiModelSource, LocalAiNodeDescriptor, LocalAiProfileApplyResult,
+    LocalAiProfileArtifactPlanEntry, LocalAiProfileDescriptor, LocalAiProfileEntryDescriptor,
+    LocalAiProfileResolutionPlan, LocalAiRuntimeState, LocalAiServiceArtifactType,
+    LocalAiServiceDescriptor, LocalAiServiceStatus, LocalAiVerifiedArtifactDescriptor,
+    LocalAiVerifiedModelDescriptor, OrphanArtifactFile, OrphanModelFile, DEFAULT_LOCAL_ENDPOINT,
+    LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
 };
 use super::verified_artifacts::{find_verified_artifact, verified_artifact_list};
 use super::verified_models::{find_verified_model, verified_model_list};

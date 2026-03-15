@@ -38,9 +38,10 @@ fn load_fixture_manifest() -> Result<Option<DesktopE2EFixtureManifest>, String> 
     let raw = fs::read_to_string(path.as_str()).map_err(|error| {
         format!("DESKTOP_E2E_FIXTURE_READ_FAILED: failed to read {path}: {error}")
     })?;
-    let parsed = serde_json::from_str::<DesktopE2EFixtureManifest>(raw.as_str()).map_err(|error| {
-        format!("DESKTOP_E2E_FIXTURE_PARSE_FAILED: failed to parse {path}: {error}")
-    })?;
+    let parsed =
+        serde_json::from_str::<DesktopE2EFixtureManifest>(raw.as_str()).map_err(|error| {
+            format!("DESKTOP_E2E_FIXTURE_PARSE_FAILED: failed to parse {path}: {error}")
+        })?;
     Ok(Some(parsed))
 }
 
@@ -72,7 +73,9 @@ pub fn runtime_defaults_override() -> Result<Option<RuntimeDefaults>, String> {
         .map(|value| value.trim())
         .filter(|value| !value.is_empty())
     {
-        append_backend_log(&format!("runtime_defaults_override bootstrap_error={message}"));
+        append_backend_log(&format!(
+            "runtime_defaults_override bootstrap_error={message}"
+        ));
         return Err(format!("DESKTOP_E2E_BOOTSTRAP_ERROR: {message}"));
     }
     let override_present = manifest
@@ -80,7 +83,9 @@ pub fn runtime_defaults_override() -> Result<Option<RuntimeDefaults>, String> {
         .as_ref()
         .and_then(|fixture| fixture.runtime_defaults.as_ref())
         .is_some();
-    append_backend_log(&format!("runtime_defaults_override override_present={override_present}"));
+    append_backend_log(&format!(
+        "runtime_defaults_override override_present={override_present}"
+    ));
     Ok(manifest
         .tauri_fixture
         .and_then(|fixture| fixture.runtime_defaults))

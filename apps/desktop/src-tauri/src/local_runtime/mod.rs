@@ -20,5 +20,5 @@ mod service_lifecycle;
 mod store;
 mod supervisor;
 mod types;
-mod verified_models;
 mod verified_artifacts;
+mod verified_models;

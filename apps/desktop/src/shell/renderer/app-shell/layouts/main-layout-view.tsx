@@ -18,6 +18,7 @@ import { loadWorldDetailPanelModule, WorldDetailRouteLoading } from '@renderer/f
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 import { DesktopReleaseStrip } from './desktop-release-strip';
 import { MainLayoutTopBar } from './main-layout-topbar';
+import { SidebarTooltipButton } from './main-layout-sidebar-tooltip-button';
 import { OfflineShellStrip } from './offline-shell-strip';
 import { ScenarioJobStatusHost } from '@renderer/features/turns/scenario-job-status-host';
 import {
@@ -158,67 +159,6 @@ function parseUnreadCount(input: unknown): number {
     }
   }
   return 0;
-}
-
-// Sidebar Tooltip Button Component - Green background, white text
-function SidebarTooltipButton({
-  label,
-  onClick,
-  children,
-  className = '',
-  dataTestId,
-}: {
-  label: string;
-  onClick: () => void;
-  children: React.ReactNode;
-  className?: string;
-  dataTestId?: string;
-}) {
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
-  
-  const handleMouseEnter = () => {
-    if (buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setTooltipPos({
-        top: rect.top + rect.height / 2,
-        left: rect.right + 8,
-      });
-    }
-  };
-  
-  const handleMouseLeave = () => {
-    setTooltipPos(null);
-  };
-  
-  return (
-    <>
-      <button
-        ref={buttonRef}
-        type="button"
-        data-testid={dataTestId}
-        onClick={onClick}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        className={className}
-        aria-label={label}
-      >
-        {children}
-      </button>
-      {tooltipPos ? (
-        <span 
-          className="fixed px-2 py-1 rounded-md bg-[#4ECCA3] text-white text-xs whitespace-nowrap z-[9999] shadow-lg pointer-events-none"
-          style={{ 
-            top: tooltipPos.top,
-            left: tooltipPos.left,
-            transform: 'translateY(-50%)',
-          }}
-        >
-          {label}
-        </span>
-      ) : null}
-    </>
-  );
 }
 
 function ChatLayout() {
