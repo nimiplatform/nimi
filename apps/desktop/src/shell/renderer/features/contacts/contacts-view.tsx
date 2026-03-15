@@ -301,6 +301,17 @@ export function ContactsView(props: ContactsViewProps) {
 
   const counts = getUpdatedCounts();
 
+  // 当 allFriends 刷新时，同步更新 selectedContact（避免头像等字段显示旧缓存数据）
+  useEffect(() => {
+    setSelectedContact((prev) => {
+      if (!prev) return prev;
+      const updated = props.allFriends.find((c) => c.id === prev.id);
+      if (!updated) return prev;
+      if (updated.avatarUrl === prev.avatarUrl && updated.displayName === prev.displayName) return prev;
+      return updated;
+    });
+  }, [props.allFriends]);
+
   // 处理选择联系人
   useEffect(() => {
     if (!rememberedProfileId || selectedContact || selectedRequest) {
