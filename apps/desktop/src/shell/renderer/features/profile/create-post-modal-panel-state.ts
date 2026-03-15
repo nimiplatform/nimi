@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { RefObject } from 'react';
 
 type PanelPosition = { left: number; top: number } | null;
@@ -31,11 +31,11 @@ export function useCreatePostModalPanelState(input: {
   const [locationPanelPos, setLocationPanelPos] = useState<PanelPosition>(null);
   const [tagPanelPos, setTagPanelPos] = useState<PanelPosition>(null);
 
-  const closeAllPanels = () => {
+  const closeAllPanels = useCallback(() => {
     setShowEmojiPanel(false);
     setShowLocationPanel(false);
     setShowTagPanel(false);
-  };
+  }, []);
 
   const toggleEmojiPanel = () => {
     const nextValue = !showEmojiPanel;
