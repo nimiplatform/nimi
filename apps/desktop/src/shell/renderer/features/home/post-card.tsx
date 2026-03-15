@@ -163,7 +163,7 @@ export function PostCard(input: PostCardProps) {
       agentOwnerWorldId: typeof authorRecord?.ownerWorldId === 'string' ? authorRecord.ownerWorldId : null,
     };
   }, [authorId, authorRecord, post.author?.avatarUrl, post.author?.displayName, post.author?.handle, post.author?.isAgent]);
-  const isAuthorFriend = authorRecord?.isFriend === true;
+  const isAuthorFriend = authorRecord?.isFriend === true || dataSync.isFriend(authorId);
 
   useEffect(() => {
     ui.setIsFriend(isAuthorFriend);

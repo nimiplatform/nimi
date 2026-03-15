@@ -369,6 +369,10 @@ export function ContactsView(props: ContactsViewProps) {
 
     // 如果有查询结果，使用查询结果
     if (profileQuery.data) {
+      // selectedContact 必然是好友，API 若未返回 isFriend 则在此修正
+      if (!profileQuery.data.isFriend) {
+        return { ...profileQuery.data, isFriend: true };
+      }
       return profileQuery.data;
     }
 
