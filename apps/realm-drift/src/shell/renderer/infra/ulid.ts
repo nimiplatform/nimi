@@ -1,4 +1,4 @@
-const ENCODING = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+const ENCODING = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'; // pragma: allowlist secret
 
 /**
  * Generate a ULID-like ID: 10-char timestamp + 16-char random.

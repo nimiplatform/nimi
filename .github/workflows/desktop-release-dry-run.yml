@@ -116,13 +116,58 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf webkit2gtk-driver xvfb
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Install desktop E2E driver
+        if: matrix.platform != 'macos-latest'
+        run: cargo install tauri-driver --locked
+
+      - name: Probe or install Windows native driver
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          if (-not (Get-Command msedgedriver -ErrorAction SilentlyContinue)) {
+            winget install --exact --id Microsoft.EdgeWebDriver --silent --accept-package-agreements --accept-source-agreements
+          }
+          Get-Command msedgedriver | Out-String | Write-Host
+
       - name: Build SDK surfaces (desktop runtime dependency)
         run: pnpm build:sdk
+
+      - name: Run desktop E2E smoke (Linux)
+        if: matrix.platform == 'ubuntu-22.04'
+        env:
+          NIMI_E2E_NATIVE_DRIVER: /usr/bin/WebKitWebDriver
+        run: xvfb-run -a pnpm check:desktop-e2e-smoke
+
+      - name: Run desktop E2E journeys (Linux)
+        if: matrix.platform == 'ubuntu-22.04'
+        env:
+          NIMI_E2E_NATIVE_DRIVER: /usr/bin/WebKitWebDriver
+        run: xvfb-run -a pnpm check:desktop-e2e-journeys
+
+      - name: Run desktop E2E smoke (Windows)
+        if: matrix.platform == 'windows-latest'
+        env:
+          NIMI_E2E_NATIVE_DRIVER: msedgedriver
+        run: pnpm check:desktop-e2e-smoke
+
+      - name: Run desktop E2E journeys (Windows)
+        if: matrix.platform == 'windows-latest'
+        env:
+          NIMI_E2E_NATIVE_DRIVER: msedgedriver
+        run: pnpm check:desktop-e2e-journeys
+
+      - name: Upload desktop E2E artifacts
+        if: failure() && matrix.platform != 'macos-latest'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: desktop-e2e-artifacts-${{ matrix.platform }}
+          path: apps/desktop/reports/e2e/**
+          if-no-files-found: ignore
 
       - name: Validate desktop mods env contract
         run: pnpm --filter @nimiplatform/desktop run env:check:mods-root
@@ -195,7 +240,7 @@ jobs:
             --expected-version "${RELEASE_VERSION}" \
             --expected-bundle "${{ matrix.extra_args }}" \
             --platform "${{ matrix.platform }}" \
-            --workflow-ref "${{ github.workflow }}#${{ github.run_id }}" \
+            --workflow-ref "${GITHUB_WORKFLOW}#${GITHUB_RUN_ID}" \
             --commit "${GITHUB_SHA}" \
             --output-dir "reports"
 

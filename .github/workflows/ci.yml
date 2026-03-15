@@ -140,6 +140,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Install Linux desktop E2E dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y webkit2gtk-driver xvfb
+          cargo install tauri-driver --locked
+
       - name: Compile examples
         run: pnpm check:examples
 
@@ -441,6 +447,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Install Linux desktop E2E dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y webkit2gtk-driver xvfb
+          cargo install tauri-driver --locked
+
       - name: Desktop cloud runtime-only gate
         run: pnpm check:desktop-cloud-runtime-only
 
@@ -464,6 +476,24 @@ jobs:
 
       - name: Test desktop
         run: pnpm --filter @nimiplatform/desktop test
+
+      - name: Desktop E2E smoke
+        env:
+          NIMI_E2E_NATIVE_DRIVER: /usr/bin/WebKitWebDriver
+        run: xvfb-run -a pnpm check:desktop-e2e-smoke
+
+      - name: Desktop E2E journeys
+        env:
+          NIMI_E2E_NATIVE_DRIVER: /usr/bin/WebKitWebDriver
+        run: xvfb-run -a pnpm check:desktop-e2e-journeys
+
+      - name: Upload desktop E2E artifacts
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: desktop-e2e-artifacts
+          path: apps/desktop/reports/e2e/**
+          if-no-files-found: ignore
 
       - name: Typecheck web
         run: pnpm --filter @nimiplatform/web typecheck

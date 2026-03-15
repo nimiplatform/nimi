@@ -9,11 +9,11 @@
     "pack": "node ../../dev-tools/bin/nimi-mod.mjs pack"
   },
   "dependencies": {
-    "@nimiplatform/sdk": "^0.4.4",
+    "@nimiplatform/sdk": "^0.4.15",
     "react": "^19.1.0"
   },
   "devDependencies": {
-    "@nimiplatform/dev-tools": "^0.4.4",
+    "@nimiplatform/dev-tools": "^0.4.15",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.14",
     "typescript": "^5.9.3"
