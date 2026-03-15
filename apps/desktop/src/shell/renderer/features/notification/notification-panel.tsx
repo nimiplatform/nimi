@@ -731,11 +731,6 @@ export function NotificationPanel() {
                         })}
                       </span>
                     ) : null}
-                    {shouldOpenGiftInbox ? (
-                      <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-medium text-gray-500">
-                        {t('NotificationPanel.viewGift', { defaultValue: 'View Gift' })}
-                      </span>
-                    ) : null}
                   </div>
 
                   {showBody ? (
@@ -755,6 +750,14 @@ export function NotificationPanel() {
 
                   <div className="mt-3 flex items-center gap-2">
                     {renderActionButtons(item)}
+                    {shouldOpenGiftInbox ? (
+                      <span className="inline-flex items-center gap-1 rounded-xl border border-mint-200 bg-mint-50 px-3 py-1.5 text-[12px] font-medium text-mint-700 transition-colors group-hover:border-mint-300 group-hover:bg-mint-100">
+                        {t('NotificationPanel.viewGift', { defaultValue: 'View Gift' })}
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="9 18 15 12 9 6" />
+                        </svg>
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               </div>
