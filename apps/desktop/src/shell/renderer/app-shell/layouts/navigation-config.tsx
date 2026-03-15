@@ -3,6 +3,7 @@ import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AppTab } from '@renderer/app-shell/providers/app-store';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 export type NavItem = { id: AppTab | string; label: string; icon: ReactNode };
 
@@ -206,6 +207,7 @@ export function NavLink({
       <button
         ref={buttonRef}
         type="button"
+        data-testid={E2E_IDS.navTab(String(item.id))}
         onClick={onClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}

@@ -1,0 +1,23 @@
+{
+  "extends": "_authenticated-base.json",
+  "scenarioId": "boot.runtime-unavailable.degraded-shell",
+  "tauriFixture": {
+    "runtimeBridgeStatus": {
+      "running": false,
+      "managed": true,
+      "launchMode": "RELEASE",
+      "grpcAddr": "127.0.0.1:46371",
+      "version": "0.1.0",
+      "lastError": "Bundled runtime unavailable (E2E fixture)"
+    },
+    "desktopReleaseInfo": {
+      "desktopVersion": "0.1.0",
+      "runtimeVersion": "0.1.0",
+      "channel": "stable",
+      "commit": "e2e-fixture",
+      "builtAt": "2026-03-15T00:00:00.000Z",
+      "runtimeReady": false,
+      "runtimeLastError": "Bundled runtime unavailable (E2E fixture)"
+    }
+  }
+}

@@ -156,7 +156,7 @@ function applyEnvOverrides(base: RuntimeDefaults): RuntimeDefaults {
 
 export async function getRuntimeDefaults() {
   if (!hasTauriInvoke()) {
-    return readRuntimeDefaultsFallback();
+    return applyEnvOverrides(readRuntimeDefaultsFallback());
   }
   const defaults = await invokeChecked('runtime_defaults', {}, parseRuntimeDefaults);
   return applyEnvOverrides(defaults);

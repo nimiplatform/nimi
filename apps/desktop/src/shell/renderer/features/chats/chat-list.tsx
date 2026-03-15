@@ -8,6 +8,7 @@ import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { formatLocaleDate, formatRelativeLocaleTime, i18n } from '@renderer/i18n';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 function ChatSkeletonBlock(props: { className: string }) {
   return <div className={`animate-pulse rounded-full bg-slate-200/75 ${props.className}`} />;
@@ -15,7 +16,7 @@ function ChatSkeletonBlock(props: { className: string }) {
 
 function ChatListLoadingSkeleton() {
   return (
-    <div className="flex h-full flex-col bg-[#F8F9FB]">
+    <div data-testid={E2E_IDS.chatList} className="flex h-full flex-col bg-[#F8F9FB]">
       <div className="flex h-14 shrink-0 items-center justify-between px-4">
         <ChatSkeletonBlock className="h-7 w-20 rounded-lg" />
       </div>
@@ -216,6 +217,7 @@ export function ChatList() {
             return (
               <div
                 key={chat.id}
+                data-testid={E2E_IDS.chatRow(String(chat.id))}
                 className={`flex w-full cursor-pointer gap-3 rounded-lg border p-3 text-left transition-all ${
                   active 
                     ? 'border-transparent bg-mint-50 shadow-sm' 

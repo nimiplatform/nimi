@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { i18n } from '@renderer/i18n';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import type { RuntimePageIdV11 } from './runtime-config-state-types';
 
 type RuntimeSidebarProps = {
@@ -137,6 +138,7 @@ export function RuntimeSidebar(props: RuntimeSidebarProps) {
           <button
             key={`sidebar-${item.id}`}
             type="button"
+            data-testid={E2E_IDS.runtimeSidebarPage(item.id)}
             onClick={() => props.onSelectPage(item.id)}
             className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left text-sm transition-colors ${
               active ? 'bg-mint-50 font-medium text-mint-700' : 'text-gray-600 hover:bg-mint-50/50'

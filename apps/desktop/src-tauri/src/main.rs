@@ -13,6 +13,7 @@ use serde_json::json;
 use tauri::Manager;
 
 mod desktop_release;
+mod desktop_e2e_fixture;
 mod desktop_updates;
 mod desktop_paths;
 mod external_agent_gateway;
@@ -20,38 +21,40 @@ mod local_runtime;
 mod menu_bar_shell;
 mod runtime_bridge;
 mod runtime_mod;
+#[cfg(test)]
+mod test_support;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct RealmDefaults {
-    realm_base_url: String,
-    realtime_url: String,
-    access_token: String,
-    jwks_url: String,
-    jwt_issuer: String,
-    jwt_audience: String,
+pub(crate) struct RealmDefaults {
+    pub(crate) realm_base_url: String,
+    pub(crate) realtime_url: String,
+    pub(crate) access_token: String,
+    pub(crate) jwks_url: String,
+    pub(crate) jwt_issuer: String,
+    pub(crate) jwt_audience: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct RuntimeExecutionDefaults {
-    local_provider_endpoint: String,
-    local_provider_model: String,
-    local_open_ai_endpoint: String,
-    credential_ref_id: String,
-    target_type: String,
-    target_account_id: String,
-    agent_id: String,
-    world_id: String,
-    provider: String,
-    user_confirmed_upload: bool,
+pub(crate) struct RuntimeExecutionDefaults {
+    pub(crate) local_provider_endpoint: String,
+    pub(crate) local_provider_model: String,
+    pub(crate) local_open_ai_endpoint: String,
+    pub(crate) credential_ref_id: String,
+    pub(crate) target_type: String,
+    pub(crate) target_account_id: String,
+    pub(crate) agent_id: String,
+    pub(crate) world_id: String,
+    pub(crate) provider: String,
+    pub(crate) user_confirmed_upload: bool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct RuntimeDefaults {
-    realm: RealmDefaults,
-    runtime: RuntimeExecutionDefaults,
+pub(crate) struct RuntimeDefaults {
+    pub(crate) realm: RealmDefaults,
+    pub(crate) runtime: RuntimeExecutionDefaults,
 }
 
 #[derive(Debug, Serialize)]

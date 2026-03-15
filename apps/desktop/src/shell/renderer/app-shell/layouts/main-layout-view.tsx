@@ -26,6 +26,7 @@ import {
   type NavItem,
   renderShellNavIcon,
 } from './navigation-config';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 const ChatList = lazy(async () => {
   const mod = await import('@renderer/features/chats/chat-list');
@@ -160,11 +161,13 @@ function SidebarTooltipButton({
   onClick,
   children,
   className = '',
+  dataTestId,
 }: {
   label: string;
   onClick: () => void;
   children: React.ReactNode;
   className?: string;
+  dataTestId?: string;
 }) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
@@ -188,6 +191,7 @@ function SidebarTooltipButton({
       <button
         ref={buttonRef}
         type="button"
+        data-testid={dataTestId}
         onClick={onClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -496,7 +500,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   };
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-gray-50">
+    <div data-testid={E2E_IDS.mainShell} className="flex h-screen w-screen flex-col overflow-hidden bg-gray-50">
       <MainLayoutTopBar
         enableModWorkspaceTabs={flags.enableModWorkspaceTabs}
         titlebarLeftInsetClass={titlebarLeftInsetClass}
@@ -519,6 +523,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             <div className="flex h-14 shrink-0 items-center justify-center">
               <SidebarTooltipButton
                 label={t('Navigation.home', { defaultValue: 'Home' })}
+                dataTestId={E2E_IDS.navTab('home')}
                 onClick={() => {
                   setSettingsMenuOpen(false);
                   props.onNav('home');
@@ -570,80 +575,86 @@ export function MainLayoutView(props: MainLayoutViewProps) {
 
           <Suspense fallback={props.activeTab === 'world-detail' ? <WorldDetailRouteLoading /> : <div className="flex min-h-0 flex-1" />}>
             {props.activeTab === 'home' ? (
-              <div className="flex min-h-0 flex-1 flex-col">
+              <div data-testid={E2E_IDS.panel('home')} className="flex min-h-0 flex-1 flex-col">
                 <HomePanel createPostRequestKey={createPostRequestKey} />
               </div>
             ) : null}
 
             {props.activeTab === 'chat' ? (
-              <ChatLayout />
+              <div data-testid={E2E_IDS.panel('chat')} className="flex min-h-0 flex-1">
+                <ChatLayout />
+              </div>
             ) : null}
 
             {props.activeTab === 'contacts' ? (
-              <div className="flex min-h-0 flex-1 flex-col">
+              <div data-testid={E2E_IDS.panel('contacts')} className="flex min-h-0 flex-1 flex-col">
                 <ContactsPanel />
               </div>
             ) : null}
 
             {props.activeTab === 'explore' ? (
-              <div className="flex min-h-0 flex-1 flex-col">
+              <div data-testid={E2E_IDS.panel('explore')} className="flex min-h-0 flex-1 flex-col">
                 <ExplorePanel />
               </div>
             ) : null}
 
             {props.activeTab === 'runtime' && flags.enableRuntimeTab ? (
-              <div className="flex min-h-0 flex-1 flex-col">
+              <div data-testid={E2E_IDS.panel('runtime')} className="flex min-h-0 flex-1 flex-col">
                 <RuntimeConfigPanelBody />
               </div>
             ) : null}
 
             {props.activeTab === 'notification' ? (
-              <div className="flex min-h-0 flex-1 flex-col">
+              <div data-testid={E2E_IDS.panel('notification')} className="flex min-h-0 flex-1 flex-col">
                 <NotificationPanel />
               </div>
             ) : null}
 
             {props.activeTab === 'settings' ? (
-              <div className="flex min-h-0 flex-1 flex-col">
+              <div data-testid={E2E_IDS.panel('settings')} className="flex min-h-0 flex-1 flex-col">
                 <SettingsPanelBody />
               </div>
             ) : null}
 
             {props.activeTab === 'profile' ? (
-              <div className="flex min-h-0 flex-1 flex-col">
+              <div data-testid={E2E_IDS.panel('profile')} className="flex min-h-0 flex-1 flex-col">
                 <ProfilePanel />
               </div>
             ) : null}
 
             {props.activeTab === 'agent-detail' ? (
-              <div className="flex min-h-0 flex-1 flex-col">
+              <div data-testid={E2E_IDS.panel('agent-detail')} className="flex min-h-0 flex-1 flex-col">
                 <AgentDetailPanel />
               </div>
             ) : null}
 
             {props.activeTab === 'world' ? (
-              <div className="flex min-h-0 flex-1 flex-col">
+              <div data-testid={E2E_IDS.panel('world')} className="flex min-h-0 flex-1 flex-col">
                 <WorldList />
               </div>
             ) : null}
             {props.activeTab === 'world-detail' ? (
-              <div className="flex min-h-0 flex-1 flex-col">
+              <div data-testid={E2E_IDS.panel('world-detail')} className="flex min-h-0 flex-1 flex-col">
                 <WorldDetailPanel />
               </div>
             ) : null}
 
             {props.activeTab === 'mods' && flags.enableModUi ? (
-              <div className="flex min-h-0 flex-1 flex-col">
+              <div data-testid={E2E_IDS.panel('mods')} className="flex min-h-0 flex-1 flex-col">
                 <ModsPanel />
               </div>
             ) : null}
 
             {props.activeTab === 'privacy-policy' ? (
-              <PrivacyPolicyView />
+              <div data-testid={E2E_IDS.panel('privacy-policy')} className="flex min-h-0 flex-1 flex-col">
+                <PrivacyPolicyView />
+              </div>
             ) : null}
 
             {props.activeTab === 'terms-of-service' ? (
-              <TermsOfServiceView />
+              <div data-testid={E2E_IDS.panel('terms-of-service')} className="flex min-h-0 flex-1 flex-col">
+                <TermsOfServiceView />
+              </div>
             ) : null}
           </Suspense>
 

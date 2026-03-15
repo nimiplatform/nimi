@@ -1,0 +1,16 @@
+export const E2E_IDS = {
+  appLoadingScreen: 'app-loading-screen',
+  appBootstrapErrorScreen: 'app-bootstrap-error-screen',
+  loginScreen: 'login-screen',
+  mainShell: 'main-shell',
+  desktopReleaseStrip: 'desktop-release-strip',
+  desktopReleaseOpenUpdates: 'desktop-release-open-updates',
+  offlineStrip: 'offline-strip',
+  panel: (name: string) => `panel:${name}`,
+  navTab: (tabId: string) => `nav-tab:${tabId}`,
+  runtimeSidebarPage: (pageId: string) => `runtime-sidebar:${pageId}`,
+  runtimePageRoot: (pageId: string) => `runtime-page:${pageId}`,
+  chatList: 'chat-list',
+  chatRow: (chatId: string) => `chat-row:${chatId}`,
+  messageTimeline: 'message-timeline',
+} as const;

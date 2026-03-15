@@ -5,7 +5,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { XianxiaWorldTemplate, type XianxiaWorldData } from './world-xianxia-template';
-import type { WorldListItem } from './world-list';
+import type { WorldListItem } from './world-list-model';
 import type { WorldAgent } from './world-detail-template';
 import {
   fetchWorldDetailWithAgents,

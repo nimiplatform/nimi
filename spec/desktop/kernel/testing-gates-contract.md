@@ -81,7 +81,7 @@ Desktop E2E OS 策略固定如下：
 
 ## D-GATE-070 Release Parity Gate
 
-release / nightly 不得使用低于 PR 的 desktop E2E 标准，也不得通过 release 专属豁免跳过 Linux smoke 或 journey gate。nightly / release 需要执行完整 journey 集合；macOS 手工 smoke 只能作为补充，不得伪装成自动化 coverage。
+release / nightly 不得使用低于 PR 的 desktop E2E 标准，也不得通过 release 专属豁免跳过 Linux smoke 或 journey gate。nightly / release 需要执行完整 journey 集合；macOS 手工 smoke 只能作为补充，不得伪装成自动化 coverage。release parity 必须以 Linux / Windows CI 真实运行结果与 evidence report 为准，不接受“本地脚本已存在”或“workflow 已配置”作为替代证据。
 
 ## D-GATE-080 Spec Consistency & Docs Drift Gate
 

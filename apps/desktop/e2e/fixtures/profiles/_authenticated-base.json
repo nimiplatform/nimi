@@ -1,0 +1,225 @@
+{
+  "realmFixture": {
+    "restOnline": true,
+    "currentUser": {
+      "id": "user-e2e-primary",
+      "displayName": "E2E User",
+      "handle": "@e2e-user",
+      "email": "e2e@nimi.local",
+      "avatarUrl": ""
+    },
+    "chats": {
+      "items": [
+        {
+          "id": "chat-e2e-primary",
+          "unreadCount": 2,
+          "lastMessageAt": "2026-03-15T10:00:00.000Z",
+          "lastMessage": {
+            "id": "msg-e2e-last",
+            "text": "Fixture message preview",
+            "createdAt": "2026-03-15T10:00:00.000Z"
+          },
+          "otherUser": {
+            "id": "user-e2e-friend",
+            "displayName": "Fixture Friend",
+            "handle": "@fixture-friend",
+            "avatarUrl": "",
+            "isAgent": false
+          }
+        }
+      ]
+    },
+    "messagesByChatId": {
+      "chat-e2e-primary": {
+        "items": [
+          {
+            "id": "msg-e2e-1",
+            "chatId": "chat-e2e-primary",
+            "senderId": "user-e2e-friend",
+            "text": "Hello from the desktop E2E fixture.",
+            "createdAt": "2026-03-15T09:58:00.000Z"
+          },
+          {
+            "id": "msg-e2e-2",
+            "chatId": "chat-e2e-primary",
+            "senderId": "user-e2e-primary",
+            "text": "Reply from the authenticated fixture user.",
+            "createdAt": "2026-03-15T09:59:00.000Z"
+          }
+        ]
+      }
+    },
+    "friends": {
+      "items": [
+        {
+          "id": "user-e2e-friend",
+          "displayName": "Fixture Friend",
+          "handle": "@fixture-friend",
+          "avatarUrl": "",
+          "bio": "Seeded desktop friend",
+          "isAgent": false
+        }
+      ]
+    },
+    "pendingFriends": {
+      "received": [],
+      "sent": []
+    },
+    "blocked": {
+      "items": []
+    },
+    "creatorAgents": [
+      {
+        "id": "agent-e2e-alpha",
+        "displayName": "Fixture Agent",
+        "handle": "~fixture-agent",
+        "avatarUrl": "",
+        "bio": "Seeded creator agent",
+        "isAgent": true,
+        "agentProfile": {
+          "worldId": "world-e2e-1"
+        }
+      }
+    ],
+    "worlds": [
+      {
+        "id": "world-e2e-1",
+        "name": "Fixture World",
+        "description": "Seeded world for desktop E2E",
+        "tagline": "E2E fixture world",
+        "genre": "Research",
+        "themes": [
+          "Testing"
+        ],
+        "bannerUrl": null,
+        "iconUrl": null,
+        "type": "OASIS",
+        "status": "ACTIVE",
+        "level": 1,
+        "agentCount": 1,
+        "createdAt": "2026-03-15T00:00:00.000Z",
+        "updatedAt": "2026-03-15T00:00:00.000Z",
+        "creatorId": "user-e2e-primary",
+        "freezeReason": null,
+        "lorebookEntryLimit": 0,
+        "nativeAgentLimit": 0,
+        "nativeCreationState": "OPEN",
+        "scoreA": 0,
+        "scoreC": 0,
+        "scoreE": 0,
+        "scoreEwma": 87,
+        "scoreQ": 0,
+        "transitInLimit": 0,
+        "computed": {
+          "time": {
+            "currentWorldTime": "2026-03-15T00:00:00.000Z",
+            "currentLabel": "Fixture Time",
+            "eraLabel": "Fixture Era",
+            "flowRatio": 1,
+            "isPaused": false
+          },
+          "languages": {
+            "primary": "English",
+            "common": [
+              "English"
+            ]
+          },
+          "entry": {
+            "recommendedAgents": [
+              {
+                "id": "agent-e2e-alpha",
+                "name": "Fixture Agent",
+                "handle": "~fixture-agent",
+                "avatarUrl": null
+              }
+            ]
+          },
+          "score": {
+            "scoreEwma": 87
+          },
+          "featuredAgentCount": 1
+        },
+        "agents": [
+          {
+            "id": "agent-e2e-alpha",
+            "name": "Fixture Agent",
+            "handle": "~fixture-agent",
+            "avatarUrl": null
+          }
+        ],
+        "events": [],
+        "levelAudits": [],
+        "worldview": {},
+        "worldviewEvents": [],
+        "worldviewSnapshots": []
+      }
+    ],
+    "searchUsers": {
+      "items": [
+        {
+          "id": "agent-e2e-alpha",
+          "displayName": "Fixture Agent",
+          "handle": "~fixture-agent",
+          "avatarUrl": "",
+          "bio": "Seeded creator agent",
+          "isAgent": true,
+          "agentProfile": {
+            "worldId": "world-e2e-1"
+          }
+        }
+      ]
+    },
+    "exploreFeed": {
+      "items": [
+        {
+          "id": "post-e2e-1",
+          "title": "Fixture Explore Post",
+          "content": "Fixture explore content"
+        }
+      ]
+    }
+  },
+  "tauriFixture": {
+    "runtimeDefaults": {
+      "realm": {
+        "realmBaseUrl": "__FIXTURE_ORIGIN__",
+        "realtimeUrl": "__FIXTURE_ORIGIN__",
+        "accessToken": "nimi-e2e-access-token",
+        "jwksUrl": "__FIXTURE_ORIGIN__/api/auth/jwks",
+        "jwtIssuer": "__FIXTURE_ORIGIN__",
+        "jwtAudience": "nimi-runtime"
+      },
+      "runtime": {
+        "localProviderEndpoint": "http://127.0.0.1:1234/v1",
+        "localProviderModel": "local-model",
+        "localOpenAiEndpoint": "http://127.0.0.1:1234/v1",
+        "credentialRefId": "",
+        "targetType": "AGENT",
+        "targetAccountId": "",
+        "agentId": "agent-e2e-alpha",
+        "worldId": "world-e2e-1",
+        "provider": "",
+        "userConfirmedUpload": false
+      }
+    },
+    "runtimeBridgeStatus": {
+      "running": true,
+      "managed": true,
+      "launchMode": "RELEASE",
+      "grpcAddr": "127.0.0.1:46371",
+      "version": "0.1.0"
+    },
+    "desktopReleaseInfo": {
+      "desktopVersion": "0.1.0",
+      "runtimeVersion": "0.1.0",
+      "channel": "stable",
+      "commit": "e2e-fixture",
+      "builtAt": "2026-03-15T00:00:00.000Z",
+      "runtimeReady": true
+    }
+  },
+  "artifactPolicy": {
+    "failOnConsoleError": true,
+    "failOnPageError": true
+  }
+}

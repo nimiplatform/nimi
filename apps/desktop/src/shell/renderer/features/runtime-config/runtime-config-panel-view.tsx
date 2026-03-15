@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { RUNTIME_PAGE_META } from './runtime-config-meta-v11';
 import { RuntimeSidebar } from './runtime-config-sidebar';
 import { StatusBadge, DaemonStatusBadge } from './runtime-config-primitives';
@@ -161,23 +162,35 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
 
         <ScrollShell className="flex-1 bg-white" viewportClassName="bg-white">
           {activePage === 'local' ? (
-            <LocalPage model={model} state={state} />
+            <div data-testid={E2E_IDS.runtimePageRoot('local')}>
+              <LocalPage model={model} state={state} />
+            </div>
           ) : (
             <div className="mx-auto max-w-5xl p-6 space-y-6">
               {activePage === 'overview' && (
-                <OverviewPage model={model} state={state} />
+                <div data-testid={E2E_IDS.runtimePageRoot('overview')}>
+                  <OverviewPage model={model} state={state} />
+                </div>
               )}
               {activePage === 'cloud' && (
-                <CloudPage model={model} state={state} />
+                <div data-testid={E2E_IDS.runtimePageRoot('cloud')}>
+                  <CloudPage model={model} state={state} />
+                </div>
               )}
               {activePage === 'catalog' && (
-                <CatalogPage state={state} />
+                <div data-testid={E2E_IDS.runtimePageRoot('catalog')}>
+                  <CatalogPage state={state} />
+                </div>
               )}
               {activePage === 'runtime' && (
-                <RuntimePage model={model} state={state} />
+                <div data-testid={E2E_IDS.runtimePageRoot('runtime')}>
+                  <RuntimePage model={model} state={state} />
+                </div>
               )}
               {activePage === 'mods' && (
-                <ModsPage model={model} state={state} />
+                <div data-testid={E2E_IDS.runtimePageRoot('mods')}>
+                  <ModsPage model={model} state={state} />
+                </div>
               )}
             </div>
           )}

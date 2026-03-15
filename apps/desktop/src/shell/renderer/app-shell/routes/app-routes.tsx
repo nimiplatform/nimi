@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 const LoginPage = lazy(async () => {
   const mod = await import('@renderer/features/auth/login-page');
@@ -138,7 +139,7 @@ function LoadingScreen() {
       title={t('Bootstrap.initializingRuntime')}
       description={t('Bootstrap.initializingRuntimeDescription')}
     >
-      <div className="mt-8 w-full max-w-[18rem]">
+      <div data-testid={E2E_IDS.appLoadingScreen} className="mt-8 w-full max-w-[18rem]">
         <div className="h-2 overflow-hidden rounded-full bg-[#e7eef0]">
           <div
             className="h-full rounded-full bg-[linear-gradient(90deg,#49c9a5_0%,#1f9bab_100%)] transition-all duration-300 ease-out"
@@ -174,7 +175,10 @@ function BootstrapErrorScreen({ message }: { message: string }) {
       title={t('Bootstrap.startFailedTitle')}
       description={message}
     >
-      <div className="mt-8 rounded-2xl border border-[#f3d1d1] bg-[#fff6f6] px-4 py-3 text-sm text-[#a14646]">
+      <div
+        data-testid={E2E_IDS.appBootstrapErrorScreen}
+        className="mt-8 rounded-2xl border border-[#f3d1d1] bg-[#fff6f6] px-4 py-3 text-sm text-[#a14646]"
+      >
         Runtime bootstrap stopped before the app shell became available.
       </div>
     </SharedStatusShell>

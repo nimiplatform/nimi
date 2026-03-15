@@ -410,28 +410,76 @@ jobs:
         run: pnpm build:sdk
 
       - name: Run desktop E2E smoke (Linux)
+        id: desktop_e2e_smoke_linux
         if: matrix.platform == 'ubuntu-22.04'
         env:
           NIMI_E2E_NATIVE_DRIVER: /usr/bin/WebKitWebDriver
         run: xvfb-run -a pnpm check:desktop-e2e-smoke
 
       - name: Run desktop E2E journeys (Linux)
+        id: desktop_e2e_journeys_linux
         if: matrix.platform == 'ubuntu-22.04'
         env:
           NIMI_E2E_NATIVE_DRIVER: /usr/bin/WebKitWebDriver
         run: xvfb-run -a pnpm check:desktop-e2e-journeys
 
       - name: Run desktop E2E smoke (Windows)
+        id: desktop_e2e_smoke_windows
         if: matrix.platform == 'windows-latest'
         env:
           NIMI_E2E_NATIVE_DRIVER: msedgedriver
         run: pnpm check:desktop-e2e-smoke
 
       - name: Run desktop E2E journeys (Windows)
+        id: desktop_e2e_journeys_windows
         if: matrix.platform == 'windows-latest'
         env:
           NIMI_E2E_NATIVE_DRIVER: msedgedriver
         run: pnpm check:desktop-e2e-journeys
+
+      - name: Generate desktop E2E evidence (Linux)
+        if: always() && matrix.platform == 'ubuntu-22.04'
+        run: |
+          pnpm --filter @nimiplatform/desktop run report:desktop-e2e-evidence -- \
+            --platform ubuntu-22.04 \
+            --workflow-ref release \
+            --workflow-run-id "${GITHUB_RUN_ID}" \
+            --commit "${GITHUB_SHA}" \
+            --smoke-outcome "${SMOKE_OUTCOME}" \
+            --journeys-outcome "${JOURNEYS_OUTCOME}" \
+            --native-driver /usr/bin/WebKitWebDriver \
+            --tauri-driver tauri-driver \
+            --app-mode packaged \
+            --artifact-upload-path "apps/desktop/reports/e2e/**"
+        env:
+          SMOKE_OUTCOME: ${{ steps.desktop_e2e_smoke_linux.outcome }}
+          JOURNEYS_OUTCOME: ${{ steps.desktop_e2e_journeys_linux.outcome }}
+
+      - name: Generate desktop E2E evidence (Windows)
+        if: always() && matrix.platform == 'windows-latest'
+        run: |
+          pnpm --filter @nimiplatform/desktop run report:desktop-e2e-evidence -- \
+            --platform windows-latest \
+            --workflow-ref release \
+            --workflow-run-id "${GITHUB_RUN_ID}" \
+            --commit "${GITHUB_SHA}" \
+            --smoke-outcome "${SMOKE_OUTCOME}" \
+            --journeys-outcome "${JOURNEYS_OUTCOME}" \
+            --native-driver msedgedriver \
+            --tauri-driver tauri-driver \
+            --app-mode packaged \
+            --artifact-upload-path "apps/desktop/reports/e2e/**"
+        env:
+          SMOKE_OUTCOME: ${{ steps.desktop_e2e_smoke_windows.outcome }}
+          JOURNEYS_OUTCOME: ${{ steps.desktop_e2e_journeys_windows.outcome }}
+
+      - name: Upload desktop E2E evidence
+        if: always() && matrix.platform != 'macos-latest'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: desktop-e2e-evidence-${{ matrix.platform }}
+          path: apps/desktop/reports/e2e/evidence/**
+          if-no-files-found: ignore
 
       - name: Upload desktop E2E artifacts
         if: failure() && matrix.platform != 'macos-latest'

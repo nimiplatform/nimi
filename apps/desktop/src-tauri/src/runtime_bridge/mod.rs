@@ -99,7 +99,10 @@ pub fn runtime_bridge_stream_close(payload: RuntimeBridgeStreamClosePayload) {
 
 #[tauri::command]
 pub fn runtime_bridge_status(app: AppHandle) -> RuntimeBridgeDaemonStatus {
-    let status = current_daemon_status();
+    let status = crate::desktop_e2e_fixture::runtime_bridge_status_override()
+        .ok()
+        .flatten()
+        .unwrap_or_else(current_daemon_status);
     crate::menu_bar_shell::refresh_from_daemon(&app);
     status
 }

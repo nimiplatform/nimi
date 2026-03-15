@@ -9,7 +9,7 @@ import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-d
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { ExploreView } from './explore-view';
 import type { ExploreAgentCardData, FeaturedWorldCardData } from './explore-cards';
-import { toWorldListItem, type WorldListItem } from '../world/world-list';
+import { toWorldListItem } from '../world/world-list-model';
 import { prefetchWorldDetailAndEvents } from '../world/world-detail-queries.js';
 import { prefetchWorldDetailPanel } from '../world/world-detail-route-state';
 import { QuickAddFriendModal } from './quick-add-friend-modal';

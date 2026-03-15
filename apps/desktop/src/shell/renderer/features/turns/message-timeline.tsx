@@ -32,6 +32,7 @@ import {
 } from './chat-timeline-message';
 import { useChatUploadPlaceholders } from './chat-upload-placeholder-store';
 import { type StreamState, getStreamState, subscribeStream, cancelStream } from './stream-controller';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 type ProfilePanelTarget = 'self' | 'other' | null;
 
@@ -217,7 +218,11 @@ export function MessageTimeline() {
 
   if (!selectedChatId) {
     return (
-      <section className="flex h-full items-center justify-center bg-white">
+      <section
+        data-testid={E2E_IDS.messageTimeline}
+        data-active-chat-id=""
+        className="flex h-full items-center justify-center bg-white"
+      >
         <img 
           src={nimiLogo} 
           alt="Nimi" 
@@ -229,7 +234,11 @@ export function MessageTimeline() {
 
   if (messagesQuery.isPending) {
     return (
-      <section className="flex h-full items-center justify-center text-sm text-gray-500">
+      <section
+        data-testid={E2E_IDS.messageTimeline}
+        data-active-chat-id={selectedChatId}
+        className="flex h-full items-center justify-center text-sm text-gray-500"
+      >
         {t('ChatTimeline.loadingMessages')}
       </section>
     );
@@ -237,14 +246,18 @@ export function MessageTimeline() {
 
   if (messagesQuery.isError) {
     return (
-      <section className="flex h-full items-center justify-center text-sm text-red-600">
+      <section
+        data-testid={E2E_IDS.messageTimeline}
+        data-active-chat-id={selectedChatId}
+        className="flex h-full items-center justify-center text-sm text-red-600"
+      >
         {t('ChatTimeline.messageLoadError')}
       </section>
     );
   }
 
   return (
-    <section className="flex h-full min-w-0">
+    <section data-testid={E2E_IDS.messageTimeline} data-active-chat-id={selectedChatId} className="flex h-full min-w-0">
       <div ref={timelineLayoutRef} className="flex min-w-0 flex-1 flex-col">
         {/* Chat header */}
         <header className="flex h-14 shrink-0 items-center bg-white px-4">

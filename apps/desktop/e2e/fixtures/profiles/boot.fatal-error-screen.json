@@ -1,0 +1,10 @@
+{
+  "scenarioId": "boot.fatal-error-screen",
+  "tauriFixture": {
+    "bootstrapError": "E2E forced bootstrap failure"
+  },
+  "artifactPolicy": {
+    "failOnConsoleError": true,
+    "failOnPageError": true
+  }
+}

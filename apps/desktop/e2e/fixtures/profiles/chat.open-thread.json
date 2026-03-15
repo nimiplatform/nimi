@@ -1,0 +1,4 @@
+{
+  "extends": "_authenticated-base.json",
+  "scenarioId": "chat.open-thread"
+}

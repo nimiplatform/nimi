@@ -3,32 +3,8 @@ mod tests {
     use super::{
         allowed_http_origins, is_private_lan_http_origin, normalize_origin, runtime_defaults,
     };
+    use crate::test_support::with_env;
     use reqwest::Url;
-    use std::collections::HashMap;
-
-    fn with_env(updates: &[(&str, Option<&str>)], run: impl FnOnce()) {
-        let mut previous = HashMap::<String, Option<String>>::new();
-        for (key, value) in updates {
-            previous.insert(
-                (*key).to_string(),
-                std::env::var(key).ok(),
-            );
-            match value {
-                Some(next) => std::env::set_var(key, next),
-                None => std::env::remove_var(key),
-            }
-        }
-        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(run));
-        for (key, value) in previous {
-            match value {
-                Some(prev) => std::env::set_var(key, prev),
-                None => std::env::remove_var(key),
-            }
-        }
-        if let Err(payload) = result {
-            std::panic::resume_unwind(payload);
-        }
-    }
 
     #[test]
     fn normalize_origin_keeps_scheme_host_and_default_port() {
@@ -76,7 +52,7 @@ mod tests {
                 ("NIMI_REALM_JWT_ISSUER", None),
             ],
             || {
-                let defaults = runtime_defaults();
+                let defaults = runtime_defaults().expect("runtime defaults");
                 assert_eq!(defaults.realm.realm_base_url, "http://localhost:3002");
                 assert_eq!(defaults.realm.jwks_url, "http://localhost:3002/api/auth/jwks");
                 assert_eq!(defaults.realm.jwt_issuer, "http://localhost:3002");
@@ -93,7 +69,7 @@ mod tests {
                 ("NIMI_REALM_JWT_ISSUER", Some("http://localhost")),
             ],
             || {
-                let defaults = runtime_defaults();
+                let defaults = runtime_defaults().expect("runtime defaults");
                 assert_eq!(defaults.realm.jwks_url, "http://localhost:3002/api/auth/jwks");
                 assert_eq!(defaults.realm.jwt_issuer, "http://localhost:3002");
             },

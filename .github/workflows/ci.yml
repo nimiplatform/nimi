@@ -478,14 +478,42 @@ jobs:
         run: pnpm --filter @nimiplatform/desktop test
 
       - name: Desktop E2E smoke
+        id: desktop_e2e_smoke
         env:
           NIMI_E2E_NATIVE_DRIVER: /usr/bin/WebKitWebDriver
         run: xvfb-run -a pnpm check:desktop-e2e-smoke
 
       - name: Desktop E2E journeys
+        id: desktop_e2e_journeys
         env:
           NIMI_E2E_NATIVE_DRIVER: /usr/bin/WebKitWebDriver
         run: xvfb-run -a pnpm check:desktop-e2e-journeys
+
+      - name: Generate desktop E2E evidence
+        if: always()
+        run: |
+          pnpm --filter @nimiplatform/desktop run report:desktop-e2e-evidence -- \
+            --platform ubuntu-latest \
+            --workflow-ref ci \
+            --workflow-run-id "${GITHUB_RUN_ID}" \
+            --commit "${GITHUB_SHA}" \
+            --smoke-outcome "${SMOKE_OUTCOME}" \
+            --journeys-outcome "${JOURNEYS_OUTCOME}" \
+            --native-driver /usr/bin/WebKitWebDriver \
+            --tauri-driver tauri-driver \
+            --app-mode packaged \
+            --artifact-upload-path "apps/desktop/reports/e2e/**"
+        env:
+          SMOKE_OUTCOME: ${{ steps.desktop_e2e_smoke.outcome }}
+          JOURNEYS_OUTCOME: ${{ steps.desktop_e2e_journeys.outcome }}
+
+      - name: Upload desktop E2E evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: desktop-e2e-evidence-ubuntu-latest
+          path: apps/desktop/reports/e2e/evidence/**
+          if-no-files-found: ignore
 
       - name: Upload desktop E2E artifacts
         if: failure()

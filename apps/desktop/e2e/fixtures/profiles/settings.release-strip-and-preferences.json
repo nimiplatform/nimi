@@ -1,0 +1,4 @@
+{
+  "extends": "boot.runtime-unavailable.degraded-shell.json",
+  "scenarioId": "settings.release-strip-and-preferences"
+}

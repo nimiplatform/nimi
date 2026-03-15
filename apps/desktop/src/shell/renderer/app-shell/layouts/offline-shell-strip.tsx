@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 export function OfflineShellStrip() {
   const { t } = useTranslation();
@@ -10,6 +11,7 @@ export function OfflineShellStrip() {
   const isRuntimeReadOnly = offlineTier === 'L2';
   return (
     <div
+      data-testid={E2E_IDS.offlineStrip}
       className={`border-b px-4 py-2 text-sm ${
         isRuntimeReadOnly
           ? 'border-amber-200 bg-amber-50 text-amber-900'

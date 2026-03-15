@@ -36,7 +36,10 @@ fn resolve_realm_default_port(realm_base_url: &str) -> u16 {
 }
 
 #[tauri::command]
-fn runtime_defaults() -> RuntimeDefaults {
+fn runtime_defaults() -> Result<RuntimeDefaults, String> {
+    if let Some(override_defaults) = crate::desktop_e2e_fixture::runtime_defaults_override()? {
+        return Ok(override_defaults);
+    }
     let realm_base_url = normalize_loopback_http_url(
         env_value("NIMI_REALM_URL", "http://localhost:3002").as_str(),
         3002,
@@ -101,7 +104,7 @@ fn runtime_defaults() -> RuntimeDefaults {
         }
     }
 
-    defaults
+    Ok(defaults)
 }
 
 include!("defaults_and_commands/system_resources.rs");

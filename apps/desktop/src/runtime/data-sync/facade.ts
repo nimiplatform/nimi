@@ -216,9 +216,13 @@ export class DataSync {
 
   async loadInitialData() { await this.loadCurrentUser(); await this.loadChats(); await this.loadContacts(); }
 
-  loadCurrentUser() { return this.actions.loadCurrentUser(); }
+  loadCurrentUser() {
+    return this.actions.loadCurrentUser();
+  }
   updateUserProfile(data: Record<string, unknown>) { return this.actions.updateUserProfile(data); }
-  loadChats(limit = 20) { return this.actions.loadChats(Math.min(limit, 100)); }
+  loadChats(limit = 20) {
+    return this.actions.loadChats(Math.min(limit, 100));
+  }
   loadMoreChats(cursor?: string) { return this.actions.loadMoreChats(cursor); }
   startChat(targetAccountId: string, initialMessage: string | null = null) { return this.actions.startChat(targetAccountId, initialMessage); }
   loadMessages(chatId: string, limit = 50) {
@@ -237,7 +241,9 @@ export class DataSync {
     return (await this.actions.countPendingRealmRecoveryWork()) > 0;
   }
   async markChatRead(chatId: string) { await this.actions.markChatRead(chatId); }
-  async loadContacts() { await this.actions.loadContacts(); }
+  async loadContacts() {
+    await this.actions.loadContacts();
+  }
   loadSocialSnapshot() { return this.actions.loadSocialSnapshot(); }
   searchUser(identifierInput: string) { return this.actions.searchUser(identifierInput); }
 

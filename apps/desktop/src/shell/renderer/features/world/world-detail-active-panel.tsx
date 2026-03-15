@@ -5,7 +5,7 @@ import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { WorldDetail } from './world-detail';
 import { worldListQueryKey } from './world-detail-queries';
-import { toWorldListItem, type WorldListItem } from './world-list';
+import { toWorldListItem, type WorldListItem } from './world-list-model';
 
 function createPlaceholderWorld(worldId: string): WorldListItem {
   return {

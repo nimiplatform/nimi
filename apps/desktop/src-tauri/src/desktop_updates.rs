@@ -523,37 +523,9 @@ mod tests {
     };
     use crate::desktop_release::{reset_test_state, set_test_release_version};
     use crate::runtime_bridge::{channel_invalidation_count, reset_channel_invalidation_count};
-    use std::collections::HashMap;
-    use std::sync::{Mutex, OnceLock};
+    use crate::test_support::with_env;
     use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, Ordering};
-
-    fn env_lock() -> &'static Mutex<()> {
-        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-        LOCK.get_or_init(|| Mutex::new(()))
-    }
-
-    fn with_env(updates: &[(&str, Option<&str>)], run: impl FnOnce()) {
-        let _guard = env_lock().lock().expect("env lock");
-        let mut previous = HashMap::<String, Option<String>>::new();
-        for (key, value) in updates {
-            previous.insert((*key).to_string(), std::env::var(key).ok());
-            match value {
-                Some(next) => std::env::set_var(key, next),
-                None => std::env::remove_var(key),
-            }
-        }
-        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(run));
-        for (key, value) in previous {
-            match value {
-                Some(prev) => std::env::set_var(key, prev),
-                None => std::env::remove_var(key),
-            }
-        }
-        if let Err(payload) = result {
-            std::panic::resume_unwind(payload);
-        }
-    }
 
     fn with_release_version(run: impl FnOnce()) {
         with_env(

@@ -45,6 +45,16 @@ evidence_catalog:
     command: upload apps/desktop/reports/e2e/**
     path: .github/workflows/ci.yml
     description: CI must retain desktop E2E screenshots, HTML, browser logs, backend logs, driver logs, and scenario manifests on failure.
+  desktop_e2e_ci_evidence_report:
+    type: ci_evidence_report
+    command: pnpm --filter @nimiplatform/desktop run report:desktop-e2e-evidence
+    path: apps/desktop/scripts/generate-desktop-e2e-evidence.mjs
+    description: Generates structured Linux/Windows desktop E2E pass-fail evidence from reports/e2e artifacts.
+  desktop_0315_e2e_audit_report:
+    type: audit_report
+    command: report-only
+    path: dev/report/0315-e2e-audit.md
+    description: Audit record for 0315 desktop E2E hard-cut completion, residual blockers, and non-blocking clippy policy.
   desktop_mods_smoke_gate:
     type: smoke_gate
     command: pnpm check:desktop-mods-smoke --all
@@ -1138,6 +1148,7 @@ rules:
       - desktop_kernel_consistency
       - desktop_rust_test_gate
       - desktop_rust_clippy_gate
+      - desktop_0315_e2e_audit_report
   - rule_id: D-GATE-030
     status: covered
     evidence_refs:
@@ -1167,6 +1178,8 @@ rules:
       - desktop_e2e_smoke_gate
       - desktop_e2e_journey_gate
       - desktop_e2e_failure_artifacts_gate
+      - desktop_e2e_ci_evidence_report
+      - desktop_0315_e2e_audit_report
   - rule_id: D-GATE-080
     status: covered
     evidence_refs:

@@ -419,38 +419,10 @@ mod source_registry_tests {
         DEFAULT_INSTALLED_SOURCE_ID, RuntimeModDeveloperModeState, RuntimeModSourceRecord,
     };
     use crate::runtime_mod::store::init_schema;
-    use std::collections::HashMap;
+    use crate::test_support::with_env;
     use std::path::PathBuf;
-    use std::sync::{Mutex, OnceLock};
     use std::time::{SystemTime, UNIX_EPOCH};
     use rusqlite::Connection;
-
-    fn env_lock() -> &'static Mutex<()> {
-        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-        LOCK.get_or_init(|| Mutex::new(()))
-    }
-
-    fn with_env(updates: &[(&str, Option<&str>)], run: impl FnOnce()) {
-        let _guard = env_lock().lock().expect("env lock");
-        let mut previous = HashMap::<String, Option<String>>::new();
-        for (key, value) in updates {
-            previous.insert((*key).to_string(), std::env::var(key).ok());
-            match value {
-                Some(next) => std::env::set_var(key, next),
-                None => std::env::remove_var(key),
-            }
-        }
-        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(run));
-        for (key, value) in previous {
-            match value {
-                Some(prev) => std::env::set_var(key, prev),
-                None => std::env::remove_var(key),
-            }
-        }
-        if let Err(payload) = result {
-            std::panic::resume_unwind(payload);
-        }
-    }
 
     fn temp_home(prefix: &str) -> PathBuf {
         let unique = SystemTime::now()

@@ -19,6 +19,7 @@ import {
   toDesktopBrowserAuthErrorMessage,
 } from './auth-helpers.js';
 import { AuthMenu } from './auth-menu.js';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 export type { WebAuthMenuMode } from './auth-helpers.js';
 
@@ -160,6 +161,7 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
 
   return (
     <main
+      data-testid={E2E_IDS.loginScreen}
       className="relative min-h-screen overflow-hidden bg-[#f3f1ee] text-[#3b352c]"
       onMouseDown={handleRootMouseDown}
     >
