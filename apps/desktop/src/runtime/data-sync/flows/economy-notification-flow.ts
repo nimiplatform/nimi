@@ -6,6 +6,7 @@ import type { CreateWithdrawalDto } from '@nimiplatform/sdk/realm';
 import type { NotificationDto } from '@nimiplatform/sdk/realm';
 import type { NotificationListResultDto } from '@nimiplatform/sdk/realm';
 import type { RejectGiftDto } from '@nimiplatform/sdk/realm';
+import type { ReceivedGiftsResponseDto } from '@nimiplatform/sdk/realm';
 import type { SendGiftDto } from '@nimiplatform/sdk/realm';
 import type { SparkCheckoutSessionDto } from '@nimiplatform/sdk/realm';
 import type { SparkPackageDto } from '@nimiplatform/sdk/realm';
@@ -218,7 +219,7 @@ export async function sendGift(
   }
 }
 
-export async function claimGift(
+export async function acceptGift(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
   giftTransactionId: string,
@@ -228,12 +229,13 @@ export async function claimGift(
     throw new Error('礼物交易 ID 不能为空');
   }
   try {
+    assertEconomyWriteOnline('接受礼物');
     return await callApi(
-      (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerClaimGift(normalizedId),
-      '领取礼物失败',
+      (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerAcceptGift(normalizedId),
+      '接受礼物失败',
     );
   } catch (error) {
-    emitDataSyncError('claim-gift', error, { giftTransactionId: normalizedId });
+    emitDataSyncError('accept-gift', error, { giftTransactionId: normalizedId });
     throw error;
   }
 }
@@ -278,6 +280,26 @@ export async function loadGiftTransaction(
     );
   } catch (error) {
     emitDataSyncError('load-gift-transaction', error, { id: normalizedId });
+    throw error;
+  }
+}
+
+export async function loadReceivedGifts(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  limit = 20,
+  cursor?: string,
+): Promise<ReceivedGiftsResponseDto> {
+  try {
+    return await callApi(
+      (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerGetReceivedGifts(limit, cursor),
+      '加载已收礼物失败',
+    ) as ReceivedGiftsResponseDto;
+  } catch (error) {
+    emitDataSyncError('load-received-gifts', error, {
+      limit,
+      cursor: cursor || null,
+    });
     throw error;
   }
 }

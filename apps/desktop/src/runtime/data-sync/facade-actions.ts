@@ -95,13 +95,14 @@ import {
   type TransitType,
 } from './flows/transit-flow';
 import {
-  claimGift,
+  acceptGift,
   createGiftReview,
   createSparkCheckout,
   createWithdrawal,
   loadGemTransactionHistory,
   loadGiftCatalog,
   loadGiftTransaction,
+  loadReceivedGifts,
   loadSparkPackages,
   loadCurrencyBalances,
   loadNotificationUnreadCount,
@@ -393,10 +394,12 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       loadGiftCatalog(input.callApiTask, input.emitFacadeError),
     loadGiftTransaction: async (id: string) =>
       loadGiftTransaction(input.callApiTask, input.emitFacadeError, id),
+    loadReceivedGifts: async (limit = 20, cursor?: string) =>
+      loadReceivedGifts(input.callApiTask, input.emitFacadeError, limit, cursor),
     sendGift: async (payload: SendGiftDto) =>
       sendGift(input.callApiTask, input.emitFacadeError, payload),
-    claimGift: async (giftTransactionId: string) =>
-      claimGift(input.callApiTask, input.emitFacadeError, giftTransactionId),
+    acceptGift: async (giftTransactionId: string) =>
+      acceptGift(input.callApiTask, input.emitFacadeError, giftTransactionId),
     rejectGift: async (giftTransactionId: string, payload: RejectGiftDto) =>
       rejectGift(input.callApiTask, input.emitFacadeError, giftTransactionId, payload),
     createGiftReview: async (payload: CreateReviewDto) =>

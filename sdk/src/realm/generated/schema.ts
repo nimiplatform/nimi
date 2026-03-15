@@ -1356,7 +1356,7 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/economy/gifts/{id}/claim": {
+    "/api/economy/gifts/{id}/accept": {
         parameters: {
             query?: never;
             header?: never;
@@ -1365,8 +1365,8 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Claim a pending gift */
-        post: operations["EconomyController_claimGift"];
+        /** Accept a pending gift */
+        post: operations["EconomyController_acceptGift"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5073,23 +5073,23 @@ export type components = {
          * @description Gift status
          * @enum {string}
          */
-        GiftStatus: "PENDING" | "CLAIMED" | "REJECTED" | "EXPIRED" | "REFUNDED";
+        GiftStatus: "PENDING" | "ACCEPTED" | "REJECTED" | "EXPIRED" | "REFUNDED";
         GiftTransactionDto: {
             /**
              * Format: date-time
-             * @description When the gift was claimed
+             * @description When the gift was accepted
              */
-            claimedAt?: string | null;
+            acceptedAt?: string | null;
             /** Format: date-time */
             createdAt: string;
             /**
              * Format: date-time
-             * @description Expiration time for unclaimed gifts
+             * @description Expiration time for unaccepted gifts
              */
             expiresAt: string;
             /** @description Gem share for agent creator (if receiver is agent) */
             gemToCreator: string;
-            /** @description Gem share for receiver to claim */
+            /** @description Gem share credited to the receiver when the gift is accepted */
             gemToReceiver: string;
             giftId: string;
             id: string;
@@ -5116,19 +5116,19 @@ export type components = {
         GiftTransactionRichDto: {
             /**
              * Format: date-time
-             * @description When the gift was claimed
+             * @description When the gift was accepted
              */
-            claimedAt?: string | null;
+            acceptedAt?: string | null;
             /** Format: date-time */
             createdAt: string;
             /**
              * Format: date-time
-             * @description Expiration time for unclaimed gifts
+             * @description Expiration time for unaccepted gifts
              */
             expiresAt: string;
             /** @description Gem share for agent creator (if receiver is agent) */
             gemToCreator: string;
-            /** @description Gem share for receiver to claim */
+            /** @description Gem share credited to the receiver when the gift is accepted */
             gemToReceiver: string;
             gift: components["schemas"]["GiftCatalogItemDto"];
             giftId: string;
@@ -5330,6 +5330,7 @@ export type components = {
             editedAt?: string;
             id: string;
             isRead: boolean;
+            /** @description Canonical media payloads are asset-backed: IMAGE/VIDEO payloads return assetId and resolved url, with width/height/duration when available. */
             payload: {
                 [key: string]: unknown;
             } | null;
@@ -5790,6 +5791,7 @@ export type components = {
             interaction?: {
                 [key: string]: unknown;
             };
+            /** @description Canonical chat media writes use payload.assetId for IMAGE/VIDEO messages. Provider-specific keys such as imageId/videoId are not allowed. */
             payload?: Record<string, never>;
             replyToMessageId?: string;
             text?: string;
@@ -5855,6 +5857,7 @@ export type components = {
         };
         StartChatInputDto: {
             asFriendRequest?: boolean;
+            /** @description Canonical chat media writes use payload.assetId for IMAGE/VIDEO messages. Provider-specific keys such as imageId/videoId are not allowed. */
             payload?: Record<string, never>;
             targetAccountId: string;
             text?: string;

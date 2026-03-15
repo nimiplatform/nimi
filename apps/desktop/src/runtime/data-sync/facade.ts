@@ -17,6 +17,7 @@ import type {
   OAuthProvider,
   RealmTokenRefreshResult,
   RejectGiftDto,
+  ReceivedGiftsResponseDto,
   RequestAccountDeletionInput,
   RequestAccountDeletionOutput,
   RequestDataExportInput,
@@ -347,8 +348,11 @@ export class DataSync {
   createWithdrawal(payload: CreateWithdrawalDto) { return this.actions.createWithdrawal(payload); }
   loadGiftCatalog() { return this.actions.loadGiftCatalog(); }
   loadGiftTransaction(id: string) { return this.actions.loadGiftTransaction(id); }
+  loadReceivedGifts(limit = 20, cursor?: string): Promise<ReceivedGiftsResponseDto> {
+    return this.actions.loadReceivedGifts(limit, cursor);
+  }
   sendGift(payload: SendGiftDto) { return this.actions.sendGift(payload); }
-  claimGift(giftTransactionId: string) { return this.actions.claimGift(giftTransactionId); }
+  acceptGift(giftTransactionId: string) { return this.actions.acceptGift(giftTransactionId); }
   rejectGift(giftTransactionId: string, payload: RejectGiftDto) {
     return this.actions.rejectGift(giftTransactionId, payload);
   }

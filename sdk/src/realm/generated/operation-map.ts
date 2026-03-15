@@ -1175,6 +1175,24 @@ export const REALM_OPERATION_MAP = {
     "bodyRequired": true,
     "requestBodyContentType": "application/json"
   },
+  "EconomyCurrencyGiftsService.economyControllerAcceptGift": {
+    "operationId": "EconomyController_acceptGift",
+    "method": "POST",
+    "path": "/api/economy/gifts/{id}/accept",
+    "service": "EconomyCurrencyGiftsService",
+    "methodName": "economyControllerAcceptGift",
+    "tag": "Economy (Currency & Gifts)",
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false
+  },
   "EconomyCurrencyGiftsService.economyControllerCalculateWithdrawal": {
     "operationId": "EconomyController_calculateWithdrawal",
     "method": "GET",
@@ -1212,24 +1230,6 @@ export const REALM_OPERATION_MAP = {
     "methodName": "economyControllerCanWithdraw",
     "tag": "Economy (Currency & Gifts)",
     "parameters": [],
-    "hasBody": false,
-    "bodyRequired": false
-  },
-  "EconomyCurrencyGiftsService.economyControllerClaimGift": {
-    "operationId": "EconomyController_claimGift",
-    "method": "POST",
-    "path": "/api/economy/gifts/{id}/claim",
-    "service": "EconomyCurrencyGiftsService",
-    "methodName": "economyControllerClaimGift",
-    "tag": "Economy (Currency & Gifts)",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
     "hasBody": false,
     "bodyRequired": false
   },
@@ -5391,10 +5391,10 @@ export const REALM_SERVICE_METHODS = {
     "desktopControllerResolveChatRoute": "DesktopService.desktopControllerResolveChatRoute"
   },
   "EconomyCurrencyGiftsService": {
+    "economyControllerAcceptGift": "EconomyCurrencyGiftsService.economyControllerAcceptGift",
     "economyControllerCalculateWithdrawal": "EconomyCurrencyGiftsService.economyControllerCalculateWithdrawal",
     "economyControllerCancelSubscription": "EconomyCurrencyGiftsService.economyControllerCancelSubscription",
     "economyControllerCanWithdraw": "EconomyCurrencyGiftsService.economyControllerCanWithdraw",
-    "economyControllerClaimGift": "EconomyCurrencyGiftsService.economyControllerClaimGift",
     "economyControllerCreateConnectDashboard": "EconomyCurrencyGiftsService.economyControllerCreateConnectDashboard",
     "economyControllerCreateConnectOnboarding": "EconomyCurrencyGiftsService.economyControllerCreateConnectOnboarding",
     "economyControllerCreatePortalSession": "EconomyCurrencyGiftsService.economyControllerCreatePortalSession",
