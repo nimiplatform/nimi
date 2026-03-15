@@ -254,7 +254,7 @@ export class DataSync {
   isFriend(userId: string): boolean { return this.authCallbacks?.isFriend(userId) ?? false; }
 
   async removeFriend(userId: string) { await this.actions.removeFriend(userId); }
-  requestOrAcceptFriend(userId: string) { return this.actions.requestOrAcceptFriend(userId); }
+  requestOrAcceptFriend(userId: string, message?: string) { return this.actions.requestOrAcceptFriend(userId, message); }
   rejectOrRemoveFriend(userId: string) { return this.actions.rejectOrRemoveFriend(userId); }
   blockUser(contact: Record<string, unknown>) { return this.actions.blockUser(contact); }
   unblockUser(contact: Record<string, unknown>) { return this.actions.unblockUser(contact); }

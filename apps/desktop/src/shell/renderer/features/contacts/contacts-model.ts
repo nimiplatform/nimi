@@ -33,6 +33,7 @@ export type ContactRequestRecord = {
   isAgent: boolean;
   direction: RequestDirection;
   requestedAt: string | null;
+  requestMessage: string | null;
 };
 
 export type TabFilter = 'humans' | 'agents' | 'myAgents' | 'requests' | 'blocks' | 'world';
@@ -205,6 +206,7 @@ export function toPendingRequestContact(item: Record<string, unknown>): ContactR
     isAgent: item.isAgent === true,
     direction: item.direction === 'sent' ? 'sent' : 'received',
     requestedAt: typeof item.requestedAt === 'string' ? item.requestedAt : null,
+    requestMessage: typeof item.requestMessage === 'string' ? item.requestMessage : null,
   };
 }
 

@@ -11,6 +11,7 @@ export type DataSyncErrorEmitter = (
 type PendingFriendRequestDto = {
   userId?: string;
   requestedAt?: string;
+  requestMessage?: string;
 };
 
 type PendingFriendRequestListDto = {
@@ -150,24 +151,29 @@ export async function enrichProfileWithWorldBanner(
   }
 }
 
-function toPendingRequestMap(items: PendingFriendRequestDto[] | undefined): Map<string, string | null> {
-  const normalized = new Map<string, string | null>();
+type PendingRequestMapValue = { requestedAt: string | null; requestMessage: string | null };
+
+function toPendingRequestMap(items: PendingFriendRequestDto[] | undefined): Map<string, PendingRequestMapValue> {
+  const normalized = new Map<string, PendingRequestMapValue>();
   for (const item of items || []) {
     const userId = toNonEmptyString(item.userId);
     if (!userId || normalized.has(userId)) {
       continue;
     }
-    normalized.set(userId, toNullableString(item.requestedAt));
+    normalized.set(userId, {
+      requestedAt: toNullableString(item.requestedAt),
+      requestMessage: toNullableString(item.requestMessage),
+    });
   }
   return normalized;
 }
 
 async function resolvePendingRequestProfiles(
   callApi: DataSyncApiCaller,
-  userMap: Map<string, string | null>,
+  userMap: Map<string, PendingRequestMapValue>,
   direction: 'received' | 'sent',
 ): Promise<Array<Record<string, unknown>>> {
-  const tasks = Array.from(userMap.entries()).map(async ([userId, requestedAt]) => {
+  const tasks = Array.from(userMap.entries()).map(async ([userId, { requestedAt, requestMessage }]) => {
     try {
       const profile = await callApi(
         (realm) => realm.services.UserService.getUser(userId),
@@ -180,6 +186,7 @@ async function resolvePendingRequestProfiles(
         userId,
         direction,
         requestedAt,
+        requestMessage,
         displayName: toNonEmptyString(profile.displayName) || handle || userId,
         handle,
         avatarUrl: toNullableString(profile.avatarUrl),
@@ -193,6 +200,7 @@ async function resolvePendingRequestProfiles(
         userId,
         direction,
         requestedAt,
+        requestMessage,
         displayName: userId,
         handle: '',
         avatarUrl: null,

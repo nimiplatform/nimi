@@ -4105,8 +4105,9 @@ export const REALM_OPERATION_MAP = {
         "valueType": "string"
       }
     ],
-    "hasBody": false,
-    "bodyRequired": false
+    "hasBody": true,
+    "bodyRequired": false,
+    "requestBodyContentType": "application/json"
   },
   "UserService.checkHandle": {
     "operationId": "checkHandle",

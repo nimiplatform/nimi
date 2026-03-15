@@ -108,12 +108,13 @@ export async function loadUserProfileById(
 export async function addFriendById(
   callApi: DataSyncApiCaller,
   userId: string,
+  message?: string,
 ) {
   if (!userId) {
     throw new Error('用户ID不能为空');
   }
   await callApi(
-    (realm) => realm.services.UserService.addFriend(userId),
+    (realm) => realm.services.UserService.addFriend(userId, message ? { requestMessage: message } : undefined),
     '添加好友失败',
   );
   return { id: userId };
@@ -145,10 +146,11 @@ export async function addFriendByIdentifier(input: {
 export async function requestOrAcceptFriend(input: {
   callApi: DataSyncApiCaller;
   userId: string;
+  message?: string;
   reloadContacts: () => Promise<void>;
 }) {
   try {
-    await addFriendById(input.callApi, input.userId);
+    await addFriendById(input.callApi, input.userId, input.message);
     await input.reloadContacts();
   } catch (error) {
     if (isRealmOfflineError(error)) {

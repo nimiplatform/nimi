@@ -376,11 +376,11 @@ export function ExplorePanel() {
     [agents],
   );
 
-  const onAddFriend = useCallback(async (agentId: string, _message?: string) => {
+  const onAddFriend = useCallback(async (agentId: string, message?: string) => {
     if (agentLimitQuery.data && !agentLimitQuery.data.canAdd) {
       throw new Error(agentLimitQuery.data.reason || t('Contacts.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }));
     }
-    await dataSync.requestOrAcceptFriend(agentId);
+    await dataSync.requestOrAcceptFriend(agentId, message);
     setAddContactModalOpen(false);
     setSelectedAgentForAdd(null);
   }, [agentLimitQuery.data, t]);

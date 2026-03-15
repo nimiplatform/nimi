@@ -482,6 +482,57 @@ export const PermissionCheckAction = {
 
 export type PermissionCheckAction = (typeof PermissionCheckAction)[keyof typeof PermissionCheckAction];
 
+export const PublicWorldMediaAssetMediaType = {
+  IMAGE: "IMAGE",
+  VIDEO: "VIDEO",
+} as const satisfies Record<string, components['schemas']['PublicWorldMediaAssetDto']['mediaType']>;
+
+export type PublicWorldMediaAssetMediaType = (typeof PublicWorldMediaAssetMediaType)[keyof typeof PublicWorldMediaAssetMediaType];
+
+export const PublicWorldMediaBindingSlot = {
+  WORLD_ICON: "WORLD_ICON",
+  WORLD_BANNER: "WORLD_BANNER",
+  WORLD_GALLERY: "WORLD_GALLERY",
+  WORLD_THEME_AUDIO: "WORLD_THEME_AUDIO",
+  WORLD_TRAILER_VIDEO: "WORLD_TRAILER_VIDEO",
+  SCENE_BACKGROUND: "SCENE_BACKGROUND",
+  SCENE_AMBIENT_AUDIO: "SCENE_AMBIENT_AUDIO",
+  EVENT_CG: "EVENT_CG",
+  WORLDVIEW_REFERENCE: "WORLDVIEW_REFERENCE",
+  AGENT_AVATAR: "AGENT_AVATAR",
+  AGENT_PORTRAIT: "AGENT_PORTRAIT",
+  AGENT_EXPRESSION: "AGENT_EXPRESSION",
+  AGENT_OUTFIT: "AGENT_OUTFIT",
+  AGENT_CANDIDATE: "AGENT_CANDIDATE",
+  AGENT_VOICE_SAMPLE: "AGENT_VOICE_SAMPLE",
+} as const satisfies Record<string, components['schemas']['PublicWorldMediaBindingDto']['slot']>;
+
+export type PublicWorldMediaBindingSlot = (typeof PublicWorldMediaBindingSlot)[keyof typeof PublicWorldMediaBindingSlot];
+
+export const PublicWorldMediaBindingTargetType = {
+  WORLD: "WORLD",
+  AGENT: "AGENT",
+  SCENE: "SCENE",
+  WORLD_EVENT: "WORLD_EVENT",
+  WORLDVIEW: "WORLDVIEW",
+} as const satisfies Record<string, components['schemas']['PublicWorldMediaBindingDto']['targetType']>;
+
+export type PublicWorldMediaBindingTargetType = (typeof PublicWorldMediaBindingTargetType)[keyof typeof PublicWorldMediaBindingTargetType];
+
+export const PublicWorldMutationType = {
+  SETTING_CHANGE: "SETTING_CHANGE",
+  RULE_UPDATE: "RULE_UPDATE",
+  LOREBOOK_OVERRIDE: "LOREBOOK_OVERRIDE",
+  TABOO_CHANGE: "TABOO_CHANGE",
+  LOCATION_CHANGE: "LOCATION_CHANGE",
+  EVENT_CREATE: "EVENT_CREATE",
+  EVENT_UPDATE: "EVENT_UPDATE",
+  EVENT_DELETE: "EVENT_DELETE",
+  EVENT_BATCH_UPSERT: "EVENT_BATCH_UPSERT",
+} as const satisfies Record<string, components['schemas']['PublicWorldMutationDto']['mutationType']>;
+
+export type PublicWorldMutationType = (typeof PublicWorldMutationType)[keyof typeof PublicWorldMutationType];
+
 export const ReviewProposalAction = {
   APPROVED: "APPROVED",
   REJECTED: "REJECTED",

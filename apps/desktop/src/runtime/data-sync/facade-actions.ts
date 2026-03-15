@@ -243,10 +243,11 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
           await loadContacts();
         },
       }),
-    requestOrAcceptFriend: async (userId: string) =>
+    requestOrAcceptFriend: async (userId: string, message?: string) =>
       requestOrAcceptFriend({
         callApi: input.callApiTask,
         userId,
+        message,
         reloadContacts: async () => {
           await loadContacts();
         },

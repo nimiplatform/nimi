@@ -48,7 +48,7 @@ export function FriendRequestDetail({
 
         <div className="mt-6 p-4 bg-gray-50 rounded-xl">
           <p className="text-sm text-gray-600">
-            {request.bio || i18n.t('Contacts.requestFallbackBio', { defaultValue: 'Wants to add you as a friend' })}
+            {request.requestMessage || request.bio || i18n.t('Contacts.requestFallbackBio', { defaultValue: 'Wants to add you as a friend' })}
           </p>
         </div>
 
@@ -159,7 +159,7 @@ export function FriendRequestsList({
                         <div className="flex-1 min-w-0">
                           <div className="text-[15px] font-semibold text-gray-900">{request.displayName}</div>
                           <p className="text-[13px] text-gray-500 truncate mt-0.5">
-                            {request.bio || i18n.t('Contacts.requestFallbackBio', { defaultValue: 'Wants to add you as a friend' })}
+                            {request.requestMessage || request.bio || i18n.t('Contacts.requestFallbackBio', { defaultValue: 'Wants to add you as a friend' })}
                           </p>
                         </div>
 
