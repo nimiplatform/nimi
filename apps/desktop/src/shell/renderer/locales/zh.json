@@ -873,6 +873,8 @@
     "continueWithEmailOtp": "使用邮箱验证码登录",
     "continueWithEmailPassword": "使用邮箱和密码登录",
     "walletSection": "钱包",
+    "walletSelect": "连接钱包",
+    "selectWalletHint": "选择一个钱包以使用地址登录",
     "emailPlaceholder": "邮箱",
     "passwordPlaceholder": "密码",
     "passwordMinChars": "密码（至少 8 位）",

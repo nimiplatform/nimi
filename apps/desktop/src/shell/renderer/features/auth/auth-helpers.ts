@@ -21,7 +21,8 @@ export type AuthView =
   | 'email_register'
   | 'email_otp'
   | 'email_otp_verify'
-  | 'email_2fa';
+  | 'email_2fa'
+  | 'wallet_select';
 
 export type WalletType = 'metamask' | 'okx' | 'binance';
 

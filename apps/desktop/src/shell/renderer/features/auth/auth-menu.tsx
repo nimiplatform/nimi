@@ -45,6 +45,7 @@ import {
   AuthViewEmail2Fa,
 } from './auth-view-email.js';
 import { AuthViewDesktopAuthorize } from './auth-view-desktop.js';
+import { AuthViewWalletSelect } from './auth-view-wallet.js';
 import { resolveSocialOauthConfig } from './social-oauth.js';
 
 const SlotHost = lazy(async () => {
@@ -287,6 +288,8 @@ export function AuthMenu({
       setView('email_otp');
     } else if (view === 'email_register' || view === 'email_2fa') {
       setView('email_login');
+    } else if (view === 'wallet_select') {
+      setView('main');
     } else {
       setView('main');
     }
@@ -348,10 +351,10 @@ export function AuthMenu({
           onClick={closeModal}
         >
           <div
-            className="w-full sm:max-w-md bg-card rounded-3xl shadow-2xl p-0 overflow-hidden border-none min-h-[480px] flex flex-col relative"
+            className="w-full sm:max-w-md bg-card rounded-3xl shadow-2xl p-0 overflow-hidden border-none flex flex-col relative"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="px-8 py-7 md:px-10 md:py-8 flex flex-col h-full w-full pb-16">
+            <div className="px-8 py-6 md:px-10 md:py-7 flex flex-col h-full w-full pb-12">
               <AuthMenuHeader
                 view={view}
                 pending={pending}
@@ -383,7 +386,6 @@ export function AuthMenu({
                   onGoogleLogin={() => { void doGoogleLogin(googleClientId, setters, desktopCtx); }}
                   onTwitterLogin={() => { void doSocialLogin('TWITTER', setters, desktopCtx); }}
                   onTikTokLogin={() => { void doSocialLogin('TIKTOK', setters, desktopCtx); }}
-                  onWalletLogin={(wt) => { void doWalletLogin(wt, setters, desktopCtx); }}
                   twitterDisabledReason={twitterOauthConfig.enabled ? undefined : twitterOauthConfig.disabledReason}
                   tikTokDisabledReason={tikTokOauthConfig.enabled ? undefined : tikTokOauthConfig.disabledReason}
                 />
@@ -455,6 +457,13 @@ export function AuthMenu({
                 />
               ) : null}
 
+              {view === 'wallet_select' ? (
+                <AuthViewWalletSelect
+                  pending={pending}
+                  onWalletLogin={(wt) => { void doWalletLogin(wt, setters, desktopCtx); }}
+                />
+              ) : null}
+
               {loginError ? (
                 <p className="mt-2 mb-2 text-xs text-destructive text-center">{loginError}</p>
               ) : null}
@@ -469,7 +478,7 @@ export function AuthMenu({
               </div>
             </div>
 
-            <div className="absolute bottom-5 left-0 right-0 text-center text-[12px] font-normal" style={{ color: '#999999' }}>{t('Auth.poweredByNimi')}</div>
+            <div className="absolute bottom-3 left-0 right-0 text-center text-[12px] font-normal" style={{ color: '#999999' }}>{t('Auth.poweredByNimi')}</div>
           </div>
         </div>
       ) : null}

@@ -1,24 +1,20 @@
 import { useTranslation } from 'react-i18next';
-import type { WalletType } from './auth-helpers.js';
 import {
   buttonBase,
   buttonDefault,
-  buttonGhost,
 } from './auth-helpers.js';
 import { CircleIconButton } from './auth-menu-header.js';
-import { MetaMaskIcon, BinanceIcon, OKXIcon } from './auth-wallet-icons.js';
 
 // ---------------------------------------------------------------------------
-// AuthViewMain — the initial login view with social + wallet options
+// AuthViewMain — the initial login view with social + address options
 // ---------------------------------------------------------------------------
 
 export function AuthViewMain(props: {
   pending: boolean;
-  onSetView: (view: 'email_otp' | 'email_login') => void;
+  onSetView: (view: 'email_otp' | 'email_login' | 'wallet_select') => void;
   onGoogleLogin: () => void;
   onTwitterLogin: () => void;
   onTikTokLogin: () => void;
-  onWalletLogin: (walletType: WalletType) => void;
   twitterDisabledReason?: string;
   tikTokDisabledReason?: string;
 }) {
@@ -29,7 +25,6 @@ export function AuthViewMain(props: {
     onGoogleLogin,
     onTwitterLogin,
     onTikTokLogin,
-    onWalletLogin,
     twitterDisabledReason,
     tikTokDisabledReason,
   } = props;
@@ -62,7 +57,7 @@ export function AuthViewMain(props: {
         <span style={{ color: '#888888', fontFamily: 'var(--font-ui)' }}>{t('Auth.continueWithEmailPassword')}</span>
       </button>
 
-      <div className="mb-6 flex items-center justify-center gap-3">
+      <div className="mb-2 flex items-center justify-center gap-3">
         <CircleIconButton
           label="Google login"
           onClick={() => {
@@ -113,70 +108,20 @@ export function AuthViewMain(props: {
             <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
           </svg>
         </CircleIconButton>
-      </div>
 
-      <div className="relative mb-5">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t" style={{ borderColor: '#E5E5E5' }} />
-        </div>
-        <div className="relative flex justify-center">
-          <span className="bg-card px-3 text-[12px] uppercase font-medium tracking-[0.08em]" style={{ color: '#888888', fontFamily: 'var(--font-ui)' }}>
-            {t('Auth.walletSection')}
-          </span>
-        </div>
-      </div>
-
-      <div className="space-y-1">
-        <button
-          type="button"
+        <CircleIconButton
+          label="Address"
           onClick={() => {
-            void onWalletLogin('metamask');
+            onSetView('wallet_select');
           }}
-          className={`${buttonBase} ${buttonGhost} w-full justify-between h-auto rounded-xl bg-card px-4 py-2.5 border border-transparent hover:border-mint-200 hover:bg-mint-50`}
           disabled={pending}
         >
-          <div className="flex items-center gap-3">
-            <MetaMaskIcon className="h-5 w-5" />
-            <span className="text-[15px] font-medium" style={{ color: '#1A1A1A', fontFamily: 'var(--font-ui)' }}>MetaMask</span>
-          </div>
-          <span className="rounded-full px-2 py-1 text-[12px] font-normal tracking-wide" style={{ backgroundColor: '#F2F2F2', color: '#666666', fontFamily: 'var(--font-ui)' }}>
-            Multichain
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            void onWalletLogin('binance');
-          }}
-          className={`${buttonBase} ${buttonGhost} w-full justify-between h-auto rounded-xl bg-card px-4 py-2.5 border border-transparent hover:border-mint-200 hover:bg-mint-50`}
-          disabled={pending}
-        >
-          <div className="flex items-center gap-3">
-            <BinanceIcon className="h-5 w-5" />
-            <span className="text-[15px] font-medium" style={{ color: '#1A1A1A', fontFamily: 'var(--font-ui)' }}>Binance Wallet</span>
-          </div>
-          <span className="rounded-full px-2 py-1 text-[12px] font-normal tracking-wide" style={{ backgroundColor: '#F2F2F2', color: '#666666', fontFamily: 'var(--font-ui)' }}>
-            Multichain
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            void onWalletLogin('okx');
-          }}
-          className={`${buttonBase} ${buttonGhost} w-full justify-between h-auto rounded-xl bg-card px-4 py-2.5 border border-transparent hover:border-mint-200 hover:bg-mint-50`}
-          disabled={pending}
-        >
-          <div className="flex items-center gap-3">
-            <OKXIcon className="h-5 w-5" />
-            <span className="text-[15px] font-medium" style={{ color: '#1A1A1A', fontFamily: 'var(--font-ui)' }}>OKX Wallet</span>
-          </div>
-          <span className="rounded-full px-2 py-1 text-[12px] font-normal tracking-wide" style={{ backgroundColor: '#F2F2F2', color: '#666666', fontFamily: 'var(--font-ui)' }}>
-            Multichain
-          </span>
-        </button>
+          <svg viewBox="0 0 24 24" className="mx-auto h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="6" width="20" height="13" rx="2" />
+            <path d="M2 10h20" />
+            <circle cx="17" cy="14.5" r="1.5" />
+          </svg>
+        </CircleIconButton>
       </div>
     </>
   );

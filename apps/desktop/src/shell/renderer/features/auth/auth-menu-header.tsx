@@ -76,9 +76,11 @@ export function AuthMenuHeader(props: {
       ? t('Auth.signUp')
       : view === 'email_2fa'
         ? t('Auth.verification')
-        : view === 'email_otp'
-          ? t('Auth.emailLogin')
-          : t('Auth.verifyOtp');
+        : view === 'wallet_select'
+          ? t('Auth.walletSelect')
+          : view === 'email_otp'
+            ? t('Auth.emailLogin')
+            : t('Auth.verifyOtp');
 
   return (
     <div className="mb-6 flex items-center justify-between">

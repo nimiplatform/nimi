@@ -873,6 +873,8 @@
     "continueWithEmailOtp": "Continue with Email",
     "continueWithEmailPassword": "Login with Password",
     "walletSection": "Wallet",
+    "walletSelect": "Connect Wallet",
+    "selectWalletHint": "Select a wallet to connect with your address",
     "emailPlaceholder": "Email",
     "passwordPlaceholder": "Password",
     "passwordMinChars": "Password (8+ chars)",
