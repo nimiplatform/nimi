@@ -22,6 +22,10 @@ import {
   removePendingAttachmentAt,
   type PendingAttachment,
 } from './turn-input-attachments';
+import {
+  createCanonicalChatMediaPayload,
+  extractChatMediaAssetId,
+} from './chat-media-contract.js';
 
 // Common emoji categories
 const EMOJI_CATEGORIES = [
@@ -54,58 +58,6 @@ const EMOJI_CATEGORIES = [
     emojis: ['⌚', '📱', '📲', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🖲️', '🕹️', '🗜️', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽️', '🎞️', '📞', '☎️', '📟', '📠', '📺', '📻', '🎙️', '🎚️', '🎛️', '🧭', '⏱️', '⏲️', '⏰', '🕰️', '⌛', '⏳', '📡', '🔋', '🔌', '💡', '🔦', '🕯️', '🪔', '🧯', '🛢️', '💸', '💵', '💴', '💶', '💷', '🪙', '💰', '💳', '💎', '⚖️', '🪜', '🧰', '🪛', '🔧', '🔨', '⚒️', '🛠️', '⛏️', '🔩', '⚙️', '🪤', '🧱', '⛓️', '🧲', '🔫', '💣', '🧨', '🔪', '🗡️', '⚔️', '🛡️', '🚬', '⚰️', '🪦', '⚱️', '🏺', '🔮', '📿', '🧿', '💎', '🔔', '🔕', '📢', '📣', '📯', '💬', '💭', '💤', '🗯️', '♠️', '♥️', '♦️', '♣️', '🃏', '🎴', '🀄']
   }
 ];
-
-async function readImageDimensions(file: File): Promise<{ width: number; height: number }> {
-  if (typeof createImageBitmap === 'function') {
-    const bitmap = await createImageBitmap(file);
-    try {
-      return {
-        width: Math.max(1, Math.floor(bitmap.width || 0)),
-        height: Math.max(1, Math.floor(bitmap.height || 0)),
-      };
-    } finally {
-      bitmap.close();
-    }
-  }
-
-  const objectUrl = URL.createObjectURL(file);
-  try {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error('image-metadata-read-failed'));
-      img.src = objectUrl;
-    });
-    return {
-      width: Math.max(1, Math.floor(image.naturalWidth || image.width || 0)),
-      height: Math.max(1, Math.floor(image.naturalHeight || image.height || 0)),
-    };
-  } finally {
-    URL.revokeObjectURL(objectUrl);
-  }
-}
-
-async function readVideoMetadata(file: File): Promise<{ width: number; height: number; duration: number }> {
-  const objectUrl = URL.createObjectURL(file);
-  try {
-    const metadata = await new Promise<{ width: number; height: number; duration: number }>((resolve, reject) => {
-      const video = document.createElement('video');
-      video.preload = 'metadata';
-      video.onloadedmetadata = () => {
-        resolve({
-          width: Math.max(1, Math.floor(video.videoWidth || 0)),
-          height: Math.max(1, Math.floor(video.videoHeight || 0)),
-          duration: Math.max(0, Math.floor(video.duration || 0)),
-        });
-      };
-      video.onerror = () => reject(new Error('video-metadata-read-failed'));
-      video.src = objectUrl;
-    });
-    return metadata;
-  } finally {
-    URL.revokeObjectURL(objectUrl);
-  }
-}
 
 type TurnInputProps = {
   className?: string;
@@ -332,16 +284,16 @@ export function TurnInput(props: TurnInputProps = {}) {
     const isImage = kind === 'image';
 
     let uploadUrl: string;
-    let mediaUid: string;
+    let mediaAssetId: string;
 
     if (isImage) {
       const uploadInfo = await dataSync.createImageDirectUpload();
       uploadUrl = uploadInfo.uploadUrl;
-      mediaUid = uploadInfo.storageRef;
+      mediaAssetId = extractChatMediaAssetId(uploadInfo);
     } else {
       const uploadInfo = await dataSync.createVideoDirectUpload();
       uploadUrl = uploadInfo.uploadUrl;
-      mediaUid = uploadInfo.storageRef;
+      mediaAssetId = extractChatMediaAssetId(uploadInfo);
     }
 
     if (!uploadUrl) {
@@ -369,28 +321,10 @@ export function TurnInput(props: TurnInputProps = {}) {
       throw new Error(t('TurnInput.uploadFailed'));
     }
 
-    if (isImage) {
-      const dimensions = await readImageDimensions(file);
-      await dataSync.sendMessage(selectedChatId, '', {
-        type: 'IMAGE' as MessageType,
-        payload: {
-          imageId: mediaUid,
-          width: dimensions.width,
-          height: dimensions.height,
-        } as unknown as Record<string, never>,
-      });
-    } else {
-      const metadata = await readVideoMetadata(file);
-      await dataSync.sendMessage(selectedChatId, '', {
-        type: 'VIDEO' as MessageType,
-        payload: {
-          videoId: mediaUid,
-          width: metadata.width,
-          height: metadata.height,
-          duration: metadata.duration,
-        } as unknown as Record<string, never>,
-      });
-    }
+    await dataSync.sendMessage(selectedChatId, '', {
+      type: (isImage ? 'IMAGE' : 'VIDEO') as MessageType,
+      payload: createCanonicalChatMediaPayload(mediaAssetId) as unknown as Record<string, never>,
+    });
   };
 
   const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {

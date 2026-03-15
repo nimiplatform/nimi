@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { MessageViewDto } from '@nimiplatform/sdk/realm';
 import { formatLocaleDate, i18n } from '@renderer/i18n';
+import { resolveCanonicalChatMediaUrl } from './chat-media-contract.js';
 
 export function resolveMessageText(message: MessageViewDto): string {
   const text = String(message.text || '').trim();
@@ -13,68 +14,12 @@ export function resolveMessageText(message: MessageViewDto): string {
   return '';
 }
 
-function toRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-  return value as Record<string, unknown>;
-}
-
-function resolveMediaUrl(
-  payload: Record<string, unknown> | null,
-  realmBaseUrl: string,
-  keys: string[],
-): string {
-  if (!payload) {
-    return '';
-  }
-  for (const key of keys) {
-    const value = String(payload[key] || '').trim();
-    if (!value) {
-      continue;
-    }
-    if (/^https?:\/\//i.test(value)) {
-      return value;
-    }
-    if (value.startsWith('/')) {
-      return `${realmBaseUrl}${value}`;
-    }
-  }
-  return '';
-}
-
 export function resolveImageMessageUrl(message: MessageViewDto, realmBaseUrl: string): string {
-  const payload = toRecord(message.payload);
-  const directUrl = resolveMediaUrl(
-    payload,
-    realmBaseUrl,
-    ['url', 'imageUrl', 'imageURL', 'src', 'mediaUrl', 'mediaURL'],
-  );
-  if (directUrl) {
-    return directUrl;
-  }
-  const imageId = String(payload?.imageId || payload?.id || '').trim();
-  if (!imageId || !realmBaseUrl) {
-    return '';
-  }
-  return `${realmBaseUrl}/api/media/images/${encodeURIComponent(imageId)}`;
+  return resolveCanonicalChatMediaUrl(message.payload, realmBaseUrl);
 }
 
 export function resolveVideoMessageUrl(message: MessageViewDto, realmBaseUrl: string): string {
-  const payload = toRecord(message.payload);
-  const directUrl = resolveMediaUrl(
-    payload,
-    realmBaseUrl,
-    ['url', 'videoUrl', 'videoURL', 'streamUrl', 'streamURL', 'mediaUrl', 'mediaURL'],
-  );
-  if (directUrl) {
-    return directUrl;
-  }
-  const videoId = String(payload?.videoId || payload?.uid || payload?.id || '').trim();
-  if (!videoId || !realmBaseUrl) {
-    return '';
-  }
-  return `${realmBaseUrl}/api/media/videos/${encodeURIComponent(videoId)}`;
+  return resolveCanonicalChatMediaUrl(message.payload, realmBaseUrl);
 }
 
 export function ChatMessageImage(input: {
