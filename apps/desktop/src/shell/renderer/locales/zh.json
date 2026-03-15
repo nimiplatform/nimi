@@ -350,7 +350,7 @@
     "email": "邮箱",
     "emailPlaceholder": "your@email.com",
     "emailHelper": "邮箱由你的身份验证提供商管理",
-    "bio": "个人简介",
+    "bio": "简介",
     "bioPlaceholder": "介绍一下自己...",
     "sectionConnectedAccounts": "关联账户",
     "connectedAccountsDescription": "管理你的关联账户和登录方式",
@@ -913,7 +913,7 @@
     "authorizeDesktop": "授权桌面",
     "setPassword": "设置密码",
     "setPasswordHint": "为你的新账户设置密码以保障安全。",
-    "alternative": "Alternative",
+    "alternative": "其他方式",
     "chooseAlternative": "或使用以下方式继续",
     "useEmailCodeInstead": "改用邮箱验证码",
     "otpConfirmMessage": "发送验证码到你的邮箱进行登录？",
@@ -973,7 +973,7 @@
     "featureLocalRuntimeTitle": "本地 AI 运行时",
     "featureLocalRuntimeDesc": "在你的设备上私密运行模型",
     "welcomeTitle": "欢迎来到 Nimi",
-    "welcomeSubtitle": "连接真人与 AI Agent的地方",
+    "welcomeSubtitle": "连接真人与 AI Agent 的地方",
     "registerHint": "填写信息以创建新账户",
     "loginHint": "输入凭据以访问你的账户",
     "username": "用户名",
@@ -1150,11 +1150,11 @@
     "userUnblocked": "已取消屏蔽 {{name}}。",
     "unblockUserFailed": "取消屏蔽用户失败",
     "openChatFailed": "打开聊天失败",
-    "giftSentTo": "已向 {{name}} 送出礼物"
-    ,"blockConfirmMessagePrefix": "确定要屏蔽"
-    ,"blockConfirmMessageSuffix": "吗？对方将被移动到黑名单。"
-    ,"restoreConfirmMessagePrefix": "将"
-    ,"restoreConfirmMessageSuffix": "恢复到之前的分类？"
+    "giftSentTo": "已向 {{name}} 送出礼物",
+    "blockConfirmMessagePrefix": "确定要屏蔽",
+    "blockConfirmMessageSuffix": "吗？对方会被移入你的黑名单，并且无法再联系你。",
+    "restoreConfirmMessagePrefix": "将",
+    "restoreConfirmMessageSuffix": "恢复到之前的分类？"
   },
   "Bootstrap": {
     "initializingRuntime": "正在初始化运行时...",
@@ -1562,7 +1562,7 @@
         "lastUpdated": "最后更新"
       },
       "agentCount": "Agent 数量",
-      "agentsInWorld": "个 Agent在此世界",
+      "agentsInWorld": "个 Agent 在此世界",
       "created": "创建于",
       "id": "ID",
       "narrativeLabel": "世界叙述",
@@ -1862,13 +1862,13 @@
       "catalogDesc": "提供商目录与已验证推荐",
       "runtime": "运行时",
       "runtimeDesc": "守护进程、审计与 EAA",
-      "mods": "模组",
+      "mods": "Mods",
       "modsDesc": "AI profile 配置",
       "data-management": "数据管理",
       "data-managementDesc": "存储、缓存与账户数据",
       "performance": "性能",
       "performanceDesc": "渲染偏好、更新与运行时信息",
-      "mod-developer": "模组开发者",
+      "mod-developer": "Mod 开发者",
       "mod-developerDesc": "开发者模式与诊断工具"
     },
     "overview": {
@@ -1880,7 +1880,7 @@
       "healthyConnectorsCount": "{{count}} 个健康",
       "vaultEntries": "凭证条目",
       "credentialsStored": "已存储凭证",
-      "aiMods": "AI 模组",
+      "aiMods": "AI Mods",
       "withAiProfiles": "含 AI 配置档",
       "snapshotTitle": "概览快照",
       "snapshotDescription": "系统摘要与关键运行时指标。",
@@ -1890,7 +1890,7 @@
       "memory": "内存",
       "disk": "磁盘",
       "temperature": "温度",
-      "temperatureValue": "{{value}} 度",
+      "temperatureValue": "{{value}} °C",
       "systemResourceMeta": "来源：{{source}} | 采集时间：{{capturedAt}}",
       "mockDataSysinfo": "模拟数据 — 将接入 Tauri sysinfo",
       "runtimeLoadTitle": "运行负载与用量",
@@ -1939,10 +1939,10 @@
       "configureCloudDescription": "API 密钥与连接器",
       "setup": "设置",
       "runtimeAuditDescription": "健康状态、日志与 EAA Token",
-      "modProfilesDescription": "为模组配置 AI",
+      "modProfilesDescription": "为 Mod 配置 AI",
       "configureClouds": "配置云端",
       "runtimeAudit": "运行时与审计",
-      "modProfiles": "模组配置档"
+      "modProfiles": "Mod 配置档"
     },
     "local": {
       "searchInstall": "搜索与安装模型",
@@ -2181,16 +2181,16 @@
       "vram": "VRAM"
     },
     "mods": {
-      "noAiMods": "无 AI 模组",
-      "noAiModsDesc": "当前没有已安装的模组声明 AI profile。安装使用 AI 能力的模组后，可在此处查看其推荐本地组合。",
-      "modsWithAiProfiles": "含 AI Profile 的模组",
-      "modsWithAiProfilesDesc": "选择一个模组来配置它的 AI profile。",
-      "registeredModsSummary": "{{registered}} 个已注册模组 · {{configured}} 个包含 AI profile",
-      "selectedModDescription": "配置所选模组推荐的本地 AI profile。",
+      "noAiMods": "无 AI Mods",
+      "noAiModsDesc": "当前没有已安装的 Mod 声明 AI profile。安装使用 AI 能力的 Mod 后，可在此处查看其推荐本地组合。",
+      "modsWithAiProfiles": "含 AI Profile 的 Mods",
+      "modsWithAiProfilesDesc": "选择一个 Mod 来配置它的 AI profile。",
+      "registeredModsSummary": "{{registered}} 个已注册 Mod · {{configured}} 个包含 AI profile",
+      "selectedModDescription": "配置所选 Mod 推荐的本地 AI profile。",
       "aiCapabilityStatus": "AI 能力状态",
       "local": "本地",
       "needsSetup": "需要设置",
-      "modProfiles": "模组配置档",
+      "modProfiles": "Mod 配置档",
       "setupRequired": "需要配置",
       "setupRequiredDesc": "部分能力在本地不可用。请安装本地模型或配置云端 API 连接器以启用。",
       "installModels": "安装模型",

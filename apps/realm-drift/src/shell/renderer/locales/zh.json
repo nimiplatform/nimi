@@ -24,14 +24,14 @@
     "title": "我的世界",
     "searchPlaceholder": "搜索世界...",
     "empty": "未找到世界",
-    "agents": "{{count}} 个智能体",
-    "agents_plural": "{{count}} 个智能体",
+    "agents": "{{count}} 个 Agent",
+    "agents_plural": "{{count}} 个 Agent",
     "marbleReady": "3D 已就绪",
     "marbleGenerating": "生成中..."
   },
   "viewer": {
     "back": "返回",
-    "tabAgents": "智能体",
+    "tabAgents": "Agent",
     "tabPeople": "好友",
     "generate": "生成 3D 世界",
     "regenerate": "重新生成",
@@ -56,8 +56,8 @@
   "chat": {
     "placeholder": "输入消息...",
     "send": "发送",
-    "emptyState": "选择一个智能体开始聊天",
-    "agentEmpty": "此世界暂无智能体",
+    "emptyState": "选择一个 Agent 开始聊天",
+    "agentEmpty": "此世界暂无 Agent",
     "streaming": "思考中..."
   },
   "humanChat": {
@@ -76,7 +76,7 @@
     "runtimeUnavailable": "AI 运行时不可用，请稍后重试。",
     "rateLimited": "请求过于频繁，请稍候。",
     "unauthorized": "身份验证已过期，请重新登录。",
-    "forbidden": "您没有权限访问此资源。",
+    "forbidden": "你没有权限访问此资源。",
     "serverError": "服务器错误，请稍后重试。",
     "retry": "重试"
   }

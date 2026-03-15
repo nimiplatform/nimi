@@ -1116,13 +1116,13 @@
     "chat": "Chat",
     "gift": "Gift",
     "changePhoto": "Change Photo",
-    "displayName": "Display name",
+    "displayName": "Display Name",
     "handle": "Handle",
     "bio": "Bio",
-    "editMode": "Edit mode",
+    "editMode": "Edit Mode",
     "editModeDescription": "Update your public profile details shown across Moments, Contacts, and chat.",
     "city": "City",
-    "countryCode": "Country code",
+    "countryCode": "Country Code",
     "gender": "Gender",
     "languages": "Languages",
     "languagesPlaceholder": "English, Chinese",
@@ -1150,11 +1150,11 @@
     "userUnblocked": "Unblocked {{name}}.",
     "unblockUserFailed": "Failed to unblock user",
     "openChatFailed": "Failed to open chat",
-    "giftSentTo": "Gift sent to {{name}}"
-    ,"blockConfirmMessagePrefix": "Are you sure you want to block"
-    ,"blockConfirmMessageSuffix": "They will be moved to Blocks."
-    ,"restoreConfirmMessagePrefix": "Restore"
-    ,"restoreConfirmMessageSuffix": "to their previous category?"
+    "giftSentTo": "Gift sent to {{name}}",
+    "blockConfirmMessagePrefix": "Are you sure you want to block",
+    "blockConfirmMessageSuffix": "They will be moved to your Blocked list and won't be able to contact you.",
+    "restoreConfirmMessagePrefix": "Restore",
+    "restoreConfirmMessageSuffix": "to their previous category?"
   },
   "Bootstrap": {
     "initializingRuntime": "Initializing runtime...",
@@ -1890,7 +1890,7 @@
       "memory": "Memory",
       "disk": "Disk",
       "temperature": "Temperature",
-      "temperatureValue": "{{value}} C",
+      "temperatureValue": "{{value}} °C",
       "systemResourceMeta": "Source: {{source}} | Captured: {{capturedAt}}",
       "mockDataSysinfo": "Mock data — will connect to Tauri sysinfo",
       "runtimeLoadTitle": "Runtime Load & Usage",
