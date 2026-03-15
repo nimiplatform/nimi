@@ -168,6 +168,8 @@ type WorldDetailProps = {
 
 export function WorldDetail({ world, onBack }: WorldDetailProps) {
   const authStatus = useAppStore((state) => state.auth.status);
+  const navigateToProfile = useAppStore((state) => state.navigateToProfile);
+  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const isReady = authStatus === 'authenticated' && !!world.id;
 
   const worldCompositeQuery = useQuery({
@@ -269,8 +271,16 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           ? input.dnaSecondary as Parameters<typeof dataSync.createAgent>[0]['dnaSecondary']
           : undefined,
       }),
-    onSuccess: async () => {
+    onSuccess: async (data) => {
+      const agentId = typeof data?.id === 'string' && data.id ? data.id : null;
       await queryClient.invalidateQueries({ queryKey: worldDetailWithAgentsQueryKey(world.id) });
+      if (agentId) {
+        navigateToProfile(agentId, 'agent-detail');
+      }
+    },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : '创建 Agent 失败，请重试';
+      setStatusBanner({ kind: 'error', message });
     },
   });
 
