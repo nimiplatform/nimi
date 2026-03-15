@@ -18,10 +18,10 @@ jobs:
       - name: First interaction welcome
         uses: actions/first-interaction@1c4688942c71f71d4f5502a26ea67c331730fa4d # v3.1.0
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          issue-message: |
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          issue_message: |
             Thanks for opening your first issue in Nimi.
             Please include reproducible steps, expected behavior, and environment details.
-          pr-message: |
+          pr_message: |
             Thanks for your first pull request to Nimi.
             Please ensure CI passes and include verification commands in the PR template.
