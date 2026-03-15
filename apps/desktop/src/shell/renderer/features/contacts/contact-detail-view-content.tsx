@@ -150,7 +150,7 @@ export function ContactDetailViewContent(input: {
                 <button
                   type="button"
                   onClick={input.onClose}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/35 bg-white/16 text-white backdrop-blur-md transition hover:bg-white/24"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-[#4ECCA3]/20 bg-black/45 text-[#4ECCA3] backdrop-blur-md transition-all hover:bg-black/65 hover:border-[#4ECCA3]/40"
                   title={t('Common.back', { defaultValue: 'Back' })}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
