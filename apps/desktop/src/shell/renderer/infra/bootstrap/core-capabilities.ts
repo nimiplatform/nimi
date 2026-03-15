@@ -22,6 +22,13 @@ type AgentMemoryRecallQuery = {
   topK?: number;
 };
 
+type AgentChatRouteResult = {
+  channel: 'CLOUD' | 'LOCAL';
+  providerSelectable: boolean;
+  reason: string;
+  sessionClass: 'AGENT_LOCAL' | 'HUMAN_DIRECT';
+};
+
 type RealmRequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
 
 type RealmRequestSpec = {
@@ -33,6 +40,8 @@ type RealmRequestSpec = {
   headers?: Record<string, string>;
   timeoutMs?: number;
 };
+
+type RealmRequestFn = <T>(spec: RealmRequestSpec) => Promise<T>;
 
 function resolveRequestPath(
   url: string,
@@ -145,10 +154,33 @@ function toRecallQueryPayload(query: AgentMemoryRecallQuery | undefined): Record
   return Object.keys(next).length > 0 ? next : undefined;
 }
 
+function isAgentChatRouteResult(value: unknown): value is AgentChatRouteResult {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  if (record.channel !== 'CLOUD' && record.channel !== 'LOCAL') {
+    return false;
+  }
+  if (typeof record.providerSelectable !== 'boolean') {
+    return false;
+  }
+  if (typeof record.reason !== 'string') {
+    return false;
+  }
+  if (record.sessionClass !== 'AGENT_LOCAL' && record.sessionClass !== 'HUMAN_DIRECT') {
+    return false;
+  }
+  return true;
+}
+
 type MemoryIndexEntry = {
   core: AgentMemoryRecord[];
+  hasCoreSlice: boolean;
   e2eByEntity: Map<string, AgentMemoryRecord[]>;
+  loadedE2EEntities: Set<string>;
   stats: MemoryStatsResponseDto | null;
+  hasStats: boolean;
   updatedAt: number;
 };
 
@@ -175,35 +207,41 @@ function upsertMemoryIndex(input: {
   const previous = memoryLocalIndex.get(input.agentId);
   const next: MemoryIndexEntry = {
     core: previous?.core || [],
+    hasCoreSlice: previous?.hasCoreSlice === true,
     e2eByEntity: previous?.e2eByEntity || new Map<string, AgentMemoryRecord[]>(),
+    loadedE2EEntities: previous?.loadedE2EEntities || new Set<string>(),
     stats: previous?.stats || null,
+    hasStats: previous?.hasStats === true,
     updatedAt: Date.now(),
   };
 
   if (Array.isArray(input.core)) {
     next.core = dedupeMemory(input.core);
+    next.hasCoreSlice = true;
   }
 
   if (input.entityId && Array.isArray(input.e2e)) {
     next.e2eByEntity.set(input.entityId, dedupeMemory(input.e2e));
+    next.loadedE2EEntities.add(input.entityId);
   }
 
   if (typeof input.stats !== 'undefined') {
     next.stats = input.stats;
+    next.hasStats = input.stats !== null;
   }
 
   memoryLocalIndex.set(input.agentId, next);
   return next;
 }
 
-async function resolveCurrentUserId(): Promise<string | null> {
+async function resolveCurrentUserIdWith(requestRealmFn: RealmRequestFn): Promise<string | null> {
   const cached = currentUserIdCache;
   if (cached && cached.expiresAt > Date.now()) {
     return cached.userId;
   }
 
   try {
-    const payload = await requestRealm<unknown>({
+    const payload = await requestRealmFn<unknown>({
       method: 'GET',
       url: '/api/human/me',
     });
@@ -219,10 +257,13 @@ async function resolveCurrentUserId(): Promise<string | null> {
   }
 }
 
-async function resolveEntityId(query: Record<string, unknown>): Promise<string | null> {
+async function resolveEntityId(
+  query: Record<string, unknown>,
+  resolveCurrentUserIdFn: () => Promise<string | null>,
+): Promise<string | null> {
   const explicit = String(query.entityId || query.userId || query.subjectId || '').trim();
   if (explicit) return explicit;
-  return resolveCurrentUserId();
+  return resolveCurrentUserIdFn();
 }
 
 function toMemorySliceQuery(query: Record<string, unknown>): AgentMemorySliceQuery | undefined {
@@ -249,8 +290,12 @@ function toMemoryRecallQuery(query: Record<string, unknown>): AgentMemoryRecallQ
   };
 }
 
-async function loadRemoteCoreMemories(agentId: string, query?: AgentMemorySliceQuery): Promise<AgentMemoryRecord[]> {
-  const payload = await requestRealm<unknown>({
+async function loadRemoteCoreMemories(
+  requestRealmFn: RealmRequestFn,
+  agentId: string,
+  query?: AgentMemorySliceQuery,
+): Promise<AgentMemoryRecord[]> {
+  const payload = await requestRealmFn<unknown>({
     method: 'GET',
     url: '/api/agent/accounts/{id}/memory/core',
     path: {
@@ -262,11 +307,12 @@ async function loadRemoteCoreMemories(agentId: string, query?: AgentMemorySliceQ
 }
 
 async function loadRemoteE2EMemories(input: {
+  requestRealm: RealmRequestFn;
   agentId: string;
   entityId: string;
   query?: AgentMemorySliceQuery;
 }): Promise<AgentMemoryRecord[]> {
-  const payload = await requestRealm<unknown>({
+  const payload = await input.requestRealm<unknown>({
     method: 'GET',
     url: '/api/agent/accounts/{id}/memory/e2e/{entityId}',
     path: {
@@ -279,6 +325,7 @@ async function loadRemoteE2EMemories(input: {
 }
 
 async function loadRemoteRecall(input: {
+  requestRealm: RealmRequestFn;
   agentId: string;
   entityId: string;
   query?: AgentMemoryRecallQuery;
@@ -287,7 +334,7 @@ async function loadRemoteRecall(input: {
   core: AgentMemoryRecord[];
   e2e: AgentMemoryRecord[];
 }> {
-  const payload = await requestRealm<unknown>({
+  const payload = await input.requestRealm<unknown>({
     method: 'GET',
     url: '/api/agent/accounts/{id}/memory/recall/{entityId}',
     path: {
@@ -325,8 +372,11 @@ async function loadRemoteRecall(input: {
   };
 }
 
-async function loadRemoteMemoryStats(agentId: string): Promise<MemoryStatsResponseDto> {
-  return requestRealm<MemoryStatsResponseDto>({
+async function loadRemoteMemoryStats(
+  requestRealmFn: RealmRequestFn,
+  agentId: string,
+): Promise<MemoryStatsResponseDto> {
+  return requestRealmFn<MemoryStatsResponseDto>({
     method: 'GET',
     url: '/api/agent/accounts/{id}/memory/stats',
     path: {
@@ -335,7 +385,236 @@ async function loadRemoteMemoryStats(agentId: string): Promise<MemoryStatsRespon
   });
 }
 
+type AgentCoreDataCapabilityDeps = {
+  requestRealm?: RealmRequestFn;
+  resolveCurrentUserId?: () => Promise<string | null>;
+};
+
+export type AgentCoreDataCapabilityHandlers = {
+  agentChatRouteResolve: (query: Record<string, unknown>) => Promise<AgentChatRouteResult>;
+  agentMemoryCoreList: (query: Record<string, unknown>) => Promise<{ items: AgentMemoryRecord[]; source: 'local-index-only' | 'remote-only' }>;
+  agentMemoryE2EList: (query: Record<string, unknown>) => Promise<{ items: AgentMemoryRecord[]; source: 'local-index-only' | 'remote-only'; entityId: string }>;
+  agentMemoryRecallForEntity: (query: Record<string, unknown>) => Promise<{
+    items: AgentMemoryRecord[];
+    core: AgentMemoryRecord[];
+    e2e: AgentMemoryRecord[];
+    entityId: string;
+    recallSource: 'local-index-only' | 'remote-only' | 'local-index+remote-backfill';
+  }>;
+  agentMemoryStatsGet: (query: Record<string, unknown>) => Promise<(Record<string, unknown> & { source: 'local-index-only' | 'remote-only' }) | null>;
+};
+
+function requireAgentId(query: Record<string, unknown>): string {
+  const agentId = String(query.agentId || query.id || '').trim();
+  if (!agentId) {
+    throw new Error('AGENT_ID_REQUIRED');
+  }
+  return agentId;
+}
+
+async function requireEntityId(
+  query: Record<string, unknown>,
+  resolveCurrentUserIdFn: () => Promise<string | null>,
+): Promise<string> {
+  const entityId = await resolveEntityId(query, resolveCurrentUserIdFn);
+  if (!entityId) {
+    throw new Error('AGENT_MEMORY_ENTITY_ID_REQUIRED');
+  }
+  return entityId;
+}
+
+export function resetAgentCoreDataStateForTesting(): void {
+  memoryLocalIndex.clear();
+  currentUserIdCache = null;
+}
+
+export function seedAgentMemoryIndexForTesting(input: {
+  agentId: string;
+  core?: AgentMemoryRecord[];
+  entityId?: string;
+  e2e?: AgentMemoryRecord[];
+  stats?: MemoryStatsResponseDto | null;
+}): void {
+  upsertMemoryIndex(input);
+}
+
+export function createAgentCoreDataCapabilityHandlers(
+  deps: AgentCoreDataCapabilityDeps = {},
+): AgentCoreDataCapabilityHandlers {
+  const requestRealmFn = deps.requestRealm ?? requestRealm;
+  const resolveCurrentUserIdFn = deps.resolveCurrentUserId ?? (() => resolveCurrentUserIdWith(requestRealmFn));
+
+  return {
+    agentChatRouteResolve: async (query) => {
+      const agentId = requireAgentId(toRecord(query));
+      const payload = await requestRealmFn<unknown>({
+        method: 'POST',
+        url: '/api/desktop/chat/route',
+        body: {
+          targetType: 'AGENT',
+          agentId,
+        },
+      });
+      if (!isAgentChatRouteResult(payload)) {
+        throw new Error('AGENT_CHAT_ROUTE_INVALID');
+      }
+      return payload;
+    },
+
+    agentMemoryCoreList: async (query) => {
+      const queryRecord = toRecord(query);
+      const agentId = requireAgentId(queryRecord);
+      const memoryQuery = toMemorySliceQuery(queryRecord);
+      const localIndex = getMemoryIndex(agentId);
+      if (localIndex?.hasCoreSlice) {
+        const limit = memoryQuery?.limit || localIndex.core.length;
+        return {
+          items: takeTop(localIndex.core, limit),
+          source: 'local-index-only' as const,
+        };
+      }
+
+      const remoteItems = await loadRemoteCoreMemories(requestRealmFn, agentId, memoryQuery);
+      upsertMemoryIndex({ agentId, core: remoteItems });
+      return {
+        items: remoteItems,
+        source: 'remote-only' as const,
+      };
+    },
+
+    agentMemoryE2EList: async (query) => {
+      const queryRecord = toRecord(query);
+      const agentId = requireAgentId(queryRecord);
+      const entityId = await requireEntityId(queryRecord, resolveCurrentUserIdFn);
+      const memoryQuery = toMemorySliceQuery(queryRecord);
+      const localIndex = getMemoryIndex(agentId);
+      if (localIndex?.loadedE2EEntities.has(entityId)) {
+        const localItems = localIndex.e2eByEntity.get(entityId) || [];
+        const limit = memoryQuery?.limit || localItems.length;
+        return {
+          items: takeTop(localItems, limit),
+          source: 'local-index-only' as const,
+          entityId,
+        };
+      }
+
+      const remoteItems = await loadRemoteE2EMemories({
+        requestRealm: requestRealmFn,
+        agentId,
+        entityId,
+        query: memoryQuery,
+      });
+      upsertMemoryIndex({
+        agentId,
+        entityId,
+        e2e: remoteItems,
+      });
+      return {
+        items: remoteItems,
+        source: 'remote-only' as const,
+        entityId,
+      };
+    },
+
+    agentMemoryRecallForEntity: async (query) => {
+      const queryRecord = toRecord(query);
+      const agentId = requireAgentId(queryRecord);
+      const entityId = await requireEntityId(queryRecord, resolveCurrentUserIdFn);
+
+      const recallQuery = toMemoryRecallQuery(queryRecord);
+      const sliceQuery = toMemorySliceQuery(queryRecord);
+      const topK = recallQuery?.topK || 10;
+      const localIndex = getMemoryIndex(agentId);
+      const localCore = localIndex?.core || [];
+      const localE2E = localIndex?.e2eByEntity.get(entityId) || [];
+      const localCombined = takeTop(dedupeMemory([...localE2E, ...localCore]), topK);
+      if (localCombined.length >= topK) {
+        return {
+          items: localCombined,
+          core: takeTop(localCore, topK),
+          e2e: takeTop(localE2E, topK),
+          entityId,
+          recallSource: 'local-index-only' as const,
+        };
+      }
+
+      const [remoteRecall, remoteCore, remoteE2E] = await Promise.all([
+        loadRemoteRecall({
+          requestRealm: requestRealmFn,
+          agentId,
+          entityId,
+          query: recallQuery,
+        }),
+        loadRemoteCoreMemories(requestRealmFn, agentId, sliceQuery),
+        loadRemoteE2EMemories({
+          requestRealm: requestRealmFn,
+          agentId,
+          entityId,
+          query: sliceQuery,
+        }),
+      ]);
+
+      const mergedCore = dedupeMemory([
+        ...remoteCore,
+        ...remoteRecall.core,
+        ...localCore,
+      ]);
+      const mergedE2E = dedupeMemory([
+        ...remoteE2E,
+        ...remoteRecall.e2e,
+        ...localE2E,
+      ]);
+      const mergedCombined = dedupeMemory([
+        ...remoteRecall.items,
+        ...mergedE2E,
+        ...mergedCore,
+      ]);
+
+      upsertMemoryIndex({
+        agentId,
+        core: mergedCore,
+        entityId,
+        e2e: mergedE2E,
+      });
+
+      const hasLocal = localCore.length > 0 || localE2E.length > 0;
+      return {
+        items: takeTop(mergedCombined, topK),
+        core: takeTop(mergedCore, topK),
+        e2e: takeTop(mergedE2E, topK),
+        entityId,
+        recallSource: hasLocal ? 'local-index+remote-backfill' as const : 'remote-only' as const,
+      };
+    },
+
+    agentMemoryStatsGet: async (query) => {
+      const queryRecord = toRecord(query);
+      const agentId = requireAgentId(queryRecord);
+
+      const localIndex = getMemoryIndex(agentId);
+      if (localIndex?.hasStats && localIndex.stats) {
+        return {
+          ...localIndex.stats,
+          source: 'local-index-only' as const,
+        };
+      }
+
+      const stats = await loadRemoteMemoryStats(requestRealmFn, agentId);
+      upsertMemoryIndex({
+        agentId,
+        stats,
+      });
+      return {
+        ...stats,
+        source: 'remote-only' as const,
+      };
+    },
+  };
+}
+
 export async function registerCoreDataCapabilities(): Promise<void> {
+  const agentHandlers = createAgentCoreDataCapabilityHandlers();
+
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.friendsWithDetailsList, async () => {
     const payload = await requestRealm<unknown>({
       method: 'GET',
@@ -405,207 +684,23 @@ export async function registerCoreDataCapabilities(): Promise<void> {
     }
   });
 
+  await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.agentChatRouteResolve, async (query) => {
+    return agentHandlers.agentChatRouteResolve(toRecord(query));
+  });
+
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.agentMemoryCoreList, async (query) => {
-    const queryRecord = toRecord(query);
-    const agentId = String(queryRecord.agentId || '').trim();
-    if (!agentId) {
-      return { items: [], source: 'remote-only' as const };
-    }
-
-    const memoryQuery = toMemorySliceQuery(queryRecord);
-    const localIndex = getMemoryIndex(agentId);
-    if (localIndex) {
-      const limit = memoryQuery?.limit || localIndex.core.length;
-      return {
-        items: takeTop(localIndex.core, limit),
-        source: 'local-index-only' as const,
-      };
-    }
-
-    try {
-      const remoteItems = await loadRemoteCoreMemories(agentId, memoryQuery);
-      upsertMemoryIndex({ agentId, core: remoteItems });
-      return {
-        items: remoteItems,
-        source: 'remote-only' as const,
-      };
-    } catch {
-      return { items: [], source: 'remote-only' as const };
-    }
+    return agentHandlers.agentMemoryCoreList(toRecord(query));
   });
 
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.agentMemoryE2EList, async (query) => {
-    const queryRecord = toRecord(query);
-    const agentId = String(queryRecord.agentId || '').trim();
-    if (!agentId) {
-      return { items: [], source: 'remote-only' as const };
-    }
-    const entityId = await resolveEntityId(queryRecord);
-    if (!entityId) {
-      return { items: [], source: 'remote-only' as const };
-    }
-    const memoryQuery = toMemorySliceQuery(queryRecord);
-    const localIndex = getMemoryIndex(agentId);
-    if (localIndex?.e2eByEntity.has(entityId)) {
-      const localItems = localIndex.e2eByEntity.get(entityId) || [];
-      const limit = memoryQuery?.limit || localItems.length;
-      return {
-        items: takeTop(localItems, limit),
-        source: 'local-index-only' as const,
-        entityId,
-      };
-    }
-
-    try {
-      const remoteItems = await loadRemoteE2EMemories({
-        agentId,
-        entityId,
-        query: memoryQuery,
-      });
-      upsertMemoryIndex({
-        agentId,
-        entityId,
-        e2e: remoteItems,
-      });
-      return {
-        items: remoteItems,
-        source: 'remote-only' as const,
-        entityId,
-      };
-    } catch {
-      return { items: [], source: 'remote-only' as const, entityId };
-    }
+    return agentHandlers.agentMemoryE2EList(toRecord(query));
   });
 
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.agentMemoryRecallForEntity, async (query) => {
-    const queryRecord = toRecord(query);
-    const agentId = String(queryRecord.agentId || '').trim();
-    if (!agentId) {
-      return {
-        items: [],
-        core: [],
-        e2e: [],
-        recallSource: 'remote-only' as const,
-      };
-    }
-    const entityId = await resolveEntityId(queryRecord);
-    if (!entityId) {
-      return {
-        items: [],
-        core: [],
-        e2e: [],
-        recallSource: 'remote-only' as const,
-      };
-    }
-
-    const recallQuery = toMemoryRecallQuery(queryRecord);
-    const sliceQuery = toMemorySliceQuery(queryRecord);
-    const topK = recallQuery?.topK || 10;
-    const localIndex = getMemoryIndex(agentId);
-    const localCore = localIndex?.core || [];
-    const localE2E = localIndex?.e2eByEntity.get(entityId) || [];
-    const localCombined = takeTop(dedupeMemory([...localE2E, ...localCore]), topK);
-    const localEnough = localCombined.length >= topK;
-
-    if (localEnough) {
-      return {
-        items: localCombined,
-        core: takeTop(localCore, topK),
-        e2e: takeTop(localE2E, topK),
-        entityId,
-        recallSource: 'local-index-only' as const,
-      };
-    }
-
-    const remoteRecall = await loadRemoteRecall({
-      agentId,
-      entityId,
-      query: recallQuery,
-    }).catch(() => null);
-
-    const remoteCore = await loadRemoteCoreMemories(agentId, sliceQuery).catch(() => null);
-
-    const remoteE2E = await loadRemoteE2EMemories({
-      agentId,
-      entityId,
-      query: sliceQuery,
-    }).catch(() => null);
-
-    const mergedCore = dedupeMemory([
-      ...(Array.isArray(remoteCore) ? remoteCore : []),
-      ...(remoteRecall?.core || []),
-      ...localCore,
-    ]);
-    const mergedE2E = dedupeMemory([
-      ...(Array.isArray(remoteE2E) ? remoteE2E : []),
-      ...(remoteRecall?.e2e || []),
-      ...localE2E,
-    ]);
-    const mergedCombined = dedupeMemory([
-      ...(remoteRecall?.items || []),
-      ...mergedE2E,
-      ...mergedCore,
-    ]);
-
-    upsertMemoryIndex({
-      agentId,
-      core: mergedCore,
-      entityId,
-      e2e: mergedE2E,
-    });
-
-    const hasLocal = localCore.length > 0 || localE2E.length > 0;
-    const hasRemote = Boolean(
-      (remoteRecall && (remoteRecall.items.length > 0 || remoteRecall.core.length > 0 || remoteRecall.e2e.length > 0))
-      || (remoteCore && remoteCore.length > 0)
-      || (remoteE2E && remoteE2E.length > 0),
-    );
-    const recallSource = hasRemote
-      ? (hasLocal ? 'local-index+remote-backfill' : 'remote-only')
-      : (hasLocal ? 'local-index-only' : 'remote-only');
-
-    return {
-      items: takeTop(mergedCombined, topK),
-      core: takeTop(mergedCore, topK),
-      e2e: takeTop(mergedE2E, topK),
-      entityId,
-      recallSource,
-    };
+    return agentHandlers.agentMemoryRecallForEntity(toRecord(query));
   });
 
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.agentMemoryStatsGet, async (query) => {
-    const queryRecord = toRecord(query);
-    const agentId = String(queryRecord.agentId || '').trim();
-    if (!agentId) return null;
-
-    const localIndex = getMemoryIndex(agentId);
-    if (localIndex?.stats) {
-      return {
-        ...localIndex.stats,
-        source: 'local-index-only' as const,
-      };
-    }
-
-    try {
-      const stats = await loadRemoteMemoryStats(agentId);
-      upsertMemoryIndex({
-        agentId,
-        stats,
-      });
-      return {
-        ...stats,
-        source: 'remote-only' as const,
-      };
-    } catch {
-      if (localIndex) {
-        return {
-          coreCount: localIndex.core.length,
-          e2eCount: Array.from(localIndex.e2eByEntity.values()).reduce((sum, items) => sum + items.length, 0),
-          profileCount: 0,
-          source: 'local-index-only' as const,
-        };
-      }
-      return null;
-    }
+    return agentHandlers.agentMemoryStatsGet(toRecord(query));
   });
 }

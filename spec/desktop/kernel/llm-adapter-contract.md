@@ -29,7 +29,9 @@ cloud connector 路径必须保持 runtime-only：Desktop 不得恢复 legacy pr
 
 执行内核 turn 路由：
 
-- 通过 `resolveChatRoute` DataSync 方法确定目标 agent 和 provider。
+- Desktop core product 不拥有 Agent chat route API，也不得在 DataSync / launcher / fallback policy 中内建 Agent 聊天路由。
+- mods 如需 Agent 聊天路由，必须通过 desktop host 的 data capability `data-api.core.agent.chat.route.resolve` 查询目标 agent 和 provider。
+- `data-api.core.agent.chat.route.resolve` 必须 fail-close：缺少 `agentId`、控制面请求失败、或返回 payload 非法时直接报错；Desktop host 不得合成本地 `LOCAL/AGENT_LOCAL` 成功路由。
 - `ExecuteLocalTurnInput` 封装完整请求（sessionId、turnIndex、mode、provider、model 参数）。
 - `mode: 'STORY' | 'SCENE_TURN'` 确定对话模式。
 

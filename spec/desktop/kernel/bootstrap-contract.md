@@ -8,7 +8,7 @@ Desktop 应用启动序列契约。定义 renderer 进程从 `bootstrapRuntime()
 
 ## D-BOOT-001 — Runtime Defaults 加载
 
-启动序列的首个异步操作。通过 IPC 桥接调用 `runtime_defaults` 获取 `RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken、jwksUrl、jwtIssuer、jwtAudience）和 `RuntimeExecutionDefaults`（provider、model、agent 绑定）。
+启动序列的首个异步操作。通过 IPC 桥接调用 `runtime_defaults` 获取 `RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken、jwksUrl、jwtIssuer、jwtAudience）和 `RuntimeExecutionDefaults`（provider、model 与可透传的 runtime execution 字段）。
 
 Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；legacy 路径 `.nimi/runtime/config.json` 已硬切移除，不得在 bootstrap 或 backend fallback 中回流。
 
@@ -61,7 +61,8 @@ Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；leg
 - 构建 runtime host capabilities（local LLM health check、execution kernel turn、OpenAPI context lock、hook runtime）。
 - 装配 mod SDK host。
 - 配置 speech route resolver 和 missing data capability resolver。
-- 确保 core world data capabilities 已注册。
+- 确保 core world data capabilities 与 host-only Agent LLM data capabilities（route / memory）已注册，供 mods 调用。
+- host-only Agent chat route capability 必须遵循 `D-LLM-002` fail-close 语义；host-only Agent memory capability 必须遵循 `D-DSYNC-011` cache-only + fail-close 语义。
 
 ## D-BOOT-005 — Runtime Mods 注册
 

@@ -86,6 +86,7 @@ export const CORE_DATA_API_CAPABILITIES = {
   userByHandleGet: 'data-api.core.user.by-handle.get',
   worldByIdGet: 'data-api.core.world.by-id.get',
   worldviewByIdGet: 'data-api.core.worldview.by-id.get',
+  agentChatRouteResolve: 'data-api.core.agent.chat.route.resolve',
   agentMemoryRecallForEntity: 'data-api.core.agent.memory.recall.for-entity',
   agentMemoryCoreList: 'data-api.core.agent.memory.core.list',
   agentMemoryE2EList: 'data-api.core.agent.memory.e2e.list',
