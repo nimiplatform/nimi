@@ -32,3 +32,7 @@ test('create post modal writes assetId-only media payloads for new posts', () =>
   assert.doesNotMatch(createPostModalSource, /createPost\(\{\s*media:\s*\[\{[\s\S]*imageId:/s);
   assert.doesNotMatch(createPostModalSource, /createPost\(\{\s*media:\s*\[\{[\s\S]*videoId:/s);
 });
+
+test('create post modal calls finalizeMediaAsset after direct upload', () => {
+  assert.match(createPostModalSource, /finalizeMediaAsset\(/);
+});

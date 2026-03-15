@@ -305,20 +305,28 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
           const upload = await dataSync.createImageDirectUpload();
           const formData = new FormData();
           formData.append('file', activeMedia.file);
-          await fetch(upload.uploadUrl, {
+          const uploadResponse = await fetch(upload.uploadUrl, {
             method: 'POST',
             body: formData,
           });
+          if (!uploadResponse.ok) {
+            throw new Error('Image upload failed');
+          }
+          await dataSync.finalizeMediaAsset(upload.assetId, {});
           mediaId = upload.assetId;
           mediaType = PostMediaType.IMAGE;
         } else {
           const uploadData = await dataSync.createVideoDirectUpload();
           const formData = new FormData();
           formData.append('file', activeMedia.file);
-          await fetch(uploadData.uploadUrl, {
+          const uploadResponse = await fetch(uploadData.uploadUrl, {
             method: 'POST',
             body: formData,
           });
+          if (!uploadResponse.ok) {
+            throw new Error('Video upload failed');
+          }
+          await dataSync.finalizeMediaAsset(uploadData.assetId, {});
           mediaId = uploadData.assetId;
           mediaType = PostMediaType.VIDEO;
         }
