@@ -14,6 +14,7 @@ func TestValidateScenarioCapabilitySupportedModelPasses(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	err := svc.validateScenarioCapability(
+		context.Background(),
 		runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		"anthropic/claude-sonnet-4-6",
 		nil,
@@ -55,7 +56,7 @@ func TestValidateScenarioCapabilityFailCloseReasonCodes(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := svc.validateScenarioCapability(tc.scenario, tc.model, nil, nil)
+			err := svc.validateScenarioCapability(context.Background(), tc.scenario, tc.model, nil, nil)
 			if err == nil {
 				t.Fatalf("expected capability guard error")
 			}
@@ -75,6 +76,7 @@ func TestValidateScenarioCapabilityCatalogUnavailableFailsClosedForCloudProvider
 	svc.speechCatalog = nil
 
 	err := svc.validateScenarioCapability(
+		context.Background(),
 		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		"anthropic/claude-sonnet-4-6",
 		nil,
@@ -97,6 +99,7 @@ func TestValidateScenarioCapabilityCatalogUnavailableAllowsLocalProvider(t *test
 	svc.speechCatalog = nil
 
 	err := svc.validateScenarioCapability(
+		context.Background(),
 		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		"localai/local-import/z_image_turbo-Q4_K",
 		nil,

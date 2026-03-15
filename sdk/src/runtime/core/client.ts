@@ -205,8 +205,12 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       listConnectorModels: unary(RuntimeMethodIds.connector.listConnectorModels),
       listProviderCatalog: unary(RuntimeMethodIds.connector.listProviderCatalog),
       listModelCatalogProviders: unary(RuntimeMethodIds.connector.listModelCatalogProviders),
+      listCatalogProviderModels: unary(RuntimeMethodIds.connector.listCatalogProviderModels),
+      getCatalogModelDetail: unary(RuntimeMethodIds.connector.getCatalogModelDetail),
       upsertModelCatalogProvider: unary(RuntimeMethodIds.connector.upsertModelCatalogProvider),
       deleteModelCatalogProvider: unary(RuntimeMethodIds.connector.deleteModelCatalogProvider),
+      upsertCatalogModelOverlay: unary(RuntimeMethodIds.connector.upsertCatalogModelOverlay),
+      deleteCatalogModelOverlay: unary(RuntimeMethodIds.connector.deleteCatalogModelOverlay),
     },
     knowledge: {
       buildIndex: unary(RuntimeMethodIds.knowledge.buildIndex),

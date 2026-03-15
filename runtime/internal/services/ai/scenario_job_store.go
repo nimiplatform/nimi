@@ -8,6 +8,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/oklog/ulid/v2"
@@ -86,11 +87,11 @@ func (s *Service) submitVoiceWorkflowJob(
 	if err != nil {
 		return nil, err
 	}
-	if err := s.validateScenarioCapability(req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
+	if err := s.validateScenarioCapability(ctx, req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
 		return nil, err
 	}
 	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selectedProvider)
-	if err := s.validateCatalogAwareScenarioSupport(req.GetScenarioType(), providerType, modelResolved, req.GetSpec()); err != nil {
+	if err := s.validateCatalogAwareScenarioSupport(ctx, req.GetScenarioType(), providerType, modelResolved, req.GetSpec()); err != nil {
 		return nil, err
 	}
 	s.recordRouteAutoSwitch(
@@ -102,7 +103,7 @@ func (s *Service) submitVoiceWorkflowJob(
 	)
 
 	workflowType := workflowTypeFromScenarioType(req.GetScenarioType())
-	workflowResolution, err := s.resolveVoiceWorkflow(providerType, modelResolved, workflowType)
+	workflowResolution, err := s.resolveVoiceWorkflow(ctx, providerType, modelResolved, workflowType)
 	if err != nil {
 		if errors.Is(err, catalog.ErrModelNotFound) {
 			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
@@ -141,6 +142,9 @@ func (s *Service) submitVoiceWorkflowJob(
 		jobCtx, cancel = context.WithTimeout(jobCtx, timeout)
 	} else {
 		jobCtx, cancel = context.WithCancel(jobCtx)
+	}
+	if identity := authn.IdentityFromContext(ctx); identity != nil {
+		jobCtx = authn.WithIdentity(jobCtx, identity)
 	}
 	go func() {
 		defer cancel()
@@ -330,12 +334,12 @@ func (s *Service) submitScenarioAsyncJob(
 	if err != nil {
 		return nil, err
 	}
-	if err := s.validateScenarioCapability(req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
+	if err := s.validateScenarioCapability(ctx, req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
 		return nil, err
 	}
 	if _, iteration, resolveErr := resolveMusicGenerateExtensionPayload(req); resolveErr != nil {
 		return nil, resolveErr
-	} else if supportErr := validateMusicGenerateIterationSupport(s, modelResolved, remoteTarget, selectedProvider, iteration); supportErr != nil {
+	} else if supportErr := validateMusicGenerateIterationSupport(ctx, s, modelResolved, remoteTarget, selectedProvider, iteration); supportErr != nil {
 		return nil, supportErr
 	}
 	s.recordRouteAutoSwitch(
@@ -355,6 +359,9 @@ func (s *Service) submitScenarioAsyncJob(
 		jobCtx, cancel = context.WithTimeout(jobCtx, timeout)
 	} else {
 		jobCtx, cancel = context.WithCancel(jobCtx)
+	}
+	if identity := authn.IdentityFromContext(ctx); identity != nil {
+		jobCtx = authn.WithIdentity(jobCtx, identity)
 	}
 
 	now := timestamppb.New(time.Now().UTC())

@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"io"
 	"log/slog"
 	"testing"
@@ -90,13 +91,13 @@ func TestValidateMusicGenerateIterationSupport(t *testing.T) {
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
-	if err := validateMusicGenerateIterationSupport(svc, "suno/suno-v4", nil, nil, parsed); err != nil {
+	if err := validateMusicGenerateIterationSupport(context.Background(), svc, "suno/suno-v4", nil, nil, parsed); err != nil {
 		t.Fatalf("expected suno iteration support, got err=%v", err)
 	}
-	if err := validateMusicGenerateIterationSupport(svc, "stability/stable-audio-2", nil, nil, parsed); err != nil {
+	if err := validateMusicGenerateIterationSupport(context.Background(), svc, "stability/stable-audio-2", nil, nil, parsed); err != nil {
 		t.Fatalf("expected stability iteration support, got err=%v", err)
 	}
-	err = validateMusicGenerateIterationSupport(svc, "openai/gpt-5.2", nil, nil, parsed)
+	err = validateMusicGenerateIterationSupport(context.Background(), svc, "openai/gpt-5.2", nil, nil, parsed)
 	reason, ok := grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
 		t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got reason=%v ok=%v err=%v", reason, ok, err)

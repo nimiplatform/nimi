@@ -83,7 +83,7 @@ func validateVoiceWorkflowSpec(scenarioType runtimev1.ScenarioType, spec *runtim
 	}
 }
 
-func (s *Service) resolveVoiceWorkflow(providerType string, modelResolved string, workflowType string) (catalog.ResolveVoiceWorkflowResult, error) {
+func (s *Service) resolveVoiceWorkflow(ctx context.Context, providerType string, modelResolved string, workflowType string) (catalog.ResolveVoiceWorkflowResult, error) {
 	if s == nil || s.speechCatalog == nil {
 		return catalog.ResolveVoiceWorkflowResult{}, catalog.ErrVoiceWorkflowUnsupported
 	}
@@ -94,7 +94,7 @@ func (s *Service) resolveVoiceWorkflow(providerType string, modelResolved string
 	if provider == "" {
 		provider = inferScenarioProviderType(modelResolved, nil, nil)
 	}
-	return s.speechCatalog.ResolveVoiceWorkflow(provider, modelResolved, workflowType)
+	return s.speechCatalog.ResolveVoiceWorkflowForSubject(catalogSubjectUserIDFromContext(ctx), provider, modelResolved, workflowType)
 }
 
 func (s *Service) executeVoiceWorkflowJob(

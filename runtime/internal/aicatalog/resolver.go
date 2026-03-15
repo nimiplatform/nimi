@@ -1,6 +1,8 @@
 package catalog
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"os"
@@ -8,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
@@ -22,19 +25,32 @@ type indexedSnapshot struct {
 	workflowBindings map[string]map[string]ModelWorkflowBinding
 }
 
+type providerState struct {
+	record           CatalogProviderRecord
+	document         ProviderDocument
+	modelSources     map[string]ModelSource
+	userScopedModels map[string]bool
+}
+
+type catalogState struct {
+	snapshot  *indexedSnapshot
+	providers map[string]providerState
+	source    CatalogSource
+}
+
 type Resolver struct {
 	mu sync.RWMutex
 
 	logger *slog.Logger
 
-	snapshot          *indexedSnapshot
-	source            CatalogSource
-	builtInProviders  map[string]ProviderDocument
-	customProviders   map[string]ProviderDocument
-	effective         map[string]ProviderDocument
-	sourcesByProvider map[string]ProviderSource
+	builtInProviders map[string]ProviderDocument
+	sharedOverlays   map[string]overlayDocument
+	subjectOverlays  map[string]map[string]overlayDocument
+	subjectLoaded    map[string]bool
 
-	customDir string
+	globalState   *catalogState
+	subjectStates map[string]*catalogState
+	customDir     string
 }
 
 func NewResolver(cfg ResolverConfig) (*Resolver, error) {
@@ -49,24 +65,25 @@ func NewResolver(cfg ResolverConfig) (*Resolver, error) {
 	}
 
 	resolver := &Resolver{
-		logger:            logger,
-		builtInProviders:  builtInProviders,
-		customProviders:   map[string]ProviderDocument{},
-		effective:         map[string]ProviderDocument{},
-		sourcesByProvider: map[string]ProviderSource{},
-		customDir:         strings.TrimSpace(cfg.CustomDir),
+		logger:           logger,
+		builtInProviders: builtInProviders,
+		sharedOverlays:   map[string]overlayDocument{},
+		subjectOverlays:  map[string]map[string]overlayDocument{},
+		subjectLoaded:    map[string]bool{},
+		subjectStates:    map[string]*catalogState{},
+		customDir:        strings.TrimSpace(cfg.CustomDir),
 	}
 
 	if resolver.customDir != "" {
-		customProviders, loadErr := loadProviderDocumentsFromDir(resolver.customDir)
+		sharedOverlays, loadErr := loadOverlayProviderDocumentsFromDir(resolver.customDir)
 		if loadErr != nil {
 			resolver.logger.Warn("catalog custom dir ignored", "dir", resolver.customDir, "error", loadErr)
 		} else {
-			resolver.customProviders = customProviders
+			resolver.sharedOverlays = sharedOverlays
 		}
 	}
 
-	if err := resolver.recomputeSnapshotLocked(); err != nil {
+	if err := resolver.recomputeGlobalStateLocked(); err != nil {
 		return nil, err
 	}
 
@@ -74,6 +91,10 @@ func NewResolver(cfg ResolverConfig) (*Resolver, error) {
 }
 
 func (r *Resolver) ResolveVoices(providerType string, modelID string) (ResolveVoicesResult, error) {
+	return r.ResolveVoicesForSubject("", providerType, modelID)
+}
+
+func (r *Resolver) ResolveVoicesForSubject(subjectUserID string, providerType string, modelID string) (ResolveVoicesResult, error) {
 	provider := normalizeProvider(providerType)
 	normalizedModel := normalizeLookupModelID(modelID, provider)
 	if provider == "" {
@@ -83,21 +104,21 @@ func (r *Resolver) ResolveVoices(providerType string, modelID string) (ResolveVo
 		return ResolveVoicesResult{}, ErrModelNotFound
 	}
 
-	r.mu.RLock()
-	snapshot := r.snapshot
-	source := r.source
-	r.mu.RUnlock()
-	if snapshot == nil {
+	state, err := r.stateForSubject(subjectUserID)
+	if err != nil {
+		return ResolveVoicesResult{}, err
+	}
+	if state == nil || state.snapshot == nil {
 		return ResolveVoicesResult{}, ErrModelNotFound
 	}
 
-	modelEntry, ok := resolveModelEntry(snapshot, provider, normalizedModel)
+	modelEntry, ok := resolveModelEntry(state.snapshot, provider, normalizedModel)
 	if !ok {
 		return ResolveVoicesResult{}, ErrModelNotFound
 	}
 
 	voiceSetKey := provider + ":" + normalizeID(modelEntry.VoiceSetID)
-	voiceEntries := snapshot.voicesBySet[voiceSetKey]
+	voiceEntries := state.snapshot.voicesBySet[voiceSetKey]
 	if len(voiceEntries) == 0 {
 		return ResolveVoicesResult{}, ErrVoiceSetEmpty
 	}
@@ -126,14 +147,17 @@ func (r *Resolver) ResolveVoices(providerType string, modelID string) (ResolveVo
 	return ResolveVoicesResult{
 		Provider:       provider,
 		ModelID:        strings.TrimSpace(modelEntry.ModelID),
-		CatalogVersion: snapshot.catalogVersion,
-		Source:         source,
+		CatalogVersion: state.snapshot.catalogVersion,
+		Source:         state.source,
 		Voices:         voices,
 	}, nil
 }
 
-// ResolveModelEntry resolves a model entry from the active catalog snapshot.
 func (r *Resolver) ResolveModelEntry(providerType string, modelID string) (ModelEntry, error) {
+	return r.ResolveModelEntryForSubject("", providerType, modelID)
+}
+
+func (r *Resolver) ResolveModelEntryForSubject(subjectUserID string, providerType string, modelID string) (ModelEntry, error) {
 	provider := normalizeProvider(providerType)
 	normalizedModel := normalizeLookupModelID(modelID, provider)
 	if provider == "" {
@@ -143,46 +167,98 @@ func (r *Resolver) ResolveModelEntry(providerType string, modelID string) (Model
 		return ModelEntry{}, ErrModelNotFound
 	}
 
-	r.mu.RLock()
-	snapshot := r.snapshot
-	r.mu.RUnlock()
-	if snapshot == nil {
+	state, err := r.stateForSubject(subjectUserID)
+	if err != nil {
+		return ModelEntry{}, err
+	}
+	if state == nil || state.snapshot == nil {
 		return ModelEntry{}, ErrModelNotFound
 	}
-	modelEntry, ok := resolveModelEntry(snapshot, provider, normalizedModel)
+	modelEntry, ok := resolveModelEntry(state.snapshot, provider, normalizedModel)
 	if !ok {
 		return ModelEntry{}, ErrModelNotFound
 	}
 	return modelEntry, nil
 }
 
-// ListModelsForProvider returns the active catalog models for one canonical provider.
 func (r *Resolver) ListModelsForProvider(providerType string) ([]ModelEntry, CatalogSource, error) {
+	models, source, err := r.ListModelsForProviderForSubject("", providerType)
+	if err != nil {
+		return nil, source, err
+	}
+	out := make([]ModelEntry, 0, len(models))
+	for _, model := range models {
+		out = append(out, model.Model)
+	}
+	return out, source, nil
+}
+
+func (r *Resolver) ListModelsForProviderForSubject(subjectUserID string, providerType string) ([]CatalogModelRecord, CatalogSource, error) {
 	provider := normalizeProvider(providerType)
 	if provider == "" {
 		return nil, SourceBuiltinSnapshot, ErrProviderUnsupported
 	}
 
-	r.mu.RLock()
-	doc, ok := r.effective[provider]
-	source := r.source
-	r.mu.RUnlock()
-	if !ok {
-		return nil, source, ErrProviderUnsupported
+	state, err := r.stateForSubject(subjectUserID)
+	if err != nil {
+		return nil, SourceBuiltinSnapshot, err
+	}
+	if state == nil {
+		return nil, SourceBuiltinSnapshot, ErrProviderUnsupported
 	}
 
-	models := append([]ModelEntry(nil), doc.Models...)
-	sort.Slice(models, func(i, j int) bool {
-		if models[i].ModelID == models[j].ModelID {
-			return models[i].UpdatedAt > models[j].UpdatedAt
+	providerState, ok := state.providers[provider]
+	if !ok {
+		return nil, state.source, ErrProviderUnsupported
+	}
+
+	models := make([]CatalogModelRecord, 0, len(providerState.document.Models))
+	for _, model := range providerState.document.Models {
+		key := normalizeID(model.ModelID)
+		source := providerState.modelSources[key]
+		if source == "" {
+			source = ModelSourceBuiltin
 		}
-		return models[i].ModelID < models[j].ModelID
+		models = append(models, CatalogModelRecord{
+			Model:      model,
+			Source:     source,
+			UserScoped: providerState.userScopedModels[key],
+			Warnings:   warningsForModelSource(source, providerState.userScopedModels[key]),
+		})
+	}
+	sort.Slice(models, func(i, j int) bool {
+		leftID := strings.ToLower(strings.TrimSpace(models[i].Model.ModelID))
+		rightID := strings.ToLower(strings.TrimSpace(models[j].Model.ModelID))
+		if leftID == rightID {
+			return strings.TrimSpace(models[i].Model.UpdatedAt) > strings.TrimSpace(models[j].Model.UpdatedAt)
+		}
+		return leftID < rightID
 	})
-	return models, source, nil
+	return models, state.source, nil
 }
 
-// ResolveVoiceWorkflow resolves the workflow model bound to a provider/model/workflow_type tuple.
+func (r *Resolver) GetModelDetailForSubject(subjectUserID string, providerType string, modelID string) (CatalogModelDetailRecord, CatalogProviderRecord, CatalogSource, error) {
+	provider := normalizeProvider(providerType)
+	normalizedModel := normalizeLookupModelID(modelID, provider)
+	if provider == "" {
+		provider = inferProviderFromModel(normalizedModel)
+	}
+	if provider == "" || normalizedModel == "" {
+		return CatalogModelDetailRecord{}, CatalogProviderRecord{}, SourceBuiltinSnapshot, ErrModelNotFound
+	}
+
+	state, err := r.stateForSubject(subjectUserID)
+	if err != nil {
+		return CatalogModelDetailRecord{}, CatalogProviderRecord{}, SourceBuiltinSnapshot, err
+	}
+	return r.getModelDetailFromState(state, provider, modelID)
+}
+
 func (r *Resolver) ResolveVoiceWorkflow(providerType string, modelID string, workflowType string) (ResolveVoiceWorkflowResult, error) {
+	return r.ResolveVoiceWorkflowForSubject("", providerType, modelID, workflowType)
+}
+
+func (r *Resolver) ResolveVoiceWorkflowForSubject(subjectUserID string, providerType string, modelID string, workflowType string) (ResolveVoiceWorkflowResult, error) {
 	provider := normalizeProvider(providerType)
 	normalizedModel := normalizeLookupModelID(modelID, provider)
 	if provider == "" {
@@ -196,19 +272,19 @@ func (r *Resolver) ResolveVoiceWorkflow(providerType string, modelID string, wor
 		return ResolveVoiceWorkflowResult{}, ErrVoiceWorkflowUnsupported
 	}
 
-	r.mu.RLock()
-	snapshot := r.snapshot
-	source := r.source
-	r.mu.RUnlock()
-	if snapshot == nil {
+	state, err := r.stateForSubject(subjectUserID)
+	if err != nil {
+		return ResolveVoiceWorkflowResult{}, err
+	}
+	if state == nil || state.snapshot == nil {
 		return ResolveVoiceWorkflowResult{}, ErrModelNotFound
 	}
 
-	modelEntry, ok := resolveModelEntry(snapshot, provider, normalizedModel)
+	modelEntry, ok := resolveModelEntry(state.snapshot, provider, normalizedModel)
 	if !ok {
 		return ResolveVoiceWorkflowResult{}, ErrModelNotFound
 	}
-	binding, ok := resolveModelWorkflowBinding(snapshot, provider, normalizedModel)
+	binding, ok := resolveModelWorkflowBinding(state.snapshot, provider, normalizedModel)
 	if !ok {
 		return ResolveVoiceWorkflowResult{}, ErrVoiceWorkflowUnsupported
 	}
@@ -216,7 +292,7 @@ func (r *Resolver) ResolveVoiceWorkflow(providerType string, modelID string, wor
 		return ResolveVoiceWorkflowResult{}, ErrVoiceWorkflowUnsupported
 	}
 	for _, workflowModelRef := range binding.WorkflowModelRefs {
-		workflowModel, workflowModelOK := resolveWorkflowModel(snapshot, provider, workflowModelRef)
+		workflowModel, workflowModelOK := resolveWorkflowModel(state.snapshot, provider, workflowModelRef)
 		if !workflowModelOK {
 			continue
 		}
@@ -229,17 +305,19 @@ func (r *Resolver) ResolveVoiceWorkflow(providerType string, modelID string, wor
 			WorkflowType:      normalizedWorkflowType,
 			WorkflowModelID:   strings.TrimSpace(workflowModel.WorkflowModelID),
 			OutputPersistence: strings.TrimSpace(workflowModel.OutputPersistence),
-			CatalogVersion:    snapshot.catalogVersion,
-			Source:            source,
+			CatalogVersion:    state.snapshot.catalogVersion,
+			Source:            state.source,
 		}, nil
 	}
 	return ResolveVoiceWorkflowResult{}, ErrVoiceWorkflowUnsupported
 }
 
-// SupportsScenario reports whether a provider/model pair declares the capability
-// needed by scenarioType in catalog metadata.
 func (r *Resolver) SupportsScenario(providerType string, modelID string, scenarioType runtimev1.ScenarioType) (bool, error) {
-	model, err := r.ResolveModelEntry(providerType, modelID)
+	return r.SupportsScenarioForSubject("", providerType, modelID, scenarioType)
+}
+
+func (r *Resolver) SupportsScenarioForSubject(subjectUserID string, providerType string, modelID string, scenarioType runtimev1.ScenarioType) (bool, error) {
+	model, err := r.ResolveModelEntryForSubject(subjectUserID, providerType, modelID)
 	if err != nil {
 		return false, err
 	}
@@ -274,7 +352,7 @@ func (r *Resolver) SupportsScenario(providerType string, modelID string, scenari
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		return hasAny(aicapabilities.AudioTranscribe), nil
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		_, workflowErr := r.ResolveVoiceWorkflow(providerType, modelID, "tts_v2v")
+		_, workflowErr := r.ResolveVoiceWorkflowForSubject(subjectUserID, providerType, modelID, "tts_v2v")
 		if workflowErr == nil {
 			return true, nil
 		}
@@ -283,7 +361,7 @@ func (r *Resolver) SupportsScenario(providerType string, modelID string, scenari
 		}
 		return false, workflowErr
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		_, workflowErr := r.ResolveVoiceWorkflow(providerType, modelID, "tts_t2v")
+		_, workflowErr := r.ResolveVoiceWorkflowForSubject(subjectUserID, providerType, modelID, "tts_t2v")
 		if workflowErr == nil {
 			return true, nil
 		}
@@ -296,69 +374,24 @@ func (r *Resolver) SupportsScenario(providerType string, modelID string, scenari
 	}
 }
 
-// SupportsCapability reports whether a provider/model pair declares the given
-// canonical capability in catalog metadata.
 func (r *Resolver) SupportsCapability(providerType string, modelID string, capability string) (bool, error) {
-	model, err := r.ResolveModelEntry(providerType, modelID)
+	return r.SupportsCapabilityForSubject("", providerType, modelID, capability)
+}
+
+func (r *Resolver) SupportsCapabilityForSubject(subjectUserID string, providerType string, modelID string, capability string) (bool, error) {
+	model, err := r.ResolveModelEntryForSubject(subjectUserID, providerType, modelID)
 	if err != nil {
 		return false, err
 	}
 	return aicapabilities.HasCatalogCapability(model.Capabilities, capability), nil
 }
 
-func resolveModelEntry(snapshot *indexedSnapshot, provider string, normalizedModel string) (ModelEntry, bool) {
-	providerModels := snapshot.models[provider]
-	if len(providerModels) == 0 {
-		return ModelEntry{}, false
-	}
-	modelEntry, ok := providerModels[normalizedModel]
-	if ok {
-		return modelEntry, true
-	}
-	base := modelIDBase(normalizedModel)
-	modelEntry, ok = providerModels[base]
-	return modelEntry, ok
-}
-
-func resolveModelWorkflowBinding(snapshot *indexedSnapshot, provider string, normalizedModel string) (ModelWorkflowBinding, bool) {
-	providerBindings := snapshot.workflowBindings[provider]
-	if len(providerBindings) == 0 {
-		return ModelWorkflowBinding{}, false
-	}
-	binding, ok := providerBindings[normalizedModel]
-	if ok {
-		return binding, true
-	}
-	base := modelIDBase(normalizedModel)
-	binding, ok = providerBindings[base]
-	return binding, ok
-}
-
-func resolveWorkflowModel(snapshot *indexedSnapshot, provider string, workflowModelID string) (VoiceWorkflowModel, bool) {
-	providerModels := snapshot.workflowModels[provider]
-	if len(providerModels) == 0 {
-		return VoiceWorkflowModel{}, false
-	}
-	normalizedWorkflowModelID := normalizeID(workflowModelID)
-	workflowModel, ok := providerModels[normalizedWorkflowModelID]
-	return workflowModel, ok
-}
-
-func bindingSupportsWorkflowType(binding ModelWorkflowBinding, workflowType string) bool {
-	normalizedWorkflowType := normalizeWorkflowType(workflowType)
-	if normalizedWorkflowType == "" {
-		return false
-	}
-	for _, item := range binding.WorkflowTypes {
-		if normalizeWorkflowType(item) == normalizedWorkflowType {
-			return true
-		}
-	}
-	return false
-}
-
 func (r *Resolver) SupportsVoice(providerType string, modelID string, voiceID string) (ResolveVoicesResult, bool, error) {
-	result, err := r.ResolveVoices(providerType, modelID)
+	return r.SupportsVoiceForSubject("", providerType, modelID, voiceID)
+}
+
+func (r *Resolver) SupportsVoiceForSubject(subjectUserID string, providerType string, modelID string, voiceID string) (ResolveVoicesResult, bool, error) {
+	result, err := r.ResolveVoicesForSubject(subjectUserID, providerType, modelID)
 	if err != nil {
 		return ResolveVoicesResult{}, false, err
 	}
@@ -380,38 +413,35 @@ func (r *Resolver) SupportsVoice(providerType string, modelID string, voiceID st
 }
 
 func (r *Resolver) ListProviders() []CatalogProviderRecord {
-	r.mu.RLock()
-	providers := make([]string, 0, len(r.effective))
-	for provider := range r.effective {
+	return r.ListProvidersForSubject("")
+}
+
+func (r *Resolver) ListProvidersForSubject(subjectUserID string) []CatalogProviderRecord {
+	state, err := r.stateForSubject(subjectUserID)
+	if err != nil || state == nil {
+		return nil
+	}
+	providers := make([]string, 0, len(state.providers))
+	for provider := range state.providers {
 		providers = append(providers, provider)
 	}
 	sort.Strings(providers)
 	records := make([]CatalogProviderRecord, 0, len(providers))
 	for _, provider := range providers {
-		doc := r.effective[provider]
-		yamlText, err := marshalProviderDocumentYAML(doc)
-		if err != nil {
-			yamlText = ""
-		}
-		records = append(records, CatalogProviderRecord{
-			Provider:       provider,
-			Version:        doc.Version,
-			CatalogVersion: strings.TrimSpace(doc.CatalogVersion),
-			Source:         r.sourcesByProvider[provider],
-			ModelCount:     len(doc.Models),
-			VoiceCount:     len(doc.Voices),
-			YAML:           yamlText,
-		})
+		records = append(records, state.providers[provider].record)
 	}
-	r.mu.RUnlock()
 	return records
 }
 
 func (r *Resolver) UpsertCustomProvider(provider string, rawYAML []byte) (CatalogProviderRecord, error) {
+	return r.UpsertCustomProviderForSubject("", provider, rawYAML)
+}
+
+func (r *Resolver) UpsertCustomProviderForSubject(subjectUserID string, provider string, rawYAML []byte) (CatalogProviderRecord, error) {
 	if strings.TrimSpace(r.customDir) == "" {
 		return CatalogProviderRecord{}, ErrCatalogMutationDisabled
 	}
-	candidate, err := parseProviderDocumentYAML(rawYAML, provider+providerFileExt)
+	candidate, err := parseOverlayProviderDocumentYAML(rawYAML, provider+providerFileExt)
 	if err != nil {
 		return CatalogProviderRecord{}, err
 	}
@@ -424,30 +454,18 @@ func (r *Resolver) UpsertCustomProvider(provider string, rawYAML []byte) (Catalo
 		return CatalogProviderRecord{}, err
 	}
 	candidate.RawYAML = yamlText
-
-	writePath := customProviderFilePath(r.customDir, candidate.Provider)
-	if writePath == "" {
-		return CatalogProviderRecord{}, ErrCatalogMutationDisabled
-	}
-	if err := os.MkdirAll(filepath.Dir(writePath), 0o755); err != nil {
-		return CatalogProviderRecord{}, err
-	}
-	if err := os.WriteFile(writePath, []byte(yamlText), 0o600); err != nil {
-		return CatalogProviderRecord{}, err
-	}
-
-	r.mu.Lock()
-	r.customProviders[candidate.Provider] = candidate
-	recomputeErr := r.recomputeSnapshotLocked()
-	record := r.recordForProviderLocked(candidate.Provider)
-	r.mu.Unlock()
-	if recomputeErr != nil {
-		return CatalogProviderRecord{}, recomputeErr
-	}
-	return record, nil
+	return r.persistSubjectOverlay(subjectUserID, overlayDocument{
+		doc:        candidate,
+		updatedAt:  time.Now().UTC().Format(time.RFC3339),
+		userScoped: strings.TrimSpace(subjectUserID) != "",
+	})
 }
 
 func (r *Resolver) DeleteCustomProvider(provider string) error {
+	return r.DeleteCustomProviderForSubject("", provider)
+}
+
+func (r *Resolver) DeleteCustomProviderForSubject(subjectUserID string, provider string) error {
 	if strings.TrimSpace(r.customDir) == "" {
 		return ErrCatalogMutationDisabled
 	}
@@ -455,64 +473,411 @@ func (r *Resolver) DeleteCustomProvider(provider string) error {
 	if normalized == "" {
 		return fmt.Errorf("%w: %s", ErrProviderUnsupported, normalized)
 	}
-	path := customProviderFilePath(r.customDir, normalized)
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if strings.TrimSpace(subjectUserID) == "" {
+		delete(r.sharedOverlays, normalized)
+		if err := r.recomputeGlobalStateLocked(); err != nil {
+			return err
+		}
+		for subject := range r.subjectOverlays {
+			if err := r.recomputeSubjectStateLocked(subject); err != nil {
+				return err
+			}
+		}
+		path := customProviderFilePath(r.customDir, normalized)
+		if path != "" {
+			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+				return err
+			}
+		}
+		return nil
+	}
+
+	subjectKey := strings.TrimSpace(subjectUserID)
+	if err := r.ensureSubjectLoadedLocked(subjectKey); err != nil {
+		return err
+	}
+	delete(r.subjectOverlays[subjectKey], normalized)
+	if err := r.recomputeSubjectStateLocked(subjectKey); err != nil {
+		return err
+	}
+	path := customProviderFilePath(subjectCatalogDir(r.customDir, subjectKey), normalized)
 	if path != "" {
 		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 			return err
 		}
 	}
+	return nil
+}
+
+func (r *Resolver) UpsertModelOverlayForSubject(
+	subjectUserID string,
+	provider string,
+	model ModelEntry,
+	voices []VoiceEntry,
+	voiceWorkflowModels []VoiceWorkflowModel,
+	modelWorkflowBinding *ModelWorkflowBinding,
+) (CatalogModelDetailRecord, CatalogProviderRecord, error) {
+	if strings.TrimSpace(subjectUserID) == "" {
+		return CatalogModelDetailRecord{}, CatalogProviderRecord{}, ErrCatalogMutationDisabled
+	}
+	normalizedProvider := normalizeProvider(provider)
+	if normalizedProvider == "" || !isSupportedProvider(normalizedProvider) {
+		return CatalogModelDetailRecord{}, CatalogProviderRecord{}, ErrProviderUnsupported
+	}
+	model.Provider = normalizedProvider
+	if normalizeID(model.ModelID) == "" {
+		return CatalogModelDetailRecord{}, CatalogProviderRecord{}, fmt.Errorf("model_id is required")
+	}
 
 	r.mu.Lock()
-	delete(r.customProviders, normalized)
-	err := r.recomputeSnapshotLocked()
-	r.mu.Unlock()
-	return err
-}
+	defer r.mu.Unlock()
 
-func (r *Resolver) recordForProviderLocked(provider string) CatalogProviderRecord {
-	doc := r.effective[provider]
-	yamlText, err := marshalProviderDocumentYAML(doc)
+	if err := r.ensureSubjectLoadedLocked(subjectUserID); err != nil {
+		return CatalogModelDetailRecord{}, CatalogProviderRecord{}, err
+	}
+	current := cloneProviderDocument(r.subjectOverlayDocumentLocked(subjectUserID, normalizedProvider))
+	if current.Provider == "" {
+		current = ProviderDocument{
+			Version:        1,
+			Provider:       normalizedProvider,
+			CatalogVersion: "user-overlay",
+		}
+	}
+	current.Provider = normalizedProvider
+	current.Version = max(1, current.Version)
+	if strings.TrimSpace(current.CatalogVersion) == "" {
+		current.CatalogVersion = "user-overlay"
+	}
+
+	current.Models = upsertOverlayModels(current.Models, model)
+	current.Voices = replaceOverlayVoices(current.Voices, normalizedProvider, model.VoiceSetID, voices)
+	current.VoiceWorkflowModels, current.ModelWorkflowBindings = replaceOverlayWorkflowState(
+		current.VoiceWorkflowModels,
+		current.ModelWorkflowBindings,
+		model.ModelID,
+		voiceWorkflowModels,
+		modelWorkflowBinding,
+	)
+
+	current.RawYAML = ""
+	yamlText, err := marshalProviderDocumentYAML(current)
 	if err != nil {
-		yamlText = ""
+		return CatalogModelDetailRecord{}, CatalogProviderRecord{}, err
 	}
-	return CatalogProviderRecord{
-		Provider:       provider,
-		Version:        doc.Version,
-		CatalogVersion: strings.TrimSpace(doc.CatalogVersion),
-		Source:         r.sourcesByProvider[provider],
-		ModelCount:     len(doc.Models),
-		VoiceCount:     len(doc.Voices),
-		YAML:           yamlText,
+	current.RawYAML = yamlText
+
+	record, err := r.persistSubjectOverlayLocked(subjectUserID, overlayDocument{
+		doc:        current,
+		updatedAt:  time.Now().UTC().Format(time.RFC3339),
+		userScoped: true,
+	})
+	if err != nil {
+		return CatalogModelDetailRecord{}, CatalogProviderRecord{}, err
 	}
+
+	state := r.subjectStates[strings.TrimSpace(subjectUserID)]
+	if state == nil {
+		return CatalogModelDetailRecord{}, record, fmt.Errorf("catalog subject state unavailable")
+	}
+	detail, _, _, detailErr := r.getModelDetailFromState(state, normalizedProvider, model.ModelID)
+	if detailErr != nil {
+		return CatalogModelDetailRecord{}, record, detailErr
+	}
+	return detail, record, nil
 }
 
-func (r *Resolver) recomputeSnapshotLocked() error {
-	merged := mergeProviderDocuments(r.builtInProviders, r.customProviders)
-	snapshot, err := buildSnapshotFromProviderDocuments(merged)
+func (r *Resolver) DeleteModelOverlayForSubject(subjectUserID string, provider string, modelID string) (CatalogProviderRecord, error) {
+	if strings.TrimSpace(subjectUserID) == "" {
+		return CatalogProviderRecord{}, ErrCatalogMutationDisabled
+	}
+	if strings.TrimSpace(r.customDir) == "" {
+		return CatalogProviderRecord{}, ErrCatalogMutationDisabled
+	}
+	normalizedProvider := normalizeProvider(provider)
+	normalizedModelID := normalizeID(modelID)
+	if normalizedProvider == "" || normalizedModelID == "" {
+		return CatalogProviderRecord{}, ErrProviderUnsupported
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if err := r.ensureSubjectLoadedLocked(subjectUserID); err != nil {
+		return CatalogProviderRecord{}, err
+	}
+	current := cloneProviderDocument(r.subjectOverlayDocumentLocked(subjectUserID, normalizedProvider))
+	if current.Provider == "" {
+		if state := r.subjectStates[strings.TrimSpace(subjectUserID)]; state != nil {
+			if providerState, ok := state.providers[normalizedProvider]; ok {
+				return providerState.record, nil
+			}
+		}
+		if r.globalState != nil {
+			if providerState, ok := r.globalState.providers[normalizedProvider]; ok {
+				return providerState.record, nil
+			}
+		}
+		return CatalogProviderRecord{}, nil
+	}
+
+	var removedModel *ModelEntry
+	filteredModels := make([]ModelEntry, 0, len(current.Models))
+	for _, item := range current.Models {
+		if normalizeID(item.ModelID) == normalizedModelID {
+			copyModel := item
+			removedModel = &copyModel
+			continue
+		}
+		filteredModels = append(filteredModels, item)
+	}
+	current.Models = filteredModels
+	current.VoiceWorkflowModels, current.ModelWorkflowBindings = removeOverlayWorkflowState(
+		current.VoiceWorkflowModels,
+		current.ModelWorkflowBindings,
+		modelID,
+	)
+	if removedModel != nil {
+		removeVoiceSet := normalizeID(removedModel.VoiceSetID)
+		if removeVoiceSet != "" && !overlayUsesVoiceSet(current.Models, removeVoiceSet) {
+			filteredVoices := make([]VoiceEntry, 0, len(current.Voices))
+			for _, voice := range current.Voices {
+				if normalizeID(voice.VoiceSetID) == removeVoiceSet {
+					continue
+				}
+				filteredVoices = append(filteredVoices, voice)
+			}
+			current.Voices = filteredVoices
+		}
+	}
+
+	if providerDocumentIsEmptyOverlay(current) {
+		delete(r.subjectOverlays[strings.TrimSpace(subjectUserID)], normalizedProvider)
+		if err := r.recomputeSubjectStateLocked(subjectUserID); err != nil {
+			return CatalogProviderRecord{}, err
+		}
+		path := customProviderFilePath(subjectCatalogDir(r.customDir, subjectUserID), normalizedProvider)
+		if path != "" {
+			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+				return CatalogProviderRecord{}, err
+			}
+		}
+		if state := r.subjectStates[strings.TrimSpace(subjectUserID)]; state != nil {
+			if providerState, ok := state.providers[normalizedProvider]; ok {
+				return providerState.record, nil
+			}
+		}
+		if r.globalState != nil {
+			if providerState, ok := r.globalState.providers[normalizedProvider]; ok {
+				return providerState.record, nil
+			}
+		}
+		return CatalogProviderRecord{}, nil
+	}
+
+	current.RawYAML = ""
+	yamlText, err := marshalProviderDocumentYAML(current)
+	if err != nil {
+		return CatalogProviderRecord{}, err
+	}
+	current.RawYAML = yamlText
+	return r.persistSubjectOverlayLocked(subjectUserID, overlayDocument{
+		doc:        current,
+		updatedAt:  time.Now().UTC().Format(time.RFC3339),
+		userScoped: true,
+	})
+}
+
+func (r *Resolver) subjectOverlayDocumentLocked(subjectUserID string, provider string) ProviderDocument {
+	subjectKey := strings.TrimSpace(subjectUserID)
+	if subjectKey == "" {
+		if overlay, ok := r.sharedOverlays[provider]; ok {
+			return overlay.doc
+		}
+		return ProviderDocument{}
+	}
+	overlays := r.subjectOverlays[subjectKey]
+	if overlay, ok := overlays[provider]; ok {
+		return overlay.doc
+	}
+	return ProviderDocument{}
+}
+
+func (r *Resolver) persistSubjectOverlay(subjectUserID string, overlay overlayDocument) (CatalogProviderRecord, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.persistSubjectOverlayLocked(subjectUserID, overlay)
+}
+
+func (r *Resolver) persistSubjectOverlayLocked(subjectUserID string, overlay overlayDocument) (CatalogProviderRecord, error) {
+	if strings.TrimSpace(r.customDir) == "" {
+		return CatalogProviderRecord{}, ErrCatalogMutationDisabled
+	}
+	provider := normalizeProvider(overlay.doc.Provider)
+	if provider == "" {
+		return CatalogProviderRecord{}, ErrProviderUnsupported
+	}
+
+	if strings.TrimSpace(subjectUserID) == "" {
+		r.sharedOverlays[provider] = overlay
+		if err := r.recomputeGlobalStateLocked(); err != nil {
+			delete(r.sharedOverlays, provider)
+			_ = r.recomputeGlobalStateLocked()
+			return CatalogProviderRecord{}, err
+		}
+		for subject := range r.subjectOverlays {
+			if err := r.recomputeSubjectStateLocked(subject); err != nil {
+				return CatalogProviderRecord{}, err
+			}
+		}
+		path := customProviderFilePath(r.customDir, provider)
+		if err := writeOverlayDocument(path, overlay.doc); err != nil {
+			return CatalogProviderRecord{}, err
+		}
+		return r.globalState.providers[provider].record, nil
+	}
+
+	subjectKey := strings.TrimSpace(subjectUserID)
+	if err := r.ensureSubjectLoadedLocked(subjectKey); err != nil {
+		return CatalogProviderRecord{}, err
+	}
+	if r.subjectOverlays[subjectKey] == nil {
+		r.subjectOverlays[subjectKey] = map[string]overlayDocument{}
+	}
+	r.subjectOverlays[subjectKey][provider] = overlay
+	if err := r.recomputeSubjectStateLocked(subjectKey); err != nil {
+		delete(r.subjectOverlays[subjectKey], provider)
+		_ = r.recomputeSubjectStateLocked(subjectKey)
+		return CatalogProviderRecord{}, err
+	}
+	path := customProviderFilePath(subjectCatalogDir(r.customDir, subjectKey), provider)
+	if err := writeOverlayDocument(path, overlay.doc); err != nil {
+		return CatalogProviderRecord{}, err
+	}
+	return r.subjectStates[subjectKey].providers[provider].record, nil
+}
+
+func (r *Resolver) stateForSubject(subjectUserID string) (*catalogState, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.stateForSubjectLocked(subjectUserID)
+}
+
+func (r *Resolver) stateForSubjectLocked(subjectUserID string) (*catalogState, error) {
+	subjectKey := strings.TrimSpace(subjectUserID)
+	if subjectKey == "" {
+		return r.globalState, nil
+	}
+	if err := r.ensureSubjectLoadedLocked(subjectKey); err != nil {
+		return nil, err
+	}
+	if state := r.subjectStates[subjectKey]; state != nil {
+		return state, nil
+	}
+	return r.globalState, nil
+}
+
+func (r *Resolver) ensureSubjectLoadedLocked(subjectUserID string) error {
+	subjectKey := strings.TrimSpace(subjectUserID)
+	if subjectKey == "" {
+		return nil
+	}
+	if r.subjectLoaded[subjectKey] {
+		return nil
+	}
+	overlayDir := subjectCatalogDir(r.customDir, subjectKey)
+	overlays, err := loadOverlayProviderDocumentsFromDir(overlayDir)
+	if err != nil {
+		r.logger.Warn("catalog subject overlay dir ignored", "dir", overlayDir, "error", err)
+		overlays = map[string]overlayDocument{}
+	}
+	for provider, overlay := range overlays {
+		overlay.userScoped = true
+		overlays[provider] = overlay
+	}
+	r.subjectOverlays[subjectKey] = overlays
+	r.subjectLoaded[subjectKey] = true
+	return r.recomputeSubjectStateLocked(subjectKey)
+}
+
+func (r *Resolver) recomputeGlobalStateLocked() error {
+	state, err := buildCatalogState(r.builtInProviders, r.sharedOverlays, nil)
 	if err != nil {
 		return err
+	}
+	r.globalState = state
+	return nil
+}
+
+func (r *Resolver) recomputeSubjectStateLocked(subjectUserID string) error {
+	subjectKey := strings.TrimSpace(subjectUserID)
+	if subjectKey == "" {
+		return nil
+	}
+	state, err := buildCatalogState(r.builtInProviders, r.sharedOverlays, r.subjectOverlays[subjectKey])
+	if err != nil {
+		return err
+	}
+	r.subjectStates[subjectKey] = state
+	return nil
+}
+
+func buildCatalogState(
+	builtIn map[string]ProviderDocument,
+	shared map[string]overlayDocument,
+	user map[string]overlayDocument,
+) (*catalogState, error) {
+	merged, err := mergeEffectiveProviderDocuments(builtIn, shared, user)
+	if err != nil {
+		return nil, err
+	}
+	snapshot, err := buildSnapshotFromProviderDocuments(merged)
+	if err != nil {
+		return nil, err
 	}
 	indexed, err := buildIndexedSnapshot(snapshot)
 	if err != nil {
-		return err
-	}
-	sources := make(map[string]ProviderSource, len(merged))
-	for provider := range merged {
-		sources[provider] = ProviderSourceBuiltin
-	}
-	for provider := range r.customProviders {
-		sources[provider] = ProviderSourceCustom
+		return nil, err
 	}
 
-	r.snapshot = indexed
-	r.effective = merged
-	r.sourcesByProvider = sources
-	if len(r.customProviders) > 0 {
-		r.source = SourceCustomDir
-	} else {
-		r.source = SourceBuiltinSnapshot
+	providers := make(map[string]providerState, len(merged))
+	stateSource := SourceBuiltinSnapshot
+	for provider, item := range merged {
+		if item.hasOverlay {
+			stateSource = SourceCustomDir
+		}
+		record := CatalogProviderRecord{
+			Provider:             provider,
+			Version:              item.document.Version,
+			CatalogVersion:       strings.TrimSpace(item.document.CatalogVersion),
+			DefaultTextModel:     strings.TrimSpace(item.document.DefaultTextModel),
+			Source:               item.source,
+			ModelCount:           len(item.document.Models),
+			VoiceCount:           len(item.document.Voices),
+			CustomModelCount:     item.customModelCount,
+			OverriddenModelCount: item.overriddenModelCount,
+			Capabilities:         collectProviderCapabilities(item.document.Models),
+			HasOverlay:           item.hasOverlay,
+			OverlayUpdatedAt:     strings.TrimSpace(item.overlayUpdatedAt),
+			YAML:                 item.overlayYAML,
+			EffectiveYAML:        item.effectiveYAML,
+		}
+		providers[provider] = providerState{
+			record:           record,
+			document:         item.document,
+			modelSources:     item.modelSources,
+			userScopedModels: item.userScopedModels,
+		}
 	}
-	return nil
+
+	return &catalogState{
+		snapshot:  indexed,
+		providers: providers,
+		source:    stateSource,
+	}, nil
 }
 
 func buildIndexedSnapshot(snapshot Snapshot) (*indexedSnapshot, error) {
@@ -605,6 +970,57 @@ func buildIndexedSnapshot(snapshot Snapshot) (*indexedSnapshot, error) {
 	return indexed, nil
 }
 
+func resolveModelEntry(snapshot *indexedSnapshot, provider string, normalizedModel string) (ModelEntry, bool) {
+	providerModels := snapshot.models[provider]
+	if len(providerModels) == 0 {
+		return ModelEntry{}, false
+	}
+	modelEntry, ok := providerModels[normalizedModel]
+	if ok {
+		return modelEntry, true
+	}
+	base := modelIDBase(normalizedModel)
+	modelEntry, ok = providerModels[base]
+	return modelEntry, ok
+}
+
+func resolveModelWorkflowBinding(snapshot *indexedSnapshot, provider string, normalizedModel string) (ModelWorkflowBinding, bool) {
+	providerBindings := snapshot.workflowBindings[provider]
+	if len(providerBindings) == 0 {
+		return ModelWorkflowBinding{}, false
+	}
+	binding, ok := providerBindings[normalizedModel]
+	if ok {
+		return binding, true
+	}
+	base := modelIDBase(normalizedModel)
+	binding, ok = providerBindings[base]
+	return binding, ok
+}
+
+func resolveWorkflowModel(snapshot *indexedSnapshot, provider string, workflowModelID string) (VoiceWorkflowModel, bool) {
+	providerModels := snapshot.workflowModels[provider]
+	if len(providerModels) == 0 {
+		return VoiceWorkflowModel{}, false
+	}
+	normalizedWorkflowModelID := normalizeID(workflowModelID)
+	workflowModel, ok := providerModels[normalizedWorkflowModelID]
+	return workflowModel, ok
+}
+
+func bindingSupportsWorkflowType(binding ModelWorkflowBinding, workflowType string) bool {
+	normalizedWorkflowType := normalizeWorkflowType(workflowType)
+	if normalizedWorkflowType == "" {
+		return false
+	}
+	for _, item := range binding.WorkflowTypes {
+		if normalizeWorkflowType(item) == normalizedWorkflowType {
+			return true
+		}
+	}
+	return false
+}
+
 func normalizeLookupModelID(raw string, provider string) string {
 	value := strings.ToLower(strings.TrimSpace(raw))
 	value = strings.TrimPrefix(value, "cloud/")
@@ -693,4 +1109,238 @@ func voiceMatchesModel(entry VoiceEntry, modelID string) bool {
 		}
 	}
 	return false
+}
+
+func collectProviderCapabilities(models []ModelEntry) []string {
+	seen := map[string]struct{}{}
+	for _, model := range models {
+		for _, capability := range model.Capabilities {
+			normalized := aicapabilities.NormalizeCatalogCapability(capability)
+			if normalized == "" {
+				continue
+			}
+			seen[normalized] = struct{}{}
+		}
+	}
+	out := make([]string, 0, len(seen))
+	for capability := range seen {
+		out = append(out, capability)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func warningsForModelSource(source ModelSource, userScoped bool) []CatalogOverlayWarning {
+	switch source {
+	case ModelSourceCustom:
+		if userScoped {
+			return []CatalogOverlayWarning{{
+				Code:    "user_custom_model",
+				Message: "This model is visible only to the current user.",
+			}}
+		}
+		return []CatalogOverlayWarning{{
+			Code:    "custom_model",
+			Message: "This model comes from a custom catalog overlay.",
+		}}
+	case ModelSourceOverridden:
+		if userScoped {
+			return []CatalogOverlayWarning{{
+				Code:    "user_overrides_builtin_model",
+				Message: "This override is visible only to the current user and supersedes the built-in model entry.",
+			}}
+		}
+		return []CatalogOverlayWarning{{
+			Code:    "overrides_builtin_model",
+			Message: "A custom catalog overlay supersedes the built-in model entry.",
+		}}
+	default:
+		return nil
+	}
+}
+
+func subjectCatalogDir(customDir string, subjectUserID string) string {
+	base := strings.TrimSpace(customDir)
+	subject := strings.TrimSpace(subjectUserID)
+	if base == "" || subject == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(subject))
+	return filepath.Join(base, "users", hex.EncodeToString(sum[:]))
+}
+
+func writeOverlayDocument(path string, doc ProviderDocument) error {
+	if strings.TrimSpace(path) == "" {
+		return ErrCatalogMutationDisabled
+	}
+	yamlText, err := marshalProviderDocumentYAML(doc)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(path, []byte(yamlText), 0o600)
+}
+
+func upsertOverlayModels(models []ModelEntry, model ModelEntry) []ModelEntry {
+	key := normalizeID(model.ModelID)
+	out := make([]ModelEntry, 0, len(models)+1)
+	replaced := false
+	for _, item := range models {
+		if normalizeID(item.ModelID) == key {
+			if !replaced {
+				out = append(out, model)
+				replaced = true
+			}
+			continue
+		}
+		out = append(out, item)
+	}
+	if !replaced {
+		out = append(out, model)
+	}
+	return out
+}
+
+func replaceOverlayVoices(existing []VoiceEntry, provider string, voiceSetID string, voices []VoiceEntry) []VoiceEntry {
+	targetSet := normalizeID(voiceSetID)
+	if targetSet == "" {
+		return existing
+	}
+	out := make([]VoiceEntry, 0, len(existing)+len(voices))
+	for _, voice := range existing {
+		if normalizeID(voice.VoiceSetID) == targetSet {
+			continue
+		}
+		out = append(out, voice)
+	}
+	for _, voice := range voices {
+		voice.Provider = provider
+		out = append(out, voice)
+	}
+	return out
+}
+
+func replaceOverlayWorkflowState(
+	workflows []VoiceWorkflowModel,
+	bindings []ModelWorkflowBinding,
+	modelID string,
+	replacements []VoiceWorkflowModel,
+	binding *ModelWorkflowBinding,
+) ([]VoiceWorkflowModel, []ModelWorkflowBinding) {
+	normalizedModelID := normalizeID(modelID)
+	removeRefs := map[string]struct{}{}
+	filteredBindings := make([]ModelWorkflowBinding, 0, len(bindings)+1)
+	for _, item := range bindings {
+		if normalizeID(item.ModelID) == normalizedModelID {
+			for _, ref := range item.WorkflowModelRefs {
+				removeRefs[normalizeID(ref)] = struct{}{}
+			}
+			continue
+		}
+		filteredBindings = append(filteredBindings, item)
+	}
+	filteredWorkflows := make([]VoiceWorkflowModel, 0, len(workflows)+len(replacements))
+	for _, item := range workflows {
+		if _, ok := removeRefs[normalizeID(item.WorkflowModelID)]; ok {
+			continue
+		}
+		if workflowTargetsModel(item, normalizedModelID) {
+			continue
+		}
+		filteredWorkflows = append(filteredWorkflows, item)
+	}
+	filteredWorkflows = append(filteredWorkflows, replacements...)
+	if binding != nil && normalizeID(binding.ModelID) == "" {
+		binding.ModelID = modelID
+	}
+	if binding != nil {
+		filteredBindings = append(filteredBindings, *binding)
+	}
+	return filteredWorkflows, filteredBindings
+}
+
+func removeOverlayWorkflowState(
+	workflows []VoiceWorkflowModel,
+	bindings []ModelWorkflowBinding,
+	modelID string,
+) ([]VoiceWorkflowModel, []ModelWorkflowBinding) {
+	return replaceOverlayWorkflowState(workflows, bindings, modelID, nil, nil)
+}
+
+func workflowTargetsModel(workflow VoiceWorkflowModel, modelID string) bool {
+	normalized := normalizeID(modelID)
+	if normalized == "" {
+		return false
+	}
+	for _, ref := range workflow.TargetModelRefs {
+		if normalizeID(ref) == normalized {
+			return true
+		}
+	}
+	return false
+}
+
+func overlayUsesVoiceSet(models []ModelEntry, voiceSetID string) bool {
+	normalized := normalizeID(voiceSetID)
+	for _, model := range models {
+		if normalizeID(model.VoiceSetID) == normalized {
+			return true
+		}
+	}
+	return false
+}
+
+func providerDocumentIsEmptyOverlay(doc ProviderDocument) bool {
+	return len(doc.Models) == 0 &&
+		len(doc.Voices) == 0 &&
+		len(doc.VoiceWorkflowModels) == 0 &&
+		len(doc.ModelWorkflowBindings) == 0 &&
+		strings.TrimSpace(doc.DefaultTextModel) == ""
+}
+
+func (r *Resolver) getModelDetailFromState(state *catalogState, provider string, modelID string) (CatalogModelDetailRecord, CatalogProviderRecord, CatalogSource, error) {
+	if state == nil || state.snapshot == nil {
+		return CatalogModelDetailRecord{}, CatalogProviderRecord{}, SourceBuiltinSnapshot, ErrModelNotFound
+	}
+	providerState, ok := state.providers[provider]
+	if !ok {
+		return CatalogModelDetailRecord{}, CatalogProviderRecord{}, state.source, ErrProviderUnsupported
+	}
+	model, ok := resolveModelEntry(state.snapshot, provider, normalizeLookupModelID(modelID, provider))
+	if !ok {
+		return CatalogModelDetailRecord{}, providerState.record, state.source, ErrModelNotFound
+	}
+	modelKey := normalizeID(model.ModelID)
+	source := providerState.modelSources[modelKey]
+	if source == "" {
+		source = ModelSourceBuiltin
+	}
+	detail := CatalogModelDetailRecord{
+		Model:      model,
+		Source:     source,
+		UserScoped: providerState.userScopedModels[modelKey],
+		Warnings:   warningsForModelSource(source, providerState.userScopedModels[modelKey]),
+	}
+	if strings.TrimSpace(model.VoiceSetID) != "" {
+		detail.Voices = append([]VoiceEntry(nil), state.snapshot.voicesBySet[provider+":"+normalizeID(model.VoiceSetID)]...)
+	}
+	if binding, ok := resolveModelWorkflowBinding(state.snapshot, provider, normalizeLookupModelID(modelID, provider)); ok {
+		copyBinding := binding
+		detail.ModelWorkflowBinding = &copyBinding
+		for _, workflowRef := range binding.WorkflowModelRefs {
+			if workflow, workflowOK := resolveWorkflowModel(state.snapshot, provider, workflowRef); workflowOK {
+				detail.VoiceWorkflowModels = append(detail.VoiceWorkflowModels, workflow)
+			}
+		}
+	}
+	return detail, providerState.record, state.source, nil
+}
+
+func max(left int, right int) int {
+	if left > right {
+		return left
+	}
+	return right
 }

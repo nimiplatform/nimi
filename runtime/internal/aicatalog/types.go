@@ -15,8 +15,17 @@ const (
 type ProviderSource string
 
 const (
-	ProviderSourceBuiltin ProviderSource = "builtin"
-	ProviderSourceCustom  ProviderSource = "custom"
+	ProviderSourceBuiltin    ProviderSource = "builtin"
+	ProviderSourceCustom     ProviderSource = "custom"
+	ProviderSourceOverridden ProviderSource = "overridden"
+)
+
+type ModelSource string
+
+const (
+	ModelSourceBuiltin    ModelSource = "builtin"
+	ModelSourceCustom     ModelSource = "custom"
+	ModelSourceOverridden ModelSource = "overridden"
 )
 
 var (
@@ -147,13 +156,42 @@ type ResolveVoiceWorkflowResult struct {
 }
 
 type CatalogProviderRecord struct {
-	Provider       string
-	Version        int
-	CatalogVersion string
-	Source         ProviderSource
-	ModelCount     int
-	VoiceCount     int
-	YAML           string
+	Provider             string
+	Version              int
+	CatalogVersion       string
+	DefaultTextModel     string
+	Source               ProviderSource
+	ModelCount           int
+	VoiceCount           int
+	CustomModelCount     int
+	OverriddenModelCount int
+	Capabilities         []string
+	HasOverlay           bool
+	OverlayUpdatedAt     string
+	YAML                 string
+	EffectiveYAML        string
+}
+
+type CatalogOverlayWarning struct {
+	Code    string
+	Message string
+}
+
+type CatalogModelRecord struct {
+	Model      ModelEntry
+	Source     ModelSource
+	UserScoped bool
+	Warnings   []CatalogOverlayWarning
+}
+
+type CatalogModelDetailRecord struct {
+	Model                ModelEntry
+	Source               ModelSource
+	UserScoped           bool
+	Warnings             []CatalogOverlayWarning
+	Voices               []VoiceEntry
+	VoiceWorkflowModels  []VoiceWorkflowModel
+	ModelWorkflowBinding *ModelWorkflowBinding
 }
 
 type ResolverConfig struct {

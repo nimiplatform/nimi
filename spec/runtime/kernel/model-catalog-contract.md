@@ -71,6 +71,23 @@ Any custom provider YAML ingestion MUST enforce:
 - last-known-good built-in snapshot fallback
 - no startup dependency on mutable external metadata
 
+## K-MCAT-006A User Overlay Merge Semantics
+
+Custom catalog overlays MUST be stored as provider-scoped local fragments and merged at model granularity, not as full effective provider snapshots.
+
+- built-in provider documents continue to load from `runtime/catalog/providers/*.yaml`
+- custom overlay documents MAY exist in shared custom catalog roots and in user-scoped overlay roots
+- effective provider state = built-in provider document + overlay upserts
+- overlay entries with the same `model_id` MUST override the built-in model entry
+- built-in models that are not mentioned by overlay fragments MUST remain visible and continue to receive built-in catalog upgrades
+- user-created models and user-created overrides MUST be isolated to the requesting subject user and MUST NOT mutate other users' effective catalogs
+
+## K-MCAT-006B Desktop Catalog Truth Source
+
+Desktop catalog browsing and editing MUST use runtime model catalog truth resolved from `runtime/catalog/providers/*.yaml` plus overlay merge semantics.
+`tables/provider-catalog.yaml` remains the projected remote-provider table and MUST NOT be treated as the desktop catalog page truth source.
+Desktop catalog UX therefore MUST include providers that exist only in runtime model catalog truth, including `local`.
+
 ## K-MCAT-007 DashScope Voice Path
 
 For DashScope TTS models, `ListPresetVoices` and TTS voice validation MUST be catalog-driven. OpenAI-compatible voice discovery endpoint probing MUST NOT be the primary resolution path.

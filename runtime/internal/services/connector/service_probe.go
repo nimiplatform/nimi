@@ -125,7 +125,7 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 			models = buildLocalConnectorModelDescriptors(localModels, rec.LocalCategory)
 		}
 	} else {
-		models, err = s.listCatalogConnectorModels(rec.Provider)
+		models, err = s.listCatalogConnectorModels(ownerID, rec.Provider)
 		if err != nil {
 			return nil, err
 		}

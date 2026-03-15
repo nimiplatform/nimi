@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -27,6 +28,7 @@ func resolveMusicGenerateExtensionPayload(req *runtimev1.SubmitScenarioJobReques
 }
 
 func validateMusicGenerateIterationSupport(
+	ctx context.Context,
 	s *Service,
 	modelResolved string,
 	remoteTarget *nimillm.RemoteTarget,
@@ -43,7 +45,7 @@ func validateMusicGenerateIterationSupport(
 	if s == nil || s.speechCatalog == nil {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
-	supported, err := s.speechCatalog.SupportsCapability(providerType, modelResolved, aicapabilities.MusicGenerateIteration)
+	supported, err := s.speechCatalog.SupportsCapabilityForSubject(catalogSubjectUserIDFromContext(ctx), providerType, modelResolved, aicapabilities.MusicGenerateIteration)
 	if err != nil {
 		if errors.Is(err, catalog.ErrModelNotFound) {
 			return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	runtimecatalog "github.com/nimiplatform/nimi/runtime/catalog"
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
@@ -17,6 +18,25 @@ import (
 )
 
 const providerFileExt = ".yaml"
+
+type overlayDocument struct {
+	doc        ProviderDocument
+	updatedAt  string
+	userScoped bool
+}
+
+type mergedProviderDocument struct {
+	document             ProviderDocument
+	source               ProviderSource
+	modelSources         map[string]ModelSource
+	userScopedModels     map[string]bool
+	customModelCount     int
+	overriddenModelCount int
+	hasOverlay           bool
+	overlayYAML          string
+	effectiveYAML        string
+	overlayUpdatedAt     string
+}
 
 var supportedProvidersOrdered = append([]string(nil), providerregistry.SourceProviders...)
 
@@ -51,7 +71,6 @@ func loadBuiltInProviderDocuments() (map[string]ProviderDocument, error) {
 		if !strings.HasSuffix(strings.ToLower(name), providerFileExt) {
 			continue
 		}
-		// embed.FS always expects slash-separated paths, even on Windows.
 		raw, readErr := fs.ReadFile(runtimecatalog.DefaultProvidersFS, path.Join("providers", name))
 		if readErr != nil {
 			return nil, fmt.Errorf("read built-in provider file %q: %w", name, readErr)
@@ -71,15 +90,15 @@ func loadBuiltInProviderDocuments() (map[string]ProviderDocument, error) {
 	return providers, nil
 }
 
-func loadProviderDocumentsFromDir(dir string) (map[string]ProviderDocument, error) {
+func loadOverlayProviderDocumentsFromDir(dir string) (map[string]overlayDocument, error) {
 	resolved := strings.TrimSpace(dir)
 	if resolved == "" {
-		return map[string]ProviderDocument{}, nil
+		return map[string]overlayDocument{}, nil
 	}
 	st, err := os.Stat(resolved)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return map[string]ProviderDocument{}, nil
+			return map[string]overlayDocument{}, nil
 		}
 		return nil, fmt.Errorf("stat provider catalog dir %q: %w", resolved, err)
 	}
@@ -91,7 +110,7 @@ func loadProviderDocumentsFromDir(dir string) (map[string]ProviderDocument, erro
 	if err != nil {
 		return nil, fmt.Errorf("read provider catalog dir %q: %w", resolved, err)
 	}
-	providers := make(map[string]ProviderDocument, len(entries))
+	providers := make(map[string]overlayDocument, len(entries))
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
@@ -105,24 +124,39 @@ func loadProviderDocumentsFromDir(dir string) (map[string]ProviderDocument, erro
 		if readErr != nil {
 			return nil, fmt.Errorf("read provider catalog file %q: %w", absPath, readErr)
 		}
-		doc, parseErr := parseProviderDocumentYAML(raw, name)
+		doc, parseErr := parseOverlayProviderDocumentYAML(raw, name)
 		if parseErr != nil {
 			if errors.Is(parseErr, ErrProviderUnsupported) {
 				continue
 			}
 			return nil, fmt.Errorf("parse provider catalog file %q: %w", absPath, parseErr)
 		}
-		providers[doc.Provider] = doc
+		info, statErr := os.Stat(absPath)
+		if statErr != nil {
+			return nil, fmt.Errorf("stat provider catalog file %q: %w", absPath, statErr)
+		}
+		providers[doc.Provider] = overlayDocument{
+			doc:       doc,
+			updatedAt: info.ModTime().UTC().Format(time.RFC3339),
+		}
 	}
 	return providers, nil
 }
 
 func parseProviderDocumentYAML(raw []byte, filename string) (ProviderDocument, error) {
+	return parseProviderDocumentYAMLWithMode(raw, filename, false)
+}
+
+func parseOverlayProviderDocumentYAML(raw []byte, filename string) (ProviderDocument, error) {
+	return parseProviderDocumentYAMLWithMode(raw, filename, true)
+}
+
+func parseProviderDocumentYAMLWithMode(raw []byte, filename string, overlay bool) (ProviderDocument, error) {
 	var parsed ProviderDocument
 	if err := yaml.Unmarshal(raw, &parsed); err != nil {
 		return ProviderDocument{}, err
 	}
-	doc, err := normalizeProviderDocument(parsed, filename)
+	doc, err := normalizeProviderDocument(parsed, filename, overlay)
 	if err != nil {
 		return ProviderDocument{}, err
 	}
@@ -137,7 +171,7 @@ func parseProviderDocumentYAML(raw []byte, filename string) (ProviderDocument, e
 	return doc, nil
 }
 
-func normalizeProviderDocument(parsed ProviderDocument, filename string) (ProviderDocument, error) {
+func normalizeProviderDocument(parsed ProviderDocument, filename string, overlay bool) (ProviderDocument, error) {
 	provider := normalizeProvider(parsed.Provider)
 	if provider == "" {
 		provider = inferProviderFromFilename(filename)
@@ -172,9 +206,9 @@ func normalizeProviderDocument(parsed ProviderDocument, filename string) (Provid
 			return ProviderDocument{}, fmt.Errorf("model %q provider mismatch: expected %q", doc.Models[i].ModelID, provider)
 		}
 		doc.Models[i].Provider = provider
-	}
-	if len(doc.Models) == 0 {
-		return ProviderDocument{}, fmt.Errorf("%w: %s", ErrProviderUnsupported, provider)
+		if normalizeID(doc.Models[i].ModelID) == "" {
+			return ProviderDocument{}, errors.New("model entry missing model_id")
+		}
 	}
 
 	for i := range doc.Voices {
@@ -183,18 +217,47 @@ func normalizeProviderDocument(parsed ProviderDocument, filename string) (Provid
 			return ProviderDocument{}, fmt.Errorf("voice %q provider mismatch: expected %q", doc.Voices[i].VoiceID, provider)
 		}
 		doc.Voices[i].Provider = provider
+		if normalizeID(doc.Voices[i].VoiceSetID) == "" || strings.TrimSpace(doc.Voices[i].VoiceID) == "" {
+			return ProviderDocument{}, errors.New("voice entry missing voice_set_id/voice_id")
+		}
 	}
 
-	snapshot := Snapshot{
-		CatalogVersion:        doc.CatalogVersion,
-		Models:                append([]ModelEntry(nil), doc.Models...),
-		Voices:                append([]VoiceEntry(nil), doc.Voices...),
-		VoiceWorkflowModels:   append([]VoiceWorkflowModel(nil), doc.VoiceWorkflowModels...),
-		ModelWorkflowBindings: append([]ModelWorkflowBinding(nil), doc.ModelWorkflowBindings...),
+	for _, workflowModel := range doc.VoiceWorkflowModels {
+		if normalizeID(workflowModel.WorkflowModelID) == "" {
+			return ProviderDocument{}, errors.New("voice workflow model missing workflow_model_id")
+		}
 	}
-	if err := validateSnapshot(snapshot); err != nil {
-		return ProviderDocument{}, err
+	for _, binding := range doc.ModelWorkflowBindings {
+		if normalizeID(binding.ModelID) == "" {
+			return ProviderDocument{}, errors.New("model workflow binding missing model_id")
+		}
 	}
+
+	if !overlay {
+		if len(doc.Models) == 0 {
+			return ProviderDocument{}, fmt.Errorf("%w: %s", ErrProviderUnsupported, provider)
+		}
+		snapshot := Snapshot{
+			CatalogVersion:        doc.CatalogVersion,
+			Models:                append([]ModelEntry(nil), doc.Models...),
+			Voices:                append([]VoiceEntry(nil), doc.Voices...),
+			VoiceWorkflowModels:   append([]VoiceWorkflowModel(nil), doc.VoiceWorkflowModels...),
+			ModelWorkflowBindings: append([]ModelWorkflowBinding(nil), doc.ModelWorkflowBindings...),
+		}
+		if err := validateSnapshot(snapshot); err != nil {
+			return ProviderDocument{}, err
+		}
+	}
+
+	if overlay &&
+		len(doc.Models) == 0 &&
+		len(doc.Voices) == 0 &&
+		len(doc.VoiceWorkflowModels) == 0 &&
+		len(doc.ModelWorkflowBindings) == 0 &&
+		strings.TrimSpace(doc.DefaultTextModel) == "" {
+		return ProviderDocument{}, errors.New("overlay provider document must not be empty")
+	}
+
 	return doc, nil
 }
 
@@ -210,20 +273,188 @@ func inferProviderFromFilename(filename string) string {
 	return normalizeProvider(base)
 }
 
-func mergeProviderDocuments(base map[string]ProviderDocument, overlays ...map[string]ProviderDocument) map[string]ProviderDocument {
-	merged := make(map[string]ProviderDocument)
-	for provider, doc := range base {
-		merged[provider] = doc
-	}
-	for _, overlay := range overlays {
-		for provider, doc := range overlay {
-			merged[provider] = doc
+func mergeEffectiveProviderDocuments(
+	base map[string]ProviderDocument,
+	shared map[string]overlayDocument,
+	user map[string]overlayDocument,
+) (map[string]mergedProviderDocument, error) {
+	merged := make(map[string]mergedProviderDocument, len(base))
+	for provider, baseDoc := range base {
+		result, err := mergeProviderDocument(baseDoc, shared[provider], user[provider])
+		if err != nil {
+			return nil, err
 		}
+		merged[provider] = result
 	}
-	return merged
+	return merged, nil
 }
 
-func buildSnapshotFromProviderDocuments(providerDocs map[string]ProviderDocument) (Snapshot, error) {
+func mergeProviderDocument(base ProviderDocument, overlays ...overlayDocument) (mergedProviderDocument, error) {
+	modelsByID := make(map[string]ModelEntry, len(base.Models))
+	modelSources := make(map[string]ModelSource, len(base.Models))
+	userScopedModels := make(map[string]bool)
+	builtinModelIDs := make(map[string]struct{}, len(base.Models))
+	for _, model := range base.Models {
+		key := normalizeID(model.ModelID)
+		modelsByID[key] = model
+		modelSources[key] = ModelSourceBuiltin
+		builtinModelIDs[key] = struct{}{}
+	}
+
+	voicesByID := make(map[string]VoiceEntry, len(base.Voices))
+	for _, voice := range base.Voices {
+		voicesByID[voiceEntryKey(voice)] = voice
+	}
+
+	workflowModelsByID := make(map[string]VoiceWorkflowModel, len(base.VoiceWorkflowModels))
+	for _, workflow := range base.VoiceWorkflowModels {
+		workflowModelsByID[normalizeID(workflow.WorkflowModelID)] = workflow
+	}
+
+	bindingsByModelID := make(map[string]ModelWorkflowBinding, len(base.ModelWorkflowBindings))
+	for _, binding := range base.ModelWorkflowBindings {
+		bindingsByModelID[normalizeID(binding.ModelID)] = binding
+	}
+
+	mergedDoc := cloneProviderDocument(base)
+	customIDs := map[string]struct{}{}
+	overriddenIDs := map[string]struct{}{}
+	lastOverlayYAML := ""
+	lastOverlayUpdatedAt := ""
+	hasOverlay := false
+
+	for _, overlay := range overlays {
+		if overlay.doc.Provider == "" {
+			continue
+		}
+		hasOverlay = true
+		if strings.TrimSpace(overlay.doc.DefaultTextModel) != "" {
+			mergedDoc.DefaultTextModel = strings.TrimSpace(overlay.doc.DefaultTextModel)
+		}
+		if mergedDoc.Version <= 0 {
+			mergedDoc.Version = overlay.doc.Version
+		}
+		if strings.TrimSpace(mergedDoc.CatalogVersion) == "" {
+			mergedDoc.CatalogVersion = strings.TrimSpace(overlay.doc.CatalogVersion)
+		}
+		if strings.TrimSpace(overlay.doc.RawYAML) != "" {
+			lastOverlayYAML = normalizeYAMLString(overlay.doc.RawYAML)
+		}
+		if strings.TrimSpace(overlay.updatedAt) != "" {
+			lastOverlayUpdatedAt = strings.TrimSpace(overlay.updatedAt)
+		}
+
+		for _, model := range overlay.doc.Models {
+			key := normalizeID(model.ModelID)
+			if key == "" {
+				continue
+			}
+			modelsByID[key] = model
+			if overlay.userScoped {
+				userScopedModels[key] = true
+			} else {
+				delete(userScopedModels, key)
+			}
+			if _, ok := builtinModelIDs[key]; ok {
+				modelSources[key] = ModelSourceOverridden
+				overriddenIDs[key] = struct{}{}
+				delete(customIDs, key)
+				continue
+			}
+			modelSources[key] = ModelSourceCustom
+			customIDs[key] = struct{}{}
+		}
+		for _, voice := range overlay.doc.Voices {
+			voicesByID[voiceEntryKey(voice)] = voice
+		}
+		for _, workflow := range overlay.doc.VoiceWorkflowModels {
+			workflowModelsByID[normalizeID(workflow.WorkflowModelID)] = workflow
+		}
+		for _, binding := range overlay.doc.ModelWorkflowBindings {
+			bindingsByModelID[normalizeID(binding.ModelID)] = binding
+		}
+	}
+
+	mergedDoc.Models = mapValuesSorted(modelsByID, func(left, right ModelEntry) bool {
+		leftID := strings.ToLower(strings.TrimSpace(left.ModelID))
+		rightID := strings.ToLower(strings.TrimSpace(right.ModelID))
+		if leftID == rightID {
+			return strings.TrimSpace(left.UpdatedAt) > strings.TrimSpace(right.UpdatedAt)
+		}
+		return leftID < rightID
+	})
+
+	referencedVoiceSets := make(map[string]struct{}, len(mergedDoc.Models))
+	for _, model := range mergedDoc.Models {
+		if !modelRequiresVoice(model) {
+			continue
+		}
+		setKey := normalizeProvider(model.Provider) + ":" + normalizeID(model.VoiceSetID)
+		if setKey == ":" {
+			continue
+		}
+		referencedVoiceSets[setKey] = struct{}{}
+	}
+
+	voiceItems := make([]VoiceEntry, 0, len(voicesByID))
+	for _, voice := range voicesByID {
+		if _, ok := referencedVoiceSets[normalizeProvider(voice.Provider)+":"+normalizeID(voice.VoiceSetID)]; !ok {
+			continue
+		}
+		voiceItems = append(voiceItems, voice)
+	}
+	sort.Slice(voiceItems, func(i, j int) bool {
+		leftKey := voiceEntryKey(voiceItems[i])
+		rightKey := voiceEntryKey(voiceItems[j])
+		return leftKey < rightKey
+	})
+	mergedDoc.Voices = voiceItems
+
+	mergedDoc.VoiceWorkflowModels = mapValuesSorted(workflowModelsByID, func(left, right VoiceWorkflowModel) bool {
+		return normalizeID(left.WorkflowModelID) < normalizeID(right.WorkflowModelID)
+	})
+	mergedDoc.ModelWorkflowBindings = mapValuesSorted(bindingsByModelID, func(left, right ModelWorkflowBinding) bool {
+		return normalizeID(left.ModelID) < normalizeID(right.ModelID)
+	})
+
+	snapshot := Snapshot{
+		CatalogVersion:        mergedDoc.CatalogVersion,
+		Models:                append([]ModelEntry(nil), mergedDoc.Models...),
+		Voices:                append([]VoiceEntry(nil), mergedDoc.Voices...),
+		VoiceWorkflowModels:   append([]VoiceWorkflowModel(nil), mergedDoc.VoiceWorkflowModels...),
+		ModelWorkflowBindings: append([]ModelWorkflowBinding(nil), mergedDoc.ModelWorkflowBindings...),
+	}
+	if err := validateSnapshot(snapshot); err != nil {
+		return mergedProviderDocument{}, err
+	}
+
+	effectiveYAML, err := marshalProviderDocumentYAML(mergedDoc)
+	if err != nil {
+		return mergedProviderDocument{}, err
+	}
+
+	source := ProviderSourceBuiltin
+	if len(overriddenIDs) > 0 {
+		source = ProviderSourceOverridden
+	} else if hasOverlay {
+		source = ProviderSourceCustom
+	}
+
+	return mergedProviderDocument{
+		document:             mergedDoc,
+		source:               source,
+		modelSources:         modelSources,
+		userScopedModels:     userScopedModels,
+		customModelCount:     len(customIDs),
+		overriddenModelCount: len(overriddenIDs),
+		hasOverlay:           hasOverlay,
+		overlayYAML:          lastOverlayYAML,
+		effectiveYAML:        effectiveYAML,
+		overlayUpdatedAt:     lastOverlayUpdatedAt,
+	}, nil
+}
+
+func buildSnapshotFromProviderDocuments(providerDocs map[string]mergedProviderDocument) (Snapshot, error) {
 	if len(providerDocs) == 0 {
 		return Snapshot{}, errors.New("provider catalog is empty")
 	}
@@ -239,7 +470,7 @@ func buildSnapshotFromProviderDocuments(providerDocs map[string]ProviderDocument
 	modelWorkflowBindings := make([]ModelWorkflowBinding, 0, 8)
 	versionTokens := make([]string, 0, len(providers))
 	for _, provider := range providers {
-		doc := providerDocs[provider]
+		doc := providerDocs[provider].document
 		models = append(models, doc.Models...)
 		voices = append(voices, doc.Voices...)
 		voiceWorkflowModels = append(voiceWorkflowModels, doc.VoiceWorkflowModels...)
@@ -249,7 +480,7 @@ func buildSnapshotFromProviderDocuments(providerDocs map[string]ProviderDocument
 
 	catalogVersion := strings.Join(versionTokens, ";")
 	if len(providers) == 1 {
-		catalogVersion = strings.TrimSpace(providerDocs[providers[0]].CatalogVersion)
+		catalogVersion = strings.TrimSpace(providerDocs[providers[0]].document.CatalogVersion)
 	}
 	if strings.TrimSpace(catalogVersion) == "" {
 		catalogVersion = "unknown"
@@ -293,6 +524,35 @@ func customProviderFilePath(dir string, provider string) string {
 		return ""
 	}
 	return filepath.Join(base, normalizeProvider(provider)+providerFileExt)
+}
+
+func cloneProviderDocument(doc ProviderDocument) ProviderDocument {
+	return ProviderDocument{
+		Version:               doc.Version,
+		Provider:              doc.Provider,
+		CatalogVersion:        doc.CatalogVersion,
+		DefaultTextModel:      doc.DefaultTextModel,
+		Models:                append([]ModelEntry(nil), doc.Models...),
+		Voices:                append([]VoiceEntry(nil), doc.Voices...),
+		VoiceWorkflowModels:   append([]VoiceWorkflowModel(nil), doc.VoiceWorkflowModels...),
+		ModelWorkflowBindings: append([]ModelWorkflowBinding(nil), doc.ModelWorkflowBindings...),
+		RawYAML:               doc.RawYAML,
+	}
+}
+
+func voiceEntryKey(entry VoiceEntry) string {
+	return normalizeProvider(entry.Provider) + ":" + normalizeID(entry.VoiceSetID) + ":" + strings.ToLower(strings.TrimSpace(entry.VoiceID))
+}
+
+func mapValuesSorted[T any](items map[string]T, less func(left, right T) bool) []T {
+	out := make([]T, 0, len(items))
+	for _, item := range items {
+		out = append(out, item)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return less(out[i], out[j])
+	})
+	return out
 }
 
 func validateSnapshot(snapshot Snapshot) error {

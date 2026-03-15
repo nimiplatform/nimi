@@ -161,10 +161,16 @@ import {
 import {
   CreateConnectorRequest,
   CreateConnectorResponse,
+  DeleteCatalogModelOverlayRequest,
+  DeleteCatalogModelOverlayResponse,
   DeleteConnectorRequest,
   DeleteConnectorResponse,
   GetConnectorRequest,
   GetConnectorResponse,
+  GetCatalogModelDetailRequest,
+  GetCatalogModelDetailResponse,
+  ListCatalogProviderModelsRequest,
+  ListCatalogProviderModelsResponse,
   ListConnectorModelsRequest,
   ListConnectorModelsResponse,
   ListConnectorsRequest,
@@ -177,6 +183,8 @@ import {
   ListProviderCatalogResponse,
   ListModelCatalogProvidersRequest,
   ListModelCatalogProvidersResponse,
+  UpsertCatalogModelOverlayRequest,
+  UpsertCatalogModelOverlayResponse,
   UpsertModelCatalogProviderRequest,
   UpsertModelCatalogProviderResponse,
   DeleteModelCatalogProviderRequest,
@@ -525,6 +533,14 @@ export const RuntimeUnaryMethodCodecs: Record<string, RuntimeUnaryMethodCodec<un
     requestType: ListModelCatalogProvidersRequest,
     responseType: ListModelCatalogProvidersResponse,
   },
+  [RuntimeMethodIds.connector.listCatalogProviderModels]: {
+    requestType: ListCatalogProviderModelsRequest,
+    responseType: ListCatalogProviderModelsResponse,
+  },
+  [RuntimeMethodIds.connector.getCatalogModelDetail]: {
+    requestType: GetCatalogModelDetailRequest,
+    responseType: GetCatalogModelDetailResponse,
+  },
   [RuntimeMethodIds.connector.upsertModelCatalogProvider]: {
     requestType: UpsertModelCatalogProviderRequest,
     responseType: UpsertModelCatalogProviderResponse,
@@ -532,6 +548,14 @@ export const RuntimeUnaryMethodCodecs: Record<string, RuntimeUnaryMethodCodec<un
   [RuntimeMethodIds.connector.deleteModelCatalogProvider]: {
     requestType: DeleteModelCatalogProviderRequest,
     responseType: DeleteModelCatalogProviderResponse,
+  },
+  [RuntimeMethodIds.connector.upsertCatalogModelOverlay]: {
+    requestType: UpsertCatalogModelOverlayRequest,
+    responseType: UpsertCatalogModelOverlayResponse,
+  },
+  [RuntimeMethodIds.connector.deleteCatalogModelOverlay]: {
+    requestType: DeleteCatalogModelOverlayRequest,
+    responseType: DeleteCatalogModelOverlayResponse,
   },
   [RuntimeMethodIds.knowledge.buildIndex]: {
     requestType: BuildIndexRequest,

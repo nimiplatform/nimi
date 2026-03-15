@@ -196,6 +196,26 @@ method_mappings:
     proto_service: RuntimeConnectorService
     proto_method: DeleteModelCatalogProvider
     mapping_status: aligned
+  - design_service: ConnectorService
+    design_method: ListCatalogProviderModels
+    proto_service: RuntimeConnectorService
+    proto_method: ListCatalogProviderModels
+    mapping_status: aligned
+  - design_service: ConnectorService
+    design_method: GetCatalogModelDetail
+    proto_service: RuntimeConnectorService
+    proto_method: GetCatalogModelDetail
+    mapping_status: aligned
+  - design_service: ConnectorService
+    design_method: UpsertCatalogModelOverlay
+    proto_service: RuntimeConnectorService
+    proto_method: UpsertCatalogModelOverlay
+    mapping_status: aligned
+  - design_service: ConnectorService
+    design_method: DeleteCatalogModelOverlay
+    proto_service: RuntimeConnectorService
+    proto_method: DeleteCatalogModelOverlay
+    mapping_status: aligned
   - design_service: RuntimeLocalService
     design_method: ListLocalModels
     proto_service: RuntimeLocalService

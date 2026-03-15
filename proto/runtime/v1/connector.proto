@@ -6,6 +6,7 @@ option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtime
 
 import "runtime/v1/common.proto";
 import "google/protobuf/field_mask.proto";
+import "google/protobuf/struct.proto";
 
 enum ConnectorKind {
   CONNECTOR_KIND_UNSPECIFIED = 0;
@@ -157,6 +158,7 @@ enum ModelCatalogProviderSource {
   MODEL_CATALOG_PROVIDER_SOURCE_BUILTIN = 1;
   MODEL_CATALOG_PROVIDER_SOURCE_CUSTOM = 2;
   MODEL_CATALOG_PROVIDER_SOURCE_REMOTE = 3;
+  MODEL_CATALOG_PROVIDER_SOURCE_OVERRIDDEN = 4;
 }
 
 message ModelCatalogProviderEntry {
@@ -167,6 +169,18 @@ message ModelCatalogProviderEntry {
   uint32 model_count = 5;
   uint32 voice_count = 6;
   string yaml = 7;
+  string default_text_model = 8;
+  repeated string capabilities = 9;
+  bool has_overlay = 10;
+  uint32 custom_model_count = 11;
+  uint32 overridden_model_count = 12;
+  string overlay_updated_at = 13;
+  string effective_yaml = 14;
+  string default_endpoint = 15;
+  bool requires_explicit_endpoint = 16;
+  string runtime_plane = 17;
+  string execution_module = 18;
+  bool managed_supported = 19;
 }
 
 message ListModelCatalogProvidersRequest {}
@@ -192,6 +206,173 @@ message DeleteModelCatalogProviderResponse {
   Ack ack = 1;
 }
 
+enum CatalogModelSource {
+  CATALOG_MODEL_SOURCE_UNSPECIFIED = 0;
+  CATALOG_MODEL_SOURCE_BUILTIN = 1;
+  CATALOG_MODEL_SOURCE_CUSTOM = 2;
+  CATALOG_MODEL_SOURCE_OVERRIDDEN = 3;
+}
+
+message CatalogOverlayWarning {
+  string code = 1;
+  string message = 2;
+}
+
+message CatalogPricing {
+  string unit = 1;
+  string input = 2;
+  string output = 3;
+  string currency = 4;
+  string as_of = 5;
+  string notes = 6;
+}
+
+message CatalogSourceRef {
+  string url = 1;
+  string retrieved_at = 2;
+  string note = 3;
+}
+
+message CatalogStringListEntry {
+  string key = 1;
+  repeated string values = 2;
+}
+
+message CatalogVideoGenerationOutputs {
+  bool video_url = 1;
+  bool last_frame_url = 2;
+}
+
+message CatalogVideoGenerationCapability {
+  repeated string modes = 1;
+  repeated CatalogStringListEntry input_roles = 2;
+  google.protobuf.Struct limits = 3;
+  repeated string option_supports = 4;
+  google.protobuf.Struct option_constraints = 5;
+  CatalogVideoGenerationOutputs outputs = 6;
+}
+
+message CatalogVoiceEntry {
+  string voice_set_id = 1;
+  string provider = 2;
+  string voice_id = 3;
+  string name = 4;
+  repeated string langs = 5;
+  repeated string model_ids = 6;
+  CatalogSourceRef source_ref = 7;
+}
+
+message CatalogWorkflowModel {
+  string workflow_model_id = 1;
+  string workflow_type = 2;
+  string input_contract_ref = 3;
+  string output_persistence = 4;
+  repeated string target_model_refs = 5;
+  repeated string langs = 6;
+  CatalogSourceRef source_ref = 7;
+}
+
+message CatalogModelWorkflowBinding {
+  string model_id = 1;
+  repeated string workflow_model_refs = 2;
+  repeated string workflow_types = 3;
+}
+
+message CatalogModelSummary {
+  string provider = 1;
+  string model_id = 2;
+  string model_type = 3;
+  string updated_at = 4;
+  repeated string capabilities = 5;
+  CatalogModelSource source = 6;
+  bool user_scoped = 7;
+  string source_note = 8;
+  bool has_voice_catalog = 9;
+  bool has_video_generation = 10;
+}
+
+message CatalogModelDetail {
+  string provider = 1;
+  string model_id = 2;
+  string model_type = 3;
+  string updated_at = 4;
+  repeated string capabilities = 5;
+  CatalogPricing pricing = 6;
+  string voice_set_id = 7;
+  string voice_discovery_mode = 8;
+  repeated string voice_ref_kinds = 9;
+  CatalogVideoGenerationCapability video_generation = 10;
+  CatalogSourceRef source_ref = 11;
+  CatalogModelSource source = 12;
+  bool user_scoped = 13;
+  repeated CatalogOverlayWarning warnings = 14;
+  repeated CatalogVoiceEntry voices = 15;
+  repeated CatalogWorkflowModel voice_workflow_models = 16;
+  CatalogModelWorkflowBinding model_workflow_binding = 17;
+}
+
+message CatalogModelInput {
+  string provider = 1;
+  string model_id = 2;
+  string model_type = 3;
+  string updated_at = 4;
+  repeated string capabilities = 5;
+  CatalogPricing pricing = 6;
+  string voice_set_id = 7;
+  string voice_discovery_mode = 8;
+  repeated string voice_ref_kinds = 9;
+  CatalogVideoGenerationCapability video_generation = 10;
+  CatalogSourceRef source_ref = 11;
+}
+
+message ListCatalogProviderModelsRequest {
+  string provider = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListCatalogProviderModelsResponse {
+  ModelCatalogProviderEntry provider = 1;
+  repeated CatalogModelSummary models = 2;
+  string next_page_token = 3;
+  repeated CatalogOverlayWarning warnings = 4;
+}
+
+message GetCatalogModelDetailRequest {
+  string provider = 1;
+  string model_id = 2;
+}
+
+message GetCatalogModelDetailResponse {
+  ModelCatalogProviderEntry provider = 1;
+  CatalogModelDetail model = 2;
+  repeated CatalogOverlayWarning warnings = 3;
+}
+
+message UpsertCatalogModelOverlayRequest {
+  string provider = 1;
+  CatalogModelInput model = 2;
+  repeated CatalogVoiceEntry voices = 3;
+  repeated CatalogWorkflowModel voice_workflow_models = 4;
+  CatalogModelWorkflowBinding model_workflow_binding = 5;
+}
+
+message UpsertCatalogModelOverlayResponse {
+  ModelCatalogProviderEntry provider = 1;
+  CatalogModelDetail model = 2;
+  repeated CatalogOverlayWarning warnings = 3;
+}
+
+message DeleteCatalogModelOverlayRequest {
+  string provider = 1;
+  string model_id = 2;
+}
+
+message DeleteCatalogModelOverlayResponse {
+  Ack ack = 1;
+  ModelCatalogProviderEntry provider = 2;
+}
+
 service RuntimeConnectorService {
   rpc CreateConnector(CreateConnectorRequest) returns (CreateConnectorResponse);
   rpc GetConnector(GetConnectorRequest) returns (GetConnectorResponse);
@@ -204,4 +385,8 @@ service RuntimeConnectorService {
   rpc ListModelCatalogProviders(ListModelCatalogProvidersRequest) returns (ListModelCatalogProvidersResponse);
   rpc UpsertModelCatalogProvider(UpsertModelCatalogProviderRequest) returns (UpsertModelCatalogProviderResponse);
   rpc DeleteModelCatalogProvider(DeleteModelCatalogProviderRequest) returns (DeleteModelCatalogProviderResponse);
+  rpc ListCatalogProviderModels(ListCatalogProviderModelsRequest) returns (ListCatalogProviderModelsResponse);
+  rpc GetCatalogModelDetail(GetCatalogModelDetailRequest) returns (GetCatalogModelDetailResponse);
+  rpc UpsertCatalogModelOverlay(UpsertCatalogModelOverlayRequest) returns (UpsertCatalogModelOverlayResponse);
+  rpc DeleteCatalogModelOverlay(DeleteCatalogModelOverlayRequest) returns (DeleteCatalogModelOverlayResponse);
 }

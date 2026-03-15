@@ -1,14 +1,15 @@
 package ai
 
 import (
+	"context"
 	"errors"
 	"strings"
 
 	"google.golang.org/grpc/codes"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 type speechVoiceCatalogSource string
@@ -34,10 +35,19 @@ func resolveSpeechVoicesForModelWithProviderType(
 	providerType string,
 	voiceCatalog *catalog.Resolver,
 ) ([]*runtimev1.VoicePresetDescriptor, speechVoiceCatalogSource, string, error) {
-	return resolveCatalogVoices(modelResolved, providerType, voiceCatalog)
+	return resolveCatalogVoicesForSubject(context.Background(), modelResolved, providerType, voiceCatalog)
 }
 
 func resolveCatalogVoices(
+	modelResolved string,
+	providerType string,
+	voiceCatalog *catalog.Resolver,
+) ([]*runtimev1.VoicePresetDescriptor, speechVoiceCatalogSource, string, error) {
+	return resolveCatalogVoicesForSubject(context.Background(), modelResolved, providerType, voiceCatalog)
+}
+
+func resolveCatalogVoicesForSubject(
+	ctx context.Context,
 	modelResolved string,
 	providerType string,
 	voiceCatalog *catalog.Resolver,
@@ -49,7 +59,7 @@ func resolveCatalogVoices(
 	if voiceCatalog == nil {
 		return nil, "", "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	resolved, err := voiceCatalog.ResolveVoices(providerType, modelResolved)
+	resolved, err := voiceCatalog.ResolveVoicesForSubject(catalogSubjectUserIDFromContext(ctx), providerType, modelResolved)
 	if err != nil {
 		if errors.Is(err, catalog.ErrModelNotFound) {
 			providerMessage := "model not found in provider voice catalog"

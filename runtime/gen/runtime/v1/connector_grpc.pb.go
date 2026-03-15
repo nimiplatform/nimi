@@ -30,6 +30,10 @@ const (
 	RuntimeConnectorService_ListModelCatalogProviders_FullMethodName  = "/nimi.runtime.v1.RuntimeConnectorService/ListModelCatalogProviders"
 	RuntimeConnectorService_UpsertModelCatalogProvider_FullMethodName = "/nimi.runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider"
 	RuntimeConnectorService_DeleteModelCatalogProvider_FullMethodName = "/nimi.runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider"
+	RuntimeConnectorService_ListCatalogProviderModels_FullMethodName  = "/nimi.runtime.v1.RuntimeConnectorService/ListCatalogProviderModels"
+	RuntimeConnectorService_GetCatalogModelDetail_FullMethodName      = "/nimi.runtime.v1.RuntimeConnectorService/GetCatalogModelDetail"
+	RuntimeConnectorService_UpsertCatalogModelOverlay_FullMethodName  = "/nimi.runtime.v1.RuntimeConnectorService/UpsertCatalogModelOverlay"
+	RuntimeConnectorService_DeleteCatalogModelOverlay_FullMethodName  = "/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay"
 )
 
 // RuntimeConnectorServiceClient is the client API for RuntimeConnectorService service.
@@ -47,6 +51,10 @@ type RuntimeConnectorServiceClient interface {
 	ListModelCatalogProviders(ctx context.Context, in *ListModelCatalogProvidersRequest, opts ...grpc.CallOption) (*ListModelCatalogProvidersResponse, error)
 	UpsertModelCatalogProvider(ctx context.Context, in *UpsertModelCatalogProviderRequest, opts ...grpc.CallOption) (*UpsertModelCatalogProviderResponse, error)
 	DeleteModelCatalogProvider(ctx context.Context, in *DeleteModelCatalogProviderRequest, opts ...grpc.CallOption) (*DeleteModelCatalogProviderResponse, error)
+	ListCatalogProviderModels(ctx context.Context, in *ListCatalogProviderModelsRequest, opts ...grpc.CallOption) (*ListCatalogProviderModelsResponse, error)
+	GetCatalogModelDetail(ctx context.Context, in *GetCatalogModelDetailRequest, opts ...grpc.CallOption) (*GetCatalogModelDetailResponse, error)
+	UpsertCatalogModelOverlay(ctx context.Context, in *UpsertCatalogModelOverlayRequest, opts ...grpc.CallOption) (*UpsertCatalogModelOverlayResponse, error)
+	DeleteCatalogModelOverlay(ctx context.Context, in *DeleteCatalogModelOverlayRequest, opts ...grpc.CallOption) (*DeleteCatalogModelOverlayResponse, error)
 }
 
 type runtimeConnectorServiceClient struct {
@@ -167,6 +175,46 @@ func (c *runtimeConnectorServiceClient) DeleteModelCatalogProvider(ctx context.C
 	return out, nil
 }
 
+func (c *runtimeConnectorServiceClient) ListCatalogProviderModels(ctx context.Context, in *ListCatalogProviderModelsRequest, opts ...grpc.CallOption) (*ListCatalogProviderModelsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListCatalogProviderModelsResponse)
+	err := c.cc.Invoke(ctx, RuntimeConnectorService_ListCatalogProviderModels_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeConnectorServiceClient) GetCatalogModelDetail(ctx context.Context, in *GetCatalogModelDetailRequest, opts ...grpc.CallOption) (*GetCatalogModelDetailResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetCatalogModelDetailResponse)
+	err := c.cc.Invoke(ctx, RuntimeConnectorService_GetCatalogModelDetail_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeConnectorServiceClient) UpsertCatalogModelOverlay(ctx context.Context, in *UpsertCatalogModelOverlayRequest, opts ...grpc.CallOption) (*UpsertCatalogModelOverlayResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpsertCatalogModelOverlayResponse)
+	err := c.cc.Invoke(ctx, RuntimeConnectorService_UpsertCatalogModelOverlay_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeConnectorServiceClient) DeleteCatalogModelOverlay(ctx context.Context, in *DeleteCatalogModelOverlayRequest, opts ...grpc.CallOption) (*DeleteCatalogModelOverlayResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteCatalogModelOverlayResponse)
+	err := c.cc.Invoke(ctx, RuntimeConnectorService_DeleteCatalogModelOverlay_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RuntimeConnectorServiceServer is the server API for RuntimeConnectorService service.
 // All implementations should embed UnimplementedRuntimeConnectorServiceServer
 // for forward compatibility.
@@ -182,6 +230,10 @@ type RuntimeConnectorServiceServer interface {
 	ListModelCatalogProviders(context.Context, *ListModelCatalogProvidersRequest) (*ListModelCatalogProvidersResponse, error)
 	UpsertModelCatalogProvider(context.Context, *UpsertModelCatalogProviderRequest) (*UpsertModelCatalogProviderResponse, error)
 	DeleteModelCatalogProvider(context.Context, *DeleteModelCatalogProviderRequest) (*DeleteModelCatalogProviderResponse, error)
+	ListCatalogProviderModels(context.Context, *ListCatalogProviderModelsRequest) (*ListCatalogProviderModelsResponse, error)
+	GetCatalogModelDetail(context.Context, *GetCatalogModelDetailRequest) (*GetCatalogModelDetailResponse, error)
+	UpsertCatalogModelOverlay(context.Context, *UpsertCatalogModelOverlayRequest) (*UpsertCatalogModelOverlayResponse, error)
+	DeleteCatalogModelOverlay(context.Context, *DeleteCatalogModelOverlayRequest) (*DeleteCatalogModelOverlayResponse, error)
 }
 
 // UnimplementedRuntimeConnectorServiceServer should be embedded to have
@@ -223,6 +275,18 @@ func (UnimplementedRuntimeConnectorServiceServer) UpsertModelCatalogProvider(con
 }
 func (UnimplementedRuntimeConnectorServiceServer) DeleteModelCatalogProvider(context.Context, *DeleteModelCatalogProviderRequest) (*DeleteModelCatalogProviderResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteModelCatalogProvider not implemented")
+}
+func (UnimplementedRuntimeConnectorServiceServer) ListCatalogProviderModels(context.Context, *ListCatalogProviderModelsRequest) (*ListCatalogProviderModelsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListCatalogProviderModels not implemented")
+}
+func (UnimplementedRuntimeConnectorServiceServer) GetCatalogModelDetail(context.Context, *GetCatalogModelDetailRequest) (*GetCatalogModelDetailResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetCatalogModelDetail not implemented")
+}
+func (UnimplementedRuntimeConnectorServiceServer) UpsertCatalogModelOverlay(context.Context, *UpsertCatalogModelOverlayRequest) (*UpsertCatalogModelOverlayResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpsertCatalogModelOverlay not implemented")
+}
+func (UnimplementedRuntimeConnectorServiceServer) DeleteCatalogModelOverlay(context.Context, *DeleteCatalogModelOverlayRequest) (*DeleteCatalogModelOverlayResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteCatalogModelOverlay not implemented")
 }
 func (UnimplementedRuntimeConnectorServiceServer) testEmbeddedByValue() {}
 
@@ -442,6 +506,78 @@ func _RuntimeConnectorService_DeleteModelCatalogProvider_Handler(srv interface{}
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeConnectorService_ListCatalogProviderModels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListCatalogProviderModelsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeConnectorServiceServer).ListCatalogProviderModels(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeConnectorService_ListCatalogProviderModels_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeConnectorServiceServer).ListCatalogProviderModels(ctx, req.(*ListCatalogProviderModelsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeConnectorService_GetCatalogModelDetail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCatalogModelDetailRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeConnectorServiceServer).GetCatalogModelDetail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeConnectorService_GetCatalogModelDetail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeConnectorServiceServer).GetCatalogModelDetail(ctx, req.(*GetCatalogModelDetailRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeConnectorService_UpsertCatalogModelOverlay_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpsertCatalogModelOverlayRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeConnectorServiceServer).UpsertCatalogModelOverlay(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeConnectorService_UpsertCatalogModelOverlay_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeConnectorServiceServer).UpsertCatalogModelOverlay(ctx, req.(*UpsertCatalogModelOverlayRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeConnectorService_DeleteCatalogModelOverlay_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteCatalogModelOverlayRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeConnectorServiceServer).DeleteCatalogModelOverlay(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeConnectorService_DeleteCatalogModelOverlay_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeConnectorServiceServer).DeleteCatalogModelOverlay(ctx, req.(*DeleteCatalogModelOverlayRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RuntimeConnectorService_ServiceDesc is the grpc.ServiceDesc for RuntimeConnectorService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -492,6 +628,22 @@ var RuntimeConnectorService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteModelCatalogProvider",
 			Handler:    _RuntimeConnectorService_DeleteModelCatalogProvider_Handler,
+		},
+		{
+			MethodName: "ListCatalogProviderModels",
+			Handler:    _RuntimeConnectorService_ListCatalogProviderModels_Handler,
+		},
+		{
+			MethodName: "GetCatalogModelDetail",
+			Handler:    _RuntimeConnectorService_GetCatalogModelDetail_Handler,
+		},
+		{
+			MethodName: "UpsertCatalogModelOverlay",
+			Handler:    _RuntimeConnectorService_UpsertCatalogModelOverlay_Handler,
+		},
+		{
+			MethodName: "DeleteCatalogModelOverlay",
+			Handler:    _RuntimeConnectorService_DeleteCatalogModelOverlay_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

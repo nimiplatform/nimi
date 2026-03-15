@@ -13,8 +13,22 @@ export {
   ScenarioJobEventType,
 } from './generated/runtime/v1/ai';
 export { ModelStatus } from './generated/runtime/v1/model';
-export { ModelCatalogProviderSource } from './generated/runtime/v1/connector';
+export { ModelCatalogProviderSource, CatalogModelSource } from './generated/runtime/v1/connector';
 export type {
+  CatalogModelDetail,
+  CatalogModelInput,
+  CatalogModelSummary,
+  CatalogModelWorkflowBinding,
+  CatalogOverlayWarning,
+  CatalogPricing,
+  CatalogSourceRef,
+  CatalogVideoGenerationCapability,
+  CatalogVoiceEntry,
+  CatalogWorkflowModel,
+  GetCatalogModelDetailRequest,
+  GetCatalogModelDetailResponse,
+  ListCatalogProviderModelsRequest,
+  ListCatalogProviderModelsResponse,
   ProviderCatalogEntry,
   ModelCatalogProviderEntry,
   ListModelCatalogProvidersRequest,
@@ -23,6 +37,10 @@ export type {
   UpsertModelCatalogProviderResponse,
   DeleteModelCatalogProviderRequest,
   DeleteModelCatalogProviderResponse,
+  UpsertCatalogModelOverlayRequest,
+  UpsertCatalogModelOverlayResponse,
+  DeleteCatalogModelOverlayRequest,
+  DeleteCatalogModelOverlayResponse,
 } from './generated/runtime/v1/connector';
 export { RuntimeHealthStatus, UsageWindow } from './generated/runtime/v1/audit';
 export type {

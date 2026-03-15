@@ -165,12 +165,18 @@ import type {
 import type {
   CreateConnectorRequest,
   CreateConnectorResponse,
+  DeleteCatalogModelOverlayRequest,
+  DeleteCatalogModelOverlayResponse,
   DeleteConnectorRequest,
   DeleteConnectorResponse,
   DeleteModelCatalogProviderRequest,
   DeleteModelCatalogProviderResponse,
+  GetCatalogModelDetailRequest,
+  GetCatalogModelDetailResponse,
   GetConnectorRequest,
   GetConnectorResponse,
+  ListCatalogProviderModelsRequest,
+  ListCatalogProviderModelsResponse,
   ListConnectorModelsRequest,
   ListConnectorModelsResponse,
   ListConnectorsRequest,
@@ -183,6 +189,8 @@ import type {
   TestConnectorResponse,
   UpdateConnectorRequest,
   UpdateConnectorResponse,
+  UpsertCatalogModelOverlayRequest,
+  UpsertCatalogModelOverlayResponse,
   UpsertModelCatalogProviderRequest,
   UpsertModelCatalogProviderResponse,
 } from './generated/runtime/v1/connector';
@@ -331,6 +339,14 @@ export type RuntimeConnectorClient = {
     request: ListModelCatalogProvidersRequest,
     options?: RuntimeCallOptions,
   ): Promise<ListModelCatalogProvidersResponse>;
+  listCatalogProviderModels(
+    request: ListCatalogProviderModelsRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<ListCatalogProviderModelsResponse>;
+  getCatalogModelDetail(
+    request: GetCatalogModelDetailRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<GetCatalogModelDetailResponse>;
   upsertModelCatalogProvider(
     request: UpsertModelCatalogProviderRequest,
     options?: RuntimeCallOptions,
@@ -339,6 +355,14 @@ export type RuntimeConnectorClient = {
     request: DeleteModelCatalogProviderRequest,
     options?: RuntimeCallOptions,
   ): Promise<DeleteModelCatalogProviderResponse>;
+  upsertCatalogModelOverlay(
+    request: UpsertCatalogModelOverlayRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<UpsertCatalogModelOverlayResponse>;
+  deleteCatalogModelOverlay(
+    request: DeleteCatalogModelOverlayRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<DeleteCatalogModelOverlayResponse>;
 };
 
 export type RuntimeAuditClient = {

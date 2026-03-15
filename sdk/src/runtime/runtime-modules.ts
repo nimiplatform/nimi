@@ -182,8 +182,12 @@ export function createCorePassthroughClients(input: {
     listConnectorModels: async (req, opts) => { guard('connector', 'listConnectorModels'); return invokeWithClient((c) => c.connector.listConnectorModels(req, opts)); },
     listProviderCatalog: async (req, opts) => { guard('connector', 'listProviderCatalog'); return invokeWithClient((c) => c.connector.listProviderCatalog(req, opts)); },
     listModelCatalogProviders: async (req, opts) => { guard('connector', 'listModelCatalogProviders'); return invokeWithClient((c) => c.connector.listModelCatalogProviders(req, opts)); },
+    listCatalogProviderModels: async (req, opts) => { guard('connector', 'listCatalogProviderModels'); return invokeWithClient((c) => c.connector.listCatalogProviderModels(req, opts)); },
+    getCatalogModelDetail: async (req, opts) => { guard('connector', 'getCatalogModelDetail'); return invokeWithClient((c) => c.connector.getCatalogModelDetail(req, opts)); },
     upsertModelCatalogProvider: async (req, opts) => { guard('connector', 'upsertModelCatalogProvider'); return invokeWithClient((c) => c.connector.upsertModelCatalogProvider(req, opts)); },
     deleteModelCatalogProvider: async (req, opts) => { guard('connector', 'deleteModelCatalogProvider'); return invokeWithClient((c) => c.connector.deleteModelCatalogProvider(req, opts)); },
+    upsertCatalogModelOverlay: async (req, opts) => { guard('connector', 'upsertCatalogModelOverlay'); return invokeWithClient((c) => c.connector.upsertCatalogModelOverlay(req, opts)); },
+    deleteCatalogModelOverlay: async (req, opts) => { guard('connector', 'deleteCatalogModelOverlay'); return invokeWithClient((c) => c.connector.deleteCatalogModelOverlay(req, opts)); },
   };
 
   const knowledge: RuntimeKnowledgeClient = {

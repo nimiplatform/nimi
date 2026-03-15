@@ -77,6 +77,10 @@ Runtime kernel 的 RPC 覆盖范围为全量 proto 服务：
 9. `ListModelCatalogProviders`
 10. `UpsertModelCatalogProvider`
 11. `DeleteModelCatalogProvider`
+12. `ListCatalogProviderModels`
+13. `GetCatalogModelDetail`
+14. `UpsertCatalogModelOverlay`
+15. `DeleteCatalogModelOverlay`
 
 ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/rpc-migration-map.yaml` 中 `mapping_status=aligned`）。
 
@@ -202,6 +206,29 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 - `force_refresh=true`：允许但必须是 no-op
 - 返回结果：不得因为 provider live `/models` 差异而改变
 - `TestConnector(remote)`：是唯一保留的非 scenario 出站探测入口，但其结果不得回填 `ListConnectorModels`
+
+## K-RPC-012A Catalog Provider Model Browsing Surface
+
+`ListCatalogProviderModels` and `GetCatalogModelDetail` MUST expose runtime model catalog truth after overlay merge, scoped to the caller subject user when identity is present.
+
+- `ListCatalogProviderModels(provider, page_size, page_token)` returns provider metadata plus effective model summaries for one provider
+- `GetCatalogModelDetail(provider, model_id)` returns one effective model detail projection from the resolved provider catalog
+- provider metadata returned to desktop MAY include overlay presence, overlay timestamps, effective YAML, default endpoint facts, runtime plane facts, and source classification
+- model metadata MUST classify each model row as `builtin`, `custom`, or `overridden`
+
+## K-RPC-012B Catalog Overlay Mutation Surface
+
+`UpsertCatalogModelOverlay` and `DeleteCatalogModelOverlay` are the stable structured mutation RPCs for personal catalog models.
+
+- `UpsertCatalogModelOverlay(provider, model, voices?, voice_workflow_models?, model_workflow_binding?)` MUST validate against the runtime model catalog schema before activation
+- capability-conditional validation remains fail-close at mutation time, including TTS `voice_set_id` and video `video_generation`
+- overlay mutations are user-private unless the runtime is explicitly operating on a shared non-subject custom root
+- `DeleteCatalogModelOverlay(provider, model_id)` MUST delete only the targeted overlay entry and restore the built-in effective model when one exists
+
+## K-RPC-012C Advanced YAML Editing Scope
+
+`ListModelCatalogProviders`, `UpsertModelCatalogProvider`, and `DeleteModelCatalogProvider` remain valid as advanced YAML operations.
+When used by desktop catalog UX, these RPCs MUST target provider overlay fragments rather than full effective provider snapshots.
 
 ## K-RPC-013 ListPresetVoices 字段契约
 

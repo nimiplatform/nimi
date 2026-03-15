@@ -45,10 +45,7 @@ import type { ExecuteScenarioResponse } from "./ai";
 import type { ExecuteScenarioRequest } from "./ai";
 import type { UnaryCall } from "@protobuf-ts/runtime-rpc";
 import type { RpcOptions } from "@protobuf-ts/runtime-rpc";
-// Removed messages: ListTokenProviderModelsRequest (fields 1-5),
-// TokenProviderModelDescriptor (fields 1-3), ListTokenProviderModelsResponse (fields 1-4),
-// CheckTokenProviderHealthRequest (fields 1-6), TokenProviderHealthSnapshot (fields 1-6),
-// CheckTokenProviderHealthResponse (fields 1-2).
+// Removed messages: ListTokenProviderModelsRequest (fields 1-5),// TokenProviderModelDescriptor (fields 1-3), ListTokenProviderModelsResponse (fields 1-4),// CheckTokenProviderHealthRequest (fields 1-6), TokenProviderHealthSnapshot (fields 1-6),// CheckTokenProviderHealthResponse (fields 1-2).
 
 /**
  * @generated from protobuf service nimi.runtime.v1.RuntimeAiService
@@ -107,10 +104,7 @@ export interface IRuntimeAiServiceClient {
      */
     uploadArtifact(options?: RpcOptions): ClientStreamingCall<UploadArtifactRequest, UploadArtifactResponse>;
 }
-// Removed messages: ListTokenProviderModelsRequest (fields 1-5),
-// TokenProviderModelDescriptor (fields 1-3), ListTokenProviderModelsResponse (fields 1-4),
-// CheckTokenProviderHealthRequest (fields 1-6), TokenProviderHealthSnapshot (fields 1-6),
-// CheckTokenProviderHealthResponse (fields 1-2).
+// Removed messages: ListTokenProviderModelsRequest (fields 1-5),// TokenProviderModelDescriptor (fields 1-3), ListTokenProviderModelsResponse (fields 1-4),// CheckTokenProviderHealthRequest (fields 1-6), TokenProviderHealthSnapshot (fields 1-6),// CheckTokenProviderHealthResponse (fields 1-2).
 
 /**
  * @generated from protobuf service nimi.runtime.v1.RuntimeAiService

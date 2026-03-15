@@ -1098,8 +1098,8 @@ voices:
 	if upsertResp.GetProvider().GetProvider() != "dashscope" {
 		t.Fatalf("unexpected provider in upsert response: %q", upsertResp.GetProvider().GetProvider())
 	}
-	if upsertResp.GetProvider().GetSource() != runtimev1.ModelCatalogProviderSource_MODEL_CATALOG_PROVIDER_SOURCE_CUSTOM {
-		t.Fatalf("expected custom source after upsert")
+	if upsertResp.GetProvider().GetSource() != runtimev1.ModelCatalogProviderSource_MODEL_CATALOG_PROVIDER_SOURCE_OVERRIDDEN {
+		t.Fatalf("expected overridden source after upsert")
 	}
 
 	listResp, err := svc.ListModelCatalogProviders(ctx, &runtimev1.ListModelCatalogProvidersRequest{})
@@ -1111,8 +1111,8 @@ voices:
 		if entry.GetProvider() != "dashscope" {
 			continue
 		}
-		if entry.GetSource() != runtimev1.ModelCatalogProviderSource_MODEL_CATALOG_PROVIDER_SOURCE_CUSTOM {
-			t.Fatalf("expected dashscope source=custom after upsert")
+		if entry.GetSource() != runtimev1.ModelCatalogProviderSource_MODEL_CATALOG_PROVIDER_SOURCE_OVERRIDDEN {
+			t.Fatalf("expected dashscope source=overridden after upsert")
 		}
 		if !strings.Contains(entry.GetYaml(), "CustomCherry") {
 			t.Fatalf("expected custom yaml to contain CustomCherry")

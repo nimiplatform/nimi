@@ -28,31 +28,25 @@ func (s *Service) ListProviderCatalog(_ context.Context, _ *runtimev1.ListProvid
 	return &runtimev1.ListProviderCatalogResponse{Providers: entries}, nil
 }
 
-func (s *Service) ListModelCatalogProviders(_ context.Context, _ *runtimev1.ListModelCatalogProvidersRequest) (*runtimev1.ListModelCatalogProvidersResponse, error) {
+func (s *Service) ListModelCatalogProviders(ctx context.Context, _ *runtimev1.ListModelCatalogProvidersRequest) (*runtimev1.ListModelCatalogProvidersResponse, error) {
 	if s.modelCatalog == nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
 			ActionHint: "configure_runtime_model_catalog_custom_dir",
 		})
 	}
 
-	records := s.modelCatalog.ListProviders()
+	subjectUserID, _ := subjectUserIDFromContext(ctx)
+	records := s.modelCatalog.ListProvidersForSubject(subjectUserID)
 	entries := make([]*runtimev1.ModelCatalogProviderEntry, 0, len(records))
 	for _, record := range records {
-		entries = append(entries, &runtimev1.ModelCatalogProviderEntry{
-			Provider:       record.Provider,
-			Version:        int32(record.Version),
-			CatalogVersion: record.CatalogVersion,
-			Source:         mapCatalogProviderSource(record.Source),
-			ModelCount:     uint32(record.ModelCount),
-			VoiceCount:     uint32(record.VoiceCount),
-			Yaml:           record.YAML,
-		})
+		entries = append(entries, modelCatalogProviderEntryFromRecord(record))
 	}
 	return &runtimev1.ListModelCatalogProvidersResponse{Providers: entries}, nil
 }
 
 func (s *Service) UpsertModelCatalogProvider(ctx context.Context, req *runtimev1.UpsertModelCatalogProviderRequest) (*runtimev1.UpsertModelCatalogProviderResponse, error) {
-	if _, err := requireSubjectUserID(ctx); err != nil {
+	subjectUserID, err := requireSubjectUserID(ctx)
+	if err != nil {
 		return nil, err
 	}
 	if s.modelCatalog == nil {
@@ -67,7 +61,7 @@ func (s *Service) UpsertModelCatalogProvider(ctx context.Context, req *runtimev1
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
-	record, err := s.modelCatalog.UpsertCustomProvider(provider, []byte(rawYAML))
+	record, err := s.modelCatalog.UpsertCustomProviderForSubject(subjectUserID, provider, []byte(rawYAML))
 	if err != nil {
 		switch {
 		case errors.Is(err, aicatalog.ErrCatalogMutationDisabled):
@@ -85,20 +79,13 @@ func (s *Service) UpsertModelCatalogProvider(ctx context.Context, req *runtimev1
 	}
 
 	return &runtimev1.UpsertModelCatalogProviderResponse{
-		Provider: &runtimev1.ModelCatalogProviderEntry{
-			Provider:       record.Provider,
-			Version:        int32(record.Version),
-			CatalogVersion: record.CatalogVersion,
-			Source:         mapCatalogProviderSource(record.Source),
-			ModelCount:     uint32(record.ModelCount),
-			VoiceCount:     uint32(record.VoiceCount),
-			Yaml:           record.YAML,
-		},
+		Provider: modelCatalogProviderEntryFromRecord(record),
 	}, nil
 }
 
 func (s *Service) DeleteModelCatalogProvider(ctx context.Context, req *runtimev1.DeleteModelCatalogProviderRequest) (*runtimev1.DeleteModelCatalogProviderResponse, error) {
-	if _, err := requireSubjectUserID(ctx); err != nil {
+	subjectUserID, err := requireSubjectUserID(ctx)
+	if err != nil {
 		return nil, err
 	}
 	if s.modelCatalog == nil {
@@ -111,7 +98,7 @@ func (s *Service) DeleteModelCatalogProvider(ctx context.Context, req *runtimev1
 	if provider == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	if err := s.modelCatalog.DeleteCustomProvider(provider); err != nil {
+	if err := s.modelCatalog.DeleteCustomProviderForSubject(subjectUserID, provider); err != nil {
 		switch {
 		case errors.Is(err, aicatalog.ErrCatalogMutationDisabled):
 			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{

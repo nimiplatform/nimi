@@ -293,7 +293,8 @@ func validateConnectorTTSModelSupport(
 		})
 	}
 
-	voices, source, catalogVersion, err := resolveSpeechVoicesForModelWithProviderType(
+	voices, source, catalogVersion, err := resolveCatalogVoicesForSubject(
+		ctx,
 		strings.TrimSpace(matchedModelID),
 		strings.TrimSpace(remoteTarget.ProviderType),
 		voiceCatalog,

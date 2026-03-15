@@ -10,6 +10,7 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
+	structpb "google.golang.org/protobuf/types/known/structpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -237,6 +238,7 @@ const (
 	ModelCatalogProviderSource_MODEL_CATALOG_PROVIDER_SOURCE_BUILTIN     ModelCatalogProviderSource = 1
 	ModelCatalogProviderSource_MODEL_CATALOG_PROVIDER_SOURCE_CUSTOM      ModelCatalogProviderSource = 2
 	ModelCatalogProviderSource_MODEL_CATALOG_PROVIDER_SOURCE_REMOTE      ModelCatalogProviderSource = 3
+	ModelCatalogProviderSource_MODEL_CATALOG_PROVIDER_SOURCE_OVERRIDDEN  ModelCatalogProviderSource = 4
 )
 
 // Enum value maps for ModelCatalogProviderSource.
@@ -246,12 +248,14 @@ var (
 		1: "MODEL_CATALOG_PROVIDER_SOURCE_BUILTIN",
 		2: "MODEL_CATALOG_PROVIDER_SOURCE_CUSTOM",
 		3: "MODEL_CATALOG_PROVIDER_SOURCE_REMOTE",
+		4: "MODEL_CATALOG_PROVIDER_SOURCE_OVERRIDDEN",
 	}
 	ModelCatalogProviderSource_value = map[string]int32{
 		"MODEL_CATALOG_PROVIDER_SOURCE_UNSPECIFIED": 0,
 		"MODEL_CATALOG_PROVIDER_SOURCE_BUILTIN":     1,
 		"MODEL_CATALOG_PROVIDER_SOURCE_CUSTOM":      2,
 		"MODEL_CATALOG_PROVIDER_SOURCE_REMOTE":      3,
+		"MODEL_CATALOG_PROVIDER_SOURCE_OVERRIDDEN":  4,
 	}
 )
 
@@ -280,6 +284,58 @@ func (x ModelCatalogProviderSource) Number() protoreflect.EnumNumber {
 // Deprecated: Use ModelCatalogProviderSource.Descriptor instead.
 func (ModelCatalogProviderSource) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{4}
+}
+
+type CatalogModelSource int32
+
+const (
+	CatalogModelSource_CATALOG_MODEL_SOURCE_UNSPECIFIED CatalogModelSource = 0
+	CatalogModelSource_CATALOG_MODEL_SOURCE_BUILTIN     CatalogModelSource = 1
+	CatalogModelSource_CATALOG_MODEL_SOURCE_CUSTOM      CatalogModelSource = 2
+	CatalogModelSource_CATALOG_MODEL_SOURCE_OVERRIDDEN  CatalogModelSource = 3
+)
+
+// Enum value maps for CatalogModelSource.
+var (
+	CatalogModelSource_name = map[int32]string{
+		0: "CATALOG_MODEL_SOURCE_UNSPECIFIED",
+		1: "CATALOG_MODEL_SOURCE_BUILTIN",
+		2: "CATALOG_MODEL_SOURCE_CUSTOM",
+		3: "CATALOG_MODEL_SOURCE_OVERRIDDEN",
+	}
+	CatalogModelSource_value = map[string]int32{
+		"CATALOG_MODEL_SOURCE_UNSPECIFIED": 0,
+		"CATALOG_MODEL_SOURCE_BUILTIN":     1,
+		"CATALOG_MODEL_SOURCE_CUSTOM":      2,
+		"CATALOG_MODEL_SOURCE_OVERRIDDEN":  3,
+	}
+)
+
+func (x CatalogModelSource) Enum() *CatalogModelSource {
+	p := new(CatalogModelSource)
+	*p = x
+	return p
+}
+
+func (x CatalogModelSource) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (CatalogModelSource) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_connector_proto_enumTypes[5].Descriptor()
+}
+
+func (CatalogModelSource) Type() protoreflect.EnumType {
+	return &file_runtime_v1_connector_proto_enumTypes[5]
+}
+
+func (x CatalogModelSource) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use CatalogModelSource.Descriptor instead.
+func (CatalogModelSource) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{5}
 }
 
 type Connector struct {
@@ -1399,16 +1455,28 @@ func (x *ListProviderCatalogResponse) GetProviders() []*ProviderCatalogEntry {
 }
 
 type ModelCatalogProviderEntry struct {
-	state          protoimpl.MessageState     `protogen:"open.v1"`
-	Provider       string                     `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	Version        int32                      `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
-	CatalogVersion string                     `protobuf:"bytes,3,opt,name=catalog_version,json=catalogVersion,proto3" json:"catalog_version,omitempty"`
-	Source         ModelCatalogProviderSource `protobuf:"varint,4,opt,name=source,proto3,enum=nimi.runtime.v1.ModelCatalogProviderSource" json:"source,omitempty"`
-	ModelCount     uint32                     `protobuf:"varint,5,opt,name=model_count,json=modelCount,proto3" json:"model_count,omitempty"`
-	VoiceCount     uint32                     `protobuf:"varint,6,opt,name=voice_count,json=voiceCount,proto3" json:"voice_count,omitempty"`
-	Yaml           string                     `protobuf:"bytes,7,opt,name=yaml,proto3" json:"yaml,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                    protoimpl.MessageState     `protogen:"open.v1"`
+	Provider                 string                     `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	Version                  int32                      `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+	CatalogVersion           string                     `protobuf:"bytes,3,opt,name=catalog_version,json=catalogVersion,proto3" json:"catalog_version,omitempty"`
+	Source                   ModelCatalogProviderSource `protobuf:"varint,4,opt,name=source,proto3,enum=nimi.runtime.v1.ModelCatalogProviderSource" json:"source,omitempty"`
+	ModelCount               uint32                     `protobuf:"varint,5,opt,name=model_count,json=modelCount,proto3" json:"model_count,omitempty"`
+	VoiceCount               uint32                     `protobuf:"varint,6,opt,name=voice_count,json=voiceCount,proto3" json:"voice_count,omitempty"`
+	Yaml                     string                     `protobuf:"bytes,7,opt,name=yaml,proto3" json:"yaml,omitempty"`
+	DefaultTextModel         string                     `protobuf:"bytes,8,opt,name=default_text_model,json=defaultTextModel,proto3" json:"default_text_model,omitempty"`
+	Capabilities             []string                   `protobuf:"bytes,9,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
+	HasOverlay               bool                       `protobuf:"varint,10,opt,name=has_overlay,json=hasOverlay,proto3" json:"has_overlay,omitempty"`
+	CustomModelCount         uint32                     `protobuf:"varint,11,opt,name=custom_model_count,json=customModelCount,proto3" json:"custom_model_count,omitempty"`
+	OverriddenModelCount     uint32                     `protobuf:"varint,12,opt,name=overridden_model_count,json=overriddenModelCount,proto3" json:"overridden_model_count,omitempty"`
+	OverlayUpdatedAt         string                     `protobuf:"bytes,13,opt,name=overlay_updated_at,json=overlayUpdatedAt,proto3" json:"overlay_updated_at,omitempty"`
+	EffectiveYaml            string                     `protobuf:"bytes,14,opt,name=effective_yaml,json=effectiveYaml,proto3" json:"effective_yaml,omitempty"`
+	DefaultEndpoint          string                     `protobuf:"bytes,15,opt,name=default_endpoint,json=defaultEndpoint,proto3" json:"default_endpoint,omitempty"`
+	RequiresExplicitEndpoint bool                       `protobuf:"varint,16,opt,name=requires_explicit_endpoint,json=requiresExplicitEndpoint,proto3" json:"requires_explicit_endpoint,omitempty"`
+	RuntimePlane             string                     `protobuf:"bytes,17,opt,name=runtime_plane,json=runtimePlane,proto3" json:"runtime_plane,omitempty"`
+	ExecutionModule          string                     `protobuf:"bytes,18,opt,name=execution_module,json=executionModule,proto3" json:"execution_module,omitempty"`
+	ManagedSupported         bool                       `protobuf:"varint,19,opt,name=managed_supported,json=managedSupported,proto3" json:"managed_supported,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *ModelCatalogProviderEntry) Reset() {
@@ -1488,6 +1556,90 @@ func (x *ModelCatalogProviderEntry) GetYaml() string {
 		return x.Yaml
 	}
 	return ""
+}
+
+func (x *ModelCatalogProviderEntry) GetDefaultTextModel() string {
+	if x != nil {
+		return x.DefaultTextModel
+	}
+	return ""
+}
+
+func (x *ModelCatalogProviderEntry) GetCapabilities() []string {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+func (x *ModelCatalogProviderEntry) GetHasOverlay() bool {
+	if x != nil {
+		return x.HasOverlay
+	}
+	return false
+}
+
+func (x *ModelCatalogProviderEntry) GetCustomModelCount() uint32 {
+	if x != nil {
+		return x.CustomModelCount
+	}
+	return 0
+}
+
+func (x *ModelCatalogProviderEntry) GetOverriddenModelCount() uint32 {
+	if x != nil {
+		return x.OverriddenModelCount
+	}
+	return 0
+}
+
+func (x *ModelCatalogProviderEntry) GetOverlayUpdatedAt() string {
+	if x != nil {
+		return x.OverlayUpdatedAt
+	}
+	return ""
+}
+
+func (x *ModelCatalogProviderEntry) GetEffectiveYaml() string {
+	if x != nil {
+		return x.EffectiveYaml
+	}
+	return ""
+}
+
+func (x *ModelCatalogProviderEntry) GetDefaultEndpoint() string {
+	if x != nil {
+		return x.DefaultEndpoint
+	}
+	return ""
+}
+
+func (x *ModelCatalogProviderEntry) GetRequiresExplicitEndpoint() bool {
+	if x != nil {
+		return x.RequiresExplicitEndpoint
+	}
+	return false
+}
+
+func (x *ModelCatalogProviderEntry) GetRuntimePlane() string {
+	if x != nil {
+		return x.RuntimePlane
+	}
+	return ""
+}
+
+func (x *ModelCatalogProviderEntry) GetExecutionModule() string {
+	if x != nil {
+		return x.ExecutionModule
+	}
+	return ""
+}
+
+func (x *ModelCatalogProviderEntry) GetManagedSupported() bool {
+	if x != nil {
+		return x.ManagedSupported
+	}
+	return false
 }
 
 type ListModelCatalogProvidersRequest struct {
@@ -1754,11 +1906,1531 @@ func (x *DeleteModelCatalogProviderResponse) GetAck() *Ack {
 	return nil
 }
 
+type CatalogOverlayWarning struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CatalogOverlayWarning) Reset() {
+	*x = CatalogOverlayWarning{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CatalogOverlayWarning) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CatalogOverlayWarning) ProtoMessage() {}
+
+func (x *CatalogOverlayWarning) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CatalogOverlayWarning.ProtoReflect.Descriptor instead.
+func (*CatalogOverlayWarning) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *CatalogOverlayWarning) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *CatalogOverlayWarning) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type CatalogPricing struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Unit          string                 `protobuf:"bytes,1,opt,name=unit,proto3" json:"unit,omitempty"`
+	Input         string                 `protobuf:"bytes,2,opt,name=input,proto3" json:"input,omitempty"`
+	Output        string                 `protobuf:"bytes,3,opt,name=output,proto3" json:"output,omitempty"`
+	Currency      string                 `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency,omitempty"`
+	AsOf          string                 `protobuf:"bytes,5,opt,name=as_of,json=asOf,proto3" json:"as_of,omitempty"`
+	Notes         string                 `protobuf:"bytes,6,opt,name=notes,proto3" json:"notes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CatalogPricing) Reset() {
+	*x = CatalogPricing{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CatalogPricing) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CatalogPricing) ProtoMessage() {}
+
+func (x *CatalogPricing) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CatalogPricing.ProtoReflect.Descriptor instead.
+func (*CatalogPricing) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *CatalogPricing) GetUnit() string {
+	if x != nil {
+		return x.Unit
+	}
+	return ""
+}
+
+func (x *CatalogPricing) GetInput() string {
+	if x != nil {
+		return x.Input
+	}
+	return ""
+}
+
+func (x *CatalogPricing) GetOutput() string {
+	if x != nil {
+		return x.Output
+	}
+	return ""
+}
+
+func (x *CatalogPricing) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
+}
+
+func (x *CatalogPricing) GetAsOf() string {
+	if x != nil {
+		return x.AsOf
+	}
+	return ""
+}
+
+func (x *CatalogPricing) GetNotes() string {
+	if x != nil {
+		return x.Notes
+	}
+	return ""
+}
+
+type CatalogSourceRef struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	RetrievedAt   string                 `protobuf:"bytes,2,opt,name=retrieved_at,json=retrievedAt,proto3" json:"retrieved_at,omitempty"`
+	Note          string                 `protobuf:"bytes,3,opt,name=note,proto3" json:"note,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CatalogSourceRef) Reset() {
+	*x = CatalogSourceRef{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CatalogSourceRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CatalogSourceRef) ProtoMessage() {}
+
+func (x *CatalogSourceRef) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CatalogSourceRef.ProtoReflect.Descriptor instead.
+func (*CatalogSourceRef) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *CatalogSourceRef) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *CatalogSourceRef) GetRetrievedAt() string {
+	if x != nil {
+		return x.RetrievedAt
+	}
+	return ""
+}
+
+func (x *CatalogSourceRef) GetNote() string {
+	if x != nil {
+		return x.Note
+	}
+	return ""
+}
+
+type CatalogStringListEntry struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Values        []string               `protobuf:"bytes,2,rep,name=values,proto3" json:"values,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CatalogStringListEntry) Reset() {
+	*x = CatalogStringListEntry{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CatalogStringListEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CatalogStringListEntry) ProtoMessage() {}
+
+func (x *CatalogStringListEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CatalogStringListEntry.ProtoReflect.Descriptor instead.
+func (*CatalogStringListEntry) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *CatalogStringListEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *CatalogStringListEntry) GetValues() []string {
+	if x != nil {
+		return x.Values
+	}
+	return nil
+}
+
+type CatalogVideoGenerationOutputs struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	VideoUrl      bool                   `protobuf:"varint,1,opt,name=video_url,json=videoUrl,proto3" json:"video_url,omitempty"`
+	LastFrameUrl  bool                   `protobuf:"varint,2,opt,name=last_frame_url,json=lastFrameUrl,proto3" json:"last_frame_url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CatalogVideoGenerationOutputs) Reset() {
+	*x = CatalogVideoGenerationOutputs{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CatalogVideoGenerationOutputs) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CatalogVideoGenerationOutputs) ProtoMessage() {}
+
+func (x *CatalogVideoGenerationOutputs) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CatalogVideoGenerationOutputs.ProtoReflect.Descriptor instead.
+func (*CatalogVideoGenerationOutputs) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *CatalogVideoGenerationOutputs) GetVideoUrl() bool {
+	if x != nil {
+		return x.VideoUrl
+	}
+	return false
+}
+
+func (x *CatalogVideoGenerationOutputs) GetLastFrameUrl() bool {
+	if x != nil {
+		return x.LastFrameUrl
+	}
+	return false
+}
+
+type CatalogVideoGenerationCapability struct {
+	state             protoimpl.MessageState         `protogen:"open.v1"`
+	Modes             []string                       `protobuf:"bytes,1,rep,name=modes,proto3" json:"modes,omitempty"`
+	InputRoles        []*CatalogStringListEntry      `protobuf:"bytes,2,rep,name=input_roles,json=inputRoles,proto3" json:"input_roles,omitempty"`
+	Limits            *structpb.Struct               `protobuf:"bytes,3,opt,name=limits,proto3" json:"limits,omitempty"`
+	OptionSupports    []string                       `protobuf:"bytes,4,rep,name=option_supports,json=optionSupports,proto3" json:"option_supports,omitempty"`
+	OptionConstraints *structpb.Struct               `protobuf:"bytes,5,opt,name=option_constraints,json=optionConstraints,proto3" json:"option_constraints,omitempty"`
+	Outputs           *CatalogVideoGenerationOutputs `protobuf:"bytes,6,opt,name=outputs,proto3" json:"outputs,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *CatalogVideoGenerationCapability) Reset() {
+	*x = CatalogVideoGenerationCapability{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CatalogVideoGenerationCapability) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CatalogVideoGenerationCapability) ProtoMessage() {}
+
+func (x *CatalogVideoGenerationCapability) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CatalogVideoGenerationCapability.ProtoReflect.Descriptor instead.
+func (*CatalogVideoGenerationCapability) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *CatalogVideoGenerationCapability) GetModes() []string {
+	if x != nil {
+		return x.Modes
+	}
+	return nil
+}
+
+func (x *CatalogVideoGenerationCapability) GetInputRoles() []*CatalogStringListEntry {
+	if x != nil {
+		return x.InputRoles
+	}
+	return nil
+}
+
+func (x *CatalogVideoGenerationCapability) GetLimits() *structpb.Struct {
+	if x != nil {
+		return x.Limits
+	}
+	return nil
+}
+
+func (x *CatalogVideoGenerationCapability) GetOptionSupports() []string {
+	if x != nil {
+		return x.OptionSupports
+	}
+	return nil
+}
+
+func (x *CatalogVideoGenerationCapability) GetOptionConstraints() *structpb.Struct {
+	if x != nil {
+		return x.OptionConstraints
+	}
+	return nil
+}
+
+func (x *CatalogVideoGenerationCapability) GetOutputs() *CatalogVideoGenerationOutputs {
+	if x != nil {
+		return x.Outputs
+	}
+	return nil
+}
+
+type CatalogVoiceEntry struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	VoiceSetId    string                 `protobuf:"bytes,1,opt,name=voice_set_id,json=voiceSetId,proto3" json:"voice_set_id,omitempty"`
+	Provider      string                 `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
+	VoiceId       string                 `protobuf:"bytes,3,opt,name=voice_id,json=voiceId,proto3" json:"voice_id,omitempty"`
+	Name          string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
+	Langs         []string               `protobuf:"bytes,5,rep,name=langs,proto3" json:"langs,omitempty"`
+	ModelIds      []string               `protobuf:"bytes,6,rep,name=model_ids,json=modelIds,proto3" json:"model_ids,omitempty"`
+	SourceRef     *CatalogSourceRef      `protobuf:"bytes,7,opt,name=source_ref,json=sourceRef,proto3" json:"source_ref,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CatalogVoiceEntry) Reset() {
+	*x = CatalogVoiceEntry{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CatalogVoiceEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CatalogVoiceEntry) ProtoMessage() {}
+
+func (x *CatalogVoiceEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CatalogVoiceEntry.ProtoReflect.Descriptor instead.
+func (*CatalogVoiceEntry) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *CatalogVoiceEntry) GetVoiceSetId() string {
+	if x != nil {
+		return x.VoiceSetId
+	}
+	return ""
+}
+
+func (x *CatalogVoiceEntry) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *CatalogVoiceEntry) GetVoiceId() string {
+	if x != nil {
+		return x.VoiceId
+	}
+	return ""
+}
+
+func (x *CatalogVoiceEntry) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CatalogVoiceEntry) GetLangs() []string {
+	if x != nil {
+		return x.Langs
+	}
+	return nil
+}
+
+func (x *CatalogVoiceEntry) GetModelIds() []string {
+	if x != nil {
+		return x.ModelIds
+	}
+	return nil
+}
+
+func (x *CatalogVoiceEntry) GetSourceRef() *CatalogSourceRef {
+	if x != nil {
+		return x.SourceRef
+	}
+	return nil
+}
+
+type CatalogWorkflowModel struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	WorkflowModelId   string                 `protobuf:"bytes,1,opt,name=workflow_model_id,json=workflowModelId,proto3" json:"workflow_model_id,omitempty"`
+	WorkflowType      string                 `protobuf:"bytes,2,opt,name=workflow_type,json=workflowType,proto3" json:"workflow_type,omitempty"`
+	InputContractRef  string                 `protobuf:"bytes,3,opt,name=input_contract_ref,json=inputContractRef,proto3" json:"input_contract_ref,omitempty"`
+	OutputPersistence string                 `protobuf:"bytes,4,opt,name=output_persistence,json=outputPersistence,proto3" json:"output_persistence,omitempty"`
+	TargetModelRefs   []string               `protobuf:"bytes,5,rep,name=target_model_refs,json=targetModelRefs,proto3" json:"target_model_refs,omitempty"`
+	Langs             []string               `protobuf:"bytes,6,rep,name=langs,proto3" json:"langs,omitempty"`
+	SourceRef         *CatalogSourceRef      `protobuf:"bytes,7,opt,name=source_ref,json=sourceRef,proto3" json:"source_ref,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *CatalogWorkflowModel) Reset() {
+	*x = CatalogWorkflowModel{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CatalogWorkflowModel) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CatalogWorkflowModel) ProtoMessage() {}
+
+func (x *CatalogWorkflowModel) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CatalogWorkflowModel.ProtoReflect.Descriptor instead.
+func (*CatalogWorkflowModel) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *CatalogWorkflowModel) GetWorkflowModelId() string {
+	if x != nil {
+		return x.WorkflowModelId
+	}
+	return ""
+}
+
+func (x *CatalogWorkflowModel) GetWorkflowType() string {
+	if x != nil {
+		return x.WorkflowType
+	}
+	return ""
+}
+
+func (x *CatalogWorkflowModel) GetInputContractRef() string {
+	if x != nil {
+		return x.InputContractRef
+	}
+	return ""
+}
+
+func (x *CatalogWorkflowModel) GetOutputPersistence() string {
+	if x != nil {
+		return x.OutputPersistence
+	}
+	return ""
+}
+
+func (x *CatalogWorkflowModel) GetTargetModelRefs() []string {
+	if x != nil {
+		return x.TargetModelRefs
+	}
+	return nil
+}
+
+func (x *CatalogWorkflowModel) GetLangs() []string {
+	if x != nil {
+		return x.Langs
+	}
+	return nil
+}
+
+func (x *CatalogWorkflowModel) GetSourceRef() *CatalogSourceRef {
+	if x != nil {
+		return x.SourceRef
+	}
+	return nil
+}
+
+type CatalogModelWorkflowBinding struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	ModelId           string                 `protobuf:"bytes,1,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	WorkflowModelRefs []string               `protobuf:"bytes,2,rep,name=workflow_model_refs,json=workflowModelRefs,proto3" json:"workflow_model_refs,omitempty"`
+	WorkflowTypes     []string               `protobuf:"bytes,3,rep,name=workflow_types,json=workflowTypes,proto3" json:"workflow_types,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *CatalogModelWorkflowBinding) Reset() {
+	*x = CatalogModelWorkflowBinding{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CatalogModelWorkflowBinding) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CatalogModelWorkflowBinding) ProtoMessage() {}
+
+func (x *CatalogModelWorkflowBinding) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CatalogModelWorkflowBinding.ProtoReflect.Descriptor instead.
+func (*CatalogModelWorkflowBinding) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *CatalogModelWorkflowBinding) GetModelId() string {
+	if x != nil {
+		return x.ModelId
+	}
+	return ""
+}
+
+func (x *CatalogModelWorkflowBinding) GetWorkflowModelRefs() []string {
+	if x != nil {
+		return x.WorkflowModelRefs
+	}
+	return nil
+}
+
+func (x *CatalogModelWorkflowBinding) GetWorkflowTypes() []string {
+	if x != nil {
+		return x.WorkflowTypes
+	}
+	return nil
+}
+
+type CatalogModelSummary struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Provider           string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	ModelId            string                 `protobuf:"bytes,2,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	ModelType          string                 `protobuf:"bytes,3,opt,name=model_type,json=modelType,proto3" json:"model_type,omitempty"`
+	UpdatedAt          string                 `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Capabilities       []string               `protobuf:"bytes,5,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
+	Source             CatalogModelSource     `protobuf:"varint,6,opt,name=source,proto3,enum=nimi.runtime.v1.CatalogModelSource" json:"source,omitempty"`
+	UserScoped         bool                   `protobuf:"varint,7,opt,name=user_scoped,json=userScoped,proto3" json:"user_scoped,omitempty"`
+	SourceNote         string                 `protobuf:"bytes,8,opt,name=source_note,json=sourceNote,proto3" json:"source_note,omitempty"`
+	HasVoiceCatalog    bool                   `protobuf:"varint,9,opt,name=has_voice_catalog,json=hasVoiceCatalog,proto3" json:"has_voice_catalog,omitempty"`
+	HasVideoGeneration bool                   `protobuf:"varint,10,opt,name=has_video_generation,json=hasVideoGeneration,proto3" json:"has_video_generation,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *CatalogModelSummary) Reset() {
+	*x = CatalogModelSummary{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CatalogModelSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CatalogModelSummary) ProtoMessage() {}
+
+func (x *CatalogModelSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CatalogModelSummary.ProtoReflect.Descriptor instead.
+func (*CatalogModelSummary) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *CatalogModelSummary) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *CatalogModelSummary) GetModelId() string {
+	if x != nil {
+		return x.ModelId
+	}
+	return ""
+}
+
+func (x *CatalogModelSummary) GetModelType() string {
+	if x != nil {
+		return x.ModelType
+	}
+	return ""
+}
+
+func (x *CatalogModelSummary) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+func (x *CatalogModelSummary) GetCapabilities() []string {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+func (x *CatalogModelSummary) GetSource() CatalogModelSource {
+	if x != nil {
+		return x.Source
+	}
+	return CatalogModelSource_CATALOG_MODEL_SOURCE_UNSPECIFIED
+}
+
+func (x *CatalogModelSummary) GetUserScoped() bool {
+	if x != nil {
+		return x.UserScoped
+	}
+	return false
+}
+
+func (x *CatalogModelSummary) GetSourceNote() string {
+	if x != nil {
+		return x.SourceNote
+	}
+	return ""
+}
+
+func (x *CatalogModelSummary) GetHasVoiceCatalog() bool {
+	if x != nil {
+		return x.HasVoiceCatalog
+	}
+	return false
+}
+
+func (x *CatalogModelSummary) GetHasVideoGeneration() bool {
+	if x != nil {
+		return x.HasVideoGeneration
+	}
+	return false
+}
+
+type CatalogModelDetail struct {
+	state                protoimpl.MessageState            `protogen:"open.v1"`
+	Provider             string                            `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	ModelId              string                            `protobuf:"bytes,2,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	ModelType            string                            `protobuf:"bytes,3,opt,name=model_type,json=modelType,proto3" json:"model_type,omitempty"`
+	UpdatedAt            string                            `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Capabilities         []string                          `protobuf:"bytes,5,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
+	Pricing              *CatalogPricing                   `protobuf:"bytes,6,opt,name=pricing,proto3" json:"pricing,omitempty"`
+	VoiceSetId           string                            `protobuf:"bytes,7,opt,name=voice_set_id,json=voiceSetId,proto3" json:"voice_set_id,omitempty"`
+	VoiceDiscoveryMode   string                            `protobuf:"bytes,8,opt,name=voice_discovery_mode,json=voiceDiscoveryMode,proto3" json:"voice_discovery_mode,omitempty"`
+	VoiceRefKinds        []string                          `protobuf:"bytes,9,rep,name=voice_ref_kinds,json=voiceRefKinds,proto3" json:"voice_ref_kinds,omitempty"`
+	VideoGeneration      *CatalogVideoGenerationCapability `protobuf:"bytes,10,opt,name=video_generation,json=videoGeneration,proto3" json:"video_generation,omitempty"`
+	SourceRef            *CatalogSourceRef                 `protobuf:"bytes,11,opt,name=source_ref,json=sourceRef,proto3" json:"source_ref,omitempty"`
+	Source               CatalogModelSource                `protobuf:"varint,12,opt,name=source,proto3,enum=nimi.runtime.v1.CatalogModelSource" json:"source,omitempty"`
+	UserScoped           bool                              `protobuf:"varint,13,opt,name=user_scoped,json=userScoped,proto3" json:"user_scoped,omitempty"`
+	Warnings             []*CatalogOverlayWarning          `protobuf:"bytes,14,rep,name=warnings,proto3" json:"warnings,omitempty"`
+	Voices               []*CatalogVoiceEntry              `protobuf:"bytes,15,rep,name=voices,proto3" json:"voices,omitempty"`
+	VoiceWorkflowModels  []*CatalogWorkflowModel           `protobuf:"bytes,16,rep,name=voice_workflow_models,json=voiceWorkflowModels,proto3" json:"voice_workflow_models,omitempty"`
+	ModelWorkflowBinding *CatalogModelWorkflowBinding      `protobuf:"bytes,17,opt,name=model_workflow_binding,json=modelWorkflowBinding,proto3" json:"model_workflow_binding,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *CatalogModelDetail) Reset() {
+	*x = CatalogModelDetail{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CatalogModelDetail) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CatalogModelDetail) ProtoMessage() {}
+
+func (x *CatalogModelDetail) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CatalogModelDetail.ProtoReflect.Descriptor instead.
+func (*CatalogModelDetail) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *CatalogModelDetail) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *CatalogModelDetail) GetModelId() string {
+	if x != nil {
+		return x.ModelId
+	}
+	return ""
+}
+
+func (x *CatalogModelDetail) GetModelType() string {
+	if x != nil {
+		return x.ModelType
+	}
+	return ""
+}
+
+func (x *CatalogModelDetail) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+func (x *CatalogModelDetail) GetCapabilities() []string {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+func (x *CatalogModelDetail) GetPricing() *CatalogPricing {
+	if x != nil {
+		return x.Pricing
+	}
+	return nil
+}
+
+func (x *CatalogModelDetail) GetVoiceSetId() string {
+	if x != nil {
+		return x.VoiceSetId
+	}
+	return ""
+}
+
+func (x *CatalogModelDetail) GetVoiceDiscoveryMode() string {
+	if x != nil {
+		return x.VoiceDiscoveryMode
+	}
+	return ""
+}
+
+func (x *CatalogModelDetail) GetVoiceRefKinds() []string {
+	if x != nil {
+		return x.VoiceRefKinds
+	}
+	return nil
+}
+
+func (x *CatalogModelDetail) GetVideoGeneration() *CatalogVideoGenerationCapability {
+	if x != nil {
+		return x.VideoGeneration
+	}
+	return nil
+}
+
+func (x *CatalogModelDetail) GetSourceRef() *CatalogSourceRef {
+	if x != nil {
+		return x.SourceRef
+	}
+	return nil
+}
+
+func (x *CatalogModelDetail) GetSource() CatalogModelSource {
+	if x != nil {
+		return x.Source
+	}
+	return CatalogModelSource_CATALOG_MODEL_SOURCE_UNSPECIFIED
+}
+
+func (x *CatalogModelDetail) GetUserScoped() bool {
+	if x != nil {
+		return x.UserScoped
+	}
+	return false
+}
+
+func (x *CatalogModelDetail) GetWarnings() []*CatalogOverlayWarning {
+	if x != nil {
+		return x.Warnings
+	}
+	return nil
+}
+
+func (x *CatalogModelDetail) GetVoices() []*CatalogVoiceEntry {
+	if x != nil {
+		return x.Voices
+	}
+	return nil
+}
+
+func (x *CatalogModelDetail) GetVoiceWorkflowModels() []*CatalogWorkflowModel {
+	if x != nil {
+		return x.VoiceWorkflowModels
+	}
+	return nil
+}
+
+func (x *CatalogModelDetail) GetModelWorkflowBinding() *CatalogModelWorkflowBinding {
+	if x != nil {
+		return x.ModelWorkflowBinding
+	}
+	return nil
+}
+
+type CatalogModelInput struct {
+	state              protoimpl.MessageState            `protogen:"open.v1"`
+	Provider           string                            `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	ModelId            string                            `protobuf:"bytes,2,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	ModelType          string                            `protobuf:"bytes,3,opt,name=model_type,json=modelType,proto3" json:"model_type,omitempty"`
+	UpdatedAt          string                            `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Capabilities       []string                          `protobuf:"bytes,5,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
+	Pricing            *CatalogPricing                   `protobuf:"bytes,6,opt,name=pricing,proto3" json:"pricing,omitempty"`
+	VoiceSetId         string                            `protobuf:"bytes,7,opt,name=voice_set_id,json=voiceSetId,proto3" json:"voice_set_id,omitempty"`
+	VoiceDiscoveryMode string                            `protobuf:"bytes,8,opt,name=voice_discovery_mode,json=voiceDiscoveryMode,proto3" json:"voice_discovery_mode,omitempty"`
+	VoiceRefKinds      []string                          `protobuf:"bytes,9,rep,name=voice_ref_kinds,json=voiceRefKinds,proto3" json:"voice_ref_kinds,omitempty"`
+	VideoGeneration    *CatalogVideoGenerationCapability `protobuf:"bytes,10,opt,name=video_generation,json=videoGeneration,proto3" json:"video_generation,omitempty"`
+	SourceRef          *CatalogSourceRef                 `protobuf:"bytes,11,opt,name=source_ref,json=sourceRef,proto3" json:"source_ref,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *CatalogModelInput) Reset() {
+	*x = CatalogModelInput{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CatalogModelInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CatalogModelInput) ProtoMessage() {}
+
+func (x *CatalogModelInput) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CatalogModelInput.ProtoReflect.Descriptor instead.
+func (*CatalogModelInput) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *CatalogModelInput) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *CatalogModelInput) GetModelId() string {
+	if x != nil {
+		return x.ModelId
+	}
+	return ""
+}
+
+func (x *CatalogModelInput) GetModelType() string {
+	if x != nil {
+		return x.ModelType
+	}
+	return ""
+}
+
+func (x *CatalogModelInput) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+func (x *CatalogModelInput) GetCapabilities() []string {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+func (x *CatalogModelInput) GetPricing() *CatalogPricing {
+	if x != nil {
+		return x.Pricing
+	}
+	return nil
+}
+
+func (x *CatalogModelInput) GetVoiceSetId() string {
+	if x != nil {
+		return x.VoiceSetId
+	}
+	return ""
+}
+
+func (x *CatalogModelInput) GetVoiceDiscoveryMode() string {
+	if x != nil {
+		return x.VoiceDiscoveryMode
+	}
+	return ""
+}
+
+func (x *CatalogModelInput) GetVoiceRefKinds() []string {
+	if x != nil {
+		return x.VoiceRefKinds
+	}
+	return nil
+}
+
+func (x *CatalogModelInput) GetVideoGeneration() *CatalogVideoGenerationCapability {
+	if x != nil {
+		return x.VideoGeneration
+	}
+	return nil
+}
+
+func (x *CatalogModelInput) GetSourceRef() *CatalogSourceRef {
+	if x != nil {
+		return x.SourceRef
+	}
+	return nil
+}
+
+type ListCatalogProviderModelsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Provider      string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                 `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCatalogProviderModelsRequest) Reset() {
+	*x = ListCatalogProviderModelsRequest{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCatalogProviderModelsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCatalogProviderModelsRequest) ProtoMessage() {}
+
+func (x *ListCatalogProviderModelsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCatalogProviderModelsRequest.ProtoReflect.Descriptor instead.
+func (*ListCatalogProviderModelsRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *ListCatalogProviderModelsRequest) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *ListCatalogProviderModelsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListCatalogProviderModelsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type ListCatalogProviderModelsResponse struct {
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	Provider      *ModelCatalogProviderEntry `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	Models        []*CatalogModelSummary     `protobuf:"bytes,2,rep,name=models,proto3" json:"models,omitempty"`
+	NextPageToken string                     `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	Warnings      []*CatalogOverlayWarning   `protobuf:"bytes,4,rep,name=warnings,proto3" json:"warnings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCatalogProviderModelsResponse) Reset() {
+	*x = ListCatalogProviderModelsResponse{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCatalogProviderModelsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCatalogProviderModelsResponse) ProtoMessage() {}
+
+func (x *ListCatalogProviderModelsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCatalogProviderModelsResponse.ProtoReflect.Descriptor instead.
+func (*ListCatalogProviderModelsResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *ListCatalogProviderModelsResponse) GetProvider() *ModelCatalogProviderEntry {
+	if x != nil {
+		return x.Provider
+	}
+	return nil
+}
+
+func (x *ListCatalogProviderModelsResponse) GetModels() []*CatalogModelSummary {
+	if x != nil {
+		return x.Models
+	}
+	return nil
+}
+
+func (x *ListCatalogProviderModelsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+func (x *ListCatalogProviderModelsResponse) GetWarnings() []*CatalogOverlayWarning {
+	if x != nil {
+		return x.Warnings
+	}
+	return nil
+}
+
+type GetCatalogModelDetailRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Provider      string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	ModelId       string                 `protobuf:"bytes,2,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCatalogModelDetailRequest) Reset() {
+	*x = GetCatalogModelDetailRequest{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCatalogModelDetailRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCatalogModelDetailRequest) ProtoMessage() {}
+
+func (x *GetCatalogModelDetailRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCatalogModelDetailRequest.ProtoReflect.Descriptor instead.
+func (*GetCatalogModelDetailRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *GetCatalogModelDetailRequest) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *GetCatalogModelDetailRequest) GetModelId() string {
+	if x != nil {
+		return x.ModelId
+	}
+	return ""
+}
+
+type GetCatalogModelDetailResponse struct {
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	Provider      *ModelCatalogProviderEntry `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	Model         *CatalogModelDetail        `protobuf:"bytes,2,opt,name=model,proto3" json:"model,omitempty"`
+	Warnings      []*CatalogOverlayWarning   `protobuf:"bytes,3,rep,name=warnings,proto3" json:"warnings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCatalogModelDetailResponse) Reset() {
+	*x = GetCatalogModelDetailResponse{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCatalogModelDetailResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCatalogModelDetailResponse) ProtoMessage() {}
+
+func (x *GetCatalogModelDetailResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCatalogModelDetailResponse.ProtoReflect.Descriptor instead.
+func (*GetCatalogModelDetailResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *GetCatalogModelDetailResponse) GetProvider() *ModelCatalogProviderEntry {
+	if x != nil {
+		return x.Provider
+	}
+	return nil
+}
+
+func (x *GetCatalogModelDetailResponse) GetModel() *CatalogModelDetail {
+	if x != nil {
+		return x.Model
+	}
+	return nil
+}
+
+func (x *GetCatalogModelDetailResponse) GetWarnings() []*CatalogOverlayWarning {
+	if x != nil {
+		return x.Warnings
+	}
+	return nil
+}
+
+type UpsertCatalogModelOverlayRequest struct {
+	state                protoimpl.MessageState       `protogen:"open.v1"`
+	Provider             string                       `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	Model                *CatalogModelInput           `protobuf:"bytes,2,opt,name=model,proto3" json:"model,omitempty"`
+	Voices               []*CatalogVoiceEntry         `protobuf:"bytes,3,rep,name=voices,proto3" json:"voices,omitempty"`
+	VoiceWorkflowModels  []*CatalogWorkflowModel      `protobuf:"bytes,4,rep,name=voice_workflow_models,json=voiceWorkflowModels,proto3" json:"voice_workflow_models,omitempty"`
+	ModelWorkflowBinding *CatalogModelWorkflowBinding `protobuf:"bytes,5,opt,name=model_workflow_binding,json=modelWorkflowBinding,proto3" json:"model_workflow_binding,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *UpsertCatalogModelOverlayRequest) Reset() {
+	*x = UpsertCatalogModelOverlayRequest{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpsertCatalogModelOverlayRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpsertCatalogModelOverlayRequest) ProtoMessage() {}
+
+func (x *UpsertCatalogModelOverlayRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpsertCatalogModelOverlayRequest.ProtoReflect.Descriptor instead.
+func (*UpsertCatalogModelOverlayRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *UpsertCatalogModelOverlayRequest) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *UpsertCatalogModelOverlayRequest) GetModel() *CatalogModelInput {
+	if x != nil {
+		return x.Model
+	}
+	return nil
+}
+
+func (x *UpsertCatalogModelOverlayRequest) GetVoices() []*CatalogVoiceEntry {
+	if x != nil {
+		return x.Voices
+	}
+	return nil
+}
+
+func (x *UpsertCatalogModelOverlayRequest) GetVoiceWorkflowModels() []*CatalogWorkflowModel {
+	if x != nil {
+		return x.VoiceWorkflowModels
+	}
+	return nil
+}
+
+func (x *UpsertCatalogModelOverlayRequest) GetModelWorkflowBinding() *CatalogModelWorkflowBinding {
+	if x != nil {
+		return x.ModelWorkflowBinding
+	}
+	return nil
+}
+
+type UpsertCatalogModelOverlayResponse struct {
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	Provider      *ModelCatalogProviderEntry `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	Model         *CatalogModelDetail        `protobuf:"bytes,2,opt,name=model,proto3" json:"model,omitempty"`
+	Warnings      []*CatalogOverlayWarning   `protobuf:"bytes,3,rep,name=warnings,proto3" json:"warnings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpsertCatalogModelOverlayResponse) Reset() {
+	*x = UpsertCatalogModelOverlayResponse{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpsertCatalogModelOverlayResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpsertCatalogModelOverlayResponse) ProtoMessage() {}
+
+func (x *UpsertCatalogModelOverlayResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpsertCatalogModelOverlayResponse.ProtoReflect.Descriptor instead.
+func (*UpsertCatalogModelOverlayResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *UpsertCatalogModelOverlayResponse) GetProvider() *ModelCatalogProviderEntry {
+	if x != nil {
+		return x.Provider
+	}
+	return nil
+}
+
+func (x *UpsertCatalogModelOverlayResponse) GetModel() *CatalogModelDetail {
+	if x != nil {
+		return x.Model
+	}
+	return nil
+}
+
+func (x *UpsertCatalogModelOverlayResponse) GetWarnings() []*CatalogOverlayWarning {
+	if x != nil {
+		return x.Warnings
+	}
+	return nil
+}
+
+type DeleteCatalogModelOverlayRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Provider      string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	ModelId       string                 `protobuf:"bytes,2,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteCatalogModelOverlayRequest) Reset() {
+	*x = DeleteCatalogModelOverlayRequest{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteCatalogModelOverlayRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteCatalogModelOverlayRequest) ProtoMessage() {}
+
+func (x *DeleteCatalogModelOverlayRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteCatalogModelOverlayRequest.ProtoReflect.Descriptor instead.
+func (*DeleteCatalogModelOverlayRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *DeleteCatalogModelOverlayRequest) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *DeleteCatalogModelOverlayRequest) GetModelId() string {
+	if x != nil {
+		return x.ModelId
+	}
+	return ""
+}
+
+type DeleteCatalogModelOverlayResponse struct {
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	Ack           *Ack                       `protobuf:"bytes,1,opt,name=ack,proto3" json:"ack,omitempty"`
+	Provider      *ModelCatalogProviderEntry `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteCatalogModelOverlayResponse) Reset() {
+	*x = DeleteCatalogModelOverlayResponse{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteCatalogModelOverlayResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteCatalogModelOverlayResponse) ProtoMessage() {}
+
+func (x *DeleteCatalogModelOverlayResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteCatalogModelOverlayResponse.ProtoReflect.Descriptor instead.
+func (*DeleteCatalogModelOverlayResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *DeleteCatalogModelOverlayResponse) GetAck() *Ack {
+	if x != nil {
+		return x.Ack
+	}
+	return nil
+}
+
+func (x *DeleteCatalogModelOverlayResponse) GetProvider() *ModelCatalogProviderEntry {
+	if x != nil {
+		return x.Provider
+	}
+	return nil
+}
+
 var File_runtime_v1_connector_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_connector_proto_rawDesc = "" +
 	"\n" +
-	"\x1aruntime/v1/connector.proto\x12\x0fnimi.runtime.v1\x1a\x17runtime/v1/common.proto\x1a google/protobuf/field_mask.proto\"\xfe\x03\n" +
+	"\x1aruntime/v1/connector.proto\x12\x0fnimi.runtime.v1\x1a\x17runtime/v1/common.proto\x1a google/protobuf/field_mask.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xfe\x03\n" +
 	"\tConnector\x12!\n" +
 	"\fconnector_id\x18\x01 \x01(\tR\vconnectorId\x122\n" +
 	"\x04kind\x18\x02 \x01(\x0e2\x1e.nimi.runtime.v1.ConnectorKindR\x04kind\x12B\n" +
@@ -1846,7 +3518,7 @@ const file_runtime_v1_connector_proto_rawDesc = "" +
 	"\x11managed_supported\x18\x06 \x01(\bR\x10managedSupported\"\x1c\n" +
 	"\x1aListProviderCatalogRequest\"b\n" +
 	"\x1bListProviderCatalogResponse\x12C\n" +
-	"\tproviders\x18\x01 \x03(\v2%.nimi.runtime.v1.ProviderCatalogEntryR\tproviders\"\x95\x02\n" +
+	"\tproviders\x18\x01 \x03(\v2%.nimi.runtime.v1.ProviderCatalogEntryR\tproviders\"\xa7\x06\n" +
 	"\x19ModelCatalogProviderEntry\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\x05R\aversion\x12'\n" +
@@ -1856,7 +3528,21 @@ const file_runtime_v1_connector_proto_rawDesc = "" +
 	"modelCount\x12\x1f\n" +
 	"\vvoice_count\x18\x06 \x01(\rR\n" +
 	"voiceCount\x12\x12\n" +
-	"\x04yaml\x18\a \x01(\tR\x04yaml\"\"\n" +
+	"\x04yaml\x18\a \x01(\tR\x04yaml\x12,\n" +
+	"\x12default_text_model\x18\b \x01(\tR\x10defaultTextModel\x12\"\n" +
+	"\fcapabilities\x18\t \x03(\tR\fcapabilities\x12\x1f\n" +
+	"\vhas_overlay\x18\n" +
+	" \x01(\bR\n" +
+	"hasOverlay\x12,\n" +
+	"\x12custom_model_count\x18\v \x01(\rR\x10customModelCount\x124\n" +
+	"\x16overridden_model_count\x18\f \x01(\rR\x14overriddenModelCount\x12,\n" +
+	"\x12overlay_updated_at\x18\r \x01(\tR\x10overlayUpdatedAt\x12%\n" +
+	"\x0eeffective_yaml\x18\x0e \x01(\tR\reffectiveYaml\x12)\n" +
+	"\x10default_endpoint\x18\x0f \x01(\tR\x0fdefaultEndpoint\x12<\n" +
+	"\x1arequires_explicit_endpoint\x18\x10 \x01(\bR\x18requiresExplicitEndpoint\x12#\n" +
+	"\rruntime_plane\x18\x11 \x01(\tR\fruntimePlane\x12)\n" +
+	"\x10execution_module\x18\x12 \x01(\tR\x0fexecutionModule\x12+\n" +
+	"\x11managed_supported\x18\x13 \x01(\bR\x10managedSupported\"\"\n" +
 	" ListModelCatalogProvidersRequest\"m\n" +
 	"!ListModelCatalogProvidersResponse\x12H\n" +
 	"\tproviders\x18\x01 \x03(\v2*.nimi.runtime.v1.ModelCatalogProviderEntryR\tproviders\"S\n" +
@@ -1868,7 +3554,148 @@ const file_runtime_v1_connector_proto_rawDesc = "" +
 	"!DeleteModelCatalogProviderRequest\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\"L\n" +
 	"\"DeleteModelCatalogProviderResponse\x12&\n" +
-	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack*r\n" +
+	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack\"E\n" +
+	"\x15CatalogOverlayWarning\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\x99\x01\n" +
+	"\x0eCatalogPricing\x12\x12\n" +
+	"\x04unit\x18\x01 \x01(\tR\x04unit\x12\x14\n" +
+	"\x05input\x18\x02 \x01(\tR\x05input\x12\x16\n" +
+	"\x06output\x18\x03 \x01(\tR\x06output\x12\x1a\n" +
+	"\bcurrency\x18\x04 \x01(\tR\bcurrency\x12\x13\n" +
+	"\x05as_of\x18\x05 \x01(\tR\x04asOf\x12\x14\n" +
+	"\x05notes\x18\x06 \x01(\tR\x05notes\"[\n" +
+	"\x10CatalogSourceRef\x12\x10\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\x12!\n" +
+	"\fretrieved_at\x18\x02 \x01(\tR\vretrievedAt\x12\x12\n" +
+	"\x04note\x18\x03 \x01(\tR\x04note\"B\n" +
+	"\x16CatalogStringListEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x16\n" +
+	"\x06values\x18\x02 \x03(\tR\x06values\"b\n" +
+	"\x1dCatalogVideoGenerationOutputs\x12\x1b\n" +
+	"\tvideo_url\x18\x01 \x01(\bR\bvideoUrl\x12$\n" +
+	"\x0elast_frame_url\x18\x02 \x01(\bR\flastFrameUrl\"\xee\x02\n" +
+	" CatalogVideoGenerationCapability\x12\x14\n" +
+	"\x05modes\x18\x01 \x03(\tR\x05modes\x12H\n" +
+	"\vinput_roles\x18\x02 \x03(\v2'.nimi.runtime.v1.CatalogStringListEntryR\n" +
+	"inputRoles\x12/\n" +
+	"\x06limits\x18\x03 \x01(\v2\x17.google.protobuf.StructR\x06limits\x12'\n" +
+	"\x0foption_supports\x18\x04 \x03(\tR\x0eoptionSupports\x12F\n" +
+	"\x12option_constraints\x18\x05 \x01(\v2\x17.google.protobuf.StructR\x11optionConstraints\x12H\n" +
+	"\aoutputs\x18\x06 \x01(\v2..nimi.runtime.v1.CatalogVideoGenerationOutputsR\aoutputs\"\xf5\x01\n" +
+	"\x11CatalogVoiceEntry\x12 \n" +
+	"\fvoice_set_id\x18\x01 \x01(\tR\n" +
+	"voiceSetId\x12\x1a\n" +
+	"\bprovider\x18\x02 \x01(\tR\bprovider\x12\x19\n" +
+	"\bvoice_id\x18\x03 \x01(\tR\avoiceId\x12\x12\n" +
+	"\x04name\x18\x04 \x01(\tR\x04name\x12\x14\n" +
+	"\x05langs\x18\x05 \x03(\tR\x05langs\x12\x1b\n" +
+	"\tmodel_ids\x18\x06 \x03(\tR\bmodelIds\x12@\n" +
+	"\n" +
+	"source_ref\x18\a \x01(\v2!.nimi.runtime.v1.CatalogSourceRefR\tsourceRef\"\xc8\x02\n" +
+	"\x14CatalogWorkflowModel\x12*\n" +
+	"\x11workflow_model_id\x18\x01 \x01(\tR\x0fworkflowModelId\x12#\n" +
+	"\rworkflow_type\x18\x02 \x01(\tR\fworkflowType\x12,\n" +
+	"\x12input_contract_ref\x18\x03 \x01(\tR\x10inputContractRef\x12-\n" +
+	"\x12output_persistence\x18\x04 \x01(\tR\x11outputPersistence\x12*\n" +
+	"\x11target_model_refs\x18\x05 \x03(\tR\x0ftargetModelRefs\x12\x14\n" +
+	"\x05langs\x18\x06 \x03(\tR\x05langs\x12@\n" +
+	"\n" +
+	"source_ref\x18\a \x01(\v2!.nimi.runtime.v1.CatalogSourceRefR\tsourceRef\"\x8f\x01\n" +
+	"\x1bCatalogModelWorkflowBinding\x12\x19\n" +
+	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x12.\n" +
+	"\x13workflow_model_refs\x18\x02 \x03(\tR\x11workflowModelRefs\x12%\n" +
+	"\x0eworkflow_types\x18\x03 \x03(\tR\rworkflowTypes\"\x8b\x03\n" +
+	"\x13CatalogModelSummary\x12\x1a\n" +
+	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x19\n" +
+	"\bmodel_id\x18\x02 \x01(\tR\amodelId\x12\x1d\n" +
+	"\n" +
+	"model_type\x18\x03 \x01(\tR\tmodelType\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x04 \x01(\tR\tupdatedAt\x12\"\n" +
+	"\fcapabilities\x18\x05 \x03(\tR\fcapabilities\x12;\n" +
+	"\x06source\x18\x06 \x01(\x0e2#.nimi.runtime.v1.CatalogModelSourceR\x06source\x12\x1f\n" +
+	"\vuser_scoped\x18\a \x01(\bR\n" +
+	"userScoped\x12\x1f\n" +
+	"\vsource_note\x18\b \x01(\tR\n" +
+	"sourceNote\x12*\n" +
+	"\x11has_voice_catalog\x18\t \x01(\bR\x0fhasVoiceCatalog\x120\n" +
+	"\x14has_video_generation\x18\n" +
+	" \x01(\bR\x12hasVideoGeneration\"\xa1\a\n" +
+	"\x12CatalogModelDetail\x12\x1a\n" +
+	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x19\n" +
+	"\bmodel_id\x18\x02 \x01(\tR\amodelId\x12\x1d\n" +
+	"\n" +
+	"model_type\x18\x03 \x01(\tR\tmodelType\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x04 \x01(\tR\tupdatedAt\x12\"\n" +
+	"\fcapabilities\x18\x05 \x03(\tR\fcapabilities\x129\n" +
+	"\apricing\x18\x06 \x01(\v2\x1f.nimi.runtime.v1.CatalogPricingR\apricing\x12 \n" +
+	"\fvoice_set_id\x18\a \x01(\tR\n" +
+	"voiceSetId\x120\n" +
+	"\x14voice_discovery_mode\x18\b \x01(\tR\x12voiceDiscoveryMode\x12&\n" +
+	"\x0fvoice_ref_kinds\x18\t \x03(\tR\rvoiceRefKinds\x12\\\n" +
+	"\x10video_generation\x18\n" +
+	" \x01(\v21.nimi.runtime.v1.CatalogVideoGenerationCapabilityR\x0fvideoGeneration\x12@\n" +
+	"\n" +
+	"source_ref\x18\v \x01(\v2!.nimi.runtime.v1.CatalogSourceRefR\tsourceRef\x12;\n" +
+	"\x06source\x18\f \x01(\x0e2#.nimi.runtime.v1.CatalogModelSourceR\x06source\x12\x1f\n" +
+	"\vuser_scoped\x18\r \x01(\bR\n" +
+	"userScoped\x12B\n" +
+	"\bwarnings\x18\x0e \x03(\v2&.nimi.runtime.v1.CatalogOverlayWarningR\bwarnings\x12:\n" +
+	"\x06voices\x18\x0f \x03(\v2\".nimi.runtime.v1.CatalogVoiceEntryR\x06voices\x12Y\n" +
+	"\x15voice_workflow_models\x18\x10 \x03(\v2%.nimi.runtime.v1.CatalogWorkflowModelR\x13voiceWorkflowModels\x12b\n" +
+	"\x16model_workflow_binding\x18\x11 \x01(\v2,.nimi.runtime.v1.CatalogModelWorkflowBindingR\x14modelWorkflowBinding\"\x83\x04\n" +
+	"\x11CatalogModelInput\x12\x1a\n" +
+	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x19\n" +
+	"\bmodel_id\x18\x02 \x01(\tR\amodelId\x12\x1d\n" +
+	"\n" +
+	"model_type\x18\x03 \x01(\tR\tmodelType\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x04 \x01(\tR\tupdatedAt\x12\"\n" +
+	"\fcapabilities\x18\x05 \x03(\tR\fcapabilities\x129\n" +
+	"\apricing\x18\x06 \x01(\v2\x1f.nimi.runtime.v1.CatalogPricingR\apricing\x12 \n" +
+	"\fvoice_set_id\x18\a \x01(\tR\n" +
+	"voiceSetId\x120\n" +
+	"\x14voice_discovery_mode\x18\b \x01(\tR\x12voiceDiscoveryMode\x12&\n" +
+	"\x0fvoice_ref_kinds\x18\t \x03(\tR\rvoiceRefKinds\x12\\\n" +
+	"\x10video_generation\x18\n" +
+	" \x01(\v21.nimi.runtime.v1.CatalogVideoGenerationCapabilityR\x0fvideoGeneration\x12@\n" +
+	"\n" +
+	"source_ref\x18\v \x01(\v2!.nimi.runtime.v1.CatalogSourceRefR\tsourceRef\"z\n" +
+	" ListCatalogProviderModelsRequest\x12\x1a\n" +
+	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\"\x95\x02\n" +
+	"!ListCatalogProviderModelsResponse\x12F\n" +
+	"\bprovider\x18\x01 \x01(\v2*.nimi.runtime.v1.ModelCatalogProviderEntryR\bprovider\x12<\n" +
+	"\x06models\x18\x02 \x03(\v2$.nimi.runtime.v1.CatalogModelSummaryR\x06models\x12&\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\x12B\n" +
+	"\bwarnings\x18\x04 \x03(\v2&.nimi.runtime.v1.CatalogOverlayWarningR\bwarnings\"U\n" +
+	"\x1cGetCatalogModelDetailRequest\x12\x1a\n" +
+	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x19\n" +
+	"\bmodel_id\x18\x02 \x01(\tR\amodelId\"\xe6\x01\n" +
+	"\x1dGetCatalogModelDetailResponse\x12F\n" +
+	"\bprovider\x18\x01 \x01(\v2*.nimi.runtime.v1.ModelCatalogProviderEntryR\bprovider\x129\n" +
+	"\x05model\x18\x02 \x01(\v2#.nimi.runtime.v1.CatalogModelDetailR\x05model\x12B\n" +
+	"\bwarnings\x18\x03 \x03(\v2&.nimi.runtime.v1.CatalogOverlayWarningR\bwarnings\"\xf3\x02\n" +
+	" UpsertCatalogModelOverlayRequest\x12\x1a\n" +
+	"\bprovider\x18\x01 \x01(\tR\bprovider\x128\n" +
+	"\x05model\x18\x02 \x01(\v2\".nimi.runtime.v1.CatalogModelInputR\x05model\x12:\n" +
+	"\x06voices\x18\x03 \x03(\v2\".nimi.runtime.v1.CatalogVoiceEntryR\x06voices\x12Y\n" +
+	"\x15voice_workflow_models\x18\x04 \x03(\v2%.nimi.runtime.v1.CatalogWorkflowModelR\x13voiceWorkflowModels\x12b\n" +
+	"\x16model_workflow_binding\x18\x05 \x01(\v2,.nimi.runtime.v1.CatalogModelWorkflowBindingR\x14modelWorkflowBinding\"\xea\x01\n" +
+	"!UpsertCatalogModelOverlayResponse\x12F\n" +
+	"\bprovider\x18\x01 \x01(\v2*.nimi.runtime.v1.ModelCatalogProviderEntryR\bprovider\x129\n" +
+	"\x05model\x18\x02 \x01(\v2#.nimi.runtime.v1.CatalogModelDetailR\x05model\x12B\n" +
+	"\bwarnings\x18\x03 \x03(\v2&.nimi.runtime.v1.CatalogOverlayWarningR\bwarnings\"Y\n" +
+	" DeleteCatalogModelOverlayRequest\x12\x1a\n" +
+	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x19\n" +
+	"\bmodel_id\x18\x02 \x01(\tR\amodelId\"\x93\x01\n" +
+	"!DeleteCatalogModelOverlayResponse\x12&\n" +
+	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack\x12F\n" +
+	"\bprovider\x18\x02 \x01(\v2*.nimi.runtime.v1.ModelCatalogProviderEntryR\bprovider*r\n" +
 	"\rConnectorKind\x12\x1e\n" +
 	"\x1aCONNECTOR_KIND_UNSPECIFIED\x10\x00\x12\x1e\n" +
 	"\x1aCONNECTOR_KIND_LOCAL_MODEL\x10\x01\x12!\n" +
@@ -1888,12 +3715,18 @@ const file_runtime_v1_connector_proto_rawDesc = "" +
 	"\x1eLOCAL_CONNECTOR_CATEGORY_IMAGE\x10\x03\x12 \n" +
 	"\x1cLOCAL_CONNECTOR_CATEGORY_TTS\x10\x04\x12 \n" +
 	"\x1cLOCAL_CONNECTOR_CATEGORY_STT\x10\x05\x12#\n" +
-	"\x1fLOCAL_CONNECTOR_CATEGORY_CUSTOM\x10\x06*\xca\x01\n" +
+	"\x1fLOCAL_CONNECTOR_CATEGORY_CUSTOM\x10\x06*\xf8\x01\n" +
 	"\x1aModelCatalogProviderSource\x12-\n" +
 	")MODEL_CATALOG_PROVIDER_SOURCE_UNSPECIFIED\x10\x00\x12)\n" +
 	"%MODEL_CATALOG_PROVIDER_SOURCE_BUILTIN\x10\x01\x12(\n" +
 	"$MODEL_CATALOG_PROVIDER_SOURCE_CUSTOM\x10\x02\x12(\n" +
-	"$MODEL_CATALOG_PROVIDER_SOURCE_REMOTE\x10\x032\xe4\t\n" +
+	"$MODEL_CATALOG_PROVIDER_SOURCE_REMOTE\x10\x03\x12,\n" +
+	"(MODEL_CATALOG_PROVIDER_SOURCE_OVERRIDDEN\x10\x04*\xa2\x01\n" +
+	"\x12CatalogModelSource\x12$\n" +
+	" CATALOG_MODEL_SOURCE_UNSPECIFIED\x10\x00\x12 \n" +
+	"\x1cCATALOG_MODEL_SOURCE_BUILTIN\x10\x01\x12\x1f\n" +
+	"\x1bCATALOG_MODEL_SOURCE_CUSTOM\x10\x02\x12#\n" +
+	"\x1fCATALOG_MODEL_SOURCE_OVERRIDDEN\x10\x032\xeb\r\n" +
 	"\x17RuntimeConnectorService\x12d\n" +
 	"\x0fCreateConnector\x12'.nimi.runtime.v1.CreateConnectorRequest\x1a(.nimi.runtime.v1.CreateConnectorResponse\x12[\n" +
 	"\fGetConnector\x12$.nimi.runtime.v1.GetConnectorRequest\x1a%.nimi.runtime.v1.GetConnectorResponse\x12a\n" +
@@ -1905,7 +3738,11 @@ const file_runtime_v1_connector_proto_rawDesc = "" +
 	"\x13ListProviderCatalog\x12+.nimi.runtime.v1.ListProviderCatalogRequest\x1a,.nimi.runtime.v1.ListProviderCatalogResponse\x12\x82\x01\n" +
 	"\x19ListModelCatalogProviders\x121.nimi.runtime.v1.ListModelCatalogProvidersRequest\x1a2.nimi.runtime.v1.ListModelCatalogProvidersResponse\x12\x85\x01\n" +
 	"\x1aUpsertModelCatalogProvider\x122.nimi.runtime.v1.UpsertModelCatalogProviderRequest\x1a3.nimi.runtime.v1.UpsertModelCatalogProviderResponse\x12\x85\x01\n" +
-	"\x1aDeleteModelCatalogProvider\x122.nimi.runtime.v1.DeleteModelCatalogProviderRequest\x1a3.nimi.runtime.v1.DeleteModelCatalogProviderResponseB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"\x1aDeleteModelCatalogProvider\x122.nimi.runtime.v1.DeleteModelCatalogProviderRequest\x1a3.nimi.runtime.v1.DeleteModelCatalogProviderResponse\x12\x82\x01\n" +
+	"\x19ListCatalogProviderModels\x121.nimi.runtime.v1.ListCatalogProviderModelsRequest\x1a2.nimi.runtime.v1.ListCatalogProviderModelsResponse\x12v\n" +
+	"\x15GetCatalogModelDetail\x12-.nimi.runtime.v1.GetCatalogModelDetailRequest\x1a..nimi.runtime.v1.GetCatalogModelDetailResponse\x12\x82\x01\n" +
+	"\x19UpsertCatalogModelOverlay\x121.nimi.runtime.v1.UpsertCatalogModelOverlayRequest\x1a2.nimi.runtime.v1.UpsertCatalogModelOverlayResponse\x12\x82\x01\n" +
+	"\x19DeleteCatalogModelOverlay\x121.nimi.runtime.v1.DeleteCatalogModelOverlayRequest\x1a2.nimi.runtime.v1.DeleteCatalogModelOverlayResponseB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_connector_proto_rawDescOnce sync.Once
@@ -1919,91 +3756,154 @@ func file_runtime_v1_connector_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_connector_proto_rawDescData
 }
 
-var file_runtime_v1_connector_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_runtime_v1_connector_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_runtime_v1_connector_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
+var file_runtime_v1_connector_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
 var file_runtime_v1_connector_proto_goTypes = []any{
 	(ConnectorKind)(0),                         // 0: nimi.runtime.v1.ConnectorKind
 	(ConnectorOwnerType)(0),                    // 1: nimi.runtime.v1.ConnectorOwnerType
 	(ConnectorStatus)(0),                       // 2: nimi.runtime.v1.ConnectorStatus
 	(LocalConnectorCategory)(0),                // 3: nimi.runtime.v1.LocalConnectorCategory
 	(ModelCatalogProviderSource)(0),            // 4: nimi.runtime.v1.ModelCatalogProviderSource
-	(*Connector)(nil),                          // 5: nimi.runtime.v1.Connector
-	(*CreateConnectorRequest)(nil),             // 6: nimi.runtime.v1.CreateConnectorRequest
-	(*CreateConnectorResponse)(nil),            // 7: nimi.runtime.v1.CreateConnectorResponse
-	(*GetConnectorRequest)(nil),                // 8: nimi.runtime.v1.GetConnectorRequest
-	(*GetConnectorResponse)(nil),               // 9: nimi.runtime.v1.GetConnectorResponse
-	(*ListConnectorsRequest)(nil),              // 10: nimi.runtime.v1.ListConnectorsRequest
-	(*ListConnectorsResponse)(nil),             // 11: nimi.runtime.v1.ListConnectorsResponse
-	(*UpdateConnectorRequest)(nil),             // 12: nimi.runtime.v1.UpdateConnectorRequest
-	(*UpdateConnectorResponse)(nil),            // 13: nimi.runtime.v1.UpdateConnectorResponse
-	(*DeleteConnectorRequest)(nil),             // 14: nimi.runtime.v1.DeleteConnectorRequest
-	(*DeleteConnectorResponse)(nil),            // 15: nimi.runtime.v1.DeleteConnectorResponse
-	(*TestConnectorRequest)(nil),               // 16: nimi.runtime.v1.TestConnectorRequest
-	(*TestConnectorResponse)(nil),              // 17: nimi.runtime.v1.TestConnectorResponse
-	(*ConnectorModelDescriptor)(nil),           // 18: nimi.runtime.v1.ConnectorModelDescriptor
-	(*ListConnectorModelsRequest)(nil),         // 19: nimi.runtime.v1.ListConnectorModelsRequest
-	(*ListConnectorModelsResponse)(nil),        // 20: nimi.runtime.v1.ListConnectorModelsResponse
-	(*ProviderCatalogEntry)(nil),               // 21: nimi.runtime.v1.ProviderCatalogEntry
-	(*ListProviderCatalogRequest)(nil),         // 22: nimi.runtime.v1.ListProviderCatalogRequest
-	(*ListProviderCatalogResponse)(nil),        // 23: nimi.runtime.v1.ListProviderCatalogResponse
-	(*ModelCatalogProviderEntry)(nil),          // 24: nimi.runtime.v1.ModelCatalogProviderEntry
-	(*ListModelCatalogProvidersRequest)(nil),   // 25: nimi.runtime.v1.ListModelCatalogProvidersRequest
-	(*ListModelCatalogProvidersResponse)(nil),  // 26: nimi.runtime.v1.ListModelCatalogProvidersResponse
-	(*UpsertModelCatalogProviderRequest)(nil),  // 27: nimi.runtime.v1.UpsertModelCatalogProviderRequest
-	(*UpsertModelCatalogProviderResponse)(nil), // 28: nimi.runtime.v1.UpsertModelCatalogProviderResponse
-	(*DeleteModelCatalogProviderRequest)(nil),  // 29: nimi.runtime.v1.DeleteModelCatalogProviderRequest
-	(*DeleteModelCatalogProviderResponse)(nil), // 30: nimi.runtime.v1.DeleteModelCatalogProviderResponse
-	(*fieldmaskpb.FieldMask)(nil),              // 31: google.protobuf.FieldMask
-	(*Ack)(nil),                                // 32: nimi.runtime.v1.Ack
+	(CatalogModelSource)(0),                    // 5: nimi.runtime.v1.CatalogModelSource
+	(*Connector)(nil),                          // 6: nimi.runtime.v1.Connector
+	(*CreateConnectorRequest)(nil),             // 7: nimi.runtime.v1.CreateConnectorRequest
+	(*CreateConnectorResponse)(nil),            // 8: nimi.runtime.v1.CreateConnectorResponse
+	(*GetConnectorRequest)(nil),                // 9: nimi.runtime.v1.GetConnectorRequest
+	(*GetConnectorResponse)(nil),               // 10: nimi.runtime.v1.GetConnectorResponse
+	(*ListConnectorsRequest)(nil),              // 11: nimi.runtime.v1.ListConnectorsRequest
+	(*ListConnectorsResponse)(nil),             // 12: nimi.runtime.v1.ListConnectorsResponse
+	(*UpdateConnectorRequest)(nil),             // 13: nimi.runtime.v1.UpdateConnectorRequest
+	(*UpdateConnectorResponse)(nil),            // 14: nimi.runtime.v1.UpdateConnectorResponse
+	(*DeleteConnectorRequest)(nil),             // 15: nimi.runtime.v1.DeleteConnectorRequest
+	(*DeleteConnectorResponse)(nil),            // 16: nimi.runtime.v1.DeleteConnectorResponse
+	(*TestConnectorRequest)(nil),               // 17: nimi.runtime.v1.TestConnectorRequest
+	(*TestConnectorResponse)(nil),              // 18: nimi.runtime.v1.TestConnectorResponse
+	(*ConnectorModelDescriptor)(nil),           // 19: nimi.runtime.v1.ConnectorModelDescriptor
+	(*ListConnectorModelsRequest)(nil),         // 20: nimi.runtime.v1.ListConnectorModelsRequest
+	(*ListConnectorModelsResponse)(nil),        // 21: nimi.runtime.v1.ListConnectorModelsResponse
+	(*ProviderCatalogEntry)(nil),               // 22: nimi.runtime.v1.ProviderCatalogEntry
+	(*ListProviderCatalogRequest)(nil),         // 23: nimi.runtime.v1.ListProviderCatalogRequest
+	(*ListProviderCatalogResponse)(nil),        // 24: nimi.runtime.v1.ListProviderCatalogResponse
+	(*ModelCatalogProviderEntry)(nil),          // 25: nimi.runtime.v1.ModelCatalogProviderEntry
+	(*ListModelCatalogProvidersRequest)(nil),   // 26: nimi.runtime.v1.ListModelCatalogProvidersRequest
+	(*ListModelCatalogProvidersResponse)(nil),  // 27: nimi.runtime.v1.ListModelCatalogProvidersResponse
+	(*UpsertModelCatalogProviderRequest)(nil),  // 28: nimi.runtime.v1.UpsertModelCatalogProviderRequest
+	(*UpsertModelCatalogProviderResponse)(nil), // 29: nimi.runtime.v1.UpsertModelCatalogProviderResponse
+	(*DeleteModelCatalogProviderRequest)(nil),  // 30: nimi.runtime.v1.DeleteModelCatalogProviderRequest
+	(*DeleteModelCatalogProviderResponse)(nil), // 31: nimi.runtime.v1.DeleteModelCatalogProviderResponse
+	(*CatalogOverlayWarning)(nil),              // 32: nimi.runtime.v1.CatalogOverlayWarning
+	(*CatalogPricing)(nil),                     // 33: nimi.runtime.v1.CatalogPricing
+	(*CatalogSourceRef)(nil),                   // 34: nimi.runtime.v1.CatalogSourceRef
+	(*CatalogStringListEntry)(nil),             // 35: nimi.runtime.v1.CatalogStringListEntry
+	(*CatalogVideoGenerationOutputs)(nil),      // 36: nimi.runtime.v1.CatalogVideoGenerationOutputs
+	(*CatalogVideoGenerationCapability)(nil),   // 37: nimi.runtime.v1.CatalogVideoGenerationCapability
+	(*CatalogVoiceEntry)(nil),                  // 38: nimi.runtime.v1.CatalogVoiceEntry
+	(*CatalogWorkflowModel)(nil),               // 39: nimi.runtime.v1.CatalogWorkflowModel
+	(*CatalogModelWorkflowBinding)(nil),        // 40: nimi.runtime.v1.CatalogModelWorkflowBinding
+	(*CatalogModelSummary)(nil),                // 41: nimi.runtime.v1.CatalogModelSummary
+	(*CatalogModelDetail)(nil),                 // 42: nimi.runtime.v1.CatalogModelDetail
+	(*CatalogModelInput)(nil),                  // 43: nimi.runtime.v1.CatalogModelInput
+	(*ListCatalogProviderModelsRequest)(nil),   // 44: nimi.runtime.v1.ListCatalogProviderModelsRequest
+	(*ListCatalogProviderModelsResponse)(nil),  // 45: nimi.runtime.v1.ListCatalogProviderModelsResponse
+	(*GetCatalogModelDetailRequest)(nil),       // 46: nimi.runtime.v1.GetCatalogModelDetailRequest
+	(*GetCatalogModelDetailResponse)(nil),      // 47: nimi.runtime.v1.GetCatalogModelDetailResponse
+	(*UpsertCatalogModelOverlayRequest)(nil),   // 48: nimi.runtime.v1.UpsertCatalogModelOverlayRequest
+	(*UpsertCatalogModelOverlayResponse)(nil),  // 49: nimi.runtime.v1.UpsertCatalogModelOverlayResponse
+	(*DeleteCatalogModelOverlayRequest)(nil),   // 50: nimi.runtime.v1.DeleteCatalogModelOverlayRequest
+	(*DeleteCatalogModelOverlayResponse)(nil),  // 51: nimi.runtime.v1.DeleteCatalogModelOverlayResponse
+	(*fieldmaskpb.FieldMask)(nil),              // 52: google.protobuf.FieldMask
+	(*Ack)(nil),                                // 53: nimi.runtime.v1.Ack
+	(*structpb.Struct)(nil),                    // 54: google.protobuf.Struct
 }
 var file_runtime_v1_connector_proto_depIdxs = []int32{
 	0,  // 0: nimi.runtime.v1.Connector.kind:type_name -> nimi.runtime.v1.ConnectorKind
 	1,  // 1: nimi.runtime.v1.Connector.owner_type:type_name -> nimi.runtime.v1.ConnectorOwnerType
 	2,  // 2: nimi.runtime.v1.Connector.status:type_name -> nimi.runtime.v1.ConnectorStatus
 	3,  // 3: nimi.runtime.v1.Connector.local_category:type_name -> nimi.runtime.v1.LocalConnectorCategory
-	5,  // 4: nimi.runtime.v1.CreateConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
-	5,  // 5: nimi.runtime.v1.GetConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
+	6,  // 4: nimi.runtime.v1.CreateConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
+	6,  // 5: nimi.runtime.v1.GetConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
 	0,  // 6: nimi.runtime.v1.ListConnectorsRequest.kind_filter:type_name -> nimi.runtime.v1.ConnectorKind
 	2,  // 7: nimi.runtime.v1.ListConnectorsRequest.status_filter:type_name -> nimi.runtime.v1.ConnectorStatus
-	5,  // 8: nimi.runtime.v1.ListConnectorsResponse.connectors:type_name -> nimi.runtime.v1.Connector
+	6,  // 8: nimi.runtime.v1.ListConnectorsResponse.connectors:type_name -> nimi.runtime.v1.Connector
 	2,  // 9: nimi.runtime.v1.UpdateConnectorRequest.status:type_name -> nimi.runtime.v1.ConnectorStatus
-	31, // 10: nimi.runtime.v1.UpdateConnectorRequest.update_mask:type_name -> google.protobuf.FieldMask
-	5,  // 11: nimi.runtime.v1.UpdateConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
-	32, // 12: nimi.runtime.v1.DeleteConnectorResponse.ack:type_name -> nimi.runtime.v1.Ack
-	32, // 13: nimi.runtime.v1.TestConnectorResponse.ack:type_name -> nimi.runtime.v1.Ack
-	18, // 14: nimi.runtime.v1.ListConnectorModelsResponse.models:type_name -> nimi.runtime.v1.ConnectorModelDescriptor
-	21, // 15: nimi.runtime.v1.ListProviderCatalogResponse.providers:type_name -> nimi.runtime.v1.ProviderCatalogEntry
+	52, // 10: nimi.runtime.v1.UpdateConnectorRequest.update_mask:type_name -> google.protobuf.FieldMask
+	6,  // 11: nimi.runtime.v1.UpdateConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
+	53, // 12: nimi.runtime.v1.DeleteConnectorResponse.ack:type_name -> nimi.runtime.v1.Ack
+	53, // 13: nimi.runtime.v1.TestConnectorResponse.ack:type_name -> nimi.runtime.v1.Ack
+	19, // 14: nimi.runtime.v1.ListConnectorModelsResponse.models:type_name -> nimi.runtime.v1.ConnectorModelDescriptor
+	22, // 15: nimi.runtime.v1.ListProviderCatalogResponse.providers:type_name -> nimi.runtime.v1.ProviderCatalogEntry
 	4,  // 16: nimi.runtime.v1.ModelCatalogProviderEntry.source:type_name -> nimi.runtime.v1.ModelCatalogProviderSource
-	24, // 17: nimi.runtime.v1.ListModelCatalogProvidersResponse.providers:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
-	24, // 18: nimi.runtime.v1.UpsertModelCatalogProviderResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
-	32, // 19: nimi.runtime.v1.DeleteModelCatalogProviderResponse.ack:type_name -> nimi.runtime.v1.Ack
-	6,  // 20: nimi.runtime.v1.RuntimeConnectorService.CreateConnector:input_type -> nimi.runtime.v1.CreateConnectorRequest
-	8,  // 21: nimi.runtime.v1.RuntimeConnectorService.GetConnector:input_type -> nimi.runtime.v1.GetConnectorRequest
-	10, // 22: nimi.runtime.v1.RuntimeConnectorService.ListConnectors:input_type -> nimi.runtime.v1.ListConnectorsRequest
-	12, // 23: nimi.runtime.v1.RuntimeConnectorService.UpdateConnector:input_type -> nimi.runtime.v1.UpdateConnectorRequest
-	14, // 24: nimi.runtime.v1.RuntimeConnectorService.DeleteConnector:input_type -> nimi.runtime.v1.DeleteConnectorRequest
-	16, // 25: nimi.runtime.v1.RuntimeConnectorService.TestConnector:input_type -> nimi.runtime.v1.TestConnectorRequest
-	19, // 26: nimi.runtime.v1.RuntimeConnectorService.ListConnectorModels:input_type -> nimi.runtime.v1.ListConnectorModelsRequest
-	22, // 27: nimi.runtime.v1.RuntimeConnectorService.ListProviderCatalog:input_type -> nimi.runtime.v1.ListProviderCatalogRequest
-	25, // 28: nimi.runtime.v1.RuntimeConnectorService.ListModelCatalogProviders:input_type -> nimi.runtime.v1.ListModelCatalogProvidersRequest
-	27, // 29: nimi.runtime.v1.RuntimeConnectorService.UpsertModelCatalogProvider:input_type -> nimi.runtime.v1.UpsertModelCatalogProviderRequest
-	29, // 30: nimi.runtime.v1.RuntimeConnectorService.DeleteModelCatalogProvider:input_type -> nimi.runtime.v1.DeleteModelCatalogProviderRequest
-	7,  // 31: nimi.runtime.v1.RuntimeConnectorService.CreateConnector:output_type -> nimi.runtime.v1.CreateConnectorResponse
-	9,  // 32: nimi.runtime.v1.RuntimeConnectorService.GetConnector:output_type -> nimi.runtime.v1.GetConnectorResponse
-	11, // 33: nimi.runtime.v1.RuntimeConnectorService.ListConnectors:output_type -> nimi.runtime.v1.ListConnectorsResponse
-	13, // 34: nimi.runtime.v1.RuntimeConnectorService.UpdateConnector:output_type -> nimi.runtime.v1.UpdateConnectorResponse
-	15, // 35: nimi.runtime.v1.RuntimeConnectorService.DeleteConnector:output_type -> nimi.runtime.v1.DeleteConnectorResponse
-	17, // 36: nimi.runtime.v1.RuntimeConnectorService.TestConnector:output_type -> nimi.runtime.v1.TestConnectorResponse
-	20, // 37: nimi.runtime.v1.RuntimeConnectorService.ListConnectorModels:output_type -> nimi.runtime.v1.ListConnectorModelsResponse
-	23, // 38: nimi.runtime.v1.RuntimeConnectorService.ListProviderCatalog:output_type -> nimi.runtime.v1.ListProviderCatalogResponse
-	26, // 39: nimi.runtime.v1.RuntimeConnectorService.ListModelCatalogProviders:output_type -> nimi.runtime.v1.ListModelCatalogProvidersResponse
-	28, // 40: nimi.runtime.v1.RuntimeConnectorService.UpsertModelCatalogProvider:output_type -> nimi.runtime.v1.UpsertModelCatalogProviderResponse
-	30, // 41: nimi.runtime.v1.RuntimeConnectorService.DeleteModelCatalogProvider:output_type -> nimi.runtime.v1.DeleteModelCatalogProviderResponse
-	31, // [31:42] is the sub-list for method output_type
-	20, // [20:31] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	25, // 17: nimi.runtime.v1.ListModelCatalogProvidersResponse.providers:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
+	25, // 18: nimi.runtime.v1.UpsertModelCatalogProviderResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
+	53, // 19: nimi.runtime.v1.DeleteModelCatalogProviderResponse.ack:type_name -> nimi.runtime.v1.Ack
+	35, // 20: nimi.runtime.v1.CatalogVideoGenerationCapability.input_roles:type_name -> nimi.runtime.v1.CatalogStringListEntry
+	54, // 21: nimi.runtime.v1.CatalogVideoGenerationCapability.limits:type_name -> google.protobuf.Struct
+	54, // 22: nimi.runtime.v1.CatalogVideoGenerationCapability.option_constraints:type_name -> google.protobuf.Struct
+	36, // 23: nimi.runtime.v1.CatalogVideoGenerationCapability.outputs:type_name -> nimi.runtime.v1.CatalogVideoGenerationOutputs
+	34, // 24: nimi.runtime.v1.CatalogVoiceEntry.source_ref:type_name -> nimi.runtime.v1.CatalogSourceRef
+	34, // 25: nimi.runtime.v1.CatalogWorkflowModel.source_ref:type_name -> nimi.runtime.v1.CatalogSourceRef
+	5,  // 26: nimi.runtime.v1.CatalogModelSummary.source:type_name -> nimi.runtime.v1.CatalogModelSource
+	33, // 27: nimi.runtime.v1.CatalogModelDetail.pricing:type_name -> nimi.runtime.v1.CatalogPricing
+	37, // 28: nimi.runtime.v1.CatalogModelDetail.video_generation:type_name -> nimi.runtime.v1.CatalogVideoGenerationCapability
+	34, // 29: nimi.runtime.v1.CatalogModelDetail.source_ref:type_name -> nimi.runtime.v1.CatalogSourceRef
+	5,  // 30: nimi.runtime.v1.CatalogModelDetail.source:type_name -> nimi.runtime.v1.CatalogModelSource
+	32, // 31: nimi.runtime.v1.CatalogModelDetail.warnings:type_name -> nimi.runtime.v1.CatalogOverlayWarning
+	38, // 32: nimi.runtime.v1.CatalogModelDetail.voices:type_name -> nimi.runtime.v1.CatalogVoiceEntry
+	39, // 33: nimi.runtime.v1.CatalogModelDetail.voice_workflow_models:type_name -> nimi.runtime.v1.CatalogWorkflowModel
+	40, // 34: nimi.runtime.v1.CatalogModelDetail.model_workflow_binding:type_name -> nimi.runtime.v1.CatalogModelWorkflowBinding
+	33, // 35: nimi.runtime.v1.CatalogModelInput.pricing:type_name -> nimi.runtime.v1.CatalogPricing
+	37, // 36: nimi.runtime.v1.CatalogModelInput.video_generation:type_name -> nimi.runtime.v1.CatalogVideoGenerationCapability
+	34, // 37: nimi.runtime.v1.CatalogModelInput.source_ref:type_name -> nimi.runtime.v1.CatalogSourceRef
+	25, // 38: nimi.runtime.v1.ListCatalogProviderModelsResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
+	41, // 39: nimi.runtime.v1.ListCatalogProviderModelsResponse.models:type_name -> nimi.runtime.v1.CatalogModelSummary
+	32, // 40: nimi.runtime.v1.ListCatalogProviderModelsResponse.warnings:type_name -> nimi.runtime.v1.CatalogOverlayWarning
+	25, // 41: nimi.runtime.v1.GetCatalogModelDetailResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
+	42, // 42: nimi.runtime.v1.GetCatalogModelDetailResponse.model:type_name -> nimi.runtime.v1.CatalogModelDetail
+	32, // 43: nimi.runtime.v1.GetCatalogModelDetailResponse.warnings:type_name -> nimi.runtime.v1.CatalogOverlayWarning
+	43, // 44: nimi.runtime.v1.UpsertCatalogModelOverlayRequest.model:type_name -> nimi.runtime.v1.CatalogModelInput
+	38, // 45: nimi.runtime.v1.UpsertCatalogModelOverlayRequest.voices:type_name -> nimi.runtime.v1.CatalogVoiceEntry
+	39, // 46: nimi.runtime.v1.UpsertCatalogModelOverlayRequest.voice_workflow_models:type_name -> nimi.runtime.v1.CatalogWorkflowModel
+	40, // 47: nimi.runtime.v1.UpsertCatalogModelOverlayRequest.model_workflow_binding:type_name -> nimi.runtime.v1.CatalogModelWorkflowBinding
+	25, // 48: nimi.runtime.v1.UpsertCatalogModelOverlayResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
+	42, // 49: nimi.runtime.v1.UpsertCatalogModelOverlayResponse.model:type_name -> nimi.runtime.v1.CatalogModelDetail
+	32, // 50: nimi.runtime.v1.UpsertCatalogModelOverlayResponse.warnings:type_name -> nimi.runtime.v1.CatalogOverlayWarning
+	53, // 51: nimi.runtime.v1.DeleteCatalogModelOverlayResponse.ack:type_name -> nimi.runtime.v1.Ack
+	25, // 52: nimi.runtime.v1.DeleteCatalogModelOverlayResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
+	7,  // 53: nimi.runtime.v1.RuntimeConnectorService.CreateConnector:input_type -> nimi.runtime.v1.CreateConnectorRequest
+	9,  // 54: nimi.runtime.v1.RuntimeConnectorService.GetConnector:input_type -> nimi.runtime.v1.GetConnectorRequest
+	11, // 55: nimi.runtime.v1.RuntimeConnectorService.ListConnectors:input_type -> nimi.runtime.v1.ListConnectorsRequest
+	13, // 56: nimi.runtime.v1.RuntimeConnectorService.UpdateConnector:input_type -> nimi.runtime.v1.UpdateConnectorRequest
+	15, // 57: nimi.runtime.v1.RuntimeConnectorService.DeleteConnector:input_type -> nimi.runtime.v1.DeleteConnectorRequest
+	17, // 58: nimi.runtime.v1.RuntimeConnectorService.TestConnector:input_type -> nimi.runtime.v1.TestConnectorRequest
+	20, // 59: nimi.runtime.v1.RuntimeConnectorService.ListConnectorModels:input_type -> nimi.runtime.v1.ListConnectorModelsRequest
+	23, // 60: nimi.runtime.v1.RuntimeConnectorService.ListProviderCatalog:input_type -> nimi.runtime.v1.ListProviderCatalogRequest
+	26, // 61: nimi.runtime.v1.RuntimeConnectorService.ListModelCatalogProviders:input_type -> nimi.runtime.v1.ListModelCatalogProvidersRequest
+	28, // 62: nimi.runtime.v1.RuntimeConnectorService.UpsertModelCatalogProvider:input_type -> nimi.runtime.v1.UpsertModelCatalogProviderRequest
+	30, // 63: nimi.runtime.v1.RuntimeConnectorService.DeleteModelCatalogProvider:input_type -> nimi.runtime.v1.DeleteModelCatalogProviderRequest
+	44, // 64: nimi.runtime.v1.RuntimeConnectorService.ListCatalogProviderModels:input_type -> nimi.runtime.v1.ListCatalogProviderModelsRequest
+	46, // 65: nimi.runtime.v1.RuntimeConnectorService.GetCatalogModelDetail:input_type -> nimi.runtime.v1.GetCatalogModelDetailRequest
+	48, // 66: nimi.runtime.v1.RuntimeConnectorService.UpsertCatalogModelOverlay:input_type -> nimi.runtime.v1.UpsertCatalogModelOverlayRequest
+	50, // 67: nimi.runtime.v1.RuntimeConnectorService.DeleteCatalogModelOverlay:input_type -> nimi.runtime.v1.DeleteCatalogModelOverlayRequest
+	8,  // 68: nimi.runtime.v1.RuntimeConnectorService.CreateConnector:output_type -> nimi.runtime.v1.CreateConnectorResponse
+	10, // 69: nimi.runtime.v1.RuntimeConnectorService.GetConnector:output_type -> nimi.runtime.v1.GetConnectorResponse
+	12, // 70: nimi.runtime.v1.RuntimeConnectorService.ListConnectors:output_type -> nimi.runtime.v1.ListConnectorsResponse
+	14, // 71: nimi.runtime.v1.RuntimeConnectorService.UpdateConnector:output_type -> nimi.runtime.v1.UpdateConnectorResponse
+	16, // 72: nimi.runtime.v1.RuntimeConnectorService.DeleteConnector:output_type -> nimi.runtime.v1.DeleteConnectorResponse
+	18, // 73: nimi.runtime.v1.RuntimeConnectorService.TestConnector:output_type -> nimi.runtime.v1.TestConnectorResponse
+	21, // 74: nimi.runtime.v1.RuntimeConnectorService.ListConnectorModels:output_type -> nimi.runtime.v1.ListConnectorModelsResponse
+	24, // 75: nimi.runtime.v1.RuntimeConnectorService.ListProviderCatalog:output_type -> nimi.runtime.v1.ListProviderCatalogResponse
+	27, // 76: nimi.runtime.v1.RuntimeConnectorService.ListModelCatalogProviders:output_type -> nimi.runtime.v1.ListModelCatalogProvidersResponse
+	29, // 77: nimi.runtime.v1.RuntimeConnectorService.UpsertModelCatalogProvider:output_type -> nimi.runtime.v1.UpsertModelCatalogProviderResponse
+	31, // 78: nimi.runtime.v1.RuntimeConnectorService.DeleteModelCatalogProvider:output_type -> nimi.runtime.v1.DeleteModelCatalogProviderResponse
+	45, // 79: nimi.runtime.v1.RuntimeConnectorService.ListCatalogProviderModels:output_type -> nimi.runtime.v1.ListCatalogProviderModelsResponse
+	47, // 80: nimi.runtime.v1.RuntimeConnectorService.GetCatalogModelDetail:output_type -> nimi.runtime.v1.GetCatalogModelDetailResponse
+	49, // 81: nimi.runtime.v1.RuntimeConnectorService.UpsertCatalogModelOverlay:output_type -> nimi.runtime.v1.UpsertCatalogModelOverlayResponse
+	51, // 82: nimi.runtime.v1.RuntimeConnectorService.DeleteCatalogModelOverlay:output_type -> nimi.runtime.v1.DeleteCatalogModelOverlayResponse
+	68, // [68:83] is the sub-list for method output_type
+	53, // [53:68] is the sub-list for method input_type
+	53, // [53:53] is the sub-list for extension type_name
+	53, // [53:53] is the sub-list for extension extendee
+	0,  // [0:53] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_connector_proto_init() }
@@ -2018,8 +3918,8 @@ func file_runtime_v1_connector_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_connector_proto_rawDesc), len(file_runtime_v1_connector_proto_rawDesc)),
-			NumEnums:      5,
-			NumMessages:   26,
+			NumEnums:      6,
+			NumMessages:   46,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

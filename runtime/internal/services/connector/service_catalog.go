@@ -14,10 +14,49 @@ import (
 
 func mapCatalogProviderSource(source aicatalog.ProviderSource) runtimev1.ModelCatalogProviderSource {
 	switch source {
+	case aicatalog.ProviderSourceOverridden:
+		return runtimev1.ModelCatalogProviderSource_MODEL_CATALOG_PROVIDER_SOURCE_OVERRIDDEN
 	case aicatalog.ProviderSourceCustom:
 		return runtimev1.ModelCatalogProviderSource_MODEL_CATALOG_PROVIDER_SOURCE_CUSTOM
 	default:
 		return runtimev1.ModelCatalogProviderSource_MODEL_CATALOG_PROVIDER_SOURCE_BUILTIN
+	}
+}
+
+func mapCatalogModelSource(source aicatalog.ModelSource) runtimev1.CatalogModelSource {
+	switch source {
+	case aicatalog.ModelSourceCustom:
+		return runtimev1.CatalogModelSource_CATALOG_MODEL_SOURCE_CUSTOM
+	case aicatalog.ModelSourceOverridden:
+		return runtimev1.CatalogModelSource_CATALOG_MODEL_SOURCE_OVERRIDDEN
+	default:
+		return runtimev1.CatalogModelSource_CATALOG_MODEL_SOURCE_BUILTIN
+	}
+}
+
+func modelCatalogProviderEntryFromRecord(record aicatalog.CatalogProviderRecord) *runtimev1.ModelCatalogProviderEntry {
+	entry := ProviderCatalog[record.Provider]
+	cap := ProviderCapabilities[record.Provider]
+	return &runtimev1.ModelCatalogProviderEntry{
+		Provider:                 record.Provider,
+		Version:                  int32(record.Version),
+		CatalogVersion:           record.CatalogVersion,
+		Source:                   mapCatalogProviderSource(record.Source),
+		ModelCount:               uint32(record.ModelCount),
+		VoiceCount:               uint32(record.VoiceCount),
+		Yaml:                     record.YAML,
+		DefaultTextModel:         record.DefaultTextModel,
+		Capabilities:             append([]string(nil), record.Capabilities...),
+		HasOverlay:               record.HasOverlay,
+		CustomModelCount:         uint32(record.CustomModelCount),
+		OverriddenModelCount:     uint32(record.OverriddenModelCount),
+		OverlayUpdatedAt:         record.OverlayUpdatedAt,
+		EffectiveYaml:            record.EffectiveYAML,
+		DefaultEndpoint:          entry.DefaultEndpoint,
+		RequiresExplicitEndpoint: entry.RequiresExplicitEndpoint,
+		RuntimePlane:             cap.RuntimePlane,
+		ExecutionModule:          cap.ExecutionModule,
+		ManagedSupported:         cap.ManagedSupported,
 	}
 }
 
@@ -70,14 +109,14 @@ func buildLocalConnectorModelDescriptors(models []*runtimev1.LocalModelRecord, c
 	return descriptors
 }
 
-func (s *Service) listCatalogConnectorModels(provider string) ([]*runtimev1.ConnectorModelDescriptor, error) {
+func (s *Service) listCatalogConnectorModels(subjectUserID string, provider string) ([]*runtimev1.ConnectorModelDescriptor, error) {
 	if s.modelCatalog == nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
 			ActionHint: "configure_runtime_model_catalog_custom_dir",
 		})
 	}
 
-	models, _, err := s.modelCatalog.ListModelsForProvider(provider)
+	models, _, err := s.modelCatalog.ListModelsForProviderForSubject(subjectUserID, provider)
 	if err != nil {
 		if errors.Is(err, aicatalog.ErrProviderUnsupported) {
 			return []*runtimev1.ConnectorModelDescriptor{}, nil
@@ -88,10 +127,10 @@ func (s *Service) listCatalogConnectorModels(provider string) ([]*runtimev1.Conn
 	descriptors := make([]*runtimev1.ConnectorModelDescriptor, 0, len(models))
 	for _, model := range models {
 		descriptors = append(descriptors, &runtimev1.ConnectorModelDescriptor{
-			ModelId:      model.ModelID,
-			ModelLabel:   model.ModelID,
+			ModelId:      model.Model.ModelID,
+			ModelLabel:   model.Model.ModelID,
 			Available:    true,
-			Capabilities: append([]string(nil), model.Capabilities...),
+			Capabilities: append([]string(nil), model.Model.Capabilities...),
 		})
 	}
 	return descriptors, nil

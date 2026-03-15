@@ -1,18 +1,20 @@
 package ai
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"google.golang.org/grpc/codes"
 )
 
 func (s *Service) validateCatalogAwareScenarioSupport(
+	ctx context.Context,
 	scenarioType runtimev1.ScenarioType,
 	providerType string,
 	modelResolved string,
@@ -23,13 +25,14 @@ func (s *Service) validateCatalogAwareScenarioSupport(
 	}
 	switch scenarioType {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:
-		return s.validateVideoGenerateAgainstCatalog(providerType, modelResolved, spec.GetVideoGenerate())
+		return s.validateVideoGenerateAgainstCatalog(ctx, providerType, modelResolved, spec.GetVideoGenerate())
 	default:
 		return nil
 	}
 }
 
 func (s *Service) validateVideoGenerateAgainstCatalog(
+	ctx context.Context,
 	providerType string,
 	modelResolved string,
 	spec *runtimev1.VideoGenerateScenarioSpec,
@@ -38,7 +41,7 @@ func (s *Service) validateVideoGenerateAgainstCatalog(
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 	}
 
-	model, err := s.speechCatalog.ResolveModelEntry(providerType, modelResolved)
+	model, err := s.speechCatalog.ResolveModelEntryForSubject(catalogSubjectUserIDFromContext(ctx), providerType, modelResolved)
 	if err != nil {
 		if errors.Is(err, catalog.ErrModelNotFound) {
 			return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)

@@ -3,13 +3,16 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { OPENAPI_TYPESCRIPT_VERSION, REALM_GENERATED_RELATIVE_PATH } from './constants.mjs';
 
+const PNPM_BIN = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+
 function runCommand(repoRoot, label, args) {
   const command = ['pnpm', ...args].join(' ');
   process.stdout.write(`\n[generate:realm-sdk] ${label}\n$ ${command}\n`);
-  const result = spawnSync('pnpm', args, {
+  const result = spawnSync(PNPM_BIN, args, {
     cwd: repoRoot,
     stdio: 'inherit',
     env: process.env,
+    shell: process.platform === 'win32',
   });
   if (result.status !== 0) {
     const status = result.status ?? -1;
@@ -18,11 +21,12 @@ function runCommand(repoRoot, label, args) {
 }
 
 function hasLocalOpenApiTypescriptBinary(repoRoot) {
-  const result = spawnSync('pnpm', ['exec', 'openapi-typescript', '--version'], {
+  const result = spawnSync(PNPM_BIN, ['exec', 'openapi-typescript', '--version'], {
     cwd: repoRoot,
     stdio: 'pipe',
     env: process.env,
     encoding: 'utf8',
+    shell: process.platform === 'win32',
   });
   return result.status === 0;
 }

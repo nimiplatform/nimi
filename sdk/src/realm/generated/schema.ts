@@ -5296,6 +5296,7 @@ export type components = {
             editedAt?: string;
             id: string;
             isRead: boolean;
+            /** @description Canonical media payloads are asset-backed: IMAGE/VIDEO payloads return assetId and resolved url, with width/height/duration when available. */
             payload: {
                 [key: string]: unknown;
             } | null;
@@ -5756,6 +5757,7 @@ export type components = {
             interaction?: {
                 [key: string]: unknown;
             };
+            /** @description Canonical chat media writes use payload.assetId for IMAGE/VIDEO messages. Provider-specific keys such as imageId/videoId are not allowed. */
             payload?: Record<string, never>;
             replyToMessageId?: string;
             text?: string;
@@ -5821,6 +5823,7 @@ export type components = {
         };
         StartChatInputDto: {
             asFriendRequest?: boolean;
+            /** @description Canonical chat media writes use payload.assetId for IMAGE/VIDEO messages. Provider-specific keys such as imageId/videoId are not allowed. */
             payload?: Record<string, never>;
             targetAccountId: string;
             text?: string;

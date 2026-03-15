@@ -5,6 +5,14 @@
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { RuntimeConnectorService } from "./connector";
+import type { DeleteCatalogModelOverlayResponse } from "./connector";
+import type { DeleteCatalogModelOverlayRequest } from "./connector";
+import type { UpsertCatalogModelOverlayResponse } from "./connector";
+import type { UpsertCatalogModelOverlayRequest } from "./connector";
+import type { GetCatalogModelDetailResponse } from "./connector";
+import type { GetCatalogModelDetailRequest } from "./connector";
+import type { ListCatalogProviderModelsResponse } from "./connector";
+import type { ListCatalogProviderModelsRequest } from "./connector";
 import type { DeleteModelCatalogProviderResponse } from "./connector";
 import type { DeleteModelCatalogProviderRequest } from "./connector";
 import type { UpsertModelCatalogProviderResponse } from "./connector";
@@ -78,6 +86,22 @@ export interface IRuntimeConnectorServiceClient {
      * @generated from protobuf rpc: DeleteModelCatalogProvider
      */
     deleteModelCatalogProvider(input: DeleteModelCatalogProviderRequest, options?: RpcOptions): UnaryCall<DeleteModelCatalogProviderRequest, DeleteModelCatalogProviderResponse>;
+    /**
+     * @generated from protobuf rpc: ListCatalogProviderModels
+     */
+    listCatalogProviderModels(input: ListCatalogProviderModelsRequest, options?: RpcOptions): UnaryCall<ListCatalogProviderModelsRequest, ListCatalogProviderModelsResponse>;
+    /**
+     * @generated from protobuf rpc: GetCatalogModelDetail
+     */
+    getCatalogModelDetail(input: GetCatalogModelDetailRequest, options?: RpcOptions): UnaryCall<GetCatalogModelDetailRequest, GetCatalogModelDetailResponse>;
+    /**
+     * @generated from protobuf rpc: UpsertCatalogModelOverlay
+     */
+    upsertCatalogModelOverlay(input: UpsertCatalogModelOverlayRequest, options?: RpcOptions): UnaryCall<UpsertCatalogModelOverlayRequest, UpsertCatalogModelOverlayResponse>;
+    /**
+     * @generated from protobuf rpc: DeleteCatalogModelOverlay
+     */
+    deleteCatalogModelOverlay(input: DeleteCatalogModelOverlayRequest, options?: RpcOptions): UnaryCall<DeleteCatalogModelOverlayRequest, DeleteCatalogModelOverlayResponse>;
 }
 /**
  * @generated from protobuf service nimi.runtime.v1.RuntimeConnectorService
@@ -164,5 +188,33 @@ export class RuntimeConnectorServiceClient implements IRuntimeConnectorServiceCl
     deleteModelCatalogProvider(input: DeleteModelCatalogProviderRequest, options?: RpcOptions): UnaryCall<DeleteModelCatalogProviderRequest, DeleteModelCatalogProviderResponse> {
         const method = this.methods[10], opt = this._transport.mergeOptions(options);
         return stackIntercept<DeleteModelCatalogProviderRequest, DeleteModelCatalogProviderResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: ListCatalogProviderModels
+     */
+    listCatalogProviderModels(input: ListCatalogProviderModelsRequest, options?: RpcOptions): UnaryCall<ListCatalogProviderModelsRequest, ListCatalogProviderModelsResponse> {
+        const method = this.methods[11], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ListCatalogProviderModelsRequest, ListCatalogProviderModelsResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: GetCatalogModelDetail
+     */
+    getCatalogModelDetail(input: GetCatalogModelDetailRequest, options?: RpcOptions): UnaryCall<GetCatalogModelDetailRequest, GetCatalogModelDetailResponse> {
+        const method = this.methods[12], opt = this._transport.mergeOptions(options);
+        return stackIntercept<GetCatalogModelDetailRequest, GetCatalogModelDetailResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: UpsertCatalogModelOverlay
+     */
+    upsertCatalogModelOverlay(input: UpsertCatalogModelOverlayRequest, options?: RpcOptions): UnaryCall<UpsertCatalogModelOverlayRequest, UpsertCatalogModelOverlayResponse> {
+        const method = this.methods[13], opt = this._transport.mergeOptions(options);
+        return stackIntercept<UpsertCatalogModelOverlayRequest, UpsertCatalogModelOverlayResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: DeleteCatalogModelOverlay
+     */
+    deleteCatalogModelOverlay(input: DeleteCatalogModelOverlayRequest, options?: RpcOptions): UnaryCall<DeleteCatalogModelOverlayRequest, DeleteCatalogModelOverlayResponse> {
+        const method = this.methods[14], opt = this._transport.mergeOptions(options);
+        return stackIntercept<DeleteCatalogModelOverlayRequest, DeleteCatalogModelOverlayResponse>("unary", this._transport, method, opt, input);
     }
 }

@@ -213,10 +213,11 @@ function checkLegacyDesignReferenceDrift() {
 
 function checkReasonCodeNumericAssignments() {
   for (const rel of allRuntimeSpecs.map((p) => path.relative(cwd, p))) {
-    if (rel === 'spec/runtime/kernel/tables/reason-codes.yaml') continue;
+    const normalizedRel = rel.replaceAll('\\', '/');
+    if (normalizedRel === 'spec/runtime/kernel/tables/reason-codes.yaml') continue;
     const txt = read(rel);
     if (/AI_[A-Z0-9_]+\s*=\s*\d+/.test(txt)) {
-      fail(`ReasonCode numeric assignment must live only in reason-codes.yaml: ${rel}`);
+      fail(`ReasonCode numeric assignment must live only in reason-codes.yaml: ${normalizedRel}`);
     }
   }
 }

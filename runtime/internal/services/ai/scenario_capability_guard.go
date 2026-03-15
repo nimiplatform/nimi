@@ -68,6 +68,7 @@ func unsupportedTextGeneratePartType(input []*runtimev1.ChatMessage) (runtimev1.
 }
 
 func (s *Service) validateScenarioCapability(
+	ctx context.Context,
 	scenarioType runtimev1.ScenarioType,
 	modelResolved string,
 	remoteTarget *nimillm.RemoteTarget,
@@ -83,7 +84,7 @@ func (s *Service) validateScenarioCapability(
 	if s == nil || s.speechCatalog == nil {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
-	supported, err := s.speechCatalog.SupportsScenario(providerType, modelResolved, scenarioType)
+	supported, err := s.speechCatalog.SupportsScenarioForSubject(catalogSubjectUserIDFromContext(ctx), providerType, modelResolved, scenarioType)
 	if err != nil {
 		if errors.Is(err, aicatalog.ErrModelNotFound) {
 			return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
@@ -192,6 +193,7 @@ func (s *Service) validateLocalTextGenerateInputCapabilities(
 }
 
 func (s *Service) validateRemoteTextGenerateInputCapabilities(
+	ctx context.Context,
 	modelResolved string,
 	remoteTarget *nimillm.RemoteTarget,
 	selected provider,
@@ -212,7 +214,7 @@ func (s *Service) validateRemoteTextGenerateInputCapabilities(
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
 	for _, capability := range required {
-		supported, err := s.speechCatalog.SupportsCapability(providerType, modelResolved, capability)
+		supported, err := s.speechCatalog.SupportsCapabilityForSubject(catalogSubjectUserIDFromContext(ctx), providerType, modelResolved, capability)
 		if err != nil {
 			if errors.Is(err, aicatalog.ErrModelNotFound) {
 				continue
@@ -239,5 +241,5 @@ func (s *Service) validateTextGenerateInputParts(
 	if selected != nil && selected.Route() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL && remoteTarget == nil {
 		return s.validateLocalTextGenerateInputCapabilities(ctx, modelResolved, input)
 	}
-	return s.validateRemoteTextGenerateInputCapabilities(modelResolved, remoteTarget, selected, input)
+	return s.validateRemoteTextGenerateInputCapabilities(ctx, modelResolved, remoteTarget, selected, input)
 }
