@@ -17,12 +17,9 @@ const SETTINGS_ITEM_KEY_BY_ID: Record<string, string> = {
   language: 'Settings.menuLanguage',
   privacy: 'Settings.menuPrivacy',
   security: 'Settings.menuSecurity',
-  data: 'Settings.menuData',
   notifications: 'Settings.menuNotifications',
-  performance: 'Settings.menuPerformance',
   extensions: 'Settings.menuModSettings',
   wallet: 'Settings.menuWallet',
-  developer: 'Settings.menuDeveloper',
 };
 
 function resolveSettingsSectionLabelKey(label: string): string | null {

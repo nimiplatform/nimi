@@ -1691,7 +1691,13 @@
       "runtime": "Runtime",
       "runtimeDesc": "Daemon, audit & EAA",
       "mods": "Mods",
-      "modsDesc": "AI profile setup"
+      "modsDesc": "AI profile setup",
+      "data-management": "Data Management",
+      "data-managementDesc": "Storage, cache, and account data",
+      "performance": "Performance",
+      "performanceDesc": "Rendering, updates, and runtime info",
+      "mod-developer": "Mod Developer",
+      "mod-developerDesc": "Developer mode and diagnostics"
     },
     "overview": {
       "installedModels": "Installed Models",

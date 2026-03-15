@@ -67,9 +67,28 @@ const ICON_MODS = (
   </svg>
 );
 
+const ICON_DATA_MANAGEMENT = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+  </svg>
+);
+
+const ICON_PERFORMANCE = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </svg>
+);
+
+const ICON_MOD_DEVELOPER = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" />
+  </svg>
+);
+
 const SIDEBAR_ITEMS: Array<{
   id: RuntimePageIdV11;
-  section: 'Core' | 'Connectors' | 'Operations';
+  section: 'Core' | 'Connectors' | 'Operations' | 'System';
   label: string;
   icon: ReactNode;
 }> = [
@@ -108,6 +127,24 @@ const SIDEBAR_ITEMS: Array<{
     section: 'Operations',
     label: 'Mods',
     icon: ICON_MODS,
+  },
+  {
+    id: 'data-management',
+    section: 'System',
+    label: 'Data Management',
+    icon: ICON_DATA_MANAGEMENT,
+  },
+  {
+    id: 'performance',
+    section: 'System',
+    label: 'Performance',
+    icon: ICON_PERFORMANCE,
+  },
+  {
+    id: 'mod-developer',
+    section: 'System',
+    label: 'Mod Developer',
+    icon: ICON_MOD_DEVELOPER,
   },
 ];
 

@@ -1691,7 +1691,13 @@
       "runtime": "运行时",
       "runtimeDesc": "守护进程、审计与 EAA",
       "mods": "模组",
-      "modsDesc": "AI profile 配置"
+      "modsDesc": "AI profile 配置",
+      "data-management": "数据管理",
+      "data-managementDesc": "存储、缓存与账户数据",
+      "performance": "性能",
+      "performanceDesc": "渲染偏好、更新与运行时信息",
+      "mod-developer": "模组开发者",
+      "mod-developerDesc": "开发者模式与诊断工具"
     },
     "overview": {
       "installedModels": "已安装模型",

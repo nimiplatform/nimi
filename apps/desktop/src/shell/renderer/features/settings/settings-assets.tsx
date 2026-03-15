@@ -191,14 +191,12 @@ const BASE_MENU_SECTIONS: SettingsMenuSection[] = [
     items: [
       { id: 'privacy', icon: ICON_EYE, title: 'Privacy' },
       { id: 'security', icon: ICON_SHIELD, title: 'Security' },
-      { id: 'data', icon: ICON_DATABASE, title: 'Data Management' },
     ],
   },
   {
     label: 'Preferences',
     items: [
       { id: 'notifications', icon: ICON_BELL, title: 'Notifications' },
-      { id: 'performance', icon: ICON_ZAP, title: 'Performance' },
     ],
   },
   {
@@ -211,7 +209,6 @@ const BASE_MENU_SECTIONS: SettingsMenuSection[] = [
     label: 'Advanced',
     items: [
       { id: 'wallet', icon: ICON_WALLET, title: 'Wallet' },
-      { id: 'developer', icon: ICON_CODE, title: 'Mod Developer' },
     ],
   },
 ];

@@ -12,6 +12,9 @@ import { CloudPage } from './runtime-config-page-cloud';
 import { CatalogPage } from './runtime-config-page-catalog';
 import { RuntimePage } from './runtime-config-page-runtime';
 import { ModsPage } from './runtime-config-page-mods';
+import { DataManagementPage } from '../settings/settings-data-management-page';
+import { PerformancePage } from '../settings/settings-performance-page';
+import { DeveloperPage } from '../settings/settings-developer-page';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { useRuntimeConfigPanelController } from './runtime-config-panel-controller';
 
@@ -164,6 +167,18 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           {activePage === 'local' ? (
             <div data-testid={E2E_IDS.runtimePageRoot('local')}>
               <LocalPage model={model} state={state} />
+            </div>
+          ) : activePage === 'data-management' ? (
+            <div data-testid={E2E_IDS.runtimePageRoot('data-management')}>
+              <DataManagementPage />
+            </div>
+          ) : activePage === 'performance' ? (
+            <div data-testid={E2E_IDS.runtimePageRoot('performance')}>
+              <PerformancePage />
+            </div>
+          ) : activePage === 'mod-developer' ? (
+            <div data-testid={E2E_IDS.runtimePageRoot('mod-developer')}>
+              <DeveloperPage />
             </div>
           ) : (
             <div className="mx-auto max-w-5xl p-6 space-y-6">

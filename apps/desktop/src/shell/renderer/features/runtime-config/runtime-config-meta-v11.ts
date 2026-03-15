@@ -25,6 +25,18 @@ export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; descrip
     name: 'Mods',
     description: 'Recommended local AI profile setup for registered mods.',
   },
+  'data-management': {
+    name: 'Data Management',
+    description: 'Storage usage, cache, and account data controls.',
+  },
+  performance: {
+    name: 'Performance',
+    description: 'Rendering preferences, updates, and runtime info.',
+  },
+  'mod-developer': {
+    name: 'Mod Developer',
+    description: 'Developer mode, mod sources, diagnostics, and reload tools.',
+  },
 };
 
 const RESET_LOG_FLAG_KEY = '__nimiRuntimeConfigV11ResetLogged__';
