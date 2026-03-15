@@ -18,7 +18,8 @@
       "/test/",
       ".test.",
       ".spec.",
-      "settings-assets.tsx"
+      "settings-assets.tsx",
+      "runtime-config-page-catalog.tsx"
     ],
     "allowTextPatterns": [
       "^MOD$",

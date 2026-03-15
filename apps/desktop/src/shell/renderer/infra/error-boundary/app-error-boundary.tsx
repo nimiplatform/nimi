@@ -35,9 +35,16 @@ export class AppErrorBoundary extends React.Component<PropsWithChildren, ErrorBo
     });
 
     if (import.meta.env.DEV) {
-      // Keep the full component stack visible in devtools for fast follow-up triage.
-      console.error(error);
-      console.error(errorInfo.componentStack);
+      // Keep the full component stack in renderer telemetry during local debugging.
+      logRendererEvent({
+        level: 'debug',
+        area: 'renderer',
+        message: 'action:error-boundary:dev-stack',
+        details: {
+          error: error.message,
+          componentStack: errorInfo.componentStack,
+        },
+      });
     }
   }
 

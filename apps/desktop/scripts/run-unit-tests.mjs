@@ -5,6 +5,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
+const PNPM_BIN = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(scriptDir, '..');
 const testRoot = path.join(workspaceRoot, 'test');
@@ -21,7 +22,7 @@ function collectTestFiles(dirPath) {
       continue;
     }
     if (stat.isFile() && entry.endsWith('.test.ts')) {
-      files.push(path.relative(workspaceRoot, entryPath));
+      files.push(path.relative(workspaceRoot, entryPath).replace(/\\/g, '/'));
     }
   }
   return files;
@@ -55,9 +56,10 @@ if (mode === '--i18n') {
 }
 args.push(...selectedTestFiles);
 
-const result = spawnSync('pnpm', args, {
+const result = spawnSync(PNPM_BIN, args, {
   cwd: workspaceRoot,
   stdio: 'inherit',
+  shell: process.platform === 'win32',
 });
 
 process.exit(result.status ?? 1);

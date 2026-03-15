@@ -1360,6 +1360,7 @@
     "loadingProfileDetail": "Loading profile details...",
     "online": "Online",
     "offline": "Offline",
+    "uploadingMedia": "Uploading...",
     "queuedLocally": "Queued locally",
     "sendFailed": "Send failed",
     "stopGenerating": "Stop generating",
@@ -1959,6 +1960,10 @@
     "catalog": {
       "providerCatalog": "Provider Catalog",
       "providerCatalogDesc": "Runtime effective catalog = built-in default + custom provider yaml. Save writes custom yaml into runtime custom dir.",
+      "providers": "Providers",
+      "models": "Models",
+      "customModels": "Personal Custom Models",
+      "overlayUpdatedAt": "Latest Overlay Update",
       "restoreDefault": "Restore Default",
       "restoring": "Restoring...",
       "saveYaml": "Save YAML",
@@ -1988,6 +1993,17 @@
       "loadingVerifiedModels": "Loading verified models...",
       "noVerifiedMatch": "No verified model matched your query.",
       "install": "Install"
+    },
+    "catalogCenter": {
+      "searchProviders": "Search Providers",
+      "searchProvidersPlaceholder": "provider, default model, capability",
+      "capability": "Capability",
+      "source": "Source",
+      "all": "All",
+      "builtin": "Builtin",
+      "custom": "Custom",
+      "overridden": "Overridden",
+      "loadingProviders": "Loading providers..."
     },
     "common": {
       "noModelsDiscovered": "No models discovered yet."

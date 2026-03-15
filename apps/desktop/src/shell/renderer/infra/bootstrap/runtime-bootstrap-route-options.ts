@@ -19,7 +19,7 @@ type ConnectorDescriptor = {
     vendor?: string;
     provider?: string;
 };
-const LOCAL_SNAPSHOT_TIMEOUT_MS = 1200;
+const LOCAL_SNAPSHOT_TIMEOUT_MS = 3500;
 function mapCanonicalCapabilityToLocalCapability(capability: RuntimeCanonicalCapability): 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | undefined {
     if (capability === 'text.generate')
         return 'chat';
@@ -282,6 +282,40 @@ export async function loadLocalRouteMetadata(capability: RuntimeCanonicalCapabil
         goRuntimeModels,
     };
 }
+type LoadRuntimeRouteOptionsDeps = {
+    sdkListConnectors: typeof import('@renderer/features/runtime-config/runtime-config-connector-sdk-service').sdkListConnectors;
+    sdkListConnectorModelDescriptors: typeof import('@renderer/features/runtime-config/runtime-config-connector-sdk-service').sdkListConnectorModelDescriptors;
+    loadLocalRouteMetadata: typeof loadLocalRouteMetadata;
+};
+function buildLocalRouteMetadataFallback(error: unknown, capability: RuntimeCanonicalCapability, modId?: string): LocalRouteMetadata {
+    const normalized = asNimiError(error, {
+        reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+        actionHint: 'check_runtime_daemon_health',
+        source: 'runtime',
+    });
+    emitRuntimeLog({
+        level: 'warn',
+        area: 'route-options',
+        message: 'action:load-local-route-metadata:degraded',
+        traceId: normalized.traceId,
+        details: {
+            modId: String(modId || '').trim() || undefined,
+            capability,
+            reasonCode: normalized.reasonCode,
+            actionHint: normalized.actionHint,
+            retryable: normalized.retryable,
+            traceId: normalized.traceId,
+            error: normalized.message,
+        },
+    });
+    return {
+        snapshot: {
+            models: [],
+        },
+        nodeCatalog: [],
+        goRuntimeModels: [],
+    };
+}
 function buildSelectedBinding(input: {
     capability: RuntimeCanonicalCapability;
     runtimeFields: RuntimeFields;
@@ -332,13 +366,19 @@ function buildSelectedBinding(input: {
 export async function loadRuntimeRouteOptions(input: {
     capability: RuntimeCanonicalCapability;
     modId?: string;
-}): Promise<RuntimeRouteOptionsSnapshot> {
+}, deps?: Partial<LoadRuntimeRouteOptionsDeps>): Promise<RuntimeRouteOptionsSnapshot> {
     const runtimeFields = useAppStore.getState().runtimeFields as RuntimeFields;
-    const { sdkListConnectors, sdkListConnectorModelDescriptors } = await import('@renderer/features/runtime-config/runtime-config-connector-sdk-service');
-    const connectorDescriptors = await sdkListConnectors();
+    const connectorService = await import('@renderer/features/runtime-config/runtime-config-connector-sdk-service');
+    const resolvedDeps: LoadRuntimeRouteOptionsDeps = {
+        sdkListConnectors: connectorService.sdkListConnectors,
+        sdkListConnectorModelDescriptors: connectorService.sdkListConnectorModelDescriptors,
+        loadLocalRouteMetadata,
+        ...deps,
+    };
+    const connectorDescriptors = await resolvedDeps.sdkListConnectors();
     const connectors: RuntimeRouteConnectorOption[] = [];
     for (const connector of connectorDescriptors as ConnectorDescriptor[]) {
-        const descriptors = await sdkListConnectorModelDescriptors(connector.id, false);
+        const descriptors = await resolvedDeps.sdkListConnectorModelDescriptors(connector.id, false);
         const models = descriptors
             .filter((item) => modelSupportsCapability(item.capabilities, input.capability))
             .map((item) => item.modelId);
@@ -362,7 +402,8 @@ export async function loadRuntimeRouteOptions(input: {
             modelProfiles: [],
         });
     }
-    const { snapshot, nodeCatalog, goRuntimeModels } = await loadLocalRouteMetadata(input.capability);
+    const { snapshot, nodeCatalog, goRuntimeModels } = await resolvedDeps.loadLocalRouteMetadata(input.capability)
+        .catch((error) => buildLocalRouteMetadataFallback(error, input.capability, input.modId));
     const nodeByProvider = new Map<string, {
         provider: string;
         adapter: string;
