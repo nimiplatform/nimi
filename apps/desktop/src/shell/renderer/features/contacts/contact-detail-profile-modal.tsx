@@ -127,7 +127,7 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
       }
       try {
         const result = props.profileSeed?.isAgent
-          ? await dataSync.loadAgentDetails(props.profileSeed.handle || props.profileId)
+          ? await dataSync.loadAgentDetails(props.profileId)
           : await dataSync.loadUserProfile(props.profileId);
         return toProfileData(result as Record<string, unknown>);
       } catch {

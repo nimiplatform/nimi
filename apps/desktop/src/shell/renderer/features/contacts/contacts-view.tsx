@@ -346,7 +346,7 @@ export function ContactsView(props: ContactsViewProps) {
       if (!selectedContact) return null;
       try {
         const result = selectedContact.isAgent
-          ? await dataSync.loadAgentDetails(selectedContact.handle || selectedContact.id)
+          ? await dataSync.loadAgentDetails(selectedContact.id)
           : await dataSync.loadUserProfile(selectedContact.id);
         return toProfileData(result as Record<string, unknown>);
       } catch (_error) {
