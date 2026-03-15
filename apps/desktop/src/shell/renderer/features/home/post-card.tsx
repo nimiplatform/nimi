@@ -323,7 +323,8 @@ export function PostCard(input: PostCardProps) {
 
   const handleCopyLink = useCallback(async () => {
     ui.togglePostMenu();
-    const postLink = `nimi://moments/posts/${post.id}`;
+    const webBaseUrl = (import.meta as { env?: Record<string, string> }).env?.VITE_WEB_BASE_URL ?? 'https://nimi.xyz';
+    const postLink = `${webBaseUrl}/posts/${post.id}`;
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(postLink);

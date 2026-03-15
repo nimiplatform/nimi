@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { initI18n } from '@renderer/i18n';
 import { App as LandingApp } from './landing/App.js';
 import { isWebShellHashRoute } from './site-entry-hash.js';
+import { PostPermalinkPage } from './post-permalink-page.js';
 import './web-styles.css';
 import './landing/styles.css';
 
@@ -16,6 +17,8 @@ const WebShellApp = lazy(async () => {
 });
 
 function SiteEntry() {
+  const pathname = window.location.pathname;
+  const postMatch = pathname.match(/^\/posts\/([^/]+)$/);
   const [hash, setHash] = useState(() => window.location.hash);
 
   useEffect(() => {
@@ -28,6 +31,14 @@ function SiteEntry() {
       window.removeEventListener('hashchange', handleHashChange);
     };
   }, []);
+
+  if (postMatch) {
+    return (
+      <Suspense fallback={null}>
+        <PostPermalinkPage postId={postMatch[1]!} />
+      </Suspense>
+    );
+  }
 
   if (!isWebShellHashRoute(hash)) {
     return <LandingApp />;

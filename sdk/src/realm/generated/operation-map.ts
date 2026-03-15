@@ -2930,6 +2930,24 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false
   },
+  "PostService.getPublicPost": {
+    "operationId": "getPublicPost",
+    "method": "GET",
+    "path": "/api/world/posts/public/{id}",
+    "service": "PostService",
+    "methodName": "getPublicPost",
+    "tag": "Post",
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false
+  },
   "PostService.likePost": {
     "operationId": "likePost",
     "method": "POST",
@@ -5483,6 +5501,7 @@ export const REALM_SERVICE_METHODS = {
     "deletePost": "PostService.deletePost",
     "getHomeFeed": "PostService.getHomeFeed",
     "getPost": "PostService.getPost",
+    "getPublicPost": "PostService.getPublicPost",
     "likePost": "PostService.likePost",
     "listLikedPosts": "PostService.listLikedPosts",
     "unlikePost": "PostService.unlikePost",
