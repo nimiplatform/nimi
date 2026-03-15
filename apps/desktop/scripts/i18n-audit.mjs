@@ -98,6 +98,12 @@ function isLikelyCodeFragment(text, line) {
   if (!text || !line) return false;
   if (text.includes(' as ')) return true;
   if (text.includes('&&') || text.includes('||') || text.includes('=>')) return true;
+  if (/^,\s*[a-zA-Z_$][\w$]*:\s*/.test(text)) return true;
+  if (/^[a-zA-Z_$][\w$]*:\s*[A-Z][A-Za-z0-9_<>,\s[\]|]*$/.test(text)) return true;
+  if (/^[a-zA-Z_$][\w$]*:\s*[a-z][A-Za-z0-9_<>,\s[\]|]*(\)\s*:\s*[A-Z][A-Za-z0-9_<>,\s[\]|]*)?$/.test(text)) return true;
+  if (/^,\s*[a-zA-Z_$][\w$]*:\s*[a-zA-Z][A-Za-z0-9_<>,\s[\]|]*(\)\s*:\s*[A-Za-z][A-Za-z0-9_<>,\s[\]|]*)?$/.test(text)) return true;
+  if (/^\)\s*:\s*[A-Z][A-Za-z0-9_<>,\s[\]|]*$/.test(text)) return true;
+  if (text.includes('): Array') || text.includes('): Promise') || text.includes('): Record') || text.includes('): string')) return true;
   if (/^[=<>!&|]/.test(text)) return true;
   if (text === 'Promise' && line.includes('Promise<')) return true;
   return false;

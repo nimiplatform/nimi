@@ -3,6 +3,23 @@ import js from '@eslint/js';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
+const nodeGlobals = {
+  ...globals.node,
+};
+
+const browserNodeGlobals = {
+  ...globals.browser,
+  ...nodeGlobals,
+};
+
+const wdioGlobals = {
+  ...browserNodeGlobals,
+  ...globals.mocha,
+  browser: 'readonly',
+  $: 'readonly',
+  $$: 'readonly',
+};
+
 export default defineConfig([
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -71,8 +88,40 @@ export default defineConfig([
         tsconfigRootDir: import.meta.dirname,
       },
       globals: {
-        ...globals.browser,
-        ...globals.node,
+        ...browserNodeGlobals,
+      },
+    },
+  },
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        ...nodeGlobals,
+      },
+    },
+    rules: {
+      'no-redeclare': 'off',
+    },
+  },
+  {
+    files: ['wdio.conf.mjs'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        ...wdioGlobals,
+      },
+    },
+  },
+  {
+    files: ['e2e/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        ...wdioGlobals,
       },
     },
   },
@@ -86,8 +135,7 @@ export default defineConfig([
         tsconfigRootDir: import.meta.dirname,
       },
       globals: {
-        ...globals.browser,
-        ...globals.node,
+        ...browserNodeGlobals,
       },
     },
     rules: {
