@@ -89,11 +89,13 @@ jobs:
 
           version_plain="${version#v}"
 
-          echo "target=${target}" >> "${GITHUB_OUTPUT}"
-          echo "version=${version}" >> "${GITHUB_OUTPUT}"
-          echo "version_plain=${version_plain}" >> "${GITHUB_OUTPUT}"
-          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
-          echo "publish=${publish}" >> "${GITHUB_OUTPUT}"
+          {
+            echo "target=${target}"
+            echo "version=${version}"
+            echo "version_plain=${version_plain}"
+            echo "tag=${tag}"
+            echo "publish=${publish}"
+          } >> "${GITHUB_OUTPUT}"
 
   live-smoke-gate:
     needs: resolve

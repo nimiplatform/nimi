@@ -6,7 +6,7 @@
 
 ## Hard Boundaries
 - Keep renderer logic in desktop first; web only provides adapter replacements under `apps/web/src/desktop-adapter/**`.
-- Keep landing-specific code under `apps/web/src/landing/**`; do not reintroduce a separate `apps/landing` app.
+- Keep landing-specific code under `apps/web/src/landing/**`; do not split the landing surface back out into a separate app.
 - Do not import `@tauri-apps/*` in `apps/web/**`.
 - Do not add local mod file access or runtime-only behaviors to web adapters.
 - Preserve alias contracts for `@renderer/*`, `@runtime/*`, and `@mods/*`.

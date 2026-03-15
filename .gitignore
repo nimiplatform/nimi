@@ -51,3 +51,6 @@ dev/config/*
 !dev/config/ai-context-budget.yaml
 !dev/config/live-gate-baseline.yaml
 !dev/live-test.env.example
+!dev/research/
+dev/research/*
+!dev/research/*.md
