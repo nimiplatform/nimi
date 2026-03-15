@@ -21,7 +21,7 @@
     "@types/node": "^25.4.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.4",
+    "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^9.1.2",
     "electron": "^36.3.2",
     "electron-builder": "^26.0.12",
