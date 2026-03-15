@@ -515,8 +515,8 @@
     "noChanges": "通知设置无变更",
     "updateSuccess": "通知设置已更新",
     "updateError": "更新通知设置失败",
-    "ssotNoteTitle": "SSOT 说明",
-    "ssotNoteDescription": "通知和礼物循环受 Social 与 Economy SSOT 契约约束。"
+    "ssotNoteTitle": "关于这些设置",
+    "ssotNoteDescription": "通知和礼物偏好将应用于你的社交和经济活动。"
   },
   "Performance": {
     "pageTitle": "性能",
@@ -1169,7 +1169,7 @@
     "updateSuccess": "隐私设置已更新",
     "updateError": "更新隐私设置失败",
     "visibilitySectionTitle": "可见性",
-    "visibilitySectionDescription": "映射到 SSOT 账户设置的默认可见性",
+    "visibilitySectionDescription": "你的个人主页、社交与互动的默认可见性",
     "visibilityModeTitle": "可见性模式",
     "visibilityModeDescription": "快速切换预设隐私配置",
     "customModeHint": "当前为自定义设置，选择上方模式可重置为预设",
@@ -1192,8 +1192,8 @@
     "defaultPostVisibilityHelper": "新帖子的默认可见性",
     "directMessageVisibilityLabel": "私信可见性",
     "directMessageVisibilityHelper": "谁可以直接给你发消息",
-    "ssotDefaultsTitle": "当前 SSOT 默认值",
-    "ssotDefaultsDescription": "主页/公开，好友申请/公开，社交/好友，好友列表/私密。",
+    "ssotDefaultsTitle": "关于默认值",
+    "ssotDefaultsDescription": "这些设置作为你的默认隐私偏好，发帖或互动时可单独覆盖。",
     "tagProfile": "主页",
     "tagRequests": "请求",
     "tagSocial": "社交",

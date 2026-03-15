@@ -39,7 +39,7 @@ export function ProfilePage() {
   const [name, setName] = useState(displayName);
   const [avatarUrl, setAvatarUrl] = useState(userAvatarUrl);
   const email = String(user?.email || '');
-  const [bio, setBio] = useState(String(user?.bio || t('Profile.bioPlaceholder')));
+  const [bio, setBio] = useState(String(user?.bio || ''));
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [linkingProvider, setLinkingProvider] = useState<OAuthProvider | null>(null);
@@ -77,7 +77,7 @@ export function ProfilePage() {
   useEffect(() => {
     setName(displayName);
     setAvatarUrl(userAvatarUrl);
-    setBio(String(user?.bio || t('Profile.bioPlaceholder')));
+    setBio(String(user?.bio || ''));
   }, [displayName, t, user?.bio, userAvatarUrl]);
 
   useEffect(() => () => {
@@ -317,7 +317,11 @@ export function ProfilePage() {
       if (!response.ok) {
         throw new Error(t('Profile.avatarUploadFailed'));
       }
-      const nextAvatarUrl = `${realmBaseUrl}/api/media/images/${encodeURIComponent(upload.storageRef)}`;
+      const finalized = await dataSync.finalizeMediaAsset(upload.assetId, {});
+      const nextAvatarUrl = finalized.url;
+      if (!nextAvatarUrl) {
+        throw new Error(t('Profile.avatarUploadFailed'));
+      }
       setAvatarUrl(nextAvatarUrl);
       setStatusBanner({
         kind: 'success',

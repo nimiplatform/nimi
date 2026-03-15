@@ -78,6 +78,12 @@ tabs:
     gated_by: null
     source_rule: D-SHELL-001
 
+  - id: gift-inbox
+    nav_group: detail
+    label: Gifts
+    gated_by: null
+    source_rule: D-SHELL-001
+
   - id: privacy-policy
     nav_group: detail
     label: Privacy Policy

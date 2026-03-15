@@ -404,7 +404,7 @@ export function PrivacyPage() {
         </div>
       </section>
 
-      {/* SSOT Defaults Info Card */}
+      {/* Defaults Info Card */}
       <section className="mt-8">
         <div className="rounded-2xl border border-mint-100 bg-mint-50/50 p-5">
           <div className="flex gap-4">

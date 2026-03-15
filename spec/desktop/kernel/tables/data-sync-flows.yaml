@@ -81,8 +81,9 @@ flows:
       - loadWithdrawalHistory
       - createWithdrawal
       - loadGiftCatalog
+      - loadReceivedGifts
       - sendGift
-      - claimGift
+      - acceptGift
       - rejectGift
       - createGiftReview
     description: Currency, transactions, subscriptions, gifts

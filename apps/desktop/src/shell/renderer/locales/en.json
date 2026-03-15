@@ -515,8 +515,8 @@
     "noChanges": "No notification changes to save",
     "updateSuccess": "Notification settings updated",
     "updateError": "Failed to update notification settings",
-    "ssotNoteTitle": "SSOT Note",
-    "ssotNoteDescription": "Notification and gift loops are governed by Social and Economy SSOT contracts."
+    "ssotNoteTitle": "About These Settings",
+    "ssotNoteDescription": "Notification and gift preferences apply across your social and economy activity."
   },
   "Performance": {
     "pageTitle": "Performance",
@@ -1169,7 +1169,7 @@
     "updateSuccess": "Privacy settings updated",
     "updateError": "Failed to update privacy settings",
     "visibilitySectionTitle": "Visibility",
-    "visibilitySectionDescription": "Visibility defaults mapped to SSOT account settings",
+    "visibilitySectionDescription": "Your default visibility for profile, social, and interactions",
     "visibilityModeTitle": "Visibility Mode",
     "visibilityModeDescription": "Quick switch between preset privacy configurations",
     "customModeHint": "Custom settings - select a mode above to reset to presets",
@@ -1192,8 +1192,8 @@
     "defaultPostVisibilityHelper": "Default visibility for new posts",
     "directMessageVisibilityLabel": "Direct Message Visibility",
     "directMessageVisibilityHelper": "Who can directly message you",
-    "ssotDefaultsTitle": "Current SSOT Defaults",
-    "ssotDefaultsDescription": "Profile/Public, Friend Request/Public, Social/Friends, Friend List/Private.",
+    "ssotDefaultsTitle": "About Default Values",
+    "ssotDefaultsDescription": "These settings serve as your default privacy preferences. You can override them when posting or interacting.",
     "tagProfile": "Profile",
     "tagRequests": "Requests",
     "tagSocial": "Social",

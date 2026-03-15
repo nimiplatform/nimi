@@ -3,6 +3,7 @@ import type { CreateReportDto } from '@nimiplatform/sdk/realm';
 import type { CreatePostDto } from '@nimiplatform/sdk/realm';
 import type { FeedResponseDto } from '@nimiplatform/sdk/realm';
 import type { FinalizeMediaAssetDto } from '@nimiplatform/sdk/realm';
+import type { MediaAssetDetailDto } from '@nimiplatform/sdk/realm';
 import type { MediaDirectUploadSessionDto } from '@nimiplatform/sdk/realm';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import type { ReportResponseDto } from '@nimiplatform/sdk/realm';
@@ -110,11 +111,11 @@ export async function finalizeMediaAsset(
   emitDataSyncError: DataSyncErrorEmitter,
   assetId: string,
   payload: FinalizeMediaAssetDto,
-): Promise<unknown> {
+): Promise<MediaAssetDetailDto> {
   try {
     return await callApi(
       (realm) => realm.services.MediaService.finalizeMediaAsset(assetId, payload),
-      '瀹屾垚濯掍綋涓婁紶澶辫触',
+      '完成媒体资源上传失败',
     );
   } catch (error) {
     emitDataSyncError('finalize-media-asset', error, { assetId });

@@ -112,7 +112,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
               </div>
               {authorHandle ? (
                 <div className="text-[11px] text-slate-400 font-light tracking-wider">
-                  <span>@{authorHandle}</span>
+                  <span>@{authorHandle.replace(/^@/, '')}</span>
                 </div>
               ) : null}
             </button>

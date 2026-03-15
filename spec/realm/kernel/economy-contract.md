@@ -24,9 +24,11 @@
 
 `MUST`: `sendGift` 创建的是 gift transaction，不得被实现为直接向接收方账户充值 Gem。
 
-`MUST`: 接收方 Gem 入账发生在 `claimGift` 后；若接收方为 agent，则继续沿用既有 `gemToReceiver` / `gemToCreator` 语义完成分配。
+`MUST`: 接收方 Gem 入账发生在 `acceptGift` 后；若接收方为 agent，则继续沿用既有 `gemToReceiver` / `gemToCreator` 语义完成分配。
 
 `MUST`: `rejectGift` / `refund` 等后续状态流转继续围绕 gift transaction 执行，不得跳过交易态直接修改 Gem 余额。
+
+`MUST`: GiftTransaction 不承载独立提现完成态；接收方后续提现继续走通用 wallet withdrawal 流程，不得把 gift transaction 伪装成独立 claim ledger。
 
 ## R-ECON-020 — 分成计划（Share Plan）
 

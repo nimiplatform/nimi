@@ -38,9 +38,11 @@
 ### 礼物
 
 - 礼物目录：`loadGiftCatalog` 加载可用礼物列表。
-- 非规范语义摘要：发送方按礼物目录 `sparkCost` 支付 Spark，接收方在 `claimGift` 后获得 Gem；权威规则见 `spec/realm/kernel/economy-contract.md` `R-ECON-011`。
+- 礼物收件箱：`loadReceivedGifts` 加载收到的礼物交易列表，并进入 gift inbox/detail 路由查看详情。
+- 非规范语义摘要：发送方按礼物目录 `sparkCost` 支付 Spark，接收方在 `acceptGift` 后获得 Gem；权威规则见 `spec/realm/kernel/economy-contract.md` `R-ECON-011`。
 - 发送礼物：`sendGift` 通过 `send-gift-modal.tsx` 弹窗完成。
-- 接收礼物：`claimGift` 领取 / `rejectGift` 拒绝。
+- 接收礼物：`acceptGift` 接受并入账 / `rejectGift` 拒绝并退款。
+- 已接受礼物：在 gift inbox 详情中跳转到 Wallet，继续使用 `createWithdrawal` 发起 Gem 提现。
 - 礼物评价：`createGiftReview` 对已收礼物进行评价。
 
 ## Kernel References

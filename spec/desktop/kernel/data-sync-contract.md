@@ -69,7 +69,7 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
 - 订阅：`loadSubscriptionStatus`
 - 充值：`loadSparkPackages`、`createSparkCheckout`
 - 提现：`loadWithdrawalEligibility`、`loadWithdrawalHistory`、`createWithdrawal`
-- 礼物：`loadGiftCatalog`、`sendGift`、`claimGift`、`rejectGift`、`createGiftReview`
+- 礼物：`loadGiftCatalog`、`loadReceivedGifts`、`sendGift`、`acceptGift`、`rejectGift`、`createGiftReview`
 
 - 使用基础设施：上下文锁、错误日志。
 
