@@ -697,14 +697,6 @@ export function NotificationPanel() {
                     }
                     textClassName="text-sm font-semibold"
                   />
-                  {item.type === 'gift_received' ? (
-                    <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-mint-500 text-white">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                        <path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8" />
-                        <line x1="12" y1="2" x2="12" y2="15" />
-                      </svg>
-                    </div>
-                  ) : null}
                 </div>
 
                 <div className="min-w-0 flex-1 pr-6">
