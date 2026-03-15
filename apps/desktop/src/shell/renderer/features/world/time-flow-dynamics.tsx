@@ -144,7 +144,7 @@ const FlowRingScene = ({ ratio, isCompact }: { ratio: number; isCompact?: boolea
   const { color, speedFactor } = useMemo(() => getTheme(ratio), [ratio]);
   const particlesRef = useRef<any>(null);
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     if (particlesRef.current) {
       particlesRef.current.rotation.z += delta * 0.1 * speedFactor;
     }

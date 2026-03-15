@@ -27,8 +27,10 @@ import {
   sameChatTimelineIdentity,
   toChatTimelineOutboxMessage,
   toChatTimelineRemoteMessage,
+  toChatTimelineUploadPlaceholder,
   type ChatTimelineMessage,
 } from './chat-timeline-message';
+import { useChatUploadPlaceholders } from './chat-upload-placeholder-store';
 import { type StreamState, getStreamState, subscribeStream, cancelStream } from './stream-controller';
 
 type ProfilePanelTarget = 'self' | 'other' | null;
@@ -56,9 +58,9 @@ function useStreamState(chatId: string | null): StreamState | null {
 
 export function MessageTimeline() {
   const { t } = useTranslation();
-  const COMPOSER_MIN_HEIGHT = 108;
+  const COMPOSER_MIN_HEIGHT = 132;
   const COMPOSER_MAX_HEIGHT = 340;
-  const [composerHeight, setComposerHeight] = useState(136);
+  const [composerHeight, setComposerHeight] = useState(176);
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const timelineLayoutRef = useRef<HTMLDivElement>(null);
   const composerResizingRef = useRef(false);
@@ -75,6 +77,7 @@ export function MessageTimeline() {
   const [expandedDiagnosticsMessageId, setExpandedDiagnosticsMessageId] = useState<string | null>(null);
   const streamState = useStreamState(selectedChatId);
   const isStreaming = streamState?.phase === 'waiting' || streamState?.phase === 'streaming';
+  const uploadPlaceholders = useChatUploadPlaceholders(selectedChatId);
 
   const messagesQuery = useQuery({
     queryKey: ['messages', selectedChatId],
@@ -117,6 +120,9 @@ export function MessageTimeline() {
       }
       merged.push(placeholder);
     }
+    for (const placeholder of uploadPlaceholders) {
+      merged.push(toChatTimelineUploadPlaceholder(placeholder));
+    }
     merged.sort((left, right) => {
       const timeDiff = toMessageTimestamp(left) - toMessageTimestamp(right);
       if (timeDiff !== 0) {
@@ -125,7 +131,7 @@ export function MessageTimeline() {
       return String(left.clientMessageId || left.id || '').localeCompare(String(right.clientMessageId || right.id || ''));
     });
     return merged;
-  }, [currentUserId, messagesQuery.data]);
+  }, [currentUserId, messagesQuery.data, uploadPlaceholders]);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -276,6 +282,8 @@ export function MessageTimeline() {
               const avatarMarginTopClass = isMediaMessage ? 'mt-0' : 'mt-1';
               const imageUrl = isImageMessage ? resolveImageMessageUrl(message, realmBaseUrl) : '';
               const videoUrl = isVideoMessage ? resolveVideoMessageUrl(message, realmBaseUrl) : '';
+              const mediaPreviewUrl = message.localPreviewUrl || imageUrl || videoUrl;
+              const isUploadingMedia = message.localUploadState === 'uploading';
               const resolvedMessageText = resolveMessageText(message) || t('ChatTimeline.emptyMessage');
               const messageAvatarKind = !isMe && otherUser?.isAgent ? 'agent' : 'human';
               const diagnostics = extractMessageDiagnostics(message);
@@ -331,23 +339,40 @@ export function MessageTimeline() {
                         </div>
                       )}
                       {isImageMessage ? (
-                        imageUrl ? (
-                          <ChatMessageImage
-                            src={imageUrl}
-                            alt={t('ChatTimeline.imageMessage', 'Image')}
-                            realmBaseUrl={realmBaseUrl}
-                            authToken={authToken}
-                          />
+                        mediaPreviewUrl ? (
+                          <div className="relative">
+                            <ChatMessageImage
+                              src={mediaPreviewUrl}
+                              alt={t('ChatTimeline.imageMessage', 'Image')}
+                              realmBaseUrl={realmBaseUrl}
+                              authToken={authToken}
+                            />
+                            {isUploadingMedia ? (
+                              <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/55 backdrop-blur-[1px]">
+                                <span className="h-10 w-10 animate-spin rounded-full border-[3px] border-white/70 border-t-[#0066CC] shadow-sm" />
+                              </div>
+                            ) : null}
+                          </div>
                         ) : (
                           <span>{t('ChatTimeline.imageMessage', 'Image')}</span>
                         )
                       ) : isVideoMessage ? (
-                        videoUrl ? (
-                          <video
-                            src={videoUrl}
-                            controls
-                            className="max-h-[320px] max-w-[260px] rounded-xl"
-                          />
+                        mediaPreviewUrl ? (
+                          <div className="relative">
+                            <video
+                              src={mediaPreviewUrl}
+                              controls={!isUploadingMedia}
+                              muted={isUploadingMedia}
+                              playsInline
+                              preload="metadata"
+                              className="max-h-[320px] max-w-[260px] rounded-xl"
+                            />
+                            {isUploadingMedia ? (
+                              <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/35">
+                                <span className="h-10 w-10 animate-spin rounded-full border-[3px] border-white/60 border-t-white shadow-sm" />
+                              </div>
+                            ) : null}
+                          </div>
                         ) : (
                           <span>{t('ChatTimeline.videoMessage', 'Video')}</span>
                         )
@@ -405,7 +430,9 @@ export function MessageTimeline() {
                             : 'text-amber-600'
                         }`}
                       >
-                        {message.deliveryState === 'failed'
+                        {message.localUploadState === 'uploading'
+                          ? t('ChatTimeline.uploadingMedia', 'Uploading...')
+                          : message.deliveryState === 'failed'
                           ? (message.deliveryError || t('ChatTimeline.sendFailed'))
                           : t('ChatTimeline.queuedLocally')}
                       </div>

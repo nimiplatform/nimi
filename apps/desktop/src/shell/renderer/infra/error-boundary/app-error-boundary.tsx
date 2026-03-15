@@ -23,15 +23,22 @@ export class AppErrorBoundary extends React.Component<PropsWithChildren, ErrorBo
     };
   }
 
-  override componentDidCatch(error: Error): void {
+  override componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     logRendererEvent({
       level: 'error',
       area: 'renderer',
       message: 'action:error-boundary:caught',
       details: {
         error: error.message,
+        componentStack: errorInfo.componentStack,
       },
     });
+
+    if (import.meta.env.DEV) {
+      // Keep the full component stack visible in devtools for fast follow-up triage.
+      console.error(error);
+      console.error(errorInfo.componentStack);
+    }
   }
 
   override render() {

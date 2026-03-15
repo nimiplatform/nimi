@@ -70,6 +70,29 @@ textarea {
   height: 0;
 }
 
+.nimi-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+.nimi-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.nimi-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.nimi-scrollbar::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 999px;
+}
+
+.nimi-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
 /* ---- Custom utilities ---- */
 
 @utility brand-gradient {

@@ -1,9 +1,12 @@
 import type { MessageType, MessageViewDto } from '@nimiplatform/sdk/realm';
 import type { PersistentOutboxEntry } from '@runtime/offline';
+import type { ChatUploadPlaceholder } from './chat-upload-placeholder-store';
 
 export type ChatTimelineMessage = MessageViewDto & {
   deliveryState: 'sent' | 'pending' | 'failed';
   deliveryError?: string | null;
+  localPreviewUrl?: string | null;
+  localUploadState?: 'uploading' | null;
 };
 
 export function toChatTimelineRemoteMessage(message: MessageViewDto): ChatTimelineMessage {
@@ -11,6 +14,8 @@ export function toChatTimelineRemoteMessage(message: MessageViewDto): ChatTimeli
     ...message,
     deliveryState: 'sent',
     deliveryError: null,
+    localPreviewUrl: null,
+    localUploadState: null,
   };
 }
 
@@ -37,6 +42,26 @@ export function toChatTimelineOutboxMessage(
     type: type as MessageType,
     deliveryState: entry.status,
     deliveryError: entry.failReason || null,
+    localPreviewUrl: null,
+    localUploadState: null,
+  };
+}
+
+export function toChatTimelineUploadPlaceholder(placeholder: ChatUploadPlaceholder): ChatTimelineMessage {
+  return {
+    id: `upload:${placeholder.id}`,
+    chatId: placeholder.chatId,
+    clientMessageId: `upload:${placeholder.id}`,
+    createdAt: placeholder.createdAt,
+    isRead: true,
+    payload: null,
+    senderId: placeholder.senderId,
+    text: null,
+    type: (placeholder.kind === 'image' ? 'IMAGE' : 'VIDEO') as MessageType,
+    deliveryState: 'pending',
+    deliveryError: null,
+    localPreviewUrl: placeholder.previewUrl,
+    localUploadState: 'uploading',
   };
 }
 

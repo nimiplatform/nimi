@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { useState, useRef, useEffect, type ChangeEvent, type ClipboardEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
@@ -9,6 +9,19 @@ import { SlotHost } from '@renderer/mod-ui/host/slot-host';
 import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 import { MessageType } from '@nimiplatform/sdk/realm';
+import {
+  addChatUploadPlaceholder,
+  createChatUploadPlaceholder,
+  removeChatUploadPlaceholder,
+} from './chat-upload-placeholder-store';
+import {
+  appendPendingAttachment,
+  clearPendingAttachments,
+  formatPendingAttachmentSize,
+  getTurnInputSendPlan,
+  removePendingAttachmentAt,
+  type PendingAttachment,
+} from './turn-input-attachments';
 
 // Common emoji categories
 const EMOJI_CATEGORIES = [
@@ -141,6 +154,7 @@ export function TurnInput(props: TurnInputProps = {}) {
   const selectedChatId = useAppStore((state) => state.selectedChatId);
   const offlineTier = useAppStore((state) => state.offlineTier);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
+  const currentUserId = String(useAppStore((state) => state.auth.user?.id) || '');
   const [text, setText] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -148,11 +162,12 @@ export function TurnInput(props: TurnInputProps = {}) {
   const [emojiCategoryPage, setEmojiCategoryPage] = useState(0);
   const [showUploadPickerActive, setShowUploadPickerActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [pastedImage, setPastedImage] = useState<{ file: File; previewUrl: string } | null>(null);
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingAttachmentsRef = useRef<PendingAttachment[]>([]);
   const context = useUiExtensionContext();
 
   // Categories per page
@@ -204,11 +219,15 @@ export function TurnInput(props: TurnInputProps = {}) {
     };
   }, [showEmojiPicker]);
 
+  useEffect(() => {
+    pendingAttachmentsRef.current = pendingAttachments;
+  }, [pendingAttachments]);
+
   useEffect(() => () => {
-    if (pastedImage) {
-      URL.revokeObjectURL(pastedImage.previewUrl);
+    if (pendingAttachmentsRef.current.length > 0) {
+      clearPendingAttachments(pendingAttachmentsRef.current, (url) => URL.revokeObjectURL(url));
     }
-  }, [pastedImage]);
+  }, []);
 
   useEffect(() => {
     if (!showUploadPickerActive) {
@@ -227,23 +246,25 @@ export function TurnInput(props: TurnInputProps = {}) {
     };
   }, [showUploadPickerActive]);
 
-  const replacePastedImage = (file: File) => {
-    const previewUrl = URL.createObjectURL(file);
-    setPastedImage((previous) => {
-      if (previous) {
-        URL.revokeObjectURL(previous.previewUrl);
-      }
-      return { file, previewUrl };
+  const setPendingAttachmentFromFile = (file: File) => {
+    const nextAttachments = appendPendingAttachment(pendingAttachments, file, {
+      createObjectUrl: (nextFile) => URL.createObjectURL(nextFile),
+      revokeObjectUrl: (url) => URL.revokeObjectURL(url),
     });
+
+    if (!nextAttachments) {
+      setStatusBanner({
+        kind: 'error',
+        message: t('TurnInput.unsupportedFileType'),
+      });
+      return;
+    }
+
+    setPendingAttachments(nextAttachments);
   };
 
-  const clearPastedImage = () => {
-    setPastedImage((previous) => {
-      if (previous) {
-        URL.revokeObjectURL(previous.previewUrl);
-      }
-      return null;
-    });
+  const removePendingAttachment = (index: number) => {
+    setPendingAttachments((current) => removePendingAttachmentAt(current, index, (url) => URL.revokeObjectURL(url)));
   };
 
   const insertEmoji = (emoji: string) => {
@@ -299,116 +320,84 @@ export function TurnInput(props: TurnInputProps = {}) {
     },
   });
 
-  // File upload mutation
-  const uploadFileMutation = useMutation({
-    mutationFn: async (file: File) => {
-      if (offlineTier === 'L2') {
-        throw new Error(uploadBlockedMessage);
-      }
-      if (!selectedChatId) {
-        throw new Error(t('TurnInput.selectChatFirst'));
-      }
+  const uploadPendingAttachment = async (attachment: PendingAttachment) => {
+    if (offlineTier === 'L2') {
+      throw new Error(uploadBlockedMessage);
+    }
+    if (!selectedChatId) {
+      throw new Error(t('TurnInput.selectChatFirst'));
+    }
 
-      setIsUploading(true);
-      try {
-        // Determine file type
-        const isImage = file.type.startsWith('image/');
-        const isVideo = file.type.startsWith('video/');
+    const { file, kind } = attachment;
+    const isImage = kind === 'image';
 
-        if (!isImage && !isVideo) {
-          throw new Error(t('TurnInput.unsupportedFileType'));
-        }
+    let uploadUrl: string;
+    let mediaUid: string;
 
-        // Get direct upload URL
-        let uploadUrl: string;
-        let mediaUid: string;
+    if (isImage) {
+      const uploadInfo = await dataSync.createImageDirectUpload();
+      uploadUrl = uploadInfo.uploadUrl;
+      mediaUid = uploadInfo.storageRef;
+    } else {
+      const uploadInfo = await dataSync.createVideoDirectUpload();
+      uploadUrl = uploadInfo.uploadUrl;
+      mediaUid = uploadInfo.storageRef;
+    }
 
-        if (isImage) {
-          const uploadInfo = await dataSync.createImageDirectUpload();
-          uploadUrl = uploadInfo.uploadUrl;
-          mediaUid = uploadInfo.storageRef;
-        } else {
-          const uploadInfo = await dataSync.createVideoDirectUpload();
-          uploadUrl = uploadInfo.uploadUrl;
-          mediaUid = uploadInfo.storageRef;
-        }
+    if (!uploadUrl) {
+      throw new Error(t('TurnInput.uploadFailed'));
+    }
 
-        if (!uploadUrl) {
-          throw new Error(t('TurnInput.uploadFailed'));
-        }
+    const formData = new FormData();
+    formData.append('file', file);
+    let uploadResponse = await fetch(uploadUrl, {
+      method: 'POST',
+      body: formData,
+    });
 
-        // Upload file to the provided direct-upload endpoint.
-        // Some providers expect multipart POST; others use raw PUT.
-        const formData = new FormData();
-        formData.append('file', file);
-        let uploadResponse = await fetch(uploadUrl, {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!uploadResponse.ok) {
-          uploadResponse = await fetch(uploadUrl, {
-            method: 'PUT',
-            body: file,
-            headers: {
-              'Content-Type': file.type,
-            },
-          });
-        }
-
-        if (!uploadResponse.ok) {
-          throw new Error(t('TurnInput.uploadFailed'));
-        }
-
-        // Send message with media payload that realm chat validation expects.
-        if (isImage) {
-          const dimensions = await readImageDimensions(file);
-          await dataSync.sendMessage(selectedChatId, '', {
-            type: 'IMAGE' as MessageType,
-            payload: {
-              imageId: mediaUid,
-              width: dimensions.width,
-              height: dimensions.height,
-            } as unknown as Record<string, never>,
-          });
-        } else {
-          const metadata = await readVideoMetadata(file);
-          await dataSync.sendMessage(selectedChatId, '', {
-            type: 'VIDEO' as MessageType,
-            payload: {
-              videoId: mediaUid,
-              width: metadata.width,
-              height: metadata.height,
-              duration: metadata.duration,
-            } as unknown as Record<string, never>,
-          });
-        }
-
-        return mediaUid;
-      } finally {
-        setIsUploading(false);
-      }
-    },
-    onSuccess: async () => {
-      clearPastedImage();
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['messages', selectedChatId] }),
-        queryClient.invalidateQueries({ queryKey: ['chats'] }),
-      ]);
-    },
-    onError: (error) => {
-      setStatusBanner({
-        kind: 'error',
-        message: error instanceof Error ? error.message : t('TurnInput.uploadFailed'),
+    if (!uploadResponse.ok) {
+      uploadResponse = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
       });
-    },
-  });
+    }
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!uploadResponse.ok) {
+      throw new Error(t('TurnInput.uploadFailed'));
+    }
+
+    if (isImage) {
+      const dimensions = await readImageDimensions(file);
+      await dataSync.sendMessage(selectedChatId, '', {
+        type: 'IMAGE' as MessageType,
+        payload: {
+          imageId: mediaUid,
+          width: dimensions.width,
+          height: dimensions.height,
+        } as unknown as Record<string, never>,
+      });
+    } else {
+      const metadata = await readVideoMetadata(file);
+      await dataSync.sendMessage(selectedChatId, '', {
+        type: 'VIDEO' as MessageType,
+        payload: {
+          videoId: mediaUid,
+          width: metadata.width,
+          height: metadata.height,
+          duration: metadata.duration,
+        } as unknown as Record<string, never>,
+      });
+    }
+  };
+
+  const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
     setShowUploadPickerActive(false);
     const file = event.target.files?.[0];
     if (file) {
-      uploadFileMutation.mutate(file);
+      setPendingAttachmentFromFile(file);
     }
     // Reset input so the same file can be selected again
     event.target.value = '';
@@ -426,7 +415,7 @@ export function TurnInput(props: TurnInputProps = {}) {
     fileInputRef.current?.click();
   };
 
-  const handlePaste = (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+  const handlePaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
     const items = Array.from(event.clipboardData?.items || []);
     const imageItem = items.find((item) => item.kind === 'file' && item.type.startsWith('image/'));
     if (!imageItem) {
@@ -437,16 +426,20 @@ export function TurnInput(props: TurnInputProps = {}) {
       return;
     }
     event.preventDefault();
-    replacePastedImage(file);
+    setPendingAttachmentFromFile(file);
   };
 
-  const canSend = Boolean(selectedChatId)
-    && offlineTier !== 'L2'
-    && !sendMutation.isPending
-    && !isUploading
-    && (Boolean(text.trim()) || Boolean(pastedImage));
+  const sendPlan = getTurnInputSendPlan({
+    text,
+    pendingAttachments,
+    hasSelectedChat: Boolean(selectedChatId),
+    isReadOnly: offlineTier === 'L2',
+    isSending: sendMutation.isPending,
+    isUploading,
+  });
+  const canSend = sendPlan.canSend;
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (offlineTier === 'L2') {
       setStatusBanner({
         kind: 'warning',
@@ -454,18 +447,49 @@ export function TurnInput(props: TurnInputProps = {}) {
       });
       return;
     }
-    if (!selectedChatId || sendMutation.isPending || isUploading) {
+    if (!selectedChatId) {
       return;
     }
-    if (pastedImage) {
-      uploadFileMutation.mutate(pastedImage.file);
-      if (text.trim()) {
-        sendMutation.mutate();
+    if (sendPlan.sendAttachment && pendingAttachments.length > 0) {
+      try {
+        setIsUploading(true);
+        for (const attachment of pendingAttachments) {
+          const placeholder = createChatUploadPlaceholder({
+            chatId: selectedChatId,
+            previewUrl: attachment.previewUrl,
+            kind: attachment.kind,
+            senderId: currentUserId || 'local-user',
+          });
+          addChatUploadPlaceholder(placeholder);
+          try {
+            await uploadPendingAttachment(attachment);
+            setPendingAttachments((current) => removePendingAttachmentAt(current, 0, (url) => URL.revokeObjectURL(url)));
+            await Promise.all([
+              queryClient.invalidateQueries({ queryKey: ['messages', selectedChatId] }),
+              queryClient.invalidateQueries({ queryKey: ['chats'] }),
+            ]);
+            removeChatUploadPlaceholder(placeholder.id);
+          } catch (error) {
+            removeChatUploadPlaceholder(placeholder.id);
+            throw error;
+          }
+        }
+      } catch (error) {
+        setStatusBanner({
+          kind: 'error',
+          message: error instanceof Error ? error.message : t('TurnInput.uploadFailed'),
+        });
+        return;
+      } finally {
+        setIsUploading(false);
       }
-      return;
     }
-    if (text.trim()) {
-      sendMutation.mutate();
+    if (sendPlan.sendText) {
+      try {
+        await sendMutation.mutateAsync();
+      } catch {
+        // useMutation already surfaces the error state/banner
+      }
     }
   };
 
@@ -536,60 +560,91 @@ export function TurnInput(props: TurnInputProps = {}) {
       )}
 
       {/* Input container with border */}
-      <div className="relative flex h-full flex-col rounded-2xl border border-gray-200 bg-gray-50/50 p-3">
-        {pastedImage ? (
-          <div className="mb-2 inline-block">
-            <div className="relative inline-block">
-              <img
-                src={pastedImage.previewUrl}
-                alt="Pasted image"
-                className="block h-16 w-16 rounded-lg object-cover"
-              />
-              <button
-                type="button"
-                onClick={clearPastedImage}
-                className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-black/65 text-white transition-colors hover:bg-black/80"
-                aria-label={t('TurnInput.removeAttachment')}
-                title={t('TurnInput.removeAttachment')}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
+      <div className="relative flex h-full min-h-0 flex-col rounded-2xl border border-gray-200 bg-gray-50/50 p-3">
+        <div className="nimi-scrollbar min-h-0 flex-1 overflow-y-auto pr-2">
+          {pendingAttachments.length > 0 ? (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {pendingAttachments.map((attachment, index) => (
+                <div key={`${attachment.previewUrl}-${index}`} className="relative shrink-0">
+                  {attachment.kind === 'image' ? (
+                    <img
+                      src={attachment.previewUrl}
+                      alt={t('ChatTimeline.imageMessage')}
+                      className="block h-20 w-20 rounded-xl object-cover"
+                    />
+                  ) : (
+                    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_6px_20px_rgba(15,23,42,0.08)]">
+                      <div className="relative h-24 w-40 overflow-hidden bg-gray-900">
+                        <video
+                          src={attachment.previewUrl}
+                          className="block h-full w-full object-cover"
+                          muted
+                          playsInline
+                          preload="metadata"
+                        />
+                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10" />
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white shadow-lg backdrop-blur-[2px]">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="ml-0.5">
+                              <path d="M8 5.14v14l11-7z" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="w-40 px-3 py-2">
+                        <p className="truncate text-[12px] font-medium leading-4 text-gray-900">{attachment.name}</p>
+                        <p className="mt-1 text-[11px] leading-4 text-gray-500">{formatPendingAttachmentSize(attachment.file.size)}</p>
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removePendingAttachment(index)}
+                    disabled={isUploading}
+                    className="absolute -right-1.5 -top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-white transition-colors hover:bg-black/85 disabled:cursor-not-allowed disabled:opacity-50"
+                    aria-label={t('TurnInput.removeAttachment')}
+                    title={t('TurnInput.removeAttachment')}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
             </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        {/* Input area */}
-        <textarea
-          ref={textareaRef}
-          className="min-h-[44px] flex-1 w-full resize-none bg-transparent px-1 py-1 text-[15px] leading-5 text-gray-900 outline-none placeholder:text-gray-400"
-          rows={2}
-          placeholder={offlineTier === 'L2'
-            ? t('TurnInput.runtimeUnavailablePlaceholder')
-            : t('TurnInput.typeMessage')}
-          value={text}
-          disabled={!selectedChatId || sendMutation.isPending || offlineTier === 'L2'}
-          onChange={(event) => setText(event.target.value)}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          onPaste={handlePaste}
-          onKeyDown={(event) => {
-            if (event.key !== 'Enter' || event.shiftKey) {
-              return;
-            }
-            if (event.nativeEvent.isComposing || event.keyCode === 229) {
-              return;
-            }
-            event.preventDefault();
-            handleSend();
-          }}
-        />
+          {/* Input area */}
+          <textarea
+            ref={textareaRef}
+            className="min-h-[44px] w-full resize-none bg-transparent px-1 py-1 text-[15px] leading-5 text-gray-900 outline-none placeholder:text-gray-400"
+            rows={2}
+            placeholder={offlineTier === 'L2'
+              ? t('TurnInput.runtimeUnavailablePlaceholder')
+              : t('TurnInput.typeMessage')}
+            value={text}
+            disabled={!selectedChatId || sendMutation.isPending || offlineTier === 'L2'}
+            onChange={(event) => setText(event.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            onPaste={handlePaste}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' || event.shiftKey) {
+                return;
+              }
+              if (event.nativeEvent.isComposing || event.keyCode === 229) {
+                return;
+              }
+              event.preventDefault();
+              handleSend();
+            }}
+          />
+        </div>
 
         {/* Toolbar row */}
-        <div className="mt-2 mt-auto flex items-center justify-between">
-          <div className="flex items-center gap-1">
+        <div className="mt-2 flex shrink-0 items-center justify-between">
+          <div className="flex min-w-0 flex-1 items-center gap-1">
             <Tooltip content={t('TurnInput.emoji')}>
               <button
                 ref={emojiButtonRef}
@@ -618,7 +673,7 @@ export function TurnInput(props: TurnInputProps = {}) {
                 onClick={handleUploadClick}
                 disabled={!selectedChatId || isUploading || offlineTier === 'L2'}
                 className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:opacity-40 ${
-                  showUploadPickerActive || isUploading || pastedImage
+                  showUploadPickerActive || isUploading || pendingAttachments.length > 0
                     ? 'bg-[#0066CC] text-white'
                     : 'text-gray-500 hover:bg-gray-200/50 hover:text-gray-700'
                 }`}
@@ -654,8 +709,8 @@ export function TurnInput(props: TurnInputProps = {}) {
             type="button"
             onClick={handleSend}
             disabled={!canSend}
-            className={`flex h-9 w-9 items-center justify-center rounded-full text-white shadow-sm transition-all hover:bg-[#0052A3] disabled:opacity-40 disabled:cursor-not-allowed ${
-              isFocused && (text.trim() || pastedImage)
+            className={`ml-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-all hover:bg-[#0052A3] disabled:opacity-40 disabled:cursor-not-allowed ${
+              isFocused && (text.trim() || pendingAttachments.length > 0)
                 ? 'bg-[#0066CC] shadow-[0_0_12px_rgba(0,102,204,0.5)] scale-105' 
                 : 'bg-[#0066CC]/70'
             }`}
