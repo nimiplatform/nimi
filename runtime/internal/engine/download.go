@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 )
@@ -116,5 +115,5 @@ func downloadFromURLWithExpectedSHA256(url, destDir, binaryName, expectedSHA256 
 
 // PlatformString returns the current platform identifier (e.g., "darwin/arm64").
 func PlatformString() string {
-	return runtime.GOOS + "/" + runtime.GOARCH
+	return currentGOOS() + "/" + currentGOARCH()
 }

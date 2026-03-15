@@ -104,7 +104,7 @@ func Load() (Config, error) {
 	localAIEnabledExplicit := localAIEnabledFromFile != nil || isBoolEnvValueExplicit("NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED")
 	localAIPortExplicit := localAIPortFromFile != nil || isIntEnvValueExplicit("NIMI_RUNTIME_ENGINE_LOCALAI_PORT")
 
-	if inferredPort, autoManaged := inferLoopbackLocalAIPort(localBaseURL); autoManaged {
+	if inferredPort, autoManaged := inferLoopbackLocalAIPort(localBaseURL); autoManaged && localAISupervisedPlatformSupported() {
 		if !localAIEnabledExplicit {
 			cfg.EngineLocalAIEnabled = true
 			cfg.EngineLocalAIAutoManaged = true
@@ -112,6 +112,11 @@ func Load() (Config, error) {
 		if cfg.EngineLocalAIEnabled && !localAIPortExplicit {
 			cfg.EngineLocalAIPort = inferredPort
 		}
+	}
+
+	if cfg.EngineLocalAIEnabled && !localAISupervisedPlatformSupported() {
+		cfg.EngineLocalAIEnabled = false
+		cfg.EngineLocalAIAutoManaged = false
 	}
 
 	shutdownTimeoutRaw := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_SHUTDOWN_TIMEOUT"))

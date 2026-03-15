@@ -37,6 +37,22 @@ func newTestDaemon(t *testing.T, logger *slog.Logger) *Daemon {
 	return daemon
 }
 
+func setDaemonTestHome(t *testing.T, homeDir string) {
+	t.Helper()
+	t.Setenv("HOME", homeDir)
+	t.Setenv("USERPROFILE", homeDir)
+	volume := filepath.VolumeName(homeDir)
+	if volume == "" {
+		volume = "C:"
+	}
+	homePath := strings.TrimPrefix(homeDir, volume)
+	if homePath == "" {
+		homePath = string(os.PathSeparator)
+	}
+	t.Setenv("HOMEDRIVE", volume)
+	t.Setenv("HOMEPATH", homePath)
+}
+
 func setUnexportedField[T any](t *testing.T, target any, fieldName string, value T) {
 	t.Helper()
 	field := reflect.ValueOf(target).Elem().FieldByName(fieldName)
@@ -282,10 +298,51 @@ func TestStartSupervisedEnginesAutoManagedLocalAIEntersLocalBootstrapBranch(t *t
 	}
 }
 
+func TestStartSupervisedEnginesSkipsBootstrapWhenNoManagedEnginesEnabled(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	t.Setenv("NIMI_RUNTIME_LOCAL_AI_BASE_URL", "http://127.0.0.1:2234/v1")
+
+	cfg := config.Config{
+		GRPCAddr:       "127.0.0.1:0",
+		HTTPAddr:       "127.0.0.1:0",
+		LocalStatePath: filepath.Join(t.TempDir(), "local-state.json"),
+	}
+	daemon := New(cfg, logger, "test")
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		t.Cleanup(func() { svc.Close() })
+	}
+
+	managerCreated := false
+	startCalls := 0
+	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
+		managerCreated = true
+		return &engine.Manager{}, nil
+	}
+	daemon.startEngineFn = func(_ context.Context, _ engine.EngineKind, _ string, _ int, _ string) error {
+		startCalls++
+		return nil
+	}
+
+	daemon.startSupervisedEngines(context.Background())
+
+	if managerCreated {
+		t.Fatalf("did not expect engine manager creation when supervised engines are disabled")
+	}
+	if startCalls != 0 {
+		t.Fatalf("did not expect supervised bootstrap calls, got %d", startCalls)
+	}
+	if daemon.engineMgr != nil {
+		t.Fatalf("expected daemon engine manager to stay nil when supervised engines are disabled")
+	}
+	if snapshot := daemon.state.Snapshot(); snapshot.Status == health.StatusDegraded {
+		t.Fatalf("did not expect degraded state when supervised bootstrap is skipped: %s", snapshot.Reason)
+	}
+}
+
 func TestStartSupervisedEnginesSkipsLocalAIBootstrapWhenAssetSyncFails(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
+	setDaemonTestHome(t, homeDir)
 	if err := os.WriteFile(filepath.Join(homeDir, ".nimi"), []byte("blocked"), 0o644); err != nil {
 		t.Fatalf("seed blocked home path: %v", err)
 	}

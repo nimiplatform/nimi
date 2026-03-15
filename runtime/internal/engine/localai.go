@@ -23,23 +23,11 @@ func localAIAssetName(version string) (string, error) {
 	if trimmedVersion == "" {
 		return "", fmt.Errorf("localai version is required")
 	}
-	switch runtime.GOOS {
-	case "darwin":
-		switch runtime.GOARCH {
-		case "arm64":
-			return fmt.Sprintf("local-ai-v%s-darwin-arm64", trimmedVersion), nil
-		case "amd64":
-			return fmt.Sprintf("local-ai-v%s-darwin-amd64", trimmedVersion), nil
-		}
-	case "linux":
-		switch runtime.GOARCH {
-		case "amd64":
-			return fmt.Sprintf("local-ai-v%s-linux-amd64", trimmedVersion), nil
-		case "arm64":
-			return fmt.Sprintf("local-ai-v%s-linux-arm64", trimmedVersion), nil
-		}
+	assetSuffix, ok := localAISupervisedAssetSuffix(currentGOOS(), currentGOARCH())
+	if ok {
+		return fmt.Sprintf("local-ai-v%s-%s", trimmedVersion, assetSuffix), nil
 	}
-	return "", fmt.Errorf("unsupported platform: %s/%s", runtime.GOOS, runtime.GOARCH)
+	return "", fmt.Errorf("unsupported platform: %s", PlatformString())
 }
 
 // localAICommand builds the exec.Cmd for starting LocalAI.

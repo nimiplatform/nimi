@@ -207,6 +207,15 @@ func TestRegistryAtomicWrite(t *testing.T) {
 
 func TestLocalAIDownloadURL(t *testing.T) {
 	url, err := localAIDownloadURL("3.12.1")
+	if !LocalAISupervisedPlatformSupported() {
+		if err == nil {
+			t.Fatalf("expected unsupported platform error on %s", PlatformString())
+		}
+		if !strings.Contains(err.Error(), "unsupported platform: "+PlatformString()) {
+			t.Fatalf("unexpected unsupported platform error: %v", err)
+		}
+		return
+	}
 	if err != nil {
 		t.Fatalf("localAIDownloadURL: %v", err)
 	}
@@ -222,6 +231,15 @@ func TestLocalAIDownloadURL(t *testing.T) {
 
 func TestLocalAIAssetName(t *testing.T) {
 	name, err := localAIAssetName("3.12.1")
+	if !LocalAISupervisedPlatformSupported() {
+		if err == nil {
+			t.Fatalf("expected unsupported platform error on %s", PlatformString())
+		}
+		if !strings.Contains(err.Error(), "unsupported platform: "+PlatformString()) {
+			t.Fatalf("unexpected unsupported platform error: %v", err)
+		}
+		return
+	}
 	if err != nil {
 		t.Fatalf("localAIAssetName: %v", err)
 	}
@@ -237,6 +255,29 @@ func TestLocalAIAssetName(t *testing.T) {
 	}
 	if !strings.Contains(name, runtime.GOARCH) {
 		t.Fatalf("asset name must contain GOARCH=%s, got %s", runtime.GOARCH, name)
+	}
+}
+
+func TestLocalAISupervisedPlatformSupportedFor(t *testing.T) {
+	tests := []struct {
+		goos   string
+		goarch string
+		want   bool
+	}{
+		{goos: "darwin", goarch: "arm64", want: true},
+		{goos: "darwin", goarch: "amd64", want: true},
+		{goos: "linux", goarch: "amd64", want: true},
+		{goos: "linux", goarch: "arm64", want: true},
+		{goos: "windows", goarch: "amd64", want: false},
+		{goos: "windows", goarch: "arm64", want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.goos+"-"+tt.goarch, func(t *testing.T) {
+			if got := LocalAISupervisedPlatformSupportedFor(tt.goos, tt.goarch); got != tt.want {
+				t.Fatalf("LocalAISupervisedPlatformSupportedFor(%q, %q) = %v, want %v", tt.goos, tt.goarch, got, tt.want)
+			}
+		})
 	}
 }
 
@@ -494,7 +535,7 @@ func TestDownloadFromURLSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stat binary: %v", err)
 	}
-	if info.Mode().Perm()&0o755 != 0o755 {
+	if runtime.GOOS != "windows" && info.Mode().Perm()&0o755 != 0o755 {
 		t.Errorf("expected 0755 permissions, got %o", info.Mode().Perm())
 	}
 	if info.Size() != int64(len(fakeBinary)) {
@@ -841,6 +882,17 @@ func waitForCondition(timeout time.Duration, check func() bool) bool {
 	return check()
 }
 
+func testProcessAlive(pid int) bool {
+	if pid <= 0 {
+		return false
+	}
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+	return process.Signal(syscall.Signal(0)) == nil
+}
+
 func TestSupervisorStartStop(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("supervisor process tests require unix signals")
@@ -875,7 +927,7 @@ func TestSupervisorStartStop(t *testing.T) {
 
 	// Verify process is dead.
 	time.Sleep(50 * time.Millisecond)
-	if err := syscall.Kill(pid, 0); err == nil {
+	if testProcessAlive(pid) {
 		t.Errorf("expected process %d to be dead after Stop", pid)
 	}
 }
@@ -1056,7 +1108,7 @@ func TestSupervisorGracefulShutdown(t *testing.T) {
 
 	// Process should be dead.
 	time.Sleep(50 * time.Millisecond)
-	if err := syscall.Kill(pid, 0); err == nil {
+	if testProcessAlive(pid) {
 		t.Errorf("expected process %d to be dead after graceful stop", pid)
 	}
 }
@@ -1091,7 +1143,7 @@ func TestSupervisorForceKill(t *testing.T) {
 
 	// Process should be dead after SIGKILL.
 	time.Sleep(50 * time.Millisecond)
-	if err := syscall.Kill(pid, 0); err == nil {
+	if testProcessAlive(pid) {
 		t.Errorf("expected process %d to be dead after SIGKILL", pid)
 	}
 }

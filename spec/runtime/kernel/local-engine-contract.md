@@ -45,6 +45,7 @@ Phase 1 同时支持 `ATTACHED_ENDPOINT` 和 `SUPERVISED` 两种模式。
 - 二进制存储路径：`~/.nimi/engines/{engine}/{version}/{binary_name}`。
 - 注册表：`~/.nimi/engines/registry.json`，atomic write（temp→rename）。
 - LocalAI：从 GitHub Releases 下载，SHA256 校验，支持 darwin/arm64、darwin/amd64、linux/amd64、linux/arm64。
+- Windows 当前不支持 LocalAI `SUPERVISED` 托管；Windows 用户必须通过 WSL / Docker 等外部进程提供 `ATTACHED_ENDPOINT`。
 - Nexa：系统安装（`exec.LookPath("nexa")`），不自动下载。未安装时返回 `FAILED_PRECONDITION` + 安装引导。
 
 ### 进程管理
@@ -96,8 +97,11 @@ ENV 覆盖：`NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED`、`NIMI_RUNTIME_ENGINE_LOCALA
 
 自动托管推导（LocalAI）：
 
-- 当 `providers.local.baseUrl`（等价 env：`NIMI_RUNTIME_LOCAL_AI_BASE_URL`）为回环地址（`localhost`/`127.0.0.1`/`::1`）且 `engines.localai.enabled` 未被显式设置（配置文件与环境变量均未给值）时，runtime MUST 推导 `engines.localai.enabled=true`，并进入 SUPERVISED 启动链路。
+- 当 `providers.local.baseUrl`（等价 env：`NIMI_RUNTIME_LOCAL_AI_BASE_URL`）为回环地址（`localhost`/`127.0.0.1`/`::1`）且 `engines.localai.enabled` 未被显式设置（配置文件与环境变量均未给值）时，runtime MUST 仅在当前平台支持 LocalAI `SUPERVISED` 托管时推导 `engines.localai.enabled=true`，并进入 SUPERVISED 启动链路。
+- 若当前平台不支持 LocalAI `SUPERVISED` 托管，回环 `providers.local.baseUrl` 必须保持 `ATTACHED_ENDPOINT` 语义，runtime 不得自动托管 LocalAI 进程。
 - 显式覆盖优先级：`engines.localai.enabled` 的显式配置（`true` 或 `false`）始终高于自动推导。
+- 在不支持的当前平台上若显式设置 `engines.localai.enabled=true`，runtime MUST 在加载配置时自动禁用 supervised LocalAI，并继续按 `ATTACHED_ENDPOINT` 语义处理 `providers.local.baseUrl`。
+- 在不支持的当前平台上，`nimi config set` / `nimi config validate` MUST 与运行时保持一致，不得因 `engines.localai.enabled=true` 而阻止配置写入或 runtime 启动。
 - 端口推导：当 `engines.localai.port` 未显式设置时，runtime MUST 从 `providers.local.baseUrl` 解析端口；解析失败或未提供端口时回退 `1234`。
 - `engines.localai.port` 显式配置始终高于 URL 端口推导。
 
