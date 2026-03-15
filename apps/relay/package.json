@@ -35,7 +35,7 @@
     "@nimiplatform/sdk": "workspace:*",
     "@tanstack/react-query": "^5.90.21",
     "pixi-live2d-display": "^0.4.0",
-    "pixi.js": "^6.5.10",
+    "pixi.js": "^8.17.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-router-dom": "^7.13.1",
