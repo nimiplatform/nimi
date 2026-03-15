@@ -1,7 +1,7 @@
 # User Quickstart
 
 ::: tip Early Access
-Nimi is in early access. Core features are functional, but APIs may change between releases. Desktop app is available for macOS — Windows support is coming soon.
+Nimi is in early access. Core features are functional, but APIs may change between releases. Desktop releases are published on GitHub, and the CLI is available through the install script and npm packages.
 :::
 
 Get from zero to your first AI generation in under five minutes. No coding required.

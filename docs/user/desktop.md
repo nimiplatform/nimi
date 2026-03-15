@@ -6,11 +6,13 @@ The Nimi Desktop app is a native application built with Tauri that provides a gr
 
 Download the latest release for your platform from the [Nimi releases page](https://github.com/nimiplatform/nimi/releases).
 
-- **macOS**: `.dmg` installer (Apple Silicon and Intel)
-- **Windows**: `.msi` installer
-- **Linux**: `.AppImage` or `.deb` package
+- **macOS**: updater archive (`.app.tar.gz`) for Apple Silicon and Intel
+- **Windows**: NSIS installer (`.exe`)
+- **Linux**: AppImage
 
-Open the installer and follow the on-screen instructions. On macOS, drag the app to your Applications folder.
+On macOS, extract the archive to get the app bundle and move it to your Applications folder. On Windows, run the NSIS installer. On Linux, mark the AppImage as executable and launch it.
+
+Automatic desktop updates resolve through [https://install.nimi.xyz/desktop/latest.json](https://install.nimi.xyz/desktop/latest.json).
 
 ## First Launch
 

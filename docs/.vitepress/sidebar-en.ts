@@ -106,6 +106,16 @@ export const sidebarEn: DefaultTheme.Sidebar = {
     },
   ],
 
+  '/contribute/': [
+    {
+      text: 'Contribute',
+      items: [
+        { text: 'Overview', link: '/contribute/' },
+        { text: 'Open-Source Release', link: '/contribute/open-source-release' },
+      ],
+    },
+  ],
+
   '/architecture/': [
     {
       text: 'Architecture',

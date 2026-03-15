@@ -25,12 +25,12 @@ Build AI apps that run local and cloud models through one runtime, one SDK, and 
 
 | Platform | Status | Link |
 |---|---|---|
-| macOS (Apple Silicon) | Coming Soon | [Download Desktop](https://nimi.xyz/download) |
-| macOS (Intel) | Coming Soon | [Download Desktop](https://nimi.xyz/download) |
-| Windows | Coming Soon | — |
-| Linux | CLI + SDK available | `curl -fsSL https://install.nimi.xyz \| sh` |
+| macOS (Apple Silicon) | Desktop release on GitHub | [GitHub Releases](https://github.com/nimiplatform/nimi/releases) |
+| macOS (Intel) | Desktop release on GitHub | [GitHub Releases](https://github.com/nimiplatform/nimi/releases) |
+| Windows | Desktop release on GitHub | [GitHub Releases](https://github.com/nimiplatform/nimi/releases) |
+| Linux | Desktop release on GitHub; CLI + SDK also available | [GitHub Releases](https://github.com/nimiplatform/nimi/releases) |
 
-The desktop app is the fastest way to get started. CLI and SDK work independently on all supported platforms.
+The desktop app is the fastest way to get started. For CLI-only installs, use `curl -fsSL https://install.nimi.xyz | sh` on macOS/Linux or `npm install -g @nimiplatform/nimi` on supported macOS/Linux/Windows targets.
 
 ## Install
 
@@ -40,6 +40,8 @@ curl -fsSL https://install.nimi.xyz | sh
 # or
 npm install -g @nimiplatform/nimi
 ```
+
+`curl` installs into `~/.nimi/bin`. The npm package installs the platform-specific CLI launcher for your current OS and architecture.
 
 ## 30-Second Start
 

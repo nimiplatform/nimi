@@ -184,7 +184,7 @@ export const landingContentZh: LandingContent = {
     availability: {
       eyebrow: 'Compatibility / Availability',
       items: [
-        'Desktop macOS 版已发布 — Windows 版即将推出',
+        'Desktop 发布会在 GitHub 上提供 macOS、Windows 和 Linux 资产',
         'CLI 与 SDK 可独立于桌面应用使用',
         '默认本地优先',
         'Realm 为可选能力',

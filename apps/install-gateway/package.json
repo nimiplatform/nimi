@@ -1,0 +1,10 @@
+{
+  "name": "@nimiplatform/install-gateway",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "deploy": "pnpm run build && pnpm dlx wrangler deploy --config wrangler.jsonc",
+    "test": "node --test test/**/*.test.mjs"
+  }
+}

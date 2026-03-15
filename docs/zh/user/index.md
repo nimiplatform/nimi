@@ -1,7 +1,7 @@
 # 用户快速入门
 
 ::: tip Early Access
-Nimi 目前处于 Early Access 阶段。核心功能已可使用，但 API 在版本迭代中可能调整。桌面应用已支持 macOS — Windows 版即将推出。
+Nimi 目前处于 Early Access 阶段。核心功能已可使用，但 API 在版本迭代中可能调整。桌面端发布在 GitHub Releases 上，CLI 可通过安装脚本和 npm 包获取。
 :::
 
 从零开始，五分钟内完成你的第一次 AI 生成。无需编写代码。

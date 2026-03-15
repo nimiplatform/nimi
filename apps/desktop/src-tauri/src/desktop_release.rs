@@ -379,7 +379,7 @@ mod tests {
                 ("NIMI_DESKTOP_UPDATER_PUBLIC_KEY", Some("runtime-pubkey")),
                 (
                     "NIMI_DESKTOP_UPDATER_ENDPOINT",
-                    Some("https://updates.example.com/latest.json"),
+                    Some("https://install.nimi.xyz/desktop/latest.json"),
                 ),
             ],
             || {

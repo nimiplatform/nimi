@@ -191,7 +191,7 @@ export const landingContentEn: LandingContent = {
     availability: {
       eyebrow: 'Compatibility / Availability',
       items: [
-        'Desktop for macOS available now — Windows coming soon',
+        'Desktop releases publish macOS, Windows, and Linux assets on GitHub',
         'CLI + SDK work independently of the desktop app',
         'Local-first by default',
         'Realm remains optional',

@@ -7,6 +7,7 @@ Nimi 欢迎来自第三方的贡献，涵盖 runtime、SDK、桌面端、Web 端
 - 贡献政策：[`CONTRIBUTING.md`](../../../CONTRIBUTING.md)
 - 新人引导：[`ONBOARDING.md`](../../../ONBOARDING.md)
 - 安全政策：[`SECURITY.md`](../../../SECURITY.md)
+- 开源发布 Runbook：[Open-Source Release](./open-source-release.md)
 
 ## 社区
 

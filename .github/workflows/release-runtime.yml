@@ -84,6 +84,8 @@ jobs:
     needs: live-smoke-gate
     if: startsWith(github.ref, 'refs/tags/runtime/v')
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.runtime_tag.outputs.tag }}
     permissions:
       contents: write
       id-token: write
@@ -202,6 +204,15 @@ jobs:
             "dist/runtime/checksums.txt.pem"
           )
           gh release upload "${RELEASE_TAG}" "${generated_files[@]}" --clobber
+
+  publish-npm-binaries:
+    needs: release-tag
+    if: startsWith(github.ref, 'refs/tags/runtime/v')
+    uses: ./.github/workflows/release-npm-binary.yml
+    with:
+      runtime_tag: ${{ needs.release-tag.outputs.tag }}
+      publish: true
+    secrets: inherit
 
   release-snapshot:
     if: github.event_name == 'workflow_dispatch'

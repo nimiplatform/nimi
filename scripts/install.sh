@@ -7,6 +7,7 @@ REPO_OWNER="nimiplatform"
 REPO_NAME="nimi"
 INSTALL_ROOT="${HOME}/.nimi"
 BIN_DIR="${INSTALL_ROOT}/bin"
+INSTALL_MANIFEST_URL_DEFAULT="https://install.nimi.xyz/runtime/latest.json"
 DRY_RUN=0
 REQUESTED_VERSION=""
 
@@ -31,7 +32,18 @@ run_cmd() {
   "$@"
 }
 
-detect_platform() {
+detect_platform_key() {
+  case "$(uname -s)" in
+    Darwin) printf 'darwin' ;;
+    Linux) printf 'linux' ;;
+    *)
+      log "Unsupported platform: $(uname -s)"
+      exit 1
+      ;;
+  esac
+}
+
+detect_archive_platform() {
   case "$(uname -s)" in
     Darwin) printf 'macos' ;;
     Linux) printf 'linux' ;;
@@ -61,18 +73,59 @@ need_cmd() {
   exit 1
 }
 
-fetch_latest_tag() {
+resolve_install_manifest_url() {
+  manifest_url="$(printf '%s' "${NIMI_INSTALL_MANIFEST_URL:-}" | tr -d '\n' | sed 's/[[:space:]]//g')"
+  if [ -n "$manifest_url" ]; then
+    printf '%s' "$manifest_url"
+    return 0
+  fi
+  printf '%s' "$INSTALL_MANIFEST_URL_DEFAULT"
+}
+
+fetch_install_manifest() {
+  manifest_url="$1"
   need_cmd curl
-  if ! response="$(curl -fsSL "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest")"; then
-    log "Failed to resolve latest Nimi release tag from GitHub"
+  if ! response="$(curl -fsSL "$manifest_url")"; then
+    log "Failed to resolve latest runtime manifest from ${manifest_url}"
     exit 1
   fi
-  tag="$(printf '%s' "$response" | tr -d '\n' | sed -n 's/.*"tag_name":"\([^"]*\)".*/\1/p')"
-  if [ -z "$tag" ]; then
-    log "Failed to resolve latest release tag"
+  printf '%s' "$response" | tr -d '\n'
+}
+
+extract_manifest_value() {
+  manifest_json="$1"
+  key="$2"
+  printf '%s' "$manifest_json" | sed -n "s/.*\"${key}\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p"
+}
+
+extract_manifest_archive_field() {
+  manifest_json="$1"
+  platform_key="$2"
+  field_name="$3"
+  printf '%s' "$manifest_json" | sed -n "s/.*\"${platform_key}\"[[:space:]]*:[[:space:]]*{[^}]*\"${field_name}\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p"
+}
+
+resolve_runtime_release_from_manifest() {
+  manifest_url="$1"
+  platform_key="$2"
+
+  manifest_json="$(fetch_install_manifest "$manifest_url")"
+  tag="$(extract_manifest_value "$manifest_json" tag)"
+  version="$(extract_manifest_value "$manifest_json" version)"
+  checksums_url="$(extract_manifest_value "$manifest_json" checksumsUrl)"
+  archive="$(extract_manifest_archive_field "$manifest_json" "$platform_key" name)"
+  archive_url="$(extract_manifest_archive_field "$manifest_json" "$platform_key" url)"
+
+  if [ -z "$tag" ] || [ -z "$version" ] || [ -z "$checksums_url" ] || [ -z "$archive" ] || [ -z "$archive_url" ]; then
+    log "Latest runtime manifest is missing required fields for ${platform_key}"
     exit 1
   fi
-  printf '%s' "$tag"
+
+  printf '%s\n' "$tag"
+  printf '%s\n' "$version"
+  printf '%s\n' "$archive"
+  printf '%s\n' "$archive_url"
+  printf '%s\n' "$checksums_url"
 }
 
 normalize_tag() {
@@ -164,18 +217,32 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 
-platform="$(detect_platform)"
+platform_key="$(detect_platform_key)"
+archive_platform="$(detect_archive_platform)"
 arch="$(detect_arch)"
-if [ "$DRY_RUN" -eq 1 ] && [ -z "$REQUESTED_VERSION" ]; then
+if [ -n "$REQUESTED_VERSION" ]; then
+  tag="$(normalize_tag "$REQUESTED_VERSION")"
+  version="${tag#v}"
+  archive="nimi-runtime_${version}_${archive_platform}_${arch}.tar.gz"
+  base_url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${tag}"
+  archive_url="${base_url}/${archive}"
+  checksums_url="${base_url}/checksums.txt"
+elif [ "$DRY_RUN" -eq 1 ] && [ -z "${NIMI_INSTALL_MANIFEST_URL:-}" ]; then
   tag="v0.0.0"
+  version="${tag#v}"
+  archive="nimi-runtime_${version}_${archive_platform}_${arch}.tar.gz"
+  base_url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${tag}"
+  archive_url="${base_url}/${archive}"
+  checksums_url="${base_url}/checksums.txt"
 else
-  tag="$(normalize_tag "${REQUESTED_VERSION:-$(fetch_latest_tag)}")"
+  manifest_url="$(resolve_install_manifest_url)"
+  release_data="$(resolve_runtime_release_from_manifest "$manifest_url" "${platform_key}-${arch}")"
+  tag="$(printf '%s\n' "$release_data" | sed -n '1p')"
+  version="$(printf '%s\n' "$release_data" | sed -n '2p')"
+  archive="$(printf '%s\n' "$release_data" | sed -n '3p')"
+  archive_url="$(printf '%s\n' "$release_data" | sed -n '4p')"
+  checksums_url="$(printf '%s\n' "$release_data" | sed -n '5p')"
 fi
-version="${tag#v}"
-archive="nimi-runtime_${version}_${platform}_${arch}.tar.gz"
-base_url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${tag}"
-archive_url="${base_url}/${archive}"
-checksums_url="${base_url}/checksums.txt"
 tmp_dir="$(mktemp -d)"
 
 cleanup() {
@@ -183,7 +250,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-log "Installing Nimi ${tag} for ${platform}/${arch}"
+log "Installing Nimi ${tag} for ${platform_key}/${arch}"
 log "Archive: ${archive}"
 
 if [ "$DRY_RUN" -eq 1 ]; then

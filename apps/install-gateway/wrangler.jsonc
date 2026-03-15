@@ -1,0 +1,10 @@
+{
+  "name": "nimi-install-gateway",
+  "main": "src/index.mjs",
+  "compatibility_date": "2026-03-16",
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "dist/assets",
+    "run_worker_first": true
+  }
+}

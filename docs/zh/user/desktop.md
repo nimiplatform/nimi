@@ -6,11 +6,13 @@ Nimi Desktop 是一个基于 Tauri 构建的原生应用，提供 AI 交互、Mo
 
 从 [Nimi 发布页面](https://github.com/nimiplatform/nimi/releases) 下载适用于你平台的最新版本。
 
-- **macOS**：`.dmg` 安装包（支持 Apple Silicon 和 Intel）
-- **Windows**：`.msi` 安装包
-- **Linux**：`.AppImage` 或 `.deb` 安装包
+- **macOS**：Apple Silicon 和 Intel 对应的更新归档（`.app.tar.gz`）
+- **Windows**：NSIS 安装器（`.exe`）
+- **Linux**：AppImage
 
-打开安装包并按照屏幕上的指引操作。在 macOS 上，将应用拖入"应用程序"文件夹即可。
+在 macOS 上，先解压归档得到应用包，再将它移动到“应用程序”文件夹。Windows 上直接运行 NSIS 安装器。Linux 上为 AppImage 添加可执行权限后即可启动。
+
+桌面端自动更新使用的稳定入口为 [https://install.nimi.xyz/desktop/latest.json](https://install.nimi.xyz/desktop/latest.json)。
 
 ## 首次启动
 

@@ -7,7 +7,7 @@ use url::Url;
 
 const UPDATE_EVENT_NAME: &str = "desktop-update://state";
 const DEFAULT_UPDATE_ENDPOINT: &str =
-    "https://github.com/nimiplatform/nimi/releases/latest/download/latest.json";
+    "https://install.nimi.xyz/desktop/latest.json";
 
 enum UpdateStateEvent {
     Checking,

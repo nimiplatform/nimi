@@ -10,16 +10,18 @@ The desktop app is the fastest way to get started with Nimi.
 
 | Platform | Status |
 |---|---|
-| macOS (Apple Silicon) | Available — [Download](https://nimi.xyz/download) |
-| macOS (Intel) | Available — [Download](https://nimi.xyz/download) |
-| Windows | Coming Soon |
-| Linux | CLI + SDK available (see below) |
+| macOS (Apple Silicon) | Available on [GitHub Releases](https://github.com/nimiplatform/nimi/releases) — updater archive (`.app.tar.gz`) |
+| macOS (Intel) | Available on [GitHub Releases](https://github.com/nimiplatform/nimi/releases) — updater archive (`.app.tar.gz`) |
+| Windows | Available on [GitHub Releases](https://github.com/nimiplatform/nimi/releases) — NSIS installer (`.exe`) |
+| Linux | Available on [GitHub Releases](https://github.com/nimiplatform/nimi/releases) — AppImage |
 
-If you prefer the command line or are on Linux, use the CLI install methods below.
+If you prefer the command line or want automated installs, use the CLI install methods below. The `curl` installer supports macOS and Linux. `npm install -g @nimiplatform/nimi` covers supported macOS, Linux, and Windows targets.
 
 ## System Requirements
 
-- **Operating System**: macOS (Apple Silicon or Intel) or Linux (x86_64, arm64)
+- **CLI via `curl`**: macOS or Linux (`x86_64`, `arm64`)
+- **CLI via npm**: supported macOS, Linux, and Windows targets with Node.js 18 or later
+- **Desktop app**: macOS (Apple Silicon or Intel), Windows, or Linux
 - **Disk Space**: At least 2 GB free for the runtime and a base local model
 - **Network**: Required for initial install and cloud provider usage; local-only generation works offline after model download
 
@@ -32,6 +34,7 @@ curl -fsSL https://install.nimi.xyz | sh
 ```
 
 The script detects your OS and architecture, downloads the appropriate binary, and places it on your PATH.
+By default it installs `nimi` into `~/.nimi/bin/nimi` and appends `~/.nimi/bin` to `~/.zshrc`, `~/.bashrc`, and `~/.profile` if needed.
 
 ### npm Global Install
 
@@ -128,11 +131,13 @@ nimi start
 
 ### curl Script Install
 
-Remove the binary from your PATH. The default location depends on your system; the install script prints the path during installation. Common locations:
+Remove the binary from the install root. The default location is:
 
 ```bash
-rm /usr/local/bin/nimi
+rm -f ~/.nimi/bin/nimi
 ```
+
+Remove the PATH line added by the installer from `~/.zshrc`, `~/.bashrc`, or `~/.profile` if you no longer want `~/.nimi/bin` on your shell PATH.
 
 Remove the configuration directory:
 

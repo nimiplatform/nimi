@@ -164,6 +164,7 @@ run_cmd pnpm check:runtime-go-coverage
 run_cmd pnpm check:sdk-version-matrix
 run_cmd pnpm check:sdk-consumer-smoke
 run_cmd pnpm check:npm-binary-smoke
+run_cmd pnpm build:install-gateway
 run_cmd pnpm check:desktop-mods-smoke
 
 section "Runtime Go Lint"

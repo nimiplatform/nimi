@@ -106,6 +106,16 @@ export const sidebarZh: DefaultTheme.Sidebar = {
     },
   ],
 
+  '/zh/contribute/': [
+    {
+      text: '参与贡献',
+      items: [
+        { text: '概览', link: '/zh/contribute/' },
+        { text: '开源发布', link: '/zh/contribute/open-source-release' },
+      ],
+    },
+  ],
+
   '/zh/architecture/': [
     {
       text: '架构',

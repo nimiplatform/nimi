@@ -129,7 +129,7 @@ function PostCard({ post }: { post: PostDto }) {
 
         <div className="mt-5 pt-5 border-t border-slate-100">
           <a
-            href="https://nimi.xyz/download"
+            href="https://github.com/nimiplatform/nimi/releases"
             className="block w-full text-center py-2.5 px-4 rounded-xl bg-[#4ecca3] hover:bg-[#2bb88e] text-white text-sm font-semibold transition-colors"
           >
             Open in Nimi

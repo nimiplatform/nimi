@@ -1,14 +1,28 @@
 name: release-npm-binary
 
 on:
-  release:
-    types:
-      - published
+  workflow_call:
+    inputs:
+      runtime_tag:
+        description: Runtime release tag (for example v0.2.0)
+        required: true
+        type: string
+      publish:
+        description: Publish to npm instead of running a dry-run
+        required: false
+        type: boolean
+        default: true
   workflow_dispatch:
     inputs:
       runtime_tag:
         description: Runtime release tag (for example v0.2.0)
         required: true
+        type: string
+      publish:
+        description: Publish to npm instead of running a dry-run
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -39,21 +53,30 @@ jobs:
         id: tag
         env:
           EVENT_NAME: ${{ github.event_name }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          CALL_TAG: ${{ inputs.runtime_tag }}
+          CALL_PUBLISH: ${{ inputs.publish }}
           INPUT_TAG: ${{ github.event.inputs.runtime_tag }}
+          INPUT_PUBLISH: ${{ github.event.inputs.publish }}
         run: |
           set -euo pipefail
-          if [[ "${EVENT_NAME}" == "release" ]]; then
-            TAG="${RELEASE_TAG}"
-          else
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
             TAG="${INPUT_TAG}"
+            PUBLISH="${INPUT_PUBLISH}"
+          else
+            TAG="${CALL_TAG}"
+            PUBLISH="${CALL_PUBLISH}"
           fi
           if [[ -z "${TAG}" ]]; then
             echo "runtime tag is required" >&2
             exit 1
           fi
+          if [[ "${TAG}" != v* ]]; then
+            echo "runtime tag must start with v: ${TAG}" >&2
+            exit 1
+          fi
           echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
           echo "version=${TAG#v}" >> "${GITHUB_OUTPUT}"
+          echo "publish=${PUBLISH}" >> "${GITHUB_OUTPUT}"
 
       - name: Download runtime archives
         env:
@@ -149,10 +172,20 @@ jobs:
             npm-packages/nimi-win32-arm64 \
             npm-packages/nimi-win32-x64
           do
-            npm publish "${package_dir}" --access public
+            if [[ "${{ steps.tag.outputs.publish }}" == "true" ]]; then
+              npm publish "${package_dir}" --access public
+            else
+              npm publish "${package_dir}" --access public --dry-run
+            fi
           done
 
       - name: Publish launcher package
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish npm-packages/nimi --access public
+        run: |
+          set -euo pipefail
+          if [[ "${{ steps.tag.outputs.publish }}" == "true" ]]; then
+            npm publish npm-packages/nimi --access public
+          else
+            npm publish npm-packages/nimi --access public --dry-run
+          fi
