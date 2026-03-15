@@ -10,6 +10,7 @@ export type CreateAgentInput = {
   scenario: string;
   greeting: string;
   referenceImageUrl: string;
+  referenceImageFile: File | null;
   wakeStrategy: '' | 'PASSIVE' | 'PROACTIVE';
   dnaPrimary: '' | 'CARING' | 'PLAYFUL' | 'INTELLECTUAL' | 'CONFIDENT' | 'MYSTERIOUS' | 'ROMANTIC';
   dnaSecondary: string[];
@@ -57,6 +58,7 @@ const initialForm: CreateAgentInput = {
   scenario: '',
   greeting: '',
   referenceImageUrl: '',
+  referenceImageFile: null,
   wakeStrategy: 'PASSIVE',
   dnaPrimary: '',
   dnaSecondary: [],
@@ -111,10 +113,13 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
 
   useEffect(() => {
     if (!props.isOpen) {
+      if (form.referenceImageUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(form.referenceImageUrl);
+      }
       setForm(initialForm);
       setAvatarError(null);
     }
-  }, [props.isOpen]);
+  }, [props.isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const canSubmit = form.handle.trim().length > 0 && form.concept.trim().length > 0 && !props.submitting;
 
@@ -136,26 +141,18 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
       return;
     }
 
-    const maxAvatarSizeBytes = 5 * 1024 * 1024;
+    const maxAvatarSizeBytes = 10 * 1024 * 1024;
     if (file.size > maxAvatarSizeBytes) {
-      setAvatarError(t('World.createAgent.avatarTooLarge', { defaultValue: 'Avatar image must be 5MB or smaller.' }));
+      setAvatarError(t('World.createAgent.avatarTooLarge', { defaultValue: 'Avatar image must be 10MB or smaller.' }));
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === 'string' ? reader.result : '';
-      if (!result) {
-        setAvatarError(t('World.createAgent.avatarReadFailed', { defaultValue: 'Failed to read avatar image.' }));
-        return;
-      }
-      setAvatarError(null);
-      updateField('referenceImageUrl', result);
-    };
-    reader.onerror = () => {
-      setAvatarError(t('World.createAgent.avatarReadFailed', { defaultValue: 'Failed to read avatar image.' }));
-    };
-    reader.readAsDataURL(file);
+    if (form.referenceImageUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(form.referenceImageUrl);
+    }
+    const previewUrl = URL.createObjectURL(file);
+    setAvatarError(null);
+    setForm((current) => ({ ...current, referenceImageUrl: previewUrl, referenceImageFile: file }));
   };
 
   const toggleSecondaryTrait = (trait: string) => {
@@ -349,7 +346,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
                             placeholder={t('World.createAgent.handlePlaceholder', { defaultValue: 'agent_unique_id' })}
                             className="pl-9 !bg-black/20 !border-white/5 focus:!border-emerald-400/40"
                           />
-                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-medium text-emerald-400/40">@</span>
+                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-medium text-emerald-400/40">~</span>
                         </div>
                       </div>
                       <div className="space-y-2">

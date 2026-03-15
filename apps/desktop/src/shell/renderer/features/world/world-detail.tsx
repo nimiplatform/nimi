@@ -209,6 +209,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
     queryKey: worldDetailWithAgentsQueryKey(world.id),
     queryFn: () => fetchWorldDetailWithAgents(world.id),
     enabled: isReady,
+    staleTime: 30_000,
   });
 
   const worldEventsQuery = useQuery({
@@ -236,7 +237,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   });
 
   const detail = worldCompositeQuery.data;
-  const initialLoading = worldCompositeQuery.isPending && !detail;
+  const initialLoading = false;
   const initialError = worldCompositeQuery.isError && !detail;
   const worldData = toXianxiaWorldData(world, detail);
 
@@ -321,11 +322,24 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
       scenario: string;
       greeting: string;
       referenceImageUrl: string;
+      referenceImageFile: File | null;
       wakeStrategy: '' | 'PASSIVE' | 'PROACTIVE';
       dnaPrimary: '' | 'CARING' | 'PLAYFUL' | 'INTELLECTUAL' | 'CONFIDENT' | 'MYSTERIOUS' | 'ROMANTIC';
       dnaSecondary: string[];
-    }) =>
-      dataSync.createAgent({
+    }) => {
+      let resolvedImageUrl: string | undefined;
+      if (input.referenceImageFile) {
+        const upload = await dataSync.createImageDirectUpload();
+        const formData = new FormData();
+        formData.append('file', input.referenceImageFile);
+        const response = await fetch(upload.uploadUrl, { method: 'POST', body: formData });
+        if (!response.ok) {
+          throw new Error('头像上传失败，请重试');
+        }
+        const finalized = await dataSync.finalizeMediaAsset(upload.assetId, {});
+        resolvedImageUrl = finalized.url ?? undefined;
+      }
+      return dataSync.createAgent({
         worldId: world.id,
         handle: input.handle,
         concept: input.concept,
@@ -333,13 +347,14 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
         description: input.description || undefined,
         scenario: input.scenario || undefined,
         greeting: input.greeting || undefined,
-        referenceImageUrl: input.referenceImageUrl || undefined,
+        referenceImageUrl: resolvedImageUrl,
         wakeStrategy: input.wakeStrategy || undefined,
         dnaPrimary: (input.dnaPrimary || undefined) as Parameters<typeof dataSync.createAgent>[0]['dnaPrimary'],
         dnaSecondary: input.dnaSecondary.length
           ? input.dnaSecondary as Parameters<typeof dataSync.createAgent>[0]['dnaSecondary']
           : undefined,
-      }),
+      });
+    },
     onSuccess: async (data) => {
       const agentId = typeof data?.id === 'string' && data.id ? data.id : null;
       await queryClient.invalidateQueries({ queryKey: worldDetailWithAgentsQueryKey(world.id) });
