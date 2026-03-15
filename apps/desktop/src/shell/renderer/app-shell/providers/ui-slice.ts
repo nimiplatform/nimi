@@ -14,6 +14,7 @@ type UiSlice = Pick<AppStoreState,
   | 'selectedProfileId'
   | 'selectedProfileIsAgent'
   | 'selectedWorldId'
+  | 'selectedGiftTransactionId'
   | 'profileDetailOverlayOpen'
   | 'chatProfilePanelTarget'
   | 'offlineTier'
@@ -29,10 +30,12 @@ type UiSlice = Pick<AppStoreState,
   | 'setSelectedProfileId'
   | 'setSelectedProfileIsAgent'
   | 'setSelectedWorldId'
+  | 'setSelectedGiftTransactionId'
   | 'setProfileDetailOverlayOpen'
   | 'setChatProfilePanelTarget'
   | 'navigateToProfile'
   | 'navigateToWorld'
+  | 'navigateToGiftInbox'
   | 'navigateBack'
   | 'setStatusBanner'
 >;
@@ -50,6 +53,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     selectedProfileId: null,
     selectedProfileIsAgent: null,
     selectedWorldId: null,
+    selectedGiftTransactionId: null,
     profileDetailOverlayOpen: false,
     chatProfilePanelTarget: null,
     offlineTier: 'L0' as OfflineTier,
@@ -69,6 +73,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     setSelectedProfileId: (profileId) => set({ selectedProfileId: profileId }),
     setSelectedProfileIsAgent: (isAgent) => set({ selectedProfileIsAgent: isAgent }),
     setSelectedWorldId: (worldId) => set({ selectedWorldId: worldId }),
+    setSelectedGiftTransactionId: (giftTransactionId) => set({ selectedGiftTransactionId: giftTransactionId }),
     setProfileDetailOverlayOpen: (open) => set({ profileDetailOverlayOpen: open }),
     setChatProfilePanelTarget: (target) => set({ chatProfilePanelTarget: target }),
     navigateToProfile: (profileId, tab) =>
@@ -76,6 +81,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
         previousTab: state.activeTab,
         selectedProfileId: profileId,
         selectedProfileIsAgent: tab === 'agent-detail',
+        selectedGiftTransactionId: null,
         activeTab: tab,
       })),
     navigateToWorld: (worldId) => {
@@ -87,6 +93,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
         set((state) => ({
           previousTab: state.activeTab,
           selectedWorldId: normalizedWorldId,
+          selectedGiftTransactionId: null,
           runtimeFields: {
             ...state.runtimeFields,
             worldId: normalizedWorldId,
@@ -95,18 +102,39 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
         }));
       });
     },
+    navigateToGiftInbox: (giftTransactionId) => {
+      const normalizedGiftTransactionId = String(giftTransactionId || '').trim() || null;
+      startTransition(() => {
+        set((state) => ({
+          previousTab: state.activeTab === 'gift-inbox'
+            ? state.previousTab
+            : state.activeTab,
+          selectedGiftTransactionId: normalizedGiftTransactionId,
+          activeTab: 'gift-inbox',
+        }));
+      });
+    },
     navigateBack: () =>
-      set((state) => ({
-        activeTab: state.previousTab || 'chat',
-        previousTab: null,
-        selectedProfileId: state.previousTab === 'contacts' || state.previousTab === 'home' || state.previousTab === 'explore'
-          ? state.selectedProfileId
-          : null,
-        selectedProfileIsAgent: state.previousTab === 'contacts' || state.previousTab === 'home' || state.previousTab === 'explore'
-          ? state.selectedProfileIsAgent
-          : null,
-        selectedWorldId: null,
-      })),
+      set((state) => {
+        if (state.activeTab === 'gift-inbox' && state.selectedGiftTransactionId) {
+          return {
+            selectedGiftTransactionId: null,
+          };
+        }
+
+        return {
+          activeTab: state.previousTab || 'chat',
+          previousTab: null,
+          selectedProfileId: state.previousTab === 'contacts' || state.previousTab === 'home' || state.previousTab === 'explore'
+            ? state.selectedProfileId
+            : null,
+          selectedProfileIsAgent: state.previousTab === 'contacts' || state.previousTab === 'home' || state.previousTab === 'explore'
+            ? state.selectedProfileIsAgent
+            : null,
+          selectedWorldId: null,
+          selectedGiftTransactionId: null,
+        };
+      }),
     setStatusBanner: (banner) => set({ statusBanner: banner }),
   };
 }

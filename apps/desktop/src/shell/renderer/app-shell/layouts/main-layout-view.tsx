@@ -57,6 +57,10 @@ const NotificationPanel = lazy(async () => {
   const mod = await import('@renderer/features/notification/notification-panel');
   return { default: mod.NotificationPanel };
 });
+const GiftInboxPanel = lazy(async () => {
+  const mod = await import('@renderer/features/economy/gift-inbox-panel');
+  return { default: mod.GiftInboxPanel };
+});
 const ProfilePanel = lazy(async () => {
   const mod = await import('@renderer/features/profile/profile-panel');
   return { default: mod.ProfilePanel };
@@ -318,6 +322,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const hidePrimaryRail = immersiveRoute
     || props.activeTab === 'agent-detail'
     || props.activeTab === 'world-detail'
+    || props.activeTab === 'gift-inbox'
     || (props.activeTab === 'profile' && Boolean(selectedProfileId))
     || profileDetailOverlayOpen;
   const balancesQuery = useQuery({
@@ -617,6 +622,12 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             {props.activeTab === 'notification' ? (
               <div data-testid={E2E_IDS.panel('notification')} className="flex min-h-0 flex-1 flex-col">
                 <NotificationPanel />
+              </div>
+            ) : null}
+
+            {props.activeTab === 'gift-inbox' ? (
+              <div data-testid={E2E_IDS.panel('gift-inbox')} className="flex min-h-0 flex-1 flex-col">
+                <GiftInboxPanel />
               </div>
             ) : null}
 
