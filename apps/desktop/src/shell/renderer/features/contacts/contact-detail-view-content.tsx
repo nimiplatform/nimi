@@ -142,7 +142,16 @@ export function ContactDetailViewContent(input: {
               <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white via-white/82 to-transparent" />
 
               <div className="relative z-10 flex items-start justify-between gap-4">
-                <span />
+                <button
+                  type="button"
+                  onClick={input.onClose}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/35 bg-white/16 text-white backdrop-blur-md transition hover:bg-white/24"
+                  title={t('Common.back', { defaultValue: 'Back' })}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19 12H5" /><path d="m12 5-7 7 7 7" />
+                  </svg>
+                </button>
                 {input.isOwnProfile ? (
                   <Tooltip
                     content={isEditing
