@@ -79,9 +79,9 @@ func Load() (Config, error) {
 			fileConfigLocalAIImageBackendString(fileCfg, "workingDir"),
 			"",
 		),
-		EngineNexaEnabled: readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_ENABLED", nexaEnabledFromFile, false),
-		EngineNexaVersion: readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_VERSION", fileConfigEngineString(fileCfg, "nexa", "version"), ""),
-		EngineNexaPort:    readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_PORT", nexaPortFromFile, 8000),
+		EngineNexaEnabled:      readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_ENABLED", nexaEnabledFromFile, false),
+		EngineNexaVersion:      readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_VERSION", fileConfigEngineString(fileCfg, "nexa", "version"), ""),
+		EngineNexaPort:         readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_PORT", nexaPortFromFile, 8000),
 		EngineNimiMediaEnabled: readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NIMI_MEDIA_ENABLED", nimiMediaEnabledFromFile, false),
 		EngineNimiMediaVersion: readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NIMI_MEDIA_VERSION", fileConfigEngineString(fileCfg, "nimi_media", "version"), "0.1.0"),
 		EngineNimiMediaPort:    readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NIMI_MEDIA_PORT", nimiMediaPortFromFile, 8321),
@@ -122,6 +122,9 @@ func Load() (Config, error) {
 	if cfg.EngineLocalAIEnabled && !localAISupervisedPlatformSupported() {
 		cfg.EngineLocalAIEnabled = false
 		cfg.EngineLocalAIAutoManaged = false
+	}
+	if cfg.EngineNimiMediaEnabled && !nimiMediaSupervisedPlatformSupported() {
+		cfg.EngineNimiMediaEnabled = false
 	}
 
 	shutdownTimeoutRaw := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_SHUTDOWN_TIMEOUT"))

@@ -186,6 +186,9 @@ func startupCompatibilityWarnings(engine string, profile *runtimev1.LocalDeviceP
 	if requiresNPU(normalizedEngine) && (!profile.GetNpu().GetAvailable() || !profile.GetNpu().GetReady()) {
 		warnings = append(warnings, "WARN_NPU_REQUIRED")
 	}
+	for _, warning := range managedEngineSupportWarnings(normalizedEngine, profile) {
+		warnings = append(warnings, warning)
+	}
 	return warnings
 }
 
@@ -398,6 +401,13 @@ func (s *Service) bootstrapEngineIfManaged(ctx context.Context, engine string, e
 	if !shouldManage {
 		return nil
 	}
+	profile := collectDeviceProfile()
+	if classification, detail := classifyManagedEngineSupport(engine, profile); classification != localEngineSupportSupportedSupervised {
+		if strings.TrimSpace(detail) != "" {
+			return fmt.Errorf("%s", detail)
+		}
+		return fmt.Errorf("%s managed mode is unavailable on this host", strings.TrimSpace(engine))
+	}
 	if err := mgr.StartEngine(ctx, strings.ToLower(strings.TrimSpace(engine)), port, ""); err != nil {
 		lower := strings.ToLower(strings.TrimSpace(err.Error()))
 		if strings.Contains(lower, "already running") {
@@ -469,6 +479,8 @@ func defaultEnginePort(engine string) int {
 		return 1234
 	case "nexa":
 		return 8000
+	case "nimi_media":
+		return 8321
 	default:
 		return 0
 	}

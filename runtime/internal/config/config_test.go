@@ -21,6 +21,15 @@ func setLocalAISupervisedPlatformForTest(t *testing.T, supported bool, platform 
 	})
 }
 
+func setNimiMediaSupervisedPlatformForTest(t *testing.T, supported bool) {
+	t.Helper()
+	original := nimiMediaSupervisedPlatformSupported
+	nimiMediaSupervisedPlatformSupported = func() bool { return supported }
+	t.Cleanup(func() {
+		nimiMediaSupervisedPlatformSupported = original
+	})
+}
+
 func setRuntimeTestHome(t *testing.T, homeDir string) {
 	t.Helper()
 	t.Setenv("HOME", homeDir)
@@ -392,6 +401,33 @@ func TestLoadDisablesExplicitLocalAIEnableOnUnsupportedPlatform(t *testing.T) {
 	}
 	if cfg.EngineLocalAIAutoManaged {
 		t.Fatalf("unsupported platforms must not mark localai auto-managed")
+	}
+}
+
+func TestLoadDisablesExplicitNimiMediaEnableOnUnsupportedPlatform(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "engines": {
+    "nimi_media": {
+      "enabled": true
+    }
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+	setNimiMediaSupervisedPlatformForTest(t, false)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if cfg.EngineNimiMediaEnabled {
+		t.Fatalf("explicit supervised nimi_media should be disabled on unsupported platforms")
 	}
 }
 

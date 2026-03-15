@@ -51,6 +51,27 @@ func newTestServiceWithProbe(t *testing.T, probe endpointProbeFunc) *Service {
 	return svc
 }
 
+func setLocalRuntimePlatformForTest(t *testing.T, goos string, goarch string) {
+	t.Helper()
+	originalGOOS := localRuntimeGOOS
+	originalGOARCH := localRuntimeGOARCH
+	localRuntimeGOOS = goos
+	localRuntimeGOARCH = goarch
+	t.Cleanup(func() {
+		localRuntimeGOOS = originalGOOS
+		localRuntimeGOARCH = originalGOARCH
+	})
+}
+
+func containsWarning(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
+}
+
 func TestLocalModelLifecycle(t *testing.T) {
 	svc := newTestService(t)
 
@@ -1575,6 +1596,69 @@ func TestLocalNodeCatalogNexaVideoFailClose(t *testing.T) {
 	}
 }
 
+func TestLocalNodeCatalogNexaTTSProbeFailClose(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe succeeded",
+			probeURL:  endpoint,
+			models:    []string{"nexa/other-tts-model"},
+		}
+	})
+
+	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/nexa-tts-model",
+		Capabilities: []string{"tts"},
+		Engine:       "nexa",
+		Endpoint:     "http://127.0.0.1:17881/v1",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+
+	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-nexa-tts",
+		Title:        "Nexa TTS Service",
+		Engine:       "nexa",
+		Capabilities: []string{"tts"},
+		LocalModelId: modelResp.GetModel().GetLocalModelId(),
+	}); err != nil {
+		t.Fatalf("install local service: %v", err)
+	}
+	if _, err := svc.StartLocalService(context.Background(), &runtimev1.StartLocalServiceRequest{
+		ServiceId: "svc-nexa-tts",
+	}); err != nil {
+		t.Fatalf("start local service: %v", err)
+	}
+
+	nodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
+		Provider: "nexa",
+	})
+	if err != nil {
+		t.Fatalf("list node catalog: %v", err)
+	}
+	if len(nodesResp.GetNodes()) != 1 {
+		t.Fatalf("node count mismatch: got=%d want=1", len(nodesResp.GetNodes()))
+	}
+	node := nodesResp.GetNodes()[0]
+	if node.GetAvailable() {
+		t.Fatalf("nexa tts node must be fail-close unavailable when capability probe misses the model")
+	}
+	if node.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String() {
+		t.Fatalf("nexa tts reason code mismatch: %s", node.GetReasonCode())
+	}
+	if node.GetPolicyGate() != "nexa.capability_probe.missing" {
+		t.Fatalf("nexa tts policy gate mismatch: %s", node.GetPolicyGate())
+	}
+	if node.GetProviderHints() == nil {
+		t.Fatalf("nexa tts node must include provider hints")
+	}
+	if detail := node.GetProviderHints().GetExtra()["availability_detail"]; !strings.Contains(detail, "missing expected model") {
+		t.Fatalf("expected availability detail to describe missing probe model, got %q", detail)
+	}
+}
+
 func TestLocalNodeCatalogCustomMissingProfileIsUnavailable(t *testing.T) {
 	svc := newTestService(t)
 
@@ -2518,6 +2602,153 @@ func TestResolveModelInstallPlanCatalogSupervisedWithManagerAvailable(t *testing
 	}
 	if plan.GetReasonCode() != "ACTION_EXECUTED" {
 		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
+	}
+}
+
+func TestResolveModelInstallPlanNimiMediaSupervisedUnsupportedHost(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{})
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "intel")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "false")
+
+	svc.mu.Lock()
+	svc.catalog = append(svc.catalog, &runtimev1.LocalCatalogModelDescriptor{
+		ItemId:            "catalog.nimi-media.supervised.unsupported",
+		Source:            "verified",
+		Title:             "Unsupported Nimi Media",
+		ModelId:           "local/flux-1-schnell",
+		Engine:            "nimi_media",
+		EngineRuntimeMode: runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
+		InstallKind:       "download",
+		Capabilities:      []string{"image"},
+	})
+	svc.mu.Unlock()
+
+	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
+		ItemId: "catalog.nimi-media.supervised.unsupported",
+	})
+	if err != nil {
+		t.Fatalf("resolve supervised nimi_media plan: %v", err)
+	}
+	plan := resp.GetPlan()
+	if plan.GetInstallAvailable() {
+		t.Fatalf("unsupported supervised nimi_media plan must be unavailable")
+	}
+	if plan.GetReasonCode() != "LOCAL_ENGINE_ATTACHED_ENDPOINT_ONLY" {
+		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
+	}
+	if !containsWarning(plan.GetWarnings(), warnNimiMediaAttachedOnly) {
+		t.Fatalf("expected attached-only warning, got %#v", plan.GetWarnings())
+	}
+}
+
+func TestResolveModelInstallPlanNimiMediaAttachedEndpointAllowedOnUnsupportedHost(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "intel")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "false")
+
+	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
+		ModelId:      "local/wan-video",
+		Engine:       "nimi_media",
+		Capabilities: []string{"video"},
+		Endpoint:     "http://127.0.0.1:9321/v1",
+	})
+	if err != nil {
+		t.Fatalf("resolve attached nimi_media plan: %v", err)
+	}
+	plan := resp.GetPlan()
+	if !plan.GetInstallAvailable() {
+		t.Fatalf("explicit attached nimi_media endpoint should remain installable")
+	}
+	if plan.GetReasonCode() != "ACTION_EXECUTED" {
+		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
+	}
+}
+
+func TestInstallLocalModelNimiMediaRequiresExplicitEndpointOnUnsupportedHost(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "intel")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "false")
+
+	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/flux-test",
+		Engine:       "nimi_media",
+		Capabilities: []string{"image"},
+	})
+	if err == nil {
+		t.Fatal("expected explicit endpoint requirement for unsupported nimi_media host")
+	}
+	assertGRPCCode(t, err, "InstallLocalModel(nimi_media unsupported host)", codes.FailedPrecondition)
+	assertGRPCReasonCode(t, err, "InstallLocalModel(nimi_media unsupported host)", runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
+}
+
+func TestStartLocalModelNexaTTSProbeFailClose(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe succeeded",
+			probeURL:  endpoint,
+			models:    []string{"nexa/other-tts-model"},
+		}
+	})
+
+	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/nexa-tts-model",
+		Capabilities: []string{"tts"},
+		Engine:       "nexa",
+		Endpoint:     "http://127.0.0.1:18181/v1",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+
+	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
+		LocalModelId: installed.GetModel().GetLocalModelId(),
+	})
+	if err != nil {
+		t.Fatalf("start local model: %v", err)
+	}
+	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
+		t.Fatalf("nexa tts model should fail-close unhealthy, got %s", started.GetModel().GetStatus())
+	}
+	if detail := started.GetModel().GetHealthDetail(); !strings.Contains(detail, "missing expected model") {
+		t.Fatalf("expected health detail to mention missing probe model, got %q", detail)
+	}
+}
+
+func TestStartLocalModelNexaTTSProbeSuccess(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe succeeded",
+			probeURL:  endpoint,
+			models:    []string{"models/nexa-tts-model"},
+		}
+	})
+
+	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/nexa-tts-model",
+		Capabilities: []string{"tts"},
+		Engine:       "nexa",
+		Endpoint:     "http://127.0.0.1:18181/v1",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+
+	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
+		LocalModelId: installed.GetModel().GetLocalModelId(),
+	})
+	if err != nil {
+		t.Fatalf("start local model: %v", err)
+	}
+	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+		t.Fatalf("nexa tts model should become active when capability probe matches, got %s", started.GetModel().GetStatus())
 	}
 }
 

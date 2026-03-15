@@ -566,15 +566,21 @@ func (s *Service) localAIRegistrationForModel(model *runtimev1.LocalModelRecord)
 }
 
 func modelProbeSucceeded(model *runtimev1.LocalModelRecord, probe endpointProbeResult, registration localAIRegistration) bool {
-	if strings.EqualFold(strings.TrimSpace(model.GetEngine()), "localai") {
+	switch strings.ToLower(strings.TrimSpace(model.GetEngine())) {
+	case "localai":
 		return localAIModelProbeSucceeded(probe, registration)
+	case "nexa":
+		return nexaModelProbeSucceeded(model, probe)
 	}
 	return probe.healthy
 }
 
 func modelProbeFailureDetail(model *runtimev1.LocalModelRecord, probe endpointProbeResult, registration localAIRegistration) string {
-	if strings.EqualFold(strings.TrimSpace(model.GetEngine()), "localai") {
+	switch strings.ToLower(strings.TrimSpace(model.GetEngine())) {
+	case "localai":
 		return localAIModelProbeFailureDetail(probe, registration)
+	case "nexa":
+		return nexaModelProbeFailureDetail(model, probe)
 	}
 	return defaultString(probe.detail, "model probe failed")
 }
@@ -630,4 +636,99 @@ func localAIModelProbeFailureDetail(probe endpointProbeResult, registration loca
 		return fmt.Sprintf("probe response missing expected model %q", expectedModelName)
 	}
 	return fmt.Sprintf("probe response missing expected model %q; available_models=%s", expectedModelName, strings.Join(available, ","))
+}
+
+func nexaModelProbeSucceeded(model *runtimev1.LocalModelRecord, probe endpointProbeResult) bool {
+	if !probe.healthy {
+		return false
+	}
+	if !nexaModelRequiresCapabilityProbe(model) {
+		return true
+	}
+	expectedModelName := strings.TrimSpace(model.GetModelId())
+	if expectedModelName == "" || len(probe.models) == 0 {
+		return false
+	}
+	_, ok := findComparableProbeModel(probe.models, expectedModelName)
+	return ok
+}
+
+func nexaModelProbeFailureDetail(model *runtimev1.LocalModelRecord, probe endpointProbeResult) string {
+	if !probe.healthy {
+		return defaultString(probe.detail, "nexa model probe failed")
+	}
+	if !nexaModelRequiresCapabilityProbe(model) {
+		return defaultString(probe.detail, "nexa model probe failed")
+	}
+	expectedModelName := strings.TrimSpace(model.GetModelId())
+	if expectedModelName == "" {
+		return "nexa capability probe requires a model id"
+	}
+	available := compactProbeModelIDs(probe.models)
+	if len(available) == 0 {
+		return fmt.Sprintf("nexa capability probe missing expected model %q", expectedModelName)
+	}
+	return fmt.Sprintf("nexa capability probe missing expected model %q; available_models=%s", expectedModelName, strings.Join(available, ","))
+}
+
+func nexaModelRequiresCapabilityProbe(model *runtimev1.LocalModelRecord) bool {
+	if model == nil {
+		return false
+	}
+	for _, capability := range model.GetCapabilities() {
+		switch strings.ToLower(strings.TrimSpace(capability)) {
+		case "tts", "speech", "audio.synthesize", "stt", "transcription", "audio.transcribe":
+			return true
+		}
+	}
+	return false
+}
+
+func compactProbeModelIDs(models []string) []string {
+	available := make([]string, 0, len(models))
+	for _, modelID := range models {
+		trimmed := strings.TrimSpace(modelID)
+		if trimmed != "" {
+			available = append(available, trimmed)
+		}
+	}
+	sort.Strings(available)
+	return available
+}
+
+func findComparableProbeModel(models []string, expected string) (string, bool) {
+	expectedComparable := normalizeComparableModelID(expected)
+	expectedBase := probeModelIDBase(expected)
+	for _, modelID := range models {
+		trimmed := strings.TrimSpace(modelID)
+		if trimmed == "" {
+			continue
+		}
+		if normalizeComparableModelID(trimmed) == expectedComparable {
+			return trimmed, true
+		}
+		if probeModelIDBase(trimmed) == expectedBase {
+			return trimmed, true
+		}
+	}
+	return "", false
+}
+
+func normalizeComparableModelID(value string) string {
+	comparable := strings.ToLower(strings.TrimSpace(value))
+	comparable = strings.TrimPrefix(comparable, "models/")
+	comparable = strings.TrimPrefix(comparable, "model/")
+	comparable = strings.TrimPrefix(comparable, "local/")
+	comparable = strings.TrimPrefix(comparable, "localai/")
+	comparable = strings.TrimPrefix(comparable, "nexa/")
+	comparable = strings.TrimPrefix(comparable, "nimi_media/")
+	return comparable
+}
+
+func probeModelIDBase(value string) string {
+	trimmed := normalizeComparableModelID(value)
+	if idx := strings.Index(trimmed, "@"); idx > 0 {
+		return strings.TrimSpace(trimmed[:idx])
+	}
+	return trimmed
 }

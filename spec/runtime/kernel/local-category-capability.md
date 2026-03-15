@@ -238,6 +238,8 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
    - `provider`：从 engine 推导（`localai` → `localai`，`nexa` → `nexa`，`nimi_media` → `nimi_media`，`sidecar` → `sidecar`）。
    - `adapter`：按 `K-LOCAL-017` 路由。
    - `available`：健康且未被策略门控（`K-LOCAL-018`）。
+   - `nexa` 的 `tts/stt` node 还必须通过 capability probe：若 `/v1/models` 中缺失与目标 `model_id` 可比对的 model entry，则 node 必须 `available=false` + fail-close。
+   - `nimi_media` node 的 `provider_hints.extra` 必须暴露 runtime host 支持面（如 `runtime_support_class=supported_supervised|attached_only|unsupported`），供目录层解释为何当前 host 只能 attached。
    - `provider_hints`：引擎特定适配信息。
 4. 支持按 `capability`/`service_id`/`provider` 过滤。
 
@@ -255,6 +257,10 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 | 无前缀 | 按已安装模型的 `model_id` 精确匹配 |
 
 前缀在匹配时剥除（`localai/llama3.1` 匹配 `model_id=llama3.1` 且 `engine=localai`；`nimi_media/flux.1-schnell` 匹配 `model_id=flux.1-schnell` 且 `engine=nimi_media`；`sidecar/musicgen` 匹配 `model_id=musicgen` 且 `engine=sidecar`）。
+
+Windows 补充：
+
+- 当 host 对 `nimi_media` 仅为 `attached_only` 时，`local/image` 与 `local/video` 不得把默认 managed loopback 当作 attached fallback；只有显式 attached endpoint 可继续走 `nimi_media`。
 
 未知前缀（如 `ollama/`）视为无前缀，按 `model_id` 全文精确匹配（不剥除前缀）。
 

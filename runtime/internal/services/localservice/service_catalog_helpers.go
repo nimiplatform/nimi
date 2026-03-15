@@ -127,6 +127,12 @@ func buildNodeProviderHints(
 			"availability": fmt.Sprintf("%t", available),
 		},
 	}
+	if supportClass, supportDetail := classifyManagedEngineSupport(service.GetEngine(), deviceProfile); supportClass != "" {
+		hints.Extra["runtime_support_class"] = supportClass
+		if strings.TrimSpace(supportDetail) != "" {
+			hints.Extra["runtime_support_detail"] = strings.TrimSpace(supportDetail)
+		}
+	}
 	switch normalizedProvider {
 	case "localai":
 		localAI := &runtimev1.LocalProviderHintsLocalAi{

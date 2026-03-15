@@ -159,6 +159,10 @@ func (s *Service) evaluateInstallPlanAvailability(plan *runtimev1.LocalInstallPl
 	engine := strings.ToLower(strings.TrimSpace(plan.GetEngine()))
 	mode := defaultRuntimeMode(plan.GetEngineRuntimeMode())
 	plan.EngineRuntimeMode = mode
+	deviceProfile := collectDeviceProfile()
+	if supportWarnings := managedEngineSupportWarnings(engine, deviceProfile); len(supportWarnings) > 0 {
+		plan.Warnings = append(plan.GetWarnings(), supportWarnings...)
+	}
 
 	switch mode {
 	case runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT:
@@ -172,6 +176,17 @@ func (s *Service) evaluateInstallPlanAvailability(plan *runtimev1.LocalInstallPl
 			}
 			return
 		}
+		if strings.EqualFold(engine, "nimi_media") && shouldManageNimiMediaEndpoint(endpoint) {
+			classification, detail := classifyManagedEngineSupport(engine, deviceProfile)
+			if classification != localEngineSupportSupportedSupervised {
+				plan.InstallAvailable = false
+				plan.ReasonCode = runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String()
+				if strings.TrimSpace(detail) != "" {
+					plan.Warnings = append(plan.GetWarnings(), detail)
+				}
+				return
+			}
+		}
 		if _, err := buildModelsProbeURL(endpoint); err != nil {
 			plan.InstallAvailable = false
 			plan.ReasonCode = "LOCAL_ENDPOINT_INVALID"
@@ -180,6 +195,15 @@ func (s *Service) evaluateInstallPlanAvailability(plan *runtimev1.LocalInstallPl
 		plan.InstallAvailable = true
 		plan.ReasonCode = "ACTION_EXECUTED"
 	case runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED:
+		classification, detail := classifyManagedEngineSupport(engine, deviceProfile)
+		if classification != localEngineSupportSupportedSupervised {
+			plan.InstallAvailable = false
+			plan.ReasonCode = "LOCAL_ENGINE_ATTACHED_ENDPOINT_ONLY"
+			if strings.TrimSpace(detail) != "" {
+				plan.Warnings = append(plan.GetWarnings(), detail)
+			}
+			return
+		}
 		mgr, err := s.getEngineManager()
 		if err != nil {
 			plan.InstallAvailable = false
@@ -215,6 +239,14 @@ func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLoc
 			endpoint = defaultNimiMediaEndpoint
 		} else {
 			endpoint = defaultLocalEndpoint
+		}
+	}
+	if strings.EqualFold(engine, "nimi_media") && shouldManageNimiMediaEndpoint(endpoint) {
+		if classification, detail := classifyManagedEngineSupport(engine, collectDeviceProfile()); classification != localEngineSupportSupportedSupervised {
+			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED, grpcerr.ReasonOptions{
+				Message:    defaultString(strings.TrimSpace(detail), "nimi_media requires an explicit attached endpoint on this host"),
+				ActionHint: "set_explicit_nimi_media_endpoint",
+			})
 		}
 	}
 	endpoint = s.normalizeRequestedLocalModelEndpoint(engine, endpoint)

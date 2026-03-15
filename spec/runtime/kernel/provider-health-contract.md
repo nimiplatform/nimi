@@ -44,6 +44,11 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 
 仅 Base URL 非空的目标参与探测。
 
+本地 provider 补充：
+
+- `local-nimi-media` 在 `Windows x64 + NVIDIA CUDA` 之外不得由 runtime 自动注入默认 loopback probe target。
+- 当 host 仅支持 `attached_only` 时，只有调用方显式配置的 `NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL` 才参与 provider health 探测。
+
 ## K-PROV-003 探测间隔与策略
 
 > 本协议适用于云端 provider 探测目标（K-PROV-002）。本地引擎健康探测使用 K-LENG-007。

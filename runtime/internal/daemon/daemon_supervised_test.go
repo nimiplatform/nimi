@@ -62,6 +62,15 @@ func setUnexportedField[T any](t *testing.T, target any, fieldName string, value
 	reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Set(reflect.ValueOf(value))
 }
 
+func getUnexportedStringField(t *testing.T, target any, fieldName string) string {
+	t.Helper()
+	field := reflect.ValueOf(target).Elem().FieldByName(fieldName)
+	if !field.IsValid() {
+		t.Fatalf("field %s not found", fieldName)
+	}
+	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().String()
+}
+
 func newHealthyEngineManager(t *testing.T, kind engine.EngineKind, port int) *engine.Manager {
 	t.Helper()
 	manager, err := engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
@@ -193,6 +202,49 @@ func TestStartSupervisedEnginesManagerInitFailureDegradesAndAudits(t *testing.T)
 	}
 	if startupFailures[0].GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
 		t.Fatalf("unexpected startup failure reason code: %v", startupFailures[0].GetReasonCode())
+	}
+}
+
+func TestStartSupervisedEnginesDoesNotExposeManagedNimiMediaLoopbackOnAttachedOnlyHost(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	cfg := config.Config{
+		GRPCAddr:               "127.0.0.1:0",
+		HTTPAddr:               "127.0.0.1:0",
+		LocalStatePath:         filepath.Join(t.TempDir(), "local-state.json"),
+		AuditRingBufferSize:    64,
+		UsageStatsBufferSize:   64,
+		EngineNimiMediaEnabled: true,
+		EngineNimiMediaPort:    8321,
+		EngineNimiMediaVersion: "0.1.0",
+	}
+	daemon := New(cfg, logger, "test")
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		t.Cleanup(func() { svc.Close() })
+	}
+
+	originalDetect := detectNimiMediaHostSupport
+	detectNimiMediaHostSupport = func() (engine.NimiMediaHostSupport, string) {
+		return engine.NimiMediaHostSupportAttachedOnly, "attached only"
+	}
+	t.Cleanup(func() {
+		detectNimiMediaHostSupport = originalDetect
+	})
+
+	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
+		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
+	}
+
+	daemon.startEngineFn = func(_ context.Context, kind engine.EngineKind, _ string, _ int, _ string) error {
+		_ = kind
+		return nil
+	}
+
+	daemon.startSupervisedEngines(context.Background())
+
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		if managedEndpoint := getUnexportedStringField(t, svc, "nimiMediaManagedEndpoint"); managedEndpoint != "" {
+			t.Fatalf("managed nimi_media endpoint should stay empty on attached-only host, got %q", managedEndpoint)
+		}
 	}
 }
 

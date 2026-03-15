@@ -401,7 +401,7 @@ func (s *Service) managedLocalAIImageBackendServiceLocked() *runtimev1.LocalServ
 	}
 }
 
-func (s *Service) ListNodeCatalog(_ context.Context, req *runtimev1.ListNodeCatalogRequest) (*runtimev1.ListNodeCatalogResponse, error) {
+func (s *Service) ListNodeCatalog(ctx context.Context, req *runtimev1.ListNodeCatalogRequest) (*runtimev1.ListNodeCatalogResponse, error) {
 	capabilityFilter := strings.ToLower(strings.TrimSpace(req.GetCapability()))
 	serviceFilter := strings.TrimSpace(req.GetServiceId())
 	providerFilter := strings.ToLower(strings.TrimSpace(req.GetProvider()))
@@ -409,10 +409,19 @@ func (s *Service) ListNodeCatalog(_ context.Context, req *runtimev1.ListNodeCata
 	deviceProfile := collectDeviceProfile()
 
 	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	nodes := make([]*runtimev1.LocalNodeDescriptor, 0, len(s.services)*2)
+	services := make([]*runtimev1.LocalServiceDescriptor, 0, len(s.services))
 	for _, service := range s.services {
+		services = append(services, cloneServiceDescriptor(service))
+	}
+	models := make(map[string]*runtimev1.LocalModelRecord, len(s.models))
+	for localModelID, model := range s.models {
+		models[localModelID] = cloneLocalModel(model)
+	}
+	s.mu.RUnlock()
+
+	nodes := make([]*runtimev1.LocalNodeDescriptor, 0, len(services)*2)
+	probeCache := make(map[string]endpointProbeResult)
+	for _, service := range services {
 		if serviceFilter != "" && service.GetServiceId() != serviceFilter {
 			continue
 		}
@@ -439,17 +448,48 @@ func (s *Service) ListNodeCatalog(_ context.Context, req *runtimev1.ListNodeCata
 			}
 			reasonCode := ""
 			policyGate := ""
+			availabilityDetail := ""
 			if provider == "nexa" && strings.EqualFold(strings.TrimSpace(capability), "video") {
 				available = false
 				reasonCode = runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String()
 				policyGate = "nexa.video.unsupported"
 			}
-			if available && isCustomCapability(capability) && missingCustomInvokeProfile(service, s.models) {
+			if available && provider == "nexa" && nexaCapabilityRequiresNodeProbe(capability) {
+				model := models[strings.TrimSpace(service.GetLocalModelId())]
+				probe := endpointProbeResult{}
+				endpoint := serviceProbeEndpoint(service)
+				if model != nil {
+					endpoint = s.effectiveLocalModelEndpoint(model)
+				}
+				if cached, ok := probeCache[endpoint]; ok {
+					probe = cached
+				} else {
+					probe = s.probeEndpoint(ctx, endpoint)
+					probeCache[endpoint] = probe
+				}
+				if model == nil || !nexaModelProbeSucceeded(model, probe) {
+					available = false
+					reasonCode = runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String()
+					policyGate = "nexa.capability_probe.missing"
+					if model == nil {
+						availabilityDetail = "nexa capability probe requires an installed local model"
+					} else {
+						availabilityDetail = nexaModelProbeFailureDetail(model, probe)
+					}
+				}
+			}
+			if available && isCustomCapability(capability) && missingCustomInvokeProfile(service, models) {
 				available = false
 				reasonCode = runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING.String()
 				policyGate = "custom.invoke_profile.missing"
 			}
 			nodeID := fmt.Sprintf("%s:%s", service.GetServiceId(), strings.ToLower(strings.TrimSpace(capability)))
+			hints := buildNodeProviderHints(service, provider, capability, adapter, policyGate, available, deviceProfile)
+			if hints != nil {
+				if strings.TrimSpace(availabilityDetail) != "" {
+					hints.Extra["availability_detail"] = availabilityDetail
+				}
+			}
 			nodes = append(nodes, &runtimev1.LocalNodeDescriptor{
 				NodeId:        nodeID,
 				Title:         fmt.Sprintf("%s %s node", service.GetTitle(), capability),
@@ -461,7 +501,7 @@ func (s *Service) ListNodeCatalog(_ context.Context, req *runtimev1.ListNodeCata
 				BackendSource: "runtime",
 				Available:     available,
 				ReasonCode:    reasonCode,
-				ProviderHints: buildNodeProviderHints(service, provider, capability, adapter, policyGate, available, deviceProfile),
+				ProviderHints: hints,
 				PolicyGate:    policyGate,
 				ApiPath:       apiPath,
 				ReadOnly:      false,
@@ -485,6 +525,15 @@ func (s *Service) ListNodeCatalog(_ context.Context, req *runtimev1.ListNodeCata
 		Nodes:         nodes[start:end],
 		NextPageToken: next,
 	}, nil
+}
+
+func nexaCapabilityRequiresNodeProbe(capability string) bool {
+	switch strings.ToLower(strings.TrimSpace(capability)) {
+	case "tts", "speech", "audio.synthesize", "stt", "transcription", "audio.transcribe":
+		return true
+	default:
+		return false
+	}
 }
 
 func isCustomCapability(capability string) bool {

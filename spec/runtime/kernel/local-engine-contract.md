@@ -30,6 +30,7 @@ Phase 1 同时支持 `ATTACHED_ENDPOINT` 和 `SUPERVISED` 两种模式。
 - runtime 不负责启动、停止或重启该进程。
 - `localai` / `nexa` / `nimi_media` 的健康探测协议见 `K-LENG-007`；`sidecar` 当前不纳入 RuntimeLocalService 的标准引擎健康探测与生命周期管理，availability 由实际请求结果决定。
 - `endpoint` 缺失或空字符串时，按 `K-LENG-005` 注入默认端点。
+- `nimi_media` 的 attached endpoint 逃生口必须是显式外部 endpoint。对不满足 `Windows x64 + NVIDIA CUDA` 的主机，runtime 不得把默认 loopback `http://127.0.0.1:8321/v1` 伪装成 attached fallback。
 
 ## K-LENG-004 SUPERVISED 约束
 
@@ -48,7 +49,7 @@ Phase 1 同时支持 `ATTACHED_ENDPOINT` 和 `SUPERVISED` 两种模式。
 - LocalAI：从 GitHub Releases 下载，SHA256 校验，支持 darwin/arm64、darwin/amd64、linux/amd64、linux/arm64。
 - Windows 当前不支持 LocalAI `SUPERVISED` 托管；Windows 用户必须通过 WSL / Docker 等外部进程提供 `ATTACHED_ENDPOINT`。
 - Nexa：非 Windows 平台使用系统安装（`exec.LookPath("nexa")`）；Windows 使用 runtime 托管的 `uv + Python` 环境安装 `nexaai` 并执行 `nexa serve`。
-- `nimi_media`：runtime 使用 `uv + Python 3.12` 受管环境安装 `diffusers` 推理栈，并启动内置 `nimi_media_server.py`；Phase 1 的 managed support 仅覆盖 `windows/amd64`。
+- `nimi_media`：runtime 使用 `uv + Python 3.12` 受管环境安装 `diffusers` 推理栈，并启动内置 `nimi_media_server.py`；Phase 1 的 managed support 仅覆盖 `Windows x64 + NVIDIA CUDA`。若 host 不满足该条件，runtime MUST fail-close supervised 路径，并要求调用方改用显式 `ATTACHED_ENDPOINT`。
 
 ### 进程管理
 
@@ -56,6 +57,7 @@ Phase 1 同时支持 `ATTACHED_ENDPOINT` 和 `SUPERVISED` 两种模式。
 - 端口分配：优先使用配置端口，冲突时 port+1 递增尝试最多 10 次。
 - 启动等待：LocalAI 默认 120 秒（首次下载 GPU backend 可能较慢），Nexa 默认 30 秒，`nimi_media` 默认 180 秒（首次安装 Torch / diffusers 依赖可能较慢）。
 - 健康探测：LocalAI 使用 `GET /readyz`（HTTP 200=健康），Nexa 使用 `GET /`（body 含 "Nexa SDK is running"=健康），`nimi_media` 使用 `GET /readyz`（body 含 `"status": "ok"`=健康）。
+- Host 支持面判定：runtime 内部必须区分 `supported_supervised`、`attached_only`、`unsupported`。Phase 1 中 `nimi_media` 的 supervised host 只有 `Windows x64 + NVIDIA CUDA`；其余 host 至少视为 `attached_only`。
 
 ### env var 注入
 
@@ -134,7 +136,7 @@ ENV 覆盖：`NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED`、`NIMI_RUNTIME_ENGINE_LOCALA
 
 - `localai`：自动注入默认端点。
 - `nexa`：返回 `INVALID_ARGUMENT` + `AI_LOCAL_ENDPOINT_REQUIRED`。
-- `nimi_media`：自动注入默认端点。
+- `nimi_media`：仅当 host 满足 supervised 条件时允许把默认端点解释为 daemon-managed loopback；否则必须要求显式 attached endpoint，并返回 fail-close。
 - `sidecar`：返回 `INVALID_ARGUMENT` + `AI_LOCAL_ENDPOINT_REQUIRED`。
 
 ## K-LENG-006 Local HTTP 协议基线
@@ -155,6 +157,8 @@ ENV 覆盖：`NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED`、`NIMI_RUNTIME_ENGINE_LOCALA
 - 图像生成：`POST /v1/images/generations`
 - 视频生成：`POST /v1/video/generations`
 - 兼容别名：`POST /v1/videos/generations`
+
+`GET /v1/models` 的返回必须至少暴露当前 image/video 默认 driver 元信息（如 `family=diffusers`、`driver=flux|wan`、`device=cuda`），供 runtime health/probe 与目录层对齐。
 
 `nimi_media` 当前不承诺 `chat` / `embeddings` / `audio` 路径，也不承诺任意 DAG、custom nodes、LoRA/ControlNet 全生态兼容。
 
@@ -195,6 +199,11 @@ LocalAI text-chat multimodal 补充：
 - HTTP 200 且响应包含有效模型列表 → 健康。
 - HTTP 非 200 或连接失败 → 不健康。
 - 探测超时：默认 5 秒，不可配置（Phase 1）。
+
+Nexa capability probe 补充：
+
+- 对声明 `tts` / `stt` 的 `nexa` local model，runtime 不得仅凭 endpoint 可达就视为 ready。
+- `/v1/models` 探测成功后，runtime 还必须验证响应中存在与目标 `model_id` 可比对的 model entry；缺失时模型健康状态必须 fail-close，并在 node catalog 中标记 unavailable。
 
 受管 LocalAI 文本模型补充：
 

@@ -518,6 +518,8 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 
 	// Inject engine manager into local service for gRPC access.
 	skipLocalAIBootstrap := false
+	nimiMediaSupport, _ := detectNimiMediaHostSupport()
+	managedNimiMediaLoopback := d.cfg.EngineNimiMediaEnabled && nimiMediaSupport == engine.NimiMediaHostSupportSupportedSupervised
 	if svc := d.grpc.LocalService(); svc != nil {
 		svc.SetLocalAIRegistrationConfig(d.cfg.LocalModelsPath, localAIConfigPath, d.cfg.EngineLocalAIEnabled)
 		if d.cfg.EngineLocalAIEnabled {
@@ -525,7 +527,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		} else {
 			svc.SetLocalAIManagedEndpoint("")
 		}
-		if d.cfg.EngineNimiMediaEnabled {
+		if managedNimiMediaLoopback {
 			svc.SetNimiMediaManagedEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineNimiMediaPort))
 		} else {
 			svc.SetNimiMediaManagedEndpoint("")

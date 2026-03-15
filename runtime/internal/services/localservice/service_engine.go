@@ -163,6 +163,19 @@ func mapEngineManagerError(operation string, err error) error {
 		})
 	}
 
+	if strings.Contains(lower, "configure an attached endpoint instead") ||
+		strings.Contains(lower, "requires windows x64") ||
+		strings.Contains(lower, "requires an nvidia gpu") ||
+		strings.Contains(lower, "requires a cuda-ready nvidia runtime") {
+		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    "engine supervised mode is unavailable on this host",
+			ActionHint: "configure_attached_endpoint_or_use_supported_host",
+			Metadata: map[string]string{
+				"detail": raw,
+			},
+		})
+	}
+
 	if strings.Contains(lower, "hash mismatch") || strings.Contains(lower, "checksum") {
 		return grpcerr.WithReasonCodeOptions(codes.DataLoss, runtimev1.ReasonCode_AI_LOCAL_DOWNLOAD_HASH_MISMATCH, grpcerr.ReasonOptions{
 			Message:    "engine binary checksum mismatch",
