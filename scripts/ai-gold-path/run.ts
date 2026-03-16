@@ -101,16 +101,53 @@ function parseTrailingJson(stdout: string): Record<string, unknown> {
   try {
     return JSON.parse(normalized) as Record<string, unknown>;
   } catch {
-    const lines = normalized.split(/\r?\n/);
-    for (let index = lines.length - 1; index >= 0; index -= 1) {
-      const candidate = lines.slice(index).join('\n').trim();
-      if (!candidate.startsWith('{')) {
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    let objectStart = -1;
+    let lastCandidate = '';
+
+    for (let index = 0; index < normalized.length; index += 1) {
+      const char = normalized[index];
+      if (escaped) {
+        escaped = false;
         continue;
       }
-      try {
-        return JSON.parse(candidate) as Record<string, unknown>;
-      } catch {
+      if (char === '\\') {
+        escaped = true;
         continue;
+      }
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (inString) {
+        continue;
+      }
+      if (char === '{') {
+        if (depth === 0) {
+          objectStart = index;
+        }
+        depth += 1;
+        continue;
+      }
+      if (char !== '}') {
+        continue;
+      }
+      if (depth === 0) {
+        continue;
+      }
+      depth -= 1;
+      if (depth === 0 && objectStart >= 0) {
+        lastCandidate = normalized.slice(objectStart, index + 1).trim();
+      }
+    }
+
+    if (lastCandidate) {
+      try {
+        return JSON.parse(lastCandidate) as Record<string, unknown>;
+      } catch {
+        // Fall through to the generic error below.
       }
     }
     throw new Error('invalid json output');
