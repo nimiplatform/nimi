@@ -16,7 +16,7 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      GITHUB_RELEASES_TOKEN: ${{ secrets.GITHUB_RELEASES_TOKEN }}
+      NIMI_GITHUB_RELEASES_TOKEN: ${{ secrets.NIMI_GITHUB_RELEASES_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -42,11 +42,11 @@ jobs:
         run: pnpm --filter @nimiplatform/install-gateway build
 
       - name: Sync optional GitHub release token secret
-        if: env.GITHUB_RELEASES_TOKEN != ''
+        if: env.NIMI_GITHUB_RELEASES_TOKEN != ''
         run: |
           set -euo pipefail
           cd apps/install-gateway
-          printf '%s' "${GITHUB_RELEASES_TOKEN}" | pnpm dlx wrangler secret put GITHUB_RELEASES_TOKEN --config wrangler.jsonc
+          printf '%s' "${NIMI_GITHUB_RELEASES_TOKEN}" | pnpm dlx wrangler secret put NIMI_GITHUB_RELEASES_TOKEN --config wrangler.jsonc
 
       - name: Deploy install gateway worker
         run: |

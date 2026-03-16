@@ -31,6 +31,7 @@ Build AI apps that run local and cloud models through one runtime, one SDK, and 
 | Linux | Desktop release on GitHub; CLI + SDK also available | [GitHub Releases](https://github.com/nimiplatform/nimi/releases) |
 
 The desktop app is the fastest way to get started. For CLI-only installs, use `curl -fsSL https://install.nimi.xyz | sh` on macOS/Linux or `npm install -g @nimiplatform/nimi` on supported macOS/Linux/Windows targets.
+> In early access, macOS desktop assets may be published in ad-hoc signing mode before Apple Developer ID notarization is configured.
 
 ## Install
 

@@ -14,6 +14,8 @@ Nimi Desktop 是一个基于 Tauri 构建的原生应用，提供 AI 交互、Mo
 
 桌面端自动更新使用的稳定入口为 [https://install.nimi.xyz/desktop/latest.json](https://install.nimi.xyz/desktop/latest.json)。
 
+如果某个 macOS 版本以 ad-hoc 签名模式发布，Gatekeeper 可能会在首次启动前拦截解压后的应用包。在这种模式下，应用尚未完成 Apple Developer ID notarization。
+
 ## 首次启动
 
 首次打开 Nimi Desktop 时：

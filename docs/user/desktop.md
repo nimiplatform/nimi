@@ -14,6 +14,8 @@ On macOS, extract the archive to get the app bundle and move it to your Applicat
 
 Automatic desktop updates resolve through [https://install.nimi.xyz/desktop/latest.json](https://install.nimi.xyz/desktop/latest.json).
 
+If a macOS release is published in ad-hoc signing mode, Gatekeeper may quarantine the extracted app until you explicitly allow it. In that mode the app is not Apple Developer ID notarized yet.
+
 ## First Launch
 
 When you open Nimi Desktop for the first time:

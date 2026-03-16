@@ -16,6 +16,7 @@ The desktop app is the fastest way to get started with Nimi.
 | Linux | Available on [GitHub Releases](https://github.com/nimiplatform/nimi/releases) — AppImage |
 
 If you prefer the command line or want automated installs, use the CLI install methods below. The `curl` installer supports macOS and Linux. `npm install -g @nimiplatform/nimi` covers supported macOS, Linux, and Windows targets.
+If a macOS desktop release is published in ad-hoc signing mode, Gatekeeper may require you to manually allow the extracted app before first launch.
 
 ## System Requirements
 

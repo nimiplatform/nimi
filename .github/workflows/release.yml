@@ -103,8 +103,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NIMI_MODS_LIVE: '1'
-      NIMI_LIVE_OPENAI_API_KEY: ${{ secrets.NIMI_LIVE_OPENAI_API_KEY }}
-      NIMI_LIVE_OPENAI_MODEL_ID: ${{ vars.NIMI_LIVE_OPENAI_MODEL_ID || 'gpt-4o-mini' }}
+      NIMI_LIVE_GEMINI_API_KEY: ${{ secrets.NIMI_LIVE_GEMINI_API_KEY }}
+      NIMI_LIVE_GEMINI_MODEL_ID: ${{ vars.NIMI_LIVE_GEMINI_MODEL_ID || 'gemini-3-flash-preview' }}
       NIMI_LIVE_ALIBABA_BASE_URL: ${{ vars.NIMI_LIVE_ALIBABA_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1' }}
       NIMI_LIVE_ALIBABA_API_KEY: ${{ secrets.NIMI_LIVE_ALIBABA_API_KEY }}
       NIMI_LIVE_ALIBABA_CHAT_MODEL_ID: ${{ vars.NIMI_LIVE_ALIBABA_CHAT_MODEL_ID || 'alibaba/qwen-turbo' }}
@@ -502,7 +502,43 @@ jobs:
       - name: Validate desktop mods env contract
         run: pnpm --filter @nimiplatform/desktop run env:check:mods-root
 
-      - name: Validate desktop updater signing inputs
+      - name: Resolve macOS signing mode
+        id: macos_signing
+        env:
+          MATRIX_PLATFORM: ${{ matrix.platform }}
+          CONFIGURED_MODE: ${{ vars.NIMI_DESKTOP_MACOS_SIGNING_MODE || 'developer-id' }}
+        run: |
+          set -euo pipefail
+          case "${CONFIGURED_MODE}" in
+            developer-id|ad-hoc)
+              ;;
+            *)
+              echo "NIMI_DESKTOP_MACOS_SIGNING_MODE must be developer-id or ad-hoc, got: ${CONFIGURED_MODE}" >&2
+              exit 1
+              ;;
+          esac
+
+          if [[ "${MATRIX_PLATFORM}" != 'macos-latest' ]]; then
+            mode='not-applicable'
+            use_ad_hoc='false'
+            require_apple='false'
+          elif [[ "${CONFIGURED_MODE}" == 'ad-hoc' ]]; then
+            mode='ad-hoc'
+            use_ad_hoc='true'
+            require_apple='false'
+          else
+            mode='developer-id'
+            use_ad_hoc='false'
+            require_apple='true'
+          fi
+
+          {
+            echo "mode=${mode}"
+            echo "use_ad_hoc_signing=${use_ad_hoc}"
+            echo "require_apple_credentials=${require_apple}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Validate desktop signing inputs
         run: |
           set -euo pipefail
           if [[ -z "${NIMI_DESKTOP_UPDATER_PUBLIC_KEY:-}" ]]; then
@@ -517,9 +553,46 @@ jobs:
             echo "TAURI_SIGNING_PRIVATE_KEY is required" >&2
             exit 1
           fi
+          if [[ "${REQUIRE_APPLE_CREDENTIALS}" == 'true' ]]; then
+            if [[ -z "${APPLE_CERTIFICATE:-}" ]]; then
+              echo "APPLE_CERTIFICATE is required for developer-id macOS signing" >&2
+              exit 1
+            fi
+            if [[ -z "${APPLE_CERTIFICATE_PASSWORD:-}" ]]; then
+              echo "APPLE_CERTIFICATE_PASSWORD is required for developer-id macOS signing" >&2
+              exit 1
+            fi
+            if [[ -z "${APPLE_SIGNING_IDENTITY:-}" ]]; then
+              echo "APPLE_SIGNING_IDENTITY is required for developer-id macOS signing" >&2
+              exit 1
+            fi
+            if [[ -z "${APPLE_ID:-}" ]]; then
+              echo "APPLE_ID is required for developer-id macOS notarization" >&2
+              exit 1
+            fi
+            if [[ -z "${APPLE_PASSWORD:-}" ]]; then
+              echo "APPLE_PASSWORD is required for developer-id macOS notarization" >&2
+              exit 1
+            fi
+            if [[ -z "${APPLE_TEAM_ID:-}" ]]; then
+              echo "APPLE_TEAM_ID is required for developer-id macOS notarization" >&2
+              exit 1
+            fi
+          fi
+          if [[ "${MACOS_SIGNING_MODE}" == 'ad-hoc' ]]; then
+            echo "macOS desktop artifacts will use ad-hoc signing and skip Apple notarization"
+          fi
         env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
           NIMI_DESKTOP_UPDATER_PUBLIC_KEY: ${{ vars.NIMI_DESKTOP_UPDATER_PUBLIC_KEY }}
           NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.xyz/desktop/latest.json' }}
+          REQUIRE_APPLE_CREDENTIALS: ${{ steps.macos_signing.outputs.require_apple_credentials }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
 
       - name: Prepare bundled runtime resources
@@ -542,19 +615,20 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NIMI_DESKTOP_UPDATER_PUBLIC_KEY: ${{ vars.NIMI_DESKTOP_UPDATER_PUBLIC_KEY }}
           NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.xyz/desktop/latest.json' }}
+          NIMI_DESKTOP_MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_CERTIFICATE: ${{ matrix.platform == 'macos-latest' && steps.macos_signing.outputs.require_apple_credentials == 'true' && secrets.APPLE_CERTIFICATE || '' }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ matrix.platform == 'macos-latest' && steps.macos_signing.outputs.require_apple_credentials == 'true' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
+          APPLE_SIGNING_IDENTITY: ${{ matrix.platform == 'macos-latest' && (steps.macos_signing.outputs.use_ad_hoc_signing == 'true' && '-' || secrets.APPLE_SIGNING_IDENTITY) || '' }}
+          APPLE_ID: ${{ matrix.platform == 'macos-latest' && steps.macos_signing.outputs.require_apple_credentials == 'true' && secrets.APPLE_ID || '' }}
+          APPLE_PASSWORD: ${{ matrix.platform == 'macos-latest' && steps.macos_signing.outputs.require_apple_credentials == 'true' && secrets.APPLE_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ matrix.platform == 'macos-latest' && steps.macos_signing.outputs.require_apple_credentials == 'true' && secrets.APPLE_TEAM_ID || '' }}
         with:
           projectPath: apps/desktop
           tagName: ${{ needs.resolve.outputs.publish == 'true' && needs.resolve.outputs.tag || '' }}
           releaseName: ${{ needs.resolve.outputs.publish == 'true' && format('Desktop {0}', needs.resolve.outputs.version) || '' }}
-          releaseBody: ${{ needs.resolve.outputs.publish == 'true' && 'Automated desktop bundle built by release workflow.' || '' }}
+          releaseBody: ${{ needs.resolve.outputs.publish == 'true' && ((vars.NIMI_DESKTOP_MACOS_SIGNING_MODE || 'developer-id') == 'ad-hoc' && 'Automated desktop bundle built by release workflow. macOS assets use ad-hoc signing and are not Apple notarized.' || 'Automated desktop bundle built by release workflow.') || '' }}
           releaseDraft: false
           prerelease: ${{ contains(needs.resolve.outputs.version, '-') }}
           includeUpdaterJson: true

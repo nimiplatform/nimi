@@ -62,7 +62,7 @@ export function githubApiHeaders(env = {}) {
     accept: 'application/vnd.github+json',
     'user-agent': 'nimi-install-gateway',
   };
-  const token = normalizeText(env.GITHUB_RELEASES_TOKEN || env.GITHUB_TOKEN);
+  const token = normalizeText(env.NIMI_GITHUB_RELEASES_TOKEN || env.GITHUB_TOKEN);
   if (token) {
     headers.authorization = `Bearer ${token}`;
   }

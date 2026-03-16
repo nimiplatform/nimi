@@ -15,9 +15,9 @@ Nimi 当前不会额外发布 Go registry 包，也不会把桌面端发布到 c
 
 ### 通用发布门禁
 
-- `NIMI_LIVE_OPENAI_API_KEY`
+- `NIMI_LIVE_GEMINI_API_KEY`
 - `NIMI_LIVE_ALIBABA_API_KEY`
-- `NIMI_LIVE_OPENAI_MODEL_ID`（repo variable，可选，workflow 内有默认值）
+- `NIMI_LIVE_GEMINI_MODEL_ID`（repo variable，可选，workflow 内有默认值）
 - `NIMI_LIVE_ALIBABA_BASE_URL`（repo variable，可选，workflow 内有默认值）
 - `NIMI_LIVE_ALIBABA_CHAT_MODEL_ID`（repo variable，可选，workflow 内有默认值）
 
@@ -36,18 +36,19 @@ Nimi 当前不会额外发布 Go registry 包，也不会把桌面端发布到 c
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
 - `NIMI_DESKTOP_UPDATER_PUBLIC_KEY`（repo variable）
 - `NIMI_DESKTOP_UPDATER_ENDPOINT=https://install.nimi.xyz/desktop/latest.json`（repo variable）
-- `APPLE_CERTIFICATE`
-- `APPLE_CERTIFICATE_PASSWORD`
-- `APPLE_SIGNING_IDENTITY`
-- `APPLE_ID`
-- `APPLE_PASSWORD`
-- `APPLE_TEAM_ID`
+- `NIMI_DESKTOP_MACOS_SIGNING_MODE`（repo variable，默认 `developer-id`；如需先发布未完成 Apple notarization 的 macOS 资产，可设为 `ad-hoc`）
+- `APPLE_CERTIFICATE`（仅在 `NIMI_DESKTOP_MACOS_SIGNING_MODE=developer-id` 时必需）
+- `APPLE_CERTIFICATE_PASSWORD`（仅在 `NIMI_DESKTOP_MACOS_SIGNING_MODE=developer-id` 时必需）
+- `APPLE_SIGNING_IDENTITY`（仅在 `NIMI_DESKTOP_MACOS_SIGNING_MODE=developer-id` 时必需）
+- `APPLE_ID`（仅在 `NIMI_DESKTOP_MACOS_SIGNING_MODE=developer-id` 时必需）
+- `APPLE_PASSWORD`（仅在 `NIMI_DESKTOP_MACOS_SIGNING_MODE=developer-id` 时必需）
+- `APPLE_TEAM_ID`（仅在 `NIMI_DESKTOP_MACOS_SIGNING_MODE=developer-id` 时必需）
 
 ### Cloudflare 安装网关
 
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
-- `GITHUB_RELEASES_TOKEN`（可选，但建议配置以避免 GitHub API 限流）
+- `NIMI_GITHUB_RELEASES_TOKEN`（可选，但建议配置以避免 GitHub API 限流）
 
 ## Install Gateway
 
@@ -94,6 +95,13 @@ Nimi 当前不会额外发布 Go registry 包，也不会把桌面端发布到 c
 7. 推送 `desktop/vX.Y.Z`。
 8. 等待 `.github/workflows/release.yml` 发布桌面端 GitHub Release 资产。
 
+## macOS 签名模式
+
+- `developer-id`：使用 Apple Developer ID 签名并完成 notarization，需要完整的 `APPLE_*` secrets
+- `ad-hoc`：不依赖 Apple Developer ID notarization 构建 macOS 资产；将 `NIMI_DESKTOP_MACOS_SIGNING_MODE` 设为 `ad-hoc`
+
+当启用 `ad-hoc` 模式时，GitHub desktop release 的说明会明确标记 macOS 资产未经过 Apple notarization。用户在首次启动时可能需要手动允许应用通过 Gatekeeper。
+
 ## Dry Run 与 Smoke 检查
 
 首次公开发布前运行：
@@ -118,5 +126,6 @@ Nimi 当前不会额外发布 Go registry 包，也不会把桌面端发布到 c
 - `npm install -g @nimiplatform/nimi` 会在受支持的 macOS、Linux 和 Windows 目标上安装正确的平台包
 - runtime GitHub Release 包含归档、`checksums.txt`、签名、证书和 SBOM 资产
 - desktop GitHub Release 包含当前 workflow 的实际输出：macOS 更新归档、Windows NSIS 安装器、Linux AppImage、签名和 updater 元数据
+- 如果 `NIMI_DESKTOP_MACOS_SIGNING_MODE=ad-hoc`，desktop release 说明和用户文档会明确声明 macOS 资产尚未经过 Apple notarization
 - [https://install.nimi.xyz/runtime/latest.json](https://install.nimi.xyz/runtime/latest.json) 返回完整的 runtime manifest
 - [https://install.nimi.xyz/desktop/latest.json](https://install.nimi.xyz/desktop/latest.json) 返回有效的 desktop updater manifest
