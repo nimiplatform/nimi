@@ -1620,6 +1620,30 @@
           "yes": "Yes",
           "no": "No"
         },
+        "systemLabels": {
+          "status": {
+            "active": "Active",
+            "draft": "Draft",
+            "pendingReview": "Pending Review",
+            "suspended": "Suspended",
+            "archived": "Archived"
+          },
+          "creationState": {
+            "open": "Open",
+            "nativeCreationFrozen": "Frozen"
+          },
+          "freezeReason": {
+            "quotaOverflow": "Quota Overflow",
+            "worldInactive": "World Inactive",
+            "governanceLock": "Governance Lock"
+          },
+          "audit": {
+            "levelUp": "World Level Up",
+            "levelDown": "World Level Down",
+            "nativeCreationFrozen": "Native Creation Frozen",
+            "nativeCreationUnfrozen": "Native Creation Unfrozen"
+          }
+        },
         "visuals": {
           "timeFlowTitle": "Time Flow",
           "timeFlowSubtitle": "Current temporal acceleration of the world",
@@ -1643,6 +1667,13 @@
         "coreRules": {
           "title": "World Core Rules",
           "subtitle": "The core rules that govern this world",
+          "snapshotTitle": "Rules Snapshot",
+          "snapshotSubtitle": "Build a mental model of how this world runs before deciding where to enter.",
+          "snapshotOperation": "Operating Core",
+          "snapshotPowerSystem": "Primary System",
+          "snapshotTaboos": "Taboo Load",
+          "snapshotTaboosValue": "{{count}} taboos",
+          "snapshotCausality": "Causality Constraint",
           "operation": "How the World Works",
           "powerSystem": "Power System",
           "powerSystemSubtitle": "Primary advancement path and level structure",
@@ -1669,6 +1700,8 @@
         "timeline": {
           "title": "Chronicle",
           "subtitle": "Official world event spine",
+          "oasisTitle": "System Milestones",
+          "oasisSubtitle": "Key platform evolution points of OASIS",
           "primary": "Primary",
           "secondary": "Secondary",
           "characters": "Characters",
@@ -1688,8 +1721,10 @@
           "empty": "This world has no formal events to display yet."
         },
         "scenes": {
-          "title": "Scene Gateways",
-          "subtitle": "Key places to explore in this world",
+          "title": "Key Scenes",
+          "subtitle": "Places that open up the main spaces and relationships of this world",
+          "oasisTitle": "System Scenes",
+          "oasisSubtitle": "Core system spaces inside the OASIS prime world",
           "noDescription": "No description.",
           "activeEntities": "Active Entities",
           "quickSheetTitle": "Scene Details",
@@ -1698,12 +1733,22 @@
           "quickSheetActiveEntities": "Active Characters",
           "quickSheetRelatedEvents": "Related Events",
           "quickSheetEnter": "Enter Experience",
+          "comingSoon": "Coming Soon",
           "quickSheetViewAgents": "View Related Agents",
-          "quickSheetViewEvents": "View Related Events"
+          "quickSheetViewEvents": "View Related Events",
+          "oasisActionLabels": {
+            "default": "Enter Experience",
+            "oasisPlaza": "Enter Plaza",
+            "oasisTransitHub": "Launch Transit",
+            "oasisCreatorForge": "Start Creating",
+            "oasisChatCore": "Join Channel",
+            "oasisNoticeSpire": "View Notices"
+          }
         },
         "runtimeFacts": {
-          "title": "World Runtime Facts",
-          "subtitle": "Current state of the world",
+          "title": "Runtime Status",
+          "subtitle": "Current facts from the system, governance, and runtime side",
+          "intro": "This group is closer to a world operations panel than to the worldbuilding itself.",
           "flowRatio": "Time Flow",
           "agentCount": "Current Agents",
           "lorebookCount": "Current Lorebooks",
@@ -1717,8 +1762,15 @@
           "level": "Level",
           "nativeCreation": "Native Creation",
           "latestAudit": "Latest governance action",
-          "recommendedAgents": "Recommended Entry Agents",
-          "recommendedAgentsSubtitle": "Recommended characters to meet first",
+          "recommendedAgents": "Suggested Starting Characters",
+          "recommendedAgentsSubtitle": "After understanding the rules, start from these characters",
+          "recommendedAgentsHint": "Entering through characters closest to the current time slice makes it easier to understand the order, places, and relationships of this world.",
+          "entryPrimary": "First Entry",
+          "entrySecondary": "Support Entry",
+          "entryReasonScene": "Best entered through {{value}} first",
+          "entryReasonIdentity": "A good way to understand the world through the lens of {{value}}",
+          "entryReasonDefault": "A good starting point for building your first impression of this world",
+          "inspectProfile": "Open profile",
           "chronology": "Chronology",
           "chronologySubtitle": "Current world time facts",
           "chronologyAndLanguage": "Chronology & Languages",
@@ -1729,9 +1781,24 @@
           "primaryLanguage": "Primary Language",
           "commonLanguages": "Common Languages"
         },
+        "oasisIdentity": {
+          "totalWorlds": "Worlds",
+          "activeAgents": "Active Agents",
+          "onlineScenes": "Online Scenes",
+          "runtimeDays": "Runtime",
+          "runtimeDaysValue": "{{count}} days",
+          "systemPrimeWorld": "System Prime World",
+          "capabilities": "System Capabilities",
+          "era": "Era",
+          "language": "Common Tongue",
+          "governance": "Governance",
+          "governanceManaged": "System Managed",
+          "governanceRestricted": "Restricted Managed",
+          "governanceLimited": "Limited Access"
+        },
         "quickNav": {
-          "rules": "Rules",
-          "characters": "Entry Characters",
+          "rules": "Lore",
+          "characters": "First Look",
           "scenes": "Scenes",
           "timeline": "Events",
           "roster": "Roster",

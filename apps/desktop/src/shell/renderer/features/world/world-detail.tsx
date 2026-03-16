@@ -4,7 +4,11 @@ import { queryClient } from '@renderer/infra/query-client/query-client';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
-import { XianxiaWorldTemplate, type XianxiaWorldData } from './world-xianxia-template';
+import {
+  NarrativeWorldDetailPage,
+  OasisWorldDetailPage,
+  type XianxiaWorldData,
+} from './world-detail-template';
 import type { WorldAuditItem, WorldAgent, WorldRecommendedAgent } from './world-detail-types';
 import type { WorldListItem } from './world-list-model';
 import {
@@ -181,6 +185,7 @@ function toXianxiaWorldData(
     scoreEwma: (detail?.scoreEwma as number) ?? world.scoreEwma,
     scoreQ: (detail?.scoreQ as number) ?? world.scoreQ,
     flowRatio: computed.time.flowRatio,
+    isPaused: computed.time.isPaused,
     transitInLimit: (detail?.transitInLimit as number) ?? world.transitInLimit,
     genre: (detail?.genre as string | null) ?? world.genre,
     era: (detail?.era as string | null) ?? world.era,
@@ -374,29 +379,55 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
 
   return (
     <ScrollShell className="h-full bg-[#f8fafb]" viewportClassName="bg-[#f8fafb]">
-      <XianxiaWorldTemplate
-        world={worldData}
-        agents={agents}
-        events={events}
-        semantic={semantic}
-        audits={audits}
-        publicAssets={publicAssets}
-        loading={initialLoading}
-        error={initialError}
-        agentsLoading={worldCompositeQuery.isPending}
-        eventsLoading={worldEventsQuery.isPending}
-        semanticLoading={worldSemanticQuery.isPending}
-        auditsLoading={worldAuditQuery.isPending}
-        publicAssetsLoading={worldPublicAssetsQuery.isPending}
-        onBack={onBack}
-        onEnterEdit={handleEnterEdit}
-        onCreateSubWorld={handleCreateSubWorld}
-        onChatAgent={handleChatAgent}
-        onVoiceAgent={handleVoiceAgent}
-        onViewAgent={handleViewAgent}
-        onCreateAgent={(input) => createAgentMutation.mutate(input)}
-        createAgentMutating={createAgentMutation.isPending}
-      />
+      {worldData.type === 'OASIS' ? (
+        <OasisWorldDetailPage
+          world={worldData}
+          agents={agents}
+          events={events}
+          semantic={semantic}
+          audits={audits}
+          publicAssets={publicAssets}
+          loading={initialLoading}
+          error={initialError}
+          agentsLoading={worldCompositeQuery.isPending}
+          eventsLoading={worldEventsQuery.isPending}
+          semanticLoading={worldSemanticQuery.isPending}
+          auditsLoading={worldAuditQuery.isPending}
+          publicAssetsLoading={worldPublicAssetsQuery.isPending}
+          onBack={onBack}
+          onEnterEdit={handleEnterEdit}
+          onCreateSubWorld={handleCreateSubWorld}
+          onChatAgent={handleChatAgent}
+          onVoiceAgent={handleVoiceAgent}
+          onViewAgent={handleViewAgent}
+          onCreateAgent={(input) => createAgentMutation.mutate(input)}
+          createAgentMutating={createAgentMutation.isPending}
+        />
+      ) : (
+        <NarrativeWorldDetailPage
+          world={worldData}
+          agents={agents}
+          events={events}
+          semantic={semantic}
+          audits={audits}
+          publicAssets={publicAssets}
+          loading={initialLoading}
+          error={initialError}
+          agentsLoading={worldCompositeQuery.isPending}
+          eventsLoading={worldEventsQuery.isPending}
+          semanticLoading={worldSemanticQuery.isPending}
+          auditsLoading={worldAuditQuery.isPending}
+          publicAssetsLoading={worldPublicAssetsQuery.isPending}
+          onBack={onBack}
+          onEnterEdit={handleEnterEdit}
+          onCreateSubWorld={handleCreateSubWorld}
+          onChatAgent={handleChatAgent}
+          onVoiceAgent={handleVoiceAgent}
+          onViewAgent={handleViewAgent}
+          onCreateAgent={(input) => createAgentMutation.mutate(input)}
+          createAgentMutating={createAgentMutation.isPending}
+        />
+      )}
     </ScrollShell>
   );
 }

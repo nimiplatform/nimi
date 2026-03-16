@@ -290,6 +290,7 @@ export type { WorldNarrativeContextDetailDto } from './generated/models/WorldNar
 export type { WorldNarrativeContextListDto } from './generated/models/WorldNarrativeContextListDto';
 export type { WorldPatchDto } from './generated/models/WorldPatchDto';
 export type { WorldRecommendedAgentDto } from './generated/models/WorldRecommendedAgentDto';
+export type { WorldRuleItemDto } from './generated/models/WorldRuleItemDto';
 export type { WorldSceneDetailDto } from './generated/models/WorldSceneDetailDto';
 export type { WorldSceneListDto } from './generated/models/WorldSceneListDto';
 export type { WorldStoryProjectionSummaryDto } from './generated/models/WorldStoryProjectionSummaryDto';

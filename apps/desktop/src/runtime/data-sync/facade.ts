@@ -265,7 +265,12 @@ export class DataSync {
   loadMainWorld() { return this.actions.loadMainWorld(); }
   loadWorldLevelAudits(worldId: string, limit = 20): Promise<WorldLevelAuditEventDto[]> { return this.actions.loadWorldLevelAudits(worldId, limit); }
   loadWorldAgents(worldId: string): Promise<Array<Record<string, unknown>>> { return this.actions.loadWorldAgents(worldId); }
-  loadWorldDetailWithAgents(worldId: string): Promise<Record<string, unknown> | null> { return this.actions.loadWorldDetailWithAgents(worldId); }
+  loadWorldDetailWithAgents(
+    worldId: string,
+    recommendedAgentLimit?: number,
+  ): Promise<Record<string, unknown> | null> {
+    return this.actions.loadWorldDetailWithAgents(worldId, recommendedAgentLimit);
+  }
   loadWorldEvents(worldId: string): Promise<WorldEventsPayload> { return this.actions.loadWorldEvents(worldId); }
   loadWorldLorebooks(worldId: string): Promise<{ worldId: string; items: Array<Record<string, unknown>> }> { return this.actions.loadWorldLorebooks(worldId); }
   loadWorldScenes(worldId: string): Promise<{ worldId: string; items: Array<Record<string, unknown>> }> { return this.actions.loadWorldScenes(worldId); }

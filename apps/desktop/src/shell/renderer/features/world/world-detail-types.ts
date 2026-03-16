@@ -42,6 +42,7 @@ export type WorldDetailData = {
   scoreEwma: number;
   scoreQ: number;
   flowRatio: number;
+  isPaused?: boolean;
   transitInLimit: number;
   genre?: string | null;
   era?: string | null;
@@ -121,7 +122,8 @@ export type WorldEventsBundle = {
 };
 
 export type WorldSemanticRule = {
-  label: string;
+  key: string;
+  title: string;
   value: string;
 };
 
@@ -203,6 +205,7 @@ export type WorldSemanticData = {
 export type WorldAuditItem = {
   id: string;
   label: string;
+  eventType?: string | null;
   occurredAt: string;
   prevLevel?: number | null;
   nextLevel?: number | null;
@@ -244,6 +247,8 @@ export type WorldMediaBindingItem = {
 export type WorldMutationItem = {
   id: string;
   mutationType: string;
+  title: string;
+  summary: string;
   targetPath: string;
   reason?: string | null;
   createdAt: string;

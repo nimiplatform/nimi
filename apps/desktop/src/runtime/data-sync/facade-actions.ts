@@ -298,8 +298,8 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       loadWorldLevelAudits(input.callApiTask, input.emitFacadeError, worldId, limit),
     loadWorldAgents: async (worldId: string) =>
       loadWorldAgents(input.callApiTask, input.emitFacadeError, worldId),
-    loadWorldDetailWithAgents: async (worldId: string) =>
-      loadWorldDetailWithAgents(input.callApiTask, input.emitFacadeError, worldId),
+    loadWorldDetailWithAgents: async (worldId: string, recommendedAgentLimit?: number) =>
+      loadWorldDetailWithAgents(input.callApiTask, input.emitFacadeError, worldId, recommendedAgentLimit),
     loadWorldEvents: async (worldId: string) =>
       loadWorldEvents(input.callApiTask, input.emitFacadeError, worldId),
     loadWorldLorebooks: async (worldId: string) =>

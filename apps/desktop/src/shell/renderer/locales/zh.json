@@ -1620,6 +1620,30 @@
           "yes": "是",
           "no": "否"
         },
+        "systemLabels": {
+          "status": {
+            "active": "运行中",
+            "draft": "草稿",
+            "pendingReview": "审核中",
+            "suspended": "已暂停",
+            "archived": "已归档"
+          },
+          "creationState": {
+            "open": "开放",
+            "nativeCreationFrozen": "冻结"
+          },
+          "freezeReason": {
+            "quotaOverflow": "配额超限",
+            "worldInactive": "世界不活跃",
+            "governanceLock": "治理锁定"
+          },
+          "audit": {
+            "levelUp": "世界升阶",
+            "levelDown": "世界降阶",
+            "nativeCreationFrozen": "原生创建冻结",
+            "nativeCreationUnfrozen": "原生创建解冻"
+          }
+        },
         "visuals": {
           "timeFlowTitle": "时间流速环",
           "timeFlowSubtitle": "当前世界的时间加速度",
@@ -1643,6 +1667,13 @@
         "coreRules": {
           "title": "世界观核心规则",
           "subtitle": "这个世界的核心运转规则",
+          "snapshotTitle": "规则速览",
+          "snapshotSubtitle": "先建立这个世界的运行心智，再决定从哪里进入。",
+          "snapshotOperation": "运转核心",
+          "snapshotPowerSystem": "主体系",
+          "snapshotTaboos": "禁忌强度",
+          "snapshotTaboosValue": "{{count}} 条禁忌",
+          "snapshotCausality": "因果约束",
           "operation": "世界如何运转",
           "powerSystem": "力量体系",
           "powerSystemSubtitle": "这个世界的主力量进阶路径与等级结构",
@@ -1669,6 +1700,8 @@
         "timeline": {
           "title": "事件编年",
           "subtitle": "世界正式事件主轴",
+          "oasisTitle": "系统里程碑",
+          "oasisSubtitle": "OASIS 平台的关键演进节点",
           "primary": "主线",
           "secondary": "支线",
           "characters": "角色",
@@ -1688,8 +1721,10 @@
           "empty": "这个世界当前没有可展示的正式事件。"
         },
         "scenes": {
-          "title": "场景入口",
-          "subtitle": "探索这个世界的关键地点",
+          "title": "关键场景",
+          "subtitle": "从这些地点进入这个世界的主要空间与关系",
+          "oasisTitle": "系统场景",
+          "oasisSubtitle": "OASIS 主世界的核心系统空间",
           "noDescription": "暂无描述。",
           "activeEntities": "活跃实体",
           "quickSheetTitle": "场景详情",
@@ -1698,12 +1733,22 @@
           "quickSheetActiveEntities": "活跃角色",
           "quickSheetRelatedEvents": "相关事件",
           "quickSheetEnter": "进入体验",
+          "comingSoon": "即将开放",
           "quickSheetViewAgents": "查看相关角色",
-          "quickSheetViewEvents": "查看相关事件"
+          "quickSheetViewEvents": "查看相关事件",
+          "oasisActionLabels": {
+            "default": "进入体验",
+            "oasisPlaza": "进入广场",
+            "oasisTransitHub": "启动传送",
+            "oasisCreatorForge": "开始创作",
+            "oasisChatCore": "加入频道",
+            "oasisNoticeSpire": "查看公告"
+          }
         },
         "runtimeFacts": {
-          "title": "世界运行事实",
-          "subtitle": "当前运行状态",
+          "title": "运行状态",
+          "subtitle": "偏系统、治理与运行侧的当前事实",
+          "intro": "这一组信息更接近世界的运行面板，而不是世界观设定本身。",
           "flowRatio": "时间流速",
           "agentCount": "当前角色",
           "lorebookCount": "当前知识条目",
@@ -1717,8 +1762,15 @@
           "level": "等级",
           "nativeCreation": "原生创建",
           "latestAudit": "最近治理动作",
-          "recommendedAgents": "推荐进入角色",
-          "recommendedAgentsSubtitle": "首次进入推荐认识的角色",
+          "recommendedAgents": "建议切入角色",
+          "recommendedAgentsSubtitle": "理解规则后，建议先从这些角色切入世界",
+          "recommendedAgentsHint": "先从最贴近当前时间切面的角色进入，会更容易理解这个世界的秩序、地点与关系。",
+          "entryPrimary": "首个切入点",
+          "entrySecondary": "补充入口",
+          "entryReasonScene": "适合先从 {{value}} 切入",
+          "entryReasonIdentity": "适合先从 {{value}} 的视角理解世界",
+          "entryReasonDefault": "适合用来建立对这个世界的第一印象",
+          "inspectProfile": "点击查看角色档案",
           "chronology": "纪年",
           "chronologySubtitle": "当前世界时间事实",
           "chronologyAndLanguage": "纪年与语言",
@@ -1729,9 +1781,24 @@
           "primaryLanguage": "主语言",
           "commonLanguages": "常见语言"
         },
+        "oasisIdentity": {
+          "totalWorlds": "世界总数",
+          "activeAgents": "活跃角色总量",
+          "onlineScenes": "在线场景数",
+          "runtimeDays": "运行天数",
+          "runtimeDaysValue": "{{count}} 天",
+          "systemPrimeWorld": "系统主世界",
+          "capabilities": "系统能力",
+          "era": "纪元",
+          "language": "通用语",
+          "governance": "治理模式",
+          "governanceManaged": "系统托管",
+          "governanceRestricted": "受限托管",
+          "governanceLimited": "有限开放"
+        },
         "quickNav": {
-          "rules": "规则",
-          "characters": "入口角色",
+          "rules": "世界观",
+          "characters": "初识",
           "scenes": "场景",
           "timeline": "事件",
           "roster": "角色",

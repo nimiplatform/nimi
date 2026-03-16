@@ -5128,6 +5128,12 @@ export const REALM_OPERATION_MAP = {
         "in": "path",
         "required": true,
         "valueType": "string"
+      },
+      {
+        "name": "recommendedAgentLimit",
+        "in": "query",
+        "required": false,
+        "valueType": "number"
       }
     ],
     "hasBody": false,

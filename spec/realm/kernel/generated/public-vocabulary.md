@@ -7,9 +7,9 @@
 | Term | Description |
 |---|---|
 | `World` | 世界实体，Nimi OASIS 核心资产 |
-| `Worldview` | 世界观，规则根 1:1 绑定 world |
+| `Worldview` | 世界观，规则根 1:1 绑定 world；coreSystem.rules 使用 ordered rule item array（key/title/value） |
 | `WorldAccessControl` | 创建/维护/发布权限控制 |
-| `WorldMutation` | World 变更记录 |
+| `WorldMutation` | World 变更记录；底层保留 mutationType/targetPath/reason，public/detail 额外暴露 title/summary |
 | `WorldMaintenanceSnapshot` | 维护快照 |
 
 **Lifecycle:** draft -> published -> maintained

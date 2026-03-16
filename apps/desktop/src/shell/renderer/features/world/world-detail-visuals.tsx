@@ -169,7 +169,7 @@ export function CultivationRingsCard({
           />
           <foreignObject x="74" y="102" width="132" height="76">
             <div className="flex h-full flex-col items-center justify-center text-center">
-              <div className="text-sm font-semibold text-[#dffdf2]">{data.systemName}</div>
+              <div className="text-sm font-semibold text-[#dffdf2]">{data.systemName || t('WorldDetail.xianxia.v2.coreRules.powerSystem')}</div>
               <div className="mt-1 text-xs text-[#86f0ca]">
                 {t('WorldDetail.xianxia.v2.visuals.cultivationLevelCount', { count: data.levels.length })}
               </div>

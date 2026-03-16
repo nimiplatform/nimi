@@ -6,6 +6,12 @@
 
 World 在 public 范围提供跨域可依赖边界语义：标识（worldId, worldviewId）、访问（WorldAccessControl）、生命周期（draft → published → maintained）、变更入口（world/worldview/events/lorebooks/mutations）。知识资产删除语义为逻辑归档（archive）。
 
+其中：
+
+- `Worldview.coreSystem.rules` 是 ordered rule item array；每项字段固定为 `key / title / value`。
+- `WorldMutation` 作为技术审计记录保留 `mutationType / targetPath / reason`，同时 public/detail 展示面必须携带 `title / summary`。
+- `World.rules` 只承载基础规则卡片；扩展知识应进入 `WorldLorebook`。
+
 Public vocabulary: World, Worldview, WorldAccessControl, WorldMutation, WorldMaintenanceSnapshot。
 
 职责分离：`@nimiplatform/nimi` 声明边界词汇。`realm (closed-source)` 实现治理细则。

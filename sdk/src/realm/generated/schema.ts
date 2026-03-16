@@ -5664,6 +5664,7 @@ export type components = {
             description?: string;
             /** @example Mana System */
             name: string;
+            rules?: components["schemas"]["WorldRuleItemDto"][];
         };
         ProposedChangeDto: {
             /** @description JSON Patch operation (add, remove, replace) */
@@ -5726,7 +5727,9 @@ export type components = {
             /** @enum {string} */
             mutationType: "SETTING_CHANGE" | "RULE_UPDATE" | "LOREBOOK_OVERRIDE" | "TABOO_CHANGE" | "LOCATION_CHANGE" | "EVENT_CREATE" | "EVENT_UPDATE" | "EVENT_DELETE" | "EVENT_BATCH_UPSERT";
             reason?: string;
+            summary: string;
             targetPath: string;
+            title: string;
             worldId: string;
         };
         PublicWorldMutationListDto: {
@@ -6325,10 +6328,8 @@ export type components = {
             worldviewPatch?: components["schemas"]["WorldviewPatchDto"];
         };
         UpdateWorldRulesDto: {
-            /** @description Worldview rules as JSON object (stored in worldview.coreSystem.rules) */
-            rules: {
-                [key: string]: unknown;
-            };
+            /** @description Worldview core rules as ordered rule items (stored in worldview.coreSystem.rules) */
+            rules: components["schemas"]["WorldRuleItemDto"][];
         };
         UserCapabilitiesDto: Record<string, never>;
         UserLiteDto: {
@@ -6477,9 +6478,7 @@ export type components = {
         };
         ValidateRulesDto: {
             /** @description Rules to validate (worldview scope) */
-            rules: {
-                [key: string]: unknown;
-            };
+            rules: components["schemas"]["WorldRuleItemDto"][];
         };
         /**
          * @description Verification tier: OFFICIAL, PARTNER, COMMUNITY
@@ -7015,7 +7014,9 @@ export type components = {
             /** @enum {string} */
             mutationType: "SETTING_CHANGE" | "RULE_UPDATE" | "LOREBOOK_OVERRIDE" | "TABOO_CHANGE" | "LOCATION_CHANGE" | "EVENT_CREATE" | "EVENT_UPDATE" | "EVENT_DELETE" | "EVENT_BATCH_UPSERT";
             reason?: string;
+            summary: string;
             targetPath: string;
+            title: string;
             worldId: string;
         };
         WorldNarrativeContextDetailDto: {
@@ -7069,6 +7070,14 @@ export type components = {
             /** @enum {string} */
             importance: "PRIMARY" | "SECONDARY" | "BACKGROUND";
             name: string;
+        };
+        WorldRuleItemDto: {
+            /** @example survival */
+            key: string;
+            /** @example 弱肉强食 */
+            title: string;
+            /** @example 修仙界弱肉强食，实力为尊。没有绝对的善恶，只有强弱。 */
+            value: string;
         };
         WorldSceneDetailDto: {
             activeEntities: string[];

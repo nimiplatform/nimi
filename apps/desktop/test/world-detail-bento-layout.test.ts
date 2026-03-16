@@ -3,18 +3,17 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import {
+  NARRATIVE_WORLD_DETAIL_COMPOSITION,
+  OASIS_WORLD_DETAIL_COMPOSITION,
   mapCultivationRingsData,
   mapRealmConstellationData,
   resolveCoreRuleLayout,
-  resolveDashboardSecondaryLayout,
-  resolveExtendedLayout,
-  WORLD_DETAIL_SECTION_ORDER,
 } from '../src/shell/renderer/features/world/world-detail-layout.ts';
 import type { WorldSemanticData } from '../src/shell/renderer/features/world/world-detail-types.ts';
 
 // scenario_id: world.surface-layout
 const worldTemplateSource = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/features/world/world-xianxia-template.tsx'),
+  resolve(import.meta.dirname, '../src/shell/renderer/features/world/world-detail-template.tsx'),
   'utf8',
 );
 const worldOverviewSource = readFileSync(
@@ -47,8 +46,8 @@ function makeSemantic(): WorldSemanticData {
     operationTitle: 'Rule Engine',
     operationDescription: 'How the world stays coherent.',
     operationRules: [
-      { label: 'Cycle', value: 'yes' },
-      { label: 'Mercy', value: 'no' },
+      { key: 'cycle', title: 'Cycle', value: 'yes' },
+      { key: 'mercy', title: 'Mercy', value: 'no' },
     ],
     powerSystems: [
       {
@@ -92,52 +91,34 @@ function makeSemantic(): WorldSemanticData {
   };
 }
 
-test('world detail section order remains fixed and deterministic', () => {
-  assert.deepEqual(WORLD_DETAIL_SECTION_ORDER, [
-    'hero',
-    'dashboard',
-    'core-rules',
-    'timeline',
-    'scenes',
-    'agents',
-    'extended',
-  ]);
+test('narrative world detail composition remains fixed and includes the current quick-nav contract', () => {
+  assert.deepEqual(
+    NARRATIVE_WORLD_DETAIL_COMPOSITION.sections.map((section) => section.key),
+    ['hero', 'dashboard', 'core-rules', 'recommended', 'scenes', 'timeline', 'agents', 'extended'],
+  );
+  assert.deepEqual(
+    NARRATIVE_WORLD_DETAIL_COMPOSITION.sections
+      .filter((section) => section.showInQuickNav)
+      .map((section) => [section.anchorId, section.quickNavLabelKey]),
+    [
+      ['world-detail-rules', 'WorldDetail.xianxia.v2.quickNav.rules'],
+      ['world-detail-recommended', 'WorldDetail.xianxia.v2.quickNav.characters'],
+      ['world-detail-scenes', 'WorldDetail.xianxia.v2.quickNav.scenes'],
+      ['world-detail-timeline', 'WorldDetail.xianxia.v2.quickNav.timeline'],
+      ['world-detail-agents', 'WorldDetail.xianxia.v2.quickNav.roster'],
+      ['world-detail-governance-card', 'WorldDetail.xianxia.v2.quickNav.governance'],
+    ],
+  );
 });
 
-test('dashboard secondary layout promotes chronology into a full-width strip when content is rich', () => {
+test('oasis world detail composition stays distinct from narrative-only sections', () => {
   assert.deepEqual(
-    resolveDashboardSecondaryLayout({
-      hasRuntimeFacts: true,
-      recommendedAgentsCount: 3,
-      chronologyFactCount: 3,
-      hasLatestAudit: false,
-    }).cards,
-    [
-      { key: 'runtimeFacts', span: 4 },
-      { key: 'recommendedAgents', span: 8 },
-      { key: 'chronologyLanguage', span: 12 },
-    ],
+    OASIS_WORLD_DETAIL_COMPOSITION.sections.map((section) => section.key),
+    ['hero', 'oasis-identity', 'dashboard', 'scenes', 'timeline', 'agents'],
   );
-  assert.deepEqual(
-    resolveDashboardSecondaryLayout({
-      hasRuntimeFacts: true,
-      recommendedAgentsCount: 2,
-      chronologyFactCount: 0,
-      hasLatestAudit: false,
-    }).cards,
-    [
-      { key: 'runtimeFacts', span: 6 },
-      { key: 'recommendedAgents', span: 6 },
-    ],
-  );
-  assert.deepEqual(
-    resolveDashboardSecondaryLayout({
-      hasRuntimeFacts: true,
-      recommendedAgentsCount: 0,
-      chronologyFactCount: 0,
-      hasLatestAudit: false,
-    }).cards,
-    [{ key: 'runtimeFacts', span: 12 }],
+  assert.equal(
+    OASIS_WORLD_DETAIL_COMPOSITION.sections.some((section) => section.key === 'core-rules' || section.key === 'recommended' || section.key === 'extended'),
+    false,
   );
 });
 
@@ -190,16 +171,6 @@ test('core rules layout stays compact when only lightweight textual cards remain
   );
 });
 
-test('extended layout keeps deterministic 8/4 split when knowledge and governance coexist', () => {
-  assert.deepEqual(
-    resolveExtendedLayout({ hasKnowledge: true, hasGovernance: true }).cards,
-    [
-      { key: 'knowledge', span: 8 },
-      { key: 'governance', span: 4 },
-    ],
-  );
-});
-
 test('cultivation rings mapping caps levels at 12 and keeps extra systems compact', () => {
   const mapped = mapCultivationRingsData(makeSemantic());
   assert.ok(mapped);
@@ -233,13 +204,39 @@ test('realm constellation supports meta-only mode and trims realm nodes to eight
   assert.equal(mapRealmConstellationData(semantic), null);
 });
 
-test('world detail template keeps fixed nine-card first page agent budget and stable test surfaces', () => {
-  assert.match(worldContentSource, /buildVisibleAgentGroups\(agents, 9, expanded\)/);
-  assert.match(worldContentSource, /totalCount > 9/);
+test('world detail pages are composition-driven and expose stable test surfaces', () => {
+  assert.match(worldTemplateSource, /export function NarrativeWorldDetailPage/);
+  assert.match(worldTemplateSource, /export function OasisWorldDetailPage/);
+  assert.match(worldTemplateSource, /composition\.sections/);
+  assert.match(worldTemplateSource, /showInQuickNav/);
+  assert.doesNotMatch(worldTemplateSource, /\['world-detail-rules', t\('WorldDetail\.xianxia\.v2\.quickNav\.rules'\)\]/);
   assert.match(worldTemplateSource, /data-testid="world-detail-root"/);
   assert.match(worldOverviewSource, /data-testid="world-detail-dashboard"/);
   assert.match(worldOverviewSource, /dataTestId="world-detail-core-rules"/);
   assert.match(worldContentSource, /dataTestId="world-detail-timeline"/);
+  assert.match(worldContentSource, /buildVisibleAgentGroups\(agents, 9, expanded\)/);
+  assert.match(worldContentSource, /totalCount > 9/);
+});
+
+test('oasis scene CTA mapping uses stable scene ids instead of display names', () => {
+  assert.match(worldTemplateSource, /oasis-scene-plaza/);
+  assert.match(worldTemplateSource, /oasis-scene-transit-hub/);
+  assert.match(worldTemplateSource, /selectedScene\.id/);
+  assert.doesNotMatch(worldTemplateSource, /oasisSceneActionKeyByName/);
+});
+
+test('overview and content boundaries stay explicit after the refactor', () => {
+  assert.doesNotMatch(worldOverviewSource, /export function WorldRuntimeFactsSection/);
+  assert.doesNotMatch(worldOverviewSource, /export function WorldLanguageFactsSection/);
+  assert.match(worldContentSource, /dataTestId="world-detail-runtime-facts-card"/);
+  assert.match(worldContentSource, /data-testid="world-detail-governance-card"/);
+  assert.match(worldContentSource, /<WorldKnowledgeCard lorebooks=\{publicAssets\.lorebooks\} \/>/);
+  assert.match(worldContentSource, /<WorldRuntimeSummaryCard/);
+  assert.match(worldContentSource, /<WorldGovernanceCard audits=\{audits\} mutations=\{publicAssets\.mutations\} auditsLoading=\{auditsLoading\} \/>/);
+  assert.doesNotMatch(worldContentSource, /runtimeFacts\.flowRatio/);
+  assert.doesNotMatch(worldContentSource, /WorldDetail\.xianxia\.v2\.runtimeFacts\.flowRatio/);
+  assert.doesNotMatch(worldContentSource, /mutation\.targetPath/);
+  assert.doesNotMatch(worldContentSource, /mutation\.reason/);
 });
 
 test('world detail visuals honor reduced motion and expose visual card roots', () => {
@@ -253,5 +250,8 @@ test('world detail visual localization keys exist in English and Chinese locales
   for (const source of [localesEnSource, localesZhSource]) {
     assert.match(source, /"powerSystem":/);
     assert.match(source, /"constellationTitle":/);
+    assert.match(source, /"systemLabels":/);
+    assert.match(source, /"levelUp":/);
+    assert.match(source, /"governanceLock":/);
   }
 });

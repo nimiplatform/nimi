@@ -49,7 +49,7 @@ When the viewer page loads (`/world/:worldId`), fetch world data in parallel via
 
 ```
 Promise.all([
-  realm.services.WorldsService.worldControllerGetWorldDetailWithAgents(worldId),
+  realm.services.WorldsService.worldControllerGetWorldDetailWithAgents(worldId, 4),
   realm.services.WorldsService.worldControllerGetWorldview(worldId),
   realm.worlds.worldControlControllerListWorldScenes(worldId),
   realm.worlds.worldControlControllerListWorldLorebooks(worldId),
@@ -58,7 +58,7 @@ Promise.all([
 
 All four queries run concurrently via TanStack Query. The viewer page renders progressively:
 
-1. World name and metadata — available from `worldControllerGetWorldDetailWithAgents` response (fastest)
+1. World name and metadata — available from `worldControllerGetWorldDetailWithAgents(worldId, recommendedAgentLimit?)` response (fastest)
 2. Agent list — available from response `.agents`
 3. Marble prompt preview — assembled once all four queries complete
 4. "Generate 3D" button — enabled once prompt is ready

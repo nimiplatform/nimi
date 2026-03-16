@@ -22,6 +22,7 @@ import type {
 } from './world-detail-types';
 
 const DEFAULT_WORLD_PREFETCH_STALE_TIME_MS = 30_000;
+const DEFAULT_WORLD_DETAIL_RECOMMENDED_AGENT_LIMIT = 4;
 
 const EVENT_HORIZON_TAG: Record<string, string> = {
   PAST: 'Past',
@@ -146,16 +147,12 @@ function toWorldEventSummary(raw: unknown): WorldEventSummary | null {
 }
 
 function toOperationRules(raw: unknown): WorldSemanticRule[] {
-  const record = asRecord(raw);
-  if (!record) return [];
-
-  return Object.entries(record).reduce<WorldSemanticRule[]>((acc, [key, value]) => {
-    const normalized = stringifyLoose(value);
-    if (!normalized) return acc;
-    acc.push({
-      label: formatLabel(key),
-      value: normalized,
-    });
+  return asRecordArray(raw).reduce<WorldSemanticRule[]>((acc, item) => {
+    const key = readString(item.key);
+    const title = readString(item.title);
+    const value = readString(item.value);
+    if (!key || !title || !value) return acc;
+    acc.push({ key, title, value });
     return acc;
   }, []);
 }
@@ -320,26 +317,13 @@ function toSemanticBundle(raw: Awaited<ReturnType<typeof dataSync.loadWorldSeman
   };
 }
 
-function mapAuditLabel(eventType: string | null): string {
-  switch (eventType) {
-    case 'LEVEL_UP':
-      return '世界升阶';
-    case 'LEVEL_DOWN':
-      return '世界降阶';
-    case 'NATIVE_CREATION_FROZEN':
-      return '原生创建冻结';
-    case 'NATIVE_CREATION_UNFROZEN':
-      return '原生创建解冻';
-    default:
-      return formatLabel(eventType || 'Audit');
-  }
-}
-
 function toWorldAuditItem(raw: WorldLevelAuditEventDto): WorldAuditItem {
   const occurredAt = raw.occurredAt as unknown;
+  const eventType = readString(raw.eventType);
   return {
     id: String(raw.id || ''),
-    label: mapAuditLabel(readString(raw.eventType)),
+    label: formatLabel(eventType || 'Audit'),
+    eventType,
     occurredAt: typeof occurredAt === 'string'
       ? occurredAt
       : occurredAt instanceof Date
@@ -402,10 +386,15 @@ function toWorldMediaBindingItem(raw: Record<string, unknown>): WorldMediaBindin
 
 function toWorldMutationItem(raw: Record<string, unknown>): WorldMutationItem | null {
   const id = readString(raw.id);
+  const title = readString(raw.title);
+  const summary = readString(raw.summary);
   if (!id) return null;
+  if (!title || !summary) return null;
   return {
     id,
     mutationType: readString(raw.mutationType) ?? 'SETTING_CHANGE',
+    title,
+    summary,
     targetPath: readString(raw.targetPath) ?? '',
     reason: readString(raw.reason),
     createdAt: readString(raw.createdAt) ?? '',
@@ -417,7 +406,11 @@ export function worldListQueryKey() {
 }
 
 export function worldDetailWithAgentsQueryKey(worldId: string) {
-  return ['world-detail-with-agents', normalizeWorldId(worldId)] as const;
+  return [
+    'world-detail-with-agents',
+    normalizeWorldId(worldId),
+    DEFAULT_WORLD_DETAIL_RECOMMENDED_AGENT_LIMIT,
+  ] as const;
 }
 
 export function worldEventsQueryKey(worldId: string) {
@@ -437,7 +430,10 @@ export function worldPublicAssetsQueryKey(worldId: string) {
 }
 
 export async function fetchWorldDetailWithAgents(worldId: string) {
-  return dataSync.loadWorldDetailWithAgents(normalizeWorldId(worldId));
+  return dataSync.loadWorldDetailWithAgents(
+    normalizeWorldId(worldId),
+    DEFAULT_WORLD_DETAIL_RECOMMENDED_AGENT_LIMIT,
+  );
 }
 
 export async function fetchWorldEvents(worldId: string): Promise<WorldEventsBundle> {

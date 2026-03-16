@@ -67,6 +67,10 @@ export function joinParts(parts: Array<string | null | undefined>): string | nul
   return values.length ? values.join(' · ') : null;
 }
 
+export function resolveChronologyValue(world: Pick<WorldDetailData, 'currentTimeLabel' | 'eraLabel' | 'currentWorldTime'>): string | null {
+  return world.currentTimeLabel || joinParts([world.eraLabel, world.currentWorldTime]);
+}
+
 export function formatDateTime(value?: string | null): string | null {
   if (!value) return null;
   const date = new Date(value);
@@ -84,44 +88,61 @@ export function formatEnum(value?: string | null): string | null {
     .join(' ');
 }
 
-export function formatFreezeReason(value?: string | null): string | null {
+type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
+
+export function formatFreezeReason(value?: string | null, t?: TranslateFn): string | null {
   switch (value) {
     case 'QUOTA_OVERFLOW':
-      return '配额超限';
+      return t ? t('WorldDetail.xianxia.v2.systemLabels.freezeReason.quotaOverflow') : 'QUOTA_OVERFLOW';
     case 'WORLD_INACTIVE':
-      return '世界不活跃';
+      return t ? t('WorldDetail.xianxia.v2.systemLabels.freezeReason.worldInactive') : 'WORLD_INACTIVE';
     case 'GOVERNANCE_LOCK':
-      return '治理锁定';
+      return t ? t('WorldDetail.xianxia.v2.systemLabels.freezeReason.governanceLock') : 'GOVERNANCE_LOCK';
     default:
       return formatEnum(value);
   }
 }
 
-export function formatCreationState(value?: string | null): string | null {
+export function formatCreationState(value?: string | null, t?: TranslateFn): string | null {
   switch (value) {
     case 'OPEN':
-      return '开放';
+      return t ? t('WorldDetail.xianxia.v2.systemLabels.creationState.open') : 'OPEN';
     case 'NATIVE_CREATION_FROZEN':
-      return '冻结';
+      return t ? t('WorldDetail.xianxia.v2.systemLabels.creationState.nativeCreationFrozen') : 'NATIVE_CREATION_FROZEN';
     default:
       return formatEnum(value);
   }
 }
 
-export function formatStatus(value: WorldDetailData['status']): string {
+export function formatStatus(value: WorldDetailData['status'], t?: TranslateFn): string {
   switch (value) {
     case 'ACTIVE':
-      return '运行中';
+      return t ? t('WorldDetail.xianxia.v2.systemLabels.status.active') : 'ACTIVE';
     case 'DRAFT':
-      return '草稿';
+      return t ? t('WorldDetail.xianxia.v2.systemLabels.status.draft') : 'DRAFT';
     case 'PENDING_REVIEW':
-      return '审核中';
+      return t ? t('WorldDetail.xianxia.v2.systemLabels.status.pendingReview') : 'PENDING_REVIEW';
     case 'SUSPENDED':
-      return '已暂停';
+      return t ? t('WorldDetail.xianxia.v2.systemLabels.status.suspended') : 'SUSPENDED';
     case 'ARCHIVED':
-      return '已归档';
+      return t ? t('WorldDetail.xianxia.v2.systemLabels.status.archived') : 'ARCHIVED';
     default:
       return value;
+  }
+}
+
+export function formatAuditEventType(eventType?: string | null, t?: TranslateFn): string | null {
+  switch (eventType) {
+    case 'LEVEL_UP':
+      return t ? t('WorldDetail.xianxia.v2.systemLabels.audit.levelUp') : 'LEVEL_UP';
+    case 'LEVEL_DOWN':
+      return t ? t('WorldDetail.xianxia.v2.systemLabels.audit.levelDown') : 'LEVEL_DOWN';
+    case 'NATIVE_CREATION_FROZEN':
+      return t ? t('WorldDetail.xianxia.v2.systemLabels.audit.nativeCreationFrozen') : 'NATIVE_CREATION_FROZEN';
+    case 'NATIVE_CREATION_UNFROZEN':
+      return t ? t('WorldDetail.xianxia.v2.systemLabels.audit.nativeCreationUnfrozen') : 'NATIVE_CREATION_UNFROZEN';
+    default:
+      return formatEnum(eventType);
   }
 }
 
@@ -170,25 +191,31 @@ export function SectionShell({
   return (
     <section
       data-testid={dataTestId}
-      className={`relative overflow-hidden rounded-[22px] border border-[#4ECCA3]/15 bg-[#0f1612]/82 backdrop-blur-sm ${className}`}
+      className={`relative overflow-hidden rounded-[22px] border border-[#4ECCA3]/14 bg-[#0f1612]/86 shadow-[0_0_0_1px_rgba(78,204,163,0.05),0_18px_60px_rgba(0,0,0,0.24)] backdrop-blur-sm ${className}`}
     >
+      <div
+        className="pointer-events-none absolute inset-0 opacity-80"
+        style={{
+          background: 'radial-gradient(circle at top right, rgba(78,204,163,0.08), transparent 38%), linear-gradient(180deg, rgba(255,255,255,0.035) 0%, transparent 26%)',
+        }}
+      />
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/55 to-transparent" />
-      <div className="px-5 pt-5">
+      <div className="relative px-5 pt-5">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h3 className="text-sm font-semibold tracking-[0.08em] text-[#4ECCA3]">{title}</h3>
-            {subtitle ? <p className="mt-1 text-xs text-[#d8efe4]/45">{subtitle}</p> : null}
+            {subtitle ? <p className="mt-1 text-xs leading-relaxed text-[#d8efe4]/42">{subtitle}</p> : null}
           </div>
         </div>
       </div>
-      <div className="px-5 pb-5 pt-4">{children}</div>
+      <div className="relative px-5 pb-5 pt-4">{children}</div>
     </section>
   );
 }
 
 export function HeroTag({ label }: { label: string }) {
   return (
-    <span className="rounded-full border border-white/20 bg-black/18 px-3 py-1 text-xs font-medium text-white/82 backdrop-blur-sm">
+    <span className="rounded-full border border-white/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] px-3 py-1 text-xs font-medium text-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-sm">
       {label}
     </span>
   );
@@ -206,18 +233,18 @@ export function MetricPill({
   valueClassName?: string;
 }) {
   return (
-    <span className={`inline-flex max-w-full items-center gap-1.5 rounded-full border border-[#4ECCA3]/20 bg-[#4ECCA3]/10 px-2.5 py-1 text-[11px] text-[#86f0ca] ${className}`}>
-      <span className="text-[#c5f7e6]/55">{label}</span>
-      <span className={`font-medium text-[#dffdf2] ${valueClassName}`}>{value}</span>
+    <span className={`inline-flex max-w-full items-center gap-2 rounded-full border border-[#4ECCA3]/16 bg-[linear-gradient(180deg,rgba(78,204,163,0.16),rgba(78,204,163,0.08))] px-3 py-1.5 text-[11px] text-[#86f0ca] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm ${className}`}>
+      <span className="text-[10px] uppercase tracking-[0.12em] text-[#c5f7e6]/46">{label}</span>
+      <span className={`font-semibold text-[#f4fff9] ${valueClassName}`}>{value}</span>
     </span>
   );
 }
 
 export function DataFactCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/56 p-4">
-      <div className="text-[11px] uppercase tracking-[0.14em] text-[#86f0ca]/74">{label}</div>
-      <div className="mt-2 text-sm leading-relaxed text-[#effff8]">{value}</div>
+    <div className="rounded-2xl border border-[#4ECCA3]/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,15,12,0.58))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="text-[10px] uppercase tracking-[0.16em] text-[#86f0ca]/68">{label}</div>
+      <div className="mt-2 text-sm leading-relaxed text-[#effff8]/96">{value}</div>
     </div>
   );
 }

@@ -2,15 +2,14 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
-import { resolveExtendedLayout } from './world-detail-layout.js';
 import {
-  BENTO_SPAN_CLASS,
   buildVisibleAgentGroups,
   DataFactCard,
   displayValue,
+  formatAuditEventType,
   formatDateTime,
-  formatEnum,
   formatFreezeReason,
+  formatCreationState,
   joinParts,
   MetricPill,
   SectionShell,
@@ -18,6 +17,7 @@ import {
 import type {
   WorldAgent,
   WorldAuditItem,
+  WorldDetailData,
   WorldEventsBundle,
   WorldPublicAssetsData,
   WorldSemanticData,
@@ -28,11 +28,17 @@ export function WorldTimelineSection({
   loading,
   onSelectAgentName,
   onSelectSceneName,
+  compact = false,
+  title,
+  subtitle,
 }: {
   events: WorldEventsBundle;
   loading?: boolean;
   onSelectAgentName?: (name: string) => void;
   onSelectSceneName?: (name: string) => void;
+  compact?: boolean;
+  title?: string;
+  subtitle?: string;
 }) {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<'ALL' | 'PRIMARY' | 'SECONDARY'>('ALL');
@@ -47,35 +53,60 @@ export function WorldTimelineSection({
 
   return (
     <SectionShell
-      title={t('WorldDetail.xianxia.v2.timeline.title')}
-      subtitle={t('WorldDetail.xianxia.v2.timeline.subtitle')}
+      title={title ?? t('WorldDetail.xianxia.v2.timeline.title')}
+      subtitle={subtitle ?? t('WorldDetail.xianxia.v2.timeline.subtitle')}
       dataTestId="world-detail-timeline"
     >
-      <div className="mb-4 flex flex-wrap justify-end gap-2">
-        {[
-          { key: 'ALL', label: t('WorldDetail.xianxia.v2.timeline.filterAll') },
-          { key: 'PRIMARY', label: t('WorldDetail.xianxia.v2.timeline.filterPrimary') },
-          { key: 'SECONDARY', label: t('WorldDetail.xianxia.v2.timeline.filterSecondary') },
-        ].map((item) => (
-          <button
-            key={item.key}
-            onClick={() => {
-              setFilter(item.key as 'ALL' | 'PRIMARY' | 'SECONDARY');
-              setVisibleCount(8);
-            }}
-            className={`rounded-full border px-3 py-1.5 text-xs transition-all ${
-              filter === item.key
-                ? 'border-[#4ECCA3]/45 bg-[#4ECCA3]/16 text-[#dffdf2]'
-                : 'border-[#4ECCA3]/14 bg-black/12 text-[#d8efe4]/55 hover:border-[#4ECCA3]/24 hover:text-[#d8efe4]/85'
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      {!compact ? (
+        <div className="mb-4 flex flex-wrap justify-end gap-2">
+          {[
+            { key: 'ALL', label: t('WorldDetail.xianxia.v2.timeline.filterAll') },
+            { key: 'PRIMARY', label: t('WorldDetail.xianxia.v2.timeline.filterPrimary') },
+            { key: 'SECONDARY', label: t('WorldDetail.xianxia.v2.timeline.filterSecondary') },
+          ].map((item) => (
+            <button
+              key={item.key}
+              onClick={() => {
+                setFilter(item.key as 'ALL' | 'PRIMARY' | 'SECONDARY');
+                setVisibleCount(8);
+              }}
+              className={`rounded-full border px-3 py-1.5 text-xs transition-all ${
+                filter === item.key
+                  ? 'border-[#4ECCA3]/45 bg-[#4ECCA3]/16 text-[#dffdf2]'
+                  : 'border-[#4ECCA3]/14 bg-black/12 text-[#d8efe4]/55 hover:border-[#4ECCA3]/24 hover:text-[#d8efe4]/85'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {loading ? (
         <div className="flex min-h-[220px] items-center justify-center text-sm text-[#d8efe4]/42">{t('WorldDetail.xianxia.v2.timeline.loading')}</div>
+      ) : compact ? (
+        filteredEvents.length ? (
+          <div className="grid gap-3">
+            {filteredEvents.slice(0, 5).map((event) => (
+              <article key={event.id} className="rounded-2xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/58 p-4">
+                <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#86f0ca]/74">
+                  <span>{formatDateTime(event.time) || event.time || 'N/A'}</span>
+                  <span className="rounded-full border border-[#4ECCA3]/16 bg-[#4ECCA3]/10 px-2 py-0.5 tracking-[0.12em] text-[#dffdf2]">
+                    {event.level === 'PRIMARY' ? t('WorldDetail.xianxia.v2.timeline.primary') : t('WorldDetail.xianxia.v2.timeline.secondary')}
+                  </span>
+                </div>
+                <h4 className="mt-2 text-base font-semibold text-[#effff8]">{displayValue(event.title)}</h4>
+                {event.summary || event.description ? (
+                  <p className="mt-2 text-sm leading-relaxed text-[#d8efe4]/66">{event.summary || event.description}</p>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-[#4ECCA3]/14 bg-black/12 p-6 text-sm text-[#d8efe4]/46">
+            {t('WorldDetail.xianxia.v2.timeline.empty')}
+          </div>
+        )
       ) : visibleEvents.length ? (
         <div className="relative flex flex-col gap-4">
           <div className="absolute bottom-0 left-[11px] top-2 w-px bg-gradient-to-b from-[#4ECCA3] via-[#4ECCA3]/30 to-transparent" />
@@ -169,7 +200,7 @@ export function WorldTimelineSection({
         </div>
       )}
 
-      {filteredEvents.length > visibleCount ? (
+      {!compact && filteredEvents.length > visibleCount ? (
         <div className="mt-4 flex justify-center">
           <button
             onClick={() => setVisibleCount((current) => current + 8)}
@@ -186,9 +217,13 @@ export function WorldTimelineSection({
 export function WorldScenesSection({
   scenes,
   onSelectScene,
+  title,
+  subtitle,
 }: {
   scenes: WorldPublicAssetsData['scenes'];
   onSelectScene?: (sceneId: string) => void;
+  title?: string;
+  subtitle?: string;
 }) {
   const { t } = useTranslation();
   if (!scenes.length) {
@@ -197,8 +232,8 @@ export function WorldScenesSection({
 
   return (
     <SectionShell
-      title={t('WorldDetail.xianxia.v2.scenes.title')}
-      subtitle={t('WorldDetail.xianxia.v2.scenes.subtitle')}
+      title={title ?? t('WorldDetail.xianxia.v2.scenes.title')}
+      subtitle={subtitle ?? t('WorldDetail.xianxia.v2.scenes.subtitle')}
       dataTestId="world-detail-scenes"
     >
       <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -462,6 +497,56 @@ function WorldKnowledgeCard({ lorebooks }: { lorebooks: WorldPublicAssetsData['l
   );
 }
 
+function WorldRuntimeSummaryCard({
+  world,
+  lorebookCount,
+  sceneCount,
+}: {
+  world: WorldDetailData;
+  lorebookCount: number;
+  sceneCount: number;
+}) {
+  const { t } = useTranslation();
+  const facts = [
+    { label: t('WorldDetail.xianxia.v2.runtimeFacts.agentCount'), value: `${world.agentCount}` },
+    { label: t('WorldDetail.xianxia.v2.runtimeFacts.lorebookCount'), value: `${lorebookCount}` },
+    { label: t('WorldDetail.xianxia.v2.runtimeFacts.sceneCount'), value: `${sceneCount}` },
+    {
+      label: t('WorldDetail.xianxia.v2.runtimeFacts.creationState'),
+      value: formatCreationState(world.nativeCreationState, t) ?? t('WorldDetail.xianxia.v2.common.notAvailable'),
+    },
+    {
+      label: t('WorldDetail.xianxia.v2.runtimeFacts.contentRating'),
+      value: world.contentRating ?? t('WorldDetail.xianxia.v2.common.notAvailable'),
+    },
+  ];
+
+  if (world.freezeReason) {
+    facts.push({
+      label: t('WorldDetail.xianxia.v2.runtimeFacts.freezeReason'),
+      value: formatFreezeReason(world.freezeReason, t) ?? world.freezeReason,
+    });
+  }
+
+  return (
+    <SectionShell
+      title={t('WorldDetail.xianxia.v2.runtimeFacts.title')}
+      subtitle={t('WorldDetail.xianxia.v2.runtimeFacts.subtitle')}
+      className="h-full"
+      dataTestId="world-detail-runtime-facts-card"
+    >
+      <div className="mb-4 rounded-2xl border border-white/6 bg-white/[0.03] px-4 py-3 text-sm leading-relaxed text-white/54">
+        {t('WorldDetail.xianxia.v2.runtimeFacts.intro')}
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {facts.map((fact) => (
+          <DataFactCard key={fact.label} label={fact.label} value={fact.value} />
+        ))}
+      </div>
+    </SectionShell>
+  );
+}
+
 function WorldGovernanceCard({
   audits,
   mutations,
@@ -487,14 +572,14 @@ function WorldGovernanceCard({
               {audits.slice(0, 6).map((audit) => (
                 <div key={audit.id} className="rounded-2xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/56 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="text-sm font-semibold text-[#effff8]">{audit.label}</div>
+                    <div className="text-sm font-semibold text-[#effff8]">{formatAuditEventType(audit.eventType, t) ?? audit.label}</div>
                     <div className="text-[11px] text-[#86f0ca]/72">{formatDateTime(audit.occurredAt) || 'N/A'}</div>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {audit.prevLevel != null ? <MetricPill label={t('WorldDetail.xianxia.v2.extended.prevLevel')} value={`Lv.${audit.prevLevel}`} /> : null}
                     {audit.nextLevel != null ? <MetricPill label={t('WorldDetail.xianxia.v2.extended.nextLevel')} value={`Lv.${audit.nextLevel}`} /> : null}
                     {audit.ewmaScore != null ? <MetricPill label="EWMA" value={audit.ewmaScore.toFixed(2)} /> : null}
-                    {audit.freezeReason ? <MetricPill label={t('WorldDetail.xianxia.v2.runtimeFacts.freezeReason')} value={formatFreezeReason(audit.freezeReason) ?? audit.freezeReason} /> : null}
+                    {audit.freezeReason ? <MetricPill label={t('WorldDetail.xianxia.v2.runtimeFacts.freezeReason')} value={formatFreezeReason(audit.freezeReason, t) ?? audit.freezeReason} /> : null}
                   </div>
                 </div>
               ))}
@@ -509,11 +594,10 @@ function WorldGovernanceCard({
             {mutations.slice(0, 8).map((mutation) => (
               <div key={mutation.id} className="rounded-2xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/56 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-[#effff8]">{formatEnum(mutation.mutationType) || mutation.mutationType}</div>
+                  <div className="text-sm font-semibold text-[#effff8]">{mutation.title}</div>
                   <div className="text-[11px] text-[#86f0ca]/72">{formatDateTime(mutation.createdAt) || 'N/A'}</div>
                 </div>
-                <div className="mt-2 text-xs text-[#d8efe4]/58">{mutation.targetPath}</div>
-                {mutation.reason ? <div className="mt-2 text-sm leading-relaxed text-[#d8efe4]/66">{mutation.reason}</div> : null}
+                <div className="mt-2 text-sm leading-relaxed text-[#d8efe4]/66">{mutation.summary}</div>
               </div>
             ))}
           </div>
@@ -524,38 +608,44 @@ function WorldGovernanceCard({
 }
 
 export function WorldExtendedSection({
+  world,
   semantic,
   audits,
   publicAssets,
   auditsLoading,
 }: {
+  world: WorldDetailData;
   semantic: WorldSemanticData;
   audits: WorldAuditItem[];
   publicAssets: WorldPublicAssetsData;
   auditsLoading?: boolean;
 }) {
-  const layout = resolveExtendedLayout({
-    hasKnowledge: publicAssets.lorebooks.length > 0,
-    hasGovernance: audits.length > 0 || publicAssets.mutations.length > 0 || Boolean(auditsLoading),
-  });
+  const hasKnowledge = publicAssets.lorebooks.length > 0;
+  const hasGovernance = audits.length > 0 || publicAssets.mutations.length > 0 || Boolean(auditsLoading);
+  const hasRuntimeOrGovernance = hasGovernance || world.agentCount > 0 || publicAssets.lorebooks.length > 0 || publicAssets.scenes.length > 0;
 
-  if (!layout.cards.length && !semantic.worldviewEvents.length && !semantic.worldviewSnapshots.length) {
+  if (!hasKnowledge && !hasRuntimeOrGovernance && !semantic.worldviewEvents.length && !semantic.worldviewSnapshots.length) {
     return null;
   }
 
   return (
     <div className="grid gap-5" data-testid="world-detail-extended">
       <WorldEvolutionSection semantic={semantic} />
-      {layout.cards.length ? (
+      {hasKnowledge ? <WorldKnowledgeCard lorebooks={publicAssets.lorebooks} /> : null}
+      {hasRuntimeOrGovernance ? (
         <div className="grid gap-5 xl:grid-cols-12">
-          {layout.cards.map((card) => (
-            <div key={card.key} className={BENTO_SPAN_CLASS[card.span]}>
-              {card.key === 'knowledge' ? <WorldKnowledgeCard lorebooks={publicAssets.lorebooks} /> : null}
-              {card.key === 'governance' ? (
-                <WorldGovernanceCard audits={audits} mutations={publicAssets.mutations} auditsLoading={auditsLoading} />
-              ) : null}
+          <div className={hasGovernance ? 'xl:col-span-5' : 'xl:col-span-12'}>
+            <WorldRuntimeSummaryCard
+              world={world}
+              lorebookCount={publicAssets.lorebooks.length}
+              sceneCount={publicAssets.scenes.length}
+            />
+          </div>
+          {hasGovernance ? (
+            <div className="xl:col-span-7">
+              <WorldGovernanceCard audits={audits} mutations={publicAssets.mutations} auditsLoading={auditsLoading} />
             </div>
-          ))}
+          ) : null}
         </div>
       ) : null}
     </div>

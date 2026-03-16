@@ -5,11 +5,11 @@ boundaries:
       - term: World
         description: "世界实体，Nimi OASIS 核心资产"
       - term: Worldview
-        description: "世界观，规则根 1:1 绑定 world"
+        description: "世界观，规则根 1:1 绑定 world；coreSystem.rules 使用 ordered rule item array（key/title/value）"
       - term: WorldAccessControl
         description: "创建/维护/发布权限控制"
       - term: WorldMutation
-        description: "World 变更记录"
+        description: "World 变更记录；底层保留 mutationType/targetPath/reason，public/detail 额外暴露 title/summary"
       - term: WorldMaintenanceSnapshot
         description: "维护快照"
     lifecycle: "draft -> published -> maintained"

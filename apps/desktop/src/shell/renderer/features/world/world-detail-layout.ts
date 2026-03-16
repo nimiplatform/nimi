@@ -1,65 +1,96 @@
 import type {
   CultivationRingsData,
   RealmConstellationData,
-  WorldDetailLayoutCard,
   WorldDetailLayoutPlan,
   WorldSemanticData,
 } from './world-detail-types.js';
 
-export const WORLD_DETAIL_SECTION_ORDER = [
-  'hero',
-  'dashboard',
-  'core-rules',
-  'timeline',
-  'scenes',
-  'agents',
-  'extended',
-] as const;
+export type WorldDetailSectionKey =
+  | 'hero'
+  | 'dashboard'
+  | 'oasis-identity'
+  | 'core-rules'
+  | 'recommended'
+  | 'scenes'
+  | 'timeline'
+  | 'agents'
+  | 'extended';
 
-export type DashboardSecondaryCardKey = 'runtimeFacts' | 'recommendedAgents' | 'chronologyLanguage';
+export type WorldDetailSectionSpec = {
+  key: WorldDetailSectionKey;
+  anchorId?: string;
+  showInQuickNav?: boolean;
+  quickNavLabelKey?: string;
+};
+
+export type WorldDetailComposition = {
+  sections: WorldDetailSectionSpec[];
+};
+
+export const NARRATIVE_WORLD_DETAIL_COMPOSITION: WorldDetailComposition = {
+  sections: [
+    { key: 'hero' },
+    { key: 'dashboard' },
+    {
+      key: 'core-rules',
+      anchorId: 'world-detail-rules',
+      showInQuickNav: true,
+      quickNavLabelKey: 'WorldDetail.xianxia.v2.quickNav.rules',
+    },
+    {
+      key: 'recommended',
+      anchorId: 'world-detail-recommended',
+      showInQuickNav: true,
+      quickNavLabelKey: 'WorldDetail.xianxia.v2.quickNav.characters',
+    },
+    {
+      key: 'scenes',
+      anchorId: 'world-detail-scenes',
+      showInQuickNav: true,
+      quickNavLabelKey: 'WorldDetail.xianxia.v2.quickNav.scenes',
+    },
+    {
+      key: 'timeline',
+      anchorId: 'world-detail-timeline',
+      showInQuickNav: true,
+      quickNavLabelKey: 'WorldDetail.xianxia.v2.quickNav.timeline',
+    },
+    {
+      key: 'agents',
+      anchorId: 'world-detail-agents',
+      showInQuickNav: true,
+      quickNavLabelKey: 'WorldDetail.xianxia.v2.quickNav.roster',
+    },
+    {
+      key: 'extended',
+      anchorId: 'world-detail-governance-card',
+      showInQuickNav: true,
+      quickNavLabelKey: 'WorldDetail.xianxia.v2.quickNav.governance',
+    },
+  ],
+};
+
+export const OASIS_WORLD_DETAIL_COMPOSITION: WorldDetailComposition = {
+  sections: [
+    { key: 'hero' },
+    { key: 'oasis-identity' },
+    { key: 'dashboard' },
+    {
+      key: 'scenes',
+      anchorId: 'world-detail-scenes',
+    },
+    {
+      key: 'timeline',
+      anchorId: 'world-detail-timeline',
+    },
+    {
+      key: 'agents',
+      anchorId: 'world-detail-agents',
+    },
+  ],
+};
+
 export type CoreRuleCardKey = 'operation' | 'taboos' | 'cultivation' | 'constellation' | 'causality' | 'languages';
-export type ExtendedCardKey = 'knowledge' | 'governance';
-
-export function resolveDashboardSecondaryLayout(
-  input: {
-    hasRuntimeFacts: boolean;
-    recommendedAgentsCount: number;
-    chronologyFactCount: number;
-    hasLatestAudit: boolean;
-  },
-): WorldDetailLayoutPlan<DashboardSecondaryCardKey> {
-  const cards: WorldDetailLayoutCard<DashboardSecondaryCardKey>[] = [];
-
-  if (input.hasRuntimeFacts) {
-    const runtimeSpan =
-      input.recommendedAgentsCount > 0
-        ? input.chronologyFactCount > 0
-          ? input.hasLatestAudit ? 6 : 4
-          : 6
-        : input.chronologyFactCount > 0
-          ? 6
-          : 12;
-    cards.push({ key: 'runtimeFacts', span: runtimeSpan });
-  }
-
-  if (input.recommendedAgentsCount > 0) {
-    const recommendedSpan =
-      input.chronologyFactCount > 0
-        ? input.recommendedAgentsCount >= 3
-          ? 8
-          : 6
-        : 6;
-    cards.push({ key: 'recommendedAgents', span: recommendedSpan });
-  }
-
-  if (input.chronologyFactCount > 0) {
-    const chronologySpan =
-      input.chronologyFactCount >= 3 || input.recommendedAgentsCount > 0 ? 12 : 6;
-    cards.push({ key: 'chronologyLanguage', span: chronologySpan });
-  }
-
-  return { cards };
-}
 
 export function resolveCoreRuleLayout(input: {
   operationRuleCount: number;
@@ -162,7 +193,7 @@ export function resolveCoreRuleLayout(input: {
         return { key, span: 12 };
       }
       if (cards.length === 2) {
-        if (key === 'operation') return { key, span: operationSpan === 8 ? 6 : 6 };
+        if (key === 'operation') return { key, span: 6 };
         if (key === 'taboos') return { key, span: tabooSpan || 6 };
         if (key === 'languages') return { key, span: languagesSpan || 6 };
         return { key, span: causalitySpan || 6 };
@@ -177,27 +208,6 @@ export function resolveCoreRuleLayout(input: {
   };
 }
 
-export function resolveExtendedLayout(input: {
-  hasKnowledge: boolean;
-  hasGovernance: boolean;
-}): WorldDetailLayoutPlan<ExtendedCardKey> {
-  if (input.hasKnowledge && input.hasGovernance) {
-    return {
-      cards: [
-        { key: 'knowledge', span: 8 },
-        { key: 'governance', span: 4 },
-      ],
-    };
-  }
-  if (input.hasKnowledge) {
-    return { cards: [{ key: 'knowledge', span: 12 }] };
-  }
-  if (input.hasGovernance) {
-    return { cards: [{ key: 'governance', span: 12 }] };
-  }
-  return { cards: [] };
-}
-
 export function mapCultivationRingsData(semantic: WorldSemanticData): CultivationRingsData | null {
   const primarySystem = semantic.powerSystems[0] ?? null;
   const levels = primarySystem?.levels.length
@@ -209,7 +219,7 @@ export function mapCultivationRingsData(semantic: WorldSemanticData): Cultivatio
   }
 
   return {
-    systemName: primarySystem?.name ?? semantic.operationTitle ?? '力量体系',
+    systemName: primarySystem?.name ?? semantic.operationTitle ?? '',
     systemDescription: primarySystem?.description ?? semantic.operationDescription ?? null,
     levels,
     extraSystems: semantic.powerSystems.slice(1).filter((system) => system.levels.length > 0),

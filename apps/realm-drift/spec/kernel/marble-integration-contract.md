@@ -20,7 +20,7 @@ The prompt composer transforms nimi world data into a Marble-compatible text pro
 
 | Source | SDK Call | Data Used |
 |--------|---------|-----------|
-| World detail | `realm.services.WorldsService.worldControllerGetWorldDetailWithAgents(worldId)` | `name`, `description`, `genre`, `era`, `themes` |
+| World detail | `realm.services.WorldsService.worldControllerGetWorldDetailWithAgents(worldId, recommendedAgentLimit?)` | `name`, `description`, `genre`, `era`, `themes` |
 | Worldview | `realm.services.WorldsService.worldControllerGetWorldview(worldId)` | `spaceTopology`, `coreSystem`, `causality`, `tone` |
 | Scenes | `realm.worlds.worldControlControllerListWorldScenes(worldId)` | `name`, `description`, `setting` (up to 3) |
 | Lorebooks | `realm.worlds.worldControlControllerListWorldLorebooks(worldId)` | `content` (up to 5, filtered for visual relevance) |

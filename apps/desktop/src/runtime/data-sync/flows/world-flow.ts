@@ -320,27 +320,37 @@ export async function loadWorldDetailWithAgents(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
   worldId: string,
+  recommendedAgentLimit?: number,
 ): Promise<Record<string, unknown> | null> {
   const normalizedWorldId = String(worldId || '').trim();
   if (!normalizedWorldId) {
     throw new Error('WORLD_ID_REQUIRED');
   }
+  const normalizedRecommendedAgentLimit = Number.isFinite(recommendedAgentLimit) && (recommendedAgentLimit ?? 0) > 0
+    ? Math.min(Math.floor(recommendedAgentLimit ?? 0), 12)
+    : undefined;
+  const cacheKey = normalizedRecommendedAgentLimit
+    ? `world:${normalizedWorldId}:detail:recommended-agents:${normalizedRecommendedAgentLimit}`
+    : `world:${normalizedWorldId}:detail`;
   try {
     const payload = await callApi(
-      (realm) => realm.services.WorldsService.worldControllerGetWorldDetailWithAgents(normalizedWorldId),
+      (realm) => realm.services.WorldsService.worldControllerGetWorldDetailWithAgents(
+        normalizedWorldId,
+        normalizedRecommendedAgentLimit,
+      ),
       'Failed to load world detail with agents',
     );
     const record = toRecord(payload);
     if (record) {
       await (await getOfflineCacheManager()).syncWorldMetadata(
-        `world:${normalizedWorldId}:detail`,
+        cacheKey,
         record,
       );
     }
     return record;
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      const cached = await (await getOfflineCacheManager()).getCachedWorldMetadata(`world:${normalizedWorldId}:detail`);
+      const cached = await (await getOfflineCacheManager()).getCachedWorldMetadata(cacheKey);
       if (cached) {
         getOfflineCoordinator().markCacheFallbackUsed();
         return cached;
