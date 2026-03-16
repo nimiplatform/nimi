@@ -105,7 +105,7 @@ function parseTrailingJson(stdout: string): Record<string, unknown> {
     let inString = false;
     let escaped = false;
     let objectStart = -1;
-    let lastCandidate = '';
+    const topLevelCandidates: string[] = [];
 
     for (let index = 0; index < normalized.length; index += 1) {
       const char = normalized[index];
@@ -139,15 +139,15 @@ function parseTrailingJson(stdout: string): Record<string, unknown> {
       }
       depth -= 1;
       if (depth === 0 && objectStart >= 0) {
-        lastCandidate = normalized.slice(objectStart, index + 1).trim();
+        topLevelCandidates.push(normalized.slice(objectStart, index + 1).trim());
       }
     }
 
-    if (lastCandidate) {
+    for (let index = topLevelCandidates.length - 1; index >= 0; index -= 1) {
       try {
-        return JSON.parse(lastCandidate) as Record<string, unknown>;
+        return JSON.parse(topLevelCandidates[index]) as Record<string, unknown>;
       } catch {
-        // Fall through to the generic error below.
+        continue;
       }
     }
     throw new Error('invalid json output');
