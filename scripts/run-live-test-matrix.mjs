@@ -362,18 +362,33 @@ function main() {
     const runtimeRun = runRuntimeTests();
     runtimeExitStatus = runtimeRun.status;
     runtimeGoResults = parseGoTestOutput(runtimeRun.output);
+    if (runtimeExitStatus !== 0 && String(runtimeRun.output || '').trim()) {
+      process.stdout.write('[live-test-matrix] runtime output start\n');
+      process.stdout.write(`${runtimeRun.output}\n`);
+      process.stdout.write('[live-test-matrix] runtime output end\n');
+    }
   }
 
   if (!skipSdk) {
     const sdkRun = runSdkTests();
     sdkExitStatus = sdkRun.status;
     sdkNodeResults = parseNodeTestOutput(sdkRun.output);
+    if (sdkExitStatus !== 0 && String(sdkRun.output || '').trim()) {
+      process.stdout.write('[live-test-matrix] sdk output start\n');
+      process.stdout.write(`${sdkRun.output}\n`);
+      process.stdout.write('[live-test-matrix] sdk output end\n');
+    }
   }
 
   if (!skipGoldPath) {
     const goldRun = runGoldPathTests();
     goldExitStatus = goldRun.status;
     goldReport = readGoldPathReport();
+    if (goldExitStatus !== 0 && String(goldRun.output || '').trim()) {
+      process.stdout.write('[live-test-matrix] gold-path output start\n');
+      process.stdout.write(`${goldRun.output}\n`);
+      process.stdout.write('[live-test-matrix] gold-path output end\n');
+    }
   }
 
   const providers = toSortedArray(providerUniverse);

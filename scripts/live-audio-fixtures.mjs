@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT_DIR = path.join(REPO_ROOT, 'dev', 'report', 'live-audio-fixtures');
+const PREBUILT_DIR = path.join(REPO_ROOT, 'dev', 'fixtures', 'live-audio-fixtures');
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 18456;
 
@@ -85,6 +86,14 @@ function ensureTool(command, failureCode) {
 }
 
 function ensureSpeechFixture(entry) {
+  const prebuiltPath = path.join(PREBUILT_DIR, entry.fileName);
+  if (existsSync(prebuiltPath)) {
+    const size = statSync(prebuiltPath).size;
+    if (size > 0) {
+      return prebuiltPath;
+    }
+  }
+
   const outputPath = path.join(OUTPUT_DIR, entry.fileName);
   if (existsSync(outputPath)) {
     const size = statSync(outputPath).size;
@@ -112,8 +121,19 @@ function ensureSpeechFixture(entry) {
 }
 
 function prepareFixtures() {
-  ensureTool('say', 'LIVE_AUDIO_FIXTURE_SAY_MISSING');
-  ensureTool('ffmpeg', 'LIVE_AUDIO_FIXTURE_FFMPEG_MISSING');
+  const requiresSynthesis = FIXTURES.some((entry) => {
+    const prebuiltPath = path.join(PREBUILT_DIR, entry.fileName);
+    if (existsSync(prebuiltPath) && statSync(prebuiltPath).size > 0) {
+      return false;
+    }
+    const outputPath = path.join(OUTPUT_DIR, entry.fileName);
+    return !(existsSync(outputPath) && statSync(outputPath).size > 0);
+  });
+
+  if (requiresSynthesis) {
+    ensureTool('say', 'LIVE_AUDIO_FIXTURE_SAY_MISSING');
+    ensureTool('ffmpeg', 'LIVE_AUDIO_FIXTURE_FFMPEG_MISSING');
+  }
   return new Map(FIXTURES.map((entry) => [entry.pathName, ensureSpeechFixture(entry)]));
 }
 

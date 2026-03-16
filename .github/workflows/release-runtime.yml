@@ -23,6 +23,9 @@ jobs:
       NIMI_LIVE_ALIBABA_BASE_URL: ${{ vars.NIMI_LIVE_ALIBABA_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1' }}
       NIMI_LIVE_ALIBABA_API_KEY: ${{ secrets.NIMI_LIVE_ALIBABA_API_KEY }}
       NIMI_LIVE_ALIBABA_CHAT_MODEL_ID: ${{ vars.NIMI_LIVE_ALIBABA_CHAT_MODEL_ID || 'alibaba/qwen-turbo' }}
+      NIMI_LIVE_DASHSCOPE_BASE_URL: ${{ vars.NIMI_LIVE_ALIBABA_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1' }}
+      NIMI_LIVE_DASHSCOPE_API_KEY: ${{ secrets.NIMI_LIVE_ALIBABA_API_KEY }}
+      NIMI_LIVE_GOLD_SUBJECT_USER_ID: ${{ vars.NIMI_LIVE_GOLD_SUBJECT_USER_ID || 'gold-user' }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

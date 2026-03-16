@@ -19,6 +19,7 @@ Nimi does not publish a separate Go registry package or Rust crate for the deskt
 - `NIMI_LIVE_ALIBABA_API_KEY`
 - `NIMI_MODS_REPO_TOKEN` (required while `nimiplatform/nimi-mods` is private; fine-grained read access is enough)
 - `NIMI_LIVE_GEMINI_MODEL_ID` (repo variable, optional fallback exists)
+- `NIMI_LIVE_GOLD_SUBJECT_USER_ID` (repo variable, optional fallback `gold-user`)
 - `NIMI_LIVE_ALIBABA_BASE_URL` (repo variable, optional fallback exists)
 - `NIMI_LIVE_ALIBABA_CHAT_MODEL_ID` (repo variable, optional fallback exists)
 
