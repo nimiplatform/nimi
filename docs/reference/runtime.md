@@ -47,6 +47,6 @@ go run ./cmd/nimi serve
 
 ## Source references
 
-- Runtime implementation notes: [`runtime/README.md`](../../runtime/README.md)
-- Runtime spec domain docs: [`spec/runtime`](../../spec/runtime)
-- Runtime kernel contracts: [`spec/runtime/kernel`](../../spec/runtime/kernel)
+- Runtime implementation notes: [`runtime/README.md`](https://github.com/nimiplatform/nimi/blob/main/runtime/README.md)
+- Runtime spec domain docs: [`spec/runtime`](https://github.com/nimiplatform/nimi/blob/main/spec/runtime/index.md)
+- Runtime kernel contracts: [`spec/runtime/kernel`](https://github.com/nimiplatform/nimi/blob/main/spec/runtime/kernel/index.md)

@@ -4,7 +4,7 @@
 > Audience: architects, security reviewers, platform engineering teams, and agent developers  
 > Objective: explain why AI agents should move from "human-like operation" to "AI-native interface calling", and how Nimi turns that into enforceable contracts
 
-Spec rule mapping: [`spec/platform/ai-agent-security-interface.md`](../../spec/platform/ai-agent-security-interface.md)
+Spec rule mapping: [`spec/platform/ai-agent-security-interface.md`](https://github.com/nimiplatform/nimi/blob/main/spec/platform/ai-agent-security-interface.md)
 
 ## 0. One-Page Summary
 
@@ -17,7 +17,7 @@ This document has three core conclusions:
 If you only need a quick feasibility review, read:
 
 1. Sections 3, 4, 5, and 6 in this document (model, mechanisms, comparison).
-2. Mapping document: [`spec/platform/ai-agent-security-interface.md`](../../spec/platform/ai-agent-security-interface.md).
+2. Mapping document: [`spec/platform/ai-agent-security-interface.md`](https://github.com/nimiplatform/nimi/blob/main/spec/platform/ai-agent-security-interface.md).
 3. Related kernel families: `P-ALMI-*`, `K-AUTHSVC-*`, `K-GRANT-*`, `K-AUDIT-*`, `D-SEC-*`.
 
 ## 1. Problem Definition and Threat Reality

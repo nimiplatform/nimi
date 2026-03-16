@@ -4,7 +4,7 @@
 > 读者：架构师、安全评审、平台工程团队、Agent 开发者  
 > 目标：解释为什么 AI Agent 必须从“模拟人类操作”转向“AI 原生接口调用”，并给出 Nimi 的可落地方案与规则锚点
 
-对应 Spec 规则映射：[`spec/platform/ai-agent-security-interface.md`](../../../spec/platform/ai-agent-security-interface.md)
+对应 Spec 规则映射：[`spec/platform/ai-agent-security-interface.md`](https://github.com/nimiplatform/nimi/blob/main/spec/platform/ai-agent-security-interface.md)
 
 ## 0. 一页摘要
 
@@ -17,7 +17,7 @@
 如果只需要快速评估接入可行性，建议先读：
 
 1. 本文第 3、4、5、6 章（模型、机制、对比）。
-2. 映射文档：[`spec/platform/ai-agent-security-interface.md`](../../../spec/platform/ai-agent-security-interface.md)。
+2. 映射文档：[`spec/platform/ai-agent-security-interface.md`](https://github.com/nimiplatform/nimi/blob/main/spec/platform/ai-agent-security-interface.md)。
 3. 对应 kernel 合同：`P-ALMI-*`、`K-AUTHSVC-*`、`K-GRANT-*`、`K-AUDIT-*`、`D-SEC-*`。
 
 ## 1. 问题定义与威胁现实

@@ -4,9 +4,9 @@ Nimi welcomes third-party contributions across runtime, SDK, desktop, web, docs,
 
 ## Start here
 
-- Contribution policy: [`CONTRIBUTING.md`](../../CONTRIBUTING.md)
-- Onboarding: [`ONBOARDING.md`](../../ONBOARDING.md)
-- Security policy: [`SECURITY.md`](../../SECURITY.md)
+- Contribution policy: [`CONTRIBUTING.md`](https://github.com/nimiplatform/nimi/blob/main/CONTRIBUTING.md)
+- Onboarding: [`ONBOARDING.md`](https://github.com/nimiplatform/nimi/blob/main/ONBOARDING.md)
+- Security policy: [`SECURITY.md`](https://github.com/nimiplatform/nimi/blob/main/SECURITY.md)
 - Open-source release runbook: [Open-Source Release](./open-source-release.md)
 
 ## Community

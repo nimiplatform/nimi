@@ -13,7 +13,7 @@ Use this path if you are building a third-party app that consumes Nimi runtime, 
 
 1. Start with [SDK Setup](./sdk-setup.md).
 2. Scaffold a repo with `pnpm dlx @nimiplatform/dev-tools nimi-app create --dir my-nimi-app --template basic`.
-3. Use [`examples/app-template`](../../examples/app-template) as the tracked minimal app shape.
+3. Use [`examples/app-template`](https://github.com/nimiplatform/nimi/tree/main/examples/app-template) as the tracked minimal app shape.
 4. Use `examples/sdk/01-hello.ts` as the smallest baseline.
 5. Move to `examples/sdk/03-local-vs-cloud.ts` once you want both execution planes.
 6. Adopt structured error handling using `reasonCode` and `traceId`.
@@ -59,7 +59,7 @@ const result = await runtime.generate({
 });
 ```
 
-If you want a tracked example for the basic scaffold shape, see [`examples/app-template`](../../examples/app-template). If you want a provider-bridged example, see [`examples/sdk/04-vercel-ai-sdk.ts`](../../examples/sdk/04-vercel-ai-sdk.ts).
+If you want a tracked example for the basic scaffold shape, see [`examples/app-template`](https://github.com/nimiplatform/nimi/tree/main/examples/app-template). If you want a provider-bridged example, see [`examples/sdk/04-vercel-ai-sdk.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/04-vercel-ai-sdk.ts).
 
 ## Production checklist
 

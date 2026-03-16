@@ -2,16 +2,16 @@
 
 This guide is the operational playbook for shipping Nimi desktop mods and handling third-party listing requests.
 
-Chinese mirror: [`release_cn.md`](./release_cn.md)
+Chinese mirror: [`zh/mod-dev/release.md`](../zh/mod-dev/release.md)
 
 For the maintainer-facing step-by-step workflow for official mods that live in `nimi-mods/`, see `nimi-mods/RELEASE.md` in the repo root.
 
 Normative behavior still lives in:
 
-- [`spec/desktop/mod-hub.md`](../../spec/desktop/mod-hub.md)
-- [`spec/desktop/kernel/mod-governance-contract.md`](../../spec/desktop/kernel/mod-governance-contract.md)
-- [`apps/desktop/docs/mod-runtime-layout-contract.md`](../../apps/desktop/docs/mod-runtime-layout-contract.md)
-- [`RELEASE.md`](../../RELEASE.md)
+- [`spec/desktop/mod-hub.md`](https://github.com/nimiplatform/nimi/blob/main/spec/desktop/mod-hub.md)
+- [`spec/desktop/kernel/mod-governance-contract.md`](https://github.com/nimiplatform/nimi/blob/main/spec/desktop/kernel/mod-governance-contract.md)
+- [`apps/desktop/docs/mod-runtime-layout-contract.md`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/docs/mod-runtime-layout-contract.md)
+- [`RELEASE.md`](https://github.com/nimiplatform/nimi/blob/main/RELEASE.md)
 
 Relevant Desktop kernel anchors for this guide:
 
@@ -110,7 +110,7 @@ Before requesting listing, the author must provide:
 
 Strongly recommended:
 
-- use the scaffold in [`examples/mod-template`](../../examples/mod-template/README.md)
+- use the scaffold in [`examples/mod-template/README.md`](https://github.com/nimiplatform/nimi/blob/main/examples/mod-template/README.md)
 - run `pnpm build`, `pnpm doctor`, and `pnpm pack` in the mod repo before submission
 - keep release assets immutable after publication
 

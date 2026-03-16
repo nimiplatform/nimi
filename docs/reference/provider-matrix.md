@@ -78,4 +78,4 @@ nimi provider set gemini --api-key-env NIMI_RUNTIME_CLOUD_GEMINI_API_KEY --defau
 nimi run "Hello from Nimi" --cloud
 ```
 
-Runnable provider examples: [examples/sdk/providers/](../../examples/sdk/providers/)
+Runnable provider examples: [examples/sdk/providers/](https://github.com/nimiplatform/nimi/tree/main/examples/sdk/providers)

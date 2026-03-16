@@ -32,7 +32,7 @@ Desktop 侧的开发应仅涉及 UI。`NIMI_RUNTIME_MODS_DIR` 仅保留用于 CI
 
 推荐工具链：
 
-- 在本 monorepo 内：调用 [`dev-tools/bin/nimi-mod.mjs`](../../dev-tools/bin/nimi-mod.mjs)
+- 在本 monorepo 内：调用 [`dev-tools/bin/nimi-mod.mjs`](https://github.com/nimiplatform/nimi/blob/main/dev-tools/bin/nimi-mod.mjs)
 - 在本 monorepo 外：`pnpm add -D @nimiplatform/dev-tools` 并使用发布的 `nimi-mod` CLI
 
 ## 验证
@@ -43,8 +43,8 @@ pnpm doctor
 pnpm pack
 ```
 
-如需可运行的 Mod 仓库模板，请参考 [`examples/mod-template`](../../examples/mod-template)。
+如需可运行的 Mod 仓库模板，请参考 [`examples/mod-template`](https://github.com/nimiplatform/nimi/tree/main/examples/mod-template)。
 
-如需使用 `setModSdkHost()`、`createHookClient()` 和 `createModRuntimeClient()` 的 Mod SDK 示例，请参考 [`examples/mods/mod-basic.ts`](../../examples/mods/mod-basic.ts)。
+如需使用 `setModSdkHost()`、`createHookClient()` 和 `createModRuntimeClient()` 的 Mod SDK 示例，请参考 [`examples/mods/mod-basic.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/mods/mod-basic.ts)。
 
 如需了解正式发布流程、目录发布和第三方上架审核，请参阅 [Mod 发布与提交指南](./release.md)。

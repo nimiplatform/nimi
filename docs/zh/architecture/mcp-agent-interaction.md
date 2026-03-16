@@ -4,9 +4,9 @@
 > 读者：架构师、平台工程团队、安全评审、Agent/应用开发者  
 > 目标：定义 Nimi 在 MCP 协议下的双向 Agent 交互模型，以及“授权 + 审计 + fail-close”平台强约束如何透明落地到 App/Mod 生态
 
-对应 Spec 规则映射：[`spec/platform/ai-agent-security-interface.md`](../../../spec/platform/ai-agent-security-interface.md)  
-相关架构契约：[`spec/platform/kernel/architecture-contract.md`](../../../spec/platform/kernel/architecture-contract.md)  
-相关规划项：[`spec/future/kernel/tables/backlog-items.yaml`](../../../spec/future/kernel/tables/backlog-items.yaml)
+对应 Spec 规则映射：[`spec/platform/ai-agent-security-interface.md`](https://github.com/nimiplatform/nimi/blob/main/spec/platform/ai-agent-security-interface.md)  
+相关架构契约：[`spec/platform/kernel/architecture-contract.md`](https://github.com/nimiplatform/nimi/blob/main/spec/platform/kernel/architecture-contract.md)  
+相关规划项：[`spec/future/kernel/tables/backlog-items.yaml`](https://github.com/nimiplatform/nimi/blob/main/spec/future/kernel/tables/backlog-items.yaml)
 
 ## 0. 一页摘要
 

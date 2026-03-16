@@ -4,8 +4,8 @@
 > Audience: app developers, world creators, platform architects  
 > Objective: explain how Nimi Realm enables cross-app interoperability without turning the ecosystem into isolated islands
 
-Spec mapping: [`spec/realm/app-interconnect-model.md`](../../spec/realm/app-interconnect-model.md)  
-Chinese version: [`realm-interconnect-paradigm_cn.md`](./realm-interconnect-paradigm_cn.md)
+Spec mapping: [`spec/realm/app-interconnect-model.md`](https://github.com/nimiplatform/nimi/blob/main/spec/realm/app-interconnect-model.md)  
+Chinese version: [`zh/architecture/realm-interconnect-paradigm.md`](../zh/architecture/realm-interconnect-paradigm.md)
 
 ## 0. One-Page Summary
 
@@ -102,7 +102,7 @@ the ownership and boundaries are defined; the next step is shifting more semanti
 
 ## 8. Further Reading
 
-1. Platform protocol overview: [`spec/platform/protocol.md`](../../spec/platform/protocol.md)  
-2. Realm interop mapping: [`spec/realm/realm-interop-mapping.md`](../../spec/realm/realm-interop-mapping.md)  
-3. Realm economy and boundaries: [`spec/realm/world-creator-economy.md`](../../spec/realm/world-creator-economy.md), [`spec/realm/creator-revenue-policy.md`](../../spec/realm/creator-revenue-policy.md)  
-4. Rule mapping for this document: [`spec/realm/app-interconnect-model.md`](../../spec/realm/app-interconnect-model.md)
+1. Platform protocol overview: [`spec/platform/protocol.md`](https://github.com/nimiplatform/nimi/blob/main/spec/platform/protocol.md)  
+2. Realm interop mapping: [`spec/realm/realm-interop-mapping.md`](https://github.com/nimiplatform/nimi/blob/main/spec/realm/realm-interop-mapping.md)  
+3. Realm economy and boundaries: [`spec/realm/world-creator-economy.md`](https://github.com/nimiplatform/nimi/blob/main/spec/realm/world-creator-economy.md), [`spec/realm/creator-revenue-policy.md`](https://github.com/nimiplatform/nimi/blob/main/spec/realm/creator-revenue-policy.md)  
+4. Rule mapping for this document: [`spec/realm/app-interconnect-model.md`](https://github.com/nimiplatform/nimi/blob/main/spec/realm/app-interconnect-model.md)

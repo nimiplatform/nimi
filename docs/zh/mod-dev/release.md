@@ -6,10 +6,10 @@
 
 规范真相源仍在：
 
-- [`spec/desktop/mod-hub.md`](../../../spec/desktop/mod-hub.md)
-- [`spec/desktop/kernel/mod-governance-contract.md`](../../../spec/desktop/kernel/mod-governance-contract.md)
-- [`apps/desktop/docs/mod-runtime-layout-contract.md`](../../../apps/desktop/docs/mod-runtime-layout-contract.md)
-- [`RELEASE.md`](../../../RELEASE.md)
+- [`spec/desktop/mod-hub.md`](https://github.com/nimiplatform/nimi/blob/main/spec/desktop/mod-hub.md)
+- [`spec/desktop/kernel/mod-governance-contract.md`](https://github.com/nimiplatform/nimi/blob/main/spec/desktop/kernel/mod-governance-contract.md)
+- [`apps/desktop/docs/mod-runtime-layout-contract.md`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/docs/mod-runtime-layout-contract.md)
+- [`RELEASE.md`](https://github.com/nimiplatform/nimi/blob/main/RELEASE.md)
 
 本指南直接对应的 Desktop kernel 规则锚点：
 
@@ -18,7 +18,7 @@
 - `D-MOD-018`：trust tier 分配语义
 - `D-MOD-019`：第三方更新复审与风险处置
 
-英文版对应文档见 [`mod-release.md`](./release.md)。
+英文版对应文档见 [Mod Release And Submission Guide](../../mod-dev/release.md)。
 
 ## 0. 一页结论
 
@@ -126,7 +126,7 @@ catalog schema 允许未来出现 `packageType=nimi-app`，但 desktop v1 不安
 
 强烈建议：
 
-1. 从 [`examples/mod-template`](../../../examples/mod-template/README.md) 起步
+1. 从 [`examples/mod-template/README.md`](https://github.com/nimiplatform/nimi/blob/main/examples/mod-template/README.md) 起步
 2. 在自己 repo 里先跑 `pnpm build`、`pnpm doctor`、`pnpm pack`
 3. release 资产发布后保持不可变
 

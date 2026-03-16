@@ -38,6 +38,6 @@ const result = await runtime.generate({
 
 ## 源码参考
 
-- SDK 实现指南：[`sdk/README.md`](../../../sdk/README.md)
-- SDK 规范索引：[`spec/sdk`](../../../spec/sdk)
-- SDK 内核表/文档：[`spec/sdk/kernel`](../../../spec/sdk/kernel)
+- SDK 实现指南：[`sdk/README.md`](https://github.com/nimiplatform/nimi/blob/main/sdk/README.md)
+- SDK 规范索引：[`spec/sdk`](https://github.com/nimiplatform/nimi/blob/main/spec/sdk/index.md)
+- SDK 内核表/文档：[`spec/sdk/kernel`](https://github.com/nimiplatform/nimi/blob/main/spec/sdk/kernel/index.md)

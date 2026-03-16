@@ -4,7 +4,7 @@
 > 受众：应用开发者、世界创建者、平台架构师  
 > 目标：用开发者可理解的方式说明 Nimi Realm 如何承载跨应用互联，而不把生态变成一个个孤岛
 
-对应 Spec 映射：[`spec/realm/app-interconnect-model.md`](../../../spec/realm/app-interconnect-model.md)
+对应 Spec 映射：[`spec/realm/app-interconnect-model.md`](https://github.com/nimiplatform/nimi/blob/main/spec/realm/app-interconnect-model.md)
 
 ## 0. 一页结论
 
@@ -97,7 +97,7 @@ Nimi 不要求所有应用一次性全量接入 Realm。可按阶段选择：
 
 ## 8. 进一步阅读
 
-1. 平台协议总览：[`spec/platform/protocol.md`](../../../spec/platform/protocol.md)  
-2. Realm 互操作映射：[`spec/realm/realm-interop-mapping.md`](../../../spec/realm/realm-interop-mapping.md)  
-3. Realm 经济与边界：[`spec/realm/world-creator-economy.md`](../../../spec/realm/world-creator-economy.md), [`spec/realm/creator-revenue-policy.md`](../../../spec/realm/creator-revenue-policy.md)  
-4. 本文对应规则映射：[`spec/realm/app-interconnect-model.md`](../../../spec/realm/app-interconnect-model.md)
+1. 平台协议总览：[`spec/platform/protocol.md`](https://github.com/nimiplatform/nimi/blob/main/spec/platform/protocol.md)  
+2. Realm 互操作映射：[`spec/realm/realm-interop-mapping.md`](https://github.com/nimiplatform/nimi/blob/main/spec/realm/realm-interop-mapping.md)  
+3. Realm 经济与边界：[`spec/realm/world-creator-economy.md`](https://github.com/nimiplatform/nimi/blob/main/spec/realm/world-creator-economy.md), [`spec/realm/creator-revenue-policy.md`](https://github.com/nimiplatform/nimi/blob/main/spec/realm/creator-revenue-policy.md)  
+4. 本文对应规则映射：[`spec/realm/app-interconnect-model.md`](https://github.com/nimiplatform/nimi/blob/main/spec/realm/app-interconnect-model.md)

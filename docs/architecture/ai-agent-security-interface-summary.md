@@ -25,4 +25,4 @@
 ## 进一步阅读
 
 1. 白皮书：[`ai-agent-security-interface.md`](./ai-agent-security-interface.md)  
-2. 规则映射：[`../../spec/platform/ai-agent-security-interface.md`](../../spec/platform/ai-agent-security-interface.md)
+2. 规则映射：[`spec/platform/ai-agent-security-interface.md`](https://github.com/nimiplatform/nimi/blob/main/spec/platform/ai-agent-security-interface.md)

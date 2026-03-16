@@ -22,5 +22,5 @@ type NimiError = Error & {
 
 ## Source references
 
-- Runtime reason code definitions: [`proto/runtime/v1/common.proto`](../../proto/runtime/v1/common.proto)
-- SDK reason-code utilities: [`sdk/src/types`](../../sdk/src/types)
+- Runtime reason code definitions: [`proto/runtime/v1/common.proto`](https://github.com/nimiplatform/nimi/blob/main/proto/runtime/v1/common.proto)
+- SDK reason-code utilities: [`sdk/src/types/index.ts`](https://github.com/nimiplatform/nimi/blob/main/sdk/src/types/index.ts)

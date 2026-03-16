@@ -13,7 +13,7 @@
 
 1. 从 [SDK 安装指南](./sdk-setup.md) 开始。
 2. 使用 `pnpm dlx @nimiplatform/dev-tools nimi-app create --dir my-nimi-app --template basic` 初始化项目。
-3. 参考 [`examples/app-template`](../../examples/app-template) 作为最小应用模板。
+3. 参考 [`examples/app-template`](https://github.com/nimiplatform/nimi/tree/main/examples/app-template) 作为最小应用模板。
 4. 用 `examples/sdk/01-hello.ts` 作为最简基线。
 5. 当你需要同时使用本地和云端两种执行平面时，参考 `examples/sdk/03-local-vs-cloud.ts`。
 6. 使用 `reasonCode` 和 `traceId` 实现结构化错误处理。
@@ -59,7 +59,7 @@ const result = await runtime.generate({
 });
 ```
 
-如需查看基础脚手架的可跟踪示例，请参考 [`examples/app-template`](../../examples/app-template)。如需 Provider 桥接示例，请参考 [`examples/sdk/04-vercel-ai-sdk.ts`](../../examples/sdk/04-vercel-ai-sdk.ts)。
+如需查看基础脚手架的可跟踪示例，请参考 [`examples/app-template`](https://github.com/nimiplatform/nimi/tree/main/examples/app-template)。如需 Provider 桥接示例，请参考 [`examples/sdk/04-vercel-ai-sdk.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/04-vercel-ai-sdk.ts)。
 
 ## 生产环境检查清单
 

@@ -39,4 +39,4 @@ pnpm build && pnpm doctor && pnpm pack
 
 - [Development Guide](./guide.md) -- Full development workflow
 - [Release & Submission](./release.md) -- Publishing and catalog listing
-- [Release Guide (CN)](./release_cn.md) -- Chinese version
+- [Release Guide (CN)](../zh/mod-dev/release.md) -- Chinese version

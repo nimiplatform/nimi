@@ -38,6 +38,6 @@ The high-level convenience surface treats `model` as a local or provider-scoped 
 
 ## Source references
 
-- SDK implementation guide: [`sdk/README.md`](../../sdk/README.md)
-- SDK spec index: [`spec/sdk`](../../spec/sdk)
-- SDK kernel tables/docs: [`spec/sdk/kernel`](../../spec/sdk/kernel)
+- SDK implementation guide: [`sdk/README.md`](https://github.com/nimiplatform/nimi/blob/main/sdk/README.md)
+- SDK spec index: [`spec/sdk`](https://github.com/nimiplatform/nimi/blob/main/spec/sdk/index.md)
+- SDK kernel tables/docs: [`spec/sdk/kernel`](https://github.com/nimiplatform/nimi/blob/main/spec/sdk/kernel/index.md)

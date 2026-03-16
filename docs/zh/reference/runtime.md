@@ -47,6 +47,6 @@ go run ./cmd/nimi serve
 
 ## 源码参考
 
-- Runtime 实现说明：[`runtime/README.md`](../../../runtime/README.md)
-- Runtime 规范领域文档：[`spec/runtime`](../../../spec/runtime)
-- Runtime 内核契约：[`spec/runtime/kernel`](../../../spec/runtime/kernel)
+- Runtime 实现说明：[`runtime/README.md`](https://github.com/nimiplatform/nimi/blob/main/runtime/README.md)
+- Runtime 规范领域文档：[`spec/runtime`](https://github.com/nimiplatform/nimi/blob/main/spec/runtime/index.md)
+- Runtime 内核契约：[`spec/runtime/kernel`](https://github.com/nimiplatform/nimi/blob/main/spec/runtime/kernel/index.md)

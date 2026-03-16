@@ -32,7 +32,7 @@ Desktop side development should be UI-only. `NIMI_RUNTIME_MODS_DIR` is kept only
 
 Recommended toolchain:
 
-- inside this monorepo: invoke [`dev-tools/bin/nimi-mod.mjs`](../../dev-tools/bin/nimi-mod.mjs)
+- inside this monorepo: invoke [`dev-tools/bin/nimi-mod.mjs`](https://github.com/nimiplatform/nimi/blob/main/dev-tools/bin/nimi-mod.mjs)
 - outside this monorepo: `pnpm add -D @nimiplatform/dev-tools` and use the published `nimi-mod` CLI
 
 ## Validation
@@ -43,8 +43,8 @@ pnpm doctor
 pnpm pack
 ```
 
-For a runnable mod repo template, see [`examples/mod-template`](../../examples/mod-template).
+For a runnable mod repo template, see [`examples/mod-template`](https://github.com/nimiplatform/nimi/tree/main/examples/mod-template).
 
-For a mod SDK sample using `setModSdkHost()`, `createHookClient()`, and `createModRuntimeClient()`, see [`examples/mods/mod-basic.ts`](../../examples/mods/mod-basic.ts).
+For a mod SDK sample using `setModSdkHost()`, `createHookClient()`, and `createModRuntimeClient()`, see [`examples/mods/mod-basic.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/mods/mod-basic.ts).
 
 For official release flow, catalog publishing, and third-party listing review, see [Mod Release And Submission Guide](./release.md).

@@ -52,7 +52,7 @@ Building extensions for the Nimi desktop app?
 ### Other
 
 - [Runtime Integrator Guide](./guides/runtime-integrator.md) — embed the runtime daemon in a host app
-- [Nimi Coding](./nimi-coding.md) — the methodology behind the project
+- [Nimi Coding](./architecture/nimi-coding.md) — the methodology behind the project
 
 ## Reference
 
@@ -70,8 +70,8 @@ Building extensions for the Nimi desktop app?
 
 ## Normative Source Of Truth
 
-This portal explains how to use Nimi. Normative contracts live in [`spec/`](../spec/).
+This portal explains how to use Nimi. Normative contracts live in [`spec/`](https://github.com/nimiplatform/nimi/tree/main/spec).
 
-- Human-readable generated spec entry: [`spec/generated/nimi-spec.md`](../spec/generated/nimi-spec.md)
-- Runnable samples live in [`examples/`](../examples/)
+- Human-readable generated spec entry: [`spec/generated/nimi-spec.md`](https://github.com/nimiplatform/nimi/blob/main/spec/generated/nimi-spec.md)
+- Runnable samples live in [`examples/`](https://github.com/nimiplatform/nimi/tree/main/examples)
 - Internal plans, reports, and audit artifacts do not belong in this portal

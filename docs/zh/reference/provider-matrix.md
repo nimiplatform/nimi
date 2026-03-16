@@ -78,4 +78,4 @@ nimi provider set gemini --api-key-env NIMI_RUNTIME_CLOUD_GEMINI_API_KEY --defau
 nimi run "Hello from Nimi" --cloud
 ```
 
-可运行的 Provider 示例：[examples/sdk/providers/](../../../examples/sdk/providers/)
+可运行的 Provider 示例：[examples/sdk/providers/](https://github.com/nimiplatform/nimi/tree/main/examples/sdk/providers)

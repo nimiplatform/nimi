@@ -22,5 +22,5 @@ type NimiError = Error & {
 
 ## 源码参考
 
-- Runtime reason code 定义：[`proto/runtime/v1/common.proto`](../../../proto/runtime/v1/common.proto)
-- SDK reason-code 工具：[`sdk/src/types`](../../../sdk/src/types)
+- Runtime reason code 定义：[`proto/runtime/v1/common.proto`](https://github.com/nimiplatform/nimi/blob/main/proto/runtime/v1/common.proto)
+- SDK reason-code 工具：[`sdk/src/types/index.ts`](https://github.com/nimiplatform/nimi/blob/main/sdk/src/types/index.ts)

@@ -39,4 +39,4 @@ pnpm build && pnpm doctor && pnpm pack
 
 - [开发指南](./guide.md) -- 完整的开发工作流
 - [发布与提交](./release.md) -- 发布和目录上架流程
-- [发布指南（中文）](./release_cn.md) -- 中文版本
+- [发布指南（英文版）](../../mod-dev/release.md) -- English version
