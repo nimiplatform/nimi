@@ -120,7 +120,7 @@ fn read_proc_stat_cpu_totals() -> Option<(u64, u64)> {
 #[cfg(target_os = "linux")]
 fn collect_cpu_percent() -> Option<f64> {
     let (idle_a, total_a) = read_proc_stat_cpu_totals()?;
-    std::thread::sleep(Duration::from_millis(120));
+    std::thread::sleep(std::time::Duration::from_millis(120));
     let (idle_b, total_b) = read_proc_stat_cpu_totals()?;
 
     let idle_delta = idle_b.saturating_sub(idle_a);
