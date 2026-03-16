@@ -17,6 +17,7 @@ Nimi 当前不会额外发布 Go registry 包，也不会把桌面端发布到 c
 
 - `NIMI_LIVE_GEMINI_API_KEY`
 - `NIMI_LIVE_ALIBABA_API_KEY`
+- `NIMI_MODS_REPO_TOKEN`（当 `nimiplatform/nimi-mods` 仍为私有仓库时必需；只读权限即可）
 - `NIMI_LIVE_GEMINI_MODEL_ID`（repo variable，可选，workflow 内有默认值）
 - `NIMI_LIVE_ALIBABA_BASE_URL`（repo variable，可选，workflow 内有默认值）
 - `NIMI_LIVE_ALIBABA_CHAT_MODEL_ID`（repo variable，可选，workflow 内有默认值）

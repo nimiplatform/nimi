@@ -33,6 +33,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: nimiplatform/nimi-mods
+          token: ${{ secrets.NIMI_MODS_REPO_TOKEN || github.token }}
           ref: ${{ env.NIMI_MODS_REF }}
           path: nimi-mods
           fetch-depth: 1
