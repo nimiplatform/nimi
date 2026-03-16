@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
+const sdkRoot = path.join(repoRoot, 'sdk');
 
 const coverageChecks = [
   {
@@ -24,7 +25,7 @@ const coverageChecks = [
       'sdk/src/runtime/generated/**/*.ts',
       'sdk/src/runtime/types.ts',
     ],
-    tests: 'sdk/test/**/*.test.ts',
+    tests: 'test/**/*.test.ts',
     thresholds: {
       lines: Number(process.env.NIMI_SDK_MIN_LINES_COVERAGE || '90'),
       branches: Number(process.env.NIMI_SDK_MIN_BRANCHES_COVERAGE || '70'),
@@ -34,7 +35,7 @@ const coverageChecks = [
 ];
 
 function runNodeTestCoverage(check) {
-  const testFiles = globSync(check.tests, { cwd: repoRoot, absolute: false })
+  const testFiles = globSync(check.tests, { cwd: sdkRoot, absolute: false })
     .map((file) => file.replace(/\\/g, '/'))
     .sort((a, b) => a.localeCompare(b));
   if (testFiles.length === 0) {
@@ -42,7 +43,9 @@ function runNodeTestCoverage(check) {
   }
 
   const args = [
-    '--import',
+    '--dir',
+    sdkRoot,
+    'exec',
     'tsx',
     '--test',
     '--experimental-test-coverage',
@@ -58,7 +61,7 @@ function runNodeTestCoverage(check) {
     `[check-sdk-coverage] ${check.label}: lines>=${check.thresholds.lines}, branches>=${check.thresholds.branches}, functions>=${check.thresholds.functions}\n`,
   );
 
-  const result = spawnSync(process.execPath, args, {
+  const result = spawnSync('pnpm', args, {
     cwd: repoRoot,
     env: process.env,
     stdio: 'inherit',
