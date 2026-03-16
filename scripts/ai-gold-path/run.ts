@@ -154,6 +154,19 @@ function parseTrailingJson(stdout: string): Record<string, unknown> {
   }
 }
 
+function summarizeOutput(label: string, value: string): string {
+  const normalized = String(value || '').trim();
+  if (!normalized) {
+    return `${label}=<empty>`;
+  }
+  if (normalized.length <= 1200) {
+    return `${label}=${normalized}`;
+  }
+  const head = normalized.slice(0, 600);
+  const tail = normalized.slice(-600);
+  return `${label}=${head}\n...\n${tail}`;
+}
+
 function runJsonCommand(command: string, args: string[], cwd: string): JsonCommandResult {
   const result = spawnSync(command, args, {
     cwd,
@@ -184,7 +197,11 @@ function runJsonCommand(command: string, args: string[], cwd: string): JsonComma
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : String(error || 'invalid json output'),
+      error: [
+        error instanceof Error ? error.message : String(error || 'invalid json output'),
+        summarizeOutput('stdout', stdout),
+        summarizeOutput('stderr', stderr),
+      ].join('\n'),
     };
   }
 }
