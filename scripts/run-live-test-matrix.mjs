@@ -23,6 +23,7 @@ import { synthesizeLiveProviderEnvDefaults } from './lib/live-provider-defaults.
 
 const repoRoot = resolveRepoRoot(import.meta.url);
 const runtimeDir = path.join(repoRoot, 'runtime');
+const sdkRoot = path.join(repoRoot, 'sdk');
 const runtimeLiveSmokeFile = path.join(
   repoRoot,
   'runtime/internal/services/ai/live_provider_smoke_matrix_test.go',
@@ -93,10 +94,10 @@ function runRuntimeTests() {
 function runSdkTests() {
   process.stdout.write('[live-test-matrix] running SDK live smoke tests...\n');
   const result = spawnSync(
-    'npx',
-    ['tsx', '--test', sdkTestFile],
+    'pnpm',
+    ['--filter', '@nimiplatform/sdk', 'exec', 'tsx', '--test', sdkTestFile],
     {
-      cwd: repoRoot,
+      cwd: sdkRoot,
       env: { ...liveEnv, NIMI_SDK_LIVE: '1' },
       stdio: ['ignore', 'pipe', 'pipe'],
       encoding: 'utf8',

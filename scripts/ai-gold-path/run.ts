@@ -227,6 +227,10 @@ async function evaluateFixture(fixture: ReturnType<typeof loadGoldFixture>): Pro
 
   const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
   const runtimeDir = path.join(repoRoot, 'runtime');
+  const sdkGoldRunnerPath = path.join(
+    repoRoot,
+    'sdk/test/runtime/contract/helpers/ai-gold-path-runner.ts',
+  );
 
   record.layers.L0 = runCommandLayer(
     'go',
@@ -245,9 +249,19 @@ async function evaluateFixture(fixture: ReturnType<typeof loadGoldFixture>): Pro
           runtimeDir,
         );
         record.layers.L2 = runCommandLayer(
-          'npx',
-          ['tsx', 'sdk/test/runtime/contract/helpers/ai-gold-path-runner.ts', '--endpoint', endpoint, '--fixture', fixture.path],
-          repoRoot,
+          'pnpm',
+          [
+            '--filter',
+            '@nimiplatform/sdk',
+            'exec',
+            'tsx',
+            sdkGoldRunnerPath,
+            '--endpoint',
+            endpoint,
+            '--fixture',
+            fixture.path,
+          ],
+          path.join(repoRoot, 'sdk'),
         );
         record.layers.L3 = runCommandLayer(
           'pnpm',
