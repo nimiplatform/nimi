@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { evaluateChangedProviderEntries } from './check-live-smoke-gate.mjs';
+import { evaluateChangedProviderEntries, resolveRequiredProviders } from './check-live-smoke-gate.mjs';
 
 function toSortedValues(input) {
   return [...input].sort();
@@ -71,4 +71,18 @@ test('generic smoke harness edits fail closed instead of misreporting a provider
   assert.deepEqual(result.unresolvedSmokeFiles, [
     'runtime/internal/services/ai/live_provider_smoke_test.go',
   ]);
+});
+
+test('release mode falls back to configured providers instead of every provider in report', () => {
+  const requiredProviders = resolveRequiredProviders({
+    baselineProviders: new Set(),
+    conditionalProviders: new Set(),
+    changedProviders: new Set(),
+    reportProviders: new Set(['dashscope', 'gemini', 'openai']),
+    configuredProviders: new Set(['dashscope', 'gemini']),
+    exemptions: new Set(),
+    requireRelease: true,
+  });
+
+  assert.deepEqual(toSortedValues(requiredProviders), ['dashscope', 'gemini']);
 });

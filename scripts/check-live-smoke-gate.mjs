@@ -345,6 +345,54 @@ function resolveConditionalProviders(conditionalBaselines) {
   return out;
 }
 
+function collectConfiguredProviders(matrix) {
+  const configuredProviders = new Set();
+  const entries = matrix && typeof matrix === 'object' ? Object.entries(matrix) : [];
+  for (const [provider, record] of entries) {
+    if (!record || typeof record !== 'object') {
+      continue;
+    }
+    const cells = Object.values(record);
+    const hasObservedCell = cells.some((cell) => {
+      const status = String(cell?.status || '').trim();
+      return status && status !== 'skipped' && status !== 'no_test';
+    });
+    if (hasObservedCell) {
+      configuredProviders.add(provider);
+    }
+  }
+  return configuredProviders;
+}
+
+function resolveRequiredProviders({
+  baselineProviders,
+  conditionalProviders,
+  changedProviders,
+  reportProviders,
+  configuredProviders,
+  exemptions,
+  requireRelease,
+}) {
+  const requiredProviders = new Set([
+    ...baselineProviders,
+    ...conditionalProviders,
+    ...changedProviders,
+  ]);
+
+  if (requiredProviders.size === 0) {
+    const fallbackProviders = requireRelease ? configuredProviders : reportProviders;
+    for (const provider of fallbackProviders) {
+      requiredProviders.add(provider);
+    }
+  }
+
+  for (const provider of exemptions) {
+    requiredProviders.delete(provider);
+  }
+
+  return requiredProviders;
+}
+
 function evaluateLayer(input) {
   const failures = [];
   const softSkips = [];
@@ -440,6 +488,8 @@ function main() {
 
   const runtimeProvidersInReport = new Set(Object.keys(runtimeMatrix));
   const sdkProvidersInReport = new Set(Object.keys(sdkMatrix));
+  const configuredRuntimeProviders = collectConfiguredProviders(runtimeMatrix);
+  const configuredSdkProviders = collectConfiguredProviders(sdkMatrix);
   const providerUniverse = new Set([...runtimeProvidersInReport, ...sdkProvidersInReport]);
 
   const changedProviders = parseChangedProvidersInput(options.changedProvidersInput);
@@ -482,34 +532,24 @@ function main() {
     [],
   );
 
-  const runtimeRequiredProviders = new Set([
-    ...runtimeBaselineProviders,
-    ...runtimeConditional,
-    ...changedProviders,
-  ]);
-  const sdkRequiredProviders = new Set([
-    ...sdkBaselineProviders,
-    ...sdkConditional,
-    ...changedProviders,
-  ]);
-
-  if (runtimeRequiredProviders.size === 0) {
-    for (const provider of runtimeProvidersInReport) {
-      runtimeRequiredProviders.add(provider);
-    }
-  }
-  if (sdkRequiredProviders.size === 0) {
-    for (const provider of sdkProvidersInReport) {
-      sdkRequiredProviders.add(provider);
-    }
-  }
-
-  for (const provider of runtimeExemptions) {
-    runtimeRequiredProviders.delete(provider);
-  }
-  for (const provider of sdkExemptions) {
-    sdkRequiredProviders.delete(provider);
-  }
+  const runtimeRequiredProviders = resolveRequiredProviders({
+    baselineProviders: runtimeBaselineProviders,
+    conditionalProviders: runtimeConditional,
+    changedProviders,
+    reportProviders: runtimeProvidersInReport,
+    configuredProviders: configuredRuntimeProviders,
+    exemptions: runtimeExemptions,
+    requireRelease: options.requireRelease,
+  });
+  const sdkRequiredProviders = resolveRequiredProviders({
+    baselineProviders: sdkBaselineProviders,
+    conditionalProviders: sdkConditional,
+    changedProviders,
+    reportProviders: sdkProvidersInReport,
+    configuredProviders: configuredSdkProviders,
+    exemptions: sdkExemptions,
+    requireRelease: options.requireRelease,
+  });
 
   const runtimeEvaluation = evaluateLayer({
     layer: 'runtime',
@@ -576,6 +616,7 @@ export {
   isProviderTargetingSmokeFile,
   main,
   parseArgs,
+  resolveRequiredProviders,
   providersFromFilePath,
 };
 
