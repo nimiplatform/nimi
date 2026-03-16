@@ -1,0 +1,15 @@
+fixture_id: dashscope.text.embed
+capability: text.embed
+provider: dashscope
+model_id: "${NIMI_LIVE_DASHSCOPE_EMBED_MODEL_ID}"
+request:
+  inputs:
+    - "Nimi DashScope embed probe one."
+    - "Nimi DashScope embed probe two."
+expected_assertions:
+  route_policy: token-api
+  fallback_policy: deny
+  min_vector_count: 2
+env_requirements:
+  - NIMI_LIVE_DASHSCOPE_API_KEY
+  - NIMI_LIVE_DASHSCOPE_EMBED_MODEL_ID

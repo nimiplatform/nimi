@@ -49,9 +49,12 @@ dev/*
 dev/config/*
 # checked-in dev baselines/templates required by repo scripts
 !dev/config/ai-context-budget.yaml
+!dev/config/dashscope-gold-path.env
 !dev/config/live-gate-baseline.yaml
 !dev/live-test.env.example
 !dev/fixtures/
 dev/fixtures/*
+!dev/fixtures/ai-gold-path/
+!dev/fixtures/ai-gold-path/*.yaml
 !dev/fixtures/live-audio-fixtures/
 !dev/fixtures/live-audio-fixtures/*.wav
