@@ -3,8 +3,16 @@
  *
  * Run: npx tsx examples/mods/mod-basic.ts
  */
-import { clearModSdkHost, setModSdkHost } from '../../nimi-mods/shared/testing/mod-sdk-host.js';
-import { createHookClient, createModRuntimeClient, type ModSdkHost, type RuntimeCanonicalCapability, type RuntimeRouteBinding, type RuntimeRouteOptionsSnapshot } from "@nimiplatform/sdk/mod";
+import {
+  clearModSdkHost,
+  createHookClient,
+  createModRuntimeClient,
+  setModSdkHost,
+  type ModSdkHost,
+  type RuntimeCanonicalCapability,
+  type RuntimeRouteBinding,
+  type RuntimeRouteOptionsSnapshot,
+} from "@nimiplatform/sdk/mod";
 const MOD_ID = 'world.nimi.my-mod';
 type HookEventHandler = (payload: unknown) => Promise<void> | void;
 type DataProviderHandler = (query: unknown) => Promise<unknown> | unknown;
@@ -452,7 +460,11 @@ function createMockHost() {
             createRendererFlowId: (prefix: Parameters<ModSdkHost['logging']['createRendererFlowId']>[0]) => `${prefix}-demo-flow`,
             logRendererEvent: () => { },
         },
-    };
+        lifecycle: {
+            subscribe: () => () => { },
+            getState: () => 'active',
+        },
+    } as unknown as ModSdkHost;
 }
 async function registerHooks() {
     const hook = createHookClient(MOD_ID);

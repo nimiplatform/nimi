@@ -1,4 +1,5 @@
 export { createHookClient } from './hook/index.js';
+export { clearModSdkHost, setModSdkHost } from './host.js';
 export * from './runtime/index.js';
 export * from './logging.js';
 export * from './i18n.js';

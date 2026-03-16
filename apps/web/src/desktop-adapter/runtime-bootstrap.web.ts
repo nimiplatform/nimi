@@ -5,6 +5,7 @@ type CreateRendererFlowId = (typeof import('@renderer/infra/telemetry/renderer-l
 type LogRendererEvent = (typeof import('@renderer/infra/telemetry/renderer-log'))['logRendererEvent'];
 type UseAppStore = (typeof import('@renderer/app-shell/providers/app-store'))['useAppStore'];
 type ClearPersistedAccessToken = (typeof import('@renderer/features/auth/auth-session-storage'))['clearPersistedAccessToken'];
+type LoadPersistedAuthSession = (typeof import('@renderer/features/auth/auth-session-storage'))['loadPersistedAuthSession'];
 type LoadPersistedAccessToken = (typeof import('@renderer/features/auth/auth-session-storage'))['loadPersistedAccessToken'];
 type PersistAuthSession = (typeof import('@renderer/features/auth/auth-session-storage'))['persistAuthSession'];
 
@@ -16,6 +17,7 @@ type RuntimeBootstrapWebDeps = {
   logRendererEvent: LogRendererEvent;
   useAppStore: UseAppStore;
   clearPersistedAccessToken: ClearPersistedAccessToken;
+  loadPersistedAuthSession: LoadPersistedAuthSession;
   loadPersistedAccessToken: LoadPersistedAccessToken;
   persistAuthSession: PersistAuthSession;
 };
@@ -54,6 +56,7 @@ async function loadRuntimeBootstrapWebDeps(): Promise<RuntimeBootstrapWebDeps> {
       logRendererEvent: telemetryModule.logRendererEvent,
       useAppStore: appStoreModule.useAppStore,
       clearPersistedAccessToken: authStorageModule.clearPersistedAccessToken,
+      loadPersistedAuthSession: authStorageModule.loadPersistedAuthSession,
       loadPersistedAccessToken: authStorageModule.loadPersistedAccessToken,
       persistAuthSession: authStorageModule.persistAuthSession,
     };
@@ -93,11 +96,14 @@ export function withTimeout<T>(task: Promise<T>, timeoutMs: number, label: strin
 async function bootstrapAuthSession(input: {
   flowId: string;
   accessToken: string;
+  refreshToken?: string;
 }, deps: RuntimeBootstrapWebDeps): Promise<void> {
   const appStore = deps.useAppStore.getState();
   const envToken = String(input.accessToken || '').trim();
+  const refreshToken = String(input.refreshToken || '').trim();
   if (!envToken) {
     deps.clearPersistedAccessToken();
+    deps.dataSync.setRefreshToken('');
     appStore.clearAuthSession();
     return;
   }
@@ -110,9 +116,11 @@ async function bootstrapAuthSession(input: {
     appStore.setAuthSession(
       normalizedUser,
       envToken,
+      refreshToken || undefined,
     );
     deps.persistAuthSession({
       accessToken: envToken,
+      refreshToken,
       user: normalizedUser,
     });
     await Promise.allSettled([
@@ -134,6 +142,7 @@ async function bootstrapAuthSession(input: {
     deps.clearPersistedAccessToken();
     appStore.clearAuthSession();
     deps.dataSync.setToken('');
+    deps.dataSync.setRefreshToken('');
     deps.logRendererEvent({
       level: expectedUnauthorized ? 'info' : 'warn',
       area: 'renderer-bootstrap',
@@ -171,7 +180,13 @@ export function bootstrapRuntime(): Promise<void> {
     });
 
     const defaults = await deps.desktopBridge.getRuntimeDefaults();
-    const fallbackToken = deps.loadPersistedAccessToken();
+    const persistedSession = deps.loadPersistedAuthSession();
+    const fallbackToken = String(
+      persistedSession?.accessToken
+      || deps.loadPersistedAccessToken()
+      || '',
+    ).trim();
+    const refreshToken = String(persistedSession?.refreshToken || '').trim();
     const accessToken = fallbackToken || String(defaults.realm.accessToken || '').trim();
     const proxyFetch = deps.createProxyFetch();
     deps.useAppStore.getState().setRuntimeDefaults(defaults);
@@ -179,6 +194,7 @@ export function bootstrapRuntime(): Promise<void> {
     deps.dataSync.initApi({
       realmBaseUrl: defaults.realm.realmBaseUrl,
       accessToken,
+      refreshToken,
       fetchImpl: proxyFetch,
     });
 
@@ -191,6 +207,7 @@ export function bootstrapRuntime(): Promise<void> {
         bootstrapAuthSession({
           flowId,
           accessToken,
+          refreshToken,
         }, deps),
         WEB_BOOTSTRAP_AUTH_TIMEOUT_MS,
         'web-bootstrap-auth',
@@ -199,6 +216,7 @@ export function bootstrapRuntime(): Promise<void> {
       deps.clearPersistedAccessToken();
       deps.useAppStore.getState().clearAuthSession();
       deps.dataSync.setToken('');
+      deps.dataSync.setRefreshToken('');
       deps.logRendererEvent({
         level: 'warn',
         area: 'renderer-bootstrap',

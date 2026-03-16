@@ -10,19 +10,6 @@ export default defineConfig({
 
   cleanUrls: true,
   lastUpdated: true,
-  ignoreDeadLinks: true,
-
-  rewrites: {
-    'getting-started/README.md': 'getting-started/index.md',
-    'architecture/README.md': 'architecture/index.md',
-    'architecture/ssot.md': 'architecture/spec-map.md',
-    'sdk/README.md': 'reference/sdk.md',
-    'protocol/README.md': 'reference/protocol.md',
-    'mods/README.md': 'mod-dev/guide.md',
-    'error-codes.md': 'reference/error-codes.md',
-    'faq.md': 'user/faq.md',
-    'examples/README.md': 'app-dev/recipes.md',
-  },
 
   locales: {
     root: {

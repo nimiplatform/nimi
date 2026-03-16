@@ -10,7 +10,7 @@
   [![Node](https://img.shields.io/badge/node-%E2%89%A524-339933?style=flat-square&logo=node.js&logoColor=white)](package.json)
 </div>
 
-[Website](https://nimi.xyz) | [Getting Started](docs/getting-started/index.md) | [Nimi Coding](docs/architecture/nimi-coding.md) | [SDK Reference](docs/reference/sdk.md) | [Examples](examples/README.md) | [Spec](spec/INDEX.md) | [Discord](https://discord.gg/BQwHJvPn)
+[Website](https://nimi.xyz) | [Getting Started](docs/user/index.md) | [Nimi Coding](docs/nimi-coding.md) | [SDK Reference](docs/reference/sdk.md) | [Examples](examples/README.md) | [Spec](spec/INDEX.md) | [Discord](https://discord.gg/BQwHJvPn)
 
 Build AI apps that run local and cloud models through one runtime, one SDK, and one operational surface.
 
