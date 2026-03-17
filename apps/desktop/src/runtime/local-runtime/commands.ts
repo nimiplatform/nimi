@@ -36,6 +36,7 @@ import type {
   LocalRuntimeDownloadSessionSummary,
   LocalRuntimeInstallAcceptedResponse,
   LocalRuntimeSnapshot,
+  LocalRuntimeScanOrphansPayload,
   LocalRuntimeWriteOptions,
   LocalRuntimeListArtifactsPayload,
   LocalRuntimeListVerifiedArtifactsPayload,
@@ -664,8 +665,12 @@ export async function subscribeLocalRuntimeDownloadProgress(
   return () => {};
 }
 
-export async function scanLocalRuntimeOrphans(): Promise<OrphanModelFile[]> {
-  const items = await invokeLocalRuntimeCommand<unknown[]>('runtime_local_models_scan_orphans');
+export async function scanLocalRuntimeOrphans(
+  payload?: LocalRuntimeScanOrphansPayload,
+): Promise<OrphanModelFile[]> {
+  const items = await invokeLocalRuntimeCommand<unknown[]>('runtime_local_models_scan_orphans', {
+    payload,
+  });
   return (Array.isArray(items) ? items : []).map((item) => parseOrphanModelFile(item));
 }
 

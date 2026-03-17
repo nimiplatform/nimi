@@ -7,10 +7,65 @@ fn is_model_file_extension(path: &std::path::Path) -> bool {
         .unwrap_or(false)
 }
 
-fn scan_orphan_model_files(app: &AppHandle) -> Result<Vec<OrphanModelFile>, String> {
+fn normalize_optional_capability(value: Option<&str>) -> Option<String> {
+    let normalized = value
+        .unwrap_or_default()
+        .trim()
+        .to_ascii_lowercase();
+    if normalized.is_empty() {
+        return None;
+    }
+    Some(normalized)
+}
+
+fn default_orphan_engine(profile: &LocalAiDeviceProfile, capability: &str) -> &'static str {
+    if profile.os.eq_ignore_ascii_case("windows")
+        && matches!(capability, "image" | "video")
+    {
+        return "nimi_media";
+    }
+    "localai"
+}
+
+fn recommendation_for_orphan_file(
+    item: &OrphanModelFile,
+    preference: Option<&LocalAiOrphanScanPreference>,
+    profile: &LocalAiDeviceProfile,
+) -> Option<super::types::LocalAiRecommendationDescriptor> {
+    let capability = normalize_optional_capability(
+        preference.and_then(|value| value.capability.as_deref()),
+    )?;
+    let engine = preference
+        .and_then(|value| value.engine.as_deref())
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+        .map(|value| value.to_string())
+        .unwrap_or_else(|| default_orphan_engine(profile, capability.as_str()).to_string());
+    let capabilities = vec![capability];
+    build_recommendation_candidate(
+        item.filename.as_str(),
+        item.path.as_str(),
+        item.filename.as_str(),
+        &capabilities,
+        engine.as_str(),
+        Some(item.filename.as_str()),
+        Some(item.size_bytes),
+        Some(item.size_bytes),
+        Vec::new(),
+        &[],
+    )
+    .and_then(|candidate| build_catalog_recommendation(&candidate, profile))
+}
+
+fn scan_orphan_model_files(
+    app: &AppHandle,
+    payload: Option<LocalAiModelsScanOrphansPayload>,
+) -> Result<Vec<OrphanModelFile>, String> {
     let models_root = runtime_models_dir(app)?;
     let state = load_state(app)?;
     let registered_paths = registered_model_paths(&models_root, &state);
+    let profile = collect_device_profile(app);
+    let preferences = payload.unwrap_or_default().preferences;
     scan_orphan_binary_candidates(
         &models_root,
         &registered_paths,
@@ -20,6 +75,16 @@ fn scan_orphan_model_files(app: &AppHandle) -> Result<Vec<OrphanModelFile>, Stri
         items
             .into_iter()
             .map(|item| OrphanModelFile {
+                recommendation: recommendation_for_orphan_file(
+                    &OrphanModelFile {
+                        filename: item.filename.clone(),
+                        path: item.path.clone(),
+                        size_bytes: item.size_bytes,
+                        recommendation: None,
+                    },
+                    preferences.get(item.path.as_str()),
+                    &profile,
+                ),
                 filename: item.filename,
                 path: item.path,
                 size_bytes: item.size_bytes,
@@ -422,18 +487,22 @@ fn execute_orphan_scaffold_import(
         capabilities: capabilities.to_vec(),
         engine: engine.to_string(),
         entry: file_name.to_string(),
+        files: vec![file_name.to_string()],
         license: "unknown".to_string(),
         source: super::types::LocalAiModelSource {
             repo: format!("local-import/{}", slug),
             revision: "local".to_string(),
         },
         hashes,
+        tags: Vec::new(),
+        known_total_size_bytes: Some(file_size),
         endpoint: endpoint.to_string(),
         status: super::types::LocalAiModelStatus::Installed,
         installed_at: now_iso_timestamp(),
         updated_at: now_iso_timestamp(),
         health_detail: None,
         engine_config: None,
+        recommendation: None,
     };
 
     let saved = match upsert_model(app, model_record) {
@@ -485,8 +554,29 @@ fn execute_orphan_scaffold_import(
 #[tauri::command]
 pub fn runtime_local_models_scan_orphans(
     app: AppHandle,
+    payload: Option<LocalAiModelsScanOrphansPayload>,
 ) -> Result<Vec<OrphanModelFile>, String> {
-    scan_orphan_model_files(&app)
+    append_recommendation_resolve_invoked(&app, "orphan-scan", None, None);
+    match scan_orphan_model_files(&app, payload) {
+        Ok(items) => {
+            for item in &items {
+                if let Some(recommendation) = item.recommendation.as_ref() {
+                    append_recommendation_resolve_completed(
+                        &app,
+                        item.path.as_str(),
+                        Some(item.filename.as_str()),
+                        None,
+                        recommendation,
+                    );
+                }
+            }
+            Ok(items)
+        }
+        Err(error) => {
+            append_recommendation_resolve_failed(&app, "orphan-scan", None, None, error.as_str());
+            Err(error)
+        }
+    }
 }
 
 #[tauri::command]
@@ -511,13 +601,15 @@ pub fn runtime_local_models_scaffold_orphan(
         );
     }
 
+    let profile = collect_device_profile(&app);
     let engine = payload
         .engine
         .as_deref()
         .map(|v| v.trim())
         .filter(|v| !v.is_empty())
-        .unwrap_or("localai");
-    let default_endpoint = default_runtime_endpoint_for(Some(engine));
+        .map(|value| value.to_string())
+        .unwrap_or_else(|| default_orphan_engine(&profile, capabilities[0].as_str()).to_string());
+    let default_endpoint = default_runtime_endpoint_for(Some(engine.as_str()));
     let endpoint = validate_loopback_endpoint(
         payload
             .endpoint
@@ -552,7 +644,7 @@ pub fn runtime_local_models_scaffold_orphan(
     let bg_app = app.clone();
     let bg_source_path = source_path.clone();
     let bg_capabilities = capabilities.clone();
-    let bg_engine = engine.to_string();
+    let bg_engine = engine.clone();
     let bg_endpoint = endpoint.clone();
     std::thread::spawn(move || {
         execute_orphan_scaffold_import(

@@ -1,7 +1,8 @@
 use super::import_validator::{normalize_and_validate_capabilities, validate_loopback_endpoint};
+use super::recommendation::{build_catalog_recommendation, build_recommendation_candidate};
 use super::types::{
-    slugify_local_model_id, LocalAiCatalogItemDescriptor, LocalAiInstallPlanDescriptor,
-    LocalAiVerifiedModelDescriptor,
+    slugify_local_model_id, CatalogVariantDescriptor, LocalAiCatalogItemDescriptor,
+    LocalAiDeviceProfile, LocalAiInstallPlanDescriptor, LocalAiVerifiedModelDescriptor,
 };
 use super::verified_models::{find_verified_model, verified_model_list};
 use std::collections::HashMap;
@@ -9,17 +10,19 @@ use std::collections::HashMap;
 mod huggingface;
 mod shared;
 
-pub use self::huggingface::list_repo_gguf_variants;
+pub use self::huggingface::list_repo_catalog_variants;
 use self::huggingface::{
     fetch_hf_model_details, fetch_hf_search_models, hf_search_to_catalog_item, infer_capabilities,
-    infer_license, match_catalog_capability, match_catalog_query, normalize_hf_repo_slug,
-    normalize_search_query, resolve_hashes_for_files, select_entry_file, select_install_files,
+    infer_license, known_total_size_bytes, match_catalog_capability, match_catalog_query,
+    normalize_hf_repo_slug, normalize_search_query, resolve_hashes_for_files, select_entry_file,
+    select_install_files, sibling_size_bytes,
 };
 #[cfg(test)]
 use self::huggingface::{hf_api_base_url, normalize_hf_file_path, HfModelSibling};
 use self::shared::{
-    default_endpoint_for_engine, infer_engine, normalize_install_limit, normalize_non_empty,
-    provider_hints_for_capabilities, runtime_mode_for_engine,
+    default_endpoint_for_engine, infer_engine, install_available_for_engine,
+    normalize_install_limit, normalize_non_empty, provider_hints_for_capabilities,
+    runtime_mode_for_engine,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -40,11 +43,40 @@ pub struct LocalAiCatalogResolveInput {
 }
 fn verified_descriptor_to_catalog_item(
     descriptor: LocalAiVerifiedModelDescriptor,
+    profile: &LocalAiDeviceProfile,
 ) -> LocalAiCatalogItemDescriptor {
+    let engine_runtime_mode = runtime_mode_for_engine(descriptor.engine.as_str(), profile);
+    let endpoint = descriptor.endpoint.clone();
     let provider_hints = provider_hints_for_capabilities(
         descriptor.capabilities.as_slice(),
         descriptor.engine.as_str(),
+        profile,
     );
+    let install_available = install_available_for_engine(
+        descriptor.engine.as_str(),
+        &engine_runtime_mode,
+        Some(endpoint.as_str()),
+        profile,
+    );
+    let recommendation = build_recommendation_candidate(
+        descriptor.model_id.as_str(),
+        descriptor.repo.as_str(),
+        descriptor.title.as_str(),
+        descriptor.capabilities.as_slice(),
+        descriptor.engine.as_str(),
+        Some(descriptor.entry.as_str()),
+        descriptor.total_size_bytes,
+        descriptor.total_size_bytes,
+        descriptor
+            .files
+            .iter()
+            .filter(|entry| *entry != &descriptor.entry)
+            .cloned()
+            .collect::<Vec<_>>(),
+        descriptor.tags.as_slice(),
+    );
+    let recommendation =
+        recommendation.and_then(|candidate| build_catalog_recommendation(&candidate, profile));
     LocalAiCatalogItemDescriptor {
         item_id: format!("verified:{}", descriptor.template_id),
         source: "verified".to_string(),
@@ -55,11 +87,11 @@ fn verified_descriptor_to_catalog_item(
         revision: descriptor.revision,
         template_id: Some(descriptor.template_id),
         capabilities: descriptor.capabilities,
-        engine_runtime_mode: runtime_mode_for_engine(descriptor.engine.as_str()),
+        engine_runtime_mode,
         engine: descriptor.engine,
         install_kind: descriptor.install_kind,
-        install_available: true,
-        endpoint: Some(descriptor.endpoint),
+        install_available,
+        endpoint: Some(endpoint),
         provider_hints,
         entry: Some(descriptor.entry),
         files: descriptor.files,
@@ -71,6 +103,7 @@ fn verified_descriptor_to_catalog_item(
         last_modified: None,
         verified: true,
         engine_config: descriptor.engine_config,
+        recommendation,
     }
 }
 
@@ -78,6 +111,7 @@ pub fn search_catalog(
     query: Option<&str>,
     capability: Option<&str>,
     limit: usize,
+    profile: &LocalAiDeviceProfile,
 ) -> Result<Vec<LocalAiCatalogItemDescriptor>, String> {
     let normalized_query = normalize_search_query(query);
     let normalized_capability = normalize_non_empty(capability);
@@ -85,11 +119,15 @@ pub fn search_catalog(
 
     let mut merged = verified_model_list()
         .into_iter()
-        .map(verified_descriptor_to_catalog_item)
+        .map(|descriptor| verified_descriptor_to_catalog_item(descriptor, profile))
         .collect::<Vec<_>>();
 
     let hf_rows = fetch_hf_search_models(normalized_query.as_str(), normalized_limit * 2)?;
-    merged.extend(hf_rows.into_iter().filter_map(hf_search_to_catalog_item));
+    merged.extend(
+        hf_rows
+            .into_iter()
+            .filter_map(|item| hf_search_to_catalog_item(item, profile)),
+    );
 
     let mut filtered = merged
         .into_iter()
@@ -118,18 +156,73 @@ pub fn search_catalog(
         filtered.truncate(normalized_limit);
     }
 
+    for item in filtered.iter_mut() {
+        hydrate_catalog_item_for_recommendation(item, profile)?;
+    }
+
     Ok(filtered)
 }
 
-fn resolve_verified_plan(template_id: &str) -> Result<LocalAiInstallPlanDescriptor, String> {
+pub fn list_catalog_variants(
+    repo: &str,
+    profile: &LocalAiDeviceProfile,
+) -> Result<Vec<CatalogVariantDescriptor>, String> {
+    let details = fetch_hf_model_details(repo)?;
+    let capabilities = normalize_and_validate_capabilities(&infer_capabilities(
+        details.pipeline_tag.as_deref(),
+        &details.tags,
+    ))?;
+    let engine = infer_engine(repo, &details.tags, &capabilities);
+    list_repo_catalog_variants(
+        repo,
+        details.id.as_str(),
+        details.id.as_str(),
+        capabilities.as_slice(),
+        engine.as_str(),
+        profile,
+        details.tags.as_slice(),
+    )
+}
+
+fn resolve_verified_plan(
+    template_id: &str,
+    profile: &LocalAiDeviceProfile,
+) -> Result<LocalAiInstallPlanDescriptor, String> {
     let descriptor = find_verified_model(template_id).ok_or_else(|| {
         format!("LOCAL_AI_INSTALL_PLAN_TEMPLATE_NOT_FOUND: templateId={template_id}")
     })?;
     let endpoint = validate_loopback_endpoint(descriptor.endpoint.as_str())?;
+    let engine_runtime_mode = runtime_mode_for_engine(descriptor.engine.as_str(), profile);
     let provider_hints = provider_hints_for_capabilities(
         descriptor.capabilities.as_slice(),
         descriptor.engine.as_str(),
+        profile,
     );
+    let install_available = install_available_for_engine(
+        descriptor.engine.as_str(),
+        &engine_runtime_mode,
+        Some(endpoint.as_str()),
+        profile,
+    );
+    let recommendation = build_recommendation_candidate(
+        descriptor.model_id.as_str(),
+        descriptor.repo.as_str(),
+        descriptor.title.as_str(),
+        descriptor.capabilities.as_slice(),
+        descriptor.engine.as_str(),
+        Some(descriptor.entry.as_str()),
+        descriptor.total_size_bytes,
+        descriptor.total_size_bytes,
+        descriptor
+            .files
+            .iter()
+            .filter(|entry| *entry != &descriptor.entry)
+            .cloned()
+            .collect::<Vec<_>>(),
+        descriptor.tags.as_slice(),
+    );
+    let recommendation =
+        recommendation.and_then(|candidate| build_catalog_recommendation(&candidate, profile));
 
     Ok(LocalAiInstallPlanDescriptor {
         plan_id: format!("plan:verified:{}", descriptor.template_id),
@@ -140,10 +233,10 @@ fn resolve_verified_plan(template_id: &str) -> Result<LocalAiInstallPlanDescript
         repo: descriptor.repo,
         revision: descriptor.revision,
         capabilities: descriptor.capabilities,
-        engine_runtime_mode: runtime_mode_for_engine(descriptor.engine.as_str()),
+        engine_runtime_mode,
         engine: descriptor.engine,
         install_kind: descriptor.install_kind,
-        install_available: true,
+        install_available,
         endpoint,
         provider_hints,
         entry: descriptor.entry,
@@ -153,6 +246,7 @@ fn resolve_verified_plan(template_id: &str) -> Result<LocalAiInstallPlanDescript
         warnings: Vec::new(),
         reason_code: None,
         engine_config: descriptor.engine_config,
+        recommendation,
     })
 }
 
@@ -201,17 +295,18 @@ fn source_hint(input: &LocalAiCatalogResolveInput) -> String {
 
 pub fn resolve_install_plan(
     input: LocalAiCatalogResolveInput,
+    profile: &LocalAiDeviceProfile,
 ) -> Result<LocalAiInstallPlanDescriptor, String> {
     let source = source_hint(&input);
     if source == "verified" {
         let template_id = extract_template_id_from_input(&input).ok_or_else(|| {
             "LOCAL_AI_INSTALL_PLAN_TEMPLATE_REQUIRED: templateId is required".to_string()
         })?;
-        return resolve_verified_plan(template_id.as_str());
+        return resolve_verified_plan(template_id.as_str(), profile);
     }
 
     if let Some(template_id) = extract_template_id_from_input(&input) {
-        return resolve_verified_plan(template_id.as_str());
+        return resolve_verified_plan(template_id.as_str(), profile);
     }
 
     let repo = extract_repo_from_input(&input).ok_or_else(|| {
@@ -228,7 +323,8 @@ pub fn resolve_install_plan(
     };
     let engine = normalize_non_empty(input.engine.as_deref())
         .unwrap_or_else(|| infer_engine(repo.as_str(), &model_details.tags, &capabilities));
-    let provider_hints = provider_hints_for_capabilities(capabilities.as_slice(), engine.as_str());
+    let provider_hints =
+        provider_hints_for_capabilities(capabilities.as_slice(), engine.as_str(), profile);
     let revision = normalize_non_empty(input.revision.as_deref())
         .or_else(|| model_details.sha.clone())
         .unwrap_or_else(|| "main".to_string());
@@ -256,6 +352,13 @@ pub fn resolve_install_plan(
     let endpoint_raw = normalize_non_empty(input.endpoint.as_deref())
         .unwrap_or_else(|| default_endpoint_for_engine(engine.as_str()));
     let endpoint = validate_loopback_endpoint(endpoint_raw.as_str())?;
+    let engine_runtime_mode = runtime_mode_for_engine(engine.as_str(), profile);
+    let install_available = install_available_for_engine(
+        engine.as_str(),
+        &engine_runtime_mode,
+        Some(endpoint.as_str()),
+        profile,
+    );
 
     let mut warnings = Vec::<String>::new();
     if hashes.is_empty() {
@@ -267,6 +370,27 @@ pub fn resolve_install_plan(
         .unwrap_or_else(|| repo.clone());
 
     let license = infer_license(&model_details.tags, input.license.as_deref());
+    let recommendation = build_recommendation_candidate(
+        model_id.as_str(),
+        repo.as_str(),
+        model_id.as_str(),
+        capabilities.as_slice(),
+        engine.as_str(),
+        Some(entry.as_str()),
+        model_details
+            .siblings
+            .iter()
+            .find(|item| item.rfilename.trim() == entry)
+            .and_then(sibling_size_bytes),
+        known_total_size_bytes(&model_details.siblings, &files),
+        files
+            .iter()
+            .filter(|file| *file != &entry)
+            .cloned()
+            .collect::<Vec<_>>(),
+        model_details.tags.as_slice(),
+    )
+    .and_then(|candidate| build_catalog_recommendation(&candidate, profile));
 
     Ok(LocalAiInstallPlanDescriptor {
         plan_id: format!("plan:hf:{}", slugify_local_model_id(model_id.as_str())),
@@ -278,10 +402,10 @@ pub fn resolve_install_plan(
         repo,
         revision,
         capabilities,
-        engine_runtime_mode: runtime_mode_for_engine(engine.as_str()),
+        engine_runtime_mode,
         engine,
         install_kind: "hf-install-plan".to_string(),
-        install_available: true,
+        install_available,
         endpoint,
         provider_hints,
         entry,
@@ -291,7 +415,70 @@ pub fn resolve_install_plan(
         warnings,
         reason_code: None,
         engine_config: None,
+        recommendation,
     })
+}
+
+fn hydrate_catalog_item_for_recommendation(
+    item: &mut LocalAiCatalogItemDescriptor,
+    profile: &LocalAiDeviceProfile,
+) -> Result<(), String> {
+    let has_recommendable_capability = item
+        .capabilities
+        .iter()
+        .any(|value| value == "image" || value == "video" || value == "chat");
+    if !has_recommendable_capability || item.recommendation.is_some() {
+        return Ok(());
+    }
+
+    let details = fetch_hf_model_details(item.repo.as_str())?;
+    let entry = select_entry_file(&details.siblings, item.entry.as_deref(), item.engine.as_str())
+        .unwrap_or_else(|| item.entry.clone().unwrap_or_else(|| "model.bin".to_string()));
+    let files = select_install_files(
+        &details.siblings,
+        entry.as_str(),
+        item.entry.as_deref(),
+        if item.files.is_empty() {
+            None
+        } else {
+            Some(item.files.as_slice())
+        },
+        item.engine.as_str(),
+    );
+    let hashes = resolve_hashes_for_files(&details.siblings, &files, Some(&item.hashes));
+    let title = if item.title.trim().is_empty() {
+        item.model_id.clone()
+    } else {
+        item.title.clone()
+    };
+    let recommendation = build_recommendation_candidate(
+        item.model_id.as_str(),
+        item.repo.as_str(),
+        title.as_str(),
+        item.capabilities.as_slice(),
+        item.engine.as_str(),
+        Some(entry.as_str()),
+        details
+            .siblings
+            .iter()
+            .find(|sibling| sibling.rfilename.trim() == entry)
+            .and_then(sibling_size_bytes),
+        known_total_size_bytes(&details.siblings, &files),
+        files
+            .iter()
+            .filter(|file| *file != &entry)
+            .cloned()
+            .collect::<Vec<_>>(),
+        details.tags.as_slice(),
+    )
+    .and_then(|candidate| build_catalog_recommendation(&candidate, profile));
+
+    item.entry = Some(entry);
+    item.files = files;
+    item.hashes = hashes;
+    item.license = Some(infer_license(&details.tags, item.license.as_deref()));
+    item.recommendation = recommendation;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -302,8 +489,41 @@ mod tests {
         normalize_install_limit, normalize_search_query, runtime_mode_for_engine,
         select_entry_file, select_install_files, HfModelSibling,
     };
-    use crate::local_runtime::types::{LocalAiCatalogItemDescriptor, LocalAiEngineRuntimeMode};
+    use crate::local_runtime::types::{
+        LocalAiCatalogItemDescriptor, LocalAiDeviceProfile, LocalAiEngineRuntimeMode,
+        LocalAiGpuProfile, LocalAiMemoryModel, LocalAiNpuProfile, LocalAiPythonProfile,
+    };
     use std::collections::HashMap;
+
+    fn profile_fixture() -> LocalAiDeviceProfile {
+        LocalAiDeviceProfile {
+            os: "linux".to_string(),
+            arch: "amd64".to_string(),
+            total_ram_bytes: 16 * 1024 * 1024 * 1024,
+            available_ram_bytes: 12 * 1024 * 1024 * 1024,
+            gpu: LocalAiGpuProfile {
+                available: true,
+                vendor: Some("nvidia".to_string()),
+                model: Some("RTX".to_string()),
+                total_vram_bytes: Some(12 * 1024 * 1024 * 1024),
+                available_vram_bytes: Some(10 * 1024 * 1024 * 1024),
+                memory_model: LocalAiMemoryModel::Discrete,
+            },
+            python: LocalAiPythonProfile {
+                available: true,
+                version: Some("3.11.0".to_string()),
+            },
+            npu: LocalAiNpuProfile {
+                available: false,
+                ready: false,
+                vendor: None,
+                runtime: None,
+                detail: None,
+            },
+            disk_free_bytes: 0,
+            ports: Vec::new(),
+        }
+    }
 
     fn sibling(name: &str) -> HfModelSibling {
         HfModelSibling {
@@ -343,6 +563,7 @@ mod tests {
             last_modified: None,
             verified,
             engine_config: None,
+            recommendation: None,
         }
     }
 
@@ -382,7 +603,7 @@ mod tests {
     #[test]
     fn runtime_mode_maps_localai_to_supervised() {
         assert_eq!(
-            runtime_mode_for_engine("localai"),
+            runtime_mode_for_engine("localai", &profile_fixture()),
             LocalAiEngineRuntimeMode::Supervised
         );
     }

@@ -8,12 +8,15 @@ export type LocalRuntimeModelRecord = {
   capabilities: string[];
   engine: string;
   entry: string;
+  files: string[];
   license: string;
   source: {
     repo: string;
     revision: string;
   };
   hashes: Record<string, string>;
+  tags: string[];
+  knownTotalSizeBytes?: number;
   endpoint: string;
   status: LocalRuntimeModelStatus;
   installedAt: string;

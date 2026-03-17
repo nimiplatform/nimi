@@ -14,6 +14,7 @@ mod import_validator;
 mod model_registry;
 mod node_catalog;
 mod provider_adapter;
+mod recommendation;
 mod reason_codes;
 mod service_artifacts;
 mod service_lifecycle;

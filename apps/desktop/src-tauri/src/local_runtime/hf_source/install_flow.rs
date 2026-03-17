@@ -421,5 +421,9 @@ pub fn install_from_hf_with_control(
         return Err(error);
     }
 
-    manifest_to_model_record(&validated, Some(validated_endpoint.as_str()))
+    manifest_to_model_record(
+        &validated,
+        Some(validated_endpoint.as_str()),
+        Some(model_dir.as_path()),
+    )
 }

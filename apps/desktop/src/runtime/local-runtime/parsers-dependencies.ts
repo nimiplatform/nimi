@@ -53,13 +53,20 @@ export function parseDeviceProfile(value: unknown): LocalRuntimeDeviceProfile {
   const npu = asRecord(record.npu);
   const portsRaw = Array.isArray(record.ports) ? record.ports : [];
   const diskFreeBytes = Number(record.diskFreeBytes);
+  const totalRamBytes = Number(record.totalRamBytes);
+  const availableRamBytes = Number(record.availableRamBytes);
   return {
     os: asString(record.os) || 'unknown',
     arch: asString(record.arch) || 'unknown',
+    totalRamBytes: Number.isFinite(totalRamBytes) && totalRamBytes >= 0 ? totalRamBytes : 0,
+    availableRamBytes: Number.isFinite(availableRamBytes) && availableRamBytes >= 0 ? availableRamBytes : 0,
     gpu: {
       available: Boolean(gpu.available),
       vendor: asString(gpu.vendor) || undefined,
       model: asString(gpu.model) || undefined,
+      totalVramBytes: typeof gpu.totalVramBytes === 'number' ? gpu.totalVramBytes : undefined,
+      availableVramBytes: typeof gpu.availableVramBytes === 'number' ? gpu.availableVramBytes : undefined,
+      memoryModel: (asString(gpu.memoryModel) as 'discrete' | 'unified' | 'unknown') || 'unknown',
     },
     python: {
       available: Boolean(python.available),

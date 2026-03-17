@@ -199,6 +199,7 @@ test('toDesktopLocalModelRecord preserves structured runtime metadata', () => {
     capabilities: ['image'],
     engine: 'localai',
     entry: 'z_image_turbo-Q4_K.gguf',
+    files: ['z_image_turbo-Q4_K.gguf'],
     license: 'apache-2.0',
     source: {
       repo: 'unsloth/z-image',
@@ -207,6 +208,8 @@ test('toDesktopLocalModelRecord preserves structured runtime metadata', () => {
     hashes: {
       sha256: 'abc',
     },
+    tags: [],
+    knownTotalSizeBytes: undefined,
     endpoint: 'http://127.0.0.1:1234/v1',
     status: 'installed',
     installedAt: '2026-03-08T00:00:00Z',

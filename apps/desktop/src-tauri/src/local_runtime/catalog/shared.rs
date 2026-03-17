@@ -1,8 +1,14 @@
 use super::super::provider_adapter::{
     default_provider_hints_for_provider_capability, provider_from_engine,
 };
+use super::super::recommendation::{
+    add_host_support_to_provider_hints, auto_runtime_mode_for_engine,
+    install_available_for_runtime_mode,
+};
 use super::super::service_artifacts::find_service_artifact;
-use super::super::types::{LocalAiEngineRuntimeMode, LocalAiProviderHints, DEFAULT_LOCAL_ENDPOINT};
+use super::super::types::{
+    LocalAiDeviceProfile, LocalAiEngineRuntimeMode, LocalAiProviderHints, DEFAULT_LOCAL_ENDPOINT,
+};
 
 pub(super) const HF_SEARCH_LIMIT_MIN: usize = 1;
 pub(super) const HF_SEARCH_LIMIT_MAX: usize = 80;
@@ -20,9 +26,20 @@ pub(super) fn normalize_install_limit(value: usize) -> usize {
     value.clamp(HF_SEARCH_LIMIT_MIN, HF_SEARCH_LIMIT_MAX)
 }
 
-pub(super) fn runtime_mode_for_engine(engine: &str) -> LocalAiEngineRuntimeMode {
-    let _ = engine;
-    LocalAiEngineRuntimeMode::Supervised
+pub(super) fn runtime_mode_for_engine(
+    engine: &str,
+    profile: &LocalAiDeviceProfile,
+) -> LocalAiEngineRuntimeMode {
+    auto_runtime_mode_for_engine(engine, profile)
+}
+
+pub(super) fn install_available_for_engine(
+    engine: &str,
+    runtime_mode: &LocalAiEngineRuntimeMode,
+    endpoint: Option<&str>,
+    profile: &LocalAiDeviceProfile,
+) -> bool {
+    install_available_for_runtime_mode(engine, runtime_mode, endpoint, profile)
 }
 
 fn service_artifact_preflight_port(service_identity: &str) -> Option<u16> {
@@ -90,14 +107,15 @@ pub(super) fn infer_engine(repo: &str, tags: &[String], capabilities: &[String])
 pub(super) fn provider_hints_for_capabilities(
     capabilities: &[String],
     engine: &str,
+    profile: &LocalAiDeviceProfile,
 ) -> Option<LocalAiProviderHints> {
     let provider = provider_from_engine(engine);
     for capability in capabilities {
         if let Some(hints) =
             default_provider_hints_for_provider_capability(provider.as_str(), capability.as_str())
         {
-            return Some(hints);
+            return add_host_support_to_provider_hints(Some(hints), engine, profile);
         }
     }
-    None
+    add_host_support_to_provider_hints(None, engine, profile)
 }

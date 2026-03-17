@@ -47,6 +47,9 @@ export type LocalRuntimeGpuProfile = {
   available: boolean;
   vendor?: string;
   model?: string;
+  totalVramBytes?: number;
+  availableVramBytes?: number;
+  memoryModel?: 'discrete' | 'unified' | 'unknown';
 };
 
 export type LocalRuntimePythonProfile = {
@@ -70,6 +73,8 @@ export type LocalRuntimePortAvailability = {
 export type LocalRuntimeDeviceProfile = {
   os: string;
   arch: string;
+  totalRamBytes: number;
+  availableRamBytes: number;
   gpu: LocalRuntimeGpuProfile;
   python: LocalRuntimePythonProfile;
   npu: LocalRuntimeNpuProfile;

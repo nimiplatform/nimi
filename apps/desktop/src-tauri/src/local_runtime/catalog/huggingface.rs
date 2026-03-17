@@ -4,9 +4,12 @@ use std::time::Duration;
 use serde::Deserialize;
 
 use super::super::hf_source::hf_download_base_url;
-use super::super::types::{GgufVariantDescriptor, LocalAiCatalogItemDescriptor};
+use super::super::recommendation::recommend_variant_list;
+use super::super::types::{
+    CatalogVariantDescriptor, LocalAiCatalogItemDescriptor, LocalAiDeviceProfile,
+};
 use super::shared::{
-    default_endpoint_for_engine, infer_engine, normalize_non_empty,
+    default_endpoint_for_engine, infer_engine, install_available_for_engine, normalize_non_empty,
     provider_hints_for_capabilities, runtime_mode_for_engine,
 };
 
@@ -318,13 +321,22 @@ pub(super) fn fetch_hf_model_details(repo: &str) -> Result<HfModelDetails, Strin
 
 pub(super) fn hf_search_to_catalog_item(
     item: HfSearchModel,
+    profile: &LocalAiDeviceProfile,
 ) -> Option<LocalAiCatalogItemDescriptor> {
     let repo = normalize_hf_repo_slug(item.id.as_str())?;
     let title = repo.split('/').nth(1).unwrap_or(repo.as_str()).to_string();
     let capabilities = infer_capabilities(item.pipeline_tag.as_deref(), &item.tags);
     let engine = infer_engine(repo.as_str(), &item.tags, &capabilities);
     let endpoint = default_endpoint_for_engine(engine.as_str());
-    let provider_hints = provider_hints_for_capabilities(capabilities.as_slice(), engine.as_str());
+    let engine_runtime_mode = runtime_mode_for_engine(engine.as_str(), profile);
+    let provider_hints =
+        provider_hints_for_capabilities(capabilities.as_slice(), engine.as_str(), profile);
+    let install_available = install_available_for_engine(
+        engine.as_str(),
+        &engine_runtime_mode,
+        Some(endpoint.as_str()),
+        profile,
+    );
 
     Some(LocalAiCatalogItemDescriptor {
         item_id: format!("hf:{repo}"),
@@ -341,10 +353,10 @@ pub(super) fn hf_search_to_catalog_item(
         revision: item.sha.unwrap_or_else(|| "main".to_string()),
         template_id: None,
         capabilities,
-        engine_runtime_mode: runtime_mode_for_engine(engine.as_str()),
+        engine_runtime_mode,
         engine,
         install_kind: "hf-catalog-resolve-required".to_string(),
-        install_available: true,
+        install_available,
         endpoint: Some(endpoint),
         provider_hints,
         entry: None,
@@ -357,7 +369,40 @@ pub(super) fn hf_search_to_catalog_item(
         last_modified: item.last_modified,
         verified: false,
         engine_config: None,
+        recommendation: None,
     })
+}
+
+pub(super) fn sibling_size_bytes(sibling: &HfModelSibling) -> Option<u64> {
+    sibling.lfs.as_ref().and_then(|value| value.size)
+}
+
+pub(super) fn known_total_size_bytes(siblings: &[HfModelSibling], files: &[String]) -> Option<u64> {
+    let mut total = 0_u64;
+    let mut any = false;
+    for file in files {
+        let Some(size) = siblings
+            .iter()
+            .find(|item| item.rfilename.trim() == file)
+            .and_then(sibling_size_bytes)
+        else {
+            continue;
+        };
+        total = total.saturating_add(size);
+        any = true;
+    }
+    if any { Some(total) } else { None }
+}
+
+fn variant_format_for_entry(entry: &str) -> String {
+    let normalized = entry.trim().to_ascii_lowercase();
+    if normalized.ends_with(".gguf") {
+        return "gguf".to_string();
+    }
+    if normalized.ends_with(".safetensors") {
+        return "safetensors".to_string();
+    }
+    "unknown".to_string()
 }
 
 pub(super) fn normalize_hf_file_path(value: &str) -> Option<String> {
@@ -545,24 +590,54 @@ pub(super) fn infer_license(tags: &[String], manual: Option<&str>) -> String {
     "unknown".to_string()
 }
 
-pub fn list_repo_gguf_variants(repo: &str) -> Result<Vec<GgufVariantDescriptor>, String> {
+pub fn list_repo_catalog_variants(
+    repo: &str,
+    model_id: &str,
+    title: &str,
+    capabilities: &[String],
+    engine: &str,
+    profile: &LocalAiDeviceProfile,
+    tags: &[String],
+) -> Result<Vec<CatalogVariantDescriptor>, String> {
     let details = fetch_hf_model_details(repo)?;
-    let mut variants = Vec::<GgufVariantDescriptor>::new();
+    let mut variants = Vec::<CatalogVariantDescriptor>::new();
     for sibling in &details.siblings {
         let name_lower = sibling.rfilename.to_ascii_lowercase();
-        if !name_lower.ends_with(".gguf") {
+        if !name_lower.ends_with(".gguf") && !name_lower.ends_with(".safetensors") {
             continue;
         }
         let (size_bytes, sha256) = match &sibling.lfs {
             Some(lfs) => (lfs.size, lfs.sha256.clone()),
             None => (None, None),
         };
-        variants.push(GgufVariantDescriptor {
+        let entry = sibling.rfilename.clone();
+        let files = select_install_files(
+            &details.siblings,
+            entry.as_str(),
+            Some(entry.as_str()),
+            None,
+            engine,
+        );
+        variants.push(CatalogVariantDescriptor {
             filename: sibling.rfilename.clone(),
+            entry,
+            files,
+            format: variant_format_for_entry(sibling.rfilename.as_str()),
             size_bytes,
             sha256,
+            recommendation: None,
         });
     }
     variants.sort_by(|a, b| a.size_bytes.unwrap_or(0).cmp(&b.size_bytes.unwrap_or(0)));
+    recommend_variant_list(
+        model_id,
+        repo,
+        title,
+        capabilities,
+        engine,
+        variants.as_mut_slice(),
+        profile,
+        tags,
+    );
     Ok(variants)
 }

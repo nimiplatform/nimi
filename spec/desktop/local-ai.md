@@ -67,6 +67,8 @@ companion artifact 的状态真相与安装落盘由 Desktop Tauri `local_runtim
 
 Desktop 通过 Rust/reqwest 直接调用 HF REST API（`K-LOCAL-023`），不引入 `hf-hub` crate。搜索结果与 verified list 合并后返回前端，verified 置顶（`K-LOCAL-021`）。
 
+catalog、variant picker、install plan preview、installed detail 与 model orphan detect lane 统一复用同一 `recommendation` 结构；Desktop 不新增独立 recommendation 命令面。
+
 ### 下载管线
 
 Desktop Rust 层实现完整下载管线（`K-LOCAL-024`）：
@@ -97,6 +99,16 @@ companion artifact manifest 也必须位于 `~/.nimi/models/` 根下的某个子
 
 支持 GGUF + SafeTensors（`K-LOCAL-027`），entry 选择按优先级：`.gguf` → `model.safetensors` → 任意 `.safetensors`。
 
+本轮 recommendation v1 的边界：
+
+- `chat / vision-LLM` 走 `llmfit`
+- `image + video` 走 `media-fit`
+- GGUF 强支持，SafeTensors 保守支持
+- `tier` 只表示主模型适配度
+- `hostSupportClass` 与 `confidence` 是正式契约字段，不是 UI 私有派生值
+- hard prerequisites 会进入估算与提示，但不会把主 tier 直接降为 `not_recommended`
+- orphan scan 允许按当前 UI 选择的 capability 做基础 recommendation；scaffold 默认引擎必须与该 recommendation 使用同一套 media 默认规则
+
 ### IPC Commands
 
 | Command | 方向 | 说明 |
@@ -107,6 +119,18 @@ companion artifact manifest 也必须位于 `~/.nimi/models/` 根下的某个子
 | `runtime_local_artifacts_import` / `runtime_local_artifacts_remove` | Frontend → Rust | 导入或移除 companion artifact |
 | `runtime_local_downloads_cancel` | Frontend → Rust | 取消进行中的下载，清理 staging |
 | `runtime_local_models_catalog_search` | Frontend → Rust | 搜索 HuggingFace/catalog 模型 |
+
+### Recommendation 审计
+
+Desktop/Tauri local runtime 在 recommendation 解析时必须补充运行时审计事件：
+
+- recommendation 审计仅覆盖 request-driven resolve 面：`catalog search`、`list variants`、`resolve install plan`、`scan orphans`
+- `installed detail` / 被动列表刷新不得单独刷 recommendation 审计
+- `recommendation_resolve_invoked`
+- `recommendation_resolve_completed`
+- `recommendation_resolve_failed`
+
+payload 至少包含 `itemId/modelId/capability/source/format/tier/hostSupportClass/confidence/reasonCodes`。
 
 ### Error（下载相关）
 

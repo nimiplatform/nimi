@@ -10,7 +10,9 @@
 |---|---|---|
 | `os` | string | 操作系统标识（`linux`/`darwin`/`windows`） |
 | `arch` | string | CPU 架构（`amd64`/`arm64`） |
-| `gpu` | `LocalGpuProfile` | GPU 信息（available/vendor/model） |
+| `total_ram_bytes` | int64 | 主机总内存（字节） |
+| `available_ram_bytes` | int64 | 主机当前可用内存（字节） |
+| `gpu` | `LocalGpuProfile` | GPU 信息（available/vendor/model/VRAM/memory_model） |
 | `python` | `LocalPythonProfile` | Python 运行时（available/version） |
 | `npu` | `LocalNpuProfile` | NPU 信息（available/ready/vendor/runtime/detail） |
 | `disk_free_bytes` | int64 | 可用磁盘空间（字节） |
@@ -18,24 +20,40 @@
 
 `CollectDeviceProfile` RPC 返回当前设备的完整画像快照。
 
+`LocalGpuProfile` 追加以下字段：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `total_vram_bytes` | int64? | GPU 总显存（字节）；无法可靠探测时为空 |
+| `available_vram_bytes` | int64? | GPU 当前可用显存（字节）；无法可靠探测时为空 |
+| `memory_model` | enum | `discrete | unified | unknown` |
+
 ## K-DEV-002 GPU 检测策略
 
 GPU 检测按以下优先级执行（首个成功即返回）：
 
-1. 环境变量覆盖：`NIMI_GPU_AVAILABLE=true/false` → 直接采信。
-2. 设备文件检测：`/dev/nvidia0` 存在 → `available=true, vendor=nvidia`。
-3. 命令行探测：`nvidia-smi --query-gpu=name --format=csv,noheader` 成功 → `available=true, vendor=nvidia, model=<output>`。
-4. 以上均未命中 → `available=false`。
+1. NVIDIA 命令行探测：`nvidia-smi --query-gpu=name,memory.total,memory.free --format=csv,noheader,nounits` 成功
+   - `available=true`
+   - `vendor=nvidia`
+   - `memory_model=discrete`
+   - `model/total_vram_bytes/available_vram_bytes` 按返回值填充
+2. Apple Silicon / unified memory 主机：
+   - `vendor=apple`
+   - `memory_model=unified`
+   - `total_vram_bytes/available_vram_bytes` 允许复用 host RAM 指标
+3. 以上均未命中：
+   - `available=false`
+   - `memory_model=unknown`
+   - `total_vram_bytes/available_vram_bytes` 为空
 
 ## K-DEV-003 GPU 检测覆盖范围
 
-Phase 1 仅检测 NVIDIA GPU。以下平台/供应商标记为 deferred：
+Phase 1 的显存探测以 NVIDIA `nvidia-smi` 与 Apple unified memory 为主。以下供应商/运行时仍标记为 deferred：
 
-- Apple Silicon（Metal/MPS）
 - AMD（ROCm）
 - Intel（oneAPI）
 
-Phase 1 在 macOS/Apple Silicon 上 `gpu.available` 始终为 `false`（引擎通过 CPU 或 Metal 自行适配，不依赖 runtime GPU 检测）。
+当 host 无法可靠给出 VRAM/unified memory 数值时，`CollectDeviceProfile` 不得报错；调用方必须将此视为“低置信度硬件画像”，而不是缺省为 0。
 
 ## K-DEV-004 NPU 检测策略
 
@@ -90,6 +108,8 @@ Phase 1 不缓存设备画像：每次 `CollectDeviceProfile` 调用都实时采
 - `ResolveModelInstallPlan` 调用时
 - `ResolveProfile` 调用时
 - 用户显式请求设备画像时
+
+推荐、profile requirement 展示与 install preflight 必须共享同一份 `LocalDeviceProfile` 真相源，不得为 recommendation 额外维护第二套私有硬件探测。
 
 ## K-DEV-009 运行时设备画像重校验
 

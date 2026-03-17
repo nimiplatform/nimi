@@ -280,6 +280,63 @@ Windows 补充：
 1. `verified=true` 在前，`verified=false` 在后。
 2. 同组内按 `title ASC`（大小写不敏感）。
 
+recommendation 可以作为结果元数据附带返回，但不得改写该排序规则。
+
+## K-LOCAL-021A Catalog recommendation surface
+
+`SearchCatalogModels`、`ListCatalogVariants` 与 `ResolveModelInstallPlan` 允许返回统一的可选 `recommendation` payload。该 payload 的语义固定为：
+
+- `tier`：主模型适配度（main-model fit），不是端到端 workflow readiness
+- `host_support_class`：`supported_supervised | attached_only | unsupported`
+- `confidence`：`high | medium | low`
+
+`recommendation` 不得覆盖 `install_available`、`engine_runtime_mode` 或现有 warning / reason_code 语义。
+
+## K-LOCAL-021B Variant descriptor contract
+
+`ListCatalogVariants` 返回的 variant descriptor 必须是格式感知结构，而不是 GGUF-only：
+
+- `filename`
+- `entry`
+- `files[]`
+- `format`
+- `size_bytes?`
+- `sha256?`
+- `recommendation?`
+
+GGUF v1 支持精确 entry 级 recommendation；SafeTensors v1 允许只做保守 repo/artifact 级 recommendation，并通过 `confidence=low` 暴露不确定性。
+
+## K-LOCAL-021C Media recommendation v1
+
+v1 `media-fit` 仅适用于 `image / video` 主模型，不评完整 workflow。规则固定为：
+
+- 基于主模型文件大小 / 已知总大小、设备画像中的 RAM/VRAM/unified memory、以及 engine-specific conservative overhead profile 估算内存占用
+- hard prerequisites（如 VAE / text encoder）计入估算与 note，但不直接决定主 tier
+- baseline 固定：
+  - `image-default-v1` = `1024x1024 text-to-image`
+  - `video-default-v1` = `720p / 4s / 16fps / text-to-video / no audio`
+- 头寸阈值固定：
+  - `estimated_mem <= 70% budget` → `recommended`
+  - `estimated_mem <= 85% budget` → `runnable`
+  - `estimated_mem <= 100% budget` → `tight`
+  - `estimated_mem > budget` → `not_recommended`
+
+当 metadata 或设备画像不完整时，系统应降低 `confidence` 并附带 reason / note，而不是静默回退为高置信度结果。
+
+## K-LOCAL-021D LLM recommendation via llmfit
+
+`llmfit` recommendation 适用于 `LLM / vision-LLM` 主模型，并复用同一 `recommendation` payload：
+
+- Desktop 必须将共享的 `LocalDeviceProfile` 映射到 `llmfit` 所需的 system spec；不得绕过 `K-DEV` 另起一套私有硬件真相源
+- v1 在无 `model-index` 前提下，允许基于 repo/title/tag、entry quant filename、以及 artifact size 对参数量 / context 做保守推断
+- `fit_level` 映射固定为：
+  - `Perfect -> recommended`
+  - `Good -> runnable`
+  - `Marginal -> tight`
+  - `TooTight -> not_recommended`
+- `recommended_entry` 可以指向与当前默认 entry 不同的更合适 quant 变体；其余变体进入 `fallback_entries`
+- 当参数量、context 或 quant 只能从 filename/size 推断时，系统必须降低 `confidence` 或通过 reason / note 暴露推断来源
+
 ## K-LOCAL-022 unhealthy 状态恢复策略
 
 处于 `UNHEALTHY` 状态的 local model/service 执行定期探活恢复：

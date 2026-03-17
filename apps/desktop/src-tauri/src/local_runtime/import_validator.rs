@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::Path;
 
 mod helpers;
 mod manifest_checks;
@@ -22,11 +23,32 @@ use super::types::{
 pub fn manifest_to_model_record(
     manifest: &ImportedModelManifest,
     endpoint_override: Option<&str>,
+    model_dir: Option<&Path>,
 ) -> Result<LocalAiModelRecord, String> {
     let slug = slugify_local_model_id(&manifest.model_id);
     let local_model_id = format!("local_{slug}_{}", generate_ulid_string());
     let now = now_iso_timestamp();
     let capabilities = normalize_and_validate_capabilities(&manifest.capabilities)?;
+    let files = if manifest.files.is_empty() {
+        vec![manifest.entry.trim().to_string()]
+    } else {
+        manifest
+            .files
+            .iter()
+            .map(|item| item.trim().to_string())
+            .filter(|item| !item.is_empty())
+            .collect::<Vec<_>>()
+    };
+    let known_total_size_bytes = model_dir.and_then(|root| {
+        let mut total = 0_u64;
+        let mut seen_any = false;
+        for file in &files {
+            let file_size = std::fs::metadata(root.join(file)).ok()?.len();
+            total = total.saturating_add(file_size);
+            seen_any = true;
+        }
+        if seen_any { Some(total) } else { None }
+    });
 
     Ok(LocalAiModelRecord {
         local_model_id,
@@ -34,6 +56,7 @@ pub fn manifest_to_model_record(
         capabilities,
         engine: normalize_non_empty(&manifest.engine, "localai"),
         entry: manifest.entry.trim().to_string(),
+        files,
         license: manifest.license.trim().to_string(),
         source: LocalAiModelSource {
             repo: manifest.source.repo.trim().to_string(),
@@ -44,12 +67,15 @@ pub fn manifest_to_model_record(
             .iter()
             .map(|(key, value)| (key.trim().to_string(), value.trim().to_string()))
             .collect::<HashMap<_, _>>(),
+        tags: Vec::new(),
+        known_total_size_bytes,
         endpoint: validate_loopback_endpoint(endpoint_override.unwrap_or_default())?,
         status: LocalAiModelStatus::Installed,
         installed_at: now.clone(),
         updated_at: now,
         health_detail: None,
         engine_config: manifest.engine_config.clone(),
+        recommendation: None,
     })
 }
 
@@ -396,7 +422,7 @@ mod tests {
             hashes: HashMap::from([("model.gguf".to_string(), "sha256:abc123".to_string())]),
             engine_config: None,
         };
-        let record = manifest_to_model_record(&manifest, None).expect("model record");
+        let record = manifest_to_model_record(&manifest, None, None).expect("model record");
         assert_eq!(record.status, LocalAiModelStatus::Installed);
         assert!(record.local_model_id.starts_with("local_hf-test-model_"));
         assert_eq!(record.model_id, "hf:test/model");

@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use super::models::LocalAiModelStatus;
+use super::recommendation::LocalAiRecommendationDescriptor;
 use super::services::LocalAiProviderHints;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -64,6 +65,21 @@ pub struct OrphanModelFile {
     pub filename: String,
     pub path: String,
     pub size_bytes: u64,
+    pub recommendation: Option<LocalAiRecommendationDescriptor>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalAiOrphanScanPreference {
+    pub capability: Option<String>,
+    pub engine: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalAiModelsScanOrphansPayload {
+    #[serde(default)]
+    pub preferences: HashMap<String, LocalAiOrphanScanPreference>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -76,10 +92,15 @@ pub struct OrphanArtifactFile {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct GgufVariantDescriptor {
+pub struct CatalogVariantDescriptor {
     pub filename: String,
+    pub entry: String,
+    #[serde(default)]
+    pub files: Vec<String>,
+    pub format: String,
     pub size_bytes: Option<u64>,
     pub sha256: Option<String>,
+    pub recommendation: Option<LocalAiRecommendationDescriptor>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -110,6 +131,7 @@ pub struct LocalAiCatalogItemDescriptor {
     pub last_modified: Option<String>,
     pub verified: bool,
     pub engine_config: Option<serde_json::Value>,
+    pub recommendation: Option<LocalAiRecommendationDescriptor>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -136,6 +158,7 @@ pub struct LocalAiInstallPlanDescriptor {
     pub warnings: Vec<String>,
     pub reason_code: Option<String>,
     pub engine_config: Option<serde_json::Value>,
+    pub recommendation: Option<LocalAiRecommendationDescriptor>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

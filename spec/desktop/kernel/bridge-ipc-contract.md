@@ -218,7 +218,7 @@ Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）
 - `runtime_local_models_start` / `runtime_local_models_stop` / `runtime_local_models_remove`：模型生命周期管理。
 - `runtime_local_models_health`：模型健康检查。
 - `runtime_local_models_reveal_in_folder`：在系统文件管理器中打开模型目录。
-- `runtime_local_models_scan_orphans` / `runtime_local_models_scaffold_orphan`：孤立模型文件扫描与脚手架导入。
+- `runtime_local_models_scan_orphans` / `runtime_local_models_scaffold_orphan`：孤立模型文件扫描与脚手架导入。scan command 允许接受按 path 组织的 capability/engine preference，并在返回项中复用统一 `recommendation` payload。
 - `runtime_local_artifacts_list` / `runtime_local_artifacts_verified_list`：列出已安装 / verified companion artifacts。
 - `runtime_local_artifacts_install_verified` / `runtime_local_artifacts_import` / `runtime_local_artifacts_remove`：companion artifact 安装、导入、移除。
 - `runtime_local_artifacts_scan_orphans` / `runtime_local_artifacts_scaffold_orphan`：孤立 companion 文件扫描与脚手架导入。
@@ -230,6 +230,8 @@ Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）
 - `runtime_local_nodes_catalog_list`：列出活跃服务的能力节点。
 - `runtime_local_profiles_resolve` / `runtime_local_profiles_apply`：profile-centric mod install flow 的一等 Tauri 命令，负责解析并执行 `manifest.ai.profiles` 中的 runtime entries。
 - `runtime_local_device_profile_collect`：设备能力采集（CPU/GPU/NPU/disk/ports）。
+- `runtime_local_models_catalog_search` / `runtime_local_models_catalog_list_variants` / `runtime_local_models_catalog_resolve_install_plan` 返回面允许附带统一 `recommendation` payload；Desktop 不得再新增平行 recommendation command。
+- `runtime_local_device_profile_collect` 返回的设备画像必须包含 `total_ram_bytes`、`available_ram_bytes`，以及 GPU `total_vram_bytes?`、`available_vram_bytes?`、`memory_model`。
 - `local-runtime://download-progress`：下载进度事件通道，事件字段包含 `state`（`queued|running|paused|failed|completed|cancelled`）、`reasonCode?`、`retryable?`。
 
 companion artifact 补充：
@@ -242,6 +244,15 @@ companion artifact 补充：
 - Desktop 启动时必须先执行 Desktop/Tauri 已知模型 -> go-runtime 的 reconcile，再将 go-runtime-only 模型通过 `runtime_local_models_adopt` 自动纳管到 Tauri state。
 - 自动纳管只适用于 go-runtime 已有结构化 `LocalAiModelRecord` 的模型；用户直接 copy 到 `~/.nimi/models` 的裸文件通过 `runtime_local_models_scan_orphans` / `runtime_local_models_scaffold_orphan` 路径，由用户选择能力后导入。
 - companion orphan lane 允许与主模型 orphan lane 同时暴露同一裸文件；文件最终分类由用户选择的导入入口决定，导入成功后两条 lane 都必须在刷新后移除该文件。
+- recommendation 审计仅覆盖 request-driven resolve 面，不覆盖 installed list 之类的被动刷新：
+  - `runtime_local_models_catalog_search`
+  - `runtime_local_models_catalog_list_variants`
+  - `runtime_local_models_catalog_resolve_install_plan`
+  - `runtime_local_models_scan_orphans`
+- 上述入口的 recommendation 解析沿现有 local runtime audit 面记录：
+  - `recommendation_resolve_invoked`
+  - `recommendation_resolve_completed`
+  - `recommendation_resolve_failed`
 
 执行命令：
 

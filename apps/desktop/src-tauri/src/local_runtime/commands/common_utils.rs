@@ -311,7 +311,11 @@ fn validate_inference_modality(value: &str) -> Result<&str, String> {
 
 fn validate_runtime_audit_event_type(value: &str) -> Result<&str, String> {
     let normalized = value.trim();
-    if normalized == EVENT_RUNTIME_MODEL_READY_AFTER_INSTALL {
+    if normalized == EVENT_RUNTIME_MODEL_READY_AFTER_INSTALL
+        || normalized == EVENT_RECOMMENDATION_RESOLVE_INVOKED
+        || normalized == EVENT_RECOMMENDATION_RESOLVE_COMPLETED
+        || normalized == EVENT_RECOMMENDATION_RESOLVE_FAILED
+    {
         return Ok(normalized);
     }
     Err(format!(
@@ -361,6 +365,142 @@ fn require_audit_payload_keys(
         ));
     }
     Ok(())
+}
+
+fn require_audit_payload_present_keys(
+    event_type: &str,
+    payload: &Option<serde_json::Value>,
+    required_keys: &[&str],
+) -> Result<(), String> {
+    let root = payload
+        .as_ref()
+        .and_then(|value| value.as_object())
+        .ok_or_else(|| {
+            format!(
+                "LOCAL_AI_AUDIT_PAYLOAD_REQUIRED: eventType={} payload object is required",
+                event_type
+            )
+        })?;
+    let missing = required_keys
+        .iter()
+        .filter(|key| !root.contains_key(**key))
+        .map(|key| (*key).to_string())
+        .collect::<Vec<_>>();
+    if missing.is_empty() {
+        return Ok(());
+    }
+    Err(format!(
+        "LOCAL_AI_AUDIT_PAYLOAD_INVALID: eventType={} missingKeys={}",
+        event_type,
+        missing.join(",")
+    ))
+}
+
+fn recommendation_resolve_invoked_payload(
+    item_id: &str,
+    model_id: Option<&str>,
+    capability: Option<&str>,
+) -> serde_json::Value {
+    serde_json::json!({
+        "itemId": item_id,
+        "modelId": model_id,
+        "capability": capability,
+    })
+}
+
+fn recommendation_resolve_completed_payload(
+    item_id: &str,
+    model_id: Option<&str>,
+    capability: Option<&str>,
+    recommendation: &super::types::LocalAiRecommendationDescriptor,
+) -> serde_json::Value {
+    serde_json::json!({
+        "itemId": item_id,
+        "modelId": model_id,
+        "capability": capability,
+        "source": recommendation.source,
+        "format": recommendation.format,
+        "tier": recommendation.tier,
+        "hostSupportClass": recommendation.host_support_class,
+        "confidence": recommendation.confidence,
+        "reasonCodes": recommendation.reason_codes,
+    })
+}
+
+fn recommendation_resolve_failed_payload(
+    item_id: &str,
+    model_id: Option<&str>,
+    capability: Option<&str>,
+    error: &str,
+) -> serde_json::Value {
+    serde_json::json!({
+        "itemId": item_id,
+        "modelId": model_id,
+        "capability": capability,
+        "reasonCode": extract_reason_code(error),
+        "error": error,
+    })
+}
+
+fn append_recommendation_resolve_invoked(
+    app: &AppHandle,
+    item_id: &str,
+    model_id: Option<&str>,
+    capability: Option<&str>,
+) {
+    append_app_audit_event_non_blocking(
+        app,
+        EVENT_RECOMMENDATION_RESOLVE_INVOKED,
+        model_id,
+        None,
+        Some(recommendation_resolve_invoked_payload(
+            item_id,
+            model_id,
+            capability,
+        )),
+    );
+}
+
+fn append_recommendation_resolve_completed(
+    app: &AppHandle,
+    item_id: &str,
+    model_id: Option<&str>,
+    capability: Option<&str>,
+    recommendation: &super::types::LocalAiRecommendationDescriptor,
+) {
+    append_app_audit_event_non_blocking(
+        app,
+        EVENT_RECOMMENDATION_RESOLVE_COMPLETED,
+        model_id,
+        None,
+        Some(recommendation_resolve_completed_payload(
+            item_id,
+            model_id,
+            capability,
+            recommendation,
+        )),
+    );
+}
+
+fn append_recommendation_resolve_failed(
+    app: &AppHandle,
+    item_id: &str,
+    model_id: Option<&str>,
+    capability: Option<&str>,
+    error: &str,
+) {
+    append_app_audit_event_non_blocking(
+        app,
+        EVENT_RECOMMENDATION_RESOLVE_FAILED,
+        model_id,
+        None,
+        Some(recommendation_resolve_failed_payload(
+            item_id,
+            model_id,
+            capability,
+            error,
+        )),
+    );
 }
 
 fn validate_audit_payload_contract(
@@ -440,6 +580,44 @@ fn validate_audit_payload_contract(
             &["source", "capabilities", "localModelId"],
         );
     }
+    if event_type == EVENT_RECOMMENDATION_RESOLVE_INVOKED {
+        require_audit_payload_keys(event_type, payload, &["itemId"])?;
+        return require_audit_payload_present_keys(
+            event_type,
+            payload,
+            &["modelId", "capability"],
+        );
+    }
+    if event_type == EVENT_RECOMMENDATION_RESOLVE_COMPLETED {
+        require_audit_payload_keys(
+            event_type,
+            payload,
+            &["itemId", "modelId", "source", "reasonCodes"],
+        )?;
+        return require_audit_payload_present_keys(
+            event_type,
+            payload,
+            &[
+                "capability",
+                "format",
+                "tier",
+                "hostSupportClass",
+                "confidence",
+            ],
+        );
+    }
+    if event_type == EVENT_RECOMMENDATION_RESOLVE_FAILED {
+        require_audit_payload_keys(
+            event_type,
+            payload,
+            &["itemId", "reasonCode", "error"],
+        )?;
+        return require_audit_payload_present_keys(
+            event_type,
+            payload,
+            &["modelId", "capability"],
+        );
+    }
     if event_type == EVENT_INFERENCE_INVOKED
         || event_type == EVENT_INFERENCE_FAILED
         || event_type == EVENT_FALLBACK_TO_CLOUD
@@ -455,4 +633,93 @@ fn validate_audit_payload_contract(
         return Ok(());
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod audit_contract_tests {
+    use super::{
+        recommendation_resolve_completed_payload, recommendation_resolve_failed_payload,
+        recommendation_resolve_invoked_payload, validate_audit_payload_contract,
+    };
+    use crate::local_runtime::audit::{
+        EVENT_RECOMMENDATION_RESOLVE_COMPLETED, EVENT_RECOMMENDATION_RESOLVE_FAILED,
+        EVENT_RECOMMENDATION_RESOLVE_INVOKED,
+    };
+    use crate::local_runtime::types::{
+        LocalAiHostSupportClass, LocalAiRecommendationConfidence,
+        LocalAiRecommendationDescriptor, LocalAiRecommendationSource,
+        LocalAiRecommendationTier,
+    };
+
+    fn recommendation_fixture() -> LocalAiRecommendationDescriptor {
+        LocalAiRecommendationDescriptor {
+            source: LocalAiRecommendationSource::MediaFit,
+            format: None,
+            tier: Some(LocalAiRecommendationTier::Runnable),
+            host_support_class: Some(LocalAiHostSupportClass::AttachedOnly),
+            confidence: Some(LocalAiRecommendationConfidence::Low),
+            reason_codes: vec!["metadata_incomplete".to_string()],
+            recommended_entry: None,
+            fallback_entries: Vec::new(),
+            suggested_artifacts: Vec::new(),
+            suggested_notes: Vec::new(),
+            baseline: None,
+        }
+    }
+
+    #[test]
+    fn recommendation_invoked_payload_satisfies_contract_with_null_fields() {
+        let payload = Some(recommendation_resolve_invoked_payload(
+            "catalog-search:image:*",
+            None,
+            None,
+        ));
+        assert!(
+            validate_audit_payload_contract(EVENT_RECOMMENDATION_RESOLVE_INVOKED, &payload).is_ok()
+        );
+    }
+
+    #[test]
+    fn recommendation_completed_payload_satisfies_contract_with_nullable_format() {
+        let payload = Some(recommendation_resolve_completed_payload(
+            "hf:test/model#model.safetensors",
+            Some("hf:test/model"),
+            None,
+            &recommendation_fixture(),
+        ));
+        assert!(
+            validate_audit_payload_contract(EVENT_RECOMMENDATION_RESOLVE_COMPLETED, &payload).is_ok()
+        );
+    }
+
+    #[test]
+    fn recommendation_failed_payload_satisfies_contract_with_null_model_and_capability() {
+        let payload = Some(recommendation_resolve_failed_payload(
+            "orphan-scan",
+            None,
+            None,
+            "LOCAL_AI_ORPHAN_SCAN_READ_DIR_FAILED: boom",
+        ));
+        assert!(
+            validate_audit_payload_contract(EVENT_RECOMMENDATION_RESOLVE_FAILED, &payload).is_ok()
+        );
+    }
+
+    #[test]
+    fn recommendation_completed_contract_rejects_missing_required_reason_codes() {
+        let payload = Some(serde_json::json!({
+            "itemId": "hf:test/model",
+            "modelId": "hf:test/model",
+            "capability": "image",
+            "source": "media-fit",
+            "format": null,
+            "tier": "runnable",
+            "hostSupportClass": "attached_only",
+            "confidence": "low"
+        }));
+        let result =
+            validate_audit_payload_contract(EVENT_RECOMMENDATION_RESOLVE_COMPLETED, &payload);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("reasonCodes"));
+    }
 }

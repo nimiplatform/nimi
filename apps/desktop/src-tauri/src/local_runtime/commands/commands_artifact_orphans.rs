@@ -329,18 +329,22 @@ mod orphan_tests {
             capabilities: vec!["chat".to_string()],
             engine: "localai".to_string(),
             entry: entry.to_string(),
+            files: vec![entry.to_string()],
             license: "apache-2.0".to_string(),
             source: LocalAiModelSource {
                 repo: "hf://fixture/model".to_string(),
                 revision: "main".to_string(),
             },
             hashes: HashMap::from([(entry.to_string(), "sha256:fixture".to_string())]),
+            tags: Vec::new(),
+            known_total_size_bytes: Some(1_024),
             endpoint: "http://127.0.0.1:1234/v1".to_string(),
             status: LocalAiModelStatus::Installed,
             installed_at: "2026-01-01T00:00:00.000Z".to_string(),
             updated_at: "2026-01-01T00:00:00.000Z".to_string(),
             health_detail: None,
             engine_config: None,
+            recommendation: None,
         }
     }
 

@@ -15,7 +15,11 @@ pub fn runtime_local_models_import(
         Ok(manifest) => {
             let saved = upsert_model(
                 &app,
-                manifest_to_model_record(&manifest, endpoint_override.as_deref())?,
+                manifest_to_model_record(
+                    &manifest,
+                    endpoint_override.as_deref(),
+                    path.parent(),
+                )?,
             )?;
             append_app_audit_event_non_blocking(
                 &app,
@@ -65,18 +69,38 @@ pub fn runtime_local_models_adopt(
     };
 
     let now = now_iso_timestamp();
+    let entry = payload.entry.trim().to_string();
+    let files = if payload.files.is_empty() {
+        vec![entry.clone()]
+    } else {
+        payload
+            .files
+            .into_iter()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+            .collect::<Vec<_>>()
+    };
+    let tags = payload
+        .tags
+        .into_iter()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .collect::<Vec<_>>();
     let record = LocalAiModelRecord {
         local_model_id: local_model_id.to_string(),
         model_id: model_id.to_string(),
         capabilities: payload.capabilities,
         engine: payload.engine.trim().to_string(),
-        entry: payload.entry.trim().to_string(),
+        entry: entry.clone(),
+        files: if files.is_empty() { vec![entry] } else { files },
         license: payload.license.trim().to_string(),
         source: LocalAiModelSource {
             repo: payload.source.repo.trim().to_string(),
             revision: payload.source.revision.trim().to_string(),
         },
         hashes: payload.hashes,
+        tags,
+        known_total_size_bytes: payload.known_total_size_bytes.filter(|value| *value > 0),
         endpoint,
         status: payload.status,
         installed_at: if payload.installed_at.trim().is_empty() {
@@ -96,6 +120,7 @@ pub fn runtime_local_models_adopt(
                 }
             }),
         engine_config: payload.engine_config,
+        recommendation: payload.recommendation,
     };
 
     let saved = upsert_model(&app, record)?;
@@ -381,18 +406,22 @@ fn execute_file_import(
         capabilities: capabilities.to_vec(),
         engine: engine.to_string(),
         entry: file_name.to_string(),
+        files: vec![file_name.to_string()],
         license: "unknown".to_string(),
         source: super::types::LocalAiModelSource {
             repo: format!("local-import/{}", slug),
             revision: "local".to_string(),
         },
         hashes,
+        tags: Vec::new(),
+        known_total_size_bytes: Some(file_size),
         endpoint: endpoint.to_string(),
         status: super::types::LocalAiModelStatus::Installed,
         installed_at: now_iso_timestamp(),
         updated_at: now_iso_timestamp(),
         health_detail: None,
         engine_config: None,
+        recommendation: None,
     };
     match upsert_model(app, record) {
         Ok(saved) => {

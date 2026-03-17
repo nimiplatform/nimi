@@ -19,12 +19,13 @@ use super::audit::{
     EVENT_MODEL_FILE_IMPORT_STARTED, EVENT_MODEL_IMPORT_FAILED, EVENT_MODEL_IMPORT_VALIDATED,
     EVENT_NODE_CATALOG_LISTED, EVENT_PROFILE_APPLY_COMPLETED, EVENT_PROFILE_APPLY_FAILED,
     EVENT_PROFILE_APPLY_STARTED, EVENT_PROFILE_RESOLVE_FAILED, EVENT_PROFILE_RESOLVE_INVOKED,
-    EVENT_RUNTIME_MODEL_READY_AFTER_INSTALL, EVENT_SERVICE_INSTALL_COMPLETED,
-    EVENT_SERVICE_INSTALL_FAILED, EVENT_SERVICE_INSTALL_STARTED,
+    EVENT_RECOMMENDATION_RESOLVE_COMPLETED, EVENT_RECOMMENDATION_RESOLVE_FAILED,
+    EVENT_RECOMMENDATION_RESOLVE_INVOKED, EVENT_RUNTIME_MODEL_READY_AFTER_INSTALL,
+    EVENT_SERVICE_INSTALL_COMPLETED, EVENT_SERVICE_INSTALL_FAILED, EVENT_SERVICE_INSTALL_STARTED,
 };
 use super::capability_matrix::refresh_state_capability_matrix_with_probe_and_device;
 use super::catalog::{
-    list_repo_gguf_variants, resolve_install_plan as resolve_catalog_install_plan, search_catalog,
+    list_catalog_variants, resolve_install_plan as resolve_catalog_install_plan, search_catalog,
     LocalAiCatalogResolveInput,
 };
 use super::dependency_apply::{
@@ -47,6 +48,7 @@ use super::import_validator::{
 };
 use super::model_registry::{list_models, remove_model, upsert_model};
 use super::node_catalog::list_nodes_from_services;
+use super::recommendation::{build_catalog_recommendation, build_recommendation_candidate};
 use super::reason_codes::{
     extract_reason_code as extract_local_ai_reason_code, normalize_local_ai_reason_code,
     LOCAL_AI_PROVIDER_INTERNAL_ERROR,
@@ -61,13 +63,14 @@ use super::service_lifecycle::{
 use super::store::{load_state, runtime_models_dir, save_state};
 use super::supervisor::{health, start_model, stop_model};
 use super::types::{
-    generate_ulid_string, now_iso_timestamp, slugify_local_model_id, GgufVariantDescriptor,
+    generate_ulid_string, now_iso_timestamp, slugify_local_model_id, CatalogVariantDescriptor,
     LocalAiArtifactRecord, LocalAiArtifactSource, LocalAiArtifactStatus, LocalAiAuditEvent,
     LocalAiCatalogItemDescriptor, LocalAiDependencyApplyResult, LocalAiDependencyKind,
     LocalAiDependencyResolutionPlan, LocalAiDeviceProfile, LocalAiDownloadControlPayload,
     LocalAiDownloadProgressEvent, LocalAiDownloadSessionSummary, LocalAiDownloadState,
     LocalAiInstallPlanDescriptor, LocalAiInstallRequest, LocalAiModelHealth, LocalAiModelRecord,
-    LocalAiModelSource, LocalAiNodeDescriptor, LocalAiProfileApplyResult,
+    LocalAiModelSource, LocalAiModelsScanOrphansPayload, LocalAiNodeDescriptor,
+    LocalAiOrphanScanPreference, LocalAiProfileApplyResult,
     LocalAiProfileArtifactPlanEntry, LocalAiProfileDescriptor, LocalAiProfileEntryDescriptor,
     LocalAiProfileResolutionPlan, LocalAiRuntimeState, LocalAiServiceArtifactType,
     LocalAiServiceDescriptor, LocalAiServiceStatus, LocalAiVerifiedArtifactDescriptor,

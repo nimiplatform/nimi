@@ -48,6 +48,8 @@ import {
 } from './commands';
 import type {
   GgufVariantDescriptor,
+  LocalRuntimeCatalogRecommendation,
+  LocalRuntimeCatalogVariantDescriptor,
   LocalRuntimeArtifactKind,
   LocalRuntimeArtifactRecord,
   LocalRuntimeVerifiedArtifactDescriptor,
@@ -99,6 +101,7 @@ import type {
   OrphanModelFile,
   LocalRuntimeScaffoldArtifactPayload,
   LocalRuntimeScaffoldArtifactResult,
+  LocalRuntimeScanOrphansPayload,
   LocalRuntimeScaffoldOrphanPayload,
 } from './types';
 import {
@@ -142,6 +145,8 @@ export {
 export type {
   LocalRuntimeArtifactKind,
   GgufVariantDescriptor,
+  LocalRuntimeCatalogRecommendation,
+  LocalRuntimeCatalogVariantDescriptor,
   LocalRuntimeArtifactRecord,
   LocalRuntimeVerifiedArtifactDescriptor,
   LocalRuntimeAuditEvent,
@@ -198,6 +203,7 @@ export type {
   OrphanModelFile,
   LocalRuntimeScaffoldArtifactPayload,
   LocalRuntimeScaffoldArtifactResult,
+  LocalRuntimeScanOrphansPayload,
   LocalRuntimeScaffoldOrphanPayload,
 };
 
@@ -206,6 +212,7 @@ export type LocalRuntimeFacade = {
   listArtifacts: (payload?: LocalRuntimeListArtifactsPayload) => Promise<LocalRuntimeArtifactRecord[]>;
   searchCatalog: (payload?: LocalRuntimeCatalogSearchPayload) => Promise<LocalRuntimeCatalogItemDescriptor[]>;
   listRepoGgufVariants: (repo: string) => Promise<GgufVariantDescriptor[]>;
+  listRepoVariants: (repo: string) => Promise<LocalRuntimeCatalogVariantDescriptor[]>;
   resolveInstallPlan: (payload: LocalRuntimeCatalogResolveInstallPlanPayload) => Promise<LocalRuntimeInstallPlanDescriptor>;
   collectDeviceProfile: () => Promise<LocalRuntimeDeviceProfile>;
   resolveProfile: (payload: LocalRuntimeProfileResolvePayload) => Promise<LocalRuntimeProfileResolutionPlan>;
@@ -303,7 +310,7 @@ export type LocalRuntimeFacade = {
     listener: (event: LocalRuntimeDownloadProgressEvent) => void,
   ) => Promise<() => void>;
   revealInFolder: (localModelId: string) => Promise<void>;
-  scanOrphans: () => Promise<OrphanModelFile[]>;
+  scanOrphans: (payload?: LocalRuntimeScanOrphansPayload) => Promise<OrphanModelFile[]>;
   scaffoldOrphan: (payload: LocalRuntimeScaffoldOrphanPayload) => Promise<LocalRuntimeInstallAcceptedResponse>;
   scanArtifactOrphans: () => Promise<OrphanArtifactFile[]>;
   scaffoldArtifactOrphan: (
@@ -317,6 +324,7 @@ export const localRuntime: LocalRuntimeFacade = {
   listArtifacts: listLocalRuntimeArtifacts,
   searchCatalog: searchLocalRuntimeCatalog,
   listRepoGgufVariants: listLocalRuntimeRepoGgufVariants,
+  listRepoVariants: listLocalRuntimeRepoGgufVariants,
   resolveInstallPlan: resolveLocalRuntimeInstallPlan,
   collectDeviceProfile: collectLocalRuntimeDeviceProfile,
   resolveProfile: resolveLocalRuntimeProfile,

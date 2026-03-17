@@ -559,18 +559,22 @@ mod tests {
             capabilities: vec!["chat".to_string()],
             engine: engine.to_string(),
             entry: "model.gguf".to_string(),
+            files: vec!["model.gguf".to_string()],
             license: "apache-2.0".to_string(),
             source: LocalAiModelSource {
                 repo: "hf://test/model".to_string(),
                 revision: "main".to_string(),
             },
             hashes: HashMap::new(),
+            tags: Vec::new(),
+            known_total_size_bytes: Some(1_024),
             endpoint: "http://127.0.0.1:1234/v1".to_string(),
             status,
             installed_at: "0".to_string(),
             updated_at: "0".to_string(),
             health_detail: None,
             engine_config: None,
+            recommendation: None,
         }
     }
 

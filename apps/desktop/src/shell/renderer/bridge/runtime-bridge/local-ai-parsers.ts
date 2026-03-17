@@ -17,6 +17,13 @@ export function parseLocalRuntimeModelRecord(value: unknown): LocalRuntimeModelR
   const source = assertRecord(record.source, 'local_runtime model source is invalid');
   const hashes = assertRecord(record.hashes || {}, 'local_runtime model hashes is invalid');
   const rawCapabilities = Array.isArray(record.capabilities) ? record.capabilities : [];
+  const files = Array.isArray(record.files)
+    ? record.files.map((item) => String(item || '').trim()).filter(Boolean)
+    : [];
+  const tags = Array.isArray(record.tags)
+    ? record.tags.map((item) => String(item || '').trim()).filter(Boolean)
+    : [];
+  const knownTotalSizeBytes = Number(record.knownTotalSizeBytes);
   const statusValue = String(record.status || '').trim();
   const normalizedStatus: LocalRuntimeModelStatus = (
     statusValue === 'active'
@@ -32,6 +39,7 @@ export function parseLocalRuntimeModelRecord(value: unknown): LocalRuntimeModelR
     capabilities: rawCapabilities.map((capability) => String(capability || '').trim()).filter(Boolean),
     engine: parseRequiredString(record.engine, 'engine', 'local_runtime model'),
     entry: parseRequiredString(record.entry, 'entry', 'local_runtime model'),
+    files,
     license: parseRequiredString(record.license, 'license', 'local_runtime model'),
     source: {
       repo: parseRequiredString(source.repo, 'source.repo', 'local_runtime model'),
@@ -40,6 +48,10 @@ export function parseLocalRuntimeModelRecord(value: unknown): LocalRuntimeModelR
     hashes: Object.fromEntries(
       Object.entries(hashes).map(([key, hashValue]) => [String(key), String(hashValue || '').trim()]),
     ),
+    tags,
+    knownTotalSizeBytes: Number.isFinite(knownTotalSizeBytes) && knownTotalSizeBytes > 0
+      ? knownTotalSizeBytes
+      : undefined,
     endpoint: parseRequiredString(record.endpoint, 'endpoint', 'local_runtime model'),
     status: normalizedStatus,
     installedAt: parseRequiredString(record.installedAt, 'installedAt', 'local_runtime model'),

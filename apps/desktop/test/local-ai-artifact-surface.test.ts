@@ -140,12 +140,15 @@ test('parseModelRecord canonicalizes local runtime ids to local/ prefix', () => 
     capabilities: ['image'],
     engine: 'localai',
     entry: 'z_image_turbo-Q4_K_M.gguf',
+    files: ['z_image_turbo-Q4_K_M.gguf'],
     license: 'apache-2.0',
     source: {
       repo: 'jayn7/Z-Image-Turbo-GGUF',
       revision: 'main',
     },
     hashes: {},
+    tags: ['image', 'z-image'],
+    knownTotalSizeBytes: 1234,
     endpoint: 'http://127.0.0.1:1234/v1',
     status: 'active',
     installedAt: '2026-03-08T00:00:00Z',
@@ -171,5 +174,8 @@ test('parseModelRecord canonicalizes local runtime ids to local/ prefix', () => 
   });
 
   assert.equal(model.modelId, 'local/z_image_turbo');
+  assert.deepEqual(model.files, ['z_image_turbo-Q4_K_M.gguf']);
+  assert.deepEqual(model.tags, ['image', 'z-image']);
+  assert.equal(model.knownTotalSizeBytes, 1234);
   assert.equal(artifact.artifactId, 'local/z_image_ae');
 });

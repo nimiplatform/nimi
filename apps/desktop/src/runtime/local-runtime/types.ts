@@ -16,18 +16,22 @@ export type LocalRuntimeModelRecord = {
   capabilities: string[];
   engine: string;
   entry: string;
+  files: string[];
   license: string;
   source: {
     repo: string;
     revision: string;
   };
   hashes: Record<string, string>;
+  tags: string[];
+  knownTotalSizeBytes?: number;
   endpoint: string;
   status: LocalRuntimeModelStatus;
   installedAt: string;
   updatedAt: string;
   healthDetail?: string;
   engineConfig?: Record<string, unknown>;
+  recommendation?: LocalRuntimeCatalogRecommendation;
 };
 
 export type LocalRuntimeArtifactRecord = {
@@ -157,6 +161,34 @@ export type LocalRuntimeProviderHints = {
   extra?: Record<string, unknown>;
 } & Record<string, unknown>;
 
+export type LocalRuntimeRecommendationSource = 'llmfit' | 'media-fit';
+export type LocalRuntimeRecommendationFormat = 'gguf' | 'safetensors';
+export type LocalRuntimeRecommendationTier = 'recommended' | 'runnable' | 'tight' | 'not_recommended';
+export type LocalRuntimeRecommendationHostSupportClass = 'supported_supervised' | 'attached_only' | 'unsupported';
+export type LocalRuntimeRecommendationConfidence = 'high' | 'medium' | 'low';
+export type LocalRuntimeRecommendationBaseline = 'image-default-v1' | 'video-default-v1';
+
+export type LocalRuntimeSuggestedArtifact = {
+  templateId?: string;
+  artifactId?: string;
+  kind: string;
+  family?: string;
+};
+
+export type LocalRuntimeCatalogRecommendation = {
+  source: LocalRuntimeRecommendationSource;
+  format?: LocalRuntimeRecommendationFormat;
+  tier?: LocalRuntimeRecommendationTier;
+  hostSupportClass?: LocalRuntimeRecommendationHostSupportClass;
+  confidence?: LocalRuntimeRecommendationConfidence;
+  reasonCodes: string[];
+  recommendedEntry?: string;
+  fallbackEntries: string[];
+  suggestedArtifacts: LocalRuntimeSuggestedArtifact[];
+  suggestedNotes: string[];
+  baseline?: LocalRuntimeRecommendationBaseline;
+};
+
 export type LocalRuntimeCatalogItemDescriptor = {
   itemId: string;
   source: 'verified' | 'huggingface' | string;
@@ -183,13 +215,20 @@ export type LocalRuntimeCatalogItemDescriptor = {
   lastModified?: string;
   verified: boolean;
   engineConfig?: Record<string, unknown>;
+  recommendation?: LocalRuntimeCatalogRecommendation;
 };
 
-export type GgufVariantDescriptor = {
+export type LocalRuntimeCatalogVariantDescriptor = {
   filename: string;
+  entry: string;
+  files: string[];
+  format?: string;
   sizeBytes?: number;
   sha256?: string;
+  recommendation?: LocalRuntimeCatalogRecommendation;
 };
+
+export type GgufVariantDescriptor = LocalRuntimeCatalogVariantDescriptor;
 
 export type LocalRuntimeInstallPlanDescriptor = {
   planId: string;
@@ -213,6 +252,7 @@ export type LocalRuntimeInstallPlanDescriptor = {
   warnings: string[];
   reasonCode?: string;
   engineConfig?: Record<string, unknown>;
+  recommendation?: LocalRuntimeCatalogRecommendation;
 };
 
 export type LocalRuntimeCatalogSearchPayload = {
@@ -512,12 +552,22 @@ export type OrphanModelFile = {
   filename: string;
   path: string;
   sizeBytes: number;
+  recommendation?: LocalRuntimeCatalogRecommendation;
 };
 
 export type OrphanArtifactFile = {
   filename: string;
   path: string;
   sizeBytes: number;
+};
+
+export type LocalRuntimeOrphanScanPreference = {
+  capability?: string;
+  engine?: string;
+};
+
+export type LocalRuntimeScanOrphansPayload = {
+  preferences?: Record<string, LocalRuntimeOrphanScanPreference>;
 };
 
 export type LocalRuntimeScaffoldOrphanPayload = {

@@ -24,6 +24,7 @@ import type {
 import { asRecord, asString } from './parser-primitives';
 import { asPlainObject } from './parser-helpers';
 import { toCanonicalLocalId } from './local-id';
+import { parseCatalogRecommendation } from './parsers-runtime-events';
 import {
   parseExecutionStageResult,
   parseExecutionEntryDescriptor,
@@ -49,6 +50,7 @@ export {
 export {
   normalizeDownloadState,
   parseAuditEvent,
+  parseCatalogRecommendation,
   parseDownloadProgressEvent,
   parseDownloadSessionSummary,
   parseGgufVariantDescriptor,
@@ -80,12 +82,20 @@ export function parseModelRecord(value: unknown): LocalRuntimeModelRecord {
   const capabilities = Array.isArray(record.capabilities)
     ? record.capabilities.map((item) => asString(item)).filter(Boolean)
     : [];
+  const files = Array.isArray(record.files)
+    ? record.files.map((item) => asString(item)).filter(Boolean)
+    : [];
+  const tags = Array.isArray(record.tags)
+    ? record.tags.map((item) => asString(item)).filter(Boolean)
+    : [];
+  const knownTotalSizeBytes = Number(record.knownTotalSizeBytes);
   return {
     localModelId: asString(record.localModelId),
     modelId: toCanonicalLocalId(record.modelId),
     capabilities,
     engine: asString(record.engine),
     entry: asString(record.entry),
+    files,
     license: asString(record.license),
     source: {
       repo: asString(source.repo),
@@ -94,12 +104,17 @@ export function parseModelRecord(value: unknown): LocalRuntimeModelRecord {
     hashes: Object.fromEntries(
       Object.entries(hashes).map(([key, hash]) => [String(key), asString(hash)]),
     ),
+    tags,
+    knownTotalSizeBytes: Number.isFinite(knownTotalSizeBytes) && knownTotalSizeBytes > 0
+      ? knownTotalSizeBytes
+      : undefined,
     endpoint: asString(record.endpoint),
     status: normalizeStatus(record.status),
     installedAt: asString(record.installedAt),
     updatedAt: asString(record.updatedAt),
     healthDetail: asString(record.healthDetail) || undefined,
     engineConfig: asPlainObject(record.engineConfig),
+    recommendation: parseCatalogRecommendation(record.recommendation),
   };
 }
 
@@ -476,6 +491,7 @@ export function parseCatalogItemDescriptor(value: unknown): LocalRuntimeCatalogI
     lastModified: asString(record.lastModified) || undefined,
     verified: Boolean(record.verified),
     engineConfig: asPlainObject(record.engineConfig),
+    recommendation: parseCatalogRecommendation(record.recommendation),
   };
 }
 
@@ -515,6 +531,7 @@ export function parseInstallPlanDescriptor(value: unknown): LocalRuntimeInstallP
     warnings,
     reasonCode: asString(record.reasonCode) || undefined,
     engineConfig: asPlainObject(record.engineConfig),
+    recommendation: parseCatalogRecommendation(record.recommendation),
   };
 }
 
