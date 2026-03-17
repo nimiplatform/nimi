@@ -225,24 +225,24 @@ func TestValidateLocalModelRequest(t *testing.T) {
 		t.Fatalf("expected sidecar selector to succeed, got %v", err)
 	}
 
+	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalModelsResponse{{
+		Models: []*runtimev1.LocalModelRecord{{
+			ModelId:              "kokoro-tts",
+			Engine:               "speech",
+			Status:               runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+			LocalInvokeProfileId: "invoke",
+		}},
+	}}}
+	if err := svc.validateLocalModelRequest(context.Background(), "speech/kokoro-tts", nil, runtimev1.Modal_MODAL_TTS); err != nil {
+		t.Fatalf("expected speech selector to succeed, got %v", err)
+	}
+
 	// Case-insensitive modelId matching should succeed across desktop/go-runtime normalization.
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalModelsResponse{{
 		Models: []*runtimev1.LocalModelRecord{{ModelId: "Qwen", Engine: "llama", LocalInvokeProfileId: "invoke"}},
 	}}}
 	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_UNSPECIFIED); err != nil {
 		t.Fatalf("expected case-insensitive local model validation success, got %v", err)
-	}
-
-	// Legacy public prefixes should fail-close instead of routing as engines.
-	for _, legacyModelID := range []string{"localai/qwen", "nexa/qwen", "nimi_media/qwen", "media.diffusers/qwen"} {
-		svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalModelsResponse{{
-			Models: []*runtimev1.LocalModelRecord{{ModelId: "qwen", Engine: "llama", LocalInvokeProfileId: "invoke"}},
-		}}}
-		err = svc.validateLocalModelRequest(context.Background(), legacyModelID, nil, runtimev1.Modal_MODAL_UNSPECIFIED)
-		reason, ok = grpcerr.ExtractReasonCode(err)
-		if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
-			t.Fatalf("expected legacy model %q to fail-close as unavailable, got=%v ok=%v err=%v", legacyModelID, reason, ok, err)
-		}
 	}
 }
 

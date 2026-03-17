@@ -20,8 +20,8 @@ test('mod runtime client forwards local profile methods with mod id', async () =
     }),
     route: {
       listOptions: async () => ({ capability: 'image.generate' as const, selected: { source: 'local' as const, connectorId: '', model: 'image-model' }, local: { models: [] }, connectors: [] }),
-      resolve: async () => ({ capability: 'image.generate' as const, source: 'local' as const, provider: 'localai', model: 'image-model', connectorId: '' }),
-      checkHealth: async () => ({ status: 'healthy' as const, healthy: true, provider: 'localai', actionHint: 'none', reasonCode: ReasonCode.RUNTIME_ROUTE_HEALTHY }),
+      resolve: async () => ({ capability: 'image.generate' as const, source: 'local' as const, provider: 'media', model: 'image-model', connectorId: '' }),
+      checkHealth: async () => ({ status: 'healthy' as const, healthy: true, provider: 'media', actionHint: 'none', reasonCode: ReasonCode.RUNTIME_ROUTE_HEALTHY }),
     },
     local: {
       listArtifacts: async () => [],

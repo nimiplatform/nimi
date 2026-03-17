@@ -283,7 +283,7 @@ function ensureRouteModelId(model: string, routePolicy: number, provider: string
   }
   if (routePolicy === ROUTE_POLICY_CLOUD) return `cloud/${modelRoot}`;
   const engine = inferLocalEngine(provider);
-  if (engine === 'llama' || engine === 'media' || engine === 'sidecar') {
+  if (engine === 'llama' || engine === 'media' || engine === 'speech' || engine === 'sidecar') {
     return `${engine}/${modelRoot}`;
   }
   return `local/${modelRoot}`;

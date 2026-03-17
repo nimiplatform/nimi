@@ -58,7 +58,7 @@ func adapterForProviderCapability(provider string, capability string) string {
 		}
 	case "media":
 		switch normalizedCapability {
-		case "image.generate", "video.generate":
+		case "image.generate", "image.edit", "video.generate", "i2v":
 			return "media_native_adapter"
 		default:
 			return "openai_compat_adapter"
@@ -72,7 +72,7 @@ func adapterForProviderCapability(provider string, capability string) string {
 		}
 	case "llama":
 		switch normalizedCapability {
-		case "image.understand", "audio.understand", "audio.transcribe", "vision", "multimodal", "audio_chat", "video_chat", "text.generate.vision", "text.generate.audio", "text.generate.video":
+		case "chat", "text.generate", "embedding", "embed", "text.embed", "image.understand", "audio.understand", "vision", "multimodal", "audio_chat", "video_chat", "text.generate.vision", "text.generate.audio", "text.generate.video":
 			return "llama_native_adapter"
 		default:
 			return "openai_compat_adapter"
@@ -296,47 +296,47 @@ func defaultVerifiedModels() []*runtimev1.LocalVerifiedModelDescriptor {
 			PreferredEngine: "speech",
 		},
 		{
-			TemplateId:     "verified.tts.kokoro",
-			Title:          "Kokoro TTS",
-			Description:    "Default local speech synthesis model",
-			InstallKind:    "download",
-			ModelId:        "local/kokoro-tts",
-			LogicalModelId: "nimi/tts-kokoro",
-			Repo:           "nimiplatform/kokoro-onnx",
-			Revision:       "main",
-			Capabilities:   []string{"audio.synthesize"},
-			Engine:         "speech",
-			Entry:          "model.onnx",
-			Files:          []string{"model.onnx", "voices.json"},
-			License:        "apache-2.0",
-			Hashes:         map[string]string{},
-			Endpoint:       "",
-			FileCount:      2,
-			TotalSizeBytes: 0,
-			Tags:           []string{"tts", "verified"},
-			ArtifactRoles:  []string{"tts_model", "tokenizer"},
+			TemplateId:      "verified.tts.kokoro",
+			Title:           "Kokoro TTS",
+			Description:     "Default local speech synthesis model",
+			InstallKind:     "download",
+			ModelId:         "local/kokoro-tts",
+			LogicalModelId:  "nimi/tts-kokoro",
+			Repo:            "nimiplatform/kokoro-onnx",
+			Revision:        "main",
+			Capabilities:    []string{"audio.synthesize"},
+			Engine:          "speech",
+			Entry:           "model.onnx",
+			Files:           []string{"model.onnx", "voices.json"},
+			License:         "apache-2.0",
+			Hashes:          map[string]string{},
+			Endpoint:        "",
+			FileCount:       2,
+			TotalSizeBytes:  0,
+			Tags:            []string{"tts", "verified"},
+			ArtifactRoles:   []string{"tts_model", "tokenizer"},
 			PreferredEngine: "speech",
 		},
 		{
-			TemplateId:     "verified.voice.qwen3_tts",
-			Title:          "Qwen3 TTS Voice Workflow",
-			Description:    "Heavy local voice workflow family for synthesize, clone, and design flows",
-			InstallKind:    "verified-hf-multi-file",
-			ModelId:        "local/qwen3-tts",
-			LogicalModelId: "nimi/voice-qwen3-tts",
-			Repo:           "Qwen/Qwen3-TTS-30B-A3B-Instruct",
-			Revision:       "main",
-			Capabilities:   []string{"audio.synthesize", "voice_workflow.tts_v2v", "voice_workflow.tts_t2v"},
-			Engine:         "speech",
-			Entry:          "model.safetensors",
-			Files:          []string{"model.safetensors", "speech_tokenizer/model.safetensors"},
-			License:        "apache-2.0",
-			Hashes:         map[string]string{},
-			Endpoint:       "",
-			FileCount:      2,
-			TotalSizeBytes: 0,
-			Tags:           []string{"tts", "voice", "verified", "heavy"},
-			ArtifactRoles:  []string{"voice_workflow_model", "speech_tokenizer", "tokenizer"},
+			TemplateId:      "verified.voice.qwen3_tts",
+			Title:           "Qwen3 TTS Voice Workflow",
+			Description:     "Heavy local voice workflow family for synthesize, clone, and design flows",
+			InstallKind:     "verified-hf-multi-file",
+			ModelId:         "local/qwen3-tts",
+			LogicalModelId:  "nimi/voice-qwen3-tts",
+			Repo:            "Qwen/Qwen3-TTS-30B-A3B-Instruct",
+			Revision:        "main",
+			Capabilities:    []string{"audio.synthesize", "voice_workflow.tts_v2v", "voice_workflow.tts_t2v"},
+			Engine:          "speech",
+			Entry:           "model.safetensors",
+			Files:           []string{"model.safetensors", "speech_tokenizer/model.safetensors"},
+			License:         "apache-2.0",
+			Hashes:          map[string]string{},
+			Endpoint:        "",
+			FileCount:       2,
+			TotalSizeBytes:  0,
+			Tags:            []string{"tts", "voice", "verified", "heavy"},
+			ArtifactRoles:   []string{"voice_workflow_model", "speech_tokenizer", "tokenizer"},
 			PreferredEngine: "speech",
 		},
 		{

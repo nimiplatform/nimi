@@ -34,20 +34,20 @@ test('parseRuntimeRouteBinding treats empty local endpoint as unconfigured', () 
   const parsed = parseRuntimeRouteBinding({
     source: 'local',
     connectorId: '',
-    provider: 'nimi_media',
+    provider: 'media',
     model: 'flux.1-schnell',
-    engine: 'nimi_media',
+    engine: 'media',
     endpoint: '   ',
   });
 
   assert.deepEqual(parsed, {
     source: 'local',
     connectorId: '',
-    provider: 'nimi_media',
+    provider: 'media',
     model: 'flux.1-schnell',
     modelId: undefined,
     localModelId: undefined,
-    engine: 'nimi_media',
+    engine: 'media',
     adapter: undefined,
     providerHints: undefined,
     endpoint: undefined,
@@ -112,9 +112,9 @@ test('parseRuntimeRouteOptions keeps local adapter and go runtime metadata', () 
       model: 'z-image-turbo',
       modelId: 'z-image-turbo',
       localModelId: 'file:z-image-turbo',
-      engine: 'localai',
-      provider: 'localai',
-      adapter: 'localai_native_adapter',
+      engine: 'media',
+      provider: 'media',
+      adapter: 'media_native_adapter',
       goRuntimeLocalModelId: '01JTESTLOCALAIMODEL',
       goRuntimeStatus: 'active',
     },
@@ -123,9 +123,9 @@ test('parseRuntimeRouteOptions keeps local adapter and go runtime metadata', () 
         localModelId: 'file:z-image-turbo',
         model: 'z-image-turbo',
         modelId: 'z-image-turbo',
-        engine: 'localai',
-        provider: 'localai',
-        adapter: 'localai_native_adapter',
+        engine: 'media',
+        provider: 'media',
+        adapter: 'media_native_adapter',
         goRuntimeLocalModelId: '01JTESTLOCALAIMODEL',
         goRuntimeStatus: 'active',
         capabilities: ['image.generate'],
@@ -135,7 +135,7 @@ test('parseRuntimeRouteOptions keeps local adapter and go runtime metadata', () 
   });
 
   assert.ok(parsed);
-  assert.equal(parsed?.selected.adapter, 'localai_native_adapter');
+  assert.equal(parsed?.selected.adapter, 'media_native_adapter');
   assert.equal(parsed?.selected.goRuntimeStatus, 'active');
   assert.equal(parsed?.local.models[0]?.goRuntimeLocalModelId, '01JTESTLOCALAIMODEL');
 });

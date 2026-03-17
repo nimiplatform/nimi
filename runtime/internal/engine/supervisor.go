@@ -308,6 +308,9 @@ func waitSupervisorHealthy(ctx context.Context, cfg EngineConfig, interval time.
 		if cfg.Kind == EngineMedia {
 			return WaitMediaHealthy(ctx, cfg.Endpoint(), interval, cfg.StartupTimeout)
 		}
+		if cfg.Kind == EngineSpeech {
+			return WaitSpeechHealthy(ctx, cfg.Endpoint(), interval, cfg.StartupTimeout)
+		}
 		return WaitHealthy(ctx, cfg.Endpoint(), cfg.HealthPath, cfg.HealthResponse, interval, cfg.StartupTimeout)
 	}
 }

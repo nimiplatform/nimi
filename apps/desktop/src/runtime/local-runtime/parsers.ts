@@ -115,6 +115,15 @@ export function parseModelRecord(value: unknown): LocalRuntimeModelRecord {
     installedAt: asString(record.installedAt),
     updatedAt: asString(record.updatedAt),
     healthDetail: asString(record.healthDetail) || undefined,
+    logicalModelId: asString(record.logicalModelId) || undefined,
+    family: asString(record.family) || undefined,
+    artifactRoles: Array.isArray(record.artifactRoles)
+      ? record.artifactRoles.map((item) => asString(item)).filter(Boolean)
+      : undefined,
+    preferredEngine: asString(record.preferredEngine) || undefined,
+    fallbackEngines: Array.isArray(record.fallbackEngines)
+      ? record.fallbackEngines.map((item) => asString(item)).filter(Boolean)
+      : undefined,
     engineConfig: asPlainObject(record.engineConfig),
     recommendation: parseCatalogRecommendation(record.recommendation),
   };
@@ -140,6 +149,7 @@ export function parseVerifiedModelDescriptor(value: unknown): LocalRuntimeVerifi
     description: asString(record.description),
     installKind: asString(record.installKind),
     modelId: asString(record.modelId),
+    logicalModelId: asString(record.logicalModelId) || undefined,
     repo: asString(record.repo),
     revision: asString(record.revision) || 'main',
     capabilities,
@@ -156,6 +166,13 @@ export function parseVerifiedModelDescriptor(value: unknown): LocalRuntimeVerifi
       ? totalSizeBytesRaw
       : undefined,
     tags,
+    artifactRoles: Array.isArray(record.artifactRoles)
+      ? record.artifactRoles.map((item) => asString(item)).filter(Boolean)
+      : undefined,
+    preferredEngine: asString(record.preferredEngine) || undefined,
+    fallbackEngines: Array.isArray(record.fallbackEngines)
+      ? record.fallbackEngines.map((item) => asString(item)).filter(Boolean)
+      : undefined,
     engineConfig: asPlainObject(record.engineConfig),
   };
 }

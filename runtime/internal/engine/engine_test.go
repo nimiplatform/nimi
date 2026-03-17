@@ -216,7 +216,7 @@ func TestLlamaDownloadURL(t *testing.T) {
 		t.Fatal("expected non-empty URL")
 	}
 
-	expectedPrefix := "https://github.com/mudler/LocalAI/releases/download/v3.12.1/"
+	expectedPrefix := llamaReleaseBaseURL + "/v3.12.1/"
 	if len(url) < len(expectedPrefix) || url[:len(expectedPrefix)] != expectedPrefix {
 		t.Errorf("unexpected URL prefix: %s", url)
 	}
@@ -352,12 +352,12 @@ func TestLlamaExpectedSHA256(t *testing.T) {
 	const asset = "local-ai-v3.12.1-darwin-arm64"
 	const expectedHash = "aac7f1248948cf2e6b2ce1c86a311601b1e37154914397f602b1f6f4bfe2de00" // pragma: allowlist secret
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v3.12.1/LocalAI-v3.12.1-checksums.txt" {
+		if r.URL.Path != "/v3.12.1/"+llamaChecksumAssetName(version) {
 			http.NotFound(w, r)
 			return
 		}
 		_, _ = w.Write([]byte(strings.Join([]string{
-			"fc8483b895154d3c4e7149d6d480cb18837a3ae42a208f687a89db20802d78d1  LocalAI-v3.12.1-source.tar.gz",
+			"fc8483b895154d3c4e7149d6d480cb18837a3ae42a208f687a89db20802d78d1  " + strings.Replace(llamaChecksumAssetName(version), "-checksums.txt", "-source.tar.gz", 1),
 			expectedHash + "  " + asset,
 		}, "\n")))
 	}))
@@ -733,8 +733,8 @@ func TestNewManager(t *testing.T) {
 
 	// ListEngines should include known engines even when not running.
 	engines := mgr.ListEngines()
-	if len(engines) != 2 {
-		t.Fatalf("expected 2 known engines (llama+media), got %d", len(engines))
+	if len(engines) != 3 {
+		t.Fatalf("expected 3 known engines (llama+media+speech), got %d", len(engines))
 	}
 	seen := map[EngineKind]bool{}
 	for _, info := range engines {
@@ -743,8 +743,8 @@ func TestNewManager(t *testing.T) {
 			t.Fatalf("expected stopped status for non-running engine %s, got %s", info.Kind, info.Status)
 		}
 	}
-	if !seen[EngineLlama] || !seen[EngineMedia] {
-		t.Fatalf("expected list to include llama and media, got %+v", engines)
+	if !seen[EngineLlama] || !seen[EngineMedia] || !seen[EngineSpeech] {
+		t.Fatalf("expected list to include llama, media, and speech, got %+v", engines)
 	}
 }
 
@@ -824,8 +824,8 @@ func TestServiceAdapterListEnginesEmpty(t *testing.T) {
 
 	adapter := NewServiceAdapter(mgr)
 	engines := adapter.ListEngines()
-	if len(engines) != 2 {
-		t.Fatalf("expected 2 known engines, got %d", len(engines))
+	if len(engines) != 3 {
+		t.Fatalf("expected 3 known engines, got %d", len(engines))
 	}
 	seen := map[string]bool{}
 	for _, info := range engines {
@@ -834,8 +834,8 @@ func TestServiceAdapterListEnginesEmpty(t *testing.T) {
 			t.Fatalf("expected stopped status for non-running engine %s, got %s", info.Engine, info.Status)
 		}
 	}
-	if !seen[string(EngineLlama)] || !seen[string(EngineMedia)] {
-		t.Fatalf("expected adapter list to include llama and media, got %+v", engines)
+	if !seen[string(EngineLlama)] || !seen[string(EngineMedia)] || !seen[string(EngineSpeech)] {
+		t.Fatalf("expected adapter list to include llama, media, and speech, got %+v", engines)
 	}
 }
 
@@ -916,7 +916,8 @@ func TestParseEngineKind(t *testing.T) {
 	}{
 		{"llama", EngineLlama, false},
 		{"media", EngineMedia, false},
-		{"media.diffusers", EngineMedia, false},
+		{"speech", EngineSpeech, false},
+		{"media.diffusers", "", true},
 		{"sidecar", EngineKind("sidecar"), false},
 		{"unknown", "", true},
 		{"", "", true},

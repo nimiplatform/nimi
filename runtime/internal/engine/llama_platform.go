@@ -11,11 +11,11 @@ func LlamaSupervisedPlatformSupported() bool {
 // LlamaSupervisedPlatformSupportedFor reports whether runtime can manage a
 // llama binary for the provided platform tuple.
 func LlamaSupervisedPlatformSupportedFor(goos string, goarch string) bool {
-	_, ok := localAISupervisedAssetSuffix(goos, goarch)
+	_, ok := llamaSupervisedAssetSuffix(goos, goarch)
 	return ok
 }
 
-func localAISupervisedAssetSuffix(goos string, goarch string) (string, bool) {
+func llamaSupervisedAssetSuffix(goos string, goarch string) (string, bool) {
 	switch strings.TrimSpace(strings.ToLower(goos)) {
 	case "darwin":
 		switch strings.TrimSpace(strings.ToLower(goarch)) {

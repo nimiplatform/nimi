@@ -3,9 +3,11 @@
 Local OpenAI-compatible gateway for Qwen3-TTS VoiceDesign.
 
 Routes:
-  - GET  /v1/models
+  - GET  /healthz
+  - GET  /v1/catalog
   - GET  /v1/audio/voices
   - POST /v1/audio/speech
+  - POST /v1/voice/design
 """
 
 from __future__ import annotations
@@ -119,15 +121,24 @@ def create_app(model_dir: str, model_id: str) -> FastAPI:
     MODEL_ID = model_id
     MODEL_DIR = model_dir
 
-    @app.get("/v1/models")
+    @app.get("/healthz")
+    def healthz() -> Dict[str, Any]:
+        return {
+            "status": "ok",
+            "ready": True,
+        }
+
+    @app.get("/v1/catalog")
     def list_models() -> Dict[str, Any]:
         return {
-            "object": "list",
-            "data": [
+            "models": [
                 {
                     "id": MODEL_ID,
-                    "object": "model",
-                    "owned_by": "local",
+                    "ready": True,
+                    "capabilities": [
+                        "audio.synthesize",
+                        "voice_workflow.tts_t2v",
+                    ],
                 }
             ],
         }
@@ -201,6 +212,10 @@ def create_app(model_dir: str, model_id: str) -> FastAPI:
                     }
                 },
             )
+
+    @app.post("/v1/voice/design")
+    def design_voice(request: SpeechRequest):
+        return synthesize_speech(request)
 
     return app
 

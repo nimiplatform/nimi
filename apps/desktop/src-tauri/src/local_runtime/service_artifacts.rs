@@ -55,8 +55,8 @@ fn qwen_tts_python_service_artifact() -> LocalAiServiceArtifact {
             model_binding: Some("resolved-bundle".to_string()),
         },
         health: LocalAiServiceHealthSpec {
-            endpoint: "/v1/models".to_string(),
-            capability_probe_endpoint: Some("/v1/models".to_string()),
+            endpoint: "/healthz".to_string(),
+            capability_probe_endpoint: Some("/v1/catalog".to_string()),
             interval_ms: 30_000,
             timeout_ms: 4_000,
         },
@@ -109,7 +109,8 @@ mod tests {
     fn qwen_service_artifact_uses_speech_native_contract() {
         let artifact =
             find_service_artifact("qwen-tts-python").expect("qwen-tts-python artifact");
-        assert_eq!(artifact.health.endpoint, "/v1/models");
+        assert_eq!(artifact.health.endpoint, "/healthz");
+        assert_eq!(artifact.health.capability_probe_endpoint.as_deref(), Some("/v1/catalog"));
         assert!(artifact
             .nodes
             .iter()

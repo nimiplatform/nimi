@@ -8,7 +8,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type localAIModelsConfigEntry struct {
+type llamaModelsConfigEntry struct {
 	Backend string `yaml:"backend"`
 }
 
@@ -45,7 +45,7 @@ func detectLlamaExternalBackends(configPath string) []string {
 	if err != nil {
 		return nil
 	}
-	var entries []localAIModelsConfigEntry
+	var entries []llamaModelsConfigEntry
 	if err := yaml.Unmarshal(raw, &entries); err != nil {
 		return nil
 	}

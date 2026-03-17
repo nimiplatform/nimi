@@ -69,6 +69,14 @@ func WaitHealthy(ctx context.Context, endpoint string, healthPath string, expect
 }
 
 func ProbeMediaHealth(ctx context.Context, endpoint string) error {
+	return probeCanonicalCatalogHealth(ctx, endpoint, "media")
+}
+
+func ProbeSpeechHealth(ctx context.Context, endpoint string) error {
+	return probeCanonicalCatalogHealth(ctx, endpoint, "speech")
+}
+
+func probeCanonicalCatalogHealth(ctx context.Context, endpoint string, engineLabel string) error {
 	baseURL := strings.TrimSuffix(endpoint, "/")
 	healthURL := baseURL + "/healthz"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL, nil)
@@ -92,10 +100,10 @@ func ProbeMediaHealth(ctx context.Context, endpoint string) error {
 		Ready bool `json:"ready"`
 	}{}
 	if err := json.Unmarshal(body, &healthPayload); err != nil {
-		return fmt.Errorf("health probe parse failed: %w", err)
+		return fmt.Errorf("%s health probe parse failed: %w", engineLabel, err)
 	}
 	if !healthPayload.Ready {
-		return fmt.Errorf("health probe reported ready=false")
+		return fmt.Errorf("%s health probe reported ready=false", engineLabel)
 	}
 
 	url := baseURL + "/v1/catalog"
@@ -122,22 +130,36 @@ func ProbeMediaHealth(ctx context.Context, endpoint string) error {
 		} `json:"models"`
 	}{}
 	if err := json.Unmarshal(body, &payload); err != nil {
-		return fmt.Errorf("catalog probe parse failed: %w", err)
+		return fmt.Errorf("%s catalog probe parse failed: %w", engineLabel, err)
 	}
 	for _, model := range payload.Models {
 		if strings.TrimSpace(model.ID) != "" && model.Ready {
 			return nil
 		}
 	}
-	return fmt.Errorf("catalog probe missing ready models")
+	return fmt.Errorf("%s catalog probe missing ready models", engineLabel)
 }
 
 func WaitMediaHealthy(ctx context.Context, endpoint string, interval time.Duration, timeout time.Duration) error {
+	return waitCanonicalCatalogHealthy(ctx, endpoint, interval, timeout, ProbeMediaHealth)
+}
+
+func WaitSpeechHealthy(ctx context.Context, endpoint string, interval time.Duration, timeout time.Duration) error {
+	return waitCanonicalCatalogHealthy(ctx, endpoint, interval, timeout, ProbeSpeechHealth)
+}
+
+func waitCanonicalCatalogHealthy(
+	ctx context.Context,
+	endpoint string,
+	interval time.Duration,
+	timeout time.Duration,
+	probe func(context.Context, string) error,
+) error {
 	deadline := time.After(timeout)
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	if err := ProbeMediaHealth(ctx, endpoint); err == nil {
+	if err := probe(ctx, endpoint); err == nil {
 		return nil
 	}
 
@@ -148,7 +170,7 @@ func WaitMediaHealthy(ctx context.Context, endpoint string, interval time.Durati
 		case <-deadline:
 			return fmt.Errorf("wait healthy timed out after %s", timeout)
 		case <-ticker.C:
-			if err := ProbeMediaHealth(ctx, endpoint); err == nil {
+			if err := probe(ctx, endpoint); err == nil {
 				return nil
 			}
 		}

@@ -143,7 +143,7 @@ func TestLocalProviderResolveModelIDPreservesExplicitEnginePrefixes(t *testing.T
 		"local/qwen2.5":               "qwen2.5",
 		"llama/z-image-turbo":         "llama/z-image-turbo",
 		"media/flux.1-schnell":        "media/flux.1-schnell",
-		"media.diffusers/wan2.2":      "media.diffusers/wan2.2",
+		"speech/qwen3-tts":            "speech/qwen3-tts",
 		"sidecar/stable-audio-open-1": "sidecar/stable-audio-open-1",
 	}
 	for input, want := range cases {

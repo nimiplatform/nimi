@@ -26,14 +26,14 @@ test('mod runtime client forwards local artifact listing with mod id and filters
       resolve: async () => ({
         capability: 'image.generate' as const,
         source: 'local' as const,
-        provider: 'localai',
+        provider: 'media',
         model: 'z-image',
         connectorId: '',
       }),
       checkHealth: async () => ({
         status: 'healthy' as const,
         healthy: true,
-        provider: 'localai',
+        provider: 'media',
         reasonCode: ReasonCode.RUNTIME_ROUTE_HEALTHY,
         actionHint: 'none',
       }),
@@ -45,7 +45,7 @@ test('mod runtime client forwards local artifact listing with mod id and filters
           localArtifactId: 'artifact-1',
           artifactId: 'z-image-ae',
           kind: 'vae',
-          engine: 'localai',
+          engine: 'media',
           entry: 'ae.safetensors',
           files: ['ae.safetensors'],
           license: 'apache-2.0',
@@ -117,14 +117,14 @@ test('mod runtime client forwards local artifact listing with mod id and filters
 
   const artifacts = await client.local.listArtifacts({
     kind: 'vae',
-    engine: 'localai',
+    engine: 'media',
   });
 
   assert.equal(artifactCalls.length, 1);
   assert.deepEqual(artifactCalls[0], {
     modId: 'mod.local.artifacts.test',
     kind: 'vae',
-    engine: 'localai',
+    engine: 'media',
   });
   assert.equal(artifacts.length, 1);
   assert.equal(artifacts[0]?.artifactId, 'z-image-ae');

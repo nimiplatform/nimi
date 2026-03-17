@@ -65,7 +65,7 @@ export function hydrateLocalRouteBindingFromOptions(binding: RuntimeRouteBinding
     }
     const selected = options.selected.source === 'local' ? options.selected : null;
     const targetLocalModelId = String(binding.localModelId || '').trim();
-    const targetModelId = String(binding.modelId || binding.model || '').trim().replace(/^(llama|media|sidecar|local)\//i, '');
+    const targetModelId = String(binding.modelId || binding.model || '').trim().replace(/^(llama|media|speech|sidecar|local)\//i, '');
     const targetEngine = String(binding.engine || binding.provider || '').trim().toLowerCase();
     const localModel = options.local.models.find((item) => ((targetLocalModelId && String(item.localModelId || '').trim() === targetLocalModelId)
         || (String(item.modelId || item.model || '').trim() === targetModelId

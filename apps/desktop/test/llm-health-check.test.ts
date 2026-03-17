@@ -59,14 +59,14 @@ test('localOpenAiEndpoint used as fallback when localProviderEndpoint empty', as
   assert.equal(result.endpoint, 'http://127.0.0.1:1234/v1');
 });
 
-test('media health uses /healthz + /v1/models', async () => {
+test('media health uses /healthz + /v1/catalog', async () => {
   const mockFetch = mock.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url.endsWith('/healthz')) {
       return new Response(JSON.stringify({ ready: true }), { status: 200 });
     }
-    if (url.endsWith('/v1/models')) {
-      return new Response(JSON.stringify({ models: [{ id: 'flux.1-schnell' }] }), { status: 200 });
+    if (url.endsWith('/v1/catalog')) {
+      return new Response(JSON.stringify({ models: [{ id: 'flux.1-schnell', ready: true }] }), { status: 200 });
     }
     return new Response('not found', { status: 404 });
   });
@@ -80,7 +80,31 @@ test('media health uses /healthz + /v1/models', async () => {
   assert.equal(result.status, 'healthy');
   assert.equal(mockFetch.mock.callCount(), 2);
   assert.ok(String(mockFetch.mock.calls[0]!.arguments[0]).endsWith('/healthz'));
-  assert.ok(String(mockFetch.mock.calls[1]!.arguments[0]).endsWith('/v1/models'));
+  assert.ok(String(mockFetch.mock.calls[1]!.arguments[0]).endsWith('/v1/catalog'));
+});
+
+test('speech health uses /healthz + /v1/catalog', async () => {
+  const mockFetch = mock.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith('/healthz')) {
+      return new Response(JSON.stringify({ ready: true }), { status: 200 });
+    }
+    if (url.endsWith('/v1/catalog')) {
+      return new Response(JSON.stringify({ models: [{ id: 'qwen3-tts', ready: true }] }), { status: 200 });
+    }
+    return new Response('not found', { status: 404 });
+  });
+
+  const result = await checkLocalLlmHealth({
+    provider: 'speech',
+    localProviderEndpoint: 'http://127.0.0.1:8330/v1',
+    fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+  });
+
+  assert.equal(result.status, 'healthy');
+  assert.equal(mockFetch.mock.callCount(), 2);
+  assert.ok(String(mockFetch.mock.calls[0]!.arguments[0]).endsWith('/healthz'));
+  assert.ok(String(mockFetch.mock.calls[1]!.arguments[0]).endsWith('/v1/catalog'));
 });
 
 test('no endpoint no connectorId → unsupported', async () => {

@@ -6,8 +6,9 @@ import "time"
 type EngineKind string
 
 const (
-	EngineLlama EngineKind = "llama"
-	EngineMedia EngineKind = "media"
+	EngineLlama  EngineKind = "llama"
+	EngineMedia  EngineKind = "media"
+	EngineSpeech EngineKind = "speech"
 
 	engineMediaDiffusersBackend EngineKind = "media-diffusers-backend"
 )
@@ -182,6 +183,24 @@ func DefaultMediaConfig() EngineConfig {
 		HealthPath:       "/healthz",
 		HealthResponse:   "\"ready\": true",
 		StartupTimeout:   180 * time.Second,
+		HealthInterval:   30 * time.Second,
+		MaxRestarts:      5,
+		RestartBaseDelay: 2 * time.Second,
+		ShutdownTimeout:  10 * time.Second,
+	}
+}
+
+// DefaultSpeechConfig returns the default configuration for the managed
+// speech/voice workflow engine.
+func DefaultSpeechConfig() EngineConfig {
+	return EngineConfig{
+		Kind:             EngineSpeech,
+		Port:             8330,
+		Version:          "0.1.0",
+		HealthMode:       HealthModeHTTP,
+		HealthPath:       "/healthz",
+		HealthResponse:   "\"ready\": true",
+		StartupTimeout:   240 * time.Second,
 		HealthInterval:   30 * time.Second,
 		MaxRestarts:      5,
 		RestartBaseDelay: 2 * time.Second,

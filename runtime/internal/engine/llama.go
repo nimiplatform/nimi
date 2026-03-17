@@ -23,7 +23,7 @@ func llamaAssetName(version string) (string, error) {
 	if trimmedVersion == "" {
 		return "", fmt.Errorf("llama version is required")
 	}
-	assetSuffix, ok := localAISupervisedAssetSuffix(currentGOOS(), currentGOARCH())
+	assetSuffix, ok := llamaSupervisedAssetSuffix(currentGOOS(), currentGOARCH())
 	if ok {
 		return fmt.Sprintf("local-ai-v%s-%s", trimmedVersion, assetSuffix), nil
 	}

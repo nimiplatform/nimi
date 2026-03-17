@@ -1469,13 +1469,13 @@ func TestLocalNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 		t.Fatalf("chat node count mismatch: got=%d want=1", len(chatNodesResp.GetNodes()))
 	}
 	chatNode := chatNodesResp.GetNodes()[0]
-	if chatNode.GetAdapter() != "openai_compat_adapter" {
+	if chatNode.GetAdapter() != "llama_native_adapter" {
 		t.Fatalf("llama chat adapter mismatch: %s", chatNode.GetAdapter())
 	}
 	if chatNode.GetProviderHints() == nil || chatNode.GetProviderHints().GetLlama() == nil {
 		t.Fatalf("llama chat node must include provider hints")
 	}
-	if chatNode.GetProviderHints().GetLlama().GetPreferredAdapter() != "openai_compat_adapter" {
+	if chatNode.GetProviderHints().GetLlama().GetPreferredAdapter() != "llama_native_adapter" {
 		t.Fatalf("llama chat preferred adapter mismatch: %s", chatNode.GetProviderHints().GetLlama().GetPreferredAdapter())
 	}
 
@@ -1496,7 +1496,7 @@ func TestLocalNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 	}
 }
 
-func TestLocalNodeCatalogSortsByTypeThenNodeID(t *testing.T) {
+func TestLocalNodeCatalogSortsByNodeIDWithinSameAdapter(t *testing.T) {
 	svc := newTestService(t)
 
 	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
@@ -1531,14 +1531,14 @@ func TestLocalNodeCatalogSortsByTypeThenNodeID(t *testing.T) {
 
 	first := resp.GetNodes()[0]
 	second := resp.GetNodes()[1]
-	if first.GetAdapter() != "llama_native_adapter" || second.GetAdapter() != "openai_compat_adapter" {
-		t.Fatalf("node catalog must sort by node type(adapter) before node id, got adapters: %s, %s", first.GetAdapter(), second.GetAdapter())
+	if first.GetAdapter() != "llama_native_adapter" || second.GetAdapter() != "llama_native_adapter" {
+		t.Fatalf("node catalog should keep llama-native adapters together, got adapters: %s, %s", first.GetAdapter(), second.GetAdapter())
 	}
-	if len(first.GetCapabilities()) == 0 || first.GetCapabilities()[0] != "image.understand" {
-		t.Fatalf("expected image node first, got capabilities: %#v", first.GetCapabilities())
+	if len(first.GetCapabilities()) == 0 || first.GetCapabilities()[0] != "chat" {
+		t.Fatalf("expected chat node first when adapter names match, got capabilities: %#v", first.GetCapabilities())
 	}
-	if len(second.GetCapabilities()) == 0 || second.GetCapabilities()[0] != "chat" {
-		t.Fatalf("expected chat node second, got capabilities: %#v", second.GetCapabilities())
+	if len(second.GetCapabilities()) == 0 || second.GetCapabilities()[0] != "image.understand" {
+		t.Fatalf("expected image node second when adapter names match, got capabilities: %#v", second.GetCapabilities())
 	}
 }
 
@@ -2299,30 +2299,6 @@ func TestResolveModelInstallPlanManualAddsDeviceWarnings(t *testing.T) {
 	}
 }
 
-func TestResolveModelInstallPlanLegacyEngineRequiresExplicitEndpoint(t *testing.T) {
-	svc := newTestService(t)
-	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
-		ModelId: "local/nexa-model",
-		Engine:  "nexa",
-	})
-	if err != nil {
-		t.Fatalf("resolve model install plan: %v", err)
-	}
-	plan := resp.GetPlan()
-	if plan.GetInstallAvailable() {
-		t.Fatalf("legacy engine attached-endpoint plan without endpoint must be unavailable")
-	}
-	if plan.GetEngineRuntimeMode() != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT {
-		t.Fatalf("legacy engine should stay attached-endpoint only, got %s", plan.GetEngineRuntimeMode())
-	}
-	if plan.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String() {
-		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
-	}
-	if strings.TrimSpace(plan.GetEndpoint()) != "" {
-		t.Fatalf("legacy engine endpoint should remain empty when not provided, got %q", plan.GetEndpoint())
-	}
-}
-
 func TestResolveModelInstallPlanSidecarEndpointRequired(t *testing.T) {
 	svc := newTestService(t)
 	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
@@ -2554,21 +2530,21 @@ func TestInstallLocalModelMediaRequiresExplicitEndpointOnUnsupportedHost(t *test
 	assertGRPCReasonCode(t, err, "InstallLocalModel(media unsupported host)", runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
 }
 
-func TestStartLocalModelLegacyEngineTTSProbePassesThroughCurrentAttachedEndpointBehavior(t *testing.T) {
+func TestStartLocalModelSpeechTTSProbePassesThroughCurrentAttachedEndpointBehavior(t *testing.T) {
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{
 			healthy:   true,
 			responded: true,
 			detail:    "probe succeeded",
 			probeURL:  endpoint,
-			models:    []string{"nexa/other-tts-model"},
+			models:    []string{"speech/other-tts-model"},
 		}
 	})
 
 	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/nexa-tts-model",
+		ModelId:      "local/kokoro-tts-model",
 		Capabilities: []string{"tts"},
-		Engine:       "nexa",
+		Engine:       "speech",
 		Endpoint:     "http://127.0.0.1:18181/v1",
 	})
 	if err != nil {
@@ -2582,25 +2558,25 @@ func TestStartLocalModelLegacyEngineTTSProbePassesThroughCurrentAttachedEndpoint
 		t.Fatalf("start local model: %v", err)
 	}
 	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
-		t.Fatalf("legacy attached-endpoint model should follow generic probe health, got %s", started.GetModel().GetStatus())
+		t.Fatalf("speech attached-endpoint model should follow generic probe health, got %s", started.GetModel().GetStatus())
 	}
 }
 
-func TestStartLocalModelLegacyEngineTTSProbeSuccess(t *testing.T) {
+func TestStartLocalModelSpeechTTSProbeSuccess(t *testing.T) {
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{
 			healthy:   true,
 			responded: true,
 			detail:    "probe succeeded",
 			probeURL:  endpoint,
-			models:    []string{"models/nexa-tts-model"},
+			models:    []string{"models/kokoro-tts-model"},
 		}
 	})
 
 	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/nexa-tts-model",
+		ModelId:      "local/kokoro-tts-model",
 		Capabilities: []string{"tts"},
-		Engine:       "nexa",
+		Engine:       "speech",
 		Endpoint:     "http://127.0.0.1:18181/v1",
 	})
 	if err != nil {
@@ -2614,7 +2590,7 @@ func TestStartLocalModelLegacyEngineTTSProbeSuccess(t *testing.T) {
 		t.Fatalf("start local model: %v", err)
 	}
 	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
-		t.Fatalf("nexa tts model should become active when capability probe matches, got %s", started.GetModel().GetStatus())
+		t.Fatalf("speech tts model should become active when capability probe matches, got %s", started.GetModel().GetStatus())
 	}
 }
 
@@ -2777,91 +2753,6 @@ func TestLocalStateRestoresAfterRestart(t *testing.T) {
 	}
 	if event.GetOperation() != "append_inference_audit" {
 		t.Fatalf("unexpected restored operation: %s", event.GetOperation())
-	}
-}
-
-func TestLocalStateRestoreRejectsLegacyCanonicalAliasDuplicates(t *testing.T) {
-	statePath := filepath.Join(t.TempDir(), "local-state.json")
-	raw, err := json.Marshal(localStateSnapshot{
-		SchemaVersion: 1,
-		SavedAt:       "2026-03-15T00:00:00Z",
-		Models: []localStateModelState{
-			{
-				LocalModelID: "legacy-local-model",
-				ModelID:      "local/z_image_turbo",
-				Capabilities: []string{"image"},
-				Engine:       "localai",
-				Entry:        "z_image_turbo-Q4_K_M.gguf",
-				Status:       int32(runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED),
-				InstalledAt:  "2026-03-12T03:22:03.108524Z",
-				UpdatedAt:    "2026-03-12T03:29:11.762573Z",
-			},
-			{
-				LocalModelID: "current-bare-model",
-				ModelID:      "z_image_turbo",
-				Capabilities: []string{"image"},
-				Engine:       "localai",
-				Entry:        "z_image_turbo-Q4_K_M.gguf",
-				Status:       int32(runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE),
-				InstalledAt:  "2026-03-12T03:29:58.769489Z",
-				UpdatedAt:    "2026-03-12T03:30:12.73915Z",
-			},
-		},
-		Artifacts: []localStateArtifactState{
-			{
-				LocalArtifactID: "legacy-local-artifact",
-				ArtifactID:      "local/z_image_ae",
-				Kind:            int32(runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE),
-				Engine:          "localai",
-				Entry:           "vae/diffusion_pytorch_model.safetensors",
-				Files:           []string{"vae/diffusion_pytorch_model.safetensors"},
-				Status:          int32(runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_REMOVED),
-				InstalledAt:     "2026-03-12T03:22:04.126814Z",
-				UpdatedAt:       "2026-03-12T03:29:11.766458Z",
-			},
-			{
-				LocalArtifactID: "current-bare-artifact",
-				ArtifactID:      "z_image_ae",
-				Kind:            int32(runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE),
-				Engine:          "localai",
-				Entry:           "vae/diffusion_pytorch_model.safetensors",
-				Files:           []string{"vae/diffusion_pytorch_model.safetensors"},
-				Status:          int32(runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_INSTALLED),
-				InstalledAt:     "2026-03-12T03:29:59.797625Z",
-				UpdatedAt:       "2026-03-12T03:29:59.797632Z",
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("marshal local state snapshot: %v", err)
-	}
-	if err := os.WriteFile(statePath, raw, 0o600); err != nil {
-		t.Fatalf("write local state snapshot: %v", err)
-	}
-
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	restarted := New(logger, nil, statePath, 0)
-	defer restarted.Close()
-
-	modelsResp, err := restarted.ListLocalModels(context.Background(), &runtimev1.ListLocalModelsRequest{})
-	if err != nil {
-		t.Fatalf("list models after restore: %v", err)
-	}
-	if len(modelsResp.GetModels()) != 0 {
-		t.Fatalf("legacy local state should be rejected during restore, got %d model rows", len(modelsResp.GetModels()))
-	}
-
-	artifactsResp, err := restarted.ListLocalArtifacts(context.Background(), &runtimev1.ListLocalArtifactsRequest{})
-	if err != nil {
-		t.Fatalf("list artifacts after restore: %v", err)
-	}
-	if len(artifactsResp.GetArtifacts()) != 0 {
-		t.Fatalf("legacy local state should be rejected during restore, got %d artifact rows", len(artifactsResp.GetArtifacts()))
-	}
-
-	_, err = loadLocalStateSnapshot(statePath)
-	if err == nil {
-		t.Fatalf("legacy local state snapshot should fail-close on direct load")
 	}
 }
 

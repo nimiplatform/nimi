@@ -153,6 +153,43 @@ func (s *Service) SetManagedMediaEndpoint(endpoint string) {
 	}
 }
 
+// SetManagedSpeechEndpoint records the managed speech endpoint exposed
+// by the daemon and rewrites supervised speech model endpoints to that value.
+func (s *Service) SetManagedSpeechEndpoint(endpoint string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.managedSpeechEndpointValue = strings.TrimSpace(endpoint)
+	if s.managedSpeechEndpointValue == "" {
+		return
+	}
+
+	updatedAt := nowISO()
+	changed := false
+	for localModelID, model := range s.models {
+		if model == nil || model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
+			continue
+		}
+		if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "speech") {
+			continue
+		}
+		if normalizeRuntimeMode(s.modelRuntimeModes[localModelID]) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+			continue
+		}
+		if strings.TrimSpace(model.GetEndpoint()) == s.managedSpeechEndpointValue {
+			continue
+		}
+		cloned := cloneLocalModel(model)
+		cloned.Endpoint = s.managedSpeechEndpointValue
+		cloned.UpdatedAt = updatedAt
+		s.models[localModelID] = cloned
+		changed = true
+	}
+	if changed {
+		s.persistStateLocked()
+	}
+}
+
 // SetManagedMediaDiffusersBackendConfig records whether the managed diffusers image
 // backend is configured for daemon-supervised local media workflows.
 func (s *Service) SetManagedMediaDiffusersBackendConfig(enabled bool, address string) {
@@ -671,6 +708,7 @@ func normalizeComparableModelID(value string) string {
 	comparable = strings.TrimPrefix(comparable, "local/")
 	comparable = strings.TrimPrefix(comparable, "llama/")
 	comparable = strings.TrimPrefix(comparable, "media/")
+	comparable = strings.TrimPrefix(comparable, "speech/")
 	comparable = strings.TrimPrefix(comparable, "media.diffusers/")
 	return comparable
 }

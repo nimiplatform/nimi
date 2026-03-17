@@ -47,7 +47,7 @@ func TestBuildNodeProviderHintsMediaDoesNotSynthesizeCatalogMetadata(t *testing.
 }
 
 func TestAdapterForProviderCapabilityUsesHardCutAdapters(t *testing.T) {
-	if got := adapterForProviderCapability("llama", "chat"); got != "openai_compat_adapter" {
+	if got := adapterForProviderCapability("llama", "chat"); got != "llama_native_adapter" {
 		t.Fatalf("llama chat adapter mismatch: %s", got)
 	}
 	if got := adapterForProviderCapability("llama", "image.understand"); got != "llama_native_adapter" {

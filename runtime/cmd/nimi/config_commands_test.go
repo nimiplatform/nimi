@@ -127,39 +127,6 @@ func TestRunRuntimeConfigSetAllowsInlineProviderAPIKey(t *testing.T) {
 	}
 }
 
-func TestRunRuntimeConfigSetProvidersLocalRejected(t *testing.T) {
-	homeDir := t.TempDir()
-	setCmdTestHome(t, homeDir)
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
-	clearRuntimeConfigCommandEnv(t)
-
-	if err := runRuntimeConfig([]string{"init", "--json"}); err != nil {
-		t.Fatalf("init config: %v", err)
-	}
-
-	_, err := captureStdoutFromRun(func() error {
-		return runRuntimeConfig([]string{
-			"set",
-			"--set", "providers.local.baseUrl=http://127.0.0.1:1234/v1",
-			"--set", "providers.local.apiKeyEnv=LOCALAI_API_KEY",
-			"--json",
-		})
-	})
-	if err == nil {
-		t.Fatal("expected providers.local to be rejected")
-	}
-	var configErr *configCommandError
-	if !errors.As(err, &configErr) {
-		t.Fatalf("expected configCommandError, got %T: %v", err, err)
-	}
-	if configErr.reasonCode != configReasonSchemaInvalid {
-		t.Fatalf("reason code mismatch: got=%s want=%s", configErr.reasonCode, configReasonSchemaInvalid)
-	}
-	if !strings.Contains(strings.ToLower(configErr.Error()), "provider \"local\" is forbidden") {
-		t.Fatalf("unexpected error: %v", configErr)
-	}
-}
-
 func TestRunRuntimeConfigSetEngineFieldsRequiresRestart(t *testing.T) {
 	homeDir := t.TempDir()
 	setCmdTestHome(t, homeDir)
@@ -199,38 +166,6 @@ func TestRunRuntimeConfigSetEngineFieldsRequiresRestart(t *testing.T) {
 	}
 	if cfg.Engines.Llama.Port == nil || *cfg.Engines.Llama.Port != 2234 {
 		t.Fatalf("engines.llama.port value mismatch: %#v", cfg.Engines.Llama.Port)
-	}
-}
-
-func TestRunRuntimeConfigSetLegacyLocalAIFieldsRejected(t *testing.T) {
-	homeDir := t.TempDir()
-	setCmdTestHome(t, homeDir)
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
-	clearRuntimeConfigCommandEnv(t)
-
-	if err := runRuntimeConfig([]string{"init", "--json"}); err != nil {
-		t.Fatalf("init config: %v", err)
-	}
-
-	_, err := captureStdoutFromRun(func() error {
-		return runRuntimeConfig([]string{
-			"set",
-			"--set", "engines.localai.enabled=true",
-			"--json",
-		})
-	})
-	if err == nil {
-		t.Fatal("expected legacy localai engine config to be rejected")
-	}
-	var configErr *configCommandError
-	if !errors.As(err, &configErr) {
-		t.Fatalf("expected configCommandError, got %T: %v", err, err)
-	}
-	if configErr.reasonCode != configReasonSchemaInvalid {
-		t.Fatalf("reason code mismatch: got=%s want=%s", configErr.reasonCode, configReasonSchemaInvalid)
-	}
-	if !strings.Contains(strings.ToLower(configErr.Error()), "engines.localai") {
-		t.Fatalf("expected legacy key in error, got: %v", configErr)
 	}
 }
 

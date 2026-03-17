@@ -120,6 +120,8 @@ func resolveEngineConfig(engineName string, version string, port int) (EngineCon
 		cfg = DefaultLlamaConfig()
 	case EngineMedia:
 		cfg = DefaultMediaConfig()
+	case EngineSpeech:
+		cfg = DefaultSpeechConfig()
 	case EngineKind("sidecar"):
 		return EngineConfig{}, fmt.Errorf("engine %q is not yet supported for supervised lifecycle", engineName)
 	default:
@@ -139,8 +141,10 @@ func parseEngineKind(name string) (EngineKind, error) {
 	switch strings.ToLower(strings.TrimSpace(name)) {
 	case "llama":
 		return EngineLlama, nil
-	case "media", "media.diffusers":
+	case "media":
 		return EngineMedia, nil
+	case "speech":
+		return EngineSpeech, nil
 	case "sidecar":
 		return EngineKind("sidecar"), nil
 	default:
@@ -154,6 +158,8 @@ func publicEngineName(kind EngineKind) string {
 		return "llama"
 	case EngineMedia:
 		return "media"
+	case EngineSpeech:
+		return "speech"
 	case EngineKind("sidecar"):
 		return "sidecar"
 	default:

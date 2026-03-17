@@ -21,7 +21,7 @@ func normalizeRuntimeMode(mode runtimev1.LocalEngineRuntimeMode) runtimev1.Local
 
 func supportsSupervisedEngine(engine string) bool {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
-	case "llama", "media":
+	case "llama", "media", "speech":
 		return true
 	default:
 		return false
@@ -34,6 +34,8 @@ func managedDefaultEndpointForEngine(engine string) string {
 		return defaultLocalEndpoint
 	case "media":
 		return defaultMediaEndpoint
+	case "speech":
+		return defaultSpeechEndpoint
 	default:
 		return ""
 	}
@@ -119,6 +121,8 @@ func (s *Service) managedEndpointForEngine(engine string) string {
 		return s.managedLlamaEndpoint()
 	case "media":
 		return s.managedMediaEndpoint()
+	case "speech":
+		return s.managedSpeechEndpoint()
 	default:
 		return ""
 	}
@@ -130,6 +134,8 @@ func (s *Service) managedEndpointForEngineLocked(engine string) string {
 		return strings.TrimSpace(s.managedLlamaEndpointValue)
 	case "media":
 		return strings.TrimSpace(s.managedMediaEndpointValue)
+	case "speech":
+		return strings.TrimSpace(s.managedSpeechEndpointValue)
 	default:
 		return ""
 	}

@@ -144,6 +144,8 @@ func (m *Manager) EnsureEngine(ctx context.Context, cfg EngineConfig) (EngineCon
 		return m.ensureLlama(ctx, cfg)
 	case EngineMedia:
 		return ensureMedia(ctx, m.baseDir, cfg)
+	case EngineSpeech:
+		return ensureSpeech(ctx, m.baseDir, cfg)
 	default:
 		return cfg, fmt.Errorf("unknown engine kind: %s", cfg.Kind)
 	}
@@ -304,7 +306,7 @@ func (m *Manager) ListEngines() []SupervisorInfo {
 	}
 	m.mu.RUnlock()
 
-	knownKinds := []EngineKind{EngineLlama, EngineMedia}
+	knownKinds := []EngineKind{EngineLlama, EngineMedia, EngineSpeech}
 	result := make([]SupervisorInfo, 0, len(running)+len(knownKinds))
 	seen := make(map[EngineKind]bool, len(running)+len(knownKinds))
 
@@ -342,6 +344,8 @@ func (m *Manager) stoppedEngineInfo(kind EngineKind) SupervisorInfo {
 		cfg = DefaultLlamaConfig()
 	case EngineMedia:
 		cfg = DefaultMediaConfig()
+	case EngineSpeech:
+		cfg = DefaultSpeechConfig()
 	default:
 		return SupervisorInfo{Kind: kind, Status: StatusStopped}
 	}
@@ -367,6 +371,12 @@ func (m *Manager) stoppedEngineInfo(kind EngineKind) SupervisorInfo {
 		}
 	case EngineMedia:
 		path := managedPythonPath(engineVersionDir(m.baseDir, EngineMedia, cfg.Version))
+		if fi, statErr := os.Stat(path); statErr == nil {
+			info.BinaryPath = strings.TrimSpace(path)
+			info.BinarySizeBytes = fi.Size()
+		}
+	case EngineSpeech:
+		path := managedPythonPath(engineVersionDir(m.baseDir, EngineSpeech, cfg.Version))
 		if fi, statErr := os.Stat(path); statErr == nil {
 			info.BinaryPath = strings.TrimSpace(path)
 			info.BinarySizeBytes = fi.Size()

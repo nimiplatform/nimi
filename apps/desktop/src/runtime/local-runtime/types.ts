@@ -30,6 +30,11 @@ export type LocalRuntimeModelRecord = {
   installedAt: string;
   updatedAt: string;
   healthDetail?: string;
+  logicalModelId?: string;
+  family?: string;
+  artifactRoles?: string[];
+  preferredEngine?: string;
+  fallbackEngines?: string[];
   engineConfig?: Record<string, unknown>;
   recommendation?: LocalRuntimeCatalogRecommendation;
 };
@@ -81,6 +86,7 @@ export type LocalRuntimeVerifiedModelDescriptor = {
   description: string;
   installKind: string;
   modelId: string;
+  logicalModelId?: string;
   repo: string;
   revision: string;
   capabilities: string[];
@@ -93,6 +99,9 @@ export type LocalRuntimeVerifiedModelDescriptor = {
   fileCount: number;
   totalSizeBytes?: number;
   tags: string[];
+  artifactRoles?: string[];
+  preferredEngine?: string;
+  fallbackEngines?: string[];
   engineConfig?: Record<string, unknown>;
 };
 

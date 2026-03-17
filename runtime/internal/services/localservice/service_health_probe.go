@@ -46,7 +46,7 @@ type probeRecoveryState struct {
 
 func defaultEndpointProbe(ctx context.Context, engine string, endpoint string) endpointProbeResult {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
-	case "media", "media.diffusers":
+	case "media", "media.diffusers", "speech":
 		return probeMediaEndpoint(ctx, endpoint)
 	default:
 		return probeOpenAICompatibleEndpoint(ctx, endpoint)
@@ -386,7 +386,7 @@ func parseCanonicalProbeBaseURL(endpoint string) (*url.URL, string, error) {
 
 func buildEndpointProbeURL(engine string, endpoint string) (string, error) {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
-	case "media", "media.diffusers":
+	case "media", "media.diffusers", "speech":
 		return buildMediaCatalogProbeURL(endpoint)
 	default:
 		return buildOpenAIModelsProbeURL(endpoint)
@@ -445,6 +445,12 @@ func (s *Service) managedMediaEndpoint() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return strings.TrimSpace(s.managedMediaEndpointValue)
+}
+
+func (s *Service) managedSpeechEndpoint() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return strings.TrimSpace(s.managedSpeechEndpointValue)
 }
 
 func (s *Service) effectiveLocalModelEndpoint(model *runtimev1.LocalModelRecord) string {

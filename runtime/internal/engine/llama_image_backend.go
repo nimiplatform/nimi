@@ -12,9 +12,9 @@ import (
 	"time"
 )
 
-const localAIBackendRunScript = "run.sh"
+const llamaBackendRunScript = "run.sh"
 
-type localAIBackendMetadata struct {
+type llamaBackendMetadata struct {
 	Name           string `json:"name,omitempty"`
 	Alias          string `json:"alias,omitempty"`
 	MetaBackendFor string `json:"meta_backend_for,omitempty"`
@@ -98,7 +98,7 @@ func cloneStringMap(input map[string]string) map[string]string {
 	return cloned
 }
 
-func ensureOfficialLlamaImageBackend(ctx context.Context, localAIBinaryPath string, backendsPath string, cfg *LlamaImageBackendConfig) (*LlamaImageBackendConfig, error) {
+func ensureOfficialLlamaImageBackend(ctx context.Context, llamaBinaryPath string, backendsPath string, cfg *LlamaImageBackendConfig) (*LlamaImageBackendConfig, error) {
 	normalized := normalizeLlamaImageBackendConfig(cfg)
 	if !normalized.Enabled() {
 		return normalized, nil
@@ -106,7 +106,7 @@ func ensureOfficialLlamaImageBackend(ctx context.Context, localAIBinaryPath stri
 	if normalized.Mode != LlamaImageBackendOfficial {
 		return normalized, nil
 	}
-	if strings.TrimSpace(localAIBinaryPath) == "" {
+	if strings.TrimSpace(llamaBinaryPath) == "" {
 		return nil, fmt.Errorf("llama binary path is required")
 	}
 	if strings.TrimSpace(backendsPath) == "" {
@@ -118,7 +118,7 @@ func ensureOfficialLlamaImageBackend(ctx context.Context, localAIBinaryPath stri
 
 	runPath, err := discoverInstalledLlamaBackendRunPath(backendsPath, normalized.BackendName)
 	if err != nil {
-		if err := installLlamaBackend(ctx, localAIBinaryPath, backendsPath, normalized.BackendName); err != nil {
+		if err := installLlamaBackend(ctx, llamaBinaryPath, backendsPath, normalized.BackendName); err != nil {
 			return nil, err
 		}
 		runPath, err = discoverInstalledLlamaBackendRunPath(backendsPath, normalized.BackendName)
@@ -132,8 +132,8 @@ func ensureOfficialLlamaImageBackend(ctx context.Context, localAIBinaryPath stri
 	return normalized, nil
 }
 
-func installLlamaBackend(ctx context.Context, localAIBinaryPath string, backendsPath string, backendName string) error {
-	cmd := exec.CommandContext(ctx, localAIBinaryPath, "backends", "install", backendName, "--backends-path", backendsPath)
+func installLlamaBackend(ctx context.Context, llamaBinaryPath string, backendsPath string, backendName string) error {
+	cmd := exec.CommandContext(ctx, llamaBinaryPath, "backends", "install", backendName, "--backends-path", backendsPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("install llama backend %s: %w: %s", backendName, err, strings.TrimSpace(string(output)))
@@ -158,7 +158,7 @@ func discoverInstalledLlamaBackendRunPath(backendsPath string, backendName strin
 			continue
 		}
 		dir := entry.Name()
-		runPath := filepath.Join(backendsPath, dir, localAIBackendRunScript)
+		runPath := filepath.Join(backendsPath, dir, llamaBackendRunScript)
 		metadata, metadataErr := readLlamaBackendMetadata(filepath.Join(backendsPath, dir, "metadata.json"))
 		if metadataErr != nil {
 			return "", metadataErr
@@ -178,7 +178,7 @@ func discoverInstalledLlamaBackendRunPath(backendsPath string, backendName strin
 		}
 		targetRunPath := runPath
 		if metadata != nil && strings.TrimSpace(metadata.MetaBackendFor) != "" {
-			targetRunPath = filepath.Join(backendsPath, strings.TrimSpace(metadata.MetaBackendFor), localAIBackendRunScript)
+			targetRunPath = filepath.Join(backendsPath, strings.TrimSpace(metadata.MetaBackendFor), llamaBackendRunScript)
 		}
 		if _, statErr := os.Stat(targetRunPath); statErr != nil {
 			continue
@@ -201,7 +201,7 @@ func discoverInstalledLlamaBackendRunPath(backendsPath string, backendName strin
 	return candidates[0].runPath, nil
 }
 
-func readLlamaBackendMetadata(path string) (*localAIBackendMetadata, error) {
+func readLlamaBackendMetadata(path string) (*llamaBackendMetadata, error) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -209,7 +209,7 @@ func readLlamaBackendMetadata(path string) (*localAIBackendMetadata, error) {
 		}
 		return nil, fmt.Errorf("read llama backend metadata %s: %w", path, err)
 	}
-	var metadata localAIBackendMetadata
+	var metadata llamaBackendMetadata
 	if err := json.Unmarshal(raw, &metadata); err != nil {
 		return nil, fmt.Errorf("parse llama backend metadata %s: %w", path, err)
 	}

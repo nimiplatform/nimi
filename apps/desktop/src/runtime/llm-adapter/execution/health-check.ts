@@ -12,6 +12,10 @@ function normalizeLocalEngine(provider: string): 'llama' | 'media' | 'speech' | 
   return '';
 }
 
+function usesCanonicalCatalogProbe(engine: ReturnType<typeof normalizeLocalEngine>): boolean {
+  return engine === 'media' || engine === 'speech';
+}
+
 function normalizeOpenAiProbeUrl(endpoint: string): string {
   const normalized = String(endpoint || '').trim().replace(/\/+$/, '');
   if (!normalized) return '';
@@ -88,7 +92,7 @@ export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<P
   if (endpoint && source === 'local') {
     try {
       const localFetch = input.fetchImpl || fetch;
-      const response = engine === 'media'
+      const response = usesCanonicalCatalogProbe(engine)
         ? await probeMediaEndpoint(localFetch, endpoint)
         : await probeOpenAiCompatibleEndpoint(localFetch, endpoint);
       return {

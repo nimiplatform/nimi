@@ -126,7 +126,7 @@ func mapEngineManagerError(operation string, err error) error {
 	if strings.Contains(lower, "unknown engine") || strings.Contains(lower, "engine kind") {
 		return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, grpcerr.ReasonOptions{
 			Message:    "invalid engine for " + operation,
-			ActionHint: "use_one_of_llama_media_or_sidecar",
+			ActionHint: "use_one_of_llama_media_speech_or_sidecar",
 			Metadata: map[string]string{
 				"detail": raw,
 			},

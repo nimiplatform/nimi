@@ -14,7 +14,7 @@ const (
 	mediaPythonVersion        = "3.12"
 )
 
-var nimiMediaPackages = []string{
+var mediaPackages = []string{
 	"torch==2.7.1",
 	"torchvision==0.22.1",
 	"diffusers==0.37.0",
@@ -58,10 +58,10 @@ func ensureMedia(ctx context.Context, baseDir string, cfg EngineConfig) (EngineC
 		} else {
 			extraArgs = append(extraArgs, "--extra-index-url", defaultMediaTorchIndexURL)
 		}
-		if installErr := uvPipInstall(ctx, uvPath, pythonPath, nimiMediaPackages, extraArgs...); installErr != nil {
+		if installErr := uvPipInstall(ctx, uvPath, pythonPath, mediaPackages, extraArgs...); installErr != nil {
 			return cfg, fmt.Errorf("install media dependencies: %w", installErr)
 		}
-		if writeErr := os.WriteFile(stampPath, []byte(strings.Join(nimiMediaPackages, "\n")), 0o644); writeErr != nil {
+		if writeErr := os.WriteFile(stampPath, []byte(strings.Join(mediaPackages, "\n")), 0o644); writeErr != nil {
 			return cfg, fmt.Errorf("write media dependency stamp: %w", writeErr)
 		}
 	}

@@ -116,16 +116,19 @@ impl QwenTtsPythonAdapter {
         if normalized.is_empty() {
             return None;
         }
-        if normalized.ends_with("/v1/models") {
+        if normalized.ends_with("/v1/catalog") {
             return Some(normalized.to_string());
+        }
+        if normalized.ends_with("/v1/models") {
+            return Some(format!("{}{}", normalized.trim_end_matches("/v1/models"), "/v1/catalog"));
         }
         if normalized.ends_with("/v1") {
-            return Some(format!("{normalized}/models"));
+            return Some(format!("{normalized}/catalog"));
         }
-        if normalized.ends_with("/models") {
+        if normalized.ends_with("/catalog") {
             return Some(normalized.to_string());
         }
-        Some(format!("{normalized}/v1/models"))
+        Some(format!("{normalized}/v1/catalog"))
     }
 
     fn wait_for_endpoint_ready(endpoint: &str, timeout: Duration) -> Result<(), String> {
