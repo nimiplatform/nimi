@@ -74,7 +74,7 @@ func containsWarning(values []string, target string) bool {
 	return false
 }
 
-func TestDefaultEndpointProbeNimiMediaRejectsEmptyReadyCatalog(t *testing.T) {
+func TestDefaultEndpointProbeMediaRejectsEmptyReadyCatalog(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/healthz":
@@ -110,7 +110,7 @@ func TestDefaultEndpointProbeNimiMediaRejectsEmptyReadyCatalog(t *testing.T) {
 	}
 }
 
-func TestDefaultEndpointProbeNimiMediaCollectsReadyModels(t *testing.T) {
+func TestDefaultEndpointProbeMediaCollectsReadyModels(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/healthz":
@@ -262,7 +262,7 @@ func TestLocalStartManagedLocalModelWarmsBeforeReportingActive(t *testing.T) {
 	svc := newTestServiceWithProbe(t, nil)
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
-	svc.SetLocalAIManagedEndpoint(server.URL + "/v1")
+	svc.SetManagedLlamaEndpoint(server.URL + "/v1")
 	installed := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/qwen",
 		Capabilities: []string{"chat"},
@@ -316,7 +316,7 @@ func TestLocalStartManagedLocalModelWarmFailureTransitionsUnhealthy(t *testing.T
 
 	svc := newTestServiceWithProbe(t, nil)
 	svc.SetEngineManager(&mockEngineManager{})
-	svc.SetLocalAIManagedEndpoint(server.URL + "/v1")
+	svc.SetManagedLlamaEndpoint(server.URL + "/v1")
 	installed := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/qwen",
 		Capabilities: []string{"chat"},
@@ -1203,7 +1203,7 @@ func TestLocalApplyProfileInstallsCompanionArtifacts(t *testing.T) {
 		}
 	})
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetLocalAIRegistrationConfig(modelsRoot, "", false)
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 	svc.SetEngineManager(&mockEngineManager{})
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
 	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
@@ -1445,13 +1445,13 @@ func TestLocalNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 	if !node.GetAvailable() {
 		t.Fatalf("node must be available before removal")
 	}
-	if node.GetProviderHints() == nil || node.GetProviderHints().GetLocalai() == nil {
+	if node.GetProviderHints() == nil || node.GetProviderHints().GetLlama() == nil {
 		t.Fatalf("llama image node must include provider hints")
 	}
-	if node.GetProviderHints().GetLocalai().GetPreferredAdapter() != "llama_native_adapter" {
-		t.Fatalf("llama image preferred adapter mismatch: %s", node.GetProviderHints().GetLocalai().GetPreferredAdapter())
+	if node.GetProviderHints().GetLlama().GetPreferredAdapter() != "llama_native_adapter" {
+		t.Fatalf("llama image preferred adapter mismatch: %s", node.GetProviderHints().GetLlama().GetPreferredAdapter())
 	}
-	if node.GetProviderHints().GetLocalai().GetBackend() != "llama" {
+	if node.GetProviderHints().GetLlama().GetBackend() != "llama" {
 		t.Fatalf("llama image provider hints should carry backend=llama")
 	}
 	if node.GetProviderHints().GetExtra()["service_id"] != "svc-vision" {
@@ -1472,11 +1472,11 @@ func TestLocalNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 	if chatNode.GetAdapter() != "openai_compat_adapter" {
 		t.Fatalf("llama chat adapter mismatch: %s", chatNode.GetAdapter())
 	}
-	if chatNode.GetProviderHints() == nil || chatNode.GetProviderHints().GetLocalai() == nil {
+	if chatNode.GetProviderHints() == nil || chatNode.GetProviderHints().GetLlama() == nil {
 		t.Fatalf("llama chat node must include provider hints")
 	}
-	if chatNode.GetProviderHints().GetLocalai().GetPreferredAdapter() != "openai_compat_adapter" {
-		t.Fatalf("llama chat preferred adapter mismatch: %s", chatNode.GetProviderHints().GetLocalai().GetPreferredAdapter())
+	if chatNode.GetProviderHints().GetLlama().GetPreferredAdapter() != "openai_compat_adapter" {
+		t.Fatalf("llama chat preferred adapter mismatch: %s", chatNode.GetProviderHints().GetLlama().GetPreferredAdapter())
 	}
 
 	if _, err := svc.RemoveLocalService(context.Background(), &runtimev1.RemoveLocalServiceRequest{
@@ -2215,8 +2215,8 @@ func TestLocalImportManifestValidation(t *testing.T) {
 
 func TestLocalImportMediaModelRequiresExplicitEndpoint(t *testing.T) {
 	svc := newTestService(t)
-	svc.SetLocalAIRegistrationConfig("", "", true)
-	svc.SetLocalAIManagedEndpoint("http://127.0.0.1:57510/v1")
+	svc.SetManagedLlamaRegistrationConfig("", "", true)
+	svc.SetManagedLlamaEndpoint("http://127.0.0.1:57510/v1")
 
 	tmpDir := t.TempDir()
 	manifestPath := filepath.Join(tmpDir, "image-model.manifest.json")
@@ -2507,7 +2507,7 @@ func TestResolveModelInstallPlanMediaSupervisedUnsupportedHost(t *testing.T) {
 	if plan.GetReasonCode() != "LOCAL_ENGINE_ATTACHED_ENDPOINT_ONLY" {
 		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
 	}
-	if !containsWarning(plan.GetWarnings(), warnNimiMediaAttachedOnly) {
+	if !containsWarning(plan.GetWarnings(), warnMediaAttachedOnly) {
 		t.Fatalf("expected attached-only warning, got %#v", plan.GetWarnings())
 	}
 }

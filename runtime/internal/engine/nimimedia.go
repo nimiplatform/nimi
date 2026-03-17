@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	defaultNimiMediaTorchIndexURL = "https://download.pytorch.org/whl/cu126"
-	nimiMediaPythonVersion        = "3.12"
+	defaultMediaTorchIndexURL = "https://download.pytorch.org/whl/cu126"
+	mediaPythonVersion        = "3.12"
 )
 
 var nimiMediaPackages = []string{
@@ -28,25 +28,25 @@ var nimiMediaPackages = []string{
 	"imageio-ffmpeg==0.6.0",
 }
 
-func ensureNimiMedia(ctx context.Context, baseDir string, cfg EngineConfig) (EngineConfig, error) {
-	gpuVendor, cudaReady := detectNimiMediaHostGPU()
-	if support := ClassifyNimiMediaHost(currentGOOS(), currentGOARCH(), gpuVendor, cudaReady); support != NimiMediaHostSupportSupportedSupervised {
-		return cfg, fmt.Errorf("%s", NimiMediaHostSupportDetail(currentGOOS(), currentGOARCH(), gpuVendor, cudaReady))
+func ensureMedia(ctx context.Context, baseDir string, cfg EngineConfig) (EngineConfig, error) {
+	gpuVendor, cudaReady := detectMediaHostGPU()
+	if support := ClassifyMediaHost(currentGOOS(), currentGOARCH(), gpuVendor, cudaReady); support != MediaHostSupportSupportedSupervised {
+		return cfg, fmt.Errorf("%s", MediaHostSupportDetail(currentGOOS(), currentGOARCH(), gpuVendor, cudaReady))
 	}
 
-	root := engineVersionDir(baseDir, EngineNimiMedia, cfg.Version)
+	root := engineVersionDir(baseDir, EngineMedia, cfg.Version)
 	uvRoot := filepath.Join(baseDir, "uv")
 	uvPath, err := ensureUV(ctx, uvRoot)
 	if err != nil {
 		return cfg, fmt.Errorf("ensure uv for media: %w", err)
 	}
-	pythonPath, err := ensureManagedPython(ctx, uvPath, root, nimiMediaPythonVersion)
+	pythonPath, err := ensureManagedPython(ctx, uvPath, root, mediaPythonVersion)
 	if err != nil {
 		return cfg, fmt.Errorf("ensure managed python for media: %w", err)
 	}
 
-	scriptPath := filepath.Join(root, "nimi_media_server.py")
-	if writeErr := os.WriteFile(scriptPath, []byte(nimiMediaServerScript), 0o755); writeErr != nil {
+	scriptPath := filepath.Join(root, "media_server.py")
+	if writeErr := os.WriteFile(scriptPath, []byte(mediaServerScript), 0o755); writeErr != nil {
 		return cfg, fmt.Errorf("write media server script: %w", writeErr)
 	}
 
@@ -56,7 +56,7 @@ func ensureNimiMedia(ctx context.Context, baseDir string, cfg EngineConfig) (Eng
 		if indexURL := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_ENGINE_NIMI_MEDIA_TORCH_INDEX_URL")); indexURL != "" {
 			extraArgs = append(extraArgs, "--extra-index-url", indexURL)
 		} else {
-			extraArgs = append(extraArgs, "--extra-index-url", defaultNimiMediaTorchIndexURL)
+			extraArgs = append(extraArgs, "--extra-index-url", defaultMediaTorchIndexURL)
 		}
 		if installErr := uvPipInstall(ctx, uvPath, pythonPath, nimiMediaPackages, extraArgs...); installErr != nil {
 			return cfg, fmt.Errorf("install media dependencies: %w", installErr)
@@ -91,7 +91,7 @@ func ensureNimiMedia(ctx context.Context, baseDir string, cfg EngineConfig) (Eng
 	return cfg, nil
 }
 
-func detectNimiMediaHostGPU() (string, bool) {
+func detectMediaHostGPU() (string, bool) {
 	vendor := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_GPU_VENDOR"))
 	if vendor == "" {
 		switch {
@@ -104,10 +104,10 @@ func detectNimiMediaHostGPU() (string, bool) {
 	if !strings.EqualFold(vendor, "nvidia") {
 		return strings.ToLower(strings.TrimSpace(vendor)), false
 	}
-	return "nvidia", detectNimiMediaCUDAReady()
+	return "nvidia", detectMediaCUDAReady()
 }
 
-func detectNimiMediaCUDAReady() bool {
+func detectMediaCUDAReady() bool {
 	if explicit, ok := explicitBoolEnv("NIMI_RUNTIME_GPU_CUDA_READY"); ok {
 		return explicit
 	}

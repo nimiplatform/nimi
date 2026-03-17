@@ -146,7 +146,7 @@ func (s *Service) SetLocalModelLister(localSvc localModelLister) {
 }
 
 // SetLocalImageProfileResolver wires RuntimeLocalService for dynamic
-// LocalAI image profile materialization.
+// managed media profile materialization.
 func (s *Service) SetLocalImageProfileResolver(resolver localImageProfileResolver) {
 	s.localImageProfile = resolver
 }

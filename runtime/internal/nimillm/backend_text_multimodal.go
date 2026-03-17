@@ -41,7 +41,7 @@ type openAIMultimodalMessage struct {
 	Name    string `json:"name,omitempty"`
 }
 
-type localAIMessage struct {
+type llamaMessage struct {
 	Role          string   `json:"role"`
 	Content       string   `json:"content,omitempty"`
 	StringContent string   `json:"string_content,omitempty"`
@@ -51,13 +51,14 @@ type localAIMessage struct {
 	Name          string   `json:"name,omitempty"`
 }
 
-func (b *Backend) supportsLocalAITextMultimodal() bool {
-	return strings.Contains(strings.ToLower(strings.TrimSpace(b.Name)), "localai")
+func (b *Backend) supportsLlamaTextMultimodal() bool {
+	lower := strings.ToLower(strings.TrimSpace(b.Name))
+	return strings.Contains(lower, "llama")
 }
 
 func (b *Backend) supportsProviderNativeOpenAITextMultimodal() bool {
 	lower := strings.ToLower(strings.TrimSpace(b.Name))
-	return strings.Contains(lower, "openai") && !strings.Contains(lower, "localai")
+	return strings.Contains(lower, "openai") && !strings.Contains(lower, "llama")
 }
 
 func hasUnsupportedOpenAITextChatParts(input []*runtimev1.ChatMessage) bool {
@@ -91,7 +92,7 @@ func hasUnsupportedOpenAICompatibleTextChatParts(input []*runtimev1.ChatMessage)
 	return false
 }
 
-func hasUnsupportedLocalAITextChatParts(input []*runtimev1.ChatMessage) bool {
+func hasUnsupportedLlamaTextChatParts(input []*runtimev1.ChatMessage) bool {
 	for _, msg := range input {
 		for _, part := range msg.GetParts() {
 			switch part.GetType() {
@@ -118,13 +119,13 @@ func hasMultimodalParts(input []*runtimev1.ChatMessage) bool {
 }
 
 func buildTextChatMessages(ctx context.Context, systemPrompt string, input []*runtimev1.ChatMessage, backend *Backend) (any, error) {
-	preferLocalAI := backend != nil && backend.supportsLocalAITextMultimodal()
+	preferLlama := backend != nil && backend.supportsLlamaTextMultimodal()
 	if hasMultimodalParts(input) {
-		if preferLocalAI {
-			if hasUnsupportedLocalAITextChatParts(input) {
+		if preferLlama {
+			if hasUnsupportedLlamaTextChatParts(input) {
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 			}
-			messages := buildLocalAITextMessages(systemPrompt, input)
+			messages := buildLlamaTextMessages(systemPrompt, input)
 			if len(messages) == 0 {
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 			}
@@ -219,10 +220,10 @@ func buildOpenAIMultimodalMessages(systemPrompt string, input []*runtimev1.ChatM
 	return messages
 }
 
-func buildLocalAITextMessages(systemPrompt string, input []*runtimev1.ChatMessage) []localAIMessage {
-	messages := make([]localAIMessage, 0, len(input)+1)
+func buildLlamaTextMessages(systemPrompt string, input []*runtimev1.ChatMessage) []llamaMessage {
+	messages := make([]llamaMessage, 0, len(input)+1)
 	if prompt := strings.TrimSpace(systemPrompt); prompt != "" {
-		messages = append(messages, localAIMessage{
+		messages = append(messages, llamaMessage{
 			Role:          "system",
 			Content:       prompt,
 			StringContent: prompt,
@@ -238,7 +239,7 @@ func buildLocalAITextMessages(systemPrompt string, input []*runtimev1.ChatMessag
 			if content == "" {
 				continue
 			}
-			messages = append(messages, localAIMessage{
+			messages = append(messages, llamaMessage{
 				Role:          role,
 				Content:       content,
 				StringContent: content,
@@ -247,7 +248,7 @@ func buildLocalAITextMessages(systemPrompt string, input []*runtimev1.ChatMessag
 			continue
 		}
 
-		message := localAIMessage{
+		message := llamaMessage{
 			Role: role,
 			Name: strings.TrimSpace(item.GetName()),
 		}

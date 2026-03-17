@@ -19,10 +19,10 @@ type Manager struct {
 	registry *Registry
 	onState  StateChangeFunc
 
-	localAIModelsPath       string
-	localAIModelsConfigPath string
-	localAIBackendsPath     string
-	localAIImageBackend     *LocalAIImageBackendConfig
+	llamaModelsPath       string
+	llamaModelsConfigPath string
+	llamaBackendsPath     string
+	llamaImageBackend     *LlamaImageBackendConfig
 
 	mu          sync.RWMutex
 	supervisors map[EngineKind]*Supervisor
@@ -48,28 +48,28 @@ func NewManager(logger *slog.Logger, baseDir string, onState StateChangeFunc) (*
 		return nil, fmt.Errorf("load engine registry: %w", err)
 	}
 
-	modelsPath, modelsConfigPath, err := defaultLocalAIPaths()
+	modelsPath, modelsConfigPath, err := defaultLlamaPaths()
 	if err != nil {
 		return nil, err
 	}
-	backendsPath, err := defaultLocalAIBackendsPath()
+	backendsPath, err := defaultLlamaBackendsPath()
 	if err != nil {
 		return nil, err
 	}
 
 	return &Manager{
-		logger:                  logger,
-		baseDir:                 baseDir,
-		registry:                registry,
-		onState:                 onState,
-		localAIModelsPath:       modelsPath,
-		localAIModelsConfigPath: modelsConfigPath,
-		localAIBackendsPath:     backendsPath,
-		supervisors:             make(map[EngineKind]*Supervisor),
+		logger:                logger,
+		baseDir:               baseDir,
+		registry:              registry,
+		onState:               onState,
+		llamaModelsPath:       modelsPath,
+		llamaModelsConfigPath: modelsConfigPath,
+		llamaBackendsPath:     backendsPath,
+		supervisors:           make(map[EngineKind]*Supervisor),
 	}, nil
 }
 
-func defaultLocalAIPaths() (string, string, error) {
+func defaultLlamaPaths() (string, string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", "", fmt.Errorf("resolve home directory: %w", err)
@@ -77,7 +77,7 @@ func defaultLocalAIPaths() (string, string, error) {
 	return filepath.Join(home, ".nimi", "models"), filepath.Join(home, ".nimi", "runtime", "llama-models.yaml"), nil
 }
 
-func defaultLocalAIBackendsPath() (string, error) {
+func defaultLlamaBackendsPath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("resolve home directory: %w", err)
@@ -85,32 +85,32 @@ func defaultLocalAIBackendsPath() (string, error) {
 	return filepath.Join(home, ".nimi", "runtime", "llama-backends"), nil
 }
 
-// SetLocalAIPaths overrides the default LocalAI model directory and generated
+// SetLlamaPaths overrides the default llama model directory and generated
 // config path used when callers do not explicitly populate EngineConfig.
-func (m *Manager) SetLocalAIPaths(modelsPath string, modelsConfigPath string) {
+func (m *Manager) SetLlamaPaths(modelsPath string, modelsConfigPath string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.localAIModelsPath = strings.TrimSpace(modelsPath)
-	m.localAIModelsConfigPath = strings.TrimSpace(modelsConfigPath)
+	m.llamaModelsPath = strings.TrimSpace(modelsPath)
+	m.llamaModelsConfigPath = strings.TrimSpace(modelsConfigPath)
 }
 
-// SetLocalAIImageBackend configures the daemon-managed LocalAI image backend
+// SetLlamaImageBackend configures the daemon-managed llama image backend
 // process that should be registered via --external-grpc-backends.
-func (m *Manager) SetLocalAIImageBackend(cfg *LocalAIImageBackendConfig) {
+func (m *Manager) SetLlamaImageBackend(cfg *LlamaImageBackendConfig) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.localAIImageBackend = normalizeLocalAIImageBackendConfig(cfg)
+	m.llamaImageBackend = normalizeLlamaImageBackendConfig(cfg)
 }
 
-func (m *Manager) applyLocalAIPaths(cfg EngineConfig) EngineConfig {
-	if cfg.Kind != EngineLocalAI {
+func (m *Manager) applyLlamaPaths(cfg EngineConfig) EngineConfig {
+	if cfg.Kind != EngineLlama {
 		return cfg
 	}
 	m.mu.RLock()
-	modelsPath := strings.TrimSpace(m.localAIModelsPath)
-	modelsConfigPath := strings.TrimSpace(m.localAIModelsConfigPath)
-	backendsPath := strings.TrimSpace(m.localAIBackendsPath)
-	imageBackend := cloneLocalAIImageBackendConfig(m.localAIImageBackend)
+	modelsPath := strings.TrimSpace(m.llamaModelsPath)
+	modelsConfigPath := strings.TrimSpace(m.llamaModelsConfigPath)
+	backendsPath := strings.TrimSpace(m.llamaBackendsPath)
+	imageBackend := cloneLlamaImageBackendConfig(m.llamaImageBackend)
 	m.mu.RUnlock()
 	if cfg.ModelsPath == "" {
 		cfg.ModelsPath = modelsPath
@@ -122,38 +122,36 @@ func (m *Manager) applyLocalAIPaths(cfg EngineConfig) EngineConfig {
 		cfg.BackendsPath = backendsPath
 	}
 	if len(cfg.ExternalBackends) == 0 {
-		cfg.ExternalBackends = detectLocalAIExternalBackends(cfg.ModelsConfigPath)
+		cfg.ExternalBackends = detectLlamaExternalBackends(cfg.ModelsConfigPath)
 	} else {
-		cfg.ExternalBackends = normalizeLocalAIExternalBackends(cfg.ExternalBackends)
+		cfg.ExternalBackends = normalizeLlamaExternalBackends(cfg.ExternalBackends)
 	}
-	if cfg.LocalAIImageBackend == nil {
-		cfg.LocalAIImageBackend = normalizeLocalAIImageBackendConfig(imageBackend)
+	if cfg.LlamaImageBackend == nil {
+		cfg.LlamaImageBackend = normalizeLlamaImageBackendConfig(imageBackend)
 	} else {
-		cfg.LocalAIImageBackend = normalizeLocalAIImageBackendConfig(cfg.LocalAIImageBackend)
+		cfg.LlamaImageBackend = normalizeLlamaImageBackendConfig(cfg.LlamaImageBackend)
 	}
 	return cfg
 }
 
 // EnsureEngine ensures the engine binary is available.
-// For LocalAI: downloads if not in registry.
-// For Nexa: verifies system installation via LookPath.
+// Llama downloads if not in registry.
+// Media provisions its managed Python environment on demand.
 func (m *Manager) EnsureEngine(ctx context.Context, cfg EngineConfig) (EngineConfig, error) {
-	cfg = m.applyLocalAIPaths(cfg)
+	cfg = m.applyLlamaPaths(cfg)
 	switch cfg.Kind {
-	case EngineLocalAI:
-		return m.ensureLocalAI(ctx, cfg)
-	case EngineNexa:
-		return m.ensureNexa(ctx, cfg)
-	case EngineNimiMedia:
-		return ensureNimiMedia(ctx, m.baseDir, cfg)
+	case EngineLlama:
+		return m.ensureLlama(ctx, cfg)
+	case EngineMedia:
+		return ensureMedia(ctx, m.baseDir, cfg)
 	default:
 		return cfg, fmt.Errorf("unknown engine kind: %s", cfg.Kind)
 	}
 }
 
-func (m *Manager) ensureLocalAI(ctx context.Context, cfg EngineConfig) (EngineConfig, error) {
+func (m *Manager) ensureLlama(ctx context.Context, cfg EngineConfig) (EngineConfig, error) {
 	// Check registry first.
-	entry := m.registry.Get(EngineLocalAI, cfg.Version)
+	entry := m.registry.Get(EngineLlama, cfg.Version)
 	if entry != nil {
 		if _, err := os.Stat(entry.BinaryPath); err == nil {
 			cfg.BinaryPath = entry.BinaryPath
@@ -164,20 +162,20 @@ func (m *Manager) ensureLocalAI(ctx context.Context, cfg EngineConfig) (EngineCo
 			return cfg, nil
 		}
 		// Binary missing from disk — re-download.
-		_ = m.registry.Remove(EngineLocalAI, cfg.Version)
+		_ = m.registry.Remove(EngineLlama, cfg.Version)
 	}
 
 	m.logger.Info("downloading llama binary",
 		"version", cfg.Version,
 	)
 
-	binaryPath, sha256hex, err := DownloadBinary(m.baseDir, EngineLocalAI, cfg.Version)
+	binaryPath, sha256hex, err := DownloadBinary(m.baseDir, EngineLlama, cfg.Version)
 	if err != nil {
 		return cfg, fmt.Errorf("download llama: %w", err)
 	}
 
 	if err := m.registry.Put(&RegistryEntry{
-		Engine:      EngineLocalAI,
+		Engine:      EngineLlama,
 		Version:     cfg.Version,
 		BinaryPath:  binaryPath,
 		SHA256:      sha256hex,
@@ -188,38 +186,25 @@ func (m *Manager) ensureLocalAI(ctx context.Context, cfg EngineConfig) (EngineCo
 	}
 
 	cfg.BinaryPath = binaryPath
-	resolvedImageBackend, err := ensureOfficialLocalAIImageBackend(ctx, cfg.BinaryPath, cfg.BackendsPath, cfg.LocalAIImageBackend)
+	resolvedImageBackend, err := ensureOfficialLlamaImageBackend(ctx, cfg.BinaryPath, cfg.BackendsPath, cfg.LlamaImageBackend)
 	if err != nil {
 		return cfg, fmt.Errorf("prepare llama image backend: %w", err)
 	}
-	cfg.LocalAIImageBackend = resolvedImageBackend
-	return cfg, nil
-}
-
-func (m *Manager) ensureNexa(ctx context.Context, cfg EngineConfig) (EngineConfig, error) {
-	if currentGOOS() == "windows" {
-		return ensureManagedNexa(ctx, m.baseDir, cfg)
-	}
-	path, err := nexaLookPath()
-	if err != nil {
-		return cfg, err
-	}
-	cfg.BinaryPath = path
-	m.logger.Info("nexa found in system PATH", "path", path)
+	cfg.LlamaImageBackend = resolvedImageBackend
 	return cfg, nil
 }
 
 // StartEngine starts the engine with the given configuration.
 func (m *Manager) StartEngine(ctx context.Context, cfg EngineConfig) error {
-	cfg = m.applyLocalAIPaths(cfg)
-	if cfg.Kind == EngineLocalAI && strings.TrimSpace(cfg.BackendsPath) != "" {
+	cfg = m.applyLlamaPaths(cfg)
+	if cfg.Kind == EngineLlama && strings.TrimSpace(cfg.BackendsPath) != "" {
 		if err := os.MkdirAll(cfg.BackendsPath, 0o755); err != nil {
 			return fmt.Errorf("create llama backends directory: %w", err)
 		}
 	}
-	if cfg.Kind == EngineLocalAI {
+	if cfg.Kind == EngineLlama {
 		var err error
-		cfg, err = m.prepareLocalAIStart(ctx, cfg)
+		cfg, err = m.prepareLlamaStart(ctx, cfg)
 		if err != nil {
 			return err
 		}
@@ -251,8 +236,8 @@ func (m *Manager) StopEngine(kind EngineKind) error {
 	if err := sup.Stop(); err != nil {
 		return err
 	}
-	if kind == EngineLocalAI {
-		if err := m.stopLocalAIImageBackend(); err != nil {
+	if kind == EngineLlama {
+		if err := m.stopLlamaImageBackend(); err != nil {
 			return err
 		}
 	}
@@ -312,14 +297,14 @@ func (m *Manager) ListEngines() []SupervisorInfo {
 	m.mu.RLock()
 	running := make(map[EngineKind]SupervisorInfo, len(m.supervisors))
 	for kind, s := range m.supervisors {
-		if kind == engineLocalAIImageBackend {
+		if kind == engineMediaDiffusersBackend {
 			continue
 		}
 		running[kind] = s.Info()
 	}
 	m.mu.RUnlock()
 
-	knownKinds := []EngineKind{EngineLocalAI, EngineNexa, EngineNimiMedia}
+	knownKinds := []EngineKind{EngineLlama, EngineMedia}
 	result := make([]SupervisorInfo, 0, len(running)+len(knownKinds))
 	seen := make(map[EngineKind]bool, len(running)+len(knownKinds))
 
@@ -353,12 +338,10 @@ func (m *Manager) Registry() *Registry {
 func (m *Manager) stoppedEngineInfo(kind EngineKind) SupervisorInfo {
 	var cfg EngineConfig
 	switch kind {
-	case EngineLocalAI:
-		cfg = DefaultLocalAIConfig()
-	case EngineNexa:
-		cfg = DefaultNexaConfig()
-	case EngineNimiMedia:
-		cfg = DefaultNimiMediaConfig()
+	case EngineLlama:
+		cfg = DefaultLlamaConfig()
+	case EngineMedia:
+		cfg = DefaultMediaConfig()
 	default:
 		return SupervisorInfo{Kind: kind, Status: StatusStopped}
 	}
@@ -372,8 +355,8 @@ func (m *Manager) stoppedEngineInfo(kind EngineKind) SupervisorInfo {
 	}
 
 	switch kind {
-	case EngineLocalAI:
-		if latest := m.latestRegistryEntry(EngineLocalAI); latest != nil {
+	case EngineLlama:
+		if latest := m.latestRegistryEntry(EngineLlama); latest != nil {
 			if version := strings.TrimSpace(latest.Version); version != "" {
 				info.Version = version
 			}
@@ -382,23 +365,8 @@ func (m *Manager) stoppedEngineInfo(kind EngineKind) SupervisorInfo {
 				info.BinarySizeBytes = fi.Size()
 			}
 		}
-	case EngineNexa:
-		if currentGOOS() == "windows" {
-			path := managedNexaBinary(engineVersionDir(m.baseDir, EngineNexa, cfg.Version))
-			if fi, statErr := os.Stat(path); statErr == nil {
-				info.BinaryPath = strings.TrimSpace(path)
-				info.BinarySizeBytes = fi.Size()
-			}
-			return info
-		}
-		if path, err := nexaLookPath(); err == nil {
-			info.BinaryPath = strings.TrimSpace(path)
-			if fi, statErr := os.Stat(info.BinaryPath); statErr == nil {
-				info.BinarySizeBytes = fi.Size()
-			}
-		}
-	case EngineNimiMedia:
-		path := managedPythonPath(engineVersionDir(m.baseDir, EngineNimiMedia, cfg.Version))
+	case EngineMedia:
+		path := managedPythonPath(engineVersionDir(m.baseDir, EngineMedia, cfg.Version))
 		if fi, statErr := os.Stat(path); statErr == nil {
 			info.BinaryPath = strings.TrimSpace(path)
 			info.BinarySizeBytes = fi.Size()
@@ -408,39 +376,39 @@ func (m *Manager) stoppedEngineInfo(kind EngineKind) SupervisorInfo {
 	return info
 }
 
-func (m *Manager) prepareLocalAIStart(ctx context.Context, cfg EngineConfig) (EngineConfig, error) {
-	if cfg.LocalAIImageBackend == nil || !cfg.LocalAIImageBackend.Enabled() {
+func (m *Manager) prepareLlamaStart(ctx context.Context, cfg EngineConfig) (EngineConfig, error) {
+	if cfg.LlamaImageBackend == nil || !cfg.LlamaImageBackend.Enabled() {
 		return cfg, nil
 	}
-	resolvedImageBackend, err := ensureOfficialLocalAIImageBackend(ctx, cfg.BinaryPath, cfg.BackendsPath, cfg.LocalAIImageBackend)
+	resolvedImageBackend, err := ensureOfficialLlamaImageBackend(ctx, cfg.BinaryPath, cfg.BackendsPath, cfg.LlamaImageBackend)
 	if err != nil {
 		return cfg, fmt.Errorf("prepare llama image backend: %w", err)
 	}
-	cfg.LocalAIImageBackend = resolvedImageBackend
-	auxCfg, err := localAIImageBackendEngineConfig(resolvedImageBackend)
+	cfg.LlamaImageBackend = resolvedImageBackend
+	auxCfg, err := llamaImageBackendEngineConfig(resolvedImageBackend)
 	if err != nil {
 		return cfg, err
 	}
-	if err := m.startLocalAIImageBackend(ctx, auxCfg); err != nil {
+	if err := m.startLlamaImageBackend(ctx, auxCfg); err != nil {
 		return cfg, err
 	}
 	entry := strings.TrimSpace(resolvedImageBackend.BackendName) + ":" + strings.TrimSpace(resolvedImageBackend.Address)
-	cfg.ExternalGRPCBackends = normalizeLocalAIExternalGRPCBackends(append(cfg.ExternalGRPCBackends, entry))
+	cfg.ExternalGRPCBackends = normalizeLlamaExternalGRPCBackends(append(cfg.ExternalGRPCBackends, entry))
 	return cfg, nil
 }
 
-func (m *Manager) startLocalAIImageBackend(ctx context.Context, cfg EngineConfig) error {
+func (m *Manager) startLlamaImageBackend(ctx context.Context, cfg EngineConfig) error {
 	m.mu.Lock()
-	existing, ok := m.supervisors[engineLocalAIImageBackend]
+	existing, ok := m.supervisors[engineMediaDiffusersBackend]
 	if ok && (existing.Status() == StatusHealthy || existing.Status() == StatusStarting) {
 		m.mu.Unlock()
 		return nil
 	}
 	if ok {
-		delete(m.supervisors, engineLocalAIImageBackend)
+		delete(m.supervisors, engineMediaDiffusersBackend)
 	}
 	sup := NewSupervisor(cfg, m.logger, m.onState)
-	m.supervisors[engineLocalAIImageBackend] = sup
+	m.supervisors[engineMediaDiffusersBackend] = sup
 	m.mu.Unlock()
 	if ok {
 		_ = existing.Stop()
@@ -448,9 +416,9 @@ func (m *Manager) startLocalAIImageBackend(ctx context.Context, cfg EngineConfig
 	return sup.Start(ctx)
 }
 
-func (m *Manager) stopLocalAIImageBackend() error {
+func (m *Manager) stopLlamaImageBackend() error {
 	m.mu.RLock()
-	sup, ok := m.supervisors[engineLocalAIImageBackend]
+	sup, ok := m.supervisors[engineMediaDiffusersBackend]
 	m.mu.RUnlock()
 	if !ok {
 		return nil

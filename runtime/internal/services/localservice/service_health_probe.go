@@ -47,7 +47,7 @@ type probeRecoveryState struct {
 func defaultEndpointProbe(ctx context.Context, engine string, endpoint string) endpointProbeResult {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
 	case "media", "media.diffusers":
-		return probeNimiMediaEndpoint(ctx, endpoint)
+		return probeMediaEndpoint(ctx, endpoint)
 	default:
 		return probeOpenAICompatibleEndpoint(ctx, endpoint)
 	}
@@ -133,8 +133,8 @@ func probeOpenAICompatibleEndpoint(ctx context.Context, endpoint string) endpoin
 	}
 }
 
-func probeNimiMediaEndpoint(ctx context.Context, endpoint string) endpointProbeResult {
-	healthURL, err := buildNimiMediaHealthProbeURL(endpoint)
+func probeMediaEndpoint(ctx context.Context, endpoint string) endpointProbeResult {
+	healthURL, err := buildMediaHealthProbeURL(endpoint)
 	if err != nil {
 		return endpointProbeResult{
 			healthy:  false,
@@ -142,7 +142,7 @@ func probeNimiMediaEndpoint(ctx context.Context, endpoint string) endpointProbeR
 			probeURL: strings.TrimSpace(endpoint),
 		}
 	}
-	catalogURL, err := buildNimiMediaCatalogProbeURL(endpoint)
+	catalogURL, err := buildMediaCatalogProbeURL(endpoint)
 	if err != nil {
 		return endpointProbeResult{
 			healthy:  false,
@@ -177,7 +177,7 @@ func probeNimiMediaEndpoint(ctx context.Context, endpoint string) endpointProbeR
 		return endpointProbeResult{
 			healthy:   false,
 			responded: true,
-			detail:    nimiMediaProbeDetailFromBody(healthBody, fmt.Sprintf("probe status not ok: %d", healthResp.StatusCode)),
+			detail:    mediaProbeDetailFromBody(healthBody, fmt.Sprintf("probe status not ok: %d", healthResp.StatusCode)),
 			probeURL:  healthURL,
 		}
 	}
@@ -227,7 +227,7 @@ func probeNimiMediaEndpoint(ctx context.Context, endpoint string) endpointProbeR
 		return endpointProbeResult{
 			healthy:   false,
 			responded: true,
-			detail:    nimiMediaProbeDetailFromBody(catalogBody, fmt.Sprintf("catalog status not ok: %d", catalogResp.StatusCode)),
+			detail:    mediaProbeDetailFromBody(catalogBody, fmt.Sprintf("catalog status not ok: %d", catalogResp.StatusCode)),
 			probeURL:  catalogURL,
 		}
 	}
@@ -271,7 +271,7 @@ func probeNimiMediaEndpoint(ctx context.Context, endpoint string) endpointProbeR
 	}
 }
 
-func nimiMediaProbeDetailFromBody(body []byte, fallback string) string {
+func mediaProbeDetailFromBody(body []byte, fallback string) string {
 	payload := struct {
 		Detail string `json:"detail"`
 		Error  struct {
@@ -327,7 +327,7 @@ func buildOpenAIModelsProbeURL(endpoint string) (string, error) {
 	return parsed.String(), nil
 }
 
-func buildNimiMediaHealthProbeURL(endpoint string) (string, error) {
+func buildMediaHealthProbeURL(endpoint string) (string, error) {
 	parsed, rootPath, err := parseCanonicalProbeBaseURL(endpoint)
 	if err != nil {
 		return "", err
@@ -336,7 +336,7 @@ func buildNimiMediaHealthProbeURL(endpoint string) (string, error) {
 	return parsed.String(), nil
 }
 
-func buildNimiMediaCatalogProbeURL(endpoint string) (string, error) {
+func buildMediaCatalogProbeURL(endpoint string) (string, error) {
 	parsed, rootPath, err := parseCanonicalProbeBaseURL(endpoint)
 	if err != nil {
 		return "", err
@@ -387,7 +387,7 @@ func parseCanonicalProbeBaseURL(endpoint string) (*url.URL, string, error) {
 func buildEndpointProbeURL(engine string, endpoint string) (string, error) {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
 	case "media", "media.diffusers":
-		return buildNimiMediaCatalogProbeURL(endpoint)
+		return buildMediaCatalogProbeURL(endpoint)
 	default:
 		return buildOpenAIModelsProbeURL(endpoint)
 	}
@@ -435,16 +435,16 @@ func appendWarnings(detail string, warnings []string) string {
 	return base + "; warnings=" + strings.Join(warnings, ",")
 }
 
-func (s *Service) managedLocalAIEndpoint() string {
+func (s *Service) managedLlamaEndpoint() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return strings.TrimSpace(s.localAIManagedEndpoint)
+	return strings.TrimSpace(s.managedLlamaEndpointValue)
 }
 
-func (s *Service) managedNimiMediaEndpoint() string {
+func (s *Service) managedMediaEndpoint() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return strings.TrimSpace(s.nimiMediaManagedEndpoint)
+	return strings.TrimSpace(s.managedMediaEndpointValue)
 }
 
 func (s *Service) effectiveLocalModelEndpoint(model *runtimev1.LocalModelRecord) string {

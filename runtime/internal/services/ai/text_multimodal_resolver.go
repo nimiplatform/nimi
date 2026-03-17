@@ -223,20 +223,20 @@ func (s *Service) resolveTextGenerateArtifactPath(
 	if localArtifactID == "" {
 		return "", "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	if !isLocalAITextGenerateRoute(modelResolved, remoteTarget, selected) {
+	if !isLlamaTextGenerateRoute(modelResolved, remoteTarget, selected) {
 		return "", "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	if s == nil || s.localImageProfile == nil {
 		return "", "", nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
-	path, err := s.localImageProfile.ResolveLocalAIArtifactPath(ctx, localArtifactID)
+	path, err := s.localImageProfile.ResolveManagedArtifactPath(ctx, localArtifactID)
 	if err != nil {
 		return "", "", nil, err
 	}
 	return path, strings.TrimSpace(ref.GetMimeType()), nil, nil
 }
 
-func isLocalAITextGenerateRoute(modelResolved string, remoteTarget *nimillm.RemoteTarget, selected provider) bool {
+func isLlamaTextGenerateRoute(modelResolved string, remoteTarget *nimillm.RemoteTarget, selected provider) bool {
 	return inferScenarioProviderType(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_UNSPECIFIED) == "llama"
 }
 

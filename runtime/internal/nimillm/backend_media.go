@@ -17,11 +17,13 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
-func (b *Backend) isNimiMediaBackend() bool {
+func (b *Backend) isMediaBackend() bool {
 	if b == nil {
 		return false
 	}
-	return strings.Contains(strings.ToLower(strings.TrimSpace(b.Name)), "nimi_media")
+	normalized := strings.ToLower(strings.TrimSpace(b.Name))
+	return strings.Contains(normalized, "local-media") ||
+		normalized == "media"
 }
 
 // Embed sends an embeddings request.
@@ -202,9 +204,9 @@ func (b *Backend) Transcribe(
 	return text, usage, nil
 }
 
-// LocalAIImageDiagnostics captures LocalAI-specific image mapping diagnostics.
-type LocalAIImageDiagnostics struct {
-	LocalAIPrompt  string
+// ManagedMediaImageDiagnostics captures llama-managed media mapping diagnostics.
+type ManagedMediaImageDiagnostics struct {
+	LocalPrompt    string
 	SourceImage    string
 	RefImagesCount int
 	AppliedOptions []string
@@ -222,9 +224,9 @@ func normalizeImageResponseFormat(raw string) (string, error) {
 	}
 }
 
-// ImportLocalAIModelConfig dynamically imports a LocalAI model configuration
-// through the LocalAI management endpoint.
-func (b *Backend) ImportLocalAIModelConfig(ctx context.Context, modelConfig map[string]any) error {
+// ImportManagedMediaModelConfig dynamically imports a managed media model
+// configuration through the llama management endpoint.
+func (b *Backend) ImportManagedMediaModelConfig(ctx context.Context, modelConfig map[string]any) error {
 	type importResponse struct {
 		Success  bool   `json:"success"`
 		Message  string `json:"message"`
@@ -238,7 +240,7 @@ func (b *Backend) ImportLocalAIModelConfig(ctx context.Context, modelConfig map[
 	if !resp.Success {
 		message := strings.TrimSpace(resp.Error)
 		if message == "" {
-			message = "localai model import failed"
+			message = "managed media model import failed"
 		}
 		return grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
 			Message: message,
@@ -247,10 +249,10 @@ func (b *Backend) ImportLocalAIModelConfig(ctx context.Context, modelConfig map[
 	return nil
 }
 
-// GenerateImageLocalAI sends a LocalAI-optimized image generation request.
+// GenerateImageManagedMedia sends a llama-managed image generation request.
 // It supports the minimal t2i/i2i workflow (file/files/ref_images) and best-effort
-// Nexa parameter normalization (steps->step, method->mode).
-func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec *runtimev1.ImageGenerateScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, *LocalAIImageDiagnostics, error) {
+// local image parameter normalization (steps->step, method->mode).
+func (b *Backend) GenerateImageManagedMedia(ctx context.Context, modelID string, spec *runtimev1.ImageGenerateScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, *ManagedMediaImageDiagnostics, error) {
 	type imageRequest struct {
 		Model          string         `json:"model"`
 		Prompt         string         `json:"prompt"`
@@ -388,8 +390,8 @@ func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec
 		return nil, nil, nil, err
 	}
 
-	diag := &LocalAIImageDiagnostics{
-		LocalAIPrompt:  localPrompt,
+	diag := &ManagedMediaImageDiagnostics{
+		LocalPrompt:    localPrompt,
 		SourceImage:    sourceImage,
 		RefImagesCount: len(refImages),
 		AppliedOptions: appliedOptions,
@@ -401,8 +403,8 @@ func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec
 
 // GenerateImage sends an image generation request.
 func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runtimev1.ImageGenerateScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, error) {
-	if b.isNimiMediaBackend() {
-		return b.generateImageNimiMedia(ctx, modelID, spec, scenarioExtensions)
+	if b.isMediaBackend() {
+		return b.generateImageMedia(ctx, modelID, spec, scenarioExtensions)
 	}
 
 	type imageRequest struct {
@@ -473,8 +475,8 @@ func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runti
 
 // GenerateVideo sends a video generation request.
 func (b *Backend) GenerateVideo(ctx context.Context, modelID string, spec *runtimev1.VideoGenerateScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, error) {
-	if b.isNimiMediaBackend() {
-		return b.generateVideoNimiMedia(ctx, modelID, spec, scenarioExtensions)
+	if b.isMediaBackend() {
+		return b.generateVideoMedia(ctx, modelID, spec, scenarioExtensions)
 	}
 
 	type videoRequest struct {

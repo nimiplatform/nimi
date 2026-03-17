@@ -19,6 +19,7 @@ type localProvider struct {
 	mu             sync.RWMutex
 	llama          *nimillm.Backend
 	media          *nimillm.Backend
+	speech         *nimillm.Backend
 	mediaDiffusers *nimillm.Backend
 	sidecar        *nimillm.Backend
 }
@@ -36,6 +37,8 @@ func (p *localProvider) setBackend(providerID string, backend *nimillm.Backend) 
 		p.llama = backend
 	case "media":
 		p.media = backend
+	case "speech":
+		p.speech = backend
 	case "media.diffusers":
 		p.mediaDiffusers = backend
 	case "sidecar":
@@ -43,13 +46,13 @@ func (p *localProvider) setBackend(providerID string, backend *nimillm.Backend) 
 	}
 }
 
-func (p *localProvider) backends() (*nimillm.Backend, *nimillm.Backend, *nimillm.Backend, *nimillm.Backend) {
+func (p *localProvider) backends() (*nimillm.Backend, *nimillm.Backend, *nimillm.Backend, *nimillm.Backend, *nimillm.Backend) {
 	if p == nil {
-		return nil, nil, nil, nil
+		return nil, nil, nil, nil, nil
 	}
 	p.mu.RLock()
 	defer p.mu.RUnlock()
-	return p.llama, p.media, p.mediaDiffusers, p.sidecar
+	return p.llama, p.media, p.speech, p.mediaDiffusers, p.sidecar
 }
 
 func (p *localProvider) Route() runtimev1.RoutePolicy {
@@ -65,7 +68,7 @@ func (p *localProvider) ResolveModelID(raw string) string {
 }
 
 func (p *localProvider) CheckModelAvailability(modelID string) error {
-	_, _, explicit, ok, _ := p.pickAvailabilityBackend(modelID)
+	_, _, explicit, ok := p.pickAvailabilityBackend(modelID)
 	if explicit && !ok {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODEL_PROVIDER_MISMATCH)
 	}
@@ -91,7 +94,7 @@ func (p *localProvider) GenerateTextScenario(
 	if spec == nil {
 		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	backend, resolvedModelID, explicit, ok, _ := p.pickTextBackend(modelID)
+	backend, resolvedModelID, explicit, ok := p.pickTextBackend(modelID)
 	if explicit && !ok {
 		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODEL_PROVIDER_MISMATCH)
 	}
@@ -106,7 +109,7 @@ func (p *localProvider) GenerateTextScenario(
 }
 
 func (p *localProvider) Embed(ctx context.Context, modelID string, inputs []string) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
-	backend, resolvedModelID, explicit, ok, _ := p.pickEmbeddingBackend(modelID)
+	backend, resolvedModelID, explicit, ok := p.pickEmbeddingBackend(modelID)
 	if explicit && !ok {
 		return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODEL_PROVIDER_MISMATCH)
 	}
@@ -141,7 +144,7 @@ func (p *localProvider) StreamGenerateTextScenario(
 	if spec == nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	backend, resolvedModelID, explicit, ok, _ := p.pickTextBackend(modelID)
+	backend, resolvedModelID, explicit, ok := p.pickTextBackend(modelID)
 	if explicit && !ok {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODEL_PROVIDER_MISMATCH)
 	}
@@ -151,23 +154,23 @@ func (p *localProvider) StreamGenerateTextScenario(
 	return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 }
 
-func (p *localProvider) pickAvailabilityBackend(modelID string) (*nimillm.Backend, string, bool, bool, bool) {
+func (p *localProvider) pickAvailabilityBackend(modelID string) (*nimillm.Backend, string, bool, bool) {
 	return p.pickCapabilityBackend(modelID, "text.generate", true)
 }
 
-func (p *localProvider) pickTextBackend(modelID string) (*nimillm.Backend, string, bool, bool, bool) {
+func (p *localProvider) pickTextBackend(modelID string) (*nimillm.Backend, string, bool, bool) {
 	return p.pickCapabilityBackend(modelID, "text.generate", false)
 }
 
-func (p *localProvider) pickEmbeddingBackend(modelID string) (*nimillm.Backend, string, bool, bool, bool) {
+func (p *localProvider) pickEmbeddingBackend(modelID string) (*nimillm.Backend, string, bool, bool) {
 	return p.pickCapabilityBackend(modelID, "text.embed", false)
 }
 
-func (p *localProvider) pickCapabilityBackend(modelID string, capability string, allowExplicitAvailability bool) (*nimillm.Backend, string, bool, bool, bool) {
-	llamaBackend, mediaBackend, mediaDiffusersBackend, sidecarBackend := p.backends()
+func (p *localProvider) pickCapabilityBackend(modelID string, capability string, allowExplicitAvailability bool) (*nimillm.Backend, string, bool, bool) {
+	llamaBackend, mediaBackend, speechBackend, mediaDiffusersBackend, sidecarBackend := p.backends()
 	id := strings.TrimSpace(modelID)
 	if id == "" {
-		return nil, "", false, false, false
+		return nil, "", false, false
 	}
 
 	segments := strings.SplitN(id, "/", 2)
@@ -175,45 +178,45 @@ func (p *localProvider) pickCapabilityBackend(modelID string, capability string,
 		prefix := strings.ToLower(strings.TrimSpace(segments[0]))
 		rest := strings.TrimSpace(segments[1])
 		if rest == "" {
-			return nil, "", true, false, false
+			return nil, "", true, false
 		}
 		switch prefix {
 		case "llama":
 			if allowExplicitAvailability {
-				return llamaBackend, rest, true, llamaBackend != nil, false
+				return llamaBackend, rest, true, llamaBackend != nil
 			}
-			return explicitCapabilityBackend("llama", capability, llamaBackend, rest, false)
+			return explicitCapabilityBackend("llama", capability, llamaBackend, rest)
 		case "media":
 			if allowExplicitAvailability {
-				return mediaBackend, rest, true, mediaBackend != nil, false
+				return mediaBackend, rest, true, mediaBackend != nil
 			}
-			return explicitCapabilityBackend("media", capability, mediaBackend, rest, false)
-		case "media.diffusers":
+			return explicitCapabilityBackend("media", capability, mediaBackend, rest)
+		case "speech":
 			if allowExplicitAvailability {
-				return mediaDiffusersBackend, rest, true, mediaDiffusersBackend != nil, false
+				return speechBackend, rest, true, speechBackend != nil
 			}
-			return explicitCapabilityBackend("media.diffusers", capability, mediaDiffusersBackend, rest, false)
+			return explicitCapabilityBackend("speech", capability, speechBackend, rest)
 		case "sidecar":
 			if allowExplicitAvailability {
-				return sidecarBackend, rest, true, sidecarBackend != nil, false
+				return sidecarBackend, rest, true, sidecarBackend != nil
 			}
-			return explicitCapabilityBackend("sidecar", capability, sidecarBackend, rest, false)
+			return explicitCapabilityBackend("sidecar", capability, sidecarBackend, rest)
 		case "local":
 			for _, provider := range orderedLocalProviders(capability) {
-				if backend := backendForLocalProvider(provider, llamaBackend, mediaBackend, mediaDiffusersBackend, sidecarBackend); backend != nil {
-					return backend, rest, true, true, false
+				if backend := backendForLocalProvider(provider, llamaBackend, mediaBackend, speechBackend, mediaDiffusersBackend, sidecarBackend); backend != nil {
+					return backend, rest, true, true
 				}
 			}
-			return nil, rest, true, false, false
+			return nil, rest, true, false
 		}
 	}
 
 	for _, provider := range orderedLocalProviders(capability) {
-		if backend := backendForLocalProvider(provider, llamaBackend, mediaBackend, mediaDiffusersBackend, sidecarBackend); backend != nil {
-			return backend, id, false, true, false
+		if backend := backendForLocalProvider(provider, llamaBackend, mediaBackend, speechBackend, mediaDiffusersBackend, sidecarBackend); backend != nil {
+			return backend, id, false, true
 		}
 	}
-	return nil, id, false, false, false
+	return nil, id, false, false
 }
 
 func orderedLocalProviders(capability string) []string {
@@ -224,6 +227,7 @@ func backendForLocalProvider(
 	provider string,
 	llamaBackend *nimillm.Backend,
 	mediaBackend *nimillm.Backend,
+	speechBackend *nimillm.Backend,
 	mediaDiffusersBackend *nimillm.Backend,
 	sidecarBackend *nimillm.Backend,
 ) *nimillm.Backend {
@@ -232,6 +236,8 @@ func backendForLocalProvider(
 		return llamaBackend
 	case "media":
 		return mediaBackend
+	case "speech":
+		return speechBackend
 	case "media.diffusers":
 		return mediaDiffusersBackend
 	case "sidecar":
@@ -242,17 +248,20 @@ func backendForLocalProvider(
 }
 
 func (p *localProvider) resolveMediaBackendForModal(modelID string, modal runtimev1.Modal) (*nimillm.Backend, string, string) {
-	llamaBackend, mediaBackend, mediaDiffusersBackend, sidecarBackend := p.backends()
+	llamaBackend, mediaBackend, speechBackend, mediaDiffusersBackend, sidecarBackend := p.backends()
 	id := strings.TrimSpace(modelID)
 	if id == "" {
 		return nil, "", ""
 	}
-	if backend, resolved, providerType, ok := p.resolveExplicitMediaBackend(id, modal, llamaBackend, mediaBackend, mediaDiffusersBackend, sidecarBackend); ok {
+	if backend, resolved, providerType, ok := p.resolveExplicitMediaBackend(id, modal, llamaBackend, mediaBackend, speechBackend, mediaDiffusersBackend, sidecarBackend); ok {
 		return backend, resolved, providerType
 	}
 
 	for _, provider := range orderedLocalProviders(localRoutingCapabilityForModal(modal)) {
-		if backend := backendForLocalProvider(provider, llamaBackend, mediaBackend, mediaDiffusersBackend, sidecarBackend); backend != nil {
+		if provider == "media" && mediaBackend == nil && mediaDiffusersBackend != nil {
+			return mediaDiffusersBackend, id, "media.diffusers"
+		}
+		if backend := backendForLocalProvider(provider, llamaBackend, mediaBackend, speechBackend, mediaDiffusersBackend, sidecarBackend); backend != nil {
 			return backend, id, provider
 		}
 	}
@@ -264,6 +273,7 @@ func (p *localProvider) resolveExplicitMediaBackend(
 	modal runtimev1.Modal,
 	llamaBackend *nimillm.Backend,
 	mediaBackend *nimillm.Backend,
+	speechBackend *nimillm.Backend,
 	mediaDiffusersBackend *nimillm.Backend,
 	sidecarBackend *nimillm.Backend,
 ) (*nimillm.Backend, string, string, bool) {
@@ -283,16 +293,22 @@ func (p *localProvider) resolveExplicitMediaBackend(
 		return backend, resolved, providerType, true
 	case "media":
 		backend, resolved, providerType := explicitMediaBackend("media", capability, mediaBackend, rest)
+		if backend == nil && mediaDiffusersBackend != nil && localrouting.ProviderSupportsCapability("media", capability) {
+			return mediaDiffusersBackend, rest, "media.diffusers", true
+		}
 		return backend, resolved, providerType, true
-	case "media.diffusers":
-		backend, resolved, providerType := explicitMediaBackend("media.diffusers", capability, mediaDiffusersBackend, rest)
+	case "speech":
+		backend, resolved, providerType := explicitMediaBackend("speech", capability, speechBackend, rest)
 		return backend, resolved, providerType, true
 	case "sidecar":
 		backend, resolved, providerType := explicitMediaBackend("sidecar", capability, sidecarBackend, rest)
 		return backend, resolved, providerType, true
 	case "local":
 		for _, provider := range orderedLocalProviders(capability) {
-			if backend := backendForLocalProvider(provider, llamaBackend, mediaBackend, mediaDiffusersBackend, sidecarBackend); backend != nil {
+			if provider == "media" && mediaBackend == nil && mediaDiffusersBackend != nil {
+				return mediaDiffusersBackend, rest, "media.diffusers", true
+			}
+			if backend := backendForLocalProvider(provider, llamaBackend, mediaBackend, speechBackend, mediaDiffusersBackend, sidecarBackend); backend != nil {
 				return backend, rest, provider, true
 			}
 		}
@@ -302,11 +318,11 @@ func (p *localProvider) resolveExplicitMediaBackend(
 	}
 }
 
-func explicitCapabilityBackend(provider string, capability string, backend *nimillm.Backend, modelID string, isNexa bool) (*nimillm.Backend, string, bool, bool, bool) {
+func explicitCapabilityBackend(provider string, capability string, backend *nimillm.Backend, modelID string) (*nimillm.Backend, string, bool, bool) {
 	if !localrouting.ProviderSupportsCapability(provider, capability) {
-		return nil, modelID, true, false, isNexa
+		return nil, modelID, true, false
 	}
-	return backend, modelID, true, backend != nil, isNexa
+	return backend, modelID, true, backend != nil
 }
 
 func explicitMediaBackend(provider string, capability string, backend *nimillm.Backend, modelID string) (*nimillm.Backend, string, string) {

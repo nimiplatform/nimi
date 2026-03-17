@@ -119,6 +119,11 @@ func loadConfigFromEnv() Config {
 	if localMediaBase != "" || localMediaKey != "" {
 		localProviders["media"] = nimillm.ProviderCredentials{BaseURL: localMediaBase, APIKey: localMediaKey}
 	}
+	localSpeechBase := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL"))
+	localSpeechKey := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_SPEECH_API_KEY"))
+	if localSpeechBase != "" || localSpeechKey != "" {
+		localProviders["speech"] = nimillm.ProviderCredentials{BaseURL: localSpeechBase, APIKey: localSpeechKey}
+	}
 	localSidecarBase := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL"))
 	localSidecarKey := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY"))
 	if localSidecarBase != "" || localSidecarKey != "" {
@@ -195,9 +200,11 @@ func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, 
 
 	llamaCreds := normalized.LocalProviders["llama"]
 	mediaCreds := normalized.LocalProviders["media"]
+	speechCreds := normalized.LocalProviders["speech"]
 	sidecarCreds := normalized.LocalProviders["sidecar"]
 	llamaBackend := newLocalBackend("local-llama", llamaCreds, normalized)
 	mediaBackend := newLocalBackend("local-media", mediaCreds, normalized)
+	speechBackend := newLocalBackend("local-speech", speechCreds, normalized)
 	mediaDiffusersBackend := newLocalBackend("local-media-diffusers", mediaCreds, normalized)
 	sidecarBackend := newLocalBackend("local-sidecar", sidecarCreds, normalized)
 	targetConfig := runtimecfg.Config{
@@ -221,6 +228,7 @@ func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, 
 		local: &localProvider{
 			llama:          llamaBackend,
 			media:          mediaBackend,
+			speech:         speechBackend,
 			mediaDiffusers: mediaDiffusersBackend,
 			sidecar:        sidecarBackend,
 		},

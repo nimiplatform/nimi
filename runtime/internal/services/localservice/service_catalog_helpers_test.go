@@ -20,20 +20,20 @@ func TestBuildNodeProviderHintsMediaDoesNotSynthesizeCatalogMetadata(t *testing.
 		true,
 		&runtimev1.LocalDeviceProfile{Os: "windows"},
 	)
-	if hints == nil || hints.GetNimiMedia() == nil {
+	if hints == nil || hints.GetMedia() == nil {
 		t.Fatal("expected media provider hints")
 	}
-	if hints.GetNimiMedia().GetFamily() != "" {
-		t.Fatalf("expected empty family without real catalog metadata, got %q", hints.GetNimiMedia().GetFamily())
+	if hints.GetMedia().GetFamily() != "" {
+		t.Fatalf("expected empty family without real catalog metadata, got %q", hints.GetMedia().GetFamily())
 	}
-	if hints.GetNimiMedia().GetImageDriver() != "" {
-		t.Fatalf("expected empty image driver without real catalog metadata, got %q", hints.GetNimiMedia().GetImageDriver())
+	if hints.GetMedia().GetImageDriver() != "" {
+		t.Fatalf("expected empty image driver without real catalog metadata, got %q", hints.GetMedia().GetImageDriver())
 	}
-	if hints.GetNimiMedia().GetVideoDriver() != "" {
-		t.Fatalf("expected empty video driver without real catalog metadata, got %q", hints.GetNimiMedia().GetVideoDriver())
+	if hints.GetMedia().GetVideoDriver() != "" {
+		t.Fatalf("expected empty video driver without real catalog metadata, got %q", hints.GetMedia().GetVideoDriver())
 	}
-	if hints.GetNimiMedia().GetDevice() != "" {
-		t.Fatalf("expected empty device without real catalog metadata, got %q", hints.GetNimiMedia().GetDevice())
+	if hints.GetMedia().GetDevice() != "" {
+		t.Fatalf("expected empty device without real catalog metadata, got %q", hints.GetMedia().GetDevice())
 	}
 	if _, ok := hints.GetExtra()["image_driver"]; ok {
 		t.Fatalf("extra image_driver should not be synthesized")
@@ -56,8 +56,8 @@ func TestAdapterForProviderCapabilityUsesHardCutAdapters(t *testing.T) {
 	if got := adapterForProviderCapability("media", "image"); got != "media_native_adapter" {
 		t.Fatalf("media image adapter mismatch: %s", got)
 	}
-	if got := adapterForProviderCapability("media.diffusers", "video"); got != "media_diffusers_adapter" {
-		t.Fatalf("media diffusers video adapter mismatch: %s", got)
+	if got := adapterForProviderCapability("speech", "audio.synthesize"); got != "speech_native_adapter" {
+		t.Fatalf("speech synth adapter mismatch: %s", got)
 	}
 	if got := adapterForProviderCapability("sidecar", "music"); got != "sidecar_music_adapter" {
 		t.Fatalf("sidecar music adapter mismatch: %s", got)

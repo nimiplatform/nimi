@@ -2,7 +2,7 @@ package localrouting
 
 import "strings"
 
-var allProviders = []string{"llama", "media", "media.diffusers", "sidecar"}
+var allProviders = []string{"llama", "media", "speech", "sidecar"}
 
 func NormalizeCapability(capability string) string {
 	switch strings.ToLower(strings.TrimSpace(capability)) {
@@ -22,6 +22,10 @@ func NormalizeCapability(capability string) string {
 		return "i2v"
 	case "tts", "speech", "audio.synthesize":
 		return "audio.synthesize"
+	case "voice_workflow.tts_v2v":
+		return "voice_workflow.tts_v2v"
+	case "voice_workflow.tts_t2v":
+		return "voice_workflow.tts_t2v"
 	case "stt", "transcription", "audio.transcribe":
 		return "audio.transcribe"
 	case "audio.understand":
@@ -39,7 +43,7 @@ func NormalizeProvider(provider string) string {
 
 func IsKnownProvider(provider string) bool {
 	switch NormalizeProvider(provider) {
-	case "llama", "media", "media.diffusers", "sidecar":
+	case "llama", "media", "speech", "sidecar":
 		return true
 	default:
 		return false
@@ -53,9 +57,14 @@ func ProviderSupportsCapability(provider string, capability string) bool {
 		case "text.generate", "text.embed", "image.understand", "audio.understand":
 			return true
 		}
-	case "media", "media.diffusers":
+	case "media":
 		switch NormalizeCapability(capability) {
 		case "image.generate", "image.edit", "video.generate", "i2v":
+			return true
+		}
+	case "speech":
+		switch NormalizeCapability(capability) {
+		case "audio.synthesize", "audio.transcribe", "voice_workflow.tts_v2v", "voice_workflow.tts_t2v":
 			return true
 		}
 	case "sidecar":
@@ -71,13 +80,15 @@ func PreferenceOrder(goos string, capability string) []string {
 	default:
 		switch normalizedCapability {
 		case "image.generate", "image.edit", "video.generate", "i2v":
-			return supportedProvidersInOrder(normalizedCapability, "media", "media.diffusers")
+			return supportedProvidersInOrder(normalizedCapability, "media")
+		case "audio.synthesize", "audio.transcribe", "voice_workflow.tts_v2v", "voice_workflow.tts_t2v":
+			return supportedProvidersInOrder(normalizedCapability, "speech")
 		case "text.generate", "text.embed", "image.understand", "audio.understand":
 			return supportedProvidersInOrder(normalizedCapability, "llama")
 		case "music.generate":
 			return supportedProvidersInOrder(normalizedCapability, "sidecar")
 		default:
-			return supportedProvidersInOrder(normalizedCapability, "llama", "media", "media.diffusers", "sidecar")
+			return supportedProvidersInOrder(normalizedCapability, "llama", "media", "speech", "sidecar")
 		}
 	}
 }

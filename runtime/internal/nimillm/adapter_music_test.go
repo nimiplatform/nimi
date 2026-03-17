@@ -235,7 +235,7 @@ func TestExecuteLoudlyMusicUsesAPIKeyHeader(t *testing.T) {
 	}
 }
 
-func TestExecuteLocalAIMusicFallsBackAcrossEndpoints(t *testing.T) {
+func TestExecuteLlamaMusicFallsBackAcrossEndpoints(t *testing.T) {
 	requestPaths := []string{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestPaths = append(requestPaths, r.URL.Path)
@@ -245,23 +245,23 @@ func TestExecuteLocalAIMusicFallsBackAcrossEndpoints(t *testing.T) {
 		}
 		if r.URL.Path == "/sound" {
 			w.Header().Set("Content-Type", "audio/mpeg")
-			_, _ = w.Write([]byte("localai-music"))
+			_, _ = w.Write([]byte("llama-music"))
 			return
 		}
 		http.NotFound(w, r)
 	}))
 	defer server.Close()
 
-	artifacts, _, _, err := ExecuteLocalAIMusic(context.Background(), MediaAdapterConfig{
+	artifacts, _, _, err := ExecuteLlamaMusic(context.Background(), MediaAdapterConfig{
 		BaseURL: server.URL,
-	}, newMusicJobRequest("ace-step-local", "ambient loop"), "localai/ace-step-local")
+	}, newMusicJobRequest("ace-step-local", "ambient loop"), "llama/ace-step-local")
 	if err != nil {
-		t.Fatalf("ExecuteLocalAIMusic failed: %v", err)
+		t.Fatalf("ExecuteLlamaMusic failed: %v", err)
 	}
 	if strings.Join(requestPaths, ",") != "/v1/audio/speech,/sound" {
 		t.Fatalf("unexpected fallback sequence: %v", requestPaths)
 	}
-	if len(artifacts) != 1 || string(artifacts[0].GetBytes()) != "localai-music" {
+	if len(artifacts) != 1 || string(artifacts[0].GetBytes()) != "llama-music" {
 		t.Fatalf("unexpected artifacts: %#v", artifacts)
 	}
 }

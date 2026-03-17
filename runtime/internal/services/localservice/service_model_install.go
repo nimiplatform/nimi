@@ -267,7 +267,7 @@ func (s *Service) installLocalModelRecord(
 		Detail:       auditDetail,
 	})
 	s.mu.Unlock()
-	if syncErr := s.SyncManagedLocalAIAssets(context.Background()); syncErr != nil {
+	if syncErr := s.SyncManagedLlamaAssets(context.Background()); syncErr != nil {
 		s.logger.Warn("sync llama assets after model mutation failed", "model_id", record.GetModelId(), "error", syncErr)
 	}
 	return record, nil

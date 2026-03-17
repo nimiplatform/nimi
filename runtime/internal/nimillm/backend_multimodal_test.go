@@ -147,7 +147,7 @@ func TestHasUnsupportedOpenAITextChatParts(t *testing.T) {
 	})
 }
 
-func TestBuildLocalAITextMessages(t *testing.T) {
+func TestBuildLlamaTextMessages(t *testing.T) {
 	input := []*runtimev1.ChatMessage{
 		{
 			Role: "user",
@@ -159,7 +159,7 @@ func TestBuildLocalAITextMessages(t *testing.T) {
 			},
 		},
 	}
-	msgs := buildLocalAITextMessages("system prompt", input)
+	msgs := buildLlamaTextMessages("system prompt", input)
 	if len(msgs) != 2 {
 		t.Fatalf("expected 2 messages, got %d", len(msgs))
 	}

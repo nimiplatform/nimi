@@ -16,10 +16,10 @@ import (
 
 func engineEnvKey(engineName string) (engine.EngineKind, string, bool) {
 	switch strings.TrimSpace(strings.ToLower(engineName)) {
-	case string(engine.EngineLocalAI):
-		return engine.EngineLocalAI, "NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", true
-	case string(engine.EngineNimiMedia):
-		return engine.EngineNimiMedia, "NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", true
+	case string(engine.EngineLlama):
+		return engine.EngineLlama, "NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", true
+	case string(engine.EngineMedia):
+		return engine.EngineMedia, "NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", true
 	default:
 		return "", "", false
 	}
@@ -27,11 +27,11 @@ func engineEnvKey(engineName string) (engine.EngineKind, string, bool) {
 
 func providerTargetNameForEngine(kind engine.EngineKind) (string, bool) {
 	switch kind {
-	case engine.EngineLocalAI:
+	case engine.EngineLlama:
 		return "local", true
-	case engine.EngineKind("localai-image-backend"):
+	case engine.EngineKind("media-diffusers-backend"):
 		return "local", true
-	case engine.EngineNimiMedia:
+	case engine.EngineMedia:
 		return "local-media", true
 	default:
 		return "", false
@@ -40,9 +40,9 @@ func providerTargetNameForEngine(kind engine.EngineKind) (string, bool) {
 
 func localProviderEnvBinding(kind engine.EngineKind) (string, string, bool) {
 	switch kind {
-	case engine.EngineLocalAI:
+	case engine.EngineLlama:
 		return "llama", "NIMI_RUNTIME_LOCAL_LLAMA_API_KEY", true
-	case engine.EngineNimiMedia:
+	case engine.EngineMedia:
 		return "media", "NIMI_RUNTIME_LOCAL_MEDIA_API_KEY", true
 	default:
 		return "", "", false
@@ -51,12 +51,12 @@ func localProviderEnvBinding(kind engine.EngineKind) (string, string, bool) {
 
 func engineKindForName(engineName string) (engine.EngineKind, bool) {
 	switch strings.TrimSpace(strings.ToLower(engineName)) {
-	case string(engine.EngineLocalAI):
-		return engine.EngineLocalAI, true
-	case string(engine.EngineNimiMedia):
-		return engine.EngineNimiMedia, true
-	case "localai-image-backend":
-		return engine.EngineKind("localai-image-backend"), true
+	case string(engine.EngineLlama):
+		return engine.EngineLlama, true
+	case string(engine.EngineMedia):
+		return engine.EngineMedia, true
+	case "media-diffusers-backend":
+		return engine.EngineKind("media-diffusers-backend"), true
 	default:
 		return "", false
 	}

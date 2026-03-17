@@ -90,9 +90,9 @@ func TestOnEngineStateChangeHealthyDoesNotReinjectAfterCleanBootstrap(t *testing
 	var logBuf bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&logBuf, nil))
 	daemon := newTestDaemon(t, logger)
-	daemon.engineMgr = newHealthyEngineManager(t, engine.EngineLocalAI, 1234)
+	daemon.engineMgr = newHealthyEngineManager(t, engine.EngineLlama, 1234)
 
-	daemon.injectEngineEndpointEnv(engine.EngineLocalAI, "NIMI_RUNTIME_LOCAL_AI_BASE_URL", "bootstrap")
+	daemon.injectEngineEndpointEnv(engine.EngineLlama, "NIMI_RUNTIME_LOCAL_AI_BASE_URL", "bootstrap")
 	daemon.onEngineStateChange("llama", "healthy", "ready")
 
 	logs := logBuf.String()
@@ -111,7 +111,7 @@ func TestOnEngineStateChangeHealthyReinjectsOnlyForSameEngineRecovery(t *testing
 	var logBuf bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&logBuf, nil))
 	daemon := newTestDaemon(t, logger)
-	daemon.engineMgr = newHealthyEngineManager(t, engine.EngineLocalAI, 1234)
+	daemon.engineMgr = newHealthyEngineManager(t, engine.EngineLlama, 1234)
 	daemon.state.SetStatus(health.StatusDegraded, "engine:llama unhealthy (probe failed)")
 	daemon.setProviderFailureHint("local", "engine unhealthy (llama: probe failed)")
 
@@ -136,8 +136,8 @@ func TestOnEngineStateChangeHealthyDoesNotRecoverDifferentEngineFailure(t *testi
 	var logBuf bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&logBuf, nil))
 	daemon := newTestDaemon(t, logger)
-	daemon.engineMgr = newHealthyEngineManager(t, engine.EngineLocalAI, 1234)
-	daemon.state.SetStatus(health.StatusDegraded, "engine:nexa unhealthy (probe failed)")
+	daemon.engineMgr = newHealthyEngineManager(t, engine.EngineLlama, 1234)
+	daemon.state.SetStatus(health.StatusDegraded, "engine:media unhealthy (probe failed)")
 	daemon.setProviderFailureHint("local", "keep-local-hint")
 
 	daemon.onEngineStateChange("llama", "healthy", "ready")
@@ -147,7 +147,7 @@ func TestOnEngineStateChangeHealthyDoesNotRecoverDifferentEngineFailure(t *testi
 		t.Fatalf("did not expect endpoint reinjection while another engine is degraded, got:\n%s", logs)
 	}
 	snapshot := daemon.state.Snapshot()
-	if snapshot.Status != health.StatusDegraded || snapshot.Reason != "engine:nexa unhealthy (probe failed)" {
+	if snapshot.Status != health.StatusDegraded || snapshot.Reason != "engine:media unhealthy (probe failed)" {
 		t.Fatalf("expected unrelated degraded state to remain untouched, got %s (%s)", snapshot.Status, snapshot.Reason)
 	}
 	if hint := daemon.providerFailureHint("local"); hint != "keep-local-hint" {
@@ -205,7 +205,7 @@ func TestStartSupervisedEnginesManagerInitFailureDegradesAndAudits(t *testing.T)
 	}
 }
 
-func TestStartSupervisedEnginesDoesNotExposeManagedNimiMediaLoopbackOnAttachedOnlyHost(t *testing.T) {
+func TestStartSupervisedEnginesDoesNotExposeManagedMediaLoopbackOnAttachedOnlyHost(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cfg := config.Config{
 		GRPCAddr:             "127.0.0.1:0",
@@ -222,12 +222,12 @@ func TestStartSupervisedEnginesDoesNotExposeManagedNimiMediaLoopbackOnAttachedOn
 		t.Cleanup(func() { svc.Close() })
 	}
 
-	originalDetect := detectNimiMediaHostSupport
-	detectNimiMediaHostSupport = func() (engine.NimiMediaHostSupport, string) {
-		return engine.NimiMediaHostSupportAttachedOnly, "attached only"
+	originalDetect := detectMediaHostSupport
+	detectMediaHostSupport = func() (engine.MediaHostSupport, string) {
+		return engine.MediaHostSupportAttachedOnly, "attached only"
 	}
 	t.Cleanup(func() {
-		detectNimiMediaHostSupport = originalDetect
+		detectMediaHostSupport = originalDetect
 	})
 
 	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
@@ -242,20 +242,20 @@ func TestStartSupervisedEnginesDoesNotExposeManagedNimiMediaLoopbackOnAttachedOn
 
 	daemon.startSupervisedEngines(context.Background())
 	if daemon.engineMgr == nil {
-		t.Fatal("expected engine manager to initialize when only nimi_media is enabled")
+		t.Fatal("expected engine manager to initialize when only media is enabled")
 	}
-	if !slices.Equal(startCalls, []engine.EngineKind{engine.EngineNimiMedia}) {
-		t.Fatalf("expected attached-only host to still bootstrap nimi_media engine, got=%v", startCalls)
+	if !slices.Equal(startCalls, []engine.EngineKind{engine.EngineMedia}) {
+		t.Fatalf("expected attached-only host to still bootstrap media engine, got=%v", startCalls)
 	}
 
 	if svc := daemon.grpc.LocalService(); svc != nil {
-		if managedEndpoint := getUnexportedStringField(t, svc, "nimiMediaManagedEndpoint"); managedEndpoint != "" {
-			t.Fatalf("managed nimi_media endpoint should stay empty on attached-only host, got %q", managedEndpoint)
+		if managedEndpoint := getUnexportedStringField(t, svc, "managedMediaEndpointValue"); managedEndpoint != "" {
+			t.Fatalf("managed media endpoint should stay empty on attached-only host, got %q", managedEndpoint)
 		}
 	}
 }
 
-func TestStartSupervisedEnginesExposesManagedNimiMediaLoopbackOnSupportedHost(t *testing.T) {
+func TestStartSupervisedEnginesExposesManagedMediaLoopbackOnSupportedHost(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cfg := config.Config{
 		GRPCAddr:             "127.0.0.1:0",
@@ -272,12 +272,12 @@ func TestStartSupervisedEnginesExposesManagedNimiMediaLoopbackOnSupportedHost(t 
 		t.Cleanup(func() { svc.Close() })
 	}
 
-	originalDetect := detectNimiMediaHostSupport
-	detectNimiMediaHostSupport = func() (engine.NimiMediaHostSupport, string) {
-		return engine.NimiMediaHostSupportSupportedSupervised, "supported"
+	originalDetect := detectMediaHostSupport
+	detectMediaHostSupport = func() (engine.MediaHostSupport, string) {
+		return engine.MediaHostSupportSupportedSupervised, "supported"
 	}
 	t.Cleanup(func() {
-		detectNimiMediaHostSupport = originalDetect
+		detectMediaHostSupport = originalDetect
 	})
 
 	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
@@ -291,12 +291,12 @@ func TestStartSupervisedEnginesExposesManagedNimiMediaLoopbackOnSupportedHost(t 
 	}
 
 	daemon.startSupervisedEngines(context.Background())
-	if !slices.Equal(startCalls, []engine.EngineKind{engine.EngineNimiMedia}) {
-		t.Fatalf("expected supported host to bootstrap nimi_media engine, got=%v", startCalls)
+	if !slices.Equal(startCalls, []engine.EngineKind{engine.EngineMedia}) {
+		t.Fatalf("expected supported host to bootstrap media engine, got=%v", startCalls)
 	}
 	if svc := daemon.grpc.LocalService(); svc != nil {
-		if managedEndpoint := getUnexportedStringField(t, svc, "nimiMediaManagedEndpoint"); managedEndpoint != "http://127.0.0.1:8321/v1" {
-			t.Fatalf("expected managed nimi_media endpoint to be exposed on supported host, got %q", managedEndpoint)
+		if managedEndpoint := getUnexportedStringField(t, svc, "managedMediaEndpointValue"); managedEndpoint != "http://127.0.0.1:8321/v1" {
+			t.Fatalf("expected managed media endpoint to be exposed on supported host, got %q", managedEndpoint)
 		}
 	}
 }
@@ -333,7 +333,7 @@ func TestAppendEngineCrashAuditIncludesStructuredFields(t *testing.T) {
 	}
 }
 
-func TestStartSupervisedEnginesAutoManagedLocalAIEntersLocalBootstrapBranch(t *testing.T) {
+func TestStartSupervisedEnginesAutoManagedLlamaEntersLocalBootstrapBranch(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cfg := config.Config{
 		GRPCAddr:               "127.0.0.1:0",
@@ -364,7 +364,7 @@ func TestStartSupervisedEnginesAutoManagedLocalAIEntersLocalBootstrapBranch(t *t
 
 	daemon.startSupervisedEngines(context.Background())
 
-	if !slices.Equal(calls, []engine.EngineKind{engine.EngineLocalAI}) {
+	if !slices.Equal(calls, []engine.EngineKind{engine.EngineLlama}) {
 		t.Fatalf("expected llama bootstrap call, got=%v", calls)
 	}
 	snapshot := daemon.state.Snapshot()
@@ -444,7 +444,7 @@ func TestStartSupervisedEnginesSkipsBootstrapWhenNoManagedEnginesEnabled(t *test
 	}
 }
 
-func TestStartSupervisedEnginesSkipsLocalAIBootstrapWhenAssetSyncFails(t *testing.T) {
+func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	homeDir := t.TempDir()
 	setDaemonTestHome(t, homeDir)

@@ -41,7 +41,7 @@ func TestParseLocalModelSelector(t *testing.T) {
 	}{
 		{modelID: "llama/qwen", explicitEngine: "llama", normalizedID: "qwen"},
 		{modelID: "media/qwen", explicitEngine: "media", normalizedID: "qwen"},
-		{modelID: "media.diffusers/qwen", explicitEngine: "media.diffusers", normalizedID: "qwen"},
+		{modelID: "speech/qwen", explicitEngine: "speech", normalizedID: "qwen"},
 		{modelID: "sidecar/qwen", explicitEngine: "sidecar", normalizedID: "qwen"},
 		{modelID: "local/qwen", preferLocal: true, normalizedID: "qwen", modal: runtimev1.Modal_MODAL_VIDEO},
 		{modelID: "raw-model", normalizedID: "raw-model"},
@@ -231,6 +231,18 @@ func TestValidateLocalModelRequest(t *testing.T) {
 	}}}
 	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_UNSPECIFIED); err != nil {
 		t.Fatalf("expected case-insensitive local model validation success, got %v", err)
+	}
+
+	// Legacy public prefixes should fail-close instead of routing as engines.
+	for _, legacyModelID := range []string{"localai/qwen", "nexa/qwen", "nimi_media/qwen", "media.diffusers/qwen"} {
+		svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalModelsResponse{{
+			Models: []*runtimev1.LocalModelRecord{{ModelId: "qwen", Engine: "llama", LocalInvokeProfileId: "invoke"}},
+		}}}
+		err = svc.validateLocalModelRequest(context.Background(), legacyModelID, nil, runtimev1.Modal_MODAL_UNSPECIFIED)
+		reason, ok = grpcerr.ExtractReasonCode(err)
+		if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+			t.Fatalf("expected legacy model %q to fail-close as unavailable, got=%v ok=%v err=%v", legacyModelID, reason, ok, err)
+		}
 	}
 }
 

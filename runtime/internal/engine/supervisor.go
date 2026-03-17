@@ -197,10 +197,8 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 
 	var cmd *exec.Cmd
 	switch s.cfg.Kind {
-	case EngineLocalAI:
-		cmd = localAICommand(s.cfg)
-	case EngineNexa:
-		cmd = nexaCommand(s.cfg)
+	case EngineLlama:
+		cmd = llamaCommand(s.cfg)
 	default:
 		if strings.TrimSpace(s.cfg.BinaryPath) == "" {
 			cancel()
@@ -307,8 +305,8 @@ func waitSupervisorHealthy(ctx context.Context, cfg EngineConfig, interval time.
 		}
 		return waitTCPHealthy(ctx, address, interval, cfg.StartupTimeout)
 	default:
-		if cfg.Kind == EngineNimiMedia {
-			return WaitNimiMediaHealthy(ctx, cfg.Endpoint(), interval, cfg.StartupTimeout)
+		if cfg.Kind == EngineMedia {
+			return WaitMediaHealthy(ctx, cfg.Endpoint(), interval, cfg.StartupTimeout)
 		}
 		return WaitHealthy(ctx, cfg.Endpoint(), cfg.HealthPath, cfg.HealthResponse, interval, cfg.StartupTimeout)
 	}
@@ -357,8 +355,8 @@ func probeSupervisorHealth(ctx context.Context, cfg EngineConfig) error {
 		_ = conn.Close()
 		return nil
 	default:
-		if cfg.Kind == EngineNimiMedia {
-			return ProbeNimiMediaHealth(ctx, cfg.Endpoint())
+		if cfg.Kind == EngineMedia {
+			return ProbeMediaHealth(ctx, cfg.Endpoint())
 		}
 		return ProbeHealth(ctx, cfg.Endpoint(), cfg.HealthPath, cfg.HealthResponse)
 	}

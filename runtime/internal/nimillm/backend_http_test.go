@@ -19,7 +19,7 @@ func TestBackendPostJSONUsesContextDeadlineOverClientTimeout(t *testing.T) {
 	}))
 	defer server.Close()
 
-	backend := NewBackend("localai", server.URL, "", 50*time.Millisecond)
+	backend := NewBackend("llama", server.URL, "", 50*time.Millisecond)
 	if backend == nil {
 		t.Fatal("expected backend")
 	}

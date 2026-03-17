@@ -6,11 +6,10 @@ import "time"
 type EngineKind string
 
 const (
-	EngineLocalAI   EngineKind = "llama"
-	EngineNexa      EngineKind = "nexa"
-	EngineNimiMedia EngineKind = "media"
+	EngineLlama EngineKind = "llama"
+	EngineMedia EngineKind = "media"
 
-	engineLocalAIImageBackend EngineKind = "media.diffusers"
+	engineMediaDiffusersBackend EngineKind = "media-diffusers-backend"
 )
 
 // EngineStatus represents the lifecycle state of a supervised engine.
@@ -31,19 +30,19 @@ const (
 	HealthModeTCP  EngineHealthMode = "tcp"
 )
 
-// LocalAIImageBackendMode selects how the LocalAI image backend is supplied.
-type LocalAIImageBackendMode string
+// LlamaImageBackendMode selects how the llama image backend is supplied.
+type LlamaImageBackendMode string
 
 const (
-	LocalAIImageBackendDisabled LocalAIImageBackendMode = "disabled"
-	LocalAIImageBackendOfficial LocalAIImageBackendMode = "official"
-	LocalAIImageBackendCustom   LocalAIImageBackendMode = "custom"
+	LlamaImageBackendDisabled LlamaImageBackendMode = "disabled"
+	LlamaImageBackendOfficial LlamaImageBackendMode = "official"
+	LlamaImageBackendCustom   LlamaImageBackendMode = "custom"
 )
 
-// LocalAIImageBackendConfig holds the daemon-managed LocalAI image backend
-// process configuration used by managed LocalAI image workflows.
-type LocalAIImageBackendConfig struct {
-	Mode        LocalAIImageBackendMode
+// LlamaImageBackendConfig holds the daemon-managed llama image backend process
+// configuration used by managed llama image workflows.
+type LlamaImageBackendConfig struct {
+	Mode        LlamaImageBackendMode
 	BackendName string
 	Address     string
 	Command     string
@@ -56,15 +55,15 @@ type LocalAIImageBackendConfig struct {
 	ShutdownTimeout time.Duration
 }
 
-func (c LocalAIImageBackendConfig) Enabled() bool {
-	return c.Mode != "" && c.Mode != LocalAIImageBackendDisabled
+func (c LlamaImageBackendConfig) Enabled() bool {
+	return c.Mode != "" && c.Mode != LlamaImageBackendDisabled
 }
 
-func cloneLocalAIImageBackendConfig(input *LocalAIImageBackendConfig) *LocalAIImageBackendConfig {
+func cloneLlamaImageBackendConfig(input *LlamaImageBackendConfig) *LlamaImageBackendConfig {
 	if input == nil {
 		return nil
 	}
-	cloned := &LocalAIImageBackendConfig{
+	cloned := &LlamaImageBackendConfig{
 		Mode:            input.Mode,
 		BackendName:     input.BackendName,
 		Address:         input.Address,
@@ -98,7 +97,6 @@ type EngineConfig struct {
 	HealthMode EngineHealthMode
 
 	// BinaryPath overrides automatic binary resolution.
-	// For Nexa this is the system-installed path found via LookPath.
 	BinaryPath string
 
 	// CommandArgs are used by generic supervised processes that do not have a
@@ -111,27 +109,27 @@ type EngineConfig struct {
 	// WorkingDir overrides the child process working directory.
 	WorkingDir string
 
-	// ModelsPath is the directory for model files (LocalAI --models-path).
+	// ModelsPath is the directory for model files (llama --models-path).
 	ModelsPath string
 
-	// ModelsConfigPath is the LocalAI YAML config file passed via
+	// ModelsConfigPath is the llama YAML config file passed via
 	// --models-config-file.
 	ModelsConfigPath string
 
-	// BackendsPath is the LocalAI backend install directory passed via
+	// BackendsPath is the llama backend install directory passed via
 	// --backends-path.
 	BackendsPath string
 
-	// ExternalBackends is the set of LocalAI backends to auto-load on boot via
+	// ExternalBackends is the set of llama backends to auto-load on boot via
 	// --external-backends.
 	ExternalBackends []string
 
-	// ExternalGRPCBackends is the set of LocalAI gRPC backends to register on
+	// ExternalGRPCBackends is the set of llama gRPC backends to register on
 	// boot via --external-grpc-backends in name:uri form.
 	ExternalGRPCBackends []string
 
-	// LocalAIImageBackend configures the daemon-managed LocalAI image backend.
-	LocalAIImageBackend *LocalAIImageBackendConfig
+	// LlamaImageBackend configures the daemon-managed llama image backend.
+	LlamaImageBackend *LlamaImageBackendConfig
 
 	// HealthPath is the HTTP path used for health probing.
 	HealthPath string
@@ -157,10 +155,10 @@ type EngineConfig struct {
 	ShutdownTimeout time.Duration
 }
 
-// DefaultLocalAIConfig returns the default configuration for LocalAI engine.
-func DefaultLocalAIConfig() EngineConfig {
+// DefaultLlamaConfig returns the default configuration for the llama engine.
+func DefaultLlamaConfig() EngineConfig {
 	return EngineConfig{
-		Kind:             EngineLocalAI,
+		Kind:             EngineLlama,
 		Port:             1234,
 		Version:          "3.12.1",
 		HealthMode:       HealthModeHTTP,
@@ -173,26 +171,11 @@ func DefaultLocalAIConfig() EngineConfig {
 	}
 }
 
-// DefaultNexaConfig returns the default configuration for Nexa engine.
-func DefaultNexaConfig() EngineConfig {
+// DefaultMediaConfig returns the default configuration for the managed
+// image/video engine.
+func DefaultMediaConfig() EngineConfig {
 	return EngineConfig{
-		Kind:             EngineNexa,
-		Port:             8000,
-		HealthMode:       HealthModeHTTP,
-		HealthPath:       "/v1/models",
-		StartupTimeout:   30 * time.Second,
-		HealthInterval:   30 * time.Second,
-		MaxRestarts:      5,
-		RestartBaseDelay: 2 * time.Second,
-		ShutdownTimeout:  10 * time.Second,
-	}
-}
-
-// DefaultNimiMediaConfig returns the default configuration for the managed
-// diffusers-backed image/video engine.
-func DefaultNimiMediaConfig() EngineConfig {
-	return EngineConfig{
-		Kind:             EngineNimiMedia,
+		Kind:             EngineMedia,
 		Port:             8321,
 		Version:          "0.1.0",
 		HealthMode:       HealthModeHTTP,

@@ -2,47 +2,47 @@ package engine
 
 import "strings"
 
-type NimiMediaHostSupport string
+type MediaHostSupport string
 
 const (
-	NimiMediaHostSupportSupportedSupervised NimiMediaHostSupport = "supported_supervised"
-	NimiMediaHostSupportAttachedOnly        NimiMediaHostSupport = "attached_only"
-	NimiMediaHostSupportUnsupported         NimiMediaHostSupport = "unsupported"
+	MediaHostSupportSupportedSupervised MediaHostSupport = "supported_supervised"
+	MediaHostSupportAttachedOnly        MediaHostSupport = "attached_only"
+	MediaHostSupportUnsupported         MediaHostSupport = "unsupported"
 )
 
-func NimiMediaSupervisedPlatformSupported() bool {
-	return NimiMediaSupervisedPlatformSupportedFor(currentGOOS(), currentGOARCH())
+func MediaSupervisedPlatformSupported() bool {
+	return MediaSupervisedPlatformSupportedFor(currentGOOS(), currentGOARCH())
 }
 
-func NimiMediaSupervisedPlatformSupportedFor(goos string, goarch string) bool {
+func MediaSupervisedPlatformSupportedFor(goos string, goarch string) bool {
 	return strings.EqualFold(strings.TrimSpace(goos), "windows") &&
 		strings.EqualFold(strings.TrimSpace(goarch), "amd64")
 }
 
-func ClassifyNimiMediaHost(goos string, goarch string, gpuVendor string, cudaReady bool) NimiMediaHostSupport {
+func ClassifyMediaHost(goos string, goarch string, gpuVendor string, cudaReady bool) MediaHostSupport {
 	normalizedGOOS := strings.ToLower(strings.TrimSpace(goos))
 	normalizedGOARCH := strings.ToLower(strings.TrimSpace(goarch))
 	if normalizedGOOS == "" || normalizedGOARCH == "" {
-		return NimiMediaHostSupportUnsupported
+		return MediaHostSupportUnsupported
 	}
-	if !NimiMediaSupervisedPlatformSupportedFor(normalizedGOOS, normalizedGOARCH) {
-		return NimiMediaHostSupportAttachedOnly
+	if !MediaSupervisedPlatformSupportedFor(normalizedGOOS, normalizedGOARCH) {
+		return MediaHostSupportAttachedOnly
 	}
 	if !strings.EqualFold(strings.TrimSpace(gpuVendor), "nvidia") {
-		return NimiMediaHostSupportAttachedOnly
+		return MediaHostSupportAttachedOnly
 	}
 	if !cudaReady {
-		return NimiMediaHostSupportAttachedOnly
+		return MediaHostSupportAttachedOnly
 	}
-	return NimiMediaHostSupportSupportedSupervised
+	return MediaHostSupportSupportedSupervised
 }
 
-func NimiMediaHostSupportDetail(goos string, goarch string, gpuVendor string, cudaReady bool) string {
-	switch ClassifyNimiMediaHost(goos, goarch, gpuVendor, cudaReady) {
-	case NimiMediaHostSupportSupportedSupervised:
+func MediaHostSupportDetail(goos string, goarch string, gpuVendor string, cudaReady bool) string {
+	switch ClassifyMediaHost(goos, goarch, gpuVendor, cudaReady) {
+	case MediaHostSupportSupportedSupervised:
 		return ""
-	case NimiMediaHostSupportAttachedOnly:
-		if !NimiMediaSupervisedPlatformSupportedFor(goos, goarch) {
+	case MediaHostSupportAttachedOnly:
+		if !MediaSupervisedPlatformSupportedFor(goos, goarch) {
 			return "media supervised mode requires Windows x64; configure an attached endpoint instead"
 		}
 		if !strings.EqualFold(strings.TrimSpace(gpuVendor), "nvidia") {
@@ -57,8 +57,8 @@ func NimiMediaHostSupportDetail(goos string, goarch string, gpuVendor string, cu
 	}
 }
 
-func DetectNimiMediaHostSupport() (NimiMediaHostSupport, string) {
-	gpuVendor, cudaReady := detectNimiMediaHostGPU()
-	support := ClassifyNimiMediaHost(currentGOOS(), currentGOARCH(), gpuVendor, cudaReady)
-	return support, NimiMediaHostSupportDetail(currentGOOS(), currentGOARCH(), gpuVendor, cudaReady)
+func DetectMediaHostSupport() (MediaHostSupport, string) {
+	gpuVendor, cudaReady := detectMediaHostGPU()
+	support := ClassifyMediaHost(currentGOOS(), currentGOARCH(), gpuVendor, cudaReady)
+	return support, MediaHostSupportDetail(currentGOOS(), currentGOARCH(), gpuVendor, cudaReady)
 }

@@ -20,7 +20,7 @@ const (
 	adapterOpenAICompat        = "openai_compat_adapter"
 	adapterLlamaNative         = "llama_native_adapter"
 	adapterMediaNative         = "media_native_adapter"
-	adapterMediaDiffusers      = "media_diffusers_adapter"
+	adapterSpeechNative        = "speech_native_adapter"
 	adapterBytedanceOpenSpeech = "bytedance_openspeech_adapter"
 	adapterBytedanceARKTask    = "bytedance_ark_task_adapter"
 	adapterAlibabaNative       = "alibaba_native_adapter"
@@ -86,9 +86,9 @@ var mediaAdapterStrategiesByProvider = map[string]mediaAdapterStrategy{
 		Image: adapterMediaNative,
 		Video: adapterMediaNative,
 	},
-	"media.diffusers": {
-		Image: adapterMediaDiffusers,
-		Video: adapterMediaDiffusers,
+	"speech": {
+		TTS: adapterSpeechNative,
+		STT: adapterSpeechNative,
 	},
 	"sidecar": {
 		Music: adapterSidecarMusic,
@@ -284,13 +284,13 @@ func resolveMediaAdapterName(modelID string, modelResolved string, modal runtime
 			return adapter
 		}
 		return ""
-	case strings.HasPrefix(lowerModel, "media.diffusers/"):
-		if adapter := mediaAdapterStrategiesByProvider["media.diffusers"].forModal(modal); adapter != "" {
+	case strings.HasPrefix(lowerModel, "media/"):
+		if adapter := mediaAdapterStrategiesByProvider["media"].forModal(modal); adapter != "" {
 			return adapter
 		}
 		return ""
-	case strings.HasPrefix(lowerModel, "media/"):
-		if adapter := mediaAdapterStrategiesByProvider["media"].forModal(modal); adapter != "" {
+	case strings.HasPrefix(lowerModel, "speech/"):
+		if adapter := mediaAdapterStrategiesByProvider["speech"].forModal(modal); adapter != "" {
 			return adapter
 		}
 		return ""

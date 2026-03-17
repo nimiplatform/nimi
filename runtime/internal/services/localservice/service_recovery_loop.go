@@ -51,7 +51,7 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 		endpoint := s.effectiveLocalModelEndpoint(model)
 		bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), s.modelRuntimeMode(localModelID), endpoint)
 		probe := s.probeEndpoint(ctx, model.GetEngine(), endpoint)
-		registration := s.localAIRegistrationForModel(model)
+		registration := s.managedLlamaRegistrationForModel(model)
 		if modelProbeSucceeded(model, probe, registration) {
 			successes := s.modelRecoverySuccess(localModelID, now)
 			if successes >= localRecoverySuccessThreshold {

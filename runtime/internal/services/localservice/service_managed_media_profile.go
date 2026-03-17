@@ -17,20 +17,20 @@ import (
 )
 
 const (
-	localAIImageWorkflowComponentsKey       = "components"
-	localAIImageWorkflowProfileOverridesKey = "profile_overrides"
+	managedMediaWorkflowComponentsKey       = "components"
+	managedMediaWorkflowProfileOverridesKey = "profile_overrides"
 )
 
-type localAIImageComponentSelection struct {
+type managedMediaComponentSelection struct {
 	Slot            string
 	LocalArtifactID string
 }
 
-// ResolveLocalAIImageProfile renders a dynamic LocalAI image profile for the
+// ResolveManagedMediaImageProfile renders a dynamic managed media profile for the
 // selected main model plus companion artifact selections supplied in the image
 // scenario extension payload.
-func (s *Service) ResolveLocalAIImageProfile(_ context.Context, requestedModelID string, scenarioExtensions map[string]any) (string, map[string]any, map[string]any, error) {
-	model := s.resolveLocalAIImageModel(requestedModelID)
+func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedModelID string, scenarioExtensions map[string]any) (string, map[string]any, map[string]any, error) {
+	model := s.resolveManagedMediaImageModel(requestedModelID)
 	if model == nil {
 		return "", nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
@@ -43,14 +43,14 @@ func (s *Service) ResolveLocalAIImageProfile(_ context.Context, requestedModelID
 		})
 	}
 
-	profileOverrides, err := localAIImageProfileOverrides(scenarioExtensions)
+	profileOverrides, err := managedMediaProfileOverrides(scenarioExtensions)
 	if err != nil {
 		return "", nil, nil, err
 	}
-	if err := validateLocalAIImageProfileOverrides(profileOverrides); err != nil {
+	if err := validateManagedMediaProfileOverrides(profileOverrides); err != nil {
 		return "", nil, nil, err
 	}
-	components, err := localAIImageComponents(scenarioExtensions)
+	components, err := managedMediaComponents(scenarioExtensions)
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -66,7 +66,7 @@ func (s *Service) ResolveLocalAIImageProfile(_ context.Context, requestedModelID
 		profile["backend"] = "stablediffusion-ggml"
 	}
 
-	modelPath, err := s.resolveLocalAIModelEntryPath(model)
+	modelPath, err := s.resolveManagedModelEntryPath(model)
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -85,7 +85,7 @@ func (s *Service) ResolveLocalAIImageProfile(_ context.Context, requestedModelID
 		if artifact == nil || artifact.GetStatus() == runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_REMOVED {
 			return "", nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 		}
-		entryPath, resolveErr := s.resolveLocalAIArtifactEntryPath(artifact)
+		entryPath, resolveErr := s.resolveManagedArtifactEntryPath(artifact)
 		if resolveErr != nil {
 			return "", nil, nil, resolveErr
 		}
@@ -114,8 +114,8 @@ func (s *Service) ResolveLocalAIImageProfile(_ context.Context, requestedModelID
 	profile["options"] = filteredOptions
 
 	profile["download_files"] = nil
-	delete(profile, localAIImageWorkflowComponentsKey)
-	delete(profile, localAIImageWorkflowProfileOverridesKey)
+	delete(profile, managedMediaWorkflowComponentsKey)
+	delete(profile, managedMediaWorkflowProfileOverridesKey)
 
 	canonical, err := json.Marshal(profile)
 	if err != nil {
@@ -125,11 +125,11 @@ func (s *Service) ResolveLocalAIImageProfile(_ context.Context, requestedModelID
 	alias := "nimi-img-" + hex.EncodeToString(sum[:8])
 	profile["name"] = alias
 
-	return alias, profile, localAIImageForwardedExtensions(scenarioExtensions), nil
+	return alias, profile, managedMediaForwardedExtensions(scenarioExtensions), nil
 }
 
-func (s *Service) resolveLocalAIImageModel(requestedModelID string) *runtimev1.LocalModelRecord {
-	normalizedID, explicitEngine, preferLocalAI := parseLocalAIRequestedModelID(requestedModelID)
+func (s *Service) resolveManagedMediaImageModel(requestedModelID string) *runtimev1.LocalModelRecord {
+	normalizedID, explicitEngine, preferMedia := parseManagedMediaRequestedModelID(requestedModelID)
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -155,8 +155,8 @@ func (s *Service) resolveLocalAIImageModel(requestedModelID string) *runtimev1.L
 		return nil
 	}
 	sort.Slice(candidates, func(i, j int) bool {
-		pi := localAIImageEnginePriority(candidates[i].GetEngine())
-		pj := localAIImageEnginePriority(candidates[j].GetEngine())
+		pi := managedMediaEnginePriority(candidates[i].GetEngine())
+		pj := managedMediaEnginePriority(candidates[j].GetEngine())
 		if pi != pj {
 			return pi < pj
 		}
@@ -171,7 +171,7 @@ func (s *Service) resolveLocalAIImageModel(requestedModelID string) *runtimev1.L
 		}
 		return nil
 	}
-	if preferLocalAI {
+	if preferMedia {
 		for _, candidate := range candidates {
 			if strings.EqualFold(candidate.GetEngine(), "media") {
 				return candidate
@@ -181,7 +181,7 @@ func (s *Service) resolveLocalAIImageModel(requestedModelID string) *runtimev1.L
 	return candidates[0]
 }
 
-func parseLocalAIRequestedModelID(requestedModelID string) (string, string, bool) {
+func parseManagedMediaRequestedModelID(requestedModelID string) (string, string, bool) {
 	raw := strings.TrimSpace(requestedModelID)
 	lower := strings.ToLower(raw)
 	switch {
@@ -198,7 +198,7 @@ func parseLocalAIRequestedModelID(requestedModelID string) (string, string, bool
 	}
 }
 
-func localAIImageEnginePriority(engine string) int {
+func managedMediaEnginePriority(engine string) int {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
 	case "media":
 		return 0
@@ -220,8 +220,8 @@ func hasCapability(capabilities []string, target string) bool {
 	return false
 }
 
-func localAIImageComponents(scenarioExtensions map[string]any) ([]localAIImageComponentSelection, error) {
-	raw, ok := scenarioExtensions[localAIImageWorkflowComponentsKey]
+func managedMediaComponents(scenarioExtensions map[string]any) ([]managedMediaComponentSelection, error) {
+	raw, ok := scenarioExtensions[managedMediaWorkflowComponentsKey]
 	if !ok || raw == nil {
 		return nil, nil
 	}
@@ -229,7 +229,7 @@ func localAIImageComponents(scenarioExtensions map[string]any) ([]localAIImageCo
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	result := make([]localAIImageComponentSelection, 0, len(items))
+	result := make([]managedMediaComponentSelection, 0, len(items))
 	for _, item := range items {
 		object, ok := item.(map[string]any)
 		if !ok {
@@ -240,7 +240,7 @@ func localAIImageComponents(scenarioExtensions map[string]any) ([]localAIImageCo
 		if localArtifactID == "" {
 			localArtifactID = strings.TrimSpace(valueAsString(object["local_artifact_id"]))
 		}
-		result = append(result, localAIImageComponentSelection{
+		result = append(result, managedMediaComponentSelection{
 			Slot:            slot,
 			LocalArtifactID: localArtifactID,
 		})
@@ -248,8 +248,8 @@ func localAIImageComponents(scenarioExtensions map[string]any) ([]localAIImageCo
 	return result, nil
 }
 
-func localAIImageProfileOverrides(scenarioExtensions map[string]any) (map[string]any, error) {
-	raw, ok := scenarioExtensions[localAIImageWorkflowProfileOverridesKey]
+func managedMediaProfileOverrides(scenarioExtensions map[string]any) (map[string]any, error) {
+	raw, ok := scenarioExtensions[managedMediaWorkflowProfileOverridesKey]
 	if !ok || raw == nil {
 		return map[string]any{}, nil
 	}
@@ -260,7 +260,7 @@ func localAIImageProfileOverrides(scenarioExtensions map[string]any) (map[string
 	return cloneAnyMap(object), nil
 }
 
-func validateLocalAIImageProfileOverrides(overrides map[string]any) error {
+func validateManagedMediaProfileOverrides(overrides map[string]any) error {
 	if len(overrides) == 0 {
 		return nil
 	}
@@ -280,13 +280,13 @@ func validateLocalAIImageProfileOverrides(overrides map[string]any) error {
 	return nil
 }
 
-func localAIImageForwardedExtensions(scenarioExtensions map[string]any) map[string]any {
+func managedMediaForwardedExtensions(scenarioExtensions map[string]any) map[string]any {
 	if len(scenarioExtensions) == 0 {
 		return nil
 	}
 	out := make(map[string]any, len(scenarioExtensions))
 	for key, value := range scenarioExtensions {
-		if key == localAIImageWorkflowComponentsKey || key == localAIImageWorkflowProfileOverridesKey {
+		if key == managedMediaWorkflowComponentsKey || key == managedMediaWorkflowProfileOverridesKey {
 			continue
 		}
 		out[key] = value
@@ -303,20 +303,20 @@ func (s *Service) localArtifactByID(localArtifactID string) *runtimev1.LocalArti
 	return cloneLocalArtifact(s.artifacts[strings.TrimSpace(localArtifactID)])
 }
 
-func (s *Service) ResolveLocalAIArtifactPath(_ context.Context, localArtifactID string) (string, error) {
+func (s *Service) ResolveManagedArtifactPath(_ context.Context, localArtifactID string) (string, error) {
 	artifact := s.localArtifactByID(localArtifactID)
-	relPath, err := s.resolveLocalAIArtifactEntryPath(artifact)
+	relPath, err := s.resolveManagedArtifactEntryPath(artifact)
 	if err != nil {
 		return "", err
 	}
 	return filepath.Join(resolveLocalModelsPath(s.localModelsPath), filepath.FromSlash(relPath)), nil
 }
 
-func (s *Service) resolveLocalAIModelEntryPath(model *runtimev1.LocalModelRecord) (string, error) {
+func (s *Service) resolveManagedModelEntryPath(model *runtimev1.LocalModelRecord) (string, error) {
 	if model == nil {
 		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
-	return resolveLocalAIEntryRelativePath(
+	return resolveManagedEntryRelativePath(
 		resolveLocalModelsPath(s.localModelsPath),
 		model.GetModelId(),
 		model.GetSource().GetRepo(),
@@ -324,11 +324,11 @@ func (s *Service) resolveLocalAIModelEntryPath(model *runtimev1.LocalModelRecord
 	)
 }
 
-func (s *Service) resolveLocalAIArtifactEntryPath(artifact *runtimev1.LocalArtifactRecord) (string, error) {
+func (s *Service) resolveManagedArtifactEntryPath(artifact *runtimev1.LocalArtifactRecord) (string, error) {
 	if artifact == nil {
 		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
-	return resolveLocalAIEntryRelativePath(
+	return resolveManagedEntryRelativePath(
 		resolveLocalModelsPath(s.localModelsPath),
 		artifact.GetArtifactId(),
 		artifact.GetSource().GetRepo(),
@@ -336,7 +336,7 @@ func (s *Service) resolveLocalAIArtifactEntryPath(artifact *runtimev1.LocalArtif
 	)
 }
 
-func resolveLocalAIEntryRelativePath(modelsRoot string, itemID string, sourceRepo string, entry string) (string, error) {
+func resolveManagedEntryRelativePath(modelsRoot string, itemID string, sourceRepo string, entry string) (string, error) {
 	root := strings.TrimSpace(modelsRoot)
 	if root == "" {
 		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
@@ -345,7 +345,7 @@ func resolveLocalAIEntryRelativePath(modelsRoot string, itemID string, sourceRep
 	if err != nil {
 		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
-	baseDir, err := resolveLocalAIBaseDir(rootAbs, itemID, sourceRepo)
+	baseDir, err := resolveManagedBaseDir(rootAbs, itemID, sourceRepo)
 	if err != nil {
 		return "", err
 	}
@@ -375,7 +375,7 @@ func resolveLocalAIEntryRelativePath(modelsRoot string, itemID string, sourceRep
 	return filepath.ToSlash(relPath), nil
 }
 
-func resolveLocalAIBaseDir(modelsRoot string, itemID string, sourceRepo string) (string, error) {
+func resolveManagedBaseDir(modelsRoot string, itemID string, sourceRepo string) (string, error) {
 	repo := strings.TrimSpace(sourceRepo)
 	if strings.HasPrefix(repo, "file://") {
 		if parsed, err := url.Parse(repo); err == nil {

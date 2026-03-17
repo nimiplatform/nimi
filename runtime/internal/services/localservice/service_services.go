@@ -32,7 +32,7 @@ func (s *Service) ListLocalServices(_ context.Context, req *runtimev1.ListLocalS
 		}
 		services = append(services, cloneServiceDescriptor(service))
 	}
-	if managed := s.managedLocalAIImageBackendServiceLocked(); managed != nil {
+	if managed := s.managedMediaDiffusersBackendServiceLocked(); managed != nil {
 		if statusFilter == runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNSPECIFIED || managed.GetStatus() == statusFilter {
 			services = append(services, managed)
 		}
@@ -57,8 +57,8 @@ func (s *Service) InstallLocalService(_ context.Context, req *runtimev1.InstallL
 	if serviceID == "" {
 		serviceID = "svc_" + ulid.Make().String()
 	}
-	if isManagedLocalAIImageBackendServiceID(serviceID) {
-		return nil, managedLocalAIImageBackendServiceMutationError(serviceID)
+	if isManagedMediaDiffusersBackendServiceID(serviceID) {
+		return nil, managedMediaDiffusersBackendServiceMutationError(serviceID)
 	}
 	localModelID := strings.TrimSpace(req.GetLocalModelId())
 	if localModelID == "" {
@@ -147,8 +147,8 @@ func (s *Service) StartLocalService(ctx context.Context, req *runtimev1.StartLoc
 			ActionHint: "select_local_service",
 		})
 	}
-	if isManagedLocalAIImageBackendServiceID(serviceID) {
-		return nil, managedLocalAIImageBackendServiceMutationError(serviceID)
+	if isManagedMediaDiffusersBackendServiceID(serviceID) {
+		return nil, managedMediaDiffusersBackendServiceMutationError(serviceID)
 	}
 	current := s.serviceByID(serviceID)
 	if current == nil {
@@ -215,8 +215,8 @@ func (s *Service) StopLocalService(_ context.Context, req *runtimev1.StopLocalSe
 			ActionHint: "select_local_service",
 		})
 	}
-	if isManagedLocalAIImageBackendServiceID(serviceID) {
-		return nil, managedLocalAIImageBackendServiceMutationError(serviceID)
+	if isManagedMediaDiffusersBackendServiceID(serviceID) {
+		return nil, managedMediaDiffusersBackendServiceMutationError(serviceID)
 	}
 	current := s.serviceByID(serviceID)
 	if current == nil {
@@ -242,7 +242,7 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 		}
 		services = append(services, cloneServiceDescriptor(service))
 	}
-	if managed := s.managedLocalAIImageBackendServiceLocked(); managed != nil {
+	if managed := s.managedMediaDiffusersBackendServiceLocked(); managed != nil {
 		if target == "" || managed.GetServiceId() == target {
 			services = append(services, managed)
 		}
@@ -260,7 +260,7 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 		if service == nil {
 			continue
 		}
-		if isManagedLocalAIImageBackendServiceID(service.GetServiceId()) {
+		if isManagedMediaDiffusersBackendServiceID(service.GetServiceId()) {
 			healthRows = append(healthRows, service)
 			continue
 		}
@@ -350,8 +350,8 @@ func (s *Service) RemoveLocalService(_ context.Context, req *runtimev1.RemoveLoc
 			ActionHint: "select_local_service",
 		})
 	}
-	if isManagedLocalAIImageBackendServiceID(serviceID) {
-		return nil, managedLocalAIImageBackendServiceMutationError(serviceID)
+	if isManagedMediaDiffusersBackendServiceID(serviceID) {
+		return nil, managedMediaDiffusersBackendServiceMutationError(serviceID)
 	}
 	current := s.serviceByID(serviceID)
 	if current == nil {
@@ -367,46 +367,46 @@ func (s *Service) RemoveLocalService(_ context.Context, req *runtimev1.RemoveLoc
 	return &runtimev1.RemoveLocalServiceResponse{Service: svc}, nil
 }
 
-func isManagedLocalAIImageBackendServiceID(serviceID string) bool {
-	return strings.EqualFold(strings.TrimSpace(serviceID), localAIImageBackendServiceID)
+func isManagedMediaDiffusersBackendServiceID(serviceID string) bool {
+	return strings.EqualFold(strings.TrimSpace(serviceID), managedMediaDiffusersBackendServiceID)
 }
 
-func managedLocalAIImageBackendServiceMutationError(serviceID string) error {
+func managedMediaDiffusersBackendServiceMutationError(serviceID string) error {
 	return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION, grpcerr.ReasonOptions{
 		Message:    fmt.Sprintf("local service %s is daemon-managed", strings.TrimSpace(serviceID)),
 		ActionHint: "manage_llama_image_backend_from_runtime_config",
 	})
 }
 
-func (s *Service) managedLocalAIImageBackendServiceLocked() *runtimev1.LocalServiceDescriptor {
-	if !s.localAIImageBackendConfigured {
+func (s *Service) managedMediaDiffusersBackendServiceLocked() *runtimev1.LocalServiceDescriptor {
+	if !s.managedMediaBackendConfigured {
 		return nil
 	}
-	status := s.localAIImageBackendStatus
+	status := s.managedMediaBackendStatus
 	if status == runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNSPECIFIED {
 		status = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED
 	}
-	endpoint := strings.TrimSpace(s.localAIImageBackendAddr)
+	endpoint := strings.TrimSpace(s.managedMediaBackendAddress)
 	if endpoint != "" && !strings.Contains(endpoint, "://") {
 		endpoint = "grpc://" + endpoint
 	}
-	installedAt := strings.TrimSpace(s.localAIImageBackendInstalledAt)
+	installedAt := strings.TrimSpace(s.managedMediaBackendInstalledAt)
 	if installedAt == "" {
 		installedAt = nowISO()
 	}
-	updatedAt := strings.TrimSpace(s.localAIImageBackendUpdatedAt)
+	updatedAt := strings.TrimSpace(s.managedMediaBackendUpdatedAt)
 	if updatedAt == "" {
 		updatedAt = installedAt
 	}
 	return &runtimev1.LocalServiceDescriptor{
-		ServiceId:    localAIImageBackendServiceID,
-		Title:        localAIImageBackendServiceTitle,
+		ServiceId:    managedMediaDiffusersBackendServiceID,
+		Title:        managedMediaDiffusersBackendServiceTitle,
 		Engine:       "llama",
 		ArtifactType: "binary",
 		Endpoint:     endpoint,
 		Capabilities: []string{"image"},
 		Status:       status,
-		Detail:       strings.TrimSpace(s.localAIImageBackendDetail),
+		Detail:       strings.TrimSpace(s.managedMediaBackendDetail),
 		InstalledAt:  installedAt,
 		UpdatedAt:    updatedAt,
 	}
@@ -582,7 +582,7 @@ func capabilityRequiresNodeProbe(provider string, capability string) bool {
 func providerCapabilityProbeSucceeded(provider string, model *runtimev1.LocalModelRecord, probe endpointProbeResult) bool {
 	switch strings.ToLower(strings.TrimSpace(provider)) {
 	case "media", "media.diffusers":
-		return nimiMediaModelProbeSucceeded(model, probe)
+		return mediaModelProbeSucceeded(model, probe)
 	default:
 		return probe.healthy
 	}
@@ -591,7 +591,7 @@ func providerCapabilityProbeSucceeded(provider string, model *runtimev1.LocalMod
 func providerCapabilityProbeFailureDetail(provider string, model *runtimev1.LocalModelRecord, probe endpointProbeResult) string {
 	switch strings.ToLower(strings.TrimSpace(provider)) {
 	case "media", "media.diffusers":
-		return nimiMediaModelProbeFailureDetail(model, probe)
+		return mediaModelProbeFailureDetail(model, probe)
 	default:
 		return defaultString(probe.detail, "provider capability probe failed")
 	}

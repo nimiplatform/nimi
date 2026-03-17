@@ -20,13 +20,13 @@ type localAIBackendMetadata struct {
 	MetaBackendFor string `json:"meta_backend_for,omitempty"`
 }
 
-func normalizeLocalAIImageBackendConfig(input *LocalAIImageBackendConfig) *LocalAIImageBackendConfig {
-	cfg := cloneLocalAIImageBackendConfig(input)
+func normalizeLlamaImageBackendConfig(input *LlamaImageBackendConfig) *LlamaImageBackendConfig {
+	cfg := cloneLlamaImageBackendConfig(input)
 	if cfg == nil {
-		cfg = &LocalAIImageBackendConfig{}
+		cfg = &LlamaImageBackendConfig{}
 	}
 	if cfg.Mode == "" {
-		cfg.Mode = LocalAIImageBackendDisabled
+		cfg.Mode = LlamaImageBackendDisabled
 	}
 	if strings.TrimSpace(cfg.BackendName) == "" {
 		cfg.BackendName = "stablediffusion-ggml"
@@ -46,7 +46,7 @@ func normalizeLocalAIImageBackendConfig(input *LocalAIImageBackendConfig) *Local
 	return cfg
 }
 
-func localAIImageBackendEngineConfig(cfg *LocalAIImageBackendConfig) (EngineConfig, error) {
+func llamaImageBackendEngineConfig(cfg *LlamaImageBackendConfig) (EngineConfig, error) {
 	if cfg == nil || !cfg.Enabled() {
 		return EngineConfig{}, fmt.Errorf("llama image backend disabled")
 	}
@@ -71,7 +71,7 @@ func localAIImageBackendEngineConfig(cfg *LocalAIImageBackendConfig) (EngineConf
 		return EngineConfig{}, fmt.Errorf("image backend command is required")
 	}
 	return EngineConfig{
-		Kind:             engineLocalAIImageBackend,
+		Kind:             engineMediaDiffusersBackend,
 		Port:             port,
 		Address:          address,
 		HealthMode:       HealthModeTCP,
@@ -98,12 +98,12 @@ func cloneStringMap(input map[string]string) map[string]string {
 	return cloned
 }
 
-func ensureOfficialLocalAIImageBackend(ctx context.Context, localAIBinaryPath string, backendsPath string, cfg *LocalAIImageBackendConfig) (*LocalAIImageBackendConfig, error) {
-	normalized := normalizeLocalAIImageBackendConfig(cfg)
+func ensureOfficialLlamaImageBackend(ctx context.Context, localAIBinaryPath string, backendsPath string, cfg *LlamaImageBackendConfig) (*LlamaImageBackendConfig, error) {
+	normalized := normalizeLlamaImageBackendConfig(cfg)
 	if !normalized.Enabled() {
 		return normalized, nil
 	}
-	if normalized.Mode != LocalAIImageBackendOfficial {
+	if normalized.Mode != LlamaImageBackendOfficial {
 		return normalized, nil
 	}
 	if strings.TrimSpace(localAIBinaryPath) == "" {
@@ -116,12 +116,12 @@ func ensureOfficialLocalAIImageBackend(ctx context.Context, localAIBinaryPath st
 		return nil, fmt.Errorf("create llama backends path: %w", err)
 	}
 
-	runPath, err := discoverInstalledLocalAIBackendRunPath(backendsPath, normalized.BackendName)
+	runPath, err := discoverInstalledLlamaBackendRunPath(backendsPath, normalized.BackendName)
 	if err != nil {
-		if err := installLocalAIBackend(ctx, localAIBinaryPath, backendsPath, normalized.BackendName); err != nil {
+		if err := installLlamaBackend(ctx, localAIBinaryPath, backendsPath, normalized.BackendName); err != nil {
 			return nil, err
 		}
-		runPath, err = discoverInstalledLocalAIBackendRunPath(backendsPath, normalized.BackendName)
+		runPath, err = discoverInstalledLlamaBackendRunPath(backendsPath, normalized.BackendName)
 		if err != nil {
 			return nil, err
 		}
@@ -132,7 +132,7 @@ func ensureOfficialLocalAIImageBackend(ctx context.Context, localAIBinaryPath st
 	return normalized, nil
 }
 
-func installLocalAIBackend(ctx context.Context, localAIBinaryPath string, backendsPath string, backendName string) error {
+func installLlamaBackend(ctx context.Context, localAIBinaryPath string, backendsPath string, backendName string) error {
 	cmd := exec.CommandContext(ctx, localAIBinaryPath, "backends", "install", backendName, "--backends-path", backendsPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -141,7 +141,7 @@ func installLocalAIBackend(ctx context.Context, localAIBinaryPath string, backen
 	return nil
 }
 
-func discoverInstalledLocalAIBackendRunPath(backendsPath string, backendName string) (string, error) {
+func discoverInstalledLlamaBackendRunPath(backendsPath string, backendName string) (string, error) {
 	entries, err := os.ReadDir(backendsPath)
 	if err != nil {
 		return "", fmt.Errorf("read llama backends path: %w", err)
@@ -159,7 +159,7 @@ func discoverInstalledLocalAIBackendRunPath(backendsPath string, backendName str
 		}
 		dir := entry.Name()
 		runPath := filepath.Join(backendsPath, dir, localAIBackendRunScript)
-		metadata, metadataErr := readLocalAIBackendMetadata(filepath.Join(backendsPath, dir, "metadata.json"))
+		metadata, metadataErr := readLlamaBackendMetadata(filepath.Join(backendsPath, dir, "metadata.json"))
 		if metadataErr != nil {
 			return "", metadataErr
 		}
@@ -201,7 +201,7 @@ func discoverInstalledLocalAIBackendRunPath(backendsPath string, backendName str
 	return candidates[0].runPath, nil
 }
 
-func readLocalAIBackendMetadata(path string) (*localAIBackendMetadata, error) {
+func readLlamaBackendMetadata(path string) (*localAIBackendMetadata, error) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {

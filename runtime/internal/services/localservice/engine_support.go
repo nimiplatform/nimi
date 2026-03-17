@@ -11,19 +11,19 @@ const (
 	localEngineSupportSupportedSupervised = "supported_supervised"
 	localEngineSupportAttachedOnly        = "attached_only"
 	localEngineSupportUnsupported         = "unsupported"
-	warnNimiMediaAttachedOnly             = "WARN_NIMI_MEDIA_ATTACHED_ONLY"
+	warnMediaAttachedOnly                 = "WARN_NIMI_MEDIA_ATTACHED_ONLY"
 	warnCUDARequired                      = "WARN_CUDA_REQUIRED"
 )
 
 func classifyManagedEngineSupport(engineName string, profile *runtimev1.LocalDeviceProfile) (string, string) {
 	switch strings.ToLower(strings.TrimSpace(engineName)) {
 	case "media":
-		return classifyNimiMediaHostSupport(profile)
+		return classifyMediaHostSupport(profile)
 	case "llama":
 		if profile == nil {
 			return localEngineSupportUnsupported, "device profile unavailable"
 		}
-		if engine.LocalAISupervisedPlatformSupportedFor(profile.GetOs(), profile.GetArch()) {
+		if engine.LlamaSupervisedPlatformSupportedFor(profile.GetOs(), profile.GetArch()) {
 			return localEngineSupportSupportedSupervised, ""
 		}
 		return localEngineSupportAttachedOnly, "llama supervised mode requires macOS or Linux; configure an attached endpoint instead"
@@ -32,23 +32,23 @@ func classifyManagedEngineSupport(engineName string, profile *runtimev1.LocalDev
 	}
 }
 
-func classifyNimiMediaHostSupport(profile *runtimev1.LocalDeviceProfile) (string, string) {
+func classifyMediaHostSupport(profile *runtimev1.LocalDeviceProfile) (string, string) {
 	cudaReady, _ := probeGPUCUDAReady()
-	return classifyNimiMediaHostSupportWithCUDA(profile, cudaReady)
+	return classifyMediaHostSupportWithCUDA(profile, cudaReady)
 }
 
-func classifyNimiMediaHostSupportWithCUDA(profile *runtimev1.LocalDeviceProfile, cudaReady bool) (string, string) {
+func classifyMediaHostSupportWithCUDA(profile *runtimev1.LocalDeviceProfile, cudaReady bool) (string, string) {
 	if profile == nil {
 		return localEngineSupportUnsupported, "device profile unavailable"
 	}
-	support := engine.ClassifyNimiMediaHost(profile.GetOs(), profile.GetArch(), profile.GetGpu().GetVendor(), cudaReady)
+	support := engine.ClassifyMediaHost(profile.GetOs(), profile.GetArch(), profile.GetGpu().GetVendor(), cudaReady)
 	switch support {
-	case engine.NimiMediaHostSupportSupportedSupervised:
+	case engine.MediaHostSupportSupportedSupervised:
 		return localEngineSupportSupportedSupervised, ""
-	case engine.NimiMediaHostSupportAttachedOnly:
-		return localEngineSupportAttachedOnly, engine.NimiMediaHostSupportDetail(profile.GetOs(), profile.GetArch(), profile.GetGpu().GetVendor(), cudaReady)
+	case engine.MediaHostSupportAttachedOnly:
+		return localEngineSupportAttachedOnly, engine.MediaHostSupportDetail(profile.GetOs(), profile.GetArch(), profile.GetGpu().GetVendor(), cudaReady)
 	default:
-		return localEngineSupportUnsupported, engine.NimiMediaHostSupportDetail(profile.GetOs(), profile.GetArch(), profile.GetGpu().GetVendor(), cudaReady)
+		return localEngineSupportUnsupported, engine.MediaHostSupportDetail(profile.GetOs(), profile.GetArch(), profile.GetGpu().GetVendor(), cudaReady)
 	}
 }
 
@@ -60,14 +60,14 @@ func managedEngineSupportWarnings(engineName string, profile *runtimev1.LocalDev
 	if classification == localEngineSupportSupportedSupervised {
 		return nil
 	}
-	warnings := []string{warnNimiMediaAttachedOnly}
+	warnings := []string{warnMediaAttachedOnly}
 	if strings.Contains(strings.ToLower(detail), "cuda") {
 		warnings = append(warnings, warnCUDARequired)
 	}
 	return warnings
 }
 
-func shouldManageNimiMediaEndpoint(endpoint string) bool {
+func shouldManageMediaEndpoint(endpoint string) bool {
 	trimmed := strings.TrimSpace(endpoint)
-	return trimmed == "" || strings.EqualFold(trimmed, defaultNimiMediaEndpoint)
+	return trimmed == "" || strings.EqualFold(trimmed, defaultMediaEndpoint)
 }

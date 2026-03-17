@@ -56,17 +56,17 @@ func adapterForProviderCapability(provider string, capability string) string {
 		default:
 			return "openai_compat_adapter"
 		}
-	case "media.diffusers":
-		switch normalizedCapability {
-		case "image.generate", "video.generate":
-			return "media_diffusers_adapter"
-		default:
-			return "openai_compat_adapter"
-		}
 	case "media":
 		switch normalizedCapability {
 		case "image.generate", "video.generate":
 			return "media_native_adapter"
+		default:
+			return "openai_compat_adapter"
+		}
+	case "speech":
+		switch normalizedCapability {
+		case "audio.transcribe", "audio.synthesize", "voice_workflow.tts_v2v", "voice_workflow.tts_t2v":
+			return "speech_native_adapter"
 		default:
 			return "openai_compat_adapter"
 		}
@@ -144,27 +144,34 @@ func buildNodeProviderHints(
 	}
 	switch normalizedProvider {
 	case "llama":
-		localAI := &runtimev1.LocalProviderHintsLocalAi{
+		llama := &runtimev1.LocalProviderHintsLlama{
 			Backend:          "llama",
 			PreferredAdapter: strings.TrimSpace(adapter),
 		}
-		switch normalizedCapability {
-		case "stt", "transcription":
-			localAI.WhisperVariant = "whisper-large-v3"
-		case "image":
-			localAI.StablediffusionPipeline = "default"
-		case "video", "vision", "multimodal", "audio_chat", "video_chat", "text.generate.vision", "text.generate.audio", "text.generate.video":
-			localAI.VideoBackend = "openai_compat"
-		}
-		hints.Localai = localAI
-	case "media", "media.diffusers":
-		hints.NimiMedia = &runtimev1.LocalProviderHintsNimiMedia{
+		hints.Llama = llama
+	case "media":
+		hints.Media = &runtimev1.LocalProviderHintsMedia{
 			Backend:          normalizedProvider,
 			PreferredAdapter: strings.TrimSpace(adapter),
 			Family:           strings.TrimSpace(hints.GetExtra()["family"]),
 			ImageDriver:      strings.TrimSpace(hints.GetExtra()["image_driver"]),
 			VideoDriver:      strings.TrimSpace(hints.GetExtra()["video_driver"]),
 			Device:           strings.TrimSpace(hints.GetExtra()["device"]),
+		}
+	case "speech":
+		hints.Speech = &runtimev1.LocalProviderHintsSpeech{
+			Backend:             normalizedProvider,
+			PreferredAdapter:    strings.TrimSpace(adapter),
+			Family:              strings.TrimSpace(hints.GetExtra()["family"]),
+			Driver:              strings.TrimSpace(hints.GetExtra()["driver"]),
+			Device:              strings.TrimSpace(hints.GetExtra()["device"]),
+			VoiceWorkflowDriver: strings.TrimSpace(hints.GetExtra()["voice_workflow_driver"]),
+			PolicyGate:          normalizedPolicyGate,
+		}
+	case "sidecar":
+		hints.Sidecar = &runtimev1.LocalProviderHintsSidecar{
+			PreferredAdapter: strings.TrimSpace(adapter),
+			Backend:          "sidecar",
 		}
 	}
 	return hints
@@ -241,68 +248,122 @@ func defaultVerifiedModels() []*runtimev1.LocalVerifiedModelDescriptor {
 	imageEngine := defaultLocalEngine("", []string{"image"})
 	return []*runtimev1.LocalVerifiedModelDescriptor{
 		{
-			TemplateId:  "verified.chat.llama3_8b",
-			Title:       "Llama 3 8B Instruct",
-			Description: "General chat model for local runtime",
-			InstallKind: "download",
-			ModelId:     "local/llama3.1",
-			Repo:        "nimiplatform/llama3.1-8b-instruct",
-			Revision:    "main",
+			TemplateId:     "verified.chat.llama3_8b",
+			Title:          "Llama 3 8B Instruct",
+			Description:    "General chat model for local runtime",
+			InstallKind:    "download",
+			ModelId:        "local/llama3.1",
+			LogicalModelId: "nimi/chat-llama3.1-8b",
+			Repo:           "nimiplatform/llama3.1-8b-instruct",
+			Revision:       "main",
 			Capabilities: []string{
 				"chat",
 			},
-			Engine:         chatEngine,
-			Entry:          "./dist/index.js",
-			Files:          []string{"model.gguf"},
-			License:        "llama3",
-			Hashes:         map[string]string{},
-			Endpoint:       "",
-			FileCount:      1,
-			TotalSizeBytes: 0,
-			Tags:           []string{"chat", "verified"},
+			Engine:          chatEngine,
+			Entry:           "./dist/index.js",
+			Files:           []string{"model.gguf"},
+			License:         "llama3",
+			Hashes:          map[string]string{},
+			Endpoint:        "",
+			FileCount:       1,
+			TotalSizeBytes:  0,
+			Tags:            []string{"chat", "verified"},
+			ArtifactRoles:   []string{"llm", "tokenizer"},
+			PreferredEngine: "llama",
 		},
 		{
-			TemplateId:  "verified.stt.whisper",
-			Title:       "Whisper STT",
-			Description: "Speech to text local model",
-			InstallKind: "download",
-			ModelId:     "local/whisper-large-v3",
-			Repo:        "nimiplatform/whisper-large-v3",
-			Revision:    "main",
+			TemplateId:     "verified.stt.whisper",
+			Title:          "Whisper STT",
+			Description:    "Speech to text local model",
+			InstallKind:    "download",
+			ModelId:        "local/whisper-large-v3",
+			LogicalModelId: "nimi/stt-whisper-large-v3",
+			Repo:           "nimiplatform/whisper-large-v3",
+			Revision:       "main",
 			Capabilities: []string{
-				"stt",
+				"audio.transcribe",
 			},
-			Engine:         sttEngine,
-			Entry:          "./dist/index.js",
-			Files:          []string{"model.bin"},
-			License:        "mit",
-			Hashes:         map[string]string{},
-			Endpoint:       "",
-			FileCount:      1,
-			TotalSizeBytes: 0,
-			Tags:           []string{"stt", "verified"},
+			Engine:          sttEngine,
+			Entry:           "./dist/index.js",
+			Files:           []string{"model.bin"},
+			License:         "mit",
+			Hashes:          map[string]string{},
+			Endpoint:        "",
+			FileCount:       1,
+			TotalSizeBytes:  0,
+			Tags:            []string{"stt", "verified"},
+			ArtifactRoles:   []string{"stt_model"},
+			PreferredEngine: "speech",
 		},
 		{
-			TemplateId:   "verified.image.z_image_turbo",
-			Title:        "Z-Image Turbo (GGUF)",
-			Description:  "Recommended verified LocalAI image main model for dynamic workflow assembly",
-			InstallKind:  "download",
-			ModelId:      "local/z_image_turbo",
-			Repo:         "jayn7/Z-Image-Turbo-GGUF",
-			Revision:     "main",
-			Capabilities: []string{"image"},
-			Engine:       imageEngine,
-			Entry:        "z_image_turbo-Q4_K_M.gguf",
-			Files:        []string{"z_image_turbo-Q4_K_M.gguf"},
-			License:      "apache-2.0",
+			TemplateId:     "verified.tts.kokoro",
+			Title:          "Kokoro TTS",
+			Description:    "Default local speech synthesis model",
+			InstallKind:    "download",
+			ModelId:        "local/kokoro-tts",
+			LogicalModelId: "nimi/tts-kokoro",
+			Repo:           "nimiplatform/kokoro-onnx",
+			Revision:       "main",
+			Capabilities:   []string{"audio.synthesize"},
+			Engine:         "speech",
+			Entry:          "model.onnx",
+			Files:          []string{"model.onnx", "voices.json"},
+			License:        "apache-2.0",
+			Hashes:         map[string]string{},
+			Endpoint:       "",
+			FileCount:      2,
+			TotalSizeBytes: 0,
+			Tags:           []string{"tts", "verified"},
+			ArtifactRoles:  []string{"tts_model", "tokenizer"},
+			PreferredEngine: "speech",
+		},
+		{
+			TemplateId:     "verified.voice.qwen3_tts",
+			Title:          "Qwen3 TTS Voice Workflow",
+			Description:    "Heavy local voice workflow family for synthesize, clone, and design flows",
+			InstallKind:    "verified-hf-multi-file",
+			ModelId:        "local/qwen3-tts",
+			LogicalModelId: "nimi/voice-qwen3-tts",
+			Repo:           "Qwen/Qwen3-TTS-30B-A3B-Instruct",
+			Revision:       "main",
+			Capabilities:   []string{"audio.synthesize", "voice_workflow.tts_v2v", "voice_workflow.tts_t2v"},
+			Engine:         "speech",
+			Entry:          "model.safetensors",
+			Files:          []string{"model.safetensors", "speech_tokenizer/model.safetensors"},
+			License:        "apache-2.0",
+			Hashes:         map[string]string{},
+			Endpoint:       "",
+			FileCount:      2,
+			TotalSizeBytes: 0,
+			Tags:           []string{"tts", "voice", "verified", "heavy"},
+			ArtifactRoles:  []string{"voice_workflow_model", "speech_tokenizer", "tokenizer"},
+			PreferredEngine: "speech",
+		},
+		{
+			TemplateId:     "verified.image.z_image_turbo",
+			Title:          "Z-Image Turbo (GGUF)",
+			Description:    "Recommended verified local image main model for dynamic workflow assembly",
+			InstallKind:    "download",
+			ModelId:        "local/z_image_turbo",
+			LogicalModelId: "nimi/image-z-image-turbo",
+			Repo:           "jayn7/Z-Image-Turbo-GGUF",
+			Revision:       "main",
+			Capabilities:   []string{"image.generate"},
+			Engine:         imageEngine,
+			Entry:          "z_image_turbo-Q4_K_M.gguf",
+			Files:          []string{"z_image_turbo-Q4_K_M.gguf"},
+			License:        "apache-2.0",
 			Hashes: map[string]string{
 				"z_image_turbo-Q4_K_M.gguf": "sha256:745ec270db042409fde084d6b5cfccabf214a7fe5a494edf994a391125656afd",
 			},
-			Endpoint:       "",
-			FileCount:      1,
-			TotalSizeBytes: 4981532736,
-			Tags:           []string{"image", "verified", "recommended", "z-image"},
-			EngineConfig:   zImageDefaults,
+			Endpoint:        "",
+			FileCount:       1,
+			TotalSizeBytes:  4981532736,
+			Tags:            []string{"image", "verified", "recommended", "z-image"},
+			ArtifactRoles:   []string{"diffusion_transformer"},
+			PreferredEngine: "media",
+			FallbackEngines: []string{"media.diffusers"},
+			EngineConfig:    zImageDefaults,
 		},
 	}
 }

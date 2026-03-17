@@ -232,8 +232,8 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	if got := resolveMediaAdapterName("wan2.2", "", runtimev1.Modal_MODAL_VIDEO, "llama"); got != "" {
 		t.Fatalf("unexpected llama provider adapter for unsupported video route: %s", got)
 	}
-	if got := resolveMediaAdapterName("media.diffusers/flux.1-schnell", "", runtimev1.Modal_MODAL_IMAGE, ""); got != adapterMediaDiffusers {
-		t.Fatalf("unexpected media diffusers image adapter: %s", got)
+	if got := resolveMediaAdapterName("speech/qwen3-tts-30b", "", runtimev1.Modal_MODAL_TTS, ""); got != adapterSpeechNative {
+		t.Fatalf("unexpected speech tts adapter: %s", got)
 	}
 	if got := resolveMediaAdapterName("", "kimi/k1", runtimev1.Modal_MODAL_IMAGE, ""); got != adapterKimiChatMultimodal {
 		t.Fatalf("unexpected adapter: %s", got)

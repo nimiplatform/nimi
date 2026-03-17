@@ -140,11 +140,11 @@ func TestLocalProviderResolveModelIDPreservesExplicitEnginePrefixes(t *testing.T
 	p := &localProvider{}
 
 	cases := map[string]string{
-		"local/qwen2.5":                "qwen2.5",
-		"llama/z-image-turbo":          "llama/z-image-turbo",
-		"media/flux.1-schnell":         "media/flux.1-schnell",
-		"media.diffusers/wan2.2":       "media.diffusers/wan2.2",
-		"sidecar/stable-audio-open-1":  "sidecar/stable-audio-open-1",
+		"local/qwen2.5":               "qwen2.5",
+		"llama/z-image-turbo":         "llama/z-image-turbo",
+		"media/flux.1-schnell":        "media/flux.1-schnell",
+		"media.diffusers/wan2.2":      "media.diffusers/wan2.2",
+		"sidecar/stable-audio-open-1": "sidecar/stable-audio-open-1",
 	}
 	for input, want := range cases {
 		if got := p.ResolveModelID(input); got != want {
@@ -180,7 +180,7 @@ func TestServicePublicSettersAndAccessors(t *testing.T) {
 	if !ok || local == nil {
 		t.Fatalf("expected local provider")
 	}
-	backend, _, _, available, _ := local.pickAvailabilityBackend("llama/dynamic-image")
+	backend, _, _, available := local.pickAvailabilityBackend("llama/dynamic-image")
 	if backend == nil || !available {
 		t.Fatalf("llama backend should be hot-swapped after endpoint injection")
 	}
@@ -188,7 +188,7 @@ func TestServicePublicSettersAndAccessors(t *testing.T) {
 		t.Fatalf("unexpected llama backend name: %q", backend.Name)
 	}
 	svc.SetLocalProviderEndpoint("sidecar", "http://127.0.0.1:19191", "sidecar-key")
-	sidecarBackend, resolvedModel, explicit, available, _ := local.pickAvailabilityBackend("sidecar/stable-audio-open-sidecar")
+	sidecarBackend, resolvedModel, explicit, available := local.pickAvailabilityBackend("sidecar/stable-audio-open-sidecar")
 	if sidecarBackend == nil || !available {
 		t.Fatalf("sidecar backend should be hot-swapped after endpoint injection")
 	}
@@ -206,20 +206,20 @@ func TestLocalProviderCanonicalRoutingPrefersLlamaForTextAndEmbed(t *testing.T) 
 		media: &nimillm.Backend{Name: "local-media"},
 	}
 
-	backend, resolvedModel, explicit, available, viaLegacy := local.pickTextBackend("local/qwen2.5")
+	backend, resolvedModel, explicit, available := local.pickTextBackend("local/qwen2.5")
 	if backend == nil || backend.Name != "local-llama" {
 		t.Fatalf("expected canonical local text backend to resolve to llama, got %#v", backend)
 	}
-	if resolvedModel != "qwen2.5" || !explicit || !available || viaLegacy {
-		t.Fatalf("unexpected text backend resolution: model=%q explicit=%v available=%v viaLegacy=%v", resolvedModel, explicit, available, viaLegacy)
+	if resolvedModel != "qwen2.5" || !explicit || !available {
+		t.Fatalf("unexpected text backend resolution: model=%q explicit=%v available=%v", resolvedModel, explicit, available)
 	}
 
-	embedBackend, embedModel, embedExplicit, embedAvailable, embedLegacy := local.pickEmbeddingBackend("local/qwen2.5")
+	embedBackend, embedModel, embedExplicit, embedAvailable := local.pickEmbeddingBackend("local/qwen2.5")
 	if embedBackend == nil || embedBackend.Name != "local-llama" {
 		t.Fatalf("expected canonical local embed backend to resolve to llama, got %#v", embedBackend)
 	}
-	if embedModel != "qwen2.5" || !embedExplicit || !embedAvailable || embedLegacy {
-		t.Fatalf("unexpected embed backend resolution: model=%q explicit=%v available=%v viaLegacy=%v", embedModel, embedExplicit, embedAvailable, embedLegacy)
+	if embedModel != "qwen2.5" || !embedExplicit || !embedAvailable {
+		t.Fatalf("unexpected embed backend resolution: model=%q explicit=%v available=%v", embedModel, embedExplicit, embedAvailable)
 	}
 }
 
@@ -229,12 +229,12 @@ func TestLocalProviderCanonicalAvailabilityAndImageRouting(t *testing.T) {
 		media: &nimillm.Backend{Name: "local-media"},
 	}
 
-	availabilityBackend, resolvedModel, explicit, available, viaLegacy := local.pickAvailabilityBackend("local/qwen2.5")
+	availabilityBackend, resolvedModel, explicit, available := local.pickAvailabilityBackend("local/qwen2.5")
 	if availabilityBackend == nil || availabilityBackend.Name != "local-llama" {
 		t.Fatalf("expected local availability to prefer llama, got %#v", availabilityBackend)
 	}
-	if resolvedModel != "qwen2.5" || !explicit || !available || viaLegacy {
-		t.Fatalf("unexpected availability resolution: model=%q explicit=%v available=%v viaLegacy=%v", resolvedModel, explicit, available, viaLegacy)
+	if resolvedModel != "qwen2.5" || !explicit || !available {
+		t.Fatalf("unexpected availability resolution: model=%q explicit=%v available=%v", resolvedModel, explicit, available)
 	}
 
 	imageBackend, imageModel, providerType := local.resolveMediaBackendForModal("local/flux.1-schnell", runtimev1.Modal_MODAL_IMAGE)
@@ -251,12 +251,12 @@ func TestLocalProviderHardCutDoesNotFallbackAcrossEngines(t *testing.T) {
 		llama: &nimillm.Backend{Name: "local-llama"},
 	}
 
-	textBackend, resolvedModel, explicit, available, viaLegacy := local.pickTextBackend("local/qwen2.5")
+	textBackend, resolvedModel, explicit, available := local.pickTextBackend("local/qwen2.5")
 	if textBackend == nil || !available {
 		t.Fatalf("text route should still resolve to llama: backend=%#v available=%v", textBackend, available)
 	}
-	if resolvedModel != "qwen2.5" || !explicit || viaLegacy {
-		t.Fatalf("unexpected text hard-cut resolution: model=%q explicit=%v viaLegacy=%v", resolvedModel, explicit, viaLegacy)
+	if resolvedModel != "qwen2.5" || !explicit {
+		t.Fatalf("unexpected text hard-cut resolution: model=%q explicit=%v", resolvedModel, explicit)
 	}
 
 	imageBackend, imageModel, providerType := local.resolveMediaBackendForModal("local/flux.1-schnell", runtimev1.Modal_MODAL_IMAGE)
@@ -293,11 +293,11 @@ func TestLocalProviderExplicitEngineSelectionSurvivesRouting(t *testing.T) {
 	if !ok || local == nil {
 		t.Fatalf("expected local provider wrapper")
 	}
-	backend, resolvedModel, explicit, available, viaLegacy := local.pickAvailabilityBackend(modelResolved)
+	backend, resolvedModel, explicit, available := local.pickAvailabilityBackend(modelResolved)
 	if backend == nil || backend.Name != "local-media" {
 		t.Fatalf("explicit media route should keep media backend, got %#v", backend)
 	}
-	if resolvedModel != "flux.1-schnell" || !explicit || !available || viaLegacy {
-		t.Fatalf("unexpected explicit media availability: model=%q explicit=%v available=%v viaLegacy=%v", resolvedModel, explicit, available, viaLegacy)
+	if resolvedModel != "flux.1-schnell" || !explicit || !available {
+		t.Fatalf("unexpected explicit media availability: model=%q explicit=%v available=%v", resolvedModel, explicit, available)
 	}
 }

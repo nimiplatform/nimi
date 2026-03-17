@@ -8,7 +8,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-var localInventoryPrefixes = [...]string{"local/", "llama/", "media/", "media.diffusers/", "sidecar/"}
+var localInventoryPrefixes = [...]string{"local/", "llama/", "media/", "speech/", "sidecar/"}
 
 func normalizeLocalInventoryID(value string) string {
 	trimmed := strings.TrimSpace(value)

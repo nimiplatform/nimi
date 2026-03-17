@@ -8,17 +8,17 @@ import (
 	"strings"
 )
 
-// localAIDownloadURL builds the GitHub Releases download URL for a LocalAI binary.
-func localAIDownloadURL(version string) (string, error) {
-	asset, err := localAIAssetName(version)
+// llamaDownloadURL builds the GitHub Releases download URL for a llama binary.
+func llamaDownloadURL(version string) (string, error) {
+	asset, err := llamaAssetName(version)
 	if err != nil {
 		return "", err
 	}
-	return localAIReleaseAssetURL(version, asset), nil
+	return llamaReleaseAssetURL(version, asset), nil
 }
 
-// localAIAssetName returns the expected binary asset name for the current platform.
-func localAIAssetName(version string) (string, error) {
+// llamaAssetName returns the expected binary asset name for the current platform.
+func llamaAssetName(version string) (string, error) {
 	trimmedVersion := strings.TrimSpace(version)
 	if trimmedVersion == "" {
 		return "", fmt.Errorf("llama version is required")
@@ -30,8 +30,8 @@ func localAIAssetName(version string) (string, error) {
 	return "", fmt.Errorf("unsupported platform: %s", PlatformString())
 }
 
-// localAICommand builds the exec.Cmd for starting LocalAI.
-func localAICommand(cfg EngineConfig) *exec.Cmd {
+// llamaCommand builds the exec.Cmd for starting llama.
+func llamaCommand(cfg EngineConfig) *exec.Cmd {
 	args := []string{
 		"run",
 		"--address", ":" + itoa(cfg.Port),
@@ -51,20 +51,20 @@ func localAICommand(cfg EngineConfig) *exec.Cmd {
 		args = append(args, "--external-backends", strings.Join(cfg.ExternalBackends, ","))
 	}
 	if len(cfg.ExternalGRPCBackends) > 0 {
-		args = append(args, "--external-grpc-backends", strings.Join(normalizeLocalAIExternalGRPCBackends(cfg.ExternalGRPCBackends), ","))
+		args = append(args, "--external-grpc-backends", strings.Join(normalizeLlamaExternalGRPCBackends(cfg.ExternalGRPCBackends), ","))
 	}
 	return exec.Command(cfg.BinaryPath, args...)
 }
 
-// localAIBinaryName returns the expected binary name within the engines directory.
-func localAIBinaryName() string {
+// llamaBinaryName returns the expected binary name within the engines directory.
+func llamaBinaryName() string {
 	if runtime.GOOS == "windows" {
 		return "local-ai.exe"
 	}
 	return "local-ai"
 }
 
-func normalizeLocalAIExternalGRPCBackends(backends []string) []string {
+func normalizeLlamaExternalGRPCBackends(backends []string) []string {
 	seen := make(map[string]struct{}, len(backends))
 	result := make([]string, 0, len(backends))
 	for _, backend := range backends {

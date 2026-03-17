@@ -10,34 +10,34 @@ import (
 	"time"
 )
 
-var localAIReleaseBaseURL = "https://github.com/mudler/LocalAI/releases/download"
+var llamaReleaseBaseURL = "https://github.com/mudler/LocalAI/releases/download"
 
-var localAIReleaseHTTPClient = &http.Client{
+var llamaReleaseHTTPClient = &http.Client{
 	Timeout: 60 * time.Second,
 }
 
-func localAIReleaseAssetURL(version string, assetName string) string {
-	trimmedBase := strings.TrimSuffix(strings.TrimSpace(localAIReleaseBaseURL), "/")
+func llamaReleaseAssetURL(version string, assetName string) string {
+	trimmedBase := strings.TrimSuffix(strings.TrimSpace(llamaReleaseBaseURL), "/")
 	trimmedVersion := strings.TrimSpace(version)
 	trimmedAsset := strings.TrimSpace(assetName)
 	return fmt.Sprintf("%s/v%s/%s", trimmedBase, trimmedVersion, trimmedAsset)
 }
 
-func localAIChecksumAssetName(version string) string {
+func llamaChecksumAssetName(version string) string {
 	return fmt.Sprintf("LocalAI-v%s-checksums.txt", strings.TrimSpace(version))
 }
 
-func localAIChecksumURL(version string) string {
-	return localAIReleaseAssetURL(version, localAIChecksumAssetName(version))
+func llamaChecksumURL(version string) string {
+	return llamaReleaseAssetURL(version, llamaChecksumAssetName(version))
 }
 
-func localAIExpectedSHA256(version string, assetName string) (string, error) {
+func llamaExpectedSHA256(version string, assetName string) (string, error) {
 	trimmedAsset := strings.TrimSpace(assetName)
 	if trimmedAsset == "" {
 		return "", fmt.Errorf("%w: llama asset is required", ErrEngineBinaryDownloadFailed)
 	}
-	checksumURL := localAIChecksumURL(version)
-	resp, err := localAIReleaseHTTPClient.Get(checksumURL)
+	checksumURL := llamaChecksumURL(version)
+	resp, err := llamaReleaseHTTPClient.Get(checksumURL)
 	if err != nil {
 		return "", fmt.Errorf("%w: fetch llama checksums: %v", ErrEngineBinaryDownloadFailed, err)
 	}
@@ -45,10 +45,10 @@ func localAIExpectedSHA256(version string, assetName string) (string, error) {
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("%w: llama checksums HTTP %d from %s", ErrEngineBinaryDownloadFailed, resp.StatusCode, checksumURL)
 	}
-	return parseLocalAIChecksum(resp.Body, trimmedAsset)
+	return parseLlamaChecksum(resp.Body, trimmedAsset)
 }
 
-func parseLocalAIChecksum(r io.Reader, assetName string) (string, error) {
+func parseLlamaChecksum(r io.Reader, assetName string) (string, error) {
 	scanner := bufio.NewScanner(r)
 	scanner.Buffer(make([]byte, 0, 8*1024), 1024*1024)
 	needle := strings.TrimSpace(assetName)

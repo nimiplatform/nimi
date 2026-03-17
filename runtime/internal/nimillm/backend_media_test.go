@@ -15,7 +15,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
-func TestBackendGenerateImageLocalAIForwardsScenarioExtensions(t *testing.T) {
+func TestBackendGenerateImageManagedMediaForwardsScenarioExtensions(t *testing.T) {
 	var captured map[string]any
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -27,13 +27,13 @@ func TestBackendGenerateImageLocalAIForwardsScenarioExtensions(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"data": []map[string]any{
-				{"b64_json": base64.StdEncoding.EncodeToString([]byte("image-localai"))},
+				{"b64_json": base64.StdEncoding.EncodeToString([]byte("image-managed-media"))},
 			},
 		})
 	}))
 	defer server.Close()
 
-	backend := NewBackend("localai", server.URL, "", time.Second)
+	backend := NewBackend("llama", server.URL, "", time.Second)
 	spec := &runtimev1.ImageGenerateScenarioSpec{
 		Prompt: "make a forest",
 	}
@@ -43,15 +43,15 @@ func TestBackendGenerateImageLocalAIForwardsScenarioExtensions(t *testing.T) {
 		"guidance_scale": 7.5,
 	}
 
-	payload, _, compat, err := backend.GenerateImageLocalAI(context.Background(), "local/image", spec, scenarioExtensions)
+	payload, _, compat, err := backend.GenerateImageManagedMedia(context.Background(), "local/image", spec, scenarioExtensions)
 	if err != nil {
-		t.Fatalf("GenerateImageLocalAI failed: %v", err)
+		t.Fatalf("GenerateImageManagedMedia failed: %v", err)
 	}
-	if string(payload) != "image-localai" {
+	if string(payload) != "image-managed-media" {
 		t.Fatalf("unexpected payload: %q", string(payload))
 	}
 	if compat == nil {
-		t.Fatal("expected LocalAI compatibility diagnostics")
+		t.Fatal("expected managed media compatibility diagnostics")
 	}
 	if got := ValueAsInt32(captured["step"]); got != 12 {
 		t.Fatalf("expected step override from scenario extension, got=%d", got)
@@ -113,9 +113,9 @@ func TestBackendGenerateImageForwardsScenarioExtensions(t *testing.T) {
 	}
 }
 
-func TestBackendGenerateImageLocalAIRejectsUnsupportedResponseFormat(t *testing.T) {
-	backend := NewBackend("localai", "http://127.0.0.1", "", time.Second)
-	_, _, _, err := backend.GenerateImageLocalAI(context.Background(), "local/image", &runtimev1.ImageGenerateScenarioSpec{
+func TestBackendGenerateImageManagedMediaRejectsUnsupportedResponseFormat(t *testing.T) {
+	backend := NewBackend("llama", "http://127.0.0.1", "", time.Second)
+	_, _, _, err := backend.GenerateImageManagedMedia(context.Background(), "local/image", &runtimev1.ImageGenerateScenarioSpec{
 		Prompt:         "make a forest",
 		ResponseFormat: "signed_url",
 	}, nil)
@@ -204,7 +204,7 @@ func TestBackendGenerateVideoForwardsScenarioExtensions(t *testing.T) {
 	}
 }
 
-func TestBackendGenerateImageUsesNimiMediaCanonicalPath(t *testing.T) {
+func TestBackendGenerateImageUsesMediaCanonicalPath(t *testing.T) {
 	var captured map[string]any
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -217,20 +217,20 @@ func TestBackendGenerateImageUsesNimiMediaCanonicalPath(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"artifact": map[string]any{
 				"mime_type":   "image/png",
-				"data_base64": base64.StdEncoding.EncodeToString([]byte("image-nimi-media")),
+				"data_base64": base64.StdEncoding.EncodeToString([]byte("image-media")),
 			},
 		})
 	}))
 	defer server.Close()
 
-	backend := NewBackend("local-nimi_media", server.URL, "", time.Second)
-	payload, _, err := backend.GenerateImage(context.Background(), "nimi_media/flux.1-schnell", &runtimev1.ImageGenerateScenarioSpec{
+	backend := NewBackend("local-media", server.URL, "", time.Second)
+	payload, _, err := backend.GenerateImage(context.Background(), "media/flux.1-schnell", &runtimev1.ImageGenerateScenarioSpec{
 		Prompt: "make a skyline",
 	}, map[string]any{"scheduler": "ddim"})
 	if err != nil {
 		t.Fatalf("GenerateImage failed: %v", err)
 	}
-	if string(payload) != "image-nimi-media" {
+	if string(payload) != "image-media" {
 		t.Fatalf("unexpected payload: %q", string(payload))
 	}
 	spec, ok := captured["spec"].(map[string]any)
@@ -242,7 +242,7 @@ func TestBackendGenerateImageUsesNimiMediaCanonicalPath(t *testing.T) {
 	}
 }
 
-func TestBackendGenerateVideoUsesNimiMediaCanonicalPath(t *testing.T) {
+func TestBackendGenerateVideoUsesMediaCanonicalPath(t *testing.T) {
 	var captured map[string]any
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -255,14 +255,14 @@ func TestBackendGenerateVideoUsesNimiMediaCanonicalPath(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"artifact": map[string]any{
 				"mime_type":   "video/mp4",
-				"data_base64": base64.StdEncoding.EncodeToString([]byte("video-nimi-media")),
+				"data_base64": base64.StdEncoding.EncodeToString([]byte("video-media")),
 			},
 		})
 	}))
 	defer server.Close()
 
-	backend := NewBackend("local-nimi_media", server.URL, "", time.Second)
-	payload, _, err := backend.GenerateVideo(context.Background(), "nimi_media/wan2.1-video", &runtimev1.VideoGenerateScenarioSpec{
+	backend := NewBackend("local-media", server.URL, "", time.Second)
+	payload, _, err := backend.GenerateVideo(context.Background(), "media/wan2.1-video", &runtimev1.VideoGenerateScenarioSpec{
 		Prompt: "a sunrise over water",
 		Mode:   runtimev1.VideoMode_VIDEO_MODE_T2V,
 		Content: []*runtimev1.VideoContentItem{
@@ -276,7 +276,7 @@ func TestBackendGenerateVideoUsesNimiMediaCanonicalPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GenerateVideo failed: %v", err)
 	}
-	if string(payload) != "video-nimi-media" {
+	if string(payload) != "video-media" {
 		t.Fatalf("unexpected payload: %q", string(payload))
 	}
 	spec, ok := captured["spec"].(map[string]any)

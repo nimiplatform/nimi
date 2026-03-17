@@ -19,7 +19,7 @@ import (
 func TestLocalImportLocalArtifactAndList(t *testing.T) {
 	svc := newTestService(t)
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetLocalAIRegistrationConfig(modelsRoot, "", false)
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
 	artifactDir := filepath.Join(modelsRoot, "local-z-image-ae")
 	if err := os.MkdirAll(filepath.Join(artifactDir, "vae"), 0o755); err != nil {
@@ -33,7 +33,7 @@ func TestLocalImportLocalArtifactAndList(t *testing.T) {
 		"schemaVersion": "1.0.0",
 		"artifactId":    "local/z_image_ae",
 		"kind":          "vae",
-		"engine":        "localai",
+		"engine":        "media",
 		"entry":         "vae/diffusion_pytorch_model.safetensors",
 		"files":         []string{"vae/diffusion_pytorch_model.safetensors"},
 		"license":       "tongyi",
@@ -82,7 +82,7 @@ func TestLocalImportLocalArtifactAndList(t *testing.T) {
 func TestInstallVerifiedArtifactDownloadsFilesAndWritesManifest(t *testing.T) {
 	svc := newTestService(t)
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetLocalAIRegistrationConfig(modelsRoot, "", false)
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
 	payload := []byte("verified-vae")
 	sum := sha256.Sum256(payload)
@@ -102,7 +102,7 @@ func TestInstallVerifiedArtifactDownloadsFilesAndWritesManifest(t *testing.T) {
 			Title:      "Z-Image AE",
 			ArtifactId: "local/z_image_ae",
 			Kind:       runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
-			Engine:     "localai",
+			Engine:     "media",
 			Entry:      "vae/diffusion_pytorch_model.safetensors",
 			Files:      []string{"vae/diffusion_pytorch_model.safetensors"},
 			License:    "tongyi",
@@ -157,7 +157,7 @@ func TestInstallVerifiedArtifactDownloadsFilesAndWritesManifest(t *testing.T) {
 func TestInstallVerifiedArtifactHashMismatchRollsBack(t *testing.T) {
 	svc := newTestService(t)
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetLocalAIRegistrationConfig(modelsRoot, "", false)
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/Tongyi-MAI/Z-Image-Turbo/resolve/main/vae/diffusion_pytorch_model.safetensors" {
@@ -175,7 +175,7 @@ func TestInstallVerifiedArtifactHashMismatchRollsBack(t *testing.T) {
 			Title:      "Z-Image AE",
 			ArtifactId: "local/z_image_ae",
 			Kind:       runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
-			Engine:     "localai",
+			Engine:     "media",
 			Entry:      "vae/diffusion_pytorch_model.safetensors",
 			Files:      []string{"vae/diffusion_pytorch_model.safetensors"},
 			License:    "tongyi",
@@ -210,12 +210,12 @@ func TestInstallVerifiedArtifactHashMismatchRollsBack(t *testing.T) {
 func TestInstallVerifiedArtifactRejectsCanonicalAliasDuplicate(t *testing.T) {
 	svc := newTestService(t)
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetLocalAIRegistrationConfig(modelsRoot, "", false)
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 	svc.artifacts["artifact-bare"] = &runtimev1.LocalArtifactRecord{
 		LocalArtifactId: "artifact-bare",
 		ArtifactId:      "z_image_ae",
 		Kind:            runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
-		Engine:          "localai",
+		Engine:          "media",
 		Entry:           "vae/diffusion_pytorch_model.safetensors",
 		Files:           []string{"vae/diffusion_pytorch_model.safetensors"},
 		Status:          runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_INSTALLED,
@@ -228,7 +228,7 @@ func TestInstallVerifiedArtifactRejectsCanonicalAliasDuplicate(t *testing.T) {
 			Title:      "Z-Image AE",
 			ArtifactId: "local/z_image_ae",
 			Kind:       runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
-			Engine:     "localai",
+			Engine:     "media",
 			Entry:      "vae/diffusion_pytorch_model.safetensors",
 			Files:      []string{"vae/diffusion_pytorch_model.safetensors"},
 			License:    "tongyi",
@@ -253,7 +253,7 @@ func TestListLocalArtifactsDedupesCanonicalAliasHistory(t *testing.T) {
 			LocalArtifactId: "legacy-local",
 			ArtifactId:      "local/z_image_ae",
 			Kind:            runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
-			Engine:          "localai",
+			Engine:          "media",
 			Entry:           "vae/diffusion_pytorch_model.safetensors",
 			Files:           []string{"vae/diffusion_pytorch_model.safetensors"},
 			Status:          runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_REMOVED,
@@ -264,7 +264,7 @@ func TestListLocalArtifactsDedupesCanonicalAliasHistory(t *testing.T) {
 			LocalArtifactId: "current-bare",
 			ArtifactId:      "z_image_ae",
 			Kind:            runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
-			Engine:          "localai",
+			Engine:          "media",
 			Entry:           "vae/diffusion_pytorch_model.safetensors",
 			Files:           []string{"vae/diffusion_pytorch_model.safetensors"},
 			Status:          runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_INSTALLED,

@@ -28,20 +28,20 @@ func DownloadBinary(baseDir string, kind EngineKind, version string) (binaryPath
 	var expectedSHA256 string
 
 	switch kind {
-	case EngineLocalAI:
-		assetName, assetErr := localAIAssetName(version)
+	case EngineLlama:
+		assetName, assetErr := llamaAssetName(version)
 		if assetErr != nil {
 			return "", "", fmt.Errorf("%w: %v", ErrEngineBinaryDownloadFailed, assetErr)
 		}
-		url, err = localAIDownloadURL(version)
+		url, err = llamaDownloadURL(version)
 		if err != nil {
 			return "", "", fmt.Errorf("%w: %v", ErrEngineBinaryDownloadFailed, err)
 		}
-		expectedSHA256, err = localAIExpectedSHA256(version, assetName)
+		expectedSHA256, err = llamaExpectedSHA256(version, assetName)
 		if err != nil {
 			return "", "", err
 		}
-		binaryName = localAIBinaryName()
+		binaryName = llamaBinaryName()
 	default:
 		return "", "", fmt.Errorf("%w: engine %q not supported", ErrEngineBinaryDownloadFailed, kind)
 	}

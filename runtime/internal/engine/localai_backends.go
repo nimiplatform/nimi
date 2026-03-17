@@ -12,7 +12,7 @@ type localAIModelsConfigEntry struct {
 	Backend string `yaml:"backend"`
 }
 
-func normalizeLocalAIExternalBackends(backends []string) []string {
+func normalizeLlamaExternalBackends(backends []string) []string {
 	if len(backends) == 0 {
 		return nil
 	}
@@ -36,7 +36,7 @@ func normalizeLocalAIExternalBackends(backends []string) []string {
 	return normalized
 }
 
-func detectLocalAIExternalBackends(configPath string) []string {
+func detectLlamaExternalBackends(configPath string) []string {
 	trimmedPath := strings.TrimSpace(configPath)
 	if trimmedPath == "" {
 		return nil
@@ -53,5 +53,5 @@ func detectLocalAIExternalBackends(configPath string) []string {
 	for _, entry := range entries {
 		backends = append(backends, entry.Backend)
 	}
-	return normalizeLocalAIExternalBackends(backends)
+	return normalizeLlamaExternalBackends(backends)
 }

@@ -439,7 +439,7 @@ func appendEngineBootstrapFailureAudit(store *auditlog.Store, engineName string,
 	})
 }
 
-func resolveManagedLocalAIModelsConfigPath() string {
+func resolveManagedLlamaModelsConfigPath() string {
 	home, err := os.UserHomeDir()
 	if err != nil || strings.TrimSpace(home) == "" {
 		return ""
@@ -447,12 +447,12 @@ func resolveManagedLocalAIModelsConfigPath() string {
 	return filepath.Join(home, ".nimi", "runtime", "llama-models.yaml")
 }
 
-func (d *Daemon) recordLocalAIBootstrapFailure(detail string) bool {
+func (d *Daemon) recordManagedLlamaBootstrapFailure(detail string) bool {
 	trimmedDetail := strings.TrimSpace(detail)
 	if trimmedDetail == "" {
 		trimmedDetail = "managed llama bootstrap failed"
 	}
-	reason := fmt.Sprintf("engine bootstrap failed (%s: %s)", engine.EngineLocalAI, trimmedDetail)
+	reason := fmt.Sprintf("engine bootstrap failed (%s: %s)", engine.EngineLlama, trimmedDetail)
 
 	d.logger.Error("managed llama bootstrap failed", "detail", trimmedDetail)
 	d.setProviderFailureHint("local", reason)
@@ -461,7 +461,7 @@ func (d *Daemon) recordLocalAIBootstrapFailure(detail string) bool {
 		d.aiHealth.Mark("local", false, reason)
 		appendProviderHealthAudit(d.auditStore, "local", previous, d.aiHealth.Snapshot("local"))
 	}
-	appendEngineBootstrapFailureAudit(d.auditStore, string(engine.EngineLocalAI), "local", trimmedDetail)
+	appendEngineBootstrapFailureAudit(d.auditStore, string(engine.EngineLlama), "local", trimmedDetail)
 	d.state.SetStatus(health.StatusDegraded, reason)
 	d.grpc.SyncServingState()
 	return true
@@ -510,29 +510,29 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		return
 	}
 	d.engineMgr = mgr
-	localAIConfigPath := resolveManagedLocalAIModelsConfigPath()
-	mgr.SetLocalAIPaths(d.cfg.LocalModelsPath, localAIConfigPath)
+	localAIConfigPath := resolveManagedLlamaModelsConfigPath()
+	mgr.SetLlamaPaths(d.cfg.LocalModelsPath, localAIConfigPath)
 
 	// Inject engine manager into local service for gRPC access.
 	skipLlamaBootstrap := false
-	nimiMediaSupport, _ := detectNimiMediaHostSupport()
-	managedMediaLoopback := d.cfg.EngineMediaEnabled && nimiMediaSupport == engine.NimiMediaHostSupportSupportedSupervised
+	mediaHostSupport, _ := detectMediaHostSupport()
+	managedMediaLoopback := d.cfg.EngineMediaEnabled && mediaHostSupport == engine.MediaHostSupportSupportedSupervised
 	if svc := d.grpc.LocalService(); svc != nil {
-		svc.SetLocalAIRegistrationConfig(d.cfg.LocalModelsPath, localAIConfigPath, d.cfg.EngineLlamaEnabled)
+		svc.SetManagedLlamaRegistrationConfig(d.cfg.LocalModelsPath, localAIConfigPath, d.cfg.EngineLlamaEnabled)
 		if d.cfg.EngineLlamaEnabled {
-			svc.SetLocalAIManagedEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineLlamaPort))
+			svc.SetManagedLlamaEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineLlamaPort))
 		} else {
-			svc.SetLocalAIManagedEndpoint("")
+			svc.SetManagedLlamaEndpoint("")
 		}
 		if managedMediaLoopback {
-			svc.SetNimiMediaManagedEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineMediaPort))
+			svc.SetManagedMediaEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineMediaPort))
 		} else {
-			svc.SetNimiMediaManagedEndpoint("")
+			svc.SetManagedMediaEndpoint("")
 		}
-		svc.SetLocalAIImageBackendConfig(false, "")
+		svc.SetManagedMediaDiffusersBackendConfig(false, "")
 		svc.SetEngineManager(engine.NewServiceAdapter(mgr))
-		if err := svc.SyncManagedLocalAIAssets(ctx); err != nil {
-			skipLlamaBootstrap = d.recordLocalAIBootstrapFailure(fmt.Sprintf("sync managed llama assets: %v", err))
+		if err := svc.SyncManagedLlamaAssets(ctx); err != nil {
+			skipLlamaBootstrap = d.recordManagedLlamaBootstrapFailure(fmt.Sprintf("sync managed llama assets: %v", err))
 		}
 	}
 
@@ -560,12 +560,12 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	}
 
 	if d.cfg.EngineLlamaEnabled && !skipLlamaBootstrap {
-		bootstrap(engine.EngineLocalAI, d.cfg.EngineLlamaVersion, d.cfg.EngineLlamaPort,
+		bootstrap(engine.EngineLlama, d.cfg.EngineLlamaVersion, d.cfg.EngineLlamaPort,
 			"NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL")
 	}
 
 	if d.cfg.EngineMediaEnabled {
-		bootstrap(engine.EngineNimiMedia, d.cfg.EngineMediaVersion, d.cfg.EngineMediaPort,
+		bootstrap(engine.EngineMedia, d.cfg.EngineMediaVersion, d.cfg.EngineMediaPort,
 			"NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL")
 	}
 
@@ -598,12 +598,10 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error {
 	var cfg engine.EngineConfig
 	switch kind {
-	case engine.EngineLocalAI:
-		cfg = engine.DefaultLocalAIConfig()
-	case engine.EngineNexa:
-		cfg = engine.DefaultNexaConfig()
-	case engine.EngineNimiMedia:
-		cfg = engine.DefaultNimiMediaConfig()
+	case engine.EngineLlama:
+		cfg = engine.DefaultLlamaConfig()
+	case engine.EngineMedia:
+		cfg = engine.DefaultMediaConfig()
 	default:
 		return fmt.Errorf("unsupported engine kind: %s", kind)
 	}
@@ -680,13 +678,13 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 	if snapshot.Status == health.StatusStopping || snapshot.Status == health.StatusStopped {
 		return
 	}
-	if strings.EqualFold(strings.TrimSpace(engineName), "localai-image-backend") {
+	if strings.EqualFold(strings.TrimSpace(engineName), "media-diffusers-backend") {
 		if svc := d.grpc.LocalService(); svc != nil {
 			switch strings.ToLower(strings.TrimSpace(status)) {
 			case "healthy":
-				svc.SetLocalAIImageBackendHealth(true, detail)
+				svc.SetManagedMediaDiffusersBackendHealth(true, detail)
 			case "unhealthy":
-				svc.SetLocalAIImageBackendHealth(false, detail)
+				svc.SetManagedMediaDiffusersBackendHealth(false, detail)
 			}
 		}
 	}

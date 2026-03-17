@@ -21,8 +21,8 @@ type localModelLister interface {
 }
 
 type localImageProfileResolver interface {
-	ResolveLocalAIImageProfile(context.Context, string, map[string]any) (string, map[string]any, map[string]any, error)
-	ResolveLocalAIArtifactPath(context.Context, string) (string, error)
+	ResolveManagedMediaImageProfile(context.Context, string, map[string]any) (string, map[string]any, map[string]any, error)
+	ResolveManagedArtifactPath(context.Context, string) (string, error)
 }
 
 type localModelSelector struct {
@@ -113,12 +113,12 @@ func parseLocalModelSelector(modelID string, modal runtimev1.Modal) localModelSe
 	case strings.HasPrefix(lower, "llama/"):
 		selector.explicitEngine = "llama"
 		selector.modelID = strings.TrimSpace(raw[len("llama/"):])
-	case strings.HasPrefix(lower, "media.diffusers/"):
-		selector.explicitEngine = "media.diffusers"
-		selector.modelID = strings.TrimSpace(raw[len("media.diffusers/"):])
 	case strings.HasPrefix(lower, "media/"):
 		selector.explicitEngine = "media"
 		selector.modelID = strings.TrimSpace(raw[len("media/"):])
+	case strings.HasPrefix(lower, "speech/"):
+		selector.explicitEngine = "speech"
+		selector.modelID = strings.TrimSpace(raw[len("speech/"):])
 	case strings.HasPrefix(lower, "sidecar/"):
 		selector.explicitEngine = "sidecar"
 		selector.modelID = strings.TrimSpace(raw[len("sidecar/"):])
@@ -346,7 +346,7 @@ func localRoutingCapabilityForModal(modal runtimev1.Modal) string {
 	case runtimev1.Modal_MODAL_TTS:
 		return "audio.synthesize"
 	case runtimev1.Modal_MODAL_STT:
-		return "audio.understand"
+		return "audio.transcribe"
 	case runtimev1.Modal_MODAL_MUSIC:
 		return "music.generate"
 	case runtimev1.Modal_MODAL_EMBEDDING:

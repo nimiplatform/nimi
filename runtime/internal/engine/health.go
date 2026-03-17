@@ -68,7 +68,7 @@ func WaitHealthy(ctx context.Context, endpoint string, healthPath string, expect
 	}
 }
 
-func ProbeNimiMediaHealth(ctx context.Context, endpoint string) error {
+func ProbeMediaHealth(ctx context.Context, endpoint string) error {
 	baseURL := strings.TrimSuffix(endpoint, "/")
 	healthURL := baseURL + "/healthz"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL, nil)
@@ -132,12 +132,12 @@ func ProbeNimiMediaHealth(ctx context.Context, endpoint string) error {
 	return fmt.Errorf("catalog probe missing ready models")
 }
 
-func WaitNimiMediaHealthy(ctx context.Context, endpoint string, interval time.Duration, timeout time.Duration) error {
+func WaitMediaHealthy(ctx context.Context, endpoint string, interval time.Duration, timeout time.Duration) error {
 	deadline := time.After(timeout)
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	if err := ProbeNimiMediaHealth(ctx, endpoint); err == nil {
+	if err := ProbeMediaHealth(ctx, endpoint); err == nil {
 		return nil
 	}
 
@@ -148,7 +148,7 @@ func WaitNimiMediaHealthy(ctx context.Context, endpoint string, interval time.Du
 		case <-deadline:
 			return fmt.Errorf("wait healthy timed out after %s", timeout)
 		case <-ticker.C:
-			if err := ProbeNimiMediaHealth(ctx, endpoint); err == nil {
+			if err := ProbeMediaHealth(ctx, endpoint); err == nil {
 				return nil
 			}
 		}

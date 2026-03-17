@@ -16,10 +16,10 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func TestResolveLocalAIImageProfileInjectsDynamicComponents(t *testing.T) {
+func TestResolveManagedMediaImageProfileInjectsDynamicComponents(t *testing.T) {
 	svc := newTestService(t)
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetLocalAIRegistrationConfig(modelsRoot, "", false)
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
 	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K_M.gguf")
 	if err := os.MkdirAll(filepath.Dir(mainModelPath), 0o755); err != nil {
@@ -93,7 +93,7 @@ func TestResolveLocalAIImageProfileInjectsDynamicComponents(t *testing.T) {
 		t.Fatalf("install llm artifact: %v", err)
 	}
 
-	alias, profile, forwarded, err := svc.ResolveLocalAIImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
+	alias, profile, forwarded, err := svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"components": []any{
 			map[string]any{"slot": "vae_path", "localArtifactId": vaeRecord.GetLocalArtifactId()},
 			map[string]any{"slot": "llm_path", "localArtifactId": llmRecord.GetLocalArtifactId()},
@@ -140,10 +140,10 @@ func TestResolveLocalAIImageProfileInjectsDynamicComponents(t *testing.T) {
 	}
 }
 
-func TestResolveLocalAIImageProfileRejectsPathOverrides(t *testing.T) {
+func TestResolveManagedMediaImageProfileRejectsPathOverrides(t *testing.T) {
 	svc := newTestService(t)
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetLocalAIRegistrationConfig(modelsRoot, "", false)
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
 	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K_M.gguf")
 	if err := os.MkdirAll(filepath.Dir(mainModelPath), 0o755); err != nil {
@@ -169,7 +169,7 @@ func TestResolveLocalAIImageProfileRejectsPathOverrides(t *testing.T) {
 	svc.models[modelResp.GetLocalModelId()].Status = runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE
 	svc.mu.Unlock()
 
-	_, _, _, err = svc.ResolveLocalAIImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
+	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_overrides": map[string]any{
 			"options": []any{"vae_path:/tmp/outside.safetensors"},
 		},
@@ -182,10 +182,10 @@ func TestResolveLocalAIImageProfileRejectsPathOverrides(t *testing.T) {
 	}
 }
 
-func TestResolveLocalAIImageProfileRejectsMissingComponents(t *testing.T) {
+func TestResolveManagedMediaImageProfileRejectsMissingComponents(t *testing.T) {
 	svc := newTestService(t)
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetLocalAIRegistrationConfig(modelsRoot, "", false)
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
 	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K_M.gguf")
 	if err := os.MkdirAll(filepath.Dir(mainModelPath), 0o755); err != nil {
@@ -211,7 +211,7 @@ func TestResolveLocalAIImageProfileRejectsMissingComponents(t *testing.T) {
 	svc.models[modelResp.GetLocalModelId()].Status = runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE
 	svc.mu.Unlock()
 
-	_, _, _, err = svc.ResolveLocalAIImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
+	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_overrides": map[string]any{
 			"step": 25,
 		},

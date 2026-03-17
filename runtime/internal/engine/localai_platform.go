@@ -2,15 +2,15 @@ package engine
 
 import "strings"
 
-// LocalAISupervisedPlatformSupported reports whether runtime can manage a
-// LocalAI binary for the current platform.
-func LocalAISupervisedPlatformSupported() bool {
-	return LocalAISupervisedPlatformSupportedFor(currentGOOS(), currentGOARCH())
+// LlamaSupervisedPlatformSupported reports whether runtime can manage a
+// llama binary for the current platform.
+func LlamaSupervisedPlatformSupported() bool {
+	return LlamaSupervisedPlatformSupportedFor(currentGOOS(), currentGOARCH())
 }
 
-// LocalAISupervisedPlatformSupportedFor reports whether runtime can manage a
-// LocalAI binary for the provided platform tuple.
-func LocalAISupervisedPlatformSupportedFor(goos string, goarch string) bool {
+// LlamaSupervisedPlatformSupportedFor reports whether runtime can manage a
+// llama binary for the provided platform tuple.
+func LlamaSupervisedPlatformSupportedFor(goos string, goarch string) bool {
 	_, ok := localAISupervisedAssetSuffix(goos, goarch)
 	return ok
 }

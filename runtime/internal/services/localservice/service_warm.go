@@ -50,7 +50,7 @@ func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalMo
 		})
 	}
 
-	registration := s.localAIRegistrationForModel(model)
+	registration := s.managedLlamaRegistrationForModel(model)
 	probe := s.waitForWarmProbe(requestCtx, model, registration, endpoint)
 	if !modelProbeSucceeded(model, probe, registration) {
 		detail := modelProbeFailureDetail(model, probe, registration)
@@ -181,7 +181,7 @@ func shouldRetryWarmProbe(engine string, endpoint string) bool {
 func (s *Service) waitForWarmProbe(
 	ctx context.Context,
 	model *runtimev1.LocalModelRecord,
-	registration localAIRegistration,
+	registration managedLlamaRegistration,
 	endpoint string,
 ) endpointProbeResult {
 	probe := s.probeEndpoint(ctx, model.GetEngine(), endpoint)

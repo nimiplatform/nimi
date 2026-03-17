@@ -7,7 +7,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-func (b *Backend) generateImageNimiMedia(
+func (b *Backend) generateImageMedia(
 	ctx context.Context,
 	modelID string,
 	spec *runtimev1.ImageGenerateScenarioSpec,
@@ -81,7 +81,7 @@ func (b *Backend) generateImageNimiMedia(
 	return payload, usage, nil
 }
 
-func (b *Backend) generateVideoNimiMedia(
+func (b *Backend) generateVideoMedia(
 	ctx context.Context,
 	modelID string,
 	spec *runtimev1.VideoGenerateScenarioSpec,

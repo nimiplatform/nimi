@@ -12,7 +12,7 @@ import (
 
 const (
 	defaultLocalEndpoint      = "http://127.0.0.1:1234/v1"
-	defaultNimiMediaEndpoint  = "http://127.0.0.1:8321/v1"
+	defaultMediaEndpoint      = "http://127.0.0.1:8321/v1"
 	defaultServiceEndpoint    = "http://127.0.0.1:8080"
 	defaultLocalAuditCapacity = 5000
 	localAuditDomain          = "runtime.local_runtime"
@@ -40,31 +40,31 @@ type Service struct {
 	stateStorePath                 string
 	localAuditCap                  int
 	localModelsPath                string
-	localAIModelsConfigPath        string
-	localAIManaged                 bool
-	localAIManagedEndpoint         string
-	nimiMediaManagedEndpoint       string
-	localAIImageBackendConfigured  bool
-	localAIImageBackendUp          bool
-	localAIImageBackendAddr        string
-	localAIImageBackendStatus      runtimev1.LocalServiceStatus
-	localAIImageBackendDetail      string
-	localAIImageBackendInstalledAt string
-	localAIImageBackendUpdatedAt   string
+	managedLlamaModelsConfigPath   string
+	managedLlamaEnabled            bool
+	managedLlamaEndpointValue      string
+	managedMediaEndpointValue      string
+	managedMediaBackendConfigured  bool
+	managedMediaBackendHealthy     bool
+	managedMediaBackendAddress     string
+	managedMediaBackendStatus      runtimev1.LocalServiceStatus
+	managedMediaBackendDetail      string
+	managedMediaBackendInstalledAt string
+	managedMediaBackendUpdatedAt   string
 
-	mu                   sync.RWMutex
-	models               map[string]*runtimev1.LocalModelRecord
-	modelRuntimeModes    map[string]runtimev1.LocalEngineRuntimeMode
-	artifacts            map[string]*runtimev1.LocalArtifactRecord
-	services             map[string]*runtimev1.LocalServiceDescriptor
-	serviceRuntimeModes  map[string]runtimev1.LocalEngineRuntimeMode
-	audits               []*runtimev1.LocalAuditEvent
-	verified             []*runtimev1.LocalVerifiedModelDescriptor
-	verifiedArtifacts    []*runtimev1.LocalVerifiedArtifactDescriptor
-	catalog              []*runtimev1.LocalCatalogModelDescriptor
-	engineMgr            EngineManager
-	localAIRegistrations map[string]localAIRegistration
-	warmedModelKeys      map[string]struct{}
+	mu                        sync.RWMutex
+	models                    map[string]*runtimev1.LocalModelRecord
+	modelRuntimeModes         map[string]runtimev1.LocalEngineRuntimeMode
+	artifacts                 map[string]*runtimev1.LocalArtifactRecord
+	services                  map[string]*runtimev1.LocalServiceDescriptor
+	serviceRuntimeModes       map[string]runtimev1.LocalEngineRuntimeMode
+	audits                    []*runtimev1.LocalAuditEvent
+	verified                  []*runtimev1.LocalVerifiedModelDescriptor
+	verifiedArtifacts         []*runtimev1.LocalVerifiedArtifactDescriptor
+	catalog                   []*runtimev1.LocalCatalogModelDescriptor
+	engineMgr                 EngineManager
+	managedLlamaRegistrations map[string]managedLlamaRegistration
+	warmedModelKeys           map[string]struct{}
 
 	endpointProbe     endpointProbeFunc
 	hfCatalogSearch   hfCatalogSearchFunc
@@ -85,28 +85,28 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 	verified := defaultVerifiedModels()
 	verifiedArtifacts := defaultVerifiedArtifacts()
 	svc := &Service{
-		logger:                  logger,
-		auditStore:              store,
-		stateStorePath:          resolveLocalStatePath(stateStorePath),
-		localAuditCap:           localAuditCapacity,
-		localModelsPath:         resolveLocalModelsPath(""),
-		localAIModelsConfigPath: resolveGeneratedLocalAIModelsConfigPath(""),
-		models:                  make(map[string]*runtimev1.LocalModelRecord),
-		modelRuntimeModes:       make(map[string]runtimev1.LocalEngineRuntimeMode),
-		artifacts:               make(map[string]*runtimev1.LocalArtifactRecord),
-		services:                make(map[string]*runtimev1.LocalServiceDescriptor),
-		serviceRuntimeModes:     make(map[string]runtimev1.LocalEngineRuntimeMode),
-		audits:                  make([]*runtimev1.LocalAuditEvent, 0, localAuditCapacity),
-		verified:                verified,
-		verifiedArtifacts:       verifiedArtifacts,
-		catalog:                 defaultCatalogFromVerified(verified),
-		localAIRegistrations:    make(map[string]localAIRegistration),
-		warmedModelKeys:         make(map[string]struct{}),
-		endpointProbe:           defaultEndpointProbe,
-		hfCatalogSearch:         defaultHFCatalogSearch,
-		hfDownloadBaseURL:       defaultHFDownloadBaseURL,
-		modelProbeState:         make(map[string]*probeRecoveryState),
-		serviceProbeState:       make(map[string]*probeRecoveryState),
+		logger:                       logger,
+		auditStore:                   store,
+		stateStorePath:               resolveLocalStatePath(stateStorePath),
+		localAuditCap:                localAuditCapacity,
+		localModelsPath:              resolveLocalModelsPath(""),
+		managedLlamaModelsConfigPath: resolveGeneratedLlamaModelsConfigPath(""),
+		models:                       make(map[string]*runtimev1.LocalModelRecord),
+		modelRuntimeModes:            make(map[string]runtimev1.LocalEngineRuntimeMode),
+		artifacts:                    make(map[string]*runtimev1.LocalArtifactRecord),
+		services:                     make(map[string]*runtimev1.LocalServiceDescriptor),
+		serviceRuntimeModes:          make(map[string]runtimev1.LocalEngineRuntimeMode),
+		audits:                       make([]*runtimev1.LocalAuditEvent, 0, localAuditCapacity),
+		verified:                     verified,
+		verifiedArtifacts:            verifiedArtifacts,
+		catalog:                      defaultCatalogFromVerified(verified),
+		managedLlamaRegistrations:    make(map[string]managedLlamaRegistration),
+		warmedModelKeys:              make(map[string]struct{}),
+		endpointProbe:                defaultEndpointProbe,
+		hfCatalogSearch:              defaultHFCatalogSearch,
+		hfDownloadBaseURL:            defaultHFDownloadBaseURL,
+		modelProbeState:              make(map[string]*probeRecoveryState),
+		serviceProbeState:            make(map[string]*probeRecoveryState),
 	}
 	svc.restoreState()
 	svc.startRecoveryLoop()

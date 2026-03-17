@@ -14,7 +14,7 @@ import (
 )
 
 func TestDecodeMediaBase64(t *testing.T) {
-	backend := NewBackend("localai", "http://127.0.0.1", "", time.Second)
+	backend := NewBackend("llama", "http://127.0.0.1", "", time.Second)
 	payload, err := backend.DecodeMedia(context.Background(), base64.StdEncoding.EncodeToString([]byte("hello")), "")
 	if err != nil {
 		t.Fatalf("DecodeMedia(base64) failed: %v", err)
@@ -35,7 +35,7 @@ func TestDecodeMediaURLHonorsContext(t *testing.T) {
 	}))
 	defer server.Close()
 
-	backend := NewBackend("localai", server.URL, "", time.Second)
+	backend := NewBackend("llama", server.URL, "", time.Second)
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 
@@ -56,7 +56,7 @@ func TestDecodeMediaURLRejectsOversizedPayload(t *testing.T) {
 	}))
 	defer server.Close()
 
-	backend := NewBackend("localai", server.URL, "", time.Second)
+	backend := NewBackend("llama", server.URL, "", time.Second)
 	_, err := backend.DecodeMedia(context.Background(), "", server.URL)
 	if err == nil {
 		t.Fatal("expected oversized payload error")

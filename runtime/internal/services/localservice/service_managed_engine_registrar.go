@@ -3,7 +3,6 @@ package localservice
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -16,14 +15,14 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-const generatedLocalAIModelsConfigRelPath = ".nimi/runtime/llama-models.yaml"
+const generatedManagedLlamaModelsConfigRelPath = ".nimi/runtime/llama-models.yaml"
 
 const (
-	localAIImageBackendServiceID    = "svc_llama_image_backend"
-	localAIImageBackendServiceTitle = "Llama Image Backend"
+	managedMediaDiffusersBackendServiceID    = "svc_llama_image_backend"
+	managedMediaDiffusersBackendServiceTitle = "Llama Image Backend"
 )
 
-type localAIRegistration struct {
+type managedLlamaRegistration struct {
 	LocalModelID      string
 	ModelID           string
 	ExposedModelName  string
@@ -35,29 +34,13 @@ type localAIRegistration struct {
 	Problem           string
 }
 
-type localAIManifestSource struct {
-	Repo     string `json:"repo"`
-	Revision string `json:"revision"`
+type managedLlamaConfigEntry struct {
+	Name       string                       `yaml:"name"`
+	Backend    string                       `yaml:"backend"`
+	Parameters managedLlamaConfigParameters `yaml:"parameters"`
 }
 
-type localAIManifest struct {
-	ModelID      string                `json:"model_id"`
-	Capabilities []string              `json:"capabilities"`
-	Engine       string                `json:"engine"`
-	Entry        string                `json:"entry"`
-	Files        []string              `json:"files"`
-	License      string                `json:"license"`
-	Source       localAIManifestSource `json:"source"`
-	Hashes       map[string]string     `json:"hashes"`
-}
-
-type localAIConfigEntry struct {
-	Name       string                  `yaml:"name"`
-	Backend    string                  `yaml:"backend"`
-	Parameters localAIConfigParameters `yaml:"parameters"`
-}
-
-type localAIConfigParameters struct {
+type managedLlamaConfigParameters struct {
 	Model string `yaml:"model"`
 }
 
@@ -75,7 +58,7 @@ func resolveLocalModelsPath(configuredPath string) string {
 	return filepath.Join(home, ".nimi", "models")
 }
 
-func resolveGeneratedLocalAIModelsConfigPath(configuredPath string) string {
+func resolveGeneratedLlamaModelsConfigPath(configuredPath string) string {
 	if value := strings.TrimSpace(configuredPath); value != "" {
 		return value
 	}
@@ -83,27 +66,27 @@ func resolveGeneratedLocalAIModelsConfigPath(configuredPath string) string {
 	if err != nil || strings.TrimSpace(home) == "" {
 		return ""
 	}
-	return filepath.Join(home, generatedLocalAIModelsConfigRelPath)
+	return filepath.Join(home, generatedManagedLlamaModelsConfigRelPath)
 }
 
-// SetLocalAIRegistrationConfig updates the service-local LocalAI registration
-// settings used for managed LocalAI config generation.
-func (s *Service) SetLocalAIRegistrationConfig(modelsPath string, modelsConfigPath string, managed bool) {
+// SetManagedLlamaRegistrationConfig updates the managed llama registration
+// settings used for runtime-generated llama config output.
+func (s *Service) SetManagedLlamaRegistrationConfig(modelsPath string, modelsConfigPath string, managed bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.localModelsPath = resolveLocalModelsPath(modelsPath)
-	s.localAIModelsConfigPath = resolveGeneratedLocalAIModelsConfigPath(modelsConfigPath)
-	s.localAIManaged = managed
+	s.managedLlamaModelsConfigPath = resolveGeneratedLlamaModelsConfigPath(modelsConfigPath)
+	s.managedLlamaEnabled = managed
 }
 
-// SetLocalAIManagedEndpoint records the managed llama endpoint exposed by the
-// daemon and rewrites supervised llama model endpoints to that managed endpoint.
-func (s *Service) SetLocalAIManagedEndpoint(endpoint string) {
+// SetManagedLlamaEndpoint records the managed llama endpoint exposed by the
+// daemon and rewrites supervised llama model endpoints to that endpoint.
+func (s *Service) SetManagedLlamaEndpoint(endpoint string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.localAIManagedEndpoint = strings.TrimSpace(endpoint)
-	if s.localAIManagedEndpoint == "" {
+	s.managedLlamaEndpointValue = strings.TrimSpace(endpoint)
+	if s.managedLlamaEndpointValue == "" {
 		return
 	}
 
@@ -119,11 +102,11 @@ func (s *Service) SetLocalAIManagedEndpoint(endpoint string) {
 		if normalizeRuntimeMode(s.modelRuntimeModes[localModelID]) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 			continue
 		}
-		if strings.TrimSpace(model.GetEndpoint()) == s.localAIManagedEndpoint {
+		if strings.TrimSpace(model.GetEndpoint()) == s.managedLlamaEndpointValue {
 			continue
 		}
 		cloned := cloneLocalModel(model)
-		cloned.Endpoint = s.localAIManagedEndpoint
+		cloned.Endpoint = s.managedLlamaEndpointValue
 		cloned.UpdatedAt = updatedAt
 		s.models[localModelID] = cloned
 		changed = true
@@ -133,14 +116,14 @@ func (s *Service) SetLocalAIManagedEndpoint(endpoint string) {
 	}
 }
 
-// SetNimiMediaManagedEndpoint records the managed media endpoint exposed
+// SetManagedMediaEndpoint records the managed media endpoint exposed
 // by the daemon and rewrites supervised media model endpoints to that value.
-func (s *Service) SetNimiMediaManagedEndpoint(endpoint string) {
+func (s *Service) SetManagedMediaEndpoint(endpoint string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.nimiMediaManagedEndpoint = strings.TrimSpace(endpoint)
-	if s.nimiMediaManagedEndpoint == "" {
+	s.managedMediaEndpointValue = strings.TrimSpace(endpoint)
+	if s.managedMediaEndpointValue == "" {
 		return
 	}
 
@@ -156,11 +139,11 @@ func (s *Service) SetNimiMediaManagedEndpoint(endpoint string) {
 		if normalizeRuntimeMode(s.modelRuntimeModes[localModelID]) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 			continue
 		}
-		if strings.TrimSpace(model.GetEndpoint()) == s.nimiMediaManagedEndpoint {
+		if strings.TrimSpace(model.GetEndpoint()) == s.managedMediaEndpointValue {
 			continue
 		}
 		cloned := cloneLocalModel(model)
-		cloned.Endpoint = s.nimiMediaManagedEndpoint
+		cloned.Endpoint = s.managedMediaEndpointValue
 		cloned.UpdatedAt = updatedAt
 		s.models[localModelID] = cloned
 		changed = true
@@ -170,63 +153,63 @@ func (s *Service) SetNimiMediaManagedEndpoint(endpoint string) {
 	}
 }
 
-// SetLocalAIImageBackendConfig records whether the managed diffusers image
+// SetManagedMediaDiffusersBackendConfig records whether the managed diffusers image
 // backend is configured for daemon-supervised local media workflows.
-func (s *Service) SetLocalAIImageBackendConfig(enabled bool, address string) {
+func (s *Service) SetManagedMediaDiffusersBackendConfig(enabled bool, address string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.localAIImageBackendConfigured = enabled
-	s.localAIImageBackendUp = false
-	s.localAIImageBackendAddr = strings.TrimSpace(address)
+	s.managedMediaBackendConfigured = enabled
+	s.managedMediaBackendHealthy = false
+	s.managedMediaBackendAddress = strings.TrimSpace(address)
 	now := nowISO()
 	if enabled {
-		if strings.TrimSpace(s.localAIImageBackendInstalledAt) == "" {
-			s.localAIImageBackendInstalledAt = now
+		if strings.TrimSpace(s.managedMediaBackendInstalledAt) == "" {
+			s.managedMediaBackendInstalledAt = now
 		}
-		s.localAIImageBackendUpdatedAt = now
-		s.localAIImageBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED
-		s.localAIImageBackendDetail = "daemon-managed diffusers backend configured"
+		s.managedMediaBackendUpdatedAt = now
+		s.managedMediaBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED
+		s.managedMediaBackendDetail = "daemon-managed diffusers backend configured"
 		return
 	}
-	s.localAIImageBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED
-	s.localAIImageBackendDetail = "daemon-managed diffusers backend disabled"
-	s.localAIImageBackendInstalledAt = ""
-	s.localAIImageBackendUpdatedAt = now
+	s.managedMediaBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED
+	s.managedMediaBackendDetail = "daemon-managed diffusers backend disabled"
+	s.managedMediaBackendInstalledAt = ""
+	s.managedMediaBackendUpdatedAt = now
 }
 
-// SetLocalAIImageBackendHealth records the current managed diffusers image
+// SetManagedMediaDiffusersBackendHealth records the current managed diffusers image
 // backend health reported by the engine supervisor.
-func (s *Service) SetLocalAIImageBackendHealth(healthy bool, detail string) {
+func (s *Service) SetManagedMediaDiffusersBackendHealth(healthy bool, detail string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if !s.localAIImageBackendConfigured {
+	if !s.managedMediaBackendConfigured {
 		return
 	}
-	s.localAIImageBackendUp = healthy
-	s.localAIImageBackendUpdatedAt = nowISO()
+	s.managedMediaBackendHealthy = healthy
+	s.managedMediaBackendUpdatedAt = nowISO()
 	trimmed := strings.TrimSpace(detail)
 	if healthy {
-		s.localAIImageBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE
-		s.localAIImageBackendDetail = defaultString(trimmed, "daemon-managed diffusers backend active")
+		s.managedMediaBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE
+		s.managedMediaBackendDetail = defaultString(trimmed, "daemon-managed diffusers backend active")
 		return
 	}
-	s.localAIImageBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY
-	s.localAIImageBackendDetail = defaultString(trimmed, "daemon-managed diffusers backend unhealthy")
+	s.managedMediaBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY
+	s.managedMediaBackendDetail = defaultString(trimmed, "daemon-managed diffusers backend unhealthy")
 }
 
-// SyncManagedLocalAIAssets rebuilds the runtime-managed llama config from the
+// SyncManagedLlamaAssets rebuilds the runtime-managed llama config from the
 // current local model state and restarts the managed engine when the generated
 // config changes while llama is already running.
-func (s *Service) SyncManagedLocalAIAssets(ctx context.Context) error {
-	registrations, rendered, err := s.buildLocalAIRegistrations()
+func (s *Service) SyncManagedLlamaAssets(ctx context.Context) error {
+	registrations, rendered, err := s.buildManagedLlamaRegistrations()
 	if err != nil {
 		return err
 	}
 
 	s.mu.Lock()
-	s.localAIRegistrations = registrations
-	managed := s.localAIManaged
-	configPath := strings.TrimSpace(s.localAIModelsConfigPath)
+	s.managedLlamaRegistrations = registrations
+	managed := s.managedLlamaEnabled
+	configPath := strings.TrimSpace(s.managedLlamaModelsConfigPath)
 	s.mu.Unlock()
 
 	if !managed || configPath == "" {
@@ -245,7 +228,7 @@ func (s *Service) SyncManagedLocalAIAssets(ctx context.Context) error {
 		}
 	}
 
-	changed, err := writeGeneratedLocalAIConfigIfChanged(configPath, rendered)
+	changed, err := writeGeneratedLlamaConfigIfChanged(configPath, rendered)
 	if err != nil {
 		return err
 	}
@@ -270,22 +253,22 @@ func (s *Service) SyncManagedLocalAIAssets(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) buildLocalAIRegistrations() (map[string]localAIRegistration, []byte, error) {
+func (s *Service) buildManagedLlamaRegistrations() (map[string]managedLlamaRegistration, []byte, error) {
 	s.mu.RLock()
 	models := make([]*runtimev1.LocalModelRecord, 0, len(s.models))
 	for _, model := range s.models {
 		models = append(models, cloneLocalModel(model))
 	}
 	modelsPath := resolveLocalModelsPath(s.localModelsPath)
-	managed := s.localAIManaged
-	imageBackendUp := s.localAIImageBackendConfigured && s.localAIImageBackendUp
+	managed := s.managedLlamaEnabled
+	imageBackendUp := s.managedMediaBackendConfigured && s.managedMediaBackendHealthy
 	s.mu.RUnlock()
 
 	sort.Slice(models, func(i, j int) bool {
 		return models[i].GetLocalModelId() < models[j].GetLocalModelId()
 	})
 
-	registrations := make(map[string]localAIRegistration, len(models))
+	registrations := make(map[string]managedLlamaRegistration, len(models))
 	candidateIndexes := make(map[string][]string)
 	for _, model := range models {
 		if model == nil {
@@ -298,7 +281,7 @@ func (s *Service) buildLocalAIRegistrations() (map[string]localAIRegistration, [
 			continue
 		}
 
-		registration := inspectLocalAIModelRegistration(model, s.modelRuntimeMode(model.GetLocalModelId()), modelsPath, managed, imageBackendUp)
+		registration := inspectManagedLlamaModelRegistration(model, s.modelRuntimeMode(model.GetLocalModelId()), modelsPath, managed, imageBackendUp)
 		registrations[model.GetLocalModelId()] = registration
 		if registration.Managed && strings.TrimSpace(registration.Problem) == "" {
 			candidateIndexes[registration.ExposedModelName] = append(candidateIndexes[registration.ExposedModelName], model.GetLocalModelId())
@@ -317,7 +300,7 @@ func (s *Service) buildLocalAIRegistrations() (map[string]localAIRegistration, [
 		}
 	}
 
-	entries := make([]localAIConfigEntry, 0, len(registrations))
+	entries := make([]managedLlamaConfigEntry, 0, len(registrations))
 	for _, registration := range registrations {
 		if !registration.Managed || strings.TrimSpace(registration.Problem) != "" {
 			continue
@@ -325,10 +308,10 @@ func (s *Service) buildLocalAIRegistrations() (map[string]localAIRegistration, [
 		if registration.DynamicProfile {
 			continue
 		}
-		entries = append(entries, localAIConfigEntry{
+		entries = append(entries, managedLlamaConfigEntry{
 			Name:    registration.ExposedModelName,
 			Backend: registration.Backend,
-			Parameters: localAIConfigParameters{
+			Parameters: managedLlamaConfigParameters{
 				Model: registration.RelativeModelPath,
 			},
 		})
@@ -354,24 +337,24 @@ func (s *Service) buildLocalAIRegistrations() (map[string]localAIRegistration, [
 	return registrations, rendered, nil
 }
 
-func inspectLocalAIModelRegistration(
+func inspectManagedLlamaModelRegistration(
 	model *runtimev1.LocalModelRecord,
 	mode runtimev1.LocalEngineRuntimeMode,
 	modelsPath string,
 	managed bool,
 	imageBackendUp bool,
-) localAIRegistration {
-	registration := localAIRegistration{
+) managedLlamaRegistration {
+	registration := managedLlamaRegistration{
 		LocalModelID:     strings.TrimSpace(model.GetLocalModelId()),
 		ModelID:          strings.TrimSpace(model.GetModelId()),
-		ExposedModelName: normalizeLocalAIRegistrationModelID(model.GetModelId()),
+		ExposedModelName: normalizeManagedModelRegistrationModelID(model.GetModelId()),
 		Managed:          managed && normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 	}
 	if !registration.Managed {
 		return registration
 	}
 
-	backend, err := localAIBackendForCapabilities(defaultCapabilitiesForRegistration(model.GetCapabilities(), nil))
+	backend, err := managedLlamaBackendForCapabilities(defaultCapabilitiesForRegistration(model.GetCapabilities(), nil))
 	if err != nil {
 		registration.Problem = err.Error()
 		return registration
@@ -388,35 +371,20 @@ func inspectLocalAIModelRegistration(
 			registration.Problem = "local media model missing engine_config"
 			return registration
 		}
-		relativeModelPath, resolveErr := resolveLocalAIEntryRelativePath(modelsPath, model.GetModelId(), model.GetSource().GetRepo(), model.GetEntry())
+		relativeModelPath, resolveErr := resolveManagedEntryRelativePath(modelsPath, model.GetModelId(), model.GetSource().GetRepo(), model.GetEntry())
 		if resolveErr == nil {
 			registration.RelativeModelPath = relativeModelPath
 		}
 		return registration
 	}
 
-	relativeModelPath, resolveErr := resolveLocalAIEntryRelativePath(modelsPath, model.GetModelId(), model.GetSource().GetRepo(), model.GetEntry())
+	relativeModelPath, resolveErr := resolveManagedEntryRelativePath(modelsPath, model.GetModelId(), model.GetSource().GetRepo(), model.GetEntry())
 	if resolveErr != nil {
 		registration.Problem = resolveErr.Error()
 		return registration
 	}
 	registration.RelativeModelPath = relativeModelPath
 	return registration
-}
-
-func readLocalAIManifest(manifestPath string) (*localAIManifest, error) {
-	raw, err := os.ReadFile(manifestPath)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil, fmt.Errorf("missing manifest %s", manifestPath)
-		}
-		return nil, fmt.Errorf("read manifest %s: %w", manifestPath, err)
-	}
-	var manifest localAIManifest
-	if err := json.Unmarshal(raw, &manifest); err != nil {
-		return nil, fmt.Errorf("parse manifest %s: %w", manifestPath, err)
-	}
-	return &manifest, nil
 }
 
 func resolveManifestEntryPath(modelDir string, modelSlug string, entry string) (string, string, error) {
@@ -448,7 +416,7 @@ func defaultCapabilitiesForRegistration(runtimeCaps []string, manifestCaps []str
 	return normalizeStringSlice(manifestCaps)
 }
 
-func localAIBackendForCapabilities(capabilities []string) (string, error) {
+func managedLlamaBackendForCapabilities(capabilities []string) (string, error) {
 	backends := make(map[string]bool, len(capabilities))
 	for _, capability := range capabilities {
 		normalized := strings.ToLower(strings.TrimSpace(capability))
@@ -483,7 +451,7 @@ func localAIBackendForCapabilities(capabilities []string) (string, error) {
 	return "llama-cpp", nil
 }
 
-func normalizeLocalAIRegistrationModelID(modelID string) string {
+func normalizeManagedModelRegistrationModelID(modelID string) string {
 	raw := strings.TrimSpace(modelID)
 	lower := strings.ToLower(raw)
 	switch {
@@ -522,7 +490,7 @@ func slugifyLocalModelID(input string) string {
 	return strings.Join(parts, "-")
 }
 
-func writeGeneratedLocalAIConfigIfChanged(path string, rendered []byte) (bool, error) {
+func writeGeneratedLlamaConfigIfChanged(path string, rendered []byte) (bool, error) {
 	if len(bytes.TrimSpace(rendered)) == 0 {
 		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return false, fmt.Errorf("remove llama config %s: %w", path, err)
@@ -547,46 +515,46 @@ func writeGeneratedLocalAIConfigIfChanged(path string, rendered []byte) (bool, e
 	return true, nil
 }
 
-func (s *Service) localAIRegistrationForModel(model *runtimev1.LocalModelRecord) localAIRegistration {
+func (s *Service) managedLlamaRegistrationForModel(model *runtimev1.LocalModelRecord) managedLlamaRegistration {
 	if model == nil {
-		return localAIRegistration{}
+		return managedLlamaRegistration{}
 	}
 
 	localModelID := strings.TrimSpace(model.GetLocalModelId())
 	s.mu.RLock()
-	registration, ok := s.localAIRegistrations[localModelID]
+	registration, ok := s.managedLlamaRegistrations[localModelID]
 	modelsPath := resolveLocalModelsPath(s.localModelsPath)
-	managed := s.localAIManaged
-	imageBackendUp := s.localAIImageBackendConfigured && s.localAIImageBackendUp
+	managed := s.managedLlamaEnabled
+	imageBackendUp := s.managedMediaBackendConfigured && s.managedMediaBackendHealthy
 	mode := s.modelRuntimeModes[localModelID]
 	s.mu.RUnlock()
 	if ok && !registration.DynamicProfile {
 		return registration
 	}
-	return inspectLocalAIModelRegistration(model, mode, modelsPath, managed, imageBackendUp)
+	return inspectManagedLlamaModelRegistration(model, mode, modelsPath, managed, imageBackendUp)
 }
 
-func modelProbeSucceeded(model *runtimev1.LocalModelRecord, probe endpointProbeResult, registration localAIRegistration) bool {
+func modelProbeSucceeded(model *runtimev1.LocalModelRecord, probe endpointProbeResult, registration managedLlamaRegistration) bool {
 	switch strings.ToLower(strings.TrimSpace(model.GetEngine())) {
 	case "llama":
-		return localAIModelProbeSucceeded(probe, registration)
+		return managedLlamaModelProbeSucceeded(probe, registration)
 	case "media", "media.diffusers":
-		return nimiMediaModelProbeSucceeded(model, probe)
+		return mediaModelProbeSucceeded(model, probe)
 	}
 	return probe.healthy
 }
 
-func modelProbeFailureDetail(model *runtimev1.LocalModelRecord, probe endpointProbeResult, registration localAIRegistration) string {
+func modelProbeFailureDetail(model *runtimev1.LocalModelRecord, probe endpointProbeResult, registration managedLlamaRegistration) string {
 	switch strings.ToLower(strings.TrimSpace(model.GetEngine())) {
 	case "llama":
-		return localAIModelProbeFailureDetail(probe, registration)
+		return managedLlamaModelProbeFailureDetail(probe, registration)
 	case "media", "media.diffusers":
-		return nimiMediaModelProbeFailureDetail(model, probe)
+		return mediaModelProbeFailureDetail(model, probe)
 	}
 	return defaultString(probe.detail, "model probe failed")
 }
 
-func nimiMediaModelProbeSucceeded(model *runtimev1.LocalModelRecord, probe endpointProbeResult) bool {
+func mediaModelProbeSucceeded(model *runtimev1.LocalModelRecord, probe endpointProbeResult) bool {
 	if !probe.healthy {
 		return false
 	}
@@ -598,7 +566,7 @@ func nimiMediaModelProbeSucceeded(model *runtimev1.LocalModelRecord, probe endpo
 	return ok
 }
 
-func nimiMediaModelProbeFailureDetail(model *runtimev1.LocalModelRecord, probe endpointProbeResult) string {
+func mediaModelProbeFailureDetail(model *runtimev1.LocalModelRecord, probe endpointProbeResult) string {
 	if !probe.healthy {
 		return defaultString(probe.detail, "media model probe failed")
 	}
@@ -613,7 +581,7 @@ func nimiMediaModelProbeFailureDetail(model *runtimev1.LocalModelRecord, probe e
 	return fmt.Sprintf("media probe missing expected model %q; available_models=%s", expectedModelName, strings.Join(available, ","))
 }
 
-func localAIModelProbeSucceeded(probe endpointProbeResult, registration localAIRegistration) bool {
+func managedLlamaModelProbeSucceeded(probe endpointProbeResult, registration managedLlamaRegistration) bool {
 	if strings.TrimSpace(registration.Problem) != "" {
 		return false
 	}
@@ -635,7 +603,7 @@ func localAIModelProbeSucceeded(probe endpointProbeResult, registration localAIR
 	return false
 }
 
-func localAIModelProbeFailureDetail(probe endpointProbeResult, registration localAIRegistration) string {
+func managedLlamaModelProbeFailureDetail(probe endpointProbeResult, registration managedLlamaRegistration) string {
 	if detail := strings.TrimSpace(registration.Problem); detail != "" {
 		return detail
 	}
@@ -664,52 +632,6 @@ func localAIModelProbeFailureDetail(probe endpointProbeResult, registration loca
 		return fmt.Sprintf("probe response missing expected model %q", expectedModelName)
 	}
 	return fmt.Sprintf("probe response missing expected model %q; available_models=%s", expectedModelName, strings.Join(available, ","))
-}
-
-func nexaModelProbeSucceeded(model *runtimev1.LocalModelRecord, probe endpointProbeResult) bool {
-	if !probe.healthy {
-		return false
-	}
-	if !nexaModelRequiresCapabilityProbe(model) {
-		return true
-	}
-	expectedModelName := strings.TrimSpace(model.GetModelId())
-	if expectedModelName == "" || len(probe.models) == 0 {
-		return false
-	}
-	_, ok := findComparableProbeModel(probe.models, expectedModelName)
-	return ok
-}
-
-func nexaModelProbeFailureDetail(model *runtimev1.LocalModelRecord, probe endpointProbeResult) string {
-	if !probe.healthy {
-		return defaultString(probe.detail, "nexa model probe failed")
-	}
-	if !nexaModelRequiresCapabilityProbe(model) {
-		return defaultString(probe.detail, "nexa model probe failed")
-	}
-	expectedModelName := strings.TrimSpace(model.GetModelId())
-	if expectedModelName == "" {
-		return "nexa capability probe requires a model id"
-	}
-	available := compactProbeModelIDs(probe.models)
-	if len(available) == 0 {
-		return fmt.Sprintf("nexa capability probe missing expected model %q", expectedModelName)
-	}
-	return fmt.Sprintf("nexa capability probe missing expected model %q; available_models=%s", expectedModelName, strings.Join(available, ","))
-}
-
-func nexaModelRequiresCapabilityProbe(model *runtimev1.LocalModelRecord) bool {
-	if model == nil {
-		return false
-	}
-	for _, capability := range model.GetCapabilities() {
-		switch strings.ToLower(strings.TrimSpace(capability)) {
-		case "tts", "speech", "audio.synthesize", "stt", "transcription", "audio.transcribe":
-			return true
-		}
-	}
-	return false
 }
 
 func compactProbeModelIDs(models []string) []string {

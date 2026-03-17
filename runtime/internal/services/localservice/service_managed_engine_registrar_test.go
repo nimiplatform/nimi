@@ -56,7 +56,7 @@ func (m *registrarTestEngineManager) EngineStatus(_ string) (EngineInfo, error) 
 	}, nil
 }
 
-func TestLocalStartLocalModelRequiresExactLocalAIModel(t *testing.T) {
+func TestLocalStartLocalModelRequiresExactManagedLlamaModel(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"data":[{"id":"other-model"}]}`))
@@ -91,22 +91,22 @@ func TestLocalStartLocalModelRequiresExactLocalAIModel(t *testing.T) {
 	}
 }
 
-func TestSyncManagedLocalAIAssetsWritesConfigAndRestartsOnlyOnChange(t *testing.T) {
+func TestSyncManagedLlamaAssetsWritesConfigAndRestartsOnlyOnChange(t *testing.T) {
 	svc := newTestService(t)
 	modelsPath := filepath.Join(t.TempDir(), "models")
 	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
 	mgr := &registrarTestEngineManager{statusErr: errors.New("engine llama not started")}
-	svc.SetLocalAIRegistrationConfig(modelsPath, configPath, true)
+	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
 	svc.SetEngineManager(mgr)
 
-	writeManagedLocalAIManifest(t, modelsPath, "local/test-chat", "./weights/model.gguf", []string{"chat"})
-	first := installLocalAIModelForRegistrarTest(t, svc, "local/test-chat", "./weights/model.gguf", []string{"chat"}, "", nil)
+	writeManagedLlamaManifest(t, modelsPath, "local/test-chat", "./weights/model.gguf", []string{"chat"})
+	first := installManagedLlamaModelForRegistrarTest(t, svc, "local/test-chat", "./weights/model.gguf", []string{"chat"}, "", nil)
 
 	raw, err := os.ReadFile(configPath)
 	if err != nil {
 		t.Fatalf("read generated config: %v", err)
 	}
-	var entries []localAIConfigEntry
+	var entries []managedLlamaConfigEntry
 	if err := yaml.Unmarshal(raw, &entries); err != nil {
 		t.Fatalf("unmarshal generated config: %v", err)
 	}
@@ -127,13 +127,13 @@ func TestSyncManagedLocalAIAssetsWritesConfigAndRestartsOnlyOnChange(t *testing.
 	}
 
 	mgr.statusErr = nil
-	writeManagedLocalAIManifest(t, modelsPath, "local/second-chat", "./weights/model-2.gguf", []string{"chat"})
-	second := installLocalAIModelForRegistrarTest(t, svc, "local/second-chat", "./weights/model-2.gguf", []string{"chat"}, "", nil)
+	writeManagedLlamaManifest(t, modelsPath, "local/second-chat", "./weights/model-2.gguf", []string{"chat"})
+	second := installManagedLlamaModelForRegistrarTest(t, svc, "local/second-chat", "./weights/model-2.gguf", []string{"chat"}, "", nil)
 	if mgr.startCalls != 1 || mgr.stopCalls != 1 {
 		t.Fatalf("expected one controlled restart on config change, got start=%d stop=%d", mgr.startCalls, mgr.stopCalls)
 	}
 
-	if err := svc.SyncManagedLocalAIAssets(context.Background()); err != nil {
+	if err := svc.SyncManagedLlamaAssets(context.Background()); err != nil {
 		t.Fatalf("sync llama assets without changes: %v", err)
 	}
 	if mgr.startCalls != 1 || mgr.stopCalls != 1 {
@@ -166,12 +166,12 @@ func TestSyncManagedLocalAIAssetsWritesConfigAndRestartsOnlyOnChange(t *testing.
 	}
 }
 
-func TestSyncManagedLocalAIAssetsSkipsExternalEndpointOnlyModels(t *testing.T) {
+func TestSyncManagedLlamaAssetsSkipsExternalEndpointOnlyModels(t *testing.T) {
 	svc := newTestService(t)
 	modelsPath := filepath.Join(t.TempDir(), "models")
 	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
 	mgr := &registrarTestEngineManager{}
-	svc.SetLocalAIRegistrationConfig(modelsPath, configPath, true)
+	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
 	svc.SetEngineManager(mgr)
 
 	if _, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
@@ -191,14 +191,14 @@ func TestSyncManagedLocalAIAssetsSkipsExternalEndpointOnlyModels(t *testing.T) {
 	}
 }
 
-func TestBuildLocalAIRegistrationsRejectsManagedNameConflicts(t *testing.T) {
+func TestBuildManagedLlamaRegistrationsRejectsManagedNameConflicts(t *testing.T) {
 	svc := newTestService(t)
 	modelsPath := filepath.Join(t.TempDir(), "models")
 	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
-	svc.SetLocalAIRegistrationConfig(modelsPath, configPath, true)
+	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
 
-	writeManagedLocalAIManifest(t, modelsPath, "local/conflict-model", "./weights/model-a.gguf", []string{"chat"})
-	writeManagedLocalAIManifest(t, modelsPath, "llama/conflict-model", "./weights/model-b.gguf", []string{"chat"})
+	writeManagedLlamaManifest(t, modelsPath, "local/conflict-model", "./weights/model-a.gguf", []string{"chat"})
+	writeManagedLlamaManifest(t, modelsPath, "llama/conflict-model", "./weights/model-b.gguf", []string{"chat"})
 	first := &runtimev1.LocalModelRecord{
 		LocalModelId: "local-conflict-a",
 		ModelId:      "local/conflict-model",
@@ -236,7 +236,7 @@ func TestBuildLocalAIRegistrationsRejectsManagedNameConflicts(t *testing.T) {
 	svc.setModelRuntimeModeLocked(first.GetLocalModelId(), runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
 	svc.setModelRuntimeModeLocked(second.GetLocalModelId(), runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
 
-	registrations, rendered, err := svc.buildLocalAIRegistrations()
+	registrations, rendered, err := svc.buildManagedLlamaRegistrations()
 	if err != nil {
 		t.Fatalf("build llama registrations: %v", err)
 	}
@@ -247,7 +247,7 @@ func TestBuildLocalAIRegistrationsRejectsManagedNameConflicts(t *testing.T) {
 		t.Fatalf("expected second registration conflict problem, got %+v", registrations[second.GetLocalModelId()])
 	}
 
-	var entries []localAIConfigEntry
+	var entries []managedLlamaConfigEntry
 	if err := yaml.Unmarshal(rendered, &entries); err != nil {
 		t.Fatalf("unmarshal rendered config: %v", err)
 	}
@@ -256,15 +256,15 @@ func TestBuildLocalAIRegistrationsRejectsManagedNameConflicts(t *testing.T) {
 	}
 }
 
-func TestManagedLocalAIImageBackendPlatformSupport(t *testing.T) {
+func TestManagedMediaDiffusersBackendPlatformSupport(t *testing.T) {
 	svc := newTestService(t)
 	modelsPath := filepath.Join(t.TempDir(), "models")
 	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
-	svc.SetLocalAIRegistrationConfig(modelsPath, configPath, true)
-	svc.SetLocalAIImageBackendConfig(true, "127.0.0.1:50052")
-	svc.SetLocalAIImageBackendHealth(true, "daemon-managed image backend active")
+	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
+	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedMediaDiffusersBackendHealth(true, "daemon-managed image backend active")
 
-	writeManagedLocalAIManifest(t, modelsPath, "local/image-model", "./weights/image-model.gguf", []string{"image"})
+	writeManagedLlamaManifest(t, modelsPath, "local/image-model", "./weights/image-model.gguf", []string{"image"})
 	engineConfig, err := structpb.NewStruct(map[string]any{
 		"backend": "stablediffusion-ggml",
 		"options": []any{"diffusion_model"},
@@ -272,9 +272,9 @@ func TestManagedLocalAIImageBackendPlatformSupport(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build engine config: %v", err)
 	}
-	installed := installLocalAIModelForRegistrarTest(t, svc, "local/image-model", "./weights/image-model.gguf", []string{"image"}, "", engineConfig)
+	installed := installManagedLlamaModelForRegistrarTest(t, svc, "local/image-model", "./weights/image-model.gguf", []string{"image"}, "", engineConfig)
 
-	registration := svc.localAIRegistrationForModel(installed)
+	registration := svc.managedLlamaRegistrationForModel(installed)
 	if registration.Problem != "" {
 		t.Fatalf("expected supported image registration, got problem %q", registration.Problem)
 	}
@@ -286,8 +286,8 @@ func TestManagedLocalAIImageBackendPlatformSupport(t *testing.T) {
 	}
 }
 
-func TestLocalAIModelProbeSucceededForDynamicProfileWhenEndpointResponds(t *testing.T) {
-	registration := localAIRegistration{
+func TestManagedLlamaModelProbeSucceededForDynamicProfileWhenEndpointResponds(t *testing.T) {
+	registration := managedLlamaRegistration{
 		Backend:        "stablediffusion-ggml",
 		DynamicProfile: true,
 	}
@@ -296,19 +296,19 @@ func TestLocalAIModelProbeSucceededForDynamicProfileWhenEndpointResponds(t *test
 		responded: true,
 		detail:    "probe response missing valid models",
 	}
-	if !localAIModelProbeSucceeded(probe, registration) {
+	if !managedLlamaModelProbeSucceeded(probe, registration) {
 		t.Fatalf("dynamic profile should be considered healthy when llama endpoint responds")
 	}
 }
 
-func TestLocalAIRegistrationForDynamicProfileRecomputesWhenImageBackendRecovers(t *testing.T) {
+func TestManagedLlamaRegistrationForDynamicProfileRecomputesWhenImageBackendRecovers(t *testing.T) {
 	svc := newTestService(t)
 	modelsPath := filepath.Join(t.TempDir(), "models")
 	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
-	svc.SetLocalAIRegistrationConfig(modelsPath, configPath, true)
-	svc.SetLocalAIImageBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
+	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
 
-	writeManagedLocalAIManifest(t, modelsPath, "local/image-model", "./weights/image-model.gguf", []string{"image"})
+	writeManagedLlamaManifest(t, modelsPath, "local/image-model", "./weights/image-model.gguf", []string{"image"})
 	engineConfig, err := structpb.NewStruct(map[string]any{
 		"backend": "stablediffusion-ggml",
 		"options": []any{"diffusion_model"},
@@ -316,19 +316,19 @@ func TestLocalAIRegistrationForDynamicProfileRecomputesWhenImageBackendRecovers(
 	if err != nil {
 		t.Fatalf("build engine config: %v", err)
 	}
-	installed := installLocalAIModelForRegistrarTest(t, svc, "local/image-model", "./weights/image-model.gguf", []string{"image"}, "", engineConfig)
+	installed := installManagedLlamaModelForRegistrarTest(t, svc, "local/image-model", "./weights/image-model.gguf", []string{"image"}, "", engineConfig)
 
-	if err := svc.SyncManagedLocalAIAssets(context.Background()); err != nil {
+	if err := svc.SyncManagedLlamaAssets(context.Background()); err != nil {
 		t.Fatalf("sync managed llama assets: %v", err)
 	}
-	stale := svc.localAIRegistrations[installed.GetLocalModelId()]
+	stale := svc.managedLlamaRegistrations[installed.GetLocalModelId()]
 	if stale.Problem != "managed diffusers backend unavailable" {
 		t.Fatalf("expected cached unavailable registration, got %+v", stale)
 	}
 
-	svc.SetLocalAIImageBackendHealth(true, "daemon-managed image backend active")
+	svc.SetManagedMediaDiffusersBackendHealth(true, "daemon-managed image backend active")
 
-	registration := svc.localAIRegistrationForModel(installed)
+	registration := svc.managedLlamaRegistrationForModel(installed)
 	if registration.Problem != "" {
 		t.Fatalf("expected recomputed image registration after backend recovery, got problem %q", registration.Problem)
 	}
@@ -337,7 +337,7 @@ func TestLocalAIRegistrationForDynamicProfileRecomputesWhenImageBackendRecovers(
 	}
 }
 
-func installLocalAIModelForRegistrarTest(t *testing.T, svc *Service, modelID string, entry string, capabilities []string, endpoint string, engineConfig *structpb.Struct) *runtimev1.LocalModelRecord {
+func installManagedLlamaModelForRegistrarTest(t *testing.T, svc *Service, modelID string, entry string, capabilities []string, endpoint string, engineConfig *structpb.Struct) *runtimev1.LocalModelRecord {
 	t.Helper()
 	req := &runtimev1.InstallLocalModelRequest{
 		ModelId:      modelID,
@@ -353,7 +353,7 @@ func installLocalAIModelForRegistrarTest(t *testing.T, svc *Service, modelID str
 	return mustInstallAttachedLocalModel(t, svc, req)
 }
 
-func writeManagedLocalAIManifest(t *testing.T, modelsPath string, modelID string, entry string, capabilities []string) {
+func writeManagedLlamaManifest(t *testing.T, modelsPath string, modelID string, entry string, capabilities []string) {
 	t.Helper()
 	modelSlug := slugifyLocalModelID(modelID)
 	cleanEntry := strings.TrimPrefix(filepath.Clean(strings.TrimSpace(entry)), "."+string(filepath.Separator))

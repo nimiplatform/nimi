@@ -32,7 +32,7 @@ func writeTestScript(t *testing.T, body string) string {
 
 func testSupervisorCfg(scriptPath string) EngineConfig {
 	return EngineConfig{
-		Kind:             EngineLocalAI,
+		Kind:             EngineLlama,
 		BinaryPath:       scriptPath,
 		Port:             0,
 		Version:          "test",

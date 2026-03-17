@@ -34,7 +34,7 @@ type websocketRealtimeConn struct {
 	conn *websocket.Conn
 }
 
-var realtimeDialer = dialLocalAIRealtime
+var realtimeDialer = dialLlamaRealtime
 
 func (c *websocketRealtimeConn) Send(v any) error {
 	return websocket.JSON.Send(c.conn, v)
@@ -376,7 +376,7 @@ func resolveLlamaRealtimeBackend(selected provider, modelResolved string) (*nimi
 	return backend, resolvedModel, nil
 }
 
-func dialLocalAIRealtime(ctx context.Context, backend *nimillm.Backend, modelID string) (realtimeConn, error) {
+func dialLlamaRealtime(ctx context.Context, backend *nimillm.Backend, modelID string) (realtimeConn, error) {
 	if backend == nil || strings.TrimSpace(backend.Endpoint()) == "" || strings.TrimSpace(modelID) == "" {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
@@ -491,7 +491,7 @@ func (s *Service) resolveRealtimeAudioBytes(ctx context.Context, record *realtim
 			if s.localImageProfile == nil {
 				return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 			}
-			path, err := s.localImageProfile.ResolveLocalAIArtifactPath(ctx, localArtifactID)
+			path, err := s.localImageProfile.ResolveManagedArtifactPath(ctx, localArtifactID)
 			if err != nil {
 				return nil, err
 			}

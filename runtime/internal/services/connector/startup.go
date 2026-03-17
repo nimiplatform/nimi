@@ -46,9 +46,9 @@ func EnsureCloudConnectorsFromConfig(store *ConnectorStore, defs []CloudConnecto
 			canonical == "local" ||
 			canonical == "llama" ||
 			canonical == "media" ||
-			canonical == "media.diffusers" ||
+			canonical == "speech" ||
 			canonical == "sidecar" ||
-			canonical == "nexa" {
+			canonical == "media.diffusers" {
 			continue
 		}
 

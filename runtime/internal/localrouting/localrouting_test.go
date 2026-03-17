@@ -15,8 +15,8 @@ func TestProviderSupportsCapability(t *testing.T) {
 		{provider: "llama", capability: "music.generate", want: false},
 		{provider: "media", capability: "image.generate", want: true},
 		{provider: "media", capability: "text.generate", want: false},
-		{provider: "media.diffusers", capability: "video.generate", want: true},
-		{provider: "media.diffusers", capability: "text.generate", want: false},
+		{provider: "speech", capability: "audio.transcribe", want: true},
+		{provider: "speech", capability: "video.generate", want: false},
 		{provider: "sidecar", capability: "music.generate", want: true},
 		{provider: "sidecar", capability: "audio.transcribe", want: false},
 	}
@@ -33,8 +33,10 @@ func TestPreferenceOrderWindowsHardCutByCapability(t *testing.T) {
 		"text.generate":    {"llama"},
 		"text.embed":       {"llama"},
 		"audio.understand": {"llama"},
-		"image.generate":   {"media", "media.diffusers"},
-		"video.generate":   {"media", "media.diffusers"},
+		"image.generate":   {"media"},
+		"video.generate":   {"media"},
+		"audio.transcribe": {"speech"},
+		"audio.synthesize": {"speech"},
 		"music.generate":   {"sidecar"},
 	}
 
@@ -49,7 +51,7 @@ func TestPreferenceOrderNonWindowsFiltersUnsupportedFallbacks(t *testing.T) {
 	if got, want := PreferenceOrder("darwin", "text.generate"), []string{"llama"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("PreferenceOrder(darwin, text.generate): got=%v want=%v", got, want)
 	}
-	if got, want := PreferenceOrder("linux", "image.generate"), []string{"media", "media.diffusers"}; !reflect.DeepEqual(got, want) {
+	if got, want := PreferenceOrder("linux", "image.generate"), []string{"media"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("PreferenceOrder(linux, image.generate): got=%v want=%v", got, want)
 	}
 }

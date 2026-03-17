@@ -24,7 +24,7 @@ const (
 	AdapterSoundverseMusic = "soundverse_music_adapter"
 	AdapterMubertMusic     = "mubert_music_adapter"
 	AdapterLoudlyMusic     = "loudly_music_adapter"
-	AdapterLocalAIMusic    = "localai_music_adapter"
+	AdapterLlamaMusic      = "llama_music_adapter"
 	AdapterSidecarMusic    = "sidecar_music_adapter"
 )
 
@@ -332,7 +332,7 @@ func ExecuteLoudlyMusic(
 	return musicArtifactsFromBody(AdapterLoudlyMusic, body, spec, extensions, ""), ArtifactUsage(spec.GetPrompt(), body.Bytes, 420), "", nil
 }
 
-func ExecuteLocalAIMusic(
+func ExecuteLlamaMusic(
 	ctx context.Context,
 	cfg MediaAdapterConfig,
 	req *runtimev1.SubmitScenarioJobRequest,
@@ -356,7 +356,7 @@ func ExecuteLocalAIMusic(
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
-	resolvedModel := strings.TrimSpace(StripProviderModelPrefix(modelResolved, "localai"))
+	resolvedModel := strings.TrimSpace(StripProviderModelPrefix(modelResolved, "llama"))
 	if resolvedModel == "" {
 		resolvedModel = strings.TrimSpace(modelResolved)
 	}
@@ -398,7 +398,7 @@ func ExecuteLocalAIMusic(
 	for _, item := range candidates {
 		body, lastErr = DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, item.path), strings.TrimSpace(cfg.APIKey), item.payload, cfg.Headers)
 		if lastErr == nil {
-			return musicArtifactsFromBody(AdapterLocalAIMusic, body, spec, extensions, ""), ArtifactUsage(spec.GetPrompt(), body.Bytes, 360), "", nil
+			return musicArtifactsFromBody(AdapterLlamaMusic, body, spec, extensions, ""), ArtifactUsage(spec.GetPrompt(), body.Bytes, 360), "", nil
 		}
 		if grpcStatusCode(lastErr) != codes.NotFound {
 			break
@@ -435,14 +435,14 @@ func ExecuteSidecarMusic(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 	payload := map[string]any{
-		"model":             strings.TrimSpace(modelResolved),
-		"prompt":            strings.TrimSpace(spec.GetPrompt()),
-		"negative_prompt":   strings.TrimSpace(spec.GetNegativePrompt()),
-		"lyrics":            strings.TrimSpace(spec.GetLyrics()),
-		"style":             strings.TrimSpace(spec.GetStyle()),
-		"title":             strings.TrimSpace(spec.GetTitle()),
-		"duration_seconds":  spec.GetDurationSeconds(),
-		"instrumental":      spec.GetInstrumental(),
+		"model":            strings.TrimSpace(modelResolved),
+		"prompt":           strings.TrimSpace(spec.GetPrompt()),
+		"negative_prompt":  strings.TrimSpace(spec.GetNegativePrompt()),
+		"lyrics":           strings.TrimSpace(spec.GetLyrics()),
+		"style":            strings.TrimSpace(spec.GetStyle()),
+		"title":            strings.TrimSpace(spec.GetTitle()),
+		"duration_seconds": spec.GetDurationSeconds(),
+		"instrumental":     spec.GetInstrumental(),
 	}
 	body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, "/v1/music/generate"), strings.TrimSpace(cfg.APIKey), payload, cfg.Headers)
 	if err != nil {

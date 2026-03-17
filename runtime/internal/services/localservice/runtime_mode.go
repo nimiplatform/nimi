@@ -33,7 +33,7 @@ func managedDefaultEndpointForEngine(engine string) string {
 	case "llama":
 		return defaultLocalEndpoint
 	case "media":
-		return defaultNimiMediaEndpoint
+		return defaultMediaEndpoint
 	default:
 		return ""
 	}
@@ -116,9 +116,9 @@ func resolveInstallRuntimeBinding(engine string, requestEndpoint string, profile
 func (s *Service) managedEndpointForEngine(engine string) string {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
 	case "llama":
-		return s.managedLocalAIEndpoint()
+		return s.managedLlamaEndpoint()
 	case "media":
-		return s.managedNimiMediaEndpoint()
+		return s.managedMediaEndpoint()
 	default:
 		return ""
 	}
@@ -127,9 +127,9 @@ func (s *Service) managedEndpointForEngine(engine string) string {
 func (s *Service) managedEndpointForEngineLocked(engine string) string {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
 	case "llama":
-		return strings.TrimSpace(s.localAIManagedEndpoint)
+		return strings.TrimSpace(s.managedLlamaEndpointValue)
 	case "media":
-		return strings.TrimSpace(s.nimiMediaManagedEndpoint)
+		return strings.TrimSpace(s.managedMediaEndpointValue)
 	default:
 		return ""
 	}

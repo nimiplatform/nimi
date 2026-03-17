@@ -48,7 +48,7 @@ func (a *ServiceAdapter) EnsureEngine(ctx context.Context, engineName string, ve
 	if err != nil {
 		return err
 	}
-	cfg = a.mgr.applyLocalAIPaths(cfg)
+	cfg = a.mgr.applyLlamaPaths(cfg)
 	_, err = a.mgr.EnsureEngine(ctx, cfg)
 	return err
 }
@@ -58,7 +58,7 @@ func (a *ServiceAdapter) StartEngine(ctx context.Context, engineName string, por
 	if err != nil {
 		return err
 	}
-	cfg = a.mgr.applyLocalAIPaths(cfg)
+	cfg = a.mgr.applyLlamaPaths(cfg)
 	cfg, err = a.mgr.EnsureEngine(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("ensure engine before start: %w", err)
@@ -116,10 +116,10 @@ func resolveEngineConfig(engineName string, version string, port int) (EngineCon
 
 	var cfg EngineConfig
 	switch kind {
-	case EngineLocalAI:
-		cfg = DefaultLocalAIConfig()
-	case EngineNimiMedia:
-		cfg = DefaultNimiMediaConfig()
+	case EngineLlama:
+		cfg = DefaultLlamaConfig()
+	case EngineMedia:
+		cfg = DefaultMediaConfig()
 	case EngineKind("sidecar"):
 		return EngineConfig{}, fmt.Errorf("engine %q is not yet supported for supervised lifecycle", engineName)
 	default:
@@ -138,9 +138,9 @@ func resolveEngineConfig(engineName string, version string, port int) (EngineCon
 func parseEngineKind(name string) (EngineKind, error) {
 	switch strings.ToLower(strings.TrimSpace(name)) {
 	case "llama":
-		return EngineLocalAI, nil
+		return EngineLlama, nil
 	case "media", "media.diffusers":
-		return EngineNimiMedia, nil
+		return EngineMedia, nil
 	case "sidecar":
 		return EngineKind("sidecar"), nil
 	default:
@@ -150,9 +150,9 @@ func parseEngineKind(name string) (EngineKind, error) {
 
 func publicEngineName(kind EngineKind) string {
 	switch kind {
-	case EngineLocalAI:
+	case EngineLlama:
 		return "llama"
-	case EngineNimiMedia:
+	case EngineMedia:
 		return "media"
 	case EngineKind("sidecar"):
 		return "sidecar"

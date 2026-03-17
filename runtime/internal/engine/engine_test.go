@@ -17,10 +17,10 @@ import (
 	"time"
 )
 
-func TestDefaultLocalAIConfig(t *testing.T) {
-	cfg := DefaultLocalAIConfig()
-	if cfg.Kind != EngineLocalAI {
-		t.Errorf("expected kind %s, got %s", EngineLocalAI, cfg.Kind)
+func TestDefaultLlamaConfig(t *testing.T) {
+	cfg := DefaultLlamaConfig()
+	if cfg.Kind != EngineLlama {
+		t.Errorf("expected kind %s, got %s", EngineLlama, cfg.Kind)
 	}
 	if cfg.Port != 1234 {
 		t.Errorf("expected port 1234, got %d", cfg.Port)
@@ -39,26 +39,10 @@ func TestDefaultLocalAIConfig(t *testing.T) {
 	}
 }
 
-func TestDefaultNexaConfig(t *testing.T) {
-	cfg := DefaultNexaConfig()
-	if cfg.Kind != EngineNexa {
-		t.Errorf("expected kind %s, got %s", EngineNexa, cfg.Kind)
-	}
-	if cfg.Port != 8000 {
-		t.Errorf("expected port 8000, got %d", cfg.Port)
-	}
-	if cfg.HealthPath != "/v1/models" {
-		t.Errorf("expected health path /v1/models, got %s", cfg.HealthPath)
-	}
-	if cfg.HealthResponse != "" {
-		t.Errorf("expected empty health response matcher, got %s", cfg.HealthResponse)
-	}
-}
-
-func TestDefaultNimiMediaConfig(t *testing.T) {
-	cfg := DefaultNimiMediaConfig()
-	if cfg.Kind != EngineNimiMedia {
-		t.Errorf("expected kind %s, got %s", EngineNimiMedia, cfg.Kind)
+func TestDefaultMediaConfig(t *testing.T) {
+	cfg := DefaultMediaConfig()
+	if cfg.Kind != EngineMedia {
+		t.Errorf("expected kind %s, got %s", EngineMedia, cfg.Kind)
 	}
 	if cfg.HealthPath != "/healthz" {
 		t.Errorf("expected health path /healthz, got %s", cfg.HealthPath)
@@ -109,13 +93,13 @@ func TestRegistryCRUD(t *testing.T) {
 	}
 
 	// Get returns nil for missing entry.
-	if got := reg.Get(EngineLocalAI, "3.12.1"); got != nil {
+	if got := reg.Get(EngineLlama, "3.12.1"); got != nil {
 		t.Fatalf("expected nil for missing entry, got %+v", got)
 	}
 
 	// Put an entry.
 	entry := &RegistryEntry{
-		Engine:      EngineLocalAI,
+		Engine:      EngineLlama,
 		Version:     "3.12.1",
 		BinaryPath:  "/tmp/local-ai",
 		SHA256:      "abc123",
@@ -127,7 +111,7 @@ func TestRegistryCRUD(t *testing.T) {
 	}
 
 	// Get the entry.
-	got := reg.Get(EngineLocalAI, "3.12.1")
+	got := reg.Get(EngineLlama, "3.12.1")
 	if got == nil {
 		t.Fatal("expected entry, got nil")
 	}
@@ -144,10 +128,10 @@ func TestRegistryCRUD(t *testing.T) {
 	}
 
 	// Remove the entry.
-	if err := reg.Remove(EngineLocalAI, "3.12.1"); err != nil {
+	if err := reg.Remove(EngineLlama, "3.12.1"); err != nil {
 		t.Fatalf("Remove: %v", err)
 	}
-	if got := reg.Get(EngineLocalAI, "3.12.1"); got != nil {
+	if got := reg.Get(EngineLlama, "3.12.1"); got != nil {
 		t.Errorf("expected nil after remove, got %+v", got)
 	}
 }
@@ -161,7 +145,7 @@ func TestRegistryPersistence(t *testing.T) {
 	}
 
 	if err := reg1.Put(&RegistryEntry{
-		Engine:     EngineLocalAI,
+		Engine:     EngineLlama,
 		Version:    "1.0.0",
 		BinaryPath: "/tmp/test",
 		Platform:   "linux/amd64",
@@ -175,7 +159,7 @@ func TestRegistryPersistence(t *testing.T) {
 		t.Fatalf("NewRegistry reload: %v", err)
 	}
 
-	got := reg2.Get(EngineLocalAI, "1.0.0")
+	got := reg2.Get(EngineLlama, "1.0.0")
 	if got == nil {
 		t.Fatal("expected persisted entry, got nil")
 	}
@@ -193,7 +177,7 @@ func TestRegistryAtomicWrite(t *testing.T) {
 	}
 
 	if err := reg.Put(&RegistryEntry{
-		Engine:  EngineNexa,
+		Engine:  EngineMedia,
 		Version: "sys",
 	}); err != nil {
 		t.Fatalf("Put: %v", err)
@@ -214,9 +198,9 @@ func TestRegistryAtomicWrite(t *testing.T) {
 
 // --- Download URL tests ---
 
-func TestLocalAIDownloadURL(t *testing.T) {
-	url, err := localAIDownloadURL("3.12.1")
-	if !LocalAISupervisedPlatformSupported() {
+func TestLlamaDownloadURL(t *testing.T) {
+	url, err := llamaDownloadURL("3.12.1")
+	if !LlamaSupervisedPlatformSupported() {
 		if err == nil {
 			t.Fatalf("expected unsupported platform error on %s", PlatformString())
 		}
@@ -226,7 +210,7 @@ func TestLocalAIDownloadURL(t *testing.T) {
 		return
 	}
 	if err != nil {
-		t.Fatalf("localAIDownloadURL: %v", err)
+		t.Fatalf("llamaDownloadURL: %v", err)
 	}
 	if url == "" {
 		t.Fatal("expected non-empty URL")
@@ -238,9 +222,9 @@ func TestLocalAIDownloadURL(t *testing.T) {
 	}
 }
 
-func TestLocalAIAssetName(t *testing.T) {
-	name, err := localAIAssetName("3.12.1")
-	if !LocalAISupervisedPlatformSupported() {
+func TestLlamaAssetName(t *testing.T) {
+	name, err := llamaAssetName("3.12.1")
+	if !LlamaSupervisedPlatformSupported() {
 		if err == nil {
 			t.Fatalf("expected unsupported platform error on %s", PlatformString())
 		}
@@ -250,7 +234,7 @@ func TestLocalAIAssetName(t *testing.T) {
 		return
 	}
 	if err != nil {
-		t.Fatalf("localAIAssetName: %v", err)
+		t.Fatalf("llamaAssetName: %v", err)
 	}
 	if name == "" {
 		t.Fatal("expected non-empty asset name")
@@ -267,7 +251,7 @@ func TestLocalAIAssetName(t *testing.T) {
 	}
 }
 
-func TestLocalAISupervisedPlatformSupportedFor(t *testing.T) {
+func TestLlamaSupervisedPlatformSupportedFor(t *testing.T) {
 	tests := []struct {
 		goos   string
 		goarch string
@@ -283,14 +267,14 @@ func TestLocalAISupervisedPlatformSupportedFor(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.goos+"-"+tt.goarch, func(t *testing.T) {
-			if got := LocalAISupervisedPlatformSupportedFor(tt.goos, tt.goarch); got != tt.want {
-				t.Fatalf("LocalAISupervisedPlatformSupportedFor(%q, %q) = %v, want %v", tt.goos, tt.goarch, got, tt.want)
+			if got := LlamaSupervisedPlatformSupportedFor(tt.goos, tt.goarch); got != tt.want {
+				t.Fatalf("LlamaSupervisedPlatformSupportedFor(%q, %q) = %v, want %v", tt.goos, tt.goarch, got, tt.want)
 			}
 		})
 	}
 }
 
-func TestNimiMediaSupervisedPlatformSupportedFor(t *testing.T) {
+func TestMediaSupervisedPlatformSupportedFor(t *testing.T) {
 	tests := []struct {
 		goos   string
 		goarch string
@@ -304,21 +288,21 @@ func TestNimiMediaSupervisedPlatformSupportedFor(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.goos+"-"+tt.goarch, func(t *testing.T) {
-			if got := NimiMediaSupervisedPlatformSupportedFor(tt.goos, tt.goarch); got != tt.want {
-				t.Fatalf("NimiMediaSupervisedPlatformSupportedFor(%q, %q) = %v, want %v", tt.goos, tt.goarch, got, tt.want)
+			if got := MediaSupervisedPlatformSupportedFor(tt.goos, tt.goarch); got != tt.want {
+				t.Fatalf("MediaSupervisedPlatformSupportedFor(%q, %q) = %v, want %v", tt.goos, tt.goarch, got, tt.want)
 			}
 		})
 	}
 }
 
-func TestClassifyNimiMediaHost(t *testing.T) {
+func TestClassifyMediaHost(t *testing.T) {
 	tests := []struct {
 		name      string
 		goos      string
 		goarch    string
 		gpuVendor string
 		cudaReady bool
-		want      NimiMediaHostSupport
+		want      MediaHostSupport
 	}{
 		{
 			name:      "supported supervised",
@@ -326,7 +310,7 @@ func TestClassifyNimiMediaHost(t *testing.T) {
 			goarch:    "amd64",
 			gpuVendor: "nvidia",
 			cudaReady: true,
-			want:      NimiMediaHostSupportSupportedSupervised,
+			want:      MediaHostSupportSupportedSupervised,
 		},
 		{
 			name:      "windows non nvidia attached only",
@@ -334,7 +318,7 @@ func TestClassifyNimiMediaHost(t *testing.T) {
 			goarch:    "amd64",
 			gpuVendor: "intel",
 			cudaReady: false,
-			want:      NimiMediaHostSupportAttachedOnly,
+			want:      MediaHostSupportAttachedOnly,
 		},
 		{
 			name:      "windows nvidia without cuda attached only",
@@ -342,7 +326,7 @@ func TestClassifyNimiMediaHost(t *testing.T) {
 			goarch:    "amd64",
 			gpuVendor: "nvidia",
 			cudaReady: false,
-			want:      NimiMediaHostSupportAttachedOnly,
+			want:      MediaHostSupportAttachedOnly,
 		},
 		{
 			name:      "non windows attached only",
@@ -350,20 +334,20 @@ func TestClassifyNimiMediaHost(t *testing.T) {
 			goarch:    "amd64",
 			gpuVendor: "nvidia",
 			cudaReady: true,
-			want:      NimiMediaHostSupportAttachedOnly,
+			want:      MediaHostSupportAttachedOnly,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ClassifyNimiMediaHost(tt.goos, tt.goarch, tt.gpuVendor, tt.cudaReady); got != tt.want {
-				t.Fatalf("ClassifyNimiMediaHost(%q, %q, %q, %t) = %q, want %q", tt.goos, tt.goarch, tt.gpuVendor, tt.cudaReady, got, tt.want)
+			if got := ClassifyMediaHost(tt.goos, tt.goarch, tt.gpuVendor, tt.cudaReady); got != tt.want {
+				t.Fatalf("ClassifyMediaHost(%q, %q, %q, %t) = %q, want %q", tt.goos, tt.goarch, tt.gpuVendor, tt.cudaReady, got, tt.want)
 			}
 		})
 	}
 }
 
-func TestLocalAIExpectedSHA256(t *testing.T) {
+func TestLlamaExpectedSHA256(t *testing.T) {
 	const version = "3.12.1"
 	const asset = "local-ai-v3.12.1-darwin-arm64"
 	const expectedHash = "aac7f1248948cf2e6b2ce1c86a311601b1e37154914397f602b1f6f4bfe2de00" // pragma: allowlist secret
@@ -379,40 +363,40 @@ func TestLocalAIExpectedSHA256(t *testing.T) {
 	}))
 	defer server.Close()
 
-	originalBaseURL := localAIReleaseBaseURL
-	originalClient := localAIReleaseHTTPClient
-	localAIReleaseBaseURL = server.URL
-	localAIReleaseHTTPClient = server.Client()
+	originalBaseURL := llamaReleaseBaseURL
+	originalClient := llamaReleaseHTTPClient
+	llamaReleaseBaseURL = server.URL
+	llamaReleaseHTTPClient = server.Client()
 	t.Cleanup(func() {
-		localAIReleaseBaseURL = originalBaseURL
-		localAIReleaseHTTPClient = originalClient
+		llamaReleaseBaseURL = originalBaseURL
+		llamaReleaseHTTPClient = originalClient
 	})
 
-	hash, err := localAIExpectedSHA256(version, asset)
+	hash, err := llamaExpectedSHA256(version, asset)
 	if err != nil {
-		t.Fatalf("localAIExpectedSHA256: %v", err)
+		t.Fatalf("llamaExpectedSHA256: %v", err)
 	}
 	if hash != expectedHash {
 		t.Fatalf("checksum mismatch: got=%s want=%s", hash, expectedHash)
 	}
 }
 
-func TestLocalAIExpectedSHA256MissingAsset(t *testing.T) {
+func TestLlamaExpectedSHA256MissingAsset(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("aac7f1248948cf2e6b2ce1c86a311601b1e37154914397f602b1f6f4bfe2de00  local-ai-v3.12.1-darwin-arm64\n"))
 	}))
 	defer server.Close()
 
-	originalBaseURL := localAIReleaseBaseURL
-	originalClient := localAIReleaseHTTPClient
-	localAIReleaseBaseURL = server.URL
-	localAIReleaseHTTPClient = server.Client()
+	originalBaseURL := llamaReleaseBaseURL
+	originalClient := llamaReleaseHTTPClient
+	llamaReleaseBaseURL = server.URL
+	llamaReleaseHTTPClient = server.Client()
 	t.Cleanup(func() {
-		localAIReleaseBaseURL = originalBaseURL
-		localAIReleaseHTTPClient = originalClient
+		llamaReleaseBaseURL = originalBaseURL
+		llamaReleaseHTTPClient = originalClient
 	})
 
-	_, err := localAIExpectedSHA256("3.12.1", "local-ai-v3.12.1-linux-amd64")
+	_, err := llamaExpectedSHA256("3.12.1", "local-ai-v3.12.1-linux-amd64")
 	if err == nil {
 		t.Fatal("expected missing checksum error")
 	}
@@ -453,11 +437,11 @@ func TestProbeHealthSuccess(t *testing.T) {
 func TestProbeHealthBodyMatch(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("Nexa SDK is running"))
+		_, _ = w.Write([]byte("engine is running"))
 	}))
 	defer server.Close()
 
-	err := ProbeHealth(context.Background(), server.URL, "/", "Nexa SDK is running")
+	err := ProbeHealth(context.Background(), server.URL, "/", "engine is running")
 	if err != nil {
 		t.Errorf("expected healthy, got error: %v", err)
 	}
@@ -470,7 +454,7 @@ func TestProbeHealthBodyMismatch(t *testing.T) {
 	}))
 	defer server.Close()
 
-	err := ProbeHealth(context.Background(), server.URL, "/", "Nexa SDK is running")
+	err := ProbeHealth(context.Background(), server.URL, "/", "engine is running")
 	if err == nil {
 		t.Error("expected error for body mismatch, got nil")
 	}
@@ -495,7 +479,7 @@ func TestProbeHealthUnreachable(t *testing.T) {
 	}
 }
 
-func TestProbeNimiMediaHealthSuccess(t *testing.T) {
+func TestProbeMediaHealthSuccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/healthz":
@@ -510,12 +494,12 @@ func TestProbeNimiMediaHealthSuccess(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if err := ProbeNimiMediaHealth(context.Background(), server.URL); err != nil {
-		t.Fatalf("expected nimi_media healthy, got %v", err)
+	if err := ProbeMediaHealth(context.Background(), server.URL); err != nil {
+		t.Fatalf("expected media healthy, got %v", err)
 	}
 }
 
-func TestProbeNimiMediaHealthRequiresCatalog(t *testing.T) {
+func TestProbeMediaHealthRequiresCatalog(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/healthz":
@@ -530,8 +514,8 @@ func TestProbeNimiMediaHealthRequiresCatalog(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if err := ProbeNimiMediaHealth(context.Background(), server.URL); err == nil {
-		t.Fatal("expected nimi_media health probe to fail without ready catalog models")
+	if err := ProbeMediaHealth(context.Background(), server.URL); err == nil {
+		t.Fatal("expected media health probe to fail without ready catalog models")
 	}
 }
 
@@ -543,7 +527,7 @@ func TestProbeSupervisorHealthTCP(t *testing.T) {
 	defer listener.Close()
 
 	cfg := EngineConfig{
-		Kind:           engineLocalAIImageBackend,
+		Kind:           engineMediaDiffusersBackend,
 		HealthMode:     HealthModeTCP,
 		Address:        listener.Addr().String(),
 		HealthInterval: 100 * time.Millisecond,
@@ -605,7 +589,7 @@ func TestWaitHealthyCancelled(t *testing.T) {
 	}
 }
 
-func TestWaitNimiMediaHealthySuccess(t *testing.T) {
+func TestWaitMediaHealthySuccess(t *testing.T) {
 	callCount := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -626,8 +610,8 @@ func TestWaitNimiMediaHealthySuccess(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if err := WaitNimiMediaHealthy(context.Background(), server.URL, 50*time.Millisecond, 5*time.Second); err != nil {
-		t.Fatalf("expected nimi_media healthy after retries, got %v", err)
+	if err := WaitMediaHealthy(context.Background(), server.URL, 50*time.Millisecond, 5*time.Second); err != nil {
+		t.Fatalf("expected media healthy after retries, got %v", err)
 	}
 }
 
@@ -749,8 +733,8 @@ func TestNewManager(t *testing.T) {
 
 	// ListEngines should include known engines even when not running.
 	engines := mgr.ListEngines()
-	if len(engines) != 3 {
-		t.Fatalf("expected 3 known engines (localai+nexa+nimi_media), got %d", len(engines))
+	if len(engines) != 2 {
+		t.Fatalf("expected 2 known engines (llama+media), got %d", len(engines))
 	}
 	seen := map[EngineKind]bool{}
 	for _, info := range engines {
@@ -759,8 +743,8 @@ func TestNewManager(t *testing.T) {
 			t.Fatalf("expected stopped status for non-running engine %s, got %s", info.Kind, info.Status)
 		}
 	}
-	if !seen[EngineLocalAI] || !seen[EngineNexa] || !seen[EngineNimiMedia] {
-		t.Fatalf("expected list to include localai, nexa, and nimi_media, got %+v", engines)
+	if !seen[EngineLlama] || !seen[EngineMedia] {
+		t.Fatalf("expected list to include llama and media, got %+v", engines)
 	}
 }
 
@@ -782,7 +766,7 @@ func TestManagerEngineEndpointNotStarted(t *testing.T) {
 		t.Fatalf("NewManager: %v", err)
 	}
 
-	_, err = mgr.EngineEndpoint(EngineLocalAI)
+	_, err = mgr.EngineEndpoint(EngineLlama)
 	if err == nil {
 		t.Error("expected error for engine not started, got nil")
 	}
@@ -795,7 +779,7 @@ func TestManagerEngineStatusNotStarted(t *testing.T) {
 		t.Fatalf("NewManager: %v", err)
 	}
 
-	_, err = mgr.EngineStatus(EngineLocalAI)
+	_, err = mgr.EngineStatus(EngineLlama)
 	if err == nil {
 		t.Error("expected error for engine not started, got nil")
 	}
@@ -804,7 +788,7 @@ func TestManagerEngineStatusNotStarted(t *testing.T) {
 // --- Supervisor tests ---
 
 func TestSupervisorInitialStatus(t *testing.T) {
-	cfg := DefaultLocalAIConfig()
+	cfg := DefaultLlamaConfig()
 	sup := NewSupervisor(cfg, nil, nil)
 
 	if sup.Status() != StatusStopped {
@@ -813,13 +797,13 @@ func TestSupervisorInitialStatus(t *testing.T) {
 }
 
 func TestSupervisorInfo(t *testing.T) {
-	cfg := DefaultLocalAIConfig()
+	cfg := DefaultLlamaConfig()
 	cfg.Port = 9999
 	sup := NewSupervisor(cfg, nil, nil)
 
 	info := sup.Info()
-	if info.Kind != EngineLocalAI {
-		t.Errorf("expected kind %s, got %s", EngineLocalAI, info.Kind)
+	if info.Kind != EngineLlama {
+		t.Errorf("expected kind %s, got %s", EngineLlama, info.Kind)
 	}
 	if info.Port != 9999 {
 		t.Errorf("expected port 9999, got %d", info.Port)
@@ -840,8 +824,8 @@ func TestServiceAdapterListEnginesEmpty(t *testing.T) {
 
 	adapter := NewServiceAdapter(mgr)
 	engines := adapter.ListEngines()
-	if len(engines) != 3 {
-		t.Fatalf("expected 3 known engines, got %d", len(engines))
+	if len(engines) != 2 {
+		t.Fatalf("expected 2 known engines, got %d", len(engines))
 	}
 	seen := map[string]bool{}
 	for _, info := range engines {
@@ -850,8 +834,8 @@ func TestServiceAdapterListEnginesEmpty(t *testing.T) {
 			t.Fatalf("expected stopped status for non-running engine %s, got %s", info.Engine, info.Status)
 		}
 	}
-	if !seen[string(EngineLocalAI)] || !seen[string(EngineNexa)] || !seen[string(EngineNimiMedia)] {
-		t.Fatalf("expected adapter list to include localai, nexa, and nimi_media, got %+v", engines)
+	if !seen[string(EngineLlama)] || !seen[string(EngineMedia)] {
+		t.Fatalf("expected adapter list to include llama and media, got %+v", engines)
 	}
 }
 
@@ -883,14 +867,14 @@ func TestServiceAdapterStopEngineNotFound(t *testing.T) {
 	}
 }
 
-func TestManagerApplyLocalAIPaths(t *testing.T) {
+func TestManagerApplyLlamaPaths(t *testing.T) {
 	dir := t.TempDir()
 	mgr, err := NewManager(nil, dir, nil)
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}
 
-	configPath := filepath.Join(t.TempDir(), "localai-models.yaml")
+	configPath := filepath.Join(t.TempDir(), "llama-models.yaml")
 	if err := os.WriteFile(configPath, []byte(`
 - name: model-a
   backend: llama-cpp
@@ -901,11 +885,11 @@ func TestManagerApplyLocalAIPaths(t *testing.T) {
   parameters:
     model: model-b.bin
 `), 0o644); err != nil {
-		t.Fatalf("write localai models config: %v", err)
+		t.Fatalf("write llama models config: %v", err)
 	}
 
-	mgr.SetLocalAIPaths("/data/models", configPath)
-	cfg := mgr.applyLocalAIPaths(DefaultLocalAIConfig())
+	mgr.SetLlamaPaths("/data/models", configPath)
+	cfg := mgr.applyLlamaPaths(DefaultLlamaConfig())
 	if cfg.ModelsPath != "/data/models" {
 		t.Fatalf("models path mismatch: %q", cfg.ModelsPath)
 	}
@@ -930,9 +914,9 @@ func TestParseEngineKind(t *testing.T) {
 		want  EngineKind
 		err   bool
 	}{
-		{"llama", EngineLocalAI, false},
-		{"media", EngineNimiMedia, false},
-		{"media.diffusers", EngineNimiMedia, false},
+		{"llama", EngineLlama, false},
+		{"media", EngineMedia, false},
+		{"media.diffusers", EngineMedia, false},
 		{"sidecar", EngineKind("sidecar"), false},
 		{"unknown", "", true},
 		{"", "", true},
@@ -971,13 +955,13 @@ func TestRestartJitterCap(t *testing.T) {
 
 // --- Command construction tests ---
 
-func TestLocalAICommandArgs(t *testing.T) {
+func TestLlamaCommandArgs(t *testing.T) {
 	cfg := EngineConfig{
-		Kind:       EngineLocalAI,
-		BinaryPath: "/usr/local/bin/local-ai",
+		Kind:       EngineLlama,
+		BinaryPath: "/usr/local/bin/llama",
 		Port:       5555,
 	}
-	cmd := localAICommand(cfg)
+	cmd := llamaCommand(cfg)
 	args := strings.Join(cmd.Args[1:], " ")
 
 	for _, want := range []string{"run", "--address", ":5555", "--disable-web-ui", "--log-level", "info"} {
@@ -1000,20 +984,20 @@ func TestLocalAICommandArgs(t *testing.T) {
 
 	// With ModelsPath.
 	cfg.ModelsPath = "/data/models"
-	cfg.ModelsConfigPath = "/data/runtime/localai-models.yaml"
-	cfg.BackendsPath = "/data/runtime/localai-backends"
+	cfg.ModelsConfigPath = "/data/runtime/llama-models.yaml"
+	cfg.BackendsPath = "/data/runtime/llama-backends"
 	cfg.ExternalBackends = []string{"llama-cpp", "whisper-ggml"}
 	cfg.ExternalGRPCBackends = []string{"stablediffusion-ggml:127.0.0.1:50052"}
-	cmd2 := localAICommand(cfg)
+	cmd2 := llamaCommand(cfg)
 	args2 := strings.Join(cmd2.Args[1:], " ")
 	if !strings.Contains(args2, "--models-path") || !strings.Contains(args2, "/data/models") {
 		t.Errorf("expected --models-path /data/models, got: %s", args2)
 	}
-	if !strings.Contains(args2, "--models-config-file") || !strings.Contains(args2, "/data/runtime/localai-models.yaml") {
-		t.Errorf("expected --models-config-file /data/runtime/localai-models.yaml, got: %s", args2)
+	if !strings.Contains(args2, "--models-config-file") || !strings.Contains(args2, "/data/runtime/llama-models.yaml") {
+		t.Errorf("expected --models-config-file /data/runtime/llama-models.yaml, got: %s", args2)
 	}
-	if !strings.Contains(args2, "--backends-path") || !strings.Contains(args2, "/data/runtime/localai-backends") {
-		t.Errorf("expected --backends-path /data/runtime/localai-backends, got: %s", args2)
+	if !strings.Contains(args2, "--backends-path") || !strings.Contains(args2, "/data/runtime/llama-backends") {
+		t.Errorf("expected --backends-path /data/runtime/llama-backends, got: %s", args2)
 	}
 	if !strings.Contains(args2, "--external-backends") || !strings.Contains(args2, "llama-cpp,whisper-ggml") {
 		t.Errorf("expected --external-backends llama-cpp,whisper-ggml, got: %s", args2)
@@ -1023,8 +1007,8 @@ func TestLocalAICommandArgs(t *testing.T) {
 	}
 }
 
-func TestDetectLocalAIExternalBackends(t *testing.T) {
-	configPath := filepath.Join(t.TempDir(), "localai-models.yaml")
+func TestDetectLlamaExternalBackends(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "llama-models.yaml")
 	if err := os.WriteFile(configPath, []byte(`
 - name: model-a
   backend: llama-cpp
@@ -1035,15 +1019,15 @@ func TestDetectLocalAIExternalBackends(t *testing.T) {
 - name: model-d
   backend: ""
 `), 0o644); err != nil {
-		t.Fatalf("write localai models config: %v", err)
+		t.Fatalf("write llama models config: %v", err)
 	}
 
-	if got, want := strings.Join(detectLocalAIExternalBackends(configPath), ","), "llama-cpp,whisper-ggml"; got != want {
-		t.Fatalf("detectLocalAIExternalBackends mismatch: got=%q want=%q", got, want)
+	if got, want := strings.Join(detectLlamaExternalBackends(configPath), ","), "llama-cpp,whisper-ggml"; got != want {
+		t.Fatalf("detectLlamaExternalBackends mismatch: got=%q want=%q", got, want)
 	}
 }
 
-func TestDiscoverInstalledLocalAIBackendRunPathPrefersAlias(t *testing.T) {
+func TestDiscoverInstalledLlamaBackendRunPathPrefersAlias(t *testing.T) {
 	backendsPath := t.TempDir()
 	backendDir := filepath.Join(backendsPath, "metal-stablediffusion-ggml")
 	if err := os.MkdirAll(backendDir, 0o755); err != nil {
@@ -1057,28 +1041,12 @@ func TestDiscoverInstalledLocalAIBackendRunPathPrefersAlias(t *testing.T) {
 		t.Fatalf("write metadata.json: %v", err)
 	}
 
-	discovered, err := discoverInstalledLocalAIBackendRunPath(backendsPath, "stablediffusion-ggml")
+	discovered, err := discoverInstalledLlamaBackendRunPath(backendsPath, "stablediffusion-ggml")
 	if err != nil {
-		t.Fatalf("discoverInstalledLocalAIBackendRunPath: %v", err)
+		t.Fatalf("discoverInstalledLlamaBackendRunPath: %v", err)
 	}
 	if discovered != runPath {
 		t.Fatalf("run path mismatch: got=%q want=%q", discovered, runPath)
-	}
-}
-
-func TestNexaCommandArgs(t *testing.T) {
-	cfg := EngineConfig{
-		Kind:       EngineNexa,
-		BinaryPath: "/usr/local/bin/nexa",
-		Port:       9000,
-	}
-	cmd := nexaCommand(cfg)
-	args := strings.Join(cmd.Args[1:], " ")
-
-	for _, want := range []string{"serve", "--host", "127.0.0.1", "--port", "9000"} {
-		if !strings.Contains(args, want) {
-			t.Errorf("expected args to contain %q, got: %s", want, args)
-		}
 	}
 }
 
@@ -1113,7 +1081,7 @@ func TestResolveEngineConfigOverrides(t *testing.T) {
 func TestSupervisorInfoToDTOTimeFormat(t *testing.T) {
 	now := time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC)
 	info := SupervisorInfo{
-		Kind:      EngineLocalAI,
+		Kind:      EngineLlama,
 		Version:   "3.12.1",
 		Port:      1234,
 		Status:    StatusHealthy,
@@ -1151,7 +1119,7 @@ func TestSupervisorInfoBinarySizeBytes(t *testing.T) {
 		t.Fatalf("write fake binary: %v", err)
 	}
 
-	cfg := DefaultLocalAIConfig()
+	cfg := DefaultLlamaConfig()
 	cfg.BinaryPath = binaryPath
 	sup := NewSupervisor(cfg, nil, nil)
 
@@ -1161,7 +1129,7 @@ func TestSupervisorInfoBinarySizeBytes(t *testing.T) {
 	}
 
 	// Non-existent path → 0.
-	cfg2 := DefaultLocalAIConfig()
+	cfg2 := DefaultLlamaConfig()
 	cfg2.BinaryPath = filepath.Join(dir, "nonexistent")
 	sup2 := NewSupervisor(cfg2, nil, nil)
 	info2 := sup2.Info()
