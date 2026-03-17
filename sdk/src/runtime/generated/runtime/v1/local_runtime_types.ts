@@ -39,6 +39,27 @@ export interface LocalArtifactSource {
     revision: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.LocalHostRequirements
+ */
+export interface LocalHostRequirements {
+    /**
+     * @generated from protobuf field: bool gpu_required = 1
+     */
+    gpuRequired: boolean;
+    /**
+     * @generated from protobuf field: bool python_runtime_required = 2
+     */
+    pythonRuntimeRequired: boolean;
+    /**
+     * @generated from protobuf field: repeated string supported_platforms = 3
+     */
+    supportedPlatforms: string[];
+    /**
+     * @generated from protobuf field: repeated string required_backends = 4
+     */
+    requiredBackends: string[];
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.LocalModelRecord
  */
 export interface LocalModelRecord {
@@ -104,6 +125,38 @@ export interface LocalModelRecord {
      * @generated from protobuf field: google.protobuf.Struct engine_config = 15
      */
     engineConfig?: Struct;
+    /**
+     * @generated from protobuf field: string logical_model_id = 16
+     */
+    logicalModelId: string;
+    /**
+     * @generated from protobuf field: string family = 17
+     */
+    family: string;
+    /**
+     * @generated from protobuf field: repeated string artifact_roles = 18
+     */
+    artifactRoles: string[];
+    /**
+     * @generated from protobuf field: string preferred_engine = 19
+     */
+    preferredEngine: string;
+    /**
+     * @generated from protobuf field: repeated string fallback_engines = 20
+     */
+    fallbackEngines: string[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalBundleState bundle_state = 21
+     */
+    bundleState: LocalBundleState;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalWarmState warm_state = 22
+     */
+    warmState: LocalWarmState;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalHostRequirements host_requirements = 23
+     */
+    hostRequirements?: LocalHostRequirements;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalModelHealth
@@ -1619,6 +1672,60 @@ export enum LocalEngineRuntimeMode {
     ATTACHED_ENDPOINT = 2
 }
 /**
+ * @generated from protobuf enum nimi.runtime.v1.LocalBundleState
+ */
+export enum LocalBundleState {
+    /**
+     * @generated from protobuf enum value: LOCAL_BUNDLE_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_BUNDLE_STATE_RESOLVING = 1;
+     */
+    RESOLVING = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_BUNDLE_STATE_READY = 2;
+     */
+    READY = 2,
+    /**
+     * @generated from protobuf enum value: LOCAL_BUNDLE_STATE_DEGRADED = 3;
+     */
+    DEGRADED = 3,
+    /**
+     * @generated from protobuf enum value: LOCAL_BUNDLE_STATE_INVALID = 4;
+     */
+    INVALID = 4,
+    /**
+     * @generated from protobuf enum value: LOCAL_BUNDLE_STATE_REMOVED = 5;
+     */
+    REMOVED = 5
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.LocalWarmState
+ */
+export enum LocalWarmState {
+    /**
+     * @generated from protobuf enum value: LOCAL_WARM_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_WARM_STATE_COLD = 1;
+     */
+    COLD = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_WARM_STATE_WARMING = 2;
+     */
+    WARMING = 2,
+    /**
+     * @generated from protobuf enum value: LOCAL_WARM_STATE_READY = 3;
+     */
+    READY = 3,
+    /**
+     * @generated from protobuf enum value: LOCAL_WARM_STATE_FAILED = 4;
+     */
+    FAILED = 4
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.LocalExecutionEntryKind
  */
 export enum LocalExecutionEntryKind {
@@ -1775,6 +1882,77 @@ class LocalArtifactSource$Type extends MessageType<LocalArtifactSource> {
  */
 export const LocalArtifactSource = new LocalArtifactSource$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class LocalHostRequirements$Type extends MessageType<LocalHostRequirements> {
+    constructor() {
+        super("nimi.runtime.v1.LocalHostRequirements", [
+            { no: 1, name: "gpu_required", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "python_runtime_required", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 3, name: "supported_platforms", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "required_backends", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalHostRequirements>): LocalHostRequirements {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.gpuRequired = false;
+        message.pythonRuntimeRequired = false;
+        message.supportedPlatforms = [];
+        message.requiredBackends = [];
+        if (value !== undefined)
+            reflectionMergePartial<LocalHostRequirements>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalHostRequirements): LocalHostRequirements {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool gpu_required */ 1:
+                    message.gpuRequired = reader.bool();
+                    break;
+                case /* bool python_runtime_required */ 2:
+                    message.pythonRuntimeRequired = reader.bool();
+                    break;
+                case /* repeated string supported_platforms */ 3:
+                    message.supportedPlatforms.push(reader.string());
+                    break;
+                case /* repeated string required_backends */ 4:
+                    message.requiredBackends.push(reader.string());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalHostRequirements, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool gpu_required = 1; */
+        if (message.gpuRequired !== false)
+            writer.tag(1, WireType.Varint).bool(message.gpuRequired);
+        /* bool python_runtime_required = 2; */
+        if (message.pythonRuntimeRequired !== false)
+            writer.tag(2, WireType.Varint).bool(message.pythonRuntimeRequired);
+        /* repeated string supported_platforms = 3; */
+        for (let i = 0; i < message.supportedPlatforms.length; i++)
+            writer.tag(3, WireType.LengthDelimited).string(message.supportedPlatforms[i]);
+        /* repeated string required_backends = 4; */
+        for (let i = 0; i < message.requiredBackends.length; i++)
+            writer.tag(4, WireType.LengthDelimited).string(message.requiredBackends[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalHostRequirements
+ */
+export const LocalHostRequirements = new LocalHostRequirements$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class LocalModelRecord$Type extends MessageType<LocalModelRecord> {
     constructor() {
         super("nimi.runtime.v1.LocalModelRecord", [
@@ -1792,7 +1970,15 @@ class LocalModelRecord$Type extends MessageType<LocalModelRecord> {
             { no: 12, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 13, name: "health_detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 14, name: "local_invoke_profile_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 15, name: "engine_config", kind: "message", T: () => Struct }
+            { no: 15, name: "engine_config", kind: "message", T: () => Struct },
+            { no: 16, name: "logical_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 17, name: "family", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 18, name: "artifact_roles", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 19, name: "preferred_engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 20, name: "fallback_engines", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 21, name: "bundle_state", kind: "enum", T: () => ["nimi.runtime.v1.LocalBundleState", LocalBundleState, "LOCAL_BUNDLE_STATE_"] },
+            { no: 22, name: "warm_state", kind: "enum", T: () => ["nimi.runtime.v1.LocalWarmState", LocalWarmState, "LOCAL_WARM_STATE_"] },
+            { no: 23, name: "host_requirements", kind: "message", T: () => LocalHostRequirements }
         ]);
     }
     create(value?: PartialMessage<LocalModelRecord>): LocalModelRecord {
@@ -1810,6 +1996,13 @@ class LocalModelRecord$Type extends MessageType<LocalModelRecord> {
         message.updatedAt = "";
         message.healthDetail = "";
         message.localInvokeProfileId = "";
+        message.logicalModelId = "";
+        message.family = "";
+        message.artifactRoles = [];
+        message.preferredEngine = "";
+        message.fallbackEngines = [];
+        message.bundleState = 0;
+        message.warmState = 0;
         if (value !== undefined)
             reflectionMergePartial<LocalModelRecord>(this, message, value);
         return message;
@@ -1863,6 +2056,30 @@ class LocalModelRecord$Type extends MessageType<LocalModelRecord> {
                     break;
                 case /* google.protobuf.Struct engine_config */ 15:
                     message.engineConfig = Struct.internalBinaryRead(reader, reader.uint32(), options, message.engineConfig);
+                    break;
+                case /* string logical_model_id */ 16:
+                    message.logicalModelId = reader.string();
+                    break;
+                case /* string family */ 17:
+                    message.family = reader.string();
+                    break;
+                case /* repeated string artifact_roles */ 18:
+                    message.artifactRoles.push(reader.string());
+                    break;
+                case /* string preferred_engine */ 19:
+                    message.preferredEngine = reader.string();
+                    break;
+                case /* repeated string fallback_engines */ 20:
+                    message.fallbackEngines.push(reader.string());
+                    break;
+                case /* nimi.runtime.v1.LocalBundleState bundle_state */ 21:
+                    message.bundleState = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.LocalWarmState warm_state */ 22:
+                    message.warmState = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.LocalHostRequirements host_requirements */ 23:
+                    message.hostRequirements = LocalHostRequirements.internalBinaryRead(reader, reader.uint32(), options, message.hostRequirements);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1937,6 +2154,30 @@ class LocalModelRecord$Type extends MessageType<LocalModelRecord> {
         /* google.protobuf.Struct engine_config = 15; */
         if (message.engineConfig)
             Struct.internalBinaryWrite(message.engineConfig, writer.tag(15, WireType.LengthDelimited).fork(), options).join();
+        /* string logical_model_id = 16; */
+        if (message.logicalModelId !== "")
+            writer.tag(16, WireType.LengthDelimited).string(message.logicalModelId);
+        /* string family = 17; */
+        if (message.family !== "")
+            writer.tag(17, WireType.LengthDelimited).string(message.family);
+        /* repeated string artifact_roles = 18; */
+        for (let i = 0; i < message.artifactRoles.length; i++)
+            writer.tag(18, WireType.LengthDelimited).string(message.artifactRoles[i]);
+        /* string preferred_engine = 19; */
+        if (message.preferredEngine !== "")
+            writer.tag(19, WireType.LengthDelimited).string(message.preferredEngine);
+        /* repeated string fallback_engines = 20; */
+        for (let i = 0; i < message.fallbackEngines.length; i++)
+            writer.tag(20, WireType.LengthDelimited).string(message.fallbackEngines[i]);
+        /* nimi.runtime.v1.LocalBundleState bundle_state = 21; */
+        if (message.bundleState !== 0)
+            writer.tag(21, WireType.Varint).int32(message.bundleState);
+        /* nimi.runtime.v1.LocalWarmState warm_state = 22; */
+        if (message.warmState !== 0)
+            writer.tag(22, WireType.Varint).int32(message.warmState);
+        /* nimi.runtime.v1.LocalHostRequirements host_requirements = 23; */
+        if (message.hostRequirements)
+            LocalHostRequirements.internalBinaryWrite(message.hostRequirements, writer.tag(23, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

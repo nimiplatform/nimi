@@ -14,6 +14,9 @@ import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { ReasonCode } from "./common";
+import { LocalHostRequirements } from "./local_runtime_types";
+import { LocalWarmState } from "./local_runtime_types";
+import { LocalBundleState } from "./local_runtime_types";
 import { Timestamp } from "../../google/protobuf/timestamp";
 /**
  * @generated from protobuf message nimi.runtime.v1.ModelCapabilityProfile
@@ -84,6 +87,38 @@ export interface ModelDescriptor {
      * @generated from protobuf field: nimi.runtime.v1.ModelCapabilityProfile capability_profile = 6
      */
     capabilityProfile?: ModelCapabilityProfile;
+    /**
+     * @generated from protobuf field: string logical_model_id = 7
+     */
+    logicalModelId: string;
+    /**
+     * @generated from protobuf field: string family = 8
+     */
+    family: string;
+    /**
+     * @generated from protobuf field: repeated string artifact_roles = 9
+     */
+    artifactRoles: string[];
+    /**
+     * @generated from protobuf field: string preferred_engine = 10
+     */
+    preferredEngine: string;
+    /**
+     * @generated from protobuf field: repeated string fallback_engines = 11
+     */
+    fallbackEngines: string[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalBundleState bundle_state = 12
+     */
+    bundleState: LocalBundleState;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalWarmState warm_state = 13
+     */
+    warmState: LocalWarmState;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalHostRequirements host_requirements = 14
+     */
+    hostRequirements?: LocalHostRequirements;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListModelsRequest
@@ -321,7 +356,15 @@ class ModelDescriptor$Type extends MessageType<ModelDescriptor> {
             { no: 3, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.ModelStatus", ModelStatus, "MODEL_STATUS_"] },
             { no: 4, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "last_health_at", kind: "message", T: () => Timestamp },
-            { no: 6, name: "capability_profile", kind: "message", T: () => ModelCapabilityProfile }
+            { no: 6, name: "capability_profile", kind: "message", T: () => ModelCapabilityProfile },
+            { no: 7, name: "logical_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "family", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "artifact_roles", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "preferred_engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "fallback_engines", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "bundle_state", kind: "enum", T: () => ["nimi.runtime.v1.LocalBundleState", LocalBundleState, "LOCAL_BUNDLE_STATE_"] },
+            { no: 13, name: "warm_state", kind: "enum", T: () => ["nimi.runtime.v1.LocalWarmState", LocalWarmState, "LOCAL_WARM_STATE_"] },
+            { no: 14, name: "host_requirements", kind: "message", T: () => LocalHostRequirements }
         ]);
     }
     create(value?: PartialMessage<ModelDescriptor>): ModelDescriptor {
@@ -330,6 +373,13 @@ class ModelDescriptor$Type extends MessageType<ModelDescriptor> {
         message.version = "";
         message.status = 0;
         message.capabilities = [];
+        message.logicalModelId = "";
+        message.family = "";
+        message.artifactRoles = [];
+        message.preferredEngine = "";
+        message.fallbackEngines = [];
+        message.bundleState = 0;
+        message.warmState = 0;
         if (value !== undefined)
             reflectionMergePartial<ModelDescriptor>(this, message, value);
         return message;
@@ -356,6 +406,30 @@ class ModelDescriptor$Type extends MessageType<ModelDescriptor> {
                     break;
                 case /* nimi.runtime.v1.ModelCapabilityProfile capability_profile */ 6:
                     message.capabilityProfile = ModelCapabilityProfile.internalBinaryRead(reader, reader.uint32(), options, message.capabilityProfile);
+                    break;
+                case /* string logical_model_id */ 7:
+                    message.logicalModelId = reader.string();
+                    break;
+                case /* string family */ 8:
+                    message.family = reader.string();
+                    break;
+                case /* repeated string artifact_roles */ 9:
+                    message.artifactRoles.push(reader.string());
+                    break;
+                case /* string preferred_engine */ 10:
+                    message.preferredEngine = reader.string();
+                    break;
+                case /* repeated string fallback_engines */ 11:
+                    message.fallbackEngines.push(reader.string());
+                    break;
+                case /* nimi.runtime.v1.LocalBundleState bundle_state */ 12:
+                    message.bundleState = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.LocalWarmState warm_state */ 13:
+                    message.warmState = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.LocalHostRequirements host_requirements */ 14:
+                    message.hostRequirements = LocalHostRequirements.internalBinaryRead(reader, reader.uint32(), options, message.hostRequirements);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -387,6 +461,30 @@ class ModelDescriptor$Type extends MessageType<ModelDescriptor> {
         /* nimi.runtime.v1.ModelCapabilityProfile capability_profile = 6; */
         if (message.capabilityProfile)
             ModelCapabilityProfile.internalBinaryWrite(message.capabilityProfile, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* string logical_model_id = 7; */
+        if (message.logicalModelId !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.logicalModelId);
+        /* string family = 8; */
+        if (message.family !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.family);
+        /* repeated string artifact_roles = 9; */
+        for (let i = 0; i < message.artifactRoles.length; i++)
+            writer.tag(9, WireType.LengthDelimited).string(message.artifactRoles[i]);
+        /* string preferred_engine = 10; */
+        if (message.preferredEngine !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.preferredEngine);
+        /* repeated string fallback_engines = 11; */
+        for (let i = 0; i < message.fallbackEngines.length; i++)
+            writer.tag(11, WireType.LengthDelimited).string(message.fallbackEngines[i]);
+        /* nimi.runtime.v1.LocalBundleState bundle_state = 12; */
+        if (message.bundleState !== 0)
+            writer.tag(12, WireType.Varint).int32(message.bundleState);
+        /* nimi.runtime.v1.LocalWarmState warm_state = 13; */
+        if (message.warmState !== 0)
+            writer.tag(13, WireType.Varint).int32(message.warmState);
+        /* nimi.runtime.v1.LocalHostRequirements host_requirements = 14; */
+        if (message.hostRequirements)
+            LocalHostRequirements.internalBinaryWrite(message.hostRequirements, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -4774,6 +4774,1123 @@ pub mod runtime_workflow_service_client {
         }
     }
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalModelSource {
+    #[prost(string, tag = "1")]
+    pub repo: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub revision: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalArtifactSource {
+    #[prost(string, tag = "1")]
+    pub repo: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub revision: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalHostRequirements {
+    #[prost(bool, tag = "1")]
+    pub gpu_required: bool,
+    #[prost(bool, tag = "2")]
+    pub python_runtime_required: bool,
+    #[prost(string, repeated, tag = "3")]
+    pub supported_platforms: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "4")]
+    pub required_backends: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalModelRecord {
+    #[prost(string, tag = "1")]
+    pub local_model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "3")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "4")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub entry: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub license: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "7")]
+    pub source: ::core::option::Option<LocalModelSource>,
+    #[prost(map = "string, string", tag = "8")]
+    pub hashes: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, tag = "9")]
+    pub endpoint: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalModelStatus", tag = "10")]
+    pub status: i32,
+    #[prost(string, tag = "11")]
+    pub installed_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub updated_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub health_detail: ::prost::alloc::string::String,
+    #[prost(string, tag = "14")]
+    pub local_invoke_profile_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "15")]
+    pub engine_config: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, tag = "16")]
+    pub logical_model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "17")]
+    pub family: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "18")]
+    pub artifact_roles: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "19")]
+    pub preferred_engine: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "20")]
+    pub fallback_engines: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(enumeration = "LocalBundleState", tag = "21")]
+    pub bundle_state: i32,
+    #[prost(enumeration = "LocalWarmState", tag = "22")]
+    pub warm_state: i32,
+    #[prost(message, optional, tag = "23")]
+    pub host_requirements: ::core::option::Option<LocalHostRequirements>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalModelHealth {
+    #[prost(string, tag = "1")]
+    pub local_model_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalModelStatus", tag = "2")]
+    pub status: i32,
+    #[prost(string, tag = "3")]
+    pub detail: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub endpoint: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalArtifactRecord {
+    #[prost(string, tag = "1")]
+    pub local_artifact_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub artifact_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalArtifactKind", tag = "3")]
+    pub kind: i32,
+    #[prost(string, tag = "4")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub entry: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "6")]
+    pub files: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "7")]
+    pub license: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "8")]
+    pub source: ::core::option::Option<LocalArtifactSource>,
+    #[prost(map = "string, string", tag = "9")]
+    pub hashes: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(enumeration = "LocalArtifactStatus", tag = "10")]
+    pub status: i32,
+    #[prost(string, tag = "11")]
+    pub installed_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub updated_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub health_detail: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "14")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalVerifiedModelDescriptor {
+    #[prost(string, tag = "1")]
+    pub template_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub install_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub repo: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub revision: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "8")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "9")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub entry: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "11")]
+    pub files: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "12")]
+    pub license: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "13")]
+    pub hashes: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, tag = "14")]
+    pub endpoint: ::prost::alloc::string::String,
+    #[prost(int32, tag = "15")]
+    pub file_count: i32,
+    #[prost(int64, tag = "16")]
+    pub total_size_bytes: i64,
+    #[prost(string, repeated, tag = "17")]
+    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "18")]
+    pub engine_config: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalVerifiedArtifactDescriptor {
+    #[prost(string, tag = "1")]
+    pub template_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub artifact_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalArtifactKind", tag = "5")]
+    pub kind: i32,
+    #[prost(string, tag = "6")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub entry: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "8")]
+    pub files: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "9")]
+    pub license: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub repo: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub revision: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "12")]
+    pub hashes: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(int32, tag = "13")]
+    pub file_count: i32,
+    #[prost(int64, tag = "14")]
+    pub total_size_bytes: i64,
+    #[prost(string, repeated, tag = "15")]
+    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "16")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalProviderHintsLocalAi {
+    #[prost(string, tag = "1")]
+    pub backend: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub preferred_adapter: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub whisper_variant: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub stablediffusion_pipeline: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub video_backend: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalProviderHintsNexa {
+    #[prost(string, tag = "1")]
+    pub backend: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub preferred_adapter: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub plugin_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub device_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub model_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub npu_mode: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub policy_gate: ::prost::alloc::string::String,
+    #[prost(bool, tag = "8")]
+    pub host_npu_ready: bool,
+    #[prost(bool, tag = "9")]
+    pub model_probe_has_npu_candidate: bool,
+    #[prost(bool, tag = "10")]
+    pub policy_gate_allows_npu: bool,
+    #[prost(bool, tag = "11")]
+    pub npu_usable: bool,
+    #[prost(string, tag = "12")]
+    pub gate_reason: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub gate_detail: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalProviderHintsNimiMedia {
+    #[prost(string, tag = "1")]
+    pub backend: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub preferred_adapter: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub family: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub image_driver: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub video_driver: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub device: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalProviderHints {
+    #[prost(message, optional, tag = "1")]
+    pub localai: ::core::option::Option<LocalProviderHintsLocalAi>,
+    #[prost(message, optional, tag = "2")]
+    pub nexa: ::core::option::Option<LocalProviderHintsNexa>,
+    #[prost(message, optional, tag = "3")]
+    pub nimi_media: ::core::option::Option<LocalProviderHintsNimiMedia>,
+    #[prost(map = "string, string", tag = "10")]
+    pub extra: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalCatalogModelDescriptor {
+    #[prost(string, tag = "1")]
+    pub item_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub source: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub repo: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub revision: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub template_id: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "9")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "10")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalEngineRuntimeMode", tag = "11")]
+    pub engine_runtime_mode: i32,
+    #[prost(string, tag = "12")]
+    pub install_kind: ::prost::alloc::string::String,
+    #[prost(bool, tag = "13")]
+    pub install_available: bool,
+    #[prost(string, tag = "14")]
+    pub endpoint: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "15")]
+    pub provider_hints: ::core::option::Option<LocalProviderHints>,
+    #[prost(string, tag = "16")]
+    pub entry: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "17")]
+    pub files: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "18")]
+    pub license: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "19")]
+    pub hashes: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, repeated, tag = "20")]
+    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(int64, tag = "21")]
+    pub downloads: i64,
+    #[prost(int64, tag = "22")]
+    pub likes: i64,
+    #[prost(string, tag = "23")]
+    pub last_modified: ::prost::alloc::string::String,
+    #[prost(bool, tag = "24")]
+    pub verified: bool,
+    #[prost(message, optional, tag = "25")]
+    pub engine_config: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalInstallPlanDescriptor {
+    #[prost(string, tag = "1")]
+    pub plan_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub item_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub source: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub template_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub repo: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub revision: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "8")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "9")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalEngineRuntimeMode", tag = "10")]
+    pub engine_runtime_mode: i32,
+    #[prost(string, tag = "11")]
+    pub install_kind: ::prost::alloc::string::String,
+    #[prost(bool, tag = "12")]
+    pub install_available: bool,
+    #[prost(string, tag = "13")]
+    pub endpoint: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "14")]
+    pub provider_hints: ::core::option::Option<LocalProviderHints>,
+    #[prost(string, tag = "15")]
+    pub entry: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "16")]
+    pub files: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "17")]
+    pub license: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "18")]
+    pub hashes: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, repeated, tag = "19")]
+    pub warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "20")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "21")]
+    pub engine_config: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalGpuProfile {
+    #[prost(bool, tag = "1")]
+    pub available: bool,
+    #[prost(string, tag = "2")]
+    pub vendor: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub model: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalPythonProfile {
+    #[prost(bool, tag = "1")]
+    pub available: bool,
+    #[prost(string, tag = "2")]
+    pub version: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalNpuProfile {
+    #[prost(bool, tag = "1")]
+    pub available: bool,
+    #[prost(bool, tag = "2")]
+    pub ready: bool,
+    #[prost(string, tag = "3")]
+    pub vendor: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub runtime: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub detail: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalPortAvailability {
+    #[prost(int32, tag = "1")]
+    pub port: i32,
+    #[prost(bool, tag = "2")]
+    pub available: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalDeviceProfile {
+    #[prost(string, tag = "1")]
+    pub os: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub arch: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub gpu: ::core::option::Option<LocalGpuProfile>,
+    #[prost(message, optional, tag = "4")]
+    pub python: ::core::option::Option<LocalPythonProfile>,
+    #[prost(message, optional, tag = "5")]
+    pub npu: ::core::option::Option<LocalNpuProfile>,
+    #[prost(int64, tag = "6")]
+    pub disk_free_bytes: i64,
+    #[prost(message, repeated, tag = "7")]
+    pub ports: ::prost::alloc::vec::Vec<LocalPortAvailability>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalExecutionOptionDescriptor {
+    #[prost(string, tag = "1")]
+    pub entry_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalExecutionEntryKind", tag = "2")]
+    pub kind: i32,
+    #[prost(string, tag = "3")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub repo: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub service_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub node_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub engine: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalExecutionAlternativeDescriptor {
+    #[prost(string, tag = "1")]
+    pub alternative_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub preferred_entry_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub options: ::prost::alloc::vec::Vec<LocalExecutionOptionDescriptor>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalExecutionDeclarationDescriptor {
+    #[prost(message, repeated, tag = "1")]
+    pub required: ::prost::alloc::vec::Vec<LocalExecutionOptionDescriptor>,
+    #[prost(message, repeated, tag = "2")]
+    pub optional: ::prost::alloc::vec::Vec<LocalExecutionOptionDescriptor>,
+    #[prost(message, repeated, tag = "3")]
+    pub alternatives: ::prost::alloc::vec::Vec<LocalExecutionAlternativeDescriptor>,
+    #[prost(map = "string, string", tag = "4")]
+    pub preferred: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalExecutionEntryDescriptor {
+    #[prost(string, tag = "1")]
+    pub entry_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalExecutionEntryKind", tag = "2")]
+    pub kind: i32,
+    #[prost(string, tag = "3")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(bool, tag = "4")]
+    pub required: bool,
+    #[prost(bool, tag = "5")]
+    pub selected: bool,
+    #[prost(bool, tag = "6")]
+    pub preferred: bool,
+    #[prost(string, tag = "7")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub repo: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub service_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub node_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "14")]
+    pub warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalPreflightDecision {
+    #[prost(string, tag = "1")]
+    pub entry_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub target: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub check: ::prost::alloc::string::String,
+    #[prost(bool, tag = "4")]
+    pub ok: bool,
+    #[prost(string, tag = "5")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub detail: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalExecutionSelectionRationale {
+    #[prost(string, tag = "1")]
+    pub entry_id: ::prost::alloc::string::String,
+    #[prost(bool, tag = "2")]
+    pub selected: bool,
+    #[prost(string, tag = "3")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub detail: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalExecutionPlan {
+    #[prost(string, tag = "1")]
+    pub plan_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub mod_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub device_profile: ::core::option::Option<LocalDeviceProfile>,
+    #[prost(message, repeated, tag = "5")]
+    pub entries: ::prost::alloc::vec::Vec<LocalExecutionEntryDescriptor>,
+    #[prost(message, repeated, tag = "6")]
+    pub selection_rationale: ::prost::alloc::vec::Vec<LocalExecutionSelectionRationale>,
+    #[prost(message, repeated, tag = "7")]
+    pub preflight_decisions: ::prost::alloc::vec::Vec<LocalPreflightDecision>,
+    #[prost(string, repeated, tag = "8")]
+    pub warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "9")]
+    pub reason_code: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalExecutionStageResult {
+    #[prost(string, tag = "1")]
+    pub stage: ::prost::alloc::string::String,
+    #[prost(bool, tag = "2")]
+    pub ok: bool,
+    #[prost(string, tag = "3")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub detail: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalServiceDescriptor {
+    #[prost(string, tag = "1")]
+    pub service_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub artifact_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub endpoint: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "6")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "7")]
+    pub local_model_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalServiceStatus", tag = "8")]
+    pub status: i32,
+    #[prost(string, tag = "9")]
+    pub detail: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub installed_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub updated_at: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalExecutionApplyResult {
+    #[prost(string, tag = "1")]
+    pub plan_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub mod_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub entries: ::prost::alloc::vec::Vec<LocalExecutionEntryDescriptor>,
+    #[prost(message, repeated, tag = "4")]
+    pub installed_models: ::prost::alloc::vec::Vec<LocalModelRecord>,
+    #[prost(message, repeated, tag = "5")]
+    pub services: ::prost::alloc::vec::Vec<LocalServiceDescriptor>,
+    #[prost(string, repeated, tag = "6")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "7")]
+    pub stage_results: ::prost::alloc::vec::Vec<LocalExecutionStageResult>,
+    #[prost(message, repeated, tag = "8")]
+    pub preflight_decisions: ::prost::alloc::vec::Vec<LocalPreflightDecision>,
+    #[prost(bool, tag = "9")]
+    pub rollback_applied: bool,
+    #[prost(string, repeated, tag = "10")]
+    pub warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "11")]
+    pub reason_code: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalProfileRequirementDescriptor {
+    #[prost(double, tag = "1")]
+    pub min_gpu_memory_gb: f64,
+    #[prost(int64, tag = "2")]
+    pub min_disk_bytes: i64,
+    #[prost(string, repeated, tag = "3")]
+    pub platforms: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "4")]
+    pub notes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalProfileEntryDescriptor {
+    #[prost(string, tag = "1")]
+    pub entry_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalProfileEntryKind", tag = "2")]
+    pub kind: i32,
+    #[prost(string, tag = "3")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(bool, optional, tag = "6")]
+    pub required: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "7")]
+    pub preferred: ::core::option::Option<bool>,
+    #[prost(string, tag = "8")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub repo: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub service_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub node_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub artifact_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalArtifactKind", tag = "14")]
+    pub artifact_kind: i32,
+    #[prost(string, tag = "15")]
+    pub template_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "16")]
+    pub revision: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "17")]
+    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalProfileDescriptor {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(bool, tag = "4")]
+    pub recommended: bool,
+    #[prost(string, repeated, tag = "5")]
+    pub consume_capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "6")]
+    pub entries: ::prost::alloc::vec::Vec<LocalProfileEntryDescriptor>,
+    #[prost(message, optional, tag = "7")]
+    pub requirements: ::core::option::Option<LocalProfileRequirementDescriptor>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalProfileArtifactPlanEntry {
+    #[prost(message, optional, tag = "1")]
+    pub entry: ::core::option::Option<LocalProfileEntryDescriptor>,
+    #[prost(bool, tag = "2")]
+    pub installed: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalProfileResolutionPlan {
+    #[prost(string, tag = "1")]
+    pub plan_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub mod_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub profile_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(bool, tag = "6")]
+    pub recommended: bool,
+    #[prost(string, repeated, tag = "7")]
+    pub consume_capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "8")]
+    pub requirements: ::core::option::Option<LocalProfileRequirementDescriptor>,
+    #[prost(message, optional, tag = "9")]
+    pub execution_plan: ::core::option::Option<LocalExecutionPlan>,
+    #[prost(message, repeated, tag = "10")]
+    pub artifact_entries: ::prost::alloc::vec::Vec<LocalProfileArtifactPlanEntry>,
+    #[prost(string, repeated, tag = "11")]
+    pub warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "12")]
+    pub reason_code: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalProfileApplyResult {
+    #[prost(string, tag = "1")]
+    pub plan_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub mod_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub profile_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub execution_result: ::core::option::Option<LocalExecutionApplyResult>,
+    #[prost(message, repeated, tag = "5")]
+    pub installed_artifacts: ::prost::alloc::vec::Vec<LocalArtifactRecord>,
+    #[prost(string, repeated, tag = "6")]
+    pub warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "7")]
+    pub reason_code: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalNodeDescriptor {
+    #[prost(string, tag = "1")]
+    pub node_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub service_id: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "4")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "5")]
+    pub provider: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub adapter: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub backend: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub backend_source: ::prost::alloc::string::String,
+    #[prost(bool, tag = "9")]
+    pub available: bool,
+    #[prost(string, tag = "10")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "11")]
+    pub provider_hints: ::core::option::Option<LocalProviderHints>,
+    #[prost(string, tag = "12")]
+    pub policy_gate: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub api_path: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "14")]
+    pub input_schema: ::core::option::Option<::prost_types::Struct>,
+    #[prost(message, optional, tag = "15")]
+    pub output_schema: ::core::option::Option<::prost_types::Struct>,
+    #[prost(bool, tag = "16")]
+    pub read_only: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAuditEvent {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub event_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub occurred_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub source: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub modality: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub detail: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub local_model_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "10")]
+    pub payload: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, tag = "11")]
+    pub trace_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub domain: ::prost::alloc::string::String,
+    #[prost(string, tag = "14")]
+    pub operation: ::prost::alloc::string::String,
+    #[prost(string, tag = "15")]
+    pub subject_user_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAuditTimeRange {
+    #[prost(string, tag = "1")]
+    pub from: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub to: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalModelStatus {
+    Unspecified = 0,
+    Installed = 1,
+    Active = 2,
+    Unhealthy = 3,
+    Removed = 4,
+}
+impl LocalModelStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_MODEL_STATUS_UNSPECIFIED",
+            Self::Installed => "LOCAL_MODEL_STATUS_INSTALLED",
+            Self::Active => "LOCAL_MODEL_STATUS_ACTIVE",
+            Self::Unhealthy => "LOCAL_MODEL_STATUS_UNHEALTHY",
+            Self::Removed => "LOCAL_MODEL_STATUS_REMOVED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_MODEL_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_MODEL_STATUS_INSTALLED" => Some(Self::Installed),
+            "LOCAL_MODEL_STATUS_ACTIVE" => Some(Self::Active),
+            "LOCAL_MODEL_STATUS_UNHEALTHY" => Some(Self::Unhealthy),
+            "LOCAL_MODEL_STATUS_REMOVED" => Some(Self::Removed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalArtifactKind {
+    Unspecified = 0,
+    Vae = 1,
+    Llm = 2,
+    Clip = 3,
+    Controlnet = 4,
+    Lora = 5,
+    Auxiliary = 6,
+}
+impl LocalArtifactKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_ARTIFACT_KIND_UNSPECIFIED",
+            Self::Vae => "LOCAL_ARTIFACT_KIND_VAE",
+            Self::Llm => "LOCAL_ARTIFACT_KIND_LLM",
+            Self::Clip => "LOCAL_ARTIFACT_KIND_CLIP",
+            Self::Controlnet => "LOCAL_ARTIFACT_KIND_CONTROLNET",
+            Self::Lora => "LOCAL_ARTIFACT_KIND_LORA",
+            Self::Auxiliary => "LOCAL_ARTIFACT_KIND_AUXILIARY",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_ARTIFACT_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_ARTIFACT_KIND_VAE" => Some(Self::Vae),
+            "LOCAL_ARTIFACT_KIND_LLM" => Some(Self::Llm),
+            "LOCAL_ARTIFACT_KIND_CLIP" => Some(Self::Clip),
+            "LOCAL_ARTIFACT_KIND_CONTROLNET" => Some(Self::Controlnet),
+            "LOCAL_ARTIFACT_KIND_LORA" => Some(Self::Lora),
+            "LOCAL_ARTIFACT_KIND_AUXILIARY" => Some(Self::Auxiliary),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalArtifactStatus {
+    Unspecified = 0,
+    Installed = 1,
+    Active = 2,
+    Unhealthy = 3,
+    Removed = 4,
+}
+impl LocalArtifactStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_ARTIFACT_STATUS_UNSPECIFIED",
+            Self::Installed => "LOCAL_ARTIFACT_STATUS_INSTALLED",
+            Self::Active => "LOCAL_ARTIFACT_STATUS_ACTIVE",
+            Self::Unhealthy => "LOCAL_ARTIFACT_STATUS_UNHEALTHY",
+            Self::Removed => "LOCAL_ARTIFACT_STATUS_REMOVED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_ARTIFACT_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_ARTIFACT_STATUS_INSTALLED" => Some(Self::Installed),
+            "LOCAL_ARTIFACT_STATUS_ACTIVE" => Some(Self::Active),
+            "LOCAL_ARTIFACT_STATUS_UNHEALTHY" => Some(Self::Unhealthy),
+            "LOCAL_ARTIFACT_STATUS_REMOVED" => Some(Self::Removed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalServiceStatus {
+    Unspecified = 0,
+    Installed = 1,
+    Active = 2,
+    Unhealthy = 3,
+    Removed = 4,
+}
+impl LocalServiceStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_SERVICE_STATUS_UNSPECIFIED",
+            Self::Installed => "LOCAL_SERVICE_STATUS_INSTALLED",
+            Self::Active => "LOCAL_SERVICE_STATUS_ACTIVE",
+            Self::Unhealthy => "LOCAL_SERVICE_STATUS_UNHEALTHY",
+            Self::Removed => "LOCAL_SERVICE_STATUS_REMOVED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_SERVICE_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_SERVICE_STATUS_INSTALLED" => Some(Self::Installed),
+            "LOCAL_SERVICE_STATUS_ACTIVE" => Some(Self::Active),
+            "LOCAL_SERVICE_STATUS_UNHEALTHY" => Some(Self::Unhealthy),
+            "LOCAL_SERVICE_STATUS_REMOVED" => Some(Self::Removed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalEngineRuntimeMode {
+    Unspecified = 0,
+    Supervised = 1,
+    AttachedEndpoint = 2,
+}
+impl LocalEngineRuntimeMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED",
+            Self::Supervised => "LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED",
+            Self::AttachedEndpoint => "LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED" => Some(Self::Supervised),
+            "LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT" => Some(Self::AttachedEndpoint),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalBundleState {
+    Unspecified = 0,
+    Resolving = 1,
+    Ready = 2,
+    Degraded = 3,
+    Invalid = 4,
+    Removed = 5,
+}
+impl LocalBundleState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_BUNDLE_STATE_UNSPECIFIED",
+            Self::Resolving => "LOCAL_BUNDLE_STATE_RESOLVING",
+            Self::Ready => "LOCAL_BUNDLE_STATE_READY",
+            Self::Degraded => "LOCAL_BUNDLE_STATE_DEGRADED",
+            Self::Invalid => "LOCAL_BUNDLE_STATE_INVALID",
+            Self::Removed => "LOCAL_BUNDLE_STATE_REMOVED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_BUNDLE_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_BUNDLE_STATE_RESOLVING" => Some(Self::Resolving),
+            "LOCAL_BUNDLE_STATE_READY" => Some(Self::Ready),
+            "LOCAL_BUNDLE_STATE_DEGRADED" => Some(Self::Degraded),
+            "LOCAL_BUNDLE_STATE_INVALID" => Some(Self::Invalid),
+            "LOCAL_BUNDLE_STATE_REMOVED" => Some(Self::Removed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalWarmState {
+    Unspecified = 0,
+    Cold = 1,
+    Warming = 2,
+    Ready = 3,
+    Failed = 4,
+}
+impl LocalWarmState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_WARM_STATE_UNSPECIFIED",
+            Self::Cold => "LOCAL_WARM_STATE_COLD",
+            Self::Warming => "LOCAL_WARM_STATE_WARMING",
+            Self::Ready => "LOCAL_WARM_STATE_READY",
+            Self::Failed => "LOCAL_WARM_STATE_FAILED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_WARM_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_WARM_STATE_COLD" => Some(Self::Cold),
+            "LOCAL_WARM_STATE_WARMING" => Some(Self::Warming),
+            "LOCAL_WARM_STATE_READY" => Some(Self::Ready),
+            "LOCAL_WARM_STATE_FAILED" => Some(Self::Failed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalExecutionEntryKind {
+    Unspecified = 0,
+    Model = 1,
+    Service = 2,
+    Node = 3,
+}
+impl LocalExecutionEntryKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_EXECUTION_ENTRY_KIND_UNSPECIFIED",
+            Self::Model => "LOCAL_EXECUTION_ENTRY_KIND_MODEL",
+            Self::Service => "LOCAL_EXECUTION_ENTRY_KIND_SERVICE",
+            Self::Node => "LOCAL_EXECUTION_ENTRY_KIND_NODE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_EXECUTION_ENTRY_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_EXECUTION_ENTRY_KIND_MODEL" => Some(Self::Model),
+            "LOCAL_EXECUTION_ENTRY_KIND_SERVICE" => Some(Self::Service),
+            "LOCAL_EXECUTION_ENTRY_KIND_NODE" => Some(Self::Node),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalProfileEntryKind {
+    Unspecified = 0,
+    Model = 1,
+    Artifact = 2,
+    Service = 3,
+    Node = 4,
+}
+impl LocalProfileEntryKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_PROFILE_ENTRY_KIND_UNSPECIFIED",
+            Self::Model => "LOCAL_PROFILE_ENTRY_KIND_MODEL",
+            Self::Artifact => "LOCAL_PROFILE_ENTRY_KIND_ARTIFACT",
+            Self::Service => "LOCAL_PROFILE_ENTRY_KIND_SERVICE",
+            Self::Node => "LOCAL_PROFILE_ENTRY_KIND_NODE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_PROFILE_ENTRY_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_PROFILE_ENTRY_KIND_MODEL" => Some(Self::Model),
+            "LOCAL_PROFILE_ENTRY_KIND_ARTIFACT" => Some(Self::Artifact),
+            "LOCAL_PROFILE_ENTRY_KIND_SERVICE" => Some(Self::Service),
+            "LOCAL_PROFILE_ENTRY_KIND_NODE" => Some(Self::Node),
+            _ => None,
+        }
+    }
+}
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ModelCapabilityProfile {
     #[prost(bool, tag = "1")]
@@ -4809,6 +5926,22 @@ pub struct ModelDescriptor {
     pub last_health_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "6")]
     pub capability_profile: ::core::option::Option<ModelCapabilityProfile>,
+    #[prost(string, tag = "7")]
+    pub logical_model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub family: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "9")]
+    pub artifact_roles: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "10")]
+    pub preferred_engine: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "11")]
+    pub fallback_engines: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(enumeration = "LocalBundleState", tag = "12")]
+    pub bundle_state: i32,
+    #[prost(enumeration = "LocalWarmState", tag = "13")]
+    pub warm_state: i32,
+    #[prost(message, optional, tag = "14")]
+    pub host_requirements: ::core::option::Option<LocalHostRequirements>,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListModelsRequest {}
