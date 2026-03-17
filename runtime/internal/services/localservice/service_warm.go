@@ -105,14 +105,14 @@ func normalizeWarmResolvedModelID(modelID string) string {
 	normalized := strings.TrimSpace(modelID)
 	lower := strings.ToLower(normalized)
 	switch {
-	case strings.HasPrefix(lower, "localai/"):
-		return strings.TrimSpace(normalized[len("localai/"):])
-	case strings.HasPrefix(lower, "nexa/"):
-		return strings.TrimSpace(normalized[len("nexa/"):])
+	case strings.HasPrefix(lower, "llama/"):
+		return strings.TrimSpace(normalized[len("llama/"):])
+	case strings.HasPrefix(lower, "media.diffusers/"):
+		return strings.TrimSpace(normalized[len("media.diffusers/"):])
+	case strings.HasPrefix(lower, "media/"):
+		return strings.TrimSpace(normalized[len("media/"):])
 	case strings.HasPrefix(lower, "sidecar/"):
 		return strings.TrimSpace(normalized[len("sidecar/"):])
-	case strings.HasPrefix(lower, "localsidecar/"):
-		return strings.TrimSpace(normalized[len("localsidecar/"):])
 	case strings.HasPrefix(lower, "local/"):
 		return strings.TrimSpace(normalized[len("local/"):])
 	default:

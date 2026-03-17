@@ -2,7 +2,7 @@ package localrouting
 
 import "strings"
 
-var allProviders = []string{"localai", "nexa", "nimi_media", "sidecar"}
+var allProviders = []string{"llama", "media", "media.diffusers", "sidecar"}
 
 func NormalizeCapability(capability string) string {
 	switch strings.ToLower(strings.TrimSpace(capability)) {
@@ -10,14 +10,22 @@ func NormalizeCapability(capability string) string {
 		return "text.generate"
 	case "embedding", "embed", "text.embed":
 		return "text.embed"
+	case "image.understand":
+		return "image.understand"
 	case "image", "image.generate":
 		return "image.generate"
+	case "image.edit":
+		return "image.edit"
 	case "video", "video.generate":
 		return "video.generate"
+	case "i2v":
+		return "i2v"
 	case "tts", "speech", "audio.synthesize":
 		return "audio.synthesize"
 	case "stt", "transcription", "audio.transcribe":
 		return "audio.transcribe"
+	case "audio.understand":
+		return "audio.understand"
 	case "music", "music.generate":
 		return "music.generate"
 	default:
@@ -26,17 +34,12 @@ func NormalizeCapability(capability string) string {
 }
 
 func NormalizeProvider(provider string) string {
-	switch strings.ToLower(strings.TrimSpace(provider)) {
-	case "localsidecar":
-		return "sidecar"
-	default:
-		return strings.ToLower(strings.TrimSpace(provider))
-	}
+	return strings.ToLower(strings.TrimSpace(provider))
 }
 
 func IsKnownProvider(provider string) bool {
 	switch NormalizeProvider(provider) {
-	case "localai", "nexa", "nimi_media", "sidecar":
+	case "llama", "media", "media.diffusers", "sidecar":
 		return true
 	default:
 		return false
@@ -45,19 +48,14 @@ func IsKnownProvider(provider string) bool {
 
 func ProviderSupportsCapability(provider string, capability string) bool {
 	switch NormalizeProvider(provider) {
-	case "localai":
+	case "llama":
 		switch NormalizeCapability(capability) {
-		case "text.generate", "text.embed", "image.generate", "video.generate", "audio.synthesize", "audio.transcribe", "music.generate":
+		case "text.generate", "text.embed", "image.understand", "audio.understand":
 			return true
 		}
-	case "nexa":
+	case "media", "media.diffusers":
 		switch NormalizeCapability(capability) {
-		case "text.generate", "text.embed", "audio.synthesize", "audio.transcribe":
-			return true
-		}
-	case "nimi_media":
-		switch NormalizeCapability(capability) {
-		case "image.generate", "video.generate":
+		case "image.generate", "image.edit", "video.generate", "i2v":
 			return true
 		}
 	case "sidecar":
@@ -70,27 +68,16 @@ func PreferenceOrder(goos string, capability string) []string {
 	normalizedGOOS := strings.ToLower(strings.TrimSpace(goos))
 	normalizedCapability := NormalizeCapability(capability)
 	switch normalizedGOOS {
-	case "windows":
+	default:
 		switch normalizedCapability {
-		case "image.generate", "video.generate":
-			return supportedProvidersInOrder(normalizedCapability, "nimi_media")
-		case "text.generate", "text.embed", "audio.synthesize", "audio.transcribe":
-			return supportedProvidersInOrder(normalizedCapability, "nexa")
+		case "image.generate", "image.edit", "video.generate", "i2v":
+			return supportedProvidersInOrder(normalizedCapability, "media", "media.diffusers")
+		case "text.generate", "text.embed", "image.understand", "audio.understand":
+			return supportedProvidersInOrder(normalizedCapability, "llama")
 		case "music.generate":
 			return supportedProvidersInOrder(normalizedCapability, "sidecar")
 		default:
-			return supportedProvidersInOrder(normalizedCapability, "localai", "sidecar", "nexa", "nimi_media")
-		}
-	default:
-		switch normalizedCapability {
-		case "image.generate", "video.generate":
-			return supportedProvidersInOrder(normalizedCapability, "localai", "nimi_media", "nexa", "sidecar")
-		case "text.generate", "text.embed", "audio.synthesize", "audio.transcribe":
-			return supportedProvidersInOrder(normalizedCapability, "localai", "nexa", "sidecar", "nimi_media")
-		case "music.generate":
-			return supportedProvidersInOrder(normalizedCapability, "sidecar", "localai", "nexa")
-		default:
-			return supportedProvidersInOrder(normalizedCapability, "localai", "sidecar", "nexa", "nimi_media")
+			return supportedProvidersInOrder(normalizedCapability, "llama", "media", "media.diffusers", "sidecar")
 		}
 	}
 }

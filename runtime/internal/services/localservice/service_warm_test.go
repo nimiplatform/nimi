@@ -34,7 +34,7 @@ func TestWarmLocalModelLoadsOnceAndCachesReadyState(t *testing.T) {
 	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/qwen",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 		Endpoint:     server.URL + "/v1",
 	})
 	if err != nil {
@@ -80,7 +80,7 @@ func TestWarmLocalModelRejectsUnsupportedCapability(t *testing.T) {
 	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/image-only",
 		Capabilities: []string{"image"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 
 	_, err := svc.WarmLocalModel(context.Background(), &runtimev1.WarmLocalModelRequest{
@@ -117,7 +117,7 @@ func TestWarmLocalModelInstalledProbeFailureReturnsUnavailableWithoutInvalidTran
 	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/qwen",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 		Endpoint:     server.URL + "/v1",
 	})
 	if err != nil {
@@ -158,7 +158,7 @@ func TestWarmLocalModelUnhealthyProbeFailureReturnsUnavailableWithoutInvalidTran
 	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/qwen",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 		Endpoint:     "http://127.0.0.1:1234/v1",
 	})
 	if err != nil {
@@ -228,7 +228,7 @@ func TestWarmLocalModelRetriesManagedProbeUntilReady(t *testing.T) {
 	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/qwen",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 		Endpoint:     server.URL + "/v1",
 	})
 	if err != nil {

@@ -1,80 +1,64 @@
 version: 1
 routes:
-  - provider: nexa
+  - provider: llama
     capability: chat
-    adapter: nexa_native_adapter
+    adapter: llama_native_adapter
     source_rule: K-LOCAL-017
-  - provider: nexa
+  - provider: llama
     capability: text.generate
-    adapter: nexa_native_adapter
+    adapter: llama_native_adapter
     source_rule: K-LOCAL-017
-  - provider: nexa
+  - provider: llama
     capability: embedding
-    adapter: nexa_native_adapter
+    adapter: llama_native_adapter
     source_rule: K-LOCAL-017
-  - provider: nexa
+  - provider: llama
     capability: embed
-    adapter: nexa_native_adapter
+    adapter: llama_native_adapter
     source_rule: K-LOCAL-017
-  - provider: nexa
+  - provider: llama
     capability: text.embed
-    adapter: nexa_native_adapter
+    adapter: llama_native_adapter
     source_rule: K-LOCAL-017
-  - provider: nexa
-    capability: tts
-    adapter: nexa_native_adapter
+  - provider: llama
+    capability: image.understand
+    adapter: llama_native_adapter
     source_rule: K-LOCAL-017
-  - provider: nexa
-    capability: speech
-    adapter: nexa_native_adapter
+  - provider: llama
+    capability: audio.understand
+    adapter: llama_native_adapter
     source_rule: K-LOCAL-017
-  - provider: nexa
-    capability: audio.synthesize
-    adapter: nexa_native_adapter
+  - provider: media
+    capability: image.generate
+    adapter: media_native_adapter
     source_rule: K-LOCAL-017
-  - provider: nexa
-    capability: stt
-    adapter: nexa_native_adapter
+  - provider: media
+    capability: image.edit
+    adapter: media_native_adapter
     source_rule: K-LOCAL-017
-  - provider: nexa
-    capability: transcription
-    adapter: nexa_native_adapter
+  - provider: media
+    capability: video.generate
+    adapter: media_native_adapter
     source_rule: K-LOCAL-017
-  - provider: nexa
-    capability: audio.transcribe
-    adapter: nexa_native_adapter
+  - provider: media
+    capability: i2v
+    adapter: media_native_adapter
     source_rule: K-LOCAL-017
-  - provider: localai
-    capability: image
-    adapter: localai_native_adapter
+  - provider: media.diffusers
+    capability: image.generate
+    adapter: media_diffusers_adapter
     source_rule: K-LOCAL-017
-  - provider: localai
-    capability: video
-    adapter: localai_native_adapter
+  - provider: media.diffusers
+    capability: image.edit
+    adapter: media_diffusers_adapter
     source_rule: K-LOCAL-017
-  - provider: localai
-    capability: tts
-    adapter: localai_native_adapter
+  - provider: media.diffusers
+    capability: video.generate
+    adapter: media_diffusers_adapter
     source_rule: K-LOCAL-017
-  - provider: localai
-    capability: stt
-    adapter: localai_native_adapter
-    source_rule: K-LOCAL-017
-  - provider: localai
-    capability: music
-    adapter: localai_music_adapter
-    source_rule: K-LOCAL-017
-  - provider: localai
-    capability: music.generate
-    adapter: localai_music_adapter
-    source_rule: K-LOCAL-017
-  - provider: nimi_media
-    capability: image
-    adapter: nimi_media_native_adapter
-    source_rule: K-LOCAL-017
-  - provider: nimi_media
-    capability: video
-    adapter: nimi_media_native_adapter
+  - provider: media.diffusers
+    capability: i2v
+    adapter: media_diffusers_adapter
     source_rule: K-LOCAL-017
   - provider: sidecar
     capability: music

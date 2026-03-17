@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -87,7 +88,7 @@ func (a *ServiceAdapter) EngineStatus(engineName string) (EngineInfoDTO, error) 
 
 func supervisorInfoToDTO(info SupervisorInfo) EngineInfoDTO {
 	dto := EngineInfoDTO{
-		Engine:              string(info.Kind),
+		Engine:              publicEngineName(info.Kind),
 		Version:             info.Version,
 		Endpoint:            info.Endpoint,
 		Port:                info.Port,
@@ -117,10 +118,10 @@ func resolveEngineConfig(engineName string, version string, port int) (EngineCon
 	switch kind {
 	case EngineLocalAI:
 		cfg = DefaultLocalAIConfig()
-	case EngineNexa:
-		cfg = DefaultNexaConfig()
 	case EngineNimiMedia:
 		cfg = DefaultNimiMediaConfig()
+	case EngineKind("sidecar"):
+		return EngineConfig{}, fmt.Errorf("engine %q is not yet supported for supervised lifecycle", engineName)
 	default:
 		return EngineConfig{}, fmt.Errorf("unknown engine: %s", engineName)
 	}
@@ -135,14 +136,27 @@ func resolveEngineConfig(engineName string, version string, port int) (EngineCon
 }
 
 func parseEngineKind(name string) (EngineKind, error) {
-	switch EngineKind(name) {
-	case EngineLocalAI:
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "llama":
 		return EngineLocalAI, nil
-	case EngineNexa:
-		return EngineNexa, nil
-	case EngineNimiMedia:
+	case "media", "media.diffusers":
 		return EngineNimiMedia, nil
+	case "sidecar":
+		return EngineKind("sidecar"), nil
 	default:
 		return "", fmt.Errorf("unknown engine kind: %q", name)
+	}
+}
+
+func publicEngineName(kind EngineKind) string {
+	switch kind {
+	case EngineLocalAI:
+		return "llama"
+	case EngineNimiMedia:
+		return "media"
+	case EngineKind("sidecar"):
+		return "sidecar"
+	default:
+		return string(kind)
 	}
 }

@@ -74,7 +74,7 @@ func routePolicyLabel(route runtimev1.RoutePolicy) string {
 
 func isLocalOnboardingModel(modelID string) bool {
 	lower := strings.ToLower(strings.TrimSpace(modelID))
-	return strings.HasPrefix(lower, "local/") || strings.HasPrefix(lower, "localai/") || strings.HasPrefix(lower, "nexa/")
+	return strings.HasPrefix(lower, "local/") || strings.HasPrefix(lower, "llama/") || strings.HasPrefix(lower, "media/") || strings.HasPrefix(lower, "sidecar/")
 }
 
 func resolveProviderEndpoint(providerName string, target config.RuntimeFileTarget) string {

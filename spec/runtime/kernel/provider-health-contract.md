@@ -27,9 +27,8 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 
 | 探测名称 | Base URL 环境变量 | API Key 环境变量 |
 |---|---|---|
-| `local` | `NIMI_RUNTIME_LOCAL_AI_BASE_URL` | `NIMI_RUNTIME_LOCAL_AI_API_KEY` |
-| `local-nexa` | `NIMI_RUNTIME_LOCAL_NEXA_BASE_URL` | `NIMI_RUNTIME_LOCAL_NEXA_API_KEY` |
-| `local-nimi-media` | `NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL` | `NIMI_RUNTIME_LOCAL_NIMI_MEDIA_API_KEY` |
+| `local` | `NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL` | `NIMI_RUNTIME_LOCAL_LLAMA_API_KEY` |
+| `local-media` | `NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL` | `NIMI_RUNTIME_LOCAL_MEDIA_API_KEY` |
 | `local-sidecar` | `NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL` | `NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY` |
 | `cloud-nimillm` | `NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL` | `NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY` |
 | `cloud-dashscope` | `NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL` | `NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY` |
@@ -46,9 +45,9 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 
 本地 provider 补充：
 
-- `local-nimi-media` 在 `Windows x64 + NVIDIA CUDA` 之外不得由 runtime 自动注入默认 loopback probe target。
-- 当 host 仅支持 `attached_only` 时，只有调用方显式配置的 `NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL` 才参与 provider health 探测。
-- `local-nimi-media` 的 `/healthz` 必须只在依赖、设备、默认模型与默认管线全部 ready 后返回 `2xx`；不得使用静态 `"ok"` 健康响应伪装就绪。
+- `local-media` 在 `supported_supervised` host 之外不得由 runtime 自动注入默认 loopback probe target。
+- 当 host 仅支持 `attached_only` 时，只有调用方显式配置的 `NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL` 才参与 provider health 探测。
+- `local-media` 的 `/healthz` 必须只在依赖、设备、默认模型与默认管线全部 ready 后返回 `2xx`；不得使用静态 `"ok"` 健康响应伪装就绪。
 
 ## K-PROV-003 探测间隔与策略
 
@@ -57,7 +56,7 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 - **基础探测间隔**：默认 8s（`NIMI_RUNTIME_AI_HEALTH_INTERVAL` 可覆盖）。
 - **HTTP 超时**：默认 30s（`NIMI_RUNTIME_AI_HTTP_TIMEOUT` 可覆盖）。
 - **探测路径**：按序尝试 `/healthz` → `/v1/models`，任一路径返回 `2xx` 即视为健康；`401`/`403`/`429`（server 可达但配置/限流问题）亦视为健康；`404` 触发下一探测路径；其余 `4xx` 与 `5xx` 视为不健康。
-- `local-nimi-media` 为例外：canonical provider probe 固定为 `/healthz` → `/v1/catalog`，不得回退 `/v1/models`。
+- `local-media` 为例外：canonical provider probe 固定为 `/healthz` → `/v1/models`；不得回退 legacy `/v1/catalog`。
   - **设计取舍（K-PROV-003）**：`401`/`403` 标记为 healthy 意味着 API key 无效或权限不足的 provider 在健康面板显示"健康"，但该 provider 的所有 AI consume 请求会失败并返回 `UNAVAILABLE + AI_PROVIDER_UNAVAILABLE`（K-ERR-005）。此为有意设计：健康探测回答的是"server 是否可达"，而非"凭据是否有效"。两个信号服务不同用途——健康面板用于网络连通性诊断，consume 错误用于凭据配置诊断。Desktop UI 应在 provider 显示 healthy 但 consume 持续返回 `AI_PROVIDER_UNAVAILABLE` 时，引导用户检查 API key 配置而非网络连通性。
 - **探测时机**：daemon 启动后立即执行首次探测，之后按间隔周期性执行。
 - **暂停条件**：daemon 处于 `STOPPING`/`STOPPED` 时跳过探测。
@@ -72,7 +71,7 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 
 配置文件中的 provider 名称仅允许 canonical 值：
 
-- `local`、`nexa`、`nimi_media`、`sidecar`
+- `local`、`llama`、`media`、`sidecar`
 - `nimillm`
 - `dashscope`
 - `volcengine`、`volcengine_openspeech`
@@ -102,9 +101,8 @@ Gemini 默认：当配置了 `NIMI_RUNTIME_CLOUD_GEMINI_API_KEY` 且未配置 Ba
 
 | 探测目标 | Provider Type | 说明 |
 |---|---|---|
-| `local` | `local` | LocalAI 引擎 |
-| `local-nexa` | `local` | Nexa 引擎 |
-| `local-nimi-media` | `local` | Nimi Media 引擎 |
+| `local` | `local` | llama 引擎 |
+| `local-media` | `local` | media 引擎 |
 | `local-sidecar` | `local` | Attached music sidecar |
 | `cloud-nimillm` | `nimillm` | NimiLLM 代理层 |
 | `cloud-dashscope` | `dashscope` | 阿里云 DashScope |

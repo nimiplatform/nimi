@@ -24,7 +24,7 @@ func TestExecuteScenarioTextEmbedSuccess(t *testing.T) {
 	defer server.Close()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+		LocalProviders: map[string]nimillm.ProviderCredentials{"llama": {BaseURL: server.URL}},
 	})
 
 	resp, err := svc.ExecuteScenario(context.Background(), &runtimev1.ExecuteScenarioRequest{

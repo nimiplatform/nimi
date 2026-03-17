@@ -66,9 +66,8 @@ func TestAppendProviderHealthAuditNoTransitionNoEvent(t *testing.T) {
 }
 
 func TestConfiguredAIProviderTargetsIncludesExtendedProviders(t *testing.T) {
-	t.Setenv("NIMI_RUNTIME_LOCAL_AI_BASE_URL", "http://127.0.0.1:1234/v1")
-	t.Setenv("NIMI_RUNTIME_LOCAL_NEXA_BASE_URL", "http://127.0.0.1:2234/v1")
-	t.Setenv("NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL", "http://127.0.0.1:2834/v1")
+	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:1234/v1")
+	t.Setenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", "http://127.0.0.1:2834/v1")
 	t.Setenv("NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL", "http://127.0.0.1:3234")
 	t.Setenv("NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL", "http://127.0.0.1:3234/v1")
 	t.Setenv("NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL", "http://127.0.0.1:4234")
@@ -84,8 +83,7 @@ func TestConfiguredAIProviderTargetsIncludesExtendedProviders(t *testing.T) {
 	}
 	required := []string{
 		"local",
-		"local-nexa",
-		"local-nimi-media",
+		"local-media",
 		"local-sidecar",
 		"cloud-nimillm",
 		"cloud-volcengine-openspeech",
@@ -122,9 +120,9 @@ func TestResolveProbeEndpointWithCatalogPath(t *testing.T) {
 	}
 }
 
-func TestProviderProbePathsUsesCanonicalNimiMediaCatalog(t *testing.T) {
-	got := providerProbePaths("local-nimi-media")
-	if len(got) != 2 || got[0] != "/healthz" || got[1] != "/v1/catalog" {
-		t.Fatalf("unexpected nimi_media probe paths: %v", got)
+func TestProviderProbePathsUsesCanonicalMediaCatalog(t *testing.T) {
+	got := providerProbePaths("local-media")
+	if len(got) != 2 || got[0] != "/healthz" || got[1] != "/v1/models" {
+		t.Fatalf("unexpected media probe paths: %v", got)
 	}
 }

@@ -6,6 +6,7 @@ option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtime
 
 import "google/protobuf/timestamp.proto";
 import "runtime/v1/common.proto";
+import "runtime/v1/local_runtime_types.proto";
 
 enum ModelStatus {
   MODEL_STATUS_UNSPECIFIED = 0;
@@ -34,6 +35,14 @@ message ModelDescriptor {
   repeated string capabilities = 4;
   google.protobuf.Timestamp last_health_at = 5;
   ModelCapabilityProfile capability_profile = 6;
+  string logical_model_id = 7;
+  string family = 8;
+  repeated string artifact_roles = 9;
+  string preferred_engine = 10;
+  repeated string fallback_engines = 11;
+  LocalBundleState bundle_state = 12;
+  LocalWarmState warm_state = 13;
+  LocalHostRequirements host_requirements = 14;
 }
 
 message ListModelsRequest {}

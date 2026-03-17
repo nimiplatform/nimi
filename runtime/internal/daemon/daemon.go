@@ -272,9 +272,8 @@ func configuredAIProviderTargets() []aiProviderTarget {
 		})
 	}
 
-	add("local", os.Getenv("NIMI_RUNTIME_LOCAL_AI_BASE_URL"), os.Getenv("NIMI_RUNTIME_LOCAL_AI_API_KEY"))
-	add("local-nexa", os.Getenv("NIMI_RUNTIME_LOCAL_NEXA_BASE_URL"), os.Getenv("NIMI_RUNTIME_LOCAL_NEXA_API_KEY"))
-	add("local-nimi-media", os.Getenv("NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL"), os.Getenv("NIMI_RUNTIME_LOCAL_NIMI_MEDIA_API_KEY"))
+	add("local", os.Getenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL"), os.Getenv("NIMI_RUNTIME_LOCAL_LLAMA_API_KEY"))
+	add("local-media", os.Getenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL"), os.Getenv("NIMI_RUNTIME_LOCAL_MEDIA_API_KEY"))
 	add("local-sidecar", os.Getenv("NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL"), os.Getenv("NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY"))
 	add("cloud-nimillm", os.Getenv("NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY"))
 	add("cloud-dashscope", os.Getenv("NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY"))
@@ -445,17 +444,17 @@ func resolveManagedLocalAIModelsConfigPath() string {
 	if err != nil || strings.TrimSpace(home) == "" {
 		return ""
 	}
-	return filepath.Join(home, ".nimi", "runtime", "localai-models.yaml")
+	return filepath.Join(home, ".nimi", "runtime", "llama-models.yaml")
 }
 
 func (d *Daemon) recordLocalAIBootstrapFailure(detail string) bool {
 	trimmedDetail := strings.TrimSpace(detail)
 	if trimmedDetail == "" {
-		trimmedDetail = "managed localai bootstrap failed"
+		trimmedDetail = "managed llama bootstrap failed"
 	}
 	reason := fmt.Sprintf("engine bootstrap failed (%s: %s)", engine.EngineLocalAI, trimmedDetail)
 
-	d.logger.Error("managed localai bootstrap failed", "detail", trimmedDetail)
+	d.logger.Error("managed llama bootstrap failed", "detail", trimmedDetail)
 	d.setProviderFailureHint("local", reason)
 	if d.aiHealth != nil {
 		previous := d.aiHealth.Snapshot("local")
@@ -489,7 +488,7 @@ func parseEngineCrashDetail(detail string) (attempt int, maxAttempt int, exitCod
 }
 
 func (d *Daemon) startSupervisedEngines(ctx context.Context) {
-	if !d.cfg.EngineLocalAIEnabled && !d.cfg.EngineNexaEnabled && !d.cfg.EngineNimiMediaEnabled {
+	if !d.cfg.EngineLlamaEnabled && !d.cfg.EngineMediaEnabled && !d.cfg.EngineSidecarEnabled {
 		return
 	}
 
@@ -513,36 +512,27 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	d.engineMgr = mgr
 	localAIConfigPath := resolveManagedLocalAIModelsConfigPath()
 	mgr.SetLocalAIPaths(d.cfg.LocalModelsPath, localAIConfigPath)
-	mgr.SetLocalAIImageBackend(&engine.LocalAIImageBackendConfig{
-		Mode:        engine.LocalAIImageBackendMode(strings.ToLower(strings.TrimSpace(d.cfg.EngineLocalAIImageBackendMode))),
-		BackendName: strings.TrimSpace(d.cfg.EngineLocalAIImageBackendName),
-		Address:     strings.TrimSpace(d.cfg.EngineLocalAIImageBackendAddress),
-		Command:     strings.TrimSpace(d.cfg.EngineLocalAIImageBackendCommand),
-		Args:        append([]string(nil), d.cfg.EngineLocalAIImageBackendArgs...),
-		Env:         cloneStringMap(d.cfg.EngineLocalAIImageBackendEnv),
-		WorkingDir:  strings.TrimSpace(d.cfg.EngineLocalAIImageBackendWorkingDir),
-	})
 
 	// Inject engine manager into local service for gRPC access.
-	skipLocalAIBootstrap := false
+	skipLlamaBootstrap := false
 	nimiMediaSupport, _ := detectNimiMediaHostSupport()
-	managedNimiMediaLoopback := d.cfg.EngineNimiMediaEnabled && nimiMediaSupport == engine.NimiMediaHostSupportSupportedSupervised
+	managedMediaLoopback := d.cfg.EngineMediaEnabled && nimiMediaSupport == engine.NimiMediaHostSupportSupportedSupervised
 	if svc := d.grpc.LocalService(); svc != nil {
-		svc.SetLocalAIRegistrationConfig(d.cfg.LocalModelsPath, localAIConfigPath, d.cfg.EngineLocalAIEnabled)
-		if d.cfg.EngineLocalAIEnabled {
-			svc.SetLocalAIManagedEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineLocalAIPort))
+		svc.SetLocalAIRegistrationConfig(d.cfg.LocalModelsPath, localAIConfigPath, d.cfg.EngineLlamaEnabled)
+		if d.cfg.EngineLlamaEnabled {
+			svc.SetLocalAIManagedEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineLlamaPort))
 		} else {
 			svc.SetLocalAIManagedEndpoint("")
 		}
-		if managedNimiMediaLoopback {
-			svc.SetNimiMediaManagedEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineNimiMediaPort))
+		if managedMediaLoopback {
+			svc.SetNimiMediaManagedEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineMediaPort))
 		} else {
 			svc.SetNimiMediaManagedEndpoint("")
 		}
-		svc.SetLocalAIImageBackendConfig(strings.TrimSpace(strings.ToLower(d.cfg.EngineLocalAIImageBackendMode)) != "disabled", d.cfg.EngineLocalAIImageBackendAddress)
+		svc.SetLocalAIImageBackendConfig(false, "")
 		svc.SetEngineManager(engine.NewServiceAdapter(mgr))
 		if err := svc.SyncManagedLocalAIAssets(ctx); err != nil {
-			skipLocalAIBootstrap = d.recordLocalAIBootstrapFailure(fmt.Sprintf("sync managed localai assets: %v", err))
+			skipLlamaBootstrap = d.recordLocalAIBootstrapFailure(fmt.Sprintf("sync managed llama assets: %v", err))
 		}
 	}
 
@@ -569,18 +559,14 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		}()
 	}
 
-	if d.cfg.EngineLocalAIEnabled && !skipLocalAIBootstrap {
-		bootstrap(engine.EngineLocalAI, d.cfg.EngineLocalAIVersion, d.cfg.EngineLocalAIPort,
-			"NIMI_RUNTIME_LOCAL_AI_BASE_URL")
+	if d.cfg.EngineLlamaEnabled && !skipLlamaBootstrap {
+		bootstrap(engine.EngineLocalAI, d.cfg.EngineLlamaVersion, d.cfg.EngineLlamaPort,
+			"NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL")
 	}
 
-	if d.cfg.EngineNexaEnabled {
-		bootstrap(engine.EngineNexa, d.cfg.EngineNexaVersion, d.cfg.EngineNexaPort,
-			"NIMI_RUNTIME_LOCAL_NEXA_BASE_URL")
-	}
-	if d.cfg.EngineNimiMediaEnabled {
-		bootstrap(engine.EngineNimiMedia, d.cfg.EngineNimiMediaVersion, d.cfg.EngineNimiMediaPort,
-			"NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL")
+	if d.cfg.EngineMediaEnabled {
+		bootstrap(engine.EngineNimiMedia, d.cfg.EngineMediaVersion, d.cfg.EngineMediaPort,
+			"NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL")
 	}
 
 	wg.Wait()

@@ -71,6 +71,9 @@ func LoadFileConfig(path string) (FileConfig, error) {
 		if err != nil {
 			return FileConfig{}, err
 		}
+		if err := rejectLegacyLocalRuntimeConfigKeys(path, root); err != nil {
+			return FileConfig{}, err
+		}
 		if _, legacyCatalogOverride := root["modelCatalogOverridePath"]; legacyCatalogOverride {
 			return FileConfig{}, fmt.Errorf("parse runtime config file %q: modelCatalogOverridePath is removed; use modelCatalogCustomDir", path)
 		}
@@ -177,6 +180,38 @@ func ValidateFileConfig(fileCfg FileConfig) error {
 			if strings.TrimSpace(parsed.Host) == "" {
 				return fmt.Errorf("auth.jwt.jwksUrl must include host")
 			}
+		}
+	}
+	return nil
+}
+
+func rejectLegacyLocalRuntimeConfigKeys(path string, root map[string]json.RawMessage) error {
+	for _, key := range []string{"providers"} {
+		raw, ok := root[key]
+		if !ok {
+			continue
+		}
+		var section map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &section); err != nil {
+			continue
+		}
+		for _, legacyKey := range []string{"local", "nexa", "nimi_media"} {
+			if _, exists := section[legacyKey]; exists {
+				return fmt.Errorf("parse runtime config file %q: providers.%s is removed; clear legacy local runtime config and reconfigure engines.llama/engines.media", path, legacyKey)
+			}
+		}
+	}
+	raw, ok := root["engines"]
+	if !ok {
+		return nil
+	}
+	var engines map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &engines); err != nil {
+		return nil
+	}
+	for _, legacyKey := range []string{"localai", "nexa", "nimi_media"} {
+		if _, exists := engines[legacyKey]; exists {
+			return fmt.Errorf("parse runtime config file %q: engines.%s is removed; clear legacy local runtime config and reconfigure engines.llama/engines.media", path, legacyKey)
 		}
 	}
 	return nil

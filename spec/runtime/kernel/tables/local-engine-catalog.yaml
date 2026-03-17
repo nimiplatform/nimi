@@ -1,62 +1,73 @@
 version: 1
 engines:
-  - engine: localai
+  - engine: llama
     default_endpoint: ""
     runtime_mode: attached_endpoint
-    protocol: openai_compatible
+    protocol: nimi_runtime_text
     phase1: true
     source_rule: K-LENG-005
-  - engine: localai
+  - engine: llama
     runtime_mode: supervised
-    protocol: openai_compatible
+    protocol: nimi_runtime_text
     phase1: true
     source_rule: K-LENG-004
-    download_url_template: "https://github.com/mudler/LocalAI/releases/download/v{version}/{asset}"
+    discovery: managed_binary
     supported_platforms:
       - darwin/arm64
       - darwin/amd64
       - linux/amd64
       - linux/arm64
-    health_path: "/readyz"
-    start_command: "run --address :{port} --models-path {models_path} --disable-webui --log-level info"
+      - windows/amd64
+    health_path: "/v1/models"
+    start_command: "llama-server --host 127.0.0.1 --port {port} --model {entry}"
     default_port: 1234
     startup_timeout_seconds: 120
-  - engine: nexa
-    default_endpoint: ""
-    runtime_mode: attached_endpoint
-    protocol: openai_compatible
-    phase1: true
-    source_rule: K-LENG-005
-  - engine: nexa
-    runtime_mode: supervised
-    protocol: openai_compatible
-    phase1: true
-    source_rule: K-LENG-004
-    discovery: system_path
-    health_path: "/"
-    health_response: "Nexa SDK is running"
-    start_command: "serve --host 127.0.0.1 --port {port}"
-    default_port: 8000
-    startup_timeout_seconds: 30
-  - engine: nimi_media
+  - engine: media
     default_endpoint: ""
     runtime_mode: attached_endpoint
     protocol: nimi_runtime_media
     phase1: true
     source_rule: K-LENG-005
-  - engine: nimi_media
+  - engine: media
+    runtime_mode: supervised
+    protocol: nimi_runtime_media
+    phase1: true
+    source_rule: K-LENG-004
+    discovery: managed_binary
+    supported_platforms:
+      - darwin/arm64
+      - darwin/amd64
+      - linux/amd64
+      - linux/arm64
+      - windows/amd64
+    health_path: "/healthz"
+    health_response: "\"ready\": true"
+    start_command: "stable-diffusion-server --host 127.0.0.1 --port {port}"
+    default_port: 8321
+    startup_timeout_seconds: 180
+  - engine: media.diffusers
+    default_endpoint: ""
+    runtime_mode: attached_endpoint
+    protocol: nimi_runtime_media
+    phase1: true
+    source_rule: K-LENG-005
+  - engine: media.diffusers
     runtime_mode: supervised
     protocol: nimi_runtime_media
     phase1: true
     source_rule: K-LENG-004
     discovery: uv_managed_python
     supported_platforms:
+      - darwin/arm64
+      - darwin/amd64
+      - linux/amd64
+      - linux/arm64
       - windows/amd64
     health_path: "/healthz"
     health_response: "\"ready\": true"
     start_command: "python {engine_root}/nimi_media_server.py --host 127.0.0.1 --port {port}"
-    default_port: 8321
-    startup_timeout_seconds: 180
+    default_port: 8322
+    startup_timeout_seconds: 240
   - engine: sidecar
     default_endpoint: ""
     runtime_mode: attached_endpoint

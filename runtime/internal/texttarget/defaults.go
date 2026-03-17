@@ -23,7 +23,7 @@ func EnsureLocalQualifiedModel(modelID string) string {
 		return ""
 	}
 	lower := strings.ToLower(normalized)
-	if strings.HasPrefix(lower, "local/") || strings.HasPrefix(lower, "localai/") || strings.HasPrefix(lower, "nexa/") || strings.HasPrefix(lower, "sidecar/") || strings.HasPrefix(lower, "localsidecar/") {
+	if strings.HasPrefix(lower, "local/") || strings.HasPrefix(lower, "llama/") || strings.HasPrefix(lower, "media/") || strings.HasPrefix(lower, "sidecar/") {
 		return normalized
 	}
 	return "local/" + normalized
@@ -102,7 +102,7 @@ func IsHighLevelQualifiedModel(modelID string) bool {
 		return false
 	}
 	lower := strings.ToLower(strings.TrimSpace(prefix))
-	return lower == "local" || lower == "localai" || lower == "nexa" || lower == "sidecar" || lower == "localsidecar" || LooksLikeQualifiedRemoteModel(normalized)
+	return lower == "local" || lower == "llama" || lower == "media" || lower == "sidecar" || LooksLikeQualifiedRemoteModel(normalized)
 }
 
 func ResolveInternalDefaultAlias(cfg config.Config, rawModelID string) (string, error) {

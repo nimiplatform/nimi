@@ -863,7 +863,7 @@ func TestServiceAdapterEngineStatusNotFound(t *testing.T) {
 	}
 
 	adapter := NewServiceAdapter(mgr)
-	_, err = adapter.EngineStatus("localai")
+	_, err = adapter.EngineStatus("llama")
 	if err == nil {
 		t.Error("expected error for engine not started, got nil")
 	}
@@ -877,7 +877,7 @@ func TestServiceAdapterStopEngineNotFound(t *testing.T) {
 	}
 
 	adapter := NewServiceAdapter(mgr)
-	err = adapter.StopEngine("localai")
+	err = adapter.StopEngine("llama")
 	if err == nil {
 		t.Error("expected error for engine not started, got nil")
 	}
@@ -916,7 +916,7 @@ func TestManagerApplyLocalAIPaths(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve home dir: %v", err)
 	}
-	if got, want := cfg.BackendsPath, filepath.Join(homeDir, ".nimi", "runtime", "localai-backends"); got != want {
+	if got, want := cfg.BackendsPath, filepath.Join(homeDir, ".nimi", "runtime", "llama-backends"); got != want {
 		t.Fatalf("backends path mismatch: got=%q want=%q", got, want)
 	}
 	if got, want := strings.Join(cfg.ExternalBackends, ","), "llama-cpp,whisper-ggml"; got != want {
@@ -930,8 +930,10 @@ func TestParseEngineKind(t *testing.T) {
 		want  EngineKind
 		err   bool
 	}{
-		{"localai", EngineLocalAI, false},
-		{"nexa", EngineNexa, false},
+		{"llama", EngineLocalAI, false},
+		{"media", EngineNimiMedia, false},
+		{"media.diffusers", EngineNimiMedia, false},
+		{"sidecar", EngineKind("sidecar"), false},
 		{"unknown", "", true},
 		{"", "", true},
 	}
@@ -1084,7 +1086,7 @@ func TestNexaCommandArgs(t *testing.T) {
 
 func TestResolveEngineConfigOverrides(t *testing.T) {
 	// Default values.
-	cfg, err := resolveEngineConfig("localai", "", 0)
+	cfg, err := resolveEngineConfig("llama", "", 0)
 	if err != nil {
 		t.Fatalf("resolveEngineConfig: %v", err)
 	}
@@ -1096,7 +1098,7 @@ func TestResolveEngineConfigOverrides(t *testing.T) {
 	}
 
 	// Override version and port.
-	cfg2, err := resolveEngineConfig("localai", "2.0", 9999)
+	cfg2, err := resolveEngineConfig("llama", "2.0", 9999)
 	if err != nil {
 		t.Fatalf("resolveEngineConfig: %v", err)
 	}

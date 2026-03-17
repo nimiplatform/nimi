@@ -66,10 +66,10 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 	if err != nil {
 		return nil, err
 	}
-	if routeDecision != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || inferScenarioProviderType(modelResolved, remoteTarget, selectedProvider, runtimev1.Modal_MODAL_UNSPECIFIED) != "localai" {
+	if routeDecision != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || inferScenarioProviderType(modelResolved, remoteTarget, selectedProvider, runtimev1.Modal_MODAL_UNSPECIFIED) != "llama" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
-	backend, realtimeModel, err := resolveLocalAIRealtimeBackend(selectedProvider, modelResolved)
+	backend, realtimeModel, err := resolveLlamaRealtimeBackend(selectedProvider, modelResolved)
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +293,7 @@ func (s *Service) consumeRealtimeEvents(record *realtimeSessionRecord) {
 					Payload: &runtimev1.RealtimeEvent_Failed{
 						Failed: &runtimev1.RealtimeFailed{
 							ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
-							ActionHint: "check_localai_realtime_endpoint",
+							ActionHint: "check_llama_realtime_endpoint",
 						},
 					},
 				})
@@ -364,12 +364,12 @@ func (s *Service) mapRealtimeEnvelope(record *realtimeSessionRecord, payload map
 	}
 }
 
-func resolveLocalAIRealtimeBackend(selected provider, modelResolved string) (*nimillm.Backend, string, error) {
+func resolveLlamaRealtimeBackend(selected provider, modelResolved string) (*nimillm.Backend, string, error) {
 	local, ok := selected.(*localProvider)
 	if !ok || local == nil {
 		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
-	backend, resolvedModel := local.ResolveMediaBackend("localai/" + strings.TrimSpace(modelResolved))
+	backend, resolvedModel := local.ResolveMediaBackend("llama/" + strings.TrimSpace(modelResolved))
 	if backend == nil {
 		return nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}

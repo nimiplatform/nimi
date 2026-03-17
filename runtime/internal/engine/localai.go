@@ -21,7 +21,7 @@ func localAIDownloadURL(version string) (string, error) {
 func localAIAssetName(version string) (string, error) {
 	trimmedVersion := strings.TrimSpace(version)
 	if trimmedVersion == "" {
-		return "", fmt.Errorf("localai version is required")
+		return "", fmt.Errorf("llama version is required")
 	}
 	assetSuffix, ok := localAISupervisedAssetSuffix(currentGOOS(), currentGOARCH())
 	if ok {

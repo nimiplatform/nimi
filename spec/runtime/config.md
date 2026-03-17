@@ -18,7 +18,7 @@
 ## 2. 关键阅读路径
 
 1. 配置主合同：`kernel/config-contract.md`。
-2. supervised engine 与 `engines.localai.imageBackend`：`kernel/local-engine-contract.md`。
+2. supervised engine 与 engine-first 本地执行合同：`kernel/local-engine-contract.md`。
 3. daemon 配置装配：`kernel/daemon-lifecycle.md`。
 4. provider 命名约束：`kernel/provider-health-contract.md`。
 5. 错误映射：`kernel/error-model.md`。
@@ -37,3 +37,12 @@
 
 - 不在 domain 层定义配置 schema 细节。
 - 不在本文件记录执行态门禁结果。
+
+## 5. Hard-Cut Baseline
+
+本地 runtime public config 已硬切到 engine-first 语义：
+
+- file config 只允许 `engines.llama.*` 与 `engines.media.*`
+- 本地 loopback / provider health env 只允许 `NIMI_RUNTIME_LOCAL_LLAMA_*`、`NIMI_RUNTIME_LOCAL_MEDIA_*`、`NIMI_RUNTIME_LOCAL_SIDECAR_*`
+- `media.diffusers` 仅允许作为 runtime 内部 fallback driver 出现在 metadata / health / routing 中，不是 public config 块
+- `engines.localai.*`、`engines.nexa.*`、`engines.nimi_media.*`、`providers.local.*` 与对应旧 env 一律视为 removed/rejected legacy input

@@ -101,7 +101,7 @@ func TestValidateScenarioCapabilityCatalogUnavailableAllowsLocalProvider(t *test
 	err := svc.validateScenarioCapability(
 		context.Background(),
 		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
-		"localai/local-import/z_image_turbo-Q4_K",
+		"media/local-import/z_image_turbo-Q4_K",
 		nil,
 		nil,
 	)
@@ -110,13 +110,13 @@ func TestValidateScenarioCapabilityCatalogUnavailableAllowsLocalProvider(t *test
 	}
 }
 
-func TestValidateScenarioCapabilityRejectsUnsupportedLocalNexaVideo(t *testing.T) {
+func TestValidateScenarioCapabilityRejectsUnsupportedLocalLlamaVideo(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	err := svc.validateScenarioCapability(
 		context.Background(),
 		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
-		"nexa/wan2.2",
+		"llama/wan2.2",
 		nil,
 		&localProvider{},
 	)

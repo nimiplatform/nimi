@@ -374,7 +374,7 @@ func isManagedLocalAIImageBackendServiceID(serviceID string) bool {
 func managedLocalAIImageBackendServiceMutationError(serviceID string) error {
 	return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION, grpcerr.ReasonOptions{
 		Message:    fmt.Sprintf("local service %s is daemon-managed", strings.TrimSpace(serviceID)),
-		ActionHint: "manage_localai_image_backend_from_runtime_config",
+		ActionHint: "manage_llama_image_backend_from_runtime_config",
 	})
 }
 
@@ -401,7 +401,7 @@ func (s *Service) managedLocalAIImageBackendServiceLocked() *runtimev1.LocalServ
 	return &runtimev1.LocalServiceDescriptor{
 		ServiceId:    localAIImageBackendServiceID,
 		Title:        localAIImageBackendServiceTitle,
-		Engine:       "localai",
+		Engine:       "llama",
 		ArtifactType: "binary",
 		Endpoint:     endpoint,
 		Capabilities: []string{"image"},
@@ -439,7 +439,7 @@ func (s *Service) ListNodeCatalog(ctx context.Context, req *runtimev1.ListNodeCa
 		if service.GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE {
 			continue
 		}
-		provider := strings.ToLower(defaultString(service.GetEngine(), "localai"))
+		provider := strings.ToLower(defaultString(service.GetEngine(), "llama"))
 		if providerFilter != "" && provider != providerFilter {
 			continue
 		}
@@ -465,7 +465,7 @@ func (s *Service) ListNodeCatalog(ctx context.Context, req *runtimev1.ListNodeCa
 				reasonCode = runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String()
 				policyGate = unsupportedProviderCapabilityPolicyGate(provider, capability)
 			}
-			if available && (provider == "nexa" || provider == "nimi_media") && capabilityRequiresNodeProbe(provider, capability) {
+			if available && (provider == "media" || provider == "media.diffusers") && capabilityRequiresNodeProbe(provider, capability) {
 				model := models[strings.TrimSpace(service.GetLocalModelId())]
 				var probe endpointProbeResult
 				endpoint := s.serviceProbeEndpoint(service)
@@ -547,10 +547,8 @@ func unsupportedProviderCapabilityPolicyGate(provider string, capability string)
 		return normalizedProvider + ".video.unsupported"
 	case "text.embed":
 		return normalizedProvider + ".embed.unsupported"
-	case "audio.synthesize":
-		return normalizedProvider + ".tts.unsupported"
-	case "audio.transcribe":
-		return normalizedProvider + ".stt.unsupported"
+	case "audio.synthesize", "audio.understand":
+		return normalizedProvider + ".audio.unsupported"
 	case "music.generate":
 		return normalizedProvider + ".music.unsupported"
 	default:
@@ -560,7 +558,7 @@ func unsupportedProviderCapabilityPolicyGate(provider string, capability string)
 
 func isKnownLocalCapability(capability string) bool {
 	switch localrouting.NormalizeCapability(capability) {
-	case "text.generate", "text.embed", "image.generate", "video.generate", "audio.synthesize", "audio.transcribe", "music.generate":
+	case "text.generate", "text.embed", "image.generate", "image.edit", "video.generate", "i2v", "image.understand", "audio.understand", "music.generate":
 		return true
 	default:
 		return false
@@ -569,15 +567,13 @@ func isKnownLocalCapability(capability string) bool {
 
 func capabilityRequiresNodeProbe(provider string, capability string) bool {
 	switch strings.ToLower(strings.TrimSpace(provider)) {
-	case "nimi_media":
+	case "media", "media.diffusers":
 		switch strings.ToLower(strings.TrimSpace(capability)) {
-		case "image", "image.generate", "video", "video.generate":
+		case "image", "image.generate", "image.edit", "video", "video.generate", "i2v":
 			return true
 		default:
 			return false
 		}
-	case "nexa":
-		return nexaCapabilityRequiresNodeProbe(capability)
 	default:
 		return false
 	}
@@ -585,10 +581,8 @@ func capabilityRequiresNodeProbe(provider string, capability string) bool {
 
 func providerCapabilityProbeSucceeded(provider string, model *runtimev1.LocalModelRecord, probe endpointProbeResult) bool {
 	switch strings.ToLower(strings.TrimSpace(provider)) {
-	case "nimi_media":
+	case "media", "media.diffusers":
 		return nimiMediaModelProbeSucceeded(model, probe)
-	case "nexa":
-		return nexaModelProbeSucceeded(model, probe)
 	default:
 		return probe.healthy
 	}
@@ -596,21 +590,10 @@ func providerCapabilityProbeSucceeded(provider string, model *runtimev1.LocalMod
 
 func providerCapabilityProbeFailureDetail(provider string, model *runtimev1.LocalModelRecord, probe endpointProbeResult) string {
 	switch strings.ToLower(strings.TrimSpace(provider)) {
-	case "nimi_media":
+	case "media", "media.diffusers":
 		return nimiMediaModelProbeFailureDetail(model, probe)
-	case "nexa":
-		return nexaModelProbeFailureDetail(model, probe)
 	default:
 		return defaultString(probe.detail, "provider capability probe failed")
-	}
-}
-
-func nexaCapabilityRequiresNodeProbe(capability string) bool {
-	switch strings.ToLower(strings.TrimSpace(capability)) {
-	case "tts", "speech", "audio.synthesize", "stt", "transcription", "audio.transcribe":
-		return true
-	default:
-		return false
 	}
 }
 

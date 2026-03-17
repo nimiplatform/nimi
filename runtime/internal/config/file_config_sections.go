@@ -19,7 +19,7 @@ func isCanonicalProviderName(raw string) bool {
 		return false
 	}
 	switch trimmed {
-	case "local", "nexa", "nimi_media", "nimillm", "openai", "anthropic", "dashscope", "volcengine", "azure", "mistral", "groq", "xai", "qianfan", "hunyuan", "spark", "volcengine_openspeech", "gemini", "minimax", "kimi", "glm", "deepseek", "openrouter", "openai_compatible":
+	case "nimillm", "openai", "anthropic", "dashscope", "volcengine", "azure", "mistral", "groq", "xai", "qianfan", "hunyuan", "spark", "volcengine_openspeech", "gemini", "minimax", "kimi", "glm", "deepseek", "openrouter", "openai_compatible":
 		return true
 	default:
 		return false
@@ -36,17 +36,13 @@ func fileConfigEngineBool(fileCfg FileConfig, engine string) *bool {
 		return nil
 	}
 	switch engine {
-	case "localai":
-		if fileCfg.Engines.LocalAI != nil {
-			return fileCfg.Engines.LocalAI.Enabled
+	case "llama":
+		if fileCfg.Engines.Llama != nil {
+			return fileCfg.Engines.Llama.Enabled
 		}
-	case "nexa":
-		if fileCfg.Engines.Nexa != nil {
-			return fileCfg.Engines.Nexa.Enabled
-		}
-	case "nimi_media":
-		if fileCfg.Engines.NimiMedia != nil {
-			return fileCfg.Engines.NimiMedia.Enabled
+	case "media":
+		if fileCfg.Engines.Media != nil {
+			return fileCfg.Engines.Media.Enabled
 		}
 	}
 	return nil
@@ -59,12 +55,10 @@ func fileConfigEngineString(fileCfg FileConfig, engine string, field string) str
 	}
 	var cfg *FileConfigEngine
 	switch engine {
-	case "localai":
-		cfg = fileCfg.Engines.LocalAI
-	case "nexa":
-		cfg = fileCfg.Engines.Nexa
-	case "nimi_media":
-		cfg = fileCfg.Engines.NimiMedia
+	case "llama":
+		cfg = fileCfg.Engines.Llama
+	case "media":
+		cfg = fileCfg.Engines.Media
 	}
 	if cfg == nil {
 		return ""
@@ -83,12 +77,10 @@ func fileConfigEngineInt(fileCfg FileConfig, engine string, field string) *int {
 	}
 	var cfg *FileConfigEngine
 	switch engine {
-	case "localai":
-		cfg = fileCfg.Engines.LocalAI
-	case "nexa":
-		cfg = fileCfg.Engines.Nexa
-	case "nimi_media":
-		cfg = fileCfg.Engines.NimiMedia
+	case "llama":
+		cfg = fileCfg.Engines.Llama
+	case "media":
+		cfg = fileCfg.Engines.Media
 	}
 	if cfg == nil {
 		return nil
@@ -98,39 +90,4 @@ func fileConfigEngineInt(fileCfg FileConfig, engine string, field string) *int {
 		return cfg.Port
 	}
 	return nil
-}
-
-func fileConfigLocalAIImageBackendString(fileCfg FileConfig, field string) string {
-	if fileCfg.Engines == nil || fileCfg.Engines.LocalAI == nil || fileCfg.Engines.LocalAI.ImageBackend == nil {
-		return ""
-	}
-	cfg := fileCfg.Engines.LocalAI.ImageBackend
-	switch field {
-	case "mode":
-		return cfg.Mode
-	case "backendName":
-		return cfg.BackendName
-	case "address":
-		return cfg.Address
-	case "command":
-		return cfg.Command
-	case "workingDir":
-		return cfg.WorkingDir
-	default:
-		return ""
-	}
-}
-
-func fileConfigLocalAIImageBackendArgs(fileCfg FileConfig) []string {
-	if fileCfg.Engines == nil || fileCfg.Engines.LocalAI == nil || fileCfg.Engines.LocalAI.ImageBackend == nil {
-		return nil
-	}
-	return append([]string(nil), fileCfg.Engines.LocalAI.ImageBackend.Args...)
-}
-
-func fileConfigLocalAIImageBackendEnv(fileCfg FileConfig) map[string]string {
-	if fileCfg.Engines == nil || fileCfg.Engines.LocalAI == nil || fileCfg.Engines.LocalAI.ImageBackend == nil {
-		return nil
-	}
-	return normalizeStringMap(fileCfg.Engines.LocalAI.ImageBackend.Env)
 }

@@ -193,6 +193,14 @@ type ModelDescriptor struct {
 	Capabilities      []string                `protobuf:"bytes,4,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
 	LastHealthAt      *timestamppb.Timestamp  `protobuf:"bytes,5,opt,name=last_health_at,json=lastHealthAt,proto3" json:"last_health_at,omitempty"`
 	CapabilityProfile *ModelCapabilityProfile `protobuf:"bytes,6,opt,name=capability_profile,json=capabilityProfile,proto3" json:"capability_profile,omitempty"`
+	LogicalModelId    string                  `protobuf:"bytes,7,opt,name=logical_model_id,json=logicalModelId,proto3" json:"logical_model_id,omitempty"`
+	Family            string                  `protobuf:"bytes,8,opt,name=family,proto3" json:"family,omitempty"`
+	ArtifactRoles     []string                `protobuf:"bytes,9,rep,name=artifact_roles,json=artifactRoles,proto3" json:"artifact_roles,omitempty"`
+	PreferredEngine   string                  `protobuf:"bytes,10,opt,name=preferred_engine,json=preferredEngine,proto3" json:"preferred_engine,omitempty"`
+	FallbackEngines   []string                `protobuf:"bytes,11,rep,name=fallback_engines,json=fallbackEngines,proto3" json:"fallback_engines,omitempty"`
+	BundleState       LocalBundleState        `protobuf:"varint,12,opt,name=bundle_state,json=bundleState,proto3,enum=nimi.runtime.v1.LocalBundleState" json:"bundle_state,omitempty"`
+	WarmState         LocalWarmState          `protobuf:"varint,13,opt,name=warm_state,json=warmState,proto3,enum=nimi.runtime.v1.LocalWarmState" json:"warm_state,omitempty"`
+	HostRequirements  *LocalHostRequirements  `protobuf:"bytes,14,opt,name=host_requirements,json=hostRequirements,proto3" json:"host_requirements,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -265,6 +273,62 @@ func (x *ModelDescriptor) GetLastHealthAt() *timestamppb.Timestamp {
 func (x *ModelDescriptor) GetCapabilityProfile() *ModelCapabilityProfile {
 	if x != nil {
 		return x.CapabilityProfile
+	}
+	return nil
+}
+
+func (x *ModelDescriptor) GetLogicalModelId() string {
+	if x != nil {
+		return x.LogicalModelId
+	}
+	return ""
+}
+
+func (x *ModelDescriptor) GetFamily() string {
+	if x != nil {
+		return x.Family
+	}
+	return ""
+}
+
+func (x *ModelDescriptor) GetArtifactRoles() []string {
+	if x != nil {
+		return x.ArtifactRoles
+	}
+	return nil
+}
+
+func (x *ModelDescriptor) GetPreferredEngine() string {
+	if x != nil {
+		return x.PreferredEngine
+	}
+	return ""
+}
+
+func (x *ModelDescriptor) GetFallbackEngines() []string {
+	if x != nil {
+		return x.FallbackEngines
+	}
+	return nil
+}
+
+func (x *ModelDescriptor) GetBundleState() LocalBundleState {
+	if x != nil {
+		return x.BundleState
+	}
+	return LocalBundleState_LOCAL_BUNDLE_STATE_UNSPECIFIED
+}
+
+func (x *ModelDescriptor) GetWarmState() LocalWarmState {
+	if x != nil {
+		return x.WarmState
+	}
+	return LocalWarmState_LOCAL_WARM_STATE_UNSPECIFIED
+}
+
+func (x *ModelDescriptor) GetHostRequirements() *LocalHostRequirements {
+	if x != nil {
+		return x.HostRequirements
 	}
 	return nil
 }
@@ -637,7 +701,7 @@ var File_runtime_v1_model_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_model_proto_rawDesc = "" +
 	"\n" +
-	"\x16runtime/v1/model.proto\x12\x0fnimi.runtime.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17runtime/v1/common.proto\"\x8f\x04\n" +
+	"\x16runtime/v1/model.proto\x12\x0fnimi.runtime.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17runtime/v1/common.proto\x1a$runtime/v1/local_runtime_types.proto\"\x8f\x04\n" +
 	"\x16ModelCapabilityProfile\x124\n" +
 	"\x16supports_text_generate\x18\x01 \x01(\bR\x14supportsTextGenerate\x120\n" +
 	"\x14supports_text_stream\x18\x02 \x01(\bR\x12supportsTextStream\x12-\n" +
@@ -647,14 +711,24 @@ const file_runtime_v1_model_proto_rawDesc = "" +
 	"\x19supports_speech_synthesis\x18\x06 \x01(\bR\x17supportsSpeechSynthesis\x12B\n" +
 	"\x1dsupports_speech_transcription\x18\a \x01(\bR\x1bsupportsSpeechTranscription\x127\n" +
 	"\x18supports_async_media_job\x18\b \x01(\bR\x15supportsAsyncMediaJob\x12-\n" +
-	"\x12supports_streaming\x18\t \x01(\bR\x11supportsStreaming\"\xba\x02\n" +
+	"\x12supports_streaming\x18\t \x01(\bR\x11supportsStreaming\"\xd4\x05\n" +
 	"\x0fModelDescriptor\x12\x19\n" +
 	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\tR\aversion\x124\n" +
 	"\x06status\x18\x03 \x01(\x0e2\x1c.nimi.runtime.v1.ModelStatusR\x06status\x12\"\n" +
 	"\fcapabilities\x18\x04 \x03(\tR\fcapabilities\x12@\n" +
 	"\x0elast_health_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\flastHealthAt\x12V\n" +
-	"\x12capability_profile\x18\x06 \x01(\v2'.nimi.runtime.v1.ModelCapabilityProfileR\x11capabilityProfile\"\x13\n" +
+	"\x12capability_profile\x18\x06 \x01(\v2'.nimi.runtime.v1.ModelCapabilityProfileR\x11capabilityProfile\x12(\n" +
+	"\x10logical_model_id\x18\a \x01(\tR\x0elogicalModelId\x12\x16\n" +
+	"\x06family\x18\b \x01(\tR\x06family\x12%\n" +
+	"\x0eartifact_roles\x18\t \x03(\tR\rartifactRoles\x12)\n" +
+	"\x10preferred_engine\x18\n" +
+	" \x01(\tR\x0fpreferredEngine\x12)\n" +
+	"\x10fallback_engines\x18\v \x03(\tR\x0ffallbackEngines\x12D\n" +
+	"\fbundle_state\x18\f \x01(\x0e2!.nimi.runtime.v1.LocalBundleStateR\vbundleState\x12>\n" +
+	"\n" +
+	"warm_state\x18\r \x01(\x0e2\x1f.nimi.runtime.v1.LocalWarmStateR\twarmState\x12S\n" +
+	"\x11host_requirements\x18\x0e \x01(\v2&.nimi.runtime.v1.LocalHostRequirementsR\x10hostRequirements\"\x13\n" +
 	"\x11ListModelsRequest\"N\n" +
 	"\x12ListModelsResponse\x128\n" +
 	"\x06models\x18\x01 \x03(\v2 .nimi.runtime.v1.ModelDescriptorR\x06models\"v\n" +
@@ -718,29 +792,35 @@ var file_runtime_v1_model_proto_goTypes = []any{
 	(*CheckModelHealthRequest)(nil),  // 8: nimi.runtime.v1.CheckModelHealthRequest
 	(*CheckModelHealthResponse)(nil), // 9: nimi.runtime.v1.CheckModelHealthResponse
 	(*timestamppb.Timestamp)(nil),    // 10: google.protobuf.Timestamp
-	(ReasonCode)(0),                  // 11: nimi.runtime.v1.ReasonCode
-	(*Ack)(nil),                      // 12: nimi.runtime.v1.Ack
+	(LocalBundleState)(0),            // 11: nimi.runtime.v1.LocalBundleState
+	(LocalWarmState)(0),              // 12: nimi.runtime.v1.LocalWarmState
+	(*LocalHostRequirements)(nil),    // 13: nimi.runtime.v1.LocalHostRequirements
+	(ReasonCode)(0),                  // 14: nimi.runtime.v1.ReasonCode
+	(*Ack)(nil),                      // 15: nimi.runtime.v1.Ack
 }
 var file_runtime_v1_model_proto_depIdxs = []int32{
 	0,  // 0: nimi.runtime.v1.ModelDescriptor.status:type_name -> nimi.runtime.v1.ModelStatus
 	10, // 1: nimi.runtime.v1.ModelDescriptor.last_health_at:type_name -> google.protobuf.Timestamp
 	1,  // 2: nimi.runtime.v1.ModelDescriptor.capability_profile:type_name -> nimi.runtime.v1.ModelCapabilityProfile
-	2,  // 3: nimi.runtime.v1.ListModelsResponse.models:type_name -> nimi.runtime.v1.ModelDescriptor
-	11, // 4: nimi.runtime.v1.PullModelResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	11, // 5: nimi.runtime.v1.CheckModelHealthResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 6: nimi.runtime.v1.RuntimeModelService.ListModels:input_type -> nimi.runtime.v1.ListModelsRequest
-	5,  // 7: nimi.runtime.v1.RuntimeModelService.PullModel:input_type -> nimi.runtime.v1.PullModelRequest
-	7,  // 8: nimi.runtime.v1.RuntimeModelService.RemoveModel:input_type -> nimi.runtime.v1.RemoveModelRequest
-	8,  // 9: nimi.runtime.v1.RuntimeModelService.CheckModelHealth:input_type -> nimi.runtime.v1.CheckModelHealthRequest
-	4,  // 10: nimi.runtime.v1.RuntimeModelService.ListModels:output_type -> nimi.runtime.v1.ListModelsResponse
-	6,  // 11: nimi.runtime.v1.RuntimeModelService.PullModel:output_type -> nimi.runtime.v1.PullModelResponse
-	12, // 12: nimi.runtime.v1.RuntimeModelService.RemoveModel:output_type -> nimi.runtime.v1.Ack
-	9,  // 13: nimi.runtime.v1.RuntimeModelService.CheckModelHealth:output_type -> nimi.runtime.v1.CheckModelHealthResponse
-	10, // [10:14] is the sub-list for method output_type
-	6,  // [6:10] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	11, // 3: nimi.runtime.v1.ModelDescriptor.bundle_state:type_name -> nimi.runtime.v1.LocalBundleState
+	12, // 4: nimi.runtime.v1.ModelDescriptor.warm_state:type_name -> nimi.runtime.v1.LocalWarmState
+	13, // 5: nimi.runtime.v1.ModelDescriptor.host_requirements:type_name -> nimi.runtime.v1.LocalHostRequirements
+	2,  // 6: nimi.runtime.v1.ListModelsResponse.models:type_name -> nimi.runtime.v1.ModelDescriptor
+	14, // 7: nimi.runtime.v1.PullModelResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	14, // 8: nimi.runtime.v1.CheckModelHealthResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 9: nimi.runtime.v1.RuntimeModelService.ListModels:input_type -> nimi.runtime.v1.ListModelsRequest
+	5,  // 10: nimi.runtime.v1.RuntimeModelService.PullModel:input_type -> nimi.runtime.v1.PullModelRequest
+	7,  // 11: nimi.runtime.v1.RuntimeModelService.RemoveModel:input_type -> nimi.runtime.v1.RemoveModelRequest
+	8,  // 12: nimi.runtime.v1.RuntimeModelService.CheckModelHealth:input_type -> nimi.runtime.v1.CheckModelHealthRequest
+	4,  // 13: nimi.runtime.v1.RuntimeModelService.ListModels:output_type -> nimi.runtime.v1.ListModelsResponse
+	6,  // 14: nimi.runtime.v1.RuntimeModelService.PullModel:output_type -> nimi.runtime.v1.PullModelResponse
+	15, // 15: nimi.runtime.v1.RuntimeModelService.RemoveModel:output_type -> nimi.runtime.v1.Ack
+	9,  // 16: nimi.runtime.v1.RuntimeModelService.CheckModelHealth:output_type -> nimi.runtime.v1.CheckModelHealthResponse
+	13, // [13:17] is the sub-list for method output_type
+	9,  // [9:13] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_model_proto_init() }
@@ -749,6 +829,7 @@ func file_runtime_v1_model_proto_init() {
 		return
 	}
 	file_runtime_v1_common_proto_init()
+	file_runtime_v1_local_runtime_types_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

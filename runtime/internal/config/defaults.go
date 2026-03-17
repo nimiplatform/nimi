@@ -1,7 +1,5 @@
 package config
 
-import "runtime"
-
 // intPtr returns a pointer to the given int value.
 func intPtr(v int) *int { return &v }
 
@@ -30,11 +28,4 @@ func DefaultFileConfig() FileConfig {
 		ModelCatalogCustomDir:   "~/" + defaultModelCatalogCustomRelPath,
 		Providers:               map[string]RuntimeFileTarget{},
 	}
-}
-
-func defaultLocalAIImageBackendMode() string {
-	if runtime.GOOS == "darwin" && runtime.GOARCH == "arm64" {
-		return "official"
-	}
-	return "disabled"
 }

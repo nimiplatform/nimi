@@ -188,7 +188,7 @@ func resolveExecutionPlan(req *executionResolveRequest) *runtimev1.LocalExecutio
 			Kind:         runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_MODEL,
 			Capability:   capability,
 			ModelId:      "local/" + capability + "-default",
-			Engine:       "localai",
+			Engine:       "llama",
 		}
 		check := evaluateDependencyCandidate(item, profile)
 		check.reasonCode = "LOCAL_DEPENDENCY_DEFAULT_SELECTED"
@@ -330,12 +330,12 @@ func evaluateDependencyCandidate(opt *runtimev1.LocalExecutionOptionDescriptor, 
 
 func requiresGPU(engine string) bool {
 	normalized := strings.ToLower(strings.TrimSpace(engine))
-	return normalized == "nimi_media" || strings.Contains(normalized, "cuda") || strings.Contains(normalized, "nvidia") || strings.Contains(normalized, "gpu")
+	return normalized == "media" || normalized == "media.diffusers" || strings.Contains(normalized, "cuda") || strings.Contains(normalized, "nvidia") || strings.Contains(normalized, "gpu")
 }
 
 func requiresPython(engine string) bool {
 	normalized := strings.ToLower(strings.TrimSpace(engine))
-	return normalized == "nexa" || normalized == "nimi_media" || strings.Contains(normalized, "python") || strings.Contains(normalized, "py")
+	return normalized == "media" || normalized == "media.diffusers" || strings.Contains(normalized, "python") || strings.Contains(normalized, "py")
 }
 
 func requiresNPU(engine string) bool {

@@ -82,7 +82,7 @@ func executeBackendSyncMedia(
 			err     error
 			diag    *nimillm.LocalAIImageDiagnostics
 		)
-		if adapterName == adapterLocalAINative {
+		if adapterName == adapterLlamaNative {
 			if s != nil && s.localImageProfile != nil {
 				alias, profile, forwardedExtensions, resolveErr := s.localImageProfile.ResolveLocalAIImageProfile(ctx, backendModelID, scenarioExtensions)
 				if resolveErr != nil {

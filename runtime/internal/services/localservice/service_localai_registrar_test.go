@@ -48,7 +48,7 @@ func (m *registrarTestEngineManager) EngineStatus(_ string) (EngineInfo, error) 
 		return EngineInfo{}, m.statusErr
 	}
 	return EngineInfo{
-		Engine:   "localai",
+		Engine:   "llama",
 		Version:  "3.12.1",
 		Status:   "healthy",
 		Port:     1234,
@@ -67,7 +67,7 @@ func TestLocalStartLocalModelRequiresExactLocalAIModel(t *testing.T) {
 	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/expected-model",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 		Endpoint:     server.URL + "/v1",
 	})
 	if err != nil {
@@ -94,8 +94,8 @@ func TestLocalStartLocalModelRequiresExactLocalAIModel(t *testing.T) {
 func TestSyncManagedLocalAIAssetsWritesConfigAndRestartsOnlyOnChange(t *testing.T) {
 	svc := newTestService(t)
 	modelsPath := filepath.Join(t.TempDir(), "models")
-	configPath := filepath.Join(t.TempDir(), "runtime", "localai-models.yaml")
-	mgr := &registrarTestEngineManager{statusErr: errors.New("engine localai not started")}
+	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
+	mgr := &registrarTestEngineManager{statusErr: errors.New("engine llama not started")}
 	svc.SetLocalAIRegistrationConfig(modelsPath, configPath, true)
 	svc.SetEngineManager(mgr)
 
@@ -114,7 +114,7 @@ func TestSyncManagedLocalAIAssetsWritesConfigAndRestartsOnlyOnChange(t *testing.
 		t.Fatalf("expected 1 config entry, got %d", len(entries))
 	}
 	if entries[0].Name != "test-chat" {
-		t.Fatalf("unexpected LocalAI model name: %q", entries[0].Name)
+		t.Fatalf("unexpected llama model name: %q", entries[0].Name)
 	}
 	if entries[0].Backend != "llama-cpp" {
 		t.Fatalf("unexpected backend: %q", entries[0].Backend)
@@ -134,7 +134,7 @@ func TestSyncManagedLocalAIAssetsWritesConfigAndRestartsOnlyOnChange(t *testing.
 	}
 
 	if err := svc.SyncManagedLocalAIAssets(context.Background()); err != nil {
-		t.Fatalf("sync localai assets without changes: %v", err)
+		t.Fatalf("sync llama assets without changes: %v", err)
 	}
 	if mgr.startCalls != 1 || mgr.stopCalls != 1 {
 		t.Fatalf("expected no restart when config fingerprint is unchanged, got start=%d stop=%d", mgr.startCalls, mgr.stopCalls)
@@ -169,7 +169,7 @@ func TestSyncManagedLocalAIAssetsWritesConfigAndRestartsOnlyOnChange(t *testing.
 func TestSyncManagedLocalAIAssetsSkipsExternalEndpointOnlyModels(t *testing.T) {
 	svc := newTestService(t)
 	modelsPath := filepath.Join(t.TempDir(), "models")
-	configPath := filepath.Join(t.TempDir(), "runtime", "localai-models.yaml")
+	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
 	mgr := &registrarTestEngineManager{}
 	svc.SetLocalAIRegistrationConfig(modelsPath, configPath, true)
 	svc.SetEngineManager(mgr)
@@ -177,10 +177,10 @@ func TestSyncManagedLocalAIAssetsSkipsExternalEndpointOnlyModels(t *testing.T) {
 	if _, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/external-only",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 		Endpoint:     "https://example.com/v1",
 	}); err != nil {
-		t.Fatalf("install external localai model: %v", err)
+		t.Fatalf("install external llama model: %v", err)
 	}
 
 	if _, err := os.Stat(configPath); !errors.Is(err, os.ErrNotExist) {
@@ -194,16 +194,16 @@ func TestSyncManagedLocalAIAssetsSkipsExternalEndpointOnlyModels(t *testing.T) {
 func TestBuildLocalAIRegistrationsRejectsManagedNameConflicts(t *testing.T) {
 	svc := newTestService(t)
 	modelsPath := filepath.Join(t.TempDir(), "models")
-	configPath := filepath.Join(t.TempDir(), "runtime", "localai-models.yaml")
+	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
 	svc.SetLocalAIRegistrationConfig(modelsPath, configPath, true)
 
 	writeManagedLocalAIManifest(t, modelsPath, "local/conflict-model", "./weights/model-a.gguf", []string{"chat"})
-	writeManagedLocalAIManifest(t, modelsPath, "localai/conflict-model", "./weights/model-b.gguf", []string{"chat"})
+	writeManagedLocalAIManifest(t, modelsPath, "llama/conflict-model", "./weights/model-b.gguf", []string{"chat"})
 	first := &runtimev1.LocalModelRecord{
 		LocalModelId: "local-conflict-a",
 		ModelId:      "local/conflict-model",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 		Entry:        "./weights/model-a.gguf",
 		License:      "apache-2.0",
 		Source: &runtimev1.LocalModelSource{
@@ -217,9 +217,9 @@ func TestBuildLocalAIRegistrationsRejectsManagedNameConflicts(t *testing.T) {
 	}
 	second := &runtimev1.LocalModelRecord{
 		LocalModelId: "local-conflict-b",
-		ModelId:      "localai/conflict-model",
+		ModelId:      "llama/conflict-model",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 		Entry:        "./weights/model-b.gguf",
 		License:      "apache-2.0",
 		Source: &runtimev1.LocalModelSource{
@@ -238,7 +238,7 @@ func TestBuildLocalAIRegistrationsRejectsManagedNameConflicts(t *testing.T) {
 
 	registrations, rendered, err := svc.buildLocalAIRegistrations()
 	if err != nil {
-		t.Fatalf("build localai registrations: %v", err)
+		t.Fatalf("build llama registrations: %v", err)
 	}
 	if !strings.Contains(registrations[first.GetLocalModelId()].Problem, "name conflict") {
 		t.Fatalf("expected first registration conflict problem, got %+v", registrations[first.GetLocalModelId()])
@@ -259,7 +259,7 @@ func TestBuildLocalAIRegistrationsRejectsManagedNameConflicts(t *testing.T) {
 func TestManagedLocalAIImageBackendPlatformSupport(t *testing.T) {
 	svc := newTestService(t)
 	modelsPath := filepath.Join(t.TempDir(), "models")
-	configPath := filepath.Join(t.TempDir(), "runtime", "localai-models.yaml")
+	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
 	svc.SetLocalAIRegistrationConfig(modelsPath, configPath, true)
 	svc.SetLocalAIImageBackendConfig(true, "127.0.0.1:50052")
 	svc.SetLocalAIImageBackendHealth(true, "daemon-managed image backend active")
@@ -297,14 +297,14 @@ func TestLocalAIModelProbeSucceededForDynamicProfileWhenEndpointResponds(t *test
 		detail:    "probe response missing valid models",
 	}
 	if !localAIModelProbeSucceeded(probe, registration) {
-		t.Fatalf("dynamic profile should be considered healthy when localai endpoint responds")
+		t.Fatalf("dynamic profile should be considered healthy when llama endpoint responds")
 	}
 }
 
 func TestLocalAIRegistrationForDynamicProfileRecomputesWhenImageBackendRecovers(t *testing.T) {
 	svc := newTestService(t)
 	modelsPath := filepath.Join(t.TempDir(), "models")
-	configPath := filepath.Join(t.TempDir(), "runtime", "localai-models.yaml")
+	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
 	svc.SetLocalAIRegistrationConfig(modelsPath, configPath, true)
 	svc.SetLocalAIImageBackendConfig(true, "127.0.0.1:50052")
 
@@ -319,10 +319,10 @@ func TestLocalAIRegistrationForDynamicProfileRecomputesWhenImageBackendRecovers(
 	installed := installLocalAIModelForRegistrarTest(t, svc, "local/image-model", "./weights/image-model.gguf", []string{"image"}, "", engineConfig)
 
 	if err := svc.SyncManagedLocalAIAssets(context.Background()); err != nil {
-		t.Fatalf("sync managed localai assets: %v", err)
+		t.Fatalf("sync managed llama assets: %v", err)
 	}
 	stale := svc.localAIRegistrations[installed.GetLocalModelId()]
-	if stale.Problem != "managed localai image backend unavailable" {
+	if stale.Problem != "managed diffusers backend unavailable" {
 		t.Fatalf("expected cached unavailable registration, got %+v", stale)
 	}
 
@@ -342,7 +342,7 @@ func installLocalAIModelForRegistrarTest(t *testing.T, svc *Service, modelID str
 	req := &runtimev1.InstallLocalModelRequest{
 		ModelId:      modelID,
 		Capabilities: capabilities,
-		Engine:       "localai",
+		Engine:       "llama",
 		Entry:        entry,
 		Endpoint:     endpoint,
 		EngineConfig: engineConfig,
@@ -376,7 +376,7 @@ func writeManagedLocalAIManifest(t *testing.T, modelsPath string, modelID string
 	manifest := map[string]any{
 		"model_id":     modelID,
 		"entry":        entry,
-		"engine":       "localai",
+		"engine":       "llama",
 		"capabilities": capabilities,
 		"files":        []string{cleanEntry},
 		"hashes":       map[string]string{"sha256": "deadbeef"},

@@ -237,7 +237,7 @@ func (s *Service) resolveTextGenerateArtifactPath(
 }
 
 func isLocalAITextGenerateRoute(modelResolved string, remoteTarget *nimillm.RemoteTarget, selected provider) bool {
-	return inferScenarioProviderType(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_UNSPECIFIED) == "localai"
+	return inferScenarioProviderType(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_UNSPECIFIED) == "llama"
 }
 
 func classifyTextGenerateArtifactMedia(explicitMime string, resolvedMime string, resolvedPath string) (runtimev1.ChatContentPartType, error) {

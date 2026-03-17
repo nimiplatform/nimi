@@ -27,7 +27,7 @@ func TestExecuteScenarioTextGenerateSuccess(t *testing.T) {
 	defer server.Close()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+		LocalProviders: map[string]nimillm.ProviderCredentials{"llama": {BaseURL: server.URL}},
 	})
 
 	resp, err := svc.ExecuteScenario(context.Background(), &runtimev1.ExecuteScenarioRequest{
@@ -78,7 +78,7 @@ func TestStreamScenarioTextGenerateSequence(t *testing.T) {
 	defer server.Close()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+		LocalProviders: map[string]nimillm.ProviderCredentials{"llama": {BaseURL: server.URL}},
 	})
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 
@@ -178,7 +178,7 @@ func TestStreamScenarioTextGenerateTimeoutEmitsFailedEvent(t *testing.T) {
 	defer streamServer.Close()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: streamServer.URL}},
+		LocalProviders: map[string]nimillm.ProviderCredentials{"llama": {BaseURL: streamServer.URL}},
 	})
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 

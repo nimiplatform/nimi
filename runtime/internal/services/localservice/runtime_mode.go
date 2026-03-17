@@ -6,8 +6,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-const defaultManagedNexaEndpoint = "http://127.0.0.1:8000/v1"
-
 type localRuntimeBinding struct {
 	mode            runtimev1.LocalEngineRuntimeMode
 	endpoint        string
@@ -23,7 +21,7 @@ func normalizeRuntimeMode(mode runtimev1.LocalEngineRuntimeMode) runtimev1.Local
 
 func supportsSupervisedEngine(engine string) bool {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
-	case "localai", "nexa", "nimi_media":
+	case "llama", "media":
 		return true
 	default:
 		return false
@@ -32,11 +30,9 @@ func supportsSupervisedEngine(engine string) bool {
 
 func managedDefaultEndpointForEngine(engine string) string {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
-	case "localai":
+	case "llama":
 		return defaultLocalEndpoint
-	case "nexa":
-		return defaultManagedNexaEndpoint
-	case "nimi_media":
+	case "media":
 		return defaultNimiMediaEndpoint
 	default:
 		return ""
@@ -119,9 +115,9 @@ func resolveInstallRuntimeBinding(engine string, requestEndpoint string, profile
 
 func (s *Service) managedEndpointForEngine(engine string) string {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
-	case "localai":
+	case "llama":
 		return s.managedLocalAIEndpoint()
-	case "nimi_media":
+	case "media":
 		return s.managedNimiMediaEndpoint()
 	default:
 		return ""
@@ -130,9 +126,9 @@ func (s *Service) managedEndpointForEngine(engine string) string {
 
 func (s *Service) managedEndpointForEngineLocked(engine string) string {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
-	case "localai":
+	case "llama":
 		return strings.TrimSpace(s.localAIManagedEndpoint)
-	case "nimi_media":
+	case "media":
 		return strings.TrimSpace(s.nimiMediaManagedEndpoint)
 	default:
 		return ""

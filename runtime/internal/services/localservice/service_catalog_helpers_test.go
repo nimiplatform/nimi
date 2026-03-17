@@ -6,22 +6,22 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-func TestBuildNodeProviderHintsNimiMediaDoesNotSynthesizeCatalogMetadata(t *testing.T) {
+func TestBuildNodeProviderHintsMediaDoesNotSynthesizeCatalogMetadata(t *testing.T) {
 	hints := buildNodeProviderHints(
 		&runtimev1.LocalServiceDescriptor{
-			ServiceId: "svc-nimi-media",
-			Engine:    "nimi_media",
+			ServiceId: "svc-media",
+			Engine:    "media",
 			Endpoint:  "http://127.0.0.1:8321/v1",
 		},
-		"nimi_media",
+		"media",
 		"image",
-		"nimi_media_native_adapter",
+		"media_native_adapter",
 		"",
 		true,
 		&runtimev1.LocalDeviceProfile{Os: "windows"},
 	)
 	if hints == nil || hints.GetNimiMedia() == nil {
-		t.Fatal("expected nimi_media provider hints")
+		t.Fatal("expected media provider hints")
 	}
 	if hints.GetNimiMedia().GetFamily() != "" {
 		t.Fatalf("expected empty family without real catalog metadata, got %q", hints.GetNimiMedia().GetFamily())
@@ -46,17 +46,20 @@ func TestBuildNodeProviderHintsNimiMediaDoesNotSynthesizeCatalogMetadata(t *test
 	}
 }
 
-func TestAdapterForProviderCapabilityHardCutsUnsupportedNexaMedia(t *testing.T) {
-	if got := adapterForProviderCapability("nexa", "image"); got != "openai_compat_adapter" {
-		t.Fatalf("nexa image adapter mismatch: %s", got)
+func TestAdapterForProviderCapabilityUsesHardCutAdapters(t *testing.T) {
+	if got := adapterForProviderCapability("llama", "chat"); got != "openai_compat_adapter" {
+		t.Fatalf("llama chat adapter mismatch: %s", got)
 	}
-	if got := adapterForProviderCapability("nexa", "video"); got != "openai_compat_adapter" {
-		t.Fatalf("nexa video adapter mismatch: %s", got)
+	if got := adapterForProviderCapability("llama", "image.understand"); got != "llama_native_adapter" {
+		t.Fatalf("llama image-understand adapter mismatch: %s", got)
 	}
-	if got := adapterForProviderCapability("nexa", "tts"); got != "nexa_native_adapter" {
-		t.Fatalf("nexa tts adapter mismatch: %s", got)
+	if got := adapterForProviderCapability("media", "image"); got != "media_native_adapter" {
+		t.Fatalf("media image adapter mismatch: %s", got)
 	}
-	if got := adapterForProviderCapability("nexa", "chat"); got != "nexa_native_adapter" {
-		t.Fatalf("nexa chat adapter mismatch: %s", got)
+	if got := adapterForProviderCapability("media.diffusers", "video"); got != "media_diffusers_adapter" {
+		t.Fatalf("media diffusers video adapter mismatch: %s", got)
+	}
+	if got := adapterForProviderCapability("sidecar", "music"); got != "sidecar_music_adapter" {
+		t.Fatalf("sidecar music adapter mismatch: %s", got)
 	}
 }

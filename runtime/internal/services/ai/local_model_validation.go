@@ -28,7 +28,7 @@ type localImageProfileResolver interface {
 type localModelSelector struct {
 	modelID        string
 	explicitEngine string
-	preferLocalAI  bool
+	preferLocal    bool
 	modal          runtimev1.Modal
 }
 
@@ -110,23 +110,20 @@ func parseLocalModelSelector(modelID string, modal runtimev1.Modal) localModelSe
 	lower := strings.ToLower(raw)
 	selector := localModelSelector{modal: modal}
 	switch {
-	case strings.HasPrefix(lower, "localai/"):
-		selector.explicitEngine = "localai"
-		selector.modelID = strings.TrimSpace(raw[len("localai/"):])
-	case strings.HasPrefix(lower, "nexa/"):
-		selector.explicitEngine = "nexa"
-		selector.modelID = strings.TrimSpace(raw[len("nexa/"):])
-	case strings.HasPrefix(lower, "nimi_media/"):
-		selector.explicitEngine = "nimi_media"
-		selector.modelID = strings.TrimSpace(raw[len("nimi_media/"):])
+	case strings.HasPrefix(lower, "llama/"):
+		selector.explicitEngine = "llama"
+		selector.modelID = strings.TrimSpace(raw[len("llama/"):])
+	case strings.HasPrefix(lower, "media.diffusers/"):
+		selector.explicitEngine = "media.diffusers"
+		selector.modelID = strings.TrimSpace(raw[len("media.diffusers/"):])
+	case strings.HasPrefix(lower, "media/"):
+		selector.explicitEngine = "media"
+		selector.modelID = strings.TrimSpace(raw[len("media/"):])
 	case strings.HasPrefix(lower, "sidecar/"):
 		selector.explicitEngine = "sidecar"
 		selector.modelID = strings.TrimSpace(raw[len("sidecar/"):])
-	case strings.HasPrefix(lower, "localsidecar/"):
-		selector.explicitEngine = "sidecar"
-		selector.modelID = strings.TrimSpace(raw[len("localsidecar/"):])
 	case strings.HasPrefix(lower, "local/"):
-		selector.preferLocalAI = true
+		selector.preferLocal = true
 		selector.modelID = strings.TrimSpace(raw[len("local/"):])
 	default:
 		selector.modelID = raw
@@ -167,7 +164,7 @@ func selectActiveLocalModel(models []*runtimev1.LocalModelRecord, selector local
 		return nil, runtimev1.ReasonCode_AI_MODEL_PROVIDER_MISMATCH
 	}
 
-	if selector.preferLocalAI {
+	if selector.preferLocal {
 		for _, engine := range localPreferredEngines(selector.modal) {
 			for _, model := range candidates {
 				if strings.EqualFold(strings.TrimSpace(model.GetEngine()), engine) {
@@ -213,7 +210,7 @@ func selectRunnableLocalModel(models []*runtimev1.LocalModelRecord, selector loc
 		return nil, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, unavailableLocalModelDetail(engineCandidates)
 	}
 
-	if selector.preferLocalAI {
+	if selector.preferLocal {
 		for _, engine := range localPreferredEngines(selector.modal) {
 			if selected := firstActiveLocalModel(filterLocalModelsByEngine(candidates, engine)); selected != nil {
 				return selected, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
@@ -349,7 +346,7 @@ func localRoutingCapabilityForModal(modal runtimev1.Modal) string {
 	case runtimev1.Modal_MODAL_TTS:
 		return "audio.synthesize"
 	case runtimev1.Modal_MODAL_STT:
-		return "audio.transcribe"
+		return "audio.understand"
 	case runtimev1.Modal_MODAL_MUSIC:
 		return "music.generate"
 	case runtimev1.Modal_MODAL_EMBEDDING:

@@ -4,10 +4,10 @@
 > Source: `spec/runtime/kernel/tables/local-engine-catalog.yaml`
 | Engine | Default Endpoint | Runtime Mode | Protocol | Phase 1 | Source |
 |---|---|---|---|---|---|
-| `localai` | `—` | `attached_endpoint` | `openai_compatible` | `true` | `K-LENG-005` |
-| `localai` | `—` | `supervised` | `openai_compatible` | `true` | `K-LENG-004` |
-| `nexa` | `—` | `attached_endpoint` | `openai_compatible` | `true` | `K-LENG-005` |
-| `nexa` | `—` | `supervised` | `openai_compatible` | `true` | `K-LENG-004` |
-| `nimi_media` | `—` | `attached_endpoint` | `nimi_runtime_media` | `true` | `K-LENG-005` |
-| `nimi_media` | `—` | `supervised` | `nimi_runtime_media` | `true` | `K-LENG-004` |
+| `llama` | `—` | `attached_endpoint` | `nimi_runtime_text` | `true` | `K-LENG-005` |
+| `llama` | `—` | `supervised` | `nimi_runtime_text` | `true` | `K-LENG-004` |
+| `media` | `—` | `attached_endpoint` | `nimi_runtime_media` | `true` | `K-LENG-005` |
+| `media` | `—` | `supervised` | `nimi_runtime_media` | `true` | `K-LENG-004` |
+| `media.diffusers` | `—` | `attached_endpoint` | `nimi_runtime_media` | `true` | `K-LENG-005` |
+| `media.diffusers` | `—` | `supervised` | `nimi_runtime_media` | `true` | `K-LENG-004` |
 | `sidecar` | `—` | `attached_endpoint` | `nimi_music_http` | `true` | `K-LENG-005` |

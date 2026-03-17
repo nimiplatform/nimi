@@ -50,43 +50,32 @@ func ensureEngineConfig(fileCfg *config.FileConfig, engineName string) *config.F
 		fileCfg.Engines = &config.FileConfigEngines{}
 	}
 	switch strings.TrimSpace(strings.ToLower(engineName)) {
-	case "localai":
-		if fileCfg.Engines.LocalAI == nil {
-			fileCfg.Engines.LocalAI = &config.FileConfigEngine{}
+	case "llama":
+		if fileCfg.Engines.Llama == nil {
+			fileCfg.Engines.Llama = &config.FileConfigEngine{}
 		}
-		return fileCfg.Engines.LocalAI
-	case "nexa":
-		if fileCfg.Engines.Nexa == nil {
-			fileCfg.Engines.Nexa = &config.FileConfigEngine{}
+		return fileCfg.Engines.Llama
+	case "media":
+		if fileCfg.Engines.Media == nil {
+			fileCfg.Engines.Media = &config.FileConfigEngine{}
 		}
-		return fileCfg.Engines.Nexa
+		return fileCfg.Engines.Media
 	default:
 		return &config.FileConfigEngine{}
 	}
-}
-
-func ensureLocalAIImageBackendConfig(fileCfg *config.FileConfig) *config.FileConfigLocalAIImageBackend {
-	engineCfg := ensureEngineConfig(fileCfg, "localai")
-	if engineCfg.ImageBackend == nil {
-		engineCfg.ImageBackend = &config.FileConfigLocalAIImageBackend{}
-	}
-	return engineCfg.ImageBackend
 }
 
 func pruneEmptyEnginesConfig(fileCfg *config.FileConfig) {
 	if fileCfg == nil || fileCfg.Engines == nil {
 		return
 	}
-	if fileCfg.Engines.LocalAI != nil && isEmptyLocalAIImageBackendConfig(fileCfg.Engines.LocalAI.ImageBackend) {
-		fileCfg.Engines.LocalAI.ImageBackend = nil
+	if isEmptyFileConfigEngine(fileCfg.Engines.Llama) {
+		fileCfg.Engines.Llama = nil
 	}
-	if isEmptyFileConfigEngine(fileCfg.Engines.LocalAI) {
-		fileCfg.Engines.LocalAI = nil
+	if isEmptyFileConfigEngine(fileCfg.Engines.Media) {
+		fileCfg.Engines.Media = nil
 	}
-	if isEmptyFileConfigEngine(fileCfg.Engines.Nexa) {
-		fileCfg.Engines.Nexa = nil
-	}
-	if fileCfg.Engines.LocalAI == nil && fileCfg.Engines.Nexa == nil {
+	if fileCfg.Engines.Llama == nil && fileCfg.Engines.Media == nil {
 		fileCfg.Engines = nil
 	}
 }
@@ -97,21 +86,7 @@ func isEmptyFileConfigEngine(engineCfg *config.FileConfigEngine) bool {
 	}
 	return engineCfg.Enabled == nil &&
 		strings.TrimSpace(engineCfg.Version) == "" &&
-		engineCfg.Port == nil &&
-		isEmptyLocalAIImageBackendConfig(engineCfg.ImageBackend)
-}
-
-func isEmptyLocalAIImageBackendConfig(cfg *config.FileConfigLocalAIImageBackend) bool {
-	if cfg == nil {
-		return true
-	}
-	return strings.TrimSpace(cfg.Mode) == "" &&
-		strings.TrimSpace(cfg.BackendName) == "" &&
-		strings.TrimSpace(cfg.Address) == "" &&
-		strings.TrimSpace(cfg.Command) == "" &&
-		len(cfg.Args) == 0 &&
-		len(cfg.Env) == 0 &&
-		strings.TrimSpace(cfg.WorkingDir) == ""
+		engineCfg.Port == nil
 }
 
 func cloneFileConfigEngine(engineCfg *config.FileConfigEngine) *config.FileConfigEngine {
@@ -128,28 +103,6 @@ func cloneFileConfigEngine(engineCfg *config.FileConfigEngine) *config.FileConfi
 	if engineCfg.Port != nil {
 		port := *engineCfg.Port
 		cloned.Port = &port
-	}
-	cloned.ImageBackend = cloneFileConfigLocalAIImageBackend(engineCfg.ImageBackend)
-	return cloned
-}
-
-func cloneFileConfigLocalAIImageBackend(cfg *config.FileConfigLocalAIImageBackend) *config.FileConfigLocalAIImageBackend {
-	if cfg == nil {
-		return nil
-	}
-	cloned := &config.FileConfigLocalAIImageBackend{
-		Mode:        strings.TrimSpace(cfg.Mode),
-		BackendName: strings.TrimSpace(cfg.BackendName),
-		Address:     strings.TrimSpace(cfg.Address),
-		Command:     strings.TrimSpace(cfg.Command),
-		Args:        append([]string(nil), cfg.Args...),
-		WorkingDir:  strings.TrimSpace(cfg.WorkingDir),
-	}
-	if len(cfg.Env) > 0 {
-		cloned.Env = make(map[string]string, len(cfg.Env))
-		for key, value := range cfg.Env {
-			cloned.Env[key] = value
-		}
 	}
 	return cloned
 }

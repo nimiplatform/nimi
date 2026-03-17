@@ -16,11 +16,11 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-const generatedLocalAIModelsConfigRelPath = ".nimi/runtime/localai-models.yaml"
+const generatedLocalAIModelsConfigRelPath = ".nimi/runtime/llama-models.yaml"
 
 const (
-	localAIImageBackendServiceID    = "svc_localai_image_backend"
-	localAIImageBackendServiceTitle = "LocalAI Image Backend"
+	localAIImageBackendServiceID    = "svc_llama_image_backend"
+	localAIImageBackendServiceTitle = "Llama Image Backend"
 )
 
 type localAIRegistration struct {
@@ -96,8 +96,8 @@ func (s *Service) SetLocalAIRegistrationConfig(modelsPath string, modelsConfigPa
 	s.localAIManaged = managed
 }
 
-// SetLocalAIManagedEndpoint records the managed LocalAI endpoint exposed by the
-// daemon and rewrites supervised LocalAI model endpoints to that managed endpoint.
+// SetLocalAIManagedEndpoint records the managed llama endpoint exposed by the
+// daemon and rewrites supervised llama model endpoints to that managed endpoint.
 func (s *Service) SetLocalAIManagedEndpoint(endpoint string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -113,7 +113,7 @@ func (s *Service) SetLocalAIManagedEndpoint(endpoint string) {
 		if model == nil || model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
 			continue
 		}
-		if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "localai") {
+		if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "llama") {
 			continue
 		}
 		if normalizeRuntimeMode(s.modelRuntimeModes[localModelID]) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
@@ -133,7 +133,7 @@ func (s *Service) SetLocalAIManagedEndpoint(endpoint string) {
 	}
 }
 
-// SetNimiMediaManagedEndpoint records the managed nimi_media endpoint exposed
+// SetNimiMediaManagedEndpoint records the managed media endpoint exposed
 // by the daemon and rewrites supervised media model endpoints to that value.
 func (s *Service) SetNimiMediaManagedEndpoint(endpoint string) {
 	s.mu.Lock()
@@ -150,7 +150,7 @@ func (s *Service) SetNimiMediaManagedEndpoint(endpoint string) {
 		if model == nil || model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
 			continue
 		}
-		if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "nimi_media") {
+		if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "media") {
 			continue
 		}
 		if normalizeRuntimeMode(s.modelRuntimeModes[localModelID]) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
@@ -170,8 +170,8 @@ func (s *Service) SetNimiMediaManagedEndpoint(endpoint string) {
 	}
 }
 
-// SetLocalAIImageBackendConfig records whether the managed LocalAI image
-// backend is configured for daemon-supervised LocalAI image workflows.
+// SetLocalAIImageBackendConfig records whether the managed diffusers image
+// backend is configured for daemon-supervised local media workflows.
 func (s *Service) SetLocalAIImageBackendConfig(enabled bool, address string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -185,16 +185,16 @@ func (s *Service) SetLocalAIImageBackendConfig(enabled bool, address string) {
 		}
 		s.localAIImageBackendUpdatedAt = now
 		s.localAIImageBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED
-		s.localAIImageBackendDetail = "daemon-managed image backend configured"
+		s.localAIImageBackendDetail = "daemon-managed diffusers backend configured"
 		return
 	}
 	s.localAIImageBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED
-	s.localAIImageBackendDetail = "daemon-managed image backend disabled"
+	s.localAIImageBackendDetail = "daemon-managed diffusers backend disabled"
 	s.localAIImageBackendInstalledAt = ""
 	s.localAIImageBackendUpdatedAt = now
 }
 
-// SetLocalAIImageBackendHealth records the current managed LocalAI image
+// SetLocalAIImageBackendHealth records the current managed diffusers image
 // backend health reported by the engine supervisor.
 func (s *Service) SetLocalAIImageBackendHealth(healthy bool, detail string) {
 	s.mu.Lock()
@@ -207,16 +207,16 @@ func (s *Service) SetLocalAIImageBackendHealth(healthy bool, detail string) {
 	trimmed := strings.TrimSpace(detail)
 	if healthy {
 		s.localAIImageBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE
-		s.localAIImageBackendDetail = defaultString(trimmed, "daemon-managed image backend active")
+		s.localAIImageBackendDetail = defaultString(trimmed, "daemon-managed diffusers backend active")
 		return
 	}
 	s.localAIImageBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY
-	s.localAIImageBackendDetail = defaultString(trimmed, "daemon-managed image backend unhealthy")
+	s.localAIImageBackendDetail = defaultString(trimmed, "daemon-managed diffusers backend unhealthy")
 }
 
-// SyncManagedLocalAIAssets rebuilds the runtime-managed LocalAI config from the
+// SyncManagedLocalAIAssets rebuilds the runtime-managed llama config from the
 // current local model state and restarts the managed engine when the generated
-// config changes while LocalAI is already running.
+// config changes while llama is already running.
 func (s *Service) SyncManagedLocalAIAssets(ctx context.Context) error {
 	registrations, rendered, err := s.buildLocalAIRegistrations()
 	if err != nil {
@@ -257,15 +257,15 @@ func (s *Service) SyncManagedLocalAIAssets(ctx context.Context) error {
 	if mgr == nil {
 		return nil
 	}
-	info, err := mgr.EngineStatus("localai")
+	info, err := mgr.EngineStatus("llama")
 	if err != nil {
 		return nil
 	}
-	if err := mgr.StopEngine("localai"); err != nil {
-		return fmt.Errorf("restart managed localai stop: %w", err)
+	if err := mgr.StopEngine("llama"); err != nil {
+		return fmt.Errorf("restart managed llama stop: %w", err)
 	}
-	if err := mgr.StartEngine(ctx, "localai", info.Port, info.Version); err != nil {
-		return fmt.Errorf("restart managed localai start: %w", err)
+	if err := mgr.StartEngine(ctx, "llama", info.Port, info.Version); err != nil {
+		return fmt.Errorf("restart managed llama start: %w", err)
 	}
 	return nil
 }
@@ -294,7 +294,7 @@ func (s *Service) buildLocalAIRegistrations() (map[string]localAIRegistration, [
 		if model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
 			continue
 		}
-		if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "localai") {
+		if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "llama") {
 			continue
 		}
 
@@ -312,7 +312,7 @@ func (s *Service) buildLocalAIRegistrations() (map[string]localAIRegistration, [
 		sort.Strings(localModelIDs)
 		for _, localModelID := range localModelIDs {
 			registration := registrations[localModelID]
-			registration.Problem = fmt.Sprintf("localai registration name conflict for %q", modelName)
+			registration.Problem = fmt.Sprintf("llama registration name conflict for %q", modelName)
 			registrations[localModelID] = registration
 		}
 	}
@@ -349,7 +349,7 @@ func (s *Service) buildLocalAIRegistrations() (map[string]localAIRegistration, [
 
 	rendered, err := yaml.Marshal(entries)
 	if err != nil {
-		return nil, nil, fmt.Errorf("marshal localai models config: %w", err)
+		return nil, nil, fmt.Errorf("marshal llama models config: %w", err)
 	}
 	return registrations, rendered, nil
 }
@@ -381,11 +381,11 @@ func inspectLocalAIModelRegistration(
 	if strings.EqualFold(backend, "stablediffusion-ggml") {
 		registration.DynamicProfile = true
 		if registration.Managed && !imageBackendUp {
-			registration.Problem = "managed localai image backend unavailable"
+			registration.Problem = "managed diffusers backend unavailable"
 			return registration
 		}
 		if len(structToMap(model.GetEngineConfig())) == 0 {
-			registration.Problem = "localai image model missing engine_config"
+			registration.Problem = "local media model missing engine_config"
 			return registration
 		}
 		relativeModelPath, resolveErr := resolveLocalAIEntryRelativePath(modelsPath, model.GetModelId(), model.GetSource().GetRepo(), model.GetEntry())
@@ -475,7 +475,7 @@ func localAIBackendForCapabilities(capabilities []string) (string, error) {
 			keys = append(keys, key)
 		}
 		sort.Strings(keys)
-		return "", fmt.Errorf("localai backend conflict for capabilities=%s", strings.Join(keys, ","))
+		return "", fmt.Errorf("llama backend conflict for capabilities=%s", strings.Join(keys, ","))
 	}
 	for key := range backends {
 		return key, nil
@@ -487,10 +487,12 @@ func normalizeLocalAIRegistrationModelID(modelID string) string {
 	raw := strings.TrimSpace(modelID)
 	lower := strings.ToLower(raw)
 	switch {
-	case strings.HasPrefix(lower, "localai/"):
-		raw = strings.TrimSpace(raw[len("localai/"):])
-	case strings.HasPrefix(lower, "nexa/"):
-		raw = strings.TrimSpace(raw[len("nexa/"):])
+	case strings.HasPrefix(lower, "llama/"):
+		raw = strings.TrimSpace(raw[len("llama/"):])
+	case strings.HasPrefix(lower, "media.diffusers/"):
+		raw = strings.TrimSpace(raw[len("media.diffusers/"):])
+	case strings.HasPrefix(lower, "media/"):
+		raw = strings.TrimSpace(raw[len("media/"):])
 	case strings.HasPrefix(lower, "local/"):
 		raw = strings.TrimSpace(raw[len("local/"):])
 	}
@@ -523,13 +525,13 @@ func slugifyLocalModelID(input string) string {
 func writeGeneratedLocalAIConfigIfChanged(path string, rendered []byte) (bool, error) {
 	if len(bytes.TrimSpace(rendered)) == 0 {
 		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
-			return false, fmt.Errorf("remove localai config %s: %w", path, err)
+			return false, fmt.Errorf("remove llama config %s: %w", path, err)
 		}
 		return true, nil
 	}
 
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return false, fmt.Errorf("create localai config directory: %w", err)
+		return false, fmt.Errorf("create llama config directory: %w", err)
 	}
 
 	current, err := os.ReadFile(path)
@@ -537,10 +539,10 @@ func writeGeneratedLocalAIConfigIfChanged(path string, rendered []byte) (bool, e
 		return false, nil
 	}
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		return false, fmt.Errorf("read localai config %s: %w", path, err)
+		return false, fmt.Errorf("read llama config %s: %w", path, err)
 	}
 	if err := os.WriteFile(path, rendered, 0o600); err != nil {
-		return false, fmt.Errorf("write localai config %s: %w", path, err)
+		return false, fmt.Errorf("write llama config %s: %w", path, err)
 	}
 	return true, nil
 }
@@ -566,11 +568,9 @@ func (s *Service) localAIRegistrationForModel(model *runtimev1.LocalModelRecord)
 
 func modelProbeSucceeded(model *runtimev1.LocalModelRecord, probe endpointProbeResult, registration localAIRegistration) bool {
 	switch strings.ToLower(strings.TrimSpace(model.GetEngine())) {
-	case "localai":
+	case "llama":
 		return localAIModelProbeSucceeded(probe, registration)
-	case "nexa":
-		return nexaModelProbeSucceeded(model, probe)
-	case "nimi_media":
+	case "media", "media.diffusers":
 		return nimiMediaModelProbeSucceeded(model, probe)
 	}
 	return probe.healthy
@@ -578,11 +578,9 @@ func modelProbeSucceeded(model *runtimev1.LocalModelRecord, probe endpointProbeR
 
 func modelProbeFailureDetail(model *runtimev1.LocalModelRecord, probe endpointProbeResult, registration localAIRegistration) string {
 	switch strings.ToLower(strings.TrimSpace(model.GetEngine())) {
-	case "localai":
+	case "llama":
 		return localAIModelProbeFailureDetail(probe, registration)
-	case "nexa":
-		return nexaModelProbeFailureDetail(model, probe)
-	case "nimi_media":
+	case "media", "media.diffusers":
 		return nimiMediaModelProbeFailureDetail(model, probe)
 	}
 	return defaultString(probe.detail, "model probe failed")
@@ -602,17 +600,17 @@ func nimiMediaModelProbeSucceeded(model *runtimev1.LocalModelRecord, probe endpo
 
 func nimiMediaModelProbeFailureDetail(model *runtimev1.LocalModelRecord, probe endpointProbeResult) string {
 	if !probe.healthy {
-		return defaultString(probe.detail, "nimi_media model probe failed")
+		return defaultString(probe.detail, "media model probe failed")
 	}
 	expectedModelName := strings.TrimSpace(model.GetModelId())
 	if expectedModelName == "" {
-		return "nimi_media probe requires a model id"
+		return "media probe requires a model id"
 	}
 	available := compactProbeModelIDs(probe.models)
 	if len(available) == 0 {
-		return fmt.Sprintf("nimi_media probe missing expected model %q", expectedModelName)
+		return fmt.Sprintf("media probe missing expected model %q", expectedModelName)
 	}
-	return fmt.Sprintf("nimi_media probe missing expected model %q; available_models=%s", expectedModelName, strings.Join(available, ","))
+	return fmt.Sprintf("media probe missing expected model %q; available_models=%s", expectedModelName, strings.Join(available, ","))
 }
 
 func localAIModelProbeSucceeded(probe endpointProbeResult, registration localAIRegistration) bool {
@@ -643,9 +641,9 @@ func localAIModelProbeFailureDetail(probe endpointProbeResult, registration loca
 	}
 	if registration.DynamicProfile {
 		if probe.responded {
-			return "localai image workflow ready"
+			return "local media workflow ready"
 		}
-		return defaultString(probe.detail, "localai image workflow unavailable")
+		return defaultString(probe.detail, "local media workflow unavailable")
 	}
 	if !probe.healthy {
 		return defaultString(probe.detail, "model probe failed")
@@ -749,9 +747,9 @@ func normalizeComparableModelID(value string) string {
 	comparable = strings.TrimPrefix(comparable, "models/")
 	comparable = strings.TrimPrefix(comparable, "model/")
 	comparable = strings.TrimPrefix(comparable, "local/")
-	comparable = strings.TrimPrefix(comparable, "localai/")
-	comparable = strings.TrimPrefix(comparable, "nexa/")
-	comparable = strings.TrimPrefix(comparable, "nimi_media/")
+	comparable = strings.TrimPrefix(comparable, "llama/")
+	comparable = strings.TrimPrefix(comparable, "media/")
+	comparable = strings.TrimPrefix(comparable, "media.diffusers/")
 	return comparable
 }
 

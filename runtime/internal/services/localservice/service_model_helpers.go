@@ -114,7 +114,7 @@ func (s *Service) RemoveLocalModel(_ context.Context, req *runtimev1.RemoveLocal
 		return nil, err
 	}
 	if syncErr := s.SyncManagedLocalAIAssets(context.Background()); syncErr != nil {
-		s.logger.Warn("sync localai assets after remove failed", "local_model_id", localModelID, "error", syncErr)
+		s.logger.Warn("sync llama assets after remove failed", "local_model_id", localModelID, "error", syncErr)
 	}
 	return &runtimev1.RemoveLocalModelResponse{Model: model}, nil
 }

@@ -154,8 +154,8 @@ func newLiveSmokeServiceForProvider(t *testing.T, providerID string, record prov
 		sidecarAPIKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SIDECAR_API_KEY"))
 		return newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 			LocalProviders: map[string]nimillm.ProviderCredentials{
-				"localai": {BaseURL: baseURL, APIKey: apiKey},
-				"nexa":    {BaseURL: baseURL, APIKey: apiKey},
+				"llama":   {BaseURL: baseURL, APIKey: apiKey},
+				"media":   {BaseURL: baseURL, APIKey: apiKey},
 				"sidecar": {BaseURL: firstNonEmptyString(sidecarBaseURL, baseURL), APIKey: firstNonEmptyString(sidecarAPIKey, apiKey)},
 			},
 		})
@@ -205,7 +205,7 @@ func qualifyLocalSidecarLiveModelID(modelID string) string {
 	switch {
 	case normalized == "":
 		return ""
-	case strings.HasPrefix(lower, "sidecar/"), strings.HasPrefix(lower, "localsidecar/"):
+	case strings.HasPrefix(lower, "sidecar/"):
 		return normalized
 	default:
 		return "sidecar/" + normalized

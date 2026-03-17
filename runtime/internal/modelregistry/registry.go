@@ -31,6 +31,7 @@ type Entry struct {
 	Version      string
 	Status       runtimev1.ModelStatus
 	Capabilities []string
+	Files        []string
 	LastHealthAt time.Time
 	Source       string
 	ProviderHint ProviderHint
@@ -113,11 +114,21 @@ func (r *Registry) ListDescriptors() []*runtimev1.ModelDescriptor {
 	entries := r.List()
 	out := make([]*runtimev1.ModelDescriptor, 0, len(entries))
 	for _, item := range entries {
+		projection := InferNativeProjection(item.ModelID, item.Capabilities, item.Files, item.Status)
 		desc := &runtimev1.ModelDescriptor{
-			ModelId:      item.ModelID,
-			Version:      item.Version,
-			Status:       item.Status,
-			Capabilities: append([]string(nil), item.Capabilities...),
+			ModelId:           item.ModelID,
+			Version:           item.Version,
+			Status:            item.Status,
+			Capabilities:      append([]string(nil), item.Capabilities...),
+			CapabilityProfile: capabilityProfileFor(item.Capabilities),
+			LogicalModelId:    projection.LogicalModelID,
+			Family:            projection.Family,
+			ArtifactRoles:     append([]string(nil), projection.ArtifactRoles...),
+			PreferredEngine:   projection.PreferredEngine,
+			FallbackEngines:   append([]string(nil), projection.FallbackEngines...),
+			BundleState:       projection.BundleState,
+			WarmState:         projection.WarmState,
+			HostRequirements:  protoCloneHostRequirements(projection.HostRequirements),
 		}
 		if !item.LastHealthAt.IsZero() {
 			desc.LastHealthAt = timestamppb.New(item.LastHealthAt)
@@ -133,10 +144,50 @@ func cloneEntry(input Entry) Entry {
 		Version:      input.Version,
 		Status:       input.Status,
 		Capabilities: append([]string(nil), input.Capabilities...),
+		Files:        append([]string(nil), input.Files...),
 		LastHealthAt: input.LastHealthAt,
 		Source:       input.Source,
 		ProviderHint: input.ProviderHint,
 	}
+}
+
+func protoCloneHostRequirements(input *runtimev1.LocalHostRequirements) *runtimev1.LocalHostRequirements {
+	if input == nil {
+		return nil
+	}
+	return &runtimev1.LocalHostRequirements{
+		GpuRequired:           input.GetGpuRequired(),
+		PythonRuntimeRequired: input.GetPythonRuntimeRequired(),
+		SupportedPlatforms:    append([]string(nil), input.GetSupportedPlatforms()...),
+		RequiredBackends:      append([]string(nil), input.GetRequiredBackends()...),
+	}
+}
+
+func capabilityProfileFor(capabilities []string) *runtimev1.ModelCapabilityProfile {
+	profile := &runtimev1.ModelCapabilityProfile{}
+	for _, capability := range capabilities {
+		switch strings.ToLower(strings.TrimSpace(capability)) {
+		case "chat", "text.generate":
+			profile.SupportsTextGenerate = true
+		case "text.embed", "embed", "embedding":
+			profile.SupportsEmbedding = true
+		case "image.generate", "image.edit":
+			profile.SupportsImageGeneration = true
+			profile.SupportsAsyncMediaJob = true
+		case "video.generate", "i2v":
+			profile.SupportsVideoGeneration = true
+			profile.SupportsAsyncMediaJob = true
+		case "audio.synthesize", "tts", "speech":
+			profile.SupportsSpeechSynthesis = true
+		case "audio.transcribe", "stt", "transcription":
+			profile.SupportsSpeechTranscription = true
+		}
+		if strings.Contains(strings.ToLower(strings.TrimSpace(capability)), "stream") {
+			profile.SupportsStreaming = true
+			profile.SupportsTextStream = true
+		}
+	}
+	return profile
 }
 
 // InferCapabilities returns heuristic capability strings for a model ID.

@@ -45,7 +45,7 @@ func TestResolveLocalAIImageProfileInjectsDynamicComponents(t *testing.T) {
 	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "z_image_turbo",
 		Capabilities: []string{"image"},
-		Engine:       "localai",
+		Engine:       "media",
 		Entry:        "z_image_turbo-Q4_K_M.gguf",
 		EngineConfig: engineConfig,
 	})
@@ -64,7 +64,7 @@ func TestResolveLocalAIImageProfileInjectsDynamicComponents(t *testing.T) {
 		LocalArtifactId: "artifact_" + ulid.Make().String(),
 		ArtifactId:      "z_image_ae",
 		Kind:            runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
-		Engine:          "localai",
+		Engine:          "media",
 		Entry:           "vae/diffusion_pytorch_model.safetensors",
 		Status:          runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_INSTALLED,
 		Source:          &runtimev1.LocalArtifactSource{},
@@ -84,7 +84,7 @@ func TestResolveLocalAIImageProfileInjectsDynamicComponents(t *testing.T) {
 		LocalArtifactId: "artifact_" + ulid.Make().String(),
 		ArtifactId:      "qwen3_4b_companion",
 		Kind:            runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_LLM,
-		Engine:          "localai",
+		Engine:          "media",
 		Entry:           "Qwen3-4B-Q4_K_M.gguf",
 		Status:          runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_INSTALLED,
 		Source:          &runtimev1.LocalArtifactSource{},
@@ -93,7 +93,7 @@ func TestResolveLocalAIImageProfileInjectsDynamicComponents(t *testing.T) {
 		t.Fatalf("install llm artifact: %v", err)
 	}
 
-	alias, profile, forwarded, err := svc.ResolveLocalAIImageProfile(context.Background(), "localai/z_image_turbo", map[string]any{
+	alias, profile, forwarded, err := svc.ResolveLocalAIImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"components": []any{
 			map[string]any{"slot": "vae_path", "localArtifactId": vaeRecord.GetLocalArtifactId()},
 			map[string]any{"slot": "llm_path", "localArtifactId": llmRecord.GetLocalArtifactId()},
@@ -108,7 +108,7 @@ func TestResolveLocalAIImageProfileInjectsDynamicComponents(t *testing.T) {
 		"user_note": "keep-me",
 	})
 	if err != nil {
-		t.Fatalf("resolve localai image profile: %v", err)
+		t.Fatalf("resolve local media image profile: %v", err)
 	}
 	if alias == "" {
 		t.Fatalf("expected non-empty alias")
@@ -161,7 +161,7 @@ func TestResolveLocalAIImageProfileRejectsPathOverrides(t *testing.T) {
 	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "z_image_turbo",
 		Capabilities: []string{"image"},
-		Engine:       "localai",
+		Engine:       "media",
 		Entry:        "z_image_turbo-Q4_K_M.gguf",
 		EngineConfig: engineConfig,
 	})
@@ -169,7 +169,7 @@ func TestResolveLocalAIImageProfileRejectsPathOverrides(t *testing.T) {
 	svc.models[modelResp.GetLocalModelId()].Status = runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE
 	svc.mu.Unlock()
 
-	_, _, _, err = svc.ResolveLocalAIImageProfile(context.Background(), "localai/z_image_turbo", map[string]any{
+	_, _, _, err = svc.ResolveLocalAIImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_overrides": map[string]any{
 			"options": []any{"vae_path:/tmp/outside.safetensors"},
 		},
@@ -203,7 +203,7 @@ func TestResolveLocalAIImageProfileRejectsMissingComponents(t *testing.T) {
 	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "z_image_turbo",
 		Capabilities: []string{"image"},
-		Engine:       "localai",
+		Engine:       "media",
 		Entry:        "z_image_turbo-Q4_K_M.gguf",
 		EngineConfig: engineConfig,
 	})
@@ -211,7 +211,7 @@ func TestResolveLocalAIImageProfileRejectsMissingComponents(t *testing.T) {
 	svc.models[modelResp.GetLocalModelId()].Status = runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE
 	svc.mu.Unlock()
 
-	_, _, _, err = svc.ResolveLocalAIImageProfile(context.Background(), "localai/z_image_turbo", map[string]any{
+	_, _, _, err = svc.ResolveLocalAIImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_overrides": map[string]any{
 			"step": 25,
 		},
@@ -237,7 +237,7 @@ func TestResolveLocalAIImageProfileRejectsMissingComponents(t *testing.T) {
 	if err := json.Unmarshal([]byte(st.Message()), &payload); err != nil {
 		t.Fatalf("decode status message payload: %v", err)
 	}
-	if got := payload["message"]; got != "LocalAI dynamic image workflow requires explicit companion artifact selections via components[]" {
+	if got := payload["message"]; got != "local media workflow requires explicit companion artifact selections via components[]" {
 		t.Fatalf("unexpected message payload: %#v", payload)
 	}
 	if got := payload["actionHint"]; got != "select_local_image_companions" {

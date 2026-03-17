@@ -36,8 +36,8 @@ func runLiveSmokeLocalGenerateText(t *testing.T) {
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{
-			"localai": {BaseURL: baseURL, APIKey: apiKey},
-			"nexa":    {BaseURL: baseURL, APIKey: apiKey},
+			"llama": {BaseURL: baseURL, APIKey: apiKey},
+			"media": {BaseURL: baseURL, APIKey: apiKey},
 		},
 	})
 

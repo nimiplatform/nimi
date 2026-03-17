@@ -93,7 +93,7 @@ func TestOnEngineStateChangeHealthyDoesNotReinjectAfterCleanBootstrap(t *testing
 	daemon.engineMgr = newHealthyEngineManager(t, engine.EngineLocalAI, 1234)
 
 	daemon.injectEngineEndpointEnv(engine.EngineLocalAI, "NIMI_RUNTIME_LOCAL_AI_BASE_URL", "bootstrap")
-	daemon.onEngineStateChange("localai", "healthy", "ready")
+	daemon.onEngineStateChange("llama", "healthy", "ready")
 
 	logs := logBuf.String()
 	if count := strings.Count(logs, "msg=\"engine endpoint env injected\""); count != 1 {
@@ -112,10 +112,10 @@ func TestOnEngineStateChangeHealthyReinjectsOnlyForSameEngineRecovery(t *testing
 	logger := slog.New(slog.NewTextHandler(&logBuf, nil))
 	daemon := newTestDaemon(t, logger)
 	daemon.engineMgr = newHealthyEngineManager(t, engine.EngineLocalAI, 1234)
-	daemon.state.SetStatus(health.StatusDegraded, "engine:localai unhealthy (probe failed)")
-	daemon.setProviderFailureHint("local", "engine unhealthy (localai: probe failed)")
+	daemon.state.SetStatus(health.StatusDegraded, "engine:llama unhealthy (probe failed)")
+	daemon.setProviderFailureHint("local", "engine unhealthy (llama: probe failed)")
 
-	daemon.onEngineStateChange("localai", "healthy", "probe recovered")
+	daemon.onEngineStateChange("llama", "healthy", "probe recovered")
 
 	logs := logBuf.String()
 	if count := strings.Count(logs, "msg=\"engine endpoint env injected\""); count != 1 {
@@ -140,7 +140,7 @@ func TestOnEngineStateChangeHealthyDoesNotRecoverDifferentEngineFailure(t *testi
 	daemon.state.SetStatus(health.StatusDegraded, "engine:nexa unhealthy (probe failed)")
 	daemon.setProviderFailureHint("local", "keep-local-hint")
 
-	daemon.onEngineStateChange("localai", "healthy", "ready")
+	daemon.onEngineStateChange("llama", "healthy", "ready")
 
 	logs := logBuf.String()
 	if strings.Contains(logs, "msg=\"engine endpoint env injected\"") {
@@ -163,9 +163,9 @@ func TestStartSupervisedEnginesManagerInitFailureDegradesAndAudits(t *testing.T)
 		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
 		AuditRingBufferSize:  64,
 		UsageStatsBufferSize: 64,
-		EngineLocalAIEnabled: true,
-		EngineLocalAIPort:    1234,
-		EngineLocalAIVersion: "3.12.1",
+		EngineLlamaEnabled:   true,
+		EngineLlamaPort:      1234,
+		EngineLlamaVersion:   "3.12.1",
 	}
 	daemon := New(cfg, logger, "test")
 	if svc := daemon.grpc.LocalService(); svc != nil {
@@ -208,14 +208,14 @@ func TestStartSupervisedEnginesManagerInitFailureDegradesAndAudits(t *testing.T)
 func TestStartSupervisedEnginesDoesNotExposeManagedNimiMediaLoopbackOnAttachedOnlyHost(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cfg := config.Config{
-		GRPCAddr:               "127.0.0.1:0",
-		HTTPAddr:               "127.0.0.1:0",
-		LocalStatePath:         filepath.Join(t.TempDir(), "local-state.json"),
-		AuditRingBufferSize:    64,
-		UsageStatsBufferSize:   64,
-		EngineNimiMediaEnabled: true,
-		EngineNimiMediaPort:    8321,
-		EngineNimiMediaVersion: "0.1.0",
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		EngineMediaEnabled:   true,
+		EngineMediaPort:      8321,
+		EngineMediaVersion:   "0.1.0",
 	}
 	daemon := New(cfg, logger, "test")
 	if svc := daemon.grpc.LocalService(); svc != nil {
@@ -258,14 +258,14 @@ func TestStartSupervisedEnginesDoesNotExposeManagedNimiMediaLoopbackOnAttachedOn
 func TestStartSupervisedEnginesExposesManagedNimiMediaLoopbackOnSupportedHost(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cfg := config.Config{
-		GRPCAddr:               "127.0.0.1:0",
-		HTTPAddr:               "127.0.0.1:0",
-		LocalStatePath:         filepath.Join(t.TempDir(), "local-state.json"),
-		AuditRingBufferSize:    64,
-		UsageStatsBufferSize:   64,
-		EngineNimiMediaEnabled: true,
-		EngineNimiMediaPort:    8321,
-		EngineNimiMediaVersion: "0.1.0",
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		EngineMediaEnabled:   true,
+		EngineMediaPort:      8321,
+		EngineMediaVersion:   "0.1.0",
 	}
 	daemon := New(cfg, logger, "test")
 	if svc := daemon.grpc.LocalService(); svc != nil {
@@ -303,7 +303,7 @@ func TestStartSupervisedEnginesExposesManagedNimiMediaLoopbackOnSupportedHost(t 
 
 func TestAppendEngineCrashAuditIncludesStructuredFields(t *testing.T) {
 	store := auditlog.New(32, 32)
-	appendEngineCrashAudit(store, "localai", "crash=exit status 7 attempt=2/5 restarting")
+	appendEngineCrashAudit(store, "llama", "crash=exit status 7 attempt=2/5 restarting")
 
 	events := store.ListEvents(&runtimev1.ListAuditEventsRequest{
 		Domain: "runtime.engine",
@@ -316,7 +316,7 @@ func TestAppendEngineCrashAuditIncludesStructuredFields(t *testing.T) {
 		t.Fatalf("unexpected operation: %s", record.GetOperation())
 	}
 	payload := record.GetPayload().GetFields()
-	if payload["engine"].GetStringValue() != "localai" {
+	if payload["engine"].GetStringValue() != "llama" {
 		t.Fatalf("unexpected engine: %q", payload["engine"].GetStringValue())
 	}
 	if payload["detail"].GetStringValue() != "crash=exit status 7 attempt=2/5 restarting" {
@@ -336,15 +336,15 @@ func TestAppendEngineCrashAuditIncludesStructuredFields(t *testing.T) {
 func TestStartSupervisedEnginesAutoManagedLocalAIEntersLocalBootstrapBranch(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cfg := config.Config{
-		GRPCAddr:                 "127.0.0.1:0",
-		HTTPAddr:                 "127.0.0.1:0",
-		LocalStatePath:           filepath.Join(t.TempDir(), "local-state.json"),
-		AuditRingBufferSize:      64,
-		UsageStatsBufferSize:     64,
-		EngineLocalAIEnabled:     true,
-		EngineLocalAIAutoManaged: true,
-		EngineLocalAIPort:        1234,
-		EngineLocalAIVersion:     "3.12.1",
+		GRPCAddr:               "127.0.0.1:0",
+		HTTPAddr:               "127.0.0.1:0",
+		LocalStatePath:         filepath.Join(t.TempDir(), "local-state.json"),
+		AuditRingBufferSize:    64,
+		UsageStatsBufferSize:   64,
+		EngineLlamaEnabled:     true,
+		EngineLlamaAutoManaged: true,
+		EngineLlamaPort:        1234,
+		EngineLlamaVersion:     "3.12.1",
 	}
 	daemon := New(cfg, logger, "test")
 	if svc := daemon.grpc.LocalService(); svc != nil {
@@ -365,13 +365,13 @@ func TestStartSupervisedEnginesAutoManagedLocalAIEntersLocalBootstrapBranch(t *t
 	daemon.startSupervisedEngines(context.Background())
 
 	if !slices.Equal(calls, []engine.EngineKind{engine.EngineLocalAI}) {
-		t.Fatalf("expected localai bootstrap call, got=%v", calls)
+		t.Fatalf("expected llama bootstrap call, got=%v", calls)
 	}
 	snapshot := daemon.state.Snapshot()
 	if snapshot.Status != health.StatusDegraded {
 		t.Fatalf("expected degraded on bootstrap failure, got=%s (%s)", snapshot.Status, snapshot.Reason)
 	}
-	if !strings.Contains(snapshot.Reason, "engine bootstrap failed (localai: mock bootstrap failure)") {
+	if !strings.Contains(snapshot.Reason, "engine bootstrap failed (llama: mock bootstrap failure)") {
 		t.Fatalf("unexpected degraded reason: %s", snapshot.Reason)
 	}
 
@@ -379,7 +379,7 @@ func TestStartSupervisedEnginesAutoManagedLocalAIEntersLocalBootstrapBranch(t *t
 	if localProvider.State != providerhealth.StateUnhealthy {
 		t.Fatalf("expected local provider unhealthy after bootstrap failure, got=%s", localProvider.State)
 	}
-	if !strings.Contains(localProvider.LastReason, "engine bootstrap failed (localai: mock bootstrap failure)") {
+	if !strings.Contains(localProvider.LastReason, "engine bootstrap failed (llama: mock bootstrap failure)") {
 		t.Fatalf("unexpected local provider reason: %s", localProvider.LastReason)
 	}
 
@@ -392,7 +392,7 @@ func TestStartSupervisedEnginesAutoManagedLocalAIEntersLocalBootstrapBranch(t *t
 		t.Fatalf("unexpected operation: %s", record.GetOperation())
 	}
 	payload := record.GetPayload().GetFields()
-	if payload["engine"].GetStringValue() != "localai" {
+	if payload["engine"].GetStringValue() != "llama" {
 		t.Fatalf("unexpected engine payload: %q", payload["engine"].GetStringValue())
 	}
 	if payload["provider"].GetStringValue() != "local" {
@@ -464,7 +464,7 @@ func TestStartSupervisedEnginesSkipsLocalAIBootstrapWhenAssetSyncFails(t *testin
 				"localModelId":      localModelID,
 				"modelId":           "local/bootstrap-sync-fail",
 				"capabilities":      []string{"chat"},
-				"engine":            "localai",
+				"engine":            "llama",
 				"entry":             "./weights/model.gguf",
 				"license":           "unknown",
 				"sourceRepo":        "",
@@ -494,9 +494,9 @@ func TestStartSupervisedEnginesSkipsLocalAIBootstrapWhenAssetSyncFails(t *testin
 		LocalModelsPath:      localModelsPath,
 		AuditRingBufferSize:  64,
 		UsageStatsBufferSize: 64,
-		EngineLocalAIEnabled: true,
-		EngineLocalAIPort:    1234,
-		EngineLocalAIVersion: "3.12.1",
+		EngineLlamaEnabled:   true,
+		EngineLlamaPort:      1234,
+		EngineLlamaVersion:   "3.12.1",
 	}
 	daemon := New(cfg, logger, "test")
 	svc := daemon.grpc.LocalService()
@@ -522,7 +522,7 @@ func TestStartSupervisedEnginesSkipsLocalAIBootstrapWhenAssetSyncFails(t *testin
 	manifestRaw, err := json.Marshal(map[string]any{
 		"model_id":     manifestModelID,
 		"entry":        manifestEntry,
-		"engine":       "localai",
+		"engine":       "llama",
 		"capabilities": []string{"chat"},
 		"files":        []string{"weights/model.gguf"},
 		"hashes":       map[string]string{"sha256": "deadbeef"},
@@ -550,13 +550,13 @@ func TestStartSupervisedEnginesSkipsLocalAIBootstrapWhenAssetSyncFails(t *testin
 	daemon.startSupervisedEngines(context.Background())
 
 	if len(calls) != 0 {
-		t.Fatalf("expected localai bootstrap to be skipped after asset sync failure, got calls=%v", calls)
+		t.Fatalf("expected llama bootstrap to be skipped after asset sync failure, got calls=%v", calls)
 	}
 	snapshot := daemon.state.Snapshot()
 	if snapshot.Status != health.StatusDegraded {
-		t.Fatalf("expected degraded on localai asset sync failure, got=%s (%s)", snapshot.Status, snapshot.Reason)
+		t.Fatalf("expected degraded on llama asset sync failure, got=%s (%s)", snapshot.Status, snapshot.Reason)
 	}
-	if !strings.Contains(snapshot.Reason, "sync managed localai assets") {
+	if !strings.Contains(snapshot.Reason, "sync managed llama assets") {
 		t.Fatalf("unexpected degraded reason: %s", snapshot.Reason)
 	}
 
@@ -564,7 +564,7 @@ func TestStartSupervisedEnginesSkipsLocalAIBootstrapWhenAssetSyncFails(t *testin
 	if localProvider.State != providerhealth.StateUnhealthy {
 		t.Fatalf("expected local provider unhealthy after asset sync failure, got=%s", localProvider.State)
 	}
-	if !strings.Contains(localProvider.LastReason, "sync managed localai assets") {
+	if !strings.Contains(localProvider.LastReason, "sync managed llama assets") {
 		t.Fatalf("unexpected local provider reason: %s", localProvider.LastReason)
 	}
 
@@ -576,7 +576,7 @@ func TestStartSupervisedEnginesSkipsLocalAIBootstrapWhenAssetSyncFails(t *testin
 	if record.GetOperation() != "engine.bootstrap_failed" {
 		t.Fatalf("unexpected operation: %s", record.GetOperation())
 	}
-	if !strings.Contains(record.GetPayload().GetFields()["detail"].GetStringValue(), "sync managed localai assets") {
+	if !strings.Contains(record.GetPayload().GetFields()["detail"].GetStringValue(), "sync managed llama assets") {
 		t.Fatalf("unexpected bootstrap failure detail: %q", record.GetPayload().GetFields()["detail"].GetStringValue())
 	}
 }

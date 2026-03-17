@@ -210,8 +210,9 @@ func inferVoiceListRoutePolicy(modelID string, remoteTarget *nimillm.RemoteTarge
 	}
 	switch {
 	case strings.HasPrefix(normalized, "local/"),
-		strings.HasPrefix(normalized, "localai/"),
-		strings.HasPrefix(normalized, "nexa/"):
+		strings.HasPrefix(normalized, "llama/"),
+		strings.HasPrefix(normalized, "media/"),
+		strings.HasPrefix(normalized, "sidecar/"):
 		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
 	default:
 		if strings.Contains(normalized, "/") {

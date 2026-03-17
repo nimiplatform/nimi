@@ -1,7 +1,6 @@
 package main
 
 import (
-	"slices"
 	"strings"
 
 	"github.com/nimiplatform/nimi/runtime/internal/config"
@@ -106,8 +105,8 @@ func fileConfigEnginesEqual(before, after *config.FileConfigEngines) bool {
 	if before == nil || after == nil {
 		return before == nil && after == nil
 	}
-	return fileConfigEngineEqual(before.LocalAI, after.LocalAI) &&
-		fileConfigEngineEqual(before.Nexa, after.Nexa)
+	return fileConfigEngineEqual(before.Llama, after.Llama) &&
+		fileConfigEngineEqual(before.Media, after.Media)
 }
 
 func fileConfigEngineEqual(before, after *config.FileConfigEngine) bool {
@@ -122,39 +121,6 @@ func fileConfigEngineEqual(before, after *config.FileConfigEngine) bool {
 	}
 	if strings.TrimSpace(before.Version) != strings.TrimSpace(after.Version) {
 		return false
-	}
-	return fileConfigLocalAIImageBackendEqual(before.ImageBackend, after.ImageBackend)
-}
-
-func fileConfigLocalAIImageBackendEqual(before, after *config.FileConfigLocalAIImageBackend) bool {
-	if before == nil || after == nil {
-		return before == nil && after == nil
-	}
-	if strings.TrimSpace(before.Mode) != strings.TrimSpace(after.Mode) {
-		return false
-	}
-	if strings.TrimSpace(before.BackendName) != strings.TrimSpace(after.BackendName) {
-		return false
-	}
-	if strings.TrimSpace(before.Address) != strings.TrimSpace(after.Address) {
-		return false
-	}
-	if strings.TrimSpace(before.Command) != strings.TrimSpace(after.Command) {
-		return false
-	}
-	if strings.TrimSpace(before.WorkingDir) != strings.TrimSpace(after.WorkingDir) {
-		return false
-	}
-	if !slices.Equal(before.Args, after.Args) {
-		return false
-	}
-	if len(before.Env) != len(after.Env) {
-		return false
-	}
-	for key, beforeValue := range before.Env {
-		if after.Env[key] != beforeValue {
-			return false
-		}
 	}
 	return true
 }

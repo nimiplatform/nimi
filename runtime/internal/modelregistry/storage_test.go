@@ -20,6 +20,7 @@ func TestRegistrySaveAndLoad(t *testing.T) {
 		Version:      "v1",
 		Status:       runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
 		Capabilities: []string{"text.generate", "text.embed"},
+		Files:        []string{"model.gguf", "tokenizer.json"},
 		LastHealthAt: now,
 		Source:       "dashscope",
 		ProviderHint: ProviderHintDashScope,
@@ -52,6 +53,9 @@ func TestRegistrySaveAndLoad(t *testing.T) {
 	if item.LastHealthAt.IsZero() {
 		t.Fatalf("last health must be restored")
 	}
+	if len(item.Files) != 2 || item.Files[0] != "model.gguf" {
+		t.Fatalf("files must be restored: %#v", item.Files)
+	}
 
 	item, exists = loaded.Get("deepseek-v3")
 	if !exists {
@@ -59,6 +63,28 @@ func TestRegistrySaveAndLoad(t *testing.T) {
 	}
 	if item.ProviderHint != ProviderHintVolcengine {
 		t.Fatalf("provider hint mismatch: got=%s", item.ProviderHint)
+	}
+}
+
+func TestInferNativeProjectionForMediaModel(t *testing.T) {
+	projection := InferNativeProjection(
+		"local/wan2.2-video",
+		[]string{"video.generate"},
+		[]string{"transformer.gguf", "vae.safetensors"},
+		runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
+	)
+
+	if projection.PreferredEngine != "media" {
+		t.Fatalf("preferred engine mismatch: %q", projection.PreferredEngine)
+	}
+	if len(projection.FallbackEngines) != 1 || projection.FallbackEngines[0] != "media.diffusers" {
+		t.Fatalf("fallback engines mismatch: %#v", projection.FallbackEngines)
+	}
+	if projection.BundleState != runtimev1.LocalBundleState_LOCAL_BUNDLE_STATE_READY {
+		t.Fatalf("bundle state mismatch: %v", projection.BundleState)
+	}
+	if !projection.HostRequirements.GetGpuRequired() {
+		t.Fatalf("media model should require GPU")
 	}
 }
 

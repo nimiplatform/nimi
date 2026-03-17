@@ -46,6 +46,23 @@ enum LocalEngineRuntimeMode {
   LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT = 2;
 }
 
+enum LocalBundleState {
+  LOCAL_BUNDLE_STATE_UNSPECIFIED = 0;
+  LOCAL_BUNDLE_STATE_RESOLVING = 1;
+  LOCAL_BUNDLE_STATE_READY = 2;
+  LOCAL_BUNDLE_STATE_DEGRADED = 3;
+  LOCAL_BUNDLE_STATE_INVALID = 4;
+  LOCAL_BUNDLE_STATE_REMOVED = 5;
+}
+
+enum LocalWarmState {
+  LOCAL_WARM_STATE_UNSPECIFIED = 0;
+  LOCAL_WARM_STATE_COLD = 1;
+  LOCAL_WARM_STATE_WARMING = 2;
+  LOCAL_WARM_STATE_READY = 3;
+  LOCAL_WARM_STATE_FAILED = 4;
+}
+
 enum LocalExecutionEntryKind {
   LOCAL_EXECUTION_ENTRY_KIND_UNSPECIFIED = 0;
   LOCAL_EXECUTION_ENTRY_KIND_MODEL = 1;
@@ -73,6 +90,13 @@ message LocalArtifactSource {
   string revision = 2;
 }
 
+message LocalHostRequirements {
+  bool gpu_required = 1;
+  bool python_runtime_required = 2;
+  repeated string supported_platforms = 3;
+  repeated string required_backends = 4;
+}
+
 message LocalModelRecord {
   string local_model_id = 1;
   string model_id = 2;
@@ -89,6 +113,14 @@ message LocalModelRecord {
   string health_detail = 13;
   string local_invoke_profile_id = 14;
   google.protobuf.Struct engine_config = 15;
+  string logical_model_id = 16;
+  string family = 17;
+  repeated string artifact_roles = 18;
+  string preferred_engine = 19;
+  repeated string fallback_engines = 20;
+  LocalBundleState bundle_state = 21;
+  LocalWarmState warm_state = 22;
+  LocalHostRequirements host_requirements = 23;
 }
 
 message LocalModelHealth {

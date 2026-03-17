@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -147,68 +146,39 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 	case "auth.jwt.jwksUrl":
 		ensureAuthJWTConfig(cfg).JWKSURL = value
 		return nil
-	case "engines.localai.enabled":
+	case "engines.llama.enabled":
 		parsed, err := parseBooleanConfigValue(value)
 		if err != nil {
-			return fmt.Errorf("engines.localai.enabled must be boolean: %w", err)
+			return fmt.Errorf("engines.llama.enabled must be boolean: %w", err)
 		}
-		ensureEngineConfig(cfg, "localai").Enabled = &parsed
+		ensureEngineConfig(cfg, "llama").Enabled = &parsed
 		return nil
-	case "engines.localai.version":
-		ensureEngineConfig(cfg, "localai").Version = value
+	case "engines.llama.version":
+		ensureEngineConfig(cfg, "llama").Version = value
 		return nil
-	case "engines.localai.port":
+	case "engines.llama.port":
 		parsed, err := strconv.Atoi(strings.TrimSpace(value))
 		if err != nil {
-			return fmt.Errorf("engines.localai.port must be integer: %w", err)
+			return fmt.Errorf("engines.llama.port must be integer: %w", err)
 		}
-		ensureEngineConfig(cfg, "localai").Port = &parsed
+		ensureEngineConfig(cfg, "llama").Port = &parsed
 		return nil
-	case "engines.localai.imageBackend.mode":
-		ensureLocalAIImageBackendConfig(cfg).Mode = strings.TrimSpace(value)
-		return nil
-	case "engines.localai.imageBackend.backendName":
-		ensureLocalAIImageBackendConfig(cfg).BackendName = strings.TrimSpace(value)
-		return nil
-	case "engines.localai.imageBackend.address":
-		ensureLocalAIImageBackendConfig(cfg).Address = strings.TrimSpace(value)
-		return nil
-	case "engines.localai.imageBackend.command":
-		ensureLocalAIImageBackendConfig(cfg).Command = strings.TrimSpace(value)
-		return nil
-	case "engines.localai.imageBackend.workingDir":
-		ensureLocalAIImageBackendConfig(cfg).WorkingDir = strings.TrimSpace(value)
-		return nil
-	case "engines.localai.imageBackend.args":
-		var parsed []string
-		if err := json.Unmarshal([]byte(strings.TrimSpace(value)), &parsed); err != nil {
-			return fmt.Errorf("engines.localai.imageBackend.args must be JSON string array: %w", err)
-		}
-		ensureLocalAIImageBackendConfig(cfg).Args = append([]string(nil), parsed...)
-		return nil
-	case "engines.localai.imageBackend.env":
-		parsed := make(map[string]string)
-		if err := json.Unmarshal([]byte(strings.TrimSpace(value)), &parsed); err != nil {
-			return fmt.Errorf("engines.localai.imageBackend.env must be JSON string map: %w", err)
-		}
-		ensureLocalAIImageBackendConfig(cfg).Env = parsed
-		return nil
-	case "engines.nexa.enabled":
+	case "engines.media.enabled":
 		parsed, err := parseBooleanConfigValue(value)
 		if err != nil {
-			return fmt.Errorf("engines.nexa.enabled must be boolean: %w", err)
+			return fmt.Errorf("engines.media.enabled must be boolean: %w", err)
 		}
-		ensureEngineConfig(cfg, "nexa").Enabled = &parsed
+		ensureEngineConfig(cfg, "media").Enabled = &parsed
 		return nil
-	case "engines.nexa.version":
-		ensureEngineConfig(cfg, "nexa").Version = value
+	case "engines.media.version":
+		ensureEngineConfig(cfg, "media").Version = value
 		return nil
-	case "engines.nexa.port":
+	case "engines.media.port":
 		parsed, err := strconv.Atoi(strings.TrimSpace(value))
 		if err != nil {
-			return fmt.Errorf("engines.nexa.port must be integer: %w", err)
+			return fmt.Errorf("engines.media.port must be integer: %w", err)
 		}
-		ensureEngineConfig(cfg, "nexa").Port = &parsed
+		ensureEngineConfig(cfg, "media").Port = &parsed
 		return nil
 	}
 
@@ -316,56 +286,28 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 		ensureAuthJWTConfig(cfg).JWKSURL = ""
 		pruneEmptyAuthConfig(cfg)
 		return nil
-	case "engines.localai.enabled":
-		ensureEngineConfig(cfg, "localai").Enabled = nil
+	case "engines.llama.enabled":
+		ensureEngineConfig(cfg, "llama").Enabled = nil
 		pruneEmptyEnginesConfig(cfg)
 		return nil
-	case "engines.localai.version":
-		ensureEngineConfig(cfg, "localai").Version = ""
+	case "engines.llama.version":
+		ensureEngineConfig(cfg, "llama").Version = ""
 		pruneEmptyEnginesConfig(cfg)
 		return nil
-	case "engines.localai.port":
-		ensureEngineConfig(cfg, "localai").Port = nil
+	case "engines.llama.port":
+		ensureEngineConfig(cfg, "llama").Port = nil
 		pruneEmptyEnginesConfig(cfg)
 		return nil
-	case "engines.localai.imageBackend.mode":
-		ensureLocalAIImageBackendConfig(cfg).Mode = ""
+	case "engines.media.enabled":
+		ensureEngineConfig(cfg, "media").Enabled = nil
 		pruneEmptyEnginesConfig(cfg)
 		return nil
-	case "engines.localai.imageBackend.backendName":
-		ensureLocalAIImageBackendConfig(cfg).BackendName = ""
+	case "engines.media.version":
+		ensureEngineConfig(cfg, "media").Version = ""
 		pruneEmptyEnginesConfig(cfg)
 		return nil
-	case "engines.localai.imageBackend.address":
-		ensureLocalAIImageBackendConfig(cfg).Address = ""
-		pruneEmptyEnginesConfig(cfg)
-		return nil
-	case "engines.localai.imageBackend.command":
-		ensureLocalAIImageBackendConfig(cfg).Command = ""
-		pruneEmptyEnginesConfig(cfg)
-		return nil
-	case "engines.localai.imageBackend.workingDir":
-		ensureLocalAIImageBackendConfig(cfg).WorkingDir = ""
-		pruneEmptyEnginesConfig(cfg)
-		return nil
-	case "engines.localai.imageBackend.args":
-		ensureLocalAIImageBackendConfig(cfg).Args = nil
-		pruneEmptyEnginesConfig(cfg)
-		return nil
-	case "engines.localai.imageBackend.env":
-		ensureLocalAIImageBackendConfig(cfg).Env = nil
-		pruneEmptyEnginesConfig(cfg)
-		return nil
-	case "engines.nexa.enabled":
-		ensureEngineConfig(cfg, "nexa").Enabled = nil
-		pruneEmptyEnginesConfig(cfg)
-		return nil
-	case "engines.nexa.version":
-		ensureEngineConfig(cfg, "nexa").Version = ""
-		pruneEmptyEnginesConfig(cfg)
-		return nil
-	case "engines.nexa.port":
-		ensureEngineConfig(cfg, "nexa").Port = nil
+	case "engines.media.port":
+		ensureEngineConfig(cfg, "media").Port = nil
 		pruneEmptyEnginesConfig(cfg)
 		return nil
 	}

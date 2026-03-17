@@ -57,21 +57,6 @@ func ResolveProviderAPIKey(target RuntimeFileTarget) string {
 
 func resolveProviderBinding(raw string) (providerEnvBinding, bool) {
 	switch canonicalProviderKey(raw) {
-	case "local":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_LOCAL_AI_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_LOCAL_AI_API_KEY",
-		}, true
-	case "nexa":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_LOCAL_NEXA_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_LOCAL_NEXA_API_KEY",
-		}, true
-	case "nimi_media":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_LOCAL_NIMI_MEDIA_API_KEY",
-		}, true
 	case "nimillm":
 		return providerEnvBinding{
 			baseURLKey: "NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL",
@@ -201,8 +186,6 @@ func NormalizeProviderName(raw string) string {
 // Returns ("", false) for local providers or unknown names.
 func ResolveCanonicalProviderID(raw string) (string, bool) {
 	switch canonicalProviderKey(raw) {
-	case "local", "nexa", "nimi_media":
-		return "", false
 	case "nimillm":
 		return "nimillm", true
 	case "openai":

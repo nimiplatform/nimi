@@ -218,7 +218,7 @@ func (s *Service) shouldWarmLocalModelOnStart(
 	if !probe.responded {
 		return false
 	}
-	if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "localai") {
+	if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "llama") {
 		return false
 	}
 	if s.engineManagerOrNil() == nil {

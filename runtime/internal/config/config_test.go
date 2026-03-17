@@ -9,24 +9,24 @@ import (
 	"time"
 )
 
-func setLocalAISupervisedPlatformForTest(t *testing.T, supported bool, platform string) {
+func setLlamaSupervisedPlatformForTest(t *testing.T, supported bool, platform string) {
 	t.Helper()
-	originalSupported := localAISupervisedPlatformSupported
+	originalSupported := llamaSupervisedPlatformSupported
 	originalPlatformString := localAIPlatformString
-	localAISupervisedPlatformSupported = func() bool { return supported }
+	llamaSupervisedPlatformSupported = func() bool { return supported }
 	localAIPlatformString = func() string { return platform }
 	t.Cleanup(func() {
-		localAISupervisedPlatformSupported = originalSupported
+		llamaSupervisedPlatformSupported = originalSupported
 		localAIPlatformString = originalPlatformString
 	})
 }
 
-func setNimiMediaSupervisedPlatformForTest(t *testing.T, supported bool) {
+func setMediaSupervisedPlatformForTest(t *testing.T, supported bool) {
 	t.Helper()
-	original := nimiMediaSupervisedPlatformSupported
-	nimiMediaSupervisedPlatformSupported = func() bool { return supported }
+	original := mediaSupervisedPlatformSupported
+	mediaSupervisedPlatformSupported = func() bool { return supported }
 	t.Cleanup(func() {
-		nimiMediaSupervisedPlatformSupported = original
+		mediaSupervisedPlatformSupported = original
 	})
 }
 
@@ -107,12 +107,6 @@ func TestLoadDefaultsWithoutConfigFile(t *testing.T) {
 	if cfg.ModelCatalogCustomDir != expectedCatalogCustomDir {
 		t.Fatalf("model catalog custom dir mismatch: got=%q want=%q", cfg.ModelCatalogCustomDir, expectedCatalogCustomDir)
 	}
-	if cfg.EngineLocalAIImageBackendName != "stablediffusion-ggml" {
-		t.Fatalf("localai image backend name default mismatch: %q", cfg.EngineLocalAIImageBackendName)
-	}
-	if cfg.EngineLocalAIImageBackendAddress != "127.0.0.1:50052" {
-		t.Fatalf("localai image backend address default mismatch: %q", cfg.EngineLocalAIImageBackendAddress)
-	}
 }
 
 func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
@@ -132,10 +126,6 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
   "providers": {
     "gemini": {
       "apiKeyEnv": "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY"
-    },
-    "local": {
-      "baseUrl": "http://127.0.0.1:11434",
-      "apiKeyEnv": "LOCALAI_API_KEY"
     }
   }
 }`
@@ -185,30 +175,22 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
 	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL")); got != defaultCloudGeminiBaseURL {
 		t.Fatalf("gemini base env mismatch: %q", got)
 	}
-	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_AI_BASE_URL")); got != "http://127.0.0.1:11434" {
-		t.Fatalf("local ai base env mismatch: %q", got)
-	}
-	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_AI_API_KEY")); got != "local-ai-key-from-env" {
-		t.Fatalf("local ai key env mismatch: %q", got)
-	}
 }
 
-func TestLoadLocalAIImageBackendConfigFromFile(t *testing.T) {
+func TestLoadEngineConfigFromFile(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
   "engines": {
-    "localai": {
+    "llama": {
       "enabled": true,
-      "imageBackend": {
-        "mode": "custom",
-        "backendName": "stablediffusion-ggml",
-        "address": "127.0.0.1:60061",
-        "command": "/tmp/backend/run.sh",
-        "args": ["--addr", "127.0.0.1:60061"],
-        "env": {"FOO": "bar"},
-        "workingDir": "/tmp/backend"
-      }
+      "version": "3.12.9",
+      "port": 2234
+    },
+    "media": {
+      "enabled": true,
+      "version": "0.2.0",
+      "port": 9321
     }
   }
 }`
@@ -218,139 +200,84 @@ func TestLoadLocalAIImageBackendConfigFromFile(t *testing.T) {
 
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	clearRuntimeConfigEnv(t)
-	setLocalAISupervisedPlatformForTest(t, true, "linux/amd64")
+	setLlamaSupervisedPlatformForTest(t, true, "linux/amd64")
+	setMediaSupervisedPlatformForTest(t, true)
 
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
 	}
-	if cfg.EngineLocalAIImageBackendMode != "custom" {
-		t.Fatalf("image backend mode mismatch: %q", cfg.EngineLocalAIImageBackendMode)
+	if !cfg.EngineLlamaEnabled || cfg.EngineLlamaVersion != "3.12.9" || cfg.EngineLlamaPort != 2234 {
+		t.Fatalf("llama engine config mismatch: %+v", cfg)
 	}
-	if cfg.EngineLocalAIImageBackendAddress != "127.0.0.1:60061" {
-		t.Fatalf("image backend address mismatch: %q", cfg.EngineLocalAIImageBackendAddress)
-	}
-	if cfg.EngineLocalAIImageBackendCommand != "/tmp/backend/run.sh" {
-		t.Fatalf("image backend command mismatch: %q", cfg.EngineLocalAIImageBackendCommand)
-	}
-	if len(cfg.EngineLocalAIImageBackendArgs) != 2 || cfg.EngineLocalAIImageBackendArgs[0] != "--addr" {
-		t.Fatalf("image backend args mismatch: %#v", cfg.EngineLocalAIImageBackendArgs)
-	}
-	if cfg.EngineLocalAIImageBackendEnv["FOO"] != "bar" {
-		t.Fatalf("image backend env mismatch: %#v", cfg.EngineLocalAIImageBackendEnv)
-	}
-	if cfg.EngineLocalAIImageBackendWorkingDir != "/tmp/backend" {
-		t.Fatalf("image backend working dir mismatch: %q", cfg.EngineLocalAIImageBackendWorkingDir)
+	if !cfg.EngineMediaEnabled || cfg.EngineMediaVersion != "0.2.0" || cfg.EngineMediaPort != 9321 {
+		t.Fatalf("media engine config mismatch: %+v", cfg)
 	}
 }
 
-func TestLoadAutoManagesLocalAIForLoopbackProvider(t *testing.T) {
-	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
-	configBody := `{
-  "schemaVersion": 1,
-  "providers": {
-    "local": {
-      "baseUrl": "http://127.0.0.1:2234/v1",
-      "apiKeyEnv": "LOCALAI_API_KEY"
-    }
-  }
-}`
-	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
-		t.Fatalf("write config file: %v", err)
-	}
-
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+func TestLoadAutoManagesLlamaForLoopbackProvider(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "runtime-config.json"))
 	clearRuntimeConfigEnv(t)
-	setLocalAISupervisedPlatformForTest(t, true, "linux/amd64")
+	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:2234/v1")
+	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_API_KEY", "llama-key")
+	setLlamaSupervisedPlatformForTest(t, true, "linux/amd64")
 
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
 	}
-	if !cfg.EngineLocalAIEnabled {
-		t.Fatalf("localai should be auto-enabled for loopback providers.local")
+	if !cfg.EngineLlamaEnabled {
+		t.Fatalf("llama should be auto-enabled for loopback local endpoint")
 	}
-	if !cfg.EngineLocalAIAutoManaged {
-		t.Fatalf("localai should be marked auto-managed for loopback providers.local")
+	if !cfg.EngineLlamaAutoManaged {
+		t.Fatalf("llama should be marked auto-managed for loopback local endpoint")
 	}
-	if cfg.EngineLocalAIPort != 2234 {
-		t.Fatalf("localai port should be inferred from providers.local baseUrl: got=%d want=2234", cfg.EngineLocalAIPort)
+	if cfg.EngineLlamaPort != 2234 {
+		t.Fatalf("llama port should be inferred from loopback endpoint: got=%d want=2234", cfg.EngineLlamaPort)
 	}
 }
 
-func TestLoadDoesNotAutoManageLocalAIForLoopbackProviderOnUnsupportedPlatform(t *testing.T) {
-	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
-	configBody := `{
-  "schemaVersion": 1,
-  "providers": {
-    "local": {
-      "baseUrl": "http://127.0.0.1:2234/v1",
-      "apiKeyEnv": "LOCALAI_API_KEY"
-    }
-  }
-}`
-	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
-		t.Fatalf("write config file: %v", err)
-	}
-
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+func TestLoadDoesNotAutoManageLlamaForLoopbackProviderOnUnsupportedPlatform(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "runtime-config.json"))
 	clearRuntimeConfigEnv(t)
-	setLocalAISupervisedPlatformForTest(t, false, "windows/amd64")
+	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:2234/v1")
+	setLlamaSupervisedPlatformForTest(t, false, "windows/amd64")
 
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
 	}
-	if cfg.EngineLocalAIEnabled {
-		t.Fatalf("localai should stay disabled on unsupported supervised platforms")
+	if cfg.EngineLlamaEnabled {
+		t.Fatalf("llama should stay disabled on unsupported supervised platforms")
 	}
-	if cfg.EngineLocalAIAutoManaged {
-		t.Fatalf("localai should not be marked auto-managed on unsupported supervised platforms")
+	if cfg.EngineLlamaAutoManaged {
+		t.Fatalf("llama should not be marked auto-managed on unsupported supervised platforms")
 	}
 }
 
-func TestLoadDoesNotAutoManageLocalAIForNonLoopbackProvider(t *testing.T) {
-	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
-	configBody := `{
-  "schemaVersion": 1,
-  "providers": {
-    "local": {
-      "baseUrl": "https://example.com/v1",
-      "apiKeyEnv": "LOCALAI_API_KEY"
-    }
-  }
-}`
-	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
-		t.Fatalf("write config file: %v", err)
-	}
-
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+func TestLoadDoesNotAutoManageLlamaForNonLoopbackProvider(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "runtime-config.json"))
 	clearRuntimeConfigEnv(t)
+	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "https://example.com/v1")
 
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
 	}
-	if cfg.EngineLocalAIEnabled {
-		t.Fatalf("localai should remain disabled for non-loopback providers.local")
+	if cfg.EngineLlamaEnabled {
+		t.Fatalf("llama should remain disabled for non-loopback endpoint")
 	}
-	if cfg.EngineLocalAIAutoManaged {
-		t.Fatalf("localai should not be marked auto-managed for non-loopback providers.local")
+	if cfg.EngineLlamaAutoManaged {
+		t.Fatalf("llama should not be marked auto-managed for non-loopback endpoint")
 	}
 }
 
-func TestLoadLocalAIExplicitEnabledFalseDisablesAutoManagement(t *testing.T) {
+func TestLoadLlamaExplicitEnabledFalseDisablesAutoManagement(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
-  "providers": {
-    "local": {
-      "baseUrl": "http://127.0.0.1:2234/v1",
-      "apiKeyEnv": "LOCALAI_API_KEY"
-    }
-  },
   "engines": {
-    "localai": {
+    "llama": {
       "enabled": false
     }
   }
@@ -361,25 +288,26 @@ func TestLoadLocalAIExplicitEnabledFalseDisablesAutoManagement(t *testing.T) {
 
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	clearRuntimeConfigEnv(t)
+	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:2234/v1")
 
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
 	}
-	if cfg.EngineLocalAIEnabled {
-		t.Fatalf("explicit engines.localai.enabled=false must override auto-management")
+	if cfg.EngineLlamaEnabled {
+		t.Fatalf("explicit engines.llama.enabled=false must override auto-management")
 	}
-	if cfg.EngineLocalAIAutoManaged {
-		t.Fatalf("auto-managed flag should be false when localai.enabled is explicitly configured")
+	if cfg.EngineLlamaAutoManaged {
+		t.Fatalf("auto-managed flag should be false when llama.enabled is explicitly configured")
 	}
 }
 
-func TestLoadDisablesExplicitLocalAIEnableOnUnsupportedPlatform(t *testing.T) {
+func TestLoadDisablesExplicitLlamaEnableOnUnsupportedPlatform(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
   "engines": {
-    "localai": {
+    "llama": {
       "enabled": true
     }
   }
@@ -390,26 +318,26 @@ func TestLoadDisablesExplicitLocalAIEnableOnUnsupportedPlatform(t *testing.T) {
 
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	clearRuntimeConfigEnv(t)
-	setLocalAISupervisedPlatformForTest(t, false, "windows/amd64")
+	setLlamaSupervisedPlatformForTest(t, false, "windows/amd64")
 
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
 	}
-	if cfg.EngineLocalAIEnabled {
-		t.Fatalf("explicit supervised localai should be disabled on unsupported platforms")
+	if cfg.EngineLlamaEnabled {
+		t.Fatalf("explicit supervised llama should be disabled on unsupported platforms")
 	}
-	if cfg.EngineLocalAIAutoManaged {
-		t.Fatalf("unsupported platforms must not mark localai auto-managed")
+	if cfg.EngineLlamaAutoManaged {
+		t.Fatalf("unsupported platforms must not mark llama auto-managed")
 	}
 }
 
-func TestLoadDisablesExplicitNimiMediaEnableOnUnsupportedPlatform(t *testing.T) {
+func TestLoadDisablesExplicitMediaEnableOnUnsupportedPlatform(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
   "engines": {
-    "nimi_media": {
+    "media": {
       "enabled": true
     }
   }
@@ -420,46 +348,33 @@ func TestLoadDisablesExplicitNimiMediaEnableOnUnsupportedPlatform(t *testing.T) 
 
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	clearRuntimeConfigEnv(t)
-	setNimiMediaSupervisedPlatformForTest(t, false)
+	setMediaSupervisedPlatformForTest(t, false)
 
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
 	}
-	if cfg.EngineNimiMediaEnabled {
-		t.Fatalf("explicit supervised nimi_media should be disabled on unsupported platforms")
+	if cfg.EngineMediaEnabled {
+		t.Fatalf("explicit supervised media should be disabled on unsupported platforms")
 	}
 }
 
-func TestLoadAutoManagedLocalAIPortInferenceFallbackAndOverride(t *testing.T) {
+func TestLoadAutoManagedLlamaPortInferenceFallbackAndOverride(t *testing.T) {
 	t.Run("fallback default port", func(t *testing.T) {
-		configPath := filepath.Join(t.TempDir(), "runtime-config.json")
-		configBody := `{
-  "schemaVersion": 1,
-  "providers": {
-    "local": {
-      "baseUrl": "http://localhost/v1",
-      "apiKeyEnv": "LOCALAI_API_KEY"
-    }
-  }
-}`
-		if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
-			t.Fatalf("write config file: %v", err)
-		}
-
-		t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+		t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "runtime-config.json"))
 		clearRuntimeConfigEnv(t)
-		setLocalAISupervisedPlatformForTest(t, true, "linux/amd64")
+		t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://localhost/v1")
+		setLlamaSupervisedPlatformForTest(t, true, "linux/amd64")
 
 		cfg, err := Load()
 		if err != nil {
 			t.Fatalf("Load returned error: %v", err)
 		}
-		if !cfg.EngineLocalAIEnabled || !cfg.EngineLocalAIAutoManaged {
-			t.Fatalf("localai should be auto-managed for localhost endpoint")
+		if !cfg.EngineLlamaEnabled || !cfg.EngineLlamaAutoManaged {
+			t.Fatalf("llama should be auto-managed for localhost endpoint")
 		}
-		if cfg.EngineLocalAIPort != 1234 {
-			t.Fatalf("localai port fallback mismatch: got=%d want=1234", cfg.EngineLocalAIPort)
+		if cfg.EngineLlamaPort != 1234 {
+			t.Fatalf("llama port fallback mismatch: got=%d want=1234", cfg.EngineLlamaPort)
 		}
 	})
 
@@ -467,14 +382,8 @@ func TestLoadAutoManagedLocalAIPortInferenceFallbackAndOverride(t *testing.T) {
 		configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 		configBody := `{
   "schemaVersion": 1,
-  "providers": {
-    "local": {
-      "baseUrl": "http://127.0.0.1:2234/v1",
-      "apiKeyEnv": "LOCALAI_API_KEY"
-    }
-  },
   "engines": {
-    "localai": {
+    "llama": {
       "port": 3344
     }
   }
@@ -485,17 +394,18 @@ func TestLoadAutoManagedLocalAIPortInferenceFallbackAndOverride(t *testing.T) {
 
 		t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 		clearRuntimeConfigEnv(t)
-		setLocalAISupervisedPlatformForTest(t, true, "linux/amd64")
+		t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:2234/v1")
+		setLlamaSupervisedPlatformForTest(t, true, "linux/amd64")
 
 		cfg, err := Load()
 		if err != nil {
 			t.Fatalf("Load returned error: %v", err)
 		}
-		if !cfg.EngineLocalAIEnabled || !cfg.EngineLocalAIAutoManaged {
-			t.Fatalf("localai should be auto-managed for loopback endpoint")
+		if !cfg.EngineLlamaEnabled || !cfg.EngineLlamaAutoManaged {
+			t.Fatalf("llama should be auto-managed for loopback endpoint")
 		}
-		if cfg.EngineLocalAIPort != 3344 {
-			t.Fatalf("explicit localai port must override inferred provider port: got=%d want=3344", cfg.EngineLocalAIPort)
+		if cfg.EngineLlamaPort != 3344 {
+			t.Fatalf("explicit llama port must override inferred provider port: got=%d want=3344", cfg.EngineLlamaPort)
 		}
 	})
 }
@@ -1057,6 +967,12 @@ func clearRuntimeConfigEnv(t *testing.T) {
 		"NIMI_RUNTIME_LOCAL_MODELS_PATH",
 		"NIMI_RUNTIME_AI_HTTP_TIMEOUT",
 		"NIMI_RUNTIME_AI_HEALTH_INTERVAL",
+		"NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL",
+		"NIMI_RUNTIME_LOCAL_LLAMA_API_KEY",
+		"NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL",
+		"NIMI_RUNTIME_LOCAL_MEDIA_API_KEY",
+		"NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL",
+		"NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY",
 		"NIMI_RUNTIME_LOCAL_AI_BASE_URL",
 		"NIMI_RUNTIME_LOCAL_AI_API_KEY",
 		"NIMI_RUNTIME_LOCAL_NEXA_BASE_URL",
@@ -1230,8 +1146,8 @@ func TestConfigDefaultsMatchSpec(t *testing.T) {
 		{"aiHealthIntervalSeconds", cfg.AIHealthIntervalSeconds, 8},
 		{"aiHttpTimeoutSeconds", cfg.AIHTTPTimeoutSeconds, 30},
 		{"allowLoopbackProviderEndpoint", cfg.AllowLoopbackProviderEndpoint, false},
-		{"engineLocalAIEnabled", cfg.EngineLocalAIEnabled, false},
-		{"engineNexaEnabled", cfg.EngineNexaEnabled, false},
+		{"engineLlamaEnabled", cfg.EngineLlamaEnabled, false},
+		{"engineMediaEnabled", cfg.EngineMediaEnabled, false},
 	}
 
 	for _, tc := range table {

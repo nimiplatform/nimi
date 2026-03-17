@@ -15,13 +15,13 @@ const (
 
 // Config defines daemon boot configuration. (K-DAEMON-009)
 type Config struct {
-	GRPCAddr             string
-	HTTPAddr             string
-	ShutdownTimeout      time.Duration
-	LocalStatePath       string
-	LocalModelsPath      string
+	GRPCAddr              string
+	HTTPAddr              string
+	ShutdownTimeout       time.Duration
+	LocalStatePath        string
+	LocalModelsPath       string
 	DefaultLocalTextModel string
-	DefaultCloudProvider string
+	DefaultCloudProvider  string
 
 	// AllowLoopbackProviderEndpoint permits HTTP (non-TLS) connections to
 	// loopback addresses (127.0.0.0/8, ::1, localhost) for provider endpoints.
@@ -98,69 +98,43 @@ type Config struct {
 	// Default: ~/.nimi/runtime/model-catalog/providers
 	ModelCatalogCustomDir string
 
-	// EngineLocalAIEnabled enables the supervised LocalAI engine.
+	// EngineLlamaEnabled enables the supervised llama engine.
 	// Default: false. (K-LENG-004)
-	EngineLocalAIEnabled bool
+	EngineLlamaEnabled bool
 
-	// EngineLocalAIAutoManaged reports whether LocalAI supervised mode was
-	// inferred from a loopback providers.local endpoint.
-	EngineLocalAIAutoManaged bool
+	// EngineLlamaAutoManaged reports whether llama supervised mode was
+	// inferred from a loopback llama endpoint.
+	EngineLlamaAutoManaged bool
 
-	// EngineLocalAIVersion is the LocalAI release version to download/use.
+	// EngineLlamaVersion is the managed llama engine version.
 	// Default: "3.12.1". (K-LENG-004)
-	EngineLocalAIVersion string
+	EngineLlamaVersion string
 
-	// EngineLocalAIPort is the port for the supervised LocalAI instance.
+	// EngineLlamaPort is the port for the supervised llama instance.
 	// Default: 1234. (K-LENG-004)
-	EngineLocalAIPort int
+	EngineLlamaPort int
 
-	// EngineLocalAIImageBackendMode controls the daemon-managed LocalAI image
-	// backend supply path. Supported values: disabled, official, custom.
-	EngineLocalAIImageBackendMode string
-
-	// EngineLocalAIImageBackendName is the LocalAI backend registry name exposed
-	// to LocalAI via --external-grpc-backends.
-	EngineLocalAIImageBackendName string
-
-	// EngineLocalAIImageBackendAddress is the loopback host:port where the image
-	// backend listens for LocalAI gRPC connections.
-	EngineLocalAIImageBackendAddress string
-
-	// EngineLocalAIImageBackendCommand is the custom backend command path used
-	// when EngineLocalAIImageBackendMode=custom.
-	EngineLocalAIImageBackendCommand string
-
-	// EngineLocalAIImageBackendArgs are forwarded to the custom backend command.
-	EngineLocalAIImageBackendArgs []string
-
-	// EngineLocalAIImageBackendEnv extends the custom backend environment.
-	EngineLocalAIImageBackendEnv map[string]string
-
-	// EngineLocalAIImageBackendWorkingDir overrides the custom backend working
-	// directory.
-	EngineLocalAIImageBackendWorkingDir string
-
-	// EngineNexaEnabled enables the supervised Nexa engine.
+	// EngineMediaEnabled enables the supervised media engine.
 	// Default: false. (K-LENG-004)
-	EngineNexaEnabled bool
+	EngineMediaEnabled bool
 
-	// EngineNexaVersion is the expected Nexa version (informational).
-	// Default: "". (K-LENG-004)
-	EngineNexaVersion string
+	// EngineMediaVersion is the managed media engine version.
+	// Default: "0.1.0". (K-LENG-004)
+	EngineMediaVersion string
 
-	// EngineNexaPort is the port for the supervised Nexa instance.
-	// Default: 8000. (K-LENG-004)
-	EngineNexaPort int
+	// EngineMediaPort is the port for the supervised media engine.
+	// Default: 8321. (K-LENG-004)
+	EngineMediaPort int
 
-	// EngineNimiMediaEnabled enables the supervised diffusers-backed media
-	// engine used for local image/video generation.
-	EngineNimiMediaEnabled bool
+	// EngineSidecarEnabled enables the supervised sidecar engine.
+	// Default: false. (K-LENG-004)
+	EngineSidecarEnabled bool
 
-	// EngineNimiMediaVersion is the managed media engine version.
-	EngineNimiMediaVersion string
+	// EngineSidecarVersion is the managed sidecar version.
+	EngineSidecarVersion string
 
-	// EngineNimiMediaPort is the port for the supervised media engine.
-	EngineNimiMediaPort int
+	// EngineSidecarPort is the port for the supervised sidecar instance.
+	EngineSidecarPort int
 }
 
 // FileConfig is the on-disk JSON schema for runtime configuration.
@@ -199,27 +173,15 @@ type FileConfig struct {
 
 // FileConfigEngines holds supervised engine configuration in the config file.
 type FileConfigEngines struct {
-	LocalAI   *FileConfigEngine `json:"localai,omitempty"`
-	Nexa      *FileConfigEngine `json:"nexa,omitempty"`
-	NimiMedia *FileConfigEngine `json:"nimi_media,omitempty"`
+	Llama *FileConfigEngine `json:"llama,omitempty"`
+	Media *FileConfigEngine `json:"media,omitempty"`
 }
 
 // FileConfigEngine holds configuration for a single supervised engine.
 type FileConfigEngine struct {
-	Enabled      *bool                          `json:"enabled,omitempty"`
-	Version      string                         `json:"version,omitempty"`
-	Port         *int                           `json:"port,omitempty"`
-	ImageBackend *FileConfigLocalAIImageBackend `json:"imageBackend,omitempty"`
-}
-
-type FileConfigLocalAIImageBackend struct {
-	Mode        string            `json:"mode,omitempty"`
-	BackendName string            `json:"backendName,omitempty"`
-	Address     string            `json:"address,omitempty"`
-	Command     string            `json:"command,omitempty"`
-	Args        []string          `json:"args,omitempty"`
-	Env         map[string]string `json:"env,omitempty"`
-	WorkingDir  string            `json:"workingDir,omitempty"`
+	Enabled *bool  `json:"enabled,omitempty"`
+	Version string `json:"version,omitempty"`
+	Port    *int   `json:"port,omitempty"`
 }
 
 // FileConfigAuth holds JWT authentication configuration in the config file.

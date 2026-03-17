@@ -34,16 +34,16 @@ func localAIChecksumURL(version string) string {
 func localAIExpectedSHA256(version string, assetName string) (string, error) {
 	trimmedAsset := strings.TrimSpace(assetName)
 	if trimmedAsset == "" {
-		return "", fmt.Errorf("%w: localai asset is required", ErrEngineBinaryDownloadFailed)
+		return "", fmt.Errorf("%w: llama asset is required", ErrEngineBinaryDownloadFailed)
 	}
 	checksumURL := localAIChecksumURL(version)
 	resp, err := localAIReleaseHTTPClient.Get(checksumURL)
 	if err != nil {
-		return "", fmt.Errorf("%w: fetch localai checksums: %v", ErrEngineBinaryDownloadFailed, err)
+		return "", fmt.Errorf("%w: fetch llama checksums: %v", ErrEngineBinaryDownloadFailed, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("%w: localai checksums HTTP %d from %s", ErrEngineBinaryDownloadFailed, resp.StatusCode, checksumURL)
+		return "", fmt.Errorf("%w: llama checksums HTTP %d from %s", ErrEngineBinaryDownloadFailed, resp.StatusCode, checksumURL)
 	}
 	return parseLocalAIChecksum(resp.Body, trimmedAsset)
 }

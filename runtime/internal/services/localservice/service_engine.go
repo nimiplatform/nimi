@@ -126,7 +126,7 @@ func mapEngineManagerError(operation string, err error) error {
 	if strings.Contains(lower, "unknown engine") || strings.Contains(lower, "engine kind") {
 		return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, grpcerr.ReasonOptions{
 			Message:    "invalid engine for " + operation,
-			ActionHint: "use_one_of_localai_nexa_or_nimi_media",
+			ActionHint: "use_one_of_llama_media_or_sidecar",
 			Metadata: map[string]string{
 				"detail": raw,
 			},
@@ -153,16 +153,6 @@ func mapEngineManagerError(operation string, err error) error {
 		})
 	}
 
-	if strings.Contains(lower, "nexa not found in path") {
-		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
-			Message:    "nexa runtime not installed",
-			ActionHint: "install_nexa_runtime",
-			Metadata: map[string]string{
-				"detail": raw,
-			},
-		})
-	}
-
 	if strings.Contains(lower, "configure an attached endpoint instead") ||
 		strings.Contains(lower, "requires windows x64") ||
 		strings.Contains(lower, "requires an nvidia gpu") ||
@@ -179,7 +169,7 @@ func mapEngineManagerError(operation string, err error) error {
 	if strings.Contains(lower, "hash mismatch") || strings.Contains(lower, "checksum") {
 		return grpcerr.WithReasonCodeOptions(codes.DataLoss, runtimev1.ReasonCode_AI_LOCAL_DOWNLOAD_HASH_MISMATCH, grpcerr.ReasonOptions{
 			Message:    "engine binary checksum mismatch",
-			ActionHint: "verify_localai_release_checksum",
+			ActionHint: "verify_llama_release_checksum",
 			Metadata: map[string]string{
 				"detail": raw,
 			},

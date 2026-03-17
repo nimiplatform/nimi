@@ -113,7 +113,11 @@ func TestEnsureCloudConnectorsFromConfig_SkipLocal(t *testing.T) {
 
 	defs := []CloudConnectorDef{
 		{Provider: "local", Endpoint: "http://localhost:8080", APIKey: "test", Label: "Local"},
-		{Provider: "nexa", Endpoint: "http://localhost:8081", APIKey: "test", Label: "Nexa"},
+		{Provider: "llama", Endpoint: "http://localhost:8081", APIKey: "test", Label: "Llama"},
+		{Provider: "media", Endpoint: "http://localhost:8082", APIKey: "test", Label: "Media"},
+		{Provider: "media.diffusers", Endpoint: "http://localhost:8083", APIKey: "test", Label: "Diffusers"},
+		{Provider: "sidecar", Endpoint: "http://localhost:8084", APIKey: "test", Label: "Sidecar"},
+		{Provider: "nexa", Endpoint: "http://localhost:8085", APIKey: "test", Label: "Nexa"},
 	}
 
 	if err := EnsureCloudConnectorsFromConfig(store, defs); err != nil {
@@ -123,7 +127,7 @@ func TestEnsureCloudConnectorsFromConfig_SkipLocal(t *testing.T) {
 	records, _ := store.Load()
 	cloud := filterSystemCloud(records)
 	if len(cloud) != 0 {
-		t.Fatalf("expected 0 connectors for local providers, got %d", len(cloud))
+		t.Fatalf("expected 0 connectors for local runtime providers, got %d", len(cloud))
 	}
 }
 
@@ -197,7 +201,6 @@ func TestSystemCloudConnectorID(t *testing.T) {
 		}
 	}
 }
-
 
 func TestEnsureCloudConnectorsFromConfig_CredentialFileExists(t *testing.T) {
 	store := tempConnectorStore(t)

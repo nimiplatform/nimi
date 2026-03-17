@@ -174,6 +174,18 @@ func cloneProviderHints(input *runtimev1.LocalProviderHints) *runtimev1.LocalPro
 	return cloned
 }
 
+func cloneHostRequirements(input *runtimev1.LocalHostRequirements) *runtimev1.LocalHostRequirements {
+	if input == nil {
+		return nil
+	}
+	return &runtimev1.LocalHostRequirements{
+		GpuRequired:           input.GetGpuRequired(),
+		PythonRuntimeRequired: input.GetPythonRuntimeRequired(),
+		SupportedPlatforms:    append([]string(nil), input.GetSupportedPlatforms()...),
+		RequiredBackends:      append([]string(nil), input.GetRequiredBackends()...),
+	}
+}
+
 func cloneLocalAuditEvent(input *runtimev1.LocalAuditEvent) *runtimev1.LocalAuditEvent {
 	if input == nil {
 		return nil

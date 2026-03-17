@@ -517,10 +517,6 @@ func (s *Service) executeScenarioAsyncJob(
 		case adapterLoudlyMusic:
 			cfg := s.resolveNativeAdapterConfig("loudly", remoteTarget)
 			artifacts, usage, providerJobID, err = nimillm.ExecuteLoudlyMusic(ctx, cfg, req, modelResolved)
-		case adapterLocalAIMusic:
-			creds := s.config.LocalProviders["localai"]
-			cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey, Headers: creds.Headers}
-			artifacts, usage, providerJobID, err = nimillm.ExecuteLocalAIMusic(ctx, cfg, req, modelResolved)
 		case adapterSidecarMusic:
 			creds := s.config.LocalProviders["sidecar"]
 			cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey, Headers: creds.Headers}

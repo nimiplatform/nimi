@@ -56,7 +56,7 @@ func (s *Service) ResolveLocalAIImageProfile(_ context.Context, requestedModelID
 	}
 	if len(components) == 0 {
 		return "", nil, nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, grpcerr.ReasonOptions{
-			Message:    "LocalAI dynamic image workflow requires explicit companion artifact selections via components[]",
+			Message:    "local media workflow requires explicit companion artifact selections via components[]",
 			ActionHint: "select_local_image_companions",
 		})
 	}
@@ -173,7 +173,7 @@ func (s *Service) resolveLocalAIImageModel(requestedModelID string) *runtimev1.L
 	}
 	if preferLocalAI {
 		for _, candidate := range candidates {
-			if strings.EqualFold(candidate.GetEngine(), "localai") {
+			if strings.EqualFold(candidate.GetEngine(), "media") {
 				return candidate
 			}
 		}
@@ -185,12 +185,14 @@ func parseLocalAIRequestedModelID(requestedModelID string) (string, string, bool
 	raw := strings.TrimSpace(requestedModelID)
 	lower := strings.ToLower(raw)
 	switch {
-	case strings.HasPrefix(lower, "localai/"):
-		return strings.TrimSpace(raw[len("localai/"):]), "localai", false
+	case strings.HasPrefix(lower, "media.diffusers/"):
+		return strings.TrimSpace(raw[len("media.diffusers/"):]), "media.diffusers", false
+	case strings.HasPrefix(lower, "media/"):
+		return strings.TrimSpace(raw[len("media/"):]), "media", false
+	case strings.HasPrefix(lower, "llama/"):
+		return strings.TrimSpace(raw[len("llama/"):]), "llama", false
 	case strings.HasPrefix(lower, "local/"):
 		return strings.TrimSpace(raw[len("local/"):]), "", true
-	case strings.HasPrefix(lower, "nexa/"):
-		return strings.TrimSpace(raw[len("nexa/"):]), "nexa", false
 	default:
 		return raw, "", false
 	}
@@ -198,10 +200,12 @@ func parseLocalAIRequestedModelID(requestedModelID string) (string, string, bool
 
 func localAIImageEnginePriority(engine string) int {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
-	case "localai":
+	case "media":
 		return 0
-	case "nexa":
+	case "media.diffusers":
 		return 1
+	case "llama":
+		return 2
 	default:
 		return 9
 	}
@@ -357,7 +361,7 @@ func resolveLocalAIEntryRelativePath(modelsRoot string, itemID string, sourceRep
 	}
 	if !strings.HasPrefix(absPath, rootAbs+string(filepath.Separator)) && absPath != rootAbs {
 		return "", grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-			Message:    "dynamic localai image asset must reside under local models root",
+			Message:    "dynamic local media asset must reside under local models root",
 			ActionHint: "reimport_under_local_models_root",
 		})
 	}

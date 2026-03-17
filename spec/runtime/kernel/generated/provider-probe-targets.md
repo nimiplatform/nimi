@@ -4,9 +4,8 @@
 > Source: `spec/runtime/kernel/tables/provider-probe-targets.yaml`
 | Name | Base URL Env | API Key Env | Category | Source |
 |---|---|---|---|---|
-| `local` | `NIMI_RUNTIME_LOCAL_AI_BASE_URL` | `NIMI_RUNTIME_LOCAL_AI_API_KEY` | `local` | `K-PROV-002` |
-| `local-nexa` | `NIMI_RUNTIME_LOCAL_NEXA_BASE_URL` | `NIMI_RUNTIME_LOCAL_NEXA_API_KEY` | `local` | `K-PROV-002` |
-| `local-nimi-media` | `NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL` | `NIMI_RUNTIME_LOCAL_NIMI_MEDIA_API_KEY` | `local` | `K-PROV-002` |
+| `local` | `NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL` | `NIMI_RUNTIME_LOCAL_LLAMA_API_KEY` | `local` | `K-PROV-002` |
+| `local-media` | `NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL` | `NIMI_RUNTIME_LOCAL_MEDIA_API_KEY` | `local` | `K-PROV-002` |
 | `local-sidecar` | `NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL` | `NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY` | `local` | `K-PROV-002` |
 | `cloud-nimillm` | `NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL` | `NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY` | `cloud` | `K-PROV-002` |
 | `cloud-dashscope` | `NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL` | `NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY` | `cloud` | `K-PROV-002` |

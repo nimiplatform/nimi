@@ -61,9 +61,9 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 
 本地模型系统采用三层抽象：
 
-- **Model**（`LocalModelRecord`）：权重资产与元数据（model_id/capabilities/engine/source/hashes）。Model 是安装与注册的基本单元。
-- **Service**（`LocalServiceDescriptor`）：受管进程实例。一个 Service 绑定一个 Model，持有 endpoint/status，代表一个可访问的推理服务。
-- **Node**（`LocalNodeDescriptor`）：能力计算视图。从 Service × capabilities 笛卡尔积生成，携带 adapter/provider/policy_gate 等路由信息。Node 是运行时能力发现的入口。
+- **Logical Model**（`LocalModelRecord`）：用户与 App/Mod 可见的单一模型抽象。记录 `logical_model_id`、`family`、`artifact_roles`、`preferred_engine`、`fallback_engines`、`bundle_state`、`warm_state` 与 `host_requirements`。它不是“单文件模型”的同义词。
+- **Service**（`LocalServiceDescriptor`）：某个 logical model 当前绑定的执行实例。一个 Service 代表一个可访问 endpoint，可以是 `ATTACHED_ENDPOINT` 或 `SUPERVISED`。
+- **Node**（`LocalNodeDescriptor`）：能力投影视图。从 Service × capabilities 生成，携带 adapter/engine/policy_gate 等运行时路由信息。Node 是能力发现入口，不是规范真相源。
 
 ## K-LOCAL-008 Phase 1 绑定约束
 
@@ -76,6 +76,7 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 `InstallLocalModel` 的语义是注册 + 状态持久化：
 
 - 将 model_id/capabilities/engine/source/endpoint 等字段写入本地状态存储。
+- runtime 必须同时写出 runtime-native 本地模型元数据：`logical_model_id`、`family`、`artifact_roles`、`preferred_engine`、`fallback_engines`、`bundle_state`、`warm_state`、`host_requirements`。
 - runtime 内部必须同时持久化 model 的 `engine_runtime_mode`，用于区分显式 `ATTACHED_ENDPOINT` 与自动选择的 `SUPERVISED` 生命周期语义；该内部状态当前不要求经现有 RPC 直接暴露。
 - 生成唯一 `local_model_id`（ULID 格式）。
 - 初始状态为 `INSTALLED`（`K-LOCAL-005` 状态机锚点）。
@@ -91,9 +92,10 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 | `template_id` | 是 | 唯一标识（如 `llama3.1-8b`） |
 | `title` | 是 | 人类可读名称 |
 | `model_id` | 是 | 安装时使用的 model_id |
+| `logical_model_id` | 是 | 用户抽象 ID；不得直接退化成 provider alias |
 | `repo` | 条件必填 | 模型仓库地址；`install_kind=verified-hf-multi-file` 时必填 |
 | `capabilities` | 是 | 能力列表（`chat`/`embedding` 等） |
-| `engine` | 是 | 目标引擎（`localai`/`nexa`/`nimi_media`/`sidecar`） |
+| `engine` | 是 | 目标引擎（`llama`/`media`/`sidecar`） |
 | `entry` | 条件必填 | 引擎内模型入口标识；`install_kind=verified-hf-multi-file` 时必填 |
 | `files` | 条件必填 | 组成文件列表；`install_kind=verified-hf-multi-file` 时必填 |
 | `hashes` | 条件必填 | 文件哈希校验（`sha256:{hex}` 格式）；`install_kind=verified-hf-multi-file` 时必填 |
@@ -101,6 +103,8 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 | `install_kind` | 是 | 安装类型（`binary`/`weights`/`container`/`verified-hf-multi-file`） |
 | `total_size_bytes` | 否 | 预计总下载字节数（用于进度计算与磁盘空间预检） |
 | `tags` | 否 | 标签列表（搜索/过滤用，如 `["llama", "chat", "8b"]`） |
+| `artifact_roles` | 是 | runtime 解析 bundle 所需的 artifact 角色集合 |
+| `preferred_engine` | 是 | 首选执行引擎；图像/视频类允许再声明 fallback 为 `media.diffusers` |
 
 ## K-LOCAL-011 模型目录来源
 
@@ -184,7 +188,7 @@ Apply 管道任一阶段失败时：
 - 回滚本身失败时，结果同时携带原始失败和回滚失败的 reason_code，不做二次回滚。
 - 回滚不触发删除外部资产（如已下载的模型文件），仅清理 runtime 内部注册状态。
 
-> **Phase 1 注释**：ATTACHED_ENDPOINT 模式下，stage 3（bootstrap）仅验证 endpoint 连接可达，stage 4（health）必须遵循 `K-LENG-007` 的 engine-specific 探测协议。对 `nimi_media`，固定为 `GET /healthz` + `GET /v1/catalog`，不得回退 `/v1/models`。回滚的实际影响范围为 stage 2 的注册清理（`InstallLocalModel`/`InstallLocalService` 产生的状态记录）。
+> **Phase 1 注释**：ATTACHED_ENDPOINT 模式下，stage 3（bootstrap）仅验证 endpoint 连接可达，stage 4（health）必须遵循 `K-LENG-007` 的 engine-specific 探测协议。对 `media`，固定为 `GET /healthz` + `GET /v1/models`。回滚的实际影响范围为 stage 2 的注册清理（`InstallLocalModel`/`InstallLocalService` 产生的状态记录）。
 
 ## K-LOCAL-016 状态持久化规则
 
@@ -200,19 +204,15 @@ Apply 管道任一阶段失败时：
 
 Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routing.yaml` 为事实源）：
 
-| Provider | Capability | Adapter |
+| Engine | Capability | Adapter |
 |---|---|---|
-| `nexa` | `chat` / `text.generate` | `nexa_native_adapter` |
-| `nexa` | `embedding` / `embed` / `text.embed` | `nexa_native_adapter` |
-| `nexa` | `tts` / `speech` / `audio.synthesize` | `nexa_native_adapter` |
-| `nexa` | `stt` / `transcription` / `audio.transcribe` | `nexa_native_adapter` |
-| `nimi_media` | `image` | `nimi_media_native_adapter` |
-| `nimi_media` | `video` | `nimi_media_native_adapter` |
-| `localai` | `image` | `localai_native_adapter` |
-| `localai` | `video` | `localai_native_adapter` |
-| `localai` | `tts` | `localai_native_adapter` |
-| `localai` | `stt` | `localai_native_adapter` |
-| `localai` | `music` / `music.generate` | `localai_music_adapter` |
+| `llama` | `chat` / `text.generate` | `llama_native_adapter` |
+| `llama` | `embedding` / `embed` / `text.embed` | `llama_native_adapter` |
+| `llama` | `image.understand` / `audio.understand` | `llama_native_adapter` |
+| `media` | `image.generate` / `image.edit` | `media_native_adapter` |
+| `media` | `video.generate` / `i2v` | `media_native_adapter` |
+| `media.diffusers` | `image.generate` / `image.edit` | `media_diffusers_adapter` |
+| `media.diffusers` | `video.generate` / `i2v` | `media_diffusers_adapter` |
 | `sidecar` | `music` / `music.generate` | `sidecar_music_adapter` |
 | `*`（任意） | `*`（任意） | `openai_compat_adapter` |
 
@@ -222,16 +222,11 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 
 策略门控用于条件性禁止特定 provider × capability 组合：
 
-- `LocalNodeDescriptor.policy_gate` 字段描述门控规则标识（如 `nexa.video.unsupported`）。
+- `LocalNodeDescriptor.policy_gate` 字段描述门控规则标识（如 `media.video.unsupported`）。
 - 门控触发时：Node 的 `available=false`，`reason_code` 说明原因。
 - 对 host 已知但 capability 不受支持的 provider × capability 组合，runtime 必须设置 `<provider>.<capability>.unsupported` 风格的 policy gate，并且不得继续暴露 native adapter。
-- Nexa NPU 门控判定规则：
-  - `host_npu_ready=false` → `npu_usable=false`
-  - `model_probe_has_npu_candidate=false` → `npu_usable=false`
-  - `policy_gate_allows_npu=false` → `npu_usable=false`
-  - 三者均为 `true` → `npu_usable=true`
 - 门控信息通过 `LocalProviderHints` 透传给审计与调用方。
-- 类型映射：`LocalProviderHintsNexa.policy_gate` 为 string（门控规则标识符）；`LocalProviderHintsNimiMedia` 承载 `family/image_driver/video_driver/device` 等执行提示；`AppendInferenceAuditRequest.policy_gate` 为 `google.protobuf.Struct`（结构化门控上下文，含 gate/reason/detail）。两者表达不同粒度，不要求类型对齐。
+- 类型映射：`LocalProviderHints.media.policy_gate` 可承载门控规则标识符；`LocalProviderHints.media` 承载 `family/driver/device` 等执行提示；`AppendInferenceAuditRequest.policy_gate` 为 `google.protobuf.Struct`（结构化门控上下文，含 gate/reason/detail）。两者表达不同粒度，不要求类型对齐。
 
 ## K-LOCAL-019 Node 目录生成规则
 
@@ -241,12 +236,12 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 2. 对每个 Service 的 `capabilities` 做笛卡尔积：每个 capability 生成一个 Node。
 3. 每个 Node 填充：
    - `node_id`：`<service_id>:<capability>` 格式。
-   - `provider`：从 engine 推导（`localai` → `localai`，`nexa` → `nexa`，`nimi_media` → `nimi_media`，`sidecar` → `sidecar`）。
+   - `provider`：仅作为兼容字段存在时，必须从 engine 投影；engine 才是本地执行真相源。
    - `adapter`：按 `K-LOCAL-017` 路由。
    - `available`：健康且未被策略门控（`K-LOCAL-018`）。
-   - `nexa` 的 `tts/stt` node 还必须通过 capability probe：若 `/v1/models` 中缺失与目标 `model_id` 可比对的 model entry，则 node 必须 `available=false` + fail-close。
-   - `nimi_media` 的 `image/video` node 还必须通过 canonical catalog probe：若 `/v1/catalog` 中缺失与目标 `model_id` 可比对的 ready model entry，则 node 必须 `available=false` + fail-close。
-   - `nimi_media` node 的 `provider_hints.extra` 必须暴露 runtime host 支持面（如 `runtime_support_class=supported_supervised|attached_only|unsupported`），供目录层解释为何当前 host 只能 attached。
+   - `llama` node 必须同时满足 bundle 可解析、主 artifact 完整、以及对应能力 probe 成功。
+   - `media` / `media.diffusers` node 必须通过 canonical media catalog probe；若 `/v1/catalog` 中缺失与目标 `logical_model_id` 可比对的 ready entry，则 node 必须 `available=false` + fail-close。
+   - `media` node 的 `provider_hints.extra` 必须暴露 runtime host 支持面（如 `runtime_support_class=supported_supervised|attached_only|unsupported`），供目录层解释为何当前 host 只能 attached。
    - `provider_hints.extra.local_default_rank` 必须暴露当前 host + capability 下的默认 local engine 排序，供 Desktop/SDK 与 runtime 对齐默认路由。
    - `provider_hints`：引擎特定适配信息。
 4. 支持按 `capability`/`service_id`/`provider` 过滤。
@@ -257,19 +252,19 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 
 | 前缀 | 引擎选择 |
 |---|---|
-| `localai/` | 仅匹配 `localai` 引擎的已安装模型 |
-| `nexa/` | 仅匹配 `nexa` 引擎的已安装模型 |
-| `nimi_media/` | 仅匹配 `nimi_media` 引擎的已安装模型 |
-| `sidecar/` / `localsidecar/` | 仅匹配 `sidecar` 引擎的已安装模型 |
-| `local/` | 按 host + modal 做偏好路由：Windows 下 `text/embed/tts/stt -> nexa`、`image/video -> nimi_media`，指定默认引擎不可用时直接 fail-close；其余情况按该 modal 的兼容引擎序列选择，且只允许在真实支持该 modal 的引擎之间回退 |
+| `llama/` | 仅匹配 `llama` 引擎的已安装模型 |
+| `media/` | 仅匹配 `media` 引擎的已安装模型 |
+| `media.diffusers/` | 仅匹配 `media.diffusers` fallback driver 的已安装模型 |
+| `sidecar/` | 仅匹配 `sidecar` 引擎的已安装模型 |
+| `local/` | 按 host + capability 做 engine-first 路由：`text.generate/text.embed/image.understand/audio.understand -> llama`，`image.generate/image.edit/video.generate/i2v -> media`，仅当 `media` 不支持当前 family 或 artifact completeness 不满足时，才允许回退到 `media.diffusers` |
 | 无前缀 | 按已安装模型的 `model_id` 精确匹配 |
 
-前缀在匹配时剥除（`localai/llama3.1` 匹配 `model_id=llama3.1` 且 `engine=localai`；`nimi_media/flux.1-schnell` 匹配 `model_id=flux.1-schnell` 且 `engine=nimi_media`；`sidecar/musicgen` 匹配 `model_id=musicgen` 且 `engine=sidecar`）。
+前缀在匹配时剥除（`llama/qwen2.5-7b-instruct` 匹配 `model_id=qwen2.5-7b-instruct` 且 `engine=llama`；`media/flux.1-schnell` 匹配 `model_id=flux.1-schnell` 且 `engine=media`；`sidecar/musicgen` 匹配 `model_id=musicgen` 且 `engine=sidecar`）。
 
-Windows 补充：
+fallback 补充：
 
-- 当 host 对 `nimi_media` 仅为 `attached_only` 时，`local/image` 与 `local/video` 不得把默认 managed loopback 当作 attached fallback；只有显式 attached endpoint 可继续走 `nimi_media`。
-- Windows 的 `local/*` 默认路由不得跨引擎静默回退：`local/image` / `local/video` 不得回退到 `localai` 或 `nexa`，`local/text` / `local/embed` / `local/tts` / `local/stt` 不得回退到 `localai` 或 `nimi_media`。
+- `local/*` 默认路由不得跨 family 静默换模型；fallback 只允许在同一 logical model 的声明引擎集合内发生。
+- 若 `media` 与 `media.diffusers` 都不可执行，runtime 必须 fail-close，不得伪装 ready 或静默退回 cloud/provider alias。
 
 未知前缀（如 `ollama/`）视为无前缀，按 `model_id` 全文精确匹配（不剥除前缀）。
 
@@ -385,8 +380,8 @@ Runtime/desktop 允许在 catalog surface 之外新增 capability-scoped candida
 - **可恢复下载**: 使用 HTTP `Range` headers 实现断点续传。已下载的部分文件在重试时跳过已完成的字节范围。
 - **重试策略**: 指数退避，最多 8 次（300ms → 1s → 5s → 15s → 30s → 60s → 120s → 180s）。
 - **会话状态机**: `queued → running → paused|failed|completed|cancelled`。`pause/resume/cancel` 必须通过显式控制命令驱动，不允许 UI 侧“假暂停”。
-- **重启恢复策略**: 进程重启后，残留 `running/queued` 会话必须转为 `paused` 且 reason code = `LOCAL_AI_HF_DOWNLOAD_INTERRUPTED`；系统不得自动续传，必须由用户手动 `resume`。
-- **逐文件 SHA256 校验**: hash 格式 `sha256:{hex}`，`sha256:` 前缀可选（兼容纯 hex 输入）。校验失败返回 `LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH`。
+- **重启恢复策略**: 进程重启后，残留 `running/queued` 会话必须转为 `paused` 并附带“下载被中断、需手动恢复”的 reason/detail；系统不得自动续传，必须由用户手动 `resume`。
+- **逐文件 SHA256 校验**: hash 格式 `sha256:{hex}`，`sha256:` 前缀可选（兼容纯 hex 输入）。校验失败返回 `AI_LOCAL_DOWNLOAD_HASH_MISMATCH`。
 - **原子提交**: staging → backup → commit（rename），失败 rollback：
   - staging 目录: `{models_dir}/{local_model_id}-staging/`
   - 全部文件下载 + 校验通过后，原子 rename 为最终目录
@@ -400,10 +395,14 @@ Runtime/desktop 允许在 catalog surface 之外新增 capability-scoped candida
 ## K-LOCAL-025 模型存储布局
 
 - 模型根目录: `~/.nimi/models/`
-- 每模型子目录: `{models_dir}/{local_model_id_slug}/`
-  - `local_model_id_slug` 转换规则: colon → dash（`hf:org-model` → `hf-org-model`）
+- 结构化目录固定为：
+  - `objects/`
+  - `sources/`
+  - `recipes/`
+  - `resolved/<logical-model-id>/manifest.json`
+  - `cache/{llama,media,diffusers}`
 - **保留原始文件名**（非 content-addressable hash），理由：调试可读、生态工具兼容（vLLM/SGLang 等可直接引用）。
-- 必含 `model.manifest.json`（nimi 自有元数据，schema 见 `K-LOCAL-026`）。
+- resolved manifest 是本地 bundle 的规范入口（schema 见 `K-LOCAL-026`）。
 - 嵌套目录保留原始结构（如 `speech_tokenizer/model.safetensors`）。
 
 `~/.nimi/` 统一数据根布局：
@@ -411,24 +410,29 @@ Runtime/desktop 允许在 catalog surface 之外新增 capability-scoped candida
 ```
 ~/.nimi/
 ├── runtime/
-│   └── local-state.json  # 中央状态文件（K-LOCAL-016）
+│   └── local-state.json
 └── models/
-    ├── hf-org-model-name/
-    │   ├── model.manifest.json   # nimi 元数据（K-LOCAL-026）
-    │   ├── model.safetensors     # 原始文件名
-    │   └── config.json
-    └── hf-another-model/
+    ├── objects/
+    ├── sources/
+    ├── recipes/
+    ├── resolved/
+    │   └── <logical-model-id>/
+    │       └── manifest.json
+    └── cache/
+        ├── llama/
+        ├── media/
+        └── diffusers/
 ```
 
 ## K-LOCAL-026 模型 Manifest Schema
 
-`model.manifest.json` 结构定义：
+`resolved/<logical-model-id>/manifest.json` 结构定义：
 
 ```yaml
 schema_version: "1.0.0"      # 必填
 model_id: "org/model-name"    # 必填
 capabilities: ["chat"]        # 必填，1+ 有效值
-engine: "localai"             # 必填
+engine: "llama"               # 必填
 entry: "model.safetensors"    # 必填，须在 files 中存在
 files: [...]                  # 必填，entry 在首位
 license: "apache-2.0"         # 必填
@@ -449,10 +453,10 @@ hashes:                        # 必填，所有文件须有对应 hash
 
 ## K-LOCAL-027 格式支持策略
 
-- **GGUF**: 量化格式，llama.cpp 引擎首选。
+- **GGUF**: 量化格式，llama 引擎首选。
 - **SafeTensors**: 全精度 / 多文件格式，未来主方向。
 - 不锁定单一格式：新架构模型可能仅有 SafeTensors 版本。
-- Entry 选择优先级（localai 引擎）：`.gguf` → `model.safetensors` → 任意 `.safetensors`。
+- Entry 选择优先级（llama 引擎）：`.gguf` → `model.safetensors` → 任意 `.safetensors`。
 
 ## K-LOCAL-028 Desktop 获取所有权
 

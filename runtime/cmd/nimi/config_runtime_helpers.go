@@ -91,8 +91,8 @@ func mergeFileConfigWithDefaults(raw config.FileConfig) config.FileConfig {
 	}
 	if raw.Engines != nil {
 		merged.Engines = &config.FileConfigEngines{
-			LocalAI: cloneFileConfigEngine(raw.Engines.LocalAI),
-			Nexa:    cloneFileConfigEngine(raw.Engines.Nexa),
+			Llama: cloneFileConfigEngine(raw.Engines.Llama),
+			Media: cloneFileConfigEngine(raw.Engines.Media),
 		}
 		pruneEmptyEnginesConfig(&merged)
 	}
@@ -118,8 +118,8 @@ func cloneFileConfig(fileCfg config.FileConfig) config.FileConfig {
 	}
 	if fileCfg.Engines != nil {
 		cloned.Engines = &config.FileConfigEngines{
-			LocalAI: cloneFileConfigEngine(fileCfg.Engines.LocalAI),
-			Nexa:    cloneFileConfigEngine(fileCfg.Engines.Nexa),
+			Llama: cloneFileConfigEngine(fileCfg.Engines.Llama),
+			Media: cloneFileConfigEngine(fileCfg.Engines.Media),
 		}
 	}
 	return cloned

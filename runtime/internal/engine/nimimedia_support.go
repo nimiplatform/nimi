@@ -43,17 +43,17 @@ func NimiMediaHostSupportDetail(goos string, goarch string, gpuVendor string, cu
 		return ""
 	case NimiMediaHostSupportAttachedOnly:
 		if !NimiMediaSupervisedPlatformSupportedFor(goos, goarch) {
-			return "nimi_media supervised mode requires Windows x64; configure an attached endpoint instead"
+			return "media supervised mode requires Windows x64; configure an attached endpoint instead"
 		}
 		if !strings.EqualFold(strings.TrimSpace(gpuVendor), "nvidia") {
-			return "nimi_media supervised mode requires an NVIDIA GPU; configure an attached endpoint instead"
+			return "media supervised mode requires an NVIDIA GPU; configure an attached endpoint instead"
 		}
 		if !cudaReady {
-			return "nimi_media supervised mode requires a CUDA-ready NVIDIA runtime; configure an attached endpoint instead"
+			return "media supervised mode requires a CUDA-ready NVIDIA runtime; configure an attached endpoint instead"
 		}
-		return "nimi_media supervised mode is unavailable on this host; configure an attached endpoint instead"
+		return "media supervised mode is unavailable on this host; configure an attached endpoint instead"
 	default:
-		return "nimi_media is unsupported on this host"
+		return "media is unsupported on this host"
 	}
 }
 

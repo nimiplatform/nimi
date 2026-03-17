@@ -10,6 +10,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -121,7 +122,7 @@ func defaultLocalEngine(raw string, capabilities []string) string {
 			return order[0]
 		}
 	}
-	return "localai"
+	return "llama"
 }
 
 func (s *Service) evaluateInstallPlanAvailability(plan *runtimev1.LocalInstallPlanDescriptor, autoRecommended bool) {
@@ -220,6 +221,7 @@ func (s *Service) installLocalModelRecord(
 	s.mu.RUnlock()
 
 	now := nowISO()
+	projection := modelregistry.InferNativeProjection(modelID, capabilities, nil, runtimev1.ModelStatus_MODEL_STATUS_INSTALLED)
 	record := &runtimev1.LocalModelRecord{
 		LocalModelId: ulid.Make().String(),
 		ModelId:      modelID,
@@ -238,6 +240,14 @@ func (s *Service) installLocalModelRecord(
 		UpdatedAt:            now,
 		LocalInvokeProfileId: strings.TrimSpace(localInvokeProfileID),
 		EngineConfig:         cloneStruct(engineConfig),
+		LogicalModelId:       projection.LogicalModelID,
+		Family:               projection.Family,
+		ArtifactRoles:        append([]string(nil), projection.ArtifactRoles...),
+		PreferredEngine:      projection.PreferredEngine,
+		FallbackEngines:      append([]string(nil), projection.FallbackEngines...),
+		BundleState:          projection.BundleState,
+		WarmState:            projection.WarmState,
+		HostRequirements:     cloneHostRequirements(projection.HostRequirements),
 	}
 	if len(record.GetCapabilities()) == 0 {
 		record.Capabilities = []string{"chat"}
@@ -258,7 +268,7 @@ func (s *Service) installLocalModelRecord(
 	})
 	s.mu.Unlock()
 	if syncErr := s.SyncManagedLocalAIAssets(context.Background()); syncErr != nil {
-		s.logger.Warn("sync localai assets after model mutation failed", "model_id", record.GetModelId(), "error", syncErr)
+		s.logger.Warn("sync llama assets after model mutation failed", "model_id", record.GetModelId(), "error", syncErr)
 	}
 	return record, nil
 }

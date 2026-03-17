@@ -100,7 +100,7 @@ func TestRealtimeSessionLifecycle(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	svc := newTestService(logger, Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{
-			"localai": {BaseURL: "http://127.0.0.1:18080"},
+			"llama": {BaseURL: "http://127.0.0.1:18080"},
 		},
 	})
 

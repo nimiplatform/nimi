@@ -74,7 +74,7 @@ func defaultLocalAIPaths() (string, string, error) {
 	if err != nil {
 		return "", "", fmt.Errorf("resolve home directory: %w", err)
 	}
-	return filepath.Join(home, ".nimi", "models"), filepath.Join(home, ".nimi", "runtime", "localai-models.yaml"), nil
+	return filepath.Join(home, ".nimi", "models"), filepath.Join(home, ".nimi", "runtime", "llama-models.yaml"), nil
 }
 
 func defaultLocalAIBackendsPath() (string, error) {
@@ -82,7 +82,7 @@ func defaultLocalAIBackendsPath() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("resolve home directory: %w", err)
 	}
-	return filepath.Join(home, ".nimi", "runtime", "localai-backends"), nil
+	return filepath.Join(home, ".nimi", "runtime", "llama-backends"), nil
 }
 
 // SetLocalAIPaths overrides the default LocalAI model directory and generated
@@ -157,7 +157,7 @@ func (m *Manager) ensureLocalAI(ctx context.Context, cfg EngineConfig) (EngineCo
 	if entry != nil {
 		if _, err := os.Stat(entry.BinaryPath); err == nil {
 			cfg.BinaryPath = entry.BinaryPath
-			m.logger.Info("localai binary found in registry",
+			m.logger.Info("llama binary found in registry",
 				"version", cfg.Version,
 				"path", entry.BinaryPath,
 			)
@@ -167,13 +167,13 @@ func (m *Manager) ensureLocalAI(ctx context.Context, cfg EngineConfig) (EngineCo
 		_ = m.registry.Remove(EngineLocalAI, cfg.Version)
 	}
 
-	m.logger.Info("downloading localai binary",
+	m.logger.Info("downloading llama binary",
 		"version", cfg.Version,
 	)
 
 	binaryPath, sha256hex, err := DownloadBinary(m.baseDir, EngineLocalAI, cfg.Version)
 	if err != nil {
-		return cfg, fmt.Errorf("download localai: %w", err)
+		return cfg, fmt.Errorf("download llama: %w", err)
 	}
 
 	if err := m.registry.Put(&RegistryEntry{
@@ -190,7 +190,7 @@ func (m *Manager) ensureLocalAI(ctx context.Context, cfg EngineConfig) (EngineCo
 	cfg.BinaryPath = binaryPath
 	resolvedImageBackend, err := ensureOfficialLocalAIImageBackend(ctx, cfg.BinaryPath, cfg.BackendsPath, cfg.LocalAIImageBackend)
 	if err != nil {
-		return cfg, fmt.Errorf("prepare localai image backend: %w", err)
+		return cfg, fmt.Errorf("prepare llama image backend: %w", err)
 	}
 	cfg.LocalAIImageBackend = resolvedImageBackend
 	return cfg, nil
@@ -214,7 +214,7 @@ func (m *Manager) StartEngine(ctx context.Context, cfg EngineConfig) error {
 	cfg = m.applyLocalAIPaths(cfg)
 	if cfg.Kind == EngineLocalAI && strings.TrimSpace(cfg.BackendsPath) != "" {
 		if err := os.MkdirAll(cfg.BackendsPath, 0o755); err != nil {
-			return fmt.Errorf("create localai backends directory: %w", err)
+			return fmt.Errorf("create llama backends directory: %w", err)
 		}
 	}
 	if cfg.Kind == EngineLocalAI {
@@ -414,7 +414,7 @@ func (m *Manager) prepareLocalAIStart(ctx context.Context, cfg EngineConfig) (En
 	}
 	resolvedImageBackend, err := ensureOfficialLocalAIImageBackend(ctx, cfg.BinaryPath, cfg.BackendsPath, cfg.LocalAIImageBackend)
 	if err != nil {
-		return cfg, fmt.Errorf("prepare localai image backend: %w", err)
+		return cfg, fmt.Errorf("prepare llama image backend: %w", err)
 	}
 	cfg.LocalAIImageBackend = resolvedImageBackend
 	auxCfg, err := localAIImageBackendEngineConfig(resolvedImageBackend)

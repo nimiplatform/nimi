@@ -18,9 +18,9 @@ import (
 
 const (
 	adapterOpenAICompat        = "openai_compat_adapter"
-	adapterLocalAINative       = "localai_native_adapter"
-	adapterNexaNative          = "nexa_native_adapter"
-	adapterNimiMediaNative     = "nimi_media_native_adapter"
+	adapterLlamaNative         = "llama_native_adapter"
+	adapterMediaNative         = "media_native_adapter"
+	adapterMediaDiffusers      = "media_diffusers_adapter"
 	adapterBytedanceOpenSpeech = "bytedance_openspeech_adapter"
 	adapterBytedanceARKTask    = "bytedance_ark_task_adapter"
 	adapterAlibabaNative       = "alibaba_native_adapter"
@@ -50,7 +50,6 @@ const (
 	adapterSoundverseMusic     = "soundverse_music_adapter"
 	adapterMubertMusic         = "mubert_music_adapter"
 	adapterLoudlyMusic         = "loudly_music_adapter"
-	adapterLocalAIMusic        = "localai_music_adapter"
 	adapterSidecarMusic        = "sidecar_music_adapter"
 )
 
@@ -80,20 +79,16 @@ func (s mediaAdapterStrategy) forModal(modal runtimev1.Modal) string {
 }
 
 var mediaAdapterStrategiesByProvider = map[string]mediaAdapterStrategy{
-	"localai": {
-		Image: adapterLocalAINative,
-		Video: adapterLocalAINative,
-		TTS:   adapterLocalAINative,
-		STT:   adapterLocalAINative,
-		Music: adapterLocalAIMusic,
+	"llama": {
+		STT: adapterLlamaNative,
 	},
-	"nexa": {
-		TTS: adapterNexaNative,
-		STT: adapterNexaNative,
+	"media": {
+		Image: adapterMediaNative,
+		Video: adapterMediaNative,
 	},
-	"nimi_media": {
-		Image: adapterNimiMediaNative,
-		Video: adapterNimiMediaNative,
+	"media.diffusers": {
+		Image: adapterMediaDiffusers,
+		Video: adapterMediaDiffusers,
 	},
 	"sidecar": {
 		Music: adapterSidecarMusic,
@@ -284,18 +279,18 @@ func resolveMediaAdapterName(modelID string, modelResolved string, modal runtime
 	}
 
 	switch {
-	case strings.HasPrefix(lowerModel, "localai/"):
-		if adapter := mediaAdapterStrategiesByProvider["localai"].forModal(modal); adapter != "" {
+	case strings.HasPrefix(lowerModel, "llama/"):
+		if adapter := mediaAdapterStrategiesByProvider["llama"].forModal(modal); adapter != "" {
 			return adapter
 		}
 		return ""
-	case strings.HasPrefix(lowerModel, "nexa/"):
-		if adapter := mediaAdapterStrategiesByProvider["nexa"].forModal(modal); adapter != "" {
+	case strings.HasPrefix(lowerModel, "media.diffusers/"):
+		if adapter := mediaAdapterStrategiesByProvider["media.diffusers"].forModal(modal); adapter != "" {
 			return adapter
 		}
 		return ""
-	case strings.HasPrefix(lowerModel, "nimi_media/"):
-		if adapter := mediaAdapterStrategiesByProvider["nimi_media"].forModal(modal); adapter != "" {
+	case strings.HasPrefix(lowerModel, "media/"):
+		if adapter := mediaAdapterStrategiesByProvider["media"].forModal(modal); adapter != "" {
 			return adapter
 		}
 		return ""

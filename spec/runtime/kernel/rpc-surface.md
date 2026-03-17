@@ -60,7 +60,7 @@ Runtime kernel 的 RPC 覆盖范围为全量 proto 服务：
 
 - v1 realtime session 只为 text/audio 双向会话预留 contract，不承担 `video + audio -> video + audio`
 - `ReadRealtimeEvents` 为 server-stream；duplex 语义通过 `Open + Append + Read + Close` 组合实现
-- v1 provider-backed 实现范围固定为 LocalAI text+audio session；其他 provider 未实现时必须 fail-close，不得伪装成 `AIService` 普通 scenario
+- v1 provider-backed 实现范围固定为 llama text+audio session；其他 provider 未实现时必须 fail-close，不得伪装成 `AIService` 普通 scenario
 
 ## K-RPC-003 ConnectorService 方法集合（design 权威）
 

@@ -47,7 +47,7 @@ type scenarioStreamingTextProvider interface {
 
 // Config controls local/cloud provider connectivity.
 type Config struct {
-	LocalProviders        map[string]nimillm.ProviderCredentials // "localai", "nexa", "nimi_media", "sidecar"
+	LocalProviders        map[string]nimillm.ProviderCredentials // "llama", "media", "media.diffusers", "sidecar"
 	CloudProviders        map[string]nimillm.ProviderCredentials // "nimillm", "dashscope", ...
 	ProviderDefaultModels map[string]string
 	DefaultLocalTextModel string
@@ -109,20 +109,15 @@ func buildCloudProviderEnvBindings() []struct {
 
 func loadConfigFromEnv() Config {
 	localProviders := make(map[string]nimillm.ProviderCredentials)
-	localAIBase := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_AI_BASE_URL"))
-	localAIKey := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_AI_API_KEY"))
-	if localAIBase != "" || localAIKey != "" {
-		localProviders["localai"] = nimillm.ProviderCredentials{BaseURL: localAIBase, APIKey: localAIKey}
+	localLlamaBase := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL"))
+	localLlamaKey := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_LLAMA_API_KEY"))
+	if localLlamaBase != "" || localLlamaKey != "" {
+		localProviders["llama"] = nimillm.ProviderCredentials{BaseURL: localLlamaBase, APIKey: localLlamaKey}
 	}
-	localNexaBase := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_NEXA_BASE_URL"))
-	localNexaKey := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_NEXA_API_KEY"))
-	if localNexaBase != "" || localNexaKey != "" {
-		localProviders["nexa"] = nimillm.ProviderCredentials{BaseURL: localNexaBase, APIKey: localNexaKey}
-	}
-	localNimiMediaBase := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL"))
-	localNimiMediaKey := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_NIMI_MEDIA_API_KEY"))
-	if localNimiMediaBase != "" || localNimiMediaKey != "" {
-		localProviders["nimi_media"] = nimillm.ProviderCredentials{BaseURL: localNimiMediaBase, APIKey: localNimiMediaKey}
+	localMediaBase := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL"))
+	localMediaKey := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_MEDIA_API_KEY"))
+	if localMediaBase != "" || localMediaKey != "" {
+		localProviders["media"] = nimillm.ProviderCredentials{BaseURL: localMediaBase, APIKey: localMediaKey}
 	}
 	localSidecarBase := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL"))
 	localSidecarKey := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY"))
@@ -198,13 +193,12 @@ func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, 
 
 	cloudProvider := nimillm.NewCloudProvider(normalized.toCloudConfig(), registry, aiHealth)
 
-	localaiCreds := normalized.LocalProviders["localai"]
-	nexaCreds := normalized.LocalProviders["nexa"]
-	nimiMediaCreds := normalized.LocalProviders["nimi_media"]
+	llamaCreds := normalized.LocalProviders["llama"]
+	mediaCreds := normalized.LocalProviders["media"]
 	sidecarCreds := normalized.LocalProviders["sidecar"]
-	localAIBackend := newLocalBackend("local-localai", localaiCreds, normalized)
-	nexaBackend := newLocalBackend("local-nexa", nexaCreds, normalized)
-	nimiMediaBackend := newLocalBackend("local-nimi_media", nimiMediaCreds, normalized)
+	llamaBackend := newLocalBackend("local-llama", llamaCreds, normalized)
+	mediaBackend := newLocalBackend("local-media", mediaCreds, normalized)
+	mediaDiffusersBackend := newLocalBackend("local-media-diffusers", mediaCreds, normalized)
 	sidecarBackend := newLocalBackend("local-sidecar", sidecarCreds, normalized)
 	targetConfig := runtimecfg.Config{
 		DefaultLocalTextModel: normalized.DefaultLocalTextModel,
@@ -225,10 +219,10 @@ func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, 
 	}
 	return &routeSelector{
 		local: &localProvider{
-			localai:    localAIBackend,
-			nexa:       nexaBackend,
-			nimimedia:  nimiMediaBackend,
-			sidecar:    sidecarBackend,
+			llama:          llamaBackend,
+			media:          mediaBackend,
+			mediaDiffusers: mediaDiffusersBackend,
+			sidecar:        sidecarBackend,
 		},
 		cloud:         cloudProvider,
 		cloudProvider: cloudProvider,

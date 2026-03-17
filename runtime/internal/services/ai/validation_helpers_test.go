@@ -204,7 +204,7 @@ func TestPrepareScenarioRequestAllowsAnonymousLocal(t *testing.T) {
 			Models: []*runtimev1.LocalModelRecord{{
 				LocalModelId: "lm-1",
 				ModelId:      "qwen",
-				Engine:       "localai",
+				Engine:       "llama",
 				Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
 			}},
 		}},

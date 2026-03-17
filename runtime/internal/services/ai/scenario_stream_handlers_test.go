@@ -31,15 +31,15 @@ func TestStreamScenarioSpeechSynthesizeSuccess(t *testing.T) {
 	defer server.Close()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
 	})
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "local/tts",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			ModelId:       "openai/tts-1",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
 		},
@@ -138,15 +138,15 @@ func TestStreamScenarioSpeechSynthesizeProviderErrorSendsFailedEvent(t *testing.
 	defer server.Close()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
 	})
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "local/tts",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			ModelId:       "openai/tts-1",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
 		},
@@ -193,15 +193,15 @@ func TestStreamSpeechDoneFrameConstraints(t *testing.T) {
 	defer server.Close()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
 	})
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "local/tts",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			ModelId:       "openai/tts-1",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
 		},
@@ -247,7 +247,7 @@ func TestStreamFirstPacketTimeout(t *testing.T) {
 	defer server.Close()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
 	})
 	svc.streamFirstPacketTimeout = 20 * time.Millisecond
 
@@ -256,8 +256,8 @@ func TestStreamFirstPacketTimeout(t *testing.T) {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "local/tts",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			ModelId:       "openai/tts-1",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     500,
 		},
@@ -306,15 +306,15 @@ func TestStreamScenarioSpeechSynthesizeLargePayloadChunking(t *testing.T) {
 	defer server.Close()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
 	})
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "local/tts",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			ModelId:       "openai/tts-1",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
 		},
@@ -377,15 +377,15 @@ func TestStreamScenarioSpeechSynthesizeForwardsScenarioExtensions(t *testing.T) 
 	defer server.Close()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
 	})
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "local/tts",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			ModelId:       "openai/tts-1",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
 		},
@@ -439,7 +439,7 @@ func TestStreamCloseModeDoneTrueCarriesUsage(t *testing.T) {
 	defer server.Close()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+		LocalProviders: map[string]nimillm.ProviderCredentials{"llama": {BaseURL: server.URL}},
 	})
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{
@@ -488,7 +488,7 @@ func TestStreamCloseModeTerminalEventOnError(t *testing.T) {
 	defer server.Close()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+		LocalProviders: map[string]nimillm.ProviderCredentials{"llama": {BaseURL: server.URL}},
 	})
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{

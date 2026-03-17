@@ -38,16 +38,16 @@ func ensureNimiMedia(ctx context.Context, baseDir string, cfg EngineConfig) (Eng
 	uvRoot := filepath.Join(baseDir, "uv")
 	uvPath, err := ensureUV(ctx, uvRoot)
 	if err != nil {
-		return cfg, fmt.Errorf("ensure uv for nimi_media: %w", err)
+		return cfg, fmt.Errorf("ensure uv for media: %w", err)
 	}
 	pythonPath, err := ensureManagedPython(ctx, uvPath, root, nimiMediaPythonVersion)
 	if err != nil {
-		return cfg, fmt.Errorf("ensure managed python for nimi_media: %w", err)
+		return cfg, fmt.Errorf("ensure managed python for media: %w", err)
 	}
 
 	scriptPath := filepath.Join(root, "nimi_media_server.py")
 	if writeErr := os.WriteFile(scriptPath, []byte(nimiMediaServerScript), 0o755); writeErr != nil {
-		return cfg, fmt.Errorf("write nimi_media server script: %w", writeErr)
+		return cfg, fmt.Errorf("write media server script: %w", writeErr)
 	}
 
 	stampPath := filepath.Join(root, ".deps-installed")
@@ -59,16 +59,16 @@ func ensureNimiMedia(ctx context.Context, baseDir string, cfg EngineConfig) (Eng
 			extraArgs = append(extraArgs, "--extra-index-url", defaultNimiMediaTorchIndexURL)
 		}
 		if installErr := uvPipInstall(ctx, uvPath, pythonPath, nimiMediaPackages, extraArgs...); installErr != nil {
-			return cfg, fmt.Errorf("install nimi_media dependencies: %w", installErr)
+			return cfg, fmt.Errorf("install media dependencies: %w", installErr)
 		}
 		if writeErr := os.WriteFile(stampPath, []byte(strings.Join(nimiMediaPackages, "\n")), 0o644); writeErr != nil {
-			return cfg, fmt.Errorf("write nimi_media dependency stamp: %w", writeErr)
+			return cfg, fmt.Errorf("write media dependency stamp: %w", writeErr)
 		}
 	}
 
 	cacheRoot := filepath.Join(root, "cache")
 	if err := os.MkdirAll(cacheRoot, 0o755); err != nil {
-		return cfg, fmt.Errorf("create nimi_media cache root: %w", err)
+		return cfg, fmt.Errorf("create media cache root: %w", err)
 	}
 
 	cfg.BinaryPath = pythonPath

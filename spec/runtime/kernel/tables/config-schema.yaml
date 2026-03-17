@@ -142,67 +142,46 @@ fields:
     description: AI Provider 路由表（key=provider name）
     source_rule: K-DAEMON-009
 
-  - key: engines.localai.enabled
+  - key: engines.llama.enabled
     type: bool
     default: "false"
     reload: restart
-    description: 启用 LocalAI 引擎 SUPERVISED 模式
+    description: 启用 llama 引擎 SUPERVISED 模式
     source_rule: K-LENG-004
 
-  - key: engines.localai.version
+  - key: engines.llama.version
     type: string
     default: "3.12.1"
     reload: restart
-    description: LocalAI 二进制版本
+    description: llama 受管引擎版本
     source_rule: K-LENG-004
 
-  - key: engines.localai.port
+  - key: engines.llama.port
     type: int
     default: "1234"
     reload: restart
-    description: LocalAI 监听端口
+    description: llama 监听端口
     source_rule: K-LENG-004
 
-  - key: engines.nexa.enabled
+  - key: engines.media.enabled
     type: bool
     default: "false"
     reload: restart
-    description: 启用 Nexa 引擎 SUPERVISED 模式
+    description: 启用 media 引擎 SUPERVISED 模式
     source_rule: K-LENG-004
 
-  - key: engines.nexa.version
-    type: string
-    default: ""
-    reload: restart
-    description: Nexa 版本（空=系统安装）
-    source_rule: K-LENG-004
-
-  - key: engines.nexa.port
-    type: int
-    default: "8000"
-    reload: restart
-    description: Nexa 监听端口
-    source_rule: K-LENG-004
-
-  - key: engines.nimi_media.enabled
-    type: bool
-    default: "false"
-    reload: restart
-    description: 启用 Nimi Media 引擎 SUPERVISED 模式
-    source_rule: K-LENG-004
-
-  - key: engines.nimi_media.version
+  - key: engines.media.version
     type: string
     default: "0.1.0"
     reload: restart
-    description: Nimi Media 受管引擎版本
+    description: media 受管引擎版本
     source_rule: K-LENG-004
 
-  - key: engines.nimi_media.port
+  - key: engines.media.port
     type: int
     default: "8321"
     reload: restart
-    description: Nimi Media 监听端口
+    description: media 监听端口
     source_rule: K-LENG-004
 
   - key: defaultLocalTextModel
@@ -218,27 +197,6 @@ fields:
     reload: hot
     description: 默认云端 provider
     source_rule: K-CFG-013
-
-  - key: engines.localai.imageBackend.mode
-    type: string
-    default: "disabled"
-    reload: restart
-    description: LocalAI 图像 backend 模式（disabled|official|custom）
-    source_rule: K-LENG-004
-
-  - key: engines.localai.imageBackend.backendName
-    type: string
-    default: "stablediffusion-ggml"
-    reload: restart
-    description: LocalAI 图像 backend 名称
-    source_rule: K-LENG-004
-
-  - key: engines.localai.imageBackend.address
-    type: string
-    default: "127.0.0.1:50052"
-    reload: restart
-    description: LocalAI 图像 backend gRPC 地址
-    source_rule: K-LENG-004
 
   - key: modelCatalogCustomDir
     type: string

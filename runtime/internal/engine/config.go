@@ -6,11 +6,11 @@ import "time"
 type EngineKind string
 
 const (
-	EngineLocalAI   EngineKind = "localai"
+	EngineLocalAI   EngineKind = "llama"
 	EngineNexa      EngineKind = "nexa"
-	EngineNimiMedia EngineKind = "nimi_media"
+	EngineNimiMedia EngineKind = "media"
 
-	engineLocalAIImageBackend EngineKind = "localai-image-backend"
+	engineLocalAIImageBackend EngineKind = "media.diffusers"
 )
 
 // EngineStatus represents the lifecycle state of a supervised engine.

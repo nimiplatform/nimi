@@ -17,18 +17,16 @@ const (
 
 func classifyManagedEngineSupport(engineName string, profile *runtimev1.LocalDeviceProfile) (string, string) {
 	switch strings.ToLower(strings.TrimSpace(engineName)) {
-	case "nimi_media":
+	case "media":
 		return classifyNimiMediaHostSupport(profile)
-	case "localai":
+	case "llama":
 		if profile == nil {
 			return localEngineSupportUnsupported, "device profile unavailable"
 		}
 		if engine.LocalAISupervisedPlatformSupportedFor(profile.GetOs(), profile.GetArch()) {
 			return localEngineSupportSupportedSupervised, ""
 		}
-		return localEngineSupportAttachedOnly, "localai supervised mode requires macOS or Linux; configure an attached endpoint instead"
-	case "nexa":
-		return localEngineSupportSupportedSupervised, ""
+		return localEngineSupportAttachedOnly, "llama supervised mode requires macOS or Linux; configure an attached endpoint instead"
 	default:
 		return localEngineSupportUnsupported, "unknown managed engine"
 	}
@@ -56,7 +54,7 @@ func classifyNimiMediaHostSupportWithCUDA(profile *runtimev1.LocalDeviceProfile,
 
 func managedEngineSupportWarnings(engineName string, profile *runtimev1.LocalDeviceProfile) []string {
 	classification, detail := classifyManagedEngineSupport(engineName, profile)
-	if !strings.EqualFold(strings.TrimSpace(engineName), "nimi_media") {
+	if !strings.EqualFold(strings.TrimSpace(engineName), "media") {
 		return nil
 	}
 	if classification == localEngineSupportSupportedSupervised {

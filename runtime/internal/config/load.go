@@ -19,6 +19,9 @@ func Load() (Config, error) {
 	if err := rejectRemovedModelCatalogRemoteEnv(); err != nil {
 		return Config{}, err
 	}
+	if err := rejectLegacyLocalRuntimeEnv(); err != nil {
+		return Config{}, err
+	}
 	fileCfg, err := loadRuntimeFileConfig()
 	if err != nil {
 		return Config{}, err
@@ -26,12 +29,10 @@ func Load() (Config, error) {
 	applyProviderEnvDefaults(fileCfg)
 	applyImplicitProviderDefaults()
 
-	localAIEnabledFromFile := fileConfigEngineBool(fileCfg, "localai")
-	localAIPortFromFile := fileConfigEngineInt(fileCfg, "localai", "port")
-	nexaEnabledFromFile := fileConfigEngineBool(fileCfg, "nexa")
-	nexaPortFromFile := fileConfigEngineInt(fileCfg, "nexa", "port")
-	nimiMediaEnabledFromFile := fileConfigEngineBool(fileCfg, "nimi_media")
-	nimiMediaPortFromFile := fileConfigEngineInt(fileCfg, "nimi_media", "port")
+	llamaEnabledFromFile := fileConfigEngineBool(fileCfg, "llama")
+	llamaPortFromFile := fileConfigEngineInt(fileCfg, "llama", "port")
+	mediaEnabledFromFile := fileConfigEngineBool(fileCfg, "media")
+	mediaPortFromFile := fileConfigEngineInt(fileCfg, "media", "port")
 
 	cfg := Config{
 		GRPCAddr:                      readString("NIMI_RUNTIME_GRPC_ADDR", nimillm.FirstNonEmpty(fileCfg.GRPCAddr, defaultGRPCAddr)),
@@ -59,72 +60,37 @@ func Load() (Config, error) {
 		AuthJWTAudience:               readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_AUDIENCE", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.Audience }), ""),
 		AuthJWTJWKSURL:                readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_JWKS_URL", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.JWKSURL }), ""),
 		Providers:                     fileCfg.Providers,
-		EngineLocalAIEnabled:          readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED", localAIEnabledFromFile, false),
-		EngineLocalAIVersion:          readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LOCALAI_VERSION", fileConfigEngineString(fileCfg, "localai", "version"), "3.12.1"),
-		EngineLocalAIPort:             readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LOCALAI_PORT", localAIPortFromFile, 1234),
-		EngineLocalAIImageBackendMode: readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_MODE", fileConfigLocalAIImageBackendString(fileCfg, "mode"), defaultLocalAIImageBackendMode()),
-		EngineLocalAIImageBackendName: readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_NAME", fileConfigLocalAIImageBackendString(fileCfg, "backendName"), "stablediffusion-ggml"),
-		EngineLocalAIImageBackendAddress: readStringWithFileConfigFallback(
-			"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_ADDRESS",
-			fileConfigLocalAIImageBackendString(fileCfg, "address"),
-			"127.0.0.1:50052",
-		),
-		EngineLocalAIImageBackendCommand: readStringWithFileConfigFallback(
-			"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_COMMAND",
-			fileConfigLocalAIImageBackendString(fileCfg, "command"),
-			"",
-		),
-		EngineLocalAIImageBackendWorkingDir: readStringWithFileConfigFallback(
-			"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_WORKING_DIR",
-			fileConfigLocalAIImageBackendString(fileCfg, "workingDir"),
-			"",
-		),
-		EngineNexaEnabled:      readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_ENABLED", nexaEnabledFromFile, false),
-		EngineNexaVersion:      readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_VERSION", fileConfigEngineString(fileCfg, "nexa", "version"), ""),
-		EngineNexaPort:         readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_PORT", nexaPortFromFile, 8000),
-		EngineNimiMediaEnabled: readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NIMI_MEDIA_ENABLED", nimiMediaEnabledFromFile, false),
-		EngineNimiMediaVersion: readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NIMI_MEDIA_VERSION", fileConfigEngineString(fileCfg, "nimi_media", "version"), "0.1.0"),
-		EngineNimiMediaPort:    readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NIMI_MEDIA_PORT", nimiMediaPortFromFile, 8321),
+		EngineLlamaEnabled:            readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LLAMA_ENABLED", llamaEnabledFromFile, false),
+		EngineLlamaVersion:            readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LLAMA_VERSION", fileConfigEngineString(fileCfg, "llama", "version"), "3.12.1"),
+		EngineLlamaPort:               readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LLAMA_PORT", llamaPortFromFile, 1234),
+		EngineMediaEnabled:            readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_MEDIA_ENABLED", mediaEnabledFromFile, false),
+		EngineMediaVersion:            readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_MEDIA_VERSION", fileConfigEngineString(fileCfg, "media", "version"), "0.1.0"),
+		EngineMediaPort:               readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_MEDIA_PORT", mediaPortFromFile, 8321),
+		EngineSidecarEnabled:          readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SIDECAR_ENABLED", nil, false),
+		EngineSidecarVersion:          readString("NIMI_RUNTIME_ENGINE_SIDECAR_VERSION", ""),
+		EngineSidecarPort:             readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SIDECAR_PORT", nil, 0),
 	}
 
-	imageBackendArgs, err := readStringSliceJSONWithFileConfigFallback(
-		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_ARGS_JSON",
-		fileConfigLocalAIImageBackendArgs(fileCfg),
-	)
-	if err != nil {
-		return Config{}, fmt.Errorf("parse localai image backend args: %w", err)
-	}
-	cfg.EngineLocalAIImageBackendArgs = imageBackendArgs
+	localBaseURL := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL"))
+	llamaEnabledExplicit := llamaEnabledFromFile != nil || isBoolEnvValueExplicit("NIMI_RUNTIME_ENGINE_LLAMA_ENABLED")
+	llamaPortExplicit := llamaPortFromFile != nil || isIntEnvValueExplicit("NIMI_RUNTIME_ENGINE_LLAMA_PORT")
 
-	imageBackendEnv, err := readStringMapJSONWithFileConfigFallback(
-		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_ENV_JSON",
-		fileConfigLocalAIImageBackendEnv(fileCfg),
-	)
-	if err != nil {
-		return Config{}, fmt.Errorf("parse localai image backend env: %w", err)
-	}
-	cfg.EngineLocalAIImageBackendEnv = imageBackendEnv
-
-	localBaseURL := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_AI_BASE_URL"))
-	localAIEnabledExplicit := localAIEnabledFromFile != nil || isBoolEnvValueExplicit("NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED")
-	localAIPortExplicit := localAIPortFromFile != nil || isIntEnvValueExplicit("NIMI_RUNTIME_ENGINE_LOCALAI_PORT")
-
-	if inferredPort, autoManaged := inferLoopbackLocalAIPort(localBaseURL); autoManaged && localAISupervisedPlatformSupported() {
-		if !localAIEnabledExplicit {
-			cfg.EngineLocalAIEnabled = true
-			cfg.EngineLocalAIAutoManaged = true
+	if inferredPort, autoManaged := inferLoopbackLocalPort(localBaseURL, 1234); autoManaged && llamaSupervisedPlatformSupported() {
+		if !llamaEnabledExplicit {
+			cfg.EngineLlamaEnabled = true
+			cfg.EngineLlamaAutoManaged = true
 		}
-		if cfg.EngineLocalAIEnabled && !localAIPortExplicit {
-			cfg.EngineLocalAIPort = inferredPort
+		if cfg.EngineLlamaEnabled && !llamaPortExplicit {
+			cfg.EngineLlamaPort = inferredPort
 		}
 	}
 
-	if cfg.EngineLocalAIEnabled && !localAISupervisedPlatformSupported() {
-		cfg.EngineLocalAIEnabled = false
-		cfg.EngineLocalAIAutoManaged = false
+	if cfg.EngineLlamaEnabled && !llamaSupervisedPlatformSupported() {
+		cfg.EngineLlamaEnabled = false
+		cfg.EngineLlamaAutoManaged = false
 	}
-	if cfg.EngineNimiMediaEnabled && !nimiMediaSupervisedPlatformSupported() {
-		cfg.EngineNimiMediaEnabled = false
+	if cfg.EngineMediaEnabled && !mediaSupervisedPlatformSupported() {
+		cfg.EngineMediaEnabled = false
 	}
 
 	shutdownTimeoutRaw := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_SHUTDOWN_TIMEOUT"))
@@ -215,7 +181,7 @@ func rejectRemovedModelCatalogRemoteEnv() error {
 	return nil
 }
 
-func inferLoopbackLocalAIPort(baseURL string) (int, bool) {
+func inferLoopbackLocalPort(baseURL string, fallbackPort int) (int, bool) {
 	parsed, ok := parseProviderEndpointURL(baseURL)
 	if !ok {
 		return 0, false
@@ -235,7 +201,7 @@ func inferLoopbackLocalAIPort(baseURL string) (int, bool) {
 			return port, true
 		}
 	}
-	return 1234, true
+	return fallbackPort, true
 }
 
 func parseProviderEndpointURL(raw string) (*url.URL, bool) {
@@ -258,6 +224,39 @@ func parseProviderEndpointURL(raw string) (*url.URL, bool) {
 		return nil, false
 	}
 	return fallback, true
+}
+
+func rejectLegacyLocalRuntimeEnv() error {
+	legacyKeys := []string{
+		"NIMI_RUNTIME_LOCAL_AI_BASE_URL",
+		"NIMI_RUNTIME_LOCAL_AI_API_KEY",
+		"NIMI_RUNTIME_LOCAL_NEXA_BASE_URL",
+		"NIMI_RUNTIME_LOCAL_NEXA_API_KEY",
+		"NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL",
+		"NIMI_RUNTIME_LOCAL_NIMI_MEDIA_API_KEY",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_VERSION",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_PORT",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_MODE",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_NAME",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_ADDRESS",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_COMMAND",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_ARGS_JSON",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_ENV_JSON",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_WORKING_DIR",
+		"NIMI_RUNTIME_ENGINE_NEXA_ENABLED",
+		"NIMI_RUNTIME_ENGINE_NEXA_VERSION",
+		"NIMI_RUNTIME_ENGINE_NEXA_PORT",
+		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_ENABLED",
+		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_VERSION",
+		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_PORT",
+	}
+	for _, key := range legacyKeys {
+		if value, ok := os.LookupEnv(key); ok && strings.TrimSpace(value) != "" {
+			return fmt.Errorf("%s is no longer supported; clear legacy local runtime env and reconfigure llama/media", key)
+		}
+	}
+	return nil
 }
 
 // readStringWithFileConfigFallback implements three-level fallback: env > fileConfig > default.

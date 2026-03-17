@@ -211,29 +211,29 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_STT, "groq"); got != adapterOpenAICompat {
 		t.Fatalf("unexpected groq stt adapter: %s", got)
 	}
-	if got := resolveMediaAdapterName("localai/qwen", "", runtimev1.Modal_MODAL_IMAGE, ""); got != adapterLocalAINative {
-		t.Fatalf("unexpected adapter: %s", got)
+	if got := resolveMediaAdapterName("llama/whisper-large-v3", "", runtimev1.Modal_MODAL_STT, ""); got != adapterLlamaNative {
+		t.Fatalf("unexpected llama stt adapter: %s", got)
 	}
-	if got := resolveMediaAdapterName("unsloth/z-image-turbo", "", runtimev1.Modal_MODAL_IMAGE, "localai"); got != adapterLocalAINative {
-		t.Fatalf("unexpected localai provider adapter: %s", got)
+	if got := resolveMediaAdapterName("flux.1-schnell", "", runtimev1.Modal_MODAL_IMAGE, "media"); got != adapterMediaNative {
+		t.Fatalf("unexpected media provider adapter: %s", got)
 	}
-	if got := resolveMediaAdapterName("whisper-large-v3", "", runtimev1.Modal_MODAL_STT, "localai"); got != adapterLocalAINative {
-		t.Fatalf("unexpected localai stt adapter: %s", got)
+	if got := resolveMediaAdapterName("whisper-large-v3", "", runtimev1.Modal_MODAL_STT, "llama"); got != adapterLlamaNative {
+		t.Fatalf("unexpected llama stt adapter: %s", got)
 	}
-	if got := resolveMediaAdapterName("ace-step-local", "", runtimev1.Modal_MODAL_MUSIC, "localai"); got != adapterLocalAIMusic {
-		t.Fatalf("unexpected localai music adapter: %s", got)
+	if got := resolveMediaAdapterName("ace-step-local", "", runtimev1.Modal_MODAL_MUSIC, "sidecar"); got != adapterSidecarMusic {
+		t.Fatalf("unexpected sidecar music adapter: %s", got)
 	}
 	if got := resolveMediaAdapterName("sidecar/stable-audio-open-sidecar", "", runtimev1.Modal_MODAL_MUSIC, "sidecar"); got != adapterSidecarMusic {
 		t.Fatalf("unexpected sidecar music adapter: %s", got)
 	}
-	if got := resolveMediaAdapterName("nexa/qwen", "", runtimev1.Modal_MODAL_IMAGE, ""); got != "" {
-		t.Fatalf("unexpected adapter for unsupported nexa image route: %s", got)
+	if got := resolveMediaAdapterName("llama/qwen", "", runtimev1.Modal_MODAL_IMAGE, ""); got != "" {
+		t.Fatalf("unexpected adapter for unsupported llama image route: %s", got)
 	}
-	if got := resolveMediaAdapterName("wan2.2", "", runtimev1.Modal_MODAL_VIDEO, "nexa"); got != "" {
-		t.Fatalf("unexpected nexa provider adapter for unsupported video route: %s", got)
+	if got := resolveMediaAdapterName("wan2.2", "", runtimev1.Modal_MODAL_VIDEO, "llama"); got != "" {
+		t.Fatalf("unexpected llama provider adapter for unsupported video route: %s", got)
 	}
-	if got := resolveMediaAdapterName("nexa/whisper-large-v3", "", runtimev1.Modal_MODAL_STT, ""); got != adapterNexaNative {
-		t.Fatalf("unexpected nexa stt adapter: %s", got)
+	if got := resolveMediaAdapterName("media.diffusers/flux.1-schnell", "", runtimev1.Modal_MODAL_IMAGE, ""); got != adapterMediaDiffusers {
+		t.Fatalf("unexpected media diffusers image adapter: %s", got)
 	}
 	if got := resolveMediaAdapterName("", "kimi/k1", runtimev1.Modal_MODAL_IMAGE, ""); got != adapterKimiChatMultimodal {
 		t.Fatalf("unexpected adapter: %s", got)
@@ -253,13 +253,13 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	if got := inferMediaProviderTypeFromBackendName(&nimillm.Backend{Name: "cloud-openai"}); got != "openai" {
 		t.Fatalf("unexpected cloud provider type: %q", got)
 	}
-	if got := inferMediaProviderTypeFromBackendName(&nimillm.Backend{Name: "local-localai"}); got != "localai" {
+	if got := inferMediaProviderTypeFromBackendName(&nimillm.Backend{Name: "local-llama"}); got != "llama" {
 		t.Fatalf("unexpected local provider type: %q", got)
 	}
 	localProvider := &localProvider{
-		localai: &nimillm.Backend{Name: "local-localai"},
+		llama: &nimillm.Backend{Name: "local-llama"},
 	}
-	if got := inferMediaProviderTypeFromSelectedBackend(localProvider, "z-image-turbo", runtimev1.Modal_MODAL_IMAGE); got != "localai" {
+	if got := inferMediaProviderTypeFromSelectedBackend(localProvider, "llama/whisper-large-v3", runtimev1.Modal_MODAL_STT); got != "llama" {
 		t.Fatalf("unexpected local provider backend type: %q", got)
 	}
 

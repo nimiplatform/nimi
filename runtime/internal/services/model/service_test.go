@@ -45,6 +45,12 @@ func TestPullModelTransitionsThroughPullingState(t *testing.T) {
 	if listResp.Models[0].Status != runtimev1.ModelStatus_MODEL_STATUS_PULLING {
 		t.Fatalf("expected pulling status, got %v", listResp.Models[0].Status)
 	}
+	if listResp.Models[0].GetPreferredEngine() != "llama" {
+		t.Fatalf("expected llama preferred engine, got %q", listResp.Models[0].GetPreferredEngine())
+	}
+	if listResp.Models[0].GetBundleState() != runtimev1.LocalBundleState_LOCAL_BUNDLE_STATE_RESOLVING {
+		t.Fatalf("expected resolving bundle state, got %v", listResp.Models[0].GetBundleState())
+	}
 
 	close(release)
 	waitForModelStatus(t, svc, "qwen2.5", runtimev1.ModelStatus_MODEL_STATUS_INSTALLED)
@@ -78,6 +84,17 @@ func TestModelLifecycle(t *testing.T) {
 	}
 	if !healthResp.Healthy {
 		t.Fatalf("model must be healthy")
+	}
+
+	listResp, err := svc.ListModels(context.Background(), &runtimev1.ListModelsRequest{})
+	if err != nil {
+		t.Fatalf("list models after install: %v", err)
+	}
+	if got := listResp.GetModels()[0].GetLogicalModelId(); got != "qwen2.5" {
+		t.Fatalf("logical model id mismatch: %q", got)
+	}
+	if got := listResp.GetModels()[0].GetFamily(); got != "qwen" {
+		t.Fatalf("family mismatch: %q", got)
 	}
 
 	removeResp, err := svc.RemoveModel(context.Background(), &runtimev1.RemoveModelRequest{ModelId: "qwen2.5"})

@@ -98,12 +98,12 @@ func TestDefaultEndpointProbeNimiMediaRejectsEmptyReadyCatalog(t *testing.T) {
 	}))
 	defer server.Close()
 
-	probe := defaultEndpointProbe(context.Background(), "nimi_media", server.URL)
+	probe := defaultEndpointProbe(context.Background(), "media", server.URL)
 	if probe.healthy {
-		t.Fatal("expected nimi_media probe to fail when catalog has no ready models")
+		t.Fatal("expected media probe to fail when catalog has no ready models")
 	}
 	if !probe.responded {
-		t.Fatal("expected nimi_media probe to record HTTP response")
+		t.Fatal("expected media probe to record HTTP response")
 	}
 	if !strings.Contains(probe.detail, "catalog") {
 		t.Fatalf("expected catalog detail in probe failure, got %q", probe.detail)
@@ -137,9 +137,9 @@ func TestDefaultEndpointProbeNimiMediaCollectsReadyModels(t *testing.T) {
 	}))
 	defer server.Close()
 
-	probe := defaultEndpointProbe(context.Background(), "nimi_media", server.URL)
+	probe := defaultEndpointProbe(context.Background(), "media", server.URL)
 	if !probe.healthy {
-		t.Fatalf("expected nimi_media probe to succeed, got detail=%q", probe.detail)
+		t.Fatalf("expected media probe to succeed, got detail=%q", probe.detail)
 	}
 	if !strings.Contains(probe.probeURL, "/v1/catalog") {
 		t.Fatalf("expected canonical catalog probe url, got %q", probe.probeURL)
@@ -155,7 +155,7 @@ func TestLocalModelLifecycle(t *testing.T) {
 	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/test-chat",
 		Capabilities: []string{"chat", "chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 	model := installed
 	if model.GetLocalModelId() == "" {
@@ -226,7 +226,7 @@ func TestLocalStartLocalModelProbeFailureTransitionsUnhealthy(t *testing.T) {
 	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/probe-fail-model",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 
 	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
@@ -266,7 +266,7 @@ func TestLocalStartManagedLocalModelWarmsBeforeReportingActive(t *testing.T) {
 	installed := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/qwen",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 
 	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
@@ -320,7 +320,7 @@ func TestLocalStartManagedLocalModelWarmFailureTransitionsUnhealthy(t *testing.T
 	installed := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/qwen",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 
 	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
@@ -357,7 +357,7 @@ func TestLocalCheckLocalModelHealthRecoversAfterThreeProbes(t *testing.T) {
 	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/recover-model",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 	localModelID := installed.GetLocalModelId()
 
@@ -411,11 +411,11 @@ func TestLocalStartLocalServiceProbeFailureTransitionsUnhealthy(t *testing.T) {
 	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/service-probe-model",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-probe-fail",
-		Engine:       "localai",
+		Engine:       "llama",
 		Capabilities: []string{"chat"},
 		LocalModelId: modelResp.GetLocalModelId(),
 	}); err != nil {
@@ -456,11 +456,11 @@ func TestLocalCheckLocalServiceHealthRecoversAfterThreeProbes(t *testing.T) {
 	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/service-recover-model",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-recover",
-		Engine:       "localai",
+		Engine:       "llama",
 		Capabilities: []string{"chat"},
 		LocalModelId: modelResp.GetLocalModelId(),
 	}); err != nil {
@@ -538,7 +538,7 @@ func TestLocalDefaultProbeBuildsSingleV1ModelsPath(t *testing.T) {
 	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/default-probe-model",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 		Endpoint:     server.URL + "/v1",
 	})
 	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
@@ -563,7 +563,7 @@ func TestLocalStartLocalModelBootstrapsManagedEngine(t *testing.T) {
 	installed := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/bootstrap-model",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 
 	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
@@ -578,8 +578,8 @@ func TestLocalStartLocalModelBootstrapsManagedEngine(t *testing.T) {
 	if mgr.startCalls != 1 {
 		t.Fatalf("expected one engine bootstrap start call, got %d", mgr.startCalls)
 	}
-	if mgr.lastStartEngine != "localai" {
-		t.Fatalf("expected engine localai, got %q", mgr.lastStartEngine)
+	if mgr.lastStartEngine != "llama" {
+		t.Fatalf("expected engine llama, got %q", mgr.lastStartEngine)
 	}
 	if mgr.lastStartPort != 1234 {
 		t.Fatalf("expected bootstrap port 1234, got %d", mgr.lastStartPort)
@@ -594,11 +594,11 @@ func TestLocalStartLocalServiceBootstrapsManagedEngine(t *testing.T) {
 	modelResp := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/bootstrap-service-model",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-bootstrap",
-		Engine:       "localai",
+		Engine:       "llama",
 		Capabilities: []string{"chat"},
 		LocalModelId: modelResp.GetLocalModelId(),
 	}); err != nil {
@@ -617,8 +617,8 @@ func TestLocalStartLocalServiceBootstrapsManagedEngine(t *testing.T) {
 	if mgr.startCalls != 1 {
 		t.Fatalf("expected one engine bootstrap start call, got %d", mgr.startCalls)
 	}
-	if mgr.lastStartEngine != "localai" {
-		t.Fatalf("expected engine localai, got %q", mgr.lastStartEngine)
+	if mgr.lastStartEngine != "llama" {
+		t.Fatalf("expected engine llama, got %q", mgr.lastStartEngine)
 	}
 	if mgr.lastStartPort != 1234 {
 		t.Fatalf("expected bootstrap port 1234, got %d", mgr.lastStartPort)
@@ -633,7 +633,7 @@ func TestLocalBootstrapSkipsNonLoopbackEndpoint(t *testing.T) {
 	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/non-loopback-model",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 		Endpoint:     "https://example.com/v1",
 	})
 
@@ -659,7 +659,7 @@ func TestLocalCheckLocalModelHealthBootstrapsManagedEngine(t *testing.T) {
 	installed := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/health-bootstrap-model",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 	localModelID := installed.GetLocalModelId()
 	if _, err := svc.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "model active"); err != nil {
@@ -681,8 +681,8 @@ func TestLocalCheckLocalModelHealthBootstrapsManagedEngine(t *testing.T) {
 	if mgr.startCalls != 1 {
 		t.Fatalf("expected one bootstrap start call, got %d", mgr.startCalls)
 	}
-	if mgr.lastStartEngine != "localai" {
-		t.Fatalf("expected engine localai, got %q", mgr.lastStartEngine)
+	if mgr.lastStartEngine != "llama" {
+		t.Fatalf("expected engine llama, got %q", mgr.lastStartEngine)
 	}
 	if mgr.lastStartPort != 1234 {
 		t.Fatalf("expected bootstrap port 1234, got %d", mgr.lastStartPort)
@@ -697,11 +697,11 @@ func TestLocalCheckLocalServiceHealthBootstrapsManagedEngine(t *testing.T) {
 	modelResp := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/health-bootstrap-service-model",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-health-bootstrap",
-		Engine:       "localai",
+		Engine:       "llama",
 		Capabilities: []string{"chat"},
 		LocalModelId: modelResp.GetLocalModelId(),
 	}); err != nil {
@@ -726,8 +726,8 @@ func TestLocalCheckLocalServiceHealthBootstrapsManagedEngine(t *testing.T) {
 	if mgr.startCalls != 1 {
 		t.Fatalf("expected one bootstrap start call, got %d", mgr.startCalls)
 	}
-	if mgr.lastStartEngine != "localai" {
-		t.Fatalf("expected engine localai, got %q", mgr.lastStartEngine)
+	if mgr.lastStartEngine != "llama" {
+		t.Fatalf("expected engine llama, got %q", mgr.lastStartEngine)
 	}
 	if mgr.lastStartPort != 1234 {
 		t.Fatalf("expected bootstrap port 1234, got %d", mgr.lastStartPort)
@@ -742,7 +742,7 @@ func TestLocalCheckLocalModelHealthUnhealthyPathBootstrapsManagedEngine(t *testi
 	installed := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/health-unhealthy-bootstrap-model",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 	localModelID := installed.GetLocalModelId()
 	if _, err := svc.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "model active"); err != nil {
@@ -777,11 +777,11 @@ func TestLocalCheckLocalServiceHealthUnhealthyPathBootstrapsManagedEngine(t *tes
 	modelResp := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/health-unhealthy-bootstrap-service-model",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-health-unhealthy-bootstrap",
-		Engine:       "localai",
+		Engine:       "llama",
 		Capabilities: []string{"chat"},
 		LocalModelId: modelResp.GetLocalModelId(),
 	}); err != nil {
@@ -822,7 +822,7 @@ func TestSearchCatalogModelsMergesVerifiedAndHuggingFaceSorted(t *testing.T) {
 				ModelId:      "org/zeta-model",
 				Repo:         "org/zeta-model",
 				Capabilities: []string{"chat"},
-				Engine:       "localai",
+				Engine:       "llama",
 				Verified:     false,
 			},
 			{
@@ -832,7 +832,7 @@ func TestSearchCatalogModelsMergesVerifiedAndHuggingFaceSorted(t *testing.T) {
 				ModelId:      "org/alpha-community",
 				Repo:         "org/alpha-community",
 				Capabilities: []string{"chat"},
-				Engine:       "localai",
+				Engine:       "llama",
 				Verified:     false,
 			},
 		}, nil
@@ -885,7 +885,7 @@ func TestSearchCatalogModelsDedupesByModelAndEngine(t *testing.T) {
 				ModelId:      "local/llama3.1",
 				Repo:         "nimiplatform/llama3.1-8b-instruct",
 				Capabilities: []string{"chat"},
-				Engine:       "localai",
+				Engine:       "llama",
 				Verified:     false,
 			},
 		}, nil
@@ -897,12 +897,12 @@ func TestSearchCatalogModelsDedupesByModelAndEngine(t *testing.T) {
 	}
 	count := 0
 	for _, item := range resp.GetItems() {
-		if item.GetModelId() == "local/llama3.1" && strings.EqualFold(item.GetEngine(), "localai") {
+		if item.GetModelId() == "local/llama3.1" && strings.EqualFold(item.GetEngine(), "llama") {
 			count++
 		}
 	}
 	if count != 1 {
-		t.Fatalf("expected deduped model count=1 for local/llama3.1 localai, got %d", count)
+		t.Fatalf("expected deduped model count=1 for local/llama3.1 llama, got %d", count)
 	}
 }
 
@@ -957,7 +957,7 @@ func TestSearchCatalogModelsPassesHFRequestShape(t *testing.T) {
 	if _, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{
 		Query:        "Llama",
 		Capability:   "image",
-		EngineFilter: "nexa",
+		EngineFilter: "media",
 		PageSize:     7,
 	}); err != nil {
 		t.Fatalf("search catalog models: %v", err)
@@ -969,7 +969,7 @@ func TestSearchCatalogModelsPassesHFRequestShape(t *testing.T) {
 	if captured.Capability != "image" {
 		t.Fatalf("capability mismatch: %q", captured.Capability)
 	}
-	if captured.EngineFilter != "nexa" {
+	if captured.EngineFilter != "media" {
 		t.Fatalf("engine filter mismatch: %q", captured.EngineFilter)
 	}
 	if captured.Limit != 7 {
@@ -988,7 +988,7 @@ func TestLocalRecoverySweepPromotesUnhealthyModel(t *testing.T) {
 	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/recovery-sweep-model",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 	localModelID := installed.GetLocalModelId()
 	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
@@ -1072,7 +1072,7 @@ func TestLocalResolveAndApplyExecutionPlan(t *testing.T) {
 					Kind:       runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_MODEL,
 					Capability: "chat",
 					ModelId:    "local/chat-default",
-					Engine:     "localai",
+					Engine:     "llama",
 				},
 				{
 					EntryId:    "dep.chat.service",
@@ -1080,7 +1080,7 @@ func TestLocalResolveAndApplyExecutionPlan(t *testing.T) {
 					Capability: "chat",
 					ModelId:    "local/chat-default",
 					ServiceId:  "svc-chat",
-					Engine:     "localai",
+					Engine:     "llama",
 				},
 			},
 		},
@@ -1140,7 +1140,7 @@ func TestLocalResolveProfileSeparatesDependencyAndArtifactEntries(t *testing.T) 
 					Capability: "image",
 					Required:   &required,
 					ModelId:    "local/image-best",
-					Engine:     "localai",
+					Engine:     "llama",
 				},
 				{
 					EntryId:      "profile.image.vae",
@@ -1150,7 +1150,7 @@ func TestLocalResolveProfileSeparatesDependencyAndArtifactEntries(t *testing.T) 
 					TemplateId:   "verified.artifact.z_image.vae",
 					ArtifactId:   "local/z_image_ae",
 					ArtifactKind: runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
-					Engine:       "localai",
+					Engine:       "media",
 				},
 				{
 					EntryId:    "profile.image.helper",
@@ -1158,7 +1158,7 @@ func TestLocalResolveProfileSeparatesDependencyAndArtifactEntries(t *testing.T) 
 					Capability: "chat",
 					Required:   &optional,
 					ModelId:    "local/helper-chat",
-					Engine:     "localai",
+					Engine:     "llama",
 				},
 			},
 		},
@@ -1193,9 +1193,21 @@ func TestLocalResolveProfileSeparatesDependencyAndArtifactEntries(t *testing.T) 
 }
 
 func TestLocalApplyProfileInstallsCompanionArtifacts(t *testing.T) {
-	svc := newTestService(t)
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe succeeded",
+			probeURL:  endpoint,
+			models:    []string{"local/image-best"},
+		}
+	})
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetLocalAIRegistrationConfig(modelsRoot, "", false)
+	svc.SetEngineManager(&mockEngineManager{})
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
 	required := true
 
 	payload := []byte("verified-vae")
@@ -1216,7 +1228,7 @@ func TestLocalApplyProfileInstallsCompanionArtifacts(t *testing.T) {
 			Title:      "Z-Image AE",
 			ArtifactId: "local/z_image_ae",
 			Kind:       runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
-			Engine:     "localai",
+			Engine:     "media",
 			Entry:      "vae/diffusion_pytorch_model.safetensors",
 			Files:      []string{"vae/diffusion_pytorch_model.safetensors"},
 			License:    "tongyi",
@@ -1242,7 +1254,7 @@ func TestLocalApplyProfileInstallsCompanionArtifacts(t *testing.T) {
 					Capability: "image",
 					Required:   &required,
 					ModelId:    "local/image-best",
-					Engine:     "localai",
+					Engine:     "media",
 				},
 				{
 					EntryId:      "profile.image.vae",
@@ -1252,11 +1264,22 @@ func TestLocalApplyProfileInstallsCompanionArtifacts(t *testing.T) {
 					TemplateId:   "verified.artifact.z_image.vae",
 					ArtifactId:   "local/z_image_ae",
 					ArtifactKind: runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
-					Engine:       "localai",
+					Engine:       "media",
 				},
 			},
 		},
 		Capability: "image",
+		DeviceProfile: &runtimev1.LocalDeviceProfile{
+			Os:   "windows",
+			Arch: "amd64",
+			Gpu: &runtimev1.LocalGpuProfile{
+				Available: true,
+				Vendor:    "nvidia",
+			},
+			Python: &runtimev1.LocalPythonProfile{
+				Available: true,
+			},
+		},
 	})
 	if err != nil {
 		t.Fatalf("resolve profile: %v", err)
@@ -1293,7 +1316,7 @@ func TestLocalAuditFilterByModID(t *testing.T) {
 		EventType: "inference_invoked",
 		ModId:     "world.nimi.user-math-quiz",
 		Source:    "local",
-		Provider:  "localai",
+		Provider:  "llama",
 		Modality:  "chat",
 		Adapter:   "openai_compat_adapter",
 		Model:     "local/chat-default",
@@ -1376,15 +1399,15 @@ func TestLocalNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 
 	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/vision-chat-model",
-		Capabilities: []string{"image", "chat"},
-		Engine:       "localai",
+		Capabilities: []string{"image.understand", "chat"},
+		Engine:       "llama",
 	})
 
 	installed, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-vision",
 		Title:        "Vision Service",
-		Engine:       "localai",
-		Capabilities: []string{"image", "chat"},
+		Engine:       "llama",
+		Capabilities: []string{"image.understand", "chat"},
 		LocalModelId: modelResp.GetLocalModelId(),
 	})
 	if err != nil {
@@ -1400,8 +1423,8 @@ func TestLocalNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 	}
 
 	nodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
-		Capability: "image",
-		Provider:   "localai",
+		Capability: "image.understand",
+		Provider:   "llama",
 	})
 	if err != nil {
 		t.Fatalf("list node catalog: %v", err)
@@ -1416,20 +1439,20 @@ func TestLocalNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 	if !strings.HasPrefix(node.GetNodeId(), "svc-vision:") {
 		t.Fatalf("node id should use <service_id>:<capability>, got: %s", node.GetNodeId())
 	}
-	if node.GetAdapter() != "localai_native_adapter" {
-		t.Fatalf("localai image adapter mismatch: %s", node.GetAdapter())
+	if node.GetAdapter() != "llama_native_adapter" {
+		t.Fatalf("llama image adapter mismatch: %s", node.GetAdapter())
 	}
 	if !node.GetAvailable() {
 		t.Fatalf("node must be available before removal")
 	}
 	if node.GetProviderHints() == nil || node.GetProviderHints().GetLocalai() == nil {
-		t.Fatalf("localai image node must include provider hints")
+		t.Fatalf("llama image node must include provider hints")
 	}
-	if node.GetProviderHints().GetLocalai().GetPreferredAdapter() != "localai_native_adapter" {
-		t.Fatalf("localai image preferred adapter mismatch: %s", node.GetProviderHints().GetLocalai().GetPreferredAdapter())
+	if node.GetProviderHints().GetLocalai().GetPreferredAdapter() != "llama_native_adapter" {
+		t.Fatalf("llama image preferred adapter mismatch: %s", node.GetProviderHints().GetLocalai().GetPreferredAdapter())
 	}
-	if node.GetProviderHints().GetLocalai().GetStablediffusionPipeline() == "" {
-		t.Fatalf("localai image provider hints should include stablediffusion pipeline")
+	if node.GetProviderHints().GetLocalai().GetBackend() != "llama" {
+		t.Fatalf("llama image provider hints should carry backend=llama")
 	}
 	if node.GetProviderHints().GetExtra()["service_id"] != "svc-vision" {
 		t.Fatalf("provider hints extra.service_id mismatch: %s", node.GetProviderHints().GetExtra()["service_id"])
@@ -1437,7 +1460,7 @@ func TestLocalNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 
 	chatNodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
 		Capability: "chat",
-		Provider:   "localai",
+		Provider:   "llama",
 	})
 	if err != nil {
 		t.Fatalf("list chat node catalog: %v", err)
@@ -1447,13 +1470,13 @@ func TestLocalNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 	}
 	chatNode := chatNodesResp.GetNodes()[0]
 	if chatNode.GetAdapter() != "openai_compat_adapter" {
-		t.Fatalf("localai chat adapter mismatch: %s", chatNode.GetAdapter())
+		t.Fatalf("llama chat adapter mismatch: %s", chatNode.GetAdapter())
 	}
 	if chatNode.GetProviderHints() == nil || chatNode.GetProviderHints().GetLocalai() == nil {
-		t.Fatalf("localai chat node must include provider hints")
+		t.Fatalf("llama chat node must include provider hints")
 	}
 	if chatNode.GetProviderHints().GetLocalai().GetPreferredAdapter() != "openai_compat_adapter" {
-		t.Fatalf("localai chat preferred adapter mismatch: %s", chatNode.GetProviderHints().GetLocalai().GetPreferredAdapter())
+		t.Fatalf("llama chat preferred adapter mismatch: %s", chatNode.GetProviderHints().GetLocalai().GetPreferredAdapter())
 	}
 
 	if _, err := svc.RemoveLocalService(context.Background(), &runtimev1.RemoveLocalServiceRequest{
@@ -1478,14 +1501,14 @@ func TestLocalNodeCatalogSortsByTypeThenNodeID(t *testing.T) {
 
 	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/sort-catalog-model",
-		Capabilities: []string{"chat", "image"},
-		Engine:       "localai",
+		Capabilities: []string{"chat", "image.understand"},
+		Engine:       "llama",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-sort",
 		Title:        "Sort Service",
-		Engine:       "localai",
-		Capabilities: []string{"chat", "image"},
+		Engine:       "llama",
+		Capabilities: []string{"chat", "image.understand"},
 		LocalModelId: modelResp.GetLocalModelId(),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
@@ -1508,202 +1531,14 @@ func TestLocalNodeCatalogSortsByTypeThenNodeID(t *testing.T) {
 
 	first := resp.GetNodes()[0]
 	second := resp.GetNodes()[1]
-	if first.GetAdapter() != "localai_native_adapter" || second.GetAdapter() != "openai_compat_adapter" {
+	if first.GetAdapter() != "llama_native_adapter" || second.GetAdapter() != "openai_compat_adapter" {
 		t.Fatalf("node catalog must sort by node type(adapter) before node id, got adapters: %s, %s", first.GetAdapter(), second.GetAdapter())
 	}
-	if len(first.GetCapabilities()) == 0 || first.GetCapabilities()[0] != "image" {
+	if len(first.GetCapabilities()) == 0 || first.GetCapabilities()[0] != "image.understand" {
 		t.Fatalf("expected image node first, got capabilities: %#v", first.GetCapabilities())
 	}
 	if len(second.GetCapabilities()) == 0 || second.GetCapabilities()[0] != "chat" {
 		t.Fatalf("expected chat node second, got capabilities: %#v", second.GetCapabilities())
-	}
-}
-
-func TestLocalNodeCatalogNexaVideoFailClose(t *testing.T) {
-	svc := newTestService(t)
-
-	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/nexa-video-chat-model",
-		Capabilities: []string{"video", "chat"},
-		Engine:       "nexa",
-		Endpoint:     "http://127.0.0.1:17881/v1",
-	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
-
-	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
-		ServiceId:    "svc-nexa",
-		Title:        "Nexa Service",
-		Engine:       "nexa",
-		Capabilities: []string{"image", "video", "chat"},
-		LocalModelId: modelResp.GetModel().GetLocalModelId(),
-	}); err != nil {
-		t.Fatalf("install local service: %v", err)
-	}
-	if _, err := svc.StartLocalService(context.Background(), &runtimev1.StartLocalServiceRequest{
-		ServiceId: "svc-nexa",
-	}); err != nil {
-		t.Fatalf("start local service: %v", err)
-	}
-
-	nodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
-		Provider: "nexa",
-	})
-	if err != nil {
-		t.Fatalf("list node catalog: %v", err)
-	}
-	if len(nodesResp.GetNodes()) != 3 {
-		t.Fatalf("node count mismatch: got=%d want=3", len(nodesResp.GetNodes()))
-	}
-
-	var imageNode *runtimev1.LocalNodeDescriptor
-	var videoNode *runtimev1.LocalNodeDescriptor
-	var chatNode *runtimev1.LocalNodeDescriptor
-	for _, item := range nodesResp.GetNodes() {
-		if len(item.GetCapabilities()) == 0 {
-			continue
-		}
-		switch item.GetCapabilities()[0] {
-		case "image":
-			imageNode = item
-		case "video":
-			videoNode = item
-		case "chat":
-			chatNode = item
-		}
-	}
-	if imageNode == nil || videoNode == nil || chatNode == nil {
-		t.Fatalf("expected image/video/chat nodes in catalog")
-	}
-	if imageNode.GetAdapter() != "openai_compat_adapter" {
-		t.Fatalf("image adapter mismatch: %s", imageNode.GetAdapter())
-	}
-	if imageNode.GetAvailable() {
-		t.Fatalf("nexa image node must be fail-close unavailable")
-	}
-	if imageNode.GetReasonCode() != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String() {
-		t.Fatalf("nexa image reason code mismatch: %s", imageNode.GetReasonCode())
-	}
-	if imageNode.GetPolicyGate() != "nexa.image.unsupported" {
-		t.Fatalf("nexa image policy gate mismatch: %s", imageNode.GetPolicyGate())
-	}
-	if imageNode.GetProviderHints() == nil || imageNode.GetProviderHints().GetNexa() == nil {
-		t.Fatalf("nexa image node should include provider hints")
-	}
-	imageHints := imageNode.GetProviderHints().GetNexa()
-	if imageHints.GetPreferredAdapter() != "openai_compat_adapter" {
-		t.Fatalf("nexa image preferred adapter mismatch: %s", imageHints.GetPreferredAdapter())
-	}
-	if imageHints.GetPolicyGate() != imageNode.GetPolicyGate() {
-		t.Fatalf("nexa image policy gate mismatch: node=%s hints=%s", imageNode.GetPolicyGate(), imageHints.GetPolicyGate())
-	}
-	if videoNode.GetAdapter() != "openai_compat_adapter" {
-		t.Fatalf("video adapter mismatch: %s", videoNode.GetAdapter())
-	}
-	if videoNode.GetAvailable() {
-		t.Fatalf("nexa video node must be fail-close unavailable")
-	}
-	if videoNode.GetReasonCode() != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String() {
-		t.Fatalf("nexa video reason code mismatch: %s", videoNode.GetReasonCode())
-	}
-	if videoNode.GetPolicyGate() == "" {
-		t.Fatalf("nexa video policy gate should be set")
-	}
-	if videoNode.GetProviderHints() == nil || videoNode.GetProviderHints().GetNexa() == nil {
-		t.Fatalf("nexa video node should include provider hints")
-	}
-	videoHints := videoNode.GetProviderHints().GetNexa()
-	if videoHints.GetPreferredAdapter() != "openai_compat_adapter" {
-		t.Fatalf("nexa video preferred adapter mismatch: %s", videoHints.GetPreferredAdapter())
-	}
-	if videoHints.GetPolicyGate() != videoNode.GetPolicyGate() {
-		t.Fatalf("nexa video policy gate mismatch: node=%s hints=%s", videoNode.GetPolicyGate(), videoHints.GetPolicyGate())
-	}
-	if videoHints.GetNpuMode() != "" {
-		t.Fatalf("nexa video npu mode should stay empty without real probe metadata")
-	}
-	if videoHints.GetPolicyGate() != "" && videoHints.GetPolicyGateAllowsNpu() {
-		t.Fatalf("nexa video policy gate should disable policyGateAllowsNpu")
-	}
-	if videoHints.GetPolicyGate() != "" && videoHints.GetNpuUsable() {
-		t.Fatalf("nexa video policy gate should disable npuUsable")
-	}
-	if !chatNode.GetAvailable() {
-		t.Fatalf("nexa chat node should remain available")
-	}
-	if chatNode.GetProviderHints() == nil || chatNode.GetProviderHints().GetNexa() == nil {
-		t.Fatalf("nexa chat node should include provider hints")
-	}
-	chatHints := chatNode.GetProviderHints().GetNexa()
-	if chatHints.GetPreferredAdapter() != "nexa_native_adapter" {
-		t.Fatalf("nexa chat preferred adapter mismatch: %s", chatHints.GetPreferredAdapter())
-	}
-	if !chatHints.GetHostNpuReady() && chatHints.GetNpuUsable() {
-		t.Fatalf("nexa chat npuUsable cannot be true when host_npu_ready=false")
-	}
-}
-
-func TestLocalNodeCatalogNexaTTSProbeFailClose(t *testing.T) {
-	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
-		return endpointProbeResult{
-			healthy:   true,
-			responded: true,
-			detail:    "probe succeeded",
-			probeURL:  endpoint,
-			models:    []string{"nexa/other-tts-model"},
-		}
-	})
-
-	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/nexa-tts-model",
-		Capabilities: []string{"tts"},
-		Engine:       "nexa",
-		Endpoint:     "http://127.0.0.1:17881/v1",
-	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
-
-	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
-		ServiceId:    "svc-nexa-tts",
-		Title:        "Nexa TTS Service",
-		Engine:       "nexa",
-		Capabilities: []string{"tts"},
-		LocalModelId: modelResp.GetModel().GetLocalModelId(),
-	}); err != nil {
-		t.Fatalf("install local service: %v", err)
-	}
-	if _, err := svc.StartLocalService(context.Background(), &runtimev1.StartLocalServiceRequest{
-		ServiceId: "svc-nexa-tts",
-	}); err != nil {
-		t.Fatalf("start local service: %v", err)
-	}
-
-	nodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
-		Provider: "nexa",
-	})
-	if err != nil {
-		t.Fatalf("list node catalog: %v", err)
-	}
-	if len(nodesResp.GetNodes()) != 1 {
-		t.Fatalf("node count mismatch: got=%d want=1", len(nodesResp.GetNodes()))
-	}
-	node := nodesResp.GetNodes()[0]
-	if node.GetAvailable() {
-		t.Fatalf("nexa tts node must be fail-close unavailable when capability probe misses the model")
-	}
-	if node.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String() {
-		t.Fatalf("nexa tts reason code mismatch: %s", node.GetReasonCode())
-	}
-	if node.GetPolicyGate() != "nexa.capability_probe.missing" {
-		t.Fatalf("nexa tts policy gate mismatch: %s", node.GetPolicyGate())
-	}
-	if node.GetProviderHints() == nil {
-		t.Fatalf("nexa tts node must include provider hints")
-	}
-	if detail := node.GetProviderHints().GetExtra()["availability_detail"]; !strings.Contains(detail, "missing expected model") {
-		t.Fatalf("expected availability detail to describe missing probe model, got %q", detail)
 	}
 }
 
@@ -1712,14 +1547,14 @@ func TestLocalNodeCatalogCustomMissingProfileIsUnavailable(t *testing.T) {
 
 	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "custom-node-model",
-		Engine:       "localai",
+		Engine:       "llama",
 		Capabilities: []string{"custom"},
 	})
 
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-custom",
 		Title:        "Custom Service",
-		Engine:       "localai",
+		Engine:       "llama",
 		Capabilities: []string{"custom"},
 		LocalModelId: modelResp.GetLocalModelId(),
 	}); err != nil {
@@ -1778,7 +1613,7 @@ func TestLocalResolveExecutionPlanFailsOnInvalidRequired(t *testing.T) {
 					EntryId:    "dep.invalid.service",
 					Kind:       runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_SERVICE,
 					Capability: "chat",
-					Engine:     "localai",
+					Engine:     "media",
 				},
 			},
 		},
@@ -1890,13 +1725,13 @@ func TestLocalApplyExecutionPlanPassesWhenNodeResolved(t *testing.T) {
 	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/node-chat-model",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-node-chat",
 		Title:        "Node Chat Service",
-		Engine:       "localai",
+		Engine:       "llama",
 		Capabilities: []string{"chat"},
 		LocalModelId: modelResp.GetLocalModelId(),
 	}); err != nil {
@@ -1953,7 +1788,7 @@ func TestLocalInstallLocalModelRejectsDuplicateAndUsesULID(t *testing.T) {
 	svc := newTestService(t)
 	first := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId: "local/dup-model",
-		Engine:  "localai",
+		Engine:  "llama",
 	})
 	if _, parseErr := ulid.Parse(first.GetLocalModelId()); parseErr != nil {
 		t.Fatalf("local_model_id must be pure ULID: %v", parseErr)
@@ -1961,8 +1796,8 @@ func TestLocalInstallLocalModelRejectsDuplicateAndUsesULID(t *testing.T) {
 
 	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
 		ModelId:  "local/dup-model",
-		Engine:   "localai",
-		Endpoint: managedDefaultEndpointForEngine("localai"),
+		Engine:   "llama",
+		Endpoint: managedDefaultEndpointForEngine("llama"),
 	})
 	if err == nil {
 		t.Fatalf("expected duplicate install to fail")
@@ -1980,16 +1815,16 @@ func TestLocalInstallLocalModelRejectsCanonicalAliasDuplicate(t *testing.T) {
 	svc := newTestService(t)
 	if _, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
 		ModelId:  "z_image_turbo",
-		Engine:   "localai",
-		Endpoint: managedDefaultEndpointForEngine("localai"),
+		Engine:   "llama",
+		Endpoint: managedDefaultEndpointForEngine("llama"),
 	}); err != nil {
 		t.Fatalf("install bare model id: %v", err)
 	}
 
 	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
 		ModelId:  "local/z_image_turbo",
-		Engine:   "localai",
-		Endpoint: managedDefaultEndpointForEngine("localai"),
+		Engine:   "llama",
+		Endpoint: managedDefaultEndpointForEngine("llama"),
 	})
 	if err == nil {
 		t.Fatalf("expected canonical alias duplicate install to fail")
@@ -2007,7 +1842,7 @@ func TestListLocalModelsDedupesCanonicalAliasHistory(t *testing.T) {
 			LocalModelId: "legacy-local",
 			ModelId:      "local/z_image_turbo",
 			Capabilities: []string{"image"},
-			Engine:       "localai",
+			Engine:       "llama",
 			Entry:        "z_image_turbo-Q4_K_M.gguf",
 			Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED,
 			InstalledAt:  "2026-03-12T03:22:03.108524Z",
@@ -2017,7 +1852,7 @@ func TestListLocalModelsDedupesCanonicalAliasHistory(t *testing.T) {
 			LocalModelId: "current-bare",
 			ModelId:      "z_image_turbo",
 			Capabilities: []string{"image"},
-			Engine:       "localai",
+			Engine:       "llama",
 			Entry:        "z_image_turbo-Q4_K_M.gguf",
 			Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
 			InstalledAt:  "2026-03-12T03:29:58.769489Z",
@@ -2040,14 +1875,15 @@ func TestListLocalModelsDedupesCanonicalAliasHistory(t *testing.T) {
 	}
 }
 
-func TestLocalInstallLocalModelRequiresEndpointForNexa(t *testing.T) {
+func TestLocalInstallLocalModelRequiresEndpointForSidecar(t *testing.T) {
 	svc := newTestService(t)
 	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId: "local/nexa-model",
-		Engine:  "nexa",
+		ModelId:      "local/sidecar-model",
+		Engine:       "sidecar",
+		Capabilities: []string{"music"},
 	})
 	if err == nil {
-		t.Fatalf("expected nexa endpoint required error")
+		t.Fatalf("expected sidecar endpoint required error")
 	}
 	st, _ := status.FromError(err)
 	if st.Code() != codes.InvalidArgument {
@@ -2063,7 +1899,7 @@ func TestLocalInstallLocalServiceRequiresExistingLocalModel(t *testing.T) {
 
 	_, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId: "svc-missing-model",
-		Engine:    "localai",
+		Engine:    "llama",
 	})
 	if err == nil {
 		t.Fatalf("expected missing local_model_id to fail")
@@ -2078,7 +1914,7 @@ func TestLocalInstallLocalServiceRequiresExistingLocalModel(t *testing.T) {
 
 	_, err = svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-model-not-found",
-		Engine:       "localai",
+		Engine:       "llama",
 		LocalModelId: "01J00000000000000000000000",
 	})
 	if err == nil {
@@ -2099,16 +1935,16 @@ func TestLocalInstallLocalServiceEnforcesModelServiceOneToOne(t *testing.T) {
 	model1 := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/service-bind-1",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 	model2 := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/service-bind-2",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 	first, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-bind-1",
-		Engine:       "localai",
+		Engine:       "llama",
 		LocalModelId: model1.GetLocalModelId(),
 	})
 	if err != nil {
@@ -2120,7 +1956,7 @@ func TestLocalInstallLocalServiceEnforcesModelServiceOneToOne(t *testing.T) {
 
 	secondTry, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-bind-2",
-		Engine:       "localai",
+		Engine:       "llama",
 		LocalModelId: model1.GetLocalModelId(),
 	})
 	if err == nil {
@@ -2139,7 +1975,7 @@ func TestLocalInstallLocalServiceEnforcesModelServiceOneToOne(t *testing.T) {
 
 	_, err = svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-bind-1",
-		Engine:       "localai",
+		Engine:       "llama",
 		LocalModelId: model2.GetLocalModelId(),
 	})
 	if err == nil {
@@ -2160,8 +1996,8 @@ func TestLocalListLocalModelsSortByCategoryThenModelID(t *testing.T) {
 	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
 		ModelId:      "z-chat",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
-		Endpoint:     managedDefaultEndpointForEngine("localai"),
+		Engine:       "llama",
+		Endpoint:     managedDefaultEndpointForEngine("llama"),
 	})
 	if err != nil {
 		t.Fatalf("install chat model: %v", err)
@@ -2169,8 +2005,8 @@ func TestLocalListLocalModelsSortByCategoryThenModelID(t *testing.T) {
 	_, err = svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
 		ModelId:      "a-custom",
 		Capabilities: []string{"custom"},
-		Engine:       "localai",
-		Endpoint:     managedDefaultEndpointForEngine("localai"),
+		Engine:       "llama",
+		Endpoint:     managedDefaultEndpointForEngine("llama"),
 	})
 	if err != nil {
 		t.Fatalf("install custom model: %v", err)
@@ -2178,8 +2014,8 @@ func TestLocalListLocalModelsSortByCategoryThenModelID(t *testing.T) {
 	_, err = svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
 		ModelId:      "a-chat",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
-		Endpoint:     managedDefaultEndpointForEngine("localai"),
+		Engine:       "llama",
+		Endpoint:     managedDefaultEndpointForEngine("llama"),
 	})
 	if err != nil {
 		t.Fatalf("install second chat model: %v", err)
@@ -2206,23 +2042,23 @@ func TestLocalListLocalServicesSortByServiceID(t *testing.T) {
 	modelA := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/service-sort-a",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 	modelB := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/service-sort-b",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-z",
-		Engine:       "localai",
+		Engine:       "llama",
 		LocalModelId: modelA.GetLocalModelId(),
 	}); err != nil {
 		t.Fatalf("install svc-z: %v", err)
 	}
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-a",
-		Engine:       "localai",
+		Engine:       "llama",
 		LocalModelId: modelB.GetLocalModelId(),
 	}); err != nil {
 		t.Fatalf("install svc-a: %v", err)
@@ -2246,11 +2082,11 @@ func TestLocalRemoveModelRejectedWhenServiceBound(t *testing.T) {
 	model := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/remove-guard",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-remove-guard",
-		Engine:       "localai",
+		Engine:       "llama",
 		LocalModelId: model.GetLocalModelId(),
 	}); err != nil {
 		t.Fatalf("install service: %v", err)
@@ -2284,7 +2120,7 @@ func TestLocalResolveExecutionPlanRejectsServiceWithoutModelID(t *testing.T) {
 					Kind:       runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_SERVICE,
 					ServiceId:  "svc-chat",
 					Capability: "chat",
-					Engine:     "localai",
+					Engine:     "llama",
 				},
 			},
 		},
@@ -2339,7 +2175,7 @@ func TestLocalImportManifestValidation(t *testing.T) {
 	}
 
 	schemaInvalidPath := filepath.Join(tmpDir, "schema-invalid.json")
-	if err := os.WriteFile(schemaInvalidPath, []byte(`{"model_id":"local/test","engine":"localai","endpoint":"http://127.0.0.1:1234/v1","capabilities":"chat"}`), 0o600); err != nil {
+	if err := os.WriteFile(schemaInvalidPath, []byte(`{"model_id":"local/test","engine":"llama","endpoint":"http://127.0.0.1:1234/v1","capabilities":"chat"}`), 0o600); err != nil {
 		t.Fatalf("write schema invalid manifest: %v", err)
 	}
 	_, err = svc.ImportLocalModel(context.Background(), &runtimev1.ImportLocalModelRequest{ManifestPath: schemaInvalidPath})
@@ -2354,7 +2190,7 @@ func TestLocalImportManifestValidation(t *testing.T) {
 	validPath := filepath.Join(tmpDir, "valid.json")
 	validManifest := map[string]any{
 		"model_id":                "local/import-manifest-ok",
-		"engine":                  "localai",
+		"engine":                  "llama",
 		"capabilities":            []string{"chat"},
 		"entry":                   "./dist/index.js",
 		"local_invoke_profile_id": "profile-chat-default",
@@ -2377,7 +2213,7 @@ func TestLocalImportManifestValidation(t *testing.T) {
 	}
 }
 
-func TestLocalImportLocalAIModelUsesManagedEndpoint(t *testing.T) {
+func TestLocalImportMediaModelRequiresExplicitEndpoint(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetLocalAIRegistrationConfig("", "", true)
 	svc.SetLocalAIManagedEndpoint("http://127.0.0.1:57510/v1")
@@ -2386,7 +2222,7 @@ func TestLocalImportLocalAIModelUsesManagedEndpoint(t *testing.T) {
 	manifestPath := filepath.Join(tmpDir, "image-model.manifest.json")
 	rawManifest, err := json.Marshal(map[string]any{
 		"model_id":     "local-import/z_image_turbo-Q4_K",
-		"engine":       "localai",
+		"engine":       "media",
 		"capabilities": []string{"image"},
 		"entry":        "z_image_turbo-Q4_K.gguf",
 		"engineConfig": map[string]any{
@@ -2446,7 +2282,7 @@ func TestResolveModelInstallPlanManualAddsDeviceWarnings(t *testing.T) {
 	}
 	plan := resp.GetPlan()
 	if !plan.GetInstallAvailable() {
-		t.Fatalf("manual localai-like plan should remain installable with warnings")
+		t.Fatalf("manual plan should remain installable with warnings")
 	}
 	if plan.GetReasonCode() != "ACTION_EXECUTED" {
 		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
@@ -2463,7 +2299,7 @@ func TestResolveModelInstallPlanManualAddsDeviceWarnings(t *testing.T) {
 	}
 }
 
-func TestResolveModelInstallPlanNexaEndpointRequired(t *testing.T) {
+func TestResolveModelInstallPlanLegacyEngineRequiresExplicitEndpoint(t *testing.T) {
 	svc := newTestService(t)
 	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
 		ModelId: "local/nexa-model",
@@ -2474,16 +2310,16 @@ func TestResolveModelInstallPlanNexaEndpointRequired(t *testing.T) {
 	}
 	plan := resp.GetPlan()
 	if plan.GetInstallAvailable() {
-		t.Fatalf("nexa attached-endpoint plan without endpoint must be unavailable")
+		t.Fatalf("legacy engine attached-endpoint plan without endpoint must be unavailable")
 	}
-	if plan.GetEngineRuntimeMode() != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
-		t.Fatalf("supported nexa host should auto-recommend supervised, got %s", plan.GetEngineRuntimeMode())
+	if plan.GetEngineRuntimeMode() != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT {
+		t.Fatalf("legacy engine should stay attached-endpoint only, got %s", plan.GetEngineRuntimeMode())
 	}
-	if plan.GetReasonCode() != "LOCAL_ENGINE_MANAGER_UNAVAILABLE" {
+	if plan.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String() {
 		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
 	}
 	if strings.TrimSpace(plan.GetEndpoint()) != "" {
-		t.Fatalf("nexa endpoint should remain empty when not provided, got %q", plan.GetEndpoint())
+		t.Fatalf("legacy engine endpoint should remain empty when not provided, got %q", plan.GetEndpoint())
 	}
 }
 
@@ -2585,7 +2421,7 @@ func TestResolveModelInstallPlanCatalogSupervisedRequiresEngineManager(t *testin
 		Source:            "verified",
 		Title:             "Supervised Model",
 		ModelId:           "local/supervised-model",
-		Engine:            "localai",
+		Engine:            "llama",
 		EngineRuntimeMode: runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 		InstallKind:       "download",
 		Capabilities:      []string{"chat"},
@@ -2616,7 +2452,7 @@ func TestResolveModelInstallPlanCatalogSupervisedWithManagerAvailable(t *testing
 		Source:            "verified",
 		Title:             "Supervised Model Available",
 		ModelId:           "local/supervised-model-available",
-		Engine:            "localai",
+		Engine:            "llama",
 		EngineRuntimeMode: runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 		InstallKind:       "download",
 		Capabilities:      []string{"chat"},
@@ -2638,7 +2474,7 @@ func TestResolveModelInstallPlanCatalogSupervisedWithManagerAvailable(t *testing
 	}
 }
 
-func TestResolveModelInstallPlanNimiMediaSupervisedUnsupportedHost(t *testing.T) {
+func TestResolveModelInstallPlanMediaSupervisedUnsupportedHost(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetEngineManager(&mockEngineManager{})
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
@@ -2647,11 +2483,11 @@ func TestResolveModelInstallPlanNimiMediaSupervisedUnsupportedHost(t *testing.T)
 
 	svc.mu.Lock()
 	svc.catalog = append(svc.catalog, &runtimev1.LocalCatalogModelDescriptor{
-		ItemId:            "catalog.nimi-media.supervised.unsupported",
+		ItemId:            "catalog.media.supervised.unsupported",
 		Source:            "verified",
-		Title:             "Unsupported Nimi Media",
+		Title:             "Unsupported Media",
 		ModelId:           "local/flux-1-schnell",
-		Engine:            "nimi_media",
+		Engine:            "media",
 		EngineRuntimeMode: runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 		InstallKind:       "download",
 		Capabilities:      []string{"image"},
@@ -2659,14 +2495,14 @@ func TestResolveModelInstallPlanNimiMediaSupervisedUnsupportedHost(t *testing.T)
 	svc.mu.Unlock()
 
 	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
-		ItemId: "catalog.nimi-media.supervised.unsupported",
+		ItemId: "catalog.media.supervised.unsupported",
 	})
 	if err != nil {
-		t.Fatalf("resolve supervised nimi_media plan: %v", err)
+		t.Fatalf("resolve supervised media plan: %v", err)
 	}
 	plan := resp.GetPlan()
 	if plan.GetInstallAvailable() {
-		t.Fatalf("unsupported supervised nimi_media plan must be unavailable")
+		t.Fatalf("unsupported supervised media plan must be unavailable")
 	}
 	if plan.GetReasonCode() != "LOCAL_ENGINE_ATTACHED_ENDPOINT_ONLY" {
 		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
@@ -2676,7 +2512,7 @@ func TestResolveModelInstallPlanNimiMediaSupervisedUnsupportedHost(t *testing.T)
 	}
 }
 
-func TestResolveModelInstallPlanNimiMediaAttachedEndpointAllowedOnUnsupportedHost(t *testing.T) {
+func TestResolveModelInstallPlanMediaAttachedEndpointAllowedOnUnsupportedHost(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
 	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "intel")
@@ -2684,23 +2520,23 @@ func TestResolveModelInstallPlanNimiMediaAttachedEndpointAllowedOnUnsupportedHos
 
 	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
 		ModelId:      "local/wan-video",
-		Engine:       "nimi_media",
+		Engine:       "media",
 		Capabilities: []string{"video"},
 		Endpoint:     "http://127.0.0.1:9321/v1",
 	})
 	if err != nil {
-		t.Fatalf("resolve attached nimi_media plan: %v", err)
+		t.Fatalf("resolve attached media plan: %v", err)
 	}
 	plan := resp.GetPlan()
 	if !plan.GetInstallAvailable() {
-		t.Fatalf("explicit attached nimi_media endpoint should remain installable")
+		t.Fatalf("explicit attached media endpoint should remain installable")
 	}
 	if plan.GetReasonCode() != "ACTION_EXECUTED" {
 		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
 	}
 }
 
-func TestInstallLocalModelNimiMediaRequiresExplicitEndpointOnUnsupportedHost(t *testing.T) {
+func TestInstallLocalModelMediaRequiresExplicitEndpointOnUnsupportedHost(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
 	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "intel")
@@ -2708,17 +2544,17 @@ func TestInstallLocalModelNimiMediaRequiresExplicitEndpointOnUnsupportedHost(t *
 
 	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/flux-test",
-		Engine:       "nimi_media",
+		Engine:       "media",
 		Capabilities: []string{"image"},
 	})
 	if err == nil {
-		t.Fatal("expected explicit endpoint requirement for unsupported nimi_media host")
+		t.Fatal("expected explicit endpoint requirement for unsupported media host")
 	}
-	assertGRPCCode(t, err, "InstallLocalModel(nimi_media unsupported host)", codes.InvalidArgument)
-	assertGRPCReasonCode(t, err, "InstallLocalModel(nimi_media unsupported host)", runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
+	assertGRPCCode(t, err, "InstallLocalModel(media unsupported host)", codes.InvalidArgument)
+	assertGRPCReasonCode(t, err, "InstallLocalModel(media unsupported host)", runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
 }
 
-func TestStartLocalModelNexaTTSProbeFailClose(t *testing.T) {
+func TestStartLocalModelLegacyEngineTTSProbePassesThroughCurrentAttachedEndpointBehavior(t *testing.T) {
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{
 			healthy:   true,
@@ -2745,15 +2581,12 @@ func TestStartLocalModelNexaTTSProbeFailClose(t *testing.T) {
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
 	}
-	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
-		t.Fatalf("nexa tts model should fail-close unhealthy, got %s", started.GetModel().GetStatus())
-	}
-	if detail := started.GetModel().GetHealthDetail(); !strings.Contains(detail, "missing expected model") {
-		t.Fatalf("expected health detail to mention missing probe model, got %q", detail)
+	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+		t.Fatalf("legacy attached-endpoint model should follow generic probe health, got %s", started.GetModel().GetStatus())
 	}
 }
 
-func TestStartLocalModelNexaTTSProbeSuccess(t *testing.T) {
+func TestStartLocalModelLegacyEngineTTSProbeSuccess(t *testing.T) {
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{
 			healthy:   true,
@@ -2857,7 +2690,8 @@ func TestLocalStateRestoresAfterRestart(t *testing.T) {
 	installedModel := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/persisted-model",
 		Capabilities: []string{"chat"},
-		Engine:       "localai",
+		Engine:       "llama",
+		Endpoint:     "http://127.0.0.1:1234/v1",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-persisted",
@@ -2871,7 +2705,7 @@ func TestLocalStateRestoresAfterRestart(t *testing.T) {
 	manifestPath := filepath.Join(t.TempDir(), "persist-import.json")
 	manifestRaw, _ := json.Marshal(map[string]any{
 		"model_id":                "local/persisted-import",
-		"engine":                  "localai",
+		"engine":                  "llama",
 		"capabilities":            []string{"chat"},
 		"endpoint":                "http://127.0.0.1:8091/v1",
 		"local_invoke_profile_id": "profile-persisted",
@@ -2946,7 +2780,7 @@ func TestLocalStateRestoresAfterRestart(t *testing.T) {
 	}
 }
 
-func TestLocalStateRestoreReconcilesCanonicalAliasDuplicates(t *testing.T) {
+func TestLocalStateRestoreRejectsLegacyCanonicalAliasDuplicates(t *testing.T) {
 	statePath := filepath.Join(t.TempDir(), "local-state.json")
 	raw, err := json.Marshal(localStateSnapshot{
 		SchemaVersion: 1,
@@ -3013,33 +2847,21 @@ func TestLocalStateRestoreReconcilesCanonicalAliasDuplicates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list models after restore: %v", err)
 	}
-	if len(modelsResp.GetModels()) != 1 {
-		t.Fatalf("expected one reconciled model row, got %d", len(modelsResp.GetModels()))
-	}
-	if modelsResp.GetModels()[0].GetLocalModelId() != "current-bare-model" {
-		t.Fatalf("expected current model row to win, got %q", modelsResp.GetModels()[0].GetLocalModelId())
+	if len(modelsResp.GetModels()) != 0 {
+		t.Fatalf("legacy local state should be rejected during restore, got %d model rows", len(modelsResp.GetModels()))
 	}
 
 	artifactsResp, err := restarted.ListLocalArtifacts(context.Background(), &runtimev1.ListLocalArtifactsRequest{})
 	if err != nil {
 		t.Fatalf("list artifacts after restore: %v", err)
 	}
-	if len(artifactsResp.GetArtifacts()) != 1 {
-		t.Fatalf("expected one reconciled artifact row, got %d", len(artifactsResp.GetArtifacts()))
-	}
-	if artifactsResp.GetArtifacts()[0].GetLocalArtifactId() != "current-bare-artifact" {
-		t.Fatalf("expected current artifact row to win, got %q", artifactsResp.GetArtifacts()[0].GetLocalArtifactId())
+	if len(artifactsResp.GetArtifacts()) != 0 {
+		t.Fatalf("legacy local state should be rejected during restore, got %d artifact rows", len(artifactsResp.GetArtifacts()))
 	}
 
-	persisted, err := loadLocalStateSnapshot(statePath)
-	if err != nil {
-		t.Fatalf("load healed local state snapshot: %v", err)
-	}
-	if len(persisted.Models) != 1 {
-		t.Fatalf("expected healed state to persist one model row, got %d", len(persisted.Models))
-	}
-	if len(persisted.Artifacts) != 1 {
-		t.Fatalf("expected healed state to persist one artifact row, got %d", len(persisted.Artifacts))
+	_, err = loadLocalStateSnapshot(statePath)
+	if err == nil {
+		t.Fatalf("legacy local state snapshot should fail-close on direct load")
 	}
 }
 
@@ -3096,19 +2918,19 @@ func TestEngineRPCsReturnFailedPreconditionWithoutManager(t *testing.T) {
 	assertGRPCCode(t, err, "ListEngines", codes.FailedPrecondition)
 
 	// EnsureEngine
-	_, err = svc.EnsureEngine(ctx, &runtimev1.EnsureEngineRequest{Engine: "localai"})
+	_, err = svc.EnsureEngine(ctx, &runtimev1.EnsureEngineRequest{Engine: "llama"})
 	assertGRPCCode(t, err, "EnsureEngine", codes.FailedPrecondition)
 
 	// StartEngine
-	_, err = svc.StartEngine(ctx, &runtimev1.StartEngineRequest{Engine: "localai"})
+	_, err = svc.StartEngine(ctx, &runtimev1.StartEngineRequest{Engine: "llama"})
 	assertGRPCCode(t, err, "StartEngine", codes.FailedPrecondition)
 
 	// StopEngine
-	_, err = svc.StopEngine(ctx, &runtimev1.StopEngineRequest{Engine: "localai"})
+	_, err = svc.StopEngine(ctx, &runtimev1.StopEngineRequest{Engine: "llama"})
 	assertGRPCCode(t, err, "StopEngine", codes.FailedPrecondition)
 
 	// GetEngineStatus
-	_, err = svc.GetEngineStatus(ctx, &runtimev1.GetEngineStatusRequest{Engine: "localai"})
+	_, err = svc.GetEngineStatus(ctx, &runtimev1.GetEngineStatusRequest{Engine: "llama"})
 	assertGRPCCode(t, err, "GetEngineStatus", codes.FailedPrecondition)
 }
 
@@ -3125,12 +2947,12 @@ func TestEngineRPCsWithMockManager(t *testing.T) {
 	if len(resp.GetEngines()) != 1 {
 		t.Fatalf("expected 1 engine, got %d", len(resp.GetEngines()))
 	}
-	if resp.GetEngines()[0].GetEngine() != "localai" {
-		t.Errorf("expected engine localai, got %s", resp.GetEngines()[0].GetEngine())
+	if resp.GetEngines()[0].GetEngine() != "llama" {
+		t.Errorf("expected engine llama, got %s", resp.GetEngines()[0].GetEngine())
 	}
 
 	// GetEngineStatus should return the mock engine status.
-	statusResp, err := svc.GetEngineStatus(ctx, &runtimev1.GetEngineStatusRequest{Engine: "localai"})
+	statusResp, err := svc.GetEngineStatus(ctx, &runtimev1.GetEngineStatusRequest{Engine: "llama"})
 	if err != nil {
 		t.Fatalf("GetEngineStatus: %v", err)
 	}
@@ -3173,7 +2995,7 @@ type mockEngineManager struct {
 
 func (m *mockEngineManager) ListEngines() []EngineInfo {
 	return []EngineInfo{
-		{Engine: "localai", Version: "3.12.1", Status: "healthy", Port: 1234, Endpoint: "http://127.0.0.1:1234"},
+		{Engine: "llama", Version: "3.12.1", Status: "healthy", Port: 1234, Endpoint: "http://127.0.0.1:1234"},
 	}
 }
 
@@ -3244,13 +3066,13 @@ func TestEngineRPCEnsureEngineSuccess(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetEngineManager(&mockEngineManager{})
 
-	resp, err := svc.EnsureEngine(context.Background(), &runtimev1.EnsureEngineRequest{Engine: "localai"})
+	resp, err := svc.EnsureEngine(context.Background(), &runtimev1.EnsureEngineRequest{Engine: "llama"})
 	if err != nil {
 		t.Fatalf("EnsureEngine: %v", err)
 	}
 	desc := resp.GetEngine()
-	if desc.GetEngine() != "localai" {
-		t.Errorf("expected engine localai, got %s", desc.GetEngine())
+	if desc.GetEngine() != "llama" {
+		t.Errorf("expected engine llama, got %s", desc.GetEngine())
 	}
 	if desc.GetVersion() != "3.12.1" {
 		t.Errorf("expected version 3.12.1, got %s", desc.GetVersion())
@@ -3262,15 +3084,15 @@ func TestEngineRPCStartEngineSuccess(t *testing.T) {
 	svc.SetEngineManager(&mockEngineManager{})
 
 	resp, err := svc.StartEngine(context.Background(), &runtimev1.StartEngineRequest{
-		Engine: "localai",
+		Engine: "llama",
 		Port:   5000,
 	})
 	if err != nil {
 		t.Fatalf("StartEngine: %v", err)
 	}
 	desc := resp.GetEngine()
-	if desc.GetEngine() != "localai" {
-		t.Errorf("expected engine localai, got %s", desc.GetEngine())
+	if desc.GetEngine() != "llama" {
+		t.Errorf("expected engine llama, got %s", desc.GetEngine())
 	}
 }
 
@@ -3278,7 +3100,7 @@ func TestEngineRPCStopEngineSuccess(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetEngineManager(&mockEngineManager{})
 
-	resp, err := svc.StopEngine(context.Background(), &runtimev1.StopEngineRequest{Engine: "localai"})
+	resp, err := svc.StopEngine(context.Background(), &runtimev1.StopEngineRequest{Engine: "llama"})
 	if err != nil {
 		t.Fatalf("StopEngine: %v", err)
 	}
@@ -3304,7 +3126,7 @@ func TestEngineRPCEnsureEngineError(t *testing.T) {
 		ensureErr: fmt.Errorf("download failed"),
 	})
 
-	_, err := svc.EnsureEngine(context.Background(), &runtimev1.EnsureEngineRequest{Engine: "localai"})
+	_, err := svc.EnsureEngine(context.Background(), &runtimev1.EnsureEngineRequest{Engine: "llama"})
 	assertGRPCCode(t, err, "EnsureEngine(error)", codes.Internal)
 	assertGRPCReasonCode(t, err, "EnsureEngine(error)", runtimev1.ReasonCode_AI_LOCAL_DOWNLOAD_FAILED)
 }
@@ -3315,7 +3137,7 @@ func TestEngineRPCEnsureEngineHashMismatch(t *testing.T) {
 		ensureErr: fmt.Errorf("engine binary hash mismatch"),
 	})
 
-	_, err := svc.EnsureEngine(context.Background(), &runtimev1.EnsureEngineRequest{Engine: "localai"})
+	_, err := svc.EnsureEngine(context.Background(), &runtimev1.EnsureEngineRequest{Engine: "llama"})
 	assertGRPCCode(t, err, "EnsureEngine(hash_mismatch)", codes.DataLoss)
 	assertGRPCReasonCode(t, err, "EnsureEngine(hash_mismatch)", runtimev1.ReasonCode_AI_LOCAL_DOWNLOAD_HASH_MISMATCH)
 }
@@ -3381,10 +3203,10 @@ func TestLocalManagementRPCsUseReasonCodesForServiceIDs(t *testing.T) {
 func TestEngineRPCStartEngineAlreadyRunning(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetEngineManager(&mockEngineManager{
-		startErr: fmt.Errorf("engine localai already running"),
+		startErr: fmt.Errorf("engine llama already running"),
 	})
 
-	_, err := svc.StartEngine(context.Background(), &runtimev1.StartEngineRequest{Engine: "localai"})
+	_, err := svc.StartEngine(context.Background(), &runtimev1.StartEngineRequest{Engine: "llama"})
 	assertGRPCCode(t, err, "StartEngine(already_running)", codes.AlreadyExists)
 	assertGRPCReasonCode(t, err, "StartEngine(already_running)", runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 }
@@ -3392,10 +3214,10 @@ func TestEngineRPCStartEngineAlreadyRunning(t *testing.T) {
 func TestEngineRPCStopEngineNotStarted(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetEngineManager(&mockEngineManager{
-		stopErr: fmt.Errorf("engine localai not started"),
+		stopErr: fmt.Errorf("engine llama not started"),
 	})
 
-	_, err := svc.StopEngine(context.Background(), &runtimev1.StopEngineRequest{Engine: "localai"})
+	_, err := svc.StopEngine(context.Background(), &runtimev1.StopEngineRequest{Engine: "llama"})
 	assertGRPCCode(t, err, "StopEngine(not_started)", codes.NotFound)
 	assertGRPCReasonCode(t, err, "StopEngine(not_started)", runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 }

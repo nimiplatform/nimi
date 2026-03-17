@@ -42,7 +42,13 @@ func EnsureCloudConnectorsFromConfig(store *ConnectorStore, defs []CloudConnecto
 			continue // skip providers without credentials
 		}
 		canonical := strings.TrimSpace(def.Provider)
-		if canonical == "" || canonical == "local" || canonical == "nexa" {
+		if canonical == "" ||
+			canonical == "local" ||
+			canonical == "llama" ||
+			canonical == "media" ||
+			canonical == "media.diffusers" ||
+			canonical == "sidecar" ||
+			canonical == "nexa" {
 			continue
 		}
 

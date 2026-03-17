@@ -56,26 +56,24 @@ func adapterForProviderCapability(provider string, capability string) string {
 		default:
 			return "openai_compat_adapter"
 		}
-	case "nexa":
-		switch normalizedCapability {
-		case "text.generate", "text.embed", "audio.synthesize", "audio.transcribe":
-			return "nexa_native_adapter"
-		default:
-			return "openai_compat_adapter"
-		}
-	case "nimi_media":
+	case "media.diffusers":
 		switch normalizedCapability {
 		case "image.generate", "video.generate":
-			return "nimi_media_native_adapter"
+			return "media_diffusers_adapter"
 		default:
 			return "openai_compat_adapter"
 		}
-	case "localai":
+	case "media":
 		switch normalizedCapability {
-		case "music.generate":
-			return "localai_music_adapter"
-		case "image.generate", "video.generate", "audio.synthesize", "audio.transcribe", "vision", "multimodal", "audio_chat", "video_chat", "text.generate.vision", "text.generate.audio", "text.generate.video":
-			return "localai_native_adapter"
+		case "image.generate", "video.generate":
+			return "media_native_adapter"
+		default:
+			return "openai_compat_adapter"
+		}
+	case "llama":
+		switch normalizedCapability {
+		case "image.understand", "audio.understand", "audio.transcribe", "vision", "multimodal", "audio_chat", "video_chat", "text.generate.vision", "text.generate.audio", "text.generate.video":
+			return "llama_native_adapter"
 		default:
 			return "openai_compat_adapter"
 		}
@@ -91,21 +89,15 @@ func apiPathForProviderCapability(provider string, capability string) string {
 	case "embedding", "embed":
 		return "/v1/embeddings"
 	case "image":
-		if normalizedProvider == "nimi_media" {
+		if normalizedProvider == "media" || normalizedProvider == "media.diffusers" {
 			return "/v1/media/image/generate"
 		}
 		return "/v1/images/generations"
 	case "music", "music.generate":
-		if normalizedProvider == "localai" {
-			return "/v1/audio/speech"
-		}
 		return "/v1/music/generate"
 	case "video":
-		if normalizedProvider == "nimi_media" {
+		if normalizedProvider == "media" || normalizedProvider == "media.diffusers" {
 			return "/v1/media/video/generate"
-		}
-		if normalizedProvider == "nexa" {
-			return "/v1/video/generations"
 		}
 		return "/v1/videos/generations"
 	case "tts", "speech":
@@ -151,9 +143,9 @@ func buildNodeProviderHints(
 		}
 	}
 	switch normalizedProvider {
-	case "localai":
+	case "llama":
 		localAI := &runtimev1.LocalProviderHintsLocalAi{
-			Backend:          "localai",
+			Backend:          "llama",
 			PreferredAdapter: strings.TrimSpace(adapter),
 		}
 		switch normalizedCapability {
@@ -165,46 +157,9 @@ func buildNodeProviderHints(
 			localAI.VideoBackend = "openai_compat"
 		}
 		hints.Localai = localAI
-	case "nexa":
-		npuProfile := &runtimev1.LocalNpuProfile{}
-		if deviceProfile != nil && deviceProfile.GetNpu() != nil {
-			npuProfile = deviceProfile.GetNpu()
-		}
-		hostNPUReady := npuProfile.GetReady()
-		modelProbeHasNPUCandidate := false
-		policyGateAllowsNPU := normalizedPolicyGate == "" && hostNPUReady && modelProbeHasNPUCandidate
-		npuUsable := policyGateAllowsNPU && available
-		gateReason := ""
-		gateDetail := ""
-		switch {
-		case normalizedPolicyGate != "":
-			gateReason = runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String()
-			gateDetail = "policy gate blocked nexa capability"
-		case !hostNPUReady:
-			gateReason = "LOCAL_NPU_NOT_READY"
-			gateDetail = defaultString(npuProfile.GetDetail(), "host npu profile not ready")
-		case !available:
-			gateReason = "LOCAL_NODE_UNAVAILABLE"
-			gateDetail = "node unavailable"
-		}
-		hints.Nexa = &runtimev1.LocalProviderHintsNexa{
-			Backend:                   "nexa",
-			PreferredAdapter:          strings.TrimSpace(adapter),
-			PluginId:                  strings.TrimSpace(service.GetServiceId()),
-			DeviceId:                  defaultString(strings.TrimSpace(npuProfile.GetVendor()), "host-npu"),
-			ModelType:                 normalizedCapability,
-			NpuMode:                   strings.TrimSpace(hints.GetExtra()["npu_mode"]),
-			PolicyGate:                normalizedPolicyGate,
-			HostNpuReady:              hostNPUReady,
-			ModelProbeHasNpuCandidate: modelProbeHasNPUCandidate,
-			PolicyGateAllowsNpu:       policyGateAllowsNPU,
-			NpuUsable:                 npuUsable,
-			GateReason:                gateReason,
-			GateDetail:                gateDetail,
-		}
-	case "nimi_media":
+	case "media", "media.diffusers":
 		hints.NimiMedia = &runtimev1.LocalProviderHintsNimiMedia{
-			Backend:          "diffusers",
+			Backend:          normalizedProvider,
 			PreferredAdapter: strings.TrimSpace(adapter),
 			Family:           strings.TrimSpace(hints.GetExtra()["family"]),
 			ImageDriver:      strings.TrimSpace(hints.GetExtra()["image_driver"]),
@@ -365,10 +320,10 @@ func defaultVerifiedArtifacts() []*runtimev1.LocalVerifiedArtifactDescriptor {
 		{
 			TemplateId:     "verified.artifact.z_image.vae",
 			Title:          "Z-Image AE VAE",
-			Description:    "Recommended verified companion VAE for LocalAI Z-Image workflows",
+			Description:    "Recommended verified companion VAE for local Z-Image workflows",
 			ArtifactId:     "local/z_image_ae",
 			Kind:           runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
-			Engine:         "localai",
+			Engine:         "llama",
 			Entry:          "vae/diffusion_pytorch_model.safetensors",
 			Files:          []string{"vae/diffusion_pytorch_model.safetensors"},
 			License:        "tongyi",
@@ -383,10 +338,10 @@ func defaultVerifiedArtifacts() []*runtimev1.LocalVerifiedArtifactDescriptor {
 		{
 			TemplateId:     "verified.artifact.z_image.qwen3_4b",
 			Title:          "Qwen3 4B Companion LLM",
-			Description:    "Recommended verified companion LLM for LocalAI Z-Image workflows",
+			Description:    "Recommended verified companion LLM for local Z-Image workflows",
 			ArtifactId:     "local/qwen3_4b_companion",
 			Kind:           runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_LLM,
-			Engine:         "localai",
+			Engine:         "llama",
 			Entry:          "Qwen3-4B-Q4_K_M.gguf",
 			Files:          []string{"Qwen3-4B-Q4_K_M.gguf"},
 			License:        "qwen",

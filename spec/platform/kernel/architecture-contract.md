@@ -24,7 +24,7 @@ Nimi 平台采用固定六层架构：nimi-realm（云端持久世界）、nimi-
 
 ## P-ARCH-010 — V1 执行栈冻结
 
-`MUST`: 本地模型面：LocalAI + Nexa。远程模型面：nimiLLM。路由面：local | cloud 显式路由，不允许静默 fallback。凭证面：cloud 默认走请求期凭证注入。编排面：Workflow DAG 独立能力。实现语言固定 Go。
+`MUST`: 本地模型面：llama + media + sidecar。远程模型面：nimiLLM。路由面：local | cloud 显式路由，不允许静默 fallback。凭证面：cloud 默认走请求期凭证注入。编排面：Workflow DAG 独立能力。实现语言固定 Go。
 
 ## P-ARCH-011 — Credential Plane 双平面
 

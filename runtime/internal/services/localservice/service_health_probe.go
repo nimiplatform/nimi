@@ -46,7 +46,7 @@ type probeRecoveryState struct {
 
 func defaultEndpointProbe(ctx context.Context, engine string, endpoint string) endpointProbeResult {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
-	case "nimi_media":
+	case "media", "media.diffusers":
 		return probeNimiMediaEndpoint(ctx, endpoint)
 	default:
 		return probeOpenAICompatibleEndpoint(ctx, endpoint)
@@ -199,7 +199,7 @@ func probeNimiMediaEndpoint(ctx context.Context, endpoint string) endpointProbeR
 		return endpointProbeResult{
 			healthy:   false,
 			responded: true,
-			detail:    defaultString(strings.TrimSpace(healthPayload.Detail), "nimi_media not ready"),
+			detail:    defaultString(strings.TrimSpace(healthPayload.Detail), "media engine not ready"),
 			probeURL:  healthURL,
 		}
 	}
@@ -386,7 +386,7 @@ func parseCanonicalProbeBaseURL(endpoint string) (*url.URL, string, error) {
 
 func buildEndpointProbeURL(engine string, endpoint string) (string, error) {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
-	case "nimi_media":
+	case "media", "media.diffusers":
 		return buildNimiMediaCatalogProbeURL(endpoint)
 	default:
 		return buildOpenAIModelsProbeURL(endpoint)
@@ -656,11 +656,9 @@ func isLoopbackHost(host string) bool {
 
 func defaultEnginePort(engine string) int {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
-	case "localai":
+	case "llama":
 		return 1234
-	case "nexa":
-		return 8000
-	case "nimi_media":
+	case "media":
 		return 8321
 	default:
 		return 0

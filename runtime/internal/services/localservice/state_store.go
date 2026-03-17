@@ -44,6 +44,14 @@ type localStateModelState struct {
 	EngineRuntimeMode    int32             `json:"engineRuntimeMode,omitempty"`
 	LocalInvokeProfileID string            `json:"localInvokeProfileId,omitempty"`
 	EngineConfig         map[string]any    `json:"engineConfig,omitempty"`
+	LogicalModelID       string            `json:"logicalModelId,omitempty"`
+	Family               string            `json:"family,omitempty"`
+	ArtifactRoles        []string          `json:"artifactRoles,omitempty"`
+	PreferredEngine      string            `json:"preferredEngine,omitempty"`
+	FallbackEngines      []string          `json:"fallbackEngines,omitempty"`
+	BundleState          int32             `json:"bundleState,omitempty"`
+	WarmState            int32             `json:"warmState,omitempty"`
+	HostRequirements     map[string]any    `json:"hostRequirements,omitempty"`
 }
 
 type localStateArtifactState struct {
@@ -147,6 +155,14 @@ func (s *Service) restoreState() {
 			HealthDetail:         item.HealthDetail,
 			LocalInvokeProfileId: item.LocalInvokeProfileID,
 			EngineConfig:         toStruct(item.EngineConfig),
+			LogicalModelId:       item.LogicalModelID,
+			Family:               item.Family,
+			ArtifactRoles:        normalizeStringSlice(item.ArtifactRoles),
+			PreferredEngine:      item.PreferredEngine,
+			FallbackEngines:      normalizeStringSlice(item.FallbackEngines),
+			BundleState:          runtimev1.LocalBundleState(item.BundleState),
+			WarmState:            runtimev1.LocalWarmState(item.WarmState),
+			HostRequirements:     hostRequirementsFromMap(item.HostRequirements),
 		}
 		if record.GetLocalModelId() == "" {
 			continue
@@ -290,6 +306,14 @@ func (s *Service) persistStateLocked() {
 			EngineRuntimeMode:    int32(s.modelRuntimeModes[id]),
 			LocalInvokeProfileID: model.GetLocalInvokeProfileId(),
 			EngineConfig:         structToMap(model.GetEngineConfig()),
+			LogicalModelID:       model.GetLogicalModelId(),
+			Family:               model.GetFamily(),
+			ArtifactRoles:        append([]string(nil), model.GetArtifactRoles()...),
+			PreferredEngine:      model.GetPreferredEngine(),
+			FallbackEngines:      append([]string(nil), model.GetFallbackEngines()...),
+			BundleState:          int32(model.GetBundleState()),
+			WarmState:            int32(model.GetWarmState()),
+			HostRequirements:     hostRequirementsToMap(model.GetHostRequirements()),
 		})
 	}
 
@@ -400,7 +424,45 @@ func loadLocalStateSnapshot(path string) (localStateSnapshot, error) {
 	if err := json.Unmarshal(payload, &result); err != nil {
 		return result, err
 	}
+	if err := rejectLegacyLocalStateSnapshot(result); err != nil {
+		return result, err
+	}
 	return result, nil
+}
+
+func rejectLegacyLocalStateSnapshot(snapshot localStateSnapshot) error {
+	for _, model := range snapshot.Models {
+		if isLegacyLocalRuntimeValue(model.Engine) || isLegacyLocalRuntimeValue(model.ModelID) || isLegacyLocalRuntimeValue(model.PreferredEngine) {
+			return errors.New("legacy local runtime state detected in models; clear local-state.json and reinstall llama/media bundles")
+		}
+		for _, engine := range model.FallbackEngines {
+			if isLegacyLocalRuntimeValue(engine) {
+				return errors.New("legacy local runtime state detected in model fallback engines; clear local-state.json and reinstall llama/media bundles")
+			}
+		}
+	}
+	for _, artifact := range snapshot.Artifacts {
+		if isLegacyLocalRuntimeValue(artifact.Engine) || isLegacyLocalRuntimeValue(artifact.ArtifactID) {
+			return errors.New("legacy local runtime state detected in artifacts; clear local-state.json and reinstall llama/media bundles")
+		}
+	}
+	for _, service := range snapshot.Services {
+		if isLegacyLocalRuntimeValue(service.Engine) || isLegacyLocalRuntimeValue(service.ServiceID) {
+			return errors.New("legacy local runtime state detected in services; clear local-state.json and reinstall llama/media bundles")
+		}
+	}
+	return nil
+}
+
+func isLegacyLocalRuntimeValue(value string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	if normalized == "" {
+		return false
+	}
+	return strings.Contains(normalized, "localai") ||
+		strings.Contains(normalized, "nexa") ||
+		strings.Contains(normalized, "nimi_media") ||
+		strings.Contains(normalized, "localsidecar")
 }
 
 func saveLocalStateSnapshot(path string, snapshot localStateSnapshot) error {
@@ -419,4 +481,46 @@ func saveLocalStateSnapshot(path string, snapshot localStateSnapshot) error {
 		return err
 	}
 	return os.Rename(tmpPath, path)
+}
+
+func hostRequirementsToMap(input *runtimev1.LocalHostRequirements) map[string]any {
+	if input == nil {
+		return nil
+	}
+	return map[string]any{
+		"gpuRequired":           input.GetGpuRequired(),
+		"pythonRuntimeRequired": input.GetPythonRuntimeRequired(),
+		"supportedPlatforms":    append([]string(nil), input.GetSupportedPlatforms()...),
+		"requiredBackends":      append([]string(nil), input.GetRequiredBackends()...),
+	}
+}
+
+func hostRequirementsFromMap(input map[string]any) *runtimev1.LocalHostRequirements {
+	if len(input) == 0 {
+		return nil
+	}
+	requirements := &runtimev1.LocalHostRequirements{}
+	if value, ok := input["gpuRequired"].(bool); ok {
+		requirements.GpuRequired = value
+	}
+	if value, ok := input["pythonRuntimeRequired"].(bool); ok {
+		requirements.PythonRuntimeRequired = value
+	}
+	if values, ok := input["supportedPlatforms"].([]any); ok {
+		requirements.SupportedPlatforms = anySliceToStrings(values)
+	}
+	if values, ok := input["requiredBackends"].([]any); ok {
+		requirements.RequiredBackends = anySliceToStrings(values)
+	}
+	return requirements
+}
+
+func anySliceToStrings(values []any) []string {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		if text, ok := value.(string); ok && strings.TrimSpace(text) != "" {
+			out = append(out, strings.TrimSpace(text))
+		}
+	}
+	return out
 }

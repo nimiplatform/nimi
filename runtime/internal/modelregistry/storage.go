@@ -27,6 +27,7 @@ type persistedEntry struct {
 	Version      string   `json:"version"`
 	Status       int32    `json:"status"`
 	Capabilities []string `json:"capabilities"`
+	Files        []string `json:"files,omitempty"`
 	LastHealthAt string   `json:"lastHealthAt,omitempty"`
 	Source       string   `json:"source,omitempty"`
 	ProviderHint string   `json:"providerHint,omitempty"`
@@ -85,6 +86,7 @@ func NewFromFile(path string) (*Registry, error) {
 			Version:      strings.TrimSpace(item.Version),
 			Status:       runtimev1.ModelStatus(item.Status),
 			Capabilities: append([]string(nil), item.Capabilities...),
+			Files:        append([]string(nil), item.Files...),
 			LastHealthAt: lastHealthAt,
 			Source:       strings.TrimSpace(item.Source),
 			ProviderHint: ProviderHint(strings.TrimSpace(item.ProviderHint)),
@@ -112,6 +114,7 @@ func (r *Registry) SaveToFile(path string) error {
 			Version:      item.Version,
 			Status:       int32(item.Status),
 			Capabilities: append([]string(nil), item.Capabilities...),
+			Files:        append([]string(nil), item.Files...),
 			Source:       item.Source,
 			ProviderHint: string(item.ProviderHint),
 		}
