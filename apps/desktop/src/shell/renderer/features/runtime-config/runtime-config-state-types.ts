@@ -1,3 +1,5 @@
+import type { LocalRuntimeCatalogRecommendation } from '@runtime/local-runtime';
+
 export const CAPABILITIES_V11 = ['chat', 'image', 'video', 'tts', 'stt', 'embedding'] as const;
 export type CapabilityV11 = (typeof CAPABILITIES_V11)[number];
 
@@ -27,6 +29,7 @@ export type LocalModelOptionV11 = {
   hash?: string;
   installedAt?: string;
   updatedAt?: string;
+  recommendation?: LocalRuntimeCatalogRecommendation;
 };
 
 export type NodeCapabilityV11 = CapabilityV11 | 'rerank' | 'cv' | 'diarize';
@@ -325,6 +328,7 @@ export function normalizeLocalModelV11(raw: Partial<LocalModelOptionV11>): Local
     hash: String(raw.hash || '').trim() || undefined,
     installedAt: String(raw.installedAt || '').trim() || undefined,
     updatedAt: String(raw.updatedAt || '').trim() || undefined,
+    recommendation: raw.recommendation,
   };
 }
 

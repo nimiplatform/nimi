@@ -28,6 +28,13 @@ import {
   isRecommendedDescriptor,
   ModelIcon,
   PackageIcon,
+  RecommendationDetailList,
+  RecommendationDiagnosticsPanel,
+  recommendationConfidenceLabel,
+  recommendationHostSupportLabel,
+  recommendationSummary,
+  recommendationTierClass,
+  recommendationTierLabel,
   RefreshIcon,
   SearchIcon,
   StarIcon,
@@ -234,10 +241,38 @@ function CatalogVariantPicker(props: {
                 onClick={() => props.onInstallVariant(variant.filename)}
                 className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-mint-50 disabled:opacity-50"
               >
-                <span className="truncate text-xs font-medium text-gray-800">{variant.filename}</span>
-                {typeof variant.sizeBytes === 'number' ? (
-                  <span className="ml-2 shrink-0 text-[10px] text-gray-500">{formatBytes(variant.sizeBytes)}</span>
-                ) : null}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-xs font-medium text-gray-800">{variant.filename}</span>
+                    {variant.recommendation ? (
+                      <span className={`rounded px-1.5 py-0.5 text-[10px] ${recommendationTierClass(variant.recommendation.tier)}`}>
+                        {recommendationTierLabel(variant.recommendation.tier)}
+                      </span>
+                    ) : null}
+                  </div>
+                  {variant.recommendation ? (
+                    <p className="mt-1 truncate text-[10px] text-gray-500">
+                      {recommendationSummary(variant.recommendation)}
+                    </p>
+                  ) : null}
+                  <RecommendationDetailList
+                    recommendation={variant.recommendation}
+                    className="mt-1 space-y-0.5"
+                    rowClassName="text-[10px] text-gray-500"
+                    labelClassName="font-medium text-gray-700"
+                    maxFallbackEntries={2}
+                  />
+                  <RecommendationDiagnosticsPanel
+                    recommendation={variant.recommendation}
+                    className="mt-1"
+                  />
+                </div>
+                <div className="ml-2 shrink-0 text-right">
+                  <p className="text-[10px] text-gray-500">{variant.format}</p>
+                  {typeof variant.sizeBytes === 'number' ? (
+                    <p className="text-[10px] text-gray-500">{formatBytes(variant.sizeBytes)}</p>
+                  ) : null}
+                </div>
               </button>
             ))}
           </ScrollShell>
@@ -311,8 +346,18 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                   <div className="flex items-center gap-2">
                     <span className="truncate text-sm font-medium text-gray-900">{model.model}</span>
                     <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">{model.engine}</span>
+                    {model.recommendation ? (
+                      <span className={`rounded px-1.5 py-0.5 text-[10px] ${recommendationTierClass(model.recommendation.tier)}`}>
+                        {recommendationTierLabel(model.recommendation.tier)}
+                      </span>
+                    ) : null}
                   </div>
                   <p className="truncate text-xs text-gray-500">{model.localModelId}</p>
+                  {model.recommendation ? (
+                    <p className="mt-1 line-clamp-2 text-[11px] text-gray-500">
+                      {recommendationSummary(model.recommendation)}
+                    </p>
+                  ) : null}
                   <div className="mt-1 flex flex-wrap gap-1">
                     {model.capabilities.slice(0, 3).map((capability) => (
                       <span key={capability} className="rounded border border-mint-100 bg-mint-50 px-1.5 py-0.5 text-[10px] text-mint-600">{capability}</span>
@@ -535,8 +580,45 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                   <FolderOpenIcon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium text-gray-900">{orphan.filename}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="truncate text-sm font-medium text-gray-900">{orphan.filename}</div>
+                    {orphan.recommendation ? (
+                      <span className={`rounded px-1.5 py-0.5 text-[10px] ${recommendationTierClass(orphan.recommendation.tier)}`}>
+                        {recommendationTierLabel(orphan.recommendation.tier)}
+                      </span>
+                    ) : null}
+                  </div>
                   <div className="text-xs text-gray-500">{formatBytes(orphan.sizeBytes)}</div>
+                  {orphan.recommendation ? (
+                    <>
+                      <p className="mt-1 line-clamp-2 text-[11px] text-gray-500">
+                        {recommendationSummary(orphan.recommendation)}
+                      </p>
+                      <RecommendationDetailList
+                        recommendation={orphan.recommendation}
+                        className="mt-1 space-y-0.5"
+                        rowClassName="text-[10px] text-gray-500"
+                        labelClassName="font-medium text-gray-700"
+                        maxFallbackEntries={2}
+                      />
+                      <RecommendationDiagnosticsPanel
+                        recommendation={orphan.recommendation}
+                        className="mt-1"
+                      />
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {orphan.recommendation.hostSupportClass ? (
+                          <span className="rounded border border-sky-100 bg-sky-50 px-1.5 py-0.5 text-[10px] text-sky-700">
+                            {recommendationHostSupportLabel(orphan.recommendation.hostSupportClass)}
+                          </span>
+                        ) : null}
+                        {orphan.recommendation.confidence ? (
+                          <span className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] text-slate-500">
+                            {recommendationConfidenceLabel(orphan.recommendation.confidence)}
+                          </span>
+                        ) : null}
+                      </div>
+                    </>
+                  ) : null}
                 </div>
                 <div className="flex items-center gap-2">
                   <RuntimeSelect
@@ -596,14 +678,45 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                       <span className="rounded bg-mint-50 px-1.5 py-0.5 text-[10px] text-mint-700">
                         {i18n.t('runtimeConfig.localModelCenter.huggingFace', { defaultValue: 'Hugging Face' })}
                       </span>
+                      {item.recommendation ? (
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] ${recommendationTierClass(item.recommendation.tier)}`}>
+                          {recommendationTierLabel(item.recommendation.tier)}
+                        </span>
+                      ) : null}
                     </div>
                     <p className="truncate text-xs text-gray-500">{item.modelId}</p>
+                    {item.recommendation ? (
+                      <p className="mt-1 line-clamp-2 text-[11px] text-gray-500">
+                        {recommendationSummary(item.recommendation)}
+                      </p>
+                    ) : null}
+                    <RecommendationDetailList
+                      recommendation={item.recommendation}
+                      className="mt-1 space-y-0.5"
+                      rowClassName="text-[10px] text-gray-500"
+                      labelClassName="font-medium text-gray-700"
+                      maxFallbackEntries={2}
+                    />
+                    <RecommendationDiagnosticsPanel
+                      recommendation={item.recommendation}
+                      className="mt-1"
+                    />
                     <div className="mt-1 flex flex-wrap gap-1">
                       {(item.capabilities.length > 0 ? item.capabilities : ['chat']).map((capability) => (
                         <span key={`${item.itemId}-${capability}`} className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">
                           {capability}
                         </span>
                       ))}
+                      {item.recommendation?.hostSupportClass ? (
+                        <span className="rounded border border-sky-100 bg-sky-50 px-1.5 py-0.5 text-[10px] text-sky-700">
+                          {recommendationHostSupportLabel(item.recommendation.hostSupportClass)}
+                        </span>
+                      ) : null}
+                      {item.recommendation?.confidence ? (
+                        <span className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] text-slate-500">
+                          {recommendationConfidenceLabel(item.recommendation.confidence)}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                   <span className={`rounded-full px-2 py-1 text-[10px] ${item.installAvailable ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>

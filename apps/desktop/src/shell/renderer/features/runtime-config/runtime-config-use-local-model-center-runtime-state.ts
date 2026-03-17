@@ -63,6 +63,8 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   const [orphanCapabilities, setOrphanCapabilities] = useState<Record<string, CapabilityOption>>({});
   const [artifactOrphanFiles, setArtifactOrphanFiles] = useState<OrphanArtifactFile[]>([]);
   const [artifactOrphanKinds, setArtifactOrphanKinds] = useState<Record<string, LocalRuntimeArtifactKind>>({});
+  const orphanCapabilitiesRef = useRef(orphanCapabilities);
+  orphanCapabilitiesRef.current = orphanCapabilities;
   useEffect(() => {
     if (!showImportMenu) {
       return undefined;
@@ -197,7 +199,12 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   }, [artifactKindFilter]);
   const refreshOrphanFiles = useCallback(async () => {
     try {
-      setOrphanFiles(await localRuntime.scanOrphans());
+      const preferences = Object.fromEntries(
+        Object.entries(orphanCapabilitiesRef.current)
+          .filter(([, capability]) => Boolean(capability))
+          .map(([path, capability]) => [path, { capability }]),
+      );
+      setOrphanFiles(await localRuntime.scanOrphans({ preferences }));
     } catch {
       setOrphanFiles([]);
     }
@@ -232,7 +239,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   }, [refreshVerifiedArtifacts]);
   useEffect(() => {
     void refreshOrphanFiles();
-  }, [refreshOrphanFiles]);
+  }, [orphanCapabilities, refreshOrphanFiles]);
   useEffect(() => {
     void refreshArtifactOrphanFiles();
   }, [refreshArtifactOrphanFiles]);

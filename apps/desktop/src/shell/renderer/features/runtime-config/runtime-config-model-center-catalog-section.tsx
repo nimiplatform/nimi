@@ -9,6 +9,15 @@ import {
 } from '@runtime/local-runtime';
 import { CAPABILITY_OPTIONS, type CapabilityOption } from './runtime-config-model-center-utils';
 import { RuntimeSelect } from './runtime-config-primitives';
+import {
+  RecommendationDetailList,
+  RecommendationDiagnosticsPanel,
+  recommendationConfidenceLabel,
+  recommendationHostSupportLabel,
+  recommendationSummary,
+  recommendationTierClass,
+  recommendationTierLabel,
+} from './runtime-config-local-model-center-helpers';
 
 // Icons
 function SearchIcon({ className = '' }: { className?: string }) {
@@ -373,6 +382,22 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
                           ? i18n.t('runtimeConfig.catalog.verified', { defaultValue: 'Verified' })
                           : i18n.t('runtimeConfig.catalog.huggingFace', { defaultValue: 'Hugging Face' }))} · {item.engine}
                       </p>
+                      {item.recommendation ? (
+                        <p className="mt-1 line-clamp-2 text-[11px] text-gray-500">
+                          {recommendationSummary(item.recommendation)}
+                        </p>
+                      ) : null}
+                      <RecommendationDetailList
+                        recommendation={item.recommendation}
+                        className="mt-1 space-y-0.5"
+                        rowClassName="text-[10px] text-gray-500"
+                        labelClassName="font-medium text-gray-700"
+                        maxFallbackEntries={2}
+                      />
+                      <RecommendationDiagnosticsPanel
+                        recommendation={item.recommendation}
+                        className="mt-1"
+                      />
                     </div>
                     <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
                       item.installAvailable
@@ -423,6 +448,23 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
                 <div>
                   <p className="text-sm font-medium text-gray-900">{planPreview.modelId}</p>
                   <p className="text-xs text-gray-500">{planPreview.engine} · {planPreview.engineRuntimeMode}</p>
+                  {planPreview.recommendation ? (
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      <span className={`rounded px-1.5 py-0.5 text-[10px] ${recommendationTierClass(planPreview.recommendation.tier)}`}>
+                        {recommendationTierLabel(planPreview.recommendation.tier)}
+                      </span>
+                      {planPreview.recommendation.hostSupportClass ? (
+                        <span className="rounded border border-sky-100 bg-sky-50 px-1.5 py-0.5 text-[10px] text-sky-700">
+                          {recommendationHostSupportLabel(planPreview.recommendation.hostSupportClass)}
+                        </span>
+                      ) : null}
+                      {planPreview.recommendation.confidence ? (
+                        <span className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] text-slate-500">
+                          {recommendationConfidenceLabel(planPreview.recommendation.confidence)}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               </div>
               <div className="text-xs text-gray-500 space-y-1">
@@ -438,6 +480,19 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
                     defaultValue: 'Endpoint: {{endpoint}}',
                   })}
                 </p>
+                {planPreview.recommendation ? (
+                  <>
+                    <p>{recommendationSummary(planPreview.recommendation)}</p>
+                    <RecommendationDetailList
+                      recommendation={planPreview.recommendation}
+                      className="space-y-1"
+                      rowClassName="text-[11px] text-gray-500"
+                      labelClassName="font-medium text-gray-700"
+                      maxFallbackEntries={3}
+                    />
+                    <RecommendationDiagnosticsPanel recommendation={planPreview.recommendation} />
+                  </>
+                ) : null}
               </div>
               {planPreview.warnings.length > 0 ? (
                 <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">{planPreview.warnings.join(' ; ')}</p>

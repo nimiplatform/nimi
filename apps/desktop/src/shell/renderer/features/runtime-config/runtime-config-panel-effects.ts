@@ -47,6 +47,7 @@ function mergeLocalSnapshot(
           || capability === 'embedding'
         )),
       status: item.status,
+      recommendation: item.recommendation,
     }));
   const models = nextModels.length > 0 ? nextModels : previous.local.models;
 

@@ -132,7 +132,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     setVariantList([]);
     setVariantError('');
     setLoadingVariants(true);
-    void localRuntime.listRepoGgufVariants(item.repo).then((variants) => {
+    void localRuntime.listRepoVariants(item.repo).then((variants) => {
       setVariantList(variants);
       setLoadingVariants(false);
     }).catch((error) => {
@@ -152,13 +152,14 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     item: LocalRuntimeCatalogItemDescriptor,
     variantFilename: string,
   ) => {
+    const selectedVariant = variantList.find((variant) => variant.filename === variantFilename) || null;
     await input.props.onInstallCatalogItem(item, {
-      entry: variantFilename,
-      files: [variantFilename],
+      entry: selectedVariant?.entry || variantFilename,
+      files: selectedVariant?.files || [variantFilename],
       capabilities: [input.getLatestVerifiedCapability(item)],
       engine: input.getInstallEngine(item),
     });
-  }, [input]);
+  }, [input, variantList]);
 
   orphanImportSessionByPathRef.current = orphanImportSessionByPath;
 

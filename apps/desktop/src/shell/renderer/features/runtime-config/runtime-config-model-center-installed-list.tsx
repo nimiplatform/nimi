@@ -4,6 +4,16 @@ import type { LocalModelOptionV11 } from '@renderer/features/runtime-config/runt
 import { localRuntime } from '@runtime/local-runtime';
 import { StatusBadge } from './runtime-config-primitives';
 import { filterInstalledModels, statusLabel } from './runtime-config-model-center-utils';
+import {
+  recommendationBaselineLabel,
+  recommendationConfidenceLabel,
+  recommendationHostSupportLabel,
+  RecommendationDetailList,
+  RecommendationDiagnosticsPanel,
+  recommendationSummary,
+  recommendationTierClass,
+  recommendationTierLabel,
+} from './runtime-config-local-model-center-helpers';
 
 // Icons
 function SearchIcon({ className = '' }: { className?: string }) {
@@ -244,10 +254,20 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
                             New
                           </span>
                         )}
+                        {model.recommendation ? (
+                          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${recommendationTierClass(model.recommendation.tier)}`}>
+                            {recommendationTierLabel(model.recommendation.tier)}
+                          </span>
+                        ) : null}
                       </div>
                       <p className="truncate text-xs text-gray-500">
                         {model.localModelId} · {model.engine}
                       </p>
+                      {model.recommendation ? (
+                        <p className="mt-1 line-clamp-2 text-[11px] text-gray-500">
+                          {recommendationSummary(model.recommendation)}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="shrink-0 text-gray-400">
                       {isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
@@ -281,6 +301,24 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
                     {model.updatedAt && model.updatedAt !== model.installedAt && (
                       <p><span className="font-medium text-gray-700">{t('runtimeConfig.local.updated', { defaultValue: 'Updated' })}:</span> {model.updatedAt}</p>
                     )}
+                    {model.recommendation ? (
+                      <div className="grid grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-600">
+                        <p><span className="font-medium text-slate-700">{t('runtimeConfig.local.recommendation', { defaultValue: 'Recommendation' })}:</span> {recommendationTierLabel(model.recommendation.tier)}</p>
+                        <p><span className="font-medium text-slate-700">{t('runtimeConfig.local.host', { defaultValue: 'Host' })}:</span> {recommendationHostSupportLabel(model.recommendation.hostSupportClass)}</p>
+                        <p><span className="font-medium text-slate-700">{t('runtimeConfig.local.confidence', { defaultValue: 'Confidence' })}:</span> {recommendationConfidenceLabel(model.recommendation.confidence)}</p>
+                        {model.recommendation.baseline ? (
+                          <p><span className="font-medium text-slate-700">{t('runtimeConfig.local.baseline', { defaultValue: 'Baseline' })}:</span> {recommendationBaselineLabel(model.recommendation.baseline)}</p>
+                        ) : null}
+                        <RecommendationDetailList
+                          recommendation={model.recommendation}
+                          className="space-y-1 border-t border-slate-100 pt-2"
+                          rowClassName="text-[11px] text-slate-600"
+                          labelClassName="font-medium text-slate-700"
+                          maxFallbackEntries={3}
+                        />
+                        <RecommendationDiagnosticsPanel recommendation={model.recommendation} />
+                      </div>
+                    ) : null}
                   </div>
                 )}
 
