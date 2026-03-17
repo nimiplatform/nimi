@@ -2503,6 +2503,8 @@
       "supportedModelFileTypes": ".gguf, .safetensors, .bin, .onnx",
       "importModelManifest": "Import Model Manifest",
       "importArtifactManifest": "Import Artifact Manifest",
+      "supportedModelManifestFileType": "resolved/**/manifest.json",
+      "supportedArtifactManifestFileType": "artifact.manifest.json",
       "importLocalModelFile": "Import Local Model File",
       "capabilityLabel": "Capability:",
       "chooseFile": "Choose File",
@@ -2613,7 +2615,7 @@
     },
     "codes": {
       "LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT": "Import path is invalid. Move the model into the Local Runtime models directory and try again.",
-      "LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID": "Only `model.manifest.json` manifest files can be imported.",
+      "LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID": "Only resolved `manifest.json` files under `~/.nimi/models/**/resolved/**` can be imported.",
       "LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID": "Only `artifact.manifest.json` manifest files can be imported.",
       "LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND": "The companion file to import was not found. Refresh and try again.",
       "LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID": "Please choose a valid companion asset type.",

@@ -82,7 +82,7 @@
 | `runtime_bridge_config_set` | `runtime-daemon` | Set runtime bridge configuration | `D-IPC-003` |
 | `runtime_local_models_list` | `local-runtime` | List local AI models | `D-IPC-011` |
 | `runtime_local_audits_list` | `local-runtime` | List local AI inference audits | `D-IPC-011` |
-| `runtime_local_pick_manifest_path` | `local-runtime` | Pick a local AI model manifest file path under the runtime models root via native file dialog | `D-IPC-011` |
+| `runtime_local_pick_manifest_path` | `local-runtime` | Pick a local AI resolved manifest.json path under the runtime models root via native file dialog | `D-IPC-011` |
 | `runtime_local_pick_artifact_manifest_path` | `local-runtime` | Pick a local AI artifact manifest file path under the runtime models root via native file dialog | `D-IPC-011` |
 | `runtime_local_artifacts_list` | `local-runtime` | List local AI companion artifacts tracked by the Tauri local runtime state | `D-IPC-011` |
 | `runtime_local_artifacts_verified_list` | `local-runtime` | List verified companion artifacts available for managed install | `D-IPC-011` |
@@ -124,5 +124,5 @@
 | `runtime_local_models_reveal_in_folder` | `local-runtime` | Reveal installed model files in system file manager | `D-IPC-011` |
 | `runtime_local_models_scan_orphans` | `local-runtime` | Scan for orphan model files not tracked by runtime state | `D-IPC-011` |
 | `runtime_local_models_scaffold_orphan` | `local-runtime` | Scaffold an orphan model file into a tracked model with user-selected capability | `D-IPC-011` |
-| `runtime_local_artifacts_scan_orphans` | `local-runtime` | Scan for orphan companion files not managed by model.manifest.json or artifact.manifest.json | `D-IPC-011` |
+| `runtime_local_artifacts_scan_orphans` | `local-runtime` | Scan for orphan companion files not managed by resolved manifest.json or artifact.manifest.json | `D-IPC-011` |
 | `runtime_local_artifacts_scaffold_orphan` | `local-runtime` | Scaffold an orphan companion file into artifact.manifest.json with user-selected kind and canonical local engine | `D-IPC-011` |

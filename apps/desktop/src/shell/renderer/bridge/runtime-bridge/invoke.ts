@@ -7,7 +7,7 @@ import type { RuntimeBridgeStructuredError } from './types';
 
 const BRIDGE_ERROR_CODE_MAP: Record<string, { key: string; defaultValue: string }> = {
   LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT: { key: 'BridgeErrors.codes.LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT', defaultValue: 'Import path is invalid. Move the model into the Local Runtime models directory and try again.' },
-  LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID: { key: 'BridgeErrors.codes.LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID', defaultValue: 'Only `model.manifest.json` manifest files can be imported.' },
+  LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID: { key: 'BridgeErrors.codes.LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID', defaultValue: 'Only resolved `manifest.json` files under `~/.nimi/models/**/resolved/**` can be imported.' },
   LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID: { key: 'BridgeErrors.codes.LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID', defaultValue: 'Only `artifact.manifest.json` manifest files can be imported.' },
   LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND: { key: 'BridgeErrors.codes.LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND', defaultValue: 'The companion file to import was not found. Refresh and try again.' },
   LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID: { key: 'BridgeErrors.codes.LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID', defaultValue: 'Please choose a valid companion asset type.' },

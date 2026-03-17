@@ -61,7 +61,7 @@ mod 如需枚举 companion assets，必须显式声明 `runtime.local.artifacts.
 
 ### 获取所有权（K-LOCAL-028）
 
-主模型 acquisition 固定为 download / detect / import 三条路径；Desktop execution-plane 负责主模型下载、orphan detect/scaffold 和 `model.manifest.json` import。
+主模型 acquisition 固定为 download / detect / import 三条路径；Desktop execution-plane 负责主模型下载、orphan detect/scaffold 和 resolved manifest import。
 
 companion artifact 的状态真相与安装落盘由 Desktop Tauri `local_runtime` 统一维护。Desktop 不再经 runtime SDK `RuntimeLocalService` 维护第二条 artifact 管理路径。
 
@@ -177,7 +177,7 @@ payload 至少包含 `itemId/modelId/capability/source/format/tier/hostSupportCl
 
 ### 概述
 
-用户可直接选择本地任意位置的主模型文件（`.gguf`、`.safetensors`、`.bin`、`.pt`、`.onnx`、`.pth`），系统自动复制到 `~/.nimi/models/<slug>/`、单遍计算 SHA256、生成 `model.manifest.json`、注册到 `state.json`。
+用户可直接选择本地任意位置的主模型文件（`.gguf`、`.safetensors`、`.bin`、`.pt`、`.onnx`、`.pth`），系统自动复制到 `~/.nimi/models/objects/` 与对应 source 目录、单遍计算 SHA256、生成 `resolved/<logical-model-id>/manifest.json`、注册到 `state.json`。
 
 ### 流程
 
@@ -188,9 +188,9 @@ payload 至少包含 `itemId/modelId/capability/source/format/tier/hostSupportCl
    - endpoint 回环限制校验（`LOCAL_AI_ENDPOINT_*`）
 3. **同步返回** — 返回 local install accepted response（installSessionId, modelId, localModelId）
 4. **后台复制**（`std::thread::spawn`）:
-   - 创建 `~/.nimi/models/<slug>/` 目录
+   - 创建 resolved bundle 所需目录（至少 `objects/`、`sources/`、`resolved/<logical-model-id>/`）
    - `copy_and_hash_file()` 单遍复制 + SHA256（64KB 缓冲区），每 200ms 通过 `local-ai://download-progress` 事件报告进度
-   - 生成并写入 `model.manifest.json`
+   - 生成并写入 `resolved/<logical-model-id>/manifest.json`
    - `upsert_model()` 注册到 `state.json`
    - 发出完成 progress event（`done: true, success: true`）
    - 审计事件: `model_file_import_started` + `model_import_validated`
@@ -231,7 +231,7 @@ Desktop 不复用主模型 orphan detect/scaffold，也不复用主模型 capabi
 
 ### Import Artifact Manifest
 
-`Import Artifact Manifest` 通过独立 picker 选取 `~/.nimi/models/**/artifact.manifest.json`。该 picker 不得复用主模型 `model.manifest.json` picker。
+`Import Artifact Manifest` 通过独立 picker 选取 `~/.nimi/models/**/artifact.manifest.json`。该 picker 不得复用主模型 resolved manifest picker。
 
 artifact import 的类型来源固定为 manifest 中的 `kind`，允许值由 runtime local service schema 约束为 `vae / llm / clip / controlnet / lora / auxiliary`。
 
@@ -239,7 +239,7 @@ artifact import 的类型来源固定为 manifest 中的 `kind`，允许值由 r
 
 Desktop 在 `Companion Assets` 区域内提供独立的 `Unregistered Companion Assets` lane。该 lane：
 
-- 扫描 `~/.nimi/models/` 下未被 `model.manifest.json` 或 `artifact.manifest.json` 纳管的二进制模型文件
+- 扫描 `~/.nimi/models/` 下未被 resolved `manifest.json` 或 `artifact.manifest.json` 纳管的二进制模型文件
 - 允许与主模型 orphan lane 同时展示同一裸文件；Desktop 不自动推断其用途
 - 只让用户选择 `kind`，不暴露 engine 选择器
 - scaffold 固定生成 canonical local engine 的 `artifact.manifest.json`

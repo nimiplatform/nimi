@@ -6,8 +6,8 @@ use super::recommendation::{
 };
 use super::store::{load_state, runtime_models_dir, save_state};
 use super::types::{
-    normalize_local_inventory_id, now_iso_timestamp, slugify_local_model_id, LocalAiModelRecord,
-    LocalAiModelStatus, LocalAiRuntimeState,
+    default_logical_model_id, normalize_local_inventory_id, now_iso_timestamp,
+    resolved_model_dir, LocalAiModelRecord, LocalAiModelStatus, LocalAiRuntimeState,
 };
 
 fn rebuild_capability_index(state: &mut LocalAiRuntimeState) {
@@ -79,9 +79,12 @@ fn build_recommendation_candidate_for_record(
 ) -> Option<RecommendationCandidate> {
     let files = normalize_record_files(record);
     let has_complete_record_metadata = !record.files.is_empty();
-    let model_dir = models_root.map(|root| {
-        root.join(slugify_local_model_id(record.local_model_id.as_str()))
-    });
+    let logical_model_id = if record.logical_model_id.trim().is_empty() {
+        default_logical_model_id(record.model_id.as_str())
+    } else {
+        record.logical_model_id.clone()
+    };
+    let model_dir = models_root.map(|root| resolved_model_dir(root, logical_model_id.as_str()));
     let file_size = |relative_path: &str| -> Option<u64> {
         let root = model_dir.as_ref()?;
         std::fs::metadata(root.join(relative_path)).ok().map(|meta| meta.len())
@@ -374,11 +377,10 @@ mod tests {
             &["image"],
             LocalAiModelStatus::Installed,
         );
-        let model_dir = temp
-            .path()
-            .join(crate::local_runtime::types::slugify_local_model_id(
-                record.local_model_id.as_str(),
-            ));
+        let model_dir = crate::local_runtime::types::resolved_model_dir(
+            temp.path(),
+            record.logical_model_id.as_str(),
+        );
         fs::create_dir_all(&model_dir).expect("create model dir");
         fs::write(model_dir.join("model.gguf"), vec![0_u8; 1024]).expect("write model");
 
@@ -404,11 +406,10 @@ mod tests {
         record.files = Vec::new();
         record.tags = Vec::new();
         record.known_total_size_bytes = None;
-        let model_dir = temp
-            .path()
-            .join(crate::local_runtime::types::slugify_local_model_id(
-                record.local_model_id.as_str(),
-            ));
+        let model_dir = crate::local_runtime::types::resolved_model_dir(
+            temp.path(),
+            record.logical_model_id.as_str(),
+        );
         fs::create_dir_all(&model_dir).expect("create model dir");
         fs::write(model_dir.join("model.gguf"), vec![0_u8; 1024]).expect("write model");
 

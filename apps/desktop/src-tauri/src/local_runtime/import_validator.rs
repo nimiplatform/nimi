@@ -149,21 +149,37 @@ mod tests {
         format!("{:x}", hasher.finalize())
     }
 
+    fn resolved_manifest_dir(models_dir: &PathBuf, logical_model_id: &str) -> PathBuf {
+        let dir = crate::local_runtime::types::resolved_model_dir(models_dir, logical_model_id);
+        fs::create_dir_all(&dir).expect("create resolved manifest dir");
+        dir
+    }
+
     #[test]
-    fn validate_import_manifest_path_requires_models_ancestor_and_file_name() {
+    fn validate_import_manifest_path_requires_resolved_manifest_location() {
         let temp = unique_temp_dir("manifest-path");
         let models_dir = temp.join("models");
         fs::create_dir_all(&models_dir).expect("create models dir");
-        let manifest_path = models_dir.join("model.manifest.json");
+        let manifest_dir = resolved_manifest_dir(&models_dir, "nimi/test-model");
+        let manifest_path = manifest_dir.join("manifest.json");
         fs::write(&manifest_path, "{}").expect("write manifest");
 
         let validated =
             validate_import_manifest_path(manifest_path.to_str().unwrap(), models_dir.as_path());
         assert!(validated.is_ok());
 
+        let legacy_path = models_dir.join("model.manifest.json");
+        fs::write(&legacy_path, "{}").expect("write legacy manifest");
+        let legacy =
+            validate_import_manifest_path(legacy_path.to_str().unwrap(), models_dir.as_path());
+        assert!(legacy.is_err());
+        assert!(legacy
+            .unwrap_err()
+            .contains("LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID"));
+
         let outside_models_dir = temp.join("outside-models");
         fs::create_dir_all(&outside_models_dir).expect("create outside-models dir");
-        let invalid_path = outside_models_dir.join("model.manifest.json");
+        let invalid_path = outside_models_dir.join("manifest.json");
         fs::write(&invalid_path, "{}").expect("write invalid manifest");
         let invalid =
             validate_import_manifest_path(invalid_path.to_str().unwrap(), models_dir.as_path());
@@ -187,7 +203,7 @@ mod tests {
         );
         assert!(validated.is_ok());
 
-        let invalid_name_path = artifact_dir.join("model.manifest.json");
+        let invalid_name_path = artifact_dir.join("manifest.json");
         fs::write(&invalid_name_path, "{}").expect("write wrong manifest");
         let invalid_name = validate_import_artifact_manifest_path(
             invalid_name_path.to_str().unwrap(),
@@ -218,12 +234,12 @@ mod tests {
     fn parse_and_validate_manifest_rejects_hash_mismatch() {
         let temp = unique_temp_dir("manifest-hash");
         let models_dir = temp.join("models");
-        fs::create_dir_all(&models_dir).expect("create models dir");
-        let entry_path = models_dir.join("model.gguf");
+        let manifest_dir = resolved_manifest_dir(&models_dir, "nimi/test-model");
+        let entry_path = manifest_dir.join("model.gguf");
         fs::write(&entry_path, b"hello-world").expect("write entry");
         let correct_hash = sha256_hex(b"hello-world");
 
-        let manifest_path = models_dir.join("model.manifest.json");
+        let manifest_path = manifest_dir.join("manifest.json");
         fs::write(
             &manifest_path,
             serde_json::json!({
@@ -313,7 +329,7 @@ mod tests {
     #[test]
     fn parse_manifest_rejects_empty_schema_version() {
         let temp = unique_temp_dir("schema-ver");
-        let manifest_path = temp.join("model.manifest.json");
+        let manifest_path = temp.join("manifest.json");
         fs::write(
             &manifest_path,
             serde_json::json!({
@@ -343,7 +359,7 @@ mod tests {
     #[test]
     fn parse_manifest_rejects_empty_model_id() {
         let temp = unique_temp_dir("model-id");
-        let manifest_path = temp.join("model.manifest.json");
+        let manifest_path = temp.join("manifest.json");
         fs::write(
             &manifest_path,
             serde_json::json!({
@@ -373,7 +389,7 @@ mod tests {
     #[test]
     fn parse_manifest_rejects_entry_not_in_files() {
         let temp = unique_temp_dir("entry-files");
-        let manifest_path = temp.join("model.manifest.json");
+        let manifest_path = temp.join("manifest.json");
         fs::write(
             &manifest_path,
             serde_json::json!({
@@ -403,7 +419,7 @@ mod tests {
     #[test]
     fn parse_manifest_rejects_empty_hashes() {
         let temp = unique_temp_dir("empty-hashes");
-        let manifest_path = temp.join("model.manifest.json");
+        let manifest_path = temp.join("manifest.json");
         fs::write(
             &manifest_path,
             serde_json::json!({

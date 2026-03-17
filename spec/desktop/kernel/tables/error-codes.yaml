@@ -10,7 +10,7 @@ codes:
 
   - code: LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID
     domain: local-ai
-    description: Only model.manifest.json files may be imported
+    description: Only resolved manifest.json files under ~/.nimi/models/**/resolved/** may be imported
     source_rule: D-ERR-001
 
   - code: LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID
@@ -60,17 +60,17 @@ codes:
 
   - code: LOCAL_AI_IMPORT_MANIFEST_NOT_FOUND
     domain: local-ai
-    description: Model manifest file not found at import path
+    description: Resolved model manifest file not found at import path
     source_rule: D-ERR-001
 
   - code: LOCAL_AI_IMPORT_MANIFEST_PARSE_FAILED
     domain: local-ai
-    description: Model manifest JSON parsing failed
+    description: Resolved model manifest JSON parsing failed
     source_rule: D-ERR-001
 
   - code: LOCAL_AI_IMPORT_HASH_MISMATCH
     domain: local-ai
-    description: Model file checksum verification failed
+    description: Resolved model manifest checksum verification failed
     source_rule: D-ERR-001
 
   - code: LOCAL_AI_ENDPOINT_NOT_LOOPBACK
@@ -196,12 +196,12 @@ codes:
 
   - code: LOCAL_AI_FILE_IMPORT_MANIFEST_SERIALIZE_FAILED
     domain: local-ai
-    description: Failed to serialize generated model manifest JSON
+    description: Failed to serialize generated resolved model manifest JSON
     source_rule: D-ERR-001
 
   - code: LOCAL_AI_FILE_IMPORT_MANIFEST_WRITE_FAILED
     domain: local-ai
-    description: Failed to write generated model.manifest.json to disk
+    description: Failed to write generated resolved manifest.json to disk
     source_rule: D-ERR-001
 
   # Runtime route errors

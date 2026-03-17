@@ -225,13 +225,21 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
                 <div className="font-medium text-gray-900">
                   {i18n.t('runtimeConfig.localModelCenter.importModelManifest', { defaultValue: 'Import Model Manifest' })}
                 </div>
-                <div className="mt-0.5 text-gray-500">model.manifest.json</div>
+                <div className="mt-0.5 text-gray-500">
+                  {i18n.t('runtimeConfig.localModelCenter.supportedModelManifestFileType', {
+                    defaultValue: 'resolved/**/manifest.json',
+                  })}
+                </div>
               </button>
               <button type="button" onClick={props.onImportArtifactManifest} className="w-full rounded-b-lg border-t border-gray-100 px-3 py-2.5 text-left text-xs hover:bg-gray-50">
                 <div className="font-medium text-gray-900">
                   {i18n.t('runtimeConfig.localModelCenter.importArtifactManifest', { defaultValue: 'Import Artifact Manifest' })}
                 </div>
-                <div className="mt-0.5 text-gray-500">artifact.manifest.json</div>
+                <div className="mt-0.5 text-gray-500">
+                  {i18n.t('runtimeConfig.localModelCenter.supportedArtifactManifestFileType', {
+                    defaultValue: 'artifact.manifest.json',
+                  })}
+                </div>
               </button>
             </div>
           ) : null}

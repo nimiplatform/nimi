@@ -132,11 +132,12 @@ pub fn install_from_hf_with_control(
 
     let (entry_file, install_files) = normalize_install_files(request)?;
 
-    let slug = slugify_local_model_id(&request.model_id);
     let models_dir = runtime_models_dir(app)?;
-    let model_dir = models_dir.join(&slug);
-    let staging_dir = models_dir.join(format!("{slug}-staging"));
-    let backup_dir = models_dir.join(format!("{slug}-backup"));
+    let logical_model_id = default_logical_model_id(request.model_id.as_str());
+    let slug = slugify_local_model_id(logical_model_id.as_str());
+    let model_dir = resolved_model_dir(models_dir.as_path(), logical_model_id.as_str());
+    let staging_dir = models_dir.join(".resolved-staging").join(&slug);
+    let backup_dir = models_dir.join(".resolved-backup").join(&slug);
 
     if backup_dir.exists() {
         fs::remove_dir_all(&backup_dir)
@@ -359,7 +360,7 @@ pub fn install_from_hf_with_control(
             return Err(error);
         }
     };
-    let manifest_path: PathBuf = staging_dir.join("model.manifest.json");
+    let manifest_path: PathBuf = staging_dir.join("manifest.json");
     let manifest_json = serde_json::to_string_pretty(&manifest)
         .map_err(|error| format!("序列化 HF manifest 失败: {error}"))?;
     fs::write(&manifest_path, manifest_json).map_err(|error| {
@@ -387,12 +388,22 @@ pub fn install_from_hf_with_control(
     };
 
     if model_dir.exists() {
+        if let Some(parent) = backup_dir.parent() {
+            fs::create_dir_all(parent).map_err(|error| {
+                format!("创建 backup 目录失败 ({}): {error}", parent.display())
+            })?;
+        }
         fs::rename(&model_dir, &backup_dir).map_err(|error| {
             format!(
                 "切换模型目录失败 ({} -> {}): {error}",
                 model_dir.display(),
                 backup_dir.display()
             )
+        })?;
+    }
+    if let Some(parent) = model_dir.parent() {
+        fs::create_dir_all(parent).map_err(|error| {
+            format!("创建模型目录失败 ({}): {error}", parent.display())
         })?;
     }
     if let Err(error) = fs::rename(&staging_dir, &model_dir) {

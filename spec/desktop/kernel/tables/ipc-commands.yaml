@@ -403,7 +403,7 @@ commands:
 
   - command: runtime_local_pick_manifest_path
     module: local-runtime
-    description: Pick a local AI model manifest file path under the runtime models root via native file dialog
+    description: Pick a local AI resolved manifest.json path under the runtime models root via native file dialog
     source_rule: D-IPC-011
 
   - command: runtime_local_pick_artifact_manifest_path
@@ -613,7 +613,7 @@ commands:
 
   - command: runtime_local_artifacts_scan_orphans
     module: local-runtime
-    description: Scan for orphan companion files not managed by model.manifest.json or artifact.manifest.json
+    description: Scan for orphan companion files not managed by resolved manifest.json or artifact.manifest.json
     source_rule: D-IPC-011
 
   - command: runtime_local_artifacts_scaffold_orphan

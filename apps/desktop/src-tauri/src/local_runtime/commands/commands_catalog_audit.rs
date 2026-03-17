@@ -133,7 +133,7 @@ pub fn runtime_local_pick_manifest_path(app: AppHandle) -> Result<Option<String>
     let models_root = runtime_models_dir(&app)?;
     let selected = rfd::FileDialog::new()
         .set_directory(&models_root)
-        .set_title("Select model.manifest.json")
+        .set_title("Select resolved manifest.json")
         .add_filter("Model Manifest", &["json"])
         .pick_file();
     let Some(path) = selected else {

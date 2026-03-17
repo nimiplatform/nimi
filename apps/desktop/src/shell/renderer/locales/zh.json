@@ -2503,6 +2503,8 @@
       "supportedModelFileTypes": ".gguf、.safetensors、.bin、.onnx",
       "importModelManifest": "导入模型清单",
       "importArtifactManifest": "导入资产清单",
+      "supportedModelManifestFileType": "resolved/**/manifest.json",
+      "supportedArtifactManifestFileType": "artifact.manifest.json",
       "importLocalModelFile": "导入本地模型文件",
       "capabilityLabel": "能力：",
       "chooseFile": "选择文件",
@@ -2613,7 +2615,7 @@
     },
     "codes": {
       "LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT": "导入路径无效，请将模型放到 Local Runtime models 目录后重试。",
-      "LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID": "仅支持导入 `model.manifest.json` 清单文件。",
+      "LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID": "仅支持导入位于 `~/.nimi/models/**/resolved/**` 下的 resolved `manifest.json` 清单文件。",
       "LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID": "仅支持导入 `artifact.manifest.json` 清单文件。",
       "LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND": "未找到待导入的 companion 文件，请刷新后重试。",
       "LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID": "请选择有效的 companion 资源类型。",

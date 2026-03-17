@@ -1,4 +1,4 @@
-const MODEL_MANIFEST_FILE_NAME: &str = "model.manifest.json";
+const MODEL_MANIFEST_FILE_NAME: &str = "manifest.json";
 const ARTIFACT_MANIFEST_FILE_NAME: &str = "artifact.manifest.json";
 const SUPPORTED_ARTIFACT_KINDS: &[&str] = &[
     "vae",
@@ -24,14 +24,17 @@ fn registered_model_paths(
         .models
         .iter()
         .filter_map(|m| {
-            let slug = slugify_local_model_id(&m.model_id);
+            let logical_model_id = if m.logical_model_id.trim().is_empty() {
+                default_logical_model_id(m.model_id.as_str())
+            } else {
+                m.logical_model_id.clone()
+            };
             let entry = &m.entry;
             if entry.is_empty() {
                 return None;
             }
             Some(
-                models_root
-                    .join(&slug)
+                resolved_model_dir(models_root, logical_model_id.as_str())
                     .join(entry)
                     .to_string_lossy()
                     .to_string(),
@@ -365,9 +368,9 @@ mod orphan_tests {
         let loose = models_root.join("loose.safetensors");
         fs::write(&loose, b"loose").expect("write loose");
 
-        let managed_model_dir = models_root.join("managed-model");
+        let managed_model_dir = models_root.join("resolved").join("nimi").join("managed-model");
         fs::create_dir_all(&managed_model_dir).expect("create managed model dir");
-        fs::write(managed_model_dir.join("model.manifest.json"), "{}").expect("write model manifest");
+        fs::write(managed_model_dir.join("manifest.json"), "{}").expect("write model manifest");
         fs::write(managed_model_dir.join("managed.gguf"), b"model").expect("write managed model");
 
         let managed_artifact_dir = models_root.join("managed-artifact");
@@ -381,10 +384,10 @@ mod orphan_tests {
         fs::write(unmanaged_dir.join("raw.bin"), b"raw").expect("write unmanaged raw");
 
         let registered_model = model_fixture("local/test-model", "registered.gguf");
-        let registered_dir =
-            models_root.join(crate::local_runtime::types::slugify_local_model_id(
-                &registered_model.model_id,
-            ));
+        let registered_dir = crate::local_runtime::types::resolved_model_dir(
+            models_root,
+            registered_model.logical_model_id.as_str(),
+        );
         fs::create_dir_all(&registered_dir).expect("create registered dir");
         let registered_path = registered_dir.join("registered.gguf");
         fs::write(&registered_path, b"registered").expect("write registered file");

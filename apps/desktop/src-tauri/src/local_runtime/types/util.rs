@@ -1,3 +1,4 @@
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -97,6 +98,32 @@ pub fn default_logical_model_id(model_id: &str) -> String {
         }
     }
     format!("nimi/{}", slugify_local_model_id(trimmed))
+}
+
+pub fn resolved_model_relative_dir(logical_model_id: &str) -> PathBuf {
+    let mut path = PathBuf::from("resolved");
+    let mut pushed_any = false;
+    for segment in logical_model_id
+        .split('/')
+        .map(str::trim)
+        .filter(|segment| !segment.is_empty() && *segment != "." && *segment != "..")
+    {
+        path.push(segment);
+        pushed_any = true;
+    }
+    if !pushed_any {
+        path.push("nimi");
+        path.push("local-model");
+    }
+    path
+}
+
+pub fn resolved_model_dir(models_root: &Path, logical_model_id: &str) -> PathBuf {
+    models_root.join(resolved_model_relative_dir(logical_model_id))
+}
+
+pub fn resolved_model_manifest_path(models_root: &Path, logical_model_id: &str) -> PathBuf {
+    resolved_model_dir(models_root, logical_model_id).join("manifest.json")
 }
 
 fn push_unique(values: &mut Vec<String>, value: &str) {
@@ -262,8 +289,9 @@ mod tests {
         default_fallback_engines_for_engine, default_logical_model_id,
         default_preferred_engine_for_capabilities, generate_ulid_string,
         normalize_local_engine, normalize_local_inventory_id, now_iso_timestamp,
-        slugify_local_model_id,
+        resolved_model_relative_dir, slugify_local_model_id,
     };
+    use std::path::PathBuf;
 
     #[test]
     fn now_iso_timestamp_returns_rfc3339_millis_utc() {
@@ -345,6 +373,14 @@ mod tests {
         assert_eq!(
             default_logical_model_id("local/z_image_turbo"),
             "nimi/z-image-turbo"
+        );
+    }
+
+    #[test]
+    fn resolved_model_relative_dir_uses_resolved_namespace_layout() {
+        assert_eq!(
+            resolved_model_relative_dir("nimi/test-model"),
+            PathBuf::from("resolved").join("nimi").join("test-model")
         );
     }
 

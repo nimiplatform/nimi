@@ -242,7 +242,7 @@ companion artifact 补充：
 - companion acquisition 支持 verified artifact install、`artifact.manifest.json` import，以及独立的 orphan detect/scaffold lane；不得复用主模型 capability selector 或 scaffold command。
 - `runtime_local_artifacts_scaffold_orphan` 固定生成 canonical local artifact manifest，随后再经 `runtime_local_artifacts_import` 纳管。
 - verified companion install 的失败恢复通过 desktop `Artifact Tasks` 行内 `Retry` 完成；artifact task 不是 download session。
-- `artifact.manifest.json` picker 与 `model.manifest.json` picker 必须物理拆分，且都只允许 runtime models root 下的路径。
+- `artifact.manifest.json` picker 与 resolved main manifest picker 必须物理拆分，且都只允许 runtime models root 下的路径。
 - Desktop 启动时必须先执行 Desktop/Tauri 已知模型 -> go-runtime 的 reconcile，再将 go-runtime-only 模型通过 `runtime_local_models_adopt` 自动纳管到 Tauri state。
 - 自动纳管只适用于 go-runtime 已有结构化 local model record 的模型；用户直接 copy 到 `~/.nimi/models` 的裸文件通过 `runtime_local_models_scan_orphans` / `runtime_local_models_scaffold_orphan` 路径，由用户选择能力后导入。
 - companion orphan lane 允许与主模型 orphan lane 同时暴露同一裸文件；文件最终分类由用户选择的导入入口决定，导入成功后两条 lane 都必须在刷新后移除该文件。

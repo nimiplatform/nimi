@@ -5,7 +5,7 @@
 | Code | Domain | Description | Source Rule |
 |---|---|---|---|
 | `LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT` | `local-ai` | Import path not within Local Runtime models directory | `D-ERR-001` |
-| `LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID` | `local-ai` | Only model.manifest.json files may be imported | `D-ERR-001` |
+| `LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID` | `local-ai` | Only resolved manifest.json files under ~/.nimi/models/**/resolved/** may be imported | `D-ERR-001` |
 | `LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID` | `local-ai` | Only artifact.manifest.json files may be imported | `D-ERR-001` |
 | `LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND` | `local-ai` | Selected companion orphan file does not exist | `D-ERR-001` |
 | `LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID` | `local-ai` | Companion orphan kind is invalid or unsupported | `D-ERR-001` |
@@ -15,9 +15,9 @@
 | `LOCAL_AI_ARTIFACT_ORPHAN_SOURCE_CLEANUP_FAILED` | `local-ai` | Source companion payload cleanup failed after copy fallback | `D-ERR-001` |
 | `LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_SERIALIZE_FAILED` | `local-ai` | Failed to serialize generated companion artifact manifest JSON | `D-ERR-001` |
 | `LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_WRITE_FAILED` | `local-ai` | Failed to write generated artifact.manifest.json to disk | `D-ERR-001` |
-| `LOCAL_AI_IMPORT_MANIFEST_NOT_FOUND` | `local-ai` | Model manifest file not found at import path | `D-ERR-001` |
-| `LOCAL_AI_IMPORT_MANIFEST_PARSE_FAILED` | `local-ai` | Model manifest JSON parsing failed | `D-ERR-001` |
-| `LOCAL_AI_IMPORT_HASH_MISMATCH` | `local-ai` | Model file checksum verification failed | `D-ERR-001` |
+| `LOCAL_AI_IMPORT_MANIFEST_NOT_FOUND` | `local-ai` | Resolved model manifest file not found at import path | `D-ERR-001` |
+| `LOCAL_AI_IMPORT_MANIFEST_PARSE_FAILED` | `local-ai` | Resolved model manifest JSON parsing failed | `D-ERR-001` |
+| `LOCAL_AI_IMPORT_HASH_MISMATCH` | `local-ai` | Resolved model manifest checksum verification failed | `D-ERR-001` |
 | `LOCAL_AI_ENDPOINT_NOT_LOOPBACK` | `local-ai` | Local runtime endpoint must be localhost/127.0.0.1/[::1] | `D-ERR-002` |
 | `LOCAL_AI_ENDPOINT_INVALID` | `local-ai` | Local runtime endpoint format invalid | `D-ERR-002` |
 | `LOCAL_AI_MODEL_NOT_FOUND` | `local-ai` | No installed/active model found | `D-ERR-001` |
@@ -42,7 +42,7 @@
 | `LOCAL_AI_FILE_IMPORT_DIR_FAILED` | `local-ai` | Cannot create model subdirectory in runtime models root | `D-ERR-001` |
 | `LOCAL_AI_FILE_IMPORT_FLUSH_FAILED` | `local-ai` | Failed to flush written file to OS buffer | `D-ERR-001` |
 | `LOCAL_AI_FILE_IMPORT_SYNC_FAILED` | `local-ai` | Failed to sync written file to disk | `D-ERR-001` |
-| `LOCAL_AI_FILE_IMPORT_MANIFEST_SERIALIZE_FAILED` | `local-ai` | Failed to serialize generated model manifest JSON | `D-ERR-001` |
-| `LOCAL_AI_FILE_IMPORT_MANIFEST_WRITE_FAILED` | `local-ai` | Failed to write generated model.manifest.json to disk | `D-ERR-001` |
+| `LOCAL_AI_FILE_IMPORT_MANIFEST_SERIALIZE_FAILED` | `local-ai` | Failed to serialize generated resolved model manifest JSON | `D-ERR-001` |
+| `LOCAL_AI_FILE_IMPORT_MANIFEST_WRITE_FAILED` | `local-ai` | Failed to write generated resolved manifest.json to disk | `D-ERR-001` |
 | `LOCAL_LIFECYCLE_WRITE_DENIED` | `runtime` | Source has no permission for model lifecycle write operations | `D-ERR-004` |
 | `RUNTIME_ROUTE_CAPABILITY_MISMATCH` | `runtime` | Route-bound local model lacks required capability | `D-ERR-004` |

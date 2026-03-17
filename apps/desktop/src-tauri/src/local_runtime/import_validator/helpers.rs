@@ -17,7 +17,7 @@ const SUPPORTED_CAPABILITIES: [&str; 10] = [
     "embedding",
 ];
 
-pub(super) const MODEL_MANIFEST_FILE_NAME: &str = "model.manifest.json";
+pub(super) const MODEL_MANIFEST_FILE_NAME: &str = "manifest.json";
 pub(super) const ARTIFACT_MANIFEST_FILE_NAME: &str = "artifact.manifest.json";
 
 pub(super) fn err(code: &str, message: impl AsRef<str>) -> String {

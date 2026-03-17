@@ -264,7 +264,8 @@ fn execute_orphan_scaffold_import(
         }
     };
 
-    let dest_dir = models_root.join(slug);
+    let logical_model_id = default_logical_model_id(model_id);
+    let dest_dir = resolved_model_dir(&models_root, logical_model_id.as_str());
     let dest_file = dest_dir.join(file_name);
     let mut record = super::types::LocalAiDownloadSessionRecord {
         install_session_id: install_session_id.to_string(),
@@ -440,21 +441,22 @@ fn execute_orphan_scaffold_import(
     record.bytes_received = file_size;
     record.speed_bytes_per_sec = None;
     record.eta_seconds = None;
-    record.message = Some("writing model manifest".to_string());
+    record.message = Some("writing resolved model manifest".to_string());
     persist_orphan_download_record_best_effort(app, &mut record);
 
     let normalized_engine = normalize_local_engine(engine, capabilities);
-    let logical_model_id = default_logical_model_id(model_id);
     let artifact_roles = default_artifact_roles_for_capabilities(capabilities);
     let preferred_engine = default_preferred_engine_for_capabilities(capabilities);
     let fallback_engines =
         default_fallback_engines_for_engine(normalized_engine.as_str(), capabilities);
     let manifest = serde_json::json!({
+        "schemaVersion": "1.0.0",
         "model_id": model_id,
         "logical_model_id": logical_model_id,
         "capabilities": capabilities,
         "engine": normalized_engine,
         "entry": file_name,
+        "files": [file_name],
         "license": "unknown",
         "source": {
             "repo": format!("local-import/{}", slug),
@@ -468,7 +470,7 @@ fn execute_orphan_scaffold_import(
         "fallback_engines": fallback_engines,
         "endpoint": endpoint
     });
-    let manifest_path = dest_dir.join("model.manifest.json");
+    let manifest_path = resolved_model_manifest_path(&models_root, logical_model_id.as_str());
     let manifest_json = match serde_json::to_string_pretty(&manifest) {
         Ok(json) => json,
         Err(error) => {

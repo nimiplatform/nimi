@@ -151,9 +151,21 @@ pub fn runtime_local_models_reveal_in_folder(
 ) -> Result<(), String> {
     let local_model_id = normalize_non_empty(payload.local_model_id.as_str())
         .ok_or_else(|| "LOCAL_AI_MODEL_ID_REQUIRED".to_string())?;
-    let slug = slugify_local_model_id(local_model_id.as_str());
     let models_root = runtime_models_dir(&app)?;
-    let model_dir = models_root.join(&slug);
+    let state = load_state(&app)?;
+    let model_dir = state
+        .models
+        .iter()
+        .find(|record| record.local_model_id == local_model_id)
+        .map(|record| {
+            let logical_model_id = if record.logical_model_id.trim().is_empty() {
+                default_logical_model_id(record.model_id.as_str())
+            } else {
+                record.logical_model_id.clone()
+            };
+            resolved_model_dir(&models_root, logical_model_id.as_str())
+        })
+        .unwrap_or_else(|| models_root.clone());
     let target = if model_dir.exists() {
         &model_dir
     } else {

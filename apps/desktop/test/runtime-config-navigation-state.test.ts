@@ -291,7 +291,7 @@ test('normalizeLocalModelV11: embedding models default to llama without fake end
   try {
     const embedding = normalizeLocalModelV11({
       localModelId: 'local/embed-default',
-      model: 'nexa/embed',
+      model: 'llama/embed',
       capabilities: ['embedding'],
     });
 

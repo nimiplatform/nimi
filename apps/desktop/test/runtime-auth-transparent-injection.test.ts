@@ -123,7 +123,7 @@ async function invokeLocalGenerateWithoutSubject(): Promise<void> {
   await getPlatformClient().runtime.ai.executeScenario({
     head: {
       appId: getPlatformClient().runtime.appId,
-      modelId: 'localai/bartowski/Qwen_Qwen3.5-0.8B-GGUF',
+      modelId: 'llama/bartowski/Qwen_Qwen3.5-0.8B-GGUF',
       routePolicy: 1,
       fallback: 1,
       timeoutMs: 60_000,
