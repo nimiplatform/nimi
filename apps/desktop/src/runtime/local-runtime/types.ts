@@ -167,6 +167,9 @@ export type LocalRuntimeRecommendationTier = 'recommended' | 'runnable' | 'tight
 export type LocalRuntimeRecommendationHostSupportClass = 'supported_supervised' | 'attached_only' | 'unsupported';
 export type LocalRuntimeRecommendationConfidence = 'high' | 'medium' | 'low';
 export type LocalRuntimeRecommendationBaseline = 'image-default-v1' | 'video-default-v1';
+export type LocalRuntimeRecommendationFeedCacheState = 'fresh' | 'stale' | 'empty';
+export type LocalRuntimeRecommendationFeedCapability = 'chat' | 'image' | 'video';
+export type LocalRuntimeRecommendationFeedSource = 'model-index';
 
 export type LocalRuntimeSuggestedArtifact = {
   templateId?: string;
@@ -187,6 +190,57 @@ export type LocalRuntimeCatalogRecommendation = {
   suggestedArtifacts: LocalRuntimeSuggestedArtifact[];
   suggestedNotes: string[];
   baseline?: LocalRuntimeRecommendationBaseline;
+};
+
+export type LocalRuntimeRecommendationFeedEntryDescriptor = {
+  entryId: string;
+  format: LocalRuntimeRecommendationFormat;
+  entry: string;
+  files: string[];
+  totalSizeBytes: number;
+  sha256?: string;
+};
+
+export type LocalRuntimeRecommendationInstalledState = {
+  installed: boolean;
+  localModelId?: string;
+  status?: LocalRuntimeModelStatus;
+};
+
+export type LocalRuntimeRecommendationActionState = {
+  canReviewInstallPlan: boolean;
+  canOpenVariants: boolean;
+  canOpenLocalModel: boolean;
+};
+
+export type LocalRuntimeRecommendationFeedItemDescriptor = {
+  itemId: string;
+  source: LocalRuntimeRecommendationFeedSource;
+  repo: string;
+  revision: string;
+  title: string;
+  description?: string;
+  capabilities: string[];
+  tags: string[];
+  formats: LocalRuntimeRecommendationFormat[];
+  downloads?: number;
+  likes?: number;
+  lastModified?: string;
+  preferredEngine: string;
+  verified: boolean;
+  entries: LocalRuntimeRecommendationFeedEntryDescriptor[];
+  recommendation?: LocalRuntimeCatalogRecommendation;
+  installedState: LocalRuntimeRecommendationInstalledState;
+  actionState: LocalRuntimeRecommendationActionState;
+  installPayload: LocalRuntimeInstallPayload;
+};
+
+export type LocalRuntimeRecommendationFeedDescriptor = {
+  deviceProfile: LocalRuntimeDeviceProfile;
+  activeCapability: LocalRuntimeRecommendationFeedCapability;
+  generatedAt?: string;
+  cacheState: LocalRuntimeRecommendationFeedCacheState;
+  items: LocalRuntimeRecommendationFeedItemDescriptor[];
 };
 
 export type LocalRuntimeCatalogItemDescriptor = {
@@ -259,6 +313,11 @@ export type LocalRuntimeCatalogSearchPayload = {
   query?: string;
   capability?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string;
   limit?: number;
+};
+
+export type LocalRuntimeRecommendationFeedGetPayload = {
+  capability?: LocalRuntimeRecommendationFeedCapability;
+  pageSize?: number;
 };
 
 export type LocalRuntimeListArtifactsPayload = {

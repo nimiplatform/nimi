@@ -58,6 +58,8 @@ export {
   parseModelHealth,
   parseOrphanArtifactFile,
   parseOrphanModelFile,
+  parseRecommendationFeedDescriptor,
+  parseRecommendationFeedItemDescriptor,
   parseScaffoldArtifactResult,
 } from './parsers-runtime-events';
 export function normalizeStatus(value: unknown): LocalRuntimeModelStatus {

@@ -47,6 +47,7 @@ use super::import_validator::{
     validate_loopback_endpoint,
 };
 use super::model_registry::{list_models, remove_model, upsert_model};
+use super::model_index::load_recommendation_feed;
 use super::node_catalog::list_nodes_from_services;
 use super::recommendation::{build_catalog_recommendation, build_recommendation_candidate};
 use super::reason_codes::{
@@ -72,7 +73,7 @@ use super::types::{
     LocalAiModelSource, LocalAiModelsScanOrphansPayload, LocalAiNodeDescriptor,
     LocalAiOrphanScanPreference, LocalAiProfileApplyResult,
     LocalAiProfileArtifactPlanEntry, LocalAiProfileDescriptor, LocalAiProfileEntryDescriptor,
-    LocalAiProfileResolutionPlan, LocalAiRuntimeState, LocalAiServiceArtifactType,
+    LocalAiProfileResolutionPlan, LocalAiRecommendationFeedDescriptor, LocalAiRuntimeState, LocalAiServiceArtifactType,
     LocalAiServiceDescriptor, LocalAiServiceStatus, LocalAiVerifiedArtifactDescriptor,
     LocalAiVerifiedModelDescriptor, OrphanArtifactFile, OrphanModelFile, DEFAULT_LOCAL_ENDPOINT,
     LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
@@ -96,4 +97,5 @@ include!("commands_import_file.rs");
 include!("commands_models_audit.rs");
 include!("commands_artifact_orphans.rs");
 include!("commands_orphan_scan.rs");
+include!("commands_recommendation_feed.rs");
 include!("commands_reveal_tests.rs");

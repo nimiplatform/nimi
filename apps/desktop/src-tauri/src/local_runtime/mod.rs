@@ -12,6 +12,7 @@ mod engine_pack;
 mod hf_source;
 mod import_validator;
 mod model_registry;
+mod model_index;
 mod node_catalog;
 mod provider_adapter;
 mod recommendation;

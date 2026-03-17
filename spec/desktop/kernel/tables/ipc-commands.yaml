@@ -451,6 +451,11 @@ commands:
     description: Collect local device profile (CPU/GPU/NPU/disk/ports)
     source_rule: D-IPC-011
 
+  - command: runtime_local_recommendation_feed_get
+    module: local-runtime
+    description: Read capability-scoped recommendation feed with model-index cache and local fit ranking
+    source_rule: D-IPC-011
+
   - command: runtime_local_profiles_apply
     module: local-runtime
     description: Apply a resolved local AI profile after host confirmation

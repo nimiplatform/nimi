@@ -4,12 +4,12 @@
 
 ## Scope
 
-运行时配置功能域 — AI Runtime 面板、provider 选择、model 绑定、daemon 管理、本地引擎状态、cloud connector CRUD、mod AI 依赖管理。
+运行时配置功能域 — AI Runtime 面板、provider 选择、model 绑定、daemon 管理、本地引擎状态、推荐页、cloud connector CRUD、mod AI 依赖管理。
 
 ## Module Map
 
 - `features/runtime-config/` — Runtime 配置面板
-- `features/runtime-config/pages/` — 5 个页面组件（overview / local / cloud / runtime / mods）
+- `features/runtime-config/pages/` — Runtime Config 页面组件（overview / recommend / local / cloud / runtime / mods / system pages）
 - `features/runtime-config/panels/sidebar.tsx` — 左侧边栏导航
 - `features/runtime-config/domain/` — 系统资源、费用预估 mock hooks
 
@@ -20,16 +20,31 @@ Runtime 配置面板采用 **左侧边栏 + 内容区** 两栏布局，不再使
 ### Page 枚举
 
 ```typescript
-type RuntimePageIdV11 = 'overview' | 'local' | 'cloud' | 'runtime' | 'mods';
+type RuntimePageIdV11 =
+  | 'overview'
+  | 'recommend'
+  | 'local'
+  | 'cloud'
+  | 'catalog'
+  | 'runtime'
+  | 'mods'
+  | 'data-management'
+  | 'performance'
+  | 'mod-developer';
 ```
 
 | Page | 组件 | 职责 |
 |------|------|------|
 | `overview` | `OverviewPage` | Dashboard：统计卡片、系统资源监控、费用预估、Capability 覆盖矩阵、Daemon 状态、快捷导航 |
+| `recommend` | `RecommendPage` | 推荐页：model-index 候选池、设备画像、按 capability 的适配榜单、install plan / variants review |
 | `local` | `LocalPage` | 本地模型管理：搜索/安装/导入/启停/删除、下载进度、catalog、HuggingFace 搜索 |
 | `cloud` | `CloudPage` | Cloud Connector CRUD：添加/删除/编辑/测试 connector、vendor/endpoint/token 配置 |
+| `catalog` | `CatalogPage` | 提供商与模型目录管理 |
 | `runtime` | `RuntimePage` | Runtime 管理：Endpoint 配置、Daemon 生命周期、健康探测、审计日志、EAA、Provider 诊断、Node Matrix |
 | `mods` | `ModsPage` | Mod AI 依赖：列出 AI 依赖 mods、capability 状态检查、依赖解析与 apply |
+| `data-management` | `DataManagementPage` | 本地数据、缓存、账户数据管理 |
+| `performance` | `PerformancePage` | 渲染偏好、更新与运行时性能信息 |
+| `mod-developer` | `DeveloperPage` | Mod 开发者模式、sources 与诊断 |
 
 ### Page 元数据
 
@@ -73,8 +88,10 @@ type RuntimeConfigStateV11 = {
 
 - `activePage: RuntimePageIdV11` — 当前页面
 - `onChangePage(page: RuntimePageIdV11)` — 切换页面
+- `activeCapability: CapabilityV11` 通过 panel state 持久化；`recommend` page 只消费 `chat / image / video`
 - daemon lifecycle（start/stop/restart/refresh）
 - model management（install/remove/start/stop, catalog, HF search, file import, companion asset import/retry）
+- recommendation feed（model-index 候选、device snapshot、local filter、install plan/variant review）
 - connector CRUD（通过 connector-sdk-service + connector-actions）
 - EAA token management
 - audit data streaming

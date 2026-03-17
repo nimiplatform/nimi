@@ -92,6 +92,7 @@
 | `runtime_local_models_catalog_resolve_install_plan` | `local-runtime` | Resolve install plan for a selected catalog item | `D-IPC-011` |
 | `runtime_local_profiles_resolve` | `local-runtime` | Resolve a mod-declared local AI profile into an executable runtime plan | `D-IPC-011` |
 | `runtime_local_device_profile_collect` | `local-runtime` | Collect local device profile (CPU/GPU/NPU/disk/ports) | `D-IPC-011` |
+| `runtime_local_recommendation_feed_get` | `local-runtime` | Read capability-scoped recommendation feed with model-index cache and local fit ranking | `D-IPC-011` |
 | `runtime_local_profiles_apply` | `local-runtime` | Apply a resolved local AI profile after host confirmation | `D-IPC-011` |
 | `runtime_local_services_list` | `local-runtime` | List local runtime managed services | `D-IPC-011` |
 | `runtime_local_services_install` | `local-runtime` | Install local runtime managed service | `D-IPC-011` |

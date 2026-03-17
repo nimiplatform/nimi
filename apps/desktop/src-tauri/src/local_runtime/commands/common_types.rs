@@ -30,6 +30,13 @@ pub struct LocalAiModelsCatalogSearchPayload {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct LocalAiRecommendationFeedGetPayload {
+    pub capability: Option<String>,
+    pub page_size: Option<usize>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LocalAiModelsCatalogListVariantsPayload {
     pub repo: Option<String>,
 }

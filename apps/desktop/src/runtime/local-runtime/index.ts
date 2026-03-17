@@ -17,6 +17,7 @@ import {
   resumeLocalRuntimeDownload,
   cancelLocalRuntimeDownload,
   collectLocalRuntimeDeviceProfile,
+  getLocalRuntimeRecommendationFeed,
   applyLocalRuntimeProfile,
   getLocalRuntimeProfileInstallStatus,
   listLocalRuntimeServices,
@@ -90,6 +91,9 @@ import type {
   LocalRuntimeNodesCatalogListPayload,
   LocalRuntimeModelHealth,
   LocalRuntimeModelRecord,
+  LocalRuntimeRecommendationFeedDescriptor,
+  LocalRuntimeRecommendationFeedItemDescriptor,
+  LocalRuntimeRecommendationFeedGetPayload,
   LocalRuntimeAuditPayload,
   LocalRuntimeSnapshot,
   LocalRuntimeWriteOptions,
@@ -186,6 +190,9 @@ export type {
   LocalRuntimeNodesCatalogListPayload,
   LocalRuntimeModelHealth,
   LocalRuntimeModelRecord,
+  LocalRuntimeRecommendationFeedDescriptor,
+  LocalRuntimeRecommendationFeedItemDescriptor,
+  LocalRuntimeRecommendationFeedGetPayload,
   LocalRuntimeAuditPayload,
   LocalRuntimeCapability,
   LocalRuntimePollingOptions,
@@ -215,6 +222,9 @@ export type LocalRuntimeFacade = {
   listRepoVariants: (repo: string) => Promise<LocalRuntimeCatalogVariantDescriptor[]>;
   resolveInstallPlan: (payload: LocalRuntimeCatalogResolveInstallPlanPayload) => Promise<LocalRuntimeInstallPlanDescriptor>;
   collectDeviceProfile: () => Promise<LocalRuntimeDeviceProfile>;
+  getRecommendationFeed: (
+    payload?: LocalRuntimeRecommendationFeedGetPayload,
+  ) => Promise<LocalRuntimeRecommendationFeedDescriptor>;
   resolveProfile: (payload: LocalRuntimeProfileResolvePayload) => Promise<LocalRuntimeProfileResolutionPlan>;
   applyProfile: (
     plan: LocalRuntimeProfileResolutionPlan,
@@ -327,6 +337,7 @@ export const localRuntime: LocalRuntimeFacade = {
   listRepoVariants: listLocalRuntimeRepoGgufVariants,
   resolveInstallPlan: resolveLocalRuntimeInstallPlan,
   collectDeviceProfile: collectLocalRuntimeDeviceProfile,
+  getRecommendationFeed: getLocalRuntimeRecommendationFeed,
   resolveProfile: resolveLocalRuntimeProfile,
   applyProfile: applyLocalRuntimeProfile,
   getProfileInstallStatus: getLocalRuntimeProfileInstallStatus,

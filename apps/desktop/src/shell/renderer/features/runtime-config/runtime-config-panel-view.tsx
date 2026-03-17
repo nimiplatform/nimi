@@ -7,6 +7,7 @@ import { RUNTIME_PAGE_META } from './runtime-config-meta-v11';
 import { RuntimeSidebar } from './runtime-config-sidebar';
 import { StatusBadge, DaemonStatusBadge } from './runtime-config-primitives';
 import { OverviewPage } from './runtime-config-page-overview';
+import { RecommendPage } from './runtime-config-page-recommend';
 import { LocalPage } from './runtime-config-page-local';
 import { CloudPage } from './runtime-config-page-cloud';
 import { CatalogPage } from './runtime-config-page-catalog';
@@ -92,7 +93,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
         <aside className="flex w-[224px] shrink-0 flex-col bg-[#F8F9FB] px-4 py-4">
           <RuntimeSkeletonBlock className="h-9 w-32 rounded-xl" />
           <div className="mt-5 space-y-3">
-            {Array.from({ length: 7 }).map((_, index) => (
+            {Array.from({ length: 8 }).map((_, index) => (
               <RuntimeSkeletonBlock key={index} className="h-11 w-full" />
             ))}
           </div>
@@ -185,6 +186,11 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
               {activePage === 'overview' && (
                 <div data-testid={E2E_IDS.runtimePageRoot('overview')}>
                   <OverviewPage model={model} state={state} />
+                </div>
+              )}
+              {activePage === 'recommend' && (
+                <div data-testid={E2E_IDS.runtimePageRoot('recommend')}>
+                  <RecommendPage model={model} state={state} />
                 </div>
               )}
               {activePage === 'cloud' && (

@@ -2,6 +2,14 @@ import type {
   GgufVariantDescriptor,
   LocalRuntimeAuditEvent,
   LocalRuntimeCatalogRecommendation,
+  LocalRuntimeRecommendationActionState,
+  LocalRuntimeRecommendationFeedCapability,
+  LocalRuntimeRecommendationFeedCacheState,
+  LocalRuntimeRecommendationFeedDescriptor,
+  LocalRuntimeRecommendationFeedEntryDescriptor,
+  LocalRuntimeRecommendationFeedItemDescriptor,
+  LocalRuntimeRecommendationFeedSource,
+  LocalRuntimeRecommendationInstalledState,
   LocalRuntimeDownloadState,
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeDownloadSessionSummary,
@@ -37,10 +45,33 @@ const RECOMMENDATION_BASELINES = new Set<NonNullable<LocalRuntimeCatalogRecommen
   'image-default-v1',
   'video-default-v1',
 ]);
+const RECOMMENDATION_FEED_CAPABILITIES = new Set<LocalRuntimeRecommendationFeedCapability>(['chat', 'image', 'video']);
+const RECOMMENDATION_FEED_CACHE_STATES = new Set<LocalRuntimeRecommendationFeedCacheState>(['fresh', 'stale', 'empty']);
+const RECOMMENDATION_FEED_SOURCES = new Set<LocalRuntimeRecommendationFeedSource>(['model-index']);
 
 function parseEnumValue<T extends string>(value: unknown, allowed: Set<T>): T | undefined {
   const normalized = asString(value) as T;
   return allowed.has(normalized) ? normalized : undefined;
+}
+
+function requiredEnumValue<T extends string>(
+  field: string,
+  value: unknown,
+  allowed: Set<T>,
+): T {
+  const normalized = parseEnumValue(value, allowed);
+  if (!normalized) {
+    throw new Error(`Invalid local runtime field: ${field}`);
+  }
+  return normalized;
+}
+
+function requiredString(field: string, value: unknown): string {
+  const normalized = asString(value);
+  if (!normalized) {
+    throw new Error(`Missing local runtime field: ${field}`);
+  }
+  return normalized;
 }
 
 export function parseCatalogRecommendation(value: unknown): LocalRuntimeCatalogRecommendation | undefined {
@@ -107,6 +138,139 @@ export function parseGgufVariantDescriptor(value: unknown): GgufVariantDescripto
     sizeBytes: typeof record.sizeBytes === 'number' ? record.sizeBytes : undefined,
     sha256: asString(record.sha256) || undefined,
     recommendation: parseCatalogRecommendation(record.recommendation),
+  };
+}
+
+export function parseRecommendationFeedEntryDescriptor(value: unknown): LocalRuntimeRecommendationFeedEntryDescriptor {
+  const record = asRecord(value);
+  const totalSizeBytes = Number(record.totalSizeBytes);
+  return {
+    entryId: requiredString('recommendationFeed.entries[].entryId', record.entryId),
+    format: requiredEnumValue(
+      'recommendationFeed.entries[].format',
+      record.format,
+      RECOMMENDATION_FORMATS,
+    ),
+    entry: requiredString('recommendationFeed.entries[].entry', record.entry),
+    files: Array.isArray(record.files) ? record.files.map((item) => asString(item)).filter(Boolean) : [],
+    totalSizeBytes: Number.isFinite(totalSizeBytes) && totalSizeBytes > 0 ? totalSizeBytes : 0,
+    sha256: asString(record.sha256) || undefined,
+  };
+}
+
+export function parseRecommendationInstalledState(value: unknown): LocalRuntimeRecommendationInstalledState {
+  const record = asRecord(value);
+  return {
+    installed: Boolean(record.installed),
+    localModelId: asString(record.localModelId) || undefined,
+    status: record.status ? normalizeStatus(record.status) : undefined,
+  };
+}
+
+export function parseRecommendationActionState(value: unknown): LocalRuntimeRecommendationActionState {
+  const record = asRecord(value);
+  return {
+    canReviewInstallPlan: Boolean(record.canReviewInstallPlan),
+    canOpenVariants: Boolean(record.canOpenVariants),
+    canOpenLocalModel: Boolean(record.canOpenLocalModel),
+  };
+}
+
+export function parseRecommendationFeedItemDescriptor(value: unknown): LocalRuntimeRecommendationFeedItemDescriptor | undefined {
+  const record = asRecord(value);
+  const installPayload = asRecord(record.installPayload);
+  const source = parseEnumValue(record.source, RECOMMENDATION_FEED_SOURCES);
+  const itemId = asString(record.itemId);
+  const repo = asString(record.repo);
+  const title = asString(record.title);
+  const preferredEngine = asString(record.preferredEngine);
+  const installModelId = asString(installPayload.modelId);
+  const installRepo = asString(installPayload.repo);
+  if (!source || !itemId || !repo || !title || !preferredEngine || !installModelId || !installRepo) {
+    return undefined;
+  }
+  const downloads = Number(record.downloads);
+  const likes = Number(record.likes);
+  const entries = Array.isArray(record.entries)
+    ? record.entries.map((item) => {
+      try {
+        return parseRecommendationFeedEntryDescriptor(item);
+      } catch {
+        return undefined;
+      }
+    }).filter((item): item is LocalRuntimeRecommendationFeedEntryDescriptor => Boolean(item))
+    : [];
+  const formats = Array.isArray(record.formats)
+    ? record.formats
+      .map((item) => parseEnumValue(item, RECOMMENDATION_FORMATS))
+      .filter((item): item is NonNullable<LocalRuntimeRecommendationFeedItemDescriptor['formats'][number]> => Boolean(item))
+    : [];
+  return {
+    itemId,
+    source,
+    repo,
+    revision: asString(record.revision),
+    title,
+    description: asString(record.description) || undefined,
+    capabilities: Array.isArray(record.capabilities) ? record.capabilities.map((item) => asString(item)).filter(Boolean) : [],
+    tags: Array.isArray(record.tags) ? record.tags.map((item) => asString(item)).filter(Boolean) : [],
+    formats,
+    downloads: Number.isFinite(downloads) && downloads >= 0 ? downloads : undefined,
+    likes: Number.isFinite(likes) && likes >= 0 ? likes : undefined,
+    lastModified: asString(record.lastModified) || undefined,
+    preferredEngine,
+    verified: Boolean(record.verified),
+    entries,
+    recommendation: parseCatalogRecommendation(record.recommendation),
+    installedState: parseRecommendationInstalledState(record.installedState),
+    actionState: parseRecommendationActionState(record.actionState),
+    installPayload: {
+      modelId: installModelId,
+      repo: installRepo,
+      revision: asString(installPayload.revision) || undefined,
+      capabilities: Array.isArray(installPayload.capabilities)
+        ? (installPayload.capabilities as unknown[]).map((item) => asString(item)).filter(Boolean)
+        : undefined,
+      engine: asString(installPayload.engine) || undefined,
+      entry: asString(installPayload.entry) || undefined,
+      files: Array.isArray(installPayload.files)
+        ? (installPayload.files as unknown[]).map((item) => asString(item)).filter(Boolean)
+        : undefined,
+      license: asString(installPayload.license) || undefined,
+      hashes: Object.fromEntries(
+        Object.entries(asRecord(installPayload.hashes)).map(([key, item]) => [key, asString(item)]),
+      ),
+      endpoint: asString(installPayload.endpoint) || undefined,
+      engineConfig: undefined,
+    },
+  };
+}
+
+export function parseRecommendationFeedDescriptor(
+  value: unknown,
+  parseDeviceProfile: (value: unknown) => LocalRuntimeRecommendationFeedDescriptor['deviceProfile'],
+): LocalRuntimeRecommendationFeedDescriptor {
+  const record = asRecord(value);
+  const activeCapability = requiredEnumValue(
+    'recommendationFeed.activeCapability',
+    record.activeCapability,
+    RECOMMENDATION_FEED_CAPABILITIES,
+  );
+  const cacheState = requiredEnumValue(
+    'recommendationFeed.cacheState',
+    record.cacheState,
+    RECOMMENDATION_FEED_CACHE_STATES,
+  );
+  return {
+    deviceProfile: parseDeviceProfile(record.deviceProfile),
+    activeCapability,
+    generatedAt: asString(record.generatedAt) || undefined,
+    cacheState,
+    items: Array.isArray(record.items)
+      ? record.items
+        .map((item) => parseRecommendationFeedItemDescriptor(item))
+        .filter((item): item is LocalRuntimeRecommendationFeedItemDescriptor => Boolean(item))
+      : [],
   };
 }
 

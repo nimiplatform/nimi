@@ -211,6 +211,7 @@ Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）
 - `runtime_local_models_list` / `runtime_local_models_verified_list`：列出本地/验证模型。
 - `runtime_local_models_catalog_search` / `runtime_local_models_catalog_list_variants`：目录搜索与变体列举。
 - `runtime_local_models_catalog_resolve_install_plan`：解析安装计划。
+- `runtime_local_recommendation_feed_get`：读取 capability-scoped recommendation feed；由 Desktop/Tauri 负责 model-index 拉取、本地缓存、设备适配计算与排序。
 - `runtime_local_models_install` / `runtime_local_models_install_verified` / `runtime_local_models_import`：创建安装会话并入队 / 导入模型。
 - `runtime_local_models_import_file`：导入模型文件（copy + hash + manifest 生成）。
 - `runtime_local_models_adopt`：将 go-runtime 已存在的结构化 `LocalAiModelRecord` 纳管到 Desktop/Tauri state，不触发下载或类型选择。
@@ -230,7 +231,8 @@ Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）
 - `runtime_local_nodes_catalog_list`：列出活跃服务的能力节点。
 - `runtime_local_profiles_resolve` / `runtime_local_profiles_apply`：profile-centric mod install flow 的一等 Tauri 命令，负责解析并执行 `manifest.ai.profiles` 中的 runtime entries。
 - `runtime_local_device_profile_collect`：设备能力采集（CPU/GPU/NPU/disk/ports）。
-- `runtime_local_models_catalog_search` / `runtime_local_models_catalog_list_variants` / `runtime_local_models_catalog_resolve_install_plan` 返回面允许附带统一 `recommendation` payload；Desktop 不得再新增平行 recommendation command。
+- `runtime_local_models_catalog_search` / `runtime_local_models_catalog_list_variants` / `runtime_local_models_catalog_resolve_install_plan` 返回面允许附带统一 `recommendation` payload。
+- recommendation page 允许新增只读的 `runtime_local_recommendation_feed_get` surface，用于 capability-scoped candidate feed；install 仍必须复用现有 `resolve_install_plan` / install-plan payload，不得新增私有安装协议。
 - `runtime_local_device_profile_collect` 返回的设备画像必须包含 `total_ram_bytes`、`available_ram_bytes`，以及 GPU `total_vram_bytes?`、`available_vram_bytes?`、`memory_model`。
 - `local-runtime://download-progress`：下载进度事件通道，事件字段包含 `state`（`queued|running|paused|failed|completed|cancelled`）、`reasonCode?`、`retryable?`。
 
@@ -249,10 +251,16 @@ companion artifact 补充：
   - `runtime_local_models_catalog_list_variants`
   - `runtime_local_models_catalog_resolve_install_plan`
   - `runtime_local_models_scan_orphans`
+  - `runtime_local_recommendation_feed_get`
 - 上述入口的 recommendation 解析沿现有 local runtime audit 面记录：
   - `recommendation_resolve_invoked`
   - `recommendation_resolve_completed`
   - `recommendation_resolve_failed`
+- `runtime_local_recommendation_feed_get` 的 completed event 允许采用 feed-scoped 聚合 payload：
+  - `itemId = recommend-feed:<capability>`
+  - `modelId = null`
+  - `source = model-index-feed`
+  - 可追加 `itemCount` 与 `cacheState`
 
 执行命令：
 

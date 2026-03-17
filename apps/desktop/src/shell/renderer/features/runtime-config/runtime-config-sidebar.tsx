@@ -37,6 +37,12 @@ const ICON_LOCAL_MODELS = (
   </svg>
 );
 
+const ICON_RECOMMEND = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m12 3 2.8 5.67 6.26.91-4.53 4.41 1.07 6.24L12 17.27 6.4 20.23l1.07-6.24L2.94 9.58l6.26-.91L12 3Z" />
+  </svg>
+);
+
 const ICON_CLOUD = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M17.5 19a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.2 8.2 4 4 0 0 0 6 16h11.5z" />
@@ -97,6 +103,12 @@ const SIDEBAR_ITEMS: Array<{
     section: 'Core',
     label: 'Overview',
     icon: ICON_OVERVIEW,
+  },
+  {
+    id: 'recommend',
+    section: 'Core',
+    label: 'Recommend',
+    icon: ICON_RECOMMEND,
   },
   {
     id: 'local',

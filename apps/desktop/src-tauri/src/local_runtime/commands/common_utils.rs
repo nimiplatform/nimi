@@ -442,6 +442,86 @@ fn recommendation_resolve_failed_payload(
     })
 }
 
+fn recommendation_feed_item_id(capability: &str) -> String {
+    format!(
+        "recommend-feed:{}",
+        normalize_non_empty(capability).unwrap_or_else(|| "chat".to_string())
+    )
+}
+
+fn recommendation_feed_reason_codes(
+    cache_state: &super::types::LocalAiRecommendationFeedCacheState,
+    item_count: usize,
+) -> Vec<String> {
+    let mut codes = match cache_state {
+        super::types::LocalAiRecommendationFeedCacheState::Fresh => {
+            vec!["feed_cache_fresh".to_string()]
+        }
+        super::types::LocalAiRecommendationFeedCacheState::Stale => {
+            vec!["feed_cache_stale".to_string()]
+        }
+        super::types::LocalAiRecommendationFeedCacheState::Empty => {
+            vec!["feed_cache_empty".to_string()]
+        }
+    };
+    if item_count == 0 {
+        codes.push("feed_items_empty".to_string());
+    } else {
+        codes.push("feed_items_present".to_string());
+    }
+    codes
+}
+
+fn recommendation_feed_completed_payload(
+    capability: &str,
+    cache_state: &super::types::LocalAiRecommendationFeedCacheState,
+    item_count: usize,
+) -> serde_json::Value {
+    let item_id = recommendation_feed_item_id(capability);
+    serde_json::json!({
+        "itemId": item_id,
+        "modelId": serde_json::Value::Null,
+        "capability": capability,
+        "source": "model-index-feed",
+        "format": serde_json::Value::Null,
+        "tier": serde_json::Value::Null,
+        "hostSupportClass": serde_json::Value::Null,
+        "confidence": serde_json::Value::Null,
+        "reasonCodes": recommendation_feed_reason_codes(cache_state, item_count),
+        "itemCount": item_count,
+        "cacheState": cache_state,
+    })
+}
+
+fn append_recommendation_feed_resolve_invoked(app: &AppHandle, capability: &str) {
+    let item_id = recommendation_feed_item_id(capability);
+    append_recommendation_resolve_invoked(app, item_id.as_str(), None, Some(capability));
+}
+
+fn append_recommendation_feed_resolve_completed(
+    app: &AppHandle,
+    capability: &str,
+    cache_state: &super::types::LocalAiRecommendationFeedCacheState,
+    item_count: usize,
+) {
+    append_app_audit_event_non_blocking(
+        app,
+        EVENT_RECOMMENDATION_RESOLVE_COMPLETED,
+        None,
+        None,
+        Some(recommendation_feed_completed_payload(
+            capability,
+            cache_state,
+            item_count,
+        )),
+    );
+}
+
+fn append_recommendation_feed_resolve_failed(app: &AppHandle, capability: &str, error: &str) {
+    let item_id = recommendation_feed_item_id(capability);
+    append_recommendation_resolve_failed(app, item_id.as_str(), None, Some(capability), error);
+}
+
 fn append_recommendation_resolve_invoked(
     app: &AppHandle,
     item_id: &str,
@@ -589,6 +669,27 @@ fn validate_audit_payload_contract(
         );
     }
     if event_type == EVENT_RECOMMENDATION_RESOLVE_COMPLETED {
+        let is_feed_scope = payload
+            .as_ref()
+            .and_then(|value| value.as_object())
+            .and_then(|root| root.get("itemId"))
+            .and_then(|value| value.as_str())
+            .is_some_and(|item_id| item_id.starts_with("recommend-feed:"));
+        if is_feed_scope {
+            require_audit_payload_keys(event_type, payload, &["itemId", "source", "reasonCodes"])?;
+            return require_audit_payload_present_keys(
+                event_type,
+                payload,
+                &[
+                    "modelId",
+                    "capability",
+                    "format",
+                    "tier",
+                    "hostSupportClass",
+                    "confidence",
+                ],
+            );
+        }
         require_audit_payload_keys(
             event_type,
             payload,
@@ -638,6 +739,7 @@ fn validate_audit_payload_contract(
 #[cfg(test)]
 mod audit_contract_tests {
     use super::{
+        recommendation_feed_completed_payload,
         recommendation_resolve_completed_payload, recommendation_resolve_failed_payload,
         recommendation_resolve_invoked_payload, validate_audit_payload_contract,
     };
@@ -646,9 +748,8 @@ mod audit_contract_tests {
         EVENT_RECOMMENDATION_RESOLVE_INVOKED,
     };
     use crate::local_runtime::types::{
-        LocalAiHostSupportClass, LocalAiRecommendationConfidence,
-        LocalAiRecommendationDescriptor, LocalAiRecommendationSource,
-        LocalAiRecommendationTier,
+        LocalAiHostSupportClass, LocalAiRecommendationConfidence, LocalAiRecommendationDescriptor,
+        LocalAiRecommendationFeedCacheState, LocalAiRecommendationSource, LocalAiRecommendationTier,
     };
 
     fn recommendation_fixture() -> LocalAiRecommendationDescriptor {
@@ -721,5 +822,18 @@ mod audit_contract_tests {
             validate_audit_payload_contract(EVENT_RECOMMENDATION_RESOLVE_COMPLETED, &payload);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("reasonCodes"));
+    }
+
+    #[test]
+    fn recommendation_feed_completed_payload_satisfies_contract_with_aggregate_fields() {
+        let payload = Some(recommendation_feed_completed_payload(
+            "image",
+            &LocalAiRecommendationFeedCacheState::Stale,
+            12,
+        ));
+        assert!(
+            validate_audit_payload_contract(EVENT_RECOMMENDATION_RESOLVE_COMPLETED, &payload)
+                .is_ok()
+        );
     }
 }

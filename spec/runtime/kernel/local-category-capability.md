@@ -337,6 +337,15 @@ v1 `media-fit` 仅适用于 `image / video` 主模型，不评完整 workflow。
 - `recommended_entry` 可以指向与当前默认 entry 不同的更合适 quant 变体；其余变体进入 `fallback_entries`
 - 当参数量、context 或 quant 只能从 filename/size 推断时，系统必须降低 `confidence` 或通过 reason / note 暴露推断来源
 
+## K-LOCAL-021E Recommendation candidate feed
+
+Runtime/desktop 允许在 catalog surface 之外新增 capability-scoped candidate feed read surface，用于 recommendation page：
+
+- feed 的候选池可以来自 worker/index、verified corpus 或等价的 capability-first catalog，但必须输出 install-bridge-ready entry metadata
+- worker/index 只负责原始候选与 install-ready metadata；最终 `tier / host_support_class / confidence` 排序必须在 Desktop/Tauri 基于本机设备画像完成
+- feed item 必须复用与 catalog 相同的 `recommendation` payload 语义，不得定义第二套 recommendation contract
+- 引入 feed surface 不得改写 `SearchCatalogModels` 的固定排序规则；catalog 搜索仍遵循 `K-LOCAL-021`
+
 ## K-LOCAL-022 unhealthy 状态恢复策略
 
 处于 `UNHEALTHY` 状态的 local model/service 执行定期探活恢复：

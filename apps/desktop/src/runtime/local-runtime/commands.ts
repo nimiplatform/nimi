@@ -30,6 +30,8 @@ import type {
   LocalRuntimeImportFilePayload,
   LocalRuntimeInstallVerifiedArtifactPayload,
   LocalRuntimeModelHealth,
+  LocalRuntimeRecommendationFeedDescriptor,
+  LocalRuntimeRecommendationFeedGetPayload,
   LocalRuntimeInferenceAuditPayload,
   LocalRuntimeAuditPayload,
   LocalRuntimeDownloadProgressEvent,
@@ -68,6 +70,7 @@ import {
   parseInstallAcceptedResponse,
   parseOrphanArtifactFile,
   parseOrphanModelFile,
+  parseRecommendationFeedDescriptor,
   parseScaffoldArtifactResult,
   readGlobalTauriEventListen,
   assertLifecycleWriteAllowed,
@@ -218,6 +221,18 @@ export async function resolveLocalRuntimeInstallPlan(
 export async function collectLocalRuntimeDeviceProfile(): Promise<LocalRuntimeDeviceProfile> {
   const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_device_profile_collect');
   return parseDeviceProfile(result);
+}
+
+export async function getLocalRuntimeRecommendationFeed(
+  payload?: LocalRuntimeRecommendationFeedGetPayload,
+): Promise<LocalRuntimeRecommendationFeedDescriptor> {
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_recommendation_feed_get', {
+    payload: payload ? {
+      capability: payload.capability,
+      pageSize: payload.pageSize,
+    } : undefined,
+  });
+  return parseRecommendationFeedDescriptor(result, parseDeviceProfile);
 }
 
 function artifactIdentityMatches(

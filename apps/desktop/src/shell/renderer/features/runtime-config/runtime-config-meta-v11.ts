@@ -5,6 +5,10 @@ export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; descrip
     name: 'Overview',
     description: 'Dashboard with system stats, capability coverage, and quick actions.',
   },
+  recommend: {
+    name: 'Recommend',
+    description: 'Model-index powered leaderboard for local chat, image, and video recommendations.',
+  },
   local: {
     name: 'Local Models',
     description: 'Search, install, and manage local AI models.',

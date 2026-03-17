@@ -4,13 +4,14 @@
 
 ## Scope
 
-本地 AI 功能域 — 本地模型管理（安装/导入/启动/停止/移除）、companion artifact 管理、健康检查、推理审计、下载进度。
+本地 AI 功能域 — 本地模型管理（安装/导入/启动/停止/移除）、companion artifact 管理、健康检查、推理审计、下载进度，以及 Runtime Config 内的 recommendation feed 页面。
 
 ## Module Map
 
 - `runtime/local-ai-runtime/` — Local AI runtime 管理
 - `bridge/runtime-bridge/local-ai.ts` — Local AI IPC 桥接（懒加载）
 - `features/runtime-config/` — Runtime 配置面板中的本地 AI 管理 UI
+- `features/runtime-config/runtime-config-page-recommend*` — model-index 驱动的推荐页
 
 ## Kernel References
 
@@ -109,6 +110,28 @@ companion artifact manifest 也必须位于 `~/.nimi/models/` 根下的某个子
 - hard prerequisites 会进入估算与提示，但不会把主 tier 直接降为 `not_recommended`
 - orphan scan 允许按当前 UI 选择的 capability 做基础 recommendation；scaffold 默认引擎必须与该 recommendation 使用同一套 media 默认规则
 
+### Recommendation Feed Page
+
+Runtime Config 允许新增独立 `recommend` page，用于消费 capability-scoped candidate feed，而不改变 catalog/install-plan 的现有命令面语义：
+
+- feed 数据源来自 `model-index` worker，经 Desktop/Tauri 本地缓存后暴露给 renderer；renderer 不得直连 worker
+- feed item 必须同时携带：
+  - worker candidate 基础信息
+  - 统一 `recommendation` payload
+  - `installedState`
+  - `actionState`
+  - 可直接桥接现有 install-plan 的 payload
+- feed 页面只开放 `chat / image / video` 三个 capability
+- 排序由 Desktop/Tauri 在本机 recommendation 结果上完成；worker 只输出 capability-scoped 原始候选，不做 device-specific ranking
+- 离线行为固定：
+  - 有缓存时渲染上次成功快照并标记 stale
+  - 无缓存时显示 empty/offline state
+  - renderer 不得自行做远程 fallback
+- 页面 CTA 语义固定：
+  - `Review Install Plan` 继续走现有 `resolve_install_plan`
+  - `Open Variants` 继续走现有 `list_variants`
+  - `Open in Local Models` 只做 Runtime Config 页面跳转，不新增安装协议
+
 ### IPC Commands
 
 | Command | 方向 | 说明 |
@@ -124,13 +147,20 @@ companion artifact manifest 也必须位于 `~/.nimi/models/` 根下的某个子
 
 Desktop/Tauri local runtime 在 recommendation 解析时必须补充运行时审计事件：
 
-- recommendation 审计仅覆盖 request-driven resolve 面：`catalog search`、`list variants`、`resolve install plan`、`scan orphans`
+- recommendation 审计仅覆盖 request-driven resolve 面：`catalog search`、`list variants`、`resolve install plan`、`scan orphans`、`recommendation feed get`
 - `installed detail` / 被动列表刷新不得单独刷 recommendation 审计
 - `recommendation_resolve_invoked`
 - `recommendation_resolve_completed`
 - `recommendation_resolve_failed`
 
 payload 至少包含 `itemId/modelId/capability/source/format/tier/hostSupportClass/confidence/reasonCodes`。
+
+`recommendation feed get` 使用 feed-scoped 聚合 payload：
+
+- `itemId = recommend-feed:<capability>`
+- `modelId = null`
+- `source = model-index-feed`
+- 允许追加 `itemCount`、`cacheState`
 
 ### Error（下载相关）
 

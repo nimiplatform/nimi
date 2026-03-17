@@ -219,6 +219,7 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             local_runtime::commands::runtime_local_artifacts_verified_list,
             local_runtime::commands::runtime_local_models_verified_list,
             local_runtime::commands::runtime_local_models_catalog_search,
+            local_runtime::commands::runtime_local_recommendation_feed_get,
             local_runtime::commands::runtime_local_models_catalog_list_variants,
             local_runtime::commands::runtime_local_models_catalog_resolve_install_plan,
             local_runtime::commands::runtime_local_profiles_resolve,
