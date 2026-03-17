@@ -96,11 +96,7 @@ export class SlotRegistry {
       replace,
       wrap,
       append,
-      conflicts: [
-        ...collectConflicts(replace, 'replace'),
-        ...collectConflicts(wrap, 'wrap'),
-        ...collectConflicts(append, 'append'),
-      ],
+      conflicts: [...collectConflicts(replace, 'replace'), ...collectConflicts(wrap, 'wrap')],
     };
   }
 }
