@@ -121,7 +121,7 @@ export type LocalRuntimeProviderAdapter =
   | 'openai_compat_adapter'
   | 'llama_native_adapter'
   | 'media_native_adapter'
-  | 'media_diffusers_adapter'
+  | 'speech_native_adapter'
   | 'sidecar_music_adapter'
   | string;
 
@@ -138,6 +138,15 @@ export type LocalRuntimeProviderMediaHints = {
   policyGate?: string;
 };
 
+export type LocalRuntimeProviderSpeechHints = {
+  preferredAdapter?: LocalRuntimeProviderAdapter;
+  backend?: string;
+  family?: string;
+  driver?: string;
+  deviceId?: string;
+  policyGate?: string;
+};
+
 export type LocalRuntimeProviderSidecarHints = {
   preferredAdapter?: LocalRuntimeProviderAdapter;
 };
@@ -145,6 +154,7 @@ export type LocalRuntimeProviderSidecarHints = {
 export type LocalRuntimeProviderHints = {
   llama?: LocalRuntimeProviderLlamaHints;
   media?: LocalRuntimeProviderMediaHints;
+  speech?: LocalRuntimeProviderSpeechHints;
   sidecar?: LocalRuntimeProviderSidecarHints;
   extra?: Record<string, unknown>;
 } & Record<string, unknown>;

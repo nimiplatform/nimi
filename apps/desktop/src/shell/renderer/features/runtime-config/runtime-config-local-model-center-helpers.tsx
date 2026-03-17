@@ -804,7 +804,7 @@ export function ModelIcon({ engine }: { engine: string }) {
   const colors: Record<string, string> = {
     llama: 'from-emerald-400 to-teal-500',
     media: 'from-rose-400 to-orange-500',
-    'media.diffusers': 'from-amber-400 to-orange-500',
+    speech: 'from-sky-400 to-indigo-500',
     sidecar: 'from-sky-400 to-cyan-500',
     ollama: 'from-amber-400 to-orange-500',
     llamacpp: 'from-blue-400 to-indigo-500',

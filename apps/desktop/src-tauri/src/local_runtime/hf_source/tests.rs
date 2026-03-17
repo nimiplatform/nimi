@@ -106,7 +106,7 @@ mod tests {
             repo: "hf://test/model".to_string(),
             revision: Some("main".to_string()),
             capabilities: Some(vec!["tts".to_string()]),
-            engine: Some("localai".to_string()),
+            engine: Some("speech".to_string()),
             entry: Some("model.safetensors".to_string()),
             files: Some(vec![
                 "model.safetensors".to_string(),

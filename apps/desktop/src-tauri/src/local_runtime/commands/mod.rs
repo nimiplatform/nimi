@@ -64,18 +64,21 @@ use super::service_lifecycle::{
 use super::store::{load_state, runtime_models_dir, save_state};
 use super::supervisor::{health, start_model, stop_model};
 use super::types::{
-    generate_ulid_string, now_iso_timestamp, slugify_local_model_id, CatalogVariantDescriptor,
-    LocalAiArtifactRecord, LocalAiArtifactSource, LocalAiArtifactStatus, LocalAiAuditEvent,
+    default_artifact_roles_for_capabilities, default_endpoint_for_engine,
+    default_fallback_engines_for_engine, default_logical_model_id,
+    default_preferred_engine_for_capabilities, generate_ulid_string, normalize_local_engine,
+    now_iso_timestamp, slugify_local_model_id, CatalogVariantDescriptor, LocalAiArtifactRecord,
+    LocalAiArtifactSource, LocalAiArtifactStatus, LocalAiAuditEvent,
     LocalAiCatalogItemDescriptor, LocalAiDependencyApplyResult, LocalAiDependencyKind,
     LocalAiDependencyResolutionPlan, LocalAiDeviceProfile, LocalAiDownloadControlPayload,
     LocalAiDownloadProgressEvent, LocalAiDownloadSessionSummary, LocalAiDownloadState,
     LocalAiInstallPlanDescriptor, LocalAiInstallRequest, LocalAiModelHealth, LocalAiModelRecord,
     LocalAiModelSource, LocalAiModelsScanOrphansPayload, LocalAiNodeDescriptor,
-    LocalAiOrphanScanPreference, LocalAiProfileApplyResult,
-    LocalAiProfileArtifactPlanEntry, LocalAiProfileDescriptor, LocalAiProfileEntryDescriptor,
-    LocalAiProfileResolutionPlan, LocalAiRecommendationFeedDescriptor, LocalAiRuntimeState, LocalAiServiceArtifactType,
+    LocalAiOrphanScanPreference, LocalAiProfileApplyResult, LocalAiProfileArtifactPlanEntry,
+    LocalAiProfileDescriptor, LocalAiProfileEntryDescriptor, LocalAiProfileResolutionPlan,
+    LocalAiRecommendationFeedDescriptor, LocalAiRuntimeState, LocalAiServiceArtifactType,
     LocalAiServiceDescriptor, LocalAiServiceStatus, LocalAiVerifiedArtifactDescriptor,
-    LocalAiVerifiedModelDescriptor, OrphanArtifactFile, OrphanModelFile, DEFAULT_LOCAL_ENDPOINT,
+    LocalAiVerifiedModelDescriptor, OrphanArtifactFile, OrphanModelFile,
     LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
 };
 use super::verified_artifacts::{find_verified_artifact, verified_artifact_list};

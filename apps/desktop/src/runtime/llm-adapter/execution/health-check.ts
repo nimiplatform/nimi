@@ -3,9 +3,10 @@ import type { CheckLlmHealthInput, ProviderHealth } from './types';
 import { formatProviderError } from './utils';
 import { getRuntimeClient } from './runtime-ai-bridge';
 
-function normalizeLocalEngine(provider: string): 'llama' | 'media' | 'sidecar' | '' {
+function normalizeLocalEngine(provider: string): 'llama' | 'media' | 'speech' | 'sidecar' | '' {
   const normalized = String(provider || '').trim().toLowerCase();
-  if (normalized === 'media' || normalized === 'media.diffusers') return 'media';
+  if (normalized === 'media') return 'media';
+  if (normalized === 'speech') return 'speech';
   if (normalized === 'sidecar') return 'sidecar';
   if (normalized === 'llama' || normalized === 'local') return 'llama';
   return '';
@@ -59,7 +60,7 @@ async function probeMediaEndpoint(
     return { status: 'degraded', detail: String(healthPayload?.detail || 'ready=false') };
   }
 
-  const modelsResponse = await fetchImpl(`${root}/v1/models`, {
+  const modelsResponse = await fetchImpl(`${root}/v1/catalog`, {
     method: 'GET',
     signal: AbortSignal.timeout(5000),
   });

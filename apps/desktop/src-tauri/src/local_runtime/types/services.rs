@@ -8,9 +8,10 @@ use serde::{Deserialize, Serialize};
 pub enum LocalAiProviderAdapterKind {
     #[default]
     OpenaiCompatAdapter,
-    LocalaiNativeAdapter,
-    NexaNativeAdapter,
-    NimiMediaNativeAdapter,
+    LlamaNativeAdapter,
+    MediaNativeAdapter,
+    SpeechNativeAdapter,
+    SidecarMusicAdapter,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -70,46 +71,52 @@ pub struct LocalAiServiceHealthSpec {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalAiProviderHints {
-    pub localai: Option<LocalAiProviderLocalHints>,
-    pub nexa: Option<LocalAiProviderNexaHints>,
-    pub nimi_media: Option<LocalAiProviderNimiMediaHints>,
+    pub llama: Option<LocalAiProviderLlamaHints>,
+    pub media: Option<LocalAiProviderMediaHints>,
+    pub speech: Option<LocalAiProviderSpeechHints>,
+    pub sidecar: Option<LocalAiProviderSidecarHints>,
     pub extra: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiProviderLocalHints {
+pub struct LocalAiProviderLlamaHints {
     pub backend: Option<String>,
     pub preferred_adapter: Option<LocalAiProviderAdapterKind>,
-    pub whisper_variant: Option<String>,
-    pub stablediffusion_pipeline: Option<String>,
-    pub video_backend: Option<String>,
+    pub multimodal_projector: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiProviderNexaHints {
+pub struct LocalAiProviderMediaHints {
     pub backend: Option<String>,
     pub preferred_adapter: Option<LocalAiProviderAdapterKind>,
-    pub plugin_id: Option<String>,
-    pub device_id: Option<String>,
-    pub model_type: Option<String>,
-    pub npu_mode: Option<String>,
-    pub policy_gate: Option<String>,
-    pub host_npu_ready: Option<bool>,
-    pub model_probe_has_npu_candidate: Option<bool>,
-    pub policy_gate_allows_npu: Option<bool>,
-    pub npu_usable: Option<bool>,
-    pub gate_reason: Option<String>,
-    pub gate_detail: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiProviderNimiMediaHints {
-    pub preferred_adapter: Option<LocalAiProviderAdapterKind>,
-    pub driver: Option<String>,
     pub family: Option<String>,
+    pub image_driver: Option<String>,
+    pub video_driver: Option<String>,
+    pub device: Option<String>,
+    pub fallback_driver: Option<String>,
+    pub fallback_reason: Option<String>,
+    pub policy_gate: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalAiProviderSpeechHints {
+    pub backend: Option<String>,
+    pub preferred_adapter: Option<LocalAiProviderAdapterKind>,
+    pub family: Option<String>,
+    pub driver: Option<String>,
+    pub device: Option<String>,
+    pub voice_workflow_driver: Option<String>,
+    pub policy_gate: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalAiProviderSidecarHints {
+    pub preferred_adapter: Option<LocalAiProviderAdapterKind>,
+    pub backend: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

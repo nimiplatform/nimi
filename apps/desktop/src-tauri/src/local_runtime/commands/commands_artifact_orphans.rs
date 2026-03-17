@@ -259,11 +259,17 @@ fn scaffold_orphan_artifact_file(
         }
     };
 
+    let artifact_engine = match normalized_kind.as_str() {
+        "vae" => "media",
+        "tokenizer" | "speaker_encoder" => "speech",
+        _ => "llama",
+    };
+
     let manifest_path = target_dir.join(ARTIFACT_MANIFEST_FILE_NAME);
     let manifest = serde_json::json!({
         "artifactId": artifact_id,
         "kind": normalized_kind,
-        "engine": "localai",
+        "engine": artifact_engine,
         "entry": file_name,
         "files": [file_name],
         "license": "unknown",
@@ -326,8 +332,9 @@ mod orphan_tests {
         LocalAiModelRecord {
             local_model_id: format!("local-{model_id}"),
             model_id: model_id.to_string(),
+            logical_model_id: format!("nimi/{model_id}"),
             capabilities: vec!["chat".to_string()],
-            engine: "localai".to_string(),
+            engine: "llama".to_string(),
             entry: entry.to_string(),
             files: vec![entry.to_string()],
             license: "apache-2.0".to_string(),
@@ -343,6 +350,9 @@ mod orphan_tests {
             installed_at: "2026-01-01T00:00:00.000Z".to_string(),
             updated_at: "2026-01-01T00:00:00.000Z".to_string(),
             health_detail: None,
+            artifact_roles: vec!["llm".to_string(), "tokenizer".to_string()],
+            preferred_engine: Some("llama".to_string()),
+            fallback_engines: Vec::new(),
             engine_config: None,
             recommendation: None,
         }
@@ -422,7 +432,7 @@ mod orphan_tests {
             serde_json::from_str(&manifest_raw).expect("parse manifest");
         assert_eq!(manifest["artifactId"], result.artifact_id);
         assert_eq!(manifest["kind"], "vae");
-        assert_eq!(manifest["engine"], "localai");
+        assert_eq!(manifest["engine"], "media");
         assert_eq!(manifest["entry"], "companion.safetensors");
         assert_eq!(
             manifest["files"],

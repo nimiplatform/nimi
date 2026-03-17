@@ -437,7 +437,7 @@ pub(super) fn select_entry_file(
         return None;
     }
 
-    if engine.trim().eq_ignore_ascii_case("localai") {
+    if engine.trim().eq_ignore_ascii_case("llama") {
         if let Some(found) = candidates
             .iter()
             .find(|item| item.to_ascii_lowercase().ends_with(".gguf"))
@@ -488,7 +488,7 @@ pub(super) fn select_install_files(
     let manual_entry_matches_selected_gguf =
         normalize_hf_file_path(manual_entry.unwrap_or_default()).as_deref() == Some(entry)
             && entry.to_ascii_lowercase().ends_with(".gguf")
-            && engine.trim().eq_ignore_ascii_case("localai");
+            && engine.trim().eq_ignore_ascii_case("llama");
     if manual_entry_matches_selected_gguf {
         return vec![entry.to_string()];
     }

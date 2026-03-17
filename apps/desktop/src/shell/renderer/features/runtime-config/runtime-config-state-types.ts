@@ -21,7 +21,7 @@ export type ApiVendor =
 
 export type LocalModelOptionV11 = {
   localModelId: string;
-  engine: 'llama' | 'media' | 'media.diffusers' | 'sidecar' | string;
+  engine: 'llama' | 'media' | 'speech' | 'sidecar' | string;
   model: string;
   endpoint: string;
   capabilities: CapabilityV11[];
@@ -41,8 +41,13 @@ export type LocalProviderHintsV11 = {
     whisperVariant?: string;
   };
   media?: {
-    preferredAdapter?: 'media_native_adapter' | 'media_diffusers_adapter' | string;
+    preferredAdapter?: 'media_native_adapter' | string;
     driver?: string;
+    family?: string;
+  };
+  speech?: {
+    preferredAdapter?: 'speech_native_adapter' | string;
+    backend?: string;
     family?: string;
   };
   extra?: Record<string, unknown>;
@@ -52,8 +57,8 @@ export type LocalNodeMatrixEntryV11 = {
   nodeId: string;
   capability: NodeCapabilityV11;
   serviceId: string;
-  provider: 'llama' | 'media' | 'media.diffusers' | 'sidecar' | string;
-  adapter: 'openai_compat_adapter' | 'llama_native_adapter' | 'media_native_adapter' | 'media_diffusers_adapter' | 'sidecar_music_adapter';
+  provider: 'llama' | 'media' | 'speech' | 'sidecar' | string;
+  adapter: 'openai_compat_adapter' | 'llama_native_adapter' | 'media_native_adapter' | 'speech_native_adapter' | 'sidecar_music_adapter';
   backend?: string;
   backendSource?: string;
   available: boolean;
@@ -113,10 +118,15 @@ function defaultEngineForCapabilities(capabilities: CapabilityV11[]): LocalModel
   if (capabilities.includes('image') || capabilities.includes('video')) {
     return 'media';
   }
+  if (capabilities.includes('tts') || capabilities.includes('stt')) {
+    return 'speech';
+  }
   return 'llama';
 }
 
 function defaultEndpointForEngine(engine: LocalModelOptionV11['engine']): string {
+  if (engine === 'speech') return 'http://127.0.0.1:8330';
+  if (engine === 'media') return 'http://127.0.0.1:8321';
   return engine === 'llama' ? DEFAULT_LOCAL_ENDPOINT_V11 : '';
 }
 
@@ -317,16 +327,16 @@ export function normalizeLocalNodeMatrixEntryV11(
     normalizedAdapter = 'llama_native_adapter';
   } else if (adapterRaw === 'media_native_adapter') {
     normalizedAdapter = 'media_native_adapter';
-  } else if (adapterRaw === 'media_diffusers_adapter') {
-    normalizedAdapter = 'media_diffusers_adapter';
+  } else if (adapterRaw === 'speech_native_adapter') {
+    normalizedAdapter = 'speech_native_adapter';
   } else if (adapterRaw === 'sidecar_music_adapter') {
     normalizedAdapter = 'sidecar_music_adapter';
   } else if (adapterRaw === 'openai_compat_adapter') {
     normalizedAdapter = 'openai_compat_adapter';
   } else if (normalizedProvider === 'media') {
     normalizedAdapter = 'media_native_adapter';
-  } else if (normalizedProvider === 'media.diffusers') {
-    normalizedAdapter = 'media_diffusers_adapter';
+  } else if (normalizedProvider === 'speech') {
+    normalizedAdapter = 'speech_native_adapter';
   } else if (normalizedProvider === 'sidecar') {
     normalizedAdapter = 'sidecar_music_adapter';
   } else {

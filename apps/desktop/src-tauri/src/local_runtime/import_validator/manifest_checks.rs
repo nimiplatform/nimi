@@ -3,6 +3,10 @@ use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
 
+use crate::local_runtime::types::{
+    default_fallback_engines_for_engine, default_logical_model_id, normalize_local_engine,
+};
+
 use super::{
     err, normalize_manifest_hash, ImportedArtifactManifest, ImportedModelManifest,
     LocalAiArtifactKind, ARTIFACT_MANIFEST_FILE_NAME, MODEL_MANIFEST_FILE_NAME,
@@ -341,6 +345,7 @@ pub(crate) fn parse_and_validate_artifact_manifest(
     let model_like_manifest = ImportedModelManifest {
         schema_version: manifest.schema_version.clone(),
         model_id: manifest.artifact_id.clone(),
+        logical_model_id: default_logical_model_id(manifest.artifact_id.as_str()),
         capabilities: vec!["image".to_string()],
         engine: manifest.engine.clone(),
         entry: manifest.entry.clone(),
@@ -351,6 +356,15 @@ pub(crate) fn parse_and_validate_artifact_manifest(
             revision: manifest.source.revision.clone(),
         },
         hashes: manifest.hashes.clone(),
+        artifact_roles: vec!["companion".to_string()],
+        preferred_engine: Some(normalize_local_engine(
+            manifest.engine.as_str(),
+            &["image".to_string()],
+        )),
+        fallback_engines: default_fallback_engines_for_engine(
+            manifest.engine.as_str(),
+            &["image".to_string()],
+        ),
         engine_config: None,
     };
     assert_manifest_hashes(&model_like_manifest, path)?;

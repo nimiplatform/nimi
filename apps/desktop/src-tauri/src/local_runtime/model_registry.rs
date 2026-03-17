@@ -221,8 +221,9 @@ mod tests {
         LocalAiModelRecord {
             local_model_id: local_model_id.to_string(),
             model_id: format!("hf:test/{local_model_id}"),
+            logical_model_id: format!("nimi/{local_model_id}"),
             capabilities: capabilities.iter().map(|value| value.to_string()).collect(),
-            engine: "localai".to_string(),
+            engine: "llama".to_string(),
             entry: "model.gguf".to_string(),
             files: vec!["model.gguf".to_string()],
             license: "apache-2.0".to_string(),
@@ -238,6 +239,9 @@ mod tests {
             installed_at: "2026-01-01T00:00:00.000Z".to_string(),
             updated_at: "2026-01-01T00:00:00.000Z".to_string(),
             health_detail: None,
+            artifact_roles: vec!["llm".to_string(), "tokenizer".to_string()],
+            preferred_engine: Some("llama".to_string()),
+            fallback_engines: Vec::new(),
             engine_config: None,
             recommendation: None,
         }

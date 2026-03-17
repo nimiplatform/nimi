@@ -62,10 +62,30 @@ pub fn runtime_local_models_adopt(
         return Err("LOCAL_AI_MODEL_ID_REQUIRED: modelId is required".to_string());
     }
 
+    let normalized_engine = normalize_local_engine(payload.engine.as_str(), &payload.capabilities);
     let endpoint = if payload.endpoint.trim().is_empty() {
-        DEFAULT_LOCAL_ENDPOINT.to_string()
+        default_endpoint_for_engine(normalized_engine.as_str())
     } else {
         validate_loopback_endpoint(payload.endpoint.as_str())?
+    };
+    let logical_model_id = if payload.logical_model_id.trim().is_empty() {
+        default_logical_model_id(model_id)
+    } else {
+        payload.logical_model_id.trim().to_string()
+    };
+    let artifact_roles = if payload.artifact_roles.is_empty() {
+        default_artifact_roles_for_capabilities(&payload.capabilities)
+    } else {
+        payload.artifact_roles.clone()
+    };
+    let preferred_engine = payload
+        .preferred_engine
+        .clone()
+        .or_else(|| Some(default_preferred_engine_for_capabilities(&payload.capabilities)));
+    let fallback_engines = if payload.fallback_engines.is_empty() {
+        default_fallback_engines_for_engine(normalized_engine.as_str(), &payload.capabilities)
+    } else {
+        payload.fallback_engines.clone()
     };
 
     let now = now_iso_timestamp();
@@ -89,8 +109,9 @@ pub fn runtime_local_models_adopt(
     let record = LocalAiModelRecord {
         local_model_id: local_model_id.to_string(),
         model_id: model_id.to_string(),
+        logical_model_id,
         capabilities: payload.capabilities,
-        engine: payload.engine.trim().to_string(),
+        engine: normalized_engine,
         entry: entry.clone(),
         files: if files.is_empty() { vec![entry] } else { files },
         license: payload.license.trim().to_string(),
@@ -119,6 +140,9 @@ pub fn runtime_local_models_adopt(
                     Some(normalized)
                 }
             }),
+        artifact_roles,
+        preferred_engine,
+        fallback_engines,
         engine_config: payload.engine_config,
         recommendation: payload.recommendation,
     };
@@ -328,10 +352,17 @@ fn execute_file_import(
     };
 
     // Write model.manifest.json
+    let normalized_engine = normalize_local_engine(engine, capabilities);
+    let logical_model_id = default_logical_model_id(model_id);
+    let artifact_roles = default_artifact_roles_for_capabilities(capabilities);
+    let preferred_engine = default_preferred_engine_for_capabilities(capabilities);
+    let fallback_engines =
+        default_fallback_engines_for_engine(normalized_engine.as_str(), capabilities);
     let manifest = serde_json::json!({
         "model_id": model_id,
+        "logical_model_id": logical_model_id,
         "capabilities": capabilities,
-        "engine": engine,
+        "engine": normalized_engine,
         "entry": file_name,
         "license": "unknown",
         "source": {
@@ -341,6 +372,9 @@ fn execute_file_import(
         "hashes": {
             file_name: hash
         },
+        "artifact_roles": artifact_roles,
+        "preferred_engine": preferred_engine,
+        "fallback_engines": fallback_engines,
         "endpoint": endpoint
     });
     let manifest_path = dest_dir.join("model.manifest.json");
@@ -403,8 +437,9 @@ fn execute_file_import(
     let record = LocalAiModelRecord {
         local_model_id: local_model_id.to_string(),
         model_id: model_id.to_string(),
+        logical_model_id: default_logical_model_id(model_id),
         capabilities: capabilities.to_vec(),
-        engine: engine.to_string(),
+        engine: normalized_engine.clone(),
         entry: file_name.to_string(),
         files: vec![file_name.to_string()],
         license: "unknown".to_string(),
@@ -420,6 +455,9 @@ fn execute_file_import(
         installed_at: now_iso_timestamp(),
         updated_at: now_iso_timestamp(),
         health_detail: None,
+        artifact_roles: default_artifact_roles_for_capabilities(capabilities),
+        preferred_engine: Some(preferred_engine.clone()),
+        fallback_engines,
         engine_config: None,
         recommendation: None,
     };

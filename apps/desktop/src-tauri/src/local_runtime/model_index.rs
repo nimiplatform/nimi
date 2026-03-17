@@ -205,9 +205,16 @@ where
 
 fn preferred_engine_for_capability(capability: &str) -> String {
     if capability.eq_ignore_ascii_case("image") || capability.eq_ignore_ascii_case("video") {
-        return "nimi_media".to_string();
+        return "media".to_string();
     }
-    "localai".to_string()
+    if capability.eq_ignore_ascii_case("stt")
+        || capability.eq_ignore_ascii_case("tts")
+        || capability.eq_ignore_ascii_case("audio.transcribe")
+        || capability.eq_ignore_ascii_case("audio.synthesize")
+    {
+        return "speech".to_string();
+    }
+    "llama".to_string()
 }
 
 fn entry_files(entry: &RemoteInstallEntry) -> Vec<String> {

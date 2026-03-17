@@ -556,6 +556,7 @@ mod tests {
         LocalAiModelRecord {
             local_model_id: "local:test-model".to_string(),
             model_id: "hf:test/model".to_string(),
+            logical_model_id: "nimi/test-model".to_string(),
             capabilities: vec!["chat".to_string()],
             engine: engine.to_string(),
             entry: "model.gguf".to_string(),
@@ -573,6 +574,9 @@ mod tests {
             installed_at: "0".to_string(),
             updated_at: "0".to_string(),
             health_detail: None,
+            artifact_roles: vec!["llm".to_string(), "tokenizer".to_string()],
+            preferred_engine: Some("llama".to_string()),
+            fallback_engines: Vec::new(),
             engine_config: None,
             recommendation: None,
         }

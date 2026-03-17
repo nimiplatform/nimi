@@ -313,8 +313,9 @@ mod tests {
         LocalAiModelRecord {
             local_model_id: "local:test-model".to_string(),
             model_id: "hf:test/model".to_string(),
+            logical_model_id: "nimi/test-model".to_string(),
             capabilities: vec!["chat".to_string()],
-            engine: "localai".to_string(),
+            engine: "llama".to_string(),
             entry: "model.gguf".to_string(),
             files: vec!["model.gguf".to_string()],
             license: "apache-2.0".to_string(),
@@ -330,6 +331,9 @@ mod tests {
             installed_at: "2026-01-01T00:00:00.000Z".to_string(),
             updated_at: "2026-01-01T00:00:00.000Z".to_string(),
             health_detail: None,
+            artifact_roles: vec!["llm".to_string(), "tokenizer".to_string()],
+            preferred_engine: Some("llama".to_string()),
+            fallback_engines: Vec::new(),
             engine_config: None,
             recommendation: None,
         }
@@ -355,7 +359,7 @@ mod tests {
     fn llama_engine_match_is_case_insensitive() {
         assert!(is_llama_cpp_engine("llama-cpp"));
         assert!(is_llama_cpp_engine("LLAMA-CPP"));
-        assert!(!is_llama_cpp_engine("localai"));
+        assert!(!is_llama_cpp_engine("speech"));
     }
 
     #[test]

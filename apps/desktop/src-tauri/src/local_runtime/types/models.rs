@@ -25,6 +25,7 @@ pub struct LocalAiModelSource {
 pub struct LocalAiModelRecord {
     pub local_model_id: String,
     pub model_id: String,
+    pub logical_model_id: String,
     pub capabilities: Vec<String>,
     pub engine: String,
     pub entry: String,
@@ -41,6 +42,11 @@ pub struct LocalAiModelRecord {
     pub installed_at: String,
     pub updated_at: String,
     pub health_detail: Option<String>,
+    #[serde(default)]
+    pub artifact_roles: Vec<String>,
+    pub preferred_engine: Option<String>,
+    #[serde(default)]
+    pub fallback_engines: Vec<String>,
     pub engine_config: Option<serde_json::Value>,
     #[serde(default)]
     pub recommendation: Option<LocalAiRecommendationDescriptor>,

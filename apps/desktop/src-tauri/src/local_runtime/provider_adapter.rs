@@ -1,7 +1,7 @@
 use super::reason_codes::LOCAL_AI_ADAPTER_MISMATCH;
 use super::types::{
-    LocalAiProviderAdapterKind, LocalAiProviderHints, LocalAiProviderLocalHints,
-    LocalAiProviderNexaHints, LocalAiProviderNimiMediaHints,
+    LocalAiProviderAdapterKind, LocalAiProviderHints, LocalAiProviderLlamaHints,
+    LocalAiProviderMediaHints, LocalAiProviderSidecarHints, LocalAiProviderSpeechHints,
 };
 
 fn normalize_capability(value: &str) -> String {
@@ -12,40 +12,33 @@ pub fn normalize_provider(value: Option<&str>) -> String {
     let normalized = value
         .map(|item| item.trim().to_ascii_lowercase())
         .unwrap_or_default();
-    if normalized.is_empty() {
-        return "localai".to_string();
+    match normalized.as_str() {
+        "" => "llama".to_string(),
+        other => other.to_string(),
     }
-    if normalized == "localai" || normalized == "nexa" || normalized == "nimi_media" {
-        return normalized;
-    }
-    normalized
 }
 
 pub fn provider_from_engine(engine: &str) -> String {
     let normalized = engine.trim().to_ascii_lowercase();
-    if normalized.is_empty() {
-        return "localai".to_string();
+    match normalized.as_str() {
+        "" => "llama".to_string(),
+        value if value.starts_with("llama") => "llama".to_string(),
+        value if value.starts_with("speech") => "speech".to_string(),
+        value if value.starts_with("media") => "media".to_string(),
+        value if value.starts_with("sidecar") => "sidecar".to_string(),
+        value => value.to_string(),
     }
-    if normalized.starts_with("openai") || normalized.contains("openai-compatible") {
-        return "localai".to_string();
-    }
-    if normalized.starts_with("nexa") {
-        return "nexa".to_string();
-    }
-    if normalized.starts_with("nimi_media") || normalized.starts_with("nimimedia") {
-        return "nimi_media".to_string();
-    }
-    if normalized.starts_with("localai") {
-        return "localai".to_string();
-    }
-    normalized
 }
 
 pub fn default_adapter_for_capability(capability: &str) -> LocalAiProviderAdapterKind {
     match normalize_capability(capability).as_str() {
         "chat" | "embedding" => LocalAiProviderAdapterKind::OpenaiCompatAdapter,
-        "stt" | "tts" | "image" | "video" => LocalAiProviderAdapterKind::LocalaiNativeAdapter,
-        _ => LocalAiProviderAdapterKind::OpenaiCompatAdapter,
+        "image" | "video" => LocalAiProviderAdapterKind::MediaNativeAdapter,
+        "stt" | "tts" | "audio.transcribe" | "audio.synthesize" => {
+            LocalAiProviderAdapterKind::SpeechNativeAdapter
+        }
+        "music" => LocalAiProviderAdapterKind::SidecarMusicAdapter,
+        _ => LocalAiProviderAdapterKind::LlamaNativeAdapter,
     }
 }
 
@@ -53,124 +46,76 @@ pub fn default_adapter_for_provider_capability(
     provider: &str,
     capability: &str,
 ) -> LocalAiProviderAdapterKind {
-    let normalized_provider = normalize_provider(Some(provider));
-    if normalized_provider == "nexa" {
-        return LocalAiProviderAdapterKind::NexaNativeAdapter;
+    match normalize_provider(Some(provider)).as_str() {
+        "media" => LocalAiProviderAdapterKind::MediaNativeAdapter,
+        "speech" => LocalAiProviderAdapterKind::SpeechNativeAdapter,
+        "sidecar" => LocalAiProviderAdapterKind::SidecarMusicAdapter,
+        _ => default_adapter_for_capability(capability),
     }
-    if normalized_provider == "nimi_media" {
-        return LocalAiProviderAdapterKind::NimiMediaNativeAdapter;
-    }
-    default_adapter_for_capability(capability)
 }
 
 fn hint_preferred_adapter(
     provider: &str,
     hints: Option<&LocalAiProviderHints>,
 ) -> Option<LocalAiProviderAdapterKind> {
-    let normalized_provider = normalize_provider(Some(provider));
-    if normalized_provider == "nexa" {
-        return hints
-            .and_then(|value| value.nexa.as_ref())
-            .and_then(|nexa| nexa.preferred_adapter.clone());
+    match normalize_provider(Some(provider)).as_str() {
+        "media" => hints
+            .and_then(|value| value.media.as_ref())
+            .and_then(|media| media.preferred_adapter.clone()),
+        "speech" => hints
+            .and_then(|value| value.speech.as_ref())
+            .and_then(|speech| speech.preferred_adapter.clone()),
+        "sidecar" => hints
+            .and_then(|value| value.sidecar.as_ref())
+            .and_then(|sidecar| sidecar.preferred_adapter.clone()),
+        _ => hints
+            .and_then(|value| value.llama.as_ref())
+            .and_then(|llama| llama.preferred_adapter.clone()),
     }
-    if normalized_provider == "nimi_media" {
-        return hints
-            .and_then(|value| value.nimi_media.as_ref())
-            .and_then(|nimi_media| nimi_media.preferred_adapter.clone());
-    }
-    hints
-        .and_then(|value| value.localai.as_ref())
-        .and_then(|local| local.preferred_adapter.clone())
 }
 
-fn localai_probe_model_matches_capability(model_id: &str, capability: &str) -> bool {
+fn llama_probe_model_matches_capability(model_id: &str, capability: &str) -> bool {
     let normalized = model_id.trim().to_ascii_lowercase();
     if normalized.is_empty() {
         return false;
     }
-
     match capability.to_ascii_lowercase().as_str() {
         "chat" | "embedding" => true,
-        "stt" => {
-            normalized.contains("whisper")
-                || normalized.contains("moonshine")
-                || normalized.contains("transcrib")
-                || normalized.contains("stt")
-        }
-        "tts" => {
-            normalized.contains("tts")
-                || normalized.contains("speech")
-                || normalized.contains("voice")
-                || normalized.contains("kokoro")
-        }
-        "image" => {
-            normalized.contains("stable-diffusion")
-                || normalized.contains("stablediffusion")
-                || normalized.contains("diffusion")
-                || normalized.contains("flux")
-                || normalized.contains("image")
-        }
-        "video" => {
-            normalized.contains("video") || normalized.contains("ltx") || normalized.contains("wan")
-        }
-        _ => false,
+        "stt" | "audio.transcribe" => normalized.contains("whisper") || normalized.contains("transcrib"),
+        _ => true,
     }
 }
 
-fn nexa_probe_model_matches_capability(model_id: &str, capability: &str) -> bool {
+fn media_probe_model_matches_capability(model_id: &str, capability: &str) -> bool {
     let normalized = model_id.trim().to_ascii_lowercase();
     if normalized.is_empty() {
         return false;
     }
-
     match capability.to_ascii_lowercase().as_str() {
-        "chat" | "embedding" => true,
-        "stt" => {
-            normalized.contains("asr")
-                || normalized.contains("stt")
-                || normalized.contains("transcrib")
-                || normalized.contains("audio")
-        }
-        "tts" => {
-            normalized.contains("tts")
-                || normalized.contains("speech")
-                || normalized.contains("voice")
-        }
-        "image" => {
-            normalized.contains("image")
-                || normalized.contains("vision")
-                || normalized.contains("diffusion")
-        }
-        "rerank" => {
-            normalized.contains("rerank")
-                || normalized.contains("rank")
-                || normalized.contains("bge-reranker")
-        }
-        "cv" => {
-            normalized.contains("cv")
-                || normalized.contains("vision")
-                || normalized.contains("detector")
-                || normalized.contains("segment")
-        }
-        "diarize" => {
-            normalized.contains("diar")
-                || normalized.contains("speaker")
-                || normalized.contains("audio")
-        }
-        "video" => false,
-        _ => false,
-    }
-}
-
-fn nimi_media_probe_model_matches_capability(model_id: &str, capability: &str) -> bool {
-    let normalized = model_id.trim().to_ascii_lowercase();
-    if normalized.is_empty() {
-        return false;
-    }
-
-    match capability.to_ascii_lowercase().as_str() {
-        "image" => normalized.contains("flux") || normalized.contains("image"),
+        "image" => normalized.contains("flux") || normalized.contains("image") || normalized.contains("diffusion"),
         "video" => normalized.contains("wan") || normalized.contains("video"),
+        _ => false,
+    }
+}
+
+fn speech_probe_model_matches_capability(model_id: &str, capability: &str) -> bool {
+    let normalized = model_id.trim().to_ascii_lowercase();
+    if normalized.is_empty() {
+        return false;
+    }
+    match capability.to_ascii_lowercase().as_str() {
+        "stt" | "audio.transcribe" => {
+            normalized.contains("whisper") || normalized.contains("stt") || normalized.contains("transcrib")
+        }
+        "tts" | "audio.synthesize" => {
+            normalized.contains("kokoro")
+                || normalized.contains("tts")
+                || normalized.contains("voice")
+                || normalized.contains("speech")
+        }
+        "voice_workflow.tts_v2v" | "voice_workflow.tts_t2v" => {
+            normalized.contains("qwen3-tts") || normalized.contains("voice")
+        }
         _ => false,
     }
 }
@@ -180,14 +125,11 @@ pub fn probe_model_matches_capability_for_provider(
     model_id: &str,
     capability: &str,
 ) -> bool {
-    let normalized_provider = normalize_provider(Some(provider));
-    if normalized_provider == "nexa" {
-        return nexa_probe_model_matches_capability(model_id, capability);
+    match normalize_provider(Some(provider)).as_str() {
+        "media" => media_probe_model_matches_capability(model_id, capability),
+        "speech" => speech_probe_model_matches_capability(model_id, capability),
+        _ => llama_probe_model_matches_capability(model_id, capability),
     }
-    if normalized_provider == "nimi_media" {
-        return nimi_media_probe_model_matches_capability(model_id, capability);
-    }
-    localai_probe_model_matches_capability(model_id, capability)
 }
 
 pub fn infer_backend_hint_for_provider(
@@ -195,8 +137,24 @@ pub fn infer_backend_hint_for_provider(
     capability: &str,
     model_id: Option<&str>,
 ) -> Option<String> {
-    let _ = (provider, capability, model_id);
-    None
+    let normalized_provider = normalize_provider(Some(provider));
+    let normalized_model = model_id.unwrap_or_default().trim().to_ascii_lowercase();
+    match (normalized_provider.as_str(), normalize_capability(capability).as_str()) {
+        ("speech", "stt") | ("speech", "audio.transcribe") if normalized_model.contains("whisper") => {
+            Some("whispercpp".to_string())
+        }
+        ("speech", "tts") | ("speech", "audio.synthesize") if normalized_model.contains("kokoro") => {
+            Some("kokoro".to_string())
+        }
+        ("speech", "voice_workflow.tts_v2v") | ("speech", "voice_workflow.tts_t2v")
+            if normalized_model.contains("qwen3-tts") =>
+        {
+            Some("qwen3tts".to_string())
+        }
+        ("media", "image") if normalized_model.contains("flux") => Some("sdcpp".to_string()),
+        ("media", "video") if normalized_model.contains("wan") => Some("sdcpp".to_string()),
+        _ => None,
+    }
 }
 
 pub fn default_provider_hints_for_provider_capability(
@@ -204,79 +162,81 @@ pub fn default_provider_hints_for_provider_capability(
     capability: &str,
 ) -> Option<LocalAiProviderHints> {
     let normalized_provider = normalize_provider(Some(provider));
-    if normalized_provider == "nexa" {
-        return Some(LocalAiProviderHints {
-            localai: None,
-            nexa: Some(LocalAiProviderNexaHints {
+    match normalized_provider.as_str() {
+        "media" => Some(LocalAiProviderHints {
+            llama: None,
+            media: Some(LocalAiProviderMediaHints {
                 backend: None,
-                preferred_adapter: Some(default_adapter_for_provider_capability(
-                    normalized_provider.as_str(),
-                    capability,
-                )),
-                plugin_id: None,
-                device_id: None,
-                model_type: None,
-                npu_mode: None,
-                policy_gate: None,
-                host_npu_ready: None,
-                model_probe_has_npu_candidate: None,
-                policy_gate_allows_npu: None,
-                npu_usable: None,
-                gate_reason: None,
-                gate_detail: None,
-            }),
-            nimi_media: None,
-            extra: None,
-        });
-    }
-
-    if normalized_provider == "nimi_media" {
-        return Some(LocalAiProviderHints {
-            localai: None,
-            nexa: None,
-            nimi_media: Some(LocalAiProviderNimiMediaHints {
-                preferred_adapter: Some(default_adapter_for_provider_capability(
-                    normalized_provider.as_str(),
-                    capability,
-                )),
-                driver: None,
+                preferred_adapter: Some(default_adapter_for_provider_capability(provider, capability)),
                 family: None,
+                image_driver: None,
+                video_driver: None,
+                device: None,
+                fallback_driver: None,
+                fallback_reason: None,
+                policy_gate: None,
+            }),
+            speech: None,
+            sidecar: None,
+            extra: None,
+        }),
+        "speech" => Some(LocalAiProviderHints {
+            llama: None,
+            media: None,
+            speech: Some(LocalAiProviderSpeechHints {
+                backend: None,
+                preferred_adapter: Some(default_adapter_for_provider_capability(provider, capability)),
+                family: None,
+                driver: None,
+                device: None,
+                voice_workflow_driver: None,
+                policy_gate: None,
+            }),
+            sidecar: None,
+            extra: None,
+        }),
+        "sidecar" => Some(LocalAiProviderHints {
+            llama: None,
+            media: None,
+            speech: None,
+            sidecar: Some(LocalAiProviderSidecarHints {
+                preferred_adapter: Some(LocalAiProviderAdapterKind::SidecarMusicAdapter),
+                backend: None,
             }),
             extra: None,
-        });
-    }
-    Some(LocalAiProviderHints {
-        localai: Some(LocalAiProviderLocalHints {
-            backend: None,
-            preferred_adapter: Some(default_adapter_for_capability(capability)),
-            whisper_variant: None,
-            stablediffusion_pipeline: None,
-            video_backend: None,
         }),
-        nexa: None,
-        nimi_media: None,
-        extra: None,
-    })
+        _ => Some(LocalAiProviderHints {
+            llama: Some(LocalAiProviderLlamaHints {
+                backend: None,
+                preferred_adapter: Some(default_adapter_for_provider_capability(provider, capability)),
+                multimodal_projector: None,
+            }),
+            media: None,
+            speech: None,
+            sidecar: None,
+            extra: None,
+        }),
+    }
 }
 
 pub fn provider_backend_hint_from_hints(
     provider: &str,
     hints: Option<&LocalAiProviderHints>,
 ) -> Option<String> {
-    let normalized_provider = normalize_provider(Some(provider));
-    if normalized_provider == "nexa" {
-        return hints
-            .and_then(|value| value.nexa.as_ref())
-            .and_then(|nexa| nexa.backend.clone());
+    match normalize_provider(Some(provider)).as_str() {
+        "media" => hints
+            .and_then(|value| value.media.as_ref())
+            .and_then(|media| media.backend.clone().or_else(|| media.image_driver.clone())),
+        "speech" => hints
+            .and_then(|value| value.speech.as_ref())
+            .and_then(|speech| speech.backend.clone().or_else(|| speech.driver.clone())),
+        "sidecar" => hints
+            .and_then(|value| value.sidecar.as_ref())
+            .and_then(|sidecar| sidecar.backend.clone()),
+        _ => hints
+            .and_then(|value| value.llama.as_ref())
+            .and_then(|llama| llama.backend.clone()),
     }
-    if normalized_provider == "nimi_media" {
-        return hints
-            .and_then(|value| value.nimi_media.as_ref())
-            .and_then(|nimi_media| nimi_media.driver.clone());
-    }
-    hints
-        .and_then(|value| value.localai.as_ref())
-        .and_then(|local| local.backend.clone())
 }
 
 pub fn with_provider_backend_hint(
@@ -292,66 +252,67 @@ pub fn with_provider_backend_hint(
     if backend_value.is_empty() {
         return;
     }
-
     if hints.is_none() {
         *hints = default_provider_hints_for_provider_capability(provider, capability);
     }
     let Some(current) = hints.as_mut() else {
         return;
     };
-
-    let normalized_provider = normalize_provider(Some(provider));
-    if normalized_provider == "nexa" {
-        if current.nexa.is_none() {
-            current.nexa = Some(LocalAiProviderNexaHints::default());
-        }
-        if let Some(nexa) = current.nexa.as_mut() {
-            if nexa.backend.is_none() {
-                nexa.backend = Some(backend_value);
+    match normalize_provider(Some(provider)).as_str() {
+        "media" => {
+            if current.media.is_none() {
+                current.media = Some(LocalAiProviderMediaHints::default());
+            }
+            if let Some(media) = current.media.as_mut() {
+                if media.backend.is_none() {
+                    media.backend = Some(backend_value);
+                }
             }
         }
-        return;
-    }
-
-    if normalized_provider == "nimi_media" {
-        if current.nimi_media.is_none() {
-            current.nimi_media = Some(LocalAiProviderNimiMediaHints::default());
-        }
-        if let Some(nimi_media) = current.nimi_media.as_mut() {
-            if nimi_media.driver.is_none() {
-                nimi_media.driver = Some(backend_value);
+        "speech" => {
+            if current.speech.is_none() {
+                current.speech = Some(LocalAiProviderSpeechHints::default());
+            }
+            if let Some(speech) = current.speech.as_mut() {
+                if speech.backend.is_none() {
+                    speech.backend = Some(backend_value);
+                }
             }
         }
-        return;
-    }
-
-    if current.localai.is_none() {
-        current.localai = Some(LocalAiProviderLocalHints::default());
-    }
-    if let Some(local) = current.localai.as_mut() {
-        if local.backend.is_none() {
-            local.backend = Some(backend_value);
+        "sidecar" => {
+            if current.sidecar.is_none() {
+                current.sidecar = Some(LocalAiProviderSidecarHints::default());
+            }
+            if let Some(sidecar) = current.sidecar.as_mut() {
+                if sidecar.backend.is_none() {
+                    sidecar.backend = Some(backend_value);
+                }
+            }
+        }
+        _ => {
+            if current.llama.is_none() {
+                current.llama = Some(LocalAiProviderLlamaHints::default());
+            }
+            if let Some(llama) = current.llama.as_mut() {
+                if llama.backend.is_none() {
+                    llama.backend = Some(backend_value);
+                }
+            }
         }
     }
 }
 
 pub fn adapter_supports_capability(adapter: &LocalAiProviderAdapterKind, capability: &str) -> bool {
-    let normalized = normalize_capability(capability);
-    if normalized == "video" {
-        return matches!(adapter, LocalAiProviderAdapterKind::LocalaiNativeAdapter);
+    match normalize_capability(capability).as_str() {
+        "image" | "video" => matches!(adapter, LocalAiProviderAdapterKind::MediaNativeAdapter),
+        "stt" | "tts" | "audio.transcribe" | "audio.synthesize" | "voice_workflow.tts_v2v"
+        | "voice_workflow.tts_t2v" => matches!(adapter, LocalAiProviderAdapterKind::SpeechNativeAdapter),
+        "music" => matches!(adapter, LocalAiProviderAdapterKind::SidecarMusicAdapter),
+        _ => matches!(
+            adapter,
+            LocalAiProviderAdapterKind::OpenaiCompatAdapter | LocalAiProviderAdapterKind::LlamaNativeAdapter
+        ),
     }
-    true
-}
-
-fn nimi_media_adapter_supports_capability(capability: &str) -> bool {
-    matches!(normalize_capability(capability).as_str(), "image" | "video")
-}
-
-fn nexa_adapter_supports_capability(capability: &str) -> bool {
-    matches!(
-        normalize_capability(capability).as_str(),
-        "chat" | "embedding" | "stt" | "tts" | "image" | "rerank" | "cv" | "diarize"
-    )
 }
 
 pub fn adapter_supports_capability_for_provider(
@@ -360,34 +321,29 @@ pub fn adapter_supports_capability_for_provider(
     capability: &str,
 ) -> bool {
     let normalized_provider = normalize_provider(Some(provider));
-    let normalized_capability = normalize_capability(capability);
-
-    if normalized_provider == "nexa" {
-        if !nexa_adapter_supports_capability(capability) {
-            return false;
+    match normalized_provider.as_str() {
+        "media" => {
+            matches!(adapter, LocalAiProviderAdapterKind::MediaNativeAdapter)
+                && matches!(normalize_capability(capability).as_str(), "image" | "video")
         }
-        return matches!(adapter, LocalAiProviderAdapterKind::NexaNativeAdapter);
-    }
-
-    if normalized_provider == "nimi_media" {
-        if !nimi_media_adapter_supports_capability(capability) {
-            return false;
+        "speech" => {
+            matches!(adapter, LocalAiProviderAdapterKind::SpeechNativeAdapter)
+                && matches!(
+                    normalize_capability(capability).as_str(),
+                    "stt"
+                        | "tts"
+                        | "audio.transcribe"
+                        | "audio.synthesize"
+                        | "voice_workflow.tts_v2v"
+                        | "voice_workflow.tts_t2v"
+                )
         }
-        return matches!(adapter, LocalAiProviderAdapterKind::NimiMediaNativeAdapter);
+        "sidecar" => {
+            matches!(adapter, LocalAiProviderAdapterKind::SidecarMusicAdapter)
+                && normalize_capability(capability) == "music"
+        }
+        _ => adapter_supports_capability(adapter, capability),
     }
-
-    if normalized_provider == "localai" {
-        return match normalized_capability.as_str() {
-            "chat" | "embedding" => {
-                matches!(adapter, LocalAiProviderAdapterKind::OpenaiCompatAdapter)
-            }
-            "stt" | "tts" | "image" | "video" => {
-                matches!(adapter, LocalAiProviderAdapterKind::LocalaiNativeAdapter)
-            }
-            _ => true,
-        };
-    }
-    adapter_supports_capability(adapter, capability)
 }
 
 pub fn resolve_adapter_for_provider(
@@ -412,25 +368,28 @@ pub fn resolve_adapter_for_provider(
 }
 
 pub fn provider_available_for_capability(provider: &str, capability: &str) -> bool {
-    let normalized_provider = normalize_provider(Some(provider));
-    if normalized_provider == "nexa" {
-        return matches!(
+    match normalize_provider(Some(provider)).as_str() {
+        "media" => matches!(normalize_capability(capability).as_str(), "image" | "video"),
+        "speech" => matches!(
             normalize_capability(capability).as_str(),
-            "chat" | "embedding" | "stt" | "tts" | "image" | "rerank" | "cv" | "diarize"
-        );
+            "stt"
+                | "tts"
+                | "audio.transcribe"
+                | "audio.synthesize"
+                | "voice_workflow.tts_v2v"
+                | "voice_workflow.tts_t2v"
+        ),
+        "sidecar" => matches!(normalize_capability(capability).as_str(), "music"),
+        _ => true,
     }
-    if normalized_provider == "nimi_media" {
-        return matches!(normalize_capability(capability).as_str(), "image" | "video");
-    }
-    true
 }
 
 pub fn default_policy_gate_for_provider(provider: &str) -> Option<String> {
-    let normalized_provider = normalize_provider(Some(provider));
-    if normalized_provider == "nexa" {
-        return Some("CPU_GPU_ONLY_LICENSE_GATED_NPU".to_string());
+    match normalize_provider(Some(provider)).as_str() {
+        "media" => Some("media.host.unsupported".to_string()),
+        "speech" => Some("speech.host.unsupported".to_string()),
+        _ => None,
     }
-    None
 }
 
 #[cfg(test)]
@@ -441,91 +400,32 @@ mod tests {
     };
 
     #[test]
-    fn default_nimi_media_hints_do_not_synthesize_driver_or_family() {
-        let hints = default_provider_hints_for_provider_capability("nimi_media", "image")
-            .expect("nimi_media hints");
-        let nimi_media = hints.nimi_media.expect("nimi_media payload");
-        assert!(nimi_media.driver.is_none());
-        assert!(nimi_media.family.is_none());
+    fn default_media_hints_do_not_synthesize_driver_or_family() {
+        let hints = default_provider_hints_for_provider_capability("media", "image")
+            .expect("media hints");
+        let media = hints.media.expect("media payload");
+        assert!(media.backend.is_none());
+        assert!(media.family.is_none());
     }
 
     #[test]
-    fn infer_backend_hint_does_not_guess_from_provider_or_model_name() {
+    fn infer_backend_hint_only_emits_runtime_known_drivers() {
         assert_eq!(
-            infer_backend_hint_for_provider("nimi_media", "image", Some("flux.1-schnell")),
-            None
+            infer_backend_hint_for_provider("media", "image", Some("flux.1-schnell")),
+            Some("sdcpp".to_string())
         );
         assert_eq!(
-            infer_backend_hint_for_provider("localai", "stt", Some("whisper-large-v3")),
-            None
+            infer_backend_hint_for_provider("speech", "stt", Some("whisper-large-v3")),
+            Some("whispercpp".to_string())
         );
     }
 
     #[test]
-    fn with_provider_backend_hint_preserves_explicit_runtime_metadata_only() {
-        let mut hints = default_provider_hints_for_provider_capability("nimi_media", "image");
-        with_provider_backend_hint(
-            "nimi_media",
-            &mut hints,
-            Some("runtime-driver".to_string()),
-            "image",
-        );
-        let nimi_media = hints
-            .and_then(|value| value.nimi_media)
-            .expect("nimi_media payload");
-        assert_eq!(nimi_media.driver.as_deref(), Some("runtime-driver"));
-        assert!(nimi_media.family.is_none());
+    fn with_provider_backend_hint_preserves_runtime_metadata_only() {
+        let mut hints = default_provider_hints_for_provider_capability("speech", "tts");
+        with_provider_backend_hint("speech", &mut hints, Some("kokoro".to_string()), "tts");
+        let speech = hints.and_then(|value| value.speech).expect("speech payload");
+        assert_eq!(speech.backend.as_deref(), Some("kokoro"));
+        assert!(speech.family.is_none());
     }
-}
-
-fn parse_bool_env(value: Option<String>) -> Option<bool> {
-    let normalized = value
-        .map(|item| item.trim().to_ascii_lowercase())
-        .unwrap_or_default();
-    if normalized.is_empty() {
-        return None;
-    }
-    if normalized == "1" || normalized == "true" || normalized == "yes" || normalized == "on" {
-        return Some(true);
-    }
-    if normalized == "0" || normalized == "false" || normalized == "no" || normalized == "off" {
-        return Some(false);
-    }
-    None
-}
-
-pub fn nexa_capability_requires_npu(capability: &str) -> bool {
-    matches!(
-        normalize_capability(capability).as_str(),
-        "rerank" | "cv" | "diarize"
-    )
-}
-
-pub fn nexa_model_has_npu_candidate(model_id: &str) -> bool {
-    let normalized = model_id.trim().to_ascii_lowercase();
-    if normalized.is_empty() {
-        return false;
-    }
-    normalized.contains("npu")
-        || normalized.contains("qnn")
-        || normalized.contains("ane")
-        || normalized.contains("hexagon")
-        || normalized.contains("neural")
-}
-
-pub fn nexa_policy_gate_allows_npu() -> bool {
-    let explicit_gate =
-        parse_bool_env(std::env::var("NIMI_LOCAL_AI_NEXA_ENABLE_NPU").ok()).unwrap_or(false);
-    if !explicit_gate {
-        return false;
-    }
-    let license_present = std::env::var("NEXA_TOKEN")
-        .ok()
-        .map(|value| !value.trim().is_empty())
-        .unwrap_or(false)
-        || std::env::var("NIMI_LOCAL_AI_NEXA_LICENSE")
-            .ok()
-            .map(|value| !value.trim().is_empty())
-            .unwrap_or(false);
-    license_present
 }

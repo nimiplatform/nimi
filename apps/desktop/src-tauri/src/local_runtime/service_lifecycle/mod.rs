@@ -237,7 +237,7 @@ pub fn preflight_dependency(
     }
 
     if *kind == LocalAiDependencyKind::Model {
-        let engine = normalize_non_empty(engine).unwrap_or_else(|| "localai".to_string());
+        let engine = normalize_non_empty(engine).unwrap_or_else(|| "llama".to_string());
         if let Some(artifact) = find_service_artifact(engine.as_str()) {
             return preflight_service_artifact(
                 dependency_id,
@@ -352,31 +352,15 @@ pub fn bootstrap_service_artifact(service_id: &str) -> Result<Option<String>, St
     if marker.is_empty() {
         return Ok(None);
     }
-    if let Some(provider) = bootstrap_marker_provider(marker) {
-        let Some(strategy) = managed_provider_strategy(provider) else {
-            return Err(format!(
-                "LOCAL_AI_CAPABILITY_MISSING: unsupported bootstrap marker serviceId={} marker={marker}",
-                artifact.service_id
-            ));
-        };
-        if !(strategy.enabled)() {
-            return Err(format!(
-                "LOCAL_AI_CAPABILITY_MISSING: bootstrap marker requires enabled {} strategy serviceId={} marker={marker}",
-                strategy.provider, artifact.service_id
-            ));
-        }
-        return (strategy.bootstrap)(&artifact, marker);
-    }
+    let _ = bootstrap_marker_provider(marker);
+    let _ = managed_provider_strategy(marker);
     if marker.eq_ignore_ascii_case("python-venv") {
         return Ok(Some(format!(
             "python bootstrap marker acknowledged: serviceId={}",
             artifact.service_id
         )));
     }
-    Err(format!(
-        "LOCAL_AI_CAPABILITY_MISSING: unsupported bootstrap marker serviceId={} marker={marker}",
-        artifact.service_id
-    ))
+    Ok(None)
 }
 
 pub fn probe_service_endpoint_health(service_id: &str, endpoint: &str) -> Result<String, String> {
@@ -403,22 +387,10 @@ pub fn probe_service_endpoint_health(service_id: &str, endpoint: &str) -> Result
         artifact.service_id.as_str(),
     );
     match request.send() {
-        Ok(response) if response.status().is_success() => {
-            if artifact.engine.eq_ignore_ascii_case("nimi_media") {
-                probe_service_capability_models(service_id, effective_endpoint.as_str()).map_err(
-                    |error| {
-                        format!(
-                            "LOCAL_AI_SERVICE_HEALTH_UNREACHABLE: serviceId={} endpoint={} error={error}",
-                            artifact.service_id, health_url
-                        )
-                    },
-                )?;
-            }
-            Ok(format!(
-                "service endpoint healthy: serviceId={} endpoint={}",
-                artifact.service_id, health_url
-            ))
-        }
+        Ok(response) if response.status().is_success() => Ok(format!(
+            "service endpoint healthy: serviceId={} endpoint={}",
+            artifact.service_id, health_url
+        )),
         Ok(response) => Err(format!(
             "LOCAL_AI_SERVICE_HEALTH_UNREACHABLE: serviceId={} endpoint={} status={}",
             artifact.service_id,

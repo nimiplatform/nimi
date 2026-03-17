@@ -7,7 +7,8 @@ use super::super::recommendation::{
 };
 use super::super::service_artifacts::find_service_artifact;
 use super::super::types::{
-    LocalAiDeviceProfile, LocalAiEngineRuntimeMode, LocalAiProviderHints, DEFAULT_LOCAL_ENDPOINT,
+    default_preferred_engine_for_capabilities, normalize_local_engine, LocalAiDeviceProfile,
+    LocalAiEngineRuntimeMode, LocalAiProviderHints, DEFAULT_LOCAL_ENDPOINT,
 };
 
 pub(super) const HF_SEARCH_LIMIT_MIN: usize = 1;
@@ -68,40 +69,29 @@ pub(super) fn default_endpoint_for_engine(engine: &str) -> String {
 pub(super) fn infer_engine(repo: &str, tags: &[String], capabilities: &[String]) -> String {
     let normalized_repo = repo.trim().to_ascii_lowercase();
     let joined_tags = tags.join(" ").to_ascii_lowercase();
-    let has_image_or_video = capabilities
-        .iter()
-        .any(|item| item == "image" || item == "video");
-
-    if std::env::consts::OS == "windows" && has_image_or_video {
-        return "nimi_media".to_string();
-    }
-
-    if normalized_repo.contains("nexa")
-        || joined_tags.contains("nexa")
-        || joined_tags.contains("npu")
-        || joined_tags.contains("rerank")
-        || joined_tags.contains("diarize")
-        || capabilities.iter().any(|item| item == "rerank")
+    if normalized_repo.contains("whisper")
+        || normalized_repo.contains("kokoro")
+        || normalized_repo.contains("qwen3-tts")
+        || joined_tags.contains("speech")
+        || joined_tags.contains("audio")
+        || capabilities
+            .iter()
+            .any(|item| item == "stt" || item == "tts" || item == "audio.transcribe" || item == "audio.synthesize")
     {
-        return "nexa".to_string();
+        return "speech".to_string();
     }
-
-    if normalized_repo.contains("localai")
-        || joined_tags.contains("localai")
-        || normalized_repo.contains("whisper")
-        || normalized_repo.contains("stable-diffusion")
-        || capabilities.iter().any(|item| {
-            item == "chat"
-                || item == "embedding"
-                || item == "stt"
-                || item == "tts"
-                || item == "image"
-                || item == "video"
-        })
+    if normalized_repo.contains("flux")
+        || normalized_repo.contains("wan")
+        || normalized_repo.contains("diffusion")
+        || joined_tags.contains("image")
+        || joined_tags.contains("video")
     {
-        return "localai".to_string();
+        return "media".to_string();
     }
-    "localai".to_string()
+    normalize_local_engine(
+        default_preferred_engine_for_capabilities(capabilities).as_str(),
+        capabilities,
+    )
 }
 
 pub(super) fn provider_hints_for_capabilities(

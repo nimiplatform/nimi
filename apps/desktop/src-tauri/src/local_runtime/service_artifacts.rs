@@ -9,380 +9,87 @@ fn empty_env() -> HashMap<String, String> {
     HashMap::new()
 }
 
-fn localai_service_artifact() -> LocalAiServiceArtifact {
+fn qwen_tts_python_service_artifact() -> LocalAiServiceArtifact {
     LocalAiServiceArtifact {
-        service_id: "localai".to_string(),
-        artifact_type: LocalAiServiceArtifactType::Binary,
-        engine: "localai".to_string(),
-        install: LocalAiServiceInstallSpec {
-            requirements: Vec::new(),
-            bootstrap: Some("engine-pack:localai".to_string()),
-            binary_url: None,
-        },
-        preflight: vec![
-            LocalAiPreflightRule {
-                check: "port-available".to_string(),
-                reason_code: "LOCAL_AI_SERVICE_UNREACHABLE".to_string(),
-                params: Some(serde_json::json!({ "port": 1234 })),
-            },
-            LocalAiPreflightRule {
-                check: "disk-space".to_string(),
-                reason_code: "LOCAL_AI_SERVICE_UNREACHABLE".to_string(),
-                params: Some(serde_json::json!({ "minBytes": 536870912_u64 })),
-            },
-            LocalAiPreflightRule {
-                check: "endpoint-loopback".to_string(),
-                reason_code: "LOCAL_AI_SERVICE_UNREACHABLE".to_string(),
-                params: None,
-            },
-        ],
-        process: LocalAiServiceProcessSpec {
-            entry: "local-ai".to_string(),
-            args: vec!["run".to_string()],
-            env: empty_env(),
-            model_binding: None,
-        },
-        health: LocalAiServiceHealthSpec {
-            endpoint: "/readyz".to_string(),
-            capability_probe_endpoint: Some("/v1/models".to_string()),
-            interval_ms: 30_000,
-            timeout_ms: 4_000,
-        },
-        nodes: vec![
-            LocalAiNodeContract {
-                node_id: "chat.generate.localai".to_string(),
-                title: "LocalAI Chat Generation".to_string(),
-                capability: "chat".to_string(),
-                api_path: "/v1/chat/completions".to_string(),
-                input_schema: Some(serde_json::json!({
-                    "messages": "chat[]",
-                    "temperature": "number?",
-                    "providerHints": "object?"
-                })),
-                output_schema: Some(serde_json::json!({
-                    "text": "string",
-                    "usage": "object?"
-                })),
-            },
-            LocalAiNodeContract {
-                node_id: "embedding.generate.localai".to_string(),
-                title: "LocalAI Embedding".to_string(),
-                capability: "embedding".to_string(),
-                api_path: "/v1/embeddings".to_string(),
-                input_schema: Some(serde_json::json!({
-                    "input": "string|string[]",
-                    "providerHints": "object?"
-                })),
-                output_schema: Some(serde_json::json!({
-                    "embeddings": "number[][]"
-                })),
-            },
-            LocalAiNodeContract {
-                node_id: "speech.stt.localai".to_string(),
-                title: "LocalAI Speech-to-Text".to_string(),
-                capability: "stt".to_string(),
-                api_path: "/v1/audio/transcriptions".to_string(),
-                input_schema: Some(serde_json::json!({
-                    "audioUri": "string?",
-                    "audioBase64": "string?",
-                    "providerHints": "object?"
-                })),
-                output_schema: Some(serde_json::json!({
-                    "text": "string"
-                })),
-            },
-            LocalAiNodeContract {
-                node_id: "speech.tts.localai".to_string(),
-                title: "LocalAI Text-to-Speech".to_string(),
-                capability: "tts".to_string(),
-                api_path: "/v1/audio/speech".to_string(),
-                input_schema: Some(serde_json::json!({
-                    "text": "string",
-                    "voiceId": "string?",
-                    "providerHints": "object?"
-                })),
-                output_schema: Some(serde_json::json!({
-                    "audioUri": "string",
-                    "mimeType": "string"
-                })),
-            },
-            LocalAiNodeContract {
-                node_id: "image.generate.localai".to_string(),
-                title: "LocalAI Image Generation".to_string(),
-                capability: "image".to_string(),
-                api_path: "/v1/images/generations".to_string(),
-                input_schema: Some(serde_json::json!({
-                    "prompt": "string",
-                    "size": "string?",
-                    "providerHints": "object?"
-                })),
-                output_schema: Some(serde_json::json!({
-                    "images": "object[]"
-                })),
-            },
-            LocalAiNodeContract {
-                node_id: "video.generate.localai".to_string(),
-                title: "LocalAI Video Generation".to_string(),
-                capability: "video".to_string(),
-                api_path: "/v1/video/generations".to_string(),
-                input_schema: Some(serde_json::json!({
-                    "prompt": "string",
-                    "durationSeconds": "number?",
-                    "providerHints": "object?"
-                })),
-                output_schema: Some(serde_json::json!({
-                    "videos": "object[]"
-                })),
-            },
-        ],
-    }
-}
-
-fn nexa_service_artifact() -> LocalAiServiceArtifact {
-    LocalAiServiceArtifact {
-        service_id: "nexa".to_string(),
-        artifact_type: LocalAiServiceArtifactType::Binary,
-        engine: "nexa".to_string(),
-        install: LocalAiServiceInstallSpec {
-            requirements: Vec::new(),
-            bootstrap: Some("engine-pack:nexa".to_string()),
-            binary_url: None,
-        },
-        preflight: vec![
-            LocalAiPreflightRule {
-                check: "port-available".to_string(),
-                reason_code: "LOCAL_AI_SERVICE_UNREACHABLE".to_string(),
-                params: Some(serde_json::json!({ "port": 18181 })),
-            },
-            LocalAiPreflightRule {
-                check: "disk-space".to_string(),
-                reason_code: "LOCAL_AI_SERVICE_UNREACHABLE".to_string(),
-                params: Some(serde_json::json!({ "minBytes": 536870912_u64 })),
-            },
-            LocalAiPreflightRule {
-                check: "endpoint-loopback".to_string(),
-                reason_code: "LOCAL_AI_SERVICE_UNREACHABLE".to_string(),
-                params: None,
-            },
-        ],
-        process: LocalAiServiceProcessSpec {
-            entry: "nexa".to_string(),
-            args: vec!["--skip-update".to_string(), "serve".to_string()],
-            env: empty_env(),
-            model_binding: None,
-        },
-        health: LocalAiServiceHealthSpec {
-            endpoint: "/".to_string(),
-            capability_probe_endpoint: Some("/v1/models".to_string()),
-            interval_ms: 30_000,
-            timeout_ms: 4_000,
-        },
-        nodes: vec![
-            LocalAiNodeContract {
-                node_id: "chat.generate.nexa".to_string(),
-                title: "Nexa Chat Generation".to_string(),
-                capability: "chat".to_string(),
-                api_path: "/v1/chat/completions".to_string(),
-                input_schema: Some(serde_json::json!({
-                    "messages": "chat[]",
-                    "temperature": "number?",
-                    "providerHints": "object?"
-                })),
-                output_schema: Some(serde_json::json!({
-                    "text": "string",
-                    "usage": "object?"
-                })),
-            },
-            LocalAiNodeContract {
-                node_id: "embedding.generate.nexa".to_string(),
-                title: "Nexa Embedding".to_string(),
-                capability: "embedding".to_string(),
-                api_path: "/v1/embeddings".to_string(),
-                input_schema: Some(serde_json::json!({
-                    "input": "string|string[]",
-                    "providerHints": "object?"
-                })),
-                output_schema: Some(serde_json::json!({
-                    "embeddings": "number[][]"
-                })),
-            },
-            LocalAiNodeContract {
-                node_id: "speech.stt.nexa".to_string(),
-                title: "Nexa Speech-to-Text".to_string(),
-                capability: "stt".to_string(),
-                api_path: "/v1/audio/transcriptions".to_string(),
-                input_schema: Some(serde_json::json!({
-                    "audioUri": "string?",
-                    "audioBase64": "string?",
-                    "providerHints": "object?"
-                })),
-                output_schema: Some(serde_json::json!({
-                    "text": "string"
-                })),
-            },
-            LocalAiNodeContract {
-                node_id: "speech.tts.nexa".to_string(),
-                title: "Nexa Text-to-Speech".to_string(),
-                capability: "tts".to_string(),
-                api_path: "/v1/audio/speech".to_string(),
-                input_schema: Some(serde_json::json!({
-                    "text": "string",
-                    "voiceId": "string?",
-                    "providerHints": "object?"
-                })),
-                output_schema: Some(serde_json::json!({
-                    "audioUri": "string",
-                    "mimeType": "string"
-                })),
-            },
-            LocalAiNodeContract {
-                node_id: "image.generate.nexa".to_string(),
-                title: "Nexa Image Generation".to_string(),
-                capability: "image".to_string(),
-                api_path: "/v1/images/generations".to_string(),
-                input_schema: Some(serde_json::json!({
-                    "prompt": "string",
-                    "size": "string?",
-                    "providerHints": "object?"
-                })),
-                output_schema: Some(serde_json::json!({
-                    "images": "object[]"
-                })),
-            },
-            LocalAiNodeContract {
-                node_id: "rerank.nexa".to_string(),
-                title: "Nexa Rerank".to_string(),
-                capability: "rerank".to_string(),
-                api_path: "/v1/reranking".to_string(),
-                input_schema: Some(serde_json::json!({
-                    "query": "string",
-                    "documents": "string[]",
-                    "providerHints": "object?"
-                })),
-                output_schema: Some(serde_json::json!({
-                    "results": "object[]"
-                })),
-            },
-            LocalAiNodeContract {
-                node_id: "cv.nexa".to_string(),
-                title: "Nexa Computer Vision".to_string(),
-                capability: "cv".to_string(),
-                api_path: "/v1/cv".to_string(),
-                input_schema: Some(serde_json::json!({
-                    "task": "string",
-                    "imageUri": "string?",
-                    "imageBase64": "string?",
-                    "providerHints": "object?"
-                })),
-                output_schema: Some(serde_json::json!({
-                    "result": "object"
-                })),
-            },
-            LocalAiNodeContract {
-                node_id: "diarize.nexa".to_string(),
-                title: "Nexa Speaker Diarization".to_string(),
-                capability: "diarize".to_string(),
-                api_path: "/v1/audio/diarize".to_string(),
-                input_schema: Some(serde_json::json!({
-                    "audioUri": "string?",
-                    "audioBase64": "string?",
-                    "providerHints": "object?"
-                })),
-                output_schema: Some(serde_json::json!({
-                    "segments": "object[]"
-                })),
-            },
-        ],
-    }
-}
-
-fn nimi_media_service_artifact() -> LocalAiServiceArtifact {
-    LocalAiServiceArtifact {
-        service_id: "nimi_media".to_string(),
+        service_id: "qwen-tts-python".to_string(),
         artifact_type: LocalAiServiceArtifactType::PythonEnv,
-        engine: "nimi_media".to_string(),
+        engine: "speech".to_string(),
         install: LocalAiServiceInstallSpec {
-            requirements: Vec::new(),
-            bootstrap: Some("engine-pack:nimi_media".to_string()),
+            requirements: vec![
+                "qwen-tts".to_string(),
+                "fastapi".to_string(),
+                "uvicorn[standard]".to_string(),
+                "soundfile".to_string(),
+            ],
+            bootstrap: Some("python-venv".to_string()),
             binary_url: None,
         },
         preflight: vec![
             LocalAiPreflightRule {
-                check: "port-available".to_string(),
-                reason_code: "LOCAL_AI_SERVICE_UNREACHABLE".to_string(),
-                params: Some(serde_json::json!({ "port": 8321 })),
-            },
-            LocalAiPreflightRule {
-                check: "disk-space".to_string(),
-                reason_code: "LOCAL_AI_SERVICE_UNREACHABLE".to_string(),
-                params: Some(serde_json::json!({ "minBytes": 536870912_u64 })),
+                check: "python-version".to_string(),
+                reason_code: "LOCAL_AI_QWEN_PYTHON_REQUIRED".to_string(),
+                params: Some(serde_json::json!({ "minVersion": "3.10" })),
             },
             LocalAiPreflightRule {
                 check: "endpoint-loopback".to_string(),
-                reason_code: "LOCAL_AI_SERVICE_UNREACHABLE".to_string(),
+                reason_code: "LOCAL_AI_QWEN_ENDPOINT_NOT_LOOPBACK".to_string(),
                 params: None,
             },
         ],
         process: LocalAiServiceProcessSpec {
-            entry: "nimi_media_server.py".to_string(),
-            args: Vec::new(),
+            entry: "python".to_string(),
+            args: vec![
+                "${GATEWAY_SCRIPT}".to_string(),
+                "--host".to_string(),
+                "${HOST}".to_string(),
+                "--port".to_string(),
+                "${PORT}".to_string(),
+                "--model-dir".to_string(),
+                "${MODEL_DIR}".to_string(),
+                "--model-id".to_string(),
+                "${MODEL_ID}".to_string(),
+                "--log-level".to_string(),
+                "warning".to_string(),
+            ],
             env: empty_env(),
-            model_binding: None,
+            model_binding: Some("resolved-bundle".to_string()),
         },
         health: LocalAiServiceHealthSpec {
-            endpoint: "/healthz".to_string(),
-            capability_probe_endpoint: Some("/v1/catalog".to_string()),
+            endpoint: "/v1/models".to_string(),
+            capability_probe_endpoint: Some("/v1/models".to_string()),
             interval_ms: 30_000,
             timeout_ms: 4_000,
         },
-        nodes: vec![
-            LocalAiNodeContract {
-                node_id: "image.generate.nimi_media".to_string(),
-                title: "Nimi Media Image Generation".to_string(),
-                capability: "image".to_string(),
-                api_path: "/v1/media/image/generate".to_string(),
-                input_schema: Some(serde_json::json!({
-                    "prompt": "string",
-                    "size": "string?",
-                    "providerHints": "object?"
-                })),
-                output_schema: Some(serde_json::json!({
-                    "images": "object[]"
-                })),
-            },
-            LocalAiNodeContract {
-                node_id: "video.generate.nimi_media".to_string(),
-                title: "Nimi Media Video Generation".to_string(),
-                capability: "video".to_string(),
-                api_path: "/v1/media/video/generate".to_string(),
-                input_schema: Some(serde_json::json!({
-                    "prompt": "string",
-                    "durationSeconds": "number?",
-                    "providerHints": "object?"
-                })),
-                output_schema: Some(serde_json::json!({
-                    "videos": "object[]"
-                })),
-            },
-        ],
+        nodes: vec![LocalAiNodeContract {
+            node_id: "voice_workflow.tts_t2v.qwen3tts".to_string(),
+            title: "Qwen3 TTS Voice Design".to_string(),
+            capability: "voice_workflow.tts_t2v".to_string(),
+            api_path: "/v1/voice/design".to_string(),
+            input_schema: Some(serde_json::json!({
+                "text": "string",
+                "voiceId": "string?",
+                "providerHints": "object?"
+            })),
+            output_schema: Some(serde_json::json!({
+                "audioBase64": "string",
+                "mimeType": "string"
+            })),
+        }],
     }
 }
 
 pub fn service_artifact_registry() -> Vec<LocalAiServiceArtifact> {
-    vec![
-        localai_service_artifact(),
-        nexa_service_artifact(),
-        nimi_media_service_artifact(),
-    ]
+    vec![qwen_tts_python_service_artifact()]
 }
 
 pub fn find_service_artifact(service_id: &str) -> Option<LocalAiServiceArtifact> {
-    let normalized = service_id.trim().to_ascii_lowercase();
+    let normalized = service_id.trim();
+    if normalized.is_empty() {
+        return None;
+    }
     service_artifact_registry().into_iter().find(|item| {
-        item.service_id
-            .trim()
-            .eq_ignore_ascii_case(normalized.as_str())
-            || item.engine.trim().eq_ignore_ascii_case(normalized.as_str())
+        item.service_id.eq_ignore_ascii_case(normalized)
+            || item.engine.eq_ignore_ascii_case(normalized)
     })
 }
 
@@ -391,34 +98,21 @@ mod tests {
     use super::{find_service_artifact, service_artifact_registry};
 
     #[test]
-    fn service_artifact_registry_uses_engine_ids_as_service_ids() {
+    fn service_artifact_registry_contains_only_runtime_native_host_artifacts() {
         let artifacts = service_artifact_registry();
-        assert!(artifacts
-            .iter()
-            .any(|artifact| artifact.service_id == "localai"));
-        assert!(artifacts
-            .iter()
-            .any(|artifact| artifact.service_id == "nexa"));
-        assert!(artifacts
-            .iter()
-            .any(|artifact| artifact.service_id == "nimi_media"));
+        assert_eq!(artifacts.len(), 1);
+        assert_eq!(artifacts[0].service_id, "qwen-tts-python");
+        assert_eq!(artifacts[0].engine, "speech");
     }
 
     #[test]
-    fn nimi_media_service_artifact_uses_canonical_health_and_media_paths() {
-        let artifact = find_service_artifact("nimi_media").expect("nimi_media artifact");
-        assert_eq!(artifact.health.endpoint, "/healthz");
-        assert_eq!(
-            artifact.health.capability_probe_endpoint.as_deref(),
-            Some("/v1/catalog")
-        );
-        assert!(artifact.nodes.iter().any(|node| {
-            node.node_id == "image.generate.nimi_media"
-                && node.api_path == "/v1/media/image/generate"
-        }));
-        assert!(artifact.nodes.iter().any(|node| {
-            node.node_id == "video.generate.nimi_media"
-                && node.api_path == "/v1/media/video/generate"
-        }));
+    fn qwen_service_artifact_uses_speech_native_contract() {
+        let artifact =
+            find_service_artifact("qwen-tts-python").expect("qwen-tts-python artifact");
+        assert_eq!(artifact.health.endpoint, "/v1/models");
+        assert!(artifact
+            .nodes
+            .iter()
+            .any(|node| node.api_path == "/v1/voice/design"));
     }
 }

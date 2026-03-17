@@ -27,7 +27,7 @@ pub fn runtime_local_models_import_file(
         .as_deref()
         .map(|v| v.trim())
         .filter(|v| !v.is_empty())
-        .unwrap_or("localai");
+        .unwrap_or("llama");
     let default_endpoint = default_runtime_endpoint_for(Some(engine));
     let endpoint = validate_loopback_endpoint(
         payload
@@ -122,4 +122,3 @@ pub fn runtime_local_models_import_file(
 
     Ok(accepted)
 }
-

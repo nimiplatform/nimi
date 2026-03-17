@@ -18,6 +18,7 @@ pub struct ImportedModelSource {
 pub struct ImportedModelManifest {
     pub schema_version: String,
     pub model_id: String,
+    pub logical_model_id: String,
     pub capabilities: Vec<String>,
     pub engine: String,
     pub entry: String,
@@ -26,6 +27,11 @@ pub struct ImportedModelManifest {
     pub license: String,
     pub source: ImportedModelSource,
     pub hashes: HashMap<String, String>,
+    #[serde(default)]
+    pub artifact_roles: Vec<String>,
+    pub preferred_engine: Option<String>,
+    #[serde(default)]
+    pub fallback_engines: Vec<String>,
     pub engine_config: Option<serde_json::Value>,
 }
 
@@ -37,6 +43,7 @@ pub struct LocalAiVerifiedModelDescriptor {
     pub description: String,
     pub install_kind: String,
     pub model_id: String,
+    pub logical_model_id: String,
     pub repo: String,
     pub revision: String,
     pub capabilities: Vec<String>,
@@ -49,6 +56,9 @@ pub struct LocalAiVerifiedModelDescriptor {
     pub file_count: usize,
     pub total_size_bytes: Option<u64>,
     pub tags: Vec<String>,
+    pub artifact_roles: Vec<String>,
+    pub preferred_engine: String,
+    pub fallback_engines: Vec<String>,
     pub engine_config: Option<serde_json::Value>,
 }
 

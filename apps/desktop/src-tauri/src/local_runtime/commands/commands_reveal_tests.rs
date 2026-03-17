@@ -46,10 +46,10 @@ mod tests {
     }
 
     #[test]
-    fn install_preflight_runs_for_localai_engine() {
-        let request = install_request_fixture(Some("localai"));
+    fn install_preflight_runs_for_llama_engine() {
+        let request = install_request_fixture(Some("llama"));
         let result = run_install_preflight_with(&request, |engine| {
-            assert_eq!(engine, "localai");
+            assert_eq!(engine, "llama");
             Err("LOCAL_AI_SERVICE_UNREACHABLE: service unreachable".to_string())
         });
         let error = result.expect_err("preflight error should bubble");
@@ -58,9 +58,9 @@ mod tests {
 
     #[test]
     fn install_preflight_runs_for_explicit_engine() {
-        let request = install_request_fixture(Some("localai"));
+        let request = install_request_fixture(Some("llama"));
         let result = run_install_preflight_with(&request, |engine| {
-            assert_eq!(engine, "localai");
+            assert_eq!(engine, "llama");
             Ok(())
         });
         assert!(result.is_ok());

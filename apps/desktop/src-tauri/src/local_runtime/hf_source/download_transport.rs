@@ -271,28 +271,28 @@ fn build_manifest_from_install_request(
         .clone()
         .unwrap_or_else(|| vec!["chat".to_string()]);
     let capabilities = normalize_and_validate_capabilities(&capabilities_input)?;
-    let default_engine = if capabilities.iter().any(|item| item == "image" || item == "video") {
-        "nimi_media"
-    } else if capabilities
-        .iter()
-        .any(|item| item == "tts" || item == "stt" || item == "embedding")
-    {
-        "nexa"
-    } else {
-        "localai"
-    };
+    let default_engine = default_preferred_engine_for_capabilities(&capabilities);
+    let normalized_engine = normalize_local_engine(
+        request.engine.as_deref().unwrap_or(default_engine.as_str()),
+        &capabilities,
+    );
 
     let hashes = if !computed_hashes.is_empty() {
         computed_hashes.clone()
     } else {
         request.hashes.clone().unwrap_or_default()
     };
+    let artifact_roles = default_artifact_roles_for_capabilities(&capabilities);
+    let preferred_engine = default_preferred_engine_for_capabilities(&capabilities);
+    let fallback_engines =
+        default_fallback_engines_for_engine(normalized_engine.as_str(), &capabilities);
 
     Ok(ImportedModelManifest {
         schema_version: "1.0.0".to_string(),
         model_id: request.model_id.trim().to_string(),
+        logical_model_id: default_logical_model_id(request.model_id.as_str()),
         capabilities,
-        engine: normalize_non_empty(request.engine.as_deref().unwrap_or(default_engine), default_engine),
+        engine: normalized_engine.clone(),
         entry: entry_file.to_string(),
         files: files.to_vec(),
         license: normalize_non_empty(request.license.as_deref().unwrap_or("unknown"), "unknown"),
@@ -301,6 +301,9 @@ fn build_manifest_from_install_request(
             revision: normalize_non_empty(request.revision.as_deref().unwrap_or("main"), "main"),
         },
         hashes,
+        artifact_roles,
+        preferred_engine: Some(preferred_engine),
+        fallback_engines,
         engine_config: request.engine_config.clone(),
     })
 }

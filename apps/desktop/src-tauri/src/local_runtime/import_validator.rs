@@ -53,8 +53,9 @@ pub fn manifest_to_model_record(
     Ok(LocalAiModelRecord {
         local_model_id,
         model_id: manifest.model_id.trim().to_string(),
+        logical_model_id: normalize_non_empty(&manifest.logical_model_id, &manifest.model_id),
         capabilities,
-        engine: normalize_non_empty(&manifest.engine, "localai"),
+        engine: normalize_non_empty(&manifest.engine, "llama"),
         entry: manifest.entry.trim().to_string(),
         files,
         license: manifest.license.trim().to_string(),
@@ -74,6 +75,9 @@ pub fn manifest_to_model_record(
         installed_at: now.clone(),
         updated_at: now,
         health_detail: None,
+        artifact_roles: manifest.artifact_roles.clone(),
+        preferred_engine: manifest.preferred_engine.clone(),
+        fallback_engines: manifest.fallback_engines.clone(),
         engine_config: manifest.engine_config.clone(),
         recommendation: None,
     })
@@ -91,7 +95,7 @@ pub fn manifest_to_artifact_record(
         local_artifact_id,
         artifact_id: manifest.artifact_id.trim().to_string(),
         kind,
-        engine: normalize_non_empty(&manifest.engine, "localai"),
+        engine: normalize_non_empty(&manifest.engine, "llama"),
         entry: manifest.entry.trim().to_string(),
         files: if manifest.files.is_empty() {
             vec![manifest.entry.trim().to_string()]
@@ -225,9 +229,11 @@ mod tests {
             serde_json::json!({
                 "schemaVersion": "1.0.0",
                 "modelId": "hf:test/model",
+                "logicalModelId": "nimi/test-model",
                 "capabilities": ["chat"],
-                "engine": "localai",
+                "engine": "llama",
                 "entry": "model.gguf",
+                "files": ["model.gguf"],
                 "license": "apache-2.0",
                 "source": {
                     "repo": "hf://test/model",
@@ -235,7 +241,10 @@ mod tests {
                 },
                 "hashes": {
                     "model.gguf": format!("sha256:{correct_hash}")
-                }
+                },
+                "artifactRoles": ["llm", "tokenizer"],
+                "preferredEngine": "llama",
+                "fallbackEngines": []
             })
             .to_string(),
         )
@@ -249,9 +258,11 @@ mod tests {
             serde_json::json!({
                 "schemaVersion": "1.0.0",
                 "modelId": "hf:test/model",
+                "logicalModelId": "nimi/test-model",
                 "capabilities": ["chat"],
-                "engine": "localai",
+                "engine": "llama",
                 "entry": "model.gguf",
+                "files": ["model.gguf"],
                 "license": "apache-2.0",
                 "source": {
                     "repo": "hf://test/model",
@@ -259,7 +270,10 @@ mod tests {
                 },
                 "hashes": {
                     "model.gguf": "sha256:deadbeef"
-                }
+                },
+                "artifactRoles": ["llm", "tokenizer"],
+                "preferredEngine": "llama",
+                "fallbackEngines": []
             })
             .to_string(),
         )
@@ -305,13 +319,17 @@ mod tests {
             serde_json::json!({
                 "schemaVersion": "",
                 "modelId": "hf:test/model",
+                "logicalModelId": "nimi/test-model",
                 "capabilities": ["chat"],
-                "engine": "localai",
+                "engine": "llama",
                 "entry": "model.gguf",
                 "files": ["model.gguf"],
                 "license": "apache-2.0",
                 "source": {"repo": "hf://test/model", "revision": "main"},
-                "hashes": {"model.gguf": "sha256:abc123"}
+                "hashes": {"model.gguf": "sha256:abc123"},
+                "artifactRoles": ["llm", "tokenizer"],
+                "preferredEngine": "llama",
+                "fallbackEngines": []
             })
             .to_string(),
         )
@@ -331,13 +349,17 @@ mod tests {
             serde_json::json!({
                 "schemaVersion": "1.0.0",
                 "modelId": "",
+                "logicalModelId": "nimi/test-model",
                 "capabilities": ["chat"],
-                "engine": "localai",
+                "engine": "llama",
                 "entry": "model.gguf",
                 "files": ["model.gguf"],
                 "license": "apache-2.0",
                 "source": {"repo": "hf://test/model", "revision": "main"},
-                "hashes": {"model.gguf": "sha256:abc123"}
+                "hashes": {"model.gguf": "sha256:abc123"},
+                "artifactRoles": ["llm", "tokenizer"],
+                "preferredEngine": "llama",
+                "fallbackEngines": []
             })
             .to_string(),
         )
@@ -357,13 +379,17 @@ mod tests {
             serde_json::json!({
                 "schemaVersion": "1.0.0",
                 "modelId": "hf:test/model",
+                "logicalModelId": "nimi/test-model",
                 "capabilities": ["chat"],
-                "engine": "localai",
+                "engine": "llama",
                 "entry": "model.gguf",
                 "files": ["config.json"],
                 "license": "apache-2.0",
                 "source": {"repo": "hf://test/model", "revision": "main"},
-                "hashes": {"config.json": "sha256:abc123"}
+                "hashes": {"config.json": "sha256:abc123"},
+                "artifactRoles": ["llm", "tokenizer"],
+                "preferredEngine": "llama",
+                "fallbackEngines": []
             })
             .to_string(),
         )
@@ -383,13 +409,17 @@ mod tests {
             serde_json::json!({
                 "schemaVersion": "1.0.0",
                 "modelId": "hf:test/model",
+                "logicalModelId": "nimi/test-model",
                 "capabilities": ["chat"],
-                "engine": "localai",
+                "engine": "llama",
                 "entry": "model.gguf",
                 "files": ["model.gguf"],
                 "license": "apache-2.0",
                 "source": {"repo": "hf://test/model", "revision": "main"},
-                "hashes": {}
+                "hashes": {},
+                "artifactRoles": ["llm", "tokenizer"],
+                "preferredEngine": "llama",
+                "fallbackEngines": []
             })
             .to_string(),
         )
@@ -410,8 +440,9 @@ mod tests {
         let manifest = ImportedModelManifest {
             schema_version: "1.0.0".to_string(),
             model_id: "hf:test/model".to_string(),
+            logical_model_id: "nimi/test-model".to_string(),
             capabilities: vec!["chat".to_string()],
-            engine: "localai".to_string(),
+            engine: "llama".to_string(),
             entry: "model.gguf".to_string(),
             files: vec!["model.gguf".to_string()],
             license: "apache-2.0".to_string(),
@@ -420,6 +451,9 @@ mod tests {
                 revision: "main".to_string(),
             },
             hashes: HashMap::from([("model.gguf".to_string(), "sha256:abc123".to_string())]),
+            artifact_roles: vec!["llm".to_string(), "tokenizer".to_string()],
+            preferred_engine: Some("llama".to_string()),
+            fallback_engines: Vec::new(),
             engine_config: None,
         };
         let record = manifest_to_model_record(&manifest, None, None).expect("model record");
@@ -427,6 +461,6 @@ mod tests {
         assert!(record.local_model_id.starts_with("local_hf-test-model_"));
         assert_eq!(record.model_id, "hf:test/model");
         assert_eq!(record.capabilities, vec!["chat"]);
-        assert_eq!(record.engine, "localai");
+        assert_eq!(record.engine, "llama");
     }
 }

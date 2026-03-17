@@ -8,10 +8,10 @@ fn z_image_vae_descriptor() -> LocalAiVerifiedArtifactDescriptor {
     LocalAiVerifiedArtifactDescriptor {
         template_id: "verified.artifact.z_image.vae".to_string(),
         title: "Z-Image AE VAE".to_string(),
-        description: "Recommended verified companion VAE for LocalAI Z-Image workflows".to_string(),
+        description: "Recommended verified companion VAE for local media Z-Image workflows".to_string(),
         artifact_id: "local/z_image_ae".to_string(),
         kind: LocalAiArtifactKind::Vae,
-        engine: "localai".to_string(),
+        engine: "media".to_string(),
         entry: "vae/diffusion_pytorch_model.safetensors".to_string(),
         files: vec!["vae/diffusion_pytorch_model.safetensors".to_string()],
         license: "tongyi".to_string(),
@@ -38,10 +38,10 @@ fn z_image_qwen_descriptor() -> LocalAiVerifiedArtifactDescriptor {
     LocalAiVerifiedArtifactDescriptor {
         template_id: "verified.artifact.z_image.qwen3_4b".to_string(),
         title: "Qwen3 4B Companion LLM".to_string(),
-        description: "Recommended verified companion LLM for LocalAI Z-Image workflows".to_string(),
+        description: "Recommended verified companion LLM for local media Z-Image workflows".to_string(),
         artifact_id: "local/qwen3_4b_companion".to_string(),
         kind: LocalAiArtifactKind::Llm,
-        engine: "localai".to_string(),
+        engine: "llama".to_string(),
         entry: "Qwen3-4B-Q4_K_M.gguf".to_string(),
         files: vec!["Qwen3-4B-Q4_K_M.gguf".to_string()],
         license: "qwen".to_string(),
@@ -98,6 +98,6 @@ mod tests {
         let descriptor =
             find_verified_artifact("verified.artifact.z_image.vae").expect("descriptor");
         assert_eq!(descriptor.artifact_id, "local/z_image_ae");
-        assert_eq!(descriptor.engine, "localai");
+        assert_eq!(descriptor.engine, "media");
     }
 }

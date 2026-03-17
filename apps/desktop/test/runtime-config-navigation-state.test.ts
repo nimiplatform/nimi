@@ -263,7 +263,7 @@ test('state round-trip: persist activePage then normalize back correctly', () =>
   }
 });
 
-test('normalizeLocalModelV11: image and video models default to media without fake endpoint', () => {
+test('normalizeLocalModelV11: image and video models default to media with canonical endpoint', () => {
   setRuntimeConfigPlatformForTests('windows');
   try {
     const image = normalizeLocalModelV11({
@@ -278,9 +278,9 @@ test('normalizeLocalModelV11: image and video models default to media without fa
     });
 
     assert.equal(image.engine, 'media');
-    assert.equal(image.endpoint, '');
+    assert.equal(image.endpoint, 'http://127.0.0.1:8321');
     assert.equal(video.engine, 'media');
-    assert.equal(video.endpoint, '');
+    assert.equal(video.endpoint, 'http://127.0.0.1:8321');
   } finally {
     setRuntimeConfigPlatformForTests(null);
   }
@@ -302,7 +302,7 @@ test('normalizeLocalModelV11: embedding models default to llama without fake end
   }
 });
 
-test('normalizeLocalModelV11: non-windows image models also use media by default', () => {
+test('normalizeLocalModelV11: non-windows image models also use media canonical endpoint', () => {
   setRuntimeConfigPlatformForTests('darwin');
   try {
     const image = normalizeLocalModelV11({
@@ -312,7 +312,7 @@ test('normalizeLocalModelV11: non-windows image models also use media by default
     });
 
     assert.equal(image.engine, 'media');
-    assert.equal(image.endpoint, '');
+    assert.equal(image.endpoint, 'http://127.0.0.1:8321');
   } finally {
     setRuntimeConfigPlatformForTests(null);
   }

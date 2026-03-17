@@ -19,12 +19,17 @@ fn normalize_optional_capability(value: Option<&str>) -> Option<String> {
 }
 
 fn default_orphan_engine(profile: &LocalAiDeviceProfile, capability: &str) -> &'static str {
-    if profile.os.eq_ignore_ascii_case("windows")
-        && matches!(capability, "image" | "video")
-    {
-        return "nimi_media";
+    if matches!(capability, "image" | "video") {
+        return "media";
     }
-    "localai"
+    if matches!(
+        capability,
+        "stt" | "tts" | "audio.transcribe" | "audio.synthesize"
+    ) {
+        return "speech";
+    }
+    let _ = profile;
+    "llama"
 }
 
 fn recommendation_for_orphan_file(
@@ -438,10 +443,17 @@ fn execute_orphan_scaffold_import(
     record.message = Some("writing model manifest".to_string());
     persist_orphan_download_record_best_effort(app, &mut record);
 
+    let normalized_engine = normalize_local_engine(engine, capabilities);
+    let logical_model_id = default_logical_model_id(model_id);
+    let artifact_roles = default_artifact_roles_for_capabilities(capabilities);
+    let preferred_engine = default_preferred_engine_for_capabilities(capabilities);
+    let fallback_engines =
+        default_fallback_engines_for_engine(normalized_engine.as_str(), capabilities);
     let manifest = serde_json::json!({
         "model_id": model_id,
+        "logical_model_id": logical_model_id,
         "capabilities": capabilities,
-        "engine": engine,
+        "engine": normalized_engine,
         "entry": file_name,
         "license": "unknown",
         "source": {
@@ -451,6 +463,9 @@ fn execute_orphan_scaffold_import(
         "hashes": {
             file_name: hash
         },
+        "artifact_roles": artifact_roles,
+        "preferred_engine": preferred_engine,
+        "fallback_engines": fallback_engines,
         "endpoint": endpoint
     });
     let manifest_path = dest_dir.join("model.manifest.json");
@@ -484,8 +499,9 @@ fn execute_orphan_scaffold_import(
     let model_record = LocalAiModelRecord {
         local_model_id: local_model_id.to_string(),
         model_id: model_id.to_string(),
+        logical_model_id: default_logical_model_id(model_id),
         capabilities: capabilities.to_vec(),
-        engine: engine.to_string(),
+        engine: normalized_engine.clone(),
         entry: file_name.to_string(),
         files: vec![file_name.to_string()],
         license: "unknown".to_string(),
@@ -501,6 +517,9 @@ fn execute_orphan_scaffold_import(
         installed_at: now_iso_timestamp(),
         updated_at: now_iso_timestamp(),
         health_detail: None,
+        artifact_roles: default_artifact_roles_for_capabilities(capabilities),
+        preferred_engine: Some(preferred_engine.clone()),
+        fallback_engines,
         engine_config: None,
         recommendation: None,
     };

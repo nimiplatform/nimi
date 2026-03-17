@@ -92,7 +92,7 @@ function normalizeCapabilityToken(value: unknown): RuntimeCanonicalCapability | 
 }
 function inferSource(provider: string): 'local' | 'cloud' {
     const lower = String(provider || '').trim().toLowerCase();
-    if (lower.startsWith('local') || lower === 'llama' || lower === 'media' || lower === 'sidecar' || lower === 'media.diffusers') {
+    if (lower.startsWith('local') || lower === 'llama' || lower === 'media' || lower === 'speech' || lower === 'sidecar') {
         return 'local';
     }
     return 'cloud';
@@ -109,7 +109,7 @@ function fallbackLocalEngine(capability?: RuntimeCanonicalCapability): string {
 }
 function inferLocalEngine(provider: string, capability?: RuntimeCanonicalCapability, runtimeDefaultEngine?: string): string {
     const rawProvider = String(provider || '').trim().toLowerCase();
-    if (rawProvider === 'llama' || rawProvider === 'media' || rawProvider === 'sidecar' || rawProvider === 'media.diffusers') {
+    if (rawProvider === 'llama' || rawProvider === 'media' || rawProvider === 'speech' || rawProvider === 'sidecar') {
         return normalizeLocalEngine(rawProvider);
     }
     const defaultEngine = String(runtimeDefaultEngine || '').trim();
@@ -123,6 +123,9 @@ function defaultLocalAdapter(provider: string, capability: RuntimeCanonicalCapab
     const normalizedProvider = normalizeLocalEngine(provider);
     if (normalizedProvider === 'media') {
         return 'media_native_adapter';
+    }
+    if (normalizedProvider === 'speech') {
+        return 'speech_native_adapter';
     }
     if (normalizedProvider === 'sidecar' || capability === 'audio.synthesize') {
         return 'sidecar_music_adapter';

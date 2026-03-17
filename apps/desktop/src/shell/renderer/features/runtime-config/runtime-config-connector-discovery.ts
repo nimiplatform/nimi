@@ -72,7 +72,7 @@ export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV
       | 'openai_compat_adapter'
       | 'llama_native_adapter'
       | 'media_native_adapter'
-      | 'media_diffusers_adapter'
+      | 'speech_native_adapter'
       | 'sidecar_music_adapter',
     available: n.available !== false,
     providerHints: n.providerHints,

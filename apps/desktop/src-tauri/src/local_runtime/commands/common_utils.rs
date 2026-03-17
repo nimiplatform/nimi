@@ -68,7 +68,7 @@ fn default_runtime_endpoint_for(service_identity: Option<&str>) -> String {
     if let Some(port) = port {
         return format!("http://127.0.0.1:{port}/v1");
     }
-    DEFAULT_LOCAL_ENDPOINT.to_string()
+    default_endpoint_for_engine(service_identity.unwrap_or_default())
 }
 
 fn extract_probe_model_ids(payload: &serde_json::Value) -> Vec<String> {
@@ -189,7 +189,7 @@ fn install_engine(request: &LocalAiInstallRequest) -> String {
         .map(|value| value.trim())
         .unwrap_or_default();
     if candidate.is_empty() {
-        "localai".to_string()
+        "llama".to_string()
     } else {
         candidate.to_string()
     }

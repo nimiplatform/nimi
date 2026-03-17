@@ -375,7 +375,7 @@ export function normalizeProviderAdapter(value: unknown): LocalRuntimeProviderAd
   if (
     raw === 'llama_native_adapter'
     || raw === 'media_native_adapter'
-    || raw === 'media_diffusers_adapter'
+    || raw === 'speech_native_adapter'
     || raw === 'sidecar_music_adapter'
   ) {
     return raw;
@@ -387,13 +387,15 @@ export function parseProviderHints(value: unknown): LocalRuntimeProviderHints | 
   const record = asRecord(value);
   const llama = asRecord(record.llama);
   const media = asRecord(record.media);
+  const speech = asRecord(record.speech);
   const sidecar = asRecord(record.sidecar);
   const passthrough = Object.fromEntries(
-    Object.entries(record).filter(([key]) => key !== 'llama' && key !== 'media' && key !== 'sidecar'),
+    Object.entries(record).filter(([key]) => key !== 'llama' && key !== 'media' && key !== 'speech' && key !== 'sidecar'),
   );
   if (
     Object.keys(llama).length === 0
     && Object.keys(media).length === 0
+    && Object.keys(speech).length === 0
     && Object.keys(sidecar).length === 0
     && Object.keys(passthrough).length === 0
   ) {
@@ -401,6 +403,7 @@ export function parseProviderHints(value: unknown): LocalRuntimeProviderHints | 
   }
   const llamaPreferredAdapter = asString(llama.preferredAdapter || llama.preferred_adapter);
   const mediaPreferredAdapter = asString(media.preferredAdapter || media.preferred_adapter);
+  const speechPreferredAdapter = asString(speech.preferredAdapter || speech.preferred_adapter);
   const sidecarPreferredAdapter = asString(sidecar.preferredAdapter || sidecar.preferred_adapter);
   const parsed: LocalRuntimeProviderHints = { ...passthrough };
   if (Object.keys(llama).length > 0) {
@@ -416,6 +419,16 @@ export function parseProviderHints(value: unknown): LocalRuntimeProviderHints | 
       family: asString(media.family) || undefined,
       deviceId: asString(media.deviceId || media.device_id) || undefined,
       policyGate: asString(media.policyGate || media.policy_gate) || undefined,
+    };
+  }
+  if (Object.keys(speech).length > 0) {
+    parsed.speech = {
+      preferredAdapter: speechPreferredAdapter ? normalizeProviderAdapter(speechPreferredAdapter) : undefined,
+      backend: asString(speech.backend) || undefined,
+      family: asString(speech.family) || undefined,
+      driver: asString(speech.driver) || undefined,
+      deviceId: asString(speech.deviceId || speech.device_id) || undefined,
+      policyGate: asString(speech.policyGate || speech.policy_gate) || undefined,
     };
   }
   if (Object.keys(sidecar).length > 0) {

@@ -107,14 +107,6 @@ fn env_expected_sha256() -> Option<String> {
     })
 }
 
-fn env_localai_override_binary_path() -> Option<String> {
-    normalize_non_empty(std::env::var("NIMI_LOCALAI_BIN").ok().as_deref())
-}
-
-fn env_nexa_override_binary_path() -> Option<String> {
-    normalize_non_empty(std::env::var("NIMI_NEXA_BIN").ok().as_deref())
-}
-
 fn github_user_agent() -> String {
     std::env::var("NIMI_LOCAL_AI_HF_USER_AGENT")
         .ok()
@@ -567,122 +559,6 @@ pub fn ensure_llama_cpp_binary() -> Result<EnginePackBootstrapResult, String> {
         downloaded: true,
         source_url: Some(source_url),
     })
-}
-
-pub fn ensure_localai_binary() -> Result<EnginePackBootstrapResult, String> {
-    if let Some(override_path) = env_localai_override_binary_path() {
-        let path = PathBuf::from(override_path.as_str());
-        if !path.exists() {
-            return Err(format!(
-                "LOCAL_AI_ENGINE_PACK_OVERRIDE_NOT_FOUND: LocalAI binary override not found: {}",
-                path.display()
-            ));
-        }
-        return Ok(EnginePackBootstrapResult {
-            binary_path: path.to_string_lossy().to_string(),
-            downloaded: false,
-            source_url: None,
-        });
-    }
-
-    let runtime_root = runtime_root_path()?;
-    let local_cache = runtime_root
-        .join("engine-packs")
-        .join("localai")
-        .join(platform_id())
-        .join(if cfg!(target_os = "windows") {
-            "local-ai.exe"
-        } else {
-            "local-ai"
-        });
-    if local_cache.exists() {
-        return Ok(EnginePackBootstrapResult {
-            binary_path: local_cache.to_string_lossy().to_string(),
-            downloaded: false,
-            source_url: None,
-        });
-    }
-
-    let command_name = if cfg!(target_os = "windows") {
-        "local-ai.exe"
-    } else {
-        "local-ai"
-    };
-    let status = Command::new(command_name)
-        .arg("--help")
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status();
-    if status.is_ok() {
-        return Ok(EnginePackBootstrapResult {
-            binary_path: command_name.to_string(),
-            downloaded: false,
-            source_url: None,
-        });
-    }
-
-    Err(
-        "LOCAL_AI_ENGINE_PACK_LOCALAI_BINARY_MISSING: LocalAI binary is not available; set NIMI_LOCALAI_BIN or install local-ai"
-            .to_string(),
-    )
-}
-
-pub fn ensure_nexa_binary() -> Result<EnginePackBootstrapResult, String> {
-    if let Some(override_path) = env_nexa_override_binary_path() {
-        let path = PathBuf::from(override_path.as_str());
-        if !path.exists() {
-            return Err(format!(
-                "LOCAL_AI_ENGINE_PACK_OVERRIDE_NOT_FOUND: Nexa binary override not found: {}",
-                path.display()
-            ));
-        }
-        return Ok(EnginePackBootstrapResult {
-            binary_path: path.to_string_lossy().to_string(),
-            downloaded: false,
-            source_url: None,
-        });
-    }
-
-    let runtime_root = runtime_root_path()?;
-    let local_cache = runtime_root
-        .join("engine-packs")
-        .join("nexa")
-        .join(platform_id())
-        .join(if cfg!(target_os = "windows") {
-            "nexa.exe"
-        } else {
-            "nexa"
-        });
-    if local_cache.exists() {
-        return Ok(EnginePackBootstrapResult {
-            binary_path: local_cache.to_string_lossy().to_string(),
-            downloaded: false,
-            source_url: None,
-        });
-    }
-
-    let command_name = if cfg!(target_os = "windows") {
-        "nexa.exe"
-    } else {
-        "nexa"
-    };
-    let status = Command::new(command_name)
-        .arg("--help")
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status();
-    if status.is_ok() {
-        return Ok(EnginePackBootstrapResult {
-            binary_path: command_name.to_string(),
-            downloaded: false,
-            source_url: None,
-        });
-    }
-
-    Err(
-        "LOCAL_AI_ENGINE_PACK_NEXA_BINARY_MISSING: Nexa binary is not available; set NIMI_NEXA_BIN or install nexa"
-            .to_string(),
-    )
 }
 
 #[cfg(test)]

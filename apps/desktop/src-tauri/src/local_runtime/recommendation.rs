@@ -70,7 +70,7 @@ fn first_media_capability(capabilities: &[String]) -> Option<String> {
     capabilities
         .iter()
         .map(|value| normalize_capability(value))
-        .find(|value| value == "image" || value == "video")
+        .find(|value| value == "image" || value == "video" || value == "image.generate" || value == "video.generate")
 }
 
 fn first_llm_capability(capabilities: &[String]) -> Option<String> {
@@ -109,7 +109,7 @@ pub fn classify_host_support(
     profile: &LocalAiDeviceProfile,
 ) -> LocalAiHostSupportDescriptor {
     let normalized_engine = engine.trim().to_ascii_lowercase();
-    if normalized_engine == "nimi_media" {
+    if normalized_engine == "media" {
         let windows_x64 = profile.os.eq_ignore_ascii_case("windows")
             && (profile.arch.eq_ignore_ascii_case("amd64")
                 || profile.arch.eq_ignore_ascii_case("x86_64"));
@@ -117,7 +117,7 @@ pub fn classify_host_support(
             return LocalAiHostSupportDescriptor {
                 class: LocalAiHostSupportClass::AttachedOnly,
                 detail: Some(
-                    "nimi_media supervised mode requires Windows x64; configure an attached endpoint instead"
+                    "media supervised mode requires Windows x64; configure an attached endpoint instead"
                         .to_string(),
                 ),
             };
@@ -126,7 +126,7 @@ pub fn classify_host_support(
             return LocalAiHostSupportDescriptor {
                 class: LocalAiHostSupportClass::AttachedOnly,
                 detail: Some(
-                    "nimi_media supervised mode requires an NVIDIA GPU; configure an attached endpoint instead"
+                    "media supervised mode requires an NVIDIA GPU; configure an attached endpoint instead"
                         .to_string(),
                 ),
             };
@@ -135,7 +135,7 @@ pub fn classify_host_support(
             return LocalAiHostSupportDescriptor {
                 class: LocalAiHostSupportClass::AttachedOnly,
                 detail: Some(
-                    "nimi_media supervised mode requires a CUDA-ready NVIDIA runtime; configure an attached endpoint instead"
+                    "media supervised mode requires a CUDA-ready NVIDIA runtime; configure an attached endpoint instead"
                         .to_string(),
                 ),
             };
@@ -145,7 +145,7 @@ pub fn classify_host_support(
             detail: None,
         };
     }
-    if normalized_engine == "localai" {
+    if normalized_engine == "llama" {
         let supported = (profile.os.eq_ignore_ascii_case("darwin")
             && (profile.arch.eq_ignore_ascii_case("arm64")
                 || profile.arch.eq_ignore_ascii_case("amd64")
@@ -163,12 +163,12 @@ pub fn classify_host_support(
         return LocalAiHostSupportDescriptor {
             class: LocalAiHostSupportClass::AttachedOnly,
             detail: Some(
-                "localai supervised mode requires macOS or Linux; configure an attached endpoint instead"
+                "llama supervised mode requires macOS or Linux; configure an attached endpoint instead"
                     .to_string(),
             ),
         };
     }
-    if normalized_engine == "nexa" {
+    if normalized_engine == "speech" {
         return LocalAiHostSupportDescriptor {
             class: LocalAiHostSupportClass::SupportedSupervised,
             detail: None,
@@ -512,12 +512,12 @@ fn overhead_multiplier(
     let format = format.cloned();
     let normalized_engine = engine.trim().to_ascii_lowercase();
     match (capability.as_str(), format, normalized_engine.as_str()) {
-        ("image", Some(LocalAiRecommendationFormat::Gguf), "localai") => 1.5,
+        ("image", Some(LocalAiRecommendationFormat::Gguf), "llama") => 1.5,
         ("image", Some(LocalAiRecommendationFormat::Gguf), _) => 1.6,
-        ("image", Some(LocalAiRecommendationFormat::Safetensors), "nimi_media") => 2.2,
+        ("image", Some(LocalAiRecommendationFormat::Safetensors), "media") => 2.2,
         ("image", Some(LocalAiRecommendationFormat::Safetensors), _) => 2.0,
         ("video", Some(LocalAiRecommendationFormat::Gguf), _) => 2.2,
-        ("video", Some(LocalAiRecommendationFormat::Safetensors), "nimi_media") => 2.8,
+        ("video", Some(LocalAiRecommendationFormat::Safetensors), "media") => 2.8,
         ("video", Some(LocalAiRecommendationFormat::Safetensors), _) => 2.5,
         ("image", None, _) => 1.8,
         ("video", None, _) => 2.6,
@@ -1081,7 +1081,7 @@ mod tests {
             "jayn7/Z-Image-Turbo-GGUF",
             "Z-Image Turbo",
             &["image".to_string()],
-            "localai",
+            "llama",
             Some("z_image_turbo-Q4_K_M.gguf"),
             Some(4 * 1024 * 1024 * 1024),
             Some(4 * 1024 * 1024 * 1024),
@@ -1115,7 +1115,7 @@ mod tests {
             "org/flux",
             "Flux",
             &["image".to_string()],
-            "nimi_media",
+            "media",
             Some("model.safetensors"),
             Some(3 * 1024 * 1024 * 1024),
             Some(3 * 1024 * 1024 * 1024),
@@ -1128,7 +1128,7 @@ mod tests {
             "org/wan",
             "Wan",
             &["video".to_string()],
-            "nimi_media",
+            "media",
             Some("model.safetensors"),
             Some(3 * 1024 * 1024 * 1024),
             Some(3 * 1024 * 1024 * 1024),
@@ -1151,7 +1151,7 @@ mod tests {
     }
 
     #[test]
-    fn host_support_marks_localai_windows_as_attached_only() {
+    fn host_support_marks_llama_windows_as_attached_only() {
         let profile = device_profile_fixture(
             16 * 1024 * 1024 * 1024,
             Some(6 * 1024 * 1024 * 1024),
@@ -1160,7 +1160,7 @@ mod tests {
             "amd64",
             Some("nvidia"),
         );
-        let support = classify_host_support("localai", &profile);
+        let support = classify_host_support("llama", &profile);
         assert_eq!(support.class, LocalAiHostSupportClass::AttachedOnly);
     }
 
@@ -1193,7 +1193,7 @@ mod tests {
             "black-forest-labs/FLUX.1-dev",
             "FLUX.1 dev",
             &["image".to_string()],
-            "nimi_media",
+            "media",
             Some("model.safetensors"),
             None,
             Some(6 * 1024 * 1024 * 1024),
@@ -1227,7 +1227,7 @@ mod tests {
             "jayn7/Z-Image-Turbo-GGUF",
             "Z-Image Turbo",
             &["image".to_string()],
-            "localai",
+            "llama",
             Some("z_image_turbo-Q4_K_M.gguf"),
             Some(4 * 1024 * 1024 * 1024),
             Some(4 * 1024 * 1024 * 1024),
@@ -1257,7 +1257,7 @@ mod tests {
             "jayn7/Z-Image-Turbo-GGUF",
             "Z-Image Turbo",
             &["image".to_string()],
-            "localai",
+            "llama",
             Some("z_image_turbo-Q4_K_M.gguf"),
             Some(4 * 1024 * 1024 * 1024),
             Some(4 * 1024 * 1024 * 1024),
@@ -1288,7 +1288,7 @@ mod tests {
             "Qwen/Qwen2.5-7B-Instruct-GGUF",
             "Qwen2.5 7B Instruct",
             &["chat".to_string()],
-            "localai",
+            "llama",
             Some("Qwen2.5-7B-Instruct-Q8_0.gguf"),
             Some(8 * 1024 * 1024 * 1024),
             Some(8 * 1024 * 1024 * 1024),
@@ -1326,7 +1326,7 @@ mod tests {
             "Qwen/Qwen2.5-VL-7B-Instruct-GGUF",
             "Qwen2.5 VL 7B Instruct",
             &["chat".to_string()],
-            "localai",
+            "llama",
             Some("Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf"),
             Some(5 * 1024 * 1024 * 1024),
             Some(5 * 1024 * 1024 * 1024),

@@ -4,7 +4,18 @@ use url::Url;
 
 use super::super::types::{normalize_non_empty, DEFAULT_LOCAL_ENDPOINT};
 
-const SUPPORTED_CAPABILITIES: [&str; 6] = ["chat", "image", "video", "tts", "stt", "embedding"];
+const SUPPORTED_CAPABILITIES: [&str; 10] = [
+    "chat",
+    "image",
+    "image.generate",
+    "video",
+    "video.generate",
+    "tts",
+    "audio.synthesize",
+    "stt",
+    "audio.transcribe",
+    "embedding",
+];
 
 pub(super) const MODEL_MANIFEST_FILE_NAME: &str = "model.manifest.json";
 pub(super) const ARTIFACT_MANIFEST_FILE_NAME: &str = "artifact.manifest.json";

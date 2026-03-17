@@ -547,7 +547,7 @@ mod tests {
             revision: "main".to_string(),
             template_id: None,
             capabilities: caps.iter().map(|c| c.to_string()).collect(),
-            engine: "localai".to_string(),
+            engine: "llama".to_string(),
             engine_runtime_mode: LocalAiEngineRuntimeMode::Supervised,
             install_kind: "test".to_string(),
             install_available: true,
@@ -590,20 +590,20 @@ mod tests {
     }
 
     #[test]
-    fn infer_engine_prefers_localai_for_gguf() {
+    fn infer_engine_prefers_llama_for_gguf() {
         let capabilities = vec!["chat".to_string()];
         let engine = infer_engine(
             "Qwen/Qwen2.5-7B-Instruct-GGUF",
             &vec!["gguf".to_string()],
             &capabilities,
         );
-        assert_eq!(engine, "localai");
+        assert_eq!(engine, "llama");
     }
 
     #[test]
-    fn runtime_mode_maps_localai_to_supervised() {
+    fn runtime_mode_maps_llama_to_supervised() {
         assert_eq!(
-            runtime_mode_for_engine("localai", &profile_fixture()),
+            runtime_mode_for_engine("llama", &profile_fixture()),
             LocalAiEngineRuntimeMode::Supervised
         );
     }
@@ -728,45 +728,45 @@ mod tests {
     // --- K-LOCAL-027 select_entry_file ---
 
     #[test]
-    fn select_entry_file_prefers_gguf_for_localai() {
+    fn select_entry_file_prefers_gguf_for_llama() {
         let siblings = vec![
             sibling("config.json"),
             sibling("model.safetensors"),
             sibling("weights.gguf"),
         ];
-        let entry = select_entry_file(&siblings, None, "localai");
+        let entry = select_entry_file(&siblings, None, "llama");
         assert_eq!(entry, Some("weights.gguf".to_string()));
     }
 
     #[test]
     fn select_entry_file_prefers_model_safetensors_when_no_gguf() {
         let siblings = vec![sibling("config.json"), sibling("model.safetensors")];
-        let entry = select_entry_file(&siblings, None, "localai");
+        let entry = select_entry_file(&siblings, None, "llama");
         assert_eq!(entry, Some("model.safetensors".to_string()));
     }
 
     #[test]
     fn select_entry_file_falls_back_to_any_safetensors() {
         let siblings = vec![sibling("config.json"), sibling("weights.safetensors")];
-        let entry = select_entry_file(&siblings, None, "localai");
+        let entry = select_entry_file(&siblings, None, "llama");
         assert_eq!(entry, Some("weights.safetensors".to_string()));
     }
 
     #[test]
     fn select_entry_file_uses_manual_entry_when_provided() {
         let siblings = vec![sibling("config.json"), sibling("model.safetensors")];
-        let entry = select_entry_file(&siblings, Some("custom.bin"), "localai");
+        let entry = select_entry_file(&siblings, Some("custom.bin"), "llama");
         assert_eq!(entry, Some("custom.bin".to_string()));
     }
 
     #[test]
     fn select_entry_file_returns_none_for_empty_siblings() {
-        let entry = select_entry_file(&[], None, "localai");
+        let entry = select_entry_file(&[], None, "llama");
         assert_eq!(entry, None);
     }
 
     #[test]
-    fn select_install_files_uses_only_manual_gguf_variant_for_localai() {
+    fn select_install_files_uses_only_manual_gguf_variant_for_llama() {
         let siblings = vec![
             sibling("config.json"),
             sibling("tokenizer.json"),
@@ -778,7 +778,7 @@ mod tests {
             "Qwen_Qwen3.5-0.8B-Q8_0.gguf",
             Some("Qwen_Qwen3.5-0.8B-Q8_0.gguf"),
             None,
-            "localai",
+            "llama",
         );
         assert_eq!(files, vec!["Qwen_Qwen3.5-0.8B-Q8_0.gguf".to_string()]);
     }
@@ -796,7 +796,7 @@ mod tests {
             "Qwen_Qwen3.5-0.8B-Q8_0.gguf",
             None,
             None,
-            "localai",
+            "llama",
         );
         assert_eq!(
             files,
@@ -875,18 +875,18 @@ mod tests {
     }
 
     #[test]
-    fn infer_engine_nexa_for_npu_tags() {
+    fn infer_engine_hard_cuts_legacy_npu_tags_to_llama() {
         let tags = vec!["npu".to_string()];
         let caps = vec!["chat".to_string()];
         let engine = infer_engine("org/model", &tags, &caps);
-        assert_eq!(engine, "nexa");
+        assert_eq!(engine, "llama");
     }
 
     #[test]
-    fn infer_engine_localai_for_chat() {
+    fn infer_engine_llama_for_chat() {
         let caps = vec!["chat".to_string()];
         let engine = infer_engine("org/model", &[], &caps);
-        assert_eq!(engine, "localai");
+        assert_eq!(engine, "llama");
     }
 
     // --- hf_api_base_url ---

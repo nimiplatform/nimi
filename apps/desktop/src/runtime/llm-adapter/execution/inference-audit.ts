@@ -23,7 +23,7 @@ export type InferenceAuditInput = {
   routeSource?: InferenceRouteSource;
   provider: string;
   modality: InferenceAuditModality;
-  adapter: 'openai_compat_adapter' | 'llama_native_adapter' | 'media_native_adapter' | 'media_diffusers_adapter' | 'sidecar_music_adapter' | string;
+  adapter: 'openai_compat_adapter' | 'llama_native_adapter' | 'media_native_adapter' | 'speech_native_adapter' | 'sidecar_music_adapter' | string;
   traceId?: string;
   model?: string;
   localModelId?: string;
