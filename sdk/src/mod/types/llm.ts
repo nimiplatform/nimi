@@ -1,33 +1,49 @@
 export type RuntimeModality = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | 'music';
 
-export type LocalEngine = 'llama' | 'media' | 'sidecar' | string;
+export type LocalEngine = 'llama' | 'media' | 'speech' | 'sidecar' | string;
 
 export type LocalProviderAdapter =
   | 'openai_compat_adapter'
   | 'llama_native_adapter'
   | 'media_native_adapter'
-  | 'media_diffusers_adapter'
+  | 'speech_native_adapter'
   | 'sidecar_music_adapter'
   | string;
 
 export type LlamaProviderHints = {
   preferredAdapter?: LocalProviderAdapter;
-  whisperVariant?: string;
+  backend?: string;
+  multimodalProjector?: string;
 };
 
 export type MediaProviderHints = {
   preferredAdapter?: LocalProviderAdapter;
+  backend?: string;
   driver?: string;
   family?: string;
   device?: string;
+  fallbackDriver?: string;
+  fallbackReason?: string;
+  policyGate?: string;
+};
+
+export type SpeechProviderHints = {
+  preferredAdapter?: LocalProviderAdapter;
+  backend?: string;
+  family?: string;
+  driver?: string;
+  device?: string;
+  voiceWorkflowDriver?: string;
   policyGate?: string;
 };
 
 export type LocalProviderHints = {
   llama?: LlamaProviderHints;
   media?: MediaProviderHints;
+  speech?: SpeechProviderHints;
   sidecar?: {
     preferredAdapter?: LocalProviderAdapter;
+    backend?: string;
   };
   extra?: Record<string, unknown>;
 } & Record<string, unknown>;

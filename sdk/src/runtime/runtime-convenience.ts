@@ -98,7 +98,7 @@ function looksLikeQualifiedRemoteModel(model: string): boolean {
     || lowered === 'localsidecar'
   ) {
     throw new Error(
-      `legacy local model prefix "${prefix}" is no longer supported. Use local/, llama/, media/, or sidecar/.`,
+      `legacy local model prefix "${prefix}" is no longer supported. Use local/, llama/, media/, speech/, or sidecar/.`,
     );
   }
   if (
@@ -106,6 +106,7 @@ function looksLikeQualifiedRemoteModel(model: string): boolean {
     || lowered === 'local'
     || lowered === 'llama'
     || lowered === 'media'
+    || lowered === 'speech'
     || lowered === 'sidecar'
   ) {
     return true;

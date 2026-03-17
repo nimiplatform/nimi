@@ -95,7 +95,7 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 | `logical_model_id` | 是 | 用户抽象 ID；不得直接退化成 provider alias |
 | `repo` | 条件必填 | 模型仓库地址；`install_kind=verified-hf-multi-file` 时必填 |
 | `capabilities` | 是 | 能力列表（`chat`/`embedding` 等） |
-| `engine` | 是 | 目标引擎（`llama`/`media`/`sidecar`） |
+| `engine` | 是 | 目标引擎（`llama`/`media`/`speech`/`sidecar`） |
 | `entry` | 条件必填 | 引擎内模型入口标识；`install_kind=verified-hf-multi-file` 时必填 |
 | `files` | 条件必填 | 组成文件列表；`install_kind=verified-hf-multi-file` 时必填 |
 | `hashes` | 条件必填 | 文件哈希校验（`sha256:{hex}` 格式）；`install_kind=verified-hf-multi-file` 时必填 |
@@ -104,7 +104,7 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 | `total_size_bytes` | 否 | 预计总下载字节数（用于进度计算与磁盘空间预检） |
 | `tags` | 否 | 标签列表（搜索/过滤用，如 `["llama", "chat", "8b"]`） |
 | `artifact_roles` | 是 | runtime 解析 bundle 所需的 artifact 角色集合 |
-| `preferred_engine` | 是 | 首选执行引擎；图像/视频类允许再声明 fallback 为 `media.diffusers` |
+| `preferred_engine` | 是 | 首选执行引擎；图像/视频类允许记录内部 fallback driver 为 `media.diffusers` |
 
 ## K-LOCAL-011 模型目录来源
 
@@ -188,7 +188,7 @@ Apply 管道任一阶段失败时：
 - 回滚本身失败时，结果同时携带原始失败和回滚失败的 reason_code，不做二次回滚。
 - 回滚不触发删除外部资产（如已下载的模型文件），仅清理 runtime 内部注册状态。
 
-> **Phase 1 注释**：ATTACHED_ENDPOINT 模式下，stage 3（bootstrap）仅验证 endpoint 连接可达，stage 4（health）必须遵循 `K-LENG-007` 的 engine-specific 探测协议。对 `media`，固定为 `GET /healthz` + `GET /v1/models`。回滚的实际影响范围为 stage 2 的注册清理（`InstallLocalModel`/`InstallLocalService` 产生的状态记录）。
+> **Phase 1 注释**：ATTACHED_ENDPOINT 模式下，stage 3（bootstrap）仅验证 endpoint 连接可达，stage 4（health）必须遵循 `K-LENG-007` 的 engine-specific 探测协议。对 `media`，固定为 `GET /healthz` + `GET /v1/catalog`；对 `speech`，固定为 `GET /healthz` + `GET /v1/catalog`。回滚的实际影响范围为 stage 2 的注册清理（`InstallLocalModel`/`InstallLocalService` 产生的状态记录）。
 
 ## K-LOCAL-016 状态持久化规则
 
@@ -211,8 +211,10 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 | `llama` | `image.understand` / `audio.understand` | `llama_native_adapter` |
 | `media` | `image.generate` / `image.edit` | `media_native_adapter` |
 | `media` | `video.generate` / `i2v` | `media_native_adapter` |
-| `media.diffusers` | `image.generate` / `image.edit` | `media_diffusers_adapter` |
-| `media.diffusers` | `video.generate` / `i2v` | `media_diffusers_adapter` |
+| `speech` | `audio.transcribe` | `speech_native_adapter` |
+| `speech` | `audio.synthesize` | `speech_native_adapter` |
+| `speech` | `voice_workflow.tts_v2v` | `speech_native_adapter` |
+| `speech` | `voice_workflow.tts_t2v` | `speech_native_adapter` |
 | `sidecar` | `music` / `music.generate` | `sidecar_music_adapter` |
 | `*`（任意） | `*`（任意） | `openai_compat_adapter` |
 
@@ -240,7 +242,8 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
    - `adapter`：按 `K-LOCAL-017` 路由。
    - `available`：健康且未被策略门控（`K-LOCAL-018`）。
    - `llama` node 必须同时满足 bundle 可解析、主 artifact 完整、以及对应能力 probe 成功。
-   - `media` / `media.diffusers` node 必须通过 canonical media catalog probe；若 `/v1/catalog` 中缺失与目标 `logical_model_id` 可比对的 ready entry，则 node 必须 `available=false` + fail-close。
+   - `media` node 必须通过 canonical media catalog probe；若 `/v1/catalog` 中缺失与目标 `logical_model_id` 可比对的 ready entry，则 node 必须 `available=false` + fail-close。若 runtime 内部回退到 `media.diffusers`，必须在 `provider_hints.media` 中暴露 fallback driver 与原因。
+   - `speech` node 必须通过 canonical speech catalog probe；若 `/v1/catalog` 中缺失与目标 `logical_model_id` 可比对的 ready entry，则 node 必须 `available=false` + fail-close。
    - `media` node 的 `provider_hints.extra` 必须暴露 runtime host 支持面（如 `runtime_support_class=supported_supervised|attached_only|unsupported`），供目录层解释为何当前 host 只能 attached。
    - `provider_hints.extra.local_default_rank` 必须暴露当前 host + capability 下的默认 local engine 排序，供 Desktop/SDK 与 runtime 对齐默认路由。
    - `provider_hints`：引擎特定适配信息。
@@ -254,9 +257,9 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 |---|---|
 | `llama/` | 仅匹配 `llama` 引擎的已安装模型 |
 | `media/` | 仅匹配 `media` 引擎的已安装模型 |
-| `media.diffusers/` | 仅匹配 `media.diffusers` fallback driver 的已安装模型 |
+| `speech/` | 仅匹配 `speech` 引擎的已安装模型 |
 | `sidecar/` | 仅匹配 `sidecar` 引擎的已安装模型 |
-| `local/` | 按 host + capability 做 engine-first 路由：`text.generate/text.embed/image.understand/audio.understand -> llama`，`image.generate/image.edit/video.generate/i2v -> media`，仅当 `media` 不支持当前 family 或 artifact completeness 不满足时，才允许回退到 `media.diffusers` |
+| `local/` | 按 host + capability 做 engine-first 路由：`text.generate/text.embed/image.understand/audio.understand -> llama`，`image.generate/image.edit/video.generate/i2v -> media`，`audio.transcribe/audio.synthesize/voice_workflow.tts_v2v/voice_workflow.tts_t2v -> speech`，仅当 `media` 不支持当前 family 或 artifact completeness 不满足时，才允许 runtime 内部回退到 `media.diffusers` |
 | 无前缀 | 按已安装模型的 `model_id` 精确匹配 |
 
 前缀在匹配时剥除（`llama/qwen2.5-7b-instruct` 匹配 `model_id=qwen2.5-7b-instruct` 且 `engine=llama`；`media/flux.1-schnell` 匹配 `model_id=flux.1-schnell` 且 `engine=media`；`sidecar/musicgen` 匹配 `model_id=musicgen` 且 `engine=sidecar`）。
@@ -264,7 +267,7 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 fallback 补充：
 
 - `local/*` 默认路由不得跨 family 静默换模型；fallback 只允许在同一 logical model 的声明引擎集合内发生。
-- 若 `media` 与 `media.diffusers` 都不可执行，runtime 必须 fail-close，不得伪装 ready 或静默退回 cloud/provider alias。
+- 若 `media` 与其内部 `media.diffusers` fallback 都不可执行，runtime 必须 fail-close，不得伪装 ready 或静默退回 cloud/provider alias。
 
 未知前缀（如 `ollama/`）视为无前缀，按 `model_id` 全文精确匹配（不剥除前缀）。
 

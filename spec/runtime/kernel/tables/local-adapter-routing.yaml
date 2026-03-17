@@ -44,21 +44,21 @@ routes:
     capability: i2v
     adapter: media_native_adapter
     source_rule: K-LOCAL-017
-  - provider: media.diffusers
-    capability: image.generate
-    adapter: media_diffusers_adapter
+  - provider: speech
+    capability: audio.transcribe
+    adapter: speech_native_adapter
     source_rule: K-LOCAL-017
-  - provider: media.diffusers
-    capability: image.edit
-    adapter: media_diffusers_adapter
+  - provider: speech
+    capability: audio.synthesize
+    adapter: speech_native_adapter
     source_rule: K-LOCAL-017
-  - provider: media.diffusers
-    capability: video.generate
-    adapter: media_diffusers_adapter
+  - provider: speech
+    capability: voice_workflow.tts_v2v
+    adapter: speech_native_adapter
     source_rule: K-LOCAL-017
-  - provider: media.diffusers
-    capability: i2v
-    adapter: media_diffusers_adapter
+  - provider: speech
+    capability: voice_workflow.tts_t2v
+    adapter: speech_native_adapter
     source_rule: K-LOCAL-017
   - provider: sidecar
     capability: music

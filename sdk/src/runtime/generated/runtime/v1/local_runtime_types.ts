@@ -320,6 +320,22 @@ export interface LocalVerifiedModelDescriptor {
      * @generated from protobuf field: google.protobuf.Struct engine_config = 18
      */
     engineConfig?: Struct;
+    /**
+     * @generated from protobuf field: string logical_model_id = 19
+     */
+    logicalModelId: string;
+    /**
+     * @generated from protobuf field: repeated string artifact_roles = 20
+     */
+    artifactRoles: string[];
+    /**
+     * @generated from protobuf field: string preferred_engine = 21
+     */
+    preferredEngine: string;
+    /**
+     * @generated from protobuf field: repeated string fallback_engines = 22
+     */
+    fallbackEngines: string[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalVerifiedArtifactDescriptor
@@ -393,9 +409,9 @@ export interface LocalVerifiedArtifactDescriptor {
     metadata?: Struct;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalProviderHintsLocalAi
+ * @generated from protobuf message nimi.runtime.v1.LocalProviderHintsLlama
  */
-export interface LocalProviderHintsLocalAi {
+export interface LocalProviderHintsLlama {
     /**
      * @generated from protobuf field: string backend = 1
      */
@@ -405,79 +421,14 @@ export interface LocalProviderHintsLocalAi {
      */
     preferredAdapter: string;
     /**
-     * @generated from protobuf field: string whisper_variant = 3
+     * @generated from protobuf field: string multimodal_projector = 3
      */
-    whisperVariant: string;
-    /**
-     * @generated from protobuf field: string stablediffusion_pipeline = 4
-     */
-    stablediffusionPipeline: string;
-    /**
-     * @generated from protobuf field: string video_backend = 5
-     */
-    videoBackend: string;
+    multimodalProjector: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalProviderHintsNexa
+ * @generated from protobuf message nimi.runtime.v1.LocalProviderHintsMedia
  */
-export interface LocalProviderHintsNexa {
-    /**
-     * @generated from protobuf field: string backend = 1
-     */
-    backend: string;
-    /**
-     * @generated from protobuf field: string preferred_adapter = 2
-     */
-    preferredAdapter: string;
-    /**
-     * @generated from protobuf field: string plugin_id = 3
-     */
-    pluginId: string;
-    /**
-     * @generated from protobuf field: string device_id = 4
-     */
-    deviceId: string;
-    /**
-     * @generated from protobuf field: string model_type = 5
-     */
-    modelType: string;
-    /**
-     * @generated from protobuf field: string npu_mode = 6
-     */
-    npuMode: string;
-    /**
-     * @generated from protobuf field: string policy_gate = 7
-     */
-    policyGate: string;
-    /**
-     * @generated from protobuf field: bool host_npu_ready = 8
-     */
-    hostNpuReady: boolean;
-    /**
-     * @generated from protobuf field: bool model_probe_has_npu_candidate = 9
-     */
-    modelProbeHasNpuCandidate: boolean;
-    /**
-     * @generated from protobuf field: bool policy_gate_allows_npu = 10
-     */
-    policyGateAllowsNpu: boolean;
-    /**
-     * @generated from protobuf field: bool npu_usable = 11
-     */
-    npuUsable: boolean;
-    /**
-     * @generated from protobuf field: string gate_reason = 12
-     */
-    gateReason: string;
-    /**
-     * @generated from protobuf field: string gate_detail = 13
-     */
-    gateDetail: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.LocalProviderHintsNimiMedia
- */
-export interface LocalProviderHintsNimiMedia {
+export interface LocalProviderHintsMedia {
     /**
      * @generated from protobuf field: string backend = 1
      */
@@ -502,23 +453,85 @@ export interface LocalProviderHintsNimiMedia {
      * @generated from protobuf field: string device = 6
      */
     device: string;
+    /**
+     * @generated from protobuf field: string fallback_driver = 7
+     */
+    fallbackDriver: string;
+    /**
+     * @generated from protobuf field: string fallback_reason = 8
+     */
+    fallbackReason: string;
+    /**
+     * @generated from protobuf field: string policy_gate = 9
+     */
+    policyGate: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalProviderHintsSpeech
+ */
+export interface LocalProviderHintsSpeech {
+    /**
+     * @generated from protobuf field: string backend = 1
+     */
+    backend: string;
+    /**
+     * @generated from protobuf field: string preferred_adapter = 2
+     */
+    preferredAdapter: string;
+    /**
+     * @generated from protobuf field: string family = 3
+     */
+    family: string;
+    /**
+     * @generated from protobuf field: string driver = 4
+     */
+    driver: string;
+    /**
+     * @generated from protobuf field: string device = 5
+     */
+    device: string;
+    /**
+     * @generated from protobuf field: string voice_workflow_driver = 6
+     */
+    voiceWorkflowDriver: string;
+    /**
+     * @generated from protobuf field: string policy_gate = 7
+     */
+    policyGate: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalProviderHintsSidecar
+ */
+export interface LocalProviderHintsSidecar {
+    /**
+     * @generated from protobuf field: string preferred_adapter = 1
+     */
+    preferredAdapter: string;
+    /**
+     * @generated from protobuf field: string backend = 2
+     */
+    backend: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalProviderHints
  */
 export interface LocalProviderHints {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalProviderHintsLocalAi localai = 1
+     * @generated from protobuf field: nimi.runtime.v1.LocalProviderHintsLlama llama = 1
      */
-    localai?: LocalProviderHintsLocalAi;
+    llama?: LocalProviderHintsLlama;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalProviderHintsNexa nexa = 2
+     * @generated from protobuf field: nimi.runtime.v1.LocalProviderHintsMedia media = 2
      */
-    nexa?: LocalProviderHintsNexa;
+    media?: LocalProviderHintsMedia;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalProviderHintsNimiMedia nimi_media = 3
+     * @generated from protobuf field: nimi.runtime.v1.LocalProviderHintsSpeech speech = 3
      */
-    nimiMedia?: LocalProviderHintsNimiMedia;
+    speech?: LocalProviderHintsSpeech;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalProviderHintsSidecar sidecar = 4
+     */
+    sidecar?: LocalProviderHintsSidecar;
     /**
      * @generated from protobuf field: map<string, string> extra = 10
      */
@@ -2445,7 +2458,11 @@ class LocalVerifiedModelDescriptor$Type extends MessageType<LocalVerifiedModelDe
             { no: 15, name: "file_count", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 16, name: "total_size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 17, name: "tags", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 18, name: "engine_config", kind: "message", T: () => Struct }
+            { no: 18, name: "engine_config", kind: "message", T: () => Struct },
+            { no: 19, name: "logical_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 20, name: "artifact_roles", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 21, name: "preferred_engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 22, name: "fallback_engines", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalVerifiedModelDescriptor>): LocalVerifiedModelDescriptor {
@@ -2467,6 +2484,10 @@ class LocalVerifiedModelDescriptor$Type extends MessageType<LocalVerifiedModelDe
         message.fileCount = 0;
         message.totalSizeBytes = "0";
         message.tags = [];
+        message.logicalModelId = "";
+        message.artifactRoles = [];
+        message.preferredEngine = "";
+        message.fallbackEngines = [];
         if (value !== undefined)
             reflectionMergePartial<LocalVerifiedModelDescriptor>(this, message, value);
         return message;
@@ -2529,6 +2550,18 @@ class LocalVerifiedModelDescriptor$Type extends MessageType<LocalVerifiedModelDe
                     break;
                 case /* google.protobuf.Struct engine_config */ 18:
                     message.engineConfig = Struct.internalBinaryRead(reader, reader.uint32(), options, message.engineConfig);
+                    break;
+                case /* string logical_model_id */ 19:
+                    message.logicalModelId = reader.string();
+                    break;
+                case /* repeated string artifact_roles */ 20:
+                    message.artifactRoles.push(reader.string());
+                    break;
+                case /* string preferred_engine */ 21:
+                    message.preferredEngine = reader.string();
+                    break;
+                case /* repeated string fallback_engines */ 22:
+                    message.fallbackEngines.push(reader.string());
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2612,6 +2645,18 @@ class LocalVerifiedModelDescriptor$Type extends MessageType<LocalVerifiedModelDe
         /* google.protobuf.Struct engine_config = 18; */
         if (message.engineConfig)
             Struct.internalBinaryWrite(message.engineConfig, writer.tag(18, WireType.LengthDelimited).fork(), options).join();
+        /* string logical_model_id = 19; */
+        if (message.logicalModelId !== "")
+            writer.tag(19, WireType.LengthDelimited).string(message.logicalModelId);
+        /* repeated string artifact_roles = 20; */
+        for (let i = 0; i < message.artifactRoles.length; i++)
+            writer.tag(20, WireType.LengthDelimited).string(message.artifactRoles[i]);
+        /* string preferred_engine = 21; */
+        if (message.preferredEngine !== "")
+            writer.tag(21, WireType.LengthDelimited).string(message.preferredEngine);
+        /* repeated string fallback_engines = 22; */
+        for (let i = 0; i < message.fallbackEngines.length; i++)
+            writer.tag(22, WireType.LengthDelimited).string(message.fallbackEngines[i]);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2805,28 +2850,24 @@ class LocalVerifiedArtifactDescriptor$Type extends MessageType<LocalVerifiedArti
  */
 export const LocalVerifiedArtifactDescriptor = new LocalVerifiedArtifactDescriptor$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalProviderHintsLocalAi$Type extends MessageType<LocalProviderHintsLocalAi> {
+class LocalProviderHintsLlama$Type extends MessageType<LocalProviderHintsLlama> {
     constructor() {
-        super("nimi.runtime.v1.LocalProviderHintsLocalAi", [
+        super("nimi.runtime.v1.LocalProviderHintsLlama", [
             { no: 1, name: "backend", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "preferred_adapter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "whisper_variant", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "stablediffusion_pipeline", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "video_backend", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "multimodal_projector", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<LocalProviderHintsLocalAi>): LocalProviderHintsLocalAi {
+    create(value?: PartialMessage<LocalProviderHintsLlama>): LocalProviderHintsLlama {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.backend = "";
         message.preferredAdapter = "";
-        message.whisperVariant = "";
-        message.stablediffusionPipeline = "";
-        message.videoBackend = "";
+        message.multimodalProjector = "";
         if (value !== undefined)
-            reflectionMergePartial<LocalProviderHintsLocalAi>(this, message, value);
+            reflectionMergePartial<LocalProviderHintsLlama>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalProviderHintsLocalAi): LocalProviderHintsLocalAi {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalProviderHintsLlama): LocalProviderHintsLlama {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -2837,14 +2878,8 @@ class LocalProviderHintsLocalAi$Type extends MessageType<LocalProviderHintsLocal
                 case /* string preferred_adapter */ 2:
                     message.preferredAdapter = reader.string();
                     break;
-                case /* string whisper_variant */ 3:
-                    message.whisperVariant = reader.string();
-                    break;
-                case /* string stablediffusion_pipeline */ 4:
-                    message.stablediffusionPipeline = reader.string();
-                    break;
-                case /* string video_backend */ 5:
-                    message.videoBackend = reader.string();
+                case /* string multimodal_projector */ 3:
+                    message.multimodalProjector = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2857,22 +2892,16 @@ class LocalProviderHintsLocalAi$Type extends MessageType<LocalProviderHintsLocal
         }
         return message;
     }
-    internalBinaryWrite(message: LocalProviderHintsLocalAi, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: LocalProviderHintsLlama, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string backend = 1; */
         if (message.backend !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.backend);
         /* string preferred_adapter = 2; */
         if (message.preferredAdapter !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.preferredAdapter);
-        /* string whisper_variant = 3; */
-        if (message.whisperVariant !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.whisperVariant);
-        /* string stablediffusion_pipeline = 4; */
-        if (message.stablediffusionPipeline !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.stablediffusionPipeline);
-        /* string video_backend = 5; */
-        if (message.videoBackend !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.videoBackend);
+        /* string multimodal_projector = 3; */
+        if (message.multimodalProjector !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.multimodalProjector);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2880,165 +2909,25 @@ class LocalProviderHintsLocalAi$Type extends MessageType<LocalProviderHintsLocal
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalProviderHintsLocalAi
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalProviderHintsLlama
  */
-export const LocalProviderHintsLocalAi = new LocalProviderHintsLocalAi$Type();
+export const LocalProviderHintsLlama = new LocalProviderHintsLlama$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalProviderHintsNexa$Type extends MessageType<LocalProviderHintsNexa> {
+class LocalProviderHintsMedia$Type extends MessageType<LocalProviderHintsMedia> {
     constructor() {
-        super("nimi.runtime.v1.LocalProviderHintsNexa", [
-            { no: 1, name: "backend", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "preferred_adapter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "plugin_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "device_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "model_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "npu_mode", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "policy_gate", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "host_npu_ready", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 9, name: "model_probe_has_npu_candidate", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 10, name: "policy_gate_allows_npu", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 11, name: "npu_usable", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 12, name: "gate_reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 13, name: "gate_detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<LocalProviderHintsNexa>): LocalProviderHintsNexa {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.backend = "";
-        message.preferredAdapter = "";
-        message.pluginId = "";
-        message.deviceId = "";
-        message.modelType = "";
-        message.npuMode = "";
-        message.policyGate = "";
-        message.hostNpuReady = false;
-        message.modelProbeHasNpuCandidate = false;
-        message.policyGateAllowsNpu = false;
-        message.npuUsable = false;
-        message.gateReason = "";
-        message.gateDetail = "";
-        if (value !== undefined)
-            reflectionMergePartial<LocalProviderHintsNexa>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalProviderHintsNexa): LocalProviderHintsNexa {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string backend */ 1:
-                    message.backend = reader.string();
-                    break;
-                case /* string preferred_adapter */ 2:
-                    message.preferredAdapter = reader.string();
-                    break;
-                case /* string plugin_id */ 3:
-                    message.pluginId = reader.string();
-                    break;
-                case /* string device_id */ 4:
-                    message.deviceId = reader.string();
-                    break;
-                case /* string model_type */ 5:
-                    message.modelType = reader.string();
-                    break;
-                case /* string npu_mode */ 6:
-                    message.npuMode = reader.string();
-                    break;
-                case /* string policy_gate */ 7:
-                    message.policyGate = reader.string();
-                    break;
-                case /* bool host_npu_ready */ 8:
-                    message.hostNpuReady = reader.bool();
-                    break;
-                case /* bool model_probe_has_npu_candidate */ 9:
-                    message.modelProbeHasNpuCandidate = reader.bool();
-                    break;
-                case /* bool policy_gate_allows_npu */ 10:
-                    message.policyGateAllowsNpu = reader.bool();
-                    break;
-                case /* bool npu_usable */ 11:
-                    message.npuUsable = reader.bool();
-                    break;
-                case /* string gate_reason */ 12:
-                    message.gateReason = reader.string();
-                    break;
-                case /* string gate_detail */ 13:
-                    message.gateDetail = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: LocalProviderHintsNexa, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string backend = 1; */
-        if (message.backend !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.backend);
-        /* string preferred_adapter = 2; */
-        if (message.preferredAdapter !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.preferredAdapter);
-        /* string plugin_id = 3; */
-        if (message.pluginId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.pluginId);
-        /* string device_id = 4; */
-        if (message.deviceId !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.deviceId);
-        /* string model_type = 5; */
-        if (message.modelType !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.modelType);
-        /* string npu_mode = 6; */
-        if (message.npuMode !== "")
-            writer.tag(6, WireType.LengthDelimited).string(message.npuMode);
-        /* string policy_gate = 7; */
-        if (message.policyGate !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.policyGate);
-        /* bool host_npu_ready = 8; */
-        if (message.hostNpuReady !== false)
-            writer.tag(8, WireType.Varint).bool(message.hostNpuReady);
-        /* bool model_probe_has_npu_candidate = 9; */
-        if (message.modelProbeHasNpuCandidate !== false)
-            writer.tag(9, WireType.Varint).bool(message.modelProbeHasNpuCandidate);
-        /* bool policy_gate_allows_npu = 10; */
-        if (message.policyGateAllowsNpu !== false)
-            writer.tag(10, WireType.Varint).bool(message.policyGateAllowsNpu);
-        /* bool npu_usable = 11; */
-        if (message.npuUsable !== false)
-            writer.tag(11, WireType.Varint).bool(message.npuUsable);
-        /* string gate_reason = 12; */
-        if (message.gateReason !== "")
-            writer.tag(12, WireType.LengthDelimited).string(message.gateReason);
-        /* string gate_detail = 13; */
-        if (message.gateDetail !== "")
-            writer.tag(13, WireType.LengthDelimited).string(message.gateDetail);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalProviderHintsNexa
- */
-export const LocalProviderHintsNexa = new LocalProviderHintsNexa$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class LocalProviderHintsNimiMedia$Type extends MessageType<LocalProviderHintsNimiMedia> {
-    constructor() {
-        super("nimi.runtime.v1.LocalProviderHintsNimiMedia", [
+        super("nimi.runtime.v1.LocalProviderHintsMedia", [
             { no: 1, name: "backend", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "preferred_adapter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "family", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "image_driver", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "video_driver", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "device", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 6, name: "device", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "fallback_driver", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "fallback_reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "policy_gate", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<LocalProviderHintsNimiMedia>): LocalProviderHintsNimiMedia {
+    create(value?: PartialMessage<LocalProviderHintsMedia>): LocalProviderHintsMedia {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.backend = "";
         message.preferredAdapter = "";
@@ -3046,11 +2935,14 @@ class LocalProviderHintsNimiMedia$Type extends MessageType<LocalProviderHintsNim
         message.imageDriver = "";
         message.videoDriver = "";
         message.device = "";
+        message.fallbackDriver = "";
+        message.fallbackReason = "";
+        message.policyGate = "";
         if (value !== undefined)
-            reflectionMergePartial<LocalProviderHintsNimiMedia>(this, message, value);
+            reflectionMergePartial<LocalProviderHintsMedia>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalProviderHintsNimiMedia): LocalProviderHintsNimiMedia {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalProviderHintsMedia): LocalProviderHintsMedia {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -3073,6 +2965,15 @@ class LocalProviderHintsNimiMedia$Type extends MessageType<LocalProviderHintsNim
                 case /* string device */ 6:
                     message.device = reader.string();
                     break;
+                case /* string fallback_driver */ 7:
+                    message.fallbackDriver = reader.string();
+                    break;
+                case /* string fallback_reason */ 8:
+                    message.fallbackReason = reader.string();
+                    break;
+                case /* string policy_gate */ 9:
+                    message.policyGate = reader.string();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -3084,7 +2985,7 @@ class LocalProviderHintsNimiMedia$Type extends MessageType<LocalProviderHintsNim
         }
         return message;
     }
-    internalBinaryWrite(message: LocalProviderHintsNimiMedia, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: LocalProviderHintsMedia, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string backend = 1; */
         if (message.backend !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.backend);
@@ -3103,6 +3004,15 @@ class LocalProviderHintsNimiMedia$Type extends MessageType<LocalProviderHintsNim
         /* string device = 6; */
         if (message.device !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.device);
+        /* string fallback_driver = 7; */
+        if (message.fallbackDriver !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.fallbackDriver);
+        /* string fallback_reason = 8; */
+        if (message.fallbackReason !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.fallbackReason);
+        /* string policy_gate = 9; */
+        if (message.policyGate !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.policyGate);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3110,16 +3020,167 @@ class LocalProviderHintsNimiMedia$Type extends MessageType<LocalProviderHintsNim
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalProviderHintsNimiMedia
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalProviderHintsMedia
  */
-export const LocalProviderHintsNimiMedia = new LocalProviderHintsNimiMedia$Type();
+export const LocalProviderHintsMedia = new LocalProviderHintsMedia$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalProviderHintsSpeech$Type extends MessageType<LocalProviderHintsSpeech> {
+    constructor() {
+        super("nimi.runtime.v1.LocalProviderHintsSpeech", [
+            { no: 1, name: "backend", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "preferred_adapter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "family", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "driver", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "device", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "voice_workflow_driver", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "policy_gate", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalProviderHintsSpeech>): LocalProviderHintsSpeech {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.backend = "";
+        message.preferredAdapter = "";
+        message.family = "";
+        message.driver = "";
+        message.device = "";
+        message.voiceWorkflowDriver = "";
+        message.policyGate = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalProviderHintsSpeech>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalProviderHintsSpeech): LocalProviderHintsSpeech {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string backend */ 1:
+                    message.backend = reader.string();
+                    break;
+                case /* string preferred_adapter */ 2:
+                    message.preferredAdapter = reader.string();
+                    break;
+                case /* string family */ 3:
+                    message.family = reader.string();
+                    break;
+                case /* string driver */ 4:
+                    message.driver = reader.string();
+                    break;
+                case /* string device */ 5:
+                    message.device = reader.string();
+                    break;
+                case /* string voice_workflow_driver */ 6:
+                    message.voiceWorkflowDriver = reader.string();
+                    break;
+                case /* string policy_gate */ 7:
+                    message.policyGate = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalProviderHintsSpeech, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string backend = 1; */
+        if (message.backend !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.backend);
+        /* string preferred_adapter = 2; */
+        if (message.preferredAdapter !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.preferredAdapter);
+        /* string family = 3; */
+        if (message.family !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.family);
+        /* string driver = 4; */
+        if (message.driver !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.driver);
+        /* string device = 5; */
+        if (message.device !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.device);
+        /* string voice_workflow_driver = 6; */
+        if (message.voiceWorkflowDriver !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.voiceWorkflowDriver);
+        /* string policy_gate = 7; */
+        if (message.policyGate !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.policyGate);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalProviderHintsSpeech
+ */
+export const LocalProviderHintsSpeech = new LocalProviderHintsSpeech$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalProviderHintsSidecar$Type extends MessageType<LocalProviderHintsSidecar> {
+    constructor() {
+        super("nimi.runtime.v1.LocalProviderHintsSidecar", [
+            { no: 1, name: "preferred_adapter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "backend", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalProviderHintsSidecar>): LocalProviderHintsSidecar {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.preferredAdapter = "";
+        message.backend = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalProviderHintsSidecar>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalProviderHintsSidecar): LocalProviderHintsSidecar {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string preferred_adapter */ 1:
+                    message.preferredAdapter = reader.string();
+                    break;
+                case /* string backend */ 2:
+                    message.backend = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalProviderHintsSidecar, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string preferred_adapter = 1; */
+        if (message.preferredAdapter !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.preferredAdapter);
+        /* string backend = 2; */
+        if (message.backend !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.backend);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalProviderHintsSidecar
+ */
+export const LocalProviderHintsSidecar = new LocalProviderHintsSidecar$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class LocalProviderHints$Type extends MessageType<LocalProviderHints> {
     constructor() {
         super("nimi.runtime.v1.LocalProviderHints", [
-            { no: 1, name: "localai", kind: "message", T: () => LocalProviderHintsLocalAi },
-            { no: 2, name: "nexa", kind: "message", T: () => LocalProviderHintsNexa },
-            { no: 3, name: "nimi_media", kind: "message", T: () => LocalProviderHintsNimiMedia },
+            { no: 1, name: "llama", kind: "message", T: () => LocalProviderHintsLlama },
+            { no: 2, name: "media", kind: "message", T: () => LocalProviderHintsMedia },
+            { no: 3, name: "speech", kind: "message", T: () => LocalProviderHintsSpeech },
+            { no: 4, name: "sidecar", kind: "message", T: () => LocalProviderHintsSidecar },
             { no: 10, name: "extra", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } }
         ]);
     }
@@ -3135,14 +3196,17 @@ class LocalProviderHints$Type extends MessageType<LocalProviderHints> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalProviderHintsLocalAi localai */ 1:
-                    message.localai = LocalProviderHintsLocalAi.internalBinaryRead(reader, reader.uint32(), options, message.localai);
+                case /* nimi.runtime.v1.LocalProviderHintsLlama llama */ 1:
+                    message.llama = LocalProviderHintsLlama.internalBinaryRead(reader, reader.uint32(), options, message.llama);
                     break;
-                case /* nimi.runtime.v1.LocalProviderHintsNexa nexa */ 2:
-                    message.nexa = LocalProviderHintsNexa.internalBinaryRead(reader, reader.uint32(), options, message.nexa);
+                case /* nimi.runtime.v1.LocalProviderHintsMedia media */ 2:
+                    message.media = LocalProviderHintsMedia.internalBinaryRead(reader, reader.uint32(), options, message.media);
                     break;
-                case /* nimi.runtime.v1.LocalProviderHintsNimiMedia nimi_media */ 3:
-                    message.nimiMedia = LocalProviderHintsNimiMedia.internalBinaryRead(reader, reader.uint32(), options, message.nimiMedia);
+                case /* nimi.runtime.v1.LocalProviderHintsSpeech speech */ 3:
+                    message.speech = LocalProviderHintsSpeech.internalBinaryRead(reader, reader.uint32(), options, message.speech);
+                    break;
+                case /* nimi.runtime.v1.LocalProviderHintsSidecar sidecar */ 4:
+                    message.sidecar = LocalProviderHintsSidecar.internalBinaryRead(reader, reader.uint32(), options, message.sidecar);
                     break;
                 case /* map<string, string> extra */ 10:
                     this.binaryReadMap10(message.extra, reader, options);
@@ -3175,15 +3239,18 @@ class LocalProviderHints$Type extends MessageType<LocalProviderHints> {
         map[key ?? ""] = val ?? "";
     }
     internalBinaryWrite(message: LocalProviderHints, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalProviderHintsLocalAi localai = 1; */
-        if (message.localai)
-            LocalProviderHintsLocalAi.internalBinaryWrite(message.localai, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.LocalProviderHintsNexa nexa = 2; */
-        if (message.nexa)
-            LocalProviderHintsNexa.internalBinaryWrite(message.nexa, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.LocalProviderHintsNimiMedia nimi_media = 3; */
-        if (message.nimiMedia)
-            LocalProviderHintsNimiMedia.internalBinaryWrite(message.nimiMedia, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalProviderHintsLlama llama = 1; */
+        if (message.llama)
+            LocalProviderHintsLlama.internalBinaryWrite(message.llama, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalProviderHintsMedia media = 2; */
+        if (message.media)
+            LocalProviderHintsMedia.internalBinaryWrite(message.media, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalProviderHintsSpeech speech = 3; */
+        if (message.speech)
+            LocalProviderHintsSpeech.internalBinaryWrite(message.speech, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalProviderHintsSidecar sidecar = 4; */
+        if (message.sidecar)
+            LocalProviderHintsSidecar.internalBinaryWrite(message.sidecar, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         /* map<string, string> extra = 10; */
         for (let k of globalThis.Object.keys(message.extra))
             writer.tag(10, WireType.LengthDelimited).fork().tag(1, WireType.LengthDelimited).string(k).tag(2, WireType.LengthDelimited).string(message.extra[k]).join();

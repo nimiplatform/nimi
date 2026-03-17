@@ -45,15 +45,15 @@ engines:
     start_command: "stable-diffusion-server --host 127.0.0.1 --port {port}"
     default_port: 8321
     startup_timeout_seconds: 180
-  - engine: media.diffusers
+  - engine: speech
     default_endpoint: ""
     runtime_mode: attached_endpoint
-    protocol: nimi_runtime_media
+    protocol: nimi_runtime_speech
     phase1: true
     source_rule: K-LENG-005
-  - engine: media.diffusers
+  - engine: speech
     runtime_mode: supervised
-    protocol: nimi_runtime_media
+    protocol: nimi_runtime_speech
     phase1: true
     source_rule: K-LENG-004
     discovery: uv_managed_python
@@ -65,8 +65,8 @@ engines:
       - windows/amd64
     health_path: "/healthz"
     health_response: "\"ready\": true"
-    start_command: "python {engine_root}/nimi_media_server.py --host 127.0.0.1 --port {port}"
-    default_port: 8322
+    start_command: "python {engine_root}/nimi_speech_server.py --host 127.0.0.1 --port {port}"
+    default_port: 8330
     startup_timeout_seconds: 240
   - engine: sidecar
     default_endpoint: ""

@@ -8,6 +8,6 @@
 | `llama` | `—` | `supervised` | `nimi_runtime_text` | `true` | `K-LENG-004` |
 | `media` | `—` | `attached_endpoint` | `nimi_runtime_media` | `true` | `K-LENG-005` |
 | `media` | `—` | `supervised` | `nimi_runtime_media` | `true` | `K-LENG-004` |
-| `media.diffusers` | `—` | `attached_endpoint` | `nimi_runtime_media` | `true` | `K-LENG-005` |
-| `media.diffusers` | `—` | `supervised` | `nimi_runtime_media` | `true` | `K-LENG-004` |
+| `speech` | `—` | `attached_endpoint` | `nimi_runtime_speech` | `true` | `K-LENG-005` |
+| `speech` | `—` | `supervised` | `nimi_runtime_speech` | `true` | `K-LENG-004` |
 | `sidecar` | `—` | `attached_endpoint` | `nimi_music_http` | `true` | `K-LENG-005` |

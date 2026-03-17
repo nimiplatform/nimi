@@ -166,6 +166,10 @@ message LocalVerifiedModelDescriptor {
   int64 total_size_bytes = 16;
   repeated string tags = 17;
   google.protobuf.Struct engine_config = 18;
+  string logical_model_id = 19;
+  repeated string artifact_roles = 20;
+  string preferred_engine = 21;
+  repeated string fallback_engines = 22;
 }
 
 message LocalVerifiedArtifactDescriptor {
@@ -187,43 +191,44 @@ message LocalVerifiedArtifactDescriptor {
   google.protobuf.Struct metadata = 16;
 }
 
-message LocalProviderHintsLocalAi {
+message LocalProviderHintsLlama {
   string backend = 1;
   string preferred_adapter = 2;
-  string whisper_variant = 3;
-  string stablediffusion_pipeline = 4;
-  string video_backend = 5;
+  string multimodal_projector = 3;
 }
 
-message LocalProviderHintsNexa {
-  string backend = 1;
-  string preferred_adapter = 2;
-  string plugin_id = 3;
-  string device_id = 4;
-  string model_type = 5;
-  string npu_mode = 6;
-  string policy_gate = 7;
-  bool host_npu_ready = 8;
-  bool model_probe_has_npu_candidate = 9;
-  bool policy_gate_allows_npu = 10;
-  bool npu_usable = 11;
-  string gate_reason = 12;
-  string gate_detail = 13;
-}
-
-message LocalProviderHintsNimiMedia {
+message LocalProviderHintsMedia {
   string backend = 1;
   string preferred_adapter = 2;
   string family = 3;
   string image_driver = 4;
   string video_driver = 5;
   string device = 6;
+  string fallback_driver = 7;
+  string fallback_reason = 8;
+  string policy_gate = 9;
+}
+
+message LocalProviderHintsSpeech {
+  string backend = 1;
+  string preferred_adapter = 2;
+  string family = 3;
+  string driver = 4;
+  string device = 5;
+  string voice_workflow_driver = 6;
+  string policy_gate = 7;
+}
+
+message LocalProviderHintsSidecar {
+  string preferred_adapter = 1;
+  string backend = 2;
 }
 
 message LocalProviderHints {
-  LocalProviderHintsLocalAi localai = 1;
-  LocalProviderHintsNexa nexa = 2;
-  LocalProviderHintsNimiMedia nimi_media = 3;
+  LocalProviderHintsLlama llama = 1;
+  LocalProviderHintsMedia media = 2;
+  LocalProviderHintsSpeech speech = 3;
+  LocalProviderHintsSidecar sidecar = 4;
   map<string, string> extra = 10;
 }
 

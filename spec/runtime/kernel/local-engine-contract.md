@@ -8,9 +8,10 @@ Phase 1 本地执行引擎固定为：
 
 - `llama`：`llama.cpp` / `llama-server`，负责 `text.generate`、`text.embed`、`image.understand`、`audio.understand`
 - `media`：`stable-diffusion.cpp` 主 driver，负责 `image.generate`、`image.edit`、`video.generate`、`i2v`
-- `media.diffusers`：`media` 的 fallback driver，只在 `media` 无法证明当前 logical model 可执行时启用
+- `speech`：本地语音引擎族，负责 `audio.transcribe`、`audio.synthesize`、`voice_workflow.tts_v2v`、`voice_workflow.tts_t2v`
 - `sidecar`：外部自托管 music sidecar，使用 Nimi music canonical HTTP 协议；当前仅支持 `ATTACHED_ENDPOINT`
 
+`media.diffusers` 仅允许作为 `media` 的 runtime 内部 fallback driver；不是 public engine target。
 `LocalAI / Nexa / nimi_media` 不再属于规范引擎枚举，也不得作为新的本地执行事实源。
 
 引擎类型值域以 `tables/local-engine-catalog.yaml` 为唯一事实源。
@@ -22,7 +23,7 @@ Phase 1 本地执行引擎固定为：
 - `ATTACHED_ENDPOINT`
 - `SUPERVISED`
 
-`sidecar` 当前只允许 `ATTACHED_ENDPOINT`；`llama`、`media` 与 `media.diffusers` 允许 `ATTACHED_ENDPOINT` 或 `SUPERVISED`。
+`sidecar` 当前只允许 `ATTACHED_ENDPOINT`；`llama`、`media` 与 `speech` 允许 `ATTACHED_ENDPOINT` 或 `SUPERVISED`。
 
 ## K-LENG-003 ATTACHED_ENDPOINT 约束
 
@@ -31,7 +32,8 @@ Phase 1 本地执行引擎固定为：
 - `endpoint` 必须显式提供且合法；runtime 不得偷偷补回 loopback 默认值。
 - runtime 不负责启动、停止或重启外部进程。
 - `llama` 的 attached endpoint 必须暴露与 `K-LENG-006` 一致的 canonical API。
-- `media` / `media.diffusers` 的 attached endpoint 必须暴露 `GET /healthz` 与 `GET /v1/catalog`；不得回退 `OpenAI-compatible /v1/models`。
+- `media` 的 attached endpoint 必须暴露 `GET /healthz` 与 `GET /v1/catalog`。
+- `speech` 的 attached endpoint 必须暴露与 `K-LENG-006` 一致的 canonical speech API。
 - 当 runtime 不能证明 attached endpoint 可执行当前 logical model 时，必须 fail-close。
 
 ## K-LENG-004 SUPERVISED 约束
@@ -48,7 +50,8 @@ Phase 1 本地执行引擎固定为：
 
 - `llama`：管理 `llama.cpp` / `llama-server`、GPU layers、context/batch policy、warmup。
 - `media`：优先管理 `stable-diffusion.cpp`。
-- `media.diffusers`：只在 `media` 不支持 family / artifact completeness / pipeline variant 时作为 fallback 启动。
+- `speech`：管理 `whispercpp`、`kokoro` 与 `qwen3tts` 等 Phase 1 语音 driver，并负责语音基础能力与 voice workflow 探测。
+- `media.diffusers`：只在 `media` 不支持 family / artifact completeness / pipeline variant 时作为内部 fallback 启动。
 
 禁止事项：
 
@@ -61,7 +64,7 @@ Phase 1 本地执行引擎固定为：
 
 - `llama`：`SUPERVISED` 允许默认 loopback 端口；`ATTACHED_ENDPOINT` 无默认端点。
 - `media`：`SUPERVISED` 允许默认 loopback 端口；`ATTACHED_ENDPOINT` 无默认端点。
-- `media.diffusers`：只在 fallback 触发后允许 runtime 分配 supervised loopback；`ATTACHED_ENDPOINT` 无默认端点。
+- `speech`：`SUPERVISED` 允许默认 loopback 端口；`ATTACHED_ENDPOINT` 无默认端点。
 - `sidecar`：无默认端点。
 
 当安装或启动时 `endpoint` 为空：
@@ -84,6 +87,15 @@ Phase 1 本地执行引擎固定为：
 - `POST /v1/media/image/generate`
 - `POST /v1/media/video/generate`
 
+`speech` 使用 runtime 私有 canonical speech HTTP API：
+
+- `GET /healthz`
+- `GET /v1/catalog`
+- `POST /v1/audio/transcriptions`
+- `POST /v1/audio/speech`
+- `POST /v1/voice/clone`
+- `POST /v1/voice/design`
+
 `sidecar` 使用 Nimi music canonical HTTP API：
 
 - `POST /v1/music/generate`
@@ -91,7 +103,8 @@ Phase 1 本地执行引擎固定为：
 协议约束：
 
 - `media` / `media.diffusers` 不得再通过 OpenAI-compatible provider 语义暴露给上层。
-- `llama` 只承载文本与理解能力；`media` / `media.diffusers` 只承载图像/视频生成能力。
+- `speech` 不得把 voice workflow 伪装为 OpenAI-compatible TTS 成功语义。
+- `llama` 只承载文本与理解能力；`media` / `media.diffusers` 只承载图像/视频生成能力；`speech` 只承载语音与 voice workflow 能力。
 - 用户层不得直接暴露 workflow、companion model 拼装或 pipeline DAG。
 
 ## K-LENG-007 健康探测协议
@@ -108,6 +121,13 @@ Phase 1 本地执行引擎固定为：
 - catalog 不得暴露静态伪 model list。
 - `media.diffusers` 作为 fallback 时，必须在探测结果中暴露 fallback 原因，不得静默替换。
 
+`speech` 健康探测：
+
+- `/healthz` 返回 ready 且 `/v1/catalog` 暴露目标 `logical_model_id` 的 ready entry，才算健康。
+- `audio.transcribe` 必须至少验证 STT driver 与主 artifact 完整。
+- `audio.synthesize` 必须至少验证 TTS driver 与主 artifact 完整。
+- `voice_workflow.tts_v2v` / `voice_workflow.tts_t2v` 必须验证 workflow driver 可用；缺失 `qwen3tts` 等必要 bundle 时必须 fail-close。
+
 `sidecar` 当前不进入标准 supervised 健康探测，attached endpoint 的可用性由实际 music 请求 fail-close。
 
 ## K-LENG-008 配置来源优先级
@@ -120,6 +140,7 @@ Phase 1 本地执行引擎固定为：
 4. 引擎默认值
 
 配置结构必须围绕 `llama` / `media` / `sidecar` 组织，不得继续保留 `localai` / `nexa` 为 public 配置入口。
+配置结构必须围绕 `llama` / `media` / `speech` / `sidecar` 组织，不得继续保留 `localai` / `nexa` / `nimi_media` 为 public 配置入口。
 
 ## K-LENG-009 凭据安全策略
 

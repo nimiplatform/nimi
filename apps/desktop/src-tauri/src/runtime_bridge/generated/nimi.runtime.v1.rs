@@ -4937,6 +4937,14 @@ pub struct LocalVerifiedModelDescriptor {
     pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, optional, tag = "18")]
     pub engine_config: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, tag = "19")]
+    pub logical_model_id: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "20")]
+    pub artifact_roles: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "21")]
+    pub preferred_engine: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "22")]
+    pub fallback_engines: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalVerifiedArtifactDescriptor {
@@ -4977,49 +4985,16 @@ pub struct LocalVerifiedArtifactDescriptor {
     pub metadata: ::core::option::Option<::prost_types::Struct>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalProviderHintsLocalAi {
+pub struct LocalProviderHintsLlama {
     #[prost(string, tag = "1")]
     pub backend: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub preferred_adapter: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
-    pub whisper_variant: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub stablediffusion_pipeline: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub video_backend: ::prost::alloc::string::String,
+    pub multimodal_projector: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalProviderHintsNexa {
-    #[prost(string, tag = "1")]
-    pub backend: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub preferred_adapter: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub plugin_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub device_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub model_type: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub npu_mode: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub policy_gate: ::prost::alloc::string::String,
-    #[prost(bool, tag = "8")]
-    pub host_npu_ready: bool,
-    #[prost(bool, tag = "9")]
-    pub model_probe_has_npu_candidate: bool,
-    #[prost(bool, tag = "10")]
-    pub policy_gate_allows_npu: bool,
-    #[prost(bool, tag = "11")]
-    pub npu_usable: bool,
-    #[prost(string, tag = "12")]
-    pub gate_reason: ::prost::alloc::string::String,
-    #[prost(string, tag = "13")]
-    pub gate_detail: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalProviderHintsNimiMedia {
+pub struct LocalProviderHintsMedia {
     #[prost(string, tag = "1")]
     pub backend: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
@@ -5032,15 +5007,47 @@ pub struct LocalProviderHintsNimiMedia {
     pub video_driver: ::prost::alloc::string::String,
     #[prost(string, tag = "6")]
     pub device: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub fallback_driver: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub fallback_reason: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub policy_gate: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalProviderHintsSpeech {
+    #[prost(string, tag = "1")]
+    pub backend: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub preferred_adapter: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub family: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub driver: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub device: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub voice_workflow_driver: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub policy_gate: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalProviderHintsSidecar {
+    #[prost(string, tag = "1")]
+    pub preferred_adapter: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub backend: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalProviderHints {
     #[prost(message, optional, tag = "1")]
-    pub localai: ::core::option::Option<LocalProviderHintsLocalAi>,
+    pub llama: ::core::option::Option<LocalProviderHintsLlama>,
     #[prost(message, optional, tag = "2")]
-    pub nexa: ::core::option::Option<LocalProviderHintsNexa>,
+    pub media: ::core::option::Option<LocalProviderHintsMedia>,
     #[prost(message, optional, tag = "3")]
-    pub nimi_media: ::core::option::Option<LocalProviderHintsNimiMedia>,
+    pub speech: ::core::option::Option<LocalProviderHintsSpeech>,
+    #[prost(message, optional, tag = "4")]
+    pub sidecar: ::core::option::Option<LocalProviderHintsSidecar>,
     #[prost(map = "string, string", tag = "10")]
     pub extra: ::std::collections::HashMap<
         ::prost::alloc::string::String,

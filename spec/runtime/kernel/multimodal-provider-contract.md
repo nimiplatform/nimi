@@ -48,9 +48,15 @@ local provider 的能力暴露必须与本地 engine/capability 合同一致。
 `media` 补充：
 
 - runtime 到 `media` engine 的私有协议必须直接承接 runtime canonical image/video spec，不得回落到 OpenAI-compatible `/v1/images/generations`、`/v1/video/generations` 或 legacy catalog-only 健康路径。
-- `media` engine 私有协议固定为：`GET /healthz`、`GET /v1/models`、`POST /v1/media/image/generate`、`POST /v1/media/video/generate`。
+- `media` engine 私有协议固定为：`GET /healthz`、`GET /v1/catalog`、`POST /v1/media/image/generate`、`POST /v1/media/video/generate`。
 - `media` 只允许暴露真实 ready 的 image/video 模型目录；依赖未安装、设备不可用、模型未解析、管线未初始化时必须 fail-close，不得伪造成功 artifact 或静态 model list。
 - `media.diffusers` 只允许作为 `media` 的内部 fallback driver 出现在 runtime metadata / execution strategy；不得作为 public config、public adapter 选择面或手工 engine target。
+
+`speech` 补充：
+
+- runtime 到 `speech` engine 的私有协议必须直接承接 runtime canonical speech 与 voice workflow spec，不得伪装成 OpenAI-compatible TTS/STT workflow 成功语义。
+- `speech` engine 私有协议固定为：`GET /healthz`、`GET /v1/catalog`、`POST /v1/audio/transcriptions`、`POST /v1/audio/speech`、`POST /v1/voice/clone`、`POST /v1/voice/design`。
+- `speech` 只允许暴露真实 ready 的 STT/TTS/voice workflow 模型目录；缺失 `qwen3tts` 等 workflow bundle 时必须 fail-close。
 
 ## K-MMPROV-011 Workflow External Async
 
