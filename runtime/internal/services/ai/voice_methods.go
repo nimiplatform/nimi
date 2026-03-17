@@ -212,6 +212,7 @@ func inferVoiceListRoutePolicy(modelID string, remoteTarget *nimillm.RemoteTarge
 	case strings.HasPrefix(normalized, "local/"),
 		strings.HasPrefix(normalized, "llama/"),
 		strings.HasPrefix(normalized, "media/"),
+		strings.HasPrefix(normalized, "speech/"),
 		strings.HasPrefix(normalized, "sidecar/"):
 		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
 	default:

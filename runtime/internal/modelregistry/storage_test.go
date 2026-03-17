@@ -77,7 +77,7 @@ func TestInferNativeProjectionForMediaModel(t *testing.T) {
 	if projection.PreferredEngine != "media" {
 		t.Fatalf("preferred engine mismatch: %q", projection.PreferredEngine)
 	}
-	if len(projection.FallbackEngines) != 1 || projection.FallbackEngines[0] != "media.diffusers" {
+	if len(projection.FallbackEngines) != 0 {
 		t.Fatalf("fallback engines mismatch: %#v", projection.FallbackEngines)
 	}
 	if projection.BundleState != runtimev1.LocalBundleState_LOCAL_BUNDLE_STATE_READY {
@@ -85,6 +85,92 @@ func TestInferNativeProjectionForMediaModel(t *testing.T) {
 	}
 	if !projection.HostRequirements.GetGpuRequired() {
 		t.Fatalf("media model should require GPU")
+	}
+}
+
+func TestInferNativeProjectionForSpeechModel(t *testing.T) {
+	projection := InferNativeProjection(
+		"speech/whisper-large-v3",
+		[]string{"audio.transcribe"},
+		[]string{"model.bin"},
+		runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
+	)
+
+	if projection.PreferredEngine != "speech" {
+		t.Fatalf("preferred engine mismatch: %q", projection.PreferredEngine)
+	}
+	if projection.HostRequirements == nil {
+		t.Fatal("speech model host requirements must be populated")
+	}
+	if projection.HostRequirements.GetGpuRequired() {
+		t.Fatal("whispercpp transcribe path should not require GPU")
+	}
+	if projection.HostRequirements.GetPythonRuntimeRequired() {
+		t.Fatal("whispercpp transcribe path should not require python runtime")
+	}
+	if got := projection.HostRequirements.GetRequiredBackends(); len(got) != 1 || got[0] != "whispercpp" {
+		t.Fatalf("required backends mismatch: %#v", got)
+	}
+}
+
+func TestInferNativeProjectionForVoiceWorkflowModel(t *testing.T) {
+	projection := InferNativeProjection(
+		"speech/qwen3tts",
+		[]string{"voice_workflow.tts_v2v"},
+		[]string{"model.safetensors"},
+		runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
+	)
+
+	if projection.PreferredEngine != "speech" {
+		t.Fatalf("preferred engine mismatch: %q", projection.PreferredEngine)
+	}
+	if projection.HostRequirements == nil {
+		t.Fatal("voice workflow host requirements must be populated")
+	}
+	if !projection.HostRequirements.GetGpuRequired() {
+		t.Fatal("voice workflow path should require GPU")
+	}
+	if !projection.HostRequirements.GetPythonRuntimeRequired() {
+		t.Fatal("voice workflow path should require python runtime")
+	}
+	if got := projection.HostRequirements.GetRequiredBackends(); len(got) != 1 || got[0] != "qwen3tts" {
+		t.Fatalf("required backends mismatch: %#v", got)
+	}
+}
+
+func TestInferNativeProjectionForLlamaModel(t *testing.T) {
+	projection := InferNativeProjection(
+		"llama/qwen3-chat",
+		[]string{"text.generate"},
+		[]string{"model.gguf", "tokenizer.json"},
+		runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
+	)
+
+	if projection.PreferredEngine != "llama" {
+		t.Fatalf("preferred engine mismatch: %q", projection.PreferredEngine)
+	}
+	foundLLMRole := false
+	for _, role := range projection.ArtifactRoles {
+		if role == "llm" {
+			foundLLMRole = true
+			break
+		}
+	}
+	if !foundLLMRole {
+		t.Fatalf("artifact roles should include llm: %#v", projection.ArtifactRoles)
+	}
+	if projection.HostRequirements == nil {
+		t.Fatal("llama host requirements must be populated")
+	}
+	if got := projection.HostRequirements.GetRequiredBackends(); len(got) != 1 || got[0] != "llama.cpp" {
+		t.Fatalf("required backends mismatch: %#v", got)
+	}
+}
+
+func TestInferNativeProjectionFallbackEnginesExcludesDiffusers(t *testing.T) {
+	filtered := publicFallbackEngines([]string{"media.diffusers", "sidecar", "media.diffusers"})
+	if len(filtered) != 1 || filtered[0] != "sidecar" {
+		t.Fatalf("fallback engines should filter diffusers: %#v", filtered)
 	}
 }
 

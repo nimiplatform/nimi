@@ -16,10 +16,10 @@ type FakeServer = {
   close: () => Promise<void>;
 };
 
-const FAKE_NEXA_MODEL_IDS = ['qwen', 'embed', 'tts', 'stt'] as const;
+const FAKE_LOCAL_MODEL_IDS = ['qwen', 'embed', 'tts', 'stt'] as const;
 
-function startFakeNexaServer(): Promise<FakeServer> {
-  const audioBytes = Buffer.from('nexa-audio-bytes', 'utf8');
+function startFakeLocalEngineServer(): Promise<FakeServer> {
+  const audioBytes = Buffer.from('local-audio-bytes', 'utf8');
 
   const server = http.createServer((req, res) => {
     const path = req.url || '';
@@ -33,7 +33,7 @@ function startFakeNexaServer(): Promise<FakeServer> {
       res.statusCode = 200;
       res.setHeader('content-type', 'application/json');
       res.end(JSON.stringify({
-        data: FAKE_NEXA_MODEL_IDS.map((id) => ({ id })),
+        data: FAKE_LOCAL_MODEL_IDS.map((id) => ({ id })),
       }));
       return;
     }
@@ -44,7 +44,7 @@ function startFakeNexaServer(): Promise<FakeServer> {
         choices: [{
           finish_reason: 'stop',
           message: {
-            content: 'nexa text',
+            content: 'local text',
           },
         }],
         usage: {
@@ -78,7 +78,7 @@ function startFakeNexaServer(): Promise<FakeServer> {
       res.statusCode = 200;
       res.setHeader('content-type', 'application/json');
       res.end(JSON.stringify({
-        text: 'nexa stt text',
+        text: 'local stt text',
       }));
       return;
     }
@@ -91,7 +91,7 @@ function startFakeNexaServer(): Promise<FakeServer> {
     server.listen(0, '127.0.0.1', () => {
       const address = server.address();
       if (!address || typeof address === 'string') {
-        reject(new Error('fake nexa server listen failed'));
+        reject(new Error('fake local engine server listen failed'));
         return;
       }
       resolvePromise({
@@ -128,7 +128,7 @@ async function installAndStartLocalModel(
   input: {
     modelId: string;
     capabilities: string[];
-    engine: 'nexa';
+    engine: 'llama' | 'media' | 'speech' | 'sidecar';
     endpoint: string;
   },
 ): Promise<void> {
@@ -143,18 +143,18 @@ async function installAndStartLocalModel(
   await runtime.local.startLocalModel({ localModelId });
 }
 
-test('provider_local_test.ts: nexa supported modalities + image/video fail-close via nimi-sdk', {
+test('provider_local_test.ts: engine-first local modalities + image/video fail-close via nimi-sdk', {
   skip: process.env.NIMI_RUNTIME_CONTRACT !== '1',
   timeout: 120_000,
 }, async () => {
-  const fakeServer = await startFakeNexaServer();
-  const expectedAudio = Buffer.from('nexa-audio-bytes', 'utf8');
+  const fakeServer = await startFakeLocalEngineServer();
+  const expectedAudio = Buffer.from('local-audio-bytes', 'utf8');
 
   try {
     await withRuntimeDaemon({
       appId: APP_ID,
       runtimeEnv: {
-        NIMI_RUNTIME_LOCAL_NEXA_BASE_URL: fakeServer.url,
+        NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL: fakeServer.url,
       },
       run: async ({ endpoint }) => {
         const runtime = new Runtime({
@@ -181,31 +181,31 @@ test('provider_local_test.ts: nexa supported modalities + image/video fail-close
         await installAndStartLocalModel(runtime, {
           modelId: 'qwen',
           capabilities: ['text.generate'],
-          engine: 'nexa',
+          engine: 'llama',
           endpoint: fakeServer.url,
         });
         await installAndStartLocalModel(runtime, {
           modelId: 'embed',
           capabilities: ['text.embed'],
-          engine: 'nexa',
+          engine: 'llama',
           endpoint: fakeServer.url,
         });
         await installAndStartLocalModel(runtime, {
           modelId: 'tts',
           capabilities: ['audio.synthesize'],
-          engine: 'nexa',
+          engine: 'speech',
           endpoint: fakeServer.url,
         });
         await installAndStartLocalModel(runtime, {
           modelId: 'stt',
           capabilities: ['audio.transcribe'],
-          engine: 'nexa',
+          engine: 'speech',
           endpoint: fakeServer.url,
         });
 
-        const textModel = provider.text('nexa/qwen');
+        const textModel = provider.text('llama/qwen');
         const textResult = await textModel.doGenerate({
-          prompt: promptFromText('hello nexa'),
+          prompt: promptFromText('hello llama'),
           providerOptions: {},
         });
         const generatedText = textResult.content
@@ -213,9 +213,9 @@ test('provider_local_test.ts: nexa supported modalities + image/video fail-close
           .map((item) => item.text)
           .join('')
           .trim();
-        assert.equal(generatedText, 'nexa text');
+        assert.equal(generatedText, 'local text');
 
-        const embeddingResult = await provider.embedding('nexa/embed').doEmbed({
+        const embeddingResult = await provider.embedding('llama/embed').doEmbed({
           values: ['embed me'],
           providerOptions: {},
         });
@@ -223,7 +223,7 @@ test('provider_local_test.ts: nexa supported modalities + image/video fail-close
 
         let imageError: unknown = null;
         try {
-          await provider.image('nexa/image').doGenerate({
+          await provider.image('media/image').doGenerate({
             prompt: 'draw mountain',
             n: 1,
             size: undefined,
@@ -236,14 +236,14 @@ test('provider_local_test.ts: nexa supported modalities + image/video fail-close
         } catch (error) {
           imageError = error;
         }
-        assert.ok(imageError, 'nexa image should fail-close');
+        assert.ok(imageError, 'media image should fail-close');
         const normalizedImageError = asNimiError(imageError, { source: 'runtime' });
         assert.ok(
           normalizedImageError.reasonCode === ReasonCode.AI_ROUTE_UNSUPPORTED || normalizedImageError.reasonCode === '204',
           `unexpected image reasonCode: ${normalizedImageError.reasonCode}`,
         );
 
-        const speechResult = await provider.tts('nexa/tts').synthesize({
+        const speechResult = await provider.tts('speech/tts').synthesize({
           text: 'hello',
         });
         assert.equal(speechResult.artifacts.length, 1);
@@ -252,15 +252,15 @@ test('provider_local_test.ts: nexa supported modalities + image/video fail-close
           expectedAudio.toString('utf8'),
         );
 
-        const transcription = await provider.stt('nexa/stt').transcribe({
+        const transcription = await provider.stt('speech/stt').transcribe({
           audioBytes: Uint8Array.from([1, 2, 3]),
           mimeType: 'audio/wav',
         });
-        assert.equal(transcription.text, 'nexa stt text');
+        assert.equal(transcription.text, 'local stt text');
 
         let videoError: unknown = null;
         try {
-          await provider.video('nexa/video').generate({
+          await provider.video('media/video').generate({
             mode: 't2v',
             prompt: 'unsupported',
             content: [
@@ -277,7 +277,7 @@ test('provider_local_test.ts: nexa supported modalities + image/video fail-close
         } catch (error) {
           videoError = error;
         }
-        assert.ok(videoError, 'nexa video should fail-close');
+        assert.ok(videoError, 'media video should fail-close');
         const normalized = asNimiError(videoError, { source: 'runtime' });
         assert.ok(
           normalized.reasonCode === ReasonCode.AI_ROUTE_UNSUPPORTED || normalized.reasonCode === '204',

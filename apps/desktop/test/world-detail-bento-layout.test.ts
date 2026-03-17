@@ -20,6 +20,10 @@ const worldOverviewSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/world/world-detail-overview-sections.tsx'),
   'utf8',
 );
+const worldCoreRulesSource = readFileSync(
+  resolve(import.meta.dirname, '../src/shell/renderer/features/world/world-detail-core-rules-section.tsx'),
+  'utf8',
+);
 const worldContentSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/world/world-detail-content-sections.tsx'),
   'utf8',
@@ -212,7 +216,7 @@ test('world detail pages are composition-driven and expose stable test surfaces'
   assert.doesNotMatch(worldTemplateSource, /\['world-detail-rules', t\('WorldDetail\.xianxia\.v2\.quickNav\.rules'\)\]/);
   assert.match(worldTemplateSource, /data-testid="world-detail-root"/);
   assert.match(worldOverviewSource, /data-testid="world-detail-dashboard"/);
-  assert.match(worldOverviewSource, /dataTestId="world-detail-core-rules"/);
+  assert.match(worldCoreRulesSource, /dataTestId="world-detail-core-rules"/);
   assert.match(worldContentSource, /dataTestId="world-detail-timeline"/);
   assert.match(worldContentSource, /buildVisibleAgentGroups\(agents, 9, expanded\)/);
   assert.match(worldContentSource, /totalCount > 9/);
