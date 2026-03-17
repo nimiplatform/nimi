@@ -65,7 +65,7 @@ export type LocalModelCenterProps = {
 
 export const CAPABILITY_OPTIONS = ['chat', 'image', 'video', 'tts', 'stt', 'embedding'] as const;
 export type CapabilityOption = typeof CAPABILITY_OPTIONS[number];
-export const INSTALL_ENGINE_OPTIONS = ['localai', 'nexa', 'nimi_media'] as const;
+export const INSTALL_ENGINE_OPTIONS = ['llama', 'media'] as const;
 export type InstallEngineOption = typeof INSTALL_ENGINE_OPTIONS[number];
 export type ProgressSessionState = {
   event: LocalRuntimeDownloadProgressEvent;
@@ -174,7 +174,7 @@ export function normalizeCapabilityOption(value: string | undefined): Capability
 
 export function normalizeInstallEngine(value: string | undefined): InstallEngineOption {
   const normalized = String(value || '').trim().toLowerCase();
-  return (INSTALL_ENGINE_OPTIONS.find((item) => item === normalized) || 'localai') as InstallEngineOption;
+  return (INSTALL_ENGINE_OPTIONS.find((item) => item === normalized) || 'llama') as InstallEngineOption;
 }
 
 export function parseTimestamp(value: string | undefined): number {

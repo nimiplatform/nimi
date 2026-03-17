@@ -26,14 +26,14 @@ function createBaseState(): RuntimeConfigStateV11 {
   });
 }
 
-test('applyRuntimeBridgeConfigToState maps local provider endpoint', () => {
+test('applyRuntimeBridgeConfigToState maps llama engine loopback endpoint', () => {
   const previous = createBaseState();
   const next = applyRuntimeBridgeConfigToState(previous, {
     schemaVersion: 1,
-    providers: {
-      local: {
-        baseUrl: 'http://127.0.0.1:18080/v1',
-        apiKeyEnv: 'LOCALAI_API_KEY',
+    engines: {
+      llama: {
+        enabled: true,
+        port: 18080,
       },
     },
   });
@@ -41,13 +41,13 @@ test('applyRuntimeBridgeConfigToState maps local provider endpoint', () => {
   assert.equal(next.local.endpoint, 'http://127.0.0.1:18080/v1');
 });
 
-test('applyRuntimeBridgeConfigToState preserves existing endpoint when no local baseUrl', () => {
+test('applyRuntimeBridgeConfigToState preserves existing endpoint when no llama engine config is present', () => {
   const previous = createBaseState();
   previous.local.endpoint = 'http://127.0.0.1:9999/v1';
 
   const next = applyRuntimeBridgeConfigToState(previous, {
     schemaVersion: 1,
-    providers: {},
+    engines: {},
   });
 
   assert.equal(next.local.endpoint, 'http://127.0.0.1:9999/v1');
@@ -60,8 +60,10 @@ test('applyRuntimeBridgeConfigToState does not manage connectors — they come f
 
   const next = applyRuntimeBridgeConfigToState(previous, {
     schemaVersion: 1,
+    engines: {
+      llama: { enabled: true, port: 18080 },
+    },
     providers: {
-      local: { baseUrl: 'http://127.0.0.1:18080/v1' },
       gemini: { baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', apiKeyEnv: 'NIMI_RUNTIME_CLOUD_GEMINI_API_KEY' },
     },
   });
@@ -71,7 +73,7 @@ test('applyRuntimeBridgeConfigToState does not manage connectors — they come f
   assert.equal(next.connectors[0]?.id, existingConnector.id);
 });
 
-test('buildRuntimeBridgeConfigFromState emits schema defaults and local endpoint', () => {
+test('buildRuntimeBridgeConfigFromState emits schema defaults and llama engine loopback config', () => {
   const state = createBaseState();
   state.local.endpoint = 'http://127.0.0.1:11434/v1';
 
@@ -80,10 +82,10 @@ test('buildRuntimeBridgeConfigFromState emits schema defaults and local endpoint
   assert.equal(config.grpcAddr, '127.0.0.1:46371');
   assert.equal(config.httpAddr, '127.0.0.1:46372');
 
-  const providers = asRecord(config.providers);
-  const local = asRecord(providers.local);
-  assert.equal(local.baseUrl, 'http://127.0.0.1:11434/v1');
-  assert.equal(local.apiKeyEnv, 'LOCALAI_API_KEY');
+  const engines = asRecord(config.engines);
+  const llama = asRecord(engines.llama);
+  assert.equal(llama.enabled, true);
+  assert.equal(llama.port, 11434);
 });
 
 test('buildRuntimeBridgeConfigFromState preserves existing non-local provider entries', () => {
@@ -91,6 +93,12 @@ test('buildRuntimeBridgeConfigFromState preserves existing non-local provider en
   state.local.endpoint = 'http://127.0.0.1:11434/v1';
 
   const config = buildRuntimeBridgeConfigFromState(state, {
+    engines: {
+      media: {
+        enabled: true,
+        port: 8321,
+      },
+    },
     providers: {
       gemini: {
         baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
@@ -103,6 +111,9 @@ test('buildRuntimeBridgeConfigFromState preserves existing non-local provider en
   const gemini = asRecord(providers.gemini);
   assert.equal(gemini.baseUrl, 'https://generativelanguage.googleapis.com/v1beta/openai');
   assert.equal(gemini.apiKeyEnv, 'NIMI_RUNTIME_CLOUD_GEMINI_API_KEY');
+  const engines = asRecord(config.engines);
+  const media = asRecord(engines.media);
+  assert.equal(media.port, 8321);
 });
 
 test('serializeRuntimeBridgeProjection ignores status-only runtime state changes', () => {

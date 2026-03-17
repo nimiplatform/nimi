@@ -247,15 +247,15 @@ describe('normalizeCapabilityOption', () => {
 
 describe('normalizeInstallEngine', () => {
   test('keeps supported engine', () => {
-    assert.equal(normalizeInstallEngine('nexa'), 'nexa');
+    assert.equal(normalizeInstallEngine('media'), 'media');
   });
 
   test('normalizes case and whitespace', () => {
-    assert.equal(normalizeInstallEngine('  LOCALAI '), 'localai');
+    assert.equal(normalizeInstallEngine('  LLAMA '), 'llama');
   });
 
-  test('falls back to localai for unknown values', () => {
-    assert.equal(normalizeInstallEngine('llama-cpp'), 'localai');
+  test('falls back to llama for unknown values', () => {
+    assert.equal(normalizeInstallEngine('llama-cpp'), 'llama');
   });
 });
 

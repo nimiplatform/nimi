@@ -90,8 +90,9 @@ function normalizeModelRoot(model: string): string {
   const normalized = String(model || '').trim();
   if (!normalized) return '';
   const lower = normalized.toLowerCase();
-  if (lower.startsWith('localai/')) return normalized.slice('localai/'.length).trim();
-  if (lower.startsWith('nexa/')) return normalized.slice('nexa/'.length).trim();
+  if (lower.startsWith('llama/')) return normalized.slice('llama/'.length).trim();
+  if (lower.startsWith('media/')) return normalized.slice('media/'.length).trim();
+  if (lower.startsWith('sidecar/')) return normalized.slice('sidecar/'.length).trim();
   if (lower.startsWith('local/')) return normalized.slice('local/'.length).trim();
   if (lower.startsWith('cloud/')) return normalized.slice('cloud/'.length).trim();
   if (lower.startsWith('token/')) return normalized.slice('token/'.length).trim();
@@ -100,17 +101,18 @@ function normalizeModelRoot(model: string): string {
 
 function inferLocalEngine(provider: string): string {
   const normalized = String(provider || '').trim().toLowerCase();
-  if (normalized.includes('nexa')) return 'nexa';
-  if (normalized.includes('nimi_media') || normalized.includes('nimimedia')) return 'nimi_media';
-  if (normalized.includes('localai') || normalized.includes('local')) return 'localai';
+  if (normalized.includes('sidecar')) return 'sidecar';
+  if (normalized.includes('media')) return 'media';
+  if (normalized.includes('llama') || normalized.includes('local')) return 'llama';
   return 'local';
 }
 
 function normalizeEngineName(value: string): string {
   const normalized = String(value || '').trim().toLowerCase();
   if (!normalized) return '';
-  if (normalized.includes('localai')) return 'localai';
-  if (normalized.includes('nexa')) return 'nexa';
+  if (normalized.includes('llama')) return 'llama';
+  if (normalized.includes('media')) return 'media';
+  if (normalized.includes('sidecar')) return 'sidecar';
   return normalized;
 }
 
@@ -281,7 +283,7 @@ function ensureRouteModelId(model: string, routePolicy: number, provider: string
   }
   if (routePolicy === ROUTE_POLICY_CLOUD) return `cloud/${modelRoot}`;
   const engine = inferLocalEngine(provider);
-  if (engine === 'localai' || engine === 'nexa' || engine === 'nimi_media') {
+  if (engine === 'llama' || engine === 'media' || engine === 'sidecar') {
     return `${engine}/${modelRoot}`;
   }
   return `local/${modelRoot}`;

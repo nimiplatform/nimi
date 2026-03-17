@@ -157,9 +157,9 @@ test('parseModelRecord canonicalizes local runtime ids to local/ prefix', () => 
 
   const artifact = parseArtifactRecord({
     localArtifactId: '01JART',
-    artifactId: 'localai/z_image_ae',
+    artifactId: 'media/z_image_ae',
     kind: 'vae',
-    engine: 'localai',
+    engine: 'media',
     entry: 'ae.safetensors',
     files: ['ae.safetensors'],
     license: 'apache-2.0',

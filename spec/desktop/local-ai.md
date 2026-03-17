@@ -17,9 +17,10 @@
 
 ### IPC (D-IPC-010, D-IPC-011)
 
-Local AI 桥接通过 `loadLocalAiBridge()` 懒加载（`D-IPC-010`），命令清单见 `D-IPC-011`。
+Local AI 桥接通过 local runtime bridge loader 懒加载（`D-IPC-010`），命令清单见 `D-IPC-011`。
 
-companion artifact、`engineConfig` 与 LocalAI 动态图片工作流（`profile_overrides` / `components`）通过同一 bridge facade 暴露；Desktop 只负责选择和透传，不负责写绝对路径。
+companion artifact、`engineConfig` 与 local image workflow（`profile_overrides` / `components`）通过同一 bridge facade 暴露；Desktop 只负责选择和透传，不负责写绝对路径。
+companion artifact、`engineConfig` 与 local image workflow（`profile_overrides` / `components`）通过同一 bridge facade 暴露；Desktop 只负责选择和透传，不负责写绝对路径。
 
 ### LLM (D-LLM-004)
 
@@ -34,7 +35,7 @@ mod 如需枚举 companion assets，必须显式声明 `runtime.local.artifacts.
 
 ### LLM (D-LLM-006)
 
-推理审计记录：`LocalAiInferenceAuditPayload`（eventType、source、modality、adapter、policyGate）。
+推理审计记录：`LocalRuntimeInferenceAuditPayload`（eventType、source、modality、adapter、policyGate）。
 
 ### Error (D-ERR-001 — D-ERR-003)
 
@@ -92,9 +93,9 @@ Desktop Rust 层实现完整下载管线（`K-LOCAL-024`）：
 
 ### 存储布局
 
-模型文件存储在 `~/.nimi/models/`（`K-LOCAL-025`），保留原始文件名。每模型子目录包含 `model.manifest.json`（`K-LOCAL-026`）。
+模型文件存储在 `~/.nimi/models/`（`K-LOCAL-025`），按 `objects/`、`sources/`、`recipes/`、`resolved/`、`cache/` 结构组织（`K-LOCAL-026`）。
 
-companion artifact manifest 也必须位于 `~/.nimi/models/` 根下的某个子目录，并固定命名为 `artifact.manifest.json`。Desktop 本轮不支持外部路径自动复制 artifact manifest。
+companion artifact manifest 也必须位于 `~/.nimi/models/` 根下的结构化目录中。Desktop 本轮不支持外部路径自动复制 artifact manifest。
 
 ### 格式支持
 
@@ -185,7 +186,7 @@ payload 至少包含 `itemId/modelId/capability/source/format/tier/hostSupportCl
    - 源文件存在且是文件（`LOCAL_AI_FILE_IMPORT_NOT_FOUND`）
    - capabilities 非空（`LOCAL_AI_FILE_IMPORT_CAPABILITIES_EMPTY`）
    - endpoint 回环限制校验（`LOCAL_AI_ENDPOINT_*`）
-3. **同步返回** — 返回 `LocalAiInstallAcceptedResponse`（installSessionId, modelId, localModelId）
+3. **同步返回** — 返回 local install accepted response（installSessionId, modelId, localModelId）
 4. **后台复制**（`std::thread::spawn`）:
    - 创建 `~/.nimi/models/<slug>/` 目录
    - `copy_and_hash_file()` 单遍复制 + SHA256（64KB 缓冲区），每 200ms 通过 `local-ai://download-progress` 事件报告进度
@@ -241,14 +242,14 @@ Desktop 在 `Companion Assets` 区域内提供独立的 `Unregistered Companion 
 - 扫描 `~/.nimi/models/` 下未被 `model.manifest.json` 或 `artifact.manifest.json` 纳管的二进制模型文件
 - 允许与主模型 orphan lane 同时展示同一裸文件；Desktop 不自动推断其用途
 - 只让用户选择 `kind`，不暴露 engine 选择器
-- scaffold 固定生成 `engine=localai` 的 `artifact.manifest.json`
+- scaffold 固定生成 canonical local engine 的 `artifact.manifest.json`
 - scaffold 完成后必须再调用 runtime local facade 的 `importLocalArtifact`
 
 scaffold manifest 固定写入：
 
 - `artifactId = local-import/<artifact-slug>`
 - `kind =` 用户选定的 artifact kind
-- `engine = localai`
+- `engine = media`
 - `entry/files =` 原始文件名
 - `license = unknown`
 - `source.repo = local-import/<artifact-slug>`

@@ -6,7 +6,7 @@ import { checkLocalLlmHealth } from '../src/runtime/llm-adapter/execution/health
 test('local endpoint GET /models ok → status healthy', async () => {
   const mockFetch = mock.fn(async () => new Response('{}', { status: 200 }));
   const result = await checkLocalLlmHealth({
-    provider: 'localai',
+    provider: 'llama',
     localProviderEndpoint: 'http://127.0.0.1:8080/v1',
     localProviderModel: 'llama3',
     fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
@@ -15,7 +15,7 @@ test('local endpoint GET /models ok → status healthy', async () => {
   assert.equal(result.status, 'healthy');
   assert.equal(result.endpoint, 'http://127.0.0.1:8080/v1');
   assert.equal(result.model, 'llama3');
-  assert.equal(result.provider, 'localai');
+  assert.equal(result.provider, 'llama');
   assert.equal(result.detail, '');
   assert.equal(mockFetch.mock.callCount(), 1);
   const callArgs = mockFetch.mock.calls[0]!.arguments;
@@ -25,7 +25,7 @@ test('local endpoint GET /models ok → status healthy', async () => {
 test('local endpoint GET /models HTTP 503 → status degraded', async () => {
   const mockFetch = mock.fn(async () => new Response('Service Unavailable', { status: 503 }));
   const result = await checkLocalLlmHealth({
-    provider: 'localai',
+    provider: 'llama',
     localProviderEndpoint: 'http://127.0.0.1:8080/v1',
     fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
   });
@@ -37,7 +37,7 @@ test('local endpoint GET /models HTTP 503 → status degraded', async () => {
 test('local endpoint fetch throws → status unreachable', async () => {
   const mockFetch = mock.fn(async () => { throw new Error('ECONNREFUSED'); });
   const result = await checkLocalLlmHealth({
-    provider: 'localai',
+    provider: 'llama',
     localProviderEndpoint: 'http://127.0.0.1:8080/v1',
     fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
   });
@@ -49,7 +49,7 @@ test('local endpoint fetch throws → status unreachable', async () => {
 test('localOpenAiEndpoint used as fallback when localProviderEndpoint empty', async () => {
   const mockFetch = mock.fn(async () => new Response('{}', { status: 200 }));
   const result = await checkLocalLlmHealth({
-    provider: 'localai',
+    provider: 'llama',
     localProviderEndpoint: '',
     localOpenAiEndpoint: 'http://127.0.0.1:1234/v1',
     fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
@@ -59,20 +59,20 @@ test('localOpenAiEndpoint used as fallback when localProviderEndpoint empty', as
   assert.equal(result.endpoint, 'http://127.0.0.1:1234/v1');
 });
 
-test('nimi_media health uses /healthz + /v1/catalog', async () => {
+test('media health uses /healthz + /v1/models', async () => {
   const mockFetch = mock.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url.endsWith('/healthz')) {
       return new Response(JSON.stringify({ ready: true }), { status: 200 });
     }
-    if (url.endsWith('/v1/catalog')) {
-      return new Response(JSON.stringify({ models: [{ id: 'flux.1-schnell', ready: true }] }), { status: 200 });
+    if (url.endsWith('/v1/models')) {
+      return new Response(JSON.stringify({ models: [{ id: 'flux.1-schnell' }] }), { status: 200 });
     }
     return new Response('not found', { status: 404 });
   });
 
   const result = await checkLocalLlmHealth({
-    provider: 'nimi_media',
+    provider: 'media',
     localProviderEndpoint: 'http://127.0.0.1:8321/v1',
     fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
   });
@@ -80,7 +80,7 @@ test('nimi_media health uses /healthz + /v1/catalog', async () => {
   assert.equal(result.status, 'healthy');
   assert.equal(mockFetch.mock.callCount(), 2);
   assert.ok(String(mockFetch.mock.calls[0]!.arguments[0]).endsWith('/healthz'));
-  assert.ok(String(mockFetch.mock.calls[1]!.arguments[0]).endsWith('/v1/catalog'));
+  assert.ok(String(mockFetch.mock.calls[1]!.arguments[0]).endsWith('/v1/models'));
 });
 
 test('no endpoint no connectorId → unsupported', async () => {

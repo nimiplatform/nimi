@@ -92,28 +92,24 @@ function normalizeCapabilityToken(value: unknown): RuntimeCanonicalCapability | 
 }
 function inferSource(provider: string): 'local' | 'cloud' {
     const lower = String(provider || '').trim().toLowerCase();
-    if (lower.startsWith('local') || lower === 'localai' || lower === 'nexa' || lower === 'nimi_media') {
+    if (lower.startsWith('local') || lower === 'llama' || lower === 'media' || lower === 'sidecar' || lower === 'media.diffusers') {
         return 'local';
     }
     return 'cloud';
 }
 function fallbackLocalEngine(capability?: RuntimeCanonicalCapability): string {
-    if (resolveLocalRoutePlatform() === 'windows') {
-        if (capability === 'image.generate' || capability === 'video.generate') {
-            return 'nimi_media';
-        }
-        if (capability === 'text.generate'
-            || capability === 'text.embed'
-            || capability === 'audio.synthesize'
-            || capability === 'audio.transcribe') {
-            return 'nexa';
-        }
+    const platform = resolveLocalRoutePlatform();
+    if (capability === 'image.generate' || capability === 'video.generate') {
+        return 'media';
     }
-    return 'localai';
+    if (capability === 'audio.synthesize' || (platform === 'windows' && capability === 'voice_workflow.tts_t2v')) {
+        return 'sidecar';
+    }
+    return 'llama';
 }
 function inferLocalEngine(provider: string, capability?: RuntimeCanonicalCapability, runtimeDefaultEngine?: string): string {
     const rawProvider = String(provider || '').trim().toLowerCase();
-    if (rawProvider === 'localai' || rawProvider === 'nexa' || rawProvider === 'nimi_media' || rawProvider === 'nimimedia') {
+    if (rawProvider === 'llama' || rawProvider === 'media' || rawProvider === 'sidecar' || rawProvider === 'media.diffusers') {
         return normalizeLocalEngine(rawProvider);
     }
     const defaultEngine = String(runtimeDefaultEngine || '').trim();
@@ -125,19 +121,13 @@ function inferLocalEngine(provider: string, capability?: RuntimeCanonicalCapabil
 }
 function defaultLocalAdapter(provider: string, capability: RuntimeCanonicalCapability): string {
     const normalizedProvider = normalizeLocalEngine(provider);
-    if (normalizedProvider === 'nexa') {
-        return 'nexa_native_adapter';
+    if (normalizedProvider === 'media') {
+        return 'media_native_adapter';
     }
-    if (normalizedProvider === 'nimi_media') {
-        return 'nimi_media_native_adapter';
+    if (normalizedProvider === 'sidecar' || capability === 'audio.synthesize') {
+        return 'sidecar_music_adapter';
     }
-    if (capability === 'image.generate'
-        || capability === 'video.generate'
-        || capability === 'audio.synthesize'
-        || capability === 'audio.transcribe') {
-        return 'localai_native_adapter';
-    }
-    return 'openai_compat_adapter';
+    return 'llama_native_adapter';
 }
 function bindingKey(input: RuntimeRouteBinding | null | undefined): string {
     if (!input)

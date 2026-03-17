@@ -1,17 +1,17 @@
 export function normalizeLocalEngine(value: unknown): string {
   const normalized = String(value || '').trim().toLowerCase();
-  if (normalized === 'nexa') return 'nexa';
-  if (normalized === 'nimi_media' || normalized === 'nimimedia') return 'nimi_media';
-  return 'localai';
+  if (normalized === 'media' || normalized === 'media.diffusers') return 'media';
+  if (normalized === 'sidecar') return 'sidecar';
+  return 'llama';
 }
 
 export function normalizeLocalModelRoot(value: unknown): string {
   const trimmed = String(value || '').trim();
   if (!trimmed) return '';
   const lower = trimmed.toLowerCase();
-  if (lower.startsWith('localai/')) return trimmed.slice('localai/'.length).trim();
-  if (lower.startsWith('nexa/')) return trimmed.slice('nexa/'.length).trim();
-  if (lower.startsWith('nimi_media/')) return trimmed.slice('nimi_media/'.length).trim();
+  if (lower.startsWith('llama/')) return trimmed.slice('llama/'.length).trim();
+  if (lower.startsWith('media/')) return trimmed.slice('media/'.length).trim();
+  if (lower.startsWith('sidecar/')) return trimmed.slice('sidecar/'.length).trim();
   if (lower.startsWith('local/')) return trimmed.slice('local/'.length).trim();
   return trimmed;
 }

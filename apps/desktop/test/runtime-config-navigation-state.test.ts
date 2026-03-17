@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
+  DEFAULT_LOCAL_ENDPOINT_V11,
   normalizeLocalModelV11,
   normalizePageIdV11,
   setRuntimeConfigPlatformForTests,
@@ -262,7 +263,7 @@ test('state round-trip: persist activePage then normalize back correctly', () =>
   }
 });
 
-test('normalizeLocalModelV11: windows image and video models default to nimi_media without fake endpoint', () => {
+test('normalizeLocalModelV11: image and video models default to media without fake endpoint', () => {
   setRuntimeConfigPlatformForTests('windows');
   try {
     const image = normalizeLocalModelV11({
@@ -276,16 +277,16 @@ test('normalizeLocalModelV11: windows image and video models default to nimi_med
       capabilities: ['video'],
     });
 
-    assert.equal(image.engine, 'nimi_media');
+    assert.equal(image.engine, 'media');
     assert.equal(image.endpoint, '');
-    assert.equal(video.engine, 'nimi_media');
+    assert.equal(video.engine, 'media');
     assert.equal(video.endpoint, '');
   } finally {
     setRuntimeConfigPlatformForTests(null);
   }
 });
 
-test('normalizeLocalModelV11: windows embedding models default to nexa without fake endpoint', () => {
+test('normalizeLocalModelV11: embedding models default to llama without fake endpoint', () => {
   setRuntimeConfigPlatformForTests('windows');
   try {
     const embedding = normalizeLocalModelV11({
@@ -294,14 +295,14 @@ test('normalizeLocalModelV11: windows embedding models default to nexa without f
       capabilities: ['embedding'],
     });
 
-    assert.equal(embedding.engine, 'nexa');
-    assert.equal(embedding.endpoint, '');
+    assert.equal(embedding.engine, 'llama');
+    assert.equal(embedding.endpoint, DEFAULT_LOCAL_ENDPOINT_V11);
   } finally {
     setRuntimeConfigPlatformForTests(null);
   }
 });
 
-test('normalizeLocalModelV11: non-windows image models stay on localai by default', () => {
+test('normalizeLocalModelV11: non-windows image models also use media by default', () => {
   setRuntimeConfigPlatformForTests('darwin');
   try {
     const image = normalizeLocalModelV11({
@@ -310,7 +311,7 @@ test('normalizeLocalModelV11: non-windows image models stay on localai by defaul
       capabilities: ['image'],
     });
 
-    assert.equal(image.engine, 'localai');
+    assert.equal(image.engine, 'media');
     assert.equal(image.endpoint, '');
   } finally {
     setRuntimeConfigPlatformForTests(null);

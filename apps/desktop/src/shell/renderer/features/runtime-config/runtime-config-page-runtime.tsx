@@ -128,7 +128,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
       }
     >();
     for (const row of sortedNodeMatrix) {
-      const provider = String(row.provider || 'localai').trim() || 'localai';
+      const provider = String(row.provider || 'llama').trim() || 'llama';
       const current = grouped.get(provider) || {
         provider,
         total: 0,
@@ -141,14 +141,6 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
       if (row.available) current.available += 1;
       else if (row.reasonCode) current.reasonCodes.add(String(row.reasonCode));
       if (row.policyGate) current.policyGates.add(String(row.policyGate));
-      const nexaGate = row.providerHints?.nexa;
-      if (nexaGate) {
-        if (nexaGate.hostNpuReady === true && nexaGate.modelProbeHasNpuCandidate === false)
-          current.npuStates.add('host-ready-but-no-npu-model');
-        if (nexaGate.hostNpuReady === false) current.npuStates.add('host-npu-not-ready');
-        if (nexaGate.policyGateAllowsNpu === false) current.npuStates.add('npu-policy-denied');
-        if (nexaGate.npuUsable === true) current.npuStates.add('npu-usable');
-      }
       grouped.set(provider, current);
     }
     return [...grouped.values()].sort((a, b) => a.provider.localeCompare(b.provider));
@@ -377,7 +369,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
 
       {/* Provider Diagnostics */}
       <section>
-        <SectionTitle description={t('runtimeConfig.runtime.providerStatusDesc', { defaultValue: 'Managed LocalAI/Nexa diagnostics.' })}>
+        <SectionTitle description={t('runtimeConfig.runtime.providerStatusDesc', { defaultValue: 'Managed llama/media diagnostics.' })}>
           {t('runtimeConfig.runtime.providerStatus', { defaultValue: 'Provider Runtime Status' })}
         </SectionTitle>
         <SurfaceCard className="mt-3 p-5">
@@ -438,27 +430,21 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
           {!nodeMatrixExpanded ? null : sortedNodeMatrix.length === 0 ? (
             <p className="text-sm text-gray-500">
               {t('runtimeConfig.runtime.noNodeAvailabilityData', {
-                defaultValue: 'No node availability data. Run Refresh to probe LocalAI runtime.',
+                defaultValue: 'No node availability data. Run Refresh to probe the local runtime.',
               })}
             </p>
           ) : (
             <div className="space-y-2">
               {sortedNodeMatrix.map((row) => {
-                const nexaGate = row.providerHints?.nexa;
                 const runtimeSupportClass = String(row.providerHints?.extra?.runtime_support_class || '').trim();
                 const runtimeSupportDetail = String(row.providerHints?.extra?.runtime_support_detail || '').trim();
-                const hasNpuGateEvidence =
-                  typeof nexaGate?.hostNpuReady === 'boolean' ||
-                  typeof nexaGate?.modelProbeHasNpuCandidate === 'boolean' ||
-                  typeof nexaGate?.policyGateAllowsNpu === 'boolean' ||
-                  typeof nexaGate?.npuUsable === 'boolean';
                 return (
                   <div key={`node-matrix-${row.nodeId}`} className="rounded-xl bg-[#F7F9FC] p-3 ring-1 ring-black/5">
                     <p className="text-xs font-medium text-gray-900">
                       {row.capability} · {row.nodeId}
                     </p>
                     <p className="text-xs text-gray-700">
-                      {row.available ? 'available' : 'unavailable'} · provider={row.provider || 'localai'} · adapter={
+                      {row.available ? 'available' : 'unavailable'} · provider={row.provider || 'llama'} · adapter={
                         row.adapter
                       }
                       {row.backend ? ` · backend=${row.backend}` : ''}
@@ -468,40 +454,6 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
                       <p className="text-xs text-gray-600">runtimeSupportDetail={runtimeSupportDetail}</p>
                     ) : null}
                     {row.policyGate ? <p className="text-xs text-gray-600">policyGate={row.policyGate}</p> : null}
-                    {hasNpuGateEvidence ? (
-                      <p className="text-xs text-gray-600">
-                        npuGate: hostReady={String(nexaGate?.hostNpuReady)} · modelCandidate=
-                        {String(nexaGate?.modelProbeHasNpuCandidate)} · policyAllows=
-                        {String(nexaGate?.policyGateAllowsNpu)} · usable={String(nexaGate?.npuUsable)}
-                      </p>
-                    ) : null}
-                    {nexaGate?.hostNpuReady === true && nexaGate?.modelProbeHasNpuCandidate === false ? (
-                      <p className="text-xs text-amber-700">
-                        NPU intermediate state: host ready but no NPU model candidate from probe.
-                      </p>
-                    ) : null}
-                    {nexaGate?.hostNpuReady === false ? (
-                      <p className="text-xs text-amber-700">
-                        {t('runtimeConfig.runtime.npuHostProbeNotReady', {
-                          defaultValue: 'NPU intermediate state: host probe not ready.',
-                        })}
-                      </p>
-                    ) : null}
-                    {nexaGate?.policyGateAllowsNpu === false ? (
-                      <p className="text-xs text-amber-700">
-                        NPU intermediate state: policy gate denied (license/authorization required).
-                      </p>
-                    ) : null}
-                    {String(nexaGate?.gateReason || '').trim() ? (
-                      <p className="text-xs text-gray-600">
-                        gateReason={String(nexaGate?.gateReason || '').trim()}
-                      </p>
-                    ) : null}
-                    {String(nexaGate?.gateDetail || '').trim() ? (
-                      <p className="text-xs text-gray-600">
-                        gateDetail={String(nexaGate?.gateDetail || '').trim()}
-                      </p>
-                    ) : null}
                     {!row.available && row.reasonCode ? (
                       <p className="text-xs text-amber-700">reason={row.reasonCode}</p>
                     ) : null}

@@ -248,7 +248,7 @@ export async function syncModelRemoveToGoRuntime(target: GoRuntimeSyncTarget): P
 export async function reconcileModelsToGoRuntime(models: LocalRuntimeModelRecord[]): Promise<GoRuntimeSyncResult[]> {
   requireSdkLocal('reconcile', {
     modelId: 'local-models',
-    engine: 'localai',
+    engine: 'llama',
   });
   const results: GoRuntimeSyncResult[] = [];
   const errors: string[] = [];
@@ -311,7 +311,7 @@ export async function reconcileModelsToGoRuntime(models: LocalRuntimeModelRecord
       action: 'reconcile',
       target: {
         modelId: 'local-models',
-        engine: 'localai',
+        engine: 'llama',
       },
       message: errors.join('; '),
     });

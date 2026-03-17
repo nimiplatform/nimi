@@ -949,13 +949,9 @@ test('createNimiAiProvider image model flattens providerOptions and maps files/m
         responseFormat: 'b64_json',
         requestId: 'req-nimi',
       },
-      localai: {
-        idempotencyKey: 'idem-localai',
-        quality: 'high-localai',
-      },
-      nexa: {
+      media: {
         style: 'cinematic',
-        method: 'nexa-method',
+        method: 'media-method',
       },
     },
   });

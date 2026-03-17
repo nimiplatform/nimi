@@ -20,19 +20,50 @@ function readString(value: unknown): string {
   return String(value || '').trim();
 }
 
+function readNumber(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function readBoolean(value: unknown): boolean | null {
+  if (value === true || value === false) return value;
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'true') return true;
+  if (normalized === 'false') return false;
+  return null;
+}
+
+function buildLoopbackEndpointFromPort(port: number | null): string {
+  return port ? `http://127.0.0.1:${port}/v1` : '';
+}
+
+function extractPortFromEndpoint(endpoint: string): number | null {
+  const normalized = normalizeEndpointV11(endpoint, DEFAULT_LOCAL_ENDPOINT_V11);
+  if (!normalized) return null;
+  try {
+    const url = new URL(normalized);
+    return readNumber(url.port);
+  } catch {
+    const match = normalized.match(/:(\d+)(?:\/|$)/);
+    return match ? readNumber(match[1]) : null;
+  }
+}
+
 /**
  * Extract local runtime endpoint from bridge config.
  * Connectors are no longer managed via bridge config — they come from SDK.
+ * Local runtime endpoint now flows through engines.llama.
  */
 export function applyRuntimeBridgeConfigToState(
   state: RuntimeConfigStateV11,
   runtimeConfigRaw: Record<string, unknown>,
 ): RuntimeConfigStateV11 {
-  const providers = asRecord(asRecord(runtimeConfigRaw).providers);
-  const localProvider = asRecord(providers.local);
-  const nextLocalEndpoint = readString(localProvider.baseUrl)
-    ? normalizeEndpointV11(readString(localProvider.baseUrl), DEFAULT_LOCAL_ENDPOINT_V11)
-    : state.local.endpoint;
+  const engines = asRecord(asRecord(runtimeConfigRaw).engines);
+  const llamaEngine = asRecord(engines.llama);
+  const enabled = readBoolean(llamaEngine.enabled);
+  const port = readNumber(llamaEngine.port);
+  const endpointFromConfig = enabled === false ? '' : buildLoopbackEndpointFromPort(port);
+  const nextLocalEndpoint = endpointFromConfig || state.local.endpoint;
 
   return {
     ...state,
@@ -45,7 +76,7 @@ export function applyRuntimeBridgeConfigToState(
 
 /**
  * Build runtime bridge config from state.
- * Only persists local runtime endpoint and preserves existing config fields.
+ * Only persists llama loopback endpoint and preserves existing config fields.
  * Cloud provider/connector data is managed by Go runtime connector store.
  */
 export function buildRuntimeBridgeConfigFromState(
@@ -57,16 +88,21 @@ export function buildRuntimeBridgeConfigFromState(
   configRecord.grpcAddr = readString(configRecord.grpcAddr as string) || DEFAULT_RUNTIME_CONFIG.grpcAddr;
   configRecord.httpAddr = readString(configRecord.httpAddr as string) || DEFAULT_RUNTIME_CONFIG.httpAddr;
 
-  const existingProviders = asRecord(configRecord.providers);
   const localEndpoint = normalizeEndpointV11(state.local.endpoint, DEFAULT_LOCAL_ENDPOINT_V11);
 
-  // Only update the local provider entry; preserve all other provider entries
-  // as they are managed by the Go runtime (config.json providers → connector store).
-  const localProvider = asRecord(existingProviders.local);
-  existingProviders.local = {
-    baseUrl: localEndpoint,
-    apiKeyEnv: readString(localProvider.apiKeyEnv) || 'LOCALAI_API_KEY',
+  const existingEngines = asRecord(configRecord.engines);
+  const currentLlamaEngine = asRecord(existingEngines.llama);
+  const port = extractPortFromEndpoint(localEndpoint);
+  existingEngines.llama = {
+    ...currentLlamaEngine,
+    enabled: port ? true : currentLlamaEngine.enabled,
+    port: port ?? currentLlamaEngine.port,
   };
+  configRecord.engines = existingEngines;
+  const existingProviders = asRecord(configRecord.providers);
+  if ('local' in existingProviders) {
+    delete existingProviders.local;
+  }
   configRecord.providers = existingProviders;
 
   return configRecord;

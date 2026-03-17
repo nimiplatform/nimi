@@ -30,10 +30,11 @@ export function flattenImageProviderOptions(value: unknown): Record<string, unkn
       if (
         !normalizedKey
         || normalizedKey === 'nimi'
-        || normalizedKey === 'localai'
-        || normalizedKey === 'nexa'
-        || normalizedKey === 'nimimedia'
-        || normalizedKey === 'nimi_media'
+        || normalizedKey === 'llama'
+        || normalizedKey === 'media'
+        || normalizedKey === 'mediadiffusers'
+        || normalizedKey === 'media_diffusers'
+        || normalizedKey === 'sidecar'
         || normalizedKey === 'extra'
       ) {
         continue;
@@ -42,10 +43,11 @@ export function flattenImageProviderOptions(value: unknown): Record<string, unkn
     }
   };
 
-  applyLayer(asRecord(topLevel.nexa));
-  applyLayer(asRecord(topLevel.localai));
-  applyLayer(asRecord(topLevel.nimiMedia));
-  applyLayer(asRecord(topLevel.nimi_media));
+  applyLayer(asRecord(topLevel.llama));
+  applyLayer(asRecord(topLevel.media));
+  applyLayer(asRecord(topLevel.mediaDiffusers));
+  applyLayer(asRecord(topLevel.media_diffusers));
+  applyLayer(asRecord(topLevel.sidecar));
   applyLayer(asRecord(topLevel.extra));
   applyLayer(asRecord(topLevel.nimi));
   applyLayer(topLevel);

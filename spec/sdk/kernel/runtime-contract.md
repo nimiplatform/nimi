@@ -30,6 +30,14 @@ high-level convenience targeting 必须满足：
 
 SDK 不解析 `~/.nimi/config.json`；模型默认值（`defaultLocalTextModel`、`defaultCloudProvider`、`provider.defaultModel`）由 runtime 按 K-CFG-002 优先级解析后通过 RPC 响应返回。SDK convenience 方法仅传递调用方意图，不做本地 config 回退。
 
+high-level local targeting 只允许：
+
+- bare local default：`local/default`
+- qualified local model：`local/<model-root>`
+- canonical engine prefix：`llama/`、`media/`、`sidecar/`
+
+`localai/`、`nexa/`、`nimi_media/`、`localsidecar/` 属于 invalid legacy input；SDK 不得继续把它们当作合法 public contract。
+
 ## S-RUNTIME-012 Metadata Projection
 
 connector/body 字段与 metadata 字段必须按 transport 合同分层传递。

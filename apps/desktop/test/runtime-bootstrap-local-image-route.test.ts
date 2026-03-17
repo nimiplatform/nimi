@@ -181,11 +181,11 @@ test('buildSelectedBinding preserves local selection when local metadata is degr
   assert.equal(selected.connectorId, '');
   assert.equal(selected.model, 'qwen2.5-7b-instruct');
   assert.equal(selected.modelId, 'qwen2.5-7b-instruct');
-  assert.equal(selected.provider, 'localai');
-  assert.equal(selected.engine, 'localai');
+  assert.equal(selected.provider, 'llama');
+  assert.equal(selected.engine, 'llama');
 });
 
-test('buildSelectedBinding falls back to windows nexa for text when runtime metadata is unavailable', () => {
+test('buildSelectedBinding falls back to llama for text when runtime metadata is unavailable', () => {
   setLocalRoutePlatformForTests('windows');
   try {
     const selected = buildSelectedBinding({
@@ -204,8 +204,8 @@ test('buildSelectedBinding falls back to windows nexa for text when runtime meta
     });
 
     assert.equal(selected.source, 'local');
-    assert.equal(selected.provider, 'nexa');
-    assert.equal(selected.engine, 'nexa');
+    assert.equal(selected.provider, 'llama');
+    assert.equal(selected.engine, 'llama');
   } finally {
     setLocalRoutePlatformForTests(null);
   }

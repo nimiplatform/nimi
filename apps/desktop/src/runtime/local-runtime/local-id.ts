@@ -1,5 +1,5 @@
 const LOCAL_ID_PREFIX = 'local/';
-const LOCAL_ID_ALIASES = ['local/', 'localai/', 'nexa/', 'nimi_media/', 'sidecar/'] as const;
+const LOCAL_ID_ALIASES = ['local/', 'llama/', 'media/', 'sidecar/'] as const;
 
 function trimText(value: unknown): string {
   return String(value || '').trim();

@@ -618,5 +618,5 @@ commands:
 
   - command: runtime_local_artifacts_scaffold_orphan
     module: local-runtime
-    description: Scaffold an orphan companion file into artifact.manifest.json with user-selected kind and fixed localai engine
+    description: Scaffold an orphan companion file into artifact.manifest.json with user-selected kind and canonical local engine
     source_rule: D-IPC-011

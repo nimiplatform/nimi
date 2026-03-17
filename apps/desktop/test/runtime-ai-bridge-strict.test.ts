@@ -41,18 +41,18 @@ test('resolveSourceAndModel preserves explicit cloud provider and prefixes cloud
   assert.equal(resolved.fallbackPolicy, 1);
 });
 
-test('resolveSourceAndModel prefixes localai selectors for local routes', () => {
+test('resolveSourceAndModel prefixes llama selectors for local routes', () => {
   const resolved = resolveSourceAndModel({
-    provider: 'localai',
+    provider: 'llama',
     model: 'z-image-turbo',
     localProviderEndpoint: 'http://127.0.0.1:1234/v1',
   });
 
   assert.equal(resolved.source, 'local');
-  assert.equal(resolved.modelId, 'localai/z-image-turbo');
+  assert.equal(resolved.modelId, 'llama/z-image-turbo');
 });
 
-test('resolveSourceAndModel prefixes nexa selectors for local routes', () => {
+test('resolveSourceAndModel keeps generic local selector when provider is legacy nexa', () => {
   const resolved = resolveSourceAndModel({
     provider: 'nexa',
     model: 'qwen-rerank',
@@ -60,16 +60,16 @@ test('resolveSourceAndModel prefixes nexa selectors for local routes', () => {
   });
 
   assert.equal(resolved.source, 'local');
-  assert.equal(resolved.modelId, 'nexa/qwen-rerank');
+  assert.equal(resolved.modelId, 'local/qwen-rerank');
 });
 
-test('resolveSourceAndModel prefixes nimi_media selectors for local routes', () => {
+test('resolveSourceAndModel prefixes media selectors for local routes', () => {
   const resolved = resolveSourceAndModel({
-    provider: 'nimi_media',
+    provider: 'media',
     model: 'flux.1-schnell',
     localProviderEndpoint: 'http://127.0.0.1:8321/v1',
   });
 
   assert.equal(resolved.source, 'local');
-  assert.equal(resolved.modelId, 'nimi_media/flux.1-schnell');
+  assert.equal(resolved.modelId, 'media/flux.1-schnell');
 });

@@ -119,45 +119,33 @@ export type LocalRuntimeEngineRuntimeMode = 'supervised' | 'attached-endpoint';
 
 export type LocalRuntimeProviderAdapter =
   | 'openai_compat_adapter'
-  | 'localai_native_adapter'
-  | 'nexa_native_adapter'
-  | 'nimi_media_native_adapter'
+  | 'llama_native_adapter'
+  | 'media_native_adapter'
+  | 'media_diffusers_adapter'
+  | 'sidecar_music_adapter'
   | string;
 
-export type LocalRuntimeProviderLocalHints = {
-  backend?: string;
+export type LocalRuntimeProviderLlamaHints = {
   preferredAdapter?: LocalRuntimeProviderAdapter;
   whisperVariant?: string;
-  stablediffusionPipeline?: string;
-  videoBackend?: string;
 };
 
-export type LocalRuntimeProviderNexaHints = {
-  backend?: string;
+export type LocalRuntimeProviderMediaHints = {
   preferredAdapter?: LocalRuntimeProviderAdapter;
-  pluginId?: string;
   deviceId?: string;
-  modelType?: string;
-  npuMode?: string;
-  policyGate?: string;
-  hostNpuReady?: boolean;
-  modelProbeHasNpuCandidate?: boolean;
-  policyGateAllowsNpu?: boolean;
-  npuUsable?: boolean;
-  gateReason?: string;
-  gateDetail?: string;
-};
-
-export type LocalRuntimeProviderNimiMediaHints = {
-  preferredAdapter?: LocalRuntimeProviderAdapter;
   driver?: string;
   family?: string;
+  policyGate?: string;
+};
+
+export type LocalRuntimeProviderSidecarHints = {
+  preferredAdapter?: LocalRuntimeProviderAdapter;
 };
 
 export type LocalRuntimeProviderHints = {
-  localai?: LocalRuntimeProviderLocalHints;
-  nexa?: LocalRuntimeProviderNexaHints;
-  nimiMedia?: LocalRuntimeProviderNimiMediaHints;
+  llama?: LocalRuntimeProviderLlamaHints;
+  media?: LocalRuntimeProviderMediaHints;
+  sidecar?: LocalRuntimeProviderSidecarHints;
   extra?: Record<string, unknown>;
 } & Record<string, unknown>;
 

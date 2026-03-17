@@ -24,7 +24,7 @@ export function useRuntimeConfigRouteInitEffect(input: RouteInitEffectInput) {
     const model = getRecommendedChatModelV11(input.state);
     if (!model) return;
     const matchedModel = input.state.local.models.find((item) => item.model === model) || null;
-    const provider = String(matchedModel?.engine || 'localai').trim() || 'localai';
+    const provider = String(matchedModel?.engine || 'llama').trim() || 'llama';
 
     input.setRuntimeFields({
       provider,

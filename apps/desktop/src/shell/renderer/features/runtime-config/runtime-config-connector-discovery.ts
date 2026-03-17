@@ -57,7 +57,7 @@ export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV
   const discovered = models.map((m) => m.modelId);
   const normalizedModels = models.map((m) => ({
     localModelId: m.localModelId || m.modelId,
-    engine: m.engine || 'localai',
+    engine: m.engine || 'llama',
     model: m.modelId,
     endpoint: m.endpoint || endpoint,
     capabilities: (m.capabilities || ['chat']) as Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding'>,
@@ -67,12 +67,13 @@ export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV
     nodeId: n.nodeId || '',
     capability: ((n.capabilities || [])[0] || 'chat') as any,
     serviceId: n.serviceId || '',
-    provider: n.provider || 'localai',
+    provider: n.provider || 'llama',
     adapter: (n.adapter || 'openai_compat_adapter') as
       | 'openai_compat_adapter'
-      | 'localai_native_adapter'
-      | 'nexa_native_adapter'
-      | 'nimi_media_native_adapter',
+      | 'llama_native_adapter'
+      | 'media_native_adapter'
+      | 'media_diffusers_adapter'
+      | 'sidecar_music_adapter',
     available: n.available !== false,
     providerHints: n.providerHints,
     reasonCode: n.reasonCode,

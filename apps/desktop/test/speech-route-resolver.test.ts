@@ -70,13 +70,13 @@ test('createResolveRuntimeBinding model binding takes priority over fields.local
     assert.equal(result.model, 'custom-model');
     assert.equal(result.provider, 'dashscope');
 });
-test('createResolveRuntimeBinding infers local source for localai provider', async () => {
-    const fields = createMockFields({ provider: 'localai' });
+test('createResolveRuntimeBinding infers local source for llama provider', async () => {
+    const fields = createMockFields({ provider: 'llama' });
     const resolve = createResolveRuntimeBinding(() => fields);
     const result = await resolve({ modId: 'test-mod' });
     assert.equal(result.source, 'local');
-    assert.equal(result.engine, 'localai');
-    assert.equal(result.model, 'localai/tts-1');
+    assert.equal(result.engine, 'llama');
+    assert.equal(result.model, 'llama/tts-1');
     assert.equal(result.modelId, 'tts-1');
     assert.equal(result.localProviderModel, 'tts-1');
 });
@@ -89,7 +89,7 @@ test('createResolveRuntimeBinding infers cloud source for cloud provider', async
 });
 test('createResolveRuntimeBinding preserves localModelId and adapter for local binding', async () => {
     const fields = createMockFields({
-        provider: 'localai',
+        provider: 'llama',
         runtimeModelType: 'image',
         localProviderModel: 'z-image-turbo',
         localProviderEndpoint: 'http://127.0.0.1:1234/v1',
@@ -103,15 +103,15 @@ test('createResolveRuntimeBinding preserves localModelId and adapter for local b
             model: 'z-image-turbo',
             modelId: 'z-image-turbo',
             localModelId: 'file:z-image-turbo',
-            engine: 'localai',
-            provider: 'localai',
-            adapter: 'localai_native_adapter',
+            engine: 'llama',
+            provider: 'llama',
+            adapter: 'llama_native_adapter',
             endpoint: 'http://127.0.0.1:1234/v1',
         },
     });
-    assert.equal(result.model, 'localai/z-image-turbo');
+    assert.equal(result.model, 'llama/z-image-turbo');
     assert.equal(result.modelId, 'z-image-turbo');
     assert.equal(result.localModelId, 'file:z-image-turbo');
-    assert.equal(result.adapter, 'localai_native_adapter');
+    assert.equal(result.adapter, 'llama_native_adapter');
     assert.equal(result.localProviderModel, 'z-image-turbo');
 });

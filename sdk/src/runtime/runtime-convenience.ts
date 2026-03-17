@@ -92,11 +92,21 @@ function looksLikeQualifiedRemoteModel(model: string): boolean {
   const [prefix = ''] = normalized.split('/', 1);
   const lowered = prefix.toLowerCase();
   if (
-    lowered === 'cloud'
-    || lowered === 'local'
-    || lowered === 'localai'
+    lowered === 'localai'
     || lowered === 'nexa'
     || lowered === 'nimi_media'
+    || lowered === 'localsidecar'
+  ) {
+    throw new Error(
+      `legacy local model prefix "${prefix}" is no longer supported. Use local/, llama/, media/, or sidecar/.`,
+    );
+  }
+  if (
+    lowered === 'cloud'
+    || lowered === 'local'
+    || lowered === 'llama'
+    || lowered === 'media'
+    || lowered === 'sidecar'
   ) {
     return true;
   }

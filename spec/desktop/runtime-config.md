@@ -139,8 +139,9 @@ Connector 凭据路由：AI 请求凭据通过 `connector_id` 路由（K-KEYSRC-
 
 ### Runtime Config Coupling
 
-- 当 `providers.local.baseUrl` 配置为回环地址（`localhost`/`127.0.0.1`/`::1`）且未显式关闭 `engines.localai.enabled` 时，runtime 将自动进入 LocalAI SUPERVISED 托管启动。
-- 因此 `providers.local.*` 与 `engines.*` 变更属于 runtime 启动期固化配置，Desktop 应在收到 `CONFIG_RESTART_REQUIRED` 时提示并引导重启 daemon。
+- 当 `NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL` 指向回环地址（`localhost`/`127.0.0.1`/`::1`）且未显式关闭 `engines.llama.enabled` 时，runtime 可进入 llama SUPERVISED 托管启动。
+- `engines.llama.*`、`engines.media.*` 与本地 loopback env 变更属于 runtime 启动期固化配置，Desktop 应在收到 `CONFIG_RESTART_REQUIRED` 时提示并引导重启 daemon。
+- `providers.local.*`、`engines.localai.*`、`engines.nexa.*`、`engines.nimi_media.*` 均为 removed legacy surface；Desktop 不得继续写入或展示。
 
 ### Security (D-SEC-001)
 

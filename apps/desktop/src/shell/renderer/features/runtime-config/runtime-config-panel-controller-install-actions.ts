@@ -363,7 +363,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       } catch (syncError) {
         await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_dependency_apply', {
           modelId: modId,
-          engine: 'localai',
+          engine: 'llama',
         }, syncError);
         setStatusBanner({
           kind: 'warning',

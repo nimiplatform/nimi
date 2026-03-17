@@ -550,7 +550,7 @@ test('runtime-convenience: model without slash uses local route', async () => {
   assert.equal(capturedModel, 'local/llama3');
 });
 
-test('runtime-convenience: nexa/ prefix is treated as qualified', async () => {
+test('runtime-convenience: nexa/ prefix is rejected as legacy local input', async () => {
   const mockRuntime = {
     ai: {
       text: {
@@ -565,11 +565,11 @@ test('runtime-convenience: nexa/ prefix is treated as qualified', async () => {
       prompt: 'test',
       model: 'nexa/octopus',
     }),
-    { message: /high-level Runtime.generate/ },
+    { message: /legacy local model prefix/ },
   );
 });
 
-test('runtime-convenience: localai/ prefix is treated as qualified', async () => {
+test('runtime-convenience: localai/ prefix is rejected as legacy local input', async () => {
   const mockRuntime = {
     ai: {
       text: {
@@ -584,7 +584,7 @@ test('runtime-convenience: localai/ prefix is treated as qualified', async () =>
       prompt: 'test',
       model: 'localai/model',
     }),
-    { message: /high-level Runtime.generate/ },
+    { message: /legacy local model prefix/ },
   );
 });
 

@@ -35,7 +35,7 @@ function normalizeStringMap(value: unknown): Record<string, string> {
 }
 
 export function normalizeEngine(value: unknown): string {
-  return String(value || '').trim().toLowerCase() || 'localai';
+  return String(value || '').trim().toLowerCase() || 'llama';
 }
 
 export function parseGoStatus(value: unknown): { status: LocalRuntimeModelStatus; raw: string; ambiguous: boolean } {

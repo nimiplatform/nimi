@@ -373,9 +373,10 @@ export function normalizeEngineRuntimeMode(value: unknown): LocalRuntimeEngineRu
 export function normalizeProviderAdapter(value: unknown): LocalRuntimeProviderAdapter {
   const raw = asString(value);
   if (
-    raw === 'localai_native_adapter'
-    || raw === 'nexa_native_adapter'
-    || raw === 'nimi_media_native_adapter'
+    raw === 'llama_native_adapter'
+    || raw === 'media_native_adapter'
+    || raw === 'media_diffusers_adapter'
+    || raw === 'sidecar_music_adapter'
   ) {
     return raw;
   }
@@ -384,65 +385,44 @@ export function normalizeProviderAdapter(value: unknown): LocalRuntimeProviderAd
 
 export function parseProviderHints(value: unknown): LocalRuntimeProviderHints | undefined {
   const record = asRecord(value);
-  const localai = asRecord(record.localai);
-  const nexa = asRecord(record.nexa);
-  const nimiMedia = asRecord(record.nimiMedia || record.nimi_media);
+  const llama = asRecord(record.llama);
+  const media = asRecord(record.media);
+  const sidecar = asRecord(record.sidecar);
   const passthrough = Object.fromEntries(
-    Object.entries(record).filter(([key]) => key !== 'localai' && key !== 'nexa' && key !== 'nimiMedia' && key !== 'nimi_media'),
+    Object.entries(record).filter(([key]) => key !== 'llama' && key !== 'media' && key !== 'sidecar'),
   );
   if (
-    Object.keys(localai).length === 0
-    && Object.keys(nexa).length === 0
-    && Object.keys(nimiMedia).length === 0
+    Object.keys(llama).length === 0
+    && Object.keys(media).length === 0
+    && Object.keys(sidecar).length === 0
     && Object.keys(passthrough).length === 0
   ) {
     return undefined;
   }
-  const preferredAdapter = asString(localai.preferredAdapter || localai.preferred_adapter);
-  const nexaPreferredAdapter = asString(nexa.preferredAdapter || nexa.preferred_adapter);
-  const nimiMediaPreferredAdapter = asString(nimiMedia.preferredAdapter || nimiMedia.preferred_adapter);
+  const llamaPreferredAdapter = asString(llama.preferredAdapter || llama.preferred_adapter);
+  const mediaPreferredAdapter = asString(media.preferredAdapter || media.preferred_adapter);
+  const sidecarPreferredAdapter = asString(sidecar.preferredAdapter || sidecar.preferred_adapter);
   const parsed: LocalRuntimeProviderHints = { ...passthrough };
-  if (Object.keys(localai).length > 0) {
-    parsed.localai = {
-      backend: asString(localai.backend) || undefined,
-      preferredAdapter: preferredAdapter ? normalizeProviderAdapter(preferredAdapter) : undefined,
-      whisperVariant: asString(localai.whisperVariant || localai.whisper_variant) || undefined,
-      stablediffusionPipeline: asString(localai.stablediffusionPipeline || localai.stablediffusion_pipeline) || undefined,
-      videoBackend: asString(localai.videoBackend || localai.video_backend) || undefined,
+  if (Object.keys(llama).length > 0) {
+    parsed.llama = {
+      preferredAdapter: llamaPreferredAdapter ? normalizeProviderAdapter(llamaPreferredAdapter) : undefined,
+      whisperVariant: asString(llama.whisperVariant || llama.whisper_variant) || undefined,
     };
   }
-  if (Object.keys(nexa).length > 0) {
-    parsed.nexa = {
-      backend: asString(nexa.backend) || undefined,
-      preferredAdapter: nexaPreferredAdapter ? normalizeProviderAdapter(nexaPreferredAdapter) : undefined,
-      pluginId: asString(nexa.pluginId || nexa.plugin_id) || undefined,
-      deviceId: asString(nexa.deviceId || nexa.device_id) || undefined,
-      modelType: asString(nexa.modelType || nexa.model_type) || undefined,
-      npuMode: asString(nexa.npuMode || nexa.npu_mode) || undefined,
-      policyGate: asString(nexa.policyGate || nexa.policy_gate) || undefined,
-      hostNpuReady: typeof (nexa.hostNpuReady ?? nexa.host_npu_ready) === 'boolean'
-        ? Boolean(nexa.hostNpuReady ?? nexa.host_npu_ready)
-        : undefined,
-      modelProbeHasNpuCandidate: typeof (nexa.modelProbeHasNpuCandidate ?? nexa.model_probe_has_npu_candidate) === 'boolean'
-        ? Boolean(nexa.modelProbeHasNpuCandidate ?? nexa.model_probe_has_npu_candidate)
-        : undefined,
-      policyGateAllowsNpu: typeof (nexa.policyGateAllowsNpu ?? nexa.policy_gate_allows_npu) === 'boolean'
-        ? Boolean(nexa.policyGateAllowsNpu ?? nexa.policy_gate_allows_npu)
-        : undefined,
-      npuUsable: typeof (nexa.npuUsable ?? nexa.npu_usable) === 'boolean'
-        ? Boolean(nexa.npuUsable ?? nexa.npu_usable)
-        : undefined,
-      gateReason: asString(nexa.gateReason || nexa.gate_reason) || undefined,
-      gateDetail: asString(nexa.gateDetail || nexa.gate_detail) || undefined,
+  if (Object.keys(media).length > 0) {
+    parsed.media = {
+      preferredAdapter: mediaPreferredAdapter ? normalizeProviderAdapter(mediaPreferredAdapter) : undefined,
+      driver: asString(media.driver) || undefined,
+      family: asString(media.family) || undefined,
+      deviceId: asString(media.deviceId || media.device_id) || undefined,
+      policyGate: asString(media.policyGate || media.policy_gate) || undefined,
     };
   }
-  if (Object.keys(nimiMedia).length > 0) {
-    parsed.nimiMedia = {
-      preferredAdapter: nimiMediaPreferredAdapter
-        ? normalizeProviderAdapter(nimiMediaPreferredAdapter)
+  if (Object.keys(sidecar).length > 0) {
+    parsed.sidecar = {
+      preferredAdapter: sidecarPreferredAdapter
+        ? normalizeProviderAdapter(sidecarPreferredAdapter)
         : undefined,
-      driver: asString(nimiMedia.driver) || undefined,
-      family: asString(nimiMedia.family) || undefined,
     };
   }
   if (record.extra && typeof record.extra === 'object' && !Array.isArray(record.extra)) {
@@ -475,7 +455,7 @@ export function parseCatalogItemDescriptor(value: unknown): LocalRuntimeCatalogI
     revision: asString(record.revision) || 'main',
     templateId: asString(record.templateId) || undefined,
     capabilities,
-    engine: asString(record.engine) || 'localai',
+    engine: asString(record.engine) || 'llama',
     engineRuntimeMode: normalizeEngineRuntimeMode(record.engineRuntimeMode),
     installKind: asString(record.installKind),
     installAvailable: Boolean(record.installAvailable),
@@ -518,7 +498,7 @@ export function parseInstallPlanDescriptor(value: unknown): LocalRuntimeInstallP
     repo: asString(record.repo),
     revision: asString(record.revision) || 'main',
     capabilities,
-    engine: asString(record.engine) || 'localai',
+    engine: asString(record.engine) || 'llama',
     engineRuntimeMode: normalizeEngineRuntimeMode(record.engineRuntimeMode),
     installKind: asString(record.installKind),
     installAvailable: Boolean(record.installAvailable),
@@ -631,7 +611,7 @@ export function parseNodeDescriptor(value: unknown): LocalRuntimeNodeDescriptor 
     capabilities: Array.isArray(record.capabilities)
       ? record.capabilities.map((item) => asString(item)).filter(Boolean)
       : [],
-    provider: asString(record.provider) || 'localai',
+    provider: asString(record.provider) || 'llama',
     adapter: normalizeProviderAdapter(record.adapter),
     backend: asString(record.backend) || undefined,
     backendSource: asString(record.backendSource) || undefined,

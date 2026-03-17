@@ -21,7 +21,7 @@ export type ApiVendor =
 
 export type LocalModelOptionV11 = {
   localModelId: string;
-  engine: 'localai' | 'nexa' | 'nimi_media' | string;
+  engine: 'llama' | 'media' | 'media.diffusers' | 'sidecar' | string;
   model: string;
   endpoint: string;
   capabilities: CapabilityV11[];
@@ -35,30 +35,13 @@ export type LocalModelOptionV11 = {
 export type NodeCapabilityV11 = CapabilityV11 | 'rerank' | 'cv' | 'diarize';
 
 export type LocalProviderHintsV11 = {
-  localai?: {
+  llama?: {
     backend?: string;
-    preferredAdapter?: 'openai_compat_adapter' | 'localai_native_adapter' | 'nimi_media_native_adapter' | string;
+    preferredAdapter?: 'openai_compat_adapter' | 'llama_native_adapter' | string;
     whisperVariant?: string;
-    stablediffusionPipeline?: string;
-    videoBackend?: string;
   };
-  nexa?: {
-    backend?: string;
-    preferredAdapter?: 'openai_compat_adapter' | 'localai_native_adapter' | 'nexa_native_adapter' | 'nimi_media_native_adapter' | string;
-    pluginId?: string;
-    deviceId?: string;
-    modelType?: string;
-    npuMode?: string;
-    policyGate?: string;
-    hostNpuReady?: boolean;
-    modelProbeHasNpuCandidate?: boolean;
-    policyGateAllowsNpu?: boolean;
-    npuUsable?: boolean;
-    gateReason?: string;
-    gateDetail?: string;
-  };
-  nimiMedia?: {
-    preferredAdapter?: 'nimi_media_native_adapter' | string;
+  media?: {
+    preferredAdapter?: 'media_native_adapter' | 'media_diffusers_adapter' | string;
     driver?: string;
     family?: string;
   };
@@ -69,8 +52,8 @@ export type LocalNodeMatrixEntryV11 = {
   nodeId: string;
   capability: NodeCapabilityV11;
   serviceId: string;
-  provider: 'localai' | 'nexa' | 'nimi_media' | string;
-  adapter: 'openai_compat_adapter' | 'localai_native_adapter' | 'nexa_native_adapter' | 'nimi_media_native_adapter';
+  provider: 'llama' | 'media' | 'media.diffusers' | 'sidecar' | string;
+  adapter: 'openai_compat_adapter' | 'llama_native_adapter' | 'media_native_adapter' | 'media_diffusers_adapter' | 'sidecar_music_adapter';
   backend?: string;
   backendSource?: string;
   available: boolean;
@@ -120,41 +103,21 @@ export type RuntimeConfigStateV11 = {
 export const DEFAULT_LOCAL_ENDPOINT_V11 = '';
 export const DEFAULT_OPENAI_ENDPOINT_V11 = '';
 export const DEFAULT_OPENROUTER_ENDPOINT_V11 = 'https://openrouter.ai/api/v1';
-let runtimeConfigPlatformForTests: 'windows' | 'darwin' | 'linux' | 'unknown' | null = null;
-
-function resolveRuntimeConfigPlatform(): 'windows' | 'darwin' | 'linux' | 'unknown' {
-  if (runtimeConfigPlatformForTests) return runtimeConfigPlatformForTests;
-  const globalProcess = (globalThis as { process?: { platform?: string } }).process;
-  const processPlatform = String(globalProcess?.platform || '').trim().toLowerCase();
-  if (processPlatform === 'win32') return 'windows';
-  if (processPlatform === 'darwin') return 'darwin';
-  if (processPlatform === 'linux') return 'linux';
-  const nav = globalThis as { navigator?: { platform?: string; userAgent?: string } };
-  const navigatorPlatform = `${String(nav.navigator?.platform || '').trim().toLowerCase()} ${String(nav.navigator?.userAgent || '').trim().toLowerCase()}`;
-  if (navigatorPlatform.includes('win')) return 'windows';
-  if (navigatorPlatform.includes('mac')) return 'darwin';
-  if (navigatorPlatform.includes('linux')) return 'linux';
-  return 'unknown';
-}
+let _runtimeConfigPlatformForTests: 'windows' | 'darwin' | 'linux' | 'unknown' | null = null;
 
 export function setRuntimeConfigPlatformForTests(value: 'windows' | 'darwin' | 'linux' | 'unknown' | null): void {
-  runtimeConfigPlatformForTests = value;
+  _runtimeConfigPlatformForTests = value;
 }
 
 function defaultEngineForCapabilities(capabilities: CapabilityV11[]): LocalModelOptionV11['engine'] {
-  if (resolveRuntimeConfigPlatform() === 'windows') {
-    if (capabilities.includes('image') || capabilities.includes('video')) {
-      return 'nimi_media';
-    }
-    if (capabilities.includes('tts') || capabilities.includes('stt') || capabilities.includes('embedding') || capabilities.includes('chat')) {
-      return 'nexa';
-    }
+  if (capabilities.includes('image') || capabilities.includes('video')) {
+    return 'media';
   }
-  return 'localai';
+  return 'llama';
 }
 
 function defaultEndpointForEngine(engine: LocalModelOptionV11['engine']): string {
-  return engine === 'localai' ? DEFAULT_LOCAL_ENDPOINT_V11 : '';
+  return engine === 'llama' ? DEFAULT_LOCAL_ENDPOINT_V11 : '';
 }
 
 export const VENDOR_LABELS_V11: Record<ApiVendor, string> = {
@@ -350,22 +313,26 @@ export function normalizeLocalNodeMatrixEntryV11(
   const normalizedProvider = String(raw.provider || '').trim().toLowerCase();
   const adapterRaw = String(raw.adapter || '').trim().toLowerCase();
   let normalizedAdapter: LocalNodeMatrixEntryV11['adapter'];
-  if (adapterRaw === 'localai_native_adapter') {
-    normalizedAdapter = 'localai_native_adapter';
-  } else if (adapterRaw === 'nexa_native_adapter') {
-    normalizedAdapter = 'nexa_native_adapter';
-  } else if (adapterRaw === 'nimi_media_native_adapter') {
-    normalizedAdapter = 'nimi_media_native_adapter';
+  if (adapterRaw === 'llama_native_adapter') {
+    normalizedAdapter = 'llama_native_adapter';
+  } else if (adapterRaw === 'media_native_adapter') {
+    normalizedAdapter = 'media_native_adapter';
+  } else if (adapterRaw === 'media_diffusers_adapter') {
+    normalizedAdapter = 'media_diffusers_adapter';
+  } else if (adapterRaw === 'sidecar_music_adapter') {
+    normalizedAdapter = 'sidecar_music_adapter';
   } else if (adapterRaw === 'openai_compat_adapter') {
     normalizedAdapter = 'openai_compat_adapter';
-  } else if (normalizedProvider === 'nexa') {
-    normalizedAdapter = 'nexa_native_adapter';
-  } else if (normalizedProvider === 'nimi_media') {
-    normalizedAdapter = 'nimi_media_native_adapter';
+  } else if (normalizedProvider === 'media') {
+    normalizedAdapter = 'media_native_adapter';
+  } else if (normalizedProvider === 'media.diffusers') {
+    normalizedAdapter = 'media_diffusers_adapter';
+  } else if (normalizedProvider === 'sidecar') {
+    normalizedAdapter = 'sidecar_music_adapter';
   } else {
     normalizedAdapter = normalizedCapability === 'chat' || normalizedCapability === 'embedding'
       ? 'openai_compat_adapter'
-      : 'localai_native_adapter';
+      : 'llama_native_adapter';
   }
   const hints = (
     raw.providerHints

@@ -1,48 +1,34 @@
 export type RuntimeModality = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | 'music';
 
-export type LocalEngine = 'localai' | 'nexa' | 'nimi_media' | 'sidecar' | string;
+export type LocalEngine = 'llama' | 'media' | 'sidecar' | string;
 
 export type LocalProviderAdapter =
   | 'openai_compat_adapter'
-  | 'localai_native_adapter'
-  | 'nexa_native_adapter'
-  | 'nimi_media_native_adapter'
-  | 'localai_music_adapter'
+  | 'llama_native_adapter'
+  | 'media_native_adapter'
+  | 'media_diffusers_adapter'
   | 'sidecar_music_adapter'
   | string;
 
-export type NexaProviderHints = {
-  backend?: string;
+export type LlamaProviderHints = {
   preferredAdapter?: LocalProviderAdapter;
-  pluginId?: string;
-  deviceId?: string;
-  modelType?: string;
-  npuMode?: string;
-  policyGate?: string;
-  hostNpuReady?: boolean;
-  modelProbeHasNpuCandidate?: boolean;
-  policyGateAllowsNpu?: boolean;
-  npuUsable?: boolean;
-  gateReason?: string;
-  gateDetail?: string;
+  whisperVariant?: string;
 };
 
-export type NimiMediaProviderHints = {
+export type MediaProviderHints = {
   preferredAdapter?: LocalProviderAdapter;
   driver?: string;
   family?: string;
+  device?: string;
+  policyGate?: string;
 };
 
 export type LocalProviderHints = {
-  localai?: {
-    backend?: string;
+  llama?: LlamaProviderHints;
+  media?: MediaProviderHints;
+  sidecar?: {
     preferredAdapter?: LocalProviderAdapter;
-    whisperVariant?: string;
-    stablediffusionPipeline?: string;
-    videoBackend?: string;
   };
-  nexa?: NexaProviderHints;
-  nimiMedia?: NimiMediaProviderHints;
   extra?: Record<string, unknown>;
 } & Record<string, unknown>;
 

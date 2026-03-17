@@ -27,7 +27,7 @@
 
 运行时服务语义来自 `spec/runtime/kernel/*`；SDK 负责协议封装与类型投影。
 
-当前 runtime projection 已包含 LocalAI 动态图片工作流所需的本地 surface，并且上层消费面必须遵守以下 kernel 约束：
+当前 runtime projection 已包含 engine-first 本地 surface，并且上层消费面必须遵守以下 kernel 约束：
 
 - `S-RUNTIME-010` / `S-TRANSPORT-001`: Node.js 环境允许 `new Runtime()` 走本地 `node-grpc` 默认值；非 Node 环境缺失 transport 时必须 fail-close。
 - `S-RUNTIME-011` / `S-SURFACE-002`: runtime 子路径公开方法集合以 `runtime-method-groups.yaml` 为权威，不能漂移到 legacy runtime surface。
