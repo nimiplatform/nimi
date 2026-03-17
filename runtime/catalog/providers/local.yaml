@@ -208,7 +208,7 @@ models:
       url: https://docs.nexa.ai/en/nexa-sdk-python/quickstart
       retrieved_at: 2026-03-15
       note: Nexa Python quickstart covering local LLM, embedding, TTS, and ASR flows.
-  - model_id: nexa/qwen3-chat
+  - model_id: llama/qwen3-chat
     provider: local
     model_type: chat
     updated_at: 2026-03-15
@@ -259,7 +259,7 @@ models:
       url: https://docs.nexa.ai/en/nexa-sdk-python/quickstart
       retrieved_at: 2026-03-15
       note: Nexa Python quickstart covering local LLM, embedding, TTS, and ASR flows.
-  - model_id: nexa/nomic-embed-text
+  - model_id: llama/nomic-embed-text
     provider: local
     model_type: embedding
     updated_at: 2026-03-15
@@ -310,7 +310,7 @@ models:
       url: https://docs.nexa.ai/en/nexa-sdk-python/quickstart
       retrieved_at: 2026-03-15
       note: Nexa Python quickstart covering local LLM, embedding, TTS, and ASR flows.
-  - model_id: nexa/whisper-large-v3
+  - model_id: speech/whisper-large-v3
     provider: local
     model_type: stt
     updated_at: 2026-03-15
@@ -361,7 +361,7 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/flux
       retrieved_at: 2026-03-15
       note: Official Diffusers FLUX pipeline documentation.
-  - model_id: nimi_media/flux.1-schnell
+  - model_id: media/flux.1-schnell
     provider: local
     model_type: image
     updated_at: 2026-03-15
@@ -435,7 +435,7 @@ models:
       retrieved_at: 2026-03-15
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
     video_generation: *a2
-  - model_id: nimi_media/wan2.1-video
+  - model_id: media/wan2.1-video
     provider: local
     model_type: video
     updated_at: 2026-03-15
@@ -470,7 +470,7 @@ models:
       url: https://localai.io/features/text-to-audio/
       retrieved_at: 2026-03-13
       note: LocalAI text-to-audio documentation covering ACE-Step and MusicGen backends.
-  - model_id: localai/ace-step
+  - model_id: sidecar/ace-step
     provider: local
     model_type: music
     updated_at: 2026-03-13
@@ -487,7 +487,7 @@ models:
       url: https://localai.io/features/text-to-audio/
       retrieved_at: 2026-03-13
       note: LocalAI text-to-audio documentation covering ACE-Step and MusicGen backends.
-  - model_id: ace-step-turbo
+  - model_id: sidecar/ace-step-turbo
     provider: local
     model_type: music
     updated_at: 2026-03-13
@@ -521,7 +521,7 @@ models:
       url: https://localai.io/features/text-to-audio/
       retrieved_at: 2026-03-13
       note: LocalAI text-to-audio documentation covering ACE-Step and MusicGen backends.
-  - model_id: localai/musicgen
+  - model_id: sidecar/musicgen
     provider: local
     model_type: music
     updated_at: 2026-03-13
@@ -538,7 +538,7 @@ models:
       url: https://localai.io/features/text-to-audio/
       retrieved_at: 2026-03-13
       note: LocalAI text-to-audio documentation covering ACE-Step and MusicGen backends.
-  - model_id: transformers-musicgen
+  - model_id: sidecar/transformers-musicgen
     provider: local
     model_type: music
     updated_at: 2026-03-13
@@ -556,23 +556,6 @@ models:
       retrieved_at: 2026-03-13
       note: LocalAI text-to-audio documentation covering ACE-Step and MusicGen backends.
   - model_id: audiocraft-musicgen-sidecar
-    provider: local
-    model_type: music
-    updated_at: 2026-03-13
-    capabilities:
-      - music.generate
-    pricing:
-      unit: request
-      input: unknown
-      output: unknown
-      currency: none
-      as_of: 2026-03-05
-      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
-    source_ref:
-      url: https://facebookresearch.github.io/audiocraft/docs/MUSICGEN.html
-      retrieved_at: 2026-03-13
-      note: Meta AudioCraft MusicGen documentation.
-  - model_id: sidecar/musicgen
     provider: local
     model_type: music
     updated_at: 2026-03-13
@@ -640,7 +623,7 @@ models:
       url: https://stability.ai/news/introducing-stable-audio-open
       retrieved_at: 2026-03-13
       note: Stable Audio Open announcement and positioning.
-  - model_id: stable-audio-open
+  - model_id: sidecar/stable-audio-open-default
     provider: local
     model_type: music
     updated_at: 2026-03-13

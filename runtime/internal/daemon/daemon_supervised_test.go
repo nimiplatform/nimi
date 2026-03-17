@@ -515,18 +515,19 @@ func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *t
 	if err := os.WriteFile(entryPath, []byte("test-model"), 0o644); err != nil {
 		t.Fatalf("write entry file: %v", err)
 	}
-	manifestPath := filepath.Join(localModelsPath, modelSlug, "model.manifest.json")
+	manifestPath := filepath.Join(localModelsPath, "resolved", "nimi", modelSlug, "manifest.json")
 	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
 		t.Fatalf("create manifest dir: %v", err)
 	}
 	manifestRaw, err := json.Marshal(map[string]any{
-		"model_id":     manifestModelID,
-		"entry":        manifestEntry,
-		"engine":       "llama",
-		"capabilities": []string{"chat"},
-		"files":        []string{"weights/model.gguf"},
-		"hashes":       map[string]string{"sha256": "deadbeef"},
-		"source":       map[string]string{"repo": "test/repo", "revision": "main"},
+		"model_id":         manifestModelID,
+		"logical_model_id": "nimi/" + modelSlug,
+		"entry":            manifestEntry,
+		"engine":           "llama",
+		"capabilities":     []string{"chat"},
+		"files":            []string{"weights/model.gguf"},
+		"hashes":           map[string]string{"sha256": "deadbeef"},
+		"source":           map[string]string{"repo": "test/repo", "revision": "main"},
 	})
 	if err != nil {
 		t.Fatalf("marshal manifest: %v", err)

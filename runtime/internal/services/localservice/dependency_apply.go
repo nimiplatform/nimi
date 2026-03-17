@@ -126,6 +126,7 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 				binding.mode,
 				"",
 				nil,
+				nil,
 				"runtime_model_ready_after_install",
 				"model installed",
 			)

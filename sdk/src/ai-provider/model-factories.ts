@@ -28,6 +28,7 @@ import {
 import {
   createVideoModelImpl,
 } from './model-factory-video.js';
+import { assertNoLegacyLocalModelPrefix } from './model-factory-shared.js';
 
 const modelFactoryCreators = {
   embedding: createEmbeddingModelImpl,
@@ -43,6 +44,7 @@ export function createLanguageModel(
   defaults: RuntimeDefaults,
   modelId: string,
 ): LanguageModelV3 {
+  assertNoLegacyLocalModelPrefix(modelId);
   return modelFactoryCreators.language(runtime, defaults, modelId);
 }
 
@@ -51,6 +53,7 @@ export function createEmbeddingModel(
   defaults: RuntimeDefaults,
   modelId: string,
 ): EmbeddingModelV3 {
+  assertNoLegacyLocalModelPrefix(modelId);
   return modelFactoryCreators.embedding(runtime, defaults, modelId);
 }
 
@@ -59,6 +62,7 @@ export function createImageModel(
   defaults: RuntimeDefaults,
   modelId: string,
 ): ImageModelV3 {
+  assertNoLegacyLocalModelPrefix(modelId);
   return modelFactoryCreators.image(runtime, defaults, modelId);
 }
 
@@ -67,6 +71,7 @@ export function createVideoModel(
   defaults: RuntimeDefaults,
   modelId: string,
 ): NimiRuntimeVideoModel {
+  assertNoLegacyLocalModelPrefix(modelId);
   return modelFactoryCreators.video(runtime, defaults, modelId);
 }
 
@@ -75,6 +80,7 @@ export function createSpeechModel(
   defaults: RuntimeDefaults,
   modelId: string,
 ): NimiRuntimeSpeechModel {
+  assertNoLegacyLocalModelPrefix(modelId);
   return modelFactoryCreators.speech(runtime, defaults, modelId);
 }
 
@@ -83,5 +89,6 @@ export function createTranscriptionModel(
   defaults: RuntimeDefaults,
   modelId: string,
 ): NimiRuntimeTranscriptionModel {
+  assertNoLegacyLocalModelPrefix(modelId);
   return modelFactoryCreators.transcription(runtime, defaults, modelId);
 }

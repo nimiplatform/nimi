@@ -104,7 +104,7 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 | `total_size_bytes` | 否 | 预计总下载字节数（用于进度计算与磁盘空间预检） |
 | `tags` | 否 | 标签列表（搜索/过滤用，如 `["llama", "chat", "8b"]`） |
 | `artifact_roles` | 是 | runtime 解析 bundle 所需的 artifact 角色集合 |
-| `preferred_engine` | 是 | 首选执行引擎；图像/视频类允许记录内部 fallback driver 为 `media.diffusers` |
+| `preferred_engine` | 是 | 首选执行引擎；值域固定为 `llama` / `media` / `speech` / `sidecar` |
 
 ## K-LOCAL-011 模型目录来源
 
@@ -426,6 +426,8 @@ Runtime/desktop 允许在 catalog surface 之外新增 capability-scoped candida
         ├── media/
         └── diffusers/
 ```
+
+Desktop/Tauri 面向用户与 App/Mod 的主模型 manifest public contract 固定为 `resolved/<logical-model-id>/manifest.json`。旧 `model.manifest.json` 不再是合法 public import/install 入口，实现必须 reject。
 
 ## K-LOCAL-026 模型 Manifest Schema
 

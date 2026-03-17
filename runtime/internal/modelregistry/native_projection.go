@@ -2,6 +2,7 @@ package modelregistry
 
 import (
 	"encoding/json"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -88,7 +89,7 @@ func loadResolvedBundleProjection(modelID string, status runtimev1.ModelStatus) 
 		Family:           firstNonEmpty(disk.Family, inferModelFamily(modelID)),
 		ArtifactRoles:    normalizeStrings(disk.ArtifactRoles),
 		PreferredEngine:  firstNonEmpty(disk.PreferredEngine, inferPreferredEngine(disk.Capabilities)),
-		FallbackEngines:  normalizeStrings(disk.FallbackEngines),
+		FallbackEngines:  publicFallbackEngines(disk.FallbackEngines),
 		BundleState:      bundleStateForModelStatus(status),
 		WarmState:        warmStateForModelStatus(status),
 		HostRequirements: hostRequirementsFromDiskMap(disk.HostRequirements),
@@ -100,24 +101,120 @@ func loadResolvedBundleProjection(modelID string, status runtimev1.ModelStatus) 
 }
 
 func resolvedBundleManifestPath(modelID string) string {
-	logicalModelID := strings.TrimSpace(modelID)
-	if logicalModelID == "" {
+	normalizedModelID := strings.TrimSpace(modelID)
+	if normalizedModelID == "" {
 		return ""
 	}
-	if idx := strings.Index(logicalModelID, "/"); idx >= 0 {
-		logicalModelID = strings.TrimSpace(logicalModelID[idx+1:])
-	}
-	if logicalModelID == "" {
+	modelsRoot := resolvedBundlesRoot()
+	if strings.TrimSpace(modelsRoot) == "" {
 		return ""
 	}
+	candidates := resolvedBundleManifestCandidates(modelsRoot, normalizedModelID)
+	for _, candidate := range candidates {
+		if fileExists(candidate) {
+			return candidate
+		}
+	}
+	if discovered := findResolvedBundleManifestByModelID(modelsRoot, normalizedModelID); strings.TrimSpace(discovered) != "" {
+		return discovered
+	}
+	return ""
+}
+
+func resolvedBundlesRoot() string {
 	if override := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_MODELS_ROOT")); override != "" {
-		return filepath.Join(override, "resolved", logicalModelID, "manifest.json")
+		return filepath.Join(override, "resolved")
 	}
 	home, err := os.UserHomeDir()
 	if err != nil || strings.TrimSpace(home) == "" {
 		return ""
 	}
-	return filepath.Join(home, ".nimi", "models", "resolved", logicalModelID, "manifest.json")
+	return filepath.Join(home, ".nimi", "models", "resolved")
+}
+
+func resolvedBundleManifestCandidates(resolvedRoot string, modelID string) []string {
+	normalized := strings.TrimSpace(modelID)
+	if normalized == "" {
+		return nil
+	}
+	candidates := make([]string, 0, 4)
+	add := func(parts ...string) {
+		candidate := filepath.Join(append([]string{resolvedRoot}, parts...)...)
+		if candidate == "" {
+			return
+		}
+		for _, existing := range candidates {
+			if existing == candidate {
+				return
+			}
+		}
+		candidates = append(candidates, candidate)
+	}
+	add(filepath.FromSlash(normalized), "manifest.json")
+	if trimmed, ok := trimPublicLocalPrefix(normalized); ok {
+		add(filepath.FromSlash(trimmed), "manifest.json")
+		add("nimi", filepath.FromSlash(trimmed), "manifest.json")
+	}
+	return candidates
+}
+
+func trimPublicLocalPrefix(modelID string) (string, bool) {
+	normalized := strings.TrimSpace(modelID)
+	lower := strings.ToLower(normalized)
+	for _, prefix := range []string{"local/", "llama/", "media/", "speech/", "sidecar/"} {
+		if strings.HasPrefix(lower, prefix) {
+			return strings.TrimSpace(normalized[len(prefix):]), true
+		}
+	}
+	return normalized, false
+}
+
+func findResolvedBundleManifestByModelID(resolvedRoot string, modelID string) string {
+	expectedComparable := comparableResolvedModelID(modelID)
+	if expectedComparable == "" {
+		return ""
+	}
+	var discovered string
+	_ = filepath.WalkDir(resolvedRoot, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || discovered != "" {
+			return nil
+		}
+		if d == nil || d.IsDir() || !strings.EqualFold(d.Name(), "manifest.json") {
+			return nil
+		}
+		raw, readErr := os.ReadFile(path)
+		if readErr != nil {
+			return nil
+		}
+		var disk resolvedBundleManifestDisk
+		if jsonErr := json.Unmarshal(raw, &disk); jsonErr != nil {
+			return nil
+		}
+		if comparableResolvedModelID(disk.ModelID) == expectedComparable || comparableResolvedModelID(disk.LogicalModelID) == expectedComparable {
+			discovered = path
+		}
+		return nil
+	})
+	return discovered
+}
+
+func comparableResolvedModelID(modelID string) string {
+	trimmed := strings.TrimSpace(modelID)
+	if trimmed == "" {
+		return ""
+	}
+	if value, ok := trimPublicLocalPrefix(trimmed); ok {
+		trimmed = value
+	}
+	return strings.ToLower(strings.TrimSpace(trimmed))
+}
+
+func fileExists(path string) bool {
+	if strings.TrimSpace(path) == "" {
+		return false
+	}
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
 }
 
 func firstNonEmpty(values ...string) string {
@@ -259,10 +356,18 @@ func inferPreferredEngine(capabilities []string) string {
 }
 
 func inferFallbackEngines(capabilities []string) []string {
-	if inferPreferredEngine(capabilities) == "media" {
-		return []string{"media.diffusers"}
-	}
 	return nil
+}
+
+func publicFallbackEngines(values []string) []string {
+	filtered := make([]string, 0, len(values))
+	for _, value := range normalizeStrings(values) {
+		if strings.EqualFold(strings.TrimSpace(value), "media.diffusers") {
+			continue
+		}
+		filtered = append(filtered, value)
+	}
+	return filtered
 }
 
 func bundleStateForModelStatus(status runtimev1.ModelStatus) runtimev1.LocalBundleState {

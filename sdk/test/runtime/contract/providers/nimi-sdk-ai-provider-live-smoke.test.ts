@@ -190,7 +190,7 @@ function qualifyLocalSidecarMusicModel(modelId: string): string {
   if (!normalizedModelId) {
     return normalizedModelId;
   }
-  if (lower.startsWith('sidecar/') || lower.startsWith('localsidecar/')) {
+  if (lower.startsWith('sidecar/')) {
     return normalizedModelId;
   }
   return `sidecar/${normalizedModelId}`;

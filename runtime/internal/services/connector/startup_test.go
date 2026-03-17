@@ -116,7 +116,6 @@ func TestEnsureCloudConnectorsFromConfig_SkipLocal(t *testing.T) {
 		{Provider: "llama", Endpoint: "http://localhost:8081", APIKey: "test", Label: "Llama"},
 		{Provider: "media", Endpoint: "http://localhost:8082", APIKey: "test", Label: "Media"},
 		{Provider: "speech", Endpoint: "http://localhost:8083", APIKey: "test", Label: "Speech"},
-		{Provider: "media.diffusers", Endpoint: "http://localhost:8083", APIKey: "test", Label: "Diffusers"},
 		{Provider: "sidecar", Endpoint: "http://localhost:8084", APIKey: "test", Label: "Sidecar"},
 	}
 

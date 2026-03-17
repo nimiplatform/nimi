@@ -494,8 +494,6 @@ func normalizeManagedModelRegistrationModelID(modelID string) string {
 	switch {
 	case strings.HasPrefix(lower, "llama/"):
 		raw = strings.TrimSpace(raw[len("llama/"):])
-	case strings.HasPrefix(lower, "media.diffusers/"):
-		raw = strings.TrimSpace(raw[len("media.diffusers/"):])
 	case strings.HasPrefix(lower, "media/"):
 		raw = strings.TrimSpace(raw[len("media/"):])
 	case strings.HasPrefix(lower, "local/"):
@@ -575,7 +573,7 @@ func modelProbeSucceeded(model *runtimev1.LocalModelRecord, probe endpointProbeR
 	switch strings.ToLower(strings.TrimSpace(model.GetEngine())) {
 	case "llama":
 		return managedLlamaModelProbeSucceeded(probe, registration)
-	case "media", "media.diffusers":
+	case "media":
 		return mediaModelProbeSucceeded(model, probe)
 	}
 	return probe.healthy
@@ -585,7 +583,7 @@ func modelProbeFailureDetail(model *runtimev1.LocalModelRecord, probe endpointPr
 	switch strings.ToLower(strings.TrimSpace(model.GetEngine())) {
 	case "llama":
 		return managedLlamaModelProbeFailureDetail(probe, registration)
-	case "media", "media.diffusers":
+	case "media":
 		return mediaModelProbeFailureDetail(model, probe)
 	}
 	return defaultString(probe.detail, "model probe failed")
@@ -709,7 +707,6 @@ func normalizeComparableModelID(value string) string {
 	comparable = strings.TrimPrefix(comparable, "llama/")
 	comparable = strings.TrimPrefix(comparable, "media/")
 	comparable = strings.TrimPrefix(comparable, "speech/")
-	comparable = strings.TrimPrefix(comparable, "media.diffusers/")
 	return comparable
 }
 

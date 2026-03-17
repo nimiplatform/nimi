@@ -17,8 +17,8 @@
 | `logical_model_id` | string | 逻辑模型 ID |
 | `family` | string | 模型家族 |
 | `artifact_roles` | repeated string | 解析后的 artifact 角色集合 |
-| `preferred_engine` | string | 首选执行引擎，当前为 `llama` 或 `media` |
-| `fallback_engines` | repeated string | 允许的 fallback 引擎集合 |
+| `preferred_engine` | string | 首选执行引擎，值域固定为 `llama` / `media` / `speech` / `sidecar` |
+| `fallback_engines` | repeated string | 允许的 public fallback 引擎集合；不得暴露 `media.diffusers` 之类的 runtime 内部 driver |
 | `bundle_state` | `LocalBundleState` | resolved bundle 状态 |
 | `warm_state` | `LocalWarmState` | 预热状态 |
 | `host_requirements` | `LocalHostRequirements` | 主机侧硬要求 |

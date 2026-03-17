@@ -47,7 +47,7 @@ type scenarioStreamingTextProvider interface {
 
 // Config controls local/cloud provider connectivity.
 type Config struct {
-	LocalProviders        map[string]nimillm.ProviderCredentials // "llama", "media", "media.diffusers", "sidecar"
+	LocalProviders        map[string]nimillm.ProviderCredentials // "llama", "media", "speech", "sidecar"
 	CloudProviders        map[string]nimillm.ProviderCredentials // "nimillm", "dashscope", ...
 	ProviderDefaultModels map[string]string
 	DefaultLocalTextModel string
@@ -205,7 +205,7 @@ func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, 
 	llamaBackend := newLocalBackend("local-llama", llamaCreds, normalized)
 	mediaBackend := newLocalBackend("local-media", mediaCreds, normalized)
 	speechBackend := newLocalBackend("local-speech", speechCreds, normalized)
-	mediaDiffusersBackend := newLocalBackend("local-media-diffusers", mediaCreds, normalized)
+	mediaDiffusersBackend := newLocalBackend("local-media-fallback", mediaCreds, normalized)
 	sidecarBackend := newLocalBackend("local-sidecar", sidecarCreds, normalized)
 	targetConfig := runtimecfg.Config{
 		DefaultLocalTextModel: normalized.DefaultLocalTextModel,

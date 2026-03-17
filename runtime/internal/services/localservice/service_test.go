@@ -2160,8 +2160,12 @@ func TestLocalInstallVerifiedModelTemplateNotFound(t *testing.T) {
 func TestLocalImportManifestValidation(t *testing.T) {
 	svc := newTestService(t)
 	tmpDir := t.TempDir()
+	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", false)
 
-	invalidPath := filepath.Join(tmpDir, "invalid.json")
+	invalidPath := filepath.Join(tmpDir, "resolved", "nimi", "invalid", "manifest.json")
+	if err := os.MkdirAll(filepath.Dir(invalidPath), 0o755); err != nil {
+		t.Fatalf("create invalid manifest dir: %v", err)
+	}
 	if err := os.WriteFile(invalidPath, []byte("{not-json"), 0o600); err != nil {
 		t.Fatalf("write invalid manifest: %v", err)
 	}
@@ -2174,7 +2178,10 @@ func TestLocalImportManifestValidation(t *testing.T) {
 		t.Fatalf("unexpected invalid manifest error: %v", err)
 	}
 
-	schemaInvalidPath := filepath.Join(tmpDir, "schema-invalid.json")
+	schemaInvalidPath := filepath.Join(tmpDir, "resolved", "nimi", "schema-invalid", "manifest.json")
+	if err := os.MkdirAll(filepath.Dir(schemaInvalidPath), 0o755); err != nil {
+		t.Fatalf("create schema invalid manifest dir: %v", err)
+	}
 	if err := os.WriteFile(schemaInvalidPath, []byte(`{"model_id":"local/test","engine":"llama","endpoint":"http://127.0.0.1:1234/v1","capabilities":"chat"}`), 0o600); err != nil {
 		t.Fatalf("write schema invalid manifest: %v", err)
 	}
@@ -2187,9 +2194,10 @@ func TestLocalImportManifestValidation(t *testing.T) {
 		t.Fatalf("unexpected schema invalid manifest error: %v", err)
 	}
 
-	validPath := filepath.Join(tmpDir, "valid.json")
+	validPath := filepath.Join(tmpDir, "resolved", "nimi", "import-manifest-ok", "manifest.json")
 	validManifest := map[string]any{
 		"model_id":                "local/import-manifest-ok",
+		"logical_model_id":        "nimi/import-manifest-ok",
 		"engine":                  "llama",
 		"capabilities":            []string{"chat"},
 		"entry":                   "./dist/index.js",
@@ -2201,6 +2209,9 @@ func TestLocalImportManifestValidation(t *testing.T) {
 		},
 	}
 	validRaw, _ := json.Marshal(validManifest)
+	if err := os.MkdirAll(filepath.Dir(validPath), 0o755); err != nil {
+		t.Fatalf("create valid manifest dir: %v", err)
+	}
 	if err := os.WriteFile(validPath, validRaw, 0o600); err != nil {
 		t.Fatalf("write valid manifest: %v", err)
 	}
@@ -2215,22 +2226,25 @@ func TestLocalImportManifestValidation(t *testing.T) {
 
 func TestLocalImportMediaModelRequiresExplicitEndpoint(t *testing.T) {
 	svc := newTestService(t)
-	svc.SetManagedLlamaRegistrationConfig("", "", true)
-	svc.SetManagedLlamaEndpoint("http://127.0.0.1:57510/v1")
-
 	tmpDir := t.TempDir()
-	manifestPath := filepath.Join(tmpDir, "image-model.manifest.json")
+	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
+	svc.SetManagedLlamaEndpoint("http://127.0.0.1:57510/v1")
+	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "image-model", "manifest.json")
 	rawManifest, err := json.Marshal(map[string]any{
-		"model_id":     "local-import/z_image_turbo-Q4_K",
-		"engine":       "media",
-		"capabilities": []string{"image"},
-		"entry":        "z_image_turbo-Q4_K.gguf",
+		"model_id":         "local-import/z_image_turbo-Q4_K",
+		"logical_model_id": "nimi/image-model",
+		"engine":           "media",
+		"capabilities":     []string{"image"},
+		"entry":            "z_image_turbo-Q4_K.gguf",
 		"engineConfig": map[string]any{
 			"backend": "stablediffusion-ggml",
 		},
 	})
 	if err != nil {
 		t.Fatalf("marshal manifest: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
+		t.Fatalf("create manifest dir: %v", err)
 	}
 	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
 		t.Fatalf("write manifest: %v", err)
@@ -2678,14 +2692,20 @@ func TestLocalStateRestoresAfterRestart(t *testing.T) {
 		t.Fatalf("install service: %v", err)
 	}
 
-	manifestPath := filepath.Join(t.TempDir(), "persist-import.json")
+	importRoot := t.TempDir()
+	svc.SetManagedLlamaRegistrationConfig(importRoot, "", false)
+	manifestPath := filepath.Join(importRoot, "resolved", "nimi", "persisted-import", "manifest.json")
 	manifestRaw, _ := json.Marshal(map[string]any{
 		"model_id":                "local/persisted-import",
+		"logical_model_id":        "nimi/persisted-import",
 		"engine":                  "llama",
 		"capabilities":            []string{"chat"},
 		"endpoint":                "http://127.0.0.1:8091/v1",
 		"local_invoke_profile_id": "profile-persisted",
 	})
+	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
+		t.Fatalf("create import manifest dir: %v", err)
+	}
 	if err := os.WriteFile(manifestPath, manifestRaw, 0o600); err != nil {
 		t.Fatalf("write import manifest: %v", err)
 	}

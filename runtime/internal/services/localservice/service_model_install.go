@@ -204,6 +204,7 @@ func (s *Service) installLocalModelRecord(
 	mode runtimev1.LocalEngineRuntimeMode,
 	localInvokeProfileID string,
 	engineConfig *structpb.Struct,
+	projectionOverride *modelregistry.NativeProjection,
 	auditEventType string,
 	auditDetail string,
 ) (*runtimev1.LocalModelRecord, error) {
@@ -222,6 +223,32 @@ func (s *Service) installLocalModelRecord(
 
 	now := nowISO()
 	projection := modelregistry.InferNativeProjection(modelID, capabilities, nil, runtimev1.ModelStatus_MODEL_STATUS_INSTALLED)
+	if projectionOverride != nil {
+		if value := strings.TrimSpace(projectionOverride.LogicalModelID); value != "" {
+			projection.LogicalModelID = value
+		}
+		if value := strings.TrimSpace(projectionOverride.Family); value != "" {
+			projection.Family = value
+		}
+		if len(projectionOverride.ArtifactRoles) > 0 {
+			projection.ArtifactRoles = normalizeStringSlice(projectionOverride.ArtifactRoles)
+		}
+		if value := strings.TrimSpace(projectionOverride.PreferredEngine); value != "" {
+			projection.PreferredEngine = value
+		}
+		if projectionOverride.FallbackEngines != nil {
+			projection.FallbackEngines = normalizeStringSlice(projectionOverride.FallbackEngines)
+		}
+		if projectionOverride.BundleState != runtimev1.LocalBundleState_LOCAL_BUNDLE_STATE_UNSPECIFIED {
+			projection.BundleState = projectionOverride.BundleState
+		}
+		if projectionOverride.WarmState != runtimev1.LocalWarmState_LOCAL_WARM_STATE_UNSPECIFIED {
+			projection.WarmState = projectionOverride.WarmState
+		}
+		if projectionOverride.HostRequirements != nil {
+			projection.HostRequirements = cloneHostRequirements(projectionOverride.HostRequirements)
+		}
+	}
 	record := &runtimev1.LocalModelRecord{
 		LocalModelId: ulid.Make().String(),
 		ModelId:      modelID,
@@ -297,6 +324,7 @@ func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLoc
 		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT,
 		"",
 		req.GetEngineConfig(),
+		nil,
 		"runtime_model_ready_after_install",
 		"model installed",
 	)
@@ -347,6 +375,12 @@ func (s *Service) InstallVerifiedModel(ctx context.Context, req *runtimev1.Insta
 		binding.mode,
 		"",
 		matched.GetEngineConfig(),
+		&modelregistry.NativeProjection{
+			LogicalModelID:  strings.TrimSpace(matched.GetLogicalModelId()),
+			ArtifactRoles:   append([]string(nil), matched.GetArtifactRoles()...),
+			PreferredEngine: strings.TrimSpace(matched.GetPreferredEngine()),
+			FallbackEngines: normalizePublicFallbackEngines(matched.GetFallbackEngines()),
+		},
 		"runtime_model_ready_after_install",
 		"model installed",
 	)
@@ -359,6 +393,9 @@ func (s *Service) InstallVerifiedModel(ctx context.Context, req *runtimev1.Insta
 func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocalModelRequest) (*runtimev1.ImportLocalModelResponse, error) {
 	manifestPath := strings.TrimSpace(req.GetManifestPath())
 	if manifestPath == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
+	}
+	if err := validateResolvedModelManifestPath(manifestPath, resolveLocalModelsPath(s.localModelsPath)); err != nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
 	}
 	content, err := os.ReadFile(manifestPath)
@@ -395,6 +432,14 @@ func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocal
 	}
 	if len(capabilities) == 0 {
 		capabilities = []string{"chat"}
+	}
+	artifactRoles, artifactRolesErr := manifestStringSliceKeys(manifest, "artifact_roles", "artifactRoles")
+	if artifactRolesErr != nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
+	}
+	fallbackEngines, fallbackEnginesErr := manifestStringSliceKeys(manifest, "fallback_engines", "fallbackEngines")
+	if fallbackEnginesErr != nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
 	}
 	hashes, hashesErr := manifestStringMap(manifest, "hashes")
 	if hashesErr != nil {
@@ -438,6 +483,13 @@ func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocal
 		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT,
 		manifestStringDefault(manifest, "local_invoke_profile_id", "localInvokeProfileId"),
 		engineConfig,
+		&modelregistry.NativeProjection{
+			LogicalModelID:  manifestStringDefault(manifest, "logical_model_id", "logicalModelId"),
+			Family:          manifestStringDefault(manifest, "family"),
+			ArtifactRoles:   artifactRoles,
+			PreferredEngine: manifestStringDefault(manifest, "preferred_engine", "preferredEngine"),
+			FallbackEngines: normalizePublicFallbackEngines(fallbackEngines),
+		},
 		"runtime_model_imported",
 		manifestPath,
 	)
@@ -445,4 +497,15 @@ func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocal
 		return nil, err
 	}
 	return &runtimev1.ImportLocalModelResponse{Model: record}, nil
+}
+
+func normalizePublicFallbackEngines(values []string) []string {
+	filtered := make([]string, 0, len(values))
+	for _, value := range normalizeStringSlice(values) {
+		if strings.EqualFold(strings.TrimSpace(value), "media.diffusers") {
+			continue
+		}
+		filtered = append(filtered, value)
+	}
+	return filtered
 }

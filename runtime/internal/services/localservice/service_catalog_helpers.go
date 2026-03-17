@@ -89,14 +89,14 @@ func apiPathForProviderCapability(provider string, capability string) string {
 	case "embedding", "embed":
 		return "/v1/embeddings"
 	case "image":
-		if normalizedProvider == "media" || normalizedProvider == "media.diffusers" {
+		if normalizedProvider == "media" {
 			return "/v1/media/image/generate"
 		}
 		return "/v1/images/generations"
 	case "music", "music.generate":
 		return "/v1/music/generate"
 	case "video":
-		if normalizedProvider == "media" || normalizedProvider == "media.diffusers" {
+		if normalizedProvider == "media" {
 			return "/v1/media/video/generate"
 		}
 		return "/v1/videos/generations"
@@ -362,7 +362,6 @@ func defaultVerifiedModels() []*runtimev1.LocalVerifiedModelDescriptor {
 			Tags:            []string{"image", "verified", "recommended", "z-image"},
 			ArtifactRoles:   []string{"diffusion_transformer"},
 			PreferredEngine: "media",
-			FallbackEngines: []string{"media.diffusers"},
 			EngineConfig:    zImageDefaults,
 		},
 	}

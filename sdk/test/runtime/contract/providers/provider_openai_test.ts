@@ -191,7 +191,7 @@ test('provider_openai_test.ts: video uses /v1/videos/generations fallback path',
           timeoutMs: 30_000,
         });
 
-        const video = await provider.video('localai/vid-model').generate({
+        const video = await provider.video('media/vid-model').generate({
           mode: 't2v',
           prompt: 'drive on mars',
           content: [
@@ -257,7 +257,7 @@ test('provider_openai_test.ts: video unsupported returns strict fail-close', {
 
         let thrown: unknown = null;
         try {
-          await provider.video('localai/vid-model').generate({
+          await provider.video('media/vid-model').generate({
             mode: 't2v',
             prompt: 'unsupported video endpoint',
             content: [
@@ -325,7 +325,7 @@ test('provider_openai_test.ts: stream falls back to non-stream generate when str
           timeoutMs: 30_000,
         });
 
-        const streamResult = await provider.text('localai/gpt-4o').doStream({
+        const streamResult = await provider.text('llama/gpt-4o').doStream({
           prompt: promptFromText('hello'),
           providerOptions: {},
         });

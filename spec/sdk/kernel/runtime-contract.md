@@ -34,7 +34,7 @@ high-level local targeting 只允许：
 
 - bare local default：`local/default`
 - qualified local model：`local/<model-root>`
-- canonical engine prefix：`llama/`、`media/`、`sidecar/`
+- canonical engine prefix：`llama/`、`media/`、`speech/`、`sidecar/`
 
 `localai/`、`nexa/`、`nimi_media/`、`localsidecar/` 属于 invalid legacy input；SDK 不得继续把它们当作合法 public contract。
 

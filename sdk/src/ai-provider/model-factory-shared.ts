@@ -3,6 +3,23 @@ import {
   normalizeText,
 } from './helpers.js';
 
+export function assertNoLegacyLocalModelPrefix(modelId: string): void {
+  const normalized = normalizeText(modelId);
+  const prefix = normalized.includes('/') ? normalized.split('/', 1)[0] || '' : normalized;
+  const lowered = prefix.toLowerCase();
+  if (
+    lowered === 'localai'
+    || lowered === 'nexa'
+    || lowered === 'nimi_media'
+    || lowered === 'media.diffusers'
+    || lowered === 'localsidecar'
+  ) {
+    throw new Error(
+      `legacy local model prefix "${prefix}" is no longer supported. Use local/, llama/, media/, speech/, or sidecar/.`,
+    );
+  }
+}
+
 export function withOptionalHeadSubjectUserId<T extends { head: Record<string, unknown> }>(
   request: T,
   subjectUserId: string | undefined,
@@ -32,8 +49,6 @@ export function flattenImageProviderOptions(value: unknown): Record<string, unkn
         || normalizedKey === 'nimi'
         || normalizedKey === 'llama'
         || normalizedKey === 'media'
-        || normalizedKey === 'mediadiffusers'
-        || normalizedKey === 'media_diffusers'
         || normalizedKey === 'sidecar'
         || normalizedKey === 'extra'
       ) {
@@ -45,8 +60,6 @@ export function flattenImageProviderOptions(value: unknown): Record<string, unkn
 
   applyLayer(asRecord(topLevel.llama));
   applyLayer(asRecord(topLevel.media));
-  applyLayer(asRecord(topLevel.mediaDiffusers));
-  applyLayer(asRecord(topLevel.media_diffusers));
   applyLayer(asRecord(topLevel.sidecar));
   applyLayer(asRecord(topLevel.extra));
   applyLayer(asRecord(topLevel.nimi));

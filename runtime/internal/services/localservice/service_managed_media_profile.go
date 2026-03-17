@@ -185,8 +185,6 @@ func parseManagedMediaRequestedModelID(requestedModelID string) (string, string,
 	raw := strings.TrimSpace(requestedModelID)
 	lower := strings.ToLower(raw)
 	switch {
-	case strings.HasPrefix(lower, "media.diffusers/"):
-		return strings.TrimSpace(raw[len("media.diffusers/"):]), "media.diffusers", false
 	case strings.HasPrefix(lower, "media/"):
 		return strings.TrimSpace(raw[len("media/"):]), "media", false
 	case strings.HasPrefix(lower, "llama/"):
@@ -202,10 +200,8 @@ func managedMediaEnginePriority(engine string) int {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
 	case "media":
 		return 0
-	case "media.diffusers":
-		return 1
 	case "llama":
-		return 2
+		return 1
 	default:
 		return 9
 	}

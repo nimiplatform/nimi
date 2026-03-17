@@ -465,7 +465,7 @@ func (s *Service) ListNodeCatalog(ctx context.Context, req *runtimev1.ListNodeCa
 				reasonCode = runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String()
 				policyGate = unsupportedProviderCapabilityPolicyGate(provider, capability)
 			}
-			if available && (provider == "media" || provider == "media.diffusers") && capabilityRequiresNodeProbe(provider, capability) {
+			if available && provider == "media" && capabilityRequiresNodeProbe(provider, capability) {
 				model := models[strings.TrimSpace(service.GetLocalModelId())]
 				var probe endpointProbeResult
 				endpoint := s.serviceProbeEndpoint(service)
@@ -567,7 +567,7 @@ func isKnownLocalCapability(capability string) bool {
 
 func capabilityRequiresNodeProbe(provider string, capability string) bool {
 	switch strings.ToLower(strings.TrimSpace(provider)) {
-	case "media", "media.diffusers":
+	case "media":
 		switch strings.ToLower(strings.TrimSpace(capability)) {
 		case "image", "image.generate", "image.edit", "video", "video.generate", "i2v":
 			return true
@@ -581,7 +581,7 @@ func capabilityRequiresNodeProbe(provider string, capability string) bool {
 
 func providerCapabilityProbeSucceeded(provider string, model *runtimev1.LocalModelRecord, probe endpointProbeResult) bool {
 	switch strings.ToLower(strings.TrimSpace(provider)) {
-	case "media", "media.diffusers":
+	case "media":
 		return mediaModelProbeSucceeded(model, probe)
 	default:
 		return probe.healthy
@@ -590,7 +590,7 @@ func providerCapabilityProbeSucceeded(provider string, model *runtimev1.LocalMod
 
 func providerCapabilityProbeFailureDetail(provider string, model *runtimev1.LocalModelRecord, probe endpointProbeResult) string {
 	switch strings.ToLower(strings.TrimSpace(provider)) {
-	case "media", "media.diffusers":
+	case "media":
 		return mediaModelProbeFailureDetail(model, probe)
 	default:
 		return defaultString(probe.detail, "provider capability probe failed")

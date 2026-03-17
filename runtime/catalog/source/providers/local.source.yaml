@@ -183,7 +183,7 @@ models:
     source_ids: [nexa_python_quickstart]
     aliases:
       - local/qwen3-chat
-      - nexa/qwen3-chat
+      - llama/qwen3-chat
 
   - model_id: nomic-embed-text-local
     model_type: embedding
@@ -192,7 +192,7 @@ models:
     source_ids: [nexa_python_quickstart]
     aliases:
       - local/nomic-embed-text
-      - nexa/nomic-embed-text
+      - llama/nomic-embed-text
 
   - model_id: whisper-large-v3-local
     model_type: stt
@@ -201,7 +201,7 @@ models:
     source_ids: [nexa_python_quickstart]
     aliases:
       - local/whisper-large-v3
-      - nexa/whisper-large-v3
+      - speech/whisper-large-v3
 
   - model_id: flux.1-schnell-local
     model_type: image
@@ -210,7 +210,7 @@ models:
     source_ids: [diffusers_flux_docs]
     aliases:
       - local/flux.1-schnell
-      - nimi_media/flux.1-schnell
+      - media/flux.1-schnell
 
   - model_id: wan2.1-video-local
     model_type: video
@@ -231,7 +231,7 @@ models:
         video_url: true
     aliases:
       - local/wan2.1-video
-      - nimi_media/wan2.1-video
+      - media/wan2.1-video
 
   - model_id: ace-step-local
     model_type: music
@@ -239,8 +239,8 @@ models:
     capabilities: [music.generate]
     source_ids: [localai_audio_docs]
     aliases:
-      - localai/ace-step
-      - ace-step-turbo
+      - sidecar/ace-step
+      - sidecar/ace-step-turbo
 
   - model_id: musicgen-local
     model_type: music
@@ -248,8 +248,8 @@ models:
     capabilities: [music.generate]
     source_ids: [localai_audio_docs, audiocraft_musicgen_docs]
     aliases:
-      - localai/musicgen
-      - transformers-musicgen
+      - sidecar/musicgen
+      - sidecar/transformers-musicgen
 
   - model_id: audiocraft-musicgen-sidecar
     model_type: music
@@ -257,7 +257,6 @@ models:
     capabilities: [music.generate]
     source_ids: [audiocraft_musicgen_docs]
     aliases:
-      - sidecar/musicgen
       - sidecar/audiocraft-musicgen
 
   - model_id: stable-audio-open-sidecar
@@ -267,7 +266,7 @@ models:
     source_ids: [stable_audio_open_announcement, stable_audio_tools_repo]
     aliases:
       - sidecar/stable-audio-open
-      - stable-audio-open
+      - sidecar/stable-audio-open-default
 
 overrides:
   models: []

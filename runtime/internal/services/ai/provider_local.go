@@ -39,8 +39,6 @@ func (p *localProvider) setBackend(providerID string, backend *nimillm.Backend) 
 		p.media = backend
 	case "speech":
 		p.speech = backend
-	case "media.diffusers":
-		p.mediaDiffusers = backend
 	case "sidecar":
 		p.sidecar = backend
 	}
@@ -238,10 +236,8 @@ func backendForLocalProvider(
 		return mediaBackend
 	case "speech":
 		return speechBackend
-	case "media.diffusers":
-		return mediaDiffusersBackend
-	case "sidecar":
-		return sidecarBackend
+		case "sidecar":
+			return sidecarBackend
 	default:
 		return nil
 	}
@@ -259,7 +255,7 @@ func (p *localProvider) resolveMediaBackendForModal(modelID string, modal runtim
 
 	for _, provider := range orderedLocalProviders(localRoutingCapabilityForModal(modal)) {
 		if provider == "media" && mediaBackend == nil && mediaDiffusersBackend != nil {
-			return mediaDiffusersBackend, id, "media.diffusers"
+			return mediaDiffusersBackend, id, "media"
 		}
 		if backend := backendForLocalProvider(provider, llamaBackend, mediaBackend, speechBackend, mediaDiffusersBackend, sidecarBackend); backend != nil {
 			return backend, id, provider
@@ -294,7 +290,7 @@ func (p *localProvider) resolveExplicitMediaBackend(
 	case "media":
 		backend, resolved, providerType := explicitMediaBackend("media", capability, mediaBackend, rest)
 		if backend == nil && mediaDiffusersBackend != nil && localrouting.ProviderSupportsCapability("media", capability) {
-			return mediaDiffusersBackend, rest, "media.diffusers", true
+			return mediaDiffusersBackend, rest, "media", true
 		}
 		return backend, resolved, providerType, true
 	case "speech":
@@ -306,7 +302,7 @@ func (p *localProvider) resolveExplicitMediaBackend(
 	case "local":
 		for _, provider := range orderedLocalProviders(capability) {
 			if provider == "media" && mediaBackend == nil && mediaDiffusersBackend != nil {
-				return mediaDiffusersBackend, rest, "media.diffusers", true
+				return mediaDiffusersBackend, rest, "media", true
 			}
 			if backend := backendForLocalProvider(provider, llamaBackend, mediaBackend, speechBackend, mediaDiffusersBackend, sidecarBackend); backend != nil {
 				return backend, rest, provider, true

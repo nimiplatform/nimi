@@ -51,6 +51,7 @@ func mustInstallSupervisedLocalModel(t *testing.T, svc *Service, req *runtimev1.
 		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 		"",
 		req.GetEngineConfig(),
+		nil,
 		"runtime_model_ready_after_install",
 		"model installed",
 	)

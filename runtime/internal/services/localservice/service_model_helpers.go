@@ -3,6 +3,7 @@ package localservice
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -32,6 +33,19 @@ func manifestStringDefault(input map[string]any, keys ...string) string {
 		return ""
 	}
 	return value
+}
+
+func manifestStringSliceKeys(input map[string]any, keys ...string) ([]string, error) {
+	for _, key := range keys {
+		items, err := manifestStringSlice(input, key)
+		if err != nil {
+			return nil, err
+		}
+		if len(items) > 0 {
+			return items, nil
+		}
+	}
+	return nil, nil
 }
 
 func manifestStringSlice(input map[string]any, key string) ([]string, error) {
@@ -91,6 +105,35 @@ func manifestStruct(input map[string]any, keys ...string) (*structpb.Struct, err
 		return result, nil
 	}
 	return nil, nil
+}
+
+func validateResolvedModelManifestPath(manifestPath string, modelsRoot string) error {
+	cleanManifestPath := filepath.Clean(strings.TrimSpace(manifestPath))
+	if cleanManifestPath == "." || cleanManifestPath == "" {
+		return fmt.Errorf("manifest path required")
+	}
+	if !strings.EqualFold(filepath.Base(cleanManifestPath), "manifest.json") {
+		return fmt.Errorf("resolved manifest must be named manifest.json")
+	}
+	cleanModelsRoot := filepath.Clean(strings.TrimSpace(modelsRoot))
+	if cleanModelsRoot == "." || cleanModelsRoot == "" {
+		return fmt.Errorf("models root required")
+	}
+	rel, err := filepath.Rel(cleanModelsRoot, cleanManifestPath)
+	if err != nil {
+		return fmt.Errorf("manifest path invalid: %w", err)
+	}
+	if rel == "." || rel == "" || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("manifest path must stay under runtime models root")
+	}
+	if !strings.HasPrefix(rel, "resolved"+string(filepath.Separator)) {
+		return fmt.Errorf("manifest path must stay under resolved/")
+	}
+	parent := filepath.Dir(rel)
+	if parent == "resolved" || parent == "." {
+		return fmt.Errorf("resolved manifest must live under resolved/<logical-model-id>/manifest.json")
+	}
+	return nil
 }
 
 func (s *Service) RemoveLocalModel(_ context.Context, req *runtimev1.RemoveLocalModelRequest) (*runtimev1.RemoveLocalModelResponse, error) {

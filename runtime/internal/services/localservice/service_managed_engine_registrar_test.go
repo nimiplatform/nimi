@@ -369,18 +369,19 @@ func writeManagedLlamaManifest(t *testing.T, modelsPath string, modelID string, 
 		t.Fatalf("write manifest entry: %v", err)
 	}
 
-	manifestPath := filepath.Join(modelsPath, modelSlug, "model.manifest.json")
+	manifestPath := filepath.Join(modelsPath, "resolved", "nimi", modelSlug, "manifest.json")
 	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
 		t.Fatalf("create manifest dir: %v", err)
 	}
 	manifest := map[string]any{
-		"model_id":     modelID,
-		"entry":        entry,
-		"engine":       "llama",
-		"capabilities": capabilities,
-		"files":        []string{cleanEntry},
-		"hashes":       map[string]string{"sha256": "deadbeef"},
-		"source":       map[string]string{"repo": "test/repo", "revision": "main"},
+		"model_id":         modelID,
+		"logical_model_id": "nimi/" + modelSlug,
+		"entry":            entry,
+		"engine":           "llama",
+		"capabilities":     capabilities,
+		"files":            []string{cleanEntry},
+		"hashes":           map[string]string{"sha256": "deadbeef"},
+		"source":           map[string]string{"repo": "test/repo", "revision": "main"},
 	}
 	raw, err := json.Marshal(manifest)
 	if err != nil {

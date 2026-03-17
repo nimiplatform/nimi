@@ -95,6 +95,7 @@ function looksLikeQualifiedRemoteModel(model: string): boolean {
     lowered === 'localai'
     || lowered === 'nexa'
     || lowered === 'nimi_media'
+    || lowered === 'media.diffusers'
     || lowered === 'localsidecar'
   ) {
     throw new Error(
