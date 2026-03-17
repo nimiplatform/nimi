@@ -158,11 +158,6 @@
       "gh-pages": "^6.3.0"
     }
   },
-  "pnpm": {
-    "overrides": {
-      "gh-pages": "^6.3.0"
-    }
-  },
   "dependencies": {
     "yaml": "^2.8.2"
   }
