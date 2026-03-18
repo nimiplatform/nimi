@@ -62,3 +62,62 @@ features:
     requires_agent: false
     sdk_module: realm
     source_rule: RL-FEAT-007
+
+  # Pipeline capabilities (RL-PIPE-*)
+  - id: chat-pipeline
+    display_name: Beat-First Chat Pipeline
+    requires_runtime: true
+    requires_realm: false
+    requires_agent: true
+    sdk_module: runtime.ai
+    note: Full turn pipeline — first-beat reactor, turn composer, delivery director
+    source_rule: RL-PIPE-001
+
+  - id: session-store
+    display_name: Session Persistence
+    requires_runtime: false
+    requires_realm: false
+    requires_agent: true
+    note: Conversation ledger persisted to Electron userData via RelayChatStorage
+    source_rule: RL-PIPE-002
+
+  - id: interaction-state
+    display_name: Interaction State Tracking
+    requires_runtime: false
+    requires_realm: false
+    requires_agent: true
+    note: Emotional temperature, relationship state, commitments, open loops
+    source_rule: RL-PIPE-008
+
+  - id: relation-memory
+    display_name: Relation Memory
+    requires_runtime: false
+    requires_realm: false
+    requires_agent: true
+    note: Slot-based memory (preference/boundary/rapport/promise/recurringCue/taboo)
+    source_rule: RL-PIPE-009
+
+  - id: media-orchestration
+    display_name: Media Modality Orchestration
+    requires_runtime: true
+    requires_realm: false
+    requires_agent: true
+    sdk_module: runtime.media.image + runtime.media.video
+    note: Per-beat modality selection with autonomy/cooldown/NSFW policy
+    source_rule: RL-PIPE-006
+
+  - id: proactive-heartbeat
+    display_name: Proactive Heartbeat
+    requires_runtime: true
+    requires_realm: false
+    requires_agent: true
+    note: Deterministic policy engine with daily cap, cooldown, idle window gates
+    source_rule: RL-PIPE-007
+
+  - id: product-settings
+    display_name: Product Settings
+    requires_runtime: false
+    requires_realm: false
+    requires_agent: false
+    note: mediaAutonomy, voiceAutonomy, visualComfortLevel, allowProactiveContact
+    source_rule: RL-PIPE-006

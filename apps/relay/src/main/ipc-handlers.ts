@@ -191,4 +191,175 @@ export function registerIpcHandlers(
       throw normalizeError(error);
     }
   });
+
+  // ── Chat Pipeline (RL-PIPE-*) ──────────────────────────────────────
+  // These handlers bridge the renderer to the beat-first turn pipeline
+  // running in the main process.
+
+  ipcMain.handle('relay:chat:send', async (_event, input: {
+    agentId: string;
+    text: string;
+    sessionId?: string;
+  }) => {
+    requireAgentId(input as unknown as Record<string, unknown>);
+    const wc = getWebContents();
+    if (!wc) throw new Error('No renderer available');
+
+    try {
+      // Dynamic import to avoid circular dependency at registration time
+      const { createRelayAiClient } = await import('./chat-pipeline/relay-ai-client.js');
+      const { createMainProcessChatContext } = await import('./chat-pipeline/main-process-context.js');
+
+      const aiClient = createRelayAiClient(runtime);
+      const chatContext = createMainProcessChatContext(wc);
+
+      const { DEFAULT_LOCAL_CHAT_DEFAULT_SETTINGS } = await import('./settings/types.js');
+
+      // Try full pipeline, fall back to simple streaming
+      const sendFlowModule = await import('./chat-pipeline/send-flow.js').catch(() => null);
+
+      if (sendFlowModule) {
+        await sendFlowModule.runLocalChatTurnSend({
+          context: {
+            aiClient,
+            inputText: input.text,
+            viewerId: 'local-user',
+            viewerDisplayName: 'User',
+            runtimeMode: undefined,
+            routeSnapshot: null,
+            defaultSettings: DEFAULT_LOCAL_CHAT_DEFAULT_SETTINGS,
+            selectedTarget: null, // TODO: resolve from agentId via realm queries
+            selectedSessionId: input.sessionId || '',
+            messages: chatContext.messages,
+          },
+          chatContext,
+          setSendPhase: (phase) => chatContext.setSendPhase(phase),
+          getCurrentContextKey: () => `${input.agentId}`,
+          registerSchedule: () => {},
+          clearScheduleByTxn: () => {},
+        });
+      } else {
+        // Fallback: direct SDK streaming (backward compatible with old behavior)
+        const textInput = toTextStreamInput({ agentId: input.agentId, prompt: input.text });
+        const stream = await runtime.ai.text.stream(textInput);
+
+        const userMsg = {
+          id: `user_${Date.now()}`,
+          role: 'user' as const,
+          kind: 'text' as const,
+          content: input.text,
+          timestamp: new Date(),
+        };
+
+        const assistantMsg = {
+          id: `assistant_${Date.now()}`,
+          role: 'assistant' as const,
+          kind: 'streaming' as const,
+          content: '',
+          timestamp: new Date(),
+        };
+
+        chatContext.setMessages([...chatContext.messages, userMsg, assistantMsg]);
+        chatContext.setSendPhase('streaming-first-beat');
+
+        let fullText = '';
+        for await (const event of stream.stream) {
+          if (event.type === 'delta') {
+            const delta = event as unknown as { text?: string };
+            if (delta.text) {
+              fullText += delta.text;
+              chatContext.setMessages([
+                ...chatContext.messages.filter((m) => m.id !== assistantMsg.id),
+                userMsg,
+                { ...assistantMsg, content: fullText },
+              ]);
+            }
+          }
+        }
+
+        chatContext.setMessages([
+          ...chatContext.messages.filter((m) => m.id !== assistantMsg.id),
+          userMsg,
+          { ...assistantMsg, kind: 'text' as const, content: fullText },
+        ]);
+        chatContext.setSendPhase('idle');
+      }
+    } catch (error) {
+      const wc2 = getWebContents();
+      if (wc2) {
+        wc2.send('relay:chat:status-banner', {
+          kind: 'error',
+          message: error instanceof Error ? error.message : String(error),
+        });
+        wc2.send('relay:chat:turn:phase', { phase: 'idle' });
+      }
+      throw normalizeError(error);
+    }
+  });
+
+  ipcMain.handle('relay:chat:cancel', (_event, _input: { turnTxnId: string }) => {
+    // TODO: wire to AbortController in send-flow
+  });
+
+  ipcMain.handle('relay:chat:history', async (_event, input: { agentId: string }) => {
+    try {
+      const { listLocalChatSessions } = await import('./session-store/index.js');
+      const sessions = await listLocalChatSessions(input.agentId, 'local-user');
+      if (sessions.length > 0 && sessions[0]) {
+        return sessions[0].turns.map((turn) => ({
+          id: turn.id,
+          role: turn.role,
+          kind: turn.kind,
+          content: turn.content,
+          timestamp: turn.timestamp,
+          latencyMs: turn.latencyMs,
+          meta: turn.meta,
+          media: turn.media,
+        }));
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  });
+
+  ipcMain.handle('relay:chat:clear', async (_event, input: { agentId: string; sessionId: string }) => {
+    try {
+      const { clearSession } = await import('./session-store/index.js');
+      await clearSession(input.sessionId);
+    } catch (error) {
+      throw normalizeError(error);
+    }
+  });
+
+  ipcMain.handle('relay:chat:settings:get', async () => {
+    try {
+      const { loadRelaySettings } = await import('./settings/settings-store.js');
+      return await loadRelaySettings();
+    } catch {
+      return null;
+    }
+  });
+
+  ipcMain.handle('relay:chat:settings:set', async (_event, patch: Record<string, unknown>) => {
+    try {
+      const { saveRelaySettings } = await import('./settings/settings-store.js');
+      const { normalizeLocalChatSettings } = await import('./settings/types.js');
+      const settings = normalizeLocalChatSettings(patch);
+      saveRelaySettings(settings);
+    } catch (error) {
+      throw normalizeError(error);
+    }
+  });
+
+  ipcMain.handle('relay:chat:proactive:toggle', async (_event, input: { enabled: boolean }) => {
+    try {
+      const { loadRelaySettings, saveRelaySettings } = await import('./settings/settings-store.js');
+      const settings = await loadRelaySettings();
+      settings.product.allowProactiveContact = input.enabled;
+      saveRelaySettings(settings);
+    } catch (error) {
+      throw normalizeError(error);
+    }
+  });
 }

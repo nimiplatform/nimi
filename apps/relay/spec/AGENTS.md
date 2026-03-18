@@ -23,3 +23,4 @@ RL-TRANS-*  Transport validation
 RL-INTOP-*  Multi-app interop
 RL-CORE-*   Agent-centric interaction core
 RL-FEAT-*   Feature modules
+RL-PIPE-*   Beat-first turn pipeline

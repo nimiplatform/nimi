@@ -133,6 +133,98 @@ channels:
     description: Unsubscribe from a channel
     source_rule: RL-IPC-009
 
+  # Chat pipeline (RL-PIPE-*)
+  - channel: relay:chat:send
+    type: unary
+    module: chat-pipeline
+    description: Send user turn — triggers beat-first pipeline in main process
+    source_rule: RL-PIPE-001
+
+  - channel: relay:chat:cancel
+    type: unary
+    module: chat-pipeline
+    description: Cancel in-flight turn (firstBeat + tail beats)
+    source_rule: RL-PIPE-005
+
+  - channel: relay:chat:history
+    type: unary
+    module: chat-pipeline
+    description: Load session history for current agent
+    source_rule: RL-PIPE-002
+
+  - channel: relay:chat:clear
+    type: unary
+    module: chat-pipeline
+    description: Clear session history
+    source_rule: RL-PIPE-002
+
+  - channel: relay:chat:settings:get
+    type: unary
+    module: chat-pipeline
+    description: Get product + inspect settings
+    source_rule: RL-PIPE-006
+
+  - channel: relay:chat:settings:set
+    type: unary
+    module: chat-pipeline
+    description: Update product + inspect settings (partial patch)
+    source_rule: RL-PIPE-006
+
+  - channel: relay:chat:proactive:toggle
+    type: unary
+    module: chat-pipeline
+    description: Enable/disable proactive heartbeat
+    source_rule: RL-PIPE-007
+
+  # Chat pipeline events (main → renderer)
+  - channel: relay:chat:turn:phase
+    type: event
+    direction: main-to-renderer
+    description: Turn phase transition (idle/awaiting-first-beat/streaming-first-beat/planning-tail/delivering-tail)
+    source_rule: RL-PIPE-001
+
+  - channel: relay:chat:messages
+    type: event
+    direction: main-to-renderer
+    description: Full message array push (replaces per-beat events for simplicity)
+    source_rule: RL-PIPE-005
+
+  - channel: relay:chat:sessions
+    type: event
+    direction: main-to-renderer
+    description: Session list update
+    source_rule: RL-PIPE-002
+
+  - channel: relay:chat:status-banner
+    type: event
+    direction: main-to-renderer
+    description: Status/error banner for turn failures
+    source_rule: RL-PIPE-001
+
+  - channel: relay:chat:prompt-trace
+    type: event
+    direction: main-to-renderer
+    description: Prompt trace diagnostics push
+    source_rule: RL-PIPE-003
+
+  - channel: relay:chat:turn-audit
+    type: event
+    direction: main-to-renderer
+    description: Turn audit diagnostics push
+    source_rule: RL-PIPE-001
+
+  - channel: relay:chat:input-text
+    type: event
+    direction: main-to-renderer
+    description: Input text clear after turn send
+    source_rule: RL-PIPE-001
+
+  - channel: relay:chat:selected-session
+    type: event
+    direction: main-to-renderer
+    description: Selected session ID update
+    source_rule: RL-PIPE-002
+
   # Config
   - channel: relay:config
     type: unary

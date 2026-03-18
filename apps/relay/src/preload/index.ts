@@ -85,6 +85,38 @@ const api = {
     onError: (cb: (...args: unknown[]) => void) => addListener('relay:stream:error', cb),
     removeListener,
   },
+
+  // Chat pipeline (RL-PIPE-*)
+  chat: {
+    send: (input: { agentId: string; text: string; sessionId?: string }) =>
+      ipcRenderer.invoke('relay:chat:send', input),
+    cancel: (input: { turnTxnId: string }) =>
+      ipcRenderer.invoke('relay:chat:cancel', input),
+    history: (input: { agentId: string }) =>
+      ipcRenderer.invoke('relay:chat:history', input),
+    clear: (input: { agentId: string; sessionId: string }) =>
+      ipcRenderer.invoke('relay:chat:clear', input),
+    settings: {
+      get: () => ipcRenderer.invoke('relay:chat:settings:get'),
+      set: (patch: Record<string, unknown>) =>
+        ipcRenderer.invoke('relay:chat:settings:set', patch),
+    },
+    proactive: {
+      toggle: (enabled: boolean) =>
+        ipcRenderer.invoke('relay:chat:proactive:toggle', { enabled }),
+    },
+    // Push events from main → renderer
+    onTurnPhase: (cb: (...args: unknown[]) => void) => addListener('relay:chat:turn:phase', cb),
+    onBeat: (cb: (...args: unknown[]) => void) => addListener('relay:chat:beat', cb),
+    onTurnDone: (cb: (...args: unknown[]) => void) => addListener('relay:chat:turn:done', cb),
+    onTurnError: (cb: (...args: unknown[]) => void) => addListener('relay:chat:turn:error', cb),
+    onMessages: (cb: (...args: unknown[]) => void) => addListener('relay:chat:messages', cb),
+    onSessions: (cb: (...args: unknown[]) => void) => addListener('relay:chat:sessions', cb),
+    onStatusBanner: (cb: (...args: unknown[]) => void) => addListener('relay:chat:status-banner', cb),
+    onPromptTrace: (cb: (...args: unknown[]) => void) => addListener('relay:chat:prompt-trace', cb),
+    onTurnAudit: (cb: (...args: unknown[]) => void) => addListener('relay:chat:turn-audit', cb),
+    removeListener,
+  },
 };
 
 contextBridge.exposeInMainWorld('nimiRelay', api);

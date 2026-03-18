@@ -156,7 +156,7 @@ describe('RL-CORE-004 — requireAgentId guard function', () => {
       assert.fail('should throw');
     } catch (e) {
       const err = e as Error & { reasonCode?: string; actionHint?: string };
-      assert.equal(err.reasonCode, 'MISSING_AGENT_ID');
+      assert.equal(err.reasonCode, 'AI_INPUT_INVALID');
       assert.equal(err.actionHint, 'Select an agent before using this feature');
     }
   });
@@ -167,7 +167,7 @@ describe('RL-CORE-004 — requireAgentId guard function', () => {
       assert.fail('should throw');
     } catch (e) {
       const normalized = normalizeError(e);
-      assert.equal(normalized.reasonCode, 'MISSING_AGENT_ID');
+      assert.equal(normalized.reasonCode, 'AI_INPUT_INVALID');
       assert.equal(normalized.message, 'agentId is required for agent-scoped IPC calls');
       assert.equal(normalized.actionHint, 'Select an agent before using this feature');
     }
@@ -287,11 +287,13 @@ describe('RL-IPC-001 — Channel Naming Convention', () => {
     const ipcSource = readFileSync(path.join(srcMain, 'ipc-handlers.ts'), 'utf-8');
     const rtSource = readFileSync(path.join(srcMain, 'realtime-relay.ts'), 'utf-8');
     const smSource = readFileSync(path.join(srcMain, 'stream-manager.ts'), 'utf-8');
+    const ctxSource = readFileSync(path.join(srcMain, 'chat-pipeline', 'main-process-context.ts'), 'utf-8');
 
     for (const m of ipcSource.matchAll(/ipcMain\.handle\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
     for (const m of rtSource.matchAll(/ipcMain\.handle\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
     for (const m of smSource.matchAll(/\.send\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
     for (const m of rtSource.matchAll(/\.send\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
+    for (const m of ctxSource.matchAll(/\.send\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
 
     for (const ch of specChannels) {
       assert.ok(implemented.has(ch), `spec channel "${ch}" must be implemented in source`);

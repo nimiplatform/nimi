@@ -1,6 +1,6 @@
 # Relay Spec Index
 
-> Nimi Relay — Electron demo app for node-grpc transport validation and multi-app interop
+> Nimi Relay — Electron AI chat client with beat-first turn pipeline
 > Agent-centric interaction: the selected agent drives every interaction surface
 
 ## Domain
@@ -19,6 +19,7 @@
 | [interop-contract.md](kernel/interop-contract.md) | RL-INTOP-001 ~ 003 | Multi-app chat interop |
 | [agent-core-contract.md](kernel/agent-core-contract.md) | RL-CORE-001 ~ 004 | Agent-centric interaction invariants |
 | [feature-contract.md](kernel/feature-contract.md) | RL-FEAT-001 ~ 007 | Feature module contracts |
+| [pipeline-contract.md](kernel/pipeline-contract.md) | RL-PIPE-001 ~ 011 | Beat-first turn pipeline |
 
 ## Fact Sources
 
