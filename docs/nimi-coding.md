@@ -146,13 +146,15 @@ Any broken link is a governance defect.
 
 Use the fixed format:
 
-`AISC-<AREA>-NNN`
+`<PREFIX>-<AREA>-NNN`
 
 Rules:
 
-1. `<AREA>`: 2-12 uppercase letters (for example `CORE`, `FLOW`, `AUDIT`).
-2. `NNN`: Three-digit sequence, never reused.
-3. Validation regex: `^AISC-[A-Z]{2,12}-[0-9]{3}$`.
+1. `<PREFIX>`: 1-6 uppercase letters, project-defined namespace (default: `AISC`).
+2. `<AREA>`: 2-12 uppercase letters (for example `CORE`, `FLOW`, `AUDIT`).
+3. `NNN`: Three-digit sequence, never reused.
+4. Validation regex: `^[A-Z]{1,6}-[A-Z]{2,12}-[0-9]{3}$`.
+5. Projects must declare their prefix-to-domain mapping in a project-level configuration.
 
 Suggested number bands:
 
@@ -160,11 +162,17 @@ Suggested number bands:
 2. `010-099`: Incremental rules.
 3. `100+`: Extension/migration-reserved rules.
 
-Examples:
+Examples (default AISC namespace):
 
 1. `AISC-CORE-001`
 2. `AISC-FLOW-023`
 3. `AISC-AUDIT-110`
+
+Examples (domain-prefix namespace):
+
+1. `K-RPC-001` (Runtime)
+2. `D-BOOT-001` (Desktop)
+3. `S-ERROR-001` (SDK)
 
 ### D2. Structured Fact Table Design
 
@@ -184,7 +192,7 @@ Recommended fields (adaptable by organization):
 Hard constraints:
 
 1. Every structured fact row must include `source_rule`.
-2. `source_rule` must resolve to an existing Rule ID and must be `AISC-*`.
+2. `source_rule` must resolve to an existing Rule ID matching the project's declared Rule ID format.
 3. Missing/invalid `source_rule` is a **Hard Gate** failure.
 4. Cross-table references must be verifiable (existence, uniqueness, type validity).
 5. Table schema changes must be paired with guard upgrades.
@@ -411,14 +419,14 @@ Scope: ...
 
 ```md
 ## New Rule
-- Rule ID: `AISC-<AREA>-NNN`
+- Rule ID: `<PREFIX>-<AREA>-NNN`
 - Contract location: `<kernel-file>`
 - Intent: ...
 
 ## Fact Impact
 - Table: `<table-file>`
 - Fields changed: ...
-- source_rule mapping: `AISC-*` (required on every structured fact row)
+- source_rule mapping: must match project's declared Rule ID format (required on every structured fact row)
 
 ## Projection Impact
 - Generated target: `<generated-file>`
@@ -445,11 +453,11 @@ Phase 1: Inventory
 
 Phase 2: Kernelization
 - Move cross-domain rules into Kernel contracts.
-- Assign stable Rule IDs using `AISC-<AREA>-NNN`.
+- Assign stable Rule IDs using `<PREFIX>-<AREA>-NNN`.
 
 Phase 3: Structuring
 - Convert enumerable facts into Tables.
-- Add `source_rule` for every table row (must reference `AISC-*`).
+- Add `source_rule` for every table row (must match the project's declared Rule ID format).
 
 Phase 4: Automation
 - Introduce Generate pipeline.
@@ -516,7 +524,7 @@ Recommended policy:
 #### L1 (Day 1-30): Build the Skeleton
 
 1. Establish Kernel/Domain/Table/Generated layers.
-2. Pilot one core area with `AISC-<AREA>-NNN` and Table-first flow.
+2. Pilot one core area with `<PREFIX>-<AREA>-NNN` and Table-first flow.
 3. Introduce minimum Generate and Drift-check.
 
 #### L2 (Day 31-60): Strengthen Guards

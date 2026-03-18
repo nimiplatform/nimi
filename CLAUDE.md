@@ -12,6 +12,12 @@ Before editing files in a module, Read that module's `AGENTS.md` first. The hook
 | `sdk/**` | `sdk/AGENTS.md` |
 | `apps/desktop/**` | `apps/desktop/AGENTS.md` |
 | `apps/web/**` | `apps/web/AGENTS.md` |
+| `apps/overtone/**` | `apps/overtone/AGENTS.md` |
+| `apps/relay/**` | `apps/relay/AGENTS.md` |
+| `apps/forge/**` | `apps/forge/AGENTS.md` |
+| `apps/realm-drift/**` | `apps/realm-drift/AGENTS.md` |
+| `apps/install-gateway/**` | `apps/install-gateway/AGENTS.md` |
+| `apps/_libs/**` | `apps/_libs/AGENTS.md` |
 | `nimi-mods/**` | `nimi-mods/AGENTS.md` |
 | `proto/**` | `proto/AGENTS.md` |
 | `scripts/**` | `scripts/AGENTS.md` |
@@ -33,6 +39,21 @@ Before any capability/evaluation/architecture question:
 2. Read kernel YAML tables — these are structured facts.
 3. Read the relevant domain spec — normative rules with Rule IDs.
 4. Read source code ONLY to verify or fill gaps.
+
+## Nimi Coding Instantiation
+
+This project instantiates nimi-coding with domain-prefix Rule IDs:
+
+| Prefix | Domain | Kernel Location |
+|--------|--------|-----------------|
+| K- | Runtime | spec/runtime/kernel/ |
+| D- | Desktop | spec/desktop/kernel/ |
+| S- | SDK | spec/sdk/kernel/ |
+| P- | Platform | spec/platform/kernel/ |
+| R- | Realm | spec/realm/kernel/ |
+| F- | Future | spec/future/kernel/ |
+
+Validation regex: `^[A-Z]-[A-Z]{2,12}-[0-9]{3}$`
 
 ## Repo-Wide Hard Boundaries
 
