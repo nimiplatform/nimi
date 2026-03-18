@@ -49,6 +49,15 @@ Each provider file in `runtime/catalog/providers/*.yaml` MUST include:
 
 `pricing` MUST use normalized metering units: `token|char|second|request`. Each entry MUST include `input`, `output`, `currency`, `as_of`, and `notes`. Unknown pricing values are allowed only as literal `"unknown"`.
 
+Value semantics for `input` and `output` fields:
+
+- `unit: token` — price in `currency` **per 1,000,000 tokens**
+- `unit: char` — price in `currency` **per 1,000,000 characters**
+- `unit: second` — price in `currency` **per 60 seconds** of compute/audio
+- `unit: request` — price in `currency` **per single request**
+
+When `currency: "none"` (local models), `input` and `output` MUST be set to `"0"` (not `"unknown"`) to indicate zero provider-side cost.
+
 ## K-MCAT-004 Source Traceability
 
 Every model and voice entry MUST include `source_ref` with authoritative provider documentation URL and `retrieved_at` date.

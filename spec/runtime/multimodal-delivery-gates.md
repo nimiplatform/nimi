@@ -12,7 +12,6 @@
 - `kernel/proto-governance-contract.md`（K-PROTO-007, K-PROTO-010）
 - `kernel/tables/capability-vocabulary-mapping.yaml`
 - `kernel/tables/runtime-delivery-gates.yaml`
-- `kernel/tables/rule-evidence.yaml`
 
 ## 1. 文档定位
 
@@ -23,7 +22,7 @@
 - G0 SSOT Freeze：`pnpm check:ai-scenario-hardcut-drift`、`pnpm check:runtime-spec-kernel-consistency`、`pnpm check:runtime-spec-kernel-docs-drift`。
 - G1 Proto Chain：`pnpm proto:lint`、`pnpm proto:generate`、`pnpm proto:breaking`、`pnpm proto:drift-check`、`pnpm check:runtime-proto-spec-linkage`。
 - G2 SDK Alignment：`pnpm check:sdk-spec-kernel-consistency`、`pnpm check:sdk-spec-kernel-docs-drift`、`pnpm check:runtime-bridge-method-drift`、`pnpm check:runtime-mod-hook-hardcut`。
-- G3 Provider/Coverage：`pnpm check:runtime-go-coverage`、`pnpm check:no-legacy-cloud-provider-keys`、`pnpm check:runtime-ai-scenario-coverage`、`pnpm check:live-provider-invariants`、`pnpm check:runtime-catalog-drift`、`pnpm check:runtime-provider-activation-alignment`、`pnpm check:runtime-provider-alias-hardcut`、`pnpm check:runtime-provider-capability-token-canonicalization`、`pnpm check:runtime-provider-endpoint-ssot`、`pnpm check:runtime-provider-yaml-first-hardcut`、`pnpm check:runtime-video-capability-block-enforcement`。
+- G3 Provider/Coverage：详见 `kernel/delivery-gates-contract.md`（K-GATE-040）。
 - G4 Workflow Async：`cd runtime && go test ./internal/services/ai/ -run Test.*ScenarioJob -count=1`。
 - G5 Matrix：`node scripts/run-live-test-matrix.mjs`。
 - G6 Observability：`cd runtime && go run ./cmd/runtime-compliance --gate`。
@@ -35,7 +34,6 @@
 - catalog/provider hard-cut 语义锚点：`kernel/model-catalog-contract.md`（K-MCAT-005, K-MCAT-018, K-MCAT-022, K-MCAT-024, K-MCAT-027）与 `kernel/provider-health-contract.md`（K-PROV-005）。
 - local category / manifest token → canonical capability 映射：`kernel/tables/capability-vocabulary-mapping.yaml`（K-LOCAL-026, K-MCAT-024）。
 - proto linkage 语义锚点：`kernel/proto-governance-contract.md`（K-PROTO-007, K-PROTO-010）。
-- formal 规则证据映射：`kernel/tables/rule-evidence.yaml`。
 - 迭代计划与阶段拆解：`dev/plan/*`。
 - Gate 执行结果与证据：`dev/report/*`，其中 live smoke / matrix 证据固定写入 `dev/report/live-test-coverage.yaml`。
 

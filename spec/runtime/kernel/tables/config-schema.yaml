@@ -184,6 +184,48 @@ fields:
     description: media 监听端口
     source_rule: K-LENG-004
 
+  - key: engines.speech.enabled
+    type: bool
+    default: "false"
+    reload: restart
+    description: 启用 speech 引擎 SUPERVISED 模式
+    source_rule: K-LENG-004
+
+  - key: engines.speech.version
+    type: string
+    default: ""
+    reload: restart
+    description: speech 受管引擎版本
+    source_rule: K-LENG-004
+
+  - key: engines.speech.port
+    type: int
+    default: "8330"
+    reload: restart
+    description: speech 监听端口
+    source_rule: K-LENG-004
+
+  - key: engines.sidecar.enabled
+    type: bool
+    default: "false"
+    reload: restart
+    description: 启用 sidecar 引擎（ATTACHED_ENDPOINT 模式）
+    source_rule: K-LENG-002
+
+  - key: engines.sidecar.version
+    type: string
+    default: ""
+    reload: restart
+    description: sidecar 引擎版本
+    source_rule: K-LENG-002
+
+  - key: engines.sidecar.port
+    type: int
+    default: "0"
+    reload: restart
+    description: sidecar 监听端口
+    source_rule: K-LENG-002
+
   - key: defaultLocalTextModel
     type: string
     default: ""
@@ -198,9 +240,23 @@ fields:
     description: 默认云端 provider
     source_rule: K-CFG-013
 
+  - key: logLevel
+    type: string
+    default: "info"
+    reload: hot
+    description: 日志级别（debug/info/warn/error）
+    source_rule: K-CFG-017
+
+  - key: localModelsPath
+    type: string
+    default: "~/.nimi/models"
+    reload: restart
+    description: 本地模型存储路径
+    source_rule: K-LOCAL-016
+
   - key: modelCatalogCustomDir
     type: string
-    default: ""
+    default: "~/.nimi/runtime/model-catalog/providers"
     reload: restart
     description: 本地自定义 provider 目录路径
     source_rule: K-MCAT-005

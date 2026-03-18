@@ -2,7 +2,7 @@ version: 1
 providers:
   - provider: anthropic
     default_endpoint: https://api.anthropic.com
-    default_text_model: null
+    default_text_model: claude-sonnet-4-6
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027
   - provider: aws_polly
@@ -37,7 +37,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: deepseek
     default_endpoint: https://api.deepseek.com/v1
-    default_text_model: null
+    default_text_model: deepseek-chat
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027
   - provider: elevenlabs

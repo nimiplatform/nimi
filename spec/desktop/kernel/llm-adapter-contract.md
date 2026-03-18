@@ -129,6 +129,64 @@ Desktop 不得把任何特定 mod 设为内建发布门禁：
 
 跨层引用：K-GATE-060、S-GATE-080、S-GATE-090、D-MOD-007。
 
+## D-LLM-010 — 设备画像匹配与引擎支持
+
+推荐算法通过 `classify_host_support()` 判定每个引擎的设备兼容性。
+
+- **Media 引擎**: 仅限 Windows x64 + NVIDIA GPU
+- **Llama 引擎**: 支持 Darwin (Apple Silicon) 和 Linux
+- **Speech 引擎**: 全平台通用
+- **统一内存 (macOS/Metal)**: 当 VRAM 未知时，回退到 `available_ram_bytes`
+- **独立 GPU (NVIDIA/AMD)**: 严格 VRAM 预算，无 CPU 回退路径
+
+引擎支持矩阵变更必须同步更新此规则。
+
+## D-LLM-011 — 推荐内存预算与层级分配
+
+LLMfit 推荐路径计算内存预算并分配推荐层级。
+
+- **内存预算**: `main_size_bytes + 0.5 GB` (最低), `× 1.2` (推荐)
+- **量化推断**: 解析优先级 `entry > title > model_id > repo > tags`，识别已知 GGUF/SafeTensors 标记
+- **参数提取**: 文本解析 (B/M 后缀) 优先于基于文件大小的 BPP 计算
+- **信心分级**: High = size+quant+params 全已知; Medium = 仅 size 已知; Low = 无已知信息
+- **上下文长度**: 从 tags 提取，未找到时回退到 4096
+- **视觉检测**: 在 model_id/repo/title/tags 中匹配 `vision`, `-vl-`, `llava`, `pixtral`, `multimodal`, `onevision`
+- **层级映射**: Perfect→Recommended, Good→Runnable, Marginal→Tight, TooTight→NotRecommended
+
+仅 chat 能力模型进入 LLMfit 路径；image/video 在推荐入口处即拒绝。
+
+## D-LLM-012 — 依赖解析阶段排序
+
+依赖解析器按三阶段执行: Required → Optional → Alternatives。
+
+- **Required 阶段**: 必须满足，失败则整体解析失败
+- **Optional 阶段**: 不满足则跳过，不影响整体结果
+- **Alternatives 阶段**: 选择最优匹配项，无匹配则标记未选中（无降级）
+- **选择优先级**: 显式偏好 > 能力域偏好 > 全局 preferred IDs > 首个匹配
+- **终止保证**: 单次遍历 O(N)，每个 option 仅评估一次（fit 结果缓存）
+- **能力过滤**: `capability` 字段缺失视为匹配；存在时必须大小写不敏感匹配 filter
+
+## D-LLM-013 — 模型注册表身份解析
+
+模型注册表通过两级查找确定模型身份。
+
+- **查找顺序**: (1) `local_model_id` 大小写不敏感匹配, (2) `(model_id_normalized, engine)` 元组匹配, (3) 新增记录
+- **Upsert 语义**: 匹配到已有记录时更新而非插入，防止重复
+- **能力索引**: 跳过 `status=Removed` 的模型；每次 upsert 后重建；按 capability 去重
+- **文件元数据完整性**: `files` 列表存在与否决定推荐信心分级；回退条目从 `files \ entry` 推断
+
+## D-LLM-014 — 下载原子性与暂存
+
+HuggingFace 下载流程遵循 Staging → Verify → Commit 原子模式。
+
+- **暂存目录**: `.resolved-staging/<slug>/`，所有文件下载到此处
+- **原子提交**: 暂存目录验证成功后原子重命名为 `.resolved/`
+- **备份机制**: 提交前备份已有模型目录；提交失败时回滚
+- **哈希验证**: 每文件 SHA256 流式校验；不匹配触发暂存目录回滚（磁盘无残留部分模型）
+- **Manifest 验证**: 写入后解析 + schema 校验；失败回滚暂存；仅验证通过后注册到 state.json
+- **下载恢复**: HTTP Range header 支持断点续传；按文件级别跟踪进度
+- **进度 ETA**: 指数移动平均 (α=0.2, 1-3s 窗口)；检测到进度回退时重置 EMA 状态
+
 ## Fact Sources
 
 - `tables/hook-capability-allowlists.yaml` — runtime facade capability 白名单

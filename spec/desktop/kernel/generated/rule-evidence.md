@@ -39,6 +39,7 @@
 | `D-AUTH-009` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-AUTH-010` | `covered` | `desktop_kernel_consistency`, `desktop_test_gate` |
 | `D-AUTH-011` | `covered` | `desktop_kernel_consistency`, `desktop_test_gate` |
+| `D-AUTH-012` | `covered` | `desktop_kernel_consistency`, `desktop_rust_test_gate` |
 | `D-BOOT-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_e2e_smoke_gate`, `desktop_runtime_config_path_gate` |
 | `D-BOOT-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-BOOT-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
@@ -111,6 +112,11 @@
 | `D-LLM-007` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_mods_smoke_gate` |
 | `D-LLM-008` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-LLM-009` | `covered` | `desktop_kernel_consistency`, `desktop_test_gate`, `desktop_mods_smoke_gate` |
+| `D-LLM-010` | `covered` | `desktop_kernel_consistency`, `desktop_rust_test_gate` |
+| `D-LLM-011` | `covered` | `desktop_kernel_consistency`, `desktop_rust_test_gate` |
+| `D-LLM-012` | `covered` | `desktop_kernel_consistency`, `desktop_rust_test_gate` |
+| `D-LLM-013` | `covered` | `desktop_kernel_consistency`, `desktop_rust_test_gate` |
+| `D-LLM-014` | `covered` | `desktop_kernel_consistency`, `desktop_rust_test_gate` |
 | `D-MBAR-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-MBAR-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-MBAR-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
@@ -152,6 +158,10 @@
 | `D-SEC-008` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-SEC-009` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-SEC-010` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-SEC-011` | `covered` | `desktop_kernel_consistency`, `desktop_rust_test_gate` |
+| `D-SEC-012` | `covered` | `desktop_kernel_consistency`, `desktop_rust_test_gate` |
+| `D-SEC-013` | `covered` | `desktop_kernel_consistency`, `desktop_rust_test_gate` |
+| `D-SEC-014` | `covered` | `desktop_kernel_consistency`, `desktop_rust_test_gate` |
 | `D-SHELL-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_e2e_smoke_gate` |
 | `D-SHELL-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-SHELL-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |

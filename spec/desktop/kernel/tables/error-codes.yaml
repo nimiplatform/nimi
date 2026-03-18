@@ -138,24 +138,24 @@ codes:
     description: Download session ID not found
     source_rule: D-ERR-012
 
-  - code: LOCAL_AI_QWEN_GPU_REQUIRED
+  - code: LOCAL_AI_SPEECH_GPU_REQUIRED
     domain: local-ai
-    description: Qwen TTS requires available NVIDIA GPU
+    description: Speech engine requires available NVIDIA GPU
     source_rule: D-ERR-003
 
-  - code: LOCAL_AI_QWEN_PYTHON_REQUIRED
+  - code: LOCAL_AI_SPEECH_PYTHON_REQUIRED
     domain: local-ai
-    description: Qwen TTS requires Python 3.10+
+    description: Speech engine requires Python 3.10+
     source_rule: D-ERR-003
 
-  - code: LOCAL_AI_QWEN_PYTHON_VERSION_UNSUPPORTED
+  - code: LOCAL_AI_SPEECH_PYTHON_VERSION_UNSUPPORTED
     domain: local-ai
-    description: Qwen TTS Python version too low
+    description: Speech engine Python version too low
     source_rule: D-ERR-003
 
-  - code: LOCAL_AI_QWEN_BOOTSTRAP_FAILED
+  - code: LOCAL_AI_SPEECH_BOOTSTRAP_FAILED
     domain: local-ai
-    description: Qwen TTS runtime dependency installation failed
+    description: Speech engine runtime dependency installation failed
     source_rule: D-ERR-003
 
   # File import errors

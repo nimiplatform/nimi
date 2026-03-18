@@ -116,6 +116,7 @@ Mod 本地持久化与审计命令集（`runtime_mod::commands`）：
 - `external_agent_sync_action_descriptors`：同步 action descriptors。
 - `external_agent_complete_execution`：完成 action 执行。
 - `external_agent_gateway_status`：获取 gateway 状态。
+- `external_agent_verify_execution_context`：在 action dispatch 前校验 external agent 执行上下文。
 
 ## D-IPC-009 — Invoke 基础设施
 
@@ -125,6 +126,11 @@ Mod 本地持久化与审计命令集（`runtime_mod::commands`）：
 - 生成 `invokeId`（`${command}-${timestamp}-${random}`）。
 - 结构化日志：invoke-start、invoke-success、invoke-failed。
 - 错误归一化：`toBridgeUserError()` 将 Tauri 错误转为用户可读消息。
+
+### IPC Infrastructure Commands (D-IPC-009)
+
+- `get_system_resource_snapshot`：采集系统资源快照（CPU/内存/GPU），供设备画像使用。
+- `log_renderer_event`：renderer 侧结构化日志转发到 Tauri backend logger（D-TEL-006 桥接入口）。
 
 **版本协商**（引用 SDK `S-TRANSPORT-005`，并受 `self-update-contract.md` 约束）：
 
@@ -164,7 +170,7 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
 - Phase 2 服务（Workflow、Knowledge、Audit、AppMessage、Script）
 
 **Runtime IPC payload 鉴权字段**：
-- `runtime_bridge_unary` / `runtime_bridge_stream_open` payload 必须支持顶层可选字段 `authorization`。
+- `runtime_bridge_unary` / `runtime_bridge_stream_open` / `runtime_bridge_stream_close` 构成完整的 gRPC-over-IPC 传输面。payload 必须支持顶层可选字段 `authorization`。
 - 该字段由 SDK Runtime transport 自动注入，不从 `metadata.extra` 透传。
 - Renderer 业务层不得手工构造此字段。
 - 注：此为 Tauri IPC transport 对 SDK `S-TRANSPORT-010`（传输内部实现细节）的等价实现。`authorization` 字段虽在 IPC payload 中作为顶层字段对 renderer 架构可见，但其语义与 S-TRANSPORT-010 一致——由 transport 层自动管理，业务层不得 bypass。
@@ -223,6 +229,7 @@ Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）
 - `runtime_local_artifacts_list` / `runtime_local_artifacts_verified_list`：列出已安装 / verified companion artifacts。
 - `runtime_local_artifacts_install_verified` / `runtime_local_artifacts_import` / `runtime_local_artifacts_remove`：companion artifact 安装、导入、移除。
 - `runtime_local_artifacts_scan_orphans` / `runtime_local_artifacts_scaffold_orphan`：孤立 companion 文件扫描与脚手架导入。
+- `runtime_local_artifacts_adopt`：将 go-runtime 已存在的结构化 companion artifact record 纳管到 Desktop/Tauri state，不触发下载或导入。
 - `runtime_local_audits_list` / `runtime_local_append_inference_audit` / `runtime_local_append_runtime_audit`：推理与运行时审计。
 - `runtime_local_pick_manifest_path`：选取 `~/.nimi/models/**/resolved/**/manifest.json` 或兼容的当前 resolved manifest 路径。
 - `runtime_local_pick_artifact_manifest_path`：选取 `~/.nimi/models/**/artifact.manifest.json`。
@@ -271,11 +278,11 @@ companion artifact 补充：
 
 Desktop 作为 mod developer host 时，开发态 source 管理与 reload 能力必须通过受管 IPC surface 暴露，而不是要求用户改启动参数：
 
-- source registry：列出、添加、移除、启用、禁用 mod source directories。
-- storage dirs：读取当前 `nimi_dir` / `nimi_data_dir` / installed mods 路径，并更新 `nimi_data_dir`。
-- developer mode：读取和切换 App 内的 Developer Mode 状态。
-- reload controls：对 `dev` source 中的单个 mod 或全部 mod 执行 reload。
-- diagnostics：列出 source 扫描结果、重复 `mod id` 冲突、最近 reload 结果。
+- source registry：`runtime_mod_sources_list`、`runtime_mod_sources_upsert`、`runtime_mod_sources_remove` — 列出、添加/更新、移除 mod source directories。
+- storage dirs：`runtime_mod_storage_dirs_get`、`runtime_mod_data_dir_set` — 读取当前 `nimi_dir` / `nimi_data_dir` / installed mods 路径，并更新 `nimi_data_dir`。
+- developer mode：`runtime_mod_dev_mode_get`、`runtime_mod_dev_mode_set` — 读取和切换 App 内的 Developer Mode 状态。
+- reload controls：`runtime_mod_reload`、`runtime_mod_reload_all` — 对 `dev` source 中的单个 mod 或全部 mod 执行 reload。
+- diagnostics：`runtime_mod_diagnostics_list` — 列出 source 扫描结果、重复 `mod id` 冲突、最近 reload 结果。
 
 这些命令属于平台管理操作，不属于 mod 业务 API，不得要求第三方作者直接操作环境变量或文件系统约定来替代。
 

@@ -20,7 +20,7 @@
 | `glm` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.transcribe`, `image.generate`, `text.embed`, `text.generate`, `text.generate.vision` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `google_cloud_tts` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `audio.synthesize` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `google_veo` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `video.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
-| `groq` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `text.generate`, `text.generate.vision` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `groq` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.transcribe`, `text.generate`, `text.generate.vision` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `hunyuan` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `image.generate`, `text.embed`, `text.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `ideogram` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `image.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `kimi` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `image.generate`, `text.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |

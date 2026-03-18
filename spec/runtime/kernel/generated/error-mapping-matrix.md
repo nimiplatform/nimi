@@ -4,6 +4,34 @@
 > Source: `spec/runtime/kernel/tables/error-mapping-matrix.yaml`
 | ReasonCode | gRPC Code | Surface | Exit Shape | Source |
 |---|---|---|---|---|
+| `REASON_CODE_UNSPECIFIED` | `OK` | `success_or_default` | `grpc_status` | `K-ERR-001` |
+| `ACTION_EXECUTED` | `OK` | `success_confirmation` | `grpc_status` | `K-ERR-001` |
+| `PROTOCOL_ENVELOPE_INVALID` | `INVALID_ARGUMENT` | `protocol_envelope_validation` | `grpc_status` | `K-ERR-003` |
+| `PROTOCOL_DOMAIN_FIELD_CONFLICT` | `INVALID_ARGUMENT` | `protocol_envelope_validation` | `grpc_status` | `K-ERR-003` |
+| `CAPABILITY_CATALOG_MISMATCH` | `FAILED_PRECONDITION` | `scope_catalog_validation` | `grpc_status` | `K-ERR-006` |
+| `APP_NOT_REGISTERED` | `UNAUTHENTICATED` | `app_session_validation` | `grpc_status` | `K-AUTHSVC-003` |
+| `EXTERNAL_PRINCIPAL_NOT_REGISTERED` | `UNAUTHENTICATED` | `external_principal_session_validation` | `grpc_status` | `K-AUTHSVC-006` |
+| `PRINCIPAL_UNAUTHORIZED` | `PERMISSION_DENIED` | `authz_gate` | `grpc_status` | `K-AUTH-001` |
+| `APP_AUTHORIZATION_DENIED` | `PERMISSION_DENIED` | `app_authorization_gate` | `grpc_status` | `K-GRANT-003` |
+| `APP_GRANT_INVALID` | `INVALID_ARGUMENT` | `grant_validation` | `grpc_status` | `K-GRANT-004` |
+| `APP_TOKEN_EXPIRED` | `UNAUTHENTICATED` | `app_session_validation` | `grpc_status` | `K-AUTHSVC-004` |
+| `APP_TOKEN_REVOKED` | `UNAUTHENTICATED` | `app_session_validation` | `grpc_status` | `K-AUTHSVC-005` |
+| `APP_SCOPE_CATALOG_UNPUBLISHED` | `FAILED_PRECONDITION` | `scope_catalog_validation` | `grpc_status` | `K-GRANT-008` |
+| `APP_DELEGATION_FORBIDDEN` | `PERMISSION_DENIED` | `delegation_gate` | `grpc_status` | `K-GRANT-005` |
+| `APP_DELEGATION_DEPTH_EXCEEDED` | `FAILED_PRECONDITION` | `delegation_depth_guard` | `grpc_status` | `K-GRANT-005` |
+| `APP_RESOURCE_SELECTOR_INVALID` | `INVALID_ARGUMENT` | `resource_selector_validation` | `grpc_status` | `K-GRANT-003` |
+| `APP_RESOURCE_OUT_OF_SCOPE` | `PERMISSION_DENIED` | `resource_scope_gate` | `grpc_status` | `K-GRANT-005` |
+| `APP_CONSENT_MISSING` | `FAILED_PRECONDITION` | `consent_validation` | `grpc_status` | `K-GRANT-003` |
+| `APP_CONSENT_INVALID` | `INVALID_ARGUMENT` | `consent_validation` | `grpc_status` | `K-GRANT-003` |
+| `EXTERNAL_PRINCIPAL_PROOF_MISSING` | `INVALID_ARGUMENT` | `external_principal_proof_validation` | `grpc_status` | `K-AUTHSVC-006` |
+| `EXTERNAL_PRINCIPAL_PROOF_INVALID` | `UNAUTHENTICATED` | `external_principal_proof_validation` | `grpc_status` | `K-AUTHSVC-006` |
+| `APP_MODE_WORLD_RELATION_FORBIDDEN` | `PERMISSION_DENIED` | `app_mode_gate` | `grpc_status` | `K-AUTHSVC-010` |
+| `AI_MODEL_NOT_READY` | `FAILED_PRECONDITION` | `model_health_check` | `grpc_status` | `K-ERR-006` |
+| `AI_ROUTE_UNSUPPORTED` | `FAILED_PRECONDITION` | `consume_route_resolution` | `grpc_status` | `K-ERR-006` |
+| `AI_ROUTE_FALLBACK_DENIED` | `FAILED_PRECONDITION` | `consume_route_fallback` | `grpc_status` | `K-ERR-006` |
+| `AI_CONTENT_FILTER_BLOCKED` | `PERMISSION_DENIED` | `provider_content_filter` | `grpc_status` | `K-ERR-010` |
+| `AI_REQUEST_CREDENTIAL_REQUIRED` | `FAILED_PRECONDITION` | `consume_credential_resolution` | `grpc_status` | `K-KEYSRC-007` |
+| `AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN` | `PERMISSION_DENIED` | `consume_credential_scope_gate` | `grpc_status` | `K-GRANT-005` |
 | `SESSION_EXPIRED` | `UNAUTHENTICATED` | `authn_session_check` | `grpc_status` | `K-AUTHN-006` |
 | `AUTH_TOKEN_INVALID` | `UNAUTHENTICATED` | `authn_all` | `grpc_status` | `K-AUTHN-007` |
 | `AUTH_TOKEN_EXPIRED` | `UNAUTHENTICATED` | `external_principal_proof_expired` | `grpc_status` | `K-AUTHSVC-013` |

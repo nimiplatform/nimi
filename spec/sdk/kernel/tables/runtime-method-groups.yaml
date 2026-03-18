@@ -18,6 +18,12 @@ groups:
       - ListVoiceAssets
       - DeleteVoiceAsset
       - ListPresetVoices
+    excluded:
+      - name: UploadArtifact
+        reason: >
+          client_stream RPC; current SDK transport (unary + server_stream only)
+          does not support client-initiated streaming. Excluded per S-SURFACE-009
+          selective projection policy.
     source_rule: S-SURFACE-002
   - group: connector_service_projection
     service: ConnectorService
@@ -120,6 +126,10 @@ groups:
     service: RuntimeWorkflowService
     phase: 2
     status: deferred
+    note: >
+      Runtime implementation complete (~4.2K LOC): DAG executor, AI/media
+      node orchestration, event streaming. Not exposed through SDK/Desktop
+      consumption layers. Deferred per pre-launch audit 2026-03-18.
     source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
       - SubmitWorkflow
@@ -145,8 +155,14 @@ groups:
     source_rule: S-SURFACE-002
   - group: audit_service_projection
     service: RuntimeAuditService
-    phase: 2
-    status: deferred
+    phase: 1
+    status: active
+    note: >
+      Promoted from Phase 2 to Phase 1 during pre-launch audit (2026-03-18).
+      Desktop actively consumes ExportAuditEvents and ListUsageStats via
+      runtime-config-audit-sdk-service.ts. Runtime implementation complete
+      with streaming export (JSON/NDJSON + gzip), paginated query, and
+      time-windowed usage statistics.
     source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
       - ListAuditEvents
@@ -157,6 +173,10 @@ groups:
     service: RuntimeModelService
     phase: 2
     status: deferred
+    note: >
+      Runtime implementation complete (~500 LOC): registry enumeration,
+      async model pull, removal, health check. Not consumed by Desktop UI.
+      Deferred per pre-launch audit 2026-03-18.
     source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
       - ListModels
@@ -168,6 +188,10 @@ groups:
     service: RuntimeKnowledgeService
     phase: 2
     status: deferred
+    note: >
+      Runtime implementation complete (~300 LOC): in-memory vector index
+      per K-KNOW-005. Knowledge-base mod uses independent sqlite persistence.
+      Not consumed by Desktop UI. Deferred per pre-launch audit 2026-03-18.
     source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
       - BuildIndex
@@ -178,6 +202,11 @@ groups:
     service: RuntimeAppService
     phase: 2
     status: deferred
+    note: >
+      Runtime implementation complete (~900 LOC) with production-grade
+      security baseline (K-APP-005): rate limiting, loop detection, payload
+      size enforcement. Desktop uses D-HOOK interMod path for mod-to-mod
+      communication instead. Deferred per pre-launch audit 2026-03-18.
     source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
       - SendAppMessage

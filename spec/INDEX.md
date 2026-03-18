@@ -122,7 +122,8 @@ Desktop 规范采用 kernel + domain 的两层结构：
   - `spec/desktop/world-detail.md`
   - `spec/desktop/legal.md`
   - `spec/desktop/testing-gates.md`
-  - Desktop mods panel domain doc
+  - `spec/desktop/mods-panel.md`
+  - `spec/desktop/mod-development.md`
 
 ### 修改启动序列 / feature flag
 

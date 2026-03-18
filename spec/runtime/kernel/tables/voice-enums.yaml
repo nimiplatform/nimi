@@ -1,0 +1,63 @@
+version: 1
+workflow_types:
+  - workflow_type: tts_v2v
+    enum_name: VOICE_WORKFLOW_TYPE_TTS_V2V
+    enum_value: 1
+    description: create voice asset from reference voice/audio input
+    source_rule: K-VOICE-002
+  - workflow_type: tts_t2v
+    enum_name: VOICE_WORKFLOW_TYPE_TTS_T2V
+    enum_value: 2
+    description: create voice asset from text instruction
+    source_rule: K-VOICE-002
+
+reference_kinds:
+  - kind: preset_voice_id
+    enum_name: VOICE_REFERENCE_KIND_PRESET
+    enum_value: 1
+    description: provider preset/system voice id
+    source_rule: K-VOICE-003
+  - kind: voice_asset_id
+    enum_name: VOICE_REFERENCE_KIND_VOICE_ASSET
+    enum_value: 2
+    description: runtime-managed voice asset id
+    source_rule: K-VOICE-003
+  - kind: provider_voice_ref
+    enum_name: VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF
+    enum_value: 3
+    description: provider-native custom voice reference
+    source_rule: K-VOICE-003
+
+persistence_types:
+  - persistence: provider_persistent
+    enum_name: VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT
+    enum_value: 1
+    description: stored by provider and reusable across sessions
+    source_rule: K-VOICE-004
+  - persistence: session_ephemeral
+    enum_name: VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL
+    enum_value: 2
+    description: short-lived session scoped voice asset
+    source_rule: K-VOICE-004
+
+asset_statuses:
+  - status: ACTIVE
+    enum_name: VOICE_ASSET_STATUS_ACTIVE
+    enum_value: 1
+    description: voice asset is valid and can be synthesized
+    source_rule: K-VOICE-004
+  - status: EXPIRED
+    enum_name: VOICE_ASSET_STATUS_EXPIRED
+    enum_value: 2
+    description: asset expired by lifecycle policy
+    source_rule: K-VOICE-004
+  - status: DELETED
+    enum_name: VOICE_ASSET_STATUS_DELETED
+    enum_value: 3
+    description: asset deleted and no longer routable
+    source_rule: K-VOICE-004
+  - status: FAILED
+    enum_name: VOICE_ASSET_STATUS_FAILED
+    enum_value: 4
+    description: asset creation failed or became unusable
+    source_rule: K-VOICE-004

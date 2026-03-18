@@ -6,150 +6,152 @@
 
 | Evidence Ref | Type | Command | Path | Description |
 |---|---|---|---|---|
-| `runtime_kernel_consistency` | `static_gate` | `pnpm check:runtime-spec-kernel-consistency` | `scripts/check-runtime-spec-kernel-consistency.mjs` | Kernel rule integrity, catalog parity, provider coverage, and cross-table consistency checks for Runtime domain. |
-| `runtime_proto_linkage` | `static_gate` | `pnpm check:runtime-proto-spec-linkage` | `scripts/check-runtime-proto-spec-linkage.mjs` | Proto definition to spec rule linkage verification. |
-| `runtime_lint_gate` | `lint_gate` | `cd runtime && go vet ./...` | `runtime/go.mod` | Go vet and build checks for runtime implementation. |
-| `runtime_test_gate` | `test_gate` | `cd runtime && go test ./...` | `runtime/go.mod` | Runtime Go unit tests for service behavior regression. |
+| `runtime_kernel_consistency` | `static_gate` | `pnpm check:runtime-spec-kernel-consistency` | `scripts/check-runtime-spec-kernel-consistency.mjs` | Kernel rule integrity, reason code coverage, error mapping matrix, RPC migration parity, provider catalog alignment, and domain doc compliance checks for Runtime domain. |
+| `runtime_go_test` | `test_gate` | `cd runtime && make test` | `runtime/Makefile` | Go unit and integration tests verifying runtime service behavior. Rules with this evidence have behavioral test coverage in the corresponding service package. |
+| `runtime_go_lint` | `lint_gate` | `cd runtime && golangci-lint run ./...` | `runtime/.golangci.yml` | Go static analysis gate for runtime implementation. |
+| `runtime_proto_linkage` | `static_gate` | `pnpm check:runtime-proto-spec-linkage` | `scripts/check-runtime-proto-spec-linkage.mjs` | Proto definition and spec rule linkage validation. |
+| `runtime_provider_checks` | `static_gate` | `pnpm check:runtime-provider-capability-token-canonicalization && pnpm check:runtime-provider-activation-alignment && pnpm check:runtime-provider-endpoint-ssot` | `scripts/check-runtime-provider-capability-token-canonicalization.mjs` | Provider catalog, capability token, activation, and endpoint single-source-of-truth validation. |
+| `runtime_catalog_drift` | `static_gate` | `pnpm check:runtime-catalog-drift` | `scripts/check-runtime-catalog-drift.mjs` | Runtime catalog definition consistency and drift detection. |
 
 ## Rule Coverage Matrix
 
 | Rule ID | Status | Evidence Refs |
 |---|---|---|
-| `K-APP-001` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-APP-002` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-APP-003` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-APP-004` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-APP-005` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
-| `K-APP-006` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
-| `K-APP-006a` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
-| `K-APP-007` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
-| `K-CLI-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CLI-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CLI-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CLI-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CLI-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CLI-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CLI-007` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CLI-008` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CLI-009` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CLI-009a` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CLI-010` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CLI-011` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CLI-012` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CLI-013` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CLI-014` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CLI-015` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-007` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-008` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-009` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-010` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-011` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-012` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-013` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-014` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-015` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-016` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-017` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-018` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-019` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-020` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUDIT-021` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-AUTH-001` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTH-002` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTH-003` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTH-004` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTH-005` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTH-006` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTH-007` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHN-001` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHN-002` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHN-003` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHN-004` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHN-005` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHN-006` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHN-007` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHN-008` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHN-009` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHSVC-001` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHSVC-002` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHSVC-003` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHSVC-004` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHSVC-005` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHSVC-006` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHSVC-007` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHSVC-008` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHSVC-009` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHSVC-010` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHSVC-011` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHSVC-012` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-AUTHSVC-013` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-CFG-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CFG-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CFG-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CFG-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CFG-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CFG-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CFG-007` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CFG-008` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CFG-009` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CFG-010` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CFG-011` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CFG-012` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CFG-013` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CFG-014` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CFG-015` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CFG-016` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CFG-017` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CONN-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CONN-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CONN-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CONN-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CONN-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CONN-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CONN-007` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CONN-008` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CONN-009` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CONN-010` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CONN-011` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CONN-012` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CONN-013` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CONN-014` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-CONN-015` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-DAEMON-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-DAEMON-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-DAEMON-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-DAEMON-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-DAEMON-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-DAEMON-007` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-DAEMON-008` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-DAEMON-009` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-DAEMON-010` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-DAEMON-011` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-DEV-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-DEV-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-DEV-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-DEV-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-DEV-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-DEV-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-DEV-007` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-DEV-008` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-DEV-009` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-ERR-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-ERR-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-ERR-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-ERR-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-ERR-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-ERR-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-ERR-007` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-ERR-008` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-ERR-009` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-ERR-010` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
+| `K-APP-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-APP-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-APP-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-APP-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-APP-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-APP-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-APP-006a` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-APP-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-014` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-015` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-016` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-017` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-018` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-019` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-020` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUDIT-021` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTH-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTH-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTH-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTH-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTH-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTH-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTH-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHN-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHN-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHN-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHN-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHN-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHN-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHN-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHN-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHN-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHSVC-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHSVC-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHSVC-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHSVC-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHSVC-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHSVC-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHSVC-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHSVC-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHSVC-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHSVC-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHSVC-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHSVC-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AUTHSVC-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CFG-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CFG-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CFG-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CFG-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CFG-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CFG-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CFG-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CFG-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CFG-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CFG-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CFG-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CFG-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CFG-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CFG-014` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CFG-015` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CFG-016` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CFG-017` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CLI-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CLI-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CLI-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CLI-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CLI-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CLI-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CLI-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CLI-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CLI-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CLI-009a` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CLI-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CLI-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CLI-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CLI-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CLI-014` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CLI-015` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CONN-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CONN-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CONN-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CONN-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CONN-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CONN-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CONN-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CONN-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CONN-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CONN-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CONN-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CONN-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CONN-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CONN-014` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CONN-015` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-DAEMON-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-DAEMON-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-DAEMON-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-DAEMON-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-DAEMON-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-DAEMON-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-DAEMON-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-DAEMON-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-DAEMON-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-DAEMON-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-DEV-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-DEV-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-DEV-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-DEV-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-DEV-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-DEV-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-DEV-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-DEV-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-DEV-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-ERR-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-ERR-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-ERR-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-ERR-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-ERR-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-ERR-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-ERR-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-ERR-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-ERR-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-ERR-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-GATE-001` | `covered` | `runtime_kernel_consistency` |
 | `K-GATE-010` | `covered` | `runtime_kernel_consistency` |
 | `K-GATE-020` | `covered` | `runtime_kernel_consistency` |
@@ -160,241 +162,241 @@
 | `K-GATE-070` | `covered` | `runtime_kernel_consistency` |
 | `K-GATE-080` | `covered` | `runtime_kernel_consistency` |
 | `K-GATE-090` | `covered` | `runtime_kernel_consistency` |
-| `K-GRANT-001` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-GRANT-002` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-GRANT-003` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-GRANT-004` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-GRANT-005` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-GRANT-006` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-GRANT-007` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-GRANT-008` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-GRANT-009` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-GRANT-010` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-GRANT-011` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-GRANT-012` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-GRANT-013` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-JOB-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-JOB-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-JOB-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-JOB-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-JOB-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-JOB-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-KEYSRC-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-KEYSRC-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-KEYSRC-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-KEYSRC-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-KEYSRC-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-KEYSRC-005a` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-KEYSRC-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-KEYSRC-007` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-KEYSRC-008` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-KEYSRC-009` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-KEYSRC-010` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-KNOW-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-KNOW-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-KNOW-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-KNOW-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-KNOW-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-KNOW-005a` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-KNOW-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LENG-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LENG-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LENG-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LENG-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LENG-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LENG-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LENG-007` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LENG-008` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LENG-009` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LENG-010` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LENG-011` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-007` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-008` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-009` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-010` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-011` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-012` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-013` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-014` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-015` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-016` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-017` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-018` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-019` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-020` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-021` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-022` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-023` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-024` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-025` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-026` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-027` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-028` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-029` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-LOCAL-030` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-007` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-008` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-009` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-010` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-011` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-012` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-013` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-014` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-015` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-016` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-017` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-018` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-019` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-020` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-021` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-022` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-023` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-024` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-025` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-026` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MCAT-027` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-007` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-008` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-009` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-010` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-011` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-012` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-013` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-014` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-015` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-016` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-017` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-018` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-019` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-020` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-021` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-022` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-023` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-024` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-025` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-026` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-027` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-028` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-029` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-030` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-031` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-MMPROV-032` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-MMPROV-033` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-034` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-035` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MMPROV-036` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MODEL-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MODEL-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MODEL-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MODEL-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MODEL-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MODEL-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MODEL-007` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-MODEL-008` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-NIMI-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-NIMI-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-NIMI-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-NIMI-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-NIMI-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-NIMI-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-NIMI-007` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-NIMI-008` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-NIMI-009` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-NIMI-010` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-PAGE-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-PAGE-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-PAGE-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-PAGE-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-PAGE-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-PAGE-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-PROTO-001` | `covered` | `runtime_kernel_consistency` |
-| `K-PROTO-002` | `covered` | `runtime_kernel_consistency` |
-| `K-PROTO-003` | `covered` | `runtime_kernel_consistency` |
-| `K-PROTO-004` | `covered` | `runtime_kernel_consistency` |
-| `K-PROTO-005` | `covered` | `runtime_kernel_consistency` |
-| `K-PROTO-006` | `covered` | `runtime_kernel_consistency` |
-| `K-PROTO-007` | `covered` | `runtime_kernel_consistency` |
-| `K-PROTO-008` | `covered` | `runtime_kernel_consistency` |
-| `K-PROTO-009` | `covered` | `runtime_kernel_consistency` |
-| `K-PROTO-010` | `covered` | `runtime_kernel_consistency` |
-| `K-PROV-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-PROV-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-PROV-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-PROV-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-PROV-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-PROV-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-RPC-001` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
-| `K-RPC-002` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
-| `K-RPC-003` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
-| `K-RPC-004` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
-| `K-RPC-005` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
-| `K-RPC-006` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
-| `K-RPC-007` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
-| `K-RPC-008` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
-| `K-RPC-009` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
-| `K-RPC-010` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
-| `K-RPC-011` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
-| `K-RPC-012` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
-| `K-RPC-013` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
-| `K-RPC-014` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
-| `K-SEC-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-SEC-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-SEC-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-SEC-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-SEC-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-STREAM-001` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-STREAM-002` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-STREAM-003` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-STREAM-004` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-STREAM-005` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-STREAM-006` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-STREAM-007` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-STREAM-008` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-STREAM-009` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-STREAM-010` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage`, `runtime_test_gate` |
-| `K-STREAM-011` | `covered` | `runtime_kernel_consistency` |
-| `K-STREAM-012` | `covered` | `runtime_kernel_consistency` |
-| `K-STREAM-013` | `covered` | `runtime_kernel_consistency` |
-| `K-VOICE-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-VOICE-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-VOICE-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-VOICE-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-VOICE-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-VOICE-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-VOICE-007` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-VOICE-008` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-VOICE-009` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-VOICE-010` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-VOICE-011` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-VOICE-012` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-VOICE-013` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-WF-001` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-WF-002` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-WF-003` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-WF-004` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-WF-005` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-WF-006` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-WF-007` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-WF-008` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-WF-009` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-WF-010` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-WF-011` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
-| `K-WF-012` | `covered` | `runtime_kernel_consistency`, `runtime_test_gate` |
+| `K-GRANT-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-GRANT-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-GRANT-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-GRANT-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-GRANT-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-GRANT-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-GRANT-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-GRANT-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-GRANT-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-GRANT-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-GRANT-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-GRANT-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-GRANT-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-JOB-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-JOB-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-JOB-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-JOB-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-JOB-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-JOB-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KEYSRC-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KEYSRC-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KEYSRC-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KEYSRC-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KEYSRC-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KEYSRC-005a` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KEYSRC-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KEYSRC-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KEYSRC-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KEYSRC-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KEYSRC-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KNOW-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KNOW-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KNOW-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KNOW-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KNOW-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KNOW-005a` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KNOW-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LENG-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LENG-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LENG-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LENG-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LENG-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LENG-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LENG-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LENG-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LENG-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LENG-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LENG-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-014` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-015` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-016` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-017` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-018` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-019` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-020` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-021` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-022` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-023` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-024` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-025` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-026` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-027` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-028` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-029` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-030` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-MCAT-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-014` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-015` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-016` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-017` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-018` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-019` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-020` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-021` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-022` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-023` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-024` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-025` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-026` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-027` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MMPROV-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-014` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-015` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-016` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-017` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-018` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-019` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-020` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-021` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-022` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-023` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-024` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-025` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-026` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-027` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-028` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-029` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-030` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-031` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-032` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-033` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-034` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-035` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-036` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MODEL-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-MODEL-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-MODEL-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-MODEL-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-MODEL-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-MODEL-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-MODEL-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-MODEL-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-NIMI-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-NIMI-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-NIMI-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-NIMI-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-NIMI-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-NIMI-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-NIMI-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-NIMI-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-NIMI-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-NIMI-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-PAGE-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-PAGE-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-PAGE-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-PAGE-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-PAGE-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-PAGE-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-PROTO-001` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
+| `K-PROTO-002` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
+| `K-PROTO-003` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
+| `K-PROTO-004` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
+| `K-PROTO-005` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
+| `K-PROTO-006` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
+| `K-PROTO-007` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
+| `K-PROTO-008` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
+| `K-PROTO-009` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
+| `K-PROTO-010` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
+| `K-PROV-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-PROV-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-PROV-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-PROV-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-PROV-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-PROV-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-RPC-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_proto_linkage` |
+| `K-RPC-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_proto_linkage` |
+| `K-RPC-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_proto_linkage` |
+| `K-RPC-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_proto_linkage` |
+| `K-RPC-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_proto_linkage` |
+| `K-RPC-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_proto_linkage` |
+| `K-RPC-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_proto_linkage` |
+| `K-RPC-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_proto_linkage` |
+| `K-RPC-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_proto_linkage` |
+| `K-RPC-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_proto_linkage` |
+| `K-RPC-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_proto_linkage` |
+| `K-RPC-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_proto_linkage` |
+| `K-RPC-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_proto_linkage` |
+| `K-RPC-014` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_proto_linkage` |
+| `K-SEC-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-SEC-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-SEC-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-SEC-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-SEC-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-STREAM-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-STREAM-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-STREAM-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-STREAM-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-STREAM-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-STREAM-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-STREAM-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-STREAM-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-STREAM-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-STREAM-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-STREAM-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-STREAM-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-STREAM-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-VOICE-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-VOICE-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-VOICE-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-VOICE-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-VOICE-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-VOICE-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-VOICE-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-VOICE-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-VOICE-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-VOICE-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-VOICE-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-VOICE-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-VOICE-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-WF-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-WF-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-WF-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-WF-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-WF-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-WF-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-WF-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-WF-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-WF-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-WF-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-WF-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-WF-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |

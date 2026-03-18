@@ -142,7 +142,7 @@ Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 
 ## audit_service_projection
 
-Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2
+Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 
 | Method | Source Rule |
 |---|---|

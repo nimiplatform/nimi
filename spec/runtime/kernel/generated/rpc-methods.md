@@ -50,6 +50,10 @@ Source: `K-RPC-003`
 | `ListModelCatalogProviders` | `unary` |
 | `UpsertModelCatalogProvider` | `unary` |
 | `DeleteModelCatalogProvider` | `unary` |
+| `ListCatalogProviderModels` | `unary` |
+| `GetCatalogModelDetail` | `unary` |
+| `UpsertCatalogModelOverlay` | `unary` |
+| `DeleteCatalogModelOverlay` | `unary` |
 
 ## RuntimeLocalService
 

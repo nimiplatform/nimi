@@ -132,6 +132,13 @@ Desktop 对 ExternalPrincipal 的 UI 投影固定在 Runtime Config 的 External
 - `Revoke` 成功后，若当前面板仍持有同一 token 的明文显示，必须立即清空。
 - 过期 token 与 revoked token 都保留在 UI ledger 中，但状态必须显式区分为 `expired` / `revoked`。
 
+## D-AUTH-012 — External Agent 吊销与审计
+
+- **吊销 token 保持可见**: 吊销后 token 保留在 ledger 中，`revoked_at` 时间戳已设置。不删除记录。
+- **审计主体隔离**: 审计查询 (`/audit` endpoint) 按请求方 `principal_id` 过滤。Agent 无法查询其他 principal 的审计记录。
+- **审计事件来源**: 审计记录源自 runtime audit store，过滤条件 `stage = "audit"` + `event_type = "hook.action.commit"`。
+- **审计保留策略**: 受 runtime audit ring buffer 配置 (`cfg.AuditRingBufferSize`) 约束；external agent audit 无独立保留策略。
+
 ## Fact Sources
 
 - `tables/bootstrap-phases.yaml` — Auth session 阶段

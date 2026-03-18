@@ -1,5 +1,149 @@
 version: 1
 mappings:
+  # General sentinel codes
+  - reason_code: REASON_CODE_UNSPECIFIED
+    grpc_code: OK
+    surface: success_or_default
+    exit_shape: grpc_status
+    source_rule: K-ERR-001
+  - reason_code: ACTION_EXECUTED
+    grpc_code: OK
+    surface: success_confirmation
+    exit_shape: grpc_status
+    source_rule: K-ERR-001
+  - reason_code: PROTOCOL_ENVELOPE_INVALID
+    grpc_code: INVALID_ARGUMENT
+    surface: protocol_envelope_validation
+    exit_shape: grpc_status
+    source_rule: K-ERR-003
+  - reason_code: PROTOCOL_DOMAIN_FIELD_CONFLICT
+    grpc_code: INVALID_ARGUMENT
+    surface: protocol_envelope_validation
+    exit_shape: grpc_status
+    source_rule: K-ERR-003
+  - reason_code: CAPABILITY_CATALOG_MISMATCH
+    grpc_code: FAILED_PRECONDITION
+    surface: scope_catalog_validation
+    exit_shape: grpc_status
+    source_rule: K-ERR-006
+  - reason_code: APP_NOT_REGISTERED
+    grpc_code: UNAUTHENTICATED
+    surface: app_session_validation
+    exit_shape: grpc_status
+    source_rule: K-AUTHSVC-003
+  - reason_code: EXTERNAL_PRINCIPAL_NOT_REGISTERED
+    grpc_code: UNAUTHENTICATED
+    surface: external_principal_session_validation
+    exit_shape: grpc_status
+    source_rule: K-AUTHSVC-006
+  - reason_code: PRINCIPAL_UNAUTHORIZED
+    grpc_code: PERMISSION_DENIED
+    surface: authz_gate
+    exit_shape: grpc_status
+    source_rule: K-AUTH-001
+  # App authorization legacy (100-117)
+  - reason_code: APP_AUTHORIZATION_DENIED
+    grpc_code: PERMISSION_DENIED
+    surface: app_authorization_gate
+    exit_shape: grpc_status
+    source_rule: K-GRANT-003
+  - reason_code: APP_GRANT_INVALID
+    grpc_code: INVALID_ARGUMENT
+    surface: grant_validation
+    exit_shape: grpc_status
+    source_rule: K-GRANT-004
+  - reason_code: APP_TOKEN_EXPIRED
+    grpc_code: UNAUTHENTICATED
+    surface: app_session_validation
+    exit_shape: grpc_status
+    source_rule: K-AUTHSVC-004
+  - reason_code: APP_TOKEN_REVOKED
+    grpc_code: UNAUTHENTICATED
+    surface: app_session_validation
+    exit_shape: grpc_status
+    source_rule: K-AUTHSVC-005
+  - reason_code: APP_SCOPE_CATALOG_UNPUBLISHED
+    grpc_code: FAILED_PRECONDITION
+    surface: scope_catalog_validation
+    exit_shape: grpc_status
+    source_rule: K-GRANT-008
+  - reason_code: APP_DELEGATION_FORBIDDEN
+    grpc_code: PERMISSION_DENIED
+    surface: delegation_gate
+    exit_shape: grpc_status
+    source_rule: K-GRANT-005
+  - reason_code: APP_DELEGATION_DEPTH_EXCEEDED
+    grpc_code: FAILED_PRECONDITION
+    surface: delegation_depth_guard
+    exit_shape: grpc_status
+    source_rule: K-GRANT-005
+  - reason_code: APP_RESOURCE_SELECTOR_INVALID
+    grpc_code: INVALID_ARGUMENT
+    surface: resource_selector_validation
+    exit_shape: grpc_status
+    source_rule: K-GRANT-003
+  - reason_code: APP_RESOURCE_OUT_OF_SCOPE
+    grpc_code: PERMISSION_DENIED
+    surface: resource_scope_gate
+    exit_shape: grpc_status
+    source_rule: K-GRANT-005
+  - reason_code: APP_CONSENT_MISSING
+    grpc_code: FAILED_PRECONDITION
+    surface: consent_validation
+    exit_shape: grpc_status
+    source_rule: K-GRANT-003
+  - reason_code: APP_CONSENT_INVALID
+    grpc_code: INVALID_ARGUMENT
+    surface: consent_validation
+    exit_shape: grpc_status
+    source_rule: K-GRANT-003
+  - reason_code: EXTERNAL_PRINCIPAL_PROOF_MISSING
+    grpc_code: INVALID_ARGUMENT
+    surface: external_principal_proof_validation
+    exit_shape: grpc_status
+    source_rule: K-AUTHSVC-006
+  - reason_code: EXTERNAL_PRINCIPAL_PROOF_INVALID
+    grpc_code: UNAUTHENTICATED
+    surface: external_principal_proof_validation
+    exit_shape: grpc_status
+    source_rule: K-AUTHSVC-006
+  - reason_code: APP_MODE_WORLD_RELATION_FORBIDDEN
+    grpc_code: PERMISSION_DENIED
+    surface: app_mode_gate
+    exit_shape: grpc_status
+    source_rule: K-AUTHSVC-010
+  # AI legacy frozen codes (201-213)
+  - reason_code: AI_MODEL_NOT_READY
+    grpc_code: FAILED_PRECONDITION
+    surface: model_health_check
+    exit_shape: grpc_status
+    source_rule: K-ERR-006
+  - reason_code: AI_ROUTE_UNSUPPORTED
+    grpc_code: FAILED_PRECONDITION
+    surface: consume_route_resolution
+    exit_shape: grpc_status
+    source_rule: K-ERR-006
+  - reason_code: AI_ROUTE_FALLBACK_DENIED
+    grpc_code: FAILED_PRECONDITION
+    surface: consume_route_fallback
+    exit_shape: grpc_status
+    source_rule: K-ERR-006
+  - reason_code: AI_CONTENT_FILTER_BLOCKED
+    grpc_code: PERMISSION_DENIED
+    surface: provider_content_filter
+    exit_shape: grpc_status
+    source_rule: K-ERR-010
+  - reason_code: AI_REQUEST_CREDENTIAL_REQUIRED
+    grpc_code: FAILED_PRECONDITION
+    surface: consume_credential_resolution
+    exit_shape: grpc_status
+    source_rule: K-KEYSRC-007
+  - reason_code: AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN
+    grpc_code: PERMISSION_DENIED
+    surface: consume_credential_scope_gate
+    exit_shape: grpc_status
+    source_rule: K-GRANT-005
+
   - reason_code: SESSION_EXPIRED
     grpc_code: UNAUTHENTICATED
     surface: authn_session_check

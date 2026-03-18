@@ -150,6 +150,12 @@ rules:
     evidence_refs:
       - desktop_kernel_consistency
       - desktop_test_gate
+  - rule_id: D-AUTH-012
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_rust_test_gate
+    note: "External Agent revocation & audit; Rust backend test coverage"
   - rule_id: D-BOOT-001
     status: covered
     evidence_refs:
@@ -596,6 +602,36 @@ rules:
       - desktop_kernel_consistency
       - desktop_test_gate
       - desktop_mods_smoke_gate
+  - rule_id: D-LLM-010
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_rust_test_gate
+    note: "Device profile matching & engine support; Rust backend coverage"
+  - rule_id: D-LLM-011
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_rust_test_gate
+    note: "Recommendation memory budget & tier assignment; Rust backend coverage"
+  - rule_id: D-LLM-012
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_rust_test_gate
+    note: "Dependency resolution phase ordering; Rust backend coverage"
+  - rule_id: D-LLM-013
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_rust_test_gate
+    note: "Model registry identity resolution; Rust backend coverage"
+  - rule_id: D-LLM-014
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_rust_test_gate
+    note: "Download atomicity & staging; Rust backend coverage"
   - rule_id: D-MBAR-001
     status: covered
     evidence_refs:
@@ -843,6 +879,30 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+  - rule_id: D-SEC-011
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_rust_test_gate
+    note: "Error message credential scrubbing; Rust backend test validates redaction patterns"
+  - rule_id: D-SEC-012
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_rust_test_gate
+    note: "External Agent token state machine; Rust backend test coverage"
+  - rule_id: D-SEC-013
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_rust_test_gate
+    note: "External Agent scope binding model; Rust backend test coverage"
+  - rule_id: D-SEC-014
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_rust_test_gate
+    note: "External Agent execution context verification; Rust backend test coverage"
   - rule_id: D-SHELL-001
     status: covered
     evidence_refs:

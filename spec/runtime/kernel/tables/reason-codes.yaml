@@ -11,6 +11,40 @@ numbering_note: |
   消费端指导：客户端应按 reason_code 名称（string）匹配，
   而非按数值比较。遗留编号与新编号语义等价，消费端统一处理即可。
 codes:
+  # General sentinel codes (0-8): stable implementation-required values
+  - name: REASON_CODE_UNSPECIFIED
+    value: 0
+    family: GENERAL
+    source_rule: K-ERR-001
+  - name: ACTION_EXECUTED
+    value: 1
+    family: GENERAL
+    source_rule: K-ERR-001
+  - name: PROTOCOL_ENVELOPE_INVALID
+    value: 2
+    family: GENERAL
+    source_rule: K-ERR-003
+  - name: PROTOCOL_DOMAIN_FIELD_CONFLICT
+    value: 3
+    family: GENERAL
+    source_rule: K-ERR-003
+  - name: CAPABILITY_CATALOG_MISMATCH
+    value: 4
+    family: GENERAL
+    source_rule: K-ERR-006
+  - name: APP_NOT_REGISTERED
+    value: 5
+    family: GENERAL
+    source_rule: K-AUTHSVC-003
+  - name: EXTERNAL_PRINCIPAL_NOT_REGISTERED
+    value: 6
+    family: GENERAL
+    source_rule: K-AUTHSVC-006
+  - name: PRINCIPAL_UNAUTHORIZED
+    value: 8
+    family: GENERAL
+    source_rule: K-AUTH-001
+
   - name: SESSION_EXPIRED
     value: 7
     family: AUTH
@@ -135,6 +169,32 @@ codes:
     value: 363
     family: MODEL
     source_rule: K-LOCAL-026
+  # AI legacy frozen codes (201-213): stable wire values, see numbering_note
+  - name: AI_MODEL_NOT_READY
+    value: 201
+    family: PROVIDER
+    source_rule: K-ERR-006
+  - name: AI_ROUTE_UNSUPPORTED
+    value: 204
+    family: MODEL_ROUTE
+    source_rule: K-ERR-006
+  - name: AI_ROUTE_FALLBACK_DENIED
+    value: 205
+    family: MODEL_ROUTE
+    source_rule: K-ERR-006
+  - name: AI_CONTENT_FILTER_BLOCKED
+    value: 209
+    family: PROVIDER
+    source_rule: K-ERR-010
+  - name: AI_REQUEST_CREDENTIAL_REQUIRED
+    value: 210
+    family: REQUEST_CREDENTIAL
+    source_rule: K-KEYSRC-007
+  - name: AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN
+    value: 213
+    family: REQUEST_CREDENTIAL
+    source_rule: K-GRANT-005
+
   - name: AI_FINISH_LENGTH
     value: 370
     family: FINISH
@@ -271,6 +331,64 @@ codes:
     value: 443
     family: WORKFLOW
     source_rule: K-WF-003
+  # App authorization codes (100-117): stable legacy range, frozen wire values
+  - name: APP_AUTHORIZATION_DENIED
+    value: 100
+    family: APP_AUTH
+    source_rule: K-GRANT-003
+  - name: APP_GRANT_INVALID
+    value: 101
+    family: APP_AUTH
+    source_rule: K-GRANT-004
+  - name: APP_TOKEN_EXPIRED
+    value: 102
+    family: APP_AUTH
+    source_rule: K-AUTHSVC-004
+  - name: APP_TOKEN_REVOKED
+    value: 103
+    family: APP_AUTH
+    source_rule: K-AUTHSVC-005
+  - name: APP_SCOPE_CATALOG_UNPUBLISHED
+    value: 105
+    family: APP_AUTH
+    source_rule: K-GRANT-008
+  - name: APP_DELEGATION_FORBIDDEN
+    value: 107
+    family: APP_AUTH
+    source_rule: K-GRANT-005
+  - name: APP_DELEGATION_DEPTH_EXCEEDED
+    value: 108
+    family: APP_AUTH
+    source_rule: K-GRANT-005
+  - name: APP_RESOURCE_SELECTOR_INVALID
+    value: 109
+    family: APP_AUTH
+    source_rule: K-GRANT-003
+  - name: APP_RESOURCE_OUT_OF_SCOPE
+    value: 110
+    family: APP_AUTH
+    source_rule: K-GRANT-005
+  - name: APP_CONSENT_MISSING
+    value: 111
+    family: APP_AUTH
+    source_rule: K-GRANT-003
+  - name: APP_CONSENT_INVALID
+    value: 112
+    family: APP_AUTH
+    source_rule: K-GRANT-003
+  - name: EXTERNAL_PRINCIPAL_PROOF_MISSING
+    value: 113
+    family: APP_AUTH
+    source_rule: K-AUTHSVC-006
+  - name: EXTERNAL_PRINCIPAL_PROOF_INVALID
+    value: 114
+    family: APP_AUTH
+    source_rule: K-AUTHSVC-006
+  - name: APP_MODE_WORLD_RELATION_FORBIDDEN
+    value: 117
+    family: APP_AUTH
+    source_rule: K-AUTHSVC-010
+
   - name: APP_MODE_DOMAIN_FORBIDDEN
     value: 500
     family: APP_AUTH

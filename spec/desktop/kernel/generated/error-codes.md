@@ -31,10 +31,10 @@
 | `LOCAL_AI_HF_DOWNLOAD_NOT_RESUMABLE` | `local-ai` | Session state is not resumable, must start a new install | `D-ERR-012` |
 | `LOCAL_AI_HF_DOWNLOAD_SESSION_EXISTS` | `local-ai` | Active download session already exists for model | `D-ERR-012` |
 | `LOCAL_AI_DOWNLOAD_SESSION_NOT_FOUND` | `local-ai` | Download session ID not found | `D-ERR-012` |
-| `LOCAL_AI_QWEN_GPU_REQUIRED` | `local-ai` | Qwen TTS requires available NVIDIA GPU | `D-ERR-003` |
-| `LOCAL_AI_QWEN_PYTHON_REQUIRED` | `local-ai` | Qwen TTS requires Python 3.10+ | `D-ERR-003` |
-| `LOCAL_AI_QWEN_PYTHON_VERSION_UNSUPPORTED` | `local-ai` | Qwen TTS Python version too low | `D-ERR-003` |
-| `LOCAL_AI_QWEN_BOOTSTRAP_FAILED` | `local-ai` | Qwen TTS runtime dependency installation failed | `D-ERR-003` |
+| `LOCAL_AI_SPEECH_GPU_REQUIRED` | `local-ai` | Speech engine requires available NVIDIA GPU | `D-ERR-003` |
+| `LOCAL_AI_SPEECH_PYTHON_REQUIRED` | `local-ai` | Speech engine requires Python 3.10+ | `D-ERR-003` |
+| `LOCAL_AI_SPEECH_PYTHON_VERSION_UNSUPPORTED` | `local-ai` | Speech engine Python version too low | `D-ERR-003` |
+| `LOCAL_AI_SPEECH_BOOTSTRAP_FAILED` | `local-ai` | Speech engine runtime dependency installation failed | `D-ERR-003` |
 | `LOCAL_AI_FILE_IMPORT_NOT_FOUND` | `local-ai` | Source file does not exist or is not a regular file | `D-ERR-001` |
 | `LOCAL_AI_FILE_IMPORT_CAPABILITIES_EMPTY` | `local-ai` | At least one capability is required for file import | `D-ERR-001` |
 | `LOCAL_AI_FILE_IMPORT_READ_FAILED` | `local-ai` | Cannot open or read source model file | `D-ERR-001` |

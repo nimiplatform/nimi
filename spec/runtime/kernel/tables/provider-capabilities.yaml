@@ -224,6 +224,7 @@ providers:
     inline_supported: true
     endpoint_requirement: default_or_explicit
     capabilities:
+      - audio.transcribe
       - text.generate
       - text.generate.vision
     sources:

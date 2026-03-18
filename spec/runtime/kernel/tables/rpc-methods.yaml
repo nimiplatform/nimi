@@ -65,6 +65,14 @@ services:
         type: unary
       - name: DeleteModelCatalogProvider
         type: unary
+      - name: ListCatalogProviderModels
+        type: unary
+      - name: GetCatalogModelDetail
+        type: unary
+      - name: UpsertCatalogModelOverlay
+        type: unary
+      - name: DeleteCatalogModelOverlay
+        type: unary
   - name: RuntimeLocalService
     source_rule: K-RPC-004
     methods:

@@ -20,7 +20,6 @@
 Local AI 桥接通过 local runtime bridge loader 懒加载（`D-IPC-010`），命令清单见 `D-IPC-011`。
 
 companion artifact、`engineConfig` 与 local image workflow（`profile_overrides` / `components`）通过同一 bridge facade 暴露；Desktop 只负责选择和透传，不负责写绝对路径。
-companion artifact、`engineConfig` 与 local image workflow（`profile_overrides` / `components`）通过同一 bridge facade 暴露；Desktop 只负责选择和透传，不负责写绝对路径。
 
 ### LLM (D-LLM-004)
 
@@ -43,7 +42,7 @@ mod 如需枚举 companion assets，必须显式声明 `runtime.local.artifacts.
 - 导入错误：`LOCAL_AI_IMPORT_*`
 - 模型错误：`LOCAL_AI_MODEL_*`
 - 端点错误：`LOCAL_AI_ENDPOINT_*`
-- Qwen TTS 环境错误：`LOCAL_AI_QWEN_*`
+- Speech 引擎环境错误：`LOCAL_AI_SPEECH_*`
 
 ### Security (D-SEC-001)
 

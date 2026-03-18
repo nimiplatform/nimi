@@ -23,10 +23,7 @@
 | `provider-probe-targets.md` | `tables/provider-probe-targets.yaml` |
 | `workflow-node-types.md` | `tables/workflow-node-types.yaml` |
 | `workflow-states.md` | `tables/workflow-states.yaml` |
-| `voice-workflow-types.md` | `tables/voice-workflow-types.yaml` |
-| `voice-reference-kinds.md` | `tables/voice-reference-kinds.yaml` |
-| `voice-persistence-types.md` | `tables/voice-persistence-types.yaml` |
-| `voice-asset-statuses.md` | `tables/voice-asset-statuses.yaml` |
+| `voice-enums.md` | `tables/voice-enums.yaml` |
 | `tts-provider-capability-matrix.md` | `tables/tts-provider-capability-matrix.yaml` |
 | `multimodal-canonical-fields.md` | `tables/multimodal-canonical-fields.yaml` |
 | `multimodal-artifact-fields.md` | `tables/multimodal-artifact-fields.yaml` |
@@ -37,4 +34,5 @@
 | `runtime-delivery-gates.md` | `tables/runtime-delivery-gates.yaml` |
 | `runtime-proto-governance-gates.md` | `tables/runtime-proto-governance-gates.yaml` |
 | `capability-vocabulary-mapping.md` | `tables/capability-vocabulary-mapping.yaml` |
+| `config-schema.md` | `tables/config-schema.yaml` |
 | `rule-evidence.md` | `tables/rule-evidence.yaml` |

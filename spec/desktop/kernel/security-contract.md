@@ -97,6 +97,54 @@ Web 环境 token 存储安全约束（参考 `D-AUTH-003`）：
 - 禁止将 token 写入 cookie 以避免 CSRF 风险。
 - logout 操作必须清除所有 localStorage 中的认证数据。
 
+## D-SEC-011 — Error Message Credential Scrubbing
+
+Bridge 错误归一化（D-ERR-005）必须在消息暴露到 UI 或日志前检测并脱敏凭据模式。
+
+**检测模式**：
+- HTTP header: `x-nimi-provider-api-key`
+- 字段名 (snake_case): `provider_api_key`
+- JSON key (camelCase): `"providerApiKey"`
+
+**脱敏格式**: 所有匹配替换为 `[REDACTED_PROVIDER_API_KEY]`。
+
+**作用域**: 同时应用于 `message` 和 `details.rawMessage` 字段。凭据安全优先于 D-ERR-005 的 raw 信息保留原则。
+
+**扩展要求**: 当 Runtime proto 或 connector config 新增凭据字段时，须同步注册检测模式到 Bridge scrubbing 函数并更新此规则。
+
+## D-SEC-012 — External Agent Token 状态机
+
+External Agent token 遵循严格生命周期: **issued → valid → expired | revoked**。
+
+- **Token ID**: `principal_id:subject_account_id:mode:nonce` 的 SHA256 哈希，确保确定性去重。
+- **TTL 边界**: 钳位到 `[60, 86400]` 秒（1 分钟至 24 小时），超出范围静默钳位。
+- **吊销机制**: 双层持久化 — SQLite DB 写入 `revoked_at` + 内存 `revoked_token_ids` HashSet。两层必须一致才视为有效。
+- **验证级联**: JWT 签名 → DB 查找 → `revoked_at` 检查 → claims 匹配 → TTL 检查 → 内存吊销检查。任一步骤失败即短路。
+
+## D-SEC-013 — External Agent Scope 绑定模型
+
+Token scope 将 action ID 绑定到允许的操作阶段。
+
+- **Ops 枚举**: `discover`, `dry-run`, `verify`, `commit`, `audit`, `events`。通配符 `*` 允许所有 ops。
+- **Action ID 通配符**: `*` 匹配任意 action。
+- **默认 scope 生成**: 签发 token 时未指定 scopes，则为所有已注册 action 生成全 ops 权限。
+- **阶段强制执行**: `claims_allows_action_for_phase(claims, action_id, phase)` 必须找到匹配的 scope 条目（action_id 匹配或通配符 AND phase 在 ops 列表中或 ops 通配符）。
+- **无 scope 提升**: Token 不可获得超出签发时授予的权限。
+
+## D-SEC-014 — External Agent 执行上下文验证
+
+向 renderer 发送 action 请求前，Bridge 必须验证执行上下文：
+
+1. `execution_id` 存在且非空
+2. Token 在 DB 中存在且未吊销
+3. Token 未过期（TTL 检查）
+4. Claims 与 DB 记录匹配: `principal_id`, `subject_account_id`, `mode`, `issuer`
+5. Token 不在内存吊销列表中
+6. 执行在 completion waiters 中待处理
+7. 执行所有者匹配: `principal_id` 和 `auth_token_id`
+
+任一步骤失败返回 `false`，不提供诊断详情（防止信息泄露）。
+
 ## Fact Sources
 
 - `tables/error-codes.yaml` — 安全相关错误码（`LOCAL_AI_ENDPOINT_NOT_LOOPBACK`、`LOCAL_AI_ENDPOINT_INVALID`）
