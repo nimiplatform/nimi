@@ -49,7 +49,7 @@ export async function bootstrap(): Promise<BootstrapResult> {
     const config = await bridge.config();
     if (config.agentId) {
       agentId = config.agentId;
-      // RL-CORE-003: Fetch full agent profile (voiceModel, voiceId, live2dModelUrl, etc.)
+      // RL-CORE-003: Fetch full agent profile (voiceId, etc.)
       const agent = await fetchAgentProfile(config.agentId);
       store.setAgent(agent);
     }
@@ -61,7 +61,7 @@ export async function bootstrap(): Promise<BootstrapResult> {
 }
 
 /**
- * Fetch agent profile from Realm.
+ * Fetch agent profile from Realm via direct account lookup.
  * Falls back to a stub agent if Realm is unreachable (RL-BOOT-004 degradation).
  */
 async function fetchAgentProfile(agentId: string): Promise<Agent> {
@@ -69,29 +69,32 @@ async function fetchAgentProfile(agentId: string): Promise<Agent> {
   try {
     const result = await bridge.realm.request({
       method: 'GET',
-      path: '/api/agents',
+      path: `/api/agent/accounts/${encodeURIComponent(agentId)}`,
     });
-    const agents = result as Array<{
+    const profile = result as {
       id: string;
-      name: string;
-      avatar_url?: string;
-      description?: string;
-      voice_model?: string;
-      voice_id?: string;
-      live2d_model_url?: string;
-    }>;
-    const match = agents.find((a) => a.id === agentId);
-    if (match) {
-      return {
-        id: match.id,
-        name: match.name,
-        avatarUrl: match.avatar_url,
-        description: match.description,
-        voiceModel: match.voice_model,
-        voiceId: match.voice_id,
-        live2dModelUrl: match.live2d_model_url,
+      displayName: string;
+      handle?: string;
+      avatarUrl?: string | null;
+      bio?: string | null;
+      agent?: {
+        state?: string;
       };
-    }
+      agentProfile?: {
+        dna?: {
+          voice?: { voiceId?: string };
+        } | null;
+      };
+    };
+    return {
+      id: profile.id,
+      name: profile.displayName,
+      handle: profile.handle,
+      state: profile.agent?.state,
+      avatarUrl: profile.avatarUrl ?? undefined,
+      description: profile.bio ?? undefined,
+      voiceId: profile.agentProfile?.dna?.voice?.voiceId,
+    };
   } catch {
     // Realm unreachable — fall back to stub
   }

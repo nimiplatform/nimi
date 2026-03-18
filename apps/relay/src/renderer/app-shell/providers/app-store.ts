@@ -7,6 +7,8 @@ import { create } from 'zustand';
 export interface Agent {
   id: string;
   name: string;
+  handle?: string;
+  state?: string;
   avatarUrl?: string;
   description?: string;
   voiceModel?: string;

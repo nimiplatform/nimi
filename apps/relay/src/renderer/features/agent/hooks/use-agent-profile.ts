@@ -14,32 +14,64 @@ export function useAgentProfile() {
     const bridge = getBridge();
     const result = await bridge.realm.request({
       method: 'GET',
-      path: '/api/agents',
+      path: '/api/agent/mine',
     });
-    // Map realm response to Agent shape
-    const agents = result as Array<{
-      id: string;
-      name: string;
-      avatar_url?: string;
-      description?: string;
-      voice_model?: string;
-      voice_id?: string;
-      live2d_model_url?: string;
-    }>;
-    return agents.map((a) => ({
-      id: a.id,
-      name: a.name,
-      avatarUrl: a.avatar_url,
-      description: a.description,
-      voiceModel: a.voice_model,
-      voiceId: a.voice_id,
-      live2dModelUrl: a.live2d_model_url,
-    }));
+    const response = result as {
+      items: Array<{
+        agentId: string;
+        displayName: string;
+        handle: string;
+        state: string;
+        avatarUrl?: string | null;
+      }>;
+    };
+    return response.items
+      .filter((a) => a.state === 'ACTIVE')
+      .map((a) => ({
+        id: a.agentId,
+        name: a.displayName,
+        handle: a.handle,
+        state: a.state,
+        avatarUrl: a.avatarUrl ?? undefined,
+      }));
   }, []);
 
   const selectAgent = useCallback((agent: Agent | null) => {
     // RL-CORE-002: changing agent resets all active sessions
     setAgent(agent);
+
+    // Async enrichment: fetch full profile for voice/live2d support
+    if (agent) {
+      const bridge = getBridge();
+      bridge.realm.request({
+        method: 'GET',
+        path: `/api/agent/accounts/${encodeURIComponent(agent.id)}`,
+      }).then((result) => {
+        const profile = result as {
+          id: string;
+          displayName: string;
+          handle?: string;
+          avatarUrl?: string | null;
+          bio?: string | null;
+          agentProfile?: {
+            dna?: {
+              voice?: { voiceId?: string };
+            } | null;
+          };
+        };
+        const enriched: Agent = {
+          ...agent,
+          name: profile.displayName || agent.name,
+          handle: profile.handle ?? agent.handle,
+          avatarUrl: profile.avatarUrl ?? agent.avatarUrl,
+          description: profile.bio ?? agent.description,
+          voiceId: profile.agentProfile?.dna?.voice?.voiceId,
+        };
+        useAppStore.getState().setAgent(enriched);
+      }).catch(() => {
+        // Enrichment is best-effort; agent remains usable with list data
+      });
+    }
   }, [setAgent]);
 
   return {
