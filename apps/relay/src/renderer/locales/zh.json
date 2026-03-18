@@ -59,6 +59,14 @@
     "failedToLoad": "模型加载失败",
     "loadingLive2d": "加载 Live2D..."
   },
+  "auth": {
+    "welcome": "欢迎使用 Nimi Relay",
+    "browserLogin": "浏览器登录",
+    "authenticating": "请在浏览器中完成登录...",
+    "failed": "认证失败",
+    "retry": "重试",
+    "checking": "检查认证状态..."
+  },
   "settings": {
     "title": "设置",
     "mediaAutonomy": "媒体自主度",

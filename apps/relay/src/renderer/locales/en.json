@@ -59,6 +59,14 @@
     "failedToLoad": "Failed to load model",
     "loadingLive2d": "Loading Live2D..."
   },
+  "auth": {
+    "welcome": "Welcome to Nimi Relay",
+    "browserLogin": "Login with Browser",
+    "authenticating": "Please complete login in your browser...",
+    "failed": "Authentication failed",
+    "retry": "Try Again",
+    "checking": "Checking authentication..."
+  },
   "settings": {
     "title": "Settings",
     "mediaAutonomy": "Media Autonomy",

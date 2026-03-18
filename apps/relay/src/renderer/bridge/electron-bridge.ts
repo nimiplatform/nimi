@@ -55,7 +55,7 @@ export interface NimiRelayBridge {
   };
   auth: {
     getStatus: () => Promise<{ state: string; error: string | null }>;
-    retry: () => Promise<{ success: boolean; error?: string }>;
+    browserLogin: () => Promise<{ success: boolean; error?: string }>;
     onStatus: (callback: (payload: { state: string; error: string | null }) => void) => string;
     removeListener: (id: string) => void;
   };

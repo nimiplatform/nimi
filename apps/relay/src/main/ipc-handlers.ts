@@ -35,10 +35,10 @@ export function registerAuthIpcHandlers(): void {
     return getAuthState();
   });
 
-  ipcMain.handle('relay:auth:retry', async () => {
-    const { retryAuth } = await import('./index.js');
+  ipcMain.handle('relay:auth:browser-login', async () => {
+    const { performBrowserLoginAndInit } = await import('./index.js');
     try {
-      await retryAuth();
+      await performBrowserLoginAndInit();
       return { success: true };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) };

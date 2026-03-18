@@ -89,7 +89,7 @@ const api = {
   // Auth (RL-BOOT-005)
   auth: {
     getStatus: () => ipcRenderer.invoke('relay:auth:status') as Promise<{ state: string; error: string | null }>,
-    retry: () => ipcRenderer.invoke('relay:auth:retry') as Promise<{ success: boolean; error?: string }>,
+    browserLogin: () => ipcRenderer.invoke('relay:auth:browser-login') as Promise<{ success: boolean; error?: string }>,
     onStatus: (cb: (...args: unknown[]) => void) => addListener('relay:auth:status', cb),
     removeListener,
   },

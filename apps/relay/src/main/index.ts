@@ -73,40 +73,19 @@ function createWindow() {
 }
 
 /**
- * Resolve access token: env → persisted store → browser auth flow.
+ * Run browser OAuth and initialize platform clients.
+ * Triggered by renderer when user clicks "Login with Browser".
  */
-async function resolveAccessToken(): Promise<string> {
-  // 1. Already provided via env / .env
-  if (env.NIMI_ACCESS_TOKEN) {
-    return env.NIMI_ACCESS_TOKEN;
-  }
-
-  // 2. Try loading persisted token
-  const persisted = loadToken();
-  if (persisted) {
-    return persisted;
-  }
-
-  // 3. Browser auth flow
-  setAuthState('authenticating');
-  const result = await performDesktopBrowserAuth({ webUrl: env.NIMI_WEB_URL });
-  saveToken(result.accessToken);
-  return result.accessToken;
-}
-
-/**
- * Run browser auth and reinitialize platform clients.
- * Called when renderer requests auth retry.
- */
-export async function retryAuth(): Promise<void> {
+export async function performBrowserLoginAndInit(): Promise<void> {
   try {
     setAuthState('authenticating');
     const result = await performDesktopBrowserAuth({ webUrl: env.NIMI_WEB_URL });
     saveToken(result.accessToken);
     env.NIMI_ACCESS_TOKEN = result.accessToken;
 
-    // Reinitialize platform clients with new token
+    // Initialize platform clients with new token
     ({ runtime, realm } = initPlatformClient(env));
+    registerIpcHandlers(runtime, realm, getWebContents, env);
     initRealtimeRelay(env.NIMI_REALM_URL, env.NIMI_ACCESS_TOKEN!, getWebContents);
 
     setAuthState('authenticated');
@@ -125,31 +104,23 @@ app.whenReady().then(async () => {
   const { registerAuthIpcHandlers } = await import('./ipc-handlers.js');
   registerAuthIpcHandlers();
 
-  // Step 3: Resolve access token (env → persisted → browser auth)
-  let accessToken: string;
-  try {
-    accessToken = await resolveAccessToken();
-    env.NIMI_ACCESS_TOKEN = accessToken;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    setAuthState('failed', message);
-    // Still create window so user can see error and retry
-    createWindow();
-    return;
-  }
-
-  // Step 4: Initialize Runtime (node-grpc) + Realm (openapi-fetch)
-  ({ runtime, realm } = initPlatformClient(env));
-
-  // Step 5: Establish socket.io connection (RL-INTOP-003)
-  initRealtimeRelay(env.NIMI_REALM_URL, accessToken, getWebContents);
-
-  // Step 6: Register IPC handlers (RL-IPC-001 ~ 009)
-  registerIpcHandlers(runtime, realm, getWebContents, env);
-
-  // Step 7: Create BrowserWindow and load renderer
-  setAuthState('authenticated');
+  // Step 3: Create window immediately so user sees UI
   createWindow();
+
+  // Step 4: Try silent token resolution (env → persisted)
+  const token = env.NIMI_ACCESS_TOKEN || loadToken() || null;
+
+  if (token) {
+    // Token available — initialize platform clients
+    env.NIMI_ACCESS_TOKEN = token;
+    ({ runtime, realm } = initPlatformClient(env));
+    initRealtimeRelay(env.NIMI_REALM_URL, token, getWebContents);
+    registerIpcHandlers(runtime, realm, getWebContents, env);
+    setAuthState('authenticated');
+  } else {
+    // No token — show login page, wait for user to click "Login with Browser"
+    setAuthState('pending');
+  }
 });
 
 app.on('window-all-closed', () => {
