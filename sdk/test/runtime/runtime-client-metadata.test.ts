@@ -62,7 +62,7 @@ test('asNimiError parses embedded runtime JSON payload', () => {
       retryable: true,
       message: 'provider timeout',
       details: {
-        provider: 'localai',
+        provider: 'media',
         rawReasonCode: 'UPSTREAM_504',
       },
     }),
@@ -77,7 +77,7 @@ test('asNimiError parses embedded runtime JSON payload', () => {
   assert.equal(error.source, 'runtime');
   assert.equal(error.message, 'provider timeout');
   assert.deepEqual(error.details, {
-    provider: 'localai',
+    provider: 'media',
     rawReasonCode: 'UPSTREAM_504',
   });
 });
