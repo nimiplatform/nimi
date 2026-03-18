@@ -25,11 +25,15 @@ async function syncRealmFromEnv(): Promise<{
   realmIssue?: string;
 }> {
   const baseUrl = String(import.meta.env.VITE_NIMI_REALM_BASE_URL || '').trim();
-  const accessToken = String(import.meta.env.VITE_NIMI_REALM_ACCESS_TOKEN || '').trim();
+
+  // Prefer token from auth store (OAuth login), fallback to env var
+  const storeToken = useAppStore.getState().authToken;
+  const accessToken = storeToken || String(import.meta.env.VITE_NIMI_REALM_ACCESS_TOKEN || '').trim();
+
   if (!baseUrl || !accessToken) {
     clearRealmInstance();
     return {
-      realmConfigured: false,
+      realmConfigured: Boolean(baseUrl),
       realmAuthenticated: false,
     };
   }

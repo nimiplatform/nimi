@@ -30,7 +30,19 @@ export interface GenerationJob {
   error?: string;
 }
 
+export type AuthStatus = 'bootstrapping' | 'authenticated' | 'unauthenticated';
+
+export type AuthUser = {
+  id: string;
+  displayName: string;
+};
+
 export interface AppState {
+  authStatus: AuthStatus;
+  authUser: AuthUser | null;
+  authToken: string;
+  authRefreshToken: string;
+
   runtimeStatus: ReadinessStatus;
   runtimeError: string | null;
   realmConfigured: boolean;
@@ -62,6 +74,9 @@ export interface AppState {
   publishStatus: 'idle' | 'uploading' | 'creating' | 'done' | 'error';
   publishError: string | null;
   publishedPostId: string | null;
+
+  setAuthSession: (user: AuthUser, token: string, refreshToken: string) => void;
+  clearAuthSession: () => void;
 
   setRuntimeStatus: (status: ReadinessStatus, error?: string) => void;
   setRealmConnection: (configured: boolean, authenticated: boolean) => void;
@@ -97,6 +112,11 @@ export interface AppState {
 }
 
 export const useAppStore = create<AppState>((set) => ({
+  authStatus: 'bootstrapping',
+  authUser: null,
+  authToken: '',
+  authRefreshToken: '',
+
   runtimeStatus: 'checking',
   runtimeError: null,
   realmConfigured: false,
@@ -127,6 +147,12 @@ export const useAppStore = create<AppState>((set) => ({
   publishStatus: 'idle',
   publishError: null,
   publishedPostId: null,
+
+  setAuthSession: (user, token, refreshToken) =>
+    set({ authStatus: 'authenticated', authUser: user, authToken: token, authRefreshToken: refreshToken }),
+
+  clearAuthSession: () =>
+    set({ authStatus: 'unauthenticated', authUser: null, authToken: '', authRefreshToken: '' }),
 
   setRuntimeStatus: (status, error) =>
     set({ runtimeStatus: status, runtimeError: error ?? null }),
