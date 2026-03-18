@@ -5,7 +5,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./shell-mode": "./src/shell-mode.ts"
+    "./shell-mode": "./src/shell-mode.ts",
+    "./oauth": "./src/oauth/index.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",
