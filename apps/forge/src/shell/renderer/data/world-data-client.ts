@@ -16,89 +16,89 @@ function realm() {
 // ── Draft Queries ──────────────────────────────────────────
 
 export async function getMyWorldAccess() {
-  return realm().worlds.worldControlControllerGetMyAccess();
+  return realm().services.WorldControlService.worldControlControllerGetMyAccess();
 }
 
 export async function resolveWorldLanding() {
-  return realm().worlds.worldControlControllerResolveLanding();
+  return realm().services.WorldControlService.worldControlControllerResolveLanding();
 }
 
 export async function createWorldDraft(payload: Record<string, unknown>) {
-  return realm().worlds.worldControlControllerCreateDraft(payload);
+  return realm().services.WorldControlService.worldControlControllerCreateDraft(payload);
 }
 
 export async function getWorldDraft(draftId: string) {
-  return realm().worlds.worldControlControllerGetDraft(draftId);
+  return realm().services.WorldControlService.worldControlControllerGetDraft(draftId);
 }
 
 export async function listWorldDrafts() {
-  return realm().worlds.worldControlControllerListDrafts();
+  return realm().services.WorldControlService.worldControlControllerListDrafts();
 }
 
 export async function updateWorldDraft(draftId: string, patch: Record<string, unknown>) {
-  return realm().worlds.worldControlControllerUpdateDraft(draftId, patch);
+  return realm().services.WorldControlService.worldControlControllerUpdateDraft(draftId, patch);
 }
 
 export async function publishWorldDraft(draftId: string, payload?: Record<string, unknown>) {
-  return realm().worlds.worldControlControllerPublishDraft(draftId, payload || {});
+  return realm().services.WorldControlService.worldControlControllerPublishDraft(draftId, payload || {});
 }
 
 // ── Maintenance Queries ────────────────────────────────────
 
 export async function getWorldMaintenance(worldId: string) {
-  return realm().worlds.worldControlControllerGetMaintenance(worldId);
+  return realm().services.WorldControlService.worldControlControllerGetMaintenance(worldId);
 }
 
 export async function updateWorldMaintenance(worldId: string, patch: Record<string, unknown>) {
-  return realm().worlds.worldControlControllerUpdateMaintenance(worldId, patch);
+  return realm().services.WorldControlService.worldControlControllerUpdateMaintenance(worldId, patch);
 }
 
 export async function listMyWorlds() {
-  return realm().worlds.worldControlControllerListMyWorlds();
+  return realm().services.WorldControlService.worldControlControllerListMyWorlds();
 }
 
 export async function listWorldMutations(worldId: string) {
-  return realm().worlds.worldControlControllerListWorldMutations(worldId);
+  return realm().services.WorldControlService.worldControlControllerListWorldMutations(worldId);
 }
 
 // ── Events & Lorebooks ─────────────────────────────────────
 
 export async function listWorldEvents(worldId: string) {
-  return realm().worlds.worldControlControllerListWorldEvents(worldId);
+  return realm().services.WorldControlService.worldControlControllerListWorldEvents(worldId);
 }
 
 export async function batchUpsertWorldEvents(worldId: string, payload: Record<string, unknown>) {
-  return realm().worlds.worldControlControllerBatchUpsertWorldEvents(worldId, payload);
+  return realm().services.WorldControlService.worldControlControllerBatchUpsertWorldEvents(worldId, payload);
 }
 
 export async function deleteWorldEvent(worldId: string, eventId: string) {
-  return realm().worlds.worldControlControllerDeleteWorldEvent(worldId, eventId);
+  return realm().services.WorldControlService.worldControlControllerDeleteWorldEvent(worldId, eventId);
 }
 
 export async function listWorldLorebooks(worldId: string) {
-  return realm().worlds.worldControlControllerListWorldLorebooks(worldId);
+  return realm().services.WorldControlService.worldControlControllerListWorldLorebooks(worldId);
 }
 
 export async function batchUpsertWorldLorebooks(worldId: string, payload: Record<string, unknown>) {
-  return realm().worlds.worldControlControllerBatchUpsertWorldLorebooks(worldId, payload);
+  return realm().services.WorldControlService.worldControlControllerBatchUpsertWorldLorebooks(worldId, payload);
 }
 
 export async function deleteWorldLorebook(worldId: string, lorebookId: string) {
-  return realm().worlds.worldControlControllerDeleteWorldLorebook(worldId, lorebookId);
+  return realm().services.WorldControlService.worldControlControllerDeleteWorldLorebook(worldId, lorebookId);
 }
 
 // ── Visual Bindings ────────────────────────────────────────
 
 export async function listWorldMediaBindings(worldId: string, query?: Record<string, unknown>) {
-  return realm().worlds.worldControlControllerListWorldMediaBindings(worldId, query?.take as number | undefined, query?.slot as string | undefined);
+  return realm().services.WorldControlService.worldControlControllerListWorldMediaBindings(worldId, query?.take as number | undefined, query?.slot as string | undefined);
 }
 
 export async function batchUpsertWorldMediaBindings(worldId: string, payload: Record<string, unknown>) {
-  return realm().worlds.worldControlControllerBatchUpsertWorldMediaBindings(worldId, payload);
+  return realm().services.WorldControlService.worldControlControllerBatchUpsertWorldMediaBindings(worldId, payload);
 }
 
 export async function deleteWorldMediaBinding(worldId: string, bindingId: string) {
-  return realm().worlds.worldControlControllerDeleteWorldMediaBinding(worldId, bindingId);
+  return realm().services.WorldControlService.worldControlControllerDeleteWorldMediaBinding(worldId, bindingId);
 }
 
 // ── Creator Agents ─────────────────────────────────────────
@@ -121,7 +121,7 @@ export async function batchCreateCreatorAgents(payload: {
 // ── Additional Queries (Narrative / Scenes) ────────────────
 
 export async function listWorldNarrativeContexts(worldId: string, params?: Record<string, unknown>) {
-  return realm().worlds.worldControlControllerListWorldNarrativeContexts(
+  return realm().services.WorldControlService.worldControlControllerListWorldNarrativeContexts(
     worldId,
     params?.take as number | undefined,
     params?.targetSubjectId as string | undefined,
@@ -129,7 +129,7 @@ export async function listWorldNarrativeContexts(worldId: string, params?: Recor
 }
 
 export async function listWorldScenes(worldId: string, params?: Record<string, unknown>) {
-  return realm().worlds.worldControlControllerListWorldScenes(
+  return realm().services.WorldControlService.worldControlControllerListWorldScenes(
     worldId,
     params?.take as number | undefined,
     params?.sceneIds as string[] | undefined,

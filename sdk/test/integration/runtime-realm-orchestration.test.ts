@@ -40,12 +40,14 @@ type RealmLike = {
   raw: {
     request: <T>(input: RealmRawRequest) => Promise<T>;
   };
-  posts: {
-    create: (input: {
-      content: string;
-      attachments?: Array<{ uri?: string; mimeType?: string }>;
-      traceId?: string;
-    }) => Promise<void>;
+  services: {
+    PostService: {
+      createPost: (input: {
+        content: string;
+        attachments?: Array<{ uri?: string; mimeType?: string }>;
+        traceId?: string;
+      }) => Promise<void>;
+    };
   };
 };
 
@@ -101,13 +103,13 @@ async function orchestratePatternA(input: {
 
 async function orchestratePatternB(input: {
   runtime: Pick<RuntimeLike, 'media'>;
-  realm: Pick<RealmLike, 'posts'>;
+  realm: Pick<RealmLike, 'services'>;
   prompt: string;
   content: string;
 }): Promise<void> {
   const media = await input.runtime.media.video.generate({ prompt: input.prompt });
 
-  await input.realm.posts.create({
+  await input.realm.services.PostService.createPost({
     content: input.content,
     attachments: media.artifacts.map((artifact) => ({
       uri: artifact.uri,
@@ -178,7 +180,7 @@ async function orchestratePatternD(input: {
       },
     });
 
-    await input.realm.posts.create({
+    await input.realm.services.PostService.createPost({
       content: output.text,
       traceId: output.trace.traceId,
     });
@@ -268,13 +270,15 @@ test('Pattern B: Runtime -> Realm writes back artifacts with trace id', async ()
   };
 
   const realm = {
-    posts: {
-      create: async (request: {
-        content: string;
-        attachments?: Array<{ uri?: string; mimeType?: string }>;
-        traceId?: string;
-      }): Promise<void> => {
-        capturedCreateInput = request;
+    services: {
+      PostService: {
+        createPost: async (request: {
+          content: string;
+          attachments?: Array<{ uri?: string; mimeType?: string }>;
+          traceId?: string;
+        }): Promise<void> => {
+          capturedCreateInput = request;
+        },
       },
     },
   };
@@ -369,14 +373,16 @@ test('Pattern D: lifecycle stays independent while bridging data explicitly', as
         } as T;
       },
     },
-    posts: {
-      create: async (request: {
-        content: string;
-        attachments?: Array<{ uri?: string; mimeType?: string }>;
-        traceId?: string;
-      }): Promise<void> => {
-        sequence.push('realm.posts.create');
-        capturedCreateInput = request;
+    services: {
+      PostService: {
+        createPost: async (request: {
+          content: string;
+          attachments?: Array<{ uri?: string; mimeType?: string }>;
+          traceId?: string;
+        }): Promise<void> => {
+          sequence.push('realm.services.PostService.createPost');
+          capturedCreateInput = request;
+        },
       },
     },
   };
@@ -436,7 +442,7 @@ test('Pattern D: lifecycle stays independent while bridging data explicitly', as
     'realm.ready',
     'realm.raw.request:/api/creator/mods/control/grants/issue',
     'runtime.ai.text.generate',
-    'realm.posts.create',
+    'realm.services.PostService.createPost',
     'runtime.close',
     'realm.close',
   ]);

@@ -3,18 +3,6 @@ import { asNimiError, createNimiError } from '../runtime/errors.js';
 import { asRecord, normalizeText, nowIso } from '../internal/utils.js';
 import type { NimiError } from '../types/index.js';
 
-type MergeHandleSource = Record<string, unknown>;
-
-type UnionToIntersection<Union> = (
-  Union extends unknown ? (value: Union) => void : never
-) extends (value: infer Intersection) => void
-  ? Intersection
-  : never;
-
-type MergedHandle<Handles extends Array<MergeHandleSource | undefined>> = UnionToIntersection<
-  Exclude<Handles[number], undefined>
->;
-
 export const DEFAULT_REALM_TIMEOUT_MS = 10000;
 
 export { asRecord, normalizeText, nowIso };
@@ -105,21 +93,6 @@ function mapRealmStatusActionHint(status: number): string {
     return 'retry_or_check_realm_status';
   }
   return 'check_realm_request_payload';
-}
-
-export function mergeHandles<Handles extends Array<MergeHandleSource | undefined>>(
-  ...handles: Handles
-): MergedHandle<Handles> {
-  const merged: Record<string, unknown> = {};
-  for (const handle of handles) {
-    if (!handle) {
-      continue;
-    }
-    for (const [methodName, method] of Object.entries(handle)) {
-      merged[methodName] = method;
-    }
-  }
-  return merged as MergedHandle<Handles>;
 }
 
 export function isResponse(value: unknown): value is Response {

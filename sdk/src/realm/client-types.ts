@@ -55,30 +55,10 @@ export type RealmRawModule = {
   request<T = unknown>(input: RealmRawRequestInput): Promise<T>;
 };
 
-type ServiceByName<Name extends string> = Name extends keyof RealmGeneratedServiceRegistry
-  ? RealmGeneratedServiceRegistry[Name]
-  : Record<string, never>;
-
 export type RealmServiceRegistry = RealmGeneratedServiceRegistry;
 
 export type MeTwoFactorService = NonNullable<RealmServiceRegistry['MeTwoFactorService']>;
 export type SocialDefaultVisibilityService = NonNullable<RealmServiceRegistry['SocialDefaultVisibilityService']>;
-
-export type RealmAuthApi = ServiceByName<'AuthService'>;
-
-export type RealmUserApi = ServiceByName<'UserService'> & ServiceByName<'MeService'>;
-
-export type RealmPostApi = ServiceByName<'PostService'>;
-
-export type RealmWorldApi = ServiceByName<'WorldsService'> & ServiceByName<'WorldControlService'> & ServiceByName<'WorldRulesService'>;
-
-export type RealmNotificationApi = ServiceByName<'NotificationService'>;
-
-export type RealmMediaApi = ServiceByName<'MediaService'>;
-
-export type RealmSearchApi = ServiceByName<'SearchService'>;
-
-export type RealmTransitsApi = ServiceByName<'TransitsService'>;
 
 export type RealmEventsModule = {
   on(name: 'error', handler: (event: { error: NimiError; at: string }) => void): () => void;

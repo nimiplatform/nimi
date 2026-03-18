@@ -1,7 +1,7 @@
 // Relay proactive policy — adapted from local-chat proactive/policy.ts
-// Removed: mod SDK ReasonCode import, LocalChatTarget from data
-// Adapted: uses relay types, inline reason codes
+// Adapted: uses relay types
 
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { LocalChatTarget } from '../chat-pipeline/types.js';
 import { markProactiveContactSent, readProactivePolicyTargetState } from './policy-store.js';
 import type {
@@ -53,7 +53,7 @@ function buildPolicyResult(
   actionHint: string,
 ): LocalChatProactivePolicyResult {
   return {
-    allowed: reasonCode === 'LOCAL_CHAT_PROACTIVE_ALLOWED',
+    allowed: reasonCode === ReasonCode.LOCAL_CHAT_PROACTIVE_ALLOWED,
     reasonCode,
     actionHint,
   };

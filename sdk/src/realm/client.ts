@@ -10,21 +10,13 @@ import {
 } from './generated/service-registry.js';
 import type {
   RealmAuthOptions,
-  RealmAuthApi,
   RealmConnectionState,
   RealmEventsModule,
-  RealmMediaApi,
-  RealmNotificationApi,
   RealmOptions,
-  RealmPostApi,
   RealmRawModule,
   RealmRetryOptions,
-  RealmSearchApi,
   RealmServiceRegistry,
   RealmTokenRefreshResult,
-  RealmTransitsApi,
-  RealmUserApi,
-  RealmWorldApi,
 } from './client-types.js';
 import {
   DEFAULT_REALM_TIMEOUT_MS,
@@ -33,7 +25,6 @@ import {
   hasValue,
   isResponse,
   mapRealmError,
-  mergeHandles,
   normalizeText,
   nowIso,
   readErrorBody,
@@ -60,30 +51,6 @@ function encodePathValue(value: string | number): string {
 }
 
 export class Realm {
-  /** @deprecated Use `realm.services.AuthService` instead. */
-  readonly auth: RealmAuthApi;
-
-  /** @deprecated Use `realm.services.UserService` / `realm.services.MeService` instead. */
-  readonly users: RealmUserApi;
-
-  /** @deprecated Use `realm.services.PostService` instead. */
-  readonly posts: RealmPostApi;
-
-  /** @deprecated Use `realm.services.*` world-domain services instead. */
-  readonly worlds: RealmWorldApi;
-
-  /** @deprecated Use `realm.services.NotificationService` instead. */
-  readonly notifications: RealmNotificationApi;
-
-  /** @deprecated Use `realm.services.MediaService` instead. */
-  readonly media: RealmMediaApi;
-
-  /** @deprecated Use `realm.services.SearchService` instead. */
-  readonly search: RealmSearchApi;
-
-  /** @deprecated Use `realm.services.TransitsService` instead. */
-  readonly transits: RealmTransitsApi;
-
   readonly services: RealmServiceRegistry;
 
   readonly events: RealmEventsModule;
@@ -124,19 +91,6 @@ export class Realm {
     });
 
     this.services = createRealmServiceRegistry(async (input) => this.#requestUnknown(input)) as RealmServiceRegistry;
-
-    this.auth = this.services.AuthService;
-    this.users = mergeHandles(this.services.UserService, this.services.MeService);
-    this.posts = this.services.PostService;
-    this.worlds = mergeHandles(
-      this.services.WorldsService,
-      this.services.WorldControlService,
-      this.services.WorldRulesService,
-    );
-    this.notifications = this.services.NotificationService;
-    this.media = this.services.MediaService;
-    this.search = this.services.SearchService;
-    this.transits = this.services.TransitsService;
 
     this.events = {
       on: (name, handler) => this.#eventBus.on(name, handler),

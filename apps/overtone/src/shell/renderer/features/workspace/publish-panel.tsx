@@ -20,7 +20,7 @@ async function publishTake(input: {
   try {
     input.onStatus('uploading');
 
-    const upload = (await realm.media.createAudioDirectUpload({ mimeType: 'audio/mpeg' })) as {
+    const upload = (await realm.services.MediaService.createAudioDirectUpload({ mimeType: 'audio/mpeg' })) as {
       uploadUrl: string;
       key: string;
     };
@@ -39,7 +39,7 @@ async function publishTake(input: {
 
     input.onStatus('creating');
 
-    const post = (await realm.posts.createPost({
+    const post = (await realm.services.PostService.createPost({
       caption: input.description || input.title,
       media: [
         {

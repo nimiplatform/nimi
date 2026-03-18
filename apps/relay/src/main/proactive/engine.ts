@@ -3,6 +3,7 @@
 // Adapted: uses relay chat-pipeline modules, session-store, Electron main process context
 // Simplified: no IPC to renderer (proactive runs silently in main; renderer picks up on next load)
 
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { createLocalChatFlowId } from '../chat-pipeline/logging.js';
 import {
   createLocalChatTurnRecord,
@@ -418,7 +419,7 @@ export async function runLocalChatProactiveHeartbeatCycle(
         source: 'runLocalChatProactiveHeartbeatCycle',
         targetId: target.id,
         sessionId: session.id,
-        reasonCode: 'LOCAL_CHAT_PROACTIVE_ALLOWED',
+        reasonCode: ReasonCode.LOCAL_CHAT_PROACTIVE_ALLOWED,
         actionHint: 'contact-sent',
         level: 'info',
         details: { turnMode },
@@ -430,7 +431,7 @@ export async function runLocalChatProactiveHeartbeatCycle(
         source: 'runLocalChatProactiveHeartbeatCycle',
         targetId: target.id,
         sessionId: session.id,
-        reasonCode: 'LOCAL_CHAT_PROACTIVE_POLICY_UNAVAILABLE',
+        reasonCode: ReasonCode.LOCAL_CHAT_PROACTIVE_POLICY_UNAVAILABLE,
         actionHint: 'decision-generation-failed',
         level: 'warn',
         details: { error: toErrorText(error) },
