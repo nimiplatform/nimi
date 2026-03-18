@@ -10,7 +10,6 @@ export default defineConfig([
     platform: 'node',
     target: 'node22',
     sourcemap: true,
-    clean: true,
     external: ['electron'],
   },
   {

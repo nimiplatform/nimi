@@ -147,6 +147,7 @@
     "deploy:install-gateway": "pnpm --filter @nimiplatform/install-gateway deploy",
     "dev:desktop": "pnpm --filter @nimiplatform/desktop dev:shell",
     "dev:web": "pnpm --filter @nimiplatform/web dev",
+    "dev:relay": "pnpm --filter @nimiplatform/relay dev",
     "docs:dev": "pnpm --filter @nimiplatform/docs dev",
     "docs:build": "pnpm --filter @nimiplatform/docs build",
     "docs:preview": "pnpm --filter @nimiplatform/docs preview",
