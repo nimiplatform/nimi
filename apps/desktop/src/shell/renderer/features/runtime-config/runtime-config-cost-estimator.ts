@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { UsageWindow } from '@nimiplatform/sdk/runtime';
 import type { UsageStatRecord } from '@nimiplatform/sdk/runtime';
 import { fetchUsageStats } from './runtime-config-audit-sdk-service.js';
+import { usePricingIndex, type PricingEntry } from './runtime-config-pricing-index.js';
+import type { RuntimeCatalogPricing } from './runtime-config-catalog-sdk-service.js';
 
 export type UsageEstimateBreakdownEntry = {
   label: string;
@@ -9,6 +11,9 @@ export type UsageEstimateBreakdownEntry = {
   inputTokens: number;
   outputTokens: number;
   computeMs: number;
+  modelId: string;
+  estimatedCost: number | null;
+  costCurrency: string;
 };
 
 export type UsageEstimate = {
@@ -20,6 +25,9 @@ export type UsageEstimate = {
   totalOutputTokens: number;
   totalComputeMs: number;
   totalQueueWaitMs: number;
+  totalEstimatedCost: number | null;
+  costCurrency: string;
+  pricingLoading: boolean;
   breakdown: UsageEstimateBreakdownEntry[];
 };
 
@@ -31,7 +39,52 @@ function toSafeCount(value: unknown): number {
   return numeric;
 }
 
-export function mapUsageRecordsToEstimate(records: UsageStatRecord[]): Omit<UsageEstimate, 'loading' | 'error' | 'updatedAt'> {
+function parsePriceValue(value: string): number | null {
+  if (!value || value === 'unknown') return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+export function calculateModelCost(
+  usage: { requests: number; inputTokens: number; outputTokens: number; computeMs: number },
+  pricing: RuntimeCatalogPricing,
+): { cost: number | null; currency: string } {
+  if (pricing.currency === 'none') {
+    return { cost: 0, currency: 'none' };
+  }
+
+  const inputPrice = parsePriceValue(pricing.input);
+  const outputPrice = parsePriceValue(pricing.output);
+
+  if (inputPrice === null && outputPrice === null) {
+    return { cost: null, currency: pricing.currency };
+  }
+
+  const safeInput = inputPrice ?? 0;
+  const safeOutput = outputPrice ?? 0;
+
+  let cost: number;
+  switch (pricing.unit) {
+    case 'token':
+      cost = (usage.inputTokens * safeInput + usage.outputTokens * safeOutput) / 1_000_000;
+      break;
+    case 'char':
+      cost = (usage.inputTokens * 4 * safeInput + usage.outputTokens * 4 * safeOutput) / 1_000_000;
+      break;
+    case 'request':
+      cost = usage.requests * safeInput;
+      break;
+    case 'second':
+      cost = (usage.computeMs / 60_000) * safeInput;
+      break;
+    default:
+      return { cost: null, currency: pricing.currency };
+  }
+
+  return { cost, currency: pricing.currency };
+}
+
+export function mapUsageRecordsToEstimate(records: UsageStatRecord[]): Omit<UsageEstimate, 'loading' | 'error' | 'updatedAt' | 'totalEstimatedCost' | 'costCurrency' | 'pricingLoading'> {
   let totalRequests = 0;
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
@@ -56,10 +109,13 @@ export function mapUsageRecordsToEstimate(records: UsageStatRecord[]): Omit<Usag
     const label = `${capability} · ${modelId}`;
     const existing = grouped.get(label) || {
       label,
+      modelId,
       requests: 0,
       inputTokens: 0,
       outputTokens: 0,
       computeMs: 0,
+      estimatedCost: null,
+      costCurrency: '',
     };
     existing.requests += requests;
     existing.inputTokens += inputTokens;
@@ -98,6 +154,33 @@ async function loadUsageRecords(window: UsageWindow): Promise<UsageStatRecord[]>
     }
   }
   return output;
+}
+
+function applyPricingToEstimate(
+  estimate: ReturnType<typeof mapUsageRecordsToEstimate>,
+  pricingIndex: Map<string, PricingEntry>,
+): { breakdown: UsageEstimateBreakdownEntry[]; totalEstimatedCost: number | null; costCurrency: string } {
+  let totalCost: number | null = 0;
+  let detectedCurrency = '';
+
+  const breakdown = estimate.breakdown.map((entry) => {
+    const pricingEntry = pricingIndex.get(entry.modelId);
+    if (!pricingEntry) {
+      return { ...entry, estimatedCost: null, costCurrency: '' };
+    }
+    const { cost, currency } = calculateModelCost(entry, pricingEntry.pricing);
+    if (cost !== null && currency !== 'none') {
+      if (!detectedCurrency) detectedCurrency = currency;
+      if (detectedCurrency === currency && totalCost !== null) {
+        totalCost += cost;
+      } else if (detectedCurrency !== currency) {
+        totalCost = null;
+      }
+    }
+    return { ...entry, estimatedCost: cost, costCurrency: currency };
+  });
+
+  return { breakdown, totalEstimatedCost: totalCost, costCurrency: detectedCurrency || 'USD' };
 }
 
 export function useUsageEstimate(
@@ -144,11 +227,31 @@ export function useUsageEstimate(
     };
   }, [pollIntervalMs, usageWindow]);
 
-  const estimate = useMemo(() => mapUsageRecordsToEstimate(records), [records]);
+  const baseEstimate = useMemo(() => mapUsageRecordsToEstimate(records), [records]);
+
+  const modelIds = useMemo(
+    () => [...new Set(baseEstimate.breakdown.map((entry) => entry.modelId))],
+    [baseEstimate.breakdown],
+  );
+  const pricingState = usePricingIndex(modelIds);
+
+  const withPricing = useMemo(
+    () => applyPricingToEstimate(baseEstimate, pricingState.index),
+    [baseEstimate, pricingState.index],
+  );
+
   return {
     loading,
     error,
     updatedAt,
-    ...estimate,
+    totalRequests: baseEstimate.totalRequests,
+    totalInputTokens: baseEstimate.totalInputTokens,
+    totalOutputTokens: baseEstimate.totalOutputTokens,
+    totalComputeMs: baseEstimate.totalComputeMs,
+    totalQueueWaitMs: baseEstimate.totalQueueWaitMs,
+    totalEstimatedCost: withPricing.totalEstimatedCost,
+    costCurrency: withPricing.costCurrency,
+    pricingLoading: pricingState.loading,
+    breakdown: withPricing.breakdown,
   };
 }

@@ -2,9 +2,7 @@ pub fn build_llmfit_recommendation(
     candidate: &RecommendationCandidate,
     profile: &LocalAiDeviceProfile,
 ) -> Option<LocalAiRecommendationDescriptor> {
-    if first_llm_capability(std::slice::from_ref(&candidate.capability)).is_none() {
-        return None;
-    }
+    first_llm_capability(std::slice::from_ref(&candidate.capability))?;
 
     let support = classify_host_support(candidate.engine.as_str(), profile);
     let quant = llm_quant_hint(candidate);

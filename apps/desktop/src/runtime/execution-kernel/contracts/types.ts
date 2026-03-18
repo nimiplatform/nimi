@@ -41,6 +41,7 @@ export interface ModManifest {
   hash?: string;
   icon?: string;
   iconAsset?: string;
+  styles?: string[];
   nimi?: {
     minVersion?: string;
     maxVersion?: string;

@@ -93,38 +93,38 @@ fn to_descriptor(
             warnings.push("LOCAL_AI_DEPENDENCY_REPO_MISSING".to_string());
         }
     }
-    if selected && option.kind == LocalAiDependencyKind::Service {
-        if option
+    if selected
+        && option.kind == LocalAiDependencyKind::Service
+        && option
             .service_id
             .as_deref()
             .unwrap_or_default()
             .trim()
             .is_empty()
-        {
-            warnings.push("LOCAL_AI_DEPENDENCY_SERVICE_ID_MISSING".to_string());
-        }
+    {
+        warnings.push("LOCAL_AI_DEPENDENCY_SERVICE_ID_MISSING".to_string());
     }
-    if selected && option.kind == LocalAiDependencyKind::Node {
-        if option
+    if selected
+        && option.kind == LocalAiDependencyKind::Node
+        && option
             .node_id
             .as_deref()
             .unwrap_or_default()
             .trim()
             .is_empty()
-        {
-            warnings.push("LOCAL_AI_DEPENDENCY_NODE_ID_MISSING".to_string());
-        }
+    {
+        warnings.push("LOCAL_AI_DEPENDENCY_NODE_ID_MISSING".to_string());
     }
-    if selected && option.kind == LocalAiDependencyKind::Workflow {
-        if option
+    if selected
+        && option.kind == LocalAiDependencyKind::Workflow
+        && option
             .workflow_id
             .as_deref()
             .unwrap_or_default()
             .trim()
             .is_empty()
-        {
-            warnings.push("LOCAL_AI_DEPENDENCY_WORKFLOW_ID_MISSING".to_string());
-        }
+    {
+        warnings.push("LOCAL_AI_DEPENDENCY_WORKFLOW_ID_MISSING".to_string());
     }
     LocalAiDependencyDescriptor {
         dependency_id: option.dependency_id.clone(),

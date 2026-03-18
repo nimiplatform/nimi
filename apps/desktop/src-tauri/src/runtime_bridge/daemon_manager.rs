@@ -166,9 +166,8 @@ pub fn start() -> Result<RuntimeBridgeDaemonStatus, String> {
     }
 
     let grpc = grpc_addr();
-    let spec = runtime_cli_command_spec(&["serve"]).map_err(|error| {
+    let spec = runtime_cli_command_spec(&["serve"]).inspect_err(|error| {
         set_last_error(Some(error.clone()));
-        error
     })?;
     let mut command = Command::new(spec.program.as_str());
     command.args(spec.args);

@@ -330,12 +330,10 @@ fn memory_budget_bytes(
                 .gpu
                 .available_vram_bytes
                 .filter(|value| *value > 0)
-                .or_else(|| {
-                    if profile.available_ram_bytes > 0 {
-                        Some(profile.available_ram_bytes)
-                    } else {
-                        None
-                    }
+                .or(if profile.available_ram_bytes > 0 {
+                    Some(profile.available_ram_bytes)
+                } else {
+                    None
                 });
             if budget.is_some() {
                 push_unique_code(reason_codes, REASON_UNIFIED_MEMORY_ESTIMATE);
@@ -354,12 +352,10 @@ fn memory_budget_bytes(
             .gpu
             .available_vram_bytes
             .filter(|value| *value > 0)
-            .or_else(|| {
-                if profile.available_ram_bytes > 0 {
-                    Some(profile.available_ram_bytes)
-                } else {
-                    None
-                }
+            .or(if profile.available_ram_bytes > 0 {
+                Some(profile.available_ram_bytes)
+            } else {
+                None
             }),
     }
 }

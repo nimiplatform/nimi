@@ -235,6 +235,7 @@ impl ExternalAgentGatewayConfig {
     }
 }
 
+#[derive(Default)]
 pub struct ExternalAgentGatewayInner {
     pub actions: HashMap<String, ExternalAgentActionDescriptor>,
     pub revoked_token_ids: HashSet<String>,
@@ -252,19 +253,6 @@ pub struct ExternalAgentExecutionOwner {
     pub action_id: String,
     pub principal_id: String,
     pub auth_token_id: String,
-}
-
-impl Default for ExternalAgentGatewayInner {
-    fn default() -> Self {
-        Self {
-            actions: HashMap::new(),
-            revoked_token_ids: HashSet::new(),
-            completion_waiters: HashMap::new(),
-            execution_owners: HashMap::new(),
-            execution_events: HashMap::new(),
-            pending_executions: Vec::new(),
-        }
-    }
 }
 
 fn now_unix_secs() -> i64 {

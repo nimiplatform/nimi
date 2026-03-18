@@ -139,7 +139,7 @@ pub fn list_external_agent_token_records(
     conn: &Connection,
     limit: usize,
 ) -> Result<Vec<ExternalAgentTokenRecordPayload>, String> {
-    let normalized_limit = limit.max(1).min(1000) as i64;
+    let normalized_limit = limit.clamp(1, 1000) as i64;
     let mut statement = conn
         .prepare(
             r#"

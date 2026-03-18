@@ -107,8 +107,7 @@ fn file_modified_at(metadata: &fs::Metadata) -> Option<String> {
         .modified()
         .ok()
         .and_then(|time| time.duration_since(UNIX_EPOCH).ok())
-        .map(|value| chrono::DateTime::<chrono::Utc>::from_timestamp(value.as_secs() as i64, value.subsec_nanos()))
-        .flatten()
+        .and_then(|value| chrono::DateTime::<chrono::Utc>::from_timestamp(value.as_secs() as i64, value.subsec_nanos()))
         .map(|value| value.to_rfc3339())
 }
 

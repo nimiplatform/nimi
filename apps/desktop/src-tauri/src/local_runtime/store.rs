@@ -176,15 +176,15 @@ fn save_state_to_path(path: &Path, state: &LocalAiRuntimeState) -> Result<(), St
         })?;
         drop(file);
 
-        if let Err(rename_error) = fs::rename(&temp_path, &path) {
+        if let Err(rename_error) = fs::rename(&temp_path, path) {
             if path.exists() {
-                fs::remove_file(&path).map_err(|error| {
+                fs::remove_file(path).map_err(|error| {
                     format!(
                         "替换 Local AI Runtime state 失败，删除旧文件失败 ({}): {error}",
                         path.display()
                     )
                 })?;
-                fs::rename(&temp_path, &path).map_err(|error| {
+                fs::rename(&temp_path, path).map_err(|error| {
                     format!(
                         "提交 Local AI Runtime state 失败 ({} -> {}): {error}",
                         temp_path.display(),

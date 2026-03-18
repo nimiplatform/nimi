@@ -301,13 +301,12 @@ pub fn install_from_hf_with_control(
                 .is_none()
             },
         )
-        .map_err(|error| {
+        .inspect_err(|_error| {
             rollback_staging(
                 staging_dir.as_path(),
                 backup_dir.as_path(),
                 model_dir.as_path(),
             );
-            error
         })?;
 
         if let Some(expected_hash) = resolve_expected_file_hash(request, file_path) {

@@ -14,7 +14,7 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             external_agent_gateway::start_external_agent_gateway(gateway_state.clone());
             app.manage(gateway_state);
             app.manage(crate::menu_bar_shell::MenuBarShellStore::new());
-            match crate::desktop_release::initialize(&app.handle()) {
+            match crate::desktop_release::initialize(app.handle()) {
                 Ok(info) => {
                     eprintln!(
                         "[boot:{:}] desktop release initialized version={} runtime={} ready={}",
@@ -122,8 +122,8 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
                     }
                 }
             }
-            let _ = crate::menu_bar_shell::setup(&app.handle());
-            let _ = crate::runtime_mod::store::sync_runtime_mod_source_watchers(&app.handle());
+            let _ = crate::menu_bar_shell::setup(app.handle());
+            let _ = crate::runtime_mod::store::sync_runtime_mod_source_watchers(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

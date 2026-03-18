@@ -325,7 +325,7 @@ fn verify_release_signature(
         .iter()
         .find(|item| item.signer_id == release.signer_id)
         .ok_or_else(|| format!("未找到 signer: {}", release.signer_id))?;
-    if signer.algorithm.trim().to_ascii_lowercase() != "ed25519" {
+    if !signer.algorithm.trim().eq_ignore_ascii_case("ed25519") {
         return Err(format!("暂不支持的 signer algorithm: {}", signer.algorithm));
     }
     let verifying_key = if signer.public_key.contains("BEGIN PUBLIC KEY") {

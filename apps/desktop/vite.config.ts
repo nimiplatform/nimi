@@ -64,15 +64,6 @@ export default defineConfig(({ mode }) => {
   loadDesktopBuildEnvFiles();
   const env = loadEnv(mode, __dirname, '');
   const fsAllowList = resolveFsAllowList(env);
-  const externalStoreShimPath = path.resolve(
-    __dirname,
-    'src/shell/renderer/compat/use-sync-external-store-shim.ts',
-  );
-  const externalStoreShimWithSelectorPath = path.resolve(
-    __dirname,
-    'src/shell/renderer/compat/use-sync-external-store-shim-with-selector.ts',
-  );
-
   return {
     root: path.resolve(__dirname, 'src/shell/renderer'),
     envPrefix: ['VITE_', 'NIMI_'],
@@ -90,8 +81,6 @@ export default defineConfig(({ mode }) => {
         '@react-three/postprocessing',
         'zustand',
         'zustand/traditional',
-        'use-sync-external-store/shim/with-selector',
-        'use-sync-external-store/shim/with-selector.js',
       ],
     },
     resolve: {
@@ -100,22 +89,8 @@ export default defineConfig(({ mode }) => {
         'react-dom',
         'scheduler',
         'zustand',
-        'use-sync-external-store',
       ],
       alias: [
-        // Guard dev mode when Vite serves the raw /@fs zustand ESM entry.
-        {
-          find: /^use-sync-external-store\/shim\/with-selector\.js$/,
-          replacement: externalStoreShimWithSelectorPath,
-        },
-        {
-          find: /^use-sync-external-store\/shim\/with-selector$/,
-          replacement: externalStoreShimWithSelectorPath,
-        },
-        {
-          find: /^use-sync-external-store\/shim$/,
-          replacement: externalStoreShimPath,
-        },
         {
           find: '@runtime',
           replacement: path.resolve(__dirname, 'src/runtime'),

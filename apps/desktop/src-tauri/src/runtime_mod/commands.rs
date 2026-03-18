@@ -295,7 +295,7 @@ pub fn runtime_mod_delete_audit(
         });
 
     if let Some(limit) = filter.limit {
-        let normalized_limit = (limit.max(1).min(1000)) as i64;
+        let normalized_limit = limit.clamp(1, 1000) as i64;
         return conn
             .execute(
                 r#"

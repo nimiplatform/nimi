@@ -230,7 +230,7 @@ async fn dispatch_action(
         );
     }
 
-    if let Err(_) = state.app.emit(EXTERNAL_AGENT_ACTION_REQUEST_EVENT, payload) {
+    if state.app.emit(EXTERNAL_AGENT_ACTION_REQUEST_EVENT, payload).is_err() {
         {
             let mut guard = state.inner.lock().await;
             guard.completion_waiters.remove(execution_id.as_str());
@@ -366,7 +366,7 @@ async fn execution_events(
         }
     };
 
-    let events = match {
+    let lookup = {
         let mut guard = state.inner.lock().await;
         guard.prune_execution_events(super::now_unix_secs());
         let owner = guard.execution_owners.get(execution_id.as_str()).cloned();
@@ -376,7 +376,8 @@ async fn execution_events(
             .cloned()
             .unwrap_or_default();
         (owner, events)
-    } {
+    };
+    let events = match lookup {
         (None, _) => {
             return error_response(StatusCode::NOT_FOUND, "EXTERNAL_AGENT_EXECUTION_NOT_FOUND")
                 .into_response();

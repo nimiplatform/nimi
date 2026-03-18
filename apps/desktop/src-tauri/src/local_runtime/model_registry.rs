@@ -25,7 +25,7 @@ fn rebuild_capability_index(state: &mut LocalAiRuntimeState) {
             if local_model_id.is_empty() {
                 continue;
             }
-            let bucket = index.entry(normalized).or_insert_with(Vec::new);
+            let bucket = index.entry(normalized).or_default();
             if !bucket.iter().any(|item| item == &local_model_id) {
                 bucket.push(local_model_id.clone());
             }

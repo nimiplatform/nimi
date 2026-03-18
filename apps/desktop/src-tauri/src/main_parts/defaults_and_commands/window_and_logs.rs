@@ -44,7 +44,7 @@ fn log_renderer_event(payload: RendererLogPayload) {
     let cost_ms = payload
         .cost_ms
         .map(|value| format!(" {value}ms"))
-        .unwrap_or_else(String::new);
+        .unwrap_or_default();
     let detail_text_raw = payload
         .details
         .as_ref()

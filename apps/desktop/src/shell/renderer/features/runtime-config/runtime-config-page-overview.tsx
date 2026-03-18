@@ -58,6 +58,14 @@ function formatCount(value: number): string {
   return formatLocaleNumber(Math.round(value));
 }
 
+function formatCost(value: number | null, currency: string): string {
+  if (value === null) return 'N/A';
+  if (currency === 'none') return '$0.00';
+  const prefix = currency === 'USD' ? '$' : currency === 'CNY' ? '\u00a5' : '';
+  if (value < 0.01 && value > 0) return `~${prefix}0.01`;
+  return `~${prefix}${value.toFixed(2)}`;
+}
+
 function ProgressBar({ percent, color }: { percent: number; color: string }) {
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
@@ -258,19 +266,28 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
                 <p className="text-xs text-gray-500">{t('runtimeConfig.overview.outputTokens', { defaultValue: 'Output Tokens' })}</p>
                 <p className="text-sm font-semibold text-gray-900">{formatCount(usageEstimate.totalOutputTokens)}</p>
               </div>
+              <div className="col-span-2 rounded-xl border border-gray-100 bg-gray-50 p-3" title={usageEstimate.totalEstimatedCost === null ? t('runtimeConfig.overview.costTooltipUnknown', { defaultValue: 'Some models have unknown pricing' }) : ''}>
+                <p className="text-xs text-gray-500">{t('runtimeConfig.overview.estimatedCost', { defaultValue: 'Estimated Cost' })}</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {usageEstimate.pricingLoading ? '...' : formatCost(usageEstimate.totalEstimatedCost, usageEstimate.costCurrency)}
+                </p>
+              </div>
             </div>
             {usageEstimate.error ? (
               <p className="mt-3 text-xs text-red-600">{usageEstimate.error}</p>
             ) : null}
             <div className="mt-4 space-y-1 border-t border-gray-100 pt-3">
               {usageEstimate.breakdown.map((entry) => (
-                <div key={entry.label} className="flex items-center justify-between text-xs text-gray-600">
-                  <span className="truncate pr-3">{entry.label}</span>
-                  <span className="font-medium">
+                <div key={entry.label} className="flex items-center justify-between gap-2 text-xs text-gray-600">
+                  <span className="min-w-0 flex-1 truncate">{entry.label}</span>
+                  <span className="shrink-0 font-medium">
                     {t('runtimeConfig.overview.requestsShort', {
                       value: formatCount(entry.requests),
                       defaultValue: '{{value}} req',
                     })}
+                  </span>
+                  <span className="w-16 shrink-0 text-right font-medium text-gray-500">
+                    {formatCost(entry.estimatedCost, entry.costCurrency)}
                   </span>
                 </div>
               ))}
@@ -283,6 +300,11 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
                     value: formatLocaleDateTime(usageEstimate.updatedAt),
                     defaultValue: 'Updated: {{value}}',
                   })}
+                </p>
+              ) : null}
+              {usageEstimate.breakdown.length > 0 ? (
+                <p className="pt-1 text-[11px] text-gray-400">
+                  {t('runtimeConfig.overview.costDisclaimer', { defaultValue: 'Estimates based on catalog pricing; actual costs may vary.' })}
                 </p>
               ) : null}
             </div>

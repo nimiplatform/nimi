@@ -48,6 +48,10 @@ export class ManifestEngine {
       : [];
     const entry = typeof raw['entry'] === 'string' ? raw['entry'] : './dist/mods/runtime-mod/index.js';
     const hash = typeof raw['hash'] === 'string' ? raw['hash'] : undefined;
+    const iconAsset = typeof raw['iconAsset'] === 'string' ? raw['iconAsset'] : undefined;
+    const styles = Array.isArray(raw['styles'])
+      ? raw['styles'].filter((s): s is string => typeof s === 'string')
+      : undefined;
 
     const nimiRaw =
       raw['nimi'] && typeof raw['nimi'] === 'object' && !Array.isArray(raw['nimi'])
@@ -63,6 +67,8 @@ export class ManifestEngine {
       dependencies,
       entry,
       hash,
+      iconAsset,
+      styles,
       nimi: minVersion || maxVersion ? { minVersion, maxVersion } : undefined,
     };
   }
@@ -97,6 +103,19 @@ export class ManifestEngine {
       issues.push('MANIFEST_ENTRY_PATH_INVALID');
     }
 
+    if (manifest.iconAsset && !this.isValidRelativePath(manifest.iconAsset)) {
+      issues.push('MANIFEST_ICON_ASSET_PATH_INVALID');
+    }
+
+    if (manifest.styles) {
+      for (const stylePath of manifest.styles) {
+        if (!this.isValidRelativePath(stylePath)) {
+          issues.push('MANIFEST_STYLE_PATH_INVALID');
+          break;
+        }
+      }
+    }
+
     return issues;
   }
 
@@ -127,6 +146,13 @@ export class ManifestEngine {
     }
 
     return { compatible: true, reasonCode: ReasonCode.COMPAT_OK };
+  }
+
+  private isValidRelativePath(path: string): boolean {
+    if (!path || path.includes('..') || path.startsWith('/') || /^https?:\/\//i.test(path)) {
+      return false;
+    }
+    return true;
   }
 
   private isValidEntryPath(entry: string): boolean {

@@ -37,7 +37,7 @@ fn build_token_id(principal_id: &str, subject_account_id: &str, mode: &str) -> S
         .iter()
         .map(|byte| format!("{:02x}", byte))
         .collect::<String>();
-    format!("ext-{}", encoded[..24].to_string())
+    format!("ext-{}", &encoded[..24])
 }
 
 fn is_supported_scope_op(value: &str) -> bool {

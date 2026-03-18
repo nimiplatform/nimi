@@ -58,7 +58,7 @@ pub fn query_runtime_audit(
         limit: Some(200),
     });
 
-    let limit = normalized.limit.unwrap_or(200).max(1).min(1000) as i64;
+    let limit = normalized.limit.unwrap_or(200).clamp(1, 1000) as i64;
 
     let mut statement = conn
         .prepare(
@@ -168,7 +168,7 @@ pub fn query_action_execution_ledger(
         to: None,
         limit: Some(200),
     });
-    let limit = normalized.limit.unwrap_or(200).max(1).min(2000) as i64;
+    let limit = normalized.limit.unwrap_or(200).clamp(1, 2000) as i64;
     let mut statement = conn
         .prepare(
             r#"
