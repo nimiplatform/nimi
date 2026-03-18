@@ -570,7 +570,8 @@
     "eligible": "符合资格",
     "notEligible": "不符合资格",
     "noChanges": "性能设置无变更",
-    "saveSuccess": "性能偏好已保存"
+    "saveSuccess": "性能偏好已保存",
+    "updateUnavailable": "桌面更新在当前环境下不可用。"
   },
   "Wallet": {
     "pageTitle": "钱包",
@@ -1154,7 +1155,17 @@
     "blockConfirmMessagePrefix": "确定要屏蔽",
     "blockConfirmMessageSuffix": "吗？对方会被移入你的黑名单，并且无法再联系你。",
     "restoreConfirmMessagePrefix": "将",
-    "restoreConfirmMessageSuffix": "恢复到之前的分类？"
+    "restoreConfirmMessageSuffix": "恢复到之前的分类？",
+    "blockUserSuccess": "已屏蔽 {{name}}",
+    "removeFriendSuccess": "已将 {{name}} 移出好友列表"
+  },
+  "GiftBubble": {
+    "accept": "接受",
+    "accepted": "已接受",
+    "expired": "已过期",
+    "openWallet": "前往钱包",
+    "reject": "拒绝",
+    "rejected": "已拒绝"
   },
   "Bootstrap": {
     "initializingRuntime": "正在初始化运行时...",
@@ -2011,7 +2022,9 @@
       "modProfilesDescription": "为 Mod 配置 AI",
       "configureClouds": "配置云端",
       "runtimeAudit": "运行时与审计",
-      "modProfiles": "Mod 配置档"
+      "modProfiles": "Mod 配置档",
+      "costDisclaimer": "基于目录定价的估算，实际费用可能有所不同。",
+      "costTooltipUnknown": "部分模型定价未知"
     },
     "local": {
       "searchInstall": "搜索与安装模型",
@@ -2147,7 +2160,11 @@
       "recommendationReasonLlmfitTight": "LLM 适配结果显示运行预算较紧。",
       "recommendationReasonLlmfitContextDefaulted": "上下文长度使用默认基线估算。",
       "recommendationReasonLlmfitVisionModel": "这个模型按支持视觉输入的聊天模型处理。",
-      "recommendationReasonLlmfitTpsEstimated": "token 吞吐是按启发式方式估算的。"
+      "recommendationReasonLlmfitTpsEstimated": "token 吞吐是按启发式方式估算的。",
+      "baseline": "基线",
+      "confidence": "置信度",
+      "host": "主机",
+      "recommendation": "推荐"
     },
     "cloud": {
       "connectors": "云端 API 连接器",
@@ -2405,7 +2422,8 @@
       "tokenModeLabel": "模式",
       "tokenSubjectLabel": "主体",
       "tokenExpiresLabel": "过期时间",
-      "tokenRevokedLabel": "撤销时间"
+      "tokenRevokedLabel": "撤销时间",
+      "tokenCount": "{{count}} 个令牌"
     },
     "panel": {
       "title": "AI 运行时",

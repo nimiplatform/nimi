@@ -570,7 +570,8 @@
     "eligible": "Eligible",
     "notEligible": "Not eligible",
     "noChanges": "No performance changes to save",
-    "saveSuccess": "Performance preferences saved"
+    "saveSuccess": "Performance preferences saved",
+    "updateUnavailable": "Desktop updates are unavailable in the current environment."
   },
   "Wallet": {
     "pageTitle": "Wallet",
@@ -1154,7 +1155,17 @@
     "blockConfirmMessagePrefix": "Are you sure you want to block",
     "blockConfirmMessageSuffix": "They will be moved to your Blocked list and won't be able to contact you.",
     "restoreConfirmMessagePrefix": "Restore",
-    "restoreConfirmMessageSuffix": "to their previous category?"
+    "restoreConfirmMessageSuffix": "to their previous category?",
+    "blockUserSuccess": "Blocked {{name}}",
+    "removeFriendSuccess": "Removed {{name}} from friends"
+  },
+  "GiftBubble": {
+    "accept": "Accept",
+    "accepted": "Accepted",
+    "expired": "Expired",
+    "openWallet": "Open Wallet",
+    "reject": "Reject",
+    "rejected": "Rejected"
   },
   "Bootstrap": {
     "initializingRuntime": "Initializing runtime...",
@@ -2011,7 +2022,9 @@
       "modProfilesDescription": "Configure AI for mods",
       "configureClouds": "Configure Cloud",
       "runtimeAudit": "Runtime & Audit",
-      "modProfiles": "Mod Profiles"
+      "modProfiles": "Mod Profiles",
+      "costDisclaimer": "Estimates based on catalog pricing; actual costs may vary.",
+      "costTooltipUnknown": "Some models have unknown pricing"
     },
     "local": {
       "searchInstall": "Search & Install Models",
@@ -2147,7 +2160,11 @@
       "recommendationReasonLlmfitTight": "LLM fit indicates a tight runtime budget.",
       "recommendationReasonLlmfitContextDefaulted": "Context size was estimated from the default baseline.",
       "recommendationReasonLlmfitVisionModel": "The model was treated as a vision-capable chat model.",
-      "recommendationReasonLlmfitTpsEstimated": "Token throughput was estimated heuristically."
+      "recommendationReasonLlmfitTpsEstimated": "Token throughput was estimated heuristically.",
+      "baseline": "Baseline",
+      "confidence": "Confidence",
+      "host": "Host",
+      "recommendation": "Recommendation"
     },
     "cloud": {
       "connectors": "Cloud API Connectors",
@@ -2405,7 +2422,8 @@
       "tokenModeLabel": "mode",
       "tokenSubjectLabel": "subject",
       "tokenExpiresLabel": "expires",
-      "tokenRevokedLabel": "revoked"
+      "tokenRevokedLabel": "revoked",
+      "tokenCount": "{{count}} token"
     },
     "panel": {
       "title": "AI Runtime",
