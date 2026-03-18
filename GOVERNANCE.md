@@ -4,13 +4,13 @@ This document defines how `@nimiplatform/nimi` is maintained as an open-source p
 
 ## Roles
 
-1. Maintainers: approve architecture changes, releases, and SSOT contract updates.
+1. Maintainers: approve architecture changes, releases, and spec contract updates.
 2. Reviewers: review code, contracts, tests, and docs for correctness and policy compliance.
 3. Contributors: propose and implement changes through issues and pull requests.
 
 ## Decision Rules
 
-1. Contract-first: changes touching boundaries (`runtime/sdk/apps/desktop/nimi-mods/proto/docs/ssot`) must update SSOT first.
+1. Contract-first: changes touching boundaries (`runtime/sdk/apps/desktop/nimi-mods/proto/spec`) must update spec first.
 2. No-legacy by default: pre-launch changes should hard-cut to final contract unless blocked by external dependency.
 3. Fail-fast over fallback: hidden path guessing and compatibility aliases are rejected.
 4. Security-sensitive domains require stricter review and explicit verification notes.
@@ -19,7 +19,7 @@ This document defines how `@nimiplatform/nimi` is maintained as an open-source p
 
 1. Include scope, risk, validation commands, and rollback notes.
 2. Pass required CI gates before merge.
-3. Include docs/SSOT updates when behavior or contract changes.
+3. Include spec updates when behavior or contract changes.
 4. Breaking changes must state migration path clearly.
 
 ## Release Governance

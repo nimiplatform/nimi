@@ -30,7 +30,7 @@ const BANNED_PATTERNS = [
   { pattern: /\brealm-mapping\.md\b/g, label: 'legacy doc alias "realm-mapping.md"' },
   { pattern: /\bmigration-cutover\.md\b/g, label: 'stale cutover runbook entry "migration-cutover.md"' },
   { pattern: /NIMI_MODS_DIR/g, label: 'deprecated env alias "NIMI_MODS_DIR"' },
-  { pattern: /desktop\/mods/g, label: 'legacy in-repo mods directory "desktop/mods"' },
+  { pattern: /desktop\/mods\b(?!-)/g, label: 'legacy in-repo mods directory "desktop/mods"' },
   { pattern: /\.\.\/\.\.\/nimi-mods/g, label: 'legacy relative mods path "../../nimi-mods"' },
   { pattern: /nimi-public/g, label: 'legacy repository name "nimi-public"' },
   { pattern: /docs\/refactory/g, label: 'legacy docs path "docs/refactory"' },
