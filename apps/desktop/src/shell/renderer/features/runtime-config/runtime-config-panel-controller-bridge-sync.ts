@@ -41,9 +41,19 @@ export function useRuntimeConfigBridgeSync(input: UseRuntimeConfigBridgeSyncInpu
     let cancelled = false;
     const loadBridgeConfig = async () => {
       try {
-        const result = await desktopBridge.getRuntimeBridgeConfig();
+        const { sdkListConnectors } = await import('./runtime-config-connector-sdk-service');
+        const [bridgeResult, connectorResult] = await Promise.allSettled([
+          desktopBridge.getRuntimeBridgeConfig(),
+          sdkListConnectors(),
+        ]);
+
         if (cancelled) return;
-        runtimeBridgeConfigRef.current = asRecord(result.config);
+
+        if (bridgeResult.status === 'rejected') {
+          throw bridgeResult.reason;
+        }
+
+        runtimeBridgeConfigRef.current = asRecord(bridgeResult.value.config);
         runtimeBridgeReadSucceededRef.current = true;
         setState((previous) => {
           if (!previous) return previous;
@@ -53,19 +63,11 @@ export function useRuntimeConfigBridgeSync(input: UseRuntimeConfigBridgeSyncInpu
           return next;
         });
 
-        if (!cancelled) {
-          try {
-            const { sdkListConnectors } = await import('./runtime-config-connector-sdk-service');
-            const connectors = await sdkListConnectors();
-            if (!cancelled && connectors.length > 0) {
-              setState((previous) => {
-                if (!previous) return previous;
-                return replaceConnectorsInState(previous, connectors);
-              });
-            }
-          } catch {
-            // SDK connector load failed — connectors will remain from bridge config
-          }
+        if (!cancelled && connectorResult.status === 'fulfilled' && connectorResult.value.length > 0) {
+          setState((previous) => {
+            if (!previous) return previous;
+            return replaceConnectorsInState(previous, connectorResult.value);
+          });
         }
       } catch (error) {
         if (cancelled) return;

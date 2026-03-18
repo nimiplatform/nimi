@@ -2410,7 +2410,9 @@
     "panel": {
       "title": "AI 运行时",
       "loading": "正在加载运行时配置...",
-      "resizeSidebar": "调整运行时侧边栏宽度"
+      "resizeSidebar": "调整运行时侧边栏宽度",
+      "discovering": "发现中...",
+      "checkingHealth": "检查中..."
     },
     "recommend": {
       "heroEyebrow": "本地推荐 Feed",

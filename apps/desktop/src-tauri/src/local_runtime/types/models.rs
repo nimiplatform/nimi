@@ -25,6 +25,7 @@ pub struct LocalAiModelSource {
 pub struct LocalAiModelRecord {
     pub local_model_id: String,
     pub model_id: String,
+    #[serde(default)]
     pub logical_model_id: String,
     pub capabilities: Vec<String>,
     pub engine: String,

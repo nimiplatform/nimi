@@ -16,6 +16,7 @@ export async function runDiscoverLocalModelsCommand(input: {
     discovered,
     models,
     nodeMatrix,
+    rawModels,
   } = await discoverLocalModelsFromEndpoint(input.state);
 
   input.updateState((prev) => {
@@ -30,35 +31,36 @@ export async function runDiscoverLocalModelsCommand(input: {
     };
   });
 
-  // Reconcile Tauri model state → Go runtime to fix registry divergence
-  try {
-    const fullModels = await localRuntime.list();
-    await (await getOfflineCacheManager()).syncModelManifests(
-      fullModels as unknown as Record<string, unknown>[],
-    );
-    await reconcileModelsToGoRuntime(fullModels);
-  } catch (error) {
-    await localRuntime.appendAudit({
-      eventType: 'runtime_model_sync_failed_during_discovery',
-      modelId: 'local-models',
-      source: 'local',
-      reasonCode: ReasonCode.GO_RUNTIME_SYNC_FAILED,
-      detail: error instanceof Error ? error.message : String(error || 'unknown sync error'),
-      payload: {
-        action: 'runtime_model_sync_failed_during_discovery',
-      },
-    }).catch(() => null);
-    input.setStatusBanner({
-      kind: 'warning',
-      message: `Discovered local models, but Go runtime reconciliation failed: ${error instanceof Error ? error.message : String(error || '')}`,
-    });
-    return;
-  }
-
   input.setStatusBanner({
     kind: 'success',
     message: discovered.length > 0
       ? `Discovered ${discovered.length} Local Runtime models`
       : 'Local Runtime model list is up to date',
   });
+
+  // Reconcile Tauri model state → Go runtime in background (non-blocking)
+  void (async () => {
+    try {
+      const cacheManager = await getOfflineCacheManager();
+      await Promise.all([
+        cacheManager.syncModelManifests(rawModels as unknown as Record<string, unknown>[]),
+        reconcileModelsToGoRuntime(rawModels),
+      ]);
+    } catch (error) {
+      await localRuntime.appendAudit({
+        eventType: 'runtime_model_sync_failed_during_discovery',
+        modelId: 'local-models',
+        source: 'local',
+        reasonCode: ReasonCode.GO_RUNTIME_SYNC_FAILED,
+        detail: error instanceof Error ? error.message : String(error || 'unknown sync error'),
+        payload: {
+          action: 'runtime_model_sync_failed_during_discovery',
+        },
+      }).catch(() => null);
+      input.setStatusBanner({
+        kind: 'warning',
+        message: `Go runtime reconciliation failed: ${error instanceof Error ? error.message : String(error || '')}`,
+      });
+    }
+  })();
 }

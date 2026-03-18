@@ -2410,7 +2410,9 @@
     "panel": {
       "title": "AI Runtime",
       "loading": "Loading runtime config...",
-      "resizeSidebar": "Resize runtime sidebar"
+      "resizeSidebar": "Resize runtime sidebar",
+      "discovering": "Discovering...",
+      "checkingHealth": "Checking..."
     },
     "recommend": {
       "heroEyebrow": "Local Recommendation Feed",

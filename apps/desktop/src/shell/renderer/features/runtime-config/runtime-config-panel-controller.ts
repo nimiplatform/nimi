@@ -87,8 +87,10 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   );
 
   const refreshLocalSnapshot = useCallback(async () => {
-    await commands.discoverLocalModels();
-    await commands.runLocalHealthCheck();
+    await Promise.all([
+      commands.discoverLocalModels(),
+      commands.runLocalHealthCheck(),
+    ]);
   }, [commands]);
 
   const daemon = useRuntimeConfigDaemonController({

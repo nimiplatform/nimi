@@ -52,8 +52,10 @@ export function normalizeRuntimeHealthResult(result: GetRuntimeHealthResponse): 
 
 export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV11) {
   const endpoint = String(state.local.endpoint || '').trim();
-  const models = await localRuntime.list();
-  const nodes = await localRuntime.listNodesCatalog();
+  const [models, nodes] = await Promise.all([
+    localRuntime.list(),
+    localRuntime.listNodesCatalog(),
+  ]);
   const discovered = models.map((m) => m.modelId);
   const normalizedModels = models.map((m) => ({
     localModelId: m.localModelId || m.modelId,
@@ -78,7 +80,7 @@ export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV
     providerHints: n.providerHints,
     reasonCode: n.reasonCode,
   }));
-  return { endpoint, discovered, models: normalizedModels, nodeMatrix };
+  return { endpoint, discovered, models: normalizedModels, nodeMatrix, rawModels: models };
 }
 
 export async function checkLocalHealth(): Promise<{

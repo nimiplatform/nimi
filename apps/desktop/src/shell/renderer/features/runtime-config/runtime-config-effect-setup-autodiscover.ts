@@ -5,7 +5,12 @@ type SetupAutodiscoverEffectInput = {
   state: RuntimeConfigStateV11 | null;
   hydrated: boolean;
   discoverLocalModels: () => Promise<void>;
+  activePage: string;
 };
+
+const PAGES_REQUIRING_DISCOVERY: ReadonlySet<string> = new Set([
+  'overview', 'local', 'recommend', 'mods', 'catalog', 'runtime', 'cloud',
+]);
 
 export function useRuntimeConfigSetupAutodiscoverEffect(input: SetupAutodiscoverEffectInput) {
   const autoDiscoverTriggeredRef = useRef(false);
@@ -13,8 +18,12 @@ export function useRuntimeConfigSetupAutodiscoverEffect(input: SetupAutodiscover
   useEffect(() => {
     if (!input.state || !input.hydrated) return;
     if (autoDiscoverTriggeredRef.current) return;
+    if (!PAGES_REQUIRING_DISCOVERY.has(input.activePage)) return;
 
     autoDiscoverTriggeredRef.current = true;
-    void input.discoverLocalModels();
-  }, [input.discoverLocalModels, input.hydrated, input.state]);
+    const timer = setTimeout(() => {
+      void input.discoverLocalModels();
+    }, 2_000);
+    return () => clearTimeout(timer);
+  }, [input.discoverLocalModels, input.hydrated, input.state, input.activePage]);
 }

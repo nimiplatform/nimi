@@ -158,6 +158,14 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           <div className="flex w-full items-center justify-between">
             <h2 className={`${APP_PAGE_TITLE_CLASS} text-[22px]`}>{pageMeta.name}</h2>
             <div className="flex items-center gap-2">
+              {(model.discovering || model.checkingHealth) && (
+                <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                  <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-transparent" />
+                  {model.discovering
+                    ? t('runtimeConfig.panel.discovering', { defaultValue: 'Discovering...' })
+                    : t('runtimeConfig.panel.checkingHealth', { defaultValue: 'Checking...' })}
+                </span>
+              )}
               <DaemonStatusBadge running={daemonRunning} />
               <StatusBadge status={runtimeStatus} />
             </div>

@@ -7,7 +7,10 @@ use std::sync::{Mutex, OnceLock};
 
 use tauri::AppHandle;
 
-use super::types::{LocalAiDownloadSessionRecord, LocalAiDownloadState, LocalAiRuntimeState};
+use super::types::{
+    default_logical_model_id, LocalAiDownloadSessionRecord, LocalAiDownloadState,
+    LocalAiRuntimeState,
+};
 
 const LOCAL_AI_RUNTIME_MODELS_DIR: &str = "models";
 const LOCAL_AI_RUNTIME_STATE_FILE: &str = "state.json";
@@ -45,12 +48,17 @@ fn load_state_from_path(path: &Path) -> Result<LocalAiRuntimeState, String> {
             path.display()
         )
     })?;
-    let parsed = serde_json::from_str::<LocalAiRuntimeState>(&raw).map_err(|error| {
+    let mut parsed = serde_json::from_str::<LocalAiRuntimeState>(&raw).map_err(|error| {
         format!(
             "解析 Local AI Runtime state 失败 ({}): {error}",
             path.display()
         )
     })?;
+    for model in &mut parsed.models {
+        if model.logical_model_id.is_empty() {
+            model.logical_model_id = default_logical_model_id(&model.model_id);
+        }
+    }
     Ok(parsed)
 }
 

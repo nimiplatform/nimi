@@ -91,6 +91,7 @@ export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInp
     state: input.state,
     hydrated: input.hydrated,
     discoverLocalModels: input.discoverLocalModels,
+    activePage: input.state?.activePage || 'overview',
   });
 
   useEffect(() => {
