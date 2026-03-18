@@ -49,8 +49,7 @@ npx tsx examples/sdk/providers/nimillm.ts
 
 | Script | Typical Usage | Minimum Prerequisites | Output Artifact |
 |---|---|---|---|
-| [localai.ts](./localai.ts) | local text + image | `NIMI_RUNTIME_LOCAL_AI_BASE_URL` | text + png |
-| [nexa.ts](./nexa.ts) | local text + tts + optional stt | `NIMI_RUNTIME_LOCAL_NEXA_BASE_URL` | text + mp3 (+ optional transcript) |
+| [local-llama.ts](./local-llama.ts) | local llama + media engine text & image | `NIMI_RUNTIME_LOCAL_AI_BASE_URL` | text + png |
 | [nimillm.ts](./nimillm.ts) | cloud text + embedding (+ optional image) | `NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY` | text + embedding (+ optional png) |
 | [deepseek-chat.ts](./deepseek-chat.ts) | cloud chat (DeepSeek via OpenAI-compatible endpoint) | `NIMI_DEEPSEEK_API_KEY` | text |
 | [bytedance-tts.ts](./bytedance-tts.ts) | cloud tts (Bytedance OpenSpeech only) | `NIMI_BYTEDANCE_API_KEY` | mp3 |
@@ -65,8 +64,7 @@ npx tsx examples/sdk/providers/nimillm.ts
 ## Run
 
 ```bash
-npx tsx examples/sdk/providers/localai.ts
-npx tsx examples/sdk/providers/nexa.ts
+npx tsx examples/sdk/providers/local-llama.ts
 npx tsx examples/sdk/providers/nimillm.ts
 npx tsx examples/sdk/providers/deepseek-chat.ts
 npx tsx examples/sdk/providers/bytedance-tts.ts
