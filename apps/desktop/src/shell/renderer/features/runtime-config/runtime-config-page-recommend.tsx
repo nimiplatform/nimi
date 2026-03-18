@@ -2,14 +2,11 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'rea
 import { useTranslation } from 'react-i18next';
 import {
   localRuntime,
-  type LocalRuntimeCatalogVariantDescriptor,
-  type LocalRuntimeInstallPayload,
-  type LocalRuntimeInstallPlanDescriptor,
   type LocalRuntimeRecommendationFeedItemDescriptor,
 } from '@runtime/local-runtime';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
-import { Card, RuntimeSelect } from './runtime-config-primitives';
+import { Card } from './runtime-config-primitives';
 import { SearchIcon } from './runtime-config-local-model-center-icons';
 import {
   RECOMMEND_PAGE_CAPABILITIES,
@@ -31,54 +28,15 @@ import {
   DeviceProfileBar,
   FilterChip,
   ModelRow,
-  ModelRowExpanded,
+  SelectChip,
   TierSummaryBar,
 } from './runtime-config-page-recommend-sections';
+import { RecommendDetailPage } from './runtime-config-page-recommend-detail';
 
 type RecommendPageProps = {
   model: RuntimeConfigPanelControllerModel;
   state: RuntimeConfigStateV11;
 };
-
-function installPayloadFromPlan(plan: LocalRuntimeInstallPlanDescriptor): LocalRuntimeInstallPayload {
-  return {
-    modelId: plan.modelId,
-    repo: plan.repo,
-    revision: plan.revision,
-    capabilities: plan.capabilities,
-    engine: plan.engine,
-    entry: plan.entry,
-    files: plan.files,
-    license: plan.license,
-    hashes: plan.hashes,
-    endpoint: plan.endpoint,
-    engineConfig: plan.engineConfig,
-  };
-}
-
-function resolveInstallPlanPayload(
-  item: LocalRuntimeRecommendationFeedItemDescriptor,
-  options?: {
-    entry?: string;
-    files?: string[];
-    hashes?: Record<string, string>;
-  },
-) {
-  return {
-    source: item.source,
-    modelId: item.installPayload.modelId,
-    repo: item.installPayload.repo,
-    revision: item.installPayload.revision,
-    capabilities: item.installPayload.capabilities,
-    engine: item.installPayload.engine,
-    entry: options?.entry || item.installPayload.entry,
-    files: options?.files || item.installPayload.files,
-    license: item.installPayload.license,
-    hashes: options?.hashes || item.installPayload.hashes,
-    endpoint: item.installPayload.endpoint,
-    engineConfig: item.installPayload.engineConfig,
-  };
-}
 
 export function RecommendPage({ model, state }: RecommendPageProps) {
   const { t } = useTranslation();
@@ -99,22 +57,9 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
   const [sortKey, setSortKey] = useState<RecommendSortKey>('score');
 
   // ---------------------------------------------------------------------------
-  // Expanded row state
+  // Detail view state (internal navigation)
   // ---------------------------------------------------------------------------
-  const [expandedItemId, setExpandedItemId] = useState('');
-
-  // ---------------------------------------------------------------------------
-  // Plan / variants / install state (per expanded item)
-  // ---------------------------------------------------------------------------
-  const [planPreview, setPlanPreview] = useState<LocalRuntimeInstallPlanDescriptor | null>(null);
-  const [planPreviewItemId, setPlanPreviewItemId] = useState('');
-  const [planLoadingItemId, setPlanLoadingItemId] = useState('');
-  const [planError, setPlanError] = useState('');
-  const [variants, setVariants] = useState<LocalRuntimeCatalogVariantDescriptor[]>([]);
-  const [variantItemId, setVariantItemId] = useState('');
-  const [variantsLoadingItemId, setVariantsLoadingItemId] = useState('');
-  const [variantsError, setVariantsError] = useState('');
-  const [installingItemId, setInstallingItemId] = useState('');
+  const [selectedDetailItem, setSelectedDetailItem] = useState<LocalRuntimeRecommendationFeedItemDescriptor | null>(null);
 
   // ---------------------------------------------------------------------------
   // Feed refresh
@@ -188,65 +133,21 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
   }, [model]);
 
   // ---------------------------------------------------------------------------
-  // Expand / collapse
+  // Detail view: if an item is selected, render the detail page
   // ---------------------------------------------------------------------------
-  const toggleExpand = useCallback((itemId: string) => {
-    setExpandedItemId((prev) => (prev === itemId ? '' : itemId));
-  }, []);
-
-  // ---------------------------------------------------------------------------
-  // Plan / variants / install actions
-  // ---------------------------------------------------------------------------
-  const reviewInstallPlan = useCallback(async (
-    item: LocalRuntimeRecommendationFeedItemDescriptor,
-    options?: { entry?: string; files?: string[]; hashes?: Record<string, string> },
-  ) => {
-    setPlanLoadingItemId(item.itemId);
-    setPlanPreviewItemId(item.itemId);
-    setPlanError('');
-    try {
-      const plan = await localRuntime.resolveInstallPlan(resolveInstallPlanPayload(item, options));
-      setPlanPreview(plan);
-    } catch (nextError) {
-      setPlanPreview(null);
-      setPlanError(nextError instanceof Error ? nextError.message : String(nextError || 'Failed to resolve install plan.'));
-    } finally {
-      setPlanLoadingItemId('');
-    }
-  }, []);
-
-  const openVariants = useCallback(async (item: LocalRuntimeRecommendationFeedItemDescriptor) => {
-    setVariantsLoadingItemId(item.itemId);
-    setVariantItemId(item.itemId);
-    setVariantsError('');
-    try {
-      const rows = await localRuntime.listRepoVariants(item.repo);
-      setVariants(rows);
-    } catch (nextError) {
-      setVariants([]);
-      setVariantsError(nextError instanceof Error ? nextError.message : String(nextError || 'Failed to load variants.'));
-    } finally {
-      setVariantsLoadingItemId('');
-    }
-  }, []);
-
-  const installReviewedPlan = useCallback(async () => {
-    if (!planPreview) return;
-    setInstallingItemId(planPreviewItemId);
-    try {
-      await model.installLocalModel(installPayloadFromPlan(planPreview));
-    } finally {
-      setInstallingItemId('');
-    }
-  }, [model, planPreview, planPreviewItemId]);
-
-  const openLocalModels = useCallback((item: LocalRuntimeRecommendationFeedItemDescriptor) => {
-    model.setLocalModelQuery(item.title || item.installPayload.modelId);
-    model.onChangePage('local');
-  }, [model]);
+  if (selectedDetailItem) {
+    return (
+      <RecommendDetailPage
+        item={selectedDetailItem}
+        totalVramBytes={totalVramBytes}
+        model={model}
+        onBack={() => setSelectedDetailItem(null)}
+      />
+    );
+  }
 
   // ---------------------------------------------------------------------------
-  // Render
+  // List view
   // ---------------------------------------------------------------------------
   return (
     <div className="mx-auto max-w-6xl space-y-4 p-6">
@@ -265,7 +166,7 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
       ) : !loading ? null : (
         <div className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-white/95 px-5 py-3 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-mint-500 border-t-transparent" />
-          <span className="text-sm text-slate-500">{t('runtimeConfig.recommend.loadingFeed', { defaultValue: 'Detecting hardware…' })}</span>
+          <span className="text-sm text-slate-500">{t('runtimeConfig.recommend.loadingFeed', { defaultValue: 'Detecting hardware\u2026' })}</span>
         </div>
       )}
 
@@ -284,18 +185,17 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
           <input
             value={filters.query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={t('runtimeConfig.recommend.searchPlaceholder', { defaultValue: 'Search models…' })}
+            placeholder={t('runtimeConfig.recommend.searchPlaceholder', { defaultValue: 'Search models\u2026' })}
             className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-mint-400 focus:ring-2 focus:ring-mint-100"
           />
         </div>
 
         {/* Capability (Task) */}
-        <RuntimeSelect
+        <SelectChip
+          label={t('runtimeConfig.recommend.capabilityLabel', { defaultValue: 'Task' })}
           value={capability}
           onChange={(value) => setActiveCapability(normalizeRecommendPageCapability(value))}
           options={RECOMMEND_PAGE_CAPABILITIES.map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) }))}
-          size="sm"
-          className="w-24"
         />
 
         {/* Provider filter */}
@@ -319,12 +219,11 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
         ) : null}
 
         {/* Sort */}
-        <RuntimeSelect
+        <SelectChip
+          label={t('runtimeConfig.recommend.sortLabel', { defaultValue: 'Sort' })}
           value={sortKey}
           onChange={(v) => setSortKey(v as RecommendSortKey)}
           options={RECOMMEND_SORT_OPTIONS}
-          size="sm"
-          className="w-32"
         />
 
         {/* Result count */}
@@ -362,51 +261,25 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
       {/* Column headers */}
       {sortedItems.length > 0 ? (
         <div className="flex items-center gap-3 px-4 text-[10px] font-medium uppercase tracking-wider text-slate-400">
-          <span className="w-9 shrink-0" /> {/* icon */}
           <span className="min-w-0 flex-1">{t('runtimeConfig.recommend.colModel', { defaultValue: 'Model' })}</span>
           <span className="hidden w-20 shrink-0 text-center md:block">{t('runtimeConfig.recommend.colLicense', { defaultValue: 'License' })}</span>
           <span className="hidden w-16 shrink-0 text-right md:block">{t('runtimeConfig.recommend.colSize', { defaultValue: 'Size' })}</span>
           <span className="hidden w-20 shrink-0 text-center md:block">{t('runtimeConfig.recommend.colVram', { defaultValue: 'VRAM' })}</span>
-          <span className="hidden w-16 shrink-0 text-right lg:block">{t('runtimeConfig.recommend.colCtxLen', { defaultValue: 'Ctx Len' })}</span>
-          <span className="hidden w-20 shrink-0 text-right lg:block">{t('runtimeConfig.recommend.colSpeed', { defaultValue: 'Speed' })}</span>
           <span className="w-28 shrink-0 text-right">{t('runtimeConfig.recommend.colGrade', { defaultValue: 'Grade' })}</span>
-          <span className="w-4 shrink-0" /> {/* chevron */}
+          <span className="w-4 shrink-0" /> {/* arrow */}
         </div>
       ) : null}
 
       {/* Model rows */}
       <div className="space-y-2">
-        {sortedItems.map((item) => {
-          const isExpanded = expandedItemId === item.itemId;
-          return (
-            <div key={item.itemId}>
-              <ModelRow
-                item={item}
-                totalVramBytes={totalVramBytes}
-                expanded={isExpanded}
-                onToggle={() => toggleExpand(item.itemId)}
-              />
-              {isExpanded ? (
-                <ModelRowExpanded
-                  item={item}
-                  totalVramBytes={totalVramBytes}
-                  runtimeWritesDisabled={model.runtimeWritesDisabled}
-                  planPreview={planPreviewItemId === item.itemId ? planPreview : null}
-                  planLoading={planLoadingItemId === item.itemId}
-                  planError={planPreviewItemId === item.itemId ? planError : ''}
-                  variants={variantItemId === item.itemId ? variants : []}
-                  variantsLoading={variantsLoadingItemId === item.itemId}
-                  variantsError={variantItemId === item.itemId ? variantsError : ''}
-                  installing={installingItemId === item.itemId}
-                  onReviewPlan={(it, opts) => void reviewInstallPlan(it, opts)}
-                  onOpenVariants={(it) => void openVariants(it)}
-                  onOpenLocalModels={openLocalModels}
-                  onInstallReviewedPlan={() => void installReviewedPlan()}
-                />
-              ) : null}
-            </div>
-          );
-        })}
+        {sortedItems.map((item) => (
+          <ModelRow
+            key={item.itemId}
+            item={item}
+            totalVramBytes={totalVramBytes}
+            onSelect={() => setSelectedDetailItem(item)}
+          />
+        ))}
       </div>
     </div>
   );

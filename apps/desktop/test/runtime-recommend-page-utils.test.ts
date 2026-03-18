@@ -156,14 +156,15 @@ test('parseQuantLevelFromEntry extracts quant label from entry names', () => {
   assert.equal(parseQuantLevelFromEntry(''), '');
 });
 
-test('quantQualityLabel returns star ratings based on bit depth', () => {
+test('quantQualityLabel returns text labels based on bit depth', () => {
   assert.equal(quantQualityLabel(null), '');
-  assert.equal(quantQualityLabel(16), '\u2605\u2605\u2605\u2605\u2605');
-  assert.equal(quantQualityLabel(8), '\u2605\u2605\u2605\u2605\u2606');
-  assert.equal(quantQualityLabel(5), '\u2605\u2605\u2605\u2606\u2606');
-  assert.equal(quantQualityLabel(4), '\u2605\u2605\u2606\u2606\u2606');
-  assert.equal(quantQualityLabel(3), '\u2605\u2606\u2606\u2606\u2606');
-  assert.equal(quantQualityLabel(2), '\u2606\u2606\u2606\u2606\u2606');
+  assert.equal(quantQualityLabel(16), 'Lossless');
+  assert.equal(quantQualityLabel(32), 'Lossless');
+  assert.equal(quantQualityLabel(8), 'High');
+  assert.equal(quantQualityLabel(5), 'Medium-High');
+  assert.equal(quantQualityLabel(4), 'Medium');
+  assert.equal(quantQualityLabel(3), 'Low-Medium');
+  assert.equal(quantQualityLabel(2), 'Low');
 });
 
 test('buildHuggingFaceUrl constructs URL from repo', () => {

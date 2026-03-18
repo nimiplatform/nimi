@@ -316,12 +316,22 @@ export function parseQuantLevelFromEntry(entry: string): string {
 
 export function quantQualityLabel(bits: number | null): string {
   if (bits === null) return '';
-  if (bits >= 16) return '\u2605\u2605\u2605\u2605\u2605';
-  if (bits >= 8) return '\u2605\u2605\u2605\u2605\u2606';
-  if (bits >= 5) return '\u2605\u2605\u2605\u2606\u2606';
-  if (bits >= 4) return '\u2605\u2605\u2606\u2606\u2606';
-  if (bits >= 3) return '\u2605\u2606\u2606\u2606\u2606';
-  return '\u2606\u2606\u2606\u2606\u2606';
+  if (bits >= 16) return 'Lossless';
+  if (bits >= 8) return 'High';
+  if (bits >= 5) return 'Medium-High';
+  if (bits >= 4) return 'Medium';
+  if (bits >= 3) return 'Low-Medium';
+  return 'Low';
+}
+
+export function quantQualityColorClass(label: string): string {
+  if (label === 'Lossless') return 'text-emerald-600 bg-emerald-50';
+  if (label === 'High') return 'text-green-600 bg-green-50';
+  if (label === 'Medium-High') return 'text-sky-600 bg-sky-50';
+  if (label === 'Medium') return 'text-amber-600 bg-amber-50';
+  if (label === 'Low-Medium') return 'text-orange-600 bg-orange-50';
+  if (label === 'Low') return 'text-rose-600 bg-rose-50';
+  return 'text-slate-500 bg-slate-50';
 }
 
 export function buildHuggingFaceUrl(repo: string): string {

@@ -20,8 +20,8 @@ const recommendPageSource = readFileSync(
   'utf8',
 );
 
-const sectionsSource = readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-page-recommend-sections.tsx'),
+const detailSource = readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-page-recommend-detail.tsx'),
   'utf8',
 );
 
@@ -60,8 +60,13 @@ test('runtime page meta defines recommend page copy', () => {
   assert.match(RUNTIME_PAGE_META.recommend.description, /Model-index powered leaderboard/i);
 });
 
-test('ModelRowExpanded is exported from sections source', () => {
-  assert.match(sectionsSource, /export function ModelRowExpanded/);
+test('RecommendDetailPage is exported from detail source', () => {
+  assert.match(detailSource, /export function RecommendDetailPage/);
+});
+
+test('recommend page imports and renders RecommendDetailPage for detail navigation', () => {
+  assert.match(recommendPageSource, /RecommendDetailPage/);
+  assert.match(recommendPageSource, /selectedDetailItem/);
 });
 
 test('recommend locale keys exist in english and chinese bundles', () => {
