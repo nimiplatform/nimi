@@ -108,24 +108,9 @@ const specs = [
     render: renderWorkflowStates,
   },
   {
-    input: 'voice-workflow-types.yaml',
-    output: 'voice-workflow-types.md',
-    render: renderVoiceWorkflowTypes,
-  },
-  {
-    input: 'voice-reference-kinds.yaml',
-    output: 'voice-reference-kinds.md',
-    render: renderVoiceReferenceKinds,
-  },
-  {
-    input: 'voice-persistence-types.yaml',
-    output: 'voice-persistence-types.md',
-    render: renderVoicePersistenceTypes,
-  },
-  {
-    input: 'voice-asset-statuses.yaml',
-    output: 'voice-asset-statuses.md',
-    render: renderVoiceAssetStatuses,
+    input: 'voice-enums.yaml',
+    output: 'voice-enums.md',
+    render: renderVoiceEnums,
   },
   {
     input: 'tts-provider-capability-matrix.yaml',
@@ -176,6 +161,11 @@ const specs = [
     input: 'capability-vocabulary-mapping.yaml',
     output: 'capability-vocabulary-mapping.md',
     render: renderCapabilityVocabularyMapping,
+  },
+  {
+    input: 'config-schema.yaml',
+    output: 'config-schema.md',
+    render: renderConfigSchema,
   },
   {
     input: 'rule-evidence.yaml',
@@ -725,13 +715,14 @@ function renderWorkflowStates(doc, sourceName) {
   return normalizeMarkdown(out);
 }
 
-function renderVoiceWorkflowTypes(doc, sourceName) {
-  const types = Array.isArray(doc?.types) ? doc.types : [];
-  let out = header('Generated Voice Workflow Types', sourceName);
+function renderVoiceEnums(doc, sourceName) {
+  let out = header('Generated Voice Enums', sourceName);
 
+  const workflowTypes = Array.isArray(doc?.workflow_types) ? doc.workflow_types : [];
+  out += '## Workflow Types\n\n';
   out += '| Workflow Type | Enum Name | Enum Value | Description | Source |\n';
   out += '|---|---|---:|---|---|\n';
-  for (const item of types) {
+  for (const item of workflowTypes) {
     const workflowType = String(item?.workflow_type || '').trim();
     if (!workflowType) continue;
     const enumName = String(item?.enum_name || '').trim() || '—';
@@ -742,16 +733,11 @@ function renderVoiceWorkflowTypes(doc, sourceName) {
   }
   out += '\n';
 
-  return normalizeMarkdown(out);
-}
-
-function renderVoiceReferenceKinds(doc, sourceName) {
-  const kinds = Array.isArray(doc?.kinds) ? doc.kinds : [];
-  let out = header('Generated Voice Reference Kinds', sourceName);
-
+  const referenceKinds = Array.isArray(doc?.reference_kinds) ? doc.reference_kinds : [];
+  out += '## Reference Kinds\n\n';
   out += '| Kind | Enum Name | Enum Value | Description | Source |\n';
   out += '|---|---|---:|---|---|\n';
-  for (const item of kinds) {
+  for (const item of referenceKinds) {
     const kind = String(item?.kind || '').trim();
     if (!kind) continue;
     const enumName = String(item?.enum_name || '').trim() || '—';
@@ -762,16 +748,11 @@ function renderVoiceReferenceKinds(doc, sourceName) {
   }
   out += '\n';
 
-  return normalizeMarkdown(out);
-}
-
-function renderVoicePersistenceTypes(doc, sourceName) {
-  const types = Array.isArray(doc?.types) ? doc.types : [];
-  let out = header('Generated Voice Persistence Types', sourceName);
-
+  const persistenceTypes = Array.isArray(doc?.persistence_types) ? doc.persistence_types : [];
+  out += '## Persistence Types\n\n';
   out += '| Persistence | Enum Name | Enum Value | Description | Source |\n';
   out += '|---|---|---:|---|---|\n';
-  for (const item of types) {
+  for (const item of persistenceTypes) {
     const persistence = String(item?.persistence || '').trim();
     if (!persistence) continue;
     const enumName = String(item?.enum_name || '').trim() || '—';
@@ -782,16 +763,11 @@ function renderVoicePersistenceTypes(doc, sourceName) {
   }
   out += '\n';
 
-  return normalizeMarkdown(out);
-}
-
-function renderVoiceAssetStatuses(doc, sourceName) {
-  const statuses = Array.isArray(doc?.statuses) ? doc.statuses : [];
-  let out = header('Generated Voice Asset Statuses', sourceName);
-
+  const assetStatuses = Array.isArray(doc?.asset_statuses) ? doc.asset_statuses : [];
+  out += '## Asset Statuses\n\n';
   out += '| Status | Enum Name | Enum Value | Description | Source |\n';
   out += '|---|---|---:|---|---|\n';
-  for (const item of statuses) {
+  for (const item of assetStatuses) {
     const status = String(item?.status || '').trim();
     if (!status) continue;
     const enumName = String(item?.enum_name || '').trim() || '—';
@@ -1032,6 +1008,27 @@ function renderCapabilityVocabularyMapping(doc, sourceName) {
   return normalizeMarkdown(out);
 }
 
+function renderConfigSchema(doc, sourceName) {
+  const fields = Array.isArray(doc?.fields) ? doc.fields : [];
+  let out = header('Generated Config Schema', sourceName);
+
+  out += '| Key | Type | Default | Reload | Description | Source |\n';
+  out += '|---|---|---|---|---|---|\n';
+  for (const item of fields) {
+    const key = String(item?.key || '').trim();
+    if (!key) continue;
+    const type = String(item?.type || '').trim() || '—';
+    const def = String(item?.default || '').trim() || '—';
+    const reload = String(item?.reload || '').trim() || '—';
+    const description = String(item?.description || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${key}\` | \`${type}\` | \`${def}\` | \`${reload}\` | ${description} | \`${source}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
 function renderRuleEvidence(doc, sourceName) {
   const catalog = doc?.evidence_catalog && typeof doc.evidence_catalog === 'object'
     ? doc.evidence_catalog
@@ -1044,17 +1041,26 @@ function renderRuleEvidence(doc, sourceName) {
   out += '|---|---|---|---|---|\n';
   for (const [ref, value] of Object.entries(catalog)) {
     const item = value && typeof value === 'object' ? value : {};
-    out += `| \`${ref}\` | \`${String(item.type || '').trim() || '—'}\` | \`${String(item.command || '').trim() || '—'}\` | \`${String(item.path || '').trim() || '—'}\` | ${String(item.description || '').trim() || '—'} |\n`;
+    const type = String(item.type || '').trim() || '—';
+    const command = String(item.command || '').trim() || '—';
+    const evidencePath = String(item.path || '').trim() || '—';
+    const description = String(item.description || '').trim() || '—';
+    out += `| \`${ref}\` | \`${type}\` | \`${command}\` | \`${evidencePath}\` | ${description} |\n`;
   }
-  out += '\n## Rule Coverage Matrix\n\n';
+  out += '\n';
+
+  out += '## Rule Coverage Matrix\n\n';
   out += '| Rule ID | Status | Evidence Refs |\n';
   out += '|---|---|---|\n';
   for (const item of rules) {
     const ruleId = String(item?.rule_id || '').trim();
     if (!ruleId) continue;
+    const status = String(item?.status || '').trim() || '—';
     const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
-    const refsText = refs.length > 0 ? refs.map((ref) => `\`${String(ref)}\``).join(', ') : '—';
-    out += `| \`${ruleId}\` | \`${String(item?.status || '').trim() || '—'}\` | ${refsText} |\n`;
+    const refsText = refs.length > 0
+      ? refs.map((ref) => `\`${String(ref)}\``).join(', ')
+      : '—';
+    out += `| \`${ruleId}\` | \`${status}\` | ${refsText} |\n`;
   }
   out += '\n';
 

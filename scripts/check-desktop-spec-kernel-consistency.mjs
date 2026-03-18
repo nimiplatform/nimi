@@ -232,6 +232,10 @@ checkDesktopTestingGateCoverage();
 
 checkDesktopFeatureCoverage();
 
+// ── Check 28: IPC commands YAML → contract prose coverage ──
+
+checkIpcCommandsContractProseCoverage();
+
 // ── Result ──
 
 if (failed) process.exit(1);
@@ -1165,6 +1169,30 @@ function checkDesktopFeatureCoverage() {
         fail(`${tablePath} must cover critical IPC command via covers_ipc_commands: ${command}`);
       }
     }
+  }
+}
+
+function checkIpcCommandsContractProseCoverage() {
+  const tablePath = 'spec/desktop/kernel/tables/ipc-commands.yaml';
+  const contractPath = 'spec/desktop/kernel/bridge-ipc-contract.md';
+  if (!fileExists(tablePath) || !fileExists(contractPath)) {
+    fail(`IPC contract prose coverage inputs missing: ${[tablePath, contractPath].filter((rel) => !fileExists(rel)).join(', ')}`);
+    return;
+  }
+
+  const table = readYaml(tablePath) || {};
+  const commands = (Array.isArray(table?.commands) ? table.commands : [])
+    .map((entry) => String(entry?.command || '').trim())
+    .filter(Boolean);
+  if (commands.length === 0) {
+    fail(`${tablePath} has no commands`);
+    return;
+  }
+
+  const contractContent = read(contractPath);
+  const missing = commands.filter((cmd) => !contractContent.includes(cmd));
+  if (missing.length > 0) {
+    fail(`${tablePath} commands not mentioned in ${contractPath}: ${missing.join(', ')}`);
   }
 }
 

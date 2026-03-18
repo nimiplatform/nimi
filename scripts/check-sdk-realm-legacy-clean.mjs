@@ -91,6 +91,17 @@ async function main() {
     }
   }
 
+  const clientPath = path.join(repoRoot, 'sdk', 'src', 'realm', 'client.ts');
+  const clientSource = await fs.readFile(clientPath, 'utf8');
+  const LEGACY_FACADE_PROPS = ['auth', 'users', 'posts', 'worlds', 'notifications', 'media', 'search', 'transits'];
+  const facadePropPattern = /^\s*(?:\/\*\*.*\*\/\s*)?readonly\s+(auth|users|posts|worlds|notifications|media|search|transits)\s*:/gm;
+  let facadeMatch = facadePropPattern.exec(clientSource);
+  while (facadeMatch) {
+    const line = getLine(clientSource, facadeMatch.index);
+    violations.push(`sdk/src/realm/client.ts:${line} contains legacy facade property: ${facadeMatch[1]}`);
+    facadeMatch = facadePropPattern.exec(clientSource);
+  }
+
   const clientTypesSource = await fs.readFile(clientTypesPath, 'utf8');
   for (const symbol of [...LEGACY_SERVICE_NAMES, ...LEGACY_MODEL_SYMBOLS]) {
     if (clientTypesSource.includes(symbol)) {

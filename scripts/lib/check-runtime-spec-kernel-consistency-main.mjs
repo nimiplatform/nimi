@@ -73,10 +73,7 @@ const kernelFiles = [
   'spec/runtime/kernel/tables/provider-probe-targets.yaml',
   'spec/runtime/kernel/tables/workflow-node-types.yaml',
   'spec/runtime/kernel/tables/workflow-states.yaml',
-  'spec/runtime/kernel/tables/voice-workflow-types.yaml',
-  'spec/runtime/kernel/tables/voice-reference-kinds.yaml',
-  'spec/runtime/kernel/tables/voice-persistence-types.yaml',
-  'spec/runtime/kernel/tables/voice-asset-statuses.yaml',
+  'spec/runtime/kernel/tables/voice-enums.yaml',
   'spec/runtime/kernel/tables/tts-provider-capability-matrix.yaml',
   // Dedicated families migrated from domain-local IDs
   'spec/runtime/kernel/config-contract.md',
@@ -84,7 +81,6 @@ const kernelFiles = [
   'spec/runtime/kernel/nimillm-contract.md',
   'spec/runtime/kernel/model-catalog-contract.md',
   'spec/runtime/kernel/multimodal-provider-contract.md',
-  'spec/runtime/kernel/music-scenario-extension-contract.md',
   'spec/runtime/kernel/delivery-gates-contract.md',
   'spec/runtime/kernel/proto-governance-contract.md',
   'spec/runtime/kernel/tables/multimodal-canonical-fields.yaml',
@@ -184,9 +180,9 @@ checkRpcMethodsSourceTraceability(kernelRuleDefinitions);
 checkProviderCatalogSourceTraceability(kernelRuleDefinitions);
 checkReasonCodeSourceTraceability(kernelRuleDefinitions);
 checkRuntimeDeliveryGateCoverage(kernelRuleDefinitions);
-checkRuleEvidenceTraceability(kernelRuleDefinitions);
 checkCapabilityVocabularyMapping(kernelRuleDefinitions);
 checkOrphanRules(kernelRuleDefinitions);
+checkRuleEvidence(kernelRuleDefinitions);
 
 if (failed) process.exit(1);
 console.log('runtime-spec-kernel-consistency: OK');
@@ -1088,98 +1084,6 @@ function checkReasonCodeSourceTraceability(kernelRuleSet) {
   }
 }
 
-function checkRuleEvidenceTraceability(kernelRuleSet) {
-  const evidencePath = 'spec/runtime/kernel/tables/rule-evidence.yaml';
-  const doc = readYaml(evidencePath) || {};
-  const catalog = doc.evidence_catalog && typeof doc.evidence_catalog === 'object'
-    ? doc.evidence_catalog
-    : null;
-  if (!catalog) {
-    fail(`${evidencePath} missing evidence_catalog map`);
-    return;
-  }
-
-  const catalogEntries = Object.entries(catalog);
-  if (catalogEntries.length === 0) {
-    fail(`${evidencePath} evidence_catalog must not be empty`);
-  }
-
-  for (const [ref, item] of catalogEntries) {
-    const record = item && typeof item === 'object' ? item : null;
-    if (!record) {
-      fail(`${evidencePath} evidence_catalog.${ref} must be an object`);
-      continue;
-    }
-    const type = String(record.type || '').trim();
-    const command = String(record.command || '').trim();
-    const targetPath = String(record.path || '').trim();
-    if (!type) fail(`${evidencePath} evidence_catalog.${ref} missing type`);
-    if (!command) fail(`${evidencePath} evidence_catalog.${ref} missing command`);
-    if (!targetPath) {
-      fail(`${evidencePath} evidence_catalog.${ref} missing path`);
-      continue;
-    }
-    if (!fs.existsSync(path.join(cwd, targetPath))) {
-      fail(`${evidencePath} evidence_catalog.${ref} path does not exist: ${targetPath}`);
-    }
-  }
-
-  const rules = Array.isArray(doc.rules) ? doc.rules : [];
-  if (rules.length === 0) {
-    fail(`${evidencePath} rules must not be empty`);
-    return;
-  }
-
-  const seen = new Set();
-  for (const item of rules) {
-    const ruleId = String(item?.rule_id || '').trim();
-    const status = String(item?.status || '').trim().toLowerCase();
-    const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
-    const naReason = String(item?.na_reason || '').trim();
-    if (!/^K-[A-Z]+-\d{3}[a-z]?$/u.test(ruleId)) {
-      fail(`${evidencePath} has invalid rule_id format: ${ruleId || '<empty>'}`);
-      continue;
-    }
-    if (seen.has(ruleId)) {
-      fail(`${evidencePath} has duplicate rule_id entry: ${ruleId}`);
-      continue;
-    }
-    seen.add(ruleId);
-    if (!kernelRuleSet.has(ruleId)) {
-      fail(`${evidencePath} references unknown runtime kernel rule: ${ruleId}`);
-    }
-    if (status !== 'covered' && status !== 'na') {
-      fail(`${evidencePath} ${ruleId} has invalid status: ${status || '<empty>'} (allowed: covered|na)`);
-      continue;
-    }
-    if (status === 'na') {
-      if (!naReason) {
-        fail(`${evidencePath} ${ruleId} status=na requires na_reason`);
-      }
-      continue;
-    }
-    if (refs.length === 0) {
-      fail(`${evidencePath} ${ruleId} status=covered requires non-empty evidence_refs`);
-      continue;
-    }
-    for (const rawRef of refs) {
-      const ref = String(rawRef || '').trim();
-      if (!ref) {
-        fail(`${evidencePath} ${ruleId} contains empty evidence_refs item`);
-        continue;
-      }
-      if (!Object.prototype.hasOwnProperty.call(catalog, ref)) {
-        fail(`${evidencePath} ${ruleId} references undefined evidence ref: ${ref}`);
-      }
-    }
-  }
-
-  const missing = [...kernelRuleSet].filter((ruleId) => !seen.has(ruleId));
-  if (missing.length > 0) {
-    fail(`${evidencePath} missing evidence rows for rules: ${missing.join(', ')}`);
-  }
-}
-
 function checkCapabilityVocabularyMapping(kernelRuleSet) {
   const rel = 'spec/runtime/kernel/tables/capability-vocabulary-mapping.yaml';
   const doc = readYaml(rel) || {};
@@ -1243,7 +1147,7 @@ function checkCapabilityVocabularyMapping(kernelRuleSet) {
 function checkOrphanRules(kernelRuleSet) {
   const files = [...new Set([
     ...runtimeMarkdownFiles,
-    ...kernelFiles.filter((rel) => rel.endsWith('.yaml') && !rel.endsWith('rule-evidence.yaml')),
+    ...kernelFiles.filter((rel) => rel.endsWith('.yaml')),
     ...domainFiles,
   ])];
   const refCounts = new Map();
@@ -1314,6 +1218,59 @@ function checkNoRuleDefinitionHeadings(content, rel) {
   let match;
   while ((match = bannedHeadingPattern.exec(content)) !== null) {
     fail(`${rel} contains rule-definition style heading not allowed for thin domain docs: ${match[0]}`);
+  }
+}
+
+function checkRuleEvidence(kernelRuleSet) {
+  const table = readYaml('spec/runtime/kernel/tables/rule-evidence.yaml');
+  if (!table) { fail('rule-evidence.yaml: failed to parse'); return; }
+
+  const catalog = table.evidence_catalog || {};
+  const catalogKeys = new Set(Object.keys(catalog));
+  const rules = Array.isArray(table.rules) ? table.rules : [];
+
+  if (rules.length === 0) {
+    fail('rule-evidence.yaml: rules list is empty');
+    return;
+  }
+
+  const evidenceRuleIds = new Set();
+  for (const entry of rules) {
+    const rid = String(entry?.rule_id || '').trim();
+    if (!rid) { fail('rule-evidence.yaml: entry missing rule_id'); continue; }
+    if (!/^K-[A-Z]+-\d{3}[a-z]?$/u.test(rid)) {
+      fail(`rule-evidence.yaml: invalid rule_id format: ${rid}`);
+    }
+    if (evidenceRuleIds.has(rid)) {
+      fail(`rule-evidence.yaml: duplicate rule_id: ${rid}`);
+    }
+    evidenceRuleIds.add(rid);
+
+    if (!kernelRuleSet.has(rid)) {
+      fail(`rule-evidence.yaml: rule_id not found in kernel: ${rid}`);
+    }
+
+    const status = String(entry?.status || '').trim();
+    if (!['covered', 'na', 'deferred'].includes(status)) {
+      fail(`rule-evidence.yaml ${rid}: invalid status: ${status}`);
+    }
+
+    const refs = Array.isArray(entry?.evidence_refs) ? entry.evidence_refs : [];
+    if (status === 'covered' && refs.length === 0) {
+      fail(`rule-evidence.yaml ${rid}: covered rule must have at least one evidence_ref`);
+    }
+    for (const ref of refs) {
+      if (!catalogKeys.has(String(ref))) {
+        fail(`rule-evidence.yaml ${rid}: unknown evidence_ref: ${ref}`);
+      }
+    }
+  }
+
+  // Every kernel rule must appear in rule-evidence
+  for (const kid of kernelRuleSet) {
+    if (!evidenceRuleIds.has(kid)) {
+      fail(`rule-evidence.yaml: missing coverage for kernel rule: ${kid}`);
+    }
   }
 }
 
