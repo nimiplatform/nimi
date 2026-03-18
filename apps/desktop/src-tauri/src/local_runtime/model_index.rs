@@ -22,6 +22,7 @@ use super::types::{
 use super::verified_models::verified_model_list;
 
 const MODEL_INDEX_BASE_URL_ENV: &str = "NIMI_MODEL_INDEX_BASE_URL";
+const DEFAULT_MODEL_INDEX_BASE_URL: &str = "https://models.nimi.xyz";
 const MODEL_INDEX_CACHE_FILE: &str = "model-index-feed-cache.json";
 const DEFAULT_PAGE_SIZE: usize = 40;
 const MAX_PAGE_SIZE: usize = 80;
@@ -61,6 +62,7 @@ fn resolve_model_index_base_url() -> Option<String> {
         .ok()
         .map(|value| value.trim().trim_end_matches('/').to_string())
         .filter(|value| !value.is_empty())
+        .or_else(|| Some(DEFAULT_MODEL_INDEX_BASE_URL.to_string()))
 }
 
 fn cache_path(app: &AppHandle) -> Result<PathBuf, String> {
