@@ -2,8 +2,9 @@
 
 import { describe, it, afterEach, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import os from 'node:os';
 import path from 'node:path';
 import { parseEnv } from '../src/main/env.js';
 import { useAppStore, type Agent } from '../src/renderer/app-shell/providers/app-store.js';
@@ -36,8 +37,74 @@ describe('RL-BOOT-003 — Environment Variable Resolution', () => {
     process.env.NIMI_REALM_URL = 'https://realm.test';
     process.env.NIMI_ACCESS_TOKEN = 'tok';
     delete process.env.NIMI_RUNTIME_GRPC_ADDR;
+    // Point config path to nonexistent file so config.json doesn't interfere
+    process.env.NIMI_RUNTIME_CONFIG_PATH = path.join(os.tmpdir(), 'nimi-nonexistent', 'config.json');
     const env = parseEnv();
     assert.equal(env.NIMI_RUNTIME_GRPC_ADDR, '127.0.0.1:46371');
+  });
+
+  it('uses grpcAddr from config.json when env var not set', () => {
+    const tmpDir = mkdtempSync(path.join(os.tmpdir(), 'nimi-test-'));
+    const configPath = path.join(tmpDir, 'config.json');
+    writeFileSync(configPath, JSON.stringify({ grpcAddr: '127.0.0.1:50001' }));
+    try {
+      process.env.NIMI_REALM_URL = 'https://realm.test';
+      process.env.NIMI_ACCESS_TOKEN = 'tok';
+      delete process.env.NIMI_RUNTIME_GRPC_ADDR;
+      process.env.NIMI_RUNTIME_CONFIG_PATH = configPath;
+      const env = parseEnv();
+      assert.equal(env.NIMI_RUNTIME_GRPC_ADDR, '127.0.0.1:50001');
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('env var takes priority over config.json grpcAddr', () => {
+    const tmpDir = mkdtempSync(path.join(os.tmpdir(), 'nimi-test-'));
+    const configPath = path.join(tmpDir, 'config.json');
+    writeFileSync(configPath, JSON.stringify({ grpcAddr: '127.0.0.1:50001' }));
+    try {
+      process.env.NIMI_REALM_URL = 'https://realm.test';
+      process.env.NIMI_ACCESS_TOKEN = 'tok';
+      process.env.NIMI_RUNTIME_GRPC_ADDR = '10.0.0.1:9999';
+      process.env.NIMI_RUNTIME_CONFIG_PATH = configPath;
+      const env = parseEnv();
+      assert.equal(env.NIMI_RUNTIME_GRPC_ADDR, '10.0.0.1:9999');
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('invalid JSON in config.json falls through to default', () => {
+    const tmpDir = mkdtempSync(path.join(os.tmpdir(), 'nimi-test-'));
+    const configPath = path.join(tmpDir, 'config.json');
+    writeFileSync(configPath, 'not valid json!!!');
+    try {
+      process.env.NIMI_REALM_URL = 'https://realm.test';
+      process.env.NIMI_ACCESS_TOKEN = 'tok';
+      delete process.env.NIMI_RUNTIME_GRPC_ADDR;
+      process.env.NIMI_RUNTIME_CONFIG_PATH = configPath;
+      const env = parseEnv();
+      assert.equal(env.NIMI_RUNTIME_GRPC_ADDR, '127.0.0.1:46371');
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('config.json without grpcAddr falls through to default', () => {
+    const tmpDir = mkdtempSync(path.join(os.tmpdir(), 'nimi-test-'));
+    const configPath = path.join(tmpDir, 'config.json');
+    writeFileSync(configPath, JSON.stringify({ someOtherField: 'value' }));
+    try {
+      process.env.NIMI_REALM_URL = 'https://realm.test';
+      process.env.NIMI_ACCESS_TOKEN = 'tok';
+      delete process.env.NIMI_RUNTIME_GRPC_ADDR;
+      process.env.NIMI_RUNTIME_CONFIG_PATH = configPath;
+      const env = parseEnv();
+      assert.equal(env.NIMI_RUNTIME_GRPC_ADDR, '127.0.0.1:46371');
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 
   it('parses all 5 variables correctly', () => {

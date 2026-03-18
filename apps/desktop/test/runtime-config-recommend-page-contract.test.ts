@@ -20,6 +20,11 @@ const recommendPageSource = readFileSync(
   'utf8',
 );
 
+const sectionsSource = readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-page-recommend-sections.tsx'),
+  'utf8',
+);
+
 const enLocale = JSON.parse(readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/locales/en.json'),
   'utf8',
@@ -44,15 +49,19 @@ test('runtime config panel mounts recommend page with a stable page root', () =>
   );
 });
 
-test('recommend page keeps machine summary, ranking explainer, and install review sections', () => {
-  assert.match(recommendPageSource, /runtimeConfig\.recommend\.heroTitle/);
-  assert.match(recommendPageSource, /runtimeConfig\.recommend\.whyRankingTitle/);
-  assert.match(recommendPageSource, /runtimeConfig\.recommend\.installPreviewTitle/);
+test('recommend page keeps device profile bar, tier summary, and filter toolbar', () => {
+  assert.match(recommendPageSource, /DeviceProfileBar/);
+  assert.match(recommendPageSource, /TierSummaryBar/);
+  assert.match(recommendPageSource, /ModelRow/);
 });
 
 test('runtime page meta defines recommend page copy', () => {
   assert.equal(RUNTIME_PAGE_META.recommend.name, 'Recommend');
   assert.match(RUNTIME_PAGE_META.recommend.description, /Model-index powered leaderboard/i);
+});
+
+test('ModelRowExpanded is exported from sections source', () => {
+  assert.match(sectionsSource, /export function ModelRowExpanded/);
 });
 
 test('recommend locale keys exist in english and chinese bundles', () => {

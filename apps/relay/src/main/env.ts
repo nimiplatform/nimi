@@ -2,6 +2,7 @@
 // RL-BOOT-005 — .env file loading from monorepo root
 
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 export interface RelayEnv {
@@ -51,6 +52,25 @@ function loadDotEnv(): void {
   }
 }
 
+const DEFAULT_GRPC_ADDR = '127.0.0.1:46371';
+
+/** Resolve config.json path: NIMI_RUNTIME_CONFIG_PATH env > ~/.nimi/config.json */
+export function resolveRuntimeConfigPath(): string {
+  return process.env.NIMI_RUNTIME_CONFIG_PATH || path.join(os.homedir(), '.nimi', 'config.json');
+}
+
+/** Read grpcAddr from config.json. Returns undefined on any error. */
+export function readConfigGrpcAddr(): string | undefined {
+  try {
+    const content = fs.readFileSync(resolveRuntimeConfigPath(), 'utf-8');
+    const config = JSON.parse(content);
+    const addr = config.grpcAddr;
+    return typeof addr === 'string' && addr.length > 0 ? addr : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function parseEnv(): RelayEnv {
   // Load .env before reading process.env
   loadDotEnv();
@@ -61,7 +81,7 @@ export function parseEnv(): RelayEnv {
   }
 
   return {
-    NIMI_RUNTIME_GRPC_ADDR: process.env.NIMI_RUNTIME_GRPC_ADDR || '127.0.0.1:46371',
+    NIMI_RUNTIME_GRPC_ADDR: process.env.NIMI_RUNTIME_GRPC_ADDR || readConfigGrpcAddr() || DEFAULT_GRPC_ADDR,
     NIMI_REALM_URL: realmUrl,
     NIMI_ACCESS_TOKEN: process.env.NIMI_ACCESS_TOKEN || undefined,
     NIMI_WEB_URL: process.env.NIMI_WEB_URL || 'http://localhost:3000',

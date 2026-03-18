@@ -37,7 +37,7 @@ Main process parses the following environment variables:
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `NIMI_RUNTIME_GRPC_ADDR` | No | `127.0.0.1:46371` | Runtime daemon gRPC endpoint |
+| `NIMI_RUNTIME_GRPC_ADDR` | No | `127.0.0.1:46371` | Runtime daemon gRPC endpoint (fallback: `~/.nimi/config.json` grpcAddr) |
 | `NIMI_REALM_URL` | Yes | — | Realm API base URL |
 | `NIMI_ACCESS_TOKEN` | Yes | — | Bearer token for auth |
 | `NIMI_AGENT_ID` | No | — | Default agent binding (RL-CORE-003) |
