@@ -244,6 +244,220 @@ channels:
     description: Auth state change push (state + error)
     source_rule: RL-BOOT-005
 
+  # Model service (RL-IPC-010)
+  - channel: relay:model:list
+    type: unary
+    module: model
+    sdk_method: runtime.model.list
+    source_rule: RL-IPC-010
+
+  - channel: relay:model:pull
+    type: unary
+    module: model
+    sdk_method: runtime.model.pull
+    source_rule: RL-IPC-010
+
+  - channel: relay:model:remove
+    type: unary
+    module: model
+    sdk_method: runtime.model.remove
+    source_rule: RL-IPC-010
+
+  - channel: relay:model:health
+    type: unary
+    module: model
+    sdk_method: runtime.model.checkHealth
+    source_rule: RL-IPC-010
+
+  # Local runtime (RL-IPC-011)
+  - channel: relay:local:models:list
+    type: unary
+    module: local
+    sdk_method: runtime.local.listLocalModels
+    source_rule: RL-IPC-011
+
+  - channel: relay:local:models:verified
+    type: unary
+    module: local
+    sdk_method: runtime.local.listVerifiedModels
+    source_rule: RL-IPC-011
+
+  - channel: relay:local:models:catalog-search
+    type: unary
+    module: local
+    sdk_method: runtime.local.searchCatalogModels
+    source_rule: RL-IPC-011
+
+  - channel: relay:local:models:install-plan
+    type: unary
+    module: local
+    sdk_method: runtime.local.resolveModelInstallPlan
+    source_rule: RL-IPC-011
+
+  - channel: relay:local:models:install
+    type: unary
+    module: local
+    sdk_method: runtime.local.installLocalModel
+    source_rule: RL-IPC-011
+
+  - channel: relay:local:models:install-verified
+    type: unary
+    module: local
+    sdk_method: runtime.local.installVerifiedModel
+    source_rule: RL-IPC-011
+
+  - channel: relay:local:models:import
+    type: unary
+    module: local
+    sdk_method: runtime.local.importLocalModel
+    source_rule: RL-IPC-011
+
+  - channel: relay:local:models:remove
+    type: unary
+    module: local
+    sdk_method: runtime.local.removeLocalModel
+    source_rule: RL-IPC-011
+
+  - channel: relay:local:models:start
+    type: unary
+    module: local
+    sdk_method: runtime.local.startLocalModel
+    source_rule: RL-IPC-011
+
+  - channel: relay:local:models:stop
+    type: unary
+    module: local
+    sdk_method: runtime.local.stopLocalModel
+    source_rule: RL-IPC-011
+
+  - channel: relay:local:models:health
+    type: unary
+    module: local
+    sdk_method: runtime.local.checkLocalModelHealth
+    source_rule: RL-IPC-011
+
+  - channel: relay:local:models:warm
+    type: unary
+    module: local
+    sdk_method: runtime.local.warmLocalModel
+    source_rule: RL-IPC-011
+
+  - channel: relay:local:device-profile
+    type: unary
+    module: local
+    sdk_method: runtime.local.collectDeviceProfile
+    source_rule: RL-IPC-011
+
+  - channel: relay:local:profile:resolve
+    type: unary
+    module: local
+    sdk_method: runtime.local.resolveProfile
+    source_rule: RL-IPC-011
+
+  - channel: relay:local:catalog:nodes
+    type: unary
+    module: local
+    sdk_method: runtime.local.listNodeCatalog
+    source_rule: RL-IPC-011
+
+  # Connector (RL-IPC-012)
+  - channel: relay:connector:create
+    type: unary
+    module: connector
+    sdk_method: runtime.connector.createConnector
+    source_rule: RL-IPC-012
+
+  - channel: relay:connector:get
+    type: unary
+    module: connector
+    sdk_method: runtime.connector.getConnector
+    source_rule: RL-IPC-012
+
+  - channel: relay:connector:list
+    type: unary
+    module: connector
+    sdk_method: runtime.connector.listConnectors
+    source_rule: RL-IPC-012
+
+  - channel: relay:connector:update
+    type: unary
+    module: connector
+    sdk_method: runtime.connector.updateConnector
+    source_rule: RL-IPC-012
+
+  - channel: relay:connector:delete
+    type: unary
+    module: connector
+    sdk_method: runtime.connector.deleteConnector
+    source_rule: RL-IPC-012
+
+  - channel: relay:connector:test
+    type: unary
+    module: connector
+    sdk_method: runtime.connector.testConnector
+    source_rule: RL-IPC-012
+
+  - channel: relay:connector:models
+    type: unary
+    module: connector
+    sdk_method: runtime.connector.listConnectorModels
+    source_rule: RL-IPC-012
+
+  - channel: relay:connector:provider-catalog
+    type: unary
+    module: connector
+    sdk_method: runtime.connector.listProviderCatalog
+    source_rule: RL-IPC-012
+
+  - channel: relay:connector:catalog-providers
+    type: unary
+    module: connector
+    sdk_method: runtime.connector.listModelCatalogProviders
+    source_rule: RL-IPC-012
+
+  - channel: relay:connector:catalog-provider-models
+    type: unary
+    module: connector
+    sdk_method: runtime.connector.listCatalogProviderModels
+    source_rule: RL-IPC-012
+
+  - channel: relay:connector:catalog-model-detail
+    type: unary
+    module: connector
+    sdk_method: runtime.connector.getCatalogModelDetail
+    source_rule: RL-IPC-012
+
+  - channel: relay:connector:catalog-provider:upsert
+    type: unary
+    module: connector
+    sdk_method: runtime.connector.upsertModelCatalogProvider
+    source_rule: RL-IPC-012
+
+  - channel: relay:connector:catalog-provider:delete
+    type: unary
+    module: connector
+    sdk_method: runtime.connector.deleteModelCatalogProvider
+    source_rule: RL-IPC-012
+
+  - channel: relay:connector:catalog-overlay:upsert
+    type: unary
+    module: connector
+    sdk_method: runtime.connector.upsertCatalogModelOverlay
+    source_rule: RL-IPC-012
+
+  - channel: relay:connector:catalog-overlay:delete
+    type: unary
+    module: connector
+    sdk_method: runtime.connector.deleteCatalogModelOverlay
+    source_rule: RL-IPC-012
+
+  # Desktop interop (RL-IPC-013)
+  - channel: relay:desktop:open-config
+    type: unary
+    module: desktop
+    description: Open Desktop runtime config page via nimi-desktop:// URL scheme
+    source_rule: RL-IPC-013
+
   # Config
   - channel: relay:config
     type: unary

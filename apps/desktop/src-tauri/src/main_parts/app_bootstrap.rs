@@ -7,6 +7,7 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
     };
     tauri::Builder::default()
         .plugin(updater_plugin)
+        .plugin(tauri_plugin_deep_link::init())
         .setup(|app| {
             eprintln!("[boot:{:}] setup entered", now_ms());
             let gateway_state =
@@ -124,6 +125,22 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             }
             let _ = crate::menu_bar_shell::setup(app.handle());
             let _ = crate::runtime_mod::store::sync_runtime_mod_source_watchers(app.handle());
+
+            // RL-INTOP-004 — Deep-link URL scheme handler (nimi-desktop://runtime-config/{pageId})
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                #[cfg(desktop)]
+                {
+                    let _ = app.deep_link().register("nimi-desktop");
+                }
+                let app_handle_for_deep_link = app.handle().clone();
+                app.deep_link().on_open_url(move |event| {
+                    for url in event.urls() {
+                        handle_deep_link_url(&app_handle_for_deep_link, url.as_str());
+                    }
+                });
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -259,6 +276,48 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             local_runtime::commands::runtime_local_artifacts_scaffold_orphan
         ])
         .build(tauri::generate_context!())
+}
+
+/// RL-INTOP-004 — Parse deep-link URL and emit navigation event to webview.
+/// URL format: nimi-desktop://runtime-config/{pageId}
+fn handle_deep_link_url(app: &tauri::AppHandle, raw_url: &str) {
+    use tauri::Emitter;
+    eprintln!("[deep-link] received url: {}", raw_url);
+    let parsed = match url::Url::parse(raw_url) {
+        Ok(u) => u,
+        Err(_) => return,
+    };
+    if parsed.scheme() != "nimi-desktop" {
+        return;
+    }
+    let host = parsed.host_str().unwrap_or("");
+    if host != "runtime-config" {
+        return;
+    }
+    let page_id = parsed
+        .path_segments()
+        .and_then(|mut s| s.next())
+        .unwrap_or("overview");
+
+    #[derive(Clone, serde::Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct DeepLinkOpenTabPayload {
+        tab: String,
+        page: Option<String>,
+    }
+
+    // Focus + show window first
+    let _ = crate::menu_bar_shell::window::focus_main_window(app);
+    crate::menu_bar_shell::set_window_visible(app, true);
+
+    // Emit same event shape as menu-bar://open-tab so the existing listener handles it
+    let _ = app.emit(
+        crate::menu_bar_shell::MENU_BAR_OPEN_TAB_EVENT,
+        DeepLinkOpenTabPayload {
+            tab: "runtime".to_string(),
+            page: Some(page_id.to_string()),
+        },
+    );
 }
 
 fn main() {

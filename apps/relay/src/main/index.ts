@@ -7,6 +7,8 @@ import path from 'node:path';
 import { parseEnv, type RelayEnv } from './env.js';
 import { initPlatformClient } from './platform-client.js';
 import { registerIpcHandlers } from './ipc-handlers.js';
+import { registerModelIpcHandlers } from './model-handlers.js';
+import { registerDesktopInteropHandlers } from './desktop-interop.js';
 import { initRealtimeRelay } from './realtime-relay.js';
 import { loadToken, saveToken, performDesktopBrowserAuth } from './auth/index.js';
 import type { Runtime } from '@nimiplatform/sdk/runtime';
@@ -86,6 +88,7 @@ export async function performBrowserLoginAndInit(): Promise<void> {
     // Initialize platform clients with new token
     ({ runtime, realm } = initPlatformClient(env));
     registerIpcHandlers(runtime, realm, getWebContents, env);
+    registerModelIpcHandlers(runtime);
     initRealtimeRelay(env.NIMI_REALM_URL, env.NIMI_ACCESS_TOKEN!, getWebContents);
 
     setAuthState('authenticated');
@@ -100,9 +103,10 @@ app.whenReady().then(async () => {
   // Step 1: Parse environment variables (RL-BOOT-003)
   env = parseEnv();
 
-  // Step 2: Register auth IPC handlers early (before window needs them)
+  // Step 2: Register auth + desktop interop IPC handlers early (before window needs them)
   const { registerAuthIpcHandlers } = await import('./ipc-handlers.js');
   registerAuthIpcHandlers();
+  registerDesktopInteropHandlers();
 
   // Step 3: Create window immediately so user sees UI
   createWindow();
@@ -116,6 +120,7 @@ app.whenReady().then(async () => {
     ({ runtime, realm } = initPlatformClient(env));
     initRealtimeRelay(env.NIMI_REALM_URL, token, getWebContents);
     registerIpcHandlers(runtime, realm, getWebContents, env);
+    registerModelIpcHandlers(runtime);
     setAuthState('authenticated');
   } else {
     // No token — show login page, wait for user to click "Login with Browser"

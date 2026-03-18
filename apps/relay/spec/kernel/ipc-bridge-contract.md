@@ -10,6 +10,10 @@ All Electron IPC channels use the `relay:` prefix.
 Categories:
 - `relay:ai:*` — AI consume operations
 - `relay:media:*` — Media operations (TTS, STT, image, video)
+- `relay:model:*` — Model service operations (list, pull, remove, health)
+- `relay:local:*` — Local runtime management (models, device, services)
+- `relay:connector:*` — Connector CRUD and catalog operations
+- `relay:desktop:*` — Desktop interop (deep-link navigation)
 - `relay:realm:*` — Realm REST passthrough
 - `relay:realtime:*` — Realtime event forwarding (socket.io → renderer)
 - `relay:stream:*` — gRPC stream lifecycle events (main → renderer)
@@ -130,3 +134,68 @@ Socket.io events received in main process are forwarded to renderer via IPC:
 Renderer subscribes/unsubscribes via:
 - `relay:realtime:subscribe` — join a channel
 - `relay:realtime:unsubscribe` — leave a channel
+
+## RL-IPC-010 — Model Service IPC
+
+| Channel | Type | SDK Method |
+|---------|------|------------|
+| `relay:model:list` | unary | `runtime.model.list` |
+| `relay:model:pull` | unary | `runtime.model.pull` |
+| `relay:model:remove` | unary | `runtime.model.remove` |
+| `relay:model:health` | unary | `runtime.model.checkHealth` |
+
+Model service operations are not agent-scoped — no `agentId` required.
+All calls are SDK passthrough with `normalizeError` wrapping.
+
+## RL-IPC-011 — Local Runtime IPC
+
+| Channel | Type | SDK Method |
+|---------|------|------------|
+| `relay:local:models:list` | unary | `runtime.local.listLocalModels` |
+| `relay:local:models:verified` | unary | `runtime.local.listVerifiedModels` |
+| `relay:local:models:catalog-search` | unary | `runtime.local.searchCatalogModels` |
+| `relay:local:models:install-plan` | unary | `runtime.local.resolveModelInstallPlan` |
+| `relay:local:models:install` | unary | `runtime.local.installLocalModel` |
+| `relay:local:models:install-verified` | unary | `runtime.local.installVerifiedModel` |
+| `relay:local:models:import` | unary | `runtime.local.importLocalModel` |
+| `relay:local:models:remove` | unary | `runtime.local.removeLocalModel` |
+| `relay:local:models:start` | unary | `runtime.local.startLocalModel` |
+| `relay:local:models:stop` | unary | `runtime.local.stopLocalModel` |
+| `relay:local:models:health` | unary | `runtime.local.checkLocalModelHealth` |
+| `relay:local:models:warm` | unary | `runtime.local.warmLocalModel` |
+| `relay:local:device-profile` | unary | `runtime.local.collectDeviceProfile` |
+| `relay:local:profile:resolve` | unary | `runtime.local.resolveProfile` |
+| `relay:local:catalog:nodes` | unary | `runtime.local.listNodeCatalog` |
+
+Local runtime operations are not agent-scoped.
+
+## RL-IPC-012 — Connector IPC
+
+| Channel | Type | SDK Method |
+|---------|------|------------|
+| `relay:connector:create` | unary | `runtime.connector.createConnector` |
+| `relay:connector:get` | unary | `runtime.connector.getConnector` |
+| `relay:connector:list` | unary | `runtime.connector.listConnectors` |
+| `relay:connector:update` | unary | `runtime.connector.updateConnector` |
+| `relay:connector:delete` | unary | `runtime.connector.deleteConnector` |
+| `relay:connector:test` | unary | `runtime.connector.testConnector` |
+| `relay:connector:models` | unary | `runtime.connector.listConnectorModels` |
+| `relay:connector:provider-catalog` | unary | `runtime.connector.listProviderCatalog` |
+| `relay:connector:catalog-providers` | unary | `runtime.connector.listModelCatalogProviders` |
+| `relay:connector:catalog-provider-models` | unary | `runtime.connector.listCatalogProviderModels` |
+| `relay:connector:catalog-model-detail` | unary | `runtime.connector.getCatalogModelDetail` |
+| `relay:connector:catalog-provider:upsert` | unary | `runtime.connector.upsertModelCatalogProvider` |
+| `relay:connector:catalog-provider:delete` | unary | `runtime.connector.deleteModelCatalogProvider` |
+| `relay:connector:catalog-overlay:upsert` | unary | `runtime.connector.upsertCatalogModelOverlay` |
+| `relay:connector:catalog-overlay:delete` | unary | `runtime.connector.deleteCatalogModelOverlay` |
+
+Connector operations are not agent-scoped.
+
+## RL-IPC-013 — Desktop Interop IPC
+
+| Channel | Type | Description |
+|---------|------|-------------|
+| `relay:desktop:open-config` | unary | Open Desktop runtime config via URL scheme |
+
+Opens `nimi-desktop://runtime-config/{pageId}` using Electron `shell.openExternal`.
+See RL-INTOP-004 for the deep-link contract.

@@ -42,3 +42,22 @@ Main process maintains a socket.io connection for real-time events:
 
 This is the mechanism that makes RL-INTOP-001 work.
 Without it, human chat is REST-only and interop is not real-time.
+
+## RL-INTOP-004 — Desktop Config Deep-Link
+
+Relay can open Desktop's runtime configuration UI via a URL scheme:
+
+- URL format: `nimi-desktop://runtime-config/{pageId}`
+- Valid `pageId` values: `overview`, `recommend`, `local`, `cloud`, `catalog`, `runtime`, `mods`, `data-management`, `performance`, `mod-developer`
+- Default `pageId` (when omitted): `overview`
+
+**Relay side** (sender):
+- IPC channel: `relay:desktop:open-config` (RL-IPC-013)
+- Main process calls `shell.openExternal('nimi-desktop://runtime-config/{pageId}')`
+- If Desktop is not installed or the scheme is not registered, `shell.openExternal` fails silently
+
+**Desktop side** (receiver):
+- Tauri deep-link plugin registers the `nimi-desktop` URL scheme
+- Rust setup hook parses the URL and emits a `deep-link://open-tab` event to the webview
+- Renderer listens for the event and navigates: `setActiveTab('runtime')` + `dispatchRuntimeConfigOpenPage(pageId)`
+- Handles both cold-start (URL passed at launch) and warm-start (URL received while running)

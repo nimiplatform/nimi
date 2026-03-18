@@ -116,3 +116,15 @@ Via Realm API:
 - Agent switching: update `currentAgent` in store, propagate to all surfaces (RL-CORE-002)
 
 Agent selection is the entry gate for all other features (RL-CORE-001).
+
+## RL-FEAT-008 — Model Configuration
+
+Lightweight model status and management via SDK passthrough:
+
+- **Model service** (RL-IPC-010): list all registered models, pull/remove models, check health
+- **Local runtime** (RL-IPC-011): list/install/remove/start/stop local models, device profile, catalog search
+- **Connector management** (RL-IPC-012): CRUD connectors, test connections, browse provider catalogs
+- **Desktop interop** (RL-IPC-013): one-click open Desktop runtime config for advanced management
+
+Model configuration is not agent-scoped — operations apply to the runtime globally.
+Relay provides a lightweight status panel; full management UI lives in Desktop (RL-INTOP-004).

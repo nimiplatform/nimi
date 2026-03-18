@@ -59,6 +59,49 @@ export interface NimiRelayBridge {
     onStatus: (callback: (payload: { state: string; error: string | null }) => void) => string;
     removeListener: (id: string) => void;
   };
+  model: {
+    list: (input?: Record<string, unknown>) => Promise<unknown>;
+    pull: (input: Record<string, unknown>) => Promise<unknown>;
+    remove: (input: Record<string, unknown>) => Promise<unknown>;
+    checkHealth: (input: Record<string, unknown>) => Promise<unknown>;
+  };
+  local: {
+    listModels: (input?: Record<string, unknown>) => Promise<unknown>;
+    listVerifiedModels: (input?: Record<string, unknown>) => Promise<unknown>;
+    searchCatalog: (input: Record<string, unknown>) => Promise<unknown>;
+    resolveInstallPlan: (input: Record<string, unknown>) => Promise<unknown>;
+    installModel: (input: Record<string, unknown>) => Promise<unknown>;
+    installVerifiedModel: (input: Record<string, unknown>) => Promise<unknown>;
+    importModel: (input: Record<string, unknown>) => Promise<unknown>;
+    removeModel: (input: Record<string, unknown>) => Promise<unknown>;
+    startModel: (input: Record<string, unknown>) => Promise<unknown>;
+    stopModel: (input: Record<string, unknown>) => Promise<unknown>;
+    checkModelHealth: (input: Record<string, unknown>) => Promise<unknown>;
+    warmModel: (input: Record<string, unknown>) => Promise<unknown>;
+    collectDeviceProfile: (input?: Record<string, unknown>) => Promise<unknown>;
+    resolveProfile: (input: Record<string, unknown>) => Promise<unknown>;
+    listNodeCatalog: (input?: Record<string, unknown>) => Promise<unknown>;
+  };
+  connector: {
+    create: (input: Record<string, unknown>) => Promise<unknown>;
+    get: (input: Record<string, unknown>) => Promise<unknown>;
+    list: (input?: Record<string, unknown>) => Promise<unknown>;
+    update: (input: Record<string, unknown>) => Promise<unknown>;
+    delete: (input: Record<string, unknown>) => Promise<unknown>;
+    test: (input: Record<string, unknown>) => Promise<unknown>;
+    listModels: (input: Record<string, unknown>) => Promise<unknown>;
+    listProviderCatalog: (input?: Record<string, unknown>) => Promise<unknown>;
+    listCatalogProviders: (input?: Record<string, unknown>) => Promise<unknown>;
+    listCatalogProviderModels: (input: Record<string, unknown>) => Promise<unknown>;
+    getCatalogModelDetail: (input: Record<string, unknown>) => Promise<unknown>;
+    upsertCatalogProvider: (input: Record<string, unknown>) => Promise<unknown>;
+    deleteCatalogProvider: (input: Record<string, unknown>) => Promise<unknown>;
+    upsertCatalogOverlay: (input: Record<string, unknown>) => Promise<unknown>;
+    deleteCatalogOverlay: (input: Record<string, unknown>) => Promise<unknown>;
+  };
+  desktop: {
+    openConfig: (pageId?: string) => Promise<{ success: boolean }>;
+  };
   chat: {
     send: (input: { agentId: string; text: string; sessionId?: string }) => Promise<void>;
     cancel: (input: { turnTxnId: string }) => Promise<void>;

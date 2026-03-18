@@ -39,6 +39,7 @@ tempfile = "3"
 notify = "8"
 ed25519-dalek = { version = "2", features = ["pem", "pkcs8"] }
 tauri-plugin-updater = "2"
+tauri-plugin-deep-link = "2"
 llmfit-core = "0.7.4"
 
 [dev-dependencies]

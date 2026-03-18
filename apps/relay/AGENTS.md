@@ -21,6 +21,7 @@ Business logic lives entirely in the main process (RL-PIPE-*):
 - `prompt/` — Layered prompt compiler with lane budgets
 - `session-store/` — Conversation ledger persisted to Electron userData via `RelayChatStorage`
 - `media/` — Media decision policy, planner, execution pipeline, NSFW guardrail
+- `model/` — Model, local runtime, and connector IPC handlers (SDK passthrough)
 - `proactive/` — Heartbeat engine, policy, scheduler
 - `settings/` — Product settings persistence
 - `data/` — Realm API queries (replaces mod data.query capabilities)
@@ -52,5 +53,4 @@ The renderer is a thin consumer: it receives structured beat messages via IPC an
 ## Non-Goals
 
 - No mod system (direct SDK calls)
-- No local AI model management
 - No offline mode

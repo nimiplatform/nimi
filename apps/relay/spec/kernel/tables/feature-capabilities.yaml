@@ -63,6 +63,15 @@ features:
     sdk_module: realm
     source_rule: RL-FEAT-007
 
+  - id: model-config
+    display_name: Model Configuration
+    requires_runtime: true
+    requires_realm: false
+    requires_agent: false
+    sdk_module: runtime.model + runtime.local + runtime.connector
+    note: Lightweight model status and management; full UI lives in Desktop (RL-INTOP-004)
+    source_rule: RL-FEAT-008
+
   # Pipeline capabilities (RL-PIPE-*)
   - id: chat-pipeline
     display_name: Beat-First Chat Pipeline

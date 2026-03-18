@@ -94,6 +94,57 @@ const api = {
     removeListener,
   },
 
+  // Model service (RL-IPC-010)
+  model: {
+    list: (input?: Record<string, unknown>) => ipcRenderer.invoke('relay:model:list', input),
+    pull: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:model:pull', input),
+    remove: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:model:remove', input),
+    checkHealth: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:model:health', input),
+  },
+
+  // Local runtime (RL-IPC-011)
+  local: {
+    listModels: (input?: Record<string, unknown>) => ipcRenderer.invoke('relay:local:models:list', input),
+    listVerifiedModels: (input?: Record<string, unknown>) => ipcRenderer.invoke('relay:local:models:verified', input),
+    searchCatalog: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:local:models:catalog-search', input),
+    resolveInstallPlan: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:local:models:install-plan', input),
+    installModel: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:local:models:install', input),
+    installVerifiedModel: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:local:models:install-verified', input),
+    importModel: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:local:models:import', input),
+    removeModel: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:local:models:remove', input),
+    startModel: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:local:models:start', input),
+    stopModel: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:local:models:stop', input),
+    checkModelHealth: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:local:models:health', input),
+    warmModel: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:local:models:warm', input),
+    collectDeviceProfile: (input?: Record<string, unknown>) => ipcRenderer.invoke('relay:local:device-profile', input),
+    resolveProfile: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:local:profile:resolve', input),
+    listNodeCatalog: (input?: Record<string, unknown>) => ipcRenderer.invoke('relay:local:catalog:nodes', input),
+  },
+
+  // Connector (RL-IPC-012)
+  connector: {
+    create: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:connector:create', input),
+    get: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:connector:get', input),
+    list: (input?: Record<string, unknown>) => ipcRenderer.invoke('relay:connector:list', input),
+    update: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:connector:update', input),
+    delete: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:connector:delete', input),
+    test: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:connector:test', input),
+    listModels: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:connector:models', input),
+    listProviderCatalog: (input?: Record<string, unknown>) => ipcRenderer.invoke('relay:connector:provider-catalog', input),
+    listCatalogProviders: (input?: Record<string, unknown>) => ipcRenderer.invoke('relay:connector:catalog-providers', input),
+    listCatalogProviderModels: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:connector:catalog-provider-models', input),
+    getCatalogModelDetail: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:connector:catalog-model-detail', input),
+    upsertCatalogProvider: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:connector:catalog-provider:upsert', input),
+    deleteCatalogProvider: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:connector:catalog-provider:delete', input),
+    upsertCatalogOverlay: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:connector:catalog-overlay:upsert', input),
+    deleteCatalogOverlay: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:connector:catalog-overlay:delete', input),
+  },
+
+  // Desktop interop (RL-IPC-013)
+  desktop: {
+    openConfig: (pageId?: string) => ipcRenderer.invoke('relay:desktop:open-config', { pageId }),
+  },
+
   // Chat pipeline (RL-PIPE-*)
   chat: {
     send: (input: { agentId: string; text: string; sessionId?: string }) =>
