@@ -23,5 +23,7 @@ prost-types = "0.14"
 base64 = "0.22"
 futures-util = "0.3"
 url = "2"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+webbrowser = "1"
 
 [dev-dependencies]

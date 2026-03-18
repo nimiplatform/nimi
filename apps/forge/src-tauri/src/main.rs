@@ -4,6 +4,7 @@ use serde::Serialize;
 
 mod defaults;
 mod desktop_paths;
+mod oauth_commands;
 mod runtime_bridge;
 
 #[derive(Debug, Serialize)]
@@ -28,6 +29,9 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             get_storage_dirs,
             defaults::runtime_defaults,
+            oauth_commands::open_external_url,
+            oauth_commands::oauth_token_exchange,
+            oauth_commands::oauth_listen_for_code,
             runtime_bridge::runtime_bridge_unary,
             runtime_bridge::runtime_bridge_stream_open,
             runtime_bridge::runtime_bridge_stream_close,
