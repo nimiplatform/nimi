@@ -53,6 +53,12 @@ export interface NimiRelayBridge {
     onError: (callback: (payload: { streamId: string; error: unknown }) => void) => string;
     removeListener: (id: string) => void;
   };
+  auth: {
+    getStatus: () => Promise<{ state: string; error: string | null }>;
+    retry: () => Promise<{ success: boolean; error?: string }>;
+    onStatus: (callback: (payload: { state: string; error: string | null }) => void) => string;
+    removeListener: (id: string) => void;
+  };
   chat: {
     send: (input: { agentId: string; text: string; sessionId?: string }) => Promise<void>;
     cancel: (input: { turnTxnId: string }) => Promise<void>;

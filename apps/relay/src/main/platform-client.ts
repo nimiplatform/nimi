@@ -9,6 +9,8 @@ let runtime: Runtime | null = null;
 let realm: Realm | null = null;
 
 export function initPlatformClient(env: RelayEnv): { runtime: Runtime; realm: Realm } {
+  const accessToken = env.NIMI_ACCESS_TOKEN || '';
+
   // RL-TRANS-001: node-grpc connectivity
   // RL-INTOP-002: appId = 'nimi.relay'
   runtime = new Runtime({
@@ -19,14 +21,14 @@ export function initPlatformClient(env: RelayEnv): { runtime: Runtime; realm: Re
     },
     auth: {
       // RL-TRANS-003: accessToken as provider function, not static string
-      accessToken: () => Promise.resolve(env.NIMI_ACCESS_TOKEN),
+      accessToken: () => Promise.resolve(accessToken),
     },
   });
 
   realm = new Realm({
     baseUrl: env.NIMI_REALM_URL,
     auth: {
-      accessToken: env.NIMI_ACCESS_TOKEN,
+      accessToken,
     },
   });
 

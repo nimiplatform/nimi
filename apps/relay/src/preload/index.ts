@@ -86,6 +86,14 @@ const api = {
     removeListener,
   },
 
+  // Auth (RL-BOOT-005)
+  auth: {
+    getStatus: () => ipcRenderer.invoke('relay:auth:status') as Promise<{ state: string; error: string | null }>,
+    retry: () => ipcRenderer.invoke('relay:auth:retry') as Promise<{ success: boolean; error?: string }>,
+    onStatus: (cb: (...args: unknown[]) => void) => addListener('relay:auth:status', cb),
+    removeListener,
+  },
+
   // Chat pipeline (RL-PIPE-*)
   chat: {
     send: (input: { agentId: string; text: string; sessionId?: string }) =>

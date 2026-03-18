@@ -6,6 +6,7 @@
 // RL-IPC-007 — Media IPC
 // RL-IPC-008 — Realm Passthrough IPC
 // RL-CORE-004 — agentId in every agent-scoped IPC input
+// RL-BOOT-005 — Auth IPC
 
 import { ipcMain, type WebContents } from 'electron';
 import type { Runtime } from '@nimiplatform/sdk/runtime';
@@ -22,6 +23,28 @@ import { openStream, cancelStream } from './stream-manager.js';
 import { normalizeError } from './error-utils.js';
 import { toTextGenerateInput, toTextStreamInput, type IpcAiGenerateInput, type IpcAiStreamInput } from './input-transform.js';
 import type { RelayEnv } from './env.js';
+
+/**
+ * Register auth-related IPC handlers.
+ * Called early in boot (before auth resolution) so the renderer
+ * can query auth state and trigger retry even if initial auth failed.
+ */
+export function registerAuthIpcHandlers(): void {
+  ipcMain.handle('relay:auth:status', async () => {
+    const { getAuthState } = await import('./index.js');
+    return getAuthState();
+  });
+
+  ipcMain.handle('relay:auth:retry', async () => {
+    const { retryAuth } = await import('./index.js');
+    try {
+      await retryAuth();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+}
 
 const RELAY_REASON_CODE_MISSING_AGENT_ID = ReasonCode.AI_INPUT_INVALID;
 

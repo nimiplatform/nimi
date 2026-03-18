@@ -225,6 +225,25 @@ channels:
     description: Selected session ID update
     source_rule: RL-PIPE-002
 
+  # Auth (RL-BOOT-005)
+  - channel: relay:auth:status
+    type: unary
+    module: auth
+    description: Query current auth state (pending/authenticating/authenticated/failed)
+    source_rule: RL-BOOT-005
+
+  - channel: relay:auth:retry
+    type: unary
+    module: auth
+    description: Trigger browser auth retry after failure
+    source_rule: RL-BOOT-005
+
+  - channel: relay:auth:status
+    type: event
+    direction: main-to-renderer
+    description: Auth state change push (state + error)
+    source_rule: RL-BOOT-005
+
   # Config
   - channel: relay:config
     type: unary
