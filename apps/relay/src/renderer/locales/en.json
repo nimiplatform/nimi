@@ -58,5 +58,19 @@
     "loadingModel": "Loading model...",
     "failedToLoad": "Failed to load model",
     "loadingLive2d": "Loading Live2D..."
+  },
+  "settings": {
+    "title": "Settings",
+    "mediaAutonomy": "Media Autonomy",
+    "voiceAutonomy": "Voice Autonomy",
+    "visualComfort": "Visual Comfort",
+    "proactiveContact": "Proactive Contact",
+    "autoPlayVoice": "Auto-play Voice",
+    "off": "Off",
+    "explicitOnly": "Explicit",
+    "natural": "Natural",
+    "textOnly": "Text Only",
+    "restrained": "Restrained",
+    "naturalVisuals": "Natural"
   }
 }

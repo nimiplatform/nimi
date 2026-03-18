@@ -1,15 +1,16 @@
-// Chat page — AI agent chat + Human chat + Video generation with tab switching
-// RL-FEAT-001 (AI) + RL-FEAT-002 (Human) + RL-FEAT-003/004 voice integration + RL-FEAT-006 (Video)
+// Chat page — Beat-first AI chat + Human chat + Video generation with tab switching
+// RL-PIPE-001 (pipeline) + RL-FEAT-002 (Human) + RL-FEAT-003/004 voice + RL-FEAT-006 (Video)
 
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAgentChat } from './hooks/use-agent-chat.js';
+import { usePipelineChat } from './hooks/use-pipeline-chat.js';
 import { useHumanChat } from './hooks/use-human-chat.js';
 import { useVideoGenerate } from '../video/hooks/use-video-generate.js';
 import { ChatView } from './components/chat-view.js';
 import { MessageInput } from './components/message-input.js';
 import { VoiceControls } from '../voice/components/voice-controls.js';
 import { VideoPlayer } from '../video/components/video-player.js';
+import { SettingsDrawer } from './components/settings-drawer.js';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { getBridge } from '../../bridge/electron-bridge.js';
 
@@ -21,15 +22,16 @@ export function ChatPage() {
   const runtimeAvailable = useAppStore((s) => s.runtimeAvailable);
   const realtimeConnected = useAppStore((s) => s.realtimeConnected);
   const [mode, setMode] = useState<ChatMode>('ai');
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const ai = useAgentChat();
+  const ai = usePipelineChat();
   const human = useHumanChat();
   const video = useVideoGenerate();
 
-  // Get the last completed assistant message for TTS
+  // Get the last completed assistant text for TTS
   const lastAssistantText = ai.messages
-    .filter((m) => m.role === 'assistant' && !m.streaming && m.text)
-    .at(-1)?.text;
+    .filter((m) => m.role === 'assistant' && m.kind !== 'streaming' && m.content)
+    .at(-1)?.content;
 
   // STT transcript → send as AI message
   const handleTranscript = useCallback((text: string) => {
@@ -61,7 +63,7 @@ export function ChatPage() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Mode tabs */}
+      {/* Mode tabs + settings button */}
       <div className="flex border-b border-gray-800">
         <TabButton
           active={mode === 'ai'}
@@ -81,7 +83,30 @@ export function ChatPage() {
           label={t('video.tab')}
           disabled={!runtimeAvailable}
         />
+        <div className="ml-auto flex items-center px-2">
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className="p-1.5 text-gray-500 hover:text-gray-300 transition-colors"
+            title={t('settings.title', 'Settings')}
+          >
+            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
       </div>
+
+      {/* Status banner */}
+      {ai.statusBanner && (
+        <div className={`px-4 py-2 text-xs ${
+          ai.statusBanner.kind === 'error' ? 'bg-red-900/50 text-red-300' :
+          ai.statusBanner.kind === 'warning' ? 'bg-yellow-900/50 text-yellow-300' :
+          ai.statusBanner.kind === 'success' ? 'bg-green-900/50 text-green-300' :
+          'bg-blue-900/50 text-blue-300'
+        }`}>
+          {ai.statusBanner.message}
+        </div>
+      )}
 
       {/* AI Chat mode */}
       {mode === 'ai' && (
@@ -90,15 +115,20 @@ export function ChatPage() {
             <RuntimeUnavailable onRetry={handleRetryRuntime} feature={t('chat.aiChat')} />
           ) : (
             <>
-              <ChatView messages={ai.messages} />
+              <ChatView messages={ai.messages} sendPhase={ai.sendPhase} />
               <div className="flex items-center gap-2 px-4 py-1">
-                {ai.isStreaming && (
+                {ai.isSending && (
                   <button
-                    onClick={ai.cancelStream}
+                    onClick={() => ai.cancelTurn('')}
                     className="text-xs text-gray-400 hover:text-white"
                   >
                     {t('chat.stopGenerating')}
                   </button>
+                )}
+                {ai.sendPhase !== 'idle' && (
+                  <span className="text-[10px] text-gray-600">
+                    {ai.sendPhase.replace(/-/g, ' ')}
+                  </span>
                 )}
                 <div className="ml-auto">
                   <VoiceControls
@@ -109,7 +139,7 @@ export function ChatPage() {
               </div>
               <MessageInput
                 onSend={ai.sendMessage}
-                disabled={!ai.canChat || ai.isStreaming}
+                disabled={!ai.canChat || ai.isSending}
                 placeholder={t('chat.messageAgent', { name: currentAgent.name })}
               />
             </>
@@ -164,6 +194,9 @@ export function ChatPage() {
           )}
         </>
       )}
+
+      {/* Settings drawer */}
+      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

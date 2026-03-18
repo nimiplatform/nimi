@@ -58,5 +58,19 @@
     "loadingModel": "加载模型中...",
     "failedToLoad": "模型加载失败",
     "loadingLive2d": "加载 Live2D..."
+  },
+  "settings": {
+    "title": "设置",
+    "mediaAutonomy": "媒体自主度",
+    "voiceAutonomy": "语音自主度",
+    "visualComfort": "视觉舒适度",
+    "proactiveContact": "主动联系",
+    "autoPlayVoice": "自动播放语音",
+    "off": "关闭",
+    "explicitOnly": "显式触发",
+    "natural": "自然",
+    "textOnly": "纯文字",
+    "restrained": "克制",
+    "naturalVisuals": "自然"
   }
 }

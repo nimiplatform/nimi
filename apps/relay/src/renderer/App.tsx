@@ -7,6 +7,7 @@ import { queryClient } from './infra/query-client.js';
 import { bootstrap, type BootstrapResult } from './infra/bootstrap.js';
 import { MainLayout } from './app-shell/layout/main-layout.js';
 import { ChatPage } from './features/chat/chat-page.js';
+import { useSettingsStore } from './app-shell/providers/settings-store.js';
 
 export function App() {
   const { t, ready: i18nReady } = useTranslation();
@@ -17,6 +18,8 @@ export function App() {
     bootstrap().then((result) => {
       setBootstrapResult(result);
       setReady(true);
+      // Load product settings after bootstrap
+      useSettingsStore.getState().load();
     });
   }, []);
 

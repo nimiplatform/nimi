@@ -53,6 +53,29 @@ export interface NimiRelayBridge {
     onError: (callback: (payload: { streamId: string; error: unknown }) => void) => string;
     removeListener: (id: string) => void;
   };
+  chat: {
+    send: (input: { agentId: string; text: string; sessionId?: string }) => Promise<void>;
+    cancel: (input: { turnTxnId: string }) => Promise<void>;
+    history: (input: { agentId: string }) => Promise<unknown>;
+    clear: (input: { agentId: string; sessionId: string }) => Promise<void>;
+    settings: {
+      get: () => Promise<unknown>;
+      set: (patch: Record<string, unknown>) => Promise<void>;
+    };
+    proactive: {
+      toggle: (enabled: boolean) => Promise<void>;
+    };
+    onTurnPhase: (callback: (payload: { turnId?: string; phase: string }) => void) => string;
+    onBeat: (callback: (payload: { turnId: string; beat: unknown }) => void) => string;
+    onTurnDone: (callback: (payload: { turnId: string; diagnostics?: unknown }) => void) => string;
+    onTurnError: (callback: (payload: { turnId: string; error: unknown }) => void) => string;
+    onMessages: (callback: (messages: unknown[]) => void) => string;
+    onSessions: (callback: (sessions: unknown[]) => void) => string;
+    onStatusBanner: (callback: (banner: { kind: string; message: string }) => void) => string;
+    onPromptTrace: (callback: (trace: unknown) => void) => string;
+    onTurnAudit: (callback: (audit: unknown) => void) => string;
+    removeListener: (id: string) => void;
+  };
 }
 
 declare global {

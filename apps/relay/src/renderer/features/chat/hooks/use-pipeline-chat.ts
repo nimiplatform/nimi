@@ -1,0 +1,126 @@
+// RL-PIPE-001 — Pipeline-aware chat hook
+// Replaces use-agent-chat.ts for the beat-first turn pipeline.
+// Renderer is a thin consumer: sends via IPC, receives structured beat messages.
+
+import { useEffect, useCallback, useRef } from 'react';
+import { getBridge } from '../../../bridge/electron-bridge.js';
+import { useAppStore } from '../../../app-shell/providers/app-store.js';
+import { useChatStore, type ChatMessage, type TurnSendPhase } from '../../../app-shell/providers/chat-store.js';
+
+export function usePipelineChat() {
+  const currentAgent = useAppStore((s) => s.currentAgent);
+  const runtimeAvailable = useAppStore((s) => s.runtimeAvailable);
+  const {
+    messages,
+    sendPhase,
+    statusBanner,
+    setMessages,
+    setSendPhase,
+    setStatusBanner,
+    setPromptTrace,
+    setTurnAudit,
+    clearChat,
+  } = useChatStore();
+
+  const listenersRef = useRef<string[]>([]);
+
+  // Subscribe to IPC push events from main process
+  useEffect(() => {
+    const bridge = getBridge();
+    const ids: string[] = [];
+
+    ids.push(bridge.chat.onMessages((msgs: unknown) => {
+      setMessages(msgs as ChatMessage[]);
+    }));
+
+    ids.push(bridge.chat.onTurnPhase((payload: unknown) => {
+      const p = payload as { phase: TurnSendPhase };
+      setSendPhase(p.phase);
+    }));
+
+    ids.push(bridge.chat.onStatusBanner((banner: unknown) => {
+      setStatusBanner(banner as { kind: 'warning' | 'error' | 'success' | 'info'; message: string } | null);
+    }));
+
+    ids.push(bridge.chat.onPromptTrace((trace: unknown) => {
+      setPromptTrace(trace);
+    }));
+
+    ids.push(bridge.chat.onTurnAudit((audit: unknown) => {
+      setTurnAudit(audit);
+    }));
+
+    listenersRef.current = ids;
+
+    return () => {
+      for (const id of ids) {
+        bridge.chat.removeListener(id);
+      }
+      listenersRef.current = [];
+    };
+  }, [setMessages, setSendPhase, setStatusBanner, setPromptTrace, setTurnAudit]);
+
+  // RL-CORE-002: Reset chat when agent changes
+  useEffect(() => {
+    clearChat();
+
+    if (!currentAgent) return;
+
+    // Load session history for new agent
+    getBridge().chat.history({ agentId: currentAgent.id })
+      .then((result) => {
+        if (result && Array.isArray(result)) {
+          setMessages(result as ChatMessage[]);
+        }
+      })
+      .catch(() => {
+        // History load failed — start fresh
+      });
+  }, [currentAgent?.id, clearChat, setMessages]);
+
+  const sendMessage = useCallback(async (text: string) => {
+    if (!currentAgent || !runtimeAvailable) return;
+    if (!text.trim()) return;
+
+    try {
+      await getBridge().chat.send({
+        agentId: currentAgent.id,
+        text: text.trim(),
+      });
+    } catch {
+      setStatusBanner({ kind: 'error', message: 'Failed to send message' });
+    }
+  }, [currentAgent, runtimeAvailable, setStatusBanner]);
+
+  const cancelTurn = useCallback(async (turnTxnId: string) => {
+    try {
+      await getBridge().chat.cancel({ turnTxnId });
+    } catch {
+      // Cancel failed — the turn may have already completed
+    }
+  }, []);
+
+  const clearHistory = useCallback(async () => {
+    if (!currentAgent) return;
+    try {
+      await getBridge().chat.clear({
+        agentId: currentAgent.id,
+        sessionId: '', // clears active session
+      });
+      clearChat();
+    } catch {
+      setStatusBanner({ kind: 'error', message: 'Failed to clear history' });
+    }
+  }, [currentAgent, clearChat, setStatusBanner]);
+
+  return {
+    messages,
+    sendPhase,
+    statusBanner,
+    isSending: sendPhase !== 'idle',
+    canChat: !!currentAgent && runtimeAvailable,
+    sendMessage,
+    cancelTurn,
+    clearHistory,
+  };
+}
