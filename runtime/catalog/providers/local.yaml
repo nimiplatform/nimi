@@ -1,6 +1,6 @@
 version: 1
 provider: local
-catalog_version: 2026-03-15-local-v4
+catalog_version: 2026-03-18-local-v5
 models:
   - model_id: qwen3-tts-local
     provider: local
@@ -10,10 +10,10 @@ models:
       - audio.synthesize
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://github.com/QwenLM/Qwen3-TTS
@@ -32,10 +32,10 @@ models:
       - audio.synthesize
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://github.com/QwenLM/Qwen3-TTS
@@ -52,10 +52,10 @@ models:
       - audio.synthesize
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://github.com/QwenLM/Qwen3-TTS
@@ -72,10 +72,10 @@ models:
       - audio.synthesize
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://github.com/FunAudioLLM/CosyVoice
@@ -94,10 +94,10 @@ models:
       - audio.synthesize
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://github.com/RVC-Boss/GPT-SoVITS
@@ -116,10 +116,10 @@ models:
       - audio.synthesize
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://github.com/SWivid/F5-TTS
@@ -138,10 +138,10 @@ models:
       - audio.synthesize
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://github.com/rhasspy/piper
@@ -160,10 +160,10 @@ models:
       - audio.synthesize
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://github.com/hexgrad/kokoro
@@ -182,10 +182,10 @@ models:
       - text.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://github.com/QwenLM/Qwen3-TTS
@@ -199,10 +199,10 @@ models:
       - text.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://github.com/QwenLM/Qwen3-TTS
@@ -216,10 +216,10 @@ models:
       - text.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://github.com/QwenLM/Qwen3-TTS
@@ -233,10 +233,10 @@ models:
       - text.embed
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://github.com/QwenLM/Qwen3-TTS
@@ -250,10 +250,10 @@ models:
       - text.embed
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://github.com/QwenLM/Qwen3-TTS
@@ -267,10 +267,10 @@ models:
       - text.embed
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://github.com/QwenLM/Qwen3-TTS
@@ -284,10 +284,10 @@ models:
       - audio.transcribe
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://github.com/QwenLM/Qwen3-TTS
@@ -301,10 +301,10 @@ models:
       - audio.transcribe
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://github.com/QwenLM/Qwen3-TTS
@@ -318,10 +318,10 @@ models:
       - audio.transcribe
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://github.com/QwenLM/Qwen3-TTS
@@ -335,10 +335,10 @@ models:
       - image.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://huggingface.co/docs/diffusers/api/pipelines/flux
@@ -352,10 +352,10 @@ models:
       - image.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://huggingface.co/docs/diffusers/api/pipelines/flux
@@ -369,10 +369,10 @@ models:
       - image.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://huggingface.co/docs/diffusers/api/pipelines/flux
@@ -386,10 +386,10 @@ models:
       - video.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://huggingface.co/docs/diffusers/api/pipelines/wan
@@ -425,10 +425,10 @@ models:
       - video.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://huggingface.co/docs/diffusers/api/pipelines/wan
@@ -443,10 +443,10 @@ models:
       - video.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://huggingface.co/docs/diffusers/api/pipelines/wan
@@ -461,10 +461,10 @@ models:
       - music.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://github.com/QwenLM/Qwen3-TTS
@@ -478,10 +478,10 @@ models:
       - music.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://github.com/QwenLM/Qwen3-TTS
@@ -495,10 +495,10 @@ models:
       - music.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://github.com/QwenLM/Qwen3-TTS
@@ -512,10 +512,10 @@ models:
       - music.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://facebookresearch.github.io/audiocraft/docs/MUSICGEN.html
@@ -529,10 +529,10 @@ models:
       - music.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://facebookresearch.github.io/audiocraft/docs/MUSICGEN.html
@@ -546,10 +546,10 @@ models:
       - music.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://facebookresearch.github.io/audiocraft/docs/MUSICGEN.html
@@ -563,10 +563,10 @@ models:
       - music.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://facebookresearch.github.io/audiocraft/docs/MUSICGEN.html
@@ -580,10 +580,10 @@ models:
       - music.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://facebookresearch.github.io/audiocraft/docs/MUSICGEN.html
@@ -597,10 +597,10 @@ models:
       - music.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://stability.ai/news/introducing-stable-audio-open
@@ -614,10 +614,10 @@ models:
       - music.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://stability.ai/news/introducing-stable-audio-open
@@ -631,10 +631,10 @@ models:
       - music.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0"
+      output: "0"
       currency: none
-      as_of: 2026-03-05
+      as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://stability.ai/news/introducing-stable-audio-open

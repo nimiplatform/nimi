@@ -1,6 +1,6 @@
 schema_version: 3
 provider: local
-catalog_version: 2026-03-15-local-v4
+catalog_version: 2026-03-18-local-v5
 generated_target: runtime/catalog/providers/local.yaml
 runtime:
   runtime_plane: local
@@ -15,10 +15,10 @@ defaults:
   capabilities: []
   pricing:
     unit: request
-    input: unknown
-    output: unknown
+    input: "0"
+    output: "0"
     currency: none
-    as_of: 2026-03-05
+    as_of: 2026-03-18
     notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
 
 sources:

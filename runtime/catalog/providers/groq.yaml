@@ -1,6 +1,6 @@
 version: 1
 provider: groq
-catalog_version: 2026-03-05-groq-v1
+catalog_version: 2026-03-18-groq-v3
 models:
   - model_id: meta-llama/llama-4-scout-17b-16e-instruct
     provider: groq
@@ -11,11 +11,11 @@ models:
       - text.generate.vision
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.11"
+      output: "0.34"
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by account plan and region.
+      as_of: 2026-03-18
+      notes: Llama 4 Scout via Groq. Per 1M tokens.
     source_ref:
       url: https://console.groq.com/docs/models
       retrieved_at: 2026-03-05
@@ -29,11 +29,11 @@ models:
       - text.generate.vision
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.11"
+      output: "0.34"
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by account plan and region.
+      as_of: 2026-03-18
+      notes: Llama 4 Scout via Groq. Per 1M tokens.
     source_ref:
       url: https://console.groq.com/docs/models
       retrieved_at: 2026-03-05
@@ -47,11 +47,11 @@ models:
       - text.generate.vision
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.50"
+      output: "0.77"
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by account plan and region.
+      as_of: 2026-03-18
+      notes: Llama 4 Maverick via Groq. Per 1M tokens.
     source_ref:
       url: https://console.groq.com/docs/models
       retrieved_at: 2026-03-05
@@ -65,11 +65,11 @@ models:
       - text.generate.vision
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.50"
+      output: "0.77"
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by account plan and region.
+      as_of: 2026-03-18
+      notes: Llama 4 Maverick via Groq. Per 1M tokens.
     source_ref:
       url: https://console.groq.com/docs/models
       retrieved_at: 2026-03-05
@@ -82,11 +82,11 @@ models:
       - text.generate
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.59"
+      output: "0.79"
       currency: USD
-      as_of: 2026-03-05
-      notes: Reasoning distill model pricing varies by account plan and region.
+      as_of: 2026-03-18
+      notes: DeepSeek R1 distill via Groq. Per 1M tokens.
     source_ref:
       url: https://console.groq.com/docs/models
       retrieved_at: 2026-03-05
@@ -99,13 +99,30 @@ models:
       - text.generate
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.59"
+      output: "0.79"
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by account plan and region.
+      as_of: 2026-03-18
+      notes: Llama 3.3 70B via Groq. Per 1M tokens.
     source_ref:
       url: https://console.groq.com/docs/models
       retrieved_at: 2026-03-05
       note: Groq official model catalog.
+  - model_id: whisper-large-v3-turbo
+    provider: groq
+    model_type: stt
+    updated_at: 2026-03-18
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-18
+      notes: Speech-to-text. Priced at $0.04/hour audio. 216x real-time speed.
+    source_ref:
+      url: https://console.groq.com/docs/model/whisper-large-v3-turbo
+      retrieved_at: 2026-03-18
+      note: Groq Whisper Large v3 Turbo model documentation.
 voices: []

@@ -1,6 +1,6 @@
 schema_version: 3
 provider: cohere
-catalog_version: 2026-03-05-cohere-v1
+catalog_version: 2026-03-18-cohere-v2
 generated_target: runtime/catalog/providers/cohere.yaml
 runtime:
   runtime_plane: remote
@@ -37,11 +37,11 @@ models:
     capabilities: [text.generate]
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "2.50"
+      output: "10.00"
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by account plan and usage tier.
+      as_of: 2026-03-18
+      notes: Flagship RAG-optimized model. Per 1M tokens.
     source_ids: [cohere_models_doc]
 
   - model_id: command-r
@@ -50,11 +50,11 @@ models:
     capabilities: [text.generate]
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.15"
+      output: "0.60"
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by account plan and usage tier.
+      as_of: 2026-03-18
+      notes: Cost-efficient RAG model. Per 1M tokens.
     source_ids: [cohere_models_doc]
 
   - model_id: embed-v4.0
@@ -63,9 +63,9 @@ models:
     capabilities: [text.embed]
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.10"
+      output: "0"
       currency: USD
-      as_of: 2026-03-05
-      notes: Embedding pricing varies by token volume and account plan.
+      as_of: 2026-03-18
+      notes: Embedding model. Per 1M tokens.
     source_ids: [cohere_embed_doc, cohere_models_doc]

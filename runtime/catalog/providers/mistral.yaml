@@ -1,6 +1,6 @@
 version: 1
 provider: mistral
-catalog_version: 2026-03-05-mistral-v1
+catalog_version: 2026-03-18-mistral-v3
 models:
   - model_id: mistral-large-latest
     provider: mistral
@@ -11,11 +11,11 @@ models:
       - text.generate.vision
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "2.00"
+      output: "6.00"
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by model generation and account tier.
+      as_of: 2026-03-18
+      notes: Flagship model. Per 1M tokens.
     source_ref:
       url: https://docs.mistral.ai/getting-started/models/
       retrieved_at: 2026-03-05
@@ -28,11 +28,11 @@ models:
       - text.generate
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "2.70"
+      output: "8.10"
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by model generation and account tier.
+      as_of: 2026-03-18
+      notes: Mid-tier model. Per 1M tokens.
     source_ref:
       url: https://docs.mistral.ai/getting-started/models/
       retrieved_at: 2026-03-05
@@ -46,11 +46,11 @@ models:
       - text.generate.vision
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.20"
+      output: "0.60"
       currency: USD
-      as_of: 2026-03-05
-      notes: Cost-efficient chat model pricing varies by account tier.
+      as_of: 2026-03-18
+      notes: Cost-efficient model. Per 1M tokens.
     source_ref:
       url: https://docs.mistral.ai/getting-started/models/
       retrieved_at: 2026-03-05
@@ -63,11 +63,46 @@ models:
       - text.generate
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.30"
+      output: "0.90"
       currency: USD
-      as_of: 2026-03-05
-      notes: Code-specialized model pricing varies by account tier.
+      as_of: 2026-03-18
+      notes: Code-specialized model. Per 1M tokens.
+    source_ref:
+      url: https://docs.mistral.ai/getting-started/models/
+      retrieved_at: 2026-03-05
+      note: Mistral model catalog and lifecycle aliases.
+  - model_id: pixtral-large-latest
+    provider: mistral
+    model_type: chat
+    updated_at: 2026-03-18
+    capabilities:
+      - text.generate
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: "2.00"
+      output: "6.00"
+      currency: USD
+      as_of: 2026-03-18
+      notes: Vision-optimized large model. Per 1M tokens.
+    source_ref:
+      url: https://docs.mistral.ai/getting-started/models/
+      retrieved_at: 2026-03-05
+      note: Mistral model catalog and lifecycle aliases.
+  - model_id: mistral-saba-latest
+    provider: mistral
+    model_type: chat
+    updated_at: 2026-03-18
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "0.20"
+      output: "0.60"
+      currency: USD
+      as_of: 2026-03-18
+      notes: Regional-optimized model. Per 1M tokens.
     source_ref:
       url: https://docs.mistral.ai/getting-started/models/
       retrieved_at: 2026-03-05
@@ -80,11 +115,11 @@ models:
       - text.embed
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.10"
+      output: "0"
       currency: USD
-      as_of: 2026-03-05
-      notes: Embedding pricing varies by token volume and SLA tier.
+      as_of: 2026-03-18
+      notes: Embedding model. Per 1M tokens.
     source_ref:
       url: https://docs.mistral.ai/capabilities/embeddings/text_embeddings
       retrieved_at: 2026-03-05

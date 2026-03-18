@@ -1,6 +1,6 @@
 schema_version: 3
 provider: deepseek
-catalog_version: 2026-03-05-deepseek-v1
+catalog_version: 2026-03-18-deepseek-v2
 generated_target: runtime/catalog/providers/deepseek.yaml
 runtime:
   runtime_plane: remote
@@ -10,6 +10,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: deepseek
+  default_text_model: deepseek-chat
   model_type: chat
   capabilities: []
   pricing:
@@ -41,11 +42,11 @@ models:
     capabilities: [text.generate]
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.27"
+      output: "1.10"
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by context caching and request mode.
+      as_of: 2026-03-18
+      notes: DeepSeek V3 chat model. Cache-miss pricing. Per 1M tokens.
     source_ids: [deepseek_home_doc, deepseek_pricing_doc]
     aliases:
       - deepseek-coder
@@ -56,9 +57,9 @@ models:
     capabilities: [text.generate]
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.55"
+      output: "2.19"
       currency: USD
-      as_of: 2026-03-05
-      notes: Reasoning model pricing varies by request mode and output length.
+      as_of: 2026-03-18
+      notes: DeepSeek R1 reasoning model. Per 1M tokens.
     source_ids: [deepseek_home_doc, deepseek_pricing_doc]

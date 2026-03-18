@@ -1,6 +1,6 @@
 version: 1
 provider: xai
-catalog_version: 2026-03-05-xai-v1
+catalog_version: 2026-03-18-xai-v2
 models:
   - model_id: grok-4
     provider: xai
@@ -11,11 +11,11 @@ models:
       - text.generate.vision
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "3.00"
+      output: "15.00"
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by model class and usage tier.
+      as_of: 2026-03-18
+      notes: Flagship model. Per 1M tokens.
     source_ref:
       url: https://docs.x.ai/docs/models
       retrieved_at: 2026-03-05
@@ -29,11 +29,11 @@ models:
       - text.generate.vision
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "3.00"
+      output: "15.00"
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by model class and usage tier.
+      as_of: 2026-03-18
+      notes: Previous flagship. Per 1M tokens.
     source_ref:
       url: https://docs.x.ai/docs/models
       retrieved_at: 2026-03-05
@@ -47,11 +47,11 @@ models:
       - text.generate.vision
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.30"
+      output: "0.50"
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by model class and usage tier.
+      as_of: 2026-03-18
+      notes: Compact reasoning model. Per 1M tokens.
     source_ref:
       url: https://docs.x.ai/docs/models
       retrieved_at: 2026-03-05
@@ -65,11 +65,11 @@ models:
       - text.generate.vision
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "2.00"
+      output: "10.00"
       currency: USD
-      as_of: 2026-03-05
-      notes: Vision model pricing varies by usage tier.
+      as_of: 2026-03-18
+      notes: Vision model. Per 1M tokens.
     source_ref:
       url: https://docs.x.ai/docs/models
       retrieved_at: 2026-03-05
@@ -82,11 +82,11 @@ models:
       - image.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0.07"
+      output: "0"
       currency: USD
-      as_of: 2026-03-05
-      notes: Image generation pricing varies by quality and usage tier.
+      as_of: 2026-03-18
+      notes: Image generation. Per request.
     source_ref:
       url: https://docs.x.ai/docs/models
       retrieved_at: 2026-03-05

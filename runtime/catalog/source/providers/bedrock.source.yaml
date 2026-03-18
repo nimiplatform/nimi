@@ -1,6 +1,6 @@
 schema_version: 3
 provider: bedrock
-catalog_version: 2026-03-05-bedrock-v1
+catalog_version: 2026-03-18-bedrock-v2
 generated_target: runtime/catalog/providers/bedrock.yaml
 runtime:
   runtime_plane: remote
@@ -27,6 +27,21 @@ sources:
     note: Amazon Bedrock supported foundation models.
 
 models:
+  - model_id: anthropic.claude-opus-4-6-v1:0
+    model_type: chat
+    updated_at: 2026-03-18
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-18
+      notes: Bedrock on-demand pricing varies by region and throughput tier.
+    source_ids: [bedrock_models_doc]
+    aliases:
+      - claude-opus-4-6
+
   - model_id: anthropic.claude-sonnet-4-6-v1:0
     model_type: chat
     updated_at: 2026-03-05
@@ -71,3 +86,18 @@ models:
     source_ids: [bedrock_models_doc]
     aliases:
       - nova-pro
+
+  - model_id: amazon.nova-lite-v1:0
+    model_type: chat
+    updated_at: 2026-03-18
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-18
+      notes: Amazon Nova Lite pricing varies by region and throughput tier.
+    source_ids: [bedrock_models_doc]
+    aliases:
+      - nova-lite

@@ -1,6 +1,7 @@
 version: 1
 provider: anthropic
-catalog_version: 2026-03-05-anthropic-v1
+catalog_version: 2026-03-18-anthropic-v3
+default_text_model: claude-sonnet-4-6
 models:
   - model_id: claude-opus-4-6
     provider: anthropic
@@ -11,11 +12,11 @@ models:
       - text.generate.vision
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "15.00"
+      output: "75.00"
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by model class and prompt caching mode.
+      as_of: 2026-03-18
+      notes: Flagship model. Per 1M tokens.
     source_ref:
       url: https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-6
       retrieved_at: 2026-03-05
@@ -29,15 +30,33 @@ models:
       - text.generate.vision
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "3.00"
+      output: "15.00"
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by model class and prompt caching mode.
+      as_of: 2026-03-18
+      notes: Balanced model. Per 1M tokens.
     source_ref:
       url: https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-6
       retrieved_at: 2026-03-05
       note: Claude 4.6 release notes and model identifiers.
+  - model_id: claude-sonnet-4-5
+    provider: anthropic
+    model_type: chat
+    updated_at: 2026-03-18
+    capabilities:
+      - text.generate
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: "3.00"
+      output: "15.00"
+      currency: USD
+      as_of: 2026-03-18
+      notes: Previous-gen Sonnet model. Per 1M tokens.
+    source_ref:
+      url: https://www.anthropic.com/news/claude-sonnet-4-5
+      retrieved_at: 2026-03-18
+      note: Claude Sonnet 4.5 announcement and capabilities.
   - model_id: claude-haiku-4-5
     provider: anthropic
     model_type: chat
@@ -47,11 +66,11 @@ models:
       - text.generate.vision
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.80"
+      output: "4.00"
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by model class and prompt caching mode.
+      as_of: 2026-03-18
+      notes: Fast and cost-efficient model. Per 1M tokens.
     source_ref:
       url: https://platform.claude.com/docs/en/about-claude/models/overview
       retrieved_at: 2026-03-05

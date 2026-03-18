@@ -1,6 +1,6 @@
 version: 1
 provider: perplexity
-catalog_version: 2026-03-05-perplexity-v1
+catalog_version: 2026-03-18-perplexity-v2
 models:
   - model_id: sonar-pro
     provider: perplexity
@@ -70,4 +70,21 @@ models:
       url: https://docs.perplexity.ai/guides/model-cards
       retrieved_at: 2026-03-05
       note: Perplexity AI model cards documentation.
+  - model_id: sonar-deep-research
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-03-18
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "2.00"
+      output: "8.00"
+      currency: USD
+      as_of: 2026-03-18
+      notes: Deep research model. Additional $5/1000 searches. Per 1M tokens.
+    source_ref:
+      url: https://docs.perplexity.ai/getting-started/models/models/sonar-deep-research
+      retrieved_at: 2026-03-18
+      note: Perplexity Sonar Deep Research model card.
 voices: []

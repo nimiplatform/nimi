@@ -1,7 +1,43 @@
 version: 1
 provider: bedrock
-catalog_version: 2026-03-05-bedrock-v1
+catalog_version: 2026-03-18-bedrock-v2
 models:
+  - model_id: anthropic.claude-opus-4-6-v1:0
+    provider: bedrock
+    model_type: chat
+    updated_at: 2026-03-18
+    capabilities:
+      - text.generate
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-18
+      notes: Bedrock on-demand pricing varies by region and throughput tier.
+    source_ref:
+      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html
+      retrieved_at: 2026-03-05
+      note: Amazon Bedrock supported foundation models.
+  - model_id: claude-opus-4-6
+    provider: bedrock
+    model_type: chat
+    updated_at: 2026-03-18
+    capabilities:
+      - text.generate
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-18
+      notes: Bedrock on-demand pricing varies by region and throughput tier.
+    source_ref:
+      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html
+      retrieved_at: 2026-03-05
+      note: Amazon Bedrock supported foundation models.
   - model_id: anthropic.claude-sonnet-4-6-v1:0
     provider: bedrock
     model_type: chat
@@ -106,6 +142,40 @@ models:
       currency: USD
       as_of: 2026-03-05
       notes: Amazon Nova Pro pricing varies by region and throughput tier.
+    source_ref:
+      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html
+      retrieved_at: 2026-03-05
+      note: Amazon Bedrock supported foundation models.
+  - model_id: amazon.nova-lite-v1:0
+    provider: bedrock
+    model_type: chat
+    updated_at: 2026-03-18
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-18
+      notes: Amazon Nova Lite pricing varies by region and throughput tier.
+    source_ref:
+      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html
+      retrieved_at: 2026-03-05
+      note: Amazon Bedrock supported foundation models.
+  - model_id: nova-lite
+    provider: bedrock
+    model_type: chat
+    updated_at: 2026-03-18
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-18
+      notes: Amazon Nova Lite pricing varies by region and throughput tier.
     source_ref:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html
       retrieved_at: 2026-03-05

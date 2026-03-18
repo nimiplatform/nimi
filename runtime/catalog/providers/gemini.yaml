@@ -1,6 +1,6 @@
 version: 1
 provider: gemini
-catalog_version: 2026-03-05-gemini-v1
+catalog_version: 2026-03-18-gemini-v2
 default_text_model: gemini-3-flash-preview
 models:
   - model_id: gemini-2.5-pro
@@ -12,11 +12,11 @@ models:
       - text.generate.vision
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "1.25"
+      output: "10.00"
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by request tier and context length.
+      as_of: 2026-03-18
+      notes: Pro model. Pricing for prompts up to 200K tokens. Per 1M tokens.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-2.5-pro
       retrieved_at: 2026-03-05
@@ -31,11 +31,11 @@ models:
       - audio.transcribe
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.15"
+      output: "0.60"
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by request tier and context length.
+      as_of: 2026-03-18
+      notes: Fast model. Non-thinking tokens. Per 1M tokens.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash
       retrieved_at: 2026-03-05
@@ -48,11 +48,11 @@ models:
       - text.embed
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.005"
+      output: "0"
       currency: USD
-      as_of: 2026-03-05
-      notes: Embedding pricing varies by token volume and deployment terms.
+      as_of: 2026-03-18
+      notes: Embedding model. Free tier available. Per 1M tokens.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-embedding-001
       retrieved_at: 2026-03-05
@@ -65,11 +65,11 @@ models:
       - image.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0.04"
+      output: "0.08"
       currency: USD
-      as_of: 2026-03-05
-      notes: Image generation pricing varies by mode, quality, and contract tier.
+      as_of: 2026-03-18
+      notes: Image generation via Gemini Flash. Per request.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-image
       retrieved_at: 2026-03-05
@@ -83,11 +83,11 @@ models:
       - text.generate.vision
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "1.25"
+      output: "10.00"
       currency: USD
-      as_of: 2026-03-05
-      notes: Preview model pricing varies by request tier and context length.
+      as_of: 2026-03-18
+      notes: Preview model. Pricing subject to change. Per 1M tokens.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-pro-preview
       retrieved_at: 2026-03-05
@@ -101,11 +101,11 @@ models:
       - text.generate.vision
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.15"
+      output: "0.60"
       currency: USD
-      as_of: 2026-03-05
-      notes: Preview model pricing varies by request tier and context length.
+      as_of: 2026-03-18
+      notes: Preview model. Pricing subject to change. Per 1M tokens.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-3-flash-preview
       retrieved_at: 2026-03-05
@@ -119,11 +119,11 @@ models:
       - text.generate.vision
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.075"
+      output: "0.30"
       currency: USD
-      as_of: 2026-03-05
-      notes: Cost-efficient preview model pricing varies by request tier.
+      as_of: 2026-03-18
+      notes: Cost-efficient preview model. Pricing subject to change. Per 1M tokens.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite-preview
       retrieved_at: 2026-03-05
@@ -136,11 +136,11 @@ models:
       - image.generate
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0.04"
+      output: "0.08"
       currency: USD
-      as_of: 2026-03-05
-      notes: Image generation pricing varies by mode, quality, and contract tier.
+      as_of: 2026-03-18
+      notes: Image generation preview. Per request.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image-preview
       retrieved_at: 2026-03-05

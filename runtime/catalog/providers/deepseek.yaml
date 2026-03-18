@@ -1,6 +1,7 @@
 version: 1
 provider: deepseek
-catalog_version: 2026-03-05-deepseek-v1
+catalog_version: 2026-03-18-deepseek-v2
+default_text_model: deepseek-chat
 models:
   - model_id: deepseek-chat
     provider: deepseek
@@ -10,11 +11,11 @@ models:
       - text.generate
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.27"
+      output: "1.10"
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by context caching and request mode.
+      as_of: 2026-03-18
+      notes: DeepSeek V3 chat model. Cache-miss pricing. Per 1M tokens.
     source_ref:
       url: https://api-docs.deepseek.com/
       retrieved_at: 2026-03-05
@@ -27,11 +28,11 @@ models:
       - text.generate
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.27"
+      output: "1.10"
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by context caching and request mode.
+      as_of: 2026-03-18
+      notes: DeepSeek V3 chat model. Cache-miss pricing. Per 1M tokens.
     source_ref:
       url: https://api-docs.deepseek.com/
       retrieved_at: 2026-03-05
@@ -44,11 +45,11 @@ models:
       - text.generate
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.55"
+      output: "2.19"
       currency: USD
-      as_of: 2026-03-05
-      notes: Reasoning model pricing varies by request mode and output length.
+      as_of: 2026-03-18
+      notes: DeepSeek R1 reasoning model. Per 1M tokens.
     source_ref:
       url: https://api-docs.deepseek.com/
       retrieved_at: 2026-03-05
