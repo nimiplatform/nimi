@@ -5,10 +5,12 @@ import (
 	"strings"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/structpb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 )
 
 func (s *Service) internalProviderError(operation string, err error) error {
@@ -78,4 +80,25 @@ func recordToProto(r ConnectorRecord) *runtimev1.Connector {
 		CreatedAt:     r.CreatedAt,
 		UpdatedAt:     r.UpdatedAt,
 	}
+}
+
+// emitAudit writes an audit event for connector operations.
+func (s *Service) emitAudit(ctx context.Context, operation string, reasonCode runtimev1.ReasonCode, payload map[string]any) {
+	if s.audit == nil {
+		return
+	}
+	var payloadStruct *structpb.Struct
+	if len(payload) > 0 {
+		payloadStruct, _ = structpb.NewStruct(payload)
+	}
+	traceID := strings.TrimSpace(envelope.ParseTraceIDFromContext(ctx))
+	subjectUserID, _ := subjectUserIDFromContext(ctx)
+	s.audit.AppendEvent(&runtimev1.AuditEventRecord{
+		Domain:        "runtime.connector",
+		Operation:     operation,
+		SubjectUserId: subjectUserID,
+		ReasonCode:    reasonCode,
+		TraceId:       traceID,
+		Payload:       payloadStruct,
+	})
 }

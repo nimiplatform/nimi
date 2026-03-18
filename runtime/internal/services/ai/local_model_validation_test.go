@@ -372,3 +372,39 @@ func TestLocalPreferredEnginesPrefersCanonicalEngines(t *testing.T) {
 		t.Fatalf("expected image route to prefer media, got engine=%v reason=%v", selected.GetEngine(), reason)
 	}
 }
+
+func TestLocalUnavailableStatusPriority(t *testing.T) {
+	cases := []struct {
+		status runtimev1.LocalModelStatus
+		want   int
+	}{
+		{runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, 0},
+		{runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED, 1},
+		{runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, 2},
+		{runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED, 3},
+	}
+	for _, tc := range cases {
+		got := localUnavailableStatusPriority(tc.status)
+		if got != tc.want {
+			t.Errorf("localUnavailableStatusPriority(%v) = %d, want %d", tc.status, got, tc.want)
+		}
+	}
+}
+
+func TestLocalModelStatusLabel(t *testing.T) {
+	cases := []struct {
+		status runtimev1.LocalModelStatus
+		want   string
+	}{
+		{runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "active"},
+		{runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED, "installed"},
+		{runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, "unhealthy"},
+		{runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED, "removed"},
+	}
+	for _, tc := range cases {
+		got := localModelStatusLabel(tc.status)
+		if got != tc.want {
+			t.Errorf("localModelStatusLabel(%v) = %q, want %q", tc.status, got, tc.want)
+		}
+	}
+}

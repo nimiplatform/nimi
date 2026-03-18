@@ -122,7 +122,7 @@ func TestResolveProbeEndpointWithCatalogPath(t *testing.T) {
 
 func TestProviderProbePathsUsesCanonicalMediaCatalog(t *testing.T) {
 	got := providerProbePaths("local-media")
-	if len(got) != 2 || got[0] != "/healthz" || got[1] != "/v1/models" {
+	if len(got) != 2 || got[0] != "/healthz" || got[1] != "/v1/catalog" {
 		t.Fatalf("unexpected media probe paths: %v", got)
 	}
 }

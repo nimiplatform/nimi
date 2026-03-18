@@ -73,7 +73,11 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	aiHealth := providerhealth.New()
 
 	h := grpcHealth.NewServer()
-	grantSvc := grantservice.NewWithDependencies(logger, appRegistry, scopeCatalog, grantservice.WithAuditStore(auditStore))
+	grantSvc := grantservice.NewWithDependencies(logger, appRegistry, scopeCatalog,
+		grantservice.WithAuditStore(auditStore),
+		grantservice.WithTTLBounds(cfg.SessionTTLMinSeconds, cfg.SessionTTLMaxSeconds),
+		grantservice.WithMaxDelegationDepth(cfg.MaxDelegationDepth),
+	)
 	authSvc := authservice.NewWithDependencies(
 		logger, appRegistry, auditStore,
 		cfg.SessionTTLMinSeconds, cfg.SessionTTLMaxSeconds,

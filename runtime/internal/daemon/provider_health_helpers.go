@@ -20,6 +20,8 @@ func engineEnvKey(engineName string) (engine.EngineKind, string, bool) {
 		return engine.EngineLlama, "NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", true
 	case string(engine.EngineMedia):
 		return engine.EngineMedia, "NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", true
+	case string(engine.EngineSpeech):
+		return engine.EngineSpeech, "NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL", true
 	default:
 		return "", "", false
 	}
@@ -33,6 +35,8 @@ func providerTargetNameForEngine(kind engine.EngineKind) (string, bool) {
 		return "local", true
 	case engine.EngineMedia:
 		return "local-media", true
+	case engine.EngineSpeech:
+		return "local-speech", true
 	default:
 		return "", false
 	}
@@ -44,6 +48,8 @@ func localProviderEnvBinding(kind engine.EngineKind) (string, string, bool) {
 		return "llama", "NIMI_RUNTIME_LOCAL_LLAMA_API_KEY", true
 	case engine.EngineMedia:
 		return "media", "NIMI_RUNTIME_LOCAL_MEDIA_API_KEY", true
+	case engine.EngineSpeech:
+		return "speech", "NIMI_RUNTIME_LOCAL_SPEECH_API_KEY", true
 	default:
 		return "", "", false
 	}
@@ -55,6 +61,8 @@ func engineKindForName(engineName string) (engine.EngineKind, bool) {
 		return engine.EngineLlama, true
 	case string(engine.EngineMedia):
 		return engine.EngineMedia, true
+	case string(engine.EngineSpeech):
+		return engine.EngineSpeech, true
 	case "media-diffusers-backend":
 		return engine.EngineKind("media-diffusers-backend"), true
 	default:

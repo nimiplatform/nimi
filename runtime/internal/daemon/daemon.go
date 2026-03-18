@@ -331,7 +331,7 @@ func probeAIProvider(client *http.Client, target aiProviderTarget) error {
 }
 
 func providerProbePaths(name string) []string {
-	if strings.EqualFold(strings.TrimSpace(name), "local-nimi-media") {
+	if strings.EqualFold(strings.TrimSpace(name), "local-media") {
 		return []string{"/healthz", "/v1/catalog"}
 	}
 	return []string{"/healthz", "/v1/models"}
@@ -488,7 +488,7 @@ func parseEngineCrashDetail(detail string) (attempt int, maxAttempt int, exitCod
 }
 
 func (d *Daemon) startSupervisedEngines(ctx context.Context) {
-	if !d.cfg.EngineLlamaEnabled && !d.cfg.EngineMediaEnabled && !d.cfg.EngineSidecarEnabled {
+	if !d.cfg.EngineLlamaEnabled && !d.cfg.EngineMediaEnabled && !d.cfg.EngineSpeechEnabled && !d.cfg.EngineSidecarEnabled {
 		return
 	}
 
@@ -529,6 +529,11 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		} else {
 			svc.SetManagedMediaEndpoint("")
 		}
+		if d.cfg.EngineSpeechEnabled {
+			svc.SetManagedSpeechEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineSpeechPort))
+		} else {
+			svc.SetManagedSpeechEndpoint("")
+		}
 		svc.SetManagedMediaDiffusersBackendConfig(false, "")
 		svc.SetEngineManager(engine.NewServiceAdapter(mgr))
 		if err := svc.SyncManagedLlamaAssets(ctx); err != nil {
@@ -541,7 +546,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		kind   engine.EngineKind
 		detail string
 	}
-	failures := make(chan bootstrapFailure, 3)
+	failures := make(chan bootstrapFailure, 4)
 	startEngine := d.startEngineFn
 	if startEngine == nil {
 		startEngine = d.startEngine
@@ -567,6 +572,11 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	if d.cfg.EngineMediaEnabled {
 		bootstrap(engine.EngineMedia, d.cfg.EngineMediaVersion, d.cfg.EngineMediaPort,
 			"NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL")
+	}
+
+	if d.cfg.EngineSpeechEnabled {
+		bootstrap(engine.EngineSpeech, d.cfg.EngineSpeechVersion, d.cfg.EngineSpeechPort,
+			"NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL")
 	}
 
 	wg.Wait()
@@ -602,6 +612,8 @@ func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, versio
 		cfg = engine.DefaultLlamaConfig()
 	case engine.EngineMedia:
 		cfg = engine.DefaultMediaConfig()
+	case engine.EngineSpeech:
+		cfg = engine.DefaultSpeechConfig()
 	default:
 		return fmt.Errorf("unsupported engine kind: %s", kind)
 	}

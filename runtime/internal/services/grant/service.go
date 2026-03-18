@@ -41,6 +41,13 @@ type Service struct {
 	catalog    *scopecatalog.Catalog
 	auditStore *auditlog.Store
 
+	// TTL bounds (K-GRANT-003).
+	ttlMinSeconds int32
+	ttlMaxSeconds int32
+
+	// Delegation depth cap (K-GRANT-005).
+	maxDelegationDepth int32
+
 	mu           sync.RWMutex
 	tokens       map[string]tokenRecord
 	policyIndex  map[string]string
@@ -59,17 +66,41 @@ func NewWithDependencies(logger *slog.Logger, registry *appregistry.Registry, ca
 		catalog = scopecatalog.New()
 	}
 	svc := &Service{
-		logger:       logger,
-		registry:     registry,
-		catalog:      catalog,
-		tokens:       make(map[string]tokenRecord),
-		policyIndex:  make(map[string]string),
-		policyTokens: make(map[string]map[string]bool),
+		logger:             logger,
+		registry:           registry,
+		catalog:            catalog,
+		ttlMinSeconds:      60,
+		ttlMaxSeconds:      86400,
+		maxDelegationDepth: 3,
+		tokens:             make(map[string]tokenRecord),
+		policyIndex:        make(map[string]string),
+		policyTokens:       make(map[string]map[string]bool),
 	}
 	for _, opt := range opts {
 		opt(svc)
 	}
 	return svc
+}
+
+// WithTTLBounds sets the min/max TTL bounds for grant tokens (K-GRANT-003).
+func WithTTLBounds(minSeconds, maxSeconds int) func(*Service) {
+	return func(s *Service) {
+		if minSeconds > 0 {
+			s.ttlMinSeconds = int32(minSeconds)
+		}
+		if maxSeconds > 0 {
+			s.ttlMaxSeconds = int32(maxSeconds)
+		}
+	}
+}
+
+// WithMaxDelegationDepth sets the maximum delegation depth (K-GRANT-005).
+func WithMaxDelegationDepth(depth int) func(*Service) {
+	return func(s *Service) {
+		if depth > 0 {
+			s.maxDelegationDepth = int32(depth)
+		}
+	}
 }
 
 // WithAuditStore sets the audit store for grant event tracking (K-GRANT-007).

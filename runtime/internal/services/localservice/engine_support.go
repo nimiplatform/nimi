@@ -27,6 +27,11 @@ func classifyManagedEngineSupport(engineName string, profile *runtimev1.LocalDev
 			return localEngineSupportSupportedSupervised, ""
 		}
 		return localEngineSupportAttachedOnly, "llama supervised mode requires macOS or Linux; configure an attached endpoint instead"
+	case "speech":
+		if profile == nil {
+			return localEngineSupportUnsupported, "device profile unavailable"
+		}
+		return localEngineSupportSupportedSupervised, ""
 	default:
 		return localEngineSupportUnsupported, "unknown managed engine"
 	}

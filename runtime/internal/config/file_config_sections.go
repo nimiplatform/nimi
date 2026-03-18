@@ -44,6 +44,10 @@ func fileConfigEngineBool(fileCfg FileConfig, engine string) *bool {
 		if fileCfg.Engines.Media != nil {
 			return fileCfg.Engines.Media.Enabled
 		}
+	case "speech":
+		if fileCfg.Engines.Speech != nil {
+			return fileCfg.Engines.Speech.Enabled
+		}
 	}
 	return nil
 }
@@ -59,6 +63,8 @@ func fileConfigEngineString(fileCfg FileConfig, engine string, field string) str
 		cfg = fileCfg.Engines.Llama
 	case "media":
 		cfg = fileCfg.Engines.Media
+	case "speech":
+		cfg = fileCfg.Engines.Speech
 	}
 	if cfg == nil {
 		return ""
@@ -81,6 +87,8 @@ func fileConfigEngineInt(fileCfg FileConfig, engine string, field string) *int {
 		cfg = fileCfg.Engines.Llama
 	case "media":
 		cfg = fileCfg.Engines.Media
+	case "speech":
+		cfg = fileCfg.Engines.Speech
 	}
 	if cfg == nil {
 		return nil

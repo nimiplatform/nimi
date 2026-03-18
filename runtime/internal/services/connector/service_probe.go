@@ -19,18 +19,22 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 
+	auditPayload := map[string]any{"connector_id": connectorID}
+
 	ownerID, hasOwner := subjectUserIDFromContext(ctx)
 	rec, found, err := s.store.Get(connectorID)
 	if err != nil {
 		return nil, s.internalProviderError("test_connector.load", err)
 	}
 	if !found || !connectorVisibleToCaller(rec, ownerID, hasOwner) {
+		s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND, auditPayload)
 		return &runtimev1.TestConnectorResponse{
 			Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND},
 		}, nil
 	}
 
 	if rec.Status == runtimev1.ConnectorStatus_CONNECTOR_STATUS_DISABLED {
+		s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_AI_CONNECTOR_DISABLED, auditPayload)
 		return &runtimev1.TestConnectorResponse{
 			Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_CONNECTOR_DISABLED},
 		}, nil
@@ -38,6 +42,7 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 
 	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL {
 		if s.localModel == nil {
+			s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_ACTION_EXECUTED, auditPayload)
 			return &runtimev1.TestConnectorResponse{
 				Ack: &runtimev1.Ack{Ok: true},
 			}, nil
@@ -47,10 +52,12 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 			return nil, s.internalProviderError("test_connector.list_local_models", listErr)
 		}
 		if !hasActiveLocalModelForCategory(localModels, rec.LocalCategory) {
+			s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, auditPayload)
 			return &runtimev1.TestConnectorResponse{
 				Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE},
 			}, nil
 		}
+		s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_ACTION_EXECUTED, auditPayload)
 		return &runtimev1.TestConnectorResponse{
 			Ack: &runtimev1.Ack{Ok: true},
 		}, nil
@@ -61,6 +68,7 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 		return nil, s.internalProviderError("test_connector.load_credential", err)
 	}
 	if apiKey == "" {
+		s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING, auditPayload)
 		return &runtimev1.TestConnectorResponse{
 			Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING},
 		}, nil
@@ -69,6 +77,7 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 	if s.cloud != nil {
 		backend, _, probeErr := s.cloud.ResolveProbeBackend(rec.Provider, rec.Endpoint, apiKey)
 		if probeErr != nil {
+			s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, auditPayload)
 			return &runtimev1.TestConnectorResponse{
 				Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE},
 			}, nil
@@ -76,6 +85,7 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 		models, listErr := backend.ListModels(ctx)
 		if listErr != nil {
 			s.logger.Warn("connector test probe failed", "connector_id", connectorID, "error", listErr)
+			s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, auditPayload)
 			return &runtimev1.TestConnectorResponse{
 				Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE},
 			}, nil
@@ -83,6 +93,7 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 		_ = models
 	}
 
+	s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_ACTION_EXECUTED, auditPayload)
 	return &runtimev1.TestConnectorResponse{
 		Ack: &runtimev1.Ack{Ok: true},
 	}, nil

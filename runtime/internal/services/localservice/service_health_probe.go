@@ -666,6 +666,8 @@ func defaultEnginePort(engine string) int {
 		return 1234
 	case "media":
 		return 8321
+	case "speech":
+		return 8330
 	default:
 		return 0
 	}

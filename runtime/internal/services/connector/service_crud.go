@@ -72,6 +72,9 @@ func (s *Service) CreateConnector(ctx context.Context, req *runtimev1.CreateConn
 	}
 
 	if err := s.store.Create(rec, apiKey); err != nil {
+		s.emitAudit(ctx, "connector.create", runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, map[string]any{
+			"provider": provider,
+		})
 		return nil, s.internalProviderError("create_connector.persist", err)
 	}
 
@@ -81,6 +84,10 @@ func (s *Service) CreateConnector(ctx context.Context, req *runtimev1.CreateConn
 	}
 	for i := len(records) - 1; i >= 0; i-- {
 		if records[i].OwnerID == ownerID && records[i].Provider == provider {
+			s.emitAudit(ctx, "connector.create", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+				"connector_id": records[i].ConnectorID,
+				"provider":     provider,
+			})
 			return &runtimev1.CreateConnectorResponse{
 				Connector: recordToProto(records[i]),
 			}, nil
@@ -311,9 +318,15 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 
 	updated, err := s.store.Update(connectorID, mutations)
 	if err != nil {
+		s.emitAudit(ctx, "connector.update", runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, map[string]any{
+			"connector_id": connectorID,
+		})
 		return nil, s.internalProviderError("update_connector.persist", err)
 	}
 
+	s.emitAudit(ctx, "connector.update", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+		"connector_id": connectorID,
+	})
 	return &runtimev1.UpdateConnectorResponse{
 		Connector: recordToProto(updated),
 	}, nil
@@ -349,9 +362,15 @@ func (s *Service) DeleteConnector(ctx context.Context, req *runtimev1.DeleteConn
 	}
 
 	if err := s.store.Delete(connectorID); err != nil {
+		s.emitAudit(ctx, "connector.delete", runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, map[string]any{
+			"connector_id": connectorID,
+		})
 		return nil, s.internalProviderError("delete_connector.persist", err)
 	}
 
+	s.emitAudit(ctx, "connector.delete", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+		"connector_id": connectorID,
+	})
 	return &runtimev1.DeleteConnectorResponse{
 		Ack: &runtimev1.Ack{Ok: true},
 	}, nil

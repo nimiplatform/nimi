@@ -58,6 +58,13 @@ func (s *Service) ListModels(context.Context, *runtimev1.ListModelsRequest) (*ru
 }
 
 func (s *Service) PullModel(_ context.Context, req *runtimev1.PullModelRequest) (*runtimev1.PullModelResponse, error) {
+	if strings.TrimSpace(req.GetAppId()) == "" {
+		return &runtimev1.PullModelResponse{
+			TaskId:     "",
+			Accepted:   false,
+			ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
+		}, nil
+	}
 	modelID, version := parseModelRef(req.GetModelRef())
 	if modelID == "" {
 		return &runtimev1.PullModelResponse{

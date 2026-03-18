@@ -69,6 +69,8 @@ func (s *Service) ListAuditEvents(_ context.Context, req *runtimev1.ListAuditEve
 	pageSize := int(req.GetPageSize())
 	if pageSize <= 0 {
 		pageSize = 50
+	} else if pageSize > 200 {
+		pageSize = 200
 	}
 
 	start := parsePageToken(req.GetPageToken())

@@ -39,7 +39,7 @@ func ValidateEndpoint(rawURL string, allowLoopback bool) error {
 		}
 	}
 
-	// Resolve and check IPs if host is not a literal loopback.
+	// Resolve and check IPs.
 	ips, err := net.DefaultResolver.LookupHost(context.Background(), host)
 	if err != nil {
 		return fmt.Errorf("endpointsec: DNS resolution failed for %q: %w", host, err)
@@ -48,6 +48,10 @@ func ValidateEndpoint(rawURL string, allowLoopback bool) error {
 		ip := net.ParseIP(ipStr)
 		if ip == nil {
 			continue
+		}
+		// K-SEC-002: reject loopback IPs regardless of scheme when not allowed.
+		if !allowLoopback && ip.IsLoopback() {
+			return fmt.Errorf("endpointsec: resolved IP %s for %q is loopback and allow_loopback_provider_endpoint=false", ipStr, host)
 		}
 		if err := checkIP(ip); err != nil {
 			return fmt.Errorf("endpointsec: resolved IP %s for %q is blocked: %w", ipStr, host, err)
@@ -100,6 +104,10 @@ func NewPinnedTransport(rawURL string, allowLoopback bool) (*http.Transport, err
 	for _, ipStr := range ips {
 		ip := net.ParseIP(ipStr)
 		if ip == nil {
+			continue
+		}
+		// K-SEC-002: reject loopback IPs regardless of scheme when not allowed.
+		if !allowLoopback && ip.IsLoopback() {
 			continue
 		}
 		if err := checkIP(ip); err != nil {

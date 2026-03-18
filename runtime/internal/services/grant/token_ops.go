@@ -166,7 +166,11 @@ func (s *Service) IssueDelegatedAccessToken(ctx context.Context, req *runtimev1.
 	}
 
 	now := time.Now().UTC()
-	expiresAt := now.Add(resolveTTL(req.GetTtlSeconds(), 1800))
+	delegateTTL, err := resolveTTL(req.GetTtlSeconds(), 1800, s.ttlMinSeconds, s.ttlMaxSeconds)
+	if err != nil {
+		return nil, err
+	}
+	expiresAt := now.Add(delegateTTL)
 	if expiresAt.After(parent.ExpiresAt) {
 		expiresAt = parent.ExpiresAt
 	}

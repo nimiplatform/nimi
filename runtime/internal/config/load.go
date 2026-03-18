@@ -33,6 +33,8 @@ func Load() (Config, error) {
 	llamaPortFromFile := fileConfigEngineInt(fileCfg, "llama", "port")
 	mediaEnabledFromFile := fileConfigEngineBool(fileCfg, "media")
 	mediaPortFromFile := fileConfigEngineInt(fileCfg, "media", "port")
+	speechEnabledFromFile := fileConfigEngineBool(fileCfg, "speech")
+	speechPortFromFile := fileConfigEngineInt(fileCfg, "speech", "port")
 
 	cfg := Config{
 		GRPCAddr:                      readString("NIMI_RUNTIME_GRPC_ADDR", nimillm.FirstNonEmpty(fileCfg.GRPCAddr, defaultGRPCAddr)),
@@ -66,6 +68,9 @@ func Load() (Config, error) {
 		EngineMediaEnabled:            readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_MEDIA_ENABLED", mediaEnabledFromFile, false),
 		EngineMediaVersion:            readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_MEDIA_VERSION", fileConfigEngineString(fileCfg, "media", "version"), "0.1.0"),
 		EngineMediaPort:               readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_MEDIA_PORT", mediaPortFromFile, 8321),
+		EngineSpeechEnabled:           readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SPEECH_ENABLED", speechEnabledFromFile, false),
+		EngineSpeechVersion:           readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SPEECH_VERSION", fileConfigEngineString(fileCfg, "speech", "version"), "0.1.0"),
+		EngineSpeechPort:              readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SPEECH_PORT", speechPortFromFile, 8330),
 		EngineSidecarEnabled:          readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SIDECAR_ENABLED", nil, false),
 		EngineSidecarVersion:          readString("NIMI_RUNTIME_ENGINE_SIDECAR_VERSION", ""),
 		EngineSidecarPort:             readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SIDECAR_PORT", nil, 0),

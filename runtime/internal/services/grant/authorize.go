@@ -80,7 +80,11 @@ func (s *Service) AuthorizeExternalPrincipal(ctx context.Context, req *runtimev1
 	}
 
 	issuedAt := time.Now().UTC()
-	expiresAt := issuedAt.Add(resolveTTL(req.GetTtlSeconds(), 3600))
+	ttl, err := resolveTTL(req.GetTtlSeconds(), 3600, s.ttlMinSeconds, s.ttlMaxSeconds)
+	if err != nil {
+		return nil, err
+	}
+	expiresAt := issuedAt.Add(ttl)
 	tokenID := ulid.Make().String()
 	secret := ulid.Make().String()
 
@@ -96,6 +100,12 @@ func (s *Service) AuthorizeExternalPrincipal(ctx context.Context, req *runtimev1
 		if maxDepth <= 0 {
 			maxDepth = 1
 		}
+	}
+	// K-GRANT-005: cap delegation depth against configured maximum.
+	if maxDepth <= 0 {
+		maxDepth = s.maxDelegationDepth
+	} else if maxDepth > s.maxDelegationDepth {
+		maxDepth = s.maxDelegationDepth
 	}
 	if !canDelegate {
 		maxDepth = 0

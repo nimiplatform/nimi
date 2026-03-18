@@ -126,6 +126,18 @@ type Config struct {
 	// Default: 8321. (K-LENG-004)
 	EngineMediaPort int
 
+	// EngineSpeechEnabled enables the supervised speech engine.
+	// Default: false. (K-LENG-004)
+	EngineSpeechEnabled bool
+
+	// EngineSpeechVersion is the managed speech engine version.
+	// Default: "0.1.0". (K-LENG-004)
+	EngineSpeechVersion string
+
+	// EngineSpeechPort is the port for the supervised speech engine.
+	// Default: 8330. (K-LENG-004)
+	EngineSpeechPort int
+
 	// EngineSidecarEnabled enables the supervised sidecar engine.
 	// Default: false. (K-LENG-004)
 	EngineSidecarEnabled bool
@@ -173,8 +185,9 @@ type FileConfig struct {
 
 // FileConfigEngines holds supervised engine configuration in the config file.
 type FileConfigEngines struct {
-	Llama *FileConfigEngine `json:"llama,omitempty"`
-	Media *FileConfigEngine `json:"media,omitempty"`
+	Llama  *FileConfigEngine `json:"llama,omitempty"`
+	Media  *FileConfigEngine `json:"media,omitempty"`
+	Speech *FileConfigEngine `json:"speech,omitempty"`
 }
 
 // FileConfigEngine holds configuration for a single supervised engine.

@@ -427,7 +427,8 @@ func isTerminalStatus(statusValue runtimev1.WorkflowStatus) bool {
 	switch statusValue {
 	case runtimev1.WorkflowStatus_WORKFLOW_STATUS_COMPLETED,
 		runtimev1.WorkflowStatus_WORKFLOW_STATUS_FAILED,
-		runtimev1.WorkflowStatus_WORKFLOW_STATUS_CANCELED:
+		runtimev1.WorkflowStatus_WORKFLOW_STATUS_CANCELED,
+		runtimev1.WorkflowStatus_WORKFLOW_STATUS_SKIPPED:
 		return true
 	default:
 		return false

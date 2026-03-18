@@ -1,10 +1,14 @@
 package grant
 
 import (
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"sort"
 	"strings"
 	"time"
+
+	"google.golang.org/grpc/codes"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 func resolveScopes(req *runtimev1.AuthorizeExternalPrincipalRequest) []string {
@@ -191,11 +195,17 @@ func cloneConsent(input *runtimev1.ConsentRef) *runtimev1.ConsentRef {
 	}
 }
 
-func resolveTTL(rawSeconds int32, fallbackSeconds int32) time.Duration {
+// resolveTTL validates and resolves TTL with bounds enforcement (K-GRANT-003).
+func resolveTTL(rawSeconds int32, fallbackSeconds int32, minSeconds int32, maxSeconds int32) (time.Duration, error) {
 	if rawSeconds <= 0 {
-		return time.Duration(fallbackSeconds) * time.Second
+		return time.Duration(fallbackSeconds) * time.Second, nil
 	}
-	return time.Duration(rawSeconds) * time.Second
+	if rawSeconds < minSeconds || rawSeconds > maxSeconds {
+		return 0, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, grpcerr.ReasonOptions{
+			ActionHint: "set_ttl_seconds_within_allowed_range",
+		})
+	}
+	return time.Duration(rawSeconds) * time.Second, nil
 }
 
 func scopeValidationActionHint(reason runtimev1.ReasonCode) string {
