@@ -23,6 +23,11 @@ export function AuthLoginPage() {
     }).catch((error) => {
       const message = error instanceof Error ? error.message : String(error);
       useAppStore.getState().setAuthState('failed', message);
+      // Surface error via status banner so desktop-browser mode can display it
+      useChatStore.getState().setStatusBanner({
+        kind: 'error',
+        message: `认证初始化失败: ${message}`,
+      });
     });
   }, [bridge]);
 

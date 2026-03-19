@@ -46,12 +46,9 @@ export function useHumanChat() {
     if (!currentAgent) return;
 
     const bridge = getBridge();
-    // RL-IPC-008: Realm passthrough with agentId
-    await bridge.realm.request({
+    await bridge.humanChat.sendMessage({
       agentId: currentAgent.id,
-      method: 'POST',
-      path: '/api/messages',
-      body: { text, agentId: currentAgent.id },
+      text,
     });
   }, [currentAgent]);
 

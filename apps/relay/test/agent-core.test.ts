@@ -182,17 +182,15 @@ describe('RL-CORE-004 — Agent context propagation to IPC calls', () => {
     assert.equal(videoInput.agentId, 'agent-ipc');
   });
 
-  it('realm passthrough carries optional agentId', () => {
+  it('typed human chat bridge carries agentId', () => {
     useAppStore.getState().setAgent({ id: 'a1', name: 'Agent' });
     const agent = useAppStore.getState().currentAgent!;
 
-    const realmInput = {
+    const bridgeInput = {
       agentId: agent.id,
-      method: 'POST',
-      path: '/api/messages',
-      body: { text: 'Hello', agentId: agent.id },
+      text: 'Hello',
     };
-    assert.equal(realmInput.agentId, 'a1');
+    assert.equal(bridgeInput.agentId, 'a1');
   });
 
   it('STT does not include agentId in input', () => {

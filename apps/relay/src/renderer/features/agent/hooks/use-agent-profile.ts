@@ -12,10 +12,7 @@ export function useAgentProfile() {
 
   const fetchAgentList = useCallback(async (): Promise<Agent[]> => {
     const bridge = getBridge();
-    const result = await bridge.realm.request({
-      method: 'GET',
-      path: '/api/agent/mine',
-    });
+    const result = await bridge.agent.list();
     const response = result as {
       items: Array<{
         agentId: string;
@@ -43,10 +40,7 @@ export function useAgentProfile() {
     // Async enrichment: fetch full profile for voice/live2d support
     if (agent) {
       const bridge = getBridge();
-      bridge.realm.request({
-        method: 'GET',
-        path: `/api/agent/accounts/${encodeURIComponent(agent.id)}`,
-      }).then((result) => {
+      bridge.agent.get(agent.id).then((result) => {
         const profile = result as {
           id: string;
           displayName: string;

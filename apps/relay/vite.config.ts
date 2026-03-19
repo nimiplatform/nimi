@@ -5,6 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   root: path.resolve(__dirname, 'src/renderer'),
+  envDir: path.resolve(searchForWorkspaceRoot(process.cwd())),
   envPrefix: ['VITE_', 'NIMI_'],
   publicDir: false,
   resolve: {

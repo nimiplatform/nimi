@@ -30,14 +30,12 @@ export interface NimiRelayBridge {
       };
     };
   };
-  realm: {
-    request: (input: {
-      agentId?: string;
-      method: string;
-      path: string;
-      body?: unknown;
-      headers?: Record<string, string>;
-    }) => Promise<unknown>;
+  agent: {
+    list: () => Promise<unknown>;
+    get: (agentId: string) => Promise<unknown>;
+  };
+  humanChat: {
+    sendMessage: (input: { agentId: string; text: string }) => Promise<unknown>;
   };
   realtime: {
     subscribe: (channel: string) => Promise<void>;
@@ -56,7 +54,6 @@ export interface NimiRelayBridge {
   auth: {
     getStatus: () => Promise<{ state: string; error: string | null }>;
     applyToken: (payload: { accessToken: string }) => Promise<{ success: boolean; error?: string }>;
-    realmRequest: (payload: { method: string; path: string; body?: unknown; accessToken?: string }) => Promise<unknown>;
     checkEmail: (payload: { email: string }) => Promise<unknown>;
     passwordLogin: (payload: { identifier: string; password: string }) => Promise<unknown>;
     oauthLogin: (payload: { provider: string; accessToken: string }) => Promise<unknown>;

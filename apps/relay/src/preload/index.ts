@@ -62,10 +62,14 @@ const api = {
     },
   },
 
-  // Realm (RL-IPC-008)
-  realm: {
-    request: (input: { agentId?: string; method: string; path: string; body?: unknown; headers?: Record<string, string> }) =>
-      ipcRenderer.invoke('relay:realm:request', input),
+  agent: {
+    list: () => ipcRenderer.invoke('relay:agent:list'),
+    get: (agentId: string) => ipcRenderer.invoke('relay:agent:get', { agentId }),
+  },
+
+  humanChat: {
+    sendMessage: (input: { agentId: string; text: string }) =>
+      ipcRenderer.invoke('relay:human-chat:send', input),
   },
 
   // Realtime (RL-IPC-009)
@@ -91,8 +95,6 @@ const api = {
     getStatus: () => ipcRenderer.invoke('relay:auth:status') as Promise<{ state: string; error: string | null }>,
     applyToken: (payload: { accessToken: string }) =>
       ipcRenderer.invoke('relay:auth:apply-token', payload) as Promise<{ success: boolean; error?: string }>,
-    realmRequest: (payload: { method: string; path: string; body?: unknown; accessToken?: string }) =>
-      ipcRenderer.invoke('relay:auth:realm-request', payload),
     checkEmail: (payload: { email: string }) =>
       ipcRenderer.invoke('relay:auth:check-email', payload),
     passwordLogin: (payload: { identifier: string; password: string }) =>

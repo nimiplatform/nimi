@@ -28,7 +28,7 @@ function requireAgentId(input: Record<string, unknown>): void {
 // ── Helper: extract channel names from source files ──────────────────────
 
 function extractIpcHandleChannels(source: string): string[] {
-  return [...source.matchAll(/ipcMain\.handle\(\s*['"]([^'"]+)['"]/g)].map((m) => m[1]);
+  return [...source.matchAll(/(?:ipcMain\.handle|safeHandle)\(\s*['"]([^'"]+)['"]/g)].map((m) => m[1]);
 }
 
 function extractWebContentsSendChannels(source: string): string[] {
@@ -286,11 +286,17 @@ describe('RL-IPC-001 — Channel Naming Convention', () => {
     const implemented = new Set<string>();
     const ipcSource = readFileSync(path.join(srcMain, 'ipc-handlers.ts'), 'utf-8');
     const rtSource = readFileSync(path.join(srcMain, 'realtime-relay.ts'), 'utf-8');
+    const modelSource = readFileSync(path.join(srcMain, 'model-handlers.ts'), 'utf-8');
+    const routeSource = readFileSync(path.join(srcMain, 'route', 'route-handlers.ts'), 'utf-8');
+    const desktopInteropSource = readFileSync(path.join(srcMain, 'desktop-interop.ts'), 'utf-8');
     const smSource = readFileSync(path.join(srcMain, 'stream-manager.ts'), 'utf-8');
     const ctxSource = readFileSync(path.join(srcMain, 'chat-pipeline', 'main-process-context.ts'), 'utf-8');
 
-    for (const m of ipcSource.matchAll(/ipcMain\.handle\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
-    for (const m of rtSource.matchAll(/ipcMain\.handle\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
+    for (const m of ipcSource.matchAll(/(?:ipcMain\.handle|safeHandle)\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
+    for (const m of rtSource.matchAll(/(?:ipcMain\.handle|safeHandle)\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
+    for (const m of modelSource.matchAll(/(?:ipcMain\.handle|safeHandle)\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
+    for (const m of routeSource.matchAll(/(?:ipcMain\.handle|safeHandle)\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
+    for (const m of desktopInteropSource.matchAll(/(?:ipcMain\.handle|safeHandle)\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
     for (const m of smSource.matchAll(/\.send\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
     for (const m of rtSource.matchAll(/\.send\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
     for (const m of ctxSource.matchAll(/\.send\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
@@ -338,36 +344,29 @@ describe('RL-IPC-007 — Media IPC channel registration', () => {
   });
 });
 
-// ─── RL-IPC-008 — Realm Passthrough ──────────────────────────────────────
+// ─── RL-IPC-008 — Typed Realm Data Bridge ────────────────────────────────
 
-describe('RL-IPC-008 — Realm Passthrough IPC', () => {
-  it('registers relay:realm:request', () => {
+describe('RL-IPC-008 — Typed Realm data IPC', () => {
+  it('registers relay:agent:list, relay:agent:get, relay:human-chat:send', () => {
     const source = readFileSync(path.join(srcMain, 'ipc-handlers.ts'), 'utf-8');
     const channels = extractIpcHandleChannels(source);
-    assert.ok(channels.includes('relay:realm:request'), 'must register relay:realm:request');
+    assert.ok(channels.includes('relay:agent:list'), 'must register relay:agent:list');
+    assert.ok(channels.includes('relay:agent:get'), 'must register relay:agent:get');
+    assert.ok(channels.includes('relay:human-chat:send'), 'must register relay:human-chat:send');
   });
 
-  it('realm request input shape includes method, path, optional body/headers', () => {
-    // Verify the contract shape used by renderer → main IPC
+  it('human chat send input shape is typed and minimal', () => {
     const input = {
       agentId: 'a1',
-      method: 'POST',
-      path: '/api/messages',
-      body: { text: 'Hello' },
-      headers: { 'X-Custom': 'value' },
+      text: 'Hello',
     };
-    assert.equal(typeof input.method, 'string');
-    assert.equal(typeof input.path, 'string');
-    assert.ok(input.body !== undefined || input.body === undefined, 'body is optional');
-    assert.ok(input.headers !== undefined || input.headers === undefined, 'headers are optional');
+    assert.equal(input.agentId, 'a1');
+    assert.equal(input.text, 'Hello');
   });
 
-  it('realm request supports all HTTP methods', () => {
-    const methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
-    for (const method of methods) {
-      const input = { method, path: '/api/test' };
-      assert.equal(input.method, method);
-    }
+  it('agent get input shape is explicit', () => {
+    const input = { agentId: 'agent-123' };
+    assert.equal(input.agentId, 'agent-123');
   });
 });
 

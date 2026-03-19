@@ -20,13 +20,11 @@ function resolveAgentChannel(agentId: string): string {
   return `agent:${agentId}`;
 }
 
-/** Send message input shape (from use-human-chat.ts:50-55) */
+/** Send message input shape (from use-human-chat.ts) */
 function buildSendMessageInput(agentId: string, text: string) {
   return {
     agentId,
-    method: 'POST' as const,
-    path: '/api/messages',
-    body: { text, agentId },
+    text,
   };
 }
 
@@ -95,23 +93,20 @@ describe('RL-FEAT-002 — Agent-scoped channel naming', () => {
 
 // ─── Send Message Contract (RL-IPC-008) ─────────────────────────────────
 
-describe('RL-FEAT-002 — Send message via Realm passthrough', () => {
-  it('builds correct realm.request input shape', () => {
+describe('RL-FEAT-002 — Send message via typed bridge', () => {
+  it('builds correct bridge input shape', () => {
     const input = buildSendMessageInput('agent-123', 'Hello from Relay');
-    assert.equal(input.method, 'POST');
-    assert.equal(input.path, '/api/messages');
-    assert.deepEqual(input.body, { text: 'Hello from Relay', agentId: 'agent-123' });
+    assert.deepEqual(input, { agentId: 'agent-123', text: 'Hello from Relay' });
   });
 
-  it('carries agentId in both top-level and body (RL-CORE-004)', () => {
+  it('carries agentId at the top level (RL-CORE-004)', () => {
     const input = buildSendMessageInput('a1', 'Hi');
     assert.equal(input.agentId, 'a1');
-    assert.equal((input.body as { agentId: string }).agentId, 'a1');
   });
 
   it('preserves message text exactly', () => {
     const input = buildSendMessageInput('a1', 'Hello with special chars: <>&"');
-    assert.equal((input.body as { text: string }).text, 'Hello with special chars: <>&"');
+    assert.equal(input.text, 'Hello with special chars: <>&"');
   });
 });
 

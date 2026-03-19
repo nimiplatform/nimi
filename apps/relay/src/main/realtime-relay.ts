@@ -3,19 +3,27 @@
 // Main process maintains socket.io connection for real-time human chat interop
 
 import { io, type Socket } from 'socket.io-client';
-import { ipcMain, type WebContents } from 'electron';
+import { type WebContents } from 'electron';
+import { safeHandle } from './ipc-utils.js';
 
 let socket: Socket | null = null;
 
 /**
  * Initialize socket.io connection to Realm realtime endpoint.
  * Events are forwarded to the renderer via IPC.
+ * Safe to call multiple times — disconnects any existing socket first.
  */
 export function initRealtimeRelay(
   realmUrl: string,
   accessToken: string,
   getWebContents: () => WebContents | null,
 ): void {
+  // Disconnect previous socket before creating a new one (re-login safety)
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
+
   socket = io(realmUrl, {
     auth: { token: accessToken },
     transports: ['websocket'],
@@ -53,11 +61,11 @@ export function initRealtimeRelay(
   });
 
   // IPC handlers for subscribe/unsubscribe
-  ipcMain.handle('relay:realtime:subscribe', (_event, channel: string) => {
+  safeHandle('relay:realtime:subscribe', (_event, channel: string) => {
     socket?.emit('join', channel);
   });
 
-  ipcMain.handle('relay:realtime:unsubscribe', (_event, channel: string) => {
+  safeHandle('relay:realtime:unsubscribe', (_event, channel: string) => {
     socket?.emit('leave', channel);
   });
 }

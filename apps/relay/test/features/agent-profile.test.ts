@@ -30,10 +30,7 @@ function mapRealmAgent(raw: {
 // ── Extracted Logic: Agent list fetch input (from use-agent-profile.ts:15-18)
 
 function buildFetchAgentListInput() {
-  return {
-    method: 'GET' as const,
-    path: '/api/agents',
-  };
+  return undefined;
 }
 
 // Reset store between tests
@@ -47,11 +44,10 @@ beforeEach(() => {
 
 // ─── Fetch Agent List Contract ──────────────────────────────────────────
 
-describe('RL-FEAT-007 — Fetch agent list via Realm passthrough', () => {
-  it('builds correct realm.request input', () => {
+describe('RL-FEAT-007 — Fetch agent list via typed bridge', () => {
+  it('uses a parameterless list call', () => {
     const input = buildFetchAgentListInput();
-    assert.equal(input.method, 'GET');
-    assert.equal(input.path, '/api/agents');
+    assert.equal(input, undefined);
   });
 });
 
