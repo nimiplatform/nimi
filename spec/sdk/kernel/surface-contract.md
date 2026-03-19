@@ -49,6 +49,25 @@ Realm SDK 公开符号（类型名、service 名、公开方法名、property-en
 
 - `pnpm check:sdk-realm-legacy-clean`
 
+## S-SURFACE-006 App Realm Access Boundary
+
+`apps/**` 中的生产代码访问 Realm 时只能通过以下两类入口：
+
+- codegen 生成的 `realm.services.*`
+- 经明确登记的 typed adapter 模块
+
+禁止在 app 生产代码中直接：
+
+- 调用 `realm.raw.request(...)`
+- 传递字面量 `/api/...` 路径或 URL
+- 使用 `fetch('/api/...')` 直连 Realm REST
+
+例外必须收敛到显式 allowlist，并由仓库检查脚本追踪。
+
+执行命令：
+
+- `pnpm check:no-app-realm-rest-bypass`
+
 ## S-SURFACE-009 Runtime 方法投影表治理
 
 `tables/runtime-method-groups.yaml` 是 SDK 对外方法投影的结构化事实源，采用”显式维护 + 一致性校验”模式：

@@ -10,6 +10,7 @@
 | `sdk_test_gate` | `test_gate` | `pnpm --filter @nimiplatform/sdk test` | `sdk/package.json` | SDK unit tests pass as a whole. Rules with this ref (without test_files) are indirectly validated by the suite. |
 | `sdk_boundary_gate` | `static_gate` | `pnpm check:sdk-import-boundary && pnpm check:no-create-nimi-client && pnpm check:no-global-openapi-config` | `scripts/check-sdk-import-boundary.mjs` | Import boundary enforcement and legacy entry point prohibition. |
 | `sdk_realm_legacy_gate` | `static_gate` | `pnpm check:sdk-realm-legacy-clean` | `scripts/check-sdk-realm-legacy-clean.mjs` | Realm legacy naming prohibition. |
+| `sdk_app_realm_boundary_gate` | `static_gate` | `pnpm check:no-app-realm-rest-bypass` | `scripts/check-no-app-realm-rest-bypass.mjs` | App production code Realm access boundary enforcement. |
 | `sdk_mod_hardcut_gate` | `static_gate` | `pnpm check:runtime-mod-hook-hardcut` | `scripts/check-runtime-mod-hook-hardcut.mjs` | Mod legacy surface hardcut enforcement. |
 
 ## Rule Coverage Matrix
@@ -102,6 +103,7 @@
 | `S-SURFACE-003` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-SURFACE-004` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-SURFACE-005` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency`, `sdk_realm_legacy_gate` |
+| `S-SURFACE-006` | `covered` | `sdk_kernel_consistency`, `sdk_app_realm_boundary_gate` |
 | `S-SURFACE-009` | `covered` | `sdk_kernel_consistency` |
 | `S-TRANSPORT-001` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency`, `sdk_lint_gate` |
 | `S-TRANSPORT-002` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency`, `sdk_lint_gate` |

@@ -1,6 +1,6 @@
 version: 2
 rule_compliance:
-  total_s_rules: 100
+  total_s_rules: 101
   audit_date: "2026-03-12"
   sdk_version: "0.4.0"
 
@@ -38,6 +38,11 @@ evidence_catalog:
     command: pnpm check:sdk-realm-legacy-clean
     path: scripts/check-sdk-realm-legacy-clean.mjs
     description: Realm legacy naming prohibition.
+  sdk_app_realm_boundary_gate:
+    type: static_gate
+    command: pnpm check:no-app-realm-rest-bypass
+    path: scripts/check-no-app-realm-rest-bypass.mjs
+    description: App production code Realm access boundary enforcement.
   sdk_mod_hardcut_gate:
     type: static_gate
     command: pnpm check:runtime-mod-hook-hardcut
@@ -405,6 +410,10 @@ rules:
     status: covered
     evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency, sdk_realm_legacy_gate]
     test_files: [sdk/test/realm/realm-facade-naming.test.ts]
+  - rule_id: S-SURFACE-006
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_app_realm_boundary_gate]
+    note: "Repo-level guardrail rule; explicit allowlist enforced by check:no-app-realm-rest-bypass"
   - rule_id: S-SURFACE-009
     status: covered
     evidence_refs: [sdk_kernel_consistency]
