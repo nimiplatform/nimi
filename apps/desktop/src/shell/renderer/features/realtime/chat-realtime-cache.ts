@@ -1,7 +1,9 @@
-import type { ChatViewDto } from '@nimiplatform/sdk/realm';
-import type { ListChatsResultDto } from '@nimiplatform/sdk/realm';
-import type { ListMessagesResultDto } from '@nimiplatform/sdk/realm';
-import type { MessageViewDto } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
+
+type ChatViewDto = RealmModel<'ChatViewDto'>;
+type ListChatsResultDto = RealmModel<'ListChatsResultDto'>;
+type ListMessagesResultDto = RealmModel<'ListMessagesResultDto'>;
+type MessageViewDto = RealmModel<'MessageViewDto'>;
 
 export type NormalizedChatUpdatePayload = {
   chatId: string;

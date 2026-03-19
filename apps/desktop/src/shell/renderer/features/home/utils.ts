@@ -1,5 +1,7 @@
-import type { PostDto } from '@nimiplatform/sdk/realm';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
+
+type PostDto = RealmModel<'PostDto'>;
 
 export type VideoPlaybackSource = { mode: 'iframe' | 'native'; src: string };
 

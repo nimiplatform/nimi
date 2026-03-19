@@ -57,11 +57,14 @@ describe('runDriftBootstrap', () => {
     mockInitializePlatformClient.mockResolvedValue({
       runtime: { ready: vi.fn().mockResolvedValue(undefined) },
       realm: {
-        raw: {
-          request: vi.fn().mockResolvedValue({
-            user: { id: 'u1', displayName: 'Test User', email: 'test@example.com' },
-            refreshToken: 'refresh-token',
-          }),
+        services: {
+          MeService: {
+            getMe: vi.fn().mockResolvedValue({
+              id: 'u1',
+              displayName: 'Test User',
+              email: 'test@example.com',
+            }),
+          },
         },
       },
     });

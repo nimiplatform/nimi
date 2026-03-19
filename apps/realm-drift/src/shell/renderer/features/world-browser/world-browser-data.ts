@@ -1,4 +1,11 @@
 import { getPlatformClient } from '@runtime/platform-client.js';
+import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
+
+type ListMyWorldsResult = RealmServiceResult<'WorldControlService', 'worldControlControllerListMyWorlds'>;
+type WorldDetailWithAgentsResult = RealmServiceResult<'WorldsService', 'worldControllerGetWorldDetailWithAgents'>;
+type WorldviewResult = RealmServiceResult<'WorldsService', 'worldControllerGetWorldview'>;
+type WorldScenesResult = RealmServiceResult<'WorldsService', 'worldControllerGetWorldScenes'>;
+type WorldLorebooksResult = RealmServiceResult<'WorldsService', 'worldControllerGetWorldLorebooks'>;
 
 export type WorldSummary = {
   id: string;
@@ -76,10 +83,7 @@ function extractStringArray(obj: Record<string, unknown>, key: string): string[]
 
 export async function listMyWorlds(): Promise<WorldSummary[]> {
   const { realm } = getPlatformClient();
-  const data = await realm.raw.request<Record<string, unknown>>({
-    method: 'GET',
-    path: '/api/worlds/mine',
-  });
+  const data: ListMyWorldsResult = await realm.services.WorldControlService.worldControlControllerListMyWorlds();
   const items = (data.worlds ?? data.items ?? data) as Record<string, unknown>[];
   if (!Array.isArray(items)) return [];
 
@@ -101,10 +105,8 @@ export async function listMyWorlds(): Promise<WorldSummary[]> {
 
 export async function getWorldDetailWithAgents(worldId: string): Promise<WorldDetailWithAgents> {
   const { realm } = getPlatformClient();
-  const data = await realm.raw.request<Record<string, unknown>>({
-    method: 'GET',
-    path: `/api/world/by-id/${worldId}/detail-with-agents`,
-  });
+  const data: WorldDetailWithAgentsResult =
+    await realm.services.WorldsService.worldControllerGetWorldDetailWithAgents(worldId, 4);
 
   const agents = ((data.agents ?? []) as Record<string, unknown>[]).map((a) => ({
     id: extractString(a, 'id'),
@@ -130,10 +132,7 @@ export async function getWorldDetailWithAgents(worldId: string): Promise<WorldDe
 
 export async function getWorldview(worldId: string): Promise<WorldviewData> {
   const { realm } = getPlatformClient();
-  const data = await realm.raw.request<Record<string, unknown>>({
-    method: 'GET',
-    path: `/api/world/by-id/${worldId}/worldview`,
-  });
+  const data: WorldviewResult = await realm.services.WorldsService.worldControllerGetWorldview(worldId);
 
   return {
     description: extractString(data, 'description') || undefined,
@@ -150,10 +149,7 @@ export async function getWorldview(worldId: string): Promise<WorldviewData> {
 
 export async function listWorldScenes(worldId: string): Promise<WorldScene[]> {
   const { realm } = getPlatformClient();
-  const data = await realm.raw.request<Record<string, unknown>>({
-    method: 'GET',
-    path: `/api/worlds/${worldId}/scenes`,
-  });
+  const data: WorldScenesResult = await realm.services.WorldsService.worldControllerGetWorldScenes(worldId);
   const items = (data.scenes ?? data.items ?? data) as Record<string, unknown>[];
   if (!Array.isArray(items)) return [];
 
@@ -167,10 +163,7 @@ export async function listWorldScenes(worldId: string): Promise<WorldScene[]> {
 
 export async function listWorldLorebooks(worldId: string): Promise<WorldLorebook[]> {
   const { realm } = getPlatformClient();
-  const data = await realm.raw.request<Record<string, unknown>>({
-    method: 'GET',
-    path: `/api/worlds/${worldId}/lorebooks`,
-  });
+  const data: WorldLorebooksResult = await realm.services.WorldsService.worldControllerGetWorldLorebooks(worldId);
   const items = (data.lorebooks ?? data.items ?? data) as Record<string, unknown>[];
   if (!Array.isArray(items)) return [];
 

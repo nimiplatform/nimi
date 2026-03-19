@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import type { PostDto } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { PostCard } from '@renderer/features/home/post-card';
+
+type PostDto = RealmModel<'PostDto'>;
 
 type PostFeedWithMediaPreviewProps = {
   posts: PostDto[];

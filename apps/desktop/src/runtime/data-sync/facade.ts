@@ -1,38 +1,7 @@
 import { withOpenApiContextLock } from '@runtime/context/openapi-context';
+import type { RealmTokenRefreshResult, RequestAccountDeletionInput, RequestAccountDeletionOutput, RequestDataExportInput, RequestDataExportOutput } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { Realm } from '@nimiplatform/sdk/realm';
-import type {
-  ChatSyncResultDto,
-  CreatePostDto,
-  CreateReportDto,
-  FinalizeMediaAssetDto,
-  MediaAssetDetailDto,
-  CreateReviewDto,
-  CreateSparkCheckoutDto,
-  CreateWithdrawalDto,
-  MeTwoFactorPrepareOutput,
-  MeTwoFactorVerifyInput,
-  NotificationDto,
-  NotificationListResultDto,
-  OAuthProvider,
-  RealmTokenRefreshResult,
-  RejectGiftDto,
-  ReceivedGiftsResponseDto,
-  RequestAccountDeletionInput,
-  RequestAccountDeletionOutput,
-  RequestDataExportInput,
-  RequestDataExportOutput,
-  SendGiftDto,
-  SendMessageInputDto,
-  SparkCheckoutSessionDto,
-  SparkPackageDto,
-  UnreadNotificationCountDto,
-  UpdatePasswordRequestDto,
-  UpdateUserNotificationSettingsDto,
-  UpdateUserSettingsDto,
-  UserNotificationSettingsDto,
-  UserSettingsDto,
-  WorldLevelAuditEventDto,
-} from '@nimiplatform/sdk/realm';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import { extractRuntimeErrorFields } from '@runtime/telemetry/error-fields';
 import {
@@ -57,6 +26,33 @@ import type {
 } from './flows/transit-flow';
 import { createDataSyncActions } from './facade-actions';
 import type { CreateMasterAgentInput } from './flows/social-flow';
+
+type ChatSyncResultDto = RealmModel<'ChatSyncResultDto'>;
+type CreatePostDto = RealmModel<'CreatePostDto'>;
+type CreateReportDto = RealmModel<'CreateReportDto'>;
+type FinalizeMediaAssetDto = RealmModel<'FinalizeMediaAssetDto'>;
+type MediaAssetDetailDto = RealmModel<'MediaAssetDetailDto'>;
+type CreateReviewDto = RealmModel<'CreateReviewDto'>;
+type CreateSparkCheckoutDto = RealmModel<'CreateSparkCheckoutDto'>;
+type CreateWithdrawalDto = RealmModel<'CreateWithdrawalDto'>;
+type MeTwoFactorPrepareOutput = RealmModel<'MeTwoFactorPrepareOutput'>;
+type MeTwoFactorVerifyInput = RealmModel<'MeTwoFactorVerifyInput'>;
+type NotificationDto = RealmModel<'NotificationDto'>;
+type NotificationListResultDto = RealmModel<'NotificationListResultDto'>;
+type OAuthProvider = RealmModel<'OAuthProvider'>;
+type RejectGiftDto = RealmModel<'RejectGiftDto'>;
+type ReceivedGiftsResponseDto = RealmModel<'ReceivedGiftsResponseDto'>;
+type SendGiftDto = RealmModel<'SendGiftDto'>;
+type SendMessageInputDto = RealmModel<'SendMessageInputDto'>;
+type SparkCheckoutSessionDto = RealmModel<'SparkCheckoutSessionDto'>;
+type SparkPackageDto = RealmModel<'SparkPackageDto'>;
+type UnreadNotificationCountDto = RealmModel<'UnreadNotificationCountDto'>;
+type UpdatePasswordRequestDto = RealmModel<'UpdatePasswordRequestDto'>;
+type UpdateUserNotificationSettingsDto = RealmModel<'UpdateUserNotificationSettingsDto'>;
+type UpdateUserSettingsDto = RealmModel<'UpdateUserSettingsDto'>;
+type UserNotificationSettingsDto = RealmModel<'UserNotificationSettingsDto'>;
+type UserSettingsDto = RealmModel<'UserSettingsDto'>;
+type WorldLevelAuditEventDto = RealmModel<'WorldLevelAuditEventDto'>;
 
 export type DataSyncAuthCallbacks = {
   setAuth: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void;

@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
-import type { MessageViewDto } from '@nimiplatform/sdk/realm';
-import type { ChatViewDto } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import nimiLogo from '@renderer/assets/logo-gray.png';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
@@ -24,6 +23,9 @@ import {
   toChatProfileSummary,
   toMessageTimestamp,
 } from './message-timeline-utils.js';
+
+type MessageViewDto = RealmModel<'MessageViewDto'>;
+type ChatViewDto = RealmModel<'ChatViewDto'>;
 import {
   sameChatTimelineIdentity,
   toChatTimelineOutboxMessage,

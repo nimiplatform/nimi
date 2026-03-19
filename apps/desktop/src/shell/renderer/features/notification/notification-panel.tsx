@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import type { ReviewRating, UnreadNotificationCountDto } from '@nimiplatform/sdk/realm';
 import { ReviewRating as ReviewRatingEnum } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -18,6 +18,9 @@ import {
   isGiftReviewable,
   toNotificationListView,
 } from './notification-model.js';
+
+type ReviewRating = RealmModel<'ReviewRating'>;
+type UnreadNotificationCountDto = RealmModel<'UnreadNotificationCountDto'>;
 import {
   invalidateNotificationQueries,
   notificationQueryKeys,

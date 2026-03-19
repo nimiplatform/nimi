@@ -241,11 +241,35 @@ test('loadAgentDetails reapplies mint-you profile filter per viewer on cached pr
       };
 
       let fetchCount = 0;
-      const callApi = async (task: (realm: { raw: { request: () => Promise<unknown> } }) => Promise<unknown>) => {
+      const callApi = async (
+        task: (
+          realm: {
+            services: {
+              AgentsService: {
+                getAgent: (agentId: string) => Promise<unknown>;
+                getAgentByHandle: (handle: string) => Promise<unknown>;
+              };
+              WorldsService: {
+                worldControllerGetWorld: (worldId: string) => Promise<unknown>;
+              };
+            };
+          },
+        ) => Promise<unknown>,
+      ) => {
         fetchCount += 1;
         return task({
-          raw: {
-            request: async () => profile,
+          services: {
+            AgentsService: {
+              getAgent: async () => profile,
+              getAgentByHandle: async () => profile,
+            },
+            WorldsService: {
+              worldControllerGetWorld: async () => ({
+                id: 'world-cache',
+                name: 'Cached World',
+                bannerUrl: 'https://example.com/world-banner.png',
+              }),
+            },
           },
         });
       };

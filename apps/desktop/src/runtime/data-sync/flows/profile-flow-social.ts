@@ -1,5 +1,8 @@
-import type { Realm, UserProfileDto } from '@nimiplatform/sdk/realm';
 import { loadCreatorAgents } from './social-flow';
+import type { Realm } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
+
+type UserProfileDto = RealmModel<'UserProfileDto'>;
 
 export type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 export type DataSyncErrorEmitter = (

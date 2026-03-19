@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import type { UpdateUserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
-import type { UserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
 import {
   PageShell,
   SectionTitle,
@@ -26,6 +25,9 @@ export {
   canUseDesktopUpdater,
   collectDesktopUpdatePanelAlerts,
 } from './settings-preferences-panel-parts';
+
+type UpdateUserNotificationSettingsDto = RealmModel<'UpdateUserNotificationSettingsDto'>;
+type UserNotificationSettingsDto = RealmModel<'UserNotificationSettingsDto'>;
 
 export type NotificationForm = {
   directMessages: boolean;

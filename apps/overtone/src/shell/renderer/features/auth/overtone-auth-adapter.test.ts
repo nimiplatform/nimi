@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockRequest = vi.fn();
 const mockInitRealmInstance = vi.fn(() => ({
-  raw: {
-    request: mockRequest,
+  services: {
+    MeService: {
+      getMe: mockRequest,
+    },
   },
 }));
 const mockGetRealmInstance = vi.fn(() => null);
@@ -42,12 +44,10 @@ describe('overtone-auth-adapter', () => {
     );
   });
 
-  it('loads and normalizes the current user profile', async () => {
+  it('loads and normalizes the current user profile via MeService.getMe', async () => {
     mockRequest.mockResolvedValue({
-      user: {
-        id: 'ot-user',
-        name: 'Overtone User',
-      },
+      id: 'ot-user',
+      name: 'Overtone User',
     });
 
     await expect(resolveOvertoneCurrentUser('token')).resolves.toEqual({
@@ -56,9 +56,6 @@ describe('overtone-auth-adapter', () => {
       displayName: 'Overtone User',
     });
 
-    expect(mockRequest).toHaveBeenCalledWith({
-      method: 'GET',
-      path: '/api/auth/me',
-    });
+    expect(mockRequest).toHaveBeenCalledWith();
   });
 });

@@ -1,12 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const mockRequest = vi.fn();
+const mockListMyWorlds = vi.fn();
+const mockGetWorldDetailWithAgents = vi.fn();
+const mockGetWorldview = vi.fn();
+const mockGetWorldScenes = vi.fn();
+const mockGetWorldLorebooks = vi.fn();
 
 vi.mock('@runtime/platform-client.js', () => ({
   getPlatformClient: () => ({
     realm: {
-      raw: {
-        request: (...args: unknown[]) => mockRequest(...args),
+      services: {
+        WorldControlService: {
+          worldControlControllerListMyWorlds: (...args: unknown[]) => mockListMyWorlds(...args),
+        },
+        WorldsService: {
+          worldControllerGetWorldDetailWithAgents: (...args: unknown[]) => mockGetWorldDetailWithAgents(...args),
+          worldControllerGetWorldview: (...args: unknown[]) => mockGetWorldview(...args),
+          worldControllerGetWorldScenes: (...args: unknown[]) => mockGetWorldScenes(...args),
+          worldControllerGetWorldLorebooks: (...args: unknown[]) => mockGetWorldLorebooks(...args),
+        },
       },
     },
   }),
@@ -22,11 +34,11 @@ import {
 
 describe('listMyWorlds', () => {
   beforeEach(() => {
-    mockRequest.mockReset();
+    mockListMyWorlds.mockReset();
   });
 
   it('returns mapped WorldSummary[] from API response with worlds wrapper', async () => {
-    mockRequest.mockResolvedValue({
+    mockListMyWorlds.mockResolvedValue({
       worlds: [
         { id: 'w1', name: 'Eldoria', description: 'A fantasy realm', agentCount: 3 },
         { id: 'w2', name: 'Nexus', description: 'Sci-fi hub', agentCount: 5 },
@@ -35,7 +47,7 @@ describe('listMyWorlds', () => {
 
     const result = await listMyWorlds();
 
-    expect(mockRequest).toHaveBeenCalledWith({ method: 'GET', path: '/api/worlds/mine' });
+    expect(mockListMyWorlds).toHaveBeenCalledWith();
     expect(result).toHaveLength(2);
     expect(result[0]!.id).toBe('w1');
     expect(result[0]!.name).toBe('Eldoria');
@@ -44,7 +56,7 @@ describe('listMyWorlds', () => {
   });
 
   it('returns mapped WorldSummary[] from API response with items wrapper', async () => {
-    mockRequest.mockResolvedValue({
+    mockListMyWorlds.mockResolvedValue({
       items: [
         { id: 'w3', name: 'Arcadia', agentCount: 1 },
       ],
@@ -58,7 +70,7 @@ describe('listMyWorlds', () => {
   });
 
   it('returns empty array when response is not an array', async () => {
-    mockRequest.mockResolvedValue({ message: 'unexpected shape' });
+    mockListMyWorlds.mockResolvedValue({ message: 'unexpected shape' });
 
     const result = await listMyWorlds();
 
@@ -66,7 +78,7 @@ describe('listMyWorlds', () => {
   });
 
   it('maps all fields correctly including bannerUrl/iconUrl fallback field names', async () => {
-    mockRequest.mockResolvedValue({
+    mockListMyWorlds.mockResolvedValue({
       worlds: [
         {
           id: 'w4',
@@ -103,7 +115,7 @@ describe('listMyWorlds', () => {
   });
 
   it('handles missing optional fields gracefully', async () => {
-    mockRequest.mockResolvedValue({
+    mockListMyWorlds.mockResolvedValue({
       worlds: [
         { id: 'w5', name: 'Bare World' },
       ],
@@ -129,11 +141,11 @@ describe('listMyWorlds', () => {
 
 describe('getWorldDetailWithAgents', () => {
   beforeEach(() => {
-    mockRequest.mockReset();
+    mockGetWorldDetailWithAgents.mockReset();
   });
 
   it('maps world detail and agents correctly', async () => {
-    mockRequest.mockResolvedValue({
+    mockGetWorldDetailWithAgents.mockResolvedValue({
       id: 'w1',
       name: 'Eldoria',
       description: 'A mystical realm',
@@ -150,7 +162,7 @@ describe('getWorldDetailWithAgents', () => {
 
     const result = await getWorldDetailWithAgents('w1');
 
-    expect(mockRequest).toHaveBeenCalledWith({ method: 'GET', path: '/api/world/by-id/w1/detail-with-agents' });
+    expect(mockGetWorldDetailWithAgents).toHaveBeenCalledWith('w1', 4);
     expect(result.id).toBe('w1');
     expect(result.name).toBe('Eldoria');
     expect(result.description).toBe('A mystical realm');
@@ -169,7 +181,7 @@ describe('getWorldDetailWithAgents', () => {
   });
 
   it('maps agent bio fallback from description field', async () => {
-    mockRequest.mockResolvedValue({
+    mockGetWorldDetailWithAgents.mockResolvedValue({
       id: 'w2',
       name: 'World Two',
       agents: [
@@ -183,7 +195,7 @@ describe('getWorldDetailWithAgents', () => {
   });
 
   it('returns empty agents array when none present', async () => {
-    mockRequest.mockResolvedValue({
+    mockGetWorldDetailWithAgents.mockResolvedValue({
       id: 'w3',
       name: 'Empty World',
     });
@@ -196,11 +208,11 @@ describe('getWorldDetailWithAgents', () => {
 
 describe('getWorldview', () => {
   beforeEach(() => {
-    mockRequest.mockReset();
+    mockGetWorldview.mockReset();
   });
 
   it('returns all worldview fields when present', async () => {
-    mockRequest.mockResolvedValue({
+    mockGetWorldview.mockResolvedValue({
       description: 'A vast continent',
       lore: 'Ancient legends speak of...',
       geography: 'Mountains and rivers',
@@ -214,7 +226,7 @@ describe('getWorldview', () => {
 
     const result = await getWorldview('w1');
 
-    expect(mockRequest).toHaveBeenCalledWith({ method: 'GET', path: '/api/world/by-id/w1/worldview' });
+    expect(mockGetWorldview).toHaveBeenCalledWith('w1');
     expect(result.description).toBe('A vast continent');
     expect(result.lore).toBe('Ancient legends speak of...');
     expect(result.geography).toBe('Mountains and rivers');
@@ -227,7 +239,7 @@ describe('getWorldview', () => {
   });
 
   it('returns undefined for missing optional fields', async () => {
-    mockRequest.mockResolvedValue({
+    mockGetWorldview.mockResolvedValue({
       description: 'Only description provided',
     });
 
@@ -247,11 +259,11 @@ describe('getWorldview', () => {
 
 describe('listWorldScenes', () => {
   beforeEach(() => {
-    mockRequest.mockReset();
+    mockGetWorldScenes.mockReset();
   });
 
   it('returns mapped scenes from scenes wrapper', async () => {
-    mockRequest.mockResolvedValue({
+    mockGetWorldScenes.mockResolvedValue({
       scenes: [
         { id: 's1', name: 'Castle Hall', description: 'Grand entrance', imageUrl: 'https://example.com/hall.jpg' },
         { id: 's2', name: 'Dark Forest', description: 'Twisted trees', image: 'https://example.com/forest.jpg' },
@@ -260,7 +272,7 @@ describe('listWorldScenes', () => {
 
     const result = await listWorldScenes('w1');
 
-    expect(mockRequest).toHaveBeenCalledWith({ method: 'GET', path: '/api/worlds/w1/scenes' });
+    expect(mockGetWorldScenes).toHaveBeenCalledWith('w1');
     expect(result).toHaveLength(2);
     expect(result[0]!.id).toBe('s1');
     expect(result[0]!.name).toBe('Castle Hall');
@@ -271,7 +283,7 @@ describe('listWorldScenes', () => {
   });
 
   it('returns empty array for empty response', async () => {
-    mockRequest.mockResolvedValue({ scenes: [] });
+    mockGetWorldScenes.mockResolvedValue({ scenes: [] });
 
     const result = await listWorldScenes('w2');
 
@@ -281,11 +293,11 @@ describe('listWorldScenes', () => {
 
 describe('listWorldLorebooks', () => {
   beforeEach(() => {
-    mockRequest.mockReset();
+    mockGetWorldLorebooks.mockReset();
   });
 
   it('returns mapped lorebooks with enabled/constant booleans', async () => {
-    mockRequest.mockResolvedValue({
+    mockGetWorldLorebooks.mockResolvedValue({
       lorebooks: [
         { id: 'lb1', title: 'Magic System', content: 'Detailed magic rules', category: 'systems', enabled: true, constant: false },
         { id: 'lb2', title: 'World History', content: 'Timeline of events', category: 'history', enabled: false, constant: true },
@@ -294,7 +306,7 @@ describe('listWorldLorebooks', () => {
 
     const result = await listWorldLorebooks('w1');
 
-    expect(mockRequest).toHaveBeenCalledWith({ method: 'GET', path: '/api/worlds/w1/lorebooks' });
+    expect(mockGetWorldLorebooks).toHaveBeenCalledWith('w1');
     expect(result).toHaveLength(2);
     expect(result[0]!.id).toBe('lb1');
     expect(result[0]!.title).toBe('Magic System');
@@ -308,7 +320,7 @@ describe('listWorldLorebooks', () => {
   });
 
   it('handles missing title by falling back to name', async () => {
-    mockRequest.mockResolvedValue({
+    mockGetWorldLorebooks.mockResolvedValue({
       lorebooks: [
         { id: 'lb3', name: 'Fallback Name', content: 'Some content' },
       ],
@@ -320,7 +332,7 @@ describe('listWorldLorebooks', () => {
   });
 
   it('returns empty array for empty response', async () => {
-    mockRequest.mockResolvedValue({ lorebooks: [] });
+    mockGetWorldLorebooks.mockResolvedValue({ lorebooks: [] });
 
     const result = await listWorldLorebooks('w2');
 

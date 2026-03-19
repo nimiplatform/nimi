@@ -1,20 +1,18 @@
-import type { Realm } from '@nimiplatform/sdk/realm';
-import type { MeTwoFactorPrepareOutput } from '@nimiplatform/sdk/realm';
-import type { MeTwoFactorVerifyInput } from '@nimiplatform/sdk/realm';
-import type { OAuthProvider } from '@nimiplatform/sdk/realm';
-import type { RequestAccountDeletionInput } from '@nimiplatform/sdk/realm';
-import type { RequestAccountDeletionOutput } from '@nimiplatform/sdk/realm';
-import type { RequestDataExportInput } from '@nimiplatform/sdk/realm';
-import type { RequestDataExportOutput } from '@nimiplatform/sdk/realm';
-import type { UpdatePasswordRequestDto } from '@nimiplatform/sdk/realm';
-import type { UpdateUserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
-import type { UpdateUserSettingsDto } from '@nimiplatform/sdk/realm';
-import type { UserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
-import type { UserSettingsDto } from '@nimiplatform/sdk/realm';
+import type { Realm, RequestAccountDeletionInput, RequestAccountDeletionOutput, RequestDataExportInput, RequestDataExportOutput } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import {
   requestAccountDeletion as requestRealmAccountDeletion,
   requestDataExport as requestRealmDataExport,
 } from '@nimiplatform/sdk/realm';
+
+type MeTwoFactorPrepareOutput = RealmModel<'MeTwoFactorPrepareOutput'>;
+type MeTwoFactorVerifyInput = RealmModel<'MeTwoFactorVerifyInput'>;
+type OAuthProvider = RealmModel<'OAuthProvider'>;
+type UpdatePasswordRequestDto = RealmModel<'UpdatePasswordRequestDto'>;
+type UpdateUserNotificationSettingsDto = RealmModel<'UpdateUserNotificationSettingsDto'>;
+type UpdateUserSettingsDto = RealmModel<'UpdateUserSettingsDto'>;
+type UserNotificationSettingsDto = RealmModel<'UserNotificationSettingsDto'>;
+type UserSettingsDto = RealmModel<'UserSettingsDto'>;
 
 type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (

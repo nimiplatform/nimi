@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
-import type { ChatViewDto } from '@nimiplatform/sdk/realm';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { formatLocaleDate, formatRelativeLocaleTime, i18n } from '@renderer/i18n';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
+
+type ChatViewDto = RealmModel<'ChatViewDto'>;
 
 function ChatSkeletonBlock(props: { className: string }) {
   return <div className={`animate-pulse rounded-full bg-slate-200/75 ${props.className}`} />;

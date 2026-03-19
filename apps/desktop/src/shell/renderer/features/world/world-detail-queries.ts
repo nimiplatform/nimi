@@ -1,5 +1,5 @@
-import type { WorldLevelAuditEventDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import type {
   WorldAuditItem,
@@ -20,6 +20,8 @@ import type {
   WorldSemanticTaboo,
   WorldSemanticTimelineItem,
 } from './world-detail-types';
+
+type WorldLevelAuditEventDto = RealmModel<'WorldLevelAuditEventDto'>;
 
 const DEFAULT_WORLD_PREFETCH_STALE_TIME_MS = 30_000;
 const DEFAULT_WORLD_DETAIL_RECOMMENDED_AGENT_LIMIT = 4;

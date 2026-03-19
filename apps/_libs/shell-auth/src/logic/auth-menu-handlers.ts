@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react';
-import type { AuthTokensDto, OAuthLoginResultDto } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { OAuthLoginState } from '@nimiplatform/sdk/realm';
 import {
   startSocialOauth,
@@ -13,6 +13,9 @@ import { buildDesktopCallbackReturnUrl } from './desktop-callback-helpers.js';
 import { saveRememberedLogin, clearRememberedLogin } from './remember-login.js';
 import { loadGoogleScript, getGoogleClientId } from './google-helpers.js';
 import { toErrorMessage } from './error-helpers.js';
+
+type AuthTokensDto = RealmModel<'AuthTokensDto'>;
+type OAuthLoginResultDto = RealmModel<'OAuthLoginResultDto'>;
 
 // ---------------------------------------------------------------------------
 // State setter interface — passed by the AuthMenu component

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import type { MessageViewDto } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { formatLocaleDate, i18n } from '@renderer/i18n';
 import { resolveCanonicalChatMediaUrl } from './chat-media-contract.js';
+
+type MessageViewDto = RealmModel<'MessageViewDto'>;
 
 export function resolveMessageText(message: MessageViewDto): string {
   const text = String(message.text || '').trim();

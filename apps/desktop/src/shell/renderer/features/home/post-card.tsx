@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useQueryClient } from '@tanstack/react-query';
-import type { PostDto } from '@nimiplatform/sdk/realm';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { ReportReason } from '@nimiplatform/sdk/realm';
 import { i18n } from '@renderer/i18n';
@@ -18,6 +18,8 @@ import { EditVisibilityModal } from './edit-visibility-modal';
 import { ReportModal } from './report-modal';
 import { usePostCardUi } from './use-post-card-ui';
 import { normalizeMediaType, resolveMediaUrl, resolveMediaThumbnailUrl, resolveVideoPlaybackSource } from './utils';
+
+type PostDto = RealmModel<'PostDto'>;
 
 const INTERNAL_OPEN_CHAT_ERROR_CODE = 'HOME_OPEN_CHAT_FAILED';
 

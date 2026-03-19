@@ -1,5 +1,5 @@
 import type { ReactNode, RefObject } from 'react';
-import type { PostDto } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { formatLocaleDate, i18n } from '@renderer/i18n';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
@@ -7,6 +7,8 @@ import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ChatIcon, GiftIcon, HeartIcon } from './icons';
 import { CloudflareVideoPlayer, NativeVideoPlayer } from './video-players';
 import type { VideoPlaybackSource } from './utils';
+
+type PostDto = RealmModel<'PostDto'>;
 
 export type PostCardArticleProps = {
   post: PostDto;

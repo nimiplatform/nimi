@@ -4,13 +4,13 @@
 // RL-IPC-005 — Serialization constraints
 // RL-IPC-006 — AI Consume IPC
 // RL-IPC-007 — Media IPC
-// RL-IPC-008 — Realm Passthrough IPC
 // RL-CORE-004 — agentId in every agent-scoped IPC input
 // RL-BOOT-005 — Auth IPC
 
 import { ipcMain, shell, type BrowserWindow, type WebContents } from 'electron';
 import type { Runtime } from '@nimiplatform/sdk/runtime';
 import { OAuthProvider, Realm } from '@nimiplatform/sdk/realm';
+import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
   SpeechSynthesizeInput,
@@ -21,11 +21,15 @@ import type {
 } from '@nimiplatform/sdk/runtime';
 import { openStream, cancelStream } from './stream-manager.js';
 import { normalizeError } from './error-utils.js';
+import { safeHandle } from './ipc-utils.js';
 import { toTextGenerateInput, toTextStreamInput, type IpcAiGenerateInput, type IpcAiStreamInput } from './input-transform.js';
 import type { RelayEnv } from './env.js';
 import { listenForOAuthCallback, performOauthTokenExchange } from './auth/index.js';
 import { DESKTOP_CALLBACK_TIMEOUT_MS } from '@nimiplatform/shell-core/oauth';
 import type { RouteState } from './route/route-state.js';
+import { sendAgentChannelMessage } from './realm-agent-channel.js';
+
+type ListCreatorAgentsResult = RealmServiceResult<'CreatorService', 'creatorControllerListAgents'>;
 
 function createScopedRealm(
   env: RelayEnv,
@@ -72,23 +76,6 @@ export function registerAuthIpcHandlers(
       return { success: true };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) };
-    }
-  });
-
-  ipcMain.handle('relay:auth:realm-request', async (_event, payload: {
-    method: string;
-    path: string;
-    body?: unknown;
-    accessToken?: string;
-  }) => {
-    try {
-      return await createScopedRealm(env, payload.accessToken).raw.request({
-        method: payload.method as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
-        path: payload.path,
-        body: payload.body,
-      });
-    } catch (error) {
-      throw normalizeError(error);
     }
   });
 
@@ -293,13 +280,13 @@ export function registerIpcHandlers(
   routeState?: RouteState,
 ): void {
   // ── Config — expose non-secret env defaults to renderer (RL-CORE-003) ─
-  ipcMain.handle('relay:config', () => ({
+  safeHandle('relay:config', () => ({
     agentId: env.NIMI_AGENT_ID ?? null,
     worldId: env.NIMI_WORLD_ID ?? null,
   }));
 
   // ── Health (RL-IPC-002) ──────────────────────────────────────────────
-  ipcMain.handle('relay:health', async () => {
+  safeHandle('relay:health', async () => {
     try {
       const result = await runtime.health();
       return result;
@@ -318,7 +305,7 @@ export function registerIpcHandlers(
   // Calls runtime.ai.text.generate() / runtime.ai.text.stream() per spec
   // Input shape: { agentId, prompt, model?, provider?, ... }
 
-  ipcMain.handle('relay:ai:generate', async (_event, input: IpcAiGenerateInput) => {
+  safeHandle('relay:ai:generate', async (_event, input: IpcAiGenerateInput) => {
     requireAgentId(input as unknown as Record<string, unknown>);
     try {
       const textInput = toTextGenerateInput(input);
@@ -329,7 +316,7 @@ export function registerIpcHandlers(
     }
   });
 
-  ipcMain.handle('relay:ai:stream:open', async (_event, input: IpcAiStreamInput) => {
+  safeHandle('relay:ai:stream:open', async (_event, input: IpcAiStreamInput) => {
     requireAgentId(input as unknown as Record<string, unknown>);
     const wc = getWebContents();
     if (!wc) {
@@ -344,14 +331,14 @@ export function registerIpcHandlers(
     }
   });
 
-  ipcMain.handle('relay:ai:stream:cancel', (_event, payload: { streamId: string }) => {
+  safeHandle('relay:ai:stream:cancel', (_event, payload: { streamId: string }) => {
     cancelStream(payload.streamId);
   });
 
   // ── Media (RL-IPC-007) ──────────────────────────────────────────────
 
   // TTS
-  ipcMain.handle('relay:media:tts:synthesize', async (_event, input: Omit<SpeechSynthesizeInput, 'signal'>) => {
+  safeHandle('relay:media:tts:synthesize', async (_event, input: Omit<SpeechSynthesizeInput, 'signal'>) => {
     requireAgentId(input as unknown as Record<string, unknown>);
     try {
       return await runtime.media.tts.synthesize(input);
@@ -360,7 +347,7 @@ export function registerIpcHandlers(
     }
   });
 
-  ipcMain.handle('relay:media:tts:voices', async (_event, input: SpeechListVoicesInput) => {
+  safeHandle('relay:media:tts:voices', async (_event, input: SpeechListVoicesInput) => {
     try {
       return await runtime.media.tts.listVoices(input);
     } catch (error) {
@@ -369,7 +356,7 @@ export function registerIpcHandlers(
   });
 
   // STT
-  ipcMain.handle('relay:media:stt:transcribe', async (_event, input: Omit<SpeechTranscribeInput, 'signal'>) => {
+  safeHandle('relay:media:stt:transcribe', async (_event, input: Omit<SpeechTranscribeInput, 'signal'>) => {
     try {
       return await runtime.media.stt.transcribe(input);
     } catch (error) {
@@ -378,7 +365,7 @@ export function registerIpcHandlers(
   });
 
   // Image
-  ipcMain.handle('relay:media:image:generate', async (_event, input: Omit<ImageGenerateInput, 'signal'>) => {
+  safeHandle('relay:media:image:generate', async (_event, input: Omit<ImageGenerateInput, 'signal'>) => {
     try {
       return await runtime.media.image.generate(input);
     } catch (error) {
@@ -387,7 +374,7 @@ export function registerIpcHandlers(
   });
 
   // Video
-  ipcMain.handle('relay:media:video:generate', async (_event, input: Omit<VideoGenerateInput, 'signal'>) => {
+  safeHandle('relay:media:video:generate', async (_event, input: Omit<VideoGenerateInput, 'signal'>) => {
     requireAgentId(input as unknown as Record<string, unknown>);
     try {
       return await runtime.media.video.generate(input);
@@ -396,7 +383,7 @@ export function registerIpcHandlers(
     }
   });
 
-  ipcMain.handle('relay:media:video:job:get', async (_event, payload: { jobId: string }) => {
+  safeHandle('relay:media:video:job:get', async (_event, payload: { jobId: string }) => {
     try {
       return await runtime.media.jobs.get(payload.jobId);
     } catch (error) {
@@ -404,7 +391,7 @@ export function registerIpcHandlers(
     }
   });
 
-  ipcMain.handle('relay:media:video:job:artifacts', async (_event, payload: { jobId: string }) => {
+  safeHandle('relay:media:video:job:artifacts', async (_event, payload: { jobId: string }) => {
     try {
       return await runtime.media.jobs.getArtifacts(payload.jobId);
     } catch (error) {
@@ -413,7 +400,7 @@ export function registerIpcHandlers(
   });
 
   // Video job subscription — stream protocol (RL-IPC-003)
-  ipcMain.handle('relay:media:video:job:subscribe', async (_event, payload: { jobId: string }) => {
+  safeHandle('relay:media:video:job:subscribe', async (_event, payload: { jobId: string }) => {
     const wc = getWebContents();
     if (!wc) {
       throw new Error('No renderer available');
@@ -426,25 +413,42 @@ export function registerIpcHandlers(
     }
   });
 
-  ipcMain.handle('relay:media:video:job:cancel', (_event, payload: { streamId: string }) => {
+  safeHandle('relay:media:video:job:cancel', (_event, payload: { streamId: string }) => {
     cancelStream(payload.streamId);
   });
 
-  // ── Realm Passthrough (RL-IPC-008) ──────────────────────────────────
-  ipcMain.handle('relay:realm:request', async (_event, input: {
-    agentId?: string;
-    method: string;
-    path: string;
-    body?: unknown;
-    headers?: Record<string, string>;
-  }) => {
+  safeHandle('relay:agent:list', async () => {
     try {
-      return await realm.raw.request({
-        method: input.method as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
-        path: input.path,
-        body: input.body,
-        headers: input.headers,
-      });
+      const payload: ListCreatorAgentsResult = await realm.services.CreatorService.creatorControllerListAgents();
+      const items = Array.isArray(payload.items) ? payload.items : Array.isArray(payload) ? payload : [];
+      return {
+        items: items.map((item) => {
+          const record = item && typeof item === 'object' ? item as Record<string, unknown> : {};
+          return {
+            agentId: String(record.agentId || record.id || ''),
+            displayName: String(record.displayName || record.name || ''),
+            handle: String(record.handle || ''),
+            state: String(record.state || record.status || ''),
+            avatarUrl: record.avatarUrl ?? null,
+          };
+        }),
+      };
+    } catch (error) {
+      throw normalizeError(error);
+    }
+  });
+
+  safeHandle('relay:agent:get', async (_event, input: { agentId: string }) => {
+    try {
+      return await realm.services.AgentsService.getAgent(input.agentId);
+    } catch (error) {
+      throw normalizeError(error);
+    }
+  });
+
+  safeHandle('relay:human-chat:send', async (_event, input: { agentId: string; text: string }) => {
+    try {
+      return await sendAgentChannelMessage(realm, input);
     } catch (error) {
       throw normalizeError(error);
     }
@@ -454,7 +458,7 @@ export function registerIpcHandlers(
   // These handlers bridge the renderer to the beat-first turn pipeline
   // running in the main process.
 
-  ipcMain.handle('relay:chat:send', async (_event, input: {
+  safeHandle('relay:chat:send', async (_event, input: {
     agentId: string;
     text: string;
     sessionId?: string;
@@ -568,11 +572,11 @@ export function registerIpcHandlers(
     }
   });
 
-  ipcMain.handle('relay:chat:cancel', (_event, _input: { turnTxnId: string }) => {
+  safeHandle('relay:chat:cancel', (_event, _input: { turnTxnId: string }) => {
     // TODO: wire to AbortController in send-flow
   });
 
-  ipcMain.handle('relay:chat:history', async (_event, input: { agentId: string }) => {
+  safeHandle('relay:chat:history', async (_event, input: { agentId: string }) => {
     try {
       const { listLocalChatSessions } = await import('./session-store/index.js');
       const sessions = await listLocalChatSessions(input.agentId, 'local-user');
@@ -594,7 +598,7 @@ export function registerIpcHandlers(
     }
   });
 
-  ipcMain.handle('relay:chat:clear', async (_event, input: { agentId: string; sessionId: string }) => {
+  safeHandle('relay:chat:clear', async (_event, input: { agentId: string; sessionId: string }) => {
     try {
       const { clearSession } = await import('./session-store/index.js');
       await clearSession(input.sessionId);
@@ -603,7 +607,7 @@ export function registerIpcHandlers(
     }
   });
 
-  ipcMain.handle('relay:chat:settings:get', async () => {
+  safeHandle('relay:chat:settings:get', async () => {
     try {
       const { loadRelaySettings } = await import('./settings/settings-store.js');
       return await loadRelaySettings();
@@ -612,7 +616,7 @@ export function registerIpcHandlers(
     }
   });
 
-  ipcMain.handle('relay:chat:settings:set', async (_event, patch: Record<string, unknown>) => {
+  safeHandle('relay:chat:settings:set', async (_event, patch: Record<string, unknown>) => {
     try {
       const { saveRelaySettings } = await import('./settings/settings-store.js');
       const { normalizeLocalChatSettings } = await import('./settings/types.js');
@@ -623,7 +627,7 @@ export function registerIpcHandlers(
     }
   });
 
-  ipcMain.handle('relay:chat:proactive:toggle', async (_event, input: { enabled: boolean }) => {
+  safeHandle('relay:chat:proactive:toggle', async (_event, input: { enabled: boolean }) => {
     try {
       const { loadRelaySettings, saveRelaySettings } = await import('./settings/settings-store.js');
       const settings = await loadRelaySettings();

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { GiftTransactionRichDto, ReceivedGiftsResponseDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
@@ -10,6 +10,9 @@ import { formatLocaleDate } from '@renderer/i18n';
 import { invalidateNotificationQueries } from '@renderer/features/notification/notification-query.js';
 import { persistStoredSettingsSelected } from '@renderer/features/settings/settings-storage';
 import { useTranslation } from 'react-i18next';
+
+type GiftTransactionRichDto = RealmModel<'GiftTransactionRichDto'>;
+type ReceivedGiftsResponseDto = RealmModel<'ReceivedGiftsResponseDto'>;
 
 type GiftStatusView = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'REFUNDED';
 type GiftAction = 'accept' | 'reject' | null;

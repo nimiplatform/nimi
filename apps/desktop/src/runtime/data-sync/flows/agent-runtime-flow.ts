@@ -205,10 +205,7 @@ async function getProfileByHandle(
   }
   try {
     const payload = await callApi(
-      (realm) => realm.raw.request<unknown>({
-        method: 'GET',
-        path: `/api/agent/handle/${encodeURIComponent(normalized)}`,
-      }),
+      (realm) => realm.services.AgentsService.getAgentByHandle(normalized),
       '按 handle 加载 Agent 资料失败',
     );
     return toRecord(payload);
@@ -227,10 +224,7 @@ async function getProfileById(
   }
   try {
     const payload = await callApi(
-      (realm) => realm.raw.request<unknown>({
-        method: 'GET',
-        path: `/api/agent/accounts/${encodeURIComponent(normalized)}`,
-      }),
+      (realm) => realm.services.AgentsService.getAgent(normalized),
       '按 id 加载 Agent 资料失败',
     );
     return toRecord(payload);

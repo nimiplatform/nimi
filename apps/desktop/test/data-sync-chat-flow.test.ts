@@ -1,15 +1,17 @@
 import { describe, test } from 'node:test';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import type { MessageViewDto } from '@nimiplatform/sdk/realm';
 import {
   flushPendingChatOutbox,
   sameMessageIdentity,
   sendChatMessage,
 } from '../src/runtime/data-sync/flows/chat-flow.js';
 import { createOfflineError, getOfflineCacheManager } from '../src/runtime/offline/index.js';
+
+type MessageViewDto = RealmModel<'MessageViewDto'>;
 
 const chatFlowSource = readFileSync(
   resolve(import.meta.dirname, '../src/runtime/data-sync/flows/chat-flow.ts'),

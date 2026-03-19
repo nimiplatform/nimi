@@ -1,25 +1,6 @@
-import type { Realm } from '@nimiplatform/sdk/realm';
-import type { CreatePostDto } from '@nimiplatform/sdk/realm';
-import type { CreateReportDto } from '@nimiplatform/sdk/realm';
-import type { FinalizeMediaAssetDto } from '@nimiplatform/sdk/realm';
-import type { MeTwoFactorPrepareOutput } from '@nimiplatform/sdk/realm';
-import type { MeTwoFactorVerifyInput } from '@nimiplatform/sdk/realm';
-import type { OAuthProvider } from '@nimiplatform/sdk/realm';
-import type { RequestAccountDeletionInput } from '@nimiplatform/sdk/realm';
-import type { RequestAccountDeletionOutput } from '@nimiplatform/sdk/realm';
-import type { RequestDataExportInput } from '@nimiplatform/sdk/realm';
-import type { RequestDataExportOutput } from '@nimiplatform/sdk/realm';
-import type { SendMessageInputDto } from '@nimiplatform/sdk/realm';
-import type { CreateReviewDto } from '@nimiplatform/sdk/realm';
-import type { CreateSparkCheckoutDto } from '@nimiplatform/sdk/realm';
-import type { CreateWithdrawalDto } from '@nimiplatform/sdk/realm';
-import type { NotificationDto } from '@nimiplatform/sdk/realm';
-import type { NotificationListResultDto } from '@nimiplatform/sdk/realm';
-import type { UpdatePasswordRequestDto } from '@nimiplatform/sdk/realm';
-import type { UpdateUserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
-import type { UpdateUserSettingsDto } from '@nimiplatform/sdk/realm';
-import type { UnreadNotificationCountDto } from '@nimiplatform/sdk/realm';
 import type { PasswordAuthDebug } from './auth';
+import type { Realm, RequestAccountDeletionInput, RequestAccountDeletionOutput, RequestDataExportInput, RequestDataExportOutput } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { loginWithPassword, logoutWithCleanup, registerWithPassword } from './flows/auth-flow';
 import {
   countPendingChatOutboxEntries,
@@ -33,6 +14,26 @@ import {
   syncChatEventWindow,
   startChatWithTarget,
 } from './flows/chat-flow';
+
+type CreatePostDto = RealmModel<'CreatePostDto'>;
+type CreateReportDto = RealmModel<'CreateReportDto'>;
+type FinalizeMediaAssetDto = RealmModel<'FinalizeMediaAssetDto'>;
+type MeTwoFactorPrepareOutput = RealmModel<'MeTwoFactorPrepareOutput'>;
+type MeTwoFactorVerifyInput = RealmModel<'MeTwoFactorVerifyInput'>;
+type OAuthProvider = RealmModel<'OAuthProvider'>;
+type SendMessageInputDto = RealmModel<'SendMessageInputDto'>;
+type CreateReviewDto = RealmModel<'CreateReviewDto'>;
+type CreateSparkCheckoutDto = RealmModel<'CreateSparkCheckoutDto'>;
+type CreateWithdrawalDto = RealmModel<'CreateWithdrawalDto'>;
+type NotificationDto = RealmModel<'NotificationDto'>;
+type NotificationListResultDto = RealmModel<'NotificationListResultDto'>;
+type UpdatePasswordRequestDto = RealmModel<'UpdatePasswordRequestDto'>;
+type UpdateUserNotificationSettingsDto = RealmModel<'UpdateUserNotificationSettingsDto'>;
+type UpdateUserSettingsDto = RealmModel<'UpdateUserSettingsDto'>;
+type UnreadNotificationCountDto = RealmModel<'UnreadNotificationCountDto'>;
+type MarkNotificationsReadInputDto = RealmModel<'MarkNotificationsReadInputDto'>;
+type RejectGiftDto = RealmModel<'RejectGiftDto'>;
+type SendGiftDto = RealmModel<'SendGiftDto'>;
 import {
   countPendingSocialMutations,
   flushPendingSocialMutations,
@@ -108,9 +109,6 @@ import {
   rejectGift,
   sendGift,
 } from './flows/economy-notification-flow';
-import type { MarkNotificationsReadInputDto } from '@nimiplatform/sdk/realm';
-import type { RejectGiftDto } from '@nimiplatform/sdk/realm';
-import type { SendGiftDto } from '@nimiplatform/sdk/realm';
 import {
   createReport,
   createImageDirectUpload,

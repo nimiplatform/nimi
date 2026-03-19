@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
-import type { PostDto } from '@nimiplatform/sdk/realm';
 import { ReportReason } from '@nimiplatform/sdk/realm';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
+
+type PostDto = RealmModel<'PostDto'>;
 
 export function ReportModal({
   post,

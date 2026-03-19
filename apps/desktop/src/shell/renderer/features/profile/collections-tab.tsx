@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { i18n } from '@renderer/i18n';
-import type { PostDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { PostFeedWithMediaPreview } from './post-feed-with-media-preview.js';
+
+type PostDto = RealmModel<'PostDto'>;
 
 const PAGE_SIZE = 10;
 const SAVED_POSTS_STORAGE_KEY = 'nimi.desktop.saved-post-ids';

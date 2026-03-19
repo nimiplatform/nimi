@@ -5,6 +5,10 @@ import type { FriendInfo, ChatMessage } from '@renderer/app-shell/app-store.js';
 import { FriendList } from './friend-list.js';
 import { getPlatformClient } from '@runtime/platform-client.js';
 import { generateId } from '@renderer/infra/ulid.js';
+import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
+
+type StartChatResult = RealmServiceResult<'HumanChatService', 'startChat'>;
+type ListMessagesResult = RealmServiceResult<'HumanChatService', 'listMessages'>;
 
 type HumanChatPanelProps = Record<string, never>;
 
@@ -43,10 +47,8 @@ export function HumanChatPanel(_props: HumanChatPanelProps) {
         });
 
         // Start or get existing chat session
-        const data = await realm.raw.request<Record<string, unknown>>({
-          method: 'POST',
-          path: '/api/human/chats',
-          body: { targetUserId: friend.userId },
+        const data: StartChatResult = await realm.services.HumanChatService.startChat({
+          targetAccountId: friend.userId,
         });
 
         const chatId = String(data.chatId || data.id || '');
@@ -66,11 +68,7 @@ export function HumanChatPanel(_props: HumanChatPanelProps) {
         }
 
         // Load existing messages
-        const messagesData = await realm.raw.request<Record<string, unknown>>({
-          method: 'GET',
-          path: `/api/human/chats/${chatId}/messages`,
-          query: { limit: 50 },
-        });
+        const messagesData: ListMessagesResult = await realm.services.HumanChatService.listMessages(chatId, 50);
 
         const items = ((messagesData.messages ?? messagesData.items ?? []) as Record<string, unknown>[]);
         const messages: ChatMessage[] = items.map((m) => ({
@@ -96,10 +94,7 @@ export function HumanChatPanel(_props: HumanChatPanelProps) {
         });
 
         // Mark as read
-        void realm.raw.request({
-          method: 'POST',
-          path: `/api/human/chats/${chatId}/read`,
-        }).catch(() => { /* read receipt is non-critical */ });
+        void realm.services.HumanChatService.markChatRead(chatId).catch(() => { /* read receipt is non-critical */ });
       } catch (err) {
         const msg = err instanceof Error ? err.message : t('humanChat.openFailed');
         setError(msg);
@@ -129,10 +124,11 @@ export function HumanChatPanel(_props: HumanChatPanelProps) {
 
     try {
       const { realm } = getPlatformClient();
-      await realm.raw.request({
-        method: 'POST',
-        path: `/api/human/chats/${activeHumanChat.chatId}/messages`,
-        body: { content: text, type: 'TEXT', clientMessageId },
+      await realm.services.HumanChatService.sendMessage(activeHumanChat.chatId, {
+        type: 'TEXT',
+        text,
+        clientMessageId,
+        payload: { content: text } as unknown as Record<string, never>,
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : t('humanChat.sendFailed');

@@ -1,18 +1,20 @@
-import type { Realm } from '@nimiplatform/sdk/realm';
-import type { MarkNotificationsReadInputDto } from '@nimiplatform/sdk/realm';
-import type { CreateReviewDto } from '@nimiplatform/sdk/realm';
-import type { CreateSparkCheckoutDto } from '@nimiplatform/sdk/realm';
-import type { CreateWithdrawalDto } from '@nimiplatform/sdk/realm';
-import type { NotificationDto } from '@nimiplatform/sdk/realm';
-import type { NotificationListResultDto } from '@nimiplatform/sdk/realm';
-import type { RejectGiftDto } from '@nimiplatform/sdk/realm';
-import type { ReceivedGiftsResponseDto } from '@nimiplatform/sdk/realm';
-import type { SendGiftDto } from '@nimiplatform/sdk/realm';
-import type { SparkCheckoutSessionDto } from '@nimiplatform/sdk/realm';
-import type { SparkPackageDto } from '@nimiplatform/sdk/realm';
-import type { UnreadNotificationCountDto } from '@nimiplatform/sdk/realm';
 import { ReasonCode } from '@nimiplatform/sdk/types';
+import type { Realm } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { createOfflineError, getOfflineCoordinator } from '@runtime/offline';
+
+type MarkNotificationsReadInputDto = RealmModel<'MarkNotificationsReadInputDto'>;
+type CreateReviewDto = RealmModel<'CreateReviewDto'>;
+type CreateSparkCheckoutDto = RealmModel<'CreateSparkCheckoutDto'>;
+type CreateWithdrawalDto = RealmModel<'CreateWithdrawalDto'>;
+type NotificationDto = RealmModel<'NotificationDto'>;
+type NotificationListResultDto = RealmModel<'NotificationListResultDto'>;
+type RejectGiftDto = RealmModel<'RejectGiftDto'>;
+type ReceivedGiftsResponseDto = RealmModel<'ReceivedGiftsResponseDto'>;
+type SendGiftDto = RealmModel<'SendGiftDto'>;
+type SparkCheckoutSessionDto = RealmModel<'SparkCheckoutSessionDto'>;
+type SparkPackageDto = RealmModel<'SparkPackageDto'>;
+type UnreadNotificationCountDto = RealmModel<'UnreadNotificationCountDto'>;
 
 type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (

@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
-import type { PostDto } from '@nimiplatform/sdk/realm';
 import { APP_DISPLAY_SECTION_TITLE_CLASS, APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { PostCard, type PostCardAuthorProfileTarget } from '../home/post-card';
@@ -10,6 +10,8 @@ import {
   type ExploreAgentCardData,
   type FeaturedWorldCardData,
 } from './explore-cards';
+
+type PostDto = RealmModel<'PostDto'>;
 
 const ICON_SEARCH = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

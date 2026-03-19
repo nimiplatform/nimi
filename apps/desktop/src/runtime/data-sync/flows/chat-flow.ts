@@ -1,9 +1,5 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
-import type { MessageType } from '@nimiplatform/sdk/realm';
-import type { SendMessageInputDto } from '@nimiplatform/sdk/realm';
-import type { StartChatInputDto } from '@nimiplatform/sdk/realm';
-import type { ChatSyncResultDto } from '@nimiplatform/sdk/realm';
-import type { MessageViewDto } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import {
   getErrorMessage,
   getOfflineCacheManager,
@@ -11,6 +7,12 @@ import {
   isRealmOfflineError,
   type PersistentOutboxEntry,
 } from '@runtime/offline';
+
+type MessageType = RealmModel<'MessageType'>;
+type SendMessageInputDto = RealmModel<'SendMessageInputDto'>;
+type StartChatInputDto = RealmModel<'StartChatInputDto'>;
+type ChatSyncResultDto = RealmModel<'ChatSyncResultDto'>;
+type MessageViewDto = RealmModel<'MessageViewDto'>;
 
 type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (

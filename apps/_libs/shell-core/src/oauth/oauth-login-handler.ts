@@ -10,11 +10,7 @@ import { toErrorMessage } from './oauth-helpers.js';
 export type OAuthLoginInput = {
   provider: SocialOauthProvider;
   bridge: TauriOAuthBridge;
-  realmRequest: (
-    method: string,
-    path: string,
-    body: unknown,
-  ) => Promise<Record<string, unknown>>;
+  oauthLogin: (provider: string, accessToken: string) => Promise<Record<string, unknown>>;
   onSuccess: (result: {
     accessToken: string;
     refreshToken: string;
@@ -28,10 +24,10 @@ export async function handleSocialLogin(input: OAuthLoginInput): Promise<void> {
   try {
     const oauthResult = await startSocialOauth(input.provider, input.bridge);
 
-    const data = await input.realmRequest('POST', '/api/auth/oauth/login', {
-      provider: toOauthProvider(oauthResult.provider),
-      accessToken: oauthResult.accessToken,
-    });
+    const data = await input.oauthLogin(
+      toOauthProvider(oauthResult.provider),
+      oauthResult.accessToken,
+    );
 
     const loginState = String(data.loginState || '');
     if (loginState === 'blocked') {

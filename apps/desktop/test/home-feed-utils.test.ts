@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import test, { describe } from 'node:test';
 
-import type { PostDto } from '@nimiplatform/sdk/realm';
+type PostDto = RealmModel<'PostDto'>;
 
 import {
   prepareHomeFeedItems,

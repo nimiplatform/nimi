@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import test from 'node:test';
-import type { MemoryStatsResponseDto } from '@nimiplatform/sdk/realm';
 import {
   createAgentCoreDataCapabilityHandlers,
   resetAgentCoreDataStateForTesting,
   seedAgentMemoryIndexForTesting,
 } from '../src/shell/renderer/infra/bootstrap/core-capabilities';
+
+type MemoryStatsResponseDto = RealmModel<'MemoryStatsResponseDto'>;
 
 test('agent chat route capability fails close on missing agentId, invalid payload, and remote errors', async () => {
   resetAgentCoreDataStateForTesting();
@@ -17,7 +19,9 @@ test('agent chat route capability fails close on missing agentId, invalid payloa
   );
 
   const invalidHandlers = createAgentCoreDataCapabilityHandlers({
-    requestRealm: async () => ({}) as never,
+    client: {
+      resolveAgentChatRoute: async () => ({}) as never,
+    },
   });
   await assert.rejects(
     () => invalidHandlers.agentChatRouteResolve({ agentId: 'agent-1' }),
@@ -26,8 +30,10 @@ test('agent chat route capability fails close on missing agentId, invalid payloa
 
   const remoteError = new Error('CONTROL_PLANE_DOWN');
   const failingHandlers = createAgentCoreDataCapabilityHandlers({
-    requestRealm: async () => {
-      throw remoteError;
+    client: {
+      resolveAgentChatRoute: async () => {
+        throw remoteError;
+      },
     },
   });
   await assert.rejects(
@@ -51,9 +57,11 @@ test('agent memory core list uses cache-only semantics and rejects missing agent
   });
   let requestCount = 0;
   const cachedHandlers = createAgentCoreDataCapabilityHandlers({
-    requestRealm: async () => {
-      requestCount += 1;
-      throw new Error('UNEXPECTED_REMOTE_CALL');
+    client: {
+      listAgentCoreMemories: async () => {
+        requestCount += 1;
+        throw new Error('UNEXPECTED_REMOTE_CALL');
+      },
     },
   });
   const cached = await cachedHandlers.agentMemoryCoreList({ agentId: 'agent-cache', limit: 1 });
@@ -65,8 +73,10 @@ test('agent memory core list uses cache-only semantics and rejects missing agent
 
   resetAgentCoreDataStateForTesting();
   const failingHandlers = createAgentCoreDataCapabilityHandlers({
-    requestRealm: async () => {
-      throw new Error('REMOTE_MEMORY_DOWN');
+    client: {
+      listAgentCoreMemories: async () => {
+        throw new Error('REMOTE_MEMORY_DOWN');
+      },
     },
   });
   await assert.rejects(
@@ -93,9 +103,11 @@ test('agent memory e2e list requires entity context and only serves cached slice
   });
   let requestCount = 0;
   const cachedHandlers = createAgentCoreDataCapabilityHandlers({
-    requestRealm: async () => {
-      requestCount += 1;
-      throw new Error('UNEXPECTED_REMOTE_CALL');
+    client: {
+      listAgentE2EMemories: async () => {
+        requestCount += 1;
+        throw new Error('UNEXPECTED_REMOTE_CALL');
+      },
     },
   });
   const cached = await cachedHandlers.agentMemoryE2EList({
@@ -112,8 +124,10 @@ test('agent memory e2e list requires entity context and only serves cached slice
   resetAgentCoreDataStateForTesting();
   const failingHandlers = createAgentCoreDataCapabilityHandlers({
     resolveCurrentUserId: async () => 'user-1',
-    requestRealm: async () => {
-      throw new Error('REMOTE_MEMORY_DOWN');
+    client: {
+      listAgentE2EMemories: async () => {
+        throw new Error('REMOTE_MEMORY_DOWN');
+      },
     },
   });
   await assert.rejects(
@@ -133,9 +147,11 @@ test('agent memory recall only returns local data when cache already satisfies t
   });
   let requestCount = 0;
   const localHandlers = createAgentCoreDataCapabilityHandlers({
-    requestRealm: async () => {
-      requestCount += 1;
-      throw new Error('UNEXPECTED_REMOTE_CALL');
+    client: {
+      recallAgentMemoriesForEntity: async () => {
+        requestCount += 1;
+        throw new Error('UNEXPECTED_REMOTE_CALL');
+      },
     },
   });
   const localOnly = await localHandlers.agentMemoryRecallForEntity({
@@ -160,8 +176,10 @@ test('agent memory recall only returns local data when cache already satisfies t
     e2e: [],
   });
   const failingHandlers = createAgentCoreDataCapabilityHandlers({
-    requestRealm: async () => {
-      throw new Error('REMOTE_RECALL_DOWN');
+    client: {
+      recallAgentMemoriesForEntity: async () => {
+        throw new Error('REMOTE_RECALL_DOWN');
+      },
     },
   });
   await assert.rejects(
@@ -188,9 +206,11 @@ test('agent memory stats require cached stats or remote success and do not synth
   });
   let requestCount = 0;
   const cachedHandlers = createAgentCoreDataCapabilityHandlers({
-    requestRealm: async () => {
-      requestCount += 1;
-      throw new Error('UNEXPECTED_REMOTE_CALL');
+    client: {
+      getAgentMemoryStats: async () => {
+        requestCount += 1;
+        throw new Error('UNEXPECTED_REMOTE_CALL');
+      },
     },
   });
   const localOnly = await cachedHandlers.agentMemoryStatsGet({ agentId: 'agent-stats' });
@@ -208,8 +228,10 @@ test('agent memory stats require cached stats or remote success and do not synth
     e2e: [{ id: 'e2e-1' }],
   });
   const failingHandlers = createAgentCoreDataCapabilityHandlers({
-    requestRealm: async () => {
-      throw new Error('REMOTE_STATS_DOWN');
+    client: {
+      getAgentMemoryStats: async () => {
+        throw new Error('REMOTE_STATS_DOWN');
+      },
     },
   });
   await assert.rejects(

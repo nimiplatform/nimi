@@ -1,3 +1,4 @@
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import {
   useEffect,
   useState,
@@ -6,8 +7,10 @@ import {
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from 'react';
-import type { AgentRuleDto, WorldRuleDto } from '@nimiplatform/sdk/realm';
 import type { AgentSummary } from '@renderer/hooks/use-agent-queries.js';
+
+type AgentRuleDto = RealmModel<'AgentRuleDto'>;
+type WorldRuleDto = RealmModel<'WorldRuleDto'>;
 
 const WORLD_RULE_DOMAINS = ['AXIOM', 'PHYSICS', 'SOCIETY', 'ECONOMY', 'CHARACTER', 'NARRATIVE', 'META'] as const;
 const WORLD_RULE_SCOPES = ['WORLD', 'REGION', 'FACTION', 'INDIVIDUAL', 'SCENE'] as const;

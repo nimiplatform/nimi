@@ -1,17 +1,19 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
-import type { CreateReportDto } from '@nimiplatform/sdk/realm';
-import type { CreatePostDto } from '@nimiplatform/sdk/realm';
-import type { FeedResponseDto } from '@nimiplatform/sdk/realm';
-import type { FinalizeMediaAssetDto } from '@nimiplatform/sdk/realm';
-import type { MediaAssetDetailDto } from '@nimiplatform/sdk/realm';
-import type { MediaDirectUploadSessionDto } from '@nimiplatform/sdk/realm';
-import type { PostDto } from '@nimiplatform/sdk/realm';
-import type { ReportResponseDto } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import {
   getOfflineCoordinator,
   isRealmOfflineError,
 } from '@runtime/offline';
 import { queueSocialMutation } from '../offline-social-outbox';
+
+type CreateReportDto = RealmModel<'CreateReportDto'>;
+type CreatePostDto = RealmModel<'CreatePostDto'>;
+type FeedResponseDto = RealmModel<'FeedResponseDto'>;
+type FinalizeMediaAssetDto = RealmModel<'FinalizeMediaAssetDto'>;
+type MediaAssetDetailDto = RealmModel<'MediaAssetDetailDto'>;
+type MediaDirectUploadSessionDto = RealmModel<'MediaDirectUploadSessionDto'>;
+type PostDto = RealmModel<'PostDto'>;
+type ReportResponseDto = RealmModel<'ReportResponseDto'>;
 
 type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (

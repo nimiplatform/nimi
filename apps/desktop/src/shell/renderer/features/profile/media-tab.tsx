@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { PostDto } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { useTranslation } from 'react-i18next';
+
+type PostDto = RealmModel<'PostDto'>;
 
 const MEDIA_PAGE_SIZE = 30;
 const MIN_INITIAL_ITEMS = 9;

@@ -1,4 +1,6 @@
-import type { GiftCatalogItemDto } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
+
+type GiftCatalogItemDto = RealmModel<'GiftCatalogItemDto'>;
 
 export type SendGiftCatalogItem = {
   id: string;

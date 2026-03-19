@@ -1,5 +1,7 @@
-import type { Realm } from '@nimiplatform/sdk/realm';
+import type { Realm, RealmServiceResult } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
+
+type CurrentUserDto = RealmServiceResult<'MeService', 'getMe'>;
 
 export type BootstrapAuthInput = {
   realm: Realm;
@@ -16,11 +18,7 @@ export async function bootstrapAuthSession(input: BootstrapAuthInput): Promise<v
   }
 
   try {
-    const data = await realm.raw.request<Record<string, unknown>>({
-      method: 'GET',
-      path: '/api/auth/me',
-    });
-    const user = data.user as Record<string, unknown> | undefined;
+    const user: CurrentUserDto = await realm.services.MeService.getMe();
 
     if (!user || !user.id) {
       store.clearAuthSession();
@@ -35,7 +33,7 @@ export async function bootstrapAuthSession(input: BootstrapAuthInput): Promise<v
         avatarUrl: user.avatarUrl ? String(user.avatarUrl) : undefined,
       },
       accessToken,
-      String(data.refreshToken || ''),
+      String(store.auth.refreshToken || ''),
     );
   } catch {
     store.clearAuthSession();

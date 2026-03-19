@@ -66,16 +66,6 @@ export function createRelayAuthAdapter(): AuthPlatformAdapter {
 
     oauthBridge: createElectronOAuthBridge(),
 
-    realmRequest: async (method, path, body) => {
-      const response = await bridge.auth.realmRequest({
-        method,
-        path,
-        body,
-        accessToken: currentAccessToken || undefined,
-      });
-      return (response ?? {}) as Record<string, unknown>;
-    },
-
     syncAfterLogin: async () => {},
   };
 }

@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import type { QueryKey } from '@tanstack/react-query';
-import type { ChatSyncResultDto } from '@nimiplatform/sdk/realm';
-import type { ChatViewDto } from '@nimiplatform/sdk/realm';
-import type { ListChatsResultDto } from '@nimiplatform/sdk/realm';
-import type { ListMessagesResultDto } from '@nimiplatform/sdk/realm';
-import type { MessageViewDto } from '@nimiplatform/sdk/realm';
 import { io, type Socket } from 'socket.io-client';
 import { dataSync } from '@runtime/data-sync';
 import { getOfflineCoordinator } from '@runtime/offline';
@@ -19,6 +15,12 @@ import {
   normalizeRealtimeMessagePayload,
 } from './chat-realtime-cache';
 import { resolveRealtimeUrl } from './resolve-realtime-url';
+
+type ChatSyncResultDto = RealmModel<'ChatSyncResultDto'>;
+type ChatViewDto = RealmModel<'ChatViewDto'>;
+type ListChatsResultDto = RealmModel<'ListChatsResultDto'>;
+type ListMessagesResultDto = RealmModel<'ListMessagesResultDto'>;
+type MessageViewDto = RealmModel<'MessageViewDto'>;
 
 const CHAT_SOCKET_PATH = '/socket.io/';
 const SEEN_EVENT_LIMIT = 3000;

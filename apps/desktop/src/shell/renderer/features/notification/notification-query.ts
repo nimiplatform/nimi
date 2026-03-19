@@ -1,6 +1,8 @@
 import type { QueryClient } from '@tanstack/react-query';
-import type { UnreadNotificationCountDto } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { queryClient } from '@renderer/infra/query-client/query-client';
+
+type UnreadNotificationCountDto = RealmModel<'UnreadNotificationCountDto'>;
 
 export const notificationQueryKeys = {
   pageRoot: ['notification-page'] as const,

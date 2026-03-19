@@ -7,11 +7,13 @@ const { bootstrapAuthSession } = await import('./forge-bootstrap-auth.js');
 
 function makeMockRealm(response: Record<string, unknown> | Error) {
   return {
-    raw: {
-      request: vi.fn().mockImplementation(() => {
-        if (response instanceof Error) return Promise.reject(response);
-        return Promise.resolve(response);
-      }),
+    services: {
+      MeService: {
+        getMe: vi.fn().mockImplementation(() => {
+          if (response instanceof Error) return Promise.reject(response);
+          return Promise.resolve(response);
+        }),
+      },
     },
   } as unknown as Parameters<typeof bootstrapAuthSession>[0]['realm'];
 }
@@ -28,26 +30,23 @@ describe('bootstrapAuthSession', () => {
     const realm = makeMockRealm({ user: { id: 'u1' } });
     await bootstrapAuthSession({ realm, accessToken: '' });
     expect(useAppStore.getState().auth.status).toBe('unauthenticated');
-    expect(realm.raw.request).not.toHaveBeenCalled();
+    expect(realm.services.MeService.getMe).not.toHaveBeenCalled();
   });
 
-  it('fetches /api/auth/me and sets session', async () => {
+  it('fetches the current user through MeService.getMe and sets session', async () => {
+    useAppStore.setState({
+      auth: { status: 'bootstrapping', user: null, token: '', refreshToken: 'refresh-abc' },
+    });
     const realm = makeMockRealm({
-      user: {
-        id: 'user-123',
-        displayName: 'Test User',
-        email: 'test@example.com',
-        avatarUrl: 'https://img.example.com/avatar.png',
-      },
-      refreshToken: 'refresh-abc',
+      id: 'user-123',
+      displayName: 'Test User',
+      email: 'test@example.com',
+      avatarUrl: 'https://img.example.com/avatar.png',
     });
 
     await bootstrapAuthSession({ realm, accessToken: 'access-token-xyz' });
 
-    expect(realm.raw.request).toHaveBeenCalledWith({
-      method: 'GET',
-      path: '/api/auth/me',
-    });
+    expect(realm.services.MeService.getMe).toHaveBeenCalledWith();
 
     const state = useAppStore.getState();
     expect(state.auth.status).toBe('authenticated');
@@ -59,13 +58,13 @@ describe('bootstrapAuthSession', () => {
   });
 
   it('clears session when /api/auth/me returns no user', async () => {
-    const realm = makeMockRealm({ user: null });
+    const realm = makeMockRealm(null as unknown as Record<string, unknown>);
     await bootstrapAuthSession({ realm, accessToken: 'token' });
     expect(useAppStore.getState().auth.status).toBe('unauthenticated');
   });
 
   it('clears session when /api/auth/me returns user without id', async () => {
-    const realm = makeMockRealm({ user: { displayName: 'No ID' } });
+    const realm = makeMockRealm({ displayName: 'No ID' });
     await bootstrapAuthSession({ realm, accessToken: 'token' });
     expect(useAppStore.getState().auth.status).toBe('unauthenticated');
   });
@@ -77,9 +76,7 @@ describe('bootstrapAuthSession', () => {
   });
 
   it('handles missing optional fields gracefully', async () => {
-    const realm = makeMockRealm({
-      user: { id: 'u1', name: 'Fallback Name' },
-    });
+    const realm = makeMockRealm({ id: 'u1', name: 'Fallback Name' });
 
     await bootstrapAuthSession({ realm, accessToken: 'token' });
 

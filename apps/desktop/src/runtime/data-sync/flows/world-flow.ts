@@ -1,11 +1,13 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
-import type { WorldDetailDto } from '@nimiplatform/sdk/realm';
-import type { WorldLevelAuditEventDto } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import {
   getOfflineCacheManager,
   getOfflineCoordinator,
   isRealmOfflineError,
 } from '@runtime/offline';
+
+type WorldDetailDto = RealmModel<'WorldDetailDto'>;
+type WorldLevelAuditEventDto = RealmModel<'WorldLevelAuditEventDto'>;
 
 type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (

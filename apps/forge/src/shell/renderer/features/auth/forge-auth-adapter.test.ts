@@ -11,8 +11,10 @@ vi.mock('@runtime/platform-client.js', () => ({
   getPlatformClient: () => ({
     realm: {
       updateAuth: mockUpdateAuth,
-      raw: {
-        request: mockRequest,
+      services: {
+        MeService: {
+          getMe: mockRequest,
+        },
       },
     },
   }),
@@ -42,13 +44,11 @@ describe('forge-auth-adapter', () => {
     expect(authConfig.refreshToken()).toBe('refresh-token');
   });
 
-  it('loads and normalizes the current user profile', async () => {
+  it('loads and normalizes the current user profile via MeService.getMe', async () => {
     mockRequest.mockResolvedValue({
-      user: {
-        id: 'forge-user',
-        name: 'Forge User',
-        email: 'forge@example.com',
-      },
+      id: 'forge-user',
+      name: 'Forge User',
+      email: 'forge@example.com',
     });
 
     await expect(loadForgeCurrentUser()).resolves.toEqual({
@@ -58,9 +58,6 @@ describe('forge-auth-adapter', () => {
       email: 'forge@example.com',
     });
 
-    expect(mockRequest).toHaveBeenCalledWith({
-      method: 'GET',
-      path: '/api/auth/me',
-    });
+    expect(mockRequest).toHaveBeenCalledWith();
   });
 });

@@ -23,7 +23,7 @@ test('core data capability registry exposes agent chat route resolution for mods
 test('core bootstrap registers agent chat route resolution against the desktop route endpoint', () => {
   const source = readDesktopFile('src/shell/renderer/infra/bootstrap/core-capabilities.ts');
   assert.match(source, /agentChatRouteResolve/);
-  assert.match(source, /url:\s*'\/api\/desktop\/chat\/route'/);
+  assert.match(source, /DesktopService\.desktopControllerResolveChatRoute/);
   assert.match(source, /targetType:\s*'AGENT'/);
   assert.doesNotMatch(source, /resolveAgentChatRouteFallback/);
   assert.doesNotMatch(source, /Agent chats are routed to local execution by host fallback policy/);

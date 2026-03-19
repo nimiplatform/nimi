@@ -137,10 +137,7 @@ async function fetchAgentProfile(
   bridge: ReturnType<typeof getBridge>,
 ): Promise<Agent> {
   try {
-    const result = await bridge.realm.request({
-      method: 'GET',
-      path: `/api/agent/accounts/${encodeURIComponent(agentId)}`,
-    });
+    const result = await bridge.agent.get(agentId);
     const profile = result as {
       id: string;
       displayName: string;

@@ -1,4 +1,7 @@
-import type { NotificationDto, NotificationListResultDto } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
+
+type NotificationDto = RealmModel<'NotificationDto'>;
+type NotificationListResultDto = RealmModel<'NotificationListResultDto'>;
 
 export type NotificationFilterTab = 'all' | 'gift' | 'request' | 'mention' | 'like' | 'system';
 export type NotificationItemType = NonNullable<NotificationDto['type']>;

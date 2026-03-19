@@ -1,6 +1,13 @@
-import type { MemoryStatsResponseDto } from '@nimiplatform/sdk/realm';
+import {
+  listAgentCoreMemories,
+  listAgentE2EMemories,
+  recallAgentMemoriesForEntity,
+  type RealmModel,
+} from '@nimiplatform/sdk/realm';
 import { CORE_DATA_API_CAPABILITIES, toRecord } from './runtime-bootstrap-utils';
 import { registerCoreDataCapability, withRuntimeOpenApiContext } from './shared';
+
+type MemoryStatsResponseDto = RealmModel<'MemoryStatsResponseDto'>;
 
 function toObjectOr<T extends Record<string, unknown>>(value: unknown, fallback: T): T {
   return value && typeof value === 'object' ? (value as T) : fallback;
@@ -29,40 +36,79 @@ type AgentChatRouteResult = {
   sessionClass: 'AGENT_LOCAL' | 'HUMAN_DIRECT';
 };
 
-type RealmRequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
-
-type RealmRequestSpec = {
-  method: RealmRequestMethod;
-  url: string;
-  path?: Record<string, string | number | boolean>;
-  query?: Record<string, unknown>;
-  body?: unknown;
-  headers?: Record<string, string>;
-  timeoutMs?: number;
+type AgentCoreDataClient = {
+  getCurrentUser: () => Promise<unknown>;
+  resolveAgentChatRoute: (agentId: string) => Promise<unknown>;
+  listAgentCoreMemories: (agentId: string, query?: AgentMemorySliceQuery) => Promise<AgentMemoryRecord[]>;
+  listAgentE2EMemories: (
+    agentId: string,
+    entityId: string,
+    query?: AgentMemorySliceQuery,
+  ) => Promise<AgentMemoryRecord[]>;
+  recallAgentMemoriesForEntity: (
+    agentId: string,
+    entityId: string,
+    query?: AgentMemoryRecallQuery,
+  ) => Promise<unknown>;
+  getAgentMemoryStats: (agentId: string) => Promise<MemoryStatsResponseDto>;
+  listMyFriendsWithDetails: (limit?: number) => Promise<unknown>;
+  getUser: (userId: string) => Promise<unknown>;
+  getUserByHandle: (handle: string) => Promise<unknown>;
+  getWorld: (worldId: string) => Promise<unknown>;
+  getWorldview: (worldId: string) => Promise<unknown>;
 };
 
-type RealmRequestFn = <T>(spec: RealmRequestSpec) => Promise<T>;
-
-function resolveRequestPath(
-  url: string,
-  pathParams?: Record<string, string | number | boolean>,
-): string {
-  let resolved = String(url || '').trim();
-  for (const [key, value] of Object.entries(pathParams || {})) {
-    resolved = resolved.replaceAll(`{${key}}`, encodeURIComponent(String(value)));
-  }
-  return resolved;
-}
-
-async function requestRealm<T>(spec: RealmRequestSpec): Promise<T> {
-  return withRuntimeOpenApiContext((realm) => realm.raw.request<T>({
-    method: spec.method,
-    path: resolveRequestPath(spec.url, spec.path),
-    query: spec.query,
-    body: spec.body,
-    headers: spec.headers,
-    timeoutMs: spec.timeoutMs,
-  }));
+function createAgentCoreDataClient(): AgentCoreDataClient {
+  return {
+    getCurrentUser: () => withRuntimeOpenApiContext((realm) => realm.services.MeService.getMe()),
+    resolveAgentChatRoute: (agentId) => withRuntimeOpenApiContext((realm) => (
+      realm.services.DesktopService.desktopControllerResolveChatRoute({
+        targetType: 'AGENT',
+        agentId,
+      })
+    )),
+    listAgentCoreMemories: (agentId, query) => withRuntimeOpenApiContext((realm) => (
+      listAgentCoreMemories(realm, {
+        agentId,
+        limit: query?.limit,
+        offset: query?.offset,
+      })
+    )),
+    listAgentE2EMemories: (agentId, entityId, query) => withRuntimeOpenApiContext((realm) => (
+      listAgentE2EMemories(realm, {
+        agentId,
+        entityId,
+        limit: query?.limit,
+        offset: query?.offset,
+      })
+    )),
+    recallAgentMemoriesForEntity: (agentId, entityId, query) => withRuntimeOpenApiContext((realm) => (
+      recallAgentMemoriesForEntity(realm, {
+        agentId,
+        entityId,
+        queryText: query?.queryText,
+        topK: query?.topK,
+      })
+    )),
+    getAgentMemoryStats: (agentId) => withRuntimeOpenApiContext(async (realm) => (
+      realm.services.AgentsService.agentControllerGetMemoryStats(agentId) as Promise<MemoryStatsResponseDto>
+    )),
+    listMyFriendsWithDetails: (limit) => withRuntimeOpenApiContext((realm) => (
+      realm.services.MeService.listMyFriendsWithDetails(undefined, limit)
+    )),
+    getUser: (userId) => withRuntimeOpenApiContext((realm) => (
+      realm.services.UserService.getUser(userId)
+    )),
+    getUserByHandle: (handle) => withRuntimeOpenApiContext((realm) => (
+      realm.services.UserService.getUserByHandle(handle)
+    )),
+    getWorld: (worldId) => withRuntimeOpenApiContext((realm) => (
+      realm.services.WorldsService.worldControllerGetWorld(worldId)
+    )),
+    getWorldview: (worldId) => withRuntimeOpenApiContext((realm) => (
+      realm.services.WorldsService.worldControllerGetWorldview(worldId)
+    )),
+  };
 }
 
 function toPositiveInt(value: unknown): number | undefined {
@@ -128,30 +174,6 @@ function inferRecallKind(item: AgentMemoryRecord): 'core' | 'e2e' {
     return 'e2e';
   }
   return 'core';
-}
-
-function toSliceQueryPayload(query: AgentMemorySliceQuery | undefined): Record<string, number> | undefined {
-  const next: Record<string, number> = {};
-  if (typeof query?.limit === 'number') {
-    next.limit = query.limit;
-  }
-  if (typeof query?.offset === 'number') {
-    next.offset = query.offset;
-  }
-  return Object.keys(next).length > 0 ? next : undefined;
-}
-
-function toRecallQueryPayload(query: AgentMemoryRecallQuery | undefined): Record<string, string | number> | undefined {
-  const next: Record<string, string | number> = {};
-  if (typeof query?.topK === 'number') {
-    next.topK = query.topK;
-    next.limit = query.topK;
-  }
-  if (query?.queryText) {
-    next.queryText = query.queryText;
-    next.query = query.queryText;
-  }
-  return Object.keys(next).length > 0 ? next : undefined;
 }
 
 function isAgentChatRouteResult(value: unknown): value is AgentChatRouteResult {
@@ -234,17 +256,14 @@ function upsertMemoryIndex(input: {
   return next;
 }
 
-async function resolveCurrentUserIdWith(requestRealmFn: RealmRequestFn): Promise<string | null> {
+async function resolveCurrentUserIdWith(client: AgentCoreDataClient): Promise<string | null> {
   const cached = currentUserIdCache;
   if (cached && cached.expiresAt > Date.now()) {
     return cached.userId;
   }
 
   try {
-    const payload = await requestRealmFn<unknown>({
-      method: 'GET',
-      url: '/api/human/me',
-    });
+    const payload = await client.getCurrentUser();
     const userId = String(toRecord(payload).id || '').trim();
     if (!userId) return null;
     currentUserIdCache = {
@@ -291,41 +310,24 @@ function toMemoryRecallQuery(query: Record<string, unknown>): AgentMemoryRecallQ
 }
 
 async function loadRemoteCoreMemories(
-  requestRealmFn: RealmRequestFn,
+  client: AgentCoreDataClient,
   agentId: string,
   query?: AgentMemorySliceQuery,
 ): Promise<AgentMemoryRecord[]> {
-  const payload = await requestRealmFn<unknown>({
-    method: 'GET',
-    url: '/api/agent/accounts/{id}/memory/core',
-    path: {
-      id: agentId,
-    },
-    query: toSliceQueryPayload(query),
-  });
-  return toMemoryRecordArray(payload);
+  return client.listAgentCoreMemories(agentId, query);
 }
 
 async function loadRemoteE2EMemories(input: {
-  requestRealm: RealmRequestFn;
+  client: AgentCoreDataClient;
   agentId: string;
   entityId: string;
   query?: AgentMemorySliceQuery;
 }): Promise<AgentMemoryRecord[]> {
-  const payload = await input.requestRealm<unknown>({
-    method: 'GET',
-    url: '/api/agent/accounts/{id}/memory/e2e/{entityId}',
-    path: {
-      id: input.agentId,
-      entityId: input.entityId,
-    },
-    query: toSliceQueryPayload(input.query),
-  });
-  return toMemoryRecordArray(payload);
+  return input.client.listAgentE2EMemories(input.agentId, input.entityId, input.query);
 }
 
 async function loadRemoteRecall(input: {
-  requestRealm: RealmRequestFn;
+  client: AgentCoreDataClient;
   agentId: string;
   entityId: string;
   query?: AgentMemoryRecallQuery;
@@ -334,15 +336,11 @@ async function loadRemoteRecall(input: {
   core: AgentMemoryRecord[];
   e2e: AgentMemoryRecord[];
 }> {
-  const payload = await input.requestRealm<unknown>({
-    method: 'GET',
-    url: '/api/agent/accounts/{id}/memory/recall/{entityId}',
-    path: {
-      id: input.agentId,
-      entityId: input.entityId,
-    },
-    query: toRecallQueryPayload(input.query),
-  });
+  const payload = await input.client.recallAgentMemoriesForEntity(
+    input.agentId,
+    input.entityId,
+    input.query,
+  );
   const root = toRecord(payload);
   const explicitCore = toMemoryRecordArray(root.core || root.coreMemory || root.coreMemories);
   const explicitE2E = toMemoryRecordArray(root.e2e || root.e2eMemory || root.e2eMemories);
@@ -373,20 +371,14 @@ async function loadRemoteRecall(input: {
 }
 
 async function loadRemoteMemoryStats(
-  requestRealmFn: RealmRequestFn,
+  client: AgentCoreDataClient,
   agentId: string,
 ): Promise<MemoryStatsResponseDto> {
-  return requestRealmFn<MemoryStatsResponseDto>({
-    method: 'GET',
-    url: '/api/agent/accounts/{id}/memory/stats',
-    path: {
-      id: agentId,
-    },
-  });
+  return client.getAgentMemoryStats(agentId);
 }
 
 type AgentCoreDataCapabilityDeps = {
-  requestRealm?: RealmRequestFn;
+  client?: Partial<AgentCoreDataClient>;
   resolveCurrentUserId?: () => Promise<string | null>;
 };
 
@@ -441,20 +433,16 @@ export function seedAgentMemoryIndexForTesting(input: {
 export function createAgentCoreDataCapabilityHandlers(
   deps: AgentCoreDataCapabilityDeps = {},
 ): AgentCoreDataCapabilityHandlers {
-  const requestRealmFn = deps.requestRealm ?? requestRealm;
-  const resolveCurrentUserIdFn = deps.resolveCurrentUserId ?? (() => resolveCurrentUserIdWith(requestRealmFn));
+  const client: AgentCoreDataClient = {
+    ...createAgentCoreDataClient(),
+    ...(deps.client || {}),
+  };
+  const resolveCurrentUserIdFn = deps.resolveCurrentUserId ?? (() => resolveCurrentUserIdWith(client));
 
   return {
     agentChatRouteResolve: async (query) => {
       const agentId = requireAgentId(toRecord(query));
-      const payload = await requestRealmFn<unknown>({
-        method: 'POST',
-        url: '/api/desktop/chat/route',
-        body: {
-          targetType: 'AGENT',
-          agentId,
-        },
-      });
+      const payload = await client.resolveAgentChatRoute(agentId);
       if (!isAgentChatRouteResult(payload)) {
         throw new Error('AGENT_CHAT_ROUTE_INVALID');
       }
@@ -474,7 +462,7 @@ export function createAgentCoreDataCapabilityHandlers(
         };
       }
 
-      const remoteItems = await loadRemoteCoreMemories(requestRealmFn, agentId, memoryQuery);
+      const remoteItems = await loadRemoteCoreMemories(client, agentId, memoryQuery);
       upsertMemoryIndex({ agentId, core: remoteItems });
       return {
         items: remoteItems,
@@ -499,7 +487,7 @@ export function createAgentCoreDataCapabilityHandlers(
       }
 
       const remoteItems = await loadRemoteE2EMemories({
-        requestRealm: requestRealmFn,
+        client,
         agentId,
         entityId,
         query: memoryQuery,
@@ -540,14 +528,14 @@ export function createAgentCoreDataCapabilityHandlers(
 
       const [remoteRecall, remoteCore, remoteE2E] = await Promise.all([
         loadRemoteRecall({
-          requestRealm: requestRealmFn,
+          client,
           agentId,
           entityId,
           query: recallQuery,
         }),
-        loadRemoteCoreMemories(requestRealmFn, agentId, sliceQuery),
+        loadRemoteCoreMemories(client, agentId, sliceQuery),
         loadRemoteE2EMemories({
-          requestRealm: requestRealmFn,
+          client,
           agentId,
           entityId,
           query: sliceQuery,
@@ -599,7 +587,7 @@ export function createAgentCoreDataCapabilityHandlers(
         };
       }
 
-      const stats = await loadRemoteMemoryStats(requestRealmFn, agentId);
+      const stats = await loadRemoteMemoryStats(client, agentId);
       upsertMemoryIndex({
         agentId,
         stats,
@@ -613,14 +601,11 @@ export function createAgentCoreDataCapabilityHandlers(
 }
 
 export async function registerCoreDataCapabilities(): Promise<void> {
-  const agentHandlers = createAgentCoreDataCapabilityHandlers();
+  const client = createAgentCoreDataClient();
+  const agentHandlers = createAgentCoreDataCapabilityHandlers({ client });
 
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.friendsWithDetailsList, async () => {
-    const payload = await requestRealm<unknown>({
-      method: 'GET',
-      url: '/api/human/me/friends/list',
-      query: { limit: 100 },
-    });
+    const payload = await client.listMyFriendsWithDetails(100);
     return toObjectOr(payload, { items: [] });
   });
 
@@ -628,11 +613,7 @@ export async function registerCoreDataCapabilities(): Promise<void> {
     const userId = String(toRecord(query).userId || '').trim();
     if (!userId) return null;
     try {
-      const payload = await requestRealm<unknown>({
-        method: 'GET',
-        url: '/api/human/accounts/{id}',
-        path: { id: userId },
-      });
+      const payload = await client.getUser(userId);
       return toNullableObject(payload);
     } catch {
       return null;
@@ -643,11 +624,7 @@ export async function registerCoreDataCapabilities(): Promise<void> {
     const handle = String(toRecord(query).handle || '').trim();
     if (!handle) return null;
     try {
-      const payload = await requestRealm<unknown>({
-        method: 'GET',
-        url: '/api/human/handle/{handle}',
-        path: { handle },
-      });
+      const payload = await client.getUserByHandle(handle);
       return toNullableObject(payload);
     } catch {
       return null;
@@ -658,11 +635,7 @@ export async function registerCoreDataCapabilities(): Promise<void> {
     const worldId = String(toRecord(query).worldId || '').trim();
     if (!worldId) return null;
     try {
-      const payload = await requestRealm<unknown>({
-        method: 'GET',
-        url: '/api/world/by-id/{id}',
-        path: { id: worldId },
-      });
+      const payload = await client.getWorld(worldId);
       return toNullableObject(payload);
     } catch {
       return null;
@@ -673,11 +646,7 @@ export async function registerCoreDataCapabilities(): Promise<void> {
     const worldId = String(toRecord(query).worldId || '').trim();
     if (!worldId) return null;
     try {
-      const payload = await requestRealm<unknown>({
-        method: 'GET',
-        url: '/api/world/by-id/{id}/worldview',
-        path: { id: worldId },
-      });
+      const payload = await client.getWorldview(worldId);
       return toNullableObject(payload);
     } catch {
       return null;

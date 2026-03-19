@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import type { UpdateUserSettingsDto } from '@nimiplatform/sdk/realm';
-import type { UserSettingsDto } from '@nimiplatform/sdk/realm';
-import type { Visibility } from '@nimiplatform/sdk/realm';
 import { PageShell, SectionTitle } from './settings-layout-components';
+
+type UpdateUserSettingsDto = RealmModel<'UpdateUserSettingsDto'>;
+type UserSettingsDto = RealmModel<'UserSettingsDto'>;
+type Visibility = RealmModel<'Visibility'>;
 
 type VisibilityValue = 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
 type VisibilityMode = 'OPEN' | 'SMARTER_FILTER' | 'STRICT';

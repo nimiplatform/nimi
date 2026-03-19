@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Realm } from '@nimiplatform/sdk/realm';
 
 interface PostMediaDto {
   type: 'IMAGE' | 'VIDEO' | 'AUDIO';
@@ -33,22 +34,29 @@ export function PostPermalinkPage({ postId }: { postId: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/world/posts/public/${encodeURIComponent(postId)}`)
-      .then(async (res) => {
-        if (cancelled) return;
-        if (res.status === 404) {
-          setState({ status: 'not_found' });
-          return;
+    const baseUrl = String(import.meta.env.VITE_NIMI_REALM_BASE_URL || import.meta.env.NIMI_REALM_URL || '').trim();
+    if (!baseUrl) {
+      setState({ status: 'error' });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const realm = new Realm({
+      baseUrl,
+      auth: null,
+    });
+
+    realm.services.PostService.getPublicPost(postId)
+      .then((post) => {
+        if (!cancelled) {
+          setState(post ? { status: 'ok', post: post as unknown as PostDto } : { status: 'not_found' });
         }
-        if (!res.ok) {
-          setState({ status: 'error' });
-          return;
-        }
-        const post = (await res.json()) as PostDto;
-        setState({ status: 'ok', post });
       })
       .catch(() => {
-        if (!cancelled) setState({ status: 'error' });
+        if (!cancelled) {
+          setState({ status: 'error' });
+        }
       });
     return () => {
       cancelled = true;

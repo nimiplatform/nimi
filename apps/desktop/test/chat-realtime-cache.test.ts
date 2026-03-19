@@ -1,7 +1,10 @@
 import { describe, test } from 'node:test';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import assert from 'node:assert/strict';
 
-import type { ChatViewDto, MessageViewDto } from '@nimiplatform/sdk/realm';
+type ChatViewDto = RealmModel<'ChatViewDto'>;
+type MessageViewDto = RealmModel<'MessageViewDto'>;
+
 import {
   applyRealtimeMessageUpdateToChatsResult,
   applyRealtimeMessageUpdateToMessagesResult,

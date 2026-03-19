@@ -1,5 +1,9 @@
 import type { TauriOAuthBridge } from '@nimiplatform/shell-core/oauth';
-import type { AuthTokensDto, OAuthLoginResultDto, CheckEmailResponseDto } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
+
+type AuthTokensDto = RealmModel<'AuthTokensDto'>;
+type OAuthLoginResultDto = RealmModel<'OAuthLoginResultDto'>;
+type CheckEmailResponseDto = RealmModel<'CheckEmailResponseDto'>;
 
 // ---------------------------------------------------------------------------
 // AuthPlatformAdapter — injection point for all platform-specific operations
@@ -23,9 +27,6 @@ export type AuthPlatformAdapter = {
 
   // OAuth bridge (reuses shell-core TauriOAuthBridge)
   oauthBridge: TauriOAuthBridge;
-
-  // Realm request (used by shell-core handleSocialLogin for Relay)
-  realmRequest: (method: string, path: string, body?: unknown) => Promise<Record<string, unknown>>;
 
   // Data sync side effects (Desktop: loadChats/loadContacts; Relay: no-op)
   syncAfterLogin?: () => Promise<void>;

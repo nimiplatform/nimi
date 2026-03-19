@@ -1,12 +1,15 @@
-// Relay data queries — replaces mod data.query capabilities with direct Realm API calls.
-// Uses realm.raw.request() for HTTP calls and normalizes responses to relay types.
+// Relay data queries — typed Realm service access for relay chat context.
 
-import type { Realm } from '@nimiplatform/sdk/realm';
+import type { Realm, RealmServiceResult } from '@nimiplatform/sdk/realm';
 import type {
   LocalChatTarget,
   LocalChatPlatformWarmStartMemory,
   InteractionRecallDoc,
 } from '../chat-pipeline/types.js';
+
+type GetAgentResult = RealmServiceResult<'AgentsService', 'getAgent'>;
+type ListFriendsResult = RealmServiceResult<'MeService', 'listMyFriendsWithDetails'>;
+type GetWorldResult = RealmServiceResult<'WorldsService', 'worldControllerGetWorld'>;
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
@@ -117,18 +120,13 @@ function normalizeAgentToTarget(payload: Record<string, unknown>): LocalChatTarg
 }
 
 /**
- * Fetches an agent profile via Realm API `GET /api/agent/accounts/{id}`
- * and normalizes to `LocalChatTarget` shape.
+ * Fetches an agent profile via Realm services and normalizes to `LocalChatTarget` shape.
  */
 export async function fetchTargetProfile(
   realm: Realm,
   targetId: string,
 ): Promise<LocalChatTarget> {
-  const payload = await realm.raw.request<Record<string, unknown>>({
-    method: 'GET',
-    path: '/api/agent/accounts/{id}',
-    pathParams: { id: targetId },
-  });
+  const payload: GetAgentResult = await realm.services.AgentsService.getAgent(targetId);
   return normalizeAgentToTarget(asRecord(payload));
 }
 
@@ -172,16 +170,12 @@ function normalizeFriendToTarget(friend: Record<string, unknown>): LocalChatTarg
 }
 
 /**
- * Fetches the user's agent friends via Realm API `GET /api/human/me/friends/list`.
+ * Fetches the user's agent friends via Realm services.
  */
 export async function fetchTargetList(
   realm: Realm,
 ): Promise<LocalChatTarget[]> {
-  const payload = await realm.raw.request<Record<string, unknown>>({
-    method: 'GET',
-    path: '/api/human/me/friends/list',
-    query: { limit: 200 },
-  });
+  const payload: ListFriendsResult = await realm.services.MeService.listMyFriendsWithDetails(undefined, 200);
   const record = asRecord(payload);
   const items = Array.isArray(record.items) ? record.items : [];
   return items
@@ -192,8 +186,7 @@ export async function fetchTargetList(
 // ── World Context ───────────────────────────────────────────────────
 
 /**
- * Fetches world context via Realm API `GET /api/world/by-id/{id}`.
- * Returns summarized world lines for the prompt context.
+ * Fetches world context via Realm services and returns summarized world lines.
  */
 export async function fetchWorldContext(
   realm: Realm,
@@ -202,11 +195,7 @@ export async function fetchWorldContext(
   if (!worldId) return { lines: [] };
 
   try {
-    const payload = await realm.raw.request<Record<string, unknown>>({
-      method: 'GET',
-      path: '/api/world/by-id/{id}',
-      pathParams: { id: worldId },
-    });
+    const payload: GetWorldResult = await realm.services.WorldsService.worldControllerGetWorld(worldId);
     const world = asRecord(payload);
     const worldName = asString(world.name || world.title);
     const worldSummary = asString(world.summary || world.description);
@@ -232,11 +221,7 @@ export async function fetchWorldContext(
 // ── Platform Warm Start Memory ──────────────────────────────────────
 
 /**
- * Fetches agent memory for warm start via Realm API
- * `GET /api/agent/accounts/{id}/memory/core` and
- * `GET /api/agent/accounts/{id}/memory/recall/{entityId}`.
- *
- * Returns combined core + e2e memory or null if nothing available.
+ * Fetches agent memory for warm start via typed Realm services.
  */
 export async function fetchPlatformWarmStartMemory(
   realm: Realm,
@@ -246,17 +231,9 @@ export async function fetchPlatformWarmStartMemory(
   const topK = 6;
 
   const [corePayload, recallPayload] = await Promise.all([
-    realm.raw.request<unknown>({
-      method: 'GET',
-      path: '/api/agent/accounts/{id}/memory/core',
-      pathParams: { id: targetId },
-    }).catch(() => null),
+    realm.services.AgentsService.agentControllerListCoreMemories(targetId).catch(() => null),
     entityId
-      ? realm.raw.request<unknown>({
-          method: 'GET',
-          path: '/api/agent/accounts/{id}/memory/recall/{entityId}',
-          pathParams: { id: targetId, entityId },
-        }).catch(() => null)
+      ? realm.services.AgentsService.agentControllerRecallForEntity(targetId, entityId).catch(() => null)
       : Promise.resolve(null),
   ]);
 
@@ -297,8 +274,7 @@ export async function fetchPlatformWarmStartMemory(
 // ── Memory Recall ───────────────────────────────────────────────────
 
 /**
- * Fetches memory recall for an entity via Realm API
- * `GET /api/agent/accounts/{id}/memory/recall/{entityId}`.
+ * Fetches memory recall for an entity via typed Realm services.
  */
 export async function fetchMemoryRecall(
   realm: Realm,
@@ -309,11 +285,7 @@ export async function fetchMemoryRecall(
   if (!entityId) return [];
 
   try {
-    const payload = await realm.raw.request<unknown>({
-      method: 'GET',
-      path: '/api/agent/accounts/{id}/memory/recall/{entityId}',
-      pathParams: { id: targetId, entityId },
-    });
+    const payload = await realm.services.AgentsService.agentControllerRecallForEntity(targetId, entityId);
 
     const response = asRecord(payload);
     const rawDocs = toMemoryEntries(

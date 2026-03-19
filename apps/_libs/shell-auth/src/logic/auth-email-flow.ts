@@ -1,4 +1,7 @@
-import type { CheckEmailResponseDto, OAuthLoginResultDto } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
+
+type CheckEmailResponseDto = RealmModel<'CheckEmailResponseDto'>;
+type OAuthLoginResultDto = RealmModel<'OAuthLoginResultDto'>;
 
 export type EmailEntryRoute =
   | 'register_with_otp'

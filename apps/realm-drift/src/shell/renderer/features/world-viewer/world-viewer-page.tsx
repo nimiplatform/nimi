@@ -14,6 +14,9 @@ import { AgentChatPanel } from '../agent-chat/agent-chat-panel.js';
 import { HumanChatPanel } from '../human-chat/human-chat-panel.js';
 import { realtimeConnection } from '../human-chat/realtime-connection.js';
 import { getPlatformClient } from '@runtime/platform-client.js';
+import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
+
+type ListMyFriendsWithDetailsResult = RealmServiceResult<'MeService', 'listMyFriendsWithDetails'>;
 
 type RightPanelTab = 'agents' | 'people';
 
@@ -99,10 +102,8 @@ export function WorldViewerPage() {
   async function loadFriendList() {
     try {
       const { realm } = getPlatformClient();
-      const data = await realm.raw.request<Record<string, unknown>>({
-        method: 'GET',
-        path: '/api/human/me/friends/list',
-      });
+      const data: ListMyFriendsWithDetailsResult =
+        await realm.services.MeService.listMyFriendsWithDetails(undefined, 100);
       const items = ((data.friends ?? data.items ?? data) as Record<string, unknown>[]);
       if (!Array.isArray(items)) return;
 

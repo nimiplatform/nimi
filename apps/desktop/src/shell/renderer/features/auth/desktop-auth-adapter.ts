@@ -94,20 +94,6 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
     },
 
     oauthBridge: desktopOAuthBridge,
-
-    realmRequest: async (method, path, body) => {
-      // Desktop realm requests go through SDK raw request
-      const response = await dataSync.callApi(
-        (realm) => realm.raw.request({
-          method: method as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
-          path,
-          body,
-        }),
-        'Realm request failed',
-      );
-      return (response ?? {}) as Record<string, unknown>;
-    },
-
     syncAfterLogin: async () => {
       await Promise.allSettled([
         dataSync.loadChats(),

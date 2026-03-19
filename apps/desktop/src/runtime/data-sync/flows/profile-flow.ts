@@ -1,4 +1,4 @@
-import type { UserProfileDto } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import {
   getOfflineCacheManager,
   getOfflineCoordinator,
@@ -15,6 +15,8 @@ import {
   type SocialContactSnapshot,
 } from './profile-flow-social';
 import { queueSocialMutation } from '../offline-social-outbox';
+
+type UserProfileDto = RealmModel<'UserProfileDto'>;
 
 export type { SocialContactSnapshot } from './profile-flow-social';
 

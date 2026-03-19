@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
-import type { PostDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { PostFeedWithMediaPreview } from './post-feed-with-media-preview.js';
+
+type PostDto = RealmModel<'PostDto'>;
 
 const PAGE_SIZE = 20;
 

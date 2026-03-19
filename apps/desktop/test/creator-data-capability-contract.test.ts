@@ -22,6 +22,6 @@ test('creator bootstrap registers creator agent get/update against creator detai
   const source = readDesktopFile('src/shell/renderer/infra/bootstrap/creator-capabilities.ts');
   assert.match(source, /creatorAgentsGet/);
   assert.match(source, /creatorAgentsUpdate/);
-  assert.match(source, /url:\s*'\/api\/creator\/agents\/\{agentId\}'/);
-  assert.match(source, /method:\s*'PATCH'/);
+  assert.match(source, /CreatorService\.creatorControllerGetAgent/);
+  assert.match(source, /CreatorService\.creatorControllerUpdateAgent/);
 });

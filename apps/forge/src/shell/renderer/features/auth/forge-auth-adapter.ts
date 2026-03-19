@@ -1,4 +1,4 @@
-import type { Realm } from '@nimiplatform/sdk/realm';
+import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
 import type { AuthPlatformAdapter } from '@nimiplatform/shell-auth';
 import { forgeTauriOAuthBridge } from '@renderer/bridge/oauth.js';
 import { getPlatformClient } from '@runtime/platform-client.js';
@@ -6,14 +6,14 @@ import { getPlatformClient } from '@runtime/platform-client.js';
 const FORGE_EMBEDDED_AUTH_UNSUPPORTED =
   'Embedded auth flow is not supported in Forge desktop-browser mode.';
 
+type CurrentUserDto = RealmServiceResult<'MeService', 'getMe'>;
+
 type ForgeUser = Record<string, unknown> & {
   id: string;
   displayName: string;
   email?: string;
   avatarUrl?: string;
 };
-
-type ForgeRealmRequestInput = Parameters<Realm['raw']['request']>[0];
 
 function unsupported<T>(): Promise<T> {
   return Promise.reject(new Error(FORGE_EMBEDDED_AUTH_UNSUPPORTED));
@@ -44,12 +44,8 @@ function normalizeForgeUser(
 }
 
 export async function loadForgeCurrentUser(): Promise<ForgeUser | null> {
-  const data = await getPlatformClient().realm.raw.request<Record<string, unknown>>({
-    method: 'GET',
-    path: '/api/auth/me',
-  });
-
-  return normalizeForgeUser((data.user as Record<string, unknown> | null | undefined) ?? null);
+  const data: CurrentUserDto = await getPlatformClient().realm.services.MeService.getMe();
+  return normalizeForgeUser((data as Record<string, unknown> | null | undefined) ?? null);
 }
 
 export function createForgeDesktopBrowserAuthAdapter(): AuthPlatformAdapter {
@@ -71,12 +67,6 @@ export function createForgeDesktopBrowserAuthAdapter(): AuthPlatformAdapter {
       });
     },
     oauthBridge: forgeTauriOAuthBridge,
-    realmRequest: async (method: string, path: string, body?: unknown) => {
-      const request: ForgeRealmRequestInput = body === undefined
-        ? { method: method as ForgeRealmRequestInput['method'], path }
-        : { method: method as ForgeRealmRequestInput['method'], path, body };
-      return getPlatformClient().realm.raw.request<Record<string, unknown>>(request);
-    },
     syncAfterLogin: async () => {},
   };
 }

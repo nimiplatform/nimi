@@ -37,10 +37,22 @@ vi.mock('@renderer/app-shell/app-store.js', () => ({
   ),
 }));
 
-const mockRequest = vi.fn();
+const mockStartChat = vi.fn();
+const mockListMessages = vi.fn();
+const mockMarkChatRead = vi.fn();
+const mockSendMessage = vi.fn();
 vi.mock('@runtime/platform-client.js', () => ({
   getPlatformClient: () => ({
-    realm: { raw: { request: (...args: unknown[]) => mockRequest(...args) } },
+    realm: {
+      services: {
+        HumanChatService: {
+          startChat: (...args: unknown[]) => mockStartChat(...args),
+          listMessages: (...args: unknown[]) => mockListMessages(...args),
+          markChatRead: (...args: unknown[]) => mockMarkChatRead(...args),
+          sendMessage: (...args: unknown[]) => mockSendMessage(...args),
+        },
+      },
+    },
   }),
 }));
 
@@ -73,7 +85,10 @@ describe('HumanChatPanel', () => {
     mockStore.appendActiveHumanMessage.mockClear();
     mockStore.updateHumanMessage.mockClear();
     mockStore.removeHumanMessage.mockClear();
-    mockRequest.mockReset();
+    mockStartChat.mockReset();
+    mockListMessages.mockReset();
+    mockMarkChatRead.mockReset();
+    mockSendMessage.mockReset();
   });
 
   it('shows friend list when no active chat', () => {
@@ -139,7 +154,7 @@ describe('HumanChatPanel', () => {
       loading: false,
     };
 
-    mockRequest.mockResolvedValue({});
+    mockSendMessage.mockResolvedValue({});
 
     render(<HumanChatPanel />);
 
@@ -156,10 +171,11 @@ describe('HumanChatPanel', () => {
       });
       expect(mockStore.appendActiveHumanMessage).not.toHaveBeenCalled();
 
-      expect(mockRequest).toHaveBeenCalledWith({
-        method: 'POST',
-        path: '/api/human/chats/chat-1/messages',
-        body: { content: 'Hello!', type: 'TEXT', clientMessageId: 'test-msg-id' },
+      expect(mockSendMessage).toHaveBeenCalledWith('chat-1', {
+        type: 'TEXT',
+        text: 'Hello!',
+        clientMessageId: 'test-msg-id',
+        payload: { content: 'Hello!' },
       });
     });
   });
@@ -184,7 +200,7 @@ describe('HumanChatPanel', () => {
   });
 
   it('displays error when chat open fails', async () => {
-    mockRequest.mockRejectedValue(new Error('Connection refused'));
+    mockStartChat.mockRejectedValue(new Error('Connection refused'));
 
     render(<HumanChatPanel />);
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import type { PostDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
@@ -15,6 +15,8 @@ import { prefetchWorldDetailAndEvents } from '../world/world-detail-queries.js';
 import { prefetchWorldDetailPanel } from '../world/world-detail-route-state';
 import { QuickAddFriendModal } from './quick-add-friend-modal';
 import { resolveAgentFriendLimit } from '../contacts/agent-friend-limit';
+
+type PostDto = RealmModel<'PostDto'>;
 
 const PAGE_SIZE = 20;
 const DEFAULT_CATEGORIES = ['Research', 'Coding', 'Writing', 'Analysis', 'Creative', 'Education', 'Health & Finance'];

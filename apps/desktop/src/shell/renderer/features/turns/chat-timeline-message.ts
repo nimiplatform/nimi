@@ -1,6 +1,9 @@
-import type { MessageType, MessageViewDto } from '@nimiplatform/sdk/realm';
 import type { PersistentOutboxEntry } from '@runtime/offline';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import type { ChatUploadPlaceholder } from './chat-upload-placeholder-store';
+
+type MessageType = RealmModel<'MessageType'>;
+type MessageViewDto = RealmModel<'MessageViewDto'>;
 
 export type ChatTimelineMessage = MessageViewDto & {
   deliveryState: 'sent' | 'pending' | 'failed';
