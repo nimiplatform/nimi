@@ -9,9 +9,10 @@ import type {
   WorldStudioSnapshotPatch,
   WorldStudioWorkspaceSnapshot,
 } from '@world-engine/contracts.js';
+import type { JsonObject } from '@renderer/bridge/types.js';
 import { useWorldMutations } from '@renderer/hooks/use-world-mutations.js';
 import { listAgentRules, listCreatorAgents } from '@renderer/data/world-data-client.js';
-import { getPlatformClient } from '@runtime/platform-client.js';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import {
   asRecord,
   createForgeAiClient,
@@ -34,10 +35,10 @@ function normalizeAgentHandle(characterName: string, worldId: string, index: num
 }
 
 function toAgentCreatePayload(
-  entry: { characterName: string; draft: Record<string, unknown> },
+  entry: { characterName: string; draft: JsonObject },
   worldId: string,
   index: number,
-): Record<string, unknown> {
+): JsonObject {
   const concept = String(
     entry.draft.concept
       || entry.draft.backstory
@@ -53,7 +54,7 @@ function toAgentCreatePayload(
   };
 }
 
-function toCreatorAgentList(payload: unknown): Array<Record<string, unknown>> {
+function toCreatorAgentList(payload: unknown): JsonObject[] {
   const record = asRecord(payload);
   const items = Array.isArray(record.items)
     ? record.items
@@ -351,7 +352,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
         const result = await runPhase2DraftGeneration(aiClient, {
           selectedStartTimeId: input.snapshot.selectedStartTimeId,
           selectedCharacters: input.snapshot.selectedCharacters,
-          knowledgeGraph: input.snapshot.knowledgeGraph as Record<string, unknown>,
+          knowledgeGraph: input.snapshot.knowledgeGraph as JsonObject,
           finalDraftAccumulator: input.snapshot.finalDraftAccumulator,
         });
         setPhase2(result);
@@ -369,7 +370,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
           worldPatch: result.world,
           worldviewPatch: result.worldview,
           ruleTruthDraft: deriveRuleTruthDraftFromWorkspace({
-            worldviewPatch: result.worldview as Record<string, unknown>,
+            worldviewPatch: result.worldview as JsonObject,
             sourceRef: input.snapshot.sourceRef,
             selectedCharacters: input.snapshot.selectedCharacters,
             agentSync: {
@@ -381,7 +382,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
             },
           }),
           lorebooksDraft: Array.isArray(result.worldLorebooks)
-            ? result.worldLorebooks.filter((item) => item && typeof item === 'object') as WorldLorebookDraftRow[]
+            ? result.worldLorebooks.filter((item): item is WorldLorebookDraftRow => Boolean(item && typeof item === 'object'))
             : [],
           futureEventsText: JSON.stringify(result.futureHistoricalEvents || [], null, 2),
           finalDraftAccumulator: result.finalDraftAccumulator || input.snapshot.finalDraftAccumulator,
@@ -422,7 +423,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
       },
     });
     const { runtime } = getPlatformClient();
-    const world = input.snapshot.worldPatch as Record<string, unknown>;
+    const world = input.snapshot.worldPatch as JsonObject;
     const prompt = [
       'Generate a cinematic world cover image.',
       `World name: ${String(world.name || 'Untitled World')}`,
@@ -523,7 +524,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
         selectedCharacters: input.snapshot.selectedCharacters,
       },
     });
-    const record = result && typeof result === 'object' ? result as Record<string, unknown> : {};
+    const record = asRecord(result);
     const draftId = String(record.id || input.activeDraftId || '').trim();
     if (draftId) {
       input.setActiveDraftId(draftId);
@@ -540,7 +541,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
       draftId,
       reason: 'Forge manual publish',
     });
-    const record = published && typeof published === 'object' ? published as Record<string, unknown> : {};
+    const record = asRecord(published);
     const worldId = String(record.worldId || '').trim();
     if (worldId) {
       const agentDraftEntries = getSelectedAgentDraftEntries(input.snapshot);
@@ -568,8 +569,8 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
               items: agentsToCreate,
               continueOnError: true,
             });
-            const created = Array.isArray((createdAgents as Record<string, unknown>).created)
-              ? ((createdAgents as Record<string, unknown>).created as Array<Record<string, unknown>>)
+            const created = Array.isArray(asRecord(createdAgents).created)
+              ? (asRecord(createdAgents).created as JsonObject[])
               : [];
 
             created.forEach((item) => {
@@ -589,7 +590,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
 
             const existingRules = await listAgentRules(worldId, agentId, { status: 'ACTIVE' });
             const activeRules = Array.isArray(existingRules)
-              ? existingRules as Array<Record<string, unknown>>
+              ? existingRules as JsonObject[]
               : [];
             const existingIdentityRule = activeRules.find(
               (item) => String(item.ruleKey || '').trim() === 'identity:self:core',
@@ -602,14 +603,14 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
                 worldId,
                 agentId,
                 ruleId: String(existingIdentityRule.id),
-                payload: {
-                  title: payload.title,
-                  statement: payload.statement,
-                  category: payload.category,
-                  hardness: payload.hardness,
-                  scope: payload.scope,
-                  importance: payload.importance,
-                  priority: payload.priority,
+	                payload: {
+	                  title: typeof payload.title === 'string' ? payload.title : undefined,
+	                  statement: typeof payload.statement === 'string' ? payload.statement : undefined,
+	                  category: payload.category as 'CONSTRAINT' | 'MECHANISM' | 'DEFINITION' | 'RELATION' | 'POLICY' | undefined,
+	                  hardness: payload.hardness as 'HARD' | 'FIRM' | 'SOFT' | 'AESTHETIC' | undefined,
+	                  scope: payload.scope as 'SELF' | 'DYAD' | 'GROUP' | 'WORLD' | undefined,
+	                  importance: typeof payload.importance === 'number' ? payload.importance : undefined,
+	                  priority: typeof payload.priority === 'number' ? payload.priority : undefined,
                   provenance: payload.provenance,
                   reasoning: payload.reasoning,
                   structured: payload.structured,

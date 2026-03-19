@@ -3,46 +3,70 @@
 # Referenced by: kernel contracts, feature-matrix.yaml
 
 routes:
-  # ── Dashboard ──────────────────────────────────────────
+  # ── Workbench (FG-WORLD-*, FG-AGENT-*, FG-IMPORT-*) ────
   - path: /
-    feature: dashboard
-    component: DashboardPage
-    lazy: false
-    description: Creator home — quick stats and navigation
+    feature: workbench-home
+    component: WorkbenchHomePage
+    lazy: true
+    description: Workbench home — create/open a world workspace and resume local drafts
+
+  - path: /workbench
+    feature: workbench-home
+    component: WorkbenchHomePage
+    lazy: true
+    description: Primary Forge home for world-centric workspaces
+
+  - path: /workbench/new
+    feature: workbench-shell
+    component: WorkbenchNewPage
+    lazy: true
+    description: Creates a new local world workspace and routes into the workbench
+
+  - path: /workbench/:workspaceId
+    feature: workbench-shell
+    component: WorkbenchPage
+    lazy: true
+    description: Unified world workbench for overview, truth, import, review, agents, and publish
+
+  - path: /workbench/:workspaceId/import/character-card
+    feature: import-character-card
+    component: CharacterCardImportPage
+    lazy: true
+    description: Character Card import scoped to an existing world workspace
+
+  - path: /workbench/:workspaceId/import/novel
+    feature: import-novel
+    component: NovelImportPage
+    lazy: true
+    description: Novel import scoped to an existing world workspace
+
+  - path: /workbench/:workspaceId/agents/:agentId
+    feature: workbench-agent-detail
+    component: WorkbenchAgentDetailPage
+    lazy: true
+    description: World-owned agent draft detail and preview within a workspace
 
   # ── World Management (FG-WORLD-*) ─────────────────────
-  - path: /worlds
+  - path: /worlds/library
     feature: world-list
     component: WorldListPage
     lazy: true
-    description: List of creator's worlds (published + drafts)
-
-  - path: /worlds/create
-    feature: world-create
-    component: WorldCreatePage
-    lazy: true
-    description: CREATE pipeline — 7-step world creation flow
-
-  - path: /worlds/:worldId/maintain
-    feature: world-maintain
-    component: WorldMaintainPage
-    lazy: true
-    description: MAINTAIN pipeline — published world editing
+    description: World library — opens published worlds and drafts into the workbench
 
   # ── Agent Management (FG-AGENT-*) ─────────────────────
-  - path: /agents
+  - path: /agents/library
     feature: agent-list
     component: AgentListPage
     lazy: true
-    description: List of creator's agents
+    description: Master agent library plus world-owned agent entrypoints into the workbench
 
   - path: /agents/:agentId
     feature: agent-detail
     component: AgentDetailPage
     lazy: true
-    description: Agent detail — profile, DNA editor, preview, keys
+    description: Master agent detail — profile, DNA editor, preview, keys
 
-  # ── Content Creation (FG-CONTENT-*) ───────────────────
+  # ── Secondary Content Creation (FG-CONTENT-*) ─────────
   - path: /content/images
     feature: image-studio
     component: ImageStudioPage
@@ -71,13 +95,13 @@ routes:
     feature: publish-releases
     component: PublishReleasesPage
     lazy: true
-    description: Publish workspace for local drafts, publish history, and post composition
+    description: Secondary publish workspace for local drafts, publish history, and post composition
 
   - path: /publish/channels
     feature: publish-channels
     component: PublishChannelsPage
     lazy: true
-    description: Publish identity and internal destination settings
+    description: Secondary publish identity and internal destination settings
 
   # ── Copyright Management (FG-IP-*) ────────────────────
   - path: /copyright

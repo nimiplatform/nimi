@@ -184,9 +184,11 @@ describe('useCreatorKeysQuery', () => {
   });
 
   it('handles array payload (not wrapped in { items })', async () => {
-    mockAgentDataClient.listCreatorKeys.mockResolvedValue([
-      { id: 'k2', name: 'dev-key', key: 'sk_****xyz', createdAt: '2026-01-01' },
-    ]);
+    mockAgentDataClient.listCreatorKeys.mockResolvedValue({
+      items: [
+        { id: 'k2', name: 'dev-key', keyPreview: 'sk_****xyz', createdAt: '2026-01-01' },
+      ],
+    });
 
     const wrapper = createWrapper();
     const { result } = renderHook(() => useCreatorKeysQuery(true), { wrapper });

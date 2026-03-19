@@ -12,6 +12,10 @@ import {
   createPost,
   updatePost,
   deletePost,
+  type ForgeCreateAudioDirectUploadInput,
+  type ForgeCreatePostInput,
+  type ForgeUpdateMediaAssetInput,
+  type ForgeUpdatePostInput,
 } from '@renderer/data/content-data-client.js';
 
 export function useContentMutations() {
@@ -24,11 +28,11 @@ export function useContentMutations() {
   });
 
   const audioUploadMutation = useMutation({
-    mutationFn: async (payload?: Record<string, unknown>) => await createAudioDirectUpload(payload),
+    mutationFn: async (payload?: ForgeCreateAudioDirectUploadInput) => await createAudioDirectUpload(payload),
   });
 
   const updateMediaAssetMutation = useMutation({
-    mutationFn: async (input: { assetId: string; payload: Record<string, unknown> }) =>
+    mutationFn: async (input: { assetId: string; payload: ForgeUpdateMediaAssetInput }) =>
       await updateMediaAsset(input.assetId, input.payload),
   });
 
@@ -38,12 +42,12 @@ export function useContentMutations() {
   });
 
   const createPostMutation = useMutation({
-    mutationFn: async (payload: Record<string, unknown>) =>
+    mutationFn: async (payload: ForgeCreatePostInput) =>
       await createPost(payload),
   });
 
   const updatePostMutation = useMutation({
-    mutationFn: async (input: { postId: string; payload: Record<string, unknown> }) =>
+    mutationFn: async (input: { postId: string; payload: ForgeUpdatePostInput }) =>
       await updatePost(input.postId, input.payload),
   });
 

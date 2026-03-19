@@ -8,6 +8,8 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAgentListQuery, type AgentSummary } from '@renderer/hooks/use-agent-queries.js';
 import { useAgentMutations } from '@renderer/hooks/use-agent-mutations.js';
+import type { JsonObject } from '@renderer/bridge/types.js';
+import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js';
 
 function formatDate(iso: string): string {
   if (!iso) return '';
@@ -24,12 +26,14 @@ export default function AgentsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const ensureWorkspaceForWorld = useForgeWorkspaceStore((state) => state.ensureWorkspaceForWorld);
+  const ensureWorldAgentDraft = useForgeWorkspaceStore((state) => state.ensureWorldAgentDraft);
 
   const agentsQuery = useAgentListQuery();
   const mutations = useAgentMutations();
 
   const [search, setSearch] = useState('');
-  const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>('ALL');
+  const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>('MASTER_OWNED');
   const [showCreateForm, setShowCreateForm] = useState(false);
 
   const agents = agentsQuery.data || [];
@@ -59,7 +63,7 @@ export default function AgentsPage() {
           <div>
             <h1 className="text-2xl font-bold text-white">{t('pages.agents')}</h1>
             <p className="mt-1 text-sm text-neutral-400">
-              {t('agents.subtitle', 'Manage your AI agents')}
+              {t('agents.subtitle', 'Master agent library and world-owned agent entrypoints')}
             </p>
           </div>
           <button
@@ -130,7 +134,24 @@ export default function AgentsPage() {
               <AgentCard
                 key={agent.id}
                 agent={agent}
-                onEdit={() => navigate(`/agents/${agent.id}`)}
+                onEdit={() => {
+                  if (agent.ownershipType === 'WORLD_OWNED' && agent.worldId) {
+                    const workspaceId = ensureWorkspaceForWorld({
+                      worldId: agent.worldId,
+                      title: agent.displayName || agent.handle,
+                    });
+                    const draftAgentId = ensureWorldAgentDraft(workspaceId, {
+                      sourceAgentId: agent.id,
+                      displayName: agent.displayName || agent.handle,
+                      handle: agent.handle,
+                      concept: agent.concept,
+                      worldId: agent.worldId,
+                    });
+                    navigate(`/workbench/${workspaceId}/agents/${draftAgentId}`);
+                    return;
+                  }
+                  navigate(`/agents/${agent.id}`);
+                }}
                 onDelete={async () => {
                   await mutations.deleteAgentMutation.mutateAsync(agent.id);
                   await queryClient.invalidateQueries({ queryKey: ['forge', 'agents', 'list'] });
@@ -221,7 +242,7 @@ function CreateAgentForm({
   onCancel,
   creating,
 }: {
-  onSubmit: (payload: Record<string, unknown>) => Promise<void>;
+  onSubmit: (payload: JsonObject) => Promise<void>;
   onCancel: () => void;
   creating: boolean;
 }) {

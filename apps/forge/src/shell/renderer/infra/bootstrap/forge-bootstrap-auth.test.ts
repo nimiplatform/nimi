@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@runtime/platform-client.js', () => ({}));
+vi.mock('@nimiplatform/sdk', () => ({}));
 
 const { useAppStore } = await import('@renderer/app-shell/providers/app-store.js');
 const { bootstrapAuthSession } = await import('./forge-bootstrap-auth.js');

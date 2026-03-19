@@ -1,7 +1,7 @@
 import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
 import type { AuthPlatformAdapter } from '@nimiplatform/shell-auth';
 import { forgeTauriOAuthBridge } from '@renderer/bridge/oauth.js';
-import { getPlatformClient } from '@runtime/platform-client.js';
+import { getPlatformClient } from '@nimiplatform/sdk';
 
 const FORGE_EMBEDDED_AUTH_UNSUPPORTED =
   'Embedded auth flow is not supported in Forge desktop-browser mode.';

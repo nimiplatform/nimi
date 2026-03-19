@@ -1,3 +1,4 @@
+import type { JsonValue } from './types.js';
 import { hasTauriInvoke } from './env.js';
 
 export class BridgeError extends Error {
@@ -10,7 +11,7 @@ export class BridgeError extends Error {
   }
 }
 
-type TauriInvokeFn = (command: string, payload?: unknown) => Promise<unknown>;
+type TauriInvokeFn = (command: string, payload?: JsonValue) => Promise<JsonValue>;
 
 function resolveTauriInvoke(): TauriInvokeFn {
   const invokeFn = window.__TAURI__?.core?.invoke;
@@ -20,7 +21,7 @@ function resolveTauriInvoke(): TauriInvokeFn {
   return invokeFn.bind(window.__TAURI__?.core);
 }
 
-export async function invoke(command: string, payload: unknown = {}): Promise<unknown> {
+export async function invoke(command: string, payload: JsonValue = {}): Promise<JsonValue> {
   if (!hasTauriInvoke()) {
     throw new BridgeError('Tauri runtime is not available', command);
   }
@@ -35,7 +36,7 @@ export async function invoke(command: string, payload: unknown = {}): Promise<un
 
 export async function invokeChecked<T>(
   command: string,
-  payload: unknown,
+  payload: JsonValue,
   parseResult: (value: unknown) => T,
 ): Promise<T> {
   return parseResult(await invoke(command, payload));

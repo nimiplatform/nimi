@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { JsonObject } from '@renderer/bridge/types.js';
 import {
   DNA_PRIMARY_TYPES,
   DNA_SECONDARY_TRAITS,
@@ -7,14 +8,20 @@ import {
 
 type DnaTabProps = {
   agentId: string;
-  dna: Record<string, unknown> | null;
-  soulPrime: Record<string, unknown> | null;
+  dna: JsonObject | null;
+  soulPrime: JsonObject | null;
   soulPrimeLoading: boolean;
-  onSaveDna: (dna: Record<string, unknown>) => Promise<void>;
-  onSaveSoulPrime: (soulPrime: Record<string, unknown>) => Promise<void>;
+  onSaveDna: (dna: JsonObject) => Promise<void>;
+  onSaveSoulPrime: (soulPrime: JsonObject) => Promise<void>;
   savingDna: boolean;
   savingSoulPrime: boolean;
 };
+
+function toJsonObject(value: unknown): JsonObject {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as JsonObject
+    : {};
+}
 
 function DnaCategorySelector({
   label,
@@ -92,20 +99,14 @@ export function DnaTab({
   const currentSecondary = Array.isArray(dna?.secondaryTraits)
     ? (dna.secondaryTraits as string[])
     : [];
-  const commRecord = dna?.communication && typeof dna.communication === 'object'
-    ? (dna.communication as Record<string, unknown>)
-    : {};
+  const commRecord = toJsonObject(dna?.communication);
   const currentFormality = String(commRecord.formality || 'casual');
   const currentResponseLength = String(commRecord.responseLength || 'medium');
   const currentSentiment = String(commRecord.sentiment || 'neutral');
-  const voiceRecord = dna?.voice && typeof dna.voice === 'object'
-    ? (dna.voice as Record<string, unknown>)
-    : {};
+  const voiceRecord = toJsonObject(dna?.voice);
   const currentSpeed = Number(voiceRecord.speed) || 50;
   const currentPitch = Number(voiceRecord.pitch) || 50;
-  const rulesRecord = dna?.rules && typeof dna.rules === 'object'
-    ? (dna.rules as Record<string, unknown>)
-    : {};
+  const rulesRecord = toJsonObject(dna?.rules);
   const currentRulesText = String(rulesRecord.text || '');
 
   const [primaryType, setPrimaryType] = useState(currentPrimary);
@@ -297,7 +298,7 @@ export function DnaTab({
           onClick={() => {
             const rulesLines = rulesText.split('\n').map((line) => line.trim()).filter(Boolean);
             void onSaveDna({
-              ...(dna || {}),
+              ...toJsonObject(dna),
               primaryType: primaryType || undefined,
               secondaryTraits,
               communication: {

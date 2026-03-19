@@ -1,4 +1,5 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { JsonObject } from '@renderer/bridge/types.js';
 import {
   useEffect,
   useState,
@@ -63,12 +64,12 @@ type WorldRuleTruthPanelProps = {
   agentRules: AgentRuleDto[];
   agentRulesLoading: boolean;
   working: boolean;
-  onCreateWorldRule: (payload: Record<string, unknown>) => Promise<void>;
-  onUpdateWorldRule: (ruleId: string, payload: Record<string, unknown>) => Promise<void>;
+  onCreateWorldRule: (payload: JsonObject) => Promise<void>;
+  onUpdateWorldRule: (ruleId: string, payload: JsonObject) => Promise<void>;
   onDeprecateWorldRule: (ruleId: string) => Promise<void>;
   onArchiveWorldRule: (ruleId: string) => Promise<void>;
-  onCreateAgentRule: (agentId: string, payload: Record<string, unknown>) => Promise<void>;
-  onUpdateAgentRule: (agentId: string, ruleId: string, payload: Record<string, unknown>) => Promise<void>;
+  onCreateAgentRule: (agentId: string, payload: JsonObject) => Promise<void>;
+  onUpdateAgentRule: (agentId: string, ruleId: string, payload: JsonObject) => Promise<void>;
   onDeprecateAgentRule: (agentId: string, ruleId: string) => Promise<void>;
   onArchiveAgentRule: (agentId: string, ruleId: string) => Promise<void>;
   setNotice: (message: string | null) => void;
@@ -122,7 +123,7 @@ function parseList(value: string): string[] | undefined {
   return items.length > 0 ? items : undefined;
 }
 
-function parseStructuredText(value: string): { parsed?: Record<string, unknown>; error?: string } {
+function parseStructuredText(value: string): { parsed?: JsonObject; error?: string } {
   const normalized = value.trim();
   if (!normalized) return {};
   try {
@@ -130,7 +131,7 @@ function parseStructuredText(value: string): { parsed?: Record<string, unknown>;
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
       return { error: 'Structured JSON must be an object.' };
     }
-    return { parsed: parsed as Record<string, unknown> };
+    return { parsed: parsed as JsonObject };
   } catch {
     return { error: 'Structured JSON is invalid.' };
   }
@@ -175,7 +176,7 @@ function toAgentRuleUpdateForm(rule: AgentRuleDto): AgentRuleFormState {
   };
 }
 
-function buildWorldRulePayload(form: WorldRuleFormState): { payload?: Record<string, unknown>; error?: string } {
+function buildWorldRulePayload(form: WorldRuleFormState): { payload?: JsonObject; error?: string } {
   const structured = parseStructuredText(form.structuredText);
   if (structured.error) return { error: structured.error };
   const priority = Number(form.priority);
@@ -206,7 +207,7 @@ function buildWorldRulePayload(form: WorldRuleFormState): { payload?: Record<str
   };
 }
 
-function buildAgentRulePayload(form: AgentRuleFormState): { payload?: Record<string, unknown>; error?: string } {
+function buildAgentRulePayload(form: AgentRuleFormState): { payload?: JsonObject; error?: string } {
   const structured = parseStructuredText(form.structuredText);
   if (structured.error) return { error: structured.error };
   const priority = Number(form.priority);

@@ -74,9 +74,12 @@ export default function RevenueDashboardPage() {
 
   async function handleConnectOnboarding() {
     try {
-      const result = await mutations.connectOnboardingMutation.mutateAsync({});
-      const record = result && typeof result === 'object' ? (result as Record<string, unknown>) : {};
-      const url = record.url ? String(record.url) : null;
+      const currentUrl = window.location.href;
+      const result = await mutations.connectOnboardingMutation.mutateAsync({
+        returnUrl: currentUrl,
+        refreshUrl: currentUrl,
+      });
+      const url = result.onboardingUrl ? String(result.onboardingUrl) : null;
       if (url) {
         window.open(url, '_blank');
       }
@@ -88,8 +91,7 @@ export default function RevenueDashboardPage() {
   async function handleOpenDashboard() {
     try {
       const result = await mutations.connectDashboardMutation.mutateAsync();
-      const record = result && typeof result === 'object' ? (result as Record<string, unknown>) : {};
-      const url = record.url ? String(record.url) : null;
+      const url = result.url ? String(result.url) : null;
       if (url) {
         window.open(url, '_blank');
       }
@@ -141,7 +143,7 @@ export default function RevenueDashboardPage() {
             />
             <KpiCard
               label={t('revenue.pendingWithdrawal', 'Withdrawable')}
-              value={formatCurrency(Number(withdrawable?.amount ?? withdrawable?.withdrawableAmount ?? 0))}
+              value={formatCurrency(Number(withdrawable?.amount ?? 0))}
               color="text-cyan-400"
             />
           </div>
@@ -231,8 +233,8 @@ export default function RevenueDashboardPage() {
               {t('revenue.revenueShare', 'Revenue Share Configuration')}
             </h3>
             <div className="flex gap-6 text-xs text-neutral-400">
-              <span>Creator: <strong className="text-white">{String(revenueConfig.data.creatorPercent ?? revenueConfig.data.creatorShare ?? '—')}%</strong></span>
-              <span>Platform: <strong className="text-white">{String(revenueConfig.data.platformPercent ?? revenueConfig.data.platformShare ?? '—')}%</strong></span>
+              <span>Creator: <strong className="text-white">{String(revenueConfig.data.creatorPercent ?? '—')}%</strong></span>
+              <span>Platform: <strong className="text-white">{String(revenueConfig.data.platformPercent ?? '—')}%</strong></span>
             </div>
           </div>
         )}

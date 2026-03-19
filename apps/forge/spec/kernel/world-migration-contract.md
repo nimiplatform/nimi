@@ -17,6 +17,8 @@ World-Studio (`world.nimi.world-studio`) is a runtime mod in the desktop app. Fo
 | UI (`ui/*`) | **Selective migration** — import panels, wrap in Forge layout |
 | Hooks (`hooks/*`) | **Adapt** — replace hook-client calls with direct SDK calls |
 
+Forge no longer exposes world create/maintain as isolated top-level creator flows. They are embedded inside a higher-level **Forge workspace shell** that owns local review drafts, import evidence, agent drafts, and publish planning.
+
 ## FG-WORLD-002: Data Query Rewrite
 
 World-Studio accesses backend via `hookClient.data.query(capabilityId, params)`. Forge replaces these with direct SDK realm client calls.
@@ -63,16 +65,18 @@ SOURCE → INGEST → EXTRACT → CHECKPOINTS → SYNTHESIZE → DRAFT → PUBLI
 
 ### UI Panels (8 panels migrated from World-Studio)
 
-| Panel | Source | Route |
-|-------|--------|-------|
-| Source Input | `ui/create/source-input-panel.tsx` | `/worlds/create` (step 1) |
-| Phase 1 Progress | `ui/create/phase1-panel.tsx` | `/worlds/create` (step 2) |
-| Checkpoints Review | `ui/create/checkpoints-panel.tsx` | `/worlds/create` (step 3) |
-| Event Graph Editor | `ui/create/event-graph-editor.tsx` | `/worlds/create` (step 4) |
-| Phase 2 Synthesis | `ui/create/phase2-panel.tsx` | `/worlds/create` (step 5) |
-| Draft Editor | `ui/create/draft-editor-panel.tsx` | `/worlds/create` (step 6) |
-| Character Portraits | Inline in draft editor | `/worlds/create` (step 6) |
-| Publish | `ui/create/publish-panel.tsx` | `/worlds/create` (step 7) |
+These panels are hosted inside the workbench `WORLD_TRUTH` panel, not as standalone top-level routes.
+
+| Panel | Source | Host Surface |
+|-------|--------|--------------|
+| Source Input | `ui/create/source-input-panel.tsx` | Workbench world truth (step 1) |
+| Phase 1 Progress | `ui/create/phase1-panel.tsx` | Workbench world truth (step 2) |
+| Checkpoints Review | `ui/create/checkpoints-panel.tsx` | Workbench world truth (step 3) |
+| Event Graph Editor | `ui/create/event-graph-editor.tsx` | Workbench world truth (step 4) |
+| Phase 2 Synthesis | `ui/create/phase2-panel.tsx` | Workbench world truth (step 5) |
+| Draft Editor | `ui/create/draft-editor-panel.tsx` | Workbench world truth (step 6) |
+| Character Portraits | Inline in draft editor | Workbench world truth (step 6) |
+| Publish | `ui/create/publish-panel.tsx` | Workbench world truth (step 7) |
 
 ### Pipeline State Machine
 
@@ -91,14 +95,16 @@ The MAINTAIN pipeline handles published world editing (per WS-PIPE-006):
 
 ### UI Panels (6 panels migrated)
 
-| Panel | Source | Route |
-|-------|--------|-------|
-| World Base | `ui/maintain/world-base-panel.tsx` | `/worlds/:worldId/maintain` |
-| Worldview | `ui/maintain/worldview-panel.tsx` | `/worlds/:worldId/maintain` |
-| Events | `ui/maintain/events-panel.tsx` | `/worlds/:worldId/maintain` |
-| Lorebooks | `ui/maintain/lorebooks-panel.tsx` | `/worlds/:worldId/maintain` |
-| Event Graph | `ui/maintain/event-graph-maintenance.tsx` | `/worlds/:worldId/maintain` |
-| Mutations | `ui/maintain/mutations-panel.tsx` | `/worlds/:worldId/maintain` |
+These panels are hosted inside the workbench `WORLD_TRUTH` panel for an existing world-backed workspace.
+
+| Panel | Source | Host Surface |
+|-------|--------|--------------|
+| World Base | `ui/maintain/world-base-panel.tsx` | Workbench world truth |
+| Worldview | `ui/maintain/worldview-panel.tsx` | Workbench world truth |
+| Events | `ui/maintain/events-panel.tsx` | Workbench world truth |
+| Lorebooks | `ui/maintain/lorebooks-panel.tsx` | Workbench world truth |
+| Event Graph | `ui/maintain/event-graph-maintenance.tsx` | Workbench world truth |
+| Mutations | `ui/maintain/mutations-panel.tsx` | Workbench world truth |
 
 ### Operations
 
@@ -130,6 +136,23 @@ interface CreatorWorldStore {
 
 Key difference from World-Studio: no `modId` scoping in storage keys. Forge uses `nimi:forge:workspace:{userId}` as the storage key prefix.
 
+Forge additionally wraps this inner world-studio state with a higher-level local workspace store:
+
+```typescript
+interface ForgeWorkspaceStore {
+  activeWorkspaceId: string | null;
+  workspaces: Record<string, ForgeWorkspaceSnapshot>;
+  createWorkspace(input?: CreateWorkspaceInput): string;
+  ensureWorkspaceForWorld(input: { worldId: string; title: string }): string;
+  ensureWorkspaceForDraft(input: { draftId: string; title: string; targetWorldId?: string | null }): string;
+  setWorkspacePanel(workspaceId: string, panel: ForgeWorkspacePanel): void;
+  patchWorldDraft(workspaceId: string, patch: Partial<WorldDraftState>): void;
+  buildPublishPlan(workspaceId: string): ForgePublishPlan | null;
+}
+```
+
+`useCreatorWorldStore` remains the world-engine-compatible inner state for CREATE/MAINTAIN. `ForgeWorkspaceStore` is the outer creator workflow container.
+
 ## FG-WORLD-006: Backend API Dependencies (All Existing)
 
 All required backend APIs already exist. No new backend work needed for World management.
@@ -154,8 +177,8 @@ Inherits WS-QG-001 through WS-QG-005. Quality gate logic lives in `@world-engine
 
 ## FG-WORLD-008: Acceptance Criteria
 
-1. User can complete full CREATE pipeline: source upload → extraction → review → synthesis → draft editing → publish
-2. User can open published world in MAINTAIN mode and edit events, lorebooks, worldview
+1. User can complete full CREATE pipeline from a workbench workspace: source upload → extraction → review → synthesis → draft editing → publish
+2. User can open a published world inside the workbench and edit events, lorebooks, worldview
 3. Pause/resume works for Phase 1 extraction with checkpoint recovery
 4. Conflict detection and reload-remote work per WS-CONFLICT-*
 5. Quality gate blocks Phase 2 when critical issues exist (per WS-QG-003)

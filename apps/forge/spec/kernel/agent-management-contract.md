@@ -36,7 +36,7 @@ interface CreatorAgentRecord {
 - `MASTER_OWNED` agents are creator-level assets that can later be attached to one or more worlds
 - Agents created from master templates preserve `masterAgentId` for audit, analytics, and attribution
 
-### Agent List View (`/agents`)
+### Agent List View (`/agents/library`)
 
 - Paginated grid/list toggle
 - Search by agent name/handle
@@ -46,6 +46,10 @@ interface CreatorAgentRecord {
 - Quick actions: edit, duplicate, delete (via batch-create with cloned data)
 - Group toggle: "All agents", "World agents", "Master agents"
 
+`/agents/library` is the primary library surface:
+- `MASTER_OWNED` agents remain standalone creator assets and open in the master detail page
+- `WORLD_OWNED` agents route back into the owning world workspace before editing
+
 ### Agent Detail View (`/agents/:agentId`)
 
 - Tabbed interface:
@@ -53,6 +57,15 @@ interface CreatorAgentRecord {
   - **DNA** — Personality trait editor (see FG-AGENT-002)
   - **Preview** — Live personality test (see FG-AGENT-003)
   - **Keys** — API key management (see FG-AGENT-004)
+
+This route is now the **master agent detail** surface. World-owned agent draft editing moves to the workspace-scoped route `/workbench/:workspaceId/agents/:agentId`.
+
+### Workspace Agent Detail (`/workbench/:workspaceId/agents/:agentId`)
+
+- Displays a `WORLD_OWNED` draft agent inside the current world workspace
+- Edits local draft truth first, not canonical backend truth directly
+- Uses local runtime preview based on draft concept + agent rules
+- Participates in the workspace publish plan instead of publishing independently
 
 ## FG-AGENT-002: Agent DNA Editor
 
@@ -145,7 +158,7 @@ Creators can manage API keys for programmatic agent access.
 
 ## FG-AGENT-005: Acceptance Criteria
 
-1. Agent list displays both `WORLD_OWNED` and `MASTER_OWNED` agents with search/filter/sort
+1. `/agents/library` displays both `WORLD_OWNED` and `MASTER_OWNED` agents with search/filter/sort
 2. Agent creation form validates required fields (name, handle, ownerType)
 3. Batch create from World-Studio publish flow creates `WORLD_OWNED` agents correctly
 4. DNA editor shows all trait categories with appropriate input controls

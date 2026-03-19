@@ -4,11 +4,24 @@
  * Direct SDK realm client calls for economy/revenue operations.
  */
 
-import { getPlatformClient } from '@runtime/platform-client.js';
+import { getPlatformClient } from '@nimiplatform/sdk';
 
 function realm() {
   return getPlatformClient().realm;
 }
+
+type EconomyService = ReturnType<typeof realm>['services']['EconomyCurrencyGiftsService'];
+
+export type ForgeCreateConnectOnboardingInput =
+  Parameters<EconomyService['economyControllerCreateConnectOnboarding']>[0];
+export type ForgeCreateConnectOnboardingResult =
+  Awaited<ReturnType<EconomyService['economyControllerCreateConnectOnboarding']>>;
+export type ForgeCreateConnectDashboardResult =
+  Awaited<ReturnType<EconomyService['economyControllerCreateConnectDashboard']>>;
+export type ForgeCreateWithdrawalInput =
+  Parameters<EconomyService['economyControllerCreateWithdrawal']>[0];
+export type ForgeCreateWithdrawalResult =
+  Awaited<ReturnType<EconomyService['economyControllerCreateWithdrawal']>>;
 
 // ── Balances ─────────────────────────────────────────────────
 
@@ -46,7 +59,7 @@ export async function getConnectStatus() {
   return realm().services.EconomyCurrencyGiftsService.economyControllerGetConnectStatus();
 }
 
-export async function createConnectOnboarding(payload: Record<string, unknown>) {
+export async function createConnectOnboarding(payload: ForgeCreateConnectOnboardingInput) {
   return realm().services.EconomyCurrencyGiftsService.economyControllerCreateConnectOnboarding(payload);
 }
 
@@ -68,7 +81,7 @@ export async function calculateWithdrawal(amount: string) {
   return realm().services.EconomyCurrencyGiftsService.economyControllerCalculateWithdrawal(amount);
 }
 
-export async function createWithdrawal(payload: Record<string, unknown>) {
+export async function createWithdrawal(payload: ForgeCreateWithdrawalInput) {
   return realm().services.EconomyCurrencyGiftsService.economyControllerCreateWithdrawal(payload);
 }
 

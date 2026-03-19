@@ -71,7 +71,7 @@ export default function AgentDetailPage() {
       <div className="mx-auto max-w-4xl space-y-6">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('/agents')}
+            onClick={() => navigate('/agents/library')}
             className="rounded px-2 py-1 text-sm text-neutral-400 transition-colors hover:text-white"
           >
             &larr; {t('agents.backToList', 'Back')}

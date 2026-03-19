@@ -3,24 +3,35 @@
 > Phased implementation plan with milestones and dependencies.
 > Authoritative feature phasing in `kernel/tables/feature-matrix.yaml`.
 
+## Completion Boundary
+
+The current hard-cut completion target is the world/agent platform:
+- world-centric workbench
+- embedded world create/maintain
+- master/world agent management
+- workspace-scoped Character Card and novel import
+- unified review state and ordered publish safety
+
+`Content` and `Publish` remain secondary utilities. Revenue, Advisors, Copyright,
+Templates, and Analytics are outside the current completion bar.
+
 ## Phase Overview
 
 | Phase | Scope | Features | New Backend | Depends On |
 |-------|-------|----------|-------------|------------|
-| 1 | App Shell + Auth + Layout | 6 | None | — |
-| 2 | World Management Migration | 5 | None | Phase 1 |
-| 3 | Agent Management | 5 | Conditional: agent detail/update/delete extension if absent | Phase 1 |
-| 4 | AI Content Creation + Publishing | 6 | Media audio upload only | Phase 1 |
-| 5 | Revenue | 3 | None | Phase 1 |
+| 1 | App Shell + Auth + Workbench Shell | 7 | None | — |
+| 2 | World Management Migration + Workspace Outer State | 6 | None | Phase 1 |
+| 3 | Agent Management + Workbench Agent Drafts | 6 | Conditional: agent detail/update/delete extension if absent | Phase 1 |
+| 4 | Secondary Content Creation + Publishing | 6 | Media audio upload only | Phase 1 |
+| 5 | Non-Core Revenue | 3 | None | Phase 1 |
 | 6 | Advisors + Deferred Extensions | 6 | None in current scope | Phase 2, 3, 5 |
 
-Phases 3, 4 core media, and 5 are independent of each other and can run in parallel after Phase 1.
-
-Copyright, template marketplace, and analytics are retained only as deferred extensions. They do not block the current Forge execution plan and must not drive new backend work in this phase set.
+Phases 1 through 3 define current Forge closure as a world/agent platform.
+Phases 4 through 6 remain secondary or deferred and do not block the hard-cut decision.
 
 ---
 
-## Phase 1: App Shell + Auth + Layout
+## Phase 1: App Shell + Auth + Workbench Shell
 
 **Goal**: Standalone Tauri app that boots, authenticates, and renders creator layout with route skeleton.
 
@@ -56,7 +67,12 @@ Copyright, template marketplace, and analytics are retained only as deferred ext
 - QueryClientProvider, StoreProvider, AuthProvider, CreatorAccessGate, RouterProvider
 - App store shape per FG-SHELL-009
 
-### Milestone: App boots in Tauri, authenticates, shows sidebar with placeholder pages
+#### 1.7 World Workbench Shell
+- Add `/workbench`, `/workbench/new`, `/workbench/:workspaceId`
+- Create local `ForgeWorkspaceStore`
+- Make workbench the primary creator home instead of module-first navigation
+
+### Milestone: App boots in Tauri, authenticates, and opens a world-centric workbench shell
 
 ---
 
@@ -97,7 +113,7 @@ Copyright, template marketplace, and analytics are retained only as deferred ext
 - Status indicators: draft, published, has unsaved changes
 - Quick actions: continue editing, open maintain, delete draft
 
-### Milestone: Creator can complete full CREATE → PUBLISH → MAINTAIN cycle
+### Milestone: Creator can complete full CREATE → REVIEW → PUBLISH → MAINTAIN cycle from one workbench
 
 ---
 
@@ -140,13 +156,13 @@ Copyright, template marketplace, and analytics are retained only as deferred ext
 - Copy-to-clipboard for new keys
 - Per FG-AGENT-004
 
-### Milestone: Creator can create agents, configure DNA, test personality, manage API keys
+### Milestone: Creator can manage master agents, edit world-owned drafts inside workbench, and publish from workspace truth
 
 ---
 
-## Phase 4: AI Content Creation + Publishing
+## Phase 4: Secondary Content Creation + Publishing
 
-**Goal**: Image generation, video upload, music generation, content library, and app-level publishing on top of existing post primitives.
+**Goal**: Keep content creation and publishing available as secondary creator utilities without redefining Forge's primary product boundary.
 
 **Prerequisite**: Phase 1 (app shell)
 
@@ -193,13 +209,13 @@ Copyright, template marketplace, and analytics are retained only as deferred ext
 - Leave scheduled publishing out of the current backend contract
 - Per FG-CONTENT-007
 
-### Milestone: Creator can generate images/videos/music, manage assets, and publish posts through existing platform primitives
+### Milestone: Secondary content utilities remain available without affecting world/agent acceptance
 
 ---
 
-## Phase 5: Revenue
+## Phase 5: Non-Core Revenue
 
-**Goal**: Revenue dashboard with Stripe Connect and withdrawal management.
+**Goal**: Revenue remains available as a non-core module outside the current hard-cut completion bar.
 
 **Prerequisite**: Phase 1 (app shell)
 
@@ -228,7 +244,7 @@ Copyright, template marketplace, and analytics are retained only as deferred ext
 - Do not create a copyright backend module in the current execution plan
 - Revisit scope only if a separate realm/backend extension is approved later
 
-### Milestone: Creator can view revenue, manage Stripe Connect, and withdraw earnings
+### Milestone: Revenue remains non-blocking to world/agent platform closure
 
 ---
 

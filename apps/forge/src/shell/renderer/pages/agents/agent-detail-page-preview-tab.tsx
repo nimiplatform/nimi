@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AgentDetail } from '@renderer/hooks/use-agent-queries.js';
-import { getPlatformClient } from '@runtime/platform-client.js';
+import { getPlatformClient } from '@nimiplatform/sdk';
 
 export function PreviewTab({ agent }: { agent: AgentDetail }) {
   const { t } = useTranslation();

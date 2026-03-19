@@ -12,9 +12,11 @@ import type {
   WorldStudioAgentDraft,
   WorldStudioCreateStep,
 } from '@world-engine/contracts.js';
+import type { JsonObject } from '@renderer/bridge/types.js';
 import { useWorldMutations } from '@renderer/hooks/use-world-mutations.js';
 import { useCreatorWorldStore } from '@renderer/state/creator-world-store.js';
 import {
+  asRecord,
   deriveRuleTruthDraftFromWorkspace,
   getTimeFlowRatioFromWorldviewPatch,
   resolveRuleTruthDraft,
@@ -86,12 +88,12 @@ export function useWorldCreatePageModel({
   const onStepChange = useCallback((step: WorldStudioCreateStep) => setCreateStep(step), [setCreateStep]);
   const onSourceTextChange = useCallback((value: string) => patchSnapshot({ sourceText: value }), [patchSnapshot]);
   const deriveRuleTruthDraft = useCallback((overrides?: {
-    worldviewPatch?: Record<string, unknown>;
+    worldviewPatch?: JsonObject;
     sourceRef?: string;
     selectedCharacters?: string[];
     agentSync?: typeof snapshot.agentSync;
   }) => deriveRuleTruthDraftFromWorkspace({
-    worldviewPatch: overrides?.worldviewPatch ?? (snapshot.worldviewPatch as Record<string, unknown>),
+    worldviewPatch: overrides?.worldviewPatch ?? (snapshot.worldviewPatch as JsonObject),
     sourceRef: overrides?.sourceRef ?? snapshot.sourceRef,
     selectedCharacters: overrides?.selectedCharacters ?? snapshot.selectedCharacters,
     agentSync: overrides?.agentSync ?? snapshot.agentSync,
@@ -155,8 +157,8 @@ export function useWorldCreatePageModel({
     });
   }, [applyRuleTruthDraft, deriveRuleTruthDraft, snapshot]);
   const onFutureEventsTextChange = useCallback((value: string) => patchSnapshot({ futureEventsText: value }), [patchSnapshot]);
-  const onWorldPatchChange = useCallback((value: Record<string, unknown>) => patchSnapshot({ worldPatch: value }), [patchSnapshot]);
-  const onWorldviewPatchChange = useCallback((value: Record<string, unknown>) => patchSnapshot({
+  const onWorldPatchChange = useCallback((value: JsonObject) => patchSnapshot({ worldPatch: value }), [patchSnapshot]);
+  const onWorldviewPatchChange = useCallback((value: JsonObject) => patchSnapshot({
     worldviewPatch: value,
     ruleTruthDraft: deriveRuleTruthDraft({ worldviewPatch: value }),
   }), [deriveRuleTruthDraft, patchSnapshot]);
@@ -167,9 +169,9 @@ export function useWorldCreatePageModel({
     const truthDraft = resolveRuleTruthDraft(snapshot);
     const existing = truthDraft.agentRules.find((item) => item.characterName === name);
     const existingStructured = existing?.payload && typeof existing.payload === 'object'
-      ? ((existing.payload as Record<string, unknown>).structured as Record<string, unknown> | undefined)
+      ? (asRecord(existing.payload).structured as JsonObject | undefined)
       : undefined;
-    const nextStructured: Record<string, unknown> = {
+    const nextStructured: JsonObject = {
       characterName: name,
       handle: patch.handle ?? existingStructured?.handle ?? null,
       concept: patch.concept ?? existingStructured?.concept ?? null,

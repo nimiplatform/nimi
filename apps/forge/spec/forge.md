@@ -1,18 +1,22 @@
 # Forge — Top-Level Product Spec
 
-> Status: Draft | Date: 2026-03-13
+> Status: Draft | Date: 2026-03-19
 
 ## Product Positioning
 
-Forge is a standalone Tauri desktop application for World and Agent creators in the nimi ecosystem. It provides:
+Forge is a standalone Tauri desktop application for World and Agent creators in the nimi ecosystem.
 
-- **World Management** — Full CREATE + MAINTAIN pipeline migrated from World-Studio mod
-- **Agent Management** — World-local agents and master-created agents with CRUD, DNA editing, personality preview
+Its primary product is the world-centric creation workflow:
+- **World Workbench** — A local workspace that unifies create, maintain, import, review, and publish
+- **World Management** — Full CREATE + MAINTAIN pipeline migrated from World-Studio and embedded into the workbench
+- **Agent Management** — Master-created agents as reusable library assets and world-owned agents managed inside the workbench
+- **Import Pipelines** — Character Card V2 and novel import with local source-fidelity manifests and workspace-scoped review drafts
+
+Forge also retains secondary creator utilities:
 - **AI Content Creation** — Image generation, video upload, music generation, content library
 - **Publishing Workflow** — App-level post composition, publish identity selection, and publish history
-- **Revenue Statistics** — Earnings dashboard, revenue share, Stripe Connect, withdrawals
-- **AI Advisors** — World consistency checker, agent coach, revenue optimizer
-- **Deferred Extensions** — Copyright, templates, and analytics remain future modules
+
+Revenue, advisors, copyright, templates, and analytics are non-core modules and do not define current Forge completion.
 
 ## Technical Stack
 
@@ -26,9 +30,9 @@ Forge is a standalone Tauri desktop application for World and Agent creators in 
 | World engine | `@world-engine` alias → `nimi-mods/runtime/world-studio/src/` |
 | Shell core | `@nimiplatform/shell-core` |
 
-Forge connects to both platform planes directly:
-- **Runtime** — `new Runtime({ transport: 'tauri-ipc' })` via `initializePlatformClient()`
-- **Realm** — `new Realm({ baseUrl, auth })` via `initializePlatformClient()`
+Forge connects to both platform planes through the SDK root bootstrap:
+- **Platform client** — `createPlatformClient({ appId: 'nimi.forge', runtimeTransport: 'tauri-ipc', sessionStore })`
+- **Runtime / Realm** — consumed from the returned SDK client instead of app-local constructors
 
 The Tauri shell only supplies runtime defaults and lifecycle affordances. Business requests do not call ad-hoc desktop bridge helpers directly.
 
@@ -102,28 +106,32 @@ The **UI layer** is selectively migrated: panel components are imported but wrap
 
 ```
 Forge
-├── Dashboard (home)
-├── Worlds                          # FG-WORLD-*
-│   ├── /worlds                     # World list
-│   ├── /worlds/create              # CREATE pipeline
-│   └── /worlds/:worldId/maintain   # MAINTAIN pipeline
-├── Agents                          # FG-AGENT-*
-│   ├── /agents                     # Agent list
-│   └── /agents/:agentId            # Agent detail + DNA editor
-├── Content                         # FG-CONTENT-*
+├── Workbench (home)                # FG-WORLD-* + FG-AGENT-* + FG-IMPORT-*
+│   ├── /                           # Primary entry
+│   ├── /workbench                  # Recent workspaces, create, resume, import
+│   ├── /workbench/new              # Create a new local world workspace
+│   ├── /workbench/:workspaceId     # Unified world workspace
+│   ├── /workbench/:workspaceId/import/character-card
+│   ├── /workbench/:workspaceId/import/novel
+│   └── /workbench/:workspaceId/agents/:agentId
+├── World Library                   # FG-WORLD-*
+│   └── /worlds/library             # Published worlds and drafts → open in workbench
+├── Agent Library                   # FG-AGENT-*
+│   ├── /agents/library             # Master library and world-owned entrypoints
+│   └── /agents/:agentId            # Master agent detail + DNA editor
+├── Secondary Utilities
+│   ├── Content                     # FG-CONTENT-*
 │   ├── /content/images             # Image studio
 │   ├── /content/videos             # Video studio
 │   ├── /content/music              # Music studio
 │   └── /content/library            # Content library
-├── Publish                         # FG-CONTENT-*
+│   └── Publish                     # FG-CONTENT-*
 │   ├── /publish/releases           # App-level publish workspace
 │   └── /publish/channels           # Publish identities and destinations
-├── Revenue                         # FG-REV-*
+├── Deferred / Non-Core Modules
 │   ├── /revenue                    # Revenue dashboard
 │   └── /revenue/withdrawals        # Withdrawal management
-├── AI Advisors                     # FG-ADV-*
 │   └── /advisors                   # Advisor sessions
-├── Deferred Extensions             # Placeholder routes only
 │   ├── /copyright                  # Future copyright module
 │   ├── /templates                  # Future template marketplace
 │   ├── /templates/mine             # Future template publishing
@@ -141,7 +149,8 @@ This spec imports the following kernel contracts:
 | `kernel/app-shell-contract.md` | FG-SHELL-* | App shell, bootstrap, auth, layout |
 | `kernel/world-migration-contract.md` | FG-WORLD-* | World CRUD, pipeline migration |
 | `kernel/agent-management-contract.md` | FG-AGENT-* | Agent CRUD, DNA editing |
-| `kernel/content-creation-contract.md` | FG-CONTENT-* | Image/video/music creation, content library, publishing |
+| `kernel/import-contract.md` | FG-IMPORT-* | Character Card V2 / novel import, source fidelity, publish safety |
+| `kernel/content-creation-contract.md` | FG-CONTENT-* | Secondary image/video/music creation, content library, publishing |
 | `kernel/copyright-contract.md` | FG-IP-* | Deferred copyright extension |
 | `kernel/revenue-contract.md` | FG-REV-* | Revenue dashboard, withdrawals |
 | `kernel/template-market-contract.md` | FG-TPL-* | Deferred template extension |
@@ -153,11 +162,13 @@ This spec imports the following kernel contracts:
 | Module | New backend required | Migration source | Phase |
 |--------|---------------------|------------------|-------|
 | App Shell | No | Desktop app (trimmed) | 1 |
+| World Workbench | No | New workflow shell over world-studio + forge state | 1-3 |
 | World Management | No | World-Studio mod | 2 |
 | Agent Management | Partial — existing Creator API plus detail/update/delete completion if absent | Creator API + realm agent ownership vocabulary | 3 |
-| Content Creation + Publishing | Partial — existing Media API plus NEW audio upload extension | New UI + runtime media/music + existing post primitives | 4 |
-| Revenue Statistics | No | Economy API (existing) | 5 |
-| Copyright Management | Deferred extension | Future design | 5 |
-| Template Marketplace | Deferred extension | Future design | 6 |
-| AI Advisors | No | Runtime AI (local) | 6 |
-| Data Analytics | Deferred extension | Future design | 6 |
+| Import Pipelines | No | New UI + local runtime + existing world/agent truth APIs | 3.5 |
+| Content Creation + Publishing | Partial — existing Media API plus NEW audio upload extension | New UI + runtime media/music + existing post primitives | Secondary |
+| Revenue Statistics | No | Economy API (existing) | Non-core |
+| Copyright Management | Deferred extension | Future design | Deferred |
+| Template Marketplace | Deferred extension | Future design | Deferred |
+| AI Advisors | No | Runtime AI (local) | Non-core |
+| Data Analytics | Deferred extension | Future design | Deferred |

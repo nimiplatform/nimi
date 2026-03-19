@@ -7,11 +7,13 @@ import {
   createConnectOnboarding,
   createConnectDashboard,
   createWithdrawal,
+  type ForgeCreateConnectOnboardingInput,
+  type ForgeCreateWithdrawalInput,
 } from '@renderer/data/revenue-data-client.js';
 
 export function useRevenueMutations() {
   const connectOnboardingMutation = useMutation({
-    mutationFn: async (payload: Record<string, unknown>) =>
+    mutationFn: async (payload: ForgeCreateConnectOnboardingInput) =>
       await createConnectOnboarding(payload),
   });
 
@@ -20,7 +22,7 @@ export function useRevenueMutations() {
   });
 
   const createWithdrawalMutation = useMutation({
-    mutationFn: async (payload: Record<string, unknown>) =>
+    mutationFn: async (payload: ForgeCreateWithdrawalInput) =>
       await createWithdrawal(payload),
   });
 

@@ -19,8 +19,8 @@ vi.mock('./forge-bootstrap-auth.js', () => ({
   bootstrapAuthSession: (...args: unknown[]) => mockBootstrapAuthSession(...args),
 }));
 
-vi.mock('@runtime/platform-client.js', () => ({
-  initializePlatformClient: (...args: unknown[]) => mockInitializePlatformClient(...args),
+vi.mock('@nimiplatform/sdk', () => ({
+  createPlatformClient: (...args: unknown[]) => mockInitializePlatformClient(...args),
 }));
 
 const { useAppStore } = await import('@renderer/app-shell/providers/app-store.js');

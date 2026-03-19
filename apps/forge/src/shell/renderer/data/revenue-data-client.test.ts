@@ -18,7 +18,7 @@ const mockEconomyService = {
   economyControllerGetWithdrawal: vi.fn(),
 };
 
-vi.mock('@runtime/platform-client.js', () => ({
+vi.mock('@nimiplatform/sdk', () => ({
   getPlatformClient: () => ({
     realm: {
       services: { EconomyCurrencyGiftsService: mockEconomyService },
@@ -68,8 +68,11 @@ describe('revenue-data-client', () => {
   });
 
   it('createConnectOnboarding passes payload', async () => {
-    await rdc.createConnectOnboarding({ returnUrl: '/done' });
-    expect(mockEconomyService.economyControllerCreateConnectOnboarding).toHaveBeenCalledWith({ returnUrl: '/done' });
+    await rdc.createConnectOnboarding({ returnUrl: '/done', refreshUrl: '/done' });
+    expect(mockEconomyService.economyControllerCreateConnectOnboarding).toHaveBeenCalledWith({
+      returnUrl: '/done',
+      refreshUrl: '/done',
+    });
   });
 
   it('createConnectDashboard', async () => {
@@ -93,8 +96,8 @@ describe('revenue-data-client', () => {
   });
 
   it('createWithdrawal passes payload', async () => {
-    await rdc.createWithdrawal({ amount: '50' });
-    expect(mockEconomyService.economyControllerCreateWithdrawal).toHaveBeenCalledWith({ amount: '50' });
+    await rdc.createWithdrawal({ gemAmount: '50' });
+    expect(mockEconomyService.economyControllerCreateWithdrawal).toHaveBeenCalledWith({ gemAmount: '50' });
   });
 
   it('getWithdrawalHistory', async () => {

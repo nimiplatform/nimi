@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { JsonObject } from '@renderer/bridge/types.js';
 import type { CreatorKeyItem } from '@renderer/hooks/use-agent-queries.js';
 import { FieldGroup, formatDate } from './agent-detail-page-shared';
 
 type KeysTabProps = {
   keys: CreatorKeyItem[];
   keysLoading: boolean;
-  onCreateKey: (payload: Record<string, unknown>) => Promise<void>;
+  onCreateKey: (payload: JsonObject) => Promise<void>;
   onRevokeKey: (keyId: string) => Promise<void>;
   creatingKey: boolean;
 };

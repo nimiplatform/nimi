@@ -8,11 +8,15 @@ import {
   getAgent,
   getAgentSoulPrime,
   listCreatorKeys,
+  type ForgeAgentDetailResponse,
+  type ForgeCreatorAgentListItem,
+  type ForgeCreatorKeyListItem,
 } from '@renderer/data/agent-data-client.js';
 
-function toRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
-}
+type AgentSoulPrimePayload = Awaited<ReturnType<typeof getAgentSoulPrime>>;
+type AgentListPayload = Awaited<ReturnType<typeof listCreatorAgents>>;
+type AgentDetailPayload = Awaited<ReturnType<typeof getAgent>>;
+type CreatorKeyListPayload = Awaited<ReturnType<typeof listCreatorKeys>>;
 
 export type AgentSummary = {
   id: string;
@@ -40,7 +44,7 @@ export type AgentDetail = {
   status: string;
   state: string;
   avatarUrl: string | null;
-  dna: Record<string, unknown> | null;
+  dna: ForgeAgentDetailResponse['dna'] | null;
   rules: { format: string; lines: string[]; text: string } | null;
   wakeStrategy: 'PASSIVE' | 'PROACTIVE';
   createdAt: string;
@@ -56,68 +60,63 @@ export type CreatorKeyItem = {
   expiresAt: string | null;
 };
 
-function toAgentSummaryList(payload: unknown): AgentSummary[] {
-  const record = toRecord(payload);
-  const items = Array.isArray(record.items) ? (record.items as unknown[]) : [];
+function toAgentSummaryList(payload: AgentListPayload): AgentSummary[] {
+  const items: ForgeCreatorAgentListItem[] = payload.items;
   return items
-    .map((item) => toRecord(item))
     .map((item) => ({
-      id: String(item.id || ''),
-      handle: String(item.handle || ''),
-      displayName: String(item.displayName || item.name || ''),
-      concept: String(item.concept || ''),
-      ownershipType: (String(item.ownershipType || 'MASTER_OWNED') === 'WORLD_OWNED' ? 'WORLD_OWNED' : 'MASTER_OWNED') as AgentSummary['ownershipType'],
-      worldId: item.worldId ? String(item.worldId) : null,
-      status: String(item.status || 'draft'),
-      avatarUrl: item.avatarUrl ? String(item.avatarUrl) : null,
-      createdAt: String(item.createdAt || ''),
-      updatedAt: String(item.updatedAt || ''),
+      id: item.id,
+      handle: item.handle,
+      displayName: item.displayName,
+      concept: item.concept,
+      ownershipType: item.ownershipType,
+      worldId: item.worldId,
+      status: item.status,
+      avatarUrl: item.avatarUrl,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
     }))
     .filter((item) => Boolean(item.id));
 }
 
-function toAgentDetail(payload: unknown): AgentDetail {
-  const item = toRecord(payload);
-  const rulesRaw = item.rules && typeof item.rules === 'object' ? toRecord(item.rules) : null;
+function toAgentDetail(item: AgentDetailPayload): AgentDetail {
+  const rulesRaw = item.rules;
   return {
-    id: String(item.id || ''),
-    handle: String(item.handle || ''),
-    displayName: String(item.displayName || item.name || ''),
-    concept: String(item.concept || ''),
-    description: item.description ? String(item.description) : null,
-    scenario: item.scenario ? String(item.scenario) : null,
-    greeting: item.greeting ? String(item.greeting) : null,
-    ownershipType: (String(item.ownershipType || 'MASTER_OWNED') === 'WORLD_OWNED' ? 'WORLD_OWNED' : 'MASTER_OWNED') as AgentDetail['ownershipType'],
-    worldId: item.worldId ? String(item.worldId) : null,
-    status: String(item.status || 'draft'),
-    state: String(item.state || 'INCUBATING'),
-    avatarUrl: item.avatarUrl ? String(item.avatarUrl) : null,
-    dna: item.dna && typeof item.dna === 'object' ? toRecord(item.dna) : null,
+    id: item.id,
+    handle: item.handle,
+    displayName: item.displayName,
+    concept: item.concept,
+    description: item.description,
+    scenario: item.scenario,
+    greeting: item.greeting,
+    ownershipType: item.ownershipType,
+    worldId: item.worldId,
+    status: item.status,
+    state: item.state,
+    avatarUrl: item.avatarUrl,
+    dna: item.dna ?? null,
     rules: rulesRaw
       ? {
-          format: String(rulesRaw.format || 'rule-lines-v1'),
-          lines: Array.isArray(rulesRaw.lines) ? rulesRaw.lines.map((l: unknown) => String(l || '')) : [],
-          text: String(rulesRaw.text || ''),
+          format: rulesRaw.format,
+          lines: rulesRaw.lines,
+          text: rulesRaw.text,
         }
       : null,
-    wakeStrategy: String(item.wakeStrategy || 'PASSIVE') === 'PROACTIVE' ? 'PROACTIVE' : 'PASSIVE',
-    createdAt: String(item.createdAt || ''),
-    updatedAt: String(item.updatedAt || ''),
+    wakeStrategy: item.wakeStrategy,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
   };
 }
 
-function toKeyList(payload: unknown): CreatorKeyItem[] {
-  const record = toRecord(payload);
-  const items = Array.isArray(record.items) ? (record.items as unknown[]) : (Array.isArray(payload) ? (payload as unknown[]) : []);
+function toKeyList(payload: CreatorKeyListPayload): CreatorKeyItem[] {
+  const items: ForgeCreatorKeyListItem[] = payload.items;
   return items
-    .map((item) => toRecord(item))
     .map((item) => ({
-      id: String(item.id || ''),
-      name: String(item.name || 'Unnamed Key'),
-      keyPreview: String(item.keyPreview || item.key || '****'),
-      createdAt: String(item.createdAt || ''),
-      lastUsedAt: item.lastUsedAt ? String(item.lastUsedAt) : null,
-      expiresAt: item.expiresAt ? String(item.expiresAt) : null,
+      id: item.id,
+      name: item.name,
+      keyPreview: item.keyPreview,
+      createdAt: item.createdAt,
+      lastUsedAt: item.lastUsedAt,
+      expiresAt: item.expiresAt,
     }))
     .filter((item) => Boolean(item.id));
 }
@@ -147,7 +146,7 @@ export function useAgentSoulPrimeQuery(agentId: string) {
     queryKey: ['forge', 'agents', 'soul-prime', agentId],
     enabled: Boolean(agentId),
     retry: false,
-    queryFn: async () => toRecord(await getAgentSoulPrime(agentId)),
+    queryFn: async (): Promise<AgentSoulPrimePayload> => await getAgentSoulPrime(agentId),
   });
 }
 

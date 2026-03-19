@@ -19,6 +19,7 @@ export async function bootstrapAuthSession(input: BootstrapAuthInput): Promise<v
 
   try {
     const user: CurrentUserDto = await realm.services.MeService.getMe();
+    const userRecord = user as Record<string, unknown>;
 
     if (!user || !user.id) {
       store.clearAuthSession();
@@ -28,7 +29,7 @@ export async function bootstrapAuthSession(input: BootstrapAuthInput): Promise<v
     store.setAuthSession(
       {
         id: String(user.id),
-        displayName: String(user.displayName || user.name || ''),
+        displayName: String(user.displayName || userRecord.name || ''),
         email: user.email ? String(user.email) : undefined,
         avatarUrl: user.avatarUrl ? String(user.avatarUrl) : undefined,
       },

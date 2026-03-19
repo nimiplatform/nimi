@@ -1,12 +1,13 @@
 import { lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { StudioLayout } from '@renderer/app-shell/layouts/studio-layout.js';
-import { DashboardPage } from '@renderer/pages/dashboard-page.js';
 
 // Lazy-loaded feature pages
+const WorkbenchHomePage = lazy(() => import('@renderer/pages/workbench/workbench-home-page.js'));
+const WorkbenchNewPage = lazy(() => import('@renderer/pages/workbench/workbench-new-page.js'));
+const WorkbenchPage = lazy(() => import('@renderer/pages/workbench/workbench-page.js'));
+const WorkbenchAgentDetailPage = lazy(() => import('@renderer/pages/workbench/workbench-agent-detail-page.js'));
 const WorldsPage = lazy(() => import('@renderer/pages/worlds/worlds-page.js'));
-const WorldCreatePage = lazy(() => import('@renderer/pages/worlds/world-create-page.js'));
-const WorldMaintainPage = lazy(() => import('@renderer/pages/worlds/world-maintain-page.js'));
 const AgentsPage = lazy(() => import('@renderer/pages/agents/agents-page.js'));
 const AgentDetailPage = lazy(() => import('@renderer/pages/agents/agent-detail-page.js'));
 const ImageStudioPage = lazy(() => import('@renderer/pages/content/image-studio-page.js'));
@@ -24,6 +25,8 @@ const TemplateDetailPage = lazy(() => import('@renderer/pages/templates/template
 const AdvisorHubPage = lazy(() => import('@renderer/pages/advisors/advisor-hub-page.js'));
 const AnalyticsDashboardPage = lazy(() => import('@renderer/pages/analytics/analytics-dashboard-page.js'));
 const SettingsPage = lazy(() => import('@renderer/pages/settings/settings-page.js'));
+const CharacterCardImportPage = lazy(() => import('@renderer/pages/import/character-card-import-page.js'));
+const NovelImportPage = lazy(() => import('@renderer/pages/import/novel-import-page.js'));
 
 function PageSuspense({ children }: { children: React.ReactNode }) {
   return (
@@ -44,24 +47,29 @@ export function AppRoutes() {
     <HashRouter>
       <Routes>
         <Route element={<StudioLayout />}>
-          <Route index element={<DashboardPage />} />
+          <Route index element={<PageSuspense><WorkbenchHomePage /></PageSuspense>} />
+          <Route path="workbench" element={<PageSuspense><WorkbenchHomePage /></PageSuspense>} />
+          <Route path="workbench/new" element={<PageSuspense><WorkbenchNewPage /></PageSuspense>} />
+          <Route path="workbench/:workspaceId" element={<PageSuspense><WorkbenchPage /></PageSuspense>} />
+          <Route path="workbench/:workspaceId/import/character-card" element={<PageSuspense><CharacterCardImportPage /></PageSuspense>} />
+          <Route path="workbench/:workspaceId/import/novel" element={<PageSuspense><NovelImportPage /></PageSuspense>} />
+          <Route path="workbench/:workspaceId/agents/:agentId" element={<PageSuspense><WorkbenchAgentDetailPage /></PageSuspense>} />
 
           {/* Worlds */}
-          <Route path="worlds" element={<PageSuspense><WorldsPage /></PageSuspense>} />
-          <Route path="worlds/create" element={<PageSuspense><WorldCreatePage /></PageSuspense>} />
-          <Route path="worlds/:worldId/maintain" element={<PageSuspense><WorldMaintainPage /></PageSuspense>} />
+          <Route path="worlds/library" element={<PageSuspense><WorldsPage /></PageSuspense>} />
 
           {/* Agents */}
-          <Route path="agents" element={<PageSuspense><AgentsPage /></PageSuspense>} />
+          <Route path="agents/library" element={<PageSuspense><AgentsPage /></PageSuspense>} />
           <Route path="agents/:agentId" element={<PageSuspense><AgentDetailPage /></PageSuspense>} />
 
-          {/* Content */}
+          {/* Import */}
+          {/* Secondary: Content */}
           <Route path="content/images" element={<PageSuspense><ImageStudioPage /></PageSuspense>} />
           <Route path="content/videos" element={<PageSuspense><VideoStudioPage /></PageSuspense>} />
           <Route path="content/music" element={<PageSuspense><MusicStudioPage /></PageSuspense>} />
           <Route path="content/library" element={<PageSuspense><ContentLibraryPage /></PageSuspense>} />
 
-          {/* Publish */}
+          {/* Secondary: Publish */}
           <Route path="publish/releases" element={<PageSuspense><ReleasesPage /></PageSuspense>} />
           <Route path="publish/channels" element={<PageSuspense><ChannelsPage /></PageSuspense>} />
 

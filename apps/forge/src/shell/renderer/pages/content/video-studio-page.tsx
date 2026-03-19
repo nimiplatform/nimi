@@ -7,6 +7,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
+import type { JsonObject } from '@renderer/bridge/types.js';
 import { finalizeMediaAsset } from '@renderer/data/content-data-client.js';
 
 type UploadedVideo = {
@@ -56,7 +57,9 @@ export default function VideoStudioPage() {
 
     try {
       const result = await mutations.videoUploadMutation.mutateAsync(undefined);
-      const record = result && typeof result === 'object' ? (result as Record<string, unknown>) : {};
+      const record: JsonObject = result && typeof result === 'object' && !Array.isArray(result)
+        ? result as JsonObject
+        : {};
       const uploadUrl = String(record.uploadUrl || '');
       const assetId = String(record.assetId || '');
       const storageRef = String(record.storageRef || '');
@@ -116,8 +119,10 @@ export default function VideoStudioPage() {
           const finalized = await finalizeMediaAsset(assetId, {
             mimeType: file.type,
           });
-          const finalizedRecord =
-            finalized && typeof finalized === 'object' ? (finalized as Record<string, unknown>) : {};
+          const finalizedRecord: JsonObject =
+            finalized && typeof finalized === 'object' && !Array.isArray(finalized)
+              ? finalized as JsonObject
+              : {};
           previewUrl = finalizedRecord.url ? String(finalizedRecord.url) : undefined;
         } catch {
           // Finalize fallback is non-critical for optimistic preview

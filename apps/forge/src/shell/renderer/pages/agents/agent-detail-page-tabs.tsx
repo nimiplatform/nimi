@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getPlatformClient } from '@runtime/platform-client.js';
+import { getPlatformClient } from '@nimiplatform/sdk';
+import type { JsonObject } from '@renderer/bridge/types.js';
 import {
   DNA_PRIMARY_TYPES,
   DNA_SECONDARY_TRAITS,
@@ -9,6 +10,12 @@ import type {
   AgentDetail,
   CreatorKeyItem,
 } from '@renderer/hooks/use-agent-queries.js';
+
+function toJsonObject(value: unknown): JsonObject {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as JsonObject
+    : {};
+}
 
 function formatDate(iso: string): string {
   if (!iso) return '';
@@ -96,7 +103,7 @@ export function ProfileTab({
   saving,
 }: {
   agent: AgentDetail;
-  onSave: (updates: Record<string, unknown>) => Promise<void>;
+  onSave: (updates: JsonObject) => Promise<void>;
   saving: boolean;
 }) {
   const { t } = useTranslation();
@@ -222,11 +229,11 @@ export function DnaTab({
   savingSoulPrime,
 }: {
   agentId: string;
-  dna: Record<string, unknown> | null;
-  soulPrime: Record<string, unknown> | null;
+  dna: JsonObject | null;
+  soulPrime: JsonObject | null;
   soulPrimeLoading: boolean;
-  onSaveDna: (dna: Record<string, unknown>) => Promise<void>;
-  onSaveSoulPrime: (soulPrime: Record<string, unknown>) => Promise<void>;
+  onSaveDna: (dna: JsonObject) => Promise<void>;
+  onSaveSoulPrime: (soulPrime: JsonObject) => Promise<void>;
   savingDna: boolean;
   savingSoulPrime: boolean;
 }) {
@@ -235,20 +242,14 @@ export function DnaTab({
   const currentSecondary = Array.isArray(dna?.secondaryTraits)
     ? (dna.secondaryTraits as string[])
     : [];
-  const commRecord = dna?.communication && typeof dna.communication === 'object'
-    ? (dna.communication as Record<string, unknown>)
-    : {};
+  const commRecord = toJsonObject(dna?.communication);
   const currentFormality = String(commRecord.formality || 'casual');
   const currentResponseLength = String(commRecord.responseLength || 'medium');
   const currentSentiment = String(commRecord.sentiment || 'neutral');
-  const voiceRecord = dna?.voice && typeof dna.voice === 'object'
-    ? (dna.voice as Record<string, unknown>)
-    : {};
+  const voiceRecord = toJsonObject(dna?.voice);
   const currentSpeed = Number(voiceRecord.speed) || 50;
   const currentPitch = Number(voiceRecord.pitch) || 50;
-  const rulesRecord = dna?.rules && typeof dna.rules === 'object'
-    ? (dna.rules as Record<string, unknown>)
-    : {};
+  const rulesRecord = toJsonObject(dna?.rules);
   const currentRulesText = String(rulesRecord.text || '');
 
   const [primaryType, setPrimaryType] = useState(currentPrimary);
@@ -473,7 +474,7 @@ export function PreviewTab({ agent }: { agent: AgentDetail }) {
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [streaming, setStreaming] = useState(false);
 
-  const dnaRecord = agent.dna && typeof agent.dna === 'object' ? agent.dna : {};
+  const dnaRecord = toJsonObject(agent.dna);
   const primaryType = String(dnaRecord.primaryType || '—');
   const secondaryTraits = Array.isArray(dnaRecord.secondaryTraits)
     ? (dnaRecord.secondaryTraits as string[]).join(', ')
@@ -625,7 +626,7 @@ export function KeysTab({
 }: {
   keys: CreatorKeyItem[];
   keysLoading: boolean;
-  onCreateKey: (payload: Record<string, unknown>) => Promise<void>;
+  onCreateKey: (payload: JsonObject) => Promise<void>;
   onRevokeKey: (keyId: string) => Promise<void>;
   creatingKey: boolean;
 }) {

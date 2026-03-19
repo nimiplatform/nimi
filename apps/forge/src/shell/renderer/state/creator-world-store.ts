@@ -14,6 +14,7 @@ import type {
   WorldStudioSnapshotPatch,
   WorldStudioWorkspaceSnapshot,
 } from '@world-engine/contracts.js';
+import type { JsonObject } from '@renderer/bridge/types.js';
 import { cloneDefaultSnapshot } from '@world-engine/state/workspace/defaults.js';
 import { syncSnapshot } from '@world-engine/state/workspace/normalize.js';
 import { asRecord, loadLocalStorageJson, saveLocalStorageJson } from '@nimiplatform/sdk/mod';
@@ -53,13 +54,13 @@ function readSnapshotFromStorage(userId: string): WorldStudioWorkspaceSnapshot |
         events: normalizeEventsDraft(parsed.eventsDraft || parsed.knowledgeGraph?.events || {}),
       },
       worldPatch: asRecord(parsed.worldPatch),
-      worldviewPatch: asRecord(parsed.worldviewPatch),
-      ruleTruthDraft: {
-        worldRules: Array.isArray(parsed.ruleTruthDraft?.worldRules)
-          ? parsed.ruleTruthDraft.worldRules.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
+        worldviewPatch: asRecord(parsed.worldviewPatch),
+        ruleTruthDraft: {
+          worldRules: Array.isArray(parsed.ruleTruthDraft?.worldRules)
+          ? parsed.ruleTruthDraft.worldRules.filter((item): item is JsonObject => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
           : [],
         agentRules: Array.isArray(parsed.ruleTruthDraft?.agentRules)
-          ? parsed.ruleTruthDraft.agentRules.filter((item): item is { characterName: string; payload: Record<string, unknown> } => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
+          ? parsed.ruleTruthDraft.agentRules.filter((item): item is { characterName: string; payload: JsonObject } => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
           : [],
       },
       eventsDraft: normalizeEventsDraft(parsed.eventsDraft || {}),

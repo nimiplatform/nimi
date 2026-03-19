@@ -9,7 +9,16 @@ vi.mock('@renderer/infra/bootstrap/forge-bootstrap.js', () => ({
   runForgeBootstrap: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('@runtime/platform-client.js', () => ({
+vi.mock('@renderer/features/auth/forge-login-page.js', () => ({
+  ForgeLoginPage: () => (
+    <div data-testid="forge-login-page" data-auth-mode="desktop-browser">
+      <h1>Sign in to Forge</h1>
+      <p>Click the mark to authorize in your browser.</p>
+    </div>
+  ),
+}));
+
+vi.mock('@nimiplatform/sdk', () => ({
   getPlatformClient: () => ({
     realm: {
       clearAuth: vi.fn(),

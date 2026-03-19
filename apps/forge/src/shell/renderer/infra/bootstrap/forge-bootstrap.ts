@@ -1,8 +1,24 @@
 import { getRuntimeDefaults } from '@renderer/bridge/runtime-defaults.js';
 import { getDaemonStatus } from '@renderer/bridge/runtime-daemon.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
-import { initializePlatformClient } from '@runtime/platform-client.js';
+import { createPlatformClient } from '@nimiplatform/sdk';
 import { bootstrapAuthSession } from './forge-bootstrap-auth.js';
+
+function toForgeAuthUser(user: Record<string, unknown> | null) {
+  if (!user) {
+    return null;
+  }
+  const id = String(user.id || '').trim();
+  if (!id) {
+    return null;
+  }
+  return {
+    id,
+    displayName: String(user.displayName || user.name || '').trim(),
+    email: user.email ? String(user.email) : undefined,
+    avatarUrl: user.avatarUrl ? String(user.avatarUrl) : undefined,
+  };
+}
 
 export async function runForgeBootstrap(): Promise<void> {
   const store = useAppStore.getState();
@@ -13,11 +29,32 @@ export async function runForgeBootstrap(): Promise<void> {
     store.setRuntimeDefaults(runtimeDefaults);
 
     // Step 3: Platform Client
-    const { runtime, realm } = await initializePlatformClient({
+    const { runtime, realm } = await createPlatformClient({
+      appId: 'nimi.forge',
       realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
       accessToken: runtimeDefaults.realm.accessToken,
-      accessTokenProvider: () => useAppStore.getState().auth.token,
-      subjectUserIdProvider: () => useAppStore.getState().auth.user?.id ?? '',
+      accessTokenProvider: () => useAppStore.getState().auth.token ?? '',
+      runtimeTransport: {
+        type: 'tauri-ipc',
+        commandNamespace: 'runtime_bridge',
+        eventNamespace: 'runtime_bridge',
+      },
+      sessionStore: {
+        getAccessToken: () => useAppStore.getState().auth.token,
+        getRefreshToken: () => useAppStore.getState().auth.refreshToken,
+        getSubjectUserId: () => useAppStore.getState().auth.user?.id ?? '',
+        getCurrentUser: () => useAppStore.getState().auth.user,
+        setAuthSession: (user, accessToken, refreshToken) => {
+          const normalizedUser = toForgeAuthUser(user as Record<string, unknown> | null);
+          if (!normalizedUser) {
+            return;
+          }
+          useAppStore.getState().setAuthSession(normalizedUser, accessToken, refreshToken || '');
+        },
+        clearAuthSession: () => {
+          useAppStore.getState().clearAuthSession();
+        },
+      },
     });
 
     // Step 4: Auth Session

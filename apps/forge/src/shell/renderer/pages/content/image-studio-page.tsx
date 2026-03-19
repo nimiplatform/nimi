@@ -8,7 +8,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
-import { getPlatformClient } from '@runtime/platform-client.js';
+import { type JsonObject } from '@renderer/bridge/types.js';
+import { getPlatformClient } from '@nimiplatform/sdk';
 
 const STYLE_PRESETS = ['anime', 'realistic', 'painterly', 'pixel-art'] as const;
 const ASPECT_RATIOS = ['1:1', '16:9', '9:16', '4:3'] as const;
@@ -84,7 +85,9 @@ export default function ImageStudioPage() {
     setSaveError(null);
     try {
       const result = await mutations.imageUploadMutation.mutateAsync(undefined);
-      const record = result && typeof result === 'object' ? (result as Record<string, unknown>) : {};
+      const record: JsonObject = result && typeof result === 'object' && !Array.isArray(result)
+        ? result as JsonObject
+        : {};
       const uploadUrl = String(record.uploadUrl || '');
 
       if (!uploadUrl) {

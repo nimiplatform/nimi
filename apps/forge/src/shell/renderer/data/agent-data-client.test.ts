@@ -21,7 +21,7 @@ const mockAgentsService = {
   agentControllerUpdateVisibility: vi.fn(),
 };
 
-vi.mock('@runtime/platform-client.js', () => ({
+vi.mock('@nimiplatform/sdk', () => ({
   getPlatformClient: () => ({
     realm: {
       services: {
@@ -48,13 +48,26 @@ describe('agent-data-client', () => {
   it('createCreatorAgent passes payload', async () => {
     const payload = { displayName: 'Agent 1', concept: 'test' };
     await adc.createCreatorAgent(payload);
-    expect(mockCreatorService.creatorControllerCreateAgent).toHaveBeenCalledWith(payload);
+    expect(mockCreatorService.creatorControllerCreateAgent).toHaveBeenCalledWith({
+      ...payload,
+      handle: 'Agent 1',
+    });
   });
 
   it('batchCreateCreatorAgents passes items and continueOnError', async () => {
     const payload = { items: [{ name: 'A' }], continueOnError: true };
     await adc.batchCreateCreatorAgents(payload);
-    expect(mockCreatorService.creatorControllerBatchCreateAgents).toHaveBeenCalledWith(payload);
+    expect(mockCreatorService.creatorControllerBatchCreateAgents).toHaveBeenCalledWith({
+      continueOnError: true,
+      items: [
+        {
+          name: 'A',
+          handle: 'A',
+          displayName: 'A',
+          concept: 'A',
+        },
+      ],
+    });
   });
 
   // Agent detail ops (creator-scoped)
@@ -83,7 +96,7 @@ describe('agent-data-client', () => {
   it('updateAgentDna passes agentId and dna', async () => {
     const dna = { primaryType: 'CARING', secondaryTraits: ['WISE'] };
     await adc.updateAgentDna('a1', dna);
-    expect(mockAgentsService.agentControllerUpdateDna).toHaveBeenCalledWith('a1', dna);
+    expect(mockAgentsService.agentControllerUpdateDna).toHaveBeenCalledWith('a1', { dna });
   });
 
   it('getAgentSoulPrime passes agentId', async () => {
@@ -94,7 +107,7 @@ describe('agent-data-client', () => {
   it('updateAgentSoulPrime passes agentId and payload', async () => {
     const sp = { text: 'You are a kind helper.' };
     await adc.updateAgentSoulPrime('a1', sp);
-    expect(mockAgentsService.agentControllerUpdateSoulPrime).toHaveBeenCalledWith('a1', sp);
+    expect(mockAgentsService.agentControllerUpdateSoulPrime).toHaveBeenCalledWith('a1', { soulPrime: sp });
   });
 
   // API Keys
@@ -106,7 +119,11 @@ describe('agent-data-client', () => {
   it('createCreatorKey passes payload', async () => {
     const payload = { name: 'dev-key' };
     await adc.createCreatorKey(payload);
-    expect(mockCreatorService.creatorControllerCreateKey).toHaveBeenCalledWith(payload);
+    expect(mockCreatorService.creatorControllerCreateKey).toHaveBeenCalledWith({
+      name: 'dev-key',
+      label: 'dev-key',
+      type: 'PERSONAL',
+    });
   });
 
   it('revokeCreatorKey passes keyId', async () => {
@@ -123,6 +140,11 @@ describe('agent-data-client', () => {
   it('updateAgentVisibility passes agentId and payload', async () => {
     const payload = { visibility: 'public' };
     await adc.updateAgentVisibility('a1', payload);
-    expect(mockAgentsService.agentControllerUpdateVisibility).toHaveBeenCalledWith('a1', payload);
+    expect(mockAgentsService.agentControllerUpdateVisibility).toHaveBeenCalledWith('a1', {
+      accountVisibility: 'PUBLIC',
+      defaultPostVisibility: 'PUBLIC',
+      dmVisibility: 'PUBLIC',
+      profileVisibility: 'PUBLIC',
+    });
   });
 });

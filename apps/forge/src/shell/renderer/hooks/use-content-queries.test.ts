@@ -181,28 +181,26 @@ describe('useMediaAssetsQuery', () => {
   });
 
   it('normalizes media asset list payload from the asset endpoint', async () => {
-    mockContentDataClient.listMediaAssets.mockResolvedValue({
-      items: [
-        {
-          id: 'asset-1',
-          mediaType: 'VIDEO',
-          provider: 'CF_STREAM',
-          status: 'READY',
-          storageRef: 'video-cf-1',
-          url: 'https://stream.example.com/v1',
-          ownerKind: 'WORLD',
-          ownerId: 'world-1',
-          deliveryAccess: 'SIGNED',
-          title: 'Launch Trailer',
-          label: 'Trailer',
-          tags: ['launch'],
-          worldId: 'world-1',
-          agentId: null,
-          createdAt: '2026-03-13T00:00:00.000Z',
-          updatedAt: '2026-03-13T00:00:00.000Z',
-        },
-      ],
-    });
+    mockContentDataClient.listMediaAssets.mockResolvedValue([
+      {
+        id: 'asset-1',
+        mediaType: 'VIDEO',
+        provider: 'CF_STREAM',
+        status: 'READY',
+        storageRef: 'video-cf-1',
+        url: 'https://stream.example.com/v1',
+        ownerKind: 'WORLD',
+        ownerId: 'world-1',
+        deliveryAccess: 'SIGNED',
+        title: 'Launch Trailer',
+        label: 'Trailer',
+        tags: ['launch'],
+        worldId: 'world-1',
+        agentId: null,
+        createdAt: '2026-03-13T00:00:00.000Z',
+        updatedAt: '2026-03-13T00:00:00.000Z',
+      },
+    ]);
 
     const wrapper = createWrapper();
     const { result } = renderHook(() => useMediaAssetsQuery(true), { wrapper });

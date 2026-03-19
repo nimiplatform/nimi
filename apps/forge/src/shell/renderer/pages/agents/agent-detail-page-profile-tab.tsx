@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { JsonObject } from '@renderer/bridge/types.js';
 import type { AgentDetail } from '@renderer/hooks/use-agent-queries.js';
 import { FieldGroup, formatDate } from './agent-detail-page-shared';
 
 type ProfileTabProps = {
   agent: AgentDetail;
-  onSave: (updates: Record<string, unknown>) => Promise<void>;
+  onSave: (updates: JsonObject) => Promise<void>;
   saving: boolean;
 };
 

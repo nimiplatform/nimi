@@ -7,7 +7,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getPlatformClient } from '@runtime/platform-client.js';
+import { getPlatformClient } from '@nimiplatform/sdk';
+import type { JsonObject } from '@renderer/bridge/types.js';
 import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
 import { finalizeMediaAsset } from '@renderer/data/content-data-client.js';
 
@@ -95,7 +96,9 @@ export default function MusicStudioPage() {
         lyricsSource: lyrics || undefined,
         instrumental,
       });
-      const record = upload && typeof upload === 'object' ? (upload as Record<string, unknown>) : {};
+      const record: JsonObject = upload && typeof upload === 'object' && !Array.isArray(upload)
+        ? upload as JsonObject
+        : {};
       const uploadUrl = String(record.uploadUrl || '');
       const assetId = String(record.assetId || '');
 

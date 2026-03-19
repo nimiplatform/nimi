@@ -5,6 +5,7 @@ import type {
   WorldStudioSnapshotPatch,
   WorldStudioWorkspaceSnapshot,
 } from '@world-engine/contracts.js';
+import type { JsonObject } from '@renderer/bridge/types.js';
 import { getWorldDraft } from '@renderer/data/world-data-client.js';
 import {
   deriveRuleTruthDraftFromWorkspace,
@@ -12,9 +13,9 @@ import {
   restoreWorldviewPatchFromWorldRules,
 } from './world-create-page-helpers.js';
 
-function asRecord(value: unknown): Record<string, unknown> {
+function asRecord(value: unknown): JsonObject {
   return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? value as JsonObject
     : {};
 }
 
@@ -47,7 +48,7 @@ export function useWorldCreatePageDraftPersistence(input: UseWorldCreatePageDraf
       try {
         const data = await getWorldDraft(input.resumeDraftId);
         if (data && typeof data === 'object') {
-          const record = data as Record<string, unknown>;
+          const record = asRecord(data);
           const draftPayload = asRecord(record.draftPayload);
           const pipelineState = asRecord(record.pipelineState);
           const restoredWorldviewPatch = restoreWorldviewPatchFromWorldRules(draftPayload.worldRules);
@@ -61,10 +62,10 @@ export function useWorldCreatePageDraftPersistence(input: UseWorldCreatePageDraf
           )
             ? {
               worldRules: Array.isArray(draftPayload.worldRules)
-                ? draftPayload.worldRules.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
+                ? draftPayload.worldRules.filter((item): item is JsonObject => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
                 : [],
               agentRules: Array.isArray(draftPayload.agentRules)
-                ? draftPayload.agentRules.filter((item): item is { characterName: string; payload: Record<string, unknown> } => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
+                ? draftPayload.agentRules.filter((item): item is { characterName: string; payload: JsonObject } => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
                 : [],
             }
             : deriveRuleTruthDraftFromWorkspace({

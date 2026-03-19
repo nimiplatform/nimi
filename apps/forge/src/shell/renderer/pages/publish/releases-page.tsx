@@ -12,6 +12,7 @@ import {
   listReleases,
   publishRelease,
   updateRelease,
+  type PublishReleaseDraft,
 } from '@renderer/data/content-data-client.js';
 import { useCreatorPostsQuery } from '@renderer/hooks/use-content-queries.js';
 import { useAgentListQuery } from '@renderer/hooks/use-agent-queries.js';
@@ -25,19 +26,7 @@ type DraftMediaItem = {
   type: DraftMediaType;
 };
 
-type PublishDraft = {
-  id: string;
-  title: string;
-  caption: string;
-  tags: string[];
-  media: DraftMediaItem[];
-  identity: DraftIdentity;
-  agentId: string | null;
-  status: 'DRAFT' | 'PUBLISHED';
-  updatedAt: string;
-  lastPublishedAt: string | null;
-  lastPublishedPostId: string | null;
-};
+type PublishDraft = PublishReleaseDraft;
 
 function emptyMedia(): DraftMediaItem {
   return { assetId: '', type: 'IMAGE' };
@@ -65,7 +54,7 @@ export default function ReleasesPage() {
   const postsQuery = useCreatorPostsQuery({ limit: 8 }, true);
   const agentListQuery = useAgentListQuery(true);
 
-  const drafts = (Array.isArray(draftsQuery.data) ? draftsQuery.data : []) as PublishDraft[];
+  const drafts: PublishDraft[] = draftsQuery.data ?? [];
   const selectedDraft = drafts.find((draft) => draft.id === selectedDraftId) || null;
 
   useEffect(() => {
@@ -100,8 +89,7 @@ export default function ReleasesPage() {
     mutationFn: async () => await createRelease({}),
     onSuccess: async (draft) => {
       await queryClient.invalidateQueries({ queryKey: ['forge', 'publish', 'drafts'] });
-      const record = draft as Record<string, unknown>;
-      const draftId = String(record.id || '').trim();
+      const draftId = String(draft.id || '').trim();
       setSelectedDraftId(draftId || null);
       setNotice(t('releases.draftCreated', 'Draft created.'));
       setError(null);
@@ -144,9 +132,8 @@ export default function ReleasesPage() {
         queryClient.invalidateQueries({ queryKey: ['forge', 'publish', 'drafts'] }),
         queryClient.invalidateQueries({ queryKey: ['forge', 'content', 'posts'] }),
       ]);
-      const record = draft as Record<string, unknown>;
       setNotice(
-        String(record.lastPublishedPostId || '').trim()
+        String(draft.lastPublishedPostId || '').trim()
           ? t('releases.publishSuccess', 'Draft published as a post.')
           : t('releases.publishSuccess', 'Draft published as a post.'),
       );

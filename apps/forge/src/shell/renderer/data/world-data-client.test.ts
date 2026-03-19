@@ -46,7 +46,7 @@ const mockCreatorService = {
   creatorControllerBatchCreateAgents: vi.fn(),
 };
 
-vi.mock('@runtime/platform-client.js', () => ({
+vi.mock('@nimiplatform/sdk', () => ({
   getPlatformClient: () => ({
     realm: {
       services: {
@@ -79,7 +79,10 @@ describe('world-data-client', () => {
   it('createWorldDraft passes payload', async () => {
     const body = { sourceType: 'TEXT' };
     await wdc.createWorldDraft(body);
-    expect(mockWorldControlController.worldControlControllerCreateDraft).toHaveBeenCalledWith(body);
+    expect(mockWorldControlController.worldControlControllerCreateDraft).toHaveBeenCalledWith({
+      sourceType: 'TEXT',
+      sourceRef: 'TEXT',
+    });
   });
 
   it('getWorldDraft passes draftId', async () => {
@@ -131,7 +134,10 @@ describe('world-data-client', () => {
   it('batchUpsertWorldEvents passes worldId and payload', async () => {
     const body = { events: [{ title: 'E1' }] };
     await wdc.batchUpsertWorldEvents('w1', body);
-    expect(mockWorldControlController.worldControlControllerBatchUpsertWorldEvents).toHaveBeenCalledWith('w1', body);
+    expect(mockWorldControlController.worldControlControllerBatchUpsertWorldEvents).toHaveBeenCalledWith('w1', {
+      events: [{ title: 'E1' }],
+      eventUpserts: [{ title: 'E1' }],
+    });
   });
 
   it('deleteWorldEvent passes worldId and eventId', async () => {
@@ -180,12 +186,20 @@ describe('world-data-client', () => {
   it('createCreatorAgent passes payload', async () => {
     const body = { name: 'Agent1' };
     await wdc.createCreatorAgent(body);
-    expect(mockCreatorService.creatorControllerCreateAgent).toHaveBeenCalledWith(body);
+    expect(mockCreatorService.creatorControllerCreateAgent).toHaveBeenCalledWith({
+      name: 'Agent1',
+      handle: 'Agent1',
+      displayName: 'Agent1',
+      concept: 'Agent1',
+    });
   });
 
   it('batchCreateCreatorAgents passes payload', async () => {
     const body = { items: [{ name: 'A1' }] };
     await wdc.batchCreateCreatorAgents(body);
-    expect(mockCreatorService.creatorControllerBatchCreateAgents).toHaveBeenCalledWith(body);
+    expect(mockCreatorService.creatorControllerBatchCreateAgents).toHaveBeenCalledWith({
+      items: [{ name: 'A1' }],
+      continueOnError: false,
+    });
   });
 });

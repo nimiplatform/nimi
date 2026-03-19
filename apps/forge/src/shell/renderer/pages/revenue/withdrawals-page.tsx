@@ -63,7 +63,7 @@ export default function WithdrawalsPage() {
     const amount = parseFloat(withdrawAmount);
     if (isNaN(amount) || amount <= 0) return;
     try {
-      await mutations.createWithdrawalMutation.mutateAsync({ amount });
+      await mutations.createWithdrawalMutation.mutateAsync({ gemAmount: withdrawAmount });
       await queryClient.invalidateQueries({ queryKey: ['forge', 'revenue'] });
       setWithdrawAmount('');
     } catch {
@@ -116,7 +116,7 @@ export default function WithdrawalsPage() {
                 <div>
                   <p>Withdrawable</p>
                   <p className="text-lg font-bold text-white mt-1">
-                    {formatCurrency(Number(eligible?.amount ?? eligible?.withdrawableAmount ?? 0))}
+                    {formatCurrency(Number(eligible?.amount ?? 0))}
                   </p>
                 </div>
                 <div>

@@ -16,11 +16,14 @@ import {
   listWorldMutations,
 } from '@renderer/data/world-data-client.js';
 
-function toRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
-}
+type WorldDraftListPayload = Awaited<ReturnType<typeof listWorldDrafts>>;
+type WorldListPayload = Awaited<ReturnType<typeof listMyWorlds>>;
+type WorldMutationListPayload = Awaited<ReturnType<typeof listWorldMutations>>;
+type WorldEventListPayload = Awaited<ReturnType<typeof listWorldEvents>>;
+type WorldEventListItem = WorldEventListPayload extends { items?: Array<infer Item> } ? Item : never;
+type WorldEventEvidenceRef = WorldEventListItem extends { evidenceRefs?: Array<infer Ref> } ? Ref : never;
 
-function toStringOrNull(value: unknown): string | null {
+function toStringOrNull(value: string | null | undefined): string | null {
   if (typeof value !== 'string') return null;
   const normalized = value.trim();
   return normalized ? normalized : null;
@@ -79,7 +82,7 @@ export type WorldEventSummary = {
   locationRefs: string[];
   characterRefs: string[];
   dependsOnEventIds: string[];
-  evidenceRefs: Array<Record<string, unknown>>;
+  evidenceRefs: WorldEventEvidenceRef[];
   confidence: number;
   needsEvidence: boolean;
   createdBy: string;
@@ -88,12 +91,9 @@ export type WorldEventSummary = {
   updatedAt: string;
 };
 
-function toDraftSummaryList(payload: unknown): WorldDraftSummary[] {
-  const items = Array.isArray(toRecord(payload).items)
-    ? (toRecord(payload).items as unknown[])
-    : [];
+function toDraftSummaryList(payload: WorldDraftListPayload): WorldDraftSummary[] {
+  const items = payload.items ?? [];
   return items
-    .map((item) => toRecord(item))
     .map((item) => ({
       id: String(item.id || ''),
       targetWorldId: toStringOrNull(item.targetWorldId),
@@ -106,12 +106,9 @@ function toDraftSummaryList(payload: unknown): WorldDraftSummary[] {
     .filter((item) => Boolean(item.id));
 }
 
-function toWorldSummaryList(payload: unknown): WorldSummary[] {
-  const items = Array.isArray(toRecord(payload).items)
-    ? (toRecord(payload).items as unknown[])
-    : [];
+function toWorldSummaryList(payload: WorldListPayload): WorldSummary[] {
+  const items = payload.items ?? [];
   return items
-    .map((item) => toRecord(item))
     .map((item) => ({
       id: String(item.id || ''),
       name: String(item.name || 'Untitled World'),
@@ -122,12 +119,9 @@ function toWorldSummaryList(payload: unknown): WorldSummary[] {
     .filter((item) => Boolean(item.id));
 }
 
-function toMutationSummaryList(payload: unknown): WorldMutationSummary[] {
-  const items = Array.isArray(toRecord(payload).items)
-    ? (toRecord(payload).items as unknown[])
-    : [];
+function toMutationSummaryList(payload: WorldMutationListPayload): WorldMutationSummary[] {
+  const items = payload.items ?? [];
   return items
-    .map((item) => toRecord(item))
     .map((item) => ({
       id: String(item.id || ''),
       worldId: String(item.worldId || ''),
@@ -140,12 +134,9 @@ function toMutationSummaryList(payload: unknown): WorldMutationSummary[] {
     .filter((item) => Boolean(item.id));
 }
 
-function toEventSummaryList(payload: unknown): WorldEventSummary[] {
-  const items = Array.isArray(toRecord(payload).items)
-    ? (toRecord(payload).items as unknown[])
-    : [];
+function toEventSummaryList(payload: WorldEventListPayload): WorldEventSummary[] {
+  const items = payload.items ?? [];
   return items
-    .map((item) => toRecord(item))
     .map((item) => ({
       id: String(item.id || ''),
       worldId: String(item.worldId || ''),
@@ -160,17 +151,15 @@ function toEventSummaryList(payload: unknown): WorldEventSummary[] {
       result: toStringOrNull(item.result),
       timeRef: toStringOrNull(item.timeRef),
       locationRefs: Array.isArray(item.locationRefs)
-        ? item.locationRefs.map((entry: unknown) => String(entry || '')).filter(Boolean)
+        ? item.locationRefs.map((entry) => String(entry || '')).filter(Boolean)
         : [],
       characterRefs: Array.isArray(item.characterRefs)
-        ? item.characterRefs.map((entry: unknown) => String(entry || '')).filter(Boolean)
+        ? item.characterRefs.map((entry) => String(entry || '')).filter(Boolean)
         : [],
       dependsOnEventIds: Array.isArray(item.dependsOnEventIds)
-        ? item.dependsOnEventIds.map((entry: unknown) => String(entry || '')).filter(Boolean)
+        ? item.dependsOnEventIds.map((entry) => String(entry || '')).filter(Boolean)
         : [],
-      evidenceRefs: Array.isArray(item.evidenceRefs)
-        ? item.evidenceRefs.filter((entry: unknown) => entry && typeof entry === 'object') as Array<Record<string, unknown>>
-        : [],
+      evidenceRefs: Array.isArray(item.evidenceRefs) ? item.evidenceRefs as WorldEventEvidenceRef[] : [],
       confidence: Number.isFinite(Number(item.confidence)) ? Number(item.confidence) : 0.5,
       needsEvidence: Boolean(item.needsEvidence),
       createdBy: String(item.createdBy || ''),

@@ -16,31 +16,22 @@ const NAV_GROUPS: NavGroup[] = [
   {
     titleKey: 'sidebar.create',
     items: [
-      { to: '/worlds', labelKey: 'sidebar.worlds' },
-      { to: '/agents', labelKey: 'sidebar.agents' },
-      { to: '/content/images', labelKey: 'sidebar.content' },
-      { to: '/publish/releases', labelKey: 'sidebar.publish' },
+      { to: '/workbench', labelKey: 'sidebar.workbench' },
+      { to: '/worlds/library', labelKey: 'sidebar.worlds' },
+      { to: '/agents/library', labelKey: 'sidebar.agents' },
     ],
   },
   {
     titleKey: 'sidebar.manage',
     items: [
-      { to: '/copyright', labelKey: 'sidebar.copyright' },
-      { to: '/revenue', labelKey: 'sidebar.revenue' },
+      { to: '/settings', labelKey: 'sidebar.settings' },
     ],
   },
   {
     titleKey: 'sidebar.extend',
     items: [
-      { to: '/templates', labelKey: 'sidebar.templates' },
-      { to: '/advisors', labelKey: 'sidebar.advisors' },
-      { to: '/analytics', labelKey: 'sidebar.analytics' },
-    ],
-  },
-  {
-    titleKey: 'sidebar.settings',
-    items: [
-      { to: '/settings', labelKey: 'sidebar.settings' },
+      { to: '/content/images', labelKey: 'sidebar.content' },
+      { to: '/publish/releases', labelKey: 'sidebar.publish' },
     ],
   },
 ];

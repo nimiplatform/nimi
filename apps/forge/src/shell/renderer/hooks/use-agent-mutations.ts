@@ -10,11 +10,15 @@ import {
   updateAgentSoulPrime,
   createCreatorKey,
   revokeCreatorKey,
+  type ForgeCreateCreatorAgentInput,
+  type ForgeCreateCreatorKeyInput,
+  type ForgeUpdateAgentDnaInput,
+  type ForgeUpdateAgentSoulPrimeInput,
 } from '@renderer/data/agent-data-client.js';
 
 export function useAgentMutations() {
   const createAgentMutation = useMutation({
-    mutationFn: async (payload: Record<string, unknown>) =>
+    mutationFn: async (payload: ForgeCreateCreatorAgentInput) =>
       await createCreatorAgent(payload),
   });
 
@@ -24,17 +28,17 @@ export function useAgentMutations() {
   });
 
   const updateDnaMutation = useMutation({
-    mutationFn: async (input: { agentId: string; dna: Record<string, unknown> }) =>
+    mutationFn: async (input: { agentId: string; dna: ForgeUpdateAgentDnaInput }) =>
       await updateAgentDna(input.agentId, input.dna),
   });
 
   const updateSoulPrimeMutation = useMutation({
-    mutationFn: async (input: { agentId: string; soulPrime: Record<string, unknown> }) =>
+    mutationFn: async (input: { agentId: string; soulPrime: ForgeUpdateAgentSoulPrimeInput }) =>
       await updateAgentSoulPrime(input.agentId, input.soulPrime),
   });
 
   const createKeyMutation = useMutation({
-    mutationFn: async (payload: Record<string, unknown>) =>
+    mutationFn: async (payload: ForgeCreateCreatorKeyInput) =>
       await createCreatorKey(payload),
   });
 

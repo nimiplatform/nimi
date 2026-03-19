@@ -5,6 +5,7 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useWorldResourceQueries, type WorldDraftSummary, type WorldSummary } from '@renderer/hooks/use-world-queries.js';
+import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js';
 
 function formatDate(iso: string): string {
   if (!iso) return '';
@@ -52,6 +53,8 @@ function WorldStatusBadge({ status }: { status: WorldSummary['status'] }) {
 export default function WorldsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const ensureWorkspaceForWorld = useForgeWorkspaceStore((state) => state.ensureWorkspaceForWorld);
+  const ensureWorkspaceForDraft = useForgeWorkspaceStore((state) => state.ensureWorkspaceForDraft);
 
   const { draftsQuery, worldsQuery } = useWorldResourceQueries({
     enabled: true,
@@ -71,14 +74,14 @@ export default function WorldsPage() {
           <div>
             <h1 className="text-2xl font-bold text-white">{t('pages.worlds')}</h1>
             <p className="mt-1 text-sm text-neutral-400">
-              {t('worlds.subtitle', 'Manage your worlds and drafts')}
+              {t('worlds.subtitle', 'Browse worlds and reopen them inside the Forge workbench')}
             </p>
           </div>
           <button
-            onClick={() => navigate('/worlds/create')}
+            onClick={() => navigate('/workbench/new')}
             className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:bg-neutral-200 transition-colors"
           >
-            {t('worlds.createNew', 'Create New World')}
+            {t('worlds.createNew', 'New Workspace')}
           </button>
         </div>
 
@@ -99,7 +102,14 @@ export default function WorldsPage() {
                     <DraftCard
                       key={draft.id}
                       draft={draft}
-                      onContinue={() => navigate(`/worlds/create?draftId=${draft.id}`)}
+                      onContinue={() => {
+                        const workspaceId = ensureWorkspaceForDraft({
+                          draftId: draft.id,
+                          title: draft.sourceRef || `Draft ${draft.id.slice(0, 8)}`,
+                          targetWorldId: draft.targetWorldId,
+                        });
+                        navigate(`/workbench/${workspaceId}?panel=WORLD_TRUTH`);
+                      }}
                     />
                   ))}
                 </div>
@@ -123,7 +133,14 @@ export default function WorldsPage() {
                     <WorldCard
                       key={world.id}
                       world={world}
-                      onMaintain={() => navigate(`/worlds/${world.id}/maintain`)}
+                      onMaintain={() => {
+                        const workspaceId = ensureWorkspaceForWorld({
+                          worldId: world.id,
+                          title: world.name,
+                          description: world.description,
+                        });
+                        navigate(`/workbench/${workspaceId}?panel=WORLD_TRUTH`);
+                      }}
                     />
                   ))}
                 </div>

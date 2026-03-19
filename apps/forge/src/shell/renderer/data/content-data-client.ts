@@ -5,7 +5,8 @@
  * Publish workspace helpers below are app-level placeholders, not missing backend APIs.
  */
 
-import { getPlatformClient } from '@runtime/platform-client.js';
+import { getPlatformClient } from '@nimiplatform/sdk';
+import type { RealmModel, RealmServiceArgs } from '@nimiplatform/sdk/realm';
 import {
   listPublishChannels,
   getPublishSettings,
@@ -24,6 +25,54 @@ import {
 function realm() {
   return getPlatformClient().realm;
 }
+
+type CreateAudioDirectUploadInput = RealmServiceArgs<'MediaService', 'createAudioDirectUpload'>[0];
+type UpdateMediaAssetInput = RealmServiceArgs<'MediaService', 'updateMediaAsset'>[1];
+type FinalizeMediaAssetInput = RealmServiceArgs<'MediaService', 'finalizeMediaAsset'>[1];
+type CreatePostInput = RealmServiceArgs<'PostService', 'createPost'>[0];
+type UpdatePostInput = RealmServiceArgs<'PostService', 'updatePost'>[1];
+type PostDto = RealmModel<'PostDto'>;
+export type PublishChannelListItem = ReturnType<typeof listPublishChannels>[number] & {
+  defaultIdentity: PublishWorkspaceState['settings']['defaultIdentity'];
+  defaultAgentId: PublishWorkspaceState['settings']['defaultAgentId'];
+};
+export type PublishReleaseDraft = ReturnType<typeof listPublishDrafts>[number];
+export type PublishChannelUpdateInput = {
+  defaultIdentity?: PublishWorkspaceState['settings']['defaultIdentity'];
+  defaultAgentId?: string | null;
+  enabled?: boolean;
+};
+export type ForgeCreateAudioDirectUploadInput = CreateAudioDirectUploadInput & {
+  [key: string]: unknown;
+};
+export type ForgeUpdateMediaAssetInput = UpdateMediaAssetInput & {
+  [key: string]: unknown;
+};
+export type ForgeFinalizeMediaAssetInput = FinalizeMediaAssetInput & {
+  [key: string]: unknown;
+};
+export type ForgeCreatePostInput = CreatePostInput | {
+  content?: string;
+  caption?: string;
+  media?: CreatePostInput['media'];
+  tags?: string[];
+  [key: string]: unknown;
+};
+export type ForgeUpdatePostInput = UpdatePostInput | {
+  content?: string;
+  visibility?: UpdatePostInput['visibility'];
+  [key: string]: unknown;
+};
+export type ReleaseMutationInput = {
+  title?: string;
+  caption?: string;
+  tags?: string[];
+  media?: Array<PublishDraftMedia | { id?: string; assetId?: string; type?: PublishDraftMedia['type'] }>;
+  identity?: PublishWorkspaceState['settings']['defaultIdentity'];
+  agentId?: string | null;
+  delete?: boolean;
+};
+type PublishDelivery = ReturnType<typeof listPublishDeliveries>[number];
 
 function toDraftMediaList(input: unknown): PublishDraftMedia[] | undefined {
   if (!Array.isArray(input)) return undefined;
@@ -59,8 +108,8 @@ export async function createVideoDirectUpload(requireSignedUrls?: string) {
   return realm().services.MediaService.createVideoDirectUpload(requireSignedUrls);
 }
 
-export async function createAudioDirectUpload(payload?: Record<string, unknown>) {
-  return realm().services.MediaService.createAudioDirectUpload(payload || {});
+export async function createAudioDirectUpload(payload: ForgeCreateAudioDirectUploadInput = {}) {
+  return realm().services.MediaService.createAudioDirectUpload(payload);
 }
 
 export async function listMediaAssets() {
@@ -71,12 +120,12 @@ export async function getMediaAsset(assetId: string) {
   return realm().services.MediaService.getMediaAsset(assetId);
 }
 
-export async function updateMediaAsset(assetId: string, payload: Record<string, unknown>) {
+export async function updateMediaAsset(assetId: string, payload: ForgeUpdateMediaAssetInput) {
   return realm().services.MediaService.updateMediaAsset(assetId, payload);
 }
 
-export async function finalizeMediaAsset(assetId: string, payload?: Record<string, unknown>) {
-  return realm().services.MediaService.finalizeMediaAsset(assetId, payload || {});
+export async function finalizeMediaAsset(assetId: string, payload: ForgeFinalizeMediaAssetInput = {}) {
+  return realm().services.MediaService.finalizeMediaAsset(assetId, payload);
 }
 
 export async function deleteMediaAsset(assetId: string) {
@@ -85,8 +134,12 @@ export async function deleteMediaAsset(assetId: string) {
 
 // ── Posts ─────────────────────────────────────────────────────
 
-export async function createPost(payload: Record<string, unknown>) {
-  return realm().services.PostService.createPost(payload);
+export async function createPost(payload: ForgeCreatePostInput) {
+  return realm().services.PostService.createPost({
+    media: Array.isArray(payload.media) ? payload.media : [],
+    caption: payload.caption || ('content' in payload ? payload.content : undefined),
+    tags: payload.tags,
+  });
 }
 
 export async function getHomeFeed(params?: {
@@ -109,8 +162,10 @@ export async function getPost(postId: string, worldId?: string) {
   return realm().services.PostService.getPost(postId, worldId);
 }
 
-export async function updatePost(postId: string, payload: Record<string, unknown>) {
-  return realm().services.PostService.updatePost(postId, payload);
+export async function updatePost(postId: string, payload: ForgeUpdatePostInput) {
+  return realm().services.PostService.updatePost(postId, {
+    visibility: payload.visibility,
+  });
 }
 
 export async function deletePost(postId: string) {
@@ -136,7 +191,7 @@ export async function getWorldPosts(worldId: string, params?: {
 
 // ── Publish Workspace (app-level workflow) ───────────────────
 
-export async function listPublishingChannels(): Promise<unknown> {
+export async function listPublishingChannels(): Promise<PublishChannelListItem[]> {
   const settings = getPublishSettings();
   return listPublishChannels().map((channel) => ({
     ...channel,
@@ -145,46 +200,46 @@ export async function listPublishingChannels(): Promise<unknown> {
   }));
 }
 
-export async function listReleases(_params?: Record<string, unknown>): Promise<unknown> {
-  return listPublishDrafts(_params?.status ? String(_params.status) : undefined);
+export async function listReleases(params?: { status?: string }): Promise<ReturnType<typeof listPublishDrafts>> {
+  return listPublishDrafts(params?.status ? String(params.status) : undefined);
 }
 
-export async function createRelease(_payload: Record<string, unknown>): Promise<unknown> {
+export async function createRelease(payload: ReleaseMutationInput): Promise<ReturnType<typeof createPublishDraft>> {
   return createPublishDraft({
-    title: _payload.title ? String(_payload.title) : '',
-    caption: _payload.caption ? String(_payload.caption) : '',
-    tags: Array.isArray(_payload.tags) ? _payload.tags.map((tag) => String(tag || '')).filter(Boolean) : [],
-    media: toDraftMediaList(_payload.media) || [],
-    identity: String(_payload.identity || 'USER') === 'AGENT' ? 'AGENT' : 'USER',
-    agentId: _payload.agentId ? String(_payload.agentId) : null,
+    title: payload.title ? String(payload.title) : '',
+    caption: payload.caption ? String(payload.caption) : '',
+    tags: Array.isArray(payload.tags) ? payload.tags.map((tag) => String(tag || '')).filter(Boolean) : [],
+    media: toDraftMediaList(payload.media) || [],
+    identity: String(payload.identity || 'USER') === 'AGENT' ? 'AGENT' : 'USER',
+    agentId: payload.agentId ? String(payload.agentId) : null,
   });
 }
 
-export async function getRelease(_releaseId: string): Promise<unknown> {
-  const draft = getPublishDraft(_releaseId);
+export async function getRelease(releaseId: string): Promise<NonNullable<ReturnType<typeof getPublishDraft>>> {
+  const draft = getPublishDraft(releaseId);
   if (!draft) {
     throw new Error('Publish draft not found');
   }
   return draft;
 }
 
-export async function updateRelease(_releaseId: string, _payload: Record<string, unknown>): Promise<unknown> {
-  if (_payload.delete === true) {
-    deletePublishDraft(_releaseId);
-    return { id: _releaseId, deleted: true };
+export async function updateRelease(releaseId: string, payload: ReleaseMutationInput): Promise<ReturnType<typeof updatePublishDraft> | { id: string; deleted: true }> {
+  if (payload.delete === true) {
+    deletePublishDraft(releaseId);
+    return { id: releaseId, deleted: true };
   }
-  return updatePublishDraft(_releaseId, {
-    title: _payload.title !== undefined ? String(_payload.title || '') : undefined,
-    caption: _payload.caption !== undefined ? String(_payload.caption || '') : undefined,
-    tags: Array.isArray(_payload.tags) ? _payload.tags.map((tag) => String(tag || '')).filter(Boolean) : undefined,
-    media: toDraftMediaList(_payload.media),
-    identity: _payload.identity !== undefined ? (String(_payload.identity) === 'AGENT' ? 'AGENT' : 'USER') : undefined,
-    agentId: _payload.agentId !== undefined ? (_payload.agentId ? String(_payload.agentId) : null) : undefined,
+  return updatePublishDraft(releaseId, {
+    title: payload.title !== undefined ? String(payload.title || '') : undefined,
+    caption: payload.caption !== undefined ? String(payload.caption || '') : undefined,
+    tags: Array.isArray(payload.tags) ? payload.tags.map((tag) => String(tag || '')).filter(Boolean) : undefined,
+    media: toDraftMediaList(payload.media),
+    identity: payload.identity !== undefined ? (String(payload.identity) === 'AGENT' ? 'AGENT' : 'USER') : undefined,
+    agentId: payload.agentId !== undefined ? (payload.agentId ? String(payload.agentId) : null) : undefined,
   });
 }
 
-export async function publishRelease(_releaseId: string): Promise<unknown> {
-  const draft = getPublishDraft(_releaseId);
+export async function publishRelease(releaseId: string): Promise<ReturnType<typeof markPublishDraftPublished>> {
+  const draft = getPublishDraft(releaseId);
   if (!draft) {
     throw new Error('Publish draft not found');
   }
@@ -199,38 +254,40 @@ export async function publishRelease(_releaseId: string): Promise<unknown> {
     caption: draft.caption || undefined,
     tags: draft.tags.length > 0 ? draft.tags : undefined,
   });
-  const createdRecord = created && typeof created === 'object' ? created as Record<string, unknown> : {};
-  const postId = String(createdRecord.id || '').trim();
+  const postId = String((created as PostDto).id || '').trim();
   if (!postId) {
     throw new Error('Publish succeeded without returning a post id');
   }
-  return markPublishDraftPublished(_releaseId, postId);
+  return markPublishDraftPublished(releaseId, postId);
 }
 
-export async function listDeliveries(_releaseId: string): Promise<unknown> {
-  return listPublishDeliveries(_releaseId);
+export async function listDeliveries(releaseId: string): Promise<PublishDelivery[]> {
+  return listPublishDeliveries(releaseId);
 }
 
-export async function connectChannel(_channelId: string): Promise<unknown> {
-  if (_channelId !== 'INTERNAL_FEED' && _channelId !== 'INTERNAL_AGENT_PROFILE') {
+export async function connectChannel(channelId: 'INTERNAL_FEED' | 'INTERNAL_AGENT_PROFILE'): Promise<ReturnType<typeof updatePublishSettings>> {
+  if (channelId !== 'INTERNAL_FEED' && channelId !== 'INTERNAL_AGENT_PROFILE') {
     throw new Error('Unsupported publish channel');
   }
   return updatePublishSettings({
-    channels: toChannelPatch(_channelId, true),
+    channels: toChannelPatch(channelId, true),
   });
 }
 
-export async function updateChannel(_channelId: string, _payload: Record<string, unknown>): Promise<unknown> {
-  if (_channelId !== 'INTERNAL_FEED' && _channelId !== 'INTERNAL_AGENT_PROFILE') {
+export async function updateChannel(
+  channelId: 'INTERNAL_FEED' | 'INTERNAL_AGENT_PROFILE',
+  payload: PublishChannelUpdateInput,
+): Promise<ReturnType<typeof updatePublishSettings>> {
+  if (channelId !== 'INTERNAL_FEED' && channelId !== 'INTERNAL_AGENT_PROFILE') {
     throw new Error('Unsupported publish channel');
   }
   return updatePublishSettings({
-    defaultIdentity: _payload.defaultIdentity !== undefined
-      ? (String(_payload.defaultIdentity) === 'AGENT' ? 'AGENT' : 'USER')
+    defaultIdentity: payload.defaultIdentity !== undefined
+      ? (String(payload.defaultIdentity) === 'AGENT' ? 'AGENT' : 'USER')
       : undefined,
-    defaultAgentId: _payload.defaultAgentId !== undefined
-      ? (_payload.defaultAgentId ? String(_payload.defaultAgentId) : null)
+    defaultAgentId: payload.defaultAgentId !== undefined
+      ? (payload.defaultAgentId ? String(payload.defaultAgentId) : null)
       : undefined,
-    channels: toChannelPatch(_channelId, typeof _payload.enabled === 'boolean' ? _payload.enabled : true),
+    channels: toChannelPatch(channelId, typeof payload.enabled === 'boolean' ? payload.enabled : true),
   });
 }

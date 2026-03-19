@@ -10,18 +10,10 @@ import { useTranslation } from 'react-i18next';
 import {
   listPublishingChannels,
   updateChannel,
+  type PublishChannelListItem,
+  type PublishChannelUpdateInput,
 } from '@renderer/data/content-data-client.js';
 import { useAgentListQuery } from '@renderer/hooks/use-agent-queries.js';
-
-type PublishChannelRow = {
-  id: 'INTERNAL_FEED' | 'INTERNAL_AGENT_PROFILE';
-  type: 'INTERNAL_FEED' | 'INTERNAL_AGENT_PROFILE';
-  label: string;
-  description: string;
-  enabled: boolean;
-  defaultIdentity?: 'USER' | 'AGENT';
-  defaultAgentId?: string | null;
-};
 
 export default function ChannelsPage() {
   const { t } = useTranslation();
@@ -35,13 +27,13 @@ export default function ChannelsPage() {
   });
   const agentsQuery = useAgentListQuery(true);
 
-  const channels = (Array.isArray(channelsQuery.data) ? channelsQuery.data : []) as PublishChannelRow[];
+  const channels = channelsQuery.data ?? [];
   const settingsSource = channels[0];
   const defaultIdentity = settingsSource?.defaultIdentity || 'USER';
   const defaultAgentId = settingsSource?.defaultAgentId || '';
 
   const updateChannelMutation = useMutation({
-    mutationFn: async (input: { channelId: PublishChannelRow['id']; payload: Record<string, unknown> }) =>
+    mutationFn: async (input: { channelId: PublishChannelListItem['id']; payload: PublishChannelUpdateInput }) =>
       await updateChannel(input.channelId, input.payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['forge', 'publish', 'channels'] });
@@ -54,7 +46,7 @@ export default function ChannelsPage() {
     },
   });
 
-  function updateDefaults(payload: Record<string, unknown>) {
+  function updateDefaults(payload: PublishChannelUpdateInput) {
     updateChannelMutation.mutate({ channelId: 'INTERNAL_FEED', payload });
   }
 

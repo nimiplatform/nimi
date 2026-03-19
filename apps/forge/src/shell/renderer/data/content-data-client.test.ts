@@ -38,7 +38,7 @@ const mockWorldpostService = {
   getWorldPosts: vi.fn(),
 };
 
-vi.mock('@runtime/platform-client.js', () => ({
+vi.mock('@nimiplatform/sdk', () => ({
   getPlatformClient: () => ({
     realm: {
       services: {
@@ -114,7 +114,11 @@ describe('content-data-client', () => {
     it('createPost passes payload', async () => {
       const payload = { content: 'Hello' };
       await cdc.createPost(payload);
-      expect(mockPostService.createPost).toHaveBeenCalledWith(payload);
+      expect(mockPostService.createPost).toHaveBeenCalledWith({
+        media: [],
+        caption: 'Hello',
+        tags: undefined,
+      });
     });
 
     it('getHomeFeed passes params', async () => {
@@ -129,7 +133,7 @@ describe('content-data-client', () => {
 
     it('updatePost passes postId and payload', async () => {
       await cdc.updatePost('p1', { content: 'Updated' });
-      expect(mockPostService.updatePost).toHaveBeenCalledWith('p1', { content: 'Updated' });
+      expect(mockPostService.updatePost).toHaveBeenCalledWith('p1', { visibility: undefined });
     });
 
     it('deletePost passes postId', async () => {

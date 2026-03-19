@@ -16,9 +16,16 @@ import {
   getWithdrawalHistory,
 } from '@renderer/data/revenue-data-client.js';
 
-function toRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
-}
+type BalancesPayload = Awaited<ReturnType<typeof getBalances>>;
+type SparkHistoryPayload = Awaited<ReturnType<typeof getSparkHistory>>;
+type GemHistoryPayload = Awaited<ReturnType<typeof getGemHistory>>;
+type RevenueShareConfigPayload = Awaited<ReturnType<typeof getRevenueShareConfig>>;
+type RevenuePreviewPayload = Awaited<ReturnType<typeof previewRevenueDistribution>>;
+type ConnectStatusPayload = Awaited<ReturnType<typeof getConnectStatus>>;
+type WithdrawalConfigPayload = Awaited<ReturnType<typeof getWithdrawalConfig>>;
+type CanWithdrawPayload = Awaited<ReturnType<typeof canWithdraw>>;
+type WithdrawalCalculationPayload = Awaited<ReturnType<typeof calculateWithdrawal>>;
+type WithdrawalHistoryPayload = Awaited<ReturnType<typeof getWithdrawalHistory>>;
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -40,6 +47,35 @@ export type ConnectStatusData = {
   status: 'not_connected' | 'onboarding' | 'connected' | 'restricted';
 };
 
+export type RevenueShareConfigData = {
+  creatorPercent: number;
+  platformPercent: number;
+  minimumThreshold: number;
+};
+
+export type RevenuePreviewData = RevenuePreviewPayload;
+
+export type WithdrawalConfigData = {
+  minimumAmount: number;
+  feePercent: number;
+  gemToUsdRate: number;
+};
+
+export type CanWithdrawData = {
+  amount: number;
+  canWithdraw: boolean;
+  connectStatus: CanWithdrawPayload['connectStatus'];
+  minimumAmount: number;
+  reason: string | null;
+};
+
+export type WithdrawalCalculationData = {
+  gemAmount: number;
+  fee: number;
+  netAmount: number;
+  usdAmount: number;
+};
+
 export type WithdrawalEntry = {
   id: string;
   amount: number;
@@ -50,43 +86,88 @@ export type WithdrawalEntry = {
 
 // ── Normalizers ──────────────────────────────────────────────
 
-function toBalanceData(payload: unknown): BalanceData {
-  const r = toRecord(payload);
+function toBalanceData(payload: BalancesPayload): BalanceData {
   return {
-    sparkBalance: Number(r.sparkBalance ?? r.spark ?? 0),
-    gemBalance: Number(r.gemBalance ?? r.gem ?? 0),
+    sparkBalance: Number(payload.sparkBalance ?? 0),
+    gemBalance: Number(payload.gemBalance ?? 0),
   };
 }
 
-function toHistoryList(payload: unknown): HistoryEntry[] {
-  const r = toRecord(payload);
-  const items = Array.isArray(r.items) ? (r.items as unknown[]) : (Array.isArray(payload) ? (payload as unknown[]) : []);
+function toHistoryList(payload: SparkHistoryPayload | GemHistoryPayload): HistoryEntry[] {
+  const items = Array.isArray(payload) ? payload : payload.items ?? [];
   return items.map((item) => {
-    const i = toRecord(item);
     return {
-      id: String(i.id || ''),
-      type: String(i.type || i.transactionType || ''),
-      amount: Number(i.amount ?? 0),
-      fromUserId: i.fromUserId ? String(i.fromUserId) : null,
-      description: String(i.description || i.memo || ''),
-      createdAt: String(i.createdAt || ''),
+      id: String(item.id || ''),
+      type: String((('type' in item ? item.type : undefined) ?? ('transactionType' in item ? item.transactionType : undefined)) || ''),
+      amount: Number(item.amount ?? 0),
+      fromUserId: item.fromUserId ? String(item.fromUserId) : null,
+      description: String((('description' in item ? item.description : undefined) ?? ('memo' in item ? item.memo : undefined)) || ''),
+      createdAt: String(item.createdAt || ''),
     };
   }).filter((i) => Boolean(i.id));
 }
 
-function toWithdrawalList(payload: unknown): WithdrawalEntry[] {
-  const r = toRecord(payload);
-  const items = Array.isArray(r.items) ? (r.items as unknown[]) : (Array.isArray(payload) ? (payload as unknown[]) : []);
+function toWithdrawalList(payload: WithdrawalHistoryPayload): WithdrawalEntry[] {
+  const items = Array.isArray(payload) ? payload : payload.items ?? [];
   return items.map((item) => {
-    const i = toRecord(item);
     return {
-      id: String(i.id || ''),
-      amount: Number(i.amount ?? 0),
-      status: String(i.status || ''),
-      createdAt: String(i.createdAt || ''),
-      completedAt: i.completedAt ? String(i.completedAt) : null,
+      id: String(item.id || ''),
+      amount: Number(item.amount ?? 0),
+      status: String(item.status || ''),
+      createdAt: String(item.createdAt || ''),
+      completedAt: item.completedAt ? String(item.completedAt) : null,
     };
   }).filter((i) => Boolean(i.id));
+}
+
+function toRevenueShareConfigData(payload: RevenueShareConfigPayload): RevenueShareConfigData {
+  const creatorPercent = Number(payload.nativeAgentCreatorSharePercent ?? 0);
+  return {
+    creatorPercent,
+    platformPercent: Math.max(0, 100 - creatorPercent),
+    minimumThreshold: Number(payload.minShareThreshold ?? 0),
+  };
+}
+
+function toConnectStatusData(payload: ConnectStatusPayload): ConnectStatusData {
+  switch (payload.status) {
+    case 'VERIFIED':
+      return { status: 'connected' };
+    case 'PENDING':
+      return { status: 'onboarding' };
+    case 'RESTRICTED':
+    case 'DISABLED':
+      return { status: 'restricted' };
+    default:
+      return { status: 'not_connected' };
+  }
+}
+
+function toWithdrawalConfigData(payload: WithdrawalConfigPayload): WithdrawalConfigData {
+  return {
+    minimumAmount: Number(payload.minGemAmount ?? 0),
+    feePercent: Number(payload.feePercent ?? 0),
+    gemToUsdRate: Number(payload.gemToUsdRate ?? 0),
+  };
+}
+
+function toCanWithdrawData(payload: CanWithdrawPayload): CanWithdrawData {
+  return {
+    amount: Number(payload.balance ?? 0),
+    canWithdraw: Boolean(payload.canWithdraw),
+    connectStatus: payload.connectStatus,
+    minimumAmount: Number(payload.minAmount ?? 0),
+    reason: payload.reason ?? null,
+  };
+}
+
+function toWithdrawalCalculationData(payload: WithdrawalCalculationPayload): WithdrawalCalculationData {
+  return {
+    gemAmount: Number(payload.gemAmount ?? 0),
+    fee: Number(payload.feeAmount ?? 0),
+    netAmount: Number(payload.netAmount ?? 0),
+    usdAmount: Number(payload.usdAmount ?? 0),
+  };
 }
 
 // ── Hooks ────────────────────────────────────────────────────
@@ -123,7 +204,8 @@ export function useRevenueShareConfigQuery(enabled = true) {
     queryKey: ['forge', 'revenue', 'share-config'],
     enabled,
     retry: false,
-    queryFn: async () => toRecord(await getRevenueShareConfig()),
+    queryFn: async (): Promise<RevenueShareConfigData> =>
+      toRevenueShareConfigData(await getRevenueShareConfig()),
   });
 }
 
@@ -132,7 +214,7 @@ export function useRevenuePreviewQuery(amount: string, agentId: string, enabled 
     queryKey: ['forge', 'revenue', 'preview', amount, agentId],
     enabled: enabled && Boolean(amount) && Boolean(agentId),
     retry: false,
-    queryFn: async () => toRecord(await previewRevenueDistribution(amount, agentId)),
+    queryFn: async (): Promise<RevenuePreviewData> => await previewRevenueDistribution(amount, agentId),
   });
 }
 
@@ -141,10 +223,8 @@ export function useConnectStatusQuery(enabled = true) {
     queryKey: ['forge', 'revenue', 'connect-status'],
     enabled,
     retry: false,
-    queryFn: async () => {
-      const r = toRecord(await getConnectStatus());
-      return { status: String(r.status || 'not_connected') } as ConnectStatusData;
-    },
+    queryFn: async (): Promise<ConnectStatusData> =>
+      toConnectStatusData(await getConnectStatus()),
   });
 }
 
@@ -153,7 +233,8 @@ export function useWithdrawalConfigQuery(enabled = true) {
     queryKey: ['forge', 'revenue', 'withdrawal-config'],
     enabled,
     retry: false,
-    queryFn: async () => toRecord(await getWithdrawalConfig()),
+    queryFn: async (): Promise<WithdrawalConfigData> =>
+      toWithdrawalConfigData(await getWithdrawalConfig()),
   });
 }
 
@@ -162,7 +243,8 @@ export function useCanWithdrawQuery(enabled = true) {
     queryKey: ['forge', 'revenue', 'can-withdraw'],
     enabled,
     retry: false,
-    queryFn: async () => toRecord(await canWithdraw()),
+    queryFn: async (): Promise<CanWithdrawData> =>
+      toCanWithdrawData(await canWithdraw()),
   });
 }
 
@@ -171,7 +253,8 @@ export function useWithdrawalCalculateQuery(amount: string, enabled = true) {
     queryKey: ['forge', 'revenue', 'calculate', amount],
     enabled: enabled && Boolean(amount),
     retry: false,
-    queryFn: async () => toRecord(await calculateWithdrawal(amount)),
+    queryFn: async (): Promise<WithdrawalCalculationData> =>
+      toWithdrawalCalculationData(await calculateWithdrawal(amount)),
   });
 }
 

@@ -25,17 +25,28 @@ import {
   batchUpsertWorldMediaBindings,
   deleteWorldEvent,
   batchCreateCreatorAgents,
+  type ForgeBatchCreateCreatorAgentsInput,
+  type ForgeBatchUpsertWorldEventsInput,
+  type ForgeBatchUpsertWorldMediaBindingsInput,
+  type ForgeCreateAgentRuleInput,
+  type ForgeCreateWorldDraftInput,
+  type ForgeCreateWorldRuleInput,
+  type ForgePublishWorldDraftInput,
+  type ForgeUpdateAgentRuleInput,
+  type ForgeUpdateWorldDraftInput,
+  type ForgeUpdateWorldMaintenanceInput,
+  type ForgeUpdateWorldRuleInput,
 } from '@renderer/data/world-data-client.js';
 
 const LOREBOOK_PROJECTION_READ_ONLY = 'WORLD_LOREBOOK_PROJECTION_READ_ONLY';
 
 type SaveDraftInput = {
   draftId?: string;
-  sourceType: 'TEXT' | 'FILE';
+  sourceType: ForgeCreateWorldDraftInput['sourceType'];
   sourceRef: string;
   status: 'DRAFT' | 'SYNTHESIZE' | 'REVIEW' | 'PUBLISH' | 'FAILED';
-  pipelineState: Record<string, unknown>;
-  draftPayload: Record<string, unknown>;
+  pipelineState: NonNullable<ForgeCreateWorldDraftInput['pipelineState']>;
+  draftPayload: NonNullable<ForgeCreateWorldDraftInput['draftPayload']>;
   targetWorldId?: string;
 };
 
@@ -43,39 +54,45 @@ export function useWorldMutations() {
   const saveDraftMutation = useMutation({
     mutationFn: async (input: SaveDraftInput) => {
       if (input.draftId) {
-        return await updateWorldDraft(input.draftId, {
+        const patch: ForgeUpdateWorldDraftInput = {
           status: input.status,
           pipelineState: input.pipelineState,
           draftPayload: input.draftPayload,
-        });
+        };
+        return await updateWorldDraft(input.draftId, patch);
       }
-      return await createWorldDraft({
+      const payload: ForgeCreateWorldDraftInput = {
         sourceType: input.sourceType,
         sourceRef: input.sourceRef,
         targetWorldId: input.targetWorldId,
         pipelineState: input.pipelineState,
         draftPayload: input.draftPayload,
-      });
+      };
+      return await createWorldDraft(payload);
     },
   });
 
   const publishDraftMutation = useMutation({
-    mutationFn: async (input: { draftId: string; reason: string }) =>
-      await publishWorldDraft(input.draftId, { reason: input.reason }),
+    mutationFn: async (input: { draftId: string; reason: string }) => {
+      const payload: ForgePublishWorldDraftInput = { reason: input.reason };
+      return await publishWorldDraft(input.draftId, payload);
+    },
   });
 
   const saveMaintenanceMutation = useMutation({
     mutationFn: async (input: {
       worldId: string;
-      worldPatch: Record<string, unknown>;
+      worldPatch: NonNullable<ForgeUpdateWorldMaintenanceInput['worldPatch']>;
       reason: string;
       ifSnapshotVersion?: string;
-    }) =>
-      await updateWorldMaintenance(input.worldId, {
+    }) => {
+      const payload: ForgeUpdateWorldMaintenanceInput = {
         worldPatch: input.worldPatch,
         reason: input.reason,
         ifSnapshotVersion: input.ifSnapshotVersion,
-      }),
+      };
+      return await updateWorldMaintenance(input.worldId, payload);
+    },
   });
 
   const listWorldRulesMutation = useMutation({
@@ -86,7 +103,7 @@ export function useWorldMutations() {
   const createWorldRuleMutation = useMutation({
     mutationFn: async (input: {
       worldId: string;
-      payload: Record<string, unknown>;
+      payload: ForgeCreateWorldRuleInput;
     }) => await createWorldRule(input.worldId, input.payload),
   });
 
@@ -94,7 +111,7 @@ export function useWorldMutations() {
     mutationFn: async (input: {
       worldId: string;
       ruleId: string;
-      payload: Record<string, unknown>;
+      payload: ForgeUpdateWorldRuleInput;
     }) => await updateWorldRule(input.worldId, input.ruleId, input.payload),
   });
 
@@ -125,7 +142,7 @@ export function useWorldMutations() {
     mutationFn: async (input: {
       worldId: string;
       agentId: string;
-      payload: Record<string, unknown>;
+      payload: ForgeCreateAgentRuleInput;
     }) => await createAgentRule(input.worldId, input.agentId, input.payload),
   });
 
@@ -134,7 +151,7 @@ export function useWorldMutations() {
       worldId: string;
       agentId: string;
       ruleId: string;
-      payload: Record<string, unknown>;
+      payload: ForgeUpdateAgentRuleInput;
     }) => await updateAgentRule(input.worldId, input.agentId, input.ruleId, input.payload),
   });
 
@@ -163,29 +180,33 @@ export function useWorldMutations() {
   const syncEventsMutation = useMutation({
     mutationFn: async (input: {
       worldId: string;
-      eventUpserts: Array<Record<string, unknown>>;
+      eventUpserts: NonNullable<ForgeBatchUpsertWorldEventsInput['eventUpserts']>;
       reason: string;
       mode?: 'merge' | 'replace';
       ifSnapshotVersion?: string;
-    }) =>
-      await batchUpsertWorldEvents(input.worldId, {
+    }) => {
+      const payload: ForgeBatchUpsertWorldEventsInput = {
         eventUpserts: input.eventUpserts,
         mode: input.mode || 'merge',
         reason: input.reason,
         ifSnapshotVersion: input.ifSnapshotVersion,
-      }),
+      };
+      return await batchUpsertWorldEvents(input.worldId, payload);
+    },
   });
 
   const syncMediaBindingsMutation = useMutation({
     mutationFn: async (input: {
       worldId: string;
-      bindingUpserts: Array<Record<string, unknown>>;
+      bindingUpserts: NonNullable<ForgeBatchUpsertWorldMediaBindingsInput['bindingUpserts']>;
       reason: string;
-    }) =>
-      await batchUpsertWorldMediaBindings(input.worldId, {
+    }) => {
+      const payload: ForgeBatchUpsertWorldMediaBindingsInput = {
         bindingUpserts: input.bindingUpserts,
         reason: input.reason,
-      }),
+      };
+      return await batchUpsertWorldMediaBindings(input.worldId, payload);
+    },
   });
 
   const deleteLorebookMutation = useMutation({
@@ -201,7 +222,7 @@ export function useWorldMutations() {
 
   const batchCreateCreatorAgentsMutation = useMutation({
     mutationFn: async (input: {
-      items: Array<Record<string, unknown>>;
+      items: ForgeBatchCreateCreatorAgentsInput['items'];
       continueOnError?: boolean;
     }) =>
       await batchCreateCreatorAgents({

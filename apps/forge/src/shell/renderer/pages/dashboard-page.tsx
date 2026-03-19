@@ -5,8 +5,8 @@ import { useAgentListQuery } from '@renderer/hooks/use-agent-queries.js';
 import { useBalancesQuery } from '@renderer/hooks/use-revenue-queries.js';
 
 const NAV_CARDS = [
-  { path: '/worlds', label: 'nav.worlds', icon: '🌍', description: 'dashboard.worldsDesc' },
-  { path: '/agents', label: 'nav.agents', icon: '🤖', description: 'dashboard.agentsDesc' },
+  { path: '/workbench', label: 'nav.worlds', icon: '🌍', description: 'dashboard.worldsDesc' },
+  { path: '/agents/library', label: 'nav.agents', icon: '🤖', description: 'dashboard.agentsDesc' },
   { path: '/content/images', label: 'nav.content', icon: '🎨', description: 'dashboard.contentDesc' },
   { path: '/revenue', label: 'nav.revenue', icon: '💰', description: 'dashboard.revenueDesc' },
 ] as const;

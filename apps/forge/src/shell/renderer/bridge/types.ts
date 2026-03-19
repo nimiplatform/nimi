@@ -1,3 +1,7 @@
+export type JsonPrimitive = string | number | boolean | null;
+export type JsonValue = unknown;
+export type JsonObject = Record<string, unknown>;
+
 export type RealmDefaults = {
   realmBaseUrl: string;
   realtimeUrl: string;
@@ -36,11 +40,11 @@ export type RuntimeBridgeDaemonStatus = {
   debugLogPath?: string;
 };
 
-function assertRecord(value: unknown, label: string): Record<string, unknown> {
+function assertRecord(value: unknown, label: string): JsonObject {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`${label}: expected object, got ${typeof value}`);
   }
-  return value as Record<string, unknown>;
+  return value as JsonObject;
 }
 
 function str(value: unknown, fallback = ''): string {

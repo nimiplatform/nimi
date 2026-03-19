@@ -7,7 +7,8 @@ import type {
   WorldStudioCreateStep,
   WorldStudioWorkspaceSnapshot,
 } from '@world-engine/contracts.js';
-import { getPlatformClient } from '@runtime/platform-client.js';
+import { getPlatformClient } from '@nimiplatform/sdk';
+import type { JsonObject } from '@renderer/bridge/types.js';
 
 const WORLDVIEW_RULE_MODULES = [
   {
@@ -102,16 +103,16 @@ const WORLDVIEW_RULE_MODULES = [
   },
 ] as const;
 
-export function asRecord(value: unknown): Record<string, unknown> {
+export function asRecord(value: unknown): JsonObject {
   return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? value as JsonObject
     : {};
 }
 
 export function deriveWorldRulesFromWorldviewPatch(
-  worldviewPatch: Record<string, unknown>,
+  worldviewPatch: JsonObject,
   sourceRef: string,
-): Array<Record<string, unknown>> {
+): JsonObject[] {
   return WORLDVIEW_RULE_MODULES
     .filter((config) => Object.prototype.hasOwnProperty.call(worldviewPatch, config.field))
     .map((config) => ({
@@ -133,12 +134,12 @@ export function deriveWorldRulesFromWorldviewPatch(
 
 export function restoreWorldviewPatchFromWorldRules(
   worldRules: unknown,
-): Record<string, unknown> {
+): JsonObject {
   if (!Array.isArray(worldRules)) {
     return {};
   }
 
-  const restored: Record<string, unknown> = {};
+  const restored: JsonObject = {};
   for (const rawRule of worldRules) {
     const rule = asRecord(rawRule);
     const ruleKey = String(rule.ruleKey || '').trim();
@@ -153,12 +154,12 @@ export function restoreWorldviewPatchFromWorldRules(
 export function getSelectedAgentDraftEntriesFromAgentSync(
   selectedCharacters: string[],
   agentSync: WorldStudioWorkspaceSnapshot['agentSync'],
-): Array<{ characterName: string; draft: Record<string, unknown> }> {
+): Array<{ characterName: string; draft: JsonObject }> {
   const selectedNames = agentSync.selectedCharacterIds.length > 0
     ? agentSync.selectedCharacterIds
     : selectedCharacters;
   const seen = new Set<string>();
-  const entries: Array<{ characterName: string; draft: Record<string, unknown> }> = [];
+  const entries: Array<{ characterName: string; draft: JsonObject }> = [];
 
   for (const name of selectedNames) {
     const normalizedName = String(name || '').trim();
@@ -184,13 +185,13 @@ export function getSelectedAgentDraftEntriesFromAgentSync(
 
 export function getSelectedAgentDraftEntries(
   snapshot: WorldStudioWorkspaceSnapshot,
-): Array<{ characterName: string; draft: Record<string, unknown> }> {
+): Array<{ characterName: string; draft: JsonObject }> {
   return getSelectedAgentDraftEntriesFromAgentSync(snapshot.selectedCharacters, snapshot.agentSync);
 }
 
 export function deriveAgentCoreRuleDrafts(
   snapshot: WorldStudioWorkspaceSnapshot,
-): Array<{ characterName: string; payload: Record<string, unknown> }> {
+): Array<{ characterName: string; payload: JsonObject }> {
   return getSelectedAgentDraftEntries(snapshot).map((entry) => {
     const concept = String(entry.draft.concept || '').trim();
     const backstory = String(entry.draft.backstory || '').trim();
@@ -231,14 +232,14 @@ export function restoreAgentSyncFromAgentRuleDrafts(
   agentRules: unknown,
 ): {
   selectedCharacterIds: string[];
-  draftsByCharacter: Record<string, Record<string, unknown>>;
+  draftsByCharacter: Record<string, JsonObject>;
 } {
   if (!Array.isArray(agentRules)) {
     return { selectedCharacterIds: [], draftsByCharacter: {} };
   }
 
   const selectedCharacterIds: string[] = [];
-  const draftsByCharacter: Record<string, Record<string, unknown>> = {};
+  const draftsByCharacter: Record<string, JsonObject> = {};
 
   for (const rawItem of agentRules) {
     const item = asRecord(rawItem);
@@ -270,7 +271,7 @@ export function deriveRuleTruthDraftFromWorkspace(
   snapshot: Pick<WorldStudioWorkspaceSnapshot, 'worldviewPatch' | 'sourceRef' | 'selectedCharacters' | 'agentSync'>,
 ): WorldStudioWorkspaceSnapshot['ruleTruthDraft'] {
   const worldRules = deriveWorldRulesFromWorldviewPatch(
-    snapshot.worldviewPatch as Record<string, unknown>,
+    snapshot.worldviewPatch as JsonObject,
     snapshot.sourceRef || 'forge:create-draft',
   );
   const agentEntries = getSelectedAgentDraftEntriesFromAgentSync(
@@ -322,10 +323,10 @@ export function resolveRuleTruthDraft(
   snapshot: Pick<WorldStudioWorkspaceSnapshot, 'ruleTruthDraft' | 'worldviewPatch' | 'sourceRef' | 'selectedCharacters' | 'agentSync'>,
 ): WorldStudioWorkspaceSnapshot['ruleTruthDraft'] {
   const existingWorldRules = Array.isArray(snapshot.ruleTruthDraft?.worldRules)
-    ? snapshot.ruleTruthDraft.worldRules.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
+    ? snapshot.ruleTruthDraft.worldRules.filter((item): item is JsonObject => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
     : [];
   const existingAgentRules = Array.isArray(snapshot.ruleTruthDraft?.agentRules)
-    ? snapshot.ruleTruthDraft.agentRules.filter((item): item is { characterName: string; payload: Record<string, unknown> } => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
+    ? snapshot.ruleTruthDraft.agentRules.filter((item): item is { characterName: string; payload: JsonObject } => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
     : [];
 
   if (existingWorldRules.length > 0 || existingAgentRules.length > 0) {
@@ -338,7 +339,7 @@ export function resolveRuleTruthDraft(
   return deriveRuleTruthDraftFromWorkspace(snapshot);
 }
 
-export function setTimeFlowRatioOnWorldviewPatch(worldviewPatch: Record<string, unknown>, value: string): Record<string, unknown> {
+export function setTimeFlowRatioOnWorldviewPatch(worldviewPatch: JsonObject, value: string): JsonObject {
   const numeric = Number(value);
   const timeModel = asRecord(worldviewPatch.timeModel);
   return {
@@ -350,7 +351,7 @@ export function setTimeFlowRatioOnWorldviewPatch(worldviewPatch: Record<string, 
   };
 }
 
-export function getTimeFlowRatioFromWorldviewPatch(worldviewPatch: Record<string, unknown>): string {
+export function getTimeFlowRatioFromWorldviewPatch(worldviewPatch: JsonObject): string {
   const timeModel = asRecord(worldviewPatch.timeModel);
   const ratio = timeModel.timeFlowRatio;
   if (typeof ratio === 'number' && Number.isFinite(ratio)) {
@@ -390,7 +391,9 @@ export function createForgeAiClient(): WorldStudioRuntimeAiClient {
         responseFormat: input.responseFormat,
         signal: input.abortSignal,
       });
-      const artifacts = result.artifacts as unknown as Array<Record<string, unknown>>;
+      const artifacts = Array.isArray(result.artifacts)
+        ? result.artifacts.map((artifact) => asRecord(artifact))
+        : [];
       return {
         artifacts: Array.isArray(artifacts)
           ? artifacts.map((artifact) => ({

@@ -8,10 +8,14 @@ import {
   getMediaAsset,
   listMediaAssets,
 } from '@renderer/data/content-data-client.js';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 
-function toRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
-}
+type FeedPayload = Awaited<ReturnType<typeof getHomeFeed>>;
+type MediaAssetsPayload = Awaited<ReturnType<typeof listMediaAssets>>;
+type MediaAssetPayload = Awaited<ReturnType<typeof getMediaAsset>>;
+type FeedResponseDto = RealmModel<'FeedResponseDto'>;
+type PostDto = RealmModel<'PostDto'>;
+type MediaAssetDetailDto = RealmModel<'MediaAssetDetailDto'>;
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -55,20 +59,23 @@ export type MediaAssetSummary = {
 
 // ── Normalizers ──────────────────────────────────────────────
 
-function toPostList(payload: unknown): PostSummary[] {
-  const record = toRecord(payload);
-  const items = Array.isArray(record.items) ? (record.items as unknown[])
-    : Array.isArray(payload) ? (payload as unknown[])
+function isPostDto(value: unknown): value is PostDto {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function toPostList(payload: FeedPayload): PostSummary[] {
+  const items = Array.isArray((payload as FeedResponseDto).items)
+    ? (payload as FeedResponseDto).items
+    : Array.isArray(payload) ? payload
     : [];
   return items
-    .map((item) => toRecord(item))
+    .filter(isPostDto)
     .map((item) => ({
       id: String(item.id || ''),
       caption: String(item.caption || ''),
       media: Array.isArray(item.media)
-        ? (item.media as unknown[]).map((m) => {
-            const mr = toRecord(m);
-            const rawType = String(mr.type || 'IMAGE');
+        ? item.media.map((mediaItem: NonNullable<PostDto['media']>[number]) => {
+            const rawType = String(mediaItem.type || 'IMAGE');
             const type: PostMediaItem['type'] = rawType === 'VIDEO'
               ? 'VIDEO'
               : rawType === 'AUDIO'
@@ -76,14 +83,14 @@ function toPostList(payload: unknown): PostSummary[] {
                 : 'IMAGE';
             return {
               type,
-              assetId: String(mr.assetId || ''),
-              url: mr.url ? String(mr.url) : undefined,
-              duration: mr.duration ? Number(mr.duration) : undefined,
-              thumbnail: mr.thumbnail ? String(mr.thumbnail) : undefined,
+              assetId: String(mediaItem.assetId || ''),
+              url: mediaItem.url ? String(mediaItem.url) : undefined,
+              duration: mediaItem.duration ? Number(mediaItem.duration) : undefined,
+              thumbnail: mediaItem.thumbnail ? String(mediaItem.thumbnail) : undefined,
             };
           })
         : [],
-      tags: Array.isArray(item.tags) ? (item.tags as unknown[]).map((t) => String(t || '')) : [],
+      tags: Array.isArray(item.tags) ? item.tags.map((tag: string) => String(tag || '')) : [],
       authorId: String(item.authorId || item.userId || ''),
       worldId: item.worldId ? String(item.worldId) : null,
       createdAt: String(item.createdAt || ''),
@@ -92,11 +99,10 @@ function toPostList(payload: unknown): PostSummary[] {
     .filter((item) => Boolean(item.id));
 }
 
-function toMediaAssetList(payload: unknown): MediaAssetSummary[] {
-  const record = toRecord(payload);
-  const items = Array.isArray(record.items) ? (record.items as unknown[]) : [];
+function toMediaAssetList(payload: MediaAssetsPayload): MediaAssetSummary[] {
+  const items = Array.isArray(payload) ? payload : [];
   return items
-    .map((item) => toRecord(item))
+    .map((item) => item as MediaAssetDetailDto)
     .map((item) => {
       const rawType = String(item.mediaType || 'IMAGE');
       const mediaType: MediaAssetSummary['mediaType'] = rawType === 'VIDEO'
@@ -118,7 +124,7 @@ function toMediaAssetList(payload: unknown): MediaAssetSummary[] {
         deliveryAccess: String(item.deliveryAccess || ''),
         label: item.label ? String(item.label) : null,
         title: item.title ? String(item.title) : null,
-        tags: Array.isArray(item.tags) ? (item.tags as unknown[]).map((tag) => String(tag || '')).filter(Boolean) : [],
+        tags: Array.isArray(item.tags) ? item.tags.map((tag) => String(tag || '')).filter(Boolean) : [],
         createdAt: String(item.createdAt || ''),
         updatedAt: String(item.updatedAt || ''),
       };
@@ -155,6 +161,6 @@ export function useMediaAssetQuery(assetId: string) {
     queryKey: ['forge', 'content', 'media-asset', assetId],
     enabled: Boolean(assetId),
     retry: false,
-    queryFn: async () => toRecord(await getMediaAsset(assetId)),
+      queryFn: async () => await getMediaAsset(assetId) as MediaAssetPayload,
   });
 }

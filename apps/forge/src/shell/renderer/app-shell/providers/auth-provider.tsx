@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from './app-store.js';
 import { runForgeBootstrap } from '@renderer/infra/bootstrap/forge-bootstrap.js';
-import { getPlatformClient } from '@runtime/platform-client.js';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { ForgeLoginPage } from '@renderer/features/auth/forge-login-page.js';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

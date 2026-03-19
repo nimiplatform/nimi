@@ -45,7 +45,7 @@ Step 1: Runtime Defaults
   → Store realm base URL + access token defaults
 
 Step 2: Platform Client
-  → initializePlatformClient({ realmBaseUrl, accessToken, accessTokenProvider, subjectUserIdProvider })
+  → createPlatformClient({ realmBaseUrl, accessToken, accessTokenProvider, subjectUserIdProvider })
   → Produces { runtime, realm } SDK clients
 
 Step 3: Auth Session
@@ -229,7 +229,7 @@ interface ForgeAppStore {
 
 ## FG-SHELL-010: SDK Direct Connectivity
 
-Forge invokes runtime and realm through SDK clients created by `initializePlatformClient()`:
+Forge invokes runtime and realm through SDK clients created by `createPlatformClient()`:
 
 - `platformClient.runtime` is the only allowed entry for `text.stream`, `image.generate`, `music.generate`, and related runtime jobs
 - `platformClient.realm` is the only allowed entry for creator/business REST data

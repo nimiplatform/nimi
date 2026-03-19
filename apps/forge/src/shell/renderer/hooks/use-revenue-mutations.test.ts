@@ -55,12 +55,16 @@ describe('useRevenueMutations', () => {
     const { result } = renderHook(() => useRevenueMutations(), { wrapper });
 
     await act(async () => {
-      result.current.connectOnboardingMutation.mutate({ returnUrl: 'https://app.example.com' });
+      result.current.connectOnboardingMutation.mutate({
+        returnUrl: 'https://app.example.com',
+        refreshUrl: 'https://app.example.com',
+      });
     });
 
     await vi.waitFor(() => expect(result.current.connectOnboardingMutation.isSuccess).toBe(true));
     expect(mockRevenueDataClient.createConnectOnboarding).toHaveBeenCalledWith({
       returnUrl: 'https://app.example.com',
+      refreshUrl: 'https://app.example.com',
     });
   });
 
@@ -85,10 +89,10 @@ describe('useRevenueMutations', () => {
     const { result } = renderHook(() => useRevenueMutations(), { wrapper });
 
     await act(async () => {
-      result.current.createWithdrawalMutation.mutate({ amount: '100.00' });
+      result.current.createWithdrawalMutation.mutate({ gemAmount: '100.00' });
     });
 
     await vi.waitFor(() => expect(result.current.createWithdrawalMutation.isSuccess).toBe(true));
-    expect(mockRevenueDataClient.createWithdrawal).toHaveBeenCalledWith({ amount: '100.00' });
+    expect(mockRevenueDataClient.createWithdrawal).toHaveBeenCalledWith({ gemAmount: '100.00' });
   });
 });

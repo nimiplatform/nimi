@@ -7,7 +7,7 @@ vi.mock('@renderer/bridge/oauth.js', () => ({
   forgeTauriOAuthBridge: { openExternalUrl: vi.fn() },
 }));
 
-vi.mock('@runtime/platform-client.js', () => ({
+vi.mock('@nimiplatform/sdk', () => ({
   getPlatformClient: () => ({
     realm: {
       updateAuth: mockUpdateAuth,

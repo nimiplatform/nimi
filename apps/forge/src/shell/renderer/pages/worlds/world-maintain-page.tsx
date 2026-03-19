@@ -26,6 +26,7 @@ import {
   useWorldResourceQueries,
   type WorldMutationSummary,
 } from '@renderer/hooks/use-world-queries.js';
+import type { JsonObject } from '@renderer/bridge/types.js';
 import { useWorldMutations } from '@renderer/hooks/use-world-mutations.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { useAgentListQuery } from '@renderer/hooks/use-agent-queries.js';
@@ -34,13 +35,13 @@ import { WorldRuleTruthPanel } from './world-rule-truth-panel.js';
 
 type MaintainTab = 'WORLD' | 'WORLDVIEW' | 'EVENTS' | 'LOREBOOKS';
 
-function asRecord(value: unknown): Record<string, unknown> {
+function asRecord(value: unknown): JsonObject {
   return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? value as JsonObject
     : {};
 }
 
-function getTimeFlowRatioFromWorldviewPatch(worldviewPatch: Record<string, unknown>): string {
+function getTimeFlowRatioFromWorldviewPatch(worldviewPatch: JsonObject): string {
   const timeModel = asRecord(worldviewPatch.timeModel);
   const ratio = timeModel.timeFlowRatio;
   if (typeof ratio === 'number' && Number.isFinite(ratio)) {
@@ -49,10 +50,52 @@ function getTimeFlowRatioFromWorldviewPatch(worldviewPatch: Record<string, unkno
   return '1';
 }
 
-export default function WorldMaintainPage() {
+function toEventNodeDraft(event: {
+  id: string;
+  timelineSeq: number;
+  level: 'PRIMARY' | 'SECONDARY';
+  eventHorizon: 'PAST' | 'ONGOING' | 'FUTURE';
+  parentEventId: string | null;
+  title: string;
+  summary: string | null;
+  cause: string | null;
+  process: string | null;
+  result: string | null;
+  timeRef: string | null;
+  locationRefs: string[];
+  characterRefs: string[];
+  dependsOnEventIds: string[];
+  evidenceRefs: unknown[];
+  confidence: number;
+  needsEvidence: boolean;
+}): EventNodeDraft {
+  return {
+    ...event,
+    summary: event.summary ?? undefined,
+    cause: event.cause ?? undefined,
+    process: event.process ?? undefined,
+    result: event.result ?? undefined,
+    timeRef: event.timeRef ?? undefined,
+  } as EventNodeDraft;
+}
+
+type WorldMaintainPageViewProps = {
+  embedded?: boolean;
+  worldIdOverride?: string;
+  backTo?: string;
+  title?: string;
+};
+
+export function WorldMaintainPageView({
+  embedded = false,
+  worldIdOverride,
+  backTo = '/worlds/library',
+  title,
+}: WorldMaintainPageViewProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { worldId = '' } = useParams<{ worldId: string }>();
+  const effectiveWorldId = worldIdOverride || worldId;
   const queryClient = useQueryClient();
 
   // Auth
@@ -72,10 +115,10 @@ export default function WorldMaintainPage() {
 
   // Set selected world
   useEffect(() => {
-    if (worldId && snapshot.panel.selectedWorldId !== worldId) {
-      patchPanel({ selectedWorldId: worldId, activeDomain: 'WORLD' });
+    if (effectiveWorldId && snapshot.panel.selectedWorldId !== effectiveWorldId) {
+      patchPanel({ selectedWorldId: effectiveWorldId, activeDomain: 'WORLD' });
     }
-  }, [worldId, snapshot.panel.selectedWorldId, patchPanel]);
+  }, [effectiveWorldId, snapshot.panel.selectedWorldId, patchPanel]);
 
   // Persist on snapshot change
   useEffect(() => {
@@ -84,13 +127,13 @@ export default function WorldMaintainPage() {
 
   // Queries
   const { maintenanceQuery, eventsQuery, lorebooksQuery, mutationsQuery } = useWorldResourceQueries({
-    enabled: Boolean(worldId),
-    worldId,
+    enabled: Boolean(effectiveWorldId),
+    worldId: effectiveWorldId,
   });
 
   // Mutations
   const mutations = useWorldMutations();
-  const agentListQuery = useAgentListQuery(Boolean(worldId));
+  const agentListQuery = useAgentListQuery(Boolean(effectiveWorldId));
 
   // Local UI state
   const [eventSyncMode, setEventSyncMode] = useState<'merge' | 'replace'>('merge');
@@ -99,13 +142,13 @@ export default function WorldMaintainPage() {
   const [selectedTruthAgentId, setSelectedTruthAgentId] = useState('');
 
   const worldRulesQuery = useQuery({
-    queryKey: ['forge', 'world', 'rules', worldId, 'ACTIVE'],
-    enabled: Boolean(worldId),
+    queryKey: ['forge', 'world', 'rules', effectiveWorldId, 'ACTIVE'],
+    enabled: Boolean(effectiveWorldId),
     retry: false,
-    queryFn: async () => await listWorldRules(worldId, 'ACTIVE'),
+    queryFn: async () => await listWorldRules(effectiveWorldId, 'ACTIVE'),
   });
 
-  const worldOwnedAgents = (agentListQuery.data || []).filter((agent) => agent.worldId === worldId);
+  const worldOwnedAgents = (agentListQuery.data || []).filter((agent) => agent.worldId === effectiveWorldId);
 
   useEffect(() => {
     if (!selectedTruthAgentId && worldOwnedAgents.length > 0) {
@@ -122,23 +165,23 @@ export default function WorldMaintainPage() {
   }, [selectedTruthAgentId, worldOwnedAgents]);
 
   const agentRulesQuery = useQuery({
-    queryKey: ['forge', 'world', 'agent-rules', worldId, selectedTruthAgentId, 'ACTIVE'],
-    enabled: Boolean(worldId && selectedTruthAgentId),
+    queryKey: ['forge', 'world', 'agent-rules', effectiveWorldId, selectedTruthAgentId, 'ACTIVE'],
+    enabled: Boolean(effectiveWorldId && selectedTruthAgentId),
     retry: false,
-    queryFn: async () => await listAgentRules(worldId, selectedTruthAgentId, { status: 'ACTIVE' }),
+    queryFn: async () => await listAgentRules(effectiveWorldId, selectedTruthAgentId, { status: 'ACTIVE' }),
   });
 
   // Hydrate snapshot from server data
   useEffect(() => {
     const maint = maintenanceQuery.data;
     if (!maint || typeof maint !== 'object') return;
-    const record = maint as Record<string, unknown>;
+    const record = asRecord(maint);
     const worldProjection = record.world && typeof record.world === 'object'
       ? record.world
       : record.worldPatch;
     if (worldProjection && typeof worldProjection === 'object') {
       patchSnapshot({
-        worldPatch: worldProjection as Record<string, unknown>,
+        worldPatch: asRecord(worldProjection),
         editorSnapshotVersion: String(record.editorSnapshotVersion || ''),
       });
     }
@@ -147,7 +190,7 @@ export default function WorldMaintainPage() {
       : record.worldviewPatch;
     if (worldviewProjection && typeof worldviewProjection === 'object') {
       patchSnapshot({
-        worldviewPatch: worldviewProjection as Record<string, unknown>,
+        worldviewPatch: asRecord(worldviewProjection),
       });
     }
   }, [maintenanceQuery.data, patchSnapshot]);
@@ -156,8 +199,8 @@ export default function WorldMaintainPage() {
   useEffect(() => {
     const events = eventsQuery.data;
     if (!events) return;
-    const primary = events.filter((e) => e.level === 'PRIMARY') as unknown as EventNodeDraft[];
-    const secondary = events.filter((e) => e.level === 'SECONDARY') as unknown as EventNodeDraft[];
+    const primary = events.filter((e) => e.level === 'PRIMARY').map((event) => toEventNodeDraft(event));
+    const secondary = events.filter((e) => e.level === 'SECONDARY').map((event) => toEventNodeDraft(event));
     patchSnapshot({ eventsDraft: { primary, secondary } });
   }, [eventsQuery.data, patchSnapshot]);
 
@@ -165,7 +208,9 @@ export default function WorldMaintainPage() {
   useEffect(() => {
     const lorebooks = lorebooksQuery.data;
     if (!lorebooks || !Array.isArray(lorebooks)) return;
-    patchSnapshot({ lorebooksDraft: lorebooks as unknown as WorldLorebookDraftRow[] });
+    patchSnapshot({
+      lorebooksDraft: lorebooks.filter((item): item is WorldLorebookDraftRow => Boolean(item && typeof item === 'object')),
+    });
   }, [lorebooksQuery.data, patchSnapshot]);
 
   // Tab management
@@ -189,10 +234,10 @@ export default function WorldMaintainPage() {
   }, [patchPanel]);
 
   // Data callbacks
-  const onWorldPatchChange = useCallback((value: Record<string, unknown>) =>
+  const onWorldPatchChange = useCallback((value: JsonObject) =>
     patchSnapshot({ worldPatch: value }), [patchSnapshot]);
 
-  const onWorldviewPatchChange = useCallback((_value: Record<string, unknown>) => {
+  const onWorldviewPatchChange = useCallback((_value: JsonObject) => {
     setNotice('Worldview is now a read-only projection. Edit World Rules in the Rule Truth panel.');
   }, []);
 
@@ -208,25 +253,25 @@ export default function WorldMaintainPage() {
 
   // Sync operations
   const onSyncEvents = useCallback(async () => {
-    if (!worldId) return;
+    if (!effectiveWorldId) return;
     try {
       const upserts = [
         ...snapshot.eventsDraft.primary,
         ...snapshot.eventsDraft.secondary,
-      ].map((event) => event as unknown as Record<string, unknown>);
+      ].map((event) => asRecord(event));
 
       await mutations.syncEventsMutation.mutateAsync({
-        worldId,
+        worldId: effectiveWorldId,
         eventUpserts: upserts,
         reason: 'Forge manual sync',
         mode: eventSyncMode,
       });
-      await queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'events', worldId] });
+      await queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'events', effectiveWorldId] });
       setNotice('Events synced successfully');
     } catch (err) {
       setError(`Failed to sync events: ${err instanceof Error ? err.message : String(err)}`);
     }
-  }, [worldId, snapshot.eventsDraft, mutations.syncEventsMutation, queryClient, eventSyncMode]);
+  }, [effectiveWorldId, snapshot.eventsDraft, mutations.syncEventsMutation, queryClient, eventSyncMode]);
 
   const onSyncLorebooks = useCallback(async () => {
     setNotice('Lorebooks are read-only projections. Edit WorldRule or AgentRule instead.');
@@ -234,12 +279,12 @@ export default function WorldMaintainPage() {
 
   const invalidateTruthQueries = useCallback(async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'maintenance', worldId] }),
-      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'lorebooks', worldId] }),
-      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'rules', worldId] }),
-      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'agent-rules', worldId] }),
+      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'maintenance', effectiveWorldId] }),
+      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'lorebooks', effectiveWorldId] }),
+      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'rules', effectiveWorldId] }),
+      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'agent-rules', effectiveWorldId] }),
     ]);
-  }, [queryClient, worldId]);
+  }, [queryClient, effectiveWorldId]);
 
   // Derived
   const working = mutations.saveMaintenanceMutation.isPending
@@ -264,7 +309,7 @@ export default function WorldMaintainPage() {
   const layout: WorldStudioLayoutSlice = {
     title: 'Forge World Maintenance',
     subtitle: 'Maintain the selected world',
-    currentObjectLabel: worldId || 'World',
+    currentObjectLabel: effectiveWorldId || 'World',
     dirtySummary: {
       hasDirty: dirtyLabels.length > 0,
       count: dirtyLabels.length,
@@ -277,13 +322,13 @@ export default function WorldMaintainPage() {
   };
 
   const workflow: WorldStudioWorkflowSlice = {
-    landing: { target: 'MAINTAIN', worldId: worldId || null, reason: null },
+    landing: { target: 'MAINTAIN', worldId: effectiveWorldId || null, reason: null },
     landingTarget: 'MAINTAIN',
     worlds: [],
     drafts: [],
     primaryWorld: null,
     latestDraft: null,
-    selectedWorldId: worldId,
+    selectedWorldId: effectiveWorldId,
     selectedDraftId: '',
     createDisplayStage: 'IMPORT',
     createStageAccess: {
@@ -416,7 +461,7 @@ export default function WorldMaintainPage() {
       onEventSyncModeChange: setEventSyncMode,
       saveMaintenance: async () => {
         await mutations.saveMaintenanceMutation.mutateAsync({
-          worldId,
+          worldId: effectiveWorldId,
           worldPatch: snapshot.worldPatch,
           reason: 'Forge manual save',
           ifSnapshotVersion: snapshot.editorSnapshotVersion || undefined,
@@ -436,15 +481,15 @@ export default function WorldMaintainPage() {
       syncMediaBindings: async () => undefined,
       refreshResources: async () => {
         await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'maintenance', worldId] }),
-          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'events', worldId] }),
-          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'lorebooks', worldId] }),
-          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'rules', worldId] }),
-          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'agent-rules', worldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'maintenance', effectiveWorldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'events', effectiveWorldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'lorebooks', effectiveWorldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'rules', effectiveWorldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'agent-rules', effectiveWorldId] }),
         ]);
       },
       reloadRemote: async () => {
-        await queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'maintenance', worldId] });
+        await queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'maintenance', effectiveWorldId] });
       },
       adoptRemoteSnapshot: () => undefined,
     },
@@ -476,41 +521,43 @@ export default function WorldMaintainPage() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-neutral-800 px-4 py-3">
-        <div className="flex items-center gap-3">
+      {!embedded ? (
+        <div className="flex items-center justify-between border-b border-neutral-800 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(backTo)}
+              className="text-sm text-neutral-400 hover:text-white transition-colors"
+            >
+              &larr; {t('worlds.backToList', 'Back')}
+            </button>
+            <h1 className="text-lg font-semibold text-white">
+              {title || t('pages.worldMaintain', 'Maintain World')}
+            </h1>
+            <span className="text-xs text-neutral-500">{effectiveWorldId.slice(0, 8)}</span>
+          </div>
           <button
-            onClick={() => navigate('/worlds')}
-            className="text-sm text-neutral-400 hover:text-white transition-colors"
+            onClick={async () => {
+              if (!effectiveWorldId) return;
+              try {
+                await mutations.saveMaintenanceMutation.mutateAsync({
+                  worldId: effectiveWorldId,
+                  worldPatch: snapshot.worldPatch,
+                  reason: 'Forge manual save',
+                  ifSnapshotVersion: snapshot.editorSnapshotVersion || undefined,
+                });
+                await queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'maintenance', effectiveWorldId] });
+                setNotice('Saved successfully');
+              } catch (err) {
+                setError(`Save failed: ${err instanceof Error ? err.message : String(err)}`);
+              }
+            }}
+            disabled={working || truthWorking}
+            className="rounded-lg bg-white px-4 py-1.5 text-sm font-medium text-black hover:bg-neutral-200 disabled:opacity-50 transition-colors"
           >
-            &larr; {t('worlds.backToList', 'Back')}
+            {t('maintain.save', 'Save')}
           </button>
-          <h1 className="text-lg font-semibold text-white">
-            {t('pages.worldMaintain', 'Maintain World')}
-          </h1>
-          <span className="text-xs text-neutral-500">{worldId.slice(0, 8)}</span>
         </div>
-        <button
-          onClick={async () => {
-            if (!worldId) return;
-            try {
-              await mutations.saveMaintenanceMutation.mutateAsync({
-                worldId,
-                worldPatch: snapshot.worldPatch,
-                reason: 'Forge manual save',
-                ifSnapshotVersion: snapshot.editorSnapshotVersion || undefined,
-              });
-              await queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'maintenance', worldId] });
-              setNotice('Saved successfully');
-            } catch (err) {
-              setError(`Save failed: ${err instanceof Error ? err.message : String(err)}`);
-            }
-          }}
-          disabled={working || truthWorking}
-          className="rounded-lg bg-white px-4 py-1.5 text-sm font-medium text-black hover:bg-neutral-200 disabled:opacity-50 transition-colors"
-        >
-          {t('maintain.save', 'Save')}
-        </button>
-      </div>
+      ) : null}
 
       {/* Notice/Error banners */}
       {error && (
@@ -536,35 +583,35 @@ export default function WorldMaintainPage() {
         agentRulesLoading={agentRulesQuery.isLoading}
         working={working || truthWorking}
         onCreateWorldRule={async (payload) => {
-          await mutations.createWorldRuleMutation.mutateAsync({ worldId, payload });
+          await mutations.createWorldRuleMutation.mutateAsync({ worldId: effectiveWorldId, payload });
           await invalidateTruthQueries();
         }}
         onUpdateWorldRule={async (ruleId, payload) => {
-          await mutations.updateWorldRuleMutation.mutateAsync({ worldId, ruleId, payload });
+          await mutations.updateWorldRuleMutation.mutateAsync({ worldId: effectiveWorldId, ruleId, payload });
           await invalidateTruthQueries();
         }}
         onDeprecateWorldRule={async (ruleId) => {
-          await mutations.deprecateWorldRuleMutation.mutateAsync({ worldId, ruleId });
+          await mutations.deprecateWorldRuleMutation.mutateAsync({ worldId: effectiveWorldId, ruleId });
           await invalidateTruthQueries();
         }}
         onArchiveWorldRule={async (ruleId) => {
-          await mutations.archiveWorldRuleMutation.mutateAsync({ worldId, ruleId });
+          await mutations.archiveWorldRuleMutation.mutateAsync({ worldId: effectiveWorldId, ruleId });
           await invalidateTruthQueries();
         }}
         onCreateAgentRule={async (agentId, payload) => {
-          await mutations.createAgentRuleMutation.mutateAsync({ worldId, agentId, payload });
+          await mutations.createAgentRuleMutation.mutateAsync({ worldId: effectiveWorldId, agentId, payload });
           await invalidateTruthQueries();
         }}
         onUpdateAgentRule={async (agentId, ruleId, payload) => {
-          await mutations.updateAgentRuleMutation.mutateAsync({ worldId, agentId, ruleId, payload });
+          await mutations.updateAgentRuleMutation.mutateAsync({ worldId: effectiveWorldId, agentId, ruleId, payload });
           await invalidateTruthQueries();
         }}
         onDeprecateAgentRule={async (agentId, ruleId) => {
-          await mutations.deprecateAgentRuleMutation.mutateAsync({ worldId, agentId, ruleId });
+          await mutations.deprecateAgentRuleMutation.mutateAsync({ worldId: effectiveWorldId, agentId, ruleId });
           await invalidateTruthQueries();
         }}
         onArchiveAgentRule={async (agentId, ruleId) => {
-          await mutations.archiveAgentRuleMutation.mutateAsync({ worldId, agentId, ruleId });
+          await mutations.archiveAgentRuleMutation.mutateAsync({ worldId: effectiveWorldId, agentId, ruleId });
           await invalidateTruthQueries();
         }}
         setNotice={setNotice}
@@ -583,4 +630,8 @@ export default function WorldMaintainPage() {
       </div>
     </div>
   );
+}
+
+export default function WorldMaintainPage() {
+  return <WorldMaintainPageView />;
 }

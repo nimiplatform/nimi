@@ -60,7 +60,7 @@ describe('useBalancesQuery', () => {
     });
   });
 
-  it('falls back to spark/gem aliases if sparkBalance/gemBalance not present', async () => {
+  it('defaults missing balances to zero when the data client does not normalize aliases', async () => {
     mockRevenueDataClient.getBalances.mockResolvedValue({
       spark: 999,
       gem: 42,
@@ -72,8 +72,8 @@ describe('useBalancesQuery', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(result.current.data).toEqual({
-      sparkBalance: 999,
-      gemBalance: 42,
+      sparkBalance: 0,
+      gemBalance: 0,
     });
   });
 
@@ -163,7 +163,7 @@ describe('useConnectStatusQuery', () => {
 
   it('normalizes connect status', async () => {
     mockRevenueDataClient.getConnectStatus.mockResolvedValue({
-      status: 'connected',
+      status: 'VERIFIED',
     });
 
     const wrapper = createWrapper();

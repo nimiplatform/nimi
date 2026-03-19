@@ -44,13 +44,21 @@ features:
     migration-source: new
     description: React Router with lazy-loaded routes
 
-  - feature: dashboard
+  - feature: workbench-home
     phase: 1
-    priority: P1
-    contract: FG-SHELL-*
+    priority: P0
+    contract: FG-SHELL-005, FG-WORLD-001, FG-AGENT-001, FG-IMPORT-001
     backend-dependency: none
     migration-source: new
-    description: Home page with quick stats and navigation cards
+    description: World-centric Forge home that creates, resumes, and routes workspaces
+
+  - feature: workbench-shell
+    phase: 1
+    priority: P0
+    contract: FG-SHELL-005, FG-WORLD-001, FG-IMPORT-007, FG-AGENT-001
+    backend-dependency: none
+    migration-source: new
+    description: Unified workspace shell for world truth, import, review, agents, and publish
 
   # ── Phase 2: World Management ───────────────────────────
   - feature: world-list
@@ -59,7 +67,7 @@ features:
     contract: FG-WORLD-*
     backend-dependency: none (existing API)
     migration-source: world-studio ui/
-    description: World list with drafts and published worlds
+    description: World library that reopens drafts and published worlds inside the workbench
 
   - feature: world-create
     phase: 2
@@ -93,6 +101,14 @@ features:
     migration-source: world-studio state/workspace-store.ts (adapt)
     description: Zustand workspace store without mod awareness
 
+  - feature: forge-workspace-store
+    phase: 2
+    priority: P0
+    contract: FG-WORLD-001, FG-IMPORT-007, FG-AGENT-001
+    backend-dependency: none
+    migration-source: new
+    description: Outer Forge workspace state that owns local review drafts, source manifests, and publish plans
+
   # ── Phase 3: Agent Management ───────────────────────────
   - feature: agent-list
     phase: 3
@@ -100,7 +116,7 @@ features:
     contract: FG-AGENT-001
     backend-dependency: existing API plus ownerType/detail fields
     migration-source: new UI, existing API
-    description: Agent list with search/filter/sort and ownership modes
+    description: Agent library centered on master assets plus world-owned workbench entrypoints
 
   - feature: agent-detail
     phase: 3
@@ -108,7 +124,15 @@ features:
     contract: FG-AGENT-001
     backend-dependency: existing API plus detail/update/delete endpoints if absent
     migration-source: new UI, existing API
-    description: Agent detail with tabbed interface and explicit CRUD
+    description: Master agent detail with tabbed interface and explicit CRUD
+
+  - feature: workbench-agent-detail
+    phase: 3
+    priority: P0
+    contract: FG-AGENT-001, FG-AGENT-003
+    backend-dependency: none
+    migration-source: new
+    description: Workspace-scoped world-owned agent draft editor and local preview
 
   - feature: agent-dna-editor
     phase: 3
@@ -134,14 +158,31 @@ features:
     migration-source: new UI, existing API
     description: API key CRUD for programmatic agent access
 
-  # ── Phase 4: Content Creation ───────────────────────────
+  # ── Phase 3.5: Import ───────────────────────────────────
+  - feature: import-character-card
+    phase: 3
+    priority: P1
+    contract: FG-IMPORT-001
+    backend-dependency: none (existing API + local LLM)
+    migration-source: new
+    description: Character Card V2 import that writes source fidelity and review drafts back into a workspace
+
+  - feature: import-novel
+    phase: 3
+    priority: P1
+    contract: FG-IMPORT-002
+    backend-dependency: none (existing API + local LLM)
+    migration-source: new
+    description: Novel text progressive extraction that accumulates local draft truth before workspace review and publish
+
+  # ── Phase 4: Secondary Content Creation ────────────────
   - feature: image-studio
     phase: 4
     priority: P0
     contract: FG-CONTENT-001
     backend-dependency: none (existing API)
     migration-source: new (runtime AI image.generate)
-    description: AI image generation with prompt builder
+    description: Secondary AI image generation utility
 
   - feature: video-studio
     phase: 4
@@ -149,7 +190,7 @@ features:
     contract: FG-CONTENT-002
     backend-dependency: none (existing API)
     migration-source: new UI, existing API
-    description: Video upload and management
+    description: Secondary video upload and management utility
 
   - feature: music-studio
     phase: 4
@@ -157,7 +198,7 @@ features:
     contract: FG-CONTENT-006
     backend-dependency: NEW — media audio direct-upload extension
     migration-source: new (runtime AI music.generate)
-    description: AI song generation with lyrics/style builder
+    description: Secondary AI song generation utility
 
   - feature: content-library
     phase: 4
@@ -165,7 +206,7 @@ features:
     contract: FG-CONTENT-003
     backend-dependency: none (existing API)
     migration-source: new
-    description: Unified asset browser with tagging
+    description: Secondary unified asset browser with tagging
 
   - feature: publish-releases
     phase: 4
@@ -173,7 +214,7 @@ features:
     contract: FG-CONTENT-007
     backend-dependency: existing realm post capabilities; app workflow state only
     migration-source: new UI on top of existing post/feed primitives
-    description: Publish workspace for local drafts, identity selection, and publish history
+    description: Secondary publish workspace for local drafts, identity selection, and publish history
 
   - feature: publish-channels
     phase: 4
@@ -181,7 +222,7 @@ features:
     contract: FG-CONTENT-007
     backend-dependency: none (app-level publish identity semantics)
     migration-source: new UI vocabulary on top of existing post destinations
-    description: Publish identity and internal destination settings
+    description: Secondary publish identity and internal destination settings
 
   # ── Phase 5: Revenue + Copyright ────────────────────────
   - feature: revenue-dashboard
