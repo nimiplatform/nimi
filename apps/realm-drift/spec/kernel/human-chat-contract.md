@@ -10,7 +10,7 @@ Realm Drift participates in the nimi multi-app chat ecosystem as a peer alongsid
 |----------|-------|
 | App ID | `nimi.realm-drift` |
 | Transport | Socket.IO (same Realm realtime endpoint as Desktop/Relay) |
-| REST API | `/api/human/chats/*` via Realm SDK |
+| Data API | `HumanChatService` typed methods via Realm SDK |
 | Auth | JWT access token (same token as Realm/Runtime) |
 
 Messages sent from Realm Drift are visible in Desktop and Relay, and vice versa. This is a core platform capability, not app-specific.
@@ -102,7 +102,7 @@ Clicking a friend opens or creates a chat with that user.
 
 ```typescript
 // Start new chat (or get existing)
-realm.services.HumanChatService.startChat({ otherUserId, type: 'TEXT', text: initialMessage })
+realm.services.HumanChatService.startChat({ targetAccountId })
   → ChatViewDto { id, otherUser, lastMessage, unreadCount }
 
 // List existing chats
@@ -121,6 +121,7 @@ realm.services.HumanChatService.sendMessage(chatId, {
   type: 'TEXT',
   text: messageText,
   clientMessageId: ulid(),  // For optimistic update deduplication
+  payload: { content: messageText },
 })
 ```
 

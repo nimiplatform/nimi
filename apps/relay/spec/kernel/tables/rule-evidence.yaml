@@ -91,7 +91,7 @@ rules:
     status: verified
     evidence_path: apps/relay/src/main/ipc-handlers.ts
     test: apps/relay/test/ipc-handlers.test.ts
-    note: relay:realm:request passthrough with optional agentId, method/path/body/headers
+    note: explicit typed Realm bridge only: relay:agent:list, relay:agent:get, relay:human-chat:send
 
   - id: RL-IPC-009
     contract: kernel/ipc-bridge-contract.md

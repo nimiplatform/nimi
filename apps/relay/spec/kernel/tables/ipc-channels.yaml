@@ -95,11 +95,23 @@ channels:
     description: Cancel video job subscription stream
     source_rule: RL-IPC-007
 
-  # Realm passthrough
-  - channel: relay:realm:request
+  # Typed Realm data bridge
+  - channel: relay:agent:list
     type: unary
-    module: realm
-    description: REST request passthrough (agentId optional per RL-CORE-004)
+    module: agent
+    description: List available agents for selection
+    source_rule: RL-IPC-008
+
+  - channel: relay:agent:get
+    type: unary
+    module: agent
+    description: Fetch one agent profile
+    source_rule: RL-IPC-008
+
+  - channel: relay:human-chat:send
+    type: unary
+    module: human-chat
+    description: Send one agent-channel message
     source_rule: RL-IPC-008
 
   # Realtime event forwarding (socket.io → renderer)
@@ -230,12 +242,6 @@ channels:
     type: unary
     module: auth
     description: Query current auth state (pending/authenticating/authenticated/failed)
-    source_rule: RL-BOOT-005
-
-  - channel: relay:auth:retry
-    type: unary
-    module: auth
-    description: Trigger browser auth retry after failure
     source_rule: RL-BOOT-005
 
   - channel: relay:auth:status

@@ -46,8 +46,4 @@ This is enforced at the IPC layer, not per-feature:
 - `relay:ai:stream:open` → `{ agentId, prompt, ... }`
 - `relay:media:tts:synthesize` → `{ agentId, text, ... }`
 - `relay:media:video:generate` → `{ agentId, prompt, ... }`
-- `relay:realm:request` → `{ agentId?, method, path, ... }`
-
-Note: `relay:realm:request` carries optional `agentId` because some realm calls
-(e.g. channel listing scoped to agent's world) need agent context, while others
-(e.g. user profile) do not. The caller decides; the IPC layer passes it through.
+- `relay:human-chat:send` → `{ agentId, text }`

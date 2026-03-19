@@ -86,10 +86,11 @@ Errors at any step → `setBootstrapError(message)` + show error state.
 
 Auth reuses the desktop JWT auth pattern:
 
-1. On bootstrap, attempt token validation via stored access token
+1. On bootstrap, validate the stored access token by loading the current user through `MeService.getMe()`
 2. If valid → authenticated state → render app
 3. If invalid → show error state (demo does not implement full OAuth login flow)
-4. `useAppStore.auth` holds: `status`, `user`, `token`, `refreshToken`
+4. Token refresh is owned by the Realm SDK configuration (`refreshToken`, `onTokenRefreshed`, `onRefreshFailed`), not by app-installed raw request interceptors
+5. `useAppStore.auth` holds: `status`, `user`, `token`, `refreshToken`
 
 Auth states: `bootstrapping` → `authenticated` | `unauthenticated`
 

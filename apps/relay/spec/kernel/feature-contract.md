@@ -22,9 +22,9 @@ Changing the selected agent cancels any in-flight stream and clears the chat vie
 
 ## RL-FEAT-002 — Human Chat
 
-Via Realm REST API + socket.io real-time:
+Via typed Relay bridge + socket.io real-time:
 
-- Message send/receive through realm HTTP endpoints (RL-IPC-008)
+- Message send through `relay:human-chat:send` (RL-IPC-008) backed by the SDK gap adapter
 - Real-time push via socket.io (RL-INTOP-003, RL-IPC-009)
 - Channel selection scoped to current agent's world context
 - Validates interop with Desktop app (RL-INTOP-001)
@@ -109,10 +109,10 @@ Main process handles job subscription/polling; renderer receives status updates 
 
 ## RL-FEAT-007 — Agent Profile & Selection
 
-Via Realm API:
+Via typed Relay bridge:
 
-- Fetch agent list: available agents for the current user
-- Fetch agent profile: name, avatar, description, Live2D model binding, voice profile
+- Fetch agent list: `relay:agent:list`
+- Fetch agent profile: `relay:agent:get`
 - Agent switching: update `currentAgent` in store, propagate to all surfaces (RL-CORE-002)
 
 Agent selection is the entry gate for all other features (RL-CORE-001).

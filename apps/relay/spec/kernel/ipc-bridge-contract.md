@@ -14,7 +14,8 @@ Categories:
 - `relay:local:*` — Local runtime management (models, device, services)
 - `relay:connector:*` — Connector CRUD and catalog operations
 - `relay:desktop:*` — Desktop interop (deep-link navigation)
-- `relay:realm:*` — Realm REST passthrough
+- `relay:agent:*` — Agent directory/profile queries
+- `relay:human-chat:*` — Agent-channel message mutations
 - `relay:realtime:*` — Realtime event forwarding (socket.io → renderer)
 - `relay:stream:*` — gRPC stream lifecycle events (main → renderer)
 - `relay:health` — Health check
@@ -108,18 +109,24 @@ Video job management uses the shared `runtime.media.jobs` module.
 `job:subscribe` follows the generic stream protocol (RL-IPC-003);
 `job:cancel` aborts the subscription stream.
 
-## RL-IPC-008 — Realm Passthrough IPC
+## RL-IPC-008 — Typed Realm Data IPC
+
+Relay does not expose a generic Realm REST passthrough.
+Renderer-only data access must cross IPC through explicit typed methods:
 
 | Channel | Type | Description |
 |---------|------|-------------|
-| `relay:realm:request` | unary | REST request passthrough |
+| `relay:agent:list` | unary | List available agents for selection |
+| `relay:agent:get` | unary | Fetch one agent profile |
+| `relay:human-chat:send` | unary | Send one agent-channel message |
 
-Parameters: `{ agentId?: string, method: string, path: string, body?: unknown, headers?: Record<string, string> }`
+Parameters:
 
-`agentId` is optional (RL-CORE-004): agent-scoped realm calls (e.g. channel listing for
-an agent's world) pass it; agent-independent calls (e.g. user profile) omit it.
+- `relay:agent:list` → no payload
+- `relay:agent:get` → `{ agentId: string }`
+- `relay:human-chat:send` → `{ agentId: string, text: string }`
 
-Realm SDK executes in the main process, bypassing renderer CORS restrictions.
+Main process remains the only place allowed to touch Realm SDK network primitives.
 
 ## RL-IPC-009 — Realtime Event Forwarding
 

@@ -79,14 +79,15 @@ Auth reuses the desktop JWT auth pattern:
 1. On bootstrap, attempt token refresh via stored refresh token
 2. If valid → authenticated state → render app
 3. If invalid → show login view (OAuth redirect flow)
-4. Token refresh runs on 401 responses via fetch interceptor
+4. Token refresh uses the Realm SDK refresh flow; app code does not install its own raw REST interceptor
 5. `useAppStore.auth` holds: `status`, `user`, `token`, `refreshToken`
 
 Auth states: `bootstrapping` → `authenticated` | `unauthenticated`
 
 Forge additionally gates on **creator access**:
-- After auth, call `GET /api/world-control/access/me`
-- If `hasCreatorAccess: false` → show "apply for creator access" page
+- After auth, call the typed world data client (`getMyWorldAccess()` backed by Realm SDK)
+- If `hasCreatorAccess: false` → show a blocked state with re-check only
+- Forge does not simulate an "apply for creator access" success path until a real backend contract exists
 - If `hasCreatorAccess: true` → render full app
 
 ## FG-SHELL-005: Studio Layout
@@ -147,7 +148,7 @@ Active route highlighted. Sidebar collapsible to icon-only mode (64px).
 - `QueryClientProvider` — TanStack Query (shared query client)
 - `StoreProvider` — Zustand app store
 - `AuthProvider` — JWT session management
-- `CreatorAccessGate` — Gates on `GET /api/world-control/access/me`
+- `CreatorAccessGate` — Gates on the typed world access client backed by Realm SDK
 - `RouterProvider` — React Router v7 with lazy-loaded routes
 
 ## FG-SHELL-007: Vite Configuration

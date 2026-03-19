@@ -1,5 +1,6 @@
 # Forge — API Surface
-# Authoritative inventory of all backend API endpoints used or required.
+# Authoritative inventory of backend endpoints needed by Forge data adapters.
+# App code must consume these through SDK services or typed data clients, not direct REST calls.
 # status: existing = already implemented | new = requires new backend work
 
 # ── World Control (existing) ─────────────────────────────
