@@ -85,7 +85,7 @@ export function usePricingIndex(modelIds: string[]): PricingIndexState {
     });
 
     return () => { canceled = true; };
-  }, [modelIds.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [modelIds.join(',')]);
 
   return state;
 }
