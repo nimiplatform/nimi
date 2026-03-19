@@ -22,6 +22,7 @@ const mockDefaultSnapshot = {
   knowledgeGraph: { events: { primary: [], secondary: [] }, characters: [], locations: [] },
   worldPatch: {},
   worldviewPatch: {},
+  ruleTruthDraft: { worldRules: [], agentRules: [] },
   eventsDraft: { primary: [], secondary: [] },
   lorebooksDraft: [],
   phase1Artifact: null,

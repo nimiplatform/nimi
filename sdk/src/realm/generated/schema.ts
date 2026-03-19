@@ -1356,23 +1356,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/economy/gifts/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get a gift transaction by ID */
-        get: operations["EconomyController_getGiftTransaction"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/economy/gifts/{id}/accept": {
         parameters: {
             query?: never;
@@ -3012,24 +2995,25 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/world/by-id/{id}/worldview/events": {
+    "/api/world/by-id/{worldId}/agents/{agentId}/rules": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List worldview event history */
-        get: operations["WorldController_getWorldviewEvents"];
+        /** List agent truth rules for a world-owned creator context */
+        get: operations["AgentRulesController_listRules"];
         put?: never;
-        post?: never;
+        /** Create an agent truth rule */
+        post: operations["AgentRulesController_createRule"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/world/by-id/{id}/worldview/rollback": {
+    "/api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -3038,26 +3022,42 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Revert worldview to a snapshot version */
-        post: operations["WorldController_rollbackWorldview"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** Update an agent truth rule by version-append */
+        patch: operations["AgentRulesController_updateRule"];
         trace?: never;
     };
-    "/api/world/by-id/{id}/worldview/snapshots": {
+    "/api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}/archive": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List worldview snapshots */
-        get: operations["WorldController_getWorldviewSnapshots"];
+        get?: never;
         put?: never;
-        /** Create a worldview snapshot */
-        post: operations["WorldController_createWorldviewSnapshot"];
+        /** Archive an agent truth rule */
+        post: operations["AgentRulesController_archiveRule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}/deprecate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deprecate an agent truth rule */
+        post: operations["AgentRulesController_deprecateRule"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3088,11 +3088,11 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Get current worldview rules */
+        /** List world truth rules */
         get: operations["WorldRulesController_getRules"];
-        /** Update worldview rules (Creator only) */
-        put: operations["WorldRulesController_updateRules"];
-        post?: never;
+        put?: never;
+        /** Create a world truth rule */
+        post: operations["WorldRulesController_createRule"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3179,6 +3179,57 @@ export type paths = {
         put?: never;
         /** Validate context against agent identity */
         post: operations["WorldRulesController_validateContext"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/world/by-id/{worldId}/rules/{ruleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update a world truth rule by version-append */
+        patch: operations["WorldRulesController_updateRule"];
+        trace?: never;
+    };
+    "/api/world/by-id/{worldId}/rules/{ruleId}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a world truth rule */
+        post: operations["WorldRulesController_archiveRule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/world/by-id/{worldId}/rules/{ruleId}/deprecate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deprecate a world truth rule */
+        post: operations["WorldRulesController_deprecateRule"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4150,43 +4201,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/worlds/{worldId}/lorebooks/batch-upsert": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Batch upsert world lorebooks */
-        post: operations["WorldControlController_batchUpsertWorldLorebooks"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/worlds/{worldId}/lorebooks/{lorebookId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete world lorebook (logical archive)
-         * @description Marks lorebook as archived; does not physically hard-delete history.
-         */
-        delete: operations["WorldControlController_deleteWorldLorebook"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/worlds/{worldId}/maintenance": {
         parameters: {
             query?: never;
@@ -4392,7 +4406,6 @@ export type components = {
             category?: components["schemas"]["AgentCategory"];
             /** @description Narrative importance tier inside the world */
             importance?: components["schemas"]["AgentImportance"];
-            liveState?: Record<string, never>;
             /** @description Agent origin: OFFICIAL, PARTNER, COMMUNITY */
             origin?: components["schemas"]["AgentOrigin"];
             /** @description WORLD_OWNED ownership audit field */
@@ -4443,7 +4456,6 @@ export type components = {
             /** Format: date-time */
             dnaConfirmedAt?: string | null;
             importance?: components["schemas"]["AgentImportance"];
-            liveState?: Record<string, never>;
             /** @description WORLD_OWNED ownership audit field */
             ownerWorldId?: string | null;
             /** @description Ownership semantics: MASTER_OWNED or WORLD_OWNED */
@@ -4456,6 +4468,43 @@ export type components = {
         };
         /** @enum {string} */
         AgentRelationType: "ALLY" | "RIVAL" | "ENEMY";
+        AgentRuleDto: {
+            agentId: string;
+            /** @enum {string} */
+            category: "CONSTRAINT" | "MECHANISM" | "DEFINITION" | "RELATION" | "POLICY";
+            conflictsWith: string[];
+            createdAt: string;
+            createdBy: string;
+            dependsOn: string[];
+            /** @enum {string} */
+            hardness: "HARD" | "FIRM" | "SOFT" | "AESTHETIC";
+            id: string;
+            importance: number;
+            /** @enum {string} */
+            inheritedWorldDomain?: "AXIOM" | "PHYSICS" | "SOCIETY" | "ECONOMY" | "CHARACTER" | "NARRATIVE" | "META";
+            /** @enum {string} */
+            layer: "DNA" | "BEHAVIORAL" | "RELATIONAL" | "CONTEXTUAL";
+            lineageId: string;
+            priority: number;
+            /** @enum {string} */
+            provenance: "CREATOR" | "WORLD_INHERITED" | "NARRATIVE_EMERGED" | "SYSTEM";
+            reasoning?: string;
+            ruleKey: string;
+            /** @enum {string} */
+            scope: "SELF" | "DYAD" | "GROUP" | "WORLD";
+            sourceRef?: string;
+            statement: string;
+            /** @enum {string} */
+            status: "ACTIVE" | "DEPRECATED" | "SUPERSEDED" | "PROPOSED" | "ARCHIVED";
+            structured?: {
+                [key: string]: unknown;
+            };
+            title: string;
+            updatedAt: string;
+            updatedBy: string;
+            version: number;
+            worldRuleRef?: string;
+        };
         /**
          * @description Lifecycle state: INCUBATING, READY, ACTIVE, SUSPENDED, FAILED
          * @enum {string}
@@ -4535,10 +4584,6 @@ export type components = {
             ifSnapshotVersion?: string;
             /** @enum {string} */
             mode?: "merge" | "replace";
-            reason?: string;
-        };
-        BatchUpsertWorldLorebooksDto: {
-            lorebookUpserts: components["schemas"]["WorldLorebookUpsertDto"][];
             reason?: string;
         };
         BatchUpsertWorldMediaBindingsDto: {
@@ -4715,6 +4760,36 @@ export type components = {
             id: string;
             state: components["schemas"]["AgentState"];
             user: components["schemas"]["UserLiteDto"];
+        };
+        CreateAgentRuleDto: {
+            /** @enum {string} */
+            category: "CONSTRAINT" | "MECHANISM" | "DEFINITION" | "RELATION" | "POLICY";
+            conflictsWith?: string[];
+            dependsOn?: string[];
+            /** @enum {string} */
+            hardness: "HARD" | "FIRM" | "SOFT" | "AESTHETIC";
+            /** @default 50 */
+            importance: number;
+            /** @enum {string} */
+            layer: "DNA" | "BEHAVIORAL" | "RELATIONAL" | "CONTEXTUAL";
+            /** @default 100 */
+            priority: number;
+            /** @enum {string} */
+            provenance: "CREATOR" | "WORLD_INHERITED" | "NARRATIVE_EMERGED" | "SYSTEM";
+            reasoning?: string;
+            ruleKey: string;
+            /**
+             * @default SELF
+             * @enum {string}
+             */
+            scope: "SELF" | "DYAD" | "GROUP" | "WORLD";
+            sourceRef?: string;
+            statement: string;
+            structured?: {
+                [key: string]: unknown;
+            };
+            title: string;
+            worldRuleRef?: string;
         };
         CreateAgentRulesDto: {
             /**
@@ -4895,10 +4970,6 @@ export type components = {
             type: "INNER_VOICE" | "CONTEXT" | "WORLD_BUILDING" | "RELATIONSHIP_MOMENT" | "SCENE_STATE" | "EMOTION" | "DETAIL" | "ATMOSPHERE";
             worldId: string;
         };
-        CreateSnapshotDto: {
-            /** @description Mark as Long Term Support version */
-            isLTS?: boolean;
-        };
         CreateSparkCheckoutDto: {
             /** @description URL to redirect on cancel */
             cancelUrl: string;
@@ -4962,6 +5033,33 @@ export type components = {
             name: string;
             overview?: string;
             tagline?: string;
+        };
+        CreateWorldRuleDto: {
+            /** @enum {string} */
+            category: "CONSTRAINT" | "MECHANISM" | "DEFINITION" | "RELATION" | "POLICY";
+            conflictsWith?: string[];
+            dependsOn?: string[];
+            /** @enum {string} */
+            domain: "AXIOM" | "PHYSICS" | "SOCIETY" | "ECONOMY" | "CHARACTER" | "NARRATIVE" | "META";
+            /** @enum {string} */
+            hardness: "HARD" | "FIRM" | "SOFT" | "AESTHETIC";
+            overrides?: string;
+            /** @default 100 */
+            priority: number;
+            /** @enum {string} */
+            provenance: "SEED" | "CREATOR" | "MOJING_MERGED" | "RENDER_BACKFLOW" | "WORLD_STUDIO" | "SYSTEM";
+            reasoning?: string;
+            ruleKey: string;
+            /** @enum {string} */
+            scope: "WORLD" | "REGION" | "FACTION" | "INDIVIDUAL" | "SCENE";
+            sourceRef?: string;
+            statement: string;
+            structured?: {
+                [key: string]: unknown;
+            };
+            title: string;
+            validFrom?: string;
+            validUntil?: string;
         };
         CreatorCapabilitiesResponseDto: {
             /** @description Allowed actions */
@@ -6187,6 +6285,28 @@ export type components = {
         UpdateAgentDnaDto: {
             dna: components["schemas"]["AgentDnaDto"];
         };
+        UpdateAgentRuleDto: {
+            /** @enum {string} */
+            category?: "CONSTRAINT" | "MECHANISM" | "DEFINITION" | "RELATION" | "POLICY";
+            conflictsWith?: string[];
+            dependsOn?: string[];
+            /** @enum {string} */
+            hardness?: "HARD" | "FIRM" | "SOFT" | "AESTHETIC";
+            importance?: number;
+            priority?: number;
+            /** @enum {string} */
+            provenance?: "CREATOR" | "WORLD_INHERITED" | "NARRATIVE_EMERGED" | "SYSTEM";
+            reasoning?: string;
+            /** @enum {string} */
+            scope?: "SELF" | "DYAD" | "GROUP" | "WORLD";
+            sourceRef?: string;
+            statement?: string;
+            structured?: {
+                [key: string]: unknown;
+            };
+            title?: string;
+            worldRuleRef?: string;
+        };
         UpdateAgentVisibilityDto: {
             /** @description Account discoverability visibility */
             accountVisibility?: components["schemas"]["Visibility"];
@@ -6322,14 +6442,29 @@ export type components = {
         };
         UpdateWorldMaintenanceDto: {
             ifSnapshotVersion?: string;
-            lorebookUpserts?: components["schemas"]["WorldLorebookUpsertDto"][];
             reason?: string;
             worldPatch?: components["schemas"]["WorldPatchDto"];
-            worldviewPatch?: components["schemas"]["WorldviewPatchDto"];
         };
-        UpdateWorldRulesDto: {
-            /** @description Worldview core rules as ordered rule items (stored in worldview.coreSystem.rules) */
-            rules: components["schemas"]["WorldRuleItemDto"][];
+        UpdateWorldRuleDto: {
+            /** @enum {string} */
+            category?: "CONSTRAINT" | "MECHANISM" | "DEFINITION" | "RELATION" | "POLICY";
+            conflictsWith?: string[];
+            dependsOn?: string[];
+            /** @enum {string} */
+            hardness?: "HARD" | "FIRM" | "SOFT" | "AESTHETIC";
+            overrides?: string;
+            priority?: number;
+            reasoning?: string;
+            /** @enum {string} */
+            scope?: "WORLD" | "REGION" | "FACTION" | "INDIVIDUAL" | "SCENE";
+            sourceRef?: string;
+            statement?: string;
+            structured?: {
+                [key: string]: unknown;
+            };
+            title?: string;
+            validFrom?: string;
+            validUntil?: string;
         };
         UserCapabilitiesDto: Record<string, never>;
         UserLiteDto: {
@@ -6607,9 +6742,7 @@ export type components = {
             id: string;
             /** @enum {string} */
             importance: "PRIMARY" | "SECONDARY" | "BACKGROUND";
-            liveState?: Record<string, never>;
             name: string;
-            role?: string;
             stats?: components["schemas"]["AgentStatsDto"];
         };
         WorldComputedEntryDto: {
@@ -6672,6 +6805,7 @@ export type components = {
             themes?: string[];
             timeModel?: Record<string, never>;
             transitInLimit: number;
+            truth: components["schemas"]["WorldTruthDto"];
             /** @enum {string} */
             type: "OASIS" | "CREATOR";
             /** Format: date-time */
@@ -6721,6 +6855,7 @@ export type components = {
             themes?: string[];
             timeModel?: Record<string, never>;
             transitInLimit: number;
+            truth: components["schemas"]["WorldTruthDto"];
             /** @enum {string} */
             type: "OASIS" | "CREATOR";
             /** Format: date-time */
@@ -6917,24 +7052,6 @@ export type components = {
             items: components["schemas"]["WorldLorebookDetailDto"][];
             worldId: string;
         };
-        WorldLorebookUpsertDto: {
-            constant?: boolean;
-            content?: string;
-            enabled?: boolean;
-            id?: string;
-            key: string;
-            keywords?: string[];
-            name?: string;
-            priority?: number;
-            provenance?: {
-                [key: string]: unknown;
-            };
-            validFrom?: string;
-            validTo?: string;
-            value: {
-                [key: string]: unknown;
-            };
-        };
         WorldMaintenanceDto: {
             editorSnapshotVersion?: string;
             eventSummary?: components["schemas"]["WorldEventGraphSummaryDto"];
@@ -7071,6 +7188,42 @@ export type components = {
             importance: "PRIMARY" | "SECONDARY" | "BACKGROUND";
             name: string;
         };
+        WorldRuleDto: {
+            /** @enum {string} */
+            category: "CONSTRAINT" | "MECHANISM" | "DEFINITION" | "RELATION" | "POLICY";
+            conflictsWith: string[];
+            createdAt: string;
+            createdBy: string;
+            dependsOn: string[];
+            /** @enum {string} */
+            domain: "AXIOM" | "PHYSICS" | "SOCIETY" | "ECONOMY" | "CHARACTER" | "NARRATIVE" | "META";
+            /** @enum {string} */
+            hardness: "HARD" | "FIRM" | "SOFT" | "AESTHETIC";
+            id: string;
+            lineageId: string;
+            overrides?: string;
+            priority: number;
+            /** @enum {string} */
+            provenance: "SEED" | "CREATOR" | "MOJING_MERGED" | "RENDER_BACKFLOW" | "WORLD_STUDIO" | "SYSTEM";
+            reasoning?: string;
+            ruleKey: string;
+            /** @enum {string} */
+            scope: "WORLD" | "REGION" | "FACTION" | "INDIVIDUAL" | "SCENE";
+            sourceRef?: string;
+            statement: string;
+            /** @enum {string} */
+            status: "ACTIVE" | "DEPRECATED" | "SUPERSEDED" | "PROPOSED" | "ARCHIVED";
+            structured?: {
+                [key: string]: unknown;
+            };
+            title: string;
+            updatedAt: string;
+            updatedBy: string;
+            validFrom?: string;
+            validUntil?: string;
+            version: number;
+            worldId: string;
+        };
         WorldRuleItemDto: {
             /** @example survival */
             key: string;
@@ -7110,6 +7263,9 @@ export type components = {
         WorldSummaryListDto: {
             items: components["schemas"]["WorldSummaryDto"][];
         };
+        WorldTruthDto: {
+            rules: components["schemas"]["WorldRuleDto"][];
+        };
         WorldviewDetailDto: {
             causality: components["schemas"]["CausalityModelDto"];
             coreSystem: components["schemas"]["PowerSystemDto"];
@@ -7118,10 +7274,19 @@ export type components = {
             existences?: {
                 [key: string]: unknown;
             };
+            glossary?: {
+                [key: string]: unknown;
+            };
             id: string;
             languages?: components["schemas"]["WorldviewLanguagesDto"];
             /** @enum {string} */
             lifecycle: "ACTIVE" | "MAINTENANCE" | "FROZEN" | "ARCHIVED";
+            locations?: {
+                [key: string]: unknown;
+            };
+            narrativeAssets?: {
+                [key: string]: unknown;
+            };
             narrativeHooks?: {
                 [key: string]: unknown;
             };
@@ -7140,25 +7305,6 @@ export type components = {
                 [key: string]: unknown;
             };
             worldId: string;
-        };
-        WorldviewEventDto: {
-            affectedModule: string;
-            authorId: string;
-            changeType: string;
-            /** Format: date-time */
-            createdAt: string;
-            eventType: string;
-            id: string;
-            isBreaking: boolean;
-            newValue?: {
-                [key: string]: unknown;
-            };
-            previousValue?: {
-                [key: string]: unknown;
-            };
-            reason?: string;
-            version: number;
-            worldviewId: string;
         };
         WorldviewLanguagesDto: {
             languages: components["schemas"]["WorldLanguageDto"][];
@@ -7196,17 +7342,6 @@ export type components = {
             visualGuide?: {
                 [key: string]: unknown;
             };
-        };
-        WorldviewSnapshotDto: {
-            checksum: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            expiresAt?: string;
-            id: string;
-            isLTS: boolean;
-            version: number;
-            worldviewId: string;
         };
     };
     responses: never;

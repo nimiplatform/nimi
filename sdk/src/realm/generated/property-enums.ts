@@ -35,6 +35,74 @@ export const AgentCommunicationSentiment = {
 
 export type AgentCommunicationSentiment = (typeof AgentCommunicationSentiment)[keyof typeof AgentCommunicationSentiment];
 
+export const AgentRuleCategory = {
+  CONSTRAINT: "CONSTRAINT",
+  MECHANISM: "MECHANISM",
+  DEFINITION: "DEFINITION",
+  RELATION: "RELATION",
+  POLICY: "POLICY",
+} as const satisfies Record<string, components['schemas']['AgentRuleDto']['category']>;
+
+export type AgentRuleCategory = (typeof AgentRuleCategory)[keyof typeof AgentRuleCategory];
+
+export const AgentRuleHardness = {
+  HARD: "HARD",
+  FIRM: "FIRM",
+  SOFT: "SOFT",
+  AESTHETIC: "AESTHETIC",
+} as const satisfies Record<string, components['schemas']['AgentRuleDto']['hardness']>;
+
+export type AgentRuleHardness = (typeof AgentRuleHardness)[keyof typeof AgentRuleHardness];
+
+export const AgentRuleInheritedWorldDomain = {
+  AXIOM: "AXIOM",
+  PHYSICS: "PHYSICS",
+  SOCIETY: "SOCIETY",
+  ECONOMY: "ECONOMY",
+  CHARACTER: "CHARACTER",
+  NARRATIVE: "NARRATIVE",
+  META: "META",
+} as const satisfies Record<string, components['schemas']['AgentRuleDto']['inheritedWorldDomain']>;
+
+export type AgentRuleInheritedWorldDomain = (typeof AgentRuleInheritedWorldDomain)[keyof typeof AgentRuleInheritedWorldDomain];
+
+export const AgentRuleLayer = {
+  DNA: "DNA",
+  BEHAVIORAL: "BEHAVIORAL",
+  RELATIONAL: "RELATIONAL",
+  CONTEXTUAL: "CONTEXTUAL",
+} as const satisfies Record<string, components['schemas']['AgentRuleDto']['layer']>;
+
+export type AgentRuleLayer = (typeof AgentRuleLayer)[keyof typeof AgentRuleLayer];
+
+export const AgentRuleProvenance = {
+  CREATOR: "CREATOR",
+  WORLD_INHERITED: "WORLD_INHERITED",
+  NARRATIVE_EMERGED: "NARRATIVE_EMERGED",
+  SYSTEM: "SYSTEM",
+} as const satisfies Record<string, components['schemas']['AgentRuleDto']['provenance']>;
+
+export type AgentRuleProvenance = (typeof AgentRuleProvenance)[keyof typeof AgentRuleProvenance];
+
+export const AgentRuleScope = {
+  SELF: "SELF",
+  DYAD: "DYAD",
+  GROUP: "GROUP",
+  WORLD: "WORLD",
+} as const satisfies Record<string, components['schemas']['AgentRuleDto']['scope']>;
+
+export type AgentRuleScope = (typeof AgentRuleScope)[keyof typeof AgentRuleScope];
+
+export const AgentRuleStatus = {
+  ACTIVE: "ACTIVE",
+  DEPRECATED: "DEPRECATED",
+  SUPERSEDED: "SUPERSEDED",
+  PROPOSED: "PROPOSED",
+  ARCHIVED: "ARCHIVED",
+} as const satisfies Record<string, components['schemas']['AgentRuleDto']['status']>;
+
+export type AgentRuleStatus = (typeof AgentRuleStatus)[keyof typeof AgentRuleStatus];
+
 export const BatchUpsertWorldEventsMode = {
   MERGE: "merge",
   REPLACE: "replace",
@@ -56,6 +124,52 @@ export const ChatSyncMode = {
 } as const satisfies Record<string, components['schemas']['ChatSyncResultDto']['mode']>;
 
 export type ChatSyncMode = (typeof ChatSyncMode)[keyof typeof ChatSyncMode];
+
+export const CreateAgentRuleCategory = {
+  CONSTRAINT: "CONSTRAINT",
+  MECHANISM: "MECHANISM",
+  DEFINITION: "DEFINITION",
+  RELATION: "RELATION",
+  POLICY: "POLICY",
+} as const satisfies Record<string, components['schemas']['CreateAgentRuleDto']['category']>;
+
+export type CreateAgentRuleCategory = (typeof CreateAgentRuleCategory)[keyof typeof CreateAgentRuleCategory];
+
+export const CreateAgentRuleHardness = {
+  HARD: "HARD",
+  FIRM: "FIRM",
+  SOFT: "SOFT",
+  AESTHETIC: "AESTHETIC",
+} as const satisfies Record<string, components['schemas']['CreateAgentRuleDto']['hardness']>;
+
+export type CreateAgentRuleHardness = (typeof CreateAgentRuleHardness)[keyof typeof CreateAgentRuleHardness];
+
+export const CreateAgentRuleLayer = {
+  DNA: "DNA",
+  BEHAVIORAL: "BEHAVIORAL",
+  RELATIONAL: "RELATIONAL",
+  CONTEXTUAL: "CONTEXTUAL",
+} as const satisfies Record<string, components['schemas']['CreateAgentRuleDto']['layer']>;
+
+export type CreateAgentRuleLayer = (typeof CreateAgentRuleLayer)[keyof typeof CreateAgentRuleLayer];
+
+export const CreateAgentRuleProvenance = {
+  CREATOR: "CREATOR",
+  WORLD_INHERITED: "WORLD_INHERITED",
+  NARRATIVE_EMERGED: "NARRATIVE_EMERGED",
+  SYSTEM: "SYSTEM",
+} as const satisfies Record<string, components['schemas']['CreateAgentRuleDto']['provenance']>;
+
+export type CreateAgentRuleProvenance = (typeof CreateAgentRuleProvenance)[keyof typeof CreateAgentRuleProvenance];
+
+export const CreateAgentRuleScope = {
+  SELF: "SELF",
+  DYAD: "DYAD",
+  GROUP: "GROUP",
+  WORLD: "WORLD",
+} as const satisfies Record<string, components['schemas']['CreateAgentRuleDto']['scope']>;
+
+export type CreateAgentRuleScope = (typeof CreateAgentRuleScope)[keyof typeof CreateAgentRuleScope];
 
 export const CreateAudioDirectUploadDeliveryAccess = {
   PUBLIC: "PUBLIC",
@@ -151,6 +265,58 @@ export const CreateWorldDraftSourceType = {
 } as const satisfies Record<string, components['schemas']['CreateWorldDraftDto']['sourceType']>;
 
 export type CreateWorldDraftSourceType = (typeof CreateWorldDraftSourceType)[keyof typeof CreateWorldDraftSourceType];
+
+export const CreateWorldRuleCategory = {
+  CONSTRAINT: "CONSTRAINT",
+  MECHANISM: "MECHANISM",
+  DEFINITION: "DEFINITION",
+  RELATION: "RELATION",
+  POLICY: "POLICY",
+} as const satisfies Record<string, components['schemas']['CreateWorldRuleDto']['category']>;
+
+export type CreateWorldRuleCategory = (typeof CreateWorldRuleCategory)[keyof typeof CreateWorldRuleCategory];
+
+export const CreateWorldRuleDomain = {
+  AXIOM: "AXIOM",
+  PHYSICS: "PHYSICS",
+  SOCIETY: "SOCIETY",
+  ECONOMY: "ECONOMY",
+  CHARACTER: "CHARACTER",
+  NARRATIVE: "NARRATIVE",
+  META: "META",
+} as const satisfies Record<string, components['schemas']['CreateWorldRuleDto']['domain']>;
+
+export type CreateWorldRuleDomain = (typeof CreateWorldRuleDomain)[keyof typeof CreateWorldRuleDomain];
+
+export const CreateWorldRuleHardness = {
+  HARD: "HARD",
+  FIRM: "FIRM",
+  SOFT: "SOFT",
+  AESTHETIC: "AESTHETIC",
+} as const satisfies Record<string, components['schemas']['CreateWorldRuleDto']['hardness']>;
+
+export type CreateWorldRuleHardness = (typeof CreateWorldRuleHardness)[keyof typeof CreateWorldRuleHardness];
+
+export const CreateWorldRuleProvenance = {
+  SEED: "SEED",
+  CREATOR: "CREATOR",
+  MOJING_MERGED: "MOJING_MERGED",
+  RENDER_BACKFLOW: "RENDER_BACKFLOW",
+  WORLD_STUDIO: "WORLD_STUDIO",
+  SYSTEM: "SYSTEM",
+} as const satisfies Record<string, components['schemas']['CreateWorldRuleDto']['provenance']>;
+
+export type CreateWorldRuleProvenance = (typeof CreateWorldRuleProvenance)[keyof typeof CreateWorldRuleProvenance];
+
+export const CreateWorldRuleScope = {
+  WORLD: "WORLD",
+  REGION: "REGION",
+  FACTION: "FACTION",
+  INDIVIDUAL: "INDIVIDUAL",
+  SCENE: "SCENE",
+} as const satisfies Record<string, components['schemas']['CreateWorldRuleDto']['scope']>;
+
+export type CreateWorldRuleScope = (typeof CreateWorldRuleScope)[keyof typeof CreateWorldRuleScope];
 
 export const CreatorCapabilitiesAllowedActionsItem = {
   INJECT_EVENT: "INJECT_EVENT",
@@ -664,6 +830,43 @@ export const TranslateContext = {
 
 export type TranslateContext = (typeof TranslateContext)[keyof typeof TranslateContext];
 
+export const UpdateAgentRuleCategory = {
+  CONSTRAINT: "CONSTRAINT",
+  MECHANISM: "MECHANISM",
+  DEFINITION: "DEFINITION",
+  RELATION: "RELATION",
+  POLICY: "POLICY",
+} as const satisfies Record<string, components['schemas']['UpdateAgentRuleDto']['category']>;
+
+export type UpdateAgentRuleCategory = (typeof UpdateAgentRuleCategory)[keyof typeof UpdateAgentRuleCategory];
+
+export const UpdateAgentRuleHardness = {
+  HARD: "HARD",
+  FIRM: "FIRM",
+  SOFT: "SOFT",
+  AESTHETIC: "AESTHETIC",
+} as const satisfies Record<string, components['schemas']['UpdateAgentRuleDto']['hardness']>;
+
+export type UpdateAgentRuleHardness = (typeof UpdateAgentRuleHardness)[keyof typeof UpdateAgentRuleHardness];
+
+export const UpdateAgentRuleProvenance = {
+  CREATOR: "CREATOR",
+  WORLD_INHERITED: "WORLD_INHERITED",
+  NARRATIVE_EMERGED: "NARRATIVE_EMERGED",
+  SYSTEM: "SYSTEM",
+} as const satisfies Record<string, components['schemas']['UpdateAgentRuleDto']['provenance']>;
+
+export type UpdateAgentRuleProvenance = (typeof UpdateAgentRuleProvenance)[keyof typeof UpdateAgentRuleProvenance];
+
+export const UpdateAgentRuleScope = {
+  SELF: "SELF",
+  DYAD: "DYAD",
+  GROUP: "GROUP",
+  WORLD: "WORLD",
+} as const satisfies Record<string, components['schemas']['UpdateAgentRuleDto']['scope']>;
+
+export type UpdateAgentRuleScope = (typeof UpdateAgentRuleScope)[keyof typeof UpdateAgentRuleScope];
+
 export const UpdateMediaAssetDeliveryAccess = {
   PUBLIC: "PUBLIC",
   SIGNED: "SIGNED",
@@ -687,6 +890,35 @@ export const UpdateWorldDraftStatus = {
 } as const satisfies Record<string, components['schemas']['UpdateWorldDraftDto']['status']>;
 
 export type UpdateWorldDraftStatus = (typeof UpdateWorldDraftStatus)[keyof typeof UpdateWorldDraftStatus];
+
+export const UpdateWorldRuleCategory = {
+  CONSTRAINT: "CONSTRAINT",
+  MECHANISM: "MECHANISM",
+  DEFINITION: "DEFINITION",
+  RELATION: "RELATION",
+  POLICY: "POLICY",
+} as const satisfies Record<string, components['schemas']['UpdateWorldRuleDto']['category']>;
+
+export type UpdateWorldRuleCategory = (typeof UpdateWorldRuleCategory)[keyof typeof UpdateWorldRuleCategory];
+
+export const UpdateWorldRuleHardness = {
+  HARD: "HARD",
+  FIRM: "FIRM",
+  SOFT: "SOFT",
+  AESTHETIC: "AESTHETIC",
+} as const satisfies Record<string, components['schemas']['UpdateWorldRuleDto']['hardness']>;
+
+export type UpdateWorldRuleHardness = (typeof UpdateWorldRuleHardness)[keyof typeof UpdateWorldRuleHardness];
+
+export const UpdateWorldRuleScope = {
+  WORLD: "WORLD",
+  REGION: "REGION",
+  FACTION: "FACTION",
+  INDIVIDUAL: "INDIVIDUAL",
+  SCENE: "SCENE",
+} as const satisfies Record<string, components['schemas']['UpdateWorldRuleDto']['scope']>;
+
+export type UpdateWorldRuleScope = (typeof UpdateWorldRuleScope)[keyof typeof UpdateWorldRuleScope];
 
 export const VerifySyntheticMemoryStatus = {
   CANONIZED: "canonized",
@@ -1050,6 +1282,68 @@ export const WorldRecommendedAgentImportance = {
 } as const satisfies Record<string, components['schemas']['WorldRecommendedAgentDto']['importance']>;
 
 export type WorldRecommendedAgentImportance = (typeof WorldRecommendedAgentImportance)[keyof typeof WorldRecommendedAgentImportance];
+
+export const WorldRuleCategory = {
+  CONSTRAINT: "CONSTRAINT",
+  MECHANISM: "MECHANISM",
+  DEFINITION: "DEFINITION",
+  RELATION: "RELATION",
+  POLICY: "POLICY",
+} as const satisfies Record<string, components['schemas']['WorldRuleDto']['category']>;
+
+export type WorldRuleCategory = (typeof WorldRuleCategory)[keyof typeof WorldRuleCategory];
+
+export const WorldRuleDomain = {
+  AXIOM: "AXIOM",
+  PHYSICS: "PHYSICS",
+  SOCIETY: "SOCIETY",
+  ECONOMY: "ECONOMY",
+  CHARACTER: "CHARACTER",
+  NARRATIVE: "NARRATIVE",
+  META: "META",
+} as const satisfies Record<string, components['schemas']['WorldRuleDto']['domain']>;
+
+export type WorldRuleDomain = (typeof WorldRuleDomain)[keyof typeof WorldRuleDomain];
+
+export const WorldRuleHardness = {
+  HARD: "HARD",
+  FIRM: "FIRM",
+  SOFT: "SOFT",
+  AESTHETIC: "AESTHETIC",
+} as const satisfies Record<string, components['schemas']['WorldRuleDto']['hardness']>;
+
+export type WorldRuleHardness = (typeof WorldRuleHardness)[keyof typeof WorldRuleHardness];
+
+export const WorldRuleProvenance = {
+  SEED: "SEED",
+  CREATOR: "CREATOR",
+  MOJING_MERGED: "MOJING_MERGED",
+  RENDER_BACKFLOW: "RENDER_BACKFLOW",
+  WORLD_STUDIO: "WORLD_STUDIO",
+  SYSTEM: "SYSTEM",
+} as const satisfies Record<string, components['schemas']['WorldRuleDto']['provenance']>;
+
+export type WorldRuleProvenance = (typeof WorldRuleProvenance)[keyof typeof WorldRuleProvenance];
+
+export const WorldRuleScope = {
+  WORLD: "WORLD",
+  REGION: "REGION",
+  FACTION: "FACTION",
+  INDIVIDUAL: "INDIVIDUAL",
+  SCENE: "SCENE",
+} as const satisfies Record<string, components['schemas']['WorldRuleDto']['scope']>;
+
+export type WorldRuleScope = (typeof WorldRuleScope)[keyof typeof WorldRuleScope];
+
+export const WorldRuleStatus = {
+  ACTIVE: "ACTIVE",
+  DEPRECATED: "DEPRECATED",
+  SUPERSEDED: "SUPERSEDED",
+  PROPOSED: "PROPOSED",
+  ARCHIVED: "ARCHIVED",
+} as const satisfies Record<string, components['schemas']['WorldRuleDto']['status']>;
+
+export type WorldRuleStatus = (typeof WorldRuleStatus)[keyof typeof WorldRuleStatus];
 
 export const WorldSummaryStatus = {
   DRAFT: "DRAFT",

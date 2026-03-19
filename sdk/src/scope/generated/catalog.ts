@@ -5,6 +5,7 @@ import type { ScopeName } from '../../types/index.js';
 
 export const GENERATED_REALM_SCOPES: readonly ScopeName[] = Object.freeze([
   'realm.agent_nsfw_consent.read' as ScopeName,
+  'realm.agent_rules.read' as ScopeName,
   'realm.agents.read' as ScopeName,
   'realm.auth.read' as ScopeName,
   'realm.creator.read' as ScopeName,

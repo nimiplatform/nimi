@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type WorldviewEventDto = components['schemas']['WorldviewEventDto'];
+export type CreateAgentRuleDto = components['schemas']['CreateAgentRuleDto'];

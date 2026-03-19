@@ -104,21 +104,77 @@ worlds:
     status: existing
     feature: world-create, world-maintain, advisor-hub
     controller: world-control.controller.ts
-    description: List lorebook entries
+    description: List read-only projected lorebook entries
 
-  - method: POST
-    path: /api/worlds/{worldId}/lorebooks/batch-upsert
-    status: existing
-    feature: world-create, world-maintain
-    controller: world-control.controller.ts
-    description: Batch upsert lorebooks
-
-  - method: DELETE
-    path: /api/worlds/{worldId}/lorebooks/{lorebookId}
+  - method: GET
+    path: /api/world/by-id/{worldId}/rules
     status: existing
     feature: world-maintain
-    controller: world-control.controller.ts
-    description: Delete lorebook entry
+    controller: world-rules.controller.ts
+    description: List world truth rules
+
+  - method: POST
+    path: /api/world/by-id/{worldId}/rules
+    status: existing
+    feature: world-maintain
+    controller: world-rules.controller.ts
+    description: Create world truth rule
+
+  - method: PATCH
+    path: /api/world/by-id/{worldId}/rules/{ruleId}
+    status: existing
+    feature: world-maintain
+    controller: world-rules.controller.ts
+    description: Update world truth rule by version append
+
+  - method: POST
+    path: /api/world/by-id/{worldId}/rules/{ruleId}/deprecate
+    status: existing
+    feature: world-maintain
+    controller: world-rules.controller.ts
+    description: Deprecate world truth rule
+
+  - method: POST
+    path: /api/world/by-id/{worldId}/rules/{ruleId}/archive
+    status: existing
+    feature: world-maintain
+    controller: world-rules.controller.ts
+    description: Archive world truth rule
+
+  - method: GET
+    path: /api/world/by-id/{worldId}/agents/{agentId}/rules
+    status: existing
+    feature: world-maintain
+    controller: agent-rules.controller.ts
+    description: List agent truth rules
+
+  - method: POST
+    path: /api/world/by-id/{worldId}/agents/{agentId}/rules
+    status: existing
+    feature: world-maintain
+    controller: agent-rules.controller.ts
+    description: Create agent truth rule
+
+  - method: PATCH
+    path: /api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}
+    status: existing
+    feature: world-maintain
+    controller: agent-rules.controller.ts
+    description: Update agent truth rule by version append
+
+  - method: POST
+    path: /api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}/deprecate
+    status: existing
+    feature: world-maintain
+    controller: agent-rules.controller.ts
+    description: Deprecate agent truth rule
+
+  - method: POST
+    path: /api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}/archive
+    status: existing
+    feature: world-maintain
+    controller: agent-rules.controller.ts
+    description: Archive agent truth rule
 
   - method: GET
     path: /api/worlds/{worldId}/media-bindings

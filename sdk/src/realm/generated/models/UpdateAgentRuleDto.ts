@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type BatchUpsertWorldLorebooksDto = components['schemas']['BatchUpsertWorldLorebooksDto'];
+export type UpdateAgentRuleDto = components['schemas']['UpdateAgentRuleDto'];

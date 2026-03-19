@@ -54,6 +54,14 @@ function readSnapshotFromStorage(userId: string): WorldStudioWorkspaceSnapshot |
       },
       worldPatch: asRecord(parsed.worldPatch),
       worldviewPatch: asRecord(parsed.worldviewPatch),
+      ruleTruthDraft: {
+        worldRules: Array.isArray(parsed.ruleTruthDraft?.worldRules)
+          ? parsed.ruleTruthDraft.worldRules.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
+          : [],
+        agentRules: Array.isArray(parsed.ruleTruthDraft?.agentRules)
+          ? parsed.ruleTruthDraft.agentRules.filter((item): item is { characterName: string; payload: Record<string, unknown> } => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
+          : [],
+      },
       eventsDraft: normalizeEventsDraft(parsed.eventsDraft || {}),
       lorebooksDraft: normalizeArray(parsed.lorebooksDraft),
       phase1Artifact: parsed.phase1Artifact || null,
@@ -173,6 +181,14 @@ export const useCreatorWorldStore = create<CreatorWorldStore>((set, get) => ({
             ...state.snapshot.knowledgeGraph.events,
             ...((patch.knowledgeGraph as { events?: { primary?: EventNodeDraft[]; secondary?: EventNodeDraft[] } } | undefined)?.events || {}),
           },
+        },
+        ruleTruthDraft: {
+          worldRules: Array.isArray(patch.ruleTruthDraft?.worldRules)
+            ? (patch.ruleTruthDraft.worldRules as WorldStudioWorkspaceSnapshot['ruleTruthDraft']['worldRules'])
+            : state.snapshot.ruleTruthDraft.worldRules,
+          agentRules: Array.isArray(patch.ruleTruthDraft?.agentRules)
+            ? (patch.ruleTruthDraft.agentRules as WorldStudioWorkspaceSnapshot['ruleTruthDraft']['agentRules'])
+            : state.snapshot.ruleTruthDraft.agentRules,
         },
         eventsDraft: {
           primary: Array.isArray(patch.eventsDraft?.primary)

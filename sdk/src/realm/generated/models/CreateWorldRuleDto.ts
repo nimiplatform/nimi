@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type WorldLorebookUpsertDto = components['schemas']['WorldLorebookUpsertDto'];
+export type CreateWorldRuleDto = components['schemas']['CreateWorldRuleDto'];

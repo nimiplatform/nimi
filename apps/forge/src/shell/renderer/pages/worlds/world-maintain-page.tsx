@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MaintainWorkbench } from '@world-engine/ui/maintain/maintain-workbench.js';
 import type {
   EventNodeDraft,
@@ -28,6 +28,9 @@ import {
 } from '@renderer/hooks/use-world-queries.js';
 import { useWorldMutations } from '@renderer/hooks/use-world-mutations.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import { useAgentListQuery } from '@renderer/hooks/use-agent-queries.js';
+import { listAgentRules, listWorldRules } from '@renderer/data/world-data-client.js';
+import { WorldRuleTruthPanel } from './world-rule-truth-panel.js';
 
 type MaintainTab = 'WORLD' | 'WORLDVIEW' | 'EVENTS' | 'LOREBOOKS';
 
@@ -87,26 +90,64 @@ export default function WorldMaintainPage() {
 
   // Mutations
   const mutations = useWorldMutations();
+  const agentListQuery = useAgentListQuery(Boolean(worldId));
 
   // Local UI state
   const [eventSyncMode, setEventSyncMode] = useState<'merge' | 'replace'>('merge');
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTruthAgentId, setSelectedTruthAgentId] = useState('');
+
+  const worldRulesQuery = useQuery({
+    queryKey: ['forge', 'world', 'rules', worldId, 'ACTIVE'],
+    enabled: Boolean(worldId),
+    retry: false,
+    queryFn: async () => await listWorldRules(worldId, 'ACTIVE'),
+  });
+
+  const worldOwnedAgents = (agentListQuery.data || []).filter((agent) => agent.worldId === worldId);
+
+  useEffect(() => {
+    if (!selectedTruthAgentId && worldOwnedAgents.length > 0) {
+      setSelectedTruthAgentId(worldOwnedAgents[0]!.id);
+      return;
+    }
+    if (
+      selectedTruthAgentId &&
+      worldOwnedAgents.length > 0 &&
+      !worldOwnedAgents.some((agent) => agent.id === selectedTruthAgentId)
+    ) {
+      setSelectedTruthAgentId(worldOwnedAgents[0]!.id);
+    }
+  }, [selectedTruthAgentId, worldOwnedAgents]);
+
+  const agentRulesQuery = useQuery({
+    queryKey: ['forge', 'world', 'agent-rules', worldId, selectedTruthAgentId, 'ACTIVE'],
+    enabled: Boolean(worldId && selectedTruthAgentId),
+    retry: false,
+    queryFn: async () => await listAgentRules(worldId, selectedTruthAgentId, { status: 'ACTIVE' }),
+  });
 
   // Hydrate snapshot from server data
   useEffect(() => {
     const maint = maintenanceQuery.data;
     if (!maint || typeof maint !== 'object') return;
     const record = maint as Record<string, unknown>;
-    if (record.worldPatch && typeof record.worldPatch === 'object') {
+    const worldProjection = record.world && typeof record.world === 'object'
+      ? record.world
+      : record.worldPatch;
+    if (worldProjection && typeof worldProjection === 'object') {
       patchSnapshot({
-        worldPatch: record.worldPatch as Record<string, unknown>,
+        worldPatch: worldProjection as Record<string, unknown>,
         editorSnapshotVersion: String(record.editorSnapshotVersion || ''),
       });
     }
-    if (record.worldviewPatch && typeof record.worldviewPatch === 'object') {
+    const worldviewProjection = record.worldview && typeof record.worldview === 'object'
+      ? record.worldview
+      : record.worldviewPatch;
+    if (worldviewProjection && typeof worldviewProjection === 'object') {
       patchSnapshot({
-        worldviewPatch: record.worldviewPatch as Record<string, unknown>,
+        worldviewPatch: worldviewProjection as Record<string, unknown>,
       });
     }
   }, [maintenanceQuery.data, patchSnapshot]);
@@ -151,8 +192,9 @@ export default function WorldMaintainPage() {
   const onWorldPatchChange = useCallback((value: Record<string, unknown>) =>
     patchSnapshot({ worldPatch: value }), [patchSnapshot]);
 
-  const onWorldviewPatchChange = useCallback((value: Record<string, unknown>) =>
-    patchSnapshot({ worldviewPatch: value }), [patchSnapshot]);
+  const onWorldviewPatchChange = useCallback((_value: Record<string, unknown>) => {
+    setNotice('Worldview is now a read-only projection. Edit World Rules in the Rule Truth panel.');
+  }, []);
 
   const onEventsChange = useCallback((next: { primary: EventNodeDraft[]; secondary: EventNodeDraft[] }) =>
     patchSnapshot({ eventsDraft: next }), [patchSnapshot]);
@@ -160,8 +202,9 @@ export default function WorldMaintainPage() {
   const onEventGraphLayoutChange = useCallback((next: { selectedEventId: string; expandedPrimaryIds: string[] }) =>
     patchSnapshot({ eventGraphLayout: next }), [patchSnapshot]);
 
-  const onLorebooksChange = useCallback((value: WorldLorebookDraftRow[]) =>
-    patchSnapshot({ lorebooksDraft: value }), [patchSnapshot]);
+  const onLorebooksChange = useCallback((_value: WorldLorebookDraftRow[]) => {
+    setNotice('Lorebooks are read-only projections. Edit World Rules or Agent Rules in the Rule Truth panel.');
+  }, []);
 
   // Sync operations
   const onSyncEvents = useCallback(async () => {
@@ -186,25 +229,32 @@ export default function WorldMaintainPage() {
   }, [worldId, snapshot.eventsDraft, mutations.syncEventsMutation, queryClient, eventSyncMode]);
 
   const onSyncLorebooks = useCallback(async () => {
-    if (!worldId) return;
-    try {
-      const upserts = snapshot.lorebooksDraft.map((lb) => lb as unknown as Record<string, unknown>);
-      await mutations.syncLorebooksMutation.mutateAsync({
-        worldId,
-        lorebookUpserts: upserts,
-        reason: 'Forge manual sync',
-      });
-      await queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'lorebooks', worldId] });
-      setNotice('Lorebooks synced successfully');
-    } catch (err) {
-      setError(`Failed to sync lorebooks: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }, [worldId, snapshot.lorebooksDraft, mutations.syncLorebooksMutation, queryClient]);
+    setNotice('Lorebooks are read-only projections. Edit WorldRule or AgentRule instead.');
+  }, []);
+
+  const invalidateTruthQueries = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'maintenance', worldId] }),
+      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'lorebooks', worldId] }),
+      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'rules', worldId] }),
+      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'agent-rules', worldId] }),
+    ]);
+  }, [queryClient, worldId]);
 
   // Derived
   const working = mutations.saveMaintenanceMutation.isPending
     || mutations.syncEventsMutation.isPending
-    || mutations.syncLorebooksMutation.isPending;
+    || mutations.syncMediaBindingsMutation.isPending;
+  const truthWorking = worldRulesQuery.isFetching
+    || agentRulesQuery.isFetching
+    || mutations.createWorldRuleMutation.isPending
+    || mutations.updateWorldRuleMutation.isPending
+    || mutations.deprecateWorldRuleMutation.isPending
+    || mutations.archiveWorldRuleMutation.isPending
+    || mutations.createAgentRuleMutation.isPending
+    || mutations.updateAgentRuleMutation.isPending
+    || mutations.deprecateAgentRuleMutation.isPending
+    || mutations.archiveAgentRuleMutation.isPending;
 
   const mutationsList: WorldMutationSummary[] = mutationsQuery.data || [];
   const dirtyLabels = Object.entries(snapshot.unsavedChangesByPanel)
@@ -265,6 +315,7 @@ export default function WorldMaintainPage() {
     routeOptions: null,
     eventSyncMode,
     selectedAgentSyncCharacters: snapshot.agentSync.selectedCharacterIds,
+    truthDerivedAgentDraftsByCharacter: snapshot.agentSync.draftsByCharacter,
     eventsGraph: snapshot.eventsDraft,
     timeFlowRatio: getTimeFlowRatioFromWorldviewPatch(snapshot.worldviewPatch),
     importSubview: 'PREPARE',
@@ -348,6 +399,7 @@ export default function WorldMaintainPage() {
     review: {
       onWorldPatchChange,
       onWorldviewPatchChange,
+      onRuleTruthDraftChange: () => undefined,
       onEventsChange,
       onLorebooksChange,
       onEventGraphLayoutChange,
@@ -366,7 +418,6 @@ export default function WorldMaintainPage() {
         await mutations.saveMaintenanceMutation.mutateAsync({
           worldId,
           worldPatch: snapshot.worldPatch,
-          worldviewPatch: snapshot.worldviewPatch,
           reason: 'Forge manual save',
           ifSnapshotVersion: snapshot.editorSnapshotVersion || undefined,
         });
@@ -388,6 +439,8 @@ export default function WorldMaintainPage() {
           queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'maintenance', worldId] }),
           queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'events', worldId] }),
           queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'lorebooks', worldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'rules', worldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'agent-rules', worldId] }),
         ]);
       },
       reloadRemote: async () => {
@@ -443,7 +496,6 @@ export default function WorldMaintainPage() {
               await mutations.saveMaintenanceMutation.mutateAsync({
                 worldId,
                 worldPatch: snapshot.worldPatch,
-                worldviewPatch: snapshot.worldviewPatch,
                 reason: 'Forge manual save',
                 ifSnapshotVersion: snapshot.editorSnapshotVersion || undefined,
               });
@@ -453,7 +505,7 @@ export default function WorldMaintainPage() {
               setError(`Save failed: ${err instanceof Error ? err.message : String(err)}`);
             }
           }}
-          disabled={working}
+          disabled={working || truthWorking}
           className="rounded-lg bg-white px-4 py-1.5 text-sm font-medium text-black hover:bg-neutral-200 disabled:opacity-50 transition-colors"
         >
           {t('maintain.save', 'Save')}
@@ -473,6 +525,51 @@ export default function WorldMaintainPage() {
           <button onClick={() => setNotice(null)} className="text-green-400/60 hover:text-green-400">&times;</button>
         </div>
       )}
+
+      <WorldRuleTruthPanel
+        worldRules={Array.isArray(worldRulesQuery.data) ? worldRulesQuery.data : []}
+        worldRulesLoading={worldRulesQuery.isLoading}
+        worldAgents={worldOwnedAgents}
+        selectedAgentId={selectedTruthAgentId}
+        onSelectedAgentIdChange={setSelectedTruthAgentId}
+        agentRules={Array.isArray(agentRulesQuery.data) ? agentRulesQuery.data : []}
+        agentRulesLoading={agentRulesQuery.isLoading}
+        working={working || truthWorking}
+        onCreateWorldRule={async (payload) => {
+          await mutations.createWorldRuleMutation.mutateAsync({ worldId, payload });
+          await invalidateTruthQueries();
+        }}
+        onUpdateWorldRule={async (ruleId, payload) => {
+          await mutations.updateWorldRuleMutation.mutateAsync({ worldId, ruleId, payload });
+          await invalidateTruthQueries();
+        }}
+        onDeprecateWorldRule={async (ruleId) => {
+          await mutations.deprecateWorldRuleMutation.mutateAsync({ worldId, ruleId });
+          await invalidateTruthQueries();
+        }}
+        onArchiveWorldRule={async (ruleId) => {
+          await mutations.archiveWorldRuleMutation.mutateAsync({ worldId, ruleId });
+          await invalidateTruthQueries();
+        }}
+        onCreateAgentRule={async (agentId, payload) => {
+          await mutations.createAgentRuleMutation.mutateAsync({ worldId, agentId, payload });
+          await invalidateTruthQueries();
+        }}
+        onUpdateAgentRule={async (agentId, ruleId, payload) => {
+          await mutations.updateAgentRuleMutation.mutateAsync({ worldId, agentId, ruleId, payload });
+          await invalidateTruthQueries();
+        }}
+        onDeprecateAgentRule={async (agentId, ruleId) => {
+          await mutations.deprecateAgentRuleMutation.mutateAsync({ worldId, agentId, ruleId });
+          await invalidateTruthQueries();
+        }}
+        onArchiveAgentRule={async (agentId, ruleId) => {
+          await mutations.archiveAgentRuleMutation.mutateAsync({ worldId, agentId, ruleId });
+          await invalidateTruthQueries();
+        }}
+        setNotice={setNotice}
+        setError={setError}
+      />
 
       {/* Workbench */}
       <div className="min-h-0 flex-1">

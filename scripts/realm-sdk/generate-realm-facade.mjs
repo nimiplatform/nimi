@@ -23,14 +23,14 @@ export function writeRealmFacade(repoRoot) {
     const source = readFileSync(path.join(generatedModelsDir, fileName), 'utf8');
     const exportKind = classifyModelExport(source);
     if (exportKind === 'value') {
-      lines.push(`export { ${symbol} } from './generated/models/${symbol}';`);
+      lines.push(`export { ${symbol} } from './generated/models/${symbol}.js';`);
       continue;
     }
     if (exportKind === 'type') {
-      lines.push(`export type { ${symbol} } from './generated/models/${symbol}';`);
+      lines.push(`export type { ${symbol} } from './generated/models/${symbol}.js';`);
       continue;
     }
-    lines.push(`export type { ${symbol} } from './generated/models/${symbol}';`);
+    lines.push(`export type { ${symbol} } from './generated/models/${symbol}.js';`);
   }
 
   lines.push('');

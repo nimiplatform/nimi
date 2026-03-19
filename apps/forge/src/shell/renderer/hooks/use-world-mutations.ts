@@ -11,13 +11,23 @@ import {
   updateWorldDraft,
   publishWorldDraft,
   updateWorldMaintenance,
+  listWorldRules,
+  createWorldRule,
+  updateWorldRule,
+  deprecateWorldRule,
+  archiveWorldRule,
+  listAgentRules,
+  createAgentRule,
+  updateAgentRule,
+  deprecateAgentRule,
+  archiveAgentRule,
   batchUpsertWorldEvents,
-  batchUpsertWorldLorebooks,
   batchUpsertWorldMediaBindings,
   deleteWorldEvent,
-  deleteWorldLorebook,
   batchCreateCreatorAgents,
 } from '@renderer/data/world-data-client.js';
+
+const LOREBOOK_PROJECTION_READ_ONLY = 'WORLD_LOREBOOK_PROJECTION_READ_ONLY';
 
 type SaveDraftInput = {
   draftId?: string;
@@ -58,28 +68,96 @@ export function useWorldMutations() {
     mutationFn: async (input: {
       worldId: string;
       worldPatch: Record<string, unknown>;
-      worldviewPatch: Record<string, unknown>;
       reason: string;
       ifSnapshotVersion?: string;
     }) =>
       await updateWorldMaintenance(input.worldId, {
         worldPatch: input.worldPatch,
-        worldviewPatch: input.worldviewPatch,
         reason: input.reason,
         ifSnapshotVersion: input.ifSnapshotVersion,
       }),
   });
 
-  const syncLorebooksMutation = useMutation({
+  const listWorldRulesMutation = useMutation({
+    mutationFn: async (input: { worldId: string; status?: string }) =>
+      await listWorldRules(input.worldId, input.status),
+  });
+
+  const createWorldRuleMutation = useMutation({
     mutationFn: async (input: {
       worldId: string;
-      lorebookUpserts: Array<Record<string, unknown>>;
-      reason: string;
+      payload: Record<string, unknown>;
+    }) => await createWorldRule(input.worldId, input.payload),
+  });
+
+  const updateWorldRuleMutation = useMutation({
+    mutationFn: async (input: {
+      worldId: string;
+      ruleId: string;
+      payload: Record<string, unknown>;
+    }) => await updateWorldRule(input.worldId, input.ruleId, input.payload),
+  });
+
+  const deprecateWorldRuleMutation = useMutation({
+    mutationFn: async (input: { worldId: string; ruleId: string }) =>
+      await deprecateWorldRule(input.worldId, input.ruleId),
+  });
+
+  const archiveWorldRuleMutation = useMutation({
+    mutationFn: async (input: { worldId: string; ruleId: string }) =>
+      await archiveWorldRule(input.worldId, input.ruleId),
+  });
+
+  const listAgentRulesMutation = useMutation({
+    mutationFn: async (input: {
+      worldId: string;
+      agentId: string;
+      layer?: string;
+      status?: string;
     }) =>
-      await batchUpsertWorldLorebooks(input.worldId, {
-        lorebookUpserts: input.lorebookUpserts,
-        reason: input.reason,
+      await listAgentRules(input.worldId, input.agentId, {
+        layer: input.layer,
+        status: input.status,
       }),
+  });
+
+  const createAgentRuleMutation = useMutation({
+    mutationFn: async (input: {
+      worldId: string;
+      agentId: string;
+      payload: Record<string, unknown>;
+    }) => await createAgentRule(input.worldId, input.agentId, input.payload),
+  });
+
+  const updateAgentRuleMutation = useMutation({
+    mutationFn: async (input: {
+      worldId: string;
+      agentId: string;
+      ruleId: string;
+      payload: Record<string, unknown>;
+    }) => await updateAgentRule(input.worldId, input.agentId, input.ruleId, input.payload),
+  });
+
+  const deprecateAgentRuleMutation = useMutation({
+    mutationFn: async (input: {
+      worldId: string;
+      agentId: string;
+      ruleId: string;
+    }) => await deprecateAgentRule(input.worldId, input.agentId, input.ruleId),
+  });
+
+  const archiveAgentRuleMutation = useMutation({
+    mutationFn: async (input: {
+      worldId: string;
+      agentId: string;
+      ruleId: string;
+    }) => await archiveAgentRule(input.worldId, input.agentId, input.ruleId),
+  });
+
+  const syncLorebooksMutation = useMutation({
+    mutationFn: async () => {
+      throw new Error(LOREBOOK_PROJECTION_READ_ONLY);
+    },
   });
 
   const syncEventsMutation = useMutation({
@@ -111,8 +189,9 @@ export function useWorldMutations() {
   });
 
   const deleteLorebookMutation = useMutation({
-    mutationFn: async (input: { worldId: string; lorebookId: string }) =>
-      await deleteWorldLorebook(input.worldId, input.lorebookId),
+    mutationFn: async () => {
+      throw new Error(LOREBOOK_PROJECTION_READ_ONLY);
+    },
   });
 
   const deleteEventMutation = useMutation({
@@ -135,6 +214,16 @@ export function useWorldMutations() {
     saveDraftMutation,
     publishDraftMutation,
     saveMaintenanceMutation,
+    listWorldRulesMutation,
+    createWorldRuleMutation,
+    updateWorldRuleMutation,
+    deprecateWorldRuleMutation,
+    archiveWorldRuleMutation,
+    listAgentRulesMutation,
+    createAgentRuleMutation,
+    updateAgentRuleMutation,
+    deprecateAgentRuleMutation,
+    archiveAgentRuleMutation,
     syncLorebooksMutation,
     syncEventsMutation,
     syncMediaBindingsMutation,

@@ -140,7 +140,9 @@ All required backend APIs already exist. No new backend work needed for World ma
 | World Drafts | `POST/GET /api/world-drafts`, `GET/PATCH /api/world-drafts/:draftId`, `POST /api/world-drafts/:draftId/publish` | `world-control.controller.ts` |
 | World Maintenance | `GET/PATCH /api/worlds/:worldId/maintenance`, `GET /api/worlds/mine` | `world-control.controller.ts` |
 | World Events | `GET /api/worlds/:worldId/events`, `POST /api/worlds/:worldId/events/batch-upsert`, `DELETE /api/worlds/:worldId/events/:eventId` | `world-control.controller.ts` |
-| World Lorebooks | `GET /api/worlds/:worldId/lorebooks`, `POST /api/worlds/:worldId/lorebooks/batch-upsert`, `DELETE /api/worlds/:worldId/lorebooks/:lorebookId` | `world-control.controller.ts` |
+| World Lorebooks | `GET /api/worlds/:worldId/lorebooks` (read-only projection) | `world-control.controller.ts` |
+| World Rules | `GET/POST /api/world/by-id/:worldId/rules`, `PATCH /api/world/by-id/:worldId/rules/:ruleId`, `POST /api/world/by-id/:worldId/rules/:ruleId/deprecate`, `POST /api/world/by-id/:worldId/rules/:ruleId/archive` | `world-rules.controller.ts` |
+| Agent Rules | `GET/POST /api/world/by-id/:worldId/agents/:agentId/rules`, `PATCH /api/world/by-id/:worldId/agents/:agentId/rules/:ruleId`, `POST /api/world/by-id/:worldId/agents/:agentId/rules/:ruleId/deprecate`, `POST /api/world/by-id/:worldId/agents/:agentId/rules/:ruleId/archive` | `agent-rules.controller.ts` |
 | Media Bindings | `GET /api/worlds/:worldId/media-bindings`, `POST /api/worlds/:worldId/media-bindings/batch-upsert`, `DELETE /api/worlds/:worldId/media-bindings/:bindingId` | `world-control.controller.ts` |
 | Mutations | `GET /api/worlds/:worldId/mutations` | `world-control.controller.ts` |
 | Scenes | `GET /api/worlds/:worldId/scenes` | `world-control.controller.ts` |

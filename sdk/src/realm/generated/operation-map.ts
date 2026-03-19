@@ -45,6 +45,158 @@ export const REALM_OPERATION_MAP = {
     "bodyRequired": true,
     "requestBodyContentType": "application/json"
   },
+  "AgentRulesService.agentRulesControllerArchiveRule": {
+    "operationId": "AgentRulesController_archiveRule",
+    "method": "POST",
+    "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}/archive",
+    "service": "AgentRulesService",
+    "methodName": "agentRulesControllerArchiveRule",
+    "tag": "Agent Rules",
+    "parameters": [
+      {
+        "name": "worldId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "agentId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "ruleId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false
+  },
+  "AgentRulesService.agentRulesControllerCreateRule": {
+    "operationId": "AgentRulesController_createRule",
+    "method": "POST",
+    "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules",
+    "service": "AgentRulesService",
+    "methodName": "agentRulesControllerCreateRule",
+    "tag": "Agent Rules",
+    "parameters": [
+      {
+        "name": "worldId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "agentId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json"
+  },
+  "AgentRulesService.agentRulesControllerDeprecateRule": {
+    "operationId": "AgentRulesController_deprecateRule",
+    "method": "POST",
+    "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}/deprecate",
+    "service": "AgentRulesService",
+    "methodName": "agentRulesControllerDeprecateRule",
+    "tag": "Agent Rules",
+    "parameters": [
+      {
+        "name": "worldId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "agentId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "ruleId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false
+  },
+  "AgentRulesService.agentRulesControllerListRules": {
+    "operationId": "AgentRulesController_listRules",
+    "method": "GET",
+    "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules",
+    "service": "AgentRulesService",
+    "methodName": "agentRulesControllerListRules",
+    "tag": "Agent Rules",
+    "parameters": [
+      {
+        "name": "worldId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "agentId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "layer",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      },
+      {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false
+  },
+  "AgentRulesService.agentRulesControllerUpdateRule": {
+    "operationId": "AgentRulesController_updateRule",
+    "method": "PATCH",
+    "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}",
+    "service": "AgentRulesService",
+    "methodName": "agentRulesControllerUpdateRule",
+    "tag": "Agent Rules",
+    "parameters": [
+      {
+        "name": "worldId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "agentId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "ruleId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json"
+  },
   "AgentsService.agentControllerActivate": {
     "operationId": "AgentController_activate",
     "method": "POST",
@@ -1388,24 +1540,6 @@ export const REALM_OPERATION_MAP = {
     "methodName": "economyControllerGetGiftCatalog",
     "tag": "Economy (Currency & Gifts)",
     "parameters": [],
-    "hasBody": false,
-    "bodyRequired": false
-  },
-  "EconomyCurrencyGiftsService.economyControllerGetGiftTransaction": {
-    "operationId": "EconomyController_getGiftTransaction",
-    "method": "GET",
-    "path": "/api/economy/gifts/{id}",
-    "service": "EconomyCurrencyGiftsService",
-    "methodName": "economyControllerGetGiftTransaction",
-    "tag": "Economy (Currency & Gifts)",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
     "hasBody": false,
     "bodyRequired": false
   },
@@ -4385,25 +4519,6 @@ export const REALM_OPERATION_MAP = {
     "bodyRequired": true,
     "requestBodyContentType": "application/json"
   },
-  "WorldControlService.worldControlControllerBatchUpsertWorldLorebooks": {
-    "operationId": "WorldControlController_batchUpsertWorldLorebooks",
-    "method": "POST",
-    "path": "/api/worlds/{worldId}/lorebooks/batch-upsert",
-    "service": "WorldControlService",
-    "methodName": "worldControlControllerBatchUpsertWorldLorebooks",
-    "tag": "World Control",
-    "parameters": [
-      {
-        "name": "worldId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json"
-  },
   "WorldControlService.worldControlControllerBatchUpsertWorldMediaBindings": {
     "operationId": "WorldControlController_batchUpsertWorldMediaBindings",
     "method": "POST",
@@ -4451,30 +4566,6 @@ export const REALM_OPERATION_MAP = {
       },
       {
         "name": "eventId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false
-  },
-  "WorldControlService.worldControlControllerDeleteWorldLorebook": {
-    "operationId": "WorldControlController_deleteWorldLorebook",
-    "method": "DELETE",
-    "path": "/api/worlds/{worldId}/lorebooks/{lorebookId}",
-    "service": "WorldControlService",
-    "methodName": "worldControlControllerDeleteWorldLorebook",
-    "tag": "World Control",
-    "parameters": [
-      {
-        "name": "worldId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "lorebookId",
         "in": "path",
         "required": true,
         "valueType": "string"
@@ -4872,6 +4963,30 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false
   },
+  "WorldRulesService.worldRulesControllerArchiveRule": {
+    "operationId": "WorldRulesController_archiveRule",
+    "method": "POST",
+    "path": "/api/world/by-id/{worldId}/rules/{ruleId}/archive",
+    "service": "WorldRulesService",
+    "methodName": "worldRulesControllerArchiveRule",
+    "tag": "World Rules",
+    "parameters": [
+      {
+        "name": "worldId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "ruleId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false
+  },
   "WorldRulesService.worldRulesControllerCheckPermission": {
     "operationId": "WorldRulesController_checkPermission",
     "method": "GET",
@@ -4888,6 +5003,49 @@ export const REALM_OPERATION_MAP = {
       },
       {
         "name": "action",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false
+  },
+  "WorldRulesService.worldRulesControllerCreateRule": {
+    "operationId": "WorldRulesController_createRule",
+    "method": "POST",
+    "path": "/api/world/by-id/{worldId}/rules",
+    "service": "WorldRulesService",
+    "methodName": "worldRulesControllerCreateRule",
+    "tag": "World Rules",
+    "parameters": [
+      {
+        "name": "worldId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json"
+  },
+  "WorldRulesService.worldRulesControllerDeprecateRule": {
+    "operationId": "WorldRulesController_deprecateRule",
+    "method": "POST",
+    "path": "/api/world/by-id/{worldId}/rules/{ruleId}/deprecate",
+    "service": "WorldRulesService",
+    "methodName": "worldRulesControllerDeprecateRule",
+    "tag": "World Rules",
+    "parameters": [
+      {
+        "name": "worldId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "ruleId",
         "in": "path",
         "required": true,
         "valueType": "string"
@@ -4926,6 +5084,12 @@ export const REALM_OPERATION_MAP = {
         "name": "worldId",
         "in": "path",
         "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "status",
+        "in": "query",
+        "required": false,
         "valueType": "string"
       }
     ],
@@ -4969,16 +5133,22 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false
   },
-  "WorldRulesService.worldRulesControllerUpdateRules": {
-    "operationId": "WorldRulesController_updateRules",
-    "method": "PUT",
-    "path": "/api/world/by-id/{worldId}/rules",
+  "WorldRulesService.worldRulesControllerUpdateRule": {
+    "operationId": "WorldRulesController_updateRule",
+    "method": "PATCH",
+    "path": "/api/world/by-id/{worldId}/rules/{ruleId}",
     "service": "WorldRulesService",
-    "methodName": "worldRulesControllerUpdateRules",
+    "methodName": "worldRulesControllerUpdateRule",
     "tag": "World Rules",
     "parameters": [
       {
         "name": "worldId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "ruleId",
         "in": "path",
         "required": true,
         "valueType": "string"
@@ -5034,25 +5204,6 @@ export const REALM_OPERATION_MAP = {
     "methodName": "worldControllerCreateWorld",
     "tag": "Worlds",
     "parameters": [],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json"
-  },
-  "WorldsService.worldControllerCreateWorldviewSnapshot": {
-    "operationId": "WorldController_createWorldviewSnapshot",
-    "method": "POST",
-    "path": "/api/world/by-id/{id}/worldview/snapshots",
-    "service": "WorldsService",
-    "methodName": "worldControllerCreateWorldviewSnapshot",
-    "tag": "Worlds",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
     "hasBody": true,
     "bodyRequired": true,
     "requestBodyContentType": "application/json"
@@ -5271,54 +5422,6 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false
   },
-  "WorldsService.worldControllerGetWorldviewEvents": {
-    "operationId": "WorldController_getWorldviewEvents",
-    "method": "GET",
-    "path": "/api/world/by-id/{id}/worldview/events",
-    "service": "WorldsService",
-    "methodName": "worldControllerGetWorldviewEvents",
-    "tag": "Worlds",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "offset",
-        "in": "query",
-        "required": false,
-        "valueType": "number"
-      },
-      {
-        "name": "limit",
-        "in": "query",
-        "required": false,
-        "valueType": "number"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false
-  },
-  "WorldsService.worldControllerGetWorldviewSnapshots": {
-    "operationId": "WorldController_getWorldviewSnapshots",
-    "method": "GET",
-    "path": "/api/world/by-id/{id}/worldview/snapshots",
-    "service": "WorldsService",
-    "methodName": "worldControllerGetWorldviewSnapshots",
-    "tag": "Worlds",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false
-  },
   "WorldsService.worldControllerListWorlds": {
     "operationId": "WorldController_listWorlds",
     "method": "GET",
@@ -5355,30 +5458,6 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false
   },
-  "WorldsService.worldControllerRollbackWorldview": {
-    "operationId": "WorldController_rollbackWorldview",
-    "method": "POST",
-    "path": "/api/world/by-id/{id}/worldview/rollback",
-    "service": "WorldsService",
-    "methodName": "worldControllerRollbackWorldview",
-    "tag": "Worlds",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "version",
-        "in": "query",
-        "required": true,
-        "valueType": "number"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false
-  },
   "WorldsService.worldControllerTransitToWorld": {
     "operationId": "WorldController_transitToWorld",
     "method": "POST",
@@ -5402,6 +5481,13 @@ export const REALM_OPERATION_MAP = {
 export const REALM_SERVICE_METHODS = {
   "AgentNsfwConsentService": {
     "agentNsfwConsentControllerUpdateAgentConsent": "AgentNsfwConsentService.agentNsfwConsentControllerUpdateAgentConsent"
+  },
+  "AgentRulesService": {
+    "agentRulesControllerArchiveRule": "AgentRulesService.agentRulesControllerArchiveRule",
+    "agentRulesControllerCreateRule": "AgentRulesService.agentRulesControllerCreateRule",
+    "agentRulesControllerDeprecateRule": "AgentRulesService.agentRulesControllerDeprecateRule",
+    "agentRulesControllerListRules": "AgentRulesService.agentRulesControllerListRules",
+    "agentRulesControllerUpdateRule": "AgentRulesService.agentRulesControllerUpdateRule"
   },
   "AgentsService": {
     "agentControllerActivate": "AgentsService.agentControllerActivate",
@@ -5498,7 +5584,6 @@ export const REALM_SERVICE_METHODS = {
     "economyControllerGetConnectStatus": "EconomyCurrencyGiftsService.economyControllerGetConnectStatus",
     "economyControllerGetGemHistory": "EconomyCurrencyGiftsService.economyControllerGetGemHistory",
     "economyControllerGetGiftCatalog": "EconomyCurrencyGiftsService.economyControllerGetGiftCatalog",
-    "economyControllerGetGiftTransaction": "EconomyCurrencyGiftsService.economyControllerGetGiftTransaction",
     "economyControllerGetReceivedGifts": "EconomyCurrencyGiftsService.economyControllerGetReceivedGifts",
     "economyControllerGetRevenueShareConfig": "EconomyCurrencyGiftsService.economyControllerGetRevenueShareConfig",
     "economyControllerGetSentGifts": "EconomyCurrencyGiftsService.economyControllerGetSentGifts",
@@ -5700,11 +5785,9 @@ export const REALM_SERVICE_METHODS = {
   },
   "WorldControlService": {
     "worldControlControllerBatchUpsertWorldEvents": "WorldControlService.worldControlControllerBatchUpsertWorldEvents",
-    "worldControlControllerBatchUpsertWorldLorebooks": "WorldControlService.worldControlControllerBatchUpsertWorldLorebooks",
     "worldControlControllerBatchUpsertWorldMediaBindings": "WorldControlService.worldControlControllerBatchUpsertWorldMediaBindings",
     "worldControlControllerCreateDraft": "WorldControlService.worldControlControllerCreateDraft",
     "worldControlControllerDeleteWorldEvent": "WorldControlService.worldControlControllerDeleteWorldEvent",
-    "worldControlControllerDeleteWorldLorebook": "WorldControlService.worldControlControllerDeleteWorldLorebook",
     "worldControlControllerDeleteWorldMediaBinding": "WorldControlService.worldControlControllerDeleteWorldMediaBinding",
     "worldControlControllerGetDraft": "WorldControlService.worldControlControllerGetDraft",
     "worldControlControllerGetMaintenance": "WorldControlService.worldControlControllerGetMaintenance",
@@ -5726,18 +5809,20 @@ export const REALM_SERVICE_METHODS = {
     "getWorldPosts": "WorldpostService.getWorldPosts"
   },
   "WorldRulesService": {
+    "worldRulesControllerArchiveRule": "WorldRulesService.worldRulesControllerArchiveRule",
     "worldRulesControllerCheckPermission": "WorldRulesService.worldRulesControllerCheckPermission",
+    "worldRulesControllerCreateRule": "WorldRulesService.worldRulesControllerCreateRule",
+    "worldRulesControllerDeprecateRule": "WorldRulesService.worldRulesControllerDeprecateRule",
     "worldRulesControllerGetCreatorCapabilities": "WorldRulesService.worldRulesControllerGetCreatorCapabilities",
     "worldRulesControllerGetRules": "WorldRulesService.worldRulesControllerGetRules",
     "worldRulesControllerInjectEvent": "WorldRulesService.worldRulesControllerInjectEvent",
     "worldRulesControllerListEvents": "WorldRulesService.worldRulesControllerListEvents",
-    "worldRulesControllerUpdateRules": "WorldRulesService.worldRulesControllerUpdateRules",
+    "worldRulesControllerUpdateRule": "WorldRulesService.worldRulesControllerUpdateRule",
     "worldRulesControllerValidateContext": "WorldRulesService.worldRulesControllerValidateContext",
     "worldRulesControllerValidateRules": "WorldRulesService.worldRulesControllerValidateRules"
   },
   "WorldsService": {
     "worldControllerCreateWorld": "WorldsService.worldControllerCreateWorld",
-    "worldControllerCreateWorldviewSnapshot": "WorldsService.worldControllerCreateWorldviewSnapshot",
     "worldControllerGetMainWorld": "WorldsService.worldControllerGetMainWorld",
     "worldControllerGetSceneQuota": "WorldsService.worldControllerGetSceneQuota",
     "worldControllerGetWorld": "WorldsService.worldControllerGetWorld",
@@ -5750,11 +5835,8 @@ export const REALM_SERVICE_METHODS = {
     "worldControllerGetWorldMutations": "WorldsService.worldControllerGetWorldMutations",
     "worldControllerGetWorldScenes": "WorldsService.worldControllerGetWorldScenes",
     "worldControllerGetWorldview": "WorldsService.worldControllerGetWorldview",
-    "worldControllerGetWorldviewEvents": "WorldsService.worldControllerGetWorldviewEvents",
-    "worldControllerGetWorldviewSnapshots": "WorldsService.worldControllerGetWorldviewSnapshots",
     "worldControllerListWorlds": "WorldsService.worldControllerListWorlds",
     "worldControllerReturnToMainWorld": "WorldsService.worldControllerReturnToMainWorld",
-    "worldControllerRollbackWorldview": "WorldsService.worldControllerRollbackWorldview",
     "worldControllerTransitToWorld": "WorldsService.worldControllerTransitToWorld"
   }
 } as const;

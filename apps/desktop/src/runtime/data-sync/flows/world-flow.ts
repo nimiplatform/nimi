@@ -373,47 +373,23 @@ export async function loadWorldSemanticBundle(
 
   try {
     const world = await loadWorldDetailById(callApi, emitDataSyncError, normalizedWorldId);
-    const [worldview, worldviewEvents, worldviewSnapshots] = await Promise.all([
-      (async () => {
-        try {
-          const payload = await callApi(
-            (realm) => realm.services.WorldsService.worldControllerGetWorldview(normalizedWorldId),
-            'Failed to load worldview',
-          );
-          return toRecord(payload);
-        } catch {
-          return null;
-        }
-      })(),
-      (async () => {
-        try {
-          const payload = await callApi(
-            (realm) => realm.services.WorldsService.worldControllerGetWorldviewEvents(normalizedWorldId, 0, 50),
-            'Failed to load worldview events',
-          );
-          return toRecordArray(payload);
-        } catch {
-          return [];
-        }
-      })(),
-      (async () => {
-        try {
-          const payload = await callApi(
-            (realm) => realm.services.WorldsService.worldControllerGetWorldviewSnapshots(normalizedWorldId),
-            'Failed to load worldview snapshots',
-          );
-          return toRecordArray(payload);
-        } catch {
-          return [];
-        }
-      })(),
-    ]);
+    const worldview = await (async () => {
+      try {
+        const payload = await callApi(
+          (realm) => realm.services.WorldsService.worldControllerGetWorldview(normalizedWorldId),
+          'Failed to load worldview',
+        );
+        return toRecord(payload);
+      } catch {
+        return null;
+      }
+    })();
 
     return {
       world,
       worldview,
-      worldviewEvents,
-      worldviewSnapshots,
+      worldviewEvents: [],
+      worldviewSnapshots: [],
     };
   } catch (error) {
     emitDataSyncError('load-world-semantic-bundle', error, { worldId: normalizedWorldId });

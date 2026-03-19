@@ -11,6 +11,7 @@ import { CreateWorkbench } from '@world-engine/ui/create/create-workbench.js';
 import { useWorldMutations } from '@renderer/hooks/use-world-mutations.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { useWorldCreatePageModel } from './world-create-page-controller';
+import { WorldCreateRuleTruthPreview } from './world-create-rule-truth-preview.js';
 
 export default function WorldCreatePage() {
   const { t } = useTranslation();
@@ -57,6 +58,10 @@ export default function WorldCreatePage() {
             &times;
           </button>
         </div>
+      ) : null}
+
+      {workflow.createDisplayStage === 'REVIEW' ? (
+        <WorldCreateRuleTruthPreview snapshot={main.snapshot} />
       ) : null}
 
       <div className="min-h-0 flex-1">

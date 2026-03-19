@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type CreateSnapshotDto = components['schemas']['CreateSnapshotDto'];
+export type UpdateWorldRuleDto = components['schemas']['UpdateWorldRuleDto'];

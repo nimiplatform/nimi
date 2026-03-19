@@ -17,13 +17,27 @@ const mockWorldControlController = {
   worldControlControllerBatchUpsertWorldEvents: vi.fn(),
   worldControlControllerDeleteWorldEvent: vi.fn(),
   worldControlControllerListWorldLorebooks: vi.fn(),
-  worldControlControllerBatchUpsertWorldLorebooks: vi.fn(),
-  worldControlControllerDeleteWorldLorebook: vi.fn(),
   worldControlControllerListWorldMediaBindings: vi.fn(),
   worldControlControllerBatchUpsertWorldMediaBindings: vi.fn(),
   worldControlControllerDeleteWorldMediaBinding: vi.fn(),
   worldControlControllerListWorldNarrativeContexts: vi.fn(),
   worldControlControllerListWorldScenes: vi.fn(),
+};
+
+const mockWorldRulesService = {
+  worldRulesControllerGetRules: vi.fn(),
+  worldRulesControllerCreateRule: vi.fn(),
+  worldRulesControllerUpdateRule: vi.fn(),
+  worldRulesControllerDeprecateRule: vi.fn(),
+  worldRulesControllerArchiveRule: vi.fn(),
+};
+
+const mockAgentRulesService = {
+  agentRulesControllerListRules: vi.fn(),
+  agentRulesControllerCreateRule: vi.fn(),
+  agentRulesControllerUpdateRule: vi.fn(),
+  agentRulesControllerDeprecateRule: vi.fn(),
+  agentRulesControllerArchiveRule: vi.fn(),
 };
 
 const mockCreatorService = {
@@ -35,8 +49,12 @@ const mockCreatorService = {
 vi.mock('@runtime/platform-client.js', () => ({
   getPlatformClient: () => ({
     realm: {
-      worlds: mockWorldControlController,
-      services: { CreatorService: mockCreatorService },
+      services: {
+        WorldControlService: mockWorldControlController,
+        WorldRulesService: mockWorldRulesService,
+        AgentRulesService: mockAgentRulesService,
+        CreatorService: mockCreatorService,
+      },
     },
   }),
 }));
@@ -126,20 +144,31 @@ describe('world-data-client', () => {
     expect(mockWorldControlController.worldControlControllerListWorldLorebooks).toHaveBeenCalledWith('w1');
   });
 
-  it('batchUpsertWorldLorebooks passes worldId and payload', async () => {
-    const body = { lorebooks: [] };
-    await wdc.batchUpsertWorldLorebooks('w1', body);
-    expect(mockWorldControlController.worldControlControllerBatchUpsertWorldLorebooks).toHaveBeenCalledWith('w1', body);
-  });
-
-  it('deleteWorldLorebook passes worldId and lorebookId', async () => {
-    await wdc.deleteWorldLorebook('w1', 'l1');
-    expect(mockWorldControlController.worldControlControllerDeleteWorldLorebook).toHaveBeenCalledWith('w1', 'l1');
-  });
-
   it('listWorldMediaBindings passes worldId', async () => {
     await wdc.listWorldMediaBindings('w1');
     expect(mockWorldControlController.worldControlControllerListWorldMediaBindings).toHaveBeenCalledWith('w1', undefined, undefined);
+  });
+
+  it('listWorldRules passes worldId and status', async () => {
+    await wdc.listWorldRules('w1', 'ACTIVE');
+    expect(mockWorldRulesService.worldRulesControllerGetRules).toHaveBeenCalledWith('w1', 'ACTIVE');
+  });
+
+  it('createWorldRule passes worldId and payload', async () => {
+    const body = { ruleKey: 'axiom:time:module' };
+    await wdc.createWorldRule('w1', body);
+    expect(mockWorldRulesService.worldRulesControllerCreateRule).toHaveBeenCalledWith('w1', body);
+  });
+
+  it('listAgentRules passes path params and query', async () => {
+    await wdc.listAgentRules('w1', 'a1', { layer: 'IDENTITY', status: 'ACTIVE' });
+    expect(mockAgentRulesService.agentRulesControllerListRules).toHaveBeenCalledWith('w1', 'a1', 'IDENTITY', 'ACTIVE');
+  });
+
+  it('createAgentRule passes path params and payload', async () => {
+    const body = { ruleKey: 'identity:self:core' };
+    await wdc.createAgentRule('w1', 'a1', body);
+    expect(mockAgentRulesService.agentRulesControllerCreateRule).toHaveBeenCalledWith('w1', 'a1', body);
   });
 
   it('listCreatorAgents', async () => {

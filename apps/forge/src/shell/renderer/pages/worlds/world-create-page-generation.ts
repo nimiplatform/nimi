@@ -10,15 +10,62 @@ import type {
   WorldStudioWorkspaceSnapshot,
 } from '@world-engine/contracts.js';
 import { useWorldMutations } from '@renderer/hooks/use-world-mutations.js';
+import { listAgentRules, listCreatorAgents } from '@renderer/data/world-data-client.js';
 import { getPlatformClient } from '@runtime/platform-client.js';
 import {
+  asRecord,
   createForgeAiClient,
+  deriveRuleTruthDraftFromWorkspace,
+  getSelectedAgentDraftEntries,
+  resolveRuleTruthDraft,
   resolveGeneratedImageUrl,
   toDraftStatus,
 } from './world-create-page-helpers';
+
+function normalizeAgentHandle(characterName: string, worldId: string, index: number): string {
+  const worldSuffix = String(worldId || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(-4) || 'wld';
+  const base = characterName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 8);
+  const normalizedBase = base || `agent_${index + 1}`;
+  return `${normalizedBase}_${worldSuffix}`.slice(0, 16);
+}
+
+function toAgentCreatePayload(
+  entry: { characterName: string; draft: Record<string, unknown> },
+  worldId: string,
+  index: number,
+): Record<string, unknown> {
+  const concept = String(
+    entry.draft.concept
+      || entry.draft.backstory
+      || `World character ${entry.characterName}`,
+  ).trim();
+  return {
+    handle: normalizeAgentHandle(entry.characterName, worldId, index),
+    displayName: entry.characterName,
+    concept,
+    description: String(entry.draft.backstory || '').trim() || undefined,
+    worldId,
+    ownershipType: 'WORLD_OWNED',
+  };
+}
+
+function toCreatorAgentList(payload: unknown): Array<Record<string, unknown>> {
+  const record = asRecord(payload);
+  const items = Array.isArray(record.items)
+    ? record.items
+    : [];
+  return items
+    .filter((item) => item && typeof item === 'object')
+    .map((item) => asRecord(item));
+}
 type UseWorldCreatePageGenerationInput = {
   activeDraftId: string;
   mutations: ReturnType<typeof useWorldMutations>;
+  navigate: (to: string) => void;
   patchSnapshot: (patch: WorldStudioSnapshotPatch) => void;
   retryConcurrency: number;
   retryScope: 'all' | 'json' | 'coarse' | 'fine';
@@ -321,6 +368,18 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
         input.patchSnapshot({
           worldPatch: result.world,
           worldviewPatch: result.worldview,
+          ruleTruthDraft: deriveRuleTruthDraftFromWorkspace({
+            worldviewPatch: result.worldview as Record<string, unknown>,
+            sourceRef: input.snapshot.sourceRef,
+            selectedCharacters: input.snapshot.selectedCharacters,
+            agentSync: {
+              ...input.snapshot.agentSync,
+              draftsByCharacter: {
+                ...input.snapshot.agentSync.draftsByCharacter,
+                ...draftsByCharacter,
+              },
+            },
+          }),
           lorebooksDraft: Array.isArray(result.worldLorebooks)
             ? result.worldLorebooks.filter((item) => item && typeof item === 'object') as WorldLorebookDraftRow[]
             : [],
@@ -441,6 +500,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
   }, [input]);
 
   const persistDraft = useCallback(async () => {
+    const truthDraft = resolveRuleTruthDraft(input.snapshot);
     const result = await input.mutations.saveDraftMutation.mutateAsync({
       draftId: input.activeDraftId || undefined,
       sourceType: input.sourceMode,
@@ -455,9 +515,9 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
         sourceText: input.snapshot.sourceText,
         sourceRef: input.snapshot.sourceRef,
         worldPatch: input.snapshot.worldPatch,
-        worldviewPatch: input.snapshot.worldviewPatch,
+        worldRules: truthDraft.worldRules,
+        agentRules: truthDraft.agentRules,
         eventsDraft: input.snapshot.eventsDraft,
-        lorebooksDraft: input.snapshot.lorebooksDraft,
         futureEventsText: input.snapshot.futureEventsText,
         selectedStartTimeId: input.snapshot.selectedStartTimeId,
         selectedCharacters: input.snapshot.selectedCharacters,
@@ -476,12 +536,109 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
     if (!draftId) {
       throw new Error('Draft id is required before publishing.');
     }
-    await input.mutations.publishDraftMutation.mutateAsync({
+    const published = await input.mutations.publishDraftMutation.mutateAsync({
       draftId,
       reason: 'Forge manual publish',
     });
+    const record = published && typeof published === 'object' ? published as Record<string, unknown> : {};
+    const worldId = String(record.worldId || '').trim();
+    if (worldId) {
+      const agentDraftEntries = getSelectedAgentDraftEntries(input.snapshot);
+      const agentRuleDrafts = resolveRuleTruthDraft(input.snapshot).agentRules;
+      if (agentDraftEntries.length > 0) {
+        try {
+          const existingAgents = toCreatorAgentList(await listCreatorAgents()).filter(
+            (item) => String(item.worldId || '').trim() === worldId,
+          );
+          const agentsByName = new Map<string, string>();
+
+          for (const item of existingAgents) {
+            const displayName = String(item.displayName || item.name || '').trim();
+            if (displayName) {
+              agentsByName.set(displayName, String(item.id || '').trim());
+            }
+          }
+
+          const agentsToCreate = agentDraftEntries
+            .filter((entry) => !agentsByName.has(entry.characterName))
+            .map((entry, index) => toAgentCreatePayload(entry, worldId, index));
+
+          if (agentsToCreate.length > 0) {
+            const createdAgents = await input.mutations.batchCreateCreatorAgentsMutation.mutateAsync({
+              items: agentsToCreate,
+              continueOnError: true,
+            });
+            const created = Array.isArray((createdAgents as Record<string, unknown>).created)
+              ? ((createdAgents as Record<string, unknown>).created as Array<Record<string, unknown>>)
+              : [];
+
+            created.forEach((item) => {
+              const payloadIndex = Number(item.index);
+              const payload = Number.isInteger(payloadIndex) ? agentsToCreate[payloadIndex] : undefined;
+              const displayName = String(payload?.displayName || '').trim();
+              const agentId = String(item.agentId || '').trim();
+              if (displayName && agentId) {
+                agentsByName.set(displayName, agentId);
+              }
+            });
+          }
+
+          await Promise.all(agentDraftEntries.map(async (entry) => {
+            const agentId = agentsByName.get(entry.characterName);
+            if (!agentId) return;
+
+            const existingRules = await listAgentRules(worldId, agentId, { status: 'ACTIVE' });
+            const activeRules = Array.isArray(existingRules)
+              ? existingRules as Array<Record<string, unknown>>
+              : [];
+            const existingIdentityRule = activeRules.find(
+              (item) => String(item.ruleKey || '').trim() === 'identity:self:core',
+            );
+            const payload = agentRuleDrafts.find((item) => item.characterName === entry.characterName)?.payload;
+            if (!payload) return;
+
+            if (existingIdentityRule?.id) {
+              await input.mutations.updateAgentRuleMutation.mutateAsync({
+                worldId,
+                agentId,
+                ruleId: String(existingIdentityRule.id),
+                payload: {
+                  title: payload.title,
+                  statement: payload.statement,
+                  category: payload.category,
+                  hardness: payload.hardness,
+                  scope: payload.scope,
+                  importance: payload.importance,
+                  priority: payload.priority,
+                  provenance: payload.provenance,
+                  reasoning: payload.reasoning,
+                  structured: payload.structured,
+                },
+              });
+              return;
+            }
+
+            await input.mutations.createAgentRuleMutation.mutateAsync({
+              worldId,
+              agentId,
+              payload,
+            });
+          }));
+        } catch (error) {
+          input.setNotice(
+            `Draft published, but agent truth sync needs attention: ${error instanceof Error ? error.message : String(error)}`,
+          );
+          input.navigate(`/worlds/${worldId}/maintain`);
+          return;
+        }
+      }
+
+      input.setNotice('Draft published. Redirecting to Rule Truth maintenance.');
+      input.navigate(`/worlds/${worldId}/maintain`);
+      return;
+    }
     input.setNotice('Draft published.');
-  }, [input.activeDraftId, input.mutations.publishDraftMutation, input.setNotice, persistDraft]);
+  }, [input, persistDraft]);
 
   return {
     onGenerateCharacterPortrait,

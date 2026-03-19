@@ -335,16 +335,7 @@ export async function registerWorldDataCapabilities(): Promise<void> {
   });
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.lorebooksBatchUpsert, async (query) => {
-    const record = toRecord(query);
-    const worldId = String(record.worldId || '').trim();
-    if (!worldId) throw new Error('WORLD_ID_REQUIRED');
-    return requestObject({
-      method: 'POST',
-      url: '/api/worlds/{worldId}/lorebooks/batch-upsert',
-      path: { worldId },
-      body: toRecord(record.payload),
-      mediaType: 'application/json',
-    });
+    throw new Error('WORLD_LOREBOOK_PROJECTION_READ_ONLY');
   });
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.eventsBatchUpsert, async (query) => {
@@ -377,15 +368,7 @@ export async function registerWorldDataCapabilities(): Promise<void> {
   );
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.lorebooksDelete, async (query) => {
-    const record = toRecord(query);
-    const worldId = String(record.worldId || '').trim();
-    const lorebookId = String(record.lorebookId || '').trim();
-    if (!worldId || !lorebookId) throw new Error('WORLD_ID_AND_LOREBOOK_ID_REQUIRED');
-    return requestObject({
-      method: 'DELETE',
-      url: '/api/worlds/{worldId}/lorebooks/{lorebookId}',
-      path: { worldId, lorebookId },
-    });
+    throw new Error('WORLD_LOREBOOK_PROJECTION_READ_ONLY');
   });
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.eventsDelete, async (query) => {

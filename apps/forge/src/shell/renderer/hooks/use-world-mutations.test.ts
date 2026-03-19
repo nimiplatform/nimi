@@ -8,11 +8,19 @@ const mockWorldDataClient = vi.hoisted(() => ({
   updateWorldDraft: vi.fn(),
   publishWorldDraft: vi.fn(),
   updateWorldMaintenance: vi.fn(),
+  listWorldRules: vi.fn(),
+  createWorldRule: vi.fn(),
+  updateWorldRule: vi.fn(),
+  deprecateWorldRule: vi.fn(),
+  archiveWorldRule: vi.fn(),
+  listAgentRules: vi.fn(),
+  createAgentRule: vi.fn(),
+  updateAgentRule: vi.fn(),
+  deprecateAgentRule: vi.fn(),
+  archiveAgentRule: vi.fn(),
   batchUpsertWorldEvents: vi.fn(),
-  batchUpsertWorldLorebooks: vi.fn(),
   batchUpsertWorldMediaBindings: vi.fn(),
   deleteWorldEvent: vi.fn(),
-  deleteWorldLorebook: vi.fn(),
   batchCreateCreatorAgents: vi.fn(),
   listMyWorlds: vi.fn(),
   listWorldDrafts: vi.fn(),
@@ -56,6 +64,16 @@ describe('useWorldMutations', () => {
     expect(result.current).toHaveProperty('saveDraftMutation');
     expect(result.current).toHaveProperty('publishDraftMutation');
     expect(result.current).toHaveProperty('saveMaintenanceMutation');
+    expect(result.current).toHaveProperty('listWorldRulesMutation');
+    expect(result.current).toHaveProperty('createWorldRuleMutation');
+    expect(result.current).toHaveProperty('updateWorldRuleMutation');
+    expect(result.current).toHaveProperty('deprecateWorldRuleMutation');
+    expect(result.current).toHaveProperty('archiveWorldRuleMutation');
+    expect(result.current).toHaveProperty('listAgentRulesMutation');
+    expect(result.current).toHaveProperty('createAgentRuleMutation');
+    expect(result.current).toHaveProperty('updateAgentRuleMutation');
+    expect(result.current).toHaveProperty('deprecateAgentRuleMutation');
+    expect(result.current).toHaveProperty('archiveAgentRuleMutation');
     expect(result.current).toHaveProperty('syncLorebooksMutation');
     expect(result.current).toHaveProperty('syncEventsMutation');
     expect(result.current).toHaveProperty('syncMediaBindingsMutation');
@@ -119,5 +137,67 @@ describe('useWorldMutations', () => {
 
     await vi.waitFor(() => expect(result.current.deleteEventMutation.isSuccess).toBe(true));
     expect(mockWorldDataClient.deleteWorldEvent).toHaveBeenCalledWith('w1', 'e1');
+  });
+
+  it('saveMaintenanceMutation only forwards worldPatch metadata writes', async () => {
+    mockWorldDataClient.updateWorldMaintenance.mockResolvedValue({ worldId: 'w1' });
+
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useWorldMutations(), { wrapper });
+
+    await act(async () => {
+      result.current.saveMaintenanceMutation.mutate({
+        worldId: 'w1',
+        worldPatch: { name: 'Realm' },
+        reason: 'save',
+        ifSnapshotVersion: 'snap-1',
+      });
+    });
+
+    await vi.waitFor(() => expect(result.current.saveMaintenanceMutation.isSuccess).toBe(true));
+    expect(mockWorldDataClient.updateWorldMaintenance).toHaveBeenCalledWith('w1', {
+      worldPatch: { name: 'Realm' },
+      reason: 'save',
+      ifSnapshotVersion: 'snap-1',
+    });
+  });
+
+  it('createWorldRuleMutation calls createWorldRule', async () => {
+    mockWorldDataClient.createWorldRule.mockResolvedValue({ id: 'wr-1' });
+
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useWorldMutations(), { wrapper });
+
+    await act(async () => {
+      result.current.createWorldRuleMutation.mutate({
+        worldId: 'w1',
+        payload: { ruleKey: 'axiom:time:flow', title: 'Time flows', statement: 'Time flows forward.' },
+      });
+    });
+
+    await vi.waitFor(() => expect(result.current.createWorldRuleMutation.isSuccess).toBe(true));
+    expect(mockWorldDataClient.createWorldRule).toHaveBeenCalledWith('w1', {
+      ruleKey: 'axiom:time:flow',
+      title: 'Time flows',
+      statement: 'Time flows forward.',
+    });
+  });
+
+  it('archiveAgentRuleMutation calls archiveAgentRule', async () => {
+    mockWorldDataClient.archiveAgentRule.mockResolvedValue({ id: 'ar-1' });
+
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useWorldMutations(), { wrapper });
+
+    await act(async () => {
+      result.current.archiveAgentRuleMutation.mutate({
+        worldId: 'w1',
+        agentId: 'a1',
+        ruleId: 'r1',
+      });
+    });
+
+    await vi.waitFor(() => expect(result.current.archiveAgentRuleMutation.isSuccess).toBe(true));
+    expect(mockWorldDataClient.archiveAgentRule).toHaveBeenCalledWith('w1', 'a1', 'r1');
   });
 });

@@ -15,7 +15,11 @@ import type {
 import { useWorldMutations } from '@renderer/hooks/use-world-mutations.js';
 import { useCreatorWorldStore } from '@renderer/state/creator-world-store.js';
 import {
+  deriveRuleTruthDraftFromWorkspace,
   getTimeFlowRatioFromWorldviewPatch,
+  resolveRuleTruthDraft,
+  restoreAgentSyncFromAgentRuleDrafts,
+  restoreWorldviewPatchFromWorldRules,
   setTimeFlowRatioOnWorldviewPatch,
   toCreateDisplayStage,
   toImportSubview,
@@ -81,47 +85,125 @@ export function useWorldCreatePageModel({
 
   const onStepChange = useCallback((step: WorldStudioCreateStep) => setCreateStep(step), [setCreateStep]);
   const onSourceTextChange = useCallback((value: string) => patchSnapshot({ sourceText: value }), [patchSnapshot]);
-  const onSourceRefChange = useCallback((value: string) => patchSnapshot({ sourceRef: value }), [patchSnapshot]);
+  const deriveRuleTruthDraft = useCallback((overrides?: {
+    worldviewPatch?: Record<string, unknown>;
+    sourceRef?: string;
+    selectedCharacters?: string[];
+    agentSync?: typeof snapshot.agentSync;
+  }) => deriveRuleTruthDraftFromWorkspace({
+    worldviewPatch: overrides?.worldviewPatch ?? (snapshot.worldviewPatch as Record<string, unknown>),
+    sourceRef: overrides?.sourceRef ?? snapshot.sourceRef,
+    selectedCharacters: overrides?.selectedCharacters ?? snapshot.selectedCharacters,
+    agentSync: overrides?.agentSync ?? snapshot.agentSync,
+  }), [snapshot.agentSync, snapshot.selectedCharacters, snapshot.sourceRef, snapshot.worldviewPatch]);
+  const onSourceRefChange = useCallback((value: string) => patchSnapshot({
+    sourceRef: value,
+    ruleTruthDraft: deriveRuleTruthDraft({ sourceRef: value }),
+  }), [deriveRuleTruthDraft, patchSnapshot]);
   const onSelectStartTimeId = useCallback((value: string) => patchSnapshot({ selectedStartTimeId: value }), [patchSnapshot]);
+  const applyRuleTruthDraft = useCallback((value: typeof snapshot.ruleTruthDraft) => {
+    const restoredWorldviewPatch = restoreWorldviewPatchFromWorldRules(value.worldRules);
+    const restoredAgentSync = restoreAgentSyncFromAgentRuleDrafts(value.agentRules);
+    patchSnapshot({
+      ruleTruthDraft: value,
+      worldviewPatch: restoredWorldviewPatch,
+      lorebooksDraft: [],
+      agentSync: restoredAgentSync,
+      selectedCharacters: restoredAgentSync.selectedCharacterIds.length > 0
+        ? restoredAgentSync.selectedCharacterIds
+        : snapshot.selectedCharacters,
+    });
+  }, [patchSnapshot, snapshot.selectedCharacters]);
   const onToggleCharacter = useCallback((name: string, checked: boolean) => {
     const next = checked
       ? [...snapshot.selectedCharacters, name]
       : snapshot.selectedCharacters.filter((item) => item !== name);
-    patchSnapshot({ selectedCharacters: next });
-  }, [patchSnapshot, snapshot.selectedCharacters]);
+    patchSnapshot({
+      selectedCharacters: next,
+      ruleTruthDraft: deriveRuleTruthDraft({ selectedCharacters: next }),
+    });
+  }, [deriveRuleTruthDraft, patchSnapshot, snapshot.selectedCharacters]);
   const onToggleAgentSyncCharacter = useCallback((name: string, checked: boolean) => {
-    const next = checked
-      ? [...snapshot.agentSync.selectedCharacterIds, name]
-      : snapshot.agentSync.selectedCharacterIds.filter((item) => item !== name);
-    patchSnapshot({ agentSync: { ...snapshot.agentSync, selectedCharacterIds: next } });
-  }, [patchSnapshot, snapshot.agentSync]);
+    const truthDraft = resolveRuleTruthDraft(snapshot);
+    const hasRule = truthDraft.agentRules.some((item) => item.characterName === name);
+    const nextAgentRules = checked
+      ? (hasRule
+        ? truthDraft.agentRules
+        : deriveRuleTruthDraft({
+          agentSync: {
+            ...snapshot.agentSync,
+            selectedCharacterIds: [...snapshot.agentSync.selectedCharacterIds, name],
+          },
+        }).agentRules)
+      : truthDraft.agentRules.filter((item) => item.characterName !== name);
+    applyRuleTruthDraft({
+      ...truthDraft,
+      agentRules: nextAgentRules,
+    });
+  }, [applyRuleTruthDraft, deriveRuleTruthDraft, snapshot]);
   const onTimeFlowRatioChange = useCallback((value: string) => {
-    patchSnapshot({ worldviewPatch: setTimeFlowRatioOnWorldviewPatch(snapshot.worldviewPatch, value) });
-  }, [patchSnapshot, snapshot.worldviewPatch]);
+    const truthDraft = resolveRuleTruthDraft(snapshot);
+    const worldviewPatch = setTimeFlowRatioOnWorldviewPatch(
+      restoreWorldviewPatchFromWorldRules(truthDraft.worldRules),
+      value,
+    );
+    applyRuleTruthDraft({
+      ...truthDraft,
+      worldRules: deriveRuleTruthDraft({
+        worldviewPatch,
+      }).worldRules,
+    });
+  }, [applyRuleTruthDraft, deriveRuleTruthDraft, snapshot]);
   const onFutureEventsTextChange = useCallback((value: string) => patchSnapshot({ futureEventsText: value }), [patchSnapshot]);
   const onWorldPatchChange = useCallback((value: Record<string, unknown>) => patchSnapshot({ worldPatch: value }), [patchSnapshot]);
-  const onWorldviewPatchChange = useCallback((value: Record<string, unknown>) => patchSnapshot({ worldviewPatch: value }), [patchSnapshot]);
+  const onWorldviewPatchChange = useCallback((value: Record<string, unknown>) => patchSnapshot({
+    worldviewPatch: value,
+    ruleTruthDraft: deriveRuleTruthDraft({ worldviewPatch: value }),
+  }), [deriveRuleTruthDraft, patchSnapshot]);
+  const onRuleTruthDraftChange = useCallback((value: typeof snapshot.ruleTruthDraft) => {
+    applyRuleTruthDraft(value);
+  }, [applyRuleTruthDraft]);
   const onAgentDraftChange = useCallback((name: string, patch: Partial<WorldStudioAgentDraft>) => {
-    patchSnapshot({
-      agentSync: {
-        ...snapshot.agentSync,
-        draftsByCharacter: {
-          ...snapshot.agentSync.draftsByCharacter,
-          [name]: {
-            ...(snapshot.agentSync.draftsByCharacter[name] || {
-              characterName: name,
-              handle: '',
-              concept: '',
-              backstory: '',
-              coreValues: '',
-              relationshipStyle: '',
-            }),
-            ...patch,
-          },
-        },
+    const truthDraft = resolveRuleTruthDraft(snapshot);
+    const existing = truthDraft.agentRules.find((item) => item.characterName === name);
+    const existingStructured = existing?.payload && typeof existing.payload === 'object'
+      ? ((existing.payload as Record<string, unknown>).structured as Record<string, unknown> | undefined)
+      : undefined;
+    const nextStructured: Record<string, unknown> = {
+      characterName: name,
+      handle: patch.handle ?? existingStructured?.handle ?? null,
+      concept: patch.concept ?? existingStructured?.concept ?? null,
+      backstory: patch.backstory ?? existingStructured?.backstory ?? null,
+      coreValues: patch.coreValues ?? existingStructured?.coreValues ?? null,
+      relationshipStyle: patch.relationshipStyle ?? existingStructured?.relationshipStyle ?? null,
+      dnaPrimary: patch.dnaPrimary ?? existingStructured?.dnaPrimary ?? null,
+      dna: patch.dna ?? existingStructured?.dna ?? null,
+    };
+    const nextAgentRule = {
+      characterName: name,
+      payload: {
+        ruleKey: existing?.payload?.ruleKey || 'identity:self:core',
+        title: existing?.payload?.title || `${name} Core Identity`,
+        statement: existing?.payload?.statement || `${name} identity draft from Forge world creation.`,
+        layer: existing?.payload?.layer || 'DNA',
+        category: existing?.payload?.category || 'DEFINITION',
+        hardness: existing?.payload?.hardness || 'FIRM',
+        scope: existing?.payload?.scope || 'SELF',
+        importance: existing?.payload?.importance || 80,
+        priority: existing?.payload?.priority || 100,
+        provenance: existing?.payload?.provenance || 'CREATOR',
+        reasoning: existing?.payload?.reasoning || 'Seeded from Forge world create draft.',
+        structured: nextStructured,
       },
+    };
+    const nextAgentRules = truthDraft.agentRules.some((item) => item.characterName === name)
+      ? truthDraft.agentRules.map((item) => (item.characterName === name ? nextAgentRule : item))
+      : [...truthDraft.agentRules, nextAgentRule];
+    applyRuleTruthDraft({
+      ...truthDraft,
+      agentRules: nextAgentRules,
     });
-  }, [patchSnapshot, snapshot.agentSync]);
+  }, [applyRuleTruthDraft, snapshot]);
   const onEventsGraphChange = useCallback((next: { primary: EventNodeDraft[]; secondary: EventNodeDraft[] }) => {
     patchSnapshot({ eventsDraft: next });
   }, [patchSnapshot]);
@@ -131,6 +213,9 @@ export function useWorldCreatePageModel({
   const onLorebooksChange = useCallback((value: WorldLorebookDraftRow[]) => {
     patchSnapshot({ lorebooksDraft: value });
   }, [patchSnapshot]);
+  const onReviewLorebooksChange = useCallback((_value: WorldLorebookDraftRow[]) => {
+    setNotice('Lorebooks are derived projections. Review and publish World Rules or Agent Rules instead of editing lorebooks.');
+  }, []);
 
   const {
     onGenerateCharacterPortrait,
@@ -147,6 +232,7 @@ export function useWorldCreatePageModel({
   } = useWorldCreatePageGeneration({
     activeDraftId,
     mutations,
+    navigate,
     patchSnapshot,
     retryConcurrency,
     retryScope,
@@ -162,10 +248,13 @@ export function useWorldCreatePageModel({
 
   const activeTask = snapshot.taskState.activeTask;
   const working = activeTask ? ['RUNNING', 'PAUSE_REQUESTED'].includes(activeTask.status) : false;
-  const selectedAgentSyncCharacters = snapshot.agentSync.selectedCharacterIds.length > 0
-    ? snapshot.agentSync.selectedCharacterIds
+  const resolvedRuleTruthDraft = resolveRuleTruthDraft(snapshot);
+  const truthDerivedWorldviewPatch = restoreWorldviewPatchFromWorldRules(resolvedRuleTruthDraft.worldRules);
+  const truthDerivedAgentSync = restoreAgentSyncFromAgentRuleDrafts(resolvedRuleTruthDraft.agentRules);
+  const selectedAgentSyncCharacters = truthDerivedAgentSync.selectedCharacterIds.length > 0
+    ? truthDerivedAgentSync.selectedCharacterIds
     : snapshot.selectedCharacters;
-  const timeFlowRatio = getTimeFlowRatioFromWorldviewPatch(snapshot.worldviewPatch);
+  const timeFlowRatio = getTimeFlowRatioFromWorldviewPatch(truthDerivedWorldviewPatch);
 
   const workflow: WorldStudioWorkflowSlice = {
     landing: { target: 'CREATE', worldId: null, reason: null },
@@ -202,6 +291,7 @@ export function useWorldCreatePageModel({
     routeOptions: null,
     eventSyncMode: 'merge',
     selectedAgentSyncCharacters,
+    truthDerivedAgentDraftsByCharacter: truthDerivedAgentSync.draftsByCharacter as WorldStudioMainSlice['truthDerivedAgentDraftsByCharacter'],
     eventsGraph: snapshot.eventsDraft,
     timeFlowRatio,
     importSubview: toImportSubview(snapshot.createStep),
@@ -338,8 +428,9 @@ export function useWorldCreatePageModel({
     review: {
       onWorldPatchChange,
       onWorldviewPatchChange,
+      onRuleTruthDraftChange,
       onEventsChange: onEventsGraphChange,
-      onLorebooksChange,
+      onLorebooksChange: onReviewLorebooksChange,
       onEventGraphLayoutChange,
       saveDraft: async () => {
         await persistDraft();

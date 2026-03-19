@@ -79,14 +79,6 @@ export async function listWorldLorebooks(worldId: string) {
   return realm().services.WorldControlService.worldControlControllerListWorldLorebooks(worldId);
 }
 
-export async function batchUpsertWorldLorebooks(worldId: string, payload: Record<string, unknown>) {
-  return realm().services.WorldControlService.worldControlControllerBatchUpsertWorldLorebooks(worldId, payload);
-}
-
-export async function deleteWorldLorebook(worldId: string, lorebookId: string) {
-  return realm().services.WorldControlService.worldControlControllerDeleteWorldLorebook(worldId, lorebookId);
-}
-
 // ── Visual Bindings ────────────────────────────────────────
 
 export async function listWorldMediaBindings(worldId: string, query?: Record<string, unknown>) {
@@ -116,6 +108,95 @@ export async function batchCreateCreatorAgents(payload: {
   continueOnError?: boolean;
 }) {
   return realm().services.CreatorService.creatorControllerBatchCreateAgents(payload);
+}
+
+// ── Rule Truth CRUD ────────────────────────────────────────
+
+export async function listWorldRules(worldId: string, status?: string) {
+  return realm().services.WorldRulesService.worldRulesControllerGetRules(worldId, status);
+}
+
+export async function createWorldRule(worldId: string, payload: Record<string, unknown>) {
+  return realm().services.WorldRulesService.worldRulesControllerCreateRule(worldId, payload);
+}
+
+export async function updateWorldRule(
+  worldId: string,
+  ruleId: string,
+  payload: Record<string, unknown>,
+) {
+  return realm().services.WorldRulesService.worldRulesControllerUpdateRule(worldId, ruleId, payload);
+}
+
+export async function deprecateWorldRule(worldId: string, ruleId: string) {
+  return realm().services.WorldRulesService.worldRulesControllerDeprecateRule(worldId, ruleId);
+}
+
+export async function archiveWorldRule(worldId: string, ruleId: string) {
+  return realm().services.WorldRulesService.worldRulesControllerArchiveRule(worldId, ruleId);
+}
+
+export async function listAgentRules(
+  worldId: string,
+  agentId: string,
+  query?: Record<string, unknown>,
+) {
+  return realm().services.AgentRulesService.agentRulesControllerListRules(
+    worldId,
+    agentId,
+    query?.layer as string | undefined,
+    query?.status as string | undefined,
+  );
+}
+
+export async function createAgentRule(
+  worldId: string,
+  agentId: string,
+  payload: Record<string, unknown>,
+) {
+  return realm().services.AgentRulesService.agentRulesControllerCreateRule(
+    worldId,
+    agentId,
+    payload,
+  );
+}
+
+export async function updateAgentRule(
+  worldId: string,
+  agentId: string,
+  ruleId: string,
+  payload: Record<string, unknown>,
+) {
+  return realm().services.AgentRulesService.agentRulesControllerUpdateRule(
+    worldId,
+    agentId,
+    ruleId,
+    payload,
+  );
+}
+
+export async function deprecateAgentRule(
+  worldId: string,
+  agentId: string,
+  ruleId: string,
+) {
+  return realm().services.AgentRulesService.agentRulesControllerDeprecateRule(
+    worldId,
+    agentId,
+    ruleId,
+  );
+}
+
+export async function archiveAgentRule(
+  worldId: string,
+  agentId: string,
+  ruleId: string,
+) {
+  return realm().services.AgentRulesService.agentRulesControllerArchiveRule(
+    worldId,
+    agentId,
+    ruleId,
+  );
 }
 
 // ── Additional Queries (Narrative / Scenes) ────────────────
